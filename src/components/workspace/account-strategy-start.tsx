@@ -11,6 +11,7 @@ import { useAccountSession, type VerifiedAccount } from "./account-session";
 import { createAccountInput } from "./project-draft-adapter";
 import { DRAFT_STORAGE_KEY, getLocalDraft, localDraftStorageState, type LocalDraft } from "./local-drafts";
 import { forgetStrategyIntent, formatStrategyCap, promptStrategyPlan, rememberStrategyPlan, strategyAvailabilityMessage, strategyAllowanceWithin, strategyRequestPayload, strategyJobMatchesRequest, verifyStrategyJobs } from "./account-strategy-client";
+import { rememberPromptForSignIn } from "./prompt-recovery";
 
 type Availability = z.infer<typeof strategyRuntimeResponseSchema>["availability"];
 // Project creation has no idempotency key. Retain only recovery IDs, never prompts
@@ -61,6 +62,21 @@ function readReceipt(ownerId: string, draftId: string) {
   retireConfirmedReceipts(ownerId, draftId);
   return receipts.get(receiptId(ownerId, draftId)) ?? null;
 }
+function readDraftFence(draftId: string) {
+  if ([...receipts.values()].some(receipt => receipt.draftId === draftId)) return true;
+  // Older Home markers had no edit-fence bit. Before authentication, consult only
+  // the local receipt metadata for a boolean fence; never expose an owner's destination.
+  for (let index = 0; index < window.sessionStorage.length; index++) {
+    const key = window.sessionStorage.key(index);
+    if (!key || (key !== legacyReceiptKey && !key.startsWith("fluid.strategy-starts.v2:"))) continue;
+    const raw = window.sessionStorage.getItem(key);
+    if (!raw?.includes(draftId)) continue;
+    const stored = z.array(startReceiptSchema).max(250).safeParse((() => { try { return JSON.parse(raw); } catch { return null; } })());
+    if (!stored.success) throw new StartReceiptRecoveryError("Saved recovery records could not be verified. Check account brands before continuing.");
+    if (stored.data.some(receipt => receipt.draftId === draftId)) return true;
+  }
+  return false;
+}
 function rememberReceipt(receipt: StartReceipt) {
   const owned = ownerReceipts(receipt.ownerId);
   if (!receipts.has(receiptId(receipt.ownerId, receipt.draftId)) && (owned.filter(item => item.projectId === null).length >= 200 || owned.length >= 250)) {
@@ -79,13 +95,15 @@ function subscriptionLimitsLabel(limits: NonNullable<ReturnType<typeof promptStr
 }
 
 /** Starts from the independent browser copy; unavailable AI never becomes a fake Send. */
-export function useAccountStrategyStart({ beforeSignIn }: { beforeSignIn?: (locked: boolean) => boolean } = {}) {
+export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, recoveryLocked = false }: { beforeSignIn?: (locked: boolean) => boolean; recoveryDraftId?: string | null; recoveryLocked?: boolean } = {}) {
   const { session, isCurrent, expire, refresh } = useAccountSession();
   const router = useRouter();
   const identity = session.status === "ready" ? `${session.userId}:${session.generation}` : `unverified:${session.generation}`;
   const [runtime, setRuntime] = useState<{ identity: string; availability: Availability | null } | null>(null);
   const [action, setAction] = useState<{ identity: string; pending: boolean; message: string; recoveryBlocked?: boolean } | null>(null);
   const [retained, setRetained] = useState<StartReceipt | null>(null);
+  const recoveryKey = `${identity}:${recoveryDraftId ?? ""}`;
+  const [checkedRecovery, setCheckedRecovery] = useState<{ key: string; receipt: StartReceipt | null; fenced: boolean; error: string | null } | null>(null);
   const request = useRef<AbortController | null>(null);
   const readinessRequest = useRef<AbortController | null>(null);
   const mounted = useRef(false);
@@ -108,11 +126,33 @@ export function useAccountStrategyStart({ beforeSignIn }: { beforeSignIn?: (lock
       request.current?.abort(); request.current = null;
     };
   }, [session, identity, isCurrent, expire]);
+  useEffect(() => {
+    if (!recoveryDraftId) return;
+    let receipt: StartReceipt | null = null, error: string | null = null, fenced = false;
+    try {
+      if (session.status === "ready" && isCurrent(session)) receipt = readReceipt(session.userId, recoveryDraftId);
+      fenced = Boolean(receipt) || readDraftFence(recoveryDraftId);
+    }
+    catch (cause) { error = cause instanceof Error ? cause.message : "Saved recovery records could not be verified. Check account brands before continuing."; }
+    // Receipt hydration is read-only with respect to account/project requests.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCheckedRecovery({ key: recoveryKey, receipt, fenced, error });
+  }, [recoveryDraftId, recoveryKey, session, isCurrent]);
   const currentRuntime = runtime?.identity === identity ? runtime : null;
   const plan = promptStrategyPlan(currentRuntime?.availability ?? null);
   const pending = action?.identity === identity && action.pending;
-  const recovery = session.status === "ready" && retained?.ownerId === session.userId ? retained : null;
+  const checked = checkedRecovery?.key === recoveryKey ? checkedRecovery : null;
+  const checkingRecovery = Boolean(recoveryDraftId) && (session.status === "checking" || !checked);
+  const knownRecovery = Boolean(checked?.fenced || (recoveryDraftId && [...receipts.values()].some(receipt => receipt.draftId === recoveryDraftId)));
+  const recovered = retained ?? checked?.receipt;
+  const recovery = session.status === "ready" && recovered?.ownerId === session.userId ? recovered : null;
+  const recoveryBlocked = checkingRecovery || Boolean(checked?.error) || Boolean(recovery && !recovery.projectId) || ((recoveryLocked || knownRecovery) && !recovery);
+  const locked = Boolean(retained || checked?.receipt || checked?.error || recoveryLocked || knownRecovery || checkingRecovery);
   const message = action?.identity === identity ? action.message : "";
+  const recoveryMessage = checkingRecovery ? "Checking the saved prompt's recovery status before editing or sending…"
+    : recovery?.projectId ? "Your account copy is saved. Open it below to check the original request."
+    : recovery ? "The earlier account save is not confirmed. Your original prompt is kept; check account brands before continuing."
+    : recoveryLocked || knownRecovery ? "This prompt is locked to an earlier account save. Verify the same account before continuing. No new request has been sent." : "";
 
 
   async function verifySession(account: VerifiedAccount, controller: AbortController) {
@@ -147,7 +187,7 @@ export function useAccountStrategyStart({ beforeSignIn }: { beforeSignIn?: (lock
   }
 
   async function start(draft: LocalDraft): Promise<boolean> {
-    if (request.current || session.status !== "ready" || !isCurrent(session)) return false;
+    if (request.current || session.status !== "ready" || !isCurrent(session) || (draft.id === recoveryDraftId && recoveryBlocked)) return false;
     const account = session, controller = new AbortController();
     request.current = controller; readinessRequest.current?.abort();
     setAction({ identity, pending: true, message: "" });
@@ -179,6 +219,10 @@ export function useAccountStrategyStart({ beforeSignIn }: { beforeSignIn?: (lock
       const input = createAccountInput(draft);
       const pendingReceipt = { ownerId: account.userId, draftId: draft.id, projectId: null };
       rememberReceipt(pendingReceipt); // Capacity errors happen before an attempted save is recorded.
+      // Persist the Home edit fence before the first non-idempotent account save.
+      // The running tab's existing receipt guard remains authoritative if storage fails.
+      try { rememberPromptForSignIn(draft.id, true); }
+      catch { /* The in-memory receipt still fences this draft across component remounts. */ }
       receipt = pendingReceipt; setRetained(receipt);
       setAction({ identity, pending: true, message: "Saving an account copy of your prompt…" });
       let project;
@@ -189,6 +233,7 @@ export function useAccountStrategyStart({ beforeSignIn }: { beforeSignIn?: (lock
         // acknowledgements and server errors remain uncertain, with no retry POST.
         if (error instanceof AccountRequestError && [400, 401, 403, 413, 422, 429].includes(error.status)) {
           forgetReceipt(receipt); receipt = null; if (current()) setRetained(null);
+          try { rememberPromptForSignIn(draft.id); } catch { /* Keep the stricter durable fence if storage became unavailable. */ }
         }
         throw error;
       }
@@ -229,7 +274,8 @@ export function useAccountStrategyStart({ beforeSignIn }: { beforeSignIn?: (lock
     }
   }
   const notice = <div>
-    <p className="field-hint" role="status">{pending ? message || "Checking your account and AI readiness…" : message || (session.status === "checking"
+    {checked?.error && <p className="form-error" role="alert">{checked.error}</p>}
+    <p className="field-hint" role="status">{pending ? message || "Checking your account and AI readiness…" : message || recoveryMessage || (session.status === "checking"
       ? "Checking your account. Your prompt is kept; send once verification finishes."
       : session.status === "signed_out" ? "Sign in to request an AI response. Your prompt is kept. You can also save a browser draft."
       : session.status !== "ready" ? "Your account could not be verified. Recheck your account before requesting AI. Your prompt is kept."
@@ -248,11 +294,11 @@ export function useAccountStrategyStart({ beforeSignIn }: { beforeSignIn?: (lock
     {action?.identity === identity && action.recoveryBlocked && <p className="field-hint"><Link className="text-link" href="/brands">Check account brands</Link></p>}
     {recovery && <p className="field-hint">{recovery.projectId
       ? <Link className="text-link" href={`/brands/account/${recovery.projectId}`}>Open saved account project and check AI status</Link>
-      : <>The account save is not confirmed. <Link className="text-link" href="/brands">Check account brands</Link> before trying another account save. Your browser draft is kept.</>}</p>}
+      : <>The earlier account save is not confirmed. <Link className="text-link" href="/brands">Check account brands</Link> before trying another account save. Your browser draft is kept.</>}</p>}
     <div className="account-strategy-actions">
-      {session.status === "signed_out" && <Link className="text-link" href="/sign-in" onClick={event => { if (beforeSignIn && !beforeSignIn(Boolean(retained))) event.preventDefault(); }}>Sign in</Link>}
+      {session.status === "signed_out" && <Link className="text-link" href="/sign-in" onClick={event => { if (beforeSignIn && !beforeSignIn(locked)) event.preventDefault(); }}>Sign in</Link>}
       <button type="button" className="text-link" disabled={pending || session.status === "checking"} onClick={() => void recheck()}>{session.status === "ready" ? "Recheck AI availability" : "Recheck account"}</button>
     </div>
   </div>;
-  return { notice, pending, start, locked: Boolean(retained), recoveryProjectId: recovery?.projectId ?? null };
+  return { notice, pending, start, locked, checkingRecovery, recoveryBlocked, recoveryProjectId: recovery?.projectId ?? null };
 }

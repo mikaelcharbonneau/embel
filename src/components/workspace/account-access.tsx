@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
 import { useEffect, useRef, useState } from "react";
 import { useAccountSession } from "./account-session";
+import { preparePromptForSignIn } from "./prompt-recovery";
 import "@/styles/auth.css";
 
 export function AccountAccess() {
@@ -26,7 +27,7 @@ export function AccountAccess() {
   return <>
     <div className="topbar-account auth-account-access">
       <button type="button" className="icon-button subtle account-check" aria-label={session.status === "checking" ? "Checking account…" : "Check account"} title="Check account" onClick={refresh} disabled={session.status === "checking" || signingIn || signingOut}><Icon name="refresh" size={18} /></button>
-      {signingIn ? <button type="button" className="text-link auth-session-action" disabled>Signing in…</button> : session.status === "ready" || signingOut || signOutError ? <button type="button" className="text-link auth-session-action" onClick={() => void startSignOut()} disabled={signingOut}>{signingOut ? "Signing out…" : signOutError ? "Retry sign-out" : "Sign out"}</button> : <Link className="text-link auth-session-action" href="/sign-in">Sign in</Link>}
+      {signingIn ? <button type="button" className="text-link auth-session-action" disabled>Signing in…</button> : session.status === "ready" || signingOut || signOutError ? <button type="button" className="text-link auth-session-action" onClick={() => void startSignOut()} disabled={signingOut}>{signingOut ? "Signing out…" : signOutError ? "Retry sign-out" : "Sign out"}</button> : <Link className="text-link auth-session-action" href="/sign-in" onClick={event => { if (!preparePromptForSignIn()) event.preventDefault(); }}>Sign in</Link>}
       <Link className="preview-badge" href="/settings">{session.status === "ready" ? "Account connected" : "Local preview"}</Link>
     </div>
     <dialog ref={dialog} className="auth-signout-dialog" aria-labelledby="sign-out-title" aria-describedby="sign-out-description" onCancel={() => setConfirmSignOut(false)} onClick={event => { if (event.target === event.currentTarget) setConfirmSignOut(false); }}>
