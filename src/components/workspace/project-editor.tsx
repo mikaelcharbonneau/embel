@@ -1,0 +1,327 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Fragment, useEffect, useEffectEvent, useId, useRef, useState, useTransition, useMemo, useCallback, useSyncExternalStore } from "react";
+import type { ContextSnapshot, ProjectScope } from "@/domain/projects";
+import type { NamingSource } from "@/domain/naming";
+import { initialConversation, type ConversationWidget } from "@/domain/conversation";
+import { Icon } from "@/components/ui/icon";
+import { AccountCopyControl } from "./account-projects";
+import { useAccountStrategyStart } from "./account-strategy-start";
+import { useAccountSession } from "./account-session";
+import { createAccountLifecycleClient } from "./account-lifecycle-client";
+import { HomeInputControls } from "@/features/home-inputs/home-input-controls";
+import { createOnDeviceVoiceAdapter } from "@/features/home-inputs/on-device-voice-adapter";
+import { unavailableHomeVoiceAdapter, type OnDeviceSpeechEnvironment } from "@/features/home-inputs/voice-contract";
+import { saveAttachedHomeDraft } from "@/features/home-inputs/home-input-session";
+import type { AttachmentPolicy } from "@/domain/attachments";
+import { NameOrigin } from "./name-origin";
+import { CompetitorReview } from "./competitor-review";
+import { PersonalityReview, PositioningReview } from "./strategy-review";
+import { ConversationComposer } from "./conversation-composer";
+import { AudienceConversationWidget, WidgetSummary, widgetLabels } from "./conversation-widgets";
+import {
+  competitorReviewKey, conversationContextKey, conversationPromptPatch, conversationWidgetPatch, draftConversation,
+  isAudienceReviewComplete, isCompetitorReviewComplete, isPersonalityReviewComplete, isPositioningReviewComplete,
+  personalityReviewKey, positioningReviewKey,
+} from "./project-draft-adapter";
+import { briefExamples, createLocalDraft, deleteLocalDraft, draftTitle, getLocalDraft, scopeDetails, scopeLabel, updateLocalDraft, useLocalDrafts, type LocalDraft } from "./local-drafts";
+import "@/styles/conversation.css";
+
+function ScopePicker({ value, onChange, disabled = false }: { value: ProjectScope; onChange: (scope: ProjectScope) => void; disabled?: boolean }) {
+  const name = useId();
+  return <fieldset className="scope-picker compact" disabled={disabled}><legend className="sr-only">Project scope</legend><div className="scope-options">{scopeDetails.map((scope) => <label key={scope.value} className={`scope-option ${value === scope.value ? "selected" : ""}`}><input type="radio" disabled={disabled} name={name} value={scope.value} checked={value === scope.value} onChange={() => { if (!disabled) onChange(scope.value); }} /><Icon name={scope.icon} size={18} /><span><strong>{scope.label}</strong></span><span className="scope-check" aria-hidden="true">{value === scope.value && <Icon name="check" size={12} />}</span></label>)}</div></fieldset>;
+}
+
+export function NewProjectForm({ initialScope, exampleId, home = false }: { initialScope: ProjectScope; exampleId?: string; home?: boolean }) {
+  const example = briefExamples.find((item) => item.id === exampleId);
+  const [scope, setScope] = useState(initialScope);
+  const [prompt, setPrompt] = useState<string>(example?.description ?? "");
+  const [exampleUsed, setExampleUsed] = useState(Boolean(example));
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [navigating, startNavigation] = useTransition();
+  const [textDraftId, setTextDraftId] = useState<string | null>(null);
+  const textDraft = useRef<string | null>(null);
+  const submittingRef = useRef(false), attachedRequest = useRef<AbortController | null>(null);
+  const { loaded, drafts } = useLocalDrafts();
+  function keepTextDraft(locked = false) {
+    const previous = textDraft.current ? getLocalDraft(textDraft.current) : null;
+    if (textDraft.current && !previous) throw new Error("The original browser draft is unavailable. Check your saved brands before trying again.");
+    if (previous) {
+      if (!locked) updateLocalDraft(previous.id, { scope, description: prompt.trim(), example: exampleUsed, conversation: initialConversation(prompt.trim(), previous.createdAt) });
+      return previous.id;
+    }
+    const id = createLocalDraft({ title: "", scope, description: prompt.trim(), suppliedName: "", namingNotes: "", identityNotes: "", example: exampleUsed });
+    if (id) { textDraft.current = id; setTextDraftId(id); }
+    return id;
+  }
+  const strategy = useAccountStrategyStart({ beforeSignIn: (locked) => {
+    if (!prompt.trim()) return true;
+    try {
+      if (keepTextDraft(locked)) return true;
+      setError("This browser has 50 drafts. Save your prompt before leaving to sign in.");
+    } catch { setError("Your prompt could not be kept. Copy it before leaving to sign in."); }
+    return false;
+  } });
+  const { session, isCurrent, expire, homeInputSession } = useAccountSession();
+  const account = session.status === "ready" ? session : null;
+  const client = useMemo(() => account ? createAccountLifecycleClient(account, isCurrent, expire) : null, [account, isCurrent, expire]);
+  const sessionFence = `${account?.userId ?? "unverified"}:${session.generation}`;
+  const voice = useMemo(() => typeof window === "undefined" ? unavailableHomeVoiceAdapter : createOnDeviceVoiceAdapter(window as unknown as OnDeviceSpeechEnvironment), []);
+  const readHome = useCallback(() => account ? homeInputSession.get(account) : null, [account, homeInputSession]);
+  const inputIntent = useSyncExternalStore(homeInputSession.subscribe, readHome, () => null);
+  const selectingFiles = useSyncExternalStore(homeInputSession.subscribe, homeInputSession.isSelecting, () => false);
+  const retainedFiles = useSyncExternalStore(homeInputSession.subscribe, homeInputSession.hasUnsaved, () => false);
+  const [capability, setCapability] = useState<{ fence: string; policy: AttachmentPolicy | null; reason: string | null } | null>(null);
+  const router = useRouter();
+  useEffect(() => {
+    const controller = new AbortController();
+    if (client && account) void client.getHomeAttachmentCapability(controller.signal).then(result => {
+      if (result && !controller.signal.aborted && isCurrent(account)) setCapability({ fence: sessionFence, policy: result.policy, reason: result.reason });
+    }).catch(() => { if (!controller.signal.aborted && isCurrent(account)) setCapability({ fence: sessionFence, policy: null, reason: "Verified file storage is unavailable. Your typed prompt stays available." }); });
+    return () => { controller.abort(); attachedRequest.current?.abort(); };
+  }, [account, client, isCurrent, sessionFence]);
+  const currentCapability = capability?.fence === sessionFence ? capability : null;
+  const hiddenFiles = retainedFiles && !account;
+  const hasFiles = !!inputIntent?.files.length;
+  const frozenProject = inputIntent?.saveIntent?.project;
+  const frozenBrief = !!frozenProject;
+  const displayedPrompt = frozenProject?.context.description ?? prompt;
+  const displayedScope = frozenProject?.scope ?? scope;
+  const displayedExample = frozenProject?.context.intake.example ?? exampleUsed;
+  const frozenInputs = submitting || strategy.pending || strategy.locked || navigating || frozenBrief || hiddenFiles;
+  const disabled = !loaded || (!inputIntent?.browserDraftId && !textDraftId && drafts.length >= 50) || submitting || strategy.pending || navigating || hiddenFiles || selectingFiles;
+
+  function canEditInputs() {
+    if (submittingRef.current || strategy.pending || strategy.locked || navigating) return false;
+    if (homeInputSession.hasUnsaved() && (!account || !isCurrent(account))) return false;
+    return !account || !homeInputSession.get(account)?.saveIntent;
+  }
+  function editPrompt(value: string) { if (canEditInputs()) { setPrompt(value); setError(""); } }
+
+
+
+  async function sendPrompt(mode: "ai" | "draft" = "ai") {
+    if (submittingRef.current || navigating || strategy.pending) return;
+    if (homeInputSession.isSelecting()) { setError("Finish or explicitly cancel the pending file selection before sending."); return; }
+    // A session fence hides the file body, not the fact that an unsaved file intent must be recovered.
+    if (homeInputSession.hasUnsaved() && (!account || !isCurrent(account))) { setError("Check the same account before sending this attached brief. Its files are retained privately in this tab."); return; }
+    const original = account ? homeInputSession.get(account) : null;
+    if (mode === "draft" && (original?.files.length || original?.saveIntent)) { setError("Use Save brief with files to keep the attached brief together. A browser-only save does not send files."); return; }
+    if (!original?.saveIntent && !prompt.trim()) { setError("Write a prompt to start the conversation."); return; }
+    if (!original?.saveIntent && prompt.length > 12000) { setError("Keep this prompt within 12,000 characters."); return; }
+    submittingRef.current = true; setSubmitting(true); setError("");
+    const controller = new AbortController(); attachedRequest.current = controller;
+    try {
+      if (original?.files.length) {
+        if (!account || !client || !isCurrent(account)) return;
+        let id = original.browserDraftId;
+        if (!id) {
+          id = keepTextDraft(strategy.locked);
+          if (!id) { setError("This browser has 50 drafts. Remove an unused draft before starting another."); return; }
+          if (!homeInputSession.set(account, { ...original, browserDraftId: id })) return;
+        }
+        const retained = homeInputSession.get(account);
+        const created = getLocalDraft(id);
+        if (!created && !retained?.saveIntent) throw new Error("The original browser copy is unavailable. Your pending account files are retained; no replacement draft was created.");
+        const receipt = await saveAttachedHomeDraft({ account, draft: created ?? null, memory: homeInputSession, client, signal: controller.signal });
+        if (receipt && !controller.signal.aborted && isCurrent(account)) startNavigation(() => router.push(`/brands/account/${receipt.project.id}`));
+        else if (!controller.signal.aborted && isCurrent(account)) setError("The attached brief is not confirmed yet. Its original prompt, files and request are retained for checking.");
+        return; // Files never fall through to implicit Strategy processing.
+      }
+      const id = keepTextDraft(strategy.locked);
+      if (!id) { setError("This browser has 50 drafts. Remove an unused draft before starting another."); return; }
+      const created = getLocalDraft(id);
+      if (!created) throw new Error("Your draft could not be opened. Check your saved brands before trying again.");
+      if (mode === "draft") startNavigation(() => router.push(`/brands/${id}`));
+      else await strategy.start(created); // Blocked AI stays here with the same prompt and recovery path.
+    } catch (cause) { if (!controller.signal.aborted) setError(cause instanceof Error ? (hasFiles ? "The attached brief could not be confirmed. Your typed text, confirmed files and original request remain in this tab. Check and retry the same request." : cause.message) : "This prompt could not be kept. Please try again."); }
+    finally { if (attachedRequest.current === controller) attachedRequest.current = null; submittingRef.current = false; setSubmitting(false); }
+  }
+
+  return <div className={home ? "home-intake conversation-intake" : "page intake-page conversation-intake"}>
+    <div className="page-heading"><h1 className={home ? "home-title" : ""}>{home ? "Create a brand" : "New conversation"}</h1>{!home && <Link href="/brands" className="text-link">Back to brands</Link>}</div>
+    <ScopePicker value={displayedScope} disabled={frozenInputs} onChange={value => { if (canEditInputs()) setScope(value); }} />
+    <p className="scope-helper">Complete branding by default · choose a scope for focused work</p>
+    {hiddenFiles && <p role="status">An attached brief is retained in this tab. Verify the same account before sending so its files stay with it.</p>}
+    {frozenBrief && <p role="status">Your prompt, scope and example selection are locked to the original attached brief while its save is confirmed or recovered.</p>}
+    <ConversationComposer value={displayedPrompt} onChange={editPrompt} readOnly={frozenInputs} onSend={sendPrompt} label="Your prompt" placeholder="An idea you can’t stop thinking about…" error={error} disabled={disabled} initial sendLabel={inputIntent?.receipt ? "Open saved brand" : frozenBrief ? "Check and retry attached brief" : hasFiles ? "Save brief with files" : strategy.recoveryProjectId ? "Open saved account project" : "Send prompt"} hint={displayedExample ? <><span className="example-dot" />{frozenBrief ? "Example prompt · saved basis" : "Example prompt · editable"}</> : "An idea, a product, a place. Start in your own words."}
+      inputControls={<HomeInputControls account={account} sessionFence={sessionFence} memory={homeInputSession} value={displayedPrompt} onChange={editPrompt} language="en-US" voiceAdapter={voice} policy={currentCapability?.policy ?? null} availability={currentCapability?.policy ? { status: "available" } : { status: "unavailable", reason: currentCapability?.reason ?? (account ? "Checking verified file storage…" : "Sign in to save verified input files.") }} disabled={submitting || navigating || strategy.pending || strategy.locked} />} />
+    <div className="conversation-start-notice">{hasFiles ? "Files are saved as input material with your brief. This action does not start AI processing." : strategy.notice}</div>
+    {!hasFiles && !hiddenFiles && <div className="account-recovery-actions"><button type="button" className="text-link" disabled={disabled} onClick={() => void sendPrompt("draft")}>Save draft</button><span className="field-hint">Browser only · does not start AI</span>{textDraftId && <Link className="text-link" href={`/brands/${textDraftId}`} onClick={event => { event.preventDefault(); void sendPrompt("draft"); }}>Open retained browser draft</Link>}</div>}
+    {drafts.length >= 50 && !inputIntent?.browserDraftId && !textDraftId && <p className="form-error" role="alert">This browser has 50 drafts. Remove an unused draft before starting another.</p>}
+    {home && <div className="example-section"><div className="section-heading"><h2>Try an idea</h2><span className="secondary-text">Examples to make your own</span></div><div className="example-grid">{briefExamples.map((item) => <button key={item.id} className="example-card" type="button" disabled={frozenInputs} onClick={() => { if (!canEditInputs()) return; setPrompt(item.description); setExampleUsed(true); setError(""); }}><strong>{item.title}</strong><span>{item.category}</span></button>)}</div></div>}
+  </div>;
+}
+
+export type DraftPatch = Partial<Omit<LocalDraft, "id" | "createdAt" | "updatedAt" | "preservedContext">>;
+type EditorStorage = {
+  kind: "browser" | "account";
+  saveLabel: string;
+  onUpdate: (patch: DraftPatch) => boolean;
+  onDelete?: () => void;
+  actions?: React.ReactNode;
+  scopeControl?: React.ReactNode;
+  namingSource?: NamingSource;
+  savedContext?: ContextSnapshot;
+  strategy?: React.ReactNode;
+  onPromptSubmitted?: (nextDraft: LocalDraft) => Promise<void>;
+  promptPending?: boolean;
+  promptNotice?: React.ReactNode;
+  strategyActions?: Partial<Record<ConversationWidget, { label: string; maximumCostLabel: string; disabled?: boolean }>>;
+  onStrategyRequested?: (widget: ConversationWidget) => Promise<void>;
+  strategyPending?: boolean;
+};
+
+export function ProjectEditor({ projectId }: { projectId: string }) {
+  const { drafts, loaded, storage } = useLocalDrafts();
+  const draft = drafts.find((item) => item.id === projectId);
+  const router = useRouter();
+  if (!loaded) return <div className="page"><p className="quiet-empty">Loading your conversation…</p></div>;
+  if (!draft) return <div className="page"><div className="empty-panel"><Icon name="file" size={30} /><h1>Draft not found in this browser</h1><p>Local drafts are only available in the browser where they were created.</p><Link href="/brands" className="button primary">Back to brands</Link></div></div>;
+  return <ProjectEditorForm key={projectId} draft={draft} storage={{
+    kind: "browser", saveLabel: storage === "available" ? "Saved in this browser" : "This tab only",
+    onUpdate: (patch) => updateLocalDraft(projectId, patch),
+    onDelete: () => { deleteLocalDraft(projectId); router.push("/brands"); },
+    actions: <AccountCopyControl draft={draft} />,
+    strategy: <p className="conversation-service-note">This browser draft does not run AI. Choose Save to account, then Request response in the saved project when AI is ready. The request limits are shown there before you start.</p>,
+    promptNotice: <p className="field-hint">Save message keeps this conversation in your browser. It does not request an AI response.</p>,
+    namingSource: draft.preservedContext?.namingSource,
+  }} />;
+}
+
+function savedDetails(draft: LocalDraft) {
+  const details: [string, string][] = [["Activity", draft.activity], ["Offering", draft.offering], ["Known audience", draft.knownAudience], ["Existing name", draft.suppliedName], ["Naming notes", draft.namingNotes], ["Identity notes", draft.identityNotes]];
+  return details.filter(([, value]) => value.trim());
+}
+
+export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; storage: EditorStorage }) {
+  const conversation = draftConversation(draft);
+  const lastWidget = [...conversation].reverse().find((event) => event.kind === "widget");
+  const lastPrompt = [...conversation].reverse().find((event) => event.kind === "user_message");
+  const latestEvent = conversation[conversation.length - 1];
+  const reviewed: Record<ConversationWidget, boolean> = { competitors: isCompetitorReviewComplete(draft), audience: isAudienceReviewComplete(draft), personality: isPersonalityReviewComplete(draft), positioning: isPositioningReviewComplete(draft) };
+  const [prompt, setPrompt] = useState("");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [opened, setOpened] = useState<{ anchor: string | null; widget: ConversationWidget | null }>({ anchor: lastWidget?.id ?? null, widget: latestEvent?.kind === "widget" && !reviewed[latestEvent.widget] ? latestEvent.widget : null });
+  const [strategyNotice, setStrategyNotice] = useState({ personality: "", positioning: "" });
+  const focusWidget = useRef<ConversationWidget | null>(null);
+  const newMessage = useRef<string | null>(null);
+  const account = storage.kind === "account";
+  const details = savedDetails(draft);
+  const activeWidget = opened.anchor === (lastWidget?.id ?? null) ? opened.widget : latestEvent?.kind === "widget" && !reviewed[latestEvent.widget] ? latestEvent.widget : null;
+
+  function update(patch: DraftPatch, invalidateAudience = false) {
+    const nextDraft = { ...draft, ...patch };
+    const personalityChanged = personalityReviewKey(draft) !== personalityReviewKey(nextDraft);
+    const positioningChanged = positioningReviewKey(draft) !== positioningReviewKey(nextDraft);
+    const applied = { ...patch, ...(invalidateAudience ? { audienceReviewedAt: null, audienceConversationKey: null } : {}), ...(personalityChanged ? { personalityReviewKey: null, personalityReviewedAt: null } : {}), ...(positioningChanged ? { positioningReviewKey: null, positioningReviewedAt: null } : {}) };
+    const persisted = storage.onUpdate(applied);
+    if ((personalityChanged && reviewed.personality) || (positioningChanged && reviewed.positioning)) setStrategyNotice((previous) => ({ personality: personalityChanged && reviewed.personality ? "The context changed. Your profile is kept for review." : previous.personality, positioning: positioningChanged && reviewed.positioning ? "The context changed. Your statement is kept for review." : previous.positioning }));
+    setError(""); setMessage("");
+    return { persisted, nextDraft: { ...draft, ...applied } };
+  }
+
+  function openWidget(widget: ConversationWidget) {
+    try {
+      const patch = conversationWidgetPatch(draft, widget);
+      const events = draftConversation({ ...draft, ...patch });
+      focusWidget.current = widget;
+      update(patch);
+      setOpened({ anchor: [...events].reverse().find((event) => event.kind === "widget")?.id ?? null, widget });
+    } catch (error) { setError(error instanceof Error ? error.message : "This tool could not be opened."); }
+  }
+
+  const continueAtHash = useEffectEvent(() => {
+    const target = window.location.hash;
+    const widget = (["competitors", "audience", "personality", "positioning"] as const).find(value => target === `#strategy-${value}`);
+    if (widget) openWidget(widget);
+    else if (target === "#strategy-brief") document.getElementById("strategy-brief")?.focus();
+  });
+  useEffect(() => {
+    const navigate = () => continueAtHash();
+    window.addEventListener("hashchange", navigate);
+    // An incoming saved continuation URL opens its review, without an AI request.
+    const timer = window.setTimeout(navigate, 0);
+    return () => { window.clearTimeout(timer); window.removeEventListener("hashchange", navigate); };
+  }, []);
+
+  function completeWidget(widget: ConversationWidget) {
+    const next: Record<ConversationWidget, ConversationWidget | null> = { competitors: "audience", audience: "personality", personality: "positioning", positioning: null };
+    const now = new Date().toISOString();
+    try {
+      const completion: DraftPatch = widget === "competitors" ? { competitorReviewKey: competitorReviewKey(draft) } : widget === "audience" ? { audienceReviewedAt: now, audienceConversationKey: conversationContextKey(draft) } : widget === "personality" ? { personalityReviewKey: personalityReviewKey(draft), personalityReviewedAt: now } : { positioningReviewKey: positioningReviewKey(draft), positioningReviewedAt: now };
+      const nextWidget = next[widget];
+      const patch = { ...completion, ...(nextWidget ? conversationWidgetPatch(draft, nextWidget) : {}) };
+      const result = update(patch);
+      const events = draftConversation(result.nextDraft);
+      focusWidget.current = nextWidget;
+      setOpened({ anchor: [...events].reverse().find((event) => event.kind === "widget")?.id ?? null, widget: nextWidget });
+      setMessage(account ? "Selection kept. Save changes to keep it in your account." : result.persisted ? "Selection saved in this browser." : "Selection kept in this tab. Browser storage is unavailable.");
+    } catch (error) { setError(error instanceof Error ? error.message : "Your selection could not be confirmed."); }
+  }
+
+  function sendPrompt() {
+    if (storage.promptPending) return;
+    if (!prompt.trim()) { setError("Write a message before sending."); return; }
+    try {
+      const result = update(conversationPromptPatch(draft, prompt));
+      const events = draftConversation(result.nextDraft);
+      newMessage.current = [...events].reverse().find((event) => event.kind === "user_message")?.id ?? null;
+      setPrompt("");
+      setOpened({ anchor: [...events].reverse().find((event) => event.kind === "widget")?.id ?? null, widget: null });
+      setMessage(account ? "Prompt kept in this conversation." : result.persisted ? "Prompt saved in this browser." : "Prompt kept in this tab. Browser storage is unavailable.");
+      if (storage.onPromptSubmitted) void storage.onPromptSubmitted(result.nextDraft).catch(() => setError("Your prompt is kept here. AI processing could not start."));
+    } catch (error) { setError(error instanceof Error ? error.message : "Your message could not be kept. Please try again."); }
+  }
+
+  function renderWidget(widget: ConversationWidget) {
+    if (widget === "competitors") return <CompetitorReview draft={draft} inline savedContext={storage.savedContext ?? draft.preservedContext} onChange={(competitors) => update({ competitors, competitorReviewKey: null }, true)} onComplete={() => completeWidget("competitors")} onBack={() => openWidget("audience")} />;
+    if (widget === "audience") return <AudienceConversationWidget draft={draft} savedContext={storage.savedContext ?? draft.preservedContext} onChange={(segments) => update({ segments }, true)} onComplete={() => completeWidget("audience")} onContinue={() => openWidget("personality")} />;
+    if (widget === "personality") return <PersonalityReview draft={draft} inline notice={strategyNotice.personality} onChange={(personality) => update({ personality })} onComplete={() => completeWidget("personality")} onBack={() => openWidget("audience")} onSkip={() => openWidget("positioning")} />;
+    return <PositioningReview draft={draft} inline notice={strategyNotice.positioning} onChange={(positioning) => update({ positioning })} onComplete={() => completeWidget("positioning")} onBack={() => openWidget("personality")} />;
+  }
+
+  function proposalAction(widget: ConversationWidget) {
+    const action = storage.strategyActions?.[widget];
+    if (!action || !storage.onStrategyRequested) return null;
+    return <div className="conversation-proposal-action"><span>{action.maximumCostLabel}</span><button type="button" className="button secondary small" disabled={action.disabled || storage.strategyPending || storage.promptPending} onClick={() => { void storage.onStrategyRequested?.(widget).catch(() => setError("The request could not start. Your conversation is kept here.")); }}>{action.label}<Icon name="arrow" size={14} /></button></div>;
+  }
+
+  return <div className="page conversation-page">
+    <div className="conversation-scroll-area" role="region" aria-label="Conversation and project details" tabIndex={0}>
+    <header className="conversation-project-header">
+      <div className="conversation-project-title">
+        <Link href="/brands" className="text-link">Brands</Link><Icon name="chevron" size={13} />
+        {renaming ? <input className="conversation-title-input" aria-label="Project label" autoFocus value={draft.title} maxLength={160} placeholder="Untitled brand" onChange={(event) => update({ title: event.target.value })} onBlur={() => setRenaming(false)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === "Escape") { event.preventDefault(); setRenaming(false); } }} /> : <>
+          <h1>{draftTitle(draft)}</h1><button className="icon-button subtle" aria-label="Rename project" type="button" onClick={() => setRenaming(true)}><Icon name="pencil" size={14} /></button>
+        </>}
+      </div>
+      <span className="save-label"><Icon name={account ? "brands" : "device"} size={13} />{storage.saveLabel}</span>
+    </header>
+    <div className="conversation-project-meta"><span className="small-badge">{scopeLabel(draft.scope)}</span>{draft.example && <span className="small-badge">Example prompt</span>}{account ? storage.scopeControl : draft.scope !== "complete_brand" && <button className="text-link" type="button" onClick={() => update({ scope: "complete_brand" })}>Expand to complete brand</button>}</div>
+    {storage.actions && (account ? <div className="conversation-account-actions">{storage.actions}</div> : <details className="conversation-account-disclosure"><summary>Account saving</summary><div className="conversation-account-actions">{storage.actions}</div></details>)}
+    {storage.namingSource && <NameOrigin source={storage.namingSource} />}
+    {details.length > 0 && <details className="conversation-saved-details"><summary>Saved project details</summary><dl>{details.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></details>}
+    <ol id="strategy-brief" tabIndex={-1} className="conversation-history" aria-label="Project conversation">{conversation.map((event) => <Fragment key={event.id}>
+      {event.kind === "user_message" && <li className="conversation-user-entry" ref={(node) => { if (node && newMessage.current === event.id) { node.scrollIntoView({ block: "nearest" }); newMessage.current = null; } }}><div className="conversation-message-meta"><span>You</span><time dateTime={event.createdAt}>{new Date(event.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time></div><p>{event.text}</p></li>}
+      {event.kind === "saved_context" && <li className="conversation-saved-entry"><span className="conversation-entry-label">Saved brief</span><p>{event.text}</p></li>}
+      {event.kind === "widget" && <li className={`conversation-widget-entry ${activeWidget === event.widget ? "is-open" : ""}`}><section className="conversation-widget" aria-labelledby={`widget-${event.id}`}><div className="conversation-widget-heading"><span className="conversation-tool-avatar" aria-hidden="true">f</span><h2 id={`widget-${event.id}`} tabIndex={-1} ref={(node) => { if (node && focusWidget.current === event.widget) { node.focus(); focusWidget.current = null; } }}>{widgetLabels[event.widget]}</h2><span className={`conversation-review-state ${reviewed[event.widget] ? "is-reviewed" : ""}`}>{reviewed[event.widget] ? <><Icon name="check" size={12} />Confirmed</> : "Not reviewed"}</span>{activeWidget === event.widget ? <button type="button" className="text-link" aria-label={`Collapse ${event.widget}`} onClick={() => setOpened({ anchor: lastWidget?.id ?? null, widget: null })}>Collapse</button> : <button type="button" className="text-link" aria-label={`Edit ${event.widget}`} onClick={() => openWidget(event.widget)}><Icon name="pencil" size={13} />Edit</button>}</div>{activeWidget === event.widget ? <div className="conversation-widget-body">{proposalAction(event.widget)}{renderWidget(event.widget)}</div> : <div className="conversation-widget-summary"><WidgetSummary widget={event.widget} draft={draft} reviewed={reviewed[event.widget]} /></div>}</section></li>}
+      {event.id === lastPrompt?.id && <li className="conversation-service-entry">{storage.strategy ?? <p className="conversation-service-note"><Icon name="offline" size={15} />{account ? "AI processing is not connected to this conversation yet." : "AI replies are not available in this browser draft."}</p>}</li>}
+    </Fragment>)}</ol>
+    {!lastPrompt && storage.strategy && <div className="conversation-service-entry">{storage.strategy}</div>}
+    <footer className="conversation-footer"><Link href="/brands" className="text-link">Back to all brands</Link>{storage.onDelete && (!confirmDelete ? <button className="text-link danger-text" type="button" onClick={() => setConfirmDelete(true)}>Delete this draft</button> : <div className="inline-confirm"><span>Delete this browser draft?</span><button className="button secondary small" type="button" onClick={() => setConfirmDelete(false)}>Keep draft</button><button className="button danger small" type="button" onClick={storage.onDelete}>Delete draft</button></div>)}</footer>
+    </div>
+    <div className="conversation-compose-area">
+      {error && <p className="form-error" role="alert">{error}</p>}
+      {message && <p className="conversation-feedback" role="status">{message}</p>}
+      {storage.promptNotice}
+      <ConversationComposer value={prompt} onChange={(value) => { setPrompt(value); setError(""); }} onSend={sendPrompt} label="Message Fluid" placeholder="Add context, ask a question, or describe a change…" sendLabel={account ? "Send prompt" : "Save message"} disabled={storage.promptPending} hint={account ? "Prompts stay with this project." : storage.saveLabel === "This tab only" ? "This tab only · browser storage unavailable" : "Saved in this browser · Shift + Enter for a new line"} />
+    </div>
+  </div>;
+}

@@ -1,0 +1,285 @@
+{
+  "note": "Independently recorded through direct HarfBuzz classes, without the Fluid text adapter. Metrics and isolated outline digests use unscaled y-up font units; no text normalization.",
+  "harfbuzzjs": "1.6.2",
+  "harfbuzzCore": "14.5.0",
+  "samples": [
+    {
+      "text": "Á",
+      "fontSha256": "cdcc4815cbf5f9882fa74e48f8ab410a0495781a58ff7316570f664e7e987753",
+      "script": "Latn",
+      "language": "en",
+      "direction": "ltr",
+      "faceIndex": 0,
+      "variationAxes": {},
+      "featureTags": {},
+      "clusterLevel": "MONOTONE_GRAPHEMES",
+      "upem": 1000,
+      "glyphs": [
+        {
+          "id": 2,
+          "cluster": 0,
+          "xAdvance": 668,
+          "yAdvance": 0,
+          "xOffset": 0,
+          "yOffset": 0
+        }
+      ],
+      "outlineSha256": [
+        "d6b8adacaf50f99f31e40df0705d395d3cc0c6ea60409bbdb695ec906ce01f86"
+      ],
+      "canonicalOutlineSha256": [
+        "3ba8b95da2ec404afc15c1516fe71aae1af813b43a425c94b421e2795bcb9215"
+      ]
+    },
+    {
+      "text": "fi",
+      "fontSha256": "cdcc4815cbf5f9882fa74e48f8ab410a0495781a58ff7316570f664e7e987753",
+      "script": "Latn",
+      "language": "en",
+      "direction": "ltr",
+      "faceIndex": 0,
+      "variationAxes": {},
+      "featureTags": {},
+      "clusterLevel": "MONOTONE_GRAPHEMES",
+      "upem": 1000,
+      "glyphs": [
+        {
+          "id": 488,
+          "cluster": 0,
+          "xAdvance": 599,
+          "yAdvance": 0,
+          "xOffset": 0,
+          "yOffset": 0
+        }
+      ],
+      "outlineSha256": [
+        "41fe2f011d9e5aebe8f70370f4ce5d63785ff2d3f9e0edba66f7cbc58de1b50a"
+      ],
+      "canonicalOutlineSha256": [
+        "d086905c2ae8cf559cfb48952ca46dd626c1561dcd6237704001c79735adbe25"
+      ]
+    },
+    {
+      "text": "Ạ́B",
+      "fontSha256": "cdcc4815cbf5f9882fa74e48f8ab410a0495781a58ff7316570f664e7e987753",
+      "script": "Latn",
+      "language": "en",
+      "direction": "ltr",
+      "faceIndex": 0,
+      "variationAxes": {},
+      "featureTags": {},
+      "clusterLevel": "MONOTONE_GRAPHEMES",
+      "upem": 1000,
+      "glyphs": [
+        {
+          "id": 17,
+          "cluster": 0,
+          "xAdvance": 648,
+          "yAdvance": 0,
+          "xOffset": 0,
+          "yOffset": 0
+        },
+        {
+          "id": 918,
+          "cluster": 0,
+          "xAdvance": 0,
+          "yAdvance": 0,
+          "xOffset": -395,
+          "yOffset": 180
+        },
+        {
+          "id": 25,
+          "cluster": 3,
+          "xAdvance": 680,
+          "yAdvance": 0,
+          "xOffset": 0,
+          "yOffset": 0
+        }
+      ],
+      "outlineSha256": [
+        "5db4d0ac0da61952eb19b4e49b05b5f3f8b00301e4a743571c89db133af4f420",
+        "a8761ae6849b90b994b63c1a0ee599414ef802b9f0fc03b976053e114cc8b828",
+        "ada9a55f547ac4128cbf0f9395ba3b86e166e48c8e68e725237f87ac57b66e97"
+      ],
+      "canonicalOutlineSha256": [
+        "07250917c468e965835fba8f675cdda953c882c04388d622321c20359d2f1839",
+        "ecea31cf11a2e07ad2b23819091db2ba58c954dca93bcd086e4800036f9d1902",
+        "e8df531674908536ecf4189813d6fe7f5e56f24c6789c227fd98b629fab35f77"
+      ]
+    },
+    {
+      "text": "AV",
+      "fontSha256": "cdcc4815cbf5f9882fa74e48f8ab410a0495781a58ff7316570f664e7e987753",
+      "script": "Latn",
+      "language": "en",
+      "direction": "ltr",
+      "faceIndex": 0,
+      "variationAxes": {},
+      "featureTags": {},
+      "clusterLevel": "MONOTONE_GRAPHEMES",
+      "upem": 1000,
+      "glyphs": [
+        {
+          "id": 1,
+          "cluster": 0,
+          "xAdvance": 562,
+          "yAdvance": 0,
+          "xOffset": 0,
+          "yOffset": 0
+        },
+        {
+          "id": 157,
+          "cluster": 1,
+          "xAdvance": 667,
+          "yAdvance": 0,
+          "xOffset": 0,
+          "yOffset": 0
+        }
+      ],
+      "outlineSha256": [
+        "ee6efe1e7d060aa8b3e27d8527e51e0fd907cb4065957d0ee27a9794e6b8812c",
+        "05a09ffa6384bedc2b6fff7e457f95108eb7f0d450af40efc4f80e4e18d46e6c"
+      ],
+      "canonicalOutlineSha256": [
+        "d5ebfa1b202ba85280823f12351a77c9d1c26f71b0a517c55753f9864a976aab",
+        "e541a4ca41e09ac41e7a48f9f1c7b0685919aaabc0cad5b39bedf6f160236bef"
+      ]
+    },
+    {
+      "text": "سلام",
+      "fontSha256": "63111b5b2e074dd48cc67692e0a2726d86ee94c1c37fe8598257b7b4e87e869e",
+      "script": "Arab",
+      "language": "ar",
+      "direction": "rtl",
+      "faceIndex": 0,
+      "variationAxes": {},
+      "featureTags": {},
+      "clusterLevel": "MONOTONE_GRAPHEMES",
+      "upem": 1000,
+      "glyphs": [
+        {
+          "id": 74,
+          "cluster": 3,
+          "xAdvance": 484,
+          "yAdvance": 0,
+          "xOffset": 0,
+          "yOffset": 0
+        },
+        {
+          "id": 11,
+          "cluster": 2,
+          "xAdvance": 379,
+          "yAdvance": 0,
+          "xOffset": 0,
+          "yOffset": 0
+        },
+        {
+          "id": 71,
+          "cluster": 1,
+          "xAdvance": 220,
+          "yAdvance": 0,
+          "xOffset": 0,
+          "yOffset": 0
+        },
+        {
+          "id": 37,
+          "cluster": 0,
+          "xAdvance": 784,
+          "yAdvance": 0,
+          "xOffset": 0,
+          "yOffset": 0
+        }
+      ],
+      "outlineSha256": [
+        "d3d3a71fe6a6f3c01875b7dc954062de0b97561a568bc597cd8e64ec15e2b3c2",
+        "456e9e9dbdf20cb4caa7f73e12faaeaa3cee95d886e8b11e818c1784a488e488",
+        "5205967c4e4620bc0208c6138bf7edc23284a43d3b6bb5c3e9f39b01820c7078",
+        "d5dcb76651994914dca573ad84a081a6cb4f206a46e941d7e271f315cec73421"
+      ],
+      "canonicalOutlineSha256": [
+        "cf50b918b4e7311d2f5259c74fcdae865cec41ff123e1b8abf0cb43e920b261d",
+        "dd7a003db7d54fd9770edc06a130116dd8be654f81593524ffe1bfe5f366567d",
+        "54733b0ff8d091cfa2d479193ded71cc0add1e819c09ae3327ffd45c78d0f955",
+        "072e05d8088f1ef9b7b9c5c67bc8235d04d19b45c73340a6b8a6c1260b536f77"
+      ]
+    },
+    {
+      "text": "سَلَام",
+      "fontSha256": "63111b5b2e074dd48cc67692e0a2726d86ee94c1c37fe8598257b7b4e87e869e",
+      "script": "Arab",
+      "language": "ar",
+      "direction": "rtl",
+      "faceIndex": 0,
+      "variationAxes": {},
+      "featureTags": {},
+      "clusterLevel": "MONOTONE_GRAPHEMES",
+      "upem": 1000,
+      "glyphs": [
+        {
+          "id": 74,
+          "cluster": 5,
+          "xAdvance": 484,
+          "yAdvance": 0,
+          "xOffset": 0,
+          "yOffset": 0
+        },
+        {
+          "id": 11,
+          "cluster": 4,
+          "xAdvance": 379,
+          "yAdvance": 0,
+          "xOffset": 0,
+          "yOffset": 0
+        },
+        {
+          "id": 371,
+          "cluster": 2,
+          "xAdvance": 0,
+          "yAdvance": 0,
+          "xOffset": -119,
+          "yOffset": 256
+        },
+        {
+          "id": 71,
+          "cluster": 2,
+          "xAdvance": 220,
+          "yAdvance": 0,
+          "xOffset": 0,
+          "yOffset": 0
+        },
+        {
+          "id": 371,
+          "cluster": 0,
+          "xAdvance": 0,
+          "yAdvance": 0,
+          "xOffset": 266,
+          "yOffset": -126
+        },
+        {
+          "id": 37,
+          "cluster": 0,
+          "xAdvance": 784,
+          "yAdvance": 0,
+          "xOffset": 0,
+          "yOffset": 0
+        }
+      ],
+      "outlineSha256": [
+        "d3d3a71fe6a6f3c01875b7dc954062de0b97561a568bc597cd8e64ec15e2b3c2",
+        "456e9e9dbdf20cb4caa7f73e12faaeaa3cee95d886e8b11e818c1784a488e488",
+        "7717ad48235d361a108212de571b2d18246f79f99dd957215b3c3f64d4d7c1b8",
+        "5205967c4e4620bc0208c6138bf7edc23284a43d3b6bb5c3e9f39b01820c7078",
+        "7717ad48235d361a108212de571b2d18246f79f99dd957215b3c3f64d4d7c1b8",
+        "d5dcb76651994914dca573ad84a081a6cb4f206a46e941d7e271f315cec73421"
+      ],
+      "canonicalOutlineSha256": [
+        "cf50b918b4e7311d2f5259c74fcdae865cec41ff123e1b8abf0cb43e920b261d",
+        "dd7a003db7d54fd9770edc06a130116dd8be654f81593524ffe1bfe5f366567d",
+        "ae02a29fcfac3ed735bbaaf22bc2c0a5b900bb78b2c415297f77790884eab146",
+        "54733b0ff8d091cfa2d479193ded71cc0add1e819c09ae3327ffd45c78d0f955",
+        "ae02a29fcfac3ed735bbaaf22bc2c0a5b900bb78b2c415297f77790884eab146",
+        "072e05d8088f1ef9b7b9c5c67bc8235d04d19b45c73340a6b8a6c1260b536f77"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+import { describe, expect, it, vi } from "vitest";
+import { createAccountLogoClient } from "@/components/identity/account-logo-client";
+import type { IdentityAssetReceipt } from "@/domain/logo-deliverables";
+const id=(n:number)=>`96000000-0000-4000-8000-${String(n).padStart(12,"0")}`;
+const account={status:"ready" as const,userId:id(1),generation:1};
+const file:IdentityAssetReceipt={id:id(3),reference:{ownerId:account.userId,projectId:id(2),assetId:id(4),versionId:id(5),contentHash:"a".repeat(64)},verification:{status:"verified",checkedAt:"2026-10-07T00:00:00Z",contentHash:"a".repeat(64),mimeType:"application/pdf",byteLength:100},purpose:"brand_asset",sourceReceiptId:id(6),rightsEvidenceId:null,publicationState:"committed"};
+const reply={url:"https://storage.example.com/private-signed-file",versionId:id(5),contentHash:"a".repeat(64),mimeType:"application/pdf",expiresInSeconds:60};
+const json=(v:unknown)=>new Response(JSON.stringify(v),{headers:{"content-type":"application/json"}});
+describe("receipt-bound private export downloads",()=>{
+ it("reverifies the exact immutable version for each fresh short-lived link",async()=>{const fetcher=vi.fn<typeof fetch>(async()=>json(reply)),client=createAccountLogoClient(account,id(2),()=>true,vi.fn(),fetcher);expect(await client.downloadAsset(file)).toEqual(reply);expect(await client.downloadAsset(file)).toEqual(reply);expect(fetcher).toHaveBeenCalledTimes(2);expect(fetcher.mock.calls[0]![0]).toBe(`/api/assets/${id(5)}/download`);});
+ it.each([{versionId:id(99)},{contentHash:"f".repeat(64)},{mimeType:"image/png"},{expiresInSeconds:3600},{url:"javascript:alert(1)"},{url:"https://user:secret@storage.example.com/file"}])("rejects changed download evidence %j",async changed=>{const client=createAccountLogoClient(account,id(2),()=>true,vi.fn(),async()=>json({...reply,...changed}));await expect(client.downloadAsset(file)).rejects.toMatchObject({status:502});});
+ it("refuses staged and foreign receipts before requests and fences late replies",async()=>{const fetcher=vi.fn<typeof fetch>(async()=>json(reply)),client=createAccountLogoClient(account,id(2),()=>true,vi.fn(),fetcher);await expect(client.downloadAsset({...file,publicationState:"staged"})).rejects.toThrow();await expect(client.downloadAsset({...file,reference:{...file.reference,projectId:id(7)}})).rejects.toThrow();expect(fetcher).not.toHaveBeenCalled();let resolve!:(v:Response)=>void;let current=true;const pendingClient=createAccountLogoClient(account,id(2),()=>current,vi.fn(),()=>new Promise(r=>{resolve=r;}));const pending=pendingClient.downloadAsset(file);current=false;resolve(json(reply));expect(await pending).toBeNull();});
+});

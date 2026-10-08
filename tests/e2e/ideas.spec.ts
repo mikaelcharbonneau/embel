@@ -1,0 +1,471 @@
+import { expect, test, type Page, type Route } from "@playwright/test";
+import { accountProjectSchema } from "../../src/domain/project-api";
+import { contextSnapshotSchema } from "../../src/domain/projects";
+
+// Synthetic, intercepted account fixtures only. No live auth, persistence, or generation.
+const ownerA = "aaaaaaaa-1111-4111-8111-111111111111";
+const ownerB = "bbbbbbbb-1111-4111-8111-111111111111";
+const ideaId = "11111111-1111-4111-8111-111111111111";
+const ideaB = "22222222-2222-4222-8222-222222222222";
+const projectId = "33333333-3333-4333-8333-333333333333";
+const when = "2026-10-05T10:00:00.123456Z";
+type Content = { title: string; description: string; theme: string; state: "to_explore" | "developing" | "used"; details: Record<"problem" | "audience" | "solution" | "differentiation" | "revenueHypotheses" | "validationSteps" | "notes", string> };
+type Idea = { id: string; ownerId: string; revision: number; content: Content; createdAt: string; updatedAt: string; links: Link[] };
+type Link = { id: string; ownerId: string; ideaId: string; ideaRevision: number; projectId: string; requestKey: string; createdAt: string };
+function content(title = "Quiet kitchen fixture"): Content {
+  return { title, description: "A private fixture for seasonal lunches.", theme: "", state: "to_explore", details: { problem: "", audience: "", solution: "", differentiation: "", revenueHypotheses: "", validationSteps: "", notes: "" } };
+}
+function idea(id = ideaId, ownerId = ownerA, title?: string): Idea {
+  return { id, ownerId, revision: 1, content: content(title), createdAt: when, updatedAt: when, links: [] };
+}
+function summary(item: Idea) {
+  return { id: item.id, ownerId: item.ownerId, revision: item.revision, title: item.content.title, description: item.content.description, theme: item.content.theme, state: item.content.state, createdAt: item.createdAt, updatedAt: item.updatedAt };
+}
+function fixtureId(index: number) { return `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`; }
+
+async function reply(route: Route, body: unknown, status = 200) {
+  await route.fulfill({ status, contentType: "application/json", headers: { "Cache-Control": "private, no-store" }, body: JSON.stringify(body) });
+}
+
+async function emptyAccount(page: Page) {
+  await page.route("**/api/**", async route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === "/api/session") return reply(route, { user: { id: ownerA } });
+    if (path === "/api/ideas") return reply(route, { ownerId: ownerA, items: [], nextCursor: null });
+    return reply(route, { error: "Synthetic unavailable fixture" }, 503);
+  });
+}
+
+async function accountFixtures(page: Page, initial = [idea()]) {
+  const state = {
+    owner: ownerA, sessionStatus: 200, patchStatus: 200,
+    ideas: new Map(initial.map(item => [item.id, structuredClone(item)])),
+    writes: [] as { path: string; method: string; body: Record<string, unknown> }[],
+    queries: [] as URLSearchParams[],
+    receipts: new Map<string, unknown>(),
+    sources: new Map<string, { link: Link; content: Content }>(),
+    projects: new Map<string, ReturnType<typeof accountProjectSchema.parse>>(),
+    loseCreateResponse: false, loseSaveResponse: false, loseBrandResponse: false,
+  };
+  await page.route("**/api/**", async route => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const path = url.pathname;
+    if (path === "/api/session") return reply(route, state.sessionStatus === 200 ? { user: { id: state.owner } } : {}, state.sessionStatus);
+    if (path === "/api/auth/sign-out") { state.sessionStatus = 401; return reply(route, { authenticated: false }); }
+    if (state.sessionStatus !== 200) return reply(route, {}, 401);
+    if (path === "/api/ideas" && request.method() === "GET") {
+      state.queries.push(url.searchParams);
+      const search = url.searchParams.get("search")?.toLocaleLowerCase() ?? "";
+      const filter = url.searchParams.get("state");
+      const cursorId = url.searchParams.get("cursorId");
+      const items = [...state.ideas.values()].filter(item => item.ownerId === state.owner && (!filter || item.content.state === filter) && `${item.content.title}\n${item.content.description}`.toLocaleLowerCase().includes(search))
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id));
+      const start = cursorId ? items.findIndex(item => item.id === cursorId) + 1 : 0;
+      const limit = Number(url.searchParams.get("limit") ?? 25);
+      const pageItems = items.slice(start, start + limit);
+      const anchor = pageItems.at(-1);
+      return reply(route, { ownerId: state.owner, items: pageItems.map(summary), nextCursor: anchor && start + limit < items.length ? { createdAt: anchor.createdAt, id: anchor.id } : null });
+    }
+    if (path.startsWith("/api/ideas") && request.method() !== "GET") {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      state.writes.push({ path, method: request.method(), body });
+      const key = `${state.owner}:${path}:${String(body.requestKey)}`;
+      if (state.receipts.has(key)) return reply(route, state.receipts.get(key));
+      if (path === "/api/ideas") {
+        const id = state.ideas.has(ideaId) ? fixtureId(999) : ideaId;
+        const saved = { ...idea(id, state.owner), content: body.content as Content };
+        state.ideas.set(id, saved); state.receipts.set(key, { idea: saved });
+        if (state.loseCreateResponse) { state.loseCreateResponse = false; return route.abort("failed"); }
+        return reply(route, { idea: saved }, 201);
+      }
+      const current = state.ideas.get(path.split("/")[3] ?? "");
+      if (!current || current.ownerId !== state.owner) return reply(route, {}, 404);
+      if (body.expectedRevision !== current.revision) return reply(route, {}, 409);
+      if (path.endsWith("/brand")) {
+        const link: Link = { id: fixtureId(888), ownerId: state.owner, ideaId: current.id, ideaRevision: current.revision, projectId, requestKey: body.requestKey as string, createdAt: when };
+        const saved = { ...current, revision: current.revision + 1, content: { ...current.content, state: "used" as const }, links: [...current.links, link] };
+        const project = accountProjectSchema.parse({ id: projectId, owner_id: state.owner, current_revision: 1, created_at: when, title: current.content.title, scope: "complete_brand", context: contextSnapshotSchema.parse({ description: current.content.description.trim() || current.content.title, offering: current.content.details.solution.trim(), knownAudience: current.content.details.audience.trim() }) });
+        state.ideas.set(current.id, saved); state.sources.set(projectId, { link, content: structuredClone(current.content) }); state.projects.set(projectId, project);
+        const response = { idea: saved, link }; state.receipts.set(key, response);
+        if (state.loseBrandResponse) { state.loseBrandResponse = false; return route.abort("failed"); }
+        return reply(route, response, 201);
+      }
+      if (state.patchStatus !== 200) return reply(route, {}, state.patchStatus);
+      const saved = { ...current, revision: current.revision + 1, content: body.content as Content };
+      state.ideas.set(current.id, saved); state.receipts.set(key, { idea: saved });
+      if (state.loseSaveResponse) { state.loseSaveResponse = false; return route.abort("failed"); }
+      return reply(route, { idea: saved });
+    }
+    if (path.startsWith("/api/ideas/") && request.method() === "GET") {
+      const current = state.ideas.get(path.split("/")[3] ?? "");
+      return current?.ownerId === state.owner ? reply(route, { idea: current }) : reply(route, {}, 404);
+    }
+    const project = state.projects.get(path.split("/")[3] ?? "");
+    if (!project || project.owner_id !== state.owner) return reply(route, {}, 404);
+    if (path.endsWith("/idea-source")) return reply(route, { ownerId: state.owner, projectId: project.id, source: state.sources.get(project.id) ?? null });
+    if (path.endsWith("/strategy")) return reply(route, { availability: { status: "unavailable", operations: [], reason: "runtime_disabled" }, jobs: [] });
+    return reply(route, { project });
+  });
+  return state;
+}
+
+async function openIdea(page: Page, id = ideaId) {
+  await page.goto(`/ideas/${id}`);
+  await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toBeVisible();
+}
+async function browserValues(page: Page) { return page.evaluate(() => Object.values(localStorage).join("\n")); }
+
+test("Ideas fixture: quick capture, optional details, save and reload retain user text only in the account", async ({ page }, testInfo) => {
+  const state = await accountFixtures(page, []);
+  await page.goto("/ideas");
+  await page.getByRole("button", { name: "Add idea", exact: true }).click();
+  await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Private quick capture fixture");
+  await page.getByRole("textbox", { name: "Description (optional)", exact: true }).fill("<script>Private idea text</script>");
+  await page.getByRole("button", { name: "Save idea", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/ideas/${ideaId}$`));
+  expect(state.writes[0]!.body).toMatchObject({ content: { title: "Private quick capture fixture", state: "to_explore" } });
+  expect(Object.keys(state.writes[0]!.body).sort()).toEqual(["content", "requestKey"]);
+  await page.getByText("Develop this idea", { exact: true }).click();
+  await page.getByRole("textbox", { name: "Revenue hypotheses", exact: true }).fill("A user-authored monthly lunch plan hypothesis");
+  await page.getByRole("textbox", { name: "Proposed solution", exact: true }).fill("Seasonal lunches delivered nearby");
+  await page.getByRole("textbox", { name: "Audience", exact: true }).fill("Local workers");
+  await page.getByRole("combobox", { name: "Idea state", exact: true }).selectOption("developing");
+  await expect(page.getByRole("button", { name: "Create brand", exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await expect(page.getByText("Saved to account · version 2.", { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Private quick capture fixture");
+  await page.getByText("Develop this idea", { exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Revenue hypotheses", exact: true })).toHaveValue("A user-authored monthly lunch plan hypothesis");
+  expect(await browserValues(page)).not.toContain("Private quick capture fixture");
+  expect(await browserValues(page)).not.toContain("monthly lunch");
+  await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); window.scrollTo(0, 0); });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
+  await page.screenshot({ path: testInfo.outputPath("idea-detail.png"), fullPage: true, scale: "css" });
+});
+
+test("Ideas fixture: search and state apply across the library and reset continuation", async ({ page }) => {
+  const items = Array.from({ length: 57 }, (_, index) => {
+    const item = idea(fixtureId(index + 1), ownerA, `Library fixture ${index}`);
+    if (index < 5) item.content.description = "Old hidden search needle %_ fixture";
+    if (index % 2 === 0) item.content.state = "developing";
+    return item;
+  });
+  const state = await accountFixtures(page, items);
+  await page.goto("/ideas");
+  await expect(page.getByRole("button", { name: "Load more ideas", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Load more ideas", exact: true }).click();
+  await expect.poll(() => state.queries.length).toBe(2);
+  expect(state.queries[1]!.get("cursorId")).toBeTruthy();
+  await page.getByRole("searchbox", { name: "Search ideas", exact: true }).fill("needle %_");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page.getByRole("link", { name: /Library fixture/ })).toHaveCount(5);
+  expect(state.queries.at(-1)?.get("search")).toBe("needle %_");
+  expect(state.queries.at(-1)?.get("cursorId")).toBeNull();
+  await page.getByRole("combobox", { name: "Filter by state", exact: true }).selectOption("developing");
+  await expect(page.getByRole("link", { name: /Library fixture/ })).toHaveCount(3);
+  expect(state.queries.at(-1)?.get("state")).toBe("developing");
+  expect(state.queries.at(-1)?.get("cursorId")).toBeNull();
+  await expect(page.getByRole("button", { name: "Load more ideas", exact: true })).toHaveCount(0);
+});
+
+test("Ideas fixture: an obsolete search response cannot replace the current library", async ({ page }) => {
+  const state = await accountFixtures(page, [idea(), idea(ideaB, ownerA, "New current search fixture")]);
+  let release!: () => void;
+  let start!: () => void;
+  const wait = new Promise<void>(resolve => { release = resolve; });
+  const requested = new Promise<void>(resolve => { start = resolve; });
+  await page.route("**/api/ideas?**", async route => {
+    if (new URL(route.request().url()).searchParams.get("search") !== "old") return route.fallback();
+    start(); await wait;
+    await reply(route, { ownerId: ownerA, items: [summary(idea())], nextCursor: null });
+  });
+  await page.goto("/ideas");
+  await page.getByRole("searchbox", { name: "Search ideas", exact: true }).fill("old");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await requested;
+  await page.getByRole("searchbox", { name: "Search ideas", exact: true }).fill("New current");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page.getByRole("link", { name: /New current search fixture/ })).toBeVisible();
+  release();
+  await expect(page.getByRole("link", { name: /Quiet kitchen fixture/ })).toHaveCount(0);
+  expect(state.queries.at(-1)?.get("search")).toBe("New current");
+});
+
+test("Ideas fixture: resubmitting the same search keeps the current page and continuation", async ({ page }) => {
+  const state = await accountFixtures(page, Array.from({ length: 57 }, (_, index) => idea(fixtureId(index + 1), ownerA, `Repeat search fixture ${index}`)));
+  await page.goto("/ideas");
+  await expect(page.getByRole("button", { name: "Load more ideas", exact: true })).toBeEnabled();
+  await expect(page.getByRole("link", { name: /Repeat search fixture/ })).toHaveCount(25);
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Load more ideas", exact: true })).toBeEnabled();
+  await expect(page.getByRole("link", { name: /Repeat search fixture/ })).toHaveCount(25);
+  expect(state.queries).toHaveLength(1);
+});
+
+test("Ideas fixture: a lost create response retries the same intent and a double click admits one write", async ({ page }) => {
+  const state = await accountFixtures(page, []);
+  state.loseCreateResponse = true;
+  await page.goto("/ideas");
+  await page.getByRole("button", { name: "Add idea", exact: true }).click();
+  await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Private retry fixture");
+  await page.locator(".ideas-capture form").evaluate(form => { form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })); form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })); });
+  await expect(page.getByRole("button", { name: "Retry saving idea", exact: true })).toBeVisible();
+  expect(state.writes).toHaveLength(1);
+  await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Private retry fixture");
+  await page.getByRole("button", { name: "Retry saving idea", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/ideas/${ideaId}$`));
+  expect(state.writes[1]!.body).toEqual(state.writes[0]!.body);
+  expect(state.ideas.size).toBe(1);
+});
+
+test("Ideas fixture: unknown save retains text and an explicit retry reuses its revision and request key", async ({ page }) => {
+  const state = await accountFixtures(page);
+  state.loseSaveResponse = true;
+  await openIdea(page);
+  await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Private saved-response retry fixture");
+  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Retry save", exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Private saved-response retry fixture");
+  await page.getByRole("button", { name: "Retry save", exact: true }).click();
+  await expect(page.getByText("Saved to account · version 2.", { exact: true })).toBeVisible();
+  expect(state.writes[1]!.body).toEqual(state.writes[0]!.body);
+  expect(state.ideas.get(ideaId)?.revision).toBe(2);
+});
+
+test("Ideas fixture: an unavailable mutation reports unconfirmed delivery while retaining the original save", async ({ page }) => {
+  const state = await accountFixtures(page);
+  state.patchStatus = 503;
+  await openIdea(page);
+  await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Unavailable save fixture");
+  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await expect(page.locator("main").getByRole("alert")).toContainText("could not be confirmed");
+  await expect(page.getByRole("button", { name: "Retry save", exact: true })).toBeVisible();
+  state.patchStatus = 200;
+  await page.getByRole("button", { name: "Retry save", exact: true }).click();
+  await expect(page.getByText("Saved to account · version 2.", { exact: true })).toBeVisible();
+  expect(state.writes[1]!.body).toEqual(state.writes[0]!.body);
+});
+
+test("Ideas fixture: conflict preserves edits and replacing them requires an explicit choice", async ({ page }) => {
+  const state = await accountFixtures(page);
+  await openIdea(page);
+  await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Private conflicting title fixture");
+  state.ideas.set(ideaId, { ...idea(), revision: 2, content: content("Remote latest fixture") });
+  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await expect(page.locator("main").getByRole("alert")).toContainText("A newer version is saved");
+  await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Private conflicting title fixture");
+  await page.getByRole("button", { name: "Load latest version", exact: true }).click();
+  await page.getByRole("button", { name: "Keep editing", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Private conflicting title fixture");
+  await page.getByRole("button", { name: "Load latest version", exact: true }).click();
+  await page.getByRole("button", { name: "Replace with latest version", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Remote latest fixture");
+  await expect(page.getByText("Saved to account · version 2.", { exact: true })).toBeVisible();
+});
+
+test("Ideas fixture: a schema-valid multibyte idea cannot exceed the full request byte cap", async ({ page }) => {
+  const state = await accountFixtures(page);
+  await openIdea(page);
+  const oversized = "漢".repeat(11_000);
+  await page.getByRole("textbox", { name: "Description (optional)", exact: true }).fill(oversized);
+  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await expect(page.locator("main").getByRole("alert")).toContainText("too large");
+  expect(state.writes).toHaveLength(0);
+  await expect(page.getByRole("textbox", { name: "Description (optional)", exact: true })).toHaveValue(oversized);
+  expect(await browserValues(page)).not.toContain(oversized);
+});
+
+test("Ideas fixture: explicit brand creation preserves its original source after later idea edits", async ({ page }, testInfo) => {
+  const original = idea(); original.content.details.audience = "Local workers"; original.content.details.solution = "Seasonal lunches";
+  const state = await accountFixtures(page, [original]);
+  await openIdea(page);
+  await page.getByRole("button", { name: "Create brand", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeVisible();
+  const banner = page.getByRole("region", { name: "Original idea", exact: true });
+  await expect(banner).toContainText("Quiet kitchen fixture");
+  await expect(banner).toContainText("Source version 1");
+  await expect(banner.getByRole("link", { name: "View original idea", exact: true })).toHaveAttribute("href", `/ideas/${ideaId}`);
+  expect(state.projects.get(projectId)?.context).toMatchObject({ offering: "Seasonal lunches", knownAudience: "Local workers", reformulationConfirmed: false, competitorReviewComplete: false, selectedName: null });
+  expect(Object.keys(state.writes[0]!.body).sort()).toEqual(["expectedRevision", "requestKey"]);
+  await banner.getByRole("link", { name: "View original idea", exact: true }).click();
+  await expect(page.getByRole("link", { name: "Open created brand", exact: true })).toHaveAttribute("href", `/brands/account/${projectId}`);
+  await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Edited idea title fixture");
+  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await expect(page.getByText("Saved to account · version 3.", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Open created brand", exact: true }).click();
+  await expect(banner).toContainText("Quiet kitchen fixture");
+  await expect(banner).not.toContainText("Edited idea title fixture");
+  await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); window.scrollTo(0, 0); });
+  await page.screenshot({ path: testInfo.outputPath("idea-brand-source.png"), fullPage: true, scale: "css" });
+});
+
+test("Ideas fixture: uncertain brand creation retries its original key without creating twice", async ({ page }) => {
+  const state = await accountFixtures(page); state.loseBrandResponse = true;
+  await openIdea(page);
+  await page.getByRole("button", { name: "Create brand", exact: true }).evaluate(button => { (button as HTMLButtonElement).click(); (button as HTMLButtonElement).click(); });
+  await expect(page.getByRole("button", { name: "Retry creating brand", exact: true })).toBeVisible();
+  expect(state.writes).toHaveLength(1);
+  await page.getByRole("button", { name: "Retry creating brand", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  expect(state.writes[1]!.body).toEqual(state.writes[0]!.body);
+  expect(state.projects.size).toBe(1);
+});
+
+test("Ideas fixture: expiration hides private edits and verified same-account recovery retains them", async ({ page }) => {
+  const state = await accountFixtures(page);
+  await openIdea(page);
+  await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Private expiration recovery fixture");
+  state.patchStatus = 401;
+  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveCount(0);
+  expect(await browserValues(page)).not.toContain("Private expiration recovery fixture");
+  state.patchStatus = 200;
+  await page.getByRole("button", { name: "Check account", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Private expiration recovery fixture");
+});
+
+test("Ideas fixture: a changed account cannot see a pending save or the previous owner's edits", async ({ page }) => {
+  const state = await accountFixtures(page);
+  let release!: () => void; let start!: () => void;
+  const wait = new Promise<void>(resolve => { release = resolve; });
+  const requested = new Promise<void>(resolve => { start = resolve; });
+  await page.route(`**/api/ideas/${ideaId}`, async route => {
+    if (route.request().method() !== "PATCH") return route.fallback();
+    const body = route.request().postDataJSON(); start(); await wait;
+    await reply(route, { idea: { ...idea(), revision: 2, content: body.content } });
+  });
+  await openIdea(page);
+  await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Owner A delayed private save fixture");
+  await page.getByRole("button", { name: "Save changes", exact: true }).click(); await requested;
+  state.owner = ownerB;
+  await page.getByRole("button", { name: "Check account", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveCount(0);
+  release();
+  await expect(page.locator("main")).not.toContainText("Owner A delayed private save fixture");
+  state.owner = ownerA;
+  await page.getByRole("button", { name: "Check account", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Quiet kitchen fixture");
+});
+
+test("Ideas fixture: pending sign-out masks data and fences a late brand response", async ({ page }) => {
+  const state = await accountFixtures(page);
+  let release!: () => void; let start!: () => void; let finishSignOut!: () => void;
+  const wait = new Promise<void>(resolve => { release = resolve; });
+  const requested = new Promise<void>(resolve => { start = resolve; });
+  const signOut = new Promise<void>(resolve => { finishSignOut = resolve; });
+  await page.route(`**/api/ideas/${ideaId}/brand`, async route => {
+    const body = route.request().postDataJSON(); start(); await wait;
+    const link: Link = { id: fixtureId(888), ownerId: ownerA, ideaId, ideaRevision: 1, projectId, requestKey: body.requestKey, createdAt: when };
+    await reply(route, { idea: { ...idea(), revision: 2, content: { ...content(), state: "used" }, links: [link] }, link });
+  });
+  await page.route("**/api/auth/sign-out", async route => { await signOut; state.sessionStatus = 401; await reply(route, { authenticated: false }); });
+  await openIdea(page);
+  await page.getByRole("button", { name: "Create brand", exact: true }).click(); await requested;
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await page.getByRole("button", { name: "Discard edits and sign out", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveCount(0);
+  release();
+  await expect(page).toHaveURL(new RegExp(`/ideas/${ideaId}$`));
+  finishSignOut();
+  await expect(page.getByRole("link", { name: "Sign in", exact: true }).first()).toBeVisible();
+});
+
+test("Ideas fixture: unsaved idea edits participate in account sign-out confirmation", async ({ page }) => {
+  await accountFixtures(page);
+  await openIdea(page);
+  await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Private sign-out confirmation fixture");
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Sign out with unsaved account edits?" })).toBeVisible();
+  await page.getByRole("button", { name: "Keep editing", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Private sign-out confirmation fixture");
+});
+
+test("Ideas fixture: internal navigation and failed sign-out preserve same-owner edits", async ({ page }) => {
+  await accountFixtures(page);
+  await openIdea(page);
+  await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Private navigation recovery fixture");
+  await page.getByRole("link", { name: "Back to ideas", exact: true }).click();
+  await page.getByRole("link", { name: /Quiet kitchen fixture/ }).click();
+  await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Private navigation recovery fixture");
+  await page.route("**/api/auth/sign-out", route => reply(route, {}, 503));
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await page.getByRole("button", { name: "Discard edits and sign out", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveCount(0);
+  await expect(page.locator("main")).not.toContainText("Private navigation recovery fixture");
+  await page.getByRole("button", { name: "Check account", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Private navigation recovery fixture");
+});
+
+test("Ideas fixture: the native title form supports keyboard capture", async ({ page }) => {
+  const state = await accountFixtures(page, []);
+  await page.goto("/ideas");
+  await page.getByRole("button", { name: "Add idea", exact: true }).click();
+  const title = page.getByRole("textbox", { name: "Idea title", exact: true });
+  await title.fill("Keyboard capture fixture");
+  await title.press("Enter");
+  await expect(page).toHaveURL(new RegExp(`/ideas/${ideaId}$`));
+  expect(state.writes).toHaveLength(1);
+  await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Keyboard capture fixture");
+});
+
+test("Ideas fixture: a transient initial read has an explicit retry without losing retained edits", async ({ page }) => {
+  await accountFixtures(page);
+  await openIdea(page);
+  await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Retained read recovery fixture");
+  await page.getByRole("link", { name: "Back to ideas", exact: true }).click();
+  let failRead = true;
+  await page.route(`**/api/ideas/${ideaId}`, route => failRead ? reply(route, {}, 503) : route.fallback());
+  await page.getByRole("link", { name: /Quiet kitchen fixture/ }).click();
+  await expect(page.locator("main").getByRole("alert")).toContainText("unavailable");
+  failRead = false;
+  await page.getByRole("button", { name: "Try loading idea again", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Retained read recovery fixture");
+});
+
+test("Ideas fixture: a source read deadline reports unavailable without blocking the owned brand editor", async ({ page }) => {
+  await accountFixtures(page);
+  await openIdea(page);
+  await page.getByRole("button", { name: "Create brand", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Original idea", exact: true })).toBeVisible();
+  let release!: () => void; let start!: () => void;
+  const wait = new Promise<void>(resolve => { release = resolve; });
+  const requested = new Promise<void>(resolve => { start = resolve; });
+  await page.route(`**/api/projects/${projectId}/idea-source`, async route => { start(); await wait; await reply(route, { ownerId: ownerA, projectId, source: null }); });
+  await page.clock.install();
+  await page.reload();
+  await requested;
+  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeVisible();
+  await page.clock.fastForward(15_001);
+  await expect(page.getByText("Original idea source is unavailable. You can keep editing this brand.", { exact: true })).toBeVisible();
+  release();
+  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeEnabled();
+});
+
+test("Ideas fixture: unverified, foreign and mismatched resources never enter private controls", async ({ page }) => {
+  const state = await accountFixtures(page);
+  state.sessionStatus = 401;
+  await page.goto("/ideas");
+  await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Sign in", exact: true }).first()).toBeVisible();
+  state.sessionStatus = 200;
+  await page.getByRole("button", { name: "Check account", exact: true }).click();
+  await page.getByRole("button", { name: "Add idea", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toBeVisible();
+  await page.route(`**/api/ideas/${ideaId}`, route => reply(route, { idea: idea(ideaB, ownerA, "Wrong resource private fixture") }));
+  await page.goto(`/ideas/${ideaId}`);
+  await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveCount(0);
+  await expect(page.locator("main")).not.toContainText("Wrong resource private fixture");
+});
+
+test("Ideas fixture: a verified account can capture a title without completing a brief", async ({ page }) => {
+  await emptyAccount(page);
+  await page.goto("/ideas");
+  await page.getByRole("button", { name: "Add idea", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Description (optional)", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Save idea", exact: true })).toBeVisible();
+  await expect(page.getByText("AI exploration is unavailable.", { exact: true })).toBeVisible();
+});

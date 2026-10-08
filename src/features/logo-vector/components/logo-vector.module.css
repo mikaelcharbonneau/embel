@@ -1,0 +1,66 @@
+.controls { display: grid; gap: 1rem; color: var(--text, #191919); }
+.headingRow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
+.headingRow h3 { margin: 0; font-size: 1rem; text-transform: capitalize; }
+.controls p { margin: 0; font-size: .875rem; line-height: 1.5; }
+.fields { margin: 0; padding: 1rem; border: 1px solid var(--border, #e4e3df); border-radius: 10px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem; }
+.fields legend { padding: 0 .35rem; font-size: .85rem; font-weight: 600; }
+.fields label { display: grid; gap: .35rem; font-size: .875rem; }
+.fields input, .fields select { min-width: 0; width: 100%; min-height: 2.75rem; padding: .5rem; border: 1px solid var(--border, #e4e3df); border-radius: .5rem; background: var(--paper, #fff); color: inherit; }
+.controls button { min-height: 2.75rem; border: 1px solid var(--border, #e4e3df); border-radius: .5rem; padding: .5rem .75rem; background: var(--paper, #fff); color: inherit; font: inherit; }
+.controls button[aria-pressed="true"] { border-color: #a81168; background: #fce7f3; color: #83104f; }
+.controls :is(button, input, select):focus-visible { outline: 3px solid #b01778; outline-offset: 3px; }
+.controls :disabled { opacity: .55; cursor: not-allowed; }
+@media (max-width: 480px) { .fields { grid-template-columns: 1fr; } }
+
+.editor { display: grid; gap: 1.25rem; padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--border, #e4e3df); border-radius: var(--panel-radius, 10px); background: var(--paper, #fff); color: var(--text, #191919); }
+.editorHeader { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+.editorHeader h2 { margin: .25rem 0 0; font-size: 1.5rem; letter-spacing: -.025em; }
+.eyebrow { margin: 0; color: var(--secondary, #696965); font-size: .75rem;  }
+.badge { padding: .4rem .65rem; border-radius: 999px; font-size: .75rem; background: var(--magenta-soft, #fff0fd); color: var(--accent-text, #990091); }
+.notice { padding: 1rem; border: 1px solid var(--border, #e4e3df); border-left: 1px solid var(--border, #e4e3df); border-radius: .5rem; background: var(--canvas, #f7f7f5); }
+.notice p { margin: .35rem 0 0; line-height: 1.5; font-size: .875rem; }
+.comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.previewPanel { min-width: 0; }
+.previewPanel h3, .componentList h3, .history h3 { margin: 0 0 .75rem; font-size: .9rem; }
+.canvas, .missingPreview { display: grid; place-items: center; min-height: 220px; aspect-ratio: 5/3; border: 1px solid var(--border, #e4e3df); border-radius: 10px; padding: 1rem; background: var(--canvas, #f7f7f5); }
+.canvas svg { display: block; width: 100%; height: 100%; max-height: 360px; }
+.originalImage { display: block; width: 100%; height: 100%; max-height: 360px; object-fit: contain; }
+.missingPreview { align-content: center; text-align: center; }
+.missingPreview p { margin: .3rem 0; max-width: 30ch; font-size: .875rem; line-height: 1.5; }
+.caption { margin: 0; color: var(--secondary, #696965); font-size: .8125rem; line-height: 1.5; }
+.previewPanel .caption { margin-top: .5rem; }
+.editLayout { display: grid; grid-template-columns: minmax(160px, 1fr) minmax(0, 3fr); gap: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border, #e4e3df); }
+.componentList { display: flex; flex-direction: column; align-items: stretch; gap: .5rem; }
+.componentList button { display: grid; gap: .25rem; text-align: left; padding: .75rem; border: 1px solid var(--border, #e4e3df); border-radius: .5rem; background: var(--paper, #fff); color: inherit; min-height: 44px; font: inherit; }
+.componentList button span { text-transform: capitalize; }
+.componentList button small { color: var(--secondary, #696965); }
+.componentList button[aria-pressed="true"] { border-color: var(--accent-text, #990091); background: var(--magenta-soft, #fff0fd); }
+.actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.actions button, .history button { min-height: 44px; padding: .6rem .9rem; border: 1px solid var(--border, #e4e3df); border-radius: .5rem; background: var(--surface, #f1f0ee); color: var(--secondary, #696965); font: inherit; }
+.editor button:disabled { cursor: not-allowed; }
+.editor button:focus-visible, .editor input:focus-visible { outline: 3px solid var(--accent-text, #990091); outline-offset: 3px; }
+.history { padding-top: 1rem; border-top: 1px solid var(--border, #e4e3df); }
+.history p { font-size: .875rem; line-height: 1.5; }
+.history ol { list-style: none; padding: 0; margin: 0; }
+.history li { display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: .75rem; padding: .75rem 0; }
+.history li div { display: grid; gap: .25rem; }
+.history time { font-size: .75rem; color: var(--secondary, #696965); }
+@media (max-width: 700px) { .comparison, .editLayout { grid-template-columns: 1fr; } .canvas, .missingPreview { min-height: 170px; } .componentList { flex-direction: row; flex-wrap: wrap; } .componentList h3 { flex-basis: 100%; } .componentList button { flex: 1; min-width: 130px; } }
+
+/* Original refinement surfaces, keeping the newer component and recovery tools. */
+.editor { padding: 24px; gap: 24px; }
+.editorHeader { margin-bottom: 24px; }
+.editorHeader h1, .editorHeader h2 { font-size: 24px; font-weight: 500; letter-spacing: -.7px; }
+.eyebrow { font-size: 11px; margin-bottom: 6px; }
+.badge { border-radius: 4px; background: var(--surface); color: var(--secondary); font-weight: 400; }
+.editLayout { grid-template-columns: minmax(200px, 1fr) minmax(0, 2fr); gap: 24px; }
+.componentList button { border-color: transparent; background: transparent; border-radius: 6px; font-size: 13px; padding: 12px; }
+.componentList button[aria-pressed="true"] { border-color: transparent; background: var(--surface); }
+.fields { border: 0; background: var(--canvas); border-radius: 8px; padding: 20px; }
+.fields label { font-size: 12px; }
+.controls button[aria-pressed="true"] { border-color: var(--text); background: var(--surface); color: var(--text); }
+.actions button, .history button { background: var(--paper); color: var(--text); border-radius: 7px; font-size: 13px; }
+.actions button:disabled, .history button:disabled { color: var(--secondary); background: var(--surface); }
+.history li { border-top: 1px solid var(--border); padding: 18px 0; }
+.canvas, .missingPreview { border-radius: 6px; }
+@media(max-width:700px) { .editor { padding: 16px; } .editLayout { grid-template-columns: 1fr; } }

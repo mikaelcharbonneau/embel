@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": null,
+  "installCommand": "",
+  "regions": ["iad1"],
+  "fluid": true,
+  "functions": {
+    "api/enqueue.js": { "maxDuration": 30 },
+    "api/cron/repair-api-text.js": { "maxDuration": 60 },
+    "api/consume.js": {
+      "maxDuration": 300,
+      "experimentalTriggers": [{ "type": "queue/v2beta", "topic": "fluid-api-text-v1", "retryAfterSeconds": 60, "maxDeliveries": 5 }]
+    }
+  },
+  "crons": [{ "path": "/api/cron/repair-api-text", "schedule": "0 3 * * *" }]
+}

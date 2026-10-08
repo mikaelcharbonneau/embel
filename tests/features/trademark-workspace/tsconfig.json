@@ -1,0 +1,6 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": { "incremental": false, "types": ["node", "next"] },
+  "include": ["../../../src/features/trademark-workspace/**/*.ts", "../../../src/features/trademark-workspace/**/*.tsx", "../../../src/components/ui/icon.tsx", "./*.ts", "./*.tsx"],
+  "exclude": ["../../../node_modules"]
+}

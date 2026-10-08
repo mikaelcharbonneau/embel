@@ -1,0 +1,20 @@
+.panel { border: 1px solid var(--border); background: var(--paper); border-radius: var(--panel-radius); padding: 20px 24px; margin: 0 0 24px; overflow-wrap: anywhere; }
+.heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.heading h2 { margin: 0; font-size: 17px; font-weight: 500; }
+.heading p, .import p, .note, .sources { font-size: 13px; line-height: 1.6; color: var(--secondary); }
+.heading p { margin: 5px 0 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.import { display: flex; align-items: center; gap: 16px; border-top: 1px solid var(--border); margin-top: 18px; padding-top: 18px; }
+.import p { margin: 0; }
+.import button { flex-shrink: 0; }
+.note { margin: 16px 0 0; }
+.error, .discard { font-size: 14px; line-height: 1.6; padding: 14px; background: var(--surface); border-radius: 6px; }
+.discard p { margin: 0 0 12px; }
+.sources { margin-top: 16px; }
+.sources summary { cursor: pointer; color: var(--text); }
+.sources li { margin: 10px 0; }
+.sources strong { color: var(--text); }
+@media (max-width: 640px) {
+  .panel { padding: 16px; }
+  .heading, .import { align-items: flex-start; flex-direction: column; }
+}

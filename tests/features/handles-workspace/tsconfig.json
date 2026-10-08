@@ -1,0 +1,12 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": { "incremental": false },
+  "include": [
+    "../../../next-env.d.ts",
+    "../../../src/features/handles-workspace/**/*.ts",
+    "../../../src/features/handles-workspace/**/*.tsx",
+    "./*.ts",
+    "./*.tsx"
+  ],
+  "exclude": ["../../../node_modules"]
+}

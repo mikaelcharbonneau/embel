@@ -1,0 +1,13 @@
+import { z } from "zod";
+import { standaloneImportSelectionSchema,standaloneImportSourceSchema } from "./standalone-workspaces";
+import { attachmentAccountProjectSchema } from "./attachments";
+import { providerDomainSchema } from "./standalone-provider-evidence";
+import { logoUuidSchema as uuid,logoRevisionSchema as revision,logoHashSchema as hash,logoStringSchema as text,logoTimestampSchema as timestamp,boundedLogoJson as bounded } from "./logo-vector";
+export const standalonePromotionSelectionSchema=z.discriminatedUnion("tool",[z.strictObject({tool:z.literal("domains"),domain:providerDomainSchema}),z.strictObject({tool:z.literal("handles"),bundleId:text.min(1).max(160)}),z.strictObject({tool:z.literal("trademarks")})]);
+export type StandalonePromotionSelection=z.infer<typeof standalonePromotionSelectionSchema>;
+export const standalonePromotionSourceSchema=bounded(z.strictObject({id:uuid,ownerId:uuid,workspaceId:uuid,workspaceRevision:revision,selection:standalonePromotionSelectionSchema,payloadHash:hash,contextSource:standaloneImportSourceSchema.nullable(),createdAt:timestamp}));
+export type StandalonePromotionSource=z.infer<typeof standalonePromotionSourceSchema>;
+export const standalonePromotionInputSchema=bounded(z.strictObject({requestKey:uuid,workspaceId:uuid,expectedWorkspaceRevision:revision,selection:standalonePromotionSelectionSchema,contextSource:standaloneImportSelectionSchema.nullable(),title:text.min(1).max(160).refine(v=>v.trim().length>0,"A title is required")}));
+export type StandalonePromotionInput=z.infer<typeof standalonePromotionInputSchema>;
+export const standalonePromotionReceiptSchema=bounded(z.strictObject({ownerId:uuid,requestKey:uuid,project:attachmentAccountProjectSchema,source:standalonePromotionSourceSchema}).refine(v=>v.project.owner_id===v.ownerId&&v.source.ownerId===v.ownerId&&v.project.scope==="complete_brand","Promotion must bind an owned complete-brand project and source"),65_536);
+export type StandalonePromotionReceipt=z.infer<typeof standalonePromotionReceiptSchema>;

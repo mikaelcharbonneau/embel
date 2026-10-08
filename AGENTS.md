@@ -1,0 +1,27 @@
+# Fluid engineering
+
+This is a greenfield external application. Never copy, branch from, import, or modify previous Fluid implementations, migrations, fixtures, services, or export pipelines. All work belongs to this isolated checkout and its new private repository.
+
+All development agents must use GPT-6 Astra. Lead, product/frontend, and identity design use max; backend/security, strategy/naming, and independent QA use at least xhigh. Never fall back to another model. The latest user continuation prioritizes quality and substantive progress and withdraws the earlier two-specialist limit; use appropriate parallelism with disjoint ownership. User updates override earlier working-plan wording.
+
+Read docs/decisions.md and docs/architecture.md before changes. Record approved facts separately from proposals. The user already authorized implementing agreed foundations; do not reopen that approval. No public deployment, paid calls, paid provisioning, persistent credentials, or unrelated permissions without explicit authorization.
+
+Use current official docs and relevant local skills. There was no pre-existing .agents/skills checkout at initialization. Keep external design references in ignored .references; copy only original approved design tokens/assets, never old application code. The original Pen source is materialized and hash verified; see docs/references.md.
+
+One TypeScript repository, two process entrypoints: Next.js web in src/app and a dedicated Node worker in worker. Shared contracts in src/domain. Server modules belong to src/server. UI must never import privileged modules. Default to unavailable integrations rather than invented AI, availability, trademark clearance, purchase, or export success. Clearly label local fixtures.
+
+Every owned row and storage object requires enforced ownership. Never trust owner IDs from clients. Versioned outputs are immutable; restoration creates a new selection/version. Jobs are durable, cancellable, bounded by cost, leased, idempotent, and retain partial results. Do not execute jobs in HTTP request lifetimes.
+
+Run typecheck, lint, relevant tests, and production build before verified pushes. Test actual tenant isolation at database boundaries when possible. Distinguish local tests from live provider validation. No secrets in source, output, logs, fixtures, or commits. Preserve all unrelated changes. Specialists own disjoint paths and do not commit or push; lead integrates.
+
+Shared browser belongs to multiple tasks. Use a dedicated headless browser for local tests; do not disturb SourceAtlas tabs. Ask through the parent before shared GUI use.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

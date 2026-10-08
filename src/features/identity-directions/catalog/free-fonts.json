@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "geist-sans-variable",
+      "family": "Geist",
+      "package": "geist",
+      "packageVersion": "1.7.2",
+      "file": "geist-sans/Geist-Variable.ttf",
+      "contentHash": "cdcc4815cbf5f9882fa74e48f8ab410a0495781a58ff7316570f664e7e987753",
+      "licenseFile": "OFL-Geist-1.7.2.txt",
+      "licenseTextHash": "930853ee1daa68554d9e35c8a9175affb74f699fad9a5da6ee5ebe76379d9137",
+      "licenseSourceUrl": "https://github.com/vercel/geist-font/blob/main/OFL.txt",
+      "fontSourceUrl": "https://www.npmjs.com/package/geist/v/1.7.2",
+      "rightsEvidenceId": "64100000-0000-4000-8000-000000000001",
+      "reviewedAt": "2026-10-07T01:42:00Z",
+      "conditions": [
+        "Include the copyright notice and OFL license with redistributed font software.",
+        "Do not sell the font software by itself.",
+        "Distribute font software, including modifications, under the OFL.",
+        "Do not use reserved font names for modified font software without permission.",
+        "Do not use the copyright holder or author names to endorse modified font software."
+      ],
+      "reservedFontNames": []
+    },
+    {
+      "id": "geist-sans-italic",
+      "family": "Geist",
+      "package": "geist",
+      "packageVersion": "1.7.2",
+      "file": "geist-sans/Geist-Italic[wght].ttf",
+      "contentHash": "c5db6397dae7993afb72e397277c5a5308ba32de010eb19ec2b8b73f5e9d3ec4",
+      "licenseFile": "OFL-Geist-1.7.2.txt",
+      "licenseTextHash": "930853ee1daa68554d9e35c8a9175affb74f699fad9a5da6ee5ebe76379d9137",
+      "licenseSourceUrl": "https://github.com/vercel/geist-font/blob/main/OFL.txt",
+      "fontSourceUrl": "https://www.npmjs.com/package/geist/v/1.7.2",
+      "rightsEvidenceId": "64100000-0000-4000-8000-000000000002",
+      "reviewedAt": "2026-10-07T01:42:00Z",
+      "conditions": [
+        "Include the copyright notice and OFL license with redistributed font software.",
+        "Do not sell the font software by itself.",
+        "Distribute font software, including modifications, under the OFL.",
+        "Do not use reserved font names for modified font software without permission.",
+        "Do not use the copyright holder or author names to endorse modified font software."
+      ],
+      "reservedFontNames": []
+    },
+    {
+      "id": "geist-mono-variable",
+      "family": "Geist Mono",
+      "package": "geist",
+      "packageVersion": "1.7.2",
+      "file": "geist-mono/GeistMono-Variable.ttf",
+      "contentHash": "0e1af3f507a1c8dfbb03d13ffad585834cd45ed7ccb78c756c7ce7873d180d30",
+      "licenseFile": "OFL-Geist-1.7.2.txt",
+      "licenseTextHash": "930853ee1daa68554d9e35c8a9175affb74f699fad9a5da6ee5ebe76379d9137",
+      "licenseSourceUrl": "https://github.com/vercel/geist-font/blob/main/OFL.txt",
+      "fontSourceUrl": "https://www.npmjs.com/package/geist/v/1.7.2",
+      "rightsEvidenceId": "64100000-0000-4000-8000-000000000003",
+      "reviewedAt": "2026-10-07T01:42:00Z",
+      "conditions": [
+        "Include the copyright notice and OFL license with redistributed font software.",
+        "Do not sell the font software by itself.",
+        "Distribute font software, including modifications, under the OFL.",
+        "Do not use reserved font names for modified font software without permission.",
+        "Do not use the copyright holder or author names to endorse modified font software."
+      ],
+      "reservedFontNames": []
+    },
+    {
+      "id": "geist-mono-italic",
+      "family": "Geist Mono",
+      "package": "geist",
+      "packageVersion": "1.7.2",
+      "file": "geist-mono/GeistMono-Italic[wght].ttf",
+      "contentHash": "e5800990ff5069667f4ff0a5dc582b260597e0adc022a887d9d103fc4cdd2cf2",
+      "licenseFile": "OFL-Geist-1.7.2.txt",
+      "licenseTextHash": "930853ee1daa68554d9e35c8a9175affb74f699fad9a5da6ee5ebe76379d9137",
+      "licenseSourceUrl": "https://github.com/vercel/geist-font/blob/main/OFL.txt",
+      "fontSourceUrl": "https://www.npmjs.com/package/geist/v/1.7.2",
+      "rightsEvidenceId": "64100000-0000-4000-8000-000000000004",
+      "reviewedAt": "2026-10-07T01:42:00Z",
+      "conditions": [
+        "Include the copyright notice and OFL license with redistributed font software.",
+        "Do not sell the font software by itself.",
+        "Distribute font software, including modifications, under the OFL.",
+        "Do not use reserved font names for modified font software without permission.",
+        "Do not use the copyright holder or author names to endorse modified font software."
+      ],
+      "reservedFontNames": []
+    }
+  ]
+}
