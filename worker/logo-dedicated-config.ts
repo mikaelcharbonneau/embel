@@ -1,4 +1,7 @@
 import "server-only";
+import { isDeepStrictEqual } from "node:util";
+import { qualifiedLogoVectorProposalCapability } from "./logo-vector-proposal-capability";
+import { logoVectorProposalConfigurationSchema } from "../src/features/logo-vector/server/proposal-policy";
 import { createHash } from "node:crypto";
 import { constants, type Stats } from "node:fs";
 import { lstat, open, realpath } from "node:fs/promises";
@@ -23,11 +26,12 @@ const schema = z.strictObject({
   workerId: z.string().min(1).max(200).regex(/^[A-Za-z0-9._:-]+$/),
   database: z.strictObject({ host: z.enum([DIRECT_HOST, POOLER_HOST]), port: z.literal(5432), database: z.literal("postgres"), password: secret }),
   storage: z.strictObject({ authUserId: uuid, publishableKey: z.string().regex(/^sb_publishable_[A-Za-z0-9_-]{1,500}$/),
-    accessToken: z.string().max(16_384).regex(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/), sessionApproved: z.literal(true) }),
+    accessToken: z.string().max(16_384).regex(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/), sessionApproved: z.literal(true) }).optional(),
   image: z.strictObject({ apiKey: secret, model: z.literal(IMAGE_MODEL), rateVersion: z.literal(SUNBURST_STANDARD_IMAGE_PRICING.binding.rateVersion), paidCallsApproved: z.literal(true) }).optional(),
-  operations: z.strictObject({ concepts: z.unknown().optional(), refinements: z.unknown().optional(), vector: z.unknown().optional(), exports: z.unknown().optional() }),
+  vectorProposal: logoVectorProposalConfigurationSchema.extend({ apiKey: secret }).optional(),
+  operations: z.strictObject({ proposals: z.unknown().optional(), concepts: z.unknown().optional(), refinements: z.unknown().optional(), vector: z.unknown().optional(), exports: z.unknown().optional() }),
 });
-type Lane = "concepts" | "refinements" | "vector" | "exports";
+type Lane = "proposals" | "concepts" | "refinements" | "vector" | "exports";
 type Values = Readonly<Omit<z.infer<typeof schema>, "operations"> & { operations: Readonly<Partial<Record<Lane, LogoWorkerCapability>>> }>;
 export type LogoDedicatedConfiguration = Readonly<{ status: "configured" }> | Readonly<{ status: "disabled" }>
   | Readonly<{ status: "unavailable"; code: "invalid_configuration" | "unsafe_configuration_file" }>;
@@ -46,6 +50,7 @@ export function parseLogoDedicatedConfiguration(input?: unknown): LogoDedicatedC
   try {
     if (z.strictObject({ version: z.literal(1), enabled: z.literal(false) }).safeParse(input).success) return Object.freeze({ status: "disabled" });
     const c = schema.parse(input), operations: Partial<Record<Lane, LogoWorkerCapability>> = {};
+    if (c.storage) {
     if (c.binding.ownerId === c.storage.authUserId) throw unavailable();
     const claims = decodeJwt(c.storage.accessToken);
     if (claims.sub !== c.storage.authUserId || claims.role !== "authenticated" || claims.aud !== "authenticated"
@@ -54,14 +59,18 @@ export function parseLogoDedicatedConfiguration(input?: unknown): LogoDedicatedC
       || claims.nbf !== undefined && (!Number.isSafeInteger(claims.nbf) || claims.nbf * 1000 > Date.now())) throw unavailable();
     // Decoded claims only reject incompatible/expired input. Actual Auth and SQL
     // grant checks remain in the real brokers for each admitted leased job.
-    const expected = { concepts: "identity.logo_concept", refinements: "identity.logo_refine", vector: "identity.logo_vectorize", exports: "identity.logo_export" } as const;
+    }
+    const expected = { proposals: "identity.logo_vector_propose", concepts: "identity.logo_concept", refinements: "identity.logo_refine", vector: "identity.logo_vectorize", exports: "identity.logo_export" } as const;
     for (const lane of Object.keys(expected) as Lane[]) {
       const raw = c.operations[lane]; if (raw === undefined) continue;
-      const capability = lane === "concepts" || lane === "refinements" ? qualifiedLogoGenerativeStorageCapability(raw) : qualifiedLogoProductionStorageCapability(raw);
+      const capability = lane === "proposals" ? qualifiedLogoVectorProposalCapability(raw) : lane === "concepts" || lane === "refinements" ? qualifiedLogoGenerativeStorageCapability(raw) : qualifiedLogoProductionStorageCapability(raw);
       if (!capability || capability.operation !== expected[lane]) throw unavailable();
       operations[lane] = capability;
     }
     if (!Object.keys(operations).length || Boolean(c.image) !== Boolean(operations.concepts || operations.refinements)) throw unavailable();
+    if (Boolean(c.vectorProposal) !== Boolean(operations.proposals)
+      || c.vectorProposal && !isDeepStrictEqual(c.vectorProposal.textPolicy, operations.proposals?.textPolicy)
+      || Boolean(c.storage) !== Boolean(operations.concepts || operations.refinements || operations.vector || operations.exports)) throw unavailable();
     const handle = Object.freeze({ status: "configured" as const });
     configurations.set(handle, freeze({ ...c, operations })); return handle;
   } catch { return bad(); }

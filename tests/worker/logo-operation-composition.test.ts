@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-const factories = vi.hoisted(() => ({ concept: vi.fn(), refine: vi.fn(), vector: vi.fn(), directions: vi.fn(), exports: vi.fn() }));
+const factories = vi.hoisted(() => ({ concept: vi.fn(), refine: vi.fn(), vector: vi.fn(), directions: vi.fn(), exports: vi.fn(), proposals: vi.fn() }));
 vi.mock("../../worker/handlers/logo-concepts", () => ({ createLogoConceptHandler: factories.concept }));
 vi.mock("../../worker/handlers/logo-refinements", () => ({ createLogoRefinementHandler: factories.refine }));
 vi.mock("../../worker/logo-vector/handler", () => ({ createLogoVectorHandler: factories.vector }));
 vi.mock("../../worker/handlers/logo-directions", () => ({ createLogoDirectionsHandler: factories.directions }));
 vi.mock("../../worker/handlers/logo-exports", () => ({ createLogoExportsHandler: factories.exports }));
+vi.mock("../../worker/handlers/logo-vector-proposals", () => ({ createLogoVectorProposalHandler: factories.proposals }));
 import { createLogoOperationComposition, type LogoOperationCompositionInput } from "../../worker/logo-operation-composition";
 const empty = (): LogoOperationCompositionInput => ({ concepts: null, refinements: null, vector: null, directions: null, exports: null, unavailableReasons: {} });
 describe("explicit logo worker composition", () => {
@@ -12,7 +13,7 @@ describe("explicit logo worker composition", () => {
     vi.clearAllMocks();
     const result = createLogoOperationComposition(empty());
     expect(result.handlers.size).toBe(0);
-    expect(Object.values(result.capabilities)).toHaveLength(5);
+    expect(Object.values(result.capabilities)).toHaveLength(6);
     expect(Object.values(result.capabilities).every(value => value.status === "unavailable")).toBe(true);
     for (const factory of Object.values(factories)) expect(factory).not.toHaveBeenCalled();
   });

@@ -4,10 +4,12 @@ import { logoOperationSchema, logoDirectionsSubscriptionPolicySchema } from "../
 import { logoHashSchema, logoIdentifierSchema } from "../src/domain/logo-vector";
 import type { LogoWorkerConnection } from "../src/server/data/logo-jobs";
 import { canonicalIdentityInput } from "../src/features/identity-directions/model/font-check-binding";
+import { logoVectorProposalTextPolicySchema, logoVectorProposalJobInputSchema } from "../src/domain/logo-vector-proposal-jobs";
+import { qualifiedLogoVectorProposalCapability } from "./logo-vector-proposal-capability";
 import { NotDispatchedError } from "./runner";
 
 const capabilitySchema = z.strictObject({
-  operation: logoOperationSchema,
+  operation: logoOperationSchema.or(z.literal("identity.logo_vector_propose")),
   policyIdentity: logoHashSchema,
   handlerVersion: logoIdentifierSchema,
   provider: logoIdentifierSchema.nullable(),
@@ -16,7 +18,9 @@ const capabilitySchema = z.strictObject({
   maxCostMicrousd: moneySchema,
   billingMode: z.literal("chatgpt_subscription").optional(),
   policy: logoDirectionsSubscriptionPolicySchema.optional(),
+  textPolicy: logoVectorProposalTextPolicySchema.optional(),
 }).superRefine((value,ctx)=>{
+  if (value.operation === "identity.logo_vector_propose" ? !qualifiedLogoVectorProposalCapability(value) : value.textPolicy !== undefined) ctx.addIssue({ code: "custom", message: "Only the exact vector proposal operation may carry its required text policy" });
   if((value.billingMode===undefined)!==(value.policy===undefined)||value.policy&&(value.operation!=="identity.logo_directions"||value.handlerVersion!==value.policy.handlerVersion||value.model!==value.policy.model||value.provider!=="openai"||value.engine!==null||value.maxCostMicrousd!==0))ctx.addIssue({code:"custom",message:"Subscription readiness requires the exact paired zero-API directions policy"});
 }).refine(value => (value.provider === null) === (value.model === null), "Provider and model must match");
 export type LogoWorkerCapability = Readonly<Omit<z.infer<typeof capabilitySchema>, "engine"> & {
@@ -26,8 +30,8 @@ export type LogoWorkerCapability = Readonly<Omit<z.infer<typeof capabilitySchema
 /** Descriptors are trusted injected configuration, never evidence of live access.
  * SQL separately verifies the exact enabled owner-bound policy on every report. */
 export function freezeLogoWorkerManifest(input: unknown): readonly LogoWorkerCapability[] {
-  const entries = z.array(capabilitySchema).max(5).refine(values => new Set(values.map(value => value.operation)).size === values.length, "Duplicate operation").parse(input);
-  return Object.freeze(entries.map(entry => Object.freeze({ ...entry, engine: entry.engine === null ? null : Object.freeze(entry.engine), ...(entry.policy ? {policy: Object.freeze({...entry.policy,limits:Object.freeze(entry.policy.limits)})} : {}) })));
+  const entries = z.array(capabilitySchema).max(6).refine(values => new Set(values.map(value => value.operation)).size === values.length, "Duplicate operation").parse(input);
+  return Object.freeze(entries.map(entry => Object.freeze({ ...entry, engine: entry.engine === null ? null : Object.freeze(entry.engine), ...(entry.textPolicy ? { textPolicy: Object.freeze(entry.textPolicy) } : {}), ...(entry.policy ? {policy: Object.freeze({...entry.policy,limits:Object.freeze(entry.policy.limits)})} : {}) })));
 }
 
 export type LogoReadinessInput = {
@@ -69,6 +73,11 @@ export function createLogoReadiness(input: LogoReadinessInput) {
       || frozen.policyIdentity !== capability.policyIdentity || frozen.handlerVersion !== capability.handlerVersion
       || !moneySchema.safeParse(job.reservedCostMicrousd).success || job.reservedCostMicrousd > capability.maxCostMicrousd) unavailable();
     if (capability.policy ? frozen.billingMode !== "chatgpt_subscription" || !frozen.policy || canonicalIdentityInput(frozen.policy) !== canonicalIdentityInput(capability.policy) || job.actualCostMicrousd !== 0 : frozen.billingMode !== undefined || frozen.policy !== undefined) unavailable();
+    if (capability.textPolicy) {
+      const proposal = logoVectorProposalJobInputSchema.safeParse(frozen);
+      if (!proposal.success || canonicalIdentityInput(proposal.data.textPolicy) !== canonicalIdentityInput(capability.textPolicy)
+        || job.reservedCostMicrousd !== capability.maxCostMicrousd || job.actualCostMicrousd !== 0) unavailable();
+    } else if (frozen.textPolicy !== undefined) unavailable();
     if (capability.engine !== null) {
       const engine = frozen.engine as Record<string, unknown> | null;
       if (!engine || engine.id !== capability.engine.id || engine.version !== capability.engine.version || engine.artifactHash !== capability.engine.artifactHash) unavailable();

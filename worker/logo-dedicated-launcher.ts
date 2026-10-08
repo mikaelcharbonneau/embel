@@ -58,20 +58,27 @@ export async function runLogoDedicatedWorker(configuration: LogoDedicatedConfigu
   const removeSignals = () => { dependencies.signals.removeListener("SIGINT", onSignal); dependencies.signals.removeListener("SIGTERM", onSignal); };
   dependencies.signals.on("SIGINT", onSignal); dependencies.signals.on("SIGTERM", onSignal);
   try {
-    const brokerConfiguration = { ownerId: c.binding.ownerId, authUserId: c.storage.authUserId, workerRoleName: c.binding.roleName,
-      workerRoleOid: c.binding.roleOid, workerId: c.workerId, publishableKey: c.storage.publishableKey, accessToken: c.storage.accessToken };
-    const selected: Pick<Extract<LogoProductionHostOptions, { enabled: true }>, "concepts" | "refinements" | "vector" | "exports"> = {};
+    const brokerConfiguration = c.storage ? { ownerId: c.binding.ownerId, authUserId: c.storage.authUserId, workerRoleName: c.binding.roleName,
+      workerRoleOid: c.binding.roleOid, workerId: c.workerId, publishableKey: c.storage.publishableKey, accessToken: c.storage.accessToken } : null;
+    const selected: Pick<Extract<LogoProductionHostOptions, { enabled: true }>, "concepts" | "refinements" | "vector" | "exports" | "proposals"> = {};
     for (const lane of ["concepts", "refinements"] as const) {
       const capability = c.operations[lane]; if (!capability) continue;
+      if (!brokerConfiguration) throw new Error("Logo dedicated storage configuration is unavailable.");
       const authorization = createLogoGenerativeStorageAuthorization({ ...brokerConfiguration, capability });
       if (!authorization || !c.image) throw new Error("Logo dedicated configuration is unavailable.");
       authorizations.push(authorization); selected[lane] = { capability, authorization, image: c.image };
     }
     for (const lane of ["vector", "exports"] as const) {
       const capability = c.operations[lane]; if (!capability) continue;
+      if (!brokerConfiguration) throw new Error("Logo dedicated storage configuration is unavailable.");
       const authorization = createLogoProductionStorageAuthorization({ ...brokerConfiguration, capability });
       if (!authorization) throw new Error("Logo dedicated configuration is unavailable.");
       authorizations.push(authorization); selected[lane] = { capability, authorization };
+    }
+    if (c.operations.proposals) {
+      if (!c.vectorProposal) throw new Error("Logo dedicated proposal configuration is unavailable.");
+      selected.proposals = { capability: c.operations.proposals, apiKey: c.vectorProposal.apiKey,
+        configuration: { operation: c.vectorProposal.operation, paidCallsApproved: c.vectorProposal.paidCallsApproved, textPolicy: c.vectorProposal.textPolicy } };
     }
     const certificate = await readFile(new URL("../scripts/certs/supabase-prod-ca-2021.crt", import.meta.url), "utf8");
     if (lifetime.signal.aborted) {

@@ -1,3 +1,4 @@
+import { createLogoVectorProposalHandler, type LogoVectorProposalHandlerDependencies } from "./handlers/logo-vector-proposals";
 import type { HandlerRegistry, JobHandler } from "./runner";
 import { createLogoConceptHandler, type LogoConceptHandlerDependencies } from "./handlers/logo-concepts";
 import { createLogoRefinementHandler, type LogoRefinementHandlerDependencies } from "./handlers/logo-refinements";
@@ -5,13 +6,14 @@ import { createLogoVectorHandler, type LogoVectorHandlerDependencies } from "./l
 import { createLogoDirectionsHandler, type LogoDirectionsDependencies } from "./handlers/logo-directions";
 import { createLogoExportsHandler, type LogoExportsDependencies } from "./handlers/logo-exports";
 
-export type LogoOperation = "identity.logo_concept" | "identity.logo_refine" | "identity.logo_vectorize" | "identity.logo_directions" | "identity.logo_export";
+export type LogoOperation = "identity.logo_concept" | "identity.logo_refine" | "identity.logo_vectorize" | "identity.logo_directions" | "identity.logo_export" | "identity.logo_vector_propose";
 export type LogoOperationCompositionInput = {
   concepts: LogoConceptHandlerDependencies | null;
   refinements: LogoRefinementHandlerDependencies | null;
   vector: LogoVectorHandlerDependencies | null;
   directions: LogoDirectionsDependencies | null;
   exports: LogoExportsDependencies | null;
+  proposals?: LogoVectorProposalHandlerDependencies | null;
   unavailableReasons: Partial<Record<LogoOperation, string>>;
 };
 export type LogoOperationComposition = {
@@ -41,5 +43,6 @@ export function createLogoOperationComposition(input: LogoOperationCompositionIn
   register("identity.logo_vectorize", input.vector, createLogoVectorHandler);
   register("identity.logo_directions", input.directions, createLogoDirectionsHandler);
   register("identity.logo_export", input.exports, createLogoExportsHandler);
+  register("identity.logo_vector_propose", input.proposals ?? null, createLogoVectorProposalHandler);
   return { handlers, capabilities };
 }

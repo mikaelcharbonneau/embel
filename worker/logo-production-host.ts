@@ -11,19 +11,23 @@ import { createLogoProductionConnection, type LogoProductionConnectionInput } fr
 import { createLogoProductionAssetStore } from "./logo-production-asset-store";
 import { qualifiedLogoProductionStorageCapability, type LogoProductionStorageAuthorization } from "./logo-production-storage-authorization";
 import { createLogoProductionRuntimeQualification } from "./logo-production-qualification";
-import { startLogoProductionWorker, type LogoProductionStartup, type LogoProductionImageOperationInput, type LogoProductionDirectionsOperationInput } from "./logo-production-startup";
+import { startLogoProductionWorker, type LogoProductionStartup, type LogoProductionImageOperationInput, type LogoProductionDirectionsOperationInput, type LogoProductionProposalOperationInput } from "./logo-production-startup";
 import { createLogoGenerativeAssetStore } from "./logo-generative-asset-store";
 import { qualifiedLogoGenerativeStorageCapability, type LogoGenerativeStorageAuthorization } from "./logo-generative-storage-authorization";
 
+import { qualifiedLogoVectorProposalCapability } from "./logo-vector-proposal-capability";
+import { resolveLogoVectorProposalConfiguration } from "../src/features/logo-vector/server/proposal-policy";
 import { createLogoDirectionsAssetStore } from "./logo-directions-asset-store";
 import { qualifiedLogoDirectionsStorageCapability, type LogoDirectionsStorageAuthorization } from "./logo-directions-storage-authorization";
 
+export type LogoProductionProposalHostOperation = LogoProductionProposalOperationInput;
 export type LogoProductionDirectionsHostOperation = Pick<LogoProductionDirectionsOperationInput, "capability" | "expectedAccountId" | "transport"> & { authorization: LogoDirectionsStorageAuthorization | null };
 export type LogoProductionImageHostOperation = Pick<LogoProductionImageOperationInput, "capability" | "image" | "transport"> & { authorization: LogoGenerativeStorageAuthorization | null };
 export type LogoProductionHostOperation = { capability: LogoWorkerCapability; authorization: LogoProductionStorageAuthorization | null };
 export type LogoProductionHostOptions = { enabled: false } | {
   enabled: true; binding: IdentityConnectionBinding; pool: IdentityPoolPort | null; workerId: string;
   concepts?: LogoProductionImageHostOperation | null;
+  proposals?: LogoProductionProposalHostOperation | null;
   refinements?: LogoProductionImageHostOperation | null;
   vector?: LogoProductionHostOperation | null;
   directions?: LogoProductionDirectionsHostOperation | null;
@@ -57,9 +61,10 @@ export async function startLogoProductionHost(options: LogoProductionHostOptions
   let ownerId: string, workerId: string, pollMs: number;
   let concepts: LogoProductionImageHostOperation | null, refinements: LogoProductionImageHostOperation | null;
   let directions: LogoProductionDirectionsHostOperation | null;
+  let proposals: LogoProductionProposalHostOperation | null;
   let vector: LogoProductionHostOperation | null, exports: (LogoProductionHostOperation & { guidelines?: GuidelinesDependencies }) | null;
   try {
-    if (options.enabled !== true || !options.binding || !options.concepts && !options.refinements && !options.vector && !options.exports && !options.directions) throw unavailable();
+    if (options.enabled !== true || !options.binding || !options.concepts && !options.refinements && !options.vector && !options.exports && !options.directions && !options.proposals) throw unavailable();
     ownerId = z.uuid().parse(options.binding.ownerId).toLowerCase();
     workerId = z.string().min(1).max(200).regex(/^[A-Za-z0-9._:-]+$/).parse(options.workerId);
     pollMs = z.number().int().min(10).max(20_000).parse(options.pollMs ?? 1000);
@@ -96,6 +101,15 @@ export async function startLogoProductionHost(options: LogoProductionHostOptions
         authorizeRead: auth.authorizeRead.bind(auth), close: auth.close.bind(auth) });
       directions = Object.freeze({ capability, authorization, expectedAccountId: input.expectedAccountId,
         transport: Object.freeze({ streamResponse: transport.streamResponse.bind(transport), listModels: transport.listModels.bind(transport) }) });
+    }
+    proposals = null;
+    if (options.proposals) {
+      const input = options.proposals, capability = qualifiedLogoVectorProposalCapability(input.capability);
+      const configuration = resolveLogoVectorProposalConfiguration(input.configuration), transport = input.transport;
+      if (!capability || !configuration || !isDeepStrictEqual(capability.textPolicy, configuration.textPolicy)
+        || transport !== undefined && (typeof transport.countInputTokens !== "function" || typeof transport.createResponse !== "function")) throw unavailable();
+      proposals = Object.freeze({ capability, configuration, ...(input.apiKey !== undefined ? { apiKey: input.apiKey } : {}),
+        ...(transport ? { transport: Object.freeze({ countInputTokens: transport.countInputTokens.bind(transport), createResponse: transport.createResponse.bind(transport) }) } : {}) });
     }
     concepts = captureImage(options.concepts, "identity.logo_concept");
     refinements = captureImage(options.refinements, "identity.logo_refine");
@@ -159,7 +173,7 @@ export async function startLogoProductionHost(options: LogoProductionHostOptions
       assertAvailable: value.authorization!.assertAvailable,
     } : null;
     startup = await startLogoProductionWorker({ enabled: true, ownerId, workerId, connection: operations,
-      concepts: imageOperation(concepts), refinements: imageOperation(refinements), vector: operation(vector),
+      proposals, concepts: imageOperation(concepts), refinements: imageOperation(refinements), vector: operation(vector),
       directions: directions ? { capability: directions.capability, expectedAccountId: directions.expectedAccountId, transport: directions.transport,
         assets: createLogoDirectionsAssetStore({ connection: operations, authorization: directions.authorization }), assertAvailable: directions.authorization!.assertAvailable } : null,
       exports: exports ? { ...operation(exports)!, guidelines: exports.guidelines } : null });

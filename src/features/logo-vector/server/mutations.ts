@@ -1,6 +1,6 @@
 import "server-only";
 import { isDeepStrictEqual } from "node:util";
-import { logoVectorDetailSchema, type LogoVectorDetail, type VerifiedAssetBytes, type IdentityAssetPublication } from "../../../domain/logo-deliverables";
+import { logoVectorDetailSchema, type LogoVectorDetail, type VerifiedAssetBytes } from "../../../domain/logo-deliverables";
 import { logoManualCommandSchema, logoWorkspaceV2Schema, logoStageRevisionSchema, type LogoWorkspaceV2, type LogoStageRevision, type LogoStage, type LogoExpectedHeads } from "../../../domain/logo-workspace";
 import type { AuthenticatedContext } from "../../../server/auth/context";
 import type { IdentityAssetStore } from "../../../server/data/identity-asset-store";
@@ -10,8 +10,8 @@ import { LogoVectorError } from "../model/errors";
 import { applyLogoManualEdit } from "../model/edits";
 import { captureLogoComponentLocks, assertLogoComponentLocks } from "../model/locks";
 import { assertLogoConversionNotAborted } from "./converter";
-import { canonicalLogoDocumentBytes, validateLogoVectorCandidate, verifyLogoVectorRevision } from "./revisions";
-import { requireVectorAssetReceipt, vectorMemberRequestKey } from "./publication";
+import { canonicalLogoDocumentBytes, verifyLogoVectorRevision } from "./revisions";
+import { stageLogoVectorEditCandidate } from "./prepare-edit";
 import { applyLogoTextEdit, type LogoTextEditDependencies } from "./text-edits";
 
 export type LogoVectorMutationDependencies = {
@@ -108,17 +108,8 @@ export function createLogoVectorMutationProducers(deps: LogoVectorMutationDepend
         if (currentId !== revision.id) throw new ApiError("conflict");
       }
       const candidate = textEdit ? await applyLogoTextEdit({ auth, projectId, revision, document, edit: command.body.edit }, deps.textEdits!, signal) : applyLogoManualEdit(document, command.body.edit);
-      const derived = validateLogoVectorCandidate({ base: document, candidate, locks: revision.locks, expectedSource: revision.sourcePreview, source });
       const locks = command.body.edit.kind === "locks" ? captureLogoComponentLocks(candidate, command.body.edit.componentIds) : revision.locks;
-      const bytes = canonicalLogoDocumentBytes(candidate), common = { inputRevisions: revision.inputRevisions, source: { kind: "vector" as const, sourceId: revision.id } };
-      const documentPublication: IdentityAssetPublication = { ...common, requestKey: vectorMemberRequestKey(command.body.requestKey, "document"), mimeType: "application/json", contentHash: derived.documentHash, byteLength: bytes.length };
-      const svgPublication: IdentityAssetPublication = { ...common, requestKey: vectorMemberRequestKey(command.body.requestKey, "svg"), mimeType: "image/svg+xml", contentHash: derived.proof.svgContentHash, byteLength: derived.svg.length };
-      const d = requireVectorAssetReceipt(await deps.assetStore.stageOwnedAsset(auth, projectId, documentPublication, bytes, signal), documentPublication, revision.ownerId, revision.projectId);
-      assertLogoConversionNotAborted(signal);
-      const s = requireVectorAssetReceipt(await deps.assetStore.stageOwnedAsset(auth, projectId, svgPublication, derived.svg, signal), svgPublication, revision.ownerId, revision.projectId);
-      assertLogoConversionNotAborted(signal);
-      if (d.id === s.id || d.reference.assetId === s.reference.assetId || d.reference.versionId === s.reference.versionId) return mismatch();
-      return { baseVectorRevisionId: revision.id, documentPublicationId: d.id, svgPublicationId: s.id, documentHash: derived.documentHash, proof: derived.proof, locks };
+      return stageLogoVectorEditCandidate({ auth, projectId, requestKey: command.body.requestKey, revision, document, candidate, source, locks }, deps.assetStore, signal);
     },
   };
 }

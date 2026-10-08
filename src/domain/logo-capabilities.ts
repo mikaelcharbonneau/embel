@@ -17,11 +17,13 @@ export const logoCapabilitiesSchema = z.strictObject({
     'identity.logo_vectorize': status,
     'identity.logo_directions': status,
     'identity.logo_export': status,
+    // Historical five-operation responses remain readable; only exact current readiness may enable this lane.
+    'identity.logo_vector_propose': status.optional(),
   }),
 }).superRefine((value, context) => {
   const observed = Date.parse(value.observedAt);
   for (const [operation, readiness] of Object.entries(value.operations)) {
-    if (readiness.status !== 'available') continue;
+    if (!readiness || readiness.status !== 'available') continue;
     const lifetime = Date.parse(readiness.expiresAt) - observed;
     if (!Number.isFinite(lifetime) || lifetime <= 0 || lifetime > LOGO_CAPABILITIES_MAX_AGE_MS) {
       context.addIssue({ code: 'custom', path: ['operations', operation, 'expiresAt'], message: 'Readiness must expire within the observed thirty-second window.' });

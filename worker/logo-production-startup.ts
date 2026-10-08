@@ -1,5 +1,9 @@
 import "server-only";
 import { z } from "zod";
+import { isDeepStrictEqual } from "node:util";
+import { createLogoVectorProposalWorkerPorts } from "../src/server/data/logo-vector-proposal-worker";
+import { createLogoVectorProposalRuntimeAdapter, type LogoVectorProposalRuntimeAdapterInput } from "./logo-vector/proposal-runtime-adapter";
+import { qualifiedLogoVectorProposalCapability } from "./logo-vector-proposal-capability";
 import type { ClaimedJob } from "../src/domain/jobs";
 import { logoUuidSchema } from "../src/domain/logo-vector";
 import type { IdentityAssetStore } from "../src/server/data/identity-asset-store";
@@ -12,6 +16,7 @@ import { freezeLogoWorkerManifest, type LogoWorkerCapability } from "./logo-read
 import { createLogoImageRuntimeAdapter, type LogoImageRuntimeAdapterInput } from "./logo-image-runtime-adapter";
 import { createLogoDirectionsRuntimeAdapter, type LogoDirectionsRuntimeAdapterInput } from "./logo-directions/runtime-adapter";
 
+export type LogoProductionProposalOperationInput = Pick<LogoVectorProposalRuntimeAdapterInput, "configuration" | "apiKey" | "transport"> & { capability: LogoWorkerCapability };
 export type LogoProductionRuntimeScope = Readonly<{ ownerId: string; workerId: string; capability: LogoWorkerCapability }>;
 export type LogoProductionOperationInput = {
   capability: LogoWorkerCapability;
@@ -34,6 +39,7 @@ export type LogoProductionStartupOptions = { enabled: false } | {
    * TLS/principal validation on acquisition, and disposal after close drains. */
   connection: LogoWorkerConnection | null;
   concepts?: LogoProductionImageOperationInput | null;
+  proposals?: LogoProductionProposalOperationInput | null;
   refinements?: LogoProductionImageOperationInput | null;
   vector?: LogoProductionOperationInput | null;
   directions?: LogoProductionDirectionsOperationInput | null;
@@ -61,7 +67,7 @@ export async function startLogoProductionWorker(options: LogoProductionStartupOp
   const pending = new Set<Promise<unknown>>();
   let assertQualified: () => Promise<void>;
   try {
-    if (options.enabled !== true || typeof options.connection?.query !== "function" || !options.concepts && !options.refinements && !options.vector && !options.exports && !options.directions) throw unavailable();
+    if (options.enabled !== true || typeof options.connection?.query !== "function" || !options.concepts && !options.refinements && !options.vector && !options.exports && !options.directions && !options.proposals) throw unavailable();
     const ownerId = logoUuidSchema.parse(options.ownerId);
     const workerId = z.string().min(1).max(200).regex(/^[A-Za-z0-9._:-]+$/).parse(options.workerId);
     const query = options.connection.query.bind(options.connection);
@@ -99,6 +105,15 @@ export async function startLogoProductionWorker(options: LogoProductionStartupOp
         assertAvailable: assertion ? async job => { if (closed) throw unavailable(); await assertion(job); if (closed) throw unavailable(); } : null });
       if (!directions || JSON.stringify(expected) !== JSON.stringify(directions.capability)) throw unavailable();
     }
+    let proposals: ReturnType<typeof createLogoVectorProposalRuntimeAdapter> = null;
+    if (options.proposals) {
+      const input = options.proposals, capability = qualifiedLogoVectorProposalCapability(input.capability);
+      if (!capability) throw unavailable();
+      proposals = createLogoVectorProposalRuntimeAdapter({ ownerId, policyIdentity: capability.policyIdentity,
+        configuration: input.configuration, apiKey: input.apiKey, transport: input.transport,
+        ports: createLogoVectorProposalWorkerPorts(connection), acceptingWork: () => !closed });
+      if (!proposals || !isDeepStrictEqual(proposals.capability, capability)) throw unavailable();
+    }
     const vector = options.vector ? createLogoVectorRuntimeAdapter({ ownerId, connection, assets: options.vector.assets,
       policyIdentity: options.vector.capability?.policyIdentity, assertAvailable: options.vector.assertAvailable?.bind(options.vector) ?? null }) : null;
     const exports = options.exports ? createLogoExportsRuntimeAdapter({ ownerId, connection, assets: options.exports.assets,
@@ -116,9 +131,9 @@ export async function startLogoProductionWorker(options: LogoProductionStartupOp
         if (closed) throw unavailable();
       }
     };
-    const manifest = [concepts, refinements, vector, directions, exports].flatMap(adapter => adapter ? [adapter.capability] : []);
+    const manifest = [concepts, refinements, vector, directions, exports, proposals].flatMap(adapter => adapter ? [adapter.capability] : []);
     engine = createLogoWorkerRuntime({ connection, workerId, manifest, composition: {
-      concepts: concepts?.concepts ?? null, refinements: refinements?.refinements ?? null, vector: vector?.dependencies ?? null, directions: directions?.dependencies ?? null, exports: exports?.dependencies ?? null, unavailableReasons: {},
+      concepts: concepts?.concepts ?? null, refinements: refinements?.refinements ?? null, vector: vector?.dependencies ?? null, directions: directions?.dependencies ?? null, exports: exports?.dependencies ?? null, proposals: proposals?.proposals ?? null, unavailableReasons: {},
     } });
     if (engine.manifest.length !== manifest.length) throw unavailable();
   } catch { return absent("unavailable", "configuration"); }

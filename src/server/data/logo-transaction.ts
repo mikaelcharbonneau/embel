@@ -1,7 +1,8 @@
 import "server-only";
 import { z } from "zod";
-import { logoManualCommandSchema, logoMutationReceiptSchema, type LogoMutationReceipt, type LogoManualCommand, type LogoProjectCreationInput } from "@/domain/logo-workspace";
+import { logoMutationReceiptSchema, type LogoMutationReceipt, type LogoProjectCreationInput } from "@/domain/logo-workspace";
 import { logoVariantSetSchema, type LogoVariantSet } from "@/domain/logo-deliverables";
+import { logoTrustedCommandSchema, type LogoTrustedCommand } from "@/features/logo-vector/model/proposal-materialization";
 import type { IdentityConnectionFactory, IdentityTransactionConnection } from "./identity-transaction";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
@@ -9,8 +10,8 @@ import { ApiError } from "../http/errors";
 /** A lost response is not evidence that a manual transaction failed. The caller
  * retains this exact key/body, reads its receipt, then may explicitly replay it. */
 export class LogoUncertainCommitError extends ApiError {
-  readonly recovery: { projectId: string | null; input: LogoProjectCreationInput | LogoManualCommand };
-  constructor(projectId: string | null, input: LogoProjectCreationInput | LogoManualCommand) {
+  readonly recovery: { projectId: string | null; input: LogoProjectCreationInput | LogoTrustedCommand };
+  constructor(projectId: string | null, input: LogoProjectCreationInput | LogoTrustedCommand) {
     super("integration_unavailable");
     this.name = "LogoUncertainCommitError";
     this.recovery = { projectId, input: structuredClone(input) };
@@ -45,14 +46,14 @@ export function parseLogoStored<T>(schema: z.ZodType<T>, value: unknown): T {
 
 /** Producers inspect immutable owned sources and bytes before locks. They are
  * server-injected capabilities; HTTP commands never carry their evidence. */
-export type LogoMutationProducer=(auth:AuthenticatedContext,projectId:string,command:LogoManualCommand,signal?:AbortSignal)=>Promise<unknown>;
-export type LogoMutationProducers=Partial<Record<LogoManualCommand["method"],LogoMutationProducer>>;
+export type LogoMutationProducer=(auth:AuthenticatedContext,projectId:string,command:LogoTrustedCommand,signal?:AbortSignal)=>Promise<unknown>;
+export type LogoMutationProducers=Partial<Record<LogoTrustedCommand["method"],LogoMutationProducer>>;
 const loginSchema=z.strictObject({role_name:z.string(),role_oid:z.coerce.number().int().positive()});
 const valueSchema=z.strictObject({value:z.unknown()});
 const active=(signal?:AbortSignal)=>{if(signal?.aborted)throw new ApiError("integration_unavailable");};
 export function createLogoTransactionService(factory:IdentityConnectionFactory|null,producers:LogoMutationProducers={}) {
  async function run(auth:AuthenticatedContext,projectId:string,input:unknown,signal?:AbortSignal):Promise<LogoMutationReceipt|LogoVariantSet>{
-  const owner=logoOwner(auth);projectId=logoId(projectId);const command=parseLogoInput(logoManualCommandSchema,input);active(signal);
+  const owner=logoOwner(auth);projectId=logoId(projectId);const command=parseLogoInput(logoTrustedCommandSchema,input);active(signal);
   if(!factory)throw new ApiError("integration_unavailable");
   async function acquire(){
    const acquired=await factory!.acquire(owner,signal);
@@ -70,6 +71,7 @@ export function createLogoTransactionService(factory:IdentityConnectionFactory|n
    }
    const result=parseLogoStored(logoMutationReceiptSchema,value);
    if(result.ownerId!==owner||result.projectId!==projectId||result.requestKey!==command.body.requestKey||result.workspace.heads.workspaceRevision!==command.body.expected.workspaceRevision+1||result.revision.revision!==command.body.expected.stageRevisions[result.revision.stage]+1)throw new ApiError("integration_unavailable");
+   if(command.method==="applyLogoVectorProposal" && (result.revision.stage!=="refinements" || result.revision.payload.vectorRevisionId===null || result.revision.payload.approvalId!==null || result.revision.payload.sourceRequestKey!==command.body.requestKey))throw new ApiError("integration_unavailable");
    return result;
   }
   // Recover BEFORE producer work. Fixed SQL compares the entire original body.

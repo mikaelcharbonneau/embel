@@ -10,6 +10,7 @@ import { QUALIFIED_VTRACER } from "./logo-vector/engine";
 import { createLogoOperationComposition, type LogoOperation, type LogoOperationCompositionInput } from "./logo-operation-composition";
 import { createLogoJobStore } from "./logo-job-store";
 import { createLogoReadiness, freezeLogoWorkerManifest, type LogoWorkerCapability } from "./logo-readiness";
+import { qualifiedLogoVectorProposalCapability } from "./logo-vector-proposal-capability";
 import { runOneJob } from "./runner";
 
 export type LogoWorkerRuntimeInput = {
@@ -33,6 +34,7 @@ function qualified(capability: LogoWorkerCapability): boolean {
     case "identity.logo_vectorize":
       return capability.handlerVersion === LOGO_VECTOR_HANDLER_VERSION && capability.provider === null && capability.model === null && capability.maxCostMicrousd === 0
         && capability.engine?.id === "vtracer" && capability.engine.version === QUALIFIED_VTRACER.version && capability.engine.artifactHash === QUALIFIED_VTRACER.wasm;
+    case "identity.logo_vector_propose": return qualifiedLogoVectorProposalCapability(capability) !== null;
     case "identity.logo_export":
       return capability.handlerVersion === LOGO_EXPORT_HANDLER_VERSION && capability.policyIdentity === LOGO_EXPORT_POLICY_IDENTITY
         && capability.provider === null && capability.model === null && capability.engine === null && capability.maxCostMicrousd === 0;
@@ -56,7 +58,7 @@ export function createLogoWorkerRuntime(input: LogoWorkerRuntimeInput) {
   const chain = (prior: (job: ClaimedJob) => Promise<void>) => async (job: ClaimedJob) => { await prior(job); await readiness.assertReady(job); };
   const eligible = (operation: LogoOperation) => manifest.some(entry => entry.operation === operation && qualified(entry));
   const supplied = input.composition;
-  const dependencies: LogoOperationCompositionInput = { concepts: null, refinements: null, vector: null, directions: null, exports: null, unavailableReasons: { ...supplied.unavailableReasons } };
+  const dependencies: LogoOperationCompositionInput = { concepts: null, refinements: null, vector: null, directions: null, exports: null, proposals: null, unavailableReasons: { ...supplied.unavailableReasons } };
   const concepts = supplied.concepts;
   if (eligible("identity.logo_concept") && methods(concepts, ["assertPolicyReady", "resolveInputs", "recordProviderResponse"]) && methods(concepts?.producer, ["produce"]) && assetsReady(concepts?.assets)) {
     dependencies.concepts = { ...concepts!, assertPolicyReady: chain(concepts!.assertPolicyReady.bind(concepts)) };
@@ -75,7 +77,23 @@ export function createLogoWorkerRuntime(input: LogoWorkerRuntimeInput) {
   if (eligible("identity.logo_export") && methods(exports, ["assertReady", "loadInput"]) && methods(exports?.publication, ["assertCurrentLease", "stage"]) && assetsReady(exports?.publication.assets)) {
     dependencies.exports = { ...exports!, assertReady: chain(exports!.assertReady.bind(exports)) };
   }
+  const proposals = supplied.proposals;
+  if (eligible("identity.logo_vector_propose") && methods(proposals, ["assertReady", "loadInput", "recordResponse", "stageProposal"]) && methods(proposals?.provider, ["propose"])) {
+    const assertProposalReady = proposals!.assertReady.bind(proposals);
+    dependencies.proposals = { ...proposals!, async assertReady(job, signal) { signal.throwIfAborted(); await assertProposalReady(job, signal); await readiness.assertReady(job); signal.throwIfAborted(); } };
+  }
   const composition = createLogoOperationComposition(dependencies);
+  // A runner deadline/cancellation can settle before a dispatched proposal does.
+  // Keep this exact lane's original observation/staging ports alive until its
+  // execution promise settles, even after the runner loses the current lease.
+  const pendingProposals = new Set<Promise<unknown>>();
+  const handlers = new Map(composition.handlers), proposalHandler = handlers.get("identity.logo_vector_propose");
+  if (proposalHandler) handlers.set("identity.logo_vector_propose", { steps(job) {
+    return proposalHandler.steps(job).map(step => ({ ...step, execute(args) {
+      const promise = step.execute(args); pendingProposals.add(promise);
+      void promise.then(() => pendingProposals.delete(promise), () => pendingProposals.delete(promise)); return promise;
+    } }));
+  } });
   const readiness = createLogoReadiness({ connection: input.connection, workerId, readinessSeconds: seconds,
     manifest: manifest.filter(entry => composition.handlers.has(entry.operation)) });
   const store = createLogoJobStore(input.connection);
@@ -95,11 +113,14 @@ export function createLogoWorkerRuntime(input: LogoWorkerRuntimeInput) {
         await store.expireLeases();
         if (closed || signal?.aborted) return "idle";
         timer = setInterval(() => { void readiness.refresh(); }, refreshMs); timer.unref();
-        return await runOneJob({ ...runner, store, handlers: composition.handlers, workerId, signal });
+        return await runOneJob({ ...runner, store, handlers, workerId, signal });
       } finally { active = false; stopTimer(); }
     },
     // Closing stops new work, but never aborts an already dispatched response or
     // prevents its fenced evidence/publication writes from being retained.
-    close() { closed = true; stopTimer(); return readiness.close(); },
+    async close() {
+      closed = true; stopTimer(); await readiness.close();
+      await Promise.allSettled([...pendingProposals]);
+    },
   });
 }

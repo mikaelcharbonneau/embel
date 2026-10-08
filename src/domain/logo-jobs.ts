@@ -1,3 +1,5 @@
+import { logoVectorProposalTextPolicySchema } from "./logo-vector-proposal-jobs";
+import { logoVectorProposalRequestSchema } from "./logo-vector-proposals";
 import { z } from "zod";
 import { moneySchema } from "./jobs";
 import { subscriptionLimitsSchema, subscriptionUsageSchema } from "./strategy-jobs";
@@ -8,6 +10,8 @@ import { fontRecordSchema } from "./logo-directions";
 import { LOGO_MUTATION_MAX_BYTES,LOGO_GEOMETRY_MAX_BYTES,logoUuidSchema as uuid,logoHashSchema as hash,logoStringSchema as text,logoTimestampSchema as timestamp,logoIdentifierSchema as identifier,logoScopeShape as scope,logoTypeSchema,logoRasterSourceSchema,logoRevisionSchema as revision,logoAssetReferenceSchema,logoInputRevisionsSchema,logoLocksSchema,logoTraceSettingsSchema,logoApprovalSchema,logoVectorDocumentSchema,boundedLogoJson as bounded,uniqueLogoValues as unique,sameLogoScope,logoIssue as issue } from "./logo-vector";
 
 export const LOGO_CONCEPT_OPERATION="identity.logo_concept" as const;
+// Active host inventory remains five lanes until the separate Task 6 integration.
+// Disabled proposal receipts and quotes are recognized independently below.
 export const logoOperationSchema=z.enum(["identity.logo_concept","identity.logo_refine","identity.logo_vectorize","identity.logo_directions","identity.logo_export"]);
 export type LogoOperation=z.infer<typeof logoOperationSchema>;
 export const logoBillingObservationSchema=z.discriminatedUnion("status",[z.strictObject({status:z.literal("unknown"),confirmedMicrousd:z.null()}),z.strictObject({status:z.literal("recorded"),confirmedMicrousd:moneySchema})]);
@@ -65,6 +69,7 @@ export const logoRasterRefinementPageSchema=bounded(z.strictObject({...scope,ite
 export type LogoRasterRefinementPage=z.infer<typeof logoRasterRefinementPageSchema>;
 const expected={expected:logoExpectedHeadsSchema};
 export const logoQuoteRequestSchema=bounded(z.discriminatedUnion("operation",[
+ logoVectorProposalRequestSchema,
  z.strictObject({...expected,operation:z.literal("concepts"),briefRevisionId:uuid,referenceSnapshotId:uuid}),
  z.strictObject({...expected,operation:z.literal("more_concepts"),briefRevisionId:uuid,referenceSnapshotId:uuid}),
  z.strictObject({...expected,operation:z.literal("retry_failed"),sourceBatchId:uuid,failedSlotIds:z.array(uuid).min(1).max(6).refine(unique,"Duplicate failed slot")}),
@@ -74,7 +79,9 @@ export const logoQuoteRequestSchema=bounded(z.discriminatedUnion("operation",[
  z.strictObject({...expected,operation:z.literal("directions"),approvedLogoId:uuid}),
 ]));
 export type LogoQuoteRequest=z.infer<typeof logoQuoteRequestSchema>;
-export const logoCostQuoteSchema=bounded(z.strictObject({id:uuid,...scope,request:logoQuoteRequestSchema,inputHash:hash,expected:logoExpectedHeadsSchema,policyIdentity:hash,handlerVersion:identifier,provider:identifier.nullable(),model:identifier.nullable(),engine:z.strictObject({id:identifier,version:identifier,artifactHash:hash,settingsHash:hash}).nullable(),estimatedCostMicrousd:moneySchema,maxCostMicrousd:moneySchema,externalProviderCostMicrousd:moneySchema.nullable(),expiresAt:timestamp,conceptPlan:logoConceptPlanSchema.nullable(),targetSlotIds:z.array(uuid).max(6).refine(unique,"Duplicate quote slot"),billingMode:z.literal("chatgpt_subscription").optional(),policy:logoDirectionsSubscriptionPolicySchema.optional()}).superRefine((v,ctx)=>{
+export const logoCostQuoteSchema=bounded(z.strictObject({id:uuid,...scope,request:logoQuoteRequestSchema,inputHash:hash,expected:logoExpectedHeadsSchema,policyIdentity:hash,handlerVersion:identifier,provider:identifier.nullable(),model:identifier.nullable(),engine:z.strictObject({id:identifier,version:identifier,artifactHash:hash,settingsHash:hash}).nullable(),estimatedCostMicrousd:moneySchema,maxCostMicrousd:moneySchema,externalProviderCostMicrousd:moneySchema.nullable(),expiresAt:timestamp,conceptPlan:logoConceptPlanSchema.nullable(),targetSlotIds:z.array(uuid).max(6).refine(unique,"Duplicate quote slot"),billingMode:z.literal("chatgpt_subscription").optional(),policy:logoDirectionsSubscriptionPolicySchema.optional(),textPolicy:logoVectorProposalTextPolicySchema.optional()}).superRefine((v,ctx)=>{
+ if((v.request.operation==="propose_vector_edit")!==(v.textPolicy!==undefined))issue(ctx,"Only a separately priced vector proposal has its complete text policy");
+ if(v.textPolicy&&(v.handlerVersion!==v.textPolicy.handlerVersion||v.provider!=="openai"||v.model!==v.textPolicy.model||v.engine!==null||v.billingMode!==undefined||v.policy!==undefined||v.conceptPlan!==null||v.targetSlotIds.length!==0||v.maxCostMicrousd!==v.textPolicy.maximumCostMicrousd||v.externalProviderCostMicrousd!==v.textPolicy.maximumCostMicrousd))issue(ctx,"Vector text quotes require exact independent policy and cost bounds");
  if((v.billingMode===undefined)!==(v.policy===undefined))issue(ctx,"Subscription quotes require the full paired policy");
  if(v.policy&&(v.request.operation!=="directions"||v.handlerVersion!==v.policy.handlerVersion||v.provider!=="openai"||v.model!==v.policy.model||v.engine!==null||v.estimatedCostMicrousd!==0||v.maxCostMicrousd!==0||v.externalProviderCostMicrousd!==0))issue(ctx,"Subscription directions quote must bind the verified zero-API policy");
  if(JSON.stringify(v.expected)!==JSON.stringify(v.request.expected)||v.estimatedCostMicrousd>v.maxCostMicrousd)issue(ctx,"Quote must freeze its exact heads and bounded estimate");
@@ -86,7 +93,7 @@ export const logoCostQuoteSchema=bounded(z.strictObject({id:uuid,...scope,reques
 export type LogoCostQuote=z.infer<typeof logoCostQuoteSchema>;
 export const logoGenerationIntentSchema=bounded(z.strictObject({requestKey:uuid,quoteId:uuid,acceptedMaxCostMicrousd:moneySchema,expected:logoExpectedHeadsSchema}));
 export type LogoGenerationIntent=z.infer<typeof logoGenerationIntentSchema>;
-export const logoDispatchReceiptSchema=bounded(z.strictObject({...scope,requestKey:uuid,operation:logoOperationSchema,batchId:uuid.nullable(),jobIds:z.array(uuid).min(1).max(6).refine(unique,"Duplicate admitted job"),inputHash:hash}).refine(v=>(v.operation==="identity.logo_concept")===(v.batchId!==null),"Only concept operations have a batch"));
+export const logoDispatchReceiptSchema=bounded(z.strictObject({...scope,requestKey:uuid,operation:z.union([logoOperationSchema,z.literal("identity.logo_vector_propose")]),batchId:uuid.nullable(),jobIds:z.array(uuid).min(1).max(6).refine(unique,"Duplicate admitted job"),inputHash:hash}).refine(v=>(v.operation==="identity.logo_concept")===(v.batchId!==null),"Only concept operations have a batch").refine(v=>v.operation!=="identity.logo_vector_propose"||v.jobIds.length===1,"A vector proposal must bind exactly one durable job"));
 export type LogoDispatchReceipt=z.infer<typeof logoDispatchReceiptSchema>;
 export type LogoRequestState={status:"not_found"}|{status:"admitted"|"running"|"partial"|"succeeded"|"failed"|"cancelled"|"needs_reconciliation";requestKey:string;receipt:LogoDispatchReceipt|LogoMutationReceipt|LogoVariantSet|null;outputs:IdentityAssetReceipt[];billing:LogoBillingObservation;reason:string|null;rejection?:LogoExportRejection};
 export const logoRequestStateSchema:z.ZodType<LogoRequestState>=bounded(z.discriminatedUnion("status",[
