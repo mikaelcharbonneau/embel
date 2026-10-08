@@ -72,8 +72,11 @@ describe("mounted Home attached brief integration", () => {
   });
   expect(mock.create).not.toHaveBeenCalled(); expect(mock.strategy).not.toHaveBeenCalled(); expect(mock.push).not.toHaveBeenCalled();
   expect([...host.querySelectorAll("button")].find(button => button.textContent?.includes("Send prompt"))!.disabled).toBe(true);
-  await act(async () => { release(new TextEncoder().encode("brief").buffer); await new Promise(resolve => setTimeout(resolve, 10)); });
-  expect(mock.memory!.get(account)?.files[0]?.file.name).toBe("selected.txt");
+  await act(async () => {
+   release(new TextEncoder().encode("brief").buffer);
+   // WebCrypto completion is asynchronous; wait for the retained file, not a 10ms timing guess.
+   await vi.waitFor(() => expect(mock.memory!.get(account)?.files[0]?.file.name).toBe("selected.txt"), { timeout: 5000 });
+  });
   expect(mock.strategy).not.toHaveBeenCalled();
  });
  it("keeps a blocked text-only AI prompt on Home, without silent manual navigation", async () => {

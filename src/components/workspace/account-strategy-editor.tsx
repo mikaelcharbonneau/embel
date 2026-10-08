@@ -36,6 +36,9 @@ export function AccountStrategyEditor({ account, workspace, busy, saveDraft, sto
   const retryPlan = savedIntent ? strategyIntentPlan(savedIntent) : plan;
   const dirty = accountDraftChanged(workspace);
   const jobs = strategy.overview?.jobs ?? [];
+  const orderedJobs = [...jobs].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.input_revision - b.input_revision || a.operation.localeCompare(b.operation));
+  const latestJob = orderedJobs.at(-1);
+  const resultNavigation = latestJob && <div className="conversation-result-navigation"><span role="status">Latest activity: {strategyLabels[latestJob.operation]} {stateLabels[latestJob.state]}</span><button type="button" className="text-link" aria-label="View latest AI activity" onClick={() => { const heading = document.getElementById(`strategy-activity-${latestJob.id}`); heading?.focus(); heading?.scrollIntoView?.({ block: "start" }); }}>View latest activity ↑</button></div>;
   const currentJobs = jobs.filter(job => job.input_revision === revision);
   const pending = Boolean(busy || strategy.pending);
 
@@ -88,12 +91,12 @@ export function AccountStrategyEditor({ account, workspace, busy, saveDraft, sto
     {strategy.readError && <p className="form-error" role="alert">{strategy.readError}</p>}
     {strategy.actionError && <p className="form-error" role="alert">{strategy.actionError}</p>}
     {strategy.pending && <p className="field-hint" role="status">{strategy.pendingLabel}</p>}
-    {jobs.length > 0 && <div className="account-strategy-results">{[...jobs].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.operation.localeCompare(b.operation)).map(job => {
+    {jobs.length > 0 && <div className="account-strategy-results">{orderedJobs.map(job => {
       const applied = job.results.map(result => strategyResultApplication(job, result.stepKey)).find(Boolean);
       const partialText = !job.results.length && "partialText" in job && typeof job.partialText === "string" ? job.partialText : "";
       const partialMessage = partialText ? strategyPartialMessage(partialText) : null;
       return <article key={job.id} className="conversation-widget" aria-label={`${strategyLabels[job.operation]} activity`}>
-      <div className="conversation-widget-heading"><span className="conversation-tool-avatar" aria-hidden="true">f</span><h2>{strategyLabels[job.operation]} {stateLabels[job.state]}</h2></div>
+      <div className="conversation-widget-heading"><span className="conversation-tool-avatar" aria-hidden="true">f</span><h2 id={`strategy-activity-${job.id}`} tabIndex={-1}>{strategyLabels[job.operation]} {stateLabels[job.state]}</h2></div>
       <div className="conversation-widget-body">
         <p className="field-hint">{applied ? `Applied to saved version · ${applied.appliedRevision}` : job.input_revision === revision ? `Current saved version · ${revision}${dirty ? " · unsaved edits differ" : ""}` : `Earlier version · ${job.input_revision}`}</p>
         {strategyJobActive(job) && <p className="field-hint" role="status">{job.state === "queued" ? ("dispatchState" in job && job.dispatchState === "dispatch_pending" ? "Request saved. Waiting for dispatch confirmation." : "Request saved. Waiting to start.") : job.state === "cancel_requested" ? "Cancellation is requested. Completed work may still arrive." : "OpenAI is processing this saved version."} {job.billingMode === "chatgpt_subscription" ? "Uses your ChatGPT plan. Your plan limits apply." : `Reserved limit: ${formatStrategyCap(job.reserved_cost_microusd)}.`}</p>}
@@ -114,7 +117,7 @@ export function AccountStrategyEditor({ account, workspace, busy, saveDraft, sto
     {strategy.actionError && strategy.continuationAvailable && <button type="button" className="button secondary small" disabled={pending} onClick={() => void strategy.continueResearch()}>Retry competitor research</button>}
     {(strategy.readError || strategy.actionError) && <button type="button" className="text-link" disabled={pending} onClick={strategy.refresh}>Check strategy status</button>}
   </div>;
-  return <ProjectEditorForm draft={workspace.draft} storage={{ ...storage, savedContext: workspace.saved.context, strategy: transcript, promptNotice, promptPending: pending, onPromptSubmitted: sendPrompt, strategyActions, strategyPending: pending, onStrategyRequested: widget => requestOperation(operationForWidget[widget]) }} />;
+  return <ProjectEditorForm draft={workspace.draft} storage={{ ...storage, savedContext: workspace.saved.context, strategy: transcript, promptNotice, resultNavigation, promptPending: pending, onPromptSubmitted: sendPrompt, strategyActions, strategyPending: pending, onStrategyRequested: widget => requestOperation(operationForWidget[widget]) }} />;
 }
 
 function Proposal({ output }: { output: StrategyJobResult }) {

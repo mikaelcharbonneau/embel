@@ -20,7 +20,7 @@
 .extensions label { display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; font-size: 14px; cursor: pointer; }
 .extensions input { accent-color: var(--accent-text); width: 16px; height: 16px; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-.actions button { min-height: 40px; }
+.actions button { min-height: 44px; }
 .notice { display: flex; gap: 12px; color: var(--secondary); margin: 0 0 24px; padding: 16px; background: var(--surface); border-radius: 8px; font-size: 14px; line-height: 1.55; }
 .notice svg { flex-shrink: 0; margin-top: 3px; }
 .notice p { margin: 0; }
@@ -31,7 +31,7 @@
 .library li, .results li { border-top: 1px solid var(--border); padding: 20px 0; }
 .library li { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
 .library p { margin: 6px 0; }
-.badge { font-size: 12px; background: var(--surface); color: var(--text); border-radius: 4px; padding: 5px 8px; flex-shrink: 0; display: inline-block; }
+.badge { font-size: var(--font-ui, 13px); background: var(--surface); color: var(--text); border-radius: 4px; padding: 5px 8px; flex-shrink: 0; display: inline-block; }
 .textButton { background: transparent; border: none; font: inherit; font-size: 14px; color: var(--accent-text); cursor: pointer; padding: 8px 0; }
 .workspace button:disabled { cursor: not-allowed; opacity: .65; }
 .workspace button:focus-visible, .workspace input:focus-visible, .workspace textarea:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 3px; }
@@ -53,11 +53,11 @@
 }
 
 .workspace { max-width: 1360px; }
-.heading p { font-size: 12px; }
+.heading p { font-size: var(--font-ui, 13px); }
 .tabs button { font-size: 13px; }
 .empty { min-height: 250px; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 24px; }
 .empty > svg { width: 64px; height: 64px; padding: 17px; background: var(--surface); border-radius: 50%; color: #5d6354; }
 .empty h3 { font-size: 22px; font-weight: 500; margin: 24px 0 16px; }
 .empty p { font-size: 13px; }
-.extensions label { border-radius: 999px; font-size: 12px; min-height: 34px; padding: 7px 14px; }
+.extensions label { border-radius: 999px; font-size: var(--font-ui, 13px); min-height: 44px; padding: 7px 14px; }
 .extensions label:has(input:checked) { border-color: var(--text); background: var(--surface); }

@@ -2,70 +2,70 @@
 .project-naming-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 24px; }
 .project-naming-header h1 { font-size: 24px; letter-spacing: -.7px; margin-top: 5px; }
 .project-naming-header > div { min-width: 0; }
-.project-naming-eyebrow { color: var(--secondary); font-size: 11px; overflow-wrap: anywhere; }
+.project-naming-eyebrow { color: var(--secondary); font-size: var(--font-ui); overflow-wrap: anywhere; }
 .project-naming-header-actions, .project-naming-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .project-naming-header-actions { justify-content: flex-end; }
-.project-naming-muted { color: var(--secondary); font-size: 12px; line-height: 1.65; }
-.project-naming-notice { padding: 14px 16px; border: 1px solid var(--border); border-radius: 7px; background: var(--paper); font-size: 12px; line-height: 1.65; margin-bottom: 18px; }
+.project-naming-muted { color: var(--secondary); font-size: var(--font-ui); line-height: 1.65; }
+.project-naming-notice { padding: 14px 16px; border: 1px solid var(--border); border-radius: 7px; background: var(--paper); font-size: var(--font-ui); line-height: 1.65; margin-bottom: 18px; }
 .project-naming-notice p + p { margin-top: 5px; }
 .project-naming-notice .text-link { margin-top: 8px; }
 .project-naming-notice .button { margin-top: 10px; }
 .project-naming-page > .form-error { margin-bottom: 18px; }
 .project-naming-conversation { max-width: 780px; margin: 0 auto 26px; }
 .project-naming-context { margin: 0 0 15px; padding: 18px 21px; border-left: 2px solid var(--border); background: var(--paper); border-radius: 0 7px 7px 0; }
-.project-naming-context > span { color: var(--secondary); font-size: 10px; }
+.project-naming-context > span { color: var(--secondary); font-size: var(--font-ui); }
 .project-naming-context p { font-size: 13px; line-height: 1.75; margin-top: 6px; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 220px; overflow: auto; }
-.project-naming-context details { color: var(--secondary); margin-top: 12px; font-size: 11px; }
+.project-naming-context details { color: var(--secondary); margin-top: 12px; font-size: var(--font-ui); }
 .project-naming-context summary { cursor: pointer; padding: 4px 0; }
 .project-naming-context dl { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; margin: 12px 0; }
-.project-naming-context dt { font-size: 10px; margin-bottom: 4px; }
+.project-naming-context dt { font-size: var(--font-ui); margin-bottom: 4px; }
 .project-naming-context dd { margin: 0; color: var(--text); overflow-wrap: anywhere; white-space: pre-wrap; }
 .project-naming-preferences { padding: 24px; border: 1px solid var(--border); border-radius: var(--panel-radius); background: var(--paper); }
 .project-naming-preferences h2 { font-size: 19px; letter-spacing: -.4px; margin-bottom: 8px; }
 .project-naming-preferences > p { margin-bottom: 22px; }
-.project-naming-preferences label, .project-naming-control-fields > label, .project-naming-lengths > label { display: block; color: var(--text); font-size: 12px; font-weight: 500; }
+.project-naming-preferences label, .project-naming-control-fields > label, .project-naming-lengths > label { display: block; color: var(--text); font-size: var(--font-ui); font-weight: 500; }
 .project-naming-preferences input, .project-naming-preferences textarea, .project-naming-preferences select,
-.project-naming-control-fields input:not([type="checkbox"]), .project-naming-control-fields textarea, .project-naming-control-fields select { width: 100%; min-height: 42px; display: block; margin-top: 7px; border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; color: var(--text); background: var(--paper); font-size: 13px; font-weight: 400; line-height: 1.5; }
+.project-naming-control-fields input:not([type="checkbox"]), .project-naming-control-fields textarea, .project-naming-control-fields select { width: 100%; min-height: 44px; display: block; margin-top: 7px; border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; color: var(--text); background: var(--paper); font-size: 13px; font-weight: 400; line-height: 1.5; }
 .project-naming-preferences > label { margin: 18px 0; }
 .project-naming-preferences textarea { min-height: 110px; resize: vertical; }
 .project-naming-preferences details { margin: 18px 0 24px; }
-.project-naming-preferences summary { font-size: 12px; color: var(--secondary); cursor: pointer; padding: 5px 0; }
+.project-naming-preferences summary { font-size: var(--font-ui); color: var(--secondary); cursor: pointer; padding: 5px 0; }
 .project-naming-preferences details > label { max-width: 300px; margin-top: 15px; }
 .project-naming-lengths { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
 .project-naming-preferences .project-naming-actions { justify-content: flex-end; margin-top: 22px; }
 .project-naming-preferences .form-error { margin-top: 14px; }
 .project-naming-section-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 18px; }
 .project-naming-section-heading h2 { font-size: 19px; letter-spacing: -.4px; }
-.project-naming-section-heading p { font-size: 11px; color: var(--secondary); margin-top: 6px; }
+.project-naming-section-heading p { font-size: var(--font-ui); color: var(--secondary); margin-top: 6px; }
 .project-naming-toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
 .project-naming-toolbar label { min-width: 0; }
 .project-naming-toolbar label:first-child { flex: 1; min-width: 180px; max-width: 360px; }
-.project-naming-toolbar input, .project-naming-toolbar select { min-height: 40px; width: 100%; min-width: 0; max-width: 100%; background: var(--paper); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 9px 11px; font-size: 12px; }
-.project-naming-toolbar > span { color: var(--secondary); font-size: 11px; margin-left: auto; }
+.project-naming-toolbar input, .project-naming-toolbar select { min-height: 44px; width: 100%; min-width: 0; max-width: 100%; background: var(--paper); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 9px 11px; font-size: var(--font-ui); }
+.project-naming-toolbar > span { color: var(--secondary); font-size: var(--font-ui); margin-left: auto; }
 .project-naming-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
 .project-naming-card { min-width: 0; background: var(--paper); border: 1px solid var(--border); border-radius: 8px; padding: 18px 17px 14px; scroll-margin-top: 24px; }
 .project-naming-card.is-selected { border-color: var(--accent-text); }
 .project-naming-card-title { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
 .project-naming-card h3 { font-size: 22px; font-weight: 500; letter-spacing: -.55px; line-height: 1.35; overflow-wrap: anywhere; min-width: 0; }
-.project-naming-favorite { border: 0; padding: 5px; min-height: 32px; min-width: 32px; display: grid; place-items: center; border-radius: 5px; color: var(--secondary); flex-shrink: 0; }
+.project-naming-favorite { border: 0; padding: 5px; min-height: 44px; min-width: 32px; display: grid; place-items: center; border-radius: 5px; color: var(--secondary); flex-shrink: 0; }
 .project-naming-favorite:hover { background: var(--surface); }
 .project-naming-favorite[aria-pressed="true"] { color: var(--accent-text); }
-.project-naming-card > p { font-size: 12px; line-height: 1.65; margin: 14px 0 12px; color: var(--secondary); overflow-wrap: anywhere; }
+.project-naming-card > p { font-size: var(--font-ui); line-height: 1.65; margin: 14px 0 12px; color: var(--secondary); overflow-wrap: anywhere; }
 .project-naming-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.project-naming-badges span { background: var(--surface); color: var(--secondary); padding: 3px 6px; border-radius: 4px; font-size: 10px; }
+.project-naming-badges span { background: var(--surface); color: var(--secondary); padding: 3px 6px; border-radius: 4px; font-size: var(--font-ui); }
 .project-naming-badges .is-selected { color: var(--accent-text); background: var(--magenta-soft); }
 .project-naming-card .project-naming-actions { margin-top: 17px; justify-content: space-between; gap: 6px; }
-.project-naming-card .button { padding: 8px 10px; font-size: 11px; min-height: 34px; }
-.project-naming-card .text-link { font-size: 11px; }
-.project-naming-card details { border-top: 1px solid var(--border); margin-top: 13px; padding-top: 8px; font-size: 11px; color: var(--secondary); }
+.project-naming-card .button { padding: 8px 10px; font-size: var(--font-ui); min-height: 44px; }
+.project-naming-card .text-link { font-size: var(--font-ui); }
+.project-naming-card details { border-top: 1px solid var(--border); margin-top: 13px; padding-top: 8px; font-size: var(--font-ui); color: var(--secondary); }
 .project-naming-card summary { padding: 4px 0; cursor: pointer; }
 .project-naming-card details p { margin-top: 7px; overflow-wrap: anywhere; line-height: 1.6; }
 .project-naming-job { padding: 18px 20px; border: 1px solid var(--border); background: var(--paper); border-radius: 8px; margin-bottom: 20px; }
 .project-naming-job > div:first-child { display: flex; gap: 15px; justify-content: space-between; align-items: center; }
 .project-naming-job strong { font-size: 13px; font-weight: 500; }
-.project-naming-job p { font-size: 12px; color: var(--secondary); line-height: 1.6; margin-top: 8px; }
+.project-naming-job p { font-size: var(--font-ui); color: var(--secondary); line-height: 1.6; margin-top: 8px; }
 .project-naming-job progress { display: block; width: 100%; height: 4px; margin-top: 16px; accent-color: var(--accent-text); }
-.project-naming-batch-history { margin-bottom: 18px; font-size: 12px; color: var(--secondary); }
+.project-naming-batch-history { margin-bottom: 18px; font-size: var(--font-ui); color: var(--secondary); }
 .project-naming-batch-history summary { cursor: pointer; padding: 5px 0; }
 .project-naming-batch-history ol { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
 .project-naming-batch-history button { display: flex; justify-content: space-between; gap: 20px; width: 100%; text-align: left; padding: 11px 13px; border: 1px solid var(--border); border-radius: 5px; background: var(--paper); color: var(--secondary); }
@@ -76,47 +76,47 @@
 .project-naming-empty h3, .project-naming-empty h2 { font-size: 20px; margin-bottom: 10px; }
 .project-naming-empty p { max-width: 520px; margin: 0 auto; color: var(--secondary); font-size: 13px; line-height: 1.7; }
 .project-naming-empty .button { margin-top: 20px; }
-.project-naming-chat-toggle { position: fixed; bottom: 22px; right: 30px; z-index: 16; display: inline-flex; align-items: center; gap: 9px; min-height: 42px; padding: 10px 15px; background: var(--paper); color: var(--text); border: 1px solid var(--border); border-radius: 24px; box-shadow: 0 4px 20px #0000000d; font-size: 12px; }
+.project-naming-chat-toggle { position: fixed; bottom: 22px; right: 30px; z-index: 16; display: inline-flex; align-items: center; gap: 9px; min-height: 44px; padding: 10px 15px; background: var(--paper); color: var(--text); border: 1px solid var(--border); border-radius: 24px; box-shadow: 0 4px 20px #0000000d; font-size: var(--font-ui); }
 .project-naming-chat-toggle:hover { background: var(--magenta-soft); }
 .project-naming-selected { display: flex; justify-content: space-between; gap: 20px; align-items: center; position: sticky; top: 0; padding: 23px 24px; background: var(--paper); border: 1px solid var(--border); border-radius: 8px; z-index: 2; }
 .project-naming-selected > div { min-width: 0; }
 .project-naming-selected h2 { font-size: 32px; letter-spacing: -.9px; margin-top: 7px; overflow-wrap: anywhere; }
-.project-naming-selected p { font-size: 11px; color: var(--secondary); margin-top: 7px; }
+.project-naming-selected p { font-size: var(--font-ui); color: var(--secondary); margin-top: 7px; }
 .project-naming-selected > button { flex-shrink: 0; }
 .project-naming-screening-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 20px 0 15px; }
 .project-naming-screening-grid article { min-width: 0; padding: 24px 20px; background: var(--paper); border: 1px solid var(--border); border-radius: 8px; }
 .project-naming-screening-grid h3 { font-size: 17px; margin-top: 16px; }
-.project-naming-screening-grid p { font-size: 12px; color: var(--secondary); line-height: 1.7; margin-top: 13px; }
-.project-naming-screening-grid .project-naming-screening-status { color: var(--text); font-size: 11px; background: var(--surface); padding: 7px 9px; border-radius: 5px; }
+.project-naming-screening-grid p { font-size: var(--font-ui); color: var(--secondary); line-height: 1.7; margin-top: 13px; }
+.project-naming-screening-grid .project-naming-screening-status { color: var(--text); font-size: var(--font-ui); background: var(--surface); padding: 7px 9px; border-radius: 5px; }
 .project-naming-screening-grid .button { margin-top: 22px; }
 .project-naming-stale-choice { background: var(--magenta-soft); padding: 20px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 20px; }
 .project-naming-stale-choice h2 { font-size: 17px; overflow-wrap: anywhere; }
-.project-naming-stale-choice p { font-size: 12px; color: var(--secondary); line-height: 1.7; margin-top: 8px; }
-.project-naming-stale-choice label { display: flex; gap: 10px; align-items: flex-start; font-size: 12px; line-height: 1.7; margin: 16px 0; }
+.project-naming-stale-choice p { font-size: var(--font-ui); color: var(--secondary); line-height: 1.7; margin-top: 8px; }
+.project-naming-stale-choice label { display: flex; gap: 10px; align-items: flex-start; font-size: var(--font-ui); line-height: 1.7; margin: 16px 0; }
 .project-naming-stale-choice input { margin-top: 4px; accent-color: var(--accent-text); }
 .project-naming-workshop { display: grid; grid-template-columns: minmax(250px, 320px) minmax(0, 1fr); gap: 24px; align-items: start; }
 .project-naming-workshop-controls { min-width: 0; padding: 21px; background: var(--paper); border: 1px solid var(--border); border-radius: 8px; }
-.project-naming-seed span { display: block; color: var(--secondary); font-size: 10px; }
+.project-naming-seed span { display: block; color: var(--secondary); font-size: var(--font-ui); }
 .project-naming-seed strong { display: block; font-size: 23px; line-height: 1.4; overflow-wrap: anywhere; margin-top: 6px; }
 .project-naming-transform-kinds, .project-naming-control-fields { border: 0; padding: 0; margin: 22px 0; min-width: 0; }
-.project-naming-transform-kinds legend { color: var(--secondary); font-size: 11px; margin-bottom: 12px; }
+.project-naming-transform-kinds legend { color: var(--secondary); font-size: var(--font-ui); margin-bottom: 12px; }
 .project-naming-transform-kinds > label { display: flex; flex-wrap: wrap; gap: 6px; padding: 11px; border: 1px solid var(--border); border-radius: 5px; margin-top: 6px; }
 .project-naming-transform-kinds > label.is-active { background: var(--magenta-soft); border-color: var(--accent-text); }
 .project-naming-transform-kinds input { accent-color: var(--accent-text); }
-.project-naming-transform-kinds strong { font-size: 12px; font-weight: 500; }
-.project-naming-transform-kinds label > span { flex-basis: 100%; margin-left: 19px; color: var(--secondary); font-size: 11px; }
+.project-naming-transform-kinds strong { font-size: var(--font-ui); font-weight: 500; }
+.project-naming-transform-kinds label > span { flex-basis: 100%; margin-left: 19px; color: var(--secondary); font-size: var(--font-ui); }
 .project-naming-control-fields > label + label { margin-top: 15px; }
-.project-naming-control-fields p { font-size: 11px; color: var(--secondary); line-height: 1.65; margin-top: 11px; }
-.project-naming-checks > label { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 6px 0; }
+.project-naming-control-fields p { font-size: var(--font-ui); color: var(--secondary); line-height: 1.65; margin-top: 11px; }
+.project-naming-checks > label { display: flex; align-items: center; gap: 8px; font-size: var(--font-ui); padding: 6px 0; }
 .project-naming-checks input { accent-color: var(--accent-text); }
-.project-naming-workshop-controls > .project-naming-muted { margin-top: 11px; font-size: 10px; }
+.project-naming-workshop-controls > .project-naming-muted { margin-top: 11px; font-size: var(--font-ui); }
 .project-naming-import { border-top: 1px solid var(--border); margin-top: 25px; padding-top: 15px; }
-.project-naming-import summary { cursor: pointer; font-size: 12px; padding: 5px 0; }
+.project-naming-import summary { cursor: pointer; font-size: var(--font-ui); padding: 5px 0; }
 .project-naming-import p { margin: 12px 0; }
-.project-naming-import select { max-width: 100%; width: 100%; min-height: 40px; border: 1px solid var(--border); border-radius: 5px; padding: 8px; background: var(--paper); color: var(--text); font-size: 12px; }
+.project-naming-import select { max-width: 100%; width: 100%; min-height: 44px; border: 1px solid var(--border); border-radius: 5px; padding: 8px; background: var(--paper); color: var(--text); font-size: var(--font-ui); }
 .project-naming-import .button { margin-top: 12px; }
 .project-naming-scopes { display: flex; gap: 6px; align-items: center; margin: 0 0 20px; }
-.project-naming-scopes button { font-size: 11px; padding: 9px 13px; min-height: 36px; border: 1px solid var(--border); border-radius: 6px; color: var(--secondary); }
+.project-naming-scopes button { font-size: var(--font-ui); padding: 9px 13px; min-height: 44px; border: 1px solid var(--border); border-radius: 6px; color: var(--secondary); }
 .project-naming-scopes button[aria-pressed="true"] { background: var(--paper); color: var(--text); border-color: var(--text); }
 .project-naming-library { min-width: 0; }
 .project-naming-library .project-naming-card .text-link { overflow-wrap: anywhere; }
@@ -136,7 +136,7 @@
   .project-naming-header { gap: 14px; }
   .project-naming-header h1 { font-size: 24px; }
   .project-naming-header-actions { flex-direction: column; gap: 9px; align-items: flex-end; }
-  .project-naming-header-actions .text-link { font-size: 11px; }
+  .project-naming-header-actions .text-link { font-size: var(--font-ui); }
   .project-naming-grid { grid-template-columns: minmax(0, 1fr); }
   .project-naming-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
   .project-naming-toolbar label:first-child { min-width: 0; max-width: none; }
@@ -152,7 +152,7 @@
   .project-naming-section-heading > .project-naming-actions { justify-content: flex-end; }
   .project-naming-selected { padding: 20px 16px; align-items: flex-start; }
   .project-naming-selected h2 { font-size: 25px; }
-  .project-naming-selected > button { max-width: 112px; padding: 8px; font-size: 11px; }
+  .project-naming-selected > button { max-width: 112px; padding: 8px; font-size: var(--font-ui); }
   .project-naming-chat-toggle { right: 18px; bottom: 16px; width: 42px; height: 42px; padding: 11px; }
   .project-naming-chat-toggle > span { display: none; }
 }
@@ -160,7 +160,7 @@
 .project-naming-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px 24px; }
 .project-naming-card { border-radius: 10px; padding: 20px 18px 14px; }
 .project-naming-card.is-selected { border-color: var(--text); }
-.project-naming-toolbar select { border-radius: 999px; min-height: 34px; }
+.project-naming-toolbar select { border-radius: 999px; min-height: 44px; }
 .project-naming-screening-grid { gap: 24px; margin-top: 32px; }
 .project-naming-screening-grid article { border-radius: 10px; }
 .project-naming-library .project-naming-grid { display: flex; flex-direction: column; gap: 0; }
@@ -170,7 +170,7 @@
 .project-naming-library .project-naming-favorite { position: absolute; right: 14px; top: 12px; }
 .project-naming-library .project-naming-card > .text-link { grid-column: 2; grid-row: 1; justify-content: flex-start; }
 .project-naming-library .project-naming-badges { grid-column: 3; grid-row: 1; margin: 0; padding-right: 24px; }
-.project-naming-library .project-naming-card > p { grid-column: 1 / 3; font-size: 11px; margin: 0; }
+.project-naming-library .project-naming-card > p { grid-column: 1 / 3; font-size: var(--font-ui); margin: 0; }
 .project-naming-library .project-naming-actions { grid-column: 3; margin: 0; justify-content: flex-start; }
 .project-naming-library .project-naming-card > details { grid-column: 1 / -1; }
 @media(max-width:1190px) { .project-naming-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

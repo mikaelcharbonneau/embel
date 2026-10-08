@@ -59,7 +59,7 @@ function StandaloneToolWorkspace({ tool }: { tool: StandaloneToolName }) {
   const props = { memory: standaloneDrafts, importProjectId: project?.id, importProjectTitle: project?.title };
   // The manual fallback is a separate component, seeded only by the features'
   // empty defaults. It never receives a hidden account payload or saved sources.
-  if (session.status !== "ready") return <><AccountStatus retainedEdits={standaloneDrafts.hasUnsaved()} /><ManualStandaloneToolWorkspace tool={tool} /></>;
+  if (session.status !== "ready") return <><div className="page standalone-account-status"><AccountStatus retainedEdits={standaloneDrafts.hasUnsaved()} /></div><ManualStandaloneToolWorkspace tool={tool} /></>;
   return <>
     <StandaloneProjectPicker selectedProjectId={project?.id} onSelect={next => {
       if (session.status === "ready" && isCurrent(session)) setSelected(next ? { ownerId: session.userId, generation: session.generation, project: next } : null);

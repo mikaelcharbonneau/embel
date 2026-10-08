@@ -1,3 +1,4 @@
+import { captureUiEvidence } from "./ui-evidence";
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { accountProjectSchema } from "../../src/domain/project-api";
 import { contextSnapshotSchema } from "../../src/domain/projects";
@@ -469,3 +470,5 @@ test("Ideas fixture: a verified account can capture a title without completing a
   await expect(page.getByRole("button", { name: "Save idea", exact: true })).toBeVisible();
   await expect(page.getByText("AI exploration is unavailable.", { exact: true })).toBeVisible();
 });
+
+test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));

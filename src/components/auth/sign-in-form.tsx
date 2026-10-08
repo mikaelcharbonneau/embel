@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Icon } from "@/components/ui/icon";
 import { useAccountSession } from "@/components/workspace/account-session";
 import { requestSignIn, signInErrorMessage } from "./sign-in-request";
+import { readPromptRecovery } from "@/components/workspace/prompt-recovery";
 import "@/styles/auth.css";
 
 export function SignInForm({ configured }: { configured: boolean }) {
@@ -15,6 +16,12 @@ export function SignInForm({ configured }: { configured: boolean }) {
   const passwordInput = useRef<HTMLInputElement>(null);
   const mounted = useRef(true);
   const [error, setError] = useState("");
+  const [hasPrompt, setHasPrompt] = useState(false);
+  useEffect(() => {
+    // Browser-only recovery is read after hydration; credentials stay in the existing form refs.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setHasPrompt(Boolean(readPromptRecovery()));
+  }, []);
 
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
@@ -37,7 +44,7 @@ export function SignInForm({ configured }: { configured: boolean }) {
     if (passwordInput.current) passwordInput.current.value = "";
     if (result.ok) {
       // The provider has started fresh verification before this internal navigation.
-      router.replace("/brands");
+      router.replace(readPromptRecovery() ? "/" : "/brands");
       router.refresh();
     } else if (result.reason === "failed") {
       setError(signInErrorMessage(result.error));
@@ -50,7 +57,8 @@ export function SignInForm({ configured }: { configured: boolean }) {
     <section className="auth-card" aria-labelledby="sign-in-title">
       <div className="auth-heading"><span className="auth-mark" aria-hidden="true">f</span><span className="auth-stage">Development workspace</span></div>
       <h1 id="sign-in-title">{signedIn ? "You're signed in" : "Sign in to Fluid"}</h1>
-      {signedIn ? <><p className="auth-intro">Your account is ready. Continue to your brands and saved projects.</p><Link className="button primary auth-continue" href="/brands">Go to Brands<Icon name="arrow" size={16} /></Link></> : <>
+      {hasPrompt && <div className="prompt-recovery-notice"><p>Your prompt and scope are saved in this browser. Sign in to continue, or return to your prompt.</p><Link className="text-link" href="/">Return to your prompt<Icon name="arrow" size={14} /></Link></div>}
+      {signedIn ? <><p className="auth-intro">Your account is ready. Continue to your brands and saved projects.</p><Link className="button primary auth-continue" href={hasPrompt ? "/" : "/brands"}>{hasPrompt ? "Continue your prompt" : "Go to Brands"}<Icon name="arrow" size={16} /></Link></> : <>
         <p className="auth-intro">Use an existing test account. Account creation isn&apos;t available in this development workspace.</p>
         {!configured ? <div className="auth-unavailable" role="status"><Icon name="offline" size={18} /><p>Sign-in is not connected. You can continue with browser drafts.</p></div> : null}
         <form method="post" action="/api/auth/sign-in" onSubmit={submit} aria-label="Sign in" aria-busy={submitting}>

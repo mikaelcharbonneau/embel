@@ -1,3 +1,4 @@
+import { captureUiEvidence } from "./ui-evidence";
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { syntheticLogoBatch, syntheticLogoQuote, syntheticLogoWorkspace, syntheticResolvedLogoConcept, logoFixtureId as id } from "../fixtures/logo-creation";
 import type { LogoCostQuote, LogoGenerationIntent, LogoQuoteRequest, LogoRequestState, LogoConceptBatch } from "../../src/domain/logo-jobs";
@@ -33,6 +34,14 @@ async function setup(page: Page, scenario: "empty" | "partial" | "uncertain" | "
     const path = target.pathname, request = route.request();
     if (path === "/api/session") return json(route, { user: { id: state.owner } });
     if (state.owner !== foundation.ownerId) return json(route, {}, 404);
+    if (path === `${base}/capabilities`) {
+      const available = { status: "available", expiresAt: new Date(Date.now() + 30_000).toISOString() };
+      return json(route, { ownerId: foundation.ownerId, projectId: foundation.projectId, observedAt: new Date().toISOString(), operations: {
+        "identity.logo_concept": scenario === "unavailable" ? { status: "unavailable" } : available,
+        "identity.logo_refine": scenario === "unavailable" ? { status: "unavailable" } : available,
+        "identity.logo_vectorize": { status: "unavailable" }, "identity.logo_directions": { status: "unavailable" }, "identity.logo_export": { status: "unavailable" },
+      } });
+    }
     if (path === base) return json(route, saved);
     if (path === `${base}/stages/brief_references/revisions/${currentBrief.id}`) return json(route, currentBrief);
     if (path === `${base}/stages/brief_references/revisions/${source.brief.id}`) return json(route, source.brief);
@@ -156,3 +165,5 @@ test("return to cost review refreshes an H1 rejection to the other tab's saved H
   expect(f.quotes[1]).toMatchObject({ expected: { workspaceRevision: 2, stageRevisions: { brief_references: 2 } }, briefRevisionId: id(990) });
   expect(f.posts).toHaveLength(1);
 });
+
+test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));

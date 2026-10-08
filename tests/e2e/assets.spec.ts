@@ -1,3 +1,4 @@
+import { captureUiEvidence } from "./ui-evidence";
 import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { expect, test, type Page, type Route } from "@playwright/test";
@@ -256,3 +257,5 @@ test("assets fixture: metadata auth expiry hides every asset", async ({ page }) 
   const fixture = await setup(page); await ready(page); fixture.listStatus = 401;
   await page.getByRole("button", { name: "Check assets", exact: true }).click(); await expect(page.getByRole("article")).toHaveCount(0); await expect(page.getByText("No verified account session.", { exact: false })).toBeVisible();
 });
+
+test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));

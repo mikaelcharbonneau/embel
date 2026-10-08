@@ -4,7 +4,7 @@ import {act,createElement} from 'react';import {createRoot,type Root} from 'reac
 import {AccountSessionProvider} from '@/components/workspace/account-session';
 import {AccountProjectEditor} from '@/components/workspace/account-project-editor';
 import {contextSnapshotSchema} from '@/domain/projects';
-vi.mock('@/components/workspace/account-strategy-editor',()=>({AccountStrategyEditor:({storage}:{storage:{scopeControl:React.ReactNode}})=>createElement('div',null,storage.scopeControl)}));
+vi.mock('@/components/workspace/account-strategy-editor',()=>({AccountStrategyEditor:({storage}:{storage:{scopeControl:React.ReactNode;projectContext?:React.ReactNode}})=>createElement('div',null,storage.scopeControl,storage.projectContext)}));
 const id=(n:number)=>`d0000000-0000-4000-8000-${String(n).padStart(12,'0')}`;let root:Root|null=null;
 afterEach(async()=>{if(root)await act(async()=>root!.unmount());root=null;document.body.innerHTML='';vi.unstubAllGlobals();});
 it('shows saved project continuation and frozen attached sources without new generation',async()=>{

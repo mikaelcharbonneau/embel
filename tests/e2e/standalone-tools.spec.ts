@@ -1,3 +1,4 @@
+import { captureUiEvidence } from "./ui-evidence";
 import { readFile } from "node:fs/promises";
 import { expect, test, type Page } from "@playwright/test";
 
@@ -251,3 +252,5 @@ for (const tool of ["domains", "handles", "trademarks"] as const) {
     expect(await page.evaluate(() => Math.max(innerWidth, document.documentElement.scrollWidth))).toBeLessThanOrEqual(page.viewportSize()!.width);
   });
 }
+
+test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));

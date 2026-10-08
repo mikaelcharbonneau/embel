@@ -1,3 +1,4 @@
+import { captureUiEvidence } from "./ui-evidence";
 import { createHash } from "node:crypto";
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { syntheticLogoWorkspace, syntheticResolvedLogoConcept, logoFixtureId as id } from "../fixtures/logo-creation";
@@ -82,4 +83,18 @@ test("review then restore creates an explicit new current selection and fits the
   await page.getByRole("button", { name: "Review vector version 1", exact: true }).click(); await expect(page.getByRole("button", { name: "Restore this version", exact: true })).toBeEnabled(); expect(f.posts).toHaveLength(1);
   await page.getByRole("button", { name: "Restore this version", exact: true }).click(); await expect.poll(() => f.posts.length).toBe(2); await expect(rotation).toHaveValue("0"); expect(f.posts[1]!.path).toBe(`${base}/restore`);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));
+
+test("identity directions and brand files retain usable unavailable states without creating work", async ({ page }, info) => {
+  const f = await setup(page);
+  for (const [stage, title] of [["directions", "Visual identity"], ["deliverables", "Brand files"]]) {
+    await page.goto(`/brands/account/${projectId}/logo/${stage}`);
+    await expect(page.getByRole("heading", { name: title, level: 1, exact: true })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Logo and identity stages" })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
+    await page.screenshot({ path: info.outputPath(`${stage}-unavailable.png`), fullPage: true, scale: "css" });
+    expect(f.posts).toHaveLength(0);
+  }
 });

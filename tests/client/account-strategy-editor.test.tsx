@@ -13,7 +13,7 @@ import type { ProjectEditorForm } from "@/components/workspace/project-editor";
 const mock = vi.hoisted(() => ({ strategy: null as unknown as ReturnType<typeof useStrategyJobs>, form: null as ComponentProps<typeof ProjectEditorForm> | null }));
 vi.mock("@/components/workspace/use-strategy-jobs", () => ({ useStrategyJobs: () => mock.strategy }));
 vi.mock("@/components/workspace/project-editor", () => ({ ProjectEditorForm: (props: ComponentProps<typeof ProjectEditorForm>) => {
-  mock.form = props; return createElement("div", null, props.storage.promptNotice, props.storage.strategy);
+  mock.form = props; return createElement("div", null, props.storage.promptNotice, props.storage.resultNavigation, props.storage.strategy);
 } }));
 const projectId = "bbbbbbbb-1111-4111-8111-111111111111", when = "2026-10-08T00:00:00Z";
 const responseOnly: StrategyOverview["availability"] = { status: "available", operations: [{ operation: "strategy.reformulate", maximumCostMicrousd: 122880 }] };
@@ -33,6 +33,17 @@ beforeEach(() => {
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.replaceChildren(); });
 
 describe("response-only account editor", () => {
+  it("offers a keyboard focus path to the latest admitted activity without making a request", async () => {
+    const job = strategyJobSchema.parse({ id: "cccccccc-1111-4111-8111-111111111111", owner_id: props.account.userId, project_id: projectId, operation: "strategy.reformulate", input_revision: 1, state: "queued", progress: 0, reserved_cost_microusd: 122880, actual_cost_microusd: 0, error_code: null, cancel_requested_at: null, created_at: when, finished_at: null, results: [] });
+    mock.strategy.overview = { availability: responseOnly, jobs: [job] }; await render();
+    const control = host.querySelector<HTMLButtonElement>('[aria-label="View latest AI activity"]');
+    expect(control).not.toBeNull();
+    await act(async () => control!.click());
+    expect(document.activeElement?.textContent).toBe("Response queued");
+    expect(mock.strategy.enqueue).not.toHaveBeenCalled();
+    expect(mock.strategy.apply).not.toHaveBeenCalled();
+  });
+
   it("discloses only a response and does not expose unavailable competitor research", async () => {
     await render();
     expect(host.textContent).toContain("Sending uses OpenAI for a response, up to $0.13");

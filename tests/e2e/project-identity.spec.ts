@@ -1,3 +1,4 @@
+import { captureUiEvidence } from "./ui-evidence";
 import { mkdir } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { expect, test, type Page, type Route } from "@playwright/test";
@@ -528,3 +529,5 @@ test("D041 synthetic evidence: explicit local fixture restoration appends a curr
   await page.locator(".identity-system-detail").evaluate(node=>node.scrollIntoView({block:"start"}));await waitForBoard(page,".identity-system-detail");
   await viewportCapture(page,`d041-synthetic-${testInfo.project.name}-09-fixture-only-restored-choice`);expect(fixture.writes.map(write=>write.kind)).toEqual(["selection"]);
 });
+
+test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));

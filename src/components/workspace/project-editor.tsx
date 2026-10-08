@@ -10,6 +10,7 @@ import { Icon } from "@/components/ui/icon";
 import { AccountCopyControl } from "./account-projects";
 import { useAccountStrategyStart } from "./account-strategy-start";
 import { useAccountSession } from "./account-session";
+import { clearPromptRecovery, readPromptRecovery, rememberPromptForSignIn } from "./prompt-recovery";
 import { createAccountLifecycleClient } from "./account-lifecycle-client";
 import { HomeInputControls } from "@/features/home-inputs/home-input-controls";
 import { createOnDeviceVoiceAdapter } from "@/features/home-inputs/on-device-voice-adapter";
@@ -43,9 +44,22 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
   const [submitting, setSubmitting] = useState(false);
   const [navigating, startNavigation] = useTransition();
   const [textDraftId, setTextDraftId] = useState<string | null>(null);
+  const [resumedPrompt, setResumedPrompt] = useState(false);
   const textDraft = useRef<string | null>(null);
+  const recoveryChecked = useRef(false);
   const submittingRef = useRef(false), attachedRequest = useRef<AbortController | null>(null);
   const { loaded, drafts } = useLocalDrafts();
+  useEffect(() => {
+    if (!loaded || recoveryChecked.current) return;
+    recoveryChecked.current = true;
+    const retained = readPromptRecovery();
+    if (!retained || exampleId) return;
+    textDraft.current = retained.id;
+    // Restore the browser draft after hydration, without touching owner-bound file or request state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTextDraftId(retained.id);
+    setPrompt(retained.description); setScope(retained.scope); setExampleUsed(retained.example); setResumedPrompt(true);
+  }, [loaded, exampleId]);
   function keepTextDraft(locked = false) {
     const previous = textDraft.current ? getLocalDraft(textDraft.current) : null;
     if (textDraft.current && !previous) throw new Error("The original browser draft is unavailable. Check your saved brands before trying again.");
@@ -60,7 +74,8 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
   const strategy = useAccountStrategyStart({ beforeSignIn: (locked) => {
     if (!prompt.trim()) return true;
     try {
-      if (keepTextDraft(locked)) return true;
+      const id = keepTextDraft(locked);
+      if (id) { rememberPromptForSignIn(id); return true; }
       setError("This browser has 50 drafts. Save your prompt before leaving to sign in.");
     } catch { setError("Your prompt could not be kept. Copy it before leaving to sign in."); }
     return false;
@@ -135,7 +150,7 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
       if (!id) { setError("This browser has 50 drafts. Remove an unused draft before starting another."); return; }
       const created = getLocalDraft(id);
       if (!created) throw new Error("Your draft could not be opened. Check your saved brands before trying again.");
-      if (mode === "draft") startNavigation(() => router.push(`/brands/${id}`));
+      if (mode === "draft") { clearPromptRecovery(); startNavigation(() => router.push(`/brands/${id}`)); }
       else await strategy.start(created); // Blocked AI stays here with the same prompt and recovery path.
     } catch (cause) { if (!controller.signal.aborted) setError(cause instanceof Error ? (hasFiles ? "The attached brief could not be confirmed. Your typed text, confirmed files and original request remain in this tab. Check and retry the same request." : cause.message) : "This prompt could not be kept. Please try again."); }
     finally { if (attachedRequest.current === controller) attachedRequest.current = null; submittingRef.current = false; setSubmitting(false); }
@@ -145,12 +160,13 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
     <div className="page-heading"><h1 className={home ? "home-title" : ""}>{home ? "Create a brand" : "New conversation"}</h1>{!home && <Link href="/brands" className="text-link">Back to brands</Link>}</div>
     <ScopePicker value={displayedScope} disabled={frozenInputs} onChange={value => { if (canEditInputs()) setScope(value); }} />
     <p className="scope-helper">Complete branding by default · choose a scope for focused work</p>
+    {resumedPrompt && <div className="prompt-recovery-notice"><p role="status">Your prompt is ready to continue. Its scope and browser copy are kept.</p><button type="button" className="text-link" disabled={frozenInputs} onClick={() => { if (!canEditInputs()) return; clearPromptRecovery(); textDraft.current = null; setTextDraftId(null); setPrompt(""); setScope(initialScope); setExampleUsed(false); setResumedPrompt(false); setError(""); }}>Start a new prompt</button></div>}
     {hiddenFiles && <p role="status">An attached brief is retained in this tab. Verify the same account before sending so its files stay with it.</p>}
     {frozenBrief && <p role="status">Your prompt, scope and example selection are locked to the original attached brief while its save is confirmed or recovered.</p>}
     <ConversationComposer value={displayedPrompt} onChange={editPrompt} readOnly={frozenInputs} onSend={sendPrompt} label="Your prompt" placeholder="An idea you can’t stop thinking about…" error={error} disabled={disabled} initial sendLabel={inputIntent?.receipt ? "Open saved brand" : frozenBrief ? "Check and retry attached brief" : hasFiles ? "Save brief with files" : strategy.recoveryProjectId ? "Open saved account project" : "Send prompt"} hint={displayedExample ? <><span className="example-dot" />{frozenBrief ? "Example prompt · saved basis" : "Example prompt · editable"}</> : "An idea, a product, a place. Start in your own words."}
       inputControls={<HomeInputControls account={account} sessionFence={sessionFence} memory={homeInputSession} value={displayedPrompt} onChange={editPrompt} language="en-US" voiceAdapter={voice} policy={currentCapability?.policy ?? null} availability={currentCapability?.policy ? { status: "available" } : { status: "unavailable", reason: currentCapability?.reason ?? (account ? "Checking verified file storage…" : "Sign in to save verified input files.") }} disabled={submitting || navigating || strategy.pending || strategy.locked} />} />
     <div className="conversation-start-notice">{hasFiles ? "Files are saved as input material with your brief. This action does not start AI processing." : strategy.notice}</div>
-    {!hasFiles && !hiddenFiles && <div className="account-recovery-actions"><button type="button" className="text-link" disabled={disabled} onClick={() => void sendPrompt("draft")}>Save draft</button><span className="field-hint">Browser only · does not start AI</span>{textDraftId && <Link className="text-link" href={`/brands/${textDraftId}`} onClick={event => { event.preventDefault(); void sendPrompt("draft"); }}>Open retained browser draft</Link>}</div>}
+    {!hasFiles && !hiddenFiles && <div className="account-recovery-actions home-draft-actions"><div><button type="button" className="button secondary" disabled={disabled} onClick={() => void sendPrompt("draft")}>Save draft</button><span className="field-hint">Browser only · does not start AI</span></div>{textDraftId && <Link className="text-link" href={`/brands/${textDraftId}`} onClick={event => { event.preventDefault(); void sendPrompt("draft"); }}>Open retained browser draft</Link>}</div>}
     {drafts.length >= 50 && !inputIntent?.browserDraftId && !textDraftId && <p className="form-error" role="alert">This browser has 50 drafts. Remove an unused draft before starting another.</p>}
     {home && <div className="example-section"><div className="section-heading"><h2>Try an idea</h2><span className="secondary-text">Examples to make your own</span></div><div className="example-grid">{briefExamples.map((item) => <button key={item.id} className="example-card" type="button" disabled={frozenInputs} onClick={() => { if (!canEditInputs()) return; setPrompt(item.description); setExampleUsed(true); setError(""); }}><strong>{item.title}</strong><span>{item.category}</span></button>)}</div></div>}
   </div>;
@@ -170,6 +186,8 @@ type EditorStorage = {
   onPromptSubmitted?: (nextDraft: LocalDraft) => Promise<void>;
   promptPending?: boolean;
   promptNotice?: React.ReactNode;
+  resultNavigation?: React.ReactNode;
+  projectContext?: React.ReactNode;
   strategyActions?: Partial<Record<ConversationWidget, { label: string; maximumCostLabel: string; disabled?: boolean }>>;
   onStrategyRequested?: (widget: ConversationWidget) => Promise<void>;
   strategyPending?: boolean;
@@ -315,9 +333,11 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
       {event.id === lastPrompt?.id && <li className="conversation-service-entry">{storage.strategy ?? <p className="conversation-service-note"><Icon name="offline" size={15} />{account ? "AI processing is not connected to this conversation yet." : "AI replies are not available in this browser draft."}</p>}</li>}
     </Fragment>)}</ol>
     {!lastPrompt && storage.strategy && <div className="conversation-service-entry">{storage.strategy}</div>}
+    {storage.projectContext && <div className="conversation-context">{storage.projectContext}</div>}
     <footer className="conversation-footer"><Link href="/brands" className="text-link">Back to all brands</Link>{storage.onDelete && (!confirmDelete ? <button className="text-link danger-text" type="button" onClick={() => setConfirmDelete(true)}>Delete this draft</button> : <div className="inline-confirm"><span>Delete this browser draft?</span><button className="button secondary small" type="button" onClick={() => setConfirmDelete(false)}>Keep draft</button><button className="button danger small" type="button" onClick={storage.onDelete}>Delete draft</button></div>)}</footer>
     </div>
     <div className="conversation-compose-area">
+      {storage.resultNavigation}
       {error && <p className="form-error" role="alert">{error}</p>}
       {message && <p className="conversation-feedback" role="status">{message}</p>}
       {storage.promptNotice}

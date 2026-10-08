@@ -1,3 +1,4 @@
+import { captureUiEvidence } from "./ui-evidence";
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { accountProjectSchema } from "../../src/domain/project-api";
 import { contextSnapshotSchema } from "../../src/domain/projects";
@@ -99,6 +100,12 @@ test("strategy fixture: Send waits for response acceptance, then researches the 
   state.jobs[0] = complete(state.jobs[0]!);
   await expect(page.getByText("Synthetic provider response: a welcoming neighborhood kitchen.", { exact: true })).toBeVisible();
   expect(state.enqueues).toHaveLength(1);
+  await page.getByRole("button", { name: "View latest AI activity", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Response complete", exact: true })).toBeFocused();
+  const heading = await page.getByRole("heading", { name: "Response complete", exact: true }).boundingBox();
+  const composer = await page.locator(".conversation-compose-area").boundingBox();
+  expect(heading!.y + heading!.height).toBeLessThan(composer!.y);
+  expect(state.enqueues).toHaveLength(1);
   expect(state.project.context.activity).toBe("");
   await expect(page.getByText("Competitor research queued", { exact: true })).toHaveCount(0);
   await page.reload();
@@ -122,6 +129,7 @@ test("strategy fixture: Send waits for response acceptance, then researches the 
   await expect(page.getByText("Saved to account · version 4", { exact: true })).toBeVisible();
   expect(state.project.context.competitors[0]).toMatchObject({ name: "Fixture competitor", selected: false });
   expect(state.project.context.competitorReviewComplete).toBe(false);
+  await page.getByRole("button", { name: "View latest AI activity", exact: true }).click();
   await page.screenshot({ path: testInfo.outputPath("strategy-conversation.png"), fullPage: true, scale: "css" });
 });
 
@@ -475,4 +483,15 @@ test("response-only fixture: uncertain response retry keeps its saved consent wh
   await expect(page.getByText("Applied to saved version · 2", { exact: true })).toBeVisible();
   expect(state.enqueues).toHaveLength(2);
   expect(state.enqueues.every(item => item.operation === "strategy.reformulate")).toBe(true);
+});
+
+test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));
+
+test("strategy fixture: project context cannot push the composer below the viewport", async ({ page }, info) => {
+  await fixtures(page); await open(page);
+  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeVisible();
+  await page.screenshot({ path: info.outputPath("account-conversation-viewport.png"), fullPage: true, scale: "css" });
+  const composer = await page.locator(".conversation-compose-area").boundingBox();
+  expect(composer!.y + composer!.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+  expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(page.viewportSize()!.height);
 });

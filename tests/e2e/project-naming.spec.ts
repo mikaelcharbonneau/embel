@@ -1,3 +1,4 @@
+import { captureUiEvidence } from "./ui-evidence";
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { accountProjectSchema, accountProjectSummarySchema, type AccountProject } from "../../src/domain/project-api";
 import { contextSnapshotSchema, type ProjectScope } from "../../src/domain/projects";
@@ -724,3 +725,5 @@ test("naming fixture: dirty Strategy memory survives library navigation and bloc
   await page.getByRole("link", { name: "Back to Strategy", exact: false }).click();
   await expect(page.getByRole("heading", { name: "Unsaved private project label", exact: true })).toBeVisible();
 });
+
+test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));

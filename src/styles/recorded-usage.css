@@ -1,12 +1,12 @@
-.recorded-usage-coverage { margin: 20px 0; color: var(--secondary); font-size: 12px; line-height: 1.7; }
+.recorded-usage-coverage { margin: 20px 0; color: var(--secondary); font-size: var(--font-ui); line-height: 1.7; }
 .recorded-usage-notice { padding: 0 0 20px; font-size: 13px; line-height: 1.6; }
 .recorded-usage-notice .button { margin-top: 12px; }
 .recorded-usage-entry { padding: 18px 0; border-top: 1px solid var(--border); }
 .recorded-usage-entry-heading { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px 16px; }
 .recorded-usage-entry h3 { font-size: 13px; font-weight: 500; }
-.recorded-usage-entry time { font-size: 12px; color: var(--secondary); }
+.recorded-usage-entry time { font-size: var(--font-ui); color: var(--secondary); }
 .recorded-usage-entry dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
-.recorded-usage-entry dt { font-size: 11px; color: var(--secondary); }
+.recorded-usage-entry dt { font-size: var(--font-ui); color: var(--secondary); }
 .recorded-usage-entry dd { margin: 5px 0 0; font-size: 13px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.recorded-usage-note { color: var(--secondary); font-size: 12px; line-height: 1.6; margin: 8px 0 16px; }
+.recorded-usage-note { color: var(--secondary); font-size: var(--font-ui); line-height: 1.6; margin: 8px 0 16px; }
 .recorded-usage-refresh { margin-bottom: 20px; }

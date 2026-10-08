@@ -23,6 +23,28 @@ beforeEach(() => {
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.replaceChildren(); vi.unstubAllGlobals(); });
 
 describe("combined Home and real strategy-start recovery", () => {
+  it("restores the same prompt and scope after a sign-in round trip without creating another draft", async () => {
+    mock.session = { status: "signed_out", generation: 2 }; mock.memory!.bind(null);
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ error: "unauthenticated" }, { status: 401 })));
+    await render();
+    await act(async () => host.querySelector<HTMLInputElement>('input[value="naming_only"]')!.click());
+    const original = host.querySelector("textarea")!.value;
+    const signIn = host.querySelector<HTMLAnchorElement>('a[href="/sign-in"]')!;
+    signIn.addEventListener("click", event => event.preventDefault());
+    await act(async () => signIn.click());
+    await act(async () => root!.unmount()); root = createRoot(host);
+    // Return through Home, which has no example or scope in its URL.
+    await act(async () => root!.render(createElement(NewProjectForm, { initialScope: "complete_brand", home: true })));
+    expect(host.querySelector("textarea")!.value).toBe(original);
+    expect(host.querySelector<HTMLInputElement>('input[value="naming_only"]')!.checked).toBe(true);
+    expect(host.textContent).toContain("Your prompt is ready to continue");
+    await click("Save draft");
+    const stored = JSON.parse(window.localStorage.getItem(DRAFT_STORAGE_KEY)!);
+    expect(stored.drafts).toHaveLength(1);
+    expect(stored.drafts[0]).toMatchObject({ description: original, scope: "naming_only" });
+    expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/${stored.drafts[0].id}`);
+  });
+
   it("holds the exact browser draft immutable through an uncertain save, session fence, and sign-in recovery", async () => {
     const save = deferred<Response>(); let accountBody: Record<string, unknown> | null = null;
     const fetcher = vi.fn(async (path: string, init: RequestInit) => {

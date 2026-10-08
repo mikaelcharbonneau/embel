@@ -1,0 +1,82 @@
+import { expect, test } from "@playwright/test";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+
+// Every API is intercepted; these layout checks never reach an account or provider.
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/**", route => route.fulfill({ status: 401, json: { error: "Synthetic signed-out fixture" } }));
+});
+
+test("all public workspaces fit the viewport and retain visible page headings", async ({ page }, info) => {
+  for (const [name, path] of Object.entries({ home: "/", brands: "/brands", ideas: "/ideas", names: "/names", handles: "/handles", domains: "/domains", trademarks: "/trademarks", assets: "/assets", settings: "/settings", signIn: "/sign-in", logo: "/brands/logo/new" })) {
+    await page.goto(path);
+    await expect(page.locator("main h1").first()).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
+    const directory = process.env.FLUID_UI_EVIDENCE ?? info.outputDir;
+    await mkdir(directory, { recursive: true });
+    await page.screenshot({ path: join(directory, `${info.project.name}-${name}.png`), fullPage: true, scale: "css" });
+    await writeFile(join(directory, `${info.project.name}-${name}.json`), JSON.stringify(await page.evaluate(() => {
+      const rect = (selector: string) => { const el = document.querySelector(selector); if (!el) return null; const box = el.getBoundingClientRect(); return { x: box.x, y: box.y, width: box.width, height: box.height, fontSize: getComputedStyle(el).fontSize }; };
+      return { viewport: { width: innerWidth, height: innerHeight }, documentWidth: document.documentElement.scrollWidth, mainCount: document.querySelectorAll("main").length, prompt: rect(".conversation-composer textarea"), saveDraft: rect(".home-draft-actions button"), status: rect(".conversation-start-notice .field-hint"), trademarkInput: rect(".tm-editor input"), accountNotice: rect(".account-notice"), signInCard: rect(".auth-card") };
+    }), null, 2));
+  }
+});
+
+test("mobile trademark inputs precede the detailed checklist", async ({ page }) => {
+  test.skip(test.info().project.name !== "mobile", "Mobile layout regression");
+  await page.goto("/trademarks");
+  const field = page.locator(".tm-editor input").first();
+  const checklist = page.locator(".tm-checklist");
+  await expect(field).toBeVisible();
+  expect((await field.boundingBox())!.y).toBeLessThan((await checklist.boundingBox())!.y);
+  expect((await field.boundingBox())!.y).toBeLessThan(page.viewportSize()!.height);
+});
+
+test("Home recovery controls are usable touch targets and remain grouped", async ({ page }) => {
+  await page.goto("/");
+  const save = page.getByRole("button", { name: "Save draft", exact: true });
+  await expect(save).toBeEnabled();
+  expect((await save.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  expect(await page.locator(".conversation-start-notice .field-hint").first().evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(13);
+});
+
+test("standalone tool account state aligns with the form and logo has one main landmark", async ({ page }) => {
+  await page.goto("/trademarks");
+  const heading = await page.locator(".tm-workspace h1").boundingBox();
+  const notice = await page.locator(".account-notice").boundingBox();
+  expect(Math.abs(heading!.x - notice!.x)).toBeLessThanOrEqual(1);
+  await page.goto("/brands/logo/new");
+  await expect(page.getByRole("main")).toHaveCount(1);
+});
+
+test("sign-in recovery restores the prompt and scope and saves one browser draft", async ({ page }, info) => {
+  await page.goto("/");
+  const prompt = "A repair workshop sharing tools and practical skills with local residents.";
+  await page.getByRole("textbox", { name: "Your prompt", exact: true }).fill(prompt);
+  await page.getByRole("radio", { name: "Naming", exact: true }).check();
+  await page.locator(".account-strategy-actions").getByRole("link", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("link", { name: "Return to your prompt", exact: true })).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole("textbox", { name: "Your prompt", exact: true })).toHaveValue(prompt);
+  await expect(page.getByRole("radio", { name: "Naming", exact: true })).toBeChecked();
+  await expect(page.getByText(/Your prompt is ready to continue/)).toBeVisible();
+  await page.screenshot({ path: info.outputPath("home-restored-prompt.png"), fullPage: true, scale: "css" });
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeVisible();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("fluid.local-drafts.v1")!).drafts.length)).toBe(1);
+  await page.getByRole("button", { name: "Collapse competitors", exact: true }).focus();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "Add competitor", exact: true })).toBeFocused();
+});
+
+test("320px layout keeps Home input disclosures and navigation reachable", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Open navigation", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Navigation" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "Open navigation", exact: true })).toBeFocused();
+  await page.locator(".home-files-popover summary").click();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+  await expect(page.getByRole("button", { name: "Send prompt", exact: true })).toBeVisible();
+});
