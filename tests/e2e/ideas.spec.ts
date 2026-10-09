@@ -55,6 +55,7 @@ async function accountFixtures(page: Page, initial = [idea()]) {
     if (path === "/api/session") return reply(route, state.sessionStatus === 200 ? { user: { id: state.owner } } : {}, state.sessionStatus);
     if (path === "/api/auth/sign-out") { state.sessionStatus = 401; return reply(route, { authenticated: false }); }
     if (state.sessionStatus !== 200) return reply(route, {}, 401);
+    if (path === "/api/projects/page") return reply(route, { ownerId: state.owner, items: [], nextCursor: null });
     if (path === "/api/ideas" && request.method() === "GET") {
       state.queries.push(url.searchParams);
       const search = url.searchParams.get("search")?.toLocaleLowerCase() ?? "";
@@ -115,6 +116,13 @@ async function openIdea(page: Page, id = ideaId) {
   await page.goto(`/ideas/${id}`);
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toBeVisible();
 }
+async function clickAccountAction(page: Page, name: "Check account" | "Sign out") {
+  const menu = page.getByLabel("Account menu", { exact: true });
+  if (await menu.count() && !await menu.evaluate(element => element.parentElement?.hasAttribute("open"))) await menu.click();
+  const action = page.getByRole("button", { name, exact: true });
+  await expect(action).toBeEnabled();
+  await action.click();
+}
 async function browserValues(page: Page) { return page.evaluate(() => Object.values(localStorage).join("\n")); }
 
 test("Ideas fixture: quick capture, optional details, save and reload retain user text only in the account", async ({ page }, testInfo) => {
@@ -127,7 +135,7 @@ test("Ideas fixture: quick capture, optional details, save and reload retain use
   await expect(page).toHaveURL(new RegExp(`/ideas/${ideaId}$`));
   expect(state.writes[0]!.body).toMatchObject({ content: { title: "Private quick capture fixture", state: "to_explore" } });
   expect(Object.keys(state.writes[0]!.body).sort()).toEqual(["content", "requestKey"]);
-  await page.getByText("Develop this idea", { exact: true }).click();
+  await page.getByText("More details", { exact: true }).click();
   await page.getByRole("textbox", { name: "Revenue hypotheses", exact: true }).fill("A user-authored monthly lunch plan hypothesis");
   await page.getByRole("textbox", { name: "Proposed solution", exact: true }).fill("Seasonal lunches delivered nearby");
   await page.getByRole("textbox", { name: "Audience", exact: true }).fill("Local workers");
@@ -137,7 +145,7 @@ test("Ideas fixture: quick capture, optional details, save and reload retain use
   await expect(page.getByText("Saved to account · version 2.", { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Private quick capture fixture");
-  await page.getByText("Develop this idea", { exact: true }).click();
+  await page.getByText("More details", { exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Revenue hypotheses", exact: true })).toHaveValue("A user-authored monthly lunch plan hypothesis");
   expect(await browserValues(page)).not.toContain("Private quick capture fixture");
   expect(await browserValues(page)).not.toContain("monthly lunch");
@@ -160,7 +168,7 @@ test("Ideas fixture: search and state apply across the library and reset continu
   await expect.poll(() => state.queries.length).toBe(2);
   expect(state.queries[1]!.get("cursorId")).toBeTruthy();
   await page.getByRole("searchbox", { name: "Search ideas", exact: true }).fill("needle %_");
-  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await page.getByRole("searchbox", { name: "Search ideas", exact: true }).press("Enter");
   await expect(page.getByRole("link", { name: /Library fixture/ })).toHaveCount(5);
   expect(state.queries.at(-1)?.get("search")).toBe("needle %_");
   expect(state.queries.at(-1)?.get("cursorId")).toBeNull();
@@ -184,10 +192,10 @@ test("Ideas fixture: an obsolete search response cannot replace the current libr
   });
   await page.goto("/ideas");
   await page.getByRole("searchbox", { name: "Search ideas", exact: true }).fill("old");
-  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await page.getByRole("searchbox", { name: "Search ideas", exact: true }).press("Enter");
   await requested;
   await page.getByRole("searchbox", { name: "Search ideas", exact: true }).fill("New current");
-  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await page.getByRole("searchbox", { name: "Search ideas", exact: true }).press("Enter");
   await expect(page.getByRole("link", { name: /New current search fixture/ })).toBeVisible();
   release();
   await expect(page.getByRole("link", { name: /Quiet kitchen fixture/ })).toHaveCount(0);
@@ -199,7 +207,7 @@ test("Ideas fixture: resubmitting the same search keeps the current page and con
   await page.goto("/ideas");
   await expect(page.getByRole("button", { name: "Load more ideas", exact: true })).toBeEnabled();
   await expect(page.getByRole("link", { name: /Repeat search fixture/ })).toHaveCount(25);
-  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await page.getByRole("searchbox", { name: "Search ideas", exact: true }).press("Enter");
   await expect(page.getByRole("button", { name: "Load more ideas", exact: true })).toBeEnabled();
   await expect(page.getByRole("link", { name: /Repeat search fixture/ })).toHaveCount(25);
   expect(state.queries).toHaveLength(1);
@@ -324,7 +332,7 @@ test("Ideas fixture: expiration hides private edits and verified same-account re
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveCount(0);
   expect(await browserValues(page)).not.toContain("Private expiration recovery fixture");
   state.patchStatus = 200;
-  await page.getByRole("button", { name: "Check account", exact: true }).click();
+  await clickAccountAction(page, "Check account");
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Private expiration recovery fixture");
 });
 
@@ -342,12 +350,12 @@ test("Ideas fixture: a changed account cannot see a pending save or the previous
   await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Owner A delayed private save fixture");
   await page.getByRole("button", { name: "Save changes", exact: true }).click(); await requested;
   state.owner = ownerB;
-  await page.getByRole("button", { name: "Check account", exact: true }).click();
+  await clickAccountAction(page, "Check account");
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveCount(0);
   release();
   await expect(page.locator("main")).not.toContainText("Owner A delayed private save fixture");
   state.owner = ownerA;
-  await page.getByRole("button", { name: "Check account", exact: true }).click();
+  await clickAccountAction(page, "Check account");
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Quiet kitchen fixture");
 });
 
@@ -365,7 +373,7 @@ test("Ideas fixture: pending sign-out masks data and fences a late brand respons
   await page.route("**/api/auth/sign-out", async route => { await signOut; state.sessionStatus = 401; await reply(route, { authenticated: false }); });
   await openIdea(page);
   await page.getByRole("button", { name: "Create brand", exact: true }).click(); await requested;
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await clickAccountAction(page, "Sign out");
   await page.getByRole("button", { name: "Discard edits and sign out", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveCount(0);
   release();
@@ -378,7 +386,7 @@ test("Ideas fixture: unsaved idea edits participate in account sign-out confirma
   await accountFixtures(page);
   await openIdea(page);
   await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Private sign-out confirmation fixture");
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await clickAccountAction(page, "Sign out");
   await expect(page.getByRole("dialog", { name: "Sign out with unsaved account edits?" })).toBeVisible();
   await page.getByRole("button", { name: "Keep editing", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Private sign-out confirmation fixture");
@@ -392,11 +400,11 @@ test("Ideas fixture: internal navigation and failed sign-out preserve same-owner
   await page.getByRole("link", { name: /Quiet kitchen fixture/ }).click();
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Private navigation recovery fixture");
   await page.route("**/api/auth/sign-out", route => reply(route, {}, 503));
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await clickAccountAction(page, "Sign out");
   await page.getByRole("button", { name: "Discard edits and sign out", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveCount(0);
   await expect(page.locator("main")).not.toContainText("Private navigation recovery fixture");
-  await page.getByRole("button", { name: "Check account", exact: true }).click();
+  await clickAccountAction(page, "Check account");
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Private navigation recovery fixture");
 });
 
@@ -452,7 +460,9 @@ test("Ideas fixture: unverified, foreign and mismatched resources never enter pr
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Sign in", exact: true }).first()).toBeVisible();
   state.sessionStatus = 200;
-  await page.getByRole("button", { name: "Check account", exact: true }).click();
+  await page.getByLabel("Account menu", { exact: true }).click();
+  await clickAccountAction(page, "Check account");
+  await page.getByLabel("Account menu", { exact: true }).press("Escape");
   await page.getByRole("button", { name: "Add idea", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toBeVisible();
   await page.route(`**/api/ideas/${ideaId}`, route => reply(route, { idea: idea(ideaB, ownerA, "Wrong resource private fixture") }));
@@ -468,7 +478,7 @@ test("Ideas fixture: a verified account can capture a title without completing a
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Description (optional)", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Save idea", exact: true })).toBeVisible();
-  await expect(page.getByText("AI exploration is unavailable.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Save idea", exact: true })).toBeDisabled();
 });
 
 test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));

@@ -2,22 +2,22 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { z } from "zod";
 import { createIdeaBrandInputSchema, ideaBrandResponseSchema, ideaResponseSchema, updateIdeaInputSchema, type IdeaContent, type IdeaRecord } from "@/domain/ideas";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import { accountRequest, AccountRequestError } from "@/components/workspace/account-api";
 import { ideaDraftChanged, type IdeaWorkspace } from "./ideas-draft-memory";
 import { ideaErrorMessage, ideaStateLabels, sameIdeaId } from "./ideas-client";
-import { IdeasUnavailable } from "./ideas-workspace";
+import { Icon } from "@/components/ui/icon";
 import "@/styles/ideas.css";
 import { AttachIdeaControl } from "@/features/idea-project-attachment/attach-control";
 
 const emptyWorkspace = () => null;
 const details: { field: keyof IdeaContent["details"]; label: string; hint?: string }[] = [
   { field: "problem", label: "Problem" },
+  { field: "solution", label: "Solution" },
   { field: "audience", label: "Audience" },
-  { field: "solution", label: "Proposed solution" },
   { field: "differentiation", label: "Differentiation" },
   { field: "revenueHypotheses", label: "Revenue hypotheses", hint: "Your hypotheses to test; no revenue research or validation is implied." },
   { field: "validationSteps", label: "Validation steps" },
@@ -26,11 +26,9 @@ const details: { field: keyof IdeaContent["details"]; label: string; hint?: stri
 
 export function IdeaDetail({ ideaId }: { ideaId: string }) {
   const { session, ideaDrafts } = useAccountSession();
-  if (!z.uuid().safeParse(ideaId).success) return <div className="page ideas-page"><h1>Idea not found</h1><Link href="/ideas" className="text-link">Back to ideas</Link></div>;
+  if (!z.uuid().safeParse(ideaId).success) return <div className="page ideas-page idea-detail-page"><h1>Idea not found</h1><Link href="/ideas" className="text-link">Back to ideas</Link></div>;
   return <div className="page ideas-page idea-detail-page">
-    <div className="ideas-back"><Link href="/ideas" className="text-link">Back to ideas</Link></div>
     {session.status === "ready" ? <OwnedIdeaDetail key={`${ideaId}:${session.userId}:${session.generation}`} ideaId={ideaId.toLowerCase()} account={session} /> : <><div className="page-heading ideas-heading"><h1>Account idea</h1></div><AccountStatus retainedEdits={ideaDrafts.hasUnsaved()} /></>}
-    <IdeasUnavailable />
   </div>;
 }
 
@@ -158,22 +156,67 @@ function OwnedIdeaDetail({ account, ideaId }: { account: VerifiedAccount; ideaId
   if (!current) return <><div className="page-heading ideas-heading"><h1>Account idea</h1></div>{loadError ? <div><p className="form-error" role="alert">{loadError}</p><p className="field-hint">Any unsaved idea edits remain in this tab for the same account.</p><button className="button secondary small idea-read-retry" type="button" onClick={() => { if (isCurrent(account)) refresh(); }}>Try loading idea again</button></div> : <p className="quiet-empty" role="status">Loading your idea…</p>}</>;
   const dirty = ideaDraftChanged(current);
   const converted = current.saved.content.state === "used" && current.saved.links.some(link => link.ideaRevision === current.saved.revision - 1);
+  const saveDisabled = Boolean(busy) || (!dirty && !current.saveIntent) || (current.conflict && !current.saveIntent);
+  const brandDisabled = Boolean(busy) || dirty || (current.conflict && !current.brandIntent) || (converted && !current.brandIntent);
   return <>
-    <div className="page-heading ideas-heading"><h1>{current.content.title || "Untitled idea"}</h1><span className="small-badge">Account idea</span></div>
-    <form className="idea-editor" onSubmit={event => { event.preventDefault(); void save(); }}>
-      <fieldset className="ideas-fields" disabled={Boolean(busy)}>
-        <label className="ideas-field">Idea title<input value={current.content.title} maxLength={160} required onChange={event => edit({ ...current.content, title: event.target.value })} /></label>
-        <label className="ideas-field">Description (optional)<textarea value={current.content.description} maxLength={12000} rows={4} onChange={event => edit({ ...current.content, description: event.target.value })} /></label>
-        <div className="idea-metadata-fields"><label className="ideas-field">Idea state<select value={current.content.state} onChange={event => edit({ ...current.content, state: event.target.value as IdeaContent["state"] })}>{Object.entries(ideaStateLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label className="ideas-field">Theme (optional)<input value={current.content.theme} maxLength={120} onChange={event => edit({ ...current.content, theme: event.target.value })} /></label></div>
-        <details className="idea-development"><summary>Develop this idea</summary><p className="field-hint">Optional notes you write and refine. No research or strategy approval is implied.</p><div className="idea-development-fields">{details.map(({ field, label, hint }) => <label key={field} className="ideas-field">{label}{hint && <span className="field-hint">{hint}</span>}<textarea aria-label={label} value={current.content.details[field]} maxLength={2000} rows={3} onChange={event => edit({ ...current.content, details: { ...current.content.details, [field]: event.target.value } })} /></label>)}</div></details>
-      </fieldset>
-      <div className="idea-save-actions"><p className="field-hint" role="status">{dirty ? "Your edits stay in this tab until you save." : `Saved to account · version ${current.saved.revision}.`}</p><button className="button primary small" type="submit" disabled={Boolean(busy) || (!dirty && !current.saveIntent) || (current.conflict && !current.saveIntent)}>{busy === "save" ? "Saving…" : current.saveIntent ? "Retry save" : "Save changes"}</button></div>
-    </form>
-    {current.conflict && <div className="account-conflict idea-recovery" role="alert"><strong>A newer version is saved in your account.</strong><p>Your edits are still here. Retry the original save or explicitly load the latest version.</p></div>}
-    {error && <p className="form-error" role="alert">{error}</p>}
-    {(error || current.conflict || current.saveIntent || current.brandIntent) && <div className="idea-recovery"><button className="button secondary small" type="button" disabled={Boolean(busy)} onClick={() => setConfirmLatest(true)}>Load latest version</button>{confirmLatest && <div className="inline-confirm"><p>Replace the edits in this tab with the latest saved version? This also discards the pending retry.</p><button className="button secondary small" type="button" disabled={Boolean(busy)} onClick={() => setConfirmLatest(false)}>Keep editing</button><button className="button primary small" type="button" disabled={Boolean(busy)} onClick={() => void loadLatest()}>Replace with latest version</button></div>}</div>}
-    <section className="idea-brand-section" aria-labelledby="idea-brand-heading"><div><h2 id="idea-brand-heading">Continue as a brand</h2><p>Use the saved title, description, solution and audience. Your original idea version stays linked to the new brand.</p></div><button className="button secondary small" type="button" disabled={Boolean(busy) || dirty || (current.conflict && !current.brandIntent) || (converted && !current.brandIntent)} onClick={() => void createBrand()}>{busy === "brand" ? "Creating brand…" : current.brandIntent ? "Retry creating brand" : "Create brand"}</button>{dirty && <p className="field-hint">Save your edits before creating a brand.</p>}{converted && !current.brandIntent && <p className="field-hint">This saved version has already been used to create a brand.</p>}</section>
-    <AttachIdeaControl account={account} idea={current.saved} dirty={dirty || current.conflict} pending={Boolean(busy || current.saveIntent || current.brandIntent)} memory={lifecycleMemory} />
-    {current.saved.links.length > 0 && <section className="idea-brand-links" aria-labelledby="idea-brand-links-heading"><h2 id="idea-brand-links-heading">Created brands</h2>{current.saved.links.map(link => <div key={link.id}><Link className="text-link" href={`/brands/account/${link.projectId}`}>Open created brand</Link><span className="field-hint">From idea version {link.ideaRevision}</span></div>)}</section>}
+    <header className="page-heading idea-detail-heading">
+      <div><h1>{current.content.title || "Untitled idea"}<span>.</span></h1><p>{current.content.state === "developing" ? "An idea in development." : current.content.state === "used" ? "An idea taking shape as a brand." : "An idea worth exploring."}</p></div>
+      <button className="button primary idea-detail-save" type="submit" form="idea-detail-form" disabled={saveDisabled}>{busy === "save" ? "Saving…" : current.saveIntent ? "Retry save" : "Save changes"}</button>
+    </header>
+    <div className="idea-detail-columns">
+      <div className="idea-detail-main">
+        <form id="idea-detail-form" className="idea-detail-form" onSubmit={event => { event.preventDefault(); void save(); }}>
+          <fieldset className="ideas-fields idea-detail-panel" disabled={Boolean(busy)}>
+            <label className="ideas-field">Idea title<input value={current.content.title} maxLength={160} required onChange={event => edit({ ...current.content, title: event.target.value })} /></label>
+            <label className="ideas-field">Description<textarea aria-label="Description (optional)" className="idea-description" value={current.content.description} maxLength={12000} rows={4} onChange={event => edit({ ...current.content, description: event.target.value })} /></label>
+            <div className="idea-metadata-fields"><label className="ideas-field">Idea state<select value={current.content.state} onChange={event => edit({ ...current.content, state: event.target.value as IdeaContent["state"] })}>{Object.entries(ideaStateLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label className="ideas-field">Theme<input aria-label="Theme (optional)" value={current.content.theme} maxLength={120} onChange={event => edit({ ...current.content, theme: event.target.value })} /></label></div>
+          </fieldset>
+          <fieldset className="ideas-fields idea-detail-panel" disabled={Boolean(busy)}>
+            <legend className="sr-only">Develop this idea</legend>
+            <h2 aria-hidden="true">Develop this idea</h2>
+            {details.slice(0, 3).map(({ field, label }) => <IdeaNoteField key={field} label={label} accessibleLabel={field === "solution" ? "Proposed solution" : label} value={current.content.details[field]} onChange={value => edit({ ...current.content, details: { ...current.content.details, [field]: value } })} />)}
+            <details className="idea-extra-details"><summary>More details</summary><p className="field-hint">Optional notes you write and refine.</p><div className="ideas-fields">{details.slice(3).map(({ field, label, hint }) => <IdeaNoteField key={field} label={label} hint={hint} value={current.content.details[field]} onChange={value => edit({ ...current.content, details: { ...current.content.details, [field]: value } })} />)}</div></details>
+          </fieldset>
+        </form>
+        <p className="idea-detail-save-state" role="status">{dirty ? "Your edits stay in this tab until you save." : `Saved to account · version ${current.saved.revision}.`}</p>
+        {current.conflict && <div className="account-conflict idea-recovery" role="alert"><strong>A newer version is saved in your account.</strong><p>Your edits are still here. Retry the original save or explicitly load the latest version.</p></div>}
+        {error && <p className="form-error" role="alert">{error}</p>}
+        {(error || current.conflict || current.saveIntent || current.brandIntent) && <div className="idea-recovery"><button className="button secondary small" type="button" disabled={Boolean(busy)} onClick={() => setConfirmLatest(true)}>Load latest version</button>{confirmLatest && <div className="inline-confirm"><p>Replace the edits in this tab with the latest saved version? This also discards the pending retry.</p><button className="button secondary small" type="button" disabled={Boolean(busy)} onClick={() => setConfirmLatest(false)}>Keep editing</button><button className="button primary small" type="button" disabled={Boolean(busy)} onClick={() => void loadLatest()}>Replace with latest version</button></div>}</div>}
+      </div>
+      <aside className="idea-detail-aside" aria-label="Idea context">
+        <section className="idea-detail-panel idea-brand-next" aria-labelledby="idea-brand-heading">
+          <Icon name="brands" size={24} />
+          <h2 id="idea-brand-heading">Continue as a brand</h2>
+          <p>Use this idea as the starting point for your strategy, name, and visual identity.</p>
+          <button className="button secondary" type="button" disabled={brandDisabled} onClick={() => void createBrand()}>{busy === "brand" ? "Creating brand…" : current.brandIntent ? "Retry creating brand" : "Create brand"}<Icon name="arrow" size={17} /></button>
+          <p className="idea-detail-caption">Your original idea stays linked.</p>
+          {dirty && <p className="field-hint">Save your edits before creating a brand.</p>}
+          {converted && !current.brandIntent && <p className="field-hint">This saved version has already been used to create a brand.</p>}
+        </section>
+        <section className="idea-detail-panel idea-detail-metadata" aria-labelledby="idea-details-heading"><h2 id="idea-details-heading">Details</h2><dl><div><dt>State</dt><dd>{ideaStateLabels[current.content.state]}</dd></div><div><dt>Version</dt><dd>{current.saved.revision}</dd></div><div><dt>Storage</dt><dd>Account idea</dd></div></dl></section>
+        {current.saved.links.length > 0 && <section className="idea-detail-panel idea-created-brands" aria-labelledby="idea-brand-links-heading"><h2 id="idea-brand-links-heading">Created brands</h2>{current.saved.links.map(link => <div key={link.id}><Link className="text-link" href={`/brands/account/${link.projectId}`}>Open created brand<Icon name="arrow" size={16} /></Link><span className="field-hint">From idea version {link.ideaRevision}</span></div>)}</section>}
+      </aside>
+    </div>
+    <div className="idea-detail-attachment"><AttachIdeaControl account={account} idea={current.saved} dirty={dirty || current.conflict} pending={Boolean(busy || current.saveIntent || current.brandIntent)} memory={lifecycleMemory} /></div>
   </>;
+}
+
+function IdeaNoteField({ label, accessibleLabel = label, hint, value, onChange }: { label: string; accessibleLabel?: string; hint?: string; value: string; onChange: (value: string) => void }) {
+  const input = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const element = input.current;
+    if (!element) return;
+    let width = -1;
+    const resize = () => {
+      if (!element.getClientRects().length) return;
+      width = element.clientWidth;
+      element.style.height = "auto";
+      element.style.height = `${Math.max(44, Math.min(360, element.scrollHeight + 2))}px`;
+    };
+    resize();
+    const observer = new ResizeObserver(() => { if (element.clientWidth !== width) resize(); });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [value]);
+  return <label className="ideas-field">{label}{hint && <span className="field-hint">{hint}</span>}<textarea ref={input} aria-label={accessibleLabel} value={value} maxLength={2000} rows={1} onChange={event => onChange(event.target.value)} /></label>;
 }

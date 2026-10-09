@@ -130,9 +130,9 @@ describe("mounted Home attached brief integration", () => {
   await render(); const originalPrompt = host.querySelector("textarea")!.value; await click("Save brief with files");
   const textarea = host.querySelector("textarea")!;
   expect(textarea.readOnly || textarea.disabled).toBe(true);
-  expect([...host.querySelectorAll<HTMLInputElement>('input[type="radio"]')].every(input => input.disabled)).toBe(true);
-  expect([...host.querySelectorAll<HTMLButtonElement>(".example-card")].every(button => button.disabled)).toBe(true);
-  await act(async () => { host.querySelector<HTMLInputElement>('input[value="naming_only"]')!.click(); host.querySelector<HTMLButtonElement>(".example-card:last-child")!.click(); });
+  expect(host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.disabled).toBe(true);
+  expect([...host.querySelectorAll<HTMLButtonElement>(".home-example-pills button")].every(button => button.disabled)).toBe(true);
+  await act(async () => { host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.click(); host.querySelector<HTMLButtonElement>(".home-example-pills button:last-child")!.click(); });
   expect(textarea.value).toBe(originalPrompt);
   await act(async () => finish(Response.json(saved)));
   expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${projectId}`); expect(mock.strategy).not.toHaveBeenCalled();
@@ -156,7 +156,7 @@ describe("mounted Home attached brief integration", () => {
   await act(async () => root!.unmount()); root = createRoot(host);
   await act(async () => root!.render(createElement(NewProjectForm, { initialScope: "complete_brand", home: true })));
   expect(host.querySelector("textarea")!.value).toBe("Original typed brief");
-  expect(host.querySelector<HTMLInputElement>('input[value="naming_only"]')!.checked).toBe(true);
+  expect(host.querySelector('button[aria-haspopup="menu"]')?.getAttribute("aria-label")).toBe("Project scope: Name");
   expect(host.textContent).toContain("Example prompt");
   expect(host.querySelector("textarea")!.readOnly).toBe(true); expect(mock.create).toHaveBeenCalledTimes(1);
  });
@@ -184,6 +184,7 @@ describe("mounted Home attached brief integration", () => {
 
  it("does not turn a stale Save draft click into attached-file transmission", async () => {
   const fetcher = vi.fn(async () => capability()); vi.stubGlobal("fetch", fetcher); await render();
+  await click("Send prompt"); mock.create.mockClear(); mock.strategy.mockClear();
   const save = [...host.querySelectorAll("button")].find(button => button.textContent === "Save draft")!;
   await act(async () => { selectFiles(); save.click(); });
   expect(mock.create).not.toHaveBeenCalled(); expect(mock.strategy).not.toHaveBeenCalled();
@@ -201,8 +202,8 @@ describe("mounted Home attached brief integration", () => {
 
  it("saves the latest unlocked Home text before opening its retained draft", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => capability())); await render(); await click("Send prompt");
-  await click("A neighborhood kitchen");
-  const latest = host.querySelector("textarea")!.value; expect(latest).toContain("neighborhood lunch counter");
+  await click("A neighborhood coffee shop");
+  const latest = host.querySelector("textarea")!.value; expect(latest).toContain("neighborhood coffee shop");
   mock.update.mockClear(); const link = host.querySelector<HTMLAnchorElement>(`a[href="/brands/${projectId}"]`)!;
   link.addEventListener("click", event => event.preventDefault()); await act(async () => link.click());
   expect(mock.update).toHaveBeenCalledExactlyOnceWith(projectId, expect.objectContaining({ description: latest }));

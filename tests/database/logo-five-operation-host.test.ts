@@ -332,7 +332,14 @@ describe("five-operation host with actual direction production, owner approval a
       ...createLogoVectorMutationProducers({ assetStore: assets, readVectorDetail: reads.readLogoVectorDetail,
         getWorkspace: reads.getLogoWorkspace, readCurrentVectorRevisionId: reads.readLogoCurrentVectorRevisionId, readStageRevision: reads.getLogoStageRevision }),
       ...createLogoDeliverableProducers({ assets, service: deliverables }),
-      selectIdentityDirectionComponents: prepareDirectionEvidence, approveIdentityDirection: prepareDirectionEvidence,
+      selectIdentityDirectionComponents: (auth, projectId, command, signal) => {
+        if (command.method !== "selectIdentityDirectionComponents") throw new Error("Unexpected direction selection command");
+        return prepareDirectionEvidence(auth, projectId, command, signal);
+      },
+      approveIdentityDirection: (auth, projectId, command, signal) => {
+        if (command.method !== "approveIdentityDirection") throw new Error("Unexpected direction approval command");
+        return prepareDirectionEvidence(auth, projectId, command, signal);
+      },
     });
     const accepted = await transactions.run(auth(), initial.projectId, { method: "acceptLogoVector", body: {
       requestKey: randomUUID(), expected: (await workspace(initial.projectId)).heads, vectorRevisionId: revision.id, acceptEarlierBasis: false,

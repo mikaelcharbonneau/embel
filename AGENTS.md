@@ -4,7 +4,7 @@ This is a greenfield external application. Never copy, branch from, import, or m
 
 All development agents must use GPT-6 Astra. Lead, product/frontend, and identity design use max; backend/security, strategy/naming, and independent QA use at least xhigh. Never fall back to another model. The latest user continuation prioritizes quality and substantive progress and withdraws the earlier two-specialist limit; use appropriate parallelism with disjoint ownership. User updates override earlier working-plan wording.
 
-Read docs/decisions.md and docs/architecture.md before changes. Record approved facts separately from proposals. The user already authorized implementing agreed foundations; do not reopen that approval. No public deployment, paid calls, paid provisioning, persistent credentials, or unrelated permissions without explicit authorization.
+Read docs/decisions.md and docs/architecture.md before changes. The approved app design source is Wonder concept 22; see docs/home-concept-22.md before UI changes. Record approved facts separately from proposals. The user already authorized implementing agreed foundations; do not reopen that approval. No public deployment, paid calls, paid provisioning, persistent credentials, or unrelated permissions without explicit authorization.
 
 Use current official docs and relevant local skills. There was no pre-existing .agents/skills checkout at initialization. Keep external design references in ignored .references; copy only original approved design tokens/assets, never old application code. The original Pen source is materialized and hash verified; see docs/references.md.
 

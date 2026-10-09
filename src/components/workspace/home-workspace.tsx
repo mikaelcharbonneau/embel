@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import { draftTitle, scopeLabel, useLocalDrafts, scopeDetails, type LocalDraft } from "./local-drafts";
 import { NewProjectForm } from "./project-editor";
+import { HomeRecentBrands } from "./home-recent-brands";
 import { AccountProjects } from "./account-projects";
 import type { ProjectScope } from "@/domain/projects";
 import "@/styles/brand-list-controls.css";
@@ -18,14 +19,7 @@ function DraftCard({ draft }: { draft: LocalDraft }) {
 }
 
 export function HomeWorkspace() {
-  const { drafts, loaded } = useLocalDrafts();
-  const recent = [...drafts].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 3);
-  return <div className="page home-page"><NewProjectForm initialScope="complete_brand" home />
-    <section className="recent-section" aria-labelledby="recent-heading"><div className="section-heading"><h2 id="recent-heading">Recent brands</h2><Link href="/brands" className="text-link">All brands<Icon name="arrow" size={16} /></Link></div>
-      {!loaded ? <div className="quiet-empty">Loading local drafts…</div> : recent.length ? <div className="draft-grid">{recent.map((draft) => <DraftCard key={draft.id} draft={draft} />)}</div> : <div className="recent-empty"><span className="empty-icon"><Icon name="file" size={22} /></span><div><h3>Your first brief starts here</h3><p>Describe your project above. Your draft will stay in this browser.</p></div></div>}
-    </section>
-    <div className="workspace-note"><Icon name="device" size={17} /><p>Browser drafts stay on this device. Account copies are saved separately.</p><Link href="/settings">Details<Icon name="chevron" size={13} /></Link></div>
-  </div>;
+  return <div className="page home-page"><NewProjectForm initialScope="complete_brand" home /><HomeRecentBrands /></div>;
 }
 
 export function BrandsWorkspace() {

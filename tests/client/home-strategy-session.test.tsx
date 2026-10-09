@@ -29,7 +29,8 @@ describe("combined Home and real strategy-start recovery", () => {
     mock.session = { status: "signed_out", generation: 2 }; mock.memory!.bind(null);
     vi.stubGlobal("fetch", vi.fn(async () => Response.json({ error: "unauthenticated" }, { status: 401 })));
     await render();
-    await act(async () => host.querySelector<HTMLInputElement>('input[value="naming_only"]')!.click());
+    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.click());
+    await act(async () => [...host.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')].find(button => button.textContent === "Name")!.click());
     const original = host.querySelector("textarea")!.value;
     const signIn = host.querySelector<HTMLAnchorElement>('a[href="/sign-in"]')!;
     signIn.addEventListener("click", event => event.preventDefault());
@@ -38,7 +39,7 @@ describe("combined Home and real strategy-start recovery", () => {
     // Return through Home, which has no example or scope in its URL.
     await act(async () => root!.render(createElement(NewProjectForm, { initialScope: "complete_brand", home: true })));
     expect(host.querySelector("textarea")!.value).toBe(original);
-    expect(host.querySelector<HTMLInputElement>('input[value="naming_only"]')!.checked).toBe(true);
+    expect(host.querySelector('button[aria-haspopup="menu"]')?.getAttribute("aria-label")).toBe("Project scope: Name");
     expect(host.textContent).toContain("Your prompt is ready to continue");
     await click("Save draft");
     const stored = JSON.parse(window.localStorage.getItem(DRAFT_STORAGE_KEY)!);
@@ -71,7 +72,7 @@ describe("combined Home and real strategy-start recovery", () => {
     expect(projects).toHaveLength(1); expect(enqueues).toEqual([projects[0]!.id]);
     expect(window.sessionStorage.getItem("fluid.prompt-sign-in.v1")).toBeNull();
     await remountHome(); expect(host.querySelector("textarea")!.value).toBe("");
-    await click("A neighborhood kitchen"); const next = host.querySelector("textarea")!.value;
+    await click("A neighborhood coffee shop"); const next = host.querySelector("textarea")!.value;
     expect(next).not.toBe(original); await click("Send prompt");
     expect(projects).toHaveLength(2); expect(projects[1]!.context.description).toBe(next);
     expect(projects[0]!.context.description).toBe(original); expect(projects[1]!.id).not.toBe(projects[0]!.id);
@@ -95,12 +96,12 @@ describe("combined Home and real strategy-start recovery", () => {
     mock.session = { status: "signed_out", generation: 4 }; mock.memory!.bind(null); await render(); await signInLink();
     mock.session = { status: "checking", generation: 5 }; await remountHome();
     expect(host.querySelector("textarea")!.readOnly).toBe(true);
-    expect([...host.querySelectorAll<HTMLInputElement>('input[type="radio"]')].every(input => input.disabled)).toBe(true);
-    expect([...host.querySelectorAll<HTMLButtonElement>(".example-card")].every(button => button.disabled)).toBe(true);
+    expect(host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.disabled).toBe(true);
+    expect([...host.querySelectorAll<HTMLButtonElement>(".home-example-pills button")].every(button => button.disabled)).toBe(true);
     await click("Save draft"); expect(window.localStorage.getItem(DRAFT_STORAGE_KEY)).toBe(stored);
     mock.session = { status: "ready", userId: owner, generation: 6 }; mock.memory!.bind(mock.session); await render();
     expect(host.querySelector("textarea")!.readOnly).toBe(true);
-    await click("A neighborhood kitchen"); await click("Send prompt"); await click("Save draft");
+    await click("A neighborhood coffee shop"); await click("Send prompt"); await click("Save draft");
     expect(host.querySelector("textarea")!.value).toBe(original); expect(posts).toHaveLength(1);
     expect(window.localStorage.getItem(DRAFT_STORAGE_KEY)).toBe(stored);
     expect(window.sessionStorage.getItem("fluid.prompt-sign-in.v1")).not.toBeNull(); expect(mock.push).not.toHaveBeenCalled();
@@ -117,7 +118,7 @@ describe("combined Home and real strategy-start recovery", () => {
     await remountHome();
     expect(host.querySelector("textarea")!.value).toBe(draft.description);
     expect(host.querySelector("textarea")!.readOnly).toBe(true);
-    await click("A neighborhood kitchen"); await click("Send prompt"); await click("Save draft");
+    await click("A neighborhood coffee shop"); await click("Send prompt"); await click("Save draft");
     expect(window.localStorage.getItem(DRAFT_STORAGE_KEY)).toBe(stored);
     await signInLink();
     expect(JSON.parse(window.sessionStorage.getItem("fluid.prompt-sign-in.v1")!)).toEqual({ draftId: draft.id, locked: true });
@@ -139,8 +140,8 @@ describe("combined Home and real strategy-start recovery", () => {
     mock.session = { status: "signed_out", generation: 2 }; mock.memory!.bind(null); await render();
     await act(async () => save.resolve(Response.json({ project: { ...accountBody, id: crypto.randomUUID(), owner_id: owner, current_revision: 1, created_at: "2026-10-07T00:00:00Z" } })));
     expect(host.querySelector("textarea")!.readOnly).toBe(true);
-    expect([...host.querySelectorAll<HTMLInputElement>('input[type="radio"]')].every(input => input.disabled)).toBe(true);
-    expect([...host.querySelectorAll<HTMLButtonElement>(".example-card")].every(button => button.disabled)).toBe(true);
+    expect(host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.disabled).toBe(true);
+    expect([...host.querySelectorAll<HTMLButtonElement>(".home-example-pills button")].every(button => button.disabled)).toBe(true);
     expect(host.querySelector("textarea")!.value).toBe(prompt); expect(window.localStorage.getItem(DRAFT_STORAGE_KEY)).toBe(saved);
     const signIn = host.querySelector<HTMLAnchorElement>('a[href="/sign-in"]')!;
     signIn.addEventListener("click", event => event.preventDefault()); await act(async () => signIn.click());
@@ -156,7 +157,7 @@ describe("combined Home and real strategy-start recovery", () => {
       if (path === "/api/strategy") return Response.json({ availability: { status: "unavailable", operations: [], reason: "worker_unavailable" } });
       throw new Error(`Unexpected fixture mutation ${path}`);
     }); vi.stubGlobal("fetch", fetcher);
-    await render(); await click("Send prompt"); await click("A neighborhood kitchen");
+    await render(); await click("Send prompt"); await click("A neighborhood coffee shop");
     const latest = host.querySelector("textarea")!.value;
     await act(async () => [...host.querySelectorAll("a")].find(link => link.textContent === "Open retained browser draft")!.click());
     const stored = JSON.parse(window.localStorage.getItem(DRAFT_STORAGE_KEY)!);

@@ -25,6 +25,7 @@ async function setup(page: Page) {
     }
     if (!state.signedIn) return reply({}, 401);
     if (path === "/api/strategy") return reply({ availability });
+    if (path === "/api/projects/page") return reply({ ownerId: owner, items: [...projects.values()].map(project => ({ id: project.id, owner_id: project.owner_id, title: project.title, scope: project.scope, current_revision: project.current_revision, created_at: project.created_at })).sort((a, b) => b.id.localeCompare(a.id)), nextCursor: null });
     if (path.endsWith("/capability")) return reply({ ownerId: owner, policy: null, reason: "Synthetic storage unavailable" });
     if (path === "/api/projects" && request.method() === "POST") {
       const body = request.postDataJSON(); state.creates.push(body);
@@ -54,7 +55,9 @@ async function capture(page: Page, info: TestInfo, name: string, requests?: unkn
 async function begin(page: Page, entry: "header" | "composer") {
   await page.goto("/");
   await page.getByRole("textbox", { name: "Your prompt", exact: true }).fill(prompt);
-  await page.getByRole("radio", { name: "Naming", exact: true }).check();
+  await page.getByRole("button", { name: "Project scope: Brand", exact: true }).click();
+  await page.getByRole("menuitemradio", { name: "Name", exact: true }).click();
+  if (entry === "header") await page.getByLabel("Account menu", { exact: true }).click();
   const signIn = page.locator(entry === "header" ? ".topbar-account" : ".account-strategy-actions").getByRole("link", { name: "Sign in", exact: true });
   if (entry === "header") { await signIn.focus(); await page.keyboard.press("Enter"); } else await signIn.click();
   await expect(page).toHaveURL(/\/sign-in$/);
@@ -64,7 +67,7 @@ for (const entry of ["header", "composer"] as const) test(`Home recovery: ${entr
   await expect(page.getByRole("textbox", { name: "Your prompt", exact: true })).toBeVisible();
   await capture(page, info, `auth-${entry}-return`, state);
   await expect(page.getByRole("textbox", { name: "Your prompt", exact: true })).toHaveValue(prompt);
-  await expect(page.getByRole("radio", { name: "Naming", exact: true })).toBeChecked();
+  await expect(page.getByRole("button", { name: "Project scope: Name", exact: true })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Your prompt", exact: true })).toBeEditable();
   expect(state.creates).toHaveLength(0); expect(state.enqueues).toHaveLength(0);
 });
@@ -76,9 +79,9 @@ test("Home recovery: confirmed start retires the ID and a new prompt creates a d
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page).toHaveURL(/\/brands\/account\/bbbbbbbb-1111-4111-8111-000000000001$/);
   await page.goto("/");
-  await expect(page.getByText(/Sending saves an account copy and requests a response/)).toBeVisible();
   await capture(page, info, "confirmed-return-home", state);
   await page.getByRole("textbox", { name: "Your prompt", exact: true }).fill(nextPrompt);
+  await expect(page.getByText(/Sending saves an account copy and requests a response/)).toBeVisible();
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await capture(page, info, "second-intended-request", state);
   await expect.poll(() => state.creates.length).toBe(2);
@@ -95,6 +98,7 @@ test("Home recovery: uncertain save stays immutable during sign-in remount and v
   await expect(page.getByText(/The account save is not confirmed/).first()).toBeVisible();
   const original = await page.evaluate(() => localStorage.getItem("fluid.local-drafts.v1"));
   state.signedIn = false; await page.reload();
+  await page.getByLabel("Account menu", { exact: true }).click();
   await page.locator(".topbar-account").getByRole("link", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/sign-in$/);
   state.signedIn = true; state.holdSession = true; await page.goto("/");
@@ -106,7 +110,7 @@ test("Home recovery: uncertain save stays immutable during sign-in remount and v
   await expect(page.getByText(/earlier account save is not confirmed/).first()).toBeVisible();
   await capture(page, info, "uncertain-verified-remount", state);
   await expect(page.getByRole("textbox", { name: "Your prompt", exact: true })).not.toBeEditable();
-  await expect(page.getByRole("radio", { name: "Naming", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Project scope: Name", exact: true })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Save draft", exact: true })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Start a new prompt", exact: true })).toBeDisabled();
   expect(state.creates).toHaveLength(1); expect(state.enqueues).toHaveLength(0);

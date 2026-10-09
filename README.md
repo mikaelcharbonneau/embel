@@ -4,6 +4,8 @@ Fluid is a brand-building workspace for moving from an idea to strategy, a name,
 
 The GitHub repository name `emble` is a repository identifier. The product remains **Fluid**.
 
+For the subsequently authorized Codex Cloud setup and the latest Home/Ideas design handoff, read [Cloud development](docs/cloud-development.md). The source-checkpoint verification limits below describe the earlier transfer; later verification is recorded separately and does not imply live provider acceptance.
+
 ## Product and user journey
 
 A user can begin with a complete brand, naming only, or visual identity only, and expand later without discarding known context.

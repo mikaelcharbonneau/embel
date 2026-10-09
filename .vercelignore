@@ -1,0 +1,20 @@
+# Ship application inputs only; keep local evidence, tests and credentials local.
+**
+!package.json
+!package-lock.json
+!next.config.ts
+!next-env.d.ts
+!tsconfig.json
+!vercel.json
+!src
+!src/**
+!public
+!public/**
+!worker
+!worker/**
+!scripts
+!scripts/preview-preflight.mjs
+!scripts/local-environment.mjs
+!scripts/local-environment.d.mts
+!scripts/certs
+!scripts/certs/supabase-prod-ca-2021.crt

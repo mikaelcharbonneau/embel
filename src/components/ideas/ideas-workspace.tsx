@@ -14,11 +14,16 @@ const emptyCapture = () => null;
 
 export function IdeasWorkspace() {
   const { session, ideaDrafts } = useAccountSession();
-  return <div className="page ideas-page">
-    <div className="page-heading ideas-heading"><h1>Ideas</h1><span className="small-badge">Private to your account</span></div>
-    {session.status === "ready" ? <OwnedIdeasWorkspace key={`${session.userId}:${session.generation}`} account={session} /> : <AccountStatus retainedEdits={ideaDrafts.hasUnsaved()} />}
-    <IdeasUnavailable />
+  return <div className="page ideas-page ideas-home">
+    {session.status === "ready" ? <OwnedIdeasWorkspace key={`${session.userId}:${session.generation}`} account={session} /> : <><IdeasHeading /><AccountStatus retainedEdits={ideaDrafts.hasUnsaved()} /></>}
   </div>;
+}
+
+function IdeasHeading({ captureOpen = false, onToggleCapture }: { captureOpen?: boolean; onToggleCapture?: () => void }) {
+  return <header className="page-heading ideas-heading">
+    <div className="ideas-introduction"><h1>Room for your next idea<span>.</span></h1><p>Capture it now. Give it shape when you are ready.</p></div>
+    <button className="button primary ideas-add" type="button" disabled={!onToggleCapture} aria-expanded={captureOpen} aria-controls={onToggleCapture ? "idea-capture-panel" : undefined} onClick={onToggleCapture}>{captureOpen ? "Close capture" : "Add idea"}<Icon name={captureOpen ? "close" : "plus"} size={17} /></button>
+  </header>;
 }
 
 export function IdeasUnavailable() {
@@ -31,16 +36,15 @@ function OwnedIdeasWorkspace({ account }: { account: VerifiedAccount }) {
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState<{ search: string; state: IdeaState | "all" }>({ search: "", state: "all" });
   return <>
-    <div className="ideas-library-actions"><button type="button" className="button secondary" aria-expanded={captureOpen} aria-controls="idea-capture-panel" onClick={() => setCaptureOpen(value => !value)}>{captureOpen ? "Close capture" : "Add idea"}<Icon name={captureOpen ? "close" : "plus"} size={16} /></button></div>
+    <IdeasHeading captureOpen={captureOpen} onToggleCapture={() => setCaptureOpen(value => !value)} />
     <div id="idea-capture-panel" hidden={!captureOpen}><IdeaCaptureForm account={account} /></div>
     <section className="ideas-library" aria-labelledby="ideas-library-heading">
       <h2 id="ideas-library-heading" className="sr-only">Your ideas</h2>
       <form className="ideas-filters" role="search" onSubmit={event => { event.preventDefault(); setQuery(previous => previous.search === search.trim() ? previous : { ...previous, search: search.trim() }); }}>
-        <label className="ideas-field ideas-search"><span className="sr-only">Search ideas</span><input type="search" value={search} maxLength={200} onChange={event => setSearch(event.target.value)} placeholder="Search your ideas" /></label>
-        <button className="button secondary small" type="submit">Search</button>
-        <label className="ideas-field ideas-filter-state"><span className="sr-only">Filter by state</span><select value={query.state} onChange={event => { const state = event.target.value as IdeaState | "all"; setQuery(previous => previous.search === search.trim() && previous.state === state ? previous : { search: search.trim(), state }); }}><option value="all">All states</option>{Object.entries(ideaStateLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+        <label className="ideas-field ideas-search"><span className="sr-only">Search ideas</span><input type="search" enterKeyHint="search" aria-describedby="ideas-search-hint" value={search} maxLength={200} onChange={event => setSearch(event.target.value)} placeholder="Search your ideas" /></label>
+        <label className="ideas-field ideas-filter-state"><span className="sr-only">Filter by state</span><span className="ideas-state-display" aria-hidden="true">{query.state === "all" ? "All states" : ideaStateLabels[query.state]}<Icon name="chevron" size={17} /></span><select value={query.state} onChange={event => { const state = event.target.value as IdeaState | "all"; setQuery(previous => previous.search === search.trim() && previous.state === state ? previous : { search: search.trim(), state }); }}><option value="all">All states</option>{Object.entries(ideaStateLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       </form>
-      <p className="field-hint ideas-library-hint">Search and state filters apply to all your saved ideas.</p>
+      <p id="ideas-search-hint" className="sr-only">Press Enter to search all your saved ideas. State filters also apply across the full library.</p>
       <OwnedIdeaListing key={JSON.stringify(query)} account={account} query={query} />
     </section>
   </>;
@@ -148,12 +152,12 @@ function OwnedIdeaListing({ account, query }: { account: VerifiedAccount; query:
   return <>
     {!listing && !error && <p className="quiet-empty" role="status">Loading your ideas…</p>}
     {listing && (listing.items.length ? <div className="ideas-grid">{listing.items.map(idea => <Link key={idea.id} href={`/ideas/${idea.id}`} className="idea-card">
-      <div className="idea-card-top"><span className="idea-theme">{idea.theme || "Idea"}</span></div>
+      <div className="idea-card-top"><Icon name="ideas" size={18} /><span>{ideaStateLabels[idea.state]}</span></div>
       <h3>{idea.title}</h3>{idea.description && <p>{idea.description}</p>}
-      <div className="idea-card-footer"><span className="small-badge">{ideaStateLabels[idea.state]}</span><span>Version {idea.revision}</span></div>
+      <div className="idea-card-footer"><span className="idea-theme">{idea.theme || "Idea"}</span><Icon name="arrow" size={16} /></div>
     </Link>)}</div> : <p className="quiet-empty">{query.search || query.state !== "all" ? "No saved ideas match these filters." : "No saved ideas yet. Choose Add idea to capture your first idea."}</p>)}
     {error && <div className="ideas-load-error"><p className="form-error" role="alert">{error}</p><button className="button secondary small" type="button" disabled={busy} onClick={() => void load()}>Try loading ideas again</button></div>}
     {listing?.nextCursor && !error && <button className="button secondary small ideas-load-more" type="button" disabled={busy} onClick={() => void load()}>{busy ? "Loading more ideas…" : "Load more ideas"}</button>}
-    {listing && <p className="field-hint">{listing.items.length} {listing.items.length === 1 ? "idea" : "ideas"} loaded.{!listing.nextCursor && " End of this listing."}</p>}
+    {listing && <p className="sr-only" role="status">{listing.items.length} {listing.items.length === 1 ? "idea" : "ideas"} loaded.{!listing.nextCursor && " End of this listing."}</p>}
   </>;
 }

@@ -7,10 +7,13 @@ import "@/styles/generation-activity.css";
 import "@/styles/assets.css";
 import "@/styles/identity-references.css";
 import "@/styles/identity.css";
+import "@/styles/concept-shell.css";
+import "@/styles/home-concept.css";
 
 export const metadata: Metadata = {
   title: { default: "Fluid — Brand workspace", template: "%s · Fluid" },
   description: "A considered workspace for your brand, from the first brief to the details.",
+  icons: { icon: "/fluid-mark.svg" },
   robots: { index: false, follow: false },
 };
 

@@ -4,9 +4,10 @@ export type IconName =
   | "home" | "brands" | "assets" | "ideas" | "names" | "handles"
   | "domains" | "trademarks" | "settings" | "team" | "plus" | "arrow"
   | "chevron" | "check" | "close" | "menu" | "file" | "device" | "clock"
-  | "pencil" | "trash" | "layers" | "offline" | "user" | "refresh" | "mic" | "arrow-up" | "search";
+  | "pencil" | "trash" | "layers" | "offline" | "user" | "refresh" | "mic" | "arrow-up" | "search" | "palette";
 
 const paths: Record<IconName, React.ReactNode> = {
+  palette: <><path d="M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 1.4-3.4 1.5 1.5 0 0 1 1.1-2.6H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8Z" /><circle cx="7.5" cy="10.5" r=".5" /><circle cx="10" cy="6.5" r=".5" /><circle cx="15" cy="6.5" r=".5" /><circle cx="17.5" cy="10.5" r=".5" /></>,
   user: <><circle cx="12" cy="8" r="4" /><path d="M5 21v-2a7 7 0 0 1 14 0v2" /></>,
   refresh: <><path d="M20 4v6h-6M4 20v-6h6" /><path d="M5.2 8a8 8 0 0 1 13.2-3L20 7M4 17l1.6 2A8 8 0 0 0 19 16" /></>,
   mic: <><rect x="9" y="2" width="6" height="13" rx="3" /><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3" /></>,

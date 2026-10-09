@@ -55,3 +55,8 @@ docs/evidence/logo-vector/runtime-adapter/*
 docs/evidence/logo-exports/runtime-adapter/*
 !docs/evidence/logo-exports/runtime-adapter/synthetic-primary-color.pdf
 !docs/evidence/logo-exports/runtime-adapter/synthetic-logo-pack.zip
+.vercel
+
+# Local UI comparison evidence and isolated browser sessions
+.playwright-cli/
+output/playwright/
