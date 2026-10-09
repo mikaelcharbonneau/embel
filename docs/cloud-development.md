@@ -8,16 +8,18 @@ The private repository is `mikaelcharbonneau/emble`; the product remains **Fluid
 
 ## Environment setup
 
-Create a private environment from this repository's `main` branch. Use Node.js 24 (`.nvmrc`) and the committed npm lockfile. The project has native dependencies, so install them for the cloud host; do not upload the Mac's `node_modules`.
+Use the private **emble** environment for this repository's `main` branch. Node.js 24 (`.nvmrc`) and the committed npm lockfile are required. The project has native dependencies, so install them for the cloud host; do not upload the Mac's `node_modules`.
 
-Install commands:
+For a fresh environment, the general installation commands are:
 
 ```sh
 npm ci
 npx playwright install --with-deps chromium
 ```
 
-The first command is sufficient for ordinary unit tests, type checking and builds. The second installs the headless browser and Linux libraries for the repository's automated browser tests. It does not depend on the user's browser profile.
+The first command is sufficient for ordinary unit tests, type checking and builds. The second installs the headless browser and Linux libraries when the host permits that installation. Neither uses the user's browser profile.
+
+The verified **emble** cloud image already provides `/usr/bin/chromium` and its Linux libraries. Its saved install script runs `npm ci --cache /workspace/.npm-cache`, checks Node 24 and system Chromium, and writes the ignored `.tmp/onboarding.playwright.config.ts` override. That override imports the repository's normal Playwright configuration, sets the test and server working directories to `/workspace/emble`, and selects `/usr/bin/chromium`. Use this tested setup in the existing environment; do not repeat browser downloads or request root installation unnecessarily.
 
 Environment variables:
 
@@ -40,13 +42,13 @@ Run checks sequentially on a memory-constrained VM. The explicit heap allowance 
 ```sh
 NODE_OPTIONS=--max-old-space-size=4096 npm run typecheck
 npm run lint
-npm test -- tests/client/home-concept.test.tsx tests/client/home-inputs-integration.test.ts tests/client/home-strategy-session.test.tsx tests/domain/ideas.test.ts tests/server/ideas.test.ts --maxWorkers=2
+npm test -- tests/client/home-concept.test.tsx tests/client/home-inputs-integration.test.ts tests/client/home-strategy-session.test.tsx tests/domain/ideas.test.ts tests/server/ideas.test.ts --maxWorkers=1
 npm test -- tests/database/logo-five-operation-host.test.ts tests/database/ideas.test.ts tests/api/ideas.test.ts --maxWorkers=2
 NODE_OPTIONS=--max-old-space-size=4096 npm run build
-FLUID_E2E_PORT=3145 npm run test:e2e -- tests/e2e/ideas.spec.ts tests/e2e/home-recovery-lifecycle.spec.ts --workers=1
+FLUID_E2E_PORT=3145 npm run test:e2e -- --config .tmp/onboarding.playwright.config.ts tests/e2e/ideas.spec.ts tests/e2e/home-recovery-lifecycle.spec.ts --workers=1
 ```
 
-The browser suite starts its own production server after the build. Leave `FLUID_E2E_BROWSER_CHANNEL` unset in cloud environments so it uses installed Playwright Chromium. The Mac-only fallback used during local verification selects installed Chrome.
+The browser suite starts its own production server after the build. Leave `FLUID_E2E_BROWSER_CHANNEL` unset in cloud. The existing environment uses its saved system-Chromium override; a fresh environment that successfully installed Playwright's bundled Chromium can omit the `--config` argument. The Mac-only fallback used during local verification selects installed Chrome. Do not run development and build commands concurrently against the same `.next` directory.
 
 Fixture tests do not establish live Supabase ownership, provider access or production readiness. The full historical checkpoint status is in `docs/verification-status.md`; more recent Home/Ideas evidence is in the design records. Record new cloud results separately from local results. A broader suite can use `npm test -- --maxWorkers=2` when the task requires it; do not run `test:live` without its explicit opt-in and approved identities.
 
@@ -82,7 +84,23 @@ Local verification on the original Mac, Node.js 22.22.2 (within the package's su
 
 This is a focused local verification, not a new complete suite or Linux/Node 24 cloud verification. It does not erase the older checkpoint's verification limits.
 
-The Codex Cloud web setup was reached using the user's existing signed-in session, but the repository picker reported **GitHub connections couldn't load** and Settings reported **Couldn't load saved environments** after retries. No cloud environment has been created or published yet. Complete the supported setup under **Settings → Codex Cloud → Environments → Create environment**, selecting the private repository's `main` branch and using the commands above. Confirm **Environment published** before claiming cloud readiness. No credentials were copied and no cloud task was dispatched.
+The initial web setup attempt could not load GitHub connections or saved environments. That historical blocker was cleared when the user subsequently created **emble** and completed the setup chat below.
+
+## Cloud setup verification — 2026-10-09
+
+Reviewed the actual command results in [Set up emble](https://chatgpt.com/local/01a12287-cf81-700c-bf28-49c9d041e0f0), rather than treating the local Mac checks as cloud evidence:
+
+- Repository: `mikaelcharbonneau/emble`, branch `main`, containing the latest Home/Ideas and cloud handoff source.
+- Linux runtime: Node.js 24.19.0, npm 11.9.0, system Chromium 151.0.7922.173.
+- Typecheck, lint and production build passed. The saved install script was rerun successfully.
+- The 145-test Home/Ideas group passed with one worker; the 61-test API/database/host group passed with two workers.
+- All 50 desktop/mobile browser checks passed with the system-Chromium override.
+- Development and production Home responses were checked; production returned HTTP 200 and the expected Fluid HTML. The source checkout remained clean.
+- The cancelled-file-selection test failed once with two workers and passed on its one-worker rerun. Its fixed 10 ms wait is timing-sensitive; the test was not changed, and the earlier failure remains part of the evidence.
+
+The setup's install/start instructions were present in its original draft but not yet saved to the reusable environment. They have now been saved, with **Only me** privacy, package-manager network access, no network secrets, and the non-secret variables shown above plus `PLAYWRIGHT_BROWSERS_PATH=/workspace/.cache/ms-playwright`. Account/provider integrations remain unconfigured. The worker, paid calls, live migrations and public deployment were not activated.
+
+Publication completed and the UI confirmed **Environment published** / **Published**. Select **emble** under **Work in → Cloud** for subsequent coding chats. The application revision qualified in setup was `c5f5930e6d8cb445eb6ec8567ce8e5ea4ae33cd1`; this documentation update does not change application code or its dependencies. Saved environment state is a reusable starting point; future chats should verify their checked-out Git revision before making changes.
 
 ## Sources
 
