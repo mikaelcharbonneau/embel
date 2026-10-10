@@ -33,8 +33,10 @@ async function run(name, task) {
 async function search(scenario, input = "North Star") {
   await page.goto(`${url}/?scenario=${scenario}`);
   await page.getByRole("button", { name: "Search", exact: true }).click();
-  await page.getByRole("textbox", { name: "Names or full domains" }).fill(input);
-  await page.getByRole("button", { name: "Prepare search", exact: true }).click();
+  await page.getByRole("textbox", { name: "Keywords or domains" }).fill(input);
+  await page.getByRole("button", { name: "Generate candidates", exact: true }).click();
+  const details = page.getByRole("button", { name: "Details for northstar.com", exact: true });
+  if (await details.count()) await details.click();
 }
 const check = () => page.getByRole("button", { name: "Check availability for northstar.com", exact: true });
 const quote = () => page.getByRole("button", { name: "Request quote for northstar.com", exact: true });
@@ -44,9 +46,44 @@ try {
     await search("unavailable");
     assert.equal(await page.getByRole("heading", { name: "northstar.com", exact: true }).count(), 1);
     assert.equal(await check().isDisabled(), true); assert.equal(await quote().isDisabled(), true);
-    assert.equal(await page.getByText("Unknown", { exact: true }).count(), 3);
+    assert.equal(await page.getByText("Not checked", { exact: true }).count(), 3);
     await page.evaluate(() => document.fonts.ready);
     await page.screenshot({ path: `${output}/domains-search-desktop.png`, fullPage: true });
+  });
+  await run("selection exports real CSV and clears when search inputs change", async () => {
+    await search("unavailable");
+    await page.getByRole("checkbox", { name: "Select northstar.com", exact: true }).check();
+    await page.getByRole("checkbox", { name: "Select northstar.co", exact: true }).check();
+    await page.getByText("2 selected", { exact: true }).waitFor();
+    const downloaded = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Export CSV", exact: true }).click();
+    const download = await downloaded;
+    assert.equal(download.suggestedFilename(), "fluid-domain-candidates.csv");
+    const csv = await readFile(await download.path(), "utf8");
+    assert.equal(csv, '\"Domain\",\"Availability at export\",\"Verified price per year\"\r\n\"northstar.com\",\"Not checked\",\"\"\r\n\"northstar.co\",\"Not checked\",\"\"\r\n');
+    await page.getByRole("textbox", { name: "Keywords or domains" }).fill("New name");
+    await page.getByText("0 selected", { exact: true }).waitFor();
+    assert.equal(await page.getByRole("button", { name: "Export CSV", exact: true }).isDisabled(), true);
+  });
+  await run("extension discovery and token removal preserve manual input semantics", async () => {
+    await search("unavailable", "North Star, Forma");
+    await page.getByRole("button", { name: "Remove Forma", exact: true }).click();
+    assert.equal(await page.getByRole("textbox", { name: "Keywords or domains" }).inputValue(), "North Star");
+    await page.getByRole("searchbox", { name: "Find an extension" }).fill("studio");
+    await page.getByRole("checkbox", { name: ".studio", exact: true }).check();
+    await page.getByRole("button", { name: "Generate candidates", exact: true }).click();
+    await page.getByRole("heading", { name: "northstar.studio", exact: true }).waitFor();
+    assert.equal(await page.getByRole("checkbox", { name: "Domain hacks", exact: true }).isDisabled(), true);
+    assert.equal(await page.getByRole("button", { name: "Share search", exact: true }).isDisabled(), true);
+  });
+  await run("unknown domains survive filtering and only confirmed taken evidence is hidden", async () => {
+    await search("taken");
+    await page.getByRole("checkbox", { name: "Select all visible domains", exact: true }).check();
+    await page.getByRole("button", { name: "Check availability", exact: true }).click();
+    await page.getByRole("heading", { name: "northstar.com", exact: true }).waitFor({ state: "hidden" });
+    await page.getByRole("checkbox", { name: "Hide unavailable", exact: true }).uncheck();
+    await page.getByText("Taken", { exact: true }).waitFor();
+    assert.equal(await page.getByRole("heading", { name: "northstar.com", exact: true }).count(), 1);
   });
   await run("invalid batch blocks candidate construction", async () => {
     await search("unavailable", "valid.com\nhttps://bad.com");
@@ -82,7 +119,7 @@ try {
     assert.equal(await page.getByRole("button", { name: "Purchase unavailable" }).isDisabled(), true);
   });
   await run("new preparation fences late checks from an earlier search", async () => {
-    await search("late"); await check().click(); await page.getByRole("textbox", { name: "Names or full domains" }).fill("changed.com"); await page.getByRole("button", { name: "Prepare search", exact: true }).click();
+    await search("late"); await check().click(); await page.getByRole("textbox", { name: "Keywords or domains" }).fill("changed.com"); await page.getByRole("button", { name: "Generate candidates", exact: true }).click();
     await page.waitForTimeout(500); assert.equal(await page.getByRole("heading", { name: "northstar.com", exact: true }).count(), 0); assert.equal(await page.getByText("Confirmed available", { exact: true }).count(), 0);
   });
   await run("connection change cancels pending checks and exposes unavailable controls", async () => {
@@ -105,9 +142,15 @@ try {
   });
   await run("mobile layout and keyboard input remain usable", async () => {
     await page.setViewportSize({ width: 390, height: 844 }); await search("ready"); await check().click(); await page.getByText("Confirmed available", { exact: true }).waitFor(); await quote().click(); await page.getByRole("heading", { name: "Quote review" }).waitFor();
-    const overflowing = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth); assert.equal(overflowing, false);
-    await page.getByRole("textbox", { name: "Names or full domains" }).focus(); await page.keyboard.press("Tab");
-    assert.equal(await page.getByRole("checkbox", { name: ".com", exact: true }).evaluate(element => element === document.activeElement), true);
+    assert.equal(await page.getByRole("button", { name: "Request quote for northstar.co", exact: true }).count(), 0, "Collapsed row actions must stay hidden on mobile");
+    const overflowing = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+    if (overflowing) {
+      await page.screenshot({ path: `${output}/mobile-overflow.png`, fullPage: true });
+      console.log(await page.evaluate(() => [...document.querySelectorAll("body *")].filter(element => element.getBoundingClientRect().right > innerWidth).map(element => ({tag: element.tagName, class: element.className, width: element.getBoundingClientRect().width, right: element.getBoundingClientRect().right})).slice(0, 20)));
+    }
+    assert.equal(overflowing, false);
+    await page.getByRole("textbox", { name: "Keywords or domains" }).focus(); await page.keyboard.press("Tab");
+    assert.equal(await page.getByRole("button", { name: "Generate candidates", exact: true }).evaluate(element => element === document.activeElement), true);
     await page.evaluate(() => document.fonts.ready);
     await page.screenshot({ path: `${output}/domains-quote-mobile.png`, fullPage: true });
   });

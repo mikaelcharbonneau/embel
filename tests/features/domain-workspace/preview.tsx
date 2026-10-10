@@ -17,7 +17,7 @@ const adapter: DomainSearchAdapter | undefined = scenario === "unavailable" || s
     if (scenario === "error") throw new Error("Synthetic transport failure");
     if (scenario === "mismatch") return { ...fixture.check, domain: "other.com" };
     const now = Date.now();
-    return { ...fixture.check, domain, id: `fixture-${domain}`, checkedAt: new Date(now - 100).toISOString(), validUntil: new Date(now + (scenario === "expiry" ? 1000 : 60000)).toISOString() };
+    return { ...fixture.check, availability: scenario === "taken" && domain === "northstar.com" ? "taken" : "available", domain, id: `fixture-${domain}`, checkedAt: new Date(now - 100).toISOString(), validUntil: new Date(now + (scenario === "expiry" ? 1000 : 60000)).toISOString() };
   },
   quote: async (domain, checkId) => ({ ...fixture.quote, domain, checkId, issuedAt: new Date(Date.now()).toISOString(), expiresAt: new Date(Date.now() + (scenario === "quote-expiry" ? 1000 : 60000)).toISOString() }),
 };

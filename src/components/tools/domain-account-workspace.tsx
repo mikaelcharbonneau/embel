@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { AccountStatus, useAccountSession } from "@/components/workspace/account-session";
 import { DomainsWorkspace } from "@/features/domain-workspace/domain-workspace";
 import { domainDraftFromSavedName, standalonePayloadCodec } from "@/features/domain-workspace/account-codec";
@@ -16,6 +16,7 @@ export type AccountDomainsWorkspaceProps = {
   /** Provider-held memory, bound and fenced by AccountSessionProvider. */
   memory: StandaloneDraftMemory;
   importProjectId?: string;
+  sourcePicker?: ReactNode;
   /** Existing explicit brand seam only; absent unless a real flow is connected. */
   onCreateBrand?: (source: DomainBrandSource) => void;
 };
@@ -26,7 +27,7 @@ export function AccountDomainsWorkspace(props: AccountDomainsWorkspaceProps) {
   return <OwnedDomainsWorkspace key={`${session.userId}:${session.generation}`} {...props} />;
 }
 
-function OwnedDomainsWorkspace({ memory, importProjectId, onCreateBrand }: AccountDomainsWorkspaceProps) {
+function OwnedDomainsWorkspace({ memory, importProjectId, sourcePicker, onCreateBrand }: AccountDomainsWorkspaceProps) {
   const state = useStandaloneWorkspace({ codec: standalonePayloadCodec, emptyPayload: emptyDomainDraft, memory });
   const promotion = useSavedStandalonePromotion("domains", state, memory);
   const [discardRequested, setDiscardRequested] = useState(false);
@@ -42,10 +43,11 @@ function OwnedDomainsWorkspace({ memory, importProjectId, onCreateBrand }: Accou
     </div></div>
     {state.error && <p className={styles.error} role="alert">{state.error}</p>}
     {discardRequested && <div className={styles.discard} aria-label="Replace domain draft"><p>Load the latest saved draft and discard the edits kept in this tab?</p><div className={styles.actions}><button className="button secondary small" type="button" disabled={state.busy} onClick={() => setDiscardRequested(false)}>Keep edits</button><button className="button secondary small" type="button" disabled={state.busy} onClick={() => void reload(true)}>Discard edits and load saved draft</button></div></div>}
+    {sourcePicker}
     <div className={styles.import}><button className="button secondary small" type="button" disabled={!importProjectId || !state.canEdit} onClick={() => { if (importProjectId) void state.importProject(importProjectId, (source, current) => domainDraftFromSavedName(current, source.name)); }}>Import saved name</button><p>{importProjectId ? "Replace the search text with this project’s saved name. Prepare and save when ready." : "Choose an account project to import its saved name."}</p></div>
     {state.imports.length > 0 && <details className={styles.sources}><summary>Imported saved sources ({state.imports.length})</summary><ul>{state.imports.map(source => <li key={standaloneImportKey(source)}><strong>{source.name}</strong> · {source.projectTitle}<br /><span>Saved project version {source.projectRevision} · {source.origin === "naming_selection" ? "selected Naming candidate" : "supplied project name"}</span></li>)}</ul><p>Source references remain with this draft when you edit its text. Imports do not establish domain availability.</p></details>}
     <p className={styles.note}>Account drafts contain search text, extensions and prepared candidates. Registrar checks, quotes and purchases are unavailable.</p>
   </section>;
   if (!state.payload) return <div className="page"><h1>Domains</h1>{state.status === "loading" && <p role="status">Loading your domain draft…</p>}{controls}</div>;
-  return <DomainsWorkspace draft={state.payload} initialView="search" draftDisabled={!state.canEdit} onDraftChange={state.setPayload} draftNotice={state.dirty ? "Changes stay in this tab until you save the account draft." : "Availability stays unknown for saved candidates."} draftControls={<>{controls}{promotion.controls}</>} onCreateBrand={promotion.select ? source => { if (!source.order) promotion.select?.({ tool: "domains", domain: source.domain }); } : onCreateBrand} />;
+  return <DomainsWorkspace namesImportAvailable draft={state.payload} initialView="search" draftDisabled={!state.canEdit} onDraftChange={state.setPayload} draftNotice={state.dirty ? "Changes stay in this tab until you save the account draft." : "Availability stays unknown for saved candidates."} draftControls={<>{controls}{promotion.controls}</>} onCreateBrand={promotion.select ? source => { if (!source.order) promotion.select?.({ tool: "domains", domain: source.domain }); } : onCreateBrand} />;
 }
