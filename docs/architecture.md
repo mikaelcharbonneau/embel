@@ -1,5 +1,7 @@
 # Fluid foundation architecture
 
+Sign-in supports an intercepted native dialog alongside a direct-page fallback. Both render the same server-configured form inside the existing account-session provider; dismissal preserves drafts and the pending authentication fence. See [Sign-in overlay](auth-overlay-design.md).
+
 Settings follows the seven approved Figma categories. The presentation composes existing account, local drafts, text readiness, local ChatGPT and recorded usage components; no new settings API or persistence contract is added. Unsupported preferences and integrations are disabled rather than represented as saved settings. See [Settings design and behavior](settings-guided-design.md).
 
 ## Scope and intent
