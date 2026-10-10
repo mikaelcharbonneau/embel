@@ -37,6 +37,7 @@ async function readNames(page) {
   return [...entries, ...(pending ? [pending] : [])].join("\n");
 }
 async function replaceNames(page, value) {
+  await input(page).waitFor();
   const removals = page.locator('[data-domain-entry] button');
   while (await removals.count()) await removals.first().click();
   await input(page).fill(value);

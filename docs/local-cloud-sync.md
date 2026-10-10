@@ -27,6 +27,8 @@ Production visual captures at 1440 × 900 and 390 × 844 show no horizontal over
 
 The Vercel dry run selected 593 application inputs through the existing allowlist. Every local file matched its manifest hash; no credentials, local runtime state, reference images or test output were selected. The canonical sorted upload manifest SHA-256 is `ac86f2c44ee6218a0957f0ba0a084c5b01a30beebe2ebcc7754abfeb0c2007f6`.
 
+Independent Linux QA confirmed the candidate commit/tree and that same upload manifest, and passed typecheck, lint, 113 focused tests, 21 domain browser checks, production build and six production-route checks. Its account checker exposed a startup race: the replacement helper counted name chips before waiting for the editor. A diagnostic copy with an explicit input wait passed all 13 checks; that wait is now part of the committed test helper. This correction changes test synchronization only, leaving all application/deployment bytes unchanged. Cloud evidence and screenshots remain in ignored work storage; final PR verification records the qualified revision.
+
 ## Handoff rule
 
 Future work starts by verifying `main`'s actual commit and worktree status. Preserve independent changes before updating, reconcile on a feature branch and publish the verified checkpoint through one PR. Report the merged commit and verify both receiving checkout and deployment against it. Ignored references/configuration require their separately authorized transfer; matching source does not imply identical runtime credentials or enabled providers.
