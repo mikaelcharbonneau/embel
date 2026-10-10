@@ -14,6 +14,8 @@ Every owned row and storage object requires enforced ownership. Never trust owne
 
 Run typecheck, lint, relevant tests, and production build before verified pushes. Test actual tenant isolation at database boundaries when possible. Distinguish local tests from live provider validation. No secrets in source, output, logs, fixtures, or commits. Preserve all unrelated changes. Specialists own disjoint paths and do not commit or push; lead integrates.
 
+Local and cloud handoffs use this repository's verified `main` revision as their shared source. Check the actual commit and worktree status before starting. Preserve all uncommitted work before updating; reconcile independent changes on a feature branch and publish the verified checkpoint through one pull request. Report the merged commit when handing work off, and verify the receiving checkout and deployment identify that same revision. Credentials and ignored runtime/reference files require their separately authorized configuration or transfer; they are not synchronized by Git.
+
 Shared browser belongs to multiple tasks. Use a dedicated headless browser for local tests; do not disturb SourceAtlas tabs. Ask through the parent before shared GUI use.
 
 <!-- BEGIN:nextjs-agent-rules -->

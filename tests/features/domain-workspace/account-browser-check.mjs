@@ -31,7 +31,18 @@ let externalRequests = 0;
 const reply = (route, value, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(value) });
 const input = page => page.getByRole("textbox", { name: "Names or full domains" });
 const save = page => page.getByRole("button", { name: "Save draft", exact: true });
-async function edit(page, value) { await input(page).fill(value); await page.getByRole("button", { name: "Prepare search", exact: true }).click(); }
+async function readNames(page) {
+  const entries = await page.locator('[data-domain-entry]').evaluateAll(elements => elements.map(element => element.getAttribute('data-domain-entry')));
+  const pending = await input(page).inputValue();
+  return [...entries, ...(pending ? [pending] : [])].join("\n");
+}
+async function replaceNames(page, value) {
+  await input(page).waitFor();
+  const removals = page.locator('[data-domain-entry] button');
+  while (await removals.count()) await removals.first().click();
+  await input(page).fill(value);
+}
+async function edit(page, value) { await replaceNames(page, value); await page.getByRole("button", { name: "Search domains", exact: true }).click(); }
 async function run(name, task) {
   if (caseFilter && !name.includes(caseFilter)) return;
   const page = await browser.newPage();
@@ -68,46 +79,59 @@ async function run(name, task) {
   finally { await page.close(); }
 }
 try {
-  await run("owned prepared draft loads with unknown availability and unavailable registrar", async page => {
+  await run("owned prepared draft loads with unknown availability and unavailable registrar", async (page, fixture) => {
     await page.goto(url); await input(page).waitFor();
-    assert.equal(await input(page).inputValue(), "North Star");
+    assert.equal(await readNames(page), "North Star");
     assert.equal(await page.getByText("Unknown", { exact: true }).count(), 2);
+    await page.getByRole("button", { name: "View northstar.com details" }).click();
     assert.equal(await page.getByRole("button", { name: "Check availability for northstar.com" }).isDisabled(), true);
     assert.equal(await save(page).isDisabled(), true);
-    assert.equal(await page.getByRole("button", { name: "Create brand from northstar.com" }).isDisabled(), true);
+    assert.equal(await page.getByRole("button", { name: "Create brand from northstar.com" }).isEnabled(), true);
+    assert.equal(fixture.puts.length, 0);
     await page.evaluate(() => document.fonts.ready); await page.screenshot({ path: `${output}/domains-account-desktop.png`, fullPage: true });
   });
+  await run("name-library action opens an explicit import and retains its owned source", async (page, fixture) => {
+    await page.goto(url); await input(page).waitFor();
+    await page.getByRole("button", { name: "From name library", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Name library", exact: true });
+    await dialog.waitFor(); assert.equal(fixture.puts.length, 0);
+    await dialog.getByRole("button", { name: "Import saved name", exact: true }).click();
+    await dialog.waitFor({ state: "hidden" });
+    assert.equal(await readNames(page), "Owned Name");
+    await page.getByText("Imported saved sources (1)", { exact: true }).waitFor();
+    assert.equal(fixture.puts.length, 0);
+  });
   await run("manual edit clears prior candidates, saves CAS and reloads prepared draft", async (page, fixture) => {
-    await page.goto(url); await input(page).fill("New Name");
+    await page.goto(url); await replaceNames(page, "New Name");
     assert.equal(await page.getByRole("heading", { name: "northstar.com", exact: true }).count(), 0);
-    await page.getByRole("button", { name: "Prepare search", exact: true }).click(); await save(page).click();
+    await page.getByRole("button", { name: "Search domains", exact: true }).click(); await save(page).click();
     await page.getByText("Saved to account · version 2", { exact: true }).waitFor();
     assert.equal(fixture.puts[0].expectedRevision, 1); assert.deepEqual(fixture.puts[0].payload.candidates, ["newname.com", "newname.io"]);
     await page.reload(); await page.getByRole("heading", { name: "newname.com", exact: true }).waitFor();
-    assert.equal(await input(page).inputValue(), "New Name"); assert.equal(await page.getByText("Unknown", { exact: true }).count(), 2);
+    assert.equal(await readNames(page), "New Name"); assert.equal(await page.getByText("Unknown", { exact: true }).count(), 2);
   });
   await run("explicit saved-name import keeps frozen provenance and saves selectors only", async (page, fixture) => {
     await page.goto(url); await input(page).waitFor();
     assert.equal(fixture.puts.length, 0); await page.getByRole("button", { name: "Import saved name", exact: true }).click();
     await page.getByText("Imported saved sources (1)", { exact: true }).waitFor();
-    assert.equal(await input(page).inputValue(), "Owned Name"); assert.equal(await page.getByRole("heading", { name: "northstar.com", exact: true }).count(), 0);
+    assert.equal(await readNames(page), "Owned Name"); assert.equal(await page.getByRole("heading", { name: "northstar.com", exact: true }).count(), 0);
     await page.getByText("Imported saved sources (1)", { exact: true }).click();
     await page.getByText("Saved project version 7 · selected Naming candidate", { exact: true }).waitFor();
-    await page.getByRole("button", { name: "Prepare search", exact: true }).click(); await save(page).click();
+    await page.getByRole("button", { name: "Search domains", exact: true }).click(); await save(page).click();
     await page.getByText("Saved to account · version 2", { exact: true }).waitFor();
     assert.deepEqual(fixture.puts[0].imports, [{ projectId, projectRevision: 7, selectionId: source.selectionId }]);
     assert.equal(fixture.puts[0].payload.input, "Owned Name");
     fixture.source.name = "Later Name"; fixture.source.projectRevision = 8;
     await page.reload(); await page.getByText("Imported saved sources (1)", { exact: true }).click();
-    assert.equal(await input(page).inputValue(), "Owned Name"); await page.getByText("Saved project version 7 · selected Naming candidate", { exact: true }).waitFor();
+    assert.equal(await readNames(page), "Owned Name"); await page.getByText("Saved project version 7 · selected Naming candidate", { exact: true }).waitFor();
   });
   await run("preparation error clears when a saved-name import replaces invalid input", async (page, fixture) => {
     await page.goto(url); await edit(page, "bad..com");
     await page.getByRole("alert").waitFor(); assert.match(await page.getByRole("alert").innerText(), /Line 1:/);
     await page.getByRole("button", { name: "Import saved name", exact: true }).click();
     await page.getByText("Imported saved sources (1)", { exact: true }).waitFor();
-    assert.equal(await input(page).inputValue(), "Owned Name"); assert.equal(await page.getByRole("alert").count(), 0);
-    await page.getByRole("button", { name: "Prepare search", exact: true }).click();
+    assert.equal(await readNames(page), "Owned Name"); assert.equal(await page.getByRole("alert").count(), 0);
+    await page.getByRole("button", { name: "Search domains", exact: true }).click();
     assert.equal(await page.getByText("Unknown", { exact: true }).count(), 2); assert.equal(fixture.puts.length, 0);
   });
   await run("preparation error clears after explicit discard loads a valid saved draft", async (page, fixture) => {
@@ -115,22 +139,22 @@ try {
     await page.getByRole("alert").waitFor(); assert.match(await page.getByRole("alert").innerText(), /Line 1:/);
     await page.getByRole("button", { name: "Load saved draft", exact: true }).click();
     await page.getByRole("button", { name: "Discard edits and load saved draft", exact: true }).waitFor();
-    assert.equal(await input(page).inputValue(), "bad..com"); assert.equal(await page.getByRole("alert").count(), 1);
+    assert.equal(await readNames(page), "bad..com"); assert.equal(await page.getByRole("alert").count(), 1);
     await page.getByRole("button", { name: "Discard edits and load saved draft", exact: true }).click();
     await page.getByText("Saved to account · version 1", { exact: true }).waitFor();
-    assert.equal(await input(page).inputValue(), "North Star"); assert.equal(await page.getByRole("alert").count(), 0);
+    assert.equal(await readNames(page), "North Star"); assert.equal(await page.getByRole("alert").count(), 0);
     assert.equal(await page.getByText("Unknown", { exact: true }).count(), 2); assert.equal(fixture.puts.length, 0);
   });
   await run("CAS conflict retains edits until an explicit discard and fresh reload", async (page, fixture) => {
     await page.goto(url); await edit(page, "Unsaved Branch");
     fixture.workspaces.set(owner, { ...workspace(), revision: 2, payload: draft("Newer Saved Name") });
     await save(page).click(); await page.getByRole("alert").waitFor();
-    assert.equal(await input(page).inputValue(), "Unsaved Branch"); assert.equal(await input(page).isDisabled(), true);
+    assert.equal(await readNames(page), "Unsaved Branch"); assert.equal(await input(page).isDisabled(), true);
     await page.getByRole("button", { name: "Load saved draft", exact: true }).click();
-    await page.getByRole("button", { name: "Keep edits", exact: true }).click(); assert.equal(await input(page).inputValue(), "Unsaved Branch");
+    await page.getByRole("button", { name: "Keep edits", exact: true }).click(); assert.equal(await readNames(page), "Unsaved Branch");
     await page.getByRole("button", { name: "Load saved draft", exact: true }).click();
     await page.getByRole("button", { name: "Discard edits and load saved draft", exact: true }).click();
-    await page.getByText("Saved to account · version 2", { exact: true }).waitFor(); assert.equal(await input(page).inputValue(), "Newer Saved Name");
+    await page.getByText("Saved to account · version 2", { exact: true }).waitFor(); assert.equal(await readNames(page), "Newer Saved Name");
   });
   await run("uncertain save freezes editing and exact retry retains the original request key", async (page, fixture) => {
     fixture.onPut = async (route, body) => fixture.puts.length === 1 ? route.abort("failed") : fixture.persist(route, body);
@@ -145,10 +169,10 @@ try {
     await page.getByText("No verified account session. Sign in to view your account projects.", { exact: true }).waitFor();
     assert.equal(await input(page).count(), 0); assert.equal(await page.getByText("Private Unsaved Name", { exact: true }).count(), 0);
     await page.getByRole("button", { name: "Recheck fixture account", exact: true }).click(); await input(page).waitFor();
-    assert.equal(await input(page).inputValue(), "Private Unsaved Name");
+    assert.equal(await readNames(page), "Private Unsaved Name");
     await page.getByRole("button", { name: "Unmount account workspace", exact: true }).click();
     await page.getByRole("button", { name: "Remount account workspace", exact: true }).click(); await input(page).waitFor();
-    assert.equal(await input(page).inputValue(), "Private Unsaved Name"); assert.equal(await save(page).isEnabled(), true);
+    assert.equal(await readNames(page), "Private Unsaved Name"); assert.equal(await save(page).isEnabled(), true);
   });
   await run("owner change clears prior drafts and fences a delayed import", async (page, fixture) => {
     let release;
@@ -159,7 +183,7 @@ try {
     fixture.owner = other;
     await page.getByRole("button", { name: "Recheck fixture account", exact: true }).click(); await input(page).waitFor();
     release(); await page.waitForTimeout(50);
-    assert.equal(await input(page).inputValue(), "Other Account Name"); assert.equal(await page.getByText("Imported saved sources (1)", { exact: true }).count(), 0);
+    assert.equal(await readNames(page), "Other Account Name"); assert.equal(await page.getByText("Imported saved sources (1)", { exact: true }).count(), 0);
     assert.equal(await save(page).isDisabled(), true);
   });
   for (const kind of ["foreign", "malformed"]) await run(`${kind} account response fails closed with no editable payload`, async (page, fixture) => {
@@ -170,7 +194,7 @@ try {
   await run("mobile account controls wrap and keep manual search keyboard-accessible", async page => {
     await page.setViewportSize({ width: 390, height: 844 }); await page.goto(url); await input(page).waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false);
-    await input(page).focus(); await page.keyboard.press("Tab"); assert.equal(await page.getByRole("checkbox", { name: ".com", exact: true }).evaluate(element => element === document.activeElement), true);
+    await input(page).focus(); await page.keyboard.press("Tab"); assert.equal(await page.getByRole("button", { name: "Search domains", exact: true }).evaluate(element => element === document.activeElement), true);
     await page.evaluate(() => document.fonts.ready); await page.screenshot({ path: `${output}/domains-account-mobile.png`, fullPage: true });
   });
   assert.deepEqual(errors, []); assert.equal(externalRequests, 0);

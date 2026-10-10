@@ -45,7 +45,7 @@ function ManualTrademarkWorkspace() {
 }
 
 function ManualStandaloneToolWorkspace({ tool }: { tool: StandaloneToolName }) {
-  if (tool === "domains") return <DomainsWorkspace />;
+  if (tool === "domains") return <DomainsWorkspace initialView="search" />;
   if (tool === "handles") return <HandlesWorkspace />;
   return <ManualTrademarkWorkspace />;
 }
@@ -59,12 +59,17 @@ function StandaloneToolWorkspace({ tool }: { tool: StandaloneToolName }) {
   const props = { memory: standaloneDrafts, importProjectId: project?.id, importProjectTitle: project?.title };
   // The manual fallback is a separate component, seeded only by the features'
   // empty defaults. It never receives a hidden account payload or saved sources.
-  if (session.status !== "ready") return <><div className="page standalone-account-status"><AccountStatus retainedEdits={standaloneDrafts.hasUnsaved()} /></div><ManualStandaloneToolWorkspace tool={tool} /></>;
+  if (session.status !== "ready") {
+    if (tool === "domains") return <DomainsWorkspace initialView="search" draftControls={<AccountStatus retainedEdits={standaloneDrafts.hasUnsaved()} />} />;
+    return <><div className="page standalone-account-status"><AccountStatus retainedEdits={standaloneDrafts.hasUnsaved()} /></div><ManualStandaloneToolWorkspace tool={tool} /></>;
+  }
+  const projectPicker = <StandaloneProjectPicker selectedProjectId={project?.id} onSelect={next => {
+    if (session.status === "ready" && isCurrent(session)) setSelected(next ? { ownerId: session.userId, generation: session.generation, project: next } : null);
+  }} />;
+  if (tool === "domains") return <AccountDomainsWorkspace {...props} projectPicker={projectPicker} />;
   return <>
-    <StandaloneProjectPicker selectedProjectId={project?.id} onSelect={next => {
-      if (session.status === "ready" && isCurrent(session)) setSelected(next ? { ownerId: session.userId, generation: session.generation, project: next } : null);
-    }} />
-    {tool === "domains" ? <AccountDomainsWorkspace {...props} /> : tool === "handles" ? <HandlesAccountEditor {...props} /> : <TrademarkAccountEditor {...props} />}
+    {projectPicker}
+    {tool === "handles" ? <HandlesAccountEditor {...props} /> : <TrademarkAccountEditor {...props} />}
   </>;
 }
 

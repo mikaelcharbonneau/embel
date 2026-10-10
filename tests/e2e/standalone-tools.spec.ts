@@ -33,20 +33,70 @@ async function manualWorkspace(page: Page, allowSignOut = false) {
 test("integrated Domains prepares candidates without checking, purchasing or saving account records", async ({ page }, info) => {
   const verify = await manualWorkspace(page);
   await page.goto("/domains");
+  await expect(page.getByRole("heading", { name: "A home for your brand.", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Library", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Domain library unavailable", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Prepare a domain search", exact: true }).click();
-  await page.getByLabel("Names or full domains", { exact: true }).fill("North Star\nnorthstar.org");
-  await page.getByRole("button", { name: "Prepare search", exact: true }).click();
+  await page.getByLabel("Names or full domains", { exact: true }).fill("North Star,northstar.org");
+  await page.getByRole("button", { name: "Search domains", exact: true }).click();
   for (const domain of ["northstar.com", "northstar.co", "northstar.io", "northstar.org"]) {
     await expect(page.getByRole("heading", { name: domain, exact: true })).toBeVisible();
     await expect(page.getByRole("status", { name: `${domain} availability` })).toHaveText("Unknown");
+    await page.getByRole("button", { name: `View ${domain} details`, exact: true }).click();
     await expect(page.getByRole("button", { name: `Check availability for ${domain}`, exact: true })).toBeDisabled();
     await expect(page.getByRole("button", { name: `Create brand from ${domain}`, exact: true })).toBeDisabled();
   }
   await expect(page.getByText("No availability evidence.", { exact: true })).toHaveCount(4);
+  await page.getByRole("checkbox", { name: "Select northstar.com", exact: true }).check();
+  await page.getByText("Result actions · 1 selected", { exact: true }).click();
+  await expect(page.getByRole("button", { name: "Check selected domains", exact: true })).toBeDisabled();
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export CSV", exact: true }).click();
+  expect((await downloadPromise).suggestedFilename()).toBe("fluid-domain-candidates.csv");
   await verify();
   await page.evaluate(() => { (document.activeElement as HTMLElement | null)?.blur(); window.scrollTo(0, 0); });
   await page.screenshot({ path: info.outputPath("domains-manual.png"), fullPage: true });
+});
+
+test("account Domains imports a selected saved name through the new library action", async ({ page }) => {
+  const owner = "aaaaaaaa-1111-4111-8111-111111111111", projectId = "bbbbbbbb-1111-4111-8111-111111111111";
+  const source = { projectId, projectRevision: 3, projectTitle: "Synthetic name source", name: "Cedar", selectionId: null, candidateId: null, origin: "project_name" };
+  const requests: string[] = [], failures: string[] = [];
+  page.on("pageerror", error => failures.push(error.message));
+  await page.route("**/*", route => {
+    const url = new URL(route.request().url());
+    if (url.origin === fixtureOrigin && !url.pathname.startsWith("/api/")) return route.continue();
+    failures.push(`${route.request().method()} ${url.origin}${url.pathname}`); return route.abort();
+  });
+  await page.route(`${fixtureOrigin}/api/session`, route => route.fulfill({ json: { user: { id: owner } } }));
+  await page.route(`${fixtureOrigin}/api/workspaces/domains`, route => {
+    requests.push(route.request().method());
+    return route.fulfill({ json: { ownerId: owner, workspace: null } });
+  });
+  await page.route(`${fixtureOrigin}/api/projects/page?*`, route => {
+    requests.push("project listing");
+    return route.fulfill({ json: { ownerId: owner, items: [{ id: projectId, owner_id: owner, title: source.projectTitle, scope: "naming_only", current_revision: 3, created_at: "2026-10-06T10:00:00Z" }], nextCursor: null } });
+  });
+  await page.route(`${fixtureOrigin}/api/workspaces/imports?*`, route => {
+    expect(new URL(route.request().url()).searchParams.get("projectId")).toBe(projectId);
+    requests.push("import"); return route.fulfill({ json: { ownerId: owner, source } });
+  });
+  await page.goto("/domains");
+  await expect(page.getByRole("button", { name: "From name library", exact: true })).toBeEnabled();
+  expect(requests).not.toContain("project listing");
+  await page.getByRole("button", { name: "From name library", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Name library", exact: true });
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel("Saved project for import", { exact: true }).selectOption(projectId);
+  expect(requests).not.toContain("import");
+  await dialog.getByRole("button", { name: "Import saved name", exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(page.getByRole("button", { name: "Remove name Cedar", exact: true })).toBeVisible();
+  await expect(page.getByText("Imported saved sources (1)", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Search domains", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "cedar.com", exact: true })).toBeVisible();
+  expect(requests.filter(value => value === "import")).toHaveLength(1);
+  expect(requests).not.toContain("PUT"); expect(failures).toEqual([]);
 });
 
 test("integrated Handles keeps independent bundle states in tab memory with checks unavailable", async ({ page }, info) => {
@@ -170,10 +220,20 @@ for (const tool of ["domains", "handles", "trademarks"] as const) {
       return route.fulfill({ json: { authenticated: false } });
     });
     await page.goto(`/${tool}`);
+    const openAccountMenu = async () => {
+      if (tool === "domains" && await page.locator(".workspace-account-menu").getAttribute("open") === null) await page.getByLabel("Account menu", { exact: true }).click();
+    };
+    await openAccountMenu();
     await expect(page.getByRole("button", { name: "Sign out", exact: true })).toBeVisible();
     const field = () => page.getByRole("textbox", { name: tool === "domains" ? "Names or full domains" : tool === "handles" ? "Names" : "Mark name", exact: true });
     const edit = async (label: string, handleName: string) => {
-      if (tool !== "handles") { await field().fill(label); return; }
+      if (tool !== "handles") {
+        if (tool === "domains") {
+          const removals = page.locator("[data-domain-entry] button");
+          while (await removals.count()) await removals.first().click();
+        }
+        await field().fill(label); return;
+      }
       await page.getByRole("tab", { name: "Search", exact: true }).click();
       await field().fill(handleName);
       await page.getByRole("button", { name: "Build comparison", exact: true }).click();
@@ -183,16 +243,23 @@ for (const tool of ["domains", "handles", "trademarks"] as const) {
     };
     const hasDraft = async (label: string) => {
       if (tool === "handles") await expect(page.getByRole("heading", { name: label, exact: true })).toBeVisible();
+      else if (tool === "domains") await expect.poll(async () => {
+        const chips = await page.locator("[data-domain-entry]").evaluateAll(elements => elements.map(element => element.getAttribute("data-domain-entry")));
+        const pending = await field().inputValue();
+        return [...chips, ...(pending ? [pending] : [])].join("\n");
+      }).toBe(label);
       else await expect(field()).toHaveValue(label);
     };
     const fresh = async () => {
       if (tool === "handles") await expect(page.locator("article.handles-bundle")).toHaveCount(0);
       else {
         if (tool === "domains" && await page.getByRole("button", { name: "Prepare a domain search", exact: true }).count()) await page.getByRole("button", { name: "Prepare a domain search", exact: true }).click();
+        if (tool === "domains") await expect(page.locator("[data-domain-entry]")).toHaveCount(0);
         await expect(field()).toHaveValue("");
       }
     };
     const checkAccount = async () => {
+      await openAccountMenu();
       const response = page.waitForResponse(`${fixtureOrigin}/api/session`);
       await page.getByRole("button", { name: "Check account", exact: true }).click();
       await (await response).finished();

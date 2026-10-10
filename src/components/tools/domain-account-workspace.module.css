@@ -14,6 +14,14 @@
 .sources summary { cursor: pointer; color: var(--text); }
 .sources li { margin: 10px 0; }
 .sources strong { color: var(--text); }
+.nameLibrary { width: min(560px, calc(100vw - 32px)); max-height: calc(100svh - 48px); overflow: auto; border: 1px solid var(--border); border-radius: var(--panel-radius); padding: 24px; color: var(--text); background: var(--paper); }
+.nameLibrary::backdrop { background: #19191940; }
+.nameLibrary > header, .nameLibrary > footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.nameLibrary > header > h2 { font-size: 20px; }
+.nameLibrary > p { margin: 12px 0 20px; color: var(--secondary); font-size: 14px; }
+.nameLibrary > footer { margin-top: 20px; flex-wrap: wrap; }
+.nameLibrary > footer > span { color: var(--secondary); font-size: 13px; }
+.nameLibrary :global(.account-copy-control) { margin: 0; padding: 0; border: 0; background: transparent; }
 @media (max-width: 640px) {
   .panel { padding: 16px; }
   .heading, .import { align-items: flex-start; flex-direction: column; }

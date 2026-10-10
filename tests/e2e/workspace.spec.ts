@@ -159,6 +159,7 @@ test("keyboard navigation, mobile menu, and unavailable tools are usable", async
   await expect(page.getByText("Checks not connected", { exact: true })).toBeVisible();
   await expect(page.getByText("This tab only. Reopening this page starts a new workspace.", { exact: true })).toBeVisible();
   await page.goto("/domains");
+  await page.getByRole("button", { name: "Library", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Domain library unavailable", exact: true })).toBeVisible();
   await page.goto("/trademarks");
   await expect(page.getByRole("heading", { name: "Trademarks", exact: true })).toBeVisible();
