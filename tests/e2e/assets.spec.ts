@@ -1,6 +1,6 @@
 import { captureUiEvidence } from "./ui-evidence";
 import { createHash } from "node:crypto";
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { assetDetailSchema, assetLibraryPageSchema, assetLibraryQuerySchema, assetRevisionFreshness, assetVersionDetailSchema, isAssetRetained, type AssetDetail, type AssetLibraryItem, type AssetLibraryQuery, type AssetRecord, type AssetVersionDetail } from "../../src/domain/asset-library";
 
@@ -73,6 +73,10 @@ async function setup(page: Page, existing?: Fixture) {
   });
   return fixture;
 }
+async function actions(page: Page, kind: string, project: string) {
+  const summary = page.getByLabel(`Actions for ${kind} from ${project}`, { exact: true });
+  if (!await summary.evaluate(element => (element.parentElement as HTMLDetailsElement).open)) await summary.click();
+}
 const openPrimary = (page: Page) => page.getByRole("button", { name: "Open Primary mark from Morrow Works", exact: true });
 async function ready(page: Page) { await page.goto("/assets"); await expect(page.getByRole("tab", { name: "My selection", exact: true })).toHaveAttribute("aria-selected", "true"); await expect(openPrimary(page)).toBeVisible(); }
 
@@ -89,7 +93,7 @@ test("assets fixture: default union deduplicates liked, saved, used and legacy u
 });
 test("assets fixture: unlike remains saved and does not change brand use or selection", async ({ page }) => {
   const fixture = await setup(page); await ready(page);
-  await page.getByRole("button", { name: "Unlike Secondary mark from Lumen Studio", exact: true }).click();
+  await actions(page, "Secondary mark", "Lumen Studio"); await page.getByRole("button", { name: "Unlike Secondary mark from Lumen Studio", exact: true }).click();
   await expect(page.getByRole("button", { name: "Like Secondary mark from Lumen Studio", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Unsave Secondary mark from Lumen Studio", exact: true })).toHaveAttribute("aria-pressed", "true");
   expect(fixture.mutationBodies).toEqual([{ expectedRetentionRevision: 0, liked: false, saved: true }]);
@@ -97,15 +101,17 @@ test("assets fixture: unlike remains saved and does not change brand use or sele
 });
 test("assets fixture: server brand and format filters preserve displayed versus selected versions", async ({ page }) => {
   await setup(page); await ready(page);
-  await page.getByRole("combobox", { name: "Brand", exact: true }).selectOption(id(3));
+  await page.getByRole("combobox", { name: "Project", exact: true }).selectOption(id(3));
   await page.getByRole("combobox", { name: "File type", exact: true }).selectOption("svg");
   const primary = page.getByRole("article", { name: "Primary mark · Morrow Works", exact: true });
+  await actions(page, "Primary mark", "Morrow Works");
   await expect(primary.getByText("Selected v3", { exact: true })).toBeVisible();
   await expect(primary.getByText("Preview v2", { exact: true })).toBeVisible();
   await expect(primary.getByText("3 versions · 1 SVG", { exact: true })).toBeVisible();
   await primary.getByRole("button", { name: "Save Primary mark from Morrow Works", exact: true }).click();
   await expect(primary.getByText("Preview v2", { exact: true })).toBeVisible();
   await expect(primary.getByRole("img")).toHaveCount(0);
+  await page.keyboard.press("Escape");
   await openPrimary(page).click();
   await expect(page.getByRole("dialog").getByText("Selected: version 3 · PNG", { exact: true })).toBeVisible();
   await expect(page.getByRole("dialog").getByRole("heading", { name: "Version 2", exact: true })).toBeVisible();
@@ -147,12 +153,12 @@ test("assets fixture: held filter read clears old rows and cursor", async ({ pag
 });
 test("assets fixture: late pre-mutation GET cannot roll back retention", async ({ page }) => {
   const fixture = await setup(page); await ready(page); fixture.holdRead = fixture.reads + 1; await page.getByRole("button", { name: "Check assets", exact: true }).click();
-  await expect.poll(() => fixture.held !== null).toBe(true); await page.getByRole("button", { name: "Save Primary mark from Morrow Works", exact: true }).click();
+  await expect.poll(() => fixture.held !== null).toBe(true); await actions(page, "Primary mark", "Morrow Works"); await page.getByRole("button", { name: "Save Primary mark from Morrow Works", exact: true }).click();
   await expect(page.getByRole("button", { name: "Unsave Primary mark from Morrow Works", exact: true })).toHaveAttribute("aria-pressed", "true");
   await fixture.held!(); await expect(page.getByRole("button", { name: "Unsave Primary mark from Morrow Works", exact: true })).toHaveAttribute("aria-pressed", "true");
 });
 test("assets fixture: lost retention response requires checking current state before retry", async ({ page }) => {
-  const fixture = await setup(page); await ready(page); fixture.lostRetention = true; await page.getByRole("button", { name: "Save Primary mark from Morrow Works", exact: true }).click();
+  const fixture = await setup(page); await ready(page); fixture.lostRetention = true; await actions(page, "Primary mark", "Morrow Works"); await page.getByRole("button", { name: "Save Primary mark from Morrow Works", exact: true }).click();
   await expect(page.getByRole("region", { name: "Account asset library" }).getByRole("alert")).toContainText("could not be confirmed"); await expect(page.getByRole("button", { name: "Save Primary mark from Morrow Works", exact: true })).toBeDisabled();
   await page.getByRole("button", { name: "Check assets again" }).click(); await expect(page.getByRole("button", { name: "Unsave Primary mark from Morrow Works", exact: true })).toBeEnabled(); expect(fixture.mutationBodies).toHaveLength(1);
 });
@@ -173,11 +179,11 @@ test("assets fixture: metadata-only file never presents a working download", asy
   const dialog = page.getByRole("dialog"); await expect(dialog.getByRole("button", { name: "Check and download" })).toBeDisabled(); await expect(dialog.getByText("Metadata only — no stored file", { exact: true })).toBeVisible();
 });
 test("assets fixture: failed asset read remains retryable without invented empty success", async ({ page }) => {
-  const fixture = await setup(page); fixture.listStatus = 503; await page.goto("/assets"); await expect(page.getByRole("region", { name: "Account asset library" }).getByRole("alert")).toContainText("unavailable"); await expect(page.getByText("No saved assets yet", { exact: true })).toHaveCount(0);
+  const fixture = await setup(page); fixture.listStatus = 503; await page.goto("/assets"); await expect(page.getByRole("region", { name: "Account asset library" })).toBeVisible({ timeout: 10000 }); await expect(page.getByRole("region", { name: "Account asset library" }).getByRole("alert")).toContainText("unavailable"); await expect(page.getByText("No saved assets yet", { exact: true })).toHaveCount(0);
   fixture.listStatus = 200; await page.getByRole("button", { name: "Check assets again" }).click(); await expect(openPrimary(page)).toBeVisible();
 });
 test("assets fixture: failed brand facets do not hide owned library rows", async ({ page }) => {
-  const fixture = await setup(page); fixture.projectsStatus = 503; await ready(page); await expect(page.getByText("The brand list could not be loaded.", { exact: false })).toBeVisible(); await expect(page.getByRole("article")).toHaveCount(5);
+  const fixture = await setup(page); fixture.projectsStatus = 503; await ready(page); await expect(page.getByText("The project list could not be loaded.", { exact: false })).toBeVisible(); await expect(page.getByRole("article")).toHaveCount(5);
 });
 test("assets fixture: invalid nested ownership never renders private rows", async ({ page }) => {
   const fixture = await setup(page); fixture.corrupt = true; await page.goto("/assets"); await expect(page.getByRole("region", { name: "Account asset library" }).getByRole("alert")).toContainText("could not be verified"); await expect(page.getByRole("article")).toHaveCount(0);
@@ -207,7 +213,7 @@ test("assets fixture: long names stay within the library and detail viewport", a
   await page.getByRole("button", { name: /^Open Extraordinary/ }).first().click(); await expect(page.getByRole("dialog")).toBeVisible(); expect(await page.getByRole("dialog").evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
 });
 test("assets fixture: capture stable library and drawer evidence", async ({ page }, info) => {
-  await setup(page); await ready(page); await page.getByRole("heading", { name: "Assets", exact: true }).focus(); await page.evaluate(() => scrollTo(0, 0));
+  await setup(page); await ready(page); await page.getByRole("heading", { name: "Your visual library.", exact: true }).focus(); await page.evaluate(() => scrollTo(0, 0));
   await mkdir(".tmp/identity-assets/ui-evidence", { recursive: true }); await page.screenshot({ path: `.tmp/identity-assets/ui-evidence/assets-library-${info.project.name}.png`, fullPage: true });
   await openPrimary(page).click(); const dialog = page.getByRole("dialog"); await dialog.getByRole("button", { name: "Version 1 PNG Earlier context", exact: true }).click();
   await dialog.getByRole("heading", { name: "Primary mark", exact: true }).focus(); await dialog.evaluate(element => element.scrollTo(0, 0));
@@ -234,12 +240,12 @@ test("assets fixture: zero-version assets and unselected previews are honest", a
   const fixture = await setup(page); const empty = fixture.rows.find(row => row.asset.id === id(10))!, unselected = fixture.rows.find(row => row.asset.id === id(15))!;
   fixture.rows = [{ ...empty, asset: { ...empty.asset, currentSelection: null, selectionRevision: 0, versionCount: 0 }, selectedVersion: null, versions: { ...empty.versions, totalCount: 0, items: [] } }, { ...unselected, asset: { ...unselected.asset, currentSelection: null, selectionRevision: 0 }, selectedVersion: null }];
   await ready(page); const first = page.getByRole("article", { name: "Primary mark · Morrow Works", exact: true });
-  await expect(first.getByText("No versions yet", { exact: true })).toBeVisible(); await expect(first.getByText("0 versions", { exact: true })).toBeVisible();
-  await expect(page.getByRole("article", { name: "Secondary mark · Lumen Studio", exact: true }).getByText("Preview v3", { exact: true })).toBeVisible();
+  await expect(first.getByText("No versions yet", { exact: true })).toBeVisible(); await actions(page, "Primary mark", "Morrow Works"); await expect(first.getByText("0 versions", { exact: true })).toBeVisible(); await page.keyboard.press("Escape");
+  await actions(page, "Secondary mark", "Lumen Studio"); await expect(page.getByRole("article", { name: "Secondary mark · Lumen Studio", exact: true }).getByText("Preview v3", { exact: true })).toBeVisible();
   await openPrimary(page).click(); await expect(page.getByRole("dialog").getByText("No selected version", { exact: true })).toBeVisible(); await expect(page.getByRole("dialog").getByText("No versions have been saved for this asset.", { exact: true })).toBeVisible();
 });
 test("assets fixture: removing the last retention flag preserves all generations", async ({ page }) => {
-  await setup(page); await ready(page); await page.getByRole("button", { name: "Unlike Primary mark from Morrow Works", exact: true }).click();
+  await setup(page); await ready(page); await actions(page, "Primary mark", "Morrow Works"); await page.getByRole("button", { name: "Unlike Primary mark from Morrow Works", exact: true }).click();
   await expect(openPrimary(page)).toHaveCount(0); await page.getByRole("tab", { name: "All generations", exact: true }).click(); await expect(openPrimary(page)).toBeVisible();
 });
 test("assets fixture: two tabs restore concurrently and the losing choice can be reviewed", async ({ page, context }) => {
@@ -256,6 +262,58 @@ test("assets fixture: two tabs restore concurrently and the losing choice can be
 test("assets fixture: metadata auth expiry hides every asset", async ({ page }) => {
   const fixture = await setup(page); await ready(page); fixture.listStatus = 401;
   await page.getByRole("button", { name: "Check assets", exact: true }).click(); await expect(page.getByRole("article")).toHaveCount(0); await expect(page.getByText("No verified account session.", { exact: false })).toBeVisible();
+});
+
+test("assets design: search remains bounded and pagination can reveal a match", async ({ page }) => {
+  const fixture = await setup(page); fixture.pageSize = 2; await page.goto("/assets");
+  await expect(page.getByRole("article")).toHaveCount(2);
+  await page.getByRole("searchbox", { name: "Search assets" }).fill("PRIMARY");
+  await expect(page.getByRole("article")).toHaveCount(0);
+  await expect(page.getByText("Search covers loaded assets.", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "Load more assets" }).click();
+  await page.getByRole("button", { name: "Load more assets" }).click();
+  await expect(openPrimary(page)).toBeVisible();
+  await expect(page.getByText("1 matches in 5 loaded assets", { exact: true })).toBeVisible();
+  await expect(page.getByText("Search covers loaded assets.", { exact: false })).toHaveCount(0);
+  await page.getByRole("searchbox").fill("no such asset");
+  await expect(page.getByRole("heading", { name: "No assets match these filters" })).toBeVisible();
+  await expect(page.getByText("No selected assets yet", { exact: true })).toHaveCount(0);
+});
+
+test("assets design: keyboard tabs preserve project and format filters", async ({ page }) => {
+  await setup(page); await ready(page);
+  await page.getByRole("combobox", { name: "Project", exact: true }).selectOption(id(3));
+  await page.getByRole("combobox", { name: "File type" }).selectOption("svg");
+  await page.getByRole("tab", { name: "My selection" }).focus(); await page.keyboard.press("End");
+  await expect(page.getByRole("tab", { name: "All generations" })).toBeFocused();
+  await expect(page.getByRole("combobox", { name: "Project", exact: true })).toHaveValue(id(3));
+  await expect(page.getByRole("combobox", { name: "File type" })).toHaveValue("svg");
+  await expect(page.getByRole("article")).toHaveCount(3);
+});
+
+test("assets design: native artwork and compact responsive card geometry", async ({ page }, info) => {
+  await setup(page); await ready(page); await page.getByRole("tab", { name: "All generations" }).click();
+  await expect(page.getByRole("article")).toHaveCount(6);
+  const desktop = info.project.name === "desktop";
+  const expected = { "shell-mark": 28, "shell-home": 20, "shell-brands": 20, "shell-assets": 20, "shell-ideas": 20, "shell-names": 20, "shell-handles": 20, "shell-domains": 20, "shell-trademarks": 20, "shell-settings": 20, "shell-expand": 16, filter: 17, open: 14 };
+  for (const name of [...Object.keys(expected), "grid"]) {
+    const served = await page.request.get(`/assets-library/${name}.svg`); expect(served.status()).toBe(200);
+    const local = await readFile(`public/assets-library/${name}.svg`); expect(local.length).toBeGreaterThan(0);
+    expect(createHash("sha256").update(await served.body()).digest("hex")).toBe(createHash("sha256").update(local).digest("hex"));
+  }
+  for (const [name, size] of Object.entries(expected)) {
+    const all = page.locator(`img[src="/assets-library/${name}.svg"]`);
+    expect(await all.count()).toBeGreaterThan(0);
+    const visible = await all.evaluateAll(nodes => nodes.filter(node => node.getBoundingClientRect().width > 0).map(node => ({ width: node.getBoundingClientRect().width, height: node.getBoundingClientRect().height, loaded: (node as HTMLImageElement).complete && (node as HTMLImageElement).naturalWidth > 0 })));
+    if (desktop || !name.startsWith("shell-")) expect(visible.length).toBeGreaterThan(0);
+    for (const box of visible) expect(box).toEqual({ width: size, height: size, loaded: true });
+  }
+  const cards = await page.getByRole("article").evaluateAll(nodes => nodes.map(node => { const b = node.getBoundingClientRect(); return { x: b.x, y: b.y, width: b.width, height: b.height }; }));
+  for (const card of cards) { expect(card.height).toBe(216); if (desktop) expect(card.width).toBe(324); }
+  if (desktop) { expect(cards[0]!.x).toBe(256); expect(cards[0]!.y).toBeCloseTo(345, 0); expect(cards[1]!.x - cards[0]!.x).toBe(342); expect(cards[3]!.y - cards[0]!.y).toBe(234); }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await expect(page.locator(".concept-assets .workspace-main")).toHaveCSS("background-size", "1360px 900px");
+  await page.screenshot({ path: `/workspace/scratch/fluid-assets-figma-20261010/assets-${info.project.name}.png`, fullPage: true });
 });
 
 test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));

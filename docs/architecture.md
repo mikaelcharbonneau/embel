@@ -162,3 +162,7 @@ Manual Ideas uses its own owner-scoped head, immutable revision and immutable br
 ## Names Assistant route bridge — 2026-10-05
 
 Standalone Names Assistant consumes the existing verified account session, reads strict /api/projects/page summaries, and links explicitly to saved-project Naming. It introduces no generation, server API, schema or persistence operation. Browser and account Name state remain separate; the active runtime includes prior Brands controls and manual Ideas. New independent Domains/Handles/Trademarks modules remain staged until their review corrections and shared route checks complete. See [names-assistant-rollout.md](names-assistant-rollout.md).
+
+## Assets approved library presentation
+
+The Assets collection uses the shared concept shell and compact Figma library layout. UI search is scoped to loaded owner-verified rows, with explicit pagination limits. Account generation remounts the entire library and its search/menu/detail state; private previews retain cancellation and URL revocation. Server filtering, revision-checked retention/restoration and file evidence contracts are unchanged. See assets-guided-design.md.

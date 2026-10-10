@@ -9,6 +9,7 @@ import "@/styles/identity-references.css";
 import "@/styles/identity.css";
 import "@/styles/concept-shell.css";
 import "@/styles/home-concept.css";
+import "@/styles/assets-guided.css";
 
 export const metadata: Metadata = {
   title: { default: "Fluid — Brand workspace", template: "%s · Fluid" },
