@@ -4,6 +4,8 @@ This independent module prepares the roadmap’s domain workspace. The account c
 
 ## Public entry
 
+The current app presentation follows the approved [Guided Browser filter/results references](../../../docs/domains-guided-design.md). It adds removable input chips, categorized extension browsing, collapsible filters and compact result rows while retaining the contracts below. The app route opens Search; the standalone component's existing default remains Library. Account import opens from the search card, with explicit source selection and import kept separate.
+
 `DomainsWorkspace` and `DomainsWorkspaceProps` are exported from `src/features/domain-workspace/index.ts`; pure schemas/helpers/types are exported from the same entry (server users should import `model.ts` directly to avoid the client boundary).
 
 - `adapter`: explicit `unavailable` default, or a client-side **read-only** `check(domain, signal)` and optional `quote(domain, checkId, signal)`. Responses are untrusted `unknown`, validated against evidence-bearing schemas, and bound to the exact domain/provider/check. There is no order submission or payment callback.

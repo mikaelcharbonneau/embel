@@ -17,9 +17,9 @@ const adapter: DomainSearchAdapter | undefined = scenario === "unavailable" || s
     if (scenario === "error") throw new Error("Synthetic transport failure");
     if (scenario === "mismatch") return { ...fixture.check, domain: "other.com" };
     const now = Date.now();
-    return { ...fixture.check, domain, id: `fixture-${domain}`, checkedAt: new Date(now - 100).toISOString(), validUntil: new Date(now + (scenario === "expiry" ? 1000 : 60000)).toISOString() };
+    return { ...fixture.check, domain, id: `fixture-${domain}`, availability: scenario === "taken-expiry" ? "taken" : fixture.check.availability, checkedAt: new Date(now - 100).toISOString(), validUntil: new Date(now + (["expiry", "taken-expiry"].includes(scenario) ? 1000 : 60000)).toISOString() };
   },
-  quote: async (domain, checkId) => ({ ...fixture.quote, domain, checkId, issuedAt: new Date(Date.now()).toISOString(), expiresAt: new Date(Date.now() + (scenario === "quote-expiry" ? 1000 : 60000)).toISOString() }),
+  quote: async (domain, checkId) => ({ ...fixture.quote, domain, checkId, total: scenario === "sorting" ? { amountMinor: domain.endsWith(".com") ? 3000 : domain.endsWith(".co") ? 1000 : 2000, currency: "USD" } : fixture.quote.total, issuedAt: new Date(Date.now()).toISOString(), expiresAt: new Date(Date.now() + (scenario === "quote-expiry" ? 1000 : 60000)).toISOString() }),
 };
 function Preview() {
   const [disconnected, setDisconnected] = useState(false);

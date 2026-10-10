@@ -46,7 +46,7 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const mainRef = useRef<HTMLElement>(null);
   const isHome = pathname === "/";
   const ideaId = /^\/ideas\/([^/]+)$/.exec(pathname)?.[1];
-  const usesConceptShell = isHome || pathname === "/ideas" || Boolean(ideaId);
+  const usesConceptShell = isHome || pathname === "/ideas" || Boolean(ideaId) || pathname === "/domains";
   const usesBottomFade = isHome || Boolean(ideaId);
   const menuRef = useRef<HTMLDialogElement>(null);
   const pageLabel = [...primary, ...tools, { href: "/settings", label: "Settings" }, { href: "/sign-in", label: "Sign in" }].find((item) => item.href !== "/" && pathname.startsWith(item.href))?.label ?? "Home";
@@ -69,7 +69,7 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
     return () => { observer.disconnect(); main.removeEventListener("scroll", measure); };
   }, [usesBottomFade, pathname]);
 
-  return <div className={`app-shell ${usesConceptShell ? "concept-shell" : ""} ${isHome ? "concept-home" : ideaId ? "concept-idea-detail" : pathname === "/ideas" ? "concept-ideas" : ""} ${expanded ? "navigation-expanded" : "navigation-collapsed"}`}>
+  return <div className={`app-shell ${usesConceptShell ? "concept-shell" : ""} ${isHome ? "concept-home" : ideaId ? "concept-idea-detail" : pathname === "/ideas" ? "concept-ideas" : pathname === "/domains" ? "concept-domains" : ""} ${expanded ? "navigation-expanded" : "navigation-collapsed"}`}>
     <a className="skip-link" href="#main-content">Skip to content</a>
     <aside className="sidebar"><SidebarContent concept={usesConceptShell} /></aside>
     <dialog className="mobile-menu" ref={menuRef} onCancel={() => setMenuOpen(false)} onClick={(event) => { if (event.target === event.currentTarget) setMenuOpen(false); }} aria-label="Navigation"><button className="icon-button mobile-close" aria-label="Close navigation" onClick={() => setMenuOpen(false)}><Icon name="close" /></button><SidebarContent close={() => setMenuOpen(false)} /></dialog>
