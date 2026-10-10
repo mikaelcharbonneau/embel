@@ -12,8 +12,9 @@ const notes = "Readable in English and French";
 function candidate(page: Page, value: string): Locator { return page.getByRole("article", { name: `Name: ${value}`, exact: true }); }
 async function openNames(page: Page) {
   await page.goto("/names");
-  await expect(page.getByRole("heading", { name: "Names", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Shape a name.", exact: true })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Library", exact: true })).toBeVisible();
+  await page.getByRole("tab", { name: "Library", exact: true }).click();
 }
 async function addName(page: Page, value: string, withContext = false) {
   await page.getByRole("button", { name: "Add name", exact: true }).click();
@@ -83,6 +84,7 @@ test("Names library retains manual context, independent preferences, comparison 
 test("Workshop chains all four real transformations, retains run parameters and promotes known context without restarting", async ({ page }, testInfo) => {
   await openNames(page);
   await page.getByRole("tab", { name: "Workshop", exact: true }).click();
+  await page.getByText("Single-name controls", { exact: true }).click();
   const controls = page.getByRole("complementary", { name: "Workshop controls" });
   await controls.getByRole("textbox", { name: "Start with a word" }).fill("Lumi");
   await controls.getByRole("textbox", { name: "Suffixes", exact: true }).fill("na, no");
@@ -120,6 +122,7 @@ test("Workshop chains all four real transformations, retains run parameters and 
   await controls.getByRole("textbox", { name: "Brief description" }).fill("Changed current workspace context for a future name only.");
   await page.reload();
   await expect(page.getByRole("tab", { name: "Workshop", exact: true })).toHaveAttribute("aria-selected", "true");
+  await page.getByText("Single-name controls", { exact: true }).click();
   await expect(controls.getByRole("textbox", { name: "Find exact text" })).toHaveValue("LUM");
   const before = JSON.parse((await stored(page))!);
   const chosen = before.candidates.find((item: { source: { value: string } }) => item.source.value === "Lumova");
@@ -144,6 +147,7 @@ test("Workshop chains all four real transformations, retains run parameters and 
   await page.reload();
   await expect(page.getByRole("heading", { name: "Lumova", exact: true, level: 1 })).toBeVisible();
   await page.getByRole("link", { name: "Open Names", exact: true }).click();
+  await page.getByText("Single-name controls", { exact: true }).click();
   await expect(candidate(page, "Lumova")).toBeVisible();
   await page.getByRole("region", { name: "Workshop history" }).getByText("Run history", { exact: false }).click();
   await page.getByRole("region", { name: "Workshop history" }).getByRole("button").filter({ hasText: "Affixes" }).click();
@@ -192,8 +196,9 @@ test("account fixture: promoted source survives explicit account copy while both
 test("invalid and unchanged transforms remain honest, and Names tabs support keyboard navigation", async ({ page }) => {
   await openNames(page);
   await page.getByRole("tab", { name: "Library", exact: true }).focus();
-  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowLeft");
   await expect(page.getByRole("tab", { name: "Workshop", exact: true })).toBeFocused();
+  await page.getByText("Single-name controls", { exact: true }).click();
   const controls = page.getByRole("complementary", { name: "Workshop controls" });
   await controls.getByRole("textbox", { name: "Start with a word" }).fill("Lumi");
   await controls.getByRole("textbox", { name: "Prefixes", exact: true }).fill(Array.from({ length: 13 }, (_, index) => `p${index}`).join(","));
@@ -208,7 +213,8 @@ test("invalid and unchanged transforms remain honest, and Names tabs support key
   expect(JSON.parse((await stored(page))!).candidates).toHaveLength(0);
   await page.getByRole("tab", { name: "Workshop", exact: true }).focus();
   await page.keyboard.press("End");
-  await expect(page.getByRole("tab", { name: "AI Assistant", exact: true })).toBeFocused();
+  await expect(page.getByRole("tab", { name: "History", exact: true })).toBeFocused();
+  await page.getByRole("button", { name: "AI Assistant", exact: true }).click();
   await expect(page.getByRole("heading", { name: "AI naming assistant" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Name screening" })).toHaveCount(0);
 });

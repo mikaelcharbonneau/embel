@@ -59,3 +59,8 @@
 .concept-handles .workspace-main { background-image: url('/handles/grid.svg'); background-size: 1360px 900px; background-repeat: repeat-x; }
 .concept-handles .workspace-main:has(.handles-results) { background-image: url('/handles/results-grid.svg'); background-size: 1360px 1190px; }
 .concept-handles.navigation-expanded .workspace-sidebar-toggle img { transform: rotate(180deg); }
+.concept-names .workspace-main { background-image: url('/names/affix-grid.svg'); background-size: 1360px 1509px; background-repeat: repeat-x; }
+.concept-names .workspace-main:has(.names-guided-workshop[data-mode=tweaks]) { background-image: url('/names/tweaks-grid.svg'); background-size: 1360px 1651px; }
+.concept-names .workspace-main:has(.names-guided-workshop[data-mode=blend]) { background-image: url('/names/blend-grid.svg'); background-size: 1360px 1437px; }
+.concept-names .workspace-main:has(.names-guided-workshop[data-mode=swap]) { background-image: url('/names/swap-grid.svg'); background-size: 1360px 1323px; }
+.concept-names.navigation-expanded .workspace-sidebar-toggle img { transform: rotate(180deg); }
