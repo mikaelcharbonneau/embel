@@ -19,7 +19,10 @@ const ready = () => ({ status: "available", operations: [{ operation: "strategy.
 const unavailable = (reason = "worker_unavailable") => ({ status: "unavailable", operations: [], reason });
 const deferred = <T,>() => { let resolve!: (value: T) => void; const promise = new Promise<T>(yes => { resolve = yes; }); return { promise, resolve }; };
 let root: Root, host: HTMLDivElement, fetcher: ReturnType<typeof vi.fn>, runtime: unknown;
-async function render(localRuntimeEnabled = false) { await act(async () => root.render(createElement(ToolWorkspace, { tool: "settings", localRuntimeEnabled }))); }
+async function render(localRuntimeEnabled = false) {
+  await act(async () => root.render(createElement(ToolWorkspace, { tool: "settings", localRuntimeEnabled })));
+  await act(async () => host.querySelector<HTMLButtonElement>('[role="tab"][id="settings-tab-ai"]')!.click());
+}
 function statusText() { return host.querySelector('[aria-label="Text and strategy status"]')?.textContent ?? ""; }
 async function refreshStatus() { await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent === "Check text status")!.click()); }
 beforeEach(() => {

@@ -129,6 +129,7 @@ test("storage failure is visible and never claims a persistent save", async ({ c
 test("invalid saved data is rejected with a recovery path", async ({ context, page }) => {
   await context.addInitScript(() => { localStorage.setItem("fluid.local-drafts.v1", "{not-valid-json"); });
   await page.goto("/settings");
+  await page.getByRole("tab", { name: "Workspace", exact: true }).click();
   await expect(page.getByRole("alert").filter({ hasText: "Saved drafts could not be read" })).toBeVisible();
   await page.getByRole("button", { name: "Clear drafts", exact: true }).click();
   await page.getByRole("button", { name: "Delete all drafts", exact: true }).click();
