@@ -60,6 +60,7 @@ async function fixtures(page: Page) {
       return reply(route, { authenticated: false });
     }
     if (state.sessionStatus !== 200) return reply(route, { error: { code: "unauthenticated", message: "Synthetic signed-out fixture" } }, 401);
+    if (path === "/api/projects/page") return reply(route, { ownerId, items: [accountProjectSummarySchema.parse(project)], nextCursor: null });
     if (path === "/api/projects") return reply(route, { projects: [accountProjectSummarySchema.parse(project)] });
     if (path === `/api/projects/${projectId}/strategy` && request.method() === "GET") return reply(route, { availability: { status: "unavailable", operations: [], reason: "runtime_disabled" }, jobs: [] });
     if (path === `/api/projects/${projectId}` && request.method() === "GET") return reply(route, { project });
@@ -77,6 +78,10 @@ async function rename(page: Page, title: string) {
   await page.getByRole("button", { name: "Rename project", exact: true }).click();
   await page.getByRole("textbox", { name: "Project label", exact: true }).fill(title);
   await page.getByRole("textbox", { name: "Project label", exact: true }).press("Enter");
+}
+
+async function revealAccountMenu(page: Page) {
+  await page.locator(".workspace-account-menu").evaluateAll(elements => { for (const element of elements) (element as HTMLDetailsElement).open = true; });
 }
 
 async function triggerAutomaticRefresh(page: Page) {
@@ -107,6 +112,7 @@ test("auth fixture: unconfigured sign-in stays accessible and does not accept cr
   await page.screenshot({ path: testInfo.outputPath("sign-in-unconfigured.png"), fullPage: true, scale: "css", style: "nextjs-portal { visibility: hidden; }" });
   await page.getByRole("link", { name: "Continue with browser drafts", exact: true }).click();
   await expect(page).toHaveURL(/\/brands$/);
+  await revealAccountMenu(page);
 });
 
 test("auth fixture: pending sign-in blocks refresh and sign-out across internal navigation", async ({ page }) => {
@@ -130,11 +136,13 @@ test("auth fixture: pending sign-in blocks refresh and sign-out across internal 
   fixture.state.sessionStatus = 200;
   await triggerAutomaticRefresh(page);
   expect(fixture.state.sessionRequests).toBe(sessionCount);
-  await expect(page.getByRole("button", { name: "Check account", exact: true })).toBeDisabled();
+  await revealAccountMenu(page);
+  await expect(page.getByRole("button", { name: /^(Check|Checking) account(?:…)?$/ })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Sign out", exact: true })).toHaveCount(0);
   await expect(form.getByLabel("Password", { exact: true })).toHaveValue("");
   await page.getByRole("link", { name: "Continue with browser drafts", exact: true }).click();
   await expect(page).toHaveURL(/\/brands$/);
+  await revealAccountMenu(page);
   await expect(page.locator(".topbar").getByRole("button", { name: "Signing in…", exact: true })).toBeDisabled();
   await triggerAutomaticRefresh(page);
   expect(fixture.state.sessionRequests).toBe(sessionCount);
@@ -142,7 +150,7 @@ test("auth fixture: pending sign-in blocks refresh and sign-out across internal 
   await expect(page.getByText(privateTitle, { exact: true })).toHaveCount(0);
   fixture.releaseSignIn();
   await expect(page.getByRole("button", { name: "Sign out", exact: true })).toBeVisible();
-  await expect(page.getByText(privateTitle, { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: privateTitle, exact: true, level: 2 })).toBeVisible();
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(page.locator(".topbar").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
   await triggerAutomaticRefresh(page);
@@ -204,6 +212,7 @@ test("auth fixture: configured sign-in clears credentials, rejects unsafe replie
   fixture.state.signInBody = { authenticated: true };
   await submit();
   await expect(page).toHaveURL(/\/brands$/);
+  await revealAccountMenu(page);
   await expect(page.getByRole("button", { name: "Sign out", exact: true })).toBeVisible();
   expect(fixture.state.signInRequests).toBe(9);
   expect(await page.evaluate(key => localStorage.getItem(key), storageKey)).toBe(browserWorkspace);
@@ -232,7 +241,8 @@ test("auth fixture: sign-out confirms unsaved edits, fences pending requests and
   await fixture.requested;
   await expect(page.getByRole("textbox")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Signing out…", exact: true })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "Check account", exact: true })).toBeDisabled();
+  await revealAccountMenu(page);
+  await expect(page.getByRole("button", { name: /^(Check|Checking) account(?:…)?$/ })).toBeDisabled();
   await triggerAutomaticRefresh(page);
   expect(fixture.state.sessionRequests).toBe(sessionCount);
   fixture.release();

@@ -12,6 +12,7 @@ import "@/styles/home-concept.css";
 import "@/styles/assets-guided.css";
 import "@/styles/trademarks-guided.css";
 import "@/styles/settings-guided.css";
+import "@/styles/auth-guided.css";
 
 export const metadata: Metadata = {
   title: { default: "Fluid — Brand workspace", template: "%s · Fluid" },
@@ -20,6 +21,6 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <html lang="en" className={GeistSans.variable}><body><AppShell>{children}</AppShell></body></html>;
+export default function RootLayout({ children, auth }: { children: React.ReactNode; auth: React.ReactNode }) {
+  return <html lang="en" className={GeistSans.variable}><body><AppShell auth={auth}>{children}</AppShell></body></html>;
 }
