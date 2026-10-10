@@ -179,7 +179,7 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
   }
 
   return <div className={home ? "home-intake conversation-intake" : "page intake-page conversation-intake"}>
-    {home ? <div className="home-introduction"><h1>Your next brand starts here<span>.</span></h1><p>An idea, a product, a place. Let’s give it a name and a world of its own.</p></div> : <><div className="page-heading"><h1>New conversation</h1><Link href="/brands" className="text-link">Back to brands</Link></div><ScopePicker value={displayedScope} disabled={frozenInputs} onChange={value => { if (canEditInputs()) setScope(value); }} /><p className="scope-helper">Complete branding by default · choose a scope for focused work</p></>}
+    {home ? <div className="home-introduction"><h1>Your next brand starts here<span>.</span></h1><p>An idea, a product, a place. Let’s give it a name and a world of its own.</p></div> : <><div className="page-heading"><h1>New conversation</h1><Link href="/brands" className="text-link">Back to projects</Link></div><ScopePicker value={displayedScope} disabled={frozenInputs} onChange={value => { if (canEditInputs()) setScope(value); }} /><p className="scope-helper">Complete branding by default · choose a scope for focused work</p><Link href="/brands/logo/new" className="text-link">Create a logo</Link></>}
     {resumedPrompt && <div className="prompt-recovery-notice"><p role="status">{strategy.locked ? "Your original prompt is kept. Check its account recovery status below before continuing." : "Your prompt is ready to continue. Its scope and browser copy are kept."}</p><button type="button" className="text-link" disabled={frozenInputs} onClick={() => { if (!canEditInputs()) return; clearPromptRecovery(); textDraft.current = null; setTextDraftId(null); setPrompt(""); setScope(initialScope); setExampleUsed(false); setResumedPrompt(false); setError(""); }}>Start a new prompt</button></div>}
     {hiddenFiles && <p role="status">An attached brief is retained in this tab. Verify the same account before sending so its files stay with it.</p>}
     {frozenBrief && <p role="status">Your prompt, scope and example selection are locked to the original attached brief while its save is confirmed or recovered.</p>}
@@ -218,7 +218,7 @@ export function ProjectEditor({ projectId }: { projectId: string }) {
   const draft = drafts.find((item) => item.id === projectId);
   const router = useRouter();
   if (!loaded) return <div className="page"><p className="quiet-empty">Loading your conversation…</p></div>;
-  if (!draft) return <div className="page"><div className="empty-panel"><Icon name="file" size={30} /><h1>Draft not found in this browser</h1><p>Local drafts are only available in the browser where they were created.</p><Link href="/brands" className="button primary">Back to brands</Link></div></div>;
+  if (!draft) return <div className="page"><div className="empty-panel"><Icon name="file" size={30} /><h1>Draft not found in this browser</h1><p>Local drafts are only available in the browser where they were created.</p><Link href="/brands" className="button primary">Back to projects</Link></div></div>;
   return <ProjectEditorForm key={projectId} draft={draft} storage={{
     kind: "browser", saveLabel: storage === "available" ? "Saved in this browser" : "This tab only",
     onUpdate: (patch) => updateLocalDraft(projectId, patch),
@@ -335,7 +335,7 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
     <div className="conversation-scroll-area" role="region" aria-label="Conversation and project details" tabIndex={0}>
     <header className="conversation-project-header">
       <div className="conversation-project-title">
-        <Link href="/brands" className="text-link">Brands</Link><Icon name="chevron" size={13} />
+        <Link href="/brands" className="text-link">Projects</Link><Icon name="chevron" size={13} />
         {renaming ? <input className="conversation-title-input" aria-label="Project label" autoFocus value={draft.title} maxLength={160} placeholder="Untitled brand" onChange={(event) => update({ title: event.target.value })} onBlur={() => setRenaming(false)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === "Escape") { event.preventDefault(); setRenaming(false); } }} /> : <>
           <h1>{draftTitle(draft)}</h1><button className="icon-button subtle" aria-label="Rename project" type="button" onClick={() => setRenaming(true)}><Icon name="pencil" size={14} /></button>
         </>}
@@ -354,7 +354,7 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
     </Fragment>)}</ol>
     {!lastPrompt && storage.strategy && <div className="conversation-service-entry">{storage.strategy}</div>}
     {storage.projectContext && <div className="conversation-context">{storage.projectContext}</div>}
-    <footer className="conversation-footer"><Link href="/brands" className="text-link">Back to all brands</Link>{storage.onDelete && (!confirmDelete ? <button className="text-link danger-text" type="button" onClick={() => setConfirmDelete(true)}>Delete this draft</button> : <div className="inline-confirm"><span>Delete this browser draft?</span><button className="button secondary small" type="button" onClick={() => setConfirmDelete(false)}>Keep draft</button><button className="button danger small" type="button" onClick={storage.onDelete}>Delete draft</button></div>)}</footer>
+    <footer className="conversation-footer"><Link href="/brands" className="text-link">Back to all projects</Link>{storage.onDelete && (!confirmDelete ? <button className="text-link danger-text" type="button" onClick={() => setConfirmDelete(true)}>Delete this draft</button> : <div className="inline-confirm"><span>Delete this browser draft?</span><button className="button secondary small" type="button" onClick={() => setConfirmDelete(false)}>Keep draft</button><button className="button danger small" type="button" onClick={storage.onDelete}>Delete draft</button></div>)}</footer>
     </div>
     <div className="conversation-compose-area">
       {storage.resultNavigation}

@@ -35,6 +35,10 @@ Account views are hidden whenever identity is unverified. Requests are aborted a
 
 Live integration tests have a separate command, explicit opt-in, and an explicit approved development project allowlist. They accept only a publishable key and temporary access tokens for two prepared test identities. The suite reads real Auth/PostgREST/Storage fixtures but does not provision users, write data or run jobs. Until secure setup is complete, browser API fixtures and PGlite checks are local evidence only.
 
+## Projects collection
+
+The Projects collection (formerly Brands) keeps `/brands` and existing browser/account destinations while adopting the approved unified grid. Its account page hook retains validated cursor merging and bounded, owner/generation-fenced reads. Collection controls stay outside the private listing remount boundary. Account summaries deliberately expose unavailable stage/update metadata rather than inventing details. See [Projects design and behavior](projects-guided-design.md).
+
 ## Names provenance and browser persistence
 
 Standalone Names has a separate versioned browser store. Captured candidates, context and runs are immutable; preferences and current workshop controls remain editable. Stored input is fully validated, including replay of bounded transformation history and cross-record references. Version 1 pins transformation semantics and history explanations: future algorithm or wording changes must retain a compatible reader or explicitly migrate old records rather than invalidate them silently.

@@ -8,7 +8,7 @@ import type { ProjectScope } from "@/domain/projects";
 const scopes: { label: string; icon: IconName; value?: ProjectScope; unavailable?: string }[] = [
   { label: "Brand", icon: "brands", value: "complete_brand" },
   { label: "Name", icon: "pencil", value: "naming_only" },
-  { label: "Logo", icon: "assets", unavailable: "Use Brands → Create a logo for the dedicated logo workflow." },
+  { label: "Logo", icon: "assets", unavailable: "Use Projects → New project → Create a logo for the dedicated logo workflow." },
   { label: "Font", icon: "names", unavailable: "Standalone font creation is not available yet." },
   { label: "Color", icon: "palette", unavailable: "Standalone color creation is not available yet." },
   { label: "Guide", icon: "file", unavailable: "Standalone guide creation is not available yet." },
@@ -48,7 +48,7 @@ export function HomeScopePicker({ value, onChange, disabled = false }: {
     {open && !disabled && <div className="home-scope-menu" id={id} role="menu" aria-label="Project scope">
       {scopes.map(option => <button key={option.label} type="button" role="menuitemradio" aria-checked={option.value === value} disabled={!option.value} title={option.unavailable} onClick={() => {
         if (option.value) { onChange(option.value); setOpen(false); trigger.current?.focus(); }
-      }}><Icon name={option.icon} size={20} /><span>{option.label}</span>{option.value === value && <Icon name="check" size={16} />}{!option.value && <small>{option.label === "Logo" ? "In Brands" : "Soon"}</small>}</button>)}
+      }}><Icon name={option.icon} size={20} /><span>{option.label}</span>{option.value === value && <Icon name="check" size={16} />}{!option.value && <small>{option.label === "Logo" ? "In Projects" : "Soon"}</small>}</button>)}
     </div>}
   </div>;
 }

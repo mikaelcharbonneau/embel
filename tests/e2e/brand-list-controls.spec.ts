@@ -19,41 +19,44 @@ async function fixture(page:Page, projects=rows){
   }return reply(route,{},404);
  });return state;
 }
-const account=(page:Page)=>page.getByRole('region',{name:'Account brands',exact:true});
-const browser=(page:Page)=>page.getByRole('region',{name:'Browser drafts',exact:true});
-const cards=(section:ReturnType<typeof account>)=>section.getByRole('link');
+const account=(page:Page)=>page.locator('.projects-page');
+const browser=(page:Page)=>page.locator('.projects-page');
+const cards=(section:ReturnType<typeof account>)=>section.locator('.project-card[data-storage=account]');
+const browserCards=(page:Page)=>page.locator('.project-card[data-storage=browser]');
+async function scopeControl(page:Page){const panel=page.locator('.projects-control').filter({has:page.getByText('Filter',{exact:true})});if(!await panel.evaluate(node=>(node as HTMLDetailsElement).open))await page.getByText('Filter',{exact:true}).click();return page.getByRole('combobox',{name:'Filter projects by scope',exact:true});}
+async function sortControl(page:Page){const panel=page.locator('.projects-control').filter({has:page.getByText('Sort',{exact:true})});if(!await panel.evaluate(node=>(node as HTMLDetailsElement).open))await page.getByText('Sort',{exact:true}).click();return page.getByRole('combobox',{name:'Sort projects',exact:true});}
 test('brand controls fixture: a scope with no loaded matches retains continuation until older matching projects arrive',async({page})=>{
- const state=await fixture(page);await page.goto('/brands');await expect(account(page)).toContainText('50 loaded');
- await page.getByRole('combobox',{name:'Filter brands by scope',exact:true}).selectOption('complete_brand');await expect(cards(account(page))).toHaveCount(0);
- await expect(account(page)).toContainText('No matches among loaded account brands');await account(page).getByRole('button',{name:'Load more account brands',exact:true}).click();
- await expect(account(page)).toContainText('100 loaded');await expect(cards(account(page))).toHaveCount(25);
- await account(page).getByRole('button',{name:'Load more account brands',exact:true}).click();await expect(cards(account(page))).toHaveCount(50);await expect(account(page)).toContainText('125 loaded');
- await expect(account(page)).toContainText('Scope filters and sorting also use loaded account brands');expect(state.reads).toBe(3);expect(state.writes).toEqual([]);
+ const state=await fixture(page);await page.goto('/brands');await expect(account(page)).toContainText('50 account projects loaded');
+ await (await scopeControl(page)).selectOption('complete_brand');await expect(cards(account(page))).toHaveCount(0);
+ await expect(account(page)).toContainText('No matching projects');await account(page).getByRole('button',{name:'Load more account projects',exact:true}).click();
+ await expect(account(page)).toContainText('100 account projects loaded');await expect(cards(account(page))).toHaveCount(25);
+ await account(page).getByRole('button',{name:'Load more account projects',exact:true}).click();await expect(cards(account(page))).toHaveCount(50);await expect(account(page)).toContainText('125 account projects loaded');
+ await expect(account(page)).toContainText('Search, filters and sorting apply to loaded projects');expect(state.reads).toBe(3);expect(state.writes).toEqual([]);
 });
 test('brand controls fixture: alphabetical sorting never changes continuation anchors or stored membership',async({page})=>{
- const state=await fixture(page);await page.goto('/brands');await expect(account(page)).toContainText('50 loaded');
- const sort=page.getByRole('combobox',{name:'Sort loaded account brands',exact:true});await sort.selectOption('alphabetical');
- await expect(cards(account(page)).first()).toContainText('Brand 76');await account(page).getByRole('button',{name:'Load more account brands',exact:true}).click();
- await expect(account(page)).toContainText('100 loaded');await expect(cards(account(page)).first()).toContainText('Brand 26');
- await sort.selectOption('created');await expect(cards(account(page)).first()).toContainText('Brand 125');expect(state.reads).toBe(2);expect(state.writes).toEqual([]);
+ const state=await fixture(page);await page.goto('/brands');await expect(account(page)).toContainText('50 account projects loaded');
+ const sort=(await sortControl(page));await sort.selectOption('alphabetical');
+ await expect(cards(account(page)).first()).toContainText('Brand 76');await account(page).getByRole('button',{name:'Load more account projects',exact:true}).click();
+ await expect(account(page)).toContainText('100 account projects loaded');await expect(cards(account(page)).first()).toContainText('Brand 26');
+ await (await sortControl(page)).selectOption('created');await expect(cards(account(page)).first()).toContainText('Brand 125');expect(state.reads).toBe(2);expect(state.writes).toEqual([]);
 });
 test('brand controls fixture: later-page failure keeps scope and sort plus all already-loaded cards',async({page})=>{
- const state=await fixture(page);await page.goto('/brands');await expect(account(page)).toContainText('50 loaded');
- await page.getByRole('combobox',{name:'Filter brands by scope',exact:true}).selectOption('naming_only');await page.getByRole('combobox',{name:'Sort loaded account brands',exact:true}).selectOption('alphabetical');state.status=503;
- await account(page).getByRole('button',{name:'Load more account brands',exact:true}).click();await expect(account(page).getByRole('alert')).toBeVisible();await expect(cards(account(page))).toHaveCount(50);
- state.status=200;await account(page).getByRole('button',{name:'Try loading account brands again',exact:true}).click();await expect(cards(account(page))).toHaveCount(75);await expect(cards(account(page)).first()).toContainText('Brand 51');
+ const state=await fixture(page);await page.goto('/brands');await expect(account(page)).toContainText('50 account projects loaded');
+ await (await scopeControl(page)).selectOption('naming_only');await (await sortControl(page)).selectOption('alphabetical');state.status=503;
+ await account(page).getByRole('button',{name:'Load more account projects',exact:true}).click();await expect(account(page).getByRole('alert')).toBeVisible();await expect(cards(account(page))).toHaveCount(50);
+ state.status=200;await account(page).getByRole('button',{name:'Try loading account projects again',exact:true}).click();await expect(cards(account(page))).toHaveCount(75);await expect(cards(account(page)).first()).toContainText('Brand 51');
 });
-test('brand controls fixture: scope and independent browser sorts never modify durable device drafts',async({page},info)=>{
+test('brand controls fixture: scope and project sorts never modify durable device drafts',async({page},info)=>{
  const state=await fixture(page);const drafts=[
   {n:1,title:'Zulu draft',scope:'complete_brand' as const,created:'2026-10-01T10:00:00Z',updated:'2026-10-05T10:00:00Z'},
   {n:2,title:'Alpha draft',scope:'naming_only' as const,created:'2026-10-03T10:00:00Z',updated:'2026-10-04T10:00:00Z'},
   {n:3,title:'Middle draft',scope:'visual_identity_only' as const,created:'2026-10-02T10:00:00Z',updated:'2026-10-03T10:00:00Z'},
  ].map(d=>({...accountProjectDraft({...row(d.n),scope:d.scope,title:d.title,context:contextSnapshotSchema.parse({description:'Synthetic manual brand brief.'})}),createdAt:d.created,updatedAt:d.updated}));
- const stored=JSON.stringify({version:1,drafts});await page.addInitScript(stored=>{localStorage.setItem('fluid.local-drafts.v1',stored);},stored);await page.goto('/brands');await expect(cards(browser(page))).toHaveCount(3);
- const sort=page.getByRole('combobox',{name:'Sort browser drafts',exact:true});await expect(sort).toHaveValue('updated');await expect(cards(browser(page)).first()).toContainText('Zulu draft');
- await sort.selectOption('created');await expect(cards(browser(page)).first()).toContainText('Alpha draft');await sort.selectOption('alphabetical');await expect(cards(browser(page)).first()).toContainText('Alpha draft');
- await page.getByRole('combobox',{name:'Filter brands by scope',exact:true}).selectOption('visual_identity_only');await expect(cards(browser(page))).toHaveCount(1);await expect(cards(browser(page)).first()).toContainText('Middle draft');
- await page.getByRole('searchbox').fill('unmatched');await expect(cards(browser(page))).toHaveCount(0);await expect(browser(page)).toContainText('No matching drafts');await page.getByRole('searchbox').clear();
+ const stored=JSON.stringify({version:1,drafts});await page.addInitScript(stored=>{localStorage.setItem('fluid.local-drafts.v1',stored);},stored);await page.goto('/brands');await expect(browserCards(page)).toHaveCount(3);
+ const sort=(await sortControl(page));await expect(sort).toHaveValue('updated');await expect(browserCards(page).first()).toContainText('Zulu draft');
+ await sort.selectOption('created');await expect(browserCards(page).first()).toContainText('Alpha draft');await sort.selectOption('alphabetical');await expect(browserCards(page).first()).toContainText('Alpha draft');
+ await (await scopeControl(page)).selectOption('visual_identity_only');await expect(browserCards(page)).toHaveCount(1);await expect(browserCards(page).first()).toContainText('Middle draft');
+ await page.getByRole('searchbox').fill('unmatched');await expect(browserCards(page)).toHaveCount(0);await expect(browser(page)).toContainText('No matching projects');await page.getByRole('searchbox').clear();
  expect(await page.evaluate(()=>localStorage.getItem('fluid.local-drafts.v1'))).toBe(stored);expect(state.writes).toEqual([]);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);await page.screenshot({path:info.outputPath('brand-controls.png'),fullPage:true,scale:'css'});
 });
@@ -63,12 +66,12 @@ test('brand controls fixture: equivalent alphabetical titles use exact creation 
   {...row(3),title:'Same name',created_at:'2026-10-05T12:00:00.000002Z'},
   {...row(8),title:'Same name',created_at:'2026-10-05T12:00:00.000001Z'}];
  const state=await fixture(page,data);await page.goto('/brands');await expect(cards(account(page))).toHaveCount(3);
- await page.getByRole('combobox',{name:'Sort loaded account brands',exact:true}).selectOption('alphabetical');
+ await (await sortControl(page)).selectOption('alphabetical');
  await expect(cards(account(page)).nth(0)).toHaveAttribute('href',`/brands/account/${id(4)}`);await expect(cards(account(page)).nth(1)).toHaveAttribute('href',`/brands/account/${id(3)}`);await expect(cards(account(page)).nth(2)).toHaveAttribute('href',`/brands/account/${id(8)}`);expect(state.reads).toBe(1);
 });
 test('brand controls fixture: keyboard-operated scope and sort controls do not request or write new data',async({page})=>{
- const state=await fixture(page);await page.goto('/brands');await expect(account(page)).toContainText('50 loaded');
- const scope=page.getByRole('combobox',{name:'Filter brands by scope',exact:true});await scope.focus();await expect(scope).toBeFocused();await scope.press('v');await scope.press('Enter');await expect(scope).toHaveValue('visual_identity_only');await expect(cards(account(page))).toHaveCount(0);
+ const state=await fixture(page);await page.goto('/brands');await expect(account(page)).toContainText('50 account projects loaded');
+ const scope=(await scopeControl(page));await scope.focus();await expect(scope).toBeFocused();await scope.press('v');await scope.press('Enter');await expect(scope).toHaveValue('visual_identity_only');await expect(cards(account(page))).toHaveCount(0);
  await scope.selectOption('all');await expect(scope).toHaveValue('all');await expect(cards(account(page))).toHaveCount(50);
- const sort=page.getByRole('combobox',{name:'Sort loaded account brands',exact:true});await sort.focus();await sort.press('a');await sort.press('Enter');await expect(sort).toHaveValue('alphabetical');await expect(cards(account(page)).first()).toContainText('Brand 76');expect(state.reads).toBe(1);expect(state.writes).toEqual([]);
+ const sort=(await sortControl(page));await sort.focus();await sort.press('a');await sort.press('Enter');await expect(sort).toHaveValue('alphabetical');await expect(cards(account(page)).first()).toContainText('Brand 76');expect(state.reads).toBe(1);expect(state.writes).toEqual([]);
 });

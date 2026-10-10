@@ -43,7 +43,7 @@ export function HomeRecentBrands() {
   ].sort((a, b) => Date.parse(b.time) - Date.parse(a.time) || a.key.localeCompare(b.key)).slice(0, 6);
 
   return <section className="home-recent" aria-labelledby="recent-heading">
-    <div className="home-recent-heading"><h2 id="recent-heading">Pick up where you left off</h2><Link href="/brands" className="text-link">All brands<Icon name="arrow" size={16} /></Link></div>
+    <div className="home-recent-heading"><h2 id="recent-heading">Pick up where you left off</h2><Link href="/brands" className="text-link">All projects<Icon name="arrow" size={16} /></Link></div>
     {!loaded ? <p className="quiet-empty" role="status">Loading your brands…</p> : brands.length ? <div className="home-brand-grid">
       {brands.map((brand, index) => <Link key={brand.key} href={brand.href} className="home-brand-card">
         <div className={`home-brand-preview home-brand-preview--${index === 1 ? "1" : index === 2 ? "2" : index === 4 ? "inverse" : "0"}`} aria-hidden="true"><span>{brand.title}</span></div>
