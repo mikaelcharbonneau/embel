@@ -10,6 +10,8 @@ The private repository is `mikaelcharbonneau/emble`; the product remains **Fluid
 
 Use the private **emble** environment for this repository's `main` branch. Node.js 24 (`.nvmrc`) and the committed npm lockfile are required. The project has native dependencies, so install them for the cloud host; do not upload the Mac's `node_modules`.
 
+For subsequent handoffs, use the latest shared verified `main` revision, check actual HEAD/status before starting, and preserve independent work before updating. The user-approved reconciliation procedure and separate local/cloud evidence are recorded in [local/cloud synchronization](local-cloud-sync.md). A saved cloud environment or older preview is not proof of the currently deployed revision.
+
 For a fresh environment, the general installation commands are:
 
 ```sh
@@ -58,7 +60,7 @@ Read `AGENTS.md`, `docs/decisions.md`, `docs/architecture.md` and `README.md` be
 
 - [Wonder home concepts](https://app.wonder.so/fluid/files/01a11dfe-6aa3-7091-98fe-2fad32cf9fc0/branches/main/pages/01a11dfe-6aa5-743e-bddf-2597d8f3b1ae): Concept 22 artboard `was`.
 - [Wonder Workspace screens](https://app.wonder.so/fluid/files/01a11dfe-6aa3-7091-98fe-2fad32cf9fc0/branches/main/pages/01a11ed5-9795-737b-b0ba-404021959e88): Ideas `psp`, Idea Detail `hod`, original Domains `vip`.
-- Latest design-only variation: **Page - Domains - Advanced Search**, artboard `sum`, positioned left of `vip`. It includes bulk keywords/domains, CSV/import-from-Names, extension selection, prefix/suffix and transformation controls, budget/premium/availability filters, selectable results, shortlist/export/share actions. Its displayed results are illustrative and marked unchecked. This variation has not been implemented in the app.
+- Current Domains authority: **A1 Guided Browser Filters** (`box`) and **A2 Guided Browser Results** (`nag`), the two exact screens subsequently linked by the user. See [current Domains design](domains-guided-design.md). The older Advanced Search (`sum`) checkpoint remains documented in [historical cloud evidence](domains-design.md); its selection, CSV export and sequential read utilities are retained within the newer design.
 
 Keep the collapsed sidebar, black active-edge marker, Geist typography, neutral/magenta palette, 16 px grid, approved app mark, and restrained corner radii. Preserve manual Ideas persistence, immutable revisions, account-generation fencing, conflict recovery and explicit brand conversion. Other screens in Wonder remain proposals unless subsequently approved. Original design snapshots and screenshots in ignored `.references` and `output/playwright` are local evidence, not available automatically in cloud.
 

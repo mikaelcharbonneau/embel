@@ -47,6 +47,12 @@ test("integrated Domains prepares candidates without checking, purchasing or sav
     await expect(page.getByRole("button", { name: `Create brand from ${domain}`, exact: true })).toBeDisabled();
   }
   await expect(page.getByText("No availability evidence.", { exact: true })).toHaveCount(4);
+  await page.getByRole("checkbox", { name: "Select northstar.com", exact: true }).check();
+  await page.getByText("Result actions · 1 selected", { exact: true }).click();
+  await expect(page.getByRole("button", { name: "Check selected domains", exact: true })).toBeDisabled();
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export CSV", exact: true }).click();
+  expect((await downloadPromise).suggestedFilename()).toBe("fluid-domain-candidates.csv");
   await verify();
   await page.evaluate(() => { (document.activeElement as HTMLElement | null)?.blur(); window.scrollTo(0, 0); });
   await page.screenshot({ path: info.outputPath("domains-manual.png"), fullPage: true });

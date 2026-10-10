@@ -175,6 +175,50 @@ try {
     assert.equal(await page.getByRole("heading", { name: "northstar.com", exact: true }).count(), 1); await page.getByRole("alert").waitFor();
     await page.getByRole("searchbox", { name: "Search purchased domains" }).fill("absent"); await page.getByRole("heading", { name: "No matching purchased domains" }).waitFor();
   });
+  await run("selection exports actual rows and resets when the same search is recreated", async () => {
+    await search("ready");
+    await page.getByRole("checkbox", { name: "Select northstar.com", exact: true }).check();
+    await page.getByText("Result actions · 1 selected", { exact: true }).click();
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Export CSV", exact: true }).click();
+    const download = await downloadPromise;
+    const csv = await readFile(await download.path(), "utf8");
+    assert.equal(download.suggestedFilename(), "fluid-domain-candidates.csv");
+    assert.match(csv, /"northstar.com","Not checked",""/);
+    assert.doesNotMatch(csv, /"northstar\.(co|io)"/);
+    await page.getByRole("button", { name: "Search domains", exact: true }).click();
+    await page.getByText("Result actions", { exact: true }).waitFor();
+    await page.getByRole("button", { name: "View northstar.com details", exact: true }).click();
+    assert.equal(await page.getByRole("checkbox", { name: "Select northstar.com", exact: true }).isChecked(), false);
+  });
+  await run("bulk checks release on non-cooperative timeout and can be retried or stopped", async () => {
+    await page.clock.install(); await search("never");
+    await page.getByText("Result actions", { exact: true }).click();
+    await page.getByRole("checkbox", { name: "Select all visible domains" }).check();
+    await page.getByRole("button", { name: "Check selected domains", exact: true }).dblclick();
+    await page.getByRole("button", { name: "Checking selected…", exact: true }).waitFor();
+    await page.clock.runFor(15001);
+    await page.getByText("Bulk checking stopped after a request timed out. Completed results are retained.", { exact: true }).waitFor();
+    assert.equal(await page.getByRole("button", { name: "Check selected domains", exact: true }).isEnabled(), true);
+    assert.equal(await page.getByText("Confirmed available", { exact: true }).count(), 0);
+    await page.getByRole("button", { name: "Check selected domains", exact: true }).click();
+    await page.getByRole("button", { name: "Stop bulk checking", exact: true }).click();
+    await page.getByText("Bulk checking stopped. Completed results are retained.", { exact: true }).waitFor();
+    assert.equal(await page.getByRole("button", { name: "Check selected domains", exact: true }).isEnabled(), true);
+  });
+  await run("bulk check results and all-visible selection respect taken filters", async () => {
+    await search("taken"); await page.getByText("Result actions", { exact: true }).click();
+    await page.getByRole("checkbox", { name: "Select all visible domains" }).check();
+    await page.getByRole("button", { name: "Check selected domains", exact: true }).click();
+    await page.getByRole("button", { name: "Check selected domains", exact: true }).waitFor();
+    assert.equal(await page.getByRole("heading", { name: "northstar.com", exact: true }).count(), 0);
+    assert.equal(await page.getByText("Confirmed available", { exact: true }).count(), 2);
+    await page.getByRole("button", { name: "Clear selected domains", exact: true }).click();
+    await page.getByRole("checkbox", { name: "Select all visible domains" }).check();
+    const downloadPromise = page.waitForEvent("download"); await page.getByRole("button", { name: "Export CSV", exact: true }).click();
+    const csv = await readFile(await (await downloadPromise).path(), "utf8");
+    assert.doesNotMatch(csv, /northstar.com/); assert.match(csv, /northstar.co/); assert.match(csv, /northstar.io/);
+  });
   await run("payment confirmation and reconciliation stay distinct from purchase success", async () => {
     await page.goto(`${url}/?scenario=paid`); await page.getByText("Payment confirmed · registration pending", { exact: true }).waitFor(); await page.getByText("Order needs reconciliation", { exact: true }).waitFor();
     assert.equal(await page.getByText("Registration confirmed", { exact: true }).count(), 0);

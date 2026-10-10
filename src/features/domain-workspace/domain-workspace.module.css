@@ -159,6 +159,12 @@
 .resultArrow[aria-expanded="true"] svg { transform: rotate(90deg); }
 .rowDetails { padding: 20px; border-top: 1px solid var(--border); background: var(--canvas); display: flex; flex-direction: column; gap: 14px; }
 .rowDetails[hidden] { display: none; }
+.resultTools { color: var(--secondary); font-size: 12px; }
+.resultTools > summary { width: fit-content; cursor: pointer; padding: 6px 0; }
+.resultToolsActions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 0; }
+.resultToolsActions > label, .selectDomain { display: inline-flex; align-items: center; gap: 8px; }
+.resultToolsActions input, .selectDomain input { width: 16px; height: 16px; margin: 0; accent-color: var(--text); }
+.selectDomain { width: fit-content; font-size: 13px; color: var(--secondary); }
 .evidenceNote { margin: 0; font-size: 12px; line-height: 18px; color: var(--secondary); }
 .evidenceNote[data-results="false"] { text-align: center; }
 .draftControls { margin-top: 20px; }

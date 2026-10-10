@@ -16,6 +16,7 @@ These supersede the earlier Domains Advanced Search variation for this UI reques
 - Search text becomes removable chips. Commas, Enter and multiline paste can commit entries; pending text is retained in the existing manual draft. Loaded account text and explicit imports use that same field. No example names are seeded into production.
 - Extension categories, search, selection/removal, selected chips, select-all and reset are interactive. The existing maximum of 10 extensions and 20 search entries remains enforced. A successful preparation collapses filters; Edit filters reopens them.
 - Results use the reference's name/registrar, price and circular detail action composition. Opening a row retains the existing check, quote, provenance and explicit brand-creation actions. The Library view and account save/load/recovery controls remain available below the primary design.
+- Cloud utilities remain available without changing the compact result layout: selection inside row details and select-visible, clear, sequential checks and CSV export under Result actions. CSV prices require current matching one-year quotes. Selection belongs to one search instance; recreating identical input starts fresh. Each check settles independently at 15 seconds even if the adapter ignores cancellation; a bulk sequence has a 60-second overall bound and stops on cancellation/timeout, retaining completed results.
 - From name library opens the existing owner-fenced saved-project selector in a dialog. Selecting a project is separate from the explicit import; source provenance, account saves and conflict/session recovery retain their existing contracts.
 - The manual draft/API schema remains version 1 with input, extensions and candidates. Display preferences are local to the mounted view; this increment adds no persistence fields or database changes.
 
@@ -23,7 +24,7 @@ These supersede the earlier Domains Advanced Search variation for this UI reques
 
 The mockup's prices, registrars and personal identity are illustrative. Runtime rows show actual supplied evidence, or Unknown / Not quoted. Premium classification is unavailable and its switch is disabled. Hide unavailable removes only rows with current verified taken evidence. Price filters and sorting use current one-year USD quotes; unknown, expired or incomparable prices remain visible. No exchange rates or estimated annual prices are invented.
 
-The registrar adapter remains unavailable by default. No provider activation, purchases, paid calls, migration, credentials, commit, push or deployment is included in this request.
+The registrar adapter remains unavailable by default. No provider activation, purchases, paid calls, migrations or credential transfers are included. The subsequent user-approved reconciliation authorizes preserving both versions, publishing one reviewed PR, merging its verified revision, updating both checkouts and deploying that same revision to the existing protected preview.
 
 ## Verification
 

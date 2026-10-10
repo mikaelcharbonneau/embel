@@ -10,6 +10,8 @@ import {
 } from "./model";
 import { domainDraftSchema, emptyDomainDraft, type DomainDraft } from "./draft";
 import { DomainFilters, DomainNameInput, defaultViewFilters, type DomainViewFilters } from "./domain-search-controls";
+import { boundedDomainRead, DomainReadCancelled, DomainReadTimeout } from "./bounded-read";
+import { DomainResultTools, type DomainReadOutcome } from "./result-tools";
 import styles from "./domain-workspace.module.css";
 
 export type DomainsWorkspaceProps = {
@@ -90,28 +92,29 @@ export function DomainsWorkspace({ adapter = unavailableDomainAdapter, library =
     setNameInputVersion(value => value + 1);
     setFiltersExpanded(false);
   }
-  const handleRead = useCallback(async (row: Row, operation: "check" | "quote") => {
+  const handleRead = useCallback(async (row: Row, operation: "check" | "quote", batchSignal?: AbortSignal): Promise<DomainReadOutcome> => {
     // Prevent a double-click before React renders the pending state.
-    if (pending.current.has(row.domain) || adapter.status !== "ready") return;
+    if (batchSignal?.aborted) return "cancelled";
+    if (pending.current.has(row.domain) || adapter.status !== "ready") return "skipped";
     const controller = new AbortController(), version = generation.current;
+    const cancel = () => controller.abort();
+    batchSignal?.addEventListener("abort", cancel, { once: true });
     pending.current.set(row.domain, controller);
     setRows(current => current.map(item => item.domain === row.domain ? { ...item, status: operation === "check" ? "checking" : "quoting", requestAdapter: adapter, error: null, ...(operation === "check" ? { check: null, quote: null } : { quote: null }) } : item));
-    const timer = setTimeout(() => {
-      controller.abort();
-      if (version === generation.current) setRows(current => current.map(item => item.domain === row.domain ? { ...item, status: "idle", error: "Request timed out. Try again." } : item));
-      if (pending.current.get(row.domain) === controller) pending.current.delete(row.domain);
-    }, 15000);
     try {
-      const result = operation === "check"
-        ? await readDomainCheck(adapter, row.domain, controller.signal)
-        : await readDomainQuote(adapter, row.check!, Date.now, controller.signal);
-      if (controller.signal.aborted || version !== generation.current) return;
+      const result = await boundedDomainRead<DomainCheck | DomainQuote>(signal => operation === "check"
+        ? readDomainCheck(adapter, row.domain, signal)
+        : readDomainQuote(adapter, row.check!, Date.now, signal), controller);
+      if (controller.signal.aborted || version !== generation.current) return "cancelled";
       setNow(Date.now());
       setRows(current => current.map(item => item.domain === row.domain ? { ...item, status: "idle", ...(operation === "check" ? { check: result as DomainCheck } : { quote: result as DomainQuote }) } : item));
-    } catch {
-      if (!controller.signal.aborted && version === generation.current) setRows(current => current.map(item => item.domain === row.domain ? { ...item, status: "idle", error: operation === "check" ? "The check could not be verified. Availability remains unknown. Try again." : "The quote could not be verified. Try a fresh check and quote." } : item));
+      return "completed";
+    } catch (error) {
+      const outcome = error instanceof DomainReadTimeout ? "timeout" : error instanceof DomainReadCancelled ? "cancelled" : "failed";
+      if (version === generation.current) setRows(current => current.map(item => item.domain === row.domain ? { ...item, status: "idle", error: outcome === "timeout" ? "Request timed out. Try again." : outcome === "cancelled" ? "Request cancelled." : operation === "check" ? "The check could not be verified. Availability remains unknown. Try again." : "The quote could not be verified. Try a fresh check and quote." } : item));
+      return outcome;
     } finally {
-      clearTimeout(timer);
+      batchSignal?.removeEventListener("abort", cancel);
       if (pending.current.get(row.domain) === controller) pending.current.delete(row.domain);
     }
   }, [adapter, setRows]);
@@ -162,6 +165,7 @@ export function DomainsWorkspace({ adapter = unavailableDomainAdapter, library =
         changeDraft({ ...currentDraft, extensions: next, candidates: [] });
       }} disabled={editingDisabled} expanded={filtersExpanded} onExpandedChange={setFiltersExpanded} filters={viewFilters} onFiltersChange={setViewFilters} />
       {rows.length > 0 && <section className={styles.domainResults} aria-label="Domain results">
+        <DomainResultTools key={`${searchKey}:${nameInputVersion}`} rows={rows} visibleRows={visibleRows} adapter={adapter} check={(row, signal) => handleRead(row, "check", signal)}>{(selected, select) => <>
         <header className={styles.resultsToolbar}><div><h2>Domain results</h2><span>{visibleRows.length} {visibleRows.length === 1 ? "result" : "results"}</span></div><div className={styles.sortChoices} aria-label="Sort domain results"><span>Sort by</span>{(["price", "domain", "registrar"] as const).map(key => <button key={key} type="button" aria-pressed={sort.key === key} aria-label={`Sort by ${key}${sort.key === key ? `, ${sort.descending ? "descending" : "ascending"}` : ""}`} onClick={() => selectSort(key)}>{key === "price" ? "Price" : key === "domain" ? "Domain" : "Registrar"}{sort.key === key && <Icon name="arrow-up" size={12} className={sort.descending ? styles.sortDescending : undefined} />}</button>)}</div></header>
         {visibleRows.length ? <ul className={styles.results}>{visibleRows.map(row => {
           const availability = availabilityAt(row.check, now), busy = row.status !== "idle" && row.requestAdapter === adapter;
@@ -173,6 +177,7 @@ export function DomainsWorkspace({ adapter = unavailableDomainAdapter, library =
               <button type="button" className={styles.resultArrow} aria-label={`View ${row.domain} details`} aria-expanded={expanded} aria-controls={`${uid}-details-${row.domain}`} onClick={() => setExpandedRows(current => expanded ? current.filter(domain => domain !== row.domain) : [...current, row.domain])}><Icon name="arrow" size={15} /></button>
             </div>
             <div className={styles.rowDetails} id={`${uid}-details-${row.domain}`} hidden={!expanded}>
+              <label className={styles.selectDomain}><input type="checkbox" aria-label={`Select ${row.domain}`} checked={selected.includes(row.domain)} onChange={event => select(row.domain, event.target.checked)} />Select domain</label>
               <p className={styles.muted}>{row.check ? `${row.check.provider} · checked ${date(row.check.checkedAt)} · valid until ${date(row.check.validUntil)} · evidence ${row.check.evidenceReference}${availability === "unknown" && row.check.availability !== "unknown" ? " · evidence expired or not current" : ""}` : "No availability evidence."}</p>
               {row.status !== "idle" && !busy && <p role="status">Previous request cancelled after a connection change.</p>}
               {row.error && <p role="alert">{row.error}</p>}
@@ -181,6 +186,7 @@ export function DomainsWorkspace({ adapter = unavailableDomainAdapter, library =
             </div>
           </li>;
         })}</ul> : <div className={styles.empty}><h3>No domains match these filters</h3><p>Try a wider price range or include unavailable domains.</p><button type="button" className="button secondary small" onClick={() => setViewFilters({ ...defaultViewFilters, hideUnavailable: false })}>Clear result filters</button></div>}
+        </>}</DomainResultTools>
       </section>}
       <p className={styles.evidenceNote} data-results={rows.length > 0}>{adapter.status === "unavailable" ? adapter.reason : `Checks supplied by ${adapter.provider}.`}{rows.length > 0 && " Unpriced results stay visible. Price filters use current one-year USD quotes."}</p>
     </section>}
