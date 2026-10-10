@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { nameTransformInputSchema, nameValueSchema, namingSourceSchema, transformNames, type NameTransformInput } from "@/domain/naming";
 import { contextSnapshotSchema, type ContextSnapshot } from "@/domain/projects";
+import { emptyGuidedUi, guidedUiSchema, type GuidedResult } from "./guided-names";
 
 export const NAMES_STORAGE_KEY = "fluid.names.v1";
 export const MAX_NAMES = 500;
@@ -29,10 +30,11 @@ const workspaceContextSchema = contextSnapshotSchema.safeExtend({
   description: z.string().max(12000), knownAudience: z.string().max(2000),
 });
 const uiSchema = z.strictObject({
-  tab: z.enum(["library", "workshop", "assistant"]), filter: z.enum(["retained", "favorite", "saved", "all"]),
+  tab: z.enum(["library", "workshop", "assistant", "saved", "history"]), filter: z.enum(["retained", "favorite", "saved", "all"]),
   origin: z.enum(["all", "manual", "workshop"]), query: z.string().max(160), manualValue: z.string().max(160),
   manualOpen: z.boolean(), compareOpen: z.boolean(), comparisonIds: z.array(z.uuid()).max(3),
   activeRunId: z.uuid().nullable(), seedCandidateId: z.uuid().nullable(), form: formSchema, context: workspaceContextSchema,
+  guided: guidedUiSchema.optional(),
 });
 
 const equal = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
@@ -50,6 +52,7 @@ export const namesWorkspaceSchema = z.strictObject({
   if (!unique(data.ui.comparisonIds) || data.ui.comparisonIds.some(id => !candidates.has(id))) fail("Invalid comparison selection");
   if (data.ui.activeRunId && !runs.has(data.ui.activeRunId)) fail("Missing selected run");
   if (data.ui.seedCandidateId && !candidates.has(data.ui.seedCandidateId)) fail("Missing seed candidate");
+  if (data.ui.guided?.words.some(word => word.candidateId && candidates.get(word.candidateId)?.source.value !== word.value) || data.ui.guided?.savedLists.some(list => list.words.some(word => word.candidateId && candidates.get(word.candidateId)?.source.value !== word.value))) fail("Missing guided seed candidate");
   if (!unique(data.ui.form.operations)) fail("Duplicate tweak operations");
   const linkedIds = new Set<string>();
   for (const run of data.runs) {
@@ -93,7 +96,7 @@ export function createEmptyNamesWorkspace(): NamesWorkspace {
   return {
     version: 1, revision: 0, candidates: [], runs: [],
     ui: {
-      tab: "library", filter: "retained", origin: "all", query: "", manualValue: "", manualOpen: false,
+      tab: "workshop", filter: "retained", origin: "all", query: "", manualValue: "", manualOpen: false,
       compareOpen: false, comparisonIds: [], activeRunId: null, seedCandidateId: null,
       context: contextSnapshotSchema.parse({}),
       form: { kind: "affixes", seed: "", prefixes: "", suffixes: "", separator: "", operations: ["lowercase"], left: "", right: "", leftTake: "1", rightDrop: "0", find: "", replacement: "", match: "all" },
@@ -166,7 +169,9 @@ export function createNamesStore(options: { storage: () => StoragePort | null; c
         const ids = new Set(data.candidates.map(candidate => candidate.source.id));
         const invalidReferences = !unique(ui.comparisonIds) || ui.comparisonIds.some(id => !ids.has(id)) ||
           (ui.seedCandidateId !== null && !ids.has(ui.seedCandidateId)) ||
-          (ui.activeRunId !== null && !data.runs.some(run => run.id === ui.activeRunId)) || !unique(ui.form.operations);
+          (ui.activeRunId !== null && !data.runs.some(run => run.id === ui.activeRunId)) || !unique(ui.form.operations) ||
+          ui.guided?.words.some(word => word.candidateId && data.candidates.find(candidate => candidate.source.id === word.candidateId)?.source.value !== word.value) ||
+          ui.guided?.savedLists.some(list => list.words.some(word => word.candidateId && data.candidates.find(candidate => candidate.source.id === word.candidateId)?.source.value !== word.value));
         if (invalidReferences) return rejected("The selected name or run could not be found. Your workspace is unchanged.");
         const revision = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).parse(data.revision);
         data = { version: 1, revision, candidates: data.candidates, runs: data.runs, ui };
@@ -275,6 +280,43 @@ export function createNamesStore(options: { storage: () => StoragePort | null; c
   function updateUi(patch: Partial<Omit<NamesUi, "form" | "context" | "seedCandidateId">>) {
     return mutateUi(ui => ({ ...ui, ...patch }));
   }
+  /** One atomic browser save: retain exact replayable steps and all intermediate lineage. */
+  function retainGuidedResult(result: GuidedResult) {
+    hydrate();
+    const parent = snapshot.data.candidates.find(candidate => candidate.source.id === result.seed.candidateId);
+    if (result.seed.candidateId && (!parent || parent.source.value !== result.seed.value)) return rejected("The source name changed. Choose it again before keeping this result.");
+    try {
+      const context = contextSnapshotSchema.parse(parent?.context ?? snapshot.data.ui.context);
+      const inputs = result.inputs.map(input => nameTransformInputSchema.parse(input));
+      let value = nameValueSchema.parse(result.seed.value);
+      for (const input of inputs) {
+        if (primarySeed(input) !== value) throw new Error("Invalid preview lineage");
+        const output = transformNames(input).candidates;
+        if (output.length !== 1) throw new Error("A preview step must produce exactly one result");
+        value = output[0]!.value;
+      }
+      if (value !== result.value) throw new Error("Preview changed");
+      const history = [...(parent?.source.history.map(step => step.input) ?? []), ...inputs];
+      const existing = snapshot.data.candidates.find(candidate => candidate.source.value === value && equal(candidate.context, context) && equal(candidate.source.history.map(step => step.input), history) && (parent?.source.history.every((step, i) => equal(candidate.source.history[i], step)) ?? true));
+      if (existing) return togglePreference(existing.source.id, "favorite");
+      if (!inputs.length && parent) return togglePreference(parent.source.id, "favorite");
+      const count = Math.max(inputs.length, 1);
+      if (snapshot.data.candidates.length + count > MAX_NAMES || snapshot.data.runs.length + inputs.length > MAX_RUNS || history.length > 32) return rejected("Keeping this result would exceed the name, run or lineage limit. Nothing was removed. Download your workspace before starting a new one.");
+      return mutate(data => {
+        const candidates = [...data.candidates], runs = [...data.runs];
+        let previous = parent;
+        const createdAt = now();
+        if (!inputs.length) candidates.push({ source: { id: createId(), value, origin: "manual", createdAt, history: [] }, context, runId: null, explanation: "Added manually", favorite: true, saved: false });
+        for (const input of inputs) {
+          const output = transformNames(input), generated = output.candidates[0]!, id = createId();
+          const candidate: NameCandidate = { source: { id: createId(), value: generated.value, createdAt, origin: "workshop", history: [...structuredClone(previous?.source.history ?? []), { id, input, output: generated.value, createdAt }] }, context: structuredClone(context), runId: id, explanation: generated.explanation, favorite: false, saved: false };
+          candidates.push(candidate); runs.push({ id, input, createdAt, parentId: previous?.source.id ?? null, candidateIds: [candidate.source.id], context: structuredClone(context), notes: output.notes, truncated: false }); previous = candidate;
+        }
+        if (inputs.length) candidates[candidates.length - 1] = { ...candidates.at(-1)!, favorite: true };
+        return { ...data, candidates, runs };
+      });
+    } catch (error) { return rejected(validationMessage(error)); }
+  }
   function updateForm(patch: Partial<NamesForm>) {
     return mutateUi(ui => {
       const form = { ...ui.form, ...patch };
@@ -285,6 +327,13 @@ export function createNamesStore(options: { storage: () => StoragePort | null; c
       const seedCandidateId = parent && primary.normalize("NFC").trim() === parent.source.value ? parent.source.id : null;
       return { ...ui, form, seedCandidateId };
     });
+  }
+  function useGuidedWordList(id: string) {
+    hydrate();
+    const guided = snapshot.data.ui.guided ?? emptyGuidedUi();
+    const list = guided.savedLists.find(item => item.id === id);
+    if (!list) return rejected("That word list is no longer in this workspace.");
+    return mutateUi(ui => ({ ...ui, tab: "workshop", context: structuredClone(list.context), guided: { ...guided, words: structuredClone(list.words), draft: "" } }));
   }
   function updateContext(patch: Partial<Pick<ContextSnapshot, "description" | "knownAudience">> & { namingNotes?: string }) {
     return mutateUi(ui => {
@@ -306,7 +355,7 @@ export function createNamesStore(options: { storage: () => StoragePort | null; c
     hydrate();
     const candidate = snapshot.data.candidates.find(item => item.source.id === id);
     if (!candidate) return rejected("That name is no longer in this workspace.");
-    return mutateUi(ui => ({ ...ui, tab: "workshop", seedCandidateId: id, context: structuredClone(candidate.context), form: { ...ui.form, seed: candidate.source.value, left: candidate.source.value } }));
+    return mutateUi(ui => ({ ...ui, tab: "workshop", seedCandidateId: id, context: structuredClone(candidate.context), guided: { ...(ui.guided ?? emptyGuidedUi()), words: [{ value: candidate.source.value, candidateId: id }], draft: "" }, form: { ...ui.form, seed: candidate.source.value, left: candidate.source.value } }));
   }
   function togglePreference(id: string, preference: "favorite" | "saved") {
     hydrate();
@@ -357,7 +406,7 @@ export function createNamesStore(options: { storage: () => StoragePort | null; c
   }
   return {
     hydrate, getSnapshot: () => snapshot, subscribe: (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
-    onStorageChange, addManual, runWorkshop, updateUi, updateForm, updateContext, useAsSeed, togglePreference, toggleComparison,
+    onStorageChange, addManual, runWorkshop, retainGuidedResult, useGuidedWordList, updateUi, updateForm, updateContext, useAsSeed, togglePreference, toggleComparison,
     clearComparison: () => updateUi({ comparisonIds: [], compareOpen: false }), retrySave, replaceInvalid, loadSaved, startFresh, readSavedRaw,
   };
 }

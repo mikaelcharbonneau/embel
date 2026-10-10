@@ -32,7 +32,7 @@ async function fixture(page: Page) {
   });
   return state;
 }
-async function open(page: Page) { await page.goto("/names"); await page.getByRole("tab", { name: "AI Assistant" }).click(); await expect(page.getByRole("heading", { name: "AI naming assistant" })).toBeVisible(); }
+async function open(page: Page) { await page.goto("/names"); await page.getByRole("button", { name: "AI Assistant" }).click(); await expect(page.getByRole("heading", { name: "AI naming assistant" })).toBeVisible(); }
 const mutations = (state: Awaited<ReturnType<typeof fixture>>) => state.requests.filter(item => item.method !== "GET");
 
 test("assistant bridge: choose projects, readiness and reload never enqueue", async ({ page }, info) => {
@@ -77,6 +77,7 @@ test("assistant bridge: account switch clears selection and delayed private repl
   state.delay = { started: false, promise: new Promise<void>(resolve => { release = resolve; }), release: () => release() };
   await open(page); await expect.poll(() => state.delay!.started).toBe(true);
   state.owner = other; state.projects = [project(8, other)];
+  if (!await page.getByRole("button", { name: "Check account", exact: true }).isVisible()) await page.getByLabel("Account menu", { exact: true }).click();
   await page.getByRole("button", { name: "Check account", exact: true }).click();
   await expect(page.getByLabel("Account project").locator("option")).toHaveCount(2);
   state.delay.release();
@@ -84,6 +85,7 @@ test("assistant bridge: account switch clears selection and delayed private repl
   await expect(page.getByLabel("Account project").locator("option").last()).toContainText("Synthetic project 8");
   await page.getByLabel("Account project").selectOption(id(8));
   state.owner = owner; state.projects = [project(3)];
+  if (!await page.getByRole("button", { name: "Check account", exact: true }).isVisible()) await page.getByLabel("Account menu", { exact: true }).click();
   await page.getByRole("button", { name: "Check account", exact: true }).click();
   await expect(page.getByRole("link", { name: "Open project Naming" })).toHaveCount(0);
   await expect(page.getByLabel("Account project").locator("option").last()).toContainText("Synthetic project 3");
