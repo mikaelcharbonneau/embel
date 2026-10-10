@@ -33,3 +33,7 @@ node_modules/.bin/playwright test --config tests/features/trademark-workspace/pl
 ```
 
 The standalone fixture uses the installed esbuild tooling only for tests, serves on loopback port 3186, and launches dedicated headless Chromium desktop/mobile contexts. It mounts the actual component with a synthetic controlled host, imports Fluid's existing global tokens/styles, and records screenshots under `.tmp/trademark-playwright`. It has no account session or provider connection and does not occupy the shared browser. This is module/fixture verification, not full integrated application acceptance or live provider validation. Final observed results are recorded in `tests/features/trademark-workspace/verification.md`.
+
+## Current integrated presentation
+
+The approved Figma Search/Fill presentation supersedes the earlier independent Dossier/Research navigation proposal. The host now supplies `draftControls`, `saveControl`, `disabled` and optional latest `savedDraft` metadata. These do not change the persisted draft or review/export schemas. Search is the initial tab; Fill retains additional dossier fields in a disclosure, Library represents one working draft and History only the latest verified account save. See `docs/trademarks-guided-design.md` for current behavior and verification boundaries.

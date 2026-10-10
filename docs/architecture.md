@@ -166,3 +166,7 @@ Standalone Names Assistant consumes the existing verified account session, reads
 ## Assets approved library presentation
 
 The Assets collection uses the shared concept shell and compact Figma library layout. UI search is scoped to loaded owner-verified rows, with explicit pagination limits. Account generation remounts the entire library and its search/menu/detail state; private previews retain cancellation and URL revocation. Server filtering, revision-checked retention/restoration and file evidence contracts are unchanged. See assets-guided-design.md.
+
+## Trademarks approved Search and Fill presentation
+
+The Trademarks route shares the concept shell and original static Figma artwork. Search and Fill edit the same controlled draft; registry research remains explicitly unavailable. Library exposes the current working draft and History the latest verified save receipt only. Existing review/export/source-promotion and account owner/generation fences are retained. Recovery controls stay usable outside disabled edit fields. See trademarks-guided-design.md.

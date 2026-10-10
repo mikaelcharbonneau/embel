@@ -130,6 +130,8 @@ test("integrated Handles keeps independent bundle states in tab memory with chec
 test("integrated Trademarks downloads an actual manual draft and invalidates review without registry or filing claims", async ({ page }, info) => {
   const verify = await manualWorkspace(page);
   await page.goto("/trademarks");
+  await page.getByRole("tab", { name: "Fill", exact: true }).click();
+  await page.getByText("Additional dossier details", { exact: true }).click();
   await page.getByLabel("Mark name", { exact: true }).fill("North Star fixture");
   await page.getByLabel("Mark type", { exact: true }).selectOption("word");
   await page.getByLabel("Requested territories", { exact: true }).fill("France");
@@ -141,10 +143,12 @@ test("integrated Trademarks downloads an actual manual draft and invalidates rev
   await page.getByLabel("Supporting document plan", { exact: true }).selectOption("none-planned");
   await page.getByLabel("Your research notes", { exact: true }).fill("Literal private fixture notes <script>ignored</script>");
   await expect(page.getByText("6 of 6 sections filled", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Research", exact: true }).click();
+  await page.getByRole("tab", { name: "Search", exact: true }).click();
+  await page.getByText("Research coverage and your notes", { exact: true }).click();
   await expect(page.getByText("Literal private fixture notes <script>ignored</script>", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Sourced results", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Draft preview", exact: true }).click();
+  await page.getByRole("tab", { name: "Fill", exact: true }).click();
+  await page.getByRole("button", { name: "Review draft preview", exact: true }).click();
   const downloading = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export draft preview", exact: true }).click();
   const download = await downloading;
@@ -221,7 +225,7 @@ for (const tool of ["domains", "handles", "trademarks"] as const) {
     });
     await page.goto(`/${tool}`);
     const openAccountMenu = async () => {
-      if (tool === "domains" && await page.locator(".workspace-account-menu").getAttribute("open") === null) await page.getByLabel("Account menu", { exact: true }).click();
+      if (await page.locator(".workspace-account-menu").getAttribute("open") === null) await page.getByLabel("Account menu", { exact: true }).click();
     };
     await openAccountMenu();
     await expect(page.getByRole("button", { name: "Sign out", exact: true })).toBeVisible();

@@ -25,6 +25,7 @@ test("all public workspaces fit the viewport and retain visible page headings", 
 test("mobile trademark inputs precede the detailed checklist", async ({ page }) => {
   test.skip(test.info().project.name !== "mobile", "Mobile layout regression");
   await page.goto("/trademarks");
+  await page.getByRole("tab", { name: "Fill", exact: true }).click();
   const field = page.locator(".tm-editor input").first();
   const checklist = page.locator(".tm-checklist");
   await expect(field).toBeVisible();
@@ -43,7 +44,7 @@ test("Home recovery controls are usable touch targets and remain grouped", async
 test("standalone tool account state aligns with the form and logo has one main landmark", async ({ page }) => {
   await page.goto("/trademarks");
   const heading = await page.locator(".tm-workspace h1").boundingBox();
-  const notice = await page.locator(".account-notice").boundingBox();
+  const notice = await page.locator("main .account-notice").first().boundingBox();
   expect(Math.abs(heading!.x - notice!.x)).toBeLessThanOrEqual(1);
   await page.goto("/brands/logo/new");
   await expect(page.getByRole("main")).toHaveCount(1);

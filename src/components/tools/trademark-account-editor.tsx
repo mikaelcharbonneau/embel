@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { AccountStatus, useAccountSession } from "@/components/workspace/account-session";
 import { standaloneImportKey } from "@/domain/standalone-workspaces";
 import { TrademarkWorkspace } from "@/features/trademark-workspace/trademark-workspace";
@@ -11,9 +11,9 @@ import type { StandaloneDraftMemory } from "./standalone-draft-memory";
 import { useStandaloneWorkspace } from "./use-standalone-workspace";
 import { useSavedStandalonePromotion } from "./use-saved-standalone-promotion";
 
-export type TrademarkAccountEditorProps = { memory: StandaloneDraftMemory; importProjectId?: string; importProjectTitle?: string };
+export type TrademarkAccountEditorProps = { memory: StandaloneDraftMemory; importProjectId?: string; importProjectTitle?: string; projectPicker?: ReactNode };
 
-function TrademarkAccountContent({ memory, importProjectId, importProjectTitle }: TrademarkAccountEditorProps) {
+function TrademarkAccountContent({ memory, importProjectId, importProjectTitle, projectPicker }: TrademarkAccountEditorProps) {
   const { session: account, isCurrent } = useAccountSession();
   const workspace = useStandaloneWorkspace({ codec: standalonePayloadCodec, emptyPayload: createEmptyTrademarkAccountDraft, memory });
   const promotion = useSavedStandalonePromotion("trademarks", workspace, memory);
@@ -41,9 +41,11 @@ function TrademarkAccountContent({ memory, importProjectId, importProjectTitle }
   function reloadDraft(discard = false) {
     void workspace.reload(discard).then(loaded => { if (loaded) setEditorEpoch(epoch => epoch + 1); });
   }
-  return <>
+  const saveControl = <button type="button" className="button primary" disabled={!workspace.canSave} onClick={() => { setNotice(""); void workspace.save(); }}>{workspace.busy ? "Working…" : workspace.pending ? "Retry same save" : "Save account draft"}</button>;
+  const draftControls = <>
+    {projectPicker}
     <section className="page" aria-label="Trademark account draft controls">
-      <div className="tm-actions"><button type="button" className="button primary" disabled={!workspace.canSave} onClick={() => { setNotice(""); void workspace.save(); }}>{workspace.busy ? "Working…" : workspace.pending ? "Retry same save" : "Save account draft"}</button><button type="button" className="button secondary" disabled={workspace.busy} onClick={requestReload}>Load saved draft</button></div>
+      <div className="tm-actions"><button type="button" className="button secondary" disabled={workspace.busy} onClick={requestReload}>Load saved draft</button></div>
       {importProjectId && <div className="tm-actions"><p>{importProjectTitle ? `Import from ${importProjectTitle}` : "Import the selected project's saved name"}</p><button type="button" className="button secondary" disabled={!workspace.canEdit} onClick={requestImport}>Import saved name</button></div>}
       {importingProject && <div className="inline-confirm" role="alert"><p>Replace the mark name with the current name from this saved project? Other intake details stay in the draft; its review will be cleared.</p><button type="button" className="button secondary" disabled={workspace.busy} onClick={() => setConfirmImport(null)}>Keep current name</button><button type="button" className="button secondary" disabled={!workspace.canEdit} onClick={() => void importName(importingProject)}>Replace mark name</button></div>}
       {workspace.error && <p className="tm-error" role="alert">{workspace.error}</p>}
@@ -53,8 +55,8 @@ function TrademarkAccountContent({ memory, importProjectId, importProjectTitle }
       {!!workspace.imports.length && <details><summary>Saved-name sources ({workspace.imports.length})</summary><ul>{workspace.imports.map(source => <li key={standaloneImportKey(source)}>{source.name} · {source.projectTitle} · revision {source.projectRevision}</li>)}</ul><p>Sources record copied names. They establish no ownership of a mark or legal clearance.</p></details>}
     </section>
     {promotion.controls}
-    <fieldset disabled={!workspace.canEdit} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }} aria-label="Trademark draft editor">
-      <TrademarkWorkspace key={editorEpoch} draft={workspace.payload} onChange={workspace.setPayload} storageNotice={storageNotice} onCreateBrand={promotion.select ? () => promotion.select?.({ tool: "trademarks" }) : undefined} onExportPreview={preview => {
+  </>;
+  return <TrademarkWorkspace key={editorEpoch} disabled={!workspace.canEdit} draftControls={draftControls} saveControl={saveControl} savedDraft={workspace.workspace ? { revision: workspace.workspace.revision, updatedAt: workspace.workspace.updatedAt, dirty: workspace.dirty } : undefined} draft={workspace.payload} onChange={workspace.setPayload} storageNotice={storageNotice} onCreateBrand={promotion.select ? () => promotion.select?.({ tool: "trademarks" }) : undefined} onExportPreview={preview => {
         // A retained callback can run after synchronous session fencing, before remount.
         if (account.status !== "ready" || !isCurrent(account) || !memory.isCurrent(account)) return;
         const raw = serializeTrademarkDraftPreview(preview);
@@ -64,8 +66,7 @@ function TrademarkAccountContent({ memory, importProjectId, importProjectTitle }
         try { document.body.appendChild(link); link.click(); }
         finally { link.remove(); URL.revokeObjectURL(url); }
       }} />
-    </fieldset>
-  </>;
+
 }
 
 export function TrademarkAccountEditor(props: TrademarkAccountEditorProps) {

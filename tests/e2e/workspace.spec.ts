@@ -162,8 +162,8 @@ test("keyboard navigation, mobile menu, and unavailable tools are usable", async
   await page.getByRole("button", { name: "Library", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Domain library unavailable", exact: true })).toBeVisible();
   await page.goto("/trademarks");
-  await expect(page.getByRole("heading", { name: "Trademarks", exact: true })).toBeVisible();
-  await expect(page.getByText("Draft preparation", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Check your name for trademarks", exact: true })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Search", exact: true })).toHaveAttribute("aria-selected", "true");
   await page.goto("/assets");
   await expect(page.locator("main").getByRole("heading", { name: "Assets", exact: true })).toBeVisible();
   await expect(page.locator("main .account-notice")).toContainText(/No verified account session|Account saving is unavailable/);
