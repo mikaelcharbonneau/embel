@@ -57,4 +57,5 @@
 
 /* Original static artwork on the approved Handles route only. */
 .concept-handles .workspace-main { background-image: url('/handles/grid.svg'); background-size: 1360px 900px; background-repeat: repeat-x; }
+.concept-handles .workspace-main:has(.handles-results) { background-image: url('/handles/results-grid.svg'); background-size: 1360px 1190px; }
 .concept-handles.navigation-expanded .workspace-sidebar-toggle img { transform: rotate(180deg); }
