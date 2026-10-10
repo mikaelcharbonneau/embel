@@ -60,6 +60,7 @@ try {
   await expect(page.getByRole("button", { name: "Dot .", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Build comparison", exact: true }).click();
   await page.getByRole("checkbox", { name: "Choose @sandbox on instagram for bundle", exact: true }).check();
+  await page.getByRole("button", { name: "Edit search", exact: true }).click();
   await page.getByLabel("Prefixes", { exact: true }).fill("hello");
   await expect(page.getByRole("table")).toHaveCount(0);
   await page.getByRole("button", { name: "Remove Sandbox", exact: true }).click();
@@ -79,7 +80,7 @@ try {
   await page.getByRole("checkbox", { name: "LinkedIn", exact: true }).uncheck();
   await page.getByRole("button", { name: "Build comparison" }).click();
   await expect(page.getByRole("table")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Check platforms", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Refresh results", exact: true })).toBeDisabled();
   await expect(page.getByText("To check", { exact: true })).toHaveCount(9);
   await expect(page.getByText("Confirmed available", { exact: true })).toHaveCount(0);
   checks.push("imported project context and three variants × three unavailable platforms");

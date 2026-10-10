@@ -151,6 +151,50 @@
 .handles-draft-controls { margin-top: 16px; }
 .handles-draft-controls > summary { cursor: pointer; font-size: 13px; font-weight: 500; padding: 12px 0; }
 .handles-draft-controls > section { background: var(--paper); border: 1px solid var(--border); border-radius: var(--panel-radius); padding: 20px; display: grid; gap: 16px; }
+.handles-search-form[hidden] { display: none; }
+.handles-results { min-width: 0; }
+.handles-summary-label { font-size: 13px; line-height: 20px; font-weight: 500; margin-bottom: 8px; }
+.handles-summary-label span { font-weight: 400; color: var(--secondary); margin-left: 4px; }
+.handles-search-summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1; min-width: 0; min-height: 46px; padding: 8px 14px 8px 8px; border: 1px solid var(--border); border-radius: var(--panel-radius); background: var(--paper); }
+.handles-search-summary .handles-name-token { padding: 3px 10px; }
+.handles-edit-search { margin-left: auto; display: flex; align-items: center; gap: 6px; color: var(--secondary); font-size: 13px; line-height: 20px; padding: 2px 0; border: 0; white-space: nowrap; }
+.handles-results-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin: 24px 0 16px; }
+.handles-result-filters, .handles-result-legend { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.handles-result-filters button { height: 36px; padding: 7px 12px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 7px; background: var(--paper); font-size: 13px; line-height: 20px; }
+.handles-result-filters button span { font-size: 12px; color: var(--secondary); }
+.handles-result-filters button[aria-pressed=true] { border-color: var(--text); background: var(--text); color: var(--paper); }
+.handles-result-filters button[aria-pressed=true] span { color: var(--paper); }
+.handles-result-legend { gap: 20px; color: var(--secondary); font-size: 12px; line-height: 20px; }
+.handles-result-legend > span { display: flex; align-items: center; gap: 8px; }
+.handles-unknown-mark { border: 1px solid var(--secondary); border-radius: 50%; width: 12px; height: 12px; font-size: 9px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+.handles-results-table-frame { border: 1px solid var(--border); border-radius: var(--panel-radius); background: var(--paper); overflow: hidden; }
+.handles-results-scroll { overflow-x: auto; }
+.handles-results-table { width: 100%; min-width: 1006px; border-collapse: collapse; table-layout: fixed; }
+.handles-result-name-col { width: auto; }
+.handles-result-platform-col { width: 76px; }
+.handles-result-save-col { width: 64px; }
+.handles-results-table th, .handles-results-table td { border-bottom: 1px solid var(--border); padding: 0; text-align: center; }
+.handles-results-table thead th { height: 44px; background: var(--canvas); color: var(--secondary); font-size: 11px; font-weight: 500; }
+.handles-results-table thead th:first-child { padding-left: 20px; text-align: left; font-size: 12px; }
+.handles-result-row > th { padding-left: 20px; }
+.handles-result-row > th, .handles-result-row > td { height: 49px; }
+.handles-result-identity { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-right: 24px; }
+.handles-result-identity button { text-align: left; font-size: 14px; line-height: 20px; font-weight: 500; border: 0; padding: 2px 0; min-width: 0; overflow-wrap: anywhere; }
+.handles-result-identity span { flex-shrink: 0; font-weight: 400; color: var(--secondary); font-size: 11px; line-height: 20px; }
+.handles-result-platform { display: inline-flex; align-items: center; justify-content: center; position: relative; width: 28px; height: 28px; border-radius: 5px; vertical-align: middle; }
+.handles-workspace .handles-result-platform input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 28px; height: 28px; margin: 0; z-index: 1; }
+.handles-result-platform:has(input:checked) { outline: 2px solid var(--magenta); outline-offset: 2px; background: var(--magenta-soft); }
+.handles-result-platform:has(input:focus-visible) { outline: 2px solid var(--text); outline-offset: 2px; }
+.handles-platform-marker { position: absolute; right: -3px; bottom: -3px; background: var(--paper); color: var(--secondary); border: 1px solid var(--border); border-radius: 4px; min-width: 12px; height: 12px; font-size: 9px; font-weight: 500; line-height: 10px; }
+.handles-row-save { display: inline-flex; align-items: center; justify-content: center; border: 0; width: 32px; height: 32px; border-radius: 6px; }
+.handles-row-save:hover { background: var(--surface); }
+.handles-result-details > td { text-align: left; padding: 20px; background: var(--canvas); }
+.handles-result-details p, .handles-result-evidence-grid h3 { font-size: 13px; line-height: 20px; }
+.handles-result-evidence-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 20px; margin-top: 16px; }
+.handles-results-table .handles-results-empty { padding: 28px 20px; color: var(--secondary); font-size: 13px; line-height: 20px; text-align: left; }
+.handles-results-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 48px; padding: 12px 20px; color: var(--secondary); font-size: 12px; line-height: 20px; }
+.handles-results-footer button { display: flex; align-items: center; gap: 6px; border: 0; padding: 0; font-size: 12px; color: var(--secondary); white-space: nowrap; }
+.handles-results-reminder { font-size: 12px; line-height: 20px; color: var(--secondary); margin-top: 16px; }
 @media(max-width:900px) {
   .handles-workspace.page { padding: 32px 24px; }
   .handles-workbench { grid-template-columns: 1fr; }
@@ -167,4 +211,7 @@
   .handles-platform-options { gap: 12px 8px; }
   .handles-platform-options label { gap: 8px; }
   .handles-preview-actions { flex-wrap: wrap; }
+  .handles-results-footer { flex-wrap: wrap; }
+  .handles-summary-label span { display: block; margin-left: 0; }
+  .handles-search-summary { flex-basis: 100%; }
 }

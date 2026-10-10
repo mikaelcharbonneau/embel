@@ -35,7 +35,7 @@ try {
     await page.getByRole("checkbox", { name: "X", exact: true }).uncheck();
     await page.getByRole("checkbox", { name: "LinkedIn", exact: true }).uncheck();
     await page.getByRole("button", { name: "Build comparison", exact: true }).click();
-    await page.getByRole("button", { name: "Check platforms", exact: true }).click();
+    await page.getByRole("button", { name: "Refresh results", exact: true }).click();
     await expect.poll(() => page.evaluate(() => window.handlesRace.snapshot())).toEqual([{ adapter: "A", platform: "instagram", aborted: false }]);
     await page.getByRole("button", { name: action, exact: true }).click();
     // This is a prop replacement, not a workspace remount: the pending old request must abort.
@@ -45,10 +45,10 @@ try {
     await expect(page.getByText("Confirmed available", { exact: true })).toHaveCount(0);
     await expect(page.getByText("To check", { exact: true })).toHaveCount(3);
     await expect(page.locator(".handles-evidence summary").filter({ hasText: "(1)" })).toHaveCount(0);
-    if (action.startsWith("Disconnect")) await expect(page.getByRole("button", { name: "Check platforms", exact: true })).toBeDisabled();
-    else await expect(page.getByRole("button", { name: "Check platforms", exact: true })).toBeEnabled();
+    if (action.startsWith("Disconnect")) await expect(page.getByRole("button", { name: "Refresh results", exact: true })).toBeDisabled();
+    else await expect(page.getByRole("button", { name: "Refresh results", exact: true })).toBeEnabled();
     if (action.startsWith("Replace")) {
-      await page.getByRole("button", { name: "Check platforms", exact: true }).click();
+      await page.getByRole("button", { name: "Refresh results", exact: true }).click();
       await expect.poll(() => page.evaluate(() => window.handlesRace.snapshot().map(request => `${request.adapter}:${request.platform}`))).toEqual(["A:instagram", "B:instagram"]);
       await page.evaluate(() => window.handlesRace.settle("B"));
       await expect.poll(() => page.evaluate(() => window.handlesRace.snapshot().map(request => `${request.adapter}:${request.platform}`))).toEqual(["A:instagram", "B:instagram", "B:tiktok", "B:youtube"]);
@@ -76,21 +76,21 @@ try {
     await page.getByRole("checkbox", { name: "LinkedIn", exact: true }).uncheck();
     await page.getByRole("button", { name: "Build comparison", exact: true }).click();
     await page.getByRole("checkbox", { name: "Choose @morrow on instagram for bundle", exact: true }).check();
-    await page.getByRole("button", { name: "Check platforms", exact: true }).click();
+    await page.getByRole("button", { name: "Refresh results", exact: true }).click();
     await expect.poll(() => page.evaluate(() => window.handlesRace.snapshot())).toEqual([{ adapter: "T", platform: "tiktok", aborted: false }]);
     await page.clock.fastForward(15_001);
     await expect(page.getByRole("alert")).toContainText("timed out");
-    await expect(page.getByRole("button", { name: "Check platforms", exact: true })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Refresh results", exact: true })).toBeEnabled();
     await expect(page.getByRole("button", { name: "Save bundle", exact: true })).toBeEnabled();
     await expect(page.getByText("Confirmed available", { exact: true })).toHaveCount(1);
     await expect.poll(() => page.evaluate(() => window.handlesRace.snapshot())).toEqual([{ adapter: "T", platform: "tiktok", aborted: true }]);
     await page.evaluate(() => window.handlesRace.settle("T"));
     await expect(page.getByText("Confirmed available", { exact: true })).toHaveCount(1);
     await expect(page.getByText("To check", { exact: true })).toHaveCount(2);
-    await page.getByRole("button", { name: "Check platforms", exact: true }).click();
+    await page.getByRole("button", { name: "Refresh results", exact: true }).click();
     await expect.poll(() => page.evaluate(() => window.handlesRace.snapshot().length)).toBe(2);
     await page.getByRole("button", { name: "Stop checks", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Check platforms", exact: true })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Refresh results", exact: true })).toBeEnabled();
     scenarios.push({ action: "Deadline retains partial evidence, fences late response and permits retry", passed: true });
     await page.close();
   }
