@@ -54,3 +54,7 @@
   .idea-breadcrumb-divider, .idea-breadcrumb-title { display: none; }
   .idea-bottom-fade { height: 64px; }
 }
+
+/* Original static artwork on the approved Handles route only. */
+.concept-handles .workspace-main { background-image: url('/handles/grid.svg'); background-size: 1360px 900px; background-repeat: repeat-x; }
+.concept-handles.navigation-expanded .workspace-sidebar-toggle img { transform: rotate(180deg); }

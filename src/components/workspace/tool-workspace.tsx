@@ -61,16 +61,15 @@ function StandaloneToolWorkspace({ tool }: { tool: StandaloneToolName }) {
   // empty defaults. It never receives a hidden account payload or saved sources.
   if (session.status !== "ready") {
     if (tool === "domains") return <DomainsWorkspace initialView="search" draftControls={<AccountStatus retainedEdits={standaloneDrafts.hasUnsaved()} />} />;
+    if (tool === "handles") return <HandlesWorkspace draftControls={<AccountStatus retainedEdits={standaloneDrafts.hasUnsaved()} />} />;
     return <><div className="page standalone-account-status"><AccountStatus retainedEdits={standaloneDrafts.hasUnsaved()} /></div><ManualStandaloneToolWorkspace tool={tool} /></>;
   }
   const projectPicker = <StandaloneProjectPicker selectedProjectId={project?.id} onSelect={next => {
     if (session.status === "ready" && isCurrent(session)) setSelected(next ? { ownerId: session.userId, generation: session.generation, project: next } : null);
   }} />;
   if (tool === "domains") return <AccountDomainsWorkspace {...props} projectPicker={projectPicker} />;
-  return <>
-    {projectPicker}
-    {tool === "handles" ? <HandlesAccountEditor {...props} /> : <TrademarkAccountEditor {...props} />}
-  </>;
+  if (tool === "handles") return <HandlesAccountEditor {...props} projectPicker={projectPicker} />;
+  return <>{projectPicker}<TrademarkAccountEditor {...props} /></>;
 }
 
 export function ToolWorkspace({ tool, localRuntimeEnabled = false }: { tool: ToolName; localRuntimeEnabled?: boolean }) {

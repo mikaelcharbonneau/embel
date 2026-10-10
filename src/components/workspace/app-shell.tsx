@@ -8,6 +8,7 @@ import { useLocalDrafts } from "./local-drafts";
 import { AccountSessionProvider, useAccountSession } from "./account-session";
 import { AccountAccess, AccountAccessNotice } from "./account-access";
 import { GenerationActivity } from "./generation-activity";
+import { HandlesArtwork, type HandlesArtworkName } from "@/components/ui/handles-artwork";
 import { AppMark } from "@/components/ui/app-mark";
 
 const primary: { href: string; label: string; icon: IconName }[] = [
@@ -24,10 +25,10 @@ function SidebarContent({ close, concept = false }: { close?: () => void; concep
   const { session } = useAccountSession();
   const navLink = (item: typeof primary[number]) => {
     const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-    return <Link key={item.href} href={item.href} className={`nav-link ${active ? "active" : ""}`} aria-label={item.label} title={item.label} aria-current={active ? "page" : undefined} onClick={close}><Icon name={item.icon} size={concept ? 20 : 19} /><span>{item.label}</span></Link>;
+    return <Link key={item.href} href={item.href} className={`nav-link ${active ? "active" : ""}`} aria-label={item.label} title={item.label} aria-current={active ? "page" : undefined} onClick={close}>{pathname === "/handles" ? <HandlesArtwork name={item.icon as HandlesArtworkName} /> : <Icon name={item.icon} size={concept ? 20 : 19} />}<span>{item.label}</span></Link>;
   };
   return <>
-    <Link href="/" className={concept ? "app-mark" : "wordmark"} aria-label="Fluid home" onClick={close}><AppMark /></Link>
+    <Link href="/" className={concept ? "app-mark" : "wordmark"} aria-label="Fluid home" onClick={close}>{pathname === "/handles" ? <HandlesArtwork name="mark" /> : <AppMark />}</Link>
     <nav className="sidebar-nav" aria-label="Main navigation">{concept ? <><div className="nav-group">{primary.map(navLink)}</div><div className="nav-group workspace-tools">{tools.map(navLink)}</div></> : <div className="nav-group">{[...primary, ...tools].map(navLink)}</div>}</nav>
     <div className="sidebar-bottom">{navLink({ href: "/settings", label: "Settings", icon: "settings" })}<Link href="/settings" className="workspace-label" aria-label="My workspace settings" title="My workspace" onClick={close}><span className="workspace-avatar"><Icon name="user" size={18} /></span><div><strong>My workspace</strong><span>{session.status === "ready" ? "Personal account" : "Browser workspace"}</span></div></Link></div>
   </>;
@@ -46,7 +47,7 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const mainRef = useRef<HTMLElement>(null);
   const isHome = pathname === "/";
   const ideaId = /^\/ideas\/([^/]+)$/.exec(pathname)?.[1];
-  const usesConceptShell = isHome || pathname === "/ideas" || Boolean(ideaId) || pathname === "/domains";
+  const usesConceptShell = isHome || pathname === "/ideas" || Boolean(ideaId) || pathname === "/domains" || pathname === "/handles";
   const usesBottomFade = isHome || Boolean(ideaId);
   const menuRef = useRef<HTMLDialogElement>(null);
   const pageLabel = [...primary, ...tools, { href: "/settings", label: "Settings" }, { href: "/sign-in", label: "Sign in" }].find((item) => item.href !== "/" && pathname.startsWith(item.href))?.label ?? "Home";
@@ -69,12 +70,12 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
     return () => { observer.disconnect(); main.removeEventListener("scroll", measure); };
   }, [usesBottomFade, pathname]);
 
-  return <div className={`app-shell ${usesConceptShell ? "concept-shell" : ""} ${isHome ? "concept-home" : ideaId ? "concept-idea-detail" : pathname === "/ideas" ? "concept-ideas" : pathname === "/domains" ? "concept-domains" : ""} ${expanded ? "navigation-expanded" : "navigation-collapsed"}`}>
+  return <div className={`app-shell ${usesConceptShell ? "concept-shell" : ""} ${isHome ? "concept-home" : ideaId ? "concept-idea-detail" : pathname === "/ideas" ? "concept-ideas" : pathname === "/domains" ? "concept-domains" : pathname === "/handles" ? "concept-handles" : ""} ${expanded ? "navigation-expanded" : "navigation-collapsed"}`}>
     <a className="skip-link" href="#main-content">Skip to content</a>
     <aside className="sidebar"><SidebarContent concept={usesConceptShell} /></aside>
     <dialog className="mobile-menu" ref={menuRef} onCancel={() => setMenuOpen(false)} onClick={(event) => { if (event.target === event.currentTarget) setMenuOpen(false); }} aria-label="Navigation"><button className="icon-button mobile-close" aria-label="Close navigation" onClick={() => setMenuOpen(false)}><Icon name="close" /></button><SidebarContent close={() => setMenuOpen(false)} /></dialog>
     <div className="workspace-main">
-      <header className="topbar"><div className="topbar-left"><button className="icon-button mobile-menu-trigger" aria-label="Open navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}><Icon name="menu" /></button>{usesConceptShell && <><button className="icon-button workspace-sidebar-toggle" aria-label={expanded ? "Collapse navigation" : "Expand navigation"} aria-expanded={expanded} onClick={() => setExpanded(value => !value)}><Icon name="chevron" size={16} /></button><span className="workspace-breadcrumb-root">My workspace</span><span className="workspace-breadcrumb-slash" aria-hidden="true">/</span></>}{ideaId ? <IdeaBreadcrumb ideaId={ideaId} /> : <span>{pageLabel}</span>}</div>{usesConceptShell ? <WorkspaceAccountMenu /> : <div className="topbar-account-actions"><GenerationActivity /><AccountAccess /></div>}</header>
+      <header className="topbar"><div className="topbar-left"><button className="icon-button mobile-menu-trigger" aria-label="Open navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}><Icon name="menu" /></button>{usesConceptShell && <><button className="icon-button workspace-sidebar-toggle" aria-label={expanded ? "Collapse navigation" : "Expand navigation"} aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{pathname === "/handles" ? <HandlesArtwork name="expand" /> : <Icon name="chevron" size={16} />}</button><span className="workspace-breadcrumb-root">My workspace</span><span className="workspace-breadcrumb-slash" aria-hidden="true">/</span></>}{ideaId ? <IdeaBreadcrumb ideaId={ideaId} /> : <span>{pageLabel}</span>}</div>{usesConceptShell ? <WorkspaceAccountMenu /> : <div className="topbar-account-actions"><GenerationActivity /><AccountAccess /></div>}</header>
       <AccountAccessNotice />
       {storage === "unavailable" && <div className="storage-alert" role="alert">Browser storage is unavailable. Your changes will only stay in this tab until you close or reload it.</div>}
       {storage === "invalid" && <div className="storage-alert" role="alert">Saved drafts could not be read. Start a new draft or clear local data in Settings.</div>}

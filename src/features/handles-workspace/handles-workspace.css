@@ -87,3 +87,84 @@
 .handles-save-tray { background: var(--surface); border-color: var(--border); }
 @media(max-width:1100px) { .handles-saved-entry { grid-template-columns: 90px minmax(120px, 1fr) minmax(160px, 1fr); } .handles-saved-entry .handles-last-check { grid-column: 2; } .handles-saved-entry .handles-actions { grid-column: 3; } .handles-saved-entry > a { grid-column: 2 / -1; } .handles-saved-entry .handles-account { grid-column: 2 / -1; } }
 @media(max-width:600px) { .handles-saved-entry { display: flex; gap: 12px; padding: 20px 0; } .handles-library-grid { padding: 0 18px; } }
+
+/* Approved Figma Handles workbench. Library and evidence retain their existing behavior. */
+.handles-workspace.page { width: 100%; max-width: 1088px; padding: 40px 40px 40px; }
+.handles-heading { margin-bottom: 24px; }
+.handles-heading h1 { font-size: 32px; font-weight: 500; line-height: 48px; letter-spacing: -1px; }
+.handles-heading h1 > span { color: var(--magenta); }
+.handles-heading p { margin-top: 4px; font-size: 14px; line-height: 20px; color: var(--secondary); }
+.handles-workspace .handles-tabs { gap: 36px; margin-bottom: 24px; }
+.handles-workspace .handles-tabs button { height: 44px; padding: 0 4px; font-size: 14px; }
+.handles-editor { width: 100%; }
+.handles-search-form { display: flex; flex-direction: column; gap: 20px; padding: 0; background: none; border: 0; border-radius: 0; }
+.handles-business-field > label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 500; line-height: 20px; }
+.handles-business-field > label span { color: var(--secondary); font-weight: 400; margin-left: 4px; }
+.handles-business-row { display: flex; align-items: center; gap: 12px; }
+.handles-token-field { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 10px; min-height: 46px; min-width: 0; flex: 1; border: 1px solid var(--border); border-radius: var(--panel-radius); background: var(--paper); }
+.handles-token-field:focus-within { outline: 2px solid var(--text); outline-offset: 2px; }
+.handles-name-token { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); padding: 3px 9px 3px 11px; border-radius: 6px; min-height: 28px; font-size: 13px; font-weight: 500; overflow-wrap: anywhere; max-width: 100%; }
+.handles-name-token button { display: grid; place-items: center; padding: 0; border: 0; width: 16px; height: 20px; flex-shrink: 0; }
+.handles-token-field > input { flex: 1; min-width: 140px; width: 140px; border: 0; padding: 0; height: 28px; background: transparent; font-size: 14px; outline: 0; }
+.handles-save-search { font-size: 14px; gap: 8px; padding-inline: 15px; flex-shrink: 0; }
+.handles-workbench { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); align-items: start; gap: 20px; }
+.handles-controls-column { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.handles-card { padding: 20px; border: 1px solid var(--border); border-radius: var(--panel-radius); background: var(--paper); min-width: 0; }
+.handles-card h2 { font-size: 16px; font-weight: 500; line-height: 22.4px; letter-spacing: -.2px; }
+.handles-card p { font-size: 13px; line-height: 20px; }
+.handles-platform-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; margin-top: 16px; }
+.handles-platform-options label { display: flex; align-items: center; gap: 10px; font-size: 13px; line-height: 20px; }
+.handles-platform-options label small { font-size: 10px; color: var(--secondary); margin-left: -6px; }
+.handles-checkbox { position: relative; display: flex; flex: 0 0 16px; align-items: center; justify-content: center; height: 16px; }
+.handles-workspace .handles-checkbox input { appearance: none; width: 16px; height: 16px; border: 1px solid var(--border); border-radius: 3px; margin: 0; background: var(--paper); }
+.handles-workspace .handles-checkbox input:checked { border-color: var(--text); background: var(--text); }
+.handles-checkbox img { pointer-events: none; position: absolute; left: 2px; top: 2px; }
+.handles-platform-options label:has(input:disabled) { color: var(--secondary); }
+.handles-workspace input:disabled { cursor: not-allowed; }
+.handles-affix-card { display: flex; flex-direction: column; gap: 16px; }
+.handles-affix-card .handles-field { font-size: 13px; line-height: 20px; gap: 8px; color: var(--secondary); font-weight: 400; }
+.handles-affix-input { display: flex; border: 1px solid var(--border); border-radius: 7px; background: var(--canvas); min-height: 40px; overflow: hidden; }
+.handles-affix-input:focus-within { outline: 2px solid var(--text); outline-offset: 2px; }
+.handles-affix-input input { min-height: 38px; height: 38px; border: 0; padding: 8px 12px; background: none; color: var(--text); outline: 0; }
+.handles-affix-input button { border: 0; padding: 0 12px; font-size: 13px; color: var(--secondary); white-space: nowrap; }
+.handles-separator-card { display: flex; flex-direction: column; gap: 16px; }
+.handles-separator-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.handles-separator-options button { min-height: 32px; padding: 5px 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--paper); font-size: 13px; font-weight: 500; line-height: 20px; }
+.handles-separator-options button[aria-pressed=true] { background: var(--surface); border-color: #c8c7c3; }
+.handles-card .handles-muted, .handles-muted { font-size: 12px; color: var(--secondary); line-height: 20px; }
+.handles-preview-card { display: flex; flex-direction: column; gap: 16px; }
+.handles-preview-card header p { margin-top: 4px; color: var(--secondary); }
+.handles-candidate-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 8px; max-height: 256px; overflow-y: auto; }
+.handles-candidate-grid > span { display: flex; align-items: center; justify-content: center; text-align: center; padding: 7px 10px; min-height: 36px; background: var(--canvas); border: 1px solid var(--border); border-radius: 7px; font-size: 13px; line-height: 20px; overflow-wrap: anywhere; }
+.handles-preview-empty { min-height: 256px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 8px; color: var(--secondary); padding: 20px; background: var(--canvas); border: 1px dashed var(--border); border-radius: 7px; }
+.handles-check-action { width: 100%; font-size: 14px; }
+.handles-preview-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; line-height: 20px; color: var(--secondary); }
+.handles-preview-actions .text-link { font-size: 12px; white-space: nowrap; }
+.handles-imports { padding: 16px 20px; background: var(--paper); border: 1px solid var(--border); border-radius: var(--panel-radius); }
+.handles-imports legend { padding: 0 6px; }
+.handles-session-list { display: grid; gap: 16px; }
+.handles-session-list .handles-card { display: grid; gap: 12px; }
+.handles-session-list h2 { overflow-wrap: anywhere; }
+.handles-draft-footer { margin-top: 24px; }
+.handles-draft-footer .handles-note { margin: 0 0 12px; }
+.handles-draft-footer .page { padding: 0; }
+.handles-draft-controls { margin-top: 16px; }
+.handles-draft-controls > summary { cursor: pointer; font-size: 13px; font-weight: 500; padding: 12px 0; }
+.handles-draft-controls > section { background: var(--paper); border: 1px solid var(--border); border-radius: var(--panel-radius); padding: 20px; display: grid; gap: 16px; }
+@media(max-width:900px) {
+  .handles-workspace.page { padding: 32px 24px; }
+  .handles-workbench { grid-template-columns: 1fr; }
+  .handles-preview-card { grid-row: auto; }
+}
+@media(max-width:540px) {
+  .handles-workspace.page { padding: 24px 20px 32px; }
+  .handles-heading h1 { font-size: 28px; line-height: 36px; }
+  .handles-workspace .handles-tabs { gap: 24px; }
+  .handles-business-field > label span { display: block; margin-left: 0; }
+  .handles-business-row { flex-wrap: wrap; }
+  .handles-token-field { flex-basis: 100%; }
+  .handles-save-search { margin-left: auto; }
+  .handles-platform-options { gap: 12px 8px; }
+  .handles-platform-options label { gap: 8px; }
+  .handles-preview-actions { flex-wrap: wrap; }
+}

@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { build } from "esbuild";
 import { chromium } from "@playwright/test";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const root = new URL("../../..", import.meta.url).pathname;
-const result = await build({ entryPoints: [resolve(root, "tests/features/handles-workspace/account-editor-fixture.tsx")], outfile: "fixture.js", bundle: true, platform: "browser", write: false, tsconfig: resolve(root, "tsconfig.json"), plugins: [{ name: "synthetic-account-boundary", setup(build) {
+const result = await build({ entryPoints: [resolve(root, "tests/features/handles-workspace/account-editor-fixture.tsx")], outfile: "fixture.js", bundle: true, platform: "browser", write: false, define: { "process.env": "{}", "process.env.NODE_ENV": '"development"' }, tsconfig: resolve(root, "tsconfig.json"), plugins: [{ name: "synthetic-account-boundary", setup(build) {
   build.onResolve({ filter: /(?:^@\/components\/workspace\/account-session$)/ }, () => ({ path: resolve(root, "tests/features/handles-workspace/account-session-fixture.tsx") }));
 } }] });
 const js = result.outputFiles.find(file => file.path.endsWith(".js")).text;
@@ -16,7 +16,7 @@ const source = { projectId, projectRevision: 2, projectTitle: "Fixture project",
 const at = "2026-10-05T12:00:00.000Z";
 const records = new Map(), requests = [], failures = [], errors = [];
 let owner = ownerA, badImport = false, nextConflict = false, nextLostSave = false, delayImport = null, releaseImport = null;
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, executablePath: process.env.FLUID_E2E_BROWSER_EXECUTABLE || undefined });
 const context = await browser.newContext({ viewport: { width: 1360, height: 1000 } });
 const page = await context.newPage();
 page.on("pageerror", error => errors.push(error.message));
@@ -27,6 +27,7 @@ await page.route("**/*", async route => {
   if (url.hostname !== "fluid-fixture.test") { failures.push(request.url()); await route.abort(); return; }
   if (url.pathname === "/") { await route.fulfill({ contentType: "text/html", body: `<!doctype html><html><head><title>Fixture</title><style>${css} body{font:16px sans-serif;margin:20px}button,input,select{font:inherit}.page{margin:20px 0}</style></head><body><div id="root"></div><script src="/fixture.js"></script></body></html>` }); return; }
   if (url.pathname === "/fixture.js") { await route.fulfill({ contentType: "text/javascript", body: js }); return; }
+  if (/^\/handles\/[a-z-]+\.svg$/.test(url.pathname)) { await route.fulfill({ contentType: "image/svg+xml", body: await readFile(resolve(root, `public${url.pathname}`)) }); return; }
   requests.push({ path: url.pathname, method: request.method(), owner, body: request.postDataJSON() });
   if (url.pathname === "/api/workspaces/imports") {
     const responseOwner = owner;
@@ -51,6 +52,7 @@ const output = resolve(root, ".tmp/handles-trademarks-account");
 const checks = [];
 try {
   await page.goto("https://fluid-fixture.test");
+  await page.getByRole("tab", { name: "Library", exact: true }).click();
   await waitText("Keep your handles together");
   await button("Import saved name").click();
   await waitText("Saved name added");
@@ -68,6 +70,7 @@ try {
   assert.equal(records.get(`${ownerA}:handles`).payload.bundles[0].entries[0].evidence.length, 0);
   assert.equal(records.get(`${ownerA}:handles`).payload.bundles[0].entries[0].accountCreated.url, "https://instagram.com/savedfixture");
   await page.reload();
+  await page.getByRole("tab", { name: "Library", exact: true }).click();
   await waitText("Account created · user declared");
   await waitText("Account draft saved · revision 1");
   await button("Favorited").waitFor();
@@ -84,18 +87,21 @@ try {
   assert.equal(await button("Selected").count(), 1);
   await button("Load saved draft").click();
   await button("Discard changes and load saved draft").click();
+  await page.getByRole("tab", { name: "Library", exact: true }).click();
   await waitEnabled("Select");
   checks.push("CAS conflict retains edits, disables writes, and reload needs explicit discard");
 
   await page.getByRole("tab", { name: "Search", exact: true }).click();
-  await page.getByLabel("Names", { exact: true }).fill("Private unsaved comparison");
+  await page.getByLabel("Business handles", { exact: true }).fill("Private unsaved comparison");
   owner = ownerB;
   await button("Verify owner B").click();
+  await page.getByRole("tab", { name: "Library", exact: true }).click();
   await waitText("Keep your handles together");
   assert.equal(await page.getByText("SavedFixture", { exact: true }).count(), 0);
   await page.getByRole("tab", { name: "Search", exact: true }).click();
-  assert.equal(await page.getByLabel("Names", { exact: true }).inputValue(), "");
+  assert.equal(await page.getByLabel("Business handles", { exact: true }).inputValue(), "");
   owner = ownerA; await button("Verify owner A").click();
+  await page.getByRole("tab", { name: "Library", exact: true }).click();
   await waitText("Account created · user declared");
   checks.push("Owner change hides prior private draft and resets transient Handles comparison state");
 
@@ -174,4 +180,4 @@ try {
   await mkdir(output, { recursive: true });
   await writeFile(resolve(output, "verification.json"), JSON.stringify({ checks, count: checks.length, externalRequests: failures.length, unexpectedBrowserErrors: unexpectedErrors, scope: "Synthetic route-backed browser fixture, actual client/hook/editors; no live auth/database/provider" }, null, 2));
   console.log(`${checks.length} Handles/Trademarks account checks passed; zero external requests and unexpected browser errors.`);
-} catch (error) { console.error("Fixture page on failure:", await page.locator("body").innerText()); throw error; } finally { await context.close(); await browser.close(); }
+} catch (error) { console.error("Fixture page on failure:", await page.locator("body").innerText(), errors); throw error; } finally { await context.close(); await browser.close(); }
