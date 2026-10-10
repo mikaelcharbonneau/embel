@@ -1,0 +1,114 @@
+/* Figma Settings page 3:13. All rules scoped because global CSS persists across routes. */
+.concept-settings .workspace-main { background-image: url('/settings/grid.svg'); background-size: 1360px 981px; background-repeat: repeat; }
+.concept-settings .workspace-main:has(.settings-guided[data-category=workspace]) { background-image: url('/settings/workspace-grid.svg'); background-size: 1360px 1147px; }
+.concept-settings .workspace-main:has(.settings-guided[data-category=ai]) { background-image: url('/settings/ai-grid.svg'); background-size: 1360px 1049px; }
+.concept-settings .workspace-main:has(.settings-guided[data-category=billing]) { background-image: url('/settings/billing-grid.svg'); background-size: 1360px 1151px; }
+.concept-settings .workspace-main:has(.settings-guided[data-category=notifications]) { background-image: url('/settings/notifications-grid.svg'); background-size: 1360px 1047px; }
+.concept-settings .workspace-main:has(.settings-guided[data-category=security]) { background-image: url('/settings/security-grid.svg'); background-size: 1360px 1241px; }
+.concept-settings .workspace-main:has(.settings-guided[data-category=integrations]) { background-image: url('/settings/integrations-grid.svg'); background-size: 1360px 1097px; }
+.concept-settings.navigation-expanded .workspace-sidebar-toggle img { transform: rotate(180deg); }
+.settings-guided.page { max-width: 1088px; padding: 40px; margin: 0 auto; }
+.settings-guided .sg-heading h1 { margin: 0; font-size: 32px; line-height: 48px; letter-spacing: -1px; font-weight: 500; }
+.settings-guided .sg-heading h1 span { color: var(--magenta); }
+.settings-guided .sg-heading > p { margin-top: 4px; color: var(--secondary); font-size: 14px; line-height: 20px; }
+.settings-guided .sg-tabs { display: flex; gap: 24px; margin: 24px 0; height: 45px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+.settings-guided .sg-tabs button { border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--secondary); white-space: nowrap; height: 44px; padding: 0 4px; font-size: 14px; flex-shrink: 0; }
+.settings-guided .sg-tabs button[aria-selected=true] { border-bottom-color: var(--magenta); color: var(--text); font-weight: 500; }
+.settings-guided .sg-content { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.settings-guided .sg-card { background: var(--paper); border: 1px solid var(--border); border-radius: 10px; padding: 24px; min-width: 0; }
+.settings-guided .sg-card > header h2, .settings-guided .sg-delete h2 { margin: 0; font-size: 16px; font-weight: 500; line-height: 20px; letter-spacing: 0; }
+.settings-guided .sg-card > header p { font-size: 13px; line-height: 20px; color: var(--secondary); margin-top: 4px; }
+.settings-guided .sg-card-body { margin-top: 16px; }
+.settings-guided .sg-rows-card { padding-bottom: 8px; }
+.settings-guided .sg-row, .settings-guided .sg-notification-row { display: flex; align-items: center; gap: 24px; min-height: 76px; padding: 15px 0; border-bottom: 1px solid var(--border); }
+.settings-guided .sg-row:last-child, .settings-guided .sg-notification-row:last-child { border-bottom: 0; }
+.settings-guided .sg-row-copy { flex: 1; min-width: 0; }
+.settings-guided .sg-row-copy strong, .settings-guided .sg-member strong { font-size: 14px; line-height: 20px; font-weight: 500; }
+.settings-guided .sg-row-copy strong { display: block; }
+.settings-guided .sg-row-copy p, .settings-guided .sg-member p { font-size: 12px; line-height: 20px; color: var(--secondary); margin-top: 4px; }
+.settings-guided .sg-action { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; border: 1px solid var(--border); background: var(--paper); border-radius: 7px; min-height: 36px; padding: 7px 14px; font-size: 13px; line-height: 20px; font-weight: 500; color: var(--text); text-decoration: none; }
+.settings-guided .sg-action:disabled { cursor: not-allowed; color: var(--secondary); opacity: .65; }
+.settings-guided .sg-primary { min-height: 44px; padding-inline: 18px; color: var(--paper); background: var(--text); }
+.settings-guided .sg-primary:disabled { color: var(--paper); }
+.settings-guided .sg-danger { color: #ae3333; border-color: #e9c2c2; }
+.settings-guided .sg-danger:disabled { color: #ae3333; }
+.settings-guided .sg-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.settings-guided .sg-align-end { justify-content: flex-end; margin-top: 16px; }
+.settings-guided .sg-select-wrap { width: 240px; position: relative; flex-shrink: 0; }
+.settings-guided .sg-select-wrap select { width: 100%; height: 36px; padding: 7px 36px 7px 12px; appearance: none; border: 1px solid var(--border); border-radius: 7px; background: var(--paper); color: var(--secondary); font-size: 13px; line-height: 20px; opacity: 1; }
+.settings-guided .sg-select-wrap img { position: absolute; top: 10px; right: 12px; opacity: .5; }
+.settings-guided .sg-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.settings-guided .sg-field { display: block; min-width: 0; }
+.settings-guided .sg-field > span { display: block; font-size: 13px; line-height: 20px; margin-bottom: 8px; }
+.settings-guided .sg-field input { height: 44px; width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--paper); color: var(--secondary); font-size: 14px; opacity: 1; }
+.settings-guided .sg-photo { display: flex; align-items: center; gap: 16px; height: 56px; margin-bottom: 16px; }
+.settings-guided .sg-photo p { color: var(--secondary); font-size: 12px; line-height: 20px; margin-top: 8px; }
+.settings-guided .sg-avatar { width: 56px; height: 56px; display: grid; place-items: center; background: var(--surface); border-radius: 50%; flex-shrink: 0; }
+.settings-guided .sg-member { display: flex; align-items: center; gap: 16px; min-height: 56px; }
+.settings-guided .sg-member .sg-avatar { width: 40px; height: 40px; }
+.settings-guided .sg-member > div { flex: 1; }
+.settings-guided .sg-badge { background: var(--surface); border-radius: 6px; padding: 3px 10px; font-size: 12px; line-height: 20px; flex-shrink: 0; }
+.settings-guided .sg-switch { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; gap: 2px; }
+.settings-guided .sg-switch button { display: grid; place-items: center; border: 0; padding: 0; width: 36px; height: 20px; background: transparent; opacity: .45; cursor: not-allowed; }
+.settings-guided .sg-switch > span { color: var(--secondary); font-size: 10px; line-height: 14px; }
+.settings-guided .sg-save { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 44px; }
+.settings-guided .sg-save > p { font-size: 12px; line-height: 20px; color: var(--secondary); }
+.settings-guided .sg-save > div { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.settings-guided .sg-note, .settings-guided .sg-notice { font-size: 12px; line-height: 20px; color: var(--secondary); }
+.settings-guided .sg-confirm { padding: 16px 0; font-size: 13px; line-height: 20px; }
+.settings-guided .sg-confirm .sg-actions { margin-top: 12px; }
+.settings-guided .sg-notice { margin-block: 12px; }
+.settings-guided .sg-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.settings-guided .sg-summary .sg-action { margin-top: 16px; }
+.settings-guided .sg-metric { display: block; font-size: 24px; font-weight: 500; line-height: 32px; margin-bottom: 8px; }
+.settings-guided .sg-credit-track { background: var(--surface); height: 6px; border-radius: 3px; margin-block: 16px; }
+.settings-guided .sg-invoices { overflow: auto; }
+.settings-guided .sg-invoices table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 20px; }
+.settings-guided .sg-invoices th { text-align: left; font-weight: 500; color: var(--secondary); border-bottom: 1px solid var(--border); padding: 12px 8px; }
+.settings-guided .sg-invoices td { color: var(--secondary); padding: 20px 8px; }
+.settings-guided .sg-notification-head, .settings-guided .sg-notification-row { display: grid; grid-template-columns: minmax(0, 1fr) 80px 80px; gap: 24px; }
+.settings-guided .sg-notification-head { color: var(--secondary); font-size: 12px; line-height: 20px; text-align: center; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.settings-guided .sg-notification-row .sg-switch { width: 80px; }
+.settings-guided .sg-delete { display: flex; justify-content: space-between; align-items: center; gap: 24px; border-top: 1px solid var(--border); padding-top: 24px; margin-top: 4px; }
+.settings-guided .sg-delete p { color: var(--secondary); font-size: 13px; line-height: 20px; margin-top: 8px; }
+.settings-guided .sg-integration { display: flex; align-items: center; gap: 16px; min-height: 88px; padding: 20px 0; border-bottom: 1px solid var(--border); }
+.settings-guided .sg-integration:last-child { border-bottom: 0; }
+.settings-guided .sg-integration-icon { width: 44px; height: 44px; border: 1px solid var(--border); border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; }
+.settings-guided .sg-integration-status { font-size: 12px; line-height: 20px; color: var(--secondary); }
+/* Existing owner/generation fenced connection and usage controls retain their behavior. */
+.settings-guided .settings-section { display: block; margin: 0; padding: 24px; border: 1px solid var(--border); background: var(--paper); border-radius: 10px; }
+.settings-guided .settings-section > div:first-child h2 { font-size: 16px; line-height: 20px; font-weight: 500; }
+.settings-guided .settings-section > div:first-child p { font-size: 13px; line-height: 20px; margin-top: 4px; }
+.settings-guided .settings-panel { margin-top: 16px; border: 0; background: transparent; padding: 0; }
+.settings-guided .setting-row { padding: 16px 0; gap: 24px; }
+.settings-guided .setting-row p { font-size: 12px; line-height: 20px; }
+.settings-guided .setting-row strong { font-size: 14px; }
+.settings-guided .sg-row .topbar-account { flex-wrap: wrap; justify-content: flex-end; gap: 12px; }
+@media (max-width: 960px) {
+  .settings-guided .sg-tabs { gap: 16px; }
+}
+@media (max-width: 760px) {
+  .settings-guided.page { padding: 24px 20px; }
+  .settings-guided .sg-heading h1 { font-size: 28px; line-height: 36px; }
+  .settings-guided .sg-heading > p { margin-top: 8px; }
+  .settings-guided .sg-card, .settings-guided .settings-section { padding: 20px; }
+  .settings-guided .sg-rows-card { padding-bottom: 4px; }
+  .settings-guided .sg-fields, .settings-guided .sg-summary { grid-template-columns: minmax(0, 1fr); }
+  .settings-guided .sg-row { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .settings-guided .sg-select-wrap { width: 100%; }
+  .settings-guided .sg-field input, .settings-guided .sg-select-wrap select { font-size: 16px; }
+  .settings-guided .sg-save { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .settings-guided .sg-member { flex-wrap: wrap; }
+  .settings-guided .sg-notification-head, .settings-guided .sg-notification-row { grid-template-columns: minmax(0, 1fr) 54px 54px; gap: 8px; }
+  .settings-guided .sg-notification-row .sg-switch { width: 54px; }
+  .settings-guided .sg-switch > span { font-size: 9px; }
+  .settings-guided .sg-delete { align-items: flex-start; flex-direction: column; }
+  .settings-guided .sg-integration { flex-wrap: wrap; gap: 12px; }
+  .settings-guided .sg-integration .sg-row-copy { flex-basis: calc(100% - 56px); }
+  .settings-guided .sg-integration-status { flex: 1; }
+  .settings-guided .setting-row { flex-wrap: wrap; }
+  .settings-guided .sg-photo { align-items: flex-start; }
+  .settings-guided .sg-photo { height: auto; min-height: 56px; }
+}
+
+.settings-guided .settings-section > div:first-child { padding: 0; }

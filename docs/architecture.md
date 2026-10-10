@@ -1,5 +1,7 @@
 # Fluid foundation architecture
 
+Settings follows the seven approved Figma categories. The presentation composes existing account, local drafts, text readiness, local ChatGPT and recorded usage components; no new settings API or persistence contract is added. Unsupported preferences and integrations are disabled rather than represented as saved settings. See [Settings design and behavior](settings-guided-design.md).
+
 ## Scope and intent
 
 Build an external brand workspace that starts from any useful idea or result, preserves context, and guides missing strategy. The initial deliverable is a runnable local foundation with validated contracts, honest integration states, tenant-safe persistence design, and durable job semantics. It is not a claim that live AI, purchasing, trademark clearance, or vector production already works.
