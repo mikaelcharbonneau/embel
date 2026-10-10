@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { BrandsWorkspace } from "@/components/workspace/home-workspace";
+import { ProjectsWorkspace } from "@/components/workspace/projects-workspace";
 
-export const metadata: Metadata = { title: "Brands" };
-export default function BrandsPage() { return <BrandsWorkspace />; }
+export const metadata: Metadata = { title: "Projects" };
+export default function BrandsPage() { return <ProjectsWorkspace />; }

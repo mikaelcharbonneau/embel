@@ -59,6 +59,8 @@ async function accountFixtures(page: Page, initial: AccountProject[] = []) {
     const id = path.split("/")[3];
     const project = id ? state.projects.get(id) : undefined;
     if (!project || project.owner_id !== state.owner) return reply(route, { error: "Synthetic not-found fixture" }, 404);
+    if (path.endsWith("/idea-source") && request.method() === "GET") return reply(route, { ownerId: state.owner, projectId: project.id, source: null });
+    if (path.endsWith("/idea-attachments") && request.method() === "GET") return reply(route, { ownerId: state.owner, projectId: project.id, items: [], nextCursor: null });
     if (path.endsWith("/strategy") && request.method() === "GET") return reply(route, { availability: { status: "unavailable", operations: [], reason: "runtime_disabled" }, jobs: [] });
     if (request.method() === "GET") return reply(route, { project });
     const body = request.postDataJSON() as Record<string, unknown>;
@@ -165,7 +167,7 @@ test("account fixture: explicit browser copy preserves legacy notes, audience an
   await page.evaluate(() => window.scrollTo(0, 0));
   expect(await page.evaluate(() => Math.max(innerWidth, document.documentElement.scrollWidth))).toBeLessThanOrEqual(page.viewportSize()!.width);
   await page.screenshot({ path: testInfo.outputPath("account-editor.png"), fullPage: true, scale: "css", style: "nextjs-portal { visibility: hidden; }" });
-  await page.getByRole("link", { name: "Back to all brands" }).click();
+  await page.getByRole("link", { name: "Back to all projects" }).click();
   await expect(page.getByRole("heading", { name: "Renamed account fixture" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Culture browser fixture" })).toBeVisible();
 });
@@ -249,7 +251,7 @@ test("account fixture: expired session masks private data and same-account recov
   const state = await accountFixtures(page, [fixtureProject()]);
   await openAccount(page);
   await sendFollowup(page, "A private unsaved note");
-  await page.getByRole("link", { name: "Back to all brands" }).click();
+  await page.getByRole("link", { name: "Back to all projects" }).click();
   await page.getByRole("link", { name: /Private account A fixture/ }).click();
   await expect(page.getByText("A private unsaved note", { exact: true })).toBeVisible();
   state.patchStatus = 401;
@@ -352,7 +354,7 @@ test("account fixture: a delayed load after internal navigation cannot roll back
   const original = fixtureProject();
   const state = await accountFixtures(page, [original]);
   await openAccount(page);
-  await page.getByRole("link", { name: "Back to all brands" }).click();
+  await page.getByRole("link", { name: "Back to all projects" }).click();
   let release!: () => void;
   let started!: () => void;
   let held = false;
@@ -413,7 +415,7 @@ for (const status of [404, 503]) {
     await accountFixtures(page, [fixtureProject()]);
     await openAccount(page);
     await rename(page, "Private unsaved revalidation fixture");
-    await page.getByRole("link", { name: "Back to all brands" }).click();
+    await page.getByRole("link", { name: "Back to all projects" }).click();
     let failing = true;
     await page.route(`**/api/projects/${projectA}`, async (route) => failing ? reply(route, { error: "Synthetic revalidation failure" }, status) : route.fallback());
     await page.getByRole("link", { name: /Private account A fixture/ }).click();

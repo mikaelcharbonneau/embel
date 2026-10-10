@@ -27,7 +27,7 @@ describe("concept 22 scope control", () => {
     await act(async () => trigger.click());
     const options = [...host.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')];
     expect(options).toHaveLength(7);
-    expect(options.filter(option => option.disabled).map(option => option.textContent)).toEqual(["LogoIn Brands", "FontSoon", "ColorSoon", "GuideSoon"]);
+    expect(options.filter(option => option.disabled).map(option => option.textContent)).toEqual(["LogoIn Projects", "FontSoon", "ColorSoon", "GuideSoon"]);
     expect(document.activeElement).toBe(options[0]);
     await act(async () => options[0]!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true })));
     expect(document.activeElement).toBe(options[1]);
