@@ -3,6 +3,7 @@ import { useState } from "react";
 import { TrademarkWorkspace } from "../../../src/features/trademark-workspace/trademark-workspace";
 import { createTrademarkDraft, serializeTrademarkDraftPreview } from "../../../src/features/trademark-workspace/domain";
 import "../../../src/styles/globals.css";
+import "../../../src/styles/trademarks-guided.css";
 import "./fixture.css";
 
 function Fixture() {

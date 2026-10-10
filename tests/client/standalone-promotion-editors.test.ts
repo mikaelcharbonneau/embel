@@ -81,7 +81,7 @@ async function edit(label: string, value: string) {
   const prototype = input instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
   await act(async () => { Object.getOwnPropertyDescriptor(prototype, "value")!.set!.call(input, value); input.dispatchEvent(new Event(input instanceof HTMLSelectElement ? "change" : "input", { bubbles: true })); });
 }
-async function choose(tool: StandaloneTool) { await act(async () => button(selectionButtonText[tool]).click()); }
+async function choose(tool: StandaloneTool) { if (tool === "trademarks") await act(async () => button("Fill").click()); if (tool === "handles") await act(async () => button("Library").click()); await act(async () => button(selectionButtonText[tool]).click()); }
 async function titleAndContext(title = "Cedar complete brand") {
   await edit("New brand title", title);
   await edit("Saved context to carry forward", standaloneImportKey(imports[1]!));
@@ -176,7 +176,7 @@ describe("saved standalone account editor promotion", () => {
     await act(async () => button("Create complete brand").click());
     const original = structuredClone(posts[0]!);
     stored = saved("handles"); await render("handles");
-    await settle(() => expect(host.textContent).toContain("Cedar bundle"));
+    await settle(() => expect(session.standaloneDrafts.get(session.session as VerifiedAccount, "handles")?.workspace?.tool).toBe("handles"));
     await choose("handles");
     expect(host.querySelector('[aria-label="Create complete brand from saved work"]')).toBeNull();
     expect(host.textContent).toContain("Check the original Domains promotion before creating another brand.");

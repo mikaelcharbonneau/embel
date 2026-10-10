@@ -30,9 +30,9 @@ function SettingsWorkspace({ localRuntimeEnabled = false }: { localRuntimeEnable
 
 type StandaloneToolName = "domains" | "handles" | "trademarks";
 
-function ManualTrademarkWorkspace() {
+function ManualTrademarkWorkspace({ draftControls }: { draftControls?: React.ReactNode }) {
   const [draft, setDraft] = useState(createTrademarkDraft);
-  return <TrademarkWorkspace draft={draft} onChange={setDraft} onExportPreview={preview => {
+  return <TrademarkWorkspace draftControls={draftControls} draft={draft} onChange={setDraft} onExportPreview={preview => {
     const raw = serializeTrademarkDraftPreview(preview);
     const url = URL.createObjectURL(new Blob([raw], { type: "application/json" }));
     const link = document.createElement("a");
@@ -42,12 +42,6 @@ function ManualTrademarkWorkspace() {
     try { link.click(); }
     finally { link.remove(); window.setTimeout(() => URL.revokeObjectURL(url), 1000); }
   }} />;
-}
-
-function ManualStandaloneToolWorkspace({ tool }: { tool: StandaloneToolName }) {
-  if (tool === "domains") return <DomainsWorkspace initialView="search" />;
-  if (tool === "handles") return <HandlesWorkspace />;
-  return <ManualTrademarkWorkspace />;
 }
 
 function StandaloneToolWorkspace({ tool }: { tool: StandaloneToolName }) {
@@ -62,14 +56,14 @@ function StandaloneToolWorkspace({ tool }: { tool: StandaloneToolName }) {
   if (session.status !== "ready") {
     if (tool === "domains") return <DomainsWorkspace initialView="search" draftControls={<AccountStatus retainedEdits={standaloneDrafts.hasUnsaved()} />} />;
     if (tool === "handles") return <HandlesWorkspace draftControls={<AccountStatus retainedEdits={standaloneDrafts.hasUnsaved()} />} />;
-    return <><div className="page standalone-account-status"><AccountStatus retainedEdits={standaloneDrafts.hasUnsaved()} /></div><ManualStandaloneToolWorkspace tool={tool} /></>;
+    return <ManualTrademarkWorkspace draftControls={<AccountStatus retainedEdits={standaloneDrafts.hasUnsaved()} />} />;
   }
   const projectPicker = <StandaloneProjectPicker selectedProjectId={project?.id} onSelect={next => {
     if (session.status === "ready" && isCurrent(session)) setSelected(next ? { ownerId: session.userId, generation: session.generation, project: next } : null);
   }} />;
   if (tool === "domains") return <AccountDomainsWorkspace {...props} projectPicker={projectPicker} />;
   if (tool === "handles") return <HandlesAccountEditor {...props} projectPicker={projectPicker} />;
-  return <>{projectPicker}<TrademarkAccountEditor {...props} /></>;
+  return <TrademarkAccountEditor {...props} projectPicker={projectPicker} />;
 }
 
 export function ToolWorkspace({ tool, localRuntimeEnabled = false }: { tool: ToolName; localRuntimeEnabled?: boolean }) {
