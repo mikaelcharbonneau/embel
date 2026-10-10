@@ -1,41 +1,82 @@
 // Dedicated headless fixture, independent of the shared Fluid server/browser.
 // Run: node tests/features/handles-workspace/browser-check.mjs
 import { build } from "esbuild";
+import { createServer } from "node:http";
 import { chromium, expect } from "@playwright/test";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const output = resolve(".tmp/handles-browser");
 await mkdir(output, { recursive: true });
-await build({ entryPoints: ["tests/features/handles-workspace/preview.tsx"], bundle: true, outfile: `${output}/preview.js`, platform: "browser", jsx: "automatic", define: { "process.env.NODE_ENV": '"development"' }, tsconfig: "tsconfig.json" });
+await build({ entryPoints: ["tests/features/handles-workspace/preview.tsx"], bundle: true, outfile: `${output}/preview.js`, platform: "browser", jsx: "automatic", define: { "process.env": "{}", "process.env.NODE_ENV": '"development"' }, tsconfig: "tsconfig.json" });
 const globalCss = (await readFile("src/styles/tokens.css", "utf8")) + (await readFile("src/styles/globals.css", "utf8")).replace(/@import[^;]+;/g, "");
 const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Handles isolated fixture</title><style>${globalCss} :root{--font-geist-sans:Arial} body{padding:24px}.page{padding:0;margin:0 auto}</style><link rel="stylesheet" href="./preview.css"></head><body><main id="root"></main><script src="./preview.js"></script></body></html>`;
 await writeFile(`${output}/preview.html`, html);
-const url = `file://${output}/`;
-const browser = await chromium.launch({ headless: true });
+const server = createServer(async (request, response) => {
+  const pathname = new URL(request.url, "http://127.0.0.1").pathname;
+  const files = { "/preview.html": ["preview.html", "text/html"], "/preview.js": ["preview.js", "text/javascript"], "/preview.css": ["preview.css", "text/css"] };
+  const file = files[pathname];
+  if (!file) { response.writeHead(404); response.end(); return; }
+  try { response.writeHead(200, { "Content-Type": file[1] }); response.end(await readFile(`${output}/${file[0]}`)); }
+  catch { response.writeHead(404); response.end(); }
+});
+await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
+const url = `http://127.0.0.1:${server.address().port}/`;
+const browser = await chromium.launch({ headless: true, executablePath: process.env.FLUID_E2E_BROWSER_EXECUTABLE || undefined });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1050 } });
 page.setDefaultTimeout(10000);
 const errors = [], remoteRequests = [];
 page.on("pageerror", error => errors.push(error.message));
 await page.route("**/*", route => {
+  const asset = new URL(route.request().url()).pathname.match(/^\/handles\/([a-z-]+\.svg)$/);
+  if (asset) return readFile(`public/handles/${asset[1]}`).then(body => route.fulfill({ contentType: "image/svg+xml", body }));
   if (!route.request().url().startsWith(url)) { remoteRequests.push(route.request().url()); return route.abort(); }
   return route.continue();
 });
 const checks = [];
 try {
   await page.goto(`${url}preview.html`);
-  await expect(page.getByRole("tab", { name: "Library" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "Search" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByText("Checks not connected")).toBeVisible();
   await expect(page.getByText("Fixture session only. No persistent storage.")).toBeVisible();
   checks.push("empty library, honest storage and unavailable checks");
-  await page.getByRole("tab", { name: "Library" }).focus(); await page.keyboard.press("ArrowRight");
+  await page.getByRole("tab", { name: "History" }).click(); await page.keyboard.press("ArrowRight");
   await expect(page.getByRole("tab", { name: "Search" })).toBeFocused();
   await expect(page.getByRole("tab", { name: "Search" })).toHaveAttribute("aria-selected", "true");
   checks.push("keyboard tab navigation");
   await page.getByRole("button", { name: "Build comparison" }).click();
   await expect(page.getByRole("alert")).toContainText("between 1 and 30 names");
+  await page.getByLabel("Business handles", { exact: true }).fill("Sandbox");
+  await page.getByLabel("Business handles", { exact: true }).press("Enter");
+  await expect(page.locator(".handles-candidate-grid").getByText("@sandbox", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Dot .", exact: true }).click();
+  await expect(page.locator(".handles-candidate-grid").getByText("@hello.sandbox", { exact: true })).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: "Threads Unavailable", exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "Save search", exact: true }).click();
+  await page.getByRole("tab", { name: "Saved", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Sandbox", exact: true })).toBeVisible();
+  await expect(page.getByText("Saved searches stay in this tab only", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "Use search", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Dot .", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Build comparison", exact: true }).click();
+  await page.getByRole("checkbox", { name: "Choose @sandbox on instagram for bundle", exact: true }).check();
+  await page.getByLabel("Prefixes", { exact: true }).fill("hello");
+  await expect(page.getByRole("table")).toHaveCount(0);
+  await page.getByRole("button", { name: "Remove Sandbox", exact: true }).click();
+  await expect(page.getByText("Add a business handle to preview your candidates.")).toBeVisible();
+  await page.getByRole("tab", { name: "Saved", exact: true }).click();
+  await page.getByRole("button", { name: "Remove search", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "No saved searches yet" })).toBeVisible();
+  await page.getByRole("tab", { name: "History", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "No checks yet" })).toBeVisible();
+  await page.getByRole("tab", { name: "Search", exact: true }).click();
+  await page.getByRole("button", { name: "Dot .", exact: true }).click();
+  checks.push("live tokens and separators, unavailable platforms, tab-only saved-search restore/remove, empty history, and changed-input selection reset");
   await page.getByRole("checkbox", { name: "Morrow Morrow · fixture" }).check();
-  await page.getByRole("checkbox", { name: "Include get… and …hq variants" }).check();
+  await page.getByLabel("Prefixes", { exact: true }).fill("get");
+  await page.getByLabel("Suffixes", { exact: true }).fill("hq");
+  await page.getByRole("checkbox", { name: "X", exact: true }).uncheck();
+  await page.getByRole("checkbox", { name: "LinkedIn", exact: true }).uncheck();
   await page.getByRole("button", { name: "Build comparison" }).click();
   await expect(page.getByRole("table")).toBeVisible();
   await expect(page.getByRole("button", { name: "Check platforms", exact: true })).toBeDisabled();
@@ -88,4 +129,4 @@ try {
   checks.push("no browser runtime errors or external requests");
   await writeFile(`${output}/verification.json`, JSON.stringify({ passed: true, checks, errors, remoteRequests, syntheticFixture: true }, null, 2));
   console.log(JSON.stringify({ passed: true, checks: checks.length, output }, null, 2));
-} finally { await browser.close(); }
+} catch (error) { console.error("Browser runtime errors:", errors); throw error; } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }

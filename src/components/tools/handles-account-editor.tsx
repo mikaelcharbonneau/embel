@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { AccountStatus, useAccountSession } from "@/components/workspace/account-session";
 import { HandlesWorkspace } from "@/features/handles-workspace/handles-workspace";
 import { createEmptyHandlesDraft, standalonePayloadCodec } from "@/features/handles-workspace/account-codec";
@@ -10,9 +10,9 @@ import type { StandaloneDraftMemory } from "./standalone-draft-memory";
 import { useStandaloneWorkspace } from "./use-standalone-workspace";
 import { useSavedStandalonePromotion } from "./use-saved-standalone-promotion";
 
-export type HandlesAccountEditorProps = { memory: StandaloneDraftMemory; importProjectId?: string; importProjectTitle?: string };
+export type HandlesAccountEditorProps = { memory: StandaloneDraftMemory; importProjectId?: string; importProjectTitle?: string; projectPicker?: ReactNode };
 
-function HandlesAccountContent({ memory, importProjectId, importProjectTitle }: HandlesAccountEditorProps) {
+function HandlesAccountContent({ memory, importProjectId, importProjectTitle, projectPicker }: HandlesAccountEditorProps) {
   const workspace = useStandaloneWorkspace({ codec: standalonePayloadCodec, emptyPayload: createEmptyHandlesDraft, memory });
   const promotion = useSavedStandalonePromotion("handles", workspace, memory);
   const [confirmReload, setConfirmReload] = useState(false);
@@ -33,7 +33,8 @@ function HandlesAccountContent({ memory, importProjectId, importProjectTitle }: 
   function reloadDraft(discard = false) {
     void workspace.reload(discard).then(loaded => { if (loaded) setEditorEpoch(epoch => epoch + 1); });
   }
-  return <>
+  const draftControls = <>
+    {projectPicker}
     <section className="page" aria-label="Handle account draft controls">
       <div className="handles-actions"><button type="button" className="button primary" disabled={!workspace.canSave} onClick={() => { setNotice(""); void workspace.save(); }}>{workspace.busy ? "Working…" : workspace.pending ? "Retry same save" : "Save account draft"}</button><button type="button" className="button secondary" disabled={workspace.busy} onClick={requestReload}>Load saved draft</button></div>
       {importProjectId && <div className="handles-actions"><p>{importProjectTitle ? `Import from ${importProjectTitle}` : "Import the selected project's saved name"}</p><button type="button" className="button secondary" disabled={!workspace.canEdit} onClick={() => void importName()}>Import saved name</button></div>}
@@ -44,10 +45,8 @@ function HandlesAccountContent({ memory, importProjectId, importProjectTitle }: 
       {!!workspace.imports.length && <details><summary>Saved-name sources ({workspace.imports.length})</summary><ul>{workspace.imports.map(source => <li key={handlesImportedName(source).id}>{source.name} · {source.projectTitle} · revision {source.projectRevision}</li>)}</ul><p>These are frozen name imports. No platform has been checked.</p></details>}
     </section>
     {promotion.controls}
-    <fieldset disabled={!workspace.canEdit} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }} aria-label="Handle draft editor">
-      <HandlesWorkspace key={editorEpoch} value={workspace.payload} onChange={workspace.setPayload} importedNames={workspace.imports.map(handlesImportedName)} adapter={unavailableHandleAdapter} storageNote={storageNote} sourceLabel={source => handlesAccountSourceLabel(source, workspace.imports)} onCreateBrand={promotion.select ? bundle => promotion.select?.({ tool: "handles", bundleId: bundle.id }) : undefined} />
-    </fieldset>
   </>;
+  return <HandlesWorkspace key={editorEpoch} value={workspace.payload} onChange={workspace.setPayload} importedNames={workspace.imports.map(handlesImportedName)} adapter={unavailableHandleAdapter} storageNote={storageNote} sourceLabel={source => handlesAccountSourceLabel(source, workspace.imports)} disabled={!workspace.canEdit} draftControls={draftControls} onCreateBrand={promotion.select ? bundle => promotion.select?.({ tool: "handles", bundleId: bundle.id }) : undefined} />;
 }
 
 /** Remount every transient matrix/form/request on owner or verification generation changes. */

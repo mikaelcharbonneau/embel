@@ -1,24 +1,39 @@
 // Dedicated synthetic React/UI regression; local files and zero provider requests.
 import { build } from "esbuild";
+import { createServer } from "node:http";
 import { chromium, expect } from "@playwright/test";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const output = resolve(".tmp/handles-adapter-race");
 await mkdir(output, { recursive: true });
-await build({ entryPoints: ["tests/features/handles-workspace/adapter-race-preview.tsx"], bundle: true, outfile: `${output}/preview.js`, platform: "browser", jsx: "automatic", define: { "process.env.NODE_ENV": '"development"' }, tsconfig: "tsconfig.json" });
+await build({ entryPoints: ["tests/features/handles-workspace/adapter-race-preview.tsx"], bundle: true, outfile: `${output}/preview.js`, platform: "browser", jsx: "automatic", define: { "process.env": "{}", "process.env.NODE_ENV": '"development"' }, tsconfig: "tsconfig.json" });
 const tokens = await readFile("src/styles/tokens.css", "utf8");
 await writeFile(`${output}/preview.html`, `<!doctype html><html lang="en"><head><meta charset="utf-8"><style>${tokens}</style><link rel="stylesheet" href="./preview.css"></head><body><main id="root"></main><script src="./preview.js"></script></body></html>`);
-const browser = await chromium.launch({ headless: true });
-const url = `file://${output}/`, errors = [], remoteRequests = [], scenarios = [];
+const browser = await chromium.launch({ headless: true, executablePath: process.env.FLUID_E2E_BROWSER_EXECUTABLE || undefined });
+const server = createServer(async (request, response) => {
+  const pathname = new URL(request.url, "http://127.0.0.1").pathname;
+  const files = { "/preview.html": ["preview.html", "text/html"], "/preview.js": ["preview.js", "text/javascript"], "/preview.css": ["preview.css", "text/css"] };
+  const file = files[pathname];
+  if (!file) { response.writeHead(404); response.end(); return; }
+  try { response.writeHead(200, { "Content-Type": file[1] }); response.end(await readFile(`${output}/${file[0]}`)); }
+  catch { response.writeHead(404); response.end(); }
+});
+await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
+const url = `http://127.0.0.1:${server.address().port}/`;
+const errors = [], remoteRequests = [], scenarios = [];
 try {
   for (const action of ["Disconnect fixture adapter", "Replace fixture adapter"]) {
     const page = await browser.newPage(); page.setDefaultTimeout(10000);
     page.on("pageerror", error => errors.push(error.message));
-    await page.route("**/*", route => { if (!route.request().url().startsWith(url)) { remoteRequests.push(route.request().url()); return route.abort(); } return route.continue(); });
+    await page.route("**/*", async route => { const asset = new URL(route.request().url()).pathname.match(/^\/handles\/([a-z-]+\.svg)$/); if (asset) return route.fulfill({ contentType: "image/svg+xml", body: await readFile(`public/handles/${asset[1]}`) }); if (!route.request().url().startsWith(url)) { remoteRequests.push(route.request().url()); return route.abort(); } return route.continue(); });
     await page.goto(`${url}preview.html`);
     await page.getByRole("tab", { name: "Search", exact: true }).click();
-    await page.getByLabel("Names", { exact: true }).fill("Morrow");
+    await page.getByLabel("Business handles", { exact: true }).fill("Morrow");
+    await page.getByLabel("Prefixes", { exact: true }).fill("");
+    await page.getByLabel("Suffixes", { exact: true }).fill("");
+    await page.getByRole("checkbox", { name: "X", exact: true }).uncheck();
+    await page.getByRole("checkbox", { name: "LinkedIn", exact: true }).uncheck();
     await page.getByRole("button", { name: "Build comparison", exact: true }).click();
     await page.getByRole("button", { name: "Check platforms", exact: true }).click();
     await expect.poll(() => page.evaluate(() => window.handlesRace.snapshot())).toEqual([{ adapter: "A", platform: "instagram", aborted: false }]);
@@ -38,6 +53,10 @@ try {
       await page.evaluate(() => window.handlesRace.settle("B"));
       await expect.poll(() => page.evaluate(() => window.handlesRace.snapshot().map(request => `${request.adapter}:${request.platform}`))).toEqual(["A:instagram", "B:instagram", "B:tiktok", "B:youtube"]);
       await expect(page.getByText("Confirmed available", { exact: true })).toHaveCount(3);
+      await page.getByRole("tab", { name: "History", exact: true }).click();
+      await expect(page.getByText("Start recorded. Completion and availability are not inferred.")).toHaveCount(2);
+      await expect(page.getByText("Confirmed available", { exact: true })).toHaveCount(0);
+
     }
     scenarios.push({ action, passed: true, requests: await page.evaluate(() => window.handlesRace.snapshot()) });
     await page.close();
@@ -45,12 +64,16 @@ try {
   {
     const page = await browser.newPage();
     page.on("pageerror", error => errors.push(error.message));
-    await page.route("**/*", route => { if (!route.request().url().startsWith(url)) { remoteRequests.push(route.request().url()); return route.abort(); } return route.continue(); });
+    await page.route("**/*", async route => { const asset = new URL(route.request().url()).pathname.match(/^\/handles\/([a-z-]+\.svg)$/); if (asset) return route.fulfill({ contentType: "image/svg+xml", body: await readFile(`public/handles/${asset[1]}`) }); if (!route.request().url().startsWith(url)) { remoteRequests.push(route.request().url()); return route.abort(); } return route.continue(); });
     await page.clock.install();
     await page.goto(`${url}preview.html`);
     await page.getByRole("button", { name: "Deadline fixture adapter", exact: true }).click();
     await page.getByRole("tab", { name: "Search", exact: true }).click();
-    await page.getByLabel("Names", { exact: true }).fill("Morrow");
+    await page.getByLabel("Business handles", { exact: true }).fill("Morrow");
+    await page.getByLabel("Prefixes", { exact: true }).fill("");
+    await page.getByLabel("Suffixes", { exact: true }).fill("");
+    await page.getByRole("checkbox", { name: "X", exact: true }).uncheck();
+    await page.getByRole("checkbox", { name: "LinkedIn", exact: true }).uncheck();
     await page.getByRole("button", { name: "Build comparison", exact: true }).click();
     await page.getByRole("checkbox", { name: "Choose @morrow on instagram for bundle", exact: true }).check();
     await page.getByRole("button", { name: "Check platforms", exact: true }).click();
@@ -74,4 +97,4 @@ try {
   expect(errors).toEqual([]); expect(remoteRequests).toEqual([]);
   await writeFile(`${output}/verification.json`, JSON.stringify({ passed: true, scenarios, errors, remoteRequests, syntheticFixture: true }, null, 2));
   console.log(JSON.stringify({ passed: true, scenarios: scenarios.length, output }, null, 2));
-} finally { await browser.close(); }
+} catch (error) { console.error("Browser runtime errors:", errors); throw error; } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }
