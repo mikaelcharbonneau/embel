@@ -31,13 +31,13 @@ export function LogoEditorWorkspace({ projectId }: { projectId: string }) {
   const { session } = useAccountSession();
   const memory = useLogoDraftMemory();
   const parsed = logoUuidSchema.safeParse(projectId);
-  if (!parsed.success) return <main className="page"><h1>Logo workspace not found</h1><Link href="/brands">Back to brands</Link></main>;
-  return <main className="page">
+  if (!parsed.success) return <section className="page project-logo-editor"><h1>Logo workspace not found</h1><Link href="/brands">Back to brands</Link></section>;
+  return <section className="page project-logo-editor">
     <header className={styles.editorHeader}><div><p className={styles.eyebrow}>Logo · Editor</p><h1>Refine your logo</h1></div><Link href={`/brands/account/${parsed.data}`}>Back to project</Link></header>
     <LogoJourneyNavigation projectId={parsed.data} current="editor" />
     <AccountStatus retainedEdits={memory.hasUnsaved()} />
     {session.status === "ready" && <OwnedLogoEditor key={`${session.userId}:${session.generation}:${parsed.data}`} projectId={parsed.data} account={session} memory={memory} />}
-  </main>;
+  </section>;
 }
 
 type Preview = NonNullable<Awaited<ReturnType<AccountLogoClient["previewAsset"]>>>;

@@ -9,7 +9,7 @@ import { applyLogoManualEdit } from "../../src/features/logo-vector/model/edits"
 import type { LogoManualCommand, LogoMutationReceipt, LogoStageRevision, LogoWorkspaceV2 } from "../../src/domain/logo-workspace";
 import type { LogoVectorDocument } from "../../src/domain/logo-vector";
 import type { LogoVectorDetail } from "../../src/domain/logo-deliverables";
-const source = syntheticResolvedLogoConcept(), ownerId = source.input.ownerId, projectId = source.input.projectId, base = `/api/projects/${projectId}/logo`, url = `/brands/account/${projectId}/logo/editor`;
+const source = syntheticResolvedLogoConcept(), ownerId = source.input.ownerId, projectId = source.input.projectId, base = `/api/projects/${projectId}/logo`, url = `/brands/account/${projectId}/logo/vector`;
 const hash = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 function canonical(value: unknown): string { return Array.isArray(value) ? `[${value.map(canonical).join(",")}]` : value && typeof value === "object" ? `{${Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, child]) => `${JSON.stringify(key)}:${canonical(child)}`).join(",")}}` : JSON.stringify(value); }
 async function setup(page: Page) {
@@ -89,7 +89,7 @@ test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));
 
 test("identity directions and brand files retain usable unavailable states without creating work", async ({ page }, info) => {
   const f = await setup(page);
-  for (const [stage, title] of [["directions", "Visual identity"], ["deliverables", "Brand files"]]) {
+  for (const [stage, title] of [["directions", "Build the whole identity"], ["deliverables", "Your brand, ready to use"]]) {
     await page.goto(`/brands/account/${projectId}/logo/${stage}`);
     await expect(page.getByRole("heading", { name: title, level: 1, exact: true })).toBeVisible();
     await expect(page.getByRole("navigation", { name: "Logo and identity stages" })).toBeVisible();

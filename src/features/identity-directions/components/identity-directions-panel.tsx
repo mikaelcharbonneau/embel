@@ -1,5 +1,6 @@
 "use client";
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
+import { useProjectIdentityEvidence, ProjectDock } from "@/components/workspace/project-workspace";
 import type { AccountLogoClient } from "@/components/identity/account-logo-client";
 import type { IdentityDirectionBasis } from "@/domain/logo-directions";
 import type { LogoWorkspaceV2 } from "@/domain/logo-workspace";
@@ -9,12 +10,13 @@ import { FontPicker } from "./font-picker";
 import { FontPreviewProvider } from "./font-preview-provider";
 import { useIdentityDirections, type IdentityDirectionsController } from "./use-identity-directions";
 import styles from "./identity-directions.module.css";
-export function IdentityDirectionsPanel({ workspace, client }: { workspace: LogoWorkspaceV2; client: AccountLogoClient }): React.JSX.Element {
-  return <FontPreviewProvider client={client} projectId={workspace.projectId}><IdentityDirectionsView controller={useIdentityDirections(client, workspace)} /></FontPreviewProvider>;
+export function IdentityDirectionsPanel({ workspace, client, controls }: { workspace: LogoWorkspaceV2; client: AccountLogoClient; controls?: ReactNode }): React.JSX.Element {
+  return <FontPreviewProvider client={client} projectId={workspace.projectId}><IdentityDirectionsView controller={useIdentityDirections(client, workspace)} controls={controls} /></FontPreviewProvider>;
 }
 /** Shared production view also used by labeled offline interaction fixtures. */
-export function IdentityDirectionsView({ controller }: { controller: IdentityDirectionsController }): React.JSX.Element {
+export function IdentityDirectionsView({ controller, controls }: { controller: IdentityDirectionsController; controls?: ReactNode }): React.JSX.Element {
   const titleId = useId();
+  useProjectIdentityEvidence(controller.workspace ? { ownerId: controller.workspace.ownerId, projectId: controller.workspace.projectId, projectRevision: controller.workspace.heads.projectRevision, approved: Boolean(!controller.loading && !controller.error && controller.overview?.approval && controller.overview.approval.approvedLogoId === controller.workspace.approvedLogo?.id && !controller.overview.stale && !controller.workspace.staleStages.some(stage => stage.stage === "directions")) } : null);
   const current = controller.workspace, overview = controller.overview, selection = overview?.selection ?? null;
   const stale = !!(overview?.stale || current?.staleStages.some(item => item.stage === "directions"));
   const staleFiles = !!current?.staleStages.some(item => item.stage === "deliverables");
@@ -28,7 +30,7 @@ export function IdentityDirectionsView({ controller }: { controller: IdentityDir
     const matches = rows.filter(row => row.id === id && row.ownerId === basis.ownerId && row.projectId === basis.projectId && row.approvedLogoId === basis.approvedLogoId && JSON.stringify(row.inputRevisions) === JSON.stringify(basis.inputRevisions));
     return matches.length === 1 ? matches[0]! : null;
   };
-  return <section className={styles.panel} aria-labelledby={titleId} aria-busy={controller.loading}>
+  return <section className={`${styles.panel} project-workbench project-direction-workspace`} aria-labelledby={titleId} aria-busy={controller.loading}><div className="project-workbench-canvas">
     <header className={styles.header}><div><p className={styles.eyebrow}>Visual identity</p><h2 id={titleId}>Identity directions</h2><p className={styles.caption}>Colors, typography and graphics around your approved logo.</p></div><span className={styles.badge}>Logo protected</span></header>
     {!controller.canRead ? <p className={styles.notice} role="status">{controller.error ?? "Waiting for your saved workspace. Sign in to view your identity directions."}</p>
       : !current?.approvedLogo ? <div className={styles.empty}><h3>Start with an approved logo</h3><p>Approve your logo in the logo editor before exploring three coordinated identity directions.</p></div>
@@ -53,7 +55,20 @@ export function IdentityDirectionsView({ controller }: { controller: IdentityDir
             {controller.history?.canLoadMore && <button type="button" disabled={controller.history.loading || controller.loading} onClick={() => { void controller.loadHistory(); }}>{controller.history.loading ? "Loading history…" : "Load earlier directions"}</button>}</div>
           {controller.history?.error && <p className={styles.notice} role="status">{controller.history.error}</p>}
         </details>}
-        {overview && directions.length > 0 && <section className={styles.selection} aria-label="Component choices"><div className={styles.headingRow}><h3>Mix components</h3><span className={styles.badge}>{overview.approval && exactSaved && !stale ? "Approved selection" : exactSaved ? "Saved selection" : choices ? "Unsaved preview" : "Choose a direction"}</span></div>
+        {(controller.hasDirectionDraft || controller.pendingRequestKey || stale) && <details className={styles.details}><summary>Reload options</summary>
+          <p className={styles.caption}>Discarding removes only your unsaved mix. Saved requests and other brief or logo edits are retained.</p>
+          {!controller.canDiscardDraft && <p className={styles.caption}>Check or resolve the retained request and other logo edits before discarding this local mix.</p>}
+          <button type="button" disabled={controller.loading || !controller.canDiscardDraft} onClick={() => { if (window.confirm("Discard only this unsaved mix and reload saved work? Saved requests and other brief or logo edits will be kept.")) void controller.discardAndReload(); }}>Discard mix draft and reload</button>
+        </details>}
+        {controller.requestStatus && <p className={styles.notice} role="status">{controller.requestStatus}</p>}
+      </>}
+    {controller.canRead && controller.pendingRequestKey && <div className={styles.notice}><strong>A previous request needs checking</strong>
+      <p>Your exact original request is retained. Checking never sends it again. Retry checks first, then may resend the same request with its original choices.</p>
+      <div className={styles.actions}><button type="button" disabled={controller.loading} onClick={() => { void controller.reconcile(); }}>Check saved request</button>
+        <button type="button" disabled={controller.loading || !controller.canRetryRequest} onClick={() => { void controller.retryOriginal(); }}>Retry original {controller.pendingRequestKind === "approval" ? "approval" : "save"}</button></div>
+    </div>}
+  </div><ProjectDock title="Identity directions" context={<p>{overview?.approval && !stale ? "Current identity approved" : "Review your saved logo and components"}</p>}>
+        {current?.approvedLogo && overview && directions.length > 0 && <section className={styles.selection} aria-label="Component choices"><div className={styles.headingRow}><h3>Mix components</h3><span className={styles.badge}>{overview.approval && exactSaved && !stale ? "Approved selection" : exactSaved ? "Saved selection" : choices ? "Unsaved preview" : "Choose a direction"}</span></div>
           <div className={styles.componentFields}>{(["palette", "typography", "graphics"] as const).map(part => {
             const field = part === "palette" ? "paletteVersionId" : part === "typography" ? "typographyVersionId" : "graphicsVersionId";
             const rows = part === "palette" ? overview.palettes : part === "typography" ? overview.typography : overview.graphics;
@@ -70,17 +85,6 @@ export function IdentityDirectionsView({ controller }: { controller: IdentityDir
           <p className={styles.caption}>Saving keeps this mix. Approval is a separate step before refreshed brand files.</p>
           <details className={styles.details}><summary>Fonts and usage permissions</summary><FontPicker typography={choices ? overview.typography.find(t => t.id === choices.typographyVersionId) ?? null : null} fonts={overview.fonts} showActions /></details>
         </section>}
-        {(controller.hasDirectionDraft || controller.pendingRequestKey || stale) && <details className={styles.details}><summary>Reload options</summary>
-          <p className={styles.caption}>Discarding removes only your unsaved mix. Saved requests and other brief or logo edits are retained.</p>
-          {!controller.canDiscardDraft && <p className={styles.caption}>Check or resolve the retained request and other logo edits before discarding this local mix.</p>}
-          <button type="button" disabled={controller.loading || !controller.canDiscardDraft} onClick={() => { if (window.confirm("Discard only this unsaved mix and reload saved work? Saved requests and other brief or logo edits will be kept.")) void controller.discardAndReload(); }}>Discard mix draft and reload</button>
-        </details>}
-        {controller.requestStatus && <p className={styles.notice} role="status">{controller.requestStatus}</p>}
-      </>}
-    {controller.canRead && controller.pendingRequestKey && <div className={styles.notice}><strong>A previous request needs checking</strong>
-      <p>Your exact original request is retained. Checking never sends it again. Retry checks first, then may resend the same request with its original choices.</p>
-      <div className={styles.actions}><button type="button" disabled={controller.loading} onClick={() => { void controller.reconcile(); }}>Check saved request</button>
-        <button type="button" disabled={controller.loading || !controller.canRetryRequest} onClick={() => { void controller.retryOriginal(); }}>Retry original {controller.pendingRequestKind === "approval" ? "approval" : "save"}</button></div>
-    </div>}
-  </section>;
+    {controls}
+  </ProjectDock></section>;
 }

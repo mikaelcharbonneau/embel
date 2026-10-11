@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ProjectDock } from "@/components/workspace/project-workspace";
 import { identityPreferencesSchema, initialIdentityPreferences } from "@/domain/project-identity";
 import { BrowserLocalDate } from "@/components/workspace/browser-local-date";
 import { identitySystemFreshness } from "./account-identity-client";
@@ -42,7 +43,7 @@ export function ProjectIdentityWorkspace({ projectId, referenceState }: { projec
   const freshness = system && overview ? identitySystemFreshness(system, overview) : null;
   const stale = freshness?.status === "stale";
   const acknowledged = !stale || acknowledgment === acknowledgmentKey;
-  return <section className="project-identity" aria-labelledby="project-identity-title"><div className="identity-section-heading"><div><h2 id="project-identity-title" tabIndex={-1}>Identity systems</h2><p>Saved choices, components and version history</p></div>
+  return <section className="project-identity project-workbench project-systems-workspace" aria-labelledby="project-identity-title"><div className="project-workbench-canvas"><div className="identity-section-heading"><div><h2 id="project-identity-title" tabIndex={-1}>Identity systems</h2><p>Saved choices, components and version history</p></div>
     <button type="button" className="text-link" disabled={controller.loading || controller.pending} onClick={() => { void controller.refresh(); }}>{controller.loading ? "Checking saved systems…" : "Check latest"}</button></div>
     <p className="identity-generation-gate">New system generation is unavailable.</p>
     {controller.error && <p className="identity-notice identity-error" role="alert">{controller.error}</p>}
@@ -64,7 +65,6 @@ export function ProjectIdentityWorkspace({ projectId, referenceState }: { projec
         <IdentityComponents controller={controller} acknowledged={acknowledged} />
       </section>}
       <IdentityHistory items={controller.items} currentSystemId={overview.currentSelection?.system.id ?? null} viewedSystemId={system?.id ?? null} client={client} pending={controller.pending || controller.detailLoading} hasMore={Boolean(controller.nextCursor)} loadingMore={controller.loadingMore} onView={id => { void controller.viewSystem(id); }} onMore={() => { void controller.loadMore(); }} />
-      <IdentityPreferences controller={controller} />
     </>}
-  </section>;
+  </div><ProjectDock title="Saved identity" context={<p>{system?.input.basis.name || "No system selected"}</p>}><IdentityPreferences controller={controller} /></ProjectDock></section>;
 }

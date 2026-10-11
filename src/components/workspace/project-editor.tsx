@@ -22,6 +22,8 @@ import { NameOrigin } from "./name-origin";
 import { CompetitorReview } from "./competitor-review";
 import { PersonalityReview, PositioningReview } from "./strategy-review";
 import { ConversationComposer } from "./conversation-composer";
+import { ProjectStageNavigation } from "./project-workspace";
+import { ProjectArtwork } from "@/components/ui/project-artwork";
 import { AudienceConversationWidget, WidgetSummary, widgetLabels } from "./conversation-widgets";
 import {
   competitorReviewKey, conversationContextKey, conversationPromptPatch, conversationWidgetPatch, draftConversation,
@@ -211,6 +213,7 @@ type EditorStorage = {
   strategyActions?: Partial<Record<ConversationWidget, { label: string; maximumCostLabel: string; disabled?: boolean }>>;
   onStrategyRequested?: (widget: ConversationWidget) => Promise<void>;
   strategyPending?: boolean;
+  onStrategyApproved?: (draft: LocalDraft) => Promise<boolean>;
 };
 
 export function ProjectEditor({ projectId }: { projectId: string }) {
@@ -245,7 +248,11 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const approvingStrategy = useRef(false);
+  const [approvalPending, setApprovalPending] = useState(false);
   const [renaming, setRenaming] = useState(false);
+  const [briefEditing, setBriefEditing] = useState(false);
+  const [briefOpen, setBriefOpen] = useState(false);
   const [opened, setOpened] = useState<{ anchor: string | null; widget: ConversationWidget | null }>({ anchor: lastWidget?.id ?? null, widget: latestEvent?.kind === "widget" && !reviewed[latestEvent.widget] ? latestEvent.widget : null });
   const [strategyNotice, setStrategyNotice] = useState({ personality: "", positioning: "" });
   const focusWidget = useRef<ConversationWidget | null>(null);
@@ -290,6 +297,7 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
   }, []);
 
   function completeWidget(widget: ConversationWidget) {
+    if (approvingStrategy.current) return;
     const next: Record<ConversationWidget, ConversationWidget | null> = { competitors: "audience", audience: "personality", personality: "positioning", positioning: null };
     const now = new Date().toISOString();
     try {
@@ -300,7 +308,14 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
       const events = draftConversation(result.nextDraft);
       focusWidget.current = nextWidget;
       setOpened({ anchor: [...events].reverse().find((event) => event.kind === "widget")?.id ?? null, widget: nextWidget });
-      setMessage(account ? "Selection kept. Save changes to keep it in your account." : result.persisted ? "Selection saved in this browser." : "Selection kept in this tab. Browser storage is unavailable.");
+      if (widget === "positioning" && storage.onStrategyApproved) {
+        approvingStrategy.current = true; setApprovalPending(true);
+        setMessage("Saving your Strategy approval…");
+        void storage.onStrategyApproved(result.nextDraft).then(saved => {
+          if (saved) setMessage("Strategy approved and saved to your account.");
+          else { setMessage(""); setError("Strategy approval could not be saved. Your review is kept here. Use Save changes to retry."); }
+        }).catch(() => { setMessage(""); setError("Strategy approval could not be saved. Your review is kept here. Use Save changes to retry."); }).finally(() => { approvingStrategy.current = false; setApprovalPending(false); });
+      } else setMessage(account ? "Selection kept. Save changes to keep it in your account." : result.persisted ? "Selection saved in this browser." : "Selection kept in this tab. Browser storage is unavailable.");
     } catch (error) { setError(error instanceof Error ? error.message : "Your selection could not be confirmed."); }
   }
 
@@ -322,7 +337,7 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
     if (widget === "competitors") return <CompetitorReview draft={draft} inline savedContext={storage.savedContext ?? draft.preservedContext} onChange={(competitors) => update({ competitors, competitorReviewKey: null }, true)} onComplete={() => completeWidget("competitors")} onBack={() => openWidget("audience")} />;
     if (widget === "audience") return <AudienceConversationWidget draft={draft} savedContext={storage.savedContext ?? draft.preservedContext} onChange={(segments) => update({ segments }, true)} onComplete={() => completeWidget("audience")} onContinue={() => openWidget("personality")} />;
     if (widget === "personality") return <PersonalityReview draft={draft} inline notice={strategyNotice.personality} onChange={(personality) => update({ personality })} onComplete={() => completeWidget("personality")} onBack={() => openWidget("audience")} onSkip={() => openWidget("positioning")} />;
-    return <PositioningReview draft={draft} inline notice={strategyNotice.positioning} onChange={(positioning) => update({ positioning })} onComplete={() => completeWidget("positioning")} onBack={() => openWidget("personality")} />;
+    return <PositioningReview draft={draft} inline pending={approvalPending} notice={strategyNotice.positioning} onChange={(positioning) => update({ positioning })} onComplete={() => completeWidget("positioning")} onBack={() => openWidget("personality")} />;
   }
 
   function proposalAction(widget: ConversationWidget) {
@@ -331,8 +346,12 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
     return <div className="conversation-proposal-action"><span>{action.maximumCostLabel}</span><button type="button" className="button secondary small" disabled={action.disabled || storage.strategyPending || storage.promptPending} onClick={() => { void storage.onStrategyRequested?.(widget).catch(() => setError("The request could not start. Your conversation is kept here.")); }}>{action.label}<Icon name="arrow" size={14} /></button></div>;
   }
 
-  return <div className="page conversation-page">
+  return <div className={`project-strategy-workspace ${briefOpen ? "has-live-brief" : ""}`}>
+    {!account && <><header className="project-workspace-header"><div><Link href="/brands">Projects</Link><ProjectArtwork name="chevron" /><span className="project-workspace-title">{draftTitle(draft)}</span></div><span className="project-workspace-save">{storage.saveLabel}</span></header><ProjectStageNavigation base={`/brands/${draft.id}`} stage="strategy" scope={draft.scope} strategyReady={false} nameSelected={false} dirty /></>}
+    <div className="project-strategy-columns"><div className="page conversation-page">
     <div className="conversation-scroll-area" role="region" aria-label="Conversation and project details" tabIndex={0}>
+    <div className="project-conversation-marker"><span>STRATEGY / {briefEditing ? "BRIEF" : (activeWidget ?? "brief").toUpperCase()}</span><span>{briefEditing || !activeWidget ? 1 : ["competitors", "audience", "personality", "positioning"].indexOf(activeWidget) + 2} of 5</span><button type="button" className="text-link" aria-expanded={briefOpen} onClick={() => setBriefOpen(value => !value)}>{briefOpen ? "Close live brief" : "Live brief"}</button></div>
+    <details className="project-details-disclosure"><summary>Project details and saving</summary>
     <header className="conversation-project-header">
       <div className="conversation-project-title">
         <Link href="/brands" className="text-link">Projects</Link><Icon name="chevron" size={13} />
@@ -343,13 +362,15 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
       <span className="save-label"><Icon name={account ? "brands" : "device"} size={13} />{storage.saveLabel}</span>
     </header>
     <div className="conversation-project-meta"><span className="small-badge">{scopeLabel(draft.scope)}</span>{draft.example && <span className="small-badge">Example prompt</span>}{account ? storage.scopeControl : draft.scope !== "complete_brand" && <button className="text-link" type="button" onClick={() => update({ scope: "complete_brand" })}>Expand to complete brand</button>}</div>
-    {storage.actions && (account ? <div className="conversation-account-actions">{storage.actions}</div> : <details className="conversation-account-disclosure"><summary>Account saving</summary><div className="conversation-account-actions">{storage.actions}</div></details>)}
     {storage.namingSource && <NameOrigin source={storage.namingSource} />}
     {details.length > 0 && <details className="conversation-saved-details"><summary>Saved project details</summary><dl>{details.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></details>}
+    </details>
+    {storage.actions && (account ? <div className="conversation-account-actions">{storage.actions}</div> : <details className="conversation-account-disclosure"><summary>Account saving</summary><div className="conversation-account-actions">{storage.actions}</div></details>)}
+    {briefEditing && <section className="conversation-widget project-brief-widget" aria-label="Project brief"><h2>Your starting point</h2><p>Keep your own description and offering. No AI response is implied.</p>{([['activity', 'What the business does'], ['offering', 'First products / services'], ['knownAudience', 'Known audience']] as const).map(([field, label]) => <label className="field-label" key={field}>{label}<input value={draft[field]} maxLength={2000} onChange={event => update({ [field]: event.target.value, confirmedBrief: undefined, competitorReviewKey: null }, true)} /></label>)}<button type="button" className="button primary small" onClick={() => { update({ confirmedBrief: { description: draft.description, activity: draft.activity, offering: draft.offering, knownAudience: draft.knownAudience } }); setBriefEditing(false); }}>Keep brief</button></section>}
     <ol id="strategy-brief" tabIndex={-1} className="conversation-history" aria-label="Project conversation">{conversation.map((event) => <Fragment key={event.id}>
       {event.kind === "user_message" && <li className="conversation-user-entry" ref={(node) => { if (node && newMessage.current === event.id) { node.scrollIntoView({ block: "nearest" }); newMessage.current = null; } }}><div className="conversation-message-meta"><span>You</span><time dateTime={event.createdAt}>{new Date(event.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time></div><p>{event.text}</p></li>}
       {event.kind === "saved_context" && <li className="conversation-saved-entry"><span className="conversation-entry-label">Saved brief</span><p>{event.text}</p></li>}
-      {event.kind === "widget" && <li className={`conversation-widget-entry ${activeWidget === event.widget ? "is-open" : ""}`}><section className="conversation-widget" aria-labelledby={`widget-${event.id}`}><div className="conversation-widget-heading"><span className="conversation-tool-avatar" aria-hidden="true">f</span><h2 id={`widget-${event.id}`} tabIndex={-1} ref={(node) => { if (node && focusWidget.current === event.widget) { node.focus(); focusWidget.current = null; } }}>{widgetLabels[event.widget]}</h2><span className={`conversation-review-state ${reviewed[event.widget] ? "is-reviewed" : ""}`}>{reviewed[event.widget] ? <><Icon name="check" size={12} />Confirmed</> : "Not reviewed"}</span>{activeWidget === event.widget ? <button type="button" className="text-link" aria-label={`Collapse ${event.widget}`} onClick={() => setOpened({ anchor: lastWidget?.id ?? null, widget: null })}>Collapse</button> : <button type="button" className="text-link" aria-label={`Edit ${event.widget}`} onClick={() => openWidget(event.widget)}><Icon name="pencil" size={13} />Edit</button>}</div>{activeWidget === event.widget ? <div className="conversation-widget-body">{proposalAction(event.widget)}{renderWidget(event.widget)}</div> : <div className="conversation-widget-summary"><WidgetSummary widget={event.widget} draft={draft} reviewed={reviewed[event.widget]} /></div>}</section></li>}
+      {event.kind === "widget" && <li className={`conversation-widget-entry ${activeWidget === event.widget ? "is-open" : ""}`}><section className="conversation-widget" aria-labelledby={`widget-${event.id}`}><div className="conversation-widget-heading"><span className="conversation-tool-avatar" aria-hidden="true"><ProjectArtwork name="mark" /></span><h2 id={`widget-${event.id}`} tabIndex={-1} ref={(node) => { if (node && focusWidget.current === event.widget) { node.focus(); focusWidget.current = null; } }}>{widgetLabels[event.widget]}</h2><span className={`conversation-review-state ${reviewed[event.widget] ? "is-reviewed" : ""}`}>{reviewed[event.widget] ? <><Icon name="check" size={12} />Confirmed</> : "Not reviewed"}</span>{activeWidget === event.widget ? <button type="button" className="text-link" aria-label={`Collapse ${event.widget}`} onClick={() => setOpened({ anchor: lastWidget?.id ?? null, widget: null })}>Collapse</button> : <button type="button" className="text-link" aria-label={`Edit ${event.widget}`} onClick={() => openWidget(event.widget)}><Icon name="pencil" size={13} />Edit</button>}</div>{activeWidget === event.widget ? <div className="conversation-widget-body">{proposalAction(event.widget)}{renderWidget(event.widget)}</div> : <div className="conversation-widget-summary"><WidgetSummary widget={event.widget} draft={draft} reviewed={reviewed[event.widget]} /></div>}</section></li>}
       {event.id === lastPrompt?.id && <li className="conversation-service-entry">{storage.strategy ?? <p className="conversation-service-note"><Icon name="offline" size={15} />{account ? "AI processing is not connected to this conversation yet." : "AI replies are not available in this browser draft."}</p>}</li>}
     </Fragment>)}</ol>
     {!lastPrompt && storage.strategy && <div className="conversation-service-entry">{storage.strategy}</div>}
@@ -361,7 +382,8 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
       {error && <p className="form-error" role="alert">{error}</p>}
       {message && <p className="conversation-feedback" role="status">{message}</p>}
       {storage.promptNotice}
-      <ConversationComposer value={prompt} onChange={(value) => { setPrompt(value); setError(""); }} onSend={sendPrompt} label="Message Fluid" placeholder="Add context, ask a question, or describe a change…" sendLabel={account ? "Send prompt" : "Save message"} disabled={storage.promptPending} hint={account ? "Prompts stay with this project." : storage.saveLabel === "This tab only" ? "This tab only · browser storage unavailable" : "Saved in this browser · Shift + Enter for a new line"} />
+      <ConversationComposer project value={prompt} onChange={(value) => { setPrompt(value); setError(""); }} onSend={sendPrompt} label="Message Fluid" placeholder="Reply or ask a question…" sendLabel={account ? "Send prompt" : "Save message"} disabled={storage.promptPending} hint={account ? "Project context" : storage.saveLabel === "This tab only" ? "This tab only · browser storage unavailable" : "Saved in this browser · Shift + Enter for a new line"} />
     </div>
+    </div><aside className="project-live-brief" hidden={!briefOpen} aria-label="Live brief"><div><h2>Live brief</h2><button type="button" className="icon-button" aria-label="Close live brief" onClick={() => setBriefOpen(false)}>×</button></div><span className="small-badge">{account ? "Account project" : "Browser draft"}</span><dl>{[["Business", draft.activity || draft.description], ["Audience", draft.segments.filter(segment => segment.selected).map(segment => segment.name).join(", ") || draft.knownAudience], ["Competitors", draft.competitors?.filter(row => row.selected).map(row => row.name).join(", ")], ["Personality", draft.personality ? Object.entries(draft.personality).map(([key, value]) => `${key}: ${value}`).join(" · ") : ""], ["Difference", draft.positioning]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || "Not specified"}</dd></div>)}</dl><button type="button" className="button secondary small" onClick={() => { setBriefEditing(true); requestAnimationFrame(() => document.querySelector<HTMLElement>(".project-brief-widget input")?.focus()); }}>Edit brief</button></aside></div>
   </div>;
 }

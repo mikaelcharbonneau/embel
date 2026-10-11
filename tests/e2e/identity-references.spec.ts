@@ -87,7 +87,7 @@ test("references fixture: an unavailable source preserves real persisted referen
   await openElements(page); await card(page).getByRole("button", { name: "Logo", exact: true }).click(); await waitWrite(page, fixture, 1); await openElements(page); await card(page).getByRole("button", { name: "Colors", exact: true }).click(); await waitWrite(page, fixture, 2);
   const ensemble = card(page).getByRole("button", { name: /^Ensemble for/ }); await expect(ensemble).toHaveAttribute("aria-pressed", "false"); await ensemble.click(); await waitWrite(page, fixture, 3); await ensemble.click(); await waitWrite(page, fixture, 4);
   expect(fixture.writes.map(write => write.body)).toEqual([{ expectedRevision: 0, ensemble: false, elements: ["logo"] }, { expectedRevision: 1, ensemble: false, elements: ["logo", "colors"] }, { expectedRevision: 2, ensemble: true, elements: ["logo", "colors"] }, { expectedRevision: 3, ensemble: false, elements: ["logo", "colors"] }]);
-  await page.getByRole("heading", { name: "Identity", exact: true }).focus(); await expect(card(page).getByLabel(/^Saved choices for/)).toContainText("Logo"); await expect(card(page).getByLabel(/^Saved choices for/)).toContainText("Colors"); await expect(page.getByText("1 reference selected in this project", { exact: true })).toBeVisible();
+  await page.getByRole("heading", { name: "Build a visual starting point", exact: true }).focus(); await expect(card(page).getByLabel(/^Saved choices for/)).toContainText("Logo"); await expect(card(page).getByLabel(/^Saved choices for/)).toContainText("Colors"); await expect(page.getByText("1 reference selected in this project", { exact: true })).toBeVisible();
   expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain("Warm forms");
 });
 test("references fixture: naming-only links explicit scope expansion without reading references", async ({ page }) => {
@@ -101,7 +101,7 @@ test("references fixture: empty source is honest and failed reads are not empty 
   fixture.readStatus = 200; await page.getByRole("button", { name: "Check references again" }).click(); await expect(page.getByRole("heading", { name: "No saved references yet" })).toBeVisible(); await expect(page.getByText("Reference discovery is not connected. No sample references have been added to your project.", { exact: true })).toBeVisible();
 });
 test("references fixture: keyboard disclosure exposes only relevant elements", async ({ page }) => {
-  await setup(page); await ready(page); await page.getByRole("heading", { name: "Identity", exact: true }).focus();
+  await setup(page); await ready(page); await page.getByRole("heading", { name: "Build a visual starting point", exact: true }).focus();
   const disclosure = card(page).getByRole("button", { name: /^(Show|Hide) elements for Warm forms · fixture$/ }); await disclosure.focus(); await disclosure.press("Enter");
   await expect(disclosure).toHaveAttribute("aria-expanded", "true"); await disclosure.press("Tab"); await expect(card(page).getByRole("button", { name: "Logo", exact: true })).toBeFocused();
   await expect(card(page).getByRole("button", { name: "Typography", exact: true })).toHaveCount(0); await expect(card(page).getByRole("button", { name: "Colors", exact: true })).toBeVisible(); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -184,7 +184,7 @@ test("references fixture: long attribution and tags stay in the viewport", async
 test("references fixture: stable desktop and mobile visual evidence", async ({ page }, info) => {
   const fixture = await setup(page); fixture.rows[0]!.reaction = { ...fixture.rows[0]!.reaction, revision: 1, elements: ["logo", "colors"], updatedAt: when }; fixture.revision = 1; await ready(page);
   for (let index = 0; index < fixture.rows.length; index++) { await card(page, index).scrollIntoViewIfNeeded(); await expect(card(page, index).getByRole("img")).toBeVisible(); }
-  await page.getByRole("heading", { name: "Identity", exact: true }).focus(); await page.evaluate(() => scrollTo(0, 0)); await mkdir(".tmp/identity-assets/reference-ui-evidence", { recursive: true }); await page.screenshot({ path: `.tmp/identity-assets/reference-ui-evidence/references-grid-${info.project.name}.png`, fullPage: true });
+  await page.getByRole("heading", { name: "Build a visual starting point", exact: true }).focus(); await page.evaluate(() => scrollTo(0, 0)); await mkdir(".tmp/identity-assets/reference-ui-evidence", { recursive: true }); await page.screenshot({ path: `.tmp/identity-assets/reference-ui-evidence/references-grid-${info.project.name}.png`, fullPage: true });
   await page.screenshot({ path: `.tmp/identity-assets/reference-ui-evidence/references-viewport-${info.project.name}.png` });
   await openElements(page); await page.evaluate(() => scrollTo(0, 0)); await page.screenshot({ path: `.tmp/identity-assets/reference-ui-evidence/references-controls-${info.project.name}.png`, fullPage: true });
   await card(page).screenshot({ path: `.tmp/identity-assets/reference-ui-evidence/references-controls-card-${info.project.name}.png` });
@@ -198,7 +198,7 @@ test("references fixture: oversized Unicode filter intent stays visible and reco
   await expect(page.getByRole("button", { name: `Include ${tags[45]} again`, exact: true })).toBeVisible(); await page.getByRole("button", { name: "Clear exclusions" }).click(); await expect(card(page)).toBeVisible(); await expect(card(page).getByRole("button", { name: /^Ensemble for/ })).toHaveAttribute("aria-pressed", "true"); expect(fixture.writes).toHaveLength(1);
 });
 test("references fixture: invalid route identifiers do not read private references", async ({ page }) => {
-  const fixture = await setup(page); await page.goto("/brands/account/not-a-project/identity"); await expect(page.getByRole("heading", { name: "Identity workspace not found" })).toBeVisible(); expect(fixture.reads).toHaveLength(0); expect(fixture.writes).toHaveLength(0);
+  const fixture = await setup(page); await page.goto("/brands/account/not-a-project/identity"); await expect(page.getByRole("heading", { name: "Project not found" })).toBeVisible(); expect(fixture.reads).toHaveLength(0); expect(fixture.writes).toHaveLength(0);
 });
 
 test("references fixture: tag menu Escape returns focus and pointer outside dismisses", async ({ page }) => {

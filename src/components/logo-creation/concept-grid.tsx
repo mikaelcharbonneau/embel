@@ -7,7 +7,7 @@ import styles from "./logo-creation.module.css";
 
 /** No polling, persistence or generation lives in this view. Request callbacks only open cost review. */
 export function LogoConceptGridView({ batch = null, plan = null, selected = null, request = null, generation, refinement = generation, savedBatchUnavailable = false,
-  renderPreview, onSelect, onRequestConcepts, onRequestMore, onRequestRefine, onRequestRetryFailed, onCheckRequest,
+  renderPreview, onSelect, onInspect, onRequestConcepts, onRequestMore, onRequestRefine, onRequestRetryFailed, onCheckRequest,
 }: {
   batch?: LogoConceptBatch | null;
   plan?: LogoConceptPlan | null;
@@ -20,6 +20,7 @@ export function LogoConceptGridView({ batch = null, plan = null, selected = null
   /** The owning client wrapper must provide and release only verified image previews. */
   renderPreview?: (receipt: IdentityAssetReceipt) => ReactNode;
   onSelect?: (source: LogoConceptSource) => void;
+  onInspect?: (source: LogoConceptSource) => void;
   onRequestConcepts?: () => void;
   onRequestMore?: () => void;
   onRequestRefine?: (source: LogoConceptSource) => void;
@@ -66,7 +67,8 @@ export function LogoConceptGridView({ batch = null, plan = null, selected = null
               {`Attempt ${record.attemptNumber} · ${record.billing.status === "recorded" ? `Confirmed charge: ${displayLogoCost(record.billing.confirmedMicrousd)}` : "Charge not confirmed."}`}
             </p>)}
           </div>}
-          <button className={styles.secondaryButton} type="button" aria-label={`Select concept ${ordinal + 1}`} aria-pressed={isSelected} disabled={!source || !onSelect} onClick={() => { if (source) onSelect?.(source); }}>{isSelected ? "Selected for review" : "Select concept"}</button>
+          {onInspect && <button className={styles.secondaryButton} type="button" aria-label={`Inspect concept ${ordinal + 1}`} disabled={!source} onClick={() => { if (source) onInspect(source); }}>Inspect concept</button>}
+          <button className={styles.secondaryButton} type="button" aria-label={`Select concept ${ordinal + 1}`} aria-pressed={isSelected} disabled={!source || !onSelect} onClick={() => { if (source) onSelect?.(source); }}>{isSelected ? "Selected for review" : "Use this version"}</button>
         </li>;
       })}
     </ol>
