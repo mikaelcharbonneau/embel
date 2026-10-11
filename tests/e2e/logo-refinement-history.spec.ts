@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { logoFixtureId as id } from "../fixtures/logo-creation";
 import { syntheticRefinementWorkspaceHttp } from "../fixtures/logo-refinement-workspace-http";
+import { accountProjectSchema } from "../../src/domain/project-api";
 const rasterId = id(503), selectedRaster = { kind: "refinement" as const, rasterRevisionId: rasterId };
 async function fixture(page: Page, preexisting = false) {
   const state = await syntheticRefinementWorkspaceHttp(preexisting);
@@ -8,6 +9,10 @@ async function fixture(page: Page, preexisting = false) {
     const target = new URL(route.request().url());
     if (target.hostname !== "127.0.0.1") return route.abort("blockedbyclient");
     if (!target.pathname.startsWith("/api/")) return route.continue();
+    if (target.pathname === `/api/projects/${state.workspace.projectId}`) {
+      const project = accountProjectSchema.parse({ id: state.workspace.projectId, owner_id: state.owner, title: "Synthetic Élan project", scope: "visual_identity_only", current_revision: 1, created_at: "2026-10-07T00:00:00Z", context: { description: "Synthetic brand brief", selectedName: "Élan & Co" } });
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ project }) });
+    }
     try {
       const response = await state.fetcher(target.pathname + target.search, { method: route.request().method(), body: route.request().postData() });
       await route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), body: Buffer.from(await response.arrayBuffer()) });
@@ -58,4 +63,26 @@ test("draft changes keep refinement history visible while preventing selection",
   const f = await fixture(page, true); await expect(select(page)).toBeEnabled(); await page.getByRole("textbox", { name: "What the business does" }).fill("Keep my unsaved change");
   await expect(select(page)).toBeDisabled(); await expect(card(page)).toBeVisible(); await page.getByRole("button", { name: "Refresh saved image refinements" }).click();
   await expect(page.getByRole("textbox", { name: "What the business does" })).toHaveValue("Keep my unsaved change"); expect(f.selections).toHaveLength(0); expect(f.admissions).toHaveLength(0);
+});
+
+
+test("project design: concept inspection and Refine route keep selection and require cost review", async ({ page }, info) => {
+  const f = await fixture(page, true), originalSelection = JSON.stringify(f.workspace.stages.concepts);
+  const initialSelections = f.selections.length;
+  await page.getByRole("button", { name: /^Inspect concept/ }).first().click();
+  await expect(page.getByRole("region", { name: "Logo inspection" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Logo inspection" }).getByRole("img")).toBeVisible();
+  expect(f.selections).toHaveLength(initialSelections); expect(JSON.stringify(f.workspace.stages.concepts)).toBe(originalSelection);
+  await page.screenshot({ path: info.outputPath("project-logo-inspection.png"), fullPage: true });
+  await page.goto(`/brands/account/${f.workspace.projectId}/logo/editor`);
+  await expect(page.getByRole("heading", { name: "Refine a direction", exact: true })).toBeVisible();
+  await page.getByRole("textbox", { name: "Revision request for selected image" }).fill("Simplify the silhouette");
+  await page.getByRole("button", { name: "Review revision cost", exact: true }).click();
+  await expect(page.getByRole("dialog")).toBeVisible(); expect(f.admissions).toHaveLength(0);
+  await page.keyboard.press("Escape");
+  await page.getByRole("link", { name: "Back to concepts", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/brands/account/${f.workspace.projectId}/logo$`));
+  expect(f.selections).toHaveLength(initialSelections); expect(f.admissions).toHaveLength(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: info.outputPath("project-logo-concepts.png"), fullPage: true });
 });

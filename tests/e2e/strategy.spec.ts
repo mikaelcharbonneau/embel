@@ -129,13 +129,13 @@ test("a profile starts only after user action and explicit reviews survive reloa
   await expect(page.getByRole("textbox", { name: "Positioning statement", exact: true })).toHaveValue("For small homes,");
   expect((await readDraft(page)).positioningReviewedAt).toBeNull();
   await page.getByRole("textbox", { name: "Positioning statement", exact: true }).fill("X");
-  await page.getByRole("button", { name: "Keep positioning", exact: true }).focus();
+  await page.getByRole("button", { name: "Approve strategy", exact: true }).focus();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("region", { name: "Positioning", exact: true }).getByText("Confirmed", { exact: true })).toBeVisible();
   await stage(page, "Positioning");
   await page.getByRole("textbox", { name: "Positioning statement", exact: true }).fill(statement);
   await expect(page.getByRole("region", { name: "Positioning", exact: true }).getByText("Confirmed", { exact: true })).toHaveCount(0);
-  await page.getByRole("button", { name: "Keep positioning", exact: true }).click();
+  await page.getByRole("button", { name: "Approve strategy", exact: true }).click();
   await page.reload();
   await expect(page.getByRole("region", { name: "Positioning", exact: true }).getByText("Confirmed", { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
@@ -155,7 +155,7 @@ test("positioning can be drafted ahead but cannot be approved without a reviewed
   await startEmptyStrategy(page);
   await page.getByRole("button", { name: "Continue later", exact: true }).click();
   await page.getByRole("textbox", { name: "Positioning statement", exact: true }).fill("A partial statement to return to later.");
-  await page.getByRole("button", { name: "Keep positioning", exact: true }).click();
+  await page.getByRole("button", { name: "Approve strategy", exact: true }).click();
   await expect(page.locator("main").getByRole("alert")).toContainText(/personality/i);
   expect((await readDraft(page)).personality).toBeNull();
   expect((await readDraft(page)).positioningReviewedAt).toBeNull();
@@ -226,9 +226,9 @@ test("account fixture: strategy reviews save with values and provenance and surv
   await page.keyboard.press("Home");
   await page.getByRole("button", { name: "Keep personality", exact: true }).click();
   await page.getByRole("textbox", { name: "Positioning statement", exact: true }).fill("My revised positioning fixture.");
-  await page.getByRole("button", { name: "Keep positioning", exact: true }).click();
-  await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 5", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Approve strategy", exact: true }).click();
+  await expect(page.getByText("Strategy approved and saved to your account.", { exact: true })).toBeVisible();
+  await expect(page.locator(".project-workspace-save")).toContainText("v5");
   expect(state.project.context.personality).toEqual({ ...profile, sincerity: 0 });
   expect(state.project.context.positioning).toBe("My revised positioning fixture.");
   expect(state.project.context.intake.personalityReviewedAt).toBeTruthy();
@@ -256,11 +256,11 @@ test("account fixture: failed saving and a revision conflict retain partial stra
   await page.getByRole("textbox", { name: "Positioning statement", exact: true }).fill("An unfinished thought to keep,");
   state.failure = 503;
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  await expect(page.locator("main").getByRole("alert")).toContainText("Account saving is unavailable");
+  await expect(page.locator("main").getByRole("alert").filter({ hasText: "Account saving is unavailable" })).toContainText("Account saving is unavailable");
   await expect(page.getByRole("textbox", { name: "Positioning statement", exact: true })).toHaveValue("An unfinished thought to keep,");
   state.failure = 409;
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  await expect(page.locator("main").getByRole("alert")).toContainText("A newer version is saved");
+  await expect(page.locator("main").getByRole("alert").filter({ hasText: "A newer version is saved" })).toContainText("A newer version is saved");
   expect(await page.evaluate((key) => localStorage.getItem(key), storageKey)).toBeNull();
   await page.getByRole("button", { name: "Save edits as browser copy", exact: true }).click();
   const copy = await readDraft(page);
@@ -290,10 +290,28 @@ test("browser storage failure retains the current strategy without claiming a du
   }, storageKey);
   await page.getByRole("textbox", { name: "Positioning statement", exact: true }).fill("My retained in-tab positioning edit.");
   await expect(page.getByText("This tab only", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Keep positioning", exact: true }).click();
+  await page.getByRole("button", { name: "Approve strategy", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("this tab");
   expect(await page.evaluate((key) => localStorage.getItem(key), storageKey)).toBe(before);
   await stage(page, "Personality");
   await stage(page, "Positioning");
   await expect(page.getByRole("textbox", { name: "Positioning statement", exact: true })).toHaveValue("My retained in-tab positioning edit.");
+});
+
+
+test("project design: all Strategy reviews and optional live brief retain the saved context", async ({ page }, info) => {
+  const state = await account(page), original = JSON.stringify(state.project);
+  await page.goto(`/brands/account/${id}`);
+  await expect(page.locator(".project-workspace-title")).toHaveText(state.project.title);
+  for (const widget of ["competitors", "audience", "personality", "positioning"] as const) {
+    await page.goto(`/brands/account/${id}#strategy-${widget}`);
+    await expect(page.getByRole("region", { name: widget.charAt(0).toUpperCase() + widget.slice(1), exact: true })).toBeVisible();
+    await capture(page, info, `project-strategy-${widget}.png`);
+  }
+  await page.getByRole("button", { name: "Live brief", exact: true }).click();
+  await expect(page.getByRole("complementary", { name: "Live brief" })).toBeVisible();
+  await page.getByRole("button", { name: "Edit brief", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Project brief", exact: true })).toBeVisible();
+  expect(JSON.stringify(state.project)).toBe(original); expect(state.writes).toHaveLength(0);
+  await capture(page, info, "project-brief.png");
 });

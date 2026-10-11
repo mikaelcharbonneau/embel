@@ -117,7 +117,7 @@ export function AccountStrategyEditor({ account, workspace, busy, saveDraft, sto
     {strategy.actionError && strategy.continuationAvailable && <button type="button" className="button secondary small" disabled={pending} onClick={() => void strategy.continueResearch()}>Retry competitor research</button>}
     {(strategy.readError || strategy.actionError) && <button type="button" className="text-link" disabled={pending} onClick={strategy.refresh}>Check strategy status</button>}
   </div>;
-  return <ProjectEditorForm draft={workspace.draft} storage={{ ...storage, savedContext: workspace.saved.context, strategy: transcript, promptNotice, resultNavigation, promptPending: pending, onPromptSubmitted: sendPrompt, strategyActions, strategyPending: pending, onStrategyRequested: widget => requestOperation(operationForWidget[widget]) }} />;
+  return <ProjectEditorForm draft={workspace.draft} storage={{ ...storage, savedContext: workspace.saved.context, onStrategyApproved: async draft => Boolean(await saveDraft(draft)), strategy: transcript, promptNotice, resultNavigation, promptPending: pending, onPromptSubmitted: sendPrompt, strategyActions, strategyPending: pending, onStrategyRequested: widget => requestOperation(operationForWidget[widget]) }} />;
 }
 
 function Proposal({ output }: { output: StrategyJobResult }) {

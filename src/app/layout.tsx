@@ -13,6 +13,7 @@ import "@/styles/assets-guided.css";
 import "@/styles/trademarks-guided.css";
 import "@/styles/settings-guided.css";
 import "@/styles/auth-guided.css";
+import "@/styles/project-workspace.css";
 
 export const metadata: Metadata = {
   title: { default: "Fluid — Brand workspace", template: "%s · Fluid" },

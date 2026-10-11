@@ -20,6 +20,14 @@ const dimensions: { key: keyof Personality; label: string; description: string }
 ];
 
 const startingProfile: Personality = { sincerity: 50, excitement: 50, competence: 50, sophistication: 50, ruggedness: 50 };
+const traits: { label: string; hint: string; dimension: keyof Personality }[] = [
+  { label: "Warm", hint: "Welcoming and human", dimension: "sincerity" },
+  { label: "Thoughtful", hint: "Careful and considered", dimension: "competence" },
+  { label: "Confident", hint: "Clear and assured", dimension: "competence" },
+  { label: "Playful", hint: "Light and unexpected", dimension: "excitement" },
+  { label: "Premium", hint: "Refined and elevated", dimension: "sophistication" },
+  { label: "Expressive", hint: "Distinctive and bold", dimension: "excitement" },
+];
 
 type ReviewProps = {
   draft: LocalDraft;
@@ -27,6 +35,7 @@ type ReviewProps = {
   onComplete: () => void;
   onBack: () => void;
   inline?: boolean;
+  pending?: boolean;
 };
 
 function ReviewNotice({ complete, hasValue, notice, subject }: { complete: boolean; hasValue: boolean; notice: string; subject: string }) {
@@ -38,6 +47,8 @@ export function PersonalityReview({ draft, notice, onChange, onComplete, onBack,
   const personality = draftPersonality(draft);
   const complete = isPersonalityReviewComplete(draft);
   const [startedHere, setStartedHere] = useState(false);
+  const [selectedTraits, setSelectedTraits] = useState<string[]>([]);
+  const traitBaseline = useRef(personality ?? startingProfile);
   const [error, setError] = useState("");
   const firstSlider = useRef<HTMLInputElement>(null);
   const focusNewProfile = useRef(false);
@@ -64,6 +75,13 @@ export function PersonalityReview({ draft, notice, onChange, onComplete, onBack,
   }
 
   return <form className="strategy-review personality-review" onSubmit={confirmProfile} noValidate>
+    {inline && <fieldset className="project-personality-traits"><legend>Choose your brand’s personality</legend><p>Choose up to three traits to start your own profile. Selected traits set their dimension to 80; other dimensions keep their existing emphasis. Review Advanced settings before confirming.</p><div>{traits.map(trait => <label key={trait.label}><input type="checkbox" checked={selectedTraits.includes(trait.label)} disabled={!selectedTraits.includes(trait.label) && selectedTraits.length >= 3} onChange={event => {
+      const chosen = event.target.checked ? [...selectedTraits, trait.label] : selectedTraits.filter(label => label !== trait.label);
+      setSelectedTraits(chosen);
+      const profile = { ...traitBaseline.current };
+      for (const item of traits) if (chosen.includes(item.label)) profile[item.dimension] = 80;
+      onChange(profile); setStartedHere(true); setError("");
+    }} /><span><strong>{trait.label}</strong><small>{trait.hint}</small></span></label>)}</div></fieldset>}
     <p className="editor-intro">Shape how the brand comes across through Aaker’s five personality dimensions.</p>
     {!inline && <div className="strategy-provider-note"><Icon name="offline" size={17} /><p><strong>AI proposals are not connected.</strong> You can enter your own profile or return to this step later.</p></div>}
     {!personality ? <div className="strategy-empty">
@@ -73,15 +91,17 @@ export function PersonalityReview({ draft, notice, onChange, onComplete, onBack,
       <button ref={startButton} type="button" className="button secondary" onClick={startProfile}>Enter my own profile<Icon name="pencil" size={15} /></button>
     </div> : <>
       <ReviewNotice complete={complete} hasValue notice={notice} subject="profile" />
+      <details className="project-personality-advanced" open={selectedTraits.length === 0}><summary>Advanced personality settings</summary>
       <div className="personality-panel">
         <div className="personality-panel-heading"><h2>{startedHere ? "Your starting point" : "Current profile"}</h2><span className="small-badge">0–100 emphasis</span></div>
         <p className="personality-scale-hint" id={`${id}-scale`}>Each dimension is independent. Higher values mean more emphasis, not better quality.</p>
         <fieldset className="personality-dimensions"><legend className="sr-only">Personality profile</legend>{dimensions.map((dimension, index) => <div className="personality-dimension" key={dimension.key}>
           <div className="personality-dimension-heading"><div><label htmlFor={`${id}-${dimension.key}`}>{dimension.label}</label><p id={`${id}-${dimension.key}-hint`}>{dimension.description}</p></div><span className="personality-value" aria-hidden="true">{personality[dimension.key]}</span></div>
-          <input ref={index === 0 ? (node) => { firstSlider.current = node; if (node && focusNewProfile.current) { node.focus(); focusNewProfile.current = false; } } : undefined} id={`${id}-${dimension.key}`} className="personality-slider" type="range" min={0} max={100} step={1} value={personality[dimension.key]} aria-describedby={`${id}-${dimension.key}-hint ${id}-scale`} aria-valuetext={`${personality[dimension.key]} out of 100 emphasis`} style={{ "--emphasis": `${personality[dimension.key]}%` } as CSSProperties} onChange={(event) => { onChange({ ...personality, [dimension.key]: Number(event.target.value) }); setError(""); setStartedHere(false); }} />
+          <input ref={index === 0 ? (node) => { firstSlider.current = node; if (node && focusNewProfile.current) { node.focus(); focusNewProfile.current = false; } } : undefined} id={`${id}-${dimension.key}`} className="personality-slider" type="range" min={0} max={100} step={1} value={personality[dimension.key]} aria-describedby={`${id}-${dimension.key}-hint ${id}-scale`} aria-valuetext={`${personality[dimension.key]} out of 100 emphasis`} style={{ "--emphasis": `${personality[dimension.key]}%` } as CSSProperties} onChange={(event) => { onChange({ ...personality, [dimension.key]: Number(event.target.value) }); setError(""); setStartedHere(false); setSelectedTraits([]); }} />
           <div className="personality-range-labels" aria-hidden="true"><span>Less emphasis</span><span>More emphasis</span></div>
         </div>)}</fieldset>
       </div>
+      </details>
     </>}
     {complete && !inline && <div className="review-complete"><Icon name="check" size={20} /><div><strong>Personality review complete</strong><p>Your confirmed profile stays with this brief.</p></div></div>}
     {error && <p className="form-error" role="alert">{error}</p>}
@@ -89,7 +109,7 @@ export function PersonalityReview({ draft, notice, onChange, onComplete, onBack,
   </form>;
 }
 
-export function PositioningReview({ draft, notice, onChange, onComplete, onBack, inline = false }: ReviewProps & { onChange: (statement: string) => void }) {
+export function PositioningReview({ draft, notice, onChange, onComplete, onBack, inline = false, pending = false }: ReviewProps & { onChange: (statement: string) => void }) {
   const positioning = draftPositioning(draft);
   const complete = isPositioningReviewComplete(draft);
   const personalityComplete = isPersonalityReviewComplete(draft);
@@ -100,6 +120,7 @@ export function PositioningReview({ draft, notice, onChange, onComplete, onBack,
 
   function confirmPositioning(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (pending) return;
     const validationError = positioningReviewValidationMessage(draft);
     if (validationError) {
       setError(validationError);
@@ -123,7 +144,7 @@ export function PositioningReview({ draft, notice, onChange, onComplete, onBack,
     </div>
     {complete && !inline && <div className="review-complete"><Icon name="check" size={20} /><div><strong>Positioning review complete</strong><p>Your confirmed statement stays with this brief.</p></div></div>}
     {error && <p className="form-error" id={`${id}-error`} role="alert">{error}</p>}
-    <div className="form-actions">{inline ? <span /> : <button className="button secondary" type="button" onClick={onBack}>Back</button>}<button className="button primary" type="submit">{inline ? "Keep positioning" : "Confirm positioning"}<Icon name="check" size={16} /></button></div>
+    <div className="form-actions">{inline ? <span /> : <button className="button secondary" type="button" onClick={onBack}>Back</button>}<button className="button primary" type="submit" disabled={pending}>{pending ? "Saving approval…" : inline ? "Approve strategy" : "Confirm positioning"}<Icon name="check" size={16} /></button></div>
   </form>;
 }
 

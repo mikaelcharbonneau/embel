@@ -192,7 +192,7 @@ async function fixtures(page: Page, scope: ProjectScope = "naming_only") {
   return { state, preferences, enqueue, complete, hold };
 }
 async function prepared(page: Page, count = 3, scope: ProjectScope = "naming_only") { const fixture = await fixtures(page, scope); fixture.preferences(); fixture.enqueue(); fixture.complete(count); return fixture; }
-async function open(page: Page) { await page.goto(url); await expect(page.getByRole("heading", { name: "Naming", exact: true })).toBeVisible(); }
+async function open(page: Page) { await page.goto(url); await expect(page.locator(".project-naming-header h1")).toBeVisible(); }
 const card = (page: Page, name: string) => page.locator(".project-naming-card").filter({ has: page.getByRole("heading", { name, exact: true }) });
 async function localNameFixture(page: Page) {
   const data = createEmptyNamesWorkspace();
@@ -205,7 +205,7 @@ async function localNameFixture(page: Page) {
 test("naming fixture: reviewed Strategy opens Naming and keeps full context", async ({ page }, info) => {
   const { state } = await fixtures(page, "complete_brand");
   await page.goto(`/brands/account/${projectId}`);
-  await page.getByRole("link", { name: "Open Naming", exact: true }).click();
+  await page.getByRole("navigation", { name: "Project stages" }).getByRole("link", { name: "Naming", exact: true }).click();
   await expect(page).toHaveURL(url);
   await expect(page.getByRole("form", { name: "Naming preferences" })).toBeVisible();
   await expect(page.getByText(state.project.context.description, { exact: true })).toBeVisible();
@@ -727,3 +727,40 @@ test("naming fixture: dirty Strategy memory survives library navigation and bloc
 });
 
 test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));
+
+
+test("project design: inspecting a name is read-only and selecting remains explicit", async ({ page }, info) => {
+  const fixture = await prepared(page, 3, "complete_brand"); await open(page);
+  const before = fixture.state.requests.filter(request => request.method !== "GET").length;
+  await card(page, "Fixture 001").getByRole("button", { name: "Inspect name Fixture 001", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Inspect name", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Fixture 001", exact: true })).toBeVisible();
+  expect(fixture.state.project.context.selectedName).toBeNull();
+  expect(fixture.state.requests.filter(request => request.method !== "GET")).toHaveLength(before);
+  await expect(page.getByText("Not checked", { exact: true })).toHaveCount(3);
+  await page.getByRole("button", { name: "Back to results", exact: true }).click();
+  await expect(card(page, "Fixture 001")).toBeVisible();
+  await card(page, "Fixture 001").getByRole("button", { name: "Inspect name Fixture 001", exact: true }).click();
+  await page.getByRole("region", { name: "Inspect name", exact: true }).getByRole("button", { name: "Use this name", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Name screening" })).toBeVisible();
+  expect(fixture.state.project.context.selectedName).toBe("Fixture 001");
+  await page.screenshot({ path: info.outputPath("project-name-screening.png"), fullPage: true });
+});
+
+test("project design: collapsing controls retains the naming preference draft", async ({ page }, info) => {
+  await fixtures(page); await open(page);
+  const form = page.getByRole("form", { name: "Naming preferences" });
+  const textarea = form.locator("textarea");
+  await textarea.fill("Synthetic unsaved control draft");
+  await page.getByRole("button", { name: "Collapse Naming panel", exact: true }).click();
+  await expect(form).toBeHidden();
+  await page.getByRole("button", { name: "Open Naming panel", exact: true }).click();
+  await expect(textarea).toHaveValue("Synthetic unsaved control draft");
+  await page.getByRole("button", { name: "Chat", exact: true }).click();
+  await expect(form).toBeHidden();
+  await page.getByRole("button", { name: "Controls", exact: true }).click();
+  await expect(textarea).toHaveValue("Synthetic unsaved control draft");
+  const width = page.viewportSize()!.width;
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+  await page.screenshot({ path: info.outputPath("project-naming-controls.png"), fullPage: true });
+});

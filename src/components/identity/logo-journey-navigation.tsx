@@ -3,7 +3,7 @@ import { logoUuidSchema } from "@/domain/logo-vector";
 export type LogoJourneyStage = "concepts" | "editor" | "directions" | "deliverables";
 const stages = [
   { key: "concepts", path: "", label: "Logo concepts" },
-  { key: "editor", path: "/editor", label: "Logo editor" },
+  { key: "editor", path: "/editor", label: "Refine logo" },
   { key: "directions", path: "/directions", label: "Identity" },
   { key: "deliverables", path: "/deliverables", label: "Brand files" },
 ] as const;
