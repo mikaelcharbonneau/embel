@@ -67,7 +67,7 @@ test("signup: direct form validates passwords and waits for email without invent
   const { state } = await fixtures(page);
   await page.goto("/sign-up");
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Create your Fluid account", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Create your Embel account", exact: true })).toBeVisible();
   const form = await fillSignup(page, "different inert password");
   await expect(form.getByRole("alert")).toContainText("passwords didn't match");
   await expect(form.getByLabel("Password", { exact: true })).toHaveValue("");
@@ -99,7 +99,7 @@ test("signup: overlay dismissal retains pending authentication and the underlyin
   await page.getByLabel("Account menu", { exact: true }).click();
   await page.locator(".workspace-account-menu").getByRole("link", { name: "Sign in", exact: true }).click();
   await page.getByRole("dialog").getByRole("link", { name: "Create account", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Create your Fluid account", exact: true });
+  const dialog = page.getByRole("dialog", { name: "Create your Embel account", exact: true });
   await expect(dialog).toBeVisible();
   await expect(page.locator(".app-shell")).toHaveClass(/concept-settings/);
   const form = await fillSignup(page);
@@ -201,7 +201,7 @@ test("signup: a modal above direct sign-in has distinct accessible controls and 
   await expect(originalPassword).toBeEnabled();
   await originalPassword.fill(password);
   await page.getByRole("link", { name: "Create account", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Create your Fluid account", exact: true });
+  const dialog = page.getByRole("dialog", { name: "Create your Embel account", exact: true });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByLabel("Email", { exact: true })).toHaveCount(1);
   await expect(dialog.getByLabel("Password", { exact: true })).toHaveCount(1);

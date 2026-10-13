@@ -20,7 +20,7 @@ export function NamesBackupImport({ snapshot }: { snapshot: NamesSnapshot }) {
       if (sequence.current !== request) return;
       const data = readNamesBackup(raw);
       setBackup({ raw, workspace, names: data.candidates.length, runs: data.runs.length });
-    } catch { if (sequence.current === request) setMessage("Choose a valid Fluid Names JSON backup of at most 4 MB. Your workspace is unchanged."); }
+    } catch { if (sequence.current === request) setMessage("Choose a valid Embel Names JSON backup of at most 4 MB. Your workspace is unchanged."); }
     finally { if (sequence.current === request) setReading(false); }
   }
   const unavailable = snapshot.storage !== "available" || snapshot.dirty || reading;

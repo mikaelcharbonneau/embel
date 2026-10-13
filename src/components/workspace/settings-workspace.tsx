@@ -26,7 +26,7 @@ function Row({ title, description, children }: { title: string; description: str
   return <div className="sg-row"><div className="sg-row-copy"><strong>{title}</strong><p>{description}</p></div>{children}</div>;
 }
 function UnavailableAction({ children, danger = false }: { children: string; danger?: boolean }) {
-  return <button type="button" className={`sg-action ${danger ? "sg-danger" : ""}`} disabled title="This action is not available in Fluid yet.">{children}</button>;
+  return <button type="button" className={`sg-action ${danger ? "sg-danger" : ""}`} disabled title="This action is not available in Embel yet.">{children}</button>;
 }
 function UnavailableSelect({ label, value = "Unavailable" }: { label: string; value?: string }) {
   return <div className="sg-select-wrap"><select aria-label={label} disabled value={value}><option>{value}</option></select><SettingsArtwork name="chevron-down" /></div>;
@@ -47,7 +47,7 @@ export function SettingsWorkspace({ localRuntimeEnabled = false }: { localRuntim
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
   function activate(index: number) { setCategory(categories[index]![0]); tabs.current[index]?.focus(); }
   return <div className="page settings-guided" data-category={category}>
-    <div className="sg-heading"><h1>Settings<span>.</span></h1><p>Manage your account, workspace, and how Fluid works for you.</p></div>
+    <div className="sg-heading"><h1>Settings<span>.</span></h1><p>Manage your account, workspace, and how Embel works for you.</p></div>
     <div className="sg-tabs" role="tablist" aria-label="Settings categories">{categories.map(([id, label], index) =>
       <button key={id} ref={node => { tabs.current[index] = node; }} type="button" role="tab" id={`settings-tab-${id}`} aria-controls={`settings-panel-${id}`} aria-selected={category === id} tabIndex={category === id ? 0 : -1} onClick={() => setCategory(id)} onKeyDown={event => {
         const next = event.key === "ArrowRight" ? (index + 1) % categories.length : event.key === "ArrowLeft" ? (index + categories.length - 1) % categories.length : event.key === "Home" ? 0 : event.key === "End" ? categories.length - 1 : null;
@@ -69,7 +69,7 @@ function AccountSettings() {
   const { session } = useAccountSession();
   return <>
     <AccountProfileEditor />
-    <Card title="Account connection" description="Your current Fluid sign-in status.">{session.status === "ready" ? <p className="sg-note">A verified account session is connected. <Link className="text-link" href="/brands">Open projects</Link> to view saved account projects.</p> : <AccountStatus />}</Card>
+    <Card title="Account connection" description="Your current Embel sign-in status.">{session.status === "ready" ? <p className="sg-note">A verified account session is connected. <Link className="text-link" href="/brands">Open projects</Link> to view saved account projects.</p> : <AccountStatus />}</Card>
   </>;
 }
 
@@ -127,7 +127,7 @@ function AISettings({ localRuntimeEnabled }: { localRuntimeEnabled: boolean }) {
 function BillingSettings() {
   return <>
     <div className="sg-summary">
-      <Card title="Current plan" description="Fluid billing is not connected."><strong className="sg-metric">Unavailable</strong><p className="sg-note">No verified plan, price, or next invoice is available.</p><UnavailableAction>Manage plan</UnavailableAction></Card>
+      <Card title="Current plan" description="Embel billing is not connected."><strong className="sg-metric">Unavailable</strong><p className="sg-note">No verified plan, price, or next invoice is available.</p><UnavailableAction>Manage plan</UnavailableAction></Card>
       <Card title="AI credits" description="An account credit balance is not available."><strong className="sg-metric">Unknown</strong><div className="sg-credit-track" aria-hidden="true" /><p className="sg-note">Recorded token usage is shown below; it is not a credit balance.</p><a className="sg-action" href="#recorded-usage-title">View usage</a></Card>
     </div>
     <Card title="Billing details" description="Payment methods and billing preferences are not available." className="sg-rows-card">
@@ -142,7 +142,7 @@ function BillingSettings() {
 const notifications = [
   ["Generation completed", "When a requested generation finishes."], ["Mentions and comments", "When someone mentions you or comments on a project."],
   ["Workspace invitations", "Invitations to join a shared workspace."], ["Usage alerts", "Updates about usage and limits."],
-  ["Billing updates", "Payment and invoice updates."], ["Product updates", "New features and improvements to Fluid."],
+  ["Billing updates", "Payment and invoice updates."], ["Product updates", "New features and improvements to Embel."],
   ["Tips and inspiration", "Guides and ideas to help you build your brand."],
 ] as const;
 function NotificationSettings() {
@@ -162,11 +162,11 @@ function SecuritySettings() {
       <Row title="Password" description="Password management is not available here."><UnavailableAction>Change password</UnavailableAction></Row>
       <Row title="Two-factor authentication" description="Two-factor setup and status are not available here."><UnavailableAction>Set up</UnavailableAction></Row>
       <Row title="Active sessions" description="A list of signed-in devices is not available."><UnavailableAction>Manage sessions</UnavailableAction></Row>
-      <Row title="This browser" description="Check your account or sign out of this Fluid session."><AccountAccess /></Row>
+      <Row title="This browser" description="Check your account or sign out of this Embel session."><AccountAccess /></Row>
     </Card>
     <Card title="Data and privacy" description="Account-wide privacy preference editing is not available yet." className="sg-rows-card">
       <Row title="Save generation history" description="Existing saved outputs are unchanged."><UnavailableSwitch label="Save generation history" /></Row>
-      <Row title="Help improve Fluid" description="No feedback opt-in is set by this screen."><UnavailableSwitch label="Help improve Fluid" /></Row>
+      <Row title="Help improve Embel" description="No feedback opt-in is set by this screen."><UnavailableSwitch label="Help improve Embel" /></Row>
       <Row title="History retention" description="No account retention preference is available."><UnavailableSelect label="History retention" /></Row>
       <Row title="Export account data" description="A complete account data export is not available."><UnavailableAction>Export data</UnavailableAction></Row>
     </Card>
@@ -177,16 +177,16 @@ function SecuritySettings() {
 
 const integrations: { name: string; icon: SettingsArtworkName; description: string }[] = [
   { name: "Figma", icon: "figma", description: "Import designs and export assets to your files." },
-  { name: "Google Drive", icon: "googledrive", description: "Bring brand documents and reference files into Fluid." },
+  { name: "Google Drive", icon: "googledrive", description: "Bring brand documents and reference files into Embel." },
   { name: "Notion", icon: "notion", description: "Use briefs and notes from your Notion workspace." },
   { name: "Slack", icon: "slack", description: "Share project updates with your team." },
 ];
 function IntegrationSettings() {
   return <>
-    <Card title="Connected apps" description="Fluid app connections are not available yet." className="sg-rows-card">
+    <Card title="Connected apps" description="Embel app connections are not available yet." className="sg-rows-card">
       {integrations.map(app => <div className="sg-integration" key={app.name}><span className="sg-integration-icon"><SettingsArtwork name={app.icon} /></span><div className="sg-row-copy"><strong>{app.name}</strong><p>{app.description}</p></div><span className="sg-integration-status">Unavailable</span><UnavailableAction>Connect</UnavailableAction></div>)}
     </Card>
-    <Card title="Connection preferences" description="These controls require a supported Fluid app connection." className="sg-rows-card">
+    <Card title="Connection preferences" description="These controls require a supported Embel app connection." className="sg-rows-card">
       <Row title="Ask before exporting" description="No export permission or destination is changed here."><UnavailableSwitch label="Ask before exporting" /></Row>
       <Row title="Sync new exports" description="Automatic app exports are not available."><UnavailableSwitch label="Sync new exports" /></Row>
     </Card>

@@ -29,7 +29,7 @@ export function downloadHandlesCsv(rows: readonly { name: string; entries: reado
   if (!rows.length) return;
   const url = URL.createObjectURL(new Blob([handlesCsv(rows)], { type: "text/csv;charset=utf-8" }));
   const link = document.createElement("a");
-  link.href = url; link.download = "fluid-handles.csv";
+  link.href = url; link.download = "embel-handles.csv";
   try { document.body.appendChild(link); link.click(); }
   finally { link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
 }

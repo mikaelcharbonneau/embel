@@ -34,7 +34,7 @@ describe("local ChatGPT owner-bound sessions (no live OAuth)", () => {
     return manager.completeSignIn({ callbackUrl: flow.callback });
   }
 
-  it("keeps constructors inert and stores only a signed identity under its original Fluid owner", async () => {
+  it("keeps constructors inert and stores only a signed identity under its original Embel owner", async () => {
     expect(store.writes).toBe(0); expect(store.hostReads).toBe(0); expect(fixture.fetcher).not.toHaveBeenCalled();
     const connected = await connect();
     expect(connected.ownerId).toBe(LOCAL_OWNER);

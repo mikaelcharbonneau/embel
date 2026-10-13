@@ -72,7 +72,7 @@ test("Names library retains manual context, independent preferences, comparison 
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download workspace copy" }).click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe("fluid-names-workspace.json");
+  expect(download.suggestedFilename()).toBe("embel-names-workspace.json");
   const copy = JSON.parse(await readFile((await download.path())!, "utf8"));
   expect(copy.candidates).toHaveLength(4);
   expect(copy.ui.comparisonIds).toHaveLength(3);

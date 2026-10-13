@@ -52,7 +52,7 @@ test("integrated Domains prepares candidates without checking, purchasing or sav
   await expect(page.getByRole("button", { name: "Check selected domains", exact: true })).toBeDisabled();
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export CSV", exact: true }).click();
-  expect((await downloadPromise).suggestedFilename()).toBe("fluid-domain-candidates.csv");
+  expect((await downloadPromise).suggestedFilename()).toBe("embel-domain-candidates.csv");
   await verify();
   await page.evaluate(() => { (document.activeElement as HTMLElement | null)?.blur(); window.scrollTo(0, 0); });
   await page.screenshot({ path: info.outputPath("domains-manual.png"), fullPage: true });
@@ -146,13 +146,13 @@ test("integrated Trademarks downloads an actual manual draft and invalidates rev
   await page.getByRole("tab", { name: "Search", exact: true }).click();
   await page.getByText("Research coverage and your notes", { exact: true }).click();
   await expect(page.getByText("Literal private fixture notes <script>ignored</script>", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Sourced results", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Search results", exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "Fill", exact: true }).click();
   await page.getByRole("button", { name: "Review draft preview", exact: true }).click();
   const downloading = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export draft preview", exact: true }).click();
   const download = await downloading;
-  expect(download.suggestedFilename()).toBe("fluid-trademark-draft-preview.json");
+  expect(download.suggestedFilename()).toBe("embel-trademark-draft-preview.json");
   const filename = info.outputPath("downloaded-draft.json");
   await download.saveAs(filename);
   const saved = JSON.parse(await readFile(filename, "utf8"));

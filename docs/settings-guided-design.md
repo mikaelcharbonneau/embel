@@ -6,7 +6,7 @@ All seven frames were inspected using design context and screenshots. Original s
 
 Tabs support click, Left/Right, Home/End, selected-tab focus and named panels. The content adapts at smaller widths, with horizontally scrollable tabs and stacked forms. Generic user avatars replace sample initials.
 
-Profile editing, photo uploads, account-wide display and AI preferences, shared members/invitations, notification preferences, privacy controls, billing/invoices, full account export/deletion and app integrations have no existing supported backend. They remain disabled with explicit unavailable states. No sample name, email, card, price, invoice, credit balance, enabled switch, Figma connection or subscription model is asserted. Disabled switch artwork is labelled unavailable, without asserting an on/off setting. Private project visibility describes the existing ownership contract and cannot be changed here. Codex's connected plugins are not Fluid account integrations.
+Profile editing, photo uploads, account-wide display and AI preferences, shared members/invitations, notification preferences, privacy controls, billing/invoices, full account export/deletion and app integrations have no existing supported backend. They remain disabled with explicit unavailable states. No sample name, email, card, price, invoice, credit balance, enabled switch, Figma connection or subscription model is asserted. Disabled switch artwork is labelled unavailable, without asserting an on/off setting. Private project visibility describes the existing ownership contract and cannot be changed here. Codex's connected plugins are not Embel account integrations.
 
 Supported behavior is retained:
 

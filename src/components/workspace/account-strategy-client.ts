@@ -54,7 +54,7 @@ export function strategyRequestPayload(projectId: string, revision: number, oper
 }
 export function strategyAllowanceLabel(allowance: StrategyAllowance) {
   return allowance.billingMode === "chatgpt_subscription"
-    ? `ChatGPT plan limits apply. Fluid allows up to ${allowance.limits.maxRequestsPerHour} requests per hour and ${allowance.limits.maxQueuedJobs} queued requests.`
+    ? `ChatGPT plan limits apply. Embel allows up to ${allowance.limits.maxRequestsPerHour} requests per hour and ${allowance.limits.maxQueuedJobs} queued requests.`
     : `OpenAI · up to ${formatStrategyCap(allowance.maximumCostMicrousd)}`;
 }
 export function strategyAllowanceWithin(current: StrategyAllowance, accepted: StrategyAllowance) {

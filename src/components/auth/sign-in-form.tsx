@@ -113,7 +113,7 @@ export function SignInForm({ configured, overlay = false, mode = "sign-in", conf
     } else if (result.reason === "failed") setError(signUpErrorMessage(result.error));
   }
 
-  const title = signedIn ? "You're signed in" : confirming ? "Check your email" : signingUp ? "Create your Fluid account" : "Sign in to Fluid";
+  const title = signedIn ? "You're signed in" : confirming ? "Check your email" : signingUp ? "Create your Embel account" : "Sign in to Embel";
   return <div className={`auth-guided ${overlay ? "auth-guided-modal" : "page auth-guided-page"}`}>
     <section className="auth-card" aria-labelledby={`${idPrefix}-title`}>
       <header className="auth-guided-heading"><AuthArtwork name="card-mark" /><h1 ref={titleElement} tabIndex={-1} id={`${idPrefix}-title`}>{title}</h1><p className="auth-intro">{signedIn ? "Continue to your projects and saved work." : confirming ? "Confirm your email to finish setting up your account." : signingUp ? "Save your projects and keep your work together." : "Continue with your email and password."}</p></header>
@@ -138,7 +138,7 @@ export function SignInForm({ configured, overlay = false, mode = "sign-in", conf
           {resent && <p className="auth-status" role="status">If this address is awaiting confirmation, a new email will arrive shortly. Wait a minute before requesting another.</p>}
           {error && <p className="form-error" id={`${idPrefix}-error`} role="alert">{error}</p>}
         </form>}
-        <p className="auth-mode-switch">{signingUp ? "Already have an account?" : "New to Fluid?"} {submitting ? <button type="button" className="text-link" disabled>{signingUp ? "Sign in" : "Create account"}</button> : <Link className="text-link" href={signingUp ? "/sign-in" : "/sign-up"} replace={overlay} onClick={clearPasswords}>{signingUp ? "Sign in" : "Create account"}</Link>}</p>
+        <p className="auth-mode-switch">{signingUp ? "Already have an account?" : "New to Embel?"} {submitting ? <button type="button" className="text-link" disabled>{signingUp ? "Sign in" : "Create account"}</button> : <Link className="text-link" href={signingUp ? "/sign-in" : "/sign-up"} replace={overlay} onClick={clearPasswords}>{signingUp ? "Sign in" : "Create account"}</Link>}</p>
         {confirming && <button type="button" className="text-link auth-resend-toggle" disabled={disabled} onClick={() => { clearPasswords(); setError(""); setResend(false); setResent(false); dismissConfirmation(); }}>Use another email</button>}
       </>}
     </section>

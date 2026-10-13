@@ -419,7 +419,7 @@ export function createNamesStore(options: { storage: () => StoragePort | null; c
     try {
       const restored = readNamesBackup(raw);
       return persist({ ...restored, revision: snapshot.data.revision + 1 }, false, false, true);
-    } catch { return rejected("This is not a valid Fluid Names backup. Its names and transformation history must be intact. Your workspace is unchanged."); }
+    } catch { return rejected("This is not a valid Embel Names backup. Its names and transformation history must be intact. Your workspace is unchanged."); }
   }
   function readSavedRaw() {
     try { return getStorage().getItem(NAMES_STORAGE_KEY); } catch { return null; }

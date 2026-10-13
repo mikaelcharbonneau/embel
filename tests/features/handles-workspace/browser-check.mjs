@@ -1,4 +1,4 @@
-// Dedicated headless fixture, independent of the shared Fluid server/browser.
+// Dedicated headless fixture, independent of the shared Embel server/browser.
 // Run: node tests/features/handles-workspace/browser-check.mjs
 import { build } from "esbuild";
 import { createServer } from "node:http";

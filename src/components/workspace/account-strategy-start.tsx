@@ -216,7 +216,7 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
     {plan?.billingMode === "chatgpt_subscription" && <div>
       <p className="field-hint" aria-label="Response usage limits">Response: {subscriptionLimitsLabel(plan.reformulation)}</p>
       <p className="field-hint" aria-label="Competitor research usage limits">Competitor research: {subscriptionLimitsLabel(plan.competitors)}</p>
-      <p className="field-hint">These are Fluid request limits, not your remaining ChatGPT plan quota.</p>
+      <p className="field-hint">These are Embel request limits, not your remaining ChatGPT plan quota.</p>
     </div>}
     {action?.identity === identity && action.recoveryBlocked && <p className="field-hint"><Link className="text-link" href="/brands">Check account brands</Link></p>}
     {recovery && <p className="field-hint">{recovery.projectId

@@ -21,12 +21,12 @@ try {
     VERCEL_BRANCH_URL: process.env.VERCEL_BRANCH_URL,
     VERCEL_PROJECT_PRODUCTION_URL: process.env.VERCEL_PROJECT_PRODUCTION_URL,
   });
-  console.log('Fluid deployment preflight passed.');
+  console.log('Embel deployment preflight passed.');
 } catch (error) {
   // Known failures carry only fixed labels; parsing/I/O errors must not leak paths
   // or file contents. Invalid configuration always exits before the Next build.
   const reason = error instanceof Error && /^(Missing or mismatched public configuration: [A-Z_]+\.|Invalid (preview platform context|immutable preview hostname|production platform context|production application origin)\.)$/.test(error.message)
     ? error.message : 'Candidate configuration is unavailable or invalid.';
-  console.error(`Fluid deployment preflight failed: ${reason}`);
+  console.error(`Embel deployment preflight failed: ${reason}`);
   process.exitCode = 1;
 }

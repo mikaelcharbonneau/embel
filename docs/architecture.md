@@ -1,4 +1,4 @@
-# Fluid foundation architecture
+# Embel foundation architecture
 
 Sign-in and account creation support intercepted native dialogs alongside direct-page fallbacks. Both render the same server-configured form inside the existing account-session provider; dismissal preserves drafts and the pending authentication fence. Email confirmation uses a bounded PKCE exchange and a configured-origin redirect. See [Sign-in overlay](auth-overlay-design.md) and [account creation](account-creation.md).
 
@@ -99,7 +99,7 @@ The 2026-10-13 readiness record supersedes the historical runtime-status stateme
 
 D030 approves a local Mac execution option. Supabase Auth, owned projects, immutable revisions and durable Postgres jobs remain authoritative. Subscription access does not require a different data store, so no embedded database, data migration or new hosted service is introduced. The protected Vercel preview remains available for interface review and cannot expose the local connection endpoints.
 
-The local web process binds to `127.0.0.1:3106`; the dedicated Node worker and OAuth callback bind to `127.0.0.1:3107`. A fresh in-memory capability connects these two processes. Browser requests go through a same-origin, host-checked Next.js route that verifies the Supabase user before forwarding a server-derived owner ID. Tokens and worker database access never enter browser bundles. Each ChatGPT registration is bound to its verified Supabase owner; signing into ChatGPT does not silently create or replace a Fluid account.
+The local web process binds to `127.0.0.1:3106`; the dedicated Node worker and OAuth callback bind to `127.0.0.1:3107`. A fresh in-memory capability connects these two processes. Browser requests go through a same-origin, host-checked Next.js route that verifies the Supabase user before forwarding a server-derived owner ID. Tokens and worker database access never enter browser bundles. Each ChatGPT registration is bound to its verified Supabase owner; signing into ChatGPT does not silently create or replace an Embel account.
 
 The local worker alone owns protected OAuth records, refresh rotation, account-specific model discovery and streaming Responses calls. Subscription jobs have quota/deadline/size admission limits and explicit subscription billing metadata, without invented API dollar estimates. The standard API text path remains disabled for this local mode; image execution remains unavailable until a separate API connection and spending limit are approved.
 
@@ -107,7 +107,7 @@ Preparing code does not authorize grants or token persistence. First-time connec
 
 ## Local worker login boundary correction
 
-The local subscription worker uses a dedicated direct database login administratively bound to exactly one Fluid owner. The binding uses both role name and OID and validates the actual `session_user`, with no privileged flags or role memberships. A request parameter, JWT claim or custom session setting cannot choose the owner. Subscription functions, bindings reads and shared lease operations enforce that mapping; subscription workers cannot operate API-mode jobs, and API workers cannot operate subscription jobs. The only direct table read is seven job-step recovery metadata columns, filtered to owned subscription jobs by RLS. The migration creates no login, password or owner mapping.
+The local subscription worker uses a dedicated direct database login administratively bound to exactly one Embel owner. The binding uses both role name and OID and validates the actual `session_user`, with no privileged flags or role memberships. A request parameter, JWT claim or custom session setting cannot choose the owner. Subscription functions, bindings reads and shared lease operations enforce that mapping; subscription workers cannot operate API-mode jobs, and API workers cannot operate subscription jobs. The only direct table read is seven job-step recovery metadata columns, filtered to owned subscription jobs by RLS. The migration creates no login, password or owner mapping.
 
 The launcher reads a separately approved `.local-fluid/worker.env` (0600, under a 0700 directory), rejects worker credentials in Next.js environment files, and passes the connection only to the Node worker. Connections use the approved development endpoint with certificate-verified TLS. OAuth records remain separately protected under `.local-fluid/credentials`. These boundaries are checked before any live credential setup.
 

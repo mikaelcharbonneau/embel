@@ -65,7 +65,7 @@ function TrademarkAccountContent({ memory, importProjectId, importProjectTitle, 
         const raw = serializeTrademarkDraftPreview(preview);
         const url = URL.createObjectURL(new Blob([raw], { type: "application/json" }));
         const link = document.createElement("a");
-        link.href = url; link.download = "fluid-trademark-draft-preview.json";
+        link.href = url; link.download = "embel-trademark-draft-preview.json";
         try { document.body.appendChild(link); link.click(); }
         finally { link.remove(); URL.revokeObjectURL(url); }
       }} />

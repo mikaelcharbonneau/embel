@@ -58,7 +58,7 @@ Fresh read-only inspection on 2026-10-13 reconfirmed the inventory above. Native
 
 ## New-account eligibility and proposed first-response allowance
 
-The current API worker is deliberately bound to one Fluid owner. `api_text_worker_principals.role_name` is a primary key and `role_oid` is unique; `api_text_worker_owner()` derives that single owner from the real restricted database login. API admission additionally requires an enabled binding for the same owner, operation, role OID, exact policy digest and immutable deployment, plus the owner's API billing route and budget. An email-confirmed signup does not satisfy those runtime boundaries. Giving a new account a budget alone cannot make its first response work.
+The current API worker is deliberately bound to one Embel owner. `api_text_worker_principals.role_name` is a primary key and `role_oid` is unique; `api_text_worker_owner()` derives that single owner from the real restricted database login. API admission additionally requires an enabled binding for the same owner, operation, role OID, exact policy digest and immutable deployment, plus the owner's API billing route and budget. An email-confirmed signup does not satisfy those runtime boundaries. Giving a new account a budget alone cannot make its first response work.
 
 Fresh live reads found one API worker principal, two reformulation bindings (only the principal's matching binding enabled), two API billing routes, one $5 usage account and one $0 usage account. Only the reformulation runtime policy exists. Both API jobs are historical successful reformulations; there are no nonterminal API strategy jobs at this observation. This is a read-only snapshot, not a lock or authorization to reuse it for rollout.
 

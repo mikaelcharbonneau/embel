@@ -181,7 +181,7 @@ test("320px settings keep actions reachable and route styles scoped", async ({ p
   await tab(page, "Security & privacy");
   await expect(page.getByRole("button", { name: "Delete account", exact: true })).toBeDisabled();
   await page.getByRole("button", { name: "Open navigation", exact: true }).click();
-  await page.locator(".mobile-menu").getByRole("link", { name: "Fluid home", exact: true }).click();
+  await page.locator(".mobile-menu").getByRole("link", { name: "Embel home", exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
   expect(await page.locator(".concept-settings").count()).toBe(0);
 });

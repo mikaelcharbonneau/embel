@@ -6,12 +6,12 @@ import { tmpdir } from "node:os";
 import { FileChatGPTCredentialStore, registrationIdFor } from "../../src/server/local-chatgpt/credentials";
 import { LOCAL_OTHER_OWNER, LOCAL_OWNER, localRecord } from "./local-chatgpt-fixtures";
 
-describe("protected Fluid credential files (temporary fixtures only)", () => {
+describe("protected Embel credential files (temporary fixtures only)", () => {
   let directory: string;
   beforeEach(async () => { directory = await mkdtemp(join(tmpdir(), "fluid-credential-fixture-")); });
   afterEach(async () => { await rm(directory, { recursive: true, force: true }); });
 
-  it("is inert on construction/read and creates only owner-protected Fluid files on an explicit write", async () => {
+  it("is inert on construction/read and creates only owner-protected Embel files on an explicit write", async () => {
     const root = join(directory, "new", "credentials");
     const store = new FileChatGPTCredentialStore(root);
     expect(await store.list(LOCAL_OWNER)).toEqual([]);
@@ -90,6 +90,7 @@ describe("protected Fluid credential files (temporary fixtures only)", () => {
     expect(await readdir(outside)).toEqual([]);
     await rm(privateParent);
     await mkdir(privateParent, { mode: 0o755 });
+    await chmod(privateParent, 0o755); // Preserve the intentionally insecure fixture under a restrictive process umask.
     await expect(store.getHostId()).rejects.toMatchObject({ code: "credential_store_unavailable" });
     expect(await readdir(privateParent)).toEqual([]);
   });

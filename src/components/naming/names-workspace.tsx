@@ -35,11 +35,11 @@ function StorageRecovery({ snapshot }: { snapshot: NamesSnapshot }) {
   return <section className="names-recovery" aria-label="Names storage recovery">
     <p role="alert">{snapshot.error}</p>
     <div className="names-recovery-actions">
-      <button type="button" className="button secondary small" onClick={() => downloadCopy(JSON.stringify(snapshot.data, null, 2), "fluid-names-this-tab.json")}>Download this tab&apos;s copy</button>
+      <button type="button" className="button secondary small" onClick={() => downloadCopy(JSON.stringify(snapshot.data, null, 2), "embel-names-this-tab.json")}>Download this tab&apos;s copy</button>
       {snapshot.storage === "unavailable" ? <button type="button" className="button secondary small" onClick={() => namesStore.retrySave()}>Retry saving</button> : null}
       {snapshot.storage === "conflict" ? <button type="button" className="button secondary small" onClick={() => setConfirm("load")}>Load saved version</button> : null}
       {snapshot.storage === "invalid" ? <>
-        <button type="button" className="button secondary small" onClick={() => { const raw = namesStore.readSavedRaw(); if (raw !== null) downloadCopy(raw, "fluid-names-unreadable.json"); }}>Download stored data</button>
+        <button type="button" className="button secondary small" onClick={() => { const raw = namesStore.readSavedRaw(); if (raw !== null) downloadCopy(raw, "embel-names-unreadable.json"); }}>Download stored data</button>
         <button type="button" className="text-link" onClick={() => setConfirm("replace")}>Replace unreadable saved data</button>
       </> : null}
     </div>
@@ -82,7 +82,7 @@ function WorkspaceManagement({ snapshot }: { snapshot: NamesSnapshot }) {
   const [confirm, setConfirm] = useState(false);
   return <details className="names-management"><summary>Browser workspace · {snapshot.data.candidates.length}/500 names · {snapshot.data.runs.length}/100 runs</summary>
     <p>Your Names workspace is independent of your account. Runs and their results are retained in this browser, up to 4 MB; nothing is automatically removed.</p>
-    <div className="names-recovery-actions"><button type="button" className="button secondary small" onClick={() => downloadCopy(JSON.stringify(snapshot.data, null, 2), "fluid-names-workspace.json")}>Download workspace copy</button><button type="button" className="text-link" disabled={snapshot.storage !== "available"} onClick={() => setConfirm(true)}>Start a new Names workspace</button></div>
+    <div className="names-recovery-actions"><button type="button" className="button secondary small" onClick={() => downloadCopy(JSON.stringify(snapshot.data, null, 2), "embel-names-workspace.json")}>Download workspace copy</button><button type="button" className="text-link" disabled={snapshot.storage !== "available"} onClick={() => setConfirm(true)}>Start a new Names workspace</button></div>
     <NamesBackupImport snapshot={snapshot} />
     {confirm ? <div className="names-recovery-confirm"><p>Remove all {snapshot.data.candidates.length} names and {snapshot.data.runs.length} runs from this browser workspace? Download a copy first to keep your history.</p><button type="button" className="button secondary small" onClick={() => setConfirm(false)}>Keep workspace</button><button type="button" className="button danger small" onClick={() => { namesStore.startFresh(); setConfirm(false); }}>Confirm new workspace</button></div> : null}
   </details>;

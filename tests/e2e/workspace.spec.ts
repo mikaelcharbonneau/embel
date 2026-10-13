@@ -43,39 +43,44 @@ test("examples fill the prompt and start a real conversation without fabricated 
   expect(errors).toEqual([]);
 });
 
-test("three distinct example prompts retain their chosen scopes and follow-up context", async ({ page }) => {
+test("three stored browser drafts retain their scopes and follow-up context after reopening", async ({ page }) => {
+  // Seed the existing version-one format, including user content that still says Fluid.
+  // Home now starts an account flow; these drafts must remain usable independently.
+  const now = "2026-10-12T10:00:00.000Z";
   const briefs = [
-    { category: "B2B product", title: "Maintenance fixture", scope: "Complete brand", value: "complete_brand", prefix: "A subscription tool for small property teams" },
-    { category: "Local food", title: "Lunch fixture", scope: "Naming", value: "naming_only", prefix: "A neighborhood lunch counter" },
-    { category: "Public culture", title: "Culture fixture", scope: "Visual identity", value: "visual_identity_only", prefix: "A public cultural program" },
+    { title: "Fluid studio", scope: "complete_brand" as const, description: "A subscription tool for small property teams." },
+    { title: "Lunch fixture", scope: "naming_only" as const, description: "A neighborhood lunch counter." },
+    { title: "Culture fixture", scope: "visual_identity_only" as const, description: "A public cultural program." },
   ];
-  const saved: { url: string; id: string; value: string; prefix: string }[] = [];
-  for (const brief of briefs) {
-    await page.goto("/");
-    await page.getByRole("radio", { name: brief.scope, exact: true }).check();
-    await page.getByRole("button", { name: new RegExp(brief.category) }).click();
-    await page.getByRole("button", { name: "Send prompt", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Competitors", exact: true })).toBeVisible();
-    await rename(page, brief.title);
-    if (brief.scope === "Visual identity") {
-      await page.getByRole("textbox", { name: "Message Fluid", exact: true }).fill("The existing name is Common Room. Keep a legible poster system.");
-      await page.getByRole("button", { name: "Send prompt", exact: true }).click();
-      await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeEmpty();
-    }
-    saved.push({ url: page.url(), id: page.url().split("/").at(-1)!, value: brief.value, prefix: brief.prefix });
-  }
-  for (const brief of saved) {
-    await page.goto(brief.url);
-    await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeVisible();
-    const draft = await page.evaluate(({ storageKey, id }) => JSON.parse(localStorage.getItem(storageKey)!).drafts.find((draft: LocalDraft) => draft.id === id) as LocalDraft, { storageKey, id: brief.id });
-    expect(draft.scope).toBe(brief.value);
-    expect(draft.description.startsWith(brief.prefix)).toBe(true);
-    expect(draft.activity).toBe("");
-    if (brief.value === "visual_identity_only") expect(draft.conversation?.at(-1)).toMatchObject({ kind: "user_message", text: "The existing name is Common Room. Keep a legible poster system." });
+  const drafts: LocalDraft[] = briefs.map((brief, index) => ({ ...brief,
+    id: `aaaaaaaa-1111-4111-8111-${String(index + 1).padStart(12, "0")}`,
+    activity: "", offering: "", knownAudience: "", suppliedName: "", namingNotes: "", identityNotes: "",
+    segments: [], stage: "competitors", audienceReviewedAt: null, createdAt: now, updatedAt: now, example: true,
+    conversation: [{ id: `message-${index}`, kind: "user_message", text: brief.description, createdAt: now },
+      { id: `widget-${index}`, kind: "widget", widget: "competitors", createdAt: now }],
+  }));
+  await page.route("**/api/**", route => route.fulfill({ status: 401, json: { error: { code: "unauthenticated" } } }));
+  await page.addInitScript(({ storageKey, drafts }) => {
+    if (!localStorage.getItem(storageKey)) localStorage.setItem(storageKey, JSON.stringify({ version: 1, drafts }));
+  }, { storageKey, drafts });
+  for (const draft of drafts) {
+    await page.goto(`/brands/${draft.id}`);
+    await expect(page).toHaveTitle("Brand draft · Embel");
+    const composer = page.getByRole("textbox", { name: "Message Embel", exact: true });
+    await expect(composer).toBeVisible();
+    const followup = `Keep the saved context for ${draft.title}.`;
+    await composer.fill(followup);
+    await page.getByRole("button", { name: "Save message", exact: true }).click();
+    await expect(composer).toBeEmpty();
+    await page.reload();
+    await expect(composer).toBeVisible();
+    const saved = await page.evaluate(({ storageKey, id }) => JSON.parse(localStorage.getItem(storageKey)!).drafts.find((value: LocalDraft) => value.id === id) as LocalDraft, { storageKey, id: draft.id });
+    expect(saved).toMatchObject({ title: draft.title, scope: draft.scope, description: draft.description, activity: "" });
+    expect(saved.conversation?.at(-1)).toMatchObject({ kind: "user_message", text: followup });
   }
   await page.goto("/brands");
-  await expect(page.getByText("3 local drafts", { exact: true })).toBeVisible();
-  for (const brief of briefs) await expect(page.getByRole("heading", { name: brief.title, exact: true })).toBeVisible();
+  await expect(page.locator('.project-card[data-storage="browser"]')).toHaveCount(3);
+  for (const draft of drafts) await expect(page.getByRole("heading", { name: draft.title, exact: true })).toBeVisible();
 });
 
 test("a scoped conversation preserves selected audiences through reload, expansion and a follow-up", async ({ page }, info) => {
@@ -99,7 +104,7 @@ test("a scoped conversation preserves selected audiences through reload, expansi
   await page.getByRole("button", { name: "Expand to complete brand", exact: true }).click();
   expect((await readDraft(page)).scope).toBe("complete_brand");
   expect((await readDraft(page)).description).toBe(description);
-  await page.getByRole("textbox", { name: "Message Fluid", exact: true }).fill("Also consider afternoon takeaway meals.");
+  await page.getByRole("textbox", { name: "Message Embel", exact: true }).fill("Also consider afternoon takeaway meals.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByRole("region", { name: "Audience", exact: true }).getByText("Confirmed", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Edit audience", exact: true }).click();
@@ -121,7 +126,7 @@ test("storage failure is visible and never claims a persistent save", async ({ c
   await expect(page.getByRole("alert").filter({ hasText: "Browser storage is unavailable" })).toBeVisible();
   await expect(page.getByText("Saved in this browser", { exact: true })).toHaveCount(0);
   await expect(page.getByText("This tab only", { exact: true })).toBeVisible();
-  await page.getByRole("textbox", { name: "Message Fluid", exact: true }).fill("Keep this in-tab follow-up");
+  await page.getByRole("textbox", { name: "Message Embel", exact: true }).fill("Keep this in-tab follow-up");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText("Keep this in-tab follow-up", { exact: true })).toBeVisible();
 });

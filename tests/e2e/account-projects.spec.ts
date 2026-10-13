@@ -85,7 +85,7 @@ async function openAccount(page: Page, id = projectA) {
     waitForAccountProject(page, id),
     page.goto(`/brands/account/${id}`),
   ]);
-  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   await openProjectDetails(page);
 }
 function waitForAccountProject(page: Page, id = projectA) {
@@ -123,9 +123,9 @@ async function rename(page: Page, title: string) {
   await page.getByRole("textbox", { name: "Project label", exact: true }).press("Enter");
 }
 async function sendFollowup(page: Page, text: string) {
-  await page.getByRole("textbox", { name: "Message Fluid", exact: true }).fill(text);
+  await page.getByRole("textbox", { name: "Message Embel", exact: true }).fill(text);
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
-  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeEmpty();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeEmpty();
   await expect(page.getByText(text, { exact: true })).toBeVisible();
 }
 
@@ -152,7 +152,7 @@ test("account fixture: full brand needs reviewed strategy and identity-only omit
   await expect(page.getByText("Finish reviewing your strategy before opening Naming.", { exact: true })).toBeVisible();
   state.projects.set(projectA, { ...project, scope: "visual_identity_only" });
   await Promise.all([waitForAccountProject(page), page.reload()]);
-  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   await openProjectDetails(page);
   await expect(page.getByRole("button", { name: "Open Naming", exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Open Naming", exact: true })).toHaveCount(0);
@@ -169,7 +169,7 @@ test("account fixture: explicit browser copy preserves legacy notes, audience an
     if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify({ version: 1, drafts: [legacy] }));
   }, { key: storageKey, legacy });
   await page.goto(`/brands/${legacy.id}`);
-  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   const localBefore = await browserData(page);
   await page.getByText("Account saving", { exact: true }).click();
   await page.getByRole("button", { name: "Save to account", exact: true }).click();

@@ -80,7 +80,7 @@ async function trackUrls(page: Page) { await page.addInitScript(() => { const cr
 for (const scope of ["complete_brand", "visual_identity_only"] as const) test(`references fixture: ${scope} opens the grid before strategy or a name`, async ({ page }) => {
   const fixture = await setup(page); fixture.project = project(scope); await ready(page);
   await expect(page.getByRole("heading", { name: "Identity", exact: true })).toBeVisible(); await expect(page.getByRole("region", { name: "Brand references" })).toBeVisible();
-  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toHaveCount(0); await expect(page.getByRole("article")).toHaveCount(6); expect(fixture.writes).toHaveLength(0);
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toHaveCount(0); await expect(page.getByRole("article")).toHaveCount(6); expect(fixture.writes).toHaveLength(0);
 });
 test("references fixture: an unavailable source preserves real persisted references and independent likes", async ({ page }) => {
   const fixture = await setup(page); await ready(page); await expect(page.getByText("Reference discovery is not connected. Your saved references remain available.", { exact: true })).toBeVisible();
@@ -167,7 +167,7 @@ test("references fixture: decoded image failure immediately releases its private
   await expect(card(page).getByText("Reference preview unavailable", { exact: true })).toBeVisible(); await expect.poll(() => page.evaluate(() => { const value = window as unknown as { referenceUrls: string[]; revokedReferenceUrls: string[] }; return value.referenceUrls.length > 0 && value.referenceUrls.every(url => value.revokedReferenceUrls.includes(url)); })).toBe(true);
 });
 for (const scope of ["complete_brand", "visual_identity_only"] as const) test(`references fixture: saved ${scope} editor navigation opens Identity before readiness`, async ({ page }) => {
-  const fixture = await setup(page); fixture.project = project(scope); await page.goto(`/brands/account/${projectId}`); await page.getByRole("link", { name: "Open Identity", exact: true }).click(); await expect(card(page)).toBeVisible(); await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toHaveCount(0);
+  const fixture = await setup(page); fixture.project = project(scope); await page.goto(`/brands/account/${projectId}`); await page.getByRole("link", { name: "Open Identity", exact: true }).click(); await expect(card(page)).toBeVisible(); await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toHaveCount(0);
 });
 test("references fixture: editor dirty busy and conflict states fence Identity navigation", async ({ page }) => {
   const fixture = await setup(page); await page.goto(`/brands/account/${projectId}`); await rename(page); await expect(page.getByRole("button", { name: "Open Identity", exact: true })).toBeDisabled(); await expect(page.getByText("Save your edits before opening Identity.", { exact: true })).toBeVisible();

@@ -9,7 +9,7 @@ async function openOverlay(page: Page) {
   if (!(await menu.evaluate(element => (element as HTMLDetailsElement).open))) await menu.locator("summary").click();
   const trigger = menu.getByRole("link", { name: "Sign in", exact: true });
   await trigger.click();
-  const dialog = page.getByRole("dialog", { name: "Sign in to Fluid", exact: true });
+  const dialog = page.getByRole("dialog", { name: "Sign in to Embel", exact: true });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Close sign-in" })).toBeFocused();
   return { dialog, trigger };
@@ -53,7 +53,7 @@ test("auth overlay: continuation clears the slot; direct visits and reloads use 
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.locator(".app-shell")).toHaveClass(/concept-sign-in/);
   const card = page.locator(".auth-card");
-  await expect(card.getByRole("heading", { name: "Sign in to Fluid" })).toBeVisible();
+  await expect(card.getByRole("heading", { name: "Sign in to Embel" })).toBeVisible();
   const box = await card.boundingBox();
   if (testInfo.project.name === "desktop") {
     expect(box?.width).toBe(460);

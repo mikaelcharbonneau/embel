@@ -50,7 +50,7 @@ export function DomainResultTools<T extends DomainResultEvidence>({ rows, visibl
     if (!exported.length) return;
     const url = URL.createObjectURL(new Blob([domainResultsCsv(exported)], { type: "text/csv;charset=utf-8" }));
     const link = document.createElement("a");
-    link.href = url; link.download = "fluid-domain-candidates.csv"; document.body.appendChild(link);
+    link.href = url; link.download = "embel-domain-candidates.csv"; document.body.appendChild(link);
     try { link.click(); } finally { link.remove(); window.setTimeout(() => URL.revokeObjectURL(url), 1000); }
   }
   const allVisible = visibleRows.length > 0 && visibleRows.every(row => selected.includes(row.domain));

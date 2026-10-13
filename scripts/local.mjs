@@ -11,7 +11,7 @@ if ([...flags].some(flag => flag !== "--enable-connection")) throw new Error("Un
 const environments = await prepareLocalChildEnvironments(root, process.env, {
   bridgeToken: randomBytes(32).toString("base64url"), connectionApproved: flags.has("--enable-connection"),
 });
-await access(path.join(root, ".next/BUILD_ID")).catch(() => { throw new Error("Build Fluid before starting local mode: npm run build"); });
+await access(path.join(root, ".next/BUILD_ID")).catch(() => { throw new Error("Build Embel before starting local mode: npm run build"); });
 const children = [];
 let stopping = false;
 function stop(code = 0) {
@@ -28,5 +28,5 @@ function start(args, env) {
 }
 start(["--conditions=react-server", "--import", "tsx", "worker/local-runtime.ts"], environments.worker);
 start(["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", "3106"], environments.web);
-console.info("Fluid local: http://127.0.0.1:3106 — both processes must remain running for background work.");
+console.info("Embel local: http://127.0.0.1:3106 — both processes must remain running for background work.");
 console.info(flags.has("--enable-connection") ? "ChatGPT connection is enabled for an explicitly approved browser sign-in." : "ChatGPT connection is locked pending its specific consent step; no credentials will be created.");

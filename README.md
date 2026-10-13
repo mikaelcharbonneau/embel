@@ -1,8 +1,8 @@
-# Fluid
+# Embel
 
-Fluid is a brand-building workspace for moving from an idea to strategy, a name, a logo and usable identity files. This private source checkpoint combines the latest interface repairs with the existing application and a locally qualified, disabled vector-proposal backend. It is a development handoff, not a completed product or a production-release claim.
+Embel is a brand-building workspace for moving from an idea to strategy, a name, a logo and usable identity files. This private source checkpoint combines the latest interface repairs with the existing application and a locally qualified, disabled vector-proposal backend. It is a development handoff, not a completed product or a production-release claim.
 
-The GitHub repository name `emble` is a repository identifier. The product remains **Fluid**.
+The product was renamed from Fluid to **Embel** on 2026-10-13. The GitHub repository remains `mikaelcharbonneau/emble`. Existing `FLUID_*` settings, storage keys, service identifiers and historical design references retain their original names for compatibility; see [the branding record](docs/embel-branding.md).
 
 For the subsequently authorized Codex Cloud setup and the latest Home/Ideas design handoff, read [Cloud development](docs/cloud-development.md). The source-checkpoint verification limits below describe the earlier transfer; later verification is recorded separately and does not imply live provider acceptance.
 

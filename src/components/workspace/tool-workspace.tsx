@@ -26,7 +26,7 @@ function ManualTrademarkWorkspace({ draftControls }: { draftControls?: React.Rea
     const url = URL.createObjectURL(new Blob([raw], { type: "application/json" }));
     const link = document.createElement("a");
     link.href = url;
-    link.download = "fluid-trademark-draft-preview.json";
+    link.download = "embel-trademark-draft-preview.json";
     document.body.appendChild(link);
     try { link.click(); }
     finally { link.remove(); window.setTimeout(() => URL.revokeObjectURL(url), 1000); }
@@ -62,5 +62,5 @@ export function ToolWorkspace({ tool, localRuntimeEnabled = false }: { tool: Too
   if (tool === "assets") return <AssetsWorkspace />;
   if (tool === "domains" || tool === "handles" || tool === "trademarks") return <StandaloneToolWorkspace key={tool} tool={tool} />;
   const unknownTool: never = tool;
-  throw new Error(`Unknown Fluid tool: ${unknownTool}`);
+  throw new Error(`Unknown Embel tool: ${unknownTool}`);
 }

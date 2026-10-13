@@ -220,7 +220,7 @@ test("unselected context edits preserve strategy reviews while selected audience
 test("account fixture: strategy reviews save with values and provenance and survive reload", async ({ page }) => {
   const state = await account(page, false);
   await page.goto(`/brands/account/${id}`);
-  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   await stage(page, "Personality");
   await page.getByRole("slider", { name: "Sincerity", exact: true }).focus();
   await page.keyboard.press("Home");
@@ -268,7 +268,7 @@ test("account fixture: incomplete Strategy approval resumes the required review 
 test("account fixture: failed saving and a revision conflict retain partial strategy for an explicit browser copy", async ({ page }) => {
   const state = await account(page);
   await page.goto(`/brands/account/${id}`);
-  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   await stage(page, "Personality");
   await page.getByRole("slider", { name: "Ruggedness", exact: true }).focus();
   await page.keyboard.press("ArrowRight");

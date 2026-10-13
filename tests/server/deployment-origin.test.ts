@@ -44,7 +44,7 @@ describe("deployment preflight", () => {
   it.each([production, preview])("accepts a configured $VERCEL_ENV build", env => {
     const result = preflight(env);
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain("Fluid deployment preflight passed.");
+    expect(result.stdout).toContain("Embel deployment preflight passed.");
   });
   it.each([
     { ...production, APP_ORIGIN: undefined },
@@ -56,7 +56,7 @@ describe("deployment preflight", () => {
   ])("stops invalid builds without echoing supplied values", env => {
     const result = preflight(env);
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("Fluid deployment preflight failed:");
+    expect(result.stderr).toContain("Embel deployment preflight failed:");
     expect(result.stderr).not.toContain("do-not-log");
   });
 });

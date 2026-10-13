@@ -1,6 +1,6 @@
 # Account creation and email confirmation
 
-The user requested working Fluid account creation on 2026-10-13. This expands the earlier existing-account-only overlay while retaining its approved card, direct-page fallback, native modal, browser drafts and prompt recovery.
+The user requested working Embel account creation on 2026-10-13. This expands the earlier existing-account-only overlay while retaining its approved card, direct-page fallback, native modal, browser drafts and prompt recovery.
 
 ## Implemented behavior
 
@@ -19,7 +19,7 @@ The callback is `${getApplicationOrigin()}/auth/callback`. The application does 
 
 New authentication transitions stage cookie writes until the result is validated. A pending signup commits only its SDK verifier writes; a successful callback or valid immediate session commits HttpOnly, SameSite=Lax session cookies, Secure in the hosted production runtime. Invalid provider results never commit staged session cookies. Each request creates a fresh client; no session/client is shared at module scope. Private APIs continue to authorize with server-verified identity and existing RLS ownership, never `user_metadata` or a signup response.
 
-The flow expects the normal Supabase confirmation email link, `{{ .ConfirmationURL }}`, to visit Supabase verification and return a PKCE code to Fluid. It does not depend on replacing email templates with `token_hash` links. Such a custom template would require a different explicitly implemented verification endpoint. PKCE links should be opened in the browser that requested them; after confirmation on another device, an existing user can sign in with email/password.
+The flow expects the normal Supabase confirmation email link, `{{ .ConfirmationURL }}`, to visit Supabase verification and return a PKCE code to Embel. It does not depend on replacing email templates with `token_hash` links. Such a custom template would require a different explicitly implemented verification endpoint. PKCE links should be opened in the browser that requested them; after confirmation on another device, an existing user can sign in with email/password.
 
 ## Configuration still requiring verification
 

@@ -292,7 +292,7 @@ test("Ideas fixture: explicit brand creation preserves its original source after
   await openIdea(page);
   await page.getByRole("button", { name: "Create brand", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
-  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   const banner = page.getByRole("region", { name: "Original idea", exact: true });
   await expect(banner).toContainText("Quiet kitchen fixture");
   await expect(banner).toContainText("Source version 1");
@@ -446,11 +446,11 @@ test("Ideas fixture: a source read deadline reports unavailable without blocking
   await page.clock.install();
   await page.reload();
   await requested;
-  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   await page.clock.fastForward(15_001);
   await expect(page.getByText("Original idea source is unavailable. You can keep editing this brand.", { exact: true })).toBeVisible();
   release();
-  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeEnabled();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeEnabled();
 });
 
 test("Ideas fixture: unverified, foreign and mismatched resources never enter private controls", async ({ page }) => {

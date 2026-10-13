@@ -19,7 +19,7 @@ describe("local ChatGPT OAuth security (signed fixtures only)", () => {
     const url = new URL(await client.authorizationUrl(first));
     expect(url.origin + url.pathname).toBe(OPENAI_AUTHORIZE_URL);
     expect(url.searchParams.get("client_id")).toBe("dynamic_agent_client");
-    expect(url.searchParams.get("agent_name_hint")).toBe("Fluid");
+    expect(url.searchParams.get("agent_name_hint")).toBe("Embel");
     expect(url.searchParams.get("ext_agent_host_id")).toBe(LOCAL_HOST);
     expect(url.searchParams.get("code_challenge")).toBe(createHash("sha256").update(first.codeVerifier).digest("base64url"));
     expect(url.searchParams.get("scope")).toContain("chatgpt.tokens.use.direct");

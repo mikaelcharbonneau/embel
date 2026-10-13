@@ -126,7 +126,7 @@ export function orderLabel(order: DomainOrder): string {
   if (order.registration === "failed") return "Registration failed";
   return order.payment === "confirmed" ? "Payment confirmed · registration pending" : order.payment === "failed" ? "Payment failed · registration pending" : "Registration pending";
 }
-export const purchasedDomainSchema = z.object({ order: domainOrderSchema, project: z.object({ id: reference, title: reference }).strict().nullable() }).strict().refine(value => value.order.registration === "confirmed" && value.order.confirmation !== null, "Library contains only registrar-confirmed Fluid purchases");
+export const purchasedDomainSchema = z.object({ order: domainOrderSchema, project: z.object({ id: reference, title: reference }).strict().nullable() }).strict().refine(value => value.order.registration === "confirmed" && value.order.confirmation !== null, "Library contains only registrar-confirmed Embel purchases");
 export type PurchasedDomain = z.infer<typeof purchasedDomainSchema>;
 export type DomainLibrary = { status: "unavailable" | "loading" | "error"; message?: string } | { status: "ready"; items: unknown[] };
 export type DomainBrandSource = { type: "domain"; domain: string; check: DomainCheck | null; order: DomainOrder | null };

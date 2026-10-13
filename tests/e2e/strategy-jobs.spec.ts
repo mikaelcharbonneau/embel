@@ -85,7 +85,7 @@ async function fixtures(page: Page) {
 }
 async function open(page: Page) {
   await page.goto(`/brands/account/${projectId}`);
-  await expect(page.getByRole("textbox", { name: "Message Fluid" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Message Embel" })).toBeVisible();
   await expect(page.getByText(/Sending uses (OpenAI|your ChatGPT plan)/)).toBeVisible();
 }
 
@@ -116,7 +116,7 @@ async function sendInitialPrompt(page: Page, queueStatus = 202) {
 test("strategy fixture: Send waits for response acceptance, then researches the new revision once", async ({ page }, testInfo) => {
   const state = await fixtures(page); await open(page);
   await expect(page.getByText(/Sending uses OpenAI.*\$3.27/)).toBeVisible();
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Focus on office workers at lunch.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Focus on office workers at lunch.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   expect(state.patches[0]?.context).toMatchObject({ intake: { conversation: expect.arrayContaining([expect.objectContaining({ kind: "user_message", text: "Focus on office workers at lunch." })]) } });
@@ -159,7 +159,7 @@ test("strategy fixture: Send waits for response acceptance, then researches the 
 
 test("strategy fixture: rejected saves retain the prompt and never enqueue provider work", async ({ page }) => {
   const state = await fixtures(page); state.patchStatus = 409; await open(page);
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Keep this unsaved correction.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Keep this unsaved correction.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText("Keep this unsaved correction.", { exact: true })).toBeVisible();
   await expect(page.getByText("A newer version is saved in your account.", { exact: true })).toBeVisible();
@@ -187,7 +187,7 @@ test("strategy fixture: applied results retain their exact acceptance status aft
 
 test("strategy fixture: cancellation stops the accepted chain and unavailable integration stays honest", async ({ page }) => {
   const state = await fixtures(page); await open(page);
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Start another response.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Start another response.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Cancel response", exact: true }).click();
@@ -225,7 +225,7 @@ test("strategy fixture: initial Send keeps the browser copy and creates a genuin
 
 test("strategy fixture: unconfirmed enqueue shows no invented progress and retries the same saved request", async ({ page }) => {
   const state = await fixtures(page); state.queueStatus = 503; await open(page);
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Keep the saved prompt after a queue failure.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Keep the saved prompt after a queue failure.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expectSavedVersion(page, 2);
   await expect(page.getByText(/no new job was confirmed/)).toBeVisible();
@@ -240,7 +240,7 @@ test("strategy fixture: unconfirmed enqueue shows no invented progress and retri
 
 test("strategy fixture: a lost Apply response recovers the exact saved application before research", async ({ page }) => {
   const state = await fixtures(page); state.applyReplyStatus = 503; await open(page);
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Recover this explicitly accepted response.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Recover this explicitly accepted response.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   state.jobs[0] = complete(state.jobs[0]!);
@@ -259,7 +259,7 @@ test("strategy fixture: a lost Apply response recovers the exact saved applicati
 
 test("strategy fixture: retrying research preserves the original allowance and new revision", async ({ page }) => {
   const state = await fixtures(page); await open(page);
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Keep this research request available after an outage.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Keep this research request available after an outage.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   state.jobs[0] = complete(state.jobs[0]!); state.queueStatus = 503;
@@ -279,7 +279,7 @@ test("strategy fixture: retrying research preserves the original allowance and n
 
 test("strategy fixture: reload resumes accepted research from the durable receipt without another Apply", async ({ page }) => {
   const state = await fixtures(page); state.billingMode = "chatgpt_subscription"; await open(page);
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Continue the accepted request after reloading.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Continue the accepted request after reloading.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   state.jobs[0] = complete(state.jobs[0]!); state.queueStatus = 503;
@@ -297,7 +297,7 @@ test("strategy fixture: reload resumes accepted research from the durable receip
 
 test("strategy fixture: edits stop automatic research and block applying an old input", async ({ page }) => {
   const state = await fixtures(page); await open(page);
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Prepare this response.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Prepare this response.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Rename project" }).click();
@@ -344,7 +344,7 @@ test("strategy fixture: a late accepted job is fenced after an account change", 
     await reply(route, { job: complete(fixtureJob("strategy.reformulate", body.expectedRevision, 1)) }, 202);
   });
   await open(page);
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Private prior-account message.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Private prior-account message.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await requested;
   await expect(page.getByText("Response queued", { exact: true })).toHaveCount(0);
@@ -360,8 +360,8 @@ test("strategy fixture: a late accepted job is fenced after an account change", 
 
 test("subscription fixture: real message text streams without exposing JSON or inventing a complete proposal", async ({ page }) => {
   const state = await fixtures(page); state.billingMode = "chatgpt_subscription"; await open(page);
-  await expect(page.getByText(/ChatGPT plan limits apply\. Fluid allows up to 20 requests per hour and 3 queued requests/)).toBeVisible();
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Use the selected ChatGPT connection for this fixture.");
+  await expect(page.getByText(/ChatGPT plan limits apply\. Embel allows up to 20 requests per hour and 3 queued requests/)).toBeVisible();
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Use the selected ChatGPT connection for this fixture.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   expect(state.enqueues[0]).toMatchObject({ billingMode: "chatgpt_subscription", operation: "strategy.reformulate", expectedRevision: 2, acceptedPolicyIdentity: subscriptionPolicyIdentity });
@@ -409,7 +409,7 @@ test("subscription fixture: cancelled and uncertain partials stay incomplete and
 
 test("subscription fixture: a change to API billing stops an accepted subscription chain", async ({ page }) => {
   const state = await fixtures(page); state.billingMode = "chatgpt_subscription"; await open(page);
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Preserve the subscription allowance.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Preserve the subscription allowance.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   state.billingMode = "openai_api"; state.jobs[0] = complete(state.jobs[0]!);
@@ -425,7 +425,7 @@ test("subscription fixture: a change to API billing stops an accepted subscripti
 
 test("subscription fixture: changing the selected policy stops continuation until a new message", async ({ page }) => {
   const state = await fixtures(page); state.billingMode = "chatgpt_subscription"; await open(page);
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Use the original selected connection.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Use the original selected connection.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   state.policyIdentity = "b".repeat(64); state.jobs[0] = complete(state.jobs[0]!);
@@ -436,7 +436,7 @@ test("subscription fixture: changing the selected policy stops continuation unti
   await page.reload();
   await expect(page.getByText("Response complete", { exact: true })).toBeVisible();
   expect(state.enqueues).toHaveLength(1);
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Start with the newly selected model.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Start with the newly selected model.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   expect(state.enqueues).toHaveLength(2);
@@ -516,7 +516,7 @@ test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));
 
 test("strategy fixture: project context cannot push the composer below the viewport", async ({ page }, info) => {
   await fixtures(page); await open(page);
-  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   await page.screenshot({ path: info.outputPath("account-conversation-viewport.png"), fullPage: true, scale: "css" });
   const composer = await page.locator(".conversation-compose-area").boundingBox();
   expect(composer!.y + composer!.height).toBeLessThanOrEqual(page.viewportSize()!.height);

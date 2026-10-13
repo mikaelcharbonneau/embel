@@ -87,7 +87,7 @@ async function workerDatabaseUrl(root) {
 }
 
 export async function prepareLocalChildEnvironments(root, inherited, { bridgeToken, connectionApproved = false }) {
-  if (inherited.VERCEL) throw new Error("Fluid local mode cannot run on a hosted deployment.");
+  if (inherited.VERCEL) throw new Error("Embel local mode cannot run on a hosted deployment.");
   if (Object.hasOwn(inherited, WORKER_KEY)) throw new Error("Worker database credentials must be stored only in .local-fluid/worker.env.");
   if (inherited.NODE_TLS_REJECT_UNAUTHORIZED === "0") throw new Error("Local mode requires verified TLS.");
   let publicConfiguration = {};

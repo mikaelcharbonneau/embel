@@ -60,10 +60,10 @@ test.describe("local ChatGPT settings", () => {
     await expect(page.getByText("Image generation is unavailable. An approved spending limit is required.", { exact: true })).toBeVisible();
     expect(state.calls.every(call => call.action === "status" && call.method === "GET")).toBe(true);
   });
-  test("requires a verified Fluid account before reading local connection metadata", async ({ page }) => {
+  test("requires a verified Embel account before reading local connection metadata", async ({ page }) => {
     const state = await fixtures(page); state.sessionStatus = 401;
     await page.goto("/settings"); await page.getByRole("tab", { name: "AI preferences", exact: true }).click();
-    await expect(page.getByText("Sign in to Fluid first", { exact: true })).toBeVisible();
+    await expect(page.getByText("Sign in to Embel first", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Continue with ChatGPT", exact: true })).toHaveCount(0);
     expect(state.calls).toEqual([]);
   });
@@ -103,15 +103,15 @@ test.describe("local ChatGPT settings", () => {
     await expect(page).toHaveURL(/^https:\/\/auth\.openai\.com\/api\/accounts\/authorize\?/);
     expect(state.calls.find(call => call.action === "sign-in")?.body).toEqual({});
   });
-  test("disconnects ChatGPT without claiming remote revocation or signing out of Fluid", async ({ page }) => {
+  test("disconnects ChatGPT without claiming remote revocation or signing out of Embel", async ({ page }) => {
     const state = await fixtures(page); state.status.connectionAllowed = true; state.status.registrations = [{ registrationId, email: "local-fixture@example.invalid", planUsageEnabled: true }]; state.status.selectedRegistrationId = registrationId; state.status.model = "fixture-catalog-model";
     await page.goto("/settings"); await page.getByRole("tab", { name: "AI preferences", exact: true }).click();
     await page.getByRole("button", { name: "Disconnect ChatGPT", exact: true }).click();
-    await expect(page.getByText("Disconnected from Fluid on this Mac. Remote revocation could not be confirmed.", { exact: true })).toBeVisible();
+    await expect(page.getByText("Disconnected from Embel on this Mac. Remote revocation could not be confirmed.", { exact: true })).toBeVisible();
     await expect(page.getByText("My account", { exact: true })).toBeVisible();
     expect(state.calls.find(call => call.action === "sign-out")?.body).toEqual({ registrationId });
   });
-  test("fences a late catalog response when the Fluid account changes", async ({ page }) => {
+  test("fences a late catalog response when the Embel account changes", async ({ page }) => {
     const state = await fixtures(page); state.status.connectionAllowed = true; state.status.registrations = [{ registrationId, email: "private-local-fixture@example.invalid", planUsageEnabled: true }];
     let release!: () => void; let started!: () => void;
     const held = new Promise<void>(resolve => { release = resolve; }); const requested = new Promise<void>(resolve => { started = resolve; });

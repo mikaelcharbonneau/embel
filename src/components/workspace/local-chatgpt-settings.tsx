@@ -15,7 +15,7 @@ function connectionError(error: unknown) {
     if (error.status === 403) return "This connection action is not currently allowed. Check connection status.";
     if (error.status === 409) return "The connection changed. Check its status before trying again.";
     if (error.status === 422) return "Choose a connection and a model from its available catalog.";
-    if (error.status === 404 || error.status === 503) return "The local ChatGPT service is unavailable. Check that Fluid is running on this Mac.";
+    if (error.status === 404 || error.status === 503) return "The local ChatGPT service is unavailable. Check that Embel is running on this Mac.";
   }
   return "The local connection request could not be confirmed. Check connection status before trying again.";
 }
@@ -23,8 +23,8 @@ function connectionError(error: unknown) {
 export function LocalChatGPTSettings({ enabled = false }: { enabled?: boolean }) {
   const { session } = useAccountSession();
   if (!enabled) return null;
-  return <section className="settings-section local-chatgpt-settings" aria-labelledby="local-chatgpt-heading"><div><h2 id="local-chatgpt-heading">ChatGPT on this Mac</h2><p>Text and strategy can use your ChatGPT plan. Your Fluid account owns your saved projects.</p></div><div className="settings-panel">
-    {session.status === "ready" ? <LocalConnection key={`${session.userId}:${session.generation}`} account={session} /> : <div className="setting-row"><div><strong>Sign in to Fluid first</strong><p>Verify your Fluid account to manage its local ChatGPT connection.</p></div><Link className="button secondary small" href="/sign-in">Sign in to Fluid</Link></div>}
+  return <section className="settings-section local-chatgpt-settings" aria-labelledby="local-chatgpt-heading"><div><h2 id="local-chatgpt-heading">ChatGPT on this Mac</h2><p>Text and strategy can use your ChatGPT plan. Your Embel account owns your saved projects.</p></div><div className="settings-panel">
+    {session.status === "ready" ? <LocalConnection key={`${session.userId}:${session.generation}`} account={session} /> : <div className="setting-row"><div><strong>Sign in to Embel first</strong><p>Verify your Embel account to manage its local ChatGPT connection.</p></div><Link className="button secondary small" href="/sign-in">Sign in to Embel</Link></div>}
   </div></section>;
 }
 
@@ -117,7 +117,7 @@ function LocalConnection({ account }: { account: VerifiedAccount }) {
     try {
       const result = await accountRequest("/api/local/chatgpt/sign-out", localSignOutResponseSchema, { method: "POST", body: { registrationId }, signal: controller.signal });
       if (!current(controller)) return;
-      setNotice(result.remoteRevocationConfirmed ? "Disconnected from Fluid on this Mac. Remote access was revoked." : "Disconnected from Fluid on this Mac. Remote revocation could not be confirmed.");
+      setNotice(result.remoteRevocationConfirmed ? "Disconnected from Embel on this Mac. Remote access was revoked." : "Disconnected from Embel on this Mac. Remote revocation could not be confirmed.");
       setStatus(null); setCatalog(null); setRegistrationChoice(undefined); setModelChoice(undefined); refresh();
     } catch (error: unknown) { fail(error, controller); }
     finally { finish(controller); }
@@ -126,11 +126,11 @@ function LocalConnection({ account }: { account: VerifiedAccount }) {
   return <>
     <div className="setting-row"><div><strong>{status ? ready ? "Ready for text requests" : "Choose a ChatGPT connection for text requests." : readError ? "Connection status unavailable" : "Checking local connection…"}</strong><p>{status?.selectedRegistrationId && status.model ? `Saved text model: ${models.find(item => item.slug === status.model)?.displayName ?? status.model}. ${ready ? "Your ChatGPT plan limits apply." : "The text worker is not ready yet."}` : "Available models come from your selected ChatGPT connection."}</p></div><button type="button" className="button secondary small" disabled={Boolean(pending)} onClick={refresh}>Check connection status</button></div>
     {status && <>
-      <div className="setting-row"><div><strong>Connect ChatGPT</strong><p>{status.connectionAllowed ? "Continue to ChatGPT to review access for Fluid on this Mac." : "Connection approval is required before ChatGPT sign-in can open."}</p></div><button type="button" className="button secondary small" disabled={!status.connectionAllowed || Boolean(pending)} onClick={() => void signIn()}>Continue with ChatGPT</button></div>
+      <div className="setting-row"><div><strong>Connect ChatGPT</strong><p>{status.connectionAllowed ? "Continue to ChatGPT to review access for Embel on this Mac." : "Connection approval is required before ChatGPT sign-in can open."}</p></div><button type="button" className="button secondary small" disabled={!status.connectionAllowed || Boolean(pending)} onClick={() => void signIn()}>Continue with ChatGPT</button></div>
       {status.registrations.length > 0 && <>
         <div className="setting-row"><div><label className="field-label">ChatGPT connection<select value={registration ? registrationId : ""} disabled={Boolean(pending)} onChange={event => { setRegistrationChoice(event.target.value); setModelChoice(undefined); setCatalog(null); setActionError(null); setNotice(null); }}><option value="">Choose a connection</option>{status.registrations.map((item, index) => <option key={item.registrationId} value={item.registrationId}>{item.email || `ChatGPT connection ${index + 1}`}</option>)}</select></label>{registration && !registration.planUsageEnabled && <p>This connection has not enabled ChatGPT plan usage.</p>}</div><button type="button" className="button secondary small" disabled={!status.connectionAllowed || !registration || Boolean(pending)} onClick={() => void loadModels()}>Load available models</button></div>
         {registration && catalog?.registrationId === registrationId && <div className="setting-row"><div><label className="field-label">Text model<select value={model} disabled={Boolean(pending) || !status.connectionAllowed} onChange={event => setModelChoice(event.target.value)}><option value="">Choose a model</option>{models.map(item => <option key={item.slug} value={item.slug}>{item.displayName}</option>)}</select></label>{models.length === 0 && <p>No models are available for this connection.</p>}{status.selectedRegistrationId && (registrationId !== status.selectedRegistrationId || model !== status.model) && <p>Changing the model stops requests using the previous selection. Send a new message to start with the new model.</p>}</div><button type="button" className="button primary small" disabled={!status.connectionAllowed || Boolean(pending) || !registration.planUsageEnabled || !models.some(item => item.slug === model)} onClick={() => void saveSelection()}>Save text connection</button></div>}
-        {registration && <div className="setting-row"><div><strong>Manage this connection</strong><p>Disconnecting stops Fluid from using this ChatGPT connection.</p></div><div className="account-recovery-actions">{!registration.planUsageEnabled && <button type="button" className="button secondary small" disabled={!status.connectionAllowed || Boolean(pending)} onClick={() => void signIn(true)}>Reconnect ChatGPT</button>}<button type="button" className="button secondary small" disabled={Boolean(pending)} onClick={() => void disconnect()}>Disconnect ChatGPT</button></div></div>}
+        {registration && <div className="setting-row"><div><strong>Manage this connection</strong><p>Disconnecting stops Embel from using this ChatGPT connection.</p></div><div className="account-recovery-actions">{!registration.planUsageEnabled && <button type="button" className="button secondary small" disabled={!status.connectionAllowed || Boolean(pending)} onClick={() => void signIn(true)}>Reconnect ChatGPT</button>}<button type="button" className="button secondary small" disabled={Boolean(pending)} onClick={() => void disconnect()}>Disconnect ChatGPT</button></div></div>}
       </>}
       <div className="setting-row"><div><strong>Images</strong><p>Image generation is unavailable. An approved spending limit is required.</p></div><span className="small-badge">Unavailable</span></div>
     </>}

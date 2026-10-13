@@ -70,7 +70,7 @@ describe("availability and quote evidence", () => {
     await expect(readDomainQuote({ status: "ready", provider: check.provider, check: async () => check, quote: async () => ({ ...quote, domain: "other.com" }) }, check, () => now, signal)).rejects.toThrow(/match/);
   });
 });
-describe("Fluid order and purchased library scope", () => {
+describe("Embel order and purchased library scope", () => {
   it("payment evidence leaves registration pending and stays outside purchased library", () => {
     const unpaid = { ...order, payment: "unconfirmed" as const, paymentReference: null };
     const paid = applyDomainOrderEvent(unpaid, { type: "payment_confirmed", id: "event-pay", orderId: order.id, paymentReference: "payment-ref" });

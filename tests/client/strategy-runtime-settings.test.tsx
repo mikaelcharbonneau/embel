@@ -55,7 +55,7 @@ describe("Settings text runtime status", () => {
   it.each(["signed_out", "checking", "unavailable", "error"] as const)("does not query private readiness or claim a connection while %s", async status => {
     mock.session = { status, generation: 2 }; await render();
     expect(fetcher).not.toHaveBeenCalled();
-    expect(statusText()).toContain(status === "signed_out" ? "Sign in to Fluid" : status === "checking" ? "Checking your Fluid account" : "Verify your Fluid account");
+    expect(statusText()).toContain(status === "signed_out" ? "Sign in to Embel" : status === "checking" ? "Checking your Embel account" : "Verify your Embel account");
     expect(statusText()).not.toContain("Available for requests"); expect(statusText()).not.toContain("$0.12288");
   });
   it.each([
@@ -112,7 +112,7 @@ describe("Settings text runtime status", () => {
     const signal = fetcher.mock.calls[0]![1].signal as AbortSignal;
     mock.session = { status: "signed_out", generation: 2 }; await render(); expect(signal.aborted).toBe(true);
     await act(async () => gate.resolve(Response.json({ availability: ready() })));
-    expect(statusText()).toContain("Sign in to Fluid"); expect(statusText()).not.toContain("$0.12288");
+    expect(statusText()).toContain("Sign in to Embel"); expect(statusText()).not.toContain("$0.12288");
   });
   it.each(["owner", "generation"])("hides earlier account status and fences late replies after a %s change", async change => {
     const gate = deferred<Response>(); fetcher.mockReturnValueOnce(gate.promise); await render();

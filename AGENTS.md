@@ -1,4 +1,6 @@
-# Fluid engineering
+# Embel engineering
+
+The product is **Embel** (formerly Fluid). Use Embel in new user-facing copy and current documentation. Preserve existing storage keys, protocol/schema identifiers, service names and historical design references unless a separate compatibility migration is explicitly scoped. See docs/embel-branding.md.
 
 This is a greenfield external application. Never copy, branch from, import, or modify previous Fluid implementations, migrations, fixtures, services, or export pipelines. All work belongs to this isolated checkout and its new private repository.
 

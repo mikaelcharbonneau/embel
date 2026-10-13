@@ -108,7 +108,7 @@ test("auth fixture: unconfigured sign-in stays accessible and does not accept cr
   const { state } = await fixtures(page);
   state.sessionStatus = 401;
   await page.goto("/sign-in");
-  await expect(page.getByRole("heading", { name: "Sign in to Fluid" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sign in to Embel" })).toBeVisible();
   await expect(page.getByText("Sign-in is not connected.", { exact: false })).toBeVisible();
   const form = page.getByRole("form", { name: "Sign in", exact: true });
   await expect(form).toHaveAttribute("method", "post");

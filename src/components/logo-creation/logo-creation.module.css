@@ -1,4 +1,4 @@
-/* Feature-local presentation; uses the approved Fluid tokens with readable fallbacks. */
+/* Feature-local presentation; uses the approved Embel tokens with readable fallbacks. */
 .panel, .costPanel { box-sizing: border-box; min-width: 0; background: var(--paper, #fff); color: var(--text, #191919); border: 1px solid var(--border, #e4e3df); border-radius: var(--panel-radius, 10px); padding: 24px; margin-bottom: 24px; overflow-wrap: anywhere; }
 .panel h2, .costPanel h2 { margin: 0; font-size: 19px; line-height: 1.35; font-weight: 550; }
 .panel h3 { margin: 0; font-size: 15px; line-height: 1.4; font-weight: 550; }

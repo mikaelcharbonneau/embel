@@ -29,7 +29,7 @@ function StatusRow({ status, children }: { status: string; children: ReactNode }
 export function StrategyRuntimeSettings() {
   const { session } = useAccountSession();
   if (session.status !== "ready") return <StatusRow status={session.status === "checking" ? "Checking" : "Not checked"}>
-    <p>{session.status === "signed_out" ? "Sign in to Fluid to check text availability for your account." : session.status === "checking" ? "Checking your Fluid account…" : "Verify your Fluid account to check text availability."}</p>
+    <p>{session.status === "signed_out" ? "Sign in to Embel to check text availability for your account." : session.status === "checking" ? "Checking your Embel account…" : "Verify your Embel account to check text availability."}</p>
   </StatusRow>;
   // Reverification, sign-out and owner changes discard all earlier private status.
   return <OwnedStrategyRuntimeSettings key={`${session.userId}:${session.generation}`} account={session} />;

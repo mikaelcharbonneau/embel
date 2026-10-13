@@ -231,7 +231,7 @@ export function createOpenAIOAuthClient(options: { fetch?: typeof fetch; now?: (
         response_type: "code", redirect_uri: attempt.redirectUri, scope: CHATGPT_SCOPES.join(" "), resource: OPENAI_RESOURCE,
         state: attempt.state, nonce: attempt.nonce, code_challenge_method: "S256",
         code_challenge: createHash("sha256").update(attempt.codeVerifier).digest("base64url"),
-        ...(attempt.clientId ? {} : { agent_name_hint: "Fluid" }),
+        ...(attempt.clientId ? {} : { agent_name_hint: "Embel" }),
         ...(attempt.clientId && hints.email ? { login_hint: hints.email } : {}),
       }).toString();
       // Browser-visible: retained access, refresh and ID tokens never belong here.

@@ -10,7 +10,7 @@ export function readLiveConfig(env: Environment, approvedProjectRef = APPROVED_L
   if (!env.FLUID_RUN_LIVE_TESTS || env.FLUID_RUN_LIVE_TESTS === "0") return null;
   if (env.FLUID_RUN_LIVE_TESTS !== "1") throw new Error("FLUID_RUN_LIVE_TESTS must be 1 or unset.");
   if (!approvedProjectRef || !/^[a-z0-9]{20}$/.test(approvedProjectRef)) {
-    throw new Error("Live tests are locked until the new Fluid development project is verified.");
+    throw new Error("Live tests are locked until the new Embel development project is verified.");
   }
   if (env.FLUID_LIVE_PROJECT_REF !== approvedProjectRef) {
     throw new Error("Live test target does not match the approved development project.");

@@ -22,7 +22,7 @@ function initial(ownerId: string | null): State {
     instruction: "", pending: null, acceptedPolicy: null, busy: false, error: null, notice: null, view: "results" };
 }
 const unavailableCopy = {
-  local_runtime_required: "AI names currently run in Fluid’s local app with your connected ChatGPT plan. Hosted generation is not enabled.",
+  local_runtime_required: "AI names currently run in Embel’s local app with your connected ChatGPT plan. Hosted generation is not enabled.",
   setup_required: "Standalone AI names have not been enabled for this account. Your manual workshop is ready to use.",
   worker_unavailable: "Your local naming worker is not ready. Open Settings to check your ChatGPT connection and selected model.",
   quota_unavailable: "The current request or hourly limit is reached. Existing names remain available; refresh after your running request finishes or your allowance resets.",
