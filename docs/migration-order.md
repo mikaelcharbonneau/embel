@@ -1,5 +1,7 @@
 # Database and vector-proposal migration handoff
 
+The authorized 2026-10-13 database rollout applied eight changes for the integrated application release. See the [exact source-to-hosted migration mapping and verification](database-rollout-20261013.md). The three promoted candidates now have byte-identical versioned migrations; do not apply both copies. The vector-proposal candidates below remain separate and unapplied.
+
 This source upload does not apply SQL or activate a provider. Historical source filenames are not proof of hosted history. Reconcile the authorized target’s actual migration history before any rollout; do not blindly run a migration push or repair old version mappings. Use the existing reviewed Supabase CLI `migration new` process when the CLI and a separately authorized environment are available. No CLI was available while this vector-proposal bundle was assembled, so no dated migration was invented.
 
 ## New unapplied vector-proposal candidates

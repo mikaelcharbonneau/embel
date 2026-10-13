@@ -10,7 +10,7 @@ The owner may research manually or explicitly copy a live observation into edita
 
 ## Owned persistence and freshness
 
-The additive candidate is `supabase/candidates/project_screening.sql`. It creates only `public.project_screening_records` plus narrow authenticated read/record RPCs and private DTO/basis helpers. It does not activate providers, provision credentials or create a privileged writer. The candidate must be reviewed and applied by the lead before hosted account persistence is available; it has not been applied remotely by this workstream.
+The applied migration is `supabase/migrations/20261013190225_project_screening.sql`, byte-identical to the frozen `supabase/candidates/project_screening.sql` review source. It creates only `public.project_screening_records` plus narrow authenticated read/record RPCs and private DTO/basis helpers. It does not activate providers, provision credentials or create a privileged writer. The lead applied and verified it on 2026-10-13; see the [database rollout receipt](database-rollout-20261013.md).
 
 Each immutable record binds the exact owner, project, Naming selection, candidate, selected-name spelling, project revision and saved context hash. SQL derives the binding from owned saved rows while holding the same project-first lock used by Naming. Stale selection/revision writes fail. There are no direct browser insert/update/delete grants, and history mutation triggers prevent rewriting records. Owner IDs and provenance are never accepted from a browser. An exact request ID/payload replay returns the original record, including after subsequent context changes; conflicting reuse fails. History is bounded to 1,000 records per project with 20-record cursor pages.
 

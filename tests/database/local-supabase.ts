@@ -9,7 +9,7 @@ const appliedFixtureSql = new WeakMap<PGlite, Set<string>>();
 const sqlHash = (sql: string) => createHash("sha256").update(sql).digest("hex");
 
 /** LOCAL TEST HARNESS ONLY: minimal Auth/Storage interfaces; no live Supabase services. */
-export async function createTestDatabase(options: { additionalMigrations?: readonly string[]; beforeMigration?: BeforeMigration } = {}) {
+export async function createTestDatabase(options: { before?: string; additionalMigrations?: readonly string[]; beforeMigration?: BeforeMigration } = {}) {
   const db = new PGlite();
   if (options.beforeMigration) fixtureBeforeMigration.set(db, options.beforeMigration);
   await db.exec(`
@@ -36,7 +36,7 @@ export async function createTestDatabase(options: { additionalMigrations?: reado
   `);
   await installStorageOperationFixture(db);
   const migrationsDirectory = new URL("../../supabase/migrations/", import.meta.url);
-  const migrations = fixtureMigrationNames(await readdir(migrationsDirectory));
+  const migrations = fixtureMigrationNames(await readdir(migrationsDirectory), options.before);
   const applied = new Set<string>();
   for (const name of migrations) {
     const sql = await readFile(new URL(name, migrationsDirectory), "utf8");

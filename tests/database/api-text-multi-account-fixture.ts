@@ -1,3 +1,4 @@
+import { API_TEXT_MULTI_ACCOUNT_MIGRATION } from "./fixture-migrations";
 import { readFile } from "node:fs/promises";
 import { strategyPolicy } from "../../src/server/ai/config";
 import { asRole, createTestDatabase, installApiTextRuntimeCandidate, installApiTextWorkerFixture,
@@ -6,10 +7,10 @@ import { asRole, createTestDatabase, installApiTextRuntimeCandidate, installApiT
 export const MULTI_DEPLOYMENT = "dpl_multi_account_fixture";
 export const MULTI_POLICY = strategyPolicy("strategy.reformulate");
 export async function createMultiAccountFixture() {
-  const db = await createTestDatabase();
+  const db = await createTestDatabase({ before: API_TEXT_MULTI_ACCOUNT_MIGRATION });
   await installApiTextRuntimeCandidate(db); await installApiTextWorkerFixture(db);
   await db.exec("alter table auth.users add column created_at timestamptz default clock_timestamp(), add column email_confirmed_at timestamptz");
-  await db.exec(await readFile(new URL("../../supabase/candidates/api_text_multi_account.sql", import.meta.url), "utf8"));
+  await db.exec(await readFile(new URL(`../../supabase/migrations/${API_TEXT_MULTI_ACCOUNT_MIGRATION}`, import.meta.url), "utf8"));
   // Disposable test grants. The production candidate creates no worker grant.
   await db.exec("grant execute on function public.api_text_dispatch_action(jsonb,text,jsonb),public.list_api_text_dispatches_v2(integer),public.api_text_multi_account_readiness(jsonb,text) to fixture_api_text_a,fixture_api_text_b");
   return db;

@@ -32,7 +32,9 @@ describe("API Strategy budget status forward correction (disposable PostgreSQL o
     });
     let originalBeforeMigration: Snapshot | undefined;
     let othersBeforeMigration: unknown[] | undefined;
-    db = await createTestDatabase({ beforeMigration: async (database, sql) => {
+    // Compare the complete catalog immediately across this historical patch;
+    // later feature migrations legitimately add and replace other functions.
+    db = await createTestDatabase({ before: "20261008043000_api_strategy_budget_status.sql", additionalMigrations: candidate ? [candidate] : [], beforeMigration: async (database, sql) => {
       if (candidate && sql === candidate) {
         originalBeforeMigration = await snapshot(database);
         othersBeforeMigration = await otherFunctions(database);

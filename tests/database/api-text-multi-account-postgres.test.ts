@@ -2,7 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-import { fixtureMigrationNames } from "./fixture-migrations";
+import { API_TEXT_MULTI_ACCOUNT_MIGRATION, fixtureMigrationNames } from "./fixture-migrations";
 import { strategyPolicy } from "../../src/server/ai/config";
 import type { ApiTextDispatchMessage } from "../../src/domain/api-text-dispatch";
 import { runApiTextDelivery } from "../../worker/api-text-runtime";
@@ -52,7 +52,7 @@ describe.skipIf(!url)("multi-account admission and gateway on disposable Postgre
         select coalesce(regexp_replace(storage.operation(),'^storage\\.','')=regexp_replace(expected_operation,'^storage\\.','') and expected_operation<>'',false) $$;
     `);
     const directory = new URL("../../supabase/migrations/", import.meta.url);
-    for (const name of fixtureMigrationNames(await readdir(directory))) await setup.query(await readFile(new URL(name, directory), "utf8"));
+    for (const name of fixtureMigrationNames(await readdir(directory), API_TEXT_MULTI_ACCOUNT_MIGRATION)) await setup.query(await readFile(new URL(name, directory), "utf8"));
     // Reproduce the old restricted worker's existing function-only workflow.
     await setup.query(`grant usage on schema public to ${workerRole};
       grant select(job_id,owner_id,project_id,step_key,state,request_key,reserved_cost_microusd) on public.job_steps to ${workerRole};
@@ -63,7 +63,7 @@ describe.skipIf(!url)("multi-account admission and gateway on disposable Postgre
         public.list_pending_api_text_dispatches(integer),public.prepare_api_text_redrive(uuid,text,integer) to ${workerRole}`);
     // Hostile defaults must not acquire privileges on newly introduced objects.
     await setup.query(`alter default privileges in schema public,fluid_private grant execute on functions to ${otherRole}; alter default privileges in schema fluid_private grant select on tables to ${otherRole}`);
-    await setup.query(await readFile(new URL("../../supabase/candidates/api_text_multi_account.sql", import.meta.url), "utf8"));
+    await setup.query(await readFile(new URL(API_TEXT_MULTI_ACCOUNT_MIGRATION, directory), "utf8"));
     hostileDefaultsDenied = (await setup.query(`select not has_function_privilege($1,'public.api_text_dispatch_action(jsonb,text,jsonb)','execute')
       and not has_function_privilege($1,'fluid_private.api_text_descriptor_owner(jsonb)','execute')
       and not has_table_privilege($1,'fluid_private.api_text_gateway_context','select') denied`, [otherRole])).rows[0].denied;

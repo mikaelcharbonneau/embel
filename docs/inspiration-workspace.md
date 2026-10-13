@@ -18,9 +18,9 @@ The GET and PATCH API routes use authenticated context, private no-store replies
 
 ## Integration boundary
 
-The catalog is intentionally a bounded first collection, not a claim of live discovery. Existing uploaded reference snapshots and generation contracts remain intact. **The new catalog choices do not yet enter AI prompts, logo generation or Identity snapshots.** Translating them into a reviewed visual direction is the separate next workstream. Links to saved references/systems and logo creation preserve access to existing workflows.
+The catalog is intentionally a bounded first collection, not a claim of live discovery. Existing uploaded reference snapshots and generation contracts remain intact. Saved choices can now be explicitly translated into [reviewed visual guidance](visual-direction-review.md) for post-logo Identity directions. Initial logo concepts retain their existing brief and owned reference inputs. Links to saved references/systems and logo creation preserve access to existing workflows.
 
-This change includes the migration but does not apply it to a live database or deploy the site. Without it, the gallery remains browsable and honestly reports that saving is not connected. Apply the reviewed migration with the application release to activate account persistence. No existing private-reference data needs to be moved.
+The migration was applied and verified in the approved Supabase project on 2026-10-13 as part of the [authorized database rollout](database-rollout-20261013.md). Existing private-reference data was preserved. Application promotion and signed-in browser acceptance remain separate release steps.
 
 ## Verification
 

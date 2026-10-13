@@ -1,3 +1,4 @@
+import { API_TEXT_MULTI_ACCOUNT_MIGRATION } from "../database/fixture-migrations";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { strategyPolicy, type OpenAIStrategyConfiguration } from "../../src/server/ai/config";
@@ -13,7 +14,7 @@ describe("read-only readiness against the restricted database boundary", () => {
     ["strategy.reformulate", policy], ["strategy.audience", strategyPolicy("strategy.audience")],
   ]) };
   beforeAll(async () => {
-    db = await createTestDatabase(); await installApiTextRuntimeCandidate(db); await installApiTextWorkerFixture(db);
+    db = await createTestDatabase({ before: API_TEXT_MULTI_ACCOUNT_MIGRATION }); await installApiTextRuntimeCandidate(db); await installApiTextWorkerFixture(db);
   }, 30_000);
   beforeEach(async () => {
     await resetFixture(db);

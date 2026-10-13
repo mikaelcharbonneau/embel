@@ -1,3 +1,4 @@
+import { API_TEXT_MULTI_ACCOUNT_MIGRATION } from "../database/fixture-migrations";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { asApiTextWorker, asRole, createTestDatabase, installApiTextRuntimeCandidate, installApiTextWorkerFixture, OWNER_A, resetFixture, seedProject, type TestDatabase } from "../database/local-supabase";
@@ -12,7 +13,7 @@ const configuration = { apiKey: "synthetic-test-credential", policies: new Map([
 describe("API delivery and real candidate SQL integration (no external provider)", () => {
   let db: TestDatabase; let projectId: string;
   beforeAll(async () => {
-    db = await createTestDatabase();
+    db = await createTestDatabase({ before: API_TEXT_MULTI_ACCOUNT_MIGRATION });
     await installApiTextRuntimeCandidate(db);
     await installApiTextWorkerFixture(db);
   }, 30_000);
