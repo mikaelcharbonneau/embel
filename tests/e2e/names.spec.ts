@@ -133,6 +133,7 @@ test("Workshop chains all four real transformations, retains run parameters and 
   await promote(page, "Lumova");
   await expect(page).toHaveURL(/\/brands\/[a-f0-9-]+$/);
   await expect(page.getByRole("heading", { name: "Competitors", exact: true })).toBeVisible();
+  await page.getByText("Project details and saving", { exact: true }).click();
   await page.getByText("Saved project details", { exact: true }).click();
   await expect(page.locator(".conversation-saved-details").getByText(audience, { exact: true })).toBeVisible();
   await expect(page.getByRole("textbox", { name: /^Activity/ })).toHaveCount(0);
@@ -145,6 +146,7 @@ test("Workshop chains all four real transformations, retains run parameters and 
   await page.getByText("View 4 transformation steps", { exact: true }).click();
   await capture(page, testInfo.outputPath("name-promoted-brand.png"));
   await page.reload();
+  await page.getByText("Project details and saving", { exact: true }).click();
   await expect(page.getByRole("heading", { name: "Lumova", exact: true, level: 1 })).toBeVisible();
   await page.getByRole("link", { name: "Open Names", exact: true }).click();
   await page.getByText("Single-name controls", { exact: true }).click();
@@ -183,11 +185,13 @@ test("account fixture: promoted source survives explicit account copy while both
   await page.getByText("Account saving", { exact: true }).click();
   await page.getByRole("button", { name: "Save to account", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  await page.getByText("Project details and saving", { exact: true }).click();
   await expect(page.getByText("Saved to account · version 1", { exact: true })).toBeVisible();
   expect(project?.context).toMatchObject({ selectedName: "Common Light", description: brief, knownAudience: audience, namingSource: { value: "Common Light", origin: "manual", history: [] }, intake: { suppliedName: "Common Light", namingNotes: notes } });
   expect(await stored(page)).toBe(namesBefore);
   expect(await stored(page, draftsKey)).toBe(draftsBefore);
   await page.reload();
+  await page.getByText("Project details and saving", { exact: true }).click();
   await expect(page.getByRole("heading", { name: "Common Light", exact: true, level: 1 })).toBeVisible();
   await page.getByText("Saved project details", { exact: true }).click();
   await expect(page.locator(".conversation-saved-details").getByText(audience, { exact: true })).toBeVisible();

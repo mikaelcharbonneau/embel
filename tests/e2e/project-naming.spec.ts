@@ -58,7 +58,7 @@ async function fixtures(page: Page, scope: ProjectScope = "naming_only") {
     const item = state.batches[0]!, job = state.jobs[0]!;
     const entries = Array.from({ length: count }, (_, index): ProjectNameEntry => {
       const id = uuid("eeeeeeee", item.batch.sequence * 1000 + index + 1), value = names?.[index] ?? (item.batch.sequence === 1 ? `Fixture ${String(index + 1).padStart(3, "0")}` : `Batch ${item.batch.sequence} name ${index + 1}`);
-      return { candidate: { id, ownerId, projectId, value, identityKey: nameIdentityKey(value), rationale: "Synthetic provider rationale: a warm, concise direction.", contextRevision: item.batch.contextRevision, strategyBasis: item.batch.strategyBasis, strategyKey: item.batch.strategyKey, origin: { kind: "generated", ownerId, projectId, candidateId: id, contextRevision: item.batch.contextRevision, value, batchId: item.batch.id, jobId: job.id, stepKey: "response", provider: "openai", billingMode: "chatgpt_subscription", model: "synthetic-model", responseId: `synthetic-response-${item.batch.sequence}`, requestId: null, generatedAt: when }, createdAt: new Date(Date.parse(when) + index * 1000).toISOString() }, retention: { ownerId, projectId, candidateId: id, revision: 0, favorite: false, saved: false, updatedAt: null } };
+      return { candidate: { id, ownerId, projectId, value, identityKey: nameIdentityKey(value), rationale: "Synthetic provider rationale: a warm, concise direction.", contextRevision: item.batch.contextRevision, strategyBasis: item.batch.strategyBasis, strategyKey: item.batch.strategyKey, origin: { kind: "generated", ownerId, projectId, candidateId: id, contextRevision: item.batch.contextRevision, value, batchId: item.batch.id, jobId: job.id, stepKey: "response", provider: "openai", billingMode: "chatgpt_subscription", model: "synthetic-model", responseId: `synthetic-response-${item.batch.sequence}`, requestId: null, generatedAt: when }, createdAt: new Date(Date.parse(when) + (item.batch.sequence - 1) * 1_000_000 + index * 1000).toISOString() }, retention: { ownerId, projectId, candidateId: id, revision: 0, favorite: false, saved: false, updatedAt: null } };
     });
     const fulfillment = getNamingFulfillment(item.batch.targetCount, count, emptyNamingRejectionCounts());
     item.result = { ownerId, projectId, batchId: item.batch.id, jobId: job.id, stepKey: "response", candidateIds: entries.map(entry => entry.candidate.id), fulfillment, completedAt: when };
@@ -74,7 +74,9 @@ async function fixtures(page: Page, scope: ProjectScope = "naming_only") {
   function overview(params = new URLSearchParams()) {
     const view = state.session?.viewState;
     const filter = params.get("filter") ?? view?.filter ?? "all", query = params.get("query") ?? view?.query ?? "", batchId = params.get("batchId") ?? view?.visibleBatchId;
-    let rows = state.candidates.filter(entry => (filter === "all" || filter === "favorite" && entry.retention.favorite || filter === "saved" && entry.retention.saved || filter === "retained" && (entry.retention.favorite || entry.retention.saved || entry.candidate.id === state.currentSelection?.candidate.id)) && entry.candidate.value.toLowerCase().includes(query.toLowerCase()) && (!batchId || entry.candidate.origin.kind === "generated" && entry.candidate.origin.batchId === batchId));
+    // Match get_project_naming's ascending (created_at, id) cursor order.
+    let rows = state.candidates.filter(entry => (filter === "all" || filter === "favorite" && entry.retention.favorite || filter === "saved" && entry.retention.saved || filter === "retained" && (entry.retention.favorite || entry.retention.saved || entry.candidate.id === state.currentSelection?.candidate.id)) && entry.candidate.value.toLowerCase().includes(query.toLowerCase()) && (!batchId || entry.candidate.origin.kind === "generated" && entry.candidate.origin.batchId === batchId))
+      .sort((a, b) => a.candidate.createdAt.localeCompare(b.candidate.createdAt) || a.candidate.id.localeCompare(b.candidate.id));
     if (params.get("cursorId")) rows = rows.slice(rows.findIndex(entry => entry.candidate.id === params.get("cursorId")) + 1);
     const hasMore = rows.length > 100; rows = rows.slice(0, 100);
     const last = rows.at(-1)?.candidate;
@@ -107,7 +109,8 @@ async function fixtures(page: Page, scope: ProjectScope = "naming_only") {
     if (state.newProject && path === `/api/projects/${state.newProject.id}`) return routeResponse(route, { project: state.newProject });
     if (path === "/api/projects") return routeResponse(route, { projects: [state.project] });
     if (path === "/api/names") {
-      let rows = state.candidates.filter(entry => entry.retention.favorite || entry.retention.saved || entry.candidate.id === state.currentSelection?.candidate.id);
+      let rows = state.candidates.filter(entry => entry.retention.favorite || entry.retention.saved || entry.candidate.id === state.currentSelection?.candidate.id)
+        .sort((a, b) => a.candidate.createdAt.localeCompare(b.candidate.createdAt) || a.candidate.id.localeCompare(b.candidate.id));
       if (target.searchParams.get("cursorId")) rows = rows.slice(rows.findIndex(entry => entry.candidate.id === target.searchParams.get("cursorId")) + 1);
       const hasMore = rows.length > 100; rows = rows.slice(0, 100); const last = rows.at(-1)?.candidate;
       return routeResponse(route, { ownerId, items: rows.map(entry => ({ ...entry, project: accountProjectSummarySchema.parse(state.project), earlierContext: entry.candidate.strategyKey !== namingStrategyKey(state.project.context), currentSelection: entry.candidate.id === state.currentSelection?.candidate.id })), nextCursor: hasMore && last ? { id: last.id, createdAt: last.createdAt } : null });
@@ -215,17 +218,17 @@ test("naming fixture: reviewed Strategy opens Naming and keeps full context", as
   await page.screenshot({ path: info.outputPath("naming-preferences.png"), fullPage: true, scale: "css" });
 });
 
-test("naming fixture: saved complete-brand selection continues to references without generating images", async ({ page }) => {
+test("naming fixture: saved complete-brand selection continues to Inspiration without generating images", async ({ page }) => {
   const fixture = await prepared(page, 1, "complete_brand");
   await open(page);
-  await expect(page.getByRole("link", { name: "Continue to Identity" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Continue to Inspiration" })).toHaveCount(0);
   await card(page, "Fixture 001").getByRole("button", { name: "Use this name", exact: true }).click();
   await expect(page.getByRole("region", { name: "Name screening" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Continue to Identity" })).toHaveAttribute("href", `/brands/account/${projectId}/identity`);
+  await expect(page.getByRole("link", { name: "Continue to Inspiration" })).toHaveAttribute("href", `/brands/account/${projectId}/inspiration`);
   expect(fixture.state.project.context.selectedName).toBe("Fixture 001");
   expect(fixture.state.requests.filter(request => request.path.includes("/identity/") && request.method !== "GET")).toHaveLength(0);
   await page.reload();
-  await expect(page.getByRole("link", { name: "Continue to Identity" })).toHaveAttribute("href", `/brands/account/${projectId}/identity`);
+  await expect(page.getByRole("link", { name: "Continue to Inspiration" })).toHaveAttribute("href", `/brands/account/${projectId}/inspiration`);
 });
 
 test("naming fixture: preferences collapse, generate250, favorite reload, screening and restore preserve state", async ({ page }, info) => {
@@ -253,8 +256,9 @@ test("naming fixture: preferences collapse, generate250, favorite reload, screen
   await expect(page.locator(".project-naming-card")).toHaveCount(1);
   await card(page, "Fixture 001").getByRole("button", { name: "Use this name", exact: true }).click();
   await expect(page.getByRole("region", { name: "Name screening" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Continue to Identity" })).toHaveCount(0);
-  await expect(page.getByText("Not checked — integration unavailable", { exact: true })).toHaveCount(3);
+  await expect(page.getByRole("link", { name: "Continue to Inspiration" })).toHaveCount(0);
+  await expect(page.getByText("Not checked here", { exact: true })).toHaveCount(3);
+  for (const tool of ["domains", "handles", "trademarks"]) await expect(page.getByRole("region", { name: "Name screening" }).getByRole("link", { name: `Open ${tool}`, exact: true })).toHaveAttribute("href", `/${tool}`);
   await page.locator("#project-naming-screening-heading").focus();
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: info.outputPath("naming-screening.png"), fullPage: true, scale: "css" });
@@ -294,6 +298,23 @@ test("naming fixture: 250-name batch reloads and 50-name append preserves all 30
   await page.locator("#project-naming-results-heading").focus();
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: info.outputPath("naming-250-plus-50-local-fixture.png"), scale: "css" });
+});
+
+test("naming fixture: a completed append remains visible after loading every earlier page without reloading", async ({ page }) => {
+  const fixture = await prepared(page, 250); await open(page);
+  await page.getByRole("button", { name: "Load more saved names" }).click();
+  await expect(page.locator(".project-naming-card")).toHaveCount(200);
+  await page.getByRole("button", { name: "Load more saved names" }).click();
+  await expect(page.locator(".project-naming-card")).toHaveCount(250);
+  await expect(page.getByRole("button", { name: "Load more saved names" })).toHaveCount(0);
+  const original = JSON.stringify(fixture.state.candidates);
+  await page.getByRole("button", { name: "Generate 50 more names", exact: true }).click();
+  await expect(page.getByText("Names queued", { exact: true })).toBeVisible();
+  fixture.complete(50);
+  await expect(page.locator(".project-naming-card")).toHaveCount(300);
+  await expect(card(page, "Batch 2 name 50")).toBeVisible();
+  expect(JSON.stringify(fixture.state.candidates.filter(entry => entry.candidate.origin.kind === "generated" && entry.candidate.origin.batchId === uuid("cccccccc", 1)))).toBe(original);
+  expect(fixture.state.requests.filter(request => request.path === `${base}/batches` && request.method === "POST")).toHaveLength(1);
 });
 
 test("naming fixture: partial transport success stays73/250; modifications apply only to future batches", async ({ page }) => {
@@ -519,7 +540,7 @@ for (const action of ["overview", "preferences", "view", "retention", "selection
     if (action === "import") await localNameFixture(page);
     if (action === "overview") fixture.hold(base, "GET");
     await open(page);
-    const firstName = fixture.state.candidates[0]!.candidate.value;
+    const firstName = [...fixture.state.candidates].sort((a, b) => a.candidate.createdAt.localeCompare(b.candidate.createdAt) || a.candidate.id.localeCompare(b.candidate.id))[0]!.candidate.value;
     if (action !== "overview") await expect(card(page, firstName)).toBeVisible();
     if (action === "preferences") { await page.getByRole("button", { name: "Modify filters" }).click(); await expect(page.getByRole("form", { name: "Naming preferences" })).toBeVisible(); fixture.hold(`${base}/preferences`, "PATCH"); await page.getByRole("button", { name: "Save for future batches" }).click(); }
     if (action === "view") { fixture.hold(`${base}/view`, "PATCH"); await page.getByLabel("Filter project names").selectOption("favorite"); }
@@ -707,15 +728,20 @@ test("naming fixture: promoting an earlier-context name requires acknowledgement
 });
 
 test("naming fixture: dirty Strategy memory survives library navigation and blocks direct Naming", async ({ page }) => {
+  test.setTimeout(45_000);
   const fixture = await prepared(page, 3, "complete_brand");
   fixture.state.candidates[0]!.retention = { ...fixture.state.candidates[0]!.retention, revision: 1, favorite: true, updatedAt: when };
   await page.goto(`/brands/account/${projectId}`);
+  const details = page.locator(".project-details-disclosure");
+  await expect(details).toBeVisible();
+  if (await details.getAttribute("open") === null) await details.locator(":scope > summary").click();
   await page.getByRole("button", { name: "Rename project", exact: true }).click();
   await page.getByRole("textbox", { name: "Project label", exact: true }).fill("Unsaved private project label");
   await page.getByRole("textbox", { name: "Project label", exact: true }).press("Enter");
   const navigation = page.getByRole("button", { name: "Open navigation", exact: true });
   if (await navigation.isVisible()) await navigation.click();
   await page.getByRole("link", { name: "Names", exact: true }).click();
+  await page.getByRole("tab", { name: "Library", exact: true }).click();
   await page.getByRole("button", { name: "Account library", exact: true }).click();
   await card(page, "Fixture 001").getByRole("link", { name: "Synthetic naming project", exact: false }).click();
   await expect(page).toHaveURL(url);
@@ -723,6 +749,8 @@ test("naming fixture: dirty Strategy memory survives library navigation and bloc
   await expect(page.getByRole("button", { name: "Generate 50 more names" })).toBeDisabled();
   await expect(card(page, "Fixture 001").getByRole("button", { name: "Use this name" })).toBeDisabled();
   await page.getByRole("link", { name: "Back to Strategy", exact: false }).click();
+  await expect(details).toBeVisible();
+  if (await details.getAttribute("open") === null) await details.locator(":scope > summary").click();
   await expect(page.getByRole("heading", { name: "Unsaved private project label", exact: true })).toBeVisible();
 });
 

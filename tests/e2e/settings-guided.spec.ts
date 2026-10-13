@@ -13,6 +13,7 @@ async function open(page: Page, authenticated = false) {
     const request = route.request(), path = new URL(request.url()).pathname;
     paths.push({ path, method: request.method() });
     if (path === "/api/session" && authenticated) return route.fulfill({ json: { user: { id: owner } } });
+    if (path === "/api/account/profile" && authenticated) return route.fulfill({ json: { profile: { ownerId: owner, email: "settings-fixture@example.invalid", revision: 0, updatedAt: null, values: { fullName: "", timeZone: "America/Toronto", dateFormat: "friendly" } } } });
     if (path === "/api/strategy" && authenticated) return route.fulfill({ json: { availability: { status: "unavailable", operations: [], reason: "worker_unavailable" } } });
     return route.fulfill({ status: 401, json: { error: "Synthetic signed-out fixture" } });
   });
@@ -133,9 +134,9 @@ test("original artwork, native geometry and all tab grids match the approved des
   await page.evaluate(() => document.fonts.ready);
   if (info.project.name === "desktop") {
     const profile = (await page.getByRole("region", { name: "Profile", exact: true }).boundingBox())!;
-    expect(profile.x).toBe(256); expect(profile.y).toBe(281); expect(profile.width).toBe(1008); expect(profile.height).toBe(254);
+    expect(profile.x).toBe(256); expect(profile.y).toBe(281); expect(profile.width).toBe(1008); expect(profile.height).toBe(286);
     const preferences = (await page.getByRole("region", { name: "Preferences", exact: true }).boundingBox())!;
-    expect(preferences.height).toBe(322);
+    expect(preferences.height).toBe(398);
     for (const [name, size] of Object.entries({ mark: 28, home: 20, brands: 20, assets: 20, ideas: 20, names: 20, handles: 20, domains: 20, trademarks: 20, settings: 20, expand: 16 })) {
       const image = page.locator(`img[src='/settings/${name}.svg']`).first();
       await expect(image).toBeVisible(); expect((await image.boundingBox())!.width).toBe(size); expect((await image.boundingBox())!.height).toBe(size);

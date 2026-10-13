@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/icon";
 
-export function SignInDialog({ children }: { children: React.ReactNode }) {
+export function SignInDialog({ children, mode = "sign-in" }: { children: React.ReactNode; mode?: "sign-in" | "sign-up" }) {
   const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
   const close = useRef<HTMLButtonElement>(null);
@@ -19,7 +19,7 @@ export function SignInDialog({ children }: { children: React.ReactNode }) {
       if (previous instanceof HTMLElement && previous.isConnected) previous.focus();
     };
   }, []);
-  return <dialog ref={dialog} className="auth-overlay" aria-labelledby="sign-in-title" onKeyDown={event => {
+  return <dialog ref={dialog} className="auth-overlay" aria-labelledby="auth-overlay-title" onKeyDown={event => {
     if (event.key !== "Tab") return;
     const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('a[href], button, input, [tabindex]')).filter(element => element.tabIndex >= 0 && !element.matches(":disabled") && element.getClientRects().length > 0);
     const first = controls[0], last = controls.at(-1);
@@ -29,5 +29,5 @@ export function SignInDialog({ children }: { children: React.ReactNode }) {
     if (event.target !== event.currentTarget) return;
     const bounds = event.currentTarget.getBoundingClientRect();
     if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) router.back();
-  }}><button ref={close} className="icon-button auth-overlay-close" type="button" aria-label="Close sign-in" onClick={() => router.back()}><Icon name="close" size={16} /></button>{children}</dialog>;
+  }}><button ref={close} className="icon-button auth-overlay-close" type="button" aria-label={mode === "sign-up" ? "Close account creation" : "Close sign-in"} onClick={() => router.back()}><Icon name="close" size={16} /></button>{children}</dialog>;
 }

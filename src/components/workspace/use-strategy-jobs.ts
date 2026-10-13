@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { accountProjectResponseSchema } from "@/domain/project-api";
 import { applyStrategyJobResponseSchema, strategyJobResponseSchema, strategyOverviewResponseSchema, type StrategyJob, type StrategyOperation, type StrategyOverview } from "@/domain/strategy-jobs";
-import { accountRequest, AccountRequestError } from "./account-api";
+import { AccountRequestError } from "./account-api";
+import { boundedAccountRequest } from "./bounded-account-request";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
 import { accountDraftChanged, type AccountWorkspace } from "./account-draft-memory";
 import { accountProjectDraft } from "./project-draft-adapter";
@@ -43,7 +44,7 @@ export function useStrategyJobs({ account, workspace, blocked }: { account: Veri
       const epoch = mutationEpoch.current;
       let soon = false;
       try {
-        const overview = await accountRequest(`/api/projects/${projectId}/strategy`, strategyOverviewResponseSchema, { signal: controller.signal });
+        const overview = await boundedAccountRequest(`/api/projects/${projectId}/strategy`, strategyOverviewResponseSchema, { signal: controller.signal });
         if (controller.signal.aborted || !getWorkspace()) return;
         if (!verifyStrategyJobs(overview.jobs, account.userId, projectId)) { expire(account); return; }
         soon = overview.jobs.some(strategyJobActive);
@@ -75,7 +76,7 @@ export function useStrategyJobs({ account, workspace, blocked }: { account: Veri
     const controller = new AbortController(); controllers.current.add(controller); inFlight.current = true;
     mutationEpoch.current += 1; setAction({ identity, pending: true, error: null });
     try {
-      const { job } = await accountRequest(`/api/projects/${projectId}/strategy`, strategyJobResponseSchema, { method: "POST", signal: controller.signal, body: strategyRequestPayload(projectId, revision, operation, allowance) });
+      const { job } = await boundedAccountRequest(`/api/projects/${projectId}/strategy`, strategyJobResponseSchema, { method: "POST", signal: controller.signal, body: strategyRequestPayload(projectId, revision, operation, allowance) });
       if (controller.signal.aborted || !getWorkspace()) return null;
       if (!verifyStrategyJobs([job], account.userId, projectId)) { expire(account); return null; }
       if (!strategyJobMatchesRequest(job, operation, revision, allowance)) throw new AccountRequestError(502);
@@ -96,7 +97,7 @@ export function useStrategyJobs({ account, workspace, blocked }: { account: Veri
     const controller = new AbortController(); controllers.current.add(controller); inFlight.current = true;
     mutationEpoch.current += 1; setAction({ identity, pending: true, error: null });
     try {
-      const response = await accountRequest(`/api/projects/${projectId}/strategy/${job.id}`, strategyJobResponseSchema, { method: "DELETE", signal: controller.signal });
+      const response = await boundedAccountRequest(`/api/projects/${projectId}/strategy/${job.id}`, strategyJobResponseSchema, { method: "DELETE", signal: controller.signal });
       if (controller.signal.aborted || !getWorkspace()) return;
       if (!verifyStrategyJobs([response.job], account.userId, projectId)) { expire(account); return; }
       if (response.job.id !== job.id || response.job.operation !== job.operation || response.job.input_revision !== job.input_revision) throw new AccountRequestError(502);
@@ -116,7 +117,7 @@ export function useStrategyJobs({ account, workspace, blocked }: { account: Veri
     mutationEpoch.current += 1;
     setAction({ identity, pending: true, error: null });
     try {
-      const { project, application } = await accountRequest(`/api/projects/${projectId}/strategy/${job.id}/apply`, applyStrategyJobResponseSchema, { method: "POST", signal: controller.signal, body: { expectedRevision: before.saved.current_revision, stepKey } });
+      const { project, application } = await boundedAccountRequest(`/api/projects/${projectId}/strategy/${job.id}/apply`, applyStrategyJobResponseSchema, { method: "POST", signal: controller.signal, body: { expectedRevision: before.saved.current_revision, stepKey } });
       const current = getWorkspace();
       if (controller.signal.aborted || !current) return;
       if (project.owner_id !== account.userId || project.id !== projectId) { expire(account); return; }
@@ -146,7 +147,7 @@ export function useStrategyJobs({ account, workspace, blocked }: { account: Veri
     mutationEpoch.current += 1;
     setAction({ identity, pending: true, pendingLabel: "Checking the saved version…", error: null });
     try {
-      const { project } = await accountRequest(`/api/projects/${projectId}`, accountProjectResponseSchema, { signal: controller.signal });
+      const { project } = await boundedAccountRequest(`/api/projects/${projectId}`, accountProjectResponseSchema, { signal: controller.signal });
       const current = getWorkspace();
       if (controller.signal.aborted || !current) return;
       if (project.owner_id !== account.userId || project.id !== projectId) { expire(account); return; }

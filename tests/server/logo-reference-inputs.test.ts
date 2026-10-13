@@ -5,7 +5,7 @@ vi.mock("server-only", () => ({}));
 import { resolveLogoReferenceInputs } from "../../src/server/logo-creation/reference-inputs";
 import type { IdentityAssetStore } from "../../src/server/data/identity-asset-store";
 import type { VerifiedAssetBytes } from "../../src/domain/logo-deliverables";
-import { logoFixtureId as id, syntheticLogoJob, syntheticResolvedLogoConcept } from "../fixtures/logo-creation";
+import { logoFixtureId as id, syntheticLogoJob, syntheticResolvedLogoConcept, syntheticResolvedLogoRefinement } from "../fixtures/logo-creation";
 let png: Uint8Array<ArrayBuffer>;
 beforeAll(async () => { png = new Uint8Array(await sharp({ create: { width: 8, height: 8, channels: 3, background: "#aa2288" } }).png().toBuffer()); });
 function fixture() {
@@ -20,6 +20,15 @@ function fixture() {
   return { snapshot, job, store, read };
 }
 describe("leased exact logo reference inputs", () => {
+  it.each(["concept", "refinement"] as const)("keeps the %s image bound enforced before reading any bytes", async operation => {
+    const f = fixture(), sample = f.snapshot.references[0]!;
+    const references = Array.from({ length: operation === "concept" ? 5 : 4 }, (_, index) => ({ ...sample, referenceId: id(900 + index),
+      asset: { ...sample.asset, assetId: id(920 + index), versionId: id(940 + index) } }));
+    const snapshot = { ...f.snapshot, references }, before = JSON.stringify(snapshot);
+    const input = operation === "concept" ? { ...syntheticResolvedLogoConcept().input, references: references.map(reference => reference.asset) } : syntheticResolvedLogoRefinement().input;
+    await expect(resolveLogoReferenceInputs(syntheticLogoJob(input), snapshot, f.store, new AbortController().signal)).rejects.toThrow("Reference input count exceeds admitted image limits");
+    expect(f.read).not.toHaveBeenCalled(); expect(JSON.stringify(snapshot)).toBe(before);
+  });
   it("curated and uploads retain exact order, immutable source IDs and equal four-aspect controls", async () => {
     const f = fixture(), before = JSON.stringify(f.snapshot);
     const output = await resolveLogoReferenceInputs(f.job, f.snapshot, f.store, new AbortController().signal);

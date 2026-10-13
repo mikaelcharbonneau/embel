@@ -13,7 +13,8 @@ import { validateLogoVectorDocument } from "@/features/logo-vector/model/geometr
 import { canonicalIdentityInput } from "../model/font-check-binding";
 import { createLeasedFontResolver } from "./fonts";
 import { inspectTypographySamples } from "./font-inspection";
-const snapshotSchema = z.strictObject({ inputRevisions: logoInputRevisionsSchema, approvedLogo: logoApprovalSchema, logoRevision: logoVectorRevisionSchema, brief: logoBriefRevisionSchema, references: logoReferenceSnapshotSchema, permittedFonts: z.array(fontRecordSchema).max(100), targetCount: z.literal(3) });
+import { reviewedVisualDirectionSchema } from "@/domain/visual-direction";
+const snapshotSchema = z.strictObject({ inputRevisions: logoInputRevisionsSchema, approvedLogo: logoApprovalSchema, logoRevision: logoVectorRevisionSchema, brief: logoBriefRevisionSchema, references: logoReferenceSnapshotSchema, permittedFonts: z.array(fontRecordSchema).max(100), targetCount: z.literal(3), reviewedVisualDirection: reviewedVisualDirectionSchema.optional() });
 const same = (a:unknown,b:unknown)=>canonicalIdentityInput(a)===canonicalIdentityInput(b);
 async function loadSnapshot(connection: LogoWorkerConnection, job: ClaimedJob) {
   logoId(job.id); logoId(job.leaseToken); const input = logoDirectionsJobInputSchema.parse(job.input);
@@ -21,6 +22,7 @@ async function loadSnapshot(connection: LogoWorkerConnection, job: ClaimedJob) {
   const value = await connection.query<{value:unknown}>("select public.load_logo_direction_inputs($1,$2) value",[job.id,job.leaseToken]);
   const snapshot = parseLogoStored(snapshotSchema,value.rows[0]?.value);
   if (snapshot.approvedLogo.id!==input.approvedLogoId||snapshot.approvedLogo.ownerId!==job.ownerId||snapshot.approvedLogo.projectId!==job.projectId||snapshot.logoRevision.id!==snapshot.approvedLogo.vectorRevisionId||snapshot.logoRevision.ownerId!==job.ownerId||snapshot.logoRevision.projectId!==job.projectId||snapshot.brief.id!==input.briefRevisionId||snapshot.references.id!==input.referenceSnapshotId||!same(snapshot.permittedFonts.map(f=>f.id).sort(),[...input.fontVersionIds].sort()))throw new ApiError("not_found");
+  if(snapshot.reviewedVisualDirection&&(snapshot.reviewedVisualDirection.ownerId!==job.ownerId||snapshot.reviewedVisualDirection.projectId!==job.projectId))throw new ApiError("not_found");
   return snapshot;
 }
 export async function loadDirectionInputs(connection: LogoWorkerConnection, job: ClaimedJob, assets: IdentityAssetStore=productionIdentityAssetStore, signal?:AbortSignal) {
@@ -29,7 +31,7 @@ export async function loadDirectionInputs(connection: LogoWorkerConnection, job:
   if (!same(file.reference,snapshot.logoRevision.documentAsset)||file.mimeType!=="application/json")throw new ApiError("not_found");
   const logo=validateLogoVectorDocument(JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(file.bytes)));
   const checked=await loadSnapshot(connection,job); if(!same(snapshot,checked)||signal?.aborted)throw new ApiError("not_found");
-  return logoResolvedDirectionInputSchema.parse({inputRevisions:snapshot.inputRevisions,approvedLogo:snapshot.approvedLogo,logo,brief:snapshot.brief,references:snapshot.references,permittedFonts:snapshot.permittedFonts,targetCount:3});
+  return logoResolvedDirectionInputSchema.parse({inputRevisions:snapshot.inputRevisions,approvedLogo:snapshot.approvedLogo,logo,brief:snapshot.brief,references:snapshot.references,permittedFonts:snapshot.permittedFonts,targetCount:3,...(snapshot.reviewedVisualDirection?{reviewedVisualDirection:snapshot.reviewedVisualDirection}:{})});
 }
 export async function stageLogoDirections(connection:LogoWorkerConnection,job:ClaimedJob,input:IdentityDirectionProductionResult,provider:LogoProviderResponseReceipt,assets:IdentityAssetStore,signal:AbortSignal) {
   provider=logoProviderResponseReceiptSchema.parse(provider);

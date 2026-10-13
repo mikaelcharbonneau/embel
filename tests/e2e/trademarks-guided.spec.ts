@@ -13,7 +13,7 @@ async function signedOut(page: Page) {
 }
 async function fillTab(page: Page) { await page.getByRole("tab", { name: "Fill", exact: true }).click(); }
 
-test("search reports unavailable research without inventing a match or sending a registry request", async ({ page }) => {
+test("search prepares manual research without inventing a match or sending a registry request", async ({ page }) => {
   const paths: string[] = [];
   page.on("request", request => { if (new URL(request.url()).pathname.startsWith("/api/")) paths.push(new URL(request.url()).pathname); });
   const failures = await signedOut(page);
@@ -21,12 +21,12 @@ test("search reports unavailable research without inventing a match or sending a
   await page.getByLabel("Mark name", { exact: true }).fill("Synthetic Morrow");
   await page.getByLabel("Requested territories", { exact: true }).fill("Canada");
   await page.getByLabel("Goods and services", { exact: true }).fill("Synthetic coffee services");
-  await page.getByRole("button", { name: "Search trademarks", exact: true }).click();
-  await expect(page.getByText("Research unavailable", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Registry research is not connected", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Prepare manual search", exact: true }).click();
+  await expect(page.getByText("Ready for manual research", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Search the official registries", exact: true })).toBeVisible();
   await page.getByRole("checkbox", { name: "Include similar names", exact: true }).uncheck();
   await expect(page.getByText("Not searched yet", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Search trademarks", exact: true }).click();
+  await page.getByRole("button", { name: "Prepare manual search", exact: true }).click();
   await page.getByLabel("Mark name", { exact: true }).fill("Changed query");
   await expect(page.getByText("Not searched yet", { exact: true })).toBeVisible();
   expect(paths.every(path => path === "/api/session")).toBe(true);
@@ -105,7 +105,7 @@ test("original artwork is served byte-for-byte and Search/Fill fit their approve
 test("320px Search and Fill keep forms, disclosures and recovery controls reachable", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 740 });
   await signedOut(page);
-  await page.getByRole("button", { name: "Search trademarks", exact: true }).click();
+  await page.getByRole("button", { name: "Prepare manual search", exact: true }).click();
   await fillTab(page);
   await page.getByText("Additional dossier details", { exact: true }).click();
   await page.getByLabel("Owner contact", { exact: true }).fill("Synthetic contact");

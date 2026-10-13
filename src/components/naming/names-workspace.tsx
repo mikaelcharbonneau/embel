@@ -12,6 +12,8 @@ import type { NameCandidate, NamesMutationResult, NamesSnapshot, NamesUi } from 
 import { AccountNamesLibrary } from "./account-names-library";
 import { GuidedWorkshop, SavedWordLists } from "./guided-workshop";
 import { NamesAssistant } from "@/features/names-assistant";
+import { NamesBackupImport } from "./names-backup-import";
+import { StandaloneNamesAssistant } from "./standalone-names-assistant";
 import "@/styles/naming.css";
 
 const tabs = [{ value: "workshop", label: "Workshop" }, { value: "library", label: "Library" }, { value: "saved", label: "Saved" }, { value: "history", label: "History" }] as const;
@@ -81,6 +83,7 @@ function WorkspaceManagement({ snapshot }: { snapshot: NamesSnapshot }) {
   return <details className="names-management"><summary>Browser workspace · {snapshot.data.candidates.length}/500 names · {snapshot.data.runs.length}/100 runs</summary>
     <p>Your Names workspace is independent of your account. Runs and their results are retained in this browser, up to 4 MB; nothing is automatically removed.</p>
     <div className="names-recovery-actions"><button type="button" className="button secondary small" onClick={() => downloadCopy(JSON.stringify(snapshot.data, null, 2), "fluid-names-workspace.json")}>Download workspace copy</button><button type="button" className="text-link" disabled={snapshot.storage !== "available"} onClick={() => setConfirm(true)}>Start a new Names workspace</button></div>
+    <NamesBackupImport snapshot={snapshot} />
     {confirm ? <div className="names-recovery-confirm"><p>Remove all {snapshot.data.candidates.length} names and {snapshot.data.runs.length} runs from this browser workspace? Download a copy first to keep your history.</p><button type="button" className="button secondary small" onClick={() => setConfirm(false)}>Keep workspace</button><button type="button" className="button danger small" onClick={() => { namesStore.startFresh(); setConfirm(false); }}>Confirm new workspace</button></div> : null}
   </details>;
 }
@@ -170,7 +173,7 @@ export function NamesWorkspace() {
       </section>{runs.length ? <section className="names-history" aria-label="Workshop history"><details><summary><Icon name="clock" size={15} />Run history<span>{runs.length}</span></summary><ol>{[...runs].reverse().map(run => <li key={run.id}><button type="button" className={run.id === activeRun?.id ? "is-active" : ""} aria-pressed={run.id === activeRun?.id} onClick={() => namesStore.updateUi({ activeRunId: run.id })}><span><strong>{transformLabels[run.input.kind]}</strong><span>{run.input.kind === "blend" ? `${run.input.left} + ${run.input.right}` : run.input.seed}</span></span><span>{run.candidateIds.length} results<time dateTime={run.createdAt}>{new Date(run.createdAt).toLocaleString("en", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</time></span></button></li>)}</ol></details></section> : null}</div></div></details></> : null}
       {ui.tab === "saved" ? <SavedWordLists ui={ui} onResult={onResult} /> : null}
       {ui.tab === "history" ? <section className="names-guided-history" aria-label="Retained naming history"><h2>Retained transformations</h2><p>Live previews are temporary until you favorite a result. Recorded runs and earlier single-name results remain here.</p>{runs.length ? [...runs].reverse().map(run => <details className="names-guided-card" key={run.id}><summary>{transformLabels[run.input.kind]} · {run.input.kind === "blend" ? `${run.input.left} + ${run.input.right}` : run.input.seed} · {run.candidateIds.length} results</summary><RunParameters run={run} /><div className="names-results-grid">{run.candidateIds.map(id => candidates.find(candidate => candidate.source.id === id)).filter((candidate): candidate is NameCandidate => Boolean(candidate)).map(candidate => card(candidate))}</div></details>) : <p>No retained transformations yet.</p>}</section> : null}
-      {assistant ? <NamesAssistant onOpenAccountLibrary={() => { setLibraryScope("account"); switchTab("library"); }} /> : null}
+      {assistant ? <><StandaloneNamesAssistant /><details className="standalone-names-project-bridge"><summary>Continue with a saved project</summary><NamesAssistant onOpenAccountLibrary={() => { setLibraryScope("account"); switchTab("library"); }} /></details></> : null}
     </div>
     <div className="names-workspace-links">{ui.tab !== "library" ? <button type="button" className="text-link" onClick={addName}>Add name</button> : null}<button id="names-assistant-button" type="button" className="text-link" aria-pressed={assistant} onClick={() => switchTab("assistant")}>AI Assistant</button><span className="names-save-label">{accountContext ? assistant ? "Account naming" : "Account library" : snapshot.storage === "available" && !snapshot.dirty ? "Saved in this browser" : "This tab only"}</span></div>
     {!assistant ? <ScreeningStatus /> : null}

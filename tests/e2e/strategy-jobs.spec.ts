@@ -89,6 +89,30 @@ async function open(page: Page) {
   await expect(page.getByText(/Sending uses (OpenAI|your ChatGPT plan)/)).toBeVisible();
 }
 
+async function openHome(page: Page) {
+  await Promise.all([
+    page.waitForResponse(response => new URL(response.url()).pathname === "/api/strategy" && response.request().method() === "GET" && response.status() === 200, { timeout: 15_000 }),
+    page.goto("/brands/new"),
+  ]);
+}
+
+async function expectSavedVersion(page: Page, revision: number) {
+  const details = page.locator(".project-details-disclosure");
+  await expect(details).toBeVisible();
+  if (await details.getAttribute("open") === null) await details.locator(":scope > summary").click();
+  await expect(details.getByText(`Saved to account · version ${revision}`, { exact: true })).toBeVisible();
+}
+
+async function sendInitialPrompt(page: Page, queueStatus = 202) {
+  // A cold synthetic schema/route can take longer than a UI assertion. Observe
+  // both real browser acknowledgements, then assert the rendered transition.
+  await Promise.all([
+    page.waitForResponse(response => new URL(response.url()).pathname === "/api/projects" && response.request().method() === "POST" && response.status() === 201, { timeout: 15_000 }),
+    page.waitForResponse(response => new URL(response.url()).pathname === `/api/projects/${projectId}/strategy` && response.request().method() === "POST" && response.status() === queueStatus, { timeout: 15_000 }),
+    page.getByRole("button", { name: "Send prompt", exact: true }).click(),
+  ]);
+}
+
 test("strategy fixture: Send waits for response acceptance, then researches the new revision once", async ({ page }, testInfo) => {
   const state = await fixtures(page); await open(page);
   await expect(page.getByText(/Sending uses OpenAI.*\$3.27/)).toBeVisible();
@@ -112,7 +136,7 @@ test("strategy fixture: Send waits for response acceptance, then researches the 
   await expect(page.getByRole("button", { name: "Apply response", exact: true })).toBeEnabled();
   expect(state.enqueues).toHaveLength(1);
   await page.getByRole("button", { name: "Apply response", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 3", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 3);
   await expect(page.getByText("Competitor research queued", { exact: true })).toBeVisible();
   expect(state.enqueues).toHaveLength(2);
   expect(state.enqueues[1]).toMatchObject({ operation: "strategy.competitors", expectedRevision: 3, acceptedMaxCostMicrousd: 3142880 });
@@ -126,7 +150,7 @@ test("strategy fixture: Send waits for response acceptance, then researches the 
   state.jobs[1] = complete(state.jobs[1]!);
   await expect(page.getByText("Synthetic competitor research result.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Apply competitor research", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 4", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 4);
   expect(state.project.context.competitors[0]).toMatchObject({ name: "Fixture competitor", selected: false });
   expect(state.project.context.competitorReviewComplete).toBe(false);
   await page.getByRole("button", { name: "View latest AI activity", exact: true }).click();
@@ -148,7 +172,7 @@ test("strategy fixture: applied results retain their exact acceptance status aft
   await expect(page.getByText("Synthetic provider response: a welcoming neighborhood kitchen.", { exact: true })).toBeVisible();
   expect(state.applies).toHaveLength(0); expect(state.project.context.activity).toBe("");
   await page.getByRole("button", { name: "Apply response", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 2", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 2);
   await expect(page.getByText("Applied to saved version · 2", { exact: true })).toBeVisible();
   await expect(page.getByText("Earlier version · 1", { exact: true })).toHaveCount(0);
   expect(state.project.context.activity).toBe("Neighborhood kitchen");
@@ -172,7 +196,7 @@ test("strategy fixture: cancellation stops the accepted chain and unavailable in
   await page.reload();
   await expect(page.getByText("Synthetic provider response: a welcoming neighborhood kitchen.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Apply response", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 3", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 3);
   expect(state.enqueues).toHaveLength(1);
   state.available = false; await page.reload();
   await expect(page.getByText(/OpenAI is unavailable.*continue editing/)).toBeVisible();
@@ -185,10 +209,11 @@ test("strategy fixture: another owner's job response never enters the transcript
 });
 
 test("strategy fixture: initial Send keeps the browser copy and creates a genuine account request", async ({ page }) => {
-  const state = await fixtures(page); await page.goto("/brands/new");
+  test.setTimeout(45_000);
+  const state = await fixtures(page); await openHome(page);
   await expect(page.getByText(/Sending saves an account copy.*\$3.27/)).toBeVisible();
   await page.getByRole("textbox", { name: "Your prompt" }).fill("Synthetic initial prompt for a local kitchen.");
-  await page.getByRole("button", { name: "Send prompt", exact: true }).click();
+  await sendInitialPrompt(page);
   await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   expect(state.project.context.intake.conversation?.[0]).toMatchObject({ kind: "user_message", text: "Synthetic initial prompt for a local kitchen." });
@@ -202,7 +227,7 @@ test("strategy fixture: unconfirmed enqueue shows no invented progress and retri
   const state = await fixtures(page); state.queueStatus = 503; await open(page);
   await page.getByRole("textbox", { name: "Message Fluid" }).fill("Keep the saved prompt after a queue failure.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 2", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 2);
   await expect(page.getByText(/no new job was confirmed/)).toBeVisible();
   await expect(page.getByText("Response queued", { exact: true })).toHaveCount(0);
   state.queueStatus = 202;
@@ -220,7 +245,7 @@ test("strategy fixture: a lost Apply response recovers the exact saved applicati
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   state.jobs[0] = complete(state.jobs[0]!);
   await page.getByRole("button", { name: "Apply response", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 3", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 3);
   await expect(page.getByText("Competitor research queued", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Applied response", exact: true })).toBeDisabled();
   expect(state.applies).toEqual([{ expectedRevision: 2, stepKey: "response" }]);
@@ -239,7 +264,7 @@ test("strategy fixture: retrying research preserves the original allowance and n
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   state.jobs[0] = complete(state.jobs[0]!); state.queueStatus = 503;
   await page.getByRole("button", { name: "Apply response", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 3", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 3);
   await expect(page.getByRole("button", { name: "Retry competitor research", exact: true })).toBeVisible();
   expect(state.enqueues).toHaveLength(2);
   await expect(page.getByText("Competitor research queued", { exact: true })).toHaveCount(0);
@@ -282,7 +307,7 @@ test("strategy fixture: edits stop automatic research and block applying an old 
   await expect(page.getByRole("button", { name: "Apply response", exact: true })).toBeDisabled();
   expect(state.enqueues).toHaveLength(1);
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 3", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 3);
   await expect(page.getByText("Earlier version · 2", { exact: true })).toBeVisible();
   expect(state.enqueues).toHaveLength(1);
 });
@@ -391,7 +416,7 @@ test("subscription fixture: a change to API billing stops an accepted subscripti
   await expect(page.getByText("Response complete", { exact: true })).toBeVisible();
   await expect(page.getByText(/Sending uses OpenAI.*\$3.27/)).toBeVisible();
   await page.getByRole("button", { name: "Apply response", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 3", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 3);
   expect(state.enqueues).toHaveLength(1);
   await page.reload();
   await expect(page.getByText("Response complete", { exact: true })).toBeVisible();
@@ -406,7 +431,7 @@ test("subscription fixture: changing the selected policy stops continuation unti
   state.policyIdentity = "b".repeat(64); state.jobs[0] = complete(state.jobs[0]!);
   await expect(page.getByText("Response complete", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Apply response", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 3", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 3);
   expect(state.enqueues).toHaveLength(1);
   await page.reload();
   await expect(page.getByText("Response complete", { exact: true })).toBeVisible();
@@ -419,7 +444,7 @@ test("subscription fixture: changing the selected policy stops continuation unti
 });
 
 test("subscription fixture: initial Send discloses plan usage and preserves the browser copy", async ({ page }) => {
-  const state = await fixtures(page); state.billingMode = "chatgpt_subscription"; await page.goto("/brands/new");
+  const state = await fixtures(page); state.billingMode = "chatgpt_subscription"; await openHome(page);
   await expect(page.getByText(/Sending saves an account copy and uses your ChatGPT plan/)).toBeVisible();
   await page.getByRole("textbox", { name: "Your prompt" }).fill("Synthetic plan-backed initial prompt.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
@@ -432,12 +457,13 @@ test("subscription fixture: initial Send discloses plan usage and preserves the 
 
 
 for (const applyReplyStatus of [200, 503]) test(`response-only fixture: Home saves one response and never adds research after apply/reload with HTTP ${applyReplyStatus}`, async ({ page }) => {
+  test.setTimeout(45_000);
   const state = await fixtures(page); state.responseOnly = true; state.applyReplyStatus = applyReplyStatus;
-  await page.goto("/brands/new");
+  await openHome(page);
   await expect(page.getByText(/Sending saves an account copy and requests a response, up to \$0.13/)).toBeVisible();
   await expect(page.getByText(/Competitor research is unavailable/)).toBeVisible();
   await page.getByRole("textbox", { name: "Your prompt" }).fill("Synthetic response-only initial prompt.");
-  await page.getByRole("button", { name: "Send prompt", exact: true }).click();
+  await sendInitialPrompt(page);
   await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   expect(state.enqueues).toEqual([expect.objectContaining({ operation: "strategy.reformulate", expectedRevision: 1, acceptedMaxCostMicrousd: 122880 })]);
@@ -447,7 +473,7 @@ for (const applyReplyStatus of [200, 503]) test(`response-only fixture: Home sav
   state.jobs[0] = complete(state.jobs[0]!);
   await expect(page.getByRole("button", { name: "Apply response", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: "Apply response", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 2", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 2);
   await expect(page.getByText("Applied to saved version · 2", { exact: true })).toBeVisible();
   expect(state.enqueues).toHaveLength(1);
   state.responseOnly = false;
@@ -463,11 +489,12 @@ for (const applyReplyStatus of [200, 503]) test(`response-only fixture: Home sav
 });
 
 test("response-only fixture: uncertain response retry keeps its saved consent when research later becomes ready", async ({ page }) => {
+  test.setTimeout(45_000);
   const state = await fixtures(page); state.responseOnly = true; state.queueStatus = 503;
-  await page.goto("/brands/new");
+  await openHome(page);
   await expect(page.getByText(/requests a response, up to \$0.13/)).toBeVisible();
   await page.getByRole("textbox", { name: "Your prompt" }).fill("Synthetic retained response-only consent.");
-  await page.getByRole("button", { name: "Send prompt", exact: true }).click();
+  await sendInitialPrompt(page, 503);
   await expect(page.getByText(/Your account copy is saved, but the AI request is not confirmed/)).toBeVisible();
   state.responseOnly = false; state.queueStatus = 202;
   await page.getByRole("link", { name: "Open saved account project and check AI status" }).click();

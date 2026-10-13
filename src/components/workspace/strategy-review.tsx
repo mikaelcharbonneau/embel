@@ -76,6 +76,9 @@ export function PersonalityReview({ draft, notice, onChange, onComplete, onBack,
 
   return <form className="strategy-review personality-review" onSubmit={confirmProfile} noValidate>
     {inline && <fieldset className="project-personality-traits"><legend>Choose your brand’s personality</legend><p>Choose up to three traits to start your own profile. Selected traits set their dimension to 80; other dimensions keep their existing emphasis. Review Advanced settings before confirming.</p><div>{traits.map(trait => <label key={trait.label}><input type="checkbox" checked={selectedTraits.includes(trait.label)} disabled={!selectedTraits.includes(trait.label) && selectedTraits.length >= 3} onChange={event => {
+      // A new group of trait choices starts from the current profile, including
+      // advanced edits made since this review mounted. Deselecting restores it.
+      if (selectedTraits.length === 0) traitBaseline.current = personality ?? startingProfile;
       const chosen = event.target.checked ? [...selectedTraits, trait.label] : selectedTraits.filter(label => label !== trait.label);
       setSelectedTraits(chosen);
       const profile = { ...traitBaseline.current };

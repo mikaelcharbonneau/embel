@@ -10,6 +10,7 @@ import { clearLocalDrafts, useLocalDrafts } from "./local-drafts";
 import { LocalChatGPTSettings } from "./local-chatgpt-settings";
 import { StrategyRuntimeSettings } from "./strategy-runtime-settings";
 import { RecordedUsageSection } from "./recorded-usage";
+import { AccountProfileEditor } from "./account-profile-editor";
 
 const categories = [
   ["account", "Account"], ["workspace", "Workspace"], ["ai", "AI preferences"],
@@ -67,16 +68,7 @@ export function SettingsWorkspace({ localRuntimeEnabled = false }: { localRuntim
 function AccountSettings() {
   const { session } = useAccountSession();
   return <>
-    <Card title="Profile" description="Manage your personal information.">
-      <div className="sg-photo"><span className="sg-avatar"><Icon name="user" size={24} /></span><div><div className="sg-actions"><UnavailableAction>Upload photo</UnavailableAction><UnavailableAction>Remove</UnavailableAction></div><p>Profile photos are not available yet.</p></div></div>
-      <div className="sg-fields"><Field label="Full name" /><Field label="Email address" /></div>
-    </Card>
-    <Card title="Preferences" description="Make Fluid feel familiar." className="sg-rows-card">
-      <Row title="Language" description="Menus and controls currently use English."><UnavailableSelect label="Language" value="English" /></Row>
-      <Row title="Time zone" description="Activity dates use this device’s time zone."><UnavailableSelect label="Time zone" value="Device time zone" /></Row>
-      <Row title="Appearance" description="Fluid currently uses its light appearance."><UnavailableSelect label="Appearance" value="Light" /></Row>
-    </Card>
-    <SaveFooter />
+    <AccountProfileEditor />
     <Card title="Account connection" description="Your current Fluid sign-in status.">{session.status === "ready" ? <p className="sg-note">A verified account session is connected. <Link className="text-link" href="/brands">Open projects</Link> to view saved account projects.</p> : <AccountStatus />}</Card>
   </>;
 }

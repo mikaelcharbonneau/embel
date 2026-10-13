@@ -10,10 +10,13 @@ import { importTrademarkName } from "./trademark-account-adapter";
 import type { StandaloneDraftMemory } from "./standalone-draft-memory";
 import { useStandaloneWorkspace } from "./use-standalone-workspace";
 import { useSavedStandalonePromotion } from "./use-saved-standalone-promotion";
+import { useStandaloneLiveChecks } from "./use-standalone-live-checks";
+import { TrademarkLiveResearch } from "./trademark-live-research";
 
 export type TrademarkAccountEditorProps = { memory: StandaloneDraftMemory; importProjectId?: string; importProjectTitle?: string; projectPicker?: ReactNode };
 
 function TrademarkAccountContent({ memory, importProjectId, importProjectTitle, projectPicker }: TrademarkAccountEditorProps) {
+  const live = useStandaloneLiveChecks(memory);
   const { session: account, isCurrent } = useAccountSession();
   const workspace = useStandaloneWorkspace({ codec: standalonePayloadCodec, emptyPayload: createEmptyTrademarkAccountDraft, memory });
   const promotion = useSavedStandalonePromotion("trademarks", workspace, memory);
@@ -56,7 +59,7 @@ function TrademarkAccountContent({ memory, importProjectId, importProjectTitle, 
     </section>
     {promotion.controls}
   </>;
-  return <TrademarkWorkspace key={editorEpoch} disabled={!workspace.canEdit} draftControls={draftControls} saveControl={saveControl} savedDraft={workspace.workspace ? { revision: workspace.workspace.revision, updatedAt: workspace.workspace.updatedAt, dirty: workspace.dirty } : undefined} draft={workspace.payload} onChange={workspace.setPayload} storageNotice={storageNotice} onCreateBrand={promotion.select ? () => promotion.select?.({ tool: "trademarks" }) : undefined} onExportPreview={preview => {
+  return <TrademarkWorkspace key={editorEpoch} disabled={!workspace.canEdit} draftControls={draftControls} liveResearch={<TrademarkLiveResearch key={JSON.stringify([workspace.payload.markName, workspace.payload.territories, workspace.payload.goodsServices, workspace.payload.classificationNotes])} draft={workspace.payload} adapter={live?.trademarks} disabled={!workspace.canEdit} />} saveControl={saveControl} savedDraft={workspace.workspace ? { revision: workspace.workspace.revision, updatedAt: workspace.workspace.updatedAt, dirty: workspace.dirty } : undefined} draft={workspace.payload} onChange={workspace.setPayload} storageNotice={storageNotice} onCreateBrand={promotion.select ? () => promotion.select?.({ tool: "trademarks" }) : undefined} onExportPreview={preview => {
         // A retained callback can run after synchronous session fencing, before remount.
         if (account.status !== "ready" || !isCurrent(account) || !memory.isCurrent(account)) return;
         const raw = serializeTrademarkDraftPreview(preview);

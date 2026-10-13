@@ -3,6 +3,7 @@
 import { Fragment, useState, type ReactNode } from "react";
 import { HandlesArtwork, type HandlesArtworkName } from "@/components/ui/handles-artwork";
 import { handleStatus, platforms, statusLabels, type HandleEntry, type HandleMatrixRow, type HandlePlatform } from "./domain";
+import { downloadHandlesCsv, handleProfileUrl } from "./manual-tools";
 
 const unsupported = [{ id: "threads", label: "Threads" }, { id: "facebook", label: "Facebook" }, { id: "whatsapp", label: "WhatsApp" }] as const;
 
@@ -20,6 +21,7 @@ export function HandlesResults(props: {
   chosen: Partial<Record<HandlePlatform, { rowId: string }>>;
   checking: boolean;
   checksReady: boolean;
+  canExport?: () => boolean;
   onChoose: (platform: HandlePlatform, rowId: string, selected: boolean) => void;
   onSaveRow: (row: HandleMatrixRow) => void;
   savedRowIds: string[];
@@ -41,6 +43,7 @@ export function HandlesResults(props: {
       <div className="handles-business-row">
         <div className="handles-search-summary">{sources.map(source => <span className="handles-name-token" key={source.id} title={source.projectTitle ?? undefined}>{source.name}</span>)}<button type="button" className="handles-edit-search" onClick={props.onEdit}><HandlesArtwork name="edit" />Edit search</button></div>
         <button type="button" className="button secondary handles-save-search" onClick={props.onSaveSearch}><HandlesArtwork name="save-search" />Save search</button>
+        <button type="button" className="button secondary" disabled={!visible.length} onClick={() => { if (props.canExport?.() !== false) downloadHandlesCsv(visible.map(row => ({ name: row.source.name, entries: row.entries }))); }}>Export handles CSV</button>
       </div>
     </div>
     <div className="handles-results-bar">
@@ -69,7 +72,7 @@ export function HandlesResults(props: {
                 </label> : <span className="handles-result-platform handles-platform-disconnected" title={`${column.label}: ${description}`}><HandlesArtwork name={icon} /><b className="handles-platform-marker" aria-hidden="true">—</b><span className="sr-only">{description}</span></span>}</td>;
               })}
               <td><button type="button" className="handles-row-save" aria-label={`Save @${label} from ${row.source.name} to library`} title="Save this row as a bundle; nothing is reserved" aria-pressed={props.savedRowIds.includes(row.id)} disabled={props.checking || props.savedRowIds.includes(row.id)} onClick={() => props.onSaveRow(row)}><HandlesArtwork name="save-search" /></button></td>
-            </tr>{expanded === row.id && <tr className="handles-result-details"><td colSpan={columns.length + 2}><p>Source: {row.source.name} · {row.variant}{row.source.projectTitle ? ` · ${row.source.projectTitle}` : ""}</p><div className="handles-result-evidence-grid">{row.entries.map(entry => <section key={entry.platform}><h3>{platforms.find(platform => platform.id === entry.platform)!.label} · @{entry.handle}</h3>{props.renderEvidence(entry)}</section>)}</div></td></tr>}</Fragment>;
+            </tr>{expanded === row.id && <tr className="handles-result-details"><td colSpan={columns.length + 2}><p>Source: {row.source.name} · {row.variant}{row.source.projectTitle ? ` · ${row.source.projectTitle}` : ""}</p><div className="handles-result-evidence-grid">{row.entries.map(entry => <section key={entry.platform}><h3>{platforms.find(platform => platform.id === entry.platform)!.label} · @{entry.handle}</h3>{props.renderEvidence(entry)}<a className="text-link" href={handleProfileUrl(entry)} target="_blank" rel="noopener noreferrer">{entry.platform === "linkedin" ? "Open company profile" : "Open profile"}</a></section>)}</div></td></tr>}</Fragment>;
           })}{!visible.length && <tr><td colSpan={columns.length + 2} className="handles-results-empty">No handles have confirmed availability on every selected platform. Unknown, excluded and taken results are not included.</td></tr>}</tbody>
         </table>
       </div>
@@ -77,6 +80,6 @@ export function HandlesResults(props: {
     </div>
     <p className="handles-results-reminder">Availability can change. Confirm on the platform before claiming a handle.</p>
     <p className="handles-results-reminder">{props.checksReady ? "Counts use the latest recorded evidence for each exact handle and platform. Open a handle to review sources and dates." : "Checks are not connected. Availability is unknown."} Threads, Facebook and WhatsApp are not connected and are excluded from counts.</p>
-    <p className="handles-results-reminder">Select platform icons to mix variants from one source name in a bundle.</p>
+    <p className="handles-results-reminder">Open a handle’s details to inspect its profiles manually. Opening a profile does not mark it available. Select platform icons to mix variants from one source name in a bundle.</p>
   </section>;
 }

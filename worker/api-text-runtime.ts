@@ -6,6 +6,7 @@ import { ApiTextJobStore, expireApiTextJob, readApiTextDispatch } from "./api-te
 import { createApiTextReadiness } from "./handlers/openai-readiness";
 import { createOpenAIStrategyHandlers } from "./handlers/openai-strategy";
 import { runOneJob } from "./runner";
+import { apiTextDispatchDatabase } from "./api-text-multi-account";
 
 export const API_TEXT_DATABASE_TIMEOUT_MS = 5_000;
 export const API_TEXT_HANDLER_TIMEOUT_MS = 270_000;
@@ -16,11 +17,12 @@ export type ApiTextDeliveryResult = { disposition: "ack" | "retry"; state: strin
 /** One delivery, one existing admitted job. This entrypoint never admits, enables or retries a paid step. */
 export async function runApiTextDelivery(options: {
   message: unknown; database: JobDatabase; configuration: OpenAIStrategyConfiguration | null;
-  deploymentId: string; signal?: AbortSignal; transport?: OpenAIResponsesTransport;
+  deploymentId: string; signal?: AbortSignal; transport?: OpenAIResponsesTransport; multiAccount?: boolean;
 }): Promise<ApiTextDeliveryResult> {
   const parsed = apiTextDispatchMessageSchema.safeParse(options.message);
   if (!parsed.success) return { disposition: "ack", state: "invalid_message" };
   const message = parsed.data;
+  const sourceDatabase = options.multiAccount ? apiTextDispatchDatabase(options.database, message) : options.database;
   if (!apiTextDeploymentSchema.safeParse(options.deploymentId).success || message.deploymentId !== options.deploymentId) {
     return { disposition: "ack", state: "deployment_mismatch" };
   }
@@ -41,7 +43,7 @@ export async function runApiTextDelivery(options: {
     if (closed || Date.now() >= deadline) throw new Error("Database deadline exceeded");
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      return await Promise.race([options.database.query(sql, values), new Promise<never>((_, reject) => {
+      return await Promise.race([sourceDatabase.query(sql, values), new Promise<never>((_, reject) => {
         timer = setTimeout(() => reject(new Error("Database unavailable")), Math.min(API_TEXT_DATABASE_TIMEOUT_MS, deadline - Date.now()));
       })]);
     } finally { clearTimeout(timer); }

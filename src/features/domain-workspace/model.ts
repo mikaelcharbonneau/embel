@@ -46,6 +46,8 @@ export const domainCheckSchema = z.object({
   id: reference, domain: canonicalDomain, provider: reference,
   availability: z.enum(["available", "taken", "unknown"]),
   checkedAt: timestamp, validUntil: timestamp, evidenceReference: reference,
+  sourceUrl: z.url().max(2048).refine(value => value.startsWith("https://")).optional(),
+  detail: z.string().max(500).optional(),
 }).strict().refine(value => Date.parse(value.validUntil) > Date.parse(value.checkedAt), "Check validity must follow check time");
 export type DomainCheck = z.infer<typeof domainCheckSchema>;
 export function availabilityAt(check: DomainCheck | null, now: number): "available" | "taken" | "unknown" {
@@ -130,7 +132,7 @@ export type DomainLibrary = { status: "unavailable" | "loading" | "error"; messa
 export type DomainBrandSource = { type: "domain"; domain: string; check: DomainCheck | null; order: DomainOrder | null };
 export type DomainSearchAdapter =
   | { status: "unavailable"; reason: string }
-  | { status: "ready"; provider: string; check(domain: string, signal: AbortSignal): Promise<unknown>; quote?: (domain: string, checkId: string, signal: AbortSignal) => Promise<unknown> };
+  | { status: "ready"; provider: string; description?: string; check(domain: string, signal: AbortSignal): Promise<unknown>; quote?: (domain: string, checkId: string, signal: AbortSignal) => Promise<unknown> };
 export const unavailableDomainAdapter: DomainSearchAdapter = { status: "unavailable", reason: "No registrar is connected. Availability checks, quotes and purchases are unavailable." };
 export async function readDomainCheck(adapter: DomainSearchAdapter, domain: string, signal: AbortSignal): Promise<DomainCheck> {
   const exact = domainNameSchema.parse(domain);

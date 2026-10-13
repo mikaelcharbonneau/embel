@@ -1,13 +1,14 @@
 import type { ReactNode } from "react";
 import type { LogoConceptBatch, LogoConceptPlan, LogoRequestState } from "../../domain/logo-jobs";
 import type { IdentityAssetReceipt } from "../../domain/logo-deliverables";
-import type { LogoCapability, LogoConceptSource } from "../../domain/logo-workspace";
+import type { LogoCapability, LogoConceptSource, LogoRasterSource } from "../../domain/logo-workspace";
+import { logoCandidateKey } from "./candidate-review";
 import { acceptedConceptAttempt, CONCEPT_ORDINALS, displayLogoCost, LOGO_TYPE_LABELS } from "./presentation";
 import styles from "./logo-creation.module.css";
 
 /** No polling, persistence or generation lives in this view. Request callbacks only open cost review. */
 export function LogoConceptGridView({ batch = null, plan = null, selected = null, request = null, generation, refinement = generation, savedBatchUnavailable = false,
-  renderPreview, onSelect, onInspect, onRequestConcepts, onRequestMore, onRequestRefine, onRequestRetryFailed, onCheckRequest,
+  renderPreview, onSelect, onInspect, comparison = [], onCompare, onRequestConcepts, onRequestMore, onRequestRefine, onRequestRetryFailed, onCheckRequest,
 }: {
   batch?: LogoConceptBatch | null;
   plan?: LogoConceptPlan | null;
@@ -21,6 +22,8 @@ export function LogoConceptGridView({ batch = null, plan = null, selected = null
   renderPreview?: (receipt: IdentityAssetReceipt) => ReactNode;
   onSelect?: (source: LogoConceptSource) => void;
   onInspect?: (source: LogoConceptSource) => void;
+  comparison?: LogoRasterSource[];
+  onCompare?: (source: LogoConceptSource) => void;
   onRequestConcepts?: () => void;
   onRequestMore?: () => void;
   onRequestRefine?: (source: LogoConceptSource) => void;
@@ -55,6 +58,7 @@ export function LogoConceptGridView({ batch = null, plan = null, selected = null
         const accepted = slot ? acceptedConceptAttempt(slot) : null;
         const source: LogoConceptSource | null = batch && slot && accepted ? { kind: "concept", batchId: batch.id, slotId: slot.id, attemptId: accepted.id } : null;
         const isSelected = Boolean(source && selected && source.batchId === selected.batchId && source.slotId === selected.slotId && source.attemptId === selected.attemptId);
+        const isCompared = Boolean(source && comparison.some(item => logoCandidateKey(item) === logoCandidateKey(source)));
         return <li className={styles.conceptCard} key={ordinal} data-concept-ordinal={ordinal}>
           <div className={styles.cardHeading}><h3>Concept {ordinal + 1}</h3><span className={styles.badge}>{attempt ? stateLabel[attempt.state] : savedBatchUnavailable ? "Unavailable" : "Not requested"}</span></div>
           <p className={styles.typeLabel}>{planned ? LOGO_TYPE_LABELS[planned.type] : savedBatchUnavailable ? "Saved logo type unavailable" : "Choose logo types to begin"}</p>
@@ -68,6 +72,7 @@ export function LogoConceptGridView({ batch = null, plan = null, selected = null
             </p>)}
           </div>}
           {onInspect && <button className={styles.secondaryButton} type="button" aria-label={`Inspect concept ${ordinal + 1}`} disabled={!source} onClick={() => { if (source) onInspect(source); }}>Inspect concept</button>}
+          {onCompare && <button className={styles.secondaryButton} type="button" aria-label={`Compare concept ${ordinal + 1}`} aria-pressed={isCompared} disabled={!source || !isCompared && comparison.length >= 2} onClick={() => { if (source) onCompare(source); }}>{isCompared ? "Remove from comparison" : "Add to comparison"}</button>}
           <button className={styles.secondaryButton} type="button" aria-label={`Select concept ${ordinal + 1}`} aria-pressed={isSelected} disabled={!source || !onSelect} onClick={() => { if (source) onSelect?.(source); }}>{isSelected ? "Selected for review" : "Use this version"}</button>
         </li>;
       })}

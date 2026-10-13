@@ -48,7 +48,7 @@ const draftSchema = z.object({
   audienceReviewedAt: z.string().nullable(), createdAt: z.string(), updatedAt: z.string(), example: z.boolean(),
   // Present only when the user explicitly saves an account brief as a browser copy.
   preservedContext: contextSnapshotSchema.optional(),
-  confirmedBrief: z.object({ description: z.string().max(12000), activity: z.string().max(2000), offering: z.string().max(2000), knownAudience: z.string().max(2000).default("") }).optional(),
+  confirmedBrief: z.object({ description: z.string().max(12000), activity: z.string().max(2000), offering: z.string().max(2000), knownAudience: z.string().max(2000).default(""), conversationKey: z.string().max(64_000).optional() }).optional(),
 });
 
 const savedWorkspaceSchema = z.object({ version: z.literal(1), drafts: z.array(draftSchema).max(50) });

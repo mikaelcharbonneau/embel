@@ -1,5 +1,7 @@
 "use client";
 
+import { BrowserNameDialog } from "@/components/naming/browser-name-picker";
+
 import { useId, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { HandlesArtwork } from "@/components/ui/handles-artwork";
 import { Icon } from "@/components/ui/icon";
@@ -7,11 +9,16 @@ import { checkHandleEntry, HandleCheckTimeoutError, unavailableHandleAdapter, ty
 import { declareAccountCreated, emptyHandlesState, filterBundles, groupKey, groupLabel, handleStatus, lastCheckedAt, platforms, saveBundle, statusLabels, updateBundleEntry, type HandleBundle, type HandleEntry, type HandleMatrixRow, type HandleNameSource, type HandlePlatform, type HandlesState, type LibraryFilter } from "./domain";
 import { defaultHandleSearch, previewHandleSearch, type HandleSearchOptions, type HandleSeparator } from "./search";
 import { HandlesResults } from "./results";
+import { downloadHandlesCsv, handleProfileUrl } from "./manual-tools";
 import "./handles-workspace.css";
 
 type CommonProps = {
   importedNames?: HandleNameSource[];
   adapter?: HandleCheckAdapter;
+  /** Account drafts store choices only; provider observations remain in the comparison. */
+  saveCheckEvidence?: boolean;
+  /** Checked at download time as account/session fencing may precede unmount. */
+  canExport?: () => boolean;
   storageNote?: string;
   initialView?: "library" | "search";
   draftControls?: ReactNode;
@@ -170,7 +177,7 @@ export function HandlesWorkspace(props: HandlesWorkspaceProps = {}) {
   });
   function saveRow(row: HandleMatrixRow) {
     attempt(() => {
-      const bundle: HandleBundle = { id: crypto.randomUUID(), title: `@${row.entries[0]!.handle}`, list: list.trim(), source: row.source, savedAt: new Date().toISOString(), entries: row.entries.map(entry => structuredClone(entry)) };
+      const bundle: HandleBundle = { id: crypto.randomUUID(), title: `@${row.entries[0]!.handle}`, list: list.trim(), source: row.source, savedAt: new Date().toISOString(), entries: row.entries.map(entry => ({ ...structuredClone(entry), ...(props.saveCheckEvidence === false ? { evidence: [] } : {}) })) };
       change(saveBundle(state, bundle)); setNotice("Handle bundle added to the library. Nothing was reserved.");
     });
   }
@@ -179,7 +186,7 @@ export function HandlesWorkspace(props: HandlesWorkspaceProps = {}) {
     attempt(() => {
       if (!selected.length) throw new Error("Choose at least one handle in the matrix.");
       if (new Set(selected.map(item => item.row.source.id)).size > 1) throw new Error("Choose variants from one source name per bundle so its project context stays clear.");
-      const bundle: HandleBundle = { id: crypto.randomUUID(), title: title.trim(), list: list.trim(), source: selected[0]!.row.source, savedAt: new Date().toISOString(), entries: selected.map(item => structuredClone(item.entry)) };
+      const bundle: HandleBundle = { id: crypto.randomUUID(), title: title.trim(), list: list.trim(), source: selected[0]!.row.source, savedAt: new Date().toISOString(), entries: selected.map(item => ({ ...structuredClone(item.entry), ...(props.saveCheckEvidence === false ? { evidence: [] } : {}) })) };
       change(saveBundle(state, bundle)); setChosen({}); setTab("library"); setNotice("Bundle added to the library. No handle was reserved.");
     });
   }
@@ -199,15 +206,21 @@ export function HandlesWorkspace(props: HandlesWorkspaceProps = {}) {
     {error && <p className="handles-error" role="alert">{error}</p>}
     <fieldset disabled={props.disabled} className="handles-editor"><section role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-${tab}`}>
       {tab === "library" ? <>
+        <button type="button" className="button secondary small" disabled={!visible.length} onClick={() => { if (props.canExport?.() !== false) downloadHandlesCsv(visible.map(bundle => ({ name: bundle.title, entries: bundle.entries }))); }}>Export library CSV</button>
         <div className="handles-toolbar"><label className="handles-field">Search library<input value={query} onChange={event => setQuery(event.target.value)} placeholder="Handle, brand or list" /></label><label className="handles-field">State<select value={filter} onChange={event => setFilter(event.target.value as LibraryFilter)}><option value="all">All saved handles</option><option value="favorite">Favorites</option><option value="selected">Selected</option><option value="account_created">Account created · user declared</option></select></label><label className="handles-field">Brand or list<select value={group} onChange={event => setGroup(event.target.value)}><option value="all">All brands and lists</option>{groups.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><button type="button" className="button primary" onClick={() => setTab("search")}>Add handles<Icon name="plus" size={15} /></button></div>
         {!visible.length && <div className="empty-panel"><h2>{state.bundles.length ? "No matching bundles" : "Keep your handles together"}</h2><p>{state.bundles.length ? "Try another search or state filter." : "Compare names across platforms, then keep a bundle for a brand or personal list."}</p><button type="button" className="button secondary" onClick={() => setTab("search")}>Compare handles</button></div>}
         {groups.filter(([key]) => visible.some(bundle => groupKey(bundle) === key)).map(([key, label]) => <section className="handles-group" key={key} aria-label={label}><h2>{label}</h2>{visible.filter(bundle => groupKey(bundle) === key).map(bundle => <article className="handles-bundle" key={bundle.id}><div className="handles-bundle-heading"><div><h3>{bundle.title}</h3><p>Source: {bundle.source.name} · {props.sourceLabel ? props.sourceLabel(bundle.source) : <>{bundle.source.origin === "manual" ? "Entered name" : bundle.source.origin === "project" ? "Project" : "Names library"}{bundle.source.projectTitle ? ` · ${bundle.source.projectTitle}` : ""}</>}</p></div>{props.onCreateBrand && <button type="button" className="button secondary small" onClick={() => props.onCreateBrand?.(structuredClone(bundle))}>Create brand from bundle</button>}</div>
-          <div className="handles-library-grid">{bundle.entries.map(entry => <div className="handles-saved-entry" key={entry.platform}><strong>{platforms.find(platform => platform.id === entry.platform)?.label}</strong><span className="handles-exact">@{entry.handle}</span><span className={`handles-status handles-status-${handleStatus(entry)}`}>{statusLabels[handleStatus(entry)]}</span><p className="handles-last-check">Last check: {lastCheckedAt(entry) ?? "Not checked"}</p><div className="handles-actions"><button type="button" className="button secondary small" aria-pressed={entry.favorite} onClick={() => attempt(() => change(updateBundleEntry(state, bundle.id, entry.platform, value => ({ ...value, favorite: !value.favorite }))))}>{entry.favorite ? "Favorited" : "Favorite"}</button><button type="button" className="button secondary small" aria-pressed={entry.selected} onClick={() => attempt(() => change(updateBundleEntry(state, bundle.id, entry.platform, value => ({ ...value, selected: !value.selected }))))}>{entry.selected ? "Selected" : "Select"}</button></div><AccountDeclaration entry={entry} onChange={value => attempt(() => change(updateBundleEntry(state, bundle.id, entry.platform, () => value)))} /><HandleEvidenceDetails entry={entry} /><a className="text-link" href={platforms.find(platform => platform.id === entry.platform)!.url} target="_blank" rel="noopener noreferrer">Open platform to create or change an account</a></div>)}</div>
+          <div className="handles-library-grid">{bundle.entries.map(entry => <div className="handles-saved-entry" key={entry.platform}><strong>{platforms.find(platform => platform.id === entry.platform)?.label}</strong><span className="handles-exact">@{entry.handle}</span><span className={`handles-status handles-status-${handleStatus(entry)}`}>{statusLabels[handleStatus(entry)]}</span><p className="handles-last-check">Last check: {lastCheckedAt(entry) ?? "Not checked"}</p><div className="handles-actions"><button type="button" className="button secondary small" aria-pressed={entry.favorite} onClick={() => attempt(() => change(updateBundleEntry(state, bundle.id, entry.platform, value => ({ ...value, favorite: !value.favorite }))))}>{entry.favorite ? "Favorited" : "Favorite"}</button><button type="button" className="button secondary small" aria-pressed={entry.selected} onClick={() => attempt(() => change(updateBundleEntry(state, bundle.id, entry.platform, value => ({ ...value, selected: !value.selected }))))}>{entry.selected ? "Selected" : "Select"}</button></div><AccountDeclaration entry={entry} onChange={value => attempt(() => change(updateBundleEntry(state, bundle.id, entry.platform, () => value)))} /><HandleEvidenceDetails entry={entry} /><a className="text-link" href={handleProfileUrl(entry)} target="_blank" rel="noopener noreferrer">{entry.platform === "linkedin" ? "Open company profile" : "Open profile"}</a><a className="text-link" href={platforms.find(platform => platform.id === entry.platform)!.url} target="_blank" rel="noopener noreferrer">Open platform to create or change an account</a></div>)}</div>
         </article>)}</section>)}
       </> : tab === "search" ? <>
         <form className="handles-search-form" hidden={matrix.length > 0} onSubmit={event => { event.preventDefault(); commitNames(); }}>
           <div className="handles-business-field">
             <label htmlFor={`${id}-names`}>Business handles <span>· add several, separated by comma</span></label>
+            <div className="handles-name-library"><BrowserNameDialog disabled={props.disabled || checking} onUse={name => {
+              if (allNames.includes(name)) return;
+              if (allNames.length + imports.length >= 30 || [...allNames, name].join(", ").length > 3000) { setError("Keep up to 30 names within 3,000 characters. Your current search is unchanged."); return; }
+              invalidateSearch(); setNames([...allNames, name].join(", ")); setNameDraft("");
+            }} /></div>
             <div className="handles-business-row"><div className="handles-token-field">
               {manualNames.map(name => <span className="handles-name-token" key={name}>{name}<button type="button" aria-label={`Remove ${name}`} onClick={() => { invalidateSearch(); setNames(manualNames.filter(value => value !== name).join(", ")); }}><HandlesArtwork name="remove" /></button></span>)}
               <input id={`${id}-names`} aria-label="Business handles" value={nameDraft} maxLength={3000} placeholder="Add another handle…" onChange={event => { invalidateSearch(); setNameDraft(event.target.value); }} onBlur={commitNames} onKeyDown={event => { if ((event.key === "Enter" || event.key === ",") && !event.nativeEvent.isComposing) { event.preventDefault(); commitNames(); } }} />
@@ -234,7 +247,7 @@ export function HandlesWorkspace(props: HandlesWorkspaceProps = {}) {
           </div>
         </form>
         {!!matrix.length && <>
-          <HandlesResults rows={matrix} selectedPlatforms={chosenPlatforms} chosen={chosen} checking={checking} checksReady={adapter.availability === "ready"}
+          <HandlesResults rows={matrix} selectedPlatforms={chosenPlatforms} chosen={chosen} checking={checking} checksReady={adapter.availability === "ready"} canExport={props.canExport}
             onChoose={(platform, rowId, selected) => setChosen({ ...chosen, [platform]: selected ? { rowId } : undefined })}
             onSaveRow={saveRow} savedRowIds={matrix.filter(row => state.bundles.some(bundle => bundle.source.id === row.source.id && bundle.entries.length === row.entries.length && row.entries.every(entry => bundle.entries.some(saved => saved.platform === entry.platform && saved.handle === entry.handle)))).map(row => row.id)} onEdit={() => { invalidateSearch(); queueMicrotask(() => document.getElementById(`${id}-names`)?.focus()); }} onSaveSearch={saveSearch}
             onRefresh={() => void checkMatrix()} onStop={() => { request.current?.abort(); setActiveCheck(null); }} renderEvidence={entry => <HandleEvidenceDetails entry={entry} />} />

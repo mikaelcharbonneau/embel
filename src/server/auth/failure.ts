@@ -9,3 +9,11 @@ export function authFailure(error: { status?: number; name?: string }): ApiError
   }
   return new ApiError("invalid_credentials");
 }
+
+export function signUpFailure(error: { status?: number; name?: string; code?: string }): ApiError {
+  const failure = authFailure(error);
+  if (failure.code === "invalid_credentials" && ["email_address_not_authorized", "signup_disabled", "email_provider_disabled"].includes(error.code ?? "")) {
+    return new ApiError("integration_unavailable");
+  }
+  return failure.code === "invalid_credentials" ? new ApiError("signup_failed") : failure;
+}

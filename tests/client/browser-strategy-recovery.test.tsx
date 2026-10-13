@@ -20,13 +20,13 @@ beforeEach(() => {
 });
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.replaceChildren(); vi.unstubAllGlobals(); });
 it("labels manual messages honestly and offers the existing explicit account-save then Request response path", async () => {
-  const fetcher = vi.fn(async (path: string) => { expect(path).toBe("/api/projects"); return Response.json({ project: { ...createAccountInput(mock.draft!), id: projectId, owner_id: owner, current_revision: 1, created_at: "2026-10-07T00:00:00Z" } }); }); vi.stubGlobal("fetch", fetcher);
+  const fetcher = vi.fn(async (path: string) => { if (path === "/api/session") return Response.json({ user: { id: owner } }); expect(path).toBe("/api/projects"); return Response.json({ project: { ...createAccountInput(mock.draft!), id: projectId, owner_id: owner, current_revision: 1, created_at: "2026-10-07T00:00:00Z" } }); }); vi.stubGlobal("fetch", fetcher);
   await act(async () => root!.render(createElement(ProjectEditor, { projectId: mock.draft!.id })));
   expect(host.querySelector('.conversation-composer button[type="submit"]')!.textContent).toBe("Save message");
   expect(host.textContent).toContain("Choose Save to account, then Request response");
   expect(host.textContent).toContain("It does not request an AI response");
   expect(fetcher).not.toHaveBeenCalled();
   await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent?.includes("Save to account"))!.click());
-  expect(fetcher).toHaveBeenCalledTimes(1); expect(fetcher.mock.calls[0]?.[0]).toBe("/api/projects");
+  expect(fetcher.mock.calls.map(([path]) => path)).toEqual(["/api/session", "/api/projects"]);
   expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${projectId}`);
 });

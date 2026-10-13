@@ -99,6 +99,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
     const path = String(input); requests.push(path);
     if (path === "/api/session") return Response.json({ user: { id: currentOwner } });
+    if (path === "/api/standalone-checks" && init?.method === "GET") return Response.json({ ownerId: currentOwner, domains: "unavailable", youtube: false, euipo: false });
     if (path === "/api/workspaces/promotions") { const body = JSON.parse(String(init?.body)) as StandalonePromotionInput; posts.push(body); return onPost(body); }
     if (path.startsWith("/api/workspaces/promotions/requests/")) return onLookup(path.split("/").at(-1)!);
     if (["/api/workspaces/domains", "/api/workspaces/handles", "/api/workspaces/trademarks"].includes(path) && init?.method === "GET") return Response.json({ ownerId: currentOwner, workspace: currentOwner === owner ? stored : null });
@@ -132,7 +133,7 @@ describe("saved standalone account editor promotion", () => {
     expect(session.lifecycleMemory.hasUnsaved()).toBe(false);
     await act(async () => button("Open created brand").click());
     expect(posts).toHaveLength(1); expect(navigation.push).toHaveBeenCalledTimes(1);
-    expect(requests.every(path => ["/api/session", `/api/workspaces/${tool}`, "/api/workspaces/promotions"].includes(path))).toBe(true);
+    expect(requests.every(path => ["/api/session", "/api/standalone-checks", `/api/workspaces/${tool}`, "/api/workspaces/promotions"].includes(path))).toBe(true);
   });
 
   it.each(["dirty", "pending", "conflict"] as const)("preserves a selected saved domain but gates promotion during account %s", async gate => {

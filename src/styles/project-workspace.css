@@ -149,7 +149,7 @@
 .project-logo-creation [class*=conceptCard] { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 0 0 14px; overflow: hidden; }
 .project-logo-creation [class*=preview] { aspect-ratio: 16 / 9; background: #f1f0ee; }
 .project-logo-inspection { margin: 0 0 20px; }
-.project-logo-inspection-preview { min-height: 300px; height: min(42vw, 440px); background: #f1f0ee; border-radius: 10px; display: grid; place-items: center; padding: 24px; overflow: hidden; }
+.project-logo-creation .project-logo-inspection-preview { aspect-ratio: auto; width: 100%; min-width: 0; min-height: 300px; height: min(42vw, 440px); background: #f1f0ee; border-radius: 10px; display: grid; place-items: center; padding: 24px; overflow: hidden; }
 .project-logo-inspection-preview img { display: block; max-height: 100%; max-width: 100%; object-fit: contain; }
 .project-logo-inspection-preview p { font-size: 13px; color: var(--secondary); }
 .project-output-page { max-width: none; padding: 24px; margin: 0; }
@@ -217,6 +217,6 @@
   .project-conversation-marker { gap: 8px; }
   .project-conversation-marker .text-link { font-size: 11px; }
   .project-strategy-workspace .conversation-composer textarea, .project-workbench :is(input, textarea, select) { font-size: 16px; }
-  .project-logo-inspection-preview { min-height: 240px; }
+  .project-logo-creation .project-logo-inspection-preview { min-height: 240px; }
   .project-strategy-workspace .conversation-composer .composer-send-icon { min-width: 44px; width: 44px; height: 44px; min-height: 44px; padding: 14px; }
 }

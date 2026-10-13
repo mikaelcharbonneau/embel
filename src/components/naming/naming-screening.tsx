@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { Icon, type IconName } from "@/components/ui/icon";
 
-const checks: ReadonlyArray<{ title: string; icon: IconName; description: string }> = [
-  { title: "Domains", icon: "domains", description: "Domain availability and pricing need a connected domain provider." },
-  { title: "Handles", icon: "handles", description: "Handle availability needs a verified platform check. An absent profile is not confirmation." },
-  { title: "Trademarks", icon: "trademarks", description: "Trademark screening needs a connected source, territories and goods or services." },
+const checks: ReadonlyArray<{ title: string; icon: IconName; href: string; description: string }> = [
+  { title: "Domains", icon: "domains", href: "/domains", description: "Choose an exact domain in the Domains tool and review the available checks." },
+  { title: "Handles", icon: "handles", href: "/handles", description: "Choose a platform and handle to check. An absent profile is not confirmation." },
+  { title: "Trademarks", icon: "trademarks", href: "/trademarks", description: "Choose territories and goods or services for a preliminary trademark review." },
 ];
 
 export function NamingScreening({ name, earlierContext, pending, onChangeName }: { name: string; earlierContext: boolean; pending: boolean; onChangeName: () => void }) {
@@ -15,8 +16,8 @@ export function NamingScreening({ name, earlierContext, pending, onChangeName }:
       <button className="button secondary small" type="button" disabled={pending} onClick={onChangeName}>Change name<Icon name="pencil" size={14} /></button>
     </div>
     <div className="project-naming-screening-grid">{checks.map(check => <article key={check.title}>
-      <Icon name={check.icon} size={22} /><h3>{check.title}</h3><p className="project-naming-screening-status">Not checked — integration unavailable</p>
-      <p id={`project-naming-${check.icon}-unavailable`}>{check.description}</p><button type="button" className="button secondary small" disabled aria-describedby={`project-naming-${check.icon}-unavailable`}>Check {check.title.toLowerCase()}</button>
+      <Icon name={check.icon} size={22} /><h3>{check.title}</h3><p className="project-naming-screening-status">Not checked here</p>
+      <p id={`project-naming-${check.icon}-guidance`}>{check.description}</p><Link className="button secondary small" href={check.href} aria-describedby={`project-naming-${check.icon}-guidance`}>Open {check.title.toLowerCase()}</Link>
     </article>)}</div>
     <p className="project-naming-muted">Choosing a name does not purchase a domain, reserve a handle or establish trademark clearance.</p>
   </section>;

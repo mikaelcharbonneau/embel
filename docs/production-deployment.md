@@ -1,0 +1,7 @@
+# Protected production deployment
+
+The user requested promoting the repaired Fluid deployment to Production after transferring the existing `fluid-platform-preview` project to Embel (2026-10-13 UTC). Vercel Authentication remains enabled for all deployments. Production is a deployment target, not approval to remove protection, activate providers, add credentials or publish unrelated development work.
+
+The canonical production origin is `https://fluid-platform-preview.vercel.app`, the existing verified production domain. Its existing `APP_ORIGIN` already matches. Production builds and runtime configuration require an explicit canonical HTTPS origin; mutation handlers continue to compare the exact request Origin before authentication or parsing credentials. Preview builds remain bound to their immutable deployment hostname. Do not promote a preview build without rebuilding with Production environment variables: its origin binding would otherwise remain the preview URL.
+
+This release starts from the deployed `4c6adabef2b47fe643147834bc9497834208b46c` snapshot and changes only `scripts/preview-preflight.mjs`, `src/server/config.ts`, and the implementation/declaration of `src/server/preview-origin.mjs`. Newer Projects and standalone manual-tool development is excluded. The same fix is retained in the active checkout with regression tests. Non-secret deployment manifests and validation evidence are stored outside the checkout under `/workspace/scratch/fluid-production-promotion-20261013/`.

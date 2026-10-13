@@ -69,8 +69,18 @@ async function fixtures(page: Page) {
   return { state, requested, signInRequested, releaseSignIn, release: () => { state.released = true; release(); } };
 }
 
+async function revealProjectDetails(page: Page) {
+  const menu = page.locator(".workspace-account-menu");
+  if (await menu.count() && await menu.getAttribute("open") !== null) await menu.locator("summary").click();
+  const details = page.locator(".project-details-disclosure");
+  await expect(details).toBeVisible();
+  if (await details.getAttribute("open") === null) await details.locator("summary").click();
+}
+
 async function openAccount(page: Page) {
   await page.goto(`/brands/account/${projectId}`);
+  await revealProjectDetails(page);
+  await revealAccountMenu(page);
   await expect(page.getByRole("heading", { name: privateTitle, exact: true, level: 1 })).toBeVisible();
 }
 
@@ -81,7 +91,8 @@ async function rename(page: Page, title: string) {
 }
 
 async function revealAccountMenu(page: Page) {
-  await page.locator(".workspace-account-menu").evaluateAll(elements => { for (const element of elements) (element as HTMLDetailsElement).open = true; });
+  const menu = page.locator(".workspace-account-menu");
+  if (await menu.count() && await menu.getAttribute("open") === null) await menu.locator("summary").click();
 }
 
 async function triggerAutomaticRefresh(page: Page) {
@@ -107,7 +118,8 @@ test("auth fixture: unconfigured sign-in stays accessible and does not accept cr
   await expect(form.getByLabel("Password", { exact: true })).toHaveAttribute("autocomplete", "current-password");
   await expect(form.getByLabel("Password", { exact: true })).toHaveAttribute("maxlength", "1024");
   await expect(form.getByRole("button", { name: "Sign in", exact: true })).toBeDisabled();
-  await expect(page.getByRole("link", { name: /Create account|Sign up|Forgot password/ })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Create account", exact: true })).toHaveAttribute("href", "/sign-up");
+  await expect(page.getByRole("link", { name: "Forgot password", exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
   await page.screenshot({ path: testInfo.outputPath("sign-in-unconfigured.png"), fullPage: true, scale: "css", style: "nextjs-portal { visibility: hidden; }" });
   await page.getByRole("link", { name: "Continue with browser drafts", exact: true }).click();
@@ -251,7 +263,9 @@ test("auth fixture: sign-out confirms unsaved edits, fences pending requests and
   await triggerAutomaticRefresh(page);
   expect(fixture.state.sessionRequests).toBe(sessionCount);
   await expect(page.getByRole("textbox")).toHaveCount(0);
+  await revealAccountMenu(page);
   await page.getByRole("button", { name: "Check account", exact: true }).click();
+  await revealProjectDetails(page);
   await expect(page.getByRole("heading", { name: "Unsaved auth recovery fixture", exact: true, level: 1 })).toBeVisible();
   expect(fixture.state.signOutRequests).toBe(1);
   expect(await page.evaluate(key => localStorage.getItem(key), storageKey)).toBeNull();
@@ -269,7 +283,9 @@ test("auth fixture: confirmed sign-out clears private buffers and preserves brow
   await expect(page.locator(".topbar").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
   expect(await page.evaluate(key => localStorage.getItem(key), storageKey)).toBe(browserWorkspace);
   fixture.state.sessionStatus = 200;
+  await revealAccountMenu(page);
   await page.getByRole("button", { name: "Check account", exact: true }).click();
+  await revealProjectDetails(page);
   await expect(page.getByRole("heading", { name: privateTitle, exact: true, level: 1 })).toBeVisible();
   expect(await page.evaluate(key => localStorage.getItem(key), storageKey)).toBe(browserWorkspace);
   expect(fixture.state.signOutRequests).toBe(1);
@@ -284,6 +300,8 @@ test("auth fixture: malformed sign-out success never clears an unsaved account d
   await page.getByRole("dialog").getByRole("button", { name: "Discard edits and sign out", exact: true }).click();
   await expect(page.getByRole("alert").filter({ hasText: "Sign-out couldn't be confirmed" })).toBeVisible();
   await expect(page.getByRole("textbox")).toHaveCount(0);
+  await revealAccountMenu(page);
   await page.getByRole("button", { name: "Check account", exact: true }).click();
+  await revealProjectDetails(page);
   await expect(page.getByRole("heading", { name: "Unverified logout fixture", exact: true, level: 1 })).toBeVisible();
 });

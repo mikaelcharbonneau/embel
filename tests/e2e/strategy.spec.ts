@@ -245,6 +245,26 @@ test("account fixture: strategy reviews save with values and provenance and surv
   await expect(page.getByRole("region", { name: "Personality", exact: true }).getByText("Confirmed", { exact: true })).toBeVisible();
 });
 
+test("account fixture: incomplete Strategy approval resumes the required review before saving", async ({ page }) => {
+  const state = await account(page);
+  state.project = { ...state.project, scope: "complete_brand", context: { ...state.project.context, intake: { ...state.project.context.intake, audienceReviewedAt: null, positioningReviewedAt: null } } };
+  await page.goto(`/brands/account/${id}`);
+  await stage(page, "Positioning");
+  await page.getByRole("button", { name: "Approve strategy", exact: true }).click();
+  await expect(page.getByText("Review your audience before approving Strategy. Your current content is kept.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Keep audience", exact: true })).toBeVisible();
+  expect(state.writes).toHaveLength(0);
+  await page.getByRole("button", { name: "Keep audience", exact: true }).click();
+  await page.getByRole("button", { name: "Keep personality", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Positioning statement", exact: true })).toHaveValue(statement);
+  await page.getByRole("button", { name: "Approve strategy", exact: true }).click();
+  await expect(page.getByText("Strategy approved and saved to your account.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Project stages" }).getByRole("link", { name: "Naming", exact: true })).toBeVisible();
+  expect(state.writes).toHaveLength(1);
+  expect(state.project.context.positioning).toBe(statement);
+  expect(state.project.context.competitors[0]?.sources).toEqual([source]);
+});
+
 test("account fixture: failed saving and a revision conflict retain partial strategy for an explicit browser copy", async ({ page }) => {
   const state = await account(page);
   await page.goto(`/brands/account/${id}`);

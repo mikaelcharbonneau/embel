@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { contextSnapshotSchema } from "../../src/domain/projects";
+import { DEFAULT_SUBSCRIPTION_LIMITS } from "../../src/domain/strategy-jobs";
 
 vi.mock("server-only", () => ({}));
-const doubles = vi.hoisted(() => ({ auth: vi.fn(), rpc: vi.fn(), from: vi.fn(), eq: vi.fn(), select: vi.fn(), within: vi.fn(), publish: vi.fn() }));
+const doubles = vi.hoisted(() => ({ auth: vi.fn(), rpc: vi.fn(), from: vi.fn(), eq: vi.fn(), select: vi.fn(), within: vi.fn(), publish: vi.fn(), readiness: vi.fn() }));
 vi.mock("../../src/server/api-text/publication", () => ({ publishApiTextDispatch: doubles.publish }));
+vi.mock("../../src/server/api-text/readiness", () => ({ getApiTextWorkerReadiness: doubles.readiness }));
 vi.mock("../../src/server/auth/context", () => ({ getAuthenticatedContext: doubles.auth }));
 import { GET as overview, POST as enqueue } from "../../src/app/api/projects/[projectId]/strategy/route";
 import { GET as getJob, DELETE as cancel } from "../../src/app/api/projects/[projectId]/strategy/[jobId]/route";
@@ -45,10 +47,16 @@ describe("strategy API authorization, bounded inputs and actual durable outputs"
   beforeEach(() => {
     vi.resetAllMocks();
     vi.stubEnv("APP_ORIGIN", "https://fluid.example");
+    vi.stubEnv("VERCEL", "1");
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("VERCEL_TARGET_ENV", "production");
+    vi.stubEnv("VERCEL_PROJECT_ID", "prj_WKrFUPy3wptZ3qI9l1hTuqPmzkDt");
+    vi.stubEnv("FLUID_API_TEXT_WORKER_ORIGIN", "https://fluid-api-text-worker-qualified.vercel.app");
     rows = { jobs: [job], job_steps: [], strategy_job_applications: [] };
     doubles.auth.mockResolvedValue({ userId: ownerId, client: { rpc: doubles.rpc, from: doubles.from } });
     doubles.rpc.mockImplementation(async (name: string) => ({ data: name === "get_strategy_availability" ? available : { ...job, dispatch }, error: null }));
     doubles.publish.mockResolvedValue({ state: "published", messageId: "synthetic_queue_message" });
+    doubles.readiness.mockResolvedValue({ version: 1, deploymentId: "dpl_synthetic", operations: ["strategy.reformulate"] });
     doubles.from.mockImplementation((table: keyof typeof rows) => {
       const query = {
         select: (columns: string) => { doubles.select(table, columns); return query; },
@@ -140,6 +148,85 @@ describe("strategy API authorization, bounded inputs and actual durable outputs"
     expect(doubles.eq).toHaveBeenCalledWith("jobs", "project_id", projectId);
     doubles.auth.mockRejectedValueOnce(new ApiError("unauthenticated"));
     expect((await runtime()).status).toBe(401);
+  });
+
+  it.each([
+    ["FLUID_API_TEXT_WORKER_ORIGIN", ""], ["FLUID_API_TEXT_WORKER_ORIGIN", "https://foreign.example"],
+    ["VERCEL_PROJECT_ID", "prj_other"], ["VERCEL_ENV", "development"], ["VERCEL_TARGET_ENV", "preview"],
+  ])("hides API readiness when the publisher configuration is unavailable (%s)", async (key, value) => {
+    vi.stubEnv(key, value);
+    const unavailable = { status: "unavailable", operations: [], reason: "worker_unavailable" };
+    expect(await (await runtime()).json()).toEqual({ availability: unavailable });
+    expect(await (await overview(request(undefined, "GET"), params())).json()).toEqual({ availability: unavailable, jobs: [{ ...job, results: [] }] });
+    expect(doubles.publish).not.toHaveBeenCalled();
+  });
+
+  it("keeps ready subscription operations when API publication is unconfigured", async () => {
+    vi.stubEnv("FLUID_API_TEXT_WORKER_ORIGIN", "");
+    const subscription = { operation: "strategy.audience", billingMode: "chatgpt_subscription", policyIdentity: "a".repeat(64), limits: DEFAULT_SUBSCRIPTION_LIMITS };
+    for (const operations of [[subscription], [...available.operations, subscription]]) {
+      doubles.rpc.mockResolvedValueOnce({ data: { status: "available", operations }, error: null });
+      expect(await (await runtime()).json()).toEqual({ availability: { status: "available", operations: [subscription] } });
+    }
+  });
+
+  it.each([null, { version: 1, deploymentId: "dpl_synthetic", operations: [] }])("hides API operations when the configured worker is not qualified (%j)", async readiness => {
+    doubles.readiness.mockResolvedValue(readiness);
+    const unavailable = { status: "unavailable", operations: [], reason: "worker_unavailable" };
+    expect(await (await runtime()).json()).toEqual({ availability: unavailable });
+    expect(await (await overview(request(undefined, "GET"), params())).json()).toEqual({ availability: unavailable, jobs: [{ ...job, results: [] }] });
+    expect(doubles.publish).not.toHaveBeenCalled();
+  });
+
+  it("intersects worker qualification with caller eligibility without altering costs or subscription operations", async () => {
+    const audience = { operation: "strategy.audience", maximumCostMicrousd: 44_000, billingMode: "openai_api" };
+    const subscription = { operation: "strategy.personality", billingMode: "chatgpt_subscription", policyIdentity: "a".repeat(64), limits: DEFAULT_SUBSCRIPTION_LIMITS };
+    doubles.rpc.mockResolvedValueOnce({ data: { status: "available", operations: [...available.operations, audience, subscription] }, error: null });
+    doubles.readiness.mockResolvedValueOnce({ version: 1, deploymentId: "dpl_synthetic", operations: ["strategy.audience", "strategy.positioning"] });
+    expect(await (await runtime()).json()).toEqual({ availability: { status: "available", operations: [audience, subscription] } });
+    expect(doubles.rpc).toHaveBeenCalledExactlyOnceWith("get_strategy_availability", { p_project_id: null });
+  });
+
+  it("preserves subscription readiness when the API worker is unreachable", async () => {
+    const subscription = { operation: "strategy.audience", billingMode: "chatgpt_subscription", policyIdentity: "a".repeat(64), limits: DEFAULT_SUBSCRIPTION_LIMITS };
+    doubles.rpc.mockResolvedValueOnce({ data: { status: "available", operations: [...available.operations, subscription] }, error: null });
+    doubles.readiness.mockResolvedValueOnce(null);
+    expect(await (await runtime()).json()).toEqual({ availability: { status: "available", operations: [subscription] } });
+  });
+
+  it("does not probe the API worker for a SQL refusal or subscription-only availability", async () => {
+    const unavailable = { status: "unavailable", operations: [], reason: "budget_unavailable" };
+    doubles.rpc.mockResolvedValueOnce({ data: unavailable, error: null });
+    expect(await (await runtime()).json()).toEqual({ availability: unavailable });
+    const subscription = { operation: "strategy.audience", billingMode: "chatgpt_subscription", policyIdentity: "a".repeat(64), limits: DEFAULT_SUBSCRIPTION_LIMITS };
+    doubles.rpc.mockResolvedValueOnce({ data: { status: "available", operations: [subscription] }, error: null });
+    expect(await (await runtime()).json()).toEqual({ availability: { status: "available", operations: [subscription] } });
+    expect(doubles.readiness).not.toHaveBeenCalled();
+  });
+
+  it("preserves a database readiness refusal and does not use web provider credentials as worker readiness", async () => {
+    vi.stubEnv("FLUID_PAID_CALLS_APPROVED", "false");
+    vi.stubEnv("OPENAI_API_KEY", undefined);
+    expect(await (await runtime()).json()).toEqual({ availability: available });
+    vi.stubEnv("FLUID_API_TEXT_WORKER_ORIGIN", "");
+    const unavailable = { status: "unavailable", operations: [], reason: "budget_unavailable" };
+    doubles.rpc.mockResolvedValueOnce({ data: unavailable, error: null });
+    expect(await (await runtime()).json()).toEqual({ availability: unavailable });
+  });
+
+  it("retains an admitted pending request and its exact replay while publication is unconfigured", async () => {
+    vi.stubEnv("FLUID_API_TEXT_WORKER_ORIGIN", "");
+    doubles.readiness.mockResolvedValue(null);
+    doubles.publish.mockResolvedValue({ state: "dispatch_pending" });
+    for (let replay = 0; replay < 2; replay += 1) {
+      const response = await enqueue(request(enqueueInput), params());
+      expect(response.status).toBe(202);
+      expect((await response.json()).job).toMatchObject({ id: jobId, state: "queued", dispatchState: "dispatch_pending" });
+    }
+    expect(doubles.rpc.mock.calls[0]).toEqual(doubles.rpc.mock.calls[1]);
+    expect(doubles.publish).toHaveBeenNthCalledWith(1, dispatch);
+    expect(doubles.publish).toHaveBeenNthCalledWith(2, dispatch);
+    expect(doubles.readiness).not.toHaveBeenCalled();
   });
 
   it("returns preserved partial output from owned successful steps and filters every boundary", async () => {
@@ -239,6 +326,7 @@ describe("strategy API authorization, bounded inputs and actual durable outputs"
   it.each([["40001", 500], ["40001", 503], ["PT409", 409]])("maps apply SQLSTATE %s and upstream HTTP %i to conflict", async (code, status) => {
     vi.stubEnv("FLUID_RUNTIME", "local");
     vi.stubEnv("VERCEL", "");
+    vi.stubEnv("VERCEL_ENV", undefined);
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     rows.job_steps = [resultStep];
     doubles.rpc.mockResolvedValue({ data: null, error: { code, message: "private-database-message" }, status });
@@ -259,6 +347,7 @@ describe("strategy API authorization, bounded inputs and actual durable outputs"
   ])("classifies unavailable apply RPC responses locally without serializing private data: $codeType/$safeStatus", async sample => {
     vi.stubEnv("FLUID_RUNTIME", "local");
     vi.stubEnv("VERCEL", "");
+    vi.stubEnv("VERCEL_ENV", undefined);
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     rows.job_steps = [resultStep];
     doubles.rpc.mockResolvedValue({ data: "private-response-body", error: {
@@ -277,6 +366,7 @@ describe("strategy API authorization, bounded inputs and actual durable outputs"
   ])("suppresses diagnostics outside the local runtime: $runtime/$vercel", async env => {
     vi.stubEnv("FLUID_RUNTIME", env.runtime);
     vi.stubEnv("VERCEL", env.vercel);
+    vi.stubEnv("VERCEL_ENV", undefined);
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     rows.job_steps = [resultStep];
     doubles.rpc.mockResolvedValue({ data: null, error: { code: "PGRST000" }, status: 503 });
@@ -287,6 +377,7 @@ describe("strategy API authorization, bounded inputs and actual durable outputs"
   it("distinguishes failed apply reads from malformed apply responses without logging schema paths or values", async () => {
     vi.stubEnv("FLUID_RUNTIME", "local");
     vi.stubEnv("VERCEL", "");
+    vi.stubEnv("VERCEL_ENV", undefined);
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     rows.job_steps = [{ ...resultStep, output: "private-output-value" }];
     expect((await apply(request({ expectedRevision: 1, stepKey: "proposal" }), params())).status).toBe(503);

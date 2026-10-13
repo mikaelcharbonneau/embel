@@ -15,6 +15,7 @@ import { parseClaimedJob, PostgresJobStore } from "./postgres-store";
 import { runOneJob, type HandlerRegistry, type JobHandler } from "./runner";
 import { createNamingSubscriptionHandlers } from "./handlers/chatgpt-naming";
 import { createNamingJobStore } from "./naming-store";
+import { expireStandaloneNamesLeases, reportStandaloneNamesReady, runOneStandaloneNamesJob } from "./standalone-names";
 
 export const LOCAL_WEB_ORIGIN = "http://127.0.0.1:3106";
 export const LOCAL_WORKER_ORIGIN = "http://127.0.0.1:3107";
@@ -330,7 +331,10 @@ export function createLocalChatGPTRuntime(options: {
             const catalog = await transport(selection.ownerId, selection.registrationId).listModels(AbortSignal.timeout(20_000));
             if (catalog.accountId !== selection.registrationId || !catalog.models.some(model => model.slug === selection.model)) throw new Error("Selected model unavailable");
           });
-          for (const entry of selection.policies) await assertReady(selection.ownerId, entry.operation, entry.policy);
+          for (const entry of selection.policies) {
+            await assertReady(selection.ownerId, entry.operation, entry.policy);
+            if (entry.operation === "naming.generate") await reportStandaloneNamesReady(database, entry.policy);
+          }
           const currentGroups = selections(await bindings());
           reconcileReady(currentGroups);
           const current = currentGroups.get(key);
@@ -347,6 +351,7 @@ export function createLocalChatGPTRuntime(options: {
     cycling = true;
     try {
       await new PostgresJobStore(database).expireLeases();
+      await expireStandaloneNamesLeases(database);
       for (const [key, selection] of ready) {
         if (signal.aborted || closed || blocked.has(key)) break;
         const controller = fences.get(key);
@@ -381,6 +386,10 @@ export function createLocalChatGPTRuntime(options: {
         }
         const store = createNamingJobStore(new SubscriptionJobStore(database, selection.ownerId, selection.registrationId, selection.policies), database);
         await runOneJob({ store, handlers, workerId, signal: AbortSignal.any([signal, controller.signal]) });
+        const standalonePolicy = selection.policies.find((entry): entry is Extract<OperationPolicy, { operation: "naming.generate" }> => entry.operation === "naming.generate");
+        if (standalonePolicy) await runOneStandaloneNamesJob({ database, ownerId: selection.ownerId, policy: standalonePolicy.policy,
+          transport: shared.transport, signal: AbortSignal.any([signal, controller.signal]),
+          assertReady: () => shared.assertReady("naming.generate", standalonePolicy.policy), onQuotaUnavailable: shared.onQuotaUnavailable });
       }
     } finally { cycling = false; }
   }

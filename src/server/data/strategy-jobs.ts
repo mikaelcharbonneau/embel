@@ -10,6 +10,8 @@ import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
 import { apiTextDispatchMessageSchema } from "@/domain/api-text-dispatch";
 import { publishApiTextDispatch } from "../api-text/publication";
+import { getApiTextPublicationOrigin } from "../api-text/config";
+import { getApiTextWorkerReadiness } from "../api-text/readiness";
 
 const jobColumns = "id,owner_id,project_id,operation,input_revision,state,progress,billing_mode,policy_identity,reserved_cost_microusd,actual_cost_microusd,cancel_requested_at,error_code,created_at,finished_at";
 const stepSchema = z.object({
@@ -72,7 +74,16 @@ export async function getStrategyAvailability(auth: AuthenticatedContext, projec
   if (projectId !== undefined) resourceId(projectId);
   const { data, error } = await auth.client.rpc("get_strategy_availability", { p_project_id: projectId ?? null });
   databaseError(error);
-  return parseStored(strategyAvailabilitySchema, data);
+  const availability = parseStored(strategyAvailabilitySchema, data);
+  if (availability.status !== "available" || availability.operations.every(operation => operation.billingMode === "chatgpt_subscription")) return availability;
+  // Caller-specific SQL remains authoritative for policy, eligibility and cost.
+  // A configured origin alone does not establish that its protected worker is
+  // reachable and qualified. Subscription readiness is independent of this probe.
+  const readiness = getApiTextPublicationOrigin() ? await getApiTextWorkerReadiness() : null;
+  const operations = availability.operations.filter(operation => operation.billingMode === "chatgpt_subscription" || readiness?.operations.some(readyOperation => readyOperation === operation.operation));
+  return parseStored(strategyAvailabilitySchema, operations.length
+    ? { status: "available", operations }
+    : { status: "unavailable", operations: [], reason: "worker_unavailable" });
 }
 
 async function withResults(auth: AuthenticatedContext, projectId: string, summaries: z.infer<typeof strategyJobSummarySchema>[]): Promise<StrategyJob[]> {

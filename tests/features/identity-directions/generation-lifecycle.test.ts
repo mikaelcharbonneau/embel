@@ -12,6 +12,7 @@ import type { LogoManualCommand, LogoWorkspaceV2 } from "@/domain/logo-workspace
 import { useIdentityDirections, type IdentityDirectionsController } from "@/features/identity-directions/components/use-identity-directions";
 import { IdentityDirectionsView } from "@/features/identity-directions/components/identity-directions-panel";
 import { directionFixture, id } from "./fixtures";
+import { visualOverview } from "../../fixtures/visual-direction";
 
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json" } });
 const deferred = <T,>() => { let resolve!: (value: T) => void; const promise = new Promise<T>(yes => { resolve = yes; }); return { promise, resolve }; };
@@ -21,6 +22,7 @@ async function until(check: () => void) { let error: unknown; for (let i = 0; i 
 async function setup(options: { available?: boolean; legacyUnavailable?: boolean; fonts?: boolean; lose?: boolean } = {}) {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true); vi.stubGlobal("crypto", webcrypto);
   const overview = directionFixture(); let history: IdentityDirectionsOverview | null = null, historyStatus = 200; let fonts = options.fonts === false ? [] : overview.fonts;
+  let visual = visualOverview({ ownerId: overview.ownerId, projectId: overview.projectId });
   let workspace: LogoWorkspaceV2 = { version: 2, ownerId: overview.ownerId, projectId: overview.projectId, approvedLogo: overview.currentApprovedLogo,
     heads: { projectRevision: 1, referenceRevision: 0, preferencesRevision: 0, workspaceRevision: 3, stageRevisions: { brief_references: 1, concepts: 0, vector: 1, refinements: 0, directions: 1, deliverables: 0 } },
     stages: { brief_references: { stage: "brief_references", id: id(6), revision: 1 }, concepts: null, vector: { stage: "vector", id: id(5), revision: 1 }, refinements: null, directions: { stage: "directions", id: id(8), revision: 1 }, deliverables: null }, staleStages: [],
@@ -40,6 +42,7 @@ async function setup(options: { available?: boolean; legacyUnavailable?: boolean
     if (path === "/api/session") return sessionWait ?? json({ user: { id: owner } });
     if (path.endsWith("/capabilities")) { const observed = Date.now(); return json({ ownerId: overview.ownerId, projectId: overview.projectId, observedAt: new Date(observed).toISOString(), operations: Object.fromEntries(logoOperationSchema.options.map(operation => [operation, capabilityReady && operation === "identity.logo_directions" ? { status: "available", expiresAt: new Date(observed + 30_000).toISOString() } : { status: "unavailable" }])) }); }
     if (path.endsWith("/fonts")) return json(fonts);
+    if (path.endsWith("/visual-direction")) return json(visual);
     if (path.endsWith("/quotes")) { quote = { id: id(100), ownerId: overview.ownerId, projectId: overview.projectId, request: body, expected: body.expected, inputHash: "a".repeat(64), policyIdentity: "b".repeat(64), handlerVersion: "directions-v1", provider: "synthetic", model: "synthetic-directions", engine: null, estimatedCostMicrousd: 10000, maxCostMicrousd: 25000, externalProviderCostMicrousd: null, expiresAt: "2099-01-01T00:00:00Z", conceptPlan: null, targetSlotIds: [] }; return json(quote); }
     if (path.endsWith("/requests")) {
       posts.push(body);
@@ -85,6 +88,7 @@ async function setup(options: { available?: boolean; legacyUnavailable?: boolean
     setOverviewStatus(status: number) { overviewStatus = status; },
     pauseHistory() { const pending = deferred<Response>(); historyWait = pending.promise; return pending; },
     setCapabilityReady(value: boolean) { capabilityReady = value; },
+    setVisualDirection(next: typeof visual) { visual = next; },
     setRequestStatus(status: number) { requestStatus = status; },
     setState(next: LogoRequestState) { state = next; }, setFonts(next: typeof fonts) { fonts = next; }, setWorkspace(next: LogoWorkspaceV2) { workspace = next; }, get workspace() { return workspace; },
     async navigate(show: boolean) { shown = show; await render(); },
@@ -95,6 +99,22 @@ async function setup(options: { available?: boolean; legacyUnavailable?: boolean
 }
 
 describe("mounted direction generation admission", () => {
+  it("requires review for saved inspiration and invalidates an estimate when reviewed guidance changes", async () => {
+    const f = await setup(); await until(() => expect(f.controller.generation?.state.canEstimate).toBe(true));
+    const visual = visualOverview({ ownerId: f.workspace.ownerId, projectId: f.workspace.projectId, likes: true });
+    f.setVisualDirection(visual);
+    await act(async () => { await f.controller.generation!.refreshFonts(); });
+    expect(f.controller.generation!.state.canEstimate).toBe(false);
+    expect(f.controller.generation!.state.unavailableReason).toContain("Review and save");
+    const reviewed = visualOverview({ ownerId: f.workspace.ownerId, projectId: f.workspace.projectId, likes: true, reviewed: true });
+    f.setVisualDirection(reviewed);
+    await act(async () => { await f.controller.generation!.refreshFonts(); await f.controller.generation!.prepare(); });
+    expect(f.quote).not.toBeNull(); expect(f.posts).toHaveLength(0);
+    f.setVisualDirection({ ...reviewed, current: { ...reviewed.current!, id: id(700), revision: 2, guidance: { ...reviewed.current!.guidance, colors: "Different color guidance" } }, history: [reviewed.current!] });
+    await act(async () => { await f.controller.generation!.confirmQuote(id(100)); });
+    expect(f.posts).toHaveLength(0); expect(f.controller.generation!.state.generation.quote).toBeNull();
+    expect(f.controller.generation!.state.message).toContain("reviewed visual direction");
+  });
   it("prepares a directions-only estimate and requires a separate explicit cost confirmation", async () => {
     const f = await setup();
     await until(() => expect(f.controller.generation?.state.canEstimate).toBe(true));

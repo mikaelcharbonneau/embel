@@ -5,6 +5,7 @@ import type { LogoWorkspaceReloadResult } from "../identity/use-logo-workspace";
 import type { LogoWorkspaceV2 } from "../../domain/logo-workspace";
 import { AccountLogoAdmissionRejectedError, type AccountLogoClient } from "../identity/account-logo-client";
 import { AccountRequestError, accountErrorMessage } from "../workspace/account-api";
+import { checkLogoQuoteReferences, LogoReferenceLimitError } from "./reference-limit";
 
 export type LogoCreationState = {
   phase: "idle" | "quoting" | "awaiting_confirmation" | "admitting" | "active" | "needs_reconciliation" | "rejected" | "refreshing_workspace" | "resolve_draft";
@@ -29,6 +30,7 @@ const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.str
 const recoveryMessage = "The outcome is not confirmed. Your original request is kept. Check it before trying again.";
 const rejectedMessage = "This request was not admitted. Return to cost review for a new estimate before starting any generation.";
 const readinessMessage = "This operation is currently unavailable. Your estimate is kept; check availability again before confirming.";
+const preparationReadinessMessage = "This operation is currently unavailable. Refresh operation availability, then review the cost again. Your saved versions are kept.";
 export function logoOperationForQuote(request: LogoQuoteRequest): LogoOperation {
   switch (request.operation) {
     case "vectorize": return "identity.logo_vectorize";
@@ -125,8 +127,12 @@ export function createLogoCreationController(input: LogoCreationControllerInput)
         if (input.getPendingIntent()) { emit({ ...state, phase: state.phase === "active" ? "active" : "needs_reconciliation", quote: null, error: recoveryMessage }); return; }
         const parsed = logoQuoteRequestSchema.parse(request), workspace = input.getWorkspace();
         if (!workspace || input.hasUnsavedInputs() || !same(parsed.expected, workspace.heads)) throw new AccountRequestError(409);
-        if (!available(parsed)) throw new AccountRequestError(503);
+        if (!available(parsed)) { emit({ ...state, phase: "idle", quote: null, error: preparationReadinessMessage }); return; }
         emit({ phase: "quoting", quote: null, request: null, error: null });
+        await checkLogoQuoteReferences({ client: input.client, ownerId: workspace.ownerId, projectId: input.projectId, request: parsed, signal: token.signal });
+        if (!token.current()) return;
+        if (input.hasUnsavedInputs() || !same(parsed.expected, input.getWorkspace()?.heads)) throw new AccountRequestError(409);
+        if (!available(parsed)) { emit({ ...state, phase: "idle", quote: null, error: preparationReadinessMessage }); return; }
         const value = await input.client.quoteLogoOperation(parsed, token.signal);
         if (!token.current()) return;
         if (!value) throw new AccountRequestError(503);
@@ -136,7 +142,7 @@ export function createLogoCreationController(input: LogoCreationControllerInput)
       } catch (error) {
         if (token.current()) {
           const conflict = error instanceof AccountRequestError && error.status === 409;
-          emit({ ...state, phase: conflict ? input.hasUnsavedInputs() ? "resolve_draft" : "rejected" : "idle", quote: null, error: conflict ? staleMessage : accountErrorMessage(error) });
+          emit({ ...state, phase: conflict ? input.hasUnsavedInputs() ? "resolve_draft" : "rejected" : "idle", quote: null, error: conflict ? staleMessage : error instanceof LogoReferenceLimitError ? error.message : accountErrorMessage(error) });
         }
       } finally { token.end(); }
     },

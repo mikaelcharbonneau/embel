@@ -4,7 +4,7 @@ import { useState, type ReactNode } from "react";
 import { AccountStatus, useAccountSession } from "@/components/workspace/account-session";
 import { HandlesWorkspace } from "@/features/handles-workspace/handles-workspace";
 import { createEmptyHandlesDraft, standalonePayloadCodec } from "@/features/handles-workspace/account-codec";
-import { unavailableHandleAdapter } from "@/features/handles-workspace/adapters";
+import { useStandaloneLiveChecks } from "./use-standalone-live-checks";
 import { handlesAccountSourceLabel, handlesImportedName, importHandlesName } from "./handles-account-adapter";
 import type { StandaloneDraftMemory } from "./standalone-draft-memory";
 import { useStandaloneWorkspace } from "./use-standalone-workspace";
@@ -13,6 +13,8 @@ import { useSavedStandalonePromotion } from "./use-saved-standalone-promotion";
 export type HandlesAccountEditorProps = { memory: StandaloneDraftMemory; importProjectId?: string; importProjectTitle?: string; projectPicker?: ReactNode };
 
 function HandlesAccountContent({ memory, importProjectId, importProjectTitle, projectPicker }: HandlesAccountEditorProps) {
+  const live = useStandaloneLiveChecks(memory);
+  const { session: account, isCurrent } = useAccountSession();
   const workspace = useStandaloneWorkspace({ codec: standalonePayloadCodec, emptyPayload: createEmptyHandlesDraft, memory });
   const promotion = useSavedStandalonePromotion("handles", workspace, memory);
   const [confirmReload, setConfirmReload] = useState(false);
@@ -46,7 +48,7 @@ function HandlesAccountContent({ memory, importProjectId, importProjectTitle, pr
     </section>
     {promotion.controls}
   </>;
-  return <HandlesWorkspace key={editorEpoch} value={workspace.payload} onChange={workspace.setPayload} importedNames={workspace.imports.map(handlesImportedName)} adapter={unavailableHandleAdapter} storageNote={storageNote} sourceLabel={source => handlesAccountSourceLabel(source, workspace.imports)} disabled={!workspace.canEdit} draftControls={draftControls} onCreateBrand={promotion.select ? bundle => promotion.select?.({ tool: "handles", bundleId: bundle.id }) : undefined} />;
+  return <HandlesWorkspace key={editorEpoch} value={workspace.payload} onChange={workspace.setPayload} importedNames={workspace.imports.map(handlesImportedName)} adapter={live?.handles} saveCheckEvidence={false} canExport={() => account.status === "ready" && isCurrent(account) && memory.isCurrent(account)} storageNote={`${storageNote} Provider observations stay in the current comparison; saved bundles retain your choices only.`} sourceLabel={source => handlesAccountSourceLabel(source, workspace.imports)} disabled={!workspace.canEdit} draftControls={draftControls} onCreateBrand={promotion.select ? bundle => promotion.select?.({ tool: "handles", bundleId: bundle.id }) : undefined} />;
 }
 
 /** Remount every transient matrix/form/request on owner or verification generation changes. */

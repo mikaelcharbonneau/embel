@@ -27,11 +27,11 @@ export function LogoBriefFields({
     </div>
     <p className={styles.muted}>Write a short brief or choose to reuse your saved Strategy. You can start before Strategy is complete.</p>
     {sourceProjectRevision !== undefined && <p className={styles.note}>Copied from Strategy revision {sourceProjectRevision}. Review and edit the brief below.</p>}
-    {nameConflict && <p className={styles.warning} role="alert">Your saved and supplied names differ. Choose the exact brand name before saving.</p>}
+    {nameConflict && <p className={styles.warning} role="alert">Your selected name differs from the original supplied name. The selected name is copied below; review its exact spelling before saving.</p>}
     <div className={styles.fields}>
       {fields.map(([key, label]) => <label className={styles.field} key={key}>
         <span>{label}</span>
-        {key === "name" ? <input aria-label={label} type="text" value={draft[key]} disabled={!onChange} aria-invalid={nameConflict || Array.from(draft.name).length > 200}
+        {key === "name" ? <input aria-label={label} type="text" value={draft[key]} disabled={!onChange} aria-invalid={Array.from(draft.name).length > 200}
           onChange={event => onChange?.({ ...draft, [key]: event.currentTarget.value })} /> :
           <textarea aria-label={label} rows={3} value={draft[key]} disabled={!onChange}
             onChange={event => onChange?.({ ...draft, [key]: event.currentTarget.value })} />}

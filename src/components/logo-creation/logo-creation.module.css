@@ -67,6 +67,9 @@
 .conceptCard .cardHeading { margin-top: 12px; }
 .conceptCard .preview { margin: 12px 0; border: 0; border-radius: 6px; }
 .conceptCard > button { margin-top: 8px; }
+.comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.comparisonEmpty { display: grid; place-items: center; min-height: 200px; border: 1px dashed var(--border, #e4e3df); border-radius: 10px; padding: 20px; color: var(--secondary, #696965); font-size: 13px; text-align: center; }
+@media (max-width: 600px) { .comparison { grid-template-columns: minmax(0, 1fr); } }
 .choice { border-radius: 999px; font-size: var(--font-ui, 13px); min-height: 44px; }
 .choice:has(input:checked) { border-color: var(--text); color: var(--text); background: var(--surface); }
 .warning { background: var(--surface); color: var(--text); border: 1px solid var(--border); }

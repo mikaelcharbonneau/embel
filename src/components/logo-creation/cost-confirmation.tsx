@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import type { LogoCreationController } from "./creation-controller";
 import type { LogoBillingObservation, LogoConceptBatch, LogoCostQuote } from "../../domain/logo-jobs";
 import type { LogoRasterSource } from "../../domain/logo-workspace";
@@ -64,16 +64,26 @@ export function LogoCostConfirmationView({ quote = null, billing = null, batch =
 
 
 export function LogoCostConfirmation({ controller, batch = null }: { controller: LogoCreationController; batch?: LogoConceptBatch | null }) {
-  const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot, controller.getSnapshot);
+  const trigger = useRef<{ controller: LogoCreationController; element: HTMLElement } | null>(null);
+  const subscribe = useCallback((listener: () => void) => controller.subscribe(() => {
+    // Capture synchronously, before quoting disables and blurs the triggering
+    // control. Waiting for the dialog effect loses that keyboard return target.
+    if (controller.getSnapshot().phase === "quoting") {
+      const element = document.activeElement;
+      trigger.current = element instanceof HTMLElement && element !== document.body ? { controller, element } : null;
+    }
+    listener();
+  }), [controller]);
+  const state = useSyncExternalStore(subscribe, controller.getSnapshot, controller.getSnapshot);
   const dialog = useRef<HTMLDialogElement>(null);
   const shown = state.quote !== null && (state.phase === "awaiting_confirmation" || state.phase === "admitting");
   useEffect(() => {
     const element = dialog.current;
     if (!shown || !element) return;
-    const previous = document.activeElement;
+    const previous = trigger.current?.controller === controller ? trigger.current.element : document.activeElement;
     element.showModal();
     return () => { element.close(); if (previous instanceof HTMLElement && previous.isConnected) previous.focus(); };
-  }, [shown]);
+  }, [shown, controller]);
   return <>
     {state.phase === "quoting" && <p role="status" className={styles.note}>Preparing your cost estimate…</p>}
     {state.error && <p role="status" className={styles.warning}>{state.error}</p>}

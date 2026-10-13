@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { z } from "zod";
 import { accountProjectResponseSchema, accountRevisionResponseSchema, updateProjectInputSchema } from "@/domain/project-api";
-import { accountErrorMessage, accountRequest, AccountRequestError } from "./account-api";
+import { accountErrorMessage, AccountRequestError } from "./account-api";
+import { boundedAccountRequest } from "./bounded-account-request";
 import { AccountStatus, useAccountSession } from "./account-session";
 import { accountProjectDraft, draftContext, draftValidationMessage } from "./project-draft-adapter";
 import { copyToLocalDraft, draftTitle, scopeLabel, type LocalDraft } from "./local-drafts";
@@ -35,7 +36,7 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
   useEffect(() => {
     if (session.status !== "ready" || !validId) return;
     const controller = new AbortController();
-    void accountRequest(`/api/projects/${projectId}`, accountProjectResponseSchema, { signal: controller.signal }).then(({ project }) => {
+    void boundedAccountRequest(`/api/projects/${projectId}`, accountProjectResponseSchema, { signal: controller.signal }).then(({ project }) => {
       if (controller.signal.aborted || !isCurrent(session)) return;
       if (project.owner_id !== session.userId || project.id !== projectId) { expire(session); return; }
       setLoadError(null);
@@ -93,7 +94,7 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
     catch { setOperation({ generation: account.generation, projectId, busy: false, error: draftValidationMessage(submittedDraft) }); return null; }
     const controller = begin();
     try {
-      const { revision } = await accountRequest(`/api/projects/${projectId}`, accountRevisionResponseSchema, { method: "PATCH", body, signal: controller.signal });
+      const { revision } = await boundedAccountRequest(`/api/projects/${projectId}`, accountRevisionResponseSchema, { method: "PATCH", body, signal: controller.signal });
       if (controller.signal.aborted || !isCurrent(account)) return null;
       if (revision.owner_id !== account.userId || revision.project_id !== projectId) { expire(account); return null; }
       if (revision.revision !== before.saved.current_revision + 1) throw new AccountRequestError(502);
@@ -111,7 +112,7 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
     if (!isCurrent(account) || busy || changed(active) || active.conflict) return;
     const controller = begin();
     try {
-      const { project } = await accountRequest(`/api/projects/${projectId}/expand`, accountProjectResponseSchema, { method: "POST", body: { expectedRevision: active.saved.current_revision }, signal: controller.signal });
+      const { project } = await boundedAccountRequest(`/api/projects/${projectId}/expand`, accountProjectResponseSchema, { method: "POST", body: { expectedRevision: active.saved.current_revision }, signal: controller.signal });
       if (controller.signal.aborted || !isCurrent(account)) return;
       if (project.owner_id !== account.userId || project.id !== projectId) { expire(account); return; }
       if (project.scope !== "complete_brand" || project.current_revision !== active.saved.current_revision + 1) throw new AccountRequestError(502);
@@ -123,7 +124,7 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
     if (!isCurrent(account) || busy) return;
     const controller = begin();
     try {
-      const { project } = await accountRequest(`/api/projects/${projectId}`, accountProjectResponseSchema, { signal: controller.signal });
+      const { project } = await boundedAccountRequest(`/api/projects/${projectId}`, accountProjectResponseSchema, { signal: controller.signal });
       if (controller.signal.aborted || !isCurrent(account)) return;
       if (project.owner_id !== account.userId || project.id !== projectId) { expire(account); return; }
       if (drafts.get(projectId)?.draft !== active.draft) {
@@ -162,7 +163,8 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
     {namingHint && <p className="field-hint">{namingHint}</p>}
   </>}{active.saved.scope !== "naming_only" && <>
     {identityBlocked ? <button className="button secondary small" type="button" disabled>Open logo workspace</button> : <Link className="button secondary small" href={`/brands/account/${projectId}/logo`}>Open logo workspace</Link>}
-    {identityBlocked ? <button className="button secondary small" type="button" disabled>Open Identity</button> : <Link className="button secondary small" href={`/brands/account/${projectId}/identity`}>Open Identity</Link>}
+    {identityBlocked ? <button className="button secondary small" type="button" disabled>Open Inspiration</button> : <Link className="button secondary small" href={`/brands/account/${projectId}/inspiration`}>Open Inspiration</Link>}
+    {identityBlocked ? <button className="button secondary small" type="button" disabled>Saved references and systems</button> : <Link className="text-link" href={`/brands/account/${projectId}/identity`}>Saved references and systems</Link>}
     {identityHint && <p className="field-hint">{identityHint}</p>}
   </>}</div>;
   const projectContext = <><div className="idea-source-wrap"><IdeaSourceBanner key={`${projectId}:${account.userId}:${account.generation}`} account={account} projectId={projectId} /></div><AccountProjectContinuity key={`continuity:${projectId}:${account.userId}:${account.generation}`} account={account} project={active.saved} dirty={changed(active)} conflicted={active.conflict} expanding={Boolean(busy)} onExpand={expand} /></>;

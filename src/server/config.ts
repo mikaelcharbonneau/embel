@@ -1,6 +1,6 @@
 import "server-only";
 import { ApiError } from "./http/errors";
-import { getVercelPreviewOrigin } from "./preview-origin.mjs";
+import { getVercelPreviewOrigin, getVercelProductionOrigin } from "./preview-origin.mjs";
 
 type Environment = Record<string, string | undefined>;
 
@@ -28,6 +28,7 @@ export function getSupabaseConfiguration(env: Environment = process.env) {
 export function getApplicationOrigin(env: Environment = process.env): string {
   try {
     if (env.VERCEL_ENV === "preview") return getVercelPreviewOrigin(env);
+    if (env.VERCEL_ENV === "production") return getVercelProductionOrigin(env);
     const origin = new URL(env.APP_ORIGIN ?? "");
     const local = ["localhost", "127.0.0.1", "[::1]"].includes(origin.hostname);
     const approvedLocalRuntime = env.FLUID_RUNTIME === "local" && !env.VERCEL && origin.origin === "http://127.0.0.1:3106";

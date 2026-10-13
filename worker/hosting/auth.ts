@@ -1,20 +1,24 @@
 import { timingSafeEqual } from "node:crypto";
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from "jose";
 
-const keys = createRemoteJWKSet(new URL("https://oidc.vercel.com/.well-known/jwks"), { timeoutDuration: 3_000 });
+const APPROVED_ISSUER = "https://oidc.vercel.com/embel";
+const APPROVED_AUDIENCE = "https://vercel.com/embel";
+const keys = createRemoteJWKSet(new URL(`${APPROVED_ISSUER}/.well-known/jwks`), { timeoutDuration: 3_000 });
 export const APPROVED_WEB_PROJECT = "prj_WKrFUPy3wptZ3qI9l1hTuqPmzkDt";
-export const APPROVED_TEAM = "team_f2xtDdokmMW21ByVgpJzIDDV";
+export const APPROVED_TEAM = "team_0Koie5796IDOraQkDFg6J0AF";
 export type PublisherTrust = { issuer: string; audience: string };
 
 /** Verify signature and exact workload claims, independently of edge protection. */
 export async function verifyPublisher(authorization: string | null, configuration: PublisherTrust, jwks: JWTVerifyGetKey = keys): Promise<void> {
   if (!authorization?.startsWith("Bearer ") || authorization.length > 16_384) throw new Error("Unauthorized");
-  if (!/^https:\/\/oidc\.vercel\.com(?:\/[A-Za-z0-9_-]+)?$/.test(configuration.issuer) || !/^https:\/\/vercel\.com\/[A-Za-z0-9_-]+$/.test(configuration.audience)) throw new Error("Unconfigured publisher trust");
+  if (configuration.issuer !== APPROVED_ISSUER || configuration.audience !== APPROVED_AUDIENCE) throw new Error("Unconfigured publisher trust");
   const { payload } = await jwtVerify(authorization.slice(7), jwks, {
     issuer: configuration.issuer, audience: configuration.audience, algorithms: ["RS256"],
-    requiredClaims: ["iat", "exp", "owner_id", "project_id", "environment"], maxTokenAge: "2h",
+    requiredClaims: ["iat", "exp", "sub", "owner_id", "project_id", "environment"], maxTokenAge: "2h",
   });
-  if (payload.owner_id !== APPROVED_TEAM || payload.project_id !== APPROVED_WEB_PROJECT || payload.environment !== "preview") throw new Error("Unauthorized");
+  if (payload.owner_id !== APPROVED_TEAM || payload.project_id !== APPROVED_WEB_PROJECT || payload.aud !== APPROVED_AUDIENCE ||
+      (payload.environment !== "preview" && payload.environment !== "production") ||
+      payload.sub !== `owner:embel:project:fluid-platform-preview:environment:${payload.environment}`) throw new Error("Unauthorized");
 }
 export function verifyCron(authorization: string | null, secret: string | undefined): boolean {
   return cronAuthFailure(authorization, secret) === null;

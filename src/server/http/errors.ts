@@ -3,7 +3,7 @@ import "server-only";
 export type ApiErrorCode =
   | "unauthenticated" | "not_found" | "conflict" | "invalid_input"
   | "forbidden_origin" | "body_too_large" | "integration_unavailable" | "internal_error"
-  | "invalid_credentials" | "auth_rate_limited" | "naming_history_capacity";
+  | "invalid_credentials" | "signup_failed" | "auth_rate_limited" | "naming_history_capacity";
 
 const failures = {
   unauthenticated: [401, "Sign in to continue."],
@@ -16,7 +16,8 @@ const failures = {
   integration_unavailable: [503, "This integration is not configured or is unavailable."],
   internal_error: [500, "The request could not be completed."],
   invalid_credentials: [401, "The email and password could not be verified."],
-  auth_rate_limited: [429, "Too many sign-in attempts. Wait before trying again."],
+  signup_failed: [422, "Account creation could not be completed with these details."],
+  auth_rate_limited: [429, "Too many account attempts. Wait before trying again."],
 } as const;
 
 export class ApiError extends Error {

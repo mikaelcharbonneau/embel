@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { asRole, asSubscriptionWorker, claim, createTestDatabase, enqueue, HASH, OWNER_A, OWNER_B, registerPlan, resetFixture, seedProject, type TestDatabase } from "./local-supabase";
 
 // Explicitly reviewed additions, not an inventory copied from pg_class. The flag
@@ -28,15 +29,28 @@ const reviewedLogoAndHomeTables = [
   ["logo_vector_edit_cancellations", false],
 ] as const;
 
+// Explicit review of the integrated project handoffs: these public tables have
+// owner-filtered SELECT only; all writes go through their narrow checked RPCs.
+const reviewedWorkflowTables = [
+  ["project_inspiration_heads", true], ["project_inspiration_choices", true],
+  ["project_visual_directions", true], ["project_screening_records", true],
+] as const;
+const reviewedReadOnlyTables = [...reviewedLogoAndHomeTables, ...reviewedWorkflowTables];
+
 describe("local PostgreSQL ownership boundaries (not live Supabase)", () => {
   let db: TestDatabase;
-  beforeAll(async () => { db = await createTestDatabase(); }, 30_000);
+  beforeAll(async () => {
+    db = await createTestDatabase({ additionalMigrations: [
+      await readFile(new URL("../../supabase/candidates/project_screening.sql", import.meta.url), "utf8"),
+    ] });
+  }, 300_000); // Cold local engine/migration setup, not an application deadline.
   afterAll(async () => { await db?.close(); });
   beforeEach(async () => { await resetFixture(db); });
 
   it("keeps every owned table under RLS and denies anonymous access", async () => {
     const tables = await db.query<{ relname: string; relrowsecurity: boolean; relforcerowsecurity: boolean }>("select relname, relrowsecurity, relforcerowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r'");
     expect(new Set(tables.rows.map(table => table.relname))).toEqual(new Set([
+      "account_profiles",
       "projects", "project_revisions", "assets", "asset_versions", "asset_selections",
       "asset_heads", "asset_selection_receipts",
       "identity_reference_heads", "identity_references", "identity_reference_reactions", "identity_reference_snapshots",
@@ -50,7 +64,7 @@ describe("local PostgreSQL ownership boundaries (not live Supabase)", () => {
       "standalone_workspaces", "standalone_workspace_revisions",
       "logo_workspaces", "logo_stage_revisions", "logo_stage_heads",
       "logo_reference_sources", "logo_reference_snapshots", "logo_workspace_requests",
-      ...reviewedLogoAndHomeTables.map(([table]) => table),
+      ...reviewedReadOnlyTables.map(([table]) => table),
     ]));
     for (const table of tables.rows) {
       expect(table.relrowsecurity, `${table.relname} RLS`).toBe(true);
@@ -64,10 +78,10 @@ describe("local PostgreSQL ownership boundaries (not live Supabase)", () => {
     });
   });
 
-  it("keeps reviewed logo and Home tables read-only for clients and inaccessible to unrelated workers", async () => {
+  it("keeps reviewed logo, Home and workflow tables read-only for clients and inaccessible to unrelated workers", async () => {
     const principal = await asSubscriptionWorker(db, OWNER_A, async () =>
       (await db.query<{ login: string }>("select session_user as login")).rows[0]!.login);
-    for (const [table, authenticatedRead] of reviewedLogoAndHomeTables) {
+    for (const [table, authenticatedRead] of reviewedReadOnlyTables) {
       for (const role of ["anon", "authenticated", "service_role", principal]) {
         const grants = await db.query<{ read: boolean; column_read: boolean; mutate: boolean; column_mutate: boolean }>(
           "select has_table_privilege($1,$2,'SELECT') as read,has_any_column_privilege($1,$2,'SELECT') as column_read,has_table_privilege($1,$2,'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') as mutate,has_any_column_privilege($1,$2,'INSERT,UPDATE,REFERENCES') as column_mutate",
@@ -83,7 +97,7 @@ describe("local PostgreSQL ownership boundaries (not live Supabase)", () => {
     // A nominal authenticated role without a verified subject sees no owned
     // rows; internal tables deny SELECT outright even to authenticated clients.
     await asRole(db, "authenticated", null, async () => {
-      for (const [table, authenticatedRead] of reviewedLogoAndHomeTables) {
+      for (const [table, authenticatedRead] of reviewedReadOnlyTables) {
         if (authenticatedRead) expect((await db.query(`select owner_id from public.${table}`)).rows, table).toEqual([]);
         else await expect(db.query(`select owner_id from public.${table}`), table).rejects.toMatchObject({ code: "42501" });
         await expect(db.query(`update public.${table} set owner_id=owner_id`), table).rejects.toMatchObject({ code: "42501" });

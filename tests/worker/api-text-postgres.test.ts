@@ -54,4 +54,21 @@ describe("API delivery and real candidate SQL integration (no external provider)
     expect((await db.query("select reserved_microusd,spent_microusd from public.usage_accounts where owner_id=$1", [OWNER_A])).rows[0])
       .toEqual({ reserved_microusd: 122880, spent_microusd: 0 });
   });
+  it("cancels an unpublished admission and rejects a late delivery without inference or another reservation", async () => {
+    const message = await admit();
+    await asRole(db, "authenticated", OWNER_A, () => db.query("select public.request_job_cancel($1)", [message.jobId]));
+    expect(await admit()).toEqual(message);
+    const transport = transportFixture();
+    const execute = () => asApiTextWorker(db, OWNER_A, () => runApiTextDelivery({ message, database: db, configuration, deploymentId, transport }));
+    expect(await execute()).toEqual({ disposition: "ack", state: "cancelled" });
+    expect(await execute()).toEqual({ disposition: "ack", state: "cancelled" });
+    expect(transport.countInputTokens).not.toHaveBeenCalled();
+    expect(transport.createResponse).not.toHaveBeenCalled();
+    expect((await db.query("select state,attempts,actual_cost_microusd from public.jobs where id=$1", [message.jobId])).rows[0])
+      .toEqual({ state: "cancelled", attempts: 0, actual_cost_microusd: 0 });
+    expect((await db.query("select reserved_microusd,spent_microusd,provider_actual_microusd from public.usage_accounts where owner_id=$1", [OWNER_A])).rows[0])
+      .toEqual({ reserved_microusd: 0, spent_microusd: 0, provider_actual_microusd: 0 });
+    expect((await db.query("select count(*)::int as count from fluid_private.api_text_dispatches where job_id=$1", [message.jobId])).rows[0])
+      .toEqual({ count: 1 });
+  });
 });

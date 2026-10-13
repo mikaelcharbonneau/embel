@@ -44,7 +44,7 @@ beforeEach(() => {
   runtime = ready(); fetcher = vi.fn(defaultFetch); vi.stubGlobal("fetch", fetcher);
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
-afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.replaceChildren(); vi.unstubAllGlobals(); });
+afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.replaceChildren(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe("AI prompt start readiness and recovery", () => {
   it("keeps signed-out account actions separated in a wrapping row", async () => {
@@ -264,5 +264,52 @@ describe("response-only Home start", () => {
     expect(await start()).toBe(true);
     expect(mutations()).toHaveLength(2);
     expect(window.sessionStorage.getItem("fluid.strategy-consent.v1")).toBe(consent);
+  });
+});
+
+describe("stalled Home strategy request recovery", () => {
+  it("releases a stalled readiness check without saving or sending, and ignores its late reply", async () => {
+    vi.useFakeTimers(); await render();
+    const stalled = deferred<Response>();
+    fetcher.mockImplementation((path: string, init: RequestInit) => path === "/api/strategy" ? stalled.promise : defaultFetch(path, init));
+    let outcome: boolean | undefined;
+    await act(async () => { void api.start(draft).then(value => { outcome = value; }); });
+    expect(api.pending).toBe(true);
+    await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+    expect(api.pending).toBe(false); expect(outcome).toBe(false);
+    expect(mutations()).toHaveLength(0);
+    await act(async () => stalled.resolve(Response.json({ availability: ready() })));
+    expect(mutations()).toHaveLength(0); expect(mock.push).not.toHaveBeenCalled();
+    fetcher.mockImplementation(defaultFetch);
+    expect(await start()).toBe(true); expect(mutations()).toHaveLength(2);
+  });
+
+  it("keeps a timed-out non-idempotent save fenced across remount and a late success", async () => {
+    vi.useFakeTimers(); await render();
+    const stalled = deferred<Response>();
+    fetcher.mockImplementation((path: string, init: RequestInit) => path === "/api/projects" ? stalled.promise : defaultFetch(path, init));
+    await act(async () => { void api.start(draft); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+    expect(api.pending).toBe(false); expect(api.locked).toBe(true);
+    expect(host.textContent).toContain("account save is not confirmed"); expect(mutations()).toHaveLength(1);
+    await act(async () => root!.unmount()); root = createRoot(host); await render();
+    await act(async () => stalled.resolve(Response.json({ project: project() })));
+    expect(await start()).toBe(false);
+    expect(mutations()).toHaveLength(1); expect(mock.push).not.toHaveBeenCalled();
+  });
+
+  it("retains the saved project after a stalled enqueue and opens it without resubmitting", async () => {
+    vi.useFakeTimers(); await render();
+    const stalled = deferred<Response>();
+    fetcher.mockImplementation((path: string, init: RequestInit) => path.endsWith("/strategy") && init.method === "POST" ? stalled.promise : defaultFetch(path, init));
+    await act(async () => { void api.start(draft); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+    expect(api.pending).toBe(false); expect(mutations()).toHaveLength(2);
+    expect(host.textContent).toContain("AI request is not confirmed");
+    expect(host.querySelector(`a[href='/brands/account/${projectId}']`)).not.toBeNull();
+    await act(async () => stalled.resolve(Response.json({ job: job() })));
+    expect(mock.push).not.toHaveBeenCalled();
+    expect(await start()).toBe(true);
+    expect(mutations()).toHaveLength(2); expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${projectId}`);
   });
 });

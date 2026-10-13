@@ -2,11 +2,12 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { IMAGE_MODEL } from "../../domain/providers";
+import { IMAGE_INPUT_LIMITS } from "../../domain/logo-image-limits";
 import { verifiedAssetBytesSchema, type VerifiedAssetBytes } from "../../domain/logo-deliverables";
 import { inspectIdentityRaster } from "../../features/logo-vector/server/converter";
 import { logoImageUsageSchema, type LogoImageUsage } from "./openai-image-usage";
 
-export const IMAGE_INPUT_LIMITS = Object.freeze({ images: 4, inputBytes: 20_971_520, outputBytes: 8_388_608, responseBytes: 12_582_912, promptCharacters: 32_000 });
+export { IMAGE_INPUT_LIMITS } from "../../domain/logo-image-limits";
 export type { LogoImageUsage } from "./openai-image-usage";
 export type OpenAIImageRequest = { model: typeof IMAGE_MODEL; prompt: string; size: "1024x1024"; quality: "medium"; images: readonly VerifiedAssetBytes[] };
 export type OpenAIImageResponse = { bytes: Uint8Array; mimeType: "image/png"; providerRequestId: string | null; responseHash: string; usage: LogoImageUsage | null };

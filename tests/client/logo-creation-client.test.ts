@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createAccountLogoClient } from "../../src/components/identity/account-logo-client";
 import { createLogoCreationController } from "../../src/components/logo-creation/creation-controller";
 import type { LogoGenerationIntent, LogoRequestState, LogoOperation } from "../../src/domain/logo-jobs";
-import { syntheticLogoQuote, syntheticLogoWorkspace } from "../fixtures/logo-creation";
+import { syntheticLogoQuote, syntheticLogoReferences, syntheticLogoWorkspace, syntheticResolvedLogoConcept } from "../fixtures/logo-creation";
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json" } });
@@ -10,11 +10,20 @@ function setup(readiness?: (operation: LogoOperation) => boolean) {
   let workspace = syntheticLogoWorkspace(), current = true, dirty = false, pending: LogoGenerationIntent | null = null;
   workspace = { ...workspace, capabilities: { ...workspace.capabilities, generate: { status: "available" } } };
   const quote = { ...syntheticLogoQuote(), estimatedCostMicrousd: 6000, maxCostMicrousd: 12000 };
+  const source = syntheticResolvedLogoConcept(), reference = syntheticLogoReferences()[0]!;
+  let referenceCount = 0, holdReferences: Promise<void> | null = null, referencesStarted: (() => void) | null = null;
   let now = Date.parse("2026-10-06T11:00:00Z"), quoteStatus = 200, loseAdmission = false, rejection: "durable" | "generic" | null = null, nextKey = 501;
   let read: LogoRequestState = { status: "not_found" };
   const posted: LogoGenerationIntent[] = [], reads: string[] = [], paths: string[] = [];
   const fetcher: typeof fetch = async (url, init) => {
     const path = String(url); paths.push(path);
+    if (path.endsWith(`/stages/brief_references/revisions/${source.brief.id}`)) return json(source.brief);
+    if (path.endsWith(`/reference-snapshots/${source.referenceSnapshot.id}`)) {
+      referencesStarted?.();
+      if (holdReferences) await holdReferences;
+      return json({ ...source.referenceSnapshot, references: Array.from({ length: referenceCount }, (_, index) => ({ referenceId: id(700 + index), sourceKind: reference.sourceKind,
+        rightsEvidenceId: reference.rightsEvidenceId, aspects: reference.aspects, asset: { ...reference.asset, assetId: id(720 + index), versionId: id(740 + index) } })) });
+    }
     if (path.endsWith("/quotes")) return json(quote, quoteStatus);
     if (path.endsWith("/requests")) {
       const body = JSON.parse(String(init?.body)) as LogoGenerationIntent;
@@ -36,6 +45,8 @@ function setup(readiness?: (operation: LogoOperation) => boolean) {
     setRead(value: LogoRequestState) { read = value; }, dirty() { dirty = true; }, expire() { now = Date.parse(quote.expiresAt); },
     foreign() { current = false; }, headsChanged() { workspace = { ...workspace, heads: { ...workspace.heads, referenceRevision: 1 } }; },
     reject(kind: "durable" | "generic" | null) { loseAdmission = false; rejection = kind; },
+    referenceCount(count: number) { referenceCount = count; },
+    holdReferences() { let release!: () => void; const started = new Promise<void>(resolve => { referencesStarted = resolve; }); holdReferences = new Promise<void>(resolve => { release = resolve; }); return { started, release }; },
     lose() { loseAdmission = true; }, status(status: number) { quoteStatus = status; } };
 }
 
@@ -132,8 +143,20 @@ describe("explicit logo generation controller", () => {
   });
   it.each([401, 404, 409, 413, 422, 503])("handles quote HTTP %s without an admission or fallback", async status => {
     const s = setup(); s.status(status); await s.controller.prepare(s.quote.request);
-    expect(s.posted).toEqual([]); expect(s.paths).toHaveLength(1); expect(s.pending).toBeNull();
+    expect(s.posted).toEqual([]); expect(s.paths.filter(path => path.endsWith("/quotes"))).toHaveLength(1); expect(s.pending).toBeNull();
     expect(s.controller.getSnapshot().quote).toBeNull();
+  });
+  it("blocks over-limit source references before a quote and permits explicit review after saving a bounded set", async () => {
+    const s = setup(); s.referenceCount(5); await s.controller.prepare(s.quote.request);
+    expect(s.controller.getSnapshot()).toMatchObject({ phase: "idle", quote: null, error: expect.stringContaining("5 reference images") });
+    expect(s.paths.some(path => path.endsWith("/quotes"))).toBe(false); expect(s.posted).toEqual([]); expect(s.pending).toBeNull();
+    s.referenceCount(4); await s.controller.prepare(s.quote.request);
+    expect(s.controller.getSnapshot().phase).toBe("awaiting_confirmation"); expect(s.posted).toEqual([]);
+  });
+  it.each(["foreign", "dirty", "headsChanged"] as const)("does not quote after %s changes during the source reference preflight", async change => {
+    const s = setup(), gate = s.holdReferences();
+    const prepared = s.controller.prepare(s.quote.request); await gate.started; s[change](); gate.release(); await prepared;
+    expect(s.paths.some(path => path.endsWith("/quotes"))).toBe(false); expect(s.posted).toEqual([]); expect(s.pending).toBeNull();
   });
   it("fences account changes and disposal before confirmation", async () => {
     const s = setup(); await s.controller.prepare(s.quote.request); s.foreign();
@@ -144,6 +167,18 @@ describe("explicit logo generation controller", () => {
 
 
 describe("fresh exact-operation admission hints", () => {
+  it("keeps an interrupted source review recoverable and requires explicit retry and confirmation", async () => {
+    let ready = true; const s = setup(() => ready), gate = s.holdReferences();
+    const prepared = s.controller.prepare(s.quote.request); await gate.started; ready = false; gate.release(); await prepared;
+    expect(s.controller.getSnapshot()).toMatchObject({ phase: "idle", quote: null, error: expect.stringContaining("Refresh operation availability, then review the cost again") });
+    expect(s.paths.filter(path => path.endsWith("/quotes"))).toHaveLength(0); expect(s.posted).toEqual([]); expect(s.pending).toBeNull();
+    ready = true; s.controller.refreshInputs();
+    expect(s.paths.filter(path => path.endsWith("/quotes"))).toHaveLength(0);
+    await s.controller.prepare(s.quote.request);
+    expect(s.paths.filter(path => path.endsWith("/quotes"))).toHaveLength(1); expect(s.posted).toEqual([]); expect(s.pending).toBeNull();
+    await s.controller.confirmQuote(s.quote.id); await s.controller.confirmQuote(s.quote.id);
+    expect(s.posted).toHaveLength(1); expect(s.controller.getSnapshot().phase).toBe("active");
+  });
   it("blocks a concept quote when only directions or vectors are ready", async () => {
     const s = setup(operation => operation === "identity.logo_vectorize" || operation === "identity.logo_directions");
     await s.controller.prepare(s.quote.request);

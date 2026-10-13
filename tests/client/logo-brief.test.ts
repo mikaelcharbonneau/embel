@@ -14,7 +14,7 @@ describe("seedLogoBrief", () => {
     expect(seedLogoBrief(matching).draft.name).toBe("Élan & Co");
     const conflicting = structuredClone(matching);
     conflicting.intake.suppliedName = "Elan & Co";
-    expect(seedLogoBrief(conflicting)).toMatchObject({ nameConflict: true, draft: { name: "" } });
+    expect(seedLogoBrief(conflicting)).toMatchObject({ nameConflict: true, draft: { name: "Élan & Co" } });
     const decomposed = "E\u0301lan & Co";
     expect(seedLogoBrief(syntheticLogoContext({ selectedName: decomposed })).draft.name).toBe(decomposed);
   });

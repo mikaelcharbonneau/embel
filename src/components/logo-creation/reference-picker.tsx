@@ -1,6 +1,16 @@
 import { logoReferenceAspectSchema, type LogoReferenceRegistration, type LogoReferenceSelection, type LogoReferenceSnapshot } from "../../domain/logo-workspace";
 import { REFERENCE_ASPECT_LABELS } from "./presentation";
 import styles from "./logo-creation.module.css";
+import { IMAGE_INPUT_LIMITS } from "../../domain/logo-image-limits";
+
+export function LogoReferenceLimitNotice({ count }: { count: number }) {
+  return <div className={styles.panel} aria-label="Reference image limits">
+    <p className={styles.note}>{count} selected reference {count === 1 ? "image" : "images"}. Concepts allow up to {IMAGE_INPUT_LIMITS.images}. Each refinement allows up to {IMAGE_INPUT_LIMITS.images - 1} references plus its original logo image.</p>
+    {count > IMAGE_INPUT_LIMITS.images && <p className={styles.warning} role="status">Deselect extra references and save your selection before requesting new concepts. Your saved reference library and earlier versions are kept.</p>}
+    {count === IMAGE_INPUT_LIMITS.images && <p className={styles.note}>Image refinement is unavailable for a concept generated with {IMAGE_INPUT_LIMITS.images} references. Choose at most {IMAGE_INPUT_LIMITS.images - 1} if you plan to refine it later.</p>}
+    <p className={styles.note}>Earlier concepts and refinements keep their original references. Cost review checks those saved inputs.</p>
+  </div>;
+}
 
 /** Renders supplied owned registrations only; it cannot upload, import or grant rights. */
 export function LogoReferencePickerView({ references = [], selections = [], onChange, statusMessage = "Your choices are not saved yet. References guide an original result; they do not grant permission to copy another logo." }: {

@@ -23,7 +23,7 @@ test("auth overlay: keyboard, history and backdrop preserve the underlying works
   await expect(page.locator(".app-shell")).toHaveClass(/concept-settings/);
   await expect(page.getByRole("tab", { name: "Notifications", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(dialog.getByLabel("Password", { exact: true })).toHaveAttribute("autocomplete", "current-password");
-  await expect(dialog.getByText("Account creation is not available in this workspace.")).toBeVisible();
+  await expect(dialog.getByRole("link", { name: "Create account", exact: true })).toHaveAttribute("href", "/sign-up");
   for (let i = 0; i < 7; i++) {
     await page.keyboard.press("Tab");
     expect(await dialog.evaluate(element => element.contains(document.activeElement))).toBe(true);

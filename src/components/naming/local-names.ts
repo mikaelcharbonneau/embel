@@ -81,6 +81,10 @@ export const namesWorkspaceSchema = z.strictObject({
 });
 
 export type NamesWorkspace = z.infer<typeof namesWorkspaceSchema>;
+export function readNamesBackup(raw: string): NamesWorkspace {
+  if (new TextEncoder().encode(raw).byteLength > MAX_NAMES_BYTES) throw new Error("Choose a Names backup of at most 4 MB.");
+  return namesWorkspaceSchema.parse(JSON.parse(raw));
+}
 export type NameCandidate = NamesWorkspace["candidates"][number];
 export type NameRun = NamesWorkspace["runs"][number];
 export type NamesForm = z.infer<typeof formSchema>;
@@ -159,7 +163,7 @@ export function createNamesStore(options: { storage: () => StoragePort | null; c
     publish({ ...snapshot, error: message });
     return { ok: false, persisted: false, error: message };
   };
-  function persist(data: NamesWorkspace, replaceInvalid = false, uiOnly = false): NamesMutationResult {
+  function persist(data: NamesWorkspace, replaceInvalid = false, uiOnly = false, preserveOnFailure = false): NamesMutationResult {
     let raw: string;
     try {
       if (uiOnly && data.candidates === snapshot.data.candidates && data.runs === snapshot.data.runs) {
@@ -207,6 +211,11 @@ export function createNamesStore(options: { storage: () => StoragePort | null; c
     } catch {
       storage = "unavailable";
       error = "This change is in this tab only. Browser storage is unavailable or full; your previous saved workspace is intact.";
+    }
+    if (error && preserveOnFailure) {
+      if (storage === "unavailable") error = "The backup could not be saved. Your current workspace and previous saved data are unchanged.";
+      publish({ ...snapshot, storage, error });
+      return { ok: false, persisted: false, error };
     }
     publish({ loaded: true, data, storage, dirty: error !== null, error });
     return { ok: true, persisted: error === null, ...(error ? { error } : {}) };
@@ -401,13 +410,24 @@ export function createNamesStore(options: { storage: () => StoragePort | null; c
     hydrate();
     return persist(createEmptyNamesWorkspace());
   }
+  function restoreBackup(raw: string, expectedWorkspace: NamesWorkspace): NamesMutationResult {
+    hydrate();
+    if (snapshot.storage !== "available" || snapshot.dirty) return rejected("Resolve browser storage recovery before restoring a backup. Your workspace is unchanged.");
+    // A reset or loaded workspace can reuse a revision. Bind consent to the
+    // exact immutable snapshot shown when the user selected the file.
+    if (snapshot.data !== expectedWorkspace) return rejected("Your workspace changed after choosing this backup. Choose the file again before replacing it.");
+    try {
+      const restored = readNamesBackup(raw);
+      return persist({ ...restored, revision: snapshot.data.revision + 1 }, false, false, true);
+    } catch { return rejected("This is not a valid Fluid Names backup. Its names and transformation history must be intact. Your workspace is unchanged."); }
+  }
   function readSavedRaw() {
     try { return getStorage().getItem(NAMES_STORAGE_KEY); } catch { return null; }
   }
   return {
     hydrate, getSnapshot: () => snapshot, subscribe: (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
     onStorageChange, addManual, runWorkshop, retainGuidedResult, useGuidedWordList, updateUi, updateForm, updateContext, useAsSeed, togglePreference, toggleComparison,
-    clearComparison: () => updateUi({ comparisonIds: [], compareOpen: false }), retrySave, replaceInvalid, loadSaved, startFresh, readSavedRaw,
+    clearComparison: () => updateUi({ comparisonIds: [], compareOpen: false }), retrySave, replaceInvalid, loadSaved, startFresh, readSavedRaw, restoreBackup,
   };
 }
 

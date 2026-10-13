@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { z } from "zod";
-import { accountRequest, AccountRequestError } from "@/components/workspace/account-api";
+import { AccountRequestError } from "@/components/workspace/account-api";
+import { boundedAccountRequest } from "@/components/workspace/bounded-account-request";
 import { useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import type { AccountWorkspace } from "@/components/workspace/account-draft-memory";
 import { accountDraftChanged } from "@/components/workspace/account-draft-memory";
@@ -30,7 +31,7 @@ export function createNamingRequestScope(account: VerifiedAccount, isCurrent: (a
       if (!current()) return null;
       const controller = new AbortController(); controllers.add(controller);
       try {
-        const response = await accountRequest(path, schema, { ...options, signal: controller.signal });
+        const response = await boundedAccountRequest(path, schema, { ...options, signal: controller.signal });
         if (controller.signal.aborted || !current()) return null;
         if (!verify(response)) { expire(account); return null; }
         return response;
@@ -57,12 +58,13 @@ export function namingBatchIntentKey(projectId: string, projectRevision: number,
 }
 
 export function namingErrorMessage(error: unknown, retentionField?: "favorite" | "saved") {
-  if (retentionField && (!(error instanceof AccountRequestError) || [502, 503].includes(error.status))) {
+  if (retentionField && (!(error instanceof AccountRequestError) || [408, 502, 503].includes(error.status))) {
     return retentionField === "favorite"
       ? "The favorite change could not be confirmed. Check the latest version before trying again."
       : "The change to saved names could not be confirmed. Check the latest version before trying again.";
   }
   if (error instanceof AccountRequestError) {
+    if (error.status === 408) return "The naming request could not be confirmed in time. Check the latest version before trying again. Any saved request or name is retained.";
     if (error.code === "naming_history_capacity") return "This project’s naming history has reached the generation limit. Your saved names are preserved.";
     if (error.status === 404) return "These names are not available to this account.";
     if (error.status === 409) return "The project or naming workspace changed. Check the latest version before trying again. Earlier names are still retained.";
@@ -96,11 +98,13 @@ function mergeNames(first: ProjectNameEntry[], second: ProjectNameEntry[]) {
   const seen = new Set(first.map(entry => entry.candidate.id));
   return [...first, ...second.filter(entry => !seen.has(entry.candidate.id))];
 }
-function matchesView(entry: ProjectNameEntry, view: NamingViewState, selectedId?: string) {
-  const { candidate, retention } = entry;
-  if (view.filter === "favorite" && !retention.favorite || view.filter === "saved" && !retention.saved || view.filter === "retained" && !retention.favorite && !retention.saved && candidate.id !== selectedId) return false;
-  if (view.query && !candidate.value.toLowerCase().includes(view.query.toLowerCase())) return false;
-  return !view.visibleBatchId || candidate.origin.kind === "generated" && candidate.origin.batchId === view.visibleBatchId;
+function assertPageContinuation(cursor: { id: string; createdAt: string }, rows: readonly { id: string; createdAt: string }[]) {
+  let previous = cursor;
+  for (const row of rows) {
+    const difference = Date.parse(row.createdAt) - Date.parse(previous.createdAt);
+    if (difference < 0 || difference === 0 && row.id <= previous.id) throw new AccountRequestError(502);
+    previous = row;
+  }
 }
 const emptyWorkspace = () => null;
 
@@ -149,28 +153,48 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
     async function poll() {
       const sequence = ++readSequence.current;
       const startedEpoch = epoch.current;
+      const stillCurrent = () => active && scope.current() && sequence === readSequence.current && startedEpoch === epoch.current && !inFlight.current;
       try {
         const before = current.current;
         // The server resolves its saved view and the first page together, including changes from another tab.
         const reply = await scope.request(base, projectNamingOverviewSchema, value => ownedProject(value.project));
-        if (!reply || !active || sequence !== readSequence.current || startedEpoch !== epoch.current || inFlight.current) return;
+        if (!reply || !stillCurrent()) return;
         if (before && reply.project.current_revision < before.project.current_revision) return;
         const key = listingKey(reply.session?.viewState ?? initialNamingView);
         const previous = current.current;
-        const keepTail = previous && loadedListing.current === key && previous.candidates.items.length > 100;
-        const candidates = keepTail ? { ...reply.candidates, items: mergeNames(reply.candidates.items, previous.candidates.items).filter(entry => matchesView(entry, reply.session?.viewState ?? initialNamingView, reply.currentSelection?.candidate.id)), nextCursor: previous.candidates.nextCursor } : reply.candidates;
-        const loadedBatchIds = new Set(reply.batches.items.map(entry => entry.batch.id));
-        const batches = previous && previous.batches.items.length > 100 ? { ...reply.batches, items: [...reply.batches.items, ...previous.batches.items.filter(entry => !loadedBatchIds.has(entry.batch.id))], nextCursor: previous.batches.nextCursor } : reply.batches;
+        let candidates = reply.candidates, batches = reply.batches;
+        // Refresh the pages the user already opened. Reusing a cached terminal
+        // cursor hides later publications, and cached retention is not current.
+        // The previous visible depth bounds reads; this never starts generation.
+        const visibleCount = previous && loadedListing.current === key ? previous.candidates.items.length : 0;
+        const view = reply.session?.viewState ?? initialNamingView;
+        for (let page = 1; candidates.nextCursor && candidates.items.length < visibleCount && page < Math.ceil(visibleCount / 100); page += 1) {
+          const cursor = candidates.nextCursor;
+          const next = await scope.request(`${base}?${listingQuery(view, cursor)}`, projectNamingOverviewSchema, value => ownedProject(value.project));
+          if (!next || !stillCurrent()) return;
+          if (next.project.current_revision !== reply.project.current_revision || listingKey(next.session?.viewState ?? initialNamingView) !== key) throw new AccountRequestError(409);
+          assertPageContinuation(cursor, next.candidates.items.map(entry => entry.candidate));
+          candidates = { ...next.candidates, items: [...candidates.items, ...next.candidates.items] };
+        }
+        const visibleBatches = previous?.batches.items.length ?? 0;
+        for (let page = 1; batches.nextCursor && batches.items.length < visibleBatches && page < Math.ceil(visibleBatches / 100); page += 1) {
+          const cursor = batches.nextCursor;
+          const query = new URLSearchParams({ limit: "100", cursorId: cursor.id, cursorCreatedAt: cursor.createdAt });
+          const next = await scope.request(`${base}/batches?${query}`, namingBatchPageSchema, value => namingOwned(value, account.userId, projectId));
+          if (!next || !stillCurrent()) return;
+          assertPageContinuation(cursor, next.items.map(entry => entry.batch));
+          batches = { ...next, items: [...batches.items, ...next.items] };
+        }
         loadedListing.current = key;
         syncProject(reply.project); publish({ ...reply, candidates, batches }); setReadError(null); setListStatus("ready");
-      } catch (error) { if (active && scope.current() && startedEpoch === epoch.current) { setReadError(namingErrorMessage(error)); setListStatus("failed"); } }
+      } catch (error) { if (stillCurrent()) { setReadError(namingErrorMessage(error)); setListStatus("failed"); } }
       finally {
         if (active && scope.current()) timer = setTimeout(() => void poll(), current.current?.jobs.some(namingJobActive) ? 1200 : 15000);
       }
     }
     void poll();
     return () => { active = false; clearTimeout(timer); };
-  }, [base, ownedProject, publish, refreshVersion, scope, syncProject]);
+  }, [account.userId, base, ownedProject, projectId, publish, refreshVersion, scope, syncProject]);
 
   async function mutate<T>(operation: () => Promise<T | null>, shouldRefresh = true, retentionField?: "favorite" | "saved"): Promise<T | null> {
     if (!scope.current() || inFlight.current) return null;

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Icon } from "@/components/ui/icon";
+import { BrowserNameDialog } from "@/components/naming/browser-name-picker";
 import {
   availabilityAt, domainOrderSchema, orderLabel, prepareDomainSearch, purchasedDomainSchema,
   quoteBlockReason, readDomainCheck, readDomainQuote, unavailableDomainAdapter,
@@ -33,7 +34,7 @@ export type DomainsWorkspaceProps = {
 type Row = { domain: string; check: DomainCheck | null; quote: DomainQuote | null; status: "idle" | "checking" | "quoting"; error: string | null; requestAdapter?: DomainSearchAdapter };
 function blankRows(domains: string[]): Row[] { return domains.map(domain => ({ domain, check: null, quote: null, status: "idle", error: null })); }
 const defaultLibrary = { status: "unavailable", message: "Purchased-domain records are not connected." } as const;
-function date(value: string) { return `${new Date(value).toISOString().slice(0, 19).replace("T", " ")} UTC`; }
+function date(value: string) { return new Date(value).toLocaleString("en-CA", { timeZone: "America/Toronto", timeZoneName: "short" }); }
 function money(value: DomainQuote["total"]) {
   try {
     const formatter = new Intl.NumberFormat("en", { style: "currency", currency: value.currency });
@@ -155,7 +156,7 @@ export function DomainsWorkspace({ adapter = unavailableDomainAdapter, library =
       {!onCreateBrand && <p className={styles.muted}>Brand creation from a domain is not connected.</p>}
     </section> : <section aria-label="Domain search workspace" className={styles.searchWorkspace}>
       <form className={styles.searchCard} onSubmit={event => { event.preventDefault(); prepare(); }}>
-        <div className={styles.searchLabelRow}><label htmlFor={`${uid}-names`}>Names or full domains</label><button type="button" className={styles.nameLibraryButton} disabled={editingDisabled || !onOpenNameLibrary} title={!onOpenNameLibrary ? "Saved-name import is unavailable in this workspace." : undefined} onClick={onOpenNameLibrary}><Icon name="names" size={15} />From name library<Icon name="plus" size={14} /></button></div>
+        <div className={styles.searchLabelRow}><label htmlFor={`${uid}-names`}>Names or full domains</label>{onOpenNameLibrary ? <button type="button" className={styles.nameLibraryButton} disabled={editingDisabled} onClick={onOpenNameLibrary}><Icon name="names" size={15} />From name library<Icon name="plus" size={14} /></button> : <BrowserNameDialog disabled={editingDisabled} replacing={Boolean(input.trim())} onUse={name => { changeDraft({ ...currentDraft, input: name, candidates: [] }); setNameInputVersion(value => value + 1); }} />}</div>
         <div className={styles.searchEntryRow}><DomainNameInput key={nameInputVersion} id={`${uid}-names`} describedBy={`${uid}-help`} value={input} disabled={editingDisabled} onChange={next => changeDraft({ ...currentDraft, input: next, candidates: [] })} /><button type="submit" aria-label="Search domains" className={styles.searchButton} disabled={editingDisabled}>Search<Icon name="arrow" size={16} /></button></div>
         <p id={`${uid}-help`} className={styles.searchHint}>Separate multiple names with commas or new lines.</p>
         {errors.length > 0 && <div role="alert" className={styles.filterError}>{errors.map((error, index) => <p key={index}>{error}</p>)}</div>}
@@ -179,6 +180,7 @@ export function DomainsWorkspace({ adapter = unavailableDomainAdapter, library =
             <div className={styles.rowDetails} id={`${uid}-details-${row.domain}`} hidden={!expanded}>
               <label className={styles.selectDomain}><input type="checkbox" aria-label={`Select ${row.domain}`} checked={selected.includes(row.domain)} onChange={event => select(row.domain, event.target.checked)} />Select domain</label>
               <p className={styles.muted}>{row.check ? `${row.check.provider} · checked ${date(row.check.checkedAt)} · valid until ${date(row.check.validUntil)} · evidence ${row.check.evidenceReference}${availability === "unknown" && row.check.availability !== "unknown" ? " · evidence expired or not current" : ""}` : "No availability evidence."}</p>
+              {row.check?.detail && <p className={styles.muted}>{row.check.detail}{row.check.sourceUrl && <> <a href={row.check.sourceUrl} target="_blank" rel="noopener noreferrer">Open source</a></>}</p>}
               {row.status !== "idle" && !busy && <p role="status">Previous request cancelled after a connection change.</p>}
               {row.error && <p role="alert">{row.error}</p>}
               <div className={styles.actions}><button type="button" className="button secondary small" disabled={busy || adapter.status !== "ready"} onClick={() => void handleRead(row, "check")}>{row.check || row.error ? "Check again" : "Check availability"}<span className="sr-only"> for {row.domain}</span></button><button type="button" className="button secondary small" disabled={busy || availability !== "available" || adapter.status !== "ready" || !adapter.quote || adapter.provider !== row.check?.provider} onClick={() => void handleRead(row, "quote")}>{busy && row.status === "quoting" ? "Requesting quote…" : "Request quote"}<span className="sr-only"> for {row.domain}</span></button><button type="button" className={styles.textButton} disabled={!onCreateBrand || busy} onClick={() => onCreateBrand?.({ type: "domain", domain: row.domain, check: row.check, order: null })}>Create brand<span className="sr-only"> from {row.domain}</span></button></div>
@@ -188,7 +190,7 @@ export function DomainsWorkspace({ adapter = unavailableDomainAdapter, library =
         })}</ul> : <div className={styles.empty}><h3>No domains match these filters</h3><p>Try a wider price range or include unavailable domains.</p><button type="button" className="button secondary small" onClick={() => setViewFilters({ ...defaultViewFilters, hideUnavailable: false })}>Clear result filters</button></div>}
         </>}</DomainResultTools>
       </section>}
-      <p className={styles.evidenceNote} data-results={rows.length > 0}>{adapter.status === "unavailable" ? adapter.reason : `Checks supplied by ${adapter.provider}.`}{rows.length > 0 && " Unpriced results stay visible. Price filters use current one-year USD quotes."}</p>
+      <p className={styles.evidenceNote} data-results={rows.length > 0}>{adapter.status === "unavailable" ? adapter.reason : adapter.description ?? `Checks supplied by ${adapter.provider}.`}{rows.length > 0 && " Unpriced results stay visible. Price filters use current one-year USD quotes."}</p>
     </section>}
     <nav className={styles.tabs} aria-label="Domain views">{(["search", "library"] as const).map(value => <button type="button" key={value} aria-current={tab === value ? "page" : undefined} onClick={() => setTab(value)}>{value === "library" ? "Library" : "Search"}</button>)}</nav>
     {draftControls && <div className={styles.draftControls}>{draftControls}</div>}

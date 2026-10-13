@@ -1,6 +1,8 @@
 # Standalone account workspace contract
 
-Status: IMPLEMENTED and locally tested candidate. Hosted schema and signed-in browser acceptance are NOT ACTIVATED by this increment. Registrar, platform checks, trademark research/filing and purchases remain unavailable. This adds manual draft persistence only.
+Status update, 2026-10-12: the implementation is integrated, and a read-only catalog inspection confirmed the hosted Ideas/standalone tables, RLS and authenticated RPC grants. See [current manual workflows and verification limits](standalone-manual-tools.md). Fresh real-account browser acceptance is still separate from intercepted browser fixtures. Registrar, platform checks, automated trademark research/filing and purchases remain unavailable.
+
+The implementation packet below records the original local-only increment. Its activation proposal is historical, not an instruction to replay installed migrations.
 
 ## Reused foundations and ownership
 
@@ -51,7 +53,7 @@ The shell/session integration owner must:
 
 The shared provider's actual lifecycle wiring and rendered tool acceptance are separate owned integration patches. This slice's automated checks cover the store/client, service/API and database; it does not claim signed-in browser or multi-tab UI acceptance.
 
-## Local evidence and activation proposal
+## Historical local evidence and activation proposal
 
 The focused test files are `tests/{database,server,api,client}/standalone-workspaces.test.ts`. They exercise real disposable SQL RLS/CAS/rollback/no-extra-writes behavior; strict/malformed direct-RPC input; calendar/clock and URL-port poisoning regressions with valid boundary roundtrips; exact U+0085, dotted-I Domains and dotted-I platform-host rejection before any durable write; all 25 ECMAScript whitespace characters and ASCII/Kelvin normalization through the actual codec, SQL and service; provider evidence rejection; owned/frozen imports; real immutable Naming candidate replay; forged Naming identity refusal; post-verification source changes; exact uncertain-create replay; safe auth/status/body limits; bounded client responses; same-owner memory recovery and late-generation denial. Existing Naming server tests verify the additive wrapper does not change the original service behavior.
 

@@ -103,10 +103,10 @@ test("integrated Handles keeps independent bundle states in tab memory with chec
   const verify = await manualWorkspace(page);
   await page.goto("/handles");
   await expect(page.getByText("This tab only. Reopening this page starts a new workspace.", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Add handles", exact: true }).click();
-  await page.getByLabel("Names", { exact: true }).fill("North Star");
+  await page.getByRole("tab", { name: "Search", exact: true }).click();
+  await page.getByLabel("Business handles", { exact: true }).fill("North Star");
   await page.getByRole("button", { name: "Build comparison", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Check platforms", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Refresh results", exact: true })).toBeDisabled();
   await page.getByLabel("Choose @northstar on instagram for bundle", { exact: true }).check();
   await page.getByLabel("Choose @northstar on youtube for bundle", { exact: true }).check();
   await page.getByRole("button", { name: "Save bundle", exact: true }).click();
@@ -229,7 +229,7 @@ for (const tool of ["domains", "handles", "trademarks"] as const) {
     };
     await openAccountMenu();
     await expect(page.getByRole("button", { name: "Sign out", exact: true })).toBeVisible();
-    const field = () => page.getByRole("textbox", { name: tool === "domains" ? "Names or full domains" : tool === "handles" ? "Names" : "Mark name", exact: true });
+    const field = () => page.getByRole("textbox", { name: tool === "domains" ? "Names or full domains" : tool === "handles" ? "Business handles" : "Mark name", exact: true });
     const edit = async (label: string, handleName: string) => {
       if (tool !== "handles") {
         if (tool === "domains") {
@@ -239,6 +239,10 @@ for (const tool of ["domains", "handles", "trademarks"] as const) {
         await field().fill(label); return;
       }
       await page.getByRole("tab", { name: "Search", exact: true }).click();
+      const editSearch = page.getByRole("button", { name: "Edit search", exact: true });
+      if (await editSearch.count()) await editSearch.click();
+      const removals = page.locator(".handles-search-form .handles-name-token button");
+      while (await removals.count()) await removals.first().click();
       await field().fill(handleName);
       await page.getByRole("button", { name: "Build comparison", exact: true }).click();
       await page.getByLabel(`Choose @${handleName.toLowerCase()} on instagram for bundle`, { exact: true }).check();
@@ -246,7 +250,10 @@ for (const tool of ["domains", "handles", "trademarks"] as const) {
       await page.getByRole("button", { name: "Save bundle", exact: true }).click();
     };
     const hasDraft = async (label: string) => {
-      if (tool === "handles") await expect(page.getByRole("heading", { name: label, exact: true })).toBeVisible();
+      if (tool === "handles") {
+        await page.getByRole("tab", { name: "Library", exact: true }).click();
+        await expect(page.getByRole("heading", { name: label, exact: true })).toBeVisible();
+      }
       else if (tool === "domains") await expect.poll(async () => {
         const chips = await page.locator("[data-domain-entry]").evaluateAll(elements => elements.map(element => element.getAttribute("data-domain-entry")));
         const pending = await field().inputValue();
@@ -255,7 +262,10 @@ for (const tool of ["domains", "handles", "trademarks"] as const) {
       else await expect(field()).toHaveValue(label);
     };
     const fresh = async () => {
-      if (tool === "handles") await expect(page.locator("article.handles-bundle")).toHaveCount(0);
+      if (tool === "handles") {
+        await page.getByRole("tab", { name: "Library", exact: true }).click();
+        await expect(page.locator("article.handles-bundle")).toHaveCount(0);
+      }
       else {
         if (tool === "domains" && await page.getByRole("button", { name: "Prepare a domain search", exact: true }).count()) await page.getByRole("button", { name: "Prepare a domain search", exact: true }).click();
         if (tool === "domains") await expect(page.locator("[data-domain-entry]")).toHaveCount(0);
