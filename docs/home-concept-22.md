@@ -9,6 +9,7 @@ On 2026-10-08 the user selected the latest **Home Concept 22 — Scope Dropdown*
 - Reference viewport: 1440 × 900. Latest reference markup is preserved in ignored `.references/concept-22/canvas.json`.
 - The supplied `image (4).svg` is the approved app mark, now `public/embel-mark.svg` (with `public/fluid-mark.svg` retained as a compatibility alias). Original SHA-256: `d35a02f13f469a0c2a72b5bcfb826d3313c643cc687dda72a62ff1a0b7e261ac`.
 - Keep Geist, the existing neutral/magenta tokens, 80 px collapsed sidebar, black active edge marker, 16 px background grid, 40 px headline, 800 px composer, and the bottom blur/fade over continuing brand cards.
+- On 2026-10-14 the user set background grid lines to 20% opacity across all screens. The shared CSS grid and every screen-specific SVG grid use this value; original design captures remain historical references.
 - Composer: bare + before the Brand dropdown, 22 px gray icons, 16 px scope label, 128 × 44 px dropdown, bare mic, and 44 × 44 px arrow-only send button. No Save draft button inside the composer.
 
 ## Implementation boundaries
