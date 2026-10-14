@@ -1,0 +1,174 @@
+// @vitest-environment jsdom
+import { act, createElement, useState } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { GuidedChoiceWidget, ResearchLoadingScreen, type GuidedChoiceWidgetProps } from "@/components/workspace/guided-interview-widgets";
+import type { GuidedOption, GuidedReply } from "@/domain/guided-interview";
+
+type ChoiceReply = Extract<GuidedReply, { kind: "choices" }>;
+const competitorId = "11111111-1111-4111-8111-111111111111";
+const competitor: GuidedOption = {
+  id: competitorId, stage: "competitors", label: "Fixture Studio", description: "Synthetic competitor description for this local test.",
+  recommended: true, recommendationReason: "Its product range addresses the same need.",
+  payload: { id: competitorId, name: "Fixture Studio", relevance: "A useful comparison for everyday objects.", url: "https://studio.example.test", origin: "research", selected: false,
+    sources: [{ url: "https://studio.example.test/about", title: "Fixture Studio: About", retrievedAt: "2026-10-14T10:00:00.000Z" }] },
+};
+const audienceId = "22222222-2222-4222-8222-222222222222";
+const audience: GuidedOption = {
+  id: audienceId, stage: "audience", label: "People furnishing their first home", description: "Buyers building a lasting collection from a small starting budget.",
+  recommended: true, recommendationReason: "Your practical, durable range meets their immediate priorities.",
+  payload: { id: audienceId, label: "People furnishing their first home", needs: ["Affordable essentials", "Pieces that last"], reason: "They are making several considered purchases at once.", origin: "proposal", selected: false, sources: [] },
+};
+const personality: GuidedOption = {
+  id: "warm-confident", stage: "personality", label: "Warm and quietly confident", description: "A considered, approachable voice with a clear point of view.",
+  recommended: true, recommendationReason: "This supports the audience's wish for lasting usefulness.",
+  payload: { profile: { sincerity: 75, excitement: 25, competence: 65, sophistication: 40, ruggedness: 15 }, traits: ["Warm", "Thoughtful", "Confident"], expression: "Welcoming language, restrained layouts, and tactile materials.", toneExample: "Good things, chosen for every day." },
+};
+function choices(option: GuidedOption, additional: GuidedOption[] = []): ChoiceReply {
+  return { kind: "choices", turnId: "fixture-turn", stage: option.stage, message: "A synthetic assistant reply.", question: option.stage === "competitors" ? "Which brands belong in your comparison?" : option.stage === "audience" ? "Who are you here for?" : "How should your brand feel?", selectionMode: option.stage === "personality" ? "single" : "multiple", options: [option, ...additional] };
+}
+
+let host: HTMLDivElement;
+let root: Root;
+const onSelectionChange = vi.fn<(ids: string[]) => void>();
+const onContinue = vi.fn();
+function Harness({ reply, initialSelectedIds = [] }: { reply: ChoiceReply; initialSelectedIds?: string[] }) {
+  const [selectedIds, setSelectedIds] = useState(initialSelectedIds);
+  return <GuidedChoiceWidget reply={reply} selectedIds={selectedIds} onSelectionChange={(ids) => { onSelectionChange(ids); setSelectedIds(ids); }} onContinue={onContinue} />;
+}
+async function render(reply = choices(competitor), props: Partial<GuidedChoiceWidgetProps> = {}) {
+  await act(async () => root.render(createElement(GuidedChoiceWidget, { reply, selectedIds: [], onSelectionChange, onContinue, ...props })));
+}
+function continueButton() { return [...host.querySelectorAll("button")].find((button) => button.textContent === "Continue")!; }
+beforeEach(() => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+  onSelectionChange.mockReset(); onContinue.mockReset();
+  host = document.createElement("div"); document.body.append(host); root = createRoot(host);
+});
+afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
+
+describe("guided interview choice controls", () => {
+  it("explains recommendations without selecting or confirming them", async () => {
+    await render();
+    expect(host.textContent).toContain("Recommended");
+    expect(host.textContent).toContain(competitor.recommendationReason);
+    expect(host.querySelector<HTMLInputElement>("input")?.checked).toBe(false);
+    expect(continueButton().disabled).toBe(true);
+    expect(onSelectionChange).not.toHaveBeenCalled();
+    expect(onContinue).not.toHaveBeenCalled();
+    expect(host.querySelector("textarea")).toBeNull();
+  });
+
+  it("keeps multi-select choices editable until Continue explicitly confirms them", async () => {
+    const second: GuidedOption = { ...audience, id: "33333333-3333-4333-8333-333333333333", label: "Thoughtful gift buyers", recommended: false, recommendationReason: null, payload: { ...audience.payload, id: "33333333-3333-4333-8333-333333333333" } };
+    await act(async () => root.render(<Harness reply={choices(audience, [second])} />));
+    const inputs = host.querySelectorAll<HTMLInputElement>("input");
+    await act(async () => inputs[0]!.click());
+    await act(async () => inputs[1]!.click());
+    expect(onSelectionChange).toHaveBeenLastCalledWith([audience.id, second.id]);
+    expect(onContinue).not.toHaveBeenCalled();
+    await act(async () => inputs[0]!.click());
+    expect(onSelectionChange).toHaveBeenLastCalledWith([second.id]);
+    expect(continueButton().disabled).toBe(false);
+    await act(async () => continueButton().click());
+    expect(onContinue).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses one native radio group for personality and replaces the earlier selection", async () => {
+    const second: GuidedOption = { ...personality, id: "energetic-expressive", label: "Energetic and expressive", recommended: false, recommendationReason: null };
+    await act(async () => root.render(<Harness reply={choices(personality, [second])} />));
+    const inputs = host.querySelectorAll<HTMLInputElement>('input[type="radio"]');
+    expect(inputs.length).toBe(2);
+    expect(inputs[0]!.name).toBe(inputs[1]!.name);
+    await act(async () => inputs[0]!.click());
+    await act(async () => inputs[1]!.click());
+    expect(onSelectionChange).toHaveBeenLastCalledWith([second.id]);
+    expect(inputs[0]!.checked).toBe(false);
+    expect(inputs[1]!.checked).toBe(true);
+    expect(onContinue).not.toHaveBeenCalled();
+  });
+
+  it("shows audience needs and fit, then personality expression and tone examples", async () => {
+    await render(choices(audience));
+    expect(host.textContent).toContain("Affordable essentials");
+    expect(host.textContent).toContain("Pieces that last");
+    expect(host.textContent).toContain(audience.payload.reason);
+    await render(choices(personality));
+    expect(host.textContent).toContain(personality.payload.expression);
+    expect(host.textContent).toContain(personality.payload.toneExample);
+    expect(host.textContent).toContain("Thoughtful");
+  });
+
+  it("opens evidence separately from the competitor selection", async () => {
+    await render();
+    const links = [...host.querySelectorAll<HTMLAnchorElement>("a")];
+    expect(links.map((link) => link.href)).toEqual(["https://studio.example.test/", "https://studio.example.test/about"]);
+    for (const link of links) {
+      expect(link.closest("label")).toBeNull();
+      expect(link.target).toBe("_blank");
+      expect(link.rel).toContain("noopener");
+      await act(async () => { link.addEventListener("click", (event) => event.preventDefault(), { once: true }); link.click(); });
+    }
+    expect(host.querySelector<HTMLInputElement>("input")?.checked).toBe(false);
+    expect(onSelectionChange).not.toHaveBeenCalled();
+    expect(onContinue).not.toHaveBeenCalled();
+  });
+
+  it("does not render unsafe provider URLs as links", async () => {
+    await render(choices({ ...competitor, payload: { ...competitor.payload, url: "javascript:alert(1)", sources: [{ url: "data:text/html,unsafe", title: "Unsafe", retrievedAt: "2026-10-14T10:00:00.000Z" }] } }));
+    expect(host.querySelector("a")).toBeNull();
+    expect(host.textContent).toContain(competitor.description);
+  });
+
+  it("connects native labels and descriptions and fences selection while disabled", async () => {
+    await render(choices(audience), { disabled: true, selectedIds: [audience.id] });
+    const input = host.querySelector<HTMLInputElement>("input")!;
+    expect(input.labels?.length).toBe(1);
+    expect(document.getElementById(input.getAttribute("aria-labelledby")!)?.textContent).toBe(audience.label);
+    expect(document.getElementById(input.getAttribute("aria-describedby")!)?.textContent).toContain(audience.description);
+    expect(host.querySelector("legend")?.textContent).toBe("Who are you here for?");
+    expect(input.disabled).toBe(true);
+    expect(continueButton().disabled).toBe(true);
+    await act(async () => input.click());
+    expect(onSelectionChange).not.toHaveBeenCalled();
+  });
+
+  it("keeps prior answers revisitable without submitting or selecting anything", async () => {
+    const onRevisit = vi.fn();
+    await render(choices(audience), { answered: true, selectedIds: [audience.id], onRevisit });
+    expect(host.textContent).toContain(audience.label);
+    expect(host.querySelector("input")).toBeNull();
+    expect(continueButton()).toBeUndefined();
+    await act(async () => host.querySelector<HTMLButtonElement>("button")!.click());
+    expect(onRevisit).toHaveBeenCalledTimes(1);
+    expect(onContinue).not.toHaveBeenCalled();
+    expect(onSelectionChange).not.toHaveBeenCalled();
+  });
+
+  it("does not count stale selection IDs or fabricate empty researched options", async () => {
+    await render(choices(competitor), { selectedIds: ["an-option-from-another-turn"] });
+    expect(continueButton().disabled).toBe(true);
+    await render({ ...choices(competitor), options: [] });
+    expect(host.querySelectorAll("input").length).toBe(0);
+    expect(host.textContent).toContain("No options are available");
+    expect(host.textContent).not.toContain("Fixture Studio");
+    expect(continueButton().disabled).toBe(true);
+  });
+});
+
+describe("research loading screen", () => {
+  it("uses the approved logo and a live research message with an explicit cancellation action", async () => {
+    const onCancel = vi.fn();
+    await act(async () => root.render(<ResearchLoadingScreen message="Checking relevant brand sources." onCancel={onCancel} />));
+    expect(host.querySelector<HTMLImageElement>("img")?.getAttribute("src")).toBe("/embel-mark.svg");
+    expect(host.querySelector('[role="status"]')?.textContent).toContain("Checking relevant brand sources.");
+    expect(host.querySelector("svg")).toBeNull();
+    expect(onCancel).not.toHaveBeenCalled();
+    await act(async () => host.querySelector<HTMLButtonElement>("button")!.click());
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    await act(async () => root.render(<ResearchLoadingScreen onCancel={onCancel} cancelPending />));
+    expect(host.querySelector<HTMLButtonElement>("button")?.disabled).toBe(true);
+    expect(host.textContent).toContain("Cancelling research…");
+    expect(host.textContent).not.toMatch(/\d+\s?%|complete/i);
+  });
+});

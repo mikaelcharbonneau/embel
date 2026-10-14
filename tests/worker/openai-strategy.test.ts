@@ -2,9 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { createOpenAIStrategyHandlers } from "../../worker/handlers/openai-strategy";
 import { runOneJob, type JobStore } from "../../worker/runner";
-import { strategyPolicy } from "../../src/server/ai/config";
+import { guidedStrategyPolicy, strategyPolicy } from "../../src/server/ai/config";
 import type { StepOutcome } from "../../src/domain/jobs";
 import { jobFixture, responseFixture, transportFixture } from "../server/openai-fixtures";
+import { guidedHistoryEntry, guidedJobFixture } from "./guided-strategy-fixtures";
 
 function fixture() {
   const job = jobFixture(); const outcomes: StepOutcome[] = [];
@@ -60,5 +61,28 @@ describe("durable OpenAI strategy handler (mock transport only)", () => {
     expect(f.outcomes[0]).toMatchObject({ status: "needs_reconciliation", code: "provider_incomplete", result: { partialText: expect.any(String) } });
     expect(f.transport.createResponse).toHaveBeenCalledTimes(1);
     expect(f.store.finish).not.toHaveBeenCalled();
+  });
+  it("binds guided plans to the complete immutable input and checks the exact current turn", async () => {
+    const policy = guidedStrategyPolicy("strategy.competitors");
+    const transport = transportFixture();
+    const handlers = createOpenAIStrategyHandlers({ apiKey: "synthetic", policies: new Map([["strategy.competitors", policy]]) }, transport);
+    const steps = (job: ReturnType<typeof guidedJobFixture>) => handlers.get(job.operation)!.steps(job);
+    const job = guidedJobFixture(); const original = await steps(job);
+    job.input.context.description = "A changed immutable context";
+    expect((await steps(job))[0]?.key).not.toBe(original[0]?.key);
+    for (const mismatch of ["turnRevision", "stage", "operation", "answered", "owner", "project", "historyRevision", "self"] as const) {
+      const invalid = guidedJobFixture(); const state = invalid.input.context.intake.guidedInterview!; const turn = state.turns.at(-1)!;
+      invalid.input.assistantHistory.entries = [guidedHistoryEntry()]; const entry = invalid.input.assistantHistory.entries[0]!;
+      if (mismatch === "turnRevision") turn.inputRevision = 1;
+      if (mismatch === "stage") state.stage = "audience";
+      if (mismatch === "operation") turn.purpose = "message";
+      if (mismatch === "answered") state.answers = [{ stage: "competitors", turnId: turn.id, optionIds: [], customText: "Synthetic choice", confirmedAt: "2026-10-14T12:00:00.000Z" }];
+      if (mismatch === "owner") entry.ownerId = job.projectId;
+      if (mismatch === "project") entry.projectId = job.ownerId;
+      if (mismatch === "historyRevision") entry.inputRevision = 2;
+      if (mismatch === "self") entry.jobId = job.id;
+      expect(() => steps(invalid)).toThrow();
+    }
+    expect(transport.countInputTokens).not.toHaveBeenCalled(); expect(transport.createResponse).not.toHaveBeenCalled();
   });
 });

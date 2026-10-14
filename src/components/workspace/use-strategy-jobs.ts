@@ -13,7 +13,7 @@ import { canContinueStrategy, forgetStrategyIntent, readStrategyIntent, strategy
 type ReadState = { identity: string; overview: StrategyOverview | null; error: string | null };
 type ActionState = { identity: string; pending: boolean; error: string | null; pendingLabel?: string };
 
-export function useStrategyJobs({ account, workspace, blocked }: { account: VerifiedAccount; workspace: AccountWorkspace; blocked: boolean }) {
+export function useStrategyJobs({ account, workspace, blocked, guided = false }: { account: VerifiedAccount; workspace: AccountWorkspace; blocked: boolean; guided?: boolean }) {
   const { isCurrent, expire, drafts } = useAccountSession();
   const projectId = workspace.saved.id;
   const identity = `${account.userId}:${account.generation}:${projectId}`;
@@ -80,7 +80,7 @@ export function useStrategyJobs({ account, workspace, blocked }: { account: Veri
       if (controller.signal.aborted || !getWorkspace()) return null;
       if (!verifyStrategyJobs([job], account.userId, projectId)) { expire(account); return null; }
       if (!strategyJobMatchesRequest(job, operation, revision, allowance)) throw new AccountRequestError(502);
-      setRead(previous => previous?.identity === identity && previous.overview ? { ...previous, overview: { ...previous.overview, jobs: [job, ...previous.overview.jobs.filter(item => item.id !== job.id)].slice(0, 20) } } : previous);
+      setRead(previous => previous?.identity === identity && previous.overview ? { ...previous, overview: { ...previous.overview, jobs: [job, ...previous.overview.jobs.filter(item => item.id !== job.id)].slice(0, 64) } } : previous);
       setAction({ identity, pending: false, error: null }); refresh(); return job;
     } catch (error: unknown) {
       if (controller.signal.aborted || !getWorkspace()) return null;
@@ -177,7 +177,7 @@ export function useStrategyJobs({ account, workspace, blocked }: { account: Veri
   }, [account.userId, blocked, enqueue, getWorkspace, overview, projectId, readError]);
 
   useEffect(() => {
-    if (!overview || readError || pending || blocked) return;
+    if (guided || !overview || readError || pending || blocked) return;
     const current = getWorkspace();
     if (!current || current.conflict) return;
     const applied = overview.jobs.flatMap(job => job.results.map(result => strategyResultApplication(job, result.stepKey)))
@@ -197,7 +197,7 @@ export function useStrategyJobs({ account, workspace, blocked }: { account: Veri
     const key = strategyIdempotencyKey(projectId, current.saved.current_revision, "strategy.competitors", plan.billingMode);
     if (chainAttempts.current.has(key)) return;
     void continueResearch();
-  }, [account.userId, blocked, continueResearch, getWorkspace, overview, pending, projectId, readError, recoverAppliedVersion, workspace]);
+  }, [account.userId, blocked, continueResearch, getWorkspace, guided, overview, pending, projectId, readError, recoverAppliedVersion, workspace]);
 
   const continuationAvailable = !readError && Boolean(overview && canContinueStrategy(readStrategyIntent(account.userId, projectId, workspace.saved.current_revision - 1), workspace, overview));
   const checkStatus = useCallback(() => { recoveryAttempts.current.clear(); refresh(); }, [refresh]);

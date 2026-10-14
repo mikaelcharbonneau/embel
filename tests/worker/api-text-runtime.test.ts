@@ -3,18 +3,18 @@ vi.mock("server-only", () => ({}));
 import { runApiTextDelivery } from "../../worker/api-text-runtime";
 import { apiTextDispatchMessageSchema, apiTextDispatchDescriptorSchema } from "../../src/domain/api-text-dispatch";
 import { jobFixture, responseFixture, transportFixture } from "../server/openai-fixtures";
-import { strategyPolicy } from "../../src/server/ai/config";
+import { guidedStrategyPolicy, strategyPolicy } from "../../src/server/ai/config";
 import { OpenAITransportError } from "../../src/server/ai/openai-transport";
+import { guidedJobFixture, guidedResearchResponse } from "./guided-strategy-fixtures";
 
 const message = { version: 1 as const, jobId: jobFixture().id, policyIdentity: "a".repeat(64), deploymentId: "dpl_synthetic", dispatchIdentity: "b".repeat(64) };
 const configuration = { apiKey: "synthetic-test-credential", policies: new Map([["strategy.reformulate" as const, strategyPolicy("strategy.reformulate")]]) };
 /** Adapter fixture only. Actual role, lease and money fences are tested against PGlite separately. */
-function databaseFixture() {
-  const job = jobFixture();
+function databaseFixture(job = jobFixture()) {
   const state = { status: "queued", busy: false, found: true, enabled: true, authorized: true, expiredInFlight: false,
     step: null as null | { state: string; request_key: string; reserved_cost_microusd: number },
     outcomes: [] as unknown[][], claimCalls: 0, policyChecks: 0, authorizationChecks: 0, rowMode: "openai_api", rowId: job.id };
-  const descriptor = () => ({ ...message, operation: "strategy.reformulate", state: state.status, retryable: state.status === "queued",
+  const descriptor = () => ({ ...message, operation: job.operation, state: state.status, retryable: state.status === "queued",
     publicationGeneration: 0, publishedMessageId: null, publishedAt: null });
   const row = () => ({ id: state.rowId, owner_id: job.ownerId, project_id: job.projectId, operation: job.operation,
     input: job.input, input_revision: job.inputRevision, lease_token: job.leaseToken, state: state.status,
@@ -121,6 +121,18 @@ describe("restricted API delivery contract", () => {
     const researchConfiguration = { ...configuration, policies: new Map([["strategy.competitors" as const, strategyPolicy("strategy.competitors")]]) };
     expect(await delivery(fixture, transport, { configuration: researchConfiguration })).toEqual({ disposition: "retry", state: "runtime_unavailable" });
     expect(transport.createResponse).not.toHaveBeenCalled();
+  });
+  it("dispatches qualified guided research once with the complete reservation and bounded built-in calls", async () => {
+    const job = guidedJobFixture(); const fixture = databaseFixture(job); const transport = transportFixture(guidedResearchResponse());
+    const guidedConfiguration = { ...configuration, policies: new Map([["strategy.competitors" as const, guidedStrategyPolicy("strategy.competitors")]]) };
+    expect(await delivery(fixture, transport, { configuration: guidedConfiguration })).toEqual({ disposition: "ack", state: "succeeded" });
+    expect(await delivery(fixture, transport, { configuration: guidedConfiguration })).toEqual({ disposition: "ack", state: "succeeded" });
+    expect(fixture.state.step?.reserved_cost_microusd).toBe(15_892_880);
+    expect(fixture.state.authorizationChecks).toBe(2);
+    expect(transport.createResponse).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(transport.createResponse).mock.calls[0]?.[0]).toMatchObject({ model: "gpt-6.1-sol", max_output_tokens: 8192, max_tool_calls: 2,
+      parallel_tool_calls: false, tool_choice: "required", tools: [{ type: "web_search" }], service_tier: "default", truncation: "disabled", store: false, background: false });
+    expect(JSON.parse(fixture.state.outcomes[0]?.[5] as string)).toMatchObject({ guidance: { kind: "choices", turnId: "research-turn", stage: "competitors" } });
   });
   it.each(["unknown", "malformed_usage", "rejected"])("preserves terminal paid-step outcome after %s provider response", async kind => {
     const fixture = databaseFixture(); const body = responseFixture();

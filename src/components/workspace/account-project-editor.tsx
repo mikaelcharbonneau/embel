@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { z } from "zod";
 import { accountProjectResponseSchema, accountRevisionResponseSchema, updateProjectInputSchema } from "@/domain/project-api";
+import type { ContextSnapshot } from "@/domain/projects";
 import { accountErrorMessage, AccountRequestError } from "./account-api";
 import { boundedAccountRequest } from "./bounded-account-request";
 import { AccountStatus, useAccountSession } from "./account-session";
 import { accountProjectDraft, draftContext, draftValidationMessage } from "./project-draft-adapter";
 import { copyToLocalDraft, draftTitle, scopeLabel, type LocalDraft } from "./local-drafts";
 import { type DraftPatch } from "./project-editor";
-import { AccountStrategyEditor } from "./account-strategy-editor";
+import { AccountGuidedInterview } from "./account-guided-interview";
 import { getNamingReadiness } from "@/domain/project-naming";
 import { AccountProjectContinuity } from "./account-project-continuity";
 import { IdeaSourceBanner } from "@/components/ideas/idea-source-banner";
@@ -88,6 +89,7 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
   async function save(nextDraft?: LocalDraft): Promise<AccountWorkspace | null> {
     const before = drafts.get(projectId);
     if (!isCurrent(account) || busy || !before || before.ownerId !== account.userId || before.generation !== account.generation || before.conflict) return null;
+    if (before.pendingGuidedContext && !nextDraft) return saveContext(before.pendingGuidedContext);
     const submittedDraft = nextDraft ?? before.draft;
     let body;
     try { body = updateProjectInputSchema.parse({ expectedRevision: before.saved.current_revision, title: draftTitle(submittedDraft), context: draftContext(submittedDraft, before.saved.context) }); }
@@ -102,10 +104,37 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
       if (!previous || previous.ownerId !== account.userId || previous.generation !== account.generation) return null;
       if (previous.saved.current_revision !== before.saved.current_revision) throw new AccountRequestError(409);
       const saved = { ...before.saved, title: body.title ?? before.saved.title, context: revision.context, current_revision: revision.revision };
-      const next = { ...previous, saved, draft: JSON.stringify(previous.draft) === JSON.stringify(submittedDraft) ? accountProjectDraft(saved) : previous.draft, conflict: false };
+      const unchanged = JSON.stringify(previous.draft) === JSON.stringify(before.draft) || JSON.stringify(previous.draft) === JSON.stringify(submittedDraft);
+      const next = { ...previous, saved, draft: unchanged ? accountProjectDraft(saved) : previous.draft, conflict: false };
       setWorkspace(next);
       setOperation({ generation: account.generation, projectId, busy: false });
       return next;
+    } catch (error) { fail(error, controller); return null; }
+  }
+  async function saveContext(context: ContextSnapshot): Promise<AccountWorkspace | null> {
+    const before = drafts.get(projectId);
+    if (!isCurrent(account) || busy || !before || before.ownerId !== account.userId || before.generation !== account.generation || before.conflict) return null;
+    // A failed automatic save remains owner-bound in session memory. Never replace
+    // another unsaved branch just because a new assistant result arrived.
+    if (changed(before) && (!before.pendingGuidedContext || JSON.stringify(before.pendingGuidedContext) !== JSON.stringify(context))) return null;
+    let body;
+    try { body = updateProjectInputSchema.parse({ expectedRevision: before.saved.current_revision, context }); }
+    catch { setOperation({ generation: account.generation, projectId, busy: false, error: "This answer could not be saved. Your conversation is kept in this tab." }); return null; }
+    const controller = begin();
+    setWorkspace({ ...before, pendingGuidedContext: body.context });
+    try {
+      const { revision } = await boundedAccountRequest(`/api/projects/${projectId}`, accountRevisionResponseSchema, { method: "PATCH", body, signal: controller.signal });
+      if (controller.signal.aborted || !isCurrent(account)) return null;
+      if (revision.owner_id !== account.userId || revision.project_id !== projectId) { expire(account); return null; }
+      if (revision.revision !== before.saved.current_revision + 1) throw new AccountRequestError(502);
+      const previous = drafts.get(projectId);
+      if (!previous || previous.ownerId !== account.userId || previous.generation !== account.generation) return null;
+      if (previous.saved.current_revision !== before.saved.current_revision) throw new AccountRequestError(409);
+      const saved = { ...before.saved, context: revision.context, current_revision: revision.revision };
+      const edited = JSON.stringify(previous.draft) !== JSON.stringify(before.draft) || JSON.stringify(previous.pendingGuidedContext) !== JSON.stringify(body.context);
+      const next = { ...previous, saved, draft: edited ? previous.draft : accountProjectDraft(saved), pendingGuidedContext: edited ? previous.pendingGuidedContext : undefined, conflict: edited };
+      setWorkspace(next); setOperation({ generation: account.generation, projectId, busy: false });
+      return edited ? null : next;
     } catch (error) { fail(error, controller); return null; }
   }
   async function expand() {
@@ -137,7 +166,9 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
   }
   function saveBrowserCopy() {
     if (!isCurrent(account) || busy) return;
-    const copy = copyToLocalDraft({ ...active.draft, preservedContext: active.saved.context });
+    const retainedContext = active.pendingGuidedContext ?? active.saved.context;
+    const retainedDraft = active.pendingGuidedContext ? accountProjectDraft({ ...active.saved, context: retainedContext }) : active.draft;
+    const copy = copyToLocalDraft({ ...retainedDraft, preservedContext: retainedContext });
     if (copy) setBrowserCopy({ generation: account.generation, ...copy });
     else setOperation({ generation: account.generation, projectId, busy: false, error: "This browser has 50 drafts. Remove an unused browser draft before saving a copy." });
   }
@@ -170,7 +201,7 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
     {identityHint && <p className="field-hint">{identityHint}</p>}
   </>}</div>;
   const projectContext = <><div className="idea-source-wrap"><IdeaSourceBanner key={`${projectId}:${account.userId}:${account.generation}`} account={account} projectId={projectId} /></div><AccountProjectContinuity key={`continuity:${projectId}:${account.userId}:${account.generation}`} account={account} project={active.saved} dirty={changed(active)} conflicted={active.conflict} expanding={Boolean(busy)} onExpand={expand} /></>;
-  return <AccountStrategyEditor key={`${projectId}:${account.userId}:${account.generation}`} account={account} workspace={active} busy={Boolean(busy)} saveDraft={save} storage={{ kind: "account", saveLabel: changed(active) ? "Unsaved changes in this tab" : `Saved to account · version ${active.saved.current_revision}`, onUpdate: update, actions, scopeControl, projectContext, namingSource: active.saved.context.namingSource }} />;
+  return <AccountGuidedInterview key={`${projectId}:${account.userId}:${account.generation}`} account={account} workspace={active} busy={Boolean(busy)} saveContext={saveContext} storage={{ kind: "account", saveLabel: changed(active) ? "Unsaved changes in this tab" : `Saved to account · version ${active.saved.current_revision}`, onUpdate: update, actions, scopeControl, projectContext, namingSource: active.saved.context.namingSource }} />;
 }
 
 function UnavailableProject() {

@@ -32,13 +32,13 @@ export function ConversationComposer({ value, onChange, onSend, label, placehold
 
   return <form ref={formRef} className={`conversation-composer ${initial ? "is-initial" : ""} ${home ? "home-composer" : ""} ${error ? "has-error" : ""}`} onSubmit={submit} noValidate>
     <label className="sr-only" htmlFor={id}>{label}</label>
-    <textarea id={id} value={value} readOnly={readOnly} maxLength={12000} placeholder={placeholder} aria-invalid={Boolean(error)} aria-describedby={`${id}-hint${error ? ` ${id}-error` : ""}`} onChange={(event) => { if (!readOnly) onChange(event.target.value); }} onKeyDown={(event) => {
+    <textarea id={id} value={value} readOnly={readOnly} maxLength={12000} placeholder={placeholder} aria-invalid={Boolean(error)} aria-describedby={hint === null ? (error ? `${id}-error` : undefined) : `${id}-hint${error ? ` ${id}-error` : ""}`} onChange={(event) => { if (!readOnly) onChange(event.target.value); }} onKeyDown={(event) => {
       if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && event.keyCode !== 229) {
         event.preventDefault();
         if (!disabled) formRef.current?.requestSubmit();
       }
     }} />
-    <div className="conversation-composer-footer">{inputControls}<span className={initial ? "sr-only" : undefined} id={`${id}-hint`}>{hint ?? "Shift + Enter for a new line"}</span><button className={`button primary ${(project || home || sendLabel === "Send prompt") ? "composer-send-icon" : ""}`} type="submit" disabled={disabled} title={sendLabel}><span className={(project || home || sendLabel === "Send prompt") ? "sr-only" : undefined}>{sendLabel}</span>{project ? <ProjectArtwork name="send" /> : <Icon name={home ? "arrow" : "arrow-up"} size={home ? 20 : 18} />}</button></div>
+    <div className="conversation-composer-footer">{inputControls}{hint !== null && <span className={initial ? "sr-only" : undefined} id={`${id}-hint`}>{hint ?? "Shift + Enter for a new line"}</span>}<button className={`button primary ${(project || home || sendLabel === "Send prompt") ? "composer-send-icon" : ""}`} type="submit" disabled={disabled} title={sendLabel}><span className={(project || home || sendLabel === "Send prompt") ? "sr-only" : undefined}>{sendLabel}</span>{project ? <ProjectArtwork name="send" /> : <Icon name={home ? "arrow" : "arrow-up"} size={home ? 20 : 18} />}</button></div>
     {error && <p className="form-error" id={`${id}-error`} role="alert">{error}</p>}
   </form>;
 }

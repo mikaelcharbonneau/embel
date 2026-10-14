@@ -23,6 +23,7 @@ import { NameOrigin } from "./name-origin";
 import { CompetitorReview } from "./competitor-review";
 import { PersonalityReview, PositioningReview } from "./strategy-review";
 import { ConversationComposer } from "./conversation-composer";
+import { ResearchLoadingScreen } from "./guided-interview-widgets";
 import { ProjectStageNavigation } from "./project-workspace";
 import { ProjectArtwork } from "@/components/ui/project-artwork";
 import { AudienceConversationWidget, WidgetSummary, widgetLabels } from "./conversation-widgets";
@@ -96,7 +97,7 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
     } catch { setError("Your prompt could not be kept. Copy it before leaving to sign in."); }
     return false;
   }
-  const strategy = useAccountStrategyStart({ beforeSignIn, recoveryDraftId: textDraftId, recoveryLocked });
+  const strategy = useAccountStrategyStart({ beforeSignIn, recoveryDraftId: textDraftId, recoveryLocked, guided: true });
   const preserveBeforeHeaderSignIn = useEffectEvent((event: Event) => {
     if (strategy.checkingRecovery || !beforeSignIn(strategy.locked)) event.preventDefault();
   });
@@ -180,6 +181,8 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
     } catch (cause) { if (!controller.signal.aborted) setError(cause instanceof Error ? (hasFiles ? "The attached brief could not be confirmed. Your typed text, confirmed files and original request remain in this tab. Check and retry the same request." : cause.message) : "This prompt could not be kept. Please try again."); }
     finally { if (attachedRequest.current === controller) attachedRequest.current = null; submittingRef.current = false; setSubmitting(false); }
   }
+
+  if (strategy.starting && !hasFiles) return <ResearchLoadingScreen message="Saving your prompt and preparing competitor research…" />;
 
   return <div className={home ? "home-intake conversation-intake" : "page intake-page conversation-intake"}>
     {home ? <div className="home-introduction"><h1>Your next brand starts here<span>.</span></h1><p>An idea, a product, a place. Let’s give it a name and a world of its own.</p></div> : <><div className="page-heading"><h1>New conversation</h1><Link href="/brands" className="text-link">Back to projects</Link></div><ScopePicker value={displayedScope} disabled={frozenInputs} onChange={value => { if (canEditInputs()) setScope(value); }} /><p className="scope-helper">Complete branding by default · choose a scope for focused work</p><Link href="/brands/logo/new" className="text-link">Create a logo</Link></>}

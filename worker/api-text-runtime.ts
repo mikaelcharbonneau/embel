@@ -1,5 +1,5 @@
 import { apiTextDeploymentSchema, apiTextDispatchMessageSchema } from "../src/domain/api-text-dispatch";
-import { matchesStrategyPolicy, type OpenAIStrategyConfiguration } from "../src/server/ai/config";
+import { isHostedStrategyPolicy, type OpenAIStrategyConfiguration } from "../src/server/ai/config";
 import type { OpenAIResponsesTransport } from "../src/server/ai/openai-transport";
 import type { JobDatabase } from "./postgres-store";
 import { ApiTextJobStore, expireApiTextJob, readApiTextDispatch } from "./api-text-store";
@@ -29,9 +29,7 @@ export async function runApiTextDelivery(options: {
   if (options.signal?.aborted) return { disposition: "retry", state: "stopping" };
   const configured = options.configuration;
   if (!configured) return { disposition: "retry", state: "runtime_unavailable" };
-  // The current research policy has no proven predispatch billable-input bound.
-  const policies = new Map([...configured.policies].filter(([operation, policy]) => operation !== "strategy.competitors" &&
-    matchesStrategyPolicy(operation, policy) && policy.maxWebSearchCalls === 0 && policy.maximumCostMicrousd <= 122_880));
+  const policies = new Map([...configured.policies].filter(([operation, policy]) => isHostedStrategyPolicy(operation, policy)));
   if (!policies.size) return { disposition: "retry", state: "runtime_unavailable" };
   const controller = new AbortController();
   const stop = () => controller.abort();

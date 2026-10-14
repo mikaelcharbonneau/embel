@@ -55,12 +55,17 @@ describe("web non-dispatch worker readiness", () => {
     expect(await getApiTextWorkerReadiness()).toBeNull();
   });
   it.each([
-    { ...ready, deploymentId: "alias" }, { ...ready, operations: ["strategy.competitors"] },
+    { ...ready, deploymentId: "alias" },
     { ...ready, operations: ["naming.generate"] }, { ...ready, operations: ["strategy.reformulate", "strategy.reformulate"] },
     { ...ready, ownerId: "unexpected-private-data" }, { ...ready, version: 2 },
   ])("rejects a malformed or expanded readiness contract (%#)", async value => {
     const fetch = setup(); fetch.mockResolvedValue(Response.json(value));
     expect(await getApiTextWorkerReadiness()).toBeNull();
+  });
+  it("accepts qualified research alongside the existing operations without making an owner eligibility claim", async () => {
+    const fetch = setup(); const research = { ...ready, operations: ["strategy.competitors", "strategy.audience"] };
+    fetch.mockResolvedValue(Response.json(research));
+    expect(await getApiTextWorkerReadiness()).toEqual(research);
   });
   it("rejects oversized and invalid UTF-8 replies", async () => {
     const fetch = setup(); fetch.mockResolvedValueOnce(new Response(" ".repeat(1_025)));

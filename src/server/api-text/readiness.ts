@@ -7,7 +7,7 @@ import { getApiTextPublicationOrigin } from "./config";
 
 const readinessSchema = z.strictObject({
   version: z.literal(1), deploymentId: apiTextDeploymentSchema.regex(/^dpl_[A-Za-z0-9_-]{1,196}$/),
-  operations: z.array(strategyOperationSchema.exclude(["strategy.competitors"])).max(4)
+  operations: z.array(strategyOperationSchema).max(5)
     .refine(operations => new Set(operations).size === operations.length),
 });
 export type ApiTextWorkerReadiness = z.infer<typeof readinessSchema>;

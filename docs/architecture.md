@@ -1,5 +1,13 @@
 # Embel foundation architecture
 
+## Guided brand interview
+
+D063 supersedes the earlier Strategy conversation presentation below. The account workspace now uses a focused interview in the order competitors, target audience and brand personality, preceded by real competitor research and an animated original-logo loading screen. Detailed choice cards explain recommendations without preselecting them; the normal composer accepts custom answers, clarifications and explicit requests to revisit a stage. Positioning is not appended to this interview.
+
+Optional versioned `intake.guidedInterview` metadata stores actual user-message references, exact saved input revisions and explicit decisions. Assistant content remains exclusively in immutable owned job results. API input v2 freezes bounded owned assistant history at admission; guided output binds its turn/stage and distinguishes choices, question, answer, accepted custom decision and requested redirect. The browser never supplies assistant history. Account orchestration saves canonical selections before requesting the next widget; old snapshots and results remain readable. Completed decisions remain valid during clarification, and explicit revisits clear the affected review facts.
+
+Automatic saves retain a pending context in owner/generation-fenced session memory until acknowledged. Conflicts and lost acknowledgements keep that branch available for retry, latest-version recovery or a browser backup. A persisted turn retains its revision-derived request identity across reload; unknown provider outcomes remain reserved and cannot be replaced by an automatic retry. New guided runtime policies and private operation grants preserve existing lease, source, usage, cancellation and restricted worker boundaries. See [guided runtime](guided-interview-runtime.md).
+
 Sign-in and account creation support intercepted native dialogs alongside direct-page fallbacks. Both render the same server-configured form inside the existing account-session provider; dismissal preserves drafts and the pending authentication fence. Email confirmation uses a bounded PKCE exchange and a configured-origin redirect. See [Sign-in overlay](auth-overlay-design.md) and [account creation](account-creation.md).
 
 Settings follows the seven approved Figma categories. The presentation composes existing account, local drafts, text readiness, local ChatGPT and recorded usage components; no new settings API or persistence contract is added. Unsupported preferences and integrations are disabled rather than represented as saved settings. See [Settings design and behavior](settings-guided-design.md).

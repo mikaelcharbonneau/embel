@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-import { strategyPolicy, type OpenAIStrategyConfiguration } from "../../src/server/ai/config";
+import { guidedStrategyPolicy, strategyPolicy, type OpenAIStrategyConfiguration } from "../../src/server/ai/config";
 import { handleApiTextReadiness, readApiTextWorkerReadiness } from "../../worker/hosting/readiness";
 
 function fixture() {
@@ -22,7 +22,7 @@ describe("non-dispatch worker qualification", () => {
     expect(sql).toBe("select operation, public.check_api_text_runtime(operation, policy, $2) as ready from jsonb_to_recordset($1::jsonb) as candidate(operation text, policy jsonb)");
     expect(args).toEqual([JSON.stringify([{ operation: "strategy.reformulate", policy: strategyPolicy("strategy.reformulate") }]), "dpl_qualified"]);
   });
-  it("reports only approved operations from the exact four-operation allowlist", async () => {
+  it("reports only approved legacy text operations and excludes the legacy research policy", async () => {
     const f = fixture();
     for (const operation of ["strategy.competitors", "strategy.audience", "strategy.personality", "strategy.positioning"] as const) {
       (f.configuration.policies as Map<string, unknown>).set(operation, strategyPolicy(operation));
@@ -34,6 +34,15 @@ describe("non-dispatch worker qualification", () => {
     ] });
     expect((await readApiTextWorkerReadiness(f)).operations).toEqual(["strategy.audience", "strategy.positioning", "strategy.reformulate"]);
     expect(JSON.parse(f.query.mock.calls[0]![1]![0] as string)).toHaveLength(4);
+  });
+  it("qualifies research only with its exact guided policy and database approval", async () => {
+    const f = fixture(); const policy = guidedStrategyPolicy("strategy.competitors");
+    f.configuration.policies = new Map([["strategy.competitors", policy]]);
+    f.query.mockResolvedValue({ rows: [{ operation: "strategy.competitors", ready: true }] });
+    expect((await readApiTextWorkerReadiness({ ...f, multiAccount: true })).operations).toEqual(["strategy.competitors"]);
+    expect(f.query.mock.calls[0]?.[1]).toEqual([JSON.stringify([{ operation: "strategy.competitors", policy }]), "dpl_qualified"]);
+    f.query.mockResolvedValue({ rows: [{ operation: "strategy.competitors", ready: false }] });
+    expect((await readApiTextWorkerReadiness({ ...f, multiAccount: true })).operations).toEqual([]);
   });
   it("uses the separately granted multi-account qualification only after explicit opt-in", async () => {
     const f = fixture();

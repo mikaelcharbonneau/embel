@@ -1,13 +1,13 @@
 import { apiTextDeploymentSchema } from "../../src/domain/api-text-dispatch";
 import type { StrategyOperation } from "../../src/domain/strategy-jobs";
-import { matchesStrategyPolicy, type OpenAIStrategyConfiguration } from "../../src/server/ai/config";
+import { isHostedStrategyPolicy, type OpenAIStrategyConfiguration } from "../../src/server/ai/config";
 import { bounded } from "./timing";
 
 type Readiness = { version: 1; deploymentId: string; operations: StrategyOperation[] };
 type ReadinessDatabase = {
   query(sql: string, values: unknown[]): Promise<{ rows: Array<{ operation?: unknown; ready?: unknown }> }>;
 };
-const operations = ["strategy.reformulate", "strategy.audience", "strategy.personality", "strategy.positioning"] as const;
+const operations = ["strategy.reformulate", "strategy.competitors", "strategy.audience", "strategy.personality", "strategy.positioning"] as const;
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { "cache-control": "no-store" } });
 
 /** Checks existing approval using the existing restricted login. No admission or provider call. */
@@ -19,7 +19,7 @@ export async function readApiTextWorkerReadiness(options: {
   const deploymentId = apiTextDeploymentSchema.regex(/^dpl_[A-Za-z0-9_-]{1,196}$/).parse(options.deploymentId);
   const policies = operations.flatMap(operation => {
     const policy = options.configuration?.policies.get(operation);
-    return policy && matchesStrategyPolicy(operation, policy) && policy.maxWebSearchCalls === 0 && policy.maximumCostMicrousd <= 122_880
+    return policy && isHostedStrategyPolicy(operation, policy)
       ? [[operation, policy] as const] : [];
   });
   const readiness: Readiness = { version: 1, deploymentId, operations: [] };

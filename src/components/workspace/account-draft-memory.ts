@@ -1,9 +1,10 @@
 import type { AccountProject } from "@/domain/project-api";
+import type { ContextSnapshot } from "@/domain/projects";
 import type { LocalDraft } from "./local-drafts";
 import { accountProjectDraft } from "./project-draft-adapter";
 
-export type AccountWorkspace = { generation: number; ownerId: string; saved: AccountProject; draft: LocalDraft; conflict: boolean };
-export function accountDraftChanged(workspace: AccountWorkspace) { return JSON.stringify(workspace.draft) !== JSON.stringify(accountProjectDraft(workspace.saved)); }
+export type AccountWorkspace = { generation: number; ownerId: string; saved: AccountProject; draft: LocalDraft; conflict: boolean; pendingGuidedContext?: ContextSnapshot };
+export function accountDraftChanged(workspace: AccountWorkspace) { return Boolean(workspace.pendingGuidedContext) || JSON.stringify(workspace.draft) !== JSON.stringify(accountProjectDraft(workspace.saved)); }
 
 /** Lives only in the mounted session provider. Never writes browser storage. */
 export function createAccountDraftMemory() {

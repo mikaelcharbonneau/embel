@@ -1,12 +1,34 @@
 import "server-only";
 import { z } from "zod";
-import { strategyJobPolicySchema, type StrategyJobPolicy, type StrategyOperation } from "../../domain/strategy-jobs";
+import { strategyJobPolicySchema, strategyOperationSchema, type StrategyJobPolicy, type StrategyOperation } from "../../domain/strategy-jobs";
 
 // Official model/pricing docs checked 2026-10-03. Access is a separate runtime gate.
 export const OPENAI_STRATEGY_MODEL = "gpt-6.1-sol";
 export const STRATEGY_HANDLER_VERSION = "strategy-openai-v1";
 export const STRATEGY_PRICING_VERSION = "2026-10-03";
 export const MAX_INITIAL_INPUT_TOKENS = 32_768;
+export const GUIDED_STRATEGY_HANDLER_VERSION = "strategy-openai-guided-v1";
+export const GUIDED_STRATEGY_PRICING_VERSION = "2026-10-14";
+export const GUIDED_RESEARCH_MAX_INPUT_TOKENS = 3_150_000;
+export const GUIDED_RESEARCH_MAX_COST_MICROUSD = 15_892_880;
+
+type GuidedStrategyOperation = Exclude<StrategyOperation, "strategy.positioning">;
+
+/** Two built-in tool calls permit at most three model turns. Reserve each at
+ * the full documented 1,050,000-token model context, including search, and use
+ * the highest long-context input rate (cache writes). Output includes reasoning.
+ * 3,150,000 * $5/M + 8,192 * $15/M + 2 * $0.01 = $15.89288.
+ * Evidence: docs/guided-interview-runtime.md. Low/default search settings are
+ * not treated as numeric cost controls. Legacy research remains unqualified. */
+export function guidedStrategyPolicy(operation: GuidedStrategyOperation): StrategyJobPolicy {
+  const research = operation === "strategy.competitors";
+  return strategyJobPolicySchema.parse({
+    ...strategyPolicy(operation), version: 2,
+    pricingVersion: GUIDED_STRATEGY_PRICING_VERSION, handlerVersion: GUIDED_STRATEGY_HANDLER_VERSION,
+    maxInputTokens: research ? GUIDED_RESEARCH_MAX_INPUT_TOKENS : MAX_INITIAL_INPUT_TOKENS,
+    maximumCostMicrousd: research ? GUIDED_RESEARCH_MAX_COST_MICROUSD : 122_880,
+  });
+}
 
 export function strategyPolicy(operation: StrategyOperation): StrategyJobPolicy {
   const research = operation === "strategy.competitors";
@@ -45,12 +67,23 @@ export function readOpenAIStrategyConfiguration(env: Record<string, string | und
     ["strategy.positioning", "FLUID_TEXT_MODEL_POSITIONING"],
   ] as const) {
     const selected = env[variable] ?? env.FLUID_TEXT_MODEL_STRATEGY;
-    if (selected === OPENAI_STRATEGY_MODEL) policies.set(operation, strategyPolicy(operation));
+    if (selected === OPENAI_STRATEGY_MODEL) policies.set(operation,
+      env.FLUID_GUIDED_INTERVIEW_ENABLED === "true" && operation !== "strategy.positioning"
+        ? guidedStrategyPolicy(operation) : strategyPolicy(operation));
   }
   return policies.size ? { apiKey: key.data, policies } : null;
 }
 
 export function matchesStrategyPolicy(operation: StrategyOperation, policy: StrategyJobPolicy): boolean {
-  const expected = strategyPolicy(operation);
+  const expected = policy.version === 2 && operation !== "strategy.positioning"
+    ? guidedStrategyPolicy(operation) : strategyPolicy(operation);
   return Object.keys(expected).every(key => expected[key as keyof StrategyJobPolicy] === policy[key as keyof StrategyJobPolicy]);
+}
+
+/** One shared allowlist for delivery and protected readiness. SQL separately
+ * qualifies the exact owner, operation, policy, restricted role and deployment. */
+export function isHostedStrategyPolicy(operation: StrategyOperation, policy: StrategyJobPolicy): boolean {
+  return strategyOperationSchema.safeParse(operation).success && matchesStrategyPolicy(operation, policy) && (policy.version === 2
+    ? operation !== "strategy.positioning"
+    : operation !== "strategy.competitors" && policy.maxWebSearchCalls === 0 && policy.maximumCostMicrousd <= 122_880);
 }

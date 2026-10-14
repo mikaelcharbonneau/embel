@@ -245,6 +245,7 @@ export function draftContext(draft: LocalDraft, saved = draft.preservedContext):
       };
     }),
     intake: {
+      ...(base.intake.guidedInterview ? { guidedInterview: base.intake.guidedInterview } : {}),
       suppliedName: draft.suppliedName.trim(), namingNotes: draft.namingNotes, identityNotes: draft.identityNotes, step: draft.stage, audienceReviewedAt: isAudienceReviewComplete(draft, saved) ? draft.audienceReviewedAt : null, example: draft.example,
       ...(conversation !== undefined ? { conversation } : {}),
       personalityReviewedAt: isPersonalityReviewComplete(draft, saved) ? strategyReviewedAt(draft, "personalityReviewedAt", saved) : null,

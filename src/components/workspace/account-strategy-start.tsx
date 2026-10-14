@@ -14,6 +14,7 @@ import type { LocalDraft } from "./local-drafts";
 import { StartReceiptRecoveryError, readReceipt, readDraftFence, rememberReceipt, forgetReceipt, hasDraftReceipt, type StartReceipt } from "./account-project-start-recovery";
 import { forgetStrategyIntent, formatStrategyCap, promptStrategyPlan, rememberStrategyPlan, strategyAvailabilityMessage, strategyAllowanceWithin, strategyRequestPayload, strategyJobMatchesRequest, verifyStrategyJobs } from "./account-strategy-client";
 import { rememberPromptForSignIn } from "./prompt-recovery";
+import { guidedAllowance, initialGuidedContext } from "./guided-interview-client";
 
 type Availability = z.infer<typeof strategyRuntimeResponseSchema>["availability"];
 function subscriptionLimitsLabel(limits: NonNullable<ReturnType<typeof promptStrategyPlan>>["reformulation"] & { billingMode: "chatgpt_subscription" }) {
@@ -22,13 +23,14 @@ function subscriptionLimitsLabel(limits: NonNullable<ReturnType<typeof promptStr
 }
 
 /** Starts from the independent browser copy; unavailable AI never becomes a fake Send. */
-export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, recoveryLocked = false }: { beforeSignIn?: (locked: boolean) => boolean; recoveryDraftId?: string | null; recoveryLocked?: boolean } = {}) {
+export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, recoveryLocked = false, guided = false }: { guided?: boolean; beforeSignIn?: (locked: boolean) => boolean; recoveryDraftId?: string | null; recoveryLocked?: boolean } = {}) {
   const { session, isCurrent, expire, refresh } = useAccountSession();
   const router = useRouter();
   const identity = session.status === "ready" ? `${session.userId}:${session.generation}` : `unverified:${session.generation}`;
   const [runtime, setRuntime] = useState<{ identity: string; availability: Availability | null } | null>(null);
   const [action, setAction] = useState<{ identity: string; pending: boolean; message: string; recoveryBlocked?: boolean } | null>(null);
   const [retained, setRetained] = useState<StartReceipt | null>(null);
+  const [opening, setOpening] = useState<string | null>(null);
   const recoveryKey = `${identity}:${recoveryDraftId ?? ""}`;
   const [checkedRecovery, setCheckedRecovery] = useState<{ key: string; receipt: StartReceipt | null; fenced: boolean; error: string | null } | null>(null);
   const request = useRef<AbortController | null>(null);
@@ -102,7 +104,7 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
     setAction({ identity, pending: true, message: "" });
     try {
       const availability = await verifySession(account, controller) ? await readReadiness(account, controller) : null;
-      if (availability) setAction({ identity, pending: false, message: promptStrategyPlan(availability) ? "AI is available. Review the limits below, then Send to request a response." : strategyAvailabilityMessage(availability) });
+      if (availability) setAction({ identity, pending: false, message: guided ? (guidedAllowance(availability, "strategy.competitors") ? "Competitor research is ready. Send your prompt to begin." : "Competitor research is unavailable right now. Your prompt is kept.") : promptStrategyPlan(availability) ? "AI is available. Review the limits below, then Send to request a response." : strategyAvailabilityMessage(availability) });
     } catch (error: unknown) {
       if (controller.signal.aborted || !isCurrent(account)) return;
       if (error instanceof AccountRequestError && error.status === 401) expire(account);
@@ -117,6 +119,7 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
     if (request.current || session.status !== "ready" || !isCurrent(session) || (draft.id === recoveryDraftId && recoveryBlocked)) return false;
     const account = session, controller = new AbortController();
     request.current = controller; readinessRequest.current?.abort();
+    if (guided) setOpening(identity);
     setAction({ identity, pending: true, message: "" });
     const current = () => mounted.current && !controller.signal.aborted && isCurrent(account);
     let receipt: StartReceipt | null = null;
@@ -138,12 +141,16 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
       receipt = readReceipt(account.userId, draft.id);
       if (receipt) { setRetained(receipt); setAction({ identity, pending: false, message: "This draft already has an account save to check. Use its recovery link below." }); return false; }
       const freshPlan = promptStrategyPlan(availability);
-      if (!freshPlan) { setAction({ identity, pending: false, message: strategyAvailabilityMessage(availability) }); return false; }
-      if (!plan || freshPlan.kind !== plan.kind || !strategyAllowanceWithin(freshPlan.reformulation, plan.reformulation)
+      const selectedAllowance = guided ? guidedAllowance(availability, "strategy.competitors") : plan?.reformulation;
+      if ((guided && !selectedAllowance) || (!guided && !freshPlan)) { setAction({ identity, pending: false, message: strategyAvailabilityMessage(availability) }); return false; }
+      const acceptedResearch = guided ? guidedAllowance(currentRuntime?.availability, "strategy.competitors") : null;
+      if (guided ? !acceptedResearch || !strategyAllowanceWithin(selectedAllowance!, acceptedResearch) : !plan || !freshPlan || freshPlan.kind !== plan.kind || !strategyAllowanceWithin(freshPlan.reformulation, plan.reformulation)
         || (freshPlan.kind === "response_and_competitors" && plan.kind === "response_and_competitors" && !strategyAllowanceWithin(freshPlan.competitors, plan.competitors))) {
         setAction({ identity, pending: false, message: "AI readiness or request limits changed. Review the limits below, then Send again. No AI request was sent." }); return false;
       }
+      if (!selectedAllowance) return false;
       const input = createAccountInput(draft);
+      if (guided) input.context = initialGuidedContext(input.context, 1);
       const pendingReceipt = { ownerId: account.userId, draftId: draft.id, projectId: null };
       rememberReceipt(pendingReceipt); // Capacity errors happen before an attempted save is recorded.
       // Persist the Home edit fence before the first non-idempotent account save.
@@ -168,16 +175,17 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
       if (project.owner_id !== account.userId) { expire(account); return false; }
       if (project.current_revision !== 1 || project.scope !== input.scope || project.title !== input.title || JSON.stringify(project.context) !== JSON.stringify(input.context)) throw new AccountRequestError(502);
       receipt = { ...receipt, projectId: project.id }; rememberReceipt(receipt); setRetained(receipt);
-      rememberStrategyPlan({ ownerId: account.userId, projectId: project.id, revision: project.current_revision }, plan);
+      if (!guided) rememberStrategyPlan({ ownerId: account.userId, projectId: project.id, revision: project.current_revision }, plan!);
+      const operation = guided ? "strategy.competitors" : "strategy.reformulate";
       setAction({ identity, pending: true, message: "Submitting your AI response request…" });
       try {
         const { job } = await boundedAccountRequest(`/api/projects/${project.id}/strategy`, strategyJobResponseSchema, {
           method: "POST", signal: controller.signal,
-          body: strategyRequestPayload(project.id, project.current_revision, "strategy.reformulate", plan.reformulation),
+          body: strategyRequestPayload(project.id, project.current_revision, operation, selectedAllowance),
         });
         if (!current()) return false;
         if (!verifyStrategyJobs([job], account.userId, project.id)) { expire(account); return false; }
-        if (!strategyJobMatchesRequest(job, "strategy.reformulate", project.current_revision, plan.reformulation)) {
+        if (!strategyJobMatchesRequest(job, operation, project.current_revision, selectedAllowance)) {
           forgetStrategyIntent(account.userId, project.id, project.current_revision);
           throw new AccountRequestError(502);
         }
@@ -197,7 +205,7 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
       return false;
     } finally {
       if (request.current === controller) request.current = null;
-      if (mounted.current && isCurrent(account)) setAction(previous => previous?.identity === identity ? { ...previous, pending: false } : previous);
+      if (mounted.current && isCurrent(account)) { setAction(previous => previous?.identity === identity ? { ...previous, pending: false } : previous); setOpening(null); }
     }
   }
   const notice = <div>
@@ -227,5 +235,6 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
       <button type="button" className="text-link" disabled={pending || session.status === "checking"} onClick={() => void recheck()}>{session.status === "ready" ? "Recheck AI availability" : "Recheck account"}</button>
     </div>
   </div>;
-  return { notice, pending, start, locked, checkingRecovery, recoveryBlocked, recoveryProjectId: recovery?.projectId ?? null };
+  const guidedNotice = <div>{message && <p className="field-hint" role="status">{message}</p>}{recoveryMessage && <p className="field-hint">{recoveryMessage}</p>}{checked?.error && <p role="alert">{checked.error}</p>}{session.status === "signed_out" && <p className="field-hint"><Link href="/sign-in" className="text-link" onClick={event => { if (beforeSignIn && !beforeSignIn(locked)) event.preventDefault(); }}>Sign in</Link> to start your brand. Your prompt is kept.</p>}{session.status === "ready" && currentRuntime && !guidedAllowance(currentRuntime.availability, "strategy.competitors") && <p className="field-hint">Competitor research is unavailable right now. Your prompt is kept.</p>}{recovery?.projectId ? <Link className="text-link" href={`/brands/account/${recovery.projectId}`}>Open saved account project and check AI status</Link> : recovery && <Link className="text-link" href="/brands">Check account brands</Link>}{!pending && (message || !guidedAllowance(currentRuntime?.availability, "strategy.competitors")) && <button type="button" className="text-link" onClick={() => void recheck()}>Check AI availability</button>}</div>;
+  return { notice: guided ? guidedNotice : notice, pending, starting: guided && opening === identity && pending, start, locked, checkingRecovery, recoveryBlocked, recoveryProjectId: recovery?.projectId ?? null };
 }
