@@ -1,5 +1,7 @@
 # API-text production dispatch repair — 2026-10-13
 
+The confirmed account's one-response trial has since been replaced, at the user's explicit request, by ongoing testing access without aggregate quotas or expiry. See [account AI testing](account-ai-testing.md) for the 2026-10-14 activation and verification. This supersedes the trial limits below for that explicitly approved account only.
+
 ## Implemented behavior
 
 The approved web project `prj_WKrFUPy3wptZ3qI9l1hTuqPmzkDt` can publish existing API-text dispatch descriptors from `preview` and `production`. An explicit `VERCEL_TARGET_ENV` must match `VERCEL_ENV`. Development, custom environments, another project, and malformed worker origins remain unavailable. The transport still carries only the five immutable dispatch fields, uses request-context OIDC, refuses redirects, and returns `dispatch_pending` on timeout or any unconfirmed response.
