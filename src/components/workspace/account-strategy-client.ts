@@ -35,18 +35,24 @@ export function promptStrategyPlan(availability: StrategyOverview["availability"
   if (reformulation?.billingMode === "openai_api" && !competitors) return { kind: "response_only", billingMode: "openai_api", reformulation };
   return null;
 }
-/** Only documented public readiness reasons are shown; never render server error text. */
-export function strategyAvailabilityMessage(availability: StrategyOverview["availability"] | null) {
-  if (!availability) return "AI availability could not be confirmed. Recheck before sending. Your prompt is kept.";
-  if (availability.status === "available") return "The response and competitor research operations are not both ready. Your prompt is kept.";
+/** Only public readiness reasons are shown; project notices do not infer request history. */
+export function strategyAvailabilityMessage(availability: StrategyOverview["availability"] | null, context: "prompt" | "project" = "prompt") {
+  if (!availability) return context === "project"
+    ? "AI availability could not be confirmed. Check existing request status before trying again. You can still edit and save your project."
+    : "AI availability could not be confirmed. Recheck before sending. Your prompt is kept.";
+  if (availability.status === "available") return context === "project"
+    ? "AI replies are not enabled for this step. You can still edit and save your project."
+    : "The response and competitor research operations are not both ready. Your prompt is kept.";
   const reasons: Record<NonNullable<StrategyOverview["availability"]["reason"]>, string> = {
-    worker_unavailable: "The AI worker is not ready. Recheck after it is connected.",
+    worker_unavailable: context === "project" ? "AI replies are unavailable right now." : "The AI worker is not ready. Recheck after it is connected.",
     runtime_disabled: "AI is not enabled in this workspace.",
-    budget_unavailable: "The approved AI budget is unavailable.",
+    budget_unavailable: "No AI requests are available for this account.",
     subscription_unavailable: "The ChatGPT connection is unavailable.",
     quota_unavailable: "The current AI request limit is unavailable. Recheck when capacity is available.",
   };
-  return `${reasons[availability.reason!]} No AI request was sent. Your prompt is kept.`;
+  return context === "project"
+    ? `${reasons[availability.reason!]} You can still edit and save your project.`
+    : `${reasons[availability.reason!]} No AI request was sent. Your prompt is kept.`;
 }
 export function strategyRequestPayload(projectId: string, revision: number, operation: StrategyOperation, allowance: StrategyAllowance): EnqueueStrategyJob {
   const common = { operation, expectedRevision: revision, idempotencyKey: strategyIdempotencyKey(projectId, revision, operation, allowance.billingMode) };

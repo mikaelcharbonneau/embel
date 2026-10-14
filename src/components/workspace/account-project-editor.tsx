@@ -142,12 +142,14 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
     else setOperation({ generation: account.generation, projectId, busy: false, error: "This browser has 50 drafts. Remove an unused browser draft before saving a copy." });
   }
 
-  const actions = <div className="account-edit-controls">
-    <div className="account-actions"><p>{changed(active) ? "Your edits stay in this tab until you save." : `Saved to your account at version ${active.saved.current_revision}.`} {active.draft.example && "This brief began with a written example."}</p><button className="button primary small" type="button" disabled={busy || !changed(active) || active.conflict} onClick={() => void save()}>{busy ? "Saving…" : "Save changes"}</button></div>
+  const hasSaveError = operation?.generation === account.generation && operation.projectId === projectId && Boolean(operation.error);
+  const showActions = changed(active) || busy || active.conflict || hasSaveError || browserCopy?.generation === account.generation;
+  const actions = showActions ? <div className="account-edit-controls">
+    {(changed(active) || busy) && <div className="account-actions"><p>Unsaved changes</p><button className="button primary small" type="button" disabled={busy || !changed(active) || active.conflict} onClick={() => void save()}>{busy ? "Saving…" : "Save changes"}</button></div>}
     {operation?.generation === account.generation && operation.projectId === projectId && operation.error && <div><p className="form-error" role="alert">{operation.error}</p>{changed(active) && !active.conflict && <button className="button secondary small" type="button" disabled={busy} onClick={saveBrowserCopy}>Save edits as browser copy</button>}</div>}
     {active.conflict && <div className="account-conflict" role="alert"><strong>A newer version is saved in your account.</strong><p>Your edits are still here. Save them as a browser copy or choose to load the latest account version.</p><div className="account-recovery-actions"><button className="button secondary small" type="button" disabled={busy} onClick={saveBrowserCopy}>Save edits as browser copy</button><button className="button secondary small" type="button" disabled={busy} onClick={() => setConfirmLatest(true)}>Load latest version</button></div>{confirmLatest && <div className="inline-confirm"><p>Replace the edits in this tab with the latest saved version? Save a browser copy first if you want to keep them.</p><button className="button secondary small" type="button" onClick={() => setConfirmLatest(false)}>Keep editing</button><button className="button primary small" type="button" disabled={busy} onClick={() => void loadLatest()}>Replace with latest version</button></div>}</div>}
     {browserCopy?.generation === account.generation && <p className="form-success" role="status">{browserCopy.persisted ? "Your edits were saved as a new draft in this browser." : "Your copy stays in this tab because browser storage is unavailable."} <Link href={`/brands/${browserCopy.id}`}>Open browser copy</Link></p>}
-  </div>;
+  </div> : null;
   const namingReadiness = getNamingReadiness(active.saved.context, active.saved.scope);
   const namingBlocked = busy || changed(active) || active.conflict || !namingReadiness.ready;
   const namingHint = active.conflict ? "Resolve the saved-version conflict before opening Naming."

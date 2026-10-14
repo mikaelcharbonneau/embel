@@ -329,9 +329,21 @@ test("project design: all Strategy reviews and optional live brief retain the sa
     await capture(page, info, `project-strategy-${widget}.png`);
   }
   await page.getByRole("button", { name: "Live brief", exact: true }).click();
-  await expect(page.getByRole("complementary", { name: "Live brief" })).toBeVisible();
+  const brief = page.getByRole("complementary", { name: "Live brief" });
+  await expect(brief).toBeVisible();
+  const briefBox = await brief.boundingBox();
+  expect(briefBox!.y).toBeGreaterThanOrEqual(108);
+  expect(briefBox!.y + briefBox!.height).toBeLessThanOrEqual(page.viewportSize()!.height + 1);
+  if (page.viewportSize()!.width <= 760) await expect(page.locator(".conversation-composer")).not.toBeVisible();
+  await capture(page, info, "project-live-brief.png");
+  await brief.getByRole("button", { name: "Close live brief", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Live brief", exact: true })).toBeFocused();
+  await expect(page.locator(".conversation-composer")).toBeVisible();
+  await page.getByRole("button", { name: "Live brief", exact: true }).click();
   await page.getByRole("button", { name: "Edit brief", exact: true }).click();
+  await expect(brief).not.toBeVisible();
   await expect(page.getByRole("region", { name: "Project brief", exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Brief description", exact: true })).toBeFocused();
   expect(JSON.stringify(state.project)).toBe(original); expect(state.writes).toHaveLength(0);
   await capture(page, info, "project-brief.png");
 });

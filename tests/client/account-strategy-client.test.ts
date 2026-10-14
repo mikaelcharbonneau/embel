@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { accountProjectSchema } from "@/domain/project-api";
 import { DEFAULT_SUBSCRIPTION_LIMITS, strategyJobSchema, strategyOverviewResponseSchema, type StrategyJob } from "@/domain/strategy-jobs";
 import { accountProjectDraft } from "@/components/workspace/project-draft-adapter";
-import { canContinueStrategy, forgetStrategyIntent, formatStrategyCap, promptStrategyPlan, readStrategyIntent, rememberStrategyIntent, rememberStrategyPlan, strategyIntentPlan, strategyAllowanceLabel, strategyIdempotencyKey, strategyJobMatchesRequest, strategyRequestPayload, strategyResultApplication, verifyStrategyJobs } from "@/components/workspace/account-strategy-client";
+import { canContinueStrategy, forgetStrategyIntent, formatStrategyCap, promptStrategyPlan, readStrategyIntent, rememberStrategyIntent, rememberStrategyPlan, strategyIntentPlan, strategyAllowanceLabel, strategyAvailabilityMessage, strategyIdempotencyKey, strategyJobMatchesRequest, strategyRequestPayload, strategyResultApplication, verifyStrategyJobs } from "@/components/workspace/account-strategy-client";
 
 const owner = "aaaaaaaa-1111-4111-8111-111111111111";
 const projectId = "bbbbbbbb-1111-4111-8111-111111111111";
@@ -23,6 +23,41 @@ function appliedJob(input: StrategyJob = job()): StrategyJob {
 }
 
 afterEach(() => vi.unstubAllGlobals());
+describe("account strategy availability messages", () => {
+  it("describes unavailable account allowance after an applied response without claiming a provider outage or trial exhaustion", () => {
+    const overview = strategyOverviewResponseSchema.parse({ availability: { status: "unavailable", operations: [], reason: "budget_unavailable" }, jobs: [appliedJob()] });
+    const message = strategyAvailabilityMessage(overview.availability, "project");
+    expect(message).toBe("No AI requests are available for this account. You can still edit and save your project.");
+    expect(message).not.toMatch(/OpenAI|trial|exhausted|No AI request was sent/i);
+  });
+  it.each([
+    ["runtime_disabled", "AI is not enabled in this workspace."],
+    ["worker_unavailable", "AI replies are unavailable right now."],
+    ["subscription_unavailable", "The ChatGPT connection is unavailable."],
+    ["quota_unavailable", "The current AI request limit is unavailable."],
+  ] as const)("retains the verified %s reason without making claims about earlier requests", (reason, expected) => {
+    const message = strategyAvailabilityMessage({ status: "unavailable", operations: [], reason }, "project");
+    expect(message).toContain(expected);
+    expect(message).toContain("You can still edit and save your project.");
+    expect(message).not.toContain("No AI request was sent");
+  });
+  it("keeps an unconfirmed read distinct from an allowance refusal and directs recovery before retrying", () => {
+    const message = strategyAvailabilityMessage(null, "project");
+    expect(message).toContain("AI availability could not be confirmed.");
+    expect(message).toContain("Check existing request status before trying again.");
+    expect(message).not.toMatch(/No AI requests are available|No AI request was sent|OpenAI is unavailable/);
+  });
+  it("describes an unsupported response plan without treating other ready operations as a provider outage", () => {
+    expect(promptStrategyPlan(availability)).toBeNull();
+    expect(strategyAvailabilityMessage(availability, "project")).toBe("AI replies are not enabled for this step. You can still edit and save your project.");
+  });
+  it("preserves prompt retention and no-send context for Home callers that stop before admission", () => {
+    expect(strategyAvailabilityMessage({ status: "unavailable", operations: [], reason: "budget_unavailable" })).toBe("No AI requests are available for this account. No AI request was sent. Your prompt is kept.");
+    expect(strategyAvailabilityMessage({ status: "unavailable", operations: [], reason: "worker_unavailable" })).toBe("The AI worker is not ready. Recheck after it is connected. No AI request was sent. Your prompt is kept.");
+    expect(strategyAvailabilityMessage(null)).toBe("AI availability could not be confirmed. Recheck before sending. Your prompt is kept.");
+  });
+});
+
 describe("account strategy admission", () => {
   it("keeps idempotency stable across remounts while separating revisions and operations", () => {
     const key = strategyIdempotencyKey(projectId, 3, "strategy.reformulate");

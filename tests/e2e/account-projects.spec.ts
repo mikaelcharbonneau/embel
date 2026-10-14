@@ -60,6 +60,7 @@ async function accountFixtures(page: Page, initial: AccountProject[] = []) {
     const project = id ? state.projects.get(id) : undefined;
     if (!project || project.owner_id !== state.owner) return reply(route, { error: "Synthetic not-found fixture" }, 404);
     if (path.endsWith("/idea-source") && request.method() === "GET") return reply(route, { ownerId: state.owner, projectId: project.id, source: null });
+    if (path.endsWith("/standalone-source") && request.method() === "GET") return reply(route, { ownerId: state.owner, projectId: project.id, source: null });
     if (path.endsWith("/idea-attachments") && request.method() === "GET") return reply(route, { ownerId: state.owner, projectId: project.id, items: [], nextCursor: null });
     if (path.endsWith("/strategy") && request.method() === "GET") return reply(route, { availability: { status: "unavailable", operations: [], reason: "runtime_disabled" }, jobs: [] });
     if (request.method() === "GET") return reply(route, { project });
@@ -124,7 +125,7 @@ async function rename(page: Page, title: string) {
 }
 async function sendFollowup(page: Page, text: string) {
   await page.getByRole("textbox", { name: "Message Embel", exact: true }).fill(text);
-  await page.getByRole("button", { name: "Send prompt", exact: true }).click();
+  await page.getByRole("button", { name: "Keep note", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeEmpty();
   await expect(page.getByText(text, { exact: true })).toBeVisible();
 }
@@ -259,7 +260,7 @@ test("account fixture: 409 keeps edits, offers an explicit browser copy and requ
   await sendFollowup(page, "Keep my unsaved notes");
   state.projects.set(projectA, { ...original, title: "Remote latest fixture", current_revision: 2 });
   await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page.locator("main").getByRole("alert")).toContainText("A newer version is saved");
+  await expect(page.locator(".account-conflict")).toContainText("A newer version is saved");
   await expect(page.getByRole("heading", { name: "Unsaved recovery fixture", exact: true, level: 1 })).toBeVisible();
   expect(await browserData(page)).toBeNull();
   await page.getByRole("button", { name: "Save edits as browser copy" }).click();
@@ -423,7 +424,7 @@ test("account fixture: typing while a confirmed latest-version load is pending k
   await rename(page, "My first unsaved edit");
   state.projects.set(projectA, { ...original, current_revision: 2, title: "Remote latest fixture" });
   await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page.locator("main").getByRole("alert")).toContainText("A newer version is saved");
+  await expect(page.locator(".account-conflict")).toContainText("A newer version is saved");
   let release!: () => void;
   let started!: () => void;
   const pending = new Promise<void>((resolve) => { release = resolve; });
