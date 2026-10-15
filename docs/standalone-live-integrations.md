@@ -1,5 +1,7 @@
 # Standalone live integrations
 
+The optional 2026-10-15 [Name.com CORE candidate](namecom-domain-lookup.md) adds explicit exact registration/acquisition discovery and authoritative term pricing behind a dedicated enable flag. It leaves existing provider selection unchanged while disabled and does not configure credentials or deploy itself. The earlier provider recommendation below is historical; Name.com is the user's selected new integration.
+
 For the 2026-10-15 Domains extension, see [live prices and saved shortlists](domains-live-shortlists.md). That candidate adds Vercel public search as the credential-free default behind configured Cloudflare, term-aware prices and resumable checks. The observations and configuration recommendations below are the earlier 2026-10-13 checkpoint.
 
 Implemented for the functional-prototype workstream on 2026-10-13, America/Toronto. Existing approved screens, account schemas, imports, selection resets, CSV exports and purchase restrictions remain intact. No credentials, provider accounts, migrations, remote settings or deployments were created or changed.

@@ -4,7 +4,7 @@ import { boundedProviderWork } from "./bounded-request";
 import { type ProviderFetch, type ProviderClock, type ProviderJsonFailure } from "./contracts";
 
 /** Only fixed provider adapters construct requests. No URL/header input comes from HTTP clients. */
-export async function liveProviderJson(request: Request, fetcher: ProviderFetch, clock: ProviderClock, signal: AbortSignal, allowNotFound = false): Promise<{
+export async function liveProviderJson(request: Request, fetcher: ProviderFetch, clock: ProviderClock, signal: AbortSignal, allowNotFound = false, decodeJson: (text: string) => unknown = JSON.parse): Promise<{
   status: "ok"; body: unknown; httpStatus: number; observedAt: string; digest: string;
 } | ProviderJsonFailure> {
   const result = await boundedProviderWork(async child => {
@@ -30,7 +30,7 @@ export async function liveProviderJson(request: Request, fetcher: ProviderFetch,
       const bytes = Buffer.concat(chunks, size);
       // RFC 7480 §5.3 permits a 404 without an error object. It proves no returned record, never registrability.
       if (allowNotFound && response.status === 404 && size === 0) return { failed: false as const, body: null, httpStatus: response.status, digest: createHash("sha256").update(bytes).digest("hex") };
-      try { return { failed: false as const, body: JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)) as unknown, httpStatus: response.status, digest: createHash("sha256").update(bytes).digest("hex") }; }
+      try { return { failed: false as const, body: decodeJson(new TextDecoder("utf-8", { fatal: true }).decode(bytes)), httpStatus: response.status, digest: createHash("sha256").update(bytes).digest("hex") }; }
       catch { return failure("invalid_response"); }
     } finally { child.removeEventListener("abort", cancel); cancel(); try { reader?.releaseLock(); } catch {} }
   }, clock, signal);

@@ -202,3 +202,7 @@ Visual-direction and screening drafts join the existing account-scoped in-memory
 ## Domains live prices and saved shortlist (2026-10-15 candidate)
 
 The authenticated standalone lookup route adds credential-free Vercel exact-domain checks with term-aware registration/renewal prices, preserving configured Cloudflare and RDAP boundaries. Ambiguous provider negatives stay Unknown. Transient prices remain owner/generation-fenced and cannot be written into account drafts. A bounded optional `shortlistedDomains` field preserves legacy version-1 payloads and the existing CAS/idempotency workflow; the guarded validator migration changes no grants or ownership rules. See [implementation, rollout requirements and verification boundaries](domains-live-shortlists.md). Source implementation is separate from hosted activation.
+
+## Optional Name.com CORE lookup (2026-10-15 candidate)
+
+Name.com adds an explicitly enabled, server-credential-gated alternative to the existing registrar reads. Exact discovery separates new registration from aftermarket/expiring/backorder offers; only matching authoritative registration-term pricing can produce a registration quote. Acquisition offers stay Unknown for new registration and disclose their flat fee separately. The current Vercel/Cloudflare/RDAP path is unchanged while Name.com is disabled, and sandbox configuration cannot establish live evidence. No schema, worker, purchase, credential or deployment change is included. See [Name.com implementation and secure rollout gates](namecom-domain-lookup.md).

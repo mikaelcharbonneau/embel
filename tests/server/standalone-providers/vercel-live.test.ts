@@ -272,7 +272,7 @@ describe("Vercel transport and cancellation boundaries", () => {
 
 describe("domain configuration and routing compatibility", () => {
   it("defaults to public Vercel and supports explicit opt-out without borrowing credentials", () => {
-    expect(standaloneProviderConfig({ VERCEL_TOKEN: "unused", VERCEL_TEAM_ID: "unused" })).toEqual({ vercel: true, rdap: true, cloudflare: null, youtube: null, euipo: null });
+    expect(standaloneProviderConfig({ VERCEL_TOKEN: "unused", VERCEL_TEAM_ID: "unused" })).toEqual({ vercel: true, rdap: true, cloudflare: null, namecom: null, youtube: null, euipo: null });
     expect(standaloneCapabilities(owner, standaloneProviderConfig({})).domains).toBe("vercel");
     expect(standaloneCapabilities(owner, standaloneProviderConfig({ FLUID_VERCEL_DOMAIN_CHECKS_ENABLED: "false" })).domains).toBe("rdap");
     expect(standaloneCapabilities(owner, standaloneProviderConfig({ FLUID_VERCEL_DOMAIN_CHECKS_ENABLED: "false", FLUID_RDAP_CHECKS_ENABLED: "false" })).domains).toBe("unavailable");

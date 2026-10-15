@@ -59,12 +59,12 @@ export function createStandaloneLiveAdapters(capabilities: StandaloneCapabilitie
       : lookupFailureMessage[response.result.code], response.result.code === "rate_limited" ? response.result.retryAfterSeconds ?? 60 : null);
     return response.result;
   }
-  const provider = capabilities.domains === "cloudflare" ? "cloudflare_registrar" : capabilities.domains === "vercel" ? "vercel_registrar" : "Public registry RDAP";
-  const hasPrices = capabilities.domains === "cloudflare" || capabilities.domains === "vercel";
+  const provider = capabilities.domains === "namecom" ? "namecom_core" : capabilities.domains === "cloudflare" ? "cloudflare_registrar" : capabilities.domains === "vercel" ? "vercel_registrar" : "Public registry RDAP";
+  const hasPrices = capabilities.domains === "namecom" || capabilities.domains === "cloudflare" || capabilities.domains === "vercel";
   return {
     domains: capabilities.domains === "unavailable" ? { status: "unavailable", reason: "Domain checks are not connected." } : {
       status: "ready", provider, quotesWithCheck: hasPrices,
-      description: capabilities.domains === "rdap" ? "Public registry checks support .com, .net, .org, .app, .dev, .ca, .ai and .uk. A missing record stays Unknown. Registrar prices require a connection." : capabilities.domains === "vercel" ? "Vercel checks exact domains and supplies current registration and renewal prices in USD for the displayed term. Unavailable or unconfirmed results stay Unknown. Only domain names are sent to Vercel. Checks do not reserve a domain." : "Cloudflare checks registration eligibility and supplies current annual prices. Checks do not reserve a domain.",
+      description: capabilities.domains === "namecom" ? "Name.com checks exact domains and current registration and renewal totals in USD for the displayed term. Aftermarket, expiring and backorder offers stay Unknown and have no registration quote. Only domain names are sent to Name.com. Checks do not reserve a domain." : capabilities.domains === "rdap" ? "Public registry checks support .com, .net, .org, .app, .dev, .ca, .ai and .uk. A missing record stays Unknown. Registrar prices require a connection." : capabilities.domains === "vercel" ? "Vercel checks exact domains and supplies current registration and renewal prices in USD for the displayed term. Unavailable or unconfirmed results stay Unknown. Only domain names are sent to Vercel. Checks do not reserve a domain." : "Cloudflare checks registration eligibility and supplies current annual prices. Checks do not reserve a domain.",
       async check(domain, signal) {
         prices.delete(domain);
         const result = await lookup({ tool: "domains", domain }, signal);

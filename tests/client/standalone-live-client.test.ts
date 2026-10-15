@@ -83,3 +83,54 @@ describe("Vercel domain browser adapter", () => {
     await expect(adapter.check(check.domain, signal())).rejects.toThrow("Wait 125 seconds");
   });
 });
+
+describe("Name.com domain browser adapter", () => {
+  const namecomCheck = { ...check, provider: "namecom_core" };
+  const namecomQuote = { ...quote, provider: "namecom_core", periodYears: 2, renewal: { amountMinor: 16000, currency: "USD" }, renewalTerms: "Current renewal total for 2 years; future prices may change." };
+  it("loads the optional capability and reads the bound quote without another provider call", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ ...capabilities, domains: "namecom" })));
+    await expect(loadStandaloneCapabilities(binding())).resolves.toMatchObject({ domains: "namecom" });
+    const fetcher = vi.fn().mockResolvedValue(Response.json({ ownerId, result: { status: "domain", check: namecomCheck, quote: namecomQuote } })); vi.stubGlobal("fetch", fetcher);
+    const adapter = createStandaloneLiveAdapters({ ...capabilities, domains: "namecom" }, binding()).domains;
+    if (adapter.status !== "ready") throw new Error("fixture adapter");
+    expect(adapter.provider).toBe("namecom_core"); expect(adapter.quotesWithCheck).toBe(true);
+    expect(adapter.description).toContain("Only domain names are sent to Name.com");
+    expect(adapter.description).toContain("Aftermarket");
+    await expect(adapter.check(check.domain, signal())).resolves.toEqual(namecomCheck);
+    await expect(adapter.quote!(check.domain, check.id, signal())).resolves.toEqual(namecomQuote);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher).toHaveBeenCalledWith("/api/standalone-checks", expect.objectContaining({ method: "POST", body: JSON.stringify({ tool: "domains", domain: check.domain }) }));
+  });
+  it("leaves acquisition offers unknown and without a registration quote", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ ownerId, result: { status: "domain", check: { ...namecomCheck, availability: "unknown", detail: "Name.com reports an aftermarket offer. Flat acquisition fee: 5000.00 USD." }, quote: null } })));
+    const adapter = createStandaloneLiveAdapters({ ...capabilities, domains: "namecom" }, binding()).domains;
+    if (adapter.status !== "ready") throw new Error("fixture adapter");
+    await expect(adapter.check(check.domain, signal())).resolves.toMatchObject({ availability: "unknown", detail: expect.stringContaining("aftermarket") });
+    await expect(adapter.quote!(check.domain, check.id, signal())).rejects.toThrow("No current matching");
+  });
+  it("rejects sandbox, other-provider and other-owner results", async () => {
+    for (const response of [
+      { ownerId, result: { status: "domain", check: { ...namecomCheck, provider: "namecom_core_sandbox", availability: "unknown" }, quote: null } },
+      { ownerId, result: { status: "domain", check, quote } },
+      { ownerId: other, result: { status: "domain", check: namecomCheck, quote: namecomQuote } },
+    ]) {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(response)));
+      const adapter = createStandaloneLiveAdapters({ ...capabilities, domains: "namecom" }, binding()).domains;
+      if (adapter.status !== "ready") throw new Error("fixture adapter");
+      await expect(adapter.check(check.domain, signal())).rejects.toThrow();
+    }
+  });
+  it("removes stale prices on a failed recheck and fences quotes after owner invalidation", async () => {
+    let current = true;
+    const fetcher = vi.fn().mockResolvedValueOnce(Response.json({ ownerId, result: { status: "domain", check: namecomCheck, quote: namecomQuote } }))
+      .mockResolvedValueOnce(Response.json({ ownerId, result: { status: "failed", code: "not_authorized", retryAfterSeconds: null } }));
+    vi.stubGlobal("fetch", fetcher);
+    const adapter = createStandaloneLiveAdapters({ ...capabilities, domains: "namecom" }, { ...binding(), isCurrent: () => current }).domains;
+    if (adapter.status !== "ready") throw new Error("fixture adapter");
+    await adapter.check(check.domain, signal());
+    await expect(adapter.check(check.domain, signal())).rejects.toThrow("did not authorize");
+    await expect(adapter.quote!(check.domain, check.id, signal())).rejects.toThrow("No current matching");
+    current = false;
+    await expect(adapter.quote!(check.domain, check.id, signal())).rejects.toThrow("no longer current");
+  });
+});
