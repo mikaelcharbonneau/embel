@@ -248,7 +248,24 @@ async function expectComposerInViewport(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 }
 
-test("guided interview: Home sends research and keeps the original mark pending until the durable result", async ({ page }, info) => {
+test("guided interview: the chat opens while the first enqueue acknowledgement is pending", async ({ page }) => {
+  const state = await fixtures(page);
+  let release!: () => void;
+  state.enqueueGate = new Promise<void>(resolve => { release = resolve; });
+  try {
+    await openHomeAndSend(page);
+    await expect.poll(() => state.enqueues.length).toBe(1);
+    await expect(page.getByText(initialPrompt, { exact: true })).toBeVisible();
+    await expect(page.getByRole("status", { name: "Embel is thinking", exact: true })).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
+    await expect(page.locator(".guided-research-screen")).toHaveCount(0);
+  } finally { release(); }
+  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  expect(state.creates).toHaveLength(1);
+  expect(state.enqueues).toHaveLength(1);
+});
+
+test("guided interview: Home opens the conversation and keeps the prompt and thinking mark visible until the durable result", async ({ page }, info) => {
   const state = await fixtures(page);
   await openHomeAndSend(page);
   await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
@@ -256,20 +273,23 @@ test("guided interview: Home sends research and keeps the original mark pending 
   expect(state.creates).toHaveLength(1);
   expect(state.project.context.description).toBe(initialPrompt);
   expect(state.project.context.intake.guidedInterview).toMatchObject({ version: 1, stage: "competitors", answers: [] });
-  const loading = page.getByRole("region", { name: "Researching your competitors", exact: true });
+  const loading = page.getByRole("status", { name: "Embel is thinking", exact: true });
   await expect(loading).toBeVisible();
-  await expect(loading.locator('img[src="/embel-mark.svg"]')).toBeVisible();
-  await expect.poll(() => loading.locator('img[src="/embel-mark.svg"]').evaluate(image => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0)).toBe(true);
-  await expect(page.getByRole("button", { name: "Cancel research", exact: true })).toBeEnabled();
+  await expect(page.getByText(initialPrompt, { exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
+  await expect(page.locator(".guided-research-screen")).toHaveCount(0);
+  await expect(loading.locator('img[src="/project-workspace/mark.svg"]')).toBeVisible();
+  await expect.poll(() => loading.locator('img[src="/project-workspace/mark.svg"]').evaluate(image => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0)).toBe(true);
+  await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeEnabled();
   await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(0);
-  await expect(loading.locator(".guided-research-mark-motion")).not.toHaveCSS("animation-name", "none");
+  await expect(loading.locator(".guided-thinking > img")).not.toHaveCSS("animation-name", "none");
   await page.screenshot({ path: info.outputPath("guided-research-pending.png"), fullPage: true, scale: "css" });
   state.jobs[0] = strategyJobSchema.parse({ ...state.jobs[0], state: "running", progress: 40 });
   await page.reload();
   await expect(loading).toBeVisible();
   expect(state.enqueues).toHaveLength(1);
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await expect(loading.locator(".guided-research-mark-motion")).toHaveCSS("animation-name", "none");
+  await expect(loading.locator(".guided-thinking > img")).toHaveCSS("animation-name", "none");
   completeLatest(state);
   await expectReplyArrivalInViewport(page, "competitors", "Table Next Door");
   await page.screenshot({ path: info.outputPath("guided-competitor-arrival-viewport.png"), scale: "css" });
@@ -426,7 +446,7 @@ for (const errorCode of ["provider_error", "operator_abandoned_billing_unresolve
   state.jobs = [strategyJobSchema.parse({ ...queuedJob("strategy.competitors", 1, 1), state: "failed", error_code: errorCode, finished_at: when })];
   await openProject(page);
   await expect(page.getByText(initialPrompt, { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Researching your competitors", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("status", { name: "Embel is thinking", exact: true })).toHaveCount(0);
   await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(0);
   await expect(page.getByText("Research could not produce verified suggestions. Your prompt is saved. You can retry research.", { exact: true })).toBeVisible();
   expect(state.enqueues).toHaveLength(0);
@@ -438,7 +458,7 @@ for (const errorCode of ["provider_error", "operator_abandoned_billing_unresolve
   await expectRequest(state, 1, "strategy.competitors");
   expect(currentTurn(state).id).not.toBe("initial-research");
   expect(state.project.context.intake.guidedInterview?.turns).toHaveLength(2);
-  await expect(page.getByRole("heading", { name: "Researching your competitors", exact: true })).toBeVisible();
+  await expect(page.getByRole("status", { name: "Embel is thinking", exact: true })).toBeVisible();
   completeLatest(state);
   await expectSingleWidget(page, "competitors");
   expect(state.project.context.description).toBe(initialPrompt);
@@ -448,10 +468,10 @@ test("guided interview: cancellation follows the job and never fabricates comple
   const state = await fixtures(page);
   state.jobs = [queuedJob("strategy.competitors", 1, 1)];
   await openProject(page);
-  await expect(page.getByRole("heading", { name: "Researching your competitors", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Cancel research", exact: true }).click();
+  await expect(page.getByRole("status", { name: "Embel is thinking", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Stop", exact: true }).click();
   await expect.poll(() => state.cancels.length).toBe(1);
-  await expect(page.getByRole("heading", { name: "Researching your competitors", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("status", { name: "Embel is thinking", exact: true })).toHaveCount(0);
   await expect(page.getByText(initialPrompt, { exact: true })).toBeVisible();
   await expect(page.getByText(/cancelled/i)).toBeVisible();
   await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(0);
@@ -465,7 +485,7 @@ test("guided interview: active research polling failure keeps status recovery in
   const state = await fixtures(page);
   state.jobs = [queuedJob("strategy.competitors", 1, 1)];
   await openProject(page);
-  const loading = page.getByRole("region", { name: "Researching your competitors", exact: true });
+  const loading = page.getByRole("status", { name: "Embel is thinking", exact: true });
   await expect(loading).toBeVisible();
   expect(state.overviewReads).toBeGreaterThan(0);
   state.overviewStatus = 503;
@@ -495,7 +515,7 @@ test("guided interview: an uncertain provider outcome offers status recovery wit
   state.jobs = [strategyJobSchema.parse({ ...queuedJob("strategy.competitors", 1, 1), state: "needs_reconciliation", error_code: "provider_outcome_uncertain" })];
   await openProject(page);
   await expect(page.getByText(initialPrompt, { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Researching your competitors", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("status", { name: "Embel is thinking", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Retry research|Retry request/, exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Check status", exact: true }).click();
   expect(state.enqueues).toHaveLength(0);
@@ -558,9 +578,9 @@ test("guided interview: a lost queue acknowledgement recovers the existing resea
   state.queueStatus = 202;
   await page.getByRole("link", { name: /Open saved account project.*status/ }).click();
   await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
-  await expect(page.getByRole("heading", { name: "Researching your competitors", exact: true })).toBeVisible();
+  await expect(page.getByRole("status", { name: "Embel is thinking", exact: true })).toBeVisible();
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Researching your competitors", exact: true })).toBeVisible();
+  await expect(page.getByRole("status", { name: "Embel is thinking", exact: true })).toBeVisible();
   expect(state.creates).toHaveLength(1); expect(state.enqueues).toHaveLength(1); expect(state.jobs).toHaveLength(1);
   completeLatest(state); await expectSingleWidget(page, "competitors");
   expect(state.enqueues).toHaveLength(1);
@@ -577,7 +597,7 @@ test("guided interview: opening a legacy project keeps its original response and
   await page.reload();
   await expect(page.getByText("Synthetic saved legacy response.", { exact: true })).toBeVisible();
   expect(state.enqueues).toHaveLength(0); expect(state.patches).toHaveLength(0);
-  await expect(page.getByRole("heading", { name: "Researching your competitors", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("status", { name: "Embel is thinking", exact: true })).toHaveCount(0);
 });
 
 for (const mismatch of ["turn", "revision"] as const) test(`guided interview: a result with the wrong ${mismatch} cannot become the current decision`, async ({ page }) => {

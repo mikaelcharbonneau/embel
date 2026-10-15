@@ -8,7 +8,8 @@ import { accountDraftChanged, type AccountWorkspace } from "./account-draft-memo
 import { strategyAvailabilityMessage, strategyJobActive } from "./account-strategy-client";
 import type { VerifiedAccount } from "./account-session";
 import { ConversationComposer } from "./conversation-composer";
-import { GuidedChoiceWidget, ResearchLoadingScreen } from "./guided-interview-widgets";
+import { GuidedChoiceWidget } from "./guided-interview-widgets";
+import { GuidedThinking } from "./guided-thinking";
 import { guidedAllowance, guidedMessageContext, guidedTimeline, guidedTurnResult, initialGuidedContext, nextGuidedProposal, recordGuidedChoice } from "./guided-interview-client";
 import type { ProjectEditorForm } from "./project-editor";
 import { useStrategyJobs } from "./use-strategy-jobs";
@@ -170,10 +171,9 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
     finally { lock.current = false; if (mounted.current) setWorking(false); }
   }
 
-  const researchPending = currentTurn?.stage === "competitors" && currentTurn.purpose !== "message" && bound && strategyJobActive(bound.job);
-  if (researchPending) return <div className="guided-interview-loading"><ResearchLoadingScreen cancelPending={bound.job.state === "cancel_requested" || strategy.pending} onCancel={() => void strategy.cancel(bound.job)} /><div className="guided-loading-recovery">{strategy.actionError && <p role="alert">{strategy.actionError}</p>}{strategy.readError && <><p role="alert">Research status could not be checked. Your prompt is saved.</p><button className="text-link" onClick={strategy.refresh}>Check status</button></>}</div></div>;
-  if (currentTurn?.stage === "competitors" && currentTurn.purpose !== "message" && !strategy.readError && (!strategy.overview || (!bound && strategy.pending))) return <ResearchLoadingScreen message={strategy.overview ? "Starting your saved research request…" : "Checking your saved research request…"} />;
+  const checkingResearch = currentTurn?.stage === "competitors" && currentTurn.purpose !== "message" && !strategy.readError && (!strategy.overview || (!bound && strategy.pending));
 
+  const statusReadError = strategy.readError && active && currentTurn?.stage === "competitors" ? "Research status could not be checked. Your prompt is saved." : strategy.readError;
   const failed = bound && !strategyJobActive(bound.job) && !reply && bound.job.state !== "succeeded";
   const unverified = bound?.job.state === "succeeded" && !reply;
   const stale = currentTurn && !workspace.pendingGuidedContext && currentTurn.inputRevision !== saved.current_revision;
@@ -197,13 +197,13 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
       })}
       {!state?.turns.length && legacyReplies}
       {!state && <div className="guided-interview-start"><p>Let’s find the right points of comparison for your brand.</p><button type="button" className="button primary small" disabled={blocked || !guidedAllowance(availability, "strategy.competitors")} onClick={() => void startResearch()}>Start competitor research</button></div>}
-      {active && <div className="guided-thinking" role="status"><ProjectArtwork name="mark" /><span>Thinking…</span>{bound && strategyJobActive(bound.job) && <button type="button" className="text-link" disabled={strategy.pending || bound.job.state === "cancel_requested"} onClick={() => void strategy.cancel(bound.job)}>Stop</button>}</div>}
+      {(active || checkingResearch) && <GuidedThinking onStop={bound && strategyJobActive(bound.job) ? () => void strategy.cancel(bound.job) : undefined} stopping={bound?.job.state === "cancel_requested"} stopDisabled={strategy.pending} />}
       {state?.answers.length === 3 && context.competitorReviewComplete && context.intake.audienceReviewedAt && context.intake.personalityReviewedAt && <p className="guided-complete" role="status">Your brand strategy is saved. You can revisit any answer above.</p>}
     </div>
     <div className="guided-interview-compose">
       {(error || strategy.actionError || strategy.readError || failed || unverified || unavailable || stale) && <div className="guided-conversation-error" role="alert">
-        <p>{error || strategy.actionError || strategy.readError || (stale ? "The project changed after this response was requested. Your conversation is kept. Send a new message to continue from the current version." : bound?.job.state === "needs_reconciliation" ? "This research outcome needs verification before another request can start. Your prompt is saved." : failed ? bound?.job.state === "cancelled" ? "Research was cancelled. Your prompt is saved." : currentTurn?.stage === "competitors" && currentTurn.purpose !== "message" ? "Research could not produce verified suggestions. Your prompt is saved. You can retry research." : "This response did not finish. Your prompt is saved." : unverified ? "This response could not be matched to your question. Your conversation is kept." : strategyAvailabilityMessage(availability ?? null, "project"))}</p>
-        <button type="button" className="text-link" disabled={pending} onClick={strategy.refresh}>Check status</button>
+        <p>{error || strategy.actionError || statusReadError || (stale ? "The project changed after this response was requested. Your conversation is kept. Send a new message to continue from the current version." : bound?.job.state === "needs_reconciliation" ? "This research outcome needs verification before another request can start. Your prompt is saved." : failed ? bound?.job.state === "cancelled" ? "Research was cancelled. Your prompt is saved." : currentTurn?.stage === "competitors" && currentTurn.purpose !== "message" ? "Research could not produce verified suggestions. Your prompt is saved. You can retry research." : "This response did not finish. Your prompt is saved." : unverified ? "This response could not be matched to your question. Your conversation is kept." : strategyAvailabilityMessage(availability ?? null, "project"))}</p>
+        <button type="button" className="text-link" disabled={busy || working || strategy.pending} onClick={strategy.refresh}>Check status</button>
         {currentTurn && !stale && (!bound || bound.job.state === "failed" || bound.job.state === "cancelled") && <button type="button" className="text-link" disabled={blocked} onClick={() => void retry()}>{currentTurn.stage === "competitors" && currentTurn.purpose !== "message" ? "Retry research" : "Retry request"}</button>}
       </div>}
       {!busy && (dirty || workspace.conflict || error) && storage.actions}
