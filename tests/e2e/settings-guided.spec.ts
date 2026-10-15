@@ -76,28 +76,20 @@ test("security reuses verified browser sign-out and keeps a failed sign-out hidd
   await expect(page.getByText("Sign in to view recorded usage.", { exact: true })).toBeVisible();
 });
 
-test("draft clearing requires confirmation, preserves other browser stores and recovers invalid storage", async ({ context, page }) => {
+test("legacy recovery is separate from account work and never clears existing device data", async ({ context, page }) => {
   await context.addInitScript(() => {
-    if (!localStorage.getItem("settings-fixture-seeded")) {
-      localStorage.setItem("fluid.local-drafts.v1", "{synthetic-invalid");
-      localStorage.setItem("synthetic-unrelated-store", "keep");
-      localStorage.setItem("settings-fixture-seeded", "yes");
-    }
+    localStorage.setItem("fluid.local-drafts.v1", "{synthetic-invalid");
+    localStorage.setItem("synthetic-unrelated-store", "keep");
   });
-  await open(page); await tab(page, "Workspace");
-  await expect(page.getByRole("alert").filter({ hasText: "Saved drafts could not be read" })).toBeVisible();
-  await page.getByRole("button", { name: "Clear drafts", exact: true }).click();
-  await page.getByRole("button", { name: "Keep drafts", exact: true }).click();
+  await open(page, true); await tab(page, "Workspace");
+  await expect(page.getByRole("heading", { name: "Recover unsaved work", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Recover projects", exact: true })).toHaveAttribute("href", "/brands?recover=1");
+  await expect(page.getByRole("link", { name: "Recover names", exact: true })).toHaveAttribute("href", "/names?recover=1");
+  await expect(page.getByRole("button", { name: "Clear drafts", exact: true })).toHaveCount(0);
+  await expect(page.getByText("Browser workspace", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("alert").filter({ hasText: "Saved drafts could not be read" })).toHaveCount(0);
   expect(await page.evaluate(() => localStorage.getItem("fluid.local-drafts.v1"))).toBe("{synthetic-invalid");
-  await page.getByRole("button", { name: "Clear drafts", exact: true }).click();
-  await tab(page, "Account"); await tab(page, "Workspace");
-  await expect(page.getByRole("button", { name: "Delete all drafts", exact: true })).toHaveCount(0);
-  await page.getByRole("button", { name: "Clear drafts", exact: true }).click();
-  await page.getByRole("button", { name: "Delete all drafts", exact: true }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Local drafts cleared." })).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem("synthetic-unrelated-store"))).toBe("keep");
-  await page.reload(); await tab(page, "Workspace");
-  await expect(page.getByRole("button", { name: "Clear drafts", exact: true })).toBeDisabled();
 });
 
 test("recorded usage retries real read failures, distinguishes unknown counts and rejects foreign ownership", async ({ page }) => {
@@ -123,6 +115,7 @@ test("recorded usage retries real read failures, distinguishes unknown counts an
 });
 
 test("original artwork, native geometry and all tab grids match the approved design", async ({ page }, info) => {
+  if (info.project.name === "desktop") await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
   const folder = new URL("../../public/settings/", import.meta.url);
   const files = await readdir(folder); expect(files.length).toBe(24);

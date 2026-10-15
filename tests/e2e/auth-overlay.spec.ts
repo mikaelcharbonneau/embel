@@ -42,11 +42,12 @@ test("auth overlay: keyboard, history and backdrop preserve the underlying works
 });
 
 test("auth overlay: continuation clears the slot; direct visits and reloads use the standalone card", async ({ page }, testInfo) => {
+  if (testInfo.project.name === "desktop") await page.setViewportSize({ width: 1440, height: 900 });
   await signedOut(page);
   await page.goto("/settings");
   const { dialog } = await openOverlay(page);
-  await dialog.getByRole("link", { name: "Continue with browser drafts", exact: true }).click();
-  await expect(page).toHaveURL(/\/brands$/);
+  await dialog.getByRole("link", { name: "Return to Home", exact: true }).click();
+  await expect(page).toHaveURL(/\/$/);
   await expect(dialog).toHaveCount(0);
   await openOverlay(page);
   await page.reload();

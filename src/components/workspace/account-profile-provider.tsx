@@ -70,7 +70,7 @@ export function AccountProfileProvider({ children }: { children: React.ReactNode
     const controller = new AbortController(); request.current = controller;
     profileDrafts.set(account, { ...current, mustReload: true });
     setStatus({ generation: account.generation, busy: true, error: null, notice: "Saving your profile and preferences…" });
-    void saveProfile({ expectedRevision: current.saved.revision, values: values.data }, controller.signal).then(saved => {
+    void saveProfile(account, { expectedRevision: current.saved.revision, values: values.data }, controller.signal).then(saved => {
       if (controller.signal.aborted || !isCurrent(account)) return;
       if (saved.ownerId !== account.userId) { expire(account); return; }
       profileDrafts.set(account, { saved, values: saved.values, latest: null, mustReload: false });

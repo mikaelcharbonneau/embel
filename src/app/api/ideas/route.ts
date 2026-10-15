@@ -1,6 +1,7 @@
 import { createIdeaInputSchema, IDEA_MUTATION_MAX_BYTES, listIdeasInputSchema } from "@/domain/ideas";
 import { getAuthenticatedContext } from "@/server/auth/context";
 import { createIdea, listIdeas } from "@/server/data/ideas";
+import { assertExpectedAccount } from "@/server/http/account-fence";
 import { ApiError, errorResponse, privateJson } from "@/server/http/errors";
 import { assertMutationOrigin, readJson } from "@/server/http/request";
 
@@ -24,6 +25,7 @@ export async function POST(request: Request) {
     assertMutationOrigin(request);
     const input = await readJson(request, createIdeaInputSchema, IDEA_MUTATION_MAX_BYTES);
     const auth = await getAuthenticatedContext();
+    assertExpectedAccount(request, auth.userId);
     return privateJson({ idea: await createIdea(auth, input) }, 201);
   } catch (error) { return errorResponse(error); }
 }

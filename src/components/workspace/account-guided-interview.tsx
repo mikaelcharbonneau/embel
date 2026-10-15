@@ -57,10 +57,9 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
   });
   useEffect(() => { revealReply(); }, [completedJobs]);
 
-  async function persist(next: ContextSnapshot) {
-    const result = await saveContext(next);
-    if (!result && mounted.current) setError("Your answer is kept in this tab, but saving was not confirmed. Check the saved project before continuing.");
-    return result;
+  function persist(next: ContextSnapshot) {
+    // The parent owns pending saves, conflicts and their acknowledged recovery.
+    return saveContext(next);
   }
 
   // Persisted turns retain their request identity across a lost acknowledgement.
@@ -206,7 +205,7 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
         <button type="button" className="text-link" disabled={busy || working || strategy.pending} onClick={strategy.refresh}>Check status</button>
         {currentTurn && !stale && (!bound || bound.job.state === "failed" || bound.job.state === "cancelled") && <button type="button" className="text-link" disabled={blocked} onClick={() => void retry()}>{currentTurn.stage === "competitors" && currentTurn.purpose !== "message" ? "Retry research" : "Retry request"}</button>}
       </div>}
-      {!busy && (dirty || workspace.conflict || error) && storage.actions}
+      {!busy && storage.actions}
       <ConversationComposer project value={prompt} onChange={setPrompt} onSend={() => void send()} label="Message Embel" placeholder="Reply in your own words, or ask a question…" disabled={blocked || !prompt.trim()} readOnly={pending} hint={null} sendLabel="Send prompt" />
     </div>
   </div>;

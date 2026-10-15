@@ -80,7 +80,7 @@ export function createHomeInputSession() {
 }
 export type HomeInputSession = ReturnType<typeof createHomeInputSession>;
 /** Explicit user Send only: stages inputs, then commits one exact-key project, never Strategy/AI. */
-export async function saveAttachedHomeDraft({ account, draft, memory, client, signal }: { account: VerifiedAccount; draft: LocalDraft | null; memory: HomeInputSession; client: AccountLifecycleClient; signal: AbortSignal }): Promise<AttachedProjectDraftReceipt | null> {
+export async function saveAttachedHomeDraft({ account, draft, memory, client, signal, beforeSave }: { account: VerifiedAccount; draft: LocalDraft | null; memory: HomeInputSession; client: AccountLifecycleClient; signal: AbortSignal; beforeSave?: (request: AttachedProjectDraftInput) => void }): Promise<AttachedProjectDraftReceipt | null> {
  const release = memory.acquire(account); if (!release) return null;
  const controller = new AbortController(), abort = () => controller.abort(); signal.addEventListener("abort", abort, { once: true });
  const unsubscribe = memory.subscribe(() => { if (!memory.isCurrent(account)) controller.abort(); });
@@ -94,6 +94,7 @@ export async function saveAttachedHomeDraft({ account, draft, memory, client, si
    if (!draft) throw new AccountRequestError(422);
    if (!put({ ...state, browserDraftId: state.browserDraftId ?? draft.id, saveIntent: { requestKey: crypto.randomUUID(), project: createAccountInput(draft), attachmentIds: [] } })) return null;
   }
+  beforeSave?.(state!.saveIntent!);
   for (const original of state!.files) {
    if (!current()) return null;
    let file = state!.files.find(f => f.localId === original.localId)!;

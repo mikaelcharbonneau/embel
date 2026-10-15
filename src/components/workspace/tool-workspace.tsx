@@ -10,28 +10,11 @@ import { AccountDomainsWorkspace } from "@/components/tools/domain-account-works
 import { HandlesAccountEditor } from "@/components/tools/handles-account-editor";
 import { TrademarkAccountEditor } from "@/components/tools/trademark-account-editor";
 import { StandaloneProjectPicker, type StandaloneProjectSelection } from "@/components/tools/standalone-project-picker";
-import { DomainsWorkspace } from "@/features/domain-workspace";
-import { HandlesWorkspace } from "@/features/handles-workspace";
-import { TrademarkWorkspace, createTrademarkDraft, serializeTrademarkDraftPreview } from "@/features/trademark-workspace";
 
 export const toolNames = ["ideas", "names", "handles", "domains", "trademarks", "assets", "settings"] as const;
 export type ToolName = typeof toolNames[number];
 
 type StandaloneToolName = "domains" | "handles" | "trademarks";
-
-function ManualTrademarkWorkspace({ draftControls }: { draftControls?: React.ReactNode }) {
-  const [draft, setDraft] = useState(createTrademarkDraft);
-  return <TrademarkWorkspace draftControls={draftControls} draft={draft} onChange={setDraft} onExportPreview={preview => {
-    const raw = serializeTrademarkDraftPreview(preview);
-    const url = URL.createObjectURL(new Blob([raw], { type: "application/json" }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "embel-trademark-draft-preview.json";
-    document.body.appendChild(link);
-    try { link.click(); }
-    finally { link.remove(); window.setTimeout(() => URL.revokeObjectURL(url), 1000); }
-  }} />;
-}
 
 function StandaloneToolWorkspace({ tool }: { tool: StandaloneToolName }) {
   const { session, isCurrent, standaloneDrafts } = useAccountSession();
@@ -40,13 +23,7 @@ function StandaloneToolWorkspace({ tool }: { tool: StandaloneToolName }) {
   // shared provider memory and are recovered only by the matching verified owner.
   const project = session.status === "ready" && selected?.ownerId === session.userId && selected.generation === session.generation ? selected.project : null;
   const props = { memory: standaloneDrafts, importProjectId: project?.id, importProjectTitle: project?.title };
-  // The manual fallback is a separate component, seeded only by the features'
-  // empty defaults. It never receives a hidden account payload or saved sources.
-  if (session.status !== "ready") {
-    if (tool === "domains") return <DomainsWorkspace initialView="search" draftControls={<AccountStatus retainedEdits={standaloneDrafts.hasUnsaved()} />} />;
-    if (tool === "handles") return <HandlesWorkspace draftControls={<AccountStatus retainedEdits={standaloneDrafts.hasUnsaved()} />} />;
-    return <ManualTrademarkWorkspace draftControls={<AccountStatus retainedEdits={standaloneDrafts.hasUnsaved()} />} />;
-  }
+  if (session.status !== "ready") return <section className="page"><h1>{tool === "domains" ? "Domains" : tool === "handles" ? "Handles" : "Trademarks"}</h1><AccountStatus retainedEdits={standaloneDrafts.hasUnsaved()} /></section>;
   const projectPicker = <StandaloneProjectPicker selectedProjectId={project?.id} onSelect={next => {
     if (session.status === "ready" && isCurrent(session)) setSelected(next ? { ownerId: session.userId, generation: session.generation, project: next } : null);
   }} />;

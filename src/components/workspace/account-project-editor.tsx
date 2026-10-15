@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from "react";
 import { z } from "zod";
 import { accountProjectResponseSchema, accountRevisionResponseSchema, updateProjectInputSchema } from "@/domain/project-api";
 import type { ContextSnapshot } from "@/domain/projects";
@@ -16,7 +16,7 @@ import { getNamingReadiness } from "@/domain/project-naming";
 import { AccountProjectContinuity } from "./account-project-continuity";
 import { IdeaSourceBanner } from "@/components/ideas/idea-source-banner";
 
-import { accountDraftChanged as changed, type AccountWorkspace } from "./account-draft-memory";
+import { accountDraftChanged as changed, reconcilePendingDraftSave, type AccountWorkspace } from "./account-draft-memory";
 const emptyWorkspace = () => null;
 
 export function AccountProjectEditor({ projectId }: { projectId: string }) {
@@ -45,6 +45,8 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
         if (previous?.ownerId === session.userId && previous.saved.id === projectId) {
           // A request begun before a successful mutation cannot roll the editor back.
           if (project.current_revision < previous.saved.current_revision) return { ...previous, generation: session.generation };
+          const confirmed = reconcilePendingDraftSave(previous, project);
+          if (confirmed) return { ...confirmed, generation: session.generation };
           if (changed(previous)) return { ...previous, generation: session.generation, conflict: previous.conflict || previous.saved.current_revision !== project.current_revision };
         }
         return { generation: session.generation, ownerId: session.userId, saved: project, draft: accountProjectDraft(project), conflict: false };
@@ -56,7 +58,7 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
     });
     return () => controller.abort();
   }, [session, projectId, validId, isCurrent, expire, setWorkspace]);
-  useEffect(() => () => mutation.current?.abort(), [session.generation, projectId]);
+  useEffect(() => () => { mutation.current?.abort(); mutation.current = null; }, [session.generation, projectId]);
   const dirty = Boolean(workspace && changed(workspace));
   if (!validId) return <UnavailableProject />;
   if (session.status !== "ready") return <div className="page"><h1>Account project</h1><AccountStatus retainedEdits={dirty} /><Link href="/brands" className="text-link">Back to brands</Link></div>;
@@ -70,6 +72,7 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
   function update(patch: DraftPatch) {
     if (!isCurrent(account)) return false;
     setWorkspace((previous) => previous?.ownerId === account.userId && previous.generation === account.generation ? { ...previous, draft: { ...previous.draft, ...patch } } : previous);
+    if (!mutation.current) setOperation(null);
     return false;
   }
   function fail(error: unknown, controller: AbortController) {
@@ -88,32 +91,59 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
   }
   async function save(nextDraft?: LocalDraft): Promise<AccountWorkspace | null> {
     const before = drafts.get(projectId);
-    if (!isCurrent(account) || busy || !before || before.ownerId !== account.userId || before.generation !== account.generation || before.conflict) return null;
+    if (!isCurrent(account) || busy || mutation.current || !before || before.ownerId !== account.userId || before.generation !== account.generation || before.conflict) return null;
     if (before.pendingGuidedContext && !nextDraft) return saveContext(before.pendingGuidedContext);
-    const submittedDraft = nextDraft ?? before.draft;
-    let body;
-    try { body = updateProjectInputSchema.parse({ expectedRevision: before.saved.current_revision, title: draftTitle(submittedDraft), context: draftContext(submittedDraft, before.saved.context) }); }
+    const submittedDraft = before.pendingDraftSave?.draft ?? nextDraft ?? before.draft;
+    let body: z.infer<typeof updateProjectInputSchema>;
+    try { body = before.pendingDraftSave?.body ?? updateProjectInputSchema.parse({ expectedRevision: before.saved.current_revision, title: draftTitle(submittedDraft), context: draftContext(submittedDraft, before.saved.context) }); }
     catch { setOperation({ generation: account.generation, projectId, busy: false, error: draftValidationMessage(submittedDraft) }); return null; }
     const controller = begin();
+    const pending = before.pendingDraftSave ?? { body: structuredClone(body), draft: structuredClone(submittedDraft) };
+    setWorkspace({ ...before, pendingDraftSave: pending });
+    async function checkOutcome(): Promise<AccountWorkspace | null | false> {
+      const { project } = await boundedAccountRequest(`/api/projects/${projectId}`, accountProjectResponseSchema, { signal: controller.signal });
+      if (controller.signal.aborted || !isCurrent(account)) return null;
+      if (project.owner_id !== account.userId || project.id !== projectId) { expire(account); return null; }
+      const previous = drafts.get(projectId);
+      if (!previous || previous.ownerId !== account.userId || previous.generation !== account.generation) return null;
+      const confirmed = reconcilePendingDraftSave(previous, project);
+      if (confirmed) { setWorkspace(confirmed); setOperation({ generation: account.generation, projectId, busy: false }); return confirmed; }
+      if (project.current_revision !== body.expectedRevision) throw new AccountRequestError(409);
+      return false;
+    }
     try {
+      // A lost response remains a dirty, frozen intent even if the current text
+      // was reverted. Read its owned head before any explicit retry append.
+      if (before.pendingDraftSave) { const outcome = await checkOutcome(); if (outcome !== false) return outcome; }
       const { revision } = await boundedAccountRequest(`/api/projects/${projectId}`, accountRevisionResponseSchema, { method: "PATCH", body, signal: controller.signal });
       if (controller.signal.aborted || !isCurrent(account)) return null;
       if (revision.owner_id !== account.userId || revision.project_id !== projectId) { expire(account); return null; }
-      if (revision.revision !== before.saved.current_revision + 1) throw new AccountRequestError(502);
+      if (revision.revision !== body.expectedRevision + 1 || JSON.stringify(revision.context) !== JSON.stringify(body.context)) throw new AccountRequestError(502);
       const previous = drafts.get(projectId);
       if (!previous || previous.ownerId !== account.userId || previous.generation !== account.generation) return null;
-      if (previous.saved.current_revision !== before.saved.current_revision) throw new AccountRequestError(409);
+      if (previous.saved.current_revision !== body.expectedRevision) {
+        if (!previous.pendingDraftSave && previous.saved.current_revision === revision.revision && JSON.stringify(previous.saved.context) === JSON.stringify(body.context)) { setOperation({ generation: account.generation, projectId, busy: false }); return previous; }
+        throw new AccountRequestError(409);
+      }
       const saved = { ...before.saved, title: body.title ?? before.saved.title, context: revision.context, current_revision: revision.revision };
-      const unchanged = JSON.stringify(previous.draft) === JSON.stringify(before.draft) || JSON.stringify(previous.draft) === JSON.stringify(submittedDraft);
-      const next = { ...previous, saved, draft: unchanged ? accountProjectDraft(saved) : previous.draft, conflict: false };
+      const unchanged = JSON.stringify(previous.draft) === JSON.stringify(submittedDraft);
+      const next = { ...previous, saved, draft: unchanged ? accountProjectDraft(saved) : previous.draft, pendingDraftSave: undefined };
       setWorkspace(next);
       setOperation({ generation: account.generation, projectId, busy: false });
       return next;
-    } catch (error) { fail(error, controller); return null; }
+    } catch (error) {
+      if (error instanceof AccountRequestError && error.status === 409 && !controller.signal.aborted && isCurrent(account)) {
+        try { const outcome = await checkOutcome(); if (outcome) return outcome; }
+        catch (recoveryError) { fail(recoveryError, controller); return null; }
+      }
+      if (error instanceof AccountRequestError && [400, 413, 422, 429].includes(error.status) && !controller.signal.aborted && isCurrent(account)) setWorkspace(previous => previous?.pendingDraftSave === pending ? { ...previous, pendingDraftSave: undefined } : previous);
+      fail(error, controller); return null;
+    }
+    finally { if (mutation.current === controller) mutation.current = null; }
   }
   async function saveContext(context: ContextSnapshot): Promise<AccountWorkspace | null> {
     const before = drafts.get(projectId);
-    if (!isCurrent(account) || busy || !before || before.ownerId !== account.userId || before.generation !== account.generation || before.conflict) return null;
+    if (!isCurrent(account) || busy || mutation.current || !before || before.ownerId !== account.userId || before.generation !== account.generation || before.conflict) return null;
     // A failed automatic save remains owner-bound in session memory. Never replace
     // another unsaved branch just because a new assistant result arrived.
     if (changed(before) && (!before.pendingGuidedContext || JSON.stringify(before.pendingGuidedContext) !== JSON.stringify(context))) return null;
@@ -136,9 +166,10 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
       setWorkspace(next); setOperation({ generation: account.generation, projectId, busy: false });
       return edited ? null : next;
     } catch (error) { fail(error, controller); return null; }
+    finally { if (mutation.current === controller) mutation.current = null; }
   }
   async function expand() {
-    if (!isCurrent(account) || busy || changed(active) || active.conflict) return;
+    if (!isCurrent(account) || busy || mutation.current || changed(active) || active.conflict) return;
     const controller = begin();
     try {
       const { project } = await boundedAccountRequest(`/api/projects/${projectId}/expand`, accountProjectResponseSchema, { method: "POST", body: { expectedRevision: active.saved.current_revision }, signal: controller.signal });
@@ -148,9 +179,10 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
       setWorkspace((previous) => previous?.ownerId === account.userId && previous.generation === account.generation ? { ...previous, saved: project, draft: previous.draft === active.draft ? accountProjectDraft(project) : { ...previous.draft, scope: project.scope }, conflict: false } : previous);
       setOperation({ generation: account.generation, projectId, busy: false });
     } catch (error) { fail(error, controller); }
+    finally { if (mutation.current === controller) mutation.current = null; }
   }
   async function loadLatest() {
-    if (!isCurrent(account) || busy) return;
+    if (!isCurrent(account) || busy || mutation.current) return;
     const controller = begin();
     try {
       const { project } = await boundedAccountRequest(`/api/projects/${projectId}`, accountProjectResponseSchema, { signal: controller.signal });
@@ -163,34 +195,35 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
       setWorkspace({ generation: account.generation, ownerId: account.userId, saved: project, draft: accountProjectDraft(project), conflict: false });
       setOperation({ generation: account.generation, projectId, busy: false }); setConfirmLatest(false);
     } catch (error) { fail(error, controller); }
+    finally { if (mutation.current === controller) mutation.current = null; }
   }
   function saveBrowserCopy() {
     if (!isCurrent(account) || busy) return;
     const retainedContext = active.pendingGuidedContext ?? active.saved.context;
     const retainedDraft = active.pendingGuidedContext ? accountProjectDraft({ ...active.saved, context: retainedContext }) : active.draft;
-    const copy = copyToLocalDraft({ ...retainedDraft, preservedContext: retainedContext });
+    const copy = copyToLocalDraft({ ...retainedDraft, ownerId: account.userId, accountProjectId: undefined, preservedContext: retainedContext });
     if (copy) setBrowserCopy({ generation: account.generation, ...copy });
-    else setOperation({ generation: account.generation, projectId, busy: false, error: "This browser has 50 drafts. Remove an unused browser draft before saving a copy." });
+    else setOperation({ generation: account.generation, projectId, busy: false, error: "This device has 50 unsaved projects. Recover one from Projects to make room for this backup. Your edits are still kept in this tab." });
   }
 
   const hasSaveError = operation?.generation === account.generation && operation.projectId === projectId && Boolean(operation.error);
   const showActions = changed(active) || busy || active.conflict || hasSaveError || browserCopy?.generation === account.generation;
   const actions = showActions ? <div className="account-edit-controls">
-    {(changed(active) || busy) && <div className="account-actions"><p>Unsaved changes</p><button className="button primary small" type="button" disabled={busy || !changed(active) || active.conflict} onClick={() => void save()}>{busy ? "Saving…" : "Save changes"}</button></div>}
-    {operation?.generation === account.generation && operation.projectId === projectId && operation.error && <div><p className="form-error" role="alert">{operation.error}</p>{changed(active) && !active.conflict && <button className="button secondary small" type="button" disabled={busy} onClick={saveBrowserCopy}>Save edits as browser copy</button>}</div>}
-    {active.conflict && <div className="account-conflict" role="alert"><strong>A newer version is saved in your account.</strong><p>Your edits are still here. Save them as a browser copy or choose to load the latest account version.</p><div className="account-recovery-actions"><button className="button secondary small" type="button" disabled={busy} onClick={saveBrowserCopy}>Save edits as browser copy</button><button className="button secondary small" type="button" disabled={busy} onClick={() => setConfirmLatest(true)}>Load latest version</button></div>{confirmLatest && <div className="inline-confirm"><p>Replace the edits in this tab with the latest saved version? Save a browser copy first if you want to keep them.</p><button className="button secondary small" type="button" onClick={() => setConfirmLatest(false)}>Keep editing</button><button className="button primary small" type="button" disabled={busy} onClick={() => void loadLatest()}>Replace with latest version</button></div>}</div>}
-    {browserCopy?.generation === account.generation && <p className="form-success" role="status">{browserCopy.persisted ? "Your edits were saved as a new draft in this browser." : "Your copy stays in this tab because browser storage is unavailable."} <Link href={`/brands/${browserCopy.id}`}>Open browser copy</Link></p>}
+    {(changed(active) || busy) && <div className="account-actions"><p role="status">{busy ? "Saving…" : hasSaveError || active.conflict || active.pendingGuidedContext || active.pendingDraftSave ? "Changes not saved" : "Saving changes…"}</p>{(hasSaveError || active.pendingGuidedContext || active.pendingDraftSave) && !active.conflict && <button className="button primary small" type="button" disabled={busy || !changed(active)} onClick={() => void save()}>{busy ? "Saving…" : "Retry save"}</button>}</div>}
+    {operation?.generation === account.generation && operation.projectId === projectId && operation.error && <div><p className="form-error" role="alert">{operation.error}</p>{changed(active) && !active.conflict && <button className="button secondary small" type="button" disabled={busy} onClick={saveBrowserCopy}>Keep a recovery copy</button>}</div>}
+    {active.conflict && <div className="account-conflict" role="alert"><strong>A newer version is saved in your account.</strong><p>Your edits are still here. Keep a recovery copy on this device or choose to load the latest account version.</p><div className="account-recovery-actions"><button className="button secondary small" type="button" disabled={busy} onClick={saveBrowserCopy}>Keep a recovery copy</button><button className="button secondary small" type="button" disabled={busy} onClick={() => setConfirmLatest(true)}>Load latest version</button></div>{confirmLatest && <div className="inline-confirm"><p>Replace the edits in this tab with the latest saved version? Keep a recovery copy first if you want to preserve these edits.</p><button className="button secondary small" type="button" onClick={() => setConfirmLatest(false)}>Keep editing</button><button className="button primary small" type="button" disabled={busy} onClick={() => void loadLatest()}>Replace with latest version</button></div>}</div>}
+    {browserCopy?.generation === account.generation && <p className="form-success" role="status">{browserCopy.persisted ? "Your edits were kept for recovery on this device." : "Your recovery copy is kept in this tab only."} <Link href={`/brands/${browserCopy.id}`}>Open recovery</Link></p>}
   </div> : null;
   const namingReadiness = getNamingReadiness(active.saved.context, active.saved.scope);
   const namingBlocked = busy || changed(active) || active.conflict || !namingReadiness.ready;
   const namingHint = active.conflict ? "Resolve the saved-version conflict before opening Naming."
-    : changed(active) ? "Save your edits before opening Naming."
+    : changed(active) ? "Your edits are saving. Naming will be available when they are saved."
     : !namingReadiness.ready ? "Finish reviewing your strategy before opening Naming." : null;
   // References come before generation readiness: an incomplete strategy or name
   // must not prevent a saved Identity project from exploring its references.
   const identityBlocked = busy || changed(active) || active.conflict;
   const identityHint = active.conflict ? "Resolve the saved-version conflict before opening Identity."
-    : changed(active) ? "Save your edits before opening Identity." : null;
+    : changed(active) ? "Your edits are saving. Identity will be available when they are saved." : null;
   const scopeControl = <div className="account-scope"><strong>{scopeLabel(active.saved.scope)}</strong>{active.saved.scope !== "visual_identity_only" && <>
     {namingBlocked ? <button className="button secondary small" type="button" disabled>Open Naming</button> : <Link className="button secondary small" href={`/brands/account/${projectId}/naming`}>Open Naming</Link>}
     {namingHint && <p className="field-hint">{namingHint}</p>}
@@ -201,7 +234,17 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
     {identityHint && <p className="field-hint">{identityHint}</p>}
   </>}</div>;
   const projectContext = <><div className="idea-source-wrap"><IdeaSourceBanner key={`${projectId}:${account.userId}:${account.generation}`} account={account} projectId={projectId} /></div><AccountProjectContinuity key={`continuity:${projectId}:${account.userId}:${account.generation}`} account={account} project={active.saved} dirty={changed(active)} conflicted={active.conflict} expanding={Boolean(busy)} onExpand={expand} /></>;
-  return <AccountGuidedInterview key={`${projectId}:${account.userId}:${account.generation}`} account={account} workspace={active} busy={Boolean(busy)} saveContext={saveContext} storage={{ kind: "account", saveLabel: changed(active) ? "Unsaved changes in this tab" : `Saved to account · version ${active.saved.current_revision}`, onUpdate: update, actions, scopeControl, projectContext, namingSource: active.saved.context.namingSource }} />;
+  return <><AccountDraftAutosave workspace={active} blocked={Boolean(busy || hasSaveError)} save={save} /><AccountGuidedInterview key={`${projectId}:${account.userId}:${account.generation}`} account={account} workspace={active} busy={Boolean(busy)} saveContext={saveContext} storage={{ kind: "account", saveLabel: busy ? "Saving…" : changed(active) ? hasSaveError || active.conflict || active.pendingDraftSave ? "Changes not saved" : "Saving…" : "Saved", onUpdate: update, actions, scopeControl, projectContext, namingSource: active.saved.context.namingSource }} /></>;
+}
+
+function AccountDraftAutosave({ workspace, blocked, save }: { workspace: AccountWorkspace; blocked: boolean; save: () => Promise<AccountWorkspace | null> }) {
+  const saveCurrent = useEffectEvent(() => void save());
+  useEffect(() => {
+    if (blocked || workspace.conflict || workspace.pendingGuidedContext || workspace.pendingDraftSave || !changed(workspace)) return;
+    const timer = setTimeout(saveCurrent, 650);
+    return () => clearTimeout(timer);
+  }, [workspace, blocked]);
+  return null;
 }
 
 function UnavailableProject() {

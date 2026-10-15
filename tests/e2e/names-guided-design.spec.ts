@@ -1,9 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const key = "fluid.names.v1";
+import { createNamesAccountFixture, waitForNamesSaved } from "./fixtures/names-account";
+const fixtures = new WeakMap<Page, ReturnType<typeof createNamesAccountFixture>>();
 const sampleWords = "interface, ui, application, app, screen, flow, design, site, page, web, reference, visual, graphic, front, face";
 async function open(page: Page) {
-  await page.route("**/api/**", route => route.fulfill({ status: 401, contentType: "application/json", body: "{}" }));
+  const fixture = createNamesAccountFixture(); fixtures.set(page, fixture); await fixture.install(page);
   await page.goto("/names");
   await expect(page.getByRole("heading", { name: "Shape a name.", exact: true })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Workshop", exact: true })).toHaveAttribute("aria-selected", "true");
@@ -12,7 +13,7 @@ async function words(page: Page, value: string) {
   await page.getByRole("textbox", { name: "Add words", exact: true }).fill(value);
   await page.getByRole("textbox", { name: "Add words", exact: true }).press("Enter");
 }
-async function snapshot(page: Page) { return page.evaluate(key => JSON.parse(localStorage.getItem(key)!), key); }
+async function snapshot(page: Page) { await waitForNamesSaved(page); return fixtures.get(page)!.payload(); }
 async function top(page: Page) { await page.locator("#main-content").evaluate(element => { element.scrollTop = 0; }); }
 
 test("guided Names: four original layouts, live modes, native artwork and responsive geometry", async ({ page }, info) => {
@@ -82,7 +83,7 @@ test("guided Names: saved words, exact retained history, independent favorite an
   await heart.click(); await expect(heart).toHaveAttribute("aria-pressed", "true");
   const retained = await snapshot(page);
   const chosen = retained.candidates.find((candidate: { source: { value: string } }) => candidate.source.value === value);
-  expect(chosen.source.history.map((step: { input: { kind: string } }) => step.input.kind)).toEqual(["affixes", "swap", "swap"]);
+  expect(chosen!.source.history.map((step: { input: { kind: string } }) => step.input.kind)).toEqual(["affixes", "swap", "swap"]);
   expect(chosen).toMatchObject({ favorite: true, saved: false });
   await page.getByRole("region", { name: "Words", exact: true }).getByRole("button", { name: "Save", exact: true }).click();
   await page.getByRole("region", { name: "Words", exact: true }).getByRole("button", { name: "Clear", exact: true }).click();
@@ -92,7 +93,7 @@ test("guided Names: saved words, exact retained history, independent favorite an
   await page.getByRole("button", { name: "Use words", exact: true }).click();
   await expect(page.locator(".names-word-chip")).toHaveText("Mikael");
   await expect(heart).toHaveAttribute("aria-pressed", "true");
-  await page.reload(); await expect(heart).toHaveAttribute("aria-pressed", "true");
+  await waitForNamesSaved(page); await page.reload(); await expect(heart).toHaveAttribute("aria-pressed", "true");
   await heart.click(); await expect(heart).toHaveAttribute("aria-pressed", "false");
   expect((await snapshot(page)).candidates).toHaveLength(retained.candidates.length);
   await heart.click();

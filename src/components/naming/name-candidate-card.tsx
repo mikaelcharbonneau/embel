@@ -63,7 +63,7 @@ export function NameCandidateCard({ candidate, compared, comparisonFull, onFavor
         <details><summary>Parameters</summary><TransformParameters input={step.input} /></details>
       </li>)}</ol> : <p className="names-muted">No transformations yet.</p>}
       <button type="button" className="button secondary small" onClick={onCreateBrand}>Create brand<Icon name="arrow" size={14} /></button>
-      <p className="names-muted">Creates a new browser draft with this name and its captured context.</p>
+      <p className="names-muted">Creates a new project in your account with this name and its captured context.</p>
     </details>
   </article>;
 }

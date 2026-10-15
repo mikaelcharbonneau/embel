@@ -6,7 +6,6 @@ import { Icon } from "@/components/ui/icon";
 import { SettingsArtwork, type SettingsArtworkName } from "@/components/ui/settings-artwork";
 import { AccountStatus, useAccountSession } from "./account-session";
 import { AccountAccess } from "./account-access";
-import { clearLocalDrafts, useLocalDrafts } from "./local-drafts";
 import { LocalChatGPTSettings } from "./local-chatgpt-settings";
 import { StrategyRuntimeSettings } from "./strategy-runtime-settings";
 import { RecordedUsageSection } from "./recorded-usage";
@@ -78,7 +77,7 @@ function WorkspaceSettings() {
   return <>
     <Card title="Workspace details" description="Your personal space for brand projects."><div className="sg-fields"><Field label="Workspace name" value="My workspace" /><Field label="Workspace handle" /></div></Card>
     <Card title="Members" description="Shared projects and collaboration are coming soon.">
-      <div className="sg-member"><span className="sg-avatar"><Icon name="user" size={18} /></span><div><strong>{session.status === "ready" ? "Personal account" : "Browser workspace"}</strong><p>Team membership is not available yet.</p></div><span className="sg-badge">Personal workspace</span></div>
+      <div className="sg-member"><span className="sg-avatar"><Icon name="user" size={18} /></span><div><strong>{session.status === "ready" ? "Personal workspace" : "Sign in to save your work"}</strong><p>Team membership is not available yet.</p></div><span className="sg-badge">Personal workspace</span></div>
       <div className="sg-actions sg-align-end"><UnavailableAction>Invite members</UnavailableAction></div>
     </Card>
     <Card title="Sharing defaults" description="Account projects remain private to their owner." className="sg-rows-card">
@@ -92,17 +91,9 @@ function WorkspaceSettings() {
 }
 
 function LocalDraftSettings() {
-  const { drafts, storage } = useLocalDrafts();
-  const [confirmClear, setConfirmClear] = useState(false);
-  const [message, setMessage] = useState("");
-  return <Card title="Browser drafts" description="Local drafts are separate from saved account projects." className="sg-rows-card">
-    <Row title="Draft storage" description={`${drafts.length} ${drafts.length === 1 ? "draft" : "drafts"} ${storage === "available" ? "stored in this browser" : "currently in this tab"}.`}><span className="sg-badge">Local preview</span></Row>
-    <Row title="Clear local drafts" description="Remove all project drafts from this browser. Names workshop data and saved account projects are kept."><button className="sg-action" type="button" disabled={!drafts.length && storage !== "invalid"} onClick={() => setConfirmClear(true)}>Clear drafts</button></Row>
-    {confirmClear && <div className="sg-confirm" role="alert"><p>Delete all {drafts.length} local {drafts.length === 1 ? "draft" : "drafts"}? This cannot be undone.</p><div className="sg-actions"><button className="sg-action" type="button" onClick={() => setConfirmClear(false)}>Keep drafts</button><button className="sg-action sg-danger" type="button" onClick={() => {
-      const persisted = clearLocalDrafts(); setConfirmClear(false);
-      setMessage(persisted ? "Local drafts cleared." : "Drafts removed from this tab. Previously saved drafts may return after a reload because browser storage is unavailable.");
-    }}>Delete all drafts</button></div></div>}
-    {message && <p className="sg-notice" role="status">{message}</p>}
+  const { session } = useAccountSession();
+  return <Card title="Recover unsaved work" description="Your work saves automatically to your account. Recover drafts left by an earlier version of Embel here.">
+    {session.status === "ready" ? <div className="sg-actions"><Link className="sg-action" href="/brands?recover=1">Recover projects</Link><Link className="sg-action" href="/names?recover=1">Recover names</Link></div> : <AccountStatus />}
   </Card>;
 }
 
@@ -162,7 +153,7 @@ function SecuritySettings() {
       <Row title="Password" description="Password management is not available here."><UnavailableAction>Change password</UnavailableAction></Row>
       <Row title="Two-factor authentication" description="Two-factor setup and status are not available here."><UnavailableAction>Set up</UnavailableAction></Row>
       <Row title="Active sessions" description="A list of signed-in devices is not available."><UnavailableAction>Manage sessions</UnavailableAction></Row>
-      <Row title="This browser" description="Check your account or sign out of this Embel session."><AccountAccess /></Row>
+      <Row title="Current session" description="Check your account or sign out of Embel."><AccountAccess /></Row>
     </Card>
     <Card title="Data and privacy" description="Account-wide privacy preference editing is not available yet." className="sg-rows-card">
       <Row title="Save generation history" description="Existing saved outputs are unchanged."><UnavailableSwitch label="Save generation history" /></Row>
@@ -171,7 +162,7 @@ function SecuritySettings() {
       <Row title="Export account data" description="A complete account data export is not available."><UnavailableAction>Export data</UnavailableAction></Row>
     </Card>
     <SaveFooter />
-    <section className="sg-delete" aria-label="Delete account"><div><h2>Delete account</h2><p>Account deletion is not available here. Clearing browser drafts does not delete your account.</p></div><UnavailableAction danger>Delete account</UnavailableAction></section>
+    <section className="sg-delete" aria-label="Delete account"><div><h2>Delete account</h2><p>Account deletion is not available here yet.</p></div><UnavailableAction danger>Delete account</UnavailableAction></section>
   </>;
 }
 

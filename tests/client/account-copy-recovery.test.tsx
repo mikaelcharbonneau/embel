@@ -24,7 +24,7 @@ async function click() { await act(async () => host.querySelector("button")!.cli
 async function expireRequest() { await act(async () => { await vi.advanceTimersByTimeAsync(30_000); }); }
 const mutations = () => fetcher.mock.calls.filter(([, init]) => init.method === "POST");
 beforeEach(() => {
-  vi.useFakeTimers(); Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }); window.sessionStorage.clear();
+  vi.useFakeTimers(); Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }); window.sessionStorage.clear(); window.localStorage.clear();
   owner = crypto.randomUUID(); mock.session = { status: "ready", userId: owner, generation: 1 };
   mock.current.mockReset().mockImplementation((value: VerifiedAccount) => mock.session?.status === "ready" && value.userId === mock.session.userId && value.generation === mock.session.generation);
   mock.push.mockReset(); mock.expire.mockReset();
@@ -39,28 +39,29 @@ describe("manual browser-to-account copy recovery", () => {
     await render(); expect(fetcher).not.toHaveBeenCalled();
     await act(async () => { host.querySelector("button")!.click(); host.querySelector("button")!.click(); });
     expect(fetcher.mock.calls.map(([path]) => path)).toEqual(["/api/session", "/api/projects"]);
-    expect(JSON.parse(String(mutations()[0]![1].body))).toEqual(createAccountInput(draft));
+    expect(JSON.parse(String(mutations()[0]![1].body))).toEqual({ ...createAccountInput(draft), requestKey: draft.id });
     expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${projectId}`);
-    expect(host.textContent).toContain("Open saved account project");
+    expect(host.textContent).toContain("Open saved project");
   });
 
   it("opens its confirmed copy after remount even if the independent browser draft changed", async () => {
     await render(); await click();
     draft = { ...draft, description: "Later browser-only changes" };
     await act(async () => root!.unmount()); root = createRoot(host); await render();
-    expect(host.textContent).toContain("Your browser draft remains independent");
+    expect(host.textContent).toContain("This project is saved in your account.");
     await click(); expect(mutations()).toHaveLength(1); expect(mock.push).toHaveBeenCalledTimes(2);
   });
 
-  it.each(["lost acknowledgement", "timeout"])("keeps %s fenced across remount and never repeats the create", async outcome => {
+  it.each(["lost acknowledgement", "timeout"])("retries %s with the exact original request across remount", async outcome => {
     const stalled = deferred<Response>();
     fetcher.mockImplementation((path: string, init: RequestInit) => path === "/api/projects" ? outcome === "timeout" ? stalled.promise : Promise.reject(new TypeError("Lost acknowledgement")) : defaultFetch(path, init));
     await render(); await click(); if (outcome === "timeout") await expireRequest();
-    expect(host.textContent).toContain("account save is not confirmed"); expect(host.querySelector("button")!.disabled).toBe(true);
-    expect(host.querySelector('a[href="/brands"]')?.textContent).toBe("Check account projects");
+    expect(host.textContent).toContain("account save is not confirmed"); expect(host.querySelector("button")!.disabled).toBe(false);
+    expect(host.textContent).toContain("Check and retry save");
     await act(async () => root!.unmount()); root = createRoot(host); await render();
     await act(async () => stalled.resolve(Response.json({ project: project() })));
-    await click(); expect(mutations()).toHaveLength(1); expect(mock.push).not.toHaveBeenCalled();
+    fetcher.mockImplementation(defaultFetch);
+    await click(); expect(mutations()).toHaveLength(2); expect(mutations()[1]![1].body).toBe(mutations()[0]![1].body); expect(mock.push).toHaveBeenCalledOnce();
   });
 
   it("recovers the Home create guard without a new account request", async () => {
@@ -92,17 +93,17 @@ describe("manual browser-to-account copy recovery", () => {
     await render(); await click(); expect(mutations()).toHaveLength(1);
     mock.session = { status: "signed_out", generation: 2 }; await render();
     await act(async () => stalled.resolve(Response.json({ project: project() })));
-    expect(mock.push).not.toHaveBeenCalled(); expect(host.textContent).not.toContain("Open saved account project");
-    mock.session = { status: "ready", userId: owner, generation: 3 }; await render(); await click();
-    expect(mutations()).toHaveLength(1); expect(host.querySelector("button")!.disabled).toBe(true);
+    expect(mock.push).not.toHaveBeenCalled(); expect(host.textContent).not.toContain("Open saved project");
+    mock.session = { status: "ready", userId: owner, generation: 3 }; fetcher.mockImplementation(defaultFetch); await render(); await click();
+    expect(mutations()).toHaveLength(2); expect(mutations()[1]![1].body).toBe(mutations()[0]![1].body); expect(mock.push).toHaveBeenCalledOnce();
   });
 
   it("does not expose a previous owner's recovery destination when another account is verified", async () => {
     await render(); await click();
     mock.session = { status: "ready", userId: crypto.randomUUID(), generation: 2 }; await render();
-    expect(host.textContent).not.toContain("Open saved account project");
+    expect(host.textContent).not.toContain("Open saved project");
     expect(host.textContent).not.toContain("An account copy is already saved");
-    expect(host.querySelector("button")!.textContent).toContain("Save to account"); expect(mutations()).toHaveLength(1);
+    expect(host.querySelector("button")!.textContent).toContain("Save project"); expect(mutations()).toHaveLength(1);
   });
 
   it("recovers a stalled session check without recording an uncertain project create", async () => {

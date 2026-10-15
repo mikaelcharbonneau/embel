@@ -47,11 +47,19 @@ export async function getProject(auth: AuthenticatedContext, projectId: string) 
 export async function createProject(auth: AuthenticatedContext, input: unknown) {
   const parsed = createProjectInputSchema.safeParse(input);
   if (!parsed.success) throw new ApiError("invalid_input");
-  const { title, scope, context } = parsed.data;
-  const { data, error } = await auth.client.rpc("create_project", {
+  const { title, scope, context, requestKey } = parsed.data;
+  const { data, error } = await auth.client.rpc(requestKey ? "create_project_with_request" : "create_project", {
     p_scope: scope, p_title: title, p_context: context, p_input_hash: contextHash(context),
+    ...(requestKey ? { p_request_key: requestKey } : {}),
   }).single();
   databaseError(error);
+  // A replay can recover a project edited since creation. Its current context
+  // and revision are read together by the RPC, never reconstructed from input.
+  if (requestKey) {
+    const project = accountProjectSchema.parse(data);
+    if (project.owner_id !== auth.userId) throw new ApiError("not_found");
+    return project;
+  }
   return { ...storedProjectSchema.parse(data), context };
 }
 

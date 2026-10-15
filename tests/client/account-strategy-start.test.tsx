@@ -37,7 +37,7 @@ async function start() { let result: boolean | undefined; await act(async () => 
 const mutations = () => fetcher.mock.calls.filter(([, init]) => init?.method === "POST");
 beforeEach(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
-  window.sessionStorage.clear(); owner = crypto.randomUUID(); mock.session = { status: "ready", userId: owner, generation: 1 };
+  window.sessionStorage.clear(); window.localStorage.clear(); owner = crypto.randomUUID(); mock.session = { status: "ready", userId: owner, generation: 1 };
   mock.current.mockReset().mockImplementation((value: VerifiedAccount) => mock.session.status === "ready" && value.userId === mock.session.userId && value.generation === mock.session.generation);
   mock.push.mockReset(); mock.refresh.mockReset(); mock.expire.mockReset();
   draft = accountProjectDraft({ id: crypto.randomUUID(), owner_id: owner, scope: "complete_brand", title: "Prompt recovery fixture", current_revision: 1, created_at: "2026-10-07T00:00:00Z", context: contextSnapshotSchema.parse({ description: "A genuinely retained prompt" }) });
@@ -128,12 +128,12 @@ describe("AI prompt start readiness and recovery", () => {
     await act(async () => { gate.resolve(Response.json({ availability: ready() })); await result; });
     expect(mutations()).toHaveLength(0); expect(mock.push).not.toHaveBeenCalled(); expect(host.textContent).not.toContain("$0.02");
   });
-  it("never retries an ambiguous project creation, including after remount", async () => {
+  it("retries an ambiguous creation with its original key and payload after remount", async () => {
     await render(); fetcher.mockImplementation((path: string, init: RequestInit) => path === "/api/projects" ? Promise.reject(new TypeError("Lost commit acknowledgement")) : defaultFetch(path, init));
     await start(); expect(mutations()).toHaveLength(1); expect(mock.push).not.toHaveBeenCalled();
     expect(host.textContent).toContain("Check account brands");
     await act(async () => root!.unmount()); root = createRoot(host); await render(); await start();
-    expect(mutations()).toHaveLength(1); expect(host.textContent).toContain("Check account brands");
+    expect(mutations()).toHaveLength(2); expect(mutations()[1]![1].body).toBe(mutations()[0]![1].body); expect(host.textContent).toContain("Check account brands");
   });
   it("retains a confirmed account project when job submission is uncertain and opens its status without a second create", async () => {
     await render(); fetcher.mockImplementation((path: string, init: RequestInit) => path.endsWith("/strategy") && init.method === "POST" ? Promise.reject(new TypeError("Lost job acknowledgement")) : defaultFetch(path, init));
@@ -196,19 +196,21 @@ describe("AI prompt start readiness and recovery", () => {
     const originalOwner = owner, blockedDraft = draft;
     window.sessionStorage.setItem("fluid.strategy-starts.v1", JSON.stringify([{ ownerId: owner, draftId: draft.id, projectId: null }, ...Array.from({ length: 199 }, () => ({ ownerId: owner, draftId: crypto.randomUUID(), projectId: null }))]));
     await render(); expect(await start()).toBe(false); expect(mutations()).toHaveLength(0);
-    owner = crypto.randomUUID(); mock.session = { status: "ready", userId: owner, generation: 2 }; await render();
+    owner = crypto.randomUUID(); draft = { ...draft, id: crypto.randomUUID() }; mock.session = { status: "ready", userId: owner, generation: 2 }; await render();
     expect(await start()).toBe(true); expect(mutations()).toHaveLength(2);
     owner = originalOwner; draft = blockedDraft; mock.session = { status: "ready", userId: owner, generation: 3 }; await render();
     expect(await start()).toBe(false); expect(mutations()).toHaveLength(2); expect(host.textContent).toContain("earlier account save is not confirmed");
   });
-  it("retains uncertain guards when session storage fails and the same account is reverified", async () => {
+  it.each([false, true])("retains uncertain guards on reverification when storage fails (durable unreadable: %s)", async durableUnavailable => {
     await render(); fetcher.mockImplementation((path: string, init: RequestInit) => path === "/api/projects" ? Promise.reject(new TypeError("Lost create acknowledgement")) : defaultFetch(path, init));
     await start(); expect(mutations()).toHaveLength(1);
-    const get = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => { throw new Error("Unavailable storage"); });
-    const set = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("Unavailable storage"); });
+    const originalGet = Storage.prototype.getItem, originalSet = Storage.prototype.setItem;
+    const get = vi.spyOn(Storage.prototype, "getItem").mockImplementation(function(this: Storage, key: string) { if (durableUnavailable || this === window.sessionStorage) throw new Error("Unavailable storage"); return originalGet.call(this, key); });
+    const set = vi.spyOn(Storage.prototype, "setItem").mockImplementation(function(this: Storage, key: string, value: string) { if (durableUnavailable || this === window.sessionStorage) throw new Error("Unavailable storage"); return originalSet.call(this, key, value); });
     try {
       await act(async () => root!.unmount()); root = createRoot(host); mock.session = { status: "ready", userId: owner, generation: 2 }; await render();
-      expect(await start()).toBe(false); expect(mutations()).toHaveLength(1); expect(host.textContent).toContain("earlier account save is not confirmed");
+      expect(await start()).toBe(false); expect(mutations()).toHaveLength(durableUnavailable ? 1 : 2);
+      if (!durableUnavailable) expect(mutations()[1]![1].body).toBe(mutations()[0]![1].body);
     } finally { get.mockRestore(); set.mockRestore(); }
   });
 
@@ -225,8 +227,8 @@ describe("AI prompt start readiness and recovery", () => {
     const get = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => { throw new Error("Unavailable storage"); });
     const set = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("Unavailable storage"); });
     try {
-      draft = { ...firstDraft, id: crypto.randomUUID() }; await start(); expect(mutations()).toHaveLength(4);
-      draft = firstDraft; await start(); expect(mutations()).toHaveLength(4); expect(mock.push).toHaveBeenCalledTimes(3);
+      draft = { ...firstDraft, id: crypto.randomUUID() }; await start(); expect(mutations()).toHaveLength(2);
+      draft = firstDraft; await start(); expect(mutations()).toHaveLength(2); expect(mock.push).toHaveBeenCalledTimes(2);
     } finally { get.mockRestore(); set.mockRestore(); }
   });
 
@@ -241,7 +243,7 @@ describe("response-only Home start", () => {
     expect(host.textContent).toContain("Competitor research is unavailable");
     expect(await start()).toBe(true);
     expect(mutations()).toHaveLength(2);
-    expect(JSON.parse(mutations()[0]![1].body)).toEqual(createAccountInput(draft));
+    expect(JSON.parse(mutations()[0]![1].body)).toEqual({ ...createAccountInput(draft), requestKey: draft.id });
     expect(JSON.parse(mutations()[1]![1].body)).toMatchObject({ operation: "strategy.reformulate", expectedRevision: 1, acceptedMaxCostMicrousd: 122880 });
     expect(JSON.parse(window.sessionStorage.getItem("fluid.strategy-consent.v1")!)).toEqual([{ ownerId: owner, projectId, revision: 1, kind: "response_only", billingMode: "openai_api", reformulationCap: 122880 }]);
     expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${projectId}`);
@@ -284,7 +286,7 @@ describe("stalled Home strategy request recovery", () => {
     expect(await start()).toBe(true); expect(mutations()).toHaveLength(2);
   });
 
-  it("keeps a timed-out non-idempotent save fenced across remount and a late success", async () => {
+  it("replays a timed-out save after remount without repeating AI", async () => {
     vi.useFakeTimers(); await render();
     const stalled = deferred<Response>();
     fetcher.mockImplementation((path: string, init: RequestInit) => path === "/api/projects" ? stalled.promise : defaultFetch(path, init));
@@ -294,8 +296,9 @@ describe("stalled Home strategy request recovery", () => {
     expect(host.textContent).toContain("account save is not confirmed"); expect(mutations()).toHaveLength(1);
     await act(async () => root!.unmount()); root = createRoot(host); await render();
     await act(async () => stalled.resolve(Response.json({ project: project() })));
-    expect(await start()).toBe(false);
-    expect(mutations()).toHaveLength(1); expect(mock.push).not.toHaveBeenCalled();
+    fetcher.mockImplementation(defaultFetch);
+    expect(await start()).toBe(true);
+    expect(mutations()).toHaveLength(2); expect(mutations()[1]![1].body).toBe(mutations()[0]![1].body); expect(mock.push).toHaveBeenCalledOnce();
   });
 
   it("retains the saved project after a stalled enqueue and opens it without resubmitting", async () => {

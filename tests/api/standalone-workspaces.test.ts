@@ -10,7 +10,7 @@ const id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", auth = { userId: id, client: 
 const context = { params: Promise.resolve({ tool: "domains" }) };
 const input = { requestKey: id, expectedRevision: 0, payload: {}, imports: [] };
 const request = (method = "GET", body?: unknown, query = "", origin = "http://localhost:3105") => new Request("http://localhost:3105/api/workspaces/domains" + query, {
-  method, ...(method === "PUT" ? { body: JSON.stringify(body), headers: { "content-type": "application/json", origin } } : {}),
+  method, ...(method === "PUT" ? { body: JSON.stringify(body), headers: { "content-type": "application/json", origin, "X-Embel-Account": id } } : {}),
 });
 describe("standalone authenticated HTTP boundary", () => {
   beforeEach(() => { vi.resetAllMocks(); vi.stubEnv("APP_ORIGIN", "http://localhost:3105"); mocks.auth.mockResolvedValue(auth); });
@@ -25,6 +25,13 @@ describe("standalone authenticated HTTP boundary", () => {
     mocks.source.mockResolvedValue({ ownerId: id, source: null });
     expect(await (await source(request("GET", undefined, "?projectId=" + id))).json()).toEqual({ ownerId: id, source: null });
     expect(mocks.source).toHaveBeenCalledWith(auth, id);
+  });
+  it.each([undefined, "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "invalid"]) ("rejects a missing or mismatched expected account before saving: %s", async expectedOwner => {
+    const req = request("PUT", input);
+    if (expectedOwner) req.headers.set("X-Embel-Account", expectedOwner); else req.headers.delete("X-Embel-Account");
+    const response = await PUT(req, context);
+    expect(response.status).toBe(401); expect(mocks.save).not.toHaveBeenCalled();
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
   });
   it.each(["", "?ownerId=" + id, "?projectId=bad", "?projectId=" + id + "&projectId=" + id, "?projectId=" + id + "&name=Forged"])("rejects malformed or injected source query %s", async query => {
     expect((await source(request("GET", undefined, query))).status).toBe(422); expect(mocks.source).not.toHaveBeenCalled();

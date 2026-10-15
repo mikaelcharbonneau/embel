@@ -150,7 +150,7 @@ describe("saved standalone account editor promotion", () => {
     await changeRecord("domains", { dirty: true, payload: domainDraftSchema.parse({ version: 1, input: "New", extensions: ["com"], candidates: ["new.com"] }) });
     await act(async () => button("Create brand from new.com").click());
     expect(host.querySelector('[aria-label="Create complete brand from saved work"]')).toBeNull();
-    expect(host.textContent).toContain("Save the account draft before creating a brand.");
+    expect(host.textContent).toContain("Your changes are still saving. Create the brand once they are saved.");
     expect(posts).toEqual([]);
   });
 
@@ -161,6 +161,7 @@ describe("saved standalone account editor promotion", () => {
     expect(posts).toHaveLength(1); const original = structuredClone(posts[0]!);
     await render("domains", false);
     const newer = { ...saved("domains", 4), payload: domainDraftSchema.parse({ version: 1, input: "Later", extensions: ["com"], candidates: ["later.com"] }) };
+    stored = newer;
     await changeRecord("domains", { workspace: newer, payload: newer.payload });
     await render("domains");
     expect(field<HTMLInputElement>("New brand title").value).toBe("Original brand");
@@ -237,7 +238,7 @@ describe("saved standalone account editor promotion", () => {
     const newer = saved("domains", 4);
     await changeRecord("domains", { workspace: newer, payload: newer.payload });
     expect(host.querySelector('[aria-label="Create complete brand from saved work"]')).toBeNull();
-    expect(host.textContent).toContain("The saved account draft changed. Choose the saved result again before creating a brand.");
+    expect(host.textContent).toContain("The saved workspace changed. Choose the result again before creating a brand.");
     expect(posts).toEqual([]);
     await choose("domains"); await titleAndContext("New saved source");
     await act(async () => button("Create complete brand").click());

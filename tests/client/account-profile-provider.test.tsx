@@ -40,6 +40,7 @@ beforeEach(async () => {
     if (path === "/api/auth/sign-out") return logoutStatus === 200 ? Response.json({ authenticated: false }) : new Response(null, { status: logoutStatus });
     expect(path).toBe("/api/account/profile"); expect(init.credentials).toBe("same-origin"); expect(init.cache).toBe("no-store");
     if (init.method === "PATCH") {
+      if (new Headers(init.headers).get("X-Embel-Account") !== ownerId) return new Response(null, { status: 401 });
       const input = JSON.parse(init.body as string);
       if (saveOverride) return saveOverride(input);
       if (input.expectedRevision !== saved.revision) return new Response(null, { status: 409 });
@@ -55,6 +56,16 @@ beforeEach(async () => {
 afterEach(async () => { vi.useRealTimers(); await act(async () => root.unmount()); document.body.replaceChildren(); vi.unstubAllGlobals(); });
 
 describe("real profile and account providers", () => {
+  it("sends the captured owner and expires a stale session before its edits reach a cookie-switched account", async () => {
+    await edit({ fullName: "Private draft A" });
+    ownerId = ownerB; saved = fixture(ownerB);
+    expect(account.session).toMatchObject({ status: "ready", userId: ownerA });
+    await click("Save changes"); await until(() => expect(account.session.status).toBe("signed_out"));
+    const writes = fetcher.mock.calls.filter(([, init]) => init.method === "PATCH");
+    expect(writes).toHaveLength(1); expect(new Headers(writes[0]![1].headers).get("X-Embel-Account")).toBe(ownerA);
+    expect(saved).toEqual(fixture(ownerB)); expect(profile.workspace).toBeNull();
+    expect(account.profileDrafts.hasUnsaved()).toBe(true);
+  });
   it("saves edits to the account, applies preferences, and restores them in a new session", async () => {
     expect(fullName().value).toBe("Saved A"); expect(host.querySelector<HTMLInputElement>('input[autocomplete="email"]')?.readOnly).toBe(true);
     await edit({ fullName: "Renée Example", timeZone: "Asia/Tokyo", dateFormat: "iso" });

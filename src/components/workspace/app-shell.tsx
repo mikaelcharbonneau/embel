@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname, useSelectedLayoutSegment, useSelectedLayoutSegments } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Icon, type IconName } from "@/components/ui/icon";
-import { useLocalDrafts } from "./local-drafts";
 import { AccountSessionProvider, useAccountSession } from "./account-session";
 import { AccountProfileProvider, useAccountProfile } from "./account-profile-provider";
 import { AccountAccess, AccountAccessNotice } from "./account-access";
@@ -39,7 +38,7 @@ function SidebarContent({ close, concept = false, pathname }: { close?: () => vo
   return <>
     <Link href="/" className={concept ? "app-mark" : "wordmark"} aria-label="Embel home" onClick={close}>{pathname.startsWith("/brands/") ? <ProjectArtwork name="mark" /> : (pathname === "/sign-in" || pathname === "/sign-up") ? <AuthArtwork name="mark" /> : pathname === "/settings" ? <SettingsArtwork name="mark" /> : pathname === "/trademarks" ? <TrademarkArtwork name="mark" /> : pathname === "/assets" ? <AssetsShellArtwork name="mark" /> : pathname === "/brands" ? <ProjectsShellArtwork name="mark" /> : pathname === "/names" ? <NamesShellArtwork name="mark" /> : pathname === "/handles" ? <HandlesArtwork name="mark" /> : <AppMark />}</Link>
     <nav className="sidebar-nav" aria-label="Main navigation">{concept ? <><div className="nav-group">{primary.map(navLink)}</div><div className="nav-group workspace-tools">{tools.map(navLink)}</div></> : <div className="nav-group">{[...primary, ...tools].map(navLink)}</div>}</nav>
-    <div className="sidebar-bottom">{navLink({ href: "/settings", label: "Settings", icon: "settings" })}<Link href="/settings" className="workspace-label" aria-label="My workspace settings" title="My workspace" onClick={close}><span className="workspace-avatar"><Icon name="user" size={18} /></span><div><strong>My workspace</strong><span>{session.status === "ready" ? "Personal account" : "Browser workspace"}</span></div></Link></div>
+    <div className="sidebar-bottom">{navLink({ href: "/settings", label: "Settings", icon: "settings" })}<Link href="/settings" className="workspace-label" aria-label="My workspace settings" title="My workspace" onClick={close}><span className="workspace-avatar"><Icon name="user" size={18} /></span><div><strong>My workspace</strong><span>{session.status === "ready" ? "Personal workspace" : session.status === "checking" ? "Checking account…" : "Sign in to save"}</span></div></Link></div>
   </>;
 }
 
@@ -54,7 +53,6 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const intercepted = ["(.)sign-in", "sign-in", "(.)sign-up", "sign-up"].includes(authSegment ?? "");
   // The children slot retains the underlying route during intercepted navigation.
   const pathname = intercepted ? `/${backgroundSegments.filter(segment => !segment.startsWith("(")).join("/")}` : currentPathname;
-  const { storage } = useLocalDrafts();
   const [menuOpen, setMenuOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [moreBelow, setMoreBelow] = useState(false);
@@ -92,8 +90,6 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
     <div className="workspace-main">
       <header className="topbar"><div className="topbar-left"><button className="icon-button mobile-menu-trigger" aria-label="Open navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}><Icon name="menu" /></button>{usesConceptShell && <><button className="icon-button workspace-sidebar-toggle" aria-label={expanded ? "Collapse navigation" : "Expand navigation"} aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{(pathname === "/sign-in" || pathname === "/sign-up") ? <AuthArtwork name="expand" /> : pathname === "/settings" ? <SettingsArtwork name="expand" /> : pathname === "/trademarks" ? <TrademarkArtwork name="expand" /> : pathname === "/assets" ? <AssetsShellArtwork name="expand" /> : pathname === "/brands" ? <ProjectsShellArtwork name="expand" /> : pathname === "/names" ? <NamesShellArtwork name="expand" /> : pathname === "/handles" ? <HandlesArtwork name="expand" /> : <Icon name="chevron" size={16} />}</button><span className="workspace-breadcrumb-root">My workspace</span><span className="workspace-breadcrumb-slash" aria-hidden="true">/</span></>}{ideaId ? <IdeaBreadcrumb ideaId={ideaId} /> : pathname === "/names" ? <NamesBreadcrumb /> : <span>{pageLabel}</span>}</div>{usesConceptShell ? <WorkspaceAccountMenu project={projectWorkspace} /> : <div className="topbar-account-actions"><GenerationActivity /><AccountAccess /></div>}</header>
       <AccountAccessNotice />
-      {storage === "unavailable" && <div className="storage-alert" role="alert">Browser storage is unavailable. Your changes will only stay in this tab until you close or reload it.</div>}
-      {storage === "invalid" && <div className="storage-alert" role="alert">Saved drafts could not be read. Start a new draft or clear local data in Settings.</div>}
       <main id="main-content" ref={mainRef} tabIndex={-1}>{children}</main>
       {isHome && moreBelow && <div className="home-bottom-fade" aria-hidden="true" />}
       {ideaId && moreBelow && <div className="idea-bottom-fade" aria-hidden="true" />}

@@ -27,7 +27,7 @@ describe("standalone PT409 crosses the real HTTP and data-service boundary promp
     });
     const response = await PUT(new Request("http://localhost:3105/api/workspaces/domains", {
       method: "PUT",
-      headers: { origin: "http://localhost:3105", "content-type": "application/json" },
+      headers: { origin: "http://localhost:3105", "content-type": "application/json", "X-Embel-Account": owner },
       body: JSON.stringify({ requestKey, expectedRevision: 0, payload, imports: [] }),
     }), { params: Promise.resolve({ tool: "domains" }) });
 

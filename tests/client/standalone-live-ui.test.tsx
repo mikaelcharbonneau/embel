@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, createElement } from "react";
+import { act, createElement, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { HandlesWorkspace } from "@/features/handles-workspace/handles-workspace";
@@ -17,7 +17,11 @@ const button = (text: string) => [...host.querySelectorAll<HTMLButtonElement>("b
 it("keeps live observations in the comparison while bookmarking a valid manual account bundle", async () => {
   let saved: HandlesState | null = null;
   const adapter: HandleCheckAdapter = { availability: "ready", label: "Synthetic profile lookup", async check(entry) { return { ...unavailableEvidence(entry, new Date().toISOString()), outcome: "unknown", detail: "Synthetic profile observation" }; } };
-  await act(async () => root.render(<HandlesWorkspace value={emptyHandlesState()} onChange={(value: HandlesState) => { saved = value; }} adapter={adapter} saveCheckEvidence={false} />));
+  function Harness() {
+    const [value, setValue] = useState(emptyHandlesState);
+    return <HandlesWorkspace value={value} onChange={(next: HandlesState) => { saved = next; setValue(next); }} adapter={adapter} saveCheckEvidence={false} />;
+  }
+  await act(async () => root.render(<Harness />));
   const input = host.querySelector<HTMLInputElement>('[aria-label="Business handles"]')!;
   await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "fixture"); input.dispatchEvent(new Event("input", { bubbles: true })); });
   await act(async () => button("Check handles").click());

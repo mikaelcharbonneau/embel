@@ -33,7 +33,7 @@ async function fixtures(page: Page, scope: ProjectScope = "naming_only") {
     ownerId: ownerId as string | null, project: fixtureProject(scope), session: null as NamingSession | null, preferences: null as NamingPreferenceRevision | null,
     candidates: [] as ProjectNameEntry[], batches: [] as NamingBatchEntry[], jobs: [] as NamingJob[], currentSelection: null as CurrentNameSelection | null,
     available: true, readStatus: 200, mutationStatus: 200, mutationCode: null as string | null, malformedOwner: false, lostEnqueue: false, lostTransform: false, lostRetention: false,
-    transforms: new Map<string, unknown>(),
+    transforms: new Map<string, unknown>(), names: createEmptyNamesWorkspace(), namesRevision: 1,
     requests: [] as Array<{ path: string; method: string; body: Record<string, unknown> | null }>,
     delay: null as null | { path: string; method: string; ready: boolean; settled: boolean; release: () => void; wait: Promise<void> },
     newProject: null as AccountProject | null,
@@ -102,6 +102,11 @@ async function fixtures(page: Page, scope: ProjectScope = "naming_only") {
     state.requests.push({ path, method, body });
     if (path === "/api/session") return routeResponse(route, state.ownerId ? { user: { id: state.ownerId } } : {}, state.ownerId ? 200 : 401);
     if (!state.ownerId) return routeResponse(route, {}, 401);
+    if (path === "/api/names/workspace") {
+      if (state.ownerId !== ownerId) return routeResponse(route, { ownerId: state.ownerId, workspace: null });
+      if (method === "PUT") { state.names = namesWorkspaceSchema.parse(body!.payload); state.namesRevision = Number(body!.expectedRevision) + 1; }
+      return routeResponse(route, { ownerId, workspace: { id: uuid("abababab", 999), ownerId, revision: Math.max(1, state.namesRevision), payload: state.names, createdAt: when, updatedAt: when } });
+    }
     if (state.ownerId !== ownerId) return routeResponse(route, {}, 404);
     if (path === "/api/strategy") return routeResponse(route, { availability: { status: "unavailable", operations: [], reason: "runtime_disabled" } });
     if (path === `/api/projects/${projectId}/strategy`) return routeResponse(route, { availability: { status: "unavailable", operations: [], reason: "runtime_disabled" }, jobs: [] });
@@ -197,10 +202,11 @@ async function fixtures(page: Page, scope: ProjectScope = "naming_only") {
 async function prepared(page: Page, count = 3, scope: ProjectScope = "naming_only") { const fixture = await fixtures(page, scope); fixture.preferences(); fixture.enqueue(); fixture.complete(count); return fixture; }
 async function open(page: Page) { await page.goto(url); await expect(page.locator(".project-naming-header h1")).toBeVisible(); }
 const card = (page: Page, name: string) => page.locator(".project-naming-card").filter({ has: page.getByRole("heading", { name, exact: true }) });
-async function localNameFixture(page: Page) {
+async function localNameFixture(page: Page, fixture: Awaited<ReturnType<typeof fixtures>>) {
   const data = createEmptyNamesWorkspace();
   data.candidates.push({ source: { id: uuid("abababab", 555), value: "Local fixture name", createdAt: when, origin: "manual", history: [] }, context: contextSnapshotSchema.parse({ description: "Browser-only captured context" }), runId: null, explanation: "Added manually", favorite: false, saved: true });
-  const raw = JSON.stringify(namesWorkspaceSchema.parse(data));
+  fixture.state.names = namesWorkspaceSchema.parse(data); fixture.state.namesRevision = 1;
+  const raw = JSON.stringify(fixture.state.names);
   await page.addInitScript(value => localStorage.setItem("fluid.names.v1", value), raw);
   return raw;
 }
@@ -537,7 +543,7 @@ for (const action of ["overview", "preferences", "view", "retention", "selection
     if (action === "library pagination") for (const entry of fixture.state.candidates) entry.retention = { ...entry.retention, favorite: true, revision: 1, updatedAt: when };
     if (action === "cancellation") fixture.enqueue();
     if (action === "library" || action === "promotion") fixture.state.candidates[0]!.retention = { ...fixture.state.candidates[0]!.retention, revision: 1, favorite: true, updatedAt: when };
-    if (action === "import") await localNameFixture(page);
+    if (action === "import") await localNameFixture(page, fixture);
     if (action === "overview") fixture.hold(base, "GET");
     await open(page);
     const firstName = [...fixture.state.candidates].sort((a, b) => a.candidate.createdAt.localeCompare(b.candidate.createdAt) || a.candidate.id.localeCompare(b.candidate.id))[0]!.candidate.value;
@@ -549,12 +555,12 @@ for (const action of ["overview", "preferences", "view", "retention", "selection
     if (action === "generation") { fixture.hold(`${base}/batches`, "POST"); await page.getByRole("button", { name: "Generate 50 more names" }).click(); }
     if (action === "cancellation") { fixture.hold(`${base}/batches/${fixture.state.jobs[0]!.batchId}`, "DELETE"); await page.getByRole("button", { name: "Cancel generation" }).click(); }
     if (action === "transform") { await card(page, "Fixture 001").getByText("Origin and tools", { exact: true }).click(); await card(page, "Fixture 001").getByRole("button", { name: "Use in workshop" }).click(); await page.getByLabel("Suffixes", { exact: true }).fill("ly"); fixture.hold(`${base}/transforms`, "POST"); await page.getByRole("button", { name: "Run Affixes" }).click(); }
-    if (action === "library") { await page.goto("/names"); fixture.hold("/api/names", "GET"); await page.getByRole("button", { name: "Account library", exact: true }).click(); }
-    if (action === "import") { await page.getByText("Copy a name from this browser", { exact: true }).click(); await page.getByLabel("Browser name to copy").selectOption(uuid("abababab", 555)); fixture.hold(`${base}/imports`, "POST"); await page.getByRole("button", { name: "Copy into this project" }).click(); }
-    if (action === "promotion") { await page.goto("/names"); await page.getByRole("button", { name: "Account library", exact: true }).click(); await expect(card(page, "Fixture 001")).toBeVisible(); fixture.hold(`${base}/promote`, "POST"); await card(page, "Fixture 001").getByRole("button", { name: "Create brand" }).click(); }
+    if (action === "library") { await page.goto("/names"); fixture.hold("/api/names", "GET"); await page.getByRole("tab", { name: "Library", exact: true }).click(); }
+    if (action === "import") { await page.getByText("Copy a name from your library", { exact: true }).click(); await page.getByLabel("Library name to copy").selectOption(uuid("abababab", 555)); fixture.hold(`${base}/imports`, "POST"); await page.getByRole("button", { name: "Copy into this project" }).click(); }
+    if (action === "promotion") { await page.goto("/names"); await page.getByRole("tab", { name: "Library", exact: true }).click(); await expect(card(page, "Fixture 001")).toBeVisible(); fixture.hold(`${base}/promote`, "POST"); await card(page, "Fixture 001").getByRole("button", { name: "Create brand" }).click(); }
     if (action === "candidate pagination") { fixture.hold(base, "GET"); await page.getByRole("button", { name: "Load more saved names" }).click(); }
     if (action === "batch pagination") { await page.getByText("Batch history · 100 loaded", { exact: true }).click(); fixture.hold(`${base}/batches`, "GET"); await page.getByRole("button", { name: "Load more batches" }).click(); }
-    if (action === "library pagination") { await page.goto("/names"); await page.getByRole("button", { name: "Account library", exact: true }).click(); await expect(card(page, firstName)).toBeVisible(); fixture.hold("/api/names", "GET"); await page.getByRole("button", { name: "Load more account names" }).click(); }
+    if (action === "library pagination") { await page.goto("/names"); await page.getByRole("tab", { name: "Library", exact: true }).click(); await expect(card(page, firstName)).toBeVisible(); fixture.hold("/api/names", "GET"); await page.getByRole("button", { name: "Load more account names" }).click(); }
     if (action === "expansion") { fixture.hold(`/api/projects/${projectId}/expand`, "POST"); await page.getByRole("button", { name: "Expand to complete brand" }).click(); }
     // The held response remains addressable after capture so it can return late.
     const held = fixture.state.delay;
@@ -632,7 +638,7 @@ for (const field of ["favorite", "saved"] as const) for (const committed of [fal
     const fixture = await prepared(page);
     fixture.state.candidates[0]!.retention = { ...fixture.state.candidates[0]!.retention, revision: 1, favorite: field === "saved", saved: field === "favorite", updatedAt: when };
     const originals = JSON.stringify(fixture.state.candidates.map(entry => entry.candidate));
-    await page.goto("/names"); await page.getByRole("button", { name: "Account library", exact: true }).click();
+    await page.goto("/names"); await page.getByRole("tab", { name: "Library", exact: true }).click();
     await expect(card(page, "Fixture 001")).toBeVisible();
     if (committed) fixture.state.lostRetention = true;
     else fixture.state.mutationStatus = 503;
@@ -649,7 +655,7 @@ for (const field of ["favorite", "saved"] as const) for (const committed of [fal
       : (committed ? "Unsave" : "Save"), exact: true })).toBeVisible();
     expect(fixture.state.requests.filter(request => request.path === `${base}/retention`)).toHaveLength(1);
     expect(fixture.state.requests.filter(request => request.path === `${base}/batches` && request.method === "POST")).toHaveLength(0);
-    await page.reload(); await page.getByRole("button", { name: "Account library", exact: true }).click();
+    await page.reload(); await page.getByRole("tab", { name: "Library", exact: true }).click();
     await expect(card(page, "Fixture 001").getByRole("button", { name: field === "favorite"
       ? (committed ? "Unfavorite Fixture 001" : "Favorite Fixture 001")
       : (committed ? "Unsave" : "Save"), exact: true })).toBeVisible();
@@ -659,7 +665,7 @@ for (const field of ["favorite", "saved"] as const) for (const committed of [fal
 test("naming fixture: delayed library reads cannot roll back newer retention", async ({ page }) => {
   const fixture = await prepared(page);
   fixture.state.candidates[0]!.retention = { ...fixture.state.candidates[0]!.retention, revision: 1, favorite: true, saved: true, updatedAt: when };
-  await page.goto("/names"); await page.getByRole("button", { name: "Account library", exact: true }).click();
+  await page.goto("/names"); await page.getByRole("tab", { name: "Library", exact: true }).click();
   await expect(card(page, "Fixture 001")).toBeVisible();
   fixture.state.mutationStatus = 409;
   await card(page, "Fixture 001").getByRole("button", { name: "Unfavorite Fixture 001", exact: true }).click();
@@ -676,19 +682,19 @@ test("naming fixture: delayed library reads cannot roll back newer retention", a
   await expect(card(page, "Fixture 001").getByRole("button", { name: "Favorite Fixture 001", exact: true })).toBeVisible();
 });
 
-test("naming fixture: browser import preserves original and account promotion stays private", async ({ page }) => {
+test("naming fixture: library import preserves original and account promotion stays private", async ({ page }) => {
   const fixture = await prepared(page);
-  const original = await localNameFixture(page);
+  const original = await localNameFixture(page, fixture);
   await open(page);
-  await page.getByText("Copy a name from this browser", { exact: true }).click();
-  await page.getByLabel("Browser name to copy").selectOption(uuid("abababab", 555));
+  await page.getByText("Copy a name from your library", { exact: true }).click();
+  await page.getByLabel("Library name to copy").selectOption(uuid("abababab", 555));
   await page.getByRole("button", { name: "Copy into this project" }).click();
   await expect(card(page, "Local fixture name")).toBeVisible();
   expect(fixture.state.currentSelection).toBeNull();
   expect(fixture.state.project.context.description).toContain("Synthetic brief");
   expect(await page.evaluate(() => localStorage.getItem("fluid.names.v1"))).toBe(original);
   await card(page, "Local fixture name").getByRole("button", { name: "Favorite Local fixture name", exact: true }).click();
-  await page.goto("/names"); await page.getByRole("button", { name: "Account library", exact: true }).click();
+  await page.goto("/names"); await page.getByRole("tab", { name: "Library", exact: true }).click();
   await expect(card(page, "Local fixture name")).toBeVisible();
   await card(page, "Local fixture name").getByRole("button", { name: "Create brand" }).click();
   await expect(page).toHaveURL(`/brands/account/${uuid("bdbdbdbd", 1)}`);
@@ -702,7 +708,7 @@ test("naming fixture: promoting an earlier-context name requires acknowledgement
   const candidate = fixture.state.candidates[0]!.candidate, originalBasis = JSON.stringify(candidate.strategyBasis);
   fixture.state.candidates[0]!.retention = { ...fixture.state.candidates[0]!.retention, saved: true, revision: 1, updatedAt: when };
   fixture.state.project = { ...fixture.state.project, current_revision: 4, context: { ...fixture.state.project.context, description: "Newer source project direction" } };
-  await page.goto("/names"); await page.getByRole("button", { name: "Account library", exact: true }).click();
+  await page.goto("/names"); await page.getByRole("tab", { name: "Library", exact: true }).click();
   await card(page, "Fixture 001").getByRole("button", { name: "Create brand", exact: true }).click();
   await expect(page.getByRole("region", { name: "Create brand confirmation" })).toBeVisible();
   const confirm = page.getByRole("button", { name: "Create brand with this name", exact: true });
@@ -731,27 +737,36 @@ test("naming fixture: dirty Strategy memory survives library navigation and bloc
   test.setTimeout(45_000);
   const fixture = await prepared(page, 3, "complete_brand");
   fixture.state.candidates[0]!.retention = { ...fixture.state.candidates[0]!.retention, revision: 1, favorite: true, updatedAt: when };
+  const answer = "Keep this unsaved direction for neighborhood families.";
+  const patches: string[] = [];
+  await page.route(`**/api/projects/${projectId}/strategy`, route => route.request().method() === "GET"
+    ? route.fulfill({ json: { availability: { status: "available", operations: [{ operation: "strategy.competitors", maximumCostMicrousd: 10000, interviewVersion: 1 }] }, jobs: [] } })
+    : route.fallback());
+  await page.route(`**/api/projects/${projectId}`, route => {
+    if (route.request().method() !== "PATCH") return route.fallback();
+    patches.push(route.request().postData()!);
+    return route.fulfill({ status: 503, json: {} });
+  });
   await page.goto(`/brands/account/${projectId}`);
-  const details = page.locator(".project-details-disclosure");
-  await expect(details).toBeVisible();
-  if (await details.getAttribute("open") === null) await details.locator(":scope > summary").click();
-  await page.getByRole("button", { name: "Rename project", exact: true }).click();
-  await page.getByRole("textbox", { name: "Project label", exact: true }).fill("Unsaved private project label");
-  await page.getByRole("textbox", { name: "Project label", exact: true }).press("Enter");
+  await page.getByRole("textbox", { name: "Message Embel", exact: true }).fill(answer);
+  await page.getByRole("button", { name: "Send prompt", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Retry save", exact: true })).toBeVisible();
+  await expect(page.getByRole("log", { name: "Conversation" }).getByText(answer, { exact: true })).toBeVisible();
+  expect(patches).toHaveLength(1);
   const navigation = page.getByRole("button", { name: "Open navigation", exact: true });
   if (await navigation.isVisible()) await navigation.click();
   await page.getByRole("link", { name: "Names", exact: true }).click();
   await page.getByRole("tab", { name: "Library", exact: true }).click();
-  await page.getByRole("button", { name: "Account library", exact: true }).click();
   await card(page, "Fixture 001").getByRole("link", { name: "Synthetic naming project", exact: false }).click();
   await expect(page).toHaveURL(url);
   await expect(page.getByText("Save your Strategy changes first", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Generate 50 more names" })).toBeDisabled();
   await expect(card(page, "Fixture 001").getByRole("button", { name: "Use this name" })).toBeDisabled();
   await page.getByRole("link", { name: "Back to Strategy", exact: false }).click();
-  await expect(details).toBeVisible();
-  if (await details.getAttribute("open") === null) await details.locator(":scope > summary").click();
-  await expect(page.getByRole("heading", { name: "Unsaved private project label", exact: true })).toBeVisible();
+  await expect(page.getByRole("log", { name: "Conversation" }).getByText(answer, { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Retry save", exact: true })).toBeVisible();
+  expect(patches).toHaveLength(1);
+  expect(fixture.state.requests.filter(request => request.path.endsWith("/strategy") && request.method === "POST")).toHaveLength(0);
 });
 
 test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));

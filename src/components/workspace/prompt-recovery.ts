@@ -5,24 +5,33 @@ import { getLocalDraft } from "./local-drafts";
 const key = "fluid.prompt-sign-in.v1";
 
 export function rememberPromptForSignIn(draftId: string, locked = false) {
-  window.sessionStorage.setItem(key, JSON.stringify({ draftId, locked }));
+  const draft = getLocalDraft(draftId);
+  window.sessionStorage.setItem(key, JSON.stringify({ draftId, locked, intent: "continue-prompt", ...(draft?.ownerId ? { ownerId: draft.ownerId } : {}) }));
 }
 
-export function readPromptRecoveryState() {
+export function readPromptRecoveryState(ownerId?: string | null) {
   try {
     const raw = window.sessionStorage.getItem(key);
     if (!raw) return null;
-    // Older UI checkpoints stored only the draft ID.
-    const oldDraft = getLocalDraft(raw);
-    if (oldDraft) return { draft: oldDraft, locked: false };
     const value: unknown = JSON.parse(raw);
     if (!value || typeof value !== "object" || !("draftId" in value) || typeof value.draftId !== "string" || !("locked" in value) || typeof value.locked !== "boolean") return null;
     const draft = getLocalDraft(value.draftId);
-    return draft ? { draft, locked: value.locked } : null;
+    // Unowned legacy browser drafts need an explicit recovery selection. A new
+    // prompt deliberately retained for sign-in can resume in the same tab.
+    if (!("intent" in value) || value.intent !== "continue-prompt" || !draft || (draft.ownerId && draft.ownerId !== ownerId)) return null;
+    return { draft, locked: value.locked };
   } catch { return null; }
 }
 
 export function readPromptRecovery() { return readPromptRecoveryState()?.draft ?? null; }
+
+/** Authentication may route back to an explicit intent without reading its text. */
+export function hasPromptRecovery() {
+  try {
+    const value: unknown = JSON.parse(window.sessionStorage.getItem(key) ?? "null");
+    return Boolean(value && typeof value === "object" && "intent" in value && value.intent === "continue-prompt" && "draftId" in value && typeof value.draftId === "string");
+  } catch { return false; }
+}
 
 export const beforePromptSignInEvent = "fluid:before-prompt-sign-in";
 export function preparePromptForSignIn() {

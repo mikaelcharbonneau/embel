@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
+import { createNamesAccountFixture, namesOwner, waitForNamesSaved } from "./fixtures/names-account";
 import { standalonePayloadCodec } from "../../src/features/domain-workspace/account-codec";
 
 async function setup(page: Page) {
@@ -11,29 +12,41 @@ async function setup(page: Page) {
     unexpected.push(`${route.request().method()} ${url.origin}${url.pathname}`);
     return route.abort();
   });
-  await page.route("**/api/**", route => {
-    const path = new URL(route.request().url()).pathname;
-    if (path !== "/api/session") unexpected.push(path);
-    return route.fulfill({ status: 401, json: { error: "Synthetic signed-out fixture" } });
+  const names = createNamesAccountFixture(); await names.install(page);
+  const workspaces = new Map<string, object>();
+  const receipts = new Map<string, object>();
+  await page.route("**/api/workspaces/*", async route => {
+    const tool = new URL(route.request().url()).pathname.split("/").at(-1)!;
+    if (!["domains", "handles", "trademarks"].includes(tool)) { unexpected.push(tool); return route.fulfill({ status: 404, json: {} }); }
+    if (route.request().method() === "PUT") {
+      const body = route.request().postDataJSON(), previous = workspaces.get(tool) as { revision: number } | undefined;
+      const receipt = receipts.get(body.requestKey);
+      if (receipt) return route.fulfill({ json: { ownerId: namesOwner, workspace: receipt } });
+      if (body.expectedRevision !== (previous?.revision ?? 0)) return route.fulfill({ status: 409, json: {} });
+      const workspace = { id: "bbbbbbbb-1111-4111-8111-111111111111", ownerId: namesOwner, tool, revision: body.expectedRevision + 1, payload: body.payload, imports: body.imports ?? [], createdAt: "2026-10-15T12:00:00Z", updatedAt: "2026-10-15T12:00:00Z" };
+      workspaces.set(tool, workspace); receipts.set(body.requestKey, workspace);
+    }
+    return route.fulfill({ json: { ownerId: namesOwner, workspace: workspaces.get(tool) ?? null } });
   });
   await page.goto("/names");
   await page.getByRole("textbox", { name: "Add words", exact: true }).fill("cedar");
   await page.getByRole("textbox", { name: "Add words", exact: true }).press("Enter");
   await page.getByRole("button", { name: "Favorite result cedar", exact: true }).click();
-  return () => { expect(unexpected).toEqual([]); expect(errors).toEqual([]); };
+  await waitForNamesSaved(page);
+  return Object.assign(() => { expect(unexpected).toEqual([]); expect(errors).toEqual([]); }, { names });
 }
 
 async function choose(page: Page) {
   await page.getByRole("button", { name: "From name library", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Name library", exact: true });
   await expect(dialog).toBeVisible();
-  const option = dialog.getByLabel("Browser name", { exact: true }).locator("option").filter({ hasText: "cedar" });
-  await dialog.getByLabel("Browser name", { exact: true }).selectOption(await option.getAttribute("value") ?? "");
+  const option = dialog.getByLabel("Name", { exact: true }).locator("option").filter({ hasText: "cedar" });
+  await dialog.getByLabel("Name", { exact: true }).selectOption(await option.getAttribute("value") ?? "");
   await dialog.getByRole("button", { name: "Use this name", exact: true }).click();
   return dialog;
 }
 
-test("browser Names feeds Domains without creating a project or checking availability", async ({ page }, info) => {
+test("account Names feeds Domains without creating a project or checking availability", async ({ page }, info) => {
   const audit = await setup(page);
   await page.goto("/domains"); await choose(page);
   await expect(page.getByRole("button", { name: "Remove name cedar", exact: true })).toBeVisible();
@@ -44,7 +57,7 @@ test("browser Names feeds Domains without creating a project or checking availab
   audit();
 });
 
-test("browser name copies save as ordinary account Domain input without invented provenance", async ({ page }) => {
+test("account name copies autosave as ordinary Domain input without invented provenance", async ({ page }) => {
   const audit = await setup(page), ownerId = "aaaaaaaa-1111-4111-8111-111111111111";
   let saved: object | null = null;
   await page.route("**/api/session", route => route.fulfill({ json: { user: { id: ownerId } } }));
@@ -60,8 +73,7 @@ test("browser name copies save as ordinary account Domain input without invented
     return route.fulfill({ json: { ownerId, workspace: saved } });
   });
   await page.goto("/domains"); await choose(page);
-  await page.getByRole("button", { name: "Save draft", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 1", { exact: true })).toBeVisible();
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByRole("button", { name: "Remove name cedar", exact: true })).toBeVisible();
   await expect(page.getByText(/Imported saved sources/)).toHaveCount(0);
@@ -86,7 +98,7 @@ test("name imports require explicit replacement and keep trademark fields and so
   await expect(page.getByText("Ready for manual research", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Open WIPO Global Brand Database" })).toHaveAttribute("href", "https://branddb.wipo.int/en/");
   await page.screenshot({ path: info.outputPath("manual-trademark-research.png"), fullPage: true });
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("fluid.names.v1")!).candidates.some((item: { source: { value: string } }) => item.source.value === "cedar"))).toBe(true);
+  expect(audit.names.payload().candidates.some(item => item.source.value === "cedar")).toBe(true);
   audit();
 });
 
@@ -106,21 +118,22 @@ test("Handles prepares manual profile links and exports an unchecked comparison"
   audit();
 });
 
-test("Names backup preview is nondestructive and an explicitly restored workspace survives reload", async ({ page }, info) => {
+test("Names backup imports preserve existing account names and survive reload", async ({ page }, info) => {
   const audit = await setup(page);
-  await page.getByText(/^Browser workspace ·/).click();
+  await page.getByText(/^Backups and recovery ·/).click();
   const pending = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Download workspace copy", exact: true }).click();
+  await page.getByRole("button", { name: "Download a backup", exact: true }).click();
   const download = await pending, path = info.outputPath("names.json"); await download.saveAs(path);
-  await page.getByRole("button", { name: "Start a new Names workspace", exact: true }).click();
-  await page.getByRole("button", { name: "Confirm new workspace", exact: true }).click();
+  await page.getByRole("textbox", { name: "Add words", exact: true }).fill("birch");
+  await page.getByRole("textbox", { name: "Add words", exact: true }).press("Enter");
+  await page.getByRole("button", { name: "Favorite result birch", exact: true }).click(); await waitForNamesSaved(page);
   await page.getByLabel("Names backup file", { exact: true }).setInputFiles(path);
   await expect(page.getByText(/This backup contains 1 name and 0 runs/)).toBeVisible();
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("fluid.names.v1")!).candidates.length)).toBe(0);
-  await page.getByRole("button", { name: "Replace workspace with backup", exact: true }).click();
-  await expect(page.getByText("Names workspace restored in this browser.", { exact: true })).toBeVisible();
-  await page.reload();
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("fluid.names.v1")!).candidates[0].source.value)).toBe("cedar");
+  expect(audit.names.payload().candidates).toHaveLength(2);
+  await page.getByRole("button", { name: "Import into my account", exact: true }).click(); await waitForNamesSaved(page);
+  await page.reload(); await expect(page.getByRole("button", { name: "Favorite result birch", exact: true })).toHaveAttribute("aria-pressed", "true");
+  expect(audit.names.payload().candidates.map(item => item.source.value)).toEqual(["cedar", "birch"]);
+  expect(await page.evaluate(() => localStorage.getItem("fluid.names.v1"))).toBeNull();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   audit();
 });

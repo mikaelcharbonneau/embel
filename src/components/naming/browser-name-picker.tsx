@@ -4,8 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useNamesStore } from "./use-names-store";
 import styles from "./browser-name-picker.module.css";
 
-/** Explicitly copies a browser name's text. It never imports account data or
- * presents a browser record as verified project/provider provenance. */
+/** Explicitly copies the text of a name from the verified account. */
 export function BrowserNamePicker({ onUse, disabled = false, replacing = false }: {
   onUse: (name: string) => void;
   disabled?: boolean;
@@ -25,13 +24,13 @@ export function BrowserNamePicker({ onUse, disabled = false, replacing = false }
     onUse(name);
     setConfirmation(null);
   }
-  return <section className={styles.picker} aria-label="Browser names">
-    <h3>Names in this browser</h3>
+  return <section className={styles.picker} aria-label="Your names">
+    <h3>Your names</h3>
     <p>Choose a name from your Names workshop. Its original entry stays in your library.</p>
-    {!snapshot.loaded ? <p role="status">Loading names…</p> : !snapshot.data.candidates.length ? <p>No names in this browser yet. Save or favorite a name in the Names workshop first.</p> : <>
-      <label htmlFor={`${id}-search`}>Search browser names</label>
+    {!snapshot.loaded ? <p role="status">Loading names…</p> : !snapshot.data.candidates.length ? <p>No names in your account yet. Save or favorite a name in the Names workshop first.</p> : <>
+      <label htmlFor={`${id}-search`}>Search your names</label>
       <input id={`${id}-search`} type="search" value={query} maxLength={160} onChange={event => { setQuery(event.target.value); setSelected(""); setConfirmation(null); }} disabled={disabled} />
-      <label htmlFor={`${id}-name`}>Browser name</label>
+      <label htmlFor={`${id}-name`}>Name</label>
       <select id={`${id}-name`} value={selected} disabled={disabled} onChange={event => { setSelected(event.target.value); setConfirmation(null); }}>
         <option value="">Choose a name</option>
         {choices.map(item => <option key={item.source.id} value={item.source.id}>{item.source.value}{item.favorite ? " · Favorite" : item.saved ? " · Saved" : ""}</option>)}
@@ -39,7 +38,7 @@ export function BrowserNamePicker({ onUse, disabled = false, replacing = false }
       <p>{choices.length} matching names.</p>
       {confirmation && confirmation === name && replacing ? <div role="alert"><p>Replace the current name input with “{name}”? Other settings and the original name entry will stay unchanged.</p><div className={styles.actions}><button type="button" className="button secondary small" disabled={disabled} onClick={() => setConfirmation(null)}>Keep current input</button><button type="button" className="button primary small" disabled={disabled} onClick={copy}>Replace with this name</button></div></div> : <button type="button" className="button secondary small" disabled={disabled || !name} onClick={copy}>Use this name</button>}
     </>}
-    {snapshot.storage !== "available" && <p role="status">{snapshot.error} Only names available in this tab are shown.</p>}
+    {snapshot.storage !== "available" && <p role="status">{snapshot.error} Unsaved changes are kept in this tab.</p>}
   </section>;
 }
 

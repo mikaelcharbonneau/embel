@@ -187,6 +187,7 @@ export const createProjectInputSchema = z.strictObject({
   title: z.string().trim().min(1).max(160),
   scope: projectScopeSchema,
   context: contextSnapshotSchema,
+  requestKey: z.uuid().optional(),
 });
 
 export type CreateProjectInput = z.infer<typeof createProjectInputSchema>;

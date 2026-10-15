@@ -83,7 +83,7 @@ function IdeaCaptureForm({ account }: { account: VerifiedAccount }) {
     setBusy(true); setError(null);
     const timeout = window.setTimeout(() => controller.abort(), 30_000);
     try {
-      const { idea } = await accountRequest("/api/ideas", ideaResponseSchema, { method: "POST", body, signal: controller.signal });
+      const { idea } = await accountRequest("/api/ideas", ideaResponseSchema, { method: "POST", body, signal: controller.signal, expectedOwnerId: account.userId });
       if (!active.current || controller.signal.aborted || request.current !== controller || !isCurrent(account)) return;
       if (!sameIdeaId(idea.ownerId, account.userId)) { expire(account); return; }
       // A replay may return a head edited later. The original creation is still bound by its request key.

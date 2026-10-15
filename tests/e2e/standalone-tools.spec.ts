@@ -4,6 +4,16 @@ import { expect, test, type Page } from "@playwright/test";
 
 const fixtureOrigin = `http://127.0.0.1:${process.env.FLUID_E2E_PORT ?? "3105"}`;
 
+async function accountProfileRead(page: Page, currentOwner: () => string | null) {
+  await page.route(`${fixtureOrigin}/api/account/profile`, route => {
+    expect(route.request().method()).toBe("GET");
+    const ownerId = currentOwner();
+    if (!ownerId) return route.fulfill({ status: 401, json: { error: "unauthenticated" } });
+    return route.fulfill({ json: { profile: { ownerId, email: null, revision: 0, updatedAt: null,
+      values: { fullName: "", timeZone: "America/Toronto", dateFormat: "friendly" } } } });
+  });
+}
+
 async function manualWorkspace(page: Page, allowSignOut = false) {
   const requests: { path: string; method: string }[] = [];
   const unexpectedRequests: string[] = [];
@@ -16,7 +26,21 @@ async function manualWorkspace(page: Page, allowSignOut = false) {
     unexpectedRequests.push(`${route.request().method()} ${url.href}`);
     return route.abort();
   });
-  await page.route(`${fixtureOrigin}/api/session`, route => route.fulfill({ status: 401, json: { error: "unauthenticated" } }));
+  const ownerId = "aaaaaaaa-1111-4111-8111-111111111111";
+  const saved = new Map<string, unknown>();
+  await page.route(`${fixtureOrigin}/api/session`, route => route.fulfill({ json: { user: { id: ownerId } } }));
+  await accountProfileRead(page, () => ownerId);
+  await page.route(`${fixtureOrigin}/api/names/workspace`, route => route.fulfill({ json: { ownerId, workspace: null } }));
+  await page.route(`${fixtureOrigin}/api/projects/page?*`, route => route.fulfill({ json: { ownerId, items: [], nextCursor: null } }));
+  await page.route(`${fixtureOrigin}/api/standalone-checks`, route => route.fulfill({ json: { ownerId, domains: "unavailable", youtube: false, euipo: false } }));
+  await page.route(/\/api\/workspaces\/(domains|handles|trademarks)$/, route => {
+    const tool = new URL(route.request().url()).pathname.split("/").at(-1)!;
+    if (route.request().method() === "PUT") {
+      const input = route.request().postDataJSON();
+      saved.set(tool, { id: "cccccccc-1111-4111-8111-111111111111", ownerId, tool, revision: input.expectedRevision + 1, payload: input.payload, imports: [], createdAt: "2026-10-15T10:00:00Z", updatedAt: "2026-10-15T10:00:00Z" });
+    }
+    return route.fulfill({ json: { ownerId, workspace: saved.get(tool) ?? null } });
+  });
   page.on("request", request => {
     const url = new URL(request.url());
     if (url.pathname.startsWith("/api/")) requests.push({ path: url.pathname, method: request.method() });
@@ -25,12 +49,12 @@ async function manualWorkspace(page: Page, allowSignOut = false) {
     await test.info().attach("manual-tool-audit", { body: JSON.stringify({ requests, unexpectedRequests, pageErrors }, null, 2), contentType: "application/json" });
     expect(pageErrors).toEqual([]);
     expect(unexpectedRequests).toEqual([]);
-    expect(requests.every(request => (request.method === "GET" && request.path === "/api/session") || (allowSignOut && request.method === "POST" && request.path === "/api/auth/sign-out"))).toBe(true);
+    expect(requests.every(request => (request.method === "GET" && ["/api/session", "/api/account/profile", "/api/names/workspace", "/api/projects/page", "/api/standalone-checks", "/api/workspaces/domains", "/api/workspaces/handles", "/api/workspaces/trademarks"].includes(request.path)) || (request.method === "PUT" && /^\/api\/workspaces\/(domains|handles|trademarks)$/.test(request.path)) || (allowSignOut && request.method === "POST" && request.path === "/api/auth/sign-out"))).toBe(true);
     expect(await page.evaluate(() => Math.max(innerWidth, document.documentElement.scrollWidth))).toBeLessThanOrEqual(page.viewportSize()!.width);
   };
 }
 
-test("integrated Domains prepares candidates without checking, purchasing or saving account records", async ({ page }, info) => {
+test("integrated Domains autosaves candidates without checking availability or purchasing", async ({ page }, info) => {
   const verify = await manualWorkspace(page);
   await page.goto("/domains");
   await expect(page.getByRole("heading", { name: "A home for your brand.", exact: true })).toBeVisible();
@@ -44,7 +68,7 @@ test("integrated Domains prepares candidates without checking, purchasing or sav
     await expect(page.getByRole("status", { name: `${domain} availability` })).toHaveText("Unknown");
     await page.getByRole("button", { name: `View ${domain} details`, exact: true }).click();
     await expect(page.getByRole("button", { name: `Check availability for ${domain}`, exact: true })).toBeDisabled();
-    await expect(page.getByRole("button", { name: `Create brand from ${domain}`, exact: true })).toBeDisabled();
+    await expect(page.getByRole("button", { name: `Create brand from ${domain}`, exact: true })).toBeEnabled();
   }
   await expect(page.getByText("No availability evidence.", { exact: true })).toHaveCount(4);
   await page.getByRole("checkbox", { name: "Select northstar.com", exact: true }).check();
@@ -69,9 +93,18 @@ test("account Domains imports a selected saved name through the new library acti
     failures.push(`${route.request().method()} ${url.origin}${url.pathname}`); return route.abort();
   });
   await page.route(`${fixtureOrigin}/api/session`, route => route.fulfill({ json: { user: { id: owner } } }));
+  await accountProfileRead(page, () => owner);
+  let domainWorkspace: unknown = null;
+  await page.route(`${fixtureOrigin}/api/names/workspace`, route => route.fulfill({ json: { ownerId: owner, workspace: null } }));
+  await page.route(`${fixtureOrigin}/api/standalone-checks`, route => route.fulfill({ json: { ownerId: owner, domains: "unavailable", youtube: false, euipo: false } }));
   await page.route(`${fixtureOrigin}/api/workspaces/domains`, route => {
     requests.push(route.request().method());
-    return route.fulfill({ json: { ownerId: owner, workspace: null } });
+    if (route.request().method() === "PUT") {
+      const input = route.request().postDataJSON();
+      expect(input.imports).toEqual([{ projectId, projectRevision: 3, selectionId: null }]);
+      domainWorkspace = { id: "cccccccc-1111-4111-8111-111111111111", ownerId: owner, tool: "domains", revision: input.expectedRevision + 1, payload: input.payload, imports: [source], createdAt: "2026-10-15T10:00:00Z", updatedAt: "2026-10-15T10:00:00Z" };
+    }
+    return route.fulfill({ json: { ownerId: owner, workspace: domainWorkspace } });
   });
   await page.route(`${fixtureOrigin}/api/projects/page?*`, route => {
     requests.push("project listing");
@@ -96,13 +129,14 @@ test("account Domains imports a selected saved name through the new library acti
   await page.getByRole("button", { name: "Search domains", exact: true }).click();
   await expect(page.getByRole("heading", { name: "cedar.com", exact: true })).toBeVisible();
   expect(requests.filter(value => value === "import")).toHaveLength(1);
-  expect(requests).not.toContain("PUT"); expect(failures).toEqual([]);
+  await expect(page.getByLabel("Save status", { exact: true })).toHaveText("Saved");
+  expect(requests).toContain("PUT"); expect(failures).toEqual([]);
 });
 
-test("integrated Handles keeps independent bundle states in tab memory with checks unavailable", async ({ page }, info) => {
+test("integrated Handles autosaves independent bundle states with checks unavailable", async ({ page }, info) => {
   const verify = await manualWorkspace(page);
   await page.goto("/handles");
-  await expect(page.getByText("This tab only. Reopening this page starts a new workspace.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Library choices save automatically. Provider observations stay in the current comparison.", { exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "Search", exact: true }).click();
   await page.getByLabel("Business handles", { exact: true }).fill("North Star");
   await page.getByRole("button", { name: "Build comparison", exact: true }).click();
@@ -123,8 +157,11 @@ test("integrated Handles keeps independent bundle states in tab memory with chec
   await verify();
   await page.evaluate(() => { (document.activeElement as HTMLElement | null)?.blur(); window.scrollTo(0, 0); });
   await page.screenshot({ path: info.outputPath("handles-manual.png"), fullPage: true });
+  await expect(page.getByLabel("Save status", { exact: true })).toHaveText("Saved");
   await page.reload();
-  await expect(page.locator("article.handles-bundle")).toHaveCount(0);
+  await page.getByRole("tab", { name: "Library", exact: true }).click();
+  await expect(page.locator("article.handles-bundle")).toHaveCount(1);
+  await expect(bundle.getByText("Account created · user declared", { exact: true })).toBeVisible();
 });
 
 test("integrated Trademarks downloads an actual manual draft and invalidates review without registry or filing claims", async ({ page }, info) => {
@@ -182,6 +219,7 @@ for (const tool of ["domains", "handles", "trademarks"] as const) {
     let owner: string | null = ownerA;
     let pendingRefresh: Promise<void> | undefined;
     let signOutStatus = 503;
+    let failWrites = false;
     let signOutRequests = 0;
     const pageErrors: string[] = [], unexpectedRequests: string[] = [];
     const requests: { path: string; method: string }[] = [];
@@ -199,14 +237,18 @@ for (const tool of ["domains", "handles", "trademarks"] as const) {
       await pendingRefresh;
       return respondingOwner ? route.fulfill({ json: { user: { id: respondingOwner } } }) : route.fulfill({ status: 401, json: { error: "unauthenticated" } });
     });
+    await accountProfileRead(page, () => owner);
     await page.route(`${fixtureOrigin}/api/projects/page?*`, route => {
       expect(route.request().method()).toBe("GET");
       return route.fulfill({ json: { ownerId: owner, items: [], nextCursor: null } });
     });
+    await page.route(`${fixtureOrigin}/api/names/workspace`, route => route.fulfill({ json: { ownerId: owner, workspace: null } }));
+    await page.route(`${fixtureOrigin}/api/standalone-checks`, route => route.fulfill({ json: { ownerId: owner, domains: "unavailable", youtube: false, euipo: false } }));
     await page.route(`${fixtureOrigin}/api/workspaces/${tool}`, route => {
       if (!owner) return route.fulfill({ status: 401, json: { error: "unauthenticated" } });
       if (route.request().method() === "GET") return route.fulfill({ json: { ownerId: owner, workspace: saved.get(owner) ?? null } });
       expect(route.request().method()).toBe("PUT");
+      if (failWrites) return route.fulfill({ status: 503, json: { error: "Synthetic write failure" } });
       const input = route.request().postDataJSON() as { requestKey: string; expectedRevision: number; payload: unknown; imports: [] };
       expect(Object.keys(input).sort()).toEqual(["expectedRevision", "imports", "payload", "requestKey"]);
       expect(input.imports).toEqual([]);
@@ -262,6 +304,9 @@ for (const tool of ["domains", "handles", "trademarks"] as const) {
       else await expect(field()).toHaveValue(label);
     };
     const fresh = async () => {
+      if (!await field().count() && !await page.getByRole("tab", { name: "Library", exact: true }).count()) {
+        await expect(field()).toHaveCount(0); return;
+      }
       if (tool === "handles") {
         await page.getByRole("tab", { name: "Library", exact: true }).click();
         await expect(page.locator("article.handles-bundle")).toHaveCount(0);
@@ -281,10 +326,9 @@ for (const tool of ["domains", "handles", "trademarks"] as const) {
     };
     const savedLabel = "Owner A saved draft fixture", dirtyLabel = "Owner A unsaved recovery fixture";
     await edit(savedLabel, "NorthstarSaved");
-    const saving = page.waitForResponse(response => response.url() === `${fixtureOrigin}/api/workspaces/${tool}` && response.request().method() === "PUT");
-    await page.getByRole("button", { name: tool === "domains" ? "Save draft" : "Save account draft", exact: true }).click();
-    await (await saving).finished();
-    await expect(page.getByText(tool === "domains" ? "Saved to account · version 1" : tool === "handles" ? "Account draft saved · revision 1. Unfinished comparisons are temporary." : "Account draft saved · revision 1. Review marks only your user-entered notes.", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Save status", { exact: true })).toHaveText("Saved");
+    await page.reload(); await openAccountMenu(); await hasDraft(savedLabel);
+    failWrites = true;
     await edit(dirtyLabel, "NorthstarDirty");
     // The provider must hide private drafts while retaining their owner buffer.
     let releaseRefresh!: () => void;
@@ -327,7 +371,7 @@ for (const tool of ["domains", "handles", "trademarks"] as const) {
     expect(signOutRequests).toBe(2);
     expect(await page.evaluate(() => JSON.stringify({ local: { ...localStorage }, session: { ...sessionStorage } }))).not.toContain("Owner A");
     expect(pageErrors).toEqual([]); expect(unexpectedRequests).toEqual([]);
-    expect(requests.every(request => request.method === "GET" && ["/api/session", "/api/projects/page", `/api/workspaces/${tool}`].includes(request.path)
+    expect(requests.every(request => request.method === "GET" && ["/api/session", "/api/account/profile", "/api/names/workspace", "/api/standalone-checks", "/api/projects/page", `/api/workspaces/${tool}`].includes(request.path)
       || request.method === "PUT" && request.path === `/api/workspaces/${tool}` || request.method === "POST" && request.path === "/api/auth/sign-out")).toBe(true);
     await test.info().attach("account-tool-audit", { body: JSON.stringify({ requests, unexpectedRequests, pageErrors }, null, 2), contentType: "application/json" });
     expect(await page.evaluate(() => Math.max(innerWidth, document.documentElement.scrollWidth))).toBeLessThanOrEqual(page.viewportSize()!.width);

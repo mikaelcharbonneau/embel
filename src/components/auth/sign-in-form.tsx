@@ -8,7 +8,7 @@ import { AuthArtwork } from "@/components/ui/auth-artwork";
 import { useAccountSession } from "@/components/workspace/account-session";
 import { requestSignIn, signInErrorMessage } from "./sign-in-request";
 import { requestSignUp, signUpErrorMessage } from "./sign-up-request";
-import { readPromptRecovery } from "@/components/workspace/prompt-recovery";
+import { hasPromptRecovery } from "@/components/workspace/prompt-recovery";
 import "@/styles/auth.css";
 
 export function SignInForm({ configured, overlay = false, mode = "sign-in", confirmation }: {
@@ -49,7 +49,7 @@ export function SignInForm({ configured, overlay = false, mode = "sign-in", conf
   useEffect(() => {
     // Only recovery metadata enters state. Credentials remain in uncontrolled inputs.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setHasPrompt(Boolean(readPromptRecovery()));
+    setHasPrompt(hasPromptRecovery());
   }, []);
   useEffect(() => {
     mounted.current = true;
@@ -89,7 +89,7 @@ export function SignInForm({ configured, overlay = false, mode = "sign-in", conf
       if (emailInput.current) emailInput.current.value = "";
       if (result.confirmationRequired) return;
       // Fresh provider verification begins before this internal navigation.
-      router.replace(readPromptRecovery() ? "/" : "/brands");
+      router.replace(hasPromptRecovery() ? "/" : "/brands");
       router.refresh();
     } else if (result.reason === "failed") {
       setError(signingUp ? signUpErrorMessage(result.error) : signInErrorMessage(result.error));
@@ -117,11 +117,11 @@ export function SignInForm({ configured, overlay = false, mode = "sign-in", conf
   return <div className={`auth-guided ${overlay ? "auth-guided-modal" : "page auth-guided-page"}`}>
     <section className="auth-card" aria-labelledby={`${idPrefix}-title`}>
       <header className="auth-guided-heading"><AuthArtwork name="card-mark" /><h1 ref={titleElement} tabIndex={-1} id={`${idPrefix}-title`}>{title}</h1><p className="auth-intro">{signedIn ? "Continue to your projects and saved work." : confirming ? "Confirm your email to finish setting up your account." : signingUp ? "Save your projects and keep your work together." : "Continue with your email and password."}</p></header>
-      {hasPrompt && <div className="prompt-recovery-notice"><p>Your prompt and scope are saved in this browser. {signingUp ? "Create an account or sign in" : "Sign in"} to continue, or return to your prompt.</p><Link className="text-link" href="/">Return to your prompt<Icon name="arrow" size={14} /></Link></div>}
+      {hasPrompt && <div className="prompt-recovery-notice"><p>Your prompt is kept while you sign in. {signingUp ? "Create an account or sign in" : "Sign in"} to continue, or return to your prompt.</p><Link className="text-link" href="/">Return to your prompt<Icon name="arrow" size={14} /></Link></div>}
       {confirmation === "failed" && <p className="auth-confirmation-note" role="alert">We couldn&apos;t complete this confirmation link. Open the newest email link in the browser where you requested it. If your email is already confirmed, sign in below. You can also request another confirmation email.</p>}
       {confirmation === "complete" && <p className="auth-confirmation-note" role="status">{signedIn ? "Your email is confirmed." : "Your confirmation link was processed. Check your account or sign in to continue."}</p>}
       {signedIn ? <Link className="button primary auth-continue" href={hasPrompt ? "/" : "/brands"}>{hasPrompt ? "Continue your prompt" : "Go to Projects"}<AuthArtwork name="submit-arrow" /></Link> : <>
-        {!configured && <div className="auth-unavailable" role="status"><Icon name="offline" size={18} /><p>{signingUp ? "Account creation" : "Sign-in"} is not connected. You can continue with browser drafts.</p></div>}
+        {!configured && <div className="auth-unavailable" role="status"><Icon name="offline" size={18} /><p>{signingUp ? "Account creation" : "Sign-in"} is unavailable right now. Your prompt is kept; please try again shortly.</p></div>}
         {confirming ? <div className="auth-confirmation-note" role="status"><p>If this address is eligible, a confirmation email will arrive shortly. Open its link in this browser. Check your spam folder too.</p><p>Already have an account? Sign in with your existing password.</p></div> : <form method="post" action={signingUp ? "/api/auth/sign-up" : "/api/auth/sign-in"} onSubmit={submit} aria-label={signingUp ? "Create account" : "Sign in"} aria-busy={submitting}>
           <fieldset disabled={disabled}>
             <label className="auth-field" htmlFor={`${idPrefix}-email`}>Email<input ref={emailInput} id={`${idPrefix}-email`} name="email" type="email" placeholder="you@example.com" autoComplete="username" autoCapitalize="none" spellCheck={false} maxLength={320} required onChange={() => setError("")} /></label>
@@ -142,7 +142,7 @@ export function SignInForm({ configured, overlay = false, mode = "sign-in", conf
         {confirming && <button type="button" className="text-link auth-resend-toggle" disabled={disabled} onClick={() => { clearPasswords(); setError(""); setResend(false); setResent(false); dismissConfirmation(); }}>Use another email</button>}
       </>}
     </section>
-    <div className="auth-guided-browser"><div className="auth-draft-note"><AuthArtwork name="device" /><p>Your browser drafts stay on this device.</p></div><Link className="auth-browser-link text-link" href="/brands" onClick={clearPasswords}>Continue with browser drafts<AuthArtwork name="browser-arrow" /></Link></div>
+    <div className="auth-guided-browser"><div className="auth-draft-note"><AuthArtwork name="device" /><p>Your projects and names save to your account.</p></div><Link className="auth-browser-link text-link" href="/" onClick={clearPasswords}>Return to Home<AuthArtwork name="browser-arrow" /></Link></div>
   </div>;
 }
 

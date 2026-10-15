@@ -8,9 +8,11 @@ import type { NamingSource } from "@/domain/naming";
 import { getNamingReadiness } from "@/domain/project-naming";
 import { initialConversation, type ConversationWidget } from "@/domain/conversation";
 import { Icon } from "@/components/ui/icon";
-import { AccountCopyControl } from "./account-projects";
+import { UnsavedProjectRecovery } from "./unsaved-project-recovery";
 import { useAccountStrategyStart } from "./account-strategy-start";
-import { useAccountSession } from "./account-session";
+import { readReceipt, rememberReceipt, StartReceiptRecoveryError, withProjectStartLock } from "./account-project-start-recovery";
+import { finishLocalDraftRecovery } from "./save-local-draft-to-account";
+import { AccountStatus, useAccountSession } from "./account-session";
 import { beforePromptSignInEvent, clearPromptRecovery, readPromptRecoveryState, rememberPromptForSignIn } from "./prompt-recovery";
 import { createAccountLifecycleClient } from "./account-lifecycle-client";
 import { HomeScopePicker } from "./home-scope-picker";
@@ -32,7 +34,7 @@ import {
   isAudienceReviewComplete, isCompetitorReviewComplete, isPersonalityReviewComplete, isPositioningReviewComplete,
   personalityReviewKey, positioningReviewKey,
 } from "./project-draft-adapter";
-import { briefExamples, createLocalDraft, deleteLocalDraft, draftTitle, getLocalDraft, scopeDetails, scopeLabel, updateLocalDraft, useLocalDrafts, type LocalDraft } from "./local-drafts";
+import { briefExamples, createLocalDraft, draftTitle, getLocalDraft, scopeDetails, scopeLabel, updateLocalDraft, useLocalDrafts, type LocalDraft } from "./local-drafts";
 import "@/styles/conversation.css";
 
 const homeExamples = [
@@ -47,6 +49,8 @@ function ScopePicker({ value, onChange, disabled = false }: { value: ProjectScop
 }
 
 export function NewProjectForm({ initialScope, exampleId, home = false }: { initialScope: ProjectScope; exampleId?: string; home?: boolean }) {
+  const { session, isCurrent, expire, homeInputSession } = useAccountSession();
+  const account = session.status === "ready" ? session : null;
   const example = briefExamples.find((item) => item.id === exampleId);
   const [scope, setScope] = useState(initialScope);
   const [prompt, setPrompt] = useState<string>(example?.description ?? "");
@@ -58,14 +62,15 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
   const [resumedPrompt, setResumedPrompt] = useState(false);
   const [recoveryLoaded, setRecoveryLoaded] = useState(false);
   const [recoveryLocked, setRecoveryLocked] = useState(false);
+  const [promptOwner, setPromptOwner] = useState<string | null>(null);
   const textDraft = useRef<string | null>(null);
   const recoveryChecked = useRef(false);
   const submittingRef = useRef(false), attachedRequest = useRef<AbortController | null>(null);
   const { loaded, drafts } = useLocalDrafts();
   useEffect(() => {
-    if (!loaded || recoveryChecked.current) return;
+    if (!loaded || session.status === "checking" || recoveryChecked.current) return;
     recoveryChecked.current = true;
-    const recovery = readPromptRecoveryState();
+    const recovery = readPromptRecoveryState(account?.userId);
     setRecoveryLoaded(true);
     if (!recovery || exampleId) return;
     const retained = recovery.draft;
@@ -74,26 +79,30 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTextDraftId(retained.id);
     setRecoveryLocked(recovery.locked);
+    setPromptOwner(retained.ownerId ?? null);
     setPrompt(retained.description); setScope(retained.scope); setExampleUsed(retained.example); setResumedPrompt(true);
-  }, [loaded, exampleId]);
+  }, [loaded, exampleId, account?.userId, session.status]);
   function keepTextDraft(locked = false) {
     const previous = textDraft.current ? getLocalDraft(textDraft.current) : null;
     if (textDraft.current && !previous) throw new Error("The original browser draft is unavailable. Check your saved brands before trying again.");
     if (previous) {
-      if (!locked) updateLocalDraft(previous.id, { scope, description: prompt.trim(), example: exampleUsed, conversation: initialConversation(prompt.trim(), previous.createdAt) });
+      if (previous.ownerId && previous.ownerId !== account?.userId) throw new Error("Verify the account that owns this prompt before continuing.");
+      if (!locked) updateLocalDraft(previous.id, { scope, description: prompt.trim(), example: exampleUsed, conversation: initialConversation(prompt.trim(), previous.createdAt), ...(account ? { ownerId: account.userId } : {}) });
+      if (account) setPromptOwner(account.userId);
       return previous.id;
     }
-    const id = createLocalDraft({ title: "", scope, description: prompt.trim(), suppliedName: "", namingNotes: "", identityNotes: "", example: exampleUsed });
-    if (id) { textDraft.current = id; setTextDraftId(id); }
+    const id = createLocalDraft({ title: "", scope, description: prompt.trim(), suppliedName: "", namingNotes: "", identityNotes: "", example: exampleUsed, ...(account ? { ownerId: account.userId } : {}) });
+    if (id) { textDraft.current = id; setTextDraftId(id); setPromptOwner(account?.userId ?? null); }
     return id;
   }
   function beforeSignIn(locked: boolean): boolean {
     if (!loaded || !recoveryLoaded) return false;
     if (!prompt.trim()) return true;
+    if (promptOwner && promptOwner !== account?.userId) return true;
     try {
       const id = keepTextDraft(locked);
       if (id) { rememberPromptForSignIn(id, locked); return true; }
-      setError("This browser has 50 drafts. Save your prompt before leaving to sign in.");
+      setError("This device has 50 unsaved projects. Copy this prompt before signing in, then recover an unsaved project from Projects to make room.");
     } catch { setError("Your prompt could not be kept. Copy it before leaving to sign in."); }
     return false;
   }
@@ -106,8 +115,6 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
     window.addEventListener(beforePromptSignInEvent, preserve);
     return () => window.removeEventListener(beforePromptSignInEvent, preserve);
   }, []);
-  const { session, isCurrent, expire, homeInputSession } = useAccountSession();
-  const account = session.status === "ready" ? session : null;
   const client = useMemo(() => account ? createAccountLifecycleClient(account, isCurrent, expire) : null, [account, isCurrent, expire]);
   const sessionFence = `${account?.userId ?? "unverified"}:${session.generation}`;
   const voice = useMemo(() => typeof window === "undefined" ? unavailableHomeVoiceAdapter : createOnDeviceVoiceAdapter(window as unknown as OnDeviceSpeechEnvironment), []);
@@ -129,28 +136,41 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
   const hasFiles = !!inputIntent?.files.length;
   const frozenProject = inputIntent?.saveIntent?.project;
   const frozenBrief = !!frozenProject;
-  const displayedPrompt = frozenProject?.context.description ?? prompt;
-  const displayedScope = frozenProject?.scope ?? scope;
-  const displayedExample = frozenProject?.context.intake.example ?? exampleUsed;
-  const frozenInputs = !recoveryLoaded || submitting || strategy.pending || strategy.locked || navigating || frozenBrief || hiddenFiles;
-  const disabled = !loaded || !recoveryLoaded || strategy.recoveryBlocked || (!inputIntent?.browserDraftId && !textDraftId && drafts.length >= 50) || submitting || strategy.pending || navigating || hiddenFiles || selectingFiles;
+  const hiddenPrompt = Boolean(promptOwner && promptOwner !== account?.userId);
+  const displayedPrompt = frozenProject?.context.description ?? (hiddenPrompt ? "" : prompt);
+  const displayedScope = frozenProject?.scope ?? (hiddenPrompt ? initialScope : scope);
+  const displayedExample = frozenProject?.context.intake.example ?? (!hiddenPrompt && exampleUsed);
+  const frozenInputs = !recoveryLoaded || hiddenPrompt || submitting || strategy.pending || strategy.locked || navigating || frozenBrief || hiddenFiles;
+  const recoveryFull = drafts.filter(draft => !draft.accountProjectId).length >= 50;
+  const textRecoveryBlocked = strategy.recoveryBlocked && !hasFiles && !frozenBrief;
+  const disabled = !loaded || !recoveryLoaded || textRecoveryBlocked || (!inputIntent?.browserDraftId && !textDraftId && recoveryFull) || submitting || strategy.pending || navigating || hiddenFiles || selectingFiles;
 
   function canEditInputs() {
+    if (hiddenPrompt) return false;
     if (!recoveryLoaded || submittingRef.current || strategy.pending || strategy.locked || navigating) return false;
     if (homeInputSession.hasUnsaved() && (!account || !isCurrent(account))) return false;
     return !account || !homeInputSession.get(account)?.saveIntent;
   }
-  function editPrompt(value: string) { if (canEditInputs()) { setPrompt(value); setError(""); } }
+  function editPrompt(value: string) { if (canEditInputs()) { setPrompt(value); setPromptOwner(account?.userId ?? null); setError(""); } }
+  function startNewPrompt() {
+    // Detach from another account without discarding its private recovery text.
+    if (hiddenPrompt && promptOwner && prompt.trim() && !textDraft.current) {
+      const kept = createLocalDraft({ title: "", scope, description: prompt.trim(), suppliedName: "", namingNotes: "", identityNotes: "", example: exampleUsed, ownerId: promptOwner });
+      if (!kept) { setError("The earlier prompt is still retained. Recover an unsaved project to make room before starting another."); return; }
+    }
+    clearPromptRecovery(); strategy.detachPrompt(); textDraft.current = null; setTextDraftId(null); setPrompt(""); setPromptOwner(null); setScope(initialScope); setExampleUsed(false); setResumedPrompt(false); setRecoveryLocked(false); setError("");
+  }
 
 
 
   async function sendPrompt(mode: "ai" | "draft" = "ai") {
-    if (!recoveryLoaded || submittingRef.current || navigating || strategy.pending || strategy.recoveryBlocked || (mode === "draft" && strategy.locked)) return;
+    if (!recoveryLoaded || hiddenPrompt || submittingRef.current || navigating || strategy.pending || textRecoveryBlocked) return;
+    if (!account || !isCurrent(account)) { if (beforeSignIn(strategy.locked)) router.push("/sign-in"); return; }
     if (homeInputSession.isSelecting()) { setError("Finish or explicitly cancel the pending file selection before sending."); return; }
     // A session fence hides the file body, not the fact that an unsaved file intent must be recovered.
     if (homeInputSession.hasUnsaved() && (!account || !isCurrent(account))) { setError("Check the same account before sending this attached brief. Its files are retained privately in this tab."); return; }
     const original = account ? homeInputSession.get(account) : null;
-    if (mode === "draft" && (original?.files.length || original?.saveIntent)) { setError("Use Save brief with files to keep the attached brief together. A browser-only save does not send files."); return; }
+    if (mode === "draft" && (original?.files.length || original?.saveIntent)) { setError("Use Save brief with files to keep the attached brief together."); return; }
     if (!original?.saveIntent && !prompt.trim()) { setError("Write a prompt to start the conversation."); return; }
     if (!original?.saveIntent && prompt.length > 12000) { setError("Keep this prompt within 12,000 characters."); return; }
     submittingRef.current = true; setSubmitting(true); setError("");
@@ -161,39 +181,62 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
         let id = original.browserDraftId;
         if (!id) {
           id = keepTextDraft(strategy.locked);
-          if (!id) { setError("This browser has 50 drafts. Remove an unused draft before starting another."); return; }
+          if (!id) { setError("This device has 50 unsaved projects. Recover one from Projects to make room. Your prompt is still here."); return; }
           if (!homeInputSession.set(account, { ...original, browserDraftId: id })) return;
         }
         const retained = homeInputSession.get(account);
         const created = getLocalDraft(id);
-        if (!created && !retained?.saveIntent) throw new Error("The original browser copy is unavailable. Your pending account files are retained; no replacement draft was created.");
-        const receipt = await saveAttachedHomeDraft({ account, draft: created ?? null, memory: homeInputSession, client, signal: controller.signal });
-        if (receipt && !controller.signal.aborted && isCurrent(account)) startNavigation(() => router.push(`/brands/account/${receipt.project.id}`));
+        if (!created && !retained?.saveIntent) throw new Error("The original recovery copy is unavailable. Your pending files are retained in this tab; no replacement project was created.");
+        // An attached save has its own exact request in HomeInputSession. Fence
+        // ordinary text recovery before admission so it cannot create a second
+        // project while the attachment result is unknown, including after reload.
+        await withProjectStartLock(account.userId, id, controller.signal, async () => {
+        const prior = readReceipt(account.userId, id);
+        if (prior?.projectId) {
+          startNavigation(() => router.push(`/brands/account/${prior.projectId}`));
+          finishLocalDraftRecovery(id, account.userId, prior.projectId);
+          clearPromptRecovery(); return;
+        }
+        const receipt = await saveAttachedHomeDraft({ account, draft: created ?? null, memory: homeInputSession, client, signal: controller.signal, beforeSave: input => {
+          const existing = readReceipt(account.userId, id);
+          if (existing && (existing.projectId || existing.request || existing.attachedRequestKey !== input.requestKey)) throw new StartReceiptRecoveryError("This project has another save to check. Open Projects before starting an attached save.");
+          rememberReceipt({ ownerId: account.userId, draftId: id, projectId: null, attachedRequestKey: input.requestKey }, true);
+          try { rememberPromptForSignIn(id, true); } catch { /* The retained receipt still fences ordinary recovery. */ }
+        } });
+        if (receipt && !controller.signal.aborted && isCurrent(account)) {
+          rememberReceipt({ ownerId: account.userId, draftId: id, projectId: receipt.project.id, attachedRequestKey: receipt.requestKey });
+          startNavigation(() => router.push(`/brands/account/${receipt.project.id}`));
+          finishLocalDraftRecovery(id, account.userId, receipt.project.id);
+          clearPromptRecovery();
+        }
         else if (!controller.signal.aborted && isCurrent(account)) setError("The attached brief is not confirmed yet. Its original prompt, files and request are retained for checking.");
+        }, true);
         return; // Files never fall through to implicit Strategy processing.
       }
       const id = keepTextDraft(strategy.locked);
-      if (!id) { setError("This browser has 50 drafts. Remove an unused draft before starting another."); return; }
+      if (!id) { setError("This device has 50 unsaved projects. Recover one from Projects to make room. Your prompt is still here."); return; }
       const created = getLocalDraft(id);
       if (!created) throw new Error("Your draft could not be opened. Check your saved brands before trying again.");
-      if (mode === "draft") { clearPromptRecovery(); startNavigation(() => router.push(`/brands/${id}`)); }
+      if (mode === "draft") { if (await strategy.save(created)) clearPromptRecovery(); }
       else if (await strategy.start(created)) clearPromptRecovery(); // Only confirmed navigation retires the recovery identity; uncertain saves remain fenced.
-    } catch (cause) { if (!controller.signal.aborted) setError(cause instanceof Error ? (hasFiles ? "The attached brief could not be confirmed. Your typed text, confirmed files and original request remain in this tab. Check and retry the same request." : cause.message) : "This prompt could not be kept. Please try again."); }
+    } catch (cause) { if (!controller.signal.aborted) setError(cause instanceof StartReceiptRecoveryError ? cause.message : cause instanceof Error ? (hasFiles ? "The attached brief could not be confirmed. Your typed text, confirmed files and original request remain in this tab. Check and retry the same request." : cause.message) : "This prompt could not be kept. Please try again."); }
     finally { if (attachedRequest.current === controller) attachedRequest.current = null; submittingRef.current = false; setSubmitting(false); }
   }
 
   if (strategy.starting && !hasFiles) return <OpeningGuidedConversation prompt={displayedPrompt} />;
+  if (!home && session.status !== "ready") return <div className="page"><h1>New project</h1><AccountStatus /></div>;
 
   return <div className={home ? "home-intake conversation-intake" : "page intake-page conversation-intake"}>
     {home ? <div className="home-introduction"><h1>Your next brand starts here<span>.</span></h1><p>An idea, a product, a place. Let’s give it a name and a world of its own.</p></div> : <><div className="page-heading"><h1>New conversation</h1><Link href="/brands" className="text-link">Back to projects</Link></div><ScopePicker value={displayedScope} disabled={frozenInputs} onChange={value => { if (canEditInputs()) setScope(value); }} /><p className="scope-helper">Complete branding by default · choose a scope for focused work</p><Link href="/brands/logo/new" className="text-link">Create a logo</Link></>}
-    {resumedPrompt && <div className="prompt-recovery-notice"><p role="status">{strategy.locked ? "Your original prompt is kept. Check its account recovery status below before continuing." : "Your prompt is ready to continue. Its scope and browser copy are kept."}</p><button type="button" className="text-link" disabled={frozenInputs} onClick={() => { if (!canEditInputs()) return; clearPromptRecovery(); textDraft.current = null; setTextDraftId(null); setPrompt(""); setScope(initialScope); setExampleUsed(false); setResumedPrompt(false); setError(""); }}>Start a new prompt</button></div>}
+    {resumedPrompt && !hiddenPrompt && <div className="prompt-recovery-notice"><p role="status">{strategy.locked ? "Your original prompt is kept. Check its save status below before continuing." : "Your prompt is ready to continue."}</p><button type="button" className="text-link" disabled={frozenInputs} onClick={() => { if (!canEditInputs()) return; clearPromptRecovery(); textDraft.current = null; setTextDraftId(null); setPrompt(""); setPromptOwner(null); setScope(initialScope); setExampleUsed(false); setResumedPrompt(false); setError(""); }}>Start a new prompt</button></div>}
+    {hiddenPrompt && <div><p role="status">An unsaved prompt belongs to another account session. Sign in to that account to continue it.</p><button type="button" className="text-link" onClick={startNewPrompt}>Start a new prompt</button></div>}
     {hiddenFiles && <p role="status">An attached brief is retained in this tab. Verify the same account before sending so its files stay with it.</p>}
     {frozenBrief && <p role="status">Your prompt, scope and example selection are locked to the original attached brief while its save is confirmed or recovered.</p>}
     <ConversationComposer home={home} value={displayedPrompt} onChange={editPrompt} readOnly={frozenInputs} onSend={sendPrompt} label="Your prompt" placeholder="An idea you can’t stop thinking about…" error={error} disabled={disabled} initial sendLabel={inputIntent?.receipt ? "Open saved brand" : frozenBrief ? "Check and retry attached brief" : hasFiles ? "Save brief with files" : strategy.recoveryProjectId ? "Open saved account project" : "Send prompt"} hint={displayedExample ? <><span className="example-dot" />{frozenBrief ? "Example prompt · saved basis" : "Example prompt · editable"}</> : "An idea, a product, a place. Start in your own words."}
       inputControls={<HomeInputControls compact={home} scopeControl={home ? <HomeScopePicker value={displayedScope} disabled={frozenInputs} onChange={value => { if (canEditInputs()) setScope(value); }} /> : undefined} account={account} sessionFence={sessionFence} memory={homeInputSession} value={displayedPrompt} onChange={editPrompt} language="en-US" voiceAdapter={voice} policy={currentCapability?.policy ?? null} availability={currentCapability?.policy ? { status: "available" } : { status: "unavailable", reason: currentCapability?.reason ?? (account ? "Checking verified file storage…" : "Sign in to save verified input files.") }} disabled={!recoveryLoaded || submitting || navigating || strategy.pending || strategy.locked} />} />
     {(!home || !!displayedPrompt.trim() || strategy.locked || hiddenFiles) && <div className="conversation-start-notice">{hasFiles ? "Files are saved as input material with your brief. This action does not start AI processing." : strategy.notice}</div>}
-    {(!home || textDraftId || resumedPrompt || strategy.locked) && !hasFiles && !hiddenFiles && <div className="account-recovery-actions home-draft-actions"><div><button type="button" className="button secondary" disabled={disabled || strategy.locked} onClick={() => void sendPrompt("draft")}>Save draft</button><span className="field-hint">Browser only · does not start AI</span></div>{textDraftId && !strategy.locked && <Link className="text-link" href={`/brands/${textDraftId}`} onClick={event => { event.preventDefault(); void sendPrompt("draft"); }}>Open retained browser draft</Link>}</div>}
-    {drafts.length >= 50 && !inputIntent?.browserDraftId && !textDraftId && <p className="form-error" role="alert">This browser has 50 drafts. Remove an unused draft before starting another.</p>}
+    {account && (!home || !!displayedPrompt.trim() || textDraftId || resumedPrompt || strategy.locked) && !hasFiles && !hiddenFiles && !hiddenPrompt && <div className="account-recovery-actions home-draft-actions"><div><button type="button" className="button secondary" disabled={disabled} onClick={() => void sendPrompt("draft")}>{strategy.locked ? "Check and retry save" : "Save project"}</button><span className="field-hint">Saves to your account · does not start AI</span></div></div>}
+    {recoveryFull && !inputIntent?.browserDraftId && !textDraftId && <p className="form-error" role="alert">This device has 50 unsaved projects. <Link href="/brands?recover=1">Recover a project</Link> before starting another.</p>}
     {home && <div className="home-examples"><h2>Try an idea</h2><div className="home-example-pills">{homeExamples.map(item => <button key={item.title} type="button" disabled={frozenInputs} onClick={() => { if (!canEditInputs()) return; setPrompt(item.description); setExampleUsed(true); setError(""); }}>{item.title}</button>)}</div></div>}
   </div>;
 }
@@ -224,20 +267,7 @@ type EditorStorage = {
 };
 
 export function ProjectEditor({ projectId }: { projectId: string }) {
-  const { drafts, loaded, storage } = useLocalDrafts();
-  const draft = drafts.find((item) => item.id === projectId);
-  const router = useRouter();
-  if (!loaded) return <div className="page"><p className="quiet-empty">Loading your conversation…</p></div>;
-  if (!draft) return <div className="page"><div className="empty-panel"><Icon name="file" size={30} /><h1>Draft not found in this browser</h1><p>Local drafts are only available in the browser where they were created.</p><Link href="/brands" className="button primary">Back to projects</Link></div></div>;
-  return <ProjectEditorForm key={projectId} draft={draft} storage={{
-    kind: "browser", saveLabel: storage === "available" ? "Saved in this browser" : "This tab only",
-    onUpdate: (patch) => updateLocalDraft(projectId, patch),
-    onDelete: () => { deleteLocalDraft(projectId); router.push("/brands"); },
-    actions: <AccountCopyControl draft={draft} />,
-    strategy: <p className="conversation-service-note">This browser draft does not run AI. Choose Save to account, then Request response in the saved project when AI is ready. The request limits are shown there before you start.</p>,
-    promptNotice: <p className="field-hint">Save message keeps this conversation in your browser. It does not request an AI response.</p>,
-    namingSource: draft.preservedContext?.namingSource,
-  }} />;
+  return <div className="page"><h1>Recover an unsaved project</h1><UnsavedProjectRecovery draftId={projectId} /><Link className="text-link" href="/brands">Back to projects</Link></div>;
 }
 
 function savedDetails(draft: LocalDraft) {
@@ -337,9 +367,9 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
         setMessage("Saving your Strategy approval…");
         void storage.onStrategyApproved(result.nextDraft).then(saved => {
           if (saved) setMessage("Strategy approved and saved to your account.");
-          else { setMessage(""); setError("Strategy approval could not be saved. Your review is kept here. Use Save changes to retry."); }
-        }).catch(() => { setMessage(""); setError("Strategy approval could not be saved. Your review is kept here. Use Save changes to retry."); }).finally(() => { approvingStrategy.current = false; setApprovalPending(false); });
-      } else setMessage(account ? "Selection kept. Save changes to keep it in your account." : result.persisted ? "Selection saved in this browser." : "Selection kept in this tab. Browser storage is unavailable.");
+          else { setMessage(""); setError("Strategy approval could not be saved. Your review is kept here. Use Retry save to try again."); }
+        }).catch(() => { setMessage(""); setError("Strategy approval could not be saved. Your review is kept here. Use Retry save to try again."); }).finally(() => { approvingStrategy.current = false; setApprovalPending(false); });
+      } else setMessage(account ? "Selection kept. Saving to your account…" : result.persisted ? "Selection saved in this browser." : "Selection kept in this tab. Browser storage is unavailable.");
     } catch (error) { setError(error instanceof Error ? error.message : "Your selection could not be confirmed."); }
   }
 

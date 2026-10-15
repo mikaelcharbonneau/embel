@@ -10,7 +10,7 @@ import { ApiError } from "../../src/server/http/errors";
 const ownerId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const projectId = "11111111-1111-4111-8111-111111111111";
 const input = { title: "Local test fixture", scope: "naming_only", context: { description: "A local fixture, not model output." } };
-const request = (body: unknown = input, origin = "https://fluid.example") => new Request("https://fluid.example/api/projects", { method: "POST", headers: { origin, "content-type": "application/json" }, body: JSON.stringify(body) });
+const request = (body: unknown = input, origin = "https://fluid.example") => new Request("https://fluid.example/api/projects", { method: "POST", headers: { origin, "content-type": "application/json", "X-Embel-Account": ownerId }, body: JSON.stringify(body) });
 
 describe("web mutation security boundaries", () => {
   beforeEach(() => {

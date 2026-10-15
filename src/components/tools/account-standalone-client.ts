@@ -5,12 +5,12 @@ import { AccountRequestError } from "@/components/workspace/account-api";
 import type { StandaloneAccount } from "./standalone-draft-memory";
 
 /** Bounded streamed private responses. The common project helper has a smaller write limit and no PUT. */
-async function request<T>(path: string, schema: z.ZodType<T>, signal: AbortSignal, input?: unknown): Promise<T> {
+async function request<T>(path: string, schema: z.ZodType<T>, signal: AbortSignal, input?: unknown, expectedOwnerId?: string): Promise<T> {
   const body = input === undefined ? undefined : JSON.stringify(input);
   if (body && new TextEncoder().encode(body).byteLength > STANDALONE_MUTATION_MAX_BYTES) throw new AccountRequestError(413);
   if (signal.aborted) throw new DOMException("Aborted", "AbortError");
   const response = await fetch(path, { method: body === undefined ? "GET" : "PUT", credentials: "same-origin", mode: "same-origin", cache: "no-store", signal,
-    headers: { Accept: "application/json", ...(body === undefined ? {} : { "Content-Type": "application/json" }) }, ...(body === undefined ? {} : { body }) });
+    headers: { Accept: "application/json", ...(body === undefined ? {} : { "Content-Type": "application/json" }), ...(expectedOwnerId ? { "X-Embel-Account": expectedOwnerId } : {}) }, ...(body === undefined ? {} : { body }) });
   if (!response.ok) { void response.body?.cancel().catch(() => undefined); throw new AccountRequestError(response.status); }
   const limit = STANDALONE_MUTATION_MAX_BYTES * 2;
   if (response.headers.get("content-type")?.split(";")[0]?.trim() !== "application/json" || Number(response.headers.get("content-length")) > limit) {
@@ -46,7 +46,7 @@ export async function saveStandaloneWorkspace<T>(codec: StandalonePayloadCodec<T
   const parsed = saveStandaloneWorkspaceInputSchema.safeParse(raw), payload = codec.schema.safeParse(raw.payload);
   if (!parsed.success || !payload.success) throw new AccountRequestError(422);
   const input = { ...parsed.data, payload: payload.data };
-  const response = await request(`/api/workspaces/${codec.tool}`, standaloneWorkspaceResponseSchema(codec), signal, input);
+  const response = await request(`/api/workspaces/${codec.tool}`, standaloneWorkspaceResponseSchema(codec), signal, input, account.userId);
   if (response.ownerId !== account.userId.toLowerCase() || !response.workspace || response.workspace.revision !== input.expectedRevision + 1 ||
       JSON.stringify(response.workspace.payload) !== JSON.stringify(payload.data) || JSON.stringify(response.workspace.imports.map(({ projectId, projectRevision, selectionId }) => ({ projectId, projectRevision, selectionId }))) !== JSON.stringify(input.imports)) throw new AccountRequestError(502);
   return response;
@@ -61,7 +61,7 @@ export function standaloneErrorMessage(error: unknown): string {
   if (error instanceof AccountRequestError) {
     if (error.status === 401) return "Sign in to the same account to recover this draft.";
     if (error.status === 404) return "The selected saved project is unavailable to this account.";
-    if (error.status === 409) return "The saved draft or imported source changed. Your edits are retained; load the latest version after reviewing them.";
+    if (error.status === 409) return "The saved workspace or imported source changed. Your edits are retained; choose which version to keep.";
     if (error.status === 413) return "This draft is too large to save. Shorten it and try again.";
     if (error.status === 422) return "Some draft fields could not be saved. Review their values and lengths.";
     if (error.status === 503) return "Account workspaces are unavailable. Your draft is retained in this tab.";

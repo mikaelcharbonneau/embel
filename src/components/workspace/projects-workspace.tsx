@@ -7,18 +7,15 @@ import { compareProjectCursors } from "@/domain/project-pages";
 import { ProjectsArtwork } from "@/components/ui/projects-artwork";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "./account-session";
 import { useAccountProjectListing } from "./account-projects";
-import { draftTitle, scopeDetails, scopeLabel, useLocalDrafts, type LocalDraft } from "./local-drafts";
+import { scopeDetails, scopeLabel } from "./local-drafts";
+import { UnsavedProjectRecovery } from "./unsaved-project-recovery";
 import "@/styles/projects.css";
 
-type ProjectCard = { key: string; id: string; title: string; description: string; scope: ProjectScope; stage: string; storage: "browser" | "account"; created: string; updated: string | null; href: string };
+type ProjectCard = { key: string; id: string; title: string; scope: ProjectScope; created: string; updated: string | null; href: string };
 type Sort = "updated" | "created" | "alphabetical";
-const stageLabels = { description: "Brief", review: "Brief", competitors: "Competitors", audience: "Audience", personality: "Personality", positioning: "Positioning" };
 
-function time(value: string) { const parsed = Date.parse(value); return Number.isFinite(parsed) ? parsed : 0; }
-function recent(a: ProjectCard, b: ProjectCard, sort: Sort) {
-  // Account timestamps retain their exact microsecond and UUID continuation ordering.
-  if (a.storage === "account" && b.storage === "account") return -compareProjectCursors({ createdAt: a.created, id: a.id }, { createdAt: b.created, id: b.id });
-  return time(sort === "created" ? b.created : b.updated ?? b.created) - time(sort === "created" ? a.created : a.updated ?? a.created) || b.key.localeCompare(a.key);
+function recent(a: ProjectCard, b: ProjectCard) {
+  return -compareProjectCursors({ createdAt: a.created, id: a.id }, { createdAt: b.created, id: b.id });
 }
 function dateLabel(project: ProjectCard, now: number | null) {
   const date = project.updated ?? project.created, timestamp = Date.parse(date), prefix = project.updated ? "Updated" : "Created";
@@ -45,52 +42,44 @@ function ProjectControl({ kind, active, children }: { kind: "Filter" | "Sort"; a
 function useProjectControls() {
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<ProjectScope | "all">("all");
-  const [storage, setStorage] = useState<"all" | "browser" | "account">("all");
-  const [sort, setSort] = useState<Sort>("updated");
-  return { query, setQuery, scope, setScope, storage, setStorage, sort, setSort };
+  const [sort, setSort] = useState<Sort>("created");
+  return { query, setQuery, scope, setScope, sort, setSort };
 }
 
 export function ProjectsWorkspace() {
-  const local = useLocalDrafts();
   const controls = useProjectControls();
   const { session } = useAccountSession();
-  const account = session.status === "ready" ? session : null;
-  // Unmount private listing state before a new account/generation can become visible.
-  return <ProjectsLibrary key={account ? `${account.userId}:${account.generation}` : "browser"} drafts={local.drafts} loaded={local.loaded} browserStorage={local.storage} account={account} controls={controls} />;
+  if (session.status !== "ready") return <div className="projects-page"><div className="projects-heading"><div><h1>Your projects<span>.</span></h1><p>Sign in to save your work and continue from any device.</p></div></div><AccountStatus /></div>;
+  return <ProjectsLibrary key={`${session.userId}:${session.generation}`} account={session} controls={controls} />;
 }
 
-function ProjectsLibrary({ drafts, loaded, browserStorage, account, controls }: { drafts: LocalDraft[]; loaded: boolean; browserStorage: ReturnType<typeof useLocalDrafts>["storage"]; account: VerifiedAccount | null; controls: ReturnType<typeof useProjectControls> }) {
-  const { session } = useAccountSession();
+function ProjectsLibrary({ account, controls }: { account: VerifiedAccount; controls: ReturnType<typeof useProjectControls> }) {
   const { listing, error, pending, load } = useAccountProjectListing(account);
-  const { query, setQuery, scope, setScope, storage, setStorage, sort, setSort } = controls;
+  const { query, setQuery, scope, setScope, sort, setSort } = controls;
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 60_000); return () => clearInterval(timer); }, []);
-  const projects: ProjectCard[] = [
-    ...drafts.map(draft => ({ key: `browser:${draft.id}`, id: draft.id, title: draftTitle(draft), description: draft.description, scope: draft.scope, stage: stageLabels[draft.stage], storage: "browser" as const, created: draft.createdAt, updated: draft.updatedAt, href: `/brands/${draft.id}` })),
-    ...(listing?.items ?? []).map(project => ({ key: `account:${project.id}`, id: project.id, title: project.title, description: "Account copy · brief available when opened", scope: project.scope, stage: "Unavailable", storage: "account" as const, created: project.created_at, updated: null, href: `/brands/account/${project.id}` })),
-  ];
-  const filtering = Boolean(query.trim()) || scope !== "all" || storage !== "all";
-  const empty = loaded && browserStorage === "available" && !projects.length && (session.status === "signed_out" || Boolean(account && listing)) && !error;
+  const projects: ProjectCard[] = (listing?.items ?? []).map(project => ({ key: project.id, id: project.id, title: project.title, scope: project.scope, created: project.created_at, updated: null, href: `/brands/account/${project.id}` }));
+  const filtering = Boolean(query.trim()) || scope !== "all";
+  const empty = Boolean(listing) && !projects.length && !error;
   const matching = projects.map((project, index) => ({ ...project, preview: ["neutral", "inverse", "neutral", "pink", "neutral", "inverse"][index % 6] })).filter(project =>
-    (scope === "all" || project.scope === scope) && (storage === "all" || project.storage === storage) && `${project.title} ${project.storage === "browser" ? project.description : ""}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())
-  ).sort((a, b) => (sort === "alphabetical" ? a.title.localeCompare(b.title, "en", { sensitivity: "base", numeric: true }) : 0) || recent(a, b, sort));
+    (scope === "all" || project.scope === scope) && project.title.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())
+  ).sort((a, b) => (sort === "alphabetical" ? a.title.localeCompare(b.title, "en", { sensitivity: "base", numeric: true }) : 0) || recent(a, b));
 
   return <div className={`projects-page ${empty ? "projects-empty" : ""}`}>
     <div className="projects-heading"><div><h1>{empty ? "Your projects" : "Projects"}<span>.</span></h1><p>Every idea, in its own world.</p></div>{!empty && <Link className="projects-primary" href="/brands/new">New project<ProjectsArtwork name="plus" /></Link>}</div>
     {!empty && <div className="projects-toolbar"><label className="projects-search"><span className="sr-only">Search projects</span><input type="search" placeholder="Search projects" value={query} onChange={event => setQuery(event.target.value)} /></label>
-      <ProjectControl kind="Filter" active={scope !== "all" || storage !== "all"}><label>Scope<select aria-label="Filter projects by scope" value={scope} onChange={event => setScope(event.target.value as typeof scope)}><option value="all">All scopes</option>{scopeDetails.map(detail => <option key={detail.value} value={detail.value}>{detail.label}</option>)}</select></label><label>Storage<select aria-label="Filter projects by storage" value={storage} onChange={event => setStorage(event.target.value as typeof storage)}><option value="all">All projects</option><option value="browser">Browser drafts</option><option value="account">Account copies</option></select></label></ProjectControl>
-      <ProjectControl kind="Sort"><label>Order<select aria-label="Sort projects" value={sort} onChange={event => setSort(event.target.value as Sort)}><option value="updated">Recently updated</option><option value="created">Recently created</option><option value="alphabetical">Alphabetical</option></select></label><p>Account copies use their creation date. Last update dates are unavailable in the listing.</p></ProjectControl>
+      <ProjectControl kind="Filter" active={scope !== "all"}><label>Scope<select aria-label="Filter projects by scope" value={scope} onChange={event => setScope(event.target.value as typeof scope)}><option value="all">All scopes</option>{scopeDetails.map(detail => <option key={detail.value} value={detail.value}>{detail.label}</option>)}</select></label></ProjectControl>
+      <ProjectControl kind="Sort"><label>Order<select aria-label="Sort projects" value={sort} onChange={event => setSort(event.target.value as Sort)}><option value="created">Recently created</option><option value="alphabetical">Alphabetical</option></select></label></ProjectControl>
     </div>}
-    {empty ? <section className="projects-empty-panel" aria-labelledby="first-project-heading"><ProjectsArtwork name="empty-projects" /><h2 id="first-project-heading">Your first project starts with an idea</h2><p>Start with a complete brand, a name, or a visual identity. Your work will be waiting here.</p><Link className="projects-primary" href="/brands/new">Create a brand draft<ProjectsArtwork name="create" /></Link></section> : <>
-      {!loaded && <p className="projects-notice" role="status">Loading browser drafts…</p>}
-      <section className="projects-grid" aria-label="Projects">{matching.map(project => <Link className="project-card" key={project.key} href={project.href} data-storage={project.storage} aria-label={`Continue ${project.title} (${project.storage === "browser" ? "browser draft" : "account copy"})`}>
+    {empty ? <section className="projects-empty-panel" aria-labelledby="first-project-heading"><ProjectsArtwork name="empty-projects" /><h2 id="first-project-heading">Your first project starts with an idea</h2><p>Start with a complete brand, a name, or a visual identity. Your work will be waiting here.</p><Link className="projects-primary" href="/brands/new">Create a project<ProjectsArtwork name="create" /></Link></section> : <>
+      {!listing && !error && <p className="projects-notice" role="status">Loading your projects…</p>}
+      <section className="projects-grid" aria-label="Projects">{matching.map(project => <Link className="project-card" key={project.key} href={project.href} data-storage="account" aria-label={`Continue ${project.title}`}>
         <div className={`project-preview project-preview--${project.preview}`} aria-hidden="true"><span>{project.title}</span></div>
-        <div className="project-details"><div className="project-card-identity"><h2 title={project.title}>{project.title}</h2><span>{scopeLabel(project.scope)}</span></div><p className="project-description" title={project.description}>{project.description || "No brief yet"}</p><div className="project-stage"><span>Stage</span><strong>{project.stage}</strong></div><div className="project-footer"><span title={`${project.storage === "browser" ? "Browser draft" : "Account copy"} · ${project.updated ?? project.created}`}>{dateLabel(project, now)}</span><span className="project-continue">Continue<ProjectsArtwork name="continue" /></span></div></div>
+        <div className="project-details"><div className="project-card-identity"><h2 title={project.title}>{project.title}</h2><span>{scopeLabel(project.scope)}</span></div><div className="project-footer"><span title={project.created}>{dateLabel(project, now)}</span><span className="project-continue">Continue<ProjectsArtwork name="continue" /></span></div></div>
       </Link>)}</section>
-      {loaded && !matching.length && (projects.length > 0 || filtering) && <div className="projects-no-matches" role="status"><h2>No matching projects</h2><p>Try a different scope, storage location, project name or word from a browser brief.</p><button type="button" className="button secondary" onClick={() => { setQuery(""); setScope("all"); setStorage("all"); }}>Clear filters</button></div>}
+      {!matching.length && (projects.length > 0 || filtering) && <div className="projects-no-matches" role="status"><h2>No matching projects</h2><p>Try a different scope or project name.</p><button type="button" className="button secondary" onClick={() => { setQuery(""); setScope("all"); }}>Clear filters</button></div>}
     </>}
-    <p className="projects-storage-note"><ProjectsArtwork name="device" />Browser drafts stay on this device. Account copies are saved separately.</p>
-    {account && <div className="projects-account-status">{!listing && !error && <p role="status">Loading account projects…</p>}{listing && <p>{listing.items.length} account {listing.items.length === 1 ? "project" : "projects"} loaded. Search, filters and sorting apply to loaded projects.{listing.nextCursor ? " Load more to include older account copies." : " End of account listing."}</p>}{error && <div className="form-error" role="alert"><p>Account projects could not be loaded.{listing ? " Your loaded projects are still shown." : ""}</p><button className="button secondary small" type="button" disabled={pending} onClick={() => void load()}>Try loading account projects again</button></div>}{listing?.nextCursor && !error && <button className="button secondary small" type="button" disabled={pending} onClick={() => void load()}>{pending ? "Loading more account projects…" : "Load more account projects"}</button>}</div>}
-    {(session.status === "unavailable" || session.status === "error") && <div className="projects-account-status"><AccountStatus /></div>}
+    <div className="projects-account-status">{listing && listing.nextCursor && <p>Search, filters and sorting apply to loaded projects. Load more to include older projects.</p>}{error && <div className="form-error" role="alert"><p>Your projects could not be loaded.{listing ? " Your loaded projects are still shown." : ""}</p><button className="button secondary small" type="button" disabled={pending} onClick={() => void load()}>Try loading projects again</button></div>}{listing?.nextCursor && !error && <button className="button secondary small" type="button" disabled={pending} onClick={() => void load()}>{pending ? "Loading more projects…" : "Load more projects"}</button>}</div>
+    <UnsavedProjectRecovery />
   </div>;
 }

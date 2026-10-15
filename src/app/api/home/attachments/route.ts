@@ -1,5 +1,6 @@
 import { getAuthenticatedContext } from "@/server/auth/context";
 import { ApiError, errorResponse, privateJson } from "@/server/http/errors";
+import { assertExpectedAccount } from "@/server/http/account-fence";
 export const dynamic = "force-dynamic";
 import { stageHomeAttachmentInputSchema } from "@/domain/attachments";
 import { getHomeAttachmentCapability, stageHomeAttachment } from "@/server/home-attachments";
@@ -8,6 +9,7 @@ export async function POST(request: Request) {
   try {
     assertMutationOrigin(request);
     const auth = await getAuthenticatedContext();
+    assertExpectedAccount(request, auth.userId);
     const policy = getHomeAttachmentCapability();
     if (!policy) throw new ApiError("integration_unavailable");
     let name: string;

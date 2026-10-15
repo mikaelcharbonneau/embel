@@ -48,6 +48,11 @@ const draftSchema = z.object({
   audienceReviewedAt: z.string().nullable(), createdAt: z.string(), updatedAt: z.string(), example: z.boolean(),
   // Present only when the user explicitly saves an account brief as a browser copy.
   preservedContext: contextSnapshotSchema.optional(),
+  // New recovery material is private to its verified account. Earlier drafts
+  // have no owner and are shown only in the explicit legacy recovery flow.
+  ownerId: z.uuid().optional(),
+  accountProjectId: z.uuid().optional(),
+  accountSaveRequest: z.object({ kind: z.enum(["project", "attached"]), key: z.uuid() }).optional(),
   confirmedBrief: z.object({ description: z.string().max(12000), activity: z.string().max(2000), offering: z.string().max(2000), knownAudience: z.string().max(2000).default(""), conversationKey: z.string().max(64_000).optional() }).optional(),
 });
 
@@ -99,14 +104,18 @@ function subscribe(listener: () => void) {
     if (listeners.size === 0) window.removeEventListener("storage", onStorage);
   };
 }
-function commit(drafts: LocalDraft[]) {
+function commit(drafts: LocalDraft[], replaceInvalid = false) {
   hydrate();
   const validated = savedWorkspaceSchema.parse({ version: 1, drafts });
-  let storage: DraftSnapshot["storage"] = "available";
+  // Unreadable legacy data is not an empty store. Keep its durable bytes intact
+  // while retaining current recovery edits in this tab.
+  let storage: DraftSnapshot["storage"] = snapshot.storage === "invalid" && !replaceInvalid ? "invalid" : "available";
   try {
     const serialized = JSON.stringify(validated);
-    if (serialized.length > MAX_SERIALIZED_WORKSPACE_LENGTH) storage = "unavailable";
-    else window.localStorage.setItem(DRAFT_STORAGE_KEY, serialized);
+    if (storage !== "invalid") {
+      if (serialized.length > MAX_SERIALIZED_WORKSPACE_LENGTH) storage = "unavailable";
+      else window.localStorage.setItem(DRAFT_STORAGE_KEY, serialized);
+    }
   }
   catch { storage = "unavailable"; }
   snapshot = { loaded: true, drafts: validated.drafts, storage };
@@ -123,6 +132,12 @@ export function localDraftStorageState() {
   return snapshot.storage;
 }
 
+/** Fresh durable evidence; an unavailable or invalid store is never empty. */
+export function readDurableLocalDraft(id: string) {
+  const stored = readStorage();
+  return { storage: stored.storage, draft: stored.drafts.find(draft => draft.id === id) };
+}
+
 /** Capture the current browser copy, including tab-only changes, without sharing mutable state. */
 export function getLocalDraft(id: string): LocalDraft | undefined {
   hydrate();
@@ -130,12 +145,13 @@ export function getLocalDraft(id: string): LocalDraft | undefined {
   return draft ? structuredClone(draft) : undefined;
 }
 
-export function createLocalDraft(input: Pick<LocalDraft, "title" | "scope" | "description" | "suppliedName" | "namingNotes" | "identityNotes" | "example">) {
+export function createLocalDraft(input: Pick<LocalDraft, "title" | "scope" | "description" | "suppliedName" | "namingNotes" | "identityNotes" | "example" | "ownerId">) {
   hydrate();
-  if (snapshot.drafts.length >= 50) return null;
+  const retained = snapshot.drafts.length >= 50 ? snapshot.drafts.filter(draft => !draft.accountProjectId) : snapshot.drafts;
+  if (retained.length >= 50) return null;
   const now = new Date().toISOString();
   const draft: LocalDraft = { ...input, id: crypto.randomUUID(), activity: "", offering: "", knownAudience: "", segments: [], stage: "competitors", conversation: initialConversation(input.description, now), audienceReviewedAt: null, audienceConversationKey: null, createdAt: now, updatedAt: now };
-  commit([draft, ...snapshot.drafts]);
+  commit([draft, ...retained]);
   return draft.id;
 }
 
@@ -147,12 +163,13 @@ export function updateLocalDraft(id: string, patch: Partial<Omit<LocalDraft, "id
 export function deleteLocalDraft(id: string) { return commit(snapshot.drafts.filter((draft) => draft.id !== id)); }
 export function copyToLocalDraft(draft: LocalDraft) {
   hydrate();
-  if (snapshot.drafts.length >= 50) return null;
+  const retained = snapshot.drafts.length >= 50 ? snapshot.drafts.filter(item => !item.accountProjectId) : snapshot.drafts;
+  if (retained.length >= 50) return null;
   const now = new Date().toISOString();
   const copy = { ...draft, id: crypto.randomUUID(), createdAt: now, updatedAt: now };
-  const persisted = commit([copy, ...snapshot.drafts]);
+  const persisted = commit([copy, ...retained]);
   return { id: copy.id, persisted };
 }
-export function clearLocalDrafts() { return commit([]); }
+export function clearLocalDrafts() { return commit([], true); }
 export function scopeLabel(scope: ProjectScope) { return scopeDetails.find((item) => item.value === scope)?.label ?? "Brand"; }
 export function draftTitle(draft: LocalDraft) { return draft.title.trim() || "Untitled brand"; }

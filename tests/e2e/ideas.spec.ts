@@ -125,7 +125,7 @@ async function clickAccountAction(page: Page, name: "Check account" | "Sign out"
 }
 async function browserValues(page: Page) { return page.evaluate(() => Object.values(localStorage).join("\n")); }
 
-test("Ideas fixture: quick capture, optional details, save and reload retain user text only in the account", async ({ page }, testInfo) => {
+test("Ideas fixture: quick capture, optional details, automatic save and reload retain user text only in the account", async ({ page }, testInfo) => {
   const state = await accountFixtures(page, []);
   await page.goto("/ideas");
   await page.getByRole("button", { name: "Add idea", exact: true }).click();
@@ -141,8 +141,11 @@ test("Ideas fixture: quick capture, optional details, save and reload retain use
   await page.getByRole("textbox", { name: "Audience", exact: true }).fill("Local workers");
   await page.getByRole("combobox", { name: "Idea state", exact: true }).selectOption("developing");
   await expect(page.getByRole("button", { name: "Create brand", exact: true })).toBeDisabled();
-  await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 2.", { exact: true })).toBeVisible();
+  await expect.poll(() => state.ideas.get(ideaId)?.content).toMatchObject({ state: "developing", details: {
+    revenueHypotheses: "A user-authored monthly lunch plan hypothesis", solution: "Seasonal lunches delivered nearby", audience: "Local workers",
+  } });
+  await expect(page.getByLabel("Save status", { exact: true })).toHaveText("Saved");
+  expect(state.ideas.get(ideaId)!.revision).toBeGreaterThanOrEqual(2);
   await page.reload();
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Private quick capture fixture");
   await page.getByText("More details", { exact: true }).click();
@@ -234,10 +237,9 @@ test("Ideas fixture: unknown save retains text and an explicit retry reuses its 
   state.loseSaveResponse = true;
   await openIdea(page);
   await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Private saved-response retry fixture");
-  await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Retry save", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Retry", exact: true })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Private saved-response retry fixture");
-  await page.getByRole("button", { name: "Retry save", exact: true }).click();
+  await page.getByRole("button", { name: "Retry", exact: true }).click();
   await expect(page.getByText("Saved to account · version 2.", { exact: true })).toBeVisible();
   expect(state.writes[1]!.body).toEqual(state.writes[0]!.body);
   expect(state.ideas.get(ideaId)?.revision).toBe(2);
@@ -248,11 +250,10 @@ test("Ideas fixture: an unavailable mutation reports unconfirmed delivery while 
   state.patchStatus = 503;
   await openIdea(page);
   await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Unavailable save fixture");
-  await page.getByRole("button", { name: "Save changes", exact: true }).click();
   await expect(page.locator("main").getByRole("alert")).toContainText("could not be confirmed");
-  await expect(page.getByRole("button", { name: "Retry save", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Retry", exact: true })).toBeVisible();
   state.patchStatus = 200;
-  await page.getByRole("button", { name: "Retry save", exact: true }).click();
+  await page.getByRole("button", { name: "Retry", exact: true }).click();
   await expect(page.getByText("Saved to account · version 2.", { exact: true })).toBeVisible();
   expect(state.writes[1]!.body).toEqual(state.writes[0]!.body);
 });
@@ -260,9 +261,8 @@ test("Ideas fixture: an unavailable mutation reports unconfirmed delivery while 
 test("Ideas fixture: conflict preserves edits and replacing them requires an explicit choice", async ({ page }) => {
   const state = await accountFixtures(page);
   await openIdea(page);
-  await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Private conflicting title fixture");
   state.ideas.set(ideaId, { ...idea(), revision: 2, content: content("Remote latest fixture") });
-  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Private conflicting title fixture");
   await expect(page.locator("main").getByRole("alert")).toContainText("A newer version is saved");
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Private conflicting title fixture");
   await page.getByRole("button", { name: "Load latest version", exact: true }).click();
@@ -279,7 +279,6 @@ test("Ideas fixture: a schema-valid multibyte idea cannot exceed the full reques
   await openIdea(page);
   const oversized = "漢".repeat(11_000);
   await page.getByRole("textbox", { name: "Description (optional)", exact: true }).fill(oversized);
-  await page.getByRole("button", { name: "Save changes", exact: true }).click();
   await expect(page.locator("main").getByRole("alert")).toContainText("too large");
   expect(state.writes).toHaveLength(0);
   await expect(page.getByRole("textbox", { name: "Description (optional)", exact: true })).toHaveValue(oversized);
@@ -293,20 +292,29 @@ test("Ideas fixture: explicit brand creation preserves its original source after
   await page.getByRole("button", { name: "Create brand", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
   await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
-  const banner = page.getByRole("region", { name: "Original idea", exact: true });
-  await expect(banner).toContainText("Quiet kitchen fixture");
-  await expect(banner).toContainText("Source version 1");
-  await expect(banner.getByRole("link", { name: "View original idea", exact: true })).toHaveAttribute("href", `/ideas/${ideaId}`);
+  await expect(page.locator("main").getByText("Quiet kitchen fixture", { exact: true })).toBeVisible();
+  expect(state.sources.get(projectId)).toMatchObject({ link: { ideaId, ideaRevision: 1, projectId }, content: original.content });
   expect(state.projects.get(projectId)?.context).toMatchObject({ offering: "Seasonal lunches", knownAudience: "Local workers", reformulationConfirmed: false, competitorReviewComplete: false, selectedName: null });
+  const source = structuredClone(state.sources.get(projectId));
+  const projectContext = structuredClone(state.projects.get(projectId)!.context);
   expect(Object.keys(state.writes[0]!.body).sort()).toEqual(["expectedRevision", "requestKey"]);
-  await banner.getByRole("link", { name: "View original idea", exact: true }).click();
+  const navigationToggle = page.getByRole("button", { name: "Open navigation", exact: true });
+  if (await navigationToggle.isVisible()) await navigationToggle.click();
+  await page.getByRole("navigation", { name: "Main navigation", exact: true }).getByRole("link", { name: "Ideas", exact: true }).click();
+  const originalIdea = page.getByRole("link", { name: /Quiet kitchen fixture/ });
+  await expect(originalIdea).toHaveAttribute("href", `/ideas/${ideaId}`);
+  await originalIdea.click();
   await expect(page.getByRole("link", { name: "Open created brand", exact: true })).toHaveAttribute("href", `/brands/account/${projectId}`);
   await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Edited idea title fixture");
-  await page.getByRole("button", { name: "Save changes", exact: true }).click();
   await expect(page.getByText("Saved to account · version 3.", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Save status", { exact: true })).toHaveText("Saved");
+  expect(state.ideas.get(ideaId)?.content.title).toBe("Edited idea title fixture");
   await page.getByRole("link", { name: "Open created brand", exact: true }).click();
-  await expect(banner).toContainText("Quiet kitchen fixture");
-  await expect(banner).not.toContainText("Edited idea title fixture");
+  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  await expect(page.locator("main").getByText("Quiet kitchen fixture", { exact: true })).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("Edited idea title fixture");
+  expect(state.sources.get(projectId)).toEqual(source);
+  expect(state.projects.get(projectId)?.context).toEqual(projectContext);
   await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); window.scrollTo(0, 0); });
   await page.screenshot({ path: testInfo.outputPath("idea-brand-source.png"), fullPage: true, scale: "css" });
 });
@@ -326,9 +334,8 @@ test("Ideas fixture: uncertain brand creation retries its original key without c
 test("Ideas fixture: expiration hides private edits and verified same-account recovery retains them", async ({ page }) => {
   const state = await accountFixtures(page);
   await openIdea(page);
-  await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Private expiration recovery fixture");
   state.patchStatus = 401;
-  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Private expiration recovery fixture");
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveCount(0);
   expect(await browserValues(page)).not.toContain("Private expiration recovery fixture");
   state.patchStatus = 200;
@@ -348,7 +355,7 @@ test("Ideas fixture: a changed account cannot see a pending save or the previous
   });
   await openIdea(page);
   await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Owner A delayed private save fixture");
-  await page.getByRole("button", { name: "Save changes", exact: true }).click(); await requested;
+  await requested;
   state.owner = ownerB;
   await clickAccountAction(page, "Check account");
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveCount(0);
@@ -383,7 +390,7 @@ test("Ideas fixture: pending sign-out masks data and fences a late brand respons
 });
 
 test("Ideas fixture: unsaved idea edits participate in account sign-out confirmation", async ({ page }) => {
-  await accountFixtures(page);
+  const state = await accountFixtures(page); state.patchStatus = 503;
   await openIdea(page);
   await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Private sign-out confirmation fixture");
   await clickAccountAction(page, "Sign out");
@@ -393,7 +400,7 @@ test("Ideas fixture: unsaved idea edits participate in account sign-out confirma
 });
 
 test("Ideas fixture: internal navigation and failed sign-out preserve same-owner edits", async ({ page }) => {
-  await accountFixtures(page);
+  const state = await accountFixtures(page); state.patchStatus = 503;
   await openIdea(page);
   await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Private navigation recovery fixture");
   await page.getByRole("link", { name: "Back to ideas", exact: true }).click();
@@ -421,7 +428,7 @@ test("Ideas fixture: the native title form supports keyboard capture", async ({ 
 });
 
 test("Ideas fixture: a transient initial read has an explicit retry without losing retained edits", async ({ page }) => {
-  await accountFixtures(page);
+  const state = await accountFixtures(page); state.patchStatus = 503;
   await openIdea(page);
   await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Retained read recovery fixture");
   await page.getByRole("link", { name: "Back to ideas", exact: true }).click();
@@ -434,23 +441,22 @@ test("Ideas fixture: a transient initial read has an explicit retry without losi
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Retained read recovery fixture");
 });
 
-test("Ideas fixture: a source read deadline reports unavailable without blocking the owned brand editor", async ({ page }) => {
-  await accountFixtures(page);
+test("Ideas fixture: unavailable optional source metadata does not block the owned guided brand editor", async ({ page }) => {
+  const state = await accountFixtures(page);
+  await page.route(`**/api/projects/${projectId}/idea-source`, route => reply(route, {}, 503));
   await openIdea(page);
   await page.getByRole("button", { name: "Create brand", exact: true }).click();
-  await expect(page.getByRole("region", { name: "Original idea", exact: true })).toBeVisible();
-  let release!: () => void; let start!: () => void;
-  const wait = new Promise<void>(resolve => { release = resolve; });
-  const requested = new Promise<void>(resolve => { start = resolve; });
-  await page.route(`**/api/projects/${projectId}/idea-source`, async route => { start(); await wait; await reply(route, { ownerId: ownerA, projectId, source: null }); });
-  await page.clock.install();
+  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  expect(await page.evaluate(async id => (await fetch(`/api/projects/${id}/idea-source`, { cache: "no-store" })).status, projectId)).toBe(503);
   await page.reload();
-  await requested;
-  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
-  await page.clock.fastForward(15_001);
-  await expect(page.getByText("Original idea source is unavailable. You can keep editing this brand.", { exact: true })).toBeVisible();
-  release();
-  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeEnabled();
+  const composer = page.getByRole("textbox", { name: "Message Embel", exact: true });
+  await expect(composer).toBeEditable();
+  await composer.fill("Continue shaping the saved brand");
+  await expect(composer).toHaveValue("Continue shaping the saved brand");
+  await expect(page.getByRole("log", { name: "Conversation", exact: true })).toBeVisible();
+  await expect(page.locator("main").getByText("Quiet kitchen fixture", { exact: true })).toBeVisible();
+  expect(state.sources.get(projectId)?.link).toMatchObject({ ideaId, ideaRevision: 1, projectId });
+  expect(state.writes).toHaveLength(1);
 });
 
 test("Ideas fixture: unverified, foreign and mismatched resources never enter private controls", async ({ page }) => {

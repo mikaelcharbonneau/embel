@@ -122,8 +122,8 @@ test("auth fixture: unconfigured sign-in stays accessible and does not accept cr
   await expect(page.getByRole("link", { name: "Forgot password", exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
   await page.screenshot({ path: testInfo.outputPath("sign-in-unconfigured.png"), fullPage: true, scale: "css", style: "nextjs-portal { visibility: hidden; }" });
-  await page.getByRole("link", { name: "Continue with browser drafts", exact: true }).click();
-  await expect(page).toHaveURL(/\/brands$/);
+  await page.getByRole("link", { name: "Return to Home", exact: true }).click();
+  await expect(page).toHaveURL(/\/$/);
   await revealAccountMenu(page);
 });
 
@@ -152,8 +152,8 @@ test("auth fixture: pending sign-in blocks refresh and sign-out across internal 
   await expect(page.getByRole("button", { name: /^(Check|Checking) account(?:…)?$/ })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Sign out", exact: true })).toHaveCount(0);
   await expect(form.getByLabel("Password", { exact: true })).toHaveValue("");
-  await page.getByRole("link", { name: "Continue with browser drafts", exact: true }).click();
-  await expect(page).toHaveURL(/\/brands$/);
+  await page.getByRole("link", { name: "Return to Home", exact: true }).click();
+  await expect(page).toHaveURL(/\/$/);
   await revealAccountMenu(page);
   await expect(page.locator(".topbar").getByRole("button", { name: "Signing in…", exact: true })).toBeDisabled();
   await triggerAutomaticRefresh(page);

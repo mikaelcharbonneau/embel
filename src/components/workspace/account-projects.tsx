@@ -3,18 +3,16 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { accountProjectResponseSchema, accountSessionSchema } from "@/domain/project-api";
 import { accountProjectPageSchema } from "@/domain/project-pages";
 import { mergeProjectPage, type ProjectListing } from "./account-project-page-state";
 import { Icon } from "@/components/ui/icon";
 import { accountErrorMessage, accountRequest, AccountRequestError } from "./account-api";
-import { boundedAccountRequest } from "./bounded-account-request";
-import { StartReceiptRecoveryError, readReceipt, rememberReceipt, forgetReceipt, type StartReceipt } from "./account-project-start-recovery";
+import { StartReceiptRecoveryError, readReceipt, type StartReceipt } from "./account-project-start-recovery";
+import { finishLocalDraftRecovery, saveLocalDraftToAccount } from "./save-local-draft-to-account";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
-import { createAccountInput, draftValidationMessage } from "./project-draft-adapter";
 import { type LocalDraft } from "./local-drafts";
 
-export function AccountCopyControl({ draft }: { draft: LocalDraft }) {
+export function AccountCopyControl({ draft, onSaved }: { draft: LocalDraft; onSaved?: (projectId: string) => void }) {
   const { session, isCurrent, expire } = useAccountSession();
   const ownerId = session.status === "ready" ? session.userId : null;
   const identity = `${ownerId ?? "unverified"}:${session.generation}:${draft.id}`;
@@ -37,10 +35,11 @@ export function AccountCopyControl({ draft }: { draft: LocalDraft }) {
   const receipt = currentOperation?.receipt === undefined ? recovery?.receipt : currentOperation.receipt;
   const busy = Boolean(currentOperation?.busy);
   const uncertain = Boolean(receipt && !receipt.projectId);
+  const unrecoverable = uncertain && !receipt?.request;
   const error = currentOperation?.error ?? recovery?.error;
 
   async function copy() {
-    if (session.status !== "ready" || !isCurrent(session) || request.current || !recovery || recovery.error || uncertain) return;
+    if (session.status !== "ready" || !isCurrent(session) || request.current || !recovery || recovery.error || unrecoverable) return;
     const account = session;
     const controller = new AbortController();
     request.current = controller;
@@ -48,42 +47,19 @@ export function AccountCopyControl({ draft }: { draft: LocalDraft }) {
     const current = () => !controller.signal.aborted && request.current === controller && isCurrent(account);
     let retained: StartReceipt | null = null;
     try {
-      const { user } = await boundedAccountRequest("/api/session", accountSessionSchema, { signal: controller.signal });
-      if (!current()) return;
-      if (user.id !== account.userId) { expire(account); return; }
-      // Recheck after the session read: Home or another mounted copy control may
-      // already have recorded this non-idempotent create while it was pending.
-      retained = readReceipt(account.userId, draft.id);
-      if (retained) {
-        setOperation({ identity, busy: false, receipt: retained });
-        if (retained.projectId) router.push(`/brands/account/${retained.projectId}`);
-        return;
-      }
-      let input;
-      try { input = createAccountInput(draft); }
-      catch { setOperation({ identity, busy: false, error: draftValidationMessage(draft) }); return; }
-      const pendingReceipt = { ownerId: account.userId, draftId: draft.id, projectId: null };
-      rememberReceipt(pendingReceipt); retained = pendingReceipt;
-      setOperation({ identity, busy: true, receipt: retained });
-      let project;
-      try {
-        ({ project } = await boundedAccountRequest("/api/projects", accountProjectResponseSchema, { method: "POST", body: input, signal: controller.signal }));
-      } catch (cause) {
-        if (cause instanceof AccountRequestError && [400, 401, 403, 413, 422, 429].includes(cause.status)) {
-          forgetReceipt(retained); retained = null;
-        }
-        throw cause;
-      }
-      if (!current()) return;
-      if (project.owner_id !== account.userId) { expire(account); return; }
-      if (project.current_revision !== 1 || project.scope !== input.scope || project.title !== input.title || JSON.stringify(project.context) !== JSON.stringify(input.context)) throw new AccountRequestError(502);
-      retained = { ...retained, projectId: project.id }; rememberReceipt(retained);
-      setOperation({ identity, busy: false, receipt: retained });
-      router.push(`/brands/account/${project.id}`);
+      const saved = await saveLocalDraftToAccount({ account, draft, signal: controller.signal, isCurrent, expire, onReceipt: value => {
+        retained = value;
+        if (current()) setOperation({ identity, busy: true, receipt: value });
+      } });
+      if (!saved || !current() || !saved.receipt.projectId) return;
+      setOperation({ identity, busy: false, receipt: saved.receipt });
+      if (onSaved) onSaved(saved.receipt.projectId);
+      else router.push(`/brands/account/${saved.receipt.projectId}`);
+      finishLocalDraftRecovery(draft.id, account.userId, saved.receipt.projectId);
     } catch (cause) {
       if (!current()) return;
       if (cause instanceof AccountRequestError && cause.status === 401) expire(account);
-      else setOperation({ identity, busy: false, receipt: retained, error: retained ? "The account save is not confirmed. Check account projects before saving another copy. Your browser draft is kept." : cause instanceof StartReceiptRecoveryError ? cause.message : accountErrorMessage(cause) });
+      else setOperation({ identity, busy: false, receipt: retained, error: retained ? "The save is not confirmed. Your original project is kept; retry to check the same request." : cause instanceof StartReceiptRecoveryError ? cause.message : accountErrorMessage(cause) });
     } finally {
       if (request.current === controller) {
         request.current = null;
@@ -92,7 +68,8 @@ export function AccountCopyControl({ draft }: { draft: LocalDraft }) {
     }
   }
 
-  return <div className="account-copy-control"><div><strong>Keep a copy in your account</strong><p>{session.status === "ready" ? receipt?.projectId ? "An account copy is already saved. Your browser draft remains independent." : uncertain ? "The earlier account save is not confirmed. Your browser draft is kept." : "Your browser draft stays here when you save an account copy." : session.status === "checking" ? "Checking your account…" : "Account saving is unavailable until a verified session is connected."}</p>{error && <p className="form-error" role="alert">{error}</p>}{(uncertain || recovery?.error) && <Link className="text-link" href="/brands">Check account projects</Link>}</div><button className="button secondary small" type="button" disabled={session.status !== "ready" || busy || !recovery || Boolean(recovery.error) || uncertain} onClick={() => void copy()}>{busy ? "Saving copy…" : receipt?.projectId ? "Open saved account project" : "Save to account"}<Icon name="arrow" size={15} /></button></div>;
+  if (draft.ownerId && draft.ownerId !== ownerId) return null;
+  return <div className="account-copy-control"><div><strong>{receipt?.projectId ? "Project recovered" : "Save this project"}</strong><p>{session.status === "ready" ? receipt?.projectId ? "This project is saved in your account." : uncertain ? "The earlier account save is not confirmed. Your original project is kept." : "Save this project to your signed-in account. This does not start AI." : session.status === "checking" ? "Checking your account…" : "Sign in to save your project."}</p>{error && <p className="form-error" role="alert">{error}</p>}{(unrecoverable || recovery?.error) && <Link className="text-link" href="/brands">Check account projects</Link>}</div><button className="button secondary small" type="button" disabled={session.status !== "ready" || busy || !recovery || Boolean(recovery.error) || unrecoverable} onClick={() => void copy()}>{busy ? "Saving…" : receipt?.projectId ? "Open saved project" : uncertain ? "Check and retry save" : "Save project"}<Icon name="arrow" size={15} /></button></div>;
 }
 
 /** Callers must key their mounted library by owner and generation, hiding old rows immediately. */

@@ -26,7 +26,7 @@ export function signInErrorMessage(error: unknown): string {
   if (error instanceof SignInRequestError) {
     if (error.status === 401) return "We couldn't sign you in with those details. Check your email and password and try again.";
     if (error.status === 429) return "Too many sign-in attempts. Wait a little before trying again.";
-    if (error.status === 503) return "Sign-in is unavailable right now. You can keep working with browser drafts.";
+    if (error.status === 503) return "Sign-in is unavailable right now. Your work is kept. Please try again shortly.";
     if (error.status === 403) return "This sign-in request couldn't be verified. Refresh the page and try again.";
     if (error.status === 413 || error.status === 422) return "Check your email and password and try again.";
     if (error.status === 502) return "The sign-in response couldn't be verified. Check your account before trying again.";

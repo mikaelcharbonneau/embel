@@ -194,8 +194,28 @@ describe("bounded raw Home upload transport", () => {
   const fetcher = vi.fn().mockResolvedValue(Response.json({ requestKey: input.requestKey, attachment: ref })); vi.stubGlobal("fetch", fetcher);
   const client = createAccountLifecycleClient(homeAccount, () => true, vi.fn()); const operation = client.stageHomeAttachment(input, bytes); bytes[0] = 0;
   expect(await operation).toEqual(ref);
-  expect(fetcher).toHaveBeenCalledExactlyOnceWith("/api/home/attachments", expect.objectContaining({ method: "POST", credentials: "same-origin", headers: expect.objectContaining({ "Content-Type": "text/plain", "X-Fluid-Attachment-Name": encodeURIComponent(name), "X-Fluid-Content-Hash": hash }) }));
+  expect(fetcher).toHaveBeenCalledExactlyOnceWith("/api/home/attachments", expect.objectContaining({ method: "POST", credentials: "same-origin", headers: expect.objectContaining({ "Content-Type": "text/plain", "X-Embel-Account": homeAccount.userId, "X-Fluid-Attachment-Name": encodeURIComponent(name), "X-Fluid-Content-Hash": hash }) }));
   expect([...new Uint8Array(fetcher.mock.calls[0]![1].body)]).toEqual([104, 105]);
+ });
+ it("binds an attached project creation to the captured account", async () => {
+  const project = { title: "Retained brief", scope: "complete_brand" as const, context: contextSnapshotSchema.parse({ description: "Typed brief" }) };
+  const input = { requestKey: homeId(2), project, attachmentIds: [homeId(1)] };
+  const receipt = { ownerId: homeOwner, requestKey: input.requestKey, project: { ...project, id: homeProject, owner_id: homeOwner, current_revision: 1, created_at: "2026-10-07T00:00:00Z" }, attachments: [{ ...uploaded(1), projectId: homeProject, projectRevision: 1, state: "linked" }] };
+  const fetcher = vi.fn().mockResolvedValue(Response.json(receipt)); vi.stubGlobal("fetch", fetcher);
+  const client = createAccountLifecycleClient(homeAccount, () => true, vi.fn());
+  expect(await client.saveAttachedProjectDraft(input)).toEqual(receipt);
+  expect(fetcher).toHaveBeenCalledExactlyOnceWith("/api/home/projects", expect.objectContaining({ method: "POST", headers: expect.objectContaining({ "X-Embel-Account": homeAccount.userId }), body: JSON.stringify(input) }));
+ });
+ it.each(["upload", "project"])("expires the captured account on a cookie-switch rejection of %s without retrying", async kind => {
+  vi.stubGlobal("crypto", webcrypto);
+  const fetcher = vi.fn().mockResolvedValue(new Response(null, { status: 401 })), expire = vi.fn(); vi.stubGlobal("fetch", fetcher);
+  const client = createAccountLifecycleClient(homeAccount, () => true, expire);
+  const bytes = new Uint8Array([104, 105]), hash = createHash("sha256").update(bytes).digest("hex");
+  const result = kind === "upload"
+   ? await client.stageHomeAttachment({ requestKey: homeId(1), name: "1.txt", mimeType: "text/plain", contentHash: hash }, bytes)
+   : await client.saveAttachedProjectDraft({ requestKey: homeId(2), project: { title: "Private draft", scope: "complete_brand", context: contextSnapshotSchema.parse({ description: "Typed brief" }) }, attachmentIds: [] });
+  expect(result).toBeNull(); expect(expire).toHaveBeenCalledExactlyOnceWith(homeAccount); expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(new Headers(fetcher.mock.calls[0]![1].headers).get("X-Embel-Account")).toBe(homeOwner);
  });
  it("refuses changed bytes before network and mismatched upload acknowledgements", async () => {
   vi.stubGlobal("crypto", webcrypto);

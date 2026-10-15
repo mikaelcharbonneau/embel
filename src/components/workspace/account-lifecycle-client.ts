@@ -38,7 +38,7 @@ export function createAccountLifecycleClient(account: VerifiedAccount, isCurrent
   try {
    const serialized = body === undefined ? undefined : JSON.stringify(body);
    if (serialized && new TextEncoder().encode(serialized).byteLength > 32_768) throw new AccountRequestError(413);
-   const response = await fetch(path, { signal: controller.signal, method: body === undefined ? "GET" : "POST", credentials: "same-origin", mode: "same-origin", cache: "no-store", headers: { Accept: "application/json", ...(body === undefined ? {} : { "Content-Type": "application/json" }) }, ...(serialized === undefined ? {} : { body: serialized }) });
+   const response = await fetch(path, { signal: controller.signal, method: body === undefined ? "GET" : "POST", credentials: "same-origin", mode: "same-origin", cache: "no-store", headers: { Accept: "application/json", ...(body === undefined ? {} : { "Content-Type": "application/json", "X-Embel-Account": account.userId }) }, ...(serialized === undefined ? {} : { body: serialized }) });
    const result = await boundedResponse(response, schema, controller.signal, maxBytes);
    if (!isCurrent(account) || controller.signal.aborted) return null;
    if (!verify(result)) throw new AccountRequestError(502); return result;
@@ -87,7 +87,7 @@ export function createAccountLifecycleClient(account: VerifiedAccount, isCurrent
     if (hash !== input.contentHash) throw new AccountRequestError(422);
     if (!isCurrent(account) || controller.signal.aborted) return null;
     const response = await fetch("/api/home/attachments", { method: "POST", credentials: "same-origin", mode: "same-origin", cache: "no-store", signal: controller.signal,
-     headers: { Accept: "application/json", "Content-Type": input.mimeType, "X-Fluid-Request-Key": input.requestKey, "X-Fluid-Attachment-Name": encodeURIComponent(input.name), "X-Fluid-Content-Hash": input.contentHash }, body: snapshot.buffer });
+     headers: { Accept: "application/json", "Content-Type": input.mimeType, "X-Embel-Account": account.userId, "X-Fluid-Request-Key": input.requestKey, "X-Fluid-Attachment-Name": encodeURIComponent(input.name), "X-Fluid-Content-Hash": input.contentHash }, body: snapshot.buffer });
     const result = await boundedResponse(response, z.strictObject({ requestKey: z.uuid(), attachment: ownedAttachmentRefSchema }), controller.signal, 65_536);
     if (!isCurrent(account) || controller.signal.aborted) return null;
     const ref = result.attachment;

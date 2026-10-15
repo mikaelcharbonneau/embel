@@ -1,8 +1,37 @@
 # Embel foundation architecture
 
+## Account-first persistence
+
+D065 supersedes the historical local draft and Names persistence sections below.
+The database is authoritative for signed-in project and standalone-tool work.
+Projects and tool libraries expose one account workspace; local device copies
+are recovery material, not a second source of ordinary content. Home may accept
+an initial prompt before sign-in, but saving work requires a verified account.
+
+Changes use the existing authenticated APIs, server-derived ownership and RLS.
+Debounced, serialized writes acknowledge Saving/Saved states, preserve edits
+entered during a write, and use expected revisions to detect conflicting changes.
+A failed save retains the draft and exact pending request; a retry never silently
+changes its identity or falls back to a claimed local success. Names persists its
+existing validated workshop graph and history without changing transformation
+semantics. Its account memory is hidden during session re-verification and fenced
+against a different owner or a late response.
+
+Account-scoped creation, upload and singleton saves send the captured account ID
+in `X-Embel-Account`. The API compares it with its authenticated identity before
+writing, rejecting a stale tab after another tab changes the shared session.
+This is an expected-account fence, never a client-selected owner; RLS and all
+ownership decisions still derive from the authenticated session.
+
+Account project creation accepts an optional stable request key. An owned exact
+replay returns the existing project rather than creating a duplicate; conflicting
+reuse is rejected. Legacy local data remains unchanged until an explicit recovery
+selection and account confirmation. Recovery and ordinary creation do not start AI
+unless the user separately sends a prompt under the existing admission contract.
+
 ## Guided brand interview
 
-D063 supersedes the earlier Strategy conversation presentation below. The account workspace now uses a focused interview in the order competitors, target audience and brand personality, preceded by real competitor research and an animated original-logo loading screen. Detailed choice cards explain recommendations without preselecting them; the normal composer accepts custom answers, clarifications and explicit requests to revisit a stage. Positioning is not appended to this interview.
+D063 supersedes the earlier Strategy conversation presentation below. The account workspace now uses a focused interview in the order competitors, target audience and brand personality, with real competitor research shown by the same inline animated Embel thinking mark as later replies. Detailed choice cards explain recommendations without preselecting them; the normal composer accepts custom answers, clarifications and explicit requests to revisit a stage. Positioning is not appended to this interview.
 
 Optional versioned `intake.guidedInterview` metadata stores actual user-message references, exact saved input revisions and explicit decisions. Assistant content remains exclusively in immutable owned job results. API input v2 freezes bounded owned assistant history at admission; guided output binds its turn/stage and distinguishes choices, question, answer, accepted custom decision and requested redirect. The browser never supplies assistant history. Account orchestration saves canonical selections before requesting the next widget; old snapshots and results remain readable. Completed decisions remain valid during clarification, and explicit revisits clear the affected review facts.
 
@@ -35,7 +64,7 @@ Jobs use operation, owner, project, input revision/hash, idempotency key, queued
 
 Each provider wait has a five-minute default deadline, configurable per step up to one hour. Cancellation permits a five-second default grace (maximum thirty seconds) for cooperative settlement. Ignored cancellation or a deadline quarantines the job with its remaining reservation intact; a lost lease cannot publish late output. Cost overruns retain generated content and actual provider expense separately from the capped customer reservation. Retry ambiguous provider requests only with a reconciliation policy; never assume exactly-once external execution. No provider-specific reconciliation or manual retry endpoint is enabled yet.
 
-## Draft persistence increment
+## Historical draft persistence increment (superseded by D065)
 
 Browser drafts remain independent local copies. Saving to an account uses the existing project creation API after a verified `/api/session` response; a separate account route edits the stored project. Both routes share the intake editor. Account updates send an expected revision and optional title, which commit atomically with the new immutable context revision. Expansion to a complete brand is a dedicated owner-checked database operation that copies the current saved context and hash into a new revision. Already complete projects are idempotent only at the current expected revision.
 
@@ -51,7 +80,7 @@ Live integration tests have a separate command, explicit opt-in, and an explicit
 
 The Projects collection (formerly Brands) keeps `/brands` and existing browser/account destinations while adopting the approved unified grid. Its account page hook retains validated cursor merging and bounded, owner/generation-fenced reads. Collection controls stay outside the private listing remount boundary. Account summaries deliberately expose unavailable stage/update metadata rather than inventing details. See [Projects design and behavior](projects-guided-design.md).
 
-## Names provenance and browser persistence
+## Historical Names browser persistence (superseded by D065)
 
 Standalone Names has a separate versioned browser store. Captured candidates, context and runs are immutable; preferences and current workshop controls remain editable. Stored input is fully validated, including replay of bounded transformation history and cross-record references. Version 1 pins transformation semantics and history explanations: future algorithm or wording changes must retain a compatible reader or explicitly migrate old records rather than invalidate them silently.
 

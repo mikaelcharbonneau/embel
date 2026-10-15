@@ -7,10 +7,16 @@ import { ApiError } from "@/server/http/errors";
 import { DEFAULT_PROFILE_VALUES } from "@/domain/account-profile";
 const auth = { userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", email: "verified@example.invalid", client: {} };
 const body = { expectedRevision: 0, values: DEFAULT_PROFILE_VALUES };
-const request = (payload: unknown = body, origin = "http://localhost:3105", query = "") => new Request("http://localhost:3105/api/account/profile" + query, { method: "PATCH", headers: { origin, "content-type": "application/json" }, body: JSON.stringify(payload) });
+const request = (payload: unknown = body, origin = "http://localhost:3105", query = "") => new Request("http://localhost:3105/api/account/profile" + query, { method: "PATCH", headers: { origin, "content-type": "application/json", "X-Embel-Account": auth.userId }, body: JSON.stringify(payload) });
 beforeEach(() => { vi.resetAllMocks(); vi.stubEnv("APP_ORIGIN", "http://localhost:3105"); mock.auth.mockResolvedValue(auth); mock.read.mockResolvedValue({}); mock.save.mockResolvedValue({}); });
 afterEach(() => vi.unstubAllEnvs());
 describe("profile HTTP boundary", () => {
+  it.each([undefined, "invalid", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"])("rejects a missing or mismatched captured account before profile mutation: %s", async expectedOwner => {
+    const req = request();
+    if (expectedOwner) req.headers.set("X-Embel-Account", expectedOwner); else req.headers.delete("X-Embel-Account");
+    expect((await PATCH(req)).status).toBe(401);
+    expect(mock.save).not.toHaveBeenCalled();
+  });
   it("uses verified identity and private responses for reads and writes", async () => {
     const response = await GET(new Request("http://localhost:3105/api/account/profile"));
     expect(response.status).toBe(200); expect(response.headers.get("cache-control")).toBe("private, no-store"); expect(response.headers.get("vary")).toBe("Cookie");
