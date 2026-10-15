@@ -187,12 +187,12 @@ async function openProject(page: Page) {
   await page.goto(`/brands/account/${projectId}`);
 }
 
-async function openHomeAndSend(page: Page) {
+async function openHomeAndSend(page: Page, prompt = initialPrompt) {
   await Promise.all([
     page.waitForResponse(response => new URL(response.url()).pathname === "/api/strategy" && response.request().method() === "GET"),
     page.goto("/"),
   ]);
-  await page.getByRole("textbox", { name: "Your prompt", exact: true }).fill(initialPrompt);
+  await page.getByRole("textbox", { name: "Your prompt", exact: true }).fill(prompt);
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
 }
 
@@ -248,15 +248,16 @@ async function expectComposerInViewport(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 }
 
-test("guided interview: the chat opens while the first enqueue acknowledgement is pending", async ({ page }) => {
+for (const length of ["short", "long"] as const) test(`guided interview: the chat opens for a ${length} prompt while the first enqueue acknowledgement is pending`, async ({ page }) => {
   const state = await fixtures(page);
   let release!: () => void;
   state.enqueueGate = new Promise<void>(resolve => { release = resolve; });
+  const submittedPrompt = length === "long" ? initialPrompt.repeat(50) : initialPrompt;
   try {
-    await openHomeAndSend(page);
+    await openHomeAndSend(page, submittedPrompt);
     await expect.poll(() => state.enqueues.length).toBe(1);
-    await expect(page.getByText(initialPrompt, { exact: true })).toBeVisible();
-    await expect(page.getByRole("status", { name: "Embel is thinking", exact: true })).toBeVisible();
+    await expect(page.getByText(submittedPrompt, { exact: true })).toBeVisible();
+    await expect(page.getByRole("status", { name: "Embel is thinking", exact: true })).toBeInViewport({ ratio: 1 });
     await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
     await expect(page.locator(".guided-research-screen")).toHaveCount(0);
   } finally { release(); }

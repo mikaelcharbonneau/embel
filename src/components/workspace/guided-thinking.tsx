@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { ProjectArtwork } from "@/components/ui/project-artwork";
 import { ConversationComposer } from "./conversation-composer";
 
@@ -12,8 +13,10 @@ export function GuidedThinking({ onStop, stopping = false, stopDisabled = false 
 
 /** Keeps the submitted prompt visible while its account project is being saved. */
 export function OpeningGuidedConversation({ prompt }: { prompt: string }) {
+  const transcript = useRef<HTMLDivElement>(null);
+  useEffect(() => { transcript.current?.scrollTo({ top: transcript.current.scrollHeight, behavior: "instant" }); }, [prompt]);
   return <div className="guided-interview guided-interview-opening" aria-label="Brand conversation">
-    <div className="guided-interview-scroll" role="log" aria-label="Conversation" aria-live="polite">
+    <div ref={transcript} className="guided-interview-scroll" role="log" aria-label="Conversation" aria-live="polite">
       <div className="guided-user-message"><span className="sr-only">You</span><p>{prompt}</p></div>
       <GuidedThinking />
     </div>
