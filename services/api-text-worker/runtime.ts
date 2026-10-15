@@ -2,6 +2,7 @@ import { Pool } from "pg";
 import { QueueClient } from "@vercel/queue";
 import { readWorkerIdentity, workerPoolOptions } from "../../worker/hosting/config";
 import type { PublicationDependencies } from "../../worker/hosting/publication";
+import { multiAccountApiTextEnabled } from "../../worker/api-text-multi-account";
 
 let pool: Pool | undefined;
 export function workerDatabase(): Pool {
@@ -19,5 +20,5 @@ export function queueClient(): QueueClient {
 }
 export function publicationDependencies(signal: AbortSignal): PublicationDependencies {
   const { deploymentId } = readWorkerIdentity();
-  return { database: workerDatabase(), send: queueClient().send, deploymentId, signal };
+  return { database: workerDatabase(), send: queueClient().send, deploymentId, signal, multiAccount: multiAccountApiTextEnabled() };
 }

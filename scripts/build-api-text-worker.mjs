@@ -6,13 +6,13 @@ import path from "node:path";
 const root = fileURLToPath(new URL("../", import.meta.url));
 await mkdir(path.join(root, ".tmp"), { recursive: true });
 const output = await mkdtemp(path.join(root, ".tmp", "api-text-worker-"));
-const entryPoints = ["enqueue", "consume", "cron/repair-api-text"].map(name => path.join(root, "services/api-text-worker/api", `${name}.ts`));
+const entryPoints = ["enqueue", "readiness", "consume", "cron/repair-api-text"].map(name => path.join(root, "services/api-text-worker/api", `${name}.ts`));
 const result = await build({ entryPoints, outbase: path.join(root, "services/api-text-worker"), outdir: output,
   bundle: true, platform: "node", format: "esm", target: "node24", conditions: ["react-server"], loader: { ".crt": "text" },
   external: ["pg-native"], sourcemap: false, metafile: true, legalComments: "none",
   banner: { js: 'import { createRequire as __fluidCreateRequire } from "node:module"; const require = __fluidCreateRequire(import.meta.url);' },
 });
-// Bundle only the three entrypoint dependency graphs. Never copy the checkout,
+// Bundle only the four entrypoint dependency graphs. Never copy the checkout,
 // environment, credentials, caches, source maps, or the web project's config.
 for (const source of Object.keys(result.metafile.inputs)) {
   if (/(^|\/)(\.env[^/]*|\.local-fluid|\.vercel)(\/|$)/.test(source)) throw new Error("Protected build input rejected");

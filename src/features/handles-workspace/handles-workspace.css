@@ -99,6 +99,9 @@
 .handles-editor { width: 100%; }
 .handles-search-form { display: flex; flex-direction: column; gap: 20px; padding: 0; background: none; border: 0; border-radius: 0; }
 .handles-business-field > label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 500; line-height: 20px; }
+.handles-business-field { position: relative; }
+.handles-name-library { position: absolute; top: -12px; right: 0; }
+@media (max-width: 600px) { .handles-name-library { position: static; } }
 .handles-business-field > label span { color: var(--secondary); font-weight: 400; margin-left: 4px; }
 .handles-business-row { display: flex; align-items: center; gap: 12px; }
 .handles-token-field { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 10px; min-height: 46px; min-width: 0; flex: 1; border: 1px solid var(--border); border-radius: var(--panel-radius); background: var(--paper); }

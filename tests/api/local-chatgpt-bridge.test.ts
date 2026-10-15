@@ -52,7 +52,7 @@ describe("local ChatGPT bridge", () => {
     expect((await proxyLocalChatGPT(request(), "status")).status).toBe(404);
     expect(fetcher).not.toHaveBeenCalled();
   });
-  it("requires a verified Fluid account before accessing registration metadata", async () => {
+  it("requires a verified Embel account before accessing registration metadata", async () => {
     auth.mockRejectedValue(new ApiError("unauthenticated"));
     expect((await proxyLocalChatGPT(request(), "status")).status).toBe(401);
     expect(fetcher).not.toHaveBeenCalled();

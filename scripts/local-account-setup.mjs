@@ -17,7 +17,7 @@ const CANCELLED_BEFORE_REQUEST = "Account setup was cancelled. No account reques
 const PREFLIGHT = Object.freeze({
   invocation: "Account setup requires the clean-environment command without extra options. No account request was sent.",
   terminal: "Account setup requires an interactive Terminal. No account request was sent.",
-  configuration: "Account setup could not read the protected Fluid public configuration. No account request was sent.",
+  configuration: "Account setup could not read the protected Embel public configuration. No account request was sent.",
 });
 class AccountSetupPreflightError extends Error {
   constructor(kind) { super(PREFLIGHT[kind]); }
@@ -192,10 +192,10 @@ export async function runLocalAccountSetup({ root, input, output, environment, a
     validateAccountSetupInvocation(args, environment, execArgs);
     if (!input.isTTY || !output.isTTY) throw new AccountSetupPreflightError("terminal");
     const { publishableKey } = await readAccountPublicConfiguration(root);
-    output.write("Fluid account setup\nThis creates your ordinary account in fluid-platform-dev and sends a confirmation email.\nUse the email of your existing Supabase team account; default mail delivery is limited to team addresses and two emails per hour.\nEmail, password and confirmation link stay hidden. Ctrl+C cancels.\n");
+    output.write("Embel account setup\nThis creates your ordinary account in fluid-platform-dev and sends a confirmation email.\nUse the email of your existing Supabase team account; default mail delivery is limited to team addresses and two emails per hour.\nEmail, password and confirmation link stay hidden. Ctrl+C cancels.\n");
     email = await readHiddenWorkerPassword(input, output, "Email (hidden): ", { signal });
     if (email.length > 254 || !/^[^\s@\x00-\x1f\x7f]+@[^\s@\x00-\x1f\x7f]+\.[^\s@\x00-\x1f\x7f]+$/.test(email)) throw failure();
-    password = await readHiddenWorkerPassword(input, output, "New Fluid password, at least 8 characters (hidden): ", { signal });
+    password = await readHiddenWorkerPassword(input, output, "New Embel password, at least 8 characters (hidden): ", { signal });
     confirmation = await readHiddenWorkerPassword(input, output, "Confirm password (hidden): ", { signal });
     first = Buffer.from(password); second = Buffer.from(confirmation);
     if ([...password].length < 8 || first.length > 1024 || first.length !== second.length || !timingSafeEqual(first, second)) throw failure();
@@ -211,7 +211,7 @@ export async function runLocalAccountSetup({ root, input, output, environment, a
     const verified = await post("verify", publishableKey, verification, { signal });
     verification.token_hash = "";
     userIdentity(verified, email, true, ownerId);
-    output.write("Email verified. Sign in to Fluid using the email and password you entered. No session tokens were saved.\n");
+    output.write("Email verified. Sign in to Embel using the email and password you entered. No session tokens were saved.\n");
     return { ownerId };
   } catch (error) {
     const wasCancelled = signal?.aborted || error?.message?.includes("cancelled");

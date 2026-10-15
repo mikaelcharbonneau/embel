@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { LogoCreationFixturePreview } from "../fixtures/logo-creation-preview";
 import { LogoBriefFields } from "../../src/components/logo-creation/brief-form";
-import { LogoReferencePickerView } from "../../src/components/logo-creation/reference-picker";
+import { LogoReferenceLimitNotice, LogoReferencePickerView } from "../../src/components/logo-creation/reference-picker";
 import { LogoConceptGridView } from "../../src/components/logo-creation/concept-grid";
 import { LogoCostConfirmationView } from "../../src/components/logo-creation/cost-confirmation";
 import type { LogoBriefDraft, LogoReferenceSelection } from "../../src/domain/logo-workspace";
@@ -31,6 +31,13 @@ function fixtureMarkup(node: ReactNode) {
 }
 
 describe("logo presentation (test-only domain bindings)", () => {
+  it("shows the operation-specific image limits and retains an over-limit reference count", () => {
+    const overLimit = renderToStaticMarkup(createElement(LogoReferenceLimitNotice, { count: 5 }));
+    expect(overLimit).toContain("5 selected reference images"); expect(overLimit).toContain("Concepts allow up to 4");
+    expect(overLimit).toContain("up to 3 references plus its original logo image"); expect(overLimit).toContain("Deselect extra references");
+    expect(overLimit).toContain("earlier versions are kept");
+    expect(renderToStaticMarkup(createElement(LogoReferenceLimitNotice, { count: 4 }))).toContain("Choose at most 3 if you plan to refine it later");
+  });
   it.each([{ request: null }, { request: { status: "not_found" as const } }])("keeps original-request recovery available before a batch receipt: $request", ({ request }) => {
     const reads: string[] = [];
     const newRequests: string[] = [];
@@ -147,10 +154,10 @@ describe("logo presentation (test-only domain bindings)", () => {
     expect(reuseCalls).toBe(1);
   });
   it("shows the name conflict and source revision while leaving the exact name editable", () => {
-    const node = LogoBriefFields({ draft: syntheticLogoBrief({ name: "" }), onChange: () => {}, nameConflict: true, sourceProjectRevision: 4 });
-    expect(control(node, "Brand name").props["aria-invalid"]).toBe(true);
+    const node = LogoBriefFields({ draft: syntheticLogoBrief(), onChange: () => {}, nameConflict: true, sourceProjectRevision: 4 });
+    expect(control(node, "Brand name").props["aria-invalid"]).toBe(false);
     expect(fixtureMarkup(node)).toContain("Strategy revision 4");
-    expect(fixtureMarkup(node)).toContain("Choose the exact brand name");
+    expect(fixtureMarkup(node)).toContain("The selected name is copied below; review its exact spelling before saving");
   });
   it("offers the same four independent aspects for curated and uploaded references", () => {
     const references = syntheticLogoReferences();

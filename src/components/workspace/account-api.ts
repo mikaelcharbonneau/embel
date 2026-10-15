@@ -31,7 +31,7 @@ async function safeAccountErrorCode(response: Response): Promise<"naming_history
 }
 
 /** Private browser requests always go through our same-origin API. */
-export async function accountRequest<T>(path: string, schema: z.ZodType<T>, options: { signal: AbortSignal; method?: "GET" | "POST" | "PATCH" | "DELETE"; body?: unknown }): Promise<T> {
+export async function accountRequest<T>(path: string, schema: z.ZodType<T>, options: { signal: AbortSignal; method?: "GET" | "POST" | "PATCH" | "DELETE"; body?: unknown; expectedOwnerId?: string }): Promise<T> {
   const body = options.body === undefined ? undefined : JSON.stringify(options.body);
   if (body !== undefined && new TextEncoder().encode(body).byteLength > PROJECT_MUTATION_MAX_BYTES) throw new AccountRequestError(413);
   const response = await fetch(path, {
@@ -40,7 +40,7 @@ export async function accountRequest<T>(path: string, schema: z.ZodType<T>, opti
     mode: "same-origin",
     cache: "no-store",
     signal: options.signal,
-    headers: { Accept: "application/json", ...(options.body === undefined ? {} : { "Content-Type": "application/json" }) },
+    headers: { Accept: "application/json", ...(options.body === undefined ? {} : { "Content-Type": "application/json" }), ...(options.expectedOwnerId ? { "X-Embel-Account": options.expectedOwnerId } : {}) },
     ...(body === undefined ? {} : { body }),
   });
   if (!response.ok) throw new AccountRequestError(response.status, await safeAccountErrorCode(response));

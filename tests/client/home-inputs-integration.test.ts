@@ -5,14 +5,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { webcrypto } from "node:crypto";
 import { File as NodeFile } from "node:buffer";
 import { contextSnapshotSchema } from "@/domain/projects";
-import { accountProjectDraft } from "@/components/workspace/project-draft-adapter";
+import { accountProjectDraft, createAccountInput } from "@/components/workspace/project-draft-adapter";
 import { createHomeInputSession, emptyHomeInputIntent, type HomeInputSession } from "@/features/home-inputs/home-input-session";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 import { NewProjectForm } from "@/components/workspace/project-editor";
-const mock = vi.hoisted(() => ({ session: { status: "ready", userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", generation: 1 } as VerifiedAccount | { status: "checking"; generation: number }, memory: null as HomeInputSession | null, create: vi.fn(), update: vi.fn(), get: vi.fn(), push: vi.fn(), strategy: vi.fn(), current: vi.fn(), expire: vi.fn() }));
+import { forgetReceipt, readReceipt, rememberReceipt } from "@/components/workspace/account-project-start-recovery";
+const mock = vi.hoisted(() => ({ session: { status: "ready", userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", generation: 1 } as VerifiedAccount | { status: "checking"; generation: number }, memory: null as HomeInputSession | null, create: vi.fn(), update: vi.fn(), get: vi.fn(), push: vi.fn(), strategy: vi.fn(), save: vi.fn(), current: vi.fn(), expire: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mock.push }) }));
 vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ session: mock.session, homeInputSession: mock.memory, isCurrent: mock.current, expire: mock.expire }) }));
-vi.mock("@/components/workspace/account-strategy-start", () => ({ useAccountStrategyStart: (options?: { beforeSignIn?: () => boolean }) => ({ start: mock.strategy, pending: false, notice: createElement("a", { href: "/sign-in", onClick: (event: { preventDefault: () => void }) => { if (options?.beforeSignIn && !options.beforeSignIn()) event.preventDefault(); } }, "Sign in fixture") }) }));
+vi.mock("@/components/workspace/account-strategy-start", () => ({ useAccountStrategyStart: (options?: { beforeSignIn?: () => boolean }) => ({ start: mock.strategy, save: mock.save, pending: false, notice: createElement("a", { href: "/sign-in", onClick: (event: { preventDefault: () => void }) => { if (options?.beforeSignIn && !options.beforeSignIn()) event.preventDefault(); } }, "Sign in fixture") }) }));
 vi.mock("@/components/workspace/local-drafts", async importOriginal => ({ ...await importOriginal<typeof import("@/components/workspace/local-drafts")>(), useLocalDrafts: () => ({ loaded: true, drafts: [], storage: "available" }), createLocalDraft: mock.create, updateLocalDraft: mock.update, getLocalDraft: mock.get }));
 const owner = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", projectId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc", fileId = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
 const account: VerifiedAccount = { status: "ready", userId: owner, generation: 1 };
@@ -23,9 +24,12 @@ let root: Root | null = null, host: HTMLDivElement;
 async function render() { await act(async () => root!.render(createElement(NewProjectForm, { initialScope: "complete_brand", home: true, exampleId: "b2b" }))); }
 async function click(label: string) { await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent?.includes(label))!.click()); }
 beforeEach(() => {
+ Object.defineProperty(navigator, "locks", { configurable: true, value: { request: (_name: string, _options: unknown, action: () => Promise<unknown>) => action() } });
+ window.localStorage.clear(); window.sessionStorage.clear();
  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }); mock.session = account; mock.memory = createHomeInputSession(); mock.memory.bind(account);
  mock.current.mockReset().mockImplementation((value: VerifiedAccount) => mock.session.status === "ready" && mock.session.userId === value.userId && mock.session.generation === value.generation);
- mock.update.mockReset().mockReturnValue(true); mock.create.mockReset().mockReturnValue(projectId); mock.get.mockReset().mockReturnValue(draft); mock.push.mockReset(); mock.strategy.mockReset().mockResolvedValue(false);
+ mock.update.mockReset().mockReturnValue(true); mock.create.mockReset().mockReturnValue(projectId); mock.get.mockReset().mockReturnValue(draft); mock.push.mockReset(); mock.strategy.mockReset().mockResolvedValue(false); mock.save.mockReset().mockResolvedValue(true);
+ forgetReceipt({ ownerId: owner, draftId: projectId, projectId: null });
  host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.replaceChildren(); vi.unstubAllGlobals(); });
@@ -161,12 +165,12 @@ describe("mounted Home attached brief integration", () => {
   expect(host.querySelector("textarea")!.readOnly).toBe(true); expect(mock.create).toHaveBeenCalledTimes(1);
  });
 
- it("reuses the retained browser draft on AI retries and an explicit Save draft", async () => {
+ it("reuses the retained browser draft on AI retries and an explicit Save project", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => capability())); await render();
   await click("Send prompt"); await click("Send prompt");
   expect(mock.create).toHaveBeenCalledTimes(1); expect(mock.strategy).toHaveBeenCalledTimes(2); expect(mock.push).not.toHaveBeenCalled();
-  await click("Save draft"); expect(mock.create).toHaveBeenCalledTimes(1); expect(mock.strategy).toHaveBeenCalledTimes(2);
-  expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/${projectId}`);
+  await click("Save project"); expect(mock.create).toHaveBeenCalledTimes(1); expect(mock.strategy).toHaveBeenCalledTimes(2);
+  expect(mock.save).toHaveBeenCalledExactlyOnceWith(draft); expect(mock.push).not.toHaveBeenCalled();
  });
  it("does not duplicate local drafts or AI starts on same-turn Send clicks", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => capability())); let finish!: (value: boolean) => void;
@@ -176,16 +180,16 @@ describe("mounted Home attached brief integration", () => {
   expect(mock.create).toHaveBeenCalledTimes(1); expect(mock.strategy).toHaveBeenCalledTimes(1);
   await act(async () => finish(false)); expect(mock.push).not.toHaveBeenCalled();
  });
- it("keeps Save draft unavailable while attached files need recovery", async () => {
+ it("keeps Save project unavailable while attached files need recovery", async () => {
   selectFiles(); vi.stubGlobal("fetch", vi.fn(async () => capability())); await render();
-  expect([...host.querySelectorAll("button")].find(button => button.textContent === "Save draft")).toBeUndefined();
+  expect([...host.querySelectorAll("button")].find(button => button.textContent === "Save project")).toBeUndefined();
   expect(host.querySelector<HTMLButtonElement>('button[type="submit"]')!.textContent).toBe("Save brief with files");
  });
 
- it("does not turn a stale Save draft click into attached-file transmission", async () => {
+ it("does not turn a stale Save project click into attached-file transmission", async () => {
   const fetcher = vi.fn(async () => capability()); vi.stubGlobal("fetch", fetcher); await render();
   await click("Send prompt"); mock.create.mockClear(); mock.strategy.mockClear();
-  const save = [...host.querySelectorAll("button")].find(button => button.textContent === "Save draft")!;
+  const save = [...host.querySelectorAll("button")].find(button => button.textContent === "Save project")!;
   await act(async () => { selectFiles(); save.click(); });
   expect(mock.create).not.toHaveBeenCalled(); expect(mock.strategy).not.toHaveBeenCalled();
   expect(fetcher.mock.calls).toHaveLength(1); expect(mock.push).not.toHaveBeenCalled();
@@ -204,10 +208,43 @@ describe("mounted Home attached brief integration", () => {
   vi.stubGlobal("fetch", vi.fn(async () => capability())); await render(); await click("Send prompt");
   await click("A neighborhood coffee shop");
   const latest = host.querySelector("textarea")!.value; expect(latest).toContain("neighborhood coffee shop");
-  mock.update.mockClear(); const link = host.querySelector<HTMLAnchorElement>(`a[href="/brands/${projectId}"]`)!;
-  link.addEventListener("click", event => event.preventDefault()); await act(async () => link.click());
+  mock.update.mockClear(); await click("Save project");
   expect(mock.update).toHaveBeenCalledExactlyOnceWith(projectId, expect.objectContaining({ description: latest }));
   expect(mock.strategy).toHaveBeenCalledTimes(1); expect(mock.create).toHaveBeenCalledTimes(1);
+ });
+
+ it.each(["ordinary", "historical"] as const)("does not bypass an uncertain %s save by adding files", async kind => {
+  const retained = { ownerId: owner, draftId: projectId, projectId: null, ...(kind === "ordinary" ? { request: { key: projectId, input: createAccountInput(draft) } } : {}) };
+  rememberReceipt(retained); selectFiles();
+  const fetcher = vi.fn(async () => capability()); vi.stubGlobal("fetch", fetcher); await render();
+  await click("Save brief with files");
+  expect(host.textContent).toContain("another save to check");
+  expect(fetcher.mock.calls).toHaveLength(1); expect(mock.push).not.toHaveBeenCalled();
+  expect(readReceipt(owner, projectId)).toEqual(retained);
+ });
+
+ it("records the exact attached request fence while its project save is uncertain", async () => {
+  selectFiles();
+  vi.stubGlobal("fetch", vi.fn(async (path: string) => { if (path.endsWith("/capability")) return capability(); throw new TypeError("Lost attached create acknowledgement"); }));
+  await render(); await click("Save brief with files");
+  expect(readReceipt(owner, projectId)).toEqual({ ownerId: owner, draftId: projectId, projectId: null, attachedRequestKey: mock.memory!.get(account)!.saveIntent!.requestKey });
+  expect(mock.strategy).not.toHaveBeenCalled();
+ });
+
+ it("does not upload or create an attached project when its durable guard cannot be saved", async () => {
+  window.localStorage.setItem("fluid.local-drafts.v1", JSON.stringify({ version: 1, drafts: [draft] }));
+  selectFiles(); const fetcher = vi.fn(async () => capability()); vi.stubGlobal("fetch", fetcher); await render();
+  const originalSet = Storage.prototype.setItem;
+  const blocked = vi.spyOn(Storage.prototype, "setItem").mockImplementation(function(this: Storage, key: string, value: string) {
+   if (key.startsWith("fluid.project-source.v1:")) throw new Error("Quota exceeded");
+   return originalSet.call(this, key, value);
+  });
+  try {
+   await click("Save brief with files");
+   expect(fetcher.mock.calls).toHaveLength(1); expect(mock.push).not.toHaveBeenCalled();
+   expect(host.textContent).toContain("No project request was sent");
+   expect(mock.memory!.get(account)!.files).toHaveLength(1);
+  } finally { blocked.mockRestore(); }
  });
 
 });

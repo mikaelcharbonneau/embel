@@ -1,6 +1,6 @@
 # Trademark draft workspace — independent handoff
 
-Scope: `src/features/trademark-workspace/**` and `tests/features/trademark-workspace/**`. No route, schema, persistence, auth, provider, package/config, or main-checkout changes. This is the current Fluid source baseline copied into a separate checkout; credentials, private runtime state and old application sources were excluded.
+Scope: `src/features/trademark-workspace/**` and `tests/features/trademark-workspace/**`. No route, schema, persistence, auth, provider, package/config, or main-checkout changes. This is the current Embel source baseline copied into a separate checkout; credentials, private runtime state and old application sources were excluded.
 
 ## Public interface
 
@@ -32,7 +32,7 @@ node_modules/.bin/tsc -p tests/features/trademark-workspace/tsconfig.json --noEm
 node_modules/.bin/playwright test --config tests/features/trademark-workspace/playwright.config.ts
 ```
 
-The standalone fixture uses the installed esbuild tooling only for tests, serves on loopback port 3186, and launches dedicated headless Chromium desktop/mobile contexts. It mounts the actual component with a synthetic controlled host, imports Fluid's existing global tokens/styles, and records screenshots under `.tmp/trademark-playwright`. It has no account session or provider connection and does not occupy the shared browser. This is module/fixture verification, not full integrated application acceptance or live provider validation. Final observed results are recorded in `tests/features/trademark-workspace/verification.md`.
+The standalone fixture uses the installed esbuild tooling only for tests, serves on loopback port 3186, and launches dedicated headless Chromium desktop/mobile contexts. It mounts the actual component with a synthetic controlled host, imports Embel's existing global tokens/styles, and records screenshots under `.tmp/trademark-playwright`. It has no account session or provider connection and does not occupy the shared browser. This is module/fixture verification, not full integrated application acceptance or live provider validation. Final observed results are recorded in `tests/features/trademark-workspace/verification.md`.
 
 ## Current integrated presentation
 

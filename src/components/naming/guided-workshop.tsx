@@ -4,13 +4,14 @@ import { useMemo, useState, type KeyboardEvent } from "react";
 import { NamesArtwork } from "@/components/ui/names-artwork";
 import { contextSnapshotSchema } from "@/domain/projects";
 import { addGuidedWords, emptyGuidedUi, prefixChoices, previewGuidedNames, suffixChoices, tweakChoices, type GuidedUi } from "./guided-names";
-import { namesStore } from "./use-names-store";
+import { useNamesActions } from "./use-names-store";
 import type { NameCandidate, NamesMutationResult, NamesUi } from "./local-names";
 import { ContextEditor } from "./workshop-panel";
 import "./guided-workshop.css";
 
 const modes = [{ value: "affixes", label: "Affix" }, { value: "tweaks", label: "Tweaks" }, { value: "blend", label: "Blend" }, { value: "swap", label: "Swap" }] as const;
 export function GuidedWorkshop({ ui, candidates, onResult }: { ui: NamesUi; candidates: NameCandidate[]; onResult: (result: NamesMutationResult, success: string) => void }) {
+  const namesStore = useNamesActions();
   const settings = ui.guided ?? emptyGuidedUi();
   const [error, setError] = useState("");
   const [copyNotice, setCopyNotice] = useState("");
@@ -71,11 +72,12 @@ export function GuidedWorkshop({ ui, candidates, onResult }: { ui: NamesUi; cand
         return <div key={result.value} className={`names-result-pill${settings.mode === "blend" ? " names-blend-pill" : ""}`}><div><strong>{result.value}</strong>{settings.mode === "blend" && <span>{result.origin}</span>}</div><button type="button" aria-label={`Favorite result ${result.value}`} aria-pressed={kept?.favorite ?? false} onClick={() => onResult(namesStore.retainGuidedResult(result), kept?.favorite ? "Favorite removed; its name and history remain." : "Name favorited with its source and exact history.")}><NamesArtwork name="heart" /></button></div>;
       })}</div>{!preview.results.length && <p className="names-guided-empty">{settings.words.length ? settings.mode === "blend" ? "Add a second distinct word to explore blends." : "No valid variants with these settings. Your words are unchanged." : "Add your own words to see results."}</p>}{preview.truncated && <p role="status">This preview reached its limit. Narrow the words or options to explore more results.</p>}{preview.omitted > 0 && <p>{preview.omitted} empty, unchanged or oversized combinations omitted.</p>}{copyNotice && <p role="status">{copyNotice}</p>}</section>
     </section>
-    <div className="names-guided-support"><ContextEditor ui={ui} /><p>Live previews run on this device. Favoriting retains a name and its exact transformation history in your browser library. Availability and trademark clearance are not checked.</p></div>
+    <div className="names-guided-support"><ContextEditor ui={ui} /><p>Live previews run on this device. Favoriting keeps a name and its exact transformation history in your account. Availability and trademark clearance are not checked.</p></div>
   </div>;
 }
 
 export function SavedWordLists({ ui, onResult }: { ui: NamesUi; onResult: (result: NamesMutationResult, success: string) => void }) {
+  const namesStore = useNamesActions();
   const settings = ui.guided ?? emptyGuidedUi();
-  return <section className="names-saved-word-lists" aria-label="Saved word lists"><h2>Saved word lists</h2><p>Word lists stay in this browser. Kept names are available separately in Library.</p>{settings.savedLists.length ? settings.savedLists.map(list => <article className="names-guided-card" key={list.id}><h3>{list.words[0]!.value}{list.words.length > 1 ? ` + ${list.words.length - 1}` : ""}</h3><p>{list.words.map(word => word.value).join(", ")}</p><div><button type="button" className="button secondary small" onClick={() => onResult(namesStore.useGuidedWordList(list.id), "Saved words restored.")}>Use words</button><button type="button" className="text-link" onClick={() => namesStore.updateUi({ guided: { ...settings, savedLists: settings.savedLists.filter(item => item.id !== list.id) } })}>Remove word list<span className="sr-only"> {list.words[0]!.value}</span></button></div></article>) : <p>No saved word lists yet. Save the Words panel to revisit a list.</p>}</section>;
+  return <section className="names-saved-word-lists" aria-label="Saved word lists"><h2>Saved word lists</h2><p>Word lists save to your account. Kept names are available in Library.</p>{settings.savedLists.length ? settings.savedLists.map(list => <article className="names-guided-card" key={list.id}><h3>{list.words[0]!.value}{list.words.length > 1 ? ` + ${list.words.length - 1}` : ""}</h3><p>{list.words.map(word => word.value).join(", ")}</p><div><button type="button" className="button secondary small" onClick={() => onResult(namesStore.useGuidedWordList(list.id), "Saved words restored.")}>Use words</button><button type="button" className="text-link" onClick={() => namesStore.updateUi({ guided: { ...settings, savedLists: settings.savedLists.filter(item => item.id !== list.id) } })}>Remove word list<span className="sr-only"> {list.words[0]!.value}</span></button></div></article>) : <p>No saved word lists yet. Save the Words panel to revisit a list.</p>}</section>;
 }

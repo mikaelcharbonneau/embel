@@ -14,7 +14,7 @@ describe("standalone route uses total feature validation", () => {
     mocks.auth.mockResolvedValue({ userId: owner, client: { rpc: mocks.rpc } });
   });
   it.each(["https://www.instagram.com:99999/cedar", "https://www.instagram.com:65536/cedar", "https://www.instagram.com:-1/cedar", "https://www.instagram.com:abc/cedar", "not a URL"])("returns 422, never an internal error or database write, for %s", async url => {
-    const request = new Request("http://localhost:3105/api/workspaces/handles", { method: "PUT", headers: { origin: "http://localhost:3105", "content-type": "application/json" },
+    const request = new Request("http://localhost:3105/api/workspaces/handles", { method: "PUT", headers: { origin: "http://localhost:3105", "content-type": "application/json", "X-Embel-Account": owner },
       body: JSON.stringify({ requestKey: owner, expectedRevision: 0, payload: payload(url), imports: [] }) });
     const response = await PUT(request, { params: Promise.resolve({ tool: "handles" }) });
     expect(response.status).toBe(422); expect(await response.json()).toEqual({ error: { code: "invalid_input", message: "Check the submitted information." } });
@@ -28,12 +28,18 @@ describe("standalone real HTTP and DAL save outcome boundary", () => {
   const saved = { ownerId: owner, workspace: { id: owner, ownerId: owner, tool: "domains", revision: 3,
     payload: { ...draft, input: "Newer saved draft" }, imports: [], createdAt: "2026-10-06T00:00:00Z", updatedAt: "2026-10-06T00:00:00Z" } };
   const saveRequest = () => PUT(new Request("http://localhost:3105/api/workspaces/domains", { method: "PUT",
-    headers: { origin: "http://localhost:3105", "content-type": "application/json" }, body: JSON.stringify(input) }), { params: Promise.resolve({ tool: "domains" }) });
+    headers: { origin: "http://localhost:3105", "content-type": "application/json", "X-Embel-Account": owner }, body: JSON.stringify(input) }), { params: Promise.resolve({ tool: "domains" }) });
   beforeEach(() => {
     vi.resetAllMocks(); vi.stubEnv("APP_ORIGIN", "http://localhost:3105"); vi.stubEnv("FLUID_RUNTIME", "local"); vi.stubEnv("VERCEL", "");
     mocks.auth.mockResolvedValue({ userId: owner, client: { rpc: mocks.rpc } });
   });
   afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
+  it("does not read or write another account's singleton when cookies change before the save", async () => {
+    mocks.auth.mockResolvedValue({ userId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", client: { rpc: mocks.rpc } });
+    const response = await saveRequest();
+    expect(response.status).toBe(401); expect(mocks.rpc).not.toHaveBeenCalled();
+    expect(await response.json()).toEqual({ error: { code: "unauthenticated", message: "Sign in to continue." } });
+  });
   it.each([["40001", 500], ["40001", 503], ["PT409", 409], ["23505", 409]])("preserves known save conflict %s from upstream HTTP %i", async (code, status) => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => { throw new Error("private-logger-failure"); });
     mocks.rpc.mockResolvedValueOnce({ data: saved, error: null }).mockResolvedValueOnce({ data: null, error: { code, message: "private-database-message" }, status });

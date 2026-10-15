@@ -60,6 +60,7 @@ async function accountFixtures(page: Page, initial: AccountProject[] = []) {
     const project = id ? state.projects.get(id) : undefined;
     if (!project || project.owner_id !== state.owner) return reply(route, { error: "Synthetic not-found fixture" }, 404);
     if (path.endsWith("/idea-source") && request.method() === "GET") return reply(route, { ownerId: state.owner, projectId: project.id, source: null });
+    if (path.endsWith("/standalone-source") && request.method() === "GET") return reply(route, { ownerId: state.owner, projectId: project.id, source: null });
     if (path.endsWith("/idea-attachments") && request.method() === "GET") return reply(route, { ownerId: state.owner, projectId: project.id, items: [], nextCursor: null });
     if (path.endsWith("/strategy") && request.method() === "GET") return reply(route, { availability: { status: "unavailable", operations: [], reason: "runtime_disabled" }, jobs: [] });
     if (request.method() === "GET") return reply(route, { project });
@@ -81,24 +82,51 @@ async function accountFixtures(page: Page, initial: AccountProject[] = []) {
 }
 
 async function openAccount(page: Page, id = projectA) {
-  await page.goto(`/brands/account/${id}`);
-  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeVisible();
+  await Promise.all([
+    waitForAccountProject(page, id),
+    page.goto(`/brands/account/${id}`),
+  ]);
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
+  await openProjectDetails(page);
+}
+function waitForAccountProject(page: Page, id = projectA) {
+  // Start UI assertions after the authenticated fixture has acknowledged the read.
+  return page.waitForResponse(response =>
+    new URL(response.url()).pathname === `/api/projects/${id}` &&
+    response.request().method() === "GET" && response.status() === 200,
+  { timeout: 30_000 });
+}
+async function openProjectDetails(page: Page) {
+  const accountMenu = page.locator(".workspace-account-menu");
+  if (await accountMenu.count() && await accountMenu.getAttribute("open") !== null) await accountMenu.locator("summary").click();
+  const details = page.locator(".project-details-disclosure");
+  await expect(details).toBeVisible();
+  if (await details.getAttribute("open") === null) await details.getByText("Project details and saving", { exact: true }).click();
+}
+async function checkAccount(page: Page) {
+  const menu = page.locator(".workspace-account-menu");
+  if (await menu.count() && await menu.getAttribute("open") === null) await menu.locator("summary").click();
+  await page.getByRole("button", { name: "Check account", exact: true }).click();
+}
+async function expectSavedVersion(page: Page, version: number) {
+  await expect(page.locator(".project-workspace-save")).toHaveText(`Saved project · v${version}`);
 }
 async function save(page: Page, version: number) {
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  await expect(page.getByText(`Saved to account · version ${version}`, { exact: true })).toBeVisible();
+  await expectSavedVersion(page, version);
 }
 async function browserData(page: Page) { return page.evaluate((key) => localStorage.getItem(key), storageKey); }
 
 async function rename(page: Page, title: string) {
+  await openProjectDetails(page);
   await page.getByRole("button", { name: "Rename project", exact: true }).click();
   await page.getByRole("textbox", { name: "Project label", exact: true }).fill(title);
   await page.getByRole("textbox", { name: "Project label", exact: true }).press("Enter");
 }
 async function sendFollowup(page: Page, text: string) {
-  await page.getByRole("textbox", { name: "Message Fluid", exact: true }).fill(text);
-  await page.getByRole("button", { name: "Send prompt", exact: true }).click();
-  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeEmpty();
+  await page.getByRole("textbox", { name: "Message Embel", exact: true }).fill(text);
+  await page.getByRole("button", { name: "Keep note", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeEmpty();
   await expect(page.getByText(text, { exact: true })).toBeVisible();
 }
 
@@ -115,6 +143,7 @@ test("account fixture: Naming entry preserves the saved-context boundary", async
 });
 
 test("account fixture: full brand needs reviewed strategy and identity-only omits Naming", async ({ page }) => {
+  test.setTimeout(45_000);
   const project = fixtureProject();
   project.scope = "complete_brand";
   project.context.intake.audienceReviewedAt = null;
@@ -123,8 +152,9 @@ test("account fixture: full brand needs reviewed strategy and identity-only omit
   await expect(page.getByRole("button", { name: "Open Naming", exact: true })).toBeDisabled();
   await expect(page.getByText("Finish reviewing your strategy before opening Naming.", { exact: true })).toBeVisible();
   state.projects.set(projectA, { ...project, scope: "visual_identity_only" });
-  await page.reload();
-  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeVisible();
+  await Promise.all([waitForAccountProject(page), page.reload()]);
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
+  await openProjectDetails(page);
   await expect(page.getByRole("button", { name: "Open Naming", exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Open Naming", exact: true })).toHaveCount(0);
 });
@@ -140,15 +170,16 @@ test("account fixture: explicit browser copy preserves legacy notes, audience an
     if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify({ version: 1, drafts: [legacy] }));
   }, { key: storageKey, legacy });
   await page.goto(`/brands/${legacy.id}`);
-  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   const localBefore = await browserData(page);
   await page.getByText("Account saving", { exact: true }).click();
   await page.getByRole("button", { name: "Save to account", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/brands/account/${projectA}$`));
-  await expect(page.getByText("Saved to account · version 1", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 1);
   expect(await browserData(page)).toBe(localBefore);
   expect(state.created[0]?.context).toEqual(legacyProject.context);
   await page.reload();
+  await openProjectDetails(page);
   await expect(page.getByText("Example prompt", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Edit audience", exact: true }).click();
   await expect(page.getByRole("checkbox", { name: "Selected target" })).toBeChecked();
@@ -156,6 +187,7 @@ test("account fixture: explicit browser copy preserves legacy notes, audience an
   await sendFollowup(page, "Keep the poster grid and add strong contrast.");
   await save(page, 2);
   await page.reload();
+  await openProjectDetails(page);
   await expect(page.getByRole("heading", { name: "Renamed account fixture", exact: true, level: 1 })).toBeVisible();
   await expect(page.getByText("Keep the poster grid and add strong contrast.", { exact: true })).toBeVisible();
   await page.getByText("Saved project details", { exact: true }).click();
@@ -188,13 +220,14 @@ test("account fixture: hidden strategy and audience provenance survive edits and
   await page.getByRole("button", { name: "Expand to complete brand" }).click();
   await expect(page.locator("main").getByRole("alert")).toContainText("Account saving is unavailable");
   expect(state.projects.get(projectA)?.scope).toBe("naming_only");
-  await expect(page.getByText("Saved to account · version 2", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 2);
   state.expandStatus = 200;
   await page.getByRole("button", { name: "Expand to complete brand" }).click();
-  await expect(page.getByText("Saved to account · version 3", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 3);
   expect(state.projects.get(projectA)?.scope).toBe("complete_brand");
   expect(state.projects.get(projectA)?.context.audienceSegments).toEqual(original.context.audienceSegments);
   await page.reload();
+  await openProjectDetails(page);
   await expect(page.getByRole("button", { name: "Expand to complete brand" })).toHaveCount(0);
   await expect(page.locator(".account-scope > strong")).toHaveText("Complete brand");
   await expect(page.getByRole("button", { name: "Open Naming", exact: true })).toBeDisabled();
@@ -227,7 +260,7 @@ test("account fixture: 409 keeps edits, offers an explicit browser copy and requ
   await sendFollowup(page, "Keep my unsaved notes");
   state.projects.set(projectA, { ...original, title: "Remote latest fixture", current_revision: 2 });
   await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page.locator("main").getByRole("alert")).toContainText("A newer version is saved");
+  await expect(page.locator(".account-conflict")).toContainText("A newer version is saved");
   await expect(page.getByRole("heading", { name: "Unsaved recovery fixture", exact: true, level: 1 })).toBeVisible();
   expect(await browserData(page)).toBeNull();
   await page.getByRole("button", { name: "Save edits as browser copy" }).click();
@@ -244,7 +277,7 @@ test("account fixture: 409 keeps edits, offers an explicit browser copy and requ
   await page.getByRole("button", { name: "Load latest version", exact: true }).click();
   await page.getByRole("button", { name: "Replace with latest version" }).click();
   await expect(page.getByRole("heading", { name: "Remote latest fixture", exact: true, level: 1 })).toBeVisible();
-  await expect(page.getByText("Saved to account · version 2", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 2);
 });
 
 test("account fixture: expired session masks private data and same-account recovery keeps edits across internal navigation", async ({ page }) => {
@@ -261,17 +294,19 @@ test("account fixture: expired session masks private data and same-account recov
   await expect(page.getByText("Private account A fixture", { exact: true })).toHaveCount(0);
   expect(await browserData(page)).toBeNull();
   state.sessionStatus = 401;
-  await page.getByRole("button", { name: "Check account", exact: true }).click();
+  await checkAccount(page);
   await expect(page.getByRole("button", { name: "Check account", exact: true })).toBeEnabled();
   await expect(page.getByRole("textbox")).toHaveCount(0);
   state.sessionStatus = 200; state.patchStatus = 200;
-  await page.getByRole("button", { name: "Check account", exact: true }).click();
+  await checkAccount(page);
   await expect(page.getByText("A private unsaved note", { exact: true })).toBeVisible();
   await save(page, 2);
   expect(await browserData(page)).toBeNull();
 });
 
 test("account fixture: an account switch fences a late save and never exposes or stores the previous account draft", async ({ page }) => {
+  // Two accounts and several real navigations; retain the five-second UI assertions.
+  test.setTimeout(45_000);
   const state = await accountFixtures(page, [fixtureProject(), fixtureProject(projectB, ownerB)]);
   await openAccount(page);
   await rename(page, "Account A secret pending edit");
@@ -291,8 +326,8 @@ test("account fixture: an account switch fences a late save and never exposes or
   await page.getByRole("button", { name: "Save changes" }).click();
   await requested;
   state.owner = ownerB;
-  await page.getByRole("button", { name: "Check account", exact: true }).click();
-  await expect(page.locator("main").getByRole("alert")).toContainText("not available to this account");
+  await checkAccount(page);
+  await expect(page.locator(".project-workspace-content").getByRole("alert")).toContainText("not available to this account");
   release();
   await completed;
   await expect(page.getByRole("textbox")).toHaveCount(0);
@@ -325,8 +360,8 @@ test("account fixture: late project loading and mismatched response ownership ne
   await page.goto(`/brands/account/${projectA}`);
   await requested;
   state.owner = ownerB;
-  await page.getByRole("button", { name: "Check account", exact: true }).click();
-  await expect(page.locator("main").getByRole("alert")).toContainText("not available to this account");
+  await checkAccount(page);
+  await expect(page.locator(".project-workspace-content").getByRole("alert")).toContainText("not available to this account");
   release();
   await completed;
   await expect(page.getByRole("textbox")).toHaveCount(0);
@@ -342,10 +377,10 @@ test("account fixture: malformed account data and unknown remote IDs cannot beco
   await accountFixtures(page);
   await page.route(`**/api/projects/${projectA}`, async (route) => reply(route, { project: { id: projectA, title: "Unverified malformed fixture" } }));
   await page.goto(`/brands/account/${projectA}`);
-  await expect(page.locator("main").getByRole("alert")).toContainText("could not be verified");
+  await expect(page.locator(".project-workspace-content").getByRole("alert")).toContainText("could not be verified");
   await expect(page.getByText("Unverified malformed fixture", { exact: true })).toHaveCount(0);
   await page.goto("/brands/account/does-not-exist");
-  await expect(page.getByRole("heading", { name: "Account project not found" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Project not found", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Draft not found in this browser" })).toHaveCount(0);
   expect(await browserData(page)).toBeNull();
 });
@@ -374,7 +409,7 @@ test("account fixture: a delayed load after internal navigation cannot roll back
   await (await oldResponse).finished();
   await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
   await expect(page.getByRole("heading", { name: "Newer successful save fixture", exact: true, level: 1 })).toBeVisible();
-  await expect(page.getByText("Saved to account · version 2", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 2);
   expect(state.projects.get(projectA)?.title).toBe("Newer successful save fixture");
   await rename(page, "Follow-on version three fixture");
   await save(page, 3);
@@ -389,7 +424,7 @@ test("account fixture: typing while a confirmed latest-version load is pending k
   await rename(page, "My first unsaved edit");
   state.projects.set(projectA, { ...original, current_revision: 2, title: "Remote latest fixture" });
   await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page.locator("main").getByRole("alert")).toContainText("A newer version is saved");
+  await expect(page.locator(".account-conflict")).toContainText("A newer version is saved");
   let release!: () => void;
   let started!: () => void;
   const pending = new Promise<void>((resolve) => { release = resolve; });
@@ -419,12 +454,13 @@ for (const status of [404, 503]) {
     let failing = true;
     await page.route(`**/api/projects/${projectA}`, async (route) => failing ? reply(route, { error: "Synthetic revalidation failure" }, status) : route.fallback());
     await page.getByRole("link", { name: /Private account A fixture/ }).click();
-    await expect(page.locator("main").getByRole("alert")).toContainText(status === 404 ? "not available to this account" : "Account saving is unavailable");
+    await expect(page.locator(".project-workspace-content").getByRole("alert")).toContainText(status === 404 ? "not available to this account" : "Account saving is unavailable");
     await expect(page.getByRole("textbox")).toHaveCount(0);
     await expect(page.getByText("Private unsaved revalidation fixture", { exact: true })).toHaveCount(0);
     await expect(page.getByText("Unsaved account edits remain in this tab.", { exact: false })).toBeVisible();
     failing = false;
     await page.getByRole("button", { name: "Check account and retry" }).click();
+    await openProjectDetails(page);
     await expect(page.getByRole("heading", { name: "Private unsaved revalidation fixture", exact: true, level: 1 })).toBeVisible();
     await save(page, 2);
     expect(await browserData(page)).toBeNull();

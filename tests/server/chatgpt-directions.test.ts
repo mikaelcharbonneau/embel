@@ -6,6 +6,7 @@ import { subscriptionFixture } from "../features/identity-directions/subscriptio
 import { normalizeDirectionResponse } from "@/features/identity-directions/server/direction-response";
 import { canonicalIdentityInput } from "@/features/identity-directions/model/font-check-binding";
 import { createHash } from "node:crypto";
+import { visualOverview } from "../fixtures/visual-direction";
 function setup(){
  const f=subscriptionFixture();
  const response={id:"resp_fixture",status:"completed",model:f.policy.model,output:[{id:"msg_fixture",type:"message",role:"assistant",status:"completed",content:[{type:"output_text",text:JSON.stringify(f.candidate)}]}],usage:{input_tokens:10,output_tokens:20,total_tokens:30}};
@@ -17,6 +18,15 @@ function setup(){
  return {...f,response,transport,provider,run,dispatch,setOutcome:(v:ChatGPTStreamOutcome)=>{outcome=v;}};
 }
 describe("explicit ChatGPT directions adapter",()=>{
+ it("includes the exact reviewed guidance as untrusted text and rejects a foreign review before transport",async()=>{
+  const f=setup(),review=visualOverview({ownerId:f.job.ownerId,projectId:f.job.projectId,likes:true,reviewed:true}).current!;
+  f.input.reviewedVisualDirection=review;
+  const request=createChatGPTDirectionsRequest(f.input,f.policy),content=JSON.parse(request.input[0]!.content);
+  expect(content.reviewedVisualDirection).toEqual(review);expect(request.instructions).toContain("not owned media or a license");
+  expect(content.reviewedVisualDirection.references[0]).not.toHaveProperty("asset");
+  f.input.reviewedVisualDirection={...review,ownerId:"64000000-0000-4000-8000-000000000999"};
+  expect((await f.run()).outcome).toMatchObject({status:"failed",code:"not_dispatched"});expect(f.transport.streamResponse).not.toHaveBeenCalled();
+ });
  it("sends one tool-free structured request with exact geometry and only selected reference metadata",async()=>{
   const f=setup(), result=await f.run();expect(result.outcome.status).toBe("succeeded");expect(f.transport.streamResponse).toHaveBeenCalledTimes(1);expect(f.dispatch).toHaveBeenCalledWith(f.job);expect(f.transport.listModels).not.toHaveBeenCalled();
   const [request,options]=vi.mocked(f.transport.streamResponse).mock.calls[0]!;expect(request.model).toBe(f.policy.model);expect(request.tools).toEqual([]);expect(request.tool_choice).toBe("none");expect(request.instructions).toContain("have not viewed reference images");expect(request.text?.format).toMatchObject({type:"json_schema",strict:true,name:"logo_directions"});expect(JSON.parse(request.input[0]!.content).exactApprovedGeometry).toEqual(f.input.logo);expect(options.expectedAccountId).toBe("fixture-account");const {maxRequestsPerHour:_rate,maxQueuedJobs:_queue,...limits}=f.policy.limits;void _rate;void _queue;expect(options.limits).toEqual(limits);

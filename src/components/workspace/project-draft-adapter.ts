@@ -221,8 +221,9 @@ export function draftContext(draft: LocalDraft, saved = draft.preservedContext):
   const base = saved ?? contextSnapshotSchema.parse({});
   const briefKeys = ["description", "activity", "offering", "knownAudience"] as const;
   const briefChanged = briefKeys.some((key) => draft[key].trim() !== base[key]);
-  const reviewed = draft.confirmedBrief && briefKeys.every((key) => draft.confirmedBrief?.[key].trim() === draft[key].trim());
   const conversationChanged = conversationContextKey(draft, saved) !== conversationContextKey({ conversation: base.intake.conversation });
+  const reviewed = draft.confirmedBrief && briefKeys.every((key) => draft.confirmedBrief?.[key].trim() === draft[key].trim()) &&
+    (draft.confirmedBrief.conversationKey === undefined ? !conversationChanged : draft.confirmedBrief.conversationKey === conversationContextKey(draft, saved));
   const conversation = storedConversation(draft, saved);
   return contextSnapshotSchema.parse({
     ...base,
@@ -230,7 +231,7 @@ export function draftContext(draft: LocalDraft, saved = draft.preservedContext):
     // Keep the editable name consistent for account-generated names as well as
     // standalone imports. Original provenance remains in its immutable source.
     ...(draft.suppliedName.trim() !== base.intake.suppliedName.trim() ? { selectedName: draft.suppliedName.trim() || null } : {}),
-    reformulationConfirmed: !conversationChanged && Boolean(draft.activity.trim() && draft.offering.trim()) && (Boolean(reviewed) || (saved ? !briefChanged && base.reformulationConfirmed : !draft.confirmedBrief && (draft.stage === "audience" || draft.stage === "competitors"))),
+    reformulationConfirmed: Boolean(draft.activity.trim() && draft.offering.trim()) && (Boolean(reviewed) || (!conversationChanged && (saved ? !briefChanged && base.reformulationConfirmed : !draft.confirmedBrief && (draft.stage === "audience" || draft.stage === "competitors")))),
     competitorReviewComplete: isCompetitorReviewComplete(draft, saved),
     personality: draftPersonality(draft, saved), positioning: draftPositioning(draft, saved),
     competitors: draftCompetitors(draft, saved).map((item) => {
@@ -244,6 +245,7 @@ export function draftContext(draft: LocalDraft, saved = draft.preservedContext):
       };
     }),
     intake: {
+      ...(base.intake.guidedInterview ? { guidedInterview: base.intake.guidedInterview } : {}),
       suppliedName: draft.suppliedName.trim(), namingNotes: draft.namingNotes, identityNotes: draft.identityNotes, step: draft.stage, audienceReviewedAt: isAudienceReviewComplete(draft, saved) ? draft.audienceReviewedAt : null, example: draft.example,
       ...(conversation !== undefined ? { conversation } : {}),
       personalityReviewedAt: isPersonalityReviewComplete(draft, saved) ? strategyReviewedAt(draft, "personalityReviewedAt", saved) : null,

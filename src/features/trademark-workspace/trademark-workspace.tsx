@@ -2,12 +2,14 @@
 
 import { useId, useRef, useState, type ReactNode } from "react";
 import { TrademarkArtwork } from "@/components/ui/trademark-artwork";
+import { BrowserNameDialog } from "@/components/naming/browser-name-picker";
 import { assessTrademarkDossier, buildTrademarkDraftPreview, confirmTrademarkReview, trademarkBrandSeed, trademarkDependencies, validateTrademarkDraft, type TrademarkBrandSeed, type TrademarkDraft, type TrademarkDraftPreview } from "./domain";
 import "./trademark-workspace.css";
 
 export type TrademarkWorkspaceProps = {
   draft: TrademarkDraft;
   draftControls?: ReactNode;
+  liveResearch?: ReactNode;
   saveControl?: ReactNode;
   disabled?: boolean;
   savedDraft?: { revision: number; updatedAt: string; dirty: boolean };
@@ -25,7 +27,7 @@ function Field({ label, value, onChange, hint, maxLength, multiline = false, row
   return <div className="tm-field"><label htmlFor={id}>{label}</label>{multiline ? <textarea {...props} rows={rows} /> : <input {...props} />}{hint && <p id={`${id}-hint`} className="tm-hint">{hint}</p>}</div>;
 }
 
-export function TrademarkWorkspace({ draft, onChange, onExportPreview, onCreateBrand, storageNotice = "Draft held in this tab only. Reloading may discard it; account saving is not connected.", exportState = { status: "idle" }, draftControls, saveControl, disabled = false, savedDraft }: TrademarkWorkspaceProps) {
+export function TrademarkWorkspace({ draft, onChange, onExportPreview, onCreateBrand, storageNotice = "Draft held in this tab only. Reloading may discard it; account saving is not connected.", exportState = { status: "idle" }, draftControls, liveResearch, saveControl, disabled = false, savedDraft }: TrademarkWorkspaceProps) {
   const [view, setView] = useState<"dossier" | "research" | "preview" | "library" | "history">("research");
   const [attempted, setAttempted] = useState(false);
   const [similar, setSimilar] = useState(true);
@@ -69,20 +71,27 @@ export function TrademarkWorkspace({ draft, onChange, onExportPreview, onCreateB
     {error && <p role="alert" className="tm-error">{error}</p>}
     <div role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-${view === "preview" ? "dossier" : view}-tab`}>
     {view === "research" && <>
-      <form className="tm-search-form" onSubmit={event => { event.preventDefault(); if (!disabled) setAttempted(true); }}>
+      <form className="tm-search-form" onSubmit={event => { event.preventDefault(); if (!disabled) { if (!draft.markName.trim()) { setError("Enter a name to prepare your manual search."); return; } setError(""); setAttempted(true); } }}>
         <fieldset disabled={disabled}>
-          <Field label="Name to search" accessibleLabel="Mark name" value={draft.markName} onChange={markName => change({ markName })} maxLength={160} placeholder="Enter a name" />
+          <div className="tm-name-field"><Field label="Name to search" accessibleLabel="Mark name" value={draft.markName} onChange={markName => change({ markName })} maxLength={160} placeholder="Enter a name" />
+          <div className="tm-name-library"><BrowserNameDialog disabled={disabled} replacing={Boolean(draft.markName.trim())} onUse={markName => change({ markName })} /></div></div>
           <div className="tm-search-scope">
             <Field label="Territory" accessibleLabel="Requested territories" value={draft.territories.join("\n")} onChange={value => change({ territories: value === "" ? [] : value.split("\n") })} maxLength={3200} multiline rows={1} placeholder="Requested territory" />
             <Field label="Goods or services" accessibleLabel="Goods and services" value={draft.goodsServices} onChange={goodsServices => change({ goodsServices })} maxLength={6000} multiline rows={1} placeholder="Describe your goods or services" />
           </div>
-          <div className="tm-search-actions"><label><input type="checkbox" checked={similar} onChange={event => { setSimilar(event.target.checked); setAttempted(false); }} />Include similar names</label><button className="button primary" type="submit">Search trademarks</button></div>
+          <div className="tm-search-actions"><label><input type="checkbox" checked={similar} onChange={event => { setSimilar(event.target.checked); setAttempted(false); }} />Include similar names</label><button className="button primary" type="submit">Prepare manual search</button></div>
         </fieldset>
       </form>
       <section className="tm-results" aria-labelledby={`${id}-results`}>
-        <div className="tm-results-heading"><h2 id={`${id}-results`}>Search results</h2><p role="status">{attempted ? "Research unavailable" : "Not searched yet"}</p></div>
-        <div className="tm-empty"><span className="tm-search-symbol"><TrademarkArtwork name="search" /></span><h3>{attempted ? "Registry research is not connected" : "Search to see matching names"}</h3><p>{attempted ? "No registry has been searched. Matching names and legal clearance remain unknown." : "Matching names require a connected registry source. Coverage is not validated."}</p></div>
-        <details className="tm-research-details"><summary>Research coverage and your notes</summary><h3>Sourced results</h3><p>No results are available. Research needs validated territory support and a connected registry data source.</p><dl>{trademarkDependencies.map(dependency => <div key={dependency.id}><dt>{dependency.label}<span className="small-badge">Unavailable</span></dt><dd>{dependency.detail}</dd></div>)}</dl><h3>Your research notes</h3><p className="tm-hint">User-entered, unsourced</p><p className="tm-user-text">{draft.userNotes.trim() || "No user notes yet."}</p><button className="button secondary" type="button" onClick={() => setView("dossier")}>Edit dossier</button></details>
+        <div className="tm-results-heading"><h2 id={`${id}-results`}>{attempted ? "Manual search brief" : "Search results"}</h2><p role="status">{attempted ? "Ready for manual research" : "Not searched yet"}</p></div>
+        {attempted ? <div className="tm-manual-research">
+          <h3>Search the official registries</h3><dl><div><dt>Name</dt><dd>{draft.markName}</dd></div><div><dt>Territories</dt><dd>{draft.territories.filter(value => value.trim()).join(", ") || "Choose territories in the registry"}</dd></div><div><dt>Goods and services</dt><dd>{draft.goodsServices || "Add goods and services to narrow your research"}</dd></div><div><dt>Search scope</dt><dd>{similar ? "Exact name and similar spellings or sounds" : "Exact name"}</dd></div></dl>
+          <div className="tm-actions"><a className="button secondary small" href="https://branddb.wipo.int/en/" target="_blank" rel="noopener noreferrer">Open WIPO Global Brand Database</a><a className="button secondary small" href="https://www.uspto.gov/trademarks/search" target="_blank" rel="noopener noreferrer">Open US trademark search</a><a className="button secondary small" href="https://ised-isde.canada.ca/cipo/trademark-search/srch?lang=eng" target="_blank" rel="noopener noreferrer">Open Canadian trademark search</a><a className="button secondary small" href="https://euipo.europa.eu/eSearch/" target="_blank" rel="noopener noreferrer">Open EU trademark search</a></div>
+          <p>Enter these criteria in the registry and check its territorial coverage. Preparing this brief does not search a registry or assess clearance.</p>
+          <button type="button" className="text-link" onClick={() => setView("dossier")}>Record research notes</button>
+        </div> : <div className="tm-empty"><span className="tm-search-symbol"><TrademarkArtwork name="search" /></span><h3>Prepare a trademark search</h3><p>Collect your criteria, then search official registries and record your findings. {liveResearch ? "See the available research sources below." : "Automatic registry research is not connected."}</p></div>}
+        {liveResearch}
+        <details className="tm-research-details"><summary>Research coverage and your notes</summary><h3>Dossier evidence</h3><p>Live research is separate from this user-entered draft. No registry results or legal conclusions are saved with it.</p><dl>{trademarkDependencies.map(dependency => <div key={dependency.id}><dt>{dependency.label}<span className="small-badge">Unavailable</span></dt><dd>{dependency.detail}</dd></div>)}</dl><h3>Your research notes</h3><p className="tm-hint">User-entered, unsourced</p><p className="tm-user-text">{draft.userNotes.trim() || "No user notes yet."}</p><button className="button secondary" type="button" onClick={() => setView("dossier")}>Edit dossier</button></details>
       </section>
     </>}
     {view === "dossier" && <div className="tm-layout">

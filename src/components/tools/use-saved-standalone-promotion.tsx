@@ -54,12 +54,12 @@ export function useSavedStandalonePromotion(tool: StandaloneTool, state: Workspa
     const current = memory.get(account, tool);
     const pending = lifecycleMemory.get(account, "standalone_promotion");
     if (pending?.kind === "standalone_promotion" && pending.outcome !== "confirmed") return;
-    if (current?.conflict) { setNotice("Load the saved account draft after reviewing the conflict before creating a brand."); return; }
-    if (!state.canEdit || current?.pending) { setNotice("Finish the account draft request before creating a brand."); return; }
-    if (!current?.workspace || current.dirty) { setNotice("Save the account draft before creating a brand."); return; }
+    if (current?.conflict) { setNotice("Resolve the workspace conflict before creating a brand."); return; }
+    if (!state.canEdit || current?.pending) { setNotice("Wait for your changes to finish saving before creating a brand."); return; }
+    if (!current?.workspace || current.dirty) { setNotice("Your changes are still saving. Create the brand once they are saved."); return; }
     const saved = current.workspace as StandaloneWorkspace<SavedPayload>;
-    if (state.workspace?.id !== saved.id || state.workspace.revision !== saved.revision) { setNotice("The saved account draft changed. Choose the saved result again before creating a brand."); return; }
-    if (!includesSelection(saved, selection)) { setNotice("Choose a result from the saved account draft before creating a brand."); return; }
+    if (state.workspace?.id !== saved.id || state.workspace.revision !== saved.revision) { setNotice("The saved workspace changed. Choose the result again before creating a brand."); return; }
+    if (!includesSelection(saved, selection)) { setNotice("Choose a saved result before creating a brand."); return; }
     setNotice(null);
     setChosen({ workspaceId: saved.id, revision: saved.revision, selection });
   }
@@ -68,7 +68,7 @@ export function useSavedStandalonePromotion(tool: StandaloneTool, state: Workspa
     {notice && <p role="status">{notice}</p>}
     {blockedByOtherTool && <p role="status">Check the original {toolLabels[unresolved.input.selection.tool]} promotion before creating another brand. <Link href={`/${unresolved.input.selection.tool}`}>Open {toolLabels[unresolved.input.selection.tool]}</Link></p>}
     {confirmedOlderSource && <p role="status">The created brand keeps its original saved version {retained.input.expectedWorkspaceRevision}. Choose a current saved result to create another brand.</p>}
-    {!retained && chosen && workspace && workspace.revision !== chosen.revision && <p role="status">The saved account draft changed. Choose the saved result again before creating a brand.</p>}
+    {!retained && chosen && workspace && workspace.revision !== chosen.revision && <p role="status">The saved workspace changed. Choose the result again before creating a brand.</p>}
     {!blockedByOtherTool && account && lifecycleMemory && workspace && selected && <SavedPromotionNavigation key={`${workspace.id}:${retained?.input.expectedWorkspaceRevision ?? chosen?.revision}:${JSON.stringify(selected)}`} account={account} workspace={workspace} selection={selected} dirty={state.dirty || Boolean(record?.conflict) || Boolean(confirmedOlderSource)} pending={state.pending} memory={memory} lifecycleMemory={lifecycleMemory} />}
   </>;
   return { select: lifecycleMemory ? select : undefined, controls };

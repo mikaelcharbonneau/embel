@@ -63,7 +63,25 @@ export const bundleSchema = z.object({
   if (new Set(bundle.entries.map(entry => entry.platform)).size !== bundle.entries.length) ctx.addIssue({ code: "custom", message: "Choose one handle per platform in a bundle." });
 });
 export type HandleBundle = z.infer<typeof bundleSchema>;
-export const workspaceSchema = z.object({ version: z.literal(1), bundles: z.array(bundleSchema).max(200) }).strict().superRefine((state, ctx) => {
+const selectedImportsSchema = z.array(z.string().max(160)).max(30).refine(items => new Set(items).size === items.length, "Imported names must be unique.");
+const selectedPlatformsSchema = z.array(platformSchema).max(5).refine(items => new Set(items).size === items.length, "Platforms must be unique.");
+export const handleSearchOptionsSchema = z.object({
+  prefixes: z.string().max(200), suffixes: z.string().max(200),
+  separators: z.array(z.enum(["", ".", "_"])).max(3).refine(items => new Set(items).size === items.length, "Separators must be unique."),
+}).strict();
+export const savedHandleSearchSchema = z.object({
+  id: z.uuid(), names: z.string().max(3000), imports: selectedImportsSchema, platforms: selectedPlatformsSchema, options: handleSearchOptionsSchema,
+}).strict();
+/** Authored input is retained even while a search is incomplete or locally invalid. */
+export const handlesSearchSchema = z.object({
+  names: z.string().max(3000), nameDraft: z.string().max(3000), imports: selectedImportsSchema,
+  platforms: selectedPlatformsSchema, options: handleSearchOptionsSchema, title: z.string().max(160), list: z.string().max(160),
+  savedSearches: z.array(savedHandleSearchSchema).max(20).refine(items => new Set(items.map(item => item.id)).size === items.length, "Saved search IDs must be unique."),
+}).strict();
+export type HandlesSearch = z.infer<typeof handlesSearchSchema>;
+export const emptyHandlesSearch = (): HandlesSearch => ({ names: "", nameDraft: "", imports: [], platforms: platforms.map(platform => platform.id),
+  options: { prefixes: "get, hello, try", suffixes: "hq, studio, co", separators: [""] }, title: "", list: "Personal list", savedSearches: [] });
+export const workspaceSchema = z.object({ version: z.literal(1), bundles: z.array(bundleSchema).max(200), search: handlesSearchSchema.optional() }).strict().superRefine((state, ctx) => {
   if (new Set(state.bundles.map(bundle => bundle.id)).size !== state.bundles.length) ctx.addIssue({ code: "custom", message: "Bundle IDs must be unique." });
 });
 export type HandlesState = z.infer<typeof workspaceSchema>;

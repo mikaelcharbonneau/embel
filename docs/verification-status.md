@@ -1,5 +1,13 @@
 # Source checkpoint verification status
 
+## Current integrated release and database rollout
+
+The integrated application checkpoint `af0660696b9283bc9162b0055a2b8173dade81ff` is published in PR #11 and has a ready protected preview. Its recorded qualification includes 299 distinct focused tests, 42 distinct production-build browser checks, typecheck, lint, production web build and API worker packaging. Those results are reconciled across the retained runs; they are not a claim of one aggregate application-suite pass.
+
+The user subsequently authorized the database prerequisite. Eight migrations are now installed and verified in the existing Supabase project; see [database rollout and current remaining prerequisites](database-rollout-20261013.md). The following older source-handoff limitations describe an earlier checkpoint and do not negate that newer evidence.
+
+## Earlier source handoff
+
 This snapshot combines the latest app-wide UI repair source with a reviewed, disabled vector-proposal backend. The user explicitly stopped further validation to make the source available to other development agents. No new tests, lint, typecheck or build are required to deliver this checkpoint, and none should be represented as having run after that instruction.
 
 ## Established local evidence

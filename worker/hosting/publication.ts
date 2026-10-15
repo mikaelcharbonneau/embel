@@ -1,5 +1,6 @@
 import { apiTextDispatchDescriptorSchema, apiTextDispatchMessage, apiTextDispatchMessageSchema, type ApiTextDispatchDescriptor } from "../../src/domain/api-text-dispatch";
 import { bounded } from "./timing";
+import { apiTextDispatchDatabase } from "../api-text-multi-account";
 
 export const API_TEXT_TOPIC = "fluid-api-text-v1";
 export const QUEUE_RETENTION_SECONDS = 86_400;
@@ -10,6 +11,7 @@ export type PublicationDependencies = {
   send(topic: string, message: unknown, options: { retentionSeconds: number; idempotencyKey: string }): Promise<{ messageId: string | null }>;
   deploymentId: string;
   signal: AbortSignal;
+  multiAccount?: boolean;
 };
 async function query(options: PublicationDependencies, sql: string, values: unknown[] = []) {
   options.signal.throwIfAborted();
@@ -43,6 +45,7 @@ async function publishDescriptor(descriptor: ApiTextDispatchDescriptor, options:
 /** Called only after independent signed workload authentication. No owner comes from HTTP. */
 export async function publishAdmittedDispatch(message: unknown, options: PublicationDependencies): Promise<PublicationResult> {
   const requested = apiTextDispatchMessageSchema.parse(message);
+  if (options.multiAccount) options = { ...options, database: apiTextDispatchDatabase(options.database, requested), multiAccount: false };
   const descriptor = await readDescriptor(requested.jobId, options);
   const canonical = apiTextDispatchMessage(descriptor);
   if (Object.keys(canonical).some(key => canonical[key as keyof typeof canonical] !== requested[key as keyof typeof requested])) throw new Error("Dispatch descriptor mismatch");
@@ -51,7 +54,9 @@ export async function publishAdmittedDispatch(message: unknown, options: Publica
 
 /** One bounded batch; SQL fences redrive and preserves job/step/reservation identity. */
 export async function repairApiTextDispatches(options: PublicationDependencies) {
-  const batch = await query(options, "select public.list_pending_api_text_dispatches($1) as descriptor", [25]);
+  const batch = await query(options, options.multiAccount
+    ? "select public.list_api_text_dispatches_v2($1) as descriptor"
+    : "select public.list_pending_api_text_dispatches($1) as descriptor", [25]);
   if (batch.rows.length > 25) throw new Error("Repair batch overflow");
   const summary = { examined: 0, published: 0, pending: 0, inactive: 0, errors: 0, backlogMayRemain: batch.rows.length === 25 };
   for (const item of batch.rows) {
@@ -59,17 +64,18 @@ export async function repairApiTextDispatches(options: PublicationDependencies) 
     summary.examined += 1;
     try {
       const previous = apiTextDispatchDescriptorSchema.parse(item.descriptor);
-      await query(options, "select public.expire_api_text_job($1) as disposition", [previous.jobId]);
-      let descriptor = await readDescriptor(previous.jobId, options);
+      const current = options.multiAccount ? { ...options, database: apiTextDispatchDatabase(options.database, apiTextDispatchMessage(previous)), multiAccount: false } : options;
+      await query(current, "select public.expire_api_text_job($1) as disposition", [previous.jobId]);
+      let descriptor = await readDescriptor(previous.jobId, current);
       if (descriptor.deploymentId !== options.deploymentId || !descriptor.retryable || descriptor.state !== "queued") {
         summary.inactive += 1; continue;
       }
       // SQL uses durable generation age, not receipt presence, so an accepted-but-
       // unconfirmed exhausted message can recover before the Queue dedupe TTL.
-      const redrive = await query(options, "select public.prepare_api_text_redrive($1,$2,$3) as descriptor", [descriptor.jobId, descriptor.dispatchIdentity, descriptor.publicationGeneration]);
+      const redrive = await query(current, "select public.prepare_api_text_redrive($1,$2,$3) as descriptor", [descriptor.jobId, descriptor.dispatchIdentity, descriptor.publicationGeneration]);
       if (redrive.rows[0]?.descriptor != null) descriptor = apiTextDispatchDescriptorSchema.parse(redrive.rows[0].descriptor);
       else if (descriptor.publishedMessageId) { summary.pending += 1; continue; }
-      const result = await publishDescriptor(descriptor, options);
+      const result = await publishDescriptor(descriptor, current);
       if (result.state === "published") summary.published += 1;
       else summary.pending += 1;
     } catch {

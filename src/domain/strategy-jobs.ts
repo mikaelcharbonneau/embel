@@ -2,18 +2,15 @@ import { z } from "zod";
 import { jobStatusSchema, moneySchema } from "./jobs";
 import { audienceSegmentSchema, competitorSchema, contextSnapshotSchema, personalitySchema } from "./projects";
 import { accountProjectResponseSchema } from "./project-api";
+import { guidedReplySchema } from "./guided-interview";
 
 export const STRATEGY_JOB_MUTATION_MAX_BYTES = 2_048;
 export const strategyOperationSchema = z.enum(["strategy.reformulate", "strategy.competitors", "strategy.audience", "strategy.personality", "strategy.positioning"]);
 export type StrategyOperation = z.infer<typeof strategyOperationSchema>;
 
 /** Operator-owned policy, copied into immutable job input. Never browser input. */
-export const strategyJobPolicySchema = z.strictObject({
-  version: z.literal(1),
-  pricingVersion: z.literal("2026-10-03"),
-  handlerVersion: z.literal("strategy-openai-v1"),
+const strategyPolicyFields = {
   model: z.string().min(1).max(150),
-  maxInputTokens: z.number().int().positive().max(1_000_000),
   maxOutputTokens: z.number().int().positive().max(100_000),
   maxWebSearchCalls: z.number().int().nonnegative().max(10),
   inputMicrousdPerMillionTokens: moneySchema,
@@ -22,18 +19,12 @@ export const strategyJobPolicySchema = z.strictObject({
   outputMicrousdPerMillionTokens: moneySchema,
   webSearchMicrousdPerCall: moneySchema,
   maximumCostMicrousd: moneySchema,
-});
+};
+export const strategyJobPolicySchema = z.discriminatedUnion("version", [
+  z.strictObject({ ...strategyPolicyFields, version: z.literal(1), pricingVersion: z.literal("2026-10-03"), handlerVersion: z.literal("strategy-openai-v1"), maxInputTokens: z.number().int().positive().max(1_000_000) }),
+  z.strictObject({ ...strategyPolicyFields, version: z.literal(2), pricingVersion: z.literal("2026-10-14"), handlerVersion: z.literal("strategy-openai-guided-v1"), maxInputTokens: z.number().int().positive().max(3_150_000) }),
+]);
 export type StrategyJobPolicy = z.infer<typeof strategyJobPolicySchema>;
-
-export const strategyJobInputSchema = z.strictObject({
-  version: z.literal(1),
-  context: contextSnapshotSchema,
-  policy: strategyJobPolicySchema,
-  acceptedMaxCostMicrousd: moneySchema,
-}).refine(input => input.acceptedMaxCostMicrousd >= input.policy.maximumCostMicrousd, {
-  message: "Accepted cost must cover the approved reservation", path: ["acceptedMaxCostMicrousd"],
-});
-export type StrategyJobInput = z.infer<typeof strategyJobInputSchema>;
 
 /** Application stop/rate limits; these do not claim remaining ChatGPT plan quota. */
 export const subscriptionLimitsSchema = z.strictObject({
@@ -123,6 +114,7 @@ const resultCommon = {
   requestId: z.string().min(1).max(300).nullable(),
   generatedAt: z.iso.datetime({ offset: true }),
   usage: strategyUsageSchema,
+  guidance: guidedReplySchema.optional(),
 };
 /** These values are trusted only after being read from owner-scoped job_steps. */
 const apiStrategyJobResultSchema = z.discriminatedUnion("operation", [
@@ -140,7 +132,7 @@ export const subscriptionUsageSchema = z.strictObject({
 const subscriptionResultCommon = {
   version: z.literal(1), provider: z.literal("openai"), billingMode: z.literal("chatgpt_subscription"),
   model: z.string().min(1).max(150), responseId: z.string().min(1).max(300), requestId: z.string().min(1).max(300).nullable(),
-  generatedAt: z.iso.datetime({ offset: true }), usage: subscriptionUsageSchema.nullable(),
+  generatedAt: z.iso.datetime({ offset: true }), usage: subscriptionUsageSchema.nullable(), guidance: guidedReplySchema.optional(),
 };
 export const chatGPTStrategyResultSchema = z.discriminatedUnion("operation", [
   z.strictObject({ ...subscriptionResultCommon, operation: z.literal("strategy.reformulate"), proposal: reformulationProposalSchema }),
@@ -150,7 +142,11 @@ export const chatGPTStrategyResultSchema = z.discriminatedUnion("operation", [
   z.strictObject({ ...subscriptionResultCommon, operation: z.literal("strategy.positioning"), proposal: positioningProposalSchema }),
 ]);
 export type ChatGPTStrategyResult = z.infer<typeof chatGPTStrategyResultSchema>;
-export const strategyJobResultSchema = z.union([apiStrategyJobResultSchema, chatGPTStrategyResultSchema]);
+export const strategyJobResultSchema = z.union([apiStrategyJobResultSchema, chatGPTStrategyResultSchema]).superRefine((result, ctx) => {
+  if (!result.guidance) return;
+  if (result.operation !== "strategy.reformulate" && result.operation !== `strategy.${result.guidance.stage}`) ctx.addIssue({ code: "custom", path: ["guidance", "stage"], message: "Guidance must match its requested operation" });
+  if ((result.guidance.kind === "accepted" || result.guidance.kind === "redirect") && result.operation !== "strategy.reformulate") ctx.addIssue({ code: "custom", path: ["guidance", "kind"], message: "Only a reply to an actual user message may accept a custom decision or change stage" });
+});
 export type StrategyJobResult = z.infer<typeof strategyJobResultSchema>;
 
 export const STRATEGY_ASSISTANT_HISTORY_MAX_ENTRIES = 5;
@@ -174,6 +170,16 @@ export const strategyAssistantHistorySchema = z.strictObject({
   }
 });
 export type StrategyAssistantHistory = z.infer<typeof strategyAssistantHistorySchema>;
+const apiJobInputFields = { context: contextSnapshotSchema, policy: strategyJobPolicySchema, acceptedMaxCostMicrousd: moneySchema };
+export const strategyJobInputSchema = z.discriminatedUnion("version", [
+  z.strictObject({ version: z.literal(1), ...apiJobInputFields }),
+  z.strictObject({ version: z.literal(2), ...apiJobInputFields, assistantHistory: strategyAssistantHistorySchema }),
+]).superRefine((input, ctx) => {
+  if (input.acceptedMaxCostMicrousd < input.policy.maximumCostMicrousd) ctx.addIssue({ code: "custom", path: ["acceptedMaxCostMicrousd"], message: "Accepted cost must cover the approved reservation" });
+  if ((input.policy.version === 2) !== (input.version === 2)) ctx.addIssue({ code: "custom", path: ["version"], message: "Guided policies require versioned frozen assistant history" });
+  if (input.version === 2 && !input.context.intake.guidedInterview?.turns.length) ctx.addIssue({ code: "custom", path: ["context", "intake", "guidedInterview"], message: "A guided request requires an interview turn" });
+});
+export type StrategyJobInput = z.infer<typeof strategyJobInputSchema>;
 const subscriptionJobInputFields = { billingMode: z.literal("chatgpt_subscription"), context: contextSnapshotSchema, policy: chatGPTStrategyPolicySchema };
 export const chatGPTStrategyJobInputSchema = z.union([
   z.strictObject({ version: z.literal(1), ...subscriptionJobInputFields })
@@ -226,7 +232,7 @@ export const strategyJobResponseSchema = z.strictObject({ job: strategyJobSchema
 export const strategyAvailabilitySchema = z.strictObject({
   status: z.enum(["available", "unavailable"]),
   operations: z.array(z.union([
-    z.strictObject({ operation: strategyOperationSchema, maximumCostMicrousd: moneySchema, billingMode: z.literal("openai_api").optional() }),
+    z.strictObject({ operation: strategyOperationSchema, maximumCostMicrousd: moneySchema, billingMode: z.literal("openai_api").optional(), interviewVersion: z.literal(1).optional() }),
     z.strictObject({ operation: strategyOperationSchema, billingMode: z.literal("chatgpt_subscription"), policyIdentity: subscriptionPolicyIdentitySchema, limits: subscriptionLimitsSchema }),
   ])).max(5),
   reason: z.enum(["runtime_disabled", "worker_unavailable", "budget_unavailable", "subscription_unavailable", "quota_unavailable"]).optional(),
@@ -235,7 +241,7 @@ export const strategyAvailabilitySchema = z.strictObject({
 });
 export const strategyOverviewResponseSchema = z.strictObject({
   availability: strategyAvailabilitySchema,
-  jobs: z.array(strategyJobSchema).max(20),
+  jobs: z.array(strategyJobSchema).max(64),
 });
 export type StrategyOverview = z.infer<typeof strategyOverviewResponseSchema>;
 export const strategyRuntimeResponseSchema = z.strictObject({ availability: strategyAvailabilitySchema });

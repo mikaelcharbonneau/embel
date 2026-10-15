@@ -1,13 +1,14 @@
 "use client";
 
 import type { ComponentProps } from "react";
+import { ProjectArtwork } from "@/components/ui/project-artwork";
 import type { ConversationWidget } from "@/domain/conversation";
 import type { StrategyJob, StrategyJobResult, StrategyOperation } from "@/domain/strategy-jobs";
 import type { VerifiedAccount } from "./account-session";
 import { accountDraftChanged, type AccountWorkspace } from "./account-draft-memory";
 import { ProjectEditorForm } from "./project-editor";
 import type { LocalDraft } from "./local-drafts";
-import { formatStrategyCap, promptStrategyPlan, readStrategyIntent, rememberStrategyPlan, strategyAllowance, strategyAllowanceLabel, strategyAllowanceWithin, strategyIntentPlan, strategyJobActive, strategyLabels, strategyResultApplication } from "./account-strategy-client";
+import { formatStrategyCap, promptStrategyPlan, readStrategyIntent, rememberStrategyPlan, strategyAllowance, strategyAllowanceLabel, strategyAllowanceWithin, strategyAvailabilityMessage, strategyIntentPlan, strategyJobActive, strategyLabels, strategyResultApplication } from "./account-strategy-client";
 import { useStrategyJobs } from "./use-strategy-jobs";
 import { strategyPartialMessage } from "./strategy-partial-message";
 import { BrowserLocalDate } from "./browser-local-date";
@@ -38,7 +39,8 @@ export function AccountStrategyEditor({ account, workspace, busy, saveDraft, sto
   const jobs = strategy.overview?.jobs ?? [];
   const orderedJobs = [...jobs].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.input_revision - b.input_revision || a.operation.localeCompare(b.operation));
   const latestJob = orderedJobs.at(-1);
-  const resultNavigation = latestJob && <div className="conversation-result-navigation"><span role="status">Latest activity: {strategyLabels[latestJob.operation]} {stateLabels[latestJob.state]}</span><button type="button" className="text-link" aria-label="View latest AI activity" onClick={() => { const heading = document.getElementById(`strategy-activity-${latestJob.id}`); heading?.focus(); heading?.scrollIntoView?.({ block: "start" }); }}>View latest activity ↑</button></div>;
+  const latestApplied = latestJob?.results.some(result => strategyResultApplication(latestJob, result.stepKey));
+  const resultNavigation = latestJob && (!latestApplied || jobs.length > 1) && <div className="conversation-result-navigation"><span role="status">{strategyJobActive(latestJob) ? `AI request ${stateLabels[latestJob.state]}` : latestApplied ? "Response saved" : latestJob.state === "succeeded" ? "Your response is ready to review" : `${strategyLabels[latestJob.operation]} ${stateLabels[latestJob.state]}`}</span><button type="button" className="text-link" aria-label="View latest AI activity" onClick={() => { const heading = document.getElementById(`strategy-activity-${latestJob.id}`); heading?.focus(); heading?.scrollIntoView?.({ block: "start" }); }}>View response ↑</button></div>;
   const currentJobs = jobs.filter(job => job.input_revision === revision);
   const pending = Boolean(busy || strategy.pending);
 
@@ -78,15 +80,15 @@ export function AccountStrategyEditor({ account, workspace, busy, saveDraft, sto
       if (allowance) strategyActions[widget] = { label: requestLabels[operation], maximumCostLabel: `${strategyAllowanceLabel(allowance)}${dirty ? " · saves current edits" : ""}`, disabled: workspace.conflict || currentJobs.some(job => job.operation === operation) };
     }
   }
-  const promptNotice = <p className="field-hint">{plan
+  const promptNotice = <div className="strategy-composer-notice"><p>{plan
     ? plan.billingMode === "chatgpt_subscription"
       ? "Sending uses your ChatGPT plan for a response and saves your message to this account. Competitor research starts after you apply the response. Your plan limits apply."
       : plan.kind === "response_only"
         ? `Sending uses OpenAI for a response, up to ${formatStrategyCap(plan.reformulation.maximumCostMicrousd)}, and saves your message to this account. Competitor research is unavailable.`
       : `Sending uses OpenAI for a response and competitor research, up to ${formatStrategyCap(plan.reformulation.maximumCostMicrousd + plan.competitors.maximumCostMicrousd)} total, and saves your message to this account. Competitor research starts after you apply the response.`
     : strategy.overview || strategy.readError
-      ? "OpenAI is unavailable. Send keeps your message in this tab; use Save changes to keep it in your account. You can continue editing."
-      : "Checking OpenAI availability. Send keeps your message in this tab until availability is confirmed."}</p>;
+      ? strategyAvailabilityMessage(availability, "project")
+      : "Checking AI availability…"}</p>{!plan && (strategy.overview || strategy.readError) && <button type="button" className="text-link" disabled={pending} onClick={strategy.refresh}>Recheck AI availability</button>}</div>;
   const transcript = <div className="account-strategy-transcript" aria-label="OpenAI strategy activity">
     {strategy.readError && <p className="form-error" role="alert">{strategy.readError}</p>}
     {strategy.actionError && <p className="form-error" role="alert">{strategy.actionError}</p>}
@@ -95,10 +97,10 @@ export function AccountStrategyEditor({ account, workspace, busy, saveDraft, sto
       const applied = job.results.map(result => strategyResultApplication(job, result.stepKey)).find(Boolean);
       const partialText = !job.results.length && "partialText" in job && typeof job.partialText === "string" ? job.partialText : "";
       const partialMessage = partialText ? strategyPartialMessage(partialText) : null;
-      return <article key={job.id} className="conversation-widget" aria-label={`${strategyLabels[job.operation]} activity`}>
-      <div className="conversation-widget-heading"><span className="conversation-tool-avatar" aria-hidden="true">f</span><h2 id={`strategy-activity-${job.id}`} tabIndex={-1}>{strategyLabels[job.operation]} {stateLabels[job.state]}</h2></div>
-      <div className="conversation-widget-body">
-        <p className="field-hint">{applied ? `Applied to saved version · ${applied.appliedRevision}` : job.input_revision === revision ? `Current saved version · ${revision}${dirty ? " · unsaved edits differ" : ""}` : `Earlier version · ${job.input_revision}`}</p>
+      return <article key={job.id} className="strategy-assistant-message" aria-label={`${strategyLabels[job.operation]} activity`}>
+      <div className="strategy-assistant-heading"><ProjectArtwork name="mark" /><h2 id={`strategy-activity-${job.id}`} tabIndex={-1} aria-label={`${strategyLabels[job.operation]} ${stateLabels[job.state]}`}>Embel</h2>{job.state !== "succeeded" && <span className="strategy-response-state">{strategyLabels[job.operation]} {stateLabels[job.state]}</span>}</div>
+      <div className="strategy-assistant-body">
+        {!applied && job.input_revision !== revision && <p className="field-hint">Earlier version · {job.input_revision}</p>}
         {strategyJobActive(job) && <p className="field-hint" role="status">{job.state === "queued" ? ("dispatchState" in job && job.dispatchState === "dispatch_pending" ? "Request saved. Waiting for dispatch confirmation." : "Request saved. Waiting to start.") : job.state === "cancel_requested" ? "Cancellation is requested. Completed work may still arrive." : "OpenAI is processing this saved version."} {job.billingMode === "chatgpt_subscription" ? "Uses your ChatGPT plan. Your plan limits apply." : `Reserved limit: ${formatStrategyCap(job.reserved_cost_microusd)}.`}</p>}
         {partialText && <div className="account-strategy-result" aria-label="Incomplete response"><p className="field-hint">Incomplete response</p>{partialMessage ? <p style={{ whiteSpace: "pre-wrap" }}>{partialMessage}</p> : <p className="field-hint">A partial response has been saved.</p>}</div>}
         {job.state === "failed" && <p className="form-error">This request did not complete. Any saved partial response is retained.</p>}
@@ -107,8 +109,7 @@ export function AccountStrategyEditor({ account, workspace, busy, saveDraft, sto
           const application = strategyResultApplication(job, result.stepKey);
           return <div key={result.stepKey} className="account-strategy-result">
           <Proposal output={result.output} />
-          <button type="button" className="button secondary small" disabled={pending || dirty || workspace.conflict || Boolean(application) || job.input_revision !== revision} onClick={() => void strategy.apply(job, result.stepKey)}>{application ? "Applied" : "Apply"} {strategyLabels[job.operation].toLowerCase()}</button>
-          <p className="field-hint">{application ? "This proposal was applied. Review and selection stay yours." : job.input_revision !== revision ? "This result is preserved from an earlier version." : dirty ? "Save or resolve your current edits before applying this proposal." : "Applying creates a saved version. Review and selection stay yours."}</p>
+          <div className="strategy-response-actions">{application ? <p className="strategy-response-saved" role="status" aria-label={`Applied to saved version · ${application.appliedRevision}`} title={`Saved in version ${application.appliedRevision}`}><ProjectArtwork name="check" />Added to brief</p> : <><button type="button" className="button primary small" disabled={pending || dirty || workspace.conflict || job.input_revision !== revision} onClick={() => void strategy.apply(job, result.stepKey)}>Apply {strategyLabels[job.operation].toLowerCase()}</button>{(job.input_revision !== revision || dirty || workspace.conflict) && <p className="field-hint">{job.input_revision !== revision ? "This result is preserved from an earlier version." : "Save or resolve your current edits before applying this proposal."}</p>}</>}</div>
         </div>; })}
         {strategyJobActive(job) && <button type="button" className="text-link" disabled={pending || job.state === "cancel_requested"} onClick={() => void strategy.cancel(job)}>Cancel {strategyLabels[job.operation].toLowerCase()}</button>}
       </div>
@@ -117,13 +118,13 @@ export function AccountStrategyEditor({ account, workspace, busy, saveDraft, sto
     {strategy.actionError && strategy.continuationAvailable && <button type="button" className="button secondary small" disabled={pending} onClick={() => void strategy.continueResearch()}>Retry competitor research</button>}
     {(strategy.readError || strategy.actionError) && <button type="button" className="text-link" disabled={pending} onClick={strategy.refresh}>Check strategy status</button>}
   </div>;
-  return <ProjectEditorForm draft={workspace.draft} storage={{ ...storage, savedContext: workspace.saved.context, onStrategyApproved: async draft => Boolean(await saveDraft(draft)), strategy: transcript, promptNotice, resultNavigation, promptPending: pending, onPromptSubmitted: sendPrompt, strategyActions, strategyPending: pending, onStrategyRequested: widget => requestOperation(operationForWidget[widget]) }} />;
+  return <ProjectEditorForm draft={workspace.draft} storage={{ ...storage, savedContext: workspace.saved.context, onStrategyApproved: async draft => Boolean(await saveDraft(draft)), strategy: transcript, promptNotice, resultNavigation, promptPending: pending, promptSendLabel: plan ? "Send prompt" : "Keep note", promptPlaceholder: plan ? "Reply or ask a question…" : "Add a note to your project…", promptHint: plan ? "Project context" : "Note only · save changes to keep it", onPromptSubmitted: sendPrompt, strategyActions, strategyPending: pending, onStrategyRequested: widget => requestOperation(operationForWidget[widget]) }} />;
 }
 
 function Proposal({ output }: { output: StrategyJobResult }) {
   return <>
-    <p style={{ whiteSpace: "pre-wrap" }}>{output.proposal.message}</p>
-    {output.operation === "strategy.reformulate" && <>{(output.proposal.activity || output.proposal.offering || output.proposal.knownAudience) && <dl>{[["Activity", output.proposal.activity], ["Offering", output.proposal.offering], ["Known audience", output.proposal.knownAudience]].filter(([, value]) => value).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>}{output.proposal.questions.length > 0 && <ul>{output.proposal.questions.map(question => <li key={question}>{question}</li>)}</ul>}</>}
+    <p className="strategy-response-copy">{output.proposal.message}</p>
+    {output.operation === "strategy.reformulate" && <>{(output.proposal.activity || output.proposal.offering || output.proposal.knownAudience) && <details className="strategy-proposal-details"><summary>Brief details</summary><dl>{[["Activity", output.proposal.activity], ["Offering", output.proposal.offering], ["Known audience", output.proposal.knownAudience]].filter(([, value]) => value).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></details>}{output.proposal.questions.length > 0 && <ul className="strategy-response-questions">{output.proposal.questions.map(question => <li key={question}>{question}</li>)}</ul>}</>}
     {output.operation === "strategy.competitors" && <ul>{output.proposal.competitors.map(competitor => <li key={competitor.id}><strong>{competitor.name}</strong><p>{competitor.relevance}</p><ul>{competitor.sources.map((source, index) => <li key={`${source.url}:${index}`}><a href={source.url} target="_blank" rel="noopener noreferrer">{source.title}</a> <BrowserLocalDate dateTime={source.retrievedAt} /></li>)}</ul></li>)}</ul>}
     {output.operation === "strategy.audience" && <ul>{output.proposal.segments.map(segment => <li key={segment.id}><strong>{segment.label}</strong><p>{segment.reason}</p><ul>{segment.needs.map(need => <li key={need}>{need}</li>)}</ul></li>)}</ul>}
     {output.operation === "strategy.personality" && <dl>{Object.entries(output.proposal.personality).map(([dimension, value]) => <div key={dimension}><dt>{dimension[0]!.toUpperCase() + dimension.slice(1)}</dt><dd>{value}/100</dd></div>)}</dl>}

@@ -1,4 +1,8 @@
-# Fluid engineering
+# Embel engineering
+
+The product is **Embel** (formerly Fluid). Use Embel in new user-facing copy and current documentation. Preserve existing storage keys, protocol/schema identifiers, service names and historical design references unless a separate compatibility migration is explicitly scoped. See docs/embel-branding.md.
+
+Build Embel as a conventional account-based AI SaaS. Prefer established framework and provider patterns over custom infrastructure. For signed-in users, the database is authoritative and meaningful edits save automatically. Show Saving, Saved or an actionable save error based on acknowledged persistence. Browser storage is a recovery buffer, never a separate normal workspace or a silent substitute for a failed account save. Preserve legacy local work through explicit owner-confirmed recovery; never attach unattributed local data to an arbitrary signed-in account. Keep technical storage details out of ordinary product flows.
 
 This is a greenfield external application. Never copy, branch from, import, or modify previous Fluid implementations, migrations, fixtures, services, or export pipelines. All work belongs to this isolated checkout and its new private repository.
 

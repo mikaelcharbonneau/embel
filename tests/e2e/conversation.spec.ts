@@ -16,10 +16,10 @@ async function start(page: Page, prompt = "A") {
   await page.getByRole("textbox", { name: "Your prompt", exact: true }).fill(prompt);
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Competitors", exact: true })).toBeVisible();
-  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
 }
 async function send(page: Page, text: string) {
-  const composer = page.getByRole("textbox", { name: "Message Fluid", exact: true });
+  const composer = page.getByRole("textbox", { name: "Message Embel", exact: true });
   await composer.fill(text);
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(composer).toBeEmpty();
@@ -66,9 +66,9 @@ test("composer supports multiline text and IME composition without premature sub
   await initial.dispatchEvent("keydown", { key: "Enter", code: "Enter", keyCode: 229, bubbles: true });
   await expect(page).toHaveURL(/\/brands\/new$/);
   await initial.press("Enter");
-  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   expect((await readDraft(page)).conversation?.[0]).toMatchObject({ text: "First line\nSecond line" });
-  const followup = page.getByRole("textbox", { name: "Message Fluid", exact: true });
+  const followup = page.getByRole("textbox", { name: "Message Embel", exact: true });
   await followup.fill("追加入力");
   await followup.dispatchEvent("keydown", { key: "Enter", isComposing: true, bubbles: true });
   await expect(followup).toHaveValue("追加入力");
@@ -96,7 +96,7 @@ test("keyboard-focused widget controls stay visible above the conversation compo
 
 test("blank and capacity-rejected messages stay editable and never appear as accepted history", async ({ page }) => {
   await start(page, "A maker space");
-  const composer = page.getByRole("textbox", { name: "Message Fluid", exact: true });
+  const composer = page.getByRole("textbox", { name: "Message Embel", exact: true });
   await composer.fill(" \n ");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(composer).toHaveValue(" \n ");
@@ -176,7 +176,7 @@ test("legacy browser descriptions remain saved context without an invented conve
   await page.addInitScript(({ key, legacy }) => localStorage.setItem(key, JSON.stringify({ version: 1, drafts: [legacy] })), { key, legacy });
   await page.goto(`/brands/${id}`);
   await expect(page.getByText("Saved brief", { exact: true })).toBeVisible();
-  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   await send(page, "A first actual follow-up");
   const saved = await readDraft(page);
   expect(saved.conversation?.[0]).toMatchObject({ kind: "saved_context", text: legacy.description });

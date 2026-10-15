@@ -25,7 +25,7 @@ const cursor = row => ({ id: row.id, createdAt: row.created_at });
 function pageOf(owner, rows, more = false) { return { ownerId: owner, items: rows.map(row => ({ ...row, owner_id: owner })), nextCursor: more ? cursor(rows.at(-1)) : null }; }
 function gate() { let release; const wait = new Promise(resolve => { release = resolve; }); return { wait, release }; }
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, ...(process.env.FLUID_TEST_CHROMIUM_EXECUTABLE ? { executablePath: process.env.FLUID_TEST_CHROMIUM_EXECUTABLE } : {}) });
 const checks = [];
 async function scenario(name, run) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 1000 }, acceptDownloads: true });
@@ -33,17 +33,19 @@ async function scenario(name, run) {
   page.setDefaultTimeout(10_000);
   const errors = [], unexpected = [], calls = [];
   page.on("pageerror", error => errors.push(error.message));
-  const state = { owner: A, sessionStatus: 200, sessionGate: null, signOutStatus: 200, signOutBody: { authenticated: false }, signOutGate: null,
+  const saved = new Map(), receipts = new Map();
+  const state = { failWrites: false, owner: A, sessionStatus: 200, sessionGate: null, signOutStatus: 200, signOutBody: { authenticated: false }, signOutGate: null,
     projectGate: null, projects: (url, owner) => {
       const start = url.searchParams.has("cursorId") ? projects.findIndex(row => row.id === url.searchParams.get("cursorId")) + 1 : 0;
       return { status: 200, body: pageOf(owner, projects.slice(start, start + 50), start + 50 < projects.length) };
-    }, workspace: (_url, owner) => ({ status: 200, body: { ownerId: owner, workspace: null } }),
+    }, workspace: (url, owner) => ({ status: 200, body: { ownerId: owner, workspace: saved.get(`${owner}:${url.pathname}`) ?? null } }),
   };
   await page.route("**/*", async route => {
     const url = new URL(route.request().url());
     if (url.origin !== origin) { unexpected.push(route.request().url()); return route.abort(); }
     if (url.pathname === "/fixture.js") return route.fulfill({ contentType: "application/javascript", body: js });
     if (url.pathname === "/") return route.fulfill({ contentType: "text/html", body: html });
+    if (/^\/(handles|trademarks|names)\/[a-z0-9-]+\.svg$/.test(url.pathname)) return route.fulfill({ contentType: "image/svg+xml", body: await readFile(resolve("public", url.pathname.slice(1))) });
     calls.push({ path: url.pathname, query: url.search, method: route.request().method() });
     const owner = state.owner;
     if (url.pathname === "/api/session") {
@@ -51,6 +53,8 @@ async function scenario(name, run) {
       if (pending) await pending.wait;
       return route.fulfill({ status, json: status === 200 ? { user: { id: owner } } : { error: "synthetic" } }).catch(() => {});
     }
+    if (url.pathname === "/api/names/workspace") return route.fulfill({ json: { ownerId: owner, workspace: null } });
+    if (url.pathname === "/api/standalone-checks") return route.fulfill({ json: { ownerId: owner, domains: "unavailable", youtube: false, euipo: false } });
     if (url.pathname === "/api/auth/sign-out") {
       const status = state.signOutStatus, body = state.signOutBody, pending = state.signOutGate;
       if (pending) await pending.wait;
@@ -64,6 +68,17 @@ async function scenario(name, run) {
     if (url.pathname === "/api/workspaces/imports") return route.fulfill({ json: { ownerId: owner, source: { projectId: url.searchParams.get("projectId"), projectRevision: 1, projectTitle: "Synthetic saved source", name: "Imported Northstar", selectionId: null, candidateId: null, origin: "project_name" } } });
     if (/^\/api\/workspaces\/(domains|handles|trademarks)$/.test(url.pathname) && route.request().method() === "GET") {
       const reply = state.workspace(url, owner); return route.fulfill({ status: reply.status, json: reply.body });
+    }
+    if (/^\/api\/workspaces\/(domains|handles|trademarks)$/.test(url.pathname) && route.request().method() === "PUT") {
+      if (state.failWrites) return route.fulfill({ status: 503, json: { error: "Synthetic save failure" } });
+      const input = route.request().postDataJSON(), key = `${owner}:${url.pathname}`, receiptKey = `${owner}:${input.requestKey}`;
+      if (receipts.has(receiptKey)) return route.fulfill({ json: { ownerId: owner, workspace: receipts.get(receiptKey) } });
+      const current = saved.get(key);
+      if (input.expectedRevision !== (current?.revision ?? 0)) return route.fulfill({ status: 409, json: { error: "Synthetic revision conflict" } });
+      const workspace = { id: "eeeeeeee-1111-4111-8111-111111111111", ownerId: owner, tool: url.pathname.split("/").at(-1), revision: input.expectedRevision + 1,
+        payload: input.payload, imports: input.imports.map(source => ({ ...source, projectTitle: "Synthetic saved source", name: "Imported Northstar", selectionId: null, candidateId: null, origin: "project_name" })), createdAt: timestamp, updatedAt: timestamp };
+      saved.set(key, workspace); receipts.set(receiptKey, workspace);
+      return route.fulfill({ json: { ownerId: owner, workspace } });
     }
     unexpected.push(`${route.request().method()} ${url.pathname}`);
     return route.abort();
@@ -212,85 +227,77 @@ try {
   });
 
   for (const tool of ["domains", "handles", "trademarks"]) {
-    await scenario(`${tool} real editor wiring, explicit imports and fresh manual expiry fallback`, async ({ page, state, calls }) => {
+    await scenario(`${tool} autosaves authored input, reloads saved values and retains failures through session fencing`, async ({ page, state, calls }) => {
       state.projects = (_url, owner) => ({ status: 200, body: pageOf(owner, projects.slice(0, 1)) });
       await page.goto(`${origin}/?fixture=tools&tool=${tool}`); await ready(page);
+      if (tool === "domains") await page.getByRole("button", { name: "From name library", exact: true }).click();
       const picker = page.getByLabel("Saved project for import", { exact: true });
-      await expect(picker).toBeEnabled();
-      await picker.selectOption(projects[0].id);
+      await expect(picker).toBeEnabled(); await picker.selectOption(projects[0].id);
       expect(calls.filter(call => call.path === "/api/workspaces/imports")).toHaveLength(0);
       await page.getByRole("button", { name: "Import saved name", exact: true }).click();
-      await expect(page.locator("#unsaved")).toHaveText("true");
+      await expect(page.getByLabel("Save status", { exact: true })).toHaveText("Saved");
       expect(calls.filter(call => call.path === "/api/workspaces/imports")).toHaveLength(1);
-      expect(calls.filter(call => call.method !== "GET")).toHaveLength(0);
-      if (tool === "domains") await expect(page.getByRole("textbox", { name: "Names or full domains", exact: true })).toHaveValue("Imported Northstar");
+      expect(calls.some(call => call.method === "PUT" && call.path === `/api/workspaces/${tool}`)).toBe(true);
+      expect(await page.evaluate(() => window.standaloneShellFixture.beforeUnload())).toBe(false);
+      if (tool === "handles") {
+        await page.getByLabel("Business handles", { exact: true }).fill("Cedar");
+        await page.getByLabel("Prefixes", { exact: true }).fill("try, get");
+        await page.getByRole("button", { name: "Save search", exact: true }).click();
+        await expect(page.getByLabel("Save status", { exact: true })).toHaveText("Saved");
+      }
+      await page.reload(); await ready(page);
+      await expect(page.getByLabel("Save status", { exact: true })).toHaveText("Saved");
+      if (tool === "domains") await expect(page.getByRole("button", { name: "Remove name Imported Northstar", exact: true })).toBeVisible();
       if (tool === "trademarks") await expect(page.getByRole("textbox", { name: "Mark name", exact: true })).toHaveValue("Imported Northstar");
+      if (tool === "handles") {
+        await expect(page.getByLabel("Prefixes", { exact: true })).toHaveValue("try, get");
+        await page.getByRole("tab", { name: "Saved", exact: true }).click();
+        await expect(page.getByRole("heading", { name: "Cedar", exact: true })).toBeVisible();
+        await page.getByRole("button", { name: "Use search", exact: true }).click();
+      }
       await page.screenshot({ path: `${output}/${tool}-account-desktop.png`, fullPage: true });
+      state.failWrites = true;
+      const field = () => page.getByRole("textbox", { name: tool === "domains" ? "Names or full domains" : tool === "handles" ? "Business handles" : "Mark name", exact: true });
+      await field().fill("Retained failed input");
+      await expect(page.getByRole("button", { name: "Retry", exact: true })).toBeVisible();
+      await expect(field()).toBeEnabled();
+      expect(await page.evaluate(() => window.standaloneShellFixture.beforeUnload())).toBe(true);
       const checking = gate(); state.sessionGate = checking;
       await page.getByRole("button", { name: "Fixture check account", exact: true }).click();
       await expect(page.locator("#session-status")).toHaveText("checking");
-      await expect(picker).toHaveCount(0);
-      await expect(page.getByText("Imported Northstar", { exact: true })).toHaveCount(0);
+      await expect(field()).toHaveCount(0);
       checking.release(); state.sessionGate = null; await ready(page);
-      if (tool === "domains") await expect(page.getByRole("textbox", { name: "Names or full domains", exact: true })).toHaveValue("Imported Northstar");
-      if (tool === "trademarks") await expect(page.getByRole("textbox", { name: "Mark name", exact: true })).toHaveValue("Imported Northstar");
+      await expect(page.getByRole("button", { name: "Retry", exact: true })).toBeVisible();
+      if (tool === "trademarks") await expect(field()).toHaveValue("Retained failed input");
+      else await expect(page.getByRole("button", { name: tool === "handles" ? "Remove Retained failed input" : "Remove name Retained failed input", exact: true })).toBeVisible();
       await page.evaluate(() => window.standaloneShellFixture.expire());
       await expect(page.locator("#session-status")).toHaveText("signed_out");
-      await expect(picker).toHaveCount(0);
-      await expect(page.getByText("Imported Northstar", { exact: true })).toHaveCount(0);
-      if (tool === "domains") await page.getByRole("button", { name: "Prepare a domain search", exact: true }).click();
-      if (tool === "handles") await page.getByRole("tab", { name: "Search", exact: true }).click();
-      const field = page.getByRole("textbox", { name: tool === "domains" ? "Names or full domains" : tool === "handles" ? "Names" : "Mark name", exact: true });
-      await expect(field).toHaveValue("");
-      await field.fill("Independent manual fallback");
+      await expect(field()).toHaveCount(0);
       await refresh(page);
-      await expect(page.getByLabel("Saved project for import", { exact: true })).toHaveValue("");
-      await expect(page.locator("#unsaved")).toHaveText("true");
-      if (tool === "domains") await expect(page.getByRole("textbox", { name: "Names or full domains", exact: true })).toHaveValue("Imported Northstar");
-      if (tool === "trademarks") await expect(page.getByRole("textbox", { name: "Mark name", exact: true })).toHaveValue("Imported Northstar");
-      await expect(page.getByText("Independent manual fallback", { exact: true })).toHaveCount(0);
-      await page.getByRole("button", { name: "Fixture open names", exact: true }).click();
-      await expect(page.getByRole("heading", { name: "Names", exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Retry", exact: true })).toBeVisible();
+      const otherTool = tool === "handles" ? "trademarks" : "handles";
+      await page.getByRole("button", { name: `Fixture open ${otherTool}`, exact: true }).click();
+      await expect(page.getByLabel("Save status", { exact: true })).toBeVisible();
       await page.getByRole("button", { name: `Fixture open ${tool}`, exact: true }).click();
-      await expect(page.locator("#unsaved")).toHaveText("true");
-      if (tool === "domains") await expect(page.getByRole("textbox", { name: "Names or full domains", exact: true })).toHaveValue("Imported Northstar");
-      if (tool === "trademarks") await expect(page.getByRole("textbox", { name: "Mark name", exact: true })).toHaveValue("Imported Northstar");
-      expect(await page.evaluate(() => JSON.stringify({ local: { ...localStorage }, session: { ...sessionStorage } }))).not.toContain("Imported Northstar");
+      await expect(page.getByRole("button", { name: "Retry", exact: true })).toBeVisible();
+      expect(await page.evaluate(() => JSON.stringify({ local: { ...localStorage }, session: { ...sessionStorage } }))).not.toContain("Retained failed input");
       await page.setViewportSize({ width: 390, height: 844 });
       await page.screenshot({ path: `${output}/${tool}-account-mobile.png`, fullPage: true });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     });
   }
 
-  await scenario("unsigned manual tools keep exact controls and unavailable provider actions", async ({ page, state, calls }) => {
+  await scenario("unsigned tools require an account without creating a browser workspace", async ({ page, state, calls }) => {
     state.sessionStatus = 401;
-    await page.goto(`${origin}/?fixture=tools&tool=domains`);
-    await expect(page.locator("#session-status")).toHaveText("signed_out");
-    await expect(page.getByRole("heading", { name: "Domain library unavailable", exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Prepare a domain search", exact: true }).click();
-    await page.getByRole("textbox", { name: "Names or full domains", exact: true }).fill("North Star\nnorthstar.org");
-    await page.getByRole("button", { name: "Prepare search", exact: true }).click();
-    await expect(page.getByRole("status", { name: "northstar.com availability", exact: true })).toHaveText("Unknown");
-    await expect(page.getByRole("button", { name: "Check availability for northstar.com", exact: true })).toBeDisabled();
-    await expect(page.getByRole("button", { name: "Create brand from northstar.com", exact: true })).toBeDisabled();
-    await page.getByRole("button", { name: "Fixture open handles", exact: true }).click();
-    await expect(page.getByText("This tab only. Reopening this page starts a new workspace.", { exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Add handles", exact: true }).click();
-    await page.getByRole("textbox", { name: "Names", exact: true }).fill("North Star");
-    await page.getByRole("button", { name: "Build comparison", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Check platforms", exact: true })).toBeDisabled();
-    await page.getByRole("button", { name: "Fixture open trademarks", exact: true }).click();
-    await page.getByRole("textbox", { name: "Mark name", exact: true }).fill("Manual trademark fixture");
-    await page.getByRole("button", { name: "Draft preview", exact: true }).click();
-    const downloading = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Export draft preview", exact: true }).click();
-    const download = await downloading;
-    await download.saveAs(`${output}/manual-trademark-preview.json`);
-    const exported = JSON.parse(await readFile(`${output}/manual-trademark-preview.json`, "utf8"));
-    expect(exported.draft.markName).toBe("Manual trademark fixture");
-    expect(exported.limitations).toContain("No application has been submitted or registered. Official filing requirements remain unvalidated.");
+    for (const tool of ["domains", "handles", "trademarks"]) {
+      await page.goto(`${origin}/?fixture=tools&tool=${tool}`);
+      await expect(page.locator("#session-status")).toHaveText("signed_out");
+      await expect(page.getByRole("textbox")).toHaveCount(0);
+      expect(await page.evaluate(() => window.standaloneShellFixture.beforeUnload())).toBe(false);
+    }
     expect(calls.every(call => call.path === "/api/session" && call.method === "GET")).toBe(true);
   });
+
 } finally {
   await browser.close();
   await writeFile(`${output}/verification.json`, JSON.stringify({ syntheticFixture: true, privateApiIntercepted: true, passed: checks.every(check => check.passed), checks }, null, 2));

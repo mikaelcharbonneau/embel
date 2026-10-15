@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname, useSelectedLayoutSegment, useSelectedLayoutSegments } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Icon, type IconName } from "@/components/ui/icon";
-import { useLocalDrafts } from "./local-drafts";
 import { AccountSessionProvider, useAccountSession } from "./account-session";
+import { AccountProfileProvider, useAccountProfile } from "./account-profile-provider";
 import { AccountAccess, AccountAccessNotice } from "./account-access";
 import { GenerationActivity } from "./generation-activity";
 import { HandlesArtwork, type HandlesArtworkName } from "@/components/ui/handles-artwork";
@@ -33,27 +33,26 @@ function SidebarContent({ close, concept = false, pathname }: { close?: () => vo
   const { session } = useAccountSession();
   const navLink = (item: typeof primary[number]) => {
     const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-    return <Link key={item.href} href={item.href} className={`nav-link ${active ? "active" : ""}`} aria-label={item.label} title={item.label} aria-current={active ? "page" : undefined} onClick={close}>{pathname.startsWith("/brands/") ? <ProjectArtwork name={item.icon as ProjectArtworkName} /> : pathname === "/sign-in" ? <AuthArtwork name={item.icon as AuthArtworkName} /> : pathname === "/settings" ? <SettingsArtwork name={item.icon as SettingsArtworkName} /> : pathname === "/trademarks" ? <TrademarkArtwork name={item.icon as TrademarkArtworkName} /> : pathname === "/assets" ? <AssetsShellArtwork name={item.icon as AssetsShellArtworkName} /> : pathname === "/brands" ? <ProjectsShellArtwork name={item.icon as ProjectsShellArtworkName} /> : pathname === "/names" ? <NamesShellArtwork name={item.icon as NamesShellArtworkName} /> : pathname === "/handles" ? <HandlesArtwork name={item.icon as HandlesArtworkName} /> : <Icon name={item.icon} size={concept ? 20 : 19} />}<span>{item.label}</span></Link>;
+    return <Link key={item.href} href={item.href} className={`nav-link ${active ? "active" : ""}`} aria-label={item.label} title={item.label} aria-current={active ? "page" : undefined} onClick={close}>{pathname.startsWith("/brands/") ? <ProjectArtwork name={item.icon as ProjectArtworkName} /> : (pathname === "/sign-in" || pathname === "/sign-up") ? <AuthArtwork name={item.icon as AuthArtworkName} /> : pathname === "/settings" ? <SettingsArtwork name={item.icon as SettingsArtworkName} /> : pathname === "/trademarks" ? <TrademarkArtwork name={item.icon as TrademarkArtworkName} /> : pathname === "/assets" ? <AssetsShellArtwork name={item.icon as AssetsShellArtworkName} /> : pathname === "/brands" ? <ProjectsShellArtwork name={item.icon as ProjectsShellArtworkName} /> : pathname === "/names" ? <NamesShellArtwork name={item.icon as NamesShellArtworkName} /> : pathname === "/handles" ? <HandlesArtwork name={item.icon as HandlesArtworkName} /> : <Icon name={item.icon} size={concept ? 20 : 19} />}<span>{item.label}</span></Link>;
   };
   return <>
-    <Link href="/" className={concept ? "app-mark" : "wordmark"} aria-label="Fluid home" onClick={close}>{pathname.startsWith("/brands/") ? <ProjectArtwork name="mark" /> : pathname === "/sign-in" ? <AuthArtwork name="mark" /> : pathname === "/settings" ? <SettingsArtwork name="mark" /> : pathname === "/trademarks" ? <TrademarkArtwork name="mark" /> : pathname === "/assets" ? <AssetsShellArtwork name="mark" /> : pathname === "/brands" ? <ProjectsShellArtwork name="mark" /> : pathname === "/names" ? <NamesShellArtwork name="mark" /> : pathname === "/handles" ? <HandlesArtwork name="mark" /> : <AppMark />}</Link>
+    <Link href="/" className={concept ? "app-mark" : "wordmark"} aria-label="Embel home" onClick={close}>{pathname.startsWith("/brands/") ? <ProjectArtwork name="mark" /> : (pathname === "/sign-in" || pathname === "/sign-up") ? <AuthArtwork name="mark" /> : pathname === "/settings" ? <SettingsArtwork name="mark" /> : pathname === "/trademarks" ? <TrademarkArtwork name="mark" /> : pathname === "/assets" ? <AssetsShellArtwork name="mark" /> : pathname === "/brands" ? <ProjectsShellArtwork name="mark" /> : pathname === "/names" ? <NamesShellArtwork name="mark" /> : pathname === "/handles" ? <HandlesArtwork name="mark" /> : <AppMark />}</Link>
     <nav className="sidebar-nav" aria-label="Main navigation">{concept ? <><div className="nav-group">{primary.map(navLink)}</div><div className="nav-group workspace-tools">{tools.map(navLink)}</div></> : <div className="nav-group">{[...primary, ...tools].map(navLink)}</div>}</nav>
-    <div className="sidebar-bottom">{navLink({ href: "/settings", label: "Settings", icon: "settings" })}<Link href="/settings" className="workspace-label" aria-label="My workspace settings" title="My workspace" onClick={close}><span className="workspace-avatar"><Icon name="user" size={18} /></span><div><strong>My workspace</strong><span>{session.status === "ready" ? "Personal account" : "Browser workspace"}</span></div></Link></div>
+    <div className="sidebar-bottom">{navLink({ href: "/settings", label: "Settings", icon: "settings" })}<Link href="/settings" className="workspace-label" aria-label="My workspace settings" title="My workspace" onClick={close}><span className="workspace-avatar"><Icon name="user" size={18} /></span><div><strong>My workspace</strong><span>{session.status === "ready" ? "Personal workspace" : session.status === "checking" ? "Checking account…" : "Sign in to save"}</span></div></Link></div>
   </>;
 }
 
 export function AppShell({ children, auth }: { children: React.ReactNode; auth: React.ReactNode }) {
-  return <AccountSessionProvider><WorkspaceShell>{children}</WorkspaceShell>{auth}</AccountSessionProvider>;
+  return <AccountSessionProvider><AccountProfileProvider><WorkspaceShell>{children}</WorkspaceShell>{auth}</AccountProfileProvider></AccountSessionProvider>;
 }
 
 function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const currentPathname = usePathname();
   const authSegment = useSelectedLayoutSegment("auth");
   const backgroundSegments = useSelectedLayoutSegments();
-  const intercepted = authSegment === "(.)sign-in" || authSegment === "sign-in";
+  const intercepted = ["(.)sign-in", "sign-in", "(.)sign-up", "sign-up"].includes(authSegment ?? "");
   // The children slot retains the underlying route during intercepted navigation.
   const pathname = intercepted ? `/${backgroundSegments.filter(segment => !segment.startsWith("(")).join("/")}` : currentPathname;
-  const { storage } = useLocalDrafts();
   const [menuOpen, setMenuOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [moreBelow, setMoreBelow] = useState(false);
@@ -61,10 +60,10 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const isHome = pathname === "/";
   const ideaId = /^\/ideas\/([^/]+)$/.exec(pathname)?.[1];
   const projectWorkspace = /^\/brands\/(?:account\/)?[0-9a-f-]{36}(?:\/|$)/i.test(pathname);
-  const usesConceptShell = projectWorkspace || pathname === "/sign-in" || pathname === "/settings" || pathname === "/trademarks" || pathname === "/assets" || pathname === "/brands" || isHome || pathname === "/ideas" || Boolean(ideaId) || pathname === "/domains" || pathname === "/handles" || pathname === "/names";
+  const usesConceptShell = projectWorkspace || (pathname === "/sign-in" || pathname === "/sign-up") || pathname === "/settings" || pathname === "/trademarks" || pathname === "/assets" || pathname === "/brands" || isHome || pathname === "/ideas" || Boolean(ideaId) || pathname === "/domains" || pathname === "/handles" || pathname === "/names";
   const usesBottomFade = isHome || Boolean(ideaId);
   const menuRef = useRef<HTMLDialogElement>(null);
-  const pageLabel = [...primary, ...tools, { href: "/settings", label: "Settings" }, { href: "/sign-in", label: "Sign in" }].find((item) => item.href !== "/" && pathname.startsWith(item.href))?.label ?? "Home";
+  const pageLabel = [...primary, ...tools, { href: "/settings", label: "Settings" }, { href: "/sign-in", label: "Sign in" }, { href: "/sign-up", label: "Create account" }].find((item) => item.href !== "/" && pathname.startsWith(item.href))?.label ?? "Home";
 
   useEffect(() => {
     const dialog = menuRef.current;
@@ -84,15 +83,13 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
     return () => { observer.disconnect(); main.removeEventListener("scroll", measure); };
   }, [usesBottomFade, pathname]);
 
-  return <div className={`app-shell ${usesConceptShell ? "concept-shell" : ""} ${projectWorkspace ? "concept-project-workspace" : pathname === "/sign-in" ? "concept-sign-in" : isHome ? "concept-home" : ideaId ? "concept-idea-detail" : pathname === "/ideas" ? "concept-ideas" : pathname === "/domains" ? "concept-domains" : pathname === "/handles" ? "concept-handles" : pathname === "/names" ? "concept-names" : pathname === "/settings" ? "concept-settings" : pathname === "/trademarks" ? "concept-trademarks" : pathname === "/assets" ? "concept-assets" : pathname === "/brands" ? "concept-projects" : ""} ${expanded ? "navigation-expanded" : "navigation-collapsed"}`}>
+  return <div className={`app-shell ${usesConceptShell ? "concept-shell" : ""} ${projectWorkspace ? "concept-project-workspace" : (pathname === "/sign-in" || pathname === "/sign-up") ? "concept-sign-in" : isHome ? "concept-home" : ideaId ? "concept-idea-detail" : pathname === "/ideas" ? "concept-ideas" : pathname === "/domains" ? "concept-domains" : pathname === "/handles" ? "concept-handles" : pathname === "/names" ? "concept-names" : pathname === "/settings" ? "concept-settings" : pathname === "/trademarks" ? "concept-trademarks" : pathname === "/assets" ? "concept-assets" : pathname === "/brands" ? "concept-projects" : ""} ${expanded ? "navigation-expanded" : "navigation-collapsed"}`}>
     <a className="skip-link" href="#main-content">Skip to content</a>
     <aside className="sidebar"><SidebarContent pathname={pathname} concept={usesConceptShell} /></aside>
     <dialog className="mobile-menu" ref={menuRef} onCancel={() => setMenuOpen(false)} onClick={(event) => { if (event.target === event.currentTarget) setMenuOpen(false); }} aria-label="Navigation"><button className="icon-button mobile-close" aria-label="Close navigation" onClick={() => setMenuOpen(false)}><Icon name="close" /></button><SidebarContent pathname={pathname} close={() => setMenuOpen(false)} /></dialog>
     <div className="workspace-main">
-      <header className="topbar"><div className="topbar-left"><button className="icon-button mobile-menu-trigger" aria-label="Open navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}><Icon name="menu" /></button>{usesConceptShell && <><button className="icon-button workspace-sidebar-toggle" aria-label={expanded ? "Collapse navigation" : "Expand navigation"} aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{pathname === "/sign-in" ? <AuthArtwork name="expand" /> : pathname === "/settings" ? <SettingsArtwork name="expand" /> : pathname === "/trademarks" ? <TrademarkArtwork name="expand" /> : pathname === "/assets" ? <AssetsShellArtwork name="expand" /> : pathname === "/brands" ? <ProjectsShellArtwork name="expand" /> : pathname === "/names" ? <NamesShellArtwork name="expand" /> : pathname === "/handles" ? <HandlesArtwork name="expand" /> : <Icon name="chevron" size={16} />}</button><span className="workspace-breadcrumb-root">My workspace</span><span className="workspace-breadcrumb-slash" aria-hidden="true">/</span></>}{ideaId ? <IdeaBreadcrumb ideaId={ideaId} /> : pathname === "/names" ? <NamesBreadcrumb /> : <span>{pageLabel}</span>}</div>{usesConceptShell ? <WorkspaceAccountMenu /> : <div className="topbar-account-actions"><GenerationActivity /><AccountAccess /></div>}</header>
+      <header className="topbar"><div className="topbar-left"><button className="icon-button mobile-menu-trigger" aria-label="Open navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}><Icon name="menu" /></button>{usesConceptShell && <><button className="icon-button workspace-sidebar-toggle" aria-label={expanded ? "Collapse navigation" : "Expand navigation"} aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{(pathname === "/sign-in" || pathname === "/sign-up") ? <AuthArtwork name="expand" /> : pathname === "/settings" ? <SettingsArtwork name="expand" /> : pathname === "/trademarks" ? <TrademarkArtwork name="expand" /> : pathname === "/assets" ? <AssetsShellArtwork name="expand" /> : pathname === "/brands" ? <ProjectsShellArtwork name="expand" /> : pathname === "/names" ? <NamesShellArtwork name="expand" /> : pathname === "/handles" ? <HandlesArtwork name="expand" /> : <Icon name="chevron" size={16} />}</button><span className="workspace-breadcrumb-root">My workspace</span><span className="workspace-breadcrumb-slash" aria-hidden="true">/</span></>}{ideaId ? <IdeaBreadcrumb ideaId={ideaId} /> : pathname === "/names" ? <NamesBreadcrumb /> : <span>{pageLabel}</span>}</div>{usesConceptShell ? <WorkspaceAccountMenu project={projectWorkspace} /> : <div className="topbar-account-actions"><GenerationActivity /><AccountAccess /></div>}</header>
       <AccountAccessNotice />
-      {storage === "unavailable" && <div className="storage-alert" role="alert">Browser storage is unavailable. Your changes will only stay in this tab until you close or reload it.</div>}
-      {storage === "invalid" && <div className="storage-alert" role="alert">Saved drafts could not be read. Start a new draft or clear local data in Settings.</div>}
       <main id="main-content" ref={mainRef} tabIndex={-1}>{children}</main>
       {isHome && moreBelow && <div className="home-bottom-fade" aria-hidden="true" />}
       {ideaId && moreBelow && <div className="idea-bottom-fade" aria-hidden="true" />}
@@ -116,10 +113,12 @@ function IdeaBreadcrumb({ ideaId }: { ideaId: string }) {
   return <div className="idea-breadcrumb"><Link href="/ideas" aria-label="Back to ideas">Ideas</Link><span className="idea-breadcrumb-divider" aria-hidden="true">/</span><span className="idea-breadcrumb-title">{title || "Idea detail"}</span></div>;
 }
 
-function WorkspaceAccountMenu() {
+function WorkspaceAccountMenu({ project = false }: { project?: boolean }) {
   const { session } = useAccountSession();
+  const profile = useAccountProfile();
   const menu = useRef<HTMLDetailsElement>(null);
+  if (project) return <Link className="workspace-account-menu workspace-account-settings" href="/settings" aria-label="Account settings"><span className="workspace-account-avatar"><Icon name="user" size={16} /></span></Link>;
   return <details className="workspace-account-menu" ref={menu} onKeyDown={event => {
     if (event.key === "Escape" && menu.current) { menu.current.open = false; menu.current.querySelector("summary")?.focus(); }
-  }}><summary aria-label="Account menu"><span>{session.status === "ready" ? "My account" : "Sign in"}</span><span className="workspace-account-avatar"><Icon name="user" size={16} /></span></summary><div className="workspace-account-panel"><AccountAccess /><GenerationActivity /></div></details>;
+  }}><summary aria-label="Account menu"><span>{session.status === "ready" ? (profile?.workspace?.saved.values.fullName || "My account") : "Sign in"}</span><span className="workspace-account-avatar"><Icon name="user" size={16} /></span></summary><div className="workspace-account-panel"><AccountAccess /><GenerationActivity /></div></details>;
 }

@@ -1,11 +1,12 @@
 import { apiTextDeploymentSchema, apiTextDispatchMessageSchema } from "../src/domain/api-text-dispatch";
-import { matchesStrategyPolicy, type OpenAIStrategyConfiguration } from "../src/server/ai/config";
+import { isHostedStrategyPolicy, type OpenAIStrategyConfiguration } from "../src/server/ai/config";
 import type { OpenAIResponsesTransport } from "../src/server/ai/openai-transport";
 import type { JobDatabase } from "./postgres-store";
 import { ApiTextJobStore, expireApiTextJob, readApiTextDispatch } from "./api-text-store";
 import { createApiTextReadiness } from "./handlers/openai-readiness";
 import { createOpenAIStrategyHandlers } from "./handlers/openai-strategy";
 import { runOneJob } from "./runner";
+import { apiTextDispatchDatabase } from "./api-text-multi-account";
 
 export const API_TEXT_DATABASE_TIMEOUT_MS = 5_000;
 export const API_TEXT_HANDLER_TIMEOUT_MS = 270_000;
@@ -16,20 +17,19 @@ export type ApiTextDeliveryResult = { disposition: "ack" | "retry"; state: strin
 /** One delivery, one existing admitted job. This entrypoint never admits, enables or retries a paid step. */
 export async function runApiTextDelivery(options: {
   message: unknown; database: JobDatabase; configuration: OpenAIStrategyConfiguration | null;
-  deploymentId: string; signal?: AbortSignal; transport?: OpenAIResponsesTransport;
+  deploymentId: string; signal?: AbortSignal; transport?: OpenAIResponsesTransport; multiAccount?: boolean;
 }): Promise<ApiTextDeliveryResult> {
   const parsed = apiTextDispatchMessageSchema.safeParse(options.message);
   if (!parsed.success) return { disposition: "ack", state: "invalid_message" };
   const message = parsed.data;
+  const sourceDatabase = options.multiAccount ? apiTextDispatchDatabase(options.database, message) : options.database;
   if (!apiTextDeploymentSchema.safeParse(options.deploymentId).success || message.deploymentId !== options.deploymentId) {
     return { disposition: "ack", state: "deployment_mismatch" };
   }
   if (options.signal?.aborted) return { disposition: "retry", state: "stopping" };
   const configured = options.configuration;
   if (!configured) return { disposition: "retry", state: "runtime_unavailable" };
-  // The current research policy has no proven predispatch billable-input bound.
-  const policies = new Map([...configured.policies].filter(([operation, policy]) => operation !== "strategy.competitors" &&
-    matchesStrategyPolicy(operation, policy) && policy.maxWebSearchCalls === 0 && policy.maximumCostMicrousd <= 122_880));
+  const policies = new Map([...configured.policies].filter(([operation, policy]) => isHostedStrategyPolicy(operation, policy)));
   if (!policies.size) return { disposition: "retry", state: "runtime_unavailable" };
   const controller = new AbortController();
   const stop = () => controller.abort();
@@ -41,7 +41,7 @@ export async function runApiTextDelivery(options: {
     if (closed || Date.now() >= deadline) throw new Error("Database deadline exceeded");
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      return await Promise.race([options.database.query(sql, values), new Promise<never>((_, reject) => {
+      return await Promise.race([sourceDatabase.query(sql, values), new Promise<never>((_, reject) => {
         timer = setTimeout(() => reject(new Error("Database unavailable")), Math.min(API_TEXT_DATABASE_TIMEOUT_MS, deadline - Date.now()));
       })]);
     } finally { clearTimeout(timer); }

@@ -40,3 +40,25 @@ it("keeps an oversized workspace in memory without replacing the last readable s
   expect(recovered).toHaveLength(12);
   expect(recovered.find((draft) => draft.id === copy!.id)).toMatchObject({ title: "Local capacity fixture 12", namingNotes: "Keep these unsaved notes", segments: [] });
 });
+
+it("reclaims only confirmed account copies at capacity and preserves every unsaved legacy draft", async () => {
+  vi.resetModules();
+  const drafts = Array.from({ length: 50 }, (_, index) => ({ ...largeDraft(index), segments: [], ...(index > 0 ? { ownerId: "cccccccc-1111-4111-8111-111111111111", accountProjectId: `dddddddd-1111-4111-8111-${String(index).padStart(12, "0")}` } : {}) }));
+  let stored = JSON.stringify({ version: 1, drafts });
+  vi.stubGlobal("window", { localStorage: { getItem: () => stored, setItem: (_key: string, value: string) => { stored = value; } } });
+  const { createLocalDraft } = await import("@/components/workspace/local-drafts");
+  const id = createLocalDraft({ title: "New account project", description: "Another project", scope: "complete_brand", suppliedName: "", namingNotes: "", identityNotes: "", example: false, ownerId: "cccccccc-1111-4111-8111-111111111111" });
+  expect(id).not.toBeNull();
+  expect(JSON.parse(stored).drafts).toHaveLength(2);
+  expect(JSON.parse(stored).drafts.find((draft: LocalDraft) => draft.id === drafts[0]!.id)).toEqual(drafts[0]);
+});
+
+it("does not overwrite unreadable legacy data when retaining a new account prompt", async () => {
+  vi.resetModules(); const original = '{"version":1,"drafts":[unreadable legacy bytes';
+  let stored = original;
+  vi.stubGlobal("window", { localStorage: { getItem: () => stored, setItem: (_key: string, value: string) => { stored = value; } } });
+  const { createLocalDraft, getLocalDraft, clearLocalDrafts } = await import("@/components/workspace/local-drafts");
+  const id = createLocalDraft({ title: "New account prompt", description: "Keep this current prompt", scope: "complete_brand", suppliedName: "", namingNotes: "", identityNotes: "", example: false });
+  expect(getLocalDraft(id!)?.description).toBe("Keep this current prompt"); expect(stored).toBe(original);
+  expect(clearLocalDrafts()).toBe(true); expect(JSON.parse(stored).drafts).toEqual([]);
+});

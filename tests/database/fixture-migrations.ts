@@ -1,3 +1,6 @@
+// Historical fixtures stop before this upgrade to test its pinned predecessors.
+export const API_TEXT_MULTI_ACCOUNT_MIGRATION = "20261013190236_api_text_multi_account.sql";
+
 const compare = (left: string, right: string) => left < right ? -1 : left > right ? 1 : 0;
 function migrationKey(name: string): string {
   const match = /^(?:local)?(\d{14}_[a-z0-9_]+\.sql)$/.exec(name);

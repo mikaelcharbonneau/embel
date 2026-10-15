@@ -34,14 +34,16 @@ async function reply(route: Route, body: unknown, status = 200) {
   await route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
 async function fixtures(page: Page) {
-  const state = { project: fixtureProject(), owner, available: true, responseOnly: false, policyIdentity: subscriptionPolicyIdentity, billingMode: "openai_api" as "openai_api" | "chatgpt_subscription", patchStatus: 200, queueStatus: 202, applyReplyStatus: 200, jobs: [] as StrategyJob[], enqueues: [] as Record<string, unknown>[], patches: [] as Record<string, unknown>[], applies: [] as Record<string, unknown>[] };
+  const state = { project: fixtureProject(), owner, available: true, budgetUnavailable: false, responseOnly: false, policyIdentity: subscriptionPolicyIdentity, billingMode: "openai_api" as "openai_api" | "chatgpt_subscription", patchStatus: 200, queueStatus: 202, applyReplyStatus: 200, jobs: [] as StrategyJob[], enqueues: [] as Record<string, unknown>[], patches: [] as Record<string, unknown>[], applies: [] as Record<string, unknown>[] };
   await page.route("**/api/**", async route => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
-    const availability = state.available ? { status: "available", operations: state.billingMode === "chatgpt_subscription" ? caps.map(item => ({ operation: item.operation, billingMode: "chatgpt_subscription", limits: DEFAULT_SUBSCRIPTION_LIMITS, policyIdentity: state.policyIdentity })) : caps.filter(item => !state.responseOnly || item.operation === "strategy.reformulate") } : { status: "unavailable", operations: [], reason: "worker_unavailable" };
+    const availability = state.available ? { status: "available", operations: state.billingMode === "chatgpt_subscription" ? caps.map(item => ({ operation: item.operation, billingMode: "chatgpt_subscription", limits: DEFAULT_SUBSCRIPTION_LIMITS, policyIdentity: state.policyIdentity })) : caps.filter(item => !state.responseOnly || item.operation === "strategy.reformulate") } : { status: "unavailable", operations: [], reason: state.budgetUnavailable ? "budget_unavailable" : "worker_unavailable" };
     if (path === "/api/session") return reply(route, { user: { id: state.owner } });
     if (path === "/api/strategy") return reply(route, { availability });
     if (state.owner !== owner) return reply(route, { error: "Synthetic unavailable account" }, 404);
+    if (path === `/api/projects/${projectId}/idea-source` || path === `/api/projects/${projectId}/standalone-source`) return reply(route, { ownerId: owner, projectId, source: null });
+    if (path === `/api/projects/${projectId}/idea-attachments`) return reply(route, { ownerId: owner, projectId, items: [], nextCursor: null });
     if (path === "/api/projects" && request.method() === "POST") {
       state.project = accountProjectSchema.parse({ ...request.postDataJSON(), id: projectId, owner_id: owner, current_revision: 1, created_at: when });
       return reply(route, { project: state.project }, 201);
@@ -85,14 +87,44 @@ async function fixtures(page: Page) {
 }
 async function open(page: Page) {
   await page.goto(`/brands/account/${projectId}`);
-  await expect(page.getByRole("textbox", { name: "Message Fluid" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Message Embel" })).toBeVisible();
   await expect(page.getByText(/Sending uses (OpenAI|your ChatGPT plan)/)).toBeVisible();
+}
+
+async function openHome(page: Page) {
+  await Promise.all([
+    page.waitForResponse(response => new URL(response.url()).pathname === "/api/strategy" && response.request().method() === "GET" && response.status() === 200, { timeout: 15_000 }),
+    page.goto("/brands/new"),
+  ]);
+}
+
+async function expectSavedVersion(page: Page, revision: number) {
+  const details = page.locator(".project-details-disclosure");
+  await expect(details).toBeVisible();
+  if (await details.getAttribute("open") === null) await details.locator(":scope > summary").click();
+  await expect(details.getByText(`Saved to account · version ${revision}`, { exact: true })).toBeVisible();
+}
+
+async function editProjectTitle(page: Page) {
+  const details = page.locator(".project-details-disclosure");
+  if (await details.getAttribute("open") === null) await details.locator(":scope > summary").click();
+  await page.getByRole("button", { name: "Rename project" }).click();
+}
+
+async function sendInitialPrompt(page: Page, queueStatus = 202) {
+  // A cold synthetic schema/route can take longer than a UI assertion. Observe
+  // both real browser acknowledgements, then assert the rendered transition.
+  await Promise.all([
+    page.waitForResponse(response => new URL(response.url()).pathname === "/api/projects" && response.request().method() === "POST" && response.status() === 201, { timeout: 15_000 }),
+    page.waitForResponse(response => new URL(response.url()).pathname === `/api/projects/${projectId}/strategy` && response.request().method() === "POST" && response.status() === queueStatus, { timeout: 15_000 }),
+    page.getByRole("button", { name: "Send prompt", exact: true }).click(),
+  ]);
 }
 
 test("strategy fixture: Send waits for response acceptance, then researches the new revision once", async ({ page }, testInfo) => {
   const state = await fixtures(page); await open(page);
   await expect(page.getByText(/Sending uses OpenAI.*\$3.27/)).toBeVisible();
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Focus on office workers at lunch.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Focus on office workers at lunch.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   expect(state.patches[0]?.context).toMatchObject({ intake: { conversation: expect.arrayContaining([expect.objectContaining({ kind: "user_message", text: "Focus on office workers at lunch." })]) } });
@@ -112,13 +144,13 @@ test("strategy fixture: Send waits for response acceptance, then researches the 
   await expect(page.getByRole("button", { name: "Apply response", exact: true })).toBeEnabled();
   expect(state.enqueues).toHaveLength(1);
   await page.getByRole("button", { name: "Apply response", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 3", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 3);
   await expect(page.getByText("Competitor research queued", { exact: true })).toBeVisible();
   expect(state.enqueues).toHaveLength(2);
   expect(state.enqueues[1]).toMatchObject({ operation: "strategy.competitors", expectedRevision: 3, acceptedMaxCostMicrousd: 3142880 });
   expect(state.project.context.activity).toBe("Neighborhood kitchen");
   expect(state.project.context.reformulationConfirmed).toBe(false);
-  await expect(page.getByText("Applied to saved version · 3", { exact: true })).toBeVisible();
+  await expect(page.getByRole("status", { name: "Applied to saved version · 3", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Request response", exact: true })).toHaveCount(0);
   await page.reload();
   await expect(page.getByText("Competitor research queued", { exact: true })).toBeVisible();
@@ -126,16 +158,67 @@ test("strategy fixture: Send waits for response acceptance, then researches the 
   state.jobs[1] = complete(state.jobs[1]!);
   await expect(page.getByText("Synthetic competitor research result.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Apply competitor research", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 4", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 4);
   expect(state.project.context.competitors[0]).toMatchObject({ name: "Fixture competitor", selected: false });
   expect(state.project.context.competitorReviewComplete).toBe(false);
   await page.getByRole("button", { name: "View latest AI activity", exact: true }).click();
   await page.screenshot({ path: testInfo.outputPath("strategy-conversation.png"), fullPage: true, scale: "css" });
 });
 
+test("strategy transcript: saved response stays readable after allowance is consumed and notes remain manual", async ({ page }, testInfo) => {
+  const state = await fixtures(page);
+  state.available = false; state.budgetUnavailable = true; state.responseOnly = true;
+  const job = complete(fixtureJob("strategy.reformulate", 1, 1));
+  const output = job.results[0]!.output;
+  if (output.operation !== "strategy.reformulate") throw new Error("Expected reformulation fixture");
+  job.results[0]!.application = { jobId: job.id, stepKey: "response", inputRevision: 1, appliedRevision: 2, appliedAt: when };
+  state.jobs = [job];
+  state.project = accountProjectSchema.parse({ ...state.project, current_revision: 2, context: {
+    ...state.project.context, activity: output.proposal.activity, offering: output.proposal.offering, knownAudience: output.proposal.knownAudience,
+    intake: { ...state.project.context.intake, conversation: [{ id: "prompt-fixture", kind: "user_message", text: "A neighborhood lunch kitchen.", createdAt: when }] },
+  } });
+  await page.goto(`/brands/account/${projectId}`);
+  const receipt = page.getByRole("status", { name: "Applied to saved version · 2", exact: true });
+  const message = page.getByRole("article", { name: "Response activity", exact: true });
+  await expect(receipt).toHaveText("Added to brief");
+  await expect(message.getByRole("heading", { name: "Response complete", exact: true })).toHaveText("Embel");
+  await expect(page.getByRole("button", { name: "Save changes", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Apply response", exact: true })).toHaveCount(0);
+  await expect(page.getByText("No AI requests are available for this account. You can still edit and save your project.", { exact: true })).toBeVisible();
+  await expect(page.getByText(/OpenAI is unavailable/)).toHaveCount(0);
+  await expect(message.getByText("Seasonal lunches", { exact: true })).not.toBeVisible();
+  await expect(message.locator("img")).toHaveCount(2);
+  const artwork = await message.locator("img").evaluateAll(images => images.map(image => ({ src: image.getAttribute("src"), loaded: (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0, width: image.getBoundingClientRect().width, height: image.getBoundingClientRect().height })));
+  expect(artwork).toEqual([{ src: "/project-workspace/mark.svg", loaded: true, width: 28, height: 28 }, { src: "/project-workspace/check.svg", loaded: true, width: 16, height: 16 }]);
+  const box = await message.boundingBox();
+  expect(box!.width).toBeLessThanOrEqual(761);
+  await expect(message).toHaveCSS("border-top-width", "0px");
+  const composer = await page.locator(".conversation-composer").boundingBox();
+  expect(composer!.y + composer!.height).toBeLessThanOrEqual(page.viewportSize()!.height + 1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("saved-response.png"), fullPage: true, scale: "css" });
+
+  await message.getByText("Brief details", { exact: true }).click();
+  await expect(message.getByText("Seasonal lunches", { exact: true })).toBeVisible();
+  await message.getByText("Brief details", { exact: true }).click();
+  await page.getByRole("button", { name: "Recheck AI availability", exact: true }).click();
+  await expect(receipt).toBeVisible();
+  expect(state.enqueues).toHaveLength(0); expect(state.applies).toHaveLength(0);
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Keep this project note without an AI request.");
+  await page.getByRole("button", { name: "Keep note", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Save changes", exact: true })).toBeEnabled();
+  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Save changes", exact: true })).toHaveCount(0);
+  expect(state.patches).toHaveLength(1); expect(state.enqueues).toHaveLength(0);
+  await page.reload();
+  await expect(page.getByText("Keep this project note without an AI request.", { exact: true })).toBeVisible();
+  await expect(receipt).toBeVisible();
+  expect(state.enqueues).toHaveLength(0); expect(state.applies).toHaveLength(0);
+});
+
 test("strategy fixture: rejected saves retain the prompt and never enqueue provider work", async ({ page }) => {
   const state = await fixtures(page); state.patchStatus = 409; await open(page);
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Keep this unsaved correction.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Keep this unsaved correction.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText("Keep this unsaved correction.", { exact: true })).toBeVisible();
   await expect(page.getByText("A newer version is saved in your account.", { exact: true })).toBeVisible();
@@ -148,34 +231,34 @@ test("strategy fixture: applied results retain their exact acceptance status aft
   await expect(page.getByText("Synthetic provider response: a welcoming neighborhood kitchen.", { exact: true })).toBeVisible();
   expect(state.applies).toHaveLength(0); expect(state.project.context.activity).toBe("");
   await page.getByRole("button", { name: "Apply response", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 2", { exact: true })).toBeVisible();
-  await expect(page.getByText("Applied to saved version · 2", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 2);
+  await expect(page.getByRole("status", { name: "Applied to saved version · 2", exact: true })).toBeVisible();
   await expect(page.getByText("Earlier version · 1", { exact: true })).toHaveCount(0);
   expect(state.project.context.activity).toBe("Neighborhood kitchen");
   expect(state.project.context.reformulationConfirmed).toBe(false);
   expect(state.applies).toEqual([{ expectedRevision: 1, stepKey: "response" }]);
-  await expect(page.getByRole("button", { name: "Applied response", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Apply response", exact: true })).toHaveCount(0);
   await page.reload();
-  await expect(page.getByText("Applied to saved version · 2", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Applied response", exact: true })).toBeDisabled();
+  await expect(page.getByRole("status", { name: "Applied to saved version · 2", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Apply response", exact: true })).toHaveCount(0);
   expect(state.enqueues).toHaveLength(0);
 });
 
 test("strategy fixture: cancellation stops the accepted chain and unavailable integration stays honest", async ({ page }) => {
   const state = await fixtures(page); await open(page);
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Start another response.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Start another response.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Cancel response", exact: true }).click();
-  await expect(page.getByText("Response cancelled", { exact: true })).toBeVisible();
+  await expect(page.getByRole("article", { name: "Response activity", exact: true }).getByText("Response cancelled", { exact: true })).toBeVisible();
   state.jobs[0] = complete(state.jobs[0]!);
   await page.reload();
   await expect(page.getByText("Synthetic provider response: a welcoming neighborhood kitchen.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Apply response", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 3", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 3);
   expect(state.enqueues).toHaveLength(1);
   state.available = false; await page.reload();
-  await expect(page.getByText(/OpenAI is unavailable.*continue editing/)).toBeVisible();
+  await expect(page.getByText(/AI replies are unavailable right now.*edit and save/)).toBeVisible();
 });
 
 test("strategy fixture: another owner's job response never enters the transcript", async ({ page }) => {
@@ -185,10 +268,11 @@ test("strategy fixture: another owner's job response never enters the transcript
 });
 
 test("strategy fixture: initial Send keeps the browser copy and creates a genuine account request", async ({ page }) => {
-  const state = await fixtures(page); await page.goto("/brands/new");
+  test.setTimeout(45_000);
+  const state = await fixtures(page); await openHome(page);
   await expect(page.getByText(/Sending saves an account copy.*\$3.27/)).toBeVisible();
   await page.getByRole("textbox", { name: "Your prompt" }).fill("Synthetic initial prompt for a local kitchen.");
-  await page.getByRole("button", { name: "Send prompt", exact: true }).click();
+  await sendInitialPrompt(page);
   await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   expect(state.project.context.intake.conversation?.[0]).toMatchObject({ kind: "user_message", text: "Synthetic initial prompt for a local kitchen." });
@@ -200,9 +284,9 @@ test("strategy fixture: initial Send keeps the browser copy and creates a genuin
 
 test("strategy fixture: unconfirmed enqueue shows no invented progress and retries the same saved request", async ({ page }) => {
   const state = await fixtures(page); state.queueStatus = 503; await open(page);
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Keep the saved prompt after a queue failure.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Keep the saved prompt after a queue failure.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 2", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 2);
   await expect(page.getByText(/no new job was confirmed/)).toBeVisible();
   await expect(page.getByText("Response queued", { exact: true })).toHaveCount(0);
   state.queueStatus = 202;
@@ -215,14 +299,14 @@ test("strategy fixture: unconfirmed enqueue shows no invented progress and retri
 
 test("strategy fixture: a lost Apply response recovers the exact saved application before research", async ({ page }) => {
   const state = await fixtures(page); state.applyReplyStatus = 503; await open(page);
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Recover this explicitly accepted response.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Recover this explicitly accepted response.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   state.jobs[0] = complete(state.jobs[0]!);
   await page.getByRole("button", { name: "Apply response", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 3", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 3);
   await expect(page.getByText("Competitor research queued", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Applied response", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Apply response", exact: true })).toHaveCount(0);
   expect(state.applies).toEqual([{ expectedRevision: 2, stepKey: "response" }]);
   expect(state.enqueues).toHaveLength(2);
   expect(state.enqueues[1]).toMatchObject({ operation: "strategy.competitors", expectedRevision: 3, acceptedMaxCostMicrousd: 3142880 });
@@ -234,12 +318,12 @@ test("strategy fixture: a lost Apply response recovers the exact saved applicati
 
 test("strategy fixture: retrying research preserves the original allowance and new revision", async ({ page }) => {
   const state = await fixtures(page); await open(page);
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Keep this research request available after an outage.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Keep this research request available after an outage.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   state.jobs[0] = complete(state.jobs[0]!); state.queueStatus = 503;
   await page.getByRole("button", { name: "Apply response", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 3", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 3);
   await expect(page.getByRole("button", { name: "Retry competitor research", exact: true })).toBeVisible();
   expect(state.enqueues).toHaveLength(2);
   await expect(page.getByText("Competitor research queued", { exact: true })).toHaveCount(0);
@@ -254,7 +338,7 @@ test("strategy fixture: retrying research preserves the original allowance and n
 
 test("strategy fixture: reload resumes accepted research from the durable receipt without another Apply", async ({ page }) => {
   const state = await fixtures(page); state.billingMode = "chatgpt_subscription"; await open(page);
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Continue the accepted request after reloading.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Continue the accepted request after reloading.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   state.jobs[0] = complete(state.jobs[0]!); state.queueStatus = 503;
@@ -263,7 +347,7 @@ test("strategy fixture: reload resumes accepted research from the durable receip
   state.queueStatus = 202;
   await page.reload();
   await expect(page.getByText("Competitor research queued", { exact: true })).toBeVisible();
-  await expect(page.getByText("Applied to saved version · 3", { exact: true })).toBeVisible();
+  await expect(page.getByRole("status", { name: "Applied to saved version · 3", exact: true })).toBeVisible();
   expect(state.enqueues).toHaveLength(3);
   expect(state.enqueues[1]).toEqual(state.enqueues[2]);
   expect(state.enqueues[2]).toMatchObject({ expectedRevision: 3, billingMode: "chatgpt_subscription", acceptedPolicyIdentity: subscriptionPolicyIdentity });
@@ -272,17 +356,17 @@ test("strategy fixture: reload resumes accepted research from the durable receip
 
 test("strategy fixture: edits stop automatic research and block applying an old input", async ({ page }) => {
   const state = await fixtures(page); await open(page);
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Prepare this response.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Prepare this response.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Rename project" }).click();
+  await editProjectTitle(page);
   await page.getByRole("textbox", { name: "Project label" }).fill("New unsaved title");
   state.jobs[0] = complete(state.jobs[0]!);
   await expect(page.getByText("Synthetic provider response: a welcoming neighborhood kitchen.", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Apply response", exact: true })).toBeDisabled();
   expect(state.enqueues).toHaveLength(1);
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 3", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 3);
   await expect(page.getByText("Earlier version · 2", { exact: true })).toBeVisible();
   expect(state.enqueues).toHaveLength(1);
 });
@@ -297,7 +381,7 @@ for (const applyReplyStatus of [200, 503]) test(`strategy fixture: typing during
   await open(page);
   await page.getByRole("button", { name: "Apply response", exact: true }).click();
   await requested;
-  await page.getByRole("button", { name: "Rename project" }).click();
+  await editProjectTitle(page);
   await page.getByRole("textbox", { name: "Project label" }).fill("Keep this edit made during Apply");
   release();
   await expect(page.getByText("A newer version is saved in your account.", { exact: true })).toBeVisible();
@@ -319,12 +403,13 @@ test("strategy fixture: a late accepted job is fenced after an account change", 
     await reply(route, { job: complete(fixtureJob("strategy.reformulate", body.expectedRevision, 1)) }, 202);
   });
   await open(page);
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Private prior-account message.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Private prior-account message.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await requested;
   await expect(page.getByText("Response queued", { exact: true })).toHaveCount(0);
   await expect(page.getByText("OpenAI is processing this saved version.", { exact: false })).toHaveCount(0);
   state.owner = anotherOwner;
+  await page.locator(".workspace-account-menu > summary").click();
   await page.getByRole("button", { name: "Check account", exact: true }).click();
   await expect(page.getByText("This project is not available to this account.", { exact: true })).toBeVisible();
   release();
@@ -335,8 +420,8 @@ test("strategy fixture: a late accepted job is fenced after an account change", 
 
 test("subscription fixture: real message text streams without exposing JSON or inventing a complete proposal", async ({ page }) => {
   const state = await fixtures(page); state.billingMode = "chatgpt_subscription"; await open(page);
-  await expect(page.getByText(/ChatGPT plan limits apply\. Fluid allows up to 20 requests per hour and 3 queued requests/)).toBeVisible();
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Use the selected ChatGPT connection for this fixture.");
+  await expect(page.getByText(/ChatGPT plan limits apply\. Embel allows up to 20 requests per hour and 3 queued requests/)).toBeVisible();
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Use the selected ChatGPT connection for this fixture.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   expect(state.enqueues[0]).toMatchObject({ billingMode: "chatgpt_subscription", operation: "strategy.reformulate", expectedRevision: 2, acceptedPolicyIdentity: subscriptionPolicyIdentity });
@@ -370,13 +455,13 @@ test("subscription fixture: cancelled and uncertain partials stay incomplete and
   await open(page);
   const incomplete = page.getByLabel("Incomplete response", { exact: true });
   await expect(incomplete.getByText(message, { exact: true })).toBeVisible();
-  await expect(page.getByText("Response cancelled", { exact: true })).toBeVisible();
+  await expect(page.getByRole("article", { name: "Response activity", exact: true }).getByText("Response cancelled", { exact: true })).toBeVisible();
   await expect(incomplete.locator("img,script")).toHaveCount(0);
   await expect(page.getByText(/Never display this reasoning field/)).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Apply response", exact: true })).toHaveCount(0);
   state.jobs[0] = strategyJobSchema.parse({ ...state.jobs[0], state: "needs_reconciliation", cancel_requested_at: null });
   await page.reload();
-  await expect(page.getByText("Response needs status verification", { exact: true })).toBeVisible();
+  await expect(page.getByRole("article", { name: "Response activity", exact: true }).getByText("Response needs status verification", { exact: true })).toBeVisible();
   await expect(incomplete.getByText(message, { exact: true })).toBeVisible();
   await expect(page.getByText("Incomplete response", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Apply response", exact: true })).toHaveCount(0);
@@ -384,34 +469,34 @@ test("subscription fixture: cancelled and uncertain partials stay incomplete and
 
 test("subscription fixture: a change to API billing stops an accepted subscription chain", async ({ page }) => {
   const state = await fixtures(page); state.billingMode = "chatgpt_subscription"; await open(page);
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Preserve the subscription allowance.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Preserve the subscription allowance.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   state.billingMode = "openai_api"; state.jobs[0] = complete(state.jobs[0]!);
-  await expect(page.getByText("Response complete", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Response complete", exact: true })).toBeVisible();
   await expect(page.getByText(/Sending uses OpenAI.*\$3.27/)).toBeVisible();
   await page.getByRole("button", { name: "Apply response", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 3", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 3);
   expect(state.enqueues).toHaveLength(1);
   await page.reload();
-  await expect(page.getByText("Response complete", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Response complete", exact: true })).toBeVisible();
   expect(state.enqueues).toHaveLength(1);
 });
 
 test("subscription fixture: changing the selected policy stops continuation until a new message", async ({ page }) => {
   const state = await fixtures(page); state.billingMode = "chatgpt_subscription"; await open(page);
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Use the original selected connection.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Use the original selected connection.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   state.policyIdentity = "b".repeat(64); state.jobs[0] = complete(state.jobs[0]!);
-  await expect(page.getByText("Response complete", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Response complete", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Apply response", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 3", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 3);
   expect(state.enqueues).toHaveLength(1);
   await page.reload();
-  await expect(page.getByText("Response complete", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Response complete", exact: true })).toBeVisible();
   expect(state.enqueues).toHaveLength(1);
-  await page.getByRole("textbox", { name: "Message Fluid" }).fill("Start with the newly selected model.");
+  await page.getByRole("textbox", { name: "Message Embel" }).fill("Start with the newly selected model.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   expect(state.enqueues).toHaveLength(2);
@@ -419,7 +504,7 @@ test("subscription fixture: changing the selected policy stops continuation unti
 });
 
 test("subscription fixture: initial Send discloses plan usage and preserves the browser copy", async ({ page }) => {
-  const state = await fixtures(page); state.billingMode = "chatgpt_subscription"; await page.goto("/brands/new");
+  const state = await fixtures(page); state.billingMode = "chatgpt_subscription"; await openHome(page);
   await expect(page.getByText(/Sending saves an account copy and uses your ChatGPT plan/)).toBeVisible();
   await page.getByRole("textbox", { name: "Your prompt" }).fill("Synthetic plan-backed initial prompt.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
@@ -432,12 +517,13 @@ test("subscription fixture: initial Send discloses plan usage and preserves the 
 
 
 for (const applyReplyStatus of [200, 503]) test(`response-only fixture: Home saves one response and never adds research after apply/reload with HTTP ${applyReplyStatus}`, async ({ page }) => {
+  test.setTimeout(45_000);
   const state = await fixtures(page); state.responseOnly = true; state.applyReplyStatus = applyReplyStatus;
-  await page.goto("/brands/new");
+  await openHome(page);
   await expect(page.getByText(/Sending saves an account copy and requests a response, up to \$0.13/)).toBeVisible();
   await expect(page.getByText(/Competitor research is unavailable/)).toBeVisible();
   await page.getByRole("textbox", { name: "Your prompt" }).fill("Synthetic response-only initial prompt.");
-  await page.getByRole("button", { name: "Send prompt", exact: true }).click();
+  await sendInitialPrompt(page);
   await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   expect(state.enqueues).toEqual([expect.objectContaining({ operation: "strategy.reformulate", expectedRevision: 1, acceptedMaxCostMicrousd: 122880 })]);
@@ -447,12 +533,12 @@ for (const applyReplyStatus of [200, 503]) test(`response-only fixture: Home sav
   state.jobs[0] = complete(state.jobs[0]!);
   await expect(page.getByRole("button", { name: "Apply response", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: "Apply response", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 2", { exact: true })).toBeVisible();
-  await expect(page.getByText("Applied to saved version · 2", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 2);
+  await expect(page.getByRole("status", { name: "Applied to saved version · 2", exact: true })).toBeVisible();
   expect(state.enqueues).toHaveLength(1);
   state.responseOnly = false;
   await page.reload();
-  await expect(page.getByText("Applied to saved version · 2", { exact: true })).toBeVisible();
+  await expect(page.getByRole("status", { name: "Applied to saved version · 2", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Research competitors", exact: true })).toBeEnabled();
   expect(state.enqueues).toHaveLength(1);
   expect(await page.evaluate(() => JSON.parse(sessionStorage.getItem("fluid.strategy-consent.v1") ?? "[]"))).toEqual(consent);
@@ -463,11 +549,12 @@ for (const applyReplyStatus of [200, 503]) test(`response-only fixture: Home sav
 });
 
 test("response-only fixture: uncertain response retry keeps its saved consent when research later becomes ready", async ({ page }) => {
+  test.setTimeout(45_000);
   const state = await fixtures(page); state.responseOnly = true; state.queueStatus = 503;
-  await page.goto("/brands/new");
+  await openHome(page);
   await expect(page.getByText(/requests a response, up to \$0.13/)).toBeVisible();
   await page.getByRole("textbox", { name: "Your prompt" }).fill("Synthetic retained response-only consent.");
-  await page.getByRole("button", { name: "Send prompt", exact: true }).click();
+  await sendInitialPrompt(page, 503);
   await expect(page.getByText(/Your account copy is saved, but the AI request is not confirmed/)).toBeVisible();
   state.responseOnly = false; state.queueStatus = 202;
   await page.getByRole("link", { name: "Open saved account project and check AI status" }).click();
@@ -478,9 +565,9 @@ test("response-only fixture: uncertain response retry keeps its saved consent wh
   state.jobs[0] = complete(state.jobs[0]!);
   await expect(page.getByRole("button", { name: "Apply response", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: "Apply response", exact: true }).click();
-  await expect(page.getByText("Applied to saved version · 2", { exact: true })).toBeVisible();
+  await expect(page.getByRole("status", { name: "Applied to saved version · 2", exact: true })).toBeVisible();
   await page.reload();
-  await expect(page.getByText("Applied to saved version · 2", { exact: true })).toBeVisible();
+  await expect(page.getByRole("status", { name: "Applied to saved version · 2", exact: true })).toBeVisible();
   expect(state.enqueues).toHaveLength(2);
   expect(state.enqueues.every(item => item.operation === "strategy.reformulate")).toBe(true);
 });
@@ -489,7 +576,7 @@ test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));
 
 test("strategy fixture: project context cannot push the composer below the viewport", async ({ page }, info) => {
   await fixtures(page); await open(page);
-  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   await page.screenshot({ path: info.outputPath("account-conversation-viewport.png"), fullPage: true, scale: "css" });
   const composer = await page.locator(".conversation-compose-area").boundingBox();
   expect(composer!.y + composer!.height).toBeLessThanOrEqual(page.viewportSize()!.height);

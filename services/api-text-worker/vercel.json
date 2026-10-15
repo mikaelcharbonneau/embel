@@ -7,6 +7,7 @@
   "fluid": true,
   "functions": {
     "api/enqueue.js": { "maxDuration": 30 },
+    "api/readiness.js": { "maxDuration": 15 },
     "api/cron/repair-api-text.js": { "maxDuration": 60 },
     "api/consume.js": {
       "maxDuration": 300,

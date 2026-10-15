@@ -13,7 +13,7 @@ const id = "cccccccc-cccc-4ccc-8ccc-cccccccccccc", key = "eeeeeeee-eeee-4eee-8ee
 const auth = { userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", client: {} };
 const ctx = { params: Promise.resolve({ ideaId: id, projectId: id }) };
 const request = (method = "GET", body?: unknown, query = "", origin = "http://localhost:3105") => new Request("http://localhost:3105/api/ideas" + query, { method,
-  ...(method !== "GET" ? { headers: { origin, "content-type": "application/json" }, body: JSON.stringify(body) } : {}) });
+  ...(method !== "GET" ? { headers: { origin, "content-type": "application/json", "X-Embel-Account": auth.userId }, body: JSON.stringify(body) } : {}) });
 describe("manual Ideas authenticated HTTP boundary", () => {
   beforeEach(() => { vi.resetAllMocks(); vi.stubEnv("APP_ORIGIN", "http://localhost:3105"); mocks.auth.mockResolvedValue(auth); });
   it("passes normalized bounded list query values with verified identity and private headers", async () => {
@@ -40,6 +40,19 @@ describe("manual Ideas authenticated HTTP boundary", () => {
     expect(await (await get(request(), ctx)).json()).toEqual({ idea: { id } });
     expect(await (await source(request(), ctx)).json()).toEqual({ source: null });
     expect(mocks.source).toHaveBeenCalledWith(auth, id);
+  });
+  it.each([null, "invalid-account", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"])("rejects missing, malformed or stale creation account %s before mutation", async expectedOwner => {
+    const req = request("POST", { requestKey: key, content: { title: "Private capture" } });
+    if (expectedOwner === null) req.headers.delete("X-Embel-Account");
+    else req.headers.set("X-Embel-Account", expectedOwner);
+    const response = await create(req);
+    expect(response.status).toBe(401); expect(mocks.auth).toHaveBeenCalledOnce(); expect(mocks.create).not.toHaveBeenCalled();
+    expect(await response.text()).not.toContain(auth.userId);
+  });
+  it("does not create a stale tab's private capture in a newly signed-in cookie account", async () => {
+    mocks.auth.mockResolvedValue({ ...auth, userId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" });
+    expect((await create(request("POST", { requestKey: key, content: { title: "Private capture" } }))).status).toBe(401);
+    expect(mocks.create).not.toHaveBeenCalled();
   });
   it.each(["create", "update", "brand"] as const)("checks %s same origin before verified auth", async action => {
     const req = request(action === "update" ? "PATCH" : "POST", {}, "", "https://foreign.invalid");

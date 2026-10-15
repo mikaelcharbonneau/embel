@@ -2,6 +2,7 @@ import "server-only";
 import { getVercelOidcToken } from "@vercel/oidc";
 import { z } from "zod";
 import { apiTextDispatchMessageSchema } from "../../domain/api-text-dispatch";
+import { getApiTextPublicationOrigin } from "./config";
 
 const replySchema = z.discriminatedUnion("state", [
   z.strictObject({ state: z.literal("published"), messageId: z.string().min(1).max(300) }),
@@ -23,10 +24,8 @@ export async function publishApiTextDispatch(message: unknown): Promise<ApiTextP
 async function publish(message: unknown, signal: AbortSignal): Promise<ApiTextPublicationResult> {
   try {
     const parsed = apiTextDispatchMessageSchema.parse(message);
-    if (process.env.VERCEL_ENV !== "preview" || (process.env.VERCEL_TARGET_ENV && process.env.VERCEL_TARGET_ENV !== "preview") || process.env.VERCEL_PROJECT_ID !== "prj_WKrFUPy3wptZ3qI9l1hTuqPmzkDt") throw new Error("Unapproved publisher");
-    const origin = process.env.FLUID_API_TEXT_WORKER_ORIGIN ?? "";
-    const url = new URL(origin);
-    if (url.origin !== origin || url.protocol !== "https:" || !/^[a-z0-9-]+\.vercel\.app$/.test(url.hostname) || url.port || url.username || url.password) throw new Error("Invalid worker origin");
+    const origin = getApiTextPublicationOrigin();
+    if (!origin) throw new Error("Unconfigured publisher");
     const token = await getVercelOidcToken();
     if (!token) throw new Error("OIDC unavailable");
     signal.throwIfAborted();

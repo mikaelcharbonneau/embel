@@ -3,16 +3,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { accountProjectResponseSchema } from "@/domain/project-api";
 import { applyStrategyJobResponseSchema, strategyJobResponseSchema, strategyOverviewResponseSchema, type StrategyJob, type StrategyOperation, type StrategyOverview } from "@/domain/strategy-jobs";
-import { accountRequest, AccountRequestError } from "./account-api";
+import { AccountRequestError } from "./account-api";
+import { boundedAccountRequest } from "./bounded-account-request";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
 import { accountDraftChanged, type AccountWorkspace } from "./account-draft-memory";
 import { accountProjectDraft } from "./project-draft-adapter";
 import { canContinueStrategy, forgetStrategyIntent, readStrategyIntent, strategyApplicationMatchesResult, strategyErrorMessage, strategyIdempotencyKey, strategyIntentPlan, strategyJobActive, strategyJobMatchesRequest, strategyRequestPayload, strategyResultApplication, verifyStrategyJobs, type StrategyAllowance } from "./account-strategy-client";
 
 type ReadState = { identity: string; overview: StrategyOverview | null; error: string | null };
-type ActionState = { identity: string; pending: boolean; error: string | null; pendingLabel?: string };
+type ActionState = {
+  identity: string; pending: boolean; error: string | null; pendingLabel?: string;
+  unconfirmedEnqueue?: { epoch: number; operation: StrategyOperation; revision: number; allowance: StrategyAllowance };
+};
 
-export function useStrategyJobs({ account, workspace, blocked }: { account: VerifiedAccount; workspace: AccountWorkspace; blocked: boolean }) {
+export function useStrategyJobs({ account, workspace, blocked, guided = false }: { account: VerifiedAccount; workspace: AccountWorkspace; blocked: boolean; guided?: boolean }) {
   const { isCurrent, expire, drafts } = useAccountSession();
   const projectId = workspace.saved.id;
   const identity = `${account.userId}:${account.generation}:${projectId}`;
@@ -43,11 +47,21 @@ export function useStrategyJobs({ account, workspace, blocked }: { account: Veri
       const epoch = mutationEpoch.current;
       let soon = false;
       try {
-        const overview = await accountRequest(`/api/projects/${projectId}/strategy`, strategyOverviewResponseSchema, { signal: controller.signal });
+        const overview = await boundedAccountRequest(`/api/projects/${projectId}/strategy`, strategyOverviewResponseSchema, { signal: controller.signal });
         if (controller.signal.aborted || !getWorkspace()) return;
         if (!verifyStrategyJobs(overview.jobs, account.userId, projectId)) { expire(account); return; }
         soon = overview.jobs.some(strategyJobActive);
-        if (epoch === mutationEpoch.current) setRead({ identity, overview, error: null });
+        if (epoch === mutationEpoch.current) {
+          setRead({ identity, overview, error: null });
+          setAction(previous => {
+            const request = previous?.unconfirmedEnqueue;
+            if (previous?.identity !== identity || previous.pending || !request || request.epoch !== epoch || epoch !== mutationEpoch.current) return previous;
+            // Confirm the saved operation only from one matching owned job;
+            // ambiguous history cannot resolve an unknown acknowledgement.
+            return overview.jobs.filter(job => strategyJobMatchesRequest(job, request.operation, request.revision, request.allowance)).length === 1
+              ? { identity, pending: false, error: null } : previous;
+          });
+        }
       } catch (error: unknown) {
         if (controller.signal.aborted || !getWorkspace()) return;
         if (error instanceof AccountRequestError && error.status === 401) { expire(account); return; }
@@ -73,18 +87,24 @@ export function useStrategyJobs({ account, workspace, blocked }: { account: Veri
       report("Your draft changed before the request was submitted. Save your current edits before requesting a proposal."); return null;
     }
     const controller = new AbortController(); controllers.current.add(controller); inFlight.current = true;
-    mutationEpoch.current += 1; setAction({ identity, pending: true, error: null });
+    const epoch = ++mutationEpoch.current;
+    setAction({ identity, pending: true, error: null });
     try {
-      const { job } = await accountRequest(`/api/projects/${projectId}/strategy`, strategyJobResponseSchema, { method: "POST", signal: controller.signal, body: strategyRequestPayload(projectId, revision, operation, allowance) });
+      const { job } = await boundedAccountRequest(`/api/projects/${projectId}/strategy`, strategyJobResponseSchema, { method: "POST", signal: controller.signal, body: strategyRequestPayload(projectId, revision, operation, allowance) });
       if (controller.signal.aborted || !getWorkspace()) return null;
       if (!verifyStrategyJobs([job], account.userId, projectId)) { expire(account); return null; }
       if (!strategyJobMatchesRequest(job, operation, revision, allowance)) throw new AccountRequestError(502);
-      setRead(previous => previous?.identity === identity && previous.overview ? { ...previous, overview: { ...previous.overview, jobs: [job, ...previous.overview.jobs.filter(item => item.id !== job.id)].slice(0, 20) } } : previous);
+      setRead(previous => previous?.identity === identity && previous.overview ? { ...previous, overview: { ...previous.overview, jobs: [job, ...previous.overview.jobs.filter(item => item.id !== job.id)].slice(0, 64) } } : previous);
       setAction({ identity, pending: false, error: null }); refresh(); return job;
     } catch (error: unknown) {
       if (controller.signal.aborted || !getWorkspace()) return null;
       if (error instanceof AccountRequestError && error.status === 401) expire(account);
-      else report(strategyErrorMessage(error));
+      else {
+        const unconfirmed = !(error instanceof AccountRequestError) || error.status === 408 || error.status >= 500;
+        setAction({ identity, pending: false, error: strategyErrorMessage(error), ...(unconfirmed ? {
+          unconfirmedEnqueue: { epoch, operation, revision, allowance },
+        } : {}) });
+      }
       refresh(); return null;
     } finally { controllers.current.delete(controller); inFlight.current = false; }
   }, [account, expire, getWorkspace, identity, projectId, refresh, report]);
@@ -96,7 +116,7 @@ export function useStrategyJobs({ account, workspace, blocked }: { account: Veri
     const controller = new AbortController(); controllers.current.add(controller); inFlight.current = true;
     mutationEpoch.current += 1; setAction({ identity, pending: true, error: null });
     try {
-      const response = await accountRequest(`/api/projects/${projectId}/strategy/${job.id}`, strategyJobResponseSchema, { method: "DELETE", signal: controller.signal });
+      const response = await boundedAccountRequest(`/api/projects/${projectId}/strategy/${job.id}`, strategyJobResponseSchema, { method: "DELETE", signal: controller.signal });
       if (controller.signal.aborted || !getWorkspace()) return;
       if (!verifyStrategyJobs([response.job], account.userId, projectId)) { expire(account); return; }
       if (response.job.id !== job.id || response.job.operation !== job.operation || response.job.input_revision !== job.input_revision) throw new AccountRequestError(502);
@@ -116,7 +136,7 @@ export function useStrategyJobs({ account, workspace, blocked }: { account: Veri
     mutationEpoch.current += 1;
     setAction({ identity, pending: true, error: null });
     try {
-      const { project, application } = await accountRequest(`/api/projects/${projectId}/strategy/${job.id}/apply`, applyStrategyJobResponseSchema, { method: "POST", signal: controller.signal, body: { expectedRevision: before.saved.current_revision, stepKey } });
+      const { project, application } = await boundedAccountRequest(`/api/projects/${projectId}/strategy/${job.id}/apply`, applyStrategyJobResponseSchema, { method: "POST", signal: controller.signal, body: { expectedRevision: before.saved.current_revision, stepKey } });
       const current = getWorkspace();
       if (controller.signal.aborted || !current) return;
       if (project.owner_id !== account.userId || project.id !== projectId) { expire(account); return; }
@@ -146,7 +166,7 @@ export function useStrategyJobs({ account, workspace, blocked }: { account: Veri
     mutationEpoch.current += 1;
     setAction({ identity, pending: true, pendingLabel: "Checking the saved version…", error: null });
     try {
-      const { project } = await accountRequest(`/api/projects/${projectId}`, accountProjectResponseSchema, { signal: controller.signal });
+      const { project } = await boundedAccountRequest(`/api/projects/${projectId}`, accountProjectResponseSchema, { signal: controller.signal });
       const current = getWorkspace();
       if (controller.signal.aborted || !current) return;
       if (project.owner_id !== account.userId || project.id !== projectId) { expire(account); return; }
@@ -176,7 +196,7 @@ export function useStrategyJobs({ account, workspace, blocked }: { account: Veri
   }, [account.userId, blocked, enqueue, getWorkspace, overview, projectId, readError]);
 
   useEffect(() => {
-    if (!overview || readError || pending || blocked) return;
+    if (guided || !overview || readError || pending || blocked) return;
     const current = getWorkspace();
     if (!current || current.conflict) return;
     const applied = overview.jobs.flatMap(job => job.results.map(result => strategyResultApplication(job, result.stepKey)))
@@ -196,7 +216,7 @@ export function useStrategyJobs({ account, workspace, blocked }: { account: Veri
     const key = strategyIdempotencyKey(projectId, current.saved.current_revision, "strategy.competitors", plan.billingMode);
     if (chainAttempts.current.has(key)) return;
     void continueResearch();
-  }, [account.userId, blocked, continueResearch, getWorkspace, overview, pending, projectId, readError, recoverAppliedVersion, workspace]);
+  }, [account.userId, blocked, continueResearch, getWorkspace, guided, overview, pending, projectId, readError, recoverAppliedVersion, workspace]);
 
   const continuationAvailable = !readError && Boolean(overview && canContinueStrategy(readStrategyIntent(account.userId, projectId, workspace.saved.current_revision - 1), workspace, overview));
   const checkStatus = useCallback(() => { recoveryAttempts.current.clear(); refresh(); }, [refresh]);

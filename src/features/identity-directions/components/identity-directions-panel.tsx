@@ -9,14 +9,17 @@ import { DirectionGenerationControls } from "./direction-generation";
 import { FontPicker } from "./font-picker";
 import { FontPreviewProvider } from "./font-preview-provider";
 import { useIdentityDirections, type IdentityDirectionsController } from "./use-identity-directions";
+import { VisualDirectionReview } from "./visual-direction-review";
 import styles from "./identity-directions.module.css";
 export function IdentityDirectionsPanel({ workspace, client, controls }: { workspace: LogoWorkspaceV2; client: AccountLogoClient; controls?: ReactNode }): React.JSX.Element {
-  return <FontPreviewProvider client={client} projectId={workspace.projectId}><IdentityDirectionsView controller={useIdentityDirections(client, workspace)} controls={controls} /></FontPreviewProvider>;
+  const controller = useIdentityDirections(client, workspace);
+  return <FontPreviewProvider client={client} projectId={workspace.projectId}><IdentityDirectionsView controller={controller} controls={controls}
+    visualReview={controller.canRead && controller.workspace ? <VisualDirectionReview projectId={controller.workspace.projectId} onSaved={controller.refresh} /> : null} /></FontPreviewProvider>;
 }
 /** Shared production view also used by labeled offline interaction fixtures. */
-export function IdentityDirectionsView({ controller, controls }: { controller: IdentityDirectionsController; controls?: ReactNode }): React.JSX.Element {
+export function IdentityDirectionsView({ controller, controls, visualReview }: { controller: IdentityDirectionsController; controls?: ReactNode; visualReview?: ReactNode }): React.JSX.Element {
   const titleId = useId();
-  useProjectIdentityEvidence(controller.workspace ? { ownerId: controller.workspace.ownerId, projectId: controller.workspace.projectId, projectRevision: controller.workspace.heads.projectRevision, approved: Boolean(!controller.loading && !controller.error && controller.overview?.approval && controller.overview.approval.approvedLogoId === controller.workspace.approvedLogo?.id && !controller.overview.stale && !controller.workspace.staleStages.some(stage => stage.stage === "directions")) } : null);
+  useProjectIdentityEvidence(controller.workspace ? { ownerId: controller.workspace.ownerId, projectId: controller.workspace.projectId, projectRevision: controller.workspace.heads.projectRevision, needsReview: Boolean(!controller.loading && !controller.error && (controller.overview?.stale || controller.workspace.staleStages.some(stage => stage.stage === "directions"))), approved: Boolean(!controller.loading && !controller.error && controller.overview?.approval && controller.overview.approval.approvedLogoId === controller.workspace.approvedLogo?.id && !controller.overview.stale && !controller.workspace.staleStages.some(stage => stage.stage === "directions")) } : null);
   const current = controller.workspace, overview = controller.overview, selection = overview?.selection ?? null;
   const stale = !!(overview?.stale || current?.staleStages.some(item => item.stage === "directions"));
   const staleFiles = !!current?.staleStages.some(item => item.stage === "deliverables");
@@ -32,6 +35,7 @@ export function IdentityDirectionsView({ controller, controls }: { controller: I
   };
   return <section className={`${styles.panel} project-workbench project-direction-workspace`} aria-labelledby={titleId} aria-busy={controller.loading}><div className="project-workbench-canvas">
     <header className={styles.header}><div><p className={styles.eyebrow}>Visual identity</p><h2 id={titleId}>Identity directions</h2><p className={styles.caption}>Colors, typography and graphics around your approved logo.</p></div><span className={styles.badge}>Logo protected</span></header>
+    {visualReview}
     {!controller.canRead ? <p className={styles.notice} role="status">{controller.error ?? "Waiting for your saved workspace. Sign in to view your identity directions."}</p>
       : !current?.approvedLogo ? <div className={styles.empty}><h3>Start with an approved logo</h3><p>Approve your logo in the logo editor before exploring three coordinated identity directions.</p></div>
       : <>

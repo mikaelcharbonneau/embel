@@ -20,7 +20,7 @@
 .concept-shell.navigation-expanded .sidebar .nav-link > span,
 .concept-shell.navigation-expanded .sidebar .workspace-label > div { display: block; }
 .concept-shell.navigation-expanded .sidebar .workspace-label { padding-inline: 24px; }
-.concept-shell .workspace-main { position: relative; margin-left: var(--workspace-rail); height: 100svh; display: flex; flex-direction: column; overflow: hidden; background-color: var(--canvas); background-image: linear-gradient(to right, #e4e3df4d 1px, transparent 1px), linear-gradient(to bottom, #e4e3df4d 1px, transparent 1px); background-size: 16px 16px; }
+.concept-shell .workspace-main { position: relative; margin-left: var(--workspace-rail); height: 100svh; display: flex; flex-direction: column; overflow: hidden; background-color: var(--canvas); background-image: linear-gradient(to right, #e4e3df33 1px, transparent 1px), linear-gradient(to bottom, #e4e3df33 1px, transparent 1px); background-size: 16px 16px; }
 .concept-shell .topbar { flex: 0 0 76px; min-height: 76px; padding: 0 34px; background: transparent; border: 0; position: relative; z-index: 20; }
 .concept-shell .topbar-left { gap: 18px; font-size: 13px; }
 .concept-shell .topbar-left { min-width: 0; }

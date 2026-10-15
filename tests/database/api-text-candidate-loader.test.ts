@@ -1,3 +1,4 @@
+import { API_TEXT_MULTI_ACCOUNT_MIGRATION } from "./fixture-migrations";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
 import { createTestDatabase, installApiTextRuntimeCandidate, type TestDatabase } from "./local-supabase";
@@ -9,7 +10,7 @@ describe("reviewed API candidate fixture installation", () => {
   let hostileSetupCount = 0;
   beforeAll(async () => {
     candidate = await readFile(new URL("../../supabase/candidates/restricted_api_text_runtime.sql", import.meta.url), "utf8");
-    db = await createTestDatabase({ additionalMigrations: [candidate], beforeMigration: async (fixture, sql) => {
+    db = await createTestDatabase({ before: API_TEXT_MULTI_ACCOUNT_MIGRATION, additionalMigrations: [candidate], beforeMigration: async (fixture, sql) => {
       if (sql !== candidate) return;
       expect((await fixture.query("select to_regclass('fluid_private.api_text_worker_principals') as existing")).rows[0]).toEqual({ existing: null });
       await fixture.exec("create role fixture_hostile_default nologin; alter default privileges grant execute on functions to fixture_hostile_default; alter default privileges grant all on tables to fixture_hostile_default");

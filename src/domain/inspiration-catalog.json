@@ -1,0 +1,365 @@
+[
+  {
+    "id": "4939a290-80ac-5b7e-8c84-2dbf25079ccd",
+    "slug": "dropbox-blue-symbol",
+    "brand": "Dropbox",
+    "creator": "COLLINS",
+    "kind": "logo",
+    "width": 720,
+    "height": 900,
+    "description": "White Dropbox symbol centered on a saturated blue portrait field.",
+    "sourceUrl": "https://wearecollins.com/case-studies/dropbox/",
+    "elements": [
+      "logo",
+      "colors",
+      "composition"
+    ],
+    "tags": [
+      "geometric",
+      "symbol",
+      "blue"
+    ],
+    "image": "/inspiration/dropbox-blue-symbol.jpg",
+    "contentHash": "af4aaf96bc48079f937496f5437b6b56b073d8719d327b988c8b0209d2d0934b"
+  },
+  {
+    "id": "ea1a8824-6b8c-52c5-bd32-ca747052411c",
+    "slug": "inbo-magazine-cover",
+    "brand": "INBO",
+    "creator": "Studio Dumbar/DEPT®",
+    "kind": "identity",
+    "width": 720,
+    "height": 900,
+    "description": "Tilted pink INBO magazine cover with an oversized wordmark and architectural object illustration.",
+    "sourceUrl": "https://studiodumbar.com/work/inbo",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "graphics",
+      "composition"
+    ],
+    "tags": [
+      "editorial",
+      "pink",
+      "architecture"
+    ],
+    "image": "/inspiration/inbo-magazine-cover.jpg",
+    "contentHash": "bd3dd464513fb2884615c31907579ab114ad8a0ea7fd7e7bfc044872b5c143a0"
+  },
+  {
+    "id": "d59dcd6a-da18-5402-bb88-d16d9a7dfa06",
+    "slug": "mastercard-circles",
+    "brand": "Mastercard",
+    "creator": "Pentagram",
+    "kind": "logo",
+    "width": 640,
+    "height": 480,
+    "description": "Red and yellow overlapping Mastercard circles on black.",
+    "sourceUrl": "https://www.pentagram.com/work/mastercard",
+    "elements": [
+      "logo",
+      "colors",
+      "composition"
+    ],
+    "tags": [
+      "geometric",
+      "symbol",
+      "circles"
+    ],
+    "image": "/inspiration/mastercard-circles.jpg",
+    "contentHash": "68eb9d04286c11c02306b4a78b05088af30c74e3f5c1ed00c1a029e22c9faf39"
+  },
+  {
+    "id": "25a42921-164b-556b-a98d-e58b5ce53f8f",
+    "slug": "dropbox-color-posters",
+    "brand": "Dropbox",
+    "creator": "COLLINS",
+    "kind": "identity",
+    "width": 720,
+    "height": 480,
+    "description": "Dropbox campaign posters combine vivid color pairs, bold typography, the symbol, and expressive photography.",
+    "sourceUrl": "https://wearecollins.com/case-studies/dropbox/",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "poster",
+      "bold",
+      "color"
+    ],
+    "image": "/inspiration/dropbox-color-posters.jpg",
+    "contentHash": "a39e2b35495e6449caa1152112f1f8aaa44a5bb68989a765697f3034d3a6eb56"
+  },
+  {
+    "id": "fb3d1c41-d63a-520b-8bae-e8e5110026b1",
+    "slug": "cardless-red-hoodie",
+    "brand": "Cardless",
+    "creator": "Pentagram",
+    "kind": "identity",
+    "width": 640,
+    "height": 781,
+    "description": "Red Cardless hoodie carries an oversized diagonal white symbol and vertical wordmark.",
+    "sourceUrl": "https://www.pentagram.com/work/cardless",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "composition"
+    ],
+    "tags": [
+      "apparel",
+      "red",
+      "symbol"
+    ],
+    "image": "/inspiration/cardless-red-hoodie.jpg",
+    "contentHash": "7c9759189051ac73813ab64c506315e1ea6a755aac77c98e37c46488b6c2a19b"
+  },
+  {
+    "id": "1415db54-75df-5960-9dc5-bdcecbc17ede",
+    "slug": "inbo-poster-series",
+    "brand": "INBO",
+    "creator": "Studio Dumbar/DEPT®",
+    "kind": "identity",
+    "width": 720,
+    "height": 405,
+    "description": "Three outdoor INBO posters pair architectural photography with earthy color fields and the broad wordmark.",
+    "sourceUrl": "https://studiodumbar.com/work/inbo",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "poster",
+      "architecture",
+      "earthy"
+    ],
+    "image": "/inspiration/inbo-poster-series.jpg",
+    "contentHash": "96c1d47e6356bc9e76cecb733e95da96769dfffb0ac11657b20327c60fc268d3"
+  },
+  {
+    "id": "a052dd6e-dff9-57bd-8c61-e0479fade13c",
+    "slug": "dropbox-illuminated-symbol",
+    "brand": "Dropbox",
+    "creator": "COLLINS",
+    "kind": "logo",
+    "width": 720,
+    "height": 960,
+    "description": "An illuminated Dropbox symbol on a deep green wall with a pink architectural surround.",
+    "sourceUrl": "https://wearecollins.com/case-studies/dropbox/",
+    "elements": [
+      "logo",
+      "colors",
+      "composition"
+    ],
+    "tags": [
+      "signage",
+      "green",
+      "geometric"
+    ],
+    "image": "/inspiration/dropbox-illuminated-symbol.jpg",
+    "contentHash": "97286cf0b943ed04fda9d95621a391a3f7a336a5c8270a45fb3953ba0930446e"
+  },
+  {
+    "id": "074a5995-30e7-5336-beb7-8138c6808405",
+    "slug": "cardless-red-logo",
+    "brand": "Cardless",
+    "creator": "Pentagram",
+    "kind": "logo",
+    "width": 640,
+    "height": 360,
+    "description": "Cardless symbol and wordmark in bright red against a deep red background.",
+    "sourceUrl": "https://www.pentagram.com/work/cardless",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "composition"
+    ],
+    "tags": [
+      "red",
+      "wordmark",
+      "symbol"
+    ],
+    "image": "/inspiration/cardless-red-logo.jpg",
+    "contentHash": "f8e9bedbea6b16f99010a4663a3ce82a6a13a820a451f1e871284ffa5be0e23d"
+  },
+  {
+    "id": "d4fa4fef-8ee7-584e-a570-95b44528decd",
+    "slug": "mastercard-stationery",
+    "brand": "Mastercard",
+    "creator": "Pentagram",
+    "kind": "identity",
+    "width": 640,
+    "height": 480,
+    "description": "Dark Mastercard stationery, bag, lanyard, and collateral use circular graphics and restrained color accents.",
+    "sourceUrl": "https://www.pentagram.com/work/mastercard",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "graphics",
+      "composition"
+    ],
+    "tags": [
+      "stationery",
+      "black",
+      "circles"
+    ],
+    "image": "/inspiration/mastercard-stationery.jpg",
+    "contentHash": "b4eb2cbcd63254c944f748762f188d78fb1448b5699734e8ecf3c94739777fae"
+  },
+  {
+    "id": "5223e5f8-4c34-521c-b9ae-186a46d5bdfa",
+    "slug": "into-illuminated-billboard",
+    "brand": "INTO",
+    "creator": "Studio Dumbar/DEPT®",
+    "kind": "identity",
+    "width": 720,
+    "height": 405,
+    "description": "INTO billboard uses a green luminous gradient and stretching letterforms to say Open Your World.",
+    "sourceUrl": "https://studiodumbar.com/work/into",
+    "elements": [
+      "typography",
+      "colors",
+      "graphics",
+      "composition"
+    ],
+    "tags": [
+      "green",
+      "gradient",
+      "billboard"
+    ],
+    "image": "/inspiration/into-illuminated-billboard.jpg",
+    "contentHash": "2f515102acb6857fa26c1b830da455fa404e506ba17f2d61f3f28ba9a4f2c01f"
+  },
+  {
+    "id": "a8a632f0-f4e5-5b12-a25b-65d3f9c758c4",
+    "slug": "inbo-black-tote",
+    "brand": "INBO",
+    "creator": "Studio Dumbar/DEPT®",
+    "kind": "identity",
+    "width": 720,
+    "height": 900,
+    "description": "Black INBO tote with an oversized white architectural wordmark, photographed in use.",
+    "sourceUrl": "https://studiodumbar.com/work/inbo",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "composition"
+    ],
+    "tags": [
+      "apparel",
+      "wordmark",
+      "black"
+    ],
+    "image": "/inspiration/inbo-black-tote.jpg",
+    "contentHash": "394b52b335ccd1f353d89c40571ff964c37477db5a8dd535769a995d80b459cb"
+  },
+  {
+    "id": "f9aef4e9-6505-593f-b052-d962c43e2e2f",
+    "slug": "dropbox-street-posters",
+    "brand": "Dropbox",
+    "creator": "COLLINS",
+    "kind": "identity",
+    "width": 720,
+    "height": 480,
+    "description": "Two Dropbox street posters combine surreal image pairings and strong typographic blocks.",
+    "sourceUrl": "https://wearecollins.com/case-studies/dropbox/",
+    "elements": [
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "poster",
+      "photography",
+      "editorial"
+    ],
+    "image": "/inspiration/dropbox-street-posters.jpg",
+    "contentHash": "b950819cbea17a3c49295444bf6af0e35afc38233b968b7cc8579afa79a05f05"
+  },
+  {
+    "id": "7481512a-89c7-5766-93be-5eab15f27dee",
+    "slug": "cardless-credit-card",
+    "brand": "Cardless",
+    "creator": "Pentagram",
+    "kind": "identity",
+    "width": 640,
+    "height": 360,
+    "description": "A red fluid-texture Cardless credit card on a dark surface, with the mark and name.",
+    "sourceUrl": "https://www.pentagram.com/work/cardless",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "graphics",
+      "composition"
+    ],
+    "tags": [
+      "red",
+      "texture",
+      "card"
+    ],
+    "image": "/inspiration/cardless-credit-card.jpg",
+    "contentHash": "63cb494a94d15e73e1f8ee9365a2ad08b5b932829e8e1bcc0c3e71c1cd9acb9d"
+  },
+  {
+    "id": "e170e2c4-e2ad-5b24-b97f-107ed5bbde99",
+    "slug": "mastercard-brochures",
+    "brand": "Mastercard",
+    "creator": "Pentagram",
+    "kind": "identity",
+    "width": 640,
+    "height": 480,
+    "description": "Two Mastercard brochures combine warm color blocks, circular graphics, and editorial typography.",
+    "sourceUrl": "https://www.pentagram.com/work/mastercard",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "graphics",
+      "composition"
+    ],
+    "tags": [
+      "editorial",
+      "circles",
+      "warm"
+    ],
+    "image": "/inspiration/mastercard-brochures.jpg",
+    "contentHash": "c58b70d6cd456f7d9810285314824b46de899ad7a499e50fa706455963d1da05"
+  },
+  {
+    "id": "2d91f3b8-de32-5f86-8451-a0689d68e768",
+    "slug": "dropbox-color-guide",
+    "brand": "Dropbox",
+    "creator": "COLLINS",
+    "kind": "identity",
+    "width": 720,
+    "height": 480,
+    "description": "An open Dropbox brand guide showing color-pair diagrams and large editorial typography.",
+    "sourceUrl": "https://wearecollins.com/case-studies/dropbox/",
+    "elements": [
+      "typography",
+      "colors",
+      "graphics",
+      "composition"
+    ],
+    "tags": [
+      "guide",
+      "editorial",
+      "palette"
+    ],
+    "image": "/inspiration/dropbox-color-guide.jpg",
+    "contentHash": "ec588cb0d218a8aabd490fc1516c56ed6c8c5e8ddc591426a5a3c01c80a4b25e"
+  }
+]

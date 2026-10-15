@@ -42,6 +42,6 @@ The user requested a functional Ideas flow, implementation of **Page - Idea Deta
 
 - [Open Ideas](https://fluid-platform-preview-frezb8u4n-mikael-charbonneaus-projects.vercel.app/ideas)
 - Deployment: `dpl_Dnrh7ynmBUTBpx5GhQTsdgEUXvbB`; target: preview; remote state: `READY`, confirmed by the Vercel API.
-- Vercel Authentication remains enabled for all deployments. Open the immutable preview URL above, authenticate with Vercel when prompted, and use an existing Fluid account for saved Ideas.
+- Vercel Authentication remains enabled for all deployments. Open the immutable preview URL above, authenticate with Vercel when prompted, and use an existing Embel account for saved Ideas.
 - The app uses the existing live Supabase configuration. No demonstration ideas or new user accounts were created.
 - The earlier failed build `dpl_BaUAZZt3mZFig4KbzavXqDstBEhb` is superseded by this successful deployment.

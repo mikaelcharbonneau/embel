@@ -83,6 +83,31 @@ describe("persistent project conversation", () => {
     expect(context.intake).toMatchObject({ audienceReviewedAt: null, personalityReviewedAt: null, positioningReviewedAt: null });
   });
 
+  it("allows explicit brief review against the current follow-up without approving other strategy", () => {
+    const draft = accountProjectDraft(project);
+    const next = { ...draft, ...conversationPromptPatch(draft, "Keep the kitchen, with takeaway service.", now) };
+    next.confirmedBrief = { description: next.description, activity: next.activity, offering: next.offering, knownAudience: next.knownAudience, conversationKey: conversationContextKey(next) };
+    const context = draftContext(next, project.context);
+    expect(context.reformulationConfirmed).toBe(true);
+    expect(context.competitorReviewComplete).toBe(false);
+    expect(context.intake).toMatchObject({ audienceReviewedAt: null, personalityReviewedAt: null, positioningReviewedAt: null });
+    expect(JSON.stringify(context)).not.toContain("conversationKey");
+  });
+
+  it("invalidates an explicit brief binding when later messages change without using the Send handler", () => {
+    const draft = accountProjectDraft(project);
+    draft.confirmedBrief = { ...draft.confirmedBrief!, conversationKey: conversationContextKey(draft) };
+    draft.conversation = [...draftConversation(draft), { id: crypto.randomUUID(), kind: "user_message", text: "A later constraint.", createdAt: now }];
+    expect(draftContext(draft, project.context).reformulationConfirmed).toBe(false);
+  });
+
+  it("accepts manual review of a new browser conversation without a saved account snapshot", () => {
+    const draft = accountProjectDraft(project);
+    const next = { ...draft, ...conversationPromptPatch(draft, "A new browser-only direction.", now) };
+    next.confirmedBrief = { description: next.description, activity: next.activity, offering: next.offering, knownAudience: next.knownAudience, conversationKey: conversationContextKey(next) };
+    expect(draftContext(next).reformulationConfirmed).toBe(true);
+  });
+
   it("reveals each widget once without revoking unchanged approvals or inventing work", () => {
     const draft = accountProjectDraft(project);
     const patch = conversationWidgetPatch(draft, "audience", now);

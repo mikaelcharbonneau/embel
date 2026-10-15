@@ -10,6 +10,8 @@ import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
 import { apiTextDispatchMessageSchema } from "@/domain/api-text-dispatch";
 import { publishApiTextDispatch } from "../api-text/publication";
+import { getApiTextPublicationOrigin } from "../api-text/config";
+import { getApiTextWorkerReadiness } from "../api-text/readiness";
 
 const jobColumns = "id,owner_id,project_id,operation,input_revision,state,progress,billing_mode,policy_identity,reserved_cost_microusd,actual_cost_microusd,cancel_requested_at,error_code,created_at,finished_at";
 const stepSchema = z.object({
@@ -72,7 +74,16 @@ export async function getStrategyAvailability(auth: AuthenticatedContext, projec
   if (projectId !== undefined) resourceId(projectId);
   const { data, error } = await auth.client.rpc("get_strategy_availability", { p_project_id: projectId ?? null });
   databaseError(error);
-  return parseStored(strategyAvailabilitySchema, data);
+  const availability = parseStored(strategyAvailabilitySchema, data);
+  if (availability.status !== "available" || availability.operations.every(operation => operation.billingMode === "chatgpt_subscription")) return availability;
+  // Caller-specific SQL remains authoritative for policy, eligibility and cost.
+  // A configured origin alone does not establish that its protected worker is
+  // reachable and qualified. Subscription readiness is independent of this probe.
+  const readiness = getApiTextPublicationOrigin() ? await getApiTextWorkerReadiness() : null;
+  const operations = availability.operations.filter(operation => operation.billingMode === "chatgpt_subscription" || readiness?.operations.some(readyOperation => readyOperation === operation.operation));
+  return parseStored(strategyAvailabilitySchema, operations.length
+    ? { status: "available", operations }
+    : { status: "unavailable", operations: [], reason: "worker_unavailable" });
 }
 
 async function withResults(auth: AuthenticatedContext, projectId: string, summaries: z.infer<typeof strategyJobSummarySchema>[]): Promise<StrategyJob[]> {
@@ -109,9 +120,9 @@ async function withResults(auth: AuthenticatedContext, projectId: string, summar
   if (subscriptionIds.size) {
     const partialResponse = await auth.client.from("subscription_job_partials")
       .select("job_id,owner_id,project_id,partial_text").eq("owner_id", auth.userId).eq("project_id", projectId)
-      .in("job_id", [...subscriptionIds]).limit(20);
+      .in("job_id", [...subscriptionIds]).limit(64);
     databaseError(partialResponse.error);
-    const rows = parseStored(z.array(z.object({ job_id: z.uuid(), owner_id: z.uuid(), project_id: z.uuid(), partial_text: z.string().max(1_048_576) })).max(20), partialResponse.data);
+    const rows = parseStored(z.array(z.object({ job_id: z.uuid(), owner_id: z.uuid(), project_id: z.uuid(), partial_text: z.string().max(1_048_576) })).max(64), partialResponse.data);
     for (const row of rows) {
       if (row.owner_id !== auth.userId || row.project_id !== projectId || !subscriptionIds.has(row.job_id) || partials.has(row.job_id)) throw new ApiError("not_found");
       partials.set(row.job_id, row.partial_text);
@@ -131,9 +142,9 @@ export async function getStrategyOverview(auth: AuthenticatedContext, projectId:
   const availability = await getStrategyAvailability(auth, projectId);
   const { data, error } = await auth.client.from("jobs").select(jobColumns)
     .eq("owner_id", auth.userId).eq("project_id", projectId).in("operation", strategyOperationSchema.options)
-    .order("created_at", { ascending: false }).limit(20);
+    .order("created_at", { ascending: false }).limit(64);
   databaseError(error);
-  const rows = parseStored(z.array(z.unknown()).max(20), data).map(row => ownSummary(auth, projectId, row));
+  const rows = parseStored(z.array(z.unknown()).max(64), data).map(row => ownSummary(auth, projectId, row));
   return parseStored(strategyOverviewResponseSchema, { availability, jobs: await withResults(auth, projectId, rows) });
 }
 

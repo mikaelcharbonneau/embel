@@ -1,3 +1,4 @@
+import { API_TEXT_MULTI_ACCOUNT_MIGRATION } from "./fixture-migrations";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
 import { DEFAULT_SUBSCRIPTION_LIMITS } from "../../src/domain/strategy-jobs";
@@ -13,7 +14,7 @@ describe("review-only API activation templates in disposable PostgreSQL", () => 
   let secondProject: string;
   let replacements: Record<string, string>;
   beforeAll(async () => {
-    db = await createTestDatabase();
+    db = await createTestDatabase({ before: API_TEXT_MULTI_ACCOUNT_MIGRATION });
     await installApiTextRuntimeCandidate(db);
   }, 30_000);
   afterAll(async () => { await db?.close(); });

@@ -39,6 +39,21 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
 describe("sign-in and sign-out HTTP security boundaries", () => {
+  it("accepts production sign-in only from the canonical site, not the deployment or a forged host", async () => {
+    vi.stubEnv("VERCEL", "1");
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("VERCEL_URL", "fluid-preview-123-embel.vercel.app");
+    for (const rejected of ["https://fluid-preview-123-embel.vercel.app", "https://fluid.example.evil.test"]) {
+      const response = await signIn(request("sign-in", credentials, { origin: rejected, host: "fluid.example", "x-forwarded-host": "fluid.example" }));
+      expect(response.status).toBe(403);
+    }
+    expect(doubles.client).not.toHaveBeenCalled();
+    const response = await signIn(request());
+    expect(response.status).toBe(200);
+    expect(doubles.signIn).toHaveBeenCalledExactlyOnceWith(credentials);
+    expectPrivate(response);
+  });
+
   it.each(actions)("$name rejects foreign, absent and contradictory origins before body parsing or client creation", async ({ name, handler }) => {
     const invalidOrigins: Record<string, string>[] = [
       { origin: "https://untrusted.example" },

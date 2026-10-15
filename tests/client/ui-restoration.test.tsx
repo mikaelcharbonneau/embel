@@ -7,7 +7,7 @@ import { ConversationComposer } from "@/components/workspace/conversation-compos
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 afterEach(() => document.body.replaceChildren());
-describe("original Fluid composer presentation", () => {
+describe("original Embel composer presentation", () => {
   it("keeps the send action named and functional when its visual label is compact", async () => {
     const host = document.createElement("div"); document.body.append(host);
     const root = createRoot(host), send = vi.fn();

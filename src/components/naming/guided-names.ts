@@ -1,6 +1,7 @@
-import { z } from "zod";
 import { nameValueSchema, transformNames, type NameTransformInput } from "@/domain/naming";
-import { contextSnapshotSchema } from "@/domain/projects";
+import { guidedUiSchema, type GuidedUi, type GuidedResult, type GuidedTweak } from "@/domain/names-guided";
+export { guidedUiSchema, emptyGuidedUi, guidedTweakIds } from "@/domain/names-guided";
+export type { GuidedUi, GuidedResult, GuidedTweak } from "@/domain/names-guided";
 
 export const prefixChoices = "Any Base Clear Co Core Crea Evo Fine Free Glow Good Grow Hyper Max Meta Neo Nex New Open Ori Para Pre Prime Pro Re Ray Sol Smart Super Think True Ultra Up Van".split(" ");
 export const suffixChoices = "able al ana ary ella er ful ia ic ify io ish ism ist ity ium iva ix less ly ment ness ora ory ous ova sy ure verse ville wise works".split(" ");
@@ -16,20 +17,6 @@ export const tweakChoices = [
   { id: "double_last", label: "Double last", icon: "copy-plus", description: "Repeat the final letter.", example: "later → laterr" },
   { id: "alternate_case", label: "Alternate case", icon: "case-upper", description: "Swap case on every other letter.", example: "Mikael → MiKaEl" },
 ] as const;
-export type GuidedTweak = typeof tweakChoices[number]["id"];
-const wordSchema = z.strictObject({ value: nameValueSchema, candidateId: z.uuid().nullable() });
-export const guidedUiSchema = z.strictObject({
-  words: z.array(wordSchema).max(300), draft: z.string().max(3000),
-  mode: z.enum(["affixes", "tweaks", "blend", "swap"]),
-  prefixes: z.array(nameValueSchema).max(40), suffixes: z.array(nameValueSchema).max(40),
-  customPrefixes: z.array(z.string().max(160)).min(1).max(12), customSuffixes: z.array(z.string().max(160)).min(1).max(12),
-  tweaks: z.array(z.enum(tweakChoices.map(tweak => tweak.id))).max(10).refine(values => new Set(values).size === values.length),
-  swapLevel: z.enum(["safe", "balanced", "creative"]),
-  savedLists: z.array(z.strictObject({ id: z.uuid(), words: z.array(wordSchema).min(1).max(300), context: contextSnapshotSchema, createdAt: z.iso.datetime({ offset: true }) })).max(20),
-}).refine(ui => new Set(ui.words.map(word => word.value)).size === ui.words.length, "Remove duplicate words");
-export type GuidedUi = z.infer<typeof guidedUiSchema>;
-export type GuidedResult = { value: string; origin: string; seed: GuidedUi["words"][number]; inputs: NameTransformInput[] };
-export const emptyGuidedUi = (): GuidedUi => ({ words: [], draft: "", mode: "affixes", prefixes: [], suffixes: [], customPrefixes: [""], customSuffixes: [""], tweaks: [], swapLevel: "balanced", savedLists: [] });
 const segmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
 const letters = (text: string) => [...segmenter.segment(text)].map(item => item.segment);
 const vowel = (text: string) => /^[aeiouy]$/iu.test(text.normalize("NFD").replace(/\p{M}/gu, ""));

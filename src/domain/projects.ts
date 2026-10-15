@@ -64,6 +64,47 @@ export const personalitySchema = z.strictObject({
 });
 export type Personality = z.infer<typeof personalitySchema>;
 
+export const guidedStageSchema = z.enum(["competitors", "audience", "personality"]);
+export type GuidedStage = z.infer<typeof guidedStageSchema>;
+const guidedIdentifier = z.string().min(1).max(128);
+export const guidedTurnSchema = z.strictObject({
+  id: guidedIdentifier,
+  userMessageId: guidedIdentifier.nullable(),
+  stage: guidedStageSchema,
+  purpose: z.enum(["research", "message", "propose"]),
+  inputRevision: z.number().int().positive(),
+}).superRefine((turn, ctx) => {
+  if (turn.purpose !== "propose" && turn.userMessageId === null) {
+    ctx.addIssue({ code: "custom", path: ["userMessageId"], message: "Research and replies must reference an actual user message" });
+  }
+  if (turn.purpose === "research" && turn.stage !== "competitors") {
+    ctx.addIssue({ code: "custom", path: ["stage"], message: "Research belongs to the competitors stage" });
+  }
+});
+export type GuidedTurn = z.infer<typeof guidedTurnSchema>;
+export const guidedAnswerSchema = z.strictObject({
+  stage: guidedStageSchema, turnId: guidedIdentifier,
+  optionIds: z.array(guidedIdentifier).max(20),
+  customText: z.string().trim().min(1).max(12_000).nullable(),
+  confirmedAt: z.iso.datetime({ offset: true }),
+}).refine(answer => new Set(answer.optionIds).size === answer.optionIds.length, { message: "Selected options must be unique" });
+/** User decisions and request references only. Assistant content belongs to owned job results. */
+export const guidedInterviewStateSchema = z.strictObject({
+  version: z.literal(1),
+  stage: z.enum(["competitors", "audience", "personality", "complete"]),
+  turns: z.array(guidedTurnSchema).max(48),
+  answers: z.array(guidedAnswerSchema).max(3),
+}).superRefine((state, ctx) => {
+  if (new Set(state.turns.map(turn => turn.id)).size !== state.turns.length) ctx.addIssue({ code: "custom", path: ["turns"], message: "Interview turns must have unique identifiers" });
+  if (state.turns.some((turn, index) => index > 0 && turn.inputRevision <= state.turns[index - 1]!.inputRevision)) ctx.addIssue({ code: "custom", path: ["turns"], message: "Interview turns must follow increasing saved revisions" });
+  if (new Set(state.answers.map(answer => answer.stage)).size !== state.answers.length) ctx.addIssue({ code: "custom", path: ["answers"], message: "Each stage has one current decision" });
+  for (const [index, answer] of state.answers.entries()) {
+    if (!state.turns.some(turn => turn.id === answer.turnId && turn.stage === answer.stage)) ctx.addIssue({ code: "custom", path: ["answers", index, "turnId"], message: "A decision must reference its interview turn" });
+  }
+  if (new TextEncoder().encode(JSON.stringify(state)).byteLength > 32_768) ctx.addIssue({ code: "custom", message: "Interview metadata exceeds its byte limit" });
+});
+export type GuidedInterviewState = z.infer<typeof guidedInterviewStateSchema>;
+
 /** User-supplied intake details and edit position; never proof of generated output. */
 export const intakeDetailsSchema = z.strictObject({
   suppliedName: z.string().max(180).default(""),
@@ -74,6 +115,7 @@ export const intakeDetailsSchema = z.strictObject({
   personalityReviewedAt: z.iso.datetime({ offset: true }).nullable().default(null),
   positioningReviewedAt: z.iso.datetime({ offset: true }).nullable().default(null),
   conversation: conversationSchema.optional(),
+  guidedInterview: guidedInterviewStateSchema.optional(),
   example: z.boolean().default(false),
 });
 
@@ -94,6 +136,11 @@ export const contextSnapshotSchema = z.strictObject({
   creativeLocale: z.string().trim().min(2).max(30).default("en"),
   intake: intakeDetailsSchema.default(() => intakeDetailsSchema.parse({})),
 }).superRefine((context, ctx) => {
+  for (const [index, turn] of (context.intake.guidedInterview?.turns ?? []).entries()) {
+    if (turn.userMessageId !== null && !context.intake.conversation?.some(event => event.kind === "user_message" && event.id === turn.userMessageId)) {
+      ctx.addIssue({ code: "custom", path: ["intake", "guidedInterview", "turns", index, "userMessageId"], message: "Interview turns must reference actual user messages" });
+    }
+  }
   for (const key of ["audienceSegments", "competitors"] as const) {
     const ids = context[key].map(item => item.id);
     if (new Set(ids).size !== ids.length) ctx.addIssue({ code: "custom", path: [key], message: "Duplicate item identifier" });
@@ -140,17 +187,18 @@ export const createProjectInputSchema = z.strictObject({
   title: z.string().trim().min(1).max(160),
   scope: projectScopeSchema,
   context: contextSnapshotSchema,
+  requestKey: z.uuid().optional(),
 });
 
 export type CreateProjectInput = z.infer<typeof createProjectInputSchema>;
 
 export function missingStrategy(context: ContextSnapshot) {
   const missing: Array<"reformulation" | "competitors" | "audience" | "personality" | "positioning"> = [];
-  if (!context.reformulationConfirmed) missing.push("reformulation");
+  if (!context.intake.guidedInterview && !context.reformulationConfirmed) missing.push("reformulation");
   if (!context.competitorReviewComplete) missing.push("competitors");
-  if (!context.audienceSegments.some(segment => segment.selected)) missing.push("audience");
+  if (!context.audienceSegments.some(segment => segment.selected) || (context.intake.guidedInterview && !context.intake.audienceReviewedAt)) missing.push("audience");
   if (!context.personality || !context.intake.personalityReviewedAt) missing.push("personality");
-  if (!context.positioning || !context.intake.positioningReviewedAt) missing.push("positioning");
+  if (!context.intake.guidedInterview && (!context.positioning || !context.intake.positioningReviewedAt)) missing.push("positioning");
   return missing;
 }
 

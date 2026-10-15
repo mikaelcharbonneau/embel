@@ -1,4 +1,4 @@
-// Dedicated headless synthetic preview, separate from the shared Fluid server/browser.
+// Dedicated headless synthetic preview, separate from the shared Embel server/browser.
 import { build } from "esbuild";
 import { chromium } from "playwright";
 import { createServer } from "node:http";
@@ -183,7 +183,7 @@ try {
     await page.getByRole("button", { name: "Export CSV", exact: true }).click();
     const download = await downloadPromise;
     const csv = await readFile(await download.path(), "utf8");
-    assert.equal(download.suggestedFilename(), "fluid-domain-candidates.csv");
+    assert.equal(download.suggestedFilename(), "embel-domain-candidates.csv");
     assert.match(csv, /"northstar.com","Not checked",""/);
     assert.doesNotMatch(csv, /"northstar\.(co|io)"/);
     await page.getByRole("button", { name: "Search domains", exact: true }).click();

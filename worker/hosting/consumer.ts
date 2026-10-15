@@ -10,7 +10,7 @@ export async function handleApiTextQueueRequest(request: Request, dependencies: 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 270_000);
   try {
-    // Per-request closure: no shared abort state between concurrent Fluid invocations.
+    // Per-request closure: no shared abort state between concurrent Embel invocations.
     const callback = dependencies.queue.handleCallback(async (message: unknown) => {
       controller.signal.throwIfAborted();
       const result = await dependencies.deliver(message, controller.signal);

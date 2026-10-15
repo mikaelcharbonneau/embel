@@ -69,7 +69,7 @@ describe("account bootstrap configuration and target", () => {
     if (kind === "owner") vi.spyOn(process, "getuid").mockReturnValue((process.getuid?.() ?? 0) + 1);
     if (kind === "hardlink") await link(filename, path.join(root, "copy"));
     if (kind === "symlink") { await copyFile(filename, path.join(root, "copy")); await rm(filename); await symlink(path.join(root, "copy"), filename); }
-    await expect(readAccountPublicConfiguration(root)).rejects.toThrow("protected Fluid public configuration. No account request was sent.");
+    await expect(readAccountPublicConfiguration(root)).rejects.toThrow("protected Embel public configuration. No account request was sent.");
   });
   it.each(["NODE_OPTIONS", "NODE_DEBUG", "NODE_TLS_REJECT_UNAUTHORIZED", "NODE_EXTRA_CA_CERTS", "SSLKEYLOGFILE", "HTTPS_PROXY", "https_proxy", "PGPASSWORD", "SUPABASE_ACCESS_TOKEN", "FLUID_WORKER_DATABASE_URL"])("refuses ambient %s", key => {
     expect(() => validateAccountSetupInvocation([], { [key]: "synthetic-secret" })).toThrow(/^Account setup/);
@@ -175,7 +175,7 @@ describe("user-completed account bootstrap", () => {
   it("preserves configuration failure classification before prompts or any account request", async () => {
     const { root, filename } = await fixture(); await chmod(filename, 0o644); const term = terminal(); const post = vi.fn();
     await expect(runLocalAccountSetup({ root, input: term.typedInput, output: term.typedOutput, environment: {}, post }))
-      .rejects.toThrow("protected Fluid public configuration. No account request was sent.");
+      .rejects.toThrow("protected Embel public configuration. No account request was sent.");
     expect(post).not.toHaveBeenCalled(); expect(term.output.write).not.toHaveBeenCalled();
   });
   it("reports cancellation before submission without ambiguous request wording", async () => {

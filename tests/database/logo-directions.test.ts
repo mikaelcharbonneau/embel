@@ -1,8 +1,10 @@
 import { reportLogoFixtureReady } from './logo-readiness-fixture';
 import { createHash, randomUUID } from "node:crypto";
+import { inspirationCatalog, INSPIRATION_CATALOG_VERSION } from "@/domain/inspiration";
+import { emptyVisualGuidance } from "@/domain/visual-direction";
 import { afterAll,beforeAll,beforeEach,describe,expect,it,vi } from "vitest";
 vi.mock("server-only",()=>({}));
-import { asRole,createTestDatabase,OWNER_A,OWNER_B,resetFixture,type TestDatabase } from "./local-supabase";
+import { asRole,OWNER_A,OWNER_B,resetFixture,type TestDatabase } from "./local-supabase";
 import { logoWorkspaceV2Schema,type LogoMutationReceipt } from "@/domain/logo-workspace";
 import { identityDirectionsOverviewSchema } from "@/domain/logo-directions";
 import { normalizeDirectionResponse } from "@/features/identity-directions/server/direction-response";
@@ -12,21 +14,27 @@ import { fontFixture,fontBytes } from "../features/identity-directions/fixtures"
 import { separatedLogoDocument } from "../features/logo-vector/fixtures";
 import { logoCostQuoteSchema, logoDispatchReceiptSchema } from "@/domain/logo-jobs";
 import type { LogoResolvedDirectionInput } from "@/domain/logo-jobs";
+import { createVisualDirectionTestDatabase, visualFixtureRole, VISUAL_DATABASE_SETUP_TIMEOUT_MS } from "./visual-direction-fixture";
 const brief={name:"Fluid Test",activity:"Studio",audience:"Teams",personality:"Precise",logoTypes:["wordmark"]};
 describe("local post-logo direction persistence",()=>{
  let db:TestDatabase;
- beforeAll(async()=>{db=await createTestDatabase();await db.exec("create role fixture_direction_writer login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;grant usage on schema public,fluid_private to fixture_direction_writer;grant execute on function fluid_private.apply_logo_trusted_command(uuid,jsonb,jsonb),public.load_logo_direction_inputs(uuid,uuid),public.stage_logo_directions(uuid,uuid,jsonb,uuid,jsonb),public.read_logo_direction_selection_sources(uuid,jsonb),public.claim_logo_job(text,integer),public.begin_logo_job_step(uuid,uuid,text,text,bigint),public.record_logo_provider_response(uuid,uuid,jsonb),public.complete_logo_job_step(uuid,uuid,text,text,bigint,jsonb,text),public.finish_logo_job(uuid,uuid,text) to fixture_direction_writer;create function public.fixture_commit_direction(p_job uuid,p_publication uuid,p_receipt uuid) returns jsonb language plpgsql security definer set search_path='' as $$ declare j public.jobs; begin select * into j from public.jobs where id=p_job; return fluid_private.logo_commit_direction_publication(j,p_publication,p_receipt); end $$; revoke all on function public.fixture_commit_direction(uuid,uuid,uuid) from public;grant execute on function public.fixture_commit_direction(uuid,uuid,uuid) to fixture_direction_writer;");},60_000);
+ const writerRole=visualFixtureRole("writer");
+ beforeAll(async()=>{db=await createVisualDirectionTestDatabase("logo persistence",[writerRole]);await db.exec(`create role ${writerRole} login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;grant usage on schema public,fluid_private to ${writerRole};grant execute on function fluid_private.apply_logo_trusted_command(uuid,jsonb,jsonb),public.load_logo_direction_inputs(uuid,uuid),public.stage_logo_directions(uuid,uuid,jsonb,uuid,jsonb),public.read_logo_direction_selection_sources(uuid,jsonb),public.claim_logo_job(text,integer),public.begin_logo_job_step(uuid,uuid,text,text,bigint),public.record_logo_provider_response(uuid,uuid,jsonb),public.complete_logo_job_step(uuid,uuid,text,text,bigint,jsonb,text),public.finish_logo_job(uuid,uuid,text) to ${writerRole};create function public.fixture_commit_direction(p_job uuid,p_publication uuid,p_receipt uuid) returns jsonb language plpgsql security definer set search_path='' as $$ declare j public.jobs; begin select * into j from public.jobs where id=p_job; return fluid_private.logo_commit_direction_publication(j,p_publication,p_receipt); end $$; revoke all on function public.fixture_commit_direction(uuid,uuid,uuid) from public;grant execute on function public.fixture_commit_direction(uuid,uuid,uuid) to ${writerRole};`);},VISUAL_DATABASE_SETUP_TIMEOUT_MS);
  afterAll(async()=>{await db?.close();});
- beforeEach(async()=>{await resetFixture(db);for(const table of ["logo_asset_web_principals","logo_worker_principals"])await db.query(`insert into fluid_private.${table}(role_name,role_oid,owner_id) select rolname,oid,$1 from pg_roles where rolname='fixture_direction_writer' on conflict(role_name) do nothing`,[OWNER_A]);});
+ beforeEach(async()=>{await resetFixture(db);for(const table of ["logo_asset_web_principals","logo_worker_principals"])await db.query(`insert into fluid_private.${table}(role_name,role_oid,owner_id) select rolname,oid,$1 from pg_roles where rolname='${writerRole}' on conflict(role_name) do nothing`,[OWNER_A]);});
  const rpc=(name:string,args:unknown[],owner=OWNER_A)=>asRole(db,"authenticated",owner,async()=>(await db.query<{value:unknown}>(`select public.${name}(${args.map((_,i)=>`$${i+1}`).join(",")}) value`,args)).rows[0]!.value);
- async function writer<T>(run:()=>Promise<T>){await db.exec("set session authorization fixture_direction_writer");try{return await run();}finally{await db.exec("set session authorization postgres");}}
+ async function writer<T>(run:()=>Promise<T>){await db.exec(`set session authorization ${writerRole}`);try{return await run();}finally{await db.exec("set session authorization postgres");}}
  async function trusted(project:string,command:unknown,evidence:unknown){return writer(async()=>(await db.query<{value:LogoMutationReceipt}>("select fluid_private.apply_logo_trusted_command($1,$2,$3) value",[project,command,evidence])).rows[0]!.value);}
- async function setup(){
+ async function setup(review=false){
   const start=logoWorkspaceV2Schema.parse(await rpc("start_logo_project",[{requestKey:randomUUID(),brief}])),vectorId=randomUUID();
   await db.query("insert into public.logo_vector_revisions(id,owner_id,project_id,record) values($1,$2,$3,$4)",[vectorId,OWNER_A,start.projectId,{id:vectorId,ownerId:OWNER_A,projectId:start.projectId,reviewStatus:"review_required",inputRevisions:[start.stages.brief_references],locks:[]}]);
   const approved=await trusted(start.projectId,{method:"acceptLogoVector",body:{requestKey:randomUUID(),expected:start.heads,vectorRevisionId:vectorId,acceptEarlierBasis:false}},{vectorRevisionId:vectorId,currentVectorRevisionId:null,expected:start.heads});
   const w=approved.workspace,original=fontFixture(),font={...original,asset:{...original.asset,ownerId:OWNER_A,projectId:w.projectId}};
   await db.query("insert into public.logo_font_records(record_id,version_id,owner_id,project_id,record) values($1,$2,$3,$4,$5)",[font.id,font.asset.versionId,OWNER_A,w.projectId,font]);
+  if(review){
+   await rpc("set_project_inspiration_reaction",[w.projectId,inspirationCatalog[0]!.id,{catalogVersion:INSPIRATION_CATALOG_VERSION,expectedProjectRevision:1,expectedRevision:0,ensemble:false,elements:["colors"]}]);
+   await rpc("review_project_visual_direction",[w.projectId,{catalogVersion:INSPIRATION_CATALOG_VERSION,expectedProjectRevision:1,expectedSelectionRevision:1,expectedRevision:0,guidance:{...emptyVisualGuidance(),character:"Clear, warm and readable"}}]);
+  }
   const source=(await db.query<{value:Record<string,unknown>}>("select fluid_private.logo_prepare_direction_sources($1,$2,$3) value",[OWNER_A,w.projectId,w.approvedLogo!.id])).rows[0]!.value;
   const resolved={...source,logo:separatedLogoDocument()} as unknown as LogoResolvedDirectionInput;delete (resolved as unknown as Record<string,unknown>).logoRevision;
   const candidate={directions:[0,1,2].map(n=>({name:`Local direction ${n+1}`,palette:{swatches:[{key:"ink",name:"Ink",hex:["#191919","#242424","#333333"][n]},{key:"paper",name:"Paper",hex:"#FFFFFF"}],pairings:[{role:"body",foregroundKey:"ink",backgroundKey:"paper"}]},typography:{styles:[{key:"body",role:"body",sampleText:brief.name,fontVersionId:font.id,weight:400,style:"normal",sizePx:16,lineHeight:1.5}]},graphics:{elements:[]}}))};
@@ -42,6 +50,42 @@ describe("local post-logo direction persistence",()=>{
   return{w,source,result,checks,job,lease,provider,stage,commit};
  }
  it("stages exactly three directions invisibly then commits immutable sources once",async()=>{const f=await setup(),publication=await f.stage();expect(await f.stage()).toEqual(publication);expect((await db.query("select * from public.logo_direction_records")).rows).toHaveLength(0);await f.commit(publication.id);expect((await db.query("select * from public.logo_direction_records")).rows).toHaveLength(12);const overview=identityDirectionsOverviewSchema.parse(await rpc("list_logo_workspace_records",[f.w.projectId,"directions_overview",{}]));expect(overview.directions).toHaveLength(3);expect(overview.fontChecks).toHaveLength(3);expect(overview.selection).toBeNull();expect(overview.currentApprovedLogo).toEqual(f.w.approvedLogo);});
+ it("retains directions from changed inspiration without advancing the current head",async()=>{
+  const f=await setup(true),publication=await f.stage();
+  expect(f.source).toHaveProperty("reviewedVisualDirection.references.0.elements",["colors"]);
+  await rpc("set_project_inspiration_reaction",[f.w.projectId,inspirationCatalog[0]!.id,{catalogVersion:INSPIRATION_CATALOG_VERSION,expectedProjectRevision:1,expectedRevision:1,ensemble:true,elements:["colors"]}]);
+  expect(await f.commit(publication.id)).toBeNull();
+  expect((await db.query("select * from public.logo_direction_records")).rows).toHaveLength(12);
+  expect(logoWorkspaceV2Schema.parse(await rpc("get_logo_workspace",[f.w.projectId])).stages.directions).toBeNull();
+  await expect(db.query("select fluid_private.logo_prepare_direction_sources($1,$2,$3)",[OWNER_A,f.w.projectId,f.w.approvedLogo!.id])).rejects.toMatchObject({code:"PT409"});
+ });
+ it("marks a saved direction stale and blocks approval after the reviewed guidance changes",async()=>{
+  const f=await setup(true),publication=await f.stage();await f.commit(publication.id);
+  const ids={paletteVersionId:f.result.palettes[0].id,typographyVersionId:f.result.typography[0].id,graphicsVersionId:f.result.graphics[0].id};
+  const overview=identityDirectionsOverviewSchema.parse(await rpc("read_logo_direction_selection_sources",[f.w.projectId,ids]));
+  const workspace=logoWorkspaceV2Schema.parse(await rpc("get_logo_workspace",[f.w.projectId]));
+  const body={requestKey:randomUUID(),expected:workspace.heads,approvedLogoId:workspace.approvedLogo!.id,...ids};
+  const evidence=await buildDirectionSelectionEvidence(overview,body);
+  await rpc("review_project_visual_direction",[f.w.projectId,{catalogVersion:INSPIRATION_CATALOG_VERSION,expectedRevision:1,expectedProjectRevision:1,expectedSelectionRevision:1,guidance:{...emptyVisualGuidance(),character:"A different reviewed direction"}}]);
+  const latest=logoWorkspaceV2Schema.parse(await rpc("get_logo_workspace",[f.w.projectId]));
+  expect(latest.approvedLogo).toEqual(workspace.approvedLogo);expect(latest.staleStages.map(s=>s.stage)).toContain("directions");
+  expect(identityDirectionsOverviewSchema.parse(await rpc("read_logo_direction_selection_sources",[f.w.projectId,ids])).stale).toBe(true);
+  await expect(trusted(f.w.projectId,{method:"selectIdentityDirectionComponents",body},evidence)).rejects.toMatchObject({code:"PT409"});
+  expect((await db.query("select * from public.logo_direction_records where kind='direction'")).rows).toHaveLength(3);
+ });
+ it("rejects a changed reviewed source at admission with no job, request or budget side effect",async()=>{
+  const f=await setup(true);
+  await db.query("insert into fluid_private.logo_runtime_policies(owner_id,operation,policy_identity,handler_version,provider,model,max_cost_microusd,enabled) values($1,'identity.logo_directions',$2,'logo-directions-v1','synthetic','test-only',100,true) on conflict(owner_id,operation) do update set enabled=true",[OWNER_A,"b".repeat(64)]);
+  await reportLogoFixtureReady(db,writerRole,['direction-fixture'],[{operation:'identity.logo_directions',policyIdentity:'b'.repeat(64),handlerVersion:'logo-directions-v1',provider:'synthetic',model:'test-only',engine:null,maxCostMicrousd:100}]);
+  const quote=logoCostQuoteSchema.parse(await rpc("quote_logo_operation",[f.w.projectId,{operation:"directions",expected:f.w.heads,approvedLogoId:f.w.approvedLogo!.id}]));
+  const intent={requestKey:randomUUID(),quoteId:quote.id,acceptedMaxCostMicrousd:100,expected:f.w.heads};
+  const before=(await db.query("select * from public.usage_accounts where owner_id=$1",[OWNER_A])).rows;
+  await rpc("review_project_visual_direction",[f.w.projectId,{catalogVersion:INSPIRATION_CATALOG_VERSION,expectedRevision:1,expectedProjectRevision:1,expectedSelectionRevision:1,guidance:{...emptyVisualGuidance(),character:"Newly reviewed words"}}]);
+  await expect(rpc("admit_logo_operation",[f.w.projectId,intent])).rejects.toMatchObject({code:"PT409"});
+  expect((await db.query("select * from public.jobs where id<>$1",[f.job])).rows).toHaveLength(0);
+  expect((await db.query("select * from public.logo_operation_requests where request_key=$1",[intent.requestKey])).rows).toHaveLength(0);
+  expect((await db.query("select * from public.usage_accounts where owner_id=$1",[OWNER_A])).rows).toEqual(before);
+ });
  it("foreign reads and browser publication calls expose no source",async()=>{const f=await setup(),p=await f.stage();await f.commit(p.id);await expect(rpc("list_logo_workspace_records",[f.w.projectId,"directions_overview",{}],OWNER_B)).rejects.toMatchObject({code:"P0002"});await expect(rpc("stage_logo_directions",[f.job,f.lease,f.result,f.provider,f.checks])).rejects.toMatchObject({code:"42501"});expect(await asRole(db,"authenticated",OWNER_B,async()=>(await db.query("select * from public.logo_direction_records")).rows)).toEqual([]);});
  it("rejects changed specimen evidence and expired leases without publishing",async()=>{const f=await setup();const checks=structuredClone(f.checks);checks[0]!.sampleHash="f".repeat(64);await expect(writer(()=>db.query("select public.stage_logo_directions($1,$2,$3,$4,$5)",[f.job,f.lease,f.result,f.provider,checks]))).rejects.toMatchObject({code:"22023"});await db.query("update public.jobs set lease_expires_at=clock_timestamp()-interval '1 second' where id=$1",[f.job]);await expect(f.stage()).rejects.toMatchObject({code:"40001"});expect((await db.query("select * from public.logo_direction_records")).rows).toHaveLength(0);});
  it("a changed approved logo retains completed directions without moving the new head",async()=>{const f=await setup(),p=await f.stage();await db.query("select fluid_private.logo_append_stage($1,$2,'vector',$3,'[]')",[OWNER_A,f.w.projectId,{vectorRevisionId:randomUUID(),approvalId:null}]);expect(await f.commit(p.id)).toBeNull();expect((await db.query("select * from public.logo_direction_records")).rows).toHaveLength(12);const w=logoWorkspaceV2Schema.parse(await rpc("get_logo_workspace",[f.w.projectId]));expect(w.stages.directions).toBeNull();expect(w.approvedLogo).toBeNull();});
@@ -93,7 +137,7 @@ describe("local post-logo direction persistence",()=>{
  it.each(["recorded","unknown","invalid","unpublished","unrecorded"] as const)("integrates quoted direction completion with %s outcome",async(mode)=>{
   const f=await setup();
   await db.query("insert into fluid_private.logo_runtime_policies(owner_id,operation,policy_identity,handler_version,provider,model,max_cost_microusd,enabled) values($1,'identity.logo_directions',$2,'logo-directions-v1','synthetic','test-only',100,true) on conflict(owner_id,operation) do update set enabled=true",[OWNER_A,"b".repeat(64)]);
-  await reportLogoFixtureReady(db,'fixture_direction_writer',['direction-fixture'],[{operation:'identity.logo_directions',policyIdentity:'b'.repeat(64),handlerVersion:'logo-directions-v1',provider:'synthetic',model:'test-only',engine:null,maxCostMicrousd:100}]);
+  await reportLogoFixtureReady(db,writerRole,['direction-fixture'],[{operation:'identity.logo_directions',policyIdentity:'b'.repeat(64),handlerVersion:'logo-directions-v1',provider:'synthetic',model:'test-only',engine:null,maxCostMicrousd:100}]);
   const quote=logoCostQuoteSchema.parse(await rpc("quote_logo_operation",[f.w.projectId,{operation:"directions",expected:f.w.heads,approvedLogoId:f.w.approvedLogo!.id}]));
   const intent={requestKey:randomUUID(),quoteId:quote.id,acceptedMaxCostMicrousd:100,expected:f.w.heads};
   const admitted=logoDispatchReceiptSchema.parse(await rpc("admit_logo_operation",[f.w.projectId,intent]));expect(admitted.jobIds).toHaveLength(1);expect(await rpc("admit_logo_operation",[f.w.projectId,intent])).toEqual(admitted);
@@ -120,18 +164,19 @@ describe("local post-logo direction persistence",()=>{
 
 describe("P4 exact-object table ACL hardening",()=>{
  it("removes hostile default grants from new tables and preserves unrelated defaults",async()=>{
-  const db=await createTestDatabase();
+  const hostileRole=visualFixtureRole("acl");
+  const db=await createVisualDirectionTestDatabase("logo ACL hardening",[hostileRole]);
   try{
    const {readFile}=await import("node:fs/promises");
    const sql=await readFile(new URL("../../supabase/migrations/20261007012000_logo_directions.sql",import.meta.url),"utf8");
    const functions=[...sql.matchAll(/create function ([a-z_]+)\.([a-z_]+)\(/g)].map(match=>({schema:match[1]!,name:match[2]!}));
    for(const fn of functions){const rows=(await db.query<{signature:string}>("select p.oid::regprocedure::text signature from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname=$1 and p.proname=$2",[fn.schema,fn.name])).rows;for(const row of rows)await db.exec(`drop function ${row.signature} cascade`);}
-   await db.exec("drop table public.logo_direction_font_checks,public.logo_direction_records,public.logo_direction_publications,public.logo_direction_inputs cascade;create role fixture_hostile_p4 nologin;create table public.p4_unrelated_acl_sentinel(id integer);grant select on public.p4_unrelated_acl_sentinel to fixture_hostile_p4;alter default privileges grant all on tables to fixture_hostile_p4 with grant option;");
+   await db.exec(`drop table public.logo_direction_font_checks,public.logo_direction_records,public.logo_direction_publications,public.logo_direction_inputs cascade;create role ${hostileRole} nologin;create table public.p4_unrelated_acl_sentinel(id integer);grant select on public.p4_unrelated_acl_sentinel to ${hostileRole};alter default privileges grant all on tables to ${hostileRole} with grant option;`);
    await db.exec(sql);
-   for(const table of ["logo_direction_inputs","logo_direction_publications","logo_direction_records","logo_direction_font_checks"]){for(const privilege of ["SELECT","INSERT","UPDATE","DELETE","TRUNCATE","REFERENCES","TRIGGER"]){expect((await db.query<{allowed:boolean}>("select has_table_privilege('fixture_hostile_p4',$1,$2) allowed",[`public.${table}`,privilege])).rows[0]!.allowed).toBe(false);}}
-   expect((await db.query<{allowed:boolean}>("select has_table_privilege('fixture_hostile_p4','public.p4_unrelated_acl_sentinel','SELECT') allowed")).rows[0]!.allowed).toBe(true);
+   for(const table of ["logo_direction_inputs","logo_direction_publications","logo_direction_records","logo_direction_font_checks"]){for(const privilege of ["SELECT","INSERT","UPDATE","DELETE","TRUNCATE","REFERENCES","TRIGGER"]){expect((await db.query<{allowed:boolean}>(`select has_table_privilege('${hostileRole}',$1,$2) allowed`,[`public.${table}`,privilege])).rows[0]!.allowed).toBe(false);}}
+   expect((await db.query<{allowed:boolean}>(`select has_table_privilege('${hostileRole}','public.p4_unrelated_acl_sentinel','SELECT') allowed`)).rows[0]!.allowed).toBe(true);
    await db.exec("create table public.p4_after_defaults_sentinel(id integer)");
-   expect((await db.query<{allowed:boolean}>("select has_table_privilege('fixture_hostile_p4','public.p4_after_defaults_sentinel','TRUNCATE') allowed")).rows[0]!.allowed).toBe(true);
+   expect((await db.query<{allowed:boolean}>(`select has_table_privilege('${hostileRole}','public.p4_after_defaults_sentinel','TRUNCATE') allowed`)).rows[0]!.allowed).toBe(true);
   }finally{await db.close();}
- },60_000);
+ },VISUAL_DATABASE_SETUP_TIMEOUT_MS);
 });

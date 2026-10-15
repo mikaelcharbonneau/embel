@@ -153,7 +153,7 @@ async function main() {
     validateWorkerSetupInvocation(process.argv.slice(2), process.env);
     if (!process.stdin.isTTY || !process.stdout.isTTY) throw setupError();
     const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
-    process.stdout.write("Fluid local worker setup\nUse the password already assigned to fluid_local_worker.\nNothing is sent to Supabase by this command. Press Ctrl+C to cancel.\n");
+    process.stdout.write("Embel local worker setup\nUse the password already assigned to fluid_local_worker.\nNothing is sent to Supabase by this command. Press Ctrl+C to cancel.\n");
     password = await readHiddenWorkerPassword(process.stdin, process.stdout, "Worker password (hidden): ", { signal: controller.signal });
     confirmation = await readHiddenWorkerPassword(process.stdin, process.stdout, "Confirm password (hidden): ", { signal: controller.signal });
     first = Buffer.from(password); second = Buffer.from(confirmation);

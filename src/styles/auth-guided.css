@@ -10,7 +10,14 @@
 .auth-guided .auth-field input { height: 44px; min-height: 44px; padding: 10px 12px; border-color: var(--border); border-radius: 10px; line-height: 22px; }
 .auth-guided .auth-field input::placeholder { color: var(--secondary); opacity: 1; }
 .auth-guided .auth-submit, .auth-guided .auth-continue { height: 44px; min-height: 44px; justify-content: center; gap: 8px; border-radius: 7px; font-size: 14px; line-height: 20px; }
-.auth-guided .auth-signup-unavailable { margin: 24px 0 0; font-size: 13px; line-height: 20px; text-align: center; color: var(--secondary); }
+.auth-guided .auth-mode-switch { margin: 24px 0 0; font-size: 13px; line-height: 20px; text-align: center; color: var(--secondary); }
+.auth-mode-switch .text-link { font-size: inherit; }
+.auth-guided .auth-field-help { margin: 8px 0 0; font-size: 12px; line-height: 18px; color: var(--secondary); }
+.auth-guided .auth-confirm-password { margin-top: 24px; }
+.auth-confirmation-note { margin-top: 20px; font-size: 13px; line-height: 21px; color: var(--secondary); }
+.auth-confirmation-note p + p { margin-top: 12px; }
+.auth-resend-toggle { display: flex; margin: 16px auto 0; font-size: 13px; min-height: 36px; text-align: center; }
+.auth-guided .text-link:disabled { opacity: .55; cursor: wait; }
 .auth-guided-browser { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-top: 24px; }
 .auth-guided .auth-draft-note { border: 0; margin: 0; padding: 0; align-items: center; gap: 12px; }
 .auth-guided .auth-draft-note p { font-size: 13px; line-height: 20px; }

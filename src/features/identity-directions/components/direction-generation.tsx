@@ -28,12 +28,13 @@ export function DirectionGenerationControls({ controller }: { controller: Direct
       <ul className={styles.fontList}>{state.fonts.map(font => <li key={font.id}>{font.family} · {font.source === "free_catalog" ? "Free catalog" : "Reviewed upload"}<span className={styles.version}>Version {font.id}</span></li>)}</ul>
     </details>}
     {state && <button type="button" onClick={() => { void controller?.refreshAvailability(); }}>Refresh operation availability</button>}
-    {state && !state.fonts?.length && <button type="button" disabled={state.loadingFonts || state.checking} onClick={() => { void controller?.refreshFonts(); }}>Refresh font permissions</button>}
+    {state && <button type="button" disabled={state.loadingFonts || state.checking} onClick={() => { void controller?.refreshFonts(); }}>Refresh generation inputs</button>}
     {generation?.phase === "quoting" && <p className={styles.caption} role="status">Preparing your cost estimate…</p>}
     {quote && ["awaiting_confirmation", "admitting"].includes(generation!.phase) && <section className={styles.costReview} aria-label="Direction generation cost review">
       <h3>{subscription ? "Review subscription usage" : "Review the cost"}</h3><p className={styles.caption}>Generate exactly 3 identity directions around the approved logo. Existing saved directions remain in history.</p>
       <p className={styles.caption}>{quote.provider && quote.model ? `${quote.provider} · ${quote.model}` : "Configured generation operation"}</p>
       <p className={styles.version}>Approved logo {quote.request.operation === "directions" ? quote.request.approvedLogoId : "unavailable"}</p>
+      {state?.reviewedVisualDirection && <p className={styles.caption}>Reviewed visual direction version {state.reviewedVisualDirection.revision} · {state.reviewedVisualDirection.references.length} attributed references. Your written guidance and saved aspects are included as text.</p>}
       {subscription ? <><p className={styles.caption}>ChatGPT subscription usage applies. No separate API charge under this verified subscription policy.</p>
         <p className={styles.caption}>Remaining allowance is unavailable. Token usage is unavailable unless the provider reports it; interrupted requests may still consume subscription usage.</p></> : <><dl className={styles.permissions}><div><dt>Estimated cost</dt><dd>{displayLogoCost(quote.estimatedCostMicrousd)}</dd></div><div><dt>Maximum cost</dt><dd>{displayLogoCost(quote.maxCostMicrousd)}</dd></div></dl>
         <p className={styles.caption}>This is an estimate, not a confirmed charge. Failed provider requests can still incur costs.</p></>}

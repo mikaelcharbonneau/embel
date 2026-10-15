@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Icon } from "@/components/ui/icon";
 import type { NameCandidate, NamesForm, NamesUi, NamesMutationResult } from "./local-names";
-import { namesStore } from "./use-names-store";
+import { useNamesActions } from "./use-names-store";
 import { transformLabels } from "./name-candidate-card";
 
 const transforms: { kind: NamesForm["kind"]; description: string }[] = [
@@ -18,6 +18,7 @@ const operations: { value: NamesForm["operations"][number]; label: string }[] = 
 ];
 
 export function ContextEditor({ ui }: { ui: NamesUi }) {
+  const namesStore = useNamesActions();
   return <details className="names-context-editor"><summary>Context for new names <span>Optional</span></summary>
     <p>Captured with each new name. Editing this brief leaves earlier results unchanged.</p>
     <label className="names-field">Brief description<textarea value={ui.context.description} maxLength={12000} rows={3} onChange={event => namesStore.updateContext({ description: event.target.value })} placeholder="What are you naming?" /></label>
@@ -27,6 +28,7 @@ export function ContextEditor({ ui }: { ui: NamesUi }) {
 }
 
 export function WorkshopPanel({ ui, candidates, onResult }: { ui: NamesUi; candidates: NameCandidate[]; onResult: (result: NamesMutationResult, success: string) => void }) {
+  const namesStore = useNamesActions();
   const [chooseSeed, setChooseSeed] = useState(false);
   const form = ui.form;
   const parent = candidates.find(candidate => candidate.source.id === ui.seedCandidateId);

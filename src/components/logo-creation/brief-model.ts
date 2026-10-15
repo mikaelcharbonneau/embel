@@ -17,7 +17,7 @@ export function seedLogoBrief(context: ContextSnapshot): { draft: LogoBriefDraft
   return {
     nameConflict,
     draft: {
-      name: nameConflict ? "" : selected || supplied,
+      name: selected || supplied,
       activity: activity || context.description,
       audience: context.knownAudience || context.audienceSegments.filter(segment => segment.selected).map(segment => segment.label).join(", "),
       personality: [personality, context.intake.identityNotes].filter(value => value.trim()).join("\n"),

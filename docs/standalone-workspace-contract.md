@@ -1,6 +1,18 @@
 # Standalone account workspace contract
 
-Status: IMPLEMENTED and locally tested candidate. Hosted schema and signed-in browser acceptance are NOT ACTIVATED by this increment. Registrar, platform checks, trademark research/filing and purchases remain unavailable. This adds manual draft persistence only.
+## Current autosave behavior — 2026-10-15
+
+Domains, Handles and Trademarks require a verified account. The account database is authoritative; these routes have no anonymous or browser-storage draft fallback. A successful owned read precedes editing. Changes debounce for 600 ms and serialize through one provider-memory writer per tool. Typing remains enabled during writes. Acknowledgements advance the saved baseline without replacing newer input, then save any remaining changes against that acknowledged revision. Route navigation flushes queued edits and permits the owned write to finish; session-generation and owner changes still fence and cancel it. Pending edits participate in the existing sign-out and beforeunload guards.
+
+An uncertain write retains its exact body and request key and pauses for Retry. Later edits remain separate until that request is acknowledged. Conflicts retain the user's latest branch and require an explicit choice to save that branch over the latest revision or replace it with the saved version; replacement requires confirmation. Initial and cached read failures expose Retry. Routine controls show Saving/Saved rather than manual save/load operations. Account/project source metadata, provider evidence restrictions and fresh-check requirements are unchanged.
+
+Handles v1 additionally accepts an optional strict `search` object containing typed and committed names, selected import IDs/platforms, prefix/suffix/separator options, bundle title/list input and up to 20 saved searches. Incomplete authored input is valid persistence; search preparation still applies its separate syntax checks. The existing 120,000-byte payload bound remains in force. Provider observations, comparison matrices and check-attempt history remain transient. Earlier bundles-only records remain readable. The additive migration is `20261015202644_handles_search_drafts.sql`; its deployment status is recorded by the rollout owner.
+
+Local verification includes focused hook/client/editor tests and nine isolated browser scenarios with intercepted APIs, covering automatic persistence and reload for all three tools, ongoing edits, retries, conflicts, navigation and account fences. This establishes application behavior with synthetic responses; it does not claim real-account browser or provider validation. The manual save/load descriptions below are historical.
+
+Status update, 2026-10-12: the implementation is integrated, and a read-only catalog inspection confirmed the hosted Ideas/standalone tables, RLS and authenticated RPC grants. See [current manual workflows and verification limits](standalone-manual-tools.md). Fresh real-account browser acceptance is still separate from intercepted browser fixtures. Registrar, platform checks, automated trademark research/filing and purchases remain unavailable.
+
+The implementation packet below records the original local-only increment. Its activation proposal is historical, not an instruction to replay installed migrations.
 
 ## Reused foundations and ownership
 
@@ -51,7 +63,7 @@ The shell/session integration owner must:
 
 The shared provider's actual lifecycle wiring and rendered tool acceptance are separate owned integration patches. This slice's automated checks cover the store/client, service/API and database; it does not claim signed-in browser or multi-tab UI acceptance.
 
-## Local evidence and activation proposal
+## Historical local evidence and activation proposal
 
 The focused test files are `tests/{database,server,api,client}/standalone-workspaces.test.ts`. They exercise real disposable SQL RLS/CAS/rollback/no-extra-writes behavior; strict/malformed direct-RPC input; calendar/clock and URL-port poisoning regressions with valid boundary roundtrips; exact U+0085, dotted-I Domains and dotted-I platform-host rejection before any durable write; all 25 ECMAScript whitespace characters and ASCII/Kelvin normalization through the actual codec, SQL and service; provider evidence rejection; owned/frozen imports; real immutable Naming candidate replay; forged Naming identity refusal; post-verification source changes; exact uncertain-create replay; safe auth/status/body limits; bounded client responses; same-owner memory recovery and late-generation denial. Existing Naming server tests verify the additive wrapper does not change the original service behavior.
 

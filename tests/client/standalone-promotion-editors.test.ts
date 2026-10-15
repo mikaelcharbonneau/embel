@@ -99,6 +99,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
     const path = String(input); requests.push(path);
     if (path === "/api/session") return Response.json({ user: { id: currentOwner } });
+    if (path === "/api/standalone-checks" && init?.method === "GET") return Response.json({ ownerId: currentOwner, domains: "unavailable", youtube: false, euipo: false });
     if (path === "/api/workspaces/promotions") { const body = JSON.parse(String(init?.body)) as StandalonePromotionInput; posts.push(body); return onPost(body); }
     if (path.startsWith("/api/workspaces/promotions/requests/")) return onLookup(path.split("/").at(-1)!);
     if (["/api/workspaces/domains", "/api/workspaces/handles", "/api/workspaces/trademarks"].includes(path) && init?.method === "GET") return Response.json({ ownerId: currentOwner, workspace: currentOwner === owner ? stored : null });
@@ -132,7 +133,7 @@ describe("saved standalone account editor promotion", () => {
     expect(session.lifecycleMemory.hasUnsaved()).toBe(false);
     await act(async () => button("Open created brand").click());
     expect(posts).toHaveLength(1); expect(navigation.push).toHaveBeenCalledTimes(1);
-    expect(requests.every(path => ["/api/session", `/api/workspaces/${tool}`, "/api/workspaces/promotions"].includes(path))).toBe(true);
+    expect(requests.every(path => ["/api/session", "/api/standalone-checks", `/api/workspaces/${tool}`, "/api/workspaces/promotions"].includes(path))).toBe(true);
   });
 
   it.each(["dirty", "pending", "conflict"] as const)("preserves a selected saved domain but gates promotion during account %s", async gate => {
@@ -149,7 +150,7 @@ describe("saved standalone account editor promotion", () => {
     await changeRecord("domains", { dirty: true, payload: domainDraftSchema.parse({ version: 1, input: "New", extensions: ["com"], candidates: ["new.com"] }) });
     await act(async () => button("Create brand from new.com").click());
     expect(host.querySelector('[aria-label="Create complete brand from saved work"]')).toBeNull();
-    expect(host.textContent).toContain("Save the account draft before creating a brand.");
+    expect(host.textContent).toContain("Your changes are still saving. Create the brand once they are saved.");
     expect(posts).toEqual([]);
   });
 
@@ -160,6 +161,7 @@ describe("saved standalone account editor promotion", () => {
     expect(posts).toHaveLength(1); const original = structuredClone(posts[0]!);
     await render("domains", false);
     const newer = { ...saved("domains", 4), payload: domainDraftSchema.parse({ version: 1, input: "Later", extensions: ["com"], candidates: ["later.com"] }) };
+    stored = newer;
     await changeRecord("domains", { workspace: newer, payload: newer.payload });
     await render("domains");
     expect(field<HTMLInputElement>("New brand title").value).toBe("Original brand");
@@ -236,7 +238,7 @@ describe("saved standalone account editor promotion", () => {
     const newer = saved("domains", 4);
     await changeRecord("domains", { workspace: newer, payload: newer.payload });
     expect(host.querySelector('[aria-label="Create complete brand from saved work"]')).toBeNull();
-    expect(host.textContent).toContain("The saved account draft changed. Choose the saved result again before creating a brand.");
+    expect(host.textContent).toContain("The saved workspace changed. Choose the result again before creating a brand.");
     expect(posts).toEqual([]);
     await choose("domains"); await titleAndContext("New saved source");
     await act(async () => button("Create complete brand").click());

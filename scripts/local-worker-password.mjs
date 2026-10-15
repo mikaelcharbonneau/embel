@@ -57,7 +57,7 @@ export async function runWorkerPasswordSetup({ root, input, output, errorOutput,
   validateWorkerPasswordInvocation(args, environment, execArgs);
   if (!input.isTTY || !output.isTTY || !errorOutput.isTTY) throw new Error(PREFLIGHT);
   const command = await prepareWorkerPasswordCommand(root);
-  output.write("Set Fluid's restricted worker password\nThe existing owner-bound role must already be prepared.\npsql will ask for the existing project administrator database password, then a NEW worker password twice.\nEnter secrets only at those psql prompts. The administrator password is not saved or reset.\nCtrl+C cancels. This command does not retry.\n");
+  output.write("Set Embel's restricted worker password\nThe existing owner-bound role must already be prepared.\npsql will ask for the existing project administrator database password, then a NEW worker password twice.\nEnter secrets only at those psql prompts. The administrator password is not saved or reset.\nCtrl+C cancels. This command does not retry.\n");
   const result = await new Promise(resolve => {
     let child, done = false, started = false;
     const finish = result => {

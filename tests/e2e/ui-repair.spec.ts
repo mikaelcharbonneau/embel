@@ -63,7 +63,7 @@ test("sign-in recovery restores the prompt and scope and saves one browser draft
   await expect(page.getByText(/Your prompt is ready to continue/)).toBeVisible();
   await page.screenshot({ path: info.outputPath("home-restored-prompt.png"), fullPage: true, scale: "css" });
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
-  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("fluid.local-drafts.v1")!).drafts.length)).toBe(1);
   await page.getByRole("button", { name: "Collapse competitors", exact: true }).focus();
   await page.keyboard.press("Tab");

@@ -22,7 +22,7 @@ async function renderPdf(input) {
   const [x, y, width, height] = input.viewBox, scale = 600 / Math.max(width, height);
   return new Promise((resolve, reject) => {
     const document = new PDFDocument({ autoFirstPage: true, size: [width * scale, height * scale], margin: 0, compress: true, pdfVersion: '1.7',
-      info: { Title: 'Reviewed logo', Subject: `Variant SHA-256 ${input.variantHash}`, Producer: 'Fluid logo export v1 / PDFKit 0.20.2', Creator: 'Fluid', CreationDate: new Date('2000-01-01T00:00:00Z'), ModDate: new Date('2000-01-01T00:00:00Z') } });
+      info: { Title: 'Reviewed logo', Subject: `Variant SHA-256 ${input.variantHash}`, Producer: 'Embel logo export v1 / PDFKit 0.20.2', Creator: 'Embel', CreationDate: new Date('2000-01-01T00:00:00Z'), ModDate: new Date('2000-01-01T00:00:00Z') } });
     const chunks = []; let total = 0;
     document.on('data', chunk => { total += chunk.length; if (total > MAX_BYTES) { document.destroy(); reject(new Error('PDF byte limit exceeded.')); } else chunks.push(chunk); });
     document.once('error', reject); document.once('end', () => resolve(bounded(new Uint8Array(Buffer.concat(chunks)))));
@@ -122,7 +122,7 @@ async function inspectPdf(input) {
 }
 async function renderGuidelines(input) {
   const { default: PDFDocument } = await import('pdfkit');
-  const doc = new PDFDocument({ size: 'A4', margin: 48, autoFirstPage: true, info: { Title: `${input.brandName} — Brand guidelines`, Creator: 'Fluid', Producer: 'Fluid guidelines v1', CreationDate: new Date('2000-01-01T00:00:00Z'), ModDate: new Date('2000-01-01T00:00:00Z') } });
+  const doc = new PDFDocument({ size: 'A4', margin: 48, autoFirstPage: true, info: { Title: `${input.brandName} — Brand guidelines`, Creator: 'Embel', Producer: 'Embel guidelines v1', CreationDate: new Date('2000-01-01T00:00:00Z'), ModDate: new Date('2000-01-01T00:00:00Z') } });
   const chunks = [], complete = new Promise((resolve, reject) => { let total = 0; doc.on('data', chunk => { total += chunk.length; if (total > MAX_BYTES) { doc.destroy(); reject(new Error('Guidelines exceed byte limit.')); } else chunks.push(chunk); }); doc.once('error', reject); doc.once('end', () => resolve(bounded(new Uint8Array(Buffer.concat(chunks))))); });
   doc.registerFont('neutral', Buffer.from(input.bodyFont));
   const body = (text, size = 10) => { doc.font('neutral').fontSize(size).fillColor('#18202C').text(text, { width: 499, lineGap: 3 }); doc.moveDown(0.5); };

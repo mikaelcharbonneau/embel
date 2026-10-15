@@ -48,6 +48,23 @@ function page(ownerId: string, title: string) {
   return { ownerId, items: [{ id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", owner_id: ownerId, title, scope: "complete_brand", current_revision: 1, created_at: "2026-10-08T12:00:00Z" }], nextCursor: null };
 }
 describe("home account cards", () => {
+  it("keeps saved projects hidden until the account is verified", async () => {
+    mock.session = { status: "checking", generation: 2 };
+    const fetch = vi.fn(); vi.stubGlobal("fetch", fetch);
+    localStorage.setItem("fluid.local-drafts.v1", "legacy recovery data");
+    await act(async () => root.render(createElement(HomeRecentBrands)));
+    expect(host.textContent).toBe("");
+    expect(fetch).not.toHaveBeenCalled();
+    expect(localStorage.getItem("fluid.local-drafts.v1")).toBe("legacy recovery data");
+    localStorage.removeItem("fluid.local-drafts.v1");
+  });
+  it("shows account projects without a separate storage mode", async () => {
+    const owner = (mock.session as VerifiedAccount).userId;
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json(page(owner, "Saved brand"))));
+    await act(async () => root.render(createElement(HomeRecentBrands)));
+    expect(host.querySelector('a[href="/brands/account/cccccccc-cccc-4ccc-8ccc-cccccccccccc"]')?.textContent).toContain("Saved brand");
+    expect(host.textContent).not.toMatch(/browser|account cop|account project/i);
+  });
   it("rejects a page from another owner", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => Response.json(page("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "Private other account"))));
     await act(async () => root.render(createElement(HomeRecentBrands)));

@@ -39,7 +39,7 @@ describe("response-only account editor", () => {
     const control = host.querySelector<HTMLButtonElement>('[aria-label="View latest AI activity"]');
     expect(control).not.toBeNull();
     await act(async () => control!.click());
-    expect(document.activeElement?.textContent).toBe("Response queued");
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Response queued");
     expect(mock.strategy.enqueue).not.toHaveBeenCalled();
     expect(mock.strategy.apply).not.toHaveBeenCalled();
   });

@@ -1,6 +1,43 @@
-# Fluid foundation architecture
+# Embel foundation architecture
 
-Sign-in supports an intercepted native dialog alongside a direct-page fallback. Both render the same server-configured form inside the existing account-session provider; dismissal preserves drafts and the pending authentication fence. See [Sign-in overlay](auth-overlay-design.md).
+## Account-first persistence
+
+D065 supersedes the historical local draft and Names persistence sections below.
+The database is authoritative for signed-in project and standalone-tool work.
+Projects and tool libraries expose one account workspace; local device copies
+are recovery material, not a second source of ordinary content. Home may accept
+an initial prompt before sign-in, but saving work requires a verified account.
+
+Changes use the existing authenticated APIs, server-derived ownership and RLS.
+Debounced, serialized writes acknowledge Saving/Saved states, preserve edits
+entered during a write, and use expected revisions to detect conflicting changes.
+A failed save retains the draft and exact pending request; a retry never silently
+changes its identity or falls back to a claimed local success. Names persists its
+existing validated workshop graph and history without changing transformation
+semantics. Its account memory is hidden during session re-verification and fenced
+against a different owner or a late response.
+
+Account-scoped creation, upload and singleton saves send the captured account ID
+in `X-Embel-Account`. The API compares it with its authenticated identity before
+writing, rejecting a stale tab after another tab changes the shared session.
+This is an expected-account fence, never a client-selected owner; RLS and all
+ownership decisions still derive from the authenticated session.
+
+Account project creation accepts an optional stable request key. An owned exact
+replay returns the existing project rather than creating a duplicate; conflicting
+reuse is rejected. Legacy local data remains unchanged until an explicit recovery
+selection and account confirmation. Recovery and ordinary creation do not start AI
+unless the user separately sends a prompt under the existing admission contract.
+
+## Guided brand interview
+
+D063 supersedes the earlier Strategy conversation presentation below. The account workspace now uses a focused interview in the order competitors, target audience and brand personality, with real competitor research shown by the same inline animated Embel thinking mark as later replies. Detailed choice cards explain recommendations without preselecting them; the normal composer accepts custom answers, clarifications and explicit requests to revisit a stage. Positioning is not appended to this interview.
+
+Optional versioned `intake.guidedInterview` metadata stores actual user-message references, exact saved input revisions and explicit decisions. Assistant content remains exclusively in immutable owned job results. API input v2 freezes bounded owned assistant history at admission; guided output binds its turn/stage and distinguishes choices, question, answer, accepted custom decision and requested redirect. The browser never supplies assistant history. Account orchestration saves canonical selections before requesting the next widget; old snapshots and results remain readable. Completed decisions remain valid during clarification, and explicit revisits clear the affected review facts.
+
+Automatic saves retain a pending context in owner/generation-fenced session memory until acknowledged. Conflicts and lost acknowledgements keep that branch available for retry, latest-version recovery or a browser backup. A persisted turn retains its revision-derived request identity across reload; unknown provider outcomes remain reserved and cannot be replaced by an automatic retry. New guided runtime policies and private operation grants preserve existing lease, source, usage, cancellation and restricted worker boundaries. See [guided runtime](guided-interview-runtime.md).
+
+Sign-in and account creation support intercepted native dialogs alongside direct-page fallbacks. Both render the same server-configured form inside the existing account-session provider; dismissal preserves drafts and the pending authentication fence. Email confirmation uses a bounded PKCE exchange and a configured-origin redirect. See [Sign-in overlay](auth-overlay-design.md) and [account creation](account-creation.md).
 
 Settings follows the seven approved Figma categories. The presentation composes existing account, local drafts, text readiness, local ChatGPT and recorded usage components; no new settings API or persistence contract is added. Unsupported preferences and integrations are disabled rather than represented as saved settings. See [Settings design and behavior](settings-guided-design.md).
 
@@ -27,7 +64,7 @@ Jobs use operation, owner, project, input revision/hash, idempotency key, queued
 
 Each provider wait has a five-minute default deadline, configurable per step up to one hour. Cancellation permits a five-second default grace (maximum thirty seconds) for cooperative settlement. Ignored cancellation or a deadline quarantines the job with its remaining reservation intact; a lost lease cannot publish late output. Cost overruns retain generated content and actual provider expense separately from the capped customer reservation. Retry ambiguous provider requests only with a reconciliation policy; never assume exactly-once external execution. No provider-specific reconciliation or manual retry endpoint is enabled yet.
 
-## Draft persistence increment
+## Historical draft persistence increment (superseded by D065)
 
 Browser drafts remain independent local copies. Saving to an account uses the existing project creation API after a verified `/api/session` response; a separate account route edits the stored project. Both routes share the intake editor. Account updates send an expected revision and optional title, which commit atomically with the new immutable context revision. Expansion to a complete brand is a dedicated owner-checked database operation that copies the current saved context and hash into a new revision. Already complete projects are idempotent only at the current expected revision.
 
@@ -35,7 +72,7 @@ The shared context includes intake notes, supplied name, editor position, audien
 
 Project mutations share a 32,768-byte UTF-8 JSON request limit in addition to individual field limits. The client checks the complete serialized payload before sending it and retains oversized drafts with a size-specific error; the server independently enforces the streamed byte limit even when Content-Length is false or absent.
 
-Account views are hidden whenever identity is unverified. Requests are aborted and fenced by a session generation; results must match the verified owner before entering client state. Unsaved account edits stay in memory for that owner through a conflict or expired session. Recovery requires an explicit choice to load the latest revision or save a new browser copy, and browser export is available only to the matching verified owner. A changed account cannot see or save the previous account's buffered edits. Existing-account email/password sign-in uses same-origin server routes, with HTTP-only session cookies and generic authentication errors. No signup or account linking is enabled. The shared account provider serializes sign-in and sign-out, fences private responses immediately, and prevents refresh from exposing an account while authentication is pending. A sign-in request retains that guard across internal navigation; a delayed response cannot follow a confirmed logout in the same provider. Failed authentication keeps private views hidden until explicit recovery. Confirmed sign-out clears private buffers only after unsaved-edit confirmation; browser drafts remain independent.
+Account views are hidden whenever identity is unverified. Requests are aborted and fenced by a session generation; results must match the verified owner before entering client state. Unsaved account edits stay in memory for that owner through a conflict or expired session. Recovery requires an explicit choice to load the latest revision or save a new browser copy, and browser export is available only to the matching verified owner. A changed account cannot see or save the previous account's buffered edits. Email/password sign-in and signup use same-origin server routes, with HTTP-only session cookies and generic authentication errors. Signup stages cookies until its provider result is validated; pending email confirmation is never represented as a verified session. No account linking is enabled. The shared account provider serializes authentication and sign-out, fences private responses immediately, and prevents refresh from exposing an account while authentication is pending. An authentication request retains that guard across internal navigation; a delayed response cannot follow a confirmed logout in the same provider. Failed authentication keeps private views hidden until explicit recovery. Confirmed sign-out clears private buffers only after unsaved-edit confirmation; browser drafts remain independent.
 
 Live integration tests have a separate command, explicit opt-in, and an explicit approved development project allowlist. They accept only a publishable key and temporary access tokens for two prepared test identities. The suite reads real Auth/PostgREST/Storage fixtures but does not provision users, write data or run jobs. Until secure setup is complete, browser API fixtures and PGlite checks are local evidence only.
 
@@ -43,7 +80,7 @@ Live integration tests have a separate command, explicit opt-in, and an explicit
 
 The Projects collection (formerly Brands) keeps `/brands` and existing browser/account destinations while adopting the approved unified grid. Its account page hook retains validated cursor merging and bounded, owner/generation-fenced reads. Collection controls stay outside the private listing remount boundary. Account summaries deliberately expose unavailable stage/update metadata rather than inventing details. See [Projects design and behavior](projects-guided-design.md).
 
-## Names provenance and browser persistence
+## Historical Names browser persistence (superseded by D065)
 
 Standalone Names has a separate versioned browser store. Captured candidates, context and runs are immutable; preferences and current workshop controls remain editable. Stored input is fully validated, including replay of bounded transformation history and cross-record references. Version 1 pins transformation semantics and history explanations: future algorithm or wording changes must retain a compatible reader or explicitly migrate old records rather than invalidate them silently.
 
@@ -93,11 +130,13 @@ The shared transcript allows only user messages, saved context and ordered uniqu
 
 The local strategy API prepares durable enqueue, polling, cancellation and explicit proposal acceptance. Admission derives ownership from authentication and requires a saved project revision, an enabled policy, fresh worker readiness and an approved budget. Applying a result checks its input revision against the current project; stale output cannot overwrite intervening edits. The strategy and subscription migrations are now applied to the approved development database; runtime policies, worker identity and provider credentials remain unconfigured. Standard API configuration and paid calls are paused under D029; the ChatGPT plan assessment does not itself enable subscription inference.
 
+The 2026-10-13 readiness record supersedes the historical runtime-status statements above: [brand creation readiness](brand-creation-readiness.md). Production API publication now has the same validated transport configuration boundary as preview, while execution still requires the existing owner policy, budget and qualified worker deployment. Account/project HTTP waits are bounded independently of durable job lifetimes. Manual project copies and Home share owner-scoped recovery receipts to prevent blind duplicate creation after a lost acknowledgement.
+
 ## Approved local subscription runtime
 
 D030 approves a local Mac execution option. Supabase Auth, owned projects, immutable revisions and durable Postgres jobs remain authoritative. Subscription access does not require a different data store, so no embedded database, data migration or new hosted service is introduced. The protected Vercel preview remains available for interface review and cannot expose the local connection endpoints.
 
-The local web process binds to `127.0.0.1:3106`; the dedicated Node worker and OAuth callback bind to `127.0.0.1:3107`. A fresh in-memory capability connects these two processes. Browser requests go through a same-origin, host-checked Next.js route that verifies the Supabase user before forwarding a server-derived owner ID. Tokens and worker database access never enter browser bundles. Each ChatGPT registration is bound to its verified Supabase owner; signing into ChatGPT does not silently create or replace a Fluid account.
+The local web process binds to `127.0.0.1:3106`; the dedicated Node worker and OAuth callback bind to `127.0.0.1:3107`. A fresh in-memory capability connects these two processes. Browser requests go through a same-origin, host-checked Next.js route that verifies the Supabase user before forwarding a server-derived owner ID. Tokens and worker database access never enter browser bundles. Each ChatGPT registration is bound to its verified Supabase owner; signing into ChatGPT does not silently create or replace an Embel account.
 
 The local worker alone owns protected OAuth records, refresh rotation, account-specific model discovery and streaming Responses calls. Subscription jobs have quota/deadline/size admission limits and explicit subscription billing metadata, without invented API dollar estimates. The standard API text path remains disabled for this local mode; image execution remains unavailable until a separate API connection and spending limit are approved.
 
@@ -105,7 +144,7 @@ Preparing code does not authorize grants or token persistence. First-time connec
 
 ## Local worker login boundary correction
 
-The local subscription worker uses a dedicated direct database login administratively bound to exactly one Fluid owner. The binding uses both role name and OID and validates the actual `session_user`, with no privileged flags or role memberships. A request parameter, JWT claim or custom session setting cannot choose the owner. Subscription functions, bindings reads and shared lease operations enforce that mapping; subscription workers cannot operate API-mode jobs, and API workers cannot operate subscription jobs. The only direct table read is seven job-step recovery metadata columns, filtered to owned subscription jobs by RLS. The migration creates no login, password or owner mapping.
+The local subscription worker uses a dedicated direct database login administratively bound to exactly one Embel owner. The binding uses both role name and OID and validates the actual `session_user`, with no privileged flags or role memberships. A request parameter, JWT claim or custom session setting cannot choose the owner. Subscription functions, bindings reads and shared lease operations enforce that mapping; subscription workers cannot operate API-mode jobs, and API workers cannot operate subscription jobs. The only direct table read is seven job-step recovery metadata columns, filtered to owned subscription jobs by RLS. The migration creates no login, password or owner mapping.
 
 The launcher reads a separately approved `.local-fluid/worker.env` (0600, under a 0700 directory), rejects worker credentials in Next.js environment files, and passes the connection only to the Node worker. Connections use the approved development endpoint with certificate-verified TLS. OAuth records remain separately protected under `.local-fluid/credentials`. These boundaries are checked before any live credential setup.
 
@@ -174,3 +213,25 @@ The Assets collection uses the shared concept shell and compact Figma library la
 ## Trademarks approved Search and Fill presentation
 
 The Trademarks route shares the concept shell and original static Figma artwork. Search and Fill edit the same controlled draft; registry research remains explicitly unavailable. Library exposes the current working draft and History the latest verified save receipt only. Existing review/export/source-promotion and account owner/generation fences are retained. Recovery controls stay usable outside disabled edit fields. See trademarks-guided-design.md.
+
+## Curated Inspiration (2026-10-13)
+
+The current Figma Inspiration gallery uses immutable public reference artwork with separate project-owned catalog preferences, rather than inventing private asset versions for global images. Authenticated narrow RPCs enforce project ownership, scope and revision fences; the client verifies receipts and retains uncertain intent in owner-fenced tab memory. Original uploaded-reference snapshots remain separate. Users can now review catalog attribution and character/color/type/graphics guidance into an immutable visual-direction record. Post-logo Identity direction inputs bind that exact review; changed likes or guidance invalidate new quotes and retain late results as history instead of replacing current selections. Initial logo concepts still use their existing saved brief and owned reference images. See [Inspiration workspace](inspiration-workspace.md) and [reviewed visual direction](visual-direction-review.md) for the precise supported behavior and activation boundaries.
+
+## Integrated creation workflow (2026-10-13 source checkpoint)
+
+The continuation resolver derives navigation from saved Strategy reviews, project scope and the selected name. It does not approve work by navigating. Naming now leads to Inspiration; logo and Identity status is published only from an owned, revision-matched workspace observation. A bounded project-shell reload preserves dirty edits and exposes newer saved revisions as conflicts.
+
+Project Naming mounts [screening research](project-screening.md) for the exact saved name selection and project context. Explicitly recorded observations are immutable owner-authored notes with unverified provenance. Authenticated live lookups are bounded, cancellable and recheck the saved basis after completion; they do not become trusted database receipts supplied by a browser.
+
+Strategy availability reads the caller's SQL authorization first and intersects eligible API operations with a protected worker readiness response. It never adds operations or credits. Subscription readiness and reading, replaying, cancelling or applying an existing request remain independent of a new availability probe. The [multi-account API candidate](production-ai-dispatch.md) and standalone Names candidate require their separately configured runtime and allowance policies; local implementation does not imply live activation.
+
+Visual-direction and screening drafts join the existing account-scoped in-memory lifecycle: verification hides private data, same-account recovery retains edits, confirmed logout or a different owner clears them, and old-generation callbacks cannot publish into the next session. Signup and Settings implementation, manual standalone tools and logo comparison/refinement are included in the same integration checkpoint. Hosted database state, email delivery and protected worker trust must be reported separately from source verification.
+
+## Domains live prices and saved shortlist (2026-10-15 candidate)
+
+The authenticated standalone lookup route adds credential-free Vercel exact-domain checks with term-aware registration/renewal prices, preserving configured Cloudflare and RDAP boundaries. Ambiguous provider negatives stay Unknown. Transient prices remain owner/generation-fenced and cannot be written into account drafts. A bounded optional `shortlistedDomains` field preserves legacy version-1 payloads and the existing CAS/idempotency workflow; the guarded validator migration changes no grants or ownership rules. See [implementation, rollout requirements and verification boundaries](domains-live-shortlists.md). Source implementation is separate from hosted activation.
+
+## Optional Name.com CORE lookup (2026-10-15 candidate)
+
+Name.com adds an explicitly enabled, server-credential-gated alternative to the existing registrar reads. Exact discovery separates new registration from aftermarket/expiring/backorder offers; only matching authoritative registration-term pricing can produce a registration quote. Acquisition offers stay Unknown for new registration and disclose their flat fee separately. The current Vercel/Cloudflare/RDAP path is unchanged while Name.com is disabled, and sandbox configuration cannot establish live evidence. No schema, worker, purchase, credential or deployment change is included. See [Name.com implementation and secure rollout gates](namecom-domain-lookup.md).

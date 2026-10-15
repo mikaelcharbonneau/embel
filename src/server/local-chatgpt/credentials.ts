@@ -42,7 +42,7 @@ function assertIdentifier(value: string) {
 }
 
 /** Construction is inert. Files are touched only by an explicit method call.
- * This is Fluid's own approved storage; it never reads Codex or browser credentials. */
+ * This is Embel's own approved storage; it never reads Codex or browser credentials. */
 export class FileChatGPTCredentialStore implements ChatGPTCredentialStore {
   readonly directory: string;
   constructor(directory = resolve(process.cwd(), ".local-fluid", "credentials")) { this.directory = resolve(directory); }

@@ -6,24 +6,34 @@ import { createContext, useCallback, useContext, useEffect, useState, useSyncExt
 import { z } from "zod";
 import { accountProjectResponseSchema } from "@/domain/project-api";
 import { getNamingReadiness } from "@/domain/project-naming";
+import { getProjectHandoff, projectEvidenceStatus, type ProjectStageEvidence } from "@/domain/project-handoff";
 import type { ProjectScope } from "@/domain/projects";
-import { accountRequest, AccountRequestError } from "./account-api";
+import { AccountRequestError } from "./account-api";
+import { boundedAccountRequest } from "./bounded-account-request";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "./account-session";
 import { accountDraftChanged } from "./account-draft-memory";
 import { accountProjectDraft } from "./project-draft-adapter";
 import { ProjectArtwork } from "@/components/ui/project-artwork";
 
 type Stage = "strategy" | "naming" | "identity" | "files";
-type IdentityEvidence = { ownerId: string; projectId: string; projectRevision: number; approved: boolean };
-const IdentityEvidenceContext = createContext<((value: IdentityEvidence) => void) | null>(null);
-export function useProjectIdentityEvidence(value: IdentityEvidence | null) {
-  const report = useContext(IdentityEvidenceContext);
-  const ownerId = value?.ownerId, projectId = value?.projectId, projectRevision = value?.projectRevision, approved = value?.approved;
+type EvidenceReporter = (value: ProjectStageEvidence) => void;
+const IdentityEvidenceContext = createContext<EvidenceReporter | null>(null);
+const LogoEvidenceContext = createContext<EvidenceReporter | null>(null);
+function useProjectEvidence(value: ProjectStageEvidence | null, report: EvidenceReporter | null) {
+  const ownerId = value?.ownerId, projectId = value?.projectId, projectRevision = value?.projectRevision, approved = value?.approved, needsReview = value?.needsReview;
   useEffect(() => {
     if (!ownerId || !projectId || !projectRevision) return;
-    report?.({ ownerId, projectId, projectRevision, approved: Boolean(approved) });
-    return () => report?.({ ownerId, projectId, projectRevision, approved: false });
-  }, [report, ownerId, projectId, projectRevision, approved]);
+    report?.({ ownerId, projectId, projectRevision, approved: Boolean(approved), needsReview: Boolean(needsReview) });
+    // Leaving a verified surface cannot keep asserting approval. Known stale
+    // work stays visible until a later verified snapshot clears that evidence.
+    return () => report?.({ ownerId, projectId, projectRevision, approved: false, needsReview: Boolean(needsReview) });
+  }, [report, ownerId, projectId, projectRevision, approved, needsReview]);
+}
+export function useProjectIdentityEvidence(value: ProjectStageEvidence | null) {
+  useProjectEvidence(value, useContext(IdentityEvidenceContext));
+}
+export function useProjectLogoEvidence(value: ProjectStageEvidence | null) {
+  useProjectEvidence(value, useContext(LogoEvidenceContext));
 }
 export function ProjectStageNavigation({ base, stage, scope, strategyReady, nameSelected, identityReady = false, namingReady = strategyReady, dirty = false }: {
   base: string; stage: Stage; scope: ProjectScope; strategyReady: boolean; nameSelected: boolean; identityReady?: boolean; namingReady?: boolean; dirty?: boolean;
@@ -32,12 +42,13 @@ export function ProjectStageNavigation({ base, stage, scope, strategyReady, name
     { key: "strategy", label: "Strategy", href: base, approved: strategyReady, locked: false },
     { key: "naming", label: "Naming", href: `${base}/naming`, approved: nameSelected, locked: dirty || scope === "visual_identity_only" || !namingReady },
     // References can be explored before approval; the saved generation gates still apply.
-    { key: "identity", label: "Identity", href: `${base}/identity`, approved: identityReady, locked: dirty || scope === "naming_only" },
+    { key: "identity", label: "Identity", href: `${base}/inspiration`, approved: identityReady, locked: dirty || scope === "naming_only" },
     { key: "files", label: "Files", href: `${base}/logo/deliverables`, approved: false, locked: dirty || scope === "naming_only" },
   ];
+  const decisions = Number(strategyReady) + Number(nameSelected) + Number(identityReady);
   return <nav className="project-stage-navigation" aria-label="Project stages">{stages.map(item => item.locked
     ? <button key={item.key} type="button" disabled title={dirty ? "Save or resolve your project edits first" : item.key === "naming" ? "Complete Strategy review first" : "Expand the project scope first"}><ProjectArtwork name="lock" />{item.label}</button>
-    : <Link key={item.key} href={item.href} aria-current={stage === item.key ? "page" : undefined}>{item.approved && <ProjectArtwork name="check" />}{item.label}</Link>)}<span className="project-stage-progress">{Number(strategyReady) + Number(nameSelected) + Number(identityReady)} verified approvals<span className="sr-only">. Identity approval is checked in its saved workspace.</span></span></nav>;
+    : <Link key={item.key} href={item.href} aria-current={stage === item.key ? "page" : undefined}>{item.approved && <ProjectArtwork name="check" />}{item.label}</Link>)}<span className="project-stage-progress">{decisions} saved {decisions === 1 ? "decision" : "decisions"}<span className="sr-only">. A saved name is a project choice. Identity approval is checked in its saved workspace.</span></span></nav>;
 }
 
 export function AccountProjectWorkspaceShell({ projectId, children }: { projectId: string; children: ReactNode }) {
@@ -54,40 +65,58 @@ function OwnedProjectShell({ projectId, account, children }: { projectId: string
   const workspace = useSyncExternalStore(drafts.subscribe, () => drafts.get(projectId), empty);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
-  const [identityEvidence, setIdentityEvidence] = useState<IdentityEvidence | null>(null);
-  const reportIdentity = useCallback((value: IdentityEvidence) => {
+  const [identityEvidence, setIdentityEvidence] = useState<ProjectStageEvidence | null>(null);
+  const [logoEvidence, setLogoEvidence] = useState<ProjectStageEvidence | null>(null);
+  const reportIdentity = useCallback((value: ProjectStageEvidence) => {
     if (!isCurrent(account) || value.ownerId !== account.userId || value.projectId !== projectId) return;
-    setIdentityEvidence(previous => previous?.projectRevision === value.projectRevision && previous.approved === value.approved ? previous : value);
+    setIdentityEvidence(previous => sameEvidence(previous, value) ? previous : value);
+  }, [account, projectId, isCurrent]);
+  const reportLogo = useCallback((value: ProjectStageEvidence) => {
+    if (!isCurrent(account) || value.ownerId !== account.userId || value.projectId !== projectId) return;
+    setLogoEvidence(previous => sameEvidence(previous, value) ? previous : value);
   }, [account, projectId, isCurrent]);
   useEffect(() => {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(new Error("timeout")), 15000);
-    void accountRequest(`/api/projects/${projectId}`, accountProjectResponseSchema, { signal: controller.signal }).then(({ project }) => {
+    void boundedAccountRequest(`/api/projects/${projectId}`, accountProjectResponseSchema, { signal: controller.signal }).then(({ project }) => {
       if (controller.signal.aborted || !isCurrent(account)) return;
       if (project.owner_id !== account.userId || project.id !== projectId) { expire(account); return; }
       const previous = drafts.get(projectId);
-      if (!previous || previous.ownerId !== account.userId || previous.generation !== account.generation || !accountDraftChanged(previous) && project.current_revision > previous.saved.current_revision) {
+      if (!previous || previous.ownerId !== account.userId || previous.generation !== account.generation) {
         drafts.set({ ownerId: account.userId, generation: account.generation, saved: project, draft: accountProjectDraft(project), conflict: false });
+      } else if (project.current_revision > previous.saved.current_revision) {
+        if (accountDraftChanged(previous) || previous.conflict) drafts.set({ ...previous, conflict: true });
+        else drafts.set({ ownerId: account.userId, generation: account.generation, saved: project, draft: accountProjectDraft(project), conflict: false });
       }
       setError(null);
     }).catch(error => {
-      if (!isCurrent(account) || controller.signal.aborted && controller.signal.reason?.message !== "timeout") return;
+      if (!isCurrent(account) || controller.signal.aborted) return;
       if (error instanceof AccountRequestError && error.status === 401) expire(account);
       else setError("The saved project could not be verified. Your existing work is kept.");
-    }).finally(() => clearTimeout(timer));
-    return () => { clearTimeout(timer); controller.abort(); };
+    });
+    return () => controller.abort();
   }, [account, projectId, pathname, attempt, drafts, isCurrent, expire]);
   if (!isCurrent(account)) return null;
   const current = workspace?.ownerId === account.userId && workspace.generation === account.generation && workspace.saved.id === projectId ? workspace : null;
-  const stage = pathname.endsWith("/deliverables") ? "files" : pathname.endsWith("/naming") ? "naming" : /\/identity|\/logo/.test(pathname) ? "identity" : "strategy";
+  const inspiration = pathname.endsWith("/inspiration");
+  const stage = pathname.endsWith("/deliverables") ? "files" : pathname.endsWith("/naming") ? "naming" : /\/identity|\/logo|\/inspiration/.test(pathname) ? "identity" : "strategy";
   const project = current?.saved;
   const dirty = Boolean(current && (accountDraftChanged(current) || current.conflict));
-  return <IdentityEvidenceContext.Provider value={reportIdentity}><section className={`project-workspace project-stage-${stage}`}>
+  const handoff = project && getProjectHandoff(project);
+  const identityStatus = projectEvidenceStatus(identityEvidence, project?.current_revision);
+  const logoStatus = projectEvidenceStatus(logoEvidence, project?.current_revision);
+  return <IdentityEvidenceContext.Provider value={reportIdentity}><LogoEvidenceContext.Provider value={reportLogo}><section className={`project-workspace project-stage-${stage}`}>
     <header className="project-workspace-header"><div><Link href="/brands">Projects</Link><ProjectArtwork name="chevron" /><span className="project-workspace-title">{project?.title ?? "Project"}</span></div><span className="project-workspace-save">{project && !dirty && <ProjectArtwork name="check" />}{dirty ? "Unsaved project edits" : project ? `Saved project · v${project.current_revision}` : "Checking project…"}</span></header>
-    <ProjectStageNavigation base={`/brands/account/${projectId}`} stage={stage} scope={project?.scope ?? "complete_brand"} strategyReady={Boolean(project && getNamingReadiness(project.context, "complete_brand").ready)} namingReady={Boolean(project && getNamingReadiness(project.context, project.scope).ready)} nameSelected={Boolean(project?.context.selectedName)} identityReady={Boolean(identityEvidence?.approved && identityEvidence.projectRevision === project?.current_revision)} dirty={dirty || !project} />
+    {!inspiration && stage !== "strategy" && <ProjectStageNavigation base={`/brands/account/${projectId}`} stage={stage} scope={project?.scope ?? "complete_brand"} strategyReady={Boolean(handoff?.strategyReady)} namingReady={Boolean(project && getNamingReadiness(project.context, project.scope).ready)} nameSelected={Boolean(project?.context.selectedName)} identityReady={!dirty && !error && identityStatus === "approved"} dirty={dirty || !project} />}
     {error && <div className="project-read-notice" role="alert">{error}<button type="button" className="text-link" onClick={() => setAttempt(value => value + 1)}>Check saved project</button></div>}
+    {current?.conflict && <div className="project-read-notice" role="alert">A newer project version is saved. Your edits are kept in this tab. <Link className="text-link" href={`/brands/account/${projectId}`}>Resolve in Strategy</Link></div>}
+    {!inspiration && handoff?.savedName && !handoff.strategyReady && project?.scope === "complete_brand" && <div className="project-read-notice" role="status">Strategy needs review. Your saved name, {handoff.savedName}, is kept for review against the updated context. <Link className="text-link" href={handoff.next.href}>Continue Strategy review</Link></div>}
+    {([['Logo', logoStatus, `/brands/account/${projectId}/logo`], ['Identity', identityStatus, `/brands/account/${projectId}/logo/directions`]] as const).map(([label, status, href]) => status === "needs_review" || status === "recheck" ? <div className="project-read-notice" role="status" key={label}>{status === "needs_review" ? `${label} needs review. Earlier work is kept.` : `Check ${label} against the current project version. Earlier work is kept.`} <Link className="text-link" href={href}>Review {label}</Link></div> : null)}
     <div className="project-workspace-content">{children}</div>
-  </section></IdentityEvidenceContext.Provider>;
+  </section></LogoEvidenceContext.Provider></IdentityEvidenceContext.Provider>;
+}
+
+function sameEvidence(previous: ProjectStageEvidence | null, value: ProjectStageEvidence) {
+  return previous?.projectRevision === value.projectRevision && previous.approved === value.approved && Boolean(previous.needsReview) === Boolean(value.needsReview);
 }
 
 /** Collapsing retains mounted editors and their pending/recovery state. */

@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AccountSessionProvider, useAccountSession } from "../../src/components/workspace/account-session";
 import { LogoCreationWorkspace } from "../../src/components/logo-creation/logo-creation-workspace";
 import { syntheticRefinementWorkspaceHttp } from "../fixtures/logo-refinement-workspace-http";
-import { logoFixtureId as id } from "../fixtures/logo-creation";
+import { logoFixtureId as id, syntheticLogoReferences, syntheticResolvedLogoConcept } from "../fixtures/logo-creation";
 import type { LogoDraftMemory } from "../../src/components/identity/logo-draft-memory";
 
 let root: Root | null = null, host: HTMLDivElement, memory: LogoDraftMemory | null = null;
@@ -25,11 +25,11 @@ async function until(check: () => void) { let error: unknown; for (let i = 0; i 
 const button = (label: string) => [...host.querySelectorAll("button")].find(node => node.textContent === label);
 const selection = () => host.querySelector<HTMLButtonElement>(`button[aria-label="Select image refinement ${id(503)}"]`);
 async function click(label: string) { await until(() => expect(button(label)?.disabled).toBe(false)); await act(async () => button(label)!.click()); }
-async function mount(f: Awaited<ReturnType<typeof syntheticRefinementWorkspaceHttp>>, fetcher: typeof fetch = f.fetcher) {
+async function mount(f: Awaited<ReturnType<typeof syntheticRefinementWorkspaceHttp>>, fetcher: typeof fetch = f.fetcher, mode: "setup" | "refine" = "setup") {
   vi.stubGlobal("fetch", fetcher);
   function Harness() {
     const account = useAccountSession(); useLayoutEffect(() => { memory = account.logoDrafts; });
-    return createElement("main", null, createElement("p", null, "Synthetic fixture. No live provider, storage or charges."), createElement("button", { onClick: account.refresh }, "Recheck account"), createElement(LogoCreationWorkspace, { projectId: f.workspace.projectId }));
+    return createElement("main", null, createElement("p", null, "Synthetic fixture. No live provider, storage or charges."), createElement("button", { onClick: account.refresh }, "Recheck account"), createElement(LogoCreationWorkspace, { projectId: f.workspace.projectId, mode }));
   }
   root = createRoot(host); await act(async () => root!.render(createElement(AccountSessionProvider, null, createElement(Harness))));
   await until(() => expect(host.querySelector<HTMLInputElement>('input[aria-label="Brand name"]')?.value).toBe("Élan & Co"));
@@ -40,6 +40,79 @@ async function fillInstruction() {
 }
 
 describe("refinement history through actual workspace, account client and memory", () => {
+  it("explains an over-limit historical refinement before quoting and keeps all saved references", async () => {
+    const f = await syntheticRefinementWorkspaceHttp(true), source = structuredClone(syntheticResolvedLogoConcept()), sample = syntheticLogoReferences()[0]!;
+    source.referenceSnapshot.references = Array.from({ length: 4 }, (_, index) => ({ referenceId: id(700 + index), sourceKind: sample.sourceKind,
+      rightsEvidenceId: sample.rightsEvidenceId, aspects: sample.aspects, asset: { ...sample.asset, assetId: id(720 + index), versionId: id(740 + index) } }));
+    const before = structuredClone(source.referenceSnapshot);
+    const fetcher: typeof fetch = (path, init) => String(path).endsWith(`/reference-snapshots/${source.referenceSnapshot.id}`)
+      ? Promise.resolve(Response.json(source.referenceSnapshot)) : f.fetcher(path, init);
+    await mount(f, fetcher, "refine"); await fillInstruction(); await click("Review revision cost");
+    await until(() => expect(host.textContent).toContain("Refinement allows at most 3 references plus the original logo image"));
+    expect(host.querySelector('[aria-label="Reference image limits"]')?.textContent).toContain("4 selected reference images");
+    expect(memory?.get(f.workspace.projectId)?.references).toHaveLength(4);
+    expect(source.referenceSnapshot).toEqual(before); expect(f.quotes).toEqual([]); expect(f.admissions).toEqual([]); expect(f.selections).toEqual([]);
+    expect(host.querySelector('img[alt="Inspected logo candidate"]')).not.toBeNull();
+  });
+  it("compares a refinement with its exact original without changing selection or making a quote", async () => {
+    const f = await syntheticRefinementWorkspaceHttp(true); await mount(f);
+    await click("Compare with source");
+    const comparison = () => host.querySelector('[aria-label="Compare saved logos"]');
+    await until(() => expect(comparison()?.querySelectorAll("img")).toHaveLength(2));
+    expect(comparison()?.querySelectorAll('img')[0]?.getAttribute("src")).not.toBe(comparison()?.querySelectorAll('img')[1]?.getAttribute("src"));
+    expect(f.selections).toEqual([]); expect(f.quotes).toEqual([]); expect(f.admissions).toEqual([]);
+    expect(memory?.get(f.workspace.projectId)?.workspace?.approvedLogo).toBeNull();
+    expect(host.querySelector<HTMLButtonElement>('[aria-label="Compare concept 2"]')?.disabled).toBe(true);
+    await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Use comparison version 2"]')!.click());
+    await until(() => expect(selection()?.getAttribute("aria-pressed")).toBe("true"));
+    expect(f.selections).toHaveLength(1); expect(f.selections[0]?.source).toEqual({ kind: "refinement", rasterRevisionId: id(503) });
+    expect(f.quotes).toEqual([]); expect(f.admissions).toEqual([]); expect(JSON.stringify(f.batch)).toBe(f.originalBatch);
+    await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Remove comparison version 1"]')!.click());
+    expect(host.querySelector<HTMLButtonElement>('[aria-label="Compare concept 2"]')?.disabled).toBe(false);
+  });
+
+  it("opens the selected concept from an older batch while the newest exploration remains visible", async () => {
+    const f = await syntheticRefinementWorkspaceHttp(true), recent = structuredClone(f.batch);
+    recent.id = id(980); recent.requestKey = id(981); recent.createdAt = "2026-10-07T12:00:00Z";
+    const base = `/api/projects/${f.workspace.projectId}/logo`;
+    const fetcher: typeof fetch = async (path, init) => {
+      const target = new URL(String(path), "http://127.0.0.1").pathname;
+      if (target === `${base}/batches`) return Response.json({ ownerId: f.workspace.ownerId, projectId: f.workspace.projectId, items: [recent, f.batch].map(({ id, requestKey, createdAt }) => ({ id, requestKey, createdAt })), nextCursor: null });
+      if (target === `${base}/batches/${recent.id}`) return Response.json(recent);
+      return f.fetcher(path, init);
+    };
+    await mount(f, fetcher, "refine");
+    await until(() => expect(host.querySelector('img[alt="Inspected logo candidate"]')).not.toBeNull());
+    expect([...host.querySelectorAll("select")].find(node => node.value === recent.id)).toBeDefined();
+    await fillInstruction(); await click("Review revision cost");
+    await until(() => expect(f.quotes).toHaveLength(1));
+    expect(f.quotes[0]).toMatchObject({ operation: "refine_preview", source: f.source, instruction: "Simplify the silhouette" });
+    expect(f.admissions).toEqual([]); expect(f.selections).toEqual([]);
+  });
+
+  it("keeps an unverifiable comparison unavailable with explicit read-only retry", async () => {
+    const f = await syntheticRefinementWorkspaceHttp(true); let rejectSource = false;
+    const fetcher: typeof fetch = async (path, init) => rejectSource && String(path).endsWith(`/batches/${f.batch.id}`)
+      ? Response.json({}, { status: 404 }) : f.fetcher(path, init);
+    await mount(f, fetcher); await until(() => expect(selection()?.disabled).toBe(false)); rejectSource = true;
+    await click("Compare with source");
+    await until(() => expect(button("Retry reading version 1")).toBeDefined());
+    expect(host.querySelector<HTMLButtonElement>('[aria-label="Use comparison version 1"]')?.disabled).toBe(true);
+    rejectSource = false; await click("Retry reading version 1");
+    await until(() => expect(host.querySelector<HTMLButtonElement>('[aria-label="Use comparison version 1"]')?.disabled).toBe(false));
+    expect(f.quotes).toEqual([]); expect(f.admissions).toEqual([]); expect(f.selections).toEqual([]);
+  });
+
+  it("removes comparison metadata and private image URLs when the verified account changes", async () => {
+    const f = await syntheticRefinementWorkspaceHttp(true); await mount(f); await click("Compare with source");
+    await until(() => expect(host.querySelectorAll('[aria-label="Compare saved logos"] img')).toHaveLength(2));
+    const urls = [...host.querySelectorAll<HTMLImageElement>('[aria-label="Compare saved logos"] img')].map(node => node.src);
+    f.owner = id(999); await click("Recheck account");
+    await until(() => expect(host.querySelector('[aria-label="Compare saved logos"]')).toBeNull());
+    for (const url of urls) expect(revokeUrl).toHaveBeenCalledWith(url);
+    expect(f.selections).toEqual([]); expect(f.quotes).toEqual([]); expect(f.admissions).toEqual([]);
+  });
+
   it("completed refinement survives cleared feature memory, exact selection and separate zero-image vector quote", async () => {
     const f = await syntheticRefinementWorkspaceHttp(); await mount(f); await fillInstruction(); await click("Refine selected");
     await until(() => expect(host.querySelector("dialog")?.textContent).toContain("Refine this concept"));

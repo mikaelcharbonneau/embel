@@ -9,7 +9,7 @@ async function openOverlay(page: Page) {
   if (!(await menu.evaluate(element => (element as HTMLDetailsElement).open))) await menu.locator("summary").click();
   const trigger = menu.getByRole("link", { name: "Sign in", exact: true });
   await trigger.click();
-  const dialog = page.getByRole("dialog", { name: "Sign in to Fluid", exact: true });
+  const dialog = page.getByRole("dialog", { name: "Sign in to Embel", exact: true });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Close sign-in" })).toBeFocused();
   return { dialog, trigger };
@@ -23,7 +23,7 @@ test("auth overlay: keyboard, history and backdrop preserve the underlying works
   await expect(page.locator(".app-shell")).toHaveClass(/concept-settings/);
   await expect(page.getByRole("tab", { name: "Notifications", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(dialog.getByLabel("Password", { exact: true })).toHaveAttribute("autocomplete", "current-password");
-  await expect(dialog.getByText("Account creation is not available in this workspace.")).toBeVisible();
+  await expect(dialog.getByRole("link", { name: "Create account", exact: true })).toHaveAttribute("href", "/sign-up");
   for (let i = 0; i < 7; i++) {
     await page.keyboard.press("Tab");
     expect(await dialog.evaluate(element => element.contains(document.activeElement))).toBe(true);
@@ -42,18 +42,19 @@ test("auth overlay: keyboard, history and backdrop preserve the underlying works
 });
 
 test("auth overlay: continuation clears the slot; direct visits and reloads use the standalone card", async ({ page }, testInfo) => {
+  if (testInfo.project.name === "desktop") await page.setViewportSize({ width: 1440, height: 900 });
   await signedOut(page);
   await page.goto("/settings");
   const { dialog } = await openOverlay(page);
-  await dialog.getByRole("link", { name: "Continue with browser drafts", exact: true }).click();
-  await expect(page).toHaveURL(/\/brands$/);
+  await dialog.getByRole("link", { name: "Return to Home", exact: true }).click();
+  await expect(page).toHaveURL(/\/$/);
   await expect(dialog).toHaveCount(0);
   await openOverlay(page);
   await page.reload();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.locator(".app-shell")).toHaveClass(/concept-sign-in/);
   const card = page.locator(".auth-card");
-  await expect(card.getByRole("heading", { name: "Sign in to Fluid" })).toBeVisible();
+  await expect(card.getByRole("heading", { name: "Sign in to Embel" })).toBeVisible();
   const box = await card.boundingBox();
   if (testInfo.project.name === "desktop") {
     expect(box?.width).toBe(460);

@@ -12,18 +12,18 @@ export async function runLocalRuntime(options: { logoStorage?: LogoConceptStorag
   const pool = process.env.FLUID_WORKER_DATABASE_URL ? new Pool({ ...localWorkerDatabaseConfiguration(process.env.FLUID_WORKER_DATABASE_URL),
     max: 3, connectionTimeoutMillis: 10_000, statement_timeout: 15_000, query_timeout: 15_000 }) : undefined;
   const controller = new AbortController(), stop = () => controller.abort();
-  const databaseUnavailable = () => { console.error("Fluid local database connection became unavailable."); stop(); };
+  const databaseUnavailable = () => { console.error("Embel local database connection became unavailable."); stop(); };
   pool?.on("error", databaseUnavailable);
   process.once("SIGINT", stop); process.once("SIGTERM", stop);
   let logo: LogoConceptStartup | undefined;
   try {
     logo = await startLogoConceptWorker({ configuration: await readProtectedLogoConceptConfiguration(process.cwd()), storage: options.logoStorage });
-    if (logo.status === "unavailable") console.warn("Fluid logo concepts unavailable:", logo.reason);
+    if (logo.status === "unavailable") console.warn("Embel logo concepts unavailable:", logo.reason);
     const runtime = createLocalChatGPTRuntime({ configuration, database: pool,
-      onReadinessFailure: failure => console.warn("Fluid worker readiness unavailable.", failure),
-      onSignInFailure: failure => console.warn("Fluid ChatGPT sign-in unavailable.", failure) });
+      onReadinessFailure: failure => console.warn("Embel worker readiness unavailable.", failure),
+      onSignInFailure: failure => console.warn("Embel ChatGPT sign-in unavailable.", failure) });
     await runLocalRuntimeHost({ runtime, logoRuntime: logo.status === "ready" ? logo.runtime : undefined, signal: controller.signal,
-      onListening: () => console.info("Fluid local worker listening on 127.0.0.1:3107. Live work requires an approved connection and database setup.") });
+      onListening: () => console.info("Embel local worker listening on 127.0.0.1:3107. Live work requires an approved connection and database setup.") });
   } finally {
     stop();
     try { await logo?.close(); }
@@ -37,4 +37,4 @@ export async function runLocalRuntime(options: { logoStorage?: LogoConceptStorag
   }
 }
 
-if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) runLocalRuntime().catch(() => { console.error("Fluid local worker could not start. Check its local configuration."); process.exitCode = 1; });
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) runLocalRuntime().catch(() => { console.error("Embel local worker could not start. Check its local configuration."); process.exitCode = 1; });

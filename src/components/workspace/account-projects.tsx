@@ -1,46 +1,75 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { accountProjectResponseSchema } from "@/domain/project-api";
 import { accountProjectPageSchema } from "@/domain/project-pages";
 import { mergeProjectPage, type ProjectListing } from "./account-project-page-state";
 import { Icon } from "@/components/ui/icon";
 import { accountErrorMessage, accountRequest, AccountRequestError } from "./account-api";
+import { StartReceiptRecoveryError, readReceipt, type StartReceipt } from "./account-project-start-recovery";
+import { finishLocalDraftRecovery, saveLocalDraftToAccount } from "./save-local-draft-to-account";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
-import { createAccountInput, draftValidationMessage } from "./project-draft-adapter";
 import { type LocalDraft } from "./local-drafts";
 
-export function AccountCopyControl({ draft }: { draft: LocalDraft }) {
+export function AccountCopyControl({ draft, onSaved }: { draft: LocalDraft; onSaved?: (projectId: string) => void }) {
   const { session, isCurrent, expire } = useAccountSession();
-  const [operation, setOperation] = useState<{ generation: number; busy: boolean; error?: string } | null>(null);
+  const ownerId = session.status === "ready" ? session.userId : null;
+  const identity = `${ownerId ?? "unverified"}:${session.generation}:${draft.id}`;
+  const [operation, setOperation] = useState<{ identity: string; busy: boolean; error?: string; receipt?: StartReceipt | null } | null>(null);
+  const [checkedRecovery, setCheckedRecovery] = useState<{ identity: string; receipt: StartReceipt | null; error?: string } | null>(null);
   const request = useRef<AbortController | null>(null);
   const router = useRouter();
-  useEffect(() => () => request.current?.abort(), [session.generation]);
-  const busy = operation?.generation === session.generation && operation.busy;
+  useEffect(() => () => { request.current?.abort(); request.current = null; }, [identity]);
+  useEffect(() => {
+    if (!ownerId) return;
+    let receipt: StartReceipt | null = null, error: string | undefined;
+    try { receipt = readReceipt(ownerId, draft.id); }
+    catch (cause) { error = cause instanceof StartReceiptRecoveryError ? cause.message : "Saved recovery records could not be verified. Check account projects before saving another copy."; }
+    // Recover IDs only after a verified owner is available; this sends no request.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCheckedRecovery({ identity, receipt, error });
+  }, [draft.id, identity, ownerId]);
+  const currentOperation = operation?.identity === identity ? operation : null;
+  const recovery = checkedRecovery?.identity === identity ? checkedRecovery : null;
+  const receipt = currentOperation?.receipt === undefined ? recovery?.receipt : currentOperation.receipt;
+  const busy = Boolean(currentOperation?.busy);
+  const uncertain = Boolean(receipt && !receipt.projectId);
+  const unrecoverable = uncertain && !receipt?.request;
+  const error = currentOperation?.error ?? recovery?.error;
 
   async function copy() {
-    if (session.status !== "ready" || !isCurrent(session) || busy) return;
-    let input;
-    try { input = createAccountInput(draft); }
-    catch { setOperation({ generation: session.generation, busy: false, error: draftValidationMessage(draft) }); return; }
+    if (session.status !== "ready" || !isCurrent(session) || request.current || !recovery || recovery.error || unrecoverable) return;
+    const account = session;
     const controller = new AbortController();
-    request.current?.abort();
     request.current = controller;
-    setOperation({ generation: session.generation, busy: true });
+    setOperation({ identity, busy: true, receipt });
+    const current = () => !controller.signal.aborted && request.current === controller && isCurrent(account);
+    let retained: StartReceipt | null = null;
     try {
-      const { project } = await accountRequest("/api/projects", accountProjectResponseSchema, { method: "POST", body: input, signal: controller.signal });
-      if (controller.signal.aborted || !isCurrent(session)) return;
-      if (project.owner_id !== session.userId) { expire(session); return; }
-      router.push(`/brands/account/${project.id}`);
-    } catch (error) {
-      if (controller.signal.aborted || !isCurrent(session)) return;
-      if (error instanceof AccountRequestError && error.status === 401) expire(session);
-      else setOperation({ generation: session.generation, busy: false, error: accountErrorMessage(error) });
+      const saved = await saveLocalDraftToAccount({ account, draft, signal: controller.signal, isCurrent, expire, onReceipt: value => {
+        retained = value;
+        if (current()) setOperation({ identity, busy: true, receipt: value });
+      } });
+      if (!saved || !current() || !saved.receipt.projectId) return;
+      setOperation({ identity, busy: false, receipt: saved.receipt });
+      if (onSaved) onSaved(saved.receipt.projectId);
+      else router.push(`/brands/account/${saved.receipt.projectId}`);
+      finishLocalDraftRecovery(draft.id, account.userId, saved.receipt.projectId);
+    } catch (cause) {
+      if (!current()) return;
+      if (cause instanceof AccountRequestError && cause.status === 401) expire(account);
+      else setOperation({ identity, busy: false, receipt: retained, error: retained ? "The save is not confirmed. Your original project is kept; retry to check the same request." : cause instanceof StartReceiptRecoveryError ? cause.message : accountErrorMessage(cause) });
+    } finally {
+      if (request.current === controller) {
+        request.current = null;
+        if (!controller.signal.aborted && isCurrent(account)) setOperation(previous => previous?.identity === identity ? { ...previous, busy: false } : previous);
+      }
     }
   }
 
-  return <div className="account-copy-control"><div><strong>Keep a copy in your account</strong><p>{session.status === "ready" ? "Your browser draft stays here when you save an account copy." : session.status === "checking" ? "Checking your account…" : "Account saving is unavailable until a verified session is connected."}</p>{operation?.generation === session.generation && operation.error && <p className="form-error" role="alert">{operation.error}</p>}</div><button className="button secondary small" type="button" disabled={session.status !== "ready" || busy} onClick={() => void copy()}>{busy ? "Saving copy…" : "Save to account"}<Icon name="arrow" size={15} /></button></div>;
+  if (draft.ownerId && draft.ownerId !== ownerId) return null;
+  return <div className="account-copy-control"><div><strong>{receipt?.projectId ? "Project recovered" : "Save this project"}</strong><p>{session.status === "ready" ? receipt?.projectId ? "This project is saved in your account." : uncertain ? "The earlier account save is not confirmed. Your original project is kept." : "Save this project to your signed-in account. This does not start AI." : session.status === "checking" ? "Checking your account…" : "Sign in to save your project."}</p>{error && <p className="form-error" role="alert">{error}</p>}{(unrecoverable || recovery?.error) && <Link className="text-link" href="/brands">Check account projects</Link>}</div><button className="button secondary small" type="button" disabled={session.status !== "ready" || busy || !recovery || Boolean(recovery.error) || unrecoverable} onClick={() => void copy()}>{busy ? "Saving…" : receipt?.projectId ? "Open saved project" : uncertain ? "Check and retry save" : "Save project"}<Icon name="arrow" size={15} /></button></div>;
 }
 
 /** Callers must key their mounted library by owner and generation, hiding old rows immediately. */

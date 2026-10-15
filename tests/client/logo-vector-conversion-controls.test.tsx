@@ -69,6 +69,7 @@ async function mount() {
   const captured = context(), base = syntheticLogoWorkspace();
   const approval = { id: id(170), ownerId: base.ownerId, projectId: base.projectId, vectorRevisionId: id(171), stageRevisionId: id(172), approvedAt: "2026-10-07T00:00:00Z" };
   let current: LogoVectorReviewContext | null = captured, available = true, blocked = false, quoteStatus = 200;
+  let quoteGate: Promise<void> | null = null;
   let workspace = { ...base, approvedLogo: approval }, pending: LogoGenerationIntent | null = null;
   let requestState: LogoRequestState = { status: "not_found" };
   const quotes: LogoQuoteRequest[] = [], admissions: LogoGenerationIntent[] = [], paths: string[] = [];
@@ -77,6 +78,7 @@ async function mount() {
     const path = String(url); paths.push(path);
     if (path.endsWith("/quotes")) {
       const request = JSON.parse(String(init?.body)) as LogoQuoteRequest; quotes.push(request);
+      if (quoteGate) await quoteGate;
       return Response.json({ ...syntheticLogoQuote(), id: id(150 + quotes.length), request, expected: request.expected, conceptPlan: null, targetSlotIds: [],
         provider: null, model: null, engine: { id: "synthetic-vector", version: "1.0", artifactHash: "a".repeat(64), settingsHash: "b".repeat(64) },
         externalProviderCostMicrousd: 0, estimatedCostMicrousd: 0, maxCostMicrousd: 0, expiresAt: new Date(Date.now() + 60_000).toISOString() }, { status: quoteStatus });
@@ -111,10 +113,26 @@ async function mount() {
     setCurrent(value: LogoVectorReviewContext | null) { current = value; }, setAvailable(value: boolean) { available = value; },
     setBlocked(value: boolean) { blocked = value; }, setQuoteStatus(value: number) { quoteStatus = value; },
     setRequestState(value: LogoRequestState) { requestState = value; },
+    holdQuote() { let release!: () => void; quoteGate = new Promise<void>(resolve => { release = resolve; }); return release; },
     changeHeads() { workspace = { ...workspace, heads: { ...workspace.heads, workspaceRevision: 1 } }; },
   };
 }
 describe("vector settings controls", () => {
+  it("returns keyboard focus to the review trigger after an asynchronous quote blurred it", async () => {
+    const f = await mount(), release = f.holdQuote(), trigger = f.button("Review conversion");
+    trigger.focus();
+    await act(async () => trigger.click());
+    expect(trigger.disabled).toBe(true); expect(f.controller.getSnapshot().phase).toBe("quoting");
+    // JSDOM neither blurs a disabled button nor implements its native blur().
+    // Move focus away while the quote is pending to reproduce the lost target.
+    const focusSink = document.createElement("button"); document.body.append(focusSink); focusSink.focus();
+    expect(document.activeElement).not.toBe(trigger);
+    await act(async () => { release(); });
+    expect(f.container.querySelector("dialog")?.open).toBe(true);
+    await act(async () => f.button("Cancel").click());
+    expect(document.activeElement).toBe(trigger); expect(trigger.disabled).toBe(false);
+    expect(f.admissions).toEqual([]); expect(f.pending).toBeNull();
+  });
   it("exposes supported controls and never requests conversion on mount or edit", async () => {
     const f = await mount();
     expect(f.paths).toEqual([]); expect(f.container.textContent).toContain("small details");

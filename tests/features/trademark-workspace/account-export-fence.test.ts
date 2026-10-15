@@ -118,7 +118,7 @@ describe("Trademark account export invocation fencing (real callback; synthetic 
     expect(createUrl).toHaveBeenCalledExactlyOnceWith(blob);
     expect(createElementSpy).toHaveBeenCalledExactlyOnceWith("a");
     expect(anchor.href).toBe("blob:trademark-fixture");
-    expect(anchor.download).toBe("fluid-trademark-draft-preview.json");
+    expect(anchor.download).toBe("embel-trademark-draft-preview.json");
     expect(appendChild).toHaveBeenCalledExactlyOnceWith(anchor);
     expect(anchor.click).toHaveBeenCalledOnce();
     expect(anchor.remove).toHaveBeenCalledOnce();

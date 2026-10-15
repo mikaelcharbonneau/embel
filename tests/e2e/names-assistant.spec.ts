@@ -3,6 +3,7 @@ import { accountProjectSchema, type AccountProject } from "../../src/domain/proj
 import { projectNamingOverviewSchema } from "../../src/domain/naming-jobs";
 import { createEmptyNamesWorkspace, namesWorkspaceSchema } from "../../src/components/naming/local-names";
 import { contextSnapshotSchema } from "../../src/domain/projects";
+import type { AccountNamesWorkspace } from "../../src/domain/names-workspace";
 import { getNamingReadiness } from "../../src/domain/project-naming";
 
 // Entirely intercepted synthetic account/project data; no provider or live database requests.
@@ -11,6 +12,7 @@ const id = (n: number) => `bbbbbbbb-1111-4111-8111-${String(n).padStart(12, "0")
 const project = (n: number, ownerId = owner, scope: AccountProject["scope"] = "naming_only") => accountProjectSchema.parse({ id: id(n), owner_id: ownerId, scope, title: `Synthetic project ${n}`, current_revision: 1, created_at: "2026-10-05T12:00:00.000002Z", context: { description: `Synthetic naming brief ${n}.` } });
 
 async function fixture(page: Page) {
+  const workspaces = new Map<string, AccountNamesWorkspace>();
   const state = { owner: owner as string | null, projects: [project(3), project(2, owner, "complete_brand"), project(1, owner, "visual_identity_only")], status: 200, next: false, requests: [] as { path: string; method: string }[], delay: null as null | { started: boolean; promise: Promise<void>; release: () => void } };
   await page.route("**/api/**", async route => {
     const url = new URL(route.request().url()), path = url.pathname;
@@ -18,6 +20,14 @@ async function fixture(page: Page) {
     const reply = async (data: unknown, status = 200) => route.fulfill({ contentType: "application/json", status, body: JSON.stringify(data) }).catch(() => undefined);
     if (path === "/api/session") return reply(state.owner ? { user: { id: state.owner } } : {}, state.owner ? 200 : 401);
     if (!state.owner) return reply({}, 401);
+    if (path === "/api/names/ai") return reply({ ownerId: state.owner, availability: { status: "unavailable", reason: "local_runtime_required" }, jobs: [], hasMore: false });
+    if (path === "/api/names/workspace") {
+      if (route.request().method() === "PUT") {
+        const body = route.request().postDataJSON();
+        workspaces.set(state.owner, { id: id(99), ownerId: state.owner, revision: body.expectedRevision + 1, payload: namesWorkspaceSchema.parse(body.payload), createdAt: "2026-10-15T12:00:00Z", updatedAt: "2026-10-15T12:00:00Z" });
+      }
+      return reply({ ownerId: state.owner, workspace: workspaces.get(state.owner) ?? null });
+    }
     if (path === "/api/projects/page") {
       if (state.status !== 200) return reply({}, state.status);
       const rows = url.searchParams.has("cursorId") ? [project(0, state.owner)] : state.projects;
@@ -32,8 +42,9 @@ async function fixture(page: Page) {
   });
   return state;
 }
-async function open(page: Page) { await page.goto("/names"); await page.getByRole("button", { name: "AI Assistant" }).click(); await expect(page.getByRole("heading", { name: "AI naming assistant" })).toBeVisible(); }
-const mutations = (state: Awaited<ReturnType<typeof fixture>>) => state.requests.filter(item => item.method !== "GET");
+async function bridge(page: Page) { await page.getByRole("button", { name: "AI Assistant", exact: true }).click(); await page.getByText("Continue with a saved project", { exact: true }).click(); await expect(page.getByRole("heading", { name: "AI naming assistant" })).toBeVisible(); }
+async function open(page: Page) { await page.goto("/names"); await bridge(page); }
+const mutations = (state: Awaited<ReturnType<typeof fixture>>) => state.requests.filter(item => item.method !== "GET" && item.path !== "/api/names/workspace");
 
 test("assistant bridge: choose projects, readiness and reload never enqueue", async ({ page }, info) => {
   const state = await fixture(page); await open(page);
@@ -57,17 +68,13 @@ test("assistant bridge: choose projects, readiness and reload never enqueue", as
   expect(mutations(state)).toEqual([]);
 });
 
-test("assistant bridge: signed-out state and scratch path preserve browser data", async ({ page }) => {
+test("assistant bridge: signed-out Names gates all normal tools", async ({ page }) => {
   const state = await fixture(page); state.owner = null;
-  await open(page);
-  await expect(page.getByText("No verified account session.", { exact: false })).toBeVisible();
+  await page.goto("/names");
+  await expect(page.getByText("Sign in to keep your names, workshop, and history together.", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Account project")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "AI Assistant", exact: true })).toHaveCount(0);
   expect(state.requests.filter(item => item.path === "/api/projects/page")).toEqual([]);
-  const before = await page.evaluate(() => JSON.stringify(localStorage));
-  await page.getByRole("link", { name: "Create naming brief" }).click();
-  await expect(page).toHaveURL(/\/brands\/new\?scope=naming_only$/);
-  await expect(page.getByRole("radio", { name: "Naming", exact: true })).toBeVisible();
-  expect(await page.evaluate(() => JSON.stringify(localStorage))).toBe(before);
   expect(mutations(state)).toEqual([]);
 });
 
@@ -79,6 +86,7 @@ test("assistant bridge: account switch clears selection and delayed private repl
   state.owner = other; state.projects = [project(8, other)];
   if (!await page.getByRole("button", { name: "Check account", exact: true }).isVisible()) await page.getByLabel("Account menu", { exact: true }).click();
   await page.getByRole("button", { name: "Check account", exact: true }).click();
+  await bridge(page);
   await expect(page.getByLabel("Account project").locator("option")).toHaveCount(2);
   state.delay.release();
   await expect(page.getByLabel("Account project").locator("option")).toHaveCount(2);
@@ -87,6 +95,7 @@ test("assistant bridge: account switch clears selection and delayed private repl
   state.owner = owner; state.projects = [project(3)];
   if (!await page.getByRole("button", { name: "Check account", exact: true }).isVisible()) await page.getByLabel("Account menu", { exact: true }).click();
   await page.getByRole("button", { name: "Check account", exact: true }).click();
+  await bridge(page);
   await expect(page.getByRole("link", { name: "Open project Naming" })).toHaveCount(0);
   await expect(page.getByLabel("Account project").locator("option").last()).toContainText("Synthetic project 3");
   expect(mutations(state)).toEqual([]);
@@ -109,7 +118,7 @@ test("assistant bridge: pagination retry and refresh preserve explicit choice", 
   expect(mutations(state)).toEqual([]);
 });
 
-test("assistant bridge: account library is explicit and browser comparison stays separate", async ({ page }) => {
+test("assistant bridge: one library keeps unowned browser backups separate from account content", async ({ page }) => {
   const state = await fixture(page);
   const browser = createEmptyNamesWorkspace();
   browser.candidates.push({ source: { id: id(9), value: "Synthetic browser name", origin: "manual", history: [], createdAt: "2026-10-05T12:00:00.000Z" }, context: contextSnapshotSchema.parse({ description: "Browser-only captured brief" }), runId: null, explanation: "Added manually", favorite: true, saved: true });
@@ -119,14 +128,11 @@ test("assistant bridge: account library is explicit and browser comparison stays
   await open(page);
   await expect(page.getByText("Synthetic browser name", { exact: true })).toHaveCount(0);
   await expect(page.getByLabel("Comparison tray")).toHaveCount(0);
-  await expect(page.getByText("Browser workspace ·", { exact: false })).toHaveCount(0);
-  await expect(page.getByText("Account naming", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Open account names library" }).click();
-  await expect(page.getByRole("button", { name: "Account library", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Open names library" }).click();
   await expect(page.getByRole("region", { name: "Account names library" })).toBeVisible();
-  await page.getByRole("button", { name: "Browser library", exact: true }).click();
-  await expect(page.getByLabel("Comparison tray")).toBeVisible();
-  await expect(page.getByText("Synthetic browser name", { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Account library", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Browser library", exact: true })).toHaveCount(0);
+  await expect(page.getByText("Synthetic browser name", { exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("fluid.names.v1")!).candidates)).toEqual(browser.candidates);
   expect(mutations(state)).toEqual([]);
 });

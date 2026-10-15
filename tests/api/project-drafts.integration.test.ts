@@ -15,8 +15,8 @@ const initialContext = contextSnapshotSchema.parse({
   description: "Local integration fixture, not model output.",
   intake: { suppliedName: "Fixture name", namingNotes: "Keep this note", identityNotes: "Keep this preference", step: "review", example: true },
 });
-const request = (body: unknown, method = "POST") => new Request("https://fluid.example/api/projects", {
-  method, headers: { origin: "https://fluid.example", "content-type": "application/json" }, body: JSON.stringify(body),
+const request = (body: unknown, method = "POST", expectedAccount: string | null = OWNER_A) => new Request("https://fluid.example/api/projects", {
+  method, headers: { origin: "https://fluid.example", "content-type": "application/json", ...(expectedAccount === null ? {} : { "X-Embel-Account": expectedAccount }) }, body: JSON.stringify(body),
 });
 const route = (projectId: string) => ({ params: Promise.resolve({ projectId }) });
 
@@ -51,6 +51,20 @@ describe("local route-to-PostgreSQL draft integration (no live services)", () =>
     } }));
   });
   afterEach(() => { vi.unstubAllEnvs(); vi.clearAllMocks(); });
+
+  it("does not persist a stale account's draft after cookies switch to another account", async () => {
+    const input = { title: "Captured account A draft", scope: "naming_only", context: initialContext };
+    actor = OWNER_B;
+    expect((await create(request(input))).status).toBe(401);
+    expect((await create(request(input, "POST", null))).status).toBe(401);
+    expect((await db.query("select * from public.projects")).rows).toEqual([]);
+    expect((await db.query("select * from public.project_revisions")).rows).toEqual([]);
+
+    const matched = await create(request({ ...input, title: "Explicit account B draft" }, "POST", OWNER_B));
+    expect(matched.status).toBe(201);
+    expect(accountProjectResponseSchema.parse(await matched.json()).project.owner_id).toBe(OWNER_B);
+    expect((await db.query("select owner_id from public.projects")).rows).toEqual([{ owner_id: OWNER_B }]);
+  });
 
   it("retains standalone name history in immutable account revisions and rejects fabricated transform output", async () => {
     const namingSource = namingSourceSchema.parse({

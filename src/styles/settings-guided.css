@@ -58,6 +58,13 @@
 .settings-guided .sg-confirm { padding: 16px 0; font-size: 13px; line-height: 20px; }
 .settings-guided .sg-confirm .sg-actions { margin-top: 12px; }
 .settings-guided .sg-notice { margin-block: 12px; }
+.settings-guided .sg-profile-note { margin-top: 12px; }
+.settings-guided .sg-field input:not(:disabled):not([readonly]), .settings-guided .sg-select-wrap select:not(:disabled) { color: var(--text); }
+.settings-guided .sg-field input[readonly] { background: var(--surface); }
+.settings-guided .sg-profile-feedback { padding: 14px 16px; border: 1px solid #e9c2c2; border-radius: 8px; font-size: 13px; line-height: 20px; }
+.settings-guided .sg-profile-conflict dl { display: grid; gap: 12px; margin: 0 0 16px; }
+.settings-guided .sg-profile-conflict dt { font-size: 12px; color: var(--secondary); }
+.settings-guided .sg-profile-conflict dd { margin: 4px 0 0; font-size: 14px; overflow-wrap: anywhere; }
 .settings-guided .sg-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
 .settings-guided .sg-summary .sg-action { margin-top: 16px; }
 .settings-guided .sg-metric { display: block; font-size: 24px; font-weight: 500; line-height: 32px; margin-bottom: 8px; }

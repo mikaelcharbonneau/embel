@@ -46,6 +46,8 @@ export const domainCheckSchema = z.object({
   id: reference, domain: canonicalDomain, provider: reference,
   availability: z.enum(["available", "taken", "unknown"]),
   checkedAt: timestamp, validUntil: timestamp, evidenceReference: reference,
+  sourceUrl: z.url().max(2048).refine(value => value.startsWith("https://")).optional(),
+  detail: z.string().max(500).optional(),
 }).strict().refine(value => Date.parse(value.validUntil) > Date.parse(value.checkedAt), "Check validity must follow check time");
 export type DomainCheck = z.infer<typeof domainCheckSchema>;
 export function availabilityAt(check: DomainCheck | null, now: number): "available" | "taken" | "unknown" {
@@ -124,13 +126,20 @@ export function orderLabel(order: DomainOrder): string {
   if (order.registration === "failed") return "Registration failed";
   return order.payment === "confirmed" ? "Payment confirmed · registration pending" : order.payment === "failed" ? "Payment failed · registration pending" : "Registration pending";
 }
-export const purchasedDomainSchema = z.object({ order: domainOrderSchema, project: z.object({ id: reference, title: reference }).strict().nullable() }).strict().refine(value => value.order.registration === "confirmed" && value.order.confirmation !== null, "Library contains only registrar-confirmed Fluid purchases");
+export const purchasedDomainSchema = z.object({ order: domainOrderSchema, project: z.object({ id: reference, title: reference }).strict().nullable() }).strict().refine(value => value.order.registration === "confirmed" && value.order.confirmation !== null, "Library contains only registrar-confirmed Embel purchases");
 export type PurchasedDomain = z.infer<typeof purchasedDomainSchema>;
 export type DomainLibrary = { status: "unavailable" | "loading" | "error"; message?: string } | { status: "ready"; items: unknown[] };
 export type DomainBrandSource = { type: "domain"; domain: string; check: DomainCheck | null; order: DomainOrder | null };
+/** Public, locally mapped provider failures only; raw provider text is never displayed. */
+export class DomainLookupError extends Error {
+  constructor(message: string, readonly retryAfterSeconds: number | null = null) { super(message); }
+}
 export type DomainSearchAdapter =
   | { status: "unavailable"; reason: string }
-  | { status: "ready"; provider: string; check(domain: string, signal: AbortSignal): Promise<unknown>; quote?: (domain: string, checkId: string, signal: AbortSignal) => Promise<unknown> };
+  | { status: "ready"; provider: string; description?: string;
+      /** The check already returned a matching price; reading it does not make another provider request. */
+      quotesWithCheck?: boolean;
+      check(domain: string, signal: AbortSignal): Promise<unknown>; quote?: (domain: string, checkId: string, signal: AbortSignal) => Promise<unknown> };
 export const unavailableDomainAdapter: DomainSearchAdapter = { status: "unavailable", reason: "No registrar is connected. Availability checks, quotes and purchases are unavailable." };
 export async function readDomainCheck(adapter: DomainSearchAdapter, domain: string, signal: AbortSignal): Promise<DomainCheck> {
   const exact = domainNameSchema.parse(domain);

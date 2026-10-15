@@ -49,7 +49,7 @@ describe("standalone bounded private browser client", () => {
   it("uses same-origin/no-store and validates exact revision/payload on save", async () => {
     const fetcher = vi.fn().mockResolvedValue(Response.json(response())); vi.stubGlobal("fetch", fetcher);
     expect(await saveStandaloneWorkspace(codec, account, input, signal())).toEqual(response());
-    expect(fetcher).toHaveBeenCalledWith("/api/workspaces/domains", expect.objectContaining({ method: "PUT", credentials: "same-origin", mode: "same-origin", cache: "no-store", body: JSON.stringify(input) }));
+    expect(fetcher).toHaveBeenCalledWith("/api/workspaces/domains", expect.objectContaining({ method: "PUT", credentials: "same-origin", mode: "same-origin", cache: "no-store", body: JSON.stringify(input), headers: expect.objectContaining({ "X-Embel-Account": owner }) }));
   });
   it("retains exact save body and request key for an uncertain commit retry", async () => {
     const bodies: string[] = []; let n = 0;
@@ -100,7 +100,7 @@ describe("standalone save conflict and uncertain-outcome classifications", () =>
     const result = await saveStandaloneWorkspace(codec, account, input, signal()).catch(error => error);
     expect(result).toMatchObject({ status, message: "The account request could not be completed." });
     expect(standaloneErrorMessage(result)).toBe(status === 409
-      ? "The saved draft or imported source changed. Your edits are retained; load the latest version after reviewing them."
+      ? "The saved workspace or imported source changed. Your edits are retained; choose which version to keep."
       : "Account workspaces are unavailable. Your draft is retained in this tab.");
   });
 });

@@ -73,6 +73,53 @@
 .project-strategy-workspace .conversation-composer textarea { min-height: 44px; font-size: 14px; line-height: 22px; }
 .project-strategy-workspace .conversation-composer-footer { min-height: 32px; margin-top: 10px; }
 .project-strategy-workspace .conversation-composer .composer-send-icon { width: 30px; height: 30px; min-height: 30px; padding: 7px; border-radius: 50%; }
+/* Assistant replies use the approved transcript, separate from editable review cards. */
+.account-strategy-transcript, .account-strategy-results { display: grid; gap: 24px; min-width: 0; }
+.account-strategy-transcript:empty { display: none; }
+.strategy-assistant-message { min-width: 0; }
+.strategy-assistant-heading { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+.strategy-assistant-heading > img { flex-shrink: 0; }
+.strategy-assistant-heading h2 { font-size: 13px; line-height: 20px; font-weight: 500; letter-spacing: 0; scroll-margin-block: 16px; }
+.strategy-response-state { margin-left: auto; color: var(--secondary); font-size: 12px; line-height: 18px; text-align: right; }
+.strategy-assistant-body { margin-top: 8px; }
+.strategy-response-copy { font-size: 15px; line-height: 24px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.strategy-proposal-details { margin-top: 12px; font-size: 13px; line-height: 20px; }
+.strategy-proposal-details > summary { width: fit-content; padding-block: 4px; color: var(--secondary); cursor: pointer; }
+.strategy-proposal-details > dl { display: grid; gap: 14px; margin: 12px 0 0; padding: 16px; border: 1px solid var(--border); border-radius: 8px; }
+.strategy-proposal-details dt { color: var(--secondary); font-size: 12px; }
+.strategy-proposal-details dd { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.strategy-response-questions { margin: 12px 0 0; padding-left: 20px; font-size: 15px; line-height: 24px; }
+.strategy-response-questions > li + li { margin-top: 6px; }
+.strategy-response-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 14px; }
+.strategy-response-actions .button { min-height: 36px; padding: 7px 14px; font-size: 13px; border-radius: 7px; }
+.strategy-response-actions .field-hint { margin: 0; font-size: 12px; }
+.strategy-response-saved { display: inline-flex; align-items: center; gap: 6px; color: var(--secondary); font-size: 12px; line-height: 20px; }
+.strategy-composer-notice { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; color: var(--secondary); font-size: 12px; line-height: 18px; }
+.strategy-composer-notice > p { flex: 1 1 420px; }
+.strategy-composer-notice > button { font-size: 12px; min-height: 28px; }
+.project-strategy-workspace .conversation-result-navigation { border: 0; font-size: 12px; line-height: 18px; padding: 0; }
+.project-strategy-workspace .conversation-result-navigation .text-link { font-size: 12px; min-height: 28px; text-decoration: none; }
+.project-strategy-workspace .account-edit-controls { margin: 8px 0 14px; }
+.project-strategy-workspace .account-actions { padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 12px; }
+.project-strategy-workspace .account-actions .button { min-height: 34px; padding: 6px 12px; font-size: 13px; }
+.project-strategy-workspace .project-details-disclosure { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); }
+.project-strategy-workspace .project-continuity { display: grid; gap: 12px; margin: 0; padding: 0; border: 0; border-radius: 0; font-size: 13px; line-height: 20px; }
+.project-continuity-details > summary { cursor: pointer; width: fit-content; padding-block: 4px; }
+.project-continuity-details > summary > span { margin-left: 12px; font-size: 12px; }
+.project-continuity-details dl { display: grid; gap: 14px; margin: 12px 0 0; }
+.project-continuity-details dt { font-size: 12px; }
+.project-continuity-details dd { margin: 4px 0 0; color: var(--text); overflow-wrap: anywhere; }
+.project-strategy-workspace .project-continuity h2 { margin: 0; font-size: 13px; line-height: 20px; font-weight: 500; color: var(--text); }
+.project-strategy-workspace .project-continuity ul { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+.project-strategy-workspace .project-continuity li { padding: 0; border: 0; }
+.project-strategy-workspace .project-continuity li .text-link { min-height: 36px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 7px; text-decoration: none; }
+.project-strategy-workspace .project-continuity .button { justify-self: start; font-size: 13px; }
+@media (max-width: 700px) {
+  .strategy-response-state { max-width: 55%; }
+  .strategy-composer-notice { gap: 0 10px; }
+  .strategy-composer-notice > p { flex-basis: 100%; }
+  .strategy-response-actions .button, .strategy-composer-notice > button, .project-strategy-workspace .project-continuity li .text-link { min-height: 44px; }
+}
 .project-live-brief { width: 344px; flex: 0 0 344px; padding: 20px; border-left: 1px solid var(--border); overflow: auto; }
 .project-live-brief > div { display: flex; justify-content: space-between; align-items: center; }
 .project-live-brief h2 { font-size: 16px; font-weight: 500; }
@@ -149,7 +196,7 @@
 .project-logo-creation [class*=conceptCard] { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 0 0 14px; overflow: hidden; }
 .project-logo-creation [class*=preview] { aspect-ratio: 16 / 9; background: #f1f0ee; }
 .project-logo-inspection { margin: 0 0 20px; }
-.project-logo-inspection-preview { min-height: 300px; height: min(42vw, 440px); background: #f1f0ee; border-radius: 10px; display: grid; place-items: center; padding: 24px; overflow: hidden; }
+.project-logo-creation .project-logo-inspection-preview { aspect-ratio: auto; width: 100%; min-width: 0; min-height: 300px; height: min(42vw, 440px); background: #f1f0ee; border-radius: 10px; display: grid; place-items: center; padding: 24px; overflow: hidden; }
 .project-logo-inspection-preview img { display: block; max-height: 100%; max-width: 100%; object-fit: contain; }
 .project-logo-inspection-preview p { font-size: 13px; color: var(--secondary); }
 .project-output-page { max-width: none; padding: 24px; margin: 0; }
@@ -200,7 +247,9 @@
   .project-dock, .project-live-brief { width: 100%; flex-basis: auto; border-left: 0; border-top: 1px solid var(--border); }
   .project-dock.is-collapsed { width: 100%; flex-basis: auto; }
   .project-dock.is-collapsed .project-dock-tabs { justify-content: flex-end; padding: 0 16px; }
-  .project-strategy-workspace .conversation-page { min-height: 600px; }
+  .project-strategy-workspace .conversation-page { min-height: 0; }
+  .project-strategy-workspace.has-live-brief .conversation-page { display: none; }
+  .project-strategy-workspace.has-live-brief .project-live-brief { flex: 1; min-height: 0; border: 0; }
   .project-strategy-workspace .conversation-scroll-area { padding-inline: 16px; }
   .project-strategy-workspace .conversation-compose-area { padding: 12px 16px max(12px, env(safe-area-inset-bottom)); }
   .project-strategy-workspace .conversation-widget-heading { flex-wrap: wrap; }
@@ -217,6 +266,6 @@
   .project-conversation-marker { gap: 8px; }
   .project-conversation-marker .text-link { font-size: 11px; }
   .project-strategy-workspace .conversation-composer textarea, .project-workbench :is(input, textarea, select) { font-size: 16px; }
-  .project-logo-inspection-preview { min-height: 240px; }
+  .project-logo-creation .project-logo-inspection-preview { min-height: 240px; }
   .project-strategy-workspace .conversation-composer .composer-send-icon { min-width: 44px; width: 44px; height: 44px; min-height: 44px; padding: 14px; }
 }

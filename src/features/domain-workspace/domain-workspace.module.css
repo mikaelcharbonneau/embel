@@ -157,6 +157,13 @@
 .resultPrice > span { font-size: 12px; line-height: 16px; color: var(--secondary); }
 .resultArrow { display: grid; place-items: center; flex-shrink: 0; width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 50%; padding: 0; color: var(--secondary); }
 .resultArrow[aria-expanded="true"] svg { transform: rotate(90deg); }
+.shortlistButton { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex-shrink: 0; min-height: 36px; border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; color: var(--secondary); font-size: 12px; }
+.shortlistButton[aria-pressed="true"] { color: var(--accent-text); background: var(--magenta-soft); }
+.shortlistIntro h2 { font-size: 20px; font-weight: 500; line-height: 28px; margin: 0 0 8px; }
+.shortlistIntro > p { color: var(--secondary); font-size: 13px; line-height: 1.6; margin: 0; }
+.resultPrice > .renewalPrice { font-size: 11px; margin-top: 2px; }
+.liveCheckActions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.liveCheckActions > p { font-size: 12px; color: var(--secondary); line-height: 1.5; margin: 0; }
 .rowDetails { padding: 20px; border-top: 1px solid var(--border); background: var(--canvas); display: flex; flex-direction: column; gap: 14px; }
 .rowDetails[hidden] { display: none; }
 .resultTools { color: var(--secondary); font-size: 12px; }
@@ -193,6 +200,8 @@
   .resultPrice { min-width: 88px; }
   .resultIdentity h3 { font-size: 16px; }
   .resultIdentity p { font-size: 12px; }
+  .shortlistButton { width: 32px; padding: 0; }
+  .shortlistButtonLabel { display: none; }
 }
 @media (max-width: 440px) {
   .searchLabelRow { flex-wrap: wrap; gap: 8px; }
@@ -200,8 +209,10 @@
   .nameInput { flex-basis: 100%; }
   .searchButton { margin-left: auto; }
   .resultSummary { flex-wrap: wrap; }
-  .resultIdentity { flex-basis: calc(100% - 44px); }
+  .resultIdentity { flex-basis: calc(100% - 88px); }
   .resultPrice { order: 3; width: 100%; align-items: flex-start; flex-direction: row; gap: 8px; align-content: center; }
   .resultPrice > span { align-self: center; }
+  .resultPrice > .renewalPrice { margin: 0; }
+  .resultPrice { flex-wrap: wrap; }
   .filterPill { font-size: 12px; min-height: 32px; }
 }

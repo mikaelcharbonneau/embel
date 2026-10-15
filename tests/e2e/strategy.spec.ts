@@ -220,7 +220,7 @@ test("unselected context edits preserve strategy reviews while selected audience
 test("account fixture: strategy reviews save with values and provenance and survive reload", async ({ page }) => {
   const state = await account(page, false);
   await page.goto(`/brands/account/${id}`);
-  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   await stage(page, "Personality");
   await page.getByRole("slider", { name: "Sincerity", exact: true }).focus();
   await page.keyboard.press("Home");
@@ -245,10 +245,30 @@ test("account fixture: strategy reviews save with values and provenance and surv
   await expect(page.getByRole("region", { name: "Personality", exact: true }).getByText("Confirmed", { exact: true })).toBeVisible();
 });
 
+test("account fixture: incomplete Strategy approval resumes the required review before saving", async ({ page }) => {
+  const state = await account(page);
+  state.project = { ...state.project, scope: "complete_brand", context: { ...state.project.context, intake: { ...state.project.context.intake, audienceReviewedAt: null, positioningReviewedAt: null } } };
+  await page.goto(`/brands/account/${id}`);
+  await stage(page, "Positioning");
+  await page.getByRole("button", { name: "Approve strategy", exact: true }).click();
+  await expect(page.getByText("Review your audience before approving Strategy. Your current content is kept.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Keep audience", exact: true })).toBeVisible();
+  expect(state.writes).toHaveLength(0);
+  await page.getByRole("button", { name: "Keep audience", exact: true }).click();
+  await page.getByRole("button", { name: "Keep personality", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Positioning statement", exact: true })).toHaveValue(statement);
+  await page.getByRole("button", { name: "Approve strategy", exact: true }).click();
+  await expect(page.getByText("Strategy approved and saved to your account.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Project stages" }).getByRole("link", { name: "Naming", exact: true })).toBeVisible();
+  expect(state.writes).toHaveLength(1);
+  expect(state.project.context.positioning).toBe(statement);
+  expect(state.project.context.competitors[0]?.sources).toEqual([source]);
+});
+
 test("account fixture: failed saving and a revision conflict retain partial strategy for an explicit browser copy", async ({ page }) => {
   const state = await account(page);
   await page.goto(`/brands/account/${id}`);
-  await expect(page.getByRole("textbox", { name: "Message Fluid", exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   await stage(page, "Personality");
   await page.getByRole("slider", { name: "Ruggedness", exact: true }).focus();
   await page.keyboard.press("ArrowRight");
@@ -309,9 +329,21 @@ test("project design: all Strategy reviews and optional live brief retain the sa
     await capture(page, info, `project-strategy-${widget}.png`);
   }
   await page.getByRole("button", { name: "Live brief", exact: true }).click();
-  await expect(page.getByRole("complementary", { name: "Live brief" })).toBeVisible();
+  const brief = page.getByRole("complementary", { name: "Live brief" });
+  await expect(brief).toBeVisible();
+  const briefBox = await brief.boundingBox();
+  expect(briefBox!.y).toBeGreaterThanOrEqual(108);
+  expect(briefBox!.y + briefBox!.height).toBeLessThanOrEqual(page.viewportSize()!.height + 1);
+  if (page.viewportSize()!.width <= 760) await expect(page.locator(".conversation-composer")).not.toBeVisible();
+  await capture(page, info, "project-live-brief.png");
+  await brief.getByRole("button", { name: "Close live brief", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Live brief", exact: true })).toBeFocused();
+  await expect(page.locator(".conversation-composer")).toBeVisible();
+  await page.getByRole("button", { name: "Live brief", exact: true }).click();
   await page.getByRole("button", { name: "Edit brief", exact: true }).click();
+  await expect(brief).not.toBeVisible();
   await expect(page.getByRole("region", { name: "Project brief", exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Brief description", exact: true })).toBeFocused();
   expect(JSON.stringify(state.project)).toBe(original); expect(state.writes).toHaveLength(0);
   await capture(page, info, "project-brief.png");
 });
