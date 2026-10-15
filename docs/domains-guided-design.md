@@ -1,5 +1,7 @@
 # Domains Guided Browser design
 
+The 2026-10-15 [live prices and saved-shortlist candidate](domains-live-shortlists.md) extends this layout. The implementation and verification below describe its original presentation checkpoint; current source adds credential-free live price checks and optional owner-scoped shortlist choices. Hosted activation and browser acceptance are separate.
+
 ## Approved references — 2026-10-10
 
 The user requested matching these two Wonder screens in the app:

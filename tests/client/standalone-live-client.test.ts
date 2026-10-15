@@ -55,3 +55,31 @@ describe("private standalone lookup browser adapters", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ padding: "x".repeat(262144) }))); await expect(loadStandaloneCapabilities(binding())).rejects.toThrow("exceeded");
   });
 });
+
+describe("Vercel domain browser adapter", () => {
+  const vercelCheck = { ...check, provider: "vercel_registrar" };
+  const vercelQuote = { ...quote, provider: "vercel_registrar", periodYears: 2, total: { amountMinor: 16000, currency: "USD" }, renewal: { amountMinor: 16000, currency: "USD" }, renewalTerms: "Current renewal total for 2 years; may change" };
+  it("exposes the combined lookup price without a second network request", async () => {
+    const fetcher = vi.fn().mockResolvedValue(Response.json({ ownerId, result: { status: "domain", check: vercelCheck, quote: vercelQuote } })); vi.stubGlobal("fetch", fetcher);
+    const adapter = createStandaloneLiveAdapters({ ...capabilities, domains: "vercel" }, binding()).domains;
+    if (adapter.status !== "ready") throw new Error("fixture adapter");
+    expect(adapter.provider).toBe("vercel_registrar"); expect(adapter.quotesWithCheck).toBe(true);
+    expect(adapter.description).toContain("Only domain names are sent to Vercel");
+    await expect(adapter.check(check.domain, signal())).resolves.toEqual(vercelCheck);
+    await expect(adapter.quote!(check.domain, check.id, signal())).resolves.toEqual(vercelQuote);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+  it("keeps ambiguous availability unknown and makes no price available", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ ownerId, result: { status: "domain", check: { ...vercelCheck, availability: "unknown" }, quote: null } })));
+    const adapter = createStandaloneLiveAdapters({ ...capabilities, domains: "vercel" }, binding()).domains;
+    if (adapter.status !== "ready") throw new Error("fixture adapter");
+    await expect(adapter.check(check.domain, signal())).resolves.toMatchObject({ availability: "unknown" });
+    await expect(adapter.quote!(check.domain, check.id, signal())).rejects.toThrow("No current matching");
+  });
+  it("discloses the actual provider Retry-After instead of promising a one-minute retry", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ ownerId, result: { status: "failed", code: "rate_limited", retryAfterSeconds: 125 } })));
+    const adapter = createStandaloneLiveAdapters({ ...capabilities, domains: "vercel" }, binding()).domains;
+    if (adapter.status !== "ready") throw new Error("fixture adapter");
+    await expect(adapter.check(check.domain, signal())).rejects.toThrow("Wait 125 seconds");
+  });
+});

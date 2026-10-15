@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { standaloneCapabilitiesSchema, standaloneLookupResponseSchema, lookupFailureMessage, type StandaloneCapabilities, type StandaloneLookupInput, type TrademarkLookup } from "@/domain/standalone-live-checks";
-import { type DomainSearchAdapter, type DomainQuote, quoteBlockReason } from "@/features/domain-workspace/model";
+import { type DomainSearchAdapter, type DomainQuote, DomainLookupError, quoteBlockReason } from "@/features/domain-workspace/model";
 import { type HandleCheckAdapter, unavailableEvidence } from "@/features/handles-workspace/adapters";
 
 export type LiveLookupBinding = { ownerId: string; isCurrent: () => boolean; signal: AbortSignal };
@@ -54,14 +54,17 @@ export function createStandaloneLiveAdapters(capabilities: StandaloneCapabilitie
   async function lookup(input: StandaloneLookupInput, signal: AbortSignal) {
     const response = await request(standaloneLookupResponseSchema, binding, signal, input);
     if (response.ownerId !== binding.ownerId) throw abortError();
-    if (response.result.status === "failed") throw new Error(lookupFailureMessage[response.result.code]);
+    if (response.result.status === "failed") throw new DomainLookupError(response.result.code === "rate_limited" && response.result.retryAfterSeconds !== null
+      ? `The lookup limit was reached. Wait ${response.result.retryAfterSeconds} seconds before checking again.`
+      : lookupFailureMessage[response.result.code], response.result.code === "rate_limited" ? response.result.retryAfterSeconds ?? 60 : null);
     return response.result;
   }
-  const provider = capabilities.domains === "cloudflare" ? "cloudflare_registrar" : "Public registry RDAP";
+  const provider = capabilities.domains === "cloudflare" ? "cloudflare_registrar" : capabilities.domains === "vercel" ? "vercel_registrar" : "Public registry RDAP";
+  const hasPrices = capabilities.domains === "cloudflare" || capabilities.domains === "vercel";
   return {
     domains: capabilities.domains === "unavailable" ? { status: "unavailable", reason: "Domain checks are not connected." } : {
-      status: "ready", provider,
-      description: capabilities.domains === "rdap" ? "Public registry checks support .com, .net, .org, .app, .dev, .ca, .ai and .uk. A missing record stays Unknown. Registrar prices require a connection." : "Cloudflare checks registration eligibility and supplies current annual prices. Checks do not reserve a domain.",
+      status: "ready", provider, quotesWithCheck: hasPrices,
+      description: capabilities.domains === "rdap" ? "Public registry checks support .com, .net, .org, .app, .dev, .ca, .ai and .uk. A missing record stays Unknown. Registrar prices require a connection." : capabilities.domains === "vercel" ? "Vercel checks exact domains and supplies current registration and renewal prices in USD for the displayed term. Unavailable or unconfirmed results stay Unknown. Only domain names are sent to Vercel. Checks do not reserve a domain." : "Cloudflare checks registration eligibility and supplies current annual prices. Checks do not reserve a domain.",
       async check(domain, signal) {
         prices.delete(domain);
         const result = await lookup({ tool: "domains", domain }, signal);
@@ -70,7 +73,7 @@ export function createStandaloneLiveAdapters(capabilities: StandaloneCapabilitie
         if (prices.size >= 200) prices.delete(prices.keys().next().value!);
         prices.set(domain, { check: result.check, quote: result.quote }); return result.check;
       },
-      ...(capabilities.domains === "cloudflare" ? { async quote(domain: string, checkId: string, signal: AbortSignal) {
+      ...(hasPrices ? { async quote(domain: string, checkId: string, signal: AbortSignal) {
         if (!binding.isCurrent() || binding.signal.aborted || signal.aborted) throw abortError();
         const result = prices.get(domain);
         if (!result?.quote || result.check.id !== checkId || quoteBlockReason(result.quote, result.check, Date.now()) !== null) throw new Error("No current matching registrar price. Check this domain again.");

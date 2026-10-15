@@ -130,9 +130,16 @@ export const purchasedDomainSchema = z.object({ order: domainOrderSchema, projec
 export type PurchasedDomain = z.infer<typeof purchasedDomainSchema>;
 export type DomainLibrary = { status: "unavailable" | "loading" | "error"; message?: string } | { status: "ready"; items: unknown[] };
 export type DomainBrandSource = { type: "domain"; domain: string; check: DomainCheck | null; order: DomainOrder | null };
+/** Public, locally mapped provider failures only; raw provider text is never displayed. */
+export class DomainLookupError extends Error {
+  constructor(message: string, readonly retryAfterSeconds: number | null = null) { super(message); }
+}
 export type DomainSearchAdapter =
   | { status: "unavailable"; reason: string }
-  | { status: "ready"; provider: string; description?: string; check(domain: string, signal: AbortSignal): Promise<unknown>; quote?: (domain: string, checkId: string, signal: AbortSignal) => Promise<unknown> };
+  | { status: "ready"; provider: string; description?: string;
+      /** The check already returned a matching price; reading it does not make another provider request. */
+      quotesWithCheck?: boolean;
+      check(domain: string, signal: AbortSignal): Promise<unknown>; quote?: (domain: string, checkId: string, signal: AbortSignal) => Promise<unknown> };
 export const unavailableDomainAdapter: DomainSearchAdapter = { status: "unavailable", reason: "No registrar is connected. Availability checks, quotes and purchases are unavailable." };
 export async function readDomainCheck(adapter: DomainSearchAdapter, domain: string, signal: AbortSignal): Promise<DomainCheck> {
   const exact = domainNameSchema.parse(domain);

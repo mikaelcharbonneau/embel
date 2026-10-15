@@ -118,8 +118,8 @@ describe("official EUIPO search with explicit narrow coverage", () => {
 
 describe("runtime configuration and bounded admission", () => {
   it("requires opt-ins as well as provider-specific credentials", () => {
-    expect(standaloneProviderConfig({ FLUID_CLOUDFLARE_ACCOUNT_ID: accountId, FLUID_CLOUDFLARE_API_TOKEN: "secret", FLUID_YOUTUBE_API_KEY: "secret", FLUID_EUIPO_CLIENT_ID: "id", FLUID_EUIPO_CLIENT_SECRET: "secret" })).toEqual({ rdap: true, cloudflare: null, youtube: null, euipo: null });
-    expect(standaloneProviderConfig({ FLUID_RDAP_CHECKS_ENABLED: "false", FLUID_YOUTUBE_CHECKS_ENABLED: "true", FLUID_YOUTUBE_API_KEY: "secret" })).toEqual({ rdap: false, cloudflare: null, youtube: { apiKey: "secret" }, euipo: null });
+    expect(standaloneProviderConfig({ FLUID_CLOUDFLARE_ACCOUNT_ID: accountId, FLUID_CLOUDFLARE_API_TOKEN: "secret", FLUID_YOUTUBE_API_KEY: "secret", FLUID_EUIPO_CLIENT_ID: "id", FLUID_EUIPO_CLIENT_SECRET: "secret" })).toEqual({ rdap: true, vercel: true, cloudflare: null, youtube: null, euipo: null });
+    expect(standaloneProviderConfig({ FLUID_RDAP_CHECKS_ENABLED: "false", FLUID_YOUTUBE_CHECKS_ENABLED: "true", FLUID_YOUTUBE_API_KEY: "secret" })).toEqual({ rdap: false, vercel: true, cloudflare: null, youtube: { apiKey: "secret" }, euipo: null });
     expect(standaloneProviderConfig({ FLUID_YOUTUBE_CHECKS_ENABLED: "true", FLUID_YOUTUBE_API_KEY: "secret\nheader" }).youtube).toBeNull();
   });
   it("bounds per-owner concurrency, lookups per minute and permits another owner", () => {

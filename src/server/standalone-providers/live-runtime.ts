@@ -3,12 +3,13 @@ import { type StandaloneCapabilities, type StandaloneLookupInput, type Standalon
 import { standaloneProviderConfig, type StandaloneProviderConfig } from "./live-config";
 import { lookupRdap } from "./rdap";
 import { lookupCloudflare } from "./cloudflare-live";
+import { lookupVercel } from "./vercel-live";
 import { lookupYoutube } from "./youtube-live";
 import { lookupEuipo } from "./euipo-live";
 import { type ProviderClock, type ProviderFetch } from "./contracts";
 
 export function standaloneCapabilities(ownerId: string, config = standaloneProviderConfig()): StandaloneCapabilities {
-  return { ownerId, domains: config.cloudflare ? "cloudflare" : config.rdap ? "rdap" : "unavailable", youtube: !!config.youtube, euipo: !!config.euipo };
+  return { ownerId, domains: config.cloudflare ? "cloudflare" : config.vercel ? "vercel" : config.rdap ? "rdap" : "unavailable", youtube: !!config.youtube, euipo: !!config.euipo };
 }
 /** Process-local abuse guard, not a distributed billing policy. These are read-only lookups. */
 export function createLookupAdmission(clock: ProviderClock = Date.now) {
@@ -26,13 +27,15 @@ export function createLookupAdmission(clock: ProviderClock = Date.now) {
   };
 }
 const admit = createLookupAdmission();
+// Stable identity lets simultaneous exact public-domain reads share one bounded request.
+const providerFetch: ProviderFetch = request => fetch(request);
 export async function runStandaloneLookup(ownerId: string, target: StandaloneLookupInput, signal: AbortSignal, deps: { config?: StandaloneProviderConfig; fetch?: ProviderFetch; clock?: ProviderClock; admit?: ReturnType<typeof createLookupAdmission> } = {}): Promise<StandaloneLookupResult> {
   if (signal.aborted) return { status: "failed", code: "cancelled", retryAfterSeconds: null };
-  const config = deps.config ?? standaloneProviderConfig(), fetcher = deps.fetch ?? (request => fetch(request)), clock = deps.clock ?? Date.now;
+  const config = deps.config ?? standaloneProviderConfig(), fetcher = deps.fetch ?? providerFetch, clock = deps.clock ?? Date.now;
   const release = (deps.admit ?? admit)(ownerId);
   if (!release) return { status: "failed", code: "rate_limited", retryAfterSeconds: 60 };
   try {
-    if (target.tool === "domains") return config.cloudflare ? await lookupCloudflare(target.domain, config.cloudflare, fetcher, clock, signal) : config.rdap ? await lookupRdap(target.domain, fetcher, clock, signal) : { status: "failed", code: "unavailable", retryAfterSeconds: null };
+    if (target.tool === "domains") return config.cloudflare ? await lookupCloudflare(target.domain, config.cloudflare, fetcher, clock, signal) : config.vercel ? await lookupVercel(target.domain, fetcher, clock, signal) : config.rdap ? await lookupRdap(target.domain, fetcher, clock, signal) : { status: "failed", code: "unavailable", retryAfterSeconds: null };
     if (target.tool === "handles") return target.platform !== "youtube" ? { status: "failed", code: "unsupported_target", retryAfterSeconds: null } : config.youtube ? await lookupYoutube(target, config.youtube.apiKey, fetcher, clock, signal) : { status: "failed", code: "unavailable", retryAfterSeconds: null };
     return config.euipo ? await lookupEuipo(target, config.euipo, fetcher, clock, signal) : { status: "failed", code: "unavailable", retryAfterSeconds: null };
   } catch { return { status: "failed", code: signal.aborted ? "cancelled" : "invalid_response", retryAfterSeconds: null }; }
