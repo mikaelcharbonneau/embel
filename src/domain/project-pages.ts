@@ -6,8 +6,8 @@ export const PROJECT_PAGE_DEFAULT_SIZE = 50;
 const exactTimestamp = z.iso.datetime({ offset: true }).regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/);
 export const projectCursorSchema = z.strictObject({ createdAt: exactTimestamp, id: z.uuid() });
 export type ProjectCursor = z.infer<typeof projectCursorSchema>;
-export const listProjectPageSchema = z.strictObject({ cursor: projectCursorSchema.optional(), limit: z.number().int().min(1).max(PROJECT_PAGE_MAX_SIZE).default(PROJECT_PAGE_DEFAULT_SIZE) });
-const projectSummary = accountProjectSummarySchema.extend({ created_at: exactTimestamp });
+export const listProjectPageSchema = z.strictObject({ state: z.enum(["active", "deleted"]).default("active"), cursor: projectCursorSchema.optional(), limit: z.number().int().min(1).max(PROJECT_PAGE_MAX_SIZE).default(PROJECT_PAGE_DEFAULT_SIZE) });
+const projectSummary = accountProjectSummarySchema.extend({ created_at: exactTimestamp, deleted_at: exactTimestamp.nullable(), lifecycle_version: z.number().int().nonnegative() });
 
 /** PostgreSQL timestamps retain six fractional digits; Date alone loses the last three. */
 function microseconds(timestamp: string) {

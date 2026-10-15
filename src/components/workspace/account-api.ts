@@ -2,13 +2,13 @@ import type { z } from "zod";
 import { PROJECT_MUTATION_MAX_BYTES } from "@/domain/project-api";
 
 export class AccountRequestError extends Error {
-  constructor(readonly status: number, readonly code?: "naming_history_capacity") {
+  constructor(readonly status: number, readonly code?: "naming_history_capacity" | "project_busy") {
     super("The account request could not be completed.");
   }
 }
 
-/** Retain one public code only; never expose arbitrary server messages or read large error bodies. */
-async function safeAccountErrorCode(response: Response): Promise<"naming_history_capacity" | undefined> {
+/** Retain allowlisted public codes only; never expose arbitrary server messages or read large error bodies. */
+async function safeAccountErrorCode(response: Response): Promise<"naming_history_capacity" | "project_busy" | undefined> {
   if (response.status !== 409 || response.headers.get("content-type")?.split(";")[0]?.trim() !== "application/json" || Number(response.headers.get("content-length")) > 4096) return undefined;
   const reader = response.body?.getReader();
   if (!reader) return undefined;
@@ -19,7 +19,7 @@ async function safeAccountErrorCode(response: Response): Promise<"naming_history
       const { done, value } = await reader.read();
       if (done) {
         const body: unknown = JSON.parse(new TextDecoder().decode(bytes.subarray(0, length)));
-        if (body && typeof body === "object" && "error" in body && body.error && typeof body.error === "object" && "code" in body.error && body.error.code === "naming_history_capacity") return "naming_history_capacity";
+        if (body && typeof body === "object" && "error" in body && body.error && typeof body.error === "object" && "code" in body.error && (body.error.code === "naming_history_capacity" || body.error.code === "project_busy")) return body.error.code;
         return undefined;
       }
       if (length + value.byteLength > bytes.byteLength) return undefined;

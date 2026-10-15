@@ -1,7 +1,6 @@
-import type { AccountProjectSummary } from "@/domain/project-api";
 import { accountProjectPageSchema, compareProjectCursors, projectCursor, type AccountProjectPage, type ProjectCursor } from "@/domain/project-pages";
 
-export type ProjectListing = { ownerId: string; items: AccountProjectSummary[]; nextCursor: ProjectCursor | null };
+export type ProjectListing = { ownerId: string; items: AccountProjectPage["items"]; nextCursor: ProjectCursor | null };
 
 /** Validate each bounded reply before merging; accumulated rows are not a response page. */
 export function mergeProjectPage(previous: ProjectListing | null, incoming: AccountProjectPage, requestedCursor: ProjectCursor | null): ProjectListing {

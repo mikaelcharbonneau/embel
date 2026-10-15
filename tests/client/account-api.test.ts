@@ -23,4 +23,13 @@ describe("private account request boundary", () => {
     await expect(accountRequest("/api/session", accountSessionSchema, { signal: new AbortController().signal })).rejects.toMatchObject({ status: 502 });
     expect(accountErrorMessage(new Error("private server detail"))).not.toContain("private server detail");
   });
+  it("retains the public busy code without exposing server messages", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ error: { code: "project_busy", message: "Private server detail" } }, { status: 409 })));
+    await expect(accountRequest("/api/projects/fixture/deletion", accountSessionSchema, { signal: new AbortController().signal })).rejects.toMatchObject({ status: 409, code: "project_busy", message: "The account request could not be completed." });
+  });
+  it.each(["unknown code", "oversized error", "wrong status"])("does not preserve an unsafe error code: %s", async mode => {
+    const error = { error: { code: mode === "unknown code" ? "private_detail" : "project_busy", message: mode === "oversized error" ? "x".repeat(5000) : "Private server detail" } };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(error, { status: mode === "wrong status" ? 503 : 409 })));
+    await expect(accountRequest("/api/projects/fixture/deletion", accountSessionSchema, { signal: new AbortController().signal })).rejects.toMatchObject({ code: undefined });
+  });
 });

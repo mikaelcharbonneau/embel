@@ -8,7 +8,7 @@ import { ApiError } from "../http/errors";
 
 const storedProjectSchema = accountProjectSummarySchema;
 const storedRevisionSchema = accountRevisionSchema;
-const projectColumns = "id,owner_id,scope,title,current_revision,created_at";
+const projectColumns = "id,owner_id,scope,title,current_revision,created_at,deleted_at,lifecycle_version";
 
 /** Hash validated context, whose schema fixes key order and fills explicit defaults. */
 function contextHash(context: z.output<typeof contextSnapshotSchema>): string {
@@ -25,7 +25,7 @@ function databaseError(error: { code?: string } | null): void {
 
 export async function listProjects(auth: AuthenticatedContext) {
   const { data, error } = await auth.client.from("projects").select(projectColumns)
-    .eq("owner_id", auth.userId).order("created_at", { ascending: false }).limit(100);
+    .eq("owner_id", auth.userId).is("deleted_at", null).order("created_at", { ascending: false }).limit(100);
   databaseError(error);
   return z.array(storedProjectSchema).parse(data);
 }
@@ -33,7 +33,7 @@ export async function listProjects(auth: AuthenticatedContext) {
 export async function getProject(auth: AuthenticatedContext, projectId: string) {
   if (!z.uuid().safeParse(projectId).success) throw new ApiError("not_found");
   const { data, error } = await auth.client.from("projects").select(projectColumns)
-    .eq("id", projectId).eq("owner_id", auth.userId).maybeSingle();
+    .eq("id", projectId).eq("owner_id", auth.userId).is("deleted_at", null).maybeSingle();
   databaseError(error);
   if (!data) throw new ApiError("not_found");
   const project = storedProjectSchema.parse(data);
@@ -86,3 +86,4 @@ export async function expandProject(auth: AuthenticatedContext, projectId: strin
   databaseError(error);
   return accountProjectSchema.parse(data);
 }
+

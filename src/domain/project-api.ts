@@ -13,6 +13,9 @@ export const accountProjectSummarySchema = z.object({
   title: z.string().trim().min(1).max(160),
   current_revision: z.number().int().positive(),
   created_at: z.string(),
+  // Older RPC readers remain compatible; listing and lifecycle mutations require these fields.
+  deleted_at: z.iso.datetime({ offset: true }).nullable().optional(),
+  lifecycle_version: z.number().int().nonnegative().optional(),
 });
 export const accountProjectSchema = accountProjectSummarySchema.extend({ context: contextSnapshotSchema });
 export const accountRevisionSchema = z.object({
