@@ -283,14 +283,14 @@ test("guided interview: Home opens the conversation and keeps the prompt and thi
   await expect.poll(() => loading.locator('img[src="/project-workspace/mark.svg"]').evaluate(image => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0)).toBe(true);
   await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeEnabled();
   await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(0);
-  await expect(loading.locator(".guided-thinking > img")).not.toHaveCSS("animation-name", "none");
+  await expect(loading.locator("img")).not.toHaveCSS("animation-name", "none");
   await page.screenshot({ path: info.outputPath("guided-research-pending.png"), fullPage: true, scale: "css" });
   state.jobs[0] = strategyJobSchema.parse({ ...state.jobs[0], state: "running", progress: 40 });
   await page.reload();
   await expect(loading).toBeVisible();
   expect(state.enqueues).toHaveLength(1);
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await expect(loading.locator(".guided-thinking > img")).toHaveCSS("animation-name", "none");
+  await expect(loading.locator("img")).toHaveCSS("animation-name", "none");
   completeLatest(state);
   await expectReplyArrivalInViewport(page, "competitors", "Table Next Door");
   await page.screenshot({ path: info.outputPath("guided-competitor-arrival-viewport.png"), scale: "css" });
