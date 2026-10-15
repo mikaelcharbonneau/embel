@@ -105,6 +105,22 @@ describe("guided strategy private policy and frozen interview admission", () => 
     expect((await db.query("select * from fluid_private.api_text_gateway_context")).rows).toEqual([]);
   });
 
+  it("settles a bounded unusable response without publishing it or blocking an explicit new research request", async () => {
+    await grant(); await save();
+    const job = await enqueue();
+    const lease = await start(job);
+    expect(await action(job, "authorize", [lease, "guided"])).toBe(true);
+    await action(job, "complete", [lease, "guided", "failed", 20691, { error: "provider_research_unusable", result: { partialText: "Synthetic rejected response", outputDiagnostics: { responseStatus: "completed" } } }, "resp_synthetic_unusable"]);
+    await action(job, "finish", [lease, "failed", "operation_incomplete"]);
+    expect((await db.query("select state,actual_microusd from public.usage_reservations where job_id=$1", [job.id])).rows).toEqual([{ state: "settled", actual_microusd: 20691 }]);
+    expect((await db.query("select state,error_code from public.jobs where id=$1", [job.id])).rows).toEqual([{ state: "failed", error_code: "operation_incomplete" }]);
+    expect((await db.query("select state,output->>'error' error from public.job_steps where job_id=$1", [job.id])).rows).toEqual([{ state: "failed", error: "provider_research_unusable" }]);
+    expect((await availability(db, OWNER_B, projects.b)).status).toBe("available");
+    const retry = await enqueue("strategy.competitors", cost, 2, "guided-explicit-retry-after-unusable");
+    expect(retry.id).not.toBe(job.id);
+    expect((await db.query("select count(*)::integer count from public.jobs where owner_id=$1 and state='queued'", [OWNER_B])).rows).toEqual([{ count: 1 }]);
+  });
+
   it("admits research directly from the initial owned revision", async () => {
     await grant();
     const first = await asRole(db, "authenticated", OWNER_B, async () => (await db.query<{ id: string }>("select * from public.create_project('complete_brand','Synthetic initial interview',$1,$2)", [context(1), HASH])).rows[0]!);

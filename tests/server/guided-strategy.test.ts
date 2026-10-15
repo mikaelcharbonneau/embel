@@ -64,6 +64,8 @@ describe("guided provider contract (synthetic transports, no live inference)", (
     expect(request.instructions).toContain("one focused question, answer or choice widget");
     expect(request.instructions).toContain("free-text custom answer");
     expect(request.instructions).toContain("Never introduce a positioning stage");
+    expect(request.instructions).toContain("at most 2 web tool calls in total, including search, open_page and find_in_page");
+    expect(request.instructions).toContain("sources returned by completed calls");
     expect(request.input).toEqual([{ role: "user", content: expect.stringContaining('"currentTurn":{"id":"current-turn"') }]);
   });
 
@@ -74,6 +76,39 @@ describe("guided provider contract (synthetic transports, no live inference)", (
     const result = strategyJobResultSchema.parse(outcome.result);
     expect(result.guidance).toMatchObject({ kind: "choices", stage: "competitors", turnId: "current-turn", selectionMode: "multiple", options: [{ recommended: true, recommendationReason: "Matches the user's practical offering", payload: { selected: false, origin: "research", sources: [{ url: "https://example.com/", retrievedAt: now }] } }] });
     expect(result.proposal).toMatchObject({ competitors: [{ selected: false }] });
+  });
+
+  it("retains a bounded completed three-option response as a failed request when one option relies on an unfinished search", async () => {
+    const raw = choices();
+    const candidates = ["unfinished.example", "example.com", "another.example"].map((host, index) => ({
+      ...rawCompetitor, name: `Synthetic candidate ${index + 1}`, url: `https://${host}/`, sourceUrls: [`https://${host}/`],
+    }));
+    raw.options = candidates.map((payload, index) => ({ ...raw.options[0]!, label: `Synthetic option ${index + 1}`, payload }));
+    const response = researchResponse(raw);
+    response.usage = { input_tokens: 25693, output_tokens: 711, total_tokens: 26404, input_tokens_details: { cached_tokens: 0, cache_write_tokens: 0 } };
+    response.output[0] = { type: "web_search_call", status: "completed", action: { type: "search", sources: [
+      { url: "https://example.com/" }, { url: "https://another.example/" },
+    ] } };
+    response.output.splice(1, 0,
+      { type: "web_search_call", status: "completed", action: { type: "open_page", url: "https://example.com/" } },
+      { type: "reasoning", summary: [{ text: "Synthetic private reasoning must not be retained" }] },
+      { type: "web_search_call", status: "searching", action: { type: "search", sources: candidates.map(candidate => ({ url: candidate.url })) } });
+    response.output[4] = { type: "message", role: "assistant", status: "completed", content: [{ type: "output_text", text: JSON.stringify(raw),
+      annotations: candidates.map(candidate => ({ type: "url_citation", url: candidate.url })),
+    }] };
+    const { outcome, transport } = await execute(raw, guidedInput(), response);
+    expect(outcome).toMatchObject({ status: "failed", code: "provider_research_unusable", costMicrousd: 78496, providerRequestId: response.id, result: {
+      usage: { inputTokens: 25693, outputTokens: 711, webSearchCalls: 2 }, partialText: JSON.stringify(raw),
+      outputDiagnostics: { responseStatus: "completed", outputItemCount: 5, toolCalls: 3, completedToolCalls: 2, completedSearchCalls: 1,
+        searchAttemptAtLimitIndex: 3, searchCallAccounting: "all_observed_search_attempts", usageExceeded: false,
+        items: [expect.any(Object), expect.any(Object), expect.any(Object), { outputIndex: 3, type: "web_search_call", status: "searching", actionType: "search" }, expect.any(Object)],
+      },
+    } });
+    expect(strategyJobResultSchema.safeParse(outcome.result).success).toBe(false);
+    expect(outcome.result).not.toHaveProperty("proposal");
+    expect(outcome.result).not.toHaveProperty("guidance");
+    expect(JSON.stringify(outcome)).not.toContain("Synthetic private reasoning");
+    expect(transport.createResponse).toHaveBeenCalledTimes(1);
   });
 
   it.each([

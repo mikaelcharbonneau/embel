@@ -421,13 +421,14 @@ for (const kind of ["answer", "question"] as const) test(`guided interview: a cl
   expect(state.unhandledWrites).toEqual([]);
 });
 
-for (const errorCode of ["provider_error", "operator_abandoned_billing_unresolved"]) test(`guided interview: failed research (${errorCode}) retains the prompt and explicit retry starts a new saved turn`, async ({ page }) => {
+for (const errorCode of ["provider_error", "operator_abandoned_billing_unresolved", "operation_incomplete"]) test(`guided interview: failed research (${errorCode}) retains the prompt and explicit retry starts a new saved turn`, async ({ page }) => {
   const state = await fixtures(page);
   state.jobs = [strategyJobSchema.parse({ ...queuedJob("strategy.competitors", 1, 1), state: "failed", error_code: errorCode, finished_at: when })];
   await openProject(page);
   await expect(page.getByText(initialPrompt, { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Researching your competitors", exact: true })).toHaveCount(0);
   await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(0);
+  await expect(page.getByText("Research could not produce verified suggestions. Your prompt is saved. You can retry research.", { exact: true })).toBeVisible();
   expect(state.enqueues).toHaveLength(0);
   await page.reload();
   await expect(page.getByRole("button", { name: "Retry research", exact: true })).toBeVisible();

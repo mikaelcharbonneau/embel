@@ -59,6 +59,22 @@ requires a separately supported provider bound and a new exact policy.
 
 ### Rejected response evidence
 
+The provider's `max_tool_calls` limits processed built-in calls; the official
+reference says further attempts are ignored. A completed response can include
+an additional `searching` search entry after two completed web actions. The
+adapter treats that narrow pattern separately from an actually completed third
+call. It does not assert that the unfinished search completed, and does not use
+its sources or answer-only citations to substantiate competitors. It retains
+the attempted search in conservative fee accounting and still enforces the
+search-fee, token and reservation ceilings.
+
+Only an otherwise valid answer supported by completed tool evidence can
+succeed. An otherwise well-formed answer that depends on the unfinished search
+is a terminal unusable result, with private evidence retained and bounded usage
+settled. It publishes no proposal and performs no automatic retry; the user can
+explicitly retry research. Unknown outcomes, malformed accounting, other
+unfinished-tool patterns and actual limit overruns still require reconciliation.
+
 A completed provider response can still fail output validation. The retained
 assistant text alone does not prove that every tool completed, the cited sources
 were observed, or all billable activity was accounted for. Such a request stays

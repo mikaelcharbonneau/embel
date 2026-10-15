@@ -16,6 +16,14 @@ function researchFixture() {
   response.output.unshift({ type: "web_search_call", status: "completed", action: { type: "search", sources: [{ type: "url", url: "https://example.com/", title: "Synthetic source fixture" }] } });
   return response;
 }
+function researchAtToolLimitFixture() {
+  const response = researchFixture();
+  response.output.splice(1, 0,
+    { type: "web_search_call", status: "completed", action: { type: "open_page", url: "https://example.com/" } },
+    { type: "reasoning" },
+    { type: "web_search_call", status: "searching", action: { type: "search", sources: [{ url: "https://unfinished.example/", title: "Synthetic unfinished source" }] } });
+  return response;
+}
 
 describe("OpenAI strategy adapter (mock transport only)", () => {
   it("keeps configuration disabled until permission, credential, model choice and access are explicit", () => {
@@ -116,6 +124,115 @@ describe("OpenAI strategy adapter (mock transport only)", () => {
     const response = researchFixture();
     response.output[0] = { type: "web_search_call", status: "completed", action: { type: "search", sources: [{ type: "url", url: "https://other.example/" }] } };
     expect(await execute(response, "strategy.competitors").run()).toMatchObject({ status: "needs_reconciliation", code: "provider_invalid_output" });
+  });
+
+  it("accepts only completed research evidence when a final search attempt follows the tool limit", async () => {
+    const f = execute(researchAtToolLimitFixture(), "strategy.competitors");
+    expect(await f.run()).toMatchObject({ status: "succeeded", costMicrousd: 20691, result: {
+      usage: { webSearchCalls: 2 }, proposal: { competitors: [{ sources: [{ url: "https://example.com/", title: "Synthetic source fixture" }] }] },
+    } });
+    expect(f.transport.createResponse).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([undefined, []])("also handles a final attempt without returned sources (%j)", async sources => {
+    const response = researchAtToolLimitFixture();
+    response.output[3] = { type: "web_search_call", status: "searching", action: { type: "search", ...(sources ? { sources } : {}) } };
+    expect(await execute(response, "strategy.competitors").run()).toMatchObject({ status: "succeeded", costMicrousd: 20691 });
+  });
+
+  it("settles bounded completed research as unusable when its answer depends on the unfinished search", async () => {
+    const response = researchAtToolLimitFixture();
+    response.output[0] = { type: "web_search_call", status: "completed", action: { type: "search", sources: [{ url: "https://other.example/" }] } };
+    response.output[3] = { type: "web_search_call", status: "searching", action: { type: "search", sources: [{ url: "https://example.com/" }] } };
+    const f = execute(response, "strategy.competitors");
+    expect(await f.run()).toMatchObject({ status: "failed", code: "provider_research_unusable", costMicrousd: 20691, result: {
+      partialText: expect.any(String), usage: { webSearchCalls: 2 },
+      observedSources: [expect.objectContaining({ outputIndex: 0 }), expect.objectContaining({ outputIndex: 3 })],
+      outputDiagnostics: { toolCalls: 3, completedToolCalls: 2, completedSearchCalls: 1, searchAttemptAtLimitIndex: 3, usageExceeded: false },
+    } });
+    expect(f.transport.createResponse).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["source", "website"])("does not let answer citations validate an unfinished %s", async kind => {
+    const response = researchAtToolLimitFixture();
+    const proposal = { message: "Synthetic citation fixture", competitors: [{ name: "Synthetic candidate", relevance: "Synthetic overlap",
+      url: kind === "website" ? "https://unfinished.example/" : "https://example.com/",
+      sourceUrls: [kind === "source" ? "https://unfinished.example/" : "https://example.com/"],
+    }] };
+    response.output[4] = { type: "message", role: "assistant", status: "completed", content: [{ type: "output_text", text: JSON.stringify(proposal),
+      annotations: [{ type: "url_citation", url: "https://unfinished.example/", title: "Synthetic citation" }],
+    }] };
+    const outcome = await execute(response, "strategy.competitors").run();
+    expect(outcome).toMatchObject({ status: "failed", code: "provider_research_unusable", result: {
+      observedSources: [expect.any(Object), expect.objectContaining({ outputIndex: 3 }), expect.objectContaining({ outputIndex: 4, kind: "url_citation" })],
+    } });
+    expect(outcome.result).not.toHaveProperty("proposal");
+  });
+
+  it.each(["below limit", "before limit", "another attempt", "prior malformed call", "no answer", "answer before attempt", "incomplete answer", "multiple answers"])("keeps %s outside the bounded exception", async variant => {
+    const response = researchAtToolLimitFixture();
+    if (variant === "below limit") response.output.splice(1, 1);
+    if (variant === "before limit") [response.output[1], response.output[3]] = [response.output[3]!, response.output[1]!];
+    if (variant === "another attempt") response.output.splice(3, 0, response.output[3]!);
+    if (variant === "prior malformed call") response.output[1] = { type: "web_search_call", status: "completed" };
+    if (variant === "no answer") response.output.pop();
+    if (variant === "answer before attempt") [response.output[3], response.output[4]] = [response.output[4]!, response.output[3]!];
+    if (variant === "incomplete answer") response.output[4]!.status = "incomplete";
+    if (variant === "multiple answers") response.output.push(response.output[4]!);
+    const f = execute(response, "strategy.competitors");
+    expect(await f.run()).toMatchObject({ status: "needs_reconciliation", code: "provider_unexpected_output" });
+    expect(f.transport.createResponse).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["in_progress", "incomplete", "failed", "cancelled", "queued", "unknown"])("never treats an extra %s search as the bounded searching attempt", async status => {
+    const response = researchAtToolLimitFixture(); response.output[3]!.status = status;
+    expect(await execute(response, "strategy.competitors").run()).toMatchObject({ status: "needs_reconciliation", code: "provider_unexpected_output", result: {
+      outputDiagnostics: { toolCalls: 3, searchAttemptAtLimitIndex: null, issues: [{ outputIndex: 3, code: "web_search_not_completed" }] },
+    } });
+  });
+
+  it.each(["open_page", "find_in_page", "unknown"])("never exempts an unfinished %s action", async type => {
+    const response = researchAtToolLimitFixture(); response.output[3] = { type: "web_search_call", status: "searching", action: { type } };
+    expect(await execute(response, "strategy.competitors").run()).toMatchObject({ status: "needs_reconciliation", code: "provider_unexpected_output" });
+  });
+
+  it.each(["failed", "incomplete", "cancelled", "in_progress"])("does not settle a %s envelope with a search attempt at the limit", async status => {
+    const response = researchAtToolLimitFixture(); response.status = status;
+    expect(await execute(response, "strategy.competitors").run()).toMatchObject({ status: "needs_reconciliation", result: {
+      outputDiagnostics: { searchAttemptAtLimitIndex: null },
+    } });
+  });
+
+  it.each(["search fees", "input tokens", "output tokens"])("keeps %s bounded even with a trailing search attempt", async limit => {
+    const response = researchAtToolLimitFixture();
+    if (limit === "search fees") response.output[1] = { type: "web_search_call", status: "completed", action: { type: "search" } };
+    if (limit === "input tokens") response.usage.input_tokens = inputFixture("strategy.competitors").policy.maxInputTokens + 1;
+    if (limit === "output tokens") response.usage.output_tokens = inputFixture("strategy.competitors").policy.maxOutputTokens + 1;
+    response.usage.total_tokens = response.usage.input_tokens + response.usage.output_tokens;
+    expect(await execute(response, "strategy.competitors").run()).toMatchObject({ status: "needs_reconciliation", code: "provider_usage_exceeded" });
+  });
+
+  it.each(["input tokens", "output tokens", "search fees", "policy cost", "reservation"])("does not terminally settle unusable research beyond its %s bound", async limit => {
+    const response = researchAtToolLimitFixture();
+    response.output[0] = { type: "web_search_call", status: "completed", action: { type: "search", sources: [{ url: "https://other.example/" }] } };
+    const input = inputFixture("strategy.competitors"), job = jobFixture("strategy.competitors");
+    if (limit === "input tokens") response.usage.input_tokens = input.policy.maxInputTokens + 1;
+    if (limit === "output tokens") response.usage.output_tokens = input.policy.maxOutputTokens + 1;
+    if (limit === "search fees") response.output[1] = { type: "web_search_call", status: "completed", action: { type: "search" } };
+    if (limit === "policy cost") input.policy.maximumCostMicrousd = 1;
+    if (limit === "reservation") job.actualCostMicrousd = job.reservedCostMicrousd - 1;
+    response.usage.total_tokens = response.usage.input_tokens + response.usage.output_tokens;
+    const outcome = await executeStrategyResponse({ job, input, operation: "strategy.competitors", transport: transportFixture(response), signal: new AbortController().signal, now });
+    expect(outcome).toMatchObject({ status: "needs_reconciliation", result: { partialText: expect.any(String) } });
+  });
+
+  it.each(["model", "service_tier", "usage", "JSON", "sources"])("preserves the %s fence around a search attempt at the limit", async field => {
+    const response = researchAtToolLimitFixture();
+    if (field === "model" || field === "service_tier") response[field] = "unexpected";
+    if (field === "usage") response.usage.total_tokens = 1;
+    if (field === "JSON") response.output[4] = { type: "message", role: "assistant", status: "completed", content: [{ type: "output_text", text: "not JSON" }] };
+    if (field === "sources") response.output[3] = { type: "web_search_call", status: "searching", action: { type: "search", sources: null } };
+    expect(await execute(response, "strategy.competitors").run()).toMatchObject({ status: "needs_reconciliation" });
   });
 
   it("requires actual search execution and refuses unsupported tool calls", async () => {

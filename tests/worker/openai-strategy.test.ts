@@ -5,7 +5,7 @@ import { runOneJob, type JobStore } from "../../worker/runner";
 import { guidedStrategyPolicy, strategyPolicy } from "../../src/server/ai/config";
 import type { StepOutcome } from "../../src/domain/jobs";
 import { jobFixture, responseFixture, transportFixture } from "../server/openai-fixtures";
-import { guidedHistoryEntry, guidedJobFixture } from "./guided-strategy-fixtures";
+import { guidedHistoryEntry, guidedJobFixture, guidedResearchResponse } from "./guided-strategy-fixtures";
 
 function fixture() {
   const job = jobFixture(); const outcomes: StepOutcome[] = [];
@@ -61,6 +61,26 @@ describe("durable OpenAI strategy handler (mock transport only)", () => {
     expect(f.outcomes[0]).toMatchObject({ status: "needs_reconciliation", code: "provider_incomplete", result: { partialText: expect.any(String) } });
     expect(f.transport.createResponse).toHaveBeenCalledTimes(1);
     expect(f.store.finish).not.toHaveBeenCalled();
+  });
+
+  it("finishes bounded unusable research as failed with private evidence and no automatic retry", async () => {
+    const f = fixture(), job = guidedJobFixture(), response = guidedResearchResponse();
+    response.output[0] = { type: "web_search_call", status: "completed", action: { type: "search", sources: [{ url: "https://other.example/" }] } };
+    response.output.splice(1, 0,
+      { type: "web_search_call", status: "completed", action: { type: "open_page", url: "https://other.example/" } },
+      { type: "reasoning" },
+      { type: "web_search_call", status: "searching", action: { type: "search", sources: [{ url: "https://example.com/" }] } });
+    vi.mocked(f.store.claim).mockResolvedValue(job);
+    vi.mocked(f.transport.createResponse).mockResolvedValue({ requestId: "req_fixture", body: response });
+    const handlers = createOpenAIStrategyHandlers({ apiKey: "synthetic", policies: new Map([["strategy.competitors", job.input.policy]]) }, f.transport);
+    expect(await runOneJob({ store: f.store, handlers, workerId: "synthetic-fixture-worker" })).toBe("failed");
+    expect(f.outcomes).toHaveLength(1);
+    expect(f.outcomes[0]).toMatchObject({ status: "failed", code: "provider_research_unusable", costMicrousd: 20691, result: {
+      partialText: expect.any(String), outputDiagnostics: { toolCalls: 3, completedToolCalls: 2, usageExceeded: false },
+    } });
+    expect(f.outcomes[0]?.result).not.toHaveProperty("proposal");
+    expect(f.store.finish).toHaveBeenCalledWith(job, "failed");
+    expect(f.transport.createResponse).toHaveBeenCalledTimes(1);
   });
   it("binds guided plans to the complete immutable input and checks the exact current turn", async () => {
     const policy = guidedStrategyPolicy("strategy.competitors");
