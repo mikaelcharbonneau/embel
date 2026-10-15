@@ -10,7 +10,7 @@ const mock = vi.hoisted(() => ({ session: { status: "ready", userId: "aaaaaaaa-a
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mock.push }) }));
 vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ session: mock.session, homeInputSession: mock.memory, isCurrent: mock.current, expire: mock.expire, refresh: mock.refresh }) }));
 let root: Root | null, host: HTMLDivElement, owner: string;
-const ready = { status: "available", operations: [{ operation: "strategy.reformulate", maximumCostMicrousd: 10000 }, { operation: "strategy.competitors", maximumCostMicrousd: 10000 }] };
+const ready = { status: "available", operations: [{ operation: "strategy.reformulate", maximumCostMicrousd: 10000, interviewVersion: 1 }, { operation: "strategy.competitors", maximumCostMicrousd: 10000, interviewVersion: 1 }] };
 const deferred = <T,>() => { let resolve!: (value: T) => void; const promise = new Promise<T>(yes => { resolve = yes; }); return { promise, resolve }; };
 async function render(exampleId: string | undefined = "b2b") { await act(async () => root!.render(createElement(NewProjectForm, { initialScope: "complete_brand", home: true, exampleId }))); }
 async function remountHome() { await act(async () => root!.unmount()); root = createRoot(host); await act(async () => root!.render(createElement(NewProjectForm, { initialScope: "complete_brand", home: true }))); }
@@ -61,7 +61,8 @@ describe("combined Home and real strategy-start recovery", () => {
       }
       if (path.endsWith("/strategy") && init.method === "POST") {
         const projectId = path.split("/")[3]!; enqueues.push(projectId);
-        return Response.json({ job: { id: crypto.randomUUID(), owner_id: owner, project_id: projectId, operation: "strategy.reformulate", input_revision: 1, state: "queued", progress: 0, error_code: null, cancel_requested_at: null, created_at: "2026-10-07T00:00:00Z", finished_at: null, reserved_cost_microusd: 10000, actual_cost_microusd: 0, results: [] } });
+        expect(JSON.parse(String(init.body))).toMatchObject({ operation: "strategy.competitors", expectedRevision: 1 });
+        return Response.json({ job: { id: crypto.randomUUID(), owner_id: owner, project_id: projectId, operation: "strategy.competitors", input_revision: 1, state: "queued", progress: 0, error_code: null, cancel_requested_at: null, created_at: "2026-10-07T00:00:00Z", finished_at: null, reserved_cost_microusd: 10000, actual_cost_microusd: 0, results: [] } });
       }
       throw new Error(`Unexpected fixture request ${path}`);
     }));
@@ -136,7 +137,9 @@ describe("combined Home and real strategy-start recovery", () => {
     }); vi.stubGlobal("fetch", fetcher);
     await render(); const prompt = host.querySelector("textarea")!.value; await click("Send prompt");
     const saved = window.localStorage.getItem(DRAFT_STORAGE_KEY)!;
-    expect(host.querySelector("textarea")!.readOnly).toBe(true);
+    expect(host.querySelector(".guided-research-screen h1")?.textContent).toBe("Researching your competitors");
+    expect(host.textContent).toContain("Saving your prompt and preparing competitor research");
+    expect(JSON.parse(saved).drafts[0].description).toBe(prompt);
     mock.session = { status: "signed_out", generation: 2 }; mock.memory!.bind(null); await render();
     await act(async () => save.resolve(Response.json({ project: { ...accountBody, id: crypto.randomUUID(), owner_id: owner, current_revision: 1, created_at: "2026-10-07T00:00:00Z" } })));
     expect(host.querySelector("textarea")!.readOnly).toBe(true);

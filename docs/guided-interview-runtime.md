@@ -59,6 +59,14 @@ requires a separately supported provider bound and a new exact policy.
 
 ## Immutable input and answers
 
+An HTTP acknowledgement is separate from durable execution. After an interrupted
+acknowledgement, the client retains the attempted operation, input revision,
+billing allowance and local mutation generation. A later validated owned status
+read dismisses that old confirmation warning only for one matching saved
+operation. It sends no replacement request and makes no claim of provider
+success; the job's actual state remains authoritative. Ambiguous matches,
+conflicts and newer client actions retain their recovery state.
+
 The existing enqueue RPC still accepts only project, expected revision,
 operation, idempotency key and accepted maximum cost. For guided policies it
 freezes API input v2 from the owned current revision, plus at most five completed

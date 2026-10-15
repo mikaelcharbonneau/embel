@@ -500,6 +500,38 @@ test("guided interview: an uncertain provider outcome offers status recovery wit
   expect(state.enqueues).toHaveLength(0);
 });
 
+test("guided interview: a verified saved reply clears a lost acknowledgement warning without resending", async ({ page }) => {
+  const state = await fixtures(page, { seeded: true });
+  let release!: () => void;
+  state.enqueueGate = new Promise<void>(resolve => { release = resolve; });
+  state.queueStatus = 500;
+  state.commitBeforeQueueFailure = true;
+  await openProject(page);
+  await expectSingleWidget(page, "competitors");
+  await page.getByRole("textbox", { name: "Message Embel", exact: true }).fill("Why are these useful comparisons?");
+  await page.getByRole("button", { name: "Send prompt", exact: true }).click();
+  await expectRequest(state, 1, "strategy.reformulate");
+  const message = "Synthetic clarification: these comparisons address a similar everyday lunch need.";
+  state.pendingReply = guidedReplySchema.parse({ kind: "answer", turnId: currentTurn(state).id, stage: "competitors", message });
+  state.overviewStatus = 503;
+  release();
+  const warning = page.getByRole("alert").filter({ hasText: "The strategy request could not be confirmed." });
+  await expect(warning).toBeVisible();
+  expect(state.enqueues).toHaveLength(1);
+  expect(state.jobs).toHaveLength(2);
+  const originalJob = state.jobs.at(-1)!.id;
+  state.overviewStatus = 200;
+  await warning.getByRole("button", { name: "Check status", exact: true }).click();
+  await expect(page.getByText(message, { exact: true })).toBeVisible();
+  await expect(warning).toHaveCount(0);
+  expect(state.enqueues).toHaveLength(1);
+  expect(state.jobs.at(-1)!.id).toBe(originalJob);
+  await page.reload();
+  await expect(page.getByText(message, { exact: true })).toBeVisible();
+  await expect(warning).toHaveCount(0);
+  expect(state.enqueues).toHaveLength(1);
+});
+
 test("guided interview: a selection save conflict retains the decision and blocks the next request", async ({ page }) => {
   const state = await fixtures(page, { seeded: true }); state.patchStatus = 409;
   await openProject(page); await expectSingleWidget(page, "competitors");

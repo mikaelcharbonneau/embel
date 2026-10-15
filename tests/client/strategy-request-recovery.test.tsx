@@ -64,10 +64,150 @@ describe("saved-project strategy HTTP recovery", () => {
     });
     await act(async () => { void api.enqueue("strategy.reformulate", 1, allowance); });
     await expireRequest();
-    expect(api.pending).toBe(false); expect(api.actionError).toContain("Check its status");
+    expect(api.pending).toBe(false); expect(api.actionError).toBeNull();
     expect(api.overview?.jobs[0]?.id).toBe(job.id); expect(mutations()).toHaveLength(1);
     await act(async () => stalled.resolve(Response.json({ job })));
     expect(mutations()).toHaveLength(1); expect(mock.expire).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["lost network acknowledgement", null], ["HTTP 408", 408], ["HTTP 500", 500],
+    ["HTTP 502", 502], ["HTTP 503", 503], ["HTTP 504", 504],
+  ])("clears an uncertain enqueue (%s) only when Check status confirms the matching saved request", async (_name, status) => {
+    const job = overview.jobs[0]!;
+    overview = { availability, jobs: [] }; await render();
+    fetcher.mockImplementation(async (_path: string, init: RequestInit) => {
+      if (init.method === "POST") {
+        if (status) return new Response(null, { status });
+        throw new TypeError("Synthetic lost acknowledgement");
+      }
+      return Response.json(overview);
+    });
+    await act(async () => { await api.enqueue("strategy.reformulate", 1, allowance); });
+    expect(api.actionError).toBeTruthy();
+    expect(api.overview?.jobs).toEqual([]);
+
+    overview = { availability, jobs: [job] };
+    await act(async () => api.refresh());
+    expect(api.overview?.jobs[0]?.id).toBe(job.id);
+    expect(api.actionError).toBeNull();
+    expect(mutations()).toHaveLength(1);
+  });
+
+  it.each([
+    ["operation", { operation: "strategy.competitors" }],
+    ["input revision", { input_revision: 2 }],
+    ["billing mode", { billingMode: "chatgpt_subscription", policyIdentity: "a".repeat(64) }],
+    ["accepted allowance", { reserved_cost_microusd: allowance.maximumCostMicrousd + 1 }],
+  ])("does not confirm an uncertain enqueue from a job with another %s", async (_name, difference) => {
+    const job = strategyJobSchema.parse({ ...overview.jobs[0]!, ...difference, results: [] });
+    overview = { availability, jobs: [] }; await render();
+    fetcher.mockImplementation(async (_path: string, init: RequestInit) => {
+      if (init.method === "POST") throw new TypeError("Synthetic lost acknowledgement");
+      return Response.json(overview);
+    });
+    await act(async () => { await api.enqueue("strategy.reformulate", 1, allowance); });
+    overview = { availability, jobs: [job] };
+    await act(async () => api.refresh());
+    expect(api.readError).toBeNull();
+    expect(api.actionError).toContain("Check its status");
+    expect(mutations()).toHaveLength(1);
+  });
+
+  it("keeps an uncertain enqueue warning when multiple durable jobs match its saved operation", async () => {
+    const job = overview.jobs[0]!;
+    overview = { availability, jobs: [] }; await render();
+    fetcher.mockImplementation(async (_path: string, init: RequestInit) => {
+      if (init.method === "POST") throw new TypeError("Synthetic lost acknowledgement");
+      return Response.json(overview);
+    });
+    await act(async () => { await api.enqueue("strategy.reformulate", 1, allowance); });
+    overview = { availability, jobs: [job, { ...job, id: "eeeeeeee-1111-4111-8111-111111111111" }] };
+    await act(async () => api.refresh());
+    expect(api.overview?.jobs).toHaveLength(2);
+    expect(api.actionError).toContain("Check its status");
+    expect(mutations()).toHaveLength(1);
+  });
+
+  it("confirms a single matching operation without confusing preexisting unrelated history", async () => {
+    const job = overview.jobs[0]!;
+    const historical = { ...job, id: "eeeeeeee-1111-4111-8111-111111111111", operation: "strategy.competitors" as const, results: [] };
+    overview = { availability, jobs: [historical] }; await render();
+    fetcher.mockImplementation(async (_path: string, init: RequestInit) => {
+      if (init.method === "POST") throw new TypeError("Synthetic lost acknowledgement");
+      return Response.json(overview);
+    });
+    await act(async () => { await api.enqueue("strategy.reformulate", 1, allowance); });
+    expect(api.actionError).toContain("Check its status");
+    overview = { availability, jobs: [job, historical] };
+    await act(async () => api.refresh());
+    expect(api.overview?.jobs).toHaveLength(2);
+    expect(api.actionError).toBeNull();
+    expect(mutations()).toHaveLength(1);
+  });
+
+  it.each(["owner_id", "project_id"])("rejects status confirmation with a foreign %s", async field => {
+    const job = { ...overview.jobs[0]!, [field]: "dddddddd-1111-4111-8111-111111111111" };
+    overview = { availability, jobs: [] }; await render();
+    fetcher.mockImplementation(async (_path: string, init: RequestInit) => {
+      if (init.method === "POST") throw new TypeError("Synthetic lost acknowledgement");
+      return Response.json(overview);
+    });
+    await act(async () => { await api.enqueue("strategy.reformulate", 1, allowance); });
+    overview = { availability, jobs: [job] };
+    await act(async () => api.refresh());
+    expect(api.actionError).toContain("Check its status");
+    expect(api.overview?.jobs).toEqual([]);
+    expect(mock.expire).toHaveBeenCalledWith(account);
+    expect(mutations()).toHaveLength(1);
+  });
+
+  it.each([400, 403, 404, 409, 413, 422, 429])("retains a rejected enqueue error (%i) after a status read", async status => {
+    const job = overview.jobs[0]!;
+    overview = { availability, jobs: [] }; await render();
+    fetcher.mockImplementation(async (_path: string, init: RequestInit) => init.method === "POST" ? new Response(null, { status }) : Response.json(overview));
+    await act(async () => { await api.enqueue("strategy.reformulate", 1, allowance); });
+    const error = api.actionError;
+    expect(error).toBeTruthy();
+    overview = { availability, jobs: [job] };
+    await act(async () => api.refresh());
+    expect(api.actionError).toBe(error);
+    expect(mutations()).toHaveLength(1);
+  });
+
+  it("does not clear a newer error report when an uncertain enqueue is later found", async () => {
+    const job = overview.jobs[0]!;
+    overview = { availability, jobs: [] }; await render();
+    fetcher.mockImplementation(async (_path: string, init: RequestInit) => {
+      if (init.method === "POST") throw new TypeError("Synthetic lost acknowledgement");
+      return Response.json(overview);
+    });
+    await act(async () => { await api.enqueue("strategy.reformulate", 1, allowance); });
+    await act(async () => api.report("Your newer edits need review."));
+    overview = { availability, jobs: [job] };
+    await act(async () => api.refresh());
+    expect(api.actionError).toBe("Your newer edits need review.");
+    expect(mutations()).toHaveLength(1);
+  });
+
+  it("does not let an older confirmation read settle a newer in-flight mutation", async () => {
+    const job = overview.jobs[0]!;
+    overview = { availability, jobs: [] }; await render();
+    fetcher.mockImplementation(async (_path: string, init: RequestInit) => {
+      if (init.method === "POST") throw new TypeError("Synthetic lost acknowledgement");
+      return Response.json(overview);
+    });
+    await act(async () => { await api.enqueue("strategy.reformulate", 1, allowance); });
+    const oldRead = deferred<Response>(), newRequest = deferred<Response>();
+    fetcher.mockImplementation(async (_path: string, init: RequestInit) => init.method === "POST" ? newRequest.promise : oldRead.promise);
+    await act(async () => api.refresh());
+    await act(async () => { void api.enqueue("strategy.competitors", 1, allowance); });
+    await act(async () => oldRead.resolve(Response.json({ availability, jobs: [job] })));
+    expect(api.pending).toBe(true);
+    expect(api.overview?.jobs).toEqual([]);
+    expect(api.actionError).toBeNull();
+    await act(async () => { void api.enqueue("strategy.reformulate", 1, allowance); });
+    expect(mutations()).toHaveLength(2);
   });
 
   it("recovers an applied revision after its HTTP reply stalls without replaying Apply", async () => {

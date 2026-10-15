@@ -11,7 +11,10 @@ import { accountProjectDraft } from "./project-draft-adapter";
 import { canContinueStrategy, forgetStrategyIntent, readStrategyIntent, strategyApplicationMatchesResult, strategyErrorMessage, strategyIdempotencyKey, strategyIntentPlan, strategyJobActive, strategyJobMatchesRequest, strategyRequestPayload, strategyResultApplication, verifyStrategyJobs, type StrategyAllowance } from "./account-strategy-client";
 
 type ReadState = { identity: string; overview: StrategyOverview | null; error: string | null };
-type ActionState = { identity: string; pending: boolean; error: string | null; pendingLabel?: string };
+type ActionState = {
+  identity: string; pending: boolean; error: string | null; pendingLabel?: string;
+  unconfirmedEnqueue?: { epoch: number; operation: StrategyOperation; revision: number; allowance: StrategyAllowance };
+};
 
 export function useStrategyJobs({ account, workspace, blocked, guided = false }: { account: VerifiedAccount; workspace: AccountWorkspace; blocked: boolean; guided?: boolean }) {
   const { isCurrent, expire, drafts } = useAccountSession();
@@ -48,7 +51,17 @@ export function useStrategyJobs({ account, workspace, blocked, guided = false }:
         if (controller.signal.aborted || !getWorkspace()) return;
         if (!verifyStrategyJobs(overview.jobs, account.userId, projectId)) { expire(account); return; }
         soon = overview.jobs.some(strategyJobActive);
-        if (epoch === mutationEpoch.current) setRead({ identity, overview, error: null });
+        if (epoch === mutationEpoch.current) {
+          setRead({ identity, overview, error: null });
+          setAction(previous => {
+            const request = previous?.unconfirmedEnqueue;
+            if (previous?.identity !== identity || previous.pending || !request || request.epoch !== epoch || epoch !== mutationEpoch.current) return previous;
+            // Confirm the saved operation only from one matching owned job;
+            // ambiguous history cannot resolve an unknown acknowledgement.
+            return overview.jobs.filter(job => strategyJobMatchesRequest(job, request.operation, request.revision, request.allowance)).length === 1
+              ? { identity, pending: false, error: null } : previous;
+          });
+        }
       } catch (error: unknown) {
         if (controller.signal.aborted || !getWorkspace()) return;
         if (error instanceof AccountRequestError && error.status === 401) { expire(account); return; }
@@ -74,7 +87,8 @@ export function useStrategyJobs({ account, workspace, blocked, guided = false }:
       report("Your draft changed before the request was submitted. Save your current edits before requesting a proposal."); return null;
     }
     const controller = new AbortController(); controllers.current.add(controller); inFlight.current = true;
-    mutationEpoch.current += 1; setAction({ identity, pending: true, error: null });
+    const epoch = ++mutationEpoch.current;
+    setAction({ identity, pending: true, error: null });
     try {
       const { job } = await boundedAccountRequest(`/api/projects/${projectId}/strategy`, strategyJobResponseSchema, { method: "POST", signal: controller.signal, body: strategyRequestPayload(projectId, revision, operation, allowance) });
       if (controller.signal.aborted || !getWorkspace()) return null;
@@ -85,7 +99,12 @@ export function useStrategyJobs({ account, workspace, blocked, guided = false }:
     } catch (error: unknown) {
       if (controller.signal.aborted || !getWorkspace()) return null;
       if (error instanceof AccountRequestError && error.status === 401) expire(account);
-      else report(strategyErrorMessage(error));
+      else {
+        const unconfirmed = !(error instanceof AccountRequestError) || error.status === 408 || error.status >= 500;
+        setAction({ identity, pending: false, error: strategyErrorMessage(error), ...(unconfirmed ? {
+          unconfirmedEnqueue: { epoch, operation, revision, allowance },
+        } : {}) });
+      }
       refresh(); return null;
     } finally { controllers.current.delete(controller); inFlight.current = false; }
   }, [account, expire, getWorkspace, identity, projectId, refresh, report]);
