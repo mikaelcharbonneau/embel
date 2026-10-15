@@ -8,7 +8,7 @@ import { DomainsWorkspace } from "@/features/domain-workspace/domain-workspace";
 import { useStandaloneLiveChecks } from "./use-standalone-live-checks";
 import { domainDraftFromSavedName, standalonePayloadCodec } from "@/features/domain-workspace/account-codec";
 import { emptyDomainDraft } from "@/features/domain-workspace/draft";
-import type { DomainBrandSource } from "@/features/domain-workspace/model";
+import type { DomainBrandSource, DomainSearchAdapter } from "@/features/domain-workspace/model";
 import { standaloneImportKey } from "@/domain/standalone-workspaces";
 import type { StandaloneDraftMemory } from "./standalone-draft-memory";
 import { useStandaloneWorkspace } from "./use-standalone-workspace";
@@ -22,6 +22,11 @@ export type AccountDomainsWorkspaceProps = {
   projectPicker?: ReactNode;
   /** Existing explicit brand seam only; absent unless a real flow is connected. */
   onCreateBrand?: (source: DomainBrandSource) => void;
+};
+
+const pendingDomainAdapter: DomainSearchAdapter = {
+  status: "unavailable",
+  reason: "Live domain checks and pricing are not ready. Recheck your account or try again. Purchases are unavailable.",
 };
 
 export function AccountDomainsWorkspace(props: AccountDomainsWorkspaceProps) {
@@ -63,7 +68,7 @@ function OwnedDomainsWorkspace({ memory, importProjectId, projectPicker, onCreat
     <p className={styles.note}>Account drafts contain search text, extensions, prepared candidates and your shortlist. Live checks and prices stay in this view; purchases are unavailable.</p>
   </section>;
   if (!state.payload) return <div className="page"><h1>Domains</h1>{state.status === "loading" && <p role="status">Loading your domain draft…</p>}{controls}</div>;
-  return <DomainsWorkspace adapter={live?.domains} draft={state.payload} initialView="search" draftDisabled={!state.canEdit} onDraftChange={state.setPayload} draftNotice={state.dirty ? "Changes stay in this tab until you save the account draft." : "Saved candidates require fresh checks when reopened."}
+  return <DomainsWorkspace adapter={live?.domains ?? pendingDomainAdapter} draft={state.payload} initialView="search" draftDisabled={!state.canEdit} onDraftChange={state.setPayload} draftNotice={state.dirty ? "Changes stay in this tab until you save the account draft." : "Saved candidates require fresh checks when reopened."}
     onOpenNameLibrary={() => setNameLibraryOpen(true)}
     draftControls={<>{controls}{promotion.controls}<dialog className={styles.nameLibrary} ref={nameLibrary} aria-label="Name library" onCancel={() => setNameLibraryOpen(false)} onClick={event => { if (event.target === event.currentTarget) setNameLibraryOpen(false); }}>
       <header><h2>From name library</h2><button type="button" className="icon-button" aria-label="Close name library" onClick={() => setNameLibraryOpen(false)}><Icon name="close" size={18} /></button></header>

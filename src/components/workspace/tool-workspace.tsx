@@ -10,7 +10,7 @@ import { AccountDomainsWorkspace } from "@/components/tools/domain-account-works
 import { HandlesAccountEditor } from "@/components/tools/handles-account-editor";
 import { TrademarkAccountEditor } from "@/components/tools/trademark-account-editor";
 import { StandaloneProjectPicker, type StandaloneProjectSelection } from "@/components/tools/standalone-project-picker";
-import { DomainsWorkspace } from "@/features/domain-workspace";
+import { DomainsWorkspace, type DomainSearchAdapter } from "@/features/domain-workspace";
 import { HandlesWorkspace } from "@/features/handles-workspace";
 import { TrademarkWorkspace, createTrademarkDraft, serializeTrademarkDraftPreview } from "@/features/trademark-workspace";
 
@@ -18,6 +18,13 @@ export const toolNames = ["ideas", "names", "handles", "domains", "trademarks", 
 export type ToolName = typeof toolNames[number];
 
 type StandaloneToolName = "domains" | "handles" | "trademarks";
+
+const unverifiedDomainAdapters: Record<"checking" | "signed_out" | "unavailable" | "error", DomainSearchAdapter> = {
+  checking: { status: "unavailable", reason: "Checking your account before enabling live domain availability and pricing." },
+  signed_out: { status: "unavailable", reason: "Sign in to check live domain availability and prices, and save your shortlist. Purchases are unavailable." },
+  unavailable: { status: "unavailable", reason: "Your account could not be verified. Recheck your account to enable live domain checks and pricing. Purchases are unavailable." },
+  error: { status: "unavailable", reason: "Your account could not be verified. Recheck your account to enable live domain checks and pricing. Purchases are unavailable." },
+};
 
 function ManualTrademarkWorkspace({ draftControls }: { draftControls?: React.ReactNode }) {
   const [draft, setDraft] = useState(createTrademarkDraft);
@@ -43,7 +50,7 @@ function StandaloneToolWorkspace({ tool }: { tool: StandaloneToolName }) {
   // The manual fallback is a separate component, seeded only by the features'
   // empty defaults. It never receives a hidden account payload or saved sources.
   if (session.status !== "ready") {
-    if (tool === "domains") return <DomainsWorkspace initialView="search" draftControls={<AccountStatus retainedEdits={standaloneDrafts.hasUnsaved()} />} />;
+    if (tool === "domains") return <DomainsWorkspace adapter={unverifiedDomainAdapters[session.status]} initialView="search" draftControls={<AccountStatus retainedEdits={standaloneDrafts.hasUnsaved()} />} />;
     if (tool === "handles") return <HandlesWorkspace draftControls={<AccountStatus retainedEdits={standaloneDrafts.hasUnsaved()} />} />;
     return <ManualTrademarkWorkspace draftControls={<AccountStatus retainedEdits={standaloneDrafts.hasUnsaved()} />} />;
   }
