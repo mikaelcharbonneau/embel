@@ -100,6 +100,20 @@ const messageItem = z.object({ type: z.literal("message"), role: z.literal("assi
 const webItem = z.object({ type: z.literal("web_search_call"), status: z.string(), action: z.object({ type: z.enum(["search", "open_page", "find_in_page"]), sources: z.array(z.unknown()).optional() }).passthrough() });
 const sourceSchema = z.object({ url: competitorWebsiteSchema, title: z.string().trim().min(1).max(300).optional() });
 const citationSchema = sourceSchema.extend({ type: z.literal("url_citation") });
+const providerStatuses = ["completed", "failed", "incomplete", "cancelled", "in_progress", "searching", "queued"];
+const webActions = ["search", "open_page", "find_in_page"];
+const MAX_OUTPUT_ISSUES = 50;
+// At most 20 legacy competitors, each with ten sources and a website. A byte
+// bound also covers URL canonicalization expansion and escaped source titles.
+const MAX_OBSERVED_SOURCES = 220;
+const MAX_SOURCE_EVIDENCE_BYTES = 128 * 1024;
+type OutputIssue = { outputIndex: number; code: "invalid_web_search_item" | "web_search_not_completed" | "unsupported_output_item" | "invalid_message_item" | "message_not_completed" | "invalid_message_content"; contentIndex?: number; contentType?: string };
+function diagnosticLabel(value: unknown, allowed: readonly string[]): string {
+  return value === undefined ? "missing" : typeof value === "string" && allowed.includes(value) ? value : "unknown";
+}
+function diagnosticField(value: unknown, key: string): unknown {
+  return typeof value === "object" && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>)[key] : undefined;
+}
 
 function canonicalUrl(value: string): string {
   competitorWebsiteSchema.parse(value);
@@ -270,48 +284,72 @@ export async function executeStrategyResponse(options: {
   let refused = false;
   let searchCalls = 0;
   let toolCalls = 0;
-  let invalidItems = false;
+  let issueCount = 0;
+  const issues: OutputIssue[] = [];
+  const addIssue = (issue: OutputIssue) => {
+    issueCount += 1;
+    if (issues.length < MAX_OUTPUT_ISSUES) issues.push(issue);
+  };
+  // Only fixed labels and indexes enter diagnostics. Never persist raw provider
+  // type strings, validation errors, query text or reasoning content here.
+  const items = response.output.map((item, outputIndex) => ({ outputIndex,
+    type: ["reasoning", "message", "web_search_call"].includes(item.type) ? item.type : "unsupported",
+    status: diagnosticLabel(item.status, providerStatuses),
+    ...(item.type === "web_search_call" ? { actionType: diagnosticLabel(diagnosticField(item.action, "type"), webActions) } : {}),
+  }));
   const sources = new Map<string, { url: string; title: string }>();
-  const addSource = (rawSource: unknown) => {
+  const observedSources: Array<ObservedSource & { kind: "web_search_source" | "url_citation"; outputIndex: number; contentIndex?: number }> = [];
+  let sourceEvidenceBytes = 2;
+  let observedSourcesTruncated = false;
+  const addSource = (rawSource: unknown, outputIndex: number, contentIndex?: number) => {
     const source = sourceSchema.safeParse(rawSource);
     if (!source.success) return;
     const url = canonicalUrl(source.data.url);
-    sources.set(url, { url, title: source.data.title ?? new URL(url).hostname });
+    const normalized = { url, title: source.data.title ?? new URL(url).hostname };
+    sources.set(url, normalized);
+    const evidence = { ...normalized, outputIndex, ...(contentIndex === undefined ? { kind: "web_search_source" as const } : { kind: "url_citation" as const, contentIndex }) };
+    const bytes = Buffer.byteLength(JSON.stringify(evidence), "utf8") + 1;
+    if (observedSources.length >= MAX_OBSERVED_SOURCES || sourceEvidenceBytes + bytes > MAX_SOURCE_EVIDENCE_BYTES) observedSourcesTruncated = true;
+    else { observedSources.push(evidence); sourceEvidenceBytes += bytes; }
   };
-  for (const item of response.output) {
+  for (const [outputIndex, item] of response.output.entries()) {
     if (item.type === "reasoning") continue;
     if (item.type === "web_search_call") {
       toolCalls += 1;
       const web = webItem.safeParse(item);
-      if (!web.success) { invalidItems = true; continue; }
+      if (!web.success) { addIssue({ outputIndex, code: "invalid_web_search_item" }); continue; }
       if (web.data.action.type === "search") searchCalls += 1;
-      if (web.data.status !== "completed") invalidItems = true;
-      for (const source of web.data.action.sources ?? []) addSource(source);
+      if (web.data.status !== "completed") addIssue({ outputIndex, code: "web_search_not_completed" });
+      for (const source of web.data.action.sources ?? []) addSource(source, outputIndex);
       continue;
     }
     const assistant = messageItem.safeParse(item);
-    if (!assistant.success) { invalidItems = true; continue; }
-    if (assistant.data.status !== "completed") invalidItems = true;
-    for (const content of assistant.data.content) {
+    if (!assistant.success) { addIssue({ outputIndex, code: item.type === "message" ? "invalid_message_item" : "unsupported_output_item" }); continue; }
+    if (assistant.data.status !== "completed") addIssue({ outputIndex, code: "message_not_completed" });
+    for (const [contentIndex, content] of assistant.data.content.entries()) {
       if (z.object({ type: z.literal("refusal") }).safeParse(content).success) { refused = true; continue; }
       const part = textItem.safeParse(content);
-      if (!part.success) { invalidItems = true; continue; }
+      if (!part.success) { addIssue({ outputIndex, contentIndex, code: "invalid_message_content", contentType: diagnosticLabel(diagnosticField(content, "type"), ["output_text", "refusal"]) }); continue; }
       text += part.data.text;
       for (const annotation of part.data.annotations ?? []) {
         const citation = citationSchema.safeParse(annotation);
-        if (citation.success) addSource(citation.data);
+        if (citation.success) addSource(citation.data, outputIndex, contentIndex);
       }
     }
   }
   const cost = calculateStrategyCost(usage.data, searchCalls, input);
   const observedUsage = { inputTokens: usage.data.input_tokens, outputTokens: usage.data.output_tokens,
     cachedInputTokens: usage.data.input_tokens_details.cached_tokens, cacheWriteInputTokens: usage.data.input_tokens_details.cache_write_tokens, webSearchCalls: searchCalls };
-  const partial = { responseId: response.id, requestId: raw.requestId, model: response.model, usage: observedUsage, partialText: text.slice(0, 32_000) };
   const usageExceeded = toolCalls > input.policy.maxWebSearchCalls || usage.data.input_tokens > input.policy.maxInputTokens || usage.data.output_tokens > input.policy.maxOutputTokens;
+  const partial = { responseId: response.id, requestId: raw.requestId, model: response.model, usage: observedUsage, partialText: text.slice(0, 32_000),
+    observedSources, observedSourcesTruncated,
+    outputDiagnostics: { version: 1, responseStatus: diagnosticLabel(response.status, providerStatuses), outputItemCount: response.output.length,
+      toolCalls, observedSourceCount: sources.size, usageExceeded, items, issues, issueCount, issuesTruncated: issueCount > issues.length },
+  };
   if (usageExceeded && refused) return uncertain("provider_usage_exceeded", cost, providerRequestId, partial);
   if (!["completed", "failed", "incomplete", "cancelled"].includes(response.status)) return uncertain("provider_not_terminal", cost, providerRequestId, partial);
   if (response.status !== "completed") return uncertain(`provider_${response.status}`, cost, providerRequestId, partial);
-  if (invalidItems) return uncertain("provider_unexpected_output", cost, providerRequestId, partial);
+  if (issueCount) return uncertain("provider_unexpected_output", cost, providerRequestId, partial);
   if (refused) return failure("provider_refusal", cost, providerRequestId);
 
   let proposal: unknown;

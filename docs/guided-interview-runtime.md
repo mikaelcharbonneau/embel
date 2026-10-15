@@ -57,6 +57,30 @@ paid output retains the reservation for reconciliation and does not redispatch.
 Only successfully reconciled actual costs settle it. A lower research ceiling
 requires a separately supported provider bound and a new exact policy.
 
+### Rejected response evidence
+
+A completed provider response can still fail output validation. The retained
+assistant text alone does not prove that every tool completed, the cited sources
+were observed, or all billable activity was accounted for. Such a request stays
+reserved and is not replayed. Refreshing its status reads the same durable job;
+it cannot perform provider-specific reconciliation.
+
+Rejected responses now retain bounded diagnostic codes for the exact validation
+branches, output/tool/source counts, and validated observed source metadata with
+explicit truncation markers. Diagnostics exclude reasoning, arbitrary provider
+error strings and unknown type/status values. This evidence does not change
+acceptance rules, settlement, permissions or retry behavior. Historical partials
+without that evidence are not backfilled from model-authored text. Recovering
+them requires the original provider response or equivalent verified provider
+records; missing evidence must not be treated as a successful result.
+
+An operator can separately abandon the single reviewed terminal-but-unusable
+response described in [the incident recovery](proposals/terminal-research-abandonment.md).
+That exact-record exception retains the original ambiguous step and complete
+financial hold. It restores explicit new work without declaring billing settled
+or accepting the rejected answer. It is not a general reconciliation or retry
+capability; every other ambiguous outcome remains blocking.
+
 ## Immutable input and answers
 
 An HTTP acknowledgement is separate from durable execution. After an interrupted
@@ -104,7 +128,8 @@ that operation's testing grant plus the existing enabled entitlement, cohort,
 global switch, exact policy, exact restricted role OID and deployment binding.
 Ordinary signup allowance counters and ceilings remain unchanged. Testing retains
 no aggregate cap or expiry and one active request across operations; uncertain
-work still blocks further requests. No new SQL function receives client,
+work still blocks further requests except for the exact operator-adjudicated
+terminal abandonment above. No new SQL function receives client,
 service-role or worker EXECUTE, including installations with permissive default
 privileges. Existing function OIDs, owners, security attributes and ACLs are
 preserved. The private dispatch action gateway and prompt-free queue message are

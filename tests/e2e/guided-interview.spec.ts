@@ -421,14 +421,18 @@ for (const kind of ["answer", "question"] as const) test(`guided interview: a cl
   expect(state.unhandledWrites).toEqual([]);
 });
 
-test("guided interview: failed research retains the prompt and explicit retry starts a new saved turn", async ({ page }) => {
+for (const errorCode of ["provider_error", "operator_abandoned_billing_unresolved"]) test(`guided interview: failed research (${errorCode}) retains the prompt and explicit retry starts a new saved turn`, async ({ page }) => {
   const state = await fixtures(page);
-  state.jobs = [strategyJobSchema.parse({ ...queuedJob("strategy.competitors", 1, 1), state: "failed", error_code: "provider_error", finished_at: when })];
+  state.jobs = [strategyJobSchema.parse({ ...queuedJob("strategy.competitors", 1, 1), state: "failed", error_code: errorCode, finished_at: when })];
   await openProject(page);
   await expect(page.getByText(initialPrompt, { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Researching your competitors", exact: true })).toHaveCount(0);
   await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(0);
   expect(state.enqueues).toHaveLength(0);
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Retry research", exact: true })).toBeVisible();
+  expect(state.enqueues).toHaveLength(0);
+  expect(state.project.current_revision).toBe(1);
   await page.getByRole("button", { name: "Retry research", exact: true }).click();
   await expectRequest(state, 1, "strategy.competitors");
   expect(currentTurn(state).id).not.toBe("initial-research");

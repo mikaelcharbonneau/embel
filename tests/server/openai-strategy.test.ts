@@ -125,6 +125,112 @@ describe("OpenAI strategy adapter (mock transport only)", () => {
     expect(await execute(response).run()).toMatchObject({ status: "needs_reconciliation", code: "provider_unexpected_output" });
   });
 
+  it.each(["open_page", "find_in_page"])("accepts the documented %s action within the unchanged total tool limit", async (type) => {
+    const response = researchFixture();
+    response.output.unshift({ type: "web_search_call", status: "completed", action: { type, url: "https://example.com/", pattern: "classes" } });
+    expect(await execute(response, "strategy.competitors").run()).toMatchObject({ status: "succeeded", costMicrousd: 10691, result: { usage: { webSearchCalls: 1 } } });
+    response.output.unshift({ type: "web_search_call", status: "completed", action: { type: "search", sources: [] } });
+    expect(await execute(response, "strategy.competitors").run()).toMatchObject({ status: "needs_reconciliation", code: "provider_usage_exceeded", costMicrousd: 20691 });
+  });
+
+  it.each([
+    ["missing web action", { type: "web_search_call", status: "completed" }, "invalid_web_search_item", { type: "web_search_call", status: "completed", actionType: "missing" }],
+    ["unknown web action", { type: "web_search_call", status: "completed", action: { type: "find" } }, "invalid_web_search_item", { type: "web_search_call", status: "completed", actionType: "unknown" }],
+    ["malformed web sources", { type: "web_search_call", status: "completed", action: { type: "search", sources: null } }, "invalid_web_search_item", { type: "web_search_call", status: "completed", actionType: "search" }],
+    ["failed web tool", { type: "web_search_call", status: "failed", action: { type: "search" } }, "web_search_not_completed", { type: "web_search_call", status: "failed", actionType: "search" }],
+    ["malformed message", { type: "message", status: "completed", role: "user", content: [] }, "invalid_message_item", { type: "message", status: "completed" }],
+    ["incomplete message", { type: "message", status: "incomplete", role: "assistant", content: [] }, "message_not_completed", { type: "message", status: "incomplete" }],
+    ["unsupported output", { type: "code_interpreter_call", status: "completed" }, "unsupported_output_item", { type: "unsupported", status: "completed" }],
+    ["invalid text", { type: "message", status: "completed", role: "assistant", content: [{ type: "output_text", text: 12 }] }, "invalid_message_content", { type: "message", status: "completed" }],
+    ["unknown content", { type: "message", status: "completed", role: "assistant", content: [{ type: "unsupported_content" }] }, "invalid_message_content", { type: "message", status: "completed" }],
+  ] as const)("retains a fixed diagnostic for %s without accepting the response", async (_label, item, code, summary) => {
+    const response = researchFixture(); response.output.unshift(item);
+    const f = execute(response, "strategy.competitors");
+    const outcome = await f.run();
+    expect(outcome).toMatchObject({ status: "needs_reconciliation", code: "provider_unexpected_output", result: {
+      responseId: response.id, partialText: expect.any(String),
+      observedSources: [{ url: "https://example.com/", title: "Synthetic source fixture", outputIndex: 1, kind: "web_search_source" }],
+      observedSourcesTruncated: false,
+      outputDiagnostics: {
+        version: 1, responseStatus: "completed", outputItemCount: 3, observedSourceCount: 1, issueCount: 1, issuesTruncated: false,
+        items: [expect.objectContaining({ outputIndex: 0, ...summary }), expect.any(Object), expect.any(Object)],
+        issues: [expect.objectContaining({ outputIndex: 0, code })],
+      },
+    } });
+    expect(f.transport.createResponse).toHaveBeenCalledTimes(1);
+  });
+
+  it("retains total tool usage even when an unexpected item takes precedence over the limit failure", async () => {
+    const response = researchFixture();
+    response.output.unshift({ type: "web_search_call", status: "completed", action: { type: "search" } }, { type: "web_search_call", status: "completed" });
+    expect(await execute(response, "strategy.competitors").run()).toMatchObject({ status: "needs_reconciliation", code: "provider_unexpected_output", costMicrousd: 20691, result: {
+      usage: { webSearchCalls: 2 }, outputDiagnostics: { toolCalls: 3, usageExceeded: true },
+    } });
+  });
+
+  it("stores only allowlisted diagnostic labels and validated source fields", async () => {
+    const response = researchFixture();
+    response.output.unshift({ type: "private-type", status: "private-status", secret: "private-error" },
+      { type: "web_search_call", status: "private-status", action: { type: "private-action", query: "private-query" } },
+      { type: "reasoning", summary: [{ text: "private-reasoning" }] },
+      { type: "message", status: "completed", role: "assistant", content: [{ type: "private-content", text: "private-text" }] });
+    response.output[4] = { type: "web_search_call", status: "completed", action: { type: "search", sources: [
+      { url: "https://example.com/", title: "Synthetic source fixture", snippet: "private-snippet" },
+      { url: "https://login:password@example.com/", title: "Rejected credentials" }, { url: "javascript:alert(1)", title: "Rejected scheme" },
+    ] } };
+    const outcome = await execute(response, "strategy.competitors").run();
+    if (outcome.status !== "needs_reconciliation" || !outcome.result) throw new Error("Expected retained private evidence");
+    const retained = JSON.stringify(outcome.result);
+    expect(retained).not.toContain("private-");
+    expect(retained).not.toContain("password");
+    expect(retained).not.toContain("javascript:");
+    expect(outcome).toMatchObject({ result: {
+      observedSources: [{ url: "https://example.com/", title: "Synthetic source fixture" }],
+      outputDiagnostics: { issues: [
+        { outputIndex: 0, code: "unsupported_output_item" },
+        { outputIndex: 1, code: "invalid_web_search_item" },
+        { outputIndex: 3, contentIndex: 0, contentType: "unknown", code: "invalid_message_content" },
+      ] },
+    } });
+  });
+
+  it("bounds private source evidence and issue details with explicit truncation", async () => {
+    const response = researchFixture();
+    response.output.unshift(...Array.from({ length: 60 }, () => ({ type: "unsupported" })));
+    response.output[60] = { type: "web_search_call", status: "completed", action: { type: "search", sources: Array.from({ length: 230 }, (_, index) => ({ url: `https://example.com/${index}`, title: `Synthetic source ${index}` })) } };
+    const outcome = await execute(response, "strategy.competitors").run();
+    expect(outcome).toMatchObject({ status: "needs_reconciliation", result: {
+      observedSourcesTruncated: true,
+      outputDiagnostics: { outputItemCount: 62, observedSourceCount: 230, issueCount: 60, issuesTruncated: true },
+    } });
+    const retained = outcome.result as { observedSources: unknown[]; outputDiagnostics: { issues: unknown[] } };
+    expect(retained.observedSources).toHaveLength(220);
+    expect(retained.outputDiagnostics.issues).toHaveLength(50);
+  });
+
+  it("bounds serialized source evidence even when canonical URLs expand", async () => {
+    const response = researchFixture();
+    response.output.unshift({ type: "unsupported" });
+    response.output[1] = { type: "web_search_call", status: "completed", action: { type: "search", sources: Array.from({ length: 220 }, (_, index) => ({ url: `https://example.com/${index}/${"é".repeat(1000)}`, title: "Synthetic long source" })) } };
+    const outcome = await execute(response, "strategy.competitors").run();
+    expect(outcome).toMatchObject({ status: "needs_reconciliation", result: { observedSourcesTruncated: true, outputDiagnostics: { observedSourceCount: 220 } } });
+    const retained = outcome.result as { observedSources: unknown[] };
+    expect(retained.observedSources.length).toBeGreaterThan(0);
+    expect(retained.observedSources.length).toBeLessThan(220);
+    expect(Buffer.byteLength(JSON.stringify(retained.observedSources), "utf8")).toBeLessThanOrEqual(128 * 1024);
+  });
+
+  it("binds retained citations to their message and content indexes", async () => {
+    const response = researchFixture();
+    response.output.push({ type: "message", status: "completed", role: "assistant", content: [
+      { type: "output_text", text: "", annotations: [{ type: "url_citation", url: "https://citation.example/", title: "Synthetic citation" }] },
+      { type: "unsupported_content" },
+    ] });
+    expect(await execute(response, "strategy.competitors").run()).toMatchObject({ status: "needs_reconciliation", result: {
+      observedSources: [expect.objectContaining({ kind: "web_search_source", outputIndex: 0 }), { kind: "url_citation", outputIndex: 2, contentIndex: 0, url: "https://citation.example/", title: "Synthetic citation" }],
+    } });
+  });
+
   it.each([
     ["strategy.audience", { message: "Synthetic audience fixture", segments: [{ label: "Workshop beginners", needs: ["Guided practice"], reason: "Matches the class offer" }] }],
     ["strategy.personality", { message: "Synthetic personality fixture", personality: { sincerity: 75, excitement: 40, competence: 80, sophistication: 20, ruggedness: 10 } }],
