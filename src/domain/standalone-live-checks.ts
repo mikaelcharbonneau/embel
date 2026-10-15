@@ -27,7 +27,7 @@ export const standaloneLookupResultSchema = z.discriminatedUnion("status", [
 export type StandaloneLookupResult = z.infer<typeof standaloneLookupResultSchema>;
 export const standaloneLookupResponseSchema = z.strictObject({ ownerId: z.uuid(), result: standaloneLookupResultSchema });
 export const standaloneCapabilitiesSchema = z.strictObject({
-  ownerId: z.uuid(), domains: z.enum(["rdap", "cloudflare", "unavailable"]),
+  ownerId: z.uuid(), domains: z.enum(["rdap", "cloudflare", "vercel", "namecom", "unavailable"]),
   youtube: z.boolean(), euipo: z.boolean(),
 });
 export type StandaloneCapabilities = z.infer<typeof standaloneCapabilitiesSchema>;

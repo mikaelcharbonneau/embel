@@ -3,6 +3,7 @@ import { getAuthenticatedContext } from "@/server/auth/context";
 import { standaloneCapabilities, runStandaloneLookup } from "@/server/standalone-providers/live-runtime";
 import { ApiError, errorResponse, privateJson } from "@/server/http/errors";
 import { assertMutationOrigin, readJson } from "@/server/http/request";
+import { assertExpectedAccount } from "@/server/http/account-fence";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -16,6 +17,7 @@ export async function POST(request: Request) {
     assertMutationOrigin(request); noQuery(request);
     const target = await readJson(request, standaloneLookupInputSchema, 8192);
     const auth = await getAuthenticatedContext();
+    assertExpectedAccount(request, auth.userId);
     const result = await runStandaloneLookup(auth.userId, target, request.signal);
     return privateJson(standaloneLookupResponseSchema.parse({ ownerId: auth.userId, result }));
   } catch (error) { return errorResponse(error); }

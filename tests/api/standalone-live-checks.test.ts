@@ -7,7 +7,7 @@ import { GET, POST } from "@/app/api/standalone-checks/route";
 import { ApiError } from "@/server/http/errors";
 const ownerId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", origin = "http://localhost:3105";
 const target = { tool: "domains", domain: "example.com" };
-const request = (body: unknown = target, headers: HeadersInit = {}) => new Request(`${origin}/api/standalone-checks`, { method: "POST", headers: { origin, "content-type": "application/json", ...headers }, body: JSON.stringify(body) });
+const request = (body: unknown = target, headers: HeadersInit = {}) => new Request(`${origin}/api/standalone-checks`, { method: "POST", headers: { origin, "content-type": "application/json", "X-Embel-Account": ownerId, ...headers }, body: JSON.stringify(body) });
 beforeEach(() => { vi.resetAllMocks(); vi.stubEnv("APP_ORIGIN", origin); vi.stubEnv("FLUID_RUNTIME", "local"); vi.stubEnv("VERCEL", ""); mocks.auth.mockResolvedValue({ userId: ownerId }); mocks.capabilities.mockReturnValue({ ownerId, domains: "rdap", youtube: false, euipo: false }); mocks.lookup.mockResolvedValue({ status: "failed", code: "unsupported_target", retryAfterSeconds: null }); });
 afterEach(() => vi.unstubAllEnvs());
 describe("private live lookup routes", () => {
@@ -19,6 +19,15 @@ describe("private live lookup routes", () => {
     const input = request(); const response = await POST(input); expect(response.status).toBe(200);
     expect(mocks.lookup).toHaveBeenCalledWith(ownerId, target, input.signal);
     expect(await response.json()).toMatchObject({ ownerId, result: { status: "failed", code: "unsupported_target" } });
+  });
+  it.each([undefined, "invalid", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"])("rejects missing or mismatched captured accounts before provider admission: %s", async expectedOwner => {
+    const input = request();
+    if (expectedOwner) input.headers.set("X-Embel-Account", expectedOwner); else input.headers.delete("X-Embel-Account");
+    expect((await POST(input)).status).toBe(401); expect(mocks.lookup).not.toHaveBeenCalled();
+  });
+  it("rejects a stale tab after cookies switch accounts without starting a provider lookup", async () => {
+    mocks.auth.mockResolvedValue({ userId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" });
+    expect((await POST(request())).status).toBe(401); expect(mocks.lookup).not.toHaveBeenCalled();
   });
   it.each(["GET", "POST"])("blocks anonymous %s before runtime/provider access", async method => {
     mocks.auth.mockRejectedValue(new ApiError("unauthenticated")); const response = method === "GET" ? await GET(new Request(`${origin}/api/standalone-checks`)) : await POST(request());

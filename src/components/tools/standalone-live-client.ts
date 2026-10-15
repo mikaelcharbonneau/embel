@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { standaloneCapabilitiesSchema, standaloneLookupResponseSchema, lookupFailureMessage, type StandaloneCapabilities, type StandaloneLookupInput, type TrademarkLookup } from "@/domain/standalone-live-checks";
-import { type DomainSearchAdapter, type DomainQuote, quoteBlockReason } from "@/features/domain-workspace/model";
+import { type DomainSearchAdapter, type DomainQuote, DomainLookupError, quoteBlockReason } from "@/features/domain-workspace/model";
 import { type HandleCheckAdapter, unavailableEvidence } from "@/features/handles-workspace/adapters";
 
 export type LiveLookupBinding = { ownerId: string; isCurrent: () => boolean; signal: AbortSignal };
@@ -19,7 +19,7 @@ async function request<T>(schema: z.ZodType<T>, binding: LiveLookupBinding, call
   try {
     const work = async () => {
       if (child.signal.aborted) throw abortError();
-      const response = await fetch("/api/standalone-checks", { method: body ? "POST" : "GET", headers: { Accept: "application/json", ...(body ? { "Content-Type": "application/json" } : {}) },
+      const response = await fetch("/api/standalone-checks", { method: body ? "POST" : "GET", headers: { Accept: "application/json", ...(body ? { "Content-Type": "application/json", "X-Embel-Account": binding.ownerId } : {}) },
         ...(body ? { body: JSON.stringify(body) } : {}), credentials: "same-origin", mode: "same-origin", cache: "no-store", redirect: "error", signal: child.signal });
       if (!response.ok || response.headers.get("content-type")?.split(";")[0]?.trim() !== "application/json") { void response.body?.cancel().catch(() => {}); throw new Error(response.status === 401 ? "Sign in again before checking providers." : "The lookup service could not be reached."); }
       reader = response.body?.getReader(); if (!reader) throw new Error("The lookup response could not be verified.");
@@ -54,14 +54,17 @@ export function createStandaloneLiveAdapters(capabilities: StandaloneCapabilitie
   async function lookup(input: StandaloneLookupInput, signal: AbortSignal) {
     const response = await request(standaloneLookupResponseSchema, binding, signal, input);
     if (response.ownerId !== binding.ownerId) throw abortError();
-    if (response.result.status === "failed") throw new Error(lookupFailureMessage[response.result.code]);
+    if (response.result.status === "failed") throw new DomainLookupError(response.result.code === "rate_limited" && response.result.retryAfterSeconds !== null
+      ? `The lookup limit was reached. Wait ${response.result.retryAfterSeconds} seconds before checking again.`
+      : lookupFailureMessage[response.result.code], response.result.code === "rate_limited" ? response.result.retryAfterSeconds ?? 60 : null);
     return response.result;
   }
-  const provider = capabilities.domains === "cloudflare" ? "cloudflare_registrar" : "Public registry RDAP";
+  const provider = capabilities.domains === "namecom" ? "namecom_core" : capabilities.domains === "cloudflare" ? "cloudflare_registrar" : capabilities.domains === "vercel" ? "vercel_registrar" : "Public registry RDAP";
+  const hasPrices = capabilities.domains === "namecom" || capabilities.domains === "cloudflare" || capabilities.domains === "vercel";
   return {
     domains: capabilities.domains === "unavailable" ? { status: "unavailable", reason: "Domain checks are not connected." } : {
-      status: "ready", provider,
-      description: capabilities.domains === "rdap" ? "Public registry checks support .com, .net, .org, .app, .dev, .ca, .ai and .uk. A missing record stays Unknown. Registrar prices require a connection." : "Cloudflare checks registration eligibility and supplies current annual prices. Checks do not reserve a domain.",
+      status: "ready", provider, quotesWithCheck: hasPrices,
+      description: capabilities.domains === "namecom" ? "Name.com checks exact domains and current registration and renewal totals in USD for the displayed term. Aftermarket, expiring and backorder offers stay Unknown and have no registration quote. Only domain names are sent to Name.com. Checks do not reserve a domain." : capabilities.domains === "rdap" ? "Public registry checks support .com, .net, .org, .app, .dev, .ca, .ai and .uk. A missing record stays Unknown. Registrar prices require a connection." : capabilities.domains === "vercel" ? "Vercel checks exact domains and supplies current registration and renewal prices in USD for the displayed term. Unavailable or unconfirmed results stay Unknown. Only domain names are sent to Vercel. Checks do not reserve a domain." : "Cloudflare checks registration eligibility and supplies current annual prices. Checks do not reserve a domain.",
       async check(domain, signal) {
         prices.delete(domain);
         const result = await lookup({ tool: "domains", domain }, signal);
@@ -70,7 +73,7 @@ export function createStandaloneLiveAdapters(capabilities: StandaloneCapabilitie
         if (prices.size >= 200) prices.delete(prices.keys().next().value!);
         prices.set(domain, { check: result.check, quote: result.quote }); return result.check;
       },
-      ...(capabilities.domains === "cloudflare" ? { async quote(domain: string, checkId: string, signal: AbortSignal) {
+      ...(hasPrices ? { async quote(domain: string, checkId: string, signal: AbortSignal) {
         if (!binding.isCurrent() || binding.signal.aborted || signal.aborted) throw abortError();
         const result = prices.get(domain);
         if (!result?.quote || result.check.id !== checkId || quoteBlockReason(result.quote, result.check, Date.now()) !== null) throw new Error("No current matching registrar price. Check this domain again.");

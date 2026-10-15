@@ -8,7 +8,7 @@ import { StandaloneSaveStatus } from "@/components/tools/standalone-save-status"
 import { HandlesWorkspace } from "@/features/handles-workspace/handles-workspace";
 import type { HandlesState } from "@/features/handles-workspace/domain";
 import { standalonePayloadCodec as domains } from "@/features/domain-workspace/account-codec";
-import { emptyDomainDraft } from "@/features/domain-workspace/draft";
+import { emptyDomainDraft, toggleDomainShortlist } from "@/features/domain-workspace/draft";
 import { createEmptyHandlesDraft, standalonePayloadCodec as handles } from "@/features/handles-workspace/account-codec";
 import { createEntry } from "@/features/handles-workspace/domain";
 import { createEmptyTrademarkAccountDraft, standalonePayloadCodec as trademarks } from "@/features/trademark-workspace/account-codec";
@@ -99,6 +99,21 @@ describe("account-authoritative standalone autosave", () => {
     await act(async () => button("Saved").click()); expect(host.textContent).toContain("Cedar"); expect(button("Use search")).toBeDefined();
     await act(async () => button("Remove search").click()); await tick();
     expect((stored!.payload as HandlesState).search!.savedSearches).toEqual([]);
+  });
+
+  it("autosaves domain shortlist changes during a pending search save and reloads the latest choices", async () => {
+    const first = deferred<Response>(); write = async input => bodies.length === 1 ? first.promise : commit(input);
+    await render(); await edit("Current search"); await tick();
+    const shortlisted = toggleDomainShortlist(domains.schema.parse(state.payload), "earlier.com");
+    await act(async () => state.setPayload(shortlisted));
+    expect(state.canEdit).toBe(true); expect(bodies).toHaveLength(1);
+    await act(async () => first.resolve(commit(bodies[0]!)));
+    expect(bodies).toHaveLength(2); expect(bodies[1]!.payload).toEqual(shortlisted); expect(state.dirty).toBe(false);
+    expect(JSON.stringify(bodies)).not.toMatch(/amountMinor|checkedAt|provider/);
+    await render("domains", false); memory = createStandaloneDraftMemory(); memory.bind(auth.session); await render();
+    expect(state.payload).toEqual(shortlisted);
+    await act(async () => state.setPayload(toggleDomainShortlist(domains.schema.parse(state.payload), "earlier.com"))); await tick();
+    expect(domains.schema.parse(stored!.payload).shortlistedDomains).toBeUndefined();
   });
 
   it("keeps typing enabled and serializes newer input after an older acknowledgement", async () => {
