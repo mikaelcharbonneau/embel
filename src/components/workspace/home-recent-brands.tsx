@@ -1,50 +1,46 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import { Icon } from "@/components/ui/icon";
-import { accountProjectPageSchema, type AccountProjectPage } from "@/domain/project-pages";
-import { accountRequest, AccountRequestError } from "./account-api";
-import { useAccountSession } from "./account-session";
-export function HomeRecentBrands() {
-  const { session, isCurrent, expire } = useAccountSession();
-  const account = session.status === "ready" ? session : null;
-  const fence = account ? `${account.userId}:${account.generation}` : null;
-  const [result, setResult] = useState<{ fence: string; page?: AccountProjectPage; error?: boolean } | null>(null);
-  const [retry, setRetry] = useState(0);
-  useEffect(() => {
-    if (!account || !fence) return;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => { controller.abort(); if (isCurrent(account)) setResult({ fence, error: true }); }, 15_000);
-    void accountRequest("/api/projects/page?limit=6", accountProjectPageSchema, { signal: controller.signal }).then(page => {
-      if (controller.signal.aborted || !isCurrent(account)) return;
-      if (page.ownerId !== account.userId) { expire(account); return; }
-      setResult({ fence, page });
-    }).catch(error => {
-      if (!isCurrent(account)) return;
-      if (error instanceof AccountRequestError && error.status === 401) { expire(account); return; }
-      // An aborted unmount cannot republish private data. Timeout failures carry no data.
-      if (!controller.signal.aborted) setResult({ fence, error: true });
-    }).finally(() => clearTimeout(timeout));
-    return () => { clearTimeout(timeout); controller.abort(); };
-  }, [account, fence, isCurrent, expire, retry]);
-  const current = result?.fence === fence ? result : null;
-  const brands = [
-    ...(current?.page?.items ?? []).map(project => ({ key: `account:${project.id}`, title: project.title, href: `/brands/account/${project.id}`, stage: "Continue your brand", time: project.created_at })),
-  ].sort((a, b) => Date.parse(b.time) - Date.parse(a.time) || a.key.localeCompare(b.key)).slice(0, 6);
+import { useAccountSession, type VerifiedAccount } from "./account-session";
+import { useAccountProjectListing } from "./account-projects";
+import { ProjectCardActions } from "./project-card-actions";
+import type { LifecycleProject } from "./project-deletion-client";
 
-  if (!account) return null;
+export function HomeRecentBrands() {
+  const { session } = useAccountSession();
+  if (session.status !== "ready") return null;
+  return <HomeAccountRecentBrands key={`${session.userId}:${session.generation}`} account={session} />;
+}
+
+function HomeAccountRecentBrands({ account }: { account: VerifiedAccount }) {
+  const { listing, error, pending, reload, remove } = useAccountProjectListing(account, "active", 6);
+  const [removedTitle, setRemovedTitle] = useState<string | null>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const brands = [...(listing?.items ?? [])].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at) || a.id.localeCompare(b.id)).slice(0, 6);
+  function changed(project: LifecycleProject) {
+    remove(project.id); setRemovedTitle(project.title); void reload();
+    queueMicrotask(() => heading.current?.focus());
+  }
+
+  async function refreshProjects() {
+    const refreshed = await reload();
+    if (refreshed) requestAnimationFrame(() => heading.current?.focus());
+    return refreshed;
+  }
 
   return <section className="home-recent" aria-labelledby="recent-heading">
-    <div className="home-recent-heading"><h2 id="recent-heading">Pick up where you left off</h2><Link href="/brands" className="text-link">All projects<Icon name="arrow" size={16} /></Link></div>
-    {!current ? <p className="quiet-empty" role="status">Loading your projects…</p> : current.error ? null : brands.length ? <div className="home-brand-grid">
-      {brands.map((brand, index) => <Link key={brand.key} href={brand.href} className="home-brand-card">
+    <div className="home-recent-heading"><h2 id="recent-heading" ref={heading} tabIndex={-1}>Pick up where you left off</h2><Link href="/brands" className="text-link">All projects<Icon name="arrow" size={16} /></Link></div>
+    {removedTitle && <div className="project-change-notice" role="status"><span>“{removedTitle}” moved to Deleted projects.</span><Link className="text-link" href="/brands?state=deleted">View deleted projects</Link></div>}
+    {!listing && !error ? <p className="quiet-empty" role="status">Loading your projects…</p> : !listing && error ? null : brands.length ? <div className="home-brand-grid">
+      {brands.map((brand, index) => <article key={brand.id} className="home-brand-card"><Link href={`/brands/account/${brand.id}`} className="home-brand-card-link">
         <div className={`home-brand-preview home-brand-preview--${index === 1 ? "1" : index === 2 ? "2" : index === 4 ? "inverse" : "0"}`} aria-hidden="true"><span>{brand.title}</span></div>
         <div className="home-brand-details"><div className="home-brand-identity"><h3>{brand.title}</h3></div>
-          <div className="home-brand-continue"><span>{brand.stage}</span><Icon name="arrow" size={16} /></div>
+          <div className="home-brand-continue"><span>Continue your brand</span><Icon name="arrow" size={16} /></div>
         </div>
-      </Link>)}
-    </div> : <div className="home-brands-empty"><Icon name="brands" size={24} /><h3>Your first brand starts here</h3><p>Describe your idea above. Your saved work will appear here.</p></div>}
-    {current?.error && <p className="form-error" role="alert">Your projects could not be loaded. <button type="button" className="text-link" onClick={() => setRetry(value => value + 1)}>Try again</button></p>}
+      </Link><ProjectCardActions key={`${brand.id}:${brand.current_revision}:${brand.lifecycle_version}`} project={brand} account={account} onChanged={changed} onReload={refreshProjects} /></article>)}
+    </div> : pending ? <p className="quiet-empty" role="status">Loading your projects…</p> : listing?.nextCursor ? <p className="quiet-empty">More projects are available. <Link className="text-link" href="/brands">View all projects</Link></p> : <div className="home-brands-empty"><Icon name="brands" size={24} /><h3>Your first brand starts here</h3><p>Describe your idea above. Your saved work will appear here.</p></div>}
+    {error && <p className="form-error" role="alert">Your projects could not be loaded. <button type="button" className="text-link" disabled={pending} onClick={() => void reload()}>Try again</button></p>}
   </section>;
 }

@@ -9,13 +9,14 @@ import { ApiError } from "../http/errors";
 export async function listProjectPage(auth: AuthenticatedContext, input: unknown) {
   const parsed = listProjectPageSchema.safeParse(input);
   if (!parsed.success) throw new ApiError("invalid_input");
-  const { limit, cursor } = parsed.data;
-  let query = auth.client.from("projects").select("id,owner_id,scope,title,current_revision,created_at").eq("owner_id", auth.userId);
+  const { limit, cursor, state } = parsed.data;
+  let query = auth.client.from("projects").select("id,owner_id,scope,title,current_revision,created_at,deleted_at,lifecycle_version").eq("owner_id", auth.userId);
+  query = state === "deleted" ? query.not("deleted_at", "is", null) : query.is("deleted_at", null);
   if (cursor) query = query.or(`created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`);
   const { data, error } = await query.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1);
   if (error) throw new ApiError("integration_unavailable");
   const rows = z.array(accountProjectSummarySchema).max(limit + 1).safeParse(data);
-  if (!rows.success || rows.data.some(row => row.owner_id !== auth.userId || !projectCursorSchema.safeParse(projectCursor(row)).success) ||
+  if (!rows.success || rows.data.some(row => row.owner_id !== auth.userId || (state === "deleted" ? row.deleted_at == null : row.deleted_at !== null) || row.lifecycle_version === undefined || !projectCursorSchema.safeParse(projectCursor(row)).success) ||
       new Set(rows.data.map(row => row.id.toLowerCase())).size !== rows.data.length ||
       rows.data.some((row, index) => (cursor && compareProjectCursors(projectCursor(row), cursor) >= 0) ||
         (index > 0 && compareProjectCursors(projectCursor(rows.data[index - 1]!), projectCursor(row)) <= 0))) throw new ApiError("integration_unavailable");

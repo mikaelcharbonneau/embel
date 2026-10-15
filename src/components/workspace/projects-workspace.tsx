@@ -9,16 +9,18 @@ import { AccountStatus, useAccountSession, type VerifiedAccount } from "./accoun
 import { useAccountProjectListing } from "./account-projects";
 import { scopeDetails, scopeLabel } from "./local-drafts";
 import { UnsavedProjectRecovery } from "./unsaved-project-recovery";
+import { ProjectCardActions } from "./project-card-actions";
+import type { LifecycleProject, ProjectDeletionAction } from "./project-deletion-client";
 import "@/styles/projects.css";
 
-type ProjectCard = { key: string; id: string; title: string; scope: ProjectScope; created: string; updated: string | null; href: string };
+type ProjectCard = { key: string; id: string; title: string; scope: ProjectScope; created: string; updated: string | null; deleted: string | null; href: string; saved: LifecycleProject };
 type Sort = "updated" | "created" | "alphabetical";
 
 function recent(a: ProjectCard, b: ProjectCard) {
   return -compareProjectCursors({ createdAt: a.created, id: a.id }, { createdAt: b.created, id: b.id });
 }
 function dateLabel(project: ProjectCard, now: number | null) {
-  const date = project.updated ?? project.created, timestamp = Date.parse(date), prefix = project.updated ? "Updated" : "Created";
+  const date = project.deleted ?? project.updated ?? project.created, timestamp = Date.parse(date), prefix = project.deleted ? "Deleted" : project.updated ? "Updated" : "Created";
   if (!Number.isFinite(timestamp)) return "Date unavailable";
   if (now === null) return `${prefix} ${new Date(timestamp).toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" })}`;
   const minutes = Math.max(0, Math.floor((now - timestamp) / 60_000));
@@ -46,40 +48,56 @@ function useProjectControls() {
   return { query, setQuery, scope, setScope, sort, setSort };
 }
 
-export function ProjectsWorkspace() {
+export function ProjectsWorkspace({ state = "active" }: { state?: "active" | "deleted" }) {
   const controls = useProjectControls();
   const { session } = useAccountSession();
   if (session.status !== "ready") return <div className="projects-page"><div className="projects-heading"><div><h1>Your projects<span>.</span></h1><p>Sign in to save your work and continue from any device.</p></div></div><AccountStatus /></div>;
-  return <ProjectsLibrary key={`${session.userId}:${session.generation}`} account={session} controls={controls} />;
+  return <ProjectsLibrary key={`${session.userId}:${session.generation}:${state}`} account={session} controls={controls} state={state} />;
 }
 
-function ProjectsLibrary({ account, controls }: { account: VerifiedAccount; controls: ReturnType<typeof useProjectControls> }) {
-  const { listing, error, pending, load } = useAccountProjectListing(account);
+function ProjectsLibrary({ account, controls, state }: { account: VerifiedAccount; controls: ReturnType<typeof useProjectControls>; state: "active" | "deleted" }) {
+  const { listing, error, pending, load, reload, remove } = useAccountProjectListing(account, state);
   const { query, setQuery, scope, setScope, sort, setSort } = controls;
   const [now, setNow] = useState(() => Date.now());
+  const [notice, setNotice] = useState<{ project: LifecycleProject; action: ProjectDeletionAction } | null>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 60_000); return () => clearInterval(timer); }, []);
-  const projects: ProjectCard[] = (listing?.items ?? []).map(project => ({ key: project.id, id: project.id, title: project.title, scope: project.scope, created: project.created_at, updated: null, href: `/brands/account/${project.id}` }));
+  const deleted = state === "deleted";
+  const projects: ProjectCard[] = (listing?.items ?? []).map(project => ({ key: project.id, id: project.id, title: project.title, scope: project.scope, created: project.created_at, updated: null, deleted: project.deleted_at, href: `/brands/account/${project.id}`, saved: project }));
   const filtering = Boolean(query.trim()) || scope !== "all";
-  const empty = Boolean(listing) && !projects.length && !error;
+  const empty = Boolean(listing) && !projects.length && !listing?.nextCursor && !error;
   const matching = projects.map((project, index) => ({ ...project, preview: ["neutral", "inverse", "neutral", "pink", "neutral", "inverse"][index % 6] })).filter(project =>
     (scope === "all" || project.scope === scope) && project.title.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())
   ).sort((a, b) => (sort === "alphabetical" ? a.title.localeCompare(b.title, "en", { sensitivity: "base", numeric: true }) : 0) || recent(a, b));
+  function changed(project: LifecycleProject, action: ProjectDeletionAction) {
+    remove(project.id); setNotice({ project, action });
+    queueMicrotask(() => heading.current?.focus());
+  }
 
-  return <div className={`projects-page ${empty ? "projects-empty" : ""}`}>
-    <div className="projects-heading"><div><h1>{empty ? "Your projects" : "Projects"}<span>.</span></h1><p>Every idea, in its own world.</p></div>{!empty && <Link className="projects-primary" href="/brands/new">New project<ProjectsArtwork name="plus" /></Link>}</div>
-    {!empty && <div className="projects-toolbar"><label className="projects-search"><span className="sr-only">Search projects</span><input type="search" placeholder="Search projects" value={query} onChange={event => setQuery(event.target.value)} /></label>
+  async function refreshProjects() {
+    const refreshed = await reload();
+    if (refreshed) requestAnimationFrame(() => heading.current?.focus());
+    return refreshed;
+  }
+
+  return <div className={`projects-page ${empty && !deleted ? "projects-empty" : ""}`}>
+    <div className="projects-heading"><div><h1 ref={heading} tabIndex={-1}>{deleted ? "Deleted projects" : empty ? "Your projects" : "Projects"}<span>.</span></h1><p>{deleted ? "Restore a project to continue where you left off." : "Every idea, in its own world."}</p></div><div className="projects-heading-actions">{deleted ? <Link className="projects-secondary" href="/brands">Back to projects</Link> : <><Link className="projects-secondary" href="/brands?state=deleted">Deleted projects</Link>{!empty && <Link className="projects-primary" href="/brands/new">New project<ProjectsArtwork name="plus" /></Link>}</>}</div></div>
+    {notice && <div className="project-change-notice" role="status"><span>“{notice.project.title}” {notice.action === "delete" ? "moved to Deleted projects." : "restored."}</span><Link className="text-link" href={notice.action === "delete" ? "/brands?state=deleted" : `/brands/account/${notice.project.id}`}>{notice.action === "delete" ? "View deleted projects" : "Open project"}</Link></div>}
+    {!empty && <div className="projects-toolbar"><label className="projects-search"><span className="sr-only">{deleted ? "Search deleted projects" : "Search projects"}</span><input type="search" placeholder={deleted ? "Search deleted projects" : "Search projects"} value={query} onChange={event => setQuery(event.target.value)} /></label>
       <ProjectControl kind="Filter" active={scope !== "all"}><label>Scope<select aria-label="Filter projects by scope" value={scope} onChange={event => setScope(event.target.value as typeof scope)}><option value="all">All scopes</option>{scopeDetails.map(detail => <option key={detail.value} value={detail.value}>{detail.label}</option>)}</select></label></ProjectControl>
       <ProjectControl kind="Sort"><label>Order<select aria-label="Sort projects" value={sort} onChange={event => setSort(event.target.value as Sort)}><option value="created">Recently created</option><option value="alphabetical">Alphabetical</option></select></label></ProjectControl>
     </div>}
-    {empty ? <section className="projects-empty-panel" aria-labelledby="first-project-heading"><ProjectsArtwork name="empty-projects" /><h2 id="first-project-heading">Your first project starts with an idea</h2><p>Start with a complete brand, a name, or a visual identity. Your work will be waiting here.</p><Link className="projects-primary" href="/brands/new">Create a project<ProjectsArtwork name="create" /></Link></section> : <>
-      {!listing && !error && <p className="projects-notice" role="status">Loading your projects…</p>}
-      <section className="projects-grid" aria-label="Projects">{matching.map(project => <Link className="project-card" key={project.key} href={project.href} data-storage="account" aria-label={`Continue ${project.title}`}>
-        <div className={`project-preview project-preview--${project.preview}`} aria-hidden="true"><span>{project.title}</span></div>
-        <div className="project-details"><div className="project-card-identity"><h2 title={project.title}>{project.title}</h2><span>{scopeLabel(project.scope)}</span></div><div className="project-footer"><span title={project.created}>{dateLabel(project, now)}</span><span className="project-continue">Continue<ProjectsArtwork name="continue" /></span></div></div>
-      </Link>)}</section>
+    {empty ? deleted ? <section className="projects-deleted-empty" aria-labelledby="deleted-empty-heading"><h2 id="deleted-empty-heading">No deleted projects</h2><p>Projects you delete will appear here. Their assets and history stay intact and available to restore.</p><Link className="text-link" href="/brands">Back to projects</Link></section> : <section className="projects-empty-panel" aria-labelledby="first-project-heading"><ProjectsArtwork name="empty-projects" /><h2 id="first-project-heading">Your first project starts with an idea</h2><p>Start with a complete brand, a name, or a visual identity. Your work will be waiting here.</p><Link className="projects-primary" href="/brands/new">Create a project<ProjectsArtwork name="create" /></Link></section> : <>
+      {!listing && !error && <p className="projects-notice" role="status">Loading your {deleted ? "deleted " : ""}projects…</p>}
+      <section className="projects-grid" aria-label={deleted ? "Deleted projects" : "Projects"}>{matching.map(project => {
+        const actions = <ProjectCardActions key={`${project.id}:${project.saved.current_revision}:${project.saved.lifecycle_version}`} project={project.saved} account={account} onChanged={changed} onReload={refreshProjects} />;
+        const content = <><div className={`project-preview project-preview--${project.preview}`} aria-hidden="true"><span>{project.title}</span></div>
+          <div className="project-details"><div className="project-card-identity"><h2 title={project.title}>{project.title}</h2><span>{scopeLabel(project.scope)}</span></div><div className="project-footer"><span title={project.deleted ?? project.created}>{dateLabel(project, now)}</span>{deleted ? actions : <span className="project-continue">Continue<ProjectsArtwork name="continue" /></span>}</div></div></>;
+        return <article className={`project-card${deleted ? " project-card--deleted" : ""}`} key={project.key} data-storage="account">{deleted ? content : <><Link className="project-card-link" href={project.href} aria-label={`Continue ${project.title}`}>{content}</Link>{actions}</>}</article>;
+      })}</section>
       {!matching.length && (projects.length > 0 || filtering) && <div className="projects-no-matches" role="status"><h2>No matching projects</h2><p>Try a different scope or project name.</p><button type="button" className="button secondary" onClick={() => { setQuery(""); setScope("all"); }}>Clear filters</button></div>}
     </>}
-    <div className="projects-account-status">{listing && listing.nextCursor && <p>Search, filters and sorting apply to loaded projects. Load more to include older projects.</p>}{error && <div className="form-error" role="alert"><p>Your projects could not be loaded.{listing ? " Your loaded projects are still shown." : ""}</p><button className="button secondary small" type="button" disabled={pending} onClick={() => void load()}>Try loading projects again</button></div>}{listing?.nextCursor && !error && <button className="button secondary small" type="button" disabled={pending} onClick={() => void load()}>{pending ? "Loading more projects…" : "Load more projects"}</button>}</div>
-    <UnsavedProjectRecovery />
+    <div className="projects-account-status">{listing && listing.nextCursor && <p>Search, filters and sorting apply to loaded projects. Load more to include older projects.</p>}{error && <div className="form-error" role="alert"><p>Your {deleted ? "deleted " : ""}projects could not be loaded.{listing ? " Your loaded projects are still shown." : ""}</p><button className="button secondary small" type="button" disabled={pending} onClick={() => void load()}>Try loading projects again</button></div>}{listing?.nextCursor && !error && <button className="button secondary small" type="button" disabled={pending} onClick={() => void load()}>{pending ? "Loading more projects…" : "Load more projects"}</button>}</div>
+    {!deleted && <UnsavedProjectRecovery />}
   </div>;
 }

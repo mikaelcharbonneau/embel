@@ -1,0 +1,8 @@
+@font-face { font-family: "Fixture Geist"; src: url("../../node_modules/geist/dist/fonts/geist-sans/Geist-Regular.woff2") format("woff2"); font-style: normal; font-weight: 100 900; font-display: swap; }
+:root { --font-geist-sans: "Fixture Geist"; }
+.fixture-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--paper); color: var(--secondary); font-size: 12px; }
+.fixture-header nav { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.fixture-header button { border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; }
+.fixture-projects { min-height: calc(100vh - 66px); background-image: linear-gradient(#1919190a 1px, transparent 1px), linear-gradient(90deg, #1919190a 1px, transparent 1px); background-size: 16px 16px; }
+.fixture-home { max-width: 1088px; margin-inline: auto; padding: 40px; }
+@media (max-width: 760px) { .fixture-home { padding: 28px 20px; } .fixture-header { padding: 12px 20px; } }
