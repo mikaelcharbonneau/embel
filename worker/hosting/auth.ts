@@ -18,7 +18,9 @@ export async function verifyPublisher(authorization: string | null, configuratio
   });
   if (payload.owner_id !== APPROVED_TEAM || payload.project_id !== APPROVED_WEB_PROJECT || payload.aud !== APPROVED_AUDIENCE ||
       (payload.environment !== "preview" && payload.environment !== "production") ||
-      payload.sub !== `owner:embel:project:fluid-platform-preview:environment:${payload.environment}`) throw new Error("Unauthorized");
+      // Allow only the existing and renamed subject for the same immutable web project.
+      (payload.sub !== `owner:embel:project:fluid-platform-preview:environment:${payload.environment}` &&
+       payload.sub !== `owner:embel:project:embel:environment:${payload.environment}`)) throw new Error("Unauthorized");
 }
 export function verifyCron(authorization: string | null, secret: string | undefined): boolean {
   return cronAuthFailure(authorization, secret) === null;
