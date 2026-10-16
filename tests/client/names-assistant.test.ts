@@ -7,7 +7,7 @@ const owner = "aaaaaaaa-1111-4111-8111-111111111111";
 const other = "dddddddd-1111-4111-8111-111111111111";
 const id = (n: number) => `bbbbbbbb-1111-4111-8111-${String(n).padStart(12, "0")}`;
 const account = { status: "ready" as const, userId: owner, generation: 1 };
-const row = (n: number) => ({ id: id(n), owner_id: owner, scope: "naming_only" as const, title: `Synthetic project ${n}`, current_revision: 1, deleted_at: null, lifecycle_version: 0, created_at: "2026-10-05T12:00:00.000002Z" });
+const row = (n: number) => ({ id: id(n), owner_id: owner, scope: "naming_only" as const, title: `Synthetic project ${n}`, current_revision: 1, deleted_at: null, deletion_requested_at: null, deletion_state: "active" as const, lifecycle_version: 0, created_at: "2026-10-05T12:00:00.000002Z" });
 const page = (ids: number[], next: number | null = null) => accountProjectPageSchema.parse({ ownerId: owner, items: ids.map(row), nextCursor: next ? { id: id(next), createdAt: row(next).created_at } : null });
 const options = () => ({ account, isCurrent: vi.fn(() => true), expire: vi.fn(), previous: null, signal: new AbortController().signal });
 afterEach(() => vi.unstubAllGlobals());

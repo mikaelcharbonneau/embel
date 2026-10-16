@@ -123,7 +123,7 @@ describe("OpenAI strategy adapter (mock transport only)", () => {
   it("rejects fabricated source URLs even when the provider claims them in JSON", async () => {
     const response = researchFixture();
     response.output[0] = { type: "web_search_call", status: "completed", action: { type: "search", sources: [{ type: "url", url: "https://other.example/" }] } };
-    expect(await execute(response, "strategy.competitors").run()).toMatchObject({ status: "needs_reconciliation", code: "provider_invalid_output" });
+    expect(await execute(response, "strategy.competitors").run()).toMatchObject({ status: "failed", code: "provider_research_unusable" });
   });
 
   it("accepts only completed research evidence when a final search attempt follows the tool limit", async () => {

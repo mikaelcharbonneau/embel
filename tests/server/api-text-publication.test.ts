@@ -5,12 +5,20 @@ import { publishApiTextDispatch } from "../../src/server/api-text/publication";
 import { getVercelOidcToken } from "@vercel/oidc";
 const message = { version: 1, jobId: "10000000-0000-4000-8000-000000000001", policyIdentity: "a".repeat(64), deploymentId: "dpl_qualified", dispatchIdentity: "b".repeat(64) } as const;
 function setup(environment = "preview") {
+  vi.stubEnv("FLUID_LOCAL_API_TEXT_ENABLED", undefined);
   vi.stubEnv("VERCEL_ENV", environment);
   vi.stubEnv("VERCEL_TARGET_ENV", environment);
   vi.stubEnv("VERCEL_PROJECT_ID", "prj_WKrFUPy3wptZ3qI9l1hTuqPmzkDt");
   vi.stubEnv("FLUID_API_TEXT_WORKER_ORIGIN", "https://fluid-api-text-worker-qualified.vercel.app");
   const fetch = vi.fn(async () => Response.json({ state: "published", messageId: "message-confirmed" }));
   vi.stubGlobal("fetch", fetch); return fetch;
+}
+function setupLocal() {
+  const fetch = setup();
+  vi.stubEnv("FLUID_LOCAL_API_TEXT_ENABLED", "true");
+  vi.stubEnv("NODE_ENV", "development"); vi.stubEnv("APP_ORIGIN", "http://127.0.0.1:3105");
+  for (const name of ["VERCEL", "VERCEL_ENV", "VERCEL_TARGET_ENV", "VERCEL_DEPLOYMENT_ID"]) vi.stubEnv(name, undefined);
+  return fetch;
 }
 afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.clearAllMocks(); });
 describe("web publication transport", () => {
@@ -22,6 +30,32 @@ describe("web publication transport", () => {
     expect(JSON.parse(request.body as string)).toEqual(message);
     expect(request.redirect).toBe("error");
     expect(request.headers).toMatchObject({ authorization: "Bearer synthetic-fixture-token", "x-vercel-trusted-oidc-idp-token": "synthetic-fixture-token" });
+    expect(getVercelOidcToken).toHaveBeenCalledExactlyOnceWith();
+  });
+  it("publishes the admitted descriptor locally through the approved project/team SDK token", async () => {
+    const fetch = setupLocal();
+    expect(await publishApiTextDispatch(message)).toEqual({ state: "published", messageId: "message-confirmed" });
+    expect(getVercelOidcToken).toHaveBeenCalledExactlyOnceWith({
+      project: "prj_WKrFUPy3wptZ3qI9l1hTuqPmzkDt", team: "team_0Koie5796IDOraQkDFg6J0AF",
+      expirationBufferMs: 11 * 60 * 60 * 1_000,
+    });
+    const [url, request] = fetch.mock.calls[0]! as unknown as [string, RequestInit];
+    expect(url).toBe("https://fluid-api-text-worker-qualified.vercel.app/api/enqueue");
+    expect(JSON.parse(request.body as string)).toEqual(message);
+    expect(request).toMatchObject({ redirect: "error", headers: {
+      authorization: "Bearer synthetic-fixture-token", "x-vercel-trusted-oidc-idp-token": "synthetic-fixture-token",
+    } });
+  });
+  it("retains local admission when CLI authentication or token refresh fails", async () => {
+    const fetch = setupLocal();
+    vi.mocked(getVercelOidcToken).mockRejectedValueOnce(new Error("synthetic private authentication detail"));
+    expect(await publishApiTextDispatch(message)).toEqual({ state: "dispatch_pending" });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+  it("does not obtain a token or publish with local opt-in set on a hosted deployment", async () => {
+    const fetch = setup("production"); vi.stubEnv("FLUID_LOCAL_API_TEXT_ENABLED", "true");
+    expect(await publishApiTextDispatch(message)).toEqual({ state: "dispatch_pending" });
+    expect(getVercelOidcToken).not.toHaveBeenCalled(); expect(fetch).not.toHaveBeenCalled();
   });
   it.each(["http://worker.vercel.app", "https://evil.example", "https://worker.vercel.app/path", "https://worker.vercel.app?token=secret", "https://user:pass@worker.vercel.app"])("fails closed for unsafe origin %s", async origin => {
     const fetch = setup(); vi.stubEnv("FLUID_API_TEXT_WORKER_ORIGIN", origin);
@@ -65,8 +99,8 @@ describe("web publication transport", () => {
     expect(result).toEqual({ state: "dispatch_pending" });
     vi.useRealTimers();
   });
-  it("does not publish when a production token resolves after the pending response deadline", async () => {
-    vi.useFakeTimers(); const fetch = setup("production");
+  it.each(["production", "local"])("does not publish when a %s token resolves after the pending response deadline", async mode => {
+    vi.useFakeTimers(); const fetch = mode === "local" ? setupLocal() : setup("production");
     let release: ((token: string) => void) | undefined;
     vi.mocked(getVercelOidcToken).mockImplementationOnce(() => new Promise(resolve => { release = resolve; }));
     const publication = publishApiTextDispatch(message);

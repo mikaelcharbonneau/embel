@@ -58,7 +58,7 @@ export function StandaloneNamesAssistant() {
     const last = more ? previous?.jobs.at(-1) : undefined;
     try {
       const query = last ? `?before=${encodeURIComponent(last.createdAt)}&beforeId=${encodeURIComponent(last.id)}` : "";
-      const result = await standaloneNamesRequest(`/api/names/ai${query}`, standaloneNamesOverviewSchema, { signal: controller.signal });
+      const result = await standaloneNamesRequest(`/api/names/ai${query}`, standaloneNamesOverviewSchema, { signal: controller.signal, expectedOwnerId: account.userId });
       if (!current() || request.current !== controller || controller.signal.aborted) return;
       if (result.ownerId !== account.userId) { expire(account); return; }
       const merged = more && previous ? { ...result, jobs: [...previous.jobs, ...result.jobs.filter(job => !previous.jobs.some(old => old.id === job.id))] }
@@ -97,7 +97,7 @@ export function StandaloneNamesAssistant() {
     const controller = new AbortController(); request.current = controller;
     setState(old => ({ ...old, busy: true, error: null, notice: null, ...(pending ? { pending } : {}) }));
     try {
-      const { job } = await standaloneNamesRequest(path, standaloneNamesJobResponseSchema, { signal: controller.signal, method, body });
+      const { job } = await standaloneNamesRequest(path, standaloneNamesJobResponseSchema, { signal: controller.signal, expectedOwnerId: account.userId, method, body });
       if (!current() || request.current !== controller || controller.signal.aborted) return;
       if (job.ownerId !== account.userId || (!pending && path !== `/api/names/ai/${job.id}`)) { expire(account); return; }
       const acknowledgedRefinement = job.refinement ? { sourceJobId: job.refinement.sourceJobId, candidateIndexes: job.refinement.candidateIndexes, instruction: job.refinement.instruction } : null;

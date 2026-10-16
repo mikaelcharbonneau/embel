@@ -4,7 +4,7 @@ import { Fragment, useEffect, useEffectEvent, useRef, useState, type ComponentPr
 import { ProjectArtwork } from "@/components/ui/project-artwork";
 import { appendGuidedTurn, confirmGuidedSelection, guidedTurnOperation, revisitGuidedStage, type GuidedReply, type GuidedStage } from "@/domain/guided-interview";
 import type { ContextSnapshot } from "@/domain/projects";
-import { accountDraftChanged, type AccountWorkspace } from "./account-draft-memory";
+import { accountDraftChanged, type AccountWorkspace, type GuidedInterviewInput } from "./account-draft-memory";
 import { strategyAvailabilityMessage, strategyJobActive } from "./account-strategy-client";
 import type { VerifiedAccount } from "./account-session";
 import { ConversationComposer } from "./conversation-composer";
@@ -15,15 +15,19 @@ import type { ProjectEditorForm } from "./project-editor";
 import { useStrategyJobs } from "./use-strategy-jobs";
 import "@/styles/conversation.css";
 
-export function AccountGuidedInterview({ account, workspace, busy, saveContext, storage }: {
+export function AccountGuidedInterview({ account, workspace, busy, saveContext, onInputChange, storage }: {
   account: VerifiedAccount; workspace: AccountWorkspace; busy: boolean;
-  saveContext: (context: ContextSnapshot) => Promise<AccountWorkspace | null>;
+  saveContext: (context: ContextSnapshot, submittedInput?: Partial<GuidedInterviewInput>) => Promise<AccountWorkspace | null>;
+  onInputChange?: (update: (input: GuidedInterviewInput) => GuidedInterviewInput) => void;
   storage: ComponentProps<typeof ProjectEditorForm>["storage"];
 }) {
   const strategy = useStrategyJobs({ account, workspace, blocked: busy, guided: true });
-  const [prompt, setPrompt] = useState("");
+  const [localInput, setLocalInput] = useState<GuidedInterviewInput>(() => workspace.guidedInput ?? { prompt: "", selection: null });
+  const { prompt, selection } = onInputChange ? workspace.guidedInput ?? { prompt: "", selection: null } : localInput;
+  const changeInput = onInputChange ?? setLocalInput;
+  const setPrompt = (update: string | ((previous: string) => string)) => changeInput(previous => ({ ...previous, prompt: typeof update === "function" ? update(previous.prompt) : update }));
+  const setSelection = (selection: GuidedInterviewInput["selection"]) => changeInput(previous => ({ ...previous, selection }));
   const [error, setError] = useState<string | null>(null);
-  const [selection, setSelection] = useState<{ turnId: string; ids: string[] } | null>(null);
   const [working, setWorking] = useState(false);
   const lock = useRef(false), mounted = useRef(false);
   const attempts = useRef(new Set<string>());
@@ -57,9 +61,9 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
   });
   useEffect(() => { revealReply(); }, [completedJobs]);
 
-  function persist(next: ContextSnapshot) {
+  function persist(next: ContextSnapshot, submittedInput?: Partial<GuidedInterviewInput>) {
     // The parent owns pending saves, conflicts and their acknowledged recovery.
-    return saveContext(next);
+    return saveContext(next, submittedInput);
   }
 
   // Persisted turns retain their request identity across a lost acknowledgement.
@@ -121,7 +125,7 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
     lock.current = true; setWorking(true); setError(null);
     const text = prompt;
     try {
-      const result = await persist(guidedMessageContext(saved.context, text, saved.current_revision + 1));
+      const result = await persist(guidedMessageContext(saved.context, text, saved.current_revision + 1), { prompt: text });
       if (result && mounted.current) setPrompt(current => current === text ? "" : current);
     } catch (cause) { if (mounted.current) setError(cause instanceof Error ? cause.message : "Your message could not be saved. Your prompt is kept."); }
     finally { lock.current = false; if (mounted.current) setWorking(false); }
@@ -136,7 +140,7 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
       let next = confirmGuidedSelection(saved.context, { turnId: answer.turnId, reply: answer, optionIds: ids, now });
       const chosen = recordGuidedChoice(next, answer, ids, now);
       next = nextGuidedProposal(chosen.context, saved.current_revision + 1, chosen.messageId);
-      const result = await persist(next);
+      const result = await persist(next, { selection: { turnId: answer.turnId, ids } });
       if (result && mounted.current) setSelection(null);
     } catch (cause) { if (mounted.current) setError(cause instanceof Error ? cause.message : "Your selection could not be saved."); }
     finally { lock.current = false; if (mounted.current) setWorking(false); }
@@ -195,18 +199,22 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
         </article></Fragment>;
       })}
       {!state?.turns.length && legacyReplies}
-      {!state && <div className="guided-interview-start"><p>Let’s find the right points of comparison for your brand.</p><button type="button" className="button primary small" disabled={blocked || !guidedAllowance(availability, "strategy.competitors")} onClick={() => void startResearch()}>Start competitor research</button></div>}
+      {!state && saved.scope === "complete_brand" && <div className="guided-interview-start"><p>Let’s find the right points of comparison for your brand.</p><button type="button" className="button primary small" disabled={blocked || !guidedAllowance(availability, "strategy.competitors")} onClick={() => void startResearch()}>Start competitor research</button></div>}
+      {!state && saved.scope !== "complete_brand" && <p className="guided-assistant-copy">{saved.context.description}</p>}
       {(active || checkingResearch) && <GuidedThinking onStop={bound && strategyJobActive(bound.job) ? () => void strategy.cancel(bound.job) : undefined} stopping={bound?.job.state === "cancel_requested"} stopDisabled={strategy.pending} />}
       {state?.answers.length === 3 && context.competitorReviewComplete && context.intake.audienceReviewedAt && context.intake.personalityReviewedAt && <p className="guided-complete" role="status">Your brand strategy is saved. You can revisit any answer above.</p>}
     </div>
     <div className="guided-interview-compose">
+      <div className="conversation-compose-notices" role="region" aria-label="Conversation notices" tabIndex={0}>
       {(error || strategy.actionError || strategy.readError || failed || unverified || unavailable || stale) && <div className="guided-conversation-error" role="alert">
         <p>{error || strategy.actionError || statusReadError || (stale ? "The project changed after this response was requested. Your conversation is kept. Send a new message to continue from the current version." : bound?.job.state === "needs_reconciliation" ? "This research outcome needs verification before another request can start. Your prompt is saved." : failed ? bound?.job.state === "cancelled" ? "Research was cancelled. Your prompt is saved." : currentTurn?.stage === "competitors" && currentTurn.purpose !== "message" ? "Research could not produce verified suggestions. Your prompt is saved. You can retry research." : "This response did not finish. Your prompt is saved." : unverified ? "This response could not be matched to your question. Your conversation is kept." : strategyAvailabilityMessage(availability ?? null, "project"))}</p>
         <button type="button" className="text-link" disabled={busy || working || strategy.pending} onClick={strategy.refresh}>Check status</button>
         {currentTurn && !stale && (!bound || bound.job.state === "failed" || bound.job.state === "cancelled") && <button type="button" className="text-link" disabled={blocked} onClick={() => void retry()}>{currentTurn.stage === "competitors" && currentTurn.purpose !== "message" ? "Retry research" : "Retry request"}</button>}
       </div>}
       {!busy && storage.actions}
-      <ConversationComposer project value={prompt} onChange={setPrompt} onSend={() => void send()} label="Message Embel" placeholder="Reply in your own words, or ask a question…" disabled={blocked || !prompt.trim()} readOnly={pending} hint={null} sendLabel="Send prompt" />
+      {storage.resultNavigation}
+      </div>
+      {(saved.scope === "complete_brand" || state) && <ConversationComposer project value={prompt} onChange={setPrompt} onSend={() => void send()} label="Message Embel" placeholder="Reply in your own words, or ask a question…" disabled={blocked || !prompt.trim()} readOnly={pending} hint={null} sendLabel="Send prompt" />}
     </div>
   </div>;
 }

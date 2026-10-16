@@ -620,9 +620,38 @@ describe("subscription job fencing and cumulative partial persistence", () => {
       return { status: "failed", code: "subscription_sharing_usage_limit_exceeded", partialText: "actual partial", responseId: "resp_fixture", requestId: null, dispatched: true, recovery: "view_usage" };
     });
     const outcome = await registry.get(current.operation)!.steps(current)[0]!.execute({ job: current, signal: new AbortController().signal });
-    expect(outcome).toMatchObject({ status: "needs_reconciliation", result: { partialText: "actual partial", recovery: "view_usage" }, costMicrousd: 0 });
+    expect(outcome).toEqual({ status: "failed", code: "subscription_sharing_usage_limit_exceeded", providerRequestId: "resp_fixture", costMicrousd: 0 });
     expect(appendPartial).toHaveBeenLastCalledWith(current.id, current.leaseToken, "actual partial");
     expect(onQuotaUnavailable).toHaveBeenCalledOnce();
+  });
+  it("persists known terminal failure text even when no streaming deltas arrived", async () => {
+    const { registry, appendPartial } = handlers(); const current = job();
+    vi.mocked(runChatGPTStrategy).mockResolvedValue({ status: "failed", code: "provider_failed", partialText: "completed item fragment", responseId: "resp_fixture", requestId: null, dispatched: true, recovery: "retry_later" });
+    expect(await registry.get(current.operation)!.steps(current)[0]!.execute({ job: current, signal: new AbortController().signal })).toEqual({ status: "failed", code: "provider_failed", providerRequestId: "resp_fixture", costMicrousd: 0 });
+    expect(appendPartial).toHaveBeenCalledWith(current.id, current.leaseToken, "completed item fragment");
+  });
+  it("retains known failure evidence for reconciliation when durable partial persistence fails", async () => {
+    const { registry, appendPartial } = handlers(); const current = job();
+    appendPartial.mockRejectedValue(new Error("Database unavailable"));
+    vi.mocked(runChatGPTStrategy).mockResolvedValue({ status: "failed", code: "provider_failed", partialText: "completed item fragment", responseId: "resp_fixture", requestId: null, dispatched: true, recovery: "retry_later" });
+    expect(await registry.get(current.operation)!.steps(current)[0]!.execute({ job: current, signal: new AbortController().signal })).toMatchObject({ status: "needs_reconciliation", code: "provider_failed", result: { partialText: "completed item fragment" } });
+  });
+  it("retains conflicting streamed and terminal failure text for manual review", async () => {
+    const { registry } = handlers(); const current = job();
+    vi.mocked(runChatGPTStrategy).mockImplementation(async options => {
+      await options.onPartial?.("stream fragment");
+      return { status: "failed", code: "provider_failed", partialText: "different terminal fragment", responseId: "resp_fixture", requestId: null, dispatched: true, recovery: "retry_later" };
+    });
+    expect(await registry.get(current.operation)!.steps(current)[0]!.execute({ job: current, signal: new AbortController().signal })).toMatchObject({ status: "needs_reconciliation", result: { partialText: "different terminal fragment" } });
+  });
+  it("keeps explicitly uncertain provider outcomes unresolved after successful partial persistence", async () => {
+    const { registry, appendPartial } = handlers(); const current = job();
+    vi.mocked(runChatGPTStrategy).mockImplementation(async options => {
+      await options.onPartial?.("actual partial");
+      return { status: "needs_reconciliation", code: "provider_outcome_unknown", partialText: "actual partial", responseId: "resp_fixture", requestId: null, dispatched: true, recovery: "manual_review" };
+    });
+    expect(await registry.get(current.operation)!.steps(current)[0]!.execute({ job: current, signal: new AbortController().signal })).toMatchObject({ status: "needs_reconciliation", code: "provider_outcome_unknown", result: { partialText: "actual partial" } });
+    expect(appendPartial).toHaveBeenCalledWith(current.id, current.leaseToken, "actual partial");
   });
   it("keeps a failed terminal flush as reconciliation rather than fabricated success", async () => {
     const { registry, appendPartial } = handlers(); const current = job();

@@ -37,6 +37,7 @@ describe("standalone Names UI and acknowledgement recovery", () => {
     await render(); await fillBrief(); expect(button("Generate names").disabled).toBe(true);
     await click(host.querySelector<HTMLInputElement>('input[type="checkbox"]')!); await click(button("Generate names"));
     const call = fetcher.mock.calls.find(([, init]) => init.method === "POST")!;
+    expect(new Headers(call[1].headers).get("X-Embel-Account")).toBe(owner);
     expect(call[0]).toBe("/api/names/ai"); expect(JSON.parse(call[1].body)).toMatchObject({ brief, acceptSubscriptionUsage: true, refinement: null });
     expect(JSON.parse(call[1].body)).not.toHaveProperty("ownerId"); expect(JSON.parse(call[1].body)).not.toHaveProperty("projectId");
     expect(host.textContent).toContain("Waiting for the local worker");
@@ -78,9 +79,34 @@ describe("standalone Names UI and acknowledgement recovery", () => {
     await render(); await act(async () => finish(Response.json({ ownerId: owner, availability, jobs: [jobFixture("succeeded")], hasMore: false })));
     expect(host.textContent).not.toContain(proposal.value); expect(mock.expire).not.toHaveBeenCalled();
   });
+  it("fences a captured account A brief when the shared cookie switches to B before admission", async () => {
+    let cookieOwner = owner;
+    const admitted: unknown[] = [];
+    fetcher.mockImplementation(async (_path, init) => {
+      if (init.method === "POST") {
+        if (new Headers(init.headers).get("X-Embel-Account") !== cookieOwner) return Response.json({}, { status: 401 });
+        admitted.push(JSON.parse(init.body));
+        return Response.json({ job: jobFixture() });
+      }
+      return Response.json({ ...overview, ownerId: cookieOwner });
+    });
+    await render(); await fillBrief(); await click(host.querySelector<HTMLInputElement>('input[type="checkbox"]')!);
+    cookieOwner = other;
+    await click(button("Generate names"));
+    const submitted = fetcher.mock.calls.find(([, init]) => init.method === "POST")![1];
+    expect(new Headers(submitted.headers).get("X-Embel-Account")).toBe(owner);
+    expect(JSON.parse(submitted.body).brief).toEqual(brief);
+    expect(admitted).toEqual([]);
+    expect(mock.expire).toHaveBeenCalledExactlyOnceWith({ status: "ready", userId: owner, generation: 1 });
+    mock.session = { status: "ready", userId: other, generation: 2 };
+    await render();
+    expect(host.querySelector<HTMLTextAreaElement>("textarea")!.value).toBe("");
+    expect(host.textContent).not.toContain("Retry this same request");
+    expect(new Headers(fetcher.mock.calls.at(-1)![1].headers).get("X-Embel-Account")).toBe(other);
+  });
   it("rejects oversized streamed responses without trusting Content-Length", async () => {
     fetcher.mockResolvedValue(new Response('"' + "x".repeat(STANDALONE_NAMES_MAX_RESPONSE_BYTES) + '"', { headers: { "content-type": "application/json" } }));
-    await expect(standaloneNamesRequest("/api/names/ai", z.string(), { signal: new AbortController().signal })).rejects.toMatchObject({ status: 502 });
+    await expect(standaloneNamesRequest("/api/names/ai", z.string(), { signal: new AbortController().signal, expectedOwnerId: owner })).rejects.toMatchObject({ status: 502 });
   });
   it("reads a valid full history page with long Unicode rationales", async () => {
     const jobs = Array.from({ length: 50 }, (_, jobIndex) => {
@@ -90,7 +116,7 @@ describe("standalone Names UI and acknowledgement recovery", () => {
     });
     const body = JSON.stringify({ ...overview, jobs }); expect(new TextEncoder().encode(body).byteLength).toBeGreaterThan(2_097_152);
     fetcher.mockResolvedValue(new Response(body, { headers: { "content-type": "application/json" } }));
-    const received = await standaloneNamesRequest("/api/names/ai", standaloneNamesOverviewSchema, { signal: new AbortController().signal });
+    const received = await standaloneNamesRequest("/api/names/ai", standaloneNamesOverviewSchema, { signal: new AbortController().signal, expectedOwnerId: owner });
     expect(received.jobs).toHaveLength(50); expect(received.jobs[49]!.result!.candidates).toHaveLength(20);
   });
 });

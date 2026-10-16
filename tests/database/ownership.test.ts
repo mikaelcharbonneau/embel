@@ -35,7 +35,13 @@ const reviewedWorkflowTables = [
   ["project_inspiration_heads", true], ["project_inspiration_choices", true],
   ["project_visual_directions", true], ["project_screening_records", true],
 ] as const;
-const reviewedReadOnlyTables = [...reviewedLogoAndHomeTables, ...reviewedWorkflowTables];
+const reviewedAccountNamesTables = [
+  // 20261013190229: job policy, lease and partial text have no raw client read.
+  ["standalone_name_jobs", false],
+  // 20261015201757: owner-filtered snapshot SELECT; checked RPCs own all writes.
+  ["names_workspaces", true],
+] as const;
+const reviewedReadOnlyTables = [...reviewedLogoAndHomeTables, ...reviewedWorkflowTables, ...reviewedAccountNamesTables];
 
 describe("local PostgreSQL ownership boundaries (not live Supabase)", () => {
   let db: TestDatabase;
@@ -134,8 +140,11 @@ describe("local PostgreSQL ownership boundaries (not live Supabase)", () => {
 
   it("enforces cross-owner references even for a privileged insertion", async () => {
     const a = await seedProject(db);
-    await expect(db.query("insert into public.assets(owner_id,project_id,kind) values($1,$2,'logo')", [OWNER_B, a.id])).rejects.toThrow(/foreign key/);
+    // 20261015232500's content lifecycle guard rejects the mismatched owned
+    // project before the composite foreign key is reached.
+    await expect(db.query("insert into public.assets(owner_id,project_id,kind) values($1,$2,'logo')", [OWNER_B, a.id])).rejects.toMatchObject({ code: "P0002", message: "project_not_found" });
     await expect(enqueue(db, a.id, "foreign-job", 100, OWNER_B)).rejects.toThrow(/not_found/);
+    for (const table of ["assets", "jobs", "usage_reservations"]) expect((await db.query(`select * from public.${table}`)).rows, table).toEqual([]);
   });
 
   it("restricts jobs, steps and reservations to their owner, and worker RPCs to service_role", async () => {

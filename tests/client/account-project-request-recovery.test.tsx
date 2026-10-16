@@ -155,4 +155,25 @@ describe("saved-project HTTP recovery", () => {
     expect(mock.memory!.get(projectId)!.draft.description).toBe("Private pending edit");
   });
 
+  it.each([400, 413, 422, 429])("allows correcting an ordinary draft after a definitive %s rejection", async status => {
+    await render();
+    let rejected = false;
+    fetcher.mockImplementation(async (_path: string, init: RequestInit) => {
+      expect(init.method).toBe("PATCH");
+      if (!rejected) { rejected = true; return new Response(null, { status }); }
+      const body = JSON.parse(String(init.body));
+      return Response.json({ revision: { project_id: projectId, owner_id: project.owner_id, revision: 2, context: body.context, input_hash: "a".repeat(64), created_at: when } });
+    });
+    await act(async () => mock.editor!.storage.onUpdate({ description: "An ordinary rejected edit" }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(650); });
+    expect(mock.editor!.workspace.pendingDraftSave).toBeUndefined();
+    expect(mock.memory!.hasUnsaved()).toBe(true);
+    await act(async () => mock.editor!.storage.onUpdate({ description: "My corrected ordinary edit" }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(650); });
+    expect(mutations()).toHaveLength(2);
+    expect(JSON.parse(String(mutations()[1]![1].body)).context.description).toBe("My corrected ordinary edit");
+    expect(mock.editor!.workspace.saved.context.description).toBe("My corrected ordinary edit");
+    expect(mock.memory!.hasUnsaved()).toBe(false);
+  });
+
 });

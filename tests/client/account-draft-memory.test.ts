@@ -29,4 +29,15 @@ describe("bounded account draft memory", () => {
     expect(memory.hasUnsaved()).toBe(false);
     expect(memory.get(entry(1).saved.id)).toBeNull();
   });
+  it("retains unsent conversation text and choices at capacity without treating either as a project PATCH", () => {
+    const memory = createAccountDraftMemory();
+    for (let index = 0; index < 20; index++) memory.set({ ...entry(index), guidedInput: index % 2 ? { prompt: "An unsent question", selection: null } : { prompt: "", selection: { turnId: "saved-turn", ids: ["unconfirmed-choice"] } } });
+    expect(memory.hasUnsaved()).toBe(true);
+    expect(memory.set(entry(20))).toBe(false);
+    expect(memory.get(entry(0).saved.id)?.guidedInput?.selection?.ids).toEqual(["unconfirmed-choice"]);
+    expect(memory.get(entry(1).saved.id)?.guidedInput?.prompt).toBe("An unsent question");
+    memory.set({ ...entry(0), guidedInput: { prompt: "", selection: null } });
+    expect(memory.set(entry(20))).toBe(true);
+    expect(memory.get(entry(0).saved.id)).toBeNull();
+  });
 });

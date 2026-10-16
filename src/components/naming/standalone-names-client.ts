@@ -8,7 +8,7 @@ export const STANDALONE_NAMES_MAX_RESPONSE_BYTES = 16 * 1024 * 1024;
 
 /** Bound acknowledgement time and streamed bytes independently of durable jobs. */
 export async function standaloneNamesRequest<T>(path: string, schema: z.ZodType<T>, options: {
-  signal: AbortSignal; method?: "GET" | "POST" | "PATCH"; body?: unknown;
+  signal: AbortSignal; expectedOwnerId: string; method?: "GET" | "POST" | "PATCH"; body?: unknown;
 }): Promise<T> {
   const body = options.body === undefined ? undefined : JSON.stringify(options.body);
   if (body && new TextEncoder().encode(body).byteLength > STANDALONE_NAMES_MAX_BYTES) throw new AccountRequestError(413);
@@ -23,7 +23,7 @@ export async function standaloneNamesRequest<T>(path: string, schema: z.ZodType<
   });
   const read = async () => {
     const response = await fetch(path, { method: options.method ?? "GET", credentials: "same-origin", mode: "same-origin", cache: "no-store", signal: controller.signal,
-      headers: { Accept: "application/json", ...(body === undefined ? {} : { "Content-Type": "application/json" }) }, ...(body === undefined ? {} : { body }) });
+      headers: { Accept: "application/json", "X-Embel-Account": options.expectedOwnerId, ...(body === undefined ? {} : { "Content-Type": "application/json" }) }, ...(body === undefined ? {} : { body }) });
     const limit = STANDALONE_NAMES_MAX_RESPONSE_BYTES;
     if (!response.ok || response.headers.get("content-type")?.split(";")[0]?.trim() !== "application/json" || Number(response.headers.get("content-length")) > limit || controller.signal.aborted) {
       void response.body?.cancel().catch(() => {}); throw new AccountRequestError(response.ok ? 502 : response.status);

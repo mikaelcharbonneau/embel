@@ -13,10 +13,11 @@ import { copyToLocalDraft, draftTitle, scopeLabel, type LocalDraft } from "./loc
 import { type DraftPatch } from "./project-editor";
 import { AccountGuidedInterview } from "./account-guided-interview";
 import { getNamingReadiness } from "@/domain/project-naming";
+import { getProjectHandoff } from "@/domain/project-handoff";
 import { AccountProjectContinuity } from "./account-project-continuity";
 import { IdeaSourceBanner } from "@/components/ideas/idea-source-banner";
 
-import { accountDraftChanged as changed, reconcilePendingDraftSave, type AccountWorkspace } from "./account-draft-memory";
+import { accountDraftChanged as changed, reconcileAccountWorkspace, reconcilePendingDraftSave, type AccountWorkspace, type GuidedInterviewInput } from "./account-draft-memory";
 const emptyWorkspace = () => null;
 
 export function AccountProjectEditor({ projectId }: { projectId: string }) {
@@ -41,16 +42,7 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
       if (controller.signal.aborted || !isCurrent(session)) return;
       if (project.owner_id !== session.userId || project.id !== projectId) { expire(session); return; }
       setLoadError(null);
-      setWorkspace((previous) => {
-        if (previous?.ownerId === session.userId && previous.saved.id === projectId) {
-          // A request begun before a successful mutation cannot roll the editor back.
-          if (project.current_revision < previous.saved.current_revision) return { ...previous, generation: session.generation };
-          const confirmed = reconcilePendingDraftSave(previous, project);
-          if (confirmed) return { ...confirmed, generation: session.generation };
-          if (changed(previous)) return { ...previous, generation: session.generation, conflict: previous.conflict || previous.saved.current_revision !== project.current_revision };
-        }
-        return { generation: session.generation, ownerId: session.userId, saved: project, draft: accountProjectDraft(project), conflict: false };
-      });
+      setWorkspace(previous => reconcileAccountWorkspace(previous, project, session.generation));
     }).catch((error: unknown) => {
       if (controller.signal.aborted || !isCurrent(session)) return;
       if (error instanceof AccountRequestError && error.status === 401) expire(session);
@@ -75,6 +67,11 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
     if (!mutation.current) setOperation(null);
     return false;
   }
+  function updateGuidedInput(update: (input: GuidedInterviewInput) => GuidedInterviewInput) {
+    if (!isCurrent(account)) return;
+    setWorkspace(previous => previous?.ownerId === account.userId && previous.generation === account.generation
+      ? { ...previous, guidedInput: update(previous.guidedInput ?? { prompt: "", selection: null }) } : previous);
+  }
   function fail(error: unknown, controller: AbortController) {
     if (controller.signal.aborted || !isCurrent(account)) return;
     if (error instanceof AccountRequestError && error.status === 401) { expire(account); return; }
@@ -89,17 +86,17 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
     setOperation({ generation: account.generation, projectId, busy: true });
     return controller;
   }
-  async function save(nextDraft?: LocalDraft): Promise<AccountWorkspace | null> {
+  async function save(nextDraft?: LocalDraft, guidedContext?: ContextSnapshot, submittedInput?: Partial<GuidedInterviewInput>): Promise<AccountWorkspace | null> {
     const before = drafts.get(projectId);
     if (!isCurrent(account) || busy || mutation.current || !before || before.ownerId !== account.userId || before.generation !== account.generation || before.conflict) return null;
-    if (before.pendingGuidedContext && !nextDraft) return saveContext(before.pendingGuidedContext);
+    const context = guidedContext ?? (!nextDraft ? before.pendingGuidedContext : undefined);
     const submittedDraft = before.pendingDraftSave?.draft ?? nextDraft ?? before.draft;
     let body: z.infer<typeof updateProjectInputSchema>;
-    try { body = before.pendingDraftSave?.body ?? updateProjectInputSchema.parse({ expectedRevision: before.saved.current_revision, title: draftTitle(submittedDraft), context: draftContext(submittedDraft, before.saved.context) }); }
-    catch { setOperation({ generation: account.generation, projectId, busy: false, error: draftValidationMessage(submittedDraft) }); return null; }
+    try { body = before.pendingDraftSave?.body ?? updateProjectInputSchema.parse({ expectedRevision: before.saved.current_revision, ...(context ? {} : { title: draftTitle(submittedDraft) }), context: context ?? draftContext(submittedDraft, before.saved.context) }); }
+    catch { setOperation({ generation: account.generation, projectId, busy: false, error: context ? "This answer could not be saved. Your conversation is kept in this tab." : draftValidationMessage(submittedDraft) }); return null; }
     const controller = begin();
-    const pending = before.pendingDraftSave ?? { body: structuredClone(body), draft: structuredClone(submittedDraft) };
-    setWorkspace({ ...before, pendingDraftSave: pending });
+    const pending = before.pendingDraftSave ?? { body: structuredClone(body), draft: structuredClone(submittedDraft), submittedInput: submittedInput ? structuredClone(submittedInput) : undefined };
+    setWorkspace({ ...before, pendingDraftSave: pending, ...(context ? { pendingGuidedContext: body.context } : {}) });
     async function checkOutcome(): Promise<AccountWorkspace | null | false> {
       const { project } = await boundedAccountRequest(`/api/projects/${projectId}`, accountProjectResponseSchema, { signal: controller.signal });
       if (controller.signal.aborted || !isCurrent(account)) return null;
@@ -126,8 +123,8 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
         throw new AccountRequestError(409);
       }
       const saved = { ...before.saved, title: body.title ?? before.saved.title, context: revision.context, current_revision: revision.revision };
-      const unchanged = JSON.stringify(previous.draft) === JSON.stringify(submittedDraft);
-      const next = { ...previous, saved, draft: unchanged ? accountProjectDraft(saved) : previous.draft, pendingDraftSave: undefined };
+      const next = reconcilePendingDraftSave(previous, saved);
+      if (!next) throw new AccountRequestError(409);
       setWorkspace(next);
       setOperation({ generation: account.generation, projectId, busy: false });
       return next;
@@ -136,37 +133,20 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
         try { const outcome = await checkOutcome(); if (outcome) return outcome; }
         catch (recoveryError) { fail(recoveryError, controller); return null; }
       }
-      if (error instanceof AccountRequestError && [400, 413, 422, 429].includes(error.status) && !controller.signal.aborted && isCurrent(account)) setWorkspace(previous => previous?.pendingDraftSave === pending ? { ...previous, pendingDraftSave: undefined } : previous);
+      // Ordinary rejected edits can be corrected before the next save. A guided
+      // answer keeps its exact submission, including the input to clear on ack.
+      if (!context && error instanceof AccountRequestError && [400, 413, 422, 429].includes(error.status) && !controller.signal.aborted && isCurrent(account)) setWorkspace(previous => previous?.pendingDraftSave === pending ? { ...previous, pendingDraftSave: undefined } : previous);
       fail(error, controller); return null;
     }
     finally { if (mutation.current === controller) mutation.current = null; }
   }
-  async function saveContext(context: ContextSnapshot): Promise<AccountWorkspace | null> {
+  async function saveContext(context: ContextSnapshot, submittedInput?: Partial<GuidedInterviewInput>): Promise<AccountWorkspace | null> {
     const before = drafts.get(projectId);
     if (!isCurrent(account) || busy || mutation.current || !before || before.ownerId !== account.userId || before.generation !== account.generation || before.conflict) return null;
     // A failed automatic save remains owner-bound in session memory. Never replace
     // another unsaved branch just because a new assistant result arrived.
     if (changed(before) && (!before.pendingGuidedContext || JSON.stringify(before.pendingGuidedContext) !== JSON.stringify(context))) return null;
-    let body;
-    try { body = updateProjectInputSchema.parse({ expectedRevision: before.saved.current_revision, context }); }
-    catch { setOperation({ generation: account.generation, projectId, busy: false, error: "This answer could not be saved. Your conversation is kept in this tab." }); return null; }
-    const controller = begin();
-    setWorkspace({ ...before, pendingGuidedContext: body.context });
-    try {
-      const { revision } = await boundedAccountRequest(`/api/projects/${projectId}`, accountRevisionResponseSchema, { method: "PATCH", body, signal: controller.signal });
-      if (controller.signal.aborted || !isCurrent(account)) return null;
-      if (revision.owner_id !== account.userId || revision.project_id !== projectId) { expire(account); return null; }
-      if (revision.revision !== before.saved.current_revision + 1) throw new AccountRequestError(502);
-      const previous = drafts.get(projectId);
-      if (!previous || previous.ownerId !== account.userId || previous.generation !== account.generation) return null;
-      if (previous.saved.current_revision !== before.saved.current_revision) throw new AccountRequestError(409);
-      const saved = { ...before.saved, context: revision.context, current_revision: revision.revision };
-      const edited = JSON.stringify(previous.draft) !== JSON.stringify(before.draft) || JSON.stringify(previous.pendingGuidedContext) !== JSON.stringify(body.context);
-      const next = { ...previous, saved, draft: edited ? previous.draft : accountProjectDraft(saved), pendingGuidedContext: edited ? previous.pendingGuidedContext : undefined, conflict: edited };
-      setWorkspace(next); setOperation({ generation: account.generation, projectId, busy: false });
-      return edited ? null : next;
-    } catch (error) { fail(error, controller); return null; }
-    finally { if (mutation.current === controller) mutation.current = null; }
+    return save(undefined, context, submittedInput);
   }
   async function expand() {
     if (!isCurrent(account) || busy || mutation.current || changed(active) || active.conflict) return;
@@ -234,7 +214,14 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
     {identityHint && <p className="field-hint">{identityHint}</p>}
   </>}</div>;
   const projectContext = <><div className="idea-source-wrap"><IdeaSourceBanner key={`${projectId}:${account.userId}:${account.generation}`} account={account} projectId={projectId} /></div><AccountProjectContinuity key={`continuity:${projectId}:${account.userId}:${account.generation}`} account={account} project={active.saved} dirty={changed(active)} conflicted={active.conflict} expanding={Boolean(busy)} onExpand={expand} /></>;
-  return <><AccountDraftAutosave workspace={active} blocked={Boolean(busy || hasSaveError)} save={save} /><AccountGuidedInterview key={`${projectId}:${account.userId}:${account.generation}`} account={account} workspace={active} busy={Boolean(busy)} saveContext={saveContext} storage={{ kind: "account", saveLabel: busy ? "Saving…" : changed(active) ? hasSaveError || active.conflict || active.pendingDraftSave ? "Changes not saved" : "Saving…" : "Saved", onUpdate: update, actions, scopeControl, projectContext, namingSource: active.saved.context.namingSource }} /></>;
+  const handoff = getProjectHandoff(active.saved);
+  const continuation = handoff.next.stage !== "strategy" ? handoff.next : null;
+  const continuationBlocked = busy || changed(active) || active.conflict;
+  const resultNavigation = (continuation || active.saved.scope !== "complete_brand") && <nav className="account-actions" aria-label="Continue project">
+    {continuation && (continuationBlocked ? <button type="button" className="button primary small" disabled>{continuation.label}</button> : <Link className="button primary small" href={continuation.href}>{continuation.label}</Link>)}
+    {active.saved.scope !== "complete_brand" && <button type="button" className="button secondary small" disabled={Boolean(continuationBlocked)} onClick={() => void expand()}>Expand to complete brand</button>}
+  </nav>;
+  return <><AccountDraftAutosave workspace={active} blocked={Boolean(busy || hasSaveError)} save={save} /><AccountGuidedInterview key={`${projectId}:${account.userId}:${account.generation}`} account={account} workspace={active} busy={Boolean(busy)} saveContext={saveContext} onInputChange={updateGuidedInput} storage={{ kind: "account", saveLabel: busy ? "Saving…" : changed(active) ? hasSaveError || active.conflict || active.pendingDraftSave ? "Changes not saved" : "Saving…" : "Saved", onUpdate: update, actions, scopeControl, projectContext, resultNavigation, namingSource: active.saved.context.namingSource }} /></>;
 }
 
 function AccountDraftAutosave({ workspace, blocked, save }: { workspace: AccountWorkspace; blocked: boolean; save: () => Promise<AccountWorkspace | null> }) {

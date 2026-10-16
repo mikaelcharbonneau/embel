@@ -64,6 +64,41 @@ const reviewedLogoAndHomeFunctions = [
   "public.read_logo_capabilities(uuid)",
 ] as const;
 
+const reviewedAccountWorkflowFunctions = [
+  // 20261013120000 / 20261013140801 / 20261013190225: owned project catalog
+  // choices, immutable direction review and owner-authored screening evidence.
+  "public.get_project_inspiration(uuid)",
+  "public.set_project_inspiration_reaction(uuid, uuid, jsonb)",
+  "public.get_project_visual_direction(uuid)",
+  "public.review_project_visual_direction(uuid, jsonb)",
+  "public.get_project_screening(uuid, jsonb)",
+  "public.record_project_screening(uuid, jsonb)",
+  // 20261013190229: owned standalone jobs and retention. No worker readiness,
+  // claim, pulse or finish entrypoint receives a client EXECUTE grant.
+  "public.get_standalone_names(timestamp with time zone, uuid)",
+  "public.get_standalone_name_job(uuid)",
+  "public.enqueue_standalone_names(jsonb)",
+  "public.cancel_standalone_names(uuid)",
+  "public.retain_standalone_name(uuid, integer, boolean, boolean)",
+  // 20261015201722 / 20261015201757: parsed public wrappers delegate to exact
+  // private helpers below without granting private-schema USAGE or raw writes.
+  "public.create_project_with_request(uuid, text, text, jsonb, text)",
+  "public.get_names_workspace()",
+  "public.save_names_workspace(integer, uuid, jsonb)",
+  // 20261015232500 / 20261015235900: owner/revision/lifecycle-fenced recoverable
+  // deletion and restore, with durable stop intent and read-only status.
+  "public.set_project_deleted(uuid, integer, integer, boolean)",
+  "public.request_project_deletion(uuid, integer, integer)",
+  "public.restore_project_deletion(uuid, integer, integer)",
+  "public.get_project_deletion(uuid)",
+  "public.get_project_deletion_states(uuid[])",
+] as const;
+
+const authenticatedWrapperFunctions = [
+  "fluid_private.create_project_with_request(uuid, text, text, jsonb, text)",
+  "fluid_private.save_names_workspace(integer, uuid, jsonb)",
+] as const;
+
 // Uses the real greenfield migration in local PostgreSQL/WASM, with emulated Auth claims.
 // It does not represent two live Supabase sessions or multi-connection concurrency.
 describe("independent database boundary attacks", () => {
@@ -287,6 +322,8 @@ describe("independent database boundary attacks", () => {
     const userFunctions = new Set([
       ...publicFunctions,
       ...reviewedLogoAndHomeFunctions,
+      ...reviewedAccountWorkflowFunctions,
+      ...authenticatedWrapperFunctions,
       ...authenticatedPolicyFunctions,
       "public.create_project(text, text, jsonb, text)",
       "public.append_project_revision(uuid, integer, jsonb, text, text)",
@@ -390,11 +427,13 @@ describe("independent database boundary attacks", () => {
       expect(grant.subscription_worker, grant.signature).toBe(subscriptionFunctions.has(grant.signature));
     }
     expect((await db.query("select has_schema_privilege('authenticated','fluid_private','USAGE') as usage")).rows).toEqual([{ usage: false }]);
-    for (const signature of authenticatedPolicyFunctions) {
+    for (const signature of [...authenticatedPolicyFunctions, ...authenticatedWrapperFunctions]) {
       expect((await db.query("select has_function_privilege('authenticated',$1,'EXECUTE WITH GRANT OPTION') as grantable", [signature])).rows).toEqual([{ grantable: false }]);
     }
     for (const owner of [OWNER_A, null]) await asRole(db, "authenticated", owner, async () => {
       await expect(db.query("select fluid_private.owner_staging_object_allowed('fluid-assets','unlisted')")).rejects.toMatchObject({ code: "42501" });
+      await expect(db.query("select fluid_private.create_project_with_request(null,null,null,null,null)")).rejects.toMatchObject({ code: "42501" });
+      await expect(db.query("select fluid_private.save_names_workspace(null,null,null)")).rejects.toMatchObject({ code: "42501" });
     });
     const columns = await db.query<{ column_name: string }>(
       "select attname as column_name from pg_attribute where attrelid='public.job_steps'::regclass and attnum>0 and not attisdropped and has_column_privilege($1,attrelid,attnum,'select') order by attname", [principal],

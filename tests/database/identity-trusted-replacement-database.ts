@@ -15,9 +15,11 @@ const inheritedHashes: Record<string, string> = {
   // 20261007020000 keeps the owner/session gate and existing ACL, and excludes
   // all five logo operations from subscription-worker recovery metadata reads.
   subscription_worker_can_read_step: "7fbb782b3c033ee9d37d7144a29af8a2eaf389bd1b7a2f3c69608b71c28bf769",
-  // Reviewed 20261008010153 adds only actual-session API identity and an
-  // owner-bound RLS predicate. These exact functions confer no mutation rights.
-  api_text_worker_owner: "db2a04417ac7ac3eee08804b38ae4f0f29cddf5e1d32c461174da580a20ac697",
+  // Reviewed 20261013190236 extends the 20261008010153 session identity with
+  // a backend/transaction-bound gateway context and restricted role-name/OID
+  // check, falling back to the pinned legacy owner. Its PUBLIC ACL is unchanged;
+  // neither this identity helper nor the RLS predicate confers mutation rights.
+  api_text_worker_owner: "d937524b325c1fb4c33f2d8c84d0dbbb6168f7c62e4d116e529bae0e7d6d8a8a",
   api_text_worker_can_read_step: "904fc5ef2b2f0fad8649fee21bf99b89f310ae058a9dea5c7bad47bc7afed939",
 };
 const logins = [...Object.values(identityFixturePrincipals), "fixture_identity_replacement_unbound"];

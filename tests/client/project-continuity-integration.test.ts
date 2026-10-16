@@ -1,19 +1,71 @@
 // @vitest-environment jsdom
-import {afterEach,expect,it,vi} from 'vitest';
-import {act,createElement} from 'react';import {createRoot,type Root} from 'react-dom/client';
-import {AccountSessionProvider} from '@/components/workspace/account-session';
-import {AccountProjectEditor} from '@/components/workspace/account-project-editor';
-import {contextSnapshotSchema} from '@/domain/projects';
-vi.mock('@/components/workspace/account-strategy-editor',()=>({AccountStrategyEditor:({storage}:{storage:{scopeControl:React.ReactNode;projectContext?:React.ReactNode}})=>createElement('div',null,storage.scopeControl,storage.projectContext)}));
-const id=(n:number)=>`d0000000-0000-4000-8000-${String(n).padStart(12,'0')}`;let root:Root|null=null;
-afterEach(async()=>{if(root)await act(async()=>root!.unmount());root=null;document.body.innerHTML='';vi.unstubAllGlobals();});
-it('shows saved project continuation and frozen attached sources without new generation',async()=>{
- vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT',true);const requests:string[]=[];
- const project={id:id(2),owner_id:id(1),current_revision:1,scope:'complete_brand',title:'Fictional brand',context:contextSnapshotSchema.parse({description:'A service'}),created_at:'2026-10-07T00:00:00Z'};
- vi.stubGlobal('fetch',vi.fn(async(input:unknown,init?:RequestInit)=>{const path=String(input);requests.push((init?.method??'GET')+' '+path);let value:unknown={};
- if(path==='/api/session')value={user:{id:id(1)}};else if(path===`/api/projects/${id(2)}`)value={project};else if(path.includes('/idea-attachments'))value={ownerId:id(1),projectId:id(2),items:[],nextCursor:null};else if(path.endsWith('/standalone-source'))value={ownerId:id(1),projectId:id(2),source:null};else if(path.endsWith('/idea-source'))value={source:null};
- return new Response(JSON.stringify(value),{status:200});}));
- const host=document.createElement('div');document.body.append(host);root=createRoot(host);await act(async()=>root!.render(createElement(AccountSessionProvider,null,createElement(AccountProjectEditor,{projectId:id(2)}))));
- for(let i=0;i<60&&!host.querySelector('[aria-label="Brand context and continuation"]');i++)await act(async()=>{await new Promise(r=>setTimeout(r,5));});
- expect(host.querySelector('[aria-label="Brand context and continuation"]')).not.toBeNull();expect(host.querySelector('[aria-label="Attached Idea sources"]')).not.toBeNull();expect(host.textContent).toContain('Continue your Strategy');expect(requests.every(r=>r.startsWith('GET '))).toBe(true);expect(host.querySelector(`a[href="/brands/account/${id(2)}/logo"]`)?.textContent).toBe('Open logo workspace');expect(host.querySelector(`a[href="/brands/account/${id(2)}/inspiration"]`)?.textContent).toBe('Open Inspiration');expect(host.querySelector(`a[href="/brands/account/${id(2)}/identity"]`)?.textContent).toBe('Saved references and systems');
+import { act, createElement, useLayoutEffect } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { AccountSessionProvider, useAccountSession } from "@/components/workspace/account-session";
+import { AccountProjectEditor } from "@/components/workspace/account-project-editor";
+import { accountProjectSchema, type AccountProject } from "@/domain/project-api";
+
+vi.mock("@/components/workspace/use-strategy-jobs", () => ({ useStrategyJobs: () => ({ overview: { jobs: [], availability: { status: "unavailable", operations: [], reason: "worker_unavailable" } }, pending: false, readError: null, actionError: null, refresh: vi.fn(), enqueue: vi.fn(), cancel: vi.fn() }) }));
+const id = (n: number) => `d0000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+const when = "2026-10-15T00:00:00Z";
+let root: Root, host: HTMLDivElement, account: ReturnType<typeof useAccountSession>, project: AccountProject, requests: { path: string; init: RequestInit }[];
+function Probe() { const next = useAccountSession(); useLayoutEffect(() => { account = next; }); return null; }
+async function render() {
+  await act(async () => root.render(createElement(AccountSessionProvider, null, createElement(Probe), createElement(AccountProjectEditor, { projectId: id(2) }))));
+  await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+}
+beforeEach(() => {
+  vi.useFakeTimers(); vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true); requests = [];
+  project = accountProjectSchema.parse({ id: id(2), owner_id: id(1), current_revision: 1, scope: "complete_brand", title: "Synthetic reviewed brand", created_at: when, context: {
+    description: "A neighborhood kitchen", activity: "Kitchen", offering: "Seasonal lunches", competitorReviewComplete: true,
+    audienceSegments: [{ id: id(3), label: "Neighbors", needs: ["A useful lunch"], reason: "They live nearby", selected: true, origin: "user" }],
+    personality: { sincerity: 80, excitement: 30, competence: 70, sophistication: 30, ruggedness: 10 },
+    intake: { audienceReviewedAt: when, personalityReviewedAt: when, guidedInterview: { version: 1, stage: "complete", turns: [], answers: [] } },
+  } });
+  vi.stubGlobal("fetch", vi.fn(async (path: string, init: RequestInit) => {
+    requests.push({ path, init });
+    if (path === "/api/session") return Response.json({ user: { id: id(1) } });
+    if (path === `/api/projects/${id(2)}` && init.method === "GET") return Response.json({ project });
+    if (path === `/api/projects/${id(2)}/expand` && init.method === "POST") {
+      expect(JSON.parse(String(init.body))).toEqual({ expectedRevision: 1 });
+      project = { ...project, scope: "complete_brand", current_revision: 2 }; return Response.json({ project });
+    }
+    throw new Error(`Unexpected synthetic request ${path}`);
+  }));
+  host = document.createElement("div"); document.body.append(host); root = createRoot(host);
+});
+afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.useRealTimers(); vi.unstubAllGlobals(); });
+
+it.each([false, true])("continues reviewed saved strategy without adding the removed dashboard (selected name: %s)", async nameSelected => {
+  if (nameSelected) project = { ...project, context: { ...project.context, selectedName: "Tablelight" } };
+  const originalContext = structuredClone(project.context);
+  await render();
+  const destination = nameSelected ? "inspiration" : "naming";
+  expect(host.querySelector(`a[href="/brands/account/${id(2)}/${destination}"]`)).not.toBeNull();
+  expect(host.querySelector('[aria-label="Brand conversation"]')).not.toBeNull();
+  expect(host.querySelector('[aria-label="Brand context and continuation"]')).toBeNull();
+  expect(host.querySelector('[aria-label="Project stages"]')).toBeNull();
+  expect(account.drafts.get(id(2))!.saved.context).toEqual(originalContext);
+  expect(requests.every(request => request.init.method === "GET")).toBe(true);
+});
+
+it("keeps an incomplete complete-brand project in its guided interview until saved strategy is ready", async () => {
+  project = { ...project, context: { ...project.context, intake: { ...project.context.intake, personalityReviewedAt: null } } };
+  await render();
+  expect(host.querySelector(`a[href="/brands/account/${id(2)}/naming"]`)).toBeNull();
+  expect(host.querySelector(`a[href="/brands/account/${id(2)}/inspiration"]`)).toBeNull();
+  expect(host.querySelector('[aria-label="Brand conversation"]')).not.toBeNull();
+  expect(requests.every(request => request.init.method === "GET")).toBe(true);
+});
+
+it("expands a focused project only on the explicit action and keeps all saved context", async () => {
+  project = { ...project, scope: "naming_only" }; const context = structuredClone(project.context);
+  await render();
+  expect(requests.every(request => request.init.method === "GET")).toBe(true);
+  await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent === "Expand to complete brand")!.click());
+  const writes = requests.filter(request => request.init.method !== "GET");
+  expect(writes.map(request => request.path)).toEqual([`/api/projects/${id(2)}/expand`]);
+  expect(account.drafts.get(id(2))!.saved).toMatchObject({ scope: "complete_brand", current_revision: 2, context });
+  expect(account.drafts.hasUnsaved()).toBe(false);
 });

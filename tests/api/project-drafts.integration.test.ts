@@ -118,7 +118,10 @@ describe("local route-to-PostgreSQL draft integration (no live services)", () =>
     const expandedResponse = await expand(request({ expectedRevision: 2 }), route(project.id));
     expect(expandedResponse.status).toBe(200);
     const { project: expandedProject } = accountProjectResponseSchema.parse(await expandedResponse.json());
-    expect(expandedProject).toEqual({ ...project, scope: "complete_brand", title: "Edited fixture", current_revision: 3, context: editedContext });
+    expect(expandedProject).toEqual({ id: project.id, owner_id: project.owner_id, created_at: project.created_at,
+      scope: "complete_brand", title: "Edited fixture", current_revision: 3, context: editedContext });
+    expect((await db.query("select deleted_at,deletion_requested_at,lifecycle_version from public.projects where id=$1", [project.id])).rows)
+      .toEqual([{ deleted_at: null, deletion_requested_at: null, lifecycle_version: 0 }]);
     const repeated = await expand(request({ expectedRevision: 3 }), route(project.id));
     expect(await repeated.json()).toEqual({ project: expandedProject });
     const stored = await db.query<{ revision: number; context: unknown; input_hash: string }>("select revision,context,input_hash from public.project_revisions where project_id=$1 order by revision", [project.id]);

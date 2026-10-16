@@ -154,6 +154,13 @@ export function createSubscriptionHandlers(options: {
             if (!persistedText || Date.now() - lastFlushAt >= 350 || Buffer.byteLength(partialText.slice(persistedText.length), "utf8") >= 4096) await flush();
           },
         });
+        if (outcome.status === "failed" && outcome.partialText) {
+          // A known failure may include completed-item text without deltas.
+          // Preserve that text before settling; saved partial output does not
+          // make the provider's explicit failure an uncertain outcome.
+          if (outcome.partialText.startsWith(partialText) && Buffer.byteLength(outcome.partialText, "utf8") <= input.policy.limits.maxOutputBytes) partialText = outcome.partialText;
+          else if (!partialText.startsWith(outcome.partialText)) flushFailed = true;
+        }
         try { await flush(); } catch { /* Retain the full cumulative text in the fenced terminal outcome. */ }
         if (outcome.status === "succeeded") {
           if (flushFailed || combinedSignal.aborted) return { status: "needs_reconciliation", code: "partial_persistence_unavailable", costMicrousd: 0, providerRequestId: outcome.result.responseId,
@@ -163,7 +170,7 @@ export function createSubscriptionHandlers(options: {
         if (outcome.recovery === "view_usage") await options.onQuotaUnavailable?.().catch(() => {});
         const retained = outcome.partialText || partialText;
         const providerRequestId = outcome.responseId ?? outcome.requestId;
-        if (outcome.status === "needs_reconciliation" || retained) return { status: "needs_reconciliation", code: outcome.code.slice(0, 100), costMicrousd: 0, providerRequestId,
+        if (outcome.status === "needs_reconciliation" || (retained && flushFailed)) return { status: "needs_reconciliation", code: outcome.code.slice(0, 100), costMicrousd: 0, providerRequestId,
           result: { billingMode: "chatgpt_subscription", partialText: retained, recovery: outcome.recovery } };
         return { status: "failed", code: outcome.code.slice(0, 100), costMicrousd: 0, providerRequestId };
       },

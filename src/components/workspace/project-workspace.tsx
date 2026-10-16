@@ -11,8 +11,7 @@ import type { ProjectScope } from "@/domain/projects";
 import { AccountRequestError } from "./account-api";
 import { boundedAccountRequest } from "./bounded-account-request";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "./account-session";
-import { accountDraftChanged } from "./account-draft-memory";
-import { accountProjectDraft } from "./project-draft-adapter";
+import { accountDraftChanged, reconcileAccountWorkspace } from "./account-draft-memory";
 import { ProjectArtwork } from "@/components/ui/project-artwork";
 
 type Stage = "strategy" | "naming" | "identity" | "files";
@@ -80,13 +79,7 @@ function OwnedProjectShell({ projectId, account, children }: { projectId: string
     void boundedAccountRequest(`/api/projects/${projectId}`, accountProjectResponseSchema, { signal: controller.signal }).then(({ project }) => {
       if (controller.signal.aborted || !isCurrent(account)) return;
       if (project.owner_id !== account.userId || project.id !== projectId) { expire(account); return; }
-      const previous = drafts.get(projectId);
-      if (!previous || previous.ownerId !== account.userId || previous.generation !== account.generation) {
-        drafts.set({ ownerId: account.userId, generation: account.generation, saved: project, draft: accountProjectDraft(project), conflict: false });
-      } else if (project.current_revision > previous.saved.current_revision) {
-        if (accountDraftChanged(previous) || previous.conflict) drafts.set({ ...previous, conflict: true });
-        else drafts.set({ ownerId: account.userId, generation: account.generation, saved: project, draft: accountProjectDraft(project), conflict: false });
-      }
+      drafts.set(reconcileAccountWorkspace(drafts.get(projectId), project, account.generation));
       setError(null);
     }).catch(error => {
       if (!isCurrent(account) || controller.signal.aborted) return;
