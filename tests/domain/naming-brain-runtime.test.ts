@@ -117,3 +117,19 @@ it("defaults unqualified run recovery to false and accepts only an explicit admi
   expect(brain.namingBrainRunSchema.parse({ ...runSummary(), snapshot: snapshot(), stages }).canResume).toBe(false);
   expect(brain.namingBrainRunSchema.safeParse({ ...runSummary(), snapshot: snapshot(), stages, canResume: true }).success).toBe(false);
 });
+
+describe("incomplete response Resume witness consistency", () => {
+  it.each([
+    { label: "true/false contradiction", canResume: true, witness: false, valid: false },
+    { label: "false/true contradiction", canResume: false, witness: true, valid: false },
+    { label: "true/omitted default-false contradiction", canResume: true, witness: undefined, valid: false },
+    { label: "consistent false/false", canResume: false, witness: false, valid: true },
+    { label: "consistent true/true", canResume: true, witness: true, valid: true },
+    { label: "consistent false/omitted default-false", canResume: false, witness: undefined, valid: true },
+  ])("validates $label", ({ canResume, witness, valid }) => {
+    const fulfillment = { status: "partial", targetCount: 100, acceptedCount: 2, missingCount: 98, coverageSatisfied: false, message: "2 of 100 names are ready." };
+    const run = { ...runSummary(), state: "partial", revision: 2, fulfillment, ...(witness === undefined ? {} : { canResume: witness }) };
+    const result = { status: "incomplete", feed: { ...feed(), activeRun: run }, run, fulfillment, message: "The saved run is incomplete.", canResume };
+    expect(brain.namingFeedEnsureResultSchema.safeParse(result).success).toBe(valid);
+  });
+});
