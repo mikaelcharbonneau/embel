@@ -5,7 +5,7 @@ import { contextSnapshotSchema, type ProjectScope } from "../../src/domain/proje
 import { namingSourceSchema, transformNames, type NameTransformInput } from "../../src/domain/naming";
 import { createEmptyNamesWorkspace, namesWorkspaceSchema } from "../../src/components/naming/local-names";
 import { getNamingFulfillment, projectNamingOverviewSchema, type NamingBatchEntry, type NamingJob } from "../../src/domain/naming-jobs";
-import { emptyNamingRejectionCounts, getNamingReadiness, initialNamingPreferences, nameIdentityKey, namingBatchTarget, namingStrategyBasis, namingStrategyKey, type CurrentNameSelection, type NamingPreferenceRevision, type NamingSession, type ProjectNameEntry } from "../../src/domain/project-naming";
+import { namingPreferencesV1Schema, emptyNamingRejectionCounts, getNamingReadiness, initialNamingPreferences, nameIdentityKey, namingBatchTarget, namingStrategyBasis, namingStrategyKey, type CurrentNameSelection, type NamingPreferenceRevision, type NamingSession, type ProjectNameEntry } from "../../src/domain/project-naming";
 import { DEFAULT_SUBSCRIPTION_LIMITS } from "../../src/domain/strategy-jobs";
 
 // All accounts, provider output and database responses in this suite are intercepted local fixtures.
@@ -48,7 +48,7 @@ async function fixtures(page: Page, scope: ProjectScope = "naming_only") {
     if (!state.preferences || !state.session) throw new Error("Fixture needs preferences");
     const sequence = state.session.latestBatchSequence + 1, targetCount = namingBatchTarget(sequence);
     const batchId = uuid("cccccccc", sequence), jobId = uuid("ffffffff", sequence);
-    const batch = { id: batchId, ownerId, projectId, contextRevision: state.project.current_revision, strategyBasis: namingStrategyBasis(state.project.context), strategyKey: namingStrategyKey(state.project.context), preferencesVersion: state.preferences.version, preferences: state.preferences.preferences, favoritesSnapshot: state.candidates.filter(entry => entry.retention.favorite).map(entry => ({ candidateId: entry.candidate.id, value: entry.candidate.value })), acceptedPolicyIdentity: policyIdentity, sequence, targetCount, jobId, createdAt: when };
+    const batch = { id: batchId, ownerId, projectId, contextRevision: state.project.current_revision, strategyBasis: namingStrategyBasis(state.project.context), strategyKey: namingStrategyKey(state.project.context), preferencesVersion: state.preferences.version, preferences: namingPreferencesV1Schema.parse(state.preferences.preferences), favoritesSnapshot: state.candidates.filter(entry => entry.retention.favorite).map(entry => ({ candidateId: entry.candidate.id, value: entry.candidate.value })), acceptedPolicyIdentity: policyIdentity, sequence, targetCount, jobId, createdAt: when };
     const job: NamingJob = { id: jobId, owner_id: ownerId, project_id: projectId, operation: "naming.generate", input_revision: state.project.current_revision, state: "queued", progress: 0, error_code: null, cancel_requested_at: null, created_at: when, finished_at: null, billingMode: "chatgpt_subscription", policyIdentity, batchId, sequence, targetCount, results: [] };
     state.session.latestBatchSequence = sequence; state.session.revision += 1;
     state.batches.unshift({ batch, result: null }); state.jobs.unshift(job);
