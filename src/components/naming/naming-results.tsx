@@ -47,8 +47,8 @@ function NamingJobStatus({ job, currentRevision, pending, onCancel }: { job: Nam
   </section>;
 }
 
-export function NamingResults({ overview, view, pending, blocked, readFailed, listStatus, strategyKey, onView, onModify, onEnqueue, onCancel, onRetain, onSelect, onInspect, onWorkshop, onLoadMore, onLoadMoreBatches }: {
-  overview: ProjectNamingOverview; view: NamingViewState; pending: boolean; blocked: boolean; readFailed: boolean; listStatus: "loading" | "failed" | "ready"; strategyKey: string;
+export function NamingResults({ overview, view, pending, blocked, readFailed, listStatus, strategyKey, onView, onModify, onEnqueue, onCancel, onRetain, onSelect, onInspect, onWorkshop, onLoadMore, onLoadMoreBatches, historyOnly = false }: {
+  historyOnly?: boolean; overview: ProjectNamingOverview; view: NamingViewState; pending: boolean; blocked: boolean; readFailed: boolean; listStatus: "loading" | "failed" | "ready"; strategyKey: string;
   onView: (patch: Partial<NamingViewState>) => void; onModify: () => void; onEnqueue: () => void; onCancel: (job: NamingJob) => void;
   onInspect?: (entry: ProjectNameEntry) => void;
   onRetain: (entry: ProjectNameEntry, field: "favorite" | "saved") => void; onSelect: (entry: ProjectNameEntry) => void; onWorkshop: (entry: ProjectNameEntry) => void;
@@ -74,10 +74,10 @@ export function NamingResults({ overview, view, pending, blocked, readFailed, li
     </form> : null}
     {entries.length ? <div className="project-naming-grid">{entries.map(entry => <ProjectNameCard key={entry.candidate.id} entry={entry} selected={overview.currentSelection?.candidate.id === entry.candidate.id} earlierContext={entry.candidate.strategyKey !== strategyKey} pending={pending} blockSelection={blocked || readFailed} onFavorite={() => onRetain(entry, "favorite")} onSave={() => onRetain(entry, "saved")} onInspect={onInspect ? () => onInspect(entry) : undefined} onSelect={() => onSelect(entry)} onWorkshop={() => onWorkshop(entry)} />)}</div> : listStatus !== "ready" ? <p className="project-naming-notice" role="status">{listStatus === "loading" ? "Loading names in this view…" : "This list could not be loaded. Check the latest version to try again."}</p> : !activeJob ? <div className="project-naming-empty"><h3>{view.filter !== "all" || view.query || view.visibleBatchId ? "No names in this view" : "Let a direction take shape"}</h3><p>{view.filter !== "all" || view.query || view.visibleBatchId ? "Your earlier names are retained. Change the filters to explore them." : "Your preferences are saved. Start one batch when you are ready."}</p>{view.filter !== "all" || view.query || view.visibleBatchId ? <button className="button secondary small" type="button" disabled={pending} onClick={() => { setQuery(""); onView({ filter: "all", query: "", visibleBatchId: null }); }}>View all names</button> : null}</div> : null}
     {overview.candidates.nextCursor ? <div className="project-naming-next"><button className="button secondary" type="button" disabled={pending} onClick={onLoadMore}>Load more saved names</button></div> : null}
-    <div className="project-naming-next"><button className="button primary" type="button" disabled={pending || blocked || readFailed || Boolean(activeJob) || !overview.preferences || !overview.readiness.ready || overview.availability.status !== "available"} onClick={onEnqueue}>{pending ? "Saving…" : `Generate ${target} ${overview.session?.latestBatchSequence ? "more " : ""}names`}<Icon name="arrow" size={15} /></button>
+    {!historyOnly && <div className="project-naming-next"><button className="button primary" type="button" disabled={pending || blocked || readFailed || Boolean(activeJob) || !overview.preferences || !overview.readiness.ready || overview.availability.status !== "available"} onClick={onEnqueue}>{pending ? "Saving…" : `Generate ${target} ${overview.session?.latestBatchSequence ? "more " : ""}names`}<Icon name="arrow" size={15} /></button>
       {overview.availability.status === "available" ? <p className="project-naming-muted">One request using your ChatGPT plan. Limits: {overview.availability.limits.maxRequestsPerHour} requests per hour, {overview.availability.limits.maxQueuedJobs} queued jobs and {Math.ceil(overview.availability.limits.deadlineMs / 1000)} seconds per request. ChatGPT plan limits apply.</p> : <p className="project-naming-muted">{availabilityMessage(overview.availability.reason)}</p>}
       {overview.preferences ? <p className="project-naming-muted">Uses preferences {overview.preferences.version} and your current favorites. Earlier batches stay unchanged.</p> : null}
-    </div>
+    </div>}
   </section>;
 }
 
