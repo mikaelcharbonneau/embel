@@ -235,3 +235,21 @@ it("a delayed direction save cannot clear an acknowledged pause and retains its 
   f.controller.interact(); await f.controller.demand(); expect(f.requests.some(value => value.path.endsWith("/feed/ensure"))).toBe(false);
   expect(f.memory.get(account, projectId)?.feed.feed?.paused).toBe(true);
 });
+it("Stop binds an unacknowledged Resume by its exact key without rebasing its sequence", async () => {
+  const original = { ...run("partial"), canResume: true }, f = fixture({ ...feed(), activeRun: original });
+  await f.controller.load(); let finish!: (value: unknown) => void;
+  const resumed = { ...run(), runId: id(40), demandSequence: 1, resumedFromRunId: original.runId };
+  f.respond(async path => {
+    if (path.endsWith("/feed/ensure")) return new Promise(resolve => { finish = resolve; });
+    if (path.endsWith("/feed/stop")) return { feed: { ...feed(), paused: true, state: "paused", demandSequence: 2, activeRun: { ...resumed, state: "cancel_requested" } } };
+    return { feed: { ...feed(), activeRun: original } };
+  });
+  const resume = f.controller.resume();
+  const exact = f.memory.get(account, projectId)?.feed.pending;
+  expect(exact?.reason).toBe("resume");
+  await f.controller.stop();
+  expect(f.requests.find(value => value.path.endsWith("/feed/stop"))?.body).toMatchObject({ expectedDemandSequence: 0, pendingEnsureIdempotencyKey: exact?.idempotencyKey });
+  finish({ status: "pending", feed: { ...feed(), demandSequence: 1, activeRun: resumed }, run: resumed, reused: false }); await resume;
+  expect(f.memory.get(account, projectId)?.feed.feed).toMatchObject({ paused: true, demandSequence: 2, activeRun: { state: "cancel_requested" } });
+  expect(f.requests.filter(value => value.path.endsWith("/feed/ensure"))).toHaveLength(1);
+});

@@ -40,3 +40,18 @@ it("resumes an idempotently created project that was later expanded without repl
   expect(await startNamingProject({ memory, account, request: request as never })).toBe(projectId);
   expect(memory.getEntry(account)?.description).toBe("Original Naming brief");
 });
+it("allows correction after a definitive validation rejection instead of freezing an unsaveable brief", async () => {
+  const memory = createNamingBrainMemory({ storage: () => null }); memory.bind(account);
+  memory.setEntry(account, value => ({ ...value, description: "A brief the server rejects" }));
+  expect(await startNamingProject({ memory, account, request: (async () => { throw new AccountRequestError(422); }) as never })).toBeNull();
+  expect(memory.getEntry(account)?.input).toBeNull(); expect(memory.getEntry(account)?.description).toBe("A brief the server rejects");
+});
+it("keeps an automatic title valid when its truncation boundary crosses a supplementary character", async () => {
+  const memory = createNamingBrainMemory({ storage: () => null }); memory.bind(account);
+  memory.setEntry(account, value => ({ ...value, description: "A".repeat(99) + "😀 coffee" }));
+  const request = vi.fn(async (_path, _schema, options) => {
+    expect(options.body.title.isWellFormed()).toBe(true);
+    return { project: { id: projectId, owner_id: account.userId, title: options.body.title, scope: options.body.scope, context: options.body.context, current_revision: 1, created_at: "2026-10-16T12:00:00Z" } };
+  });
+  expect(await startNamingProject({ memory, account, request: request as never })).toBe(projectId);
+});

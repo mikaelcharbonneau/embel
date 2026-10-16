@@ -12,7 +12,7 @@ export async function startNamingProject({ memory, account, request = boundedAcc
   const operation = "naming-project-entry", controller = memory.acquire(account, operation);
   if (!controller) return null;
   try {
-    const input = before.input ?? createProjectInputSchema.parse({ title: before.description.trim().slice(0, 100), scope: "naming_only", requestKey: crypto.randomUUID(),
+    const input = before.input ?? createProjectInputSchema.parse({ title: Array.from(before.description.trim()).slice(0, 80).join(""), scope: "naming_only", requestKey: crypto.randomUUID(),
       context: contextSnapshotSchema.parse({ description: before.description, creativeLocale: before.language, intake: { namingNotes: before.direction } }) });
     memory.setEntry(account, value => ({ ...value, input, busy: true, error: null }));
     const reply = accountProjectResponseSchema.parse(await request("/api/projects", accountProjectResponseSchema, { method: "POST", body: input, expectedOwnerId: account.userId, signal: controller.signal }));
@@ -24,7 +24,8 @@ export async function startNamingProject({ memory, account, request = boundedAcc
   } catch (error) {
     if (!memory.operationCurrent(account, operation, controller)) return null;
     const validation = !(error instanceof AccountRequestError) && !memory.getEntry(account)?.input;
-    memory.setEntry(account, value => ({ ...value, error: validation ? "Add a brief and a language of 2–30 characters before continuing." : "This project save could not be confirmed. Your brief is kept. Continue to retry this same project." }));
+    const rejected = error instanceof AccountRequestError && [400, 401, 403, 413, 422, 429].includes(error.status);
+    memory.setEntry(account, value => ({ ...value, ...(rejected ? { input: null } : {}), error: validation ? "Add a brief and a language of 2–30 characters before continuing." : rejected ? "This brief was not saved. Review the fields and your account, then try again. Your edits are kept." : "This project save could not be confirmed. Your brief is kept. Continue to retry this same project." }));
     if (error instanceof AccountRequestError && error.status === 401) expire?.(account);
     return null;
   } finally { if (memory.operationCurrent(account, operation, controller)) memory.setEntry(account, value => ({ ...value, busy: false })); memory.release(operation, controller); }
