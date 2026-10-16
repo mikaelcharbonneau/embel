@@ -7,6 +7,7 @@ import { useAccountSession, type VerifiedAccount } from "./account-session";
 import { useAccountProjectListing } from "./account-projects";
 import { ProjectCardActions } from "./project-card-actions";
 import type { LifecycleProject } from "./project-deletion-client";
+import { ProjectDeletionStatus } from "./project-deletion-status";
 
 export function HomeRecentBrands() {
   const { session } = useAccountSession();
@@ -16,12 +17,16 @@ export function HomeRecentBrands() {
 
 function HomeAccountRecentBrands({ account }: { account: VerifiedAccount }) {
   const { listing, error, pending, reload, remove } = useAccountProjectListing(account, "active", 6);
-  const [removedTitle, setRemovedTitle] = useState<string | null>(null);
+  const [removed, setRemoved] = useState<LifecycleProject | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const brands = [...(listing?.items ?? [])].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at) || a.id.localeCompare(b.id)).slice(0, 6);
   function changed(project: LifecycleProject) {
-    remove(project.id); setRemovedTitle(project.title); void reload();
+    remove(project.id); setRemoved(project); void reload();
     queueMicrotask(() => heading.current?.focus());
+  }
+
+  function updateRemoved(project: LifecycleProject) {
+    setRemoved(previous => previous && previous.id === project.id && project.lifecycle_version >= previous.lifecycle_version && project.current_revision >= previous.current_revision ? project.deletion_state === "active" ? null : project : previous);
   }
 
   async function refreshProjects() {
@@ -32,7 +37,7 @@ function HomeAccountRecentBrands({ account }: { account: VerifiedAccount }) {
 
   return <section className="home-recent" aria-labelledby="recent-heading">
     <div className="home-recent-heading"><h2 id="recent-heading" ref={heading} tabIndex={-1}>Pick up where you left off</h2><Link href="/brands" className="text-link">All projects<Icon name="arrow" size={16} /></Link></div>
-    {removedTitle && <div className="project-change-notice" role="status"><span>“{removedTitle}” moved to Deleted projects.</span><Link className="text-link" href="/brands?state=deleted">View deleted projects</Link></div>}
+    {removed && <div className="project-change-notice" role="status"><span>“{removed.title}” moved to Deleted projects.</span><Link className="text-link" href="/brands?state=deleted">View deleted projects</Link><ProjectDeletionStatus account={account} project={removed} onUpdated={updateRemoved} compact /></div>}
     {!listing && !error ? <p className="quiet-empty" role="status">Loading your projects…</p> : !listing && error ? null : brands.length ? <div className="home-brand-grid">
       {brands.map((brand, index) => <article key={brand.id} className="home-brand-card"><Link href={`/brands/account/${brand.id}`} className="home-brand-card-link">
         <div className={`home-brand-preview home-brand-preview--${index === 1 ? "1" : index === 2 ? "2" : index === 4 ? "inverse" : "0"}`} aria-hidden="true"><span>{brand.title}</span></div>

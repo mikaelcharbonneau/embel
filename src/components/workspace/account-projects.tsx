@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { ProjectDeletionSummary } from "@/domain/project-deletion";
 import { accountProjectPageSchema } from "@/domain/project-pages";
 import { mergeProjectPage, type ProjectListing } from "./account-project-page-state";
 import { Icon } from "@/components/ui/icon";
@@ -88,7 +89,8 @@ export function useAccountProjectListing(account: VerifiedAccount | null, state:
       if (!reset) return false;
       request.current.abort();
     }
-    const previous = reset ? null : currentListing.current;
+    const snapshot = currentListing.current;
+    const previous = reset ? null : snapshot;
     const cursor = previous?.nextCursor ?? null;
     if (previous && !cursor) return true;
     const controller = new AbortController();
@@ -106,8 +108,16 @@ export function useAccountProjectListing(account: VerifiedAccount | null, state:
       if (!active.current || controller.signal.aborted || request.current !== controller || !isCurrent(account)) return false;
       if (page.ownerId !== account.userId) { expire(account); return false; }
       // Do not mix active and deleted rows, even if a response is otherwise valid.
-      if (page.items.some(project => (project.deleted_at !== null) !== (state === "deleted"))) throw new Error("Unexpected project state");
-      const next = mergeProjectPage(reset ? null : currentListing.current, page, cursor);
+      if (page.items.some(project => (project.deletion_state !== "active") !== (state === "deleted"))) throw new Error("Unexpected project state");
+      const latest = new Map(currentListing.current?.items.map(project => [project.id, project]));
+      const before = new Map(snapshot?.items.map(project => [project.id, project]));
+      const next = mergeProjectPage(reset ? null : currentListing.current, { ...page, items: page.items.map(project => {
+        const known = latest.get(project.id);
+        // A slow page read must not undo an acknowledged lifecycle or a newer
+        // derived-state observation, even when completion kept the same version.
+        return known && (known.lifecycle_version > project.lifecycle_version || known.current_revision > project.current_revision ||
+          (known !== before.get(project.id) && known.lifecycle_version === project.lifecycle_version && known.current_revision === project.current_revision)) ? known : project;
+      }) }, cursor);
       currentListing.current = next; setListing(next); retryReset.current = false;
       return true;
     } catch (cause) {
@@ -134,9 +144,19 @@ export function useAccountProjectListing(account: VerifiedAccount | null, state:
     const next = { ...previous, items: previous.items.filter(project => project.id !== projectId) };
     currentListing.current = next; setListing(next);
   }, [account, isCurrent]);
+  const update = useCallback((project: ProjectDeletionSummary) => {
+    if (!account || !active.current || !isCurrent(account) || project.owner_id !== account.userId) return;
+    const previous = currentListing.current;
+    const existing = previous?.items.find(row => row.id === project.id);
+    if (!previous || !existing || project.lifecycle_version < existing.lifecycle_version || project.current_revision < existing.current_revision) return;
+    if ((project.deletion_state !== "active") !== (state === "deleted")) { remove(project.id); return; }
+    // Status refreshes preserve loaded pages and their original cursor anchors.
+    const next = { ...previous, items: previous.items.map(row => row.id === project.id ? { ...project, created_at: row.created_at } : row) };
+    currentListing.current = next; setListing(next);
+  }, [account, isCurrent, remove, state]);
   useEffect(() => {
     active.current = Boolean(account); void load();
     return () => { active.current = false; request.current?.abort(); request.current = null; };
   }, [account, load]);
-  return { listing, error, pending, load, reload, remove };
+  return { listing, error, pending, load, reload, remove, update };
 }

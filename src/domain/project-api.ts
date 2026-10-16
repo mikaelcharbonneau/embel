@@ -15,6 +15,8 @@ export const accountProjectSummarySchema = z.object({
   created_at: z.string(),
   // Older RPC readers remain compatible; listing and lifecycle mutations require these fields.
   deleted_at: z.iso.datetime({ offset: true }).nullable().optional(),
+  deletion_requested_at: z.iso.datetime({ offset: true }).nullable().optional(),
+  deletion_state: z.enum(["active", "stopping", "awaiting_resolution", "deleted"]).optional(),
   lifecycle_version: z.number().int().nonnegative().optional(),
 });
 export const accountProjectSchema = accountProjectSummarySchema.extend({ context: contextSnapshotSchema });

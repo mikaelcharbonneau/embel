@@ -28,3 +28,12 @@
 .home-brand-card .home-brand-preview { padding-inline: 46px; }
 @media (max-width: 760px), (pointer: coarse) { .project-card-menu-trigger { width: 44px; height: 44px; } .project-card-menu { top: 50px; } .project-card-menu button, .project-restore-button { min-height: 44px; } }
 @media (max-width: 400px) { .project-lifecycle-dialog { padding: 22px; } .project-lifecycle-buttons { flex-direction: column-reverse; } .project-lifecycle-buttons .button { width: 100%; } }
+
+.project-lifecycle-buttons .project-delete-confirm { white-space: normal; }
+.project-deletion-status { display: flex; align-items: flex-start; flex-direction: column; gap: 5px; min-width: 0; }
+.project-deletion-state { display: inline-flex; align-items: center; min-height: 24px; padding: 2px 8px; border-radius: 5px; background: var(--surface); color: var(--secondary); font-size: 12px; font-weight: 500; line-height: 20px; }
+.project-deletion-state--stopping { background: #fff0fd; color: #990091; }
+.project-deletion-state--awaiting_resolution { background: #fff4db; color: #79591f; }
+.project-deletion-status p { margin: 0; color: var(--secondary); font-size: 12px; line-height: 18px; }
+.project-deletion-status--compact { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
+.project-card--deleted .project-details { gap: 12px; }

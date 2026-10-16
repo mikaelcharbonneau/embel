@@ -11,6 +11,7 @@ import { scopeDetails, scopeLabel } from "./local-drafts";
 import { UnsavedProjectRecovery } from "./unsaved-project-recovery";
 import { ProjectCardActions } from "./project-card-actions";
 import type { LifecycleProject, ProjectDeletionAction } from "./project-deletion-client";
+import { ProjectDeletionStatus, deletionIsPending } from "./project-deletion-status";
 import "@/styles/projects.css";
 
 type ProjectCard = { key: string; id: string; title: string; scope: ProjectScope; created: string; updated: string | null; deleted: string | null; href: string; saved: LifecycleProject };
@@ -20,7 +21,7 @@ function recent(a: ProjectCard, b: ProjectCard) {
   return -compareProjectCursors({ createdAt: a.created, id: a.id }, { createdAt: b.created, id: b.id });
 }
 function dateLabel(project: ProjectCard, now: number | null) {
-  const date = project.deleted ?? project.updated ?? project.created, timestamp = Date.parse(date), prefix = project.deleted ? "Deleted" : project.updated ? "Updated" : "Created";
+  const date = project.deleted ?? project.updated ?? project.created, timestamp = Date.parse(date), prefix = project.deleted ? deletionIsPending(project.saved) ? "Delete requested" : "Deleted" : project.updated ? "Updated" : "Created";
   if (!Number.isFinite(timestamp)) return "Date unavailable";
   if (now === null) return `${prefix} ${new Date(timestamp).toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" })}`;
   const minutes = Math.max(0, Math.floor((now - timestamp) / 60_000));
@@ -56,14 +57,14 @@ export function ProjectsWorkspace({ state = "active" }: { state?: "active" | "de
 }
 
 function ProjectsLibrary({ account, controls, state }: { account: VerifiedAccount; controls: ReturnType<typeof useProjectControls>; state: "active" | "deleted" }) {
-  const { listing, error, pending, load, reload, remove } = useAccountProjectListing(account, state);
+  const { listing, error, pending, load, reload, remove, update } = useAccountProjectListing(account, state);
   const { query, setQuery, scope, setScope, sort, setSort } = controls;
   const [now, setNow] = useState(() => Date.now());
   const [notice, setNotice] = useState<{ project: LifecycleProject; action: ProjectDeletionAction } | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 60_000); return () => clearInterval(timer); }, []);
   const deleted = state === "deleted";
-  const projects: ProjectCard[] = (listing?.items ?? []).map(project => ({ key: project.id, id: project.id, title: project.title, scope: project.scope, created: project.created_at, updated: null, deleted: project.deleted_at, href: `/brands/account/${project.id}`, saved: project }));
+  const projects: ProjectCard[] = (listing?.items ?? []).map(project => ({ key: project.id, id: project.id, title: project.title, scope: project.scope, created: project.created_at, updated: null, deleted: project.deletion_requested_at ?? project.deleted_at, href: `/brands/account/${project.id}`, saved: project }));
   const filtering = Boolean(query.trim()) || scope !== "all";
   const empty = Boolean(listing) && !projects.length && !listing?.nextCursor && !error;
   const matching = projects.map((project, index) => ({ ...project, preview: ["neutral", "inverse", "neutral", "pink", "neutral", "inverse"][index % 6] })).filter(project =>
@@ -74,6 +75,10 @@ function ProjectsLibrary({ account, controls, state }: { account: VerifiedAccoun
     queueMicrotask(() => heading.current?.focus());
   }
 
+  function updateNotice(project: LifecycleProject) {
+    setNotice(previous => previous && previous.project.id === project.id && project.lifecycle_version >= previous.project.lifecycle_version && project.current_revision >= previous.project.current_revision ? { action: project.deletion_state === "active" ? "restore" : "delete", project } : previous);
+  }
+
   async function refreshProjects() {
     const refreshed = await reload();
     if (refreshed) requestAnimationFrame(() => heading.current?.focus());
@@ -81,8 +86,8 @@ function ProjectsLibrary({ account, controls, state }: { account: VerifiedAccoun
   }
 
   return <div className={`projects-page ${empty && !deleted ? "projects-empty" : ""}`}>
-    <div className="projects-heading"><div><h1 ref={heading} tabIndex={-1}>{deleted ? "Deleted projects" : empty ? "Your projects" : "Projects"}<span>.</span></h1><p>{deleted ? "Restore a project to continue where you left off." : "Every idea, in its own world."}</p></div><div className="projects-heading-actions">{deleted ? <Link className="projects-secondary" href="/brands">Back to projects</Link> : <><Link className="projects-secondary" href="/brands?state=deleted">Deleted projects</Link>{!empty && <Link className="projects-primary" href="/brands/new">New project<ProjectsArtwork name="plus" /></Link>}</>}</div></div>
-    {notice && <div className="project-change-notice" role="status"><span>“{notice.project.title}” {notice.action === "delete" ? "moved to Deleted projects." : "restored."}</span><Link className="text-link" href={notice.action === "delete" ? "/brands?state=deleted" : `/brands/account/${notice.project.id}`}>{notice.action === "delete" ? "View deleted projects" : "Open project"}</Link></div>}
+    <div className="projects-heading"><div><h1 ref={heading} tabIndex={-1}>{deleted ? "Deleted projects" : empty ? "Your projects" : "Projects"}<span>.</span></h1><p>{deleted ? "Restore a project at any time. Restoring won’t restart cancelled AI work." : "Every idea, in its own world."}</p></div><div className="projects-heading-actions">{deleted ? <Link className="projects-secondary" href="/brands">Back to projects</Link> : <><Link className="projects-secondary" href="/brands?state=deleted">Deleted projects</Link>{!empty && <Link className="projects-primary" href="/brands/new">New project<ProjectsArtwork name="plus" /></Link>}</>}</div></div>
+    {notice && <div className="project-change-notice" role="status"><span>“{notice.project.title}” {notice.action === "delete" ? "moved to Deleted projects." : "restored."}</span><Link className="text-link" href={notice.action === "delete" ? "/brands?state=deleted" : `/brands/account/${notice.project.id}`}>{notice.action === "delete" ? "View deleted projects" : "Open project"}</Link>{notice.action === "delete" && <ProjectDeletionStatus account={account} project={notice.project} onUpdated={updateNotice} compact />}{notice.action === "restore" && <span>Cancelled AI work won’t restart.</span>}</div>}
     {!empty && <div className="projects-toolbar"><label className="projects-search"><span className="sr-only">{deleted ? "Search deleted projects" : "Search projects"}</span><input type="search" placeholder={deleted ? "Search deleted projects" : "Search projects"} value={query} onChange={event => setQuery(event.target.value)} /></label>
       <ProjectControl kind="Filter" active={scope !== "all"}><label>Scope<select aria-label="Filter projects by scope" value={scope} onChange={event => setScope(event.target.value as typeof scope)}><option value="all">All scopes</option>{scopeDetails.map(detail => <option key={detail.value} value={detail.value}>{detail.label}</option>)}</select></label></ProjectControl>
       <ProjectControl kind="Sort"><label>Order<select aria-label="Sort projects" value={sort} onChange={event => setSort(event.target.value as Sort)}><option value="created">Recently created</option><option value="alphabetical">Alphabetical</option></select></label></ProjectControl>
@@ -92,7 +97,7 @@ function ProjectsLibrary({ account, controls, state }: { account: VerifiedAccoun
       <section className="projects-grid" aria-label={deleted ? "Deleted projects" : "Projects"}>{matching.map(project => {
         const actions = <ProjectCardActions key={`${project.id}:${project.saved.current_revision}:${project.saved.lifecycle_version}`} project={project.saved} account={account} onChanged={changed} onReload={refreshProjects} />;
         const content = <><div className={`project-preview project-preview--${project.preview}`} aria-hidden="true"><span>{project.title}</span></div>
-          <div className="project-details"><div className="project-card-identity"><h2 title={project.title}>{project.title}</h2><span>{scopeLabel(project.scope)}</span></div><div className="project-footer"><span title={project.deleted ?? project.created}>{dateLabel(project, now)}</span>{deleted ? actions : <span className="project-continue">Continue<ProjectsArtwork name="continue" /></span>}</div></div></>;
+          <div className="project-details"><div className="project-card-identity"><h2 title={project.title}>{project.title}</h2><span>{scopeLabel(project.scope)}</span></div>{deleted && <ProjectDeletionStatus account={account} project={project.saved} onUpdated={update} />}<div className="project-footer"><span title={project.deleted ?? project.created}>{dateLabel(project, now)}</span>{deleted ? actions : <span className="project-continue">Continue<ProjectsArtwork name="continue" /></span>}</div></div></>;
         return <article className={`project-card${deleted ? " project-card--deleted" : ""}`} key={project.key} data-storage="account">{deleted ? content : <><Link className="project-card-link" href={project.href} aria-label={`Continue ${project.title}`}>{content}</Link>{actions}</>}</article>;
       })}</section>
       {!matching.length && (projects.length > 0 || filtering) && <div className="projects-no-matches" role="status"><h2>No matching projects</h2><p>Try a different scope or project name.</p><button type="button" className="button secondary" onClick={() => { setQuery(""); setScope("all"); }}>Clear filters</button></div>}
