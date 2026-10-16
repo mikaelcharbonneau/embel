@@ -133,3 +133,71 @@ describe("incomplete response Resume witness consistency", () => {
     expect(brain.namingFeedEnsureResultSchema.safeParse(result).success).toBe(valid);
   });
 });
+
+describe("durable Stop and free saved-output continuation", () => {
+  const complete = () => ({ status: "complete", targetCount: 100, acceptedCount: 100, missingCount: 0, coverageSatisfied: true, message: null });
+  const preparedRun = (state = "succeeded") => ({ ...runSummary(), state, progress: 100, preparedSetId: id(50), fulfillment: complete() });
+  const stages = () => brain.namingStageKeySchema.options.map(stageKey => ({ stageKey, state: "succeeded", artifactIds: [], startedAt: null, finishedAt: null, errorCode: null }));
+
+  it("binds Stop to an explicit demand sequence and optional pending Ensure identity without client authority", () => {
+    const stop = { version: 1, expectedDemandSequence: 0, pendingEnsureIdempotencyKey: null, idempotencyKey: "fixture-stop-demand-001" };
+    expect(brain.stopNamingFeedIntentSchema?.safeParse(stop).success).toBe(true);
+    expect(brain.stopNamingFeedIntentSchema?.safeParse({ ...stop, pendingEnsureIdempotencyKey: "fixture-explicit-resume-001" }).success).toBe(true);
+    expect(brain.stopNamingFeedIntentSchema?.safeParse({ version: 1, expectedDemandSequence: 0, idempotencyKey: stop.idempotencyKey }).success).toBe(false);
+    for (const patch of [{ version: 2 }, { expectedDemandSequence: -1 }, { expectedDemandSequence: 0.5 }, { expectedDemandSequence: Number.MAX_SAFE_INTEGER + 1 }, { pendingEnsureIdempotencyKey: "short" }, { idempotencyKey: "invalid stop key 001" }, { ownerId: id(90) }, { runId: id(3) }, { policy: policy() }]) {
+      expect(brain.stopNamingFeedIntentSchema?.safeParse({ ...stop, ...patch }).success).toBe(false);
+    }
+  });
+
+  it("defaults legacy feeds to unpaused and retains durable pause separately from availability state", () => {
+    expect(brain.namingFeedSchema.parse(feed()).paused).toBe(false);
+    const paused = { ...feed(), paused: true, state: "blocked", activeRun: null };
+    expect(brain.namingFeedSchema.parse(paused).paused).toBe(true);
+    expect(brain.stopNamingFeedResponseSchema?.safeParse({ feed: paused }).success).toBe(true);
+    expect(brain.stopNamingFeedResponseSchema?.safeParse({ feed: paused, runId: id(3) }).success).toBe(false);
+  });
+
+  it.each(["prepared", "succeeded", "cancelled"])("allows a server witness for complete %s membership without inferring one", state => {
+    const run = preparedRun(state);
+    expect(brain.namingBrainRunSummarySchema.parse(run).canResume).toBe(false);
+    expect(brain.namingBrainRunSummarySchema.safeParse({ ...run, canResume: true }).success).toBe(true);
+    expect(brain.namingBrainRunSchema.safeParse({ ...run, canResume: true, snapshot: snapshot(), stages: stages() }).success).toBe(true);
+    expect(brain.namingFeedSchema.safeParse({ ...feed(), paused: true, state: "paused", activeRun: { ...run, canResume: true }, preparedSetId: run.preparedSetId }).success).toBe(true);
+  });
+
+  it("blocks complete-output Resume without terminal prepared membership or during reconciliation", () => {
+    const run = { ...preparedRun(), canResume: true };
+    for (const state of ["queued", "running", "cancel_requested", "needs_reconciliation", "superseded", "partial", "failed"]) {
+      expect(brain.namingBrainRunSummarySchema.safeParse({ ...run, state }).success).toBe(false);
+      expect(brain.namingBrainRunSchema.safeParse({ ...run, state, snapshot: snapshot(), stages: stages() }).success).toBe(false);
+    }
+    for (const patch of [{ preparedSetId: null }, { fulfillment: null }]) {
+      expect(brain.namingBrainRunSummarySchema.safeParse({ ...run, ...patch }).success).toBe(false);
+    }
+  });
+
+  it.each(["prepared", "succeeded", "cancelled"])("acknowledges already-exposed %s membership without appending or granting another Resume", state => {
+    const run = { ...preparedRun(state), canResume: false };
+    const result = { status: "appended", feed: { ...feed(), paused: false, demandSequence: 2, activeRun: run, preparedSetId: null }, runId: run.runId, appendedEntryIds: [] };
+    expect(brain.namingFeedEnsureResultSchema.safeParse(result).success).toBe(true);
+  });
+
+  it("rejects empty append acknowledgements detached from the retained complete head", () => {
+    const run = preparedRun();
+    const result = { status: "appended", feed: { ...feed(), activeRun: run }, runId: run.runId, appendedEntryIds: [] };
+    expect(brain.namingFeedEnsureResultSchema.safeParse(result).success).toBe(true);
+    expect(brain.namingFeedEnsureResultSchema.safeParse({ ...result, runId: id(90) }).success).toBe(false);
+    expect(brain.namingFeedEnsureResultSchema.safeParse({ ...result, feed: { ...result.feed, activeRun: null } }).success).toBe(false);
+    for (const patch of [{ preparedSetId: null }, { fulfillment: null }, { state: "running" }, { state: "needs_reconciliation" }, { state: "superseded" }]) {
+      expect(brain.namingFeedEnsureResultSchema.safeParse({ ...result, feed: { ...result.feed, activeRun: { ...run, ...patch } } }).success).toBe(false);
+    }
+    expect(brain.namingFeedEnsureResultSchema.safeParse({ ...result, appendedEntryIds: [id(60)] }).success).toBe(false);
+  });
+
+  it("keeps complete saved consumption out of the incomplete response branch", () => {
+    const run = { ...preparedRun("cancelled"), canResume: false };
+    const fulfillment = { status: "partial", targetCount: 100, acceptedCount: 2, missingCount: 98, coverageSatisfied: false, message: "2 of 100 names are ready." };
+    const result = { status: "incomplete", feed: { ...feed(), activeRun: run }, run, fulfillment, message: "The saved run is incomplete.", canResume: false };
+    expect(brain.namingFeedEnsureResultSchema.safeParse(result).success).toBe(false);
+  });
+});
