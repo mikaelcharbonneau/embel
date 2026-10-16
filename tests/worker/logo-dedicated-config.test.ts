@@ -1,5 +1,5 @@
 import { inspect } from "node:util";
-import { chmod, link, mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { chmod, link, mkdir, mkdtemp, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -11,7 +11,7 @@ const certificate = () => readFileSync(new URL("../../scripts/certs/supabase-pro
 const roots: string[] = [];
 afterEach(async () => { await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true }))); });
 async function fileFixture(content: string = JSON.stringify(configurationInput())) {
-  const root = await mkdtemp(join(tmpdir(), "fluid-dedicated-synthetic-")); roots.push(root);
+  const root = await realpath(await mkdtemp(join(tmpdir(), "fluid-dedicated-synthetic-"))); roots.push(root);
   const dir = join(root, ".local-fluid"), path = join(dir, "logo-worker.json");
   await mkdir(dir, { mode: 0o700 }); await writeFile(path, content, { mode: 0o600 }); return { root, dir, path };
 }

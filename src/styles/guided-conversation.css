@@ -12,7 +12,7 @@
 .guided-assistant-copy, .guided-assistant-question { font-size: 15px; line-height: 24px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .guided-assistant-message .guided-choice-widget, .guided-assistant-message .guided-choice-answer { margin-top: 16px; }
 .guided-assistant-question { margin-top: 12px; font-weight: 500; }
-.guided-interview-compose { flex-shrink: 0; background: var(--paper); padding: 16px max(24px, calc((100% - 760px) / 2)) 24px; }
+.guided-interview-compose { background: var(--paper); padding: 16px max(24px, calc((100% - 760px) / 2)) 24px; }
 .guided-interview .conversation-composer { margin: 0; box-shadow: none; border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
 .guided-interview .conversation-composer textarea { min-height: 48px; font-size: 14px; line-height: 22px; }
 .guided-interview .conversation-composer-footer { min-height: 44px; margin-top: 8px; justify-content: flex-end; }

@@ -29,7 +29,8 @@ describe("local PostgreSQL project drafting and expansion (not live Supabase)", 
 
   async function create(scope: ProjectScope = "naming_only") {
     return asRole(db, "authenticated", OWNER_A, async () => (await db.query<StoredProject>(
-      "select * from public.create_project($1,'Original title',$2::jsonb,$3)", [scope, context, HASH],
+      // Expansion intentionally retains its legacy seven-column RPC shape.
+      "select id,owner_id,scope,title,current_revision,created_at from public.create_project($1,'Original title',$2::jsonb,$3)", [scope, context, HASH],
     )).rows[0]!);
   }
   async function expand(id: string, revision: number, owner = OWNER_A) {
@@ -50,6 +51,8 @@ describe("local PostgreSQL project drafting and expansion (not live Supabase)", 
     const before = await revisions(project.id);
     const expanded = await expand(project.id, 1);
     expect(expanded).toEqual({ ...project, scope: "complete_brand", current_revision: 2, context });
+    expect((await db.query("select deleted_at,deletion_requested_at,lifecycle_version from public.projects where id=$1", [project.id])).rows)
+      .toEqual([{ deleted_at: null, deletion_requested_at: null, lifecycle_version: 0 }]);
     const after = await revisions(project.id);
     expect(after).toHaveLength(2);
     expect(after[0]).toEqual(before[0]);

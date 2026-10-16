@@ -43,7 +43,9 @@ describe("project progress is scoped to saved inputs", () => {
   });
   it("does not count an entered name as a verified approval or discard it when Strategy needs review", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => response())); await render();
-    expect(host.textContent).toContain("1 saved decision"); expect(host.textContent).not.toContain("verified approval");
+    expect(host.querySelector('nav[aria-label="Project stages"]')).toBeNull();
+    expect(host.textContent).not.toContain("verified approval");
+    expect(drafts.get(projectId)?.saved.context.selectedName).toBe("Luma");
     expect(host.textContent).toContain("Luma"); expect(host.textContent).toContain("Strategy needs review");
   });
   it("shows actual stale Logo work without counting it as current approval", async () => {

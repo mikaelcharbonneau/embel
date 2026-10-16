@@ -26,7 +26,9 @@ describe("authored Handles search drafts on local PostgreSQL", () => {
     "select to_jsonb(p) as definition from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in('public','fluid_private') and p.oid<>$1::regprocedure and p.proname not in('handles_search_preset','handles_search_payload') order by p.oid", [target],
   )).rows;
   beforeAll(async () => {
-    db = await createTestDatabase({ before: migration });
+    // Start before Domains so both exact reviewed predecessors are exercised:
+    // the legacy baseline here and the shortlist version reconstructed below.
+    db = await createTestDatabase({ before: "20261015180500_domain_shortlists.sql" });
     await db.exec(await readFile(new URL("../../supabase/candidates/standalone_workspace_conflict_codes.sql", import.meta.url), "utf8"));
     await db.exec("create role fixture_handles_default_grantee nologin; alter default privileges grant execute on functions to fixture_handles_default_grantee");
     original = await functionSnapshot();

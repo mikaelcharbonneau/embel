@@ -98,6 +98,7 @@ type FixtureState = {
   overviewStatus: number;
   overviewReads: number;
   patchStatus: number;
+  losePatchAcknowledgement: boolean;
   commitBeforeQueueFailure: boolean;
   enqueueGate: Promise<void> | null;
   pendingReply: GuidedReply | null;
@@ -109,7 +110,7 @@ async function fixtures(page: Page, { guided = true, seeded = false }: { guided?
   const state: FixtureState = {
     project, owner, jobs: seeded ? [completedJob(queuedJob("strategy.competitors", 1, 1), choiceReply(project.context.intake.guidedInterview!.turns[0]!))] : [],
     enqueues: [], patches: [], creates: [], cancels: [], unhandledWrites: [], externalRequests: [], snapshots: new Map([[1, project.context]]),
-    queueStatus: 202, queueReplies: 0, overviewStatus: 200, overviewReads: 0, patchStatus: 200, commitBeforeQueueFailure: false, enqueueGate: null, pendingReply: null,
+    queueStatus: 202, queueReplies: 0, overviewStatus: 200, overviewReads: 0, patchStatus: 200, losePatchAcknowledgement: false, commitBeforeQueueFailure: false, enqueueGate: null, pendingReply: null,
   };
   await page.route("**/*", async route => {
     const request = route.request(), url = new URL(request.url()), path = url.pathname, method = request.method();
@@ -136,6 +137,7 @@ async function fixtures(page: Page, { guided = true, seeded = false }: { guided?
       if (body.expectedRevision !== state.project.current_revision) return json(route, {}, 409);
       state.project = accountProjectSchema.parse({ ...state.project, title: body.title ?? state.project.title, context: body.context, current_revision: state.project.current_revision + 1 });
       state.snapshots.set(state.project.current_revision, state.project.context);
+      if (state.losePatchAcknowledgement) { state.losePatchAcknowledgement = false; return route.abort("failed"); }
       return json(route, { revision: { project_id: projectId, owner_id: owner, revision: state.project.current_revision, context: state.project.context, input_hash: "synthetic-guided-input", created_at: when } });
     }
     if (path === `/api/projects/${projectId}/strategy` && method === "GET") {
@@ -569,6 +571,65 @@ test("guided interview: a selection save conflict retains the decision and block
   expect(state.patches[0]!.context.intake.guidedInterview?.answers[0]).toMatchObject({ optionIds: [competitors[0]!.id] });
   await expect(page.getByText(initialPrompt, { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Load latest version", exact: true })).toBeVisible();
+});
+
+test("guided interview: unsent text and a choice survive same-owner focus without saving or admission", async ({ page }) => {
+  const state = await fixtures(page, { seeded: true });
+  await openProject(page); await expectSingleWidget(page, "competitors");
+  await widget(page, "competitors").getByRole("checkbox", { name: "Table Next Door", exact: true }).check();
+  const text = "A private question I have not sent yet.";
+  await page.getByRole("textbox", { name: "Message Embel", exact: true }).fill(text);
+  await expect(page.getByRole("button", { name: "Send prompt", exact: true })).toBeEnabled();
+  expect(await page.evaluate(() => { const event = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(event); return event.defaultPrevented; })).toBe(true);
+  await Promise.all([
+    page.waitForResponse(response => new URL(response.url()).pathname === "/api/session"),
+    page.evaluate(() => window.dispatchEvent(new Event("focus"))),
+  ]);
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toHaveValue(text);
+  await expect(widget(page, "competitors").getByRole("checkbox", { name: "Table Next Door", exact: true })).toBeChecked();
+  await expect(page.getByRole("button", { name: "Send prompt", exact: true })).toBeEnabled();
+  await page.waitForTimeout(1000);
+  expect(state.patches).toHaveLength(0); expect(state.enqueues).toHaveLength(0);
+});
+
+test("guided interview: committed answer with a lost save acknowledgement reconciles into one ensuing request", async ({ page }) => {
+  const state = await fixtures(page, { seeded: true }); state.losePatchAcknowledgement = true;
+  await openProject(page); await expectSingleWidget(page, "competitors");
+  const text = "Why are these useful comparisons for this kitchen?";
+  await page.getByRole("textbox", { name: "Message Embel", exact: true }).fill(text);
+  await page.getByRole("button", { name: "Send prompt", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Retry save", exact: true })).toBeVisible();
+  expect(state.project.current_revision).toBe(2);
+  expect(state.patches).toHaveLength(1); expect(state.enqueues).toHaveLength(0);
+  await Promise.all([
+    page.waitForResponse(response => new URL(response.url()).pathname === "/api/session"),
+    page.evaluate(() => window.dispatchEvent(new Event("focus"))),
+  ]);
+  await expectRequest(state, 1, "strategy.reformulate");
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toHaveValue("");
+  await expect(page.getByRole("button", { name: "Retry save", exact: true })).toHaveCount(0);
+  expect(state.enqueues[0]!.expectedRevision).toBe(2); expect(state.patches).toHaveLength(1);
+  await page.waitForTimeout(1000);
+  expect(state.enqueues).toHaveLength(1); expect(state.patches).toHaveLength(1);
+});
+
+test("guided interview: a rate-limited answer retries exactly and clears acknowledged input", async ({ page }) => {
+  const state = await fixtures(page, { seeded: true }); state.patchStatus = 429;
+  await openProject(page); await expectSingleWidget(page, "competitors");
+  const text = "Why does the first comparison fit our neighborhood?";
+  await page.getByRole("textbox", { name: "Message Embel", exact: true }).fill(text);
+  await page.getByRole("button", { name: "Send prompt", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Retry save", exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toHaveValue(text);
+  expect(state.patches).toHaveLength(1); expect(state.enqueues).toHaveLength(0); expect(state.project.current_revision).toBe(1);
+  state.patchStatus = 200;
+  await page.getByRole("button", { name: "Retry save", exact: true }).click();
+  await expectRequest(state, 1, "strategy.reformulate");
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toHaveValue("");
+  expect(state.patches).toHaveLength(2); expect(state.patches[1]).toEqual(state.patches[0]);
+  expect(await page.evaluate(() => { const event = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(event); return event.defaultPrevented; })).toBe(false);
+  await page.waitForTimeout(1000);
+  expect(state.enqueues).toHaveLength(1); expect(state.patches).toHaveLength(2);
 });
 
 test("guided interview: a lost queue acknowledgement recovers the existing research without duplicate admission", async ({ page }) => {

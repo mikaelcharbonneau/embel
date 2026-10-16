@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from "jose";
-import { verifyCron, verifyPublisher } from "../../worker/hosting/auth";
+import { verifyCron, verifyPublisher, type PublisherTrust } from "../../worker/hosting/auth";
 
 const configuration = { issuer: "https://oidc.vercel.com/embel", audience: "https://vercel.com/embel" };
 const subject = (environment: string, project = "fluid-platform-preview") => `owner:embel:project:${project}:environment:${environment}`;
@@ -10,6 +10,60 @@ let jwks: ReturnType<typeof createLocalJWKSet>;
 beforeAll(async () => {
   keys = await generateKeyPair("RS256");
   jwks = createLocalJWKSet({ keys: [{ ...await exportJWK(keys.publicKey), kid: "test" }] });
+});
+
+describe("explicit local development publisher trust", () => {
+  const developmentTrust = { ...configuration, allowLocalDevelopment: true };
+  const developmentClaims = { environment: "development", sub: subject("development") };
+
+  it.each(["fluid-platform-preview", "embel"])("accepts the exact signed %s development subject only after worker opt-in", async project => {
+    await expect(verifyPublisher(`Bearer ${await token({ ...developmentClaims, sub: subject("development", project) })}`,
+      developmentTrust, jwks)).resolves.toBeUndefined();
+  });
+
+  it.each([undefined, false, "true", 1])("rejects development when worker opt-in is not boolean true: %s", async allowLocalDevelopment => {
+    const trust = { ...configuration, allowLocalDevelopment } as unknown as PublisherTrust;
+    await expect(verifyPublisher(`Bearer ${await token(developmentClaims)}`, trust, jwks)).rejects.toThrow();
+  });
+
+  it.each([
+    { owner_id: "other-team" }, { owner_id: undefined }, { project_id: "other-project" }, { project_id: undefined },
+    { environment: "preview" }, { environment: "production" }, { environment: undefined },
+    { environment: "staging", sub: subject("staging") },
+    { sub: subject("preview") }, { sub: subject("production") }, { sub: subject("Development") },
+    { sub: subject("development", "other-project") }, { sub: `${subject("development")}:extra` },
+    { sub: ` ${subject("development")}` }, { sub: undefined },
+  ])("retains exact development workload identity under opt-in: %o", async overrides => {
+    await expect(verifyPublisher(`Bearer ${await token({ ...developmentClaims, ...overrides })}`,
+      developmentTrust, jwks)).rejects.toThrow();
+  });
+
+  it("retains development issuer, audience, expiry and signature verification under opt-in", async () => {
+    for (const value of [
+      await token(developmentClaims, "https://oidc.vercel.com/other"),
+      await token(developmentClaims, configuration.issuer, "2h", "https://vercel.com/other"),
+      await token(developmentClaims, configuration.issuer, "2h", [configuration.audience, "https://vercel.com/other"]),
+      await token(developmentClaims, configuration.issuer, "-1s"),
+    ]) await expect(verifyPublisher(`Bearer ${value}`, developmentTrust, jwks)).rejects.toThrow();
+    const untrusted = await generateKeyPair("RS256");
+    const forged = await new SignJWT({ ...claims, ...developmentClaims }).setProtectedHeader({ alg: "RS256", kid: "test" })
+      .setIssuer(configuration.issuer).setAudience(configuration.audience).setIssuedAt().setExpirationTime("2h").sign(untrusted.privateKey);
+    await expect(verifyPublisher(`Bearer ${forged}`, developmentTrust, jwks)).rejects.toThrow();
+  });
+
+  it("retains required development time claims and maximum token age under opt-in", async () => {
+    const now = Math.floor(Date.now() / 1000);
+    for (const times of [{ iat: now }, { exp: now + 3600 }, { iat: now - 7201, exp: now + 3600 }, { iat: now + 60, exp: now + 3600 }]) {
+      const value = await new SignJWT({ ...claims, ...developmentClaims, ...times })
+        .setProtectedHeader({ alg: "RS256", kid: "test" }).setIssuer(configuration.issuer).setAudience(configuration.audience).sign(keys.privateKey);
+      await expect(verifyPublisher(`Bearer ${value}`, developmentTrust, jwks)).rejects.toThrow();
+    }
+  });
+
+  it.each(["preview", "production"])("preserves hosted %s authentication with development trust enabled", async environment => {
+    await expect(verifyPublisher(`Bearer ${await token({ environment, sub: subject(environment) })}`,
+      developmentTrust, jwks)).resolves.toBeUndefined();
+  });
 });
 async function token(overrides = {}, issuer = configuration.issuer, expiry = "2h", audience: string | string[] = configuration.audience) {
   return new SignJWT({ ...claims, ...overrides }).setProtectedHeader({ alg: "RS256", kid: "test" })

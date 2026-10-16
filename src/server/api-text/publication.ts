@@ -1,8 +1,8 @@
 import "server-only";
-import { getVercelOidcToken } from "@vercel/oidc";
 import { z } from "zod";
 import { apiTextDispatchMessageSchema } from "../../domain/api-text-dispatch";
 import { getApiTextPublicationOrigin } from "./config";
+import { getApiTextPublisherToken } from "./publisher-token";
 
 const replySchema = z.discriminatedUnion("state", [
   z.strictObject({ state: z.literal("published"), messageId: z.string().min(1).max(300) }),
@@ -26,7 +26,7 @@ async function publish(message: unknown, signal: AbortSignal): Promise<ApiTextPu
     const parsed = apiTextDispatchMessageSchema.parse(message);
     const origin = getApiTextPublicationOrigin();
     if (!origin) throw new Error("Unconfigured publisher");
-    const token = await getVercelOidcToken();
+    const token = await getApiTextPublisherToken();
     if (!token) throw new Error("OIDC unavailable");
     signal.throwIfAborted();
     const response = await fetch(`${origin}/api/enqueue`, {

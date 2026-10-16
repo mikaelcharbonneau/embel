@@ -1,3 +1,4 @@
+import { seedDeliverableDirections } from "./logo-deliverable-direction-fixture";
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { EventEmitter } from "node:events";
@@ -309,6 +310,10 @@ describe("combined host with actual four-operation handlers, one readiness union
     const approval = accepted.workspace.approvedLogo!;
     const direction = JSON.parse(JSON.stringify(deliverableFixture("mascot"))
       .replaceAll(id(1), OWNER_A).replaceAll(id(2), initial.projectId).replaceAll(id(7), approval.id)) as ApprovedLogoIdentitySnapshot;
+    const directionIds = await seedDeliverableDirections(db, direction, [
+      { stage: "brief_references", id: initial.stages.brief_references!.id, revision: 1 },
+      { stage: "vector", id: accepted.workspace.stages.vector!.id, revision: accepted.workspace.stages.vector!.revision },
+    ]);
     for (const [kind, record] of [["palette", direction.palette], ["typography", direction.typography], ["graphics", direction.graphics],
       ["selection", direction.directionSelection], ["approval", direction.directionApproval]] as const) {
       await db.query("insert into public.logo_direction_records(id,owner_id,project_id,kind,approved_logo_id,record) values($1,$2,$3,$4,$5,$6)",
@@ -317,7 +322,7 @@ describe("combined host with actual four-operation handlers, one readiness union
     for (const font of direction.fonts) await db.query("insert into public.logo_font_records(record_id,version_id,owner_id,project_id,record) values($1,$2,$3,$4,$5)",
       [font.id, font.asset.versionId, OWNER_A, initial.projectId, font]);
     await db.query("select fluid_private.logo_append_stage($1,$2,'directions',$3,$4)", [OWNER_A, initial.projectId,
-      { directionIds: [id(501), id(502), id(503)], selectionId: direction.directionSelection.id, approvalId: direction.directionApproval.id },
+      { directionIds, selectionId: direction.directionSelection.id, approvalId: direction.directionApproval.id },
       [{ stage: "brief_references", id: initial.stages.brief_references!.id, revision: initial.stages.brief_references!.revision },
         { stage: "vector", id: accepted.workspace.stages.vector!.id, revision: accepted.workspace.stages.vector!.revision }]]);
     const set = logoVariantSetSchema.parse(await transactions.run(auth(), initial.projectId, { method: "prepareLogoVariants", body: {

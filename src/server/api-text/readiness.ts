@@ -1,9 +1,9 @@
 import "server-only";
-import { getVercelOidcToken } from "@vercel/oidc";
 import { z } from "zod";
 import { apiTextDeploymentSchema } from "../../domain/api-text-dispatch";
 import { strategyOperationSchema } from "../../domain/strategy-jobs";
 import { getApiTextPublicationOrigin } from "./config";
+import { getApiTextPublisherToken } from "./publisher-token";
 
 const readinessSchema = z.strictObject({
   version: z.literal(1), deploymentId: apiTextDeploymentSchema.regex(/^dpl_[A-Za-z0-9_-]{1,196}$/),
@@ -27,7 +27,7 @@ async function read(signal: AbortSignal): Promise<ApiTextWorkerReadiness | null>
   try {
     const origin = getApiTextPublicationOrigin();
     if (!origin) return null;
-    const token = await getVercelOidcToken();
+    const token = await getApiTextPublisherToken();
     if (!token) return null;
     signal.throwIfAborted();
     const response = await fetch(`${origin}/api/readiness`, {

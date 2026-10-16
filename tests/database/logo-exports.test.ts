@@ -1,3 +1,4 @@
+import { seedDeliverableDirections } from "./logo-deliverable-direction-fixture";
 import { reportLogoFixtureReady } from './logo-readiness-fixture';
 import { LOGO_EXPORT_POLICY_IDENTITY } from "../../worker/handlers/logo-exports";
 import { randomUUID, createHash } from "node:crypto";
@@ -32,9 +33,10 @@ describe("local immutable logo export persistence", () => {
   fixture.logoApproval.stageRevisionId=vector.id;
   await db.query("insert into public.logo_approvals(id,owner_id,project_id,vector_revision_id,stage_revision_id,record) values($1,$2,$3,$4,$5,$6)",[fixture.logoApproval.id,OWNER_A,start.projectId,fixture.logo.id,vector.id,fixture.logoApproval]);
   const inputs=[...sourceInputs,{stage:"vector",id:vector.id,revision:vector.revision}];
+  const directionIds = await seedDeliverableDirections(db, fixture, inputs);
   for (const [kind,record] of [["palette",fixture.palette],["typography",fixture.typography],["graphics",fixture.graphics],["selection",fixture.directionSelection],["approval",fixture.directionApproval]] as const) await db.query("insert into public.logo_direction_records(id,owner_id,project_id,kind,approved_logo_id,record) values($1,$2,$3,$4,$5,$6)",[record.id,OWNER_A,start.projectId,kind,fixture.logoApproval.id,record]);
   for (const font of fixture.fonts) await db.query("insert into public.logo_font_records(record_id,version_id,owner_id,project_id,record) values($1,$2,$3,$4,$5)",[font.id,font.asset.versionId,OWNER_A,start.projectId,font]);
-  await db.query("select fluid_private.logo_append_stage($1,$2,'directions',$3,$4)",[OWNER_A,start.projectId,{directionIds:[id(501),id(502),id(503)],selectionId:fixture.directionSelection.id,approvalId:fixture.directionApproval.id},inputs]);
+  await db.query("select fluid_private.logo_append_stage($1,$2,'directions',$3,$4)",[OWNER_A,start.projectId,{directionIds,selectionId:fixture.directionSelection.id,approvalId:fixture.directionApproval.id},inputs]);
   const workspace=logoWorkspaceV2Schema.parse(await rpc("get_logo_workspace",[start.projectId]));
   return {fixture,workspace,projectId:start.projectId};
  }

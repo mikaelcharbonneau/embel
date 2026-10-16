@@ -1,5 +1,4 @@
 import { createHash } from "node:crypto";
-import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
@@ -225,8 +224,8 @@ describe("second exact research operator-abandonment proposal", () => {
     expect(await paused()).toEqual({ owner: true, global: true });
   });
 
-  it("pins actual source bytes and completed-status branch order without inventing an envelope", () => {
-    const source = execFileSync("git", ["show", "4c0bbf362e8c85132f9d5068ec25dc771ef5cd5b:src/server/ai/strategy-response.ts"], { encoding: "utf8" });
+  it("pins actual source bytes and completed-status branch order without inventing an envelope", async () => {
+    const source = await readFile(new URL("../fixtures/source-history/4c0bbf362e8c85132f9d5068ec25dc771ef5cd5b/strategy-response.ts.txt", import.meta.url), "utf8");
     expect(createHash("sha256").update(source).digest("hex")).toBe("d37e4c528334e7099d042d835d2cebc75cc06d214c2b52deb3299e38441888a9");
     expect(source.indexOf('if (response.status !== "completed")')).toBeLessThan(source.indexOf('if (issueCount) return uncertain("provider_unexpected_output"'));
     expect(source).toContain("store: false, background: false, stream: false");

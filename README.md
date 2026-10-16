@@ -1,8 +1,8 @@
 # Embel
 
-Embel is a brand-building workspace for moving from an idea to strategy, a name, a logo and usable identity files. This private source checkpoint combines the latest interface repairs with the existing application and a locally qualified, disabled vector-proposal backend. It is a development handoff, not a completed product or a production-release claim.
+Embel is an account-based brand-building workspace for moving from an idea to strategy, a name, a logo and usable identity files. Signed-in work saves automatically to the account, with acknowledged save status and retained recovery after errors. This source checkout is a development handoff; local qualification does not establish live provider or production acceptance.
 
-The product was renamed from Fluid to **Embel** on 2026-10-13. The GitHub repository remains `mikaelcharbonneau/emble`. Existing `FLUID_*` settings, storage keys, service identifiers and historical design references retain their original names for compatibility; see [the branding record](docs/embel-branding.md).
+The product was renamed from Fluid to **Embel** on 2026-10-13. The private GitHub repository is now `mikaelcharbonneau/embel`; its earlier `emble` URL redirects there. Existing `FLUID_*` settings, storage keys, service identifiers and historical design references retain their original names for compatibility; see [the branding record](docs/embel-branding.md).
 
 For the subsequently authorized Codex Cloud setup and the latest Home/Ideas design handoff, read [Cloud development](docs/cloud-development.md). The source-checkpoint verification limits below describe the earlier transfer; later verification is recorded separately and does not imply live provider acceptance.
 
@@ -10,9 +10,9 @@ For the subsequently authorized Codex Cloud setup and the latest Home/Ideas desi
 
 A user can begin with a complete brand, naming only, or visual identity only, and expand later without discarding known context.
 
-- **Home, Ideas and Brands:** start from a freeform prompt, keep browser drafts, capture manual Ideas, save account work and explicitly turn useful material into a brand. Browser drafts and private account records remain separate.
-- **Strategy:** develop the brief through a conversation with reviewable Competitors, Audience, Personality and Positioning content. Preserve sources and user choices; mark downstream work stale when its inputs change.
-- **Naming:** explore names from saved context, keep favorites and history, choose a name and use deterministic Affixes, Tweaks, Blend and Swap controls. The approved initial project batch is 250 names with later 50-name batches; historical 100-name batches remain readable. Standalone Names also supports browser-based work and explicit continuation into a brand.
+- **Home, Ideas and Projects:** start from a freeform prompt, capture manual Ideas, save account work and explicitly turn useful material into a brand. Browser copies retain recovery material; legacy work requires an explicit selection and matching-account confirmation before recovery.
+- **Strategy:** develop the brief through a focused guided interview: Competitors, Target audience, then Brand personality. Preserve actual conversation history, sources and user choices; show inline thinking only during real work. Positioning is outside this interview.
+- **Naming:** explore names from saved context, keep favorites and history, choose a name and use deterministic Affixes, Tweaks, Blend and Swap controls. The approved initial project batch is 250 names with later 50-name batches; historical 100-name batches remain readable. Standalone Names saves its account workshop automatically and supports explicit continuation into a brand.
 - **Logo and Visual Identity:** follow the logo-first workflow below. Existing legacy three-board Identity records stay readable and must not be reinterpreted as the new workflow.
 - **Assets and Guidelines:** retain owned files, provenance and immutable versions, then deliver verified files matching the approved selection. The default Assets view includes liked, saved or used material; all generations is a separate view.
 - **Domains, Handles and Trademarks:** maintain manual workspaces and screening preparation with explicit evidence limits. Provider contracts are present, but they do not establish live availability, reservation, ownership, legal clearance or filing.
@@ -64,7 +64,7 @@ npm ci
 npm run dev
 ```
 
-The development UI binds to `http://127.0.0.1:3105`. Browser-only drafting can be explored independently. Account data, AI, durable jobs and private files need separately configured services. Do not introduce demo success or substitute another provider when a capability is unavailable.
+The development UI binds to `http://127.0.0.1:3105`. Home can retain an initial prompt before sign-in; saving requires a verified account. Account data, AI, durable jobs and private files need separately configured services. Do not introduce demo success or substitute another provider when a capability is unavailable.
 
 ### Package scripts
 
@@ -112,9 +112,9 @@ The following reviewed files in `supabase/candidates/` remain separate and unapp
 
 Before any authorized rollout, reconcile the target's actual migration history, prerequisite schema and other pending candidates. Do not edit historical migrations, invent applied timestamps or run a blanket database push. See [migration order and rollout gates](docs/migration-order.md) and the integration document before packaging these files as forward migrations.
 
-## Verification status and current stop
+## Historical source-transfer verification
 
-The user explicitly stopped further validation and requested the source checkpoint promptly for continuation with other agents. **Do not start another test, typecheck, lint or build merely to deliver this handoff.** Resume validation only within a subsequently authorized task.
+The earlier source transfer stopped validation at the user's request. The subsequent October 15 review and regression-fix task explicitly authorized local implementation and full checks. The results below remain historical; later evidence is recorded in [the regression verification record](docs/regression-verification-20261015.md) and [the fresh repository-reconnection qualification](docs/repository-reconnection-20261016.md).
 
 Evidence must remain separated by source and scope:
 

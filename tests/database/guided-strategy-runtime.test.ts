@@ -198,8 +198,10 @@ describe("guided strategy private policy and frozen interview admission", () => 
       const output = { version: 1, provider: "openai", operation: "strategy.reformulate", model: "gpt-6.1-sol", responseId,
         requestId: null, generatedAt: at, usage: { inputTokens: 10, outputTokens: 10, cachedInputTokens: 0, cacheWriteInputTokens: 0, webSearchCalls: 0 },
         proposal: { message: `Synthetic history ${index}`, activity: "", offering: "", knownAudience: "", questions: [] } };
-      const job = (await db.query<{ id: string }>("insert into public.jobs(owner_id,project_id,operation,input_revision,input_hash,input,idempotency_key,reserved_cost_microusd,state,progress,finished_at) values($1,$2,'strategy.reformulate',1,$3,$4,$5,0,'succeeded',100,clock_timestamp()) returning id", [owner, project, HASH, input, `guided-history-source-${index}`])).rows[0]!;
-      await db.query("insert into public.job_steps(job_id,owner_id,project_id,step_key,request_key,state,reserved_cost_microusd,provider_request_id,output,completed_at) values($1,$2,$3,'source',$4,'succeeded',0,$5,$6,clock_timestamp())", [job.id, owner, project, `history-${index}`, corrupt ? "resp_unmatched" : responseId, output]);
+      // Preserve explicit chronological order even on millisecond-clock runtimes.
+      const completedAt = new Date(Date.parse(at) + index * 1000).toISOString();
+      const job = (await db.query<{ id: string }>("insert into public.jobs(owner_id,project_id,operation,input_revision,input_hash,input,idempotency_key,reserved_cost_microusd,state,progress,finished_at) values($1,$2,'strategy.reformulate',1,$3,$4,$5,0,'succeeded',100,$6) returning id", [owner, project, HASH, input, `guided-history-source-${index}`, completedAt])).rows[0]!;
+      await db.query("insert into public.job_steps(job_id,owner_id,project_id,step_key,request_key,state,reserved_cost_microusd,provider_request_id,output,completed_at) values($1,$2,$3,'source',$4,'succeeded',0,$5,$6,$7)", [job.id, owner, project, `history-${index}`, corrupt ? "resp_unmatched" : responseId, output, completedAt]);
       return job.id;
     }
     const ids: string[] = [];

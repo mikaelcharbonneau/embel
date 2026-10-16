@@ -8,7 +8,7 @@ import { ApiError } from "../../src/server/http/errors";
 import { intent, jobFixture, jobId, other, owner } from "../fixtures/standalone-names";
 const context = { params: Promise.resolve({ jobId }) };
 function request(body?: unknown, method = "POST", origin = "http://127.0.0.1:3106") {
-  return new Request("http://127.0.0.1:3106/api/names/ai", { method, headers: { origin, "content-type": "application/json" }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+  return new Request("http://127.0.0.1:3106/api/names/ai", { method, headers: { origin, "content-type": "application/json", "X-Embel-Account": owner }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
 }
 beforeEach(() => {
   vi.resetAllMocks(); vi.stubEnv("APP_ORIGIN", "http://127.0.0.1:3106"); vi.stubEnv("FLUID_RUNTIME", "local"); vi.stubEnv("VERCEL", "");
@@ -17,6 +17,22 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllEnvs());
 describe("standalone naming authenticated APIs", () => {
+  it.each([null, "", "not-an-account", other])("rejects an absent or stale expected account (%s) before consuming the brief or admitting work", async expectedOwner => {
+    const input = request(intent);
+    if (expectedOwner === null) input.headers.delete("X-Embel-Account");
+    else input.headers.set("X-Embel-Account", expectedOwner);
+    const result = await POST(input);
+    expect(result.status).toBe(401);
+    expect(input.bodyUsed).toBe(false);
+    expect(mock.rpc).not.toHaveBeenCalled();
+  });
+  it("rejects account A's captured intent after the shared cookie changes to B", async () => {
+    mock.auth.mockResolvedValue({ userId: other, client: { rpc: mock.rpc } });
+    const input = request(intent);
+    expect((await POST(input)).status).toBe(401);
+    expect(input.bodyUsed).toBe(false);
+    expect(mock.rpc).not.toHaveBeenCalled();
+  });
   it("enqueues only a durable strict intent and never a client owner or project", async () => {
     const result = await POST(request(intent)); expect(result.status).toBe(202);
     expect(mock.rpc).toHaveBeenCalledExactlyOnceWith("enqueue_standalone_names", { p_input: intent });

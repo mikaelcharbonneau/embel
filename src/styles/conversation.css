@@ -4,14 +4,14 @@
 .conversation-composer { position: relative; background: var(--paper); border: 1px solid #cbc9c5; border-radius: 12px; padding: 14px 16px 12px; box-shadow: 0 3px 14px #19191904; }
 .conversation-composer:focus-within { border-color: #8d8c88; box-shadow: 0 0 0 1px #8d8c88; }
 .conversation-composer.has-error { border-color: #b54b4b; }
-.conversation-composer textarea { display: block; width: 100%; min-height: 58px; max-height: 220px; padding: 2px 0 8px; border: 0; background: transparent; font-size: 14px; line-height: 1.65; resize: vertical; }
+.conversation-composer textarea { display: block; width: 100%; min-height: 58px; height: auto; max-height: none; padding: 2px 0 8px; border: 0; background: transparent; font-size: 14px; line-height: 1.65; resize: none; }
 .conversation-composer textarea:focus-visible { outline: none; }
 .conversation-composer textarea::placeholder { color: #82817b; opacity: 1; }
 .conversation-composer-footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .conversation-composer-footer > span { display: flex; align-items: center; gap: 6px; color: var(--secondary); font-size: var(--font-ui); line-height: 1.55; }
 .conversation-composer-footer .button { flex-shrink: 0; gap: 13px; min-height: 44px; padding: 9px 13px; font-size: var(--font-ui); }
 .conversation-composer.is-initial { padding: 22px 24px 16px; border: 1px solid #d9d8d4; border-radius: 16px; box-shadow: none; }
-.conversation-composer.is-initial textarea { min-height: 88px; font-size: 22px; line-height: 1.5; resize: vertical; }
+.conversation-composer.is-initial textarea { min-height: 88px; font-size: 22px; line-height: 1.5; }
 .conversation-composer.is-initial .conversation-composer-footer > span { font-size: var(--font-ui); }
 .conversation-composer.is-initial .button { min-height: 44px; }
 
@@ -104,9 +104,16 @@
 .conversation-references a { color: var(--text); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
 .conversation-references time { display: block; margin-top: 3px; font-size: var(--font-ui); }
 .conversation-feedback { color: var(--secondary); font-size: var(--font-ui); }
-.conversation-compose-area { flex-shrink: 0; margin-top: 12px; padding: 0; }
-.conversation-compose-area > :not(.conversation-composer) { margin-bottom: 8px; }
-.conversation-compose-area > .form-error { margin-top: 0; }
+.conversation-compose-area { margin-top: 12px; padding: 0; }
+/* Keep Send in view while long prompts and recovery notices scroll independently. */
+.conversation-compose-area, .guided-interview-compose { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; max-height: 75%; }
+.conversation-compose-notices { flex: 0 1 auto; min-height: 0; max-height: 30dvh; overflow-y: auto; }
+.conversation-compose-notices:empty { display: none; }
+.conversation-compose-area > .conversation-compose-notices > * { margin-bottom: 8px; }
+.conversation-compose-area > .conversation-compose-notices > .form-error { margin-top: 0; }
+:is(.conversation-compose-area, .guided-interview-compose) > form.conversation-composer { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; }
+:is(.conversation-compose-area, .guided-interview-compose) > form.conversation-composer textarea { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
+:is(.conversation-compose-area, .guided-interview-compose) .conversation-composer-footer { flex: 0 0 auto; }
 .conversation-footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-top: 20px; }
 .conversation-footer > .text-link { font-size: var(--font-ui); }
 .conversation-footer .inline-confirm { margin: 0; }
@@ -120,7 +127,7 @@
 }
 @media (max-width: 540px) {
   .conversation-composer { padding: 12px; border-radius: 9px; }
-  .conversation-composer textarea { font-size: 16px; min-height: 60px; max-height: 160px; }
+  .conversation-composer textarea { font-size: 16px; min-height: 60px; }
   .conversation-composer-footer { gap: 10px; align-items: flex-end; }
   .conversation-composer-footer > span { max-width: 155px; font-size: var(--font-ui); }
   .conversation-composer-footer .button { min-height: 44px; padding-inline: 11px; gap: 8px; font-size: var(--font-ui); }
@@ -185,7 +192,7 @@
 @media (max-height: 650px) {
   .conversation-page { padding-top: 12px; }
   .conversation-compose-area { margin-top: 8px; }
-  .conversation-composer:not(.is-initial) textarea { min-height: 44px; max-height: 100px; }
+  .conversation-composer:not(.is-initial) textarea { min-height: 44px; }
 }
 
 .conversation-context { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); }

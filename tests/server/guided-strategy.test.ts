@@ -112,12 +112,12 @@ describe("guided provider contract (synthetic transports, no live inference)", (
   });
 
   it.each([
-    ["unobserved source", { ...rawCompetitor, sourceUrls: ["https://fabricated.example/"] }],
-    ["unobserved website", { ...rawCompetitor, url: "https://fabricated.example/" }],
-    ["empty sources", { ...rawCompetitor, sourceUrls: [] }],
-  ])("rejects researched competitors with %s", async (_label, payload) => {
+    ["unobserved source", { ...rawCompetitor, sourceUrls: ["https://fabricated.example/"] }, "failed", "provider_research_unusable"],
+    ["unobserved website", { ...rawCompetitor, url: "https://fabricated.example/" }, "failed", "provider_research_unusable"],
+    ["empty sources", { ...rawCompetitor, sourceUrls: [] }, "needs_reconciliation", "provider_invalid_output"],
+  ] satisfies Array<[string, typeof rawCompetitor, string, string]>)("rejects researched competitors with %s", async (_label, payload, status, code) => {
     const raw = choices(); raw.options[0]!.payload = payload;
-    expect((await execute(raw)).outcome).toMatchObject({ status: "needs_reconciliation", code: "provider_invalid_output" });
+    expect((await execute(raw)).outcome).toMatchObject({ status, code });
   });
 
   it("requires an actual search even when the answer includes copied citations", async () => {

@@ -144,7 +144,8 @@ export function createAccountLogoClient(
     try {
       const body = options.body === undefined ? undefined : JSON.stringify(options.body);
       const response = await fetcher(path, { method: options.method ?? "GET", credentials: "same-origin", mode: "same-origin", cache: "no-store", redirect: "error", signal,
-        headers: { Accept: "application/json", ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
+        headers: { Accept: "application/json", ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+          ...(options.method && options.method !== "GET" ? { "X-Embel-Account": binding.ownerId } : {}) },
         ...(options.form ? { body: options.form } : body === undefined ? {} : { body }) });
       if (!current() || signal.aborted) return null;
       if (response.status === 401) { unauthorized(); return null; }

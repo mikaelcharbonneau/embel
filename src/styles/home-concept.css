@@ -10,7 +10,7 @@
 .concept-home .home-composer.conversation-composer { padding: 0; border: 1px solid var(--border); border-radius: var(--panel-radius); box-shadow: 0 4px 18px #19191906; overflow: visible; }
 .concept-home .home-composer.conversation-composer:focus-within { border-color: #aaa9a5; box-shadow: 0 4px 18px #19191906; }
 .concept-home .home-composer.conversation-composer.has-error { border-color: #b54b4b; }
-.concept-home .home-composer.conversation-composer textarea { min-height: 100px; height: 100px; max-height: 280px; padding: 24px 24px 16px; border: 0; font-size: 21px; line-height: 30px; letter-spacing: -.4px; resize: none; }
+.concept-home .home-composer.conversation-composer textarea { min-height: 100px; height: auto; max-height: none; padding: 24px 24px 16px; border: 0; font-size: 21px; line-height: 30px; letter-spacing: -.4px; resize: none; }
 .concept-home .home-composer textarea::placeholder { color: var(--secondary); opacity: 1; }
 .concept-home .home-composer.conversation-composer .conversation-composer-footer { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 12px; padding: 0 20px 18px; }
 .concept-home .home-composer .conversation-composer-footer > .sr-only { position: absolute; }
@@ -80,7 +80,7 @@
   .concept-home .home-introduction { gap: 12px; margin-bottom: 24px; }
   .concept-home .home-introduction h1 { max-width: 330px; }
   .concept-home .home-introduction p { font-size: 14px; line-height: 22px; }
-  .concept-home .home-composer.conversation-composer textarea { padding: 20px 16px 12px; height: 112px; min-height: 112px; }
+  .concept-home .home-composer.conversation-composer textarea { padding: 20px 16px 12px; min-height: 112px; }
   .concept-home .home-composer.conversation-composer .conversation-composer-footer { padding: 0 12px 12px; gap: 4px; }
   .concept-home .home-composer.conversation-composer .home-input-controls--compact { gap: 4px; }
   .concept-home .home-input-controls--compact .home-files-popover > summary,

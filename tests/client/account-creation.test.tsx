@@ -6,7 +6,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ replace: vi.fn(), refresh: vi.fn(), prompt: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: mocks.replace, refresh: mocks.refresh }) }));
 vi.mock("next/link", () => ({ default: ({ children, href, onClick, className }: ComponentProps<"a">) => createElement("a", { href, className, onClick }, children) }));
-vi.mock("../../src/components/workspace/prompt-recovery", () => ({ readPromptRecovery: mocks.prompt }));
+vi.mock("../../src/components/workspace/prompt-recovery", () => ({ hasPromptRecovery: () => Boolean(mocks.prompt()) }));
 import { AccountSessionProvider } from "../../src/components/workspace/account-session";
 import { SignInForm } from "../../src/components/auth/sign-in-form";
 
@@ -91,7 +91,7 @@ it("clears credentials immediately, admits one request, preserves recovery and a
   expect(host.querySelector("h1")?.textContent).toBe("Check your email");
   expect(document.activeElement).toBe(host.querySelector("h1"));
   expect(host.querySelector('input[type="password"]')).toBeNull();
-  expect(host.textContent).toContain("Your prompt and scope are saved");
+  expect(host.textContent).toContain("Your prompt is kept while you sign in");
   expect(mocks.replace).not.toHaveBeenCalled();
   expect(localStorage.getItem("synthetic-draft")).toBe("Retained browser work");
   const storage = JSON.stringify({ local: { ...localStorage }, session: { ...sessionStorage } });
@@ -166,7 +166,7 @@ it("continues recovered prompts after a verified immediate-session outcome", asy
 });
 it("disables account creation when the server configuration is unavailable", async () => {
   await render("sign-up", false);
-  expect(host.textContent).toContain("Account creation is not connected");
+  expect(host.textContent).toContain("Account creation is unavailable right now");
   expect(host.querySelector("fieldset")?.disabled).toBe(true);
   fill(); await submit();
   expect(requestBodies).toEqual([]);

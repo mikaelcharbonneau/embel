@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -29,7 +29,7 @@ describe("source-only dedicated executable", () => {
     expect(result.code).toBe(2); expect(result.stdout + result.stderr).not.toContain("synthetic-does-not-exist");
   });
   it("accepts an explicit protected disabled configuration without constructing a live runtime", async () => {
-    const path = await mkdtemp(join(tmpdir(), "logo-launcher-executable-synthetic-")); roots.push(path);
+    const path = await realpath(await mkdtemp(join(tmpdir(), "logo-launcher-executable-synthetic-"))); roots.push(path);
     await mkdir(join(path, ".local-fluid"), { mode: 0o700 }); const filename = join(path, ".local-fluid", "logo-worker.json");
     await writeFile(filename, JSON.stringify({ version: 1, enabled: false }), { mode: 0o600 });
     expect(await run(["--config", filename])).toEqual({ code: 0, stdout: '{"event":"logo_worker_disabled"}\n', stderr: "" });

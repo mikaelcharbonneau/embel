@@ -1,5 +1,4 @@
 import { createHash } from "node:crypto";
-import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
@@ -117,8 +116,8 @@ describe("single historical research operator-abandonment proposal", () => {
   afterEach(async () => { await db.exec("set session authorization postgres; reset role; rollback"); });
   afterAll(async () => { await db?.close(); }, 30_000);
 
-  it("pins actual source bytes and completed-status branch order without inventing an envelope", () => {
-    const source = execFileSync("git", ["show", "af6faf18912cc24afb37179a6988a11f83cf9cdf:src/server/ai/strategy-response.ts"], { encoding: "utf8" });
+  it("pins actual source bytes and completed-status branch order without inventing an envelope", async () => {
+    const source = await readFile(new URL("../fixtures/source-history/af6faf18912cc24afb37179a6988a11f83cf9cdf/strategy-response.ts.txt", import.meta.url), "utf8");
     expect(createHash("sha256").update(source).digest("hex")).toBe("419acb2adcdb5bf27ee99f92bf3f737876efad9ca8c4a7c1836f1c00a68a1255");
     expect(source.indexOf('if (response.status !== "completed")')).toBeLessThan(source.indexOf('if (invalidItems) return uncertain("provider_unexpected_output"'));
     expect(source).toContain("store: false, background: false, stream: false");

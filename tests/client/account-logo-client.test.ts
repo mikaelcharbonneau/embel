@@ -50,14 +50,15 @@ describe("account logo transport", () => {
     await expect(unavailable.getLogoWorkspace()).rejects.toMatchObject({ status: 503 });
   });
   it("creation works in the null-project slot; recovery reads never automatically post", async () => {
-    const calls: { path: string; method?: string; body?: BodyInit | null }[] = [];
+    const calls: { path: string; method?: string; body?: BodyInit | null; headers?: HeadersInit }[] = [];
     const client = createAccountLogoClient(account, null, () => true, vi.fn(), async (path, init) => {
-      calls.push({ path: String(path), method: init?.method, body: init?.body });
+      calls.push({ path: String(path), method: init?.method, body: init?.body, headers: init?.headers });
       return json(String(path).endsWith(`/requests/${requestKey}`) ? { status: "not_found" } : workspace());
     });
     expect(await client.readLogoProjectCreation(requestKey)).toEqual({ status: "not_found" }); expect(calls).toHaveLength(1);
     expect(await client.startLogoProject({ requestKey, brief })).toEqual(workspace());
     expect(JSON.parse(String(calls[1]?.body))).toEqual({ requestKey, brief });
+    expect(new Headers(calls[1]?.headers).get("X-Embel-Account")).toBe(account.userId);
     await expect(client.getLogoWorkspace()).rejects.toMatchObject({ status: 422 }); expect(calls).toHaveLength(2);
   });
   it("checks recovered creation request identity and owned bounded summary pages", async () => {

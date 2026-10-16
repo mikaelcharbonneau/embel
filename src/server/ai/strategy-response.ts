@@ -434,10 +434,13 @@ export async function executeStrategyResponse(options: {
     }
     return { status: "succeeded", result, costMicrousd: cost, providerRequestId };
   } catch (error) {
-    // This complete, bounded response has a known unusable proposal. Retain its
-    // private evidence and conservative expense, without locking the account as
-    // an unknown dispatch or publishing evidence from the unfinished search.
-    if (error instanceof UnobservedResearchSourceError && searchAttemptAtLimitIndex !== null && !usageExceeded &&
+    // A source rejection after completed, bounded research is a known unusable
+    // answer. Preserve its evidence and expense without publishing a proposal
+    // or treating the completed execution as an unknown dispatch. The existing
+    // narrow trailing-attempt case retains its separate source restriction.
+    const completedResearch = operation === "strategy.competitors" && completedSearchCalls > 0 &&
+      completedToolCalls === toolCalls && !observedSourcesTruncated && partial.partialText.length === text.length;
+    if (error instanceof UnobservedResearchSourceError && (completedResearch || searchAttemptAtLimitIndex !== null) && !usageExceeded &&
         cost <= input.policy.maximumCostMicrousd && cost <= job.reservedCostMicrousd - job.actualCostMicrousd) {
       return failure("provider_research_unusable", cost, providerRequestId, partial);
     }

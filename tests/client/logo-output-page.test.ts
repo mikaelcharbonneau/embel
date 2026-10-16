@@ -4,7 +4,7 @@ const f=vi.hoisted(()=>({session:{status:'signed_out',generation:1} as Record<st
 vi.mock('@/components/workspace/account-session',()=>({useAccountSession:()=>({session:f.session,isCurrent:()=>true}),AccountStatus:()=>createElement('p',null,'Account status')}));
 vi.mock('@/components/identity/logo-draft-memory-context',()=>({useLogoDraftMemory:()=>({hasUnsaved:()=>false})}));
 vi.mock('@/components/identity/use-logo-workspace',()=>({useLogoWorkspace:()=>f.state}));
-vi.mock('@/features/identity-directions/components/identity-directions-panel',()=>({IdentityDirectionsPanel:()=>createElement('p',null,'Owned directions panel')}));
+vi.mock('@/features/identity-directions/components/identity-directions-panel',()=>({IdentityDirectionsPanel:({controls}:{controls?:React.ReactNode})=>createElement('div',null,createElement('p',null,'Owned directions panel'),controls)}));
 vi.mock('@/features/identity-deliverables/components/deliverables-panel',()=>({DeliverablesPanel:()=>createElement('p',null,'Owned deliverables panel')}));
 vi.mock('@/components/identity/account-logo-inputs',()=>({AccountLogoInputs:()=>createElement('p',null,'Owned project fonts')}));
 import {LogoOutputPage} from '@/components/identity/logo-output-page';
