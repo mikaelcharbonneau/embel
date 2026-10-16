@@ -586,6 +586,8 @@ export const ensureNamingRunIntentSchema = z.discriminatedUnion("reason", [
   z.strictObject({ ...demandFields, reason: z.literal("resume"), resumeOfRunId: z.uuid(), expectedRunRevision: revision }),
 ]);
 export type EnsureNamingRunIntent = z.infer<typeof ensureNamingRunIntentSchema>;
+export const stopNamingFeedIntentSchema = z.strictObject({ version: z.literal(1), expectedDemandSequence: counter, pendingEnsureIdempotencyKey: requestKey.nullable(), idempotencyKey: requestKey });
+export type StopNamingFeedIntent = z.infer<typeof stopNamingFeedIntentSchema>;
 export const steerNamingFeedIntentSchema = z.strictObject({ ...expectedRevisions, candidateIds: z.array(z.uuid()).min(1).max(5).refine(unique), instruction: text.nullable(), idempotencyKey: requestKey });
 export type SteerNamingFeedIntent = z.infer<typeof steerNamingFeedIntentSchema>;
 
@@ -602,17 +604,20 @@ const runSummaryFields = {
   projectRevision: revision, preferencesVersion: revision, feedbackRevision: counter, steeringRevision: counter, demandSequence: counter, snapshotHash: hash, acceptedPolicyIdentity: hash,
   progress: z.number().int().min(0).max(100), preparedSetId: z.uuid().nullable(), fulfillment: namingBrainFulfillmentSchema.nullable(), accounting: namingRunAccountingSchema, createdAt: timestamp, updatedAt: timestamp,
 };
-function validResumeWitness(value: { canResume: boolean; state: string; fulfillment: NamingBrainFulfillment | null }): boolean {
-  return !value.canResume || (["partial", "cancelled", "failed"].includes(value.state) && value.fulfillment?.status !== "complete");
+function hasCompletePreparedMembership(value: { state: string; preparedSetId: string | null; fulfillment: NamingBrainFulfillment | null }): boolean {
+  return ["prepared", "succeeded", "cancelled"].includes(value.state) && value.preparedSetId !== null && value.fulfillment?.status === "complete";
+}
+function validResumeWitness(value: { canResume: boolean; state: string; preparedSetId: string | null; fulfillment: NamingBrainFulfillment | null }): boolean {
+  return !value.canResume || hasCompletePreparedMembership(value) || (["partial", "cancelled", "failed"].includes(value.state) && value.fulfillment?.status !== "complete");
 }
 export const namingBrainRunSummarySchema = z.strictObject(runSummaryFields).refine(value => value.runId !== value.resumedFromRunId, "Resume creates a new run linked to its terminal predecessor")
-  .refine(validResumeWitness, "Only an admissible incomplete terminal run can carry a server Resume witness");
+  .refine(validResumeWitness, "A server Resume witness requires admissible terminal work or complete prepared membership");
 export type NamingBrainRunSummary = z.infer<typeof namingBrainRunSummarySchema>;
 export const namingBrainRunSchema = z.strictObject({ ...runSummaryFields, snapshot: namingBriefSnapshotSchema,
   stages: z.array(z.strictObject({ stageKey: namingStageKeySchema, state: z.enum(["pending", "running", "succeeded", "skipped", "failed", "cancelled", "unresolved"]), artifactIds: z.array(z.uuid()).max(60).refine(unique), startedAt: timestamp.nullable(), finishedAt: timestamp.nullable(), errorCode: z.string().regex(/^[a-z][a-z0-9_]{0,79}$/).nullable() })).length(7),
 }).superRefine((value, ctx) => {
   const snapshot = value.snapshot;
-  if (!validResumeWitness(value)) issue(ctx, "Only an admissible incomplete terminal run can carry a server Resume witness", ["canResume"]);
+  if (!validResumeWitness(value)) issue(ctx, "A server Resume witness requires admissible terminal work or complete prepared membership", ["canResume"]);
   if (value.runId === value.resumedFromRunId || value.ownerId !== snapshot.ownerId || value.projectId !== snapshot.projectId || value.projectRevision !== snapshot.contextRevision || value.preferencesVersion !== snapshot.preferencesVersion || value.feedbackRevision !== snapshot.feedbackRevision || value.steeringRevision !== snapshot.steeringRevision || value.snapshotHash !== snapshot.snapshotHash) issue(ctx, "Run and snapshot must bind one owned revision basis");
   if (!unique(value.stages.map(stage => stage.stageKey)) || value.stages.some((stage, index) => stage.stageKey !== namingStageKeySchema.options[index])) issue(ctx, "The complete fixed stage manifest must precede execution");
 }).transform(freeze);
@@ -635,7 +640,7 @@ export const namingBrainAvailabilitySchema = z.discriminatedUnion("status", [
 export type NamingBrainAvailability = z.infer<typeof namingBrainAvailabilitySchema>;
 export const namingFeedSchema = z.strictObject({
   version: z.literal(1), ownerId: z.uuid(), projectId: z.uuid(), projectRevision: revision, preferencesVersion: counter, feedbackRevision: counter, steeringRevision: counter, demandSequence: counter,
-  entries: z.array(namingFeedEntrySchema).max(100), nextCursor: namingFeedCursorSchema.nullable(), consumedThrough: namingFeedCursorSchema.nullable(), activeRun: namingBrainRunSummarySchema.nullable(), preparedSetId: z.uuid().nullable(), state: z.enum(["active", "paused", "blocked"]), availability: namingBrainAvailabilitySchema,
+  entries: z.array(namingFeedEntrySchema).max(100), nextCursor: namingFeedCursorSchema.nullable(), consumedThrough: namingFeedCursorSchema.nullable(), activeRun: namingBrainRunSummarySchema.nullable(), preparedSetId: z.uuid().nullable(), paused: z.boolean().default(false), state: z.enum(["active", "paused", "blocked"]), availability: namingBrainAvailabilitySchema,
 }).superRefine((value, ctx) => {
   if (!unique(value.entries.map(row => row.entryId)) || !unique(value.entries.map(row => row.entry.candidate.id)) || value.entries.some((row, index) => row.entry.candidate.ownerId !== value.ownerId || row.entry.candidate.projectId !== value.projectId || row.steeringRevision > value.steeringRevision || (index > 0 && row.position <= value.entries[index - 1]!.position))) issue(ctx, "Feed rows require unique stable owned membership in increasing position order");
   if (value.activeRun && (value.activeRun.ownerId !== value.ownerId || value.activeRun.projectId !== value.projectId || value.activeRun.demandSequence > value.demandSequence)) issue(ctx, "The active run must belong to this feed");
@@ -645,13 +650,17 @@ export const namingFeedSchema = z.strictObject({
 export type NamingFeed = z.infer<typeof namingFeedSchema>;
 const resultAction = z.enum(["resume", "retry", "resolve", "configure", "review_preferences", "none"]);
 export const namingFeedEnsureResultSchema = z.discriminatedUnion("status", [
-  z.strictObject({ status: z.literal("appended"), feed: namingFeedSchema, runId: z.uuid(), appendedEntryIds: z.array(z.uuid()).min(1).max(100).refine(unique) }).refine(value => value.appendedEntryIds.every(id => value.feed.entries.some(entry => entry.entryId === id && entry.runId === value.runId)), "Appended IDs must resolve to the exact saved feed membership"),
+  z.strictObject({ status: z.literal("appended"), feed: namingFeedSchema, runId: z.uuid(), appendedEntryIds: z.array(z.uuid()).max(100).refine(unique) }).refine(value => value.appendedEntryIds.length > 0
+    ? value.appendedEntryIds.every(id => value.feed.entries.some(entry => entry.entryId === id && entry.runId === value.runId))
+    : value.feed.activeRun?.runId === value.runId && hasCompletePreparedMembership(value.feed.activeRun), "Appended IDs must resolve to saved membership; an empty acknowledgement requires the retained complete prepared head"),
   z.strictObject({ status: z.literal("pending"), feed: namingFeedSchema, run: namingBrainRunSummarySchema, reused: z.boolean() }).refine(value => value.run.ownerId === value.feed.ownerId && value.run.projectId === value.feed.projectId && value.feed.activeRun?.runId === value.run.runId && ["queued", "running", "cancel_requested"].includes(value.run.state), "Pending result must identify this feed's active owned run"),
   z.strictObject({ status: z.enum(["paused", "blocked"]), feed: namingFeedSchema, code: z.string().regex(/^[a-z][a-z0-9_]{0,79}$/), message: text, action: resultAction }),
-  z.strictObject({ status: z.literal("incomplete"), feed: namingFeedSchema, run: namingBrainRunSummarySchema, fulfillment: namingBrainFulfillmentSchema, message: text, canResume: z.boolean() }).refine(value => value.run.ownerId === value.feed.ownerId && value.run.projectId === value.feed.projectId && value.fulfillment.status !== "complete" && value.canResume === value.run.canResume && (!value.canResume || ["partial", "cancelled", "failed"].includes(value.run.state)), "Incomplete work remains owned and Resume must match the included run's server-qualified witness"),
+  z.strictObject({ status: z.literal("incomplete"), feed: namingFeedSchema, run: namingBrainRunSummarySchema, fulfillment: namingBrainFulfillmentSchema, message: text, canResume: z.boolean() }).refine(value => value.run.ownerId === value.feed.ownerId && value.run.projectId === value.feed.projectId && value.fulfillment.status !== "complete" && value.run.fulfillment?.status !== "complete" && value.canResume === value.run.canResume && (!value.canResume || ["partial", "cancelled", "failed"].includes(value.run.state)), "Incomplete work remains owned and Resume must match the included run's server-qualified witness"),
 ]);
 export type NamingFeedEnsureResult = z.infer<typeof namingFeedEnsureResultSchema>;
 export const steerNamingFeedResponseSchema = z.strictObject({ feed: namingFeedSchema, supersededRunIds: z.array(z.uuid()).max(2).refine(unique), cancellationRequestedRunIds: z.array(z.uuid()).max(1) });
 export type SteerNamingFeedResponse = z.infer<typeof steerNamingFeedResponseSchema>;
 export const namingBrainRunResponseSchema = z.strictObject({ run: namingBrainRunSchema });
 export const namingFeedResponseSchema = z.strictObject({ feed: namingFeedSchema });
+export const stopNamingFeedResponseSchema = namingFeedResponseSchema;
+export type StopNamingFeedResponse = z.infer<typeof stopNamingFeedResponseSchema>;
