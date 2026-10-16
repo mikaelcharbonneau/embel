@@ -25,11 +25,11 @@ import { NAMING_APPROACHES, getNamingPreferencesReadiness, initialNamingPreferen
 import { context, creatorSet, id, plan, preferences, proposal, receipt, research, snapshot, verification } from "./naming-brain-fixtures";
 
 describe("explicit choices and text fragment semantics", () => {
-  it("leaves drafts unanswered and blocks generation until explicit choices and needed sources are saved", () => {
+  it("leaves drafts unanswered and blocks generation until explicit choices are saved without inventing optional source preferences", () => {
     const empty = initialNamingPreferencesV2(context);
     expect(getNamingPreferencesReadiness(empty)).toEqual({ ready: false, missing: ["approaches", "directness"] });
     expect(getNamingPreferencesReadiness(preferences())).toEqual({ ready: true, missing: [] });
-    expect(getNamingPreferencesReadiness({ ...preferences(), sourceLanguages: [] }).missing).toEqual(["sourceLanguages"]);
+    expect(getNamingPreferencesReadiness({ ...preferences(), sourceLanguages: [] })).toEqual({ ready: true, missing: [] });
     expect(NAMING_APPROACHES.find(card => card.id === "real_words")).toMatchObject({ label: "Real words", examples: ["Apple", "BlackBerry", "Jaguar"] });
   });
   it("matches exact NFC case-insensitive fragments without stripping punctuation, accents or stemming", () => {
@@ -57,7 +57,7 @@ describe("model payload and saved provider evidence boundaries", () => {
     expect(brain.namingResearchPackSchema?.safeParse({ ...research(), providerReceipt: { ...receipt(), runId: id(90) } }).success).toBe(false);
     expect(brain.namingResearchPackSchema?.safeParse({ ...research(), sources: [{ ...research().sources[0], providerItemId: "invented-item" }] }).success).toBe(false);
     expect(brain.namingEvidenceSourceSchema?.safeParse({ ...research().sources[0], evidenceStatus: "retrieved", excerpt: null, contentHash: null }).success).toBe(false);
-    expect(brain.namingEvidenceSourceSchema?.safeParse({ ...research().sources[0], evidenceStatus: "unretrieved", excerpt: null, contentHash: null }).success).toBe(true);
+    expect(brain.namingEvidenceSourceSchema?.safeParse({ ...research().sources[0], evidenceStatus: "unretrieved", excerpt: null, contentHash: null, retrieval: null }).success).toBe(true);
   });
   it("retains ambiguous provider creation with no invented IDs or inferred zero expense", () => {
     const unknown = { ...receipt(), dispatchState: "unknown", sessionId: null, turnId: null, agentId: null, callIds: [], artifactItemIds: [], observedModel: null };
@@ -120,7 +120,7 @@ describe("claim-level verification", () => {
     const applied = brain.applyNamingVerification?.(candidates!, verification([finding]));
     expect(applied?.candidates[0]).toMatchObject({ eligible: false, primaryCredit: null, publishedClaims: [] });
     expect(() => brain.applyNamingVerification(candidates!, verification([{ ...finding, status: "supported", supportedWording: "Asserted meaning", sourceKeys: ["missing"], supportsPrimaryApproach: true }]))).toThrow();
-    const noText = { ...verification([{ ...finding, status: "supported", supportedWording: "Asserted meaning", sourceKeys: ["source-one"], supportsPrimaryApproach: true }]), sources: [{ ...research().sources[0], evidenceStatus: "unretrieved", excerpt: null, contentHash: null }] };
+    const noText = { ...verification([{ ...finding, status: "supported", supportedWording: "Asserted meaning", sourceKeys: ["source-one"], supportsPrimaryApproach: true }]), sources: [{ ...research().sources[0], evidenceStatus: "unretrieved", excerpt: null, contentHash: null, retrieval: null }] };
     expect(() => brain.applyNamingVerification(candidates!, noText)).toThrow();
   });
   it("rejects findings for unknown candidate/claim references and mismatched snapshots", () => {
@@ -140,4 +140,71 @@ describe("retrieved quote support", () => {
       expect(brain.namingVerificationSchema.safeParse(verification([{ ...finding, evidence }])).success).toBe(false);
     }
   });
+});
+
+
+describe("protocol and accounting receipts", () => {
+  it("retains output success while usage and confirmed expense remain independent", () => {
+    const pack = research();
+    expect(brain.namingStageOutcomeSchema.safeParse({ status: "completed", receipt: pack.providerReceipt, output: pack }).success).toBe(true);
+    expect(brain.namingProviderReceiptSchema.safeParse({ ...receipt(), estimatedCostMicrousd: 12345, providerCostCounters: [{ scope: "session", scopeId: "fixture-session", kind: "consumed_usd_cents", value: 0, observedAt: "2026-10-16T12:00:00Z" }] }).success).toBe(true);
+    expect(brain.namingProviderReceiptSchema.safeParse({ ...receipt(), accountingStatus: "confirmed", confirmedActualCostMicrousd: null }).success).toBe(false);
+    expect(brain.namingProviderReceiptSchema.safeParse({ ...receipt(), accountingStatus: "provisional", confirmedActualCostMicrousd: 12345 }).success).toBe(false);
+  });
+  it("does not allow one protocol's identifiers to stand in for the other's", () => {
+    const response = { ...receipt(), protocol: "openai_responses", sessionId: null, turnId: null, agentId: null, responseId: "fixture-response" };
+    expect(brain.namingProviderReceiptSchema.safeParse(response).success).toBe(true);
+    expect(brain.namingProviderReceiptSchema.safeParse({ ...response, sessionId: "fixture-session" }).success).toBe(false);
+    expect(brain.namingProviderReceiptSchema.safeParse({ ...receipt(), responseId: "fixture-response" }).success).toBe(false);
+  });
+  it("binds a Creator set to an observed child final item instead of a coordinator claim", () => {
+    expect(brain.namingCreatorSetSchema.safeParse(creatorSet()).success).toBe(true);
+    expect(brain.namingCreatorSetSchema.safeParse({ ...creatorSet(), creatorAttribution: { ...creatorSet().creatorAttribution, itemId: "invented-item" } }).success).toBe(false);
+    expect(brain.namingCreatorSetSchema.safeParse({ ...creatorSet(), creatorAttribution: { ...creatorSet().creatorAttribution, subagentId: null } }).success).toBe(false);
+    expect(brain.namingCreatorSetSchema.safeParse({ ...creatorSet(), creatorAttribution: { ...creatorSet().creatorAttribution, assignmentKey: "different" } }).success).toBe(false);
+  });
+});
+
+import { chatGPTNamingJobInputSchema } from "../../src/domain/naming-jobs";
+import { namingStrategyBasis, namingStrategyKey, validateGeneratedNames } from "../../src/domain/project-naming";
+
+describe("reviewed legacy and research admission boundaries", () => {
+  it("does not let V2 hard constraints enter a legacy generator that does not enforce them", () => {
+    const input = { version: 1, billingMode: "chatgpt_subscription", context,
+      policy: { version: 1, billingMode: "chatgpt_subscription", handlerVersion: "naming-chatgpt-v1", registrationId: "fixture", model: "fixture", limits: { maxInputBytes: 131072, maxOutputBytes: 262144, deadlineMs: 240000, maxObservedWebSearchCalls: 0, maxRequestsPerHour: 20, maxQueuedJobs: 3 } },
+      batch: { id: id(30), ownerId: id(1), projectId: id(2), contextRevision: 1, strategyBasis: namingStrategyBasis(context), strategyKey: namingStrategyKey(context), preferencesVersion: 1, preferences: preferences(), favoritesSnapshot: [], acceptedPolicyIdentity: "a".repeat(64), targetCount: 250, sequence: 1, jobId: id(31), createdAt: "2026-10-16T12:00:00Z" }, exclusionSnapshot: [], exclusionKeys: [] };
+    expect(chatGPTNamingJobInputSchema.safeParse(input).success).toBe(false);
+    expect(() => validateGeneratedNames([{ value: "Cedar", rationale: "Fixture" }], { ...preferences(), requiredText: ["Moon"] }, [])).toThrow();
+  });
+  it("preserves exact retained text rather than trimming away part of its hash and quote basis", () => {
+    const source = { ...research().sources[0], excerpt: "  Source text with leading and trailing space.\n" };
+    expect(brain.namingEvidenceSourceSchema.parse(source).excerpt).toBe(source.excerpt);
+  });
+  it("retains partial research but requires a genuinely sourced pack before Director admission", () => {
+    const partial = { ...research(), readiness: "partial", sources: [], output: { ...research().output, facts: [], territories: research().output.territories.map(row => ({ ...row, sourceKeys: [] })) } };
+    expect(brain.namingResearchPackSchema.safeParse(partial).success).toBe(true);
+    expect(brain.namingResearchPackSchema.safeParse({ ...partial, readiness: "sourced" }).success).toBe(false);
+    expect(() => brain.validateNamingAssignmentPlan(snapshot(), partial, plan())).toThrow();
+  });
+  it("blocks provably impossible required ASCII fragments before dispatch", () => {
+    expect(getNamingPreferencesReadiness({ ...preferences(), maximumGraphemes: 3, requiredText: ["Cedar"] })).toEqual({ ready: false, missing: ["impossible_length"] });
+    expect(getNamingPreferencesReadiness({ ...preferences(), maximumGraphemes: 5, requiredText: ["Cedar"] }).ready).toBe(true);
+  });
+});
+
+
+it("records independent Creator sessions without inventing native child identifiers", () => {
+  const value = creatorSet();
+  const independent = { ...value, creatorAttribution: { ...value.creatorAttribution, executionKind: "independent_session", subagentId: null } };
+  expect(brain.namingCreatorSetSchema.safeParse(independent).success).toBe(true);
+});
+
+it("rejects Creator evidence claiming a session allowance beyond its validated assignment", () => {
+  const assignment = brain.validateNamingAssignmentPlan(snapshot(), research(), plan())[0]!;
+  const value = creatorSet();
+  expect(() => brain.validateNamingCreatorSet(snapshot(), assignment, { ...value, providerReceipt: { ...value.providerReceipt, sessionLimitCents: 91 } })).toThrow();
+});
+it("does not label cancellation terminal when the applicable execution identifiers are unknown", () => {
+  const unknown = { ...receipt(), sessionId: null, turnId: null, agentId: null };
+  expect(brain.namingStageOutcomeSchema.safeParse({ status: "cancelled", code: "provider_cancelled", receipt: unknown, partialArtifacts: [] }).success).toBe(false);
 });

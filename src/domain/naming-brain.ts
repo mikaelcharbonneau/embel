@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { nameValueSchema } from "./naming";
-import { nameIdentityKey, nameIdentityKeySchema, namingStrategyBasisSchema, namingStrategyKeyFromBasis } from "./project-naming";
+import { nameIdentityKey, nameIdentityKeySchema, namingStrategyBasisSchema, namingStrategyKeyFromBasis, projectNameEntrySchema } from "./project-naming";
 import { getNamingPreferencesReadiness, matchesNamingTextFragment, namingApproachSchema, namingPreferencesV2Schema, type NamingApproach } from "./naming-brain-preferences";
 export * from "./naming-brain-preferences";
 
@@ -48,27 +48,45 @@ export const namingBriefSnapshotSchema = z.strictObject({
 }).transform(freeze);
 export type NamingBriefSnapshot = z.infer<typeof namingBriefSnapshotSchema>;
 
-export const namingProviderReceiptSchema = z.strictObject({
+export const namingProtocolSchema = z.enum(["openai_agents", "openai_responses"]);
+export type NamingProtocol = z.infer<typeof namingProtocolSchema>;
+const observationScope = { scope: z.enum(["session", "turn", "agent", "call", "response"]), scopeId: providerId, observedAt: timestamp };
+const receiptFields = {
   version: z.literal(1), provider: z.literal("openai"), billingMode: z.literal("openai_api"), runId: z.uuid(), stageKey: namingStageKeySchema, role: namingRoleSchema,
-  snapshotHash: hash, requestKey, dispatchState: z.enum(["not_dispatched", "dispatched", "unknown"]), sessionId: providerId.nullable(), turnId: providerId.nullable(), agentId: providerId.nullable(), requestId: providerId.nullable(),
+  snapshotHash: hash, requestKey, providerCallKey: localKey, assignmentKey: localKey.nullable(), requestHash: hash, sessionLimitCents: z.number().int().min(1).max(150), dispatchState: z.enum(["not_dispatched", "dispatched", "unknown"]), requestId: providerId.nullable(),
   callIds: z.array(providerId).max(200).refine(unique), observedModel: z.string().min(1).max(150).nullable(),
   toolCalls: z.array(z.strictObject({ callId: providerId, type: z.enum(["web_search", "function", "subagent", "other"]), providerItemId: providerId.nullable(), status: z.enum(["started", "completed", "failed", "unknown"]) })).max(200),
   artifactItemIds: z.array(providerId).max(500).refine(unique),
-  usage: z.strictObject({ inputTokens: counter.nullable(), outputTokens: counter.nullable(), totalTokens: counter.nullable() }).nullable(),
-  actualCostMicrousd: counter.nullable(), recordedAt: timestamp,
-}).superRefine((value, ctx) => {
+  usageObservations: z.array(z.strictObject({ ...observationScope, inputTokens: counter.nullable(), outputTokens: counter.nullable(), totalTokens: counter.nullable() })).max(200),
+  estimatedCostMicrousd: counter.nullable(),
+  providerCostCounters: z.array(z.strictObject({ ...observationScope, kind: z.literal("consumed_usd_cents"), value: counter })).max(200),
+  accountingStatus: z.enum(["provisional", "confirmed"]), confirmedActualCostMicrousd: counter.nullable(), recordedAt: timestamp,
+};
+export const namingProviderReceiptSchema = z.discriminatedUnion("protocol", [
+  z.strictObject({ ...receiptFields, protocol: z.literal("openai_agents"), sessionId: providerId.nullable(), turnId: providerId.nullable(), agentId: providerId.nullable(), responseId: z.null() }),
+  z.strictObject({ ...receiptFields, protocol: z.literal("openai_responses"), sessionId: z.null(), turnId: z.null(), agentId: z.null(), responseId: providerId.nullable() }),
+]).superRefine((value, ctx) => {
+  if ((value.role === "creator") !== (value.assignmentKey !== null)) issue(ctx, "Creator call receipts require the exact assignment key");
   if (!rolesForStage[value.stageKey].includes(value.role)) issue(ctx, "Provider role must match the stage");
   if (!unique(value.toolCalls.map(call => call.callId))) issue(ctx, "Retained tool calls must be unique");
-  if (value.dispatchState === "not_dispatched" && (value.sessionId !== null || value.turnId !== null || value.agentId !== null || value.callIds.length || value.toolCalls.length || value.artifactItemIds.length || value.usage !== null || value.actualCostMicrousd !== null)) issue(ctx, "A no-dispatch receipt cannot claim provider execution or settlement");
+  if ((value.accountingStatus === "confirmed") !== (value.confirmedActualCostMicrousd !== null)) issue(ctx, "Confirmed expense is separate from provisional estimates and counters");
+  if (value.turnId !== null && value.sessionId === null) issue(ctx, "A known turn requires its observed session");
+  if (value.dispatchState === "not_dispatched" && (value.sessionId !== null || value.turnId !== null || value.agentId !== null || value.responseId !== null || value.callIds.length || value.toolCalls.length || value.artifactItemIds.length || value.usageObservations.length || value.providerCostCounters.length || value.confirmedActualCostMicrousd !== null)) issue(ctx, "A no-dispatch receipt cannot claim provider execution or settlement");
 }).transform(freeze);
 export type NamingProviderReceipt = z.infer<typeof namingProviderReceiptSchema>;
 
+const evidenceProvenanceSchema = z.discriminatedUnion("protocol", [
+  z.strictObject({ protocol: z.literal("openai_agents"), sessionId: providerId, turnId: providerId, responseId: z.null(), itemId: providerId, observedUrl: z.url({ protocol: /^https?$/ }).max(2000) }),
+  z.strictObject({ protocol: z.literal("openai_responses"), sessionId: z.null(), turnId: z.null(), responseId: providerId, itemId: providerId, observedUrl: z.url({ protocol: /^https?$/ }).max(2000) }),
+]);
 /** These fields are attached from retained transport evidence, never supplied by a model. */
 export const namingEvidenceSourceSchema = z.strictObject({
   sourceKey: localKey, url: z.url({ protocol: /^https?$/ }).max(2000), title: z.string().trim().min(1).max(300), retrievedAt: timestamp,
-  providerItemId: providerId, evidenceStatus: z.enum(["retrieved", "unretrieved"]), excerpt: z.string().trim().min(1).max(8000).nullable(), contentHash: hash.nullable(),
+  providerItemId: providerId, provenance: evidenceProvenanceSchema.nullable(), retrieval: z.strictObject({ retrievedAt: timestamp, responseHash: hash, extractorVersion: z.string().min(1).max(100), truncated: z.boolean() }).nullable(), evidenceStatus: z.enum(["retrieved", "unretrieved"]), excerpt: z.string().min(1).max(8000).refine(value => value.trim().length > 0, "Retrieved text cannot be whitespace only").nullable(), contentHash: hash.nullable(),
 }).superRefine((value, ctx) => {
-  if (value.evidenceStatus === "retrieved" ? value.excerpt === null || value.contentHash === null : value.excerpt !== null || value.contentHash !== null) issue(ctx, "Only actually retrieved text has an excerpt and content hash");
+  if (value.evidenceStatus === "retrieved" ? value.excerpt === null || value.contentHash === null || value.provenance === null || value.retrieval === null : value.excerpt !== null || value.contentHash !== null || value.retrieval !== null) issue(ctx, "Only actually retrieved text has an excerpt, hashes and retrieval provenance");
+  if (value.provenance && (value.provenance.itemId !== value.providerItemId || value.provenance.observedUrl !== value.url)) issue(ctx, "Source provenance must bind the actually observed item and URL");
+  if (value.retrieval && value.retrieval.retrievedAt !== value.retrievedAt) issue(ctx, "Source retrieval timestamps must agree");
 });
 export type NamingEvidenceSource = z.infer<typeof namingEvidenceSourceSchema>;
 const sourcesSchema = z.array(namingEvidenceSourceSchema).max(80).refine(rows => unique(rows.map(row => row.sourceKey)), "Source keys must be unique");
@@ -138,7 +156,7 @@ const envelopeFields = { artifactId: z.uuid(), runId: z.uuid(), stageKey: naming
 function checkEnvelope(value: { runId: string; stageKey: NamingStageKey; snapshotHash: string; providerReceipt: NamingProviderReceipt; output: { role: NamingRole } }, ctx: z.RefinementCtx): void {
   const receipt = value.providerReceipt;
   if (value.runId !== receipt.runId || value.stageKey !== receipt.stageKey || value.snapshotHash !== receipt.snapshotHash || value.output.role !== receipt.role) issue(ctx, "Artifact must bind its exact server-recorded provider receipt");
-  if (receipt.dispatchState !== "dispatched" || receipt.sessionId === null || receipt.turnId === null || receipt.observedModel === null) issue(ctx, "Completed artifacts require actual completed-session evidence");
+  if (receipt.dispatchState !== "dispatched" || (receipt.protocol === "openai_agents" ? receipt.sessionId === null || receipt.turnId === null : receipt.responseId === null) || receipt.observedModel === null) issue(ctx, "Completed artifacts require actual completed-session evidence");
   if (!boundedBytes(value, 524_288)) issue(ctx, "Completed artifact exceeds its byte limit");
 }
 function checkSources(value: { sources: NamingEvidenceSource[]; providerReceipt: NamingProviderReceipt }, references: readonly string[], ctx: z.RefinementCtx): void {
@@ -147,8 +165,10 @@ function checkSources(value: { sources: NamingEvidenceSource[]; providerReceipt:
   const observed = new Set([...value.providerReceipt.artifactItemIds, ...value.providerReceipt.toolCalls.map(call => call.providerItemId).filter((item): item is string => item !== null)]);
   if (value.sources.some(source => !observed.has(source.providerItemId))) issue(ctx, "Source records must bind actual retained provider items");
 }
-export const namingResearchPackSchema = z.strictObject({ ...envelopeFields, stageKey: z.literal("research"), output: namingResearchOutputSchema, sources: sourcesSchema }).superRefine((value, ctx) => {
+export const namingResearchPackSchema = z.strictObject({ ...envelopeFields, stageKey: z.literal("research"), output: namingResearchOutputSchema, readiness: z.enum(["sourced", "partial"]), sources: sourcesSchema }).superRefine((value, ctx) => {
   checkEnvelope(value, ctx); checkSources(value, [...value.output.territories, ...value.output.facts, ...value.output.interpretations].flatMap(row => row.sourceKeys), ctx);
+  const retrieved = new Set(value.sources.filter(source => source.evidenceStatus === "retrieved").map(source => source.sourceKey));
+  if (value.readiness === "sourced" && (!retrieved.size || !value.output.facts.some(fact => fact.sourceKeys.length > 0 && fact.sourceKeys.every(key => retrieved.has(key))))) issue(ctx, "Generation-ready research requires retrieved supporting material; retain other results as partial");
 }).transform(freeze);
 export type NamingResearchPack = z.infer<typeof namingResearchPackSchema>;
 export const namingAssignmentPlanSchema = z.strictObject({ ...envelopeFields, stageKey: z.enum(["direction", "gap"]), output: namingAssignmentOutputSchema }).superRefine((value, ctx) => {
@@ -156,10 +176,18 @@ export const namingAssignmentPlanSchema = z.strictObject({ ...envelopeFields, st
   if ((value.stageKey === "gap") !== (value.output.round === "gap")) issue(ctx, "Assignment round must match its saved stage");
 }).transform(freeze);
 export type NamingAssignmentPlan = z.infer<typeof namingAssignmentPlanSchema>;
-export const namingCreatorSetSchema = z.strictObject({ ...envelopeFields, stageKey: z.enum(["creation", "gap"]), output: namingCreatorOutputSchema,
+export const namingCreatorAttributionSchema = z.discriminatedUnion("protocol", [
+  z.strictObject({ protocol: z.literal("openai_agents"), executionKind: z.enum(["independent_session", "native_subagent"]), assignmentKey: localKey, assignmentInputHash: hash, sessionId: providerId, turnId: providerId, responseId: z.null(), subagentId: providerId.nullable(), itemId: providerId, itemContentHash: hash }),
+  z.strictObject({ protocol: z.literal("openai_responses"), executionKind: z.literal("independent_response"), assignmentKey: localKey, assignmentInputHash: hash, sessionId: z.null(), turnId: z.null(), responseId: providerId, subagentId: z.null(), itemId: providerId, itemContentHash: hash }),
+]);
+export type NamingCreatorAttribution = z.infer<typeof namingCreatorAttributionSchema>;
+export const namingCreatorSetSchema = z.strictObject({ ...envelopeFields, stageKey: z.enum(["creation", "gap"]), output: namingCreatorOutputSchema, creatorAttribution: namingCreatorAttributionSchema,
   candidateIds: z.array(z.strictObject({ candidateKey: localKey, candidateId: z.uuid() })).max(150),
 }).superRefine((value, ctx) => {
   checkEnvelope(value, ctx);
+  const attribution = value.creatorAttribution, receipt = value.providerReceipt;
+  if (attribution.protocol === "openai_agents" && ((attribution.executionKind === "native_subagent") !== (attribution.subagentId !== null))) issue(ctx, "Independent sessions and observed native children retain different attribution");
+  if (attribution.assignmentKey !== value.output.assignmentKey || attribution.assignmentKey !== receipt.assignmentKey || attribution.protocol !== receipt.protocol || attribution.sessionId !== receipt.sessionId || attribution.turnId !== receipt.turnId || attribution.responseId !== receipt.responseId || !receipt.artifactItemIds.includes(attribution.itemId) || (attribution.protocol === "openai_agents" && attribution.executionKind === "native_subagent" && attribution.subagentId !== receipt.agentId)) issue(ctx, "Creator attribution must bind the actual child final item and assigned input");
   const keys = new Set(value.output.candidates.map(row => row.candidateKey));
   if (value.candidateIds.length !== keys.size || !unique(value.candidateIds.map(row => row.candidateId)) || !unique(value.candidateIds.map(row => row.candidateKey)) || value.candidateIds.some(row => !keys.has(row.candidateKey))) issue(ctx, "The application must resolve exactly one immutable ID for each candidate");
 }).transform(freeze);
@@ -179,11 +207,12 @@ export type NamingVerification = z.infer<typeof namingVerificationSchema>;
 export const namingRoleOutputSchema = z.union([namingResearchPackSchema, namingAssignmentPlanSchema, namingCreatorSetSchema, namingCurationSchema, namingVerificationSchema]);
 export type NamingRoleOutput = z.infer<typeof namingRoleOutputSchema>;
 
-export const namingValidatedAssignmentSchema = z.strictObject({ ...namingCreatorAssignmentSchema.shape, runId: z.uuid(), snapshotHash: hash, assignmentOrder: z.number().int().min(0).max(59), round: z.enum(["initial", "gap"]), sources: sourcesSchema });
+export const namingValidatedAssignmentSchema = z.strictObject({ ...namingCreatorAssignmentSchema.shape, runId: z.uuid(), snapshotHash: hash, assignmentOrder: z.number().int().min(0).max(59), planArtifactId: z.uuid(), round: z.enum(["initial", "gap"]), sources: sourcesSchema });
 export type NamingValidatedAssignment = z.infer<typeof namingValidatedAssignmentSchema>;
 export function validateNamingAssignmentPlan(snapshotInput: unknown, researchInput: unknown, planInput: unknown): NamingValidatedAssignment[] {
   const snapshot = namingBriefSnapshotSchema.parse(snapshotInput), research = namingResearchPackSchema.parse(researchInput), plan = namingAssignmentPlanSchema.parse(planInput);
-  assert(getNamingPreferencesReadiness(snapshot.preferences).ready, "Generation requires explicit saved approach, directness and source choices");
+  assert(getNamingPreferencesReadiness(snapshot.preferences).ready, "Generation requires explicit saved approach/directness choices and possible constraints");
+  assert(research.readiness === "sourced", "Director admission requires a sourced research pack; partial research remains retained");
   assert(research.snapshotHash === snapshot.snapshotHash && plan.snapshotHash === snapshot.snapshotHash && research.runId === plan.runId, "Research and plan must bind the same frozen run");
   const selected = new Set(snapshot.preferences.approaches), territories = new Set(research.output.territories.map(row => row.territoryId)), sources = new Map(research.sources.map(row => [row.sourceKey, row]));
   const total = plan.output.assignments.reduce((sum, row) => sum + row.targetCount, 0);
@@ -196,7 +225,7 @@ export function validateNamingAssignmentPlan(snapshotInput: unknown, researchInp
     assert(selected.has(assignment.primaryApproach) && assignment.additionalApproaches.every(approach => selected.has(approach)), "Assignment cannot add or relabel selected approaches");
     assert(territories.has(assignment.territoryId), "Assignment territory must resolve to research");
     assert(assignment.sourceKeys.every(key => sources.has(key)), "Assignment source references must resolve to research evidence");
-    return namingValidatedAssignmentSchema.parse({ ...assignment, runId: plan.runId, snapshotHash: snapshot.snapshotHash, assignmentOrder: index + (plan.output.round === "gap" ? 30 : 0), round: plan.output.round, sources: assignment.sourceKeys.map(key => sources.get(key)!) });
+    return namingValidatedAssignmentSchema.parse({ ...assignment, runId: plan.runId, snapshotHash: snapshot.snapshotHash, assignmentOrder: index + (plan.output.round === "gap" ? 30 : 0), planArtifactId: plan.artifactId, round: plan.output.round, sources: assignment.sourceKeys.map(key => sources.get(key)!) });
   }));
 }
 
@@ -220,6 +249,7 @@ export function validateNamingCreatorSet(snapshotInput: unknown, assignmentInput
   assert(output.runId === assignment.runId && output.snapshotHash === snapshot.snapshotHash && assignment.snapshotHash === snapshot.snapshotHash, "Creator output must bind its validated assignment and frozen run");
   assert(output.output.assignmentKey === assignment.assignmentKey && (output.stageKey === "gap") === (assignment.round === "gap"), "Creator output must match its assignment and round");
   assert(output.output.candidates.length <= assignment.targetCount, "Creator output exceeds its assigned target");
+  assert(output.providerReceipt.sessionLimitCents <= assignment.targetCount, "Creator session allowance exceeds its validated assignment allocation");
   const selected = new Set(snapshot.preferences.approaches), sourceMap = new Map(assignment.sources.map(row => [row.sourceKey, row])), ids = new Map(output.candidateIds.map(row => [row.candidateKey, row.candidateId]));
   assert(selected.has(assignment.primaryApproach) && assignment.additionalApproaches.every(approach => selected.has(approach)), "Assignment must retain the selected approaches");
   const accepted: NamingValidatedCandidate[] = [], rejected: NamingCandidateRejection[] = [], identities = new Set<string>();
@@ -247,8 +277,8 @@ export function validateNamingCreatorSet(snapshotInput: unknown, assignmentInput
 export const namingAppliedClaimSchema = z.strictObject({ claimKey: localKey, originalStatement: text, status: z.enum(["supported", "corrected", "unresolved", "contradicted"]), publishedStatement: text.nullable(), sourceKeys, evidence: evidenceQuotes, supportsPrimaryApproach: z.boolean(), explanation: text });
 export const namingVerifiedCandidateSchema = z.strictObject({ candidateId: z.uuid(), value: nameValueSchema, eligible: z.boolean(), primaryCredit: namingApproachSchema.nullable(), publishedClaims: z.array(z.strictObject({ claimKey: localKey, statement: text, sourceKeys, evidence: evidenceQuotes })).max(8), claims: z.array(namingAppliedClaimSchema).max(8) });
 export type NamingVerifiedCandidate = z.infer<typeof namingVerifiedCandidateSchema>;
-export const namingAppliedVerificationSchema = z.strictObject({ runId: z.uuid(), snapshotHash: hash, verificationArtifactId: z.uuid(), candidates: z.array(namingVerifiedCandidateSchema).max(200) })
-  .refine(value => unique(value.candidates.map(candidate => candidate.candidateId)), "Applied candidate IDs must be unique");
+export const namingAppliedVerificationSchema = z.strictObject({ runId: z.uuid(), snapshotHash: hash, verificationArtifactId: z.uuid(), artifact: namingVerificationSchema, candidates: z.array(namingVerifiedCandidateSchema).max(200) })
+  .refine(value => unique(value.candidates.map(candidate => candidate.candidateId)) && value.runId === value.artifact.runId && value.snapshotHash === value.artifact.snapshotHash && value.verificationArtifactId === value.artifact.artifactId, "Applied verification must bind its exact retained artifact and unique candidates");
 export type NamingAppliedVerification = z.infer<typeof namingAppliedVerificationSchema>;
 export function applyNamingVerification(candidateInput: unknown, verificationInput: unknown): NamingAppliedVerification {
   const candidates = z.array(namingValidatedCandidateSchema).max(200).parse(candidateInput), verification = namingVerificationSchema.parse(verificationInput);
@@ -260,7 +290,7 @@ export function applyNamingVerification(candidateInput: unknown, verificationInp
     assert(candidate?.claims.some(claim => claim.claimKey === finding.claimKey), "Verifier findings cannot invent candidate or claim references");
     findings.set(`${refKey(finding)}/${finding.claimKey}`, finding);
   }
-  return freeze(namingAppliedVerificationSchema.parse({ runId: verification.runId, snapshotHash: verification.snapshotHash, verificationArtifactId: verification.artifactId,
+  return freeze(namingAppliedVerificationSchema.parse({ runId: verification.runId, snapshotHash: verification.snapshotHash, verificationArtifactId: verification.artifactId, artifact: verification,
     candidates: candidates.map(candidate => {
       const claims = candidate.claims.map(claim => {
         const finding = findings.get(`${refKey(candidate)}/${claim.claimKey}`);
@@ -274,9 +304,169 @@ export function applyNamingVerification(candidateInput: unknown, verificationInp
 }
 
 /** Failed/disconnected creation is retained without inventing a session or zero cost. */
+const retainedPartialsSchema = z.array(z.strictObject({ providerItemId: providerId.nullable(), type: z.string().min(1).max(100), content: z.string().max(131_072) })).max(100);
 export const namingStageOutcomeSchema = z.discriminatedUnion("status", [
   z.strictObject({ status: z.literal("completed"), receipt: namingProviderReceiptSchema, output: namingRoleOutputSchema }).refine(value => JSON.stringify(value.receipt) === JSON.stringify(value.output.providerReceipt), "Completed output must retain the exact provider receipt"),
+  z.strictObject({ status: z.enum(["failed", "cancelled"]), code: z.string().regex(/^[a-z][a-z0-9_]{0,79}$/), receipt: namingProviderReceiptSchema, partialArtifacts: retainedPartialsSchema }).refine(value => value.receipt.dispatchState === "dispatched" && (value.receipt.protocol === "openai_agents" ? value.receipt.sessionId !== null && value.receipt.turnId !== null : value.receipt.responseId !== null) && boundedBytes(value, 524_288), "Known terminal outcomes require observed dispatch and bounded retained artifacts"),
   z.strictObject({ status: z.literal("rejected_before_dispatch"), code: z.string().regex(/^[a-z][a-z0-9_]{0,79}$/) }),
-  z.strictObject({ status: z.literal("unresolved"), code: z.string().regex(/^[a-z][a-z0-9_]{0,79}$/), receipt: namingProviderReceiptSchema.nullable(), partialArtifacts: z.array(z.strictObject({ providerItemId: providerId.nullable(), type: z.string().min(1).max(100), content: z.string().max(131_072) })).max(100) }).refine(value => boundedBytes(value, 524_288), "Retained partials exceed the bounded output limit"),
+  z.strictObject({ status: z.literal("unresolved"), code: z.string().regex(/^[a-z][a-z0-9_]{0,79}$/), receipt: namingProviderReceiptSchema.nullable(), partialArtifacts: retainedPartialsSchema }).refine(value => boundedBytes(value, 524_288), "Retained partials exceed the bounded output limit"),
 ]);
 export type NamingStageOutcome = z.infer<typeof namingStageOutcomeSchema>;
+
+export const namingBrainFulfillmentSchema = z.strictObject({ status: z.enum(["complete", "partial", "none"]), targetCount: z.literal(100), acceptedCount: z.number().int().min(0).max(100), missingCount: z.number().int().min(0).max(100), coverageSatisfied: z.boolean(), message: text.nullable() })
+  .refine(value => (value.status === "complete" ? value.message === null : value.message !== null) && value.missingCount === 100 - value.acceptedCount && value.status === (value.acceptedCount === 0 ? "none" : value.acceptedCount === 100 && value.coverageSatisfied ? "complete" : "partial"), "Fulfillment reports both actual count and genuine primary coverage");
+export type NamingBrainFulfillment = z.infer<typeof namingBrainFulfillmentSchema>;
+export const namingPreparedSetSchema = z.strictObject({
+  version: z.literal(1), runId: z.uuid(), stageKey: z.literal("prepare"), snapshotHash: hash, schemaVersion: z.literal(NAMING_BRAIN_SCHEMA_VERSION), promptVersion: z.literal(NAMING_BRAIN_PROMPT_VERSION),
+  targetCount: z.literal(100), minimumPerApproach: z.literal(5), candidateIds: z.array(z.uuid()).max(100),
+  primaryCounts: z.array(z.strictObject({ approach: namingApproachSchema, count: z.number().int().min(0).max(100) })).min(1).max(11),
+  retainedUnusedIds: z.array(z.uuid()).max(200), fulfillment: namingBrainFulfillmentSchema,
+  deficits: z.array(z.strictObject({ approach: namingApproachSchema, required: z.literal(5), actual: z.number().int().min(0).max(4), missing: z.number().int().min(1).max(5) })).max(11),
+  rejected: z.array(namingCandidateRejectionSchema).max(200), annotations: z.array(z.strictObject({ candidateId: z.uuid(), concerns: z.array(text).max(8) })).max(200),
+  curationArtifactId: z.uuid(), verificationArtifactId: z.uuid(), sourceArtifactIds: z.array(z.uuid()).max(60).refine(unique),
+}).superRefine((value, ctx) => {
+  if (!unique([...value.candidateIds, ...value.retainedUnusedIds]) || !unique(value.primaryCounts.map(row => row.approach)) || !unique(value.deficits.map(row => row.approach)) || !unique(value.rejected.map(row => row.candidateId)) || !unique(value.annotations.map(row => row.candidateId))) issue(ctx, "Prepared membership and primary coverage must be unique");
+  if (value.primaryCounts.reduce((sum, row) => sum + row.count, 0) !== value.candidateIds.length || value.fulfillment.acceptedCount !== value.candidateIds.length) issue(ctx, "Prepared membership must count exactly one primary credit per name");
+  const expected = value.primaryCounts.filter(row => row.count < 5);
+  if (expected.length !== value.deficits.length || expected.some(row => !value.deficits.some(deficit => deficit.approach === row.approach && deficit.actual === row.count && deficit.missing === 5 - row.count)) || value.fulfillment.coverageSatisfied !== (expected.length === 0)) issue(ctx, "Coverage deficits must report actual primary representation");
+  if (value.rejected.some(row => value.candidateIds.includes(row.candidateId) || value.retainedUnusedIds.includes(row.candidateId))) issue(ctx, "Rejected candidates cannot also be eligible membership");
+}).transform(freeze);
+export type NamingPreparedSet = z.infer<typeof namingPreparedSetSchema>;
+export type NamingAssemblyInput = { snapshot: NamingBriefSnapshot; candidates: readonly NamingValidatedCandidate[]; curation: NamingCuration; verification: NamingAppliedVerification; existingIdentityKeys: ReadonlySet<string> | readonly string[] };
+
+const stageLimit = (cost: number, searches: number) => z.strictObject({ maximumCostMicrousd: z.literal(cost), maxWebSearchCalls: z.literal(searches) });
+/** Admission freezes the full allowance; estimates/counters never release it as actual expense. */
+export const namingBrainPolicySchema = z.strictObject({
+  version: z.literal(1), handlerVersion: z.literal(NAMING_BRAIN_HANDLER_VERSION), billingMode: z.literal("openai_api"), protocol: z.literal("openai_agents"), model: z.string().trim().min(1).max(150), reasoningEffort: z.literal("xhigh"),
+  runAllowanceMicrousd: z.literal(5_000_000), aggregateAllowanceMicrousd: z.literal(25_000_000), maxUnsettledRuns: z.literal(5), maxConcurrentCreators: z.literal(3),
+  maxInitialCandidates: z.literal(150), maxGapCandidates: z.literal(50), maxGapRounds: z.literal(1), maxInputBytes: z.literal(131_072), maxOutputBytes: z.literal(524_288), stageDeadlineMs: z.literal(240_000),
+  stageLimits: z.strictObject({ research: stageLimit(750_000, 4), direction: stageLimit(250_000, 0), creation: stageLimit(1_500_000, 0), curation: stageLimit(500_000, 0), verification: stageLimit(1_250_000, 20), gap: stageLimit(750_000, 8), prepare: stageLimit(0, 0) }),
+}).transform(freeze);
+export type NamingBrainPolicy = z.infer<typeof namingBrainPolicySchema>;
+export const namingRolePolicySchema = z.strictObject({
+  version: z.literal(1), role: namingRoleSchema, protocol: z.literal("openai_agents"), model: z.string().trim().min(1).max(150), reasoningEffort: z.literal("xhigh"),
+  maximumCostMicrousd: z.number().int().min(1).max(1_500_000), sessionLimitCents: z.number().int().min(1).max(150), maxWebSearchCalls: z.number().int().min(0).max(20),
+  maxInputBytes: z.literal(131_072), maxOutputBytes: z.literal(524_288), deadlineMs: z.literal(240_000), nativeDelegation: z.literal(false),
+  allowedTools: z.array(z.enum(["web_search", "read_reference"])).max(2).refine(unique),
+  referenceHosts: z.array(z.string().min(3).max(253).regex(/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/)).max(40).refine(unique),
+}).superRefine((value, ctx) => {
+  if (value.maximumCostMicrousd !== value.sessionLimitCents * 10_000) issue(ctx, "Native session cents must exactly match the server-allocated micro-USD bound");
+  const searchRole = value.role === "researcher" || value.role === "verifier";
+  if (searchRole ? value.allowedTools.length !== 2 || !value.referenceHosts.length : value.allowedTools.length !== 0 || value.maxWebSearchCalls !== 0 || value.referenceHosts.length !== 0) issue(ctx, "Only Research and Verification receive explicit read-only research tools");
+  if (value.role === "researcher" && (value.maxWebSearchCalls > 4 || value.maximumCostMicrousd > 750_000)) issue(ctx, "Research must fit its admitted stage bounds");
+  if (value.role === "director" && value.maximumCostMicrousd > 250_000) issue(ctx, "Direction must fit its admitted stage bound");
+  if (value.role === "curator" && value.maximumCostMicrousd > 500_000) issue(ctx, "Curation must fit its admitted stage bound");
+  if (value.role === "verifier" && value.maximumCostMicrousd > 1_250_000) issue(ctx, "Verification must fit its admitted stage bound");
+}).transform(freeze);
+export type NamingRolePolicy = z.infer<typeof namingRolePolicySchema>;
+export const namingStageInputSchema = z.discriminatedUnion("role", [
+  z.strictObject({ role: z.literal("researcher"), snapshot: namingBriefSnapshotSchema }),
+  z.strictObject({ role: z.literal("director"), snapshot: namingBriefSnapshotSchema, research: namingResearchPackSchema }),
+  z.strictObject({ role: z.literal("creator"), snapshot: namingBriefSnapshotSchema, assignment: namingValidatedAssignmentSchema }),
+  z.strictObject({ role: z.literal("curator"), snapshot: namingBriefSnapshotSchema, candidates: z.array(namingValidatedCandidateSchema).max(200), validationRejections: z.array(namingCandidateRejectionSchema).max(200) }),
+  z.strictObject({ role: z.literal("verifier"), snapshot: namingBriefSnapshotSchema, candidates: z.array(namingValidatedCandidateSchema).max(200), curation: namingCurationSchema }),
+]);
+export type NamingStageInput = z.infer<typeof namingStageInputSchema>;
+export const namingStageRequestSchema = z.strictObject({
+  runId: z.uuid(), stageKey: namingStageKeySchema, role: namingRoleSchema, snapshotHash: hash, input: namingStageInputSchema, dependencyArtifactIds: z.array(z.uuid()).max(100).refine(unique),
+  requestKey, providerCallKey: localKey, assignmentKey: localKey.nullable(), requestHash: hash, policy: namingRolePolicySchema,
+}).superRefine((value, ctx) => {
+  const { input } = value;
+  if (value.stageKey === "gap" && (value.policy.maximumCostMicrousd > 750_000 || value.policy.maxWebSearchCalls > 8)) issue(ctx, "Every gap call must remain within the shared gap stage limits");
+  if (!rolesForStage[value.stageKey].includes(value.role) || value.role !== input.role || value.role !== value.policy.role || value.snapshotHash !== input.snapshot.snapshotHash || !getNamingPreferencesReadiness(input.snapshot.preferences).ready) issue(ctx, "Role request must bind its ready frozen input, stage and accepted policy");
+  const dependencies = new Set(value.dependencyArtifactIds);
+  if (input.role === "director" && (input.research.runId !== value.runId || input.research.snapshotHash !== value.snapshotHash || input.research.readiness !== "sourced" || !dependencies.has(input.research.artifactId))) issue(ctx, "Direction must depend on saved sourced research from this run");
+  if (input.role === "creator") {
+    if (value.assignmentKey !== input.assignment.assignmentKey || input.assignment.runId !== value.runId || input.assignment.snapshotHash !== value.snapshotHash || !dependencies.has(input.assignment.planArtifactId)) issue(ctx, "Creator requests must bind one saved validated assignment");
+    if (value.policy.sessionLimitCents > input.assignment.targetCount) issue(ctx, "Creator session allowance cannot exceed its share of the creation-stage allocation");
+  } else if (value.assignmentKey !== null) issue(ctx, "Only Creator calls bind a Creator assignment key");
+  if (input.role === "curator" || input.role === "verifier") {
+    if (input.candidates.some(candidate => candidate.runId !== value.runId || candidate.snapshotHash !== value.snapshotHash || !dependencies.has(candidate.sourceArtifactId))) issue(ctx, "Review requires saved candidate artifacts from this run");
+  }
+  if (input.role === "verifier" && (input.curation.runId !== value.runId || input.curation.snapshotHash !== value.snapshotHash || !dependencies.has(input.curation.artifactId))) issue(ctx, "Verification must depend on this run's saved curation");
+  if (!boundedBytes(value, value.policy.maxInputBytes)) issue(ctx, "Role input exceeds its accepted byte limit; transport also bounds final instructions and wire encoding");
+}).transform(freeze);
+export type NamingStageRequest = z.infer<typeof namingStageRequestSchema>;
+export type NamingStageHooks = { signal: AbortSignal; beforeDispatch(): Promise<void>; onReceipt(receipt: NamingProviderReceipt): Promise<void>; onArtifact(rawCompletedItem: unknown): Promise<void> };
+export interface NamingAgentRuntime {
+  runStage(request: NamingStageRequest, hooks: NamingStageHooks): Promise<NamingStageOutcome>;
+  resumeStage(receipt: NamingProviderReceipt, hooks: NamingStageHooks): Promise<NamingStageOutcome>;
+  cancelStage(receipt: NamingProviderReceipt): Promise<void>;
+}
+export const namingBrainJobInputSchema = z.strictObject({
+  version: z.literal(2), handlerVersion: z.literal(NAMING_BRAIN_HANDLER_VERSION), billingMode: z.literal("openai_api"), runId: z.uuid(), jobId: z.uuid(), batchId: z.uuid(),
+  snapshot: namingBriefSnapshotSchema, acceptedPolicyIdentity: hash, policy: namingBrainPolicySchema,
+}).refine(value => getNamingPreferencesReadiness(value.snapshot.preferences).ready, "Admission requires generation-ready saved preferences").transform(freeze);
+export type NamingBrainJobInput = z.infer<typeof namingBrainJobInputSchema>;
+
+export const namingFeedCursorSchema = z.strictObject({ entryId: z.uuid(), position: revision });
+export type NamingFeedCursor = z.infer<typeof namingFeedCursorSchema>;
+const expectedRevisions = { expectedProjectRevision: revision, expectedPreferencesVersion: revision, expectedSteeringRevision: counter };
+const demandFields = { version: z.literal(1), ...expectedRevisions, expectedDemandSequence: counter, consumedThrough: namingFeedCursorSchema.nullable(), idempotencyKey: requestKey };
+export const ensureNamingRunIntentSchema = z.discriminatedUnion("reason", [
+  z.strictObject({ ...demandFields, reason: z.enum(["initial", "scroll"]) }).refine(value => value.reason === "scroll" ? value.consumedThrough !== null : value.consumedThrough === null, "Initial and scroll demand must bind their intended feed position"),
+  z.strictObject({ ...demandFields, reason: z.literal("resume"), resumeOfRunId: z.uuid(), expectedRunRevision: revision }),
+]);
+export type EnsureNamingRunIntent = z.infer<typeof ensureNamingRunIntentSchema>;
+export const steerNamingFeedIntentSchema = z.strictObject({ ...expectedRevisions, candidateIds: z.array(z.uuid()).min(1).max(5).refine(unique), instruction: text.nullable(), idempotencyKey: requestKey });
+export type SteerNamingFeedIntent = z.infer<typeof steerNamingFeedIntentSchema>;
+
+export const namingRunAccountingSchema = z.discriminatedUnion("status", [
+  z.strictObject({ status: z.literal("held_unsettled"), heldAllowanceMicrousd: z.literal(5_000_000), confirmedActualCostMicrousd: z.null() }),
+  z.strictObject({ status: z.literal("settled"), heldAllowanceMicrousd: z.literal(0), confirmedActualCostMicrousd: counter }),
+]);
+export type NamingRunAccounting = z.infer<typeof namingRunAccountingSchema>;
+const runSummaryFields = {
+  version: z.literal(1), ownerId: z.uuid(), projectId: z.uuid(), runId: z.uuid(), jobId: z.uuid(), batchId: z.uuid(), revision, resumedFromRunId: z.uuid().nullable(),
+  state: z.enum(["queued", "running", "partial", "cancel_requested", "cancelled", "succeeded", "failed", "needs_reconciliation", "prepared", "superseded"]),
+  projectRevision: revision, preferencesVersion: revision, feedbackRevision: counter, steeringRevision: counter, demandSequence: counter, snapshotHash: hash, acceptedPolicyIdentity: hash,
+  progress: z.number().int().min(0).max(100), preparedSetId: z.uuid().nullable(), fulfillment: namingBrainFulfillmentSchema.nullable(), accounting: namingRunAccountingSchema, createdAt: timestamp, updatedAt: timestamp,
+};
+export const namingBrainRunSummarySchema = z.strictObject(runSummaryFields).refine(value => value.runId !== value.resumedFromRunId, "Resume creates a new run linked to its terminal predecessor");
+export type NamingBrainRunSummary = z.infer<typeof namingBrainRunSummarySchema>;
+export const namingBrainRunSchema = z.strictObject({ ...runSummaryFields, snapshot: namingBriefSnapshotSchema,
+  stages: z.array(z.strictObject({ stageKey: namingStageKeySchema, state: z.enum(["pending", "running", "succeeded", "skipped", "failed", "cancelled", "unresolved"]), artifactIds: z.array(z.uuid()).max(60).refine(unique), startedAt: timestamp.nullable(), finishedAt: timestamp.nullable(), errorCode: z.string().regex(/^[a-z][a-z0-9_]{0,79}$/).nullable() })).length(7),
+}).superRefine((value, ctx) => {
+  const snapshot = value.snapshot;
+  if (value.runId === value.resumedFromRunId || value.ownerId !== snapshot.ownerId || value.projectId !== snapshot.projectId || value.projectRevision !== snapshot.contextRevision || value.preferencesVersion !== snapshot.preferencesVersion || value.feedbackRevision !== snapshot.feedbackRevision || value.steeringRevision !== snapshot.steeringRevision || value.snapshotHash !== snapshot.snapshotHash) issue(ctx, "Run and snapshot must bind one owned revision basis");
+  if (!unique(value.stages.map(stage => stage.stageKey)) || value.stages.some((stage, index) => stage.stageKey !== namingStageKeySchema.options[index])) issue(ctx, "The complete fixed stage manifest must precede execution");
+}).transform(freeze);
+export type NamingBrainRun = z.infer<typeof namingBrainRunSchema>;
+export const namingFeedEntrySchema = z.strictObject({
+  entryId: z.uuid(), position: revision, runId: z.uuid().nullable(), steeringRevision: counter, entry: projectNameEntrySchema,
+  primaryApproach: namingApproachSchema.nullable(), additionalApproaches, publishedClaims: z.array(z.strictObject({ claimKey: localKey, statement: text, sourceKeys, evidence: evidenceQuotes })).max(8),
+}).superRefine((value, ctx) => {
+  if (value.primaryApproach === null ? value.additionalApproaches.length !== 0 : value.additionalApproaches.includes(value.primaryApproach)) issue(ctx, "Feed membership preserves one primary approach without inferring legacy tags");
+  const origin = value.entry.candidate.origin;
+  if (origin.kind === "generated" && origin.billingMode === "openai_api") {
+    if (value.runId !== origin.runId || value.primaryApproach === null) issue(ctx, "Managed feed membership must retain its actual source run and primary credit");
+  } else if (value.runId !== null || value.primaryApproach !== null || value.publishedClaims.length) issue(ctx, "Legacy and user-authored names cannot acquire managed run or claim attribution");
+});
+export type NamingFeedEntry = z.infer<typeof namingFeedEntrySchema>;
+export const namingBrainAvailabilitySchema = z.discriminatedUnion("status", [
+  z.strictObject({ status: z.literal("available"), handlerVersion: z.literal(NAMING_BRAIN_HANDLER_VERSION), protocol: z.literal("openai_agents"), acceptedPolicyIdentity: hash }),
+  z.strictObject({ status: z.literal("unavailable"), code: z.string().regex(/^[a-z][a-z0-9_]{0,79}$/) }),
+]);
+export type NamingBrainAvailability = z.infer<typeof namingBrainAvailabilitySchema>;
+export const namingFeedSchema = z.strictObject({
+  version: z.literal(1), ownerId: z.uuid(), projectId: z.uuid(), projectRevision: revision, preferencesVersion: counter, feedbackRevision: counter, steeringRevision: counter, demandSequence: counter,
+  entries: z.array(namingFeedEntrySchema).max(100), nextCursor: namingFeedCursorSchema.nullable(), consumedThrough: namingFeedCursorSchema.nullable(), activeRun: namingBrainRunSummarySchema.nullable(), preparedSetId: z.uuid().nullable(), state: z.enum(["active", "paused", "blocked"]), availability: namingBrainAvailabilitySchema,
+}).superRefine((value, ctx) => {
+  if (!unique(value.entries.map(row => row.entryId)) || !unique(value.entries.map(row => row.entry.candidate.id)) || value.entries.some((row, index) => row.entry.candidate.ownerId !== value.ownerId || row.entry.candidate.projectId !== value.projectId || row.steeringRevision > value.steeringRevision || (index > 0 && row.position <= value.entries[index - 1]!.position))) issue(ctx, "Feed rows require unique stable owned membership in increasing position order");
+  if (value.activeRun && (value.activeRun.ownerId !== value.ownerId || value.activeRun.projectId !== value.projectId || value.activeRun.demandSequence > value.demandSequence)) issue(ctx, "The active run must belong to this feed");
+  const last = value.entries.at(-1);
+  if (value.nextCursor && (!last || last.entryId !== value.nextCursor.entryId || last.position !== value.nextCursor.position)) issue(ctx, "A feed continuation cursor anchors its final returned membership");
+});
+export type NamingFeed = z.infer<typeof namingFeedSchema>;
+const resultAction = z.enum(["resume", "retry", "resolve", "configure", "review_preferences", "none"]);
+export const namingFeedEnsureResultSchema = z.discriminatedUnion("status", [
+  z.strictObject({ status: z.literal("appended"), feed: namingFeedSchema, runId: z.uuid(), appendedEntryIds: z.array(z.uuid()).min(1).max(100).refine(unique) }).refine(value => value.appendedEntryIds.every(id => value.feed.entries.some(entry => entry.entryId === id && entry.runId === value.runId)), "Appended IDs must resolve to the exact saved feed membership"),
+  z.strictObject({ status: z.literal("pending"), feed: namingFeedSchema, run: namingBrainRunSummarySchema, reused: z.boolean() }).refine(value => value.run.ownerId === value.feed.ownerId && value.run.projectId === value.feed.projectId && value.feed.activeRun?.runId === value.run.runId && ["queued", "running", "cancel_requested"].includes(value.run.state), "Pending result must identify this feed's active owned run"),
+  z.strictObject({ status: z.enum(["paused", "blocked"]), feed: namingFeedSchema, code: z.string().regex(/^[a-z][a-z0-9_]{0,79}$/), message: text, action: resultAction }),
+  z.strictObject({ status: z.literal("incomplete"), feed: namingFeedSchema, run: namingBrainRunSummarySchema, fulfillment: namingBrainFulfillmentSchema, message: text, canResume: z.boolean() }).refine(value => value.run.ownerId === value.feed.ownerId && value.run.projectId === value.feed.projectId && value.fulfillment.status !== "complete" && (!value.canResume || ["partial", "cancelled", "failed"].includes(value.run.state)), "Incomplete work remains owned and unresolved provider work cannot authorize Resume"),
+]);
+export type NamingFeedEnsureResult = z.infer<typeof namingFeedEnsureResultSchema>;
+export const steerNamingFeedResponseSchema = z.strictObject({ feed: namingFeedSchema, supersededRunIds: z.array(z.uuid()).max(2).refine(unique), cancellationRequestedRunIds: z.array(z.uuid()).max(1) });
+export type SteerNamingFeedResponse = z.infer<typeof steerNamingFeedResponseSchema>;
+export const namingBrainRunResponseSchema = z.strictObject({ run: namingBrainRunSchema });
+export const namingFeedResponseSchema = z.strictObject({ feed: namingFeedSchema });

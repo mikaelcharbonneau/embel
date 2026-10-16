@@ -17,18 +17,18 @@ export function snapshot() {
 }
 export function receipt(stageKey = "research", role = "researcher") {
   return { version: 1 as const, provider: "openai" as const, billingMode: "openai_api" as const, runId: id(3), stageKey, role, snapshotHash: hash,
-    requestKey: `fixture-request-${stageKey}-0001`, dispatchState: "dispatched" as const, sessionId: "fixture-session", turnId: `fixture-turn-${stageKey}`, agentId: "fixture-agent",
-    requestId: null, callIds: ["fixture-call"], observedModel: "fixture-model", toolCalls: [], artifactItemIds: ["fixture-source-item"], usage: null, actualCostMicrousd: null, recordedAt: at };
+    protocol: "openai_agents" as const, requestHash: hash, providerCallKey: `fixture-call-${stageKey}`, assignmentKey: role === "creator" ? "real" : null, sessionLimitCents: 75, responseId: null, requestKey: `fixture-request-${stageKey}-0001`, dispatchState: "dispatched" as const, sessionId: "fixture-session", turnId: `fixture-turn-${stageKey}`, agentId: "fixture-agent",
+    requestId: null, callIds: ["fixture-call"], observedModel: "fixture-model", toolCalls: [], artifactItemIds: ["fixture-source-item", "fixture-creator-item"], usageObservations: [], estimatedCostMicrousd: null, providerCostCounters: [], accountingStatus: "provisional" as const, confirmedActualCostMicrousd: null, recordedAt: at };
 }
 export function source() {
   return { sourceKey: "source-one", url: "https://example.com/synthetic-fixture", title: "Synthetic source", retrievedAt: at, providerItemId: "fixture-source-item",
-    evidenceStatus: "retrieved" as const, excerpt: "Synthetic reference text supporting fixture claims.", contentHash: "b".repeat(64) };
+    evidenceStatus: "retrieved" as const, excerpt: "Synthetic reference text supporting fixture claims.", contentHash: "b".repeat(64), provenance: { protocol: "openai_agents" as const, sessionId: "fixture-session", turnId: "fixture-turn-research", responseId: null, itemId: "fixture-source-item", observedUrl: "https://example.com/synthetic-fixture" }, retrieval: { retrievedAt: at, responseHash: "e".repeat(64), extractorVersion: "fixture-text-v1", truncated: false } };
 }
 export function envelope(stageKey = "research", role = "researcher", artifact = 10) {
   return { artifactId: id(artifact), runId: id(3), stageKey, snapshotHash: hash, schemaVersion: 1 as const, promptVersion: "naming-brain-v1" as const, providerReceipt: receipt(stageKey, role) };
 }
 export function research() {
-  return { ...envelope(), sources: [source()], output: { role: "researcher" as const,
+  return { ...envelope(), readiness: "sourced" as const, sources: [source()], output: { role: "researcher" as const,
     territories: [{ territoryId: "nature", title: "Unexpected nature", direction: "Explore objects, plants and weather.", sourceKeys: ["source-one"] },
       { territoryId: "rhythm", title: "Rhythmic forms", direction: "Explore sound without invented origins.", sourceKeys: [] }],
     facts: [{ claimKey: "fact-one", statement: "This fixture source is synthetic.", sourceKeys: ["source-one"], status: "unverified" as const }],
@@ -47,7 +47,7 @@ export function proposal(value = "Quorv", candidateKey = "one", approach = "real
     claims: [] as { claimKey: string; statement: string; sourceKeys: string[]; requirement: "optional" | "primary_approach"; status: "unverified" }[] };
 }
 export function creatorSet(proposals: ({ candidateKey: string } & Record<string, unknown>)[] = [proposal()], assignmentKey = "real", offset = 100) {
-  return { ...envelope("creation", "creator", offset), output: { role: "creator" as const, assignmentKey, candidates: proposals },
+  return { ...envelope("creation", "creator", offset), providerReceipt: { ...receipt("creation", "creator"), assignmentKey, sessionLimitCents: Math.max(1, proposals.length) }, creatorAttribution: { protocol: "openai_agents" as const, executionKind: "native_subagent" as const, assignmentKey, assignmentInputHash: hash, sessionId: "fixture-session", turnId: "fixture-turn-creation", responseId: null, subagentId: "fixture-agent", itemId: "fixture-creator-item", itemContentHash: "d".repeat(64) }, output: { role: "creator" as const, assignmentKey, candidates: proposals },
     candidateIds: proposals.map((candidate, index) => ({ candidateKey: candidate.candidateKey, candidateId: id(offset + 1000 + index) })) };
 }
 export function curation(annotations: unknown[] = []) {

@@ -42,12 +42,12 @@ export function initialNamingPreferencesV2(context: { creativeLocale: string; in
   return namingPreferencesV2Schema.parse({ version: 2, creativeLocale: context.creativeLocale, notes: context.intake.namingNotes, minimumGraphemes: null, maximumGraphemes: null, approaches: [], directness: null, sourceLanguages: [], heritageNotes: "", culturalNotes: "", requiredText: [], excludedText: [] });
 }
 
-export function getNamingPreferencesReadiness(preferences: NamingPreferencesV2): { ready: boolean; missing: ("approaches" | "directness" | "sourceLanguages" | "conflicting_text")[] } {
+export function getNamingPreferencesReadiness(preferences: NamingPreferencesV2): { ready: boolean; missing: ("approaches" | "directness" | "conflicting_text" | "impossible_length")[] } {
   const value = namingPreferencesV2Schema.parse(preferences);
   const missing: ReturnType<typeof getNamingPreferencesReadiness>["missing"] = [];
   if (!value.approaches.length) missing.push("approaches");
   if (!value.directness) missing.push("directness");
-  if (value.approaches.includes("other_languages") && !value.sourceLanguages.length) missing.push("sourceLanguages");
   if (value.requiredText.some(required => value.excludedText.some(excluded => matchesNamingTextFragment(required, excluded)))) missing.push("conflicting_text");
+  if (value.maximumGraphemes !== null && value.requiredText.some(fragment => /^[\x20-\x7e]+$/.test(fragment) && fragment.length > value.maximumGraphemes!)) missing.push("impossible_length");
   return { ready: missing.length === 0, missing };
 }
