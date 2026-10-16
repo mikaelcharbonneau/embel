@@ -1,3 +1,4 @@
+import { loadManagedNamingSources, verifyManagedNamingSource } from "./naming-brain-provenance";
 import "server-only";
 import { z } from "zod";
 import {
@@ -11,14 +12,14 @@ import {
   type ProjectNameCandidate,
 } from "@/domain/project-naming";
 import {
-  enqueueNamingBatchResponseSchema, enqueueNamingBatchSchema, namingBatchDetailResponseSchema,
+  enqueueNamingBatchResponseSchema, enqueueNamingBatchSchema, namingBatchDetailResponseSchema, namingAnyBatchDetailResponseSchema,
   namingBatchPageSchema, projectNamingOverviewSchema,
 } from "@/domain/naming-jobs";
 import { transformNames } from "@/domain/naming";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
 
-type BatchDetail = z.infer<typeof namingBatchDetailResponseSchema>;
+type BatchDetail = z.infer<typeof namingAnyBatchDetailResponseSchema>;
 function input<T>(schema: z.ZodType<T>, value: unknown): T {
   const parsed = schema.safeParse(value);
   if (!parsed.success) throw new ApiError("invalid_input");
@@ -86,7 +87,7 @@ class CandidateVerifier {
   private readonly visiting = new Set<string>();
   private readonly batches = new Map<string, BatchDetail>();
   private readonly transforms = new Map<string, z.infer<typeof nameTransformSchema>>();
-  constructor(private readonly auth: AuthenticatedContext) {}
+  constructor(private readonly auth: AuthenticatedContext, private readonly managedSources = new Map<string, unknown>()) {}
   seedBatch(value: BatchDetail): void {
     scope(this.auth, value.batch.projectId, value.batch);
     this.batches.set(`${value.batch.projectId}:${value.batch.id}`, value);
@@ -94,7 +95,7 @@ class CandidateVerifier {
   async batch(projectId: string, batchId: string): Promise<BatchDetail> {
     const key = `${projectId}:${batchId}`;
     if (!this.batches.has(key)) {
-      const response = await rpc(this.auth, "get_naming_batch", { p_project_id: id(projectId), p_batch_id: id(batchId) }, namingBatchDetailResponseSchema);
+      const response = await rpc(this.auth, "get_naming_batch", { p_project_id: id(projectId), p_batch_id: id(batchId) }, namingAnyBatchDetailResponseSchema);
       scope(this.auth, projectId, response.batch); invariant(response.batch.id === batchId);
       this.batches.set(key, response);
     }
@@ -119,8 +120,11 @@ class CandidateVerifier {
     invariant(!this.visiting.has(key)); this.visiting.add(key);
     try {
       const origin = candidate.origin;
-      if (origin.kind === "generated") {
+      if (origin.kind === "generated" && origin.billingMode === "openai_api") {
+        await verifyManagedNamingSource(this.auth, candidate, this.managedSources.get(candidate.id));
+      } else if (origin.kind === "generated") {
         const detail = await this.batch(projectId, origin.batchId);
+        invariant(detail.job.billingMode === "chatgpt_subscription");
         const output = detail.job.results.find(row => row.stepKey === origin.stepKey)?.output;
         invariant(detail.batch.jobId === origin.jobId && detail.batch.contextRevision === candidate.contextRevision && equal(detail.batch.strategyBasis, candidate.strategyBasis));
         invariant(detail.result !== null && detail.result.candidateIds.includes(candidate.id) && detail.result.stepKey === origin.stepKey && output !== undefined);
@@ -316,4 +320,11 @@ export function readNamingQuery(request: Request, kind: "candidates" | "batches"
 /** Read-only reuse for owned imports; replay every immutable parent before exposing text. */
 export async function getVerifiedProjectName(auth: AuthenticatedContext, projectId: string, candidateId: string) {
   return new CandidateVerifier(auth).candidate(id(projectId), id(candidateId));
+}
+
+/** One bounded source-proof read per page; parent/source graphs share one verifier. */
+export async function verifyProjectNameCandidates(auth: AuthenticatedContext, projectId: string, candidates: readonly ProjectNameCandidate[]) {
+ const proofs = await loadManagedNamingSources(auth, projectId, candidates);
+ const verifier = new CandidateVerifier(auth, proofs);
+ for (const candidate of candidates) await verifier.candidate(projectId, candidate.id, candidate);
 }
