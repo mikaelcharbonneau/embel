@@ -45,7 +45,7 @@ describe("concept 22 scope control", () => {
 });
 
 function page(ownerId: string, title: string) {
-  return { ownerId, items: [{ id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", owner_id: ownerId, title, scope: "complete_brand", current_revision: 1, lifecycle_version: 0, deleted_at: null, created_at: "2026-10-08T12:00:00Z" }], nextCursor: null };
+  return { ownerId, items: [{ id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", owner_id: ownerId, title, scope: "complete_brand", current_revision: 1, lifecycle_version: 0, deleted_at: null, deletion_requested_at: null, deletion_state: "active", created_at: "2026-10-08T12:00:00Z" }], nextCursor: null };
 }
 describe("home account cards", () => {
   it("keeps saved projects hidden until the account is verified", async () => {

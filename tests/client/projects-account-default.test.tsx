@@ -20,9 +20,9 @@ beforeEach(() => {
   legacyId = makeDraft("Old unsaved project"); makeDraft("Other account private project", crypto.randomUUID());
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
   fetcher = vi.fn(async (path: string, init: RequestInit) => {
-    if (path.startsWith("/api/projects/page")) return Response.json({ ownerId: owner, items: [{ id: mock.projectId, owner_id: owner, scope: "complete_brand", title: "Saved project", current_revision: 1, lifecycle_version: 0, deleted_at: null, created_at: "2026-10-07T00:00:00Z" }], nextCursor: null });
+    if (path.startsWith("/api/projects/page")) return Response.json({ ownerId: owner, items: [{ id: mock.projectId, owner_id: owner, scope: "complete_brand", title: "Saved project", current_revision: 1, lifecycle_version: 0, deleted_at: null, deletion_requested_at: null, deletion_state: "active", created_at: "2026-10-07T00:00:00Z" }], nextCursor: null });
     if (path === "/api/session") return Response.json({ user: { id: owner } });
-    if (path === "/api/projects" && init.method === "POST") return Response.json({ project: { ...JSON.parse(String(init.body)), id: crypto.randomUUID(), owner_id: owner, current_revision: 1, lifecycle_version: 0, deleted_at: null, created_at: "2026-10-07T00:00:00Z" } });
+    if (path === "/api/projects" && init.method === "POST") return Response.json({ project: { ...JSON.parse(String(init.body)), id: crypto.randomUUID(), owner_id: owner, current_revision: 1, lifecycle_version: 0, deleted_at: null, deletion_requested_at: null, deletion_state: "active", created_at: "2026-10-07T00:00:00Z" } });
     throw new Error(`Unexpected fixture request ${path}`);
   }); vi.stubGlobal("fetch", fetcher);
 });

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
@@ -27,8 +26,8 @@ export function ProjectCardActions({ project, account, onChanged, onReload }: {
   const active = useRef(false);
   const refreshLock = useRef(false);
   const id = useId();
-  const action: ProjectDeletionAction = project.deleted_at === null ? "delete" : "restore";
-  const { change, pending, failure, clearFailure } = useProjectDeletion(account, onChanged);
+  const action: ProjectDeletionAction = project.deletion_state === "active" ? "delete" : "restore";
+  const { change, check, pending, reconciling, failure, clearFailure } = useProjectDeletion(account, onChanged);
   const busy = pending || refreshing;
 
   useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
@@ -97,11 +96,11 @@ export function ProjectCardActions({ project, account, onChanged, onReload }: {
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     }}>
       <h2 id={`${id}-title`} ref={dialogHeading} tabIndex={-1}>{action === "delete" ? "Delete" : "Restore"} “{project.title}”{action === "delete" ? "?" : ""}</h2>
-      <p id={`${id}-description`}>{action === "delete" ? "This moves the project to Deleted projects. Its assets and history are kept, and you can restore it any time." : "This returns the project to Projects with its assets and history."}</p>
-      {pending && <p className="project-lifecycle-pending" role="status">{action === "delete" ? "Moving to Deleted projects…" : "Restoring project…"}</p>}
-      {failure && <div className="project-lifecycle-error" role="alert"><p>{failure.message}</p>{failure.kind === "busy" && <Link className="text-link" href={`/brands/account/${project.id}`}>Open project</Link>}{refreshFailed && <p>Projects could not be refreshed. Check your connection and try again.</p>}</div>}
+      <p id={`${id}-description`}>{action === "delete" ? "This stops any active work and moves the project to Deleted projects. Its assets and history are kept. You can restore the project, but cancelled AI work won’t restart." : "This returns the project to Projects and withdraws any pending deletion. Restoring won’t restart cancelled AI work."}</p>
+      {pending && <p className="project-lifecycle-pending" role="status">{reconciling ? "Checking project status…" : action === "delete" ? "Moving to Deleted projects…" : "Restoring project…"}</p>}
+      {failure && <div className="project-lifecycle-error" role="alert"><p>{failure.message}</p>{refreshFailed && <p>Projects could not be refreshed. Check your connection and try again.</p>}</div>}
       <div className="project-lifecycle-buttons"><button ref={cancel} type="button" className="button secondary" disabled={busy} onClick={closeDialog}>{failure || action === "restore" ? "Close" : "Cancel"}</button>
-        {failure ? <button type="button" className="button secondary" disabled={busy} onClick={() => void refresh()}>{refreshing ? "Refreshing…" : "Refresh projects"}</button> : action === "delete" && <button type="button" className="button project-delete-confirm" disabled={busy} onClick={() => void change(project, action)}>{pending ? "Moving project…" : "Delete project"}</button>}
+        {failure ? <button type="button" className="button secondary" disabled={busy} onClick={() => { if (failure.kind === "retry") void change(project, action); else if (failure.kind === "uncertain") void check(project, action); else void refresh(); }}>{refreshing ? "Refreshing…" : failure.kind === "retry" ? "Try again" : failure.kind === "uncertain" ? "Check status" : "Refresh projects"}</button> : action === "delete" && <button type="button" className="button project-delete-confirm" disabled={busy} onClick={() => void change(project, action)}>{pending ? reconciling ? "Checking status…" : "Moving project…" : "Stop active work and delete project"}</button>}
       </div>
     </dialog>}
   </div>;

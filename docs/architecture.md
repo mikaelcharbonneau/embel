@@ -237,11 +237,16 @@ The authenticated standalone lookup route adds credential-free Vercel exact-doma
 Name.com adds an explicitly enabled, server-credential-gated alternative to the existing registrar reads. Exact discovery separates new registration from aftermarket/expiring/backorder offers; only matching authoritative registration-term pricing can produce a registration quote. Acquisition offers stay Unknown for new registration and disclose their flat fee separately. The current Vercel/Cloudflare/RDAP path is unchanged while Name.com is disabled, and sandbox configuration cannot establish live evidence. No schema, worker, purchase, credential or deployment change is included. See [Name.com implementation and secure rollout gates](namecom-domain-lookup.md).
 
 
-## Recoverable project deletion (local candidate)
+## Recoverable project deletion
 
-Project-card Delete moves an owned project to Deleted projects, where Restore is
-available. Additive lifecycle metadata and revision/version CAS preserve content
-history; active or unresolved jobs block deletion. Shared database row locks fence
-job admission; nonlocking content guards reject newly started stale writes while
-preserving already-in-flight content saves for Restore. No purge, cancellation, reservation
-settlement or allowance change is performed. See [contract and rollout gates](project-deletion.md).
+The project-card confirmation stops work and records a recoverable deletion intent
+in one owner-scoped transaction. Acknowledged intent removes the project from the
+active collection and fences admissions and stale owner edits; Deleted projects
+shows Stopping, Awaiting resolution, or Deleted from retained job and accounting
+evidence. Existing workers may finish authorized evidence and cost settlement.
+Queued cancellation uses proven no-dispatch evidence, existing settlement rules,
+and nonblocking lock acquisition so contention retries the request without
+changing worker lock behavior. Derived completion needs no finalizer or cron.
+Restore withdraws pending deletion without restarting canceled work. Revision and
+lifecycle CAS retain history and reject stale delete-after-restore requests. See
+[the exact contract and qualification](project-deletion.md).
