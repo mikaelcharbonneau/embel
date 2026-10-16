@@ -2,6 +2,7 @@ import { z } from "zod";
 import { nameTransformInputSchema, nameValueSchema, namingSourceSchema, transformNames } from "./naming";
 import { contextSnapshotSchema, missingStrategy, personalitySchema, projectScopeSchema, type ContextSnapshot, type ProjectScope } from "./projects";
 import { accountProjectSchema, accountProjectSummarySchema } from "./project-api";
+import { namingPreferencesV2Schema } from "./naming-brain-preferences";
 
 export const NAMING_INITIAL_TARGET = 250;
 /** Immutable first batches admitted before the 250-name correction remain readable. */
@@ -43,11 +44,13 @@ export function isNamingBatchTargetCompatible(sequence: number, targetCount: Nam
     : targetCount === NAMING_CONTINUATION_TARGET);
 }
 
-export const namingPreferencesSchema = z.strictObject({
+export const namingPreferencesV1Schema = z.strictObject({
   version: z.literal(1), creativeLocale: z.string().trim().min(2).max(30), notes: z.string().trim().max(2000),
   minimumGraphemes: z.number().int().min(1).max(160).nullable(), maximumGraphemes: z.number().int().min(1).max(160).nullable(),
 }).refine(value => value.minimumGraphemes === null || value.maximumGraphemes === null || value.minimumGraphemes <= value.maximumGraphemes,
   { message: "Minimum length must not exceed maximum length", path: ["minimumGraphemes"] }).transform(freezeSnapshot);
+export const namingPreferencesSchema = z.union([namingPreferencesV1Schema, namingPreferencesV2Schema]).transform(freezeSnapshot);
+export type NamingPreferencesV1 = z.infer<typeof namingPreferencesV1Schema>;
 export type NamingPreferences = z.infer<typeof namingPreferencesSchema>;
 
 /** An unsaved starting suggestion, never an invented preference revision or answer. */
