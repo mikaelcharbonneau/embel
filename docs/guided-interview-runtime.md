@@ -247,3 +247,11 @@ microdollars of unresolved holds remain reserved. No provider request was made.
 The existing web/worker deployments require no rebuild for this database fix.
 The non-secret rollout receipt is in
 `/workspace/scratch/embel-research-availability-20261016/`.
+
+A second configuration mismatch remained after the database repair: the web
+project's production/preview worker origin still targeted the old
+`dpl_EvNfhx8TRXzniVd4AwvpgFymRvKN` worker, while the qualified database bindings
+pointed to `dpl_DyFpKiQWg3kGoRJnqarxR286CDXY`. Updating the existing worker-origin
+setting requires a new web deployment to take effect. Worker deployment changes
+must update the database qualification and the web destination together, followed
+by a signed readiness check; SQL availability alone does not prove connectivity.
