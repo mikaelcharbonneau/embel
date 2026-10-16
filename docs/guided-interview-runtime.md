@@ -220,3 +220,38 @@ The worker bundle must be rebuilt after any shared domain/provider/runtime sourc
 change; an earlier build can silently contain an older guided output schema.
 Synthetic tests and protected no-dispatch readiness do not prove live provider
 success. A real test request is a separate, recorded activation step.
+
+## Receipt compatibility after project deletion — 2026-10-16
+
+The stop-and-delete migration added nullable `jobs.project_deletion_requested_at`.
+Existing operator receipts hashed the complete job row, so even its new null
+value invalidated the two historical receipts. Both the account and global pause
+checks then blocked new requests; Home presented this as exhausted AI access.
+The existing private testing grants were still enabled.
+
+`20261016002628_research_receipt_deletion_compat.sql` preserves current-shape
+receipt matching and accepts the historical row shape only when the added marker
+is null. It retains every original evidence, identity, terminal-state, lease and
+ledger check. It does not rewrite receipts, change jobs, release reservations or
+grant access. A non-null deletion marker or changed original evidence still
+invalidates a historical receipt. Regression coverage reproduces the schema
+upgrade with existing receipts and checks access restoration, isolation, evidence
+changes and unchanged privileges/accounting. Future schema additions must be
+checked against full-row evidence digests before rollout.
+
+Applied to production as hosted migration `20261016003046` on 2026-10-16.
+Both original receipts match again; account/global pauses are cleared and all
+four existing guided operations are available in SQL. Before/after digests of
+jobs, steps, receipts, reservations and usage are identical; all 31,629,696
+microdollars of unresolved holds remain reserved. No provider request was made.
+The existing web/worker deployments require no rebuild for this database fix.
+The non-secret rollout receipt is in
+`/workspace/scratch/embel-research-availability-20261016/`.
+
+A second configuration mismatch remained after the database repair: the web
+project's production/preview worker origin still targeted the old
+`dpl_EvNfhx8TRXzniVd4AwvpgFymRvKN` worker, while the qualified database bindings
+pointed to `dpl_DyFpKiQWg3kGoRJnqarxR286CDXY`. Updating the existing worker-origin
+setting requires a new web deployment to take effect. Worker deployment changes
+must update the database qualification and the web destination together, followed
+by a signed readiness check; SQL availability alone does not prove connectivity.

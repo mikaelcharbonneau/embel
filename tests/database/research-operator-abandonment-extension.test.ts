@@ -164,6 +164,67 @@ describe("second exact research operator-abandonment proposal", () => {
   afterEach(async () => { await db.exec("set session authorization postgres; reset role; rollback"); });
   afterAll(async () => { await db?.close(); }, 30_000);
 
+  const compatibilityMigration = async () => (await readFile(new URL(
+    "../../supabase/migrations/20261016002628_research_receipt_deletion_compat.sql", import.meta.url), "utf8"))
+    .replace(/^begin;$/m, "").replace(/^commit;$/m, "");
+
+  it("restores pre-column receipts without rewriting evidence, accounting or privileges", async () => {
+    await db.query(insert);
+    expect(await paused()).toEqual({ owner: false, global: false });
+    await db.exec("alter table public.jobs add column project_deletion_requested_at timestamptz");
+    expect(await matches()).toBe(false);
+    expect(await paused()).toEqual({ owner: true, global: true });
+    expect((await availability(db, OWNER_B, projects.b)).status).toBe("unavailable");
+    const before = await snapshot(), privileges = (await security()).rows;
+    await db.exec(await compatibilityMigration());
+    expect(await snapshot()).toEqual(before);
+    expect((await security()).rows).toEqual(privileges);
+    expect(await matches()).toBe(true);
+    expect((await db.query<{ value: boolean }>("select fluid_private.research_operator_adjudication_matches($1) value", [legacyId])).rows[0]!.value).toBe(true);
+    expect(await paused()).toEqual({ owner: false, global: false });
+    expect((await availability(db, OWNER_B, projects.b)).status).toBe("available");
+    expect((await availability(db, OWNER_A, projects.a)).status).toBe("unavailable");
+  });
+
+  it.each([false, true])("matches current-shape receipts, with existing deletion marker: %s", async hasMarker => {
+    await db.exec("alter table public.jobs add column project_deletion_requested_at timestamptz");
+    if (hasMarker) await db.query("update public.jobs set project_deletion_requested_at='2026-10-15T02:00:00Z' where id=$1", [jobId]);
+    await db.query(insert);
+    expect(await matches()).toBe(true);
+    await db.exec(await compatibilityMigration());
+    expect(await matches()).toBe(true);
+    expect(await paused()).toEqual({ owner: false, global: false });
+    await db.query("update public.jobs set project_deletion_requested_at=clock_timestamp() where id=$1", [jobId]);
+    expect(await matches()).toBe(false);
+  });
+
+  it("rejects a missing column and unexpected predecessor security", async () => {
+    await db.exec("savepoint missing_marker");
+    await expect(db.exec(await compatibilityMigration())).rejects.toThrow("missing_nullable_project_deletion_marker");
+    await db.exec("rollback to savepoint missing_marker; release savepoint missing_marker");
+    await db.exec("alter table public.jobs add column project_deletion_requested_at timestamptz");
+    await db.exec("alter function fluid_private.research_operator_adjudication_matches(uuid) security definer");
+    await db.exec("savepoint changed_security");
+    await expect(db.exec(await compatibilityMigration())).rejects.toThrow("unexpected_research_receipt_compat_predecessor");
+    await db.exec("rollback to savepoint changed_security; release savepoint changed_security");
+  });
+
+  it.each([
+    ["deletion provenance", "update public.jobs set project_deletion_requested_at=clock_timestamp() where id=$1", jobId],
+    ["job input", "update public.jobs set input=input||'{\"unexpected\":true}' where id=$1", jobId],
+    ["output", "update public.job_steps set output=output||'{\"unexpected\":true}' where id=$1", stepId],
+    ["reservation", "update public.usage_reservations set state='settled' where job_id=$1", jobId],
+    ["ledger", "update public.usage_accounts set reserved_microusd=reserved_microusd-1 where owner_id=$1", OWNER_B],
+  ])("legacy compatibility still pauses on changed %s", async (_name, sql, key) => {
+    await db.query(insert);
+    await db.exec("alter table public.jobs add column project_deletion_requested_at timestamptz");
+    await db.exec(await compatibilityMigration());
+    expect(await matches()).toBe(true);
+    await db.query(sql, [key]);
+    expect(await matches()).toBe(false);
+    expect(await paused()).toEqual({ owner: true, global: true });
+  });
+
   it("pins actual source bytes and completed-status branch order without inventing an envelope", () => {
     const source = execFileSync("git", ["show", "4c0bbf362e8c85132f9d5068ec25dc771ef5cd5b:src/server/ai/strategy-response.ts"], { encoding: "utf8" });
     expect(createHash("sha256").update(source).digest("hex")).toBe("d37e4c528334e7099d042d835d2cebc75cc06d214c2b52deb3299e38441888a9");
