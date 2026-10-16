@@ -22,7 +22,7 @@ describe("versioned Naming preferences", () => {
 
 import * as brain from "../../src/domain/naming-brain";
 import { NAMING_APPROACHES, getNamingPreferencesReadiness, initialNamingPreferencesV2, matchesNamingTextFragment, namingPreferencesV2Schema } from "../../src/domain/naming-brain-preferences";
-import { context, creatorSet, id, plan, preferences, proposal, receipt, research, snapshot, verification } from "./naming-brain-fixtures";
+import { context, creatorSet, id, plan, preferences, proposal, receipt, research, snapshot, sourceContext, verification } from "./naming-brain-fixtures";
 
 describe("explicit choices and text fragment semantics", () => {
   it("leaves drafts unanswered and blocks generation until explicit choices are saved without inventing optional source preferences", () => {
@@ -108,7 +108,7 @@ describe("claim-level verification", () => {
     const assignments = brain.validateNamingAssignmentPlan?.(snapshot(), research(), plan());
     const original = { ...proposal("Qvorr", "odd", "invented", "rhythm"), claims: [{ claimKey: "origin", statement: "An invented false Latin origin", sourceKeys: ["source-one"], requirement: "optional", status: "unverified" }] };
     const candidates = brain.validateNamingCreatorSet?.(snapshot(), assignments?.[1], creatorSet([original], "invented")).accepted;
-    const result = brain.applyNamingVerification?.(candidates!, verification([{ assignmentKey: "invented", candidateKey: "odd", claimKey: "origin", status: "contradicted", supportedWording: null, sourceKeys: ["source-one"], supportsPrimaryApproach: false, explanation: "The source does not support this optional origin." }]));
+    const result = brain.applyNamingVerification?.(candidates!, verification([{ assignmentKey: "invented", candidateKey: "odd", claimKey: "origin", status: "contradicted", supportedWording: null, sourceKeys: ["source-one"], supportsPrimaryApproach: false, explanation: "The source does not support this optional origin." }]), sourceContext());
     expect(result?.candidates[0]).toMatchObject({ candidateId: id(1100), value: "Qvorr", eligible: true, primaryCredit: "invented", publishedClaims: [] });
     expect(candidates?.[0]?.claims[0]?.statement).toBe("An invented false Latin origin");
   });
@@ -117,17 +117,17 @@ describe("claim-level verification", () => {
     const original = { ...proposal("Brume", "word", "other_languages"), claims: [{ claimKey: "meaning", statement: "Purported French meaning", sourceKeys: ["source-one"], requirement: "primary_approach", status: "unverified" }] };
     const candidates = brain.validateNamingCreatorSet?.(snapshot(), assignments?.[2], creatorSet([original], "language")).accepted;
     const finding = { assignmentKey: "language", candidateKey: "word", claimKey: "meaning", status: "unresolved", supportedWording: null, sourceKeys: [], supportsPrimaryApproach: false, explanation: "No retrieved text supports the claim." };
-    const applied = brain.applyNamingVerification?.(candidates!, verification([finding]));
+    const applied = brain.applyNamingVerification?.(candidates!, verification([finding]), sourceContext());
     expect(applied?.candidates[0]).toMatchObject({ eligible: false, primaryCredit: null, publishedClaims: [] });
-    expect(() => brain.applyNamingVerification(candidates!, verification([{ ...finding, status: "supported", supportedWording: "Asserted meaning", sourceKeys: ["missing"], supportsPrimaryApproach: true }]))).toThrow();
+    expect(() => brain.applyNamingVerification(candidates!, verification([{ ...finding, status: "supported", supportedWording: "Asserted meaning", sourceKeys: ["missing"], supportsPrimaryApproach: true }]), sourceContext())).toThrow();
     const noText = { ...verification([{ ...finding, status: "supported", supportedWording: "Asserted meaning", sourceKeys: ["source-one"], supportsPrimaryApproach: true }]), sources: [{ ...research().sources[0], evidenceStatus: "unretrieved", excerpt: null, contentHash: null, retrieval: null }] };
-    expect(() => brain.applyNamingVerification(candidates!, noText)).toThrow();
+    expect(() => brain.applyNamingVerification(candidates!, noText, sourceContext())).toThrow();
   });
   it("rejects findings for unknown candidate/claim references and mismatched snapshots", () => {
     const assignments = brain.validateNamingAssignmentPlan?.(snapshot(), research(), plan());
     const candidates = brain.validateNamingCreatorSet?.(snapshot(), assignments?.[0], creatorSet()).accepted;
-    expect(() => brain.applyNamingVerification(candidates!, verification([{ assignmentKey: "real", candidateKey: "one", claimKey: "missing", status: "unresolved", supportedWording: null, sourceKeys: [], supportsPrimaryApproach: false, explanation: "Unknown claim" }]))).toThrow();
-    expect(() => brain.applyNamingVerification(candidates!, { ...verification(), snapshotHash: "c".repeat(64) })).toThrow();
+    expect(() => brain.applyNamingVerification(candidates!, verification([{ assignmentKey: "real", candidateKey: "one", claimKey: "missing", status: "unresolved", supportedWording: null, sourceKeys: [], supportsPrimaryApproach: false, explanation: "Unknown claim" }]), sourceContext())).toThrow();
+    expect(() => brain.applyNamingVerification(candidates!, { ...verification(), snapshotHash: "c".repeat(64) }, sourceContext())).toThrow();
   });
 });
 

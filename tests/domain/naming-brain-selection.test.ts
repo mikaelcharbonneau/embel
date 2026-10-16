@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { applyNamingVerification, validateNamingAssignmentPlan, validateNamingCreatorSet, type NamingValidatedCandidate } from "../../src/domain/naming-brain";
 import * as selection from "../../src/domain/naming-brain-selection";
-import { creatorSet, curation, id, plan, proposal, research, snapshot, verification } from "./naming-brain-fixtures";
+import { assignment, creatorSet, curation, id, plan, proposal, research, snapshot, sourceContext, verification } from "./naming-brain-fixtures";
 
 function pool(languageCount = 20) {
   const brief = snapshot(), assignments = validateNamingAssignmentPlan(brief, research(), plan());
@@ -14,7 +14,7 @@ function pool(languageCount = 20) {
     ...validateNamingCreatorSet(brief, assignments[2], creatorSet(language, "language", 4000)).accepted,
   ];
   const findings = language.map(candidate => ({ assignmentKey: "language", candidateKey: candidate.candidateKey, claimKey: "meaning", status: "supported", supportedWording: "Synthetic language attribution", sourceKeys: ["source-one"], supportsPrimaryApproach: true, explanation: "Synthetic fixture evidence", evidence: [{ sourceKey: "source-one", start: 0, end: 24, quote: "Synthetic reference text" }] }));
-  return { snapshot: brief, candidates, curation: curation(), verification: applyNamingVerification(candidates, verification(findings)), existingIdentityKeys: [] as string[] };
+  return { snapshot: brief, candidates, curation: curation(), verification: applyNamingVerification(candidates, verification(findings), sourceContext()), existingIdentityKeys: [] as string[] };
 }
 
 describe("varied Naming assembly", () => {
@@ -77,4 +77,45 @@ it("requires bounded candidate-scoped duplicate lookup results and explains actu
   expect(() => selection.assembleNamingSet({ ...input, existingIdentityKeys: ["notacandidate"] })).toThrow();
   const output = selection.assembleNamingSet({ ...input, existingIdentityKeys: input.candidates.slice(0, 70).map(row => row.identityKey) });
   expect(output.fulfillment.message).toMatch(/80.*100/);
+});
+
+
+function overlappingPool(competitors: { approach: string; key: string; target: number; indices: number[] }[]) {
+  const all = [{ approach: "real_words", key: "real", target: 100, indices: Array.from({ length: 100 }, (_, n) => n) }, ...competitors];
+  const brief = { ...snapshot(), preferences: { ...snapshot().preferences, approaches: all.map(row => row.approach) } };
+  const direction = { ...plan(), output: { ...plan().output, assignments: all.map(row => assignment(row.approach, row.key, row.target)) } };
+  const assignments = validateNamingAssignmentPlan(brief, research(), direction);
+  const candidates = all.flatMap((row, index) => validateNamingCreatorSet(brief, assignments[index], creatorSet(row.indices.map(n => proposal(`Sunflower${n}`, `${row.key}-${n}`, row.approach)), row.key, 100 + index * 2000)).accepted);
+  return { snapshot: brief, candidates, curation: curation(), verification: applyNamingVerification(candidates, verification(), sourceContext()), existingIdentityKeys: [] };
+}
+
+describe("identity representatives and primary floors", () => {
+  it("selects the feasible 95/5 representatives instead of manufacturing a duplicate coverage deficit", () => {
+    const input = overlappingPool([{ approach: "compounds", key: "compound", target: 50, indices: [0, 1, 2, 3, 4] }]);
+    const output = selection.assembleNamingSet(input);
+    expect(output.fulfillment.status).toBe("complete");
+    expect(output.primaryCounts).toEqual([{ approach: "real_words", count: 95 }, { approach: "compounds", count: 5 }]);
+    expect(output.candidateIds.filter(candidateId => input.candidates.find(row => row.candidateId === candidateId)!.primaryApproach === "compounds")).toEqual([id(3100), id(3101), id(3102), id(3103), id(3104)]);
+    expect(output.rejected.map(row => row.candidateId)).toEqual([id(1100), id(1101), id(1102), id(1103), id(1104)]);
+    expect(output.retainedUnusedIds).toEqual([]);
+    expect(new Set(output.candidateIds.map(candidateId => input.candidates.find(row => row.candidateId === candidateId)!.identityKey)).size).toBe(100);
+  });
+  it("finds feasible representatives when three scarce approaches compete for the same identities", () => {
+    const first = Array.from({ length: 10 }, (_, n) => n), second = [0, 1, 2, 3, 4, 10, 11, 12, 13, 14], third = Array.from({ length: 10 }, (_, n) => n + 5);
+    const input = overlappingPool([{ approach: "compounds", key: "compound", target: 17, indices: first }, { approach: "invented", key: "invented", target: 17, indices: second }, { approach: "modified", key: "modified", target: 16, indices: third }]);
+    const output = selection.assembleNamingSet(input);
+    expect(output.fulfillment.status).toBe("complete");
+    expect(output.primaryCounts).toEqual([{ approach: "real_words", count: 85 }, { approach: "compounds", count: 5 }, { approach: "invented", count: 5 }, { approach: "modified", count: 5 }]);
+    expect(output.rejected).toHaveLength(30);
+    expect(new Set([...output.candidateIds, ...output.retainedUnusedIds, ...output.rejected.map(row => row.candidateId)]).size).toBe(130);
+    expect(selection.assembleNamingSet({ ...input, candidates: [...input.candidates].reverse() })).toEqual(output);
+    for (const row of output.primaryCounts) expect(output.candidateIds.filter(candidateId => input.candidates.find(candidate => candidate.candidateId === candidateId)!.primaryApproach === row.approach)).toHaveLength(row.count);
+  });
+  it("keeps genuinely impossible shared-identity coverage partial", () => {
+    const input = overlappingPool([{ approach: "compounds", key: "compound", target: 25, indices: [0, 1, 2, 3, 4] }, { approach: "invented", key: "invented", target: 25, indices: [0, 1, 2, 3, 4] }]);
+    const output = selection.assembleNamingSet(input);
+    expect(output.candidateIds).toHaveLength(100);
+    expect(output.fulfillment).toMatchObject({ status: "partial", coverageSatisfied: false });
+    expect(output.deficits.reduce((sum, row) => sum + row.missing, 0)).toBe(5);
+  });
 });

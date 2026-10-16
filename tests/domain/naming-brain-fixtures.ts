@@ -53,6 +53,13 @@ export function creatorSet(proposals: ({ candidateKey: string } & Record<string,
 export function curation(annotations: unknown[] = []) {
   return { ...envelope("curation", "curator", 12), output: { role: "curator" as const, annotations, gaps: [] } };
 }
+export function sourceContext(original = research()) {
+  return { dependencyArtifactIds: [original.artifactId], artifacts: [original] };
+}
 export function verification(findings: unknown[] = []) {
-  return { ...envelope("verification", "verifier", 13), sources: [source()], output: { role: "verifier" as const, findings: findings.map(finding => ({ ...(finding as Record<string, unknown>), evidence: (finding as Record<string, unknown>).evidence ?? [] })) } };
+  const original = research(), base = envelope("verification", "verifier", 13);
+  return { ...base, providerReceipt: { ...base.providerReceipt, artifactItemIds: ["fixture-verification-item"] }, sources: original.sources,
+    sourceDependencies: [{ artifactId: original.artifactId, runId: original.runId, snapshotHash: original.snapshotHash, providerReceipt: original.providerReceipt, sources: original.sources.map(source => ({ sourceKey: source.sourceKey, providerItemId: source.providerItemId, contentHash: source.contentHash })) }],
+    output: { role: "verifier" as const, findings: findings.map(finding => ({ ...(finding as Record<string, unknown>), evidence: (finding as Record<string, unknown>).evidence ?? [] })) } };
+
 }

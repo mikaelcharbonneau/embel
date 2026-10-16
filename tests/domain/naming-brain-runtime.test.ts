@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as brain from "../../src/domain/naming-brain";
-import { curation, id, plan, receipt, research, snapshot } from "./naming-brain-fixtures";
+import { createNamingGapContext } from "../../src/domain/naming-brain-selection";
+import { assignment, curation, envelope, id, plan, receipt, research, snapshot, sourceContext, verification } from "./naming-brain-fixtures";
 
 const policy = () => ({ version: 1, billingMode: "openai_api", handlerVersion: "naming-brain-v1", protocol: "openai_agents", model: "fixture-selected-model", reasoningEffort: "xhigh", runAllowanceMicrousd: 5_000_000, aggregateAllowanceMicrousd: 25_000_000, maxUnsettledRuns: 5, maxConcurrentCreators: 3, maxInitialCandidates: 150, maxGapCandidates: 50, maxGapRounds: 1, maxInputBytes: 131_072, maxOutputBytes: 524_288, stageDeadlineMs: 240_000, stageLimits: {
   research: { maximumCostMicrousd: 750_000, maxWebSearchCalls: 4 }, direction: { maximumCostMicrousd: 250_000, maxWebSearchCalls: 0 }, creation: { maximumCostMicrousd: 1_500_000, maxWebSearchCalls: 0 }, curation: { maximumCostMicrousd: 500_000, maxWebSearchCalls: 0 }, verification: { maximumCostMicrousd: 1_250_000, maxWebSearchCalls: 20 }, gap: { maximumCostMicrousd: 750_000, maxWebSearchCalls: 8 }, prepare: { maximumCostMicrousd: 0, maxWebSearchCalls: 0 },
@@ -85,7 +86,34 @@ describe("saved feed and explicit Resume", () => {
 
 
 it("bounds gap verification by the shared gap reservation rather than the larger first verification cap", () => {
-  const request = { runId: id(3), stageKey: "gap", role: "verifier", snapshotHash: snapshot().snapshotHash, input: { role: "verifier", snapshot: snapshot(), candidates: [], curation: curation() }, dependencyArtifactIds: [curation().artifactId], requestKey: "fixture-gap-request-001", providerCallKey: "gap-verification", assignmentKey: null, requestHash: "c".repeat(64), policy: { ...rolePolicy(), role: "verifier", maxWebSearchCalls: 20, maximumCostMicrousd: 1_250_000, sessionLimitCents: 125 } };
+  const request = { runId: id(3), stageKey: "gap", role: "verifier", snapshotHash: snapshot().snapshotHash, input: { role: "verifier", snapshot: snapshot(), review: brain.createNamingReviewProjection({ runId: id(3), snapshotHash: snapshot().snapshotHash, candidates: [] }), curation: brain.createNamingCurationProjection(curation()) }, dependencyArtifactIds: [curation().artifactId], requestKey: "fixture-gap-request-001", providerCallKey: "gap-verification", assignmentKey: null, requestHash: "c".repeat(64), policy: { ...rolePolicy(), role: "verifier", maxWebSearchCalls: 20, maximumCostMicrousd: 1_250_000, sessionLimitCents: 125 } };
   expect(brain.namingStageRequestSchema.safeParse(request).success).toBe(false);
   expect(brain.namingStageRequestSchema.safeParse({ ...request, policy: { ...request.policy, maxWebSearchCalls: 8, maximumCostMicrousd: 750_000, sessionLimitCents: 75 } }).success).toBe(true);
+});
+
+
+describe("Creator round binding before dispatch", () => {
+  it.each([["initial", "creation", "gap"], ["gap", "gap", "creation"]])("accepts %s only in %s and rejects %s before dispatch", (round, validStage, invalidStage) => {
+    const initial = brain.validateNamingAssignmentPlan(snapshot(), research(), plan())[0]!;
+    const gapPlan = { ...envelope("gap", "director", 44), output: { role: "director", round: "gap", assignments: [assignment("real_words", "gap-real", 10), assignment("invented", "gap-invented", 10, "rhythm"), assignment("other_languages", "gap-language", 10)], feedbackHypotheses: [] } };
+    const context = createNamingGapContext({ snapshot: snapshot(), candidates: [], curation: curation(), verification: brain.applyNamingVerification([], verification(), sourceContext()), existingIdentityKeys: [] });
+    const gap = brain.validateNamingAssignmentPlan(snapshot(), research(), gapPlan, context)[0]!;
+    const request = (savedAssignment: typeof initial, stageKey: string) => ({ runId: id(3), stageKey, role: "creator", snapshotHash: snapshot().snapshotHash, input: { role: "creator", snapshot: snapshot(), assignment: savedAssignment }, dependencyArtifactIds: [savedAssignment.planArtifactId], requestKey: "fixture-round-request-001", providerCallKey: "round-creator", assignmentKey: savedAssignment.assignmentKey, requestHash: "c".repeat(64), policy: { ...rolePolicy(), role: "creator", maximumCostMicrousd: 50_000, sessionLimitCents: 5, maxWebSearchCalls: 0, allowedTools: [], referenceHosts: [] } });
+    const savedAssignment = round === "initial" ? initial : gap;
+    expect(brain.namingStageRequestSchema.safeParse(request(savedAssignment, validStage!)).success).toBe(true);
+    expect(brain.namingStageRequestSchema.safeParse(request(savedAssignment, invalidStage!)).success).toBe(false);
+  });
+});
+
+it("defaults unqualified run recovery to false and accepts only an explicit admissible terminal witness", () => {
+  expect(brain.namingBrainRunSummarySchema.parse(runSummary()).canResume).toBe(false);
+  expect(brain.namingBrainRunSummarySchema.parse({ ...runSummary(), state: "partial", revision: 2, canResume: true }).canResume).toBe(true);
+  for (const state of ["queued", "running", "cancel_requested", "needs_reconciliation", "succeeded", "prepared", "superseded"]) {
+    expect(brain.namingBrainRunSummarySchema.safeParse({ ...runSummary(), state, canResume: true }).success).toBe(false);
+  }
+  const complete = { status: "complete", targetCount: 100, acceptedCount: 100, missingCount: 0, coverageSatisfied: true, message: null };
+  expect(brain.namingBrainRunSummarySchema.safeParse({ ...runSummary(), state: "partial", canResume: true, fulfillment: complete }).success).toBe(false);
+  const stages = ["research", "direction", "creation", "curation", "verification", "gap", "prepare"].map(stageKey => ({ stageKey, state: "pending", artifactIds: [], startedAt: null, finishedAt: null, errorCode: null }));
+  expect(brain.namingBrainRunSchema.parse({ ...runSummary(), snapshot: snapshot(), stages }).canResume).toBe(false);
+  expect(brain.namingBrainRunSchema.safeParse({ ...runSummary(), snapshot: snapshot(), stages, canResume: true }).success).toBe(false);
 });

@@ -66,3 +66,36 @@ it("cannot erase or replace a managed candidate's feed run attribution", () => {
   expect(namingFeedEntrySchema.safeParse({ ...entry, runId: id(90) }).success).toBe(false);
   expect(namingFeedEntrySchema.safeParse({ ...entry, runId: null, primaryApproach: null }).success).toBe(false);
 });
+
+function managedBatchDetail() {
+  const fulfillment = { status: "partial", targetCount: 100, acceptedCount: 2, missingCount: 98, coverageSatisfied: false, message: "2 of 100 names are ready." };
+  const preparedSet = { ...prepared(), candidateIds: [id(6), id(8)], primaryCounts: [{ approach: "real_words", count: 0 }, { approach: "invented", count: 2 }, { approach: "other_languages", count: 0 }], fulfillment,
+    deficits: [{ approach: "real_words", required: 5, actual: 0, missing: 5 }, { approach: "invented", required: 5, actual: 2, missing: 3 }, { approach: "other_languages", required: 5, actual: 0, missing: 5 }], sourceArtifactIds: [id(7)] };
+  const output = { version: 2, operation: "naming.generate", handlerVersion: "naming-brain-v1", provider: "openai", billingMode: "openai_api", runId: id(3), jobId: id(4), batchId: id(5), preparedSet, completedAt: at };
+  const job = { version: 2, handlerVersion: "naming-brain-v1", id: id(4), owner_id: id(1), project_id: id(2), operation: "naming.generate", input_revision: 1, state: "succeeded", progress: 100, error_code: null, cancel_requested_at: null, created_at: at, finished_at: at, billingMode: "openai_api", policyIdentity: null, acceptedPolicyIdentity: "a".repeat(64), batchId: id(5), runId: id(3), sequence: 2, targetCount: 100, results: [{ stepKey: "prepare", output }] };
+  const result = { version: 2, ownerId: id(1), projectId: id(2), batchId: id(5), jobId: id(4), runId: id(3), preparedSetId: id(50), stepKey: "prepare", candidateIds: [id(6), id(8)], fulfillment, completedAt: at };
+  return { batch: batch(), job, result };
+}
+
+describe("explicit V2 and mixed batch detail reads", () => {
+  it("reads an owned V2 preparation through the deliberate shared union while legacy detail stays strict", () => {
+    const detail = managedBatchDetail();
+    expect(jobs.namingBrainBatchDetailResponseSchema?.safeParse(detail).success).toBe(true);
+    expect(jobs.namingAnyBatchDetailResponseSchema?.safeParse(detail).success).toBe(true);
+    expect(jobs.namingBatchDetailResponseSchema.safeParse(detail).success).toBe(false);
+    const pending = { batch: detail.batch, job: { ...detail.job, state: "queued", progress: 0, finished_at: null, results: [] }, result: null };
+    expect(jobs.namingAnyBatchDetailResponseSchema?.safeParse(pending).success).toBe(true);
+  });
+  it("requires matching ownership, admission, run, exact ordered membership and fulfillment", () => {
+    const detail = managedBatchDetail();
+    expect(jobs.namingBrainBatchDetailResponseSchema?.safeParse(detail).success).toBe(true);
+    for (const result of [{ ...detail.result, ownerId: id(999) }, { ...detail.result, runId: id(999) }, { ...detail.result, candidateIds: [id(8), id(6)] }, { ...detail.result, candidateIds: [id(6), id(999)] }, null]) {
+      expect(jobs.namingBrainBatchDetailResponseSchema?.safeParse({ ...detail, result }).success).toBe(false);
+    }
+    for (const patch of [{ owner_id: id(999) }, { project_id: id(999) }, { runId: id(999) }, { sequence: 1 }, { acceptedPolicyIdentity: "f".repeat(64) }, { input_revision: 2 }]) {
+      expect(jobs.namingBrainBatchDetailResponseSchema?.safeParse({ ...detail, job: { ...detail.job, ...patch } }).success).toBe(false);
+    }
+    const renamedFulfillment = { ...detail.result, fulfillment: { ...detail.result.fulfillment, message: "Unrelated result" } };
+    expect(jobs.namingBrainBatchDetailResponseSchema?.safeParse({ ...detail, result: renamedFulfillment }).success).toBe(false);
+  });
+});

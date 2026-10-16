@@ -159,11 +159,29 @@ function checkEnvelope(value: { runId: string; stageKey: NamingStageKey; snapsho
   if (receipt.dispatchState !== "dispatched" || (receipt.protocol === "openai_agents" ? receipt.sessionId === null || receipt.turnId === null : receipt.responseId === null) || receipt.observedModel === null) issue(ctx, "Completed artifacts require actual completed-session evidence");
   if (!boundedBytes(value, 524_288)) issue(ctx, "Completed artifact exceeds its byte limit");
 }
-function checkSources(value: { sources: NamingEvidenceSource[]; providerReceipt: NamingProviderReceipt }, references: readonly string[], ctx: z.RefinementCtx): void {
-  const keys = new Set(value.sources.map(source => source.sourceKey));
-  if (references.some(key => !keys.has(key))) issue(ctx, "All source references must resolve to retained evidence");
-  const observed = new Set([...value.providerReceipt.artifactItemIds, ...value.providerReceipt.toolCalls.map(call => call.providerItemId).filter((item): item is string => item !== null)]);
-  if (value.sources.some(source => !observed.has(source.providerItemId))) issue(ctx, "Source records must bind actual retained provider items");
+const sourceBindingSchema = z.strictObject({ sourceKey: localKey, providerItemId: providerId, contentHash: hash.nullable() });
+export const namingSourceDependencySchema = z.strictObject({ artifactId: z.uuid(), runId: z.uuid(), snapshotHash: hash, providerReceipt: namingProviderReceiptSchema, sources: z.array(sourceBindingSchema).min(1).max(80).refine(rows => unique(rows.map(row => row.sourceKey))) }).superRefine((value, ctx) => {
+  if (value.runId !== value.providerReceipt.runId || value.snapshotHash !== value.providerReceipt.snapshotHash || !["researcher", "verifier"].includes(value.providerReceipt.role) || value.providerReceipt.dispatchState !== "dispatched") issue(ctx, "Inherited evidence requires its original source-producing artifact receipt");
+});
+export type NamingSourceDependency = z.infer<typeof namingSourceDependencySchema>;
+function sourceObservedBy(source: NamingEvidenceSource, receipt: NamingProviderReceipt): boolean {
+  const observed = new Set([...receipt.artifactItemIds, ...receipt.toolCalls.map(call => call.providerItemId).filter((item): item is string => item !== null)]);
+  const provenance = source.provenance;
+  return observed.has(source.providerItemId) && (provenance === null || (provenance.protocol === receipt.protocol && provenance.sessionId === receipt.sessionId && provenance.turnId === receipt.turnId && provenance.responseId === receipt.responseId));
+}
+function checkSources(value: { artifactId: string; runId: string; snapshotHash: string; sources: NamingEvidenceSource[]; providerReceipt: NamingProviderReceipt; sourceDependencies?: NamingSourceDependency[] }, references: readonly string[], ctx: z.RefinementCtx): void {
+  const records = new Map(value.sources.map(source => [source.sourceKey, source]));
+  if (references.some(key => !records.has(key))) issue(ctx, "All source references must resolve to retained evidence");
+  const inherited = new Set<string>();
+  for (const dependency of value.sourceDependencies ?? []) {
+    if (dependency.artifactId === value.artifactId || dependency.runId !== value.runId || dependency.snapshotHash !== value.snapshotHash) issue(ctx, "Inherited sources must retain a distinct artifact in the same frozen run");
+    for (const binding of dependency.sources) {
+      const source = records.get(binding.sourceKey);
+      if (inherited.has(binding.sourceKey) || !source || source.providerItemId !== binding.providerItemId || source.contentHash !== binding.contentHash || !sourceObservedBy(source, dependency.providerReceipt)) issue(ctx, "Inherited source binding must retain its original observation and content hash");
+      inherited.add(binding.sourceKey);
+    }
+  }
+  if (value.sources.some(source => !inherited.has(source.sourceKey) && !sourceObservedBy(source, value.providerReceipt))) issue(ctx, "New sources require actual current-call observations; inherited sources require original dependency receipts");
 }
 export const namingResearchPackSchema = z.strictObject({ ...envelopeFields, stageKey: z.literal("research"), output: namingResearchOutputSchema, readiness: z.enum(["sourced", "partial"]), sources: sourcesSchema }).superRefine((value, ctx) => {
   checkEnvelope(value, ctx); checkSources(value, [...value.output.territories, ...value.output.facts, ...value.output.interpretations].flatMap(row => row.sourceKeys), ctx);
@@ -194,7 +212,8 @@ export const namingCreatorSetSchema = z.strictObject({ ...envelopeFields, stageK
 export type NamingCreatorSet = z.infer<typeof namingCreatorSetSchema>;
 export const namingCurationSchema = z.strictObject({ ...envelopeFields, stageKey: z.enum(["curation", "gap"]), output: namingCurationOutputSchema }).superRefine(checkEnvelope).transform(freeze);
 export type NamingCuration = z.infer<typeof namingCurationSchema>;
-export const namingVerificationSchema = z.strictObject({ ...envelopeFields, stageKey: z.enum(["verification", "gap"]), output: namingVerificationOutputSchema, sources: sourcesSchema }).superRefine((value, ctx) => {
+const verificationFields = { ...envelopeFields, stageKey: z.enum(["verification", "gap"]), output: namingVerificationOutputSchema, sources: sourcesSchema };
+export const namingVerificationSchema = z.strictObject({ ...verificationFields, sourceDependencies: z.array(namingSourceDependencySchema).max(3).refine(rows => unique(rows.map(row => row.artifactId))).default([]) }).superRefine((value, ctx) => {
   checkEnvelope(value, ctx); checkSources(value, value.output.findings.flatMap(row => row.sourceKeys), ctx);
   const sources = new Map(value.sources.map(source => [source.sourceKey, source]));
   if (value.output.findings.some(finding => (finding.status === "supported" || finding.status === "corrected") && finding.sourceKeys.some(key => sources.get(key)?.evidenceStatus !== "retrieved"))) issue(ctx, "A URL or unretrieved source cannot support factual wording");
@@ -204,12 +223,48 @@ export const namingVerificationSchema = z.strictObject({ ...envelopeFields, stag
   }))) issue(ctx, "Evidence quotes must match exact spans of the retained retrieved source text");
 }).transform(freeze);
 export type NamingVerification = z.infer<typeof namingVerificationSchema>;
+export const namingVerificationSourceContextSchema = z.strictObject({ dependencyArtifactIds: z.array(z.uuid()).max(100).refine(unique), artifacts: z.array(z.union([namingResearchPackSchema, namingVerificationSchema])).max(3).refine(rows => unique(rows.map(row => row.artifactId))) }).transform(freeze);
+export type NamingVerificationSourceContext = z.infer<typeof namingVerificationSourceContextSchema>;
+const emptySourceContext = { dependencyArtifactIds: [], artifacts: [] };
+function sourceContextFor(value: { artifactId: string; runId: string; snapshotHash: string }, input: unknown): NamingVerificationSourceContext {
+  const context = namingVerificationSourceContextSchema.parse(input ?? emptySourceContext);
+  assert(context.artifacts.every(artifact => context.dependencyArtifactIds.includes(artifact.artifactId) && artifact.artifactId !== value.artifactId && artifact.runId === value.runId && artifact.snapshotHash === value.snapshotHash), "Source artifacts must resolve within the owned immutable dependency closure of this run");
+  return context;
+}
+/** Bind only actual current observations or exact original records in the owned closure. */
+export function bindNamingVerificationSources(artifactInput: unknown, contextInput: unknown): NamingVerification {
+  const value = z.strictObject(verificationFields).parse(artifactInput), context = sourceContextFor(value, contextInput);
+  const dependencies = new Map<string, NamingSourceDependency>();
+  const ordered = [...context.artifacts].sort((a, b) => a.artifactId < b.artifactId ? -1 : a.artifactId > b.artifactId ? 1 : 0);
+  for (const source of value.sources) {
+    if (sourceObservedBy(source, value.providerReceipt)) continue;
+    const artifact = ordered.find(artifact => sourceObservedBy(source, artifact.providerReceipt) && artifact.sources.some(record => JSON.stringify(record) === JSON.stringify(source)));
+    assert(artifact, "Inherited source requires its exact original record in the owned dependency closure");
+    const dependency = dependencies.get(artifact.artifactId) ?? { artifactId: artifact.artifactId, runId: artifact.runId, snapshotHash: artifact.snapshotHash, providerReceipt: artifact.providerReceipt, sources: [] };
+    dependency.sources.push({ sourceKey: source.sourceKey, providerItemId: source.providerItemId, contentHash: source.contentHash });
+    dependencies.set(artifact.artifactId, dependency);
+  }
+  return validateNamingVerificationSources({ ...value, sourceDependencies: Array.from(dependencies.values()) }, context);
+}
+export function validateNamingVerificationSources(artifactInput: unknown, contextInput: unknown = emptySourceContext): NamingVerification {
+  const value = namingVerificationSchema.parse(artifactInput), context = sourceContextFor(value, contextInput);
+  for (const dependency of value.sourceDependencies) {
+    const original = context.artifacts.find(artifact => artifact.artifactId === dependency.artifactId);
+    assert(original && JSON.stringify(original.providerReceipt) === JSON.stringify(dependency.providerReceipt), "Inherited dependency must retain the exact receipt of the owned immutable artifact");
+    for (const binding of dependency.sources) {
+      const source = value.sources.find(source => source.sourceKey === binding.sourceKey), saved = original.sources.find(source => source.sourceKey === binding.sourceKey);
+      assert(source && saved && JSON.stringify(source) === JSON.stringify(saved), "Inherited source content, hash and original provenance must match the owned dependency exactly");
+    }
+  }
+  return value;
+}
+
 export const namingRoleOutputSchema = z.union([namingResearchPackSchema, namingAssignmentPlanSchema, namingCreatorSetSchema, namingCurationSchema, namingVerificationSchema]);
 export type NamingRoleOutput = z.infer<typeof namingRoleOutputSchema>;
 
 export const namingValidatedAssignmentSchema = z.strictObject({ ...namingCreatorAssignmentSchema.shape, runId: z.uuid(), snapshotHash: hash, assignmentOrder: z.number().int().min(0).max(59), planArtifactId: z.uuid(), round: z.enum(["initial", "gap"]), sources: sourcesSchema });
 export type NamingValidatedAssignment = z.infer<typeof namingValidatedAssignmentSchema>;
-export function validateNamingAssignmentPlan(snapshotInput: unknown, researchInput: unknown, planInput: unknown): NamingValidatedAssignment[] {
+export function validateNamingAssignmentPlan(snapshotInput: unknown, researchInput: unknown, planInput: unknown, gapContextInput?: unknown): NamingValidatedAssignment[] {
   const snapshot = namingBriefSnapshotSchema.parse(snapshotInput), research = namingResearchPackSchema.parse(researchInput), plan = namingAssignmentPlanSchema.parse(planInput);
   assert(getNamingPreferencesReadiness(snapshot.preferences).ready, "Generation requires explicit saved approach/directness choices and possible constraints");
   assert(research.readiness === "sourced", "Director admission requires a sourced research pack; partial research remains retained");
@@ -217,6 +272,15 @@ export function validateNamingAssignmentPlan(snapshotInput: unknown, researchInp
   const selected = new Set(snapshot.preferences.approaches), territories = new Set(research.output.territories.map(row => row.territoryId)), sources = new Map(research.sources.map(row => [row.sourceKey, row]));
   const total = plan.output.assignments.reduce((sum, row) => sum + row.targetCount, 0);
   assert(plan.output.round === "initial" ? total === NAMING_BRAIN_INITIAL_RAW_CAP : total <= NAMING_BRAIN_GAP_RAW_CAP, "Assignment targets must respect the admitted initial/gap total");
+  if (plan.output.round === "gap") {
+    const gap = namingGapContextSchema.parse(gapContextInput);
+    assert(gap.runId === plan.runId && gap.snapshotHash === snapshot.snapshotHash && JSON.stringify(gap.primaryCounts.map(row => row.approach)) === JSON.stringify(snapshot.preferences.approaches), "Gap assignments require the actual saved run's deficits and selected routes");
+    const deficient = new Set(gap.deficits.map(row => row.approach));
+    assert(gap.missingCount > 0 || plan.output.assignments.every(assignment => deficient.has(assignment.primaryApproach)), "Coverage-only gaps must focus on the actually deficient approaches");
+    const totalMissingCredits = gap.deficits.reduce((sum, row) => sum + row.missing, 0);
+    const plannedCredits = gap.deficits.reduce((sum, deficit) => sum + Math.min(deficit.missing, plan.output.assignments.filter(assignment => assignment.primaryApproach === deficit.approach).reduce((count, assignment) => count + assignment.targetCount, 0)), 0);
+    assert(plannedCredits === Math.min(totalMissingCredits, total), "The bounded gap allocation must prioritize actual missing primary credits without inventing coverage");
+  } else assert(gapContextInput === undefined, "Initial direction cannot receive a gap context");
   if (plan.output.round === "initial") {
     for (const approach of selected) assert(plan.output.assignments.filter(row => row.primaryApproach === approach).reduce((sum, row) => sum + row.targetCount, 0) >= NAMING_BRAIN_PRIMARY_FLOOR, "Every selected approach needs five primary candidate targets");
     assert(plan.output.assignments.some(row => row.freshTerritory), "Initial and continuation exploration must leave room for fresh territory");
@@ -277,11 +341,11 @@ export function validateNamingCreatorSet(snapshotInput: unknown, assignmentInput
 export const namingAppliedClaimSchema = z.strictObject({ claimKey: localKey, originalStatement: text, status: z.enum(["supported", "corrected", "unresolved", "contradicted"]), publishedStatement: text.nullable(), sourceKeys, evidence: evidenceQuotes, supportsPrimaryApproach: z.boolean(), explanation: text });
 export const namingVerifiedCandidateSchema = z.strictObject({ candidateId: z.uuid(), value: nameValueSchema, eligible: z.boolean(), primaryCredit: namingApproachSchema.nullable(), publishedClaims: z.array(z.strictObject({ claimKey: localKey, statement: text, sourceKeys, evidence: evidenceQuotes })).max(8), claims: z.array(namingAppliedClaimSchema).max(8) });
 export type NamingVerifiedCandidate = z.infer<typeof namingVerifiedCandidateSchema>;
-export const namingAppliedVerificationSchema = z.strictObject({ runId: z.uuid(), snapshotHash: hash, verificationArtifactId: z.uuid(), artifact: namingVerificationSchema, candidates: z.array(namingVerifiedCandidateSchema).max(200) })
+export const namingAppliedVerificationSchema = z.strictObject({ runId: z.uuid(), snapshotHash: hash, verificationArtifactId: z.uuid(), artifact: namingVerificationSchema, sourceContext: namingVerificationSourceContextSchema, candidates: z.array(namingVerifiedCandidateSchema).max(200) })
   .refine(value => unique(value.candidates.map(candidate => candidate.candidateId)) && value.runId === value.artifact.runId && value.snapshotHash === value.artifact.snapshotHash && value.verificationArtifactId === value.artifact.artifactId, "Applied verification must bind its exact retained artifact and unique candidates");
 export type NamingAppliedVerification = z.infer<typeof namingAppliedVerificationSchema>;
-export function applyNamingVerification(candidateInput: unknown, verificationInput: unknown): NamingAppliedVerification {
-  const candidates = z.array(namingValidatedCandidateSchema).max(200).parse(candidateInput), verification = namingVerificationSchema.parse(verificationInput);
+export function applyNamingVerification(candidateInput: unknown, verificationInput: unknown, sourceContextInput: unknown = emptySourceContext): NamingAppliedVerification {
+  const candidates = z.array(namingValidatedCandidateSchema).max(200).parse(candidateInput), verification = validateNamingVerificationSources(verificationInput, sourceContextInput), sourceContext = sourceContextFor(verification, sourceContextInput);
   assert(unique(candidates.map(candidate => candidate.candidateId)) && unique(candidates.map(refKey)), "Candidate references must be unique before verification");
   assert(candidates.every(candidate => candidate.runId === verification.runId && candidate.snapshotHash === verification.snapshotHash), "Verification must bind every candidate's original run and snapshot");
   const byRef = new Map(candidates.map(candidate => [refKey(candidate), candidate])), findings = new Map<string, NamingVerificationFinding>();
@@ -290,7 +354,7 @@ export function applyNamingVerification(candidateInput: unknown, verificationInp
     assert(candidate?.claims.some(claim => claim.claimKey === finding.claimKey), "Verifier findings cannot invent candidate or claim references");
     findings.set(`${refKey(finding)}/${finding.claimKey}`, finding);
   }
-  return freeze(namingAppliedVerificationSchema.parse({ runId: verification.runId, snapshotHash: verification.snapshotHash, verificationArtifactId: verification.artifactId, artifact: verification,
+  return freeze(namingAppliedVerificationSchema.parse({ runId: verification.runId, snapshotHash: verification.snapshotHash, verificationArtifactId: verification.artifactId, artifact: verification, sourceContext,
     candidates: candidates.map(candidate => {
       const claims = candidate.claims.map(claim => {
         const finding = findings.get(`${refKey(candidate)}/${claim.claimKey}`);
@@ -359,12 +423,106 @@ export const namingRolePolicySchema = z.strictObject({
   if (value.role === "verifier" && value.maximumCostMicrousd > 1_250_000) issue(ctx, "Verification must fit its admitted stage bound");
 }).transform(freeze);
 export type NamingRolePolicy = z.infer<typeof namingRolePolicySchema>;
+/** Request-only tables. Full saved candidate/artifact/evidence records remain unchanged. */
+export const namingReviewArtifactSchema = z.strictObject({ artifactKey: localKey, sourceArtifactId: z.uuid(), assignmentKey: localKey, primaryApproach: namingApproachSchema, territoryId: localKey, constructionKey: localKey });
+export type NamingReviewArtifact = z.infer<typeof namingReviewArtifactSchema>;
+export const namingReviewCandidateSchema = z.strictObject({
+  artifactKey: localKey, candidateKey: localKey, value: nameValueSchema, additionalApproaches, rationale: text, caution: text.nullable(), claims: z.array(namingFactualClaimSchema).max(8),
+}).refine(value => unique(value.claims.map(claim => claim.claimKey)), "Review claim keys must remain unique");
+export type NamingReviewCandidate = z.infer<typeof namingReviewCandidateSchema>;
+export const namingReviewProjectionSchema = z.strictObject({
+  version: z.literal(1), runId: z.uuid(), snapshotHash: hash, artifacts: z.array(namingReviewArtifactSchema).max(60), candidates: z.array(namingReviewCandidateSchema).max(200), sources: sourcesSchema,
+}).superRefine((value, ctx) => {
+  if (!unique(value.artifacts.map(artifact => artifact.artifactKey)) || !unique(value.artifacts.map(artifact => artifact.sourceArtifactId))) issue(ctx, "Review artifact bindings must be unique");
+  const artifacts = new Map(value.artifacts.map(artifact => [artifact.artifactKey, artifact]));
+  const sourceKeys = new Set(value.sources.map(source => source.sourceKey)), references = new Set<string>(), used = new Set<string>();
+  for (const candidate of value.candidates) {
+    const artifact = artifacts.get(candidate.artifactKey);
+    if (!artifact) { issue(ctx, "Every review candidate must resolve to its saved artifact"); continue; }
+    used.add(artifact.artifactKey);
+    const reference = `${artifact.assignmentKey}/${candidate.candidateKey}`;
+    if (references.has(reference)) issue(ctx, "Review local candidate references must be unique");
+    references.add(reference);
+    if (candidate.additionalApproaches.includes(artifact.primaryApproach)) issue(ctx, "A review candidate has one primary approach");
+    if (candidate.claims.some(claim => claim.sourceKeys.some(key => !sourceKeys.has(key)))) issue(ctx, "Review claim references must resolve to shared retained evidence");
+  }
+  if (used.size !== artifacts.size) issue(ctx, "Review artifact bindings cannot invent unused dependencies");
+}).transform(freeze);
+export type NamingReviewProjection = z.infer<typeof namingReviewProjectionSchema>;
+
+export function createNamingReviewProjection(input: { runId: string; snapshotHash: string; candidates: unknown }): NamingReviewProjection {
+  const basis = z.strictObject({ runId: z.uuid(), snapshotHash: hash, candidates: z.array(namingValidatedCandidateSchema).max(200) }).parse(input);
+  const candidates = [...basis.candidates].sort((a, b) => a.assignmentOrder - b.assignmentOrder || a.generatedOrder - b.generatedOrder || (a.candidateId < b.candidateId ? -1 : a.candidateId > b.candidateId ? 1 : 0));
+  assert(unique(candidates.map(candidate => candidate.candidateId)) && unique(candidates.map(refKey)), "Review must preserve unique saved candidate IDs and local references");
+  assert(candidates.every(candidate => candidate.runId === basis.runId && candidate.snapshotHash === basis.snapshotHash), "Review candidates must bind the same saved run and snapshot");
+  const artifacts = new Map<string, NamingReviewArtifact>(), sources = new Map<string, NamingEvidenceSource>();
+  const projected = candidates.map(candidate => {
+    let artifact = artifacts.get(candidate.sourceArtifactId);
+    if (!artifact) {
+      artifact = { artifactKey: `a${artifacts.size}`, sourceArtifactId: candidate.sourceArtifactId, assignmentKey: candidate.assignmentKey, primaryApproach: candidate.primaryApproach, territoryId: candidate.territoryId, constructionKey: candidate.constructionKey };
+      artifacts.set(candidate.sourceArtifactId, artifact);
+    }
+    assert(artifact.assignmentKey === candidate.assignmentKey && artifact.primaryApproach === candidate.primaryApproach && artifact.territoryId === candidate.territoryId && artifact.constructionKey === candidate.constructionKey, "Saved Creator artifact metadata conflicts within the review pool");
+    for (const source of candidate.sources) {
+      const existing = sources.get(source.sourceKey);
+      assert(!existing || JSON.stringify(existing) === JSON.stringify(source), "A shared source key identifies conflicting retained evidence");
+      if (!existing) sources.set(source.sourceKey, source);
+    }
+    return { artifactKey: artifact.artifactKey, candidateKey: candidate.candidateKey, value: candidate.value, additionalApproaches: candidate.additionalApproaches, rationale: candidate.rationale, caution: candidate.caution, claims: candidate.claims };
+  });
+  return namingReviewProjectionSchema.parse({ version: 1, runId: basis.runId, snapshotHash: basis.snapshotHash, artifacts: Array.from(artifacts.values()), candidates: projected, sources: Array.from(sources.values()).sort((a, b) => a.sourceKey < b.sourceKey ? -1 : a.sourceKey > b.sourceKey ? 1 : 0) });
+}
+
+/** Rehydrate against owned saved records before trusting a persisted request projection. */
+export function validateNamingReviewProjection(projectionInput: unknown, candidates: unknown): NamingReviewProjection {
+  const projection = namingReviewProjectionSchema.parse(projectionInput);
+  const expected = createNamingReviewProjection({ runId: projection.runId, snapshotHash: projection.snapshotHash, candidates });
+  assert(JSON.stringify(projection) === JSON.stringify(expected), "Review projection must preserve every exact saved candidate, claim, artifact and source binding");
+  return projection;
+}
+
+export const namingCurationProjectionSchema = z.strictObject({
+  artifactId: z.uuid(), runId: z.uuid(), snapshotHash: hash,
+  annotationFields: z.tuple([z.literal("assignmentKey"), z.literal("candidateKey"), z.literal("concerns"), z.literal("suggestedRejection")]),
+  annotations: z.array(z.tuple([localKey, localKey, z.array(text).max(8), namingHardRejectionReasonSchema.nullable()])).max(200), gaps: namingCurationOutputSchema.shape.gaps,
+}).refine(value => unique(value.annotations.map(row => `${row[0]}/${row[1]}`)), "Projected Curator references must be unique").transform(freeze);
+export type NamingCurationProjection = z.infer<typeof namingCurationProjectionSchema>;
+export function createNamingCurationProjection(input: unknown): NamingCurationProjection {
+  const artifact = namingCurationSchema.parse(input);
+  return namingCurationProjectionSchema.parse({ artifactId: artifact.artifactId, runId: artifact.runId, snapshotHash: artifact.snapshotHash, annotationFields: ["assignmentKey", "candidateKey", "concerns", "suggestedRejection"],
+    annotations: artifact.output.annotations.map(annotation => [annotation.assignmentKey, annotation.candidateKey, annotation.concerns, annotation.suggestedRejection]), gaps: artifact.output.gaps });
+}
+export function validateNamingCurationProjection(projectionInput: unknown, artifact: unknown): NamingCurationProjection {
+  const projection = namingCurationProjectionSchema.parse(projectionInput);
+  assert(JSON.stringify(projection) === JSON.stringify(createNamingCurationProjection(artifact)), "Curation projection must preserve its exact saved artifact and every annotation");
+  return projection;
+}
+
+export const namingGapContextSchema = z.strictObject({
+  version: z.literal(1), runId: z.uuid(), snapshotHash: hash, missingCount: z.number().int().min(0).max(100),
+  primaryCounts: z.array(z.strictObject({ approach: namingApproachSchema, count: z.number().int().min(0).max(100) })).min(1).max(11),
+  deficits: z.array(z.strictObject({ approach: namingApproachSchema, required: z.literal(5), actual: z.number().int().min(0).max(4), missing: z.number().int().min(1).max(5) })).max(11),
+  currentPool: z.array(z.strictObject({ candidateId: z.uuid(), sourceArtifactId: z.uuid(), value: nameValueSchema, identityKey: nameIdentityKeySchema.min(1), primaryApproach: namingApproachSchema, disposition: z.enum(["selected", "unused", "rejected"]) }).refine(value => nameIdentityKey(value.value) === value.identityKey, "Gap identities must retain the actual saved values")).max(200),
+  curationArtifactId: z.uuid(), verificationArtifactId: z.uuid(), sourceArtifactIds: z.array(z.uuid()).max(60).refine(unique),
+}).superRefine((value, ctx) => {
+  if (!unique(value.currentPool.map(row => row.candidateId)) || !unique(value.primaryCounts.map(row => row.approach)) || !unique(value.deficits.map(row => row.approach))) issue(ctx, "Gap context records and routes must be unique");
+  const selected = value.currentPool.filter(row => row.disposition === "selected"), eligible = value.currentPool.filter(row => row.disposition !== "rejected");
+  if (selected.length > 100 || value.missingCount !== 100 - selected.length || !unique(eligible.map(row => row.identityKey))) issue(ctx, "Gap count must reflect the actual distinct selected pool");
+  if (value.currentPool.some(row => !value.primaryCounts.some(count => count.approach === row.primaryApproach)) || value.primaryCounts.some(row => row.count !== selected.filter(candidate => candidate.primaryApproach === row.approach).length)) issue(ctx, "Gap primary counts must describe the saved candidate credits");
+  const deficits = value.primaryCounts.filter(row => row.count < 5);
+  if (deficits.length !== value.deficits.length || deficits.some(row => !value.deficits.some(deficit => deficit.approach === row.approach && deficit.actual === row.count && deficit.missing === 5 - row.count))) issue(ctx, "Gap deficits must describe actual missing primary credits");
+  const artifacts = new Set(value.currentPool.map(row => row.sourceArtifactId));
+  if (artifacts.size !== value.sourceArtifactIds.length || value.sourceArtifactIds.some(id => !artifacts.has(id))) issue(ctx, "Gap dependencies must preserve every actual pool source artifact");
+  if (value.missingCount === 0 && value.deficits.length === 0) issue(ctx, "A complete set has no gap to dispatch");
+}).transform(freeze);
+export type NamingGapContext = z.infer<typeof namingGapContextSchema>;
+
 export const namingStageInputSchema = z.discriminatedUnion("role", [
   z.strictObject({ role: z.literal("researcher"), snapshot: namingBriefSnapshotSchema }),
-  z.strictObject({ role: z.literal("director"), snapshot: namingBriefSnapshotSchema, research: namingResearchPackSchema }),
+  z.strictObject({ role: z.literal("director"), snapshot: namingBriefSnapshotSchema, research: namingResearchPackSchema, gapContext: namingGapContextSchema.optional() }),
   z.strictObject({ role: z.literal("creator"), snapshot: namingBriefSnapshotSchema, assignment: namingValidatedAssignmentSchema }),
-  z.strictObject({ role: z.literal("curator"), snapshot: namingBriefSnapshotSchema, candidates: z.array(namingValidatedCandidateSchema).max(200), validationRejections: z.array(namingCandidateRejectionSchema).max(200) }),
-  z.strictObject({ role: z.literal("verifier"), snapshot: namingBriefSnapshotSchema, candidates: z.array(namingValidatedCandidateSchema).max(200), curation: namingCurationSchema }),
+  z.strictObject({ role: z.literal("curator"), snapshot: namingBriefSnapshotSchema, review: namingReviewProjectionSchema, validationRejections: z.array(namingCandidateRejectionSchema).max(200) }),
+  z.strictObject({ role: z.literal("verifier"), snapshot: namingBriefSnapshotSchema, review: namingReviewProjectionSchema, curation: namingCurationProjectionSchema }),
 ]);
 export type NamingStageInput = z.infer<typeof namingStageInputSchema>;
 export const namingStageRequestSchema = z.strictObject({
@@ -376,17 +534,37 @@ export const namingStageRequestSchema = z.strictObject({
   if (!rolesForStage[value.stageKey].includes(value.role) || value.role !== input.role || value.role !== value.policy.role || value.snapshotHash !== input.snapshot.snapshotHash || !getNamingPreferencesReadiness(input.snapshot.preferences).ready) issue(ctx, "Role request must bind its ready frozen input, stage and accepted policy");
   const dependencies = new Set(value.dependencyArtifactIds);
   if (input.role === "director" && (input.research.runId !== value.runId || input.research.snapshotHash !== value.snapshotHash || input.research.readiness !== "sourced" || !dependencies.has(input.research.artifactId))) issue(ctx, "Direction must depend on saved sourced research from this run");
+  if (input.role === "director") {
+    const gap = input.gapContext;
+    if ((value.stageKey === "gap") !== (gap !== undefined)) issue(ctx, "Director gap context is required only for the gap phase");
+    if (gap && (gap.runId !== value.runId || gap.snapshotHash !== value.snapshotHash || JSON.stringify(gap.primaryCounts.map(row => row.approach)) !== JSON.stringify(input.snapshot.preferences.approaches) || [gap.curationArtifactId, gap.verificationArtifactId, ...gap.sourceArtifactIds].some(id => !dependencies.has(id)))) issue(ctx, "Gap direction must bind the actual saved review outputs and source dependencies");
+  }
   if (input.role === "creator") {
+    if ((value.stageKey === "gap") !== (input.assignment.round === "gap")) issue(ctx, "Creator requests must use the stage reserved for their assignment round");
     if (value.assignmentKey !== input.assignment.assignmentKey || input.assignment.runId !== value.runId || input.assignment.snapshotHash !== value.snapshotHash || !dependencies.has(input.assignment.planArtifactId)) issue(ctx, "Creator requests must bind one saved validated assignment");
     if (value.policy.sessionLimitCents > input.assignment.targetCount) issue(ctx, "Creator session allowance cannot exceed its share of the creation-stage allocation");
   } else if (value.assignmentKey !== null) issue(ctx, "Only Creator calls bind a Creator assignment key");
   if (input.role === "curator" || input.role === "verifier") {
-    if (input.candidates.some(candidate => candidate.runId !== value.runId || candidate.snapshotHash !== value.snapshotHash || !dependencies.has(candidate.sourceArtifactId))) issue(ctx, "Review requires saved candidate artifacts from this run");
+    if (input.review.runId !== value.runId || input.review.snapshotHash !== value.snapshotHash || input.review.artifacts.some(artifact => !dependencies.has(artifact.sourceArtifactId))) issue(ctx, "Review requires saved candidate artifacts from this run");
+    if (input.review.artifacts.some(artifact => !input.snapshot.preferences.approaches.includes(artifact.primaryApproach)) || input.review.candidates.some(candidate => candidate.additionalApproaches.some(approach => !input.snapshot.preferences.approaches.includes(approach)))) issue(ctx, "Review routes must preserve the selected approaches");
+  }
+  if (input.role === "verifier") {
+    const assignments = new Map(input.review.artifacts.map(artifact => [artifact.artifactKey, artifact.assignmentKey]));
+    const references = new Set(input.review.candidates.map(candidate => `${assignments.get(candidate.artifactKey)}/${candidate.candidateKey}`));
+    if (input.curation.annotations.some(row => !references.has(`${row[0]}/${row[1]}`))) issue(ctx, "Verification annotations must reference the complete projected candidate pool");
   }
   if (input.role === "verifier" && (input.curation.runId !== value.runId || input.curation.snapshotHash !== value.snapshotHash || !dependencies.has(input.curation.artifactId))) issue(ctx, "Verification must depend on this run's saved curation");
   if (!boundedBytes(value, value.policy.maxInputBytes)) issue(ctx, "Role input exceeds its accepted byte limit; transport also bounds final instructions and wire encoding");
 }).transform(freeze);
 export type NamingStageRequest = z.infer<typeof namingStageRequestSchema>;
+/** The adapter calls this on its actual final JSON body, before beforeDispatch. */
+export function assertNamingStageWireInput(requestInput: unknown, wireBody: unknown): number {
+  const request = namingStageRequestSchema.parse(requestInput), body = z.json().parse(wireBody);
+  const bytes = new TextEncoder().encode(JSON.stringify(body)).byteLength;
+  assert(bytes <= request.policy.maxInputBytes, `Naming provider wire input is ${bytes} bytes and exceeds the ${request.policy.maxInputBytes}-byte limit; retain the complete saved artifacts and do not dispatch or truncate.`);
+  return bytes;
+}
+
 export type NamingStageHooks = { signal: AbortSignal; beforeDispatch(): Promise<void>; onReceipt(receipt: NamingProviderReceipt): Promise<void>; onArtifact(rawCompletedItem: unknown): Promise<void> };
 export interface NamingAgentRuntime {
   runStage(request: NamingStageRequest, hooks: NamingStageHooks): Promise<NamingStageOutcome>;
@@ -418,16 +596,23 @@ export const namingRunAccountingSchema = z.discriminatedUnion("status", [
 export type NamingRunAccounting = z.infer<typeof namingRunAccountingSchema>;
 const runSummaryFields = {
   version: z.literal(1), ownerId: z.uuid(), projectId: z.uuid(), runId: z.uuid(), jobId: z.uuid(), batchId: z.uuid(), revision, resumedFromRunId: z.uuid().nullable(),
+  // Server-qualified at this revision; absence never grants a client recovery action.
+  canResume: z.boolean().default(false),
   state: z.enum(["queued", "running", "partial", "cancel_requested", "cancelled", "succeeded", "failed", "needs_reconciliation", "prepared", "superseded"]),
   projectRevision: revision, preferencesVersion: revision, feedbackRevision: counter, steeringRevision: counter, demandSequence: counter, snapshotHash: hash, acceptedPolicyIdentity: hash,
   progress: z.number().int().min(0).max(100), preparedSetId: z.uuid().nullable(), fulfillment: namingBrainFulfillmentSchema.nullable(), accounting: namingRunAccountingSchema, createdAt: timestamp, updatedAt: timestamp,
 };
-export const namingBrainRunSummarySchema = z.strictObject(runSummaryFields).refine(value => value.runId !== value.resumedFromRunId, "Resume creates a new run linked to its terminal predecessor");
+function validResumeWitness(value: { canResume: boolean; state: string; fulfillment: NamingBrainFulfillment | null }): boolean {
+  return !value.canResume || (["partial", "cancelled", "failed"].includes(value.state) && value.fulfillment?.status !== "complete");
+}
+export const namingBrainRunSummarySchema = z.strictObject(runSummaryFields).refine(value => value.runId !== value.resumedFromRunId, "Resume creates a new run linked to its terminal predecessor")
+  .refine(validResumeWitness, "Only an admissible incomplete terminal run can carry a server Resume witness");
 export type NamingBrainRunSummary = z.infer<typeof namingBrainRunSummarySchema>;
 export const namingBrainRunSchema = z.strictObject({ ...runSummaryFields, snapshot: namingBriefSnapshotSchema,
   stages: z.array(z.strictObject({ stageKey: namingStageKeySchema, state: z.enum(["pending", "running", "succeeded", "skipped", "failed", "cancelled", "unresolved"]), artifactIds: z.array(z.uuid()).max(60).refine(unique), startedAt: timestamp.nullable(), finishedAt: timestamp.nullable(), errorCode: z.string().regex(/^[a-z][a-z0-9_]{0,79}$/).nullable() })).length(7),
 }).superRefine((value, ctx) => {
   const snapshot = value.snapshot;
+  if (!validResumeWitness(value)) issue(ctx, "Only an admissible incomplete terminal run can carry a server Resume witness", ["canResume"]);
   if (value.runId === value.resumedFromRunId || value.ownerId !== snapshot.ownerId || value.projectId !== snapshot.projectId || value.projectRevision !== snapshot.contextRevision || value.preferencesVersion !== snapshot.preferencesVersion || value.feedbackRevision !== snapshot.feedbackRevision || value.steeringRevision !== snapshot.steeringRevision || value.snapshotHash !== snapshot.snapshotHash) issue(ctx, "Run and snapshot must bind one owned revision basis");
   if (!unique(value.stages.map(stage => stage.stageKey)) || value.stages.some((stage, index) => stage.stageKey !== namingStageKeySchema.options[index])) issue(ctx, "The complete fixed stage manifest must precede execution");
 }).transform(freeze);
