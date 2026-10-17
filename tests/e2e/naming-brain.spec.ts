@@ -85,11 +85,35 @@ test("Naming V2: history/filter Continue restores exploration before admission",
   await scrollToTail(page); await expect.poll(() => fixture.mutations().length).toBe(1);
 });
 
-test("Naming V2: restored scroll, idle, hidden, search/history, detail and Stop cannot admit", async ({ page }) => {
-  const fixture = await namingFixture(page, { saved: true, count: 3 }); await page.clock.install(); await openNaming(page);
+for (const elapsed of [30_000, 60_100]) test(`Naming V2: an unconsumed exploration interaction ${elapsed < 60_000 ? "before the idle deadline admits" : "after the idle deadline cannot admit"}`, async ({ page }) => {
+  const fixture = await namingFixture(page, { saved: true, count: 100 }); fixture.state.ensureMode = "pending";
+  await page.clock.install(); await openNaming(page); await expect(page.locator(".naming-feed-card")).toHaveCount(100);
+  // The real wheel interaction must occur outside the observer's two-viewport
+  // prefetch region so it remains eligible and unconsumed until the later scroll.
+  await namingCard(page, 1).hover(); await page.mouse.wheel(0, 120); await frameBarrier(page);
+  expect(await page.locator(".naming-feed-tail").evaluate(tail => {
+    const root = tail.closest<HTMLElement>(".project-workspace-content")!;
+    return tail.getBoundingClientRect().top > root.getBoundingClientRect().bottom + root.clientHeight * 2;
+  })).toBe(true);
+  await expect(page.getByText("Keep scrolling to explore more names.", { exact: true })).toHaveCount(1);
+  expect(fixture.mutations()).toHaveLength(0);
+  await page.clock.fastForward(elapsed);
+  await expect(page.getByText(elapsed < 60_000 ? "Keep scrolling to explore more names." : "Exploration pauses while you are away. Scroll to continue.", { exact: true })).toHaveCount(1);
+  await scrollToTail(page, false);
+  if (elapsed < 60_000) await expect.poll(() => fixture.mutations().length).toBe(1);
+  else {
+    await expect(page.getByText("Exploration pauses while you are away. Scroll to continue.", { exact: true })).toBeVisible();
+    expect(fixture.mutations()).toHaveLength(0);
+    // The same sentinel can admit immediately after a fresh real interaction.
+    await page.locator(".naming-feed-tail").hover(); await page.mouse.wheel(0, 120);
+    await expect.poll(() => fixture.mutations().length).toBe(1);
+  }
+  expect(fixture.mutations()[0]!.body).toMatchObject({ reason: "scroll", consumedThrough: { entryId: id(200_100), position: 100 } });
+});
+
+test("Naming V2: restored scroll, hidden, search/history, detail and Stop cannot admit", async ({ page }) => {
+  const fixture = await namingFixture(page, { saved: true, count: 3 }); await openNaming(page);
   await expect(page.locator(".naming-feed-card")).toHaveCount(3); await scrollToTail(page, false); expect(fixture.mutations()).toHaveLength(0);
-  await page.getByRole("button", { name: "Naming choices", exact: true }).click(); await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await page.clock.fastForward(60_100); await scrollToTail(page, false); expect(fixture.mutations()).toHaveLength(0);
   // Emulate the document visibility boundary without bringing another shared GUI tab forward.
   await page.evaluate(() => { Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" }); document.dispatchEvent(new Event("visibilitychange")); });
   await page.locator(".naming-continuous-results").press("End"); await frameBarrier(page); expect(fixture.mutations()).toHaveLength(0);

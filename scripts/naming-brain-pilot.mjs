@@ -82,8 +82,17 @@ export async function runNamingPilot(raw, options = {}) {
   const result = await request(`/api/projects/${config.projectId}/naming/feed/ensure`, namingFeedEnsureResultSchema, intent);
   if (result.feed.ownerId !== config.ownerId || result.feed.projectId !== config.projectId) stop("admission_owner_mismatch_keep_exact_intent");
   if (result.status === "blocked" || result.status === "paused") return { status: result.status, action: result.action, newRunRequested: false, finalCharge: null };
+  // Appended membership identifies its own run. A newer/missing active head cannot
+  // stand in for that receipt; preserve the intent for an explicit owned read.
+  if (result.status === "appended" && result.feed.activeRun?.runId !== result.runId) stop("appended_run_unconfirmed_keep_exact_intent");
   const run = "run" in result ? result.run : result.feed.activeRun;
-  if (!run || run.acceptedPolicyIdentity !== config.policyIdentity || run.ownerId !== config.ownerId || run.projectId !== config.projectId || run.projectRevision !== intent.expectedProjectRevision || run.preferencesVersion !== intent.expectedPreferencesVersion || run.steeringRevision !== intent.expectedSteeringRevision) stop("admission_basis_mismatch_keep_exact_intent");
+  if (!run || run.acceptedPolicyIdentity !== config.policyIdentity || run.ownerId !== config.ownerId || run.projectId !== config.projectId || run.projectRevision !== intent.expectedProjectRevision || run.preferencesVersion !== intent.expectedPreferencesVersion || run.steeringRevision !== intent.expectedSteeringRevision || result.feed.projectRevision !== intent.expectedProjectRevision || result.feed.preferencesVersion !== intent.expectedPreferencesVersion || result.feed.steeringRevision !== intent.expectedSteeringRevision) stop("admission_basis_mismatch_keep_exact_intent");
+  const expectedSequence = intent.expectedDemandSequence + (intent.reason === "resume" ? 1 : 0);
+  // A free Resume advances the feed while retaining its exact existing source
+  // run's sequence. A paid Resume creates a linked run at the advanced sequence.
+  const freeResume = intent.reason === "resume" && result.status === "appended" && run.runId === intent.resumeOfRunId;
+  const expectedRunSequence = freeResume ? feed.activeRun?.demandSequence : expectedSequence;
+  if (result.feed.demandSequence !== expectedSequence || run.demandSequence !== expectedRunSequence || (result.feed.consumedThrough?.entryId ?? null) !== (intent.consumedThrough?.entryId ?? null) || (result.feed.consumedThrough?.position ?? null) !== (intent.consumedThrough?.position ?? null)) stop("admission_demand_mismatch_keep_exact_intent");
   if (intent.reason === "resume" && run.resumedFromRunId !== intent.resumeOfRunId && run.runId !== intent.resumeOfRunId) stop("resume_link_mismatch_keep_exact_intent");
   return { status: result.status, runId: run.runId, jobId: run.jobId, accounting: run.accounting, uniqueNamesInReceipt: new Set(result.feed.entries.map(row => row.entry.candidate.identityKey)).size, finalCharge: run.accounting.confirmedActualCostMicrousd };
 }
