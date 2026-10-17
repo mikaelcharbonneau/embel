@@ -9,13 +9,23 @@ an account has been funded or that a configured model is accessible. See
 
 ## Revision and migration gate
 
-The reviewed backend/runtime and R1–R3 QA safeguards are integrated at
-`069b8be4efa7fc00d7267e064d102c6daa11dc1f`; that checkout was clean before this
-documentation update. The earlier `3abfa6571087a518e013bb88b7d7acb4ab302064`
-partial-source QA results remain historical evidence. D071's chat-first Naming
-correction, remaining SQL recovery qualification and the final integrated matrix
-are still separate work. This packet **must be bound to that final reviewed
-commit before execution**; it does not declare the whole branch verified.
+The reviewed source packages are integrated at the clean pre-verification base
+`a48eb033acc29e8f260ebfaadf2cae6bf6343423`: backend/runtime, R1–R3 QA safeguards,
+seven actual SQL/store/SDK cases (31/31 including 24 handler cases), and D071's
+chat-first correction at `a13e94c34d8d67d52fb6dc23415f5be679f823d6` with F1/F2
+resolved, 142 client checks and 46 final affected browser checks. Their scoped
+reviews are approved. Earlier partial-source and focused-phase counts remain
+historical evidence in the verification record.
+
+The full stable-source matrix and whole-branch review are the only remaining local
+acceptance gates. Their results and the final combined commit/tree are not yet
+established. This packet **must be bound to that final reviewed commit before
+execution**; it does not declare the whole branch verified or activate anything.
+
+The corrected independent sample-data preview is
+`http://127.0.0.1:3135/__preview`, source `a13e94c`, build
+`gfuuPIn1v7wdAnbMseDvK`. The lead's desktop/mobile wrapper smoke includes interrupted
+questions. This is local UI evidence, not real generated names or worker readiness.
 
 The dedicated Node graph is `worker/index.ts`, invoked by `npm run worker`
 (`node --conditions=react-server --import tsx worker/index.ts`).
@@ -28,11 +38,13 @@ it does not start this managed Naming graph.
 | Item | Preparation status / required read-back |
 | --- | --- |
 | Additive migration | `supabase/migrations/20261016180000_naming_brain.sql` |
-| Final reviewed migration SHA-256 | `b55c29851e1d11efdb00eb8d2831f256884e31501beab98c178c8b7220da1d8f`, recomputed at `069b8be4efa7fc00d7267e064d102c6daa11dc1f`. Recompute again at the final freeze. |
+| Final reviewed migration SHA-256 | `b55c29851e1d11efdb00eb8d2831f256884e31501beab98c178c8b7220da1d8f`, recomputed at `a48eb033acc29e8f260ebfaadf2cae6bf6343423`. Recompute again at the final freeze. |
 | Historical round-one candidate digest | `8759c191bcb20c56db56d763bb6370e523921c65d1944353bb84ba431bf61b1e`; superseded by the reviewed fixes, **not an activation digest**. |
-| Final source commit and tree | Reviewed backend/runtime base is `069b8be4efa7fc00d7267e064d102c6daa11dc1f`; final D071 integration/freeze and complete verification matrix remain pending. |
-| Database target / application origin / worker deployment | Unverified. Bind their exact identities to the approved source; do not infer them from a familiar service name. |
-| Existing personal runtime login and role OID | Unverified. No login, grant or persistent credential was created for this task. |
+| Final source commit and tree | Current pre-verification base is `a48eb033acc29e8f260ebfaadf2cae6bf6343423`; final combined freeze/matrix and whole-branch review remain pending. |
+| Configured database target | Public URL `https://fricsfwqibyhemknqgyf.supabase.co` exactly matches connector project `fluid-platform-dev`, ref `fricsfwqibyhemknqgyf`, `us-east-1`, `ACTIVE_HEALTHY`. |
+| Naming installation | At the 2026-10-17 connector metadata read, migration `20261016180000`, all nine scoped Naming RPCs and private `naming_brain_*` tables were absent. |
+| Application origin / worker deployment | Live activation identities remain unverified. The sample preview above is not their substitute. |
+| Existing personal runtime login and role OID | Catalog confirms `fluid_api_text_worker`, OID `21484`, LOGIN without SUPERUSER/BYPASSRLS/INHERIT/CREATEROLE/CREATEDB/REPLICATION. Owner binding and actual direct/pooler authentication remain unverified; no credentials or grants were created. |
 | Model and managed API capability | Unverified. Pin the actual model in the reviewed policy; do not substitute another model. |
 
 Before authorized installation, compare local `git rev-parse HEAD`, tracked tree,
@@ -44,6 +56,16 @@ ACLs and FORCE RLS state. Preserve the evidence without connection strings,
 cookies, API keys or raw private payloads.
 
 ## Restricted runtime identity and grants
+
+The bounded connector-only metadata pass at 2026-10-17T15:12:47Z matched the root
+checkout's public project URL without reading other environment values. Its ledger
+has 55 entries, latest `20261016023224` / `third_terminal_research_operator_adjudication`;
+the Naming migration is missing. All nine exact `to_regprocedure` lookups return
+no object, so their live owners/ACLs cannot yet be validated. The existing validator
+`fluid_private.api_text_restricted_role(name,oid)` is OID `21847`, owned by
+`postgres`, SECURITY DEFINER false, with empty pinned search path. No application
+function, user/auth/balance row, credential or direct/pooler login was used. This
+identifies the target and missing installation; it grants no activation authority.
 
 Use the **existing restricted personal login** only after its name, OID and
 approved account owner are verified. Check `session_user`, `current_user`,
@@ -59,8 +81,9 @@ below, and only those Naming capabilities. The first seven are the scoped worker
 lifecycle; the last two are the trusted preference-readiness seam. Apply no wildcard
 `GRANT EXECUTE ON ALL FUNCTIONS` and no direct table grants. This migration does not
 install a worker login or grant these private functions to browser principals.
-All nine definitions were matched to the reviewed migration source; their live
-OIDs, owners and ACLs remain unverified.
+All nine definitions match the reviewed migration source and are absent from the
+configured target at the metadata snapshot. Installation and exact live ACL
+read-back remain separately authorized steps.
 
 ```sql
 public.report_naming_brain_worker_ready(jsonb, text, text, integer)
@@ -100,7 +123,7 @@ an exact version/hash/fingerprint/readiness attestation, not a browser readiness
 flag or an echoed expected fingerprint. Saved drafts and free saved-output browsing
 remain independent of paid readiness.
 
-The reviewed normalizer source hash, recomputed at `069b8be4efa7fc00d7267e064d102c6daa11dc1f`, is
+The reviewed normalizer source hash, recomputed at `a48eb033acc29e8f260ebfaadf2cae6bf6343423`, is
 `7108319323898692a388fcf17cb542509583288b0d4b05d7384f8c5b707aeb01` for
 `src/domain/naming-brain-preferences.ts`. Recompute it from the final source.
 Fingerprint version 1 is:
@@ -232,12 +255,14 @@ qualification.
 
 ## Minimal path to the first local real-name test
 
-1. Finish and review the D071 chat-left/results-right correction, remaining actual
-   SQL recovery cases and final stable-source matrix in the verification record.
-   Freeze one source revision and recompute the migration/normalizer digests.
+1. Freeze the combined source, complete its full stable-source matrix and obtain
+   whole-branch review. D071/F1/F2, R1–R3 and the seven local SQL coupling cases
+   already have approved source-scoped reviews. Record the resulting exact source
+   identity and recompute the migration/normalizer digests.
 2. Under separate explicit activation authority, install/read back that exact
    additive migration and the nine scoped EXECUTE grants on the identified
-   development database; verify the existing restricted login/OID, owner, policy,
+   `fluid-platform-dev` database (`fricsfwqibyhemknqgyf`); verify the existing
+   `fluid_api_text_worker`/OID `21484`, owner, policy,
    runtime fingerprint and deployment. Configure the seven worker keys through the
    approved secure destination, verify exact managed-model access and available
    funding, then validate attestation/readiness before enabling paid admission.

@@ -168,16 +168,23 @@ The worker accepts both legacy v1 inputs and v2, revalidates history ownership/p
 
 The current local Naming candidate uses saved V2 preferences, immutable run
 snapshots and a continuous owned results feed. It is separate from the historical
-250-name subscription path below. The reviewed backend/runtime is integrated at
-`069b8be4efa7fc00d7267e064d102c6daa11dc1f`; D071's chat presentation correction,
-remaining SQL recovery qualification and the final integrated matrix are still
-pending. Local implementation and synthetic evidence do not establish live
-database installation, model access or paid activation.
+250-name subscription path below. The clean pre-verification base is
+`a48eb033acc29e8f260ebfaadf2cae6bf6343423`, with approved source-scoped reviews for
+backend/runtime, R1–R3, seven actual SQL coupling cases (31/31 including 24 handler
+cases), and D071/F1/F2 at `a13e94c` (142 client checks, 46 final affected browser
+checks). The full stable-source matrix and whole-branch review are the remaining
+local acceptance gates; no final combined revision or result is declared here.
+Local implementation and synthetic evidence do not establish live installation,
+model access or paid activation.
 
 D071 requires Naming decisions as widgets in the same chat used to answer them.
 After those decisions, the chat occupies a smaller left panel and generated names
-occupy a larger right-hand grid. That local UI correction is being implemented
-separately. Account saves/recovery, historical batches and Workshop remain part of
+occupy a larger right-hand grid. The reviewed correction retains unfinished
+questions through interruption and excludes action-key activation from exploration
+demand. The independent sample preview at `http://127.0.0.1:3135/__preview`
+identifies source `a13e94c` / build `gfuuPIn1v7wdAnbMseDvK`; its desktop/mobile
+wrapper smoke covers interrupted questions. It contains sample data only.
+Account saves/recovery, historical batches and Workshop remain part of
 the account workspace; opening or navigating to Naming does not upgrade saved
 choices or admit paid work. Approaches and directness require explicit answers.
 
@@ -222,6 +229,13 @@ scoped RPC capabilities. The hosted `build:api-text-worker` graph and the existi
 hashes, environment names, grant signatures and separate authorization requirements
 in the [activation packet](naming-brain-activation-20261016.md) and the
 [source-specific verification record](naming-brain-verification-20261016.md).
+
+The 2026-10-17 connector-only metadata snapshot identifies the configured target as
+`fluid-platform-dev`, ref `fricsfwqibyhemknqgyf`, `us-east-1`. Migration
+`20261016180000` and all nine Naming RPCs are absent there. Catalog role
+`fluid_api_text_worker` exists at OID `21484`; its actual owner binding, direct/pooler
+authentication, new Naming grants and deployment/policy remain unverified. No live
+Naming installation, credentials, funding or inference was performed.
 
 ## Historical project Naming subscription path (V1)
 

@@ -4,12 +4,12 @@ This is **source-specific local evidence**, not final Task 6 qualification or
 activation. The QA checkout is
 `/Users/mikael/.codex/worktrees/naming-contracts/embel`, isolated from preview port
 3105 and shared browser tabs. It has its own APFS dependency clone and no copied
-credentials/runtime files. The reviewed backend/runtime and independently approved
-R1–R3 safeguards are integrated at `069b8be4efa7fc00d7267e064d102c6daa11dc1f`.
-That checkout was clean before the activation/architecture documentation update.
-D071's chat-first/left-chat/right-grid implementation, remaining actual SQL
-recovery cases and the final frozen integrated matrix are still pending. No final
-whole-branch verification or live validation is claimed.
+credentials/runtime files. The clean pre-verification base is
+`a48eb033acc29e8f260ebfaadf2cae6bf6343423`, integrating all approved source-scoped
+packages: backend/runtime, R1–R3, seven actual SQL coupling cases, and D071/F1/F2.
+The full stable-source matrix and whole-branch review are the only remaining local
+acceptance gates. Their results and a final combined source identity are not yet
+recorded. No final whole-branch verification or live activation is claimed.
 
 ## Current reviewed checkpoint and remaining work
 
@@ -20,12 +20,13 @@ whole-branch verification or live validation is claimed.
   lint, production build and diff check. The reviewer independently ran eight
   additional inert receipt probes. These do not replace the final full matrix.
 - The reviewed migration `20261016180000_naming_brain.sql` hashes to
-  `b55c29851e1d11efdb00eb8d2831f256884e31501beab98c178c8b7220da1d8f` at `069b8be`.
+  `b55c29851e1d11efdb00eb8d2831f256884e31501beab98c178c8b7220da1d8f`, recomputed at
+  `a48eb033acc29e8f260ebfaadf2cae6bf6343423`.
   The shared preference implementation hashes to
   `7108319323898692a388fcf17cb542509583288b0d4b05d7384f8c5b707aeb01`.
-- Separate actual SQL/store/pinned-SDK qualification in the `naming-runtime`
-  worktree has passed its initial 150-to-100 and four gap/terminal-partial cases
-  using migrated disposable PGlite and inert transports. The gap phase records
+- The historical actual SQL/store/pinned-SDK gap phase in `naming-runtime`
+  passed its initial 150-to-100 and four gap/terminal-partial cases
+  using migrated disposable PGlite and inert transports. That phase records
   29/29 focused tests: five actual SQL/SDK cases plus 24 existing handler/codec
   cases, with direct TypeScript, two-file ESLint and diff checks passing. Its source
   is `fd3939401412afe4b3b8fc79203f54a86851fa9d` plus the two uncommitted test files,
@@ -33,16 +34,47 @@ whole-branch verification or live validation is claimed.
   (`naming-brain-sql-runtime.test.ts`) and
   `f89fef1d81b5320935531993340530349334fb0284ba2d61ee32aa4b44305a16`
   (`naming-brain-sql-runtime-fixture.ts`). These are source-specific reported
-  results, not a rerun on `069b8be` or the final D071 source. Lost-acknowledgement /
-  recovery and foreign-proof cases, combined review and final integration remain
-  pending. The canonical phase report is the ignored
+  results, not the final integrated matrix. The later complete phase below
+  supersedes its then-pending recovery/foreign-proof and scoped-review status.
+  The canonical phase report is the ignored
   `.superpowers/sdd/2026-10-16-naming-brain/sql-coupling-report.md`; logs are in
   runtime `.tmp/naming-brain-sql-gap-*.log`.
+- Complete SQL coupling now has **7/7 actual SQL/store/SDK cases**, plus 24 existing
+  handler/store-codec cases: **31/31**, no skips in the final combined command.
+  The final two cases cover genuine committed prepare/lost acknowledgement with
+  both paid-readiness seams disabled and no replacement inference, and foreign /
+  forged proof rejection through the real migrated scoped RPCs. All cases preserve
+  the full unsettled US$5 hold and nullable confirmed actual charges. Fresh direct
+  TypeScript, scoped lint and diff checks passed. Recorded test source is runtime
+  base `0fe37e71eb910d9c0e906d51fd04c229fb903fb5` plus final test hash
+  `bb5195bb98d85908534dc7a3a2119cde8b857ea96b8ccdabdefc0cc134c21e34`
+  and unchanged helper hash `f89fef1d81b5320935531993340530349334fb0284ba2d61ee32aa4b44305a16`.
+  The bounded combined review approved these tests/helper; they are integrated in
+  the current pre-verification base. Logs are runtime
+  `.tmp/naming-brain-sql-complete-*.log`. This remains local PGlite/inert SDK evidence.
+- D071's corrected chat-left/results-right source is
+  `a13e94c34d8d67d52fb6dc23415f5be679f823d6`. Independent re-review approved F1
+  (truthful interrupted question progress) and F2 (action-key exclusion from
+  exploration). Author evidence is **142 client checks / 13 files** and **46/46
+  final affected desktop/mobile checks** (16 review-fix and 30 preserved V2/layout
+  cases), with fresh nonincremental TypeScript, scoped lint, production build and
+  diff check. These scoped checks are not the combined-branch matrix. The canonical
+  correction/review reports are ignored
+  `.superpowers/sdd/2026-10-16-naming-brain/naming-chat-{correction-report,review}.md`.
+- The lead's corrected independent preview at `http://127.0.0.1:3135/__preview`
+  identifies source `a13e94c` and build `gfuuPIn1v7wdAnbMseDvK`. Its desktop/mobile
+  wrapper smoke passes, including interrupted questions. It contains sample data
+  only; neither its build nor its smoke checks prove live name generation.
 - The exact seven worker environment keys, nine scoped worker RPC signatures,
   actual Node entrypoint and unverified live requirements are recorded in the
   [activation packet](naming-brain-activation-20261016.md). Local key-presence
-  inspection found no Naming credentials/configuration in the QA checkout; it did
-  not read secret values, connect to services or activate a worker.
+  inspection found no Naming credentials/configuration in the QA checkout without
+  reading secret values. A later separately authorized connector-only metadata
+  pass confirmed configured `fluid-platform-dev`, ref `fricsfwqibyhemknqgyf`,
+  `us-east-1`; migration `20261016180000` and all nine Naming RPCs are absent.
+  Restricted role `fluid_api_text_worker` exists at OID `21484`; owner binding,
+  native authentication and future Naming ACLs remain unverified. No user/auth /
+  balance rows, direct/pooler login, live test, worker start or mutation was used.
 
 ## Historical partial-source QA at `3abfa65`
 
@@ -118,12 +150,12 @@ commands, exit status, counts/skips, artifact paths and any source edit after ea
 broad run. Do not mix output from a moving tree or infer graph equivalence from the
 hosted Strategy build.
 
-The runtime owner separately completes and integrates the self-contained
-SDK/scoped-store/SQL coupling tests against repository-local migration/fixtures:
-initial100 publication, actual rendered request hashes and Creator provenance,
-the gap/terminal-partial paths already qualified on their recorded source, and the
-remaining lost-acknowledgement/observation-only and foreign-proof cases. Run their
-final integrated form after review. Local client/domain/component results and PGlite
+Include the reviewed seven-case SDK/scoped-store/SQL coupling test in its final
+integrated form, together with the corrected D071 and preserved legacy browser
+coverage. After the full matrix, obtain whole-branch review of the same frozen
+source. These are the two remaining local acceptance gates; record their actual
+measured results in a separately identified documentation follow-up rather than
+inventing them here. Local client/domain/component results and PGlite
 role/RLS tests are distinct evidence classes. None proves native process login,
 pooler `session_user`, concurrent advisory locks, live model access, provider
 retrieval, account funding or final invoiced charges. Those remain separately gated

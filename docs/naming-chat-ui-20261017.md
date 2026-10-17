@@ -39,8 +39,37 @@ personal initials and approval labels are not application data.
 ## Current evidence boundary
 
 The reference context and 1440 × 900 screenshot were retrieved from Figma and are
-preserved under ignored `.references/naming-chat-117-9404/`. The existing preview
-at port 3132 is the rejected historical layout, not evidence that this correction
-is complete. Implementation, focused browser checks, screenshot comparison and
-independent review are pending. Synthetic preview data does not qualify the
-Naming brain's creative quality or live provider readiness.
+preserved under ignored `.references/naming-chat-117-9404/`. The preview at port
+3132 remains the rejected historical layout. The corrected source is
+`a13e94c34d8d67d52fb6dc23415f5be679f823d6`, integrated in clean pre-verification
+base `a48eb033acc29e8f260ebfaadf2cae6bf6343423`.
+
+The local implementation, compact-card visual comparison and bounded independent
+review are complete. F1 and F2 are addressed and the corrected source has approved
+specification/code-quality verdicts. F1 retains acknowledged question progress in
+owner/generation-fenced memory, preserves it across same-owner re-verification,
+and conservatively asks unfinished follow-ups instead of inventing confirmations.
+F2 excludes activation of native/ARIA actions from exploration keyboard input;
+genuine results-scroller keys and wheel/touch exploration remain covered.
+
+Recorded author checks on that corrected source are 142 client tests across 13
+files and 46/46 final affected desktop/mobile browser checks: 16 review-fix cases
+and 30 preserved V2/layout cases. Fresh nonincremental TypeScript, scoped lint,
+production build and diff checks passed. Earlier source-specific browser counts
+remain historical evidence in the correction and verification records; these
+focused runs are not a final combined-branch matrix.
+
+The corrected independent preview is `http://127.0.0.1:3135/__preview`, identifying
+source `a13e94c` / build `gfuuPIn1v7wdAnbMseDvK`. The lead's desktop/mobile wrapper
+smoke passes, including interruption and resumption of questions. It displays
+sample data only and does not qualify creative quality or real generation.
+
+The full stable-source matrix and whole-branch review are the only remaining local
+acceptance gates; their measured results and final combined revision remain
+pending. Live activation is separate. Connector metadata identifies the configured
+database as `fluid-platform-dev` (`fricsfwqibyhemknqgyf`, `us-east-1`), where Naming
+migration `20261016180000` and all nine RPCs are absent. Existing restricted role
+`fluid_api_text_worker` has OID `21484`; this catalog fact does not configure its
+Naming grants, owner binding, credentials or model access. See the exact
+[activation requirements](naming-brain-activation-20261016.md) and
+[source-specific verification](naming-brain-verification-20261016.md).
