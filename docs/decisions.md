@@ -176,3 +176,5 @@ The user explicitly requested completing the database change so production rollo
 The lead's [local Naming engineering decisions](naming-brain-engineering-decisions-20261016.md)
 record implementation choices, reasons and potential costs separately from the
 user approvals above. They do not expand activation or spending authority.
+
+- D070: On 2026-10-16 the user explicitly approved “Yes—use Sol Max” for the remaining local development agents, overriding the project's Astra-only rule for the Naming continuation. Use GPT-6.1 Sol with `max` reasoning for the remaining integration, QA fixes, complete checks and independent review on this Mac. Preserve completed reviewed work and all local changes. This staffing choice does not change Embel's application model, provider policy, spending ceiling, credentials or live-activation authority.
