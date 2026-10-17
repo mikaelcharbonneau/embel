@@ -164,26 +164,30 @@ Subscription input version 2 carries up to five validated completed proposals fr
 
 The worker accepts both legacy v1 inputs and v2, revalidates history ownership/provenance before dispatch, and includes normalized v2 input in its step fingerprint. Old v1 plans remain compatible. Rollout must replace every old local worker before applying the v2 enqueue migration; no worker table-read grant is expanded.
 
-## Naming brain V2 candidate (local integration, 2026-10-17)
+## Naming brain V2 (locally verified, 2026-10-17)
 
-The current local Naming candidate uses saved V2 preferences, immutable run
-snapshots and a continuous owned results feed. It is separate from the historical
-250-name subscription path below. The clean pre-verification base is
-`a48eb033acc29e8f260ebfaadf2cae6bf6343423`, with approved source-scoped reviews for
-backend/runtime, R1–R3, seven actual SQL coupling cases (31/31 including 24 handler
-cases), and D071/F1/F2 at `a13e94c` (142 client checks, 46 final affected browser
-checks). The full stable-source matrix and whole-branch review are the remaining
-local acceptance gates; no final combined revision or result is declared here.
-Local implementation and synthetic evidence do not establish live installation,
-model access or paid activation.
+Naming V2 uses saved preferences, immutable run snapshots and a continuous owned
+feed, separate from the historical 250-name subscription path below. Measured code
+is `d654d62fcbaaddad0002eff088bbf0983d97d6c9`, tree `483278cbdc0ce6f6d9100b53cdf122a5dc075b59`;
+all 1,907 source hashes match manifest
+`ba317ea3b0a61046da8564b14ee740f4bf1a072f0a7e58f48d7b69af301c800a`. The final eight-command matrix
+passed: 8,636 tests, 23 intentional native-PostgreSQL gates, 0 failures; 172 browser
+checks (86+86, zero skips/retries); types, full lint, web/both worker builds and diff.
+Independent scoped repair review closed 7 addressed / 0 open / 0 new findings. See the
+[verification record](naming-brain-verification-20261016.md) for preserved red
+history and evidence. This later four-file update is documentation-only; the tested
+code identity remains d654d62. Local checks do not establish native PostgreSQL
+qualification, live installation, model access, funding or paid activation.
 
 D071 requires Naming decisions as widgets in the same chat used to answer them.
 After those decisions, the chat occupies a smaller left panel and generated names
 occupy a larger right-hand grid. The reviewed correction retains unfinished
 questions through interruption and excludes action-key activation from exploration
-demand. The independent sample preview at `http://127.0.0.1:3135/__preview`
-identifies source `a13e94c` / build `gfuuPIn1v7wdAnbMseDvK`; its desktop/mobile
-wrapper smoke covers interrupted questions. It contains sample data only.
+demand. The [verified local sample preview](http://127.0.0.1:3137/__preview) uses
+d654d62 / build `EjbFioaYQxauMXsNryONs`; both full wrapper smoke flows pass, including
+interrupted questions, 100→200 names, feedback, selection and reset. Its names and
+saves are simulated; no live generation. The earlier 3135/a13e94c preview remains
+historical evidence.
 Account saves/recovery, historical batches and Workshop remain part of
 the account workspace; opening or navigating to Naming does not upgrade saved
 choices or admit paid work. Approaches and directness require explicit answers.

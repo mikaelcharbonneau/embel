@@ -7,9 +7,12 @@ new deployment. The user-approved pilot ceiling is US$25; it is not evidence tha
 an account has been funded or that a configured model is accessible. See
 [naming engineering decisions](naming-brain-engineering-decisions-20261016.md).
 
+The user selected **“Review the corrected UI first.”** Live setup remains pending;
+no live execution authorization was granted.
+
 ## Revision and migration gate
 
-The reviewed source packages are integrated at the clean pre-verification base
+The historical source packages were integrated at the pre-verification base
 `a48eb033acc29e8f260ebfaadf2cae6bf6343423`: backend/runtime, R1–R3 QA safeguards,
 seven actual SQL/store/SDK cases (31/31 including 24 handler cases), and D071's
 chat-first correction at `a13e94c34d8d67d52fb6dc23415f5be679f823d6` with F1/F2
@@ -22,15 +25,24 @@ full local matrix and failed acceptance: one exact ACL assertion, 232 vector
 candidate bodies blocked by a predecessor guard, six Names bridge browser cases
 and one mobile keyboard case. The whole-branch review requested changes F1–F6;
 the browser failure added F7. Those failed results remain historical evidence.
-The current local repair delta addresses these findings but still requires one
-independent scoped re-review and a complete frozen-source rerun. This packet
-**must be bound to that final reviewed commit before execution**; it does not
-declare the whole branch verified or activate anything.
+The repaired code checkpoint `d654d62fcbaaddad0002eff088bbf0983d97d6c9` is now locally verified:
+tree `483278cbdc0ce6f6d9100b53cdf122a5dc075b59`, 1,907-file manifest
+`ba317ea3b0a61046da8564b14ee740f4bf1a072f0a7e58f48d7b69af301c800a`. Scoped repair review closed
+7 addressed / 0 open / 0 new findings. All eight final commands exited 0: types,
+full lint, unfiltered tests (8,636 passed / 23 intentional native-PostgreSQL gates /
+0 failed), web and both worker builds, 172 browser checks (86 desktop + 86 mobile,
+no retries/skips), and diff check. All 232 formerly setup-blocked bodies executed.
+See the [final verification record](naming-brain-verification-20261016.md).
 
-The corrected independent sample-data preview is
-`http://127.0.0.1:3135/__preview`, source `a13e94c`, build
-`gfuuPIn1v7wdAnbMseDvK`. The lead's desktop/mobile wrapper smoke includes interrupted
-questions. This is local UI evidence, not real generated names or worker readiness.
+This later four-file status refresh is documentation-only; measured code and built
+artifacts remain bound to d654d62, separately from any later documentation commit.
+**Local verification does not authorize or verify live execution.**
+
+The [verified local sample preview](http://127.0.0.1:3137/__preview) uses source
+`d654d62fcbaaddad0002eff088bbf0983d97d6c9` and build `EjbFioaYQxauMXsNryONs`.
+Both full wrapper smoke flows pass, including interrupted questions, 100→200 names,
+feedback, selection and reset. Names and saves are simulated; no live generation.
+The earlier 3135/a13e94c preview (`gfuuPIn1v7wdAnbMseDvK`) remains historical evidence.
 
 The dedicated Node graph is `worker/index.ts`, invoked by `npm run worker`
 (`node --conditions=react-server --import tsx worker/index.ts`).
@@ -43,9 +55,9 @@ it does not start this managed Naming graph.
 | Item | Preparation status / required read-back |
 | --- | --- |
 | Additive migration | `supabase/migrations/20261016180000_naming_brain.sql` |
-| Current local repair migration SHA-256 | `f6ccb8ff3b5a8fd280defa311ec045d51fc18ae5d708e94a30b0f8d93a46044f`, recomputed after the final review repairs on base `72a1ea948b01342af958d12c476263ce538917cf`. Independent scoped re-review and the final full rerun remain required before activation. |
+| Reviewed migration SHA-256 | `f6ccb8ff3b5a8fd280defa311ec045d51fc18ae5d708e94a30b0f8d93a46044f`, independently confirmed at d654d62. Unapplied; live installation/grant read-back remains separately gated. |
 | Historical round-one candidate digest | `8759c191bcb20c56db56d763bb6370e523921c65d1944353bb84ba431bf61b1e`; superseded by the reviewed fixes, **not an activation digest**. |
-| Final source commit and tree | Final repairs are an uncommitted local delta on `72a1ea948b01342af958d12c476263ce538917cf`. That head failed the full matrix and requested changes in review; the repaired checkpoint still requires independent scoped re-review and a fresh full rerun. |
+| Measured code commit and tree | `d654d62fcbaaddad0002eff088bbf0983d97d6c9` / `483278cbdc0ce6f6d9100b53cdf122a5dc075b59`. The complete local matrix and scoped repair review passed; this later documentation-only follow-up is separate. |
 | Configured database target | Public URL `https://fricsfwqibyhemknqgyf.supabase.co` exactly matches connector project `fluid-platform-dev`, ref `fricsfwqibyhemknqgyf`, `us-east-1`, `ACTIVE_HEALTHY`. |
 | Naming installation | At the 2026-10-17 connector metadata read, migration `20261016180000`, all nine scoped Naming RPCs and private `naming_brain_*` tables were absent. |
 | Application origin / worker deployment | Live activation identities remain unverified. The sample preview above is not their substitute. |
@@ -128,9 +140,9 @@ an exact version/hash/fingerprint/readiness attestation, not a browser readiness
 flag or an echoed expected fingerprint. Saved drafts and free saved-output browsing
 remain independent of paid readiness.
 
-The reviewed normalizer source hash, recomputed at `a48eb033acc29e8f260ebfaadf2cae6bf6343423`, is
+The reviewed normalizer source hash, independently confirmed at `d654d62fcbaaddad0002eff088bbf0983d97d6c9`, is
 `7108319323898692a388fcf17cb542509583288b0d4b05d7384f8c5b707aeb01` for
-`src/domain/naming-brain-preferences.ts`. Recompute it from the final source.
+`src/domain/naming-brain-preferences.ts`. Recheck it if code changes before authorized installation.
 Fingerprint version 1 is:
 
 ```text
@@ -264,10 +276,10 @@ qualification.
 
 ## Minimal path to the first local real-name test
 
-1. Freeze the combined source, complete its full stable-source matrix and obtain
-   whole-branch review. D071/F1/F2, R1–R3 and the seven local SQL coupling cases
-   already have approved source-scoped reviews. Record the resulting exact source
-   identity and recompute the migration/normalizer digests.
+1. The local source gate is complete at d654d62: full frozen-source matrix,
+   whole-branch review and scoped F1–F7 closure (7/0/0). Preserve that tested
+   commit/tree/manifest and the migration/normalizer digests above. This completes
+   local source qualification only; the following live steps retain their gates.
 2. Under separate explicit activation authority, install/read back that exact
    additive migration and the nine scoped EXECUTE grants on the identified
    `fluid-platform-dev` database (`fricsfwqibyhemknqgyf`); verify the existing

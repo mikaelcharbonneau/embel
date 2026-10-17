@@ -36,7 +36,7 @@ personal initials and approval labels are not application data.
 - On narrow screens, give chat and names usable space and a clear way to move
   between them. Verify keyboard use and no horizontal overflow.
 
-## Current evidence boundary
+## Preserved correction evidence and final local status
 
 The reference context and 1440 × 900 screenshot were retrieved from Figma and are
 preserved under ignored `.references/naming-chat-117-9404/`. The preview at port
@@ -59,14 +59,22 @@ production build and diff checks passed. Earlier source-specific browser counts
 remain historical evidence in the correction and verification records; these
 focused runs are not a final combined-branch matrix.
 
-The corrected independent preview is `http://127.0.0.1:3135/__preview`, identifying
-source `a13e94c` / build `gfuuPIn1v7wdAnbMseDvK`. The lead's desktop/mobile wrapper
-smoke passes, including interruption and resumption of questions. It displays
-sample data only and does not qualify creative quality or real generation.
+The current [verified local sample preview](http://127.0.0.1:3137/__preview) uses
+source `d654d62fcbaaddad0002eff088bbf0983d97d6c9` / build `EjbFioaYQxauMXsNryONs`.
+Its complete desktop/mobile wrapper smoke passes refresh recovery, the same composer,
+chat→grid, 100→200 names, favorite, steering, selection, reset and cookie checks.
+It displays synthetic names and simulated saves; no live generation. The earlier
+3135/a13e94c preview (`gfuuPIn1v7wdAnbMseDvK`) remains preserved as historical evidence.
 
-The full stable-source matrix and whole-branch review are the only remaining local
-acceptance gates; their measured results and final combined revision remain
-pending. Live activation is separate. Connector metadata identifies the configured
+The final local matrix passed on `d654d62fcbaaddad0002eff088bbf0983d97d6c9`, tree
+`483278cbdc0ce6f6d9100b53cdf122a5dc075b59`, full 1,907-file manifest
+`ba317ea3b0a61046da8564b14ee740f4bf1a072f0a7e58f48d7b69af301c800a`. Scoped F1–F7 repair review
+approved 7 addressed / 0 open / 0 new. All eight commands exited 0, including 8,636
+passing tests (23 intentional native-PostgreSQL gates, 0 failures) and 172/172
+browsers (86+86, no skips/retries). D071 layout/keyboard cases passed on both sizes.
+This later four-file status refresh is documentation-only; the tested code and
+built preview retain d654d62 identity. No new user approval or live activation is implied.
+Live activation is separate. Connector metadata identifies the configured
 database as `fluid-platform-dev` (`fricsfwqibyhemknqgyf`, `us-east-1`), where Naming
 migration `20261016180000` and all nine RPCs are absent. Existing restricted role
 `fluid_api_text_worker` has OID `21484`; this catalog fact does not configure its

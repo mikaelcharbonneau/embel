@@ -1,30 +1,61 @@
 # Naming brain verification — 2026-10-16, updated 2026-10-17
 
-This is **source-specific local evidence**, not final Task 6 qualification or
-activation. The QA checkout is
-`/Users/mikael/.codex/worktrees/naming-contracts/embel`, isolated from preview port
-3105 and shared browser tabs. It has its own APFS dependency clone and no copied
-credentials/runtime files. The clean pre-verification base is
-`a48eb033acc29e8f260ebfaadf2cae6bf6343423`, integrating all approved source-scoped
-packages: backend/runtime, R1–R3, seven actual SQL coupling cases, and D071/F1/F2.
-That checkpoint is historical. The later frozen head
+## Final measured code checkpoint
+
+The complete local matrix passed on frozen code `d654d62fcbaaddad0002eff088bbf0983d97d6c9`,
+tree `483278cbdc0ce6f6d9100b53cdf122a5dc075b59`. All 1,907 tracked-file hashes were
+unchanged before/after; full manifest SHA-256:
+`ba317ea3b0a61046da8564b14ee740f4bf1a072f0a7e58f48d7b69af301c800a`.
+
+Independent scoped repair review approved F1–F7: **7 addressed / 0 open / 0 new**.
+[Final frozen-run report](/Users/mikael/embel/.superpowers/sdd/2026-10-16-naming-brain/final-checks-sol-report-d654d62.md) and [scoped review](/Users/mikael/embel/.superpowers/sdd/2026-10-16-naming-brain/final-fix-scoped-review.md)
+retain exact commands, counts, manifests and artifacts. QA remains the clean tested
+checkout; this later four-file documentation-only follow-up is recorded separately
+from the measured code and any eventual documentation commit. No tests or builds
+were rerun for this status update.
+
+| Final check on d654d62 | Result |
+| --- | --- |
+| Nonincremental typecheck / full lint | Exit 0 / exit 0 |
+| Full unfiltered Vitest | 599 files: 597 passed, 2 intentional native gates. 8,659 tests: 8,636 passed, 23 gated, 0 failed. |
+| Former setup-blocked vector coverage | All 232 bodies executed and passed; original 19 files have 233 passing cases total. |
+| Exact ACL inventory | Full 13-test adversarial file passed, including every downstream signature/private-role assertion. |
+| Production web build | Exit 0; QA build `pol5CmjC_PjOxdAunCA2f`. |
+| Hosted API-text / dedicated Node worker builds | Both exit 0; separate graphs. Dedicated graph has 427 inputs and remains inert. |
+| Seven browser specs | 172/172 passed (86 desktop + 86 mobile); zero failures/skips/retries. |
+| Diff / source identity | Exit 0; clean d654d62 and unchanged full manifest. |
+
+The only 23 gates are 18 `api-text-multi-account-postgres` cases and 5
+`standalone-ai-names-postgres` cases. Their native PostgreSQL URLs were absent;
+`test:live` was not run. Local PGlite/inert SDK/intercepted browser evidence does not
+establish native login/pooler/concurrency, hosted tenant acceptance, live provider
+access, creative quality, final billing, deployment or activation. Worker bundles
+were built, not executed; the Node 24 target is not Node 24 runtime qualification.
+All 13 [engineering rulings](naming-brain-engineering-decisions-20261016.md) and
+[separate activation requirements](naming-brain-activation-20261016.md) remain.
+
+The [verified local sample preview](http://127.0.0.1:3137/__preview) is an isolated
+Git archive of d654d62, build `EjbFioaYQxauMXsNryONs`. Both actual-wrapper headless
+flows pass, including refresh recovery, the same composer, 100→200 sample names,
+favorite, steering, selection, reset and cookie/host/origin checks. It contains
+synthetic names and simulated saves, with no live generation. Historical 3135/a13e94c
+preview evidence remains preserved.
+
+## Preserved failed matrix
+
+The earlier frozen head
 `72a1ea948b01342af958d12c476263ce538917cf` completed the full local matrix and
-failed acceptance: 575 Vitest files passed,20 failed,2 intentionally gated;232
+failed acceptance: 575 Vitest files passed, 20 failed,2 intentionally gated;232
 vector test bodies were setup-blocked and one exact ACL assertion failed.
 Browser results were165 passed/7 failed, including six Names bridge cases and one
 mobile keyboard case. The whole-branch review requested F1–F6 corrections; the
 keyboard result added F7. These results are preserved as failed evidence.
 
-The current local repair delta freezes owned seed material independently of
-recent/liked bounds, projects verified display rationale while retaining original
-claims/findings, exposes explicit free saved-membership continuation, composes
-the exact guarded vector predecessors with Naming isolation, and repairs the
-exact ACL/Names fixture/keyboard-focus regressions. Its migration digest is
-recorded below. Independent scoped re-review and the complete frozen-source
-rerun remain required. No final whole-branch verification or live activation is
-claimed.
+The complete red report remains preserved in
+`final-checks-sol-report-72a1ea9.md` and its original ignored artifact directory;
+the canonical report appends the new run rather than replacing that evidence.
 
-## Current reviewed checkpoint and remaining work
+## Historical source-scoped reviews and live limits
 
 - The independent R1–R3 re-review approved the bounded fix delta at
   `669d201c1b629c153342d19959ca415ba6101359`; it was then integrated at `069b8be`.
@@ -33,9 +64,9 @@ claimed.
   lint, production build and diff check. The reviewer independently ran eight
   additional inert receipt probes. These do not replace the final full matrix.
 - The current local repair migration `20261016180000_naming_brain.sql` hashes to
-  `f6ccb8ff3b5a8fd280defa311ec045d51fc18ae5d708e94a30b0f8d93a46044f`, recomputed after the final review repair wave on
-  base `72a1ea948b01342af958d12c476263ce538917cf`. This candidate remains unapplied;
-  independent scoped re-review and the complete frozen-source rerun are pending.
+  `f6ccb8ff3b5a8fd280defa311ec045d51fc18ae5d708e94a30b0f8d93a46044f`, independently confirmed at
+  `d654d62fcbaaddad0002eff088bbf0983d97d6c9`. The local matrix and scoped re-review passed;
+  this migration remains unapplied and live installation is separately gated.
   The earlier reviewed digest `b55c29851e1d11efdb00eb8d2831f256884e31501beab98c178c8b7220da1d8f`
   is historical and must not be used as the activation digest.
   The shared preference implementation hashes to
@@ -126,11 +157,11 @@ R1–R3 fixes or D071 chat correction.
 | Command | Partial-source result |
 | --- | --- |
 | `./node_modules/.bin/eslint tests/e2e/naming-brain-fixture.ts tests/e2e/naming-brain.spec.ts tests/e2e/project-naming.spec.ts` | Passed; final scoped lint also includes the runner and its inert test. |
-| `npm run build` | Passed again on partial3abfa65 plus all five final QA source/test files. Exit0. Prebuild seven-path hashes are recorded in `.tmp/naming-qa/prebuild-owned-manifest.json`; only this evidence document changed afterward. No credentials or runtime files copied. |
+| `npm run build` | Passed again on partial3abfa65 plus all five final QA source/test files. Exit 0. Prebuild seven-path hashes are recorded in `.tmp/naming-qa/prebuild-owned-manifest.json`; only this evidence document changed afterward. No credentials or runtime files copied. |
 | `./node_modules/.bin/vitest run tests/qa/naming-brain-pilot.test.ts --configLoader runner --no-cache --no-fsModuleCache --maxWorkers=1` | 15/15 passed, one file, no skips. |
 | `FLUID_E2E_PORT=3131 FLUID_E2E_BROWSER_CHANNEL=chrome npm run test:e2e -- tests/e2e/naming-brain.spec.ts --workers=1 --project=desktop` | Initial fixture pass:6 passed/4 failed; failures were selectors and incomplete synthetic history metadata, corrected before rerun. |
 | Two-file desktop / desktop+mobile reruns | **116 passed (2.4m), zero failed/skipped:58 desktop +58 mobile.** Exact command: `FLUID_E2E_PORT=3131 FLUID_E2E_BROWSER_CHANNEL=chrome npm run test:e2e -- tests/e2e/naming-brain.spec.ts tests/e2e/project-naming.spec.ts --workers=1`. |
-| Typecheck / full lint / full suite / final production+worker builds | Direct `tsc --noEmit --incremental false`, scoped ESLint of all five QA source/test files and `git diff --check` exit0. Whole-repository/final integrated matrix still pending lead freeze. |
+| Typecheck / full lint / full suite / final production+worker builds | Direct `tsc --noEmit --incremental false`, scoped ESLint of all five QA source/test files and `git diff --check` exit 0. Whole-repository/final integrated matrix still pending lead freeze. |
 
 The optional installed-Chrome override uses a **dedicated headless context**. The
 repository Playwright server starts `next start` on3131 and refuses a reused
@@ -156,7 +187,7 @@ corrected fixture/selectors: accessible labels, explicit V1 history navigation,
 ascending legacy cursors, missing synthetic origin fields and saved-history
 metadata. The remaining native database/provider gates were not executed.
 
-## Required final integration matrix
+## Historical integration checklist (completed at d654d62)
 
 After the lead advances and explicitly freezes the integrated source, record the
 full commit/tree and every owned-file SHA-256, then run typecheck, lint, `npm test`,
@@ -169,9 +200,9 @@ hosted Strategy build.
 Include the reviewed seven-case SDK/scoped-store/SQL coupling test in its final
 integrated form, together with the corrected D071 and preserved legacy browser
 coverage. After the full matrix, obtain whole-branch review of the same frozen
-source. These are the two remaining local acceptance gates; record their actual
-measured results in a separately identified documentation follow-up rather than
-inventing them here. Local client/domain/component results and PGlite
+source. Those local gates are complete at d654d62; this later documentation-only
+follow-up records their measured results above, without changing that code identity.
+Local client/domain/component results and PGlite
 role/RLS tests are distinct evidence classes. None proves native process login,
 pooler `session_user`, concurrent advisory locks, live model access, provider
 retrieval, account funding or final invoiced charges. Those remain separately gated
