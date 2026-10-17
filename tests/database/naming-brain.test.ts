@@ -22,7 +22,7 @@ describe("Naming Brain SQL ownership and provisional liability (synthetic local 
 });
 
 import { beforeEach } from "vitest";
-import { brainPolicy, brainGapEnvelope, brainManifest, brainPreferences, brainRpc, brainWorker, claimBrain, initialIntent, installBrainFixture, seedBrainFixture } from "./naming-brain-fixture";
+import { attestBrainPreferences, brainReadinessFingerprint, brainPolicy, brainGapEnvelope, brainManifest, brainPreferences, brainRpc, brainWorker, claimBrain, initialIntent, installBrainFixture, seedBrainFixture } from "./naming-brain-fixture";
 
 describe("Naming Brain scoped admission and worker boundaries", () => {
  let db: TestDatabase; let project: string;
@@ -51,7 +51,7 @@ describe("Naming Brain scoped admission and worker boundaries", () => {
   const cancelled=await brainRpc<{accounting:unknown}>(db,"get_naming_brain_run",[project,first.run.runId]);
   expect(cancelled.accounting).toEqual({status:"settled",heldAllowanceMicrousd:0,confirmedActualCostMicrousd:0});
   const project2=(await brainRpc<{id:string}>(db,"create_project",["naming_only","Other fixture",{description:"Synthetic second brief"},"a".repeat(64)])).id;
-  await brainRpc(db,"save_naming_preferences",[project2,0,brainPreferences]);
+  await brainRpc(db,"save_naming_preferences",[project2,0,brainPreferences]);await attestBrainPreferences(db);
   const run=await brainRpc<{run:{runId:string}}>(db,"ensure_naming_brain_run",[project2,initialIntent("fixture-second-project")]);
   const {job}=await claimBrain(db);
   await brainWorker(db,()=>db.query("select public.naming_brain_worker_action($1,$2,'plan',$3::jsonb)",[job.id,job.lease_token,JSON.stringify({manifest:brainManifest,gapEnvelope:brainGapEnvelope})]));
@@ -79,9 +79,9 @@ describe("Naming Brain allowance, replay, identity and recovery", () => {
  it("keeps five unresolved billing allowances and rejects a sixth without changing its project",async()=>{
   for(let n=0;n<5;n++){
    const p=n===0?project:(await brainRpc<{id:string}>(db,"create_project",["naming_only",`Synthetic ${n}`,{description:`Synthetic allowance brief ${n}`},"a".repeat(64)])).id;
-   if(n)await brainRpc(db,"save_naming_preferences",[p,0,brainPreferences]);await failedRun(p,`fixture-allowance-run-${n}`);
+   if(n)await brainRpc(db,"save_naming_preferences",[p,0,brainPreferences]);await attestBrainPreferences(db);await failedRun(p,`fixture-allowance-run-${n}`);
   }
-  const p=(await brainRpc<{id:string}>(db,"create_project",["naming_only","Synthetic sixth",{description:"Synthetic sixth"},"a".repeat(64)])).id;await brainRpc(db,"save_naming_preferences",[p,0,brainPreferences]);
+  const p=(await brainRpc<{id:string}>(db,"create_project",["naming_only","Synthetic sixth",{description:"Synthetic sixth"},"a".repeat(64)])).id;await brainRpc(db,"save_naming_preferences",[p,0,brainPreferences]);await attestBrainPreferences(db);
   const blocked=await brainRpc<{status:string;code:string}>(db,"ensure_naming_brain_run",[p,initialIntent("fixture-sixth-refused")]);expect(blocked).toMatchObject({status:"blocked",code:"pilot_allowance_held"});
   expect((await db.query<{count:number}>("select count(*)::integer count from fluid_private.naming_brain_runs")).rows[0]!.count).toBe(5);
   expect((await db.query<{amount:number}>("select reserved_microusd::integer amount from public.usage_accounts where owner_id=$1",[OWNER_A])).rows[0]!.amount).toBe(25000000);
@@ -223,10 +223,10 @@ describe("Naming Brain recovery mode and verified financial finalization",()=>{
   expect((await db.query<{reserved:number;spent:number;actual:number}>("select reserved_microusd::integer reserved,spent_microusd::integer spent,provider_actual_microusd::integer actual from public.usage_accounts where owner_id=$1",[OWNER_A])).rows[0]).toEqual({reserved:0,spent:1000000,actual:1000000});
   for(let n=0;n<4;n++){
    const target=(await brainRpc<{id:string}>(db,"create_project",["naming_only",`Synthetic after settlement ${n}`,{description:"Synthetic conserved allowance"},"a".repeat(64)])).id;
-   await brainRpc(db,"save_naming_preferences",[target,0,brainPreferences]);
+   await brainRpc(db,"save_naming_preferences",[target,0,brainPreferences]);await attestBrainPreferences(db);
    expect((await brainRpc<{status:string}>(db,"ensure_naming_brain_run",[target,initialIntent(`fixture-conservation-run-${n}`)])).status).toBe("pending");
   }
-  const sixth=(await brainRpc<{id:string}>(db,"create_project",["naming_only","Synthetic conserved ceiling",{description:"Synthetic ceiling"},"a".repeat(64)])).id;await brainRpc(db,"save_naming_preferences",[sixth,0,brainPreferences]);
+  const sixth=(await brainRpc<{id:string}>(db,"create_project",["naming_only","Synthetic conserved ceiling",{description:"Synthetic ceiling"},"a".repeat(64)])).id;await brainRpc(db,"save_naming_preferences",[sixth,0,brainPreferences]);await attestBrainPreferences(db);
   expect(await brainRpc(db,"ensure_naming_brain_run",[sixth,initialIntent("fixture-conserved-sixth")])).toMatchObject({status:"blocked",code:"pilot_allowance_held"});
   expect((await db.query<{total:number}>("select sum(coalesce(actual_cost_microusd,5000000))::integer total from fluid_private.naming_brain_runs")).rows[0]!.total).toBe(21000000);
   expect((await db.query<{reserved:number;actual:number}>("select reserved_microusd::integer reserved,provider_actual_microusd::integer actual from public.usage_accounts where owner_id=$1",[OWNER_A])).rows[0]).toEqual({reserved:20000000,actual:1000000});
@@ -254,6 +254,7 @@ describe("Naming Brain complete historical identity coverage",()=>{
   await brainRpc(db,"save_naming_preferences",[project,1,brainPreferences]);
   await db.query("insert into fluid_private.naming_brain_pilots(owner_id,role_name,role_oid,deployment_id,policy,enabled) select $1,rolname,oid,'fixture-deployment',$2::jsonb,true from pg_roles where rolname='fixture_naming_brain_a'",[OWNER_A,JSON.stringify(brainPolicy)]);
   await brainWorker(db,()=>db.query("select public.report_naming_brain_worker_ready($1::jsonb,'fixture-deployment','fixture-worker',120)",[JSON.stringify(brainPolicy)]));
+  await db.query("update fluid_private.naming_brain_pilots set readiness_fingerprint=$1::jsonb",[JSON.stringify(brainReadinessFingerprint)]);await attestBrainPreferences(db);
   await brainRpc(db,"ensure_naming_brain_run",[project,{...initialIntent(),expectedPreferencesVersion:2}]);const {job}=await claimBrain(db);
   await db.exec("analyze public.name_candidates; analyze fluid_private.naming_brain_identity_index");
   timings.migrateAdmitMs=performance.now()-at;at=performance.now();timings.pageReadsMs=0;timings.pageWritesMs=0;

@@ -8,13 +8,13 @@ import { POST as steering } from "../../src/app/api/projects/[projectId]/naming/
 import { POST as stopFeed } from "../../src/app/api/projects/[projectId]/naming/feed/stop/route";
 import { DELETE as stop } from "../../src/app/api/projects/[projectId]/naming/runs/[runId]/route";
 import { GET as genericJob, DELETE as genericCancel } from "../../src/app/api/jobs/[jobId]/route";
-import { initialIntent } from "../database/naming-brain-fixture";
+import { brainPreferences, initialIntent } from "../database/naming-brain-fixture";
 const owner="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",project="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",run="11111111-1111-4111-8111-111111111111";
 const emptyFeed={version:1,ownerId:owner,projectId:project,projectRevision:1,preferencesVersion:1,feedbackRevision:0,steeringRevision:0,demandSequence:0,entries:[],nextCursor:null,consumedThrough:null,activeRun:null,preparedSetId:null,paused:false,state:"active",availability:{status:"unavailable",code:"naming_runtime_unavailable"}};
 const ctx={params:Promise.resolve({projectId:project,runId:run,jobId:run})};
 const request=(body?:unknown,method="POST",headers:Record<string,string>={},query="")=>new Request(`https://embel.example/api/naming${query}`,{method,headers:{origin:"https://embel.example","content-type":"application/json","X-Embel-Account":owner,...headers},...(body===undefined?{}:{body:JSON.stringify(body)})});
 describe("Naming Brain route account and privacy boundaries",()=>{
- beforeEach(()=>{vi.resetAllMocks();vi.stubEnv("APP_ORIGIN","https://embel.example");mock.auth.mockResolvedValue({userId:owner,client:{rpc:mock.rpc,from:mock.from}});mock.rpc.mockResolvedValue({data:emptyFeed,error:null});});afterEach(()=>vi.unstubAllEnvs());
+ beforeEach(()=>{vi.resetAllMocks();vi.stubEnv("APP_ORIGIN","https://embel.example");mock.auth.mockResolvedValue({userId:owner,client:{rpc:mock.rpc,from:mock.from}});mock.rpc.mockResolvedValue({data:emptyFeed,error:null});mock.from.mockImplementation(()=>{const q={select:()=>q,eq:()=>q,maybeSingle:async()=>({data:{owner_id:owner,project_id:project,version:1,preferences:brainPreferences},error:null})};return q;});});afterEach(()=>vi.unstubAllEnvs());
  it("reads without admission and rejects non-owned cursors or unbounded query shape",async()=>{
   const response=await feed(request(undefined,"GET"),ctx);expect(response.status).toBe(200);expect(await response.json()).toEqual({feed:emptyFeed});expect(response.headers.get("cache-control")).toBe("private, no-store");
   expect((await feed(request(undefined,"GET",{},"?limit=101"),ctx)).status).toBe(422);expect((await feed(request(undefined,"GET",{},"?cursorPosition=1"),ctx)).status).toBe(422);
@@ -29,6 +29,11 @@ describe("Naming Brain route account and privacy boundaries",()=>{
   for(const extra of [{ownerId:owner},{policy:{}},{output:{}},{maximumCostMicrousd:0}])expect((await ensure(request({...initialIntent(),...extra}),ctx)).status).toBe(422);
   mock.rpc.mockResolvedValue({data:{status:"blocked",feed:emptyFeed,code:"naming_runtime_unavailable",message:"Naming is not configured.",action:"configure"},error:null});
   const result=await ensure(request(initialIntent()),ctx);expect(result.status).toBe(200);expect((await result.json()).status).toBe("blocked");
+ });
+ it("returns actionable bad-draft readiness without calling paid admission",async()=>{
+  mock.from.mockImplementation(()=>{const q={select:()=>q,eq:()=>q,maybeSingle:async()=>({data:{owner_id:owner,project_id:project,version:1,preferences:{...brainPreferences,requiredText:["cedar"],excludedText:["cedar"]}},error:null})};return q;});
+  const response=await ensure(request(initialIntent()),ctx);expect(response.status).toBe(200);expect(await response.json()).toMatchObject({status:"blocked",code:"preferences_incomplete",action:"review_preferences"});
+  expect(mock.rpc.mock.calls.some(([name])=>name==="ensure_naming_brain_run")).toBe(false);
  });
  it("passes the exact durable Stop intent and rejects a missing pending-ensure binding field",async()=>{
   const intent={version:1,expectedDemandSequence:0,pendingEnsureIdempotencyKey:"fixture-lost-ensure-ack",idempotencyKey:"fixture-durable-stop-key"};

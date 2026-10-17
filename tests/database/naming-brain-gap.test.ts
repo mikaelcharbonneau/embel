@@ -1,7 +1,7 @@
 import { afterAll,beforeAll,beforeEach,describe,expect,it } from "vitest";
 import { createHash } from "node:crypto";
 import { createTestDatabase,type TestDatabase } from "./local-supabase";
-import { beginBrainStage,brainAction,brainPolicy,brainGapEnvelope,brainManifest,brainWorker,installBrainFixture,saveBrainArtifact,seedBrainFixture,startBrainFixture } from "./naming-brain-fixture";
+import { beginBrainStage,brainAction,brainPolicy,brainGapEnvelope,brainManifest,brainWorker,claimBrain,installBrainFixture,saveBrainArtifact,seedBrainFixture,startBrainFixture } from "./naming-brain-fixture";
 describe("Naming gap phase envelopes (local SQL)",()=>{
  let db:TestDatabase;let project:string;
  beforeAll(async()=>{db=await createTestDatabase();await installBrainFixture(db);},30000);afterAll(async()=>{await db?.close();});beforeEach(async()=>{project=await seedBrainFixture(db);});
@@ -34,9 +34,15 @@ describe("Naming gap phase envelopes (local SQL)",()=>{
    await brainWorker(db,()=>db.query("select public.record_naming_brain_provider_receipt($1,$2,$3::jsonb)",[job.id,job.lease_token,JSON.stringify(receipt)]));
    const text=JSON.stringify(p.output),item={id:itemId,type:"message",role:"assistant",phase:null,status:"completed",turn_id:turnId,content:[{type:"output_text",text}]};
    await brainAction(db,job,"provider_item",{providerCallKey:allocation.providerCallKey,sessionId,turnId,itemId,item});
+   await brainAction(db,job,"provider_turn",{providerCallKey:allocation.providerCallKey,sessionId,turnId,turn:{id:turnId,session_id:sessionId,agent_id:"fixture-agent",subagent_id:null,object:"agent.session.turn",status:"completed",created_at:1,started_at:1,completed_at:2,error:null,usage:null}});
    const artifact={artifactId:crypto.randomUUID(),runId:job.input.runId,stageKey:"gap",snapshotHash:snapshot.snapshotHash,schemaVersion:1,promptVersion:"naming-brain-v1",providerReceipt:receipt,output:p.output,...(p.role==="verifier"?{sources:[],sourceDependencies:[]} : {}),...(p.role==="creator"?{candidateIds:[],creatorAttribution:{protocol:"openai_agents",executionKind:"independent_session",assignmentKey:"gap-real",assignmentInputHash:allocation.requestHash,sessionId,turnId,responseId:null,subagentId:null,itemId,itemContentHash:createHash("sha256").update(text).digest("hex")}}:{})};
    if(p.role==="creator")await expect(brainAction(db,job,"artifact",{artifact:{...artifact,creatorAttribution:{...artifact.creatorAttribution,assignmentInputHash:"f".repeat(64)}}})).rejects.toMatchObject({code:"22023"});
    await brainAction(db,job,"artifact",{artifact});artifacts.push(artifact.artifactId);
+   if(n===0){
+    await db.query("update public.jobs set lease_expires_at=clock_timestamp()-interval '1 second' where id=$1",[job.id]);await brainWorker(db,()=>db.query("select public.expire_naming_brain_leases('fixture-worker','fixture-deployment')"));
+    const recovered=await claimBrain(db);expect(recovered.mode).toBe("observe_only");job.lease_token=recovered.job.lease_token;
+    expect(await brainAction(db,job,"resume_execution",{stageKey:"gap"})).toEqual({recoveryMode:"execute",resumed:true});expect(await authorize()).toBe(false);
+   }
    await expect(brainAction(db,job,"call_plan",{...plan,calls:[{...allocation,providerCallKey:`replacement-${p.phase}`}]})).rejects.toMatchObject({code:"55000"});
   }
   await brainWorker(db,()=>db.query("select public.complete_naming_brain_stage($1,$2,'gap','succeeded',$3::jsonb)",[job.id,job.lease_token,JSON.stringify({artifactIds:artifacts})]));

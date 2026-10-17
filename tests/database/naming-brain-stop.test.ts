@@ -84,5 +84,11 @@ describe("Naming durable Stop and explicit Continue (local SQL)",()=>{
   const again=await ensure(resume(await current(),3,"fixture-complete-empty-continue"));expect(again.status).toBe("appended");expect(again.appendedEntryIds).toEqual([]);expect(again.feed.demandSequence).toBe(4);
   await expect(stop(stopIntent(1,"fixture-free-stale-stop-key",request.idempotencyKey))).rejects.toMatchObject({code:"PT409"});
   expect((await db.query<{n:number;held:number}>("select count(*)::integer n,sum(coalesce(actual_cost_microusd,5000000))::integer held from fluid_private.naming_brain_runs")).rows[0]).toEqual({n:1,held:5000000});
+  expect((await current()).canResume).toBe(false);
+  await db.query("update fluid_private.naming_brain_pilots set enabled=true where owner_id=$1",[OWNER_A]);
+  const cursor=(await db.query<{entryId:string;position:number}>("select id as \"entryId\",position::integer from fluid_private.naming_brain_feed_entries where project_id=$1 order by position desc limit 1",[project])).rows[0]!;
+  const fresh=await ensure({...initialIntent("fixture-scroll-after-complete-stop"),reason:"scroll",expectedDemandSequence:4,consumedThrough:cursor});expect(fresh.status).toBe("pending");expect(fresh.run.runId).not.toBe(saved.runId);
+  expect((await ensure(request)).status).toBe("paused");
+
  });
 });

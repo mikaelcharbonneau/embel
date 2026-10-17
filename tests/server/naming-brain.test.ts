@@ -4,7 +4,7 @@ import { cancelNamingBrainRun, ensureNextNamingRun, getNamingBrainRun, getNaming
 import { getProjectNaming, getNamingBatch, getAccountNames, selectProjectName, transformProjectNames, createBrandFromProjectName } from "../../src/server/data/project-naming";
 import type { AuthenticatedContext } from "../../src/server/auth/context";
 import { asRole, createTestDatabase, OWNER_A, OWNER_B, type TestDatabase } from "../database/local-supabase";
-import { initialIntent, installBrainFixture, seedBrainFixture, prepareBrainFixture, brainAction, brainWorker } from "../database/naming-brain-fixture";
+import { initialIntent, installBrainFixture, seedBrainFixture, prepareBrainFixture, brainAction, brainWorker, brainRpc, brainPreferences } from "../database/naming-brain-fixture";
 
 export function namingSqlAuth(db:TestDatabase,owner=OWNER_A):AuthenticatedContext {
  return {userId:owner,client:{rpc:async(name:string,args:Record<string,unknown>)=>{
@@ -13,9 +13,9 @@ export function namingSqlAuth(db:TestDatabase,owner=OWNER_A):AuthenticatedContex
   catch(error){const e=error as {code:string;message:string};return {data:null,error:{code:e.code,message:e.message}};}
  },from:(table:string)=>{
   const filters:Array<[string,unknown]>=[];
-  const q={select:()=>q,eq:(field:string,value:unknown)=>{if(!["project_id","owner_id","revision"].includes(field))throw Error("Unexpected fixture filter");filters.push([field,value]);return q;},maybeSingle:async()=>{
-   if(table!=="project_revisions")throw Error("Unexpected fixture table");
-   const result=await asRole(db,"authenticated",owner,()=>db.query(`select project_id,owner_id,revision from public.project_revisions where ${filters.map(([key],i)=>`${key}=$${i+1}`).join(" and ")}`,filters.map(([,value])=>value)));
+  const q={select:()=>q,eq:(field:string,value:unknown)=>{if(!["project_id","owner_id","revision","version"].includes(field))throw Error("Unexpected fixture filter");filters.push([field,value]);return q;},maybeSingle:async()=>{
+   if(!["project_revisions","naming_preferences"].includes(table))throw Error("Unexpected fixture table");
+   const result=await asRole(db,"authenticated",owner,()=>db.query(`select ${table==="project_revisions"?"project_id,owner_id,revision":"project_id,owner_id,version,preferences"} from public.${table} where ${filters.map(([key],i)=>`${key}=$${i+1}`).join(" and ")}`,filters.map(([,value])=>value)));
    return {data:result.rows[0]??null,error:null};}};return q;
  }}} as unknown as AuthenticatedContext;
 }
@@ -29,6 +29,12 @@ describe("Naming Brain DAL over actual local SQL ownership",()=>{
   const admitted=await ensureNextNamingRun(auth,project,initialIntent());expect(admitted.status).toBe("pending");if(admitted.status!=="pending")throw Error("Expected admitted fixture");
   const run=await getNamingBrainRun(auth,project,admitted.run.runId);expect(run.snapshot.projectId).toBe(project);expect(run.stages).toHaveLength(7);expect(run.accounting.confirmedActualCostMicrousd).toBeNull();
   const cancelled=await cancelNamingBrainRun(auth,project,run.runId);expect(cancelled.state).toBe("cancelled");expect(cancelled.accounting).toEqual({status:"settled",heldAllowanceMicrousd:0,confirmedActualCostMicrousd:0});
+ });
+ it.each([{requiredText:["cedar"],excludedText:["cedar"]},{requiredText:["cedar"],maximumGraphemes:3}])("prechecks bad saved drafts with the shared readiness before SQL admission: %j",async(patch)=>{
+  await brainRpc(db,"save_naming_preferences",[project,1,{...brainPreferences,...patch}]);const calls=vi.spyOn(auth.client,"rpc");
+  expect(await ensureNextNamingRun(auth,project,{...initialIntent(),expectedPreferencesVersion:2})).toMatchObject({status:"blocked",code:"preferences_incomplete",action:"review_preferences"});
+  expect(calls.mock.calls.some(([name])=>name==="ensure_naming_brain_run")).toBe(false);
+  expect((await db.query<{n:number}>("select count(*)::integer n from fluid_private.naming_brain_runs")).rows[0]!.n).toBe(0);
  });
  it("keeps V2 batches readable in the original overview without leaking seven raw stages",async()=>{
   await ensureNextNamingRun(auth,project,initialIntent());const overview=await getProjectNaming(auth,project);

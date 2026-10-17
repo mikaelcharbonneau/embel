@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { getNamingPreferencesReadiness, namingPreferencesV2Schema } from "@/domain/naming-brain-preferences";
 import { ensureNamingRunIntentSchema, namingBrainRunSchema, namingFeedCursorSchema, namingFeedEnsureResultSchema, namingFeedSchema, namingRunAccountingSchema, steerNamingFeedIntentSchema, steerNamingFeedResponseSchema, stopNamingFeedIntentSchema, stopNamingFeedResponseSchema, type NamingFeed, type NamingFeedCursor } from "@/domain/naming-brain";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
@@ -32,6 +33,13 @@ export async function getNamingFeed(auth: AuthenticatedContext, projectId: strin
 }
 export async function ensureNextNamingRun(auth: AuthenticatedContext, projectId: string, intent: unknown) {
  id(projectId); const parsed = parse(ensureNamingRunIntentSchema, intent);
+ const saved = await auth.client.from("naming_preferences").select("owner_id,project_id,version,preferences")
+  .eq("owner_id",auth.userId).eq("project_id",projectId).eq("version",parsed.expectedPreferencesVersion).maybeSingle();
+ if(saved.error)throw new ApiError("integration_unavailable");
+ if(!saved.data || saved.data.owner_id!==auth.userId || saved.data.project_id!==projectId || saved.data.version!==parsed.expectedPreferencesVersion)throw new ApiError("conflict");
+ const preferences=namingPreferencesV2Schema.safeParse(saved.data.preferences);
+ if(!preferences.success || !getNamingPreferencesReadiness(preferences.data).ready) return parse(namingFeedEnsureResultSchema,{
+  status:"blocked",feed:await getNamingFeed(auth,projectId),code:"preferences_incomplete",message:"Review your saved naming approaches, directness, text constraints and length limits before continuing.",action:"review_preferences"});
  const result = await rpc(auth, "ensure_naming_brain_run", { p_project_id: projectId, p_intent: parsed }, namingFeedEnsureResultSchema);
  await verifyFeed(auth, projectId, result.feed);
  return result;
