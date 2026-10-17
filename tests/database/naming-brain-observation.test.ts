@@ -8,6 +8,94 @@ describe("Bounded Naming observation and resumed execution",()=>{
  async function knownCall(){const job=await startBrainFixture(db,project);await beginBrainStage(db,job,"research");const {request,allocation,snapshot}=await planBrainCall(db,job,"research");await brainWorker(db,()=>db.query("select public.authorize_naming_brain_dispatch($1,$2,$3::jsonb)",[job.id,job.lease_token,JSON.stringify(request)]));
   const receipt={version:1,provider:"openai",billingMode:"openai_api",runId:job.input.runId,stageKey:"research",role:"researcher",snapshotHash:snapshot.snapshotHash,protocol:"openai_agents",providerCallKey:allocation.providerCallKey,assignmentKey:null,requestKey:allocation.requestKey,requestHash:allocation.requestHash,sessionLimitCents:75,dispatchState:"dispatched",requestId:null,callIds:[],observedModel:"synthetic-fixture-model",toolCalls:[],artifactItemIds:[],usageObservations:[],estimatedCostMicrousd:null,providerCostCounters:[],accountingStatus:"provisional",confirmedActualCostMicrousd:null,recordedAt:"2026-10-16T12:00:00Z",sessionId:"fixture-known-session",turnId:null as string|null,agentId:null,responseId:null};
   await brainWorker(db,()=>db.query("select public.record_naming_brain_provider_receipt($1,$2,$3::jsonb)",[job.id,job.lease_token,JSON.stringify(receipt)]));return{job,request,receipt};}
+ // R6 fixtures stop at the genuine handled-gap boundary; no step or output is
+ // synthesized by changing its stored state. All setup uses the scoped RPCs.
+ async function handledGapForPreparation(terminal=true){
+  const job=await startBrainFixture(db,project),candidateId=crypto.randomUUID();
+  const proposal={candidateKey:"one",value:"Cedar",primaryApproach:"real_words",additionalApproaches:[],territoryId:"nature",constructionKey:"whole_word",rationale:"Synthetic reviewed candidate.",caution:null,claims:[]};
+  const research=await saveBrainArtifact(db,job,"research",{role:"researcher",territories:[],facts:[],interpretations:[],uncertainties:[]},{readiness:"sourced",sources:[]});
+  await saveBrainArtifact(db,job,"direction",{role:"director",round:"initial",assignments:[],feedbackHypotheses:[]});
+  const creator=await saveBrainArtifact(db,job,"creation",{role:"creator",assignmentKey:"real",candidates:[proposal]},{candidateIds:[{candidateKey:"one",candidateId}]});
+  const curator=await saveBrainArtifact(db,job,"curation",{role:"curator",annotations:[],gaps:[]});
+  const verifier=await saveBrainArtifact(db,job,"verification",{role:"verifier",findings:[]},{sources:[]});
+  await beginBrainStage(db,job,"gap");
+  const snapshot=(await db.query<{snapshot:Record<string,unknown>}>("select snapshot from fluid_private.naming_brain_runs where id=$1",[job.input.runId])).rows[0]!.snapshot;
+  const allocation={providerCallKey:"fixture-r6-gap-call",assignmentKey:null,requestKey:"fixture-r6-gap-request",requestHash:"e".repeat(64),sessionLimitCents:10,maxWebSearchCalls:0,role:"director"};
+  await brainAction(db,job,"call_plan",{stageKey:"gap",phase:"direction",calls:[allocation]});
+  const request={...allocation,runId:job.input.runId,stageKey:"gap",snapshotHash:snapshot.snapshotHash,input:{role:"director",snapshot},dependencyArtifactIds:[],policy:{model:"synthetic-fixture-model",protocol:"openai_agents",nativeDelegation:false,maximumCostMicrousd:100000,sessionLimitCents:10,maxWebSearchCalls:0}};
+  await brainWorker(db,()=>db.query("select public.authorize_naming_brain_dispatch($1,$2,$3::jsonb)",[job.id,job.lease_token,JSON.stringify(request)]));
+  const receipt={...research.providerReceipt,...allocation,stageKey:"gap",sessionId:"fixture-r6-gap-session",turnId:"fixture-r6-gap-turn",artifactItemIds:[]};delete (receipt as Partial<typeof allocation>).maxWebSearchCalls;
+  await brainWorker(db,()=>db.query("select public.record_naming_brain_provider_receipt($1,$2,$3::jsonb)",[job.id,job.lease_token,JSON.stringify(receipt)]));
+  await expire(job);const observer=await claimBrain(db);expect(observer.mode).toBe("observe_only");job.lease_token=observer.job.lease_token;
+  await db.query("update fluid_private.naming_brain_pilots set enabled=false,ready_until=null where owner_id=$1",[OWNER_A]);
+  if(terminal)await brainAction(db,job,"provider_turn",{providerCallKey:allocation.providerCallKey,sessionId:receipt.sessionId,turnId:receipt.turnId,turn:{id:receipt.turnId,session_id:receipt.sessionId,agent_id:"fixture-agent",subagent_id:null,object:"agent.session.turn",status:"failed",created_at:1,started_at:1,completed_at:2,error:{code:"fixture_failed"},usage:null}});
+  await brainWorker(db,()=>db.query("select public.complete_naming_brain_stage($1,$2,'gap','succeeded','{\"artifactIds\":[],\"errorCode\":\"gap_incomplete\"}')",[job.id,job.lease_token]));
+  const preparedSet={version:1,runId:job.input.runId,stageKey:"prepare",snapshotHash:creator.snapshotHash,schemaVersion:1,promptVersion:"naming-brain-v1",targetCount:100,minimumPerApproach:5,candidateIds:[candidateId],primaryCounts:[{approach:"real_words",count:1}],retainedUnusedIds:[],fulfillment:{status:"partial",targetCount:100,acceptedCount:1,missingCount:99,coverageSatisfied:false,message:"One synthetic reviewed candidate."},deficits:[{approach:"real_words",required:5,actual:1,missing:4}],rejected:[],annotations:[],curationArtifactId:curator.artifactId,verificationArtifactId:verifier.artifactId,sourceArtifactIds:[creator.artifactId]};
+  const payload={preparedSet,candidates:[{candidateId,sourceArtifactId:creator.artifactId,candidateKey:"one",assignmentKey:"real",identityKey:"cedar",runId:job.input.runId,snapshotHash:creator.snapshotHash}],verification:{artifact:verifier}};
+  return{job,payload,request};
+ }
+ it.each(["before_begin","after_begin","after_prepare","after_complete","ambiguous_before_prepare","ambiguous_after_prepare"])("R6 recovers deterministic preparation %s on the same run without paid readiness",async(boundary)=>{
+  const {job,payload,request}=await handledGapForPreparation();
+  const before=(await db.query<{deadline:Date;calls:number;manifest:unknown}>("select r.observation_deadline_at deadline,(select count(*)::integer from fluid_private.naming_brain_calls where run_id=r.id) calls,j.plan_manifest manifest from fluid_private.naming_brain_runs r join public.jobs j on j.id=r.job_id where r.id=$1",[job.input.runId])).rows[0]!;
+  let saved:unknown;let startedAt:unknown;
+  if(boundary!=="before_begin"){
+   await beginBrainStage(db,job,"prepare");startedAt=(await brainAction(db,job,"stage",{stageKey:"prepare"}) as {startedAt:unknown}).startedAt;
+   if(!["after_begin","ambiguous_before_prepare"].includes(boundary)){
+    const page=await brainAction(db,job,"index_page",{}) as {epoch:number};await brainAction(db,job,"index_finalize",{epoch:page.epoch});saved=await brainAction(db,job,"prepare",payload);
+    if(boundary==="after_complete")await brainWorker(db,()=>db.query("select public.complete_naming_brain_stage($1,$2,'prepare','succeeded','{\"artifactIds\":[]}')",[job.id,job.lease_token]));
+   }
+  }
+  if(boundary.startsWith("ambiguous"))await brainWorker(db,()=>db.query("select public.complete_naming_brain_stage($1,$2,'prepare','ambiguous','{\"artifactIds\":[],\"errorCode\":\"fixture_preparation_ack_lost\"}')",[job.id,job.lease_token]));
+  if(!boundary.startsWith("ambiguous"))await expire(job);
+  const recoverableState=boundary.startsWith("ambiguous")?"needs_reconciliation":"queued";
+  expect((await db.query<{mode:string;state:string}>("select r.recovery_mode mode,j.state from fluid_private.naming_brain_runs r join public.jobs j on j.id=r.job_id where r.id=$1",[job.input.runId])).rows[0]).toEqual({mode:"observe_only",state:recoverableState});
+  expect(await claimBrain(db)).toBeNull(); // The prior observation's backoff is still authoritative.
+  expect((await db.query<{state:string}>("select state from public.jobs where id=$1",[job.id])).rows[0]!.state).toBe(recoverableState);
+  await db.query("update fluid_private.naming_brain_runs set next_observation_at=clock_timestamp()-interval '1 second' where id=$1",[job.input.runId]);
+  const recovered=await claimBrain(db);expect(recovered).not.toBeNull();expect(recovered.mode).toBe("observe_only");expect(recovered.job.id).toBe(job.id);job.lease_token=recovered.job.lease_token;
+  expect((await brainWorker(db,()=>db.query<{ok:boolean}>("select public.authorize_naming_brain_dispatch($1,$2,$3::jsonb) ok",[job.id,job.lease_token,JSON.stringify(request)]))).rows[0]!.ok).toBe(false);
+  expect(await beginBrainStage(db,job,"prepare")).toMatchObject({disposition:boundary==="before_begin"?"started":boundary==="after_complete"?"already_succeeded":"resume_observation"});
+  if(startedAt)expect((await brainAction(db,job,"stage",{stageKey:"prepare"}) as {startedAt:unknown}).startedAt).toEqual(startedAt);
+  const retained=await brainAction(db,job,"stage",{stageKey:"prepare"}) as {preparation:unknown};
+  expect(retained.preparation).toEqual(saved??null);
+  expect((await brainAction(db,job,"stage",{stageKey:"research"}) as {preparation:unknown}).preparation).toBeNull();
+  if(saved)expect(await brainAction(db,job,"identities",{keys:["cedar"]})).toEqual(["cedar"]); // Own membership is now history; recovery must read the saved result first.
+
+  if(!saved){const page=await brainAction(db,job,"index_page",{}) as {epoch:number};await brainAction(db,job,"index_finalize",{epoch:page.epoch});}
+  const prepared=retained.preparation??await brainAction(db,job,"prepare",payload);if(saved){expect(prepared).toEqual(saved);expect(await brainAction(db,job,"prepare",payload)).toEqual(saved);}
+  await expect(brainAction(db,job,"prepare",{...payload,preparedSet:{...payload.preparedSet,fulfillment:{...payload.preparedSet.fulfillment,message:"Changed replay"}}})).rejects.toMatchObject({code:"55000"});
+  await brainWorker(db,()=>db.query("select public.complete_naming_brain_stage($1,$2,'prepare','succeeded','{\"artifactIds\":[]}')",[job.id,job.lease_token]));await brainAction(db,job,"finish",{state:"succeeded",errorCode:null});
+  const after=(await db.query<{deadline:Date;calls:number;manifest:unknown}>("select r.observation_deadline_at deadline,(select count(*)::integer from fluid_private.naming_brain_calls where run_id=r.id) calls,j.plan_manifest manifest from fluid_private.naming_brain_runs r join public.jobs j on j.id=r.job_id where r.id=$1",[job.input.runId])).rows[0]!;expect(after).toEqual(before);
+  expect((await db.query<{runs:number;sets:number;names:number;steps:number}>("select (select count(*)::integer from fluid_private.naming_brain_runs) runs,(select count(*)::integer from fluid_private.naming_brain_prepared_sets) sets,(select count(*)::integer from public.name_candidates) names,(select count(*)::integer from public.job_steps where state='succeeded') steps")).rows[0]).toEqual({runs:1,sets:1,names:1,steps:7});
+  expect(await brainRpc(db,"get_naming_brain_job_accounting",[job.id])).toEqual({status:"held_unsettled",heldAllowanceMicrousd:5000000,confirmedActualCostMicrousd:null});
+  expect((await db.query<{reserved:number;state:string}>("select account.reserved_microusd::integer reserved,reservation.state from public.usage_accounts account join public.usage_reservations reservation on reservation.owner_id=account.owner_id where reservation.job_id=$1",[job.id])).rows[0]).toEqual({reserved:5000000,state:"active"});
+ });
+ it.each(["attempts","deadline"])("R6 keeps eligible preparation unresolved when its observation %s bound is exhausted",async(limit)=>{
+  const {job}=await handledGapForPreparation();
+  if(limit==="attempts")await db.query("update fluid_private.naming_brain_runs set observation_attempts=12,next_observation_at=clock_timestamp()-interval '1 second' where id=$1",[job.input.runId]);
+  else await db.query("update fluid_private.naming_brain_runs set observation_deadline_at=clock_timestamp()-interval '1 second',next_observation_at=clock_timestamp()-interval '1 second' where id=$1",[job.input.runId]);
+  await expire(job);await db.query("update fluid_private.naming_brain_pilots set enabled=true,ready_until=clock_timestamp()+interval '1 minute' where owner_id=$1",[OWNER_A]);
+  expect(await claimBrain(db)).toBeNull();expect((await db.query<{state:string}>("select state from public.jobs where id=$1",[job.id])).rows[0]!.state).toBe("needs_reconciliation");
+  expect((await db.query<{n:number}>("select count(*)::integer n from fluid_private.naming_brain_prepared_sets")).rows[0]!.n).toBe(0);
+  expect(await brainRpc(db,"get_naming_brain_job_accounting",[job.id])).toEqual({status:"held_unsettled",heldAllowanceMicrousd:5000000,confirmedActualCostMicrousd:null});
+ });
+ it.each(["stop","paused","superseded","overrun"])("R6 does not revive preparation forbidden by %s",async(reason)=>{
+  const {job}=await handledGapForPreparation();
+  if(reason==="stop")await brainRpc(db,"stop_naming_feed",[project,{version:1,expectedDemandSequence:0,pendingEnsureIdempotencyKey:null,idempotencyKey:"fixture-r6-stop-key"}]);
+  if(reason==="paused")await db.query("update fluid_private.naming_brain_heads set paused=true where project_id=$1",[project]);
+  if(reason==="superseded")await db.query("update fluid_private.naming_brain_runs set superseded=true where id=$1",[job.input.runId]);
+  if(reason==="overrun")await db.query("update fluid_private.naming_brain_runs set observed_overrun=true where id=$1",[job.input.runId]);
+  await expire(job);expect(await claimBrain(db)).toBeNull();
+  expect((await db.query<{state:string}>("select state from public.jobs where id=$1",[job.id])).rows[0]!.state).toBe(reason==="stop"?"cancelled":"partial");
+  expect((await db.query<{n:number}>("select count(*)::integer n from fluid_private.naming_brain_prepared_sets")).rows[0]!.n).toBe(0);
+ });
+ it("R6 permits observing unknown gap work but never skips it into preparation",async()=>{
+  const {job}=await handledGapForPreparation(false);
+  await db.query("update fluid_private.naming_brain_runs set next_observation_at=clock_timestamp()-interval '1 second' where id=$1",[job.input.runId]);
+  const observer=await claimBrain(db);expect(observer.mode).toBe("observe_only");job.lease_token=observer.job.lease_token;
+  await expect(beginBrainStage(db,job,"prepare")).rejects.toMatchObject({code:"55000"});
+  expect((await db.query<{n:number}>("select count(*)::integer n from fluid_private.naming_brain_prepared_sets")).rows[0]!.n).toBe(0);
+ });
  it("retains ambiguous history and real terminal observations after Stop/policy withdrawal, without releasing liability",async()=>{
   const {job,request,receipt}=await knownCall();await brainRpc(db,"request_job_cancel",[job.id]);
   const unresolved={artifactIds:[],errorCode:"fixture_unknown_turn"};await brainWorker(db,()=>db.query("select public.complete_naming_brain_stage($1,$2,'research','ambiguous',$3::jsonb)",[job.id,job.lease_token,JSON.stringify(unresolved)]));

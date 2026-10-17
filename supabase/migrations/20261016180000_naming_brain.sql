@@ -440,6 +440,30 @@ create function fluid_private.naming_brain_call_terminal(c fluid_private.naming_
  and (result.state='failed' or (result.state='succeeded' and result.stage_key='gap' and result.output->>'errorCode'='gap_incomplete'))
  and fluid_private.naming_brain_invalid_output(c,result.output));
 $$;
+-- Preparation has no provider I/O. A crash may leave its registered step
+-- absent, in flight/ambiguous, or committed while the final acknowledgement is
+-- missing. This eligibility deliberately excludes retry timing: a backed-off
+-- or exhausted eligible run must not be prematurely finalized by claim.
+create function fluid_private.naming_brain_preparation_pending(r fluid_private.naming_brain_runs) returns boolean language sql stable set search_path='' as $$
+ select r.actual_cost_microusd is null and not r.superseded and not r.observed_overrun
+ and exists(select 1 from public.jobs j join public.projects p on p.id=j.project_id and p.owner_id=j.owner_id
+ join fluid_private.naming_brain_heads h on h.project_id=p.id and h.owner_id=p.owner_id
+ where j.id=r.job_id and j.owner_id=r.owner_id and j.project_id=r.project_id and fluid_private.naming_brain_is_job(j)
+ and j.cancel_requested_at is null and not h.paused and p.deleted_at is null and p.deletion_requested_at is null
+ and j.plan_registered_at is not null and j.plan_manifest=(select jsonb_agg(jsonb_build_object('key',key,'maximumCostMicrousd',fluid_private.naming_brain_cap(key)) order by n) from unnest(fluid_private.naming_brain_stages()) with ordinality planned(key,n))
+ and j.plan_fingerprint=encode(sha256(convert_to(j.plan_manifest::text,'UTF8')),'hex'))
+ and not exists(select 1 from unnest(fluid_private.naming_brain_stages()) key where key<>'prepare'
+ and not exists(select 1 from public.job_steps st where st.job_id=r.job_id and st.owner_id=r.owner_id and st.project_id=r.project_id and st.step_key=key and st.state='succeeded'))
+ and not exists(select 1 from public.job_steps st where st.job_id=r.job_id and (not(st.step_key=any(fluid_private.naming_brain_stages()))
+ or (st.step_key='prepare' and (st.reserved_cost_microusd<>0 or st.state not in('in_flight','ambiguous','succeeded')
+ or (st.state='succeeded' and not exists(select 1 from fluid_private.naming_brain_prepared_sets ps where ps.run_id=r.id and ps.owner_id=r.owner_id and ps.project_id=r.project_id))))))
+ and not exists(select 1 from fluid_private.naming_brain_calls c where c.run_id=r.id and (c.stage_key='prepare' or not fluid_private.naming_brain_call_terminal(c)));
+$$;
+create function fluid_private.naming_brain_preparation_recovery(r fluid_private.naming_brain_runs) returns boolean language sql stable set search_path='' as $$
+ select fluid_private.naming_brain_preparation_pending(r) and r.observation_attempts<12
+ and (r.observation_deadline_at is null or r.observation_deadline_at>clock_timestamp())
+ and (r.next_observation_at is null or r.next_observation_at<=clock_timestamp());
+$$;
 create function public.claim_naming_brain_job(p_worker_id text,p_deployment_id text,p_lease_seconds integer default 120) returns jsonb language plpgsql security definer set search_path='' as $$
  declare o uuid:=fluid_private.naming_brain_worker_owner(); j public.jobs; r fluid_private.naming_brain_runs; observing boolean; begin
  if o is null then raise exception 'worker_owner_mismatch' using errcode='42501'; end if;
@@ -450,6 +474,7 @@ create function public.claim_naming_brain_job(p_worker_id text,p_deployment_id t
  for r in select rr.* from fluid_private.naming_brain_runs rr join public.jobs stopped on stopped.id=rr.job_id
  where rr.owner_id=o and rr.deployment_id=p_deployment_id and fluid_private.naming_brain_run_worker(rr)
  and stopped.state in('queued','needs_reconciliation') and (stopped.cancel_requested_at is not null or rr.recovery_mode='observe_only')
+ and not fluid_private.naming_brain_preparation_pending(rr)
  and not exists(select 1 from public.job_steps unresolved where unresolved.job_id=stopped.id and unresolved.state in('in_flight','ambiguous'))
  and exists(select 1 from fluid_private.naming_brain_calls c where c.run_id=rr.id)
  and not exists(select 1 from fluid_private.naming_brain_calls c where c.run_id=rr.id and not fluid_private.naming_brain_call_terminal(c))
@@ -462,8 +487,8 @@ create function public.claim_naming_brain_job(p_worker_id text,p_deployment_id t
  select j0.* into j from public.jobs j0 join fluid_private.naming_brain_runs r0 on r0.job_id=j0.id where r0.owner_id=o and j0.owner_id=o
  and fluid_private.naming_brain_is_job(j0) and r0.deployment_id=p_deployment_id and fluid_private.naming_brain_run_worker(r0)
  and j0.state in('queued','needs_reconciliation') and (
- fluid_private.naming_brain_observable(r0)
- or (j0.state='queued' and r0.recovery_mode='execute' and fluid_private.naming_brain_ready(r0,p_worker_id) and j0.attempts<j0.max_attempts
+ fluid_private.naming_brain_observable(r0) or fluid_private.naming_brain_preparation_recovery(r0)
+ or (not fluid_private.naming_brain_preparation_pending(r0) and j0.state='queued' and r0.recovery_mode='execute' and fluid_private.naming_brain_ready(r0,p_worker_id) and j0.attempts<j0.max_attempts
  and j0.cancel_requested_at is null and not r0.superseded and not r0.observed_overrun and not fluid_private.api_text_paid_paused(o)
  and not exists(select 1 from fluid_private.naming_brain_heads where project_id=r0.project_id and paused)
  and not exists(select 1 from fluid_private.naming_brain_runs overrun where overrun.owner_id=o and overrun.observed_overrun)))
@@ -471,7 +496,7 @@ create function public.claim_naming_brain_job(p_worker_id text,p_deployment_id t
  if not found then return null; end if;
  select * into strict r from fluid_private.naming_brain_runs where job_id=j.id;
  if not exists(select 1 from public.usage_reservations where job_id=j.id and state='active' and reserved_microusd=5000000) then raise exception 'reservation_missing' using errcode='55000'; end if;
- observing:=fluid_private.naming_brain_observable(r);
+ observing:=fluid_private.naming_brain_observable(r) or fluid_private.naming_brain_preparation_recovery(r);
  if observing then
  update fluid_private.naming_brain_runs set recovery_mode='observe_only',observation_attempts=observation_attempts+1,
  observation_deadline_at=coalesce(observation_deadline_at,clock_timestamp()+interval '1 hour'),
@@ -488,7 +513,10 @@ create function public.expire_naming_brain_leases(p_worker_id text,p_deployment_
  for j in select j0.* from public.jobs j0 join fluid_private.naming_brain_runs r0 on r0.job_id=j0.id where r0.owner_id=o and r0.deployment_id=p_deployment_id
  and fluid_private.naming_brain_run_worker(r0) and j0.state in('running','cancel_requested') and j0.lease_expires_at<=clock_timestamp() order by j0.id for update of j0 skip locked loop
  select * into strict r from fluid_private.naming_brain_runs where job_id=j.id;
- if exists(select 1 from public.job_steps where job_id=j.id and state in('in_flight','ambiguous')) then
+ if fluid_private.naming_brain_preparation_pending(r) then
+ next_state:=case when r.observation_attempts<12 and (r.observation_deadline_at is null or r.observation_deadline_at>clock_timestamp()) then 'queued' else 'needs_reconciliation' end;
+ update fluid_private.naming_brain_runs set recovery_mode='observe_only' where id=r.id;
+ elsif exists(select 1 from public.job_steps where job_id=j.id and state in('in_flight','ambiguous')) then
  known:=not exists(
  select 1 from fluid_private.naming_brain_calls c join public.job_steps s on s.job_id=j.id and s.step_key=c.stage_key where c.run_id=r.id and s.state in('in_flight','ambiguous')
  and not exists(select 1 from fluid_private.naming_brain_receipts p where p.run_id=c.run_id and p.stage_key=c.stage_key and p.call_key=c.call_key and p.receipt->>'sessionId' is not null));
@@ -838,7 +866,8 @@ create function public.naming_brain_worker_action(p_job_id uuid,p_lease_token uu
  when 'stage' then
  if not(stage=any(fluid_private.naming_brain_stages())) then raise exception 'invalid_stage' using errcode='22023'; end if;
  select * into s from public.job_steps where job_id=j.id and step_key=stage;
- return jsonb_build_object('stageKey',stage,'observationDeadlineAt',r.observation_deadline_at,'stageResults',coalesce((select jsonb_agg(to_jsonb(result)-array['owner_id','project_id'] order by created_at,id) from fluid_private.naming_brain_stage_results result where result.run_id=r.id and result.stage_key=stage),'[]'),'gapEnvelope',r.gap_envelope,'gapPlanIdentity',r.gap_plan_identity,'state',coalesce(s.state,'pending'),'requestKey',s.request_key,'startedAt',s.created_at,'maximumCostMicrousd',fluid_private.naming_brain_cap(stage),'recoveryMode',r.recovery_mode,
+ return jsonb_build_object('stageKey',stage,'preparation',case when stage='prepare' then
+ (select jsonb_build_object('preparedSetId',ps.id,'preparedSet',ps.prepared) from fluid_private.naming_brain_prepared_sets ps where ps.run_id=r.id and ps.owner_id=r.owner_id and ps.project_id=r.project_id) else null end,'observationDeadlineAt',r.observation_deadline_at,'stageResults',coalesce((select jsonb_agg(to_jsonb(result)-array['owner_id','project_id'] order by created_at,id) from fluid_private.naming_brain_stage_results result where result.run_id=r.id and result.stage_key=stage),'[]'),'gapEnvelope',r.gap_envelope,'gapPlanIdentity',r.gap_plan_identity,'state',coalesce(s.state,'pending'),'requestKey',s.request_key,'startedAt',s.created_at,'maximumCostMicrousd',fluid_private.naming_brain_cap(stage),'recoveryMode',r.recovery_mode,
  'artifacts',coalesce((select jsonb_agg(artifact order by id) from fluid_private.naming_brain_artifacts where run_id=r.id and stage_key=stage),'[]'),
  'receipts',coalesce((select jsonb_agg(receipt order by created_at,id) from fluid_private.naming_brain_receipts where run_id=r.id and stage_key=stage),'[]'),
  'callPlans',coalesce((select jsonb_agg(jsonb_build_object('phase',phase_key,'calls',calls) order by phase_key) from fluid_private.naming_brain_call_plans where run_id=r.id and stage_key=stage),'[]'),
@@ -957,7 +986,7 @@ create function fluid_private.naming_brain_prepare(r fluid_private.naming_brain_
  begin
  select * into v_set from fluid_private.naming_brain_prepared_sets where run_id=r.id;
  if found then if v_set.prepared<>prepared or v_set.publication->'request'<>p_payload then raise exception 'immutable_preparation' using errcode='55000'; end if; return jsonb_build_object('preparedSetId',v_set.id,'preparedSet',v_set.prepared); end if;
- if not exists(select 1 from public.job_steps where job_id=r.job_id and step_key='prepare' and state='in_flight') then raise exception 'prepare_not_started' using errcode='55000'; end if;
+ if not exists(select 1 from public.job_steps where job_id=r.job_id and step_key='prepare' and (state='in_flight' or (state='ambiguous' and r.recovery_mode='observe_only'))) then raise exception 'prepare_not_started' using errcode='55000'; end if;
  if prepared->>'runId' is distinct from r.id::text or prepared->>'snapshotHash' is distinct from r.snapshot_hash or prepared->>'stageKey' is distinct from 'prepare'
  or prepared->'targetCount' is distinct from '100'::jsonb or prepared->'minimumPerApproach' is distinct from '5'::jsonb
  or prepared->'schemaVersion' is distinct from '1'::jsonb or prepared->>'promptVersion' is distinct from 'naming-brain-v1'
