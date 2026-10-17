@@ -1,12 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { namingBrainRunSchema, namingPreparedSetSchema, namingRoleOutputSchema, namingVerificationSchema } from "../../src/domain/naming-brain";
+import { nameIdentityKey } from "../../src/domain/project-naming";
 import { namingTextHash } from "../../src/server/ai/naming-brain/identity";
 import { namingRequestHash } from "../../src/server/ai/naming-brain/prompts";
 import { normalizeNamingBrain } from "../../src/server/data/naming-brain-provenance";
 import { runOneJob } from "../../worker/runner";
-import { createTestDatabase, OWNER_A, type TestDatabase } from "../database/local-supabase";
-import { brainPreferences, brainRpc, brainWorker, initialIntent, installBrainFixture, seedBrainFixture } from "../database/naming-brain-fixture";
+import { parseClaimedJob } from "../../worker/postgres-store";
+import { createTestDatabase, OWNER_A, OWNER_B, type TestDatabase } from "../database/local-supabase";
+import { brainPolicy, brainPreferences, brainRpc, brainWorker, initialIntent, installBrainFixture, seedBrainFixture } from "../database/naming-brain-fixture";
 import { createSqlNamingHarness, fixtureWorkerId, syntheticReferenceText } from "./naming-brain-sql-runtime-fixture";
 
 describe("Naming actual SDK/store/SQL boundary (inert transports, local migrated PGlite)", () => {
@@ -126,6 +128,109 @@ describe("Naming actual SDK/store/SQL boundary (inert transports, local migrated
     expect(artifacts.every(artifact => artifact.providerReceipt.confirmedActualCostMicrousd === null && artifact.providerReceipt.accountingStatus === "provisional")).toBe(true);
     expect(artifacts.every(artifact => artifact.providerReceipt.usageObservations.some(row => row.scope === "session" && row.totalTokens === 18))).toBe(true);
     expect(artifacts.every(artifact => artifact.providerReceipt.providerCostCounters.some(row => row.kind === "consumed_usd_cents" && row.value === 1))).toBe(true);
+  }, 30_000);
+
+  it("recovers committed prepare with a lost acknowledgement before reassembly against its own complete identity history", async () => {
+    const { project, test } = await admit({ losePrepareAcknowledgement: true });
+    expect(await brainWorker(db, () => runOneJob({ store: test.store, handlers: test.handlers, workerId: fixtureWorkerId }))).toBe("lease_lost");
+    expect(test.sqlErrors).toContainEqual({ name: "naming_brain_worker_action", action: "prepare", message: "synthetic_prepare_ack_lost" });
+    const original = parseClaimedJob(test.claims[0]!.job);
+    const prepared = await readPrepared(project);
+    const acknowledgement = test.discardedAcknowledgement();
+    expect(acknowledgement).toEqual({ preparedSetId: expect.any(String), preparedSet: prepared });
+    expect(prepared.candidateIds).toHaveLength(100);
+    const historyQuery = "select candidate_id,value,identity_key from fluid_private.naming_brain_identity_index where project_id=$1 order by candidate_id";
+    const history = (await db.query<{ candidate_id: string; value: string; identity_key: string }>(historyQuery, [project])).rows;
+    expect(history).toHaveLength(100);
+    expect(history.map(row => row.candidate_id)).toEqual([...prepared.candidateIds].sort());
+    expect(history.every(row => row.identity_key === nameIdentityKey(row.value))).toBe(true);
+    const restarted = test.restart();
+    expect(await brainWorker(db, () => restarted.store.action(original, "identities", { keys: history.map(row => row.identity_key) }))).toEqual(expect.arrayContaining(history.map(row => row.identity_key)));
+    const stagesQuery = "select step_key,request_key,created_at from public.job_steps where job_id=$1 order by step_key";
+    const originalStages = (await db.query(stagesQuery, [original.id])).rows;
+    expect(originalStages).toHaveLength(7);
+    await db.query("update fluid_private.naming_brain_pilots set enabled=false,ready_until=null where owner_id=$1", [OWNER_A]);
+    test.setPaidReady(false);
+    await db.query("update public.jobs set lease_expires_at=clock_timestamp()-interval '1 second' where id=$1", [original.id]);
+    expect(await brainWorker(db, () => restarted.store.expireLeases(fixtureWorkerId))).toBe(1);
+    expect((await db.query<{ mode: string; state: string }>("select r.recovery_mode mode,j.state from fluid_private.naming_brain_runs r join public.jobs j on j.id=r.job_id where r.project_id=$1", [project])).rows).toEqual([{ mode: "observe_only", state: "queued" }]);
+    const previousCalls = test.sqlCalls.length, previousNetwork = [...test.networkCalls], previousCounts = test.counts();
+    expect(await brainWorker(db, () => runOneJob({ ...restarted, workerId: fixtureWorkerId }))).toBe("succeeded");
+    expect(test.claims).toHaveLength(2);
+    expect(test.claims[1]!.mode).toBe("observe_only");
+    expect(test.claims[1]!.job.id).toBe(original.id);
+    expect(test.claims[1]!.job.lease_token).not.toBe(original.leaseToken);
+    const recovery = test.sqlCalls.slice(previousCalls);
+    expect(recovery.filter(call => ["index_page", "index_record", "index_finalize", "identities", "prepare", "resume_execution"].includes(call.action ?? ""))).toEqual([]);
+    expect(recovery.some(call => call.name === "authorize_naming_brain_dispatch")).toBe(false);
+    expect(recovery.some(call => call.action === "stage" && call.payload!.stageKey === "prepare")).toBe(true);
+    expect(recovery.some(call => call.name === "complete_naming_brain_stage")).toBe(true);
+    expect(test.networkCalls).toEqual(previousNetwork);
+    expect(test.counts()).toEqual(previousCounts);
+    expect(test.sqlCalls.filter(call => call.action === "prepare")).toHaveLength(1);
+    const saved = (await db.query<{ id: string; prepared: unknown }>("select id,prepared from fluid_private.naming_brain_prepared_sets where project_id=$1", [project])).rows;
+    expect(saved).toEqual([{ id: (acknowledgement as { preparedSetId: string }).preparedSetId, prepared }]);
+    expect((await db.query(historyQuery, [project])).rows).toEqual(history);
+    expect((await db.query(stagesQuery, [original.id])).rows).toEqual(originalStages);
+    expect((await db.query<{ n: number }>("select count(*)::integer n from public.job_steps where job_id=$1 and state='succeeded'", [original.id])).rows).toEqual([{ n: 7 }]);
+    const publicRun = namingBrainRunSchema.parse(normalizeNamingBrain(await brainRpc(db, "get_naming_brain_run", [project, prepared.runId]), OWNER_A));
+    expect(publicRun).toMatchObject({ runId: prepared.runId, jobId: original.id, state: "succeeded", accounting: { status: "held_unsettled", heldAllowanceMicrousd: 5_000_000, confirmedActualCostMicrousd: null } });
+    await assertHeldLiability(project);
+  }, 30_000);
+
+  it("rejects foreign workers and forged source or Creator proof through SQL while retaining the genuine artifacts", async () => {
+    const rejected: string[] = [];
+    let creatorChecked = false;
+    const { project, test } = await admit({ beforeArtifact: async (args, artifact) => {
+      const sql = "select public.naming_brain_worker_action($1,$2,$3,$4::jsonb) result";
+      async function reject(label: string, forged: unknown, message: string) {
+        await expect(db.query(sql, [args[0], args[1], "artifact", JSON.stringify({ artifact: forged })])).rejects.toMatchObject({ code: "22023", message });
+        rejected.push(label);
+      }
+      if (artifact.output.role === "researcher" && "sources" in artifact) {
+        // This is an independently admitted restricted principal for owner B;
+        // only the valid A job/lease/artifact are reused for the attack.
+        await db.exec("set session authorization fixture_naming_brain_b");
+        try { await expect(db.query(sql, args)).rejects.toMatchObject({ code: "42501", message: "worker_owner_mismatch" }); }
+        finally { await db.exec("set session authorization fixture_naming_brain_a"); }
+        rejected.push("foreign_worker");
+        const excerpt = `${syntheticReferenceText} Forged text.`;
+        await reject("retained_text", { ...artifact, sources: artifact.sources.map(source => ({ ...source, excerpt, contentHash: namingTextHash(excerpt) })) }, "retained_source_evidence_required");
+      }
+      if ("creatorAttribution" in artifact && artifact.output.role === "creator" && !creatorChecked) {
+        creatorChecked = true;
+        await reject("assignment_hash", { ...artifact, creatorAttribution: { ...artifact.creatorAttribution, assignmentInputHash: "f".repeat(64) } }, "creator_item_proof_required");
+        const stage = (await db.query<{ result: { artifacts: unknown[] } }>(sql, [args[0], args[1], "stage", JSON.stringify({ stageKey: "research" })])).rows[0]!.result;
+        const research = namingRoleOutputSchema.parse(stage.artifacts[0]);
+        await reject("foreign_creator_session", { ...artifact, creatorAttribution: { ...artifact.creatorAttribution, sessionId: research.providerReceipt.sessionId, turnId: research.providerReceipt.turnId } }, "creator_item_proof_required");
+        await reject("creator_content_hash", { ...artifact, creatorAttribution: { ...artifact.creatorAttribution, itemContentHash: "f".repeat(64) } }, "creator_item_proof_required");
+        await reject("creator_output", { ...artifact, output: { ...artifact.output, candidates: artifact.output.candidates.map((candidate, index) => index ? candidate : { ...candidate, value: "ForgedName" }) } }, "creator_item_proof_required");
+      }
+      if (artifact.output.role === "verifier" && "sourceDependencies" in artifact && "sources" in artifact) {
+        expect(artifact.sourceDependencies).toHaveLength(1);
+        await reject("foreign_source_dependency", { ...artifact, sourceDependencies: artifact.sourceDependencies.map(dependency => ({ ...dependency, artifactId: crypto.randomUUID() })) }, "inherited_source_binding_mismatch");
+        const excerpt = `${syntheticReferenceText} Forged inherited text.`;
+        await reject("inherited_source_text", { ...artifact, sources: artifact.sources.map(source => ({ ...source, excerpt, contentHash: namingTextHash(excerpt) })) }, "inherited_source_binding_mismatch");
+      }
+    } });
+    await db.query("insert into fluid_private.naming_brain_pilots(owner_id,role_name,role_oid,deployment_id,policy,enabled,readiness_fingerprint) select $2,role.rolname,role.oid,pilot.deployment_id,pilot.policy,true,pilot.readiness_fingerprint from fluid_private.naming_brain_pilots pilot cross join pg_roles role where pilot.owner_id=$1 and role.rolname='fixture_naming_brain_b'", [OWNER_A, OWNER_B]);
+    expect(await brainWorker(db, () => test.store.reportReady(brainPolicy, fixtureWorkerId), OWNER_B)).toBe(true);
+    expect(await brainWorker(db, () => test.store.claim(fixtureWorkerId, 120), OWNER_B)).toBeNull();
+    const result = await brainWorker(db, () => runOneJob({ store: test.store, handlers: test.handlers, workerId: fixtureWorkerId }));
+    expect({ result, sqlErrors: test.sqlErrors }).toEqual({ result: "succeeded", sqlErrors: [] });
+    expect(rejected).toEqual(["foreign_worker", "retained_text", "assignment_hash", "foreign_creator_session", "creator_content_hash", "creator_output", "foreign_source_dependency", "inherited_source_text"]);
+    expect(test.counts()).toMatchObject({ creates: 6, toolReplies: 1, cancellations: 0 });
+    const prepared = await readPrepared(project);
+    expect(prepared.fulfillment).toMatchObject({ status: "complete", acceptedCount: 100, missingCount: 0 });
+    const artifacts = (await db.query<{ artifact: unknown }>("select artifact from fluid_private.naming_brain_artifacts where project_id=$1", [project])).rows.map(row => namingRoleOutputSchema.parse(row.artifact));
+    expect(artifacts).toHaveLength(6);
+    const source = await brainRpc(db, "get_naming_brain_candidate_source", [project, prepared.candidateIds[0]!]);
+    expect(source).toMatchObject({ ownerId: OWNER_A, projectId: project, candidateId: prepared.candidateIds[0], runId: prepared.runId, providerReceipt: { confirmedActualCostMicrousd: null } });
+    await expect(brainRpc(db, "get_naming_brain_candidate_source", [project, prepared.candidateIds[0]!], OWNER_B)).rejects.toMatchObject({ code: "P0002" });
+    await expect(brainRpc(db, "get_naming_brain_run", [project, prepared.runId], OWNER_B)).rejects.toMatchObject({ code: "P0002" });
+    await expect(brainRpc(db, "get_naming_brain_job_accounting", [test.claims[0]!.job.id], OWNER_B)).rejects.toMatchObject({ code: "P0002" });
+    expect((await db.query<{ n: number }>("select count(*)::integer n from fluid_private.naming_brain_artifacts where project_id=$1", [project])).rows).toEqual([{ n: 6 }]);
+    await assertHeldLiability(project);
   }, 30_000);
 
   it("runs one ordered SQL gap through 10/40/5/20-cent phases to prepare 100 reviewed names", async () => {
