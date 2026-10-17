@@ -1,0 +1,45 @@
+import { describe, expect, it, vi } from "vitest";
+vi.mock("server-only", () => ({}));
+import { createNamingManagedProtocol, NamingManagedProtocolError } from "../../src/server/ai/naming-brain/protocol";
+
+describe("Managed Naming SDK boundary (synthetic HTTP)", () => {
+  it("uses the real pinned SDK create shape and fixed no-redirect transport", async () => {
+    const requests: { url: string; method: string; body: unknown; beta: string | null; redirect: RequestRedirect }[] = [];
+    const protocol = createNamingManagedProtocol({ apiKey: "synthetic-fixture", fetch: async (input, init) => {
+      const request = new Request(input, init);
+      requests.push({ url: request.url, method: request.method, body: await request.json(), beta: request.headers.get("openai-beta"), redirect: request.redirect });
+      return new Response('data: {"type":"agent.session.idle","event_id":"fixture_event","session":{"id":"session_fixture"}}\n\n', { headers: { "content-type": "text/event-stream", "x-request-id": "req_fixture" } });
+    } });
+    const stream = await protocol.createSession({ environment: { type: "none" }, agent: { model: "gpt-6-astra", tools: [], multi_agent: { enabled: false } }, input: "Synthetic only", spend_control: { limit: 50 }, metadata: { intent: "fixture" }, stream: true }, new AbortController().signal);
+    const events = [];
+    for await (const event of stream.events) events.push(event);
+    stream.close();
+    expect(events).toHaveLength(1);
+    expect(stream.requestId).toBe("req_fixture");
+    expect(requests).toEqual([{ url: "https://api.openai.com/v1/agents/sessions", method: "POST", beta: "agents=v1", redirect: "error", body: { environment: { type: "none" }, agent: { model: "gpt-6-astra", tools: [], multi_agent: { enabled: false } }, input: "Synthetic only", spend_control: { limit: 50 }, metadata: { intent: "fixture" }, stream: true } }]);
+  });
+
+  it("never retries uncertain creation or exposes private provider errors", async () => {
+    let calls = 0;
+    const protocol = createNamingManagedProtocol({ apiKey: "synthetic-fixture", fetch: async () => { calls++; return new Response(JSON.stringify({ error: { message: "private secret fixture" } }), { status: 500 }); } });
+    const error = await protocol.createSession({ environment: { type: "none" }, agent: { model: "gpt-6-astra" }, input: "Fixture", spend_control: { limit: 10 }, stream: true }, new AbortController().signal).catch(error => error);
+    expect(error).toBeInstanceOf(NamingManagedProtocolError);
+    expect(error.code).toBe("outcome_unknown");
+    expect(String(error)).not.toContain("private");
+    expect(calls).toBe(1);
+  });
+
+  it("submits tool results with the documented session/turn/call protocol", async () => {
+    const sent: unknown[] = [];
+    const protocol = createNamingManagedProtocol({ apiKey: "synthetic-fixture", fetch: async (input, init) => { const request = new Request(input, init); sent.push({ url: request.url, body: await request.json(), key: request.headers.get("idempotency-key") }); return new Response(null, { status: 202 }); } });
+    await protocol.submitToolResult("session_fixture", { type: "agent.session.input.tool_result", turn_id: "turn_fixture", call_id: "call_fixture", success: true, output: "retained fixture result" }, "fixture-key-0123456789", new AbortController().signal);
+    expect(sent).toEqual([{ url: "https://api.openai.com/v1/agents/sessions/session_fixture/events", key: "fixture-key-0123456789", body: { events: [{ type: "agent.session.input.tool_result", turn_id: "turn_fixture", call_id: "call_fixture", success: true, output: "retained fixture result" }] } }]);
+  });
+
+  it.each([null, { limit: null }, { limit: 0 }, { limit: 151 }])("refuses an unbounded or out-of-policy native cap before I/O", async spend_control => {
+    let attempted = false;
+    const protocol = createNamingManagedProtocol({ apiKey: "synthetic-fixture", fetch: async () => { attempted = true; return new Response(null, { status: 400 }); } });
+    await expect(protocol.createSession({ environment: { type: "none" }, agent: { model: "gpt-6-astra" }, input: "Fixture", spend_control, stream: true }, new AbortController().signal)).rejects.toMatchObject({ code: "request_rejected" });
+    expect(attempted).toBe(false);
+  });
+});
