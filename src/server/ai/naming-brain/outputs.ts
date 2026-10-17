@@ -3,11 +3,11 @@ import { isDeepStrictEqual } from "node:util";
 import { bindNamingVerificationSources, namingAssignmentPlanSchema, namingCreatorSetSchema, namingCurationSchema, namingEvidenceSourceSchema, namingProviderReceiptSchema, namingResearchPackSchema, namingRoleOutputSchema, namingStageRequestSchema, namingVerificationSchema, validateNamingAssignmentPlan, validateNamingCreatorSet,
   type NamingEvidenceSource, type NamingProviderReceipt, type NamingRoleOutput, type NamingStageRequest, type NamingVerificationSourceContext } from "../../../domain/naming-brain";
 import { namingOutputSchemas } from "./prompts";
-import { namingHash, namingStableId, namingTextHash } from "./identity";
+import { namingStableId, namingTextHash } from "./identity";
 import type { ManagedFinalOutput } from "./history";
 
 export function namingSourceContext(request: NamingStageRequest, dependencies: readonly NamingRoleOutput[]): NamingVerificationSourceContext {
-  return { dependencyArtifactIds: [...request.dependencyArtifactIds], artifacts: dependencies.flatMap<NamingVerificationSourceContext["artifacts"][number]>(artifact => artifact.output.role === "researcher" ? [namingResearchPackSchema.parse(artifact)] : artifact.output.role === "verifier" ? [namingVerificationSchema.parse(artifact)] : []) };
+  return { dependencyArtifactIds: [...request.dependencyArtifactIds], artifacts: dependencies.filter(artifact => request.dependencyArtifactIds.includes(artifact.artifactId)).flatMap<NamingVerificationSourceContext["artifacts"][number]>(artifact => artifact.output.role === "researcher" ? [namingResearchPackSchema.parse(artifact)] : artifact.output.role === "verifier" ? [namingVerificationSchema.parse(artifact)] : []) };
 }
 
 /** Only worker-resolved owned dependencies and retained provider items may enrich model JSON. */
@@ -50,7 +50,7 @@ export function validateNamingRoleOutput(options: { request: NamingStageRequest;
   if (output.role === "creator") {
     if (request.input.role !== "creator") throw new Error("role_mismatch");
     const artifact = namingCreatorSetSchema.parse({ ...envelope, output, candidateIds: output.candidates.map(candidate => ({ candidateKey: candidate.candidateKey, candidateId: namingStableId(`candidate:${artifactId}:${candidate.candidateKey}`) })),
-      creatorAttribution: { protocol: "openai_agents", executionKind: "independent_session", assignmentKey: request.input.assignment.assignmentKey, assignmentInputHash: namingHash(request.input.assignment), sessionId: receipt.sessionId, turnId: receipt.turnId, responseId: null, subagentId: null, itemId: options.final.itemId, itemContentHash: options.final.itemContentHash } });
+      creatorAttribution: { protocol: "openai_agents", executionKind: "independent_session", assignmentKey: request.input.assignment.assignmentKey, assignmentInputHash: request.requestHash, sessionId: receipt.sessionId, turnId: receipt.turnId, responseId: null, subagentId: null, itemId: options.final.itemId, itemContentHash: options.final.itemContentHash } });
     validateNamingCreatorSet(request.input.snapshot, request.input.assignment, artifact);
     return artifact;
   }

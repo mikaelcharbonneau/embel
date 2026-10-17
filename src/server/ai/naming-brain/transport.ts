@@ -11,11 +11,12 @@ import { createNamingManagedProtocol, NamingManagedProtocolError, type ManagedEv
 import { createNamingReferenceReader, NAMING_REFERENCE_HOSTS, type ReferenceObservation } from "./source-reader";
 import { validateNamingRoleOutput } from "./outputs";
 
-export type NamingProviderItemRecord = { providerCallKey: string; sessionId: string; turnId: string; itemId: string; item: AgentSessionItem };
+export type NamingProviderTurnRecord = { providerCallKey: string; sessionId: string; turnId: string; turn: Turn };
+export type NamingProviderItemRecord = { providerCallKey: string; sessionId: string; turnId: string; itemId: string; item: unknown };
 export type NamingToolResultRecord = { providerCallKey: string; sessionId: string; turnId: string; callId: string; requestHash: string; result: { argumentsHash: string; reply: ManagedToolResult }; sourceEvidence: NamingEvidenceSource | null };
 export type NamingRuntimeState = { startedAt: string; request: NamingStageRequest | null; dependencies: NamingRoleOutput[]; providerItems: NamingProviderItemRecord[]; toolResults: NamingToolResultRecord[] };
 export type NamingRuntimePersistence = { load(identity: Pick<NamingStageRequest, "runId" | "stageKey" | "providerCallKey" | "requestHash">): Promise<NamingRuntimeState>; saveToolResult(record: NamingToolResultRecord): Promise<void> };
-type Options = { model: string; apiKey?: string; protocol?: NamingManagedProtocol; persistence: NamingRuntimePersistence; now?: () => number; referenceReader?: ReturnType<typeof createNamingReferenceReader> };
+type Options = { model: string; apiKey?: string; protocol?: NamingManagedProtocol; persistence: NamingRuntimePersistence; now?: () => number; assertContinuation?: () => Promise<void>; referenceReader?: ReturnType<typeof createNamingReferenceReader> };
 type ManagedReceipt = Extract<NamingProviderReceipt, { protocol: "openai_agents" }>;
 function managedReceipt(value: unknown): ManagedReceipt { const receipt = namingProviderReceiptSchema.parse(value); if (receipt.protocol !== "openai_agents") throw new Error("protocol_mismatch"); return receipt; }
 const usageShape = z.object({ input_tokens: z.number().int().nonnegative().safe(), output_tokens: z.number().int().nonnegative().safe(), total_tokens: z.number().int().nonnegative().safe() });
@@ -72,7 +73,7 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
       if (!receipt.usageObservations.some(old => old.scope === scope && old.scopeId === scopeId && old.inputTokens === entry.inputTokens && old.outputTokens === entry.outputTokens && old.totalTokens === entry.totalTokens)) receipt = { ...receipt, usageObservations: [...receipt.usageObservations, entry] };
     };
     const acceptSession = async (value: AgentSession) => {
-      if (!safeId(value?.id) || receipt.sessionId && value.id !== receipt.sessionId || !safeId(value.agent?.id) || value.agent.model !== request.policy.model || value.environment?.type !== "none" || value.agent.multi_agent?.enabled !== false || value.spend_control?.limit !== request.policy.sessionLimitCents || value.metadata?.embel_request_hash !== request.requestHash || value.metadata?.embel_call !== request.providerCallKey || value.metadata?.embel_run !== request.runId) throw new Error("provider_configuration_mismatch");
+      if (!safeId(value?.id) || receipt.sessionId && value.id !== receipt.sessionId || !safeId(value.agent?.id) || value.agent.model !== request.policy.model || value.environment?.type !== "none" || value.agent.multi_agent?.enabled !== false || value.spend_control?.limit !== request.policy.sessionLimitCents || value.metadata?.embel_request_hash !== request.requestHash || value.metadata?.embel_call !== request.providerCallKey || value.metadata?.embel_run !== request.runId || value.metadata?.embel_request !== request.requestKey || value.metadata?.embel_snapshot !== request.snapshotHash) throw new Error("provider_configuration_mismatch");
       const expected = request.policy.allowedTools;
       if (!Array.isArray(value.agent.tools) || value.agent.tools.length !== expected.length || value.agent.tools.some(tool => tool.type === "web_search" ? !expected.includes("web_search") : tool.type !== "function" || tool.name !== "read_reference" || !expected.includes("read_reference"))) throw new Error("provider_tools_mismatch");
       session = value; receipt = { ...receipt, sessionId: value.id, agentId: value.agent.id, observedModel: value.agent.model, dispatchState: "dispatched" };
@@ -84,7 +85,9 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
     };
     const acceptTurn = async (value: Turn) => {
       if (!safeId(value?.id) || value.session_id !== receipt.sessionId || receipt.turnId && value.id !== receipt.turnId || value.subagent_id !== null || value.agent_id !== receipt.agentId) throw new Error("provider_turn_mismatch");
+      if (turn && ["completed", "failed", "cancelled"].includes(turn.status) && turn.status !== value.status) throw new Error("provider_terminal_changed");
       turn = value; receipt = { ...receipt, turnId: value.id }; usage(value.usage, "turn", value.id); await emit();
+      if (["completed", "failed", "cancelled"].includes(value.status)) await hooks.onArtifact({ kind: "provider_turn", providerCallKey: request.providerCallKey, sessionId: receipt.sessionId!, turnId: value.id, turn: value });
     };
     const acceptItem = async (item: AgentSessionItem, completed: boolean) => {
       if (item.type === "message" && item.role === "user") return;
@@ -108,9 +111,9 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
         receipt = { ...receipt, artifactItemIds: [...new Set([...receipt.artifactItemIds, item.id])] }; await emit();
       }
     };
-    const reconcile = async () => {
+    const reconcile = async (signal = controller.signal) => {
       if (!receipt.sessionId) throw new Error("session_identity_unknown");
-      const history = await readManagedTurnHistory(protocol, receipt.sessionId, receipt.turnId, controller.signal);
+      const history = await readManagedTurnHistory(protocol, receipt.sessionId, receipt.turnId, signal);
       await acceptSession(history.session); if (history.turn) await acceptTurn(history.turn);
       for (const item of history.items) await acceptItem(item, !("status" in item) || item.status === "completed" || item.status === "failed");
     };
@@ -127,6 +130,7 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
     };
     const answerRequired = async () => {
       if (!receipt.sessionId || readonlyRecovery || now() >= deadlineAt || controller.signal.aborted) throw new Error("stage_deadline_exceeded");
+      await options.assertContinuation?.();
       await reconcile();
       for (const action of (session as AgentSession | null)?.required_actions ?? []) {
         if (action.type !== "function_call" || action.name !== "read_reference" || action.turn_id !== receipt.turnId || !request.policy.allowedTools.includes("read_reference")) throw new Error("provider_tool_refused");
@@ -157,6 +161,7 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
           await options.persistence.saveToolResult(record); toolResults.set(action.call_id, record);
         }
         if (controller.signal.aborted || now() >= deadlineAt) throw new Error("stage_deadline_exceeded");
+        await options.assertContinuation?.();
         await protocol.submitToolResult(receipt.sessionId, record.result.reply, `tool-${namingHash([request.requestKey, action.call_id]).slice(0, 48)}`, controller.signal);
       }
     };
@@ -177,6 +182,10 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
         pending = iterator.next(); void pending.catch(() => {});
         const event: AgentSessionEvent = next.value;
         if ("session" in event) await acceptSession(event.session);
+        if ("session_id" in event && !receipt.sessionId && safeId(event.session_id)) {
+          receipt = { ...receipt, sessionId: event.session_id }; await emit();
+          await acceptSession(await protocol.retrieveSession(event.session_id, controller.signal));
+        }
         if ("session_id" in event && event.session_id !== receipt.sessionId) throw new Error("provider_session_mismatch");
         if ("turn" in event) { if (!session && receipt.sessionId) await acceptSession(await protocol.retrieveSession(receipt.sessionId, controller.signal)); await acceptTurn(event.turn); }
         if (event.type === "agent.session.turn.item.added" || event.type === "agent.session.turn.item.done") await acceptItem(event.item, event.type.endsWith(".done"));
@@ -189,7 +198,14 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
     } catch (error) {
       if (!dispatched) return { status: "rejected_before_dispatch", code: "dispatch_not_authorized" };
       if (error instanceof NamingManagedProtocolError && error.code === "request_rejected" && receipt.sessionId === null) { receipt = { ...receipt, dispatchState: "not_dispatched", requestId: error.requestId }; try { await emit(); } catch {} return { status: "rejected_before_dispatch", code: "provider_request_rejected" }; }
-      if (receipt.sessionId) { try { await cancel(receipt); } catch {} }
+      if (receipt.sessionId) {
+        try { await cancel(receipt); } catch {}
+        // Cancellation acceptance is not terminal. Only retained provider history
+        // can establish completion or cancellation after the observer was aborted.
+        if (controller.signal.aborted || hooks.signal.aborted) {
+          try { await reconcile(AbortSignal.timeout(3_000)); const settled = finish(); if (settled) return settled; } catch {}
+        }
+      }
       receipt = managedReceipt({ ...receipt, dispatchState: "unknown", recordedAt: new Date(now()).toISOString() });
       try { await hooks.onReceipt(receipt); } catch {}
       return namingStageOutcomeSchema.parse({ status: "unresolved", code: controller.signal.aborted ? "observation_cancelled" : reason(error), receipt, partialArtifacts: partials() });

@@ -3,6 +3,7 @@ import { namingBrainPolicySchema, namingRolePolicySchema, type NamingBrainPolicy
 import { NAMING_REFERENCE_HOSTS } from "./source-reader";
 
 export const NAMING_GAP_PHASES = Object.freeze({ direction: { cents: 10, searches: 0 }, creation: { cents: 40, searches: 0 }, curation: { cents: 5, searches: 0 }, verification: { cents: 20, searches: 8 } });
+export const NAMING_GAP_ENVELOPE = { version: 1, phases: [{ phase: "direction", cents: 10, searches: 0 }, { phase: "creation", cents: 40, searches: 0 }, { phase: "curation", cents: 5, searches: 0 }, { phase: "verification", cents: 20, searches: 8 }] } as const;
 export function createNamingBrainPolicy(model: string): NamingBrainPolicy {
   return namingBrainPolicySchema.parse({ version: 1, handlerVersion: "naming-brain-v1", billingMode: "openai_api", protocol: "openai_agents", model, reasoningEffort: "xhigh",
     runAllowanceMicrousd: 5_000_000, aggregateAllowanceMicrousd: 25_000_000, maxUnsettledRuns: 5, maxConcurrentCreators: 3, maxInitialCandidates: 150, maxGapCandidates: 50, maxGapRounds: 1,
