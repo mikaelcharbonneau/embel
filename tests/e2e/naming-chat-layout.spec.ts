@@ -24,7 +24,8 @@ test("sequential chat saves each answer, then becomes the same left conversation
   await expect(page.getByRole("radio")).toHaveCount(0); expect(fixture.mutations()).toHaveLength(0);
   held.release();
   await expect(page.getByRole("radio", { name: /^Explore all/ })).toHaveAttribute("aria-checked", "false");
-  await page.getByRole("radio", { name: /^Explore all/ }).focus(); await page.keyboard.press("Enter"); await continueAnswer(page);
+  await page.getByRole("radio", { name: /^Explore all/ }).focus(); await page.keyboard.press("Enter");
+  await expect(page.getByRole("radio", { name: /^Explore all/ })).toHaveAttribute("aria-checked", "true"); await continueAnswer(page);
   await expect(page.getByLabel("Creative language", { exact: true })).toHaveValue("en"); await continueAnswer(page);
   await expect(page.getByLabel("Maximum characters")).toBeVisible(); await continueAnswer(page); await continueAnswer(page);
   await expect(page.getByRole("button", { name: "Start exploring", exact: true })).toBeVisible(); expect(fixture.mutations()).toHaveLength(0);

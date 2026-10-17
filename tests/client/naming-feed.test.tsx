@@ -212,7 +212,7 @@ it("a paused no-run head requires explicit initial Continue; scroll cannot unpau
   expect(await f.controller.start()).toBe(true); expect(f.memory.get(account, projectId)?.feed.feed?.paused).toBe(false);
 });
 it("qualified complete saved output resumes without requiring a new runtime or a replacement run", async () => {
-  const complete = { ...run("succeeded"), canResume: true, preparedSetId: id(50), fulfillment: { status: "complete" as const, targetCount: 100 as const, acceptedCount: 100, missingCount: 0, coverageSatisfied: true, message: null } };
+  const complete = { ...run("succeeded"), canResume: true, canResumeSaved: true, preparedSetId: id(50), fulfillment: { status: "complete" as const, targetCount: 100 as const, acceptedCount: 100, missingCount: 0, coverageSatisfied: true, message: null } };
   const initial = { ...feed([entry(1)]), paused: true, state: "paused" as const, demandSequence: 1, activeRun: complete, availability: { status: "unavailable" as const, code: "worker_unavailable" } }, f = fixture(initial);
   await f.controller.load();
   f.respond(async (_path, options) => { expect(options.body).toMatchObject({ reason: "resume", resumeOfRunId: complete.runId, expectedDemandSequence: 1 }); return { status: "appended", feed: { ...initial, paused: false, state: "active" }, runId: complete.runId, appendedEntryIds: [] }; });

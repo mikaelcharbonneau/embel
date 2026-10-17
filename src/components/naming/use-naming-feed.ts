@@ -76,7 +76,7 @@ export function useNamingFeed({ account, projectId, enabled, view, projectRevisi
   const contextReady = enabled && eligibleView && record?.preferences?.saved?.preferences.version === 2 && !record.preferences.dirty && !record.preferences.pending && getNamingPreferencesReadiness(record.preferences.saved.preferences).ready && !record.feed.stop && !record.feed.steering;
   const canExplore = contextReady && record?.feed.feed?.availability.status === "available";
   const run = record?.feed.feed?.activeRun;
-  const canResume = contextReady && !record?.feed.pending && run?.canResume && (canExplore || Boolean(run.preparedSetId && run.fulfillment?.status === "complete"));
+  const canResume = contextReady && !record?.feed.pending && run?.canResume && (canExplore || run.canResumeSaved === true);
   const updateSteeringDraft = useCallback((patch: Partial<typeof emptySteeringDraft>) => memory.setSteeringDraft(account, projectId, draft => ({ ...draft, ...patch })), [memory, account, projectId]);
   return { steeringDraft: record?.steeringDraft ?? emptySteeringDraft, updateSteeringDraft, canExplore: Boolean(canExplore), canResume: Boolean(canResume), record, state: record?.feed ?? null, entries: record?.feed.entries ?? [], memory, eligibleView, interacting: interacting && enabled && eligibleView && resultsVisible, attachSentinel: setSentinel,
     start, stop, stopCurrent: controller.stopCurrent, retry: controller.retry, resume: controller.resume, steer: controller.steer, refresh: controller.load };

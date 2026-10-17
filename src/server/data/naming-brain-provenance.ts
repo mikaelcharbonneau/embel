@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { namingBriefSnapshotSchema, namingCandidateProposalSchema, namingCreatorAttributionSchema, namingProviderReceiptSchema } from "@/domain/naming-brain";
+import { namingBriefSnapshotSchema, namingCandidateProposalSchema, namingCreatorAttributionSchema, namingProviderReceiptSchema, namingVerificationFindingSchema, namingDisplayRationale } from "@/domain/naming-brain";
 import { nameIdentityKey, namingStrategyBasisSchema, namingStrategyKeyFromBasis, type ProjectNameCandidate } from "@/domain/project-naming";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
@@ -22,6 +22,7 @@ const sourceSchema = z.strictObject({
  ownerId: z.uuid(), projectId: z.uuid(), candidateId: z.uuid(), runId: z.uuid(), jobId: z.uuid(), batchId: z.uuid(),
  snapshot: namingBriefSnapshotSchema, sourceArtifactId: z.uuid(), sourceStageKey: z.enum(["creation", "gap"]),
  sourceCandidate: namingCandidateProposalSchema, providerReceipt: namingProviderReceiptSchema, creatorAttribution: namingCreatorAttributionSchema,
+ verificationArtifactId: z.uuid(), verificationFindings: z.array(namingVerificationFindingSchema).max(8),
  preparedSetId: z.uuid(), preparedCandidateIds: z.array(z.uuid()).min(1).max(100),
 });
 export async function loadManagedNamingSources(auth: AuthenticatedContext, projectId: string, candidates: readonly ProjectNameCandidate[]) {
@@ -50,10 +51,13 @@ export async function verifyManagedNamingSource(auth: AuthenticatedContext, cand
  const result = sourceSchema.safeParse(normalizeNamingBrain(raw, auth.userId));
  if (!result.success) throw new ApiError("integration_unavailable");
  const proof = result.data, receipt = proof.providerReceipt, source = proof.sourceCandidate, attribution = proof.creatorAttribution;
+ const findings = proof.verificationFindings;
+ if (new Set(findings.map(finding => finding.claimKey)).size !== findings.length || findings.some(finding => finding.assignmentKey !== receipt.assignmentKey || finding.candidateKey !== source.candidateKey || !source.claims.some(claim => claim.claimKey === finding.claimKey))) throw new ApiError("integration_unavailable");
+ const notes = source.claims.map(claim => { const finding = findings.find(finding => finding.claimKey === claim.claimKey); return { claimKey: claim.claimKey, originalStatement: claim.statement, status: finding?.status ?? "unresolved", explanation: finding?.explanation ?? "No completed verification supports this claim." }; });
  if (proof.projectId !== candidate.projectId || proof.candidateId !== candidate.id || proof.runId !== origin.runId || proof.jobId !== origin.jobId || proof.batchId !== origin.batchId || proof.sourceArtifactId !== origin.sourceArtifactId || proof.sourceStageKey !== origin.sourceStageKey
   || proof.snapshot.contextRevision !== candidate.contextRevision || JSON.stringify(proof.snapshot.strategyBasis) !== JSON.stringify(candidate.strategyBasis)
   || !proof.preparedCandidateIds.includes(candidate.id) || new Set(proof.preparedCandidateIds).size !== proof.preparedCandidateIds.length
-  || source.value !== candidate.value || source.rationale !== candidate.rationale || (source.caution ?? undefined) !== candidate.caution || nameIdentityKey(source.value) !== candidate.identityKey
+  || source.value !== candidate.value || namingDisplayRationale(source.rationale, source.claims, findings) !== candidate.rationale || JSON.stringify(candidate.verificationNotes ?? []) !== JSON.stringify(notes) || (source.caution ?? undefined) !== candidate.caution || nameIdentityKey(source.value) !== candidate.identityKey
   || receipt.runId !== origin.runId || receipt.snapshotHash !== proof.snapshot.snapshotHash || receipt.stageKey !== origin.sourceStageKey
   || receipt.protocol !== origin.protocol || receipt.observedModel !== origin.model || receipt.requestId !== origin.requestId || receipt.recordedAt !== origin.generatedAt
   || attribution.itemId !== origin.providerItemId || !receipt.artifactItemIds.includes(attribution.itemId)

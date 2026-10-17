@@ -12,7 +12,7 @@ export function preferences() {
 }
 export function snapshot() {
   return { version: 1 as const, ownerId: id(1), projectId: id(2), contextRevision: 1, strategyBasis: namingStrategyBasis(context), strategyKey: namingStrategyKey(context),
-    preferencesVersion: 1, preferences: preferences(), feedbackRevision: 0, steeringRevision: 0, strongSeedIds: [] as string[], steeringInstruction: null,
+    preferencesVersion: 1, preferences: preferences(), feedbackRevision: 0, steeringRevision: 0, strongSeedIds: [] as string[], strongSeeds: [], steeringInstruction: null,
     recentExamples: [], likedExamples: [], patternSummaries: [], snapshotHash: hash };
 }
 export function receipt(stageKey = "research", role = "researcher") {

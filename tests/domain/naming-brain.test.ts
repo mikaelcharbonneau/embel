@@ -104,6 +104,16 @@ describe("validated Director and Creator assignments", () => {
 });
 
 describe("claim-level verification", () => {
+  it.each(["supported", "corrected", "unresolved", "contradicted"])("projects the displayed rationale for %s optional findings without changing Creator evidence", status => {
+    const assignments = brain.validateNamingAssignmentPlan(snapshot(), research(), plan());
+    const original = { ...proposal("Qvorr", "odd", "invented", "rhythm"), rationale: "An invented false Latin origin", claims: [{ claimKey: "origin", statement: "An invented false Latin origin", sourceKeys: ["source-one"], requirement: "optional", status: "unverified" }] };
+    const candidates = brain.validateNamingCreatorSet(snapshot(), assignments[1], creatorSet([original], "invented")).accepted;
+    const supported = status === "supported" || status === "corrected";
+    const result = brain.applyNamingVerification(candidates, verification([{ assignmentKey: "invented", candidateKey: "odd", claimKey: "origin", status, supportedWording: supported ? "A bounded supported interpretation" : null, sourceKeys: supported ? ["source-one"] : [], evidence: supported ? [{ sourceKey: "source-one", start: 0, end: 24, quote: "Synthetic reference text" }] : [], supportsPrimaryApproach: false, explanation: "A bounded verification finding." }]), sourceContext());
+    expect(result.candidates[0]).toMatchObject({ value: "Qvorr", eligible: true, displayRationale: status === "supported" ? original.rationale : "Optional factual explanation withheld after verification." });
+    expect(candidates[0]!.rationale).toBe(original.rationale);
+    expect(result.candidates[0]!.claims[0]!.originalStatement).toBe(original.claims[0]!.statement);
+  });
   it("removes unsupported optional wording without rejecting or silently rewriting an unusual name", () => {
     const assignments = brain.validateNamingAssignmentPlan?.(snapshot(), research(), plan());
     const original = { ...proposal("Qvorr", "odd", "invented", "rhythm"), claims: [{ claimKey: "origin", statement: "An invented false Latin origin", sourceKeys: ["source-one"], requirement: "optional", status: "unverified" }] };

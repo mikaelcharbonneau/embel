@@ -246,11 +246,14 @@ function lineage(origin: ProjectNameOrigin): { root: NamingRootOrigin; history: 
 }
 
 /** Read-only provenance; passing this schema never proves ownership of references. */
+export const namingVerificationNoteSchema = z.strictObject({ claimKey: z.string().min(1).max(100), originalStatement: z.string().min(1).max(2000), status: z.enum(["supported", "corrected", "unresolved", "contradicted"]), explanation: z.string().min(1).max(2000) });
 export const projectNameCandidateSchema = z.strictObject({
   id: z.uuid(), ...ownershipFields, value: nameValueSchema, identityKey: nameIdentityKeySchema,
   rationale: generatedNameProposalSchema.shape.rationale, caution: generatedNameProposalSchema.shape.caution,
+  verificationNotes: z.array(namingVerificationNoteSchema).max(8).optional(),
   contextRevision: revisionSchema, ...strategyFields, origin: projectNameOriginSchema, createdAt: timestampSchema,
 }).superRefine((candidate, ctx) => {
+  if (candidate.verificationNotes && (candidate.origin.kind !== "generated" || candidate.origin.billingMode !== "openai_api" || new Set(candidate.verificationNotes.map(note => note.claimKey)).size !== candidate.verificationNotes.length)) ctx.addIssue({ code: "custom", path: ["verificationNotes"], message: "Verification findings require a managed original with unique claim keys" });
   const name = nameValueSchema.safeParse(candidate.value);
   if (name.success && nameIdentityKey(name.data) !== candidate.identityKey) ctx.addIssue({ code: "custom", path: ["identityKey"], message: "Identity must match the candidate value" });
   const basis = namingStrategyBasisSchema.safeParse(candidate.strategyBasis);

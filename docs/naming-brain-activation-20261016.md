@@ -17,10 +17,15 @@ resolved, 142 client checks and 46 final affected browser checks. Their scoped
 reviews are approved. Earlier partial-source and focused-phase counts remain
 historical evidence in the verification record.
 
-The full stable-source matrix and whole-branch review are the only remaining local
-acceptance gates. Their results and the final combined commit/tree are not yet
-established. This packet **must be bound to that final reviewed commit before
-execution**; it does not declare the whole branch verified or activate anything.
+The later frozen head `72a1ea948b01342af958d12c476263ce538917cf` completed the
+full local matrix and failed acceptance: one exact ACL assertion, 232 vector
+candidate bodies blocked by a predecessor guard, six Names bridge browser cases
+and one mobile keyboard case. The whole-branch review requested changes F1–F6;
+the browser failure added F7. Those failed results remain historical evidence.
+The current local repair delta addresses these findings but still requires one
+independent scoped re-review and a complete frozen-source rerun. This packet
+**must be bound to that final reviewed commit before execution**; it does not
+declare the whole branch verified or activate anything.
 
 The corrected independent sample-data preview is
 `http://127.0.0.1:3135/__preview`, source `a13e94c`, build
@@ -38,9 +43,9 @@ it does not start this managed Naming graph.
 | Item | Preparation status / required read-back |
 | --- | --- |
 | Additive migration | `supabase/migrations/20261016180000_naming_brain.sql` |
-| Final reviewed migration SHA-256 | `b55c29851e1d11efdb00eb8d2831f256884e31501beab98c178c8b7220da1d8f`, recomputed at `a48eb033acc29e8f260ebfaadf2cae6bf6343423`. Recompute again at the final freeze. |
+| Current local repair migration SHA-256 | `f6ccb8ff3b5a8fd280defa311ec045d51fc18ae5d708e94a30b0f8d93a46044f`, recomputed after the final review repairs on base `72a1ea948b01342af958d12c476263ce538917cf`. Independent scoped re-review and the final full rerun remain required before activation. |
 | Historical round-one candidate digest | `8759c191bcb20c56db56d763bb6370e523921c65d1944353bb84ba431bf61b1e`; superseded by the reviewed fixes, **not an activation digest**. |
-| Final source commit and tree | Current pre-verification base is `a48eb033acc29e8f260ebfaadf2cae6bf6343423`; final combined freeze/matrix and whole-branch review remain pending. |
+| Final source commit and tree | Final repairs are an uncommitted local delta on `72a1ea948b01342af958d12c476263ce538917cf`. That head failed the full matrix and requested changes in review; the repaired checkpoint still requires independent scoped re-review and a fresh full rerun. |
 | Configured database target | Public URL `https://fricsfwqibyhemknqgyf.supabase.co` exactly matches connector project `fluid-platform-dev`, ref `fricsfwqibyhemknqgyf`, `us-east-1`, `ACTIVE_HEALTHY`. |
 | Naming installation | At the 2026-10-17 connector metadata read, migration `20261016180000`, all nine scoped Naming RPCs and private `naming_brain_*` tables were absent. |
 | Application origin / worker deployment | Live activation identities remain unverified. The sample preview above is not their substitute. |
@@ -204,8 +209,12 @@ Verify that scenario using an explicitly authorized known session: no create,
 replacement turn, tool continuation or paid phase is allowed. The observation
 window is bounded to 12 claims / one hour with persisted 30-second-to-five-minute
 backoff. Re-enable paid work only under fresh exact readiness and the original
-unissued plan/deadline. Explicit terminal Resume is a separate linked run and
-allowance; ordinary scrolling cannot perform it. A proven no-dispatch cancellation
+unissued plan/deadline. Explicit terminal Resume that needs new inference creates
+a separate linked run and allowance; ordinary scrolling cannot perform it. The
+independent server `canResumeSaved` witness permits eligible saved complete or
+partial membership to be consumed under the original run and reservation, even
+when paid readiness is unavailable. It never dispatches inference and retains
+current-context, owner, sequence, revision and Stop fences. A proven no-dispatch cancellation
 is the distinct zero-charge release case and needs its database proof.
 
 ## Guarded runner and read-back

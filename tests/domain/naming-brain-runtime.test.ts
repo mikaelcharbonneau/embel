@@ -176,6 +176,13 @@ describe("durable Stop and free saved-output continuation", () => {
     }
   });
 
+  it("requires a separate consistent saved-membership witness before bypassing paid readiness", () => {
+    const run = { ...preparedRun(), state: "partial", canResume: true, canResumeSaved: true, fulfillment: { status: "partial", targetCount: 100, acceptedCount: 1, missingCount: 99, coverageSatisfied: false, message: "One saved name." } };
+    expect(brain.namingBrainRunSummarySchema.safeParse(run).success).toBe(true);
+    for (const patch of [{ canResume: false }, { preparedSetId: null }, { fulfillment: null }, { state: "needs_reconciliation" }, { state: "running" }, { fulfillment: { status: "none", targetCount: 100, acceptedCount: 0, missingCount: 100, coverageSatisfied: false, message: "No saved names." } }]) expect(brain.namingBrainRunSummarySchema.safeParse({ ...run, ...patch }).success).toBe(false);
+    expect(brain.namingBrainRunSummarySchema.parse({ ...run, canResumeSaved: undefined }).canResumeSaved).toBeUndefined();
+  });
+
   it.each(["prepared", "succeeded", "cancelled"])("acknowledges already-exposed %s membership without appending or granting another Resume", state => {
     const run = { ...preparedRun(state), canResume: false };
     const result = { status: "appended", feed: { ...feed(), paused: false, demandSequence: 2, activeRun: run, preparedSetId: null }, runId: run.runId, appendedEntryIds: [] };

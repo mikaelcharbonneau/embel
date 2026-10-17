@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { accountProjectSchema, type AccountProject } from "../../src/domain/project-api";
+import { accountProjectPageSchema } from "../../src/domain/project-pages";
 import { projectNamingOverviewSchema } from "../../src/domain/naming-jobs";
 import { createEmptyNamesWorkspace, namesWorkspaceSchema } from "../../src/components/naming/local-names";
 import { contextSnapshotSchema } from "../../src/domain/projects";
@@ -31,7 +32,7 @@ async function fixture(page: Page) {
     if (path === "/api/projects/page") {
       if (state.status !== 200) return reply({}, state.status);
       const rows = url.searchParams.has("cursorId") ? [project(0, state.owner)] : state.projects;
-      const frozen = { ownerId: state.owner, items: rows.map(item => ({ id: item.id, owner_id: item.owner_id, scope: item.scope, title: item.title, current_revision: item.current_revision, created_at: item.created_at })), nextCursor: state.next && !url.searchParams.has("cursorId") ? { id: rows.at(-1)!.id, createdAt: rows.at(-1)!.created_at } : null };
+      const frozen = accountProjectPageSchema.parse({ ownerId: state.owner, items: rows.map(item => ({ id: item.id, owner_id: item.owner_id, scope: item.scope, title: item.title, current_revision: item.current_revision, created_at: item.created_at, deleted_at: null, deletion_requested_at: null, deletion_state: "active", lifecycle_version: 0 })), nextCursor: state.next && !url.searchParams.has("cursorId") ? { id: rows.at(-1)!.id, createdAt: rows.at(-1)!.created_at } : null });
       if (state.delay && !state.delay.started) { state.delay.started = true; await state.delay.promise; }
       return reply(frozen);
     }
@@ -58,12 +59,15 @@ test("assistant bridge: choose projects, readiness and reload never enqueue", as
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.getByRole("link", { name: "Open project Naming" }).click();
   await expect(page.getByText("Strategy needs review", { exact: true })).toBeVisible();
-  await expect(page.getByRole("region", { name: "Naming conversation" })).toHaveCount(0);
+  await expect(page.getByRole("complementary", { name: "Naming conversation", includeHidden: true })).toContainText("Review Strategy to continue the Naming conversation.");
+  await expect(page.getByRole("region", { name: "Naming choices", includeHidden: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Start exploring|Continue exploring/, includeHidden: true })).toHaveCount(0);
   await page.reload(); await expect(page.getByText("Strategy needs review", { exact: true })).toBeVisible();
   expect(mutations(state)).toEqual([]);
   await open(page); await page.getByLabel("Account project").selectOption(id(3));
   await page.getByRole("link", { name: "Open project Naming" }).click();
-  await expect(page.getByRole("region", { name: "Naming conversation" })).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "Naming conversation" })).toBeVisible();
+  await page.getByText("Saved project context", { exact: true }).click();
   await expect(page.getByText("Synthetic naming brief 3.", { exact: true })).toBeVisible();
   expect(mutations(state)).toEqual([]);
 });

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { nameValueSchema } from "./naming";
-import { nameIdentityKey, nameIdentityKeySchema, namingStrategyBasisSchema, namingStrategyKeyFromBasis, projectNameEntrySchema } from "./project-naming";
+import { nameIdentityKey, nameIdentityKeySchema, namingStrategyBasisSchema, namingStrategyKeyFromBasis, projectNameEntrySchema, projectNameOriginSchema } from "./project-naming";
 import { getNamingPreferencesReadiness, matchesNamingTextFragment, namingApproachSchema, namingPreferencesV2Schema, type NamingApproach } from "./naming-brain-preferences";
 export * from "./naming-brain-preferences";
 
@@ -35,15 +35,22 @@ function refKey(value: { assignmentKey: string; candidateKey: string }): string 
 function assert(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message); }
 
 const exampleSchema = z.strictObject({ candidateId: z.uuid(), value: nameValueSchema, primaryApproach: namingApproachSchema.nullable() });
+const strongSeedShape = exampleSchema.extend({ rationale: z.string().min(1).max(2000), caution: z.string().min(1).max(2000).nullable(), contextRevision: revision, origin: projectNameOriginSchema });
+// Existing origin readers can supply defaults for older imported context. Check
+// that contract without rewriting immutable seed material under its frozen hash.
+const strongSeedSchema = z.custom<z.input<typeof strongSeedShape>>(value => strongSeedShape.safeParse(value).success, "Strong seed material must retain valid original provenance");
 export const namingBriefSnapshotSchema = z.strictObject({
   version: z.literal(1), ownerId: z.uuid(), projectId: z.uuid(), contextRevision: revision,
   strategyBasis: namingStrategyBasisSchema, strategyKey: z.string().startsWith("naming-strategy-v1:"), preferencesVersion: revision, preferences: namingPreferencesV2Schema,
   feedbackRevision: counter, steeringRevision: counter, strongSeedIds: z.array(z.uuid()).max(5).refine(unique), steeringInstruction: text.nullable(),
+  strongSeeds: z.array(strongSeedSchema).max(5).default([]),
   recentExamples: z.array(exampleSchema).max(50), likedExamples: z.array(exampleSchema).max(30),
   patternSummaries: z.array(z.strictObject({ pattern: text, count: counter, interpretation: text.nullable() })).max(30), snapshotHash: hash,
 }).superRefine((value, ctx) => {
   if (value.strategyKey !== namingStrategyKeyFromBasis(value.strategyBasis)) issue(ctx, "Strategy key must match the frozen basis", ["strategyKey"]);
   for (const field of ["recentExamples", "likedExamples"] as const) if (!unique(value[field].map(row => row.candidateId))) issue(ctx, "Snapshot example IDs must be unique", [field]);
+  if (value.strongSeeds.length !== value.strongSeedIds.length || value.strongSeeds.some((seed, index) => seed.candidateId !== value.strongSeedIds[index])) issue(ctx, "Every strong seed ID must resolve to its exact ordered immutable name material", ["strongSeeds"]);
+  if (value.strongSeeds.some(seed => ("root" in seed.origin ? seed.origin.root.ownerId : seed.origin.ownerId) !== value.ownerId)) issue(ctx, "Strong seed provenance must retain the same owner", ["strongSeeds"]);
   if (!boundedBytes(value, 100_000)) issue(ctx, "Naming snapshot exceeds the bounded prompt material");
 }).transform(freeze);
 export type NamingBriefSnapshot = z.infer<typeof namingBriefSnapshotSchema>;
@@ -339,7 +346,11 @@ export function validateNamingCreatorSet(snapshotInput: unknown, assignmentInput
 }
 
 export const namingAppliedClaimSchema = z.strictObject({ claimKey: localKey, originalStatement: text, status: z.enum(["supported", "corrected", "unresolved", "contradicted"]), publishedStatement: text.nullable(), sourceKeys, evidence: evidenceQuotes, supportsPrimaryApproach: z.boolean(), explanation: text });
-export const namingVerifiedCandidateSchema = z.strictObject({ candidateId: z.uuid(), value: nameValueSchema, eligible: z.boolean(), primaryCredit: namingApproachSchema.nullable(), publishedClaims: z.array(z.strictObject({ claimKey: localKey, statement: text, sourceKeys, evidence: evidenceQuotes })).max(8), claims: z.array(namingAppliedClaimSchema).max(8) });
+export const NAMING_WITHHELD_RATIONALE = "Optional factual explanation withheld after verification.";
+export function namingDisplayRationale(rationale: string, claims: readonly { claimKey: string }[], findings: readonly { claimKey: string; status: string }[]): string {
+  return claims.some(claim => !findings.some(finding => finding.claimKey === claim.claimKey && finding.status === "supported")) ? NAMING_WITHHELD_RATIONALE : rationale;
+}
+export const namingVerifiedCandidateSchema = z.strictObject({ candidateId: z.uuid(), value: nameValueSchema, displayRationale: text, eligible: z.boolean(), primaryCredit: namingApproachSchema.nullable(), publishedClaims: z.array(z.strictObject({ claimKey: localKey, statement: text, sourceKeys, evidence: evidenceQuotes })).max(8), claims: z.array(namingAppliedClaimSchema).max(8) });
 export type NamingVerifiedCandidate = z.infer<typeof namingVerifiedCandidateSchema>;
 export const namingAppliedVerificationSchema = z.strictObject({ runId: z.uuid(), snapshotHash: hash, verificationArtifactId: z.uuid(), artifact: namingVerificationSchema, sourceContext: namingVerificationSourceContextSchema, candidates: z.array(namingVerifiedCandidateSchema).max(200) })
   .refine(value => unique(value.candidates.map(candidate => candidate.candidateId)) && value.runId === value.artifact.runId && value.snapshotHash === value.artifact.snapshotHash && value.verificationArtifactId === value.artifact.artifactId, "Applied verification must bind its exact retained artifact and unique candidates");
@@ -362,7 +373,10 @@ export function applyNamingVerification(candidateInput: unknown, verificationInp
           sourceKeys: finding?.sourceKeys ?? [], evidence: finding?.evidence ?? [], supportsPrimaryApproach: finding?.supportsPrimaryApproach ?? false, explanation: finding?.explanation ?? "No completed verification supports this claim." };
       });
       const eligible = candidate.claims.every(claim => claim.requirement !== "primary_approach" || claims.find(result => result.claimKey === claim.claimKey)?.supportsPrimaryApproach === true);
-      return { candidateId: candidate.candidateId, value: candidate.value, eligible, primaryCredit: eligible ? candidate.primaryApproach : null, claims,
+      // No deterministic substring edit can establish the factual scope of prose.
+      // Withhold the whole explanation when any original claim is corrected or
+      // unsupported; the original Creator artifact and findings stay unchanged.
+      return { candidateId: candidate.candidateId, value: candidate.value, displayRationale: namingDisplayRationale(candidate.rationale, candidate.claims, claims), eligible, primaryCredit: eligible ? candidate.primaryApproach : null, claims,
         publishedClaims: claims.flatMap(claim => claim.publishedStatement === null ? [] : [{ claimKey: claim.claimKey, statement: claim.publishedStatement, sourceKeys: claim.sourceKeys, evidence: claim.evidence }]) };
     }) }));
 }
@@ -600,6 +614,8 @@ const runSummaryFields = {
   version: z.literal(1), ownerId: z.uuid(), projectId: z.uuid(), runId: z.uuid(), jobId: z.uuid(), batchId: z.uuid(), revision, resumedFromRunId: z.uuid().nullable(),
   // Server-qualified at this revision; absence never grants a client recovery action.
   canResume: z.boolean().default(false),
+  // An independent server witness permits only reuse of saved membership.
+  canResumeSaved: z.boolean().optional(),
   state: z.enum(["queued", "running", "partial", "cancel_requested", "cancelled", "succeeded", "failed", "needs_reconciliation", "prepared", "superseded"]),
   projectRevision: revision, preferencesVersion: revision, feedbackRevision: counter, steeringRevision: counter, demandSequence: counter, snapshotHash: hash, acceptedPolicyIdentity: hash,
   progress: z.number().int().min(0).max(100), preparedSetId: z.uuid().nullable(), fulfillment: namingBrainFulfillmentSchema.nullable(), accounting: namingRunAccountingSchema, createdAt: timestamp, updatedAt: timestamp,
@@ -607,7 +623,8 @@ const runSummaryFields = {
 function hasCompletePreparedMembership(value: { state: string; preparedSetId: string | null; fulfillment: NamingBrainFulfillment | null }): boolean {
   return ["prepared", "succeeded", "cancelled"].includes(value.state) && value.preparedSetId !== null && value.fulfillment?.status === "complete";
 }
-function validResumeWitness(value: { canResume: boolean; state: string; preparedSetId: string | null; fulfillment: NamingBrainFulfillment | null }): boolean {
+function validResumeWitness(value: { canResume: boolean; canResumeSaved?: boolean; state: string; preparedSetId: string | null; fulfillment: NamingBrainFulfillment | null }): boolean {
+  if (value.canResumeSaved && (!value.canResume || !value.preparedSetId || !value.fulfillment?.acceptedCount)) return false;
   return !value.canResume || hasCompletePreparedMembership(value) || (["partial", "cancelled", "failed"].includes(value.state) && value.fulfillment?.status !== "complete");
 }
 export const namingBrainRunSummarySchema = z.strictObject(runSummaryFields).refine(value => value.runId !== value.resumedFromRunId, "Resume creates a new run linked to its terminal predecessor")

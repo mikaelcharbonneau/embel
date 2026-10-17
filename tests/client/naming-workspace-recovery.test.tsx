@@ -74,6 +74,30 @@ beforeEach(() => {
 });
 afterEach(async () => { if (root) await act(async () => root.unmount()); host?.remove(); mock.memory?.clear(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
+it.each([true, false])("saved-partial continuation uses the server free witness=%s through the real workspace hook", async canResumeSaved => {
+  const savedRow = server.entries[0]!, run: NamingBrainRunSummary = { ...activeRun, state: "partial", revision: 2, canResume: true, canResumeSaved, preparedSetId: "e0000000-0000-4000-8000-000000000001", fulfillment: { status: "partial", targetCount: 100, acceptedCount: 1, missingCount: 99, coverageSatisfied: false, message: "One saved synthetic name." } };
+  const savedEntry: ProjectNameEntry = { ...savedRow.entry, candidate: { ...savedRow.entry.candidate, origin: { kind: "generated", version: 2, handlerVersion: "naming-brain-v1", ownerId, projectId, candidateId, contextRevision: 1, value: "Juniper", batchId: run.batchId, jobId: run.jobId, stepKey: "prepare", runId: run.runId, sourceArtifactId: "f0000000-0000-4000-8000-000000000001", sourceStageKey: "creation", provider: "openai", billingMode: "openai_api", model: "synthetic-fixture-model", requestId: null, providerItemId: "fixture-item", generatedAt: when, protocol: "openai_agents", sessionId: "fixture-session", turnId: "fixture-turn", agentId: null, responseId: null } } };
+  server = { ...server, entries: [], activeRun: run, preparedSetId: run.preparedSetId, paused: true, state: "paused", demandSequence: 1, availability: { status: "unavailable", code: "worker_unavailable" } };
+  const existingFetch = globalThis.fetch;
+  vi.stubGlobal("fetch", vi.fn(async (path: string, options: RequestInit) => {
+    if (!path.endsWith("/feed/ensure")) return existingFetch(path, options);
+    const body = JSON.parse(String(options.body)); calls.push({ path, method: "POST", body });
+    server = { ...server, entries: [{ ...savedRow, entry: savedEntry, runId: run.runId, primaryApproach: "real_words" }], paused: false, state: "active", demandSequence: 2, preparedSetId: null, activeRun: { ...run, canResume: false, canResumeSaved: false } };
+    return Response.json({ status: "appended", feed: server, runId: run.runId, appendedEntryIds: [savedRow.entryId] });
+  }));
+  await render();
+  const action = button(canResumeSaved ? "Continue with saved names" : "Resume unfinished exploration"); expect(action).toBeDefined(); expect(action!.disabled).toBe(!canResumeSaved);
+  expect(ensures()).toHaveLength(0);
+  if (canResumeSaved) {
+    await click("Continue with saved names");
+    expect(ensures()).toHaveLength(1); expect(ensures()[0]!.body).toMatchObject({ reason: "resume", resumeOfRunId: run.runId, expectedRunRevision: 2, expectedDemandSequence: 1 });
+    expect(server.activeRun).toMatchObject({ runId: run.runId, canResume: false });
+    expect(mock.memory!.get(mock.session as VerifiedAccount, projectId)!.feed.error).toBeNull();
+    expect(mock.memory!.get(mock.session as VerifiedAccount, projectId)!.feed.entries).toHaveLength(1);
+    expect(host.querySelectorAll(".naming-feed-card")).toHaveLength(1);
+  }
+});
+
 it.each(["history", "filtered", "inspection"] as const)("I4 Continue explicitly enters exploration from %s in the actual workspace", async view => {
   if (view === "filtered") { overview = { ...overview, session: { ...overview.session!, viewState: { ...initialNamingView, filter: "saved", query: "Juniper" } } }; publish({ overview }); }
   await render();

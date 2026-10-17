@@ -16,6 +16,34 @@ function receipt(body: { expectedPreferencesVersion: number; preferences: unknow
 function memoryWithSave() { const request = vi.fn(async (_path, _schema, options) => receipt(options.body)); const memory = createNamingBrainMemory({ storage: () => null, request: request as never }); memory.bind(account); return { memory, request }; }
 async function render(memory: ReturnType<typeof createNamingBrainMemory>, start = vi.fn(async () => true), exploring = false) { await act(async () => root.render(createElement(NamingApproachWidgets, { memory, account, projectId, context, saved: null, blocked: false, runtimeReady: true, onContinue: start, exploring }))); return start; }
 
+it("focuses the next question on commit without a later animation frame stealing a keyboard choice", async () => {
+  const frames: FrameRequestCallback[] = [];
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { frames.push(callback); return frames.length; });
+  const { memory } = memoryWithSave(); await render(memory); await click("Real words");
+  await act(async () => { button("Continue").focus(); button("Continue").click(); });
+  const choice = button("Explore all"); choice.focus();
+  await act(async () => { for (const frame of frames.splice(0)) frame(16); });
+  expect(document.activeElement).toBe(choice);
+  await act(async () => (document.activeElement as HTMLButtonElement).click());
+  expect(choice.getAttribute("aria-checked")).toBe("true");
+  await act(async () => { button("Continue").focus(); button("Continue").click(); });
+  expect(document.activeElement).toBe(host.querySelector("h2"));
+  expect(host.querySelector("h2")?.textContent).toBe("Which language should the names work in?");
+});
+
+it("does not take focus from a composer used while an answer save is pending", async () => {
+  let finish!: (value: unknown) => void;
+  const request = vi.fn((_path, _schema, options) => new Promise(resolve => { finish = () => resolve(receipt(options.body)); }));
+  const memory = createNamingBrainMemory({ storage: () => null, request: request as never }); memory.bind(account);
+  await render(memory); await click("Real words");
+  await act(async () => { button("Continue").focus(); button("Continue").click(); });
+  const composer = host.querySelector<HTMLTextAreaElement>('form textarea')!; composer.focus();
+  await act(async () => { finish(undefined); });
+  await act(async () => { vi.advanceTimersByTime(32); });
+  expect(host.querySelectorAll('[role="radio"]')).toHaveLength(4);
+  expect(document.activeElement).toBe(composer);
+});
+
 it("asks one decision at a time, preserves every approach, and revisits without admitting work", async () => {
   const { memory } = memoryWithSave(), start = await render(memory);
   expect(host.querySelectorAll('[aria-pressed="true"]')).toHaveLength(0);

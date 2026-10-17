@@ -297,7 +297,7 @@ create function fluid_private.naming_brain_can_resume(r fluid_private.naming_bra
 $$;
 create function fluid_private.naming_brain_summary(r fluid_private.naming_brain_runs) returns jsonb language sql stable set search_path='' as $$
  select jsonb_build_object('version',1,'ownerId',r.owner_id,'projectId',r.project_id,'runId',r.id,'jobId',r.job_id,'batchId',r.batch_id,'revision',r.revision,
- 'resumedFromRunId',r.resumed_from_run_id,'canResume',fluid_private.naming_brain_can_resume(r),'state',case when r.superseded then 'superseded' when s.prepared#>>'{fulfillment,status}'='complete' and j.state='running' then 'prepared' when s.prepared#>>'{fulfillment,status}'='complete' and j.state in('succeeded','partial','failed','cancelled','cancel_requested') then 'succeeded' when j.state='succeeded' and s.prepared#>>'{fulfillment,status}'<>'complete' then 'partial' else j.state end,
+ 'resumedFromRunId',r.resumed_from_run_id,'canResume',fluid_private.naming_brain_can_resume(r),'canResumeSaved',fluid_private.naming_brain_can_resume(r) and fluid_private.naming_brain_free_resume(r),'state',case when r.superseded then 'superseded' when s.prepared#>>'{fulfillment,status}'='complete' and j.state='running' then 'prepared' when s.prepared#>>'{fulfillment,status}'='complete' and j.state in('succeeded','partial','failed','cancelled','cancel_requested') then 'succeeded' when j.state='succeeded' and s.prepared#>>'{fulfillment,status}'<>'complete' then 'partial' else j.state end,
  'projectRevision',(r.snapshot->>'contextRevision')::integer,'preferencesVersion',(r.snapshot->>'preferencesVersion')::integer,
  'feedbackRevision',(r.snapshot->>'feedbackRevision')::integer,'steeringRevision',(r.snapshot->>'steeringRevision')::integer,'demandSequence',r.demand_sequence,
  'snapshotHash',r.snapshot_hash,'acceptedPolicyIdentity',r.policy_identity,'progress',j.progress,'preparedSetId',s.id,'fulfillment',s.prepared->'fulfillment',
@@ -602,7 +602,7 @@ create function fluid_private.naming_brain_valid_intent(p_kind text,v jsonb) ret
 create function public.ensure_naming_brain_run(p_project_id uuid,p_intent jsonb) returns jsonb language plpgsql security definer set search_path='' as $$
  declare o uuid:=auth.uid(); h fluid_private.naming_brain_heads; p public.projects; pref public.naming_preferences; pilot fluid_private.naming_brain_pilots;
  r fluid_private.naming_brain_runs; source fluid_private.naming_brain_runs; old fluid_private.naming_brain_intents; j public.jobs; account public.usage_accounts;
- snapshot jsonb; context jsonb; basis jsonb; favorites jsonb; recent jsonb; k text; v_demand_key text; allowance bigint; sequence integer; runid uuid:=gen_random_uuid(); jobid uuid:=gen_random_uuid(); batchid uuid:=gen_random_uuid(); input jsonb; prepared uuid; attestation uuid;
+ snapshot jsonb; context jsonb; basis jsonb; favorites jsonb; recent jsonb; seeds jsonb; k text; v_demand_key text; allowance bigint; sequence integer; runid uuid:=gen_random_uuid(); jobid uuid:=gen_random_uuid(); batchid uuid:=gen_random_uuid(); input jsonb; prepared uuid; attestation uuid;
  begin
  if o is null then raise exception 'unauthenticated' using errcode='42501'; end if;
  if not fluid_private.naming_brain_valid_intent('ensure',p_intent) then raise exception 'invalid_intent' using errcode='22023'; end if;
@@ -694,8 +694,19 @@ create function public.ensure_naming_brain_run(p_project_id uuid,p_intent jsonb)
  basis:=fluid_private.naming_strategy_basis(context);
  select coalesce(jsonb_agg(jsonb_build_object('candidateId',id,'value',value,'primaryApproach',null) order by created_at desc,id desc),'[]') into recent from(select c.id,c.value,c.created_at from public.name_candidates c where c.project_id=p.id and c.owner_id=o order by c.created_at desc,c.id desc limit 50) q;
  select coalesce(jsonb_agg(jsonb_build_object('candidateId',id,'value',value,'primaryApproach',null) order by created_at desc,id desc),'[]') into favorites from(select c.id,c.value,c.created_at from public.name_candidates c join public.name_retention t on t.candidate_id=c.id and t.owner_id=o where c.project_id=p.id and c.owner_id=o and t.liked order by c.created_at desc,c.id desc limit 30) q;
+ -- Strong steering is independent of recent/liked truncation. Freeze only owned
+ -- immutable candidates, including their existing bounded ancestry, in seed order.
+ select coalesce(jsonb_agg(jsonb_build_object('candidateId',c.id,'value',c.value,'primaryApproach',(
+ select entry->'primaryApproach' from fluid_private.naming_brain_prepared_sets ps cross join lateral jsonb_array_elements(ps.publication->'entries') entry
+ where ps.owner_id=o and ps.project_id=p.id and entry->>'candidateId'=c.id::text limit 1),
+ 'rationale',c.rationale,'caution',c.caution,'contextRevision',c.context_revision,'origin',c.origin) order by seed.n),'[]') into seeds
+ from jsonb_array_elements_text(h.strong_seed_ids) with ordinality seed(id,n)
+ join public.name_candidates c on c.id=seed.id::uuid and c.owner_id=o and c.project_id=p.id;
+ if jsonb_array_length(seeds)<>jsonb_array_length(h.strong_seed_ids) then raise exception 'steering_source_missing' using errcode='PT409'; end if;
  snapshot:=jsonb_build_object('version',1,'ownerId',o,'projectId',p.id,'contextRevision',p.current_revision,'strategyBasis',basis,'preferencesVersion',pref.version,'preferences',pref.preferences,
- 'feedbackRevision',h.feedback_revision,'steeringRevision',h.steering_revision,'strongSeedIds',h.strong_seed_ids,'steeringInstruction',h.steering_instruction,'recentExamples',recent,'likedExamples',favorites,'patternSummaries','[]'::jsonb);
+ 'feedbackRevision',h.feedback_revision,'steeringRevision',h.steering_revision,'strongSeedIds',h.strong_seed_ids,'strongSeeds',seeds,'steeringInstruction',h.steering_instruction,'recentExamples',recent,'likedExamples',favorites,'patternSummaries','[]'::jsonb);
+ -- Include an upper bound for the JS-derived Strategy key and snapshot hash.
+ if octet_length(snapshot::text)+2*octet_length(basis::text)+256>100000 then raise exception 'naming_snapshot_too_large' using errcode='22023'; end if;
  snapshot:=snapshot||jsonb_build_object('snapshotHash',encode(sha256(convert_to(snapshot::text,'UTF8')),'hex'));
  input:=jsonb_build_object('version',2,'handlerVersion','naming-brain-v1','billingMode','openai_api','runId',runid,'jobId',jobid,'batchId',batchid,'snapshot',snapshot,'acceptedPolicyIdentity',encode(sha256(convert_to(pilot.policy::text,'UTF8')),'hex'),'policy',pilot.policy);
  select batch_sequence+1 into sequence from public.naming_sessions where project_id=p.id;
@@ -981,8 +992,8 @@ create function public.naming_brain_worker_action(p_job_id uuid,p_lease_token uu
  else raise exception 'unsupported_naming_action' using errcode='22023'; end case; end $$;
 
 create function fluid_private.naming_brain_prepare(r fluid_private.naming_brain_runs,p_payload jsonb) returns jsonb language plpgsql set search_path='' as $$
- declare prepared jsonb:=p_payload->'preparedSet'; c jsonb; source jsonb; proposal jsonb; verified jsonb; finding jsonb; claims jsonb; metadata jsonb; publication jsonb:='[]';
- origin jsonb; v_set fluid_private.naming_brain_prepared_sets; h fluid_private.naming_brain_heads; counts jsonb; key text; count_selected integer; ids jsonb; v_candidate public.name_candidates; attribution jsonb; receipt jsonb;
+ declare prepared jsonb:=p_payload->'preparedSet'; c jsonb; source jsonb; proposal jsonb; verified jsonb; finding jsonb; claims jsonb; notes jsonb; metadata jsonb; publication jsonb:='[]';
+ origin jsonb; display_rationale text; v_set fluid_private.naming_brain_prepared_sets; h fluid_private.naming_brain_heads; counts jsonb; key text; count_selected integer; ids jsonb; v_candidate public.name_candidates; attribution jsonb; receipt jsonb;
  begin
  select * into v_set from fluid_private.naming_brain_prepared_sets where run_id=r.id;
  if found then if v_set.prepared<>prepared or v_set.publication->'request'<>p_payload then raise exception 'immutable_preparation' using errcode='55000'; end if; return jsonb_build_object('preparedSetId',v_set.id,'preparedSet',v_set.prepared); end if;
@@ -1018,6 +1029,18 @@ create function fluid_private.naming_brain_prepare(r fluid_private.naming_brain_
  if exists(select 1 from jsonb_array_elements(proposal->'claims') claim where claim->>'requirement'='primary_approach' and not exists(select 1 from jsonb_array_elements(verified#>'{output,findings}') f where f->>'assignmentKey'=c->>'assignmentKey' and f->>'candidateKey'=c->>'candidateKey' and f->>'claimKey'=claim->>'claimKey' and f->>'status' in('supported','corrected') and f->'supportsPrimaryApproach'='true' and jsonb_array_length(f->'evidence')>0)) then raise exception 'unsupported_primary_approach' using errcode='22023'; end if;
  select coalesce(jsonb_agg(jsonb_build_object('claimKey',f->'claimKey','statement',f->'supportedWording','sourceKeys',f->'sourceKeys','evidence',f->'evidence')),'[]') into claims
  from jsonb_array_elements(verified#>'{output,findings}') f where f->>'assignmentKey'=c->>'assignmentKey' and f->>'candidateKey'=c->>'candidateKey' and f->>'status' in('supported','corrected') and f->>'supportedWording' is not null and jsonb_array_length(f->'evidence')>0;
+ select coalesce(jsonb_agg(jsonb_build_object('claimKey',claim->'claimKey','originalStatement',claim->'statement',
+ 'status',coalesce(f->>'status','unresolved'),'explanation',coalesce(f->>'explanation','No completed verification supports this claim.')) order by n),'[]') into notes
+ from jsonb_array_elements(proposal->'claims') with ordinality cc(claim,n)
+ left join lateral(select f from jsonb_array_elements(verified#>'{output,findings}') f where f->>'assignmentKey'=c->>'assignmentKey'
+ and f->>'candidateKey'=c->>'candidateKey' and f->>'claimKey'=claim->>'claimKey') ff on true;
+ -- Keep original Creator text in its immutable artifact/request. Every shared
+ -- candidate reader receives the same conservative verified display projection.
+ display_rationale:=case when exists(select 1 from jsonb_array_elements(proposal->'claims') claim
+ where not exists(select 1 from jsonb_array_elements(verified#>'{output,findings}') f
+ where f->>'assignmentKey'=c->>'assignmentKey' and f->>'candidateKey'=c->>'candidateKey'
+ and f->>'claimKey'=claim->>'claimKey' and f->>'status'='supported'))
+ then 'Optional factual explanation withheld after verification.' else c->>'rationale' end;
  receipt:=source->'providerReceipt'; attribution:=source->'creatorAttribution';
  if receipt->>'protocol'<>'openai_agents' or receipt->>'sessionId' is null or receipt->>'turnId' is null or attribution->>'itemId' is null
  or receipt->>'observedModel' is distinct from r.policy->>'model' or attribution->>'sessionId' is distinct from receipt->>'sessionId' or attribution->>'turnId' is distinct from receipt->>'turnId' or not(receipt->'artifactItemIds' ? (attribution->>'itemId')) then raise exception 'creator_attribution_missing' using errcode='22023'; end if;
@@ -1026,9 +1049,9 @@ create function fluid_private.naming_brain_prepare(r fluid_private.naming_brain_
  'provider','openai','billingMode','openai_api','model',receipt->'observedModel','requestId',receipt->'requestId','providerItemId',attribution->'itemId','generatedAt',receipt->'recordedAt',
  'protocol','openai_agents','sessionId',receipt->'sessionId','turnId',receipt->'turnId','agentId',receipt->'agentId','responseId',null);
  insert into public.name_candidates(id,owner_id,project_id,value,identity_key,context_revision,strategy_basis,origin,rationale,caution,batch_id)
- values(key::uuid,r.owner_id,r.project_id,c->>'value',c->>'identityKey',(r.snapshot->>'contextRevision')::integer,r.snapshot->'strategyBasis',origin,c->>'rationale',c->>'caution',r.batch_id);
+ values(key::uuid,r.owner_id,r.project_id,c->>'value',c->>'identityKey',(r.snapshot->>'contextRevision')::integer,r.snapshot->'strategyBasis',origin,display_rationale,c->>'caution',r.batch_id);
  insert into fluid_private.naming_brain_identity_index(candidate_id,owner_id,project_id,value,identity_key) values(key::uuid,r.owner_id,r.project_id,c->>'value',c->>'identityKey');
- publication:=publication||jsonb_build_array(jsonb_build_object('candidateId',key,'identityKey',c->'identityKey','primaryApproach',c->'primaryApproach','additionalApproaches',c->'additionalApproaches','publishedClaims',claims));
+ publication:=publication||jsonb_build_array(jsonb_build_object('candidateId',key,'identityKey',c->'identityKey','primaryApproach',c->'primaryApproach','additionalApproaches',c->'additionalApproaches','publishedClaims',claims,'verificationNotes',notes));
  end loop;
  select jsonb_agg(jsonb_build_object('approach',a,'count',(select count(*) from jsonb_array_elements(publication) x where x->>'primaryApproach'=a)) order by n) into counts from jsonb_array_elements_text(r.snapshot#>'{preferences,approaches}') with ordinality aa(a,n);
  if exists(select 1 from jsonb_array_elements(counts) x where not exists(select 1 from jsonb_array_elements(prepared->'primaryCounts') y where y=x)) or jsonb_array_length(counts)<>jsonb_array_length(prepared->'primaryCounts')
@@ -1124,15 +1147,17 @@ create function public.get_naming_brain_job_accounting(p_job_id uuid) returns js
  select * into r from fluid_private.naming_brain_runs where job_id=p_job_id and owner_id=auth.uid();
  return case when found then fluid_private.naming_brain_accounting(r) else null end; end $$;
 create function public.get_naming_brain_candidate_source(p_project_id uuid,p_candidate_id uuid) returns jsonb language plpgsql stable security definer set search_path='' as $$
- declare c public.name_candidates; r fluid_private.naming_brain_runs; a fluid_private.naming_brain_artifacts; ps fluid_private.naming_brain_prepared_sets; proposal jsonb; begin
+ declare c public.name_candidates; r fluid_private.naming_brain_runs; a fluid_private.naming_brain_artifacts; ps fluid_private.naming_brain_prepared_sets; proposal jsonb; verification jsonb; findings jsonb; begin
  select * into c from public.name_candidates where id=p_candidate_id and project_id=p_project_id and owner_id=auth.uid(); if not found then raise exception 'not_found' using errcode='P0002'; end if;
  select * into r from fluid_private.naming_brain_runs where id=(c.origin->>'runId')::uuid and batch_id=c.batch_id and owner_id=c.owner_id and project_id=c.project_id;
  select * into a from fluid_private.naming_brain_artifacts where id=(c.origin->>'sourceArtifactId')::uuid and run_id=r.id and owner_id=c.owner_id and project_id=c.project_id;
  select * into ps from fluid_private.naming_brain_prepared_sets where run_id=r.id;
  select x into proposal from jsonb_array_elements(a.artifact#>'{output,candidates}') x join jsonb_array_elements(a.artifact->'candidateIds') ids on ids->>'candidateKey'=x->>'candidateKey' where ids->>'candidateId'=c.id::text;
- if r.id is null or a.id is null or proposal is null or not(ps.prepared->'candidateIds' ? c.id::text) then raise exception 'invalid_generated_source' using errcode='55000'; end if;
+ select artifact into verification from fluid_private.naming_brain_artifacts where id=(ps.prepared->>'verificationArtifactId')::uuid and run_id=r.id and owner_id=c.owner_id and project_id=c.project_id and artifact#>>'{output,role}'='verifier';
+ select coalesce(jsonb_agg(f),'[]') into findings from jsonb_array_elements(verification#>'{output,findings}') f where f->>'assignmentKey'=a.artifact#>>'{output,assignmentKey}' and f->>'candidateKey'=proposal->>'candidateKey';
+ if r.id is null or a.id is null or proposal is null or verification is null or not(ps.prepared->'candidateIds' ? c.id::text) then raise exception 'invalid_generated_source' using errcode='55000'; end if;
  return jsonb_build_object('ownerId',c.owner_id,'projectId',c.project_id,'candidateId',c.id,'runId',r.id,'jobId',r.job_id,'batchId',r.batch_id,
- 'snapshot',r.snapshot,'sourceArtifactId',a.id,'sourceStageKey',a.stage_key,'sourceCandidate',proposal,'providerReceipt',a.artifact->'providerReceipt','creatorAttribution',a.artifact->'creatorAttribution',
+ 'snapshot',r.snapshot,'sourceArtifactId',a.id,'sourceStageKey',a.stage_key,'sourceCandidate',proposal,'verificationArtifactId',verification->'artifactId','verificationFindings',findings,'providerReceipt',a.artifact->'providerReceipt','creatorAttribution',a.artifact->'creatorAttribution',
  'preparedSetId',ps.id,'preparedCandidateIds',ps.prepared->'candidateIds'); end $$;
 
 -- Only a separately verified financial writer may insert billing evidence. No
@@ -1173,10 +1198,19 @@ end $$;
 
 do $$ declare sig text; old_name text; new_name text; d text; begin
  for sig,old_name,new_name in values
+ ('fluid_private.naming_candidate_dto(public.name_candidates)','fluid_private.naming_candidate_dto','fluid_private.naming_brain_legacy_candidate_dto'),
  ('fluid_private.naming_batch_dto(public.naming_batches)','fluid_private.naming_batch_dto','fluid_private.naming_brain_legacy_batch_dto'),
  ('fluid_private.naming_job_dto(public.naming_batches)','fluid_private.naming_job_dto','fluid_private.naming_brain_legacy_job_dto') loop
  d:=pg_get_functiondef(sig::regprocedure); execute replace(d,'FUNCTION '||old_name||'(','FUNCTION '||new_name||'('); end loop;
 end $$;
+-- Every feed, history, retained and selection reader keeps the same safe rationale
+-- and exposes the original claim findings without asserting rejected wording.
+create or replace function fluid_private.naming_candidate_dto(p_candidate public.name_candidates) returns jsonb language sql stable set search_path='' as $$
+ select fluid_private.naming_brain_legacy_candidate_dto(p_candidate)||case when p_candidate.origin->>'kind'='generated' and p_candidate.origin->>'billingMode'='openai_api' then
+ jsonb_build_object('verificationNotes',coalesce((select entry->'verificationNotes' from fluid_private.naming_brain_prepared_sets ps
+ cross join lateral jsonb_array_elements(ps.publication->'entries') entry where ps.owner_id=p_candidate.owner_id and ps.project_id=p_candidate.project_id
+ and entry->>'candidateId'=p_candidate.id::text limit 1),'[]'::jsonb)) else '{}'::jsonb end;
+$$;
 create or replace function fluid_private.naming_batch_dto(p_batch public.naming_batches) returns jsonb language sql stable set search_path='' as $$
  select fluid_private.naming_brain_legacy_batch_dto(p_batch)||case when p_batch.engine_version=2 then jsonb_build_object('version',2,'handlerVersion','naming-brain-v1','billingMode','openai_api','runId',(select id from fluid_private.naming_brain_runs where batch_id=p_batch.id)) else '{}'::jsonb end;
 $$;

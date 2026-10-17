@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import Link from "next/link";
 import { AppMark } from "@/components/ui/app-mark";
 import { ProjectArtwork } from "@/components/ui/project-artwork";
@@ -59,8 +59,17 @@ export function NamingApproachWidgets({ memory, account, projectId, context, sav
   const step = resolvedProgress?.activeStep ?? "approaches";
   const [working, setWorking] = useState(false), [composerError, setComposerError] = useState<string | undefined>();
   const lock = useRef(false), active = useRef<HTMLDivElement>(null), transcript = useRef<HTMLDivElement>(null);
+  const transitionFocus = useRef<{ step: Step; from: Element | null } | null>(null);
   const id = useId();
   useEffect(() => memory.connectPreferences(account, projectId, saved, context), [memory, account, projectId, saved, context]);
+  useLayoutEffect(() => {
+    const transition = transitionFocus.current;
+    if (!transition || transition.step !== step) return;
+    transitionFocus.current = null;
+    // Announce the committed question before paint. A save may have been pending
+    // while the user moved to the composer, so only retain the original focus intent.
+    if (document.activeElement === transition.from || document.activeElement === document.body) active.current?.querySelector<HTMLElement>("h2")?.focus();
+  }, [step]);
   useEffect(() => {
     const area = transcript.current, target = active.current;
     if (area && target) area.scrollTo?.({ top: Math.max(0, area.scrollTop + target.getBoundingClientRect().top - area.getBoundingClientRect().top - 20), behavior: "instant" });
@@ -75,13 +84,15 @@ export function NamingApproachWidgets({ memory, account, projectId, context, sav
   const saveBlocked = state.status === "error" || state.status === "conflict";
   async function confirm() {
     if (lock.current || blocked || invalid || saveBlocked || step === "review") return;
+    const focusFrom = document.activeElement;
     lock.current = true; setWorking(true);
     try {
       if (!await memory.flushPreferences(account, projectId) || !memory.isCurrent(account)) return;
       const acknowledged = memory.get(account, projectId)?.preferences?.saved?.preferences;
       if (acknowledged?.version !== 2) return;
-      memory.setChatProgress(account, projectId, confirmNamingChatQuestion(progress, step, acknowledged));
-      requestAnimationFrame(() => active.current?.querySelector<HTMLElement>("h2")?.focus());
+      const next = confirmNamingChatQuestion(progress, step, acknowledged);
+      transitionFocus.current = { step: next.activeStep, from: focusFrom };
+      memory.setChatProgress(account, projectId, next);
     } finally { lock.current = false; if (memory.isCurrent(account)) setWorking(false); }
   }
   async function proceed() {
@@ -107,7 +118,7 @@ export function NamingApproachWidgets({ memory, account, projectId, context, sav
       if (await memory.flushPreferences(account, projectId) && memory.isCurrent(account)) memory.setSteeringDraft(account, projectId, draft => ({ ...draft, instruction: draft.instruction === sent ? "" : draft.instruction }));
     } finally { lock.current = false; if (memory.isCurrent(account)) setWorking(false); }
   }
-  function revisit(next: Step) { memory.setChatProgress(account, projectId, { ...progress, activeStep: next }); requestAnimationFrame(() => active.current?.querySelector<HTMLElement>("h2")?.focus()); }
+  function revisit(next: Step) { transitionFocus.current = { step: next, from: document.activeElement }; memory.setChatProgress(account, projectId, { ...progress, activeStep: next }); }
   return <section className={`naming-approach-widgets ${styles.conversation}`} aria-label="Naming choices">
     <div ref={transcript} className={`guided-interview-scroll ${styles.transcript}`} data-naming-chat-scroll tabIndex={0} aria-label="Naming conversation messages">
       <NamingRecoveryNotice memory={memory} account={account} />

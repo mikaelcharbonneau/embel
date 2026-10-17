@@ -176,7 +176,7 @@ export function createNamingFeedController(options: { account: NamingAccount; pr
   async function resume() {
       const value = state(), result = value?.outcome, feed = value?.feed;
       const run = feed?.activeRun ?? (result?.status === "incomplete" ? result.run : null);
-      if (!current() || !eligible() || !visible() || !feed || !run?.canResume || (feed.availability.status !== "available" && !(run.preparedSetId && run.fulfillment?.status === "complete")) || value?.pending || value?.steering || value?.stop) return false;
+      if (!current() || !eligible() || !visible() || !feed || !run?.canResume || (feed.availability.status !== "available" && !run.canResumeSaved) || value?.pending || value?.steering || value?.stop) return false;
       const next = ensureNamingRunIntentSchema.parse({ version: 1, reason: "resume", resumeOfRunId: run.runId, expectedRunRevision: run.revision, expectedProjectRevision: feed.projectRevision, expectedPreferencesVersion: feed.preferencesVersion, expectedSteeringRevision: feed.steeringRevision, expectedDemandSequence: feed.demandSequence, consumedThrough: cursorOf(feed.entries.at(-1)) ?? feed.consumedThrough, idempotencyKey: crypto.randomUUID() });
       update(previous => ({ ...previous, stopped: false, stopRequested: false })); consumedInteraction = ++interaction; lastInteraction = now();
       return ensure(next);

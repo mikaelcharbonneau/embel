@@ -7,9 +7,22 @@ activation. The QA checkout is
 credentials/runtime files. The clean pre-verification base is
 `a48eb033acc29e8f260ebfaadf2cae6bf6343423`, integrating all approved source-scoped
 packages: backend/runtime, R1–R3, seven actual SQL coupling cases, and D071/F1/F2.
-The full stable-source matrix and whole-branch review are the only remaining local
-acceptance gates. Their results and a final combined source identity are not yet
-recorded. No final whole-branch verification or live activation is claimed.
+That checkpoint is historical. The later frozen head
+`72a1ea948b01342af958d12c476263ce538917cf` completed the full local matrix and
+failed acceptance: 575 Vitest files passed,20 failed,2 intentionally gated;232
+vector test bodies were setup-blocked and one exact ACL assertion failed.
+Browser results were165 passed/7 failed, including six Names bridge cases and one
+mobile keyboard case. The whole-branch review requested F1–F6 corrections; the
+keyboard result added F7. These results are preserved as failed evidence.
+
+The current local repair delta freezes owned seed material independently of
+recent/liked bounds, projects verified display rationale while retaining original
+claims/findings, exposes explicit free saved-membership continuation, composes
+the exact guarded vector predecessors with Naming isolation, and repairs the
+exact ACL/Names fixture/keyboard-focus regressions. Its migration digest is
+recorded below. Independent scoped re-review and the complete frozen-source
+rerun remain required. No final whole-branch verification or live activation is
+claimed.
 
 ## Current reviewed checkpoint and remaining work
 
@@ -19,9 +32,12 @@ recorded. No final whole-branch verification or live activation is claimed.
   pilot checks and 6/6 affected desktop/mobile checks, direct TypeScript, scoped
   lint, production build and diff check. The reviewer independently ran eight
   additional inert receipt probes. These do not replace the final full matrix.
-- The reviewed migration `20261016180000_naming_brain.sql` hashes to
-  `b55c29851e1d11efdb00eb8d2831f256884e31501beab98c178c8b7220da1d8f`, recomputed at
-  `a48eb033acc29e8f260ebfaadf2cae6bf6343423`.
+- The current local repair migration `20261016180000_naming_brain.sql` hashes to
+  `f6ccb8ff3b5a8fd280defa311ec045d51fc18ae5d708e94a30b0f8d93a46044f`, recomputed after the final review repair wave on
+  base `72a1ea948b01342af958d12c476263ce538917cf`. This candidate remains unapplied;
+  independent scoped re-review and the complete frozen-source rerun are pending.
+  The earlier reviewed digest `b55c29851e1d11efdb00eb8d2831f256884e31501beab98c178c8b7220da1d8f`
+  is historical and must not be used as the activation digest.
   The shared preference implementation hashes to
   `7108319323898692a388fcf17cb542509583288b0d4b05d7384f8c5b707aeb01`.
 - The historical actual SQL/store/pinned-SDK gap phase in `naming-runtime`
