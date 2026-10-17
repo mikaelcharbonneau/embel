@@ -64,6 +64,7 @@ export async function runNamingPilot(raw, options = {}) {
   for (const reference of config.accounting.runs) {
     const { run } = await request(`/api/projects/${reference.projectId}/naming/runs/${reference.runId}`, namingBrainRunResponseSchema);
     if (run.ownerId !== config.ownerId || run.projectId !== reference.projectId || run.runId !== reference.runId) stop("accounting_owner_or_run_mismatch");
+    if (run.accounting.confirmedActualCostMicrousd > config.approval.runAllowanceMicrousd || run.stages.some(stage => stage.errorCode === "provider_cost_exceeded")) stop("prior_observed_overrun");
     if (["needs_reconciliation", "queued", "running", "cancel_requested"].includes(run.state)) stop("prior_execution_requires_resolution");
     total += run.accounting.status === "held_unsettled" ? run.accounting.heldAllowanceMicrousd : run.accounting.confirmedActualCostMicrousd;
   }
