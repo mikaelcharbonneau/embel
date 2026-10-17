@@ -41,6 +41,7 @@ export function createSqlNamingHarness(db: TestDatabase, options: Options = {}) 
   const sessions = new Map<string, Session>();
   const sqlCalls: SqlNamingCall[] = [];
   const sqlErrors: { name: string; action?: string; message: string }[] = [];
+  const claims: { mode: string; job: Record<string, unknown> }[] = [];
   const networkCalls: { method: string; path: string }[] = [];
   const dnsReads: string[] = [];
   const pageReads: ReferencePageRequest[] = [];
@@ -153,6 +154,7 @@ export function createSqlNamingHarness(db: TestDatabase, options: Options = {}) 
       try {
         if (action === "artifact") await options.beforeArtifact?.(args, payload!.artifact as NamingRoleOutput);
         const response = await db.query<Record<string, unknown>>(sql, args);
+        if (name === "claim_naming_brain_job" && response.rows[0]?.result) claims.push(structuredClone(response.rows[0].result) as typeof claims[number]);
         if (action === "prepare" && options.losePrepareAcknowledgement && discardedAck === null) {
           discardedAck = structuredClone(response.rows[0]!.result);
           connectionLost = true;
@@ -171,7 +173,7 @@ export function createSqlNamingHarness(db: TestDatabase, options: Options = {}) 
     });
     return { store, handlers };
   }
-  return { ...createWorker(), requests, sessions, sqlCalls, sqlErrors, networkCalls, dnsReads, pageReads,
+  return { ...createWorker(), requests, sessions, claims, sqlCalls, sqlErrors, networkCalls, dnsReads, pageReads,
     counts: () => ({ creates, toolReplies, cancellations, readyChecks }), discardedAcknowledgement: () => discardedAck,
     restart: () => { connectionLost = false; return createWorker(); }, setPaidReady: (value: boolean) => { paidReady = value; },
   };
