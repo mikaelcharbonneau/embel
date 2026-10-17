@@ -1,0 +1,112 @@
+/* Naming chat follows the Strategy conversation; compact results use frame 117:9404.
+   The user's explicit left-chat placement supersedes the reference's right panel. */
+:global(.project-stage-naming):has(.workspace) > :global(.project-stage-navigation) { display: none; }
+.workspace.workspace { display: grid; grid-template-columns: 340px minmax(0, 1fr); height: 100%; min-height: 0; overflow: hidden; background: var(--paper); }
+.chatFirst.workspace { grid-template-columns: minmax(0, 1fr); }
+.chatPanel { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--paper); border-right: 1px solid var(--border); }
+.chatFirst .chatPanel { border-right: 0; }
+.chatHeader { flex: 0 0 48px; min-width: 0; padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; justify-content: space-between; }
+.chatHeader > div { min-width: 0; display: grid; gap: 4px; }
+.chatHeader strong { font-size: 13px; font-weight: 500; }
+.chatHeader span { color: var(--secondary); font-size: 12px; }
+.chatHeader a { font-size: 12px; white-space: nowrap; }
+.chatFirst .chatHeader { padding-inline: max(24px, calc((100% - 760px) / 2)); }
+.openingTitle { flex-shrink: 0; width: 100%; max-width: 808px; padding: 28px 24px 0; margin: 0 auto; font-size: 24px; line-height: 32px; font-weight: 500; letter-spacing: -.5px; }
+.chatUnavailable { padding: 24px 16px; font-size: 13px; line-height: 20px; color: var(--secondary); }
+.conversation.conversation { display: flex; flex: 1; flex-direction: column; min-height: 0; min-width: 0; gap: 0; overflow: hidden; }
+.transcript.transcript { padding: 24px 16px; gap: 22px; overscroll-behavior: contain; scrollbar-width: thin; }
+.chatFirst .transcript { padding-inline: max(24px, calc((100% - 760px) / 2)); }
+.transcript > * { flex-shrink: 0; }
+.context { color: var(--secondary); font-size: 12px; line-height: 20px; }
+.context summary { width: fit-content; cursor: pointer; }
+.context p { padding-top: 10px; overflow-wrap: anywhere; }
+.active { min-width: 0; scroll-margin-block: 20px; }
+.active h2 { font-size: 18px; font-weight: 500; line-height: 26px; letter-spacing: -.2px; margin-bottom: 14px; }
+.active :global(.guided-choice-widget) { border: 0; padding: 0; gap: 14px; }
+.active :global(.naming-approach-options) { grid-template-columns: 1fr; gap: 8px; }
+.chatFirst .active :global(.naming-approach-options) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.active :global(.naming-approach-option) { padding: 12px 14px; gap: 4px; min-height: 80px; border-radius: 8px; }
+.active :global(.naming-approach-option[aria-pressed=true]), .active :global(.naming-directness [aria-checked=true]) { background: var(--paper); border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
+.active :global(.naming-approach-option[aria-pressed=true] strong), .active :global(.naming-directness [aria-checked=true] strong) { color: var(--text); }
+.answer.answer { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 8px; padding: 12px; }
+.answer > button { margin-left: auto; align-self: start; font-size: 12px; min-height: 32px; }
+.answer p { white-space: pre-wrap; }
+.stepActions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; }
+.save { display: inline-flex; align-items: center; gap: 6px; }
+.field { display: grid; gap: 12px; }
+.field p, .hint { font-size: 13px; line-height: 20px; color: var(--secondary); }
+.field small, .guidance small { font-size: 12px; line-height: 18px; color: var(--secondary); font-weight: 400; }
+.guidance { display: grid; gap: 8px; padding: 12px; background: var(--surface); border-radius: 10px; }
+.guidance > div { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; }
+.guidance strong { font-weight: 500; }
+.guidance textarea { min-height: 64px; }
+.compose.compose { flex-shrink: 0; border-top: 1px solid var(--border); padding: 12px 16px; max-height: 45%; overflow-y: auto; }
+.chatFirst .compose { padding: 16px max(24px, calc((100% - 760px) / 2)) 24px; }
+.compose :global(.conversation-composer) { margin: 0; padding: 12px 14px; border-color: var(--border); border-radius: 12px; box-shadow: none; }
+.compose :global(.conversation-composer textarea) { min-height: 44px; max-height: 140px; overflow-y: auto; border: 0; border-radius: 0; padding: 0 0 8px; font-size: 14px; line-height: 22px; background: transparent; }
+.compose :global(.conversation-composer-footer) { margin-top: 4px; gap: 8px; }
+.compose :global(.conversation-composer-footer > span) { font-size: 11px; line-height: 17px; font-weight: 400; }
+.workspace .compose :global(.composer-send-icon) { width: 32px; min-width: 32px; height: 32px; min-height: 32px; padding: 8px; border-radius: 50%; background: var(--text); }
+.compose :global(.composer-send-icon img) { display: block; flex-shrink: 0; }
+.seedSummary { display: flex; align-items: center; gap: 8px; justify-content: space-between; margin-bottom: 10px; color: var(--secondary); font-size: 12px; line-height: 18px; }
+.seedSummary button { flex-shrink: 0; font-size: 12px; }
+.canvas.canvas { min-width: 0; min-height: 0; height: 100%; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-width: thin; padding: 24px; background: var(--canvas); }
+.canvas :global(.project-naming-header) { margin-bottom: 22px; }
+.canvas :global(.project-naming-header h1) { margin-top: 0; font-weight: 400; }
+.canvas > :global(.project-naming-muted) { margin-bottom: 18px; }
+.canvas :global(.project-naming-header .project-naming-eyebrow) { display: none; }
+.canvas :global(.project-naming-header-actions a) { display: none; }
+.canvas :global(.project-naming-section-heading) { align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+.canvas :global(.project-naming-section-heading h2) { font-size: 13px; font-weight: 500; letter-spacing: 0; }
+.canvas :global(.project-naming-section-heading p) { margin-top: 5px; font-size: 12px; }
+.workspace .canvas :global(.project-naming-grid) { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.workspace .canvas :global(.project-naming-card).compactCard { position: relative; min-width: 0; height: 90px; min-height: 90px; flex: none; display: block; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--paper); overflow: hidden; }
+.workspace .canvas :global(.project-naming-card).compactCard:has(.openName:hover) { border-color: var(--secondary); }
+.workspace .canvas :global(.project-naming-card).compactCard:focus-within { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+.workspace .canvas :global(.project-naming-card).compactCard:global(.is-selected) { border-color: var(--text); }
+.workspace .canvas .compactCard h3 { padding-right: 24px; margin: 0 0 4px; font-size: 20px; line-height: 26px; font-weight: 400; letter-spacing: -.2px; }
+.openName { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 0; background: transparent; padding: 0; color: inherit; font: inherit; text-align: left; }
+.openName::after { content: ""; position: absolute; inset: 0; }
+.openName:focus-visible { outline: none; }
+.workspace .canvas .compactCard > p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin: 0; color: var(--secondary); font-size: 13px; line-height: 20px; }
+.workspace .canvas .heart { position: absolute; z-index: 1; top: 3px; right: 3px; width: 38px; height: 38px; min-width: 38px; min-height: 38px; display: grid; place-items: center; padding: 11px; border: 0; border-radius: 7px; background: transparent; }
+.heart img { display: block; flex-shrink: 0; }
+.heart[aria-pressed=true] { background: var(--magenta-soft) !important; }
+.mobileTabs { display: none; }
+@media (max-width: 1150px) and (min-width: 761px) {
+  .workspace.workspace { grid-template-columns: 300px minmax(0, 1fr); }
+  .chatFirst.workspace { grid-template-columns: minmax(0, 1fr); }
+  .workspace .canvas :global(.project-naming-grid) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) and (min-width: 761px) { .workspace .canvas :global(.project-naming-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) {
+  .workspace.workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: 48px minmax(0, 1fr); }
+  .chatFirst.workspace { grid-template-rows: minmax(0, 1fr); }
+  .mobileTabs { display: flex; grid-column: 1; grid-row: 1; border-bottom: 1px solid var(--border); gap: 22px; padding-inline: 16px; background: var(--paper); }
+  .mobileTabs button { position: relative; display: flex; align-items: center; gap: 8px; min-height: 44px; background: transparent; border: 0; font: inherit; font-size: 13px; color: var(--secondary); }
+  .mobileTabs [aria-pressed=true] { color: var(--text); }
+  .mobileTabs [aria-pressed=true]::after { content: ""; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: var(--text); }
+  .mobileTabs span { font-size: 11px; padding: 2px 6px; border-radius: 5px; background: var(--surface); }
+  .chatPanel, .canvas { grid-column: 1; grid-row: 2; }
+  .chatFirst .chatPanel { grid-row: 1; }
+  .exploring[data-mobile-panel=names] .chatPanel, .exploring[data-mobile-panel=chat] .canvas { display: none; }
+  .chatPanel { border-right: 0; }
+  .chatHeader { flex-basis: 48px; padding: 8px 16px; }
+  .chatFirst .chatHeader { padding-inline: 16px; }
+  .openingTitle { padding: 20px 16px 0; font-size: 22px; line-height: 30px; }
+  .chatFirst .transcript, .transcript.transcript { padding: 22px 16px; }
+  .chatFirst .active :global(.naming-approach-options) { grid-template-columns: 1fr; }
+  .answer > button { min-height: 44px; }
+  .active :global(.button) { min-height: 44px; }
+  .chatFirst .compose, .compose.compose { padding: 12px 16px max(16px, env(safe-area-inset-bottom)); }
+  .compose :global(.conversation-composer textarea) { font-size: 16px; }
+  .workspace .compose :global(.composer-send-icon) { width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 14px; }
+  .canvas.canvas { padding: 20px 16px; }
+  .canvas :global(.project-naming-header h1) { font-size: 22px; line-height: 30px; }
+  .workspace .canvas :global(.project-naming-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .workspace .canvas :global(.project-naming-card).compactCard { height: 102px; min-height: 102px; padding: 12px; }
+  .workspace .canvas .compactCard h3 { font-size: 18px; }
+  .workspace .canvas .compactCard > p { font-size: 12px; line-height: 18px; -webkit-line-clamp: 3; }
+  .workspace .canvas .heart { top: 0; right: 0; width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 14px; }
+}
+@media (max-width: 340px) { .workspace .canvas :global(.project-naming-grid) { grid-template-columns: minmax(0, 1fr); } }

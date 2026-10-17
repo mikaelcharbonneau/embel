@@ -46,3 +46,22 @@ it("uses the actual workspace scroller as the observer root", async () => {
   await act(async () => root.render(createElement("div", { className: "project-workspace-content" }, createElement(Probe))));
   expect(options?.root).toBe(host.querySelector(".project-workspace-content"));
 });
+it("uses the results pane root and ignores wheel or navigation inside the conversation", async () => {
+  await act(async () => root.render(createElement("div", { className: "project-workspace-content" },
+    createElement("aside", { "data-naming-chat-scroll": true, tabIndex: 0 }, "Synthetic conversation"),
+    createElement("div", { "data-naming-results-scroll": true, tabIndex: 0 }, createElement(Probe)))));
+  const chat = host.querySelector("aside")!, grid = host.querySelector("[data-naming-results-scroll]")!;
+  expect(options?.root).toBe(grid);
+  await act(async () => observe([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver));
+  await act(async () => chat.dispatchEvent(new WheelEvent("wheel", { deltaY: 300, bubbles: true })));
+  await act(async () => chat.dispatchEvent(new KeyboardEvent("keydown", { key: "End", bubbles: true })));
+  expect(requests).toHaveLength(0);
+  await act(async () => grid.dispatchEvent(new WheelEvent("wheel", { deltaY: 300, bubbles: true })));
+  expect(requests).toHaveLength(1);
+});
+it("disables demand while mobile chat covers the results pane", async () => {
+  await act(async () => root.render(createElement(Probe, { view: { ...initialNamingView, explorationHidden: true } })));
+  expect(latest.interacting).toBe(false);
+  await act(async () => window.dispatchEvent(new WheelEvent("wheel", { deltaY: 300 })));
+  expect(requests).toHaveLength(0);
+});

@@ -36,9 +36,12 @@ const activeRun: NamingBrainRunSummary = { version: 1, ownerId, projectId, runId
 let root: Root, host: HTMLDivElement, overview: ProjectNamingOverview, server: NamingFeed, calls: { path: string; method: string; body: unknown }[], viewWrites: Partial<NamingViewState>[], holdView: Promise<boolean> | null, holdSteering: Promise<void> | null, holdFeed: Promise<void> | null, failSteering: boolean;
 function model() { return mock.model as { overview: ProjectNamingOverview; pending: boolean; actionError: string | null }; }
 function publish(patch: Partial<ReturnType<typeof model>>) { mock.model = { ...model(), ...patch }; mock.notify(); }
-const button = (name: string) => [...host.querySelectorAll<HTMLButtonElement>("button")].find(element => element.textContent?.trim() === name);
+const button = (name: string) => [...host.querySelectorAll<HTMLButtonElement>("button")].find(element => element.textContent?.trim() === name || element.getAttribute("aria-label") === name || element.title === name);
 async function click(name: string) { const element = button(name); expect(element, name).toBeDefined(); await act(async () => element!.click()); }
-async function input(element: HTMLInputElement, text: string) { await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(element, text); element.dispatchEvent(new Event("input", { bubbles: true })); }); }
+async function input(element: HTMLInputElement | HTMLTextAreaElement, text: string) { await act(async () => { Object.getOwnPropertyDescriptor(element instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, "value")!.set!.call(element, text); element.dispatchEvent(new Event("input", { bubbles: true })); }); }
+const message = () => host.querySelector<HTMLTextAreaElement>('form textarea')!;
+async function selectSeed() { await click("Inspect name Juniper"); await act(async () => host.querySelector<HTMLInputElement>('.naming-steering-choice input')!.click()); await click("Back to results"); }
+async function checkSeed() { await click("Inspect name Juniper"); expect(host.querySelector<HTMLInputElement>('.naming-steering-choice input')?.checked).toBe(true); await click("Back to results"); }
 async function render() { await act(async () => root.render(createElement(ProjectNamingWorkspace, { projectId }))); }
 const ensures = () => calls.filter(call => call.path.endsWith("/feed/ensure"));
 beforeEach(() => {
@@ -79,7 +82,7 @@ it.each(["history", "filtered", "inspection"] as const)("I4 Continue explicitly 
   expect(ensures()).toHaveLength(0);
   let acknowledge!: (ok: boolean) => void;
   if (view === "filtered") holdView = new Promise(resolve => { acknowledge = resolve; });
-  await click("Continue");
+  await click("Continue exploring");
   if (view === "filtered") { expect(ensures()).toHaveLength(0); expect(viewWrites.at(-1)).toMatchObject({ pane: "results", filter: "all", query: "", visibleBatchId: null }); await act(async () => acknowledge(true)); }
   expect(host.querySelector('.naming-continuous-results')).not.toBeNull(); expect(host.querySelector('[aria-label="Inspect name"]')).toBeNull();
   expect(ensures()).toHaveLength(1);
@@ -87,43 +90,42 @@ it.each(["history", "filtered", "inspection"] as const)("I4 Continue explicitly 
 it("I4 keeps a failed saved-view transition actionable without admitting work", async () => {
   overview = { ...overview, session: { ...overview.session!, viewState: { ...initialNamingView, filter: "saved", query: "Juniper" } } }; publish({ overview });
   await render(); await click("Modify filters"); holdView = Promise.resolve(false);
-  await click("Continue");
+  await click("Continue exploring");
   expect(viewWrites.at(-1)).toMatchObject({ pane: "results", filter: "all", query: "", visibleBatchId: null });
   expect(host.textContent).toContain("The saved view could not be confirmed.");
   expect(host.querySelector('.naming-continuous-results')).toBeNull(); expect(ensures()).toHaveLength(0);
   await act(async () => { window.dispatchEvent(new Event("wheel")); await vi.advanceTimersByTimeAsync(15_000); });
   expect(ensures()).toHaveLength(0);
-  holdView = null; await click("Continue"); expect(ensures()).toHaveLength(1);
+  holdView = null; await click("Continue exploring"); expect(ensures()).toHaveLength(1);
 });
 it("I4 does not admit work after leaving exploration while Continue awaits its saved-head read", async () => {
   await render(); await click("Saved names & history"); await click("Modify filters");
   let release!: () => void; holdFeed = new Promise(resolve => { release = resolve; });
-  await click("Continue"); expect(host.querySelector('.naming-continuous-results')).not.toBeNull();
+  await click("Continue exploring"); expect(host.querySelector('.naming-continuous-results')).not.toBeNull();
   await click("Saved names & history"); await act(async () => release());
   expect(ensures()).toHaveLength(0); expect(host.querySelector('.naming-continuous-results')).toBeNull();
 });
 it("I1 retains the visible exact steering retry after an ordinary GET observes its saved revision", async () => {
-  await render(); const seed = host.querySelector<HTMLInputElement>('.naming-steering-choice input')!;
-  await act(async () => seed.click()); await input(host.querySelector<HTMLInputElement>('.naming-steering-bar input')!, "Keep a quiet rhythm");
-  failSteering = true; await click("More like these"); const first = calls.find(call => call.path.endsWith('/steering'))!.body;
+  await render(); await selectSeed(); await input(message(), "Keep a quiet rhythm");
+  failSteering = true; await click("Send naming direction"); const first = calls.find(call => call.path.endsWith('/steering'))!.body;
   await act(async () => { await vi.advanceTimersByTimeAsync(15_000); });
   expect(button("Retry the same request")).toBeDefined(); await click("Retry the same request");
   expect(calls.filter(call => call.path.endsWith('/steering')).map(call => call.body)).toEqual([first, first]); expect(ensures()).toHaveLength(0);
-  expect(host.querySelector('.naming-steering-bar')).toBeNull(); expect(mock.memory!.hasUnsaved()).toBe(false);
+  expect(button("Clear selection")).toBeUndefined(); expect(message().value).toBe(""); expect(mock.memory!.hasUnsaved()).toBe(false);
 });
 it.each(["logout", "different owner"])("I5 retains seeds and typed emphasis through inspect/history/verification, clears on %s, and never submits", async end => {
-  await render(); await act(async () => host.querySelector<HTMLInputElement>('.naming-steering-choice input')!.click());
-  await input(host.querySelector<HTMLInputElement>('.naming-steering-bar input')!, "Keep the quiet rhythm and softer vowels");
+  await render(); await selectSeed();
+  await input(message(), "Keep the quiet rhythm and softer vowels");
   expect(mock.memory!.hasUnsaved()).toBe(true);
   await click("Inspect name Juniper"); await click("Back to results");
-  expect(host.querySelector<HTMLInputElement>('.naming-steering-bar input')?.value).toBe("Keep the quiet rhythm and softer vowels");
+  expect(message().value).toBe("Keep the quiet rhythm and softer vowels");
   await click("Saved names & history"); await click("Back to exploration");
-  expect(host.querySelector<HTMLInputElement>('.naming-steering-choice input')?.checked).toBe(true);
+  await checkSeed();
   await act(async () => { mock.memory!.bind(null); mock.session = { status: "checking", generation: 2 }; }); await render();
   expect(host.textContent).not.toContain("Keep the quiet rhythm");
   mock.session = { status: "ready", userId: ownerId, generation: 2 }; mock.memory!.bind(mock.session); await render();
-  expect(host.querySelector<HTMLInputElement>('.naming-steering-bar input')?.value).toBe("Keep the quiet rhythm and softer vowels");
-  expect(host.querySelector<HTMLInputElement>('.naming-steering-choice input')?.checked).toBe(true);
+  expect(message().value).toBe("Keep the quiet rhythm and softer vowels");
+  await checkSeed();
   expect(calls.filter(call => call.path.endsWith('/steering'))).toHaveLength(0); expect(ensures()).toHaveLength(0);
   if (end === "logout") { await act(async () => { mock.memory!.clear(); mock.session = { status: "signed_out", generation: 3 }; }); }
   else {
@@ -135,19 +137,26 @@ it.each(["logout", "different owner"])("I5 retains seeds and typed emphasis thro
   expect(mock.memory!.hasUnsaved()).toBe(false);
 });
 it("I5 preserves edits typed during a steering save and clears only the acknowledged draft", async () => {
-  await render(); await act(async () => host.querySelector<HTMLInputElement>('.naming-steering-choice input')!.click());
-  await input(host.querySelector<HTMLInputElement>('.naming-steering-bar input')!, "Quiet rhythm");
+  await render(); await selectSeed();
+  await input(message(), "Quiet rhythm");
   let acknowledge!: () => void; holdSteering = new Promise(resolve => { acknowledge = resolve; });
-  await click("More like these");
-  await input(host.querySelector<HTMLInputElement>('.naming-steering-bar input')!, "Quiet rhythm and softer vowels");
+  await click("Send naming direction");
+  await input(message(), "Quiet rhythm and softer vowels");
   await act(async () => acknowledge()); holdSteering = null;
-  expect(host.querySelector<HTMLInputElement>('.naming-steering-bar input')?.value).toBe("Quiet rhythm and softer vowels");
+  expect(message().value).toBe("Quiet rhythm and softer vowels");
   expect(mock.memory!.hasUnsaved()).toBe(true); expect(calls.filter(call => call.path.endsWith('/steering'))).toHaveLength(1);
   await click("Clear selection");
-  expect(mock.memory!.hasUnsaved()).toBe(true); expect(button("More like these")?.disabled).toBe(true);
-  expect(host.querySelector<HTMLInputElement>('.naming-steering-bar input')?.value).toBe("Quiet rhythm and softer vowels");
-  await act(async () => host.querySelector<HTMLInputElement>('.naming-steering-choice input')!.click()); await click("More like these");
-  expect(host.querySelector('.naming-steering-bar')).toBeNull(); expect(mock.memory!.hasUnsaved()).toBe(false);
+  expect(mock.memory!.hasUnsaved()).toBe(true); expect(button("Send naming direction")).toBeUndefined();
+  expect(message().value).toBe("Quiet rhythm and softer vowels");
+  await selectSeed(); await click("Send naming direction");
+  expect(button("Clear selection")).toBeUndefined(); expect(message().value).toBe(""); expect(mock.memory!.hasUnsaved()).toBe(false);
   expect(calls.filter(call => call.path.endsWith('/steering')).map(call => (call.body as { instruction: string }).instruction)).toEqual(["Quiet rhythm", "Quiet rhythm and softer vowels"]);
   expect(ensures()).toHaveLength(0);
+});
+it("allows explicit seed-only steering without an optional message or an automatic run", async () => {
+  await render(); await selectSeed();
+  expect(message().value).toBe(""); expect(button("Send naming direction")?.disabled).toBe(false);
+  await click("Send naming direction");
+  expect(calls.filter(call => call.path.endsWith('/steering')).map(call => call.body)).toMatchObject([{ candidateIds: [candidateId], instruction: null }]);
+  expect(mock.memory!.hasUnsaved()).toBe(false); expect(ensures()).toHaveLength(0);
 });

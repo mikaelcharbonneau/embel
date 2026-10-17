@@ -105,3 +105,26 @@ export async function scrollToTail(page: Page, interact = true) {
   await page.locator(".naming-feed-tail").scrollIntoViewIfNeeded(); await frameBarrier(page);
   if (interact) { await page.locator(".naming-feed-tail").hover(); await page.mouse.wheel(0, 120); await frameBarrier(page); }
 }
+
+/** Responsive presentation helpers preserve the real explicit decision/admission boundaries. */
+export async function showNamingChat(page: Page) {
+  const tabs = page.getByRole("group", { name: "Naming workspace view" });
+  if (await tabs.isVisible()) await tabs.getByRole("button", { name: "Chat", exact: true }).click();
+}
+export async function showNamingNames(page: Page) {
+  const tabs = page.getByRole("group", { name: "Naming workspace view" });
+  if (await tabs.isVisible()) await tabs.getByRole("button", { name: /^Names/ }).click();
+}
+export async function finishNamingChat(page: Page) {
+  const next = page.getByRole("button", { name: "Continue", exact: true });
+  while (await next.isVisible()) {
+    const question = await page.locator("#project-naming-preferences-heading").innerText();
+    await next.click();
+    await expect(page.locator("#project-naming-preferences-heading")).not.toHaveText(question);
+  }
+}
+export async function editNamingApproaches(page: Page) {
+  await showNamingChat(page);
+  const edit = page.getByRole("button", { name: "Edit answer: Which approaches would you like to explore?", exact: true });
+  if (await edit.isVisible()) await edit.click();
+}
