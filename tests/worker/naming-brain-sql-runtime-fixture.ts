@@ -30,6 +30,7 @@ export type SqlNamingCall = { name: string; action?: string; payload?: Record<st
 type Options = {
   initialCount?: number;
   gapTerminal?: "failed" | "invalid_json";
+  gapTerminalRole?: "director" | "verifier";
   losePrepareAcknowledgement?: boolean;
   beforeArtifact?: (args: unknown[], artifact: NamingRoleOutput) => Promise<void>;
 };
@@ -72,7 +73,7 @@ export function createSqlNamingHarness(db: TestDatabase, options: Options = {}) 
     object: "agent.session.turn", created_at: 1, started_at: 1, completed_at: session.terminal ? 2 : null,
   });
   function complete(session: Session, sourceKey?: string) {
-    const terminalGap = session.request.stageKey === "gap" && session.request.role === "director" ? options.gapTerminal : undefined;
+    const terminalGap = session.request.stageKey === "gap" && session.request.role === (options.gapTerminalRole ?? "director") ? options.gapTerminal : undefined;
     if (terminalGap !== "failed") {
       let output = syntheticNamingOutput(session.request, { initialCount: options.initialCount });
       if (output.role === "researcher") {
