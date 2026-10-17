@@ -56,9 +56,16 @@ export function createNamingFeedController(options: { account: NamingAccount; pr
     update(value => {
       const stopped = feed.paused || value.stop !== null || value.stopRequested ? true : old === null && (feed.demandSequence > 0 || feed.activeRun !== null || rows.some(row => row.runId !== null)) && feed.state === "active" && !value.stopRequested ? false : value.stopped;
       const pending = value.pending, run = feed.activeRun;
-      const acknowledged = value.acknowledged || Boolean(pending && run && run.projectRevision === pending.expectedProjectRevision && run.preferencesVersion === pending.expectedPreferencesVersion && run.steeringRevision === pending.expectedSteeringRevision && run.demandSequence === pending.expectedDemandSequence + (pending.reason === "resume" ? 1 : 0) && (pending.reason !== "resume" || run.resumedFromRunId === pending.resumeOfRunId) && JSON.stringify(feed.consumedThrough) === JSON.stringify(pending.consumedThrough));
-      return { ...value, feed, stopped, acknowledged, entries: mergeNamingFeedEntries(value.entries, rows),
-        status: value.pending && !acknowledged ? value.status : active(feed.activeRun?.state) ? "pending" : terminal(feed.activeRun?.state) && ["partial", "failed", "cancelled", "needs_reconciliation"].includes(feed.activeRun!.state) ? "incomplete" : feed.state === "blocked" ? "blocked" : stopped ? "paused" : "ready" };
+      const matches = Boolean(pending && run && run.projectRevision === pending.expectedProjectRevision && run.preferencesVersion === pending.expectedPreferencesVersion && run.steeringRevision === pending.expectedSteeringRevision && run.demandSequence === pending.expectedDemandSequence + (pending.reason === "resume" ? 1 : 0) && (pending.reason !== "resume" || run.resumedFromRunId === pending.resumeOfRunId) && JSON.stringify(feed.consumedThrough) === JSON.stringify(pending.consumedThrough));
+      const readAcknowledgement = !feed.paused && matches;
+      const acknowledged = value.acknowledged || readAcknowledgement;
+      const acknowledgedRunId = value.acknowledgedRunId ?? (acknowledged && matches ? run!.runId : null);
+      // A cross-tab Stop can finish a request already acknowledged by this tab.
+      // Retire only its bound terminal run; an unknown intent remains protected.
+      const settledWhilePaused = Boolean(value.acknowledged && pending && run && feed.paused && terminal(run.state) && acknowledgedRunId === run.runId);
+      return { ...value, feed, stopped, pending: settledWhilePaused ? null : pending,
+        acknowledged: settledWhilePaused ? false : acknowledged, acknowledgedRunId: settledWhilePaused ? null : acknowledgedRunId, entries: mergeNamingFeedEntries(value.entries, rows),
+        status: pending && !acknowledged ? value.status : active(run?.state) ? "pending" : terminal(run?.state) && ["partial", "failed", "cancelled", "needs_reconciliation"].includes(run!.state) ? "incomplete" : feed.state === "blocked" ? "blocked" : stopped ? "paused" : "ready" };
     });
     return true;
   }
@@ -71,15 +78,15 @@ export function createNamingFeedController(options: { account: NamingAccount; pr
     if (!current()) return false;
     const { key, controller } = begin("ensure"); if (!controller) return false;
     const direction = (state()?.directionEpoch ?? 0) + 1;
-    update(value => ({ ...value, pending: intent, directionEpoch: direction, status: "pending", error: null }));
+    update(value => ({ ...value, pending: intent, acknowledged: value.pending?.idempotencyKey === intent.idempotencyKey && value.acknowledged, acknowledgedRunId: value.pending?.idempotencyKey === intent.idempotencyKey ? value.acknowledgedRunId : null, directionEpoch: direction, status: "pending", error: null }));
     try {
       const result = namingFeedEnsureResultSchema.parse(await request(`${base}/feed/ensure`, namingFeedEnsureResultSchema, { method: "POST", body: intent, expectedOwnerId: account.userId, signal: controller.signal }));
       if (!live(key, controller)) return false;
       if (!receive(result.feed, direction)) return Boolean(state()?.acknowledged && state()?.pending?.idempotencyKey === intent.idempotencyKey && "run" in result && state()?.feed?.activeRun?.runId === result.run.runId);
       update(value => ({ ...value, outcome: result, pending: result.status === "pending" || (result.status === "blocked" || result.status === "paused") && result.action === "retry" ? intent : null,
-        directionEpoch: value.directionEpoch + 1, acknowledged: result.status === "pending", status: result.status === "appended" ? value.stopped ? "paused" : "ready" : result.status, error: null }));
+        directionEpoch: value.directionEpoch + 1, acknowledged: result.status === "pending", acknowledgedRunId: result.status === "pending" ? result.run.runId : null, status: result.status === "appended" ? value.stopped ? "paused" : "ready" : result.status, error: null }));
       return true;
-    } catch (cause) { if (live(key, controller) && state()?.directionEpoch === direction) { if (cause instanceof AccountRequestError && [400, 403, 409, 413, 422, 429].includes(cause.status)) update(value => ({ ...value, pending: null, acknowledged: false })); error(cause); } return false; }
+    } catch (cause) { if (live(key, controller) && state()?.directionEpoch === direction) { if (cause instanceof AccountRequestError && [400, 403, 409, 413, 422, 429].includes(cause.status)) update(value => ({ ...value, pending: null, acknowledged: false, acknowledgedRunId: null })); error(cause); } return false; }
     finally { finish(key, controller); }
   }
   async function load(cursor?: NamingFeedCursor | null) {
@@ -101,7 +108,7 @@ export function createNamingFeedController(options: { account: NamingAccount; pr
         if (pages > 200) throw new AccountRequestError(502);
       } while (!cursor && next && (rows.at(-1)?.position ?? 0) < depth);
       received = receive(feed!, direction, rows);
-      if (received) update(value => ({ ...value, error: value.stop || value.pending && !value.acknowledged ? value.error : null }));
+      if (received) update(value => ({ ...value, error: value.stop || value.steering || value.pending && !value.acknowledged ? value.error : null }));
     } catch (cause) { if (live(key, controller) && state()?.directionEpoch === direction) error(cause); }
     finally { finish(key, controller); }
     const after = state();
@@ -126,7 +133,7 @@ export function createNamingFeedController(options: { account: NamingAccount; pr
       if (!current() || !eligible() || !visible() || starting || state()?.pending || state()?.steering || state()?.stop) return false;
       starting = true;
       try {
-        if (!await load()) return false;
+        if (!await load() || !current() || !eligible() || !visible() || state()?.pending || state()?.steering || state()?.stop) return false;
         if (memory.getRecovery(account)) return false;
         const feed = state()?.feed, run = feed?.activeRun;
         if (!feed || run?.state === "needs_reconciliation") return false;
@@ -159,7 +166,7 @@ export function createNamingFeedController(options: { account: NamingAccount; pr
       if (!current() || !eligible() || !feed || value?.steering || value?.stop || candidateIds.some(id => !value.entries.some(row => row.entry.candidate.id === id))) return false;
       const parsed = steerNamingFeedIntentSchema.safeParse({ candidateIds, instruction, expectedProjectRevision: feed.projectRevision, expectedPreferencesVersion: feed.preferencesVersion, expectedSteeringRevision: feed.steeringRevision, idempotencyKey: crypto.randomUUID() });
       if (!parsed.success) return false;
-      update(previous => ({ ...previous, directionEpoch: previous.directionEpoch + 1, steering: parsed.data, pending: null, acknowledged: false, outcome: null, error: null }));
+      update(previous => ({ ...previous, directionEpoch: previous.directionEpoch + 1, steering: parsed.data, pending: null, acknowledged: false, acknowledgedRunId: null, outcome: null, error: null }));
       consumedInteraction = ++interaction; return steer(parsed.data);
     },
     async stop() { return requestStop(false); },
@@ -194,7 +201,7 @@ export function createNamingFeedController(options: { account: NamingAccount; pr
       if (!reply.feed.paused) throw new AccountRequestError(reply.feed.demandSequence > pending.expectedDemandSequence ? 409 : 502);
       if (reply.feed.demandSequence <= pending.expectedDemandSequence) throw new AccountRequestError(502);
       if (!receive(reply.feed, direction, reply.feed.entries, true)) throw new AccountRequestError(409);
-      update(value => ({ ...value, stop: null, stopConflict: false, pending: null, acknowledged: false, outcome: null, stopped: true, stopRequested: true, status: value.steering ? "error" : "paused", error: value.steering ? "Your pause is saved. Confirm the unfinished direction save before continuing." : null, directionEpoch: value.directionEpoch + 1 }));
+      update(value => ({ ...value, stop: null, stopConflict: false, pending: null, acknowledged: false, acknowledgedRunId: null, outcome: null, stopped: true, stopRequested: true, status: value.steering ? "error" : "paused", error: value.steering ? "Your pause is saved. Confirm the unfinished direction save before continuing." : null, directionEpoch: value.directionEpoch + 1 }));
       return true;
     } catch (cause) {
       if (live(key, controller) && state()?.directionEpoch === direction) {
@@ -212,7 +219,8 @@ export function createNamingFeedController(options: { account: NamingAccount; pr
       const reply = steerNamingFeedResponseSchema.parse(await request(`${base}/steering`, steerNamingFeedResponseSchema, { method: "POST", body: pending, expectedOwnerId: account.userId, signal: controller.signal }));
       if (!live(key, controller) || state()?.directionEpoch !== direction) return false;
       if (reply.feed.steeringRevision !== pending.expectedSteeringRevision + 1 || !receive(reply.feed, direction)) throw new AccountRequestError(502);
-      update(value => ({ ...value, steering: null, pending: null, acknowledged: false, outcome: null, stopped: reply.feed.paused, stopRequested: false, status: reply.feed.paused ? "paused" : "ready", directionEpoch: value.directionEpoch + 1, error: null })); return true;
+      update(value => ({ ...value, steering: null, pending: null, acknowledged: false, acknowledgedRunId: null, outcome: null, stopped: reply.feed.paused, stopRequested: false, status: reply.feed.paused ? "paused" : "ready", directionEpoch: value.directionEpoch + 1, error: null }));
+      memory.acknowledgeSteeringDraft(account, projectId, pending); return true;
     } catch (cause) { if (live(key, controller) && state()?.directionEpoch === direction) { if (cause instanceof AccountRequestError && [400, 403, 409, 413, 422, 429].includes(cause.status)) update(value => ({ ...value, steering: null })); error(cause); } return false; }
     finally { finish(key, controller); }
   }

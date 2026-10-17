@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { Icon } from "@/components/ui/icon";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
@@ -43,6 +43,19 @@ function AccountProjectNaming({ projectId, account }: { projectId: string; accou
   const [historyOpen, setHistoryOpen] = useState(false);
   const [conversationOverride, setConversationOverride] = useState<boolean | null>(null);
   const feed = useNamingFeed({ account, projectId, projectRevision: overview?.project.current_revision, enabled: Boolean(overview?.readiness.ready && !blocked && !readError), view: { ...(overview?.session?.viewState ?? initialNamingView), inspecting: Boolean(inspectedId), historyOpen } });
+  const { eligibleView, start: startFeed } = feed;
+  const continuation = useRef<{ started: boolean; resolve: (started: boolean) => void } | null>(null);
+  const [continueVersion, setContinueVersion] = useState(0);
+  useEffect(() => {
+    const request = continuation.current;
+    if (!request || request.started) return;
+    request.started = true;
+    // Only the explicit Continue action queues this request. The saved view and
+    // the feed's layout-effect eligibility must both be committed first.
+    if (!eligibleView || !isCurrent(account)) { continuation.current = null; request.resolve(false); return; }
+    void startFeed().then(request.resolve).finally(() => { if (continuation.current === request) continuation.current = null; });
+  }, [continueVersion, eligibleView, startFeed, account, isCurrent]);
+  useEffect(() => () => { continuation.current?.resolve(false); continuation.current = null; }, []);
   const strategyHref = `/brands/account/${projectId}`;
   if (!overview) return <div className="page project-naming-page"><header className="project-naming-header"><h1>Naming</h1><Link className="text-link" href={strategyHref}>Back to project</Link></header>{readError ? <div className="project-naming-notice" role="alert"><p>{readError}</p><button className="button secondary small" type="button" onClick={naming.refresh}>Check latest version</button></div> : <p className="project-naming-muted" role="status">Loading your account naming workspace…</p>}</div>;
   const { project } = overview;
@@ -84,6 +97,16 @@ function AccountProjectNaming({ projectId, account }: { projectId: string; accou
   async function openConversation() {
     setConversationOverride(true);
     if (await naming.saveView({ conversationOpen: true, scrollCandidateId: candidateAnchor() })) requestAnimationFrame(() => { const heading = document.getElementById("project-naming-preferences-heading"); heading?.focus(); heading?.scrollIntoView({ block: "center" }); });
+  }
+  async function continueExploration() {
+    if (!isCurrent(account) || continuation.current) return false;
+    if ((view.pane !== "results" || view.filter !== "all" || view.query || view.visibleBatchId)
+      && !await naming.saveView({ pane: "results", filter: "all", query: "", visibleBatchId: null })) return false;
+    if (!isCurrent(account)) return false;
+    setHistoryOpen(false); setInspectedId(null); naming.refresh();
+    const started = await new Promise<boolean>(resolve => { continuation.current = { started: false, resolve }; setContinueVersion(version => version + 1); });
+    if (started && isCurrent(account)) await closeConversation();
+    return started;
   }
   async function choose(entry: ProjectNameEntry, acknowledged: boolean) {
     if (!isCurrent(account) || blocked) return;
@@ -135,7 +158,7 @@ function AccountProjectNaming({ projectId, account }: { projectId: string; accou
   </div><aside className={`project-dock naming-widget-panel${conversationOpen ? " is-open" : " is-collapsed"}`} aria-label="Naming conversation"><div className="project-dock-tabs"><strong>Naming</strong><button className="project-dock-toggle" type="button" aria-label={conversationOpen ? "Collapse Naming panel" : "Open Naming panel"} aria-expanded={conversationOpen} onClick={() => void (conversationOpen ? closeConversation() : openConversation())}>{conversationOpen ? "−" : "+"}</button></div>
     {overview.readiness.ready ? <section hidden={!conversationOpen} className="project-naming-conversation project-dock-content" aria-label="Naming choices conversation">
       <div className="project-naming-context"><span>Saved project context · version {project.current_revision}</span><p>{originalDescription}</p><details><summary>Strategy carried into Naming</summary><dl><div><dt>Offering</dt><dd>{project.context.offering || "Not specified"}</dd></div><div><dt>Audience</dt><dd>{project.context.audienceSegments.filter(segment => segment.selected).map(segment => segment.label).join(", ") || project.context.knownAudience || "Not specified"}</dd></div><div><dt>Positioning</dt><dd>{project.context.positioning || "Not specified"}</dd></div><div><dt>Existing name</dt><dd>{project.context.selectedName || project.context.intake.suppliedName || "None selected"}</dd></div></dl><Link className="text-link" href={strategyHref}>Open the Strategy conversation</Link></details></div>
-      <NamingApproachWidgets memory={feed.memory} account={account} projectId={projectId} context={project.context} saved={overview.preferences} blocked={blocked} runtimeReady={feed.state?.feed?.availability.status === "available"} onCheckSaved={naming.refresh} onContinue={async () => { naming.refresh(); const started = await feed.start(); if (started && isCurrent(account)) await closeConversation(); return started; }} />
+      <NamingApproachWidgets memory={feed.memory} account={account} projectId={projectId} context={project.context} saved={overview.preferences} blocked={blocked} runtimeReady={feed.state?.feed?.availability.status === "available"} onCheckSaved={naming.refresh} onContinue={continueExploration} />
     </section> : null}
   </aside></div>;
 }

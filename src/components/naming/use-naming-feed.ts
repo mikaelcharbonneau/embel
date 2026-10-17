@@ -5,6 +5,7 @@ import { getNamingPreferencesReadiness } from "@/domain/naming-brain-preferences
 import type { NamingViewState } from "@/domain/project-naming";
 import { createNamingFeedController, NAMING_EXPLORATION_IDLE_MS } from "./naming-feed-controller";
 const hidden = () => null;
+const emptySteeringDraft = { candidateIds: [] as string[], instruction: "" };
 export type NamingFeedView = NamingViewState & { inspecting?: boolean; historyOpen?: boolean };
 export function useNamingFeed({ account, projectId, enabled, view, projectRevision }: { account: VerifiedAccount; projectId: string; enabled: boolean; view: NamingFeedView; projectRevision?: number }) {
   const { namingBrainDrafts: memory, expire } = useAccountSession();
@@ -59,7 +60,8 @@ export function useNamingFeed({ account, projectId, enabled, view, projectRevisi
   const contextReady = enabled && eligibleView && record?.preferences?.saved?.preferences.version === 2 && !record.preferences.dirty && !record.preferences.pending && getNamingPreferencesReadiness(record.preferences.saved.preferences).ready && !record.feed.stop && !record.feed.steering;
   const canExplore = contextReady && record?.feed.feed?.availability.status === "available";
   const run = record?.feed.feed?.activeRun;
-  const canResume = contextReady && run?.canResume && (canExplore || Boolean(run.preparedSetId && run.fulfillment?.status === "complete"));
-  return { canExplore: Boolean(canExplore), canResume: Boolean(canResume), record, state: record?.feed ?? null, entries: record?.feed.entries ?? [], memory, eligibleView, interacting: interacting && enabled && eligibleView, attachSentinel: setSentinel,
+  const canResume = contextReady && !record?.feed.pending && run?.canResume && (canExplore || Boolean(run.preparedSetId && run.fulfillment?.status === "complete"));
+  const updateSteeringDraft = useCallback((patch: Partial<typeof emptySteeringDraft>) => memory.setSteeringDraft(account, projectId, draft => ({ ...draft, ...patch })), [memory, account, projectId]);
+  return { steeringDraft: record?.steeringDraft ?? emptySteeringDraft, updateSteeringDraft, canExplore: Boolean(canExplore), canResume: Boolean(canResume), record, state: record?.feed ?? null, entries: record?.feed.entries ?? [], memory, eligibleView, interacting: interacting && enabled && eligibleView, attachSentinel: setSentinel,
     start, stop, stopCurrent: controller.stopCurrent, retry: controller.retry, resume: controller.resume, steer: controller.steer, refresh: controller.load };
 }

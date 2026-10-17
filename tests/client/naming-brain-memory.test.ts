@@ -99,4 +99,16 @@ describe("Naming preference acknowledgement", () => {
     expect(after.get(account, projectId)?.feed).toMatchObject({ pending, status: "error" });
     expect(after.get(account, projectId)?.feed.error).toContain("same request");
   });
+  it("I5 recovers an unsubmitted steering draft without marking acknowledged preferences unsaved", () => {
+    const values = new Map<string, string>(); const storage = () => ({ getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => { values.set(key, value); }, removeItem: (key: string) => { values.delete(key); } });
+    const request = vi.fn(); const before = createNamingBrainMemory({ storage, request }); before.bind(account); before.connectPreferences(account, projectId, saved(1), context);
+    before.setSteeringDraft(account, projectId, draft => ({ ...draft, instruction: "Keep a quieter rhythm" }));
+    expect(before.hasUnsaved()).toBe(true);
+    const after = createNamingBrainMemory({ storage, request }); after.bind(account);
+    expect(after.get(account, projectId)).toBeNull(); expect(after.getRecovery(account)).not.toBeNull();
+    after.connectPreferences(account, projectId, saved(1), context); after.recover(account);
+    expect(after.get(account, projectId)?.steeringDraft).toEqual({ candidateIds: [], instruction: "Keep a quieter rhythm" });
+    expect(after.get(account, projectId)?.preferences).toMatchObject({ dirty: false, status: "saved" });
+    expect(request).not.toHaveBeenCalled();
+  });
 });

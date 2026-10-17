@@ -253,3 +253,64 @@ it("Stop binds an unacknowledged Resume by its exact key without rebasing its se
   expect(f.memory.get(account, projectId)?.feed.feed).toMatchObject({ paused: true, demandSequence: 2, activeRun: { state: "cancel_requested" } });
   expect(f.requests.filter(value => value.path.endsWith("/feed/ensure"))).toHaveLength(1);
 });
+it("I1 keeps exact steering recovery actionable after a GET observes a newer steering revision", async () => {
+  const f = fixture(feed([entry(1)])), bodies: unknown[] = []; await f.controller.load();
+  const committed = { ...feed([entry(1)]), steeringRevision: 1, demandSequence: 1 };
+  f.respond(async (path, options) => {
+    if (path.endsWith("/steering")) { bodies.push(options.body); if (bodies.length === 1) throw new Error("Acknowledgement lost after commit"); return { feed: committed, supersededRunIds: [], cancellationRequestedRunIds: [] }; }
+    return { feed: committed };
+  });
+  await f.controller.steer([entry(1).entry.candidate.id], "Keep the quiet rhythm"); const exact = f.memory.get(account, projectId)?.feed.steering;
+  await f.controller.load();
+  expect(f.memory.get(account, projectId)?.feed.steering).toEqual(exact);
+  expect(f.memory.get(account, projectId)?.feed.error).toBeTruthy();
+  expect(await f.controller.start()).toBe(false);
+  await f.controller.retry(); expect(bodies).toEqual([exact, exact]); expect(f.memory.get(account, projectId)?.feed.steering).toBeNull();
+});
+it.each([false, true])("I2 reconciles an acknowledged demand after another tab Stops its matching terminal run (complete=%s)", async complete => {
+  const f = fixture(), original = run(); let server = feed(); const ensures: unknown[] = [];
+  const terminalRun: NamingBrainRunSummary = { ...original, revision: 2, state: complete ? "succeeded" : "cancelled", canResume: true,
+    preparedSetId: complete ? id(50) : null, fulfillment: complete ? { status: "complete", targetCount: 100, acceptedCount: 100, missingCount: 0, coverageSatisfied: true, message: null } : null };
+  f.respond(async (path, options) => {
+    if (path.endsWith("/feed/stop")) { server = { ...server, paused: true, state: "paused", demandSequence: 1, activeRun: terminalRun }; return { feed: server }; }
+    if (path.endsWith("/feed/ensure")) {
+      ensures.push(options.body);
+      if (ensures.length === 1) { server = { ...server, activeRun: original }; return { status: "pending", feed: server, run: original, reused: false }; }
+      if (complete) { server = { ...server, paused: false, state: "active", demandSequence: 2 }; return { status: "appended", feed: server, runId: original.runId, appendedEntryIds: [] }; }
+      const resumed = { ...run(), runId: id(60), resumedFromRunId: original.runId, demandSequence: 2 }; server = { ...server, paused: false, state: "active", demandSequence: 2, activeRun: resumed }; return { status: "pending", feed: server, run: resumed, reused: false };
+    }
+    return { feed: server };
+  });
+  await f.controller.load(); await f.controller.start(); expect(f.memory.get(account, projectId)?.feed.acknowledged).toBe(true);
+  const tabMemory = createNamingBrainMemory({ storage: () => null }); tabMemory.bind(account);
+  const tab = createNamingFeedController({ account, projectId, memory: tabMemory, request: f.request as never, eligible: () => true });
+  await tab.load(); await tab.stop(); await f.controller.load();
+  expect(f.memory.get(account, projectId)?.feed.pending).toBeNull();
+  expect(f.memory.get(account, projectId)?.feed.feed?.paused).toBe(true);
+  f.controller.interact(); await f.controller.demand(); expect(ensures).toHaveLength(1);
+  expect(await f.controller.resume()).toBe(true); expect(ensures[1]).toMatchObject({ reason: "resume", resumeOfRunId: original.runId, expectedRunRevision: 2, expectedDemandSequence: 1 });
+});
+it("I2 protects a genuinely unacknowledged demand when a paused terminal head is observed", async () => {
+  const f = fixture(); let paused = false;
+  f.respond(async (_path, options) => {
+    if (options.method === "POST") { paused = true; throw new Error("No acknowledgement"); }
+    return { feed: paused ? { ...feed(), paused: true, state: "paused", demandSequence: 1, activeRun: { ...run("cancelled"), revision: 2, canResume: true } } : feed() };
+  });
+  await f.controller.load(); await f.controller.start(); const exact = f.memory.get(account, projectId)?.feed.pending;
+  await f.controller.load();
+  expect(f.memory.get(account, projectId)?.feed.pending).toEqual(exact);
+  expect(f.memory.get(account, projectId)?.feed.acknowledged).toBe(false);
+  expect(await f.controller.resume()).toBe(false); expect(f.requests.filter(value => value.method === "POST")).toHaveLength(1);
+});
+it("I2 keeps an acknowledged intent bound to its own run when an unrelated terminal head is read", async () => {
+  const f = fixture(); let server = feed();
+  f.respond(async (_path, options) => {
+    if (options.method === "POST") { const original = run(); server = { ...server, activeRun: original }; return { status: "pending", feed: server, run: original, reused: false }; }
+    return { feed: server };
+  });
+  await f.controller.load(); await f.controller.start(); const exact = f.memory.get(account, projectId)?.feed.pending;
+  server = { ...server, paused: true, state: "paused", demandSequence: 2, activeRun: { ...run("cancelled"), runId: id(70), revision: 2, canResume: true } };
+  await f.controller.load();
+  expect(f.memory.get(account, projectId)?.feed.pending).toEqual(exact); expect(await f.controller.resume()).toBe(false);
+  expect(f.requests.filter(value => value.method === "POST")).toHaveLength(1);
+});

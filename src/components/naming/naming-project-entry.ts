@@ -20,7 +20,7 @@ export async function startNamingProject({ memory, account, request = boundedAcc
     const project = reply.project;
     // An exact creation replay may return the later owned head, including explicit scope expansion.
     if (project.owner_id !== account.userId || project.scope === "visual_identity_only" || project.current_revision === 1 && (project.scope !== "naming_only" || project.title !== input.title || JSON.stringify(project.context) !== JSON.stringify(input.context))) throw new AccountRequestError(502);
-    memory.setEntry(account, value => ({ ...value, projectId: project.id, error: null })); return project.id;
+    memory.setEntry(account, value => ({ ...value, projectId: project.id, input: null, error: null })); return project.id;
   } catch (error) {
     if (!memory.operationCurrent(account, operation, controller)) return null;
     const validation = !(error instanceof AccountRequestError) && !memory.getEntry(account)?.input;

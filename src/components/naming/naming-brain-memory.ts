@@ -14,12 +14,16 @@ export type NamingPreferenceDraft = {
 };
 export type NamingFeedState = {
   feed: NamingFeed | null; entries: NamingFeedEntry[]; status: "loading" | "ready" | "pending" | "paused" | "blocked" | "incomplete" | "error";
-  pending: EnsureNamingRunIntent | null; acknowledged: boolean; stop: StopNamingFeedIntent | null; stopConflict: boolean; steering: SteerNamingFeedIntent | null;
+  pending: EnsureNamingRunIntent | null; acknowledged: boolean; acknowledgedRunId: string | null; stop: StopNamingFeedIntent | null; stopConflict: boolean; steering: SteerNamingFeedIntent | null;
   outcome: NamingFeedEnsureResult | null; error: string | null; stopped: boolean; stopRequested: boolean; directionEpoch: number;
 };
-export type NamingBrainRecord = { preferences: NamingPreferenceDraft | null; feed: NamingFeedState };
+export type NamingSteeringDraft = { candidateIds: string[]; instruction: string };
+const emptySteeringDraft = (): NamingSteeringDraft => ({ candidateIds: [], instruction: "" });
+const hasSteeringDraft = (draft: NamingSteeringDraft) => draft.candidateIds.length > 0 || draft.instruction.trim().length > 0;
+const steeringDraftSchema = z.strictObject({ candidateIds: z.array(z.uuid()).max(5).refine(ids => new Set(ids).size === ids.length), instruction: z.string().max(2000) });
+export type NamingBrainRecord = { preferences: NamingPreferenceDraft | null; feed: NamingFeedState; steeringDraft: NamingSteeringDraft };
 export type NamingProjectEntry = { description: string; direction: string; language: string; input: CreateProjectInput | null; projectId: string | null; error: string | null; busy: boolean };
-const emptyFeed = (): NamingFeedState => ({ feed: null, entries: [], status: "loading", pending: null, acknowledged: false, stop: null, stopConflict: false, steering: null, outcome: null, error: null, stopped: true, stopRequested: false, directionEpoch: 0 });
+const emptyFeed = (): NamingFeedState => ({ feed: null, entries: [], status: "loading", pending: null, acknowledged: false, acknowledgedRunId: null, stop: null, stopConflict: false, steering: null, outcome: null, error: null, stopped: true, stopRequested: false, directionEpoch: 0 });
 const emptyEntry = (): NamingProjectEntry => ({ description: "", direction: "", language: "English", input: null, projectId: null, error: null, busy: false });
 const equal = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
 function preferencesFrom(saved: NamingPreferenceRevision | null, context: ContextSnapshot): NamingPreferencesV2 {
@@ -33,7 +37,8 @@ function normalizeDraft(draft: NamingPreferencesV2) {
 const recoveryDraftSchema = z.strictObject({ version: z.literal(2), creativeLocale: z.string().max(30), notes: z.string().max(2000), minimumGraphemes: z.number().finite().nullable(), maximumGraphemes: z.number().finite().nullable(), approaches: z.array(namingApproachSchema).max(11), directness: namingDirectnessSchema.nullable(), sourceLanguages: z.array(z.string().max(960)).max(961), heritageNotes: z.string().max(2000), culturalNotes: z.string().max(2000), requiredText: z.array(z.string().max(3200)).max(3201), excludedText: z.array(z.string().max(3200)).max(3201) });
 const recoverySchema = z.strictObject({ version: z.literal(1), ownerId: z.uuid(), projects: z.array(z.strictObject({ projectId: z.uuid(),
   preferences: z.strictObject({ saved: namingPreferenceRevisionSchema.nullable(), draft: recoveryDraftSchema, pending: updateNamingPreferencesSchema.nullable() }).nullable(),
-  pending: ensureNamingRunIntentSchema.nullable(), acknowledged: z.boolean(), stop: stopNamingFeedIntentSchema.nullable().default(null), stopConflict: z.boolean().default(false), stopRequested: z.boolean().default(false), steering: steerNamingFeedIntentSchema.nullable(),
+  steeringDraft: steeringDraftSchema.default(emptySteeringDraft),
+  pending: ensureNamingRunIntentSchema.nullable(), acknowledged: z.boolean(), acknowledgedRunId: z.uuid().nullable().default(null), stop: stopNamingFeedIntentSchema.nullable().default(null), stopConflict: z.boolean().default(false), stopRequested: z.boolean().default(false), steering: steerNamingFeedIntentSchema.nullable(),
 })).max(20), creation: z.strictObject({ description: z.string().max(3000), direction: z.string().max(1000), language: z.string().max(80), input: createProjectInputSchema.nullable(), projectId: z.uuid().nullable() }).nullable() });
 type Recovery = z.infer<typeof recoverySchema>;
 const RECOVERY_LIMIT = 262_144;
@@ -55,11 +60,11 @@ export function createNamingBrainMemory(options: { request?: typeof boundedAccou
     const projects: Recovery["projects"] = [];
     for (const [projectId, record] of records) {
       const p = record.preferences, draft = p && recoveryDraftSchema.safeParse(p.draft);
-      if (!p?.dirty && !p?.pending && !record.feed.pending && !record.feed.steering && !record.feed.stop) continue;
-      projects.push({ projectId, preferences: p && draft?.success ? { saved: p.saved, draft: draft.data, pending: p.pending } : null,
-        pending: record.feed.pending, acknowledged: record.feed.acknowledged, stop: record.feed.stop, stopConflict: record.feed.stopConflict, stopRequested: record.feed.stopRequested, steering: record.feed.steering });
+      if (!p?.dirty && !p?.pending && !record.feed.pending && !record.feed.steering && !record.feed.stop && !hasSteeringDraft(record.steeringDraft)) continue;
+      projects.push({ projectId, steeringDraft: record.steeringDraft, preferences: (p?.dirty || p?.pending) && draft?.success ? { saved: p.saved, draft: draft.data, pending: p.pending } : null,
+        pending: record.feed.pending, acknowledged: record.feed.acknowledged, acknowledgedRunId: record.feed.acknowledgedRunId, stop: record.feed.stop, stopConflict: record.feed.stopConflict, stopRequested: record.feed.stopRequested, steering: record.feed.steering });
     }
-    const creation = entry.input || entry.description ? { description: entry.description, direction: entry.direction, language: entry.language, input: entry.input, projectId: entry.projectId } : null;
+    const creation = !entry.projectId && (entry.input || entry.description) ? { description: entry.description, direction: entry.direction, language: entry.language, input: entry.input, projectId: entry.projectId } : null;
     try {
       if (!projects.length && !creation) storage()?.removeItem(key(owner));
       else { const body = JSON.stringify({ version: 1, ownerId: owner, projects, creation }); if (new TextEncoder().encode(body).byteLength <= RECOVERY_LIMIT && projects.length <= 20) storage()?.setItem(key(owner), body); }
@@ -68,7 +73,7 @@ export function createNamingBrainMemory(options: { request?: typeof boundedAccou
   function publish() { persist(); listeners.forEach(listener => listener()); }
   function replace(account: NamingAccount, projectId: string, update: (record: NamingBrainRecord) => NamingBrainRecord) {
     if (!current(account)) return;
-    records.set(projectId, update(records.get(projectId) ?? { preferences: null, feed: emptyFeed() })); publish();
+    records.set(projectId, update(records.get(projectId) ?? { preferences: null, feed: emptyFeed(), steeringDraft: emptySteeringDraft() })); publish();
   }
   function stopOperations() {
     for (const timer of timers.values()) clearTimeout(timer); timers.clear();
@@ -139,7 +144,7 @@ export function createNamingBrainMemory(options: { request?: typeof boundedAccou
       if (account && owner !== account.userId) {
         if (owner) try { storage()?.removeItem(key(owner)); } catch {}
         records.clear(); entry = emptyEntry(); recovery = null; owner = account.userId;
-        try { const raw = storage()?.getItem(key(owner)); if (raw && new TextEncoder().encode(raw).byteLength <= RECOVERY_LIMIT) { const parsed = recoverySchema.safeParse(JSON.parse(raw)); if (parsed.success && parsed.data.ownerId === owner && parsed.data.projects.every(item => !item.preferences?.saved || item.preferences.saved.ownerId === owner && item.preferences.saved.projectId === item.projectId)) recovery = parsed.data; } } catch {}
+        try { const raw = storage()?.getItem(key(owner)); if (raw && new TextEncoder().encode(raw).byteLength <= RECOVERY_LIMIT) { const parsed = recoverySchema.safeParse(JSON.parse(raw)); if (parsed.success && parsed.data.ownerId === owner && parsed.data.projects.every(item => !item.preferences?.saved || item.preferences.saved.ownerId === owner && item.preferences.saved.projectId === item.projectId)) { const creation = parsed.data.creation?.projectId ? null : parsed.data.creation; recovery = parsed.data.projects.length || creation ? { ...parsed.data, creation } : null; } } } catch {}
       }
       verified = account ? { ...account } : null; publish();
     },
@@ -151,8 +156,8 @@ export function createNamingBrainMemory(options: { request?: typeof boundedAccou
       if (!current(account) || !recovery) return;
       for (const item of recovery.projects) {
         const previous = records.get(item.projectId), unfinished = Boolean(item.stop || item.steering || item.pending && !item.acknowledged);
-        records.set(item.projectId, { preferences: item.preferences ? { ...item.preferences, dirty: true, status: "error", error: "Recovered unsaved Naming choices. Confirm this save to continue.", validationError: false } : previous?.preferences ?? null,
-          feed: { ...(previous?.feed ?? emptyFeed()), pending: item.pending, acknowledged: item.acknowledged, stop: item.stop, stopConflict: item.stopConflict, stopped: true, stopRequested: item.stopRequested, steering: item.steering, directionEpoch: (previous?.feed.directionEpoch ?? 0) + 1,
+        records.set(item.projectId, { steeringDraft: item.steeringDraft, preferences: item.preferences ? { ...item.preferences, dirty: true, status: "error", error: "Recovered unsaved Naming choices. Confirm this save to continue.", validationError: false } : previous?.preferences ?? null,
+          feed: { ...(previous?.feed ?? emptyFeed()), pending: item.pending, acknowledged: item.acknowledged, acknowledgedRunId: item.acknowledgedRunId, stop: item.stop, stopConflict: item.stopConflict, stopped: true, stopRequested: item.stopRequested, steering: item.steering, directionEpoch: (previous?.feed.directionEpoch ?? 0) + 1,
             status: unfinished ? "error" : "paused", error: unfinished ? "Recovered an unfinished Naming request. Retry the same request to confirm its saved state." : null } });
       }
       if (recovery.creation) entry = { ...recovery.creation, error: "Recovered an unfinished request. Continue to confirm this same project.", busy: false };
@@ -187,14 +192,26 @@ export function createNamingBrainMemory(options: { request?: typeof boundedAccou
       replace(account, projectId, record => ({ ...record, preferences: { ...p, draft: keepEdits ? p.draft : preferencesFrom(p.saved, { creativeLocale: p.draft.creativeLocale, intake: { namingNotes: p.draft.notes } } as ContextSnapshot), pending: null, dirty: keepEdits, status: keepEdits ? "saving" : "saved", error: null } }));
       if (keepEdits) schedule(account, projectId);
     },
+    setSteeringDraft(account: NamingAccount, projectId: string, update: (draft: NamingSteeringDraft) => NamingSteeringDraft) {
+      const record = get(account, projectId); if (!record || recovery) return false;
+      const parsed = steeringDraftSchema.safeParse(update(record.steeringDraft)); if (!parsed.success) return false;
+      const known = new Set([...record.steeringDraft.candidateIds, ...record.feed.entries.filter(row => row.entry.candidate.ownerId === account.userId && row.entry.candidate.projectId === projectId).map(row => row.entry.candidate.id)]);
+      if (parsed.data.candidateIds.some(id => !known.has(id))) return false;
+      replace(account, projectId, value => ({ ...value, steeringDraft: parsed.data })); return true;
+    },
+    acknowledgeSteeringDraft(account: NamingAccount, projectId: string, intent: SteerNamingFeedIntent) {
+      const draft = get(account, projectId)?.steeringDraft;
+      if (draft && equal(draft.candidateIds, intent.candidateIds) && draft.instruction.trim() === (intent.instruction ?? "")) replace(account, projectId, value => ({ ...value, steeringDraft: emptySteeringDraft() }));
+    },
     setFeed(account: NamingAccount, projectId: string, update: (feed: NamingFeedState) => NamingFeedState) { replace(account, projectId, record => ({ ...record, feed: update(record.feed) })); },
     applyRetention(account: NamingAccount, projectId: string, next: ProjectNameEntry) {
       if (next.candidate.ownerId !== account.userId || next.candidate.projectId !== projectId) return;
       replace(account, projectId, record => ({ ...record, feed: { ...record.feed, entries: record.feed.entries.map(item => item.entry.candidate.id === next.candidate.id && item.entry.retention.revision <= next.retention.revision ? { ...item, entry: next } : item) } }));
     },
+    startAnotherEntry(account: NamingAccount) { if (!current(account) || !entry.projectId || entry.busy) return false; entry = emptyEntry(); publish(); return true; },
     getEntry: (account: NamingAccount) => current(account) ? entry : null,
     setEntry(account: NamingAccount, update: (value: NamingProjectEntry) => NamingProjectEntry) { if (current(account)) { entry = update(entry); publish(); } },
-    hasUnsaved: () => Boolean(recovery || entry.input && !entry.projectId || entry.description && !entry.projectId || [...records.values()].some(record => record.preferences?.dirty || record.preferences?.pending || record.feed.pending && !record.feed.acknowledged || record.feed.steering || record.feed.stop)),
+    hasUnsaved: () => Boolean(recovery || entry.input && !entry.projectId || entry.description && !entry.projectId || [...records.values()].some(record => record.preferences?.dirty || record.preferences?.pending || record.feed.pending && !record.feed.acknowledged || record.feed.steering || record.feed.stop || hasSteeringDraft(record.steeringDraft))),
     clear() { stopOperations(); if (owner) try { storage()?.removeItem(key(owner)); } catch {} records.clear(); entry = emptyEntry(); owner = null; verified = null; recovery = null; publish(); },
   };
 }

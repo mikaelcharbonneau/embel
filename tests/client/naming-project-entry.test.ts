@@ -15,6 +15,7 @@ it("creates only on explicit submission and retries the exact project input afte
   expect(request).not.toHaveBeenCalled();
   expect(await startNamingProject({ memory, account, request: request as never })).toBeNull();
   expect(memory.getEntry(account)?.input).toMatchObject({ scope: "naming_only", context: { description: "A synthetic coffee studio", creativeLocale: "French", intake: { namingNotes: "Warm and concise" } } });
+  expect(memory.startAnotherEntry(account)).toBe(false);
   expect(await startNamingProject({ memory, account, request: request as never })).toBe(projectId);
   expect(bodies[1]).toEqual(bodies[0]); expect(bodies[0]).not.toHaveProperty("ownerId");
   expect(await startNamingProject({ memory, account, request: request as never })).toBe(projectId); expect(bodies).toHaveLength(2);
@@ -54,4 +55,12 @@ it("keeps an automatic title valid when its truncation boundary crosses a supple
     return { project: { id: projectId, owner_id: account.userId, title: options.body.title, scope: options.body.scope, context: options.body.context, current_revision: 1, created_at: "2026-10-16T12:00:00Z" } };
   });
   expect(await startNamingProject({ memory, account, request: request as never })).toBe(projectId);
+});
+it("I3 excludes acknowledged creation from unfinished recovery after a hard reload", async () => {
+  const values = new Map<string, string>(); const storage = () => ({ getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => { values.set(key, value); }, removeItem: (key: string) => { values.delete(key); } });
+  const memory = createNamingBrainMemory({ storage }); memory.bind(account); memory.setEntry(account, value => ({ ...value, description: "An acknowledged project" }));
+  const request = vi.fn(async (_path, _schema, options) => ({ project: { id: projectId, owner_id: account.userId, title: options.body.title, scope: options.body.scope, context: options.body.context, current_revision: 1, created_at: "2026-10-16T12:00:00Z" } }));
+  expect(await startNamingProject({ memory, account, request: request as never })).toBe(projectId); expect(memory.hasUnsaved()).toBe(false);
+  const reloaded = createNamingBrainMemory({ storage }); reloaded.bind({ ...account, generation: 2 });
+  expect(reloaded.getRecovery({ ...account, generation: 2 })).toBeNull(); expect(reloaded.hasUnsaved()).toBe(false);
 });

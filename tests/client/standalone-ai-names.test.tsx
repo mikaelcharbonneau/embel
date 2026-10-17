@@ -45,6 +45,21 @@ describe("standalone Names UI and acknowledgement recovery", () => {
     expect(call[0]).toBe("/api/projects"); expect(JSON.parse(call[1].body)).toMatchObject({ scope: "naming_only", context: { description: brief.description, intake: { namingNotes: brief.direction } } });
     expect(JSON.parse(call[1].body)).not.toHaveProperty("ownerId"); expect(mock.navigate).toHaveBeenCalledWith("/brands/account/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/naming");
   });
+  it("I3 returns to Names and starts a second brief only after a new explicit submission", async () => {
+    const bodies: { requestKey: string; context: { description: string } }[] = [];
+    fetcher.mockImplementation(async (path, init) => {
+      if (path !== "/api/projects") return Response.json(overview);
+      const body = JSON.parse(init.body); bodies.push(body);
+      return Response.json({ project: { id: `bbbbbbbb-bbbb-4bbb-8bbb-${String(bodies.length).padStart(12, "0")}`, owner_id: owner, title: body.title, scope: body.scope, context: body.context, current_revision: 1, created_at: "2026-10-16T12:00:00Z" } });
+    });
+    await render(); await fillBrief(); await click(button("Continue to Naming"));
+    await act(async () => root.render(null)); await render();
+    const another = button("Start another brief"); expect(another).toBeDefined(); await click(another);
+    expect(host.querySelector<HTMLTextAreaElement>("textarea")!.disabled).toBe(false); expect(host.querySelector<HTMLTextAreaElement>("textarea")!.value).toBe(""); expect(bodies).toHaveLength(1);
+    await field(host.querySelector<HTMLTextAreaElement>("textarea")!, "A second explicitly submitted Naming brief"); await click(button("Continue to Naming"));
+    expect(bodies).toHaveLength(2); expect(bodies[1]!.requestKey).not.toBe(bodies[0]!.requestKey);
+    expect(bodies[1]!.context.description).toBe("A second explicitly submitted Naming brief");
+  });
   it("keeps brief entry independent of legacy generation availability and performs no inference on visit", async () => {
     overview.availability = { status: "unavailable", reason: "local_runtime_required" };
     await render(); await fillBrief(); expect(button("Continue to Naming").disabled).toBe(false);
