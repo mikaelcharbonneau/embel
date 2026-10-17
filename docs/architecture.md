@@ -164,17 +164,76 @@ Subscription input version 2 carries up to five validated completed proposals fr
 
 The worker accepts both legacy v1 inputs and v2, revalidates history ownership/provenance before dispatch, and includes normalized v2 input in its step fingerprint. Old v1 plans remain compatible. Rollout must replace every old local worker before applying the v2 enqueue migration; no worker table-read grant is expanded.
 
-## Project Naming increment under local integration
+## Naming brain V2 candidate (local integration, 2026-10-17)
+
+The current local Naming candidate uses saved V2 preferences, immutable run
+snapshots and a continuous owned results feed. It is separate from the historical
+250-name subscription path below. The reviewed backend/runtime is integrated at
+`069b8be4efa7fc00d7267e064d102c6daa11dc1f`; D071's chat presentation correction,
+remaining SQL recovery qualification and the final integrated matrix are still
+pending. Local implementation and synthetic evidence do not establish live
+database installation, model access or paid activation.
+
+D071 requires Naming decisions as widgets in the same chat used to answer them.
+After those decisions, the chat occupies a smaller left panel and generated names
+occupy a larger right-hand grid. That local UI correction is being implemented
+separately. Account saves/recovery, historical batches and Workshop remain part of
+the account workspace; opening or navigating to Naming does not upgrade saved
+choices or admit paid work. Approaches and directness require explicit answers.
+
+The database freezes the owned project/Strategy basis, exact saved preference
+version/hash, steering/demand sequence and accepted policy in each run. A restricted
+Node worker validates preferences with the shared JavaScript normalizer and
+attests that exact version/hash and its Node/ICU/Unicode implementation fingerprint.
+Browser flags and SQL case conversion cannot stand in for this readiness evidence.
+Account verification/generation fences and stable request identities preserve
+unsaved edits and uncertain acknowledgements without silently attaching them to a
+different account or creating another paid request.
+
+Managed OpenAI Agents is primary, with an explicitly configured model and no
+Responses or alternate-model fallback. The seven durable stages are research,
+direction, creation, curation, verification, gap and prepare. Independent Creator
+sessions run at most three concurrently; the initial target is 150 raw candidates
+and 100 published names. Research and Verification have their own bounded search
+and reference-reader capabilities; other roles cannot inherit those tools. One
+optional ordered gap has fixed 10/40/5/20-cent phase envelopes and 0/0/0/8 searches.
+Complete Creator provenance, retained source text/hashes and quote bindings must
+survive review before publication. A known failed/invalid gap may preserve the
+earlier reviewed pool as truthful partial fulfillment; unknown execution does not
+produce invented names or a replacement call.
+
+Scrolling may consume saved prepared output and request bounded continuation only
+with qualifying recent interaction; 60 seconds without interaction pauses demand.
+Stop advances a persisted sequence and fences late ensure requests. An explicit
+terminal Resume may consume eligible saved output for free or create a linked run
+with its own allowance; ordinary scrolling does not perform terminal paid Resume.
+Known-session recovery retains the original identity and full allowance, with
+observation bounded to 12 claims / one hour and persisted backoff. Disabling paid
+readiness prevents new dispatch while retaining scoped observation.
+
+Every paid run holds the full US$5 until verified settlement. Pilot commitment is
+confirmed final expense plus every unsettled full hold, capped at US$25; completion,
+session caps, provisional counters and estimates do not release money or establish
+final charges. Unknown dispatch/execution or an observed overrun blocks new work.
+The dedicated graph is `worker/index.ts` (`npm run worker`), with its own Naming
+connection/deployment, both paid environment gates, private pilot policy and nine
+scoped RPC capabilities. The hosted `build:api-text-worker` graph and the existing
+`npm run local` subscription launcher do not activate it. See the exact source
+hashes, environment names, grant signatures and separate authorization requirements
+in the [activation packet](naming-brain-activation-20261016.md) and the
+[source-specific verification record](naming-brain-verification-20261016.md).
+
+## Historical project Naming subscription path (V1)
 
 Naming has its own session, preference versions, batches, candidates, retention flags and immutable selections. It reads the saved project context without changing the Strategy conversation. Complete-brand generation requires reviewed Strategy; naming-only can start from a saved description while showing missing strategy. Unsaved or conflicted account edits block context-dependent Naming actions.
 
-Each explicit batch freezes the project revision, relevant strategy content, preferences, favorite values, existing-name identities and accepted operation policy. New first batches target 250 unique names with visible explanations under the 2026-10-05 approval; immutable historical first batches retain their 100-name target. Subsequent 50-name batches require an explicit action. Batch reads use stable 100-row pages, with exact published membership verified across all pages. A completed provider response and fulfillment are separate: rejected or missing names produce partial/none fulfillment with actual counts, never invented replacements or an automatic second request. Browser closure does not own the durable job. Raw streamed JSON is retained for recovery and never becomes selectable candidates.
+In this earlier subscription path, each explicit batch freezes the project revision, relevant strategy content, preferences, favorite values, existing-name identities and accepted operation policy. First batches admitted under the 2026-10-05 correction target 250 unique names with visible explanations; earlier immutable first batches retain their 100-name target. Subsequent 50-name batches require an explicit action. These historical targets do not define V2 managed runs. Batch reads use stable 100-row pages, with exact published membership verified across all pages. A completed provider response and fulfillment are separate: rejected or missing names produce partial/none fulfillment with actual counts, never invented replacements or an automatic second request. Browser closure does not own the durable job. Raw streamed JSON is retained for recovery and never becomes selectable candidates.
 
 Generated candidates acquire provider provenance only through atomic leased worker completion. Deterministic transformations use the existing pinned V1 algorithms. Their text is classified as user-supplied; generated ancestry does not turn a derivative into provider-authored output. SQL derives owned parent/root links and stores unverified transformation claims. Before returning, selecting, transforming or promoting candidates, the server must resolve those immutable owned references and replay the exact bounded history. SQL does not approximate JavaScript Unicode/grapheme behavior.
 
 Selecting a candidate appends a project revision and selection record, mirrors the name into both saved name fields, and preserves previous results. An earlier strategy basis requires explicit acknowledgement. Likes and saves remain independent from selection. Account Names stays separate from the existing browser library; importing is an explicit copy and never writes private account data into browser storage. Domains, Handles and Trademarks remain visibly unchecked until real providers exist.
 
-The shared local runtime preserves the selected model and registration across operation-specific policies. Naming uses zero web tools. Reading configuration or restarting the worker never silently enables Naming. The original Naming migration and its two exact existing-worker EXECUTE grants were applied under the 2026-10-04 approval. The bounded 250-name correction has separate approval for a target-only forward migration and one first-batch/one-append acceptance run, without new grants. Its verification and rollout evidence are recorded in naming-250-rollout.md.
+The historical subscription runtime preserves the selected model and registration across operation-specific policies and uses zero web tools for V1 Naming. Reading configuration or restarting that worker never silently enables Naming. The original Naming migration and its two exact existing-worker EXECUTE grants were applied under the 2026-10-04 approval. The bounded 250-name correction received separate approval for a target-only forward migration and one first-batch/one-append acceptance run, without new grants. Its source-specific verification and rollout evidence are recorded in naming-250-rollout.md. Those historical grants, calls and approvals do not activate the V2 managed graph or expand its authority.
 
 ### Global generation activity (local integration)
 

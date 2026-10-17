@@ -1,4 +1,4 @@
-# Naming brain activation packet — 2026-10-16
+# Naming brain activation packet — 2026-10-16, updated 2026-10-17
 
 **Preparation only; execution is not authorized or verified.** The implementation
 approval covers local source and synthetic qualification. It does not authorize
@@ -9,18 +9,28 @@ an account has been funded or that a configured model is accessible. See
 
 ## Revision and migration gate
 
-The current QA base is `3abfa6571087a518e013bb88b7d7acb4ab302064` and does not contain
-the reviewed final backend/runtime. This packet **must be completed against the
-final integrated commit before it is executable**. The dedicated Node graph is
-`worker/index.ts`; `build:api-text-worker` builds the existing hosted API-text /
-Strategy graphs and does not establish that their deployments consume Naming.
+The reviewed backend/runtime and R1–R3 QA safeguards are integrated at
+`069b8be4efa7fc00d7267e064d102c6daa11dc1f`; that checkout was clean before this
+documentation update. The earlier `3abfa6571087a518e013bb88b7d7acb4ab302064`
+partial-source QA results remain historical evidence. D071's chat-first Naming
+correction, remaining SQL recovery qualification and the final integrated matrix
+are still separate work. This packet **must be bound to that final reviewed
+commit before execution**; it does not declare the whole branch verified.
+
+The dedicated Node graph is `worker/index.ts`, invoked by `npm run worker`
+(`node --conditions=react-server --import tsx worker/index.ts`).
+`build:api-text-worker` bundles only the existing hosted API-text / Strategy
+entrypoints and does not establish Naming deployment or readiness. The existing
+`npm run local` subscription launcher starts `worker/local-runtime.ts`, removes
+`OPENAI_API_KEY` from its children and forces `FLUID_PAID_CALLS_APPROVED=false`;
+it does not start this managed Naming graph.
 
 | Item | Preparation status / required read-back |
 | --- | --- |
 | Additive migration | `supabase/migrations/20261016180000_naming_brain.sql` |
-| Final migration SHA-256 | Pending reviewed backend advance. Do not apply an earlier digest. |
-| Historical round-one candidate digest | `8759c191bcb20c56db56d763bb6370e523921c65d1944353bb84ba431bf61b1e`; superseded by the pending R6 fix, **not an activation digest**. |
-| Final source commit and tree | Pending exact integrated freeze and complete verification matrix. |
+| Final reviewed migration SHA-256 | `b55c29851e1d11efdb00eb8d2831f256884e31501beab98c178c8b7220da1d8f`, recomputed at `069b8be4efa7fc00d7267e064d102c6daa11dc1f`. Recompute again at the final freeze. |
+| Historical round-one candidate digest | `8759c191bcb20c56db56d763bb6370e523921c65d1944353bb84ba431bf61b1e`; superseded by the reviewed fixes, **not an activation digest**. |
+| Final source commit and tree | Reviewed backend/runtime base is `069b8be4efa7fc00d7267e064d102c6daa11dc1f`; final D071 integration/freeze and complete verification matrix remain pending. |
 | Database target / application origin / worker deployment | Unverified. Bind their exact identities to the approved source; do not infer them from a familiar service name. |
 | Existing personal runtime login and role OID | Unverified. No login, grant or persistent credential was created for this task. |
 | Model and managed API capability | Unverified. Pin the actual model in the reviewed policy; do not substitute another model. |
@@ -49,6 +59,8 @@ below, and only those Naming capabilities. The first seven are the scoped worker
 lifecycle; the last two are the trusted preference-readiness seam. Apply no wildcard
 `GRANT EXECUTE ON ALL FUNCTIONS` and no direct table grants. This migration does not
 install a worker login or grant these private functions to browser principals.
+All nine definitions were matched to the reviewed migration source; their live
+OIDs, owners and ACLs remain unverified.
 
 ```sql
 public.report_naming_brain_worker_ready(jsonb, text, text, integer)
@@ -88,7 +100,7 @@ an exact version/hash/fingerprint/readiness attestation, not a browser readiness
 flag or an echoed expected fingerprint. Saved drafts and free saved-output browsing
 remain independent of paid readiness.
 
-The current reviewed normalizer source hash is
+The reviewed normalizer source hash, recomputed at `069b8be4efa7fc00d7267e064d102c6daa11dc1f`, is
 `7108319323898692a388fcf17cb542509583288b0d4b05d7384f8c5b707aeb01` for
 `src/domain/naming-brain-preferences.ts`. Recompute it from the final source.
 Fingerprint version 1 is:
@@ -115,12 +127,42 @@ credits per selected approach. One gap has a 75-cent envelope: direction 10,
 creation 40, curation 5, verification 20; search maxima 0/0/0/8. Do not re-lend caps,
 truncate review coverage, fall back to Responses or silently choose another model.
 
-Final exact environment variable names and their secure configuration destination
-are pending the reviewed runtime advance. `FLUID_NAMING_BRAIN_MODEL` is required,
-along with the exact verified model list, dedicated Naming database principal /
-deployment, API access and **both paid-enable gates**. Keep paid flags false while
-validating attestation and the Node entrypoint. Initial setup failure must close the
-pool and exit. A hosted Strategy build is not a readiness attestation for this graph.
+The exact dedicated worker configuration read by
+`worker/naming-brain-configuration.ts` is:
+
+| Environment key | Required meaning |
+| --- | --- |
+| `OPENAI_API_KEY` | API key with actual access to the exact managed Agents model; the parser requires 16–500 nonwhitespace characters. |
+| `FLUID_NAMING_BRAIN_MODEL` | Exact approved model identifier, with no silent substitute. |
+| `FLUID_OPENAI_VERIFIED_MODELS` | Comma-separated list containing that exact model. Configuration alone does not verify access. |
+| `FLUID_NAMING_BRAIN_DATABASE_URL` | Dedicated PostgreSQL connection using the verified restricted personal login/OID. The generic Strategy connection is not a Naming substitute. |
+| `FLUID_NAMING_BRAIN_DEPLOYMENT_ID` | Exact deployment binding, matching the private pilot and admitted run. |
+| `FLUID_NAMING_BRAIN_ENABLED` | Literal `true` is required for paid dispatch. |
+| `FLUID_PAID_CALLS_APPROVED` | Literal `true` is also required for paid dispatch. |
+
+Both paid gates and SQL readiness must pass. SQL separately binds the owner,
+restricted login/OID, deployment, exact policy and readiness fingerprint; its
+pilot must be enabled and its heartbeat fresh. `worker/index.ts` receives these
+keys from its invoking environment; it does not load a Naming credential file.
+The exact secure action-time configuration destination remains unapproved and
+must be recorded before configuration. The existing protected
+`.local-fluid/worker.env` accepts only the historical subscription
+`FLUID_WORKER_DATABASE_URL` and is not a Naming configuration destination.
+
+Keep paid flags false during separately authorized attestation/startup validation.
+Disabled paid flags do not make worker startup offline: it can attest preferences,
+claim existing scoped work and observe known sessions. Initial setup failure closes
+the pool and exits. A hosted Strategy build is not a readiness attestation for this
+graph. The managed protocol pins `https://api.openai.com/v1`, disables SDK retries,
+and has no Responses, alternate endpoint or alternate-model fallback.
+
+The 2026-10-17 read-only local audit found all seven keys absent from the inherited
+audit environment. None of the six standard `.env*` files or
+`.local-fluid/worker.env` exists in the QA worktree. Main-checkout `.env.local`
+exists with mode 0600 and contains the public web configuration key names and
+`FLUID_PAID_CALLS_APPROVED`; it contains none of the other six worker keys. Only key
+presence was inspected, never secret values. This does not describe any hosted or
+running-process configuration and is not permission to copy private runtime files.
 
 ## Funding and known-session observation
 
@@ -159,8 +201,12 @@ existing run receipts and current feed/policy/revision. It sends the single exac
 `/naming/feed/ensure` intent with expected-account fencing. It never creates a
 project, edits choices, enables a provider, funds an account, grants access or
 follows redirects. An ephemeral authenticated session may be supplied only through
-the separately authorized secure action-time route. Never paste it into source,
-command history, this document, screenshots or logs.
+the separately authorized secure action-time route, through the runner-only
+`EMBEL_NAMING_PILOT_COOKIE` environment key. Never persist it or paste it into
+source, command history, this document, screenshots or logs. The runner requires
+an exact HTTPS origin; an ordinary HTTP loopback preview does not satisfy that
+guard. A local browser pilot can use its separately authorized signed-in UI rather
+than extracting a browser session for this runner.
 
 Do not execute this command until all gates and separate execution authority exist:
 
@@ -183,6 +229,29 @@ Keep sustainable-coffee and Namelix comparison answers outside model prompts.
 Record output fulfillment separately from nullable final charges. Do not describe
 local synthetic results as live generation, native database isolation or billing
 qualification.
+
+## Minimal path to the first local real-name test
+
+1. Finish and review the D071 chat-left/results-right correction, remaining actual
+   SQL recovery cases and final stable-source matrix in the verification record.
+   Freeze one source revision and recompute the migration/normalizer digests.
+2. Under separate explicit activation authority, install/read back that exact
+   additive migration and the nine scoped EXECUTE grants on the identified
+   development database; verify the existing restricted login/OID, owner, policy,
+   runtime fingerprint and deployment. Configure the seven worker keys through the
+   approved secure destination, verify exact managed-model access and available
+   funding, then validate attestation/readiness before enabling paid admission.
+   Any new credentials, grant change or additional funding needs its exact action
+   authorization; the US$25 ceiling does not itself perform or approve those acts.
+3. Use the same reviewed local web/Node source, sign into the intended account,
+   save its Naming choices, and admit one explicitly approved initial run with a
+   full US$5 hold inside the US$25 total. Review actual published names and retained
+   evidence; keep final charges null and the full hold until verified settlement.
+
+Source/doc fixes, inert tests, builds and the final packet can continue under the
+existing local approval. None of those authorizes starting the connected worker,
+applying database changes, supplying credentials or making the paid pilot call.
+A public deployment is not required for a local browser test.
 
 ## Revision-bound pause and rollback
 
