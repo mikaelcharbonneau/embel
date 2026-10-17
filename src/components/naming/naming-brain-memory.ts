@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { initialNamingChatProgress, type NamingChatProgress } from "./naming-chat-progress";
 import { boundedAccountRequest } from "@/components/workspace/bounded-account-request";
 import { AccountRequestError } from "@/components/workspace/account-api";
 import { initialNamingPreferencesV2, namingApproachSchema, namingDirectnessSchema, namingPreferencesV2Schema, type NamingPreferencesV2 } from "@/domain/naming-brain-preferences";
@@ -21,7 +22,7 @@ export type NamingSteeringDraft = { candidateIds: string[]; instruction: string 
 const emptySteeringDraft = (): NamingSteeringDraft => ({ candidateIds: [], instruction: "" });
 const hasSteeringDraft = (draft: NamingSteeringDraft) => draft.candidateIds.length > 0 || draft.instruction.trim().length > 0;
 const steeringDraftSchema = z.strictObject({ candidateIds: z.array(z.uuid()).max(5).refine(ids => new Set(ids).size === ids.length), instruction: z.string().max(2000) });
-export type NamingBrainRecord = { preferences: NamingPreferenceDraft | null; feed: NamingFeedState; steeringDraft: NamingSteeringDraft };
+export type NamingBrainRecord = { preferences: NamingPreferenceDraft | null; feed: NamingFeedState; steeringDraft: NamingSteeringDraft; chatProgress?: NamingChatProgress };
 export type NamingProjectEntry = { description: string; direction: string; language: string; input: CreateProjectInput | null; projectId: string | null; error: string | null; busy: boolean };
 const emptyFeed = (): NamingFeedState => ({ feed: null, entries: [], status: "loading", pending: null, acknowledged: false, acknowledgedRunId: null, stop: null, stopConflict: false, steering: null, outcome: null, error: null, stopped: true, stopRequested: false, directionEpoch: 0 });
 const emptyEntry = (): NamingProjectEntry => ({ description: "", direction: "", language: "English", input: null, projectId: null, error: null, busy: false });
@@ -156,7 +157,7 @@ export function createNamingBrainMemory(options: { request?: typeof boundedAccou
       if (!current(account) || !recovery) return;
       for (const item of recovery.projects) {
         const previous = records.get(item.projectId), unfinished = Boolean(item.stop || item.steering || item.pending && !item.acknowledged);
-        records.set(item.projectId, { steeringDraft: item.steeringDraft, preferences: item.preferences ? { ...item.preferences, dirty: true, status: "error", error: "Recovered unsaved Naming choices. Confirm this save to continue.", validationError: false } : previous?.preferences ?? null,
+        records.set(item.projectId, { ...(previous?.chatProgress ? { chatProgress: previous.chatProgress } : {}), steeringDraft: item.steeringDraft, preferences: item.preferences ? { ...item.preferences, dirty: true, status: "error", error: "Recovered unsaved Naming choices. Confirm this save to continue.", validationError: false } : previous?.preferences ?? null,
           feed: { ...(previous?.feed ?? emptyFeed()), pending: item.pending, acknowledged: item.acknowledged, acknowledgedRunId: item.acknowledgedRunId, stop: item.stop, stopConflict: item.stopConflict, stopped: true, stopRequested: item.stopRequested, steering: item.steering, directionEpoch: (previous?.feed.directionEpoch ?? 0) + 1,
             status: unfinished ? "error" : "paused", error: unfinished ? "Recovered an unfinished Naming request. Retry the same request to confirm its saved state." : null } });
       }
@@ -168,8 +169,9 @@ export function createNamingBrainMemory(options: { request?: typeof boundedAccou
       if (!current(account) || saved && (saved.ownerId !== account.userId || saved.projectId !== projectId)) return;
       const previous = get(account, projectId)?.preferences;
       if (previous && (saved?.version ?? 0) < (previous.saved?.version ?? 0)) return;
-      if (previous && equal(previous.saved, saved)) return;
-      replace(account, projectId, record => {
+      if (previous && equal(previous.saved, saved) && get(account, projectId)?.chatProgress) return;
+      replace(account, projectId, currentRecord => {
+        const record = { ...currentRecord, chatProgress: currentRecord.chatProgress ?? initialNamingChatProgress(saved?.preferences.version === 2 ? saved.preferences : null) };
         const p = record.preferences;
         if (!p || !p.dirty && !p.pending) return { ...record, preferences: { saved, draft: preferencesFrom(saved, context), dirty: false, pending: null, status: "saved", error: null, validationError: false } };
         if (p.pending && saved?.version === p.pending.expectedPreferencesVersion + 1 && equal(saved.preferences, p.pending.preferences)) {
@@ -187,6 +189,10 @@ export function createNamingBrainMemory(options: { request?: typeof boundedAccou
       schedule(account, projectId);
     },
     flushPreferences,
+    setChatProgress(account: NamingAccount, projectId: string, progress: NamingChatProgress) {
+      if (!get(account, projectId)?.preferences || recovery) return;
+      replace(account, projectId, record => ({ ...record, chatProgress: { ...progress, confirmed: { ...progress.confirmed } } }));
+    },
     resolvePreferences(account: NamingAccount, projectId: string, keepEdits: boolean) {
       const p = get(account, projectId)?.preferences; if (!p?.saved) return;
       replace(account, projectId, record => ({ ...record, preferences: { ...p, draft: keepEdits ? p.draft : preferencesFrom(p.saved, { creativeLocale: p.draft.creativeLocale, intake: { namingNotes: p.draft.notes } } as ContextSnapshot), pending: null, dirty: keepEdits, status: keepEdits ? "saving" : "saved", error: null } }));

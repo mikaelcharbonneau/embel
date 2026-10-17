@@ -205,9 +205,16 @@ async function prepared(page: Page, count = 3, scope: ProjectScope = "naming_onl
 async function showLegacyHistory(page: Page) {
   if (new URL(page.url()).pathname === url && legacyViews.get(page)?.()) await page.getByRole("button", { name: "Saved names & history" }).click();
 }
-async function open(page: Page) { await page.goto(url); await expect(page.locator(".project-naming-header h1")).toBeVisible(); await showLegacyHistory(page); }
+async function open(page: Page) { await page.goto(url); await expect(page.getByRole("heading", { name: /Find a name that feels right|Your selected name|Naming$/ }).first()).toBeVisible(); await showLegacyHistory(page); }
 async function reload(page: Page) { await page.reload(); await showLegacyHistory(page); }
 const card = (page: Page, name: string) => page.locator(".project-naming-card").filter({ has: page.getByRole("heading", { name, exact: true }) });
+
+async function showChat(page: Page) { const tabs = page.getByRole("group", { name: "Naming workspace view" }); if (await tabs.isVisible()) await tabs.getByRole("button", { name: "Chat", exact: true }).click(); }
+async function showNames(page: Page) { const tabs = page.getByRole("group", { name: "Naming workspace view" }); if (await tabs.isVisible()) await tabs.getByRole("button", { name: /^Names/ }).click(); }
+async function inspectName(page: Page, name: string) { await showNames(page); await card(page, name).getByRole("button", { name: `Inspect name ${name}`, exact: true }).click(); }
+async function useName(page: Page, name: string) { await inspectName(page, name); await page.getByRole("region", { name: "Inspect name", exact: true }).getByRole("button", { name: "Use this name", exact: true }).click(); }
+async function workshopName(page: Page, name: string) { await inspectName(page, name); await page.getByRole("region", { name: "Inspect name", exact: true }).getByRole("button", { name: "Explore variations", exact: true }).click(); }
+
 async function localNameFixture(page: Page, fixture: Awaited<ReturnType<typeof fixtures>>) {
   const data = createEmptyNamesWorkspace();
   data.candidates.push({ source: { id: uuid("abababab", 555), value: "Local fixture name", createdAt: when, origin: "manual", history: [] }, context: contextSnapshotSchema.parse({ description: "Browser-only captured context" }), runId: null, explanation: "Added manually", favorite: false, saved: true });
@@ -223,6 +230,7 @@ test("naming fixture: reviewed Strategy opens Naming and keeps full context", as
   await page.getByRole("navigation", { name: "Continue project" }).getByRole("link", { name: "Continue to Naming", exact: true }).click();
   await expect(page).toHaveURL(url);
   await expect(page.getByRole("region", { name: "Naming choices", exact: true })).toBeVisible();
+  await page.getByText("Saved project context", { exact: true }).click();
   await expect(page.getByText(state.project.context.description, { exact: true })).toBeVisible();
   expect(state.requests.filter(request => request.method === "POST")).toHaveLength(0);
   await page.locator("#project-naming-preferences-heading").focus();
@@ -234,7 +242,7 @@ test("naming fixture: saved complete-brand selection continues to Inspiration wi
   const fixture = await prepared(page, 1, "complete_brand");
   await open(page);
   await expect(page.getByRole("link", { name: "Continue to Inspiration" })).toHaveCount(0);
-  await card(page, "Fixture 001").getByRole("button", { name: "Use this name", exact: true }).click();
+  await useName(page, "Fixture 001");
   await expect(page.getByRole("region", { name: "Name screening" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Continue to Inspiration" })).toHaveAttribute("href", `/brands/account/${projectId}/inspiration`);
   expect(fixture.state.project.context.selectedName).toBe("Fixture 001");
@@ -264,7 +272,7 @@ test("legacy Naming: saved V1 choices generate250, favorite reload, screening an
   await expect(card(page, "Fixture 001").getByRole("button", { name: "Unfavorite Fixture 001", exact: true })).toBeVisible();
   await page.getByLabel("Filter project names").selectOption("favorite");
   await expect(page.locator(".project-naming-card")).toHaveCount(1);
-  await card(page, "Fixture 001").getByRole("button", { name: "Use this name", exact: true }).click();
+  await useName(page, "Fixture 001");
   await expect(page.getByRole("region", { name: "Name screening" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Continue to Inspiration" })).toHaveCount(0);
   await expect(page.getByText("Not checked here", { exact: true })).toHaveCount(3);
@@ -333,34 +341,32 @@ test("legacy Naming: partial73/250 and V1 values survive navigation; only an exp
   const frozenBatch = JSON.stringify(fixture.state.batches[0]); const frozenNames = JSON.stringify(fixture.state.candidates);
   await open(page);
   await expect(page.getByText("Latest batch · 1 · 73 / 250 names · partial", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Modify filters" }).click();
-  await page.getByText("Language, length and other preferences", { exact: true }).click();
-  await expect(page.getByLabel("Creative language", { exact: true })).toHaveValue("fr");
-  await expect(page.getByLabel("Minimum characters", { exact: true })).toHaveValue("3");
-  await expect(page.getByLabel("Maximum characters", { exact: true })).toHaveValue("14");
-  await expect(page.getByRole("textbox", { name: "Anything else to consider?", exact: true })).toHaveValue("Warm and concise");
+  await page.getByRole("button", { name: "Modify filters" }).click(); await showChat(page);
+  const legacy = page.getByRole("group", { name: "Earlier Naming choices" });
+  await legacy.getByText("Earlier Naming choices · v1", { exact: true }).click();
+  await expect(legacy.getByText("Creative language: fr", { exact: true })).toBeVisible();
+  await expect(legacy.getByText("Length: 3–14 characters", { exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Saved Naming guidance", exact: true })).toHaveValue("Warm and concise");
   await expect(page.getByRole("group", { name: "Naming approaches" }).locator('[aria-pressed="true"]')).toHaveCount(0);
-  await expect(page.getByRole("radiogroup", { name: "Name directness" }).locator('[aria-checked="true"]')).toHaveCount(0);
+  await expect(page.getByRole("radio")).toHaveCount(0);
   expect(fixture.state.requests.filter(request => request.path === `${base}/preferences`)).toHaveLength(0);
   expect(fixture.state.requests.filter(request => request.method === "POST")).toHaveLength(0);
-  await page.getByRole("button", { name: "Collapse Naming panel", exact: true }).click();
-  await page.getByRole("button", { name: "Open Naming panel", exact: true }).click();
+  await showNames(page); await showChat(page);
   expect(fixture.state.preferences!.preferences.version).toBe(1);
-  await page.getByRole("textbox", { name: "Anything else to consider?", exact: true }).fill("Explicit synthetic future direction");
+  await page.getByRole("textbox", { name: "Saved Naming guidance", exact: true }).fill("Explicit synthetic future direction");
   await expect.poll(() => fixture.state.preferences!.preferences.version).toBe(2);
   expect(fixture.state.preferences!.preferences).toMatchObject({ creativeLocale: "fr", notes: "Explicit synthetic future direction", minimumGraphemes: 3, maximumGraphemes: 14, approaches: [], directness: null });
   expect(JSON.stringify(fixture.state.batches[0])).toBe(frozenBatch); expect(JSON.stringify(fixture.state.candidates)).toBe(frozenNames);
   expect(fixture.state.requests.filter(request => request.method === "POST")).toHaveLength(0);
-  await page.getByRole("button", { name: "Close naming conversation" }).click();
+  await showNames(page);
   await page.getByText("Batch history · 1 loaded", { exact: true }).click();
   await expect(page.getByRole("button", { name: /Batch 1 · preferences 1/ })).toBeVisible();
 });
 
 test("Naming migration: conflicting autosave retains edits until explicit version resolution", async ({ page }) => {
   const fixture = await prepared(page); await open(page);
-  await page.getByRole("button", { name: "Modify filters" }).click();
-  await page.getByText("Language, length and other preferences", { exact: true }).click();
-  const notes = page.getByRole("textbox", { name: "Anything else to consider?", exact: true });
+  await page.getByRole("button", { name: "Modify filters" }).click(); await showChat(page);
+  const notes = page.getByRole("textbox", { name: "Saved Naming guidance", exact: true });
   fixture.state.mutationStatus = 503; await notes.fill("My unfinished direction");
   await expect(page.getByRole("button", { name: "Retry saving choices" })).toBeVisible();
   fixture.state.preferences = { ...fixture.state.preferences!, version: 2, preferences: { ...fixture.state.preferences!.preferences, notes: "Saved in another tab" } };
@@ -410,11 +416,11 @@ test("naming fixture: a changed strategy requires a fresh earlier-context acknow
   const fixture = await prepared(page);
   fixture.state.project = { ...fixture.state.project, current_revision: 4, context: { ...fixture.state.project.context, description: "First revised direction" } };
   await open(page);
-  await card(page, "Fixture 001").getByRole("button", { name: "Use this name", exact: true }).click();
+  await useName(page, "Fixture 001");
   await page.getByLabel("I have reviewed this name against the current strategy and want to use it.").check();
   await expect(page.getByRole("button", { name: "Use earlier-context name" })).toBeEnabled();
   fixture.state.project = { ...fixture.state.project, current_revision: 5, context: { ...fixture.state.project.context, description: "Second revised direction" } };
-  await card(page, "Fixture 001").getByRole("button", { name: "Favorite Fixture 001", exact: true }).click();
+  await page.getByRole("region", { name: "Inspect name", exact: true }).getByRole("button", { name: "Favorite Fixture 001", exact: true }).click();
   await expect(page.getByRole("button", { name: "Use earlier-context name" })).toBeDisabled();
   await expect(page.getByLabel("I have reviewed this name against the current strategy and want to use it.")).not.toBeChecked();
   expect(fixture.state.requests.filter(request => request.path === `${base}/selection`)).toHaveLength(0);
@@ -422,7 +428,7 @@ test("naming fixture: a changed strategy requires a fresh earlier-context acknow
 
 test("naming fixture: stale names need acknowledgement and restoring creates a new selection without favorites", async ({ page }) => {
   const fixture = await prepared(page); fixture.state.project = { ...fixture.state.project, current_revision: 4, context: { ...fixture.state.project.context, description: "Changed synthetic strategy." } }; await open(page);
-  await card(page, "Fixture 001").getByRole("button", { name: "Use this name" }).click();
+  await useName(page, "Fixture 001");
   await expect(page.getByRole("button", { name: "Use earlier-context name" })).toBeDisabled();
   expect(fixture.state.currentSelection).toBeNull();
   await page.getByRole("checkbox", { name: /I have reviewed this name/ }).check();
@@ -430,13 +436,13 @@ test("naming fixture: stale names need acknowledgement and restoring creates a n
   await expect(page.getByRole("region", { name: "Name screening" })).toBeVisible();
   const first = fixture.state.currentSelection!.selection.id;
   await page.getByRole("button", { name: "Change name" }).click();
-  await card(page, "Fixture 002").getByRole("button", { name: "Use this name" }).click();
+  await useName(page, "Fixture 002");
   await page.getByRole("checkbox", { name: /I have reviewed this name/ }).check();
   await page.getByRole("button", { name: "Use earlier-context name" }).click();
   await expect(page.getByRole("region", { name: "Name screening" })).toBeVisible();
   expect(fixture.state.currentSelection!.selection.previousSelectionId).toBe(first);
   await page.getByRole("button", { name: "Change name" }).click();
-  await card(page, "Fixture 001").getByRole("button", { name: "Use this name" }).click();
+  await useName(page, "Fixture 001");
   await page.getByRole("checkbox", { name: /I have reviewed this name/ }).check();
   await page.getByRole("button", { name: "Use earlier-context name" }).click();
   await expect(page.getByRole("region", { name: "Name screening" })).toBeVisible();
@@ -474,8 +480,7 @@ test("naming fixture: upstream changes while running label the frozen results", 
 for (const committed of [false, true]) test("naming fixture: workshop favorite 503 reports uncertainty without retry; committed=" + committed, async ({ page }) => {
   const fixture = await prepared(page); await open(page);
   const original = JSON.stringify(fixture.state.candidates);
-  await card(page, "Fixture 001").getByText("Origin and tools", { exact: true }).click();
-  await card(page, "Fixture 001").getByRole("button", { name: "Use in workshop" }).click();
+  await workshopName(page, "Fixture 001");
   await page.getByLabel("Suffixes", { exact: true }).fill("QA");
   await page.getByRole("button", { name: "Run Affixes" }).click();
   await expect(card(page, "Fixture 001QA")).toBeVisible();
@@ -551,13 +556,13 @@ for (const action of ["overview", "preferences", "view", "retention", "selection
     await open(page);
     const firstName = [...fixture.state.candidates].sort((a, b) => a.candidate.createdAt.localeCompare(b.candidate.createdAt) || a.candidate.id.localeCompare(b.candidate.id))[0]!.candidate.value;
     if (action !== "overview") await expect(card(page, firstName)).toBeVisible();
-    if (action === "preferences") { await page.getByRole("button", { name: "Modify filters" }).click(); fixture.hold(`${base}/preferences`, "PATCH"); await page.getByRole("button", { name: /^Real words/ }).click(); }
+    if (action === "preferences") { await page.getByRole("button", { name: "Modify filters" }).click(); await showChat(page); fixture.hold(`${base}/preferences`, "PATCH"); await page.getByRole("button", { name: /^Real words/ }).click(); }
     if (action === "view") { fixture.hold(`${base}/view`, "PATCH"); await page.getByLabel("Filter project names").selectOption("favorite"); }
     if (action === "retention") { fixture.hold(`${base}/retention`, "PATCH"); await card(page, "Fixture 001").getByRole("button", { name: "Favorite Fixture 001", exact: true }).click(); }
-    if (action === "selection") { fixture.hold(`${base}/selection`, "POST"); await card(page, "Fixture 001").getByRole("button", { name: "Use this name", exact: true }).click(); }
+    if (action === "selection") { fixture.hold(`${base}/selection`, "POST"); await useName(page, "Fixture 001"); }
     if (action === "generation") { fixture.hold(`${base}/batches`, "POST"); await page.getByRole("button", { name: "Generate 50 more names" }).click(); }
     if (action === "cancellation") { fixture.hold(`${base}/batches/${fixture.state.jobs[0]!.batchId}`, "DELETE"); await page.getByRole("button", { name: "Cancel generation" }).click(); }
-    if (action === "transform") { await card(page, "Fixture 001").getByText("Origin and tools", { exact: true }).click(); await card(page, "Fixture 001").getByRole("button", { name: "Use in workshop" }).click(); await page.getByLabel("Suffixes", { exact: true }).fill("ly"); fixture.hold(`${base}/transforms`, "POST"); await page.getByRole("button", { name: "Run Affixes" }).click(); }
+    if (action === "transform") { await workshopName(page, "Fixture 001"); await page.getByLabel("Suffixes", { exact: true }).fill("ly"); fixture.hold(`${base}/transforms`, "POST"); await page.getByRole("button", { name: "Run Affixes" }).click(); }
     if (action === "library") { await page.goto("/names"); fixture.hold("/api/names", "GET"); await page.getByRole("tab", { name: "Library", exact: true }).click(); }
     if (action === "import") { await page.getByText("Copy a name from your library", { exact: true }).click(); await page.getByLabel("Library name to copy").selectOption(uuid("abababab", 555)); fixture.hold(`${base}/imports`, "POST"); await page.getByRole("button", { name: "Copy into this project" }).click(); }
     if (action === "promotion") { await page.goto("/names"); await page.getByRole("tab", { name: "Library", exact: true }).click(); await expect(card(page, "Fixture 001")).toBeVisible(); fixture.hold(`${base}/promote`, "POST"); await card(page, "Fixture 001").getByRole("button", { name: "Create brand" }).click(); }
@@ -596,8 +601,7 @@ test("naming fixture: keyboard controls and long names fit desktop and mobile", 
 
 test("naming fixture: a lost workshop response reuses one idempotent run", async ({ page }) => {
   const fixture = await prepared(page); fixture.state.lostTransform = true; await open(page);
-  await card(page, "Fixture 001").getByText("Origin and tools", { exact: true }).click();
-  await card(page, "Fixture 001").getByRole("button", { name: "Use in workshop" }).click();
+  await workshopName(page, "Fixture 001");
   await page.getByLabel("Suffixes", { exact: true }).fill("ly");
   await page.getByRole("button", { name: "Run Affixes" }).click();
   await expect(page.getByText(/The naming workspace could not be reached/)).toBeVisible();
@@ -612,8 +616,7 @@ test("naming fixture: a lost workshop response reuses one idempotent run", async
 test("naming fixture: Blend preserves the chosen immutable parent when two names match", async ({ page }) => {
   const fixture = await prepared(page); await open(page);
   const originalId = fixture.state.candidates[0]!.candidate.id;
-  await card(page, "Fixture 002").getByText("Origin and tools", { exact: true }).click();
-  await card(page, "Fixture 002").getByRole("button", { name: "Use in workshop" }).click();
+  await workshopName(page, "Fixture 002");
   await page.getByRole("radio", { name: /Swap/ }).check();
   await page.getByLabel("Find exact text").fill("002");
   await page.getByLabel("Replace with").fill("001");
@@ -622,8 +625,7 @@ test("naming fixture: Blend preserves the chosen immutable parent when two names
   const duplicate = fixture.state.candidates.find(entry => entry.candidate.origin.kind === "transform")!;
   expect(duplicate.candidate.value).toBe("Fixture 001");
   await page.getByRole("button", { name: "Back to names", exact: true }).click();
-  await card(page, "Fixture 003").getByText("Origin and tools", { exact: true }).click();
-  await card(page, "Fixture 003").getByRole("button", { name: "Use in workshop" }).click();
+  await workshopName(page, "Fixture 003");
   await page.getByRole("radio", { name: /Blend/ }).check();
   await page.getByLabel("Second name").selectOption(originalId);
   await expect(page.getByLabel("Second name")).toHaveValue(originalId);
@@ -765,8 +767,10 @@ test("naming fixture: dirty Strategy memory survives library navigation and bloc
   await expect(page.getByText("Save your Strategy changes first", { exact: true })).toBeVisible();
   await showLegacyHistory(page);
   await expect(page.getByRole("button", { name: "Generate 50 more names" })).toBeDisabled();
-  await expect(card(page, "Fixture 001").getByRole("button", { name: "Use this name" })).toBeDisabled();
-  await page.getByRole("link", { name: "Back to Strategy", exact: false }).click();
+  await inspectName(page, "Fixture 001");
+  await expect(page.getByRole("region", { name: "Inspect name", exact: true }).getByRole("button", { name: "Use this name" })).toBeDisabled();
+  await showChat(page);
+  await page.getByRole("complementary", { name: "Naming conversation", exact: true }).getByRole("link", { name: "Strategy", exact: true }).click();
   await expect(page.getByRole("log", { name: "Conversation" }).getByText(answer, { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Retry save", exact: true })).toBeVisible();
   expect(patches).toHaveLength(1);
@@ -794,16 +798,17 @@ test("project design: inspecting a name is read-only and selecting remains expli
   await page.screenshot({ path: info.outputPath("project-name-screening.png"), fullPage: true });
 });
 
-test("project design: collapsing controls retains the Naming choices draft", async ({ page }, info) => {
-  const fixture = await fixtures(page); fixture.state.mutationStatus = 503; await open(page);
+test("project design: changing responsive panes retains the same unsaved Naming choices", async ({ page }, info) => {
+  const fixture = await prepared(page); fixture.state.mutationStatus = 503; await open(page); await showChat(page);
   const choices = page.getByRole("region", { name: "Naming choices", exact: true });
-  await page.getByText("Language, length and other preferences", { exact: true }).click();
-  const textarea = choices.getByRole("textbox", { name: "Anything else to consider?", exact: true });
+  const textarea = choices.getByRole("textbox", { name: "Saved Naming guidance", exact: true });
   await textarea.fill("Synthetic unsaved control draft");
+  await textarea.evaluate(input => input.setAttribute("data-draft-identity", "same-mounted-input"));
   await expect(page.getByRole("button", { name: "Retry saving choices" })).toBeVisible();
-  await page.getByRole("button", { name: "Collapse Naming panel", exact: true }).click(); await expect(choices).toBeHidden();
-  await page.getByRole("button", { name: "Open Naming panel", exact: true }).click(); await expect(textarea).toHaveValue("Synthetic unsaved control draft");
-  expect(fixture.state.preferences).toBeNull();
+  await showNames(page); await showChat(page);
+  await expect(textarea).toHaveValue("Synthetic unsaved control draft");
+  await expect(textarea).toHaveAttribute("data-draft-identity", "same-mounted-input");
+  expect(fixture.state.preferences!.preferences.version).toBe(1);
   const width = page.viewportSize()!.width;
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   await page.screenshot({ path: info.outputPath("project-naming-controls.png"), fullPage: true });
