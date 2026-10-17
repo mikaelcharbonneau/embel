@@ -65,3 +65,23 @@ it("disables demand while mobile chat covers the results pane", async () => {
   await act(async () => window.dispatchEvent(new WheelEvent("wheel", { deltaY: 300 })));
   expect(requests).toHaveLength(0);
 });
+it.each(["Inspect name Synthetic", "Favorite Synthetic", "Saved names & history", "Pause exploration", "Stop exploration"])("does not treat Space activation of %s as exploration", async label => {
+  await act(async () => root.render(createElement("div", { "data-naming-results-scroll": true }, createElement("button", { type: "button" }, label), createElement(Probe))));
+  await act(async () => observe([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver));
+  const control = host.querySelector('button')!; control.focus();
+  await act(async () => control.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true })));
+  expect(requests).toHaveLength(0);
+});
+it("retains genuine wheel exploration over compact card buttons", async () => {
+  await act(async () => root.render(createElement("div", { "data-naming-results-scroll": true }, createElement("button", { type: "button" }, "Inspect name Synthetic"), createElement(Probe))));
+  await act(async () => observe([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver));
+  await act(async () => host.querySelector('button')!.dispatchEvent(new WheelEvent("wheel", { deltaY: 300, bubbles: true })));
+  expect(requests).toHaveLength(1);
+});
+it.each(["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End", " "])("retains genuine %s exploration on the results scroller", async key => {
+  await act(async () => root.render(createElement("div", { "data-naming-results-scroll": true, tabIndex: 0 }, createElement(Probe))));
+  await act(async () => observe([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver));
+  const scroller = host.querySelector('[data-naming-results-scroll]')!;
+  await act(async () => scroller.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true })));
+  expect(requests).toHaveLength(1);
+});

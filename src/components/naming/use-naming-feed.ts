@@ -43,7 +43,12 @@ export function useNamingFeed({ account, projectId, enabled, view, projectRevisi
   useEffect(() => {
     if (!enabled || !eligibleView || !resultsVisible) return;
     const move = (event: Event) => { const target = event.target; if (target instanceof Element && target.closest("input,textarea,select,[contenteditable=true],.naming-approach-widgets")) return; const root = sentinel?.closest<HTMLElement>("[data-naming-results-scroll]"); if (root && (!(target instanceof Node) || !root.contains(target))) return; interaction(); };
-    const keyboard = (event: KeyboardEvent) => { if (["ArrowDown", "ArrowUp", "PageDown", "PageUp", "End", "Home", " "].includes(event.key)) move(event); };
+    const keyboard = (event: KeyboardEvent) => {
+      // Activation/navigation inside a control is not a request to scroll names.
+      // Wheel/touch still use move(): compact cards themselves are buttons.
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.target instanceof Element && event.target.closest("button,a[href],input,textarea,select,summary,[role=button],[role=link],[role=checkbox],[role=radio],[role=switch],[role=tab],[role=menuitem],[contenteditable=true]")) return;
+      if (["ArrowDown", "ArrowUp", "PageDown", "PageUp", "End", "Home", " "].includes(event.key)) move(event);
+    };
     const visibility = () => { if (document.visibilityState !== "visible") deactivate(); };
     window.addEventListener("wheel", move, { passive: true }); window.addEventListener("touchmove", move, { passive: true }); window.addEventListener("keydown", keyboard); document.addEventListener("visibilitychange", visibility);
     return () => { window.removeEventListener("wheel", move); window.removeEventListener("touchmove", move); window.removeEventListener("keydown", keyboard); document.removeEventListener("visibilitychange", visibility); };

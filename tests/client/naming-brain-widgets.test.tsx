@@ -76,3 +76,45 @@ it("saves real guidance before clearing the composer and never admits a run", as
   expect(memory.get(account, projectId)?.steeringDraft.instruction).toBe("");
   expect(host.textContent).toContain("Saved with your Naming choices"); expect(start).not.toHaveBeenCalled();
 });
+
+it("resumes the unconfirmed language follow-up after remount and same-owner verification", async () => {
+  const { memory } = memoryWithSave(), start = await render(memory);
+  await click("Other languages"); await click("Continue"); await click("Explore all"); await click("Continue");
+  const question = "Any languages or roots to draw from?";
+  expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe(question);
+  const saved = memory.get(account, projectId)!.preferences!.saved;
+  await act(async () => root.unmount()); root = createRoot(host);
+  memory.bind(null); const verified = { ...account, generation: 2 }; memory.bind(verified);
+  await act(async () => root.render(createElement(NamingApproachWidgets, { memory, account: verified, projectId, context, saved, blocked: false, runtimeReady: true, onContinue: start })));
+  expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe(question);
+  for (const unseen of [question, "Which language should the names work in?", "Do you have a length in mind?", "Any text to include or avoid?"]) expect(host.querySelector(`[aria-label="Your answer: ${unseen}"]`)).toBeNull();
+  expect([...host.querySelectorAll('button')].some(item => item.textContent === "Start exploring")).toBe(false);
+  expect(start).not.toHaveBeenCalled();
+});
+
+it("a fresh memory conservatively asks unseen follow-ups with saved values, then requires final exploration", async () => {
+  const first = memoryWithSave(), start = await render(first.memory);
+  await click("Other languages"); await click("Continue"); await click("Explore all"); await click("Continue");
+  const saved = first.memory.get(account, projectId)!.preferences!.saved!;
+  await act(async () => root.unmount()); root = createRoot(host);
+  const fresh = memoryWithSave();
+  await act(async () => root.render(createElement(NamingApproachWidgets, { memory: fresh.memory, account, projectId, context, saved, blocked: false, runtimeReady: true, onContinue: start })));
+  expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe("Any languages or roots to draw from?");
+  expect(fresh.memory.get(account, projectId)?.preferences?.draft).toEqual(saved.preferences);
+  expect(fresh.request).not.toHaveBeenCalled();
+  await click("Continue"); await click("Continue"); await click("Continue"); await click("Continue");
+  expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe("Ready to explore your names?");
+  expect(start).not.toHaveBeenCalled(); await click("Start exploring"); expect(start).toHaveBeenCalledTimes(1);
+});
+
+it("asks a newly relevant follow-up after editing a completed approach answer", async () => {
+  const { memory } = memoryWithSave(), start = await render(memory);
+  await click("Real words"); await click("Continue"); await click("Explore all");
+  await click("Continue"); await click("Continue"); await click("Continue"); await click("Continue");
+  expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe("Ready to explore your names?");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Edit answer: Which approaches would you like to explore?"]')!.click());
+  await click("Other languages"); await click("Continue");
+  expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe("Any languages or roots to draw from?");
+  expect(host.querySelector('[aria-label="Your answer: Any languages or roots to draw from?"]')).toBeNull();
+  expect(start).not.toHaveBeenCalled();
+});

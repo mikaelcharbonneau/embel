@@ -8,6 +8,7 @@ import { NAMING_APPROACHES, getNamingPreferencesReadiness, namingPreferencesV2Sc
 import type { ContextSnapshot } from "@/domain/projects";
 import type { NamingPreferenceRevision } from "@/domain/project-naming";
 import type { NamingAccount, NamingBrainMemory } from "./naming-brain-memory";
+import { confirmNamingChatQuestion, initialNamingChatProgress, namingChatQuestions, resolveNamingChatProgress, type NamingChatStep as Step } from "./naming-chat-progress";
 import styles from "./naming-chat.module.css";
 import "@/styles/conversation.css";
 import "@/styles/guided-interview.css";
@@ -20,15 +21,11 @@ const directness: { id: NamingDirectness; label: string; description: string }[]
   { id: "open_ended", label: "Open-ended", description: "Leave room for an unexpected connection." },
   { id: "all", label: "Explore all", description: "Explore across these degrees of connection." },
 ];
-type Step = "approaches" | "directness" | "sourceLanguages" | "heritage" | "culture" | "language" | "length" | "fragments" | "review";
 const questions: Record<Step, string> = {
   approaches: "Which approaches would you like to explore?", directness: "How closely should names connect to the business?",
   sourceLanguages: "Any languages or roots to draw from?", heritage: "Any people or places to draw from?", culture: "Any stories or cultural references to explore?",
   language: "Which language should the names work in?", length: "Do you have a length in mind?", fragments: "Any text to include or avoid?", review: "Ready to explore your names?",
 };
-function steps(value: NamingPreferencesV2): Step[] {
-  return ["approaches", "directness", ...(value.approaches.some(id => id === "other_languages" || id === "classical_roots") ? ["sourceLanguages" as const] : []), ...(value.approaches.includes("people_places") ? ["heritage" as const] : []), ...(value.approaches.includes("stories_culture") ? ["culture" as const] : []), "language", "length", "fragments"];
-}
 function answer(step: Step, value: NamingPreferencesV2) {
   switch (step) {
     case "approaches": return NAMING_APPROACHES.filter(item => value.approaches.includes(item.id)).map(item => item.label).join(" · ");
@@ -58,37 +55,37 @@ export function NamingApproachWidgets({ memory, account, projectId, context, sav
   const read = useCallback(() => memory.get(account, projectId), [memory, account, projectId]);
   const record = useSyncExternalStore(memory.subscribe, read, hidden), state = record?.preferences;
   const connected = Boolean(state);
-  const initial = saved?.preferences.version === 2 ? saved.preferences : null;
-  const [step, setStep] = useState<Step>(() => initial?.approaches.length ? initial.directness ? "review" : "directness" : "approaches");
-  const [completed, setCompleted] = useState<Step[]>(() => initial ? initial.directness && initial.approaches.length ? steps(initial) : initial.approaches.length ? ["approaches"] : [] : []);
+  const resolvedProgress = state ? resolveNamingChatProgress(state.draft, record?.chatProgress ?? initialNamingChatProgress(state.saved?.preferences.version === 2 ? state.saved.preferences : null)) : null;
+  const step = resolvedProgress?.activeStep ?? "approaches";
   const [working, setWorking] = useState(false), [composerError, setComposerError] = useState<string | undefined>();
-  const lock = useRef(false), revisiting = useRef(false), active = useRef<HTMLDivElement>(null), transcript = useRef<HTMLDivElement>(null);
+  const lock = useRef(false), active = useRef<HTMLDivElement>(null), transcript = useRef<HTMLDivElement>(null);
   const id = useId();
   useEffect(() => memory.connectPreferences(account, projectId, saved, context), [memory, account, projectId, saved, context]);
   useEffect(() => {
     const area = transcript.current, target = active.current;
     if (area && target) area.scrollTo?.({ top: Math.max(0, area.scrollTop + target.getBoundingClientRect().top - area.getBoundingClientRect().top - 20), behavior: "instant" });
   }, [step, connected, exploring]);
-  if (!state || !record) return <p role="status">Loading Naming choices…</p>;
-  const value = state.draft, sequence = steps(value), instruction = record.steeringDraft.instruction, seeds = record.steeringDraft.candidateIds;
+  if (!state || !record || !resolvedProgress) return <p role="status">Loading Naming choices…</p>;
+  const progress = resolvedProgress;
+  const value = state.draft, sequence = namingChatQuestions(value), instruction = record.steeringDraft.instruction, seeds = record.steeringDraft.candidateIds;
   const parsed = namingPreferencesV2Schema.safeParse({ ...value, sourceLanguages: value.sourceLanguages.filter(item => item.trim()), requiredText: value.requiredText.filter(item => item.trim()), excludedText: value.excludedText.filter(item => item.trim()) });
   const readiness = parsed.success ? getNamingPreferencesReadiness(parsed.data) : { ready: false, missing: [] };
   const patch = (next: Partial<NamingPreferencesV2>) => memory.editPreferences(account, projectId, { ...value, ...next });
   const invalid = !parsed.success || step === "approaches" && !value.approaches.length || step === "directness" && !value.directness || step === "fragments" && !readiness.ready;
   const saveBlocked = state.status === "error" || state.status === "conflict";
   async function confirm() {
-    if (lock.current || blocked || invalid || saveBlocked) return;
+    if (lock.current || blocked || invalid || saveBlocked || step === "review") return;
     lock.current = true; setWorking(true);
     try {
       if (!await memory.flushPreferences(account, projectId) || !memory.isCurrent(account)) return;
-      const nextCompleted = [...new Set([...completed, step])]; setCompleted(nextCompleted);
-      const next = revisiting.current ? sequence.find(item => !nextCompleted.includes(item)) : sequence[sequence.indexOf(step) + 1];
-      revisiting.current = false; setStep(next ?? "review");
+      const acknowledged = memory.get(account, projectId)?.preferences?.saved?.preferences;
+      if (acknowledged?.version !== 2) return;
+      memory.setChatProgress(account, projectId, confirmNamingChatQuestion(progress, step, acknowledged));
       requestAnimationFrame(() => active.current?.querySelector<HTMLElement>("h2")?.focus());
     } finally { lock.current = false; if (memory.isCurrent(account)) setWorking(false); }
   }
   async function proceed() {
-    if (lock.current || blocked || !runtimeReady || !readiness.ready || saveBlocked) return;
+    if (lock.current || blocked || !runtimeReady || !readiness.ready || saveBlocked || step !== "review" || sequence.some(question => !progress.confirmed[question])) return;
     lock.current = true; setWorking(true);
     try { if (await memory.flushPreferences(account, projectId) && memory.isCurrent(account)) await onContinue(); }
     finally { lock.current = false; if (memory.isCurrent(account)) setWorking(false); }
@@ -110,14 +107,14 @@ export function NamingApproachWidgets({ memory, account, projectId, context, sav
       if (await memory.flushPreferences(account, projectId) && memory.isCurrent(account)) memory.setSteeringDraft(account, projectId, draft => ({ ...draft, instruction: draft.instruction === sent ? "" : draft.instruction }));
     } finally { lock.current = false; if (memory.isCurrent(account)) setWorking(false); }
   }
-  function revisit(next: Step) { revisiting.current = true; setStep(next); requestAnimationFrame(() => active.current?.querySelector<HTMLElement>("h2")?.focus()); }
+  function revisit(next: Step) { memory.setChatProgress(account, projectId, { ...progress, activeStep: next }); requestAnimationFrame(() => active.current?.querySelector<HTMLElement>("h2")?.focus()); }
   return <section className={`naming-approach-widgets ${styles.conversation}`} aria-label="Naming choices">
     <div ref={transcript} className={`guided-interview-scroll ${styles.transcript}`} data-naming-chat-scroll tabIndex={0} aria-label="Naming conversation messages">
       <NamingRecoveryNotice memory={memory} account={account} />
       <details className={styles.context}><summary>Saved project context</summary><p>{context.description}</p><p>Saved brand personality: {context.personality ? Object.entries(context.personality).filter(([, weight]) => weight > 0).map(([dimension, weight]) => `${dimension}: ${weight}`).join(" · ") : "Not specified"}</p><p>Audience: {context.audienceSegments.filter(segment => segment.selected).map(segment => segment.label).join(", ") || context.knownAudience || "Not specified"}</p><p>Offering: {context.offering || "Not specified"}</p><p>Positioning: {context.positioning || "Not specified"}</p><Link className="text-link" href={`/brands/account/${projectId}`}>Open the Strategy conversation</Link></details>
       {saved?.preferences.version === 1 ? <details className={styles.context} aria-label="Earlier Naming choices"><summary>Earlier Naming choices · v{saved.version}</summary><p>Creative language: {saved.preferences.creativeLocale}</p><p>Length: {saved.preferences.minimumGraphemes ?? "Flexible"}–{saved.preferences.maximumGraphemes ?? "Flexible"} characters</p><p>{saved.preferences.notes}</p><p>Earlier choices stay saved. New approaches and directness have not been chosen.</p></details> : null}
       <Assistant><p className="guided-assistant-copy">{exploring ? "Your choices guide this exploration. Open a name for its story, save your favorites, or refine your direction here." : "Let’s find a name that feels right. Your saved project context is here; we’ll shape the naming direction one choice at a time."}</p></Assistant>
-      {sequence.filter(item => completed.includes(item) && item !== step).map(item => <section className={`guided-choice-answer ${styles.answer}`} key={item} aria-label={`Your answer: ${questions[item]}`}><div className="guided-choice-answer-copy"><h3>{questions[item]}</h3><p>{answer(item, value)}</p></div><button type="button" className="text-link" disabled={blocked || working} aria-label={`Edit answer: ${questions[item]}`} onClick={() => revisit(item)}>Edit</button></section>)}
+      {sequence.filter(item => progress.confirmed[item] && item !== step).map(item => <section className={`guided-choice-answer ${styles.answer}`} key={item} aria-label={`Your answer: ${questions[item]}`}><div className="guided-choice-answer-copy"><h3>{questions[item]}</h3><p>{answer(item, value)}</p></div><button type="button" className="text-link" disabled={blocked || working} aria-label={`Edit answer: ${questions[item]}`} onClick={() => revisit(item)}>Edit</button></section>)}
       <div ref={active} className={styles.active}>
         <Assistant><h2 id="project-naming-preferences-heading" tabIndex={-1}>{questions[step]}</h2>
           {step === "approaches" ? <div className="guided-choice-widget"><p className={styles.hint}>Choose as many as you like. Each approach leaves room for unusual connections.</p><div className="naming-approach-options" role="group" aria-label="Naming approaches">{NAMING_APPROACHES.map(approach => <button type="button" key={approach.id} className="naming-approach-option" aria-pressed={value.approaches.includes(approach.id)} disabled={blocked || working} onClick={() => patch({ approaches: value.approaches.includes(approach.id) ? value.approaches.filter(item => item !== approach.id) : [...value.approaches, approach.id] })}><strong>{approach.label}</strong><span>{approach.description}</span>{approach.id === "real_words" ? <span>Explore metaphor, symbolism and unexpected associations.</span> : null}{approach.examples.length ? <small>{approach.examples.join(", ")}</small> : null}</button>)}</div></div> : null}

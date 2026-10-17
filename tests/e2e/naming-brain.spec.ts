@@ -84,6 +84,7 @@ test("Naming V2: history/filter Continue restores exploration before admission",
   await page.getByLabel("Filter project names").selectOption("favorite");
   await expect(page.getByLabel("Filter project names")).toHaveValue("favorite");
   await page.getByRole("button", { name: "Modify filters" }).click();
+  await finishNamingChat(page);
   await page.getByRole("button", { name: "Continue exploring", exact: true }).click();
   await expect(page.getByRole("region", { name: "Naming exploration" })).toBeVisible();
   expect(fixture.state.session.viewState).toMatchObject({ pane: "results", filter: "all", query: "", visibleBatchId: null });
