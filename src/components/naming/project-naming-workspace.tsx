@@ -2,16 +2,17 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { Icon } from "@/components/ui/icon";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
-import { initialNamingPreferences, namingStrategyKey, type ProjectNameEntry, type TransformProjectNamesResponse } from "@/domain/project-naming";
+import { namingStrategyKey, type ProjectNameEntry, type TransformProjectNamesResponse } from "@/domain/project-naming";
 import { getProjectHandoff } from "@/domain/project-handoff";
 import type { NameTransformInput } from "@/domain/naming";
-import { NamingPreferencesPanel } from "./naming-preferences";
+import { NamingApproachWidgets } from "./naming-approach-widgets";
+import { useNamingFeed } from "./use-naming-feed";
+import { NamingFeedResults } from "./naming-feed-results";
 import { NamingResults, ProjectNameCard } from "./naming-results";
-import { ProjectDock } from "@/components/workspace/project-workspace";
 import { NamingInspect } from "./naming-inspect";
 import { NamingScreening } from "./naming-screening";
 import { ProjectScreeningEvidence } from "./project-screening-evidence";
@@ -39,18 +40,37 @@ function AccountProjectNaming({ projectId, account }: { projectId: string; accou
   const [transformResult, setTransformResult] = useState<TransformProjectNamesResponse | null>(null);
   const [inspectedId, setInspectedId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [conversationOverride, setConversationOverride] = useState<boolean | null>(null);
+  const feed = useNamingFeed({ account, projectId, projectRevision: overview?.project.current_revision, enabled: Boolean(overview?.readiness.ready && !blocked && !readError), view: { ...(overview?.session?.viewState ?? initialNamingView), inspecting: Boolean(inspectedId), historyOpen } });
+  const { eligibleView, start: startFeed } = feed;
+  const continuation = useRef<{ started: boolean; resolve: (started: boolean) => void } | null>(null);
+  const [continueVersion, setContinueVersion] = useState(0);
+  useEffect(() => {
+    const request = continuation.current;
+    if (!request || request.started) return;
+    request.started = true;
+    // Only the explicit Continue action queues this request. The saved view and
+    // the feed's layout-effect eligibility must both be committed first.
+    if (!eligibleView || !isCurrent(account)) { continuation.current = null; request.resolve(false); return; }
+    void startFeed().then(request.resolve).finally(() => { if (continuation.current === request) continuation.current = null; });
+  }, [continueVersion, eligibleView, startFeed, account, isCurrent]);
+  useEffect(() => () => { continuation.current?.resolve(false); continuation.current = null; }, []);
   const strategyHref = `/brands/account/${projectId}`;
   if (!overview) return <div className="page project-naming-page"><header className="project-naming-header"><h1>Naming</h1><Link className="text-link" href={strategyHref}>Back to project</Link></header>{readError ? <div className="project-naming-notice" role="alert"><p>{readError}</p><button className="button secondary small" type="button" onClick={naming.refresh}>Check latest version</button></div> : <p className="project-naming-muted" role="status">Loading your account naming workspace…</p>}</div>;
   const { project } = overview;
   const view = overview.session?.viewState ?? initialNamingView;
-  const conversationOpen = !overview.preferences || view.conversationOpen;
+  const conversationOpen = conversationOverride ?? (!overview.preferences || view.conversationOpen);
+  const lookup = new Map(overview.candidates.items.map(entry => [entry.candidate.id, entry]));
+  for (const row of feed.entries) { const old = lookup.get(row.entry.candidate.id); if (!old || old.retention.revision <= row.entry.retention.revision) lookup.set(row.entry.candidate.id, row.entry); }
+  const candidates = [...lookup.values()];
   const strategyKey = namingStrategyKey(project.context);
-  const workshopEntry = overview.candidates.items.find(entry => entry.candidate.id === view.workshopCandidateId);
+  const workshopEntry = candidates.find(entry => entry.candidate.id === view.workshopCandidateId);
   const currentSelection = overview.currentSelection;
-  const inspected = overview.candidates.items.find(entry => entry.candidate.id === inspectedId);
+  const inspected = candidates.find(entry => entry.candidate.id === inspectedId);
   const screening = !inspected && view.pane === "screening" && currentSelection;
   const originalDescription = project.context.description;
-  const workshopOptions = overview.candidates.items.map((entry, index) => {
+  const workshopOptions = candidates.map((entry, index) => {
     const { candidate } = entry, origin = candidate.origin;
     const batch = origin.kind === "generated" ? overview.batches.items.find(item => item.batch.id === origin.batchId) : null;
     const source = origin.kind === "generated" ? `Batch ${batch?.batch.sequence ?? "saved"}` : origin.kind === "transform" ? `Workshop · ${origin.history.at(-1)?.input.kind ?? "variation"}` : "Copied name";
@@ -59,20 +79,34 @@ function AccountProjectNaming({ projectId, account }: { projectId: string; accou
 
   function restoreResults() {
     requestAnimationFrame(() => {
-      const id = namingScrollTarget(view.scrollCandidateId, overview!.candidates.items.map(entry => entry.candidate.id));
+      const id = namingScrollTarget(view.scrollCandidateId, candidates.map(entry => entry.candidate.id));
       const target = document.getElementById(id);
       target?.focus({ preventScroll: true }); target?.scrollIntoView({ block: "start" });
     });
   }
   function candidateAnchor() {
-    const visible = Array.from(document.querySelectorAll<HTMLElement>(".project-naming-card[id]")).find(element => element.getBoundingClientRect().bottom > 0);
+    const top = Math.max(0, document.querySelector<HTMLElement>(".project-workspace-content")?.getBoundingClientRect().top ?? 0);
+    const visible = Array.from(document.querySelectorAll<HTMLElement>(".project-naming-card[id]")).find(element => element.getBoundingClientRect().bottom > top);
     return visible?.id.replace("project-name-", "") ?? view.scrollCandidateId;
   }
   async function closeConversation() {
-    if (await naming.saveView({ conversationOpen: false })) restoreResults();
+    setConversationOverride(false);
+    if (overview!.session) await naming.saveView({ conversationOpen: false });
+    restoreResults();
   }
   async function openConversation() {
+    setConversationOverride(true);
     if (await naming.saveView({ conversationOpen: true, scrollCandidateId: candidateAnchor() })) requestAnimationFrame(() => { const heading = document.getElementById("project-naming-preferences-heading"); heading?.focus(); heading?.scrollIntoView({ block: "center" }); });
+  }
+  async function continueExploration() {
+    if (!isCurrent(account) || continuation.current) return false;
+    if ((view.pane !== "results" || view.filter !== "all" || view.query || view.visibleBatchId)
+      && !await naming.saveView({ pane: "results", filter: "all", query: "", visibleBatchId: null })) return false;
+    if (!isCurrent(account)) return false;
+    setHistoryOpen(false); setInspectedId(null); naming.refresh();
+    const started = await new Promise<boolean>(resolve => { continuation.current = { started: false, resolve }; setContinueVersion(version => version + 1); });
+    if (started && isCurrent(account)) await closeConversation();
+    return started;
   }
   async function choose(entry: ProjectNameEntry, acknowledged: boolean) {
     if (!isCurrent(account) || blocked) return;
@@ -91,7 +125,7 @@ function AccountProjectNaming({ projectId, account }: { projectId: string; accou
   }
   async function runTransform(input: NameTransformInput, secondaryCandidateId?: string) {
     if (!workshopEntry) return;
-    const secondary = input.kind === "blend" ? overview!.candidates.items.find(entry => entry.candidate.id === secondaryCandidateId) : null;
+    const secondary = input.kind === "blend" ? candidates.find(entry => entry.candidate.id === secondaryCandidateId) : null;
     if (input.kind === "blend" && (!secondary || secondary.candidate.value !== input.right)) return;
     const result = await naming.transform({ parentCandidateId: workshopEntry.candidate.id, ...(secondary ? { secondaryCandidateId: secondary.candidate.id } : {}), input });
     if (result && isCurrent(account)) setTransformResult(result);
@@ -109,10 +143,11 @@ function AccountProjectNaming({ projectId, account }: { projectId: string; accou
     {readError || actionError ? <div className="project-naming-notice" role="alert"><p>{actionError ?? readError}</p><button className="button secondary small" type="button" disabled={pending} onClick={naming.refresh}>Check latest version</button></div> : null}
     {notice ? <p className="project-naming-notice" role="status">{notice}</p> : null}
     {earlierChoice ? <section className="project-naming-stale-choice" aria-label="Earlier strategy confirmation"><h2 id="project-naming-earlier-heading" tabIndex={-1}>Use {earlierChoice.candidate.value} from an earlier strategy?</h2><p>The current saved strategy differs from the context used for this name. Choosing it creates a new selection and keeps the original history.</p><label><input type="checkbox" checked={acceptedEarlierFor === strategyKey} disabled={pending} onChange={event => setAcceptedEarlierFor(event.target.checked ? strategyKey : null)} />I have reviewed this name against the current strategy and want to use it.</label><div className="project-naming-actions"><button className="button secondary small" type="button" disabled={pending} onClick={() => { setEarlierChoice(null); setAcceptedEarlierFor(null); setInspectedId(null); }}>Keep browsing</button><button className="button primary small" type="button" disabled={acceptedEarlierFor !== strategyKey || pending || blocked} onClick={() => void choose(earlierChoice, true)}>Use earlier-context name</button></div></section> : null}
-    {inspected ? <NamingInspect entry={inspected} pending={pending} blocked={blocked} selected={currentSelection?.candidate.id === inspected.candidate.id} onBack={() => setInspectedId(null)} onUse={() => select(inspected)} onWorkshop={() => { setInspectedId(null); void openWorkshop(inspected); }} /> : screening ? <><NamingScreening name={currentSelection.candidate.value} earlierContext={currentSelection.candidate.strategyKey !== strategyKey} pending={pending} onChangeName={() => void changeName()} /><ProjectScreeningEvidence key={`${currentSelection.selection.id}:${project.current_revision}`} projectId={projectId} selectionId={currentSelection.selection.id} projectRevision={project.current_revision} name={currentSelection.candidate.value} disabled={pending || blocked || Boolean(readError)} /></> : view.pane === "workshop" ? <section aria-label="Project naming workshop"><div className="project-naming-section-heading"><h2 id="project-naming-workshop-heading" tabIndex={-1}>Workshop</h2><button className="text-link" type="button" disabled={pending} onClick={() => void changeName()}>Back to names<Icon name="arrow" size={13} /></button></div>{workshopEntry ? <div className="project-naming-workshop"><WorkshopControls key={workshopEntry.candidate.id} seed={workshopEntry.candidate.value} value={workshop} onChange={setWorkshop} onRun={(input, secondaryCandidateId) => void runTransform(input, secondaryCandidateId)} disabled={pending || blocked} secondaryOptions={workshopOptions} /><div>{transformResult ? <p className="project-naming-notice" role="status">{transformResult.entries.length} workshop results saved. {transformResult.transform.notes.join(" ")}</p> : <p className="project-naming-muted">Explore a variation of this project name. Every run keeps its parent and transformation history.</p>}<div className="project-naming-grid">{(transformResult?.entries ?? overview.candidates.items.filter(entry => entry.candidate.origin.kind === "transform" && entry.candidate.origin.parentCandidateId === workshopEntry.candidate.id)).map(entry => {
-        const currentEntry = overview.candidates.items.find(candidate => candidate.candidate.id === entry.candidate.id) ?? entry;
+    {historyOpen && !inspected && !screening && view.pane === "results" ? <button type="button" className="text-link naming-back-to-feed" onClick={() => { setHistoryOpen(false); void naming.saveView({ pane: "results", filter: "all", query: "", visibleBatchId: null }); }}>Back to exploration</button> : null}
+    {inspected ? <NamingInspect claims={feed.entries.find(row => row.entry.candidate.id === inspected.candidate.id)?.publishedClaims} entry={inspected} pending={pending} blocked={blocked} selected={currentSelection?.candidate.id === inspected.candidate.id} onBack={() => setInspectedId(null)} onUse={() => select(inspected)} onWorkshop={() => { setInspectedId(null); void openWorkshop(inspected); }} /> : screening ? <><NamingScreening name={currentSelection.candidate.value} earlierContext={currentSelection.candidate.strategyKey !== strategyKey} pending={pending} onChangeName={() => void changeName()} /><ProjectScreeningEvidence key={`${currentSelection.selection.id}:${project.current_revision}`} projectId={projectId} selectionId={currentSelection.selection.id} projectRevision={project.current_revision} name={currentSelection.candidate.value} disabled={pending || blocked || Boolean(readError)} /></> : view.pane === "workshop" ? <section aria-label="Project naming workshop"><div className="project-naming-section-heading"><h2 id="project-naming-workshop-heading" tabIndex={-1}>Workshop</h2><button className="text-link" type="button" disabled={pending} onClick={() => void changeName()}>Back to names<Icon name="arrow" size={13} /></button></div>{workshopEntry ? <div className="project-naming-workshop"><WorkshopControls key={workshopEntry.candidate.id} seed={workshopEntry.candidate.value} value={workshop} onChange={setWorkshop} onRun={(input, secondaryCandidateId) => void runTransform(input, secondaryCandidateId)} disabled={pending || blocked} secondaryOptions={workshopOptions} /><div>{transformResult ? <p className="project-naming-notice" role="status">{transformResult.entries.length} workshop results saved. {transformResult.transform.notes.join(" ")}</p> : <p className="project-naming-muted">Explore a variation of this project name. Every run keeps its parent and transformation history.</p>}<div className="project-naming-grid">{(transformResult?.entries ?? overview.candidates.items.filter(entry => entry.candidate.origin.kind === "transform" && entry.candidate.origin.parentCandidateId === workshopEntry.candidate.id)).map(entry => {
+        const currentEntry = candidates.find(candidate => candidate.candidate.id === entry.candidate.id) ?? entry;
         return <ProjectNameCard key={entry.candidate.id} entry={currentEntry} selected={currentSelection?.candidate.id === entry.candidate.id} earlierContext={entry.candidate.strategyKey !== strategyKey} pending={pending} blockSelection={blocked} onFavorite={() => void naming.retain(currentEntry, "favorite")} onSave={() => void naming.retain(currentEntry, "saved")} onSelect={() => select(currentEntry)} onWorkshop={() => void openWorkshop(currentEntry)} />;
-      })}</div></div></div> : <div className="project-naming-empty"><h3>Choose a name to transform</h3><p>The saved seed is outside the loaded list. Return to names and choose a project candidate.</p><button className="button secondary small" type="button" disabled={pending} onClick={() => void naming.saveView({ pane: "results", filter: "all", query: "", visibleBatchId: null })}>View project names</button></div>}</section> : overview.preferences || overview.candidates.items.length ? <NamingResults key={`${view.filter}:${view.query}:${view.visibleBatchId ?? "all"}`} overview={overview} view={view} pending={pending} blocked={blocked} readFailed={Boolean(readError)} listStatus={naming.listStatus} strategyKey={strategyKey} onView={patch => void naming.saveView(patch)} onModify={() => void openConversation()} onEnqueue={() => void naming.enqueue()} onCancel={job => void naming.cancel(job)} onRetain={(entry, field) => void naming.retain(entry, field)} onSelect={select} onInspect={entry => setInspectedId(entry.candidate.id)} onWorkshop={entry => void openWorkshop(entry)} onLoadMore={() => void naming.loadMore()} onLoadMoreBatches={() => void naming.loadMoreBatches()} /> : null}
+      })}</div></div></div> : <div className="project-naming-empty"><h3>Choose a name to transform</h3><p>The saved seed is outside the loaded list. Return to names and choose a project candidate.</p><button className="button secondary small" type="button" disabled={pending} onClick={() => void naming.saveView({ pane: "results", filter: "all", query: "", visibleBatchId: null })}>View project names</button></div>}</section> : feed.eligibleView ? <NamingFeedResults feed={feed} selectedId={currentSelection?.candidate.id} strategyKey={strategyKey} pending={pending} blocked={blocked || Boolean(readError)} onRetain={(entry, field) => void naming.retain(entry, field)} onSelect={select} onInspect={entry => setInspectedId(entry.candidate.id)} onWorkshop={entry => void openWorkshop(entry)} onModify={() => void openConversation()} onHistory={() => setHistoryOpen(true)} /> : overview.preferences || overview.candidates.items.length ? <NamingResults historyOnly={overview.preferences?.preferences.version === 2 || feed.record?.preferences?.saved?.preferences.version === 2 || Boolean(feed.record?.preferences?.dirty || feed.record?.preferences?.pending)} key={`${view.filter}:${view.query}:${view.visibleBatchId ?? "all"}`} overview={overview} view={view} pending={pending} blocked={blocked} readFailed={Boolean(readError)} listStatus={naming.listStatus} strategyKey={strategyKey} onView={patch => void naming.saveView(patch).then(saved => { if (saved && patch.visibleBatchId) void naming.loadBatchDetail(patch.visibleBatchId); })} onModify={() => void openConversation()} onEnqueue={() => void naming.enqueue()} onCancel={job => void naming.cancel(job)} onRetain={(entry, field) => void naming.retain(entry, field)} onSelect={select} onInspect={entry => setInspectedId(entry.candidate.id)} onWorkshop={entry => void openWorkshop(entry)} onLoadMore={() => void naming.loadMore()} onLoadMoreBatches={() => void naming.loadMoreBatches()} /> : null}
     {!screening ? <LocalNameImport disabled={pending || blocked} onImport={async entry => { const saved = await naming.importLocal({ source: entry.source, capturedContext: entry.context }); if (saved && isCurrent(account)) setNotice(`Copied ${entry.source.value} into this project. Use this name is a separate selection; the original name and history stay in your library.`); return saved; }} /> : null}
     {screening && project.scope === "complete_brand" ? <div className="project-naming-next">
       {pending || blocked || readError ? <button className="button secondary small" type="button" disabled>Continue to Inspiration</button> : <Link className="button secondary small" href={`/brands/account/${projectId}/inspiration`}>Continue to Inspiration<Icon name="arrow" size={14} /></Link>}
@@ -120,13 +155,12 @@ function AccountProjectNaming({ projectId, account }: { projectId: string; accou
     </div> : null}
     {project.scope === "naming_only" ? <div className="project-naming-next"><button className="button secondary small" type="button" disabled={pending || blocked} onClick={() => void naming.expand().then(expanded => { if (expanded && isCurrent(account)) router.push(strategyHref); })}>Expand to complete brand<Icon name="arrow" size={14} /></button><p className="project-naming-muted">Keep this brief, name history and current selection, then continue your Strategy conversation.</p></div> : null}
     {overview.preferences ? <button className="project-naming-chat-toggle" type="button" aria-label={conversationOpen ? "Close naming conversation" : "Reopen naming conversation"} aria-expanded={conversationOpen} disabled={pending} onClick={() => void (conversationOpen ? closeConversation() : openConversation())}><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M20 11.5a8 8 0 0 1-8 8H4v-5a8 8 0 1 1 16-3Z" /><path d="M8 10h8M8 14h5" /></svg><span>{conversationOpen ? "Close conversation" : "Conversation"}</span></button> : null}
-  </div><ProjectDock title="Naming" context={<p>{project.title} · saved strategy v{project.current_revision}</p>}>
-    {conversationOpen && overview.readiness.ready ? <section className="project-naming-conversation" aria-label="Naming conversation">
+  </div><aside className={`project-dock naming-widget-panel${conversationOpen ? " is-open" : " is-collapsed"}`} aria-label="Naming conversation"><div className="project-dock-tabs"><strong>Naming</strong><button className="project-dock-toggle" type="button" aria-label={conversationOpen ? "Collapse Naming panel" : "Open Naming panel"} aria-expanded={conversationOpen} onClick={() => void (conversationOpen ? closeConversation() : openConversation())}>{conversationOpen ? "−" : "+"}</button></div>
+    {overview.readiness.ready ? <section hidden={!conversationOpen} className="project-naming-conversation project-dock-content" aria-label="Naming choices conversation">
       <div className="project-naming-context"><span>Saved project context · version {project.current_revision}</span><p>{originalDescription}</p><details><summary>Strategy carried into Naming</summary><dl><div><dt>Offering</dt><dd>{project.context.offering || "Not specified"}</dd></div><div><dt>Audience</dt><dd>{project.context.audienceSegments.filter(segment => segment.selected).map(segment => segment.label).join(", ") || project.context.knownAudience || "Not specified"}</dd></div><div><dt>Positioning</dt><dd>{project.context.positioning || "Not specified"}</dd></div><div><dt>Existing name</dt><dd>{project.context.selectedName || project.context.intake.suppliedName || "None selected"}</dd></div></dl><Link className="text-link" href={strategyHref}>Open the Strategy conversation</Link></details></div>
-      <NamingPreferencesPanel initial={overview.preferences?.preferences ?? initialNamingPreferences(project.context)} savedVersion={overview.preferences?.version ?? 0} pending={pending} blocked={blocked} onSave={naming.savePreferences} onClose={() => void closeConversation()} />
+      <NamingApproachWidgets memory={feed.memory} account={account} projectId={projectId} context={project.context} saved={overview.preferences} blocked={blocked} runtimeReady={feed.state?.feed?.availability.status === "available"} onCheckSaved={naming.refresh} onContinue={continueExploration} />
     </section> : null}
-    {!conversationOpen && overview.preferences ? <button className="button secondary small" type="button" onClick={() => void openConversation()}>Modify filters</button> : null}
-  </ProjectDock></div>;
+  </aside></div>;
 }
 
 function LocalNameImport({ disabled, onImport }: { disabled: boolean; onImport: (entry: ReturnType<typeof useNamesStore>["data"]["candidates"][number]) => Promise<boolean> }) {

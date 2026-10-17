@@ -176,3 +176,50 @@
 @media(max-width:1190px) { .project-naming-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media(max-width:850px) { .project-naming-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .project-naming-library .project-naming-card { display: flex; flex-direction: column; align-items: stretch; } }
 @media(max-width:540px) { .project-naming-grid { grid-template-columns: 1fr; } }
+
+/* Naming exploration uses the approved workspace shell and existing tokens. */
+.naming-widget-panel .project-dock-tabs { align-items: center; }
+.naming-widget-panel .project-dock-tabs strong { font-size: 13px; font-weight: 500; }
+.naming-widget-panel.is-collapsed .project-dock-tabs strong { display: none; }
+.naming-approach-widgets { display: grid; gap: 18px; min-width: 0; }
+.naming-widget-message h2 { font-size: 17px; line-height: 1.4; letter-spacing: -.3px; margin: 7px 0; }
+.naming-widget-message p, .naming-optional p, .naming-inherited-strategy, .naming-approach-widgets small { color: var(--secondary); font-size: 12px; line-height: 1.6; }
+.naming-inherited-strategy { margin-top: 12px; }
+.naming-inherited-strategy summary { cursor: pointer; }
+.naming-approach-options { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.naming-approach-option { display: flex; flex-direction: column; gap: 5px; align-items: flex-start; text-align: left; padding: 14px; border: 1px solid var(--border); border-radius: 9px; background: var(--paper); color: var(--text); min-width: 0; }
+.naming-approach-option strong, .naming-directness strong { font-size: 13px; font-weight: 500; }
+.naming-approach-option span, .naming-directness span { color: var(--secondary); font-size: 12px; line-height: 1.5; }
+.naming-approach-option[aria-pressed=true], .naming-directness [aria-checked=true] { background: var(--magenta-soft); border-color: var(--accent-text); }
+.naming-approach-option[aria-pressed=true] strong, .naming-directness [aria-checked=true] strong { color: var(--accent-text); }
+.naming-approach-option:focus-visible, .naming-directness button:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 3px; }
+.naming-directness { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 8px; }
+.naming-directness legend { font-size: 15px; font-weight: 500; line-height: 1.5; margin-bottom: 12px; }
+.naming-directness button { display: grid; gap: 4px; padding: 11px 13px; text-align: left; border: 1px solid var(--border); border-radius: 8px; background: var(--paper); }
+.naming-approach-widgets label { display: grid; gap: 7px; font-size: 12px; font-weight: 500; line-height: 1.5; min-width: 0; }
+.naming-approach-widgets input, .naming-approach-widgets textarea, .naming-steering-bar input { width: 100%; min-width: 0; border: 1px solid var(--border); border-radius: 7px; background: var(--paper); color: var(--text); padding: 10px; min-height: 44px; font: inherit; font-size: 13px; }
+.naming-approach-widgets textarea { resize: vertical; }
+.naming-optional { border-top: 1px solid var(--border); padding-top: 14px; }
+.naming-optional summary { cursor: pointer; font-size: 13px; line-height: 1.5; }
+.naming-optional label, .naming-optional p { margin-top: 14px; }
+.naming-save-status { color: var(--secondary); font-size: 12px; }
+.naming-feed-card { min-width: 0; display: flex; flex-direction: column; }
+.naming-feed-card .project-naming-card { flex: 1; }
+.naming-steering-choice { display: flex; align-items: center; gap: 7px; min-height: 44px; padding: 8px 5px; font-size: 12px; color: var(--secondary); }
+.naming-steering-choice input { accent-color: var(--accent-text); }
+.naming-steering-bar { position: sticky; top: 0; z-index: 2; padding: 16px; margin-bottom: 20px; background: var(--paper); border: 1px solid var(--border); border-radius: 9px; box-shadow: 0 4px 14px #00000008; display: grid; gap: 12px; }
+.naming-steering-bar p, .naming-steering-bar label { font-size: 13px; line-height: 1.6; }
+.naming-steering-bar label { display: grid; gap: 6px; }
+.naming-feed-tail { min-height: 130px; padding: 32px 12px; text-align: center; color: var(--secondary); font-size: 13px; line-height: 1.7; }
+.naming-feed-tail button { margin-top: 12px; }
+.naming-back-to-feed { margin-bottom: 20px; }
+.naming-published-claims { border: 1px solid var(--border); border-radius: 9px; padding: 20px; margin: 20px 0; font-size: 13px; line-height: 1.65; }
+.naming-published-claims ul { padding-left: 20px; }
+.naming-published-claims blockquote { border-left: 2px solid var(--border); margin: 10px 0; padding-left: 14px; color: var(--secondary); white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .naming-widget-panel .naming-approach-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .naming-widget-panel .project-dock-content { padding: 20px 16px; }
+  .naming-steering-bar { position: static; }
+  .naming-approach-widgets input, .naming-approach-widgets textarea, .naming-steering-bar input { font-size: 16px; }
+}
+@media (max-width: 440px) { .naming-widget-panel .naming-approach-options { grid-template-columns: 1fr; } }

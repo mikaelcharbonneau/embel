@@ -2,11 +2,13 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import type { Pool } from "pg";
+import { createNamingBrainMemory } from "@/components/naming/naming-brain-memory";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-const mock = vi.hoisted(() => ({ auth: vi.fn(), account: { status: "ready" as const, userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", generation: 1 }, current: vi.fn(() => true), expire: vi.fn() }));
+const mock = vi.hoisted(() => ({ auth: vi.fn(), account: { status: "ready" as const, userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", generation: 1 }, current: vi.fn(() => true), expire: vi.fn(), memory: null as ReturnType<typeof createNamingBrainMemory> | null }));
 vi.mock("../../src/server/auth/context", () => ({ getAuthenticatedContext: mock.auth }));
-vi.mock("../../src/components/workspace/account-session", () => ({ useAccountSession: () => ({ session: mock.account, isCurrent: mock.current, expire: mock.expire }), AccountStatus: () => createElement("p", {}, "Account verification required") }));
+vi.mock("../../src/components/workspace/account-session", () => ({ useAccountSession: () => ({ session: mock.account, isCurrent: mock.current, expire: mock.expire, namingBrainDrafts: mock.memory }), AccountStatus: () => createElement("p", {}, "Account verification required") }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 import { StandaloneNamesAssistant } from "../../src/components/naming/standalone-names-assistant";
 import { GET, POST } from "../../src/app/api/names/ai/route";
 import { PATCH, POST as cancel } from "../../src/app/api/names/ai/[jobId]/route";
@@ -14,7 +16,7 @@ import { createStandaloneNamesDatabase } from "../database/standalone-ai-names-f
 import { asRole, asSubscriptionWorker, resetFixture, type TestDatabase } from "../database/local-supabase";
 import { runOneStandaloneNamesJob } from "../../worker/standalone-names";
 import type { ChatGPTTransport } from "../../src/server/ai/chatgpt-transport";
-import { owner, policy, proposal } from "../fixtures/standalone-names";
+import { owner, policy, proposal, brief } from "../fixtures/standalone-names";
 
 describe("Names UI → route → durable SQL → worker → retained result (synthetic provider only)", () => {
   let db: TestDatabase, root: Root, host: HTMLDivElement;
@@ -48,6 +50,7 @@ describe("Names UI → route → durable SQL → worker → retained result (syn
       const context = { params: Promise.resolve({ jobId: path.split("/").at(-1)! }) };
       return options.method === "PATCH" ? PATCH(request, context) : cancel(request, context);
     }));
+    mock.memory = createNamingBrainMemory({ storage: () => null }); mock.memory.bind(mock.account);
     host = document.createElement("div"); document.body.append(host); root = createRoot(host);
     stage("UI/API/worker fixture ready");
   // WASM compilation plus the historical SQL replay can exceed 90s on the
@@ -58,9 +61,13 @@ describe("Names UI → route → durable SQL → worker → retained result (syn
   async function waitUntil(test: () => boolean) { for (let i = 0; i < 100 && !test(); i++) await act(async () => { await new Promise(resolve => setTimeout(resolve, 10)); }); expect(test()).toBe(true); }
   async function click(element: HTMLElement) { await act(async () => element.click()); await waitUntil(() => !button("Refresh names").disabled); }
   async function fill(element: HTMLTextAreaElement, value: string) { await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(element, value); element.dispatchEvent(new Event("input", { bubbles: true })); }); }
-  it("generates and refines directly, saves a shortlist and never creates a project", async () => {
-    await act(async () => root.render(createElement(StandaloneNamesAssistant))); await waitUntil(() => Boolean(host.querySelector('input[type="checkbox"]')));
-    await fill(host.querySelector("textarea")!, "Synthetic fixture: a warm ceramics workshop"); await click(host.querySelector<HTMLInputElement>('input[type="checkbox"]')!); await click(button("Generate names"));
+  it("preserves legacy generation history, shortlist and explicit refinements without creating a new project", async () => {
+    // Seed the historical entry through its existing API; new brief entry now uses canonical Project Naming.
+    const readiness = await (await GET(new Request("http://127.0.0.1:3106/api/names/ai"))).json();
+    expect(readiness.availability.status).toBe("available");
+    const created = await POST(new Request("http://127.0.0.1:3106/api/names/ai", { method: "POST", headers: { "Content-Type": "application/json", Origin: "http://127.0.0.1:3106", "X-Embel-Account": owner }, body: JSON.stringify({ brief, refinement: null, acceptSubscriptionUsage: true, acceptedPolicyIdentity: readiness.availability.policyIdentity, idempotencyKey: "synthetic-legacy-naming-history" }) }));
+    expect(created.status).toBe(202);
+    await act(async () => root.render(createElement(StandaloneNamesAssistant))); await waitUntil(() => Boolean(button("Refresh names")));
     expect((await db.query("select state from public.standalone_name_jobs")).rows).toEqual([{ state: "queued" }]);
     let dispatches = 0;
     const transport: ChatGPTTransport = { listModels: vi.fn(), streamResponse: async (request, options) => {
