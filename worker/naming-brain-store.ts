@@ -2,7 +2,7 @@ import { z } from "zod";
 import { getNamingPreferencesReadiness, namingPreferencesV2Schema } from "../src/domain/naming-brain-preferences";
 import { namingPreferencesRuntimeFingerprint } from "./naming-brain-configuration";
 import { isDeepStrictEqual } from "node:util";
-import { namingBrainJobInputSchema, namingEvidenceSourceSchema, namingProviderReceiptSchema, namingRoleOutputSchema, namingStageKeySchema, namingStageRequestSchema, type NamingBrainPolicy, type NamingProviderReceipt, type NamingRoleOutput, type NamingStageKey, type NamingStageRequest, type NamingPreparedSet, type NamingValidatedCandidate, type NamingVerification } from "../src/domain/naming-brain";
+import { namingBrainJobInputSchema, namingEvidenceSourceSchema, namingProviderReceiptSchema, namingPreparedSetSchema, namingRoleOutputSchema, namingStageKeySchema, namingStageRequestSchema, type NamingBrainPolicy, type NamingProviderReceipt, type NamingRoleOutput, type NamingStageKey, type NamingStageRequest, type NamingPreparedSet, type NamingValidatedCandidate, type NamingVerification } from "../src/domain/naming-brain";
 import { nameIdentityKey, namingStrategyBasisSchema, namingStrategyKeyFromBasis } from "../src/domain/project-naming";
 import type { ClaimedJob, StepOutcome } from "../src/domain/jobs";
 import { NAMING_GAP_ENVELOPE } from "../src/server/ai/naming-brain/policy";
@@ -19,7 +19,7 @@ const toolResultSchema = z.strictObject({ providerCallKey: identifier, sessionId
 const allocationSchema = z.strictObject({ providerCallKey: identifier, assignmentKey: identifier.nullable(), requestKey: identifier, requestHash: hash, sessionLimitCents: z.number().int().min(1).max(150), maxWebSearchCalls: z.number().int().min(0).max(20), role: z.enum(["researcher", "director", "creator", "curator", "verifier"]) });
 const completedOutputSchema = z.strictObject({ artifactIds: z.array(z.uuid()).max(60), errorCode: z.string().max(100).optional(), partialArtifacts: z.array(z.json()).max(100).optional() });
 const stageResultSchema = z.strictObject({ id: z.uuid(), run_id: z.uuid(), stage_key: namingStageKeySchema, state: z.enum(["succeeded", "failed", "ambiguous"]), output: completedOutputSchema, created_at: z.iso.datetime({ offset: true }) });
-const stageSchema = z.strictObject({ stageKey: namingStageKeySchema, state: z.enum(["pending", "in_flight", "succeeded", "failed", "ambiguous"]), requestKey: z.string().nullable(), startedAt: z.iso.datetime({ offset: true }).nullable(), maximumCostMicrousd: z.number().int().nonnegative(), recoveryMode: z.enum(["execute", "observe_only"]), observationDeadlineAt: z.iso.datetime({ offset: true }).nullable(), stageResults: z.array(stageResultSchema).max(100),
+const stageSchema = z.strictObject({ stageKey: namingStageKeySchema, state: z.enum(["pending", "in_flight", "succeeded", "failed", "ambiguous"]), requestKey: z.string().nullable(), startedAt: z.iso.datetime({ offset: true }).nullable(), maximumCostMicrousd: z.number().int().nonnegative(), recoveryMode: z.enum(["execute", "observe_only"]), observationDeadlineAt: z.iso.datetime({ offset: true }).nullable(), stageResults: z.array(stageResultSchema).max(100), preparation: z.strictObject({ preparedSetId: z.uuid(), preparedSet: namingPreparedSetSchema }).nullable(),
   artifacts: z.array(namingRoleOutputSchema).max(60), receipts: z.array(namingProviderReceiptSchema).max(500), requests: z.array(namingStageRequestSchema).max(60), providerItems: z.array(providerItemSchema).max(500), providerTurns: z.array(providerTurnSchema).max(500), toolResults: z.array(toolResultSchema).max(200), callPlans: z.array(z.strictObject({ phase: z.enum(["main", "direction", "creation", "curation", "verification"]), calls: z.array(allocationSchema).max(60) })).max(4), gapEnvelope: z.json(), gapPlanIdentity: hash });
 export type NamingSavedStage = z.infer<typeof stageSchema>;
 export type NamingGapPhase = "direction" | "creation" | "curation" | "verification";
@@ -105,6 +105,7 @@ export class NamingBrainJobStore implements JobStore {
   async loadStage(job: ClaimedJob, stageKey: NamingStageKey): Promise<NamingSavedStage> {
     const input = jobInput(job), stage = stageSchema.parse(await this.action(job, "stage", { stageKey }));
     if (stage.stageKey !== stageKey || !isDeepStrictEqual(stage.gapEnvelope, NAMING_GAP_ENVELOPE) || stage.maximumCostMicrousd !== input.policy.stageLimits[stageKey].maximumCostMicrousd || [...stage.artifacts, ...stage.requests, ...stage.receipts].some(value => value.runId !== input.runId || value.snapshotHash !== input.snapshot.snapshotHash || value.stageKey !== stageKey)) throw new Error("naming_stage_mismatch");
+    if (stage.preparation && (stageKey !== "prepare" || stage.preparation.preparedSet.runId !== input.runId || stage.preparation.preparedSet.snapshotHash !== input.snapshot.snapshotHash)) throw new Error("naming_preparation_mismatch");
     if (stage.stageResults.some(result => result.run_id !== input.runId || result.stage_key !== stageKey)) throw new Error("naming_stage_result_mismatch");
     if (stage.recoveryMode === "observe_only") this.observedOnly.add(job.id);
     return stage;

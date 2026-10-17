@@ -82,10 +82,14 @@ export function createNamingBrainHandlers(options: Options): HandlerRegistry {
     let stage = await store.loadStage(job, stageKey);
     // Observe every issued incomplete call before asking to unlock any original unissued allocation.
     const outcomes: NamingStageOutcome[] = [];
+    const observeGapClosure = stageKey === "gap" && stage.recoveryMode === "observe_only";
     for (const issued of stage.requests.filter(row => !stage.artifacts.some(artifact => artifact.providerReceipt.providerCallKey === row.providerCallKey))) {
       const outcome = await call(job, input, issued, signal); outcomes.push(outcome);
-      if (outcome.status !== "completed") return outcomes;
+      if (outcome.status !== "completed" && !observeGapClosure) return outcomes;
     }
+    // A known invalid result is not permission to skip its issued siblings.
+    // Aggregate the whole read-only closure, then return before any paid gate.
+    if (!allCompleted(outcomes)) return outcomes;
     stage = await store.loadStage(job, stageKey);
     if (stage.recoveryMode === "observe_only" && desired.some(row => !stage.artifacts.some(artifact => artifact.providerReceipt.providerCallKey === row.providerCallKey))) {
       await options.assertReady();
@@ -126,6 +130,10 @@ export function createNamingBrainHandlers(options: Options): HandlerRegistry {
     return { snapshot: input.snapshot, candidates: pool.candidates, curation, verification: applyNamingVerification(pool.candidates, verification, namingSourceContext(verificationRequest, rows)), existingIdentityKeys: await store.identities(job, pool.candidates.map(row => row.identityKey), signal) };
   }
   async function prepare(job: ClaimedJob, input: NamingBrainJobInput, signal: AbortSignal) {
+    // A committed preparation is already part of global duplicate history. Its
+    // leased immutable acknowledgement must precede any fresh index/assembly.
+    const saved = await store.loadStage(job, "prepare");
+    if (saved.preparation) return;
     const stages = await store.loadStages(job), gap = stages.find(stage => stage.stageKey === "gap")!.artifacts.some(isVerification), data = await assembly(job, input, stages, gap, signal), prepared = assembleNamingSet(data);
     await store.prepare(job, prepared, data.candidates, data.verification.artifact);
   }

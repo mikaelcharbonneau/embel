@@ -45,8 +45,8 @@ describe("Naming seven-stage scoped worker", () => {
 
 describe("Naming original unissued allocation recovery", () => {
   it("reuses the completed assignment and unlocks only the original unissued call", async () => {
-    const test = createInertNamingHarness();
-    expect(await runOneJob({ store: test.store, handlers: test.handlers, workerId: "synthetic" })).toBe("succeeded");
+    const test = createInertNamingHarness({ stopBeforePrepare: true });
+    expect(await runOneJob({ store: test.store, handlers: test.handlers, workerId: "synthetic" })).toBe("lease_lost");
     const creation = test.stages.get("creation")!, retained = creation.artifacts[0]!, retainedCall = retained.providerReceipt.providerCallKey;
     creation.artifacts = [retained]; creation.requests = creation.requests.filter(row => row.providerCallKey === retainedCall); creation.receipts = creation.receipts.filter(row => row.providerCallKey === retainedCall); creation.providerTurns = creation.providerTurns.filter(row => row.providerCallKey === retainedCall); creation.state = "ambiguous";
     for (const key of ["curation", "verification", "gap", "prepare"] as const) { const stage = test.stages.get(key)!; stage.state = "pending"; stage.startedAt = null; stage.artifacts = []; stage.requests = []; stage.receipts = []; stage.providerTurns = []; stage.callPlans = []; }
@@ -121,4 +121,59 @@ it("decodes the coordinated immutable stage-result history and rejects a foreign
   expect(await test.store.loadStage(job, "gap")).toMatchObject({ stageResults: [result], observationDeadlineAt: stage.observationDeadlineAt });
   stage.stageResults = [{ ...result, run_id: crypto.randomUUID() }];
   await expect(test.store.loadStage(job, "gap")).rejects.toThrow("naming_stage_result_mismatch");
+});
+
+describe("RT3 complete issued Creator closure during observation recovery", () => {
+  it.each(["both_invalid", "invalid_valid", "invalid_unknown", "invalid_inflight"] as const)("classifies both existing calls for %s without funding or dispatching more work", async gapCreatorRecovery => {
+    const test = createInertNamingHarness({ initialCount: 60, gapCreatorRecovery });
+    expect(await runOneJob({ store: test.store, handlers: test.handlers, workerId: "synthetic" })).toBe("needs_reconciliation");
+    const gap = test.stages.get("gap")!, creators = gap.requests.filter(request => request.role === "creator");
+    expect(creators).toHaveLength(2); expect(creators.map(request => request.policy.sessionLimitCents)).toEqual([20, 20]);
+    expect(gap.artifacts.filter(artifact => artifact.output.role === "creator")).toHaveLength(0);
+    const before = test.dispatched.length, logOffset = test.log.length; test.reclaim(); test.setReady(false);
+    const state = await runOneJob({ store: test.store, handlers: test.handlers, workerId: "synthetic" });
+    expect(test.observed).toEqual(creators.map(request => request.providerCallKey));
+    expect(test.dispatched).toHaveLength(before); expect(test.providerToolReplies()).toBe(0);
+    expect(test.log.slice(logOffset).some(row => row.action === "call_plan" || row.action === "resume_execution" || row.name === "authorize_naming_brain_dispatch")).toBe(false);
+    expect(test.jobRow.reserved_cost_microusd).toBe(5_000_000);
+    expect(gap.receipts.every(receipt => receipt.confirmedActualCostMicrousd === null)).toBe(true);
+    const failures = test.stageResults.get("gap")!.partialArtifacts!.filter(value => value && typeof value === "object" && "code" in value && value.code === "provider_output_invalid");
+    expect(failures).toHaveLength(gapCreatorRecovery === "both_invalid" ? 2 : 1);
+    if (gapCreatorRecovery === "both_invalid" || gapCreatorRecovery === "invalid_valid") {
+      expect(state).toBe("succeeded");
+      expect(namingPreparedSetSchema.parse(test.prepared()?.preparedSet).fulfillment).toMatchObject({ status: "partial", acceptedCount: 60, missingCount: 40 });
+      expect(test.stages.get("prepare")!.state).toBe("succeeded");
+      expect(gap.artifacts.filter(artifact => artifact.output.role === "creator")).toHaveLength(gapCreatorRecovery === "invalid_valid" ? 1 : 0);
+      expect(gap.artifacts.some(artifact => artifact.output.role === "curator" || artifact.output.role === "verifier")).toBe(false);
+    } else {
+      expect(state).toBe("needs_reconciliation"); expect(test.prepared()).toBeNull(); expect(test.stages.get("prepare")!.state).toBe("pending");
+    }
+  });
+});
+
+it("reuses committed preparation after a lost ACK before own prepared names enter reassembly", async () => {
+  const test = createInertNamingHarness({ lostPrepareAck: true });
+  expect(await runOneJob({ store: test.store, handlers: test.handlers, workerId: "synthetic" })).toBe("partial");
+  const original = structuredClone(test.prepared());
+  expect(namingPreparedSetSchema.parse(original?.preparedSet).candidateIds).toHaveLength(100);
+  expect(test.historicalIdentityKeys()).toHaveLength(100);
+  const before = test.dispatched.length, logOffset = test.log.length;
+  test.reclaim(); test.setReady(false);
+  expect(await runOneJob({ store: test.store, handlers: test.handlers, workerId: "synthetic" })).toBe("succeeded");
+  expect(test.prepared()).toEqual(original); expect(test.dispatched).toHaveLength(before);
+  expect(test.stages.get("prepare")!.state).toBe("succeeded");
+  expect(test.log.slice(logOffset).some(row => ["index_page", "identities", "prepare", "resume_execution"].includes(row.action ?? ""))).toBe(false);
+  expect(test.historicalIdentityKeys()).toHaveLength(100); expect(test.jobRow.reserved_cost_microusd).toBe(5_000_000);
+});
+
+
+it.each(["run", "snapshot", "stage"] as const)("rejects an existing preparation with a foreign %s binding", async field => {
+  const test = createInertNamingHarness({ lostPrepareAck: true });
+  await runOneJob({ store: test.store, handlers: test.handlers, workerId: "synthetic" });
+  const saved = test.stages.get("prepare")!.preparation!;
+  if (field === "run") saved.preparedSet = { ...saved.preparedSet, runId: crypto.randomUUID() };
+  if (field === "snapshot") saved.preparedSet = { ...saved.preparedSet, snapshotHash: "b".repeat(64) };
+  if (field === "stage") test.stages.get("gap")!.preparation = saved;
+  test.reclaim(); const job = (await test.store.claim("synthetic", 120))!;
+  await expect(test.store.loadStage(job, field === "stage" ? "gap" : "prepare")).rejects.toThrow("naming_preparation_mismatch");
 });

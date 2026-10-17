@@ -1,20 +1,24 @@
+import { isDeepStrictEqual } from "node:util";
 import { namingBrainJobInputSchema, namingRoleOutputSchema, namingStageKeySchema, namingProviderReceiptSchema, type NamingAgentRuntime, type NamingStageRequest, type NamingModelOutput, type NamingEvidenceSource, type NamingStageOutcome } from "../../src/domain/naming-brain";
 import { createNamingBrainPolicy, NAMING_GAP_ENVELOPE } from "../../src/server/ai/naming-brain/policy";
 import { namingTextHash } from "../../src/server/ai/naming-brain/identity";
 import { validateNamingRoleOutput } from "../../src/server/ai/naming-brain/outputs";
 import { createNamingManagedProtocol } from "../../src/server/ai/naming-brain/protocol";
 import { createNamingAgentRuntime } from "../../src/server/ai/naming-brain/transport";
+import { nameIdentityKey } from "../../src/domain/project-naming";
 import { parseClaimedJob } from "../../worker/postgres-store";
 import { NamingBrainJobStore, type NamingSavedStage } from "../../worker/naming-brain-store";
 import { createNamingBrainHandlers } from "../../worker/handlers/naming-brain";
 import { id, snapshot, source, research, assignment, proposal, receipt } from "../domain/naming-brain-fixtures";
 
 /** Synthetic provider outputs, but real request rendering/hashing, output validation and scoped-store codec. */
-export function createInertNamingHarness(options: { initialCount?: number; failGap?: boolean; lostCreator?: boolean; invalidGap?: { role: "director" | "verifier"; kind: "json" | "schema"; recover?: boolean }; lateCreatorOverrun?: boolean; unknownGap?: boolean; inflightGap?: boolean; lateGapOverrun?: boolean } = {}) {
+export function createInertNamingHarness(options: { initialCount?: number; failGap?: boolean; lostCreator?: boolean; invalidGap?: { role: "director" | "verifier"; kind: "json" | "schema"; recover?: boolean }; lateCreatorOverrun?: boolean; unknownGap?: boolean; inflightGap?: boolean; lateGapOverrun?: boolean; gapCreatorRecovery?: "both_invalid" | "invalid_valid" | "invalid_unknown" | "invalid_inflight"; lostPrepareAck?: boolean; stopBeforePrepare?: boolean } = {}) {
   const brief = snapshot(); brief.preferences.approaches = ["real_words", "invented"];
   const input = namingBrainJobInputSchema.parse({ version: 2, handlerVersion: "naming-brain-v1", billingMode: "openai_api", runId: id(3), jobId: id(4), batchId: id(5), snapshot: brief, acceptedPolicyIdentity: "a".repeat(64), policy: createNamingBrainPolicy("fixture-selected-model") });
   const jobRow = { id: id(4), owner_id: id(1), project_id: id(2), operation: "naming.generate", input, input_revision: 1, lease_token: id(9), state: "running", reserved_cost_microusd: 5_000_000, actual_cost_microusd: 0, billing_mode: "openai_api" };
-  const stages = new Map(namingStageKeySchema.options.map(stageKey => [stageKey, { stageKey, state: "pending", requestKey: null, startedAt: null, maximumCostMicrousd: input.policy.stageLimits[stageKey].maximumCostMicrousd, recoveryMode: "execute", observationDeadlineAt: null, stageResults: [], artifacts: [], receipts: [], requests: [], providerItems: [], providerTurns: [], toolResults: [], callPlans: [], gapEnvelope: JSON.parse(JSON.stringify(NAMING_GAP_ENVELOPE)), gapPlanIdentity: "b".repeat(64) } as NamingSavedStage]));
+  const stages = new Map(namingStageKeySchema.options.map(stageKey => [stageKey, { stageKey, state: "pending", requestKey: null, startedAt: null, maximumCostMicrousd: input.policy.stageLimits[stageKey].maximumCostMicrousd, recoveryMode: "execute", observationDeadlineAt: null, stageResults: [], preparation: null, artifacts: [], receipts: [], requests: [], providerItems: [], providerTurns: [], toolResults: [], callPlans: [], gapEnvelope: JSON.parse(JSON.stringify(NAMING_GAP_ENVELOPE)), gapPlanIdentity: "b".repeat(64) } as NamingSavedStage]));
+  const history: { candidateId: string; value: string }[] = [];
+  let lostPrepareAck = false, stoppedBeforePrepare = false;
   const stageResults = new Map<string, { artifactIds: string[]; errorCode?: string; partialArtifacts?: unknown[] }>();
   const log: { name: string; action?: string; payload?: unknown }[] = [], dispatched: NamingStageRequest[] = [], observed: string[] = [];
   let prepared: Record<string, unknown> | null = null, finished: unknown = null, claimed = false, mode: "execute" | "observe_only" = "execute", ready = true;
@@ -31,6 +35,7 @@ export function createInertNamingHarness(options: { initialCount?: number; failG
     else if (action === "heartbeat") result = { ...jobRow, recoveryMode: mode, observationDeadlineAt: null };
     else if (action === "plan") result = payload.manifest;
     else if (action === "begin") {
+      if (payload.stageKey === "prepare" && options.stopBeforePrepare && !stoppedBeforePrepare) { stoppedBeforePrepare = true; throw Error("synthetic_crash_before_prepare"); }
       if (payload.stageKey === "prepare" && (jobRow.state === "cancel_requested" || namingStageKeySchema.options.filter(key => key !== "prepare").some(key => stages.get(key)!.state !== "succeeded"))) throw Error("Unsafe synthetic prepare boundary");
       const stage = stages.get(payload.stageKey)!; if (!stage.startedAt) stage.startedAt = new Date().toISOString(); stage.requestKey = payload.requestKey; result = { disposition: stage.state === "succeeded" ? "already_succeeded" : mode === "observe_only" ? "resume_observation" : "started" }; if (stage.state !== "succeeded") stage.state = "in_flight"; }
     else if (action === "stage") result = { ...stages.get(payload.stageKey), recoveryMode: mode };
@@ -39,10 +44,25 @@ export function createInertNamingHarness(options: { initialCount?: number; failG
     else if (action === "provider_turn") { const stage = [...stages.values()].find(stage => stage.requests.some(request => request.providerCallKey === payload.providerCallKey))!; stage.providerTurns.push(payload); }
     else if (action === "provider_item") { const stage = [...stages.values()].find(stage => stage.requests.some(request => request.providerCallKey === payload.providerCallKey))!; stage.providerItems.push(payload); }
     else if (action === "artifact") { const artifact = namingRoleOutputSchema.parse(payload.artifact); stages.get(artifact.stageKey)!.artifacts.push(artifact); result = artifact; }
-    else if (action === "index_page") result = { epoch: 1, entries: [] };
+    else if (action === "index_page") result = { epoch: 1, entries: payload.afterId ? [] : history };
+    else if (action === "index_record") result = true;
     else if (action === "index_finalize") result = true;
-    else if (action === "identities") result = [];
-    else if (action === "prepare") { prepared = payload; result = {}; }
+    else if (action === "identities") result = payload.keys.filter((key: string) => history.some(row => nameIdentityKey(row.value) === key));
+    else if (action === "prepare") {
+      if (prepared && !isDeepStrictEqual(prepared, payload)) throw Error("immutable_preparation");
+      if (!prepared) {
+        prepared = payload;
+        stages.get("prepare")!.preparation = { preparedSetId: id(20), preparedSet: payload.preparedSet };
+        for (const ref of payload.candidates) {
+          const artifact = [...stages.values()].flatMap(stage => stage.artifacts).find(artifact => artifact.artifactId === ref.sourceArtifactId);
+          if (!artifact || artifact.output.role !== "creator") throw Error("Missing synthetic prepared source");
+          const value = artifact.output.candidates.find(candidate => candidate.candidateKey === ref.candidateKey)!.value;
+          history.push({ candidateId: ref.candidateId, value });
+        }
+      }
+      if (options.lostPrepareAck && !lostPrepareAck) { lostPrepareAck = true; throw Error("synthetic_prepare_ack_lost"); }
+      result = { preparedSetId: id(20), preparedSet: payload.preparedSet };
+    }
     else if (action === "finish") { finished = payload; result = {}; }
     else throw new Error(`unexpected_fixture_rpc_${name}_${action}`);
     // A JSONB-like round trip deliberately loses JS object identity and key order.
@@ -51,18 +71,23 @@ export function createInertNamingHarness(options: { initialCount?: number; failG
   } }, "fixture-deployment");
 
   const realCalls = new Map<string, NamingAgentRuntime>();
+  let providerToolReplies = 0, finishedGapCreators = 0, releaseGapInterruption: () => void = () => {};
+  const gapInterruptionReady = new Promise<void>(resolve => { releaseGapInterruption = resolve; });
   function terminalRuntime(request: NamingStageRequest): NamingAgentRuntime {
-    const overrun = !!options.lateCreatorOverrun && request.role === "creator" || !!options.lateGapOverrun && request.stageKey === "gap", inflight = !!options.inflightGap && request.stageKey === "gap", invalid = !!options.invalidGap && request.stageKey === "gap";
+    const recoveringCreator = !!options.gapCreatorRecovery && request.stageKey === "gap" && request.role === "creator";
+    const secondCreator = recoveringCreator && request.assignmentKey === "gap-b";
+    const unknown = !!options.unknownGap && request.stageKey === "gap" || secondCreator && options.gapCreatorRecovery === "invalid_unknown";
+    const overrun = !!options.lateCreatorOverrun && request.role === "creator" || !!options.lateGapOverrun && request.stageKey === "gap", inflight = !!options.inflightGap && request.stageKey === "gap" || secondCreator && options.gapCreatorRecovery === "invalid_inflight", invalid = !!options.invalidGap && request.stageKey === "gap" || recoveringCreator && (!secondCreator || options.gapCreatorRecovery === "both_invalid");
     const sessionId = `session-${request.providerCallKey}`, turnId = `turn-${request.providerCallKey}`, agentId = "synthetic-agent";
     let body: Record<string, unknown>;
     const turn = { id: turnId, session_id: sessionId, agent_id: agentId, subagent_id: null, status: inflight ? "in_progress" : "completed", object: "agent.session.turn", usage: null, error: null, created_at: 1, started_at: 1, completed_at: 2 };
-    const text = invalid ? options.invalidGap!.kind === "json" ? "{malformed JSON" : JSON.stringify({ role: request.role, invalid: true }) : JSON.stringify(syntheticNamingOutput(request, options));
+    const text = invalid ? (recoveringCreator || options.invalidGap!.kind === "json") ? "{malformed JSON" : JSON.stringify({ role: request.role, invalid: true }) : JSON.stringify(syntheticNamingOutput(request, options));
     const item = { id: "actual-final-item", type: "message", role: "assistant", phase: "final_answer", status: "completed", turn_id: turnId, content: [{ type: "output_text", text }] };
     const session = (final: boolean) => ({ ...body, id: sessionId, status: inflight ? "in_progress" : "idle", required_actions: [], usage: final ? { input_tokens: 12, output_tokens: 6, total_tokens: 18 } : null, spend_control: { limit: request.policy.sessionLimitCents, consumed: final && overrun ? request.policy.sessionLimitCents + 1 : 0 } });
     const protocol = createNamingManagedProtocol({ apiKey: "synthetic-inert-key", fetch: async (input, init) => {
       const outgoing = new Request(input, init), path = new URL(outgoing.url).pathname;
       if (outgoing.method === "POST" && path === "/v1/agents/sessions") {
-        dispatched.push(request); if (options.unknownGap && request.stageKey === "gap") throw Error("Synthetic lost acknowledgement");
+        dispatched.push(request); if (unknown) throw Error("Synthetic lost acknowledgement");
         const sent = await outgoing.json(); body = { environment: sent.environment, metadata: sent.metadata, agent: { ...sent.agent, id: agentId } };
         return new Response([
           { type: "agent.session.created", event_id: "created", session: session(false) },
@@ -72,7 +97,7 @@ export function createInertNamingHarness(options: { initialCount?: number; failG
           { type: "agent.session.idle", event_id: "idle", session: session(true) },
         ].filter(event => !inflight || !["agent.session.turn.item.done", "agent.session.turn.completed", "agent.session.idle"].includes(event.type)).map(event => `data: ${JSON.stringify(event)}\n\n`).join(""), { headers: { "content-type": "text/event-stream" } });
       }
-      if (outgoing.method === "POST") return new Response(null, { status: 202 });
+      if (outgoing.method === "POST") { const sent = await outgoing.json(); if (sent.events?.some((event: { type: string }) => event.type === "agent.session.input.tool_result")) providerToolReplies++; return new Response(null, { status: 202 }); }
       if (path.endsWith("/events")) return new Response("", { headers: { "content-type": "text/event-stream" } });
       const value = path.endsWith("/items") ? { data: inflight ? [] : [item], has_more: false, last_id: inflight ? null : item.id } : path.endsWith(`/${turnId}`) ? turn : session(true);
       return new Response(JSON.stringify(value), { headers: { "content-type": "application/json" } });
@@ -81,10 +106,16 @@ export function createInertNamingHarness(options: { initialCount?: number; failG
   }
   const runtime: NamingAgentRuntime = {
     async runStage(request, hooks): Promise<NamingStageOutcome> {
-      if (options.invalidGap && request.stageKey === "gap" && request.role === options.invalidGap.role || options.lateCreatorOverrun && request.role === "creator" || (options.unknownGap || options.inflightGap || options.lateGapOverrun) && request.stageKey === "gap") {
+      if (options.invalidGap && request.stageKey === "gap" && request.role === options.invalidGap.role || options.lateCreatorOverrun && request.role === "creator" || (options.unknownGap || options.inflightGap || options.lateGapOverrun) && request.stageKey === "gap" || options.gapCreatorRecovery && request.stageKey === "gap" && request.role === "creator") {
         const actual = terminalRuntime(request); realCalls.set(request.providerCallKey, actual);
         const outcome = await actual.runStage(request, hooks);
-        return options.invalidGap?.recover && outcome.status === "failed" ? { status: "unresolved", code: "synthetic_process_interruption", receipt: outcome.receipt, partialArtifacts: [] } : outcome;
+        if (options.gapCreatorRecovery && request.stageKey === "gap" && request.role === "creator") {
+          // Both creates have actually run before the synthetic process loss; a
+          // fast unknown sibling must not abort the other fixture prematurely.
+          if (++finishedGapCreators === 2) releaseGapInterruption();
+          await gapInterruptionReady;
+        }
+        return (options.invalidGap?.recover && outcome.status === "failed" || options.gapCreatorRecovery && (outcome.status === "completed" || outcome.status === "failed")) ? { status: "unresolved", code: "synthetic_process_interruption", receipt: outcome.receipt, partialArtifacts: [] } : outcome;
       }
       await hooks.beforeDispatch(); dispatched.push(request);
       const observedReceipt = namingProviderReceiptSchema.parse({ ...receipt(request.stageKey, request.role), ...Object.fromEntries(["runId", "stageKey", "role", "snapshotHash", "requestKey", "providerCallKey", "assignmentKey", "requestHash"].map(key => [key, request[key as keyof NamingStageRequest]])), sessionLimitCents: request.policy.sessionLimitCents, observedModel: request.policy.model, sessionId: `session-${request.providerCallKey}`, turnId: `turn-${request.providerCallKey}` });
@@ -102,13 +133,13 @@ export function createInertNamingHarness(options: { initialCount?: number; failG
     async cancelStage() {},
   };
   const handlers = createNamingBrainHandlers({ store, assertReady: async () => { if (!ready) throw new Error("naming_readiness_unavailable"); }, runtime: () => runtime });
-  return { store, input, jobRow, stages, stageResults, handlers, log, dispatched, observed, prepared: () => prepared, finished: () => finished, setReady: (value: boolean) => { ready = value; }, reclaim: () => { claimed = false; mode = "observe_only"; }, runtime };
+  return { store, input, jobRow, stages, stageResults, handlers, log, dispatched, observed, historicalIdentityKeys: () => history.map(row => nameIdentityKey(row.value)), providerToolReplies: () => providerToolReplies, prepared: () => prepared, finished: () => finished, setReady: (value: boolean) => { ready = value; }, reclaim: () => { claimed = false; mode = "observe_only"; }, runtime };
 }
 
-export function syntheticNamingOutput(request: NamingStageRequest, options: { initialCount?: number } = {}): NamingModelOutput {
+export function syntheticNamingOutput(request: NamingStageRequest, options: { initialCount?: number; gapCreatorRecovery?: string } = {}): NamingModelOutput {
     const key = request.input;
     if (key.role === "researcher") return research().output;
-    if (key.role === "director") return { role: "director", round: request.stageKey === "gap" ? "gap" : "initial", assignments: (request.stageKey === "gap" ? [assignment("invented", "gap-extra", 50, "rhythm")] : [assignment("real_words", "real", 90), assignment("invented", "invented", 60, "rhythm")]).map(value => ({ ...value, sourceKeys: key.research.sources.map(source => source.sourceKey) })), feedbackHypotheses: [] } as NamingModelOutput;
+    if (key.role === "director") return { role: "director", round: request.stageKey === "gap" ? "gap" : "initial", assignments: (request.stageKey === "gap" ? options.gapCreatorRecovery ? [assignment("invented", "gap-a", 25, "rhythm"), assignment("invented", "gap-b", 25, "rhythm")] : [assignment("invented", "gap-extra", 50, "rhythm")] : [assignment("real_words", "real", 90), assignment("invented", "invented", 60, "rhythm")]).map(value => ({ ...value, sourceKeys: key.research.sources.map(source => source.sourceKey) })), feedbackHypotheses: [] } as NamingModelOutput;
     if (key.role === "creator") {
       const count = request.stageKey === "gap" ? key.assignment.targetCount : options.initialCount ? Math.min(key.assignment.targetCount, options.initialCount / 2) : key.assignment.targetCount;
       return { role: "creator", assignmentKey: key.assignment.assignmentKey, candidates: Array.from({ length: count }, (_, index) => ({ ...proposal(`${key.assignment.assignmentKey}word${index}`, `c${index}`, key.assignment.primaryApproach, key.assignment.territoryId), claims: index === 0 ? [{ claimKey: "claim", statement: "Synthetic reference text", sourceKeys: [key.assignment.sources[0]!.sourceKey], requirement: "optional" as const, status: "unverified" as const }] : [] })) } as NamingModelOutput;

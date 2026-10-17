@@ -60,6 +60,13 @@ function isOlderItemSnapshot(older: AgentSessionItem, terminal: AgentSessionItem
   return false;
 }
 
+/** Pre-completion fields may be absent from an older snapshot; immutable fields
+ * must still match the retained terminal Turn exactly. Usage remains observational. */
+function isOlderTurnSnapshot(older: Turn, terminal: Turn): boolean {
+  if (!["queued", "in_progress", "waiting"].includes(older.status) || older.completed_at !== null || older.error !== null || older.started_at !== null && older.started_at !== terminal.started_at) return false;
+  return isDeepStrictEqual({ ...older, status: terminal.status, started_at: terminal.started_at, completed_at: terminal.completed_at, error: terminal.error, usage: terminal.usage }, terminal);
+}
+
 export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
   if (!options.protocol && !options.apiKey) throw new Error("naming_runtime_unavailable");
   const protocol = options.protocol ?? createNamingManagedProtocol({ apiKey: options.apiKey! });
@@ -111,8 +118,11 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
       if (hasObservedOverrun()) throw new Error("provider_cost_exceeded");
     };
     const acceptTurn = async (value: Turn) => {
-      if (!safeId(value?.id) || value.session_id !== receipt.sessionId || receipt.turnId && value.id !== receipt.turnId || value.subagent_id !== null || value.agent_id !== receipt.agentId) throw new Error("provider_turn_mismatch");
-      if (turn && ["completed", "failed", "cancelled"].includes(turn.status) && turn.status !== value.status) throw new Error("provider_terminal_changed");
+      if (!safeId(value?.id) || value.session_id !== receipt.sessionId || receipt.turnId && value.id !== receipt.turnId || value.subagent_id !== null || value.agent_id !== receipt.agentId || value.object !== "agent.session.turn") throw new Error("provider_turn_mismatch");
+      if (turn && ["completed", "failed", "cancelled"].includes(turn.status)) {
+        if (isOlderTurnSnapshot(value, turn)) { usage(value.usage, "turn", value.id); await emit(); return; }
+        if (!isDeepStrictEqual({ ...value, usage: turn.usage }, turn)) throw new Error("provider_terminal_changed");
+      }
       turn = value; receipt = { ...receipt, turnId: value.id }; usage(value.usage, "turn", value.id); await emit();
       if (["completed", "failed", "cancelled"].includes(value.status)) await hooks.onArtifact({ kind: "provider_turn", providerCallKey: request.providerCallKey, sessionId: receipt.sessionId!, turnId: value.id, turn: value });
     };
