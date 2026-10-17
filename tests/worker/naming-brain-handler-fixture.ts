@@ -2,16 +2,20 @@ import { namingBrainJobInputSchema, namingRoleOutputSchema, namingStageKeySchema
 import { createNamingBrainPolicy, NAMING_GAP_ENVELOPE } from "../../src/server/ai/naming-brain/policy";
 import { namingTextHash } from "../../src/server/ai/naming-brain/identity";
 import { validateNamingRoleOutput } from "../../src/server/ai/naming-brain/outputs";
+import { createNamingManagedProtocol } from "../../src/server/ai/naming-brain/protocol";
+import { createNamingAgentRuntime } from "../../src/server/ai/naming-brain/transport";
+import { parseClaimedJob } from "../../worker/postgres-store";
 import { NamingBrainJobStore, type NamingSavedStage } from "../../worker/naming-brain-store";
 import { createNamingBrainHandlers } from "../../worker/handlers/naming-brain";
 import { id, snapshot, source, research, assignment, proposal, receipt } from "../domain/naming-brain-fixtures";
 
 /** Synthetic provider outputs, but real request rendering/hashing, output validation and scoped-store codec. */
-export function createInertNamingHarness(options: { initialCount?: number; failGap?: boolean; lostCreator?: boolean } = {}) {
+export function createInertNamingHarness(options: { initialCount?: number; failGap?: boolean; lostCreator?: boolean; invalidGap?: { role: "director" | "verifier"; kind: "json" | "schema"; recover?: boolean }; lateCreatorOverrun?: boolean; unknownGap?: boolean; inflightGap?: boolean; lateGapOverrun?: boolean } = {}) {
   const brief = snapshot(); brief.preferences.approaches = ["real_words", "invented"];
   const input = namingBrainJobInputSchema.parse({ version: 2, handlerVersion: "naming-brain-v1", billingMode: "openai_api", runId: id(3), jobId: id(4), batchId: id(5), snapshot: brief, acceptedPolicyIdentity: "a".repeat(64), policy: createNamingBrainPolicy("fixture-selected-model") });
   const jobRow = { id: id(4), owner_id: id(1), project_id: id(2), operation: "naming.generate", input, input_revision: 1, lease_token: id(9), state: "running", reserved_cost_microusd: 5_000_000, actual_cost_microusd: 0, billing_mode: "openai_api" };
-  const stages = new Map(namingStageKeySchema.options.map(stageKey => [stageKey, { stageKey, state: "pending", requestKey: null, startedAt: null, maximumCostMicrousd: input.policy.stageLimits[stageKey].maximumCostMicrousd, recoveryMode: "execute", artifacts: [], receipts: [], requests: [], providerItems: [], providerTurns: [], toolResults: [], callPlans: [], gapEnvelope: JSON.parse(JSON.stringify(NAMING_GAP_ENVELOPE)), gapPlanIdentity: "b".repeat(64) } as NamingSavedStage]));
+  const stages = new Map(namingStageKeySchema.options.map(stageKey => [stageKey, { stageKey, state: "pending", requestKey: null, startedAt: null, maximumCostMicrousd: input.policy.stageLimits[stageKey].maximumCostMicrousd, recoveryMode: "execute", observationDeadlineAt: null, stageResults: [], artifacts: [], receipts: [], requests: [], providerItems: [], providerTurns: [], toolResults: [], callPlans: [], gapEnvelope: JSON.parse(JSON.stringify(NAMING_GAP_ENVELOPE)), gapPlanIdentity: "b".repeat(64) } as NamingSavedStage]));
+  const stageResults = new Map<string, { artifactIds: string[]; errorCode?: string; partialArtifacts?: unknown[] }>();
   const log: { name: string; action?: string; payload?: unknown }[] = [], dispatched: NamingStageRequest[] = [], observed: string[] = [];
   let prepared: Record<string, unknown> | null = null, finished: unknown = null, claimed = false, mode: "execute" | "observe_only" = "execute", ready = true;
   const store = new NamingBrainJobStore({ query: async (sql, args = []) => {
@@ -23,10 +27,12 @@ export function createInertNamingHarness(options: { initialCount?: number; failG
       if (mode !== "execute" || !ready || stage.requests.some(row => row.providerCallKey === request.providerCallKey) || !stage.callPlans.some(plan => plan.calls.some(call => call.requestHash === request.requestHash))) result = false;
       else stage.requests.push(request);
     } else if (name === "record_naming_brain_provider_receipt") { const value = namingProviderReceiptSchema.parse(JSON.parse(String(args[2]))); stages.get(value.stageKey)!.receipts.push(value); result = value; }
-    else if (name === "complete_naming_brain_stage") { const stage = stages.get(args[2] as NamingSavedStage["stageKey"])!; stage.state = args[3] as NamingSavedStage["state"]; result = {}; }
-    else if (action === "heartbeat") result = { ...jobRow, recoveryMode: mode };
+    else if (name === "complete_naming_brain_stage") { const stage = stages.get(args[2] as NamingSavedStage["stageKey"])!; stage.state = args[3] as NamingSavedStage["state"]; stageResults.set(stage.stageKey, JSON.parse(String(args[4]))); result = {}; }
+    else if (action === "heartbeat") result = { ...jobRow, recoveryMode: mode, observationDeadlineAt: null };
     else if (action === "plan") result = payload.manifest;
-    else if (action === "begin") { const stage = stages.get(payload.stageKey)!; if (!stage.startedAt) stage.startedAt = new Date().toISOString(); stage.requestKey = payload.requestKey; result = { disposition: stage.state === "succeeded" ? "already_succeeded" : mode === "observe_only" ? "resume_observation" : "started" }; if (stage.state !== "succeeded") stage.state = "in_flight"; }
+    else if (action === "begin") {
+      if (payload.stageKey === "prepare" && (jobRow.state === "cancel_requested" || namingStageKeySchema.options.filter(key => key !== "prepare").some(key => stages.get(key)!.state !== "succeeded"))) throw Error("Unsafe synthetic prepare boundary");
+      const stage = stages.get(payload.stageKey)!; if (!stage.startedAt) stage.startedAt = new Date().toISOString(); stage.requestKey = payload.requestKey; result = { disposition: stage.state === "succeeded" ? "already_succeeded" : mode === "observe_only" ? "resume_observation" : "started" }; if (stage.state !== "succeeded") stage.state = "in_flight"; }
     else if (action === "stage") result = { ...stages.get(payload.stageKey), recoveryMode: mode };
     else if (action === "call_plan") { const stage = stages.get(payload.stageKey)!, phase = payload.phase ?? "main", existing = stage.callPlans.find(row => row.phase === phase); if (existing && JSON.stringify(existing.calls) !== JSON.stringify(payload.calls)) throw new Error("call_plan_changed"); if (!existing) stage.callPlans.push({ phase, calls: payload.calls }); result = payload.calls; }
     else if (action === "resume_execution") { const stage = stages.get(payload.stageKey)!; const resumed = ready && stage.requests.every(request => stage.artifacts.some(artifact => artifact.providerReceipt.providerCallKey === request.providerCallKey)); if (resumed) mode = "execute"; result = { recoveryMode: mode, resumed }; }
@@ -44,8 +50,42 @@ export function createInertNamingHarness(options: { initialCount?: number; failG
     return { rows: [{ result: jsonb(result) }] };
   } }, "fixture-deployment");
 
+  const realCalls = new Map<string, NamingAgentRuntime>();
+  function terminalRuntime(request: NamingStageRequest): NamingAgentRuntime {
+    const overrun = !!options.lateCreatorOverrun && request.role === "creator" || !!options.lateGapOverrun && request.stageKey === "gap", inflight = !!options.inflightGap && request.stageKey === "gap", invalid = !!options.invalidGap && request.stageKey === "gap";
+    const sessionId = `session-${request.providerCallKey}`, turnId = `turn-${request.providerCallKey}`, agentId = "synthetic-agent";
+    let body: Record<string, unknown>;
+    const turn = { id: turnId, session_id: sessionId, agent_id: agentId, subagent_id: null, status: inflight ? "in_progress" : "completed", object: "agent.session.turn", usage: null, error: null, created_at: 1, started_at: 1, completed_at: 2 };
+    const text = invalid ? options.invalidGap!.kind === "json" ? "{malformed JSON" : JSON.stringify({ role: request.role, invalid: true }) : JSON.stringify(syntheticNamingOutput(request, options));
+    const item = { id: "actual-final-item", type: "message", role: "assistant", phase: "final_answer", status: "completed", turn_id: turnId, content: [{ type: "output_text", text }] };
+    const session = (final: boolean) => ({ ...body, id: sessionId, status: inflight ? "in_progress" : "idle", required_actions: [], usage: final ? { input_tokens: 12, output_tokens: 6, total_tokens: 18 } : null, spend_control: { limit: request.policy.sessionLimitCents, consumed: final && overrun ? request.policy.sessionLimitCents + 1 : 0 } });
+    const protocol = createNamingManagedProtocol({ apiKey: "synthetic-inert-key", fetch: async (input, init) => {
+      const outgoing = new Request(input, init), path = new URL(outgoing.url).pathname;
+      if (outgoing.method === "POST" && path === "/v1/agents/sessions") {
+        dispatched.push(request); if (options.unknownGap && request.stageKey === "gap") throw Error("Synthetic lost acknowledgement");
+        const sent = await outgoing.json(); body = { environment: sent.environment, metadata: sent.metadata, agent: { ...sent.agent, id: agentId } };
+        return new Response([
+          { type: "agent.session.created", event_id: "created", session: session(false) },
+          { type: "agent.session.turn.created", event_id: "turn-created", session_id: sessionId, turn_id: turnId, turn: { ...turn, status: "in_progress", completed_at: null } },
+          { type: "agent.session.turn.item.done", event_id: "item", session_id: sessionId, turn_id: turnId, output_index: 0, item },
+          { type: "agent.session.turn.completed", event_id: "turn", session_id: sessionId, turn_id: turnId, turn, usage: null },
+          { type: "agent.session.idle", event_id: "idle", session: session(true) },
+        ].filter(event => !inflight || !["agent.session.turn.item.done", "agent.session.turn.completed", "agent.session.idle"].includes(event.type)).map(event => `data: ${JSON.stringify(event)}\n\n`).join(""), { headers: { "content-type": "text/event-stream" } });
+      }
+      if (outgoing.method === "POST") return new Response(null, { status: 202 });
+      if (path.endsWith("/events")) return new Response("", { headers: { "content-type": "text/event-stream" } });
+      const value = path.endsWith("/items") ? { data: inflight ? [] : [item], has_more: false, last_id: inflight ? null : item.id } : path.endsWith(`/${turnId}`) ? turn : session(true);
+      return new Response(JSON.stringify(value), { headers: { "content-type": "application/json" } });
+    } });
+    return createNamingAgentRuntime({ model: request.policy.model, protocol, persistence: store.runtimePersistence(parseClaimedJob(jobRow)) });
+  }
   const runtime: NamingAgentRuntime = {
     async runStage(request, hooks): Promise<NamingStageOutcome> {
+      if (options.invalidGap && request.stageKey === "gap" && request.role === options.invalidGap.role || options.lateCreatorOverrun && request.role === "creator" || (options.unknownGap || options.inflightGap || options.lateGapOverrun) && request.stageKey === "gap") {
+        const actual = terminalRuntime(request); realCalls.set(request.providerCallKey, actual);
+        const outcome = await actual.runStage(request, hooks);
+        return options.invalidGap?.recover && outcome.status === "failed" ? { status: "unresolved", code: "synthetic_process_interruption", receipt: outcome.receipt, partialArtifacts: [] } : outcome;
+      }
       await hooks.beforeDispatch(); dispatched.push(request);
       const observedReceipt = namingProviderReceiptSchema.parse({ ...receipt(request.stageKey, request.role), ...Object.fromEntries(["runId", "stageKey", "role", "snapshotHash", "requestKey", "providerCallKey", "assignmentKey", "requestHash"].map(key => [key, request[key as keyof NamingStageRequest]])), sessionLimitCents: request.policy.sessionLimitCents, observedModel: request.policy.model, sessionId: `session-${request.providerCallKey}`, turnId: `turn-${request.providerCallKey}` });
       await hooks.onReceipt(observedReceipt);
@@ -58,11 +98,11 @@ export function createInertNamingHarness(options: { initialCount?: number; failG
       const output = validateNamingRoleOutput({ request, receipt: observedReceipt, final: { itemId, itemContentHash: namingTextHash(text), text, value: JSON.parse(text) }, dependencies: [...stages.values()].flatMap(stage => stage.artifacts).filter(artifact => request.dependencyArtifactIds.includes(artifact.artifactId)), sources: request.role === "researcher" ? [evidence] : [] });
       return { status: "completed", receipt: observedReceipt, output };
     },
-    async resumeStage(receipt) { observed.push(receipt.providerCallKey); return { status: "unresolved", code: "synthetic_pending", receipt, partialArtifacts: [] }; },
+    async resumeStage(receipt, hooks) { observed.push(receipt.providerCallKey); const actual = realCalls.get(receipt.providerCallKey); if (actual) return actual.resumeStage(receipt, hooks); return { status: "unresolved", code: "synthetic_pending", receipt, partialArtifacts: [] }; },
     async cancelStage() {},
   };
   const handlers = createNamingBrainHandlers({ store, assertReady: async () => { if (!ready) throw new Error("naming_readiness_unavailable"); }, runtime: () => runtime });
-  return { store, input, stages, handlers, log, dispatched, observed, prepared: () => prepared, finished: () => finished, setReady: (value: boolean) => { ready = value; }, reclaim: () => { claimed = false; mode = "observe_only"; }, runtime };
+  return { store, input, jobRow, stages, stageResults, handlers, log, dispatched, observed, prepared: () => prepared, finished: () => finished, setReady: (value: boolean) => { ready = value; }, reclaim: () => { claimed = false; mode = "observe_only"; }, runtime };
 }
 
 export function syntheticNamingOutput(request: NamingStageRequest, options: { initialCount?: number } = {}): NamingModelOutput {

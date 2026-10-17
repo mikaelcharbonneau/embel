@@ -17,7 +17,9 @@ const providerItemSchema = z.strictObject({ providerCallKey: identifier, session
 const toolResultSchema = z.strictObject({ providerCallKey: identifier, sessionId: identifier, turnId: identifier, callId: identifier, requestHash: hash,
   result: z.strictObject({ argumentsHash: hash, reply: z.strictObject({ type: z.literal("agent.session.input.tool_result"), turn_id: identifier, call_id: identifier, success: z.boolean(), output: z.string().max(131_072).optional(), error: z.string().max(200).optional() }) }), sourceEvidence: namingEvidenceSourceSchema.nullable() });
 const allocationSchema = z.strictObject({ providerCallKey: identifier, assignmentKey: identifier.nullable(), requestKey: identifier, requestHash: hash, sessionLimitCents: z.number().int().min(1).max(150), maxWebSearchCalls: z.number().int().min(0).max(20), role: z.enum(["researcher", "director", "creator", "curator", "verifier"]) });
-const stageSchema = z.strictObject({ stageKey: namingStageKeySchema, state: z.enum(["pending", "in_flight", "succeeded", "failed", "ambiguous"]), requestKey: z.string().nullable(), startedAt: z.iso.datetime({ offset: true }).nullable(), maximumCostMicrousd: z.number().int().nonnegative(), recoveryMode: z.enum(["execute", "observe_only"]),
+const completedOutputSchema = z.strictObject({ artifactIds: z.array(z.uuid()).max(60), errorCode: z.string().max(100).optional(), partialArtifacts: z.array(z.json()).max(100).optional() });
+const stageResultSchema = z.strictObject({ id: z.uuid(), run_id: z.uuid(), stage_key: namingStageKeySchema, state: z.enum(["succeeded", "failed", "ambiguous"]), output: completedOutputSchema, created_at: z.iso.datetime({ offset: true }) });
+const stageSchema = z.strictObject({ stageKey: namingStageKeySchema, state: z.enum(["pending", "in_flight", "succeeded", "failed", "ambiguous"]), requestKey: z.string().nullable(), startedAt: z.iso.datetime({ offset: true }).nullable(), maximumCostMicrousd: z.number().int().nonnegative(), recoveryMode: z.enum(["execute", "observe_only"]), observationDeadlineAt: z.iso.datetime({ offset: true }).nullable(), stageResults: z.array(stageResultSchema).max(100),
   artifacts: z.array(namingRoleOutputSchema).max(60), receipts: z.array(namingProviderReceiptSchema).max(500), requests: z.array(namingStageRequestSchema).max(60), providerItems: z.array(providerItemSchema).max(500), providerTurns: z.array(providerTurnSchema).max(500), toolResults: z.array(toolResultSchema).max(200), callPlans: z.array(z.strictObject({ phase: z.enum(["main", "direction", "creation", "curation", "verification"]), calls: z.array(allocationSchema).max(60) })).max(4), gapEnvelope: z.json(), gapPlanIdentity: hash });
 export type NamingSavedStage = z.infer<typeof stageSchema>;
 export type NamingGapPhase = "direction" | "creation" | "curation" | "verification";
@@ -35,7 +37,6 @@ function jobInput(job: ClaimedJob) {
   if (job.operation !== "naming.generate" || input.jobId !== job.id || input.snapshot.ownerId !== job.ownerId || input.snapshot.projectId !== job.projectId || input.snapshot.contextRevision !== job.inputRevision || job.reservedCostMicrousd !== input.policy.runAllowanceMicrousd) throw new Error("naming_job_binding_mismatch");
   return input;
 }
-const completedOutputSchema = z.strictObject({ artifactIds: z.array(z.uuid()).max(60), errorCode: z.string().max(100).optional(), partialArtifacts: z.array(z.json()).max(100).optional() });
 
 export class NamingBrainJobStore implements JobStore {
   private readonly observedOnly = new Set<string>();
@@ -73,7 +74,7 @@ export class NamingBrainJobStore implements JobStore {
     const job = parseClaimedJob(parsed.job); jobInput(job); if (!["running", "cancel_requested"].includes(job.status)) throw new Error("naming_claim_state_invalid"); if (parsed.mode === "observe_only") this.observedOnly.add(job.id); if (job.status === "cancel_requested") this.stoppedJobs.add(job.id); return job;
   }
   async heartbeat(job: ClaimedJob, leaseSeconds: number) {
-    const raw = z.object({ recoveryMode: z.enum(["execute", "observe_only"]) }).passthrough().parse(await this.action(job, "heartbeat", { leaseSeconds }));
+    const raw = z.object({ recoveryMode: z.enum(["execute", "observe_only"]), observationDeadlineAt: z.iso.datetime({ offset: true }).nullable() }).passthrough().parse(await this.action(job, "heartbeat", { leaseSeconds }));
     const current = parseClaimedJob(raw);
     if (raw.recoveryMode === "observe_only") this.observedOnly.add(job.id);
     if (current.status === "cancel_requested") { this.stoppedJobs.add(job.id); for (const listener of this.cancellationListeners.get(job.id) ?? []) listener(); }
@@ -104,6 +105,7 @@ export class NamingBrainJobStore implements JobStore {
   async loadStage(job: ClaimedJob, stageKey: NamingStageKey): Promise<NamingSavedStage> {
     const input = jobInput(job), stage = stageSchema.parse(await this.action(job, "stage", { stageKey }));
     if (stage.stageKey !== stageKey || !isDeepStrictEqual(stage.gapEnvelope, NAMING_GAP_ENVELOPE) || stage.maximumCostMicrousd !== input.policy.stageLimits[stageKey].maximumCostMicrousd || [...stage.artifacts, ...stage.requests, ...stage.receipts].some(value => value.runId !== input.runId || value.snapshotHash !== input.snapshot.snapshotHash || value.stageKey !== stageKey)) throw new Error("naming_stage_mismatch");
+    if (stage.stageResults.some(result => result.run_id !== input.runId || result.stage_key !== stageKey)) throw new Error("naming_stage_result_mismatch");
     if (stage.recoveryMode === "observe_only") this.observedOnly.add(job.id);
     return stage;
   }
@@ -147,7 +149,7 @@ export class NamingBrainJobStore implements JobStore {
       const desiredRequest = request ?? (supplied.success ? supplied.data : null);
       if (desiredRequest && (desiredRequest.runId !== input.runId || desiredRequest.snapshotHash !== input.snapshot.snapshotHash)) throw new Error("naming_request_scope_mismatch");
       const dependencies = stages.flatMap(value => value.artifacts).filter(artifact => desiredRequest?.dependencyArtifactIds.includes(artifact.artifactId));
-      return { startedAt: stage.startedAt, request, dependencies, providerItems: stage.providerItems as NamingProviderItemRecord[], toolResults: stage.toolResults as NamingToolResultRecord[] };
+      return { startedAt: stage.startedAt, observationDeadlineAt: stage.observationDeadlineAt, request, dependencies, providerItems: stage.providerItems as NamingProviderItemRecord[], toolResults: stage.toolResults as NamingToolResultRecord[] };
     }, saveToolResult: async record => { await this.action(job, "tool_result", toolResultSchema.parse(record)); } };
   }
   async identities(job: ClaimedJob, keys: readonly string[], signal: AbortSignal): Promise<string[]> {

@@ -58,3 +58,67 @@ describe("Naming original unissued allocation recovery", () => {
     expect(test.log.some(row => row.action === "resume_execution")).toBe(true);
   });
 });
+
+describe("RT1/RT3 bounded terminal outcomes", () => {
+  it("blocks later inference when the real SDK reports overrun only after the Creator Turn", async () => {
+    const test = createInertNamingHarness({ lateCreatorOverrun: true });
+    expect(await runOneJob({ store: test.store, handlers: test.handlers, workerId: "synthetic" })).toBe("needs_reconciliation");
+    expect(test.dispatched.some(request => ["curator", "verifier"].includes(request.role))).toBe(false);
+    expect(test.stages.get("creation")!.receipts.some(receipt => receipt.providerCostCounters.some(counter => counter.value > receipt.sessionLimitCents))).toBe(true);
+    expect(test.stages.get("creation")!.providerItems.length).toBeGreaterThan(0);
+    expect(test.prepared()).toBeNull(); expect(test.jobRow.reserved_cost_microusd).toBe(5_000_000);
+    expect(test.stages.get("creation")!.receipts.every(receipt => receipt.confirmedActualCostMicrousd === null)).toBe(true);
+  });
+  it.each([ ["director", "json"], ["director", "schema"], ["verifier", "json"], ["verifier", "schema"] ] as const)("prepares the initial reviewed pool after genuine completed gap %s has invalid %s output", async (role, kind) => {
+    const test = createInertNamingHarness({ initialCount: 60, invalidGap: { role, kind } });
+    expect(await runOneJob({ store: test.store, handlers: test.handlers, workerId: "synthetic" })).toBe("succeeded");
+    const prepared = namingPreparedSetSchema.parse(test.prepared()?.preparedSet);
+    expect(prepared.fulfillment).toMatchObject({ status: "partial", acceptedCount: 60, missingCount: 40 });
+    expect(test.stages.get("gap")!.artifacts.some(artifact => artifact.output.role === role)).toBe(false);
+    const failure = test.stageResults.get("gap")!;
+    expect(failure).toMatchObject({ errorCode: "gap_incomplete", partialArtifacts: expect.arrayContaining([expect.objectContaining({ providerCallKey: `gap-${role}`, status: "failed", code: "provider_output_invalid", receipt: expect.objectContaining({ dispatchState: "dispatched", confirmedActualCostMicrousd: null }) })]) });
+    const invalid = failure.partialArtifacts!.find(value => value && typeof value === "object" && "code" in value && value.code === "provider_output_invalid");
+    if (!invalid || typeof invalid !== "object" || !("receipt" in invalid)) throw Error("Missing exact invalid-output evidence");
+    expect(test.stages.get("gap")!.receipts).toContainEqual(invalid.receipt);
+    expect(test.dispatched.filter(request => request.stageKey === "gap")).toHaveLength(role === "director" ? 1 : 4);
+    expect(test.stages.get("prepare")!.state).toBe("succeeded");
+    expect(test.jobRow.reserved_cost_microusd).toBe(5_000_000);
+    expect(test.stages.get("gap")!.receipts.every(receipt => receipt.confirmedActualCostMicrousd === null)).toBe(true);
+  });
+  it("recovers completed-invalid gap evidence in observe-only mode and runs only registered prepare without paid readiness", async () => {
+    const test = createInertNamingHarness({ initialCount: 60, invalidGap: { role: "director", kind: "json", recover: true } });
+    expect(await runOneJob({ store: test.store, handlers: test.handlers, workerId: "synthetic" })).toBe("needs_reconciliation");
+    const before = test.dispatched.length; test.reclaim(); test.setReady(false);
+    expect(await runOneJob({ store: test.store, handlers: test.handlers, workerId: "synthetic" })).toBe("succeeded");
+    expect(test.dispatched).toHaveLength(before); expect(test.log.some(row => row.action === "resume_execution")).toBe(false);
+    expect(namingPreparedSetSchema.parse(test.prepared()?.preparedSet).candidateIds).toHaveLength(60);
+    expect(test.stages.get("prepare")!.state).toBe("succeeded");
+  });
+  it.each(["unknownGap", "inflightGap", "lateGapOverrun"] as const)("keeps %s held and cannot prepare the partial pool", async failure => {
+    const test = createInertNamingHarness({ initialCount: 60, [failure]: true });
+    expect(await runOneJob({ store: test.store, handlers: test.handlers, workerId: "synthetic" })).toBe("needs_reconciliation");
+    expect(test.prepared()).toBeNull(); expect(test.stages.get("prepare")!.state).toBe("pending");
+    expect(test.jobRow.reserved_cost_microusd).toBe(5_000_000);
+  });
+});
+
+
+it("cannot prepare completed-invalid gap work after durable Stop during observation recovery", async () => {
+  const test = createInertNamingHarness({ initialCount: 60, invalidGap: { role: "director", kind: "json", recover: true } });
+  expect(await runOneJob({ store: test.store, handlers: test.handlers, workerId: "synthetic" })).toBe("needs_reconciliation");
+  const before = test.dispatched.length; test.reclaim(); test.setReady(false); test.jobRow.state = "cancel_requested";
+  await runOneJob({ store: test.store, handlers: test.handlers, workerId: "synthetic" });
+  expect(test.dispatched).toHaveLength(before); expect(test.prepared()).toBeNull();
+  expect(test.stages.get("prepare")!.state).toBe("pending"); expect(test.finished()).toMatchObject({ state: "cancelled" });
+  expect(test.jobRow.reserved_cost_microusd).toBe(5_000_000);
+});
+
+it("decodes the coordinated immutable stage-result history and rejects a foreign run binding", async () => {
+  const test = createInertNamingHarness();
+  const job = (await test.store.claim("synthetic", 120))!;
+  const stage = test.stages.get("gap")!, result = { id: crypto.randomUUID(), run_id: test.input.runId, stage_key: "gap" as const, state: "ambiguous" as const, output: { artifactIds: [], errorCode: "synthetic_incomplete" }, created_at: new Date().toISOString() };
+  stage.stageResults = [result]; stage.observationDeadlineAt = new Date(Date.now() + 60_000).toISOString();
+  expect(await test.store.loadStage(job, "gap")).toMatchObject({ stageResults: [result], observationDeadlineAt: stage.observationDeadlineAt });
+  stage.stageResults = [{ ...result, run_id: crypto.randomUUID() }];
+  await expect(test.store.loadStage(job, "gap")).rejects.toThrow("naming_stage_result_mismatch");
+});

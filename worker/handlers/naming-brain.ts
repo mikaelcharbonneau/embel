@@ -104,9 +104,17 @@ export function createNamingBrainHandlers(options: Options): HandlerRegistry {
   }
   async function stepOutcome(job: ClaimedJob, stageKey: NamingStageKey, outcomes: NamingStageOutcome[]): Promise<StepOutcome> {
     const stage = await store.loadStage(job, stageKey), bad = outcomes.find(row => row.status === "unresolved") ?? outcomes.find(row => row.status !== "completed");
-    const handledGap = stageKey === "gap" && bad && !store.cancellationRequested(job) && outcomes.every(row => row.status !== "unresolved") && stage.requests.every(request => stage.artifacts.some(artifact => artifact.providerReceipt.providerCallKey === request.providerCallKey) || stage.providerTurns.some(record => record.providerCallKey === request.providerCallKey && ["failed", "cancelled"].includes(record.turn.status)));
+    const invalidFailures = outcomes.flatMap(outcome => outcome.status === "failed" && outcome.code === "provider_output_invalid"
+      ? [{ providerCallKey: outcome.receipt.providerCallKey, status: "failed" as const, code: "provider_output_invalid" as const, receipt: outcome.receipt }] : []);
+    const terminalProof = (request: NamingStageRequest, statuses: readonly string[], exactReceipt?: NamingRoleOutput["providerReceipt"]) => stage.providerTurns.some(record =>
+      record.providerCallKey === request.providerCallKey && statuses.includes(record.turn.status) && stage.receipts.some(receipt =>
+        receipt.providerCallKey === request.providerCallKey && receipt.requestHash === request.requestHash && receipt.requestKey === request.requestKey && receipt.dispatchState === "dispatched" && receipt.sessionId === record.sessionId && receipt.turnId === record.turnId && receipt.agentId === record.turn.agent_id && (!exactReceipt || isDeepStrictEqual(exactReceipt, receipt))));
+    const overrun = stage.receipts.some(receipt => receipt.providerCostCounters.some(counter => counter.kind === "consumed_usd_cents" && counter.value > receipt.sessionLimitCents));
+    const handledGap = stageKey === "gap" && bad && !store.cancellationRequested(job) && !overrun && outcomes.every(row => row.status !== "unresolved") && stage.requests.every(request =>
+      stage.artifacts.some(artifact => artifact.providerReceipt.providerCallKey === request.providerCallKey && terminalProof(request, ["completed"], artifact.providerReceipt)) ||
+      terminalProof(request, ["failed", "cancelled"]) || invalidFailures.some(failure => failure.providerCallKey === request.providerCallKey && terminalProof(request, ["completed"], failure.receipt)));
     const ambiguous = bad?.status === "unresolved" || bad?.status === "rejected_before_dispatch" && stage.requests.some(request => !stage.artifacts.some(artifact => artifact.providerReceipt.providerCallKey === request.providerCallKey) && !stage.providerTurns.some(record => record.providerCallKey === request.providerCallKey));
-    const result = { artifactIds: stage.artifacts.map(row => row.artifactId), ...(bad ? { errorCode: handledGap ? "gap_incomplete" : bad.code, partialArtifacts: outcomes.flatMap(row => "partialArtifacts" in row ? row.partialArtifacts : []).slice(-3) } : {}) };
+    const result = { artifactIds: stage.artifacts.map(row => row.artifactId), ...(bad ? { errorCode: handledGap ? "gap_incomplete" : bad.code, partialArtifacts: [...(stageKey === "gap" ? invalidFailures : []), ...outcomes.flatMap(row => "partialArtifacts" in row ? row.partialArtifacts : []).slice(-3)] } : {}) };
     // This is the verified-known subtotal (none). It is never a certified total expense.
     return bad && !handledGap ? { status: ambiguous ? "needs_reconciliation" : "failed", code: bad.code, costMicrousd: 0, providerRequestId: "receipt" in bad ? bad.receipt?.requestId ?? null : null, result }
       : { status: "succeeded", costMicrousd: 0, providerRequestId: null, result };

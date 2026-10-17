@@ -14,7 +14,7 @@ import { validateNamingRoleOutput } from "./outputs";
 export type NamingProviderTurnRecord = { providerCallKey: string; sessionId: string; turnId: string; turn: Turn };
 export type NamingProviderItemRecord = { providerCallKey: string; sessionId: string; turnId: string; itemId: string; item: unknown };
 export type NamingToolResultRecord = { providerCallKey: string; sessionId: string; turnId: string; callId: string; requestHash: string; result: { argumentsHash: string; reply: ManagedToolResult }; sourceEvidence: NamingEvidenceSource | null };
-export type NamingRuntimeState = { startedAt: string; request: NamingStageRequest | null; dependencies: NamingRoleOutput[]; providerItems: NamingProviderItemRecord[]; toolResults: NamingToolResultRecord[] };
+export type NamingRuntimeState = { startedAt: string; observationDeadlineAt?: string | null; request: NamingStageRequest | null; dependencies: NamingRoleOutput[]; providerItems: NamingProviderItemRecord[]; toolResults: NamingToolResultRecord[] };
 export type NamingRuntimePersistence = { load(identity: Pick<NamingStageRequest, "runId" | "stageKey" | "providerCallKey" | "requestHash">): Promise<NamingRuntimeState>; saveToolResult(record: NamingToolResultRecord): Promise<void> };
 type Options = { model: string; apiKey?: string; protocol?: NamingManagedProtocol; persistence: NamingRuntimePersistence; now?: () => number; assertContinuation?: () => Promise<void>; referenceReader?: ReturnType<typeof createNamingReferenceReader> };
 type ManagedReceipt = Extract<NamingProviderReceipt, { protocol: "openai_agents" }>;
@@ -34,6 +34,30 @@ function baseReceipt(request: NamingStageRequest, now: () => number): ManagedRec
   return managedReceipt({ version: 1, provider: "openai", protocol: "openai_agents", billingMode: "openai_api", runId: request.runId, stageKey: request.stageKey, role: request.role, snapshotHash: request.snapshotHash,
     requestKey: request.requestKey, providerCallKey: request.providerCallKey, assignmentKey: request.assignmentKey, requestHash: request.requestHash, sessionLimitCents: request.policy.sessionLimitCents,
     dispatchState: "not_dispatched", requestId: null, sessionId: null, turnId: null, agentId: null, responseId: null, callIds: [], observedModel: null, toolCalls: [], artifactItemIds: [], usageObservations: [], providerCostCounters: [], estimatedCostMicrousd: null, accountingStatus: "provisional", confirmedActualCostMicrousd: null, recordedAt: new Date(now()).toISOString() });
+}
+
+/** Item IDs and immutable fields must agree before an older in-progress payload
+ * can be ignored. A partial message/argument must be a prefix of retained output. */
+function isOlderItemSnapshot(older: AgentSessionItem, terminal: AgentSessionItem): boolean {
+  if (older.type !== terminal.type || !("status" in older) || older.status !== "in_progress") return false;
+  if (older.type === "message" && terminal.type === "message") {
+    if (older.phase !== null && older.phase !== terminal.phase || older.content.length > terminal.content.length) return false;
+    if (!older.content.every((part, index) => {
+      const final = terminal.content[index];
+      return part.type === "output_text" && final?.type === "output_text" && (index === older.content.length - 1 ? final.text.startsWith(part.text) : final.text === part.text);
+    })) return false;
+    return isDeepStrictEqual({ ...older, status: terminal.status, phase: terminal.phase, content: terminal.content }, terminal);
+  }
+  if (older.type === "function_call" && terminal.type === "function_call") {
+    return (typeof terminal.arguments === "string" && typeof older.arguments === "string" ? terminal.arguments.startsWith(older.arguments) : isDeepStrictEqual(terminal.arguments, older.arguments)) && isDeepStrictEqual({ ...older, status: terminal.status, arguments: terminal.arguments }, terminal);
+  }
+  if (older.type === "web_search_call" && terminal.type === "web_search_call") {
+    return (older.action === null || isDeepStrictEqual(older.action, terminal.action)) && isDeepStrictEqual({ ...older, status: terminal.status, action: terminal.action }, terminal);
+  }
+  if (older.type === "function_call_output" && terminal.type === "function_call_output") {
+    return (older.output === null || isDeepStrictEqual(older.output, terminal.output)) && (older.error === null || older.error === terminal.error) && isDeepStrictEqual({ ...older, status: terminal.status, output: terminal.output, error: terminal.error }, terminal);
+  }
+  return false;
 }
 
 export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
@@ -56,12 +80,14 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
     if (!prior && state.request) return { status: "unresolved", code: "dispatch_already_authorized", receipt: { ...receipt, dispatchState: "unknown" }, partialArtifacts: [] };
     const deadlineAt = Date.parse(state.startedAt) + request.policy.deadlineMs;
     if (!Number.isFinite(deadlineAt)) return { status: "rejected_before_dispatch", code: "stage_deadline_missing" };
+    const observationDeadlineAt = prior && state.observationDeadlineAt !== undefined && state.observationDeadlineAt !== null ? Date.parse(state.observationDeadlineAt) : Infinity;
+    if (Number.isNaN(observationDeadlineAt) || now() >= observationDeadlineAt) return { status: "unresolved", code: "observation_deadline_exceeded", receipt, partialArtifacts: [] };
     const expiredOnEntry = now() >= deadlineAt;
     if (!prior && (hooks.signal.aborted || expiredOnEntry)) return { status: "rejected_before_dispatch", code: "cancelled_before_dispatch" };
     const controller = new AbortController(), readonlyRecovery = !!prior && (expiredOnEntry || hooks.signal.aborted);
     const abort = () => controller.abort();
     if (!readonlyRecovery) hooks.signal.addEventListener("abort", abort, { once: true });
-    const timer = setTimeout(abort, readonlyRecovery ? 5_000 : Math.max(1, deadlineAt - now())); timer.unref();
+    const timer = setTimeout(abort, Math.min(readonlyRecovery ? 5_000 : Math.max(1, deadlineAt - now()), observationDeadlineAt - now())); timer.unref();
     let stream: ManagedEventStream | undefined, dispatched = !!prior, session: AgentSession | null = null, turn: Turn | null = null;
     const items = new Map<string, AgentSessionItem>(), toolResults = new Map(state.toolResults.filter(row => row.providerCallKey === request.providerCallKey).map(row => [row.callId, row]));
     const newSources = () => [...toolResults.values()].flatMap(row => row.sourceEvidence ? [row.sourceEvidence] : []);
@@ -72,6 +98,7 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
       const entry = { scope, scopeId, inputTokens: parsed.data.input_tokens, outputTokens: parsed.data.output_tokens, totalTokens: parsed.data.total_tokens, observedAt: new Date(now()).toISOString() };
       if (!receipt.usageObservations.some(old => old.scope === scope && old.scopeId === scopeId && old.inputTokens === entry.inputTokens && old.outputTokens === entry.outputTokens && old.totalTokens === entry.totalTokens)) receipt = { ...receipt, usageObservations: [...receipt.usageObservations, entry] };
     };
+    const hasObservedOverrun = () => receipt.providerCostCounters.some(counter => counter.kind === "consumed_usd_cents" && counter.value > request.policy.sessionLimitCents);
     const acceptSession = async (value: AgentSession) => {
       if (!safeId(value?.id) || receipt.sessionId && value.id !== receipt.sessionId || !safeId(value.agent?.id) || value.agent.model !== request.policy.model || value.environment?.type !== "none" || value.agent.multi_agent?.enabled !== false || value.spend_control?.limit !== request.policy.sessionLimitCents || value.metadata?.embel_request_hash !== request.requestHash || value.metadata?.embel_call !== request.providerCallKey || value.metadata?.embel_run !== request.runId || value.metadata?.embel_request !== request.requestKey || value.metadata?.embel_snapshot !== request.snapshotHash) throw new Error("provider_configuration_mismatch");
       const expected = request.policy.allowedTools;
@@ -81,7 +108,7 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
       const consumed = value.spend_control.consumed;
       if (typeof consumed === "number" && Number.isSafeInteger(consumed) && consumed >= 0 && !receipt.providerCostCounters.some(counter => counter.scopeId === value.id && counter.value === consumed)) receipt = { ...receipt, providerCostCounters: [...receipt.providerCostCounters, { scope: "session", scopeId: value.id, kind: "consumed_usd_cents", value: consumed, observedAt: new Date(now()).toISOString() }] };
       await emit();
-      if (typeof consumed === "number" && consumed > request.policy.sessionLimitCents) throw new Error("provider_cost_exceeded");
+      if (hasObservedOverrun()) throw new Error("provider_cost_exceeded");
     };
     const acceptTurn = async (value: Turn) => {
       if (!safeId(value?.id) || value.session_id !== receipt.sessionId || receipt.turnId && value.id !== receipt.turnId || value.subagent_id !== null || value.agent_id !== receipt.agentId) throw new Error("provider_turn_mismatch");
@@ -90,12 +117,17 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
       if (["completed", "failed", "cancelled"].includes(value.status)) await hooks.onArtifact({ kind: "provider_turn", providerCallKey: request.providerCallKey, sessionId: receipt.sessionId!, turnId: value.id, turn: value });
     };
     const acceptItem = async (item: AgentSessionItem, completed: boolean) => {
-      if (item.type === "message" && item.role === "user") return;
-      if (!safeId(item.id) || item.turn_id !== receipt.turnId) throw new Error("provider_item_mismatch");
-      if (!["message", "reasoning", "web_search_call", "function_call", "function_call_output"].includes(item.type)) throw new Error("provider_tool_refused");
-      if (item.type === "reasoning") return;
+      if (item.turn_id !== receipt.turnId) throw new Error("provider_item_mismatch");
+      if (item.type === "message" && item.role === "user" && item.id === null) return;
+      if (!safeId(item.id)) throw new Error("provider_item_mismatch");
       const previous = items.get(item.id);
-      if (previous && "status" in previous && previous.status === "completed" && !isDeepStrictEqual(previous, item)) throw new Error("provider_item_changed");
+      if (previous && previous.type !== item.type) throw new Error("provider_item_changed");
+      if (!["message", "reasoning", "web_search_call", "function_call", "function_call_output"].includes(item.type)) throw new Error("provider_tool_refused");
+      if (previous && "status" in previous && ["completed", "failed", "incomplete"].includes(previous.status ?? "") && !isDeepStrictEqual(previous, item)) {
+        if (!completed && isOlderItemSnapshot(item, previous)) return;
+        throw new Error("provider_item_changed");
+      }
+      if (item.type === "reasoning" || item.type === "message" && item.role === "user") return;
       if (item.type === "web_search_call" || item.type === "function_call") {
         if (item.type === "web_search_call" && !request.policy.allowedTools.includes("web_search") || item.type === "function_call" && (item.name !== "read_reference" || !request.policy.allowedTools.includes("read_reference"))) throw new Error("provider_tool_refused");
         const callId = item.type === "function_call" ? item.call_id : item.id;
@@ -118,6 +150,7 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
       for (const item of history.items) await acceptItem(item, !("status" in item) || item.status === "completed" || item.status === "failed");
     };
     const finish = (): NamingStageOutcome | null => {
+      if (hasObservedOverrun()) throw new Error("provider_cost_exceeded");
       if (!turn || !session) return null;
       const terminal = turn as Turn;
       if (terminal.status === "failed" || terminal.status === "cancelled") return namingStageOutcomeSchema.parse({ status: terminal.status, code: terminal.status === "failed" ? "provider_turn_failed" : "provider_turn_cancelled", receipt, partialArtifacts: partials() });
@@ -165,6 +198,20 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
         await protocol.submitToolResult(receipt.sessionId, record.result.reply, `tool-${namingHash([request.requestKey, action.call_id]).slice(0, 48)}`, controller.signal);
       }
     };
+    const acceptEvent = async (event: AgentSessionEvent, terminalTail = false) => {
+      if ("session" in event) await acceptSession(event.session);
+      if ("session_id" in event && !receipt.sessionId && safeId(event.session_id)) {
+        receipt = { ...receipt, sessionId: event.session_id }; await emit();
+        await acceptSession(await protocol.retrieveSession(event.session_id, controller.signal));
+      }
+      if ("session_id" in event && event.session_id !== receipt.sessionId) throw new Error("provider_session_mismatch");
+      if ("turn" in event) { if (!session && receipt.sessionId) await acceptSession(await protocol.retrieveSession(receipt.sessionId, controller.signal)); await acceptTurn(event.turn); }
+      if ("turn_id" in event && event.turn_id !== null && event.turn_id !== receipt.turnId) throw new Error("provider_turn_mismatch");
+      if (event.type === "agent.session.turn.item.added" || event.type === "agent.session.turn.item.done") await acceptItem(event.item, event.type.endsWith(".done"));
+      if (event.type === "agent.session.requires_action" && !terminalTail) await answerRequired();
+      if (event.type === "agent.session.failed" || event.type === "error" || event.type.startsWith("agent.session.subagent.")) throw new Error("provider_session_failed");
+      if (event.type === "agent.session.idle" && !terminalTail) { await reconcile(); }
+    };
     try {
       if (!prior) {
         await hooks.beforeDispatch();
@@ -175,24 +222,33 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
       } else stream = await protocol.streamSession(receipt.sessionId!, controller.signal);
       const iterator = stream.events[Symbol.asyncIterator]();
       let pending = iterator.next(); void pending.catch(() => {});
-      if (prior) { await reconcile(); const result = finish(); if (result) return result; if (readonlyRecovery) throw new Error("stage_deadline_exceeded"); if ((session as AgentSession | null)?.status === "requires_action") await answerRequired(); }
+      const finishObservedTerminal = async (): Promise<NamingStageOutcome | null> => {
+        if (!turn || !["completed", "failed", "cancelled"].includes((turn as Turn).status)) return null;
+        // Subscribe-before-history can leave final usage updates buffered after the
+        // Turn. Drain only immediately available tail events, then read this same
+        // session once. Both reads and the quiet window share the existing deadline.
+        const observationSignal = AbortSignal.any([controller.signal, AbortSignal.timeout(5_000)]);
+        for (let count = 0; count < 64; count++) {
+          let quietTimer: ReturnType<typeof setTimeout> | undefined;
+          const quiet = new Promise<null>(resolve => { quietTimer = setTimeout(() => resolve(null), 25); });
+          let next: IteratorResult<AgentSessionEvent> | null;
+          try { next = await abortable(Promise.race([pending, quiet]), observationSignal); }
+          finally { clearTimeout(quietTimer); }
+          if (next === null || next.done) break;
+          pending = iterator.next(); void pending.catch(() => {});
+          await acceptEvent(next.value, true);
+          if (count === 63) throw new Error("provider_event_limit");
+        }
+        await acceptSession(await protocol.retrieveSession(receipt.sessionId!, observationSignal));
+        return finish();
+      };
+      if (prior) { await reconcile(); const result = await finishObservedTerminal(); if (result) return result; if (readonlyRecovery) throw new Error("stage_deadline_exceeded"); if ((session as AgentSession | null)?.status === "requires_action") await answerRequired(); }
       for (let eventCount = 0; eventCount < 2_000; eventCount++) {
         const next = await abortable(pending, controller.signal);
-        if (next.done) { await reconcile(); return finish() ?? { status: "unresolved", code: "stream_ended_before_turn", receipt, partialArtifacts: partials() }; }
+        if (next.done) { await reconcile(); return await finishObservedTerminal() ?? { status: "unresolved", code: "stream_ended_before_turn", receipt, partialArtifacts: partials() }; }
         pending = iterator.next(); void pending.catch(() => {});
-        const event: AgentSessionEvent = next.value;
-        if ("session" in event) await acceptSession(event.session);
-        if ("session_id" in event && !receipt.sessionId && safeId(event.session_id)) {
-          receipt = { ...receipt, sessionId: event.session_id }; await emit();
-          await acceptSession(await protocol.retrieveSession(event.session_id, controller.signal));
-        }
-        if ("session_id" in event && event.session_id !== receipt.sessionId) throw new Error("provider_session_mismatch");
-        if ("turn" in event) { if (!session && receipt.sessionId) await acceptSession(await protocol.retrieveSession(receipt.sessionId, controller.signal)); await acceptTurn(event.turn); }
-        if (event.type === "agent.session.turn.item.added" || event.type === "agent.session.turn.item.done") await acceptItem(event.item, event.type.endsWith(".done"));
-        if (event.type === "agent.session.requires_action") await answerRequired();
-        if (event.type === "agent.session.failed" || event.type === "error" || event.type.startsWith("agent.session.subagent.")) throw new Error("provider_session_failed");
-        if (event.type === "agent.session.idle") { await reconcile(); }
-        const result = finish(); if (result) return result;
+        await acceptEvent(next.value);
+        const result = await finishObservedTerminal(); if (result) return result;
       }
       throw new Error("provider_event_limit");
     } catch (error) {
@@ -202,13 +258,13 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
         try { await cancel(receipt); } catch {}
         // Cancellation acceptance is not terminal. Only retained provider history
         // can establish completion or cancellation after the observer was aborted.
-        if (controller.signal.aborted || hooks.signal.aborted) {
-          try { await reconcile(AbortSignal.timeout(3_000)); const settled = finish(); if (settled) return settled; } catch {}
+        if ((controller.signal.aborted || hooks.signal.aborted) && now() < observationDeadlineAt) {
+          try { await reconcile(AbortSignal.timeout(Math.max(1, Math.min(3_000, observationDeadlineAt - now())))); const settled = finish(); if (settled) return settled; } catch {}
         }
       }
       receipt = managedReceipt({ ...receipt, dispatchState: "unknown", recordedAt: new Date(now()).toISOString() });
       try { await hooks.onReceipt(receipt); } catch {}
-      return namingStageOutcomeSchema.parse({ status: "unresolved", code: controller.signal.aborted ? "observation_cancelled" : reason(error), receipt, partialArtifacts: partials() });
+      return namingStageOutcomeSchema.parse({ status: "unresolved", code: hasObservedOverrun() ? "provider_cost_exceeded" : controller.signal.aborted ? "observation_cancelled" : reason(error), receipt, partialArtifacts: partials() });
     } finally { clearTimeout(timer); hooks.signal.removeEventListener("abort", abort); stream?.close(); controller.abort(); }
   }
   return { runStage: (request, hooks) => execute(request, hooks, null), async resumeStage(receipt, hooks) {

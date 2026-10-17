@@ -9,7 +9,7 @@ const row = () => ({ id: id(4), owner_id: id(1), project_id: id(2), operation: "
 describe("Naming scoped worker store", () => {
   it("claims only V2 and never uses generic finish/settlement", async () => {
     const calls: { sql: string; values: unknown[] }[] = [];
-    const store = new NamingBrainJobStore({ query: async (sql, values = []) => { calls.push({ sql, values }); return { rows: [{ result: sql.includes("claim_naming") ? { mode: "execute", job: row() } : values[2] === "heartbeat" ? { ...row(), recoveryMode: "execute" } : { state: "succeeded" } }] }; } }, "deployment-fixture");
+    const store = new NamingBrainJobStore({ query: async (sql, values = []) => { calls.push({ sql, values }); return { rows: [{ result: sql.includes("claim_naming") ? { mode: "execute", job: row() } : values[2] === "heartbeat" ? { ...row(), recoveryMode: "execute", observationDeadlineAt: null } : { state: "succeeded" } }] }; } }, "deployment-fixture");
     const job = await store.claim("worker-fixture", 120); expect(job?.id).toBe(id(4)); await store.finish(job!, "succeeded");
     expect(calls[2]!.sql).toContain("naming_brain_worker_action"); expect(calls[2]!.values[2]).toBe("finish");
     expect(calls.every(call => !call.sql.includes("public.finish_job") && !call.sql.includes("settle_reservation"))).toBe(true);
@@ -32,7 +32,7 @@ it("observes a stopped known session while conveying durable Stop to the adapter
   const writes: unknown[][] = [];
   const store = new NamingBrainJobStore({ query: async (sql, values = []) => {
     writes.push(values);
-    return { rows: [{ result: sql.includes("claim_naming") ? { mode: "observe_only", job: { ...row(), state: "cancel_requested" } } : values[2] === "heartbeat" ? { ...row(), state: "cancel_requested", recoveryMode: "observe_only" } : {} }] };
+    return { rows: [{ result: sql.includes("claim_naming") ? { mode: "observe_only", job: { ...row(), state: "cancel_requested" } } : values[2] === "heartbeat" ? { ...row(), state: "cancel_requested", recoveryMode: "observe_only", observationDeadlineAt: null } : {} }] };
   } }, "deployment-fixture");
   const job = (await store.claim("fixture", 120))!;
   let cancellations = 0; const detach = store.onCancellation(job, () => { cancellations++; });
