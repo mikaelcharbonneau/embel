@@ -14,6 +14,8 @@ const unavailableReasons: Record<NonNullable<Availability["reason"]>, string> = 
   budget_unavailable: "The approved text budget is unavailable.",
   subscription_unavailable: "The ChatGPT subscription connection is unavailable.",
   quota_unavailable: "The current text request limit is unavailable. Check again when capacity is available.",
+  request_unresolved: "A previous request needs review before another can start. Check its status before trying again.",
+  request_active: "A request is already in progress. Wait for it to finish, then check status.",
 };
 // Preserve the exact admission cap rather than rounding a small API limit to cents.
 const dollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 6 });

@@ -49,6 +49,8 @@ export function strategyAvailabilityMessage(availability: StrategyOverview["avai
     budget_unavailable: "No AI requests are available for this account.",
     subscription_unavailable: "The ChatGPT connection is unavailable.",
     quota_unavailable: "The current AI request limit is unavailable. Recheck when capacity is available.",
+    request_unresolved: "A previous request needs review before another can start. Check its status before trying again.",
+    request_active: "A request is already in progress. Wait for it to finish, then check status.",
   };
   return context === "project"
     ? `${reasons[availability.reason!]} You can still edit and save your project.`

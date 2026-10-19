@@ -103,6 +103,7 @@ type FixtureState = {
   enqueueGate: Promise<void> | null;
   pendingReply: GuidedReply | null;
   runtimeUnavailable: boolean;
+  unavailableReason: "worker_unavailable" | "budget_unavailable" | "request_unresolved" | "request_active";
 };
 const scenarios = new WeakMap<Page, FixtureState>();
 
@@ -111,13 +112,13 @@ async function fixtures(page: Page, { guided = true, seeded = false }: { guided?
   const state: FixtureState = {
     project, owner, jobs: seeded ? [completedJob(queuedJob("strategy.competitors", 1, 1), choiceReply(project.context.intake.guidedInterview!.turns[0]!))] : [],
     enqueues: [], patches: [], creates: [], cancels: [], unhandledWrites: [], externalRequests: [], snapshots: new Map([[1, project.context]]),
-    queueStatus: 202, queueReplies: 0, overviewStatus: 200, overviewReads: 0, patchStatus: 200, losePatchAcknowledgement: false, commitBeforeQueueFailure: false, enqueueGate: null, pendingReply: null, runtimeUnavailable: false,
+    queueStatus: 202, queueReplies: 0, overviewStatus: 200, overviewReads: 0, patchStatus: 200, losePatchAcknowledgement: false, commitBeforeQueueFailure: false, enqueueGate: null, pendingReply: null, runtimeUnavailable: false, unavailableReason: "worker_unavailable",
   };
   await page.route("**/*", async route => {
     const request = route.request(), url = new URL(request.url()), path = url.pathname, method = request.method();
     if (url.hostname !== "127.0.0.1") { state.externalRequests.push(url.origin); return route.abort("blockedbyclient"); }
     if (!path.startsWith("/api/")) return route.continue();
-    const availability = state.runtimeUnavailable ? { status: "unavailable", operations: [], reason: "worker_unavailable" } : { status: "available", operations };
+    const availability = state.runtimeUnavailable ? { status: "unavailable", operations: [], reason: state.unavailableReason } : { status: "available", operations };
     if (path === "/api/session") return json(route, { user: { id: state.owner } });
     if (path === "/api/strategy") return json(route, { availability });
     if (state.owner !== owner) return json(route, {}, 404);
@@ -318,12 +319,53 @@ test("guided interview: Home opens the conversation and keeps the prompt and thi
   expect(state.externalRequests).toEqual([]); expect(state.unhandledWrites).toEqual([]);
 });
 
+for (const [reason, message] of [
+  ["budget_unavailable", "No AI requests are available for this account."],
+  ["request_unresolved", "A previous request needs review before another can start. Check its status before trying again."],
+  ["request_active", "A request is already in progress. Wait for it to finish, then check status."],
+] as const) test(`guided interview: first-turn ${reason} shows its reason and rechecks without creating work`, async ({ page }, info) => {
+  const pageErrors: string[] = []; page.on("pageerror", error => pageErrors.push(error.message));
+  const consoleMessages: string[] = []; page.on("console", message => { if (["warning", "error"].includes(message.type())) consoleMessages.push(`${message.type()}: ${message.text()}`); });
+  const state = await fixtures(page, { guided: false }); state.runtimeUnavailable = true; state.unavailableReason = reason;
+  await openProject(page);
+  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  await expect(page).toHaveTitle(/Embel/);
+  await expect(page.locator("nextjs-portal")).toHaveCount(0);
+  const notice = page.locator(".guided-conversation-error");
+  await expect(notice).toContainText(message);
+  await expect(notice).not.toContainText("Your brief is saved");
+  await expect(page.getByRole("button", { name: "Start competitor research", exact: true })).toBeDisabled();
+  await expect(page.getByRole("status", { name: "Embel is thinking", exact: true })).toHaveCount(0);
+  await expectComposerInViewport(page);
+  await page.screenshot({ path: info.outputPath(`strategy-first-turn-${reason}.png`), scale: "css" });
+  state.runtimeUnavailable = false;
+  await page.getByRole("button", { name: "Check status", exact: true }).click();
+  await expect(notice).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Start competitor research", exact: true })).toBeEnabled();
+  await info.attach("browser-console", { body: JSON.stringify(consoleMessages), contentType: "application/json" });
+  expect(state.enqueues).toEqual([]); expect(state.patches).toEqual([]); expect(state.creates).toEqual([]); expect(pageErrors).toEqual([]);
+});
+
+for (const reason of ["request_unresolved", "request_active"] as const) test(`guided interview: failed research waits for ${reason} to clear before offering retry`, async ({ page }) => {
+  const state = await fixtures(page); state.runtimeUnavailable = true; state.unavailableReason = reason;
+  state.jobs = [strategyJobSchema.parse({ ...queuedJob("strategy.competitors", 1, 1), state: "failed", error_code: "provider_error", finished_at: when })];
+  await openProject(page);
+  await expect(userMessage(page, initialPrompt)).toBeVisible();
+  await expect(page.locator(".guided-conversation-error")).toContainText(reason === "request_unresolved" ? "A previous request needs review" : "A request is already in progress");
+  await expect(page.getByRole("button", { name: "Retry research", exact: true })).toHaveCount(0);
+  await expect(page.locator(".guided-conversation-error")).not.toContainText("You can retry research");
+  state.runtimeUnavailable = false;
+  await page.getByRole("button", { name: "Check status", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Retry research", exact: true })).toBeEnabled();
+  expect(state.enqueues).toEqual([]); expect(state.patches).toEqual([]);
+});
+
 test("guided interview: unavailable AI still saves a Brand and permits acknowledged brief edits", async ({ page }) => {
   const state = await fixtures(page, { guided: false }); state.runtimeUnavailable = true;
   await openHomeAndSend(page);
   await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
   await expect(page.getByRole("button", { name: "Start competitor research", exact: true })).toBeDisabled();
-  await expect(page.getByText("AI replies are unavailable right now. Your brief is saved.", { exact: false })).toBeVisible();
+  await expect(page.getByText("AI replies are unavailable right now. You can still edit and save your project.", { exact: false })).toBeVisible();
   await expect(page.getByRole("status", { name: "Embel is thinking", exact: true })).toHaveCount(0);
   await page.getByText("Project details and editing", { exact: true }).click();
   const brief = page.getByRole("textbox", { name: "Brief description", exact: true });

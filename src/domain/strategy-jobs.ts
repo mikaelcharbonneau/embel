@@ -238,7 +238,7 @@ export const strategyAvailabilitySchema = z.strictObject({
     z.strictObject({ operation: strategyOperationSchema, maximumCostMicrousd: moneySchema, billingMode: z.literal("openai_api").optional(), interviewVersion: z.literal(1).optional() }),
     z.strictObject({ operation: strategyOperationSchema, billingMode: z.literal("chatgpt_subscription"), policyIdentity: subscriptionPolicyIdentitySchema, limits: subscriptionLimitsSchema }),
   ])).max(5),
-  reason: z.enum(["runtime_disabled", "worker_unavailable", "budget_unavailable", "subscription_unavailable", "quota_unavailable"]).optional(),
+  reason: z.enum(["runtime_disabled", "worker_unavailable", "budget_unavailable", "subscription_unavailable", "quota_unavailable", "request_unresolved", "request_active"]).optional(),
 }).refine(value => value.status === "available" ? value.operations.length > 0 && value.reason === undefined : value.operations.length === 0 && value.reason !== undefined, {
   message: "Availability must describe configured, ready and affordable operations",
 });
