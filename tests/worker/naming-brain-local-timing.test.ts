@@ -10,6 +10,7 @@ import { createNamingBrainHandlers } from "../../worker/handlers/naming-brain";
 import { NamingBrainJobStore, normalizeNamingStoredJson } from "../../worker/naming-brain-store";
 import { createTestDatabase, OWNER_A, type TestDatabase } from "../database/local-supabase";
 import { brainRpc, brainWorker, initialIntent, installBrainFixture, seedBrainFixture } from "../database/naming-brain-fixture";
+import { historicalNamingClaimDatabase } from "../database/naming-brain-historical-claim";
 
 const targets = [18, 18, 19, 17, 17, 16, 15, 15, 15];
 type SessionStatus = "completed" | "cancelled" | "in_progress";
@@ -94,7 +95,8 @@ describe("local Naming call clocks and issued-sibling recovery (synthetic SDK HT
       return new Response(JSON.stringify(value), { headers: { "content-type": "application/json" } });
     }) satisfies typeof fetch);
 
-    const store = new NamingBrainJobStore(db, "fixture-deployment");
+    const workerDatabase = await historicalNamingClaimDatabase(db);
+    const store = new NamingBrainJobStore(workerDatabase, "fixture-deployment");
     const job = await brainWorker(db, async () => {
       const job = await store.claim("fixture-worker", 120);
       if (!job) throw new Error("synthetic_local_job_missing");
@@ -164,7 +166,7 @@ describe("local Naming call clocks and issued-sibling recovery (synthetic SDK HT
       await brainWorker(db, async () => { await store.authorizeDispatch(job, request); await store.recordReceipt(job, priorReceipt); });
     }
     await db.query("update public.jobs set lease_expires_at=clock_timestamp()-interval '1 second' where id=$1", [job.id]);
-    const observer = new NamingBrainJobStore(db, "fixture-deployment"), observationStart = requests.length;
+    const observer = new NamingBrainJobStore(workerDatabase, "fixture-deployment"), observationStart = requests.length;
     await brainWorker(db, async () => {
       expect(await observer.expireLeases("fixture-worker")).toBe(1);
       const recovered = await observer.claim("fixture-worker", 120);
@@ -182,7 +184,7 @@ describe("local Naming call clocks and issued-sibling recovery (synthetic SDK HT
     expect((await db.query("select recovery_mode from fluid_private.naming_brain_runs where id=$1", [input.runId])).rows).toEqual([{ recovery_mode: "observe_only" }]);
     sessions.get(creatorRequests[8]!.providerCallKey)!.status = "cancelled";
     await db.query("update fluid_private.naming_brain_runs set next_observation_at=clock_timestamp()-interval '1 second' where id=$1", [input.runId]);
-    const terminalObserver = new NamingBrainJobStore(db, "fixture-deployment");
+    const terminalObserver = new NamingBrainJobStore(workerDatabase, "fixture-deployment");
     await brainWorker(db, async () => {
       const recovered = await terminalObserver.claim("fixture-worker", 120);
       if (!recovered) throw new Error("synthetic_terminal_sibling_recovery_missing");

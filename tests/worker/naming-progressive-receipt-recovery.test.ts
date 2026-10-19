@@ -10,6 +10,7 @@ import { NamingBrainJobStore } from "../../worker/naming-brain-store";
 import { receipt } from "../domain/naming-brain-fixtures";
 import { createTestDatabase } from "../database/local-supabase";
 import { brainWorker, installBrainFixture } from "../database/naming-brain-fixture";
+import { historicalNamingClaimDatabase } from "../database/naming-brain-historical-claim";
 import { progressiveRequest, saveProgressiveOutput, saveProgressivePart, saveProgressiveResearch, seedProgressiveFixture } from "../database/naming-brain-progressive-fixture";
 
 const filename = "20261017171000_local_progressive_receipt_capacity.sql";
@@ -61,7 +62,7 @@ describe("progressive receipt-capacity recovery through the actual SDK and SQL (
       // Synthetic clock eligibility only. Production recovery keeps its original
       // observation schedule and claims normally once it is due.
       await db.query("update fluid_private.naming_brain_runs set next_observation_at=clock_timestamp()-interval '1 second' where id=$1", [f.input.runId]);
-      const store = new NamingBrainJobStore(db, "fixture-deployment"), recovered = await brainWorker(db, () => store.claim("fixture-worker", 120));
+      const store = new NamingBrainJobStore(await historicalNamingClaimDatabase(db), "fixture-deployment"), recovered = await brainWorker(db, () => store.claim("fixture-worker", 120));
       if (!recovered) throw new Error("synthetic_receipt_recovery_claim_missing");
       expect(recovered.id).toBe(f.job.id);
       const methods: string[] = [], wire = buildNamingManagedRequest(request);

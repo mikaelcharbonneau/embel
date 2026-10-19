@@ -5,6 +5,7 @@ import { namingProviderReceiptSchema } from "../../src/domain/naming-brain";
 import { NamingBrainJobStore } from "../../worker/naming-brain-store";
 import { createTestDatabase, OWNER_A, type TestDatabase } from "./local-supabase";
 import { beginBrainStage, brainAction, brainGapEnvelope, brainManifest, brainRpc, brainWorker, claimBrain, initialIntent, installBrainFixture, planBrainCall, seedBrainFixture } from "./naming-brain-fixture";
+import { historicalNamingClaimDatabase } from "./naming-brain-historical-claim";
 
 type Job = Awaited<ReturnType<typeof claimBrain>>["job"];
 // These cases deliberately admit historical seven-stage jobs. The progressive
@@ -50,7 +51,7 @@ describe("known completed Naming evidence and ordinary local continuation (synth
   async function recover(job: Job, stage: "research" | "direction") {
     await brainWorker(db, () => db.query("select public.complete_naming_brain_stage($1,$2,$3,'ambiguous',$4)", [job.id, job.lease_token, stage, { artifactIds: [], errorCode: "provider_output_invalid" }]));
     await db.query("update public.job_steps set created_at=clock_timestamp()-interval '10 minutes' where job_id=$1 and step_key=$2", [job.id, stage]);
-    const store = new NamingBrainJobStore(db, "fixture-deployment");
+    const store = new NamingBrainJobStore(await historicalNamingClaimDatabase(db), "fixture-deployment");
     const recovered = (await brainWorker(db, () => store.claim("fixture-worker", 120)))!;
     expect(recovered.id).toBe(job.id);
     return { store, recovered, raw: { id: recovered.id, lease_token: recovered.leaseToken, input: job.input } };

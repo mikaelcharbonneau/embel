@@ -15,6 +15,8 @@ const emptyFeed={version:1,ownerId:owner,projectId:project,projectRevision:1,pre
 const partialRun={version:1,ownerId:owner,projectId:project,runId:run,jobId:run,batchId:run,revision:1,resumedFromRunId:null,canResume:true,state:"partial",projectRevision:1,preferencesVersion:1,feedbackRevision:0,steeringRevision:0,demandSequence:0,snapshotHash:"a".repeat(64),acceptedPolicyIdentity:"a".repeat(64),progress:40,preparedSetId:null,fulfillment:{status:"none",targetCount:100,acceptedCount:0,missingCount:100,coverageSatisfied:false,message:"Synthetic retained partial exploration."},accounting:{status:"held_unsettled",heldAllowanceMicrousd:5000000,confirmedActualCostMicrousd:null},createdAt:"2026-10-18T05:00:00Z",updatedAt:"2026-10-18T05:01:00Z"};
 const resumableFeed={...emptyFeed,activeRun:partialRun,availability:{status:"available",handlerVersion:"naming-brain-v1",protocol:"openai_agents",acceptedPolicyIdentity:"a".repeat(64)}};
 function localRuntime(){for(const key of Object.keys(process.env))if(key==="VERCEL"||key.startsWith("VERCEL_"))vi.stubEnv(key,undefined);vi.stubEnv("NODE_ENV","production");vi.stubEnv("FLUID_RUNTIME","local");vi.stubEnv("FLUID_LOCAL_PROTOTYPE","true");vi.stubEnv("APP_ORIGIN","http://127.0.0.1:3106");}
+function hostedRuntime(){vi.stubEnv("NODE_ENV","production");vi.stubEnv("FLUID_RUNTIME",undefined);vi.stubEnv("FLUID_LOCAL_PROTOTYPE",undefined);vi.stubEnv("FLUID_HOSTED_NAMING_ENABLED","true");vi.stubEnv("VERCEL","1");vi.stubEnv("VERCEL_ENV","production");vi.stubEnv("VERCEL_TARGET_ENV","production");vi.stubEnv("VERCEL_PROJECT_ID","prj_WKrFUPy3wptZ3qI9l1hTuqPmzkDt");vi.stubEnv("APP_ORIGIN","https://fluid-platform-preview.vercel.app");}
+const hostedAvailable={status:"available",executionAuthority:"hosted_owner_v1"};
 const ctx={params:Promise.resolve({projectId:project,runId:run,jobId:run})};
 const request=(body?:unknown,method="POST",headers:Record<string,string>={},query="")=>new Request(`https://embel.example/api/naming${query}`,{method,headers:{origin:"https://embel.example","content-type":"application/json","X-Embel-Account":owner,...headers},...(body===undefined?{}:{body:JSON.stringify(body)})});
 describe("Naming Brain route account and privacy boundaries",()=>{
@@ -26,6 +28,32 @@ describe("Naming Brain route account and privacy boundaries",()=>{
   mock.rpc.mockResolvedValue({data:blocked,error:null});
   expect(await ensureNextNamingRun(await mock.auth(),project,initialIntent())).toEqual(blocked);
   expect(mock.rpc).toHaveBeenCalledExactlyOnceWith("ensure_local_naming_brain_run",{p_project_id:project,p_intent:initialIntent()});
+ });
+ it("uses hosted admission and independently verifies the owned runtime capability",async()=>{
+  hostedRuntime();const blocked={status:"blocked",feed:emptyFeed,code:"naming_runtime_unavailable",message:"Naming is not configured.",action:"configure"};
+  mock.rpc.mockImplementation(async(name:string)=>({data:name==="get_hosted_naming_availability"?hostedAvailable:blocked,error:null}));
+  expect(await ensureNextNamingRun(await mock.auth(),project,initialIntent())).toEqual(blocked);
+  expect(mock.rpc.mock.calls.map(([name])=>name)).toEqual(["ensure_hosted_naming_brain_run","get_hosted_naming_availability"]);
+  expect(mock.rpc).toHaveBeenCalledWith("get_hosted_naming_availability",{p_project_id:project});
+ });
+ it.each(["resume","prefetch"])("grants hosted %s only with a fresh database capability",async mode=>{
+  hostedRuntime();const activeRun=mode==="resume"?partialRun:{...partialRun,state:"succeeded",canResume:false,preparedSetId:null,localPipelineVersion:2,progressiveCompletionId:run,fulfillment:{status:"complete",targetCount:100,acceptedCount:100,missingCount:0,coverageSatisfied:true,message:null}};
+  mock.rpc.mockImplementation(async(name:string)=>({data:name==="get_hosted_naming_availability"?hostedAvailable:{...resumableFeed,activeRun},error:null}));
+  const response=await feed(request(undefined,"GET"),ctx);expect(response.status).toBe(200);
+  expect((await response.json()).feed[mode==="resume"?"canResumeOnScroll":"canPrefetchOnScroll"]).toBe(true);
+ });
+ it.each(["runtime_disabled","worker_unavailable"])("keeps saved results readable and removes hosted controls when %s",async reason=>{
+  hostedRuntime();mock.rpc.mockImplementation(async(name:string)=>({data:name==="get_hosted_naming_availability"?{status:"unavailable",executionAuthority:"hosted_owner_v1",reason}:{...resumableFeed,canResumeOnScroll:true,canPrefetchOnScroll:true},error:null}));
+  const response=await feed(request(undefined,"GET"),ctx);expect(response.status).toBe(200);const loaded=(await response.json()).feed;
+  expect(loaded.availability.status).toBe("unavailable");expect(loaded.activeRun.runId).toBe(run);
+  expect(loaded).not.toHaveProperty("canResumeOnScroll");expect(loaded).not.toHaveProperty("canPrefetchOnScroll");
+ });
+ it("does not grant hosted continuation from malformed capability data or a foreign feed",async()=>{
+  hostedRuntime();mock.rpc.mockImplementation(async(name:string)=>({data:name==="get_hosted_naming_availability"?{status:"available"}:{...resumableFeed},error:null}));
+  expect((await feed(request(undefined,"GET"),ctx)).status).toBe(503);
+  mock.rpc.mockClear();mock.rpc.mockResolvedValue({data:{...resumableFeed,ownerId:project},error:null});
+  expect((await feed(request(undefined,"GET"),ctx)).status).toBe(404);
+  expect(mock.rpc.mock.calls.map(([name])=>name)).toEqual(["get_naming_feed"]);
  });
  it("reads without admission and rejects non-owned cursors or unbounded query shape",async()=>{
   const response=await feed(request(undefined,"GET"),ctx);expect(response.status).toBe(200);expect(await response.json()).toEqual({feed:emptyFeed});expect(response.headers.get("cache-control")).toBe("private, no-store");

@@ -6,6 +6,7 @@ import { createNamingMicrobatch } from "../../src/domain/naming-brain-progressiv
 import { createProgressiveNamingAssignment } from "../../src/server/ai/naming-brain/progressive-assignments";
 import { guidedStrategyPolicy } from "../../src/server/ai/config";
 import { NamingBrainJobStore } from "../../worker/naming-brain-store";
+import { historicalNamingClaimDatabase } from "./naming-brain-historical-claim";
 import { createTestDatabase, OWNER_A, type TestDatabase } from "./local-supabase";
 import { beginBrainStage, brainAction, brainGapEnvelope, brainManifest, brainRpc, brainWorker, claimBrain, initialIntent, installBrainFixture, planBrainCall, seedBrainFixture, startBrainFixture } from "./naming-brain-fixture";
 import { progressiveRequest, recordProgressiveOutput, saveProgressiveOutput, saveProgressivePart, saveProgressiveResearch, seedProgressiveFixture } from "./naming-brain-progressive-fixture";
@@ -124,7 +125,7 @@ describe("progressive receipt observation capacity over restricted SQL (syntheti
    expect({ ...afterMetadata, body: beforeMetadata.body }).toEqual(beforeMetadata);
    // Synthetic clock eligibility only; live recovery never rewrites a schedule.
    await priorDb.query("update fluid_private.naming_brain_runs set next_observation_at=clock_timestamp()-interval '1 second' where id=$1", [f.input.runId]);
-   const store = new NamingBrainJobStore(priorDb, "fixture-deployment");
+   const store = new NamingBrainJobStore(await historicalNamingClaimDatabase(priorDb), "fixture-deployment");
    const recovered = await brainWorker(priorDb, () => store.claim("fixture-worker", 120));
    expect(recovered?.id).toBe(f.job.id);
    await brainWorker(priorDb, () => store.beginStep(recovered!, "creation", 1_500_000));

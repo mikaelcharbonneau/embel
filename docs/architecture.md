@@ -1,5 +1,20 @@
 # Embel foundation architecture
 
+## Hosted Naming execution
+
+D083 extends the existing owner's progressive Naming flow to the production
+application. A production routing opt-in selects account-scoped hosted RPCs;
+private database capabilities bind the exact owner, pilot, policy, restricted
+worker role and deployment. Future hosted jobs carry a distinct immutable
+authority, and worker claims independently project the trusted execution scope.
+Historical local and normal jobs retain their existing requests and hashes.
+
+The web keeps account persistence and authenticated ownership. The existing
+restricted Mac worker performs provider work outside HTTP lifetimes and retains
+the provider key locally. Its heartbeat gates hosted generation. Deployment of
+the web alone does not keep the Mac worker online. See
+[hosted Naming activation](hosted-naming-generation-20261018.md).
+
 ## Local prototype execution
 
 D077 authorizes a local simplification that preserves the account database,

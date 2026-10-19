@@ -167,6 +167,8 @@ describe("Progressive Naming reviewed publication", () => {
 
   it("retains exact invalid Director closure proof in the successful real handler result", async () => {
     const value = fixture(), backing = createInertNamingHarness({ localPrototype: true });
+    backing.jobRow.input = value.input;
+    await backing.store.claim("synthetic", 120);
     vi.spyOn(backing.store, "loadProgressiveState").mockImplementation(value.store.loadProgressiveState);
     vi.spyOn(backing.store, "saveProgressiveCallPlan").mockImplementation(value.store.saveProgressiveCallPlan);
     vi.spyOn(backing.store, "publishMicrobatch").mockImplementation(value.store.publishMicrobatch);
@@ -237,9 +239,11 @@ describe("Progressive Naming reviewed publication", () => {
   });
 
   it("keeps the native seven-step manifest and uses two real steps only for the versioned local pipeline", async () => {
-    const value = fixture(), native = createInertNamingHarness();
+    const value = fixture(), native = createInertNamingHarness(), authorized = createInertNamingHarness({ localPrototype: true });
     expect(native.handlers.get("naming.generate")!.steps(parseClaimedJob(native.jobRow)).map(row => row.key)).toHaveLength(7);
-    const handlers = createNamingBrainHandlers({ store: native.store, localPrototype: true, assertReady: async () => {} });
+    authorized.jobRow.input = value.input;
+    await authorized.store.claim("synthetic", 120);
+    const handlers = createNamingBrainHandlers({ store: authorized.store, assertReady: async () => {} });
     expect(handlers.get("naming.generate")!.steps(value.job).map(row => row.key)).toEqual(["creation", "prepare"]);
   });
 });

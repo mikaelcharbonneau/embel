@@ -10,6 +10,17 @@ export function isLocalPrototypeRuntime(env: Record<string, string | undefined> 
     !Object.keys(env).some(key => key !== "VERCEL_PROJECT_ID" && /^VERCEL(?:_|$)/u.test(key) && env[key] !== undefined);
 }
 
+/** Production routing opt-in only. The account grant, exact worker binding and
+ * immutable execution authority are independently enforced by the database. */
+export function isHostedNamingRuntime(env: Record<string, string | undefined> = process.env): boolean {
+  return env.FLUID_HOSTED_NAMING_ENABLED === "true" && env.NODE_ENV === "production" &&
+    env.VERCEL === "1" && env.VERCEL_ENV === "production" &&
+    (env.VERCEL_TARGET_ENV === undefined || env.VERCEL_TARGET_ENV === "production") &&
+    env.VERCEL_PROJECT_ID === "prj_WKrFUPy3wptZ3qI9l1hTuqPmzkDt" &&
+    env.APP_ORIGIN === "https://fluid-platform-preview.vercel.app" &&
+    env.FLUID_LOCAL_PROTOTYPE !== "true" && env.FLUID_RUNTIME !== "local";
+}
+
 /** Transport configuration only; signed workload identity, SQL and the worker
  * independently establish permission and runtime readiness. */
 export function getApiTextPublicationOrigin(env: Record<string, string | undefined> = process.env): string | null {

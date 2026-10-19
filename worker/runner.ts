@@ -2,6 +2,8 @@ import { assertAffordableStep, moneySchema, stepOutcomeSchema, type ClaimedJob, 
 
 export interface JobStore {
   claim(workerId: string, leaseSeconds: number): Promise<ClaimedJob | null>;
+  /** An owned database claim can select an explicitly authorized execution profile. */
+  hasUnmeteredExecutionAuthority?(job: ClaimedJob): boolean;
   registerPlan(job: ClaimedJob, manifest: readonly PlannedStep[]): Promise<void>;
   heartbeat(job: ClaimedJob, leaseSeconds: number): Promise<{ cancelled: boolean }>;
   beginStep(job: ClaimedJob, stepKey: string, maximumCostMicrousd: number): Promise<"started" | "already_succeeded">;
@@ -72,7 +74,10 @@ export async function runOneJob(options: {
     return "failed";
   }
   let steps: readonly JobStep[];
+  let unmeteredExecution = false;
   try {
+    // Stores with per-job authority never inherit a process-wide exemption.
+    unmeteredExecution = store.hasUnmeteredExecutionAuthority ? store.hasUnmeteredExecutionAuthority(job) : options.localPrototype === true;
     steps = handler.steps(job);
     if (!steps.length || steps.length > 1_000 || new Set(steps.map(step => step.key)).size !== steps.length) throw new Error("Invalid step plan");
     let plannedCost = 0;
@@ -81,7 +86,7 @@ export async function runOneJob(options: {
       moneySchema.parse(step.maximumCostMicrousd);
       plannedCost += step.maximumCostMicrousd;
       moneySchema.parse(plannedCost);
-      if (!options.localPrototype) assertAffordableStep(job.reservedCostMicrousd, plannedCost);
+      if (!unmeteredExecution) assertAffordableStep(job.reservedCostMicrousd, plannedCost);
       if (step.timeoutMs !== undefined && (!Number.isSafeInteger(step.timeoutMs) || step.timeoutMs < 1 || step.timeoutMs > 3_600_000)) throw new Error("Invalid provider deadline");
     }
   } catch {
@@ -140,11 +145,11 @@ export async function runOneJob(options: {
 
       let outcome: StepOutcome;
       try {
-        try { if (!options.localPrototype) assertAffordableStep(job.reservedCostMicrousd - spent, step.maximumCostMicrousd); }
+        try { if (!unmeteredExecution) assertAffordableStep(job.reservedCostMicrousd - spent, step.maximumCostMicrousd); }
         catch { throw new NotDispatchedError("Cost cap exceeded"); }
         outcome = stepOutcomeSchema.parse(await executeBounded(step, job, controller, abortGraceMs));
         // Keep known spend even if a provider violates the bound; reconcile the overage.
-        if (!options.localPrototype && (outcome.costMicrousd > step.maximumCostMicrousd || spent + outcome.costMicrousd > job.reservedCostMicrousd)) {
+        if (!unmeteredExecution && (outcome.costMicrousd > step.maximumCostMicrousd || spent + outcome.costMicrousd > job.reservedCostMicrousd)) {
           outcome = { status: "needs_reconciliation", code: "provider_cost_exceeded", costMicrousd: outcome.costMicrousd, providerRequestId: outcome.providerRequestId,
             ...("result" in outcome ? { result: outcome.result } : {}) };
         }

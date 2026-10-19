@@ -25,7 +25,7 @@ export function createInertNamingHarness(options: { localPrototype?: boolean; pa
   const store = new NamingBrainJobStore({ query: async (sql, args = []) => {
     const name = sql.match(/public\.(\w+)\(/u)![1]!, action = name === "naming_brain_worker_action" ? String(args[2]) : undefined, payload = action ? JSON.parse(String(args[3])) : undefined;
     log.push({ name, action, payload }); let result: unknown = true;
-    if (name === "claim_naming_brain_job") { result = claimed ? null : { mode, job: jobRow }; claimed = true; }
+    if (name === "claim_naming_brain_job") { result = claimed ? null : { mode, executionAuthority: options.localPrototype ? "local_owner_v1" : null, job: jobRow }; claimed = true; }
     else if (name === "authorize_naming_brain_dispatch") {
       const request = JSON.parse(String(args[2])) as NamingStageRequest, stage = stages.get(request.stageKey)!;
       if (mode !== "execute" || !ready || stage.requests.some(row => row.providerCallKey === request.providerCallKey) || !stage.callPlans.some(plan => plan.calls.some(call => call.requestHash === request.requestHash))) result = false;

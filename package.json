@@ -18,6 +18,7 @@
     "test:e2e": "playwright test",
     "test:live": "vitest run --config vitest.live.config.ts",
     "worker": "node --conditions=react-server --import tsx worker/index.ts",
+    "worker:naming": "node scripts/naming-worker.mjs",
     "check": "npm run typecheck && npm run lint && npm test && npm run build",
     "build:api-text-worker": "node scripts/build-api-text-worker.mjs"
   },
