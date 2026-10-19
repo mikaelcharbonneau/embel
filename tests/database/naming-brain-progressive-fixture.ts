@@ -10,6 +10,7 @@ import { createProgressiveNamingAssignment, progressivePartKey } from "../../src
 import { NamingBrainJobStore, normalizeNamingStoredJson } from "../../worker/naming-brain-store";
 import { OWNER_A, type TestDatabase } from "./local-supabase";
 import { attestBrainPreferences, brainPreferences, brainRpc, brainWorker, initialIntent, seedBrainFixture } from "./naming-brain-fixture";
+import { historicalNamingClaimDatabase } from "./naming-brain-historical-claim";
 
 /** Synthetic provider evidence only. Every plan, authorization, receipt, original
  * item, terminal turn, artifact and publication uses the restricted SQL gateway. */
@@ -22,7 +23,7 @@ export async function seedProgressiveFixture(db: TestDatabase, approaches: Namin
  }
  const intent = { ...initialIntent("synthetic-progressive-initial"), expectedPreferencesVersion: approaches.length === 1 && approaches[0] === "real_words" ? 1 : 2 };
  const admission = await brainRpc(db, "ensure_local_naming_brain_run", [project, intent]);
- const store = new NamingBrainJobStore(db, "fixture-deployment");
+ const store = new NamingBrainJobStore(await historicalNamingClaimDatabase(db), "fixture-deployment");
  const job = await brainWorker(db, () => store.claim("fixture-worker", 120)); if (!job) throw Error("synthetic_progressive_job_missing");
  const input = namingBrainJobInputSchema.parse(normalizeNamingStoredJson(job.input));
  await brainWorker(db, () => store.registerPlan(job, [{ key: "creation", maximumCostMicrousd: 1_500_000 }, { key: "prepare", maximumCostMicrousd: 0 }]));

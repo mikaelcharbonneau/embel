@@ -12,6 +12,7 @@ import { NamingBrainJobStore } from "../../worker/naming-brain-store";
 import { createTestDatabase, OWNER_A, type TestDatabase } from "../database/local-supabase";
 import { brainRpc, brainWorker, installBrainFixture } from "../database/naming-brain-fixture";
 import { progressiveRequest, saveProgressivePart, saveProgressiveResearch, seedProgressiveFixture } from "../database/naming-brain-progressive-fixture";
+import { seedHostedNamingFixture } from "../database/hosted-naming-fixture";
 
 function deferred() {
   let resolve = () => {};
@@ -42,9 +43,14 @@ describe("progressive Naming through the actual SDK and migrated SQL", () => {
   beforeAll(async () => { db = await createTestDatabase(); await installBrainFixture(db); }, 30_000);
   afterAll(async () => { await db?.close(); });
 
-  it.each(["completed", "failed"] as const)("publishes before context, reuses a saved plan after reclaim and finalizes100 with a %s Director", async directorStatus => {
-    const value = await seedProgressiveFixture(db);
+  it.each([
+    { origin: "local", directorStatus: "completed" }, { origin: "local", directorStatus: "failed" },
+    { origin: "hosted", directorStatus: "completed" }, { origin: "hosted", directorStatus: "failed" },
+  ] as const)("publishes before context, recovers an exact plan and finalizes100 for $origin with a $directorStatus Director", async ({ origin, directorStatus }) => {
+    const value = origin === "hosted" ? await seedHostedNamingFixture(db) : await seedProgressiveFixture(db);
+    const admissionFunction = origin === "hosted" ? "ensure_hosted_naming_brain_run" : "ensure_local_naming_brain_run";
     expect(value.input.localPipelineVersion).toBe(2);
+    expect(value.input.executionAuthority).toBe(origin === "hosted" ? "hosted_owner_v1" : undefined);
     const requests = new Map<string, NamingStageRequest>();
     const histories = new Map<string, { session: object; turn: object; items: object[] }>();
     const creates: string[] = [], firstPublished = deferred(), releasePublication = deferred(), context = deferred(), siblings = deferred(), savedUnissued = deferred(), directorSaved = deferred();
@@ -75,7 +81,7 @@ describe("progressive Naming through the actual SDK and migrated SQL", () => {
       ], facts: [], interpretations: [], uncertainties: ["Synthetic research attempts do not establish real factual claims."] };
       if (request.input.role === "director") return { role: "director", round: "initial", assignments: request.input.snapshot.preferences.approaches.map((approach, index) => ({
         assignmentKey: `guide-${approach}`, primaryApproach: approach, additionalApproaches: [], territoryId: index % 2 ? "rhythm" : "objects", constructionKey: `guide-${index}`,
-        direction: "Explore distinct imaginative associations.", targetCount: 50, sourceKeys: [], avoidPatterns: [], freshTerritory: false,
+        direction: "Explore distinct imaginative associations.", targetCount: 150 / request.input.snapshot.preferences.approaches.length, sourceKeys: [], avoidPatterns: [], freshTerritory: false,
       })), feedbackHypotheses: [] };
       if (request.input.role === "creator") {
         const assignment = request.input.assignment;
@@ -128,8 +134,8 @@ describe("progressive Naming through the actual SDK and migrated SQL", () => {
       ].map((event, index) => `data: ${JSON.stringify({ ...event, event_id: `event_${key}_${index}` })}\n\n`).join("");
       return new Response(events, { headers: { "content-type": "text/event-stream", "x-request-id": `req_${key.replaceAll(".", "_")}` } });
     } });
-    const handlers = (store: NamingBrainJobStore) => createNamingBrainHandlers({ store, localPrototype: true, assertReady: async () => {},
-      runtime: job => createNamingAgentRuntime({ protocol, model: value.input.policy.model, localPrototype: true, persistence: store.runtimePersistence(job), assertContinuation: () => store.assertContinuation(job) }) });
+    const handlers = (store: NamingBrainJobStore) => createNamingBrainHandlers({ store, assertReady: async () => {},
+      runtime: job => createNamingAgentRuntime({ protocol, model: value.input.policy.model, localPrototype: store.hasUnmeteredExecutionAuthority(job), persistence: store.runtimePersistence(job), assertContinuation: () => store.assertContinuation(job) }) });
     const { auth, readCalls } = serverReader(db);
     const creation = handlers(value.store).get("naming.generate")!.steps(value.job)[0]!;
     const pending = brainWorker(db, () => creation.execute({ job: value.job, signal: new AbortController().signal }));
@@ -139,6 +145,8 @@ describe("progressive Naming through the actual SDK and migrated SQL", () => {
       const feed = await getNamingFeed(auth, value.project), run = await getNamingBrainRun(auth, value.project, value.input.runId);
       expect(feed.entries).toHaveLength(4); expect(feed.progressive).toEqual({ version: 1, targetCount: 100, publishedCount: 4 });
       expect(feed.activeRun).toMatchObject({ state: "running", progress: 4, preparedSetId: null, fulfillment: { status: "partial", acceptedCount: 4 } });
+      expect(feed.activeRun?.executionAuthority).toBe(value.input.executionAuthority);
+      expect(run.executionAuthority).toBe(value.input.executionAuthority);
       expect(run.stages.map(stage => [stage.stageKey, stage.state])).toEqual([["creation", "running"], ["prepare", "pending"]]);
       expect(readCalls).toContain("get_naming_brain_candidate_sources");
       expect(creates).not.toContain("context.direction.director");
@@ -189,14 +197,14 @@ describe("progressive Naming through the actual SDK and migrated SQL", () => {
       const batch = await getNamingBatch(auth, value.project, value.input.batchId);
       expect(batch.result?.candidateIds).toHaveLength(100);
       expect(new Set(batch.result?.candidateIds)).toEqual(new Set(complete.entries.map(row => row.entry.candidate.id)));
-      const replay = await brainRpc<{ status: string; appendedEntryIds: string[] }>(db, "ensure_local_naming_brain_run", [value.project, value.intent]);
+      const replay = await brainRpc<{ status: string; appendedEntryIds: string[] }>(db, admissionFunction, [value.project, value.intent]);
       expect(replay).toMatchObject({ status: "appended", appendedEntryIds: [] });
       const createdBeforeStop = creates.length;
       await brainRpc(db, "stop_naming_feed", [value.project, { version: 1, expectedDemandSequence: complete.demandSequence,
         pendingEnsureIdempotencyKey: null, idempotencyKey: "synthetic-progressive-stop-complete" }]);
       const stopped = await getNamingFeed(auth, value.project), savedRun = stopped.activeRun!;
       expect(stopped.paused).toBe(true); expect(savedRun).toMatchObject({ runId: value.input.runId, canResume: true, canResumeSaved: true, preparedSetId: null, progressiveCompletionId: expect.any(String) });
-      const continued = await brainRpc(db, "ensure_local_naming_brain_run", [value.project, { version: 1, reason: "resume", expectedProjectRevision: stopped.projectRevision,
+      const continued = await brainRpc(db, admissionFunction, [value.project, { version: 1, reason: "resume", expectedProjectRevision: stopped.projectRevision,
         expectedPreferencesVersion: stopped.preferencesVersion, expectedSteeringRevision: stopped.steeringRevision, expectedDemandSequence: stopped.demandSequence,
         resumeOfRunId: savedRun.runId, expectedRunRevision: savedRun.revision, consumedThrough: { entryId: complete.entries.at(-1)!.entryId, position: 100 }, idempotencyKey: "synthetic-progressive-continue-saved" }]);
       expect(continued).toMatchObject({ status: "appended", runId: value.input.runId, appendedEntryIds: [] });

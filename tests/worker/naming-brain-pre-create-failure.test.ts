@@ -9,6 +9,7 @@ import { createNamingAgentRuntime, type NamingRuntimePersistence } from "../../s
 import { createNamingBrainHandlers } from "../../worker/handlers/naming-brain";
 import { NamingBrainJobStore } from "../../worker/naming-brain-store";
 import { runOneJob } from "../../worker/runner";
+import { historicalNamingClaimDatabase } from "../database/naming-brain-historical-claim";
 import { createTestDatabase, OWNER_A, type TestDatabase } from "../database/local-supabase";
 import { brainRpc, brainWorker, initialIntent, installBrainFixture, seedBrainFixture } from "../database/naming-brain-fixture";
 
@@ -94,7 +95,7 @@ describe("local pre-create proof through SDK transport, worker and SQL", () => {
         await super.recordReceipt(job, receipt);
       }
     }
-    const store = new FaultStore(db, "fixture-deployment");
+    const store = new FaultStore(await historicalNamingClaimDatabase(db), "fixture-deployment");
     const handlers = createNamingBrainHandlers({ store, localPrototype: local, assertReady: async () => {}, runtime: (job, input) => {
       const runtime = createNamingAgentRuntime({ model: input.policy.model, protocol, localPrototype: local, persistence: store.runtimePersistence(job), assertContinuation: () => store.assertContinuation(job) });
       lastRuntime = runtime;

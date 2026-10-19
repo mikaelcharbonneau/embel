@@ -12,9 +12,13 @@ describe("Naming seven-stage scoped worker", () => {
     for (const step of steps) expect(step.timeoutMs).toBe(localPrototype && ["creation", "gap"].includes(step.key) ? 3_600_000 : 270_000);
     expect(test.dispatched).toEqual([]);
   });
-  it.each([true, false])("uses new generous timing only with both local runtime and immutable input witness (%s)", async localPrototype => {
+  it.each([true, false])("uses new generous timing only with both claimed authority and immutable input witness (%s)", async localPrototype => {
     const test = createInertNamingHarness({ localPrototype });
     test.jobRow.input = namingBrainJobInputSchema.parse({ ...test.input, localTimingVersion: 2 });
+    if (!localPrototype) {
+      await expect(test.store.claim("synthetic", 120)).rejects.toThrow("naming_execution_authority_mismatch");
+      expect(test.dispatched).toEqual([]); return;
+    }
     const job = (await test.store.claim("synthetic", 120))!;
     for (const step of test.handlers.get("naming.generate")!.steps(job)) {
       const expected = !localPrototype || step.key === "prepare" ? 270_000 : ["creation", "gap"].includes(step.key) ? 3_600_000 : 1_200_000;

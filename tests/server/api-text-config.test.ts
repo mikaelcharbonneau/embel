@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-import { getApiTextPublicationOrigin, isLocalPrototypeRuntime } from "../../src/server/api-text/config";
+import { getApiTextPublicationOrigin, isHostedNamingRuntime, isLocalPrototypeRuntime } from "../../src/server/api-text/config";
 
 const workerOrigin = "https://fluid-api-text-worker-qualified.vercel.app";
 const projectId = "prj_WKrFUPy3wptZ3qI9l1hTuqPmzkDt";
@@ -11,6 +11,25 @@ const local: Record<string, string | undefined> = {
   VERCEL_PROJECT_ID: projectId,
   FLUID_API_TEXT_WORKER_ORIGIN: workerOrigin,
 };
+
+describe("hosted Naming routing boundary", () => {
+  const hosted = { FLUID_HOSTED_NAMING_ENABLED: "true", NODE_ENV: "production", VERCEL: "1", VERCEL_ENV: "production", VERCEL_PROJECT_ID: projectId, APP_ORIGIN: "https://fluid-platform-preview.vercel.app" };
+  it("routes only the explicitly enabled production application to account-scoped SQL", () => {
+    expect(isHostedNamingRuntime(hosted)).toBe(true);
+    expect(isHostedNamingRuntime({ ...hosted, VERCEL_TARGET_ENV: "production" })).toBe(true);
+    expect(isLocalPrototypeRuntime(hosted)).toBe(false);
+  });
+  it.each([
+    ["FLUID_HOSTED_NAMING_ENABLED", undefined], ["FLUID_HOSTED_NAMING_ENABLED", "TRUE"],
+    ["NODE_ENV", "development"], ["NODE_ENV", "test"], ["VERCEL", undefined], ["VERCEL", "0"],
+    ["VERCEL_ENV", "preview"], ["VERCEL_ENV", undefined], ["VERCEL_TARGET_ENV", "preview"],
+    ["VERCEL_PROJECT_ID", "other"], ["VERCEL_PROJECT_ID", undefined],
+    ["APP_ORIGIN", "http://127.0.0.1:3106"], ["APP_ORIGIN", "https://fluid-platform-preview.vercel.app/"],
+    ["APP_ORIGIN", "https://unrelated.vercel.app"], ["FLUID_LOCAL_PROTOTYPE", "true"], ["FLUID_RUNTIME", "local"],
+  ])("rejects an unapproved hosted identity %s=%s", (key, value) => {
+    expect(isHostedNamingRuntime({ ...hosted, [key!]: value })).toBe(false);
+  });
+});
 
 describe("local prototype runtime boundary", () => {
   const prototype = { FLUID_LOCAL_PROTOTYPE: "true", FLUID_RUNTIME: "local", NODE_ENV: "production", APP_ORIGIN: "http://127.0.0.1:3106" };

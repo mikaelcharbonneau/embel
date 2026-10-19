@@ -28,6 +28,8 @@ const progressiveStateSchema = z.strictObject({ stage: progressiveStageSchema, p
 export type NamingSavedStage = Omit<z.infer<typeof stageSchema>, "callPlans"> & { callPlans: { phase: string; calls: z.infer<typeof allocationSchema>[] }[] };
 export type NamingProgressiveState = z.infer<typeof progressiveStateSchema>;
 export type NamingGapPhase = "direction" | "creation" | "curation" | "verification";
+const executionAuthoritySchema = z.enum(["local_owner_v1", "hosted_owner_v1"]).nullable();
+type NamingExecutionAuthority = z.infer<typeof executionAuthoritySchema>;
 
 /** Reconstruct the established derived key after PostgreSQL JSONB serialization; substantive data is unchanged. */
 export function normalizeNamingStoredJson(value: unknown): unknown {
@@ -44,6 +46,7 @@ function jobInput(job: ClaimedJob) {
 }
 
 export class NamingBrainJobStore implements JobStore {
+  private readonly claimedAuthorities = new Map<string, { leaseToken: string; inputHash: string; authority: NamingExecutionAuthority }>();
   private readonly observedOnly = new Set<string>();
   private readonly stoppedJobs = new Set<string>();
   private readonly cancellationListeners = new Map<string, Set<() => void>>();
@@ -75,14 +78,33 @@ export class NamingBrainJobStore implements JobStore {
   async expireLeases(workerId: string) { return z.number().int().nonnegative().parse(await this.rpc("expire_naming_brain_leases", [workerId, this.deploymentId])); }
   async claim(workerId: string, leaseSeconds: number): Promise<ClaimedJob | null> {
     const raw = await this.rpc("claim_naming_brain_job", [workerId, this.deploymentId, leaseSeconds]); if (raw === null) return null;
-    const parsed = z.object({ mode: z.enum(["execute", "observe_only"]), job: z.object({ billing_mode: z.literal("openai_api") }).passthrough() }).parse(raw);
-    const job = parseClaimedJob(parsed.job); jobInput(job); if (!["running", "cancel_requested"].includes(job.status)) throw new Error("naming_claim_state_invalid"); if (parsed.mode === "observe_only") this.observedOnly.add(job.id); else this.observedOnly.delete(job.id); if (job.status === "cancel_requested") this.stoppedJobs.add(job.id); return job;
+    const parsed = z.object({ mode: z.enum(["execute", "observe_only"]), executionAuthority: executionAuthoritySchema.optional(), job: z.object({ billing_mode: z.literal("openai_api") }).passthrough() }).parse(raw);
+    const job = parseClaimedJob(parsed.job), input = jobInput(job), authority = parsed.executionAuthority ?? null;
+    if (!["running", "cancel_requested"].includes(job.status)) throw new Error("naming_claim_state_invalid");
+    if ((input.executionAuthority === "hosted_owner_v1") !== (authority === "hosted_owner_v1")
+      || authority === null && (input.localTimingVersion !== undefined || input.localPipelineVersion !== undefined)) throw new Error("naming_execution_authority_mismatch");
+    this.claimedAuthorities.set(job.id, { leaseToken: job.leaseToken, inputHash: namingHash(input), authority });
+    if (parsed.mode === "observe_only") this.observedOnly.add(job.id); else this.observedOnly.delete(job.id);
+    if (job.status === "cancel_requested") this.stoppedJobs.add(job.id); return job;
   }
+  /** The database attests immutable admission origin independently of process
+   * location and current enablement. SQL still gates every new dispatch. */
+  executionAuthority(job: ClaimedJob): NamingExecutionAuthority {
+    const input = jobInput(job), claimed = this.claimedAuthorities.get(job.id);
+    if (!claimed) {
+      if (input.executionAuthority || input.localTimingVersion || input.localPipelineVersion) throw new Error("naming_execution_authority_missing");
+      return null;
+    }
+    if (claimed.leaseToken !== job.leaseToken || claimed.inputHash !== namingHash(input)) throw new Error("naming_execution_authority_mismatch");
+    return claimed.authority;
+  }
+  hasUnmeteredExecutionAuthority(job: ClaimedJob): boolean { return this.executionAuthority(job) !== null; }
   async heartbeat(job: ClaimedJob, leaseSeconds: number) {
     const raw = z.object({ recoveryMode: z.enum(["execute", "observe_only"]), observationDeadlineAt: z.iso.datetime({ offset: true }).nullable() }).passthrough().parse(await this.action(job, "heartbeat", { leaseSeconds }));
     const current = parseClaimedJob(raw);
+    if (current.id !== job.id || current.ownerId !== job.ownerId || current.projectId !== job.projectId || current.leaseToken !== job.leaseToken
+      || namingHash(jobInput(current)) !== namingHash(jobInput(job))) throw new Error("naming_lease_mismatch");
     if (current.status === "cancel_requested") { this.stoppedJobs.add(job.id); for (const listener of this.cancellationListeners.get(job.id) ?? []) listener(); }
-    if (current.id !== job.id || current.ownerId !== job.ownerId || current.projectId !== job.projectId || current.leaseToken !== job.leaseToken) throw new Error("naming_lease_mismatch");
     if (raw.recoveryMode === "observe_only") this.observedOnly.add(job.id); else this.observedOnly.delete(job.id);
     return { cancelled: current.status === "cancel_requested" && !this.observedOnly.has(job.id) };
   }
@@ -109,6 +131,7 @@ export class NamingBrainJobStore implements JobStore {
     const lease = await this.heartbeat(job, 120); if (lease.cancelled || this.stoppedJobs.has(job.id)) state = "cancelled";
     await this.action(job, "finish", { state, errorCode: state === "failed" || state === "partial" ? "naming_incomplete" : null });
     this.observedOnly.delete(job.id); this.stoppedJobs.delete(job.id); this.cancellationListeners.delete(job.id);
+    this.claimedAuthorities.delete(job.id);
   }
   async loadStage(job: ClaimedJob, stageKey: NamingStageKey): Promise<NamingSavedStage> {
     const input = jobInput(job), stage = (input.localPipelineVersion === 2 ? progressiveStageSchema : stageSchema).parse(await this.action(job, "stage", { stageKey }));

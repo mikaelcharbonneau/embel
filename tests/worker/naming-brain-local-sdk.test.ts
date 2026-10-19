@@ -10,6 +10,7 @@ import { namingHash, namingTextHash } from "../../src/server/ai/naming-brain/ide
 import { createNamingReferenceReader } from "../../src/server/ai/naming-brain/source-reader";
 import { createNamingAgentRuntime } from "../../src/server/ai/naming-brain/transport";
 import { createNamingBrainHandlers } from "../../worker/handlers/naming-brain";
+import { historicalNamingClaimDatabase } from "../database/naming-brain-historical-claim";
 import { NamingBrainJobStore, normalizeNamingStoredJson } from "../../worker/naming-brain-store";
 import { createTestDatabase, OWNER_A, type TestDatabase } from "../database/local-supabase";
 import { beginBrainStage, brainRpc, brainWorker, initialIntent, installBrainFixture, saveBrainArtifact, seedBrainFixture, startBrainFixture } from "../database/naming-brain-fixture";
@@ -107,7 +108,7 @@ describe("local Naming SDK session through handler, worker store and migrated SQ
 
     // The no-reference case retains the default factory wiring proof. The
     // reference case substitutes only inert DNS/page I/O; SDK and SQL stay real.
-    const store = new NamingBrainJobStore(db, "fixture-deployment");
+    const store = new NamingBrainJobStore(await historicalNamingClaimDatabase(db), "fixture-deployment");
     const handlers = createNamingBrainHandlers({ store, apiKey: "synthetic-local-sdk-key", localPrototype: true, assertReady: async () => {},
       ...(withReference ? { runtime: (job, input) => createNamingAgentRuntime({ apiKey: "synthetic-local-sdk-key", model: input.policy.model, localPrototype: true, persistence: store.runtimePersistence(job), referenceReader, assertContinuation: () => store.assertContinuation(job) }) } : {}),
     });
@@ -155,13 +156,13 @@ describe("local Naming SDK session through handler, worker store and migrated SQ
     // Expire only the disposable database lease, then use the same reclaim and
     // stage-admission path as a restarted worker. Immutable research stays intact.
     await db.query("update public.jobs set lease_expires_at=clock_timestamp()-interval '1 second' where id=$1", [admitted.run.jobId]);
-    const restarted = new NamingBrainJobStore(db, "fixture-deployment");
+    const restarted = new NamingBrainJobStore(await historicalNamingClaimDatabase(db), "fixture-deployment");
     const recovered = await brainWorker(db, async () => {
       expect(await restarted.expireLeases("fixture-worker")).toBe(1);
       const recovered = await restarted.claim("fixture-worker", 120);
       expect(recovered?.id).toBe(admitted.run.jobId);
       if (!recovered) throw new Error("synthetic_local_recovery_missing");
-      const steps = handlers.get(recovered.operation)!.steps(recovered);
+      const steps = createNamingBrainHandlers({ store: restarted, assertReady: async () => {} }).get(recovered.operation)!.steps(recovered);
       const research = steps.find(step => step.key === "research")!, direction = steps.find(step => step.key === "direction")!;
       expect(await restarted.beginStep(recovered, research.key, research.maximumCostMicrousd)).toBe("already_succeeded");
       expect(await restarted.beginStep(recovered, direction.key, direction.maximumCostMicrousd)).toBe("started");
@@ -214,16 +215,16 @@ describe("local Naming SDK session through handler, worker store and migrated SQ
         if (!value) throw new Error("unexpected_synthetic_director_route");
         return new Response(JSON.stringify(value), { headers: { "content-type": "application/json" } });
       }) satisfies typeof fetch);
-      const observer = new NamingBrainJobStore(db, "fixture-deployment");
+      const observer = new NamingBrainJobStore(await historicalNamingClaimDatabase(db), "fixture-deployment");
       await brainWorker(db, async () => {
         expect(await observer.expireLeases("fixture-worker")).toBe(1);
         const job = await observer.claim("fixture-worker", 120);
         if (!job) throw new Error("synthetic_director_observation_missing");
-        const direction = handlers.get(job.operation)!.steps(job).find(step => step.key === "direction")!;
+        const recoveringHandlers = createNamingBrainHandlers({ store: observer, apiKey: "synthetic-local-sdk-key", assertReady: async () => {} });
+        const direction = recoveringHandlers.get(job.operation)!.steps(job).find(step => step.key === "direction")!;
         expect(await observer.beginStep(job, direction.key, direction.maximumCostMicrousd)).toBe("started");
         // Use the recovering store for every persistence callback, just as a new
         // worker process does after the expired lease has been reclaimed.
-        const recoveringHandlers = createNamingBrainHandlers({ store: observer, apiKey: "synthetic-local-sdk-key", localPrototype: true, assertReady: async () => {} });
         const outcome = await recoveringHandlers.get(job.operation)!.steps(job).find(step => step.key === "direction")!.execute({ job, signal: new AbortController().signal });
         expect(outcome).toMatchObject({ status: "succeeded", costMicrousd: 0 });
         // Completion commits before this deliberate acknowledgement failure. A
@@ -235,7 +236,7 @@ describe("local Naming SDK session through handler, worker store and migrated SQ
         } else {
           await observer.completeStep(job, "direction", outcome);
           await expect(observer.assertContinuation(job)).rejects.toThrow("naming_observe_only");
-          const creation = handlers.get(job.operation)!.steps(job).find(step => step.key === "creation")!;
+          const creation = recoveringHandlers.get(job.operation)!.steps(job).find(step => step.key === "creation")!;
           await expect(observer.beginStep(job, creation.key, creation.maximumCostMicrousd)).rejects.toMatchObject({ message: "runtime_unavailable" });
         }
       });
@@ -250,12 +251,12 @@ describe("local Naming SDK session through handler, worker store and migrated SQ
       expect((await db.query("select request from fluid_private.naming_brain_calls where run_id=$1 order by stage_key", [input.runId])).rows).toEqual(originalCalls);
       if (withReference) {
         await db.query("update public.jobs set lease_expires_at=clock_timestamp()-interval '1 second' where id=$1", [recovered.id]);
-        const afterCrash = new NamingBrainJobStore(db, "fixture-deployment");
+        const afterCrash = new NamingBrainJobStore(await historicalNamingClaimDatabase(db), "fixture-deployment");
         const pendingSibling = await brainWorker(db, async () => {
           expect(await afterCrash.expireLeases("fixture-worker")).toBe(1);
           const job = await afterCrash.claim("fixture-worker", 120);
           if (!job) throw new Error("synthetic_completed_director_reclaim_missing");
-          const steps = handlers.get(job.operation)!.steps(job);
+          const steps = createNamingBrainHandlers({ store: afterCrash, assertReady: async () => {} }).get(job.operation)!.steps(job);
           for (const key of ["research", "direction"] as const) {
             const step = steps.find(row => row.key === key)!;
             expect(await afterCrash.beginStep(job, key, step.maximumCostMicrousd)).toBe("already_succeeded");

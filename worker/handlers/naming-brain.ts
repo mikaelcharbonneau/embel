@@ -17,7 +17,10 @@ import { NamingBrainJobStore, normalizeNamingStoredJson, type NamingGapPhase, ty
 import type { HandlerRegistry } from "../runner";
 import { executeProgressiveNaming, hasSettledProgressiveDirectorFailure } from "./naming-progressive";
 
-type Options = { store: NamingBrainJobStore; apiKey?: string; localPrototype?: boolean; assertReady(): Promise<void>; runtime?: (job: ClaimedJob, input: NamingBrainJobInput) => NamingAgentRuntime };
+type Options = { store: NamingBrainJobStore; apiKey?: string;
+  /** Retained for caller compatibility; process location grants no job authority. */
+  localPrototype?: boolean;
+  assertReady(): Promise<void>; runtime?: (job: ClaimedJob, input: NamingBrainJobInput) => NamingAgentRuntime };
 const allCompleted = (outcomes: readonly NamingStageOutcome[]): boolean => outcomes.every(row => row.status === "completed");
 const artifacts = (stages: readonly NamingSavedStage[]) => stages.flatMap(stage => stage.artifacts);
 function one<T extends NamingRoleOutput>(rows: readonly NamingRoleOutput[], predicate: (row: NamingRoleOutput) => row is T): T {
@@ -54,13 +57,16 @@ export function namingSavedCandidatePool(input: NamingBrainJobInput, stages: rea
 export function createNamingBrainHandlers(options: Options): HandlerRegistry {
   const { store } = options;
   const checkedInput = (job: ClaimedJob) => namingBrainJobInputSchema.parse(normalizeNamingStoredJson(job.input));
+  const compatibilityExecution = (job: ClaimedJob) => store.hasUnmeteredExecutionAuthority(job);
   async function readiness(job: ClaimedJob) { await options.assertReady(); await store.assertContinuation(job); }
-  const runtime = (job: ClaimedJob, input: NamingBrainJobInput) => options.runtime?.(job, input) ?? createNamingAgentRuntime({ apiKey: options.apiKey, model: input.policy.model, localPrototype: options.localPrototype, persistence: store.runtimePersistence(job), assertContinuation: () => readiness(job) });
-  const request = (input: NamingBrainJobInput, stageKey: NamingStageKey, roleInput: NamingStageInput, dependencies: string[], cents?: number, searches?: number) => createNamingRoleRequest({ runId: input.runId, stageKey,
-    providerCallKey: `${stageKey}-${roleInput.role}${roleInput.role === "creator" ? `-${roleInput.assignment.assignmentKey}` : ""}`, input: roleInput, dependencyArtifactIds: [...new Set(dependencies)], policy: createNamingRolePolicy(input.policy, stageKey, roleInput.role, cents, searches, options.localPrototype, options.localPrototype && input.localTimingVersion === 2 ? 900_000 : 240_000) });
+  // localPrototype is the retained provider-profile option, not runtime detection.
+  // Only the exact database claim selects it for local or hosted-owned work.
+  const runtime = (job: ClaimedJob, input: NamingBrainJobInput) => options.runtime?.(job, input) ?? createNamingAgentRuntime({ apiKey: options.apiKey, model: input.policy.model, localPrototype: compatibilityExecution(job), persistence: store.runtimePersistence(job), assertContinuation: () => readiness(job) });
+  const request = (job: ClaimedJob, input: NamingBrainJobInput, stageKey: NamingStageKey, roleInput: NamingStageInput, dependencies: string[], cents?: number, searches?: number) => createNamingRoleRequest({ runId: input.runId, stageKey,
+    providerCallKey: `${stageKey}-${roleInput.role}${roleInput.role === "creator" ? `-${roleInput.assignment.assignmentKey}` : ""}`, input: roleInput, dependencyArtifactIds: [...new Set(dependencies)], policy: createNamingRolePolicy(input.policy, stageKey, roleInput.role, cents, searches, compatibilityExecution(job), compatibilityExecution(job) && input.localTimingVersion === 2 ? 900_000 : 240_000) });
 
-  function retainedLocalNoDispatch(stage: NamingSavedStage, desired: NamingStageRequest): NamingStageOutcome | null {
-    if (!options.localPrototype || desired.policy.budgetControl !== "local_unlimited_v1"
+  function retainedLocalNoDispatch(job: ClaimedJob, stage: NamingSavedStage, desired: NamingStageRequest): NamingStageOutcome | null {
+    if (!compatibilityExecution(job) || desired.policy.budgetControl !== "local_unlimited_v1"
       || stage.providerItems.some(row => row.providerCallKey === desired.providerCallKey) || stage.providerTurns.some(row => row.providerCallKey === desired.providerCallKey)
       || stage.toolResults.some(row => row.providerCallKey === desired.providerCallKey)) return null;
     const receipts = stage.receipts.filter(row => row.providerCallKey === desired.providerCallKey);
@@ -81,7 +87,7 @@ export function createNamingBrainHandlers(options: Options): HandlerRegistry {
     const stage = phase ? (await store.loadProgressiveState(job, phase)).stage : await store.loadStage(job, desired.stageKey), saved = stage.requests.find(row => row.providerCallKey === desired.providerCallKey), output = stage.artifacts.find(row => row.providerReceipt.providerCallKey === desired.providerCallKey);
     if (saved && !isDeepStrictEqual(saved, desired)) throw new Error("naming_frozen_request_mismatch");
     if (output) return { status: "completed", receipt: output.providerReceipt, output };
-    const retainedFailure = saved && retainedLocalNoDispatch(stage, saved); if (retainedFailure) return retainedFailure;
+    const retainedFailure = saved && retainedLocalNoDispatch(job, stage, saved); if (retainedFailure) return retainedFailure;
     const cancellation = new AbortController(), detachCancellation = store.onCancellation(job, () => cancellation.abort());
     const callSignal = AbortSignal.any([signal, cancellation.signal]);
     const agent = runtime(job, input), hooks = { signal: callSignal, beforeDispatch: async () => { await readiness(job); if (callSignal.aborted) throw new Error("naming_cancelled"); await store.authorizeDispatch(job, desired); }, onReceipt: (receipt: Parameters<typeof store.recordReceipt>[1]) => store.recordReceipt(job, receipt), onArtifact: (raw: unknown) => store.saveProviderItem(job, raw) };
@@ -121,7 +127,7 @@ export function createNamingBrainHandlers(options: Options): HandlerRegistry {
     if (!remaining.length) return outcomes;
     await store.saveCallPlan(job, stageKey, desired, phase);
     if (remaining[0]?.role === "creator") {
-      const pooled = await runNamingCreatorPool(remaining.map(row => ({ assignmentKey: row.assignmentKey!, sessionLimitCents: row.policy.sessionLimitCents, execute: (signal: AbortSignal) => call(job, input, row, signal) })), { maximumTotalCents: stageKey === "gap" ? 40 : 150, localUnlimited: options.localPrototype === true && remaining.every(row => row.policy.budgetControl === "local_unlimited_v1"), signal, stopAfter: outcome => outcome.status !== "completed" });
+      const pooled = await runNamingCreatorPool(remaining.map(row => ({ assignmentKey: row.assignmentKey!, sessionLimitCents: row.policy.sessionLimitCents, execute: (signal: AbortSignal) => call(job, input, row, signal) })), { maximumTotalCents: stageKey === "gap" ? 40 : 150, localUnlimited: compatibilityExecution(job) && remaining.every(row => row.policy.budgetControl === "local_unlimited_v1"), signal, stopAfter: outcome => outcome.status !== "completed" });
       outcomes.push(...pooled.results.map(row => row.value));
       if (pooled.failures.length) outcomes.push({ status: "unresolved", code: "creator_execution_unknown", receipt: null, partialArtifacts: [] });
       else if (pooled.notStarted.length && allCompleted(outcomes)) outcomes.push({ status: "rejected_before_dispatch", code: "creator_pool_stopped" });
@@ -134,7 +140,7 @@ export function createNamingBrainHandlers(options: Options): HandlerRegistry {
     const bad = blocking.find(row => row.status === "unresolved") ?? blocking.find(row => row.status !== "completed");
     const invalidFailures = outcomes.flatMap(outcome => outcome.status === "failed" && outcome.code === "provider_output_invalid"
       ? [{ providerCallKey: outcome.receipt.providerCallKey, status: "failed" as const, code: "provider_output_invalid" as const, receipt: outcome.receipt }] : []);
-    const noDispatchFailures = outcomes.flatMap(outcome => options.localPrototype && outcome.status === "rejected_before_dispatch" && outcome.code === "local_dispatch_not_attempted" && outcome.receipt
+    const noDispatchFailures = outcomes.flatMap(outcome => compatibilityExecution(job) && outcome.status === "rejected_before_dispatch" && outcome.code === "local_dispatch_not_attempted" && outcome.receipt
       ? [{ providerCallKey: outcome.receipt.providerCallKey, status: "rejected_before_dispatch" as const, code: "local_dispatch_not_attempted" as const, receipt: outcome.receipt }] : []);
     const terminalProof = (request: NamingStageRequest, statuses: readonly string[], exactReceipt?: NamingRoleOutput["providerReceipt"]) => stage.providerTurns.some(record =>
       record.providerCallKey === request.providerCallKey && statuses.includes(record.turn.status) && stage.receipts.some(receipt =>
@@ -186,7 +192,7 @@ export function createNamingBrainHandlers(options: Options): HandlerRegistry {
     const input = checkedInput(job), snapshot = input.snapshot;
     try {
       if (input.localPipelineVersion === 2) {
-        if (!options.localPrototype) throw new Error("naming_progressive_unavailable");
+        if (!compatibilityExecution(job)) throw new Error("naming_progressive_unavailable");
         if (stageKey === "prepare") { await store.finalizeProgressive(job); return stepOutcome(job, stageKey, []); }
         if (stageKey !== "creation") throw new Error("naming_progressive_stage_invalid");
         const result = await executeProgressiveNaming({ job, input, store, signal, call: (request, phase, callSignal) => call(job, input, request, callSignal, phase) });
@@ -195,22 +201,22 @@ export function createNamingBrainHandlers(options: Options): HandlerRegistry {
       }
       let stages = await store.loadStages(job), rows = artifacts(stages);
       if (stageKey === "prepare") { await prepare(job, input, signal); return stepOutcome(job, stageKey, []); }
-      if (stageKey === "research") return stepOutcome(job, stageKey, await calls(job, input, stageKey, [request(input, stageKey, { role: "researcher", snapshot }, [])], signal));
+      if (stageKey === "research") return stepOutcome(job, stageKey, await calls(job, input, stageKey, [request(job, input, stageKey, { role: "researcher", snapshot }, [])], signal));
       const research = one(rows, isResearch);
-      if (research.readiness !== "sourced" && !(options.localPrototype && research.readiness === "partial" && research.providerReceipt.budgetControl === "local_unlimited_v1")) throw new Error("naming_research_incomplete");
-      if (stageKey === "direction") return stepOutcome(job, stageKey, await calls(job, input, stageKey, [request(input, stageKey, { role: "director", snapshot, research }, [research.artifactId])], signal));
+      if (research.readiness !== "sourced" && !(compatibilityExecution(job) && research.readiness === "partial" && research.providerReceipt.budgetControl === "local_unlimited_v1")) throw new Error("naming_research_incomplete");
+      if (stageKey === "direction") return stepOutcome(job, stageKey, await calls(job, input, stageKey, [request(job, input, stageKey, { role: "director", snapshot, research }, [research.artifactId])], signal));
       const creation = async (key: "creation" | "gap", plan: NamingAssignmentPlan, gapContext?: Parameters<typeof validateNamingAssignmentPlan>[3]) => {
         const assignments = validateNamingAssignmentPlan(snapshot, research, plan, gapContext), caps = allocateNamingCreatorCaps(assignments.map(row => row.targetCount), key === "gap" ? 40 : 150);
-        return calls(job, input, key, assignments.map((assignment, index) => request(input, key, { role: "creator", snapshot, assignment }, [research.artifactId, plan.artifactId], caps[index], 0)), signal, key === "gap" ? "creation" : undefined);
+        return calls(job, input, key, assignments.map((assignment, index) => request(job, input, key, { role: "creator", snapshot, assignment }, [research.artifactId, plan.artifactId], caps[index], 0)), signal, key === "gap" ? "creation" : undefined);
       };
       if (stageKey === "creation") return stepOutcome(job, stageKey, await creation(stageKey, one(rows.filter(row => row.stageKey === "direction"), isPlan)));
       const review = async (key: "curation" | "verification" | "gap", role: "curator" | "verifier") => {
         const saved = await store.loadStages(job), all = artifacts(saved), pool = namingSavedCandidatePool(input, saved, key === "gap"), projection = createNamingReviewProjection({ runId: input.runId, snapshotHash: snapshot.snapshotHash, candidates: pool.candidates });
         const dependencies = [...new Set(pool.candidates.map(row => row.sourceArtifactId)), research.artifactId];
-        if (role === "curator") return calls(job, input, key, [request(input, key, { role, snapshot, review: projection, validationRejections: pool.rejections }, dependencies, key === "gap" ? 5 : undefined, 0)], signal, key === "gap" ? "curation" : undefined);
+        if (role === "curator") return calls(job, input, key, [request(job, input, key, { role, snapshot, review: projection, validationRejections: pool.rejections }, dependencies, key === "gap" ? 5 : undefined, 0)], signal, key === "gap" ? "curation" : undefined);
         const curation = one(all.filter(row => row.stageKey === (key === "gap" ? "gap" : "curation")), isCuration);
         const priorVerification = key === "gap" ? one(all.filter(row => row.stageKey === "verification"), isVerification) : null;
-        return calls(job, input, key, [request(input, key, { role, snapshot, review: projection, curation: createNamingCurationProjection(curation) }, [...dependencies, curation.artifactId, ...(priorVerification ? [priorVerification.artifactId] : [])], key === "gap" ? 20 : undefined, key === "gap" ? 8 : undefined)], signal, key === "gap" ? "verification" : undefined);
+        return calls(job, input, key, [request(job, input, key, { role, snapshot, review: projection, curation: createNamingCurationProjection(curation) }, [...dependencies, curation.artifactId, ...(priorVerification ? [priorVerification.artifactId] : [])], key === "gap" ? 20 : undefined, key === "gap" ? 8 : undefined)], signal, key === "gap" ? "verification" : undefined);
       };
       if (stageKey === "curation" || stageKey === "verification") return stepOutcome(job, stageKey, await review(stageKey, stageKey === "curation" ? "curator" : "verifier"));
       const savedDirection = stages.find(stage => stage.stageKey === "gap")!.requests.find(row => row.role === "director");
@@ -220,7 +226,7 @@ export function createNamingBrainHandlers(options: Options): HandlerRegistry {
         const data = await assembly(job, input, stages, false, signal);
         if (assembleNamingSet(data).fulfillment.status === "complete") return stepOutcome(job, stageKey, []);
         const gapContext = createNamingGapContext(data);
-        gapRequest = request(input, "gap", { role: "director", snapshot, research, gapContext }, [research.artifactId, gapContext.curationArtifactId, gapContext.verificationArtifactId, ...gapContext.sourceArtifactIds], 10, 0);
+        gapRequest = request(job, input, "gap", { role: "director", snapshot, research, gapContext }, [research.artifactId, gapContext.curationArtifactId, gapContext.verificationArtifactId, ...gapContext.sourceArtifactIds], 10, 0);
       }
       const outcomes = await calls(job, input, "gap", [gapRequest], signal, "direction");
       if (allCompleted(outcomes)) {
@@ -238,10 +244,10 @@ export function createNamingBrainHandlers(options: Options): HandlerRegistry {
       return stepOutcome(job, stageKey, [unresolved ? { status: "unresolved", code: "naming_stage_incomplete", receipt: null, partialArtifacts: [] } : { status: "rejected_before_dispatch", code: "naming_stage_invalid" }]);
     }
   }
-  function stageTimeout(input: NamingBrainJobInput, key: NamingStageKey) {
-    if (!options.localPrototype || key === "prepare") return 270_000;
+  function stageTimeout(job: ClaimedJob, input: NamingBrainJobInput, key: NamingStageKey) {
+    if (!compatibilityExecution(job) || key === "prepare") return 270_000;
     if (key === "creation" || key === "gap") return 3_600_000;
     return input.localTimingVersion === 2 ? 1_200_000 : 270_000;
   }
-  return new Map([["naming.generate", { steps(job: ClaimedJob) { const input = checkedInput(job); const keys = input.localPipelineVersion === 2 ? ["creation", "prepare"] as const : namingStageKeySchema.options; return keys.map(key => ({ key, maximumCostMicrousd: input.policy.stageLimits[key].maximumCostMicrousd, timeoutMs: stageTimeout(input, key), execute: ({ job, signal }: { job: ClaimedJob; signal: AbortSignal }) => execute(job, key, signal) })); } }]]);
+  return new Map([["naming.generate", { steps(job: ClaimedJob) { const input = checkedInput(job); const keys = input.localPipelineVersion === 2 ? ["creation", "prepare"] as const : namingStageKeySchema.options; return keys.map(key => ({ key, maximumCostMicrousd: input.policy.stageLimits[key].maximumCostMicrousd, timeoutMs: stageTimeout(job, input, key), execute: ({ job, signal }: { job: ClaimedJob; signal: AbortSignal }) => execute(job, key, signal) })); } }]]);
 }

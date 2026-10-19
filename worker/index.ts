@@ -11,6 +11,7 @@ import { localPrototypeDatabaseConfiguration } from "../scripts/local-environmen
 import { readNamingBrainConfiguration, startNamingReadiness, type NamingBrainConfiguration } from "./naming-brain-configuration";
 import { NamingBrainJobStore } from "./naming-brain-store";
 import { createNamingBrainHandlers } from "./handlers/naming-brain";
+import { readWorkerSelection } from "./selection";
 import { createLocalExpiryCoordinator, runLocalExpiryTransaction } from "./local-expiry-maintenance";
 
 const configuration = readOpenAIStrategyConfiguration();
@@ -181,7 +182,7 @@ async function runNaming(config: NamingBrainConfiguration, controller: AbortCont
       try { return config.paidDispatchEnabled ? await store.reportReady(config.policy, workerId) : false; }
       catch (error) { reportLocalDatabaseFailure("naming", "readiness", error); throw error; }
     });
-    const handlers = createNamingBrainHandlers({ store, apiKey: config.apiKey, localPrototype, assertReady: readiness.assertReady });
+    const handlers = createNamingBrainHandlers({ store, apiKey: config.apiKey, assertReady: readiness.assertReady });
     while (!controller.signal.aborted) {
       // This scoped claim permits observation after policy disable, using frozen
       // admitted model/session bindings. Readiness still gates every paid dispatch.
@@ -204,18 +205,19 @@ async function runNaming(config: NamingBrainConfiguration, controller: AbortCont
   } finally { await readiness?.stop(); try { await pool.end(); } finally { unwatch(); } }
 }
 async function main() {
+  const namingOnly = readWorkerSelection(process.argv.slice(2)) === "naming_only";
   if (process.env.FLUID_LOCAL_PROTOTYPE === "true" && !localPrototype)
     throw new Error("Invalid local prototype runtime");
-  if (localPrototype && (!namingConfiguration || !configuration?.policies.size ||
+  if (localPrototype && (!namingConfiguration || !namingOnly && (!configuration?.policies.size ||
       process.env.FLUID_WORKER_DATABASE_URL !== namingConfiguration.databaseUrl ||
-      configuration.policies.size !== 4 || [...configuration.policies].some(([operation, policy]) => operation === "strategy.positioning" || policy.version !== 2)))
+      configuration.policies.size !== 4 || [...configuration.policies].some(([operation, policy]) => operation === "strategy.positioning" || policy.version !== 2))))
     throw new Error("Incomplete local prototype configuration");
-  if (!configuration?.policies.size && !namingConfiguration) {
+  if (!(namingOnly ? namingConfiguration : configuration?.policies.size || namingConfiguration)) {
     console.error("Worker unavailable: no validated operation handlers are configured. No jobs were claimed."); process.exitCode = 2; return;
   }
   const controller = new AbortController(), stop = () => controller.abort();
   process.once("SIGTERM", stop); process.once("SIGINT", stop);
-  try { await Promise.all([...(configuration?.policies.size ? [runStrategy(controller)] : []), ...(namingConfiguration ? [runNaming(namingConfiguration, controller)] : [])]); }
+  try { await Promise.all([...(!namingOnly && configuration?.policies.size ? [runStrategy(controller)] : []), ...(namingConfiguration ? [runNaming(namingConfiguration, controller)] : [])]); }
   finally { stop(); process.removeListener("SIGTERM", stop); process.removeListener("SIGINT", stop); }
 }
 main().catch(() => {

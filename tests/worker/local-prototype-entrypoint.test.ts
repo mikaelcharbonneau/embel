@@ -1,6 +1,7 @@
 import type { PoolConfig } from "pg";
 import type { EventEmitter } from "node:events";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { readWorkerSelection } from "../../worker/selection";
 vi.mock("server-only", () => ({}));
 const fixture = vi.hoisted(() => ({ pools: [] as PoolConfig[], clients: [] as EventEmitter[], query: vi.fn(), end: vi.fn() }));
 vi.mock("pg", async () => {
@@ -9,7 +10,9 @@ vi.mock("pg", async () => {
     connect = async () => ({ query: (sql: string, values?: unknown[]) => /^(?:BEGIN|SET LOCAL|COMMIT|ROLLBACK)/u.test(sql) ? Promise.resolve({ rows: [] }) : fixture.query(sql, values), release() {} }); } };
 });
 const priorExitCode = process.exitCode;
-afterEach(() => { process.exitCode = priorExitCode; vi.restoreAllMocks(); vi.unstubAllEnvs(); vi.resetModules(); fixture.pools.length = 0; fixture.clients.length = 0; fixture.query.mockReset(); fixture.end.mockReset(); });
+const priorArguments = process.argv;
+beforeEach(() => { process.argv = [process.execPath, "worker/index.ts"]; });
+afterEach(() => { process.argv = priorArguments; process.exitCode = priorExitCode; vi.restoreAllMocks(); vi.unstubAllEnvs(); vi.resetModules(); fixture.pools.length = 0; fixture.clients.length = 0; fixture.query.mockReset(); fixture.end.mockReset(); });
 const databaseUrl = "postgresql://fluid_naming_brain_worker.fricsfwqibyhemknqgyf:synthetic-password@aws-0-us-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full";
 function namingEnvironment() {
   for (const [key, value] of Object.entries({ OPENAI_API_KEY: "synthetic-prototype-api-key", FLUID_NAMING_BRAIN_DATABASE_URL: databaseUrl, FLUID_NAMING_BRAIN_DEPLOYMENT_ID: "embel-naming-local-b2ff6ce8bbc2-20261017", FLUID_NAMING_BRAIN_MODEL: "gpt-6.1-sol", FLUID_OPENAI_VERIFIED_MODELS: "gpt-6.1-sol", FLUID_NAMING_BRAIN_ENABLED: "true", FLUID_PAID_CALLS_APPROVED: "true" })) vi.stubEnv(key, value);
@@ -29,6 +32,24 @@ async function failBeforeDispatch(error = new Error("synthetic_database_unavaila
   return diagnostic;
 }
 describe("one local worker with a bounded restricted-role connection budget", () => {
+  it("starts only the protected Naming loop when explicitly selected, even with Strategy configured", async () => {
+    prototypeEnvironment(); process.argv.push("--naming-only");
+    await failBeforeDispatch();
+    expect(fixture.pools.map(pool => pool.max)).toEqual([2]);
+    expect(fixture.pools[0]!.ssl).toMatchObject({ rejectUnauthorized: true, minVersion: "TLSv1.2" });
+    expect(fixture.query).toHaveBeenCalledOnce();
+    expect(fixture.query.mock.calls[0]![0]).toContain("get_naming_brain_preference_work");
+    expect(fixture.end).toHaveBeenCalledOnce();
+  });
+  it.each([["--all"], ["--naming-only", "--naming-only"], ["--naming-only", "extra"]])("rejects invalid process arguments %j before opening either pool", async (...args) => {
+    prototypeEnvironment(); process.argv.push(...args);
+    await failBeforeDispatch();
+    expect(fixture.pools).toEqual([]); expect(fixture.query).not.toHaveBeenCalled();
+  });
+  it("retains all operations as the default process selection", () => {
+    expect(readWorkerSelection([])).toBe("all");
+    expect(readWorkerSelection(["--naming-only"])).toBe("naming_only");
+  });
   it("leaves one server connection of reconnect headroom under the existing four-connection role cap", async () => {
     prototypeEnvironment();
     await failBeforeDispatch();

@@ -9,6 +9,7 @@ import { createNamingBrainHandlers } from "../../worker/handlers/naming-brain";
 import { NamingBrainJobStore, normalizeNamingStoredJson } from "../../worker/naming-brain-store";
 import { createTestDatabase, OWNER_A, type TestDatabase } from "../database/local-supabase";
 import { brainRpc, brainWorker, initialIntent, installBrainFixture, seedBrainFixture } from "../database/naming-brain-fixture";
+import { historicalNamingClaimDatabase } from "../database/naming-brain-historical-claim";
 
 const migration = "20261017160000_local_naming_generous_timing.sql";
 
@@ -30,7 +31,7 @@ describe("future local clocks through the actual SDK, handler and SQL", () => {
       await database.query("insert into fluid_private.local_prototype_strategy_capabilities(owner_id,operation,role_name,role_oid,deployment_id,policy,enabled,ready_until) select $1,'strategy.reformulate',rolname,oid,'fixture-deployment',$2,true,clock_timestamp()+interval '90 seconds' from pg_roles where rolname='fixture_naming_brain_a'", [OWNER_A, policy]);
     }
     const admitted = await brainRpc<{ run: { runId: string; jobId: string } }>(database, local ? "ensure_local_naming_brain_run" : "ensure_naming_brain_run", [project, initialIntent("synthetic-generous-sdk")]);
-    const store = new NamingBrainJobStore(database, "fixture-deployment");
+    const store = new NamingBrainJobStore(await historicalNamingClaimDatabase(database), "fixture-deployment");
     const job = await brainWorker(database, async () => {
       const claimed = await store.claim("fixture-worker", 120); if (!claimed) throw new Error("synthetic_timed_job_missing");
       return claimed;

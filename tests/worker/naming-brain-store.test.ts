@@ -40,7 +40,7 @@ describe("Naming scoped worker store", () => {
       recoveryMode: "observe_only", observationDeadlineAt: new Date(Date.now() + 60_000).toISOString(), stageResults: [], preparation: null, artifacts: [],
       receipts: Array.from({ length: progressive ? 5000 : 500 }, (_, index) => ({ ...observed, recordedAt: new Date(Date.UTC(2026, 9, 18) + index).toISOString() })),
       requests: [], authorizations: [], providerItems: [], providerTurns: [], toolResults: [], callPlans: [], gapEnvelope: NAMING_GAP_ENVELOPE, gapPlanIdentity: "b".repeat(64) };
-    const store = new NamingBrainJobStore({ query: async sql => ({ rows: [{ result: sql.includes("claim_naming") ? { mode: "observe_only", job: savedRow } : stage }] }) }, "deployment-fixture");
+    const store = new NamingBrainJobStore({ query: async sql => ({ rows: [{ result: sql.includes("claim_naming") ? { mode: "observe_only", executionAuthority: progressive ? "local_owner_v1" : null, job: savedRow } : stage }] }) }, "deployment-fixture");
     const job = (await store.claim("fixture", 120))!;
     const loaded = await store.loadStage(job, "creation");
     expect(loaded.receipts).toEqual(stage.receipts);
