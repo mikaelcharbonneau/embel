@@ -64,11 +64,17 @@ begin
  return jsonb_build_object('ownerId',owner,'projectId',p_project_id,'items',items,'nextCursor',null);
 end $$;
 
--- Exact successor body from supabase/migrations/20261008010153_restricted_api_text_runtime.sql; preserve owner/ACL/function metadata.
-do $patch$ declare body text; definition text; begin
- select prosrc into body from pg_proc where oid='fluid_private.lock_leased_job(uuid,uuid)'::regprocedure;
+-- Compose with the exact restricted-runtime predecessor, or its exact Naming
+-- wrapper plus unchanged delegated predecessor. Preserve both owners and ACLs.
+do $patch$ declare body text; definition text; target regprocedure:='fluid_private.lock_leased_job(uuid,uuid)'::regprocedure; begin
+ if to_regprocedure('fluid_private.naming_brain_legacy_lock(uuid,uuid)') is not null then
+  if (select encode(sha256(convert_to(prosrc,'UTF8')),'hex') from pg_proc where oid=target) not in('0d5efc254366ade737c6a35dcd24132e5e56daef376eee289f55ae6e2c783837','04a3a277b84fb5bad04dd9bff328fa7dcec72d026aa9c93e852b15de5de2508f') then
+   raise exception 'vector_proposal_predecessor_mismatch: Naming lease wrapper' using errcode='55000';end if;
+  target:='fluid_private.naming_brain_legacy_lock(uuid,uuid)'::regprocedure;
+ end if;
+ select prosrc into body from pg_proc where oid=target;
  if encode(sha256(convert_to(body,'UTF8')),'hex') is distinct from '886fd74c67ec8f3a9a252f4e56c870f154baaef29598c800df5ad4481332fbcf' then raise exception 'vector_proposal_predecessor_mismatch: fluid_private.lock_leased_job(uuid,uuid)' using errcode='55000';end if;
- definition:=pg_get_functiondef('fluid_private.lock_leased_job(uuid,uuid)'::regprocedure);
+ definition:=pg_get_functiondef(target);
  execute replace(definition,body,$replacement$
 declare j public.jobs; s_owner uuid:=public.subscription_worker_owner(); a_owner uuid:=public.api_text_worker_owner();
  v_service boolean:=(session_user='service_role' or pg_catalog.current_setting('role',true)='service_role');
@@ -91,11 +97,15 @@ end $replacement$);
 end $patch$;
 
 -- Exact successor body from supabase/migrations/20261008010153_restricted_api_text_runtime.sql; preserve owner/ACL/function metadata.
-do $patch$ declare body text; definition text; begin
+do $patch$ declare body text; comparison text; definition text; replacement text; local boolean;
+ prologue text:=E'\n  if fluid_private.local_strategy_worker_owner() is not null then return query select * from fluid_private.claim_local_strategy_job(p_worker_id,p_lease_seconds); return; end if;';
+ naming boolean:=to_regprocedure('fluid_private.naming_brain_legacy_lock(uuid,uuid)') is not null; begin
  select prosrc into body from pg_proc where oid='public.claim_job(text,integer)'::regprocedure;
- if encode(sha256(convert_to(body,'UTF8')),'hex') is distinct from '4467e8de97feb2ca79feb77519c37e97dfd482f3021660517304581980c583fc' then raise exception 'vector_proposal_predecessor_mismatch: public.claim_job(text,integer)' using errcode='55000';end if;
+ local:=encode(sha256(convert_to(body,'UTF8')),'hex')='c8e0437a204720f45b20b9f3375e037646e4f29dc0a72198c961bd1351312308';
+ comparison:=case when local then replace(body,prologue,'') else body end;
+ if encode(sha256(convert_to(comparison,'UTF8')),'hex') is distinct from (case when naming then 'c7cdd9c2bba71cb0b60be732ed36e5ced438ef6cbcbeef5cbad502de1aaa1df6' else '4467e8de97feb2ca79feb77519c37e97dfd482f3021660517304581980c583fc' end) then raise exception 'vector_proposal_predecessor_mismatch: public.claim_job(text,integer)' using errcode='55000';end if;
  definition:=pg_get_functiondef('public.claim_job(text,integer)'::regprocedure);
- execute replace(definition,body,$replacement$
+ replacement:=$replacement$
 declare v_job public.jobs;
 begin
   if public.subscription_worker_owner() is not null or
@@ -113,15 +123,22 @@ begin
   return query update public.jobs set state = 'running', lease_token = gen_random_uuid(),
     lease_expires_at = clock_timestamp() + make_interval(secs => p_lease_seconds),
     worker_id = p_worker_id, attempts = attempts + 1 where id = v_job.id returning *;
-end $replacement$);
+end $replacement$;
+ if naming then replacement:=replace(replacement,'where not exists(select 1 from fluid_private.api_text_dispatches d where d.job_id=j.id)','where not fluid_private.naming_brain_is_job(j) and not exists(select 1 from fluid_private.api_text_dispatches d where d.job_id=j.id)');end if;
+ if local then replacement:=replace(replacement,'begin','begin'||prologue);end if;
+ execute replace(definition,body,replacement);
 end $patch$;
 
 -- Exact successor body from supabase/migrations/20261008010153_restricted_api_text_runtime.sql; preserve owner/ACL/function metadata.
-do $patch$ declare body text; definition text; begin
+do $patch$ declare body text; comparison text; definition text; replacement text; local boolean;
+ prologue text:=E'\n  if fluid_private.local_strategy_worker_owner() is not null then return fluid_private.expire_local_strategy_leases(); end if;';
+ naming boolean:=to_regprocedure('fluid_private.naming_brain_legacy_lock(uuid,uuid)') is not null; begin
  select prosrc into body from pg_proc where oid='public.expire_job_leases()'::regprocedure;
- if encode(sha256(convert_to(body,'UTF8')),'hex') is distinct from '3d7a72265d44f9f15c86f69d72952b4537c0dd19a1f8068a1b2b1dd9b2f60f18' then raise exception 'vector_proposal_predecessor_mismatch: public.expire_job_leases()' using errcode='55000';end if;
+ local:=encode(sha256(convert_to(body,'UTF8')),'hex')='e99608d2bb26164d29202613c87c81c96eee9ee74ec093d95185c04c2a3baea4';
+ comparison:=case when local then replace(body,prologue,'') else body end;
+ if encode(sha256(convert_to(comparison,'UTF8')),'hex') is distinct from (case when naming then 'bfd41cbd2bc0af81ed9884184bed02312c657f269388aad5625984e6effa95a2' else '3d7a72265d44f9f15c86f69d72952b4537c0dd19a1f8068a1b2b1dd9b2f60f18' end) then raise exception 'vector_proposal_predecessor_mismatch: public.expire_job_leases()' using errcode='55000';end if;
  definition:=pg_get_functiondef('public.expire_job_leases()'::regprocedure);
- execute replace(definition,body,$replacement$
+ replacement:=$replacement$
 declare v_job public.jobs; v_next text; v_count integer:=0; v_owner uuid:=public.subscription_worker_owner();
   v_api_worker boolean:=(session_user='service_role' or pg_catalog.current_setting('role',true)='service_role');
 begin
@@ -142,7 +159,10 @@ begin
     v_count:=v_count+1;
   end loop;
   return v_count;
-end $replacement$);
+end $replacement$;
+ if naming then replacement:=replace(replacement,'where not exists(select 1 from fluid_private.api_text_dispatches d where d.job_id=public.jobs.id)','where not fluid_private.naming_brain_is_job(jobs) and not exists(select 1 from fluid_private.api_text_dispatches d where d.job_id=public.jobs.id)');end if;
+ if local then replacement:=replace(replacement,'begin','begin'||prologue);end if;
+ execute replace(definition,body,replacement);
 end $patch$;
 
 -- Exact successor body from supabase/migrations/20261008010153_restricted_api_text_runtime.sql; preserve owner/ACL/function metadata.

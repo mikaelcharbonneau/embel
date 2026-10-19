@@ -192,6 +192,15 @@ describe("logo presentation (test-only domain bindings)", () => {
     expect(requested).toEqual([[batch.slots[0]!.id]]);
     expect(batch.slots.filter(slot => slot.acceptedPreview)).toHaveLength(5);
   });
+  it("shows committed successful attempts when the live convenience projection is null", () => {
+    const original = syntheticLogoBatch();
+    const batch = { ...original, slots: original.slots.map(slot => ({ ...slot, acceptedPreview: null })) };
+    const node = LogoConceptGridView({ batch, renderPreview: receipt => createElement("span", null, receipt.id) });
+    const html = fixtureMarkup(node);
+    expect(html).toContain("5 of 6 concepts ready");
+    expect(html).toContain(original.slots[0]!.attempts[0]!.preview!.id);
+    expect(html).not.toContain("Image preview unavailable");
+  });
   it("offers Check request for an uncertain result without offering a retry", () => {
     const batch = syntheticLogoBatch(["succeeded", "succeeded", "succeeded", "succeeded", "succeeded", "needs_reconciliation"]);
     let checks = 0;
@@ -234,6 +243,11 @@ describe("logo presentation (test-only domain bindings)", () => {
     expect(html).toContain("$0.90");
     expect(control(node, "Confirm generation").props.disabled).toBe(true);
     expect(renderToStaticMarkup(LogoCostConfirmationView({}))).not.toContain("$0");
+  });
+  it("shows confirmation progress without reporting generation unavailable", () => {
+    const html = fixtureMarkup(LogoCostConfirmationView({ quote: syntheticLogoQuote(), busy: true }));
+    expect(html).toContain("Confirming request…");
+    expect(html).not.toContain("Generation is unavailable");
   });
 });
 

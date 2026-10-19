@@ -35,7 +35,8 @@ async function mount(f: Awaited<ReturnType<typeof syntheticRefinementWorkspaceHt
   await until(() => expect(host.querySelector<HTMLInputElement>('input[aria-label="Brand name"]')?.value).toBe("Élan & Co"));
 }
 async function fillInstruction() {
-  const field = host.querySelector<HTMLTextAreaElement>('textarea[placeholder="Describe what to change in the selected image preview"]')!;
+  await until(() => expect(host.querySelector('textarea[aria-label="Describe logo changes"]')).not.toBeNull());
+  const field = host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Describe logo changes"]')!;
   await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(field, "Simplify the silhouette"); field.dispatchEvent(new Event("input", { bubbles: true })); });
 }
 
@@ -47,12 +48,14 @@ describe("refinement history through actual workspace, account client and memory
     const before = structuredClone(source.referenceSnapshot);
     const fetcher: typeof fetch = (path, init) => String(path).endsWith(`/reference-snapshots/${source.referenceSnapshot.id}`)
       ? Promise.resolve(Response.json(source.referenceSnapshot)) : f.fetcher(path, init);
-    await mount(f, fetcher, "refine"); await fillInstruction(); await click("Review revision cost");
+    await mount(f, fetcher, "refine"); await fillInstruction();
+    await until(() => expect(host.querySelector<HTMLButtonElement>('button[aria-label="Refine selected logo"]')?.disabled).toBe(false));
+    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Refine selected logo"]')!.click());
     await until(() => expect(host.textContent).toContain("Refinement allows at most 3 references plus the original logo image"));
     expect(host.querySelector('[aria-label="Reference image limits"]')?.textContent).toContain("4 selected reference images");
     expect(memory?.get(f.workspace.projectId)?.references).toHaveLength(4);
     expect(source.referenceSnapshot).toEqual(before); expect(f.quotes).toEqual([]); expect(f.admissions).toEqual([]); expect(f.selections).toEqual([]);
-    expect(host.querySelector('img[alt="Inspected logo candidate"]')).not.toBeNull();
+    expect(host.querySelector('img[alt="Selected logo"]')).not.toBeNull();
   });
   it("compares a refinement with its exact original without changing selection or making a quote", async () => {
     const f = await syntheticRefinementWorkspaceHttp(true); await mount(f);
@@ -82,12 +85,15 @@ describe("refinement history through actual workspace, account client and memory
       return f.fetcher(path, init);
     };
     await mount(f, fetcher, "refine");
-    await until(() => expect(host.querySelector('img[alt="Inspected logo candidate"]')).not.toBeNull());
+    await until(() => expect(host.querySelector('img[alt="Selected logo"]')).not.toBeNull());
+    expect(host.querySelector('[aria-label="Logo concepts"] [data-concept-slot]')).not.toBeNull();
     expect([...host.querySelectorAll("select")].find(node => node.value === recent.id)).toBeDefined();
-    await fillInstruction(); await click("Review revision cost");
-    await until(() => expect(f.quotes).toHaveLength(1));
+    await fillInstruction();
+    await until(() => expect(host.querySelector<HTMLButtonElement>('button[aria-label="Refine selected logo"]')?.disabled).toBe(false));
+    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Refine selected logo"]')!.click());
+    await until(() => expect(f.admissions).toHaveLength(1));
     expect(f.quotes[0]).toMatchObject({ operation: "refine_preview", source: f.source, instruction: "Simplify the silhouette" });
-    expect(f.admissions).toEqual([]); expect(f.selections).toEqual([]);
+    expect(f.admissions[0]?.quoteId).toBe(f.lastQuote?.id);
   });
 
   it("keeps an unverifiable comparison unavailable with explicit read-only retry", async () => {
@@ -114,14 +120,18 @@ describe("refinement history through actual workspace, account client and memory
   });
 
   it("completed refinement survives cleared feature memory, exact selection and separate zero-image vector quote", async () => {
-    const f = await syntheticRefinementWorkspaceHttp(); await mount(f); await fillInstruction(); await click("Refine selected");
-    await until(() => expect(host.querySelector("dialog")?.textContent).toContain("Refine this concept"));
-    expect(f.admissions).toEqual([]); await click("Refine this concept"); expect(f.admissions).toHaveLength(1);
+    const f = await syntheticRefinementWorkspaceHttp(); await mount(f); await fillInstruction();
+    await until(() => expect(host.querySelector<HTMLButtonElement>('button[aria-label="Refine selected logo"]')?.disabled).toBe(false));
+    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Refine selected logo"]')!.click());
+    await until(() => expect(f.admissions).toHaveLength(1));
+    await until(() => expect(f.selections).toHaveLength(1));
     const oldMemory = memory; await act(async () => root!.unmount()); root = null; await mount(f);
     expect(memory).not.toBe(oldMemory); await until(() => expect(selection()?.disabled).toBe(false));
     expect(f.detailReads).toContain(id(503)); await until(() => expect(host.querySelector('img[alt="Image preview of saved logo refinement"]')).not.toBeNull());
     expect(f.workspace.stages.refinements).not.toBeNull(); expect(f.workspace.approvedLogo).toBeNull();
-    await act(async () => selection()!.click()); await until(() => expect(selection()?.getAttribute("aria-pressed")).toBe("true"));
+    await until(() => expect(selection()?.getAttribute("aria-pressed")).toBe("true"));
+    expect(host.querySelectorAll('[aria-label="Logo concepts"] ol > li')).toHaveLength(6);
+    expect(host.querySelector('select[aria-label="Versions for concept 1"]')?.querySelectorAll("option")).toHaveLength(2);
     expect(f.selections).toHaveLength(1); expect(f.selections[0]?.source).toEqual({ kind: "refinement", rasterRevisionId: id(503) });
     await click("Review conversion"); await until(() => expect(f.quotes.at(-1)?.operation).toBe("vectorize"));
     expect(f.quotes.at(-1)).toMatchObject({ source: { kind: "refinement", rasterRevisionId: id(503) }, expected: f.workspace.heads });

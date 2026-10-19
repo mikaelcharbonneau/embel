@@ -73,3 +73,92 @@
 .choice { border-radius: 999px; font-size: var(--font-ui, 13px); min-height: 44px; }
 .choice:has(input:checked) { border-color: var(--text); color: var(--text); background: var(--surface); }
 .warning { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+
+/* Figma 303:54691: three columns, quiet captions and a floating composer. */
+.conceptsScreen { position: relative; }
+.conceptsScreen > :global(.project-workbench-canvas) { padding: 24px 24px 224px; }
+.conceptsScreen .workspaceHeader { position: relative; min-height: 56px; margin-bottom: 20px; }
+.conceptsScreen .workspaceHeader h1 { margin: 0; line-height: 32px; }
+.conceptsScreen .workspaceHeader > p { margin: 4px 0 0; font-size: 12px; line-height: 18px; }
+.conceptFilters { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; }
+.conceptFilters button { min-height: 34px; padding: 6px 12px; border: 1px solid var(--border, #e4e3df); border-radius: 7px; background: #fff; font-size: 13px; }
+.conceptFilters [aria-pressed=true] { background: #f1f0ee; }
+.conceptFilters button:disabled { color: #949494; cursor: not-allowed; }
+.gallery { min-width: 0; }
+.generationActions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 0 0 20px; }
+.savedInputReview { margin: 0 0 20px; padding: 14px 16px; border: 1px solid var(--border, #e4e3df); border-radius: 10px; background: #fff; font-size: 13px; line-height: 20px; }
+.savedInputReview p { margin: 0 0 10px; }
+.savedInputReview p:last-child { margin-bottom: 0; }
+.savedInputReview button { white-space: normal; overflow-wrap: anywhere; }
+.galleryProgress { margin: -8px 0 12px; color: var(--secondary, #696965); font-size: 12px; }
+.conceptsScreen .gallery .concepts { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px 16px; }
+.galleryCard { min-width: 0; align-self: start; background: #fff; border: 1px solid var(--border, #e4e3df); border-radius: 10px; overflow: hidden; }
+.galleryPreview { display: grid; place-items: center; height: 200px; background: #fff; overflow: hidden; padding: 16px; }
+.galleryPreview[role=button] { cursor: pointer; }
+.galleryPreview img { width: 100%; height: 100%; object-fit: contain; min-height: 0; }
+.galleryPreview p { font-size: 12px; line-height: 20px; color: var(--secondary, #696965); text-align: center; }
+.galleryCaption { padding: 10px 16px; }
+.galleryCaption > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.galleryCaption h3 { margin: 0; font-size: 14px; line-height: 20px; font-weight: 500; }
+.galleryCaption p { margin: 6px 0 0; font-size: 12px; line-height: 18px; color: var(--secondary, #696965); }
+.galleryLike { display: inline-flex; gap: 6px; align-items: center; justify-content: center; min-height: 40px; min-width: 84px; padding: 8px; border: 1px solid #e4e3df; border-radius: 6px; background: #fff; color: #949494; font-size: 12px; cursor: not-allowed; }
+.galleryLike img { opacity: .55; }
+.conceptsComposer { position: fixed; bottom: 24px; left: calc(50% + 40px); transform: translateX(-50%); z-index: 22; width: min(760px, calc(100vw - 128px)); min-height: 108px; padding: 12px 14px; border: 1px solid var(--border, #e4e3df); border-radius: 18px; background: #fff; box-shadow: 0 8px 16px #00000014; }
+.conceptsComposer textarea { display: block; width: 100%; min-height: 28px; max-height: 100px; resize: vertical; padding: 0; border: 0; border-radius: 0; background: transparent; color: #191919; font: inherit; font-size: 14px; line-height: 22px; box-shadow: none; }
+.composerTools { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
+.composerTools > .secondaryButton { min-height: 36px; padding: 7px 12px; text-decoration: none; }
+.contextButton { display: flex; gap: 10px; align-items: center; padding: 0; border: 0; background: none; color: var(--secondary, #696965); font-size: 12px; }
+.composerSend { margin-left: auto; display: grid; place-items: center; width: 30px; height: 30px; flex: 0 0 30px; padding: 0; border: 0; border-radius: 50%; background: #191919; }
+.composerSend:disabled { opacity: .4; cursor: not-allowed; }
+.contextDialog { position: fixed; inset: 0; width: min(720px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); overflow: auto; margin: auto; padding: 24px; border: 1px solid var(--border, #e4e3df); border-radius: 12px; background: #fff; color: #191919; }
+.contextDialog::backdrop { background: #19191966; }
+.contextDialog > header { margin-bottom: 24px; }
+.contextDialog h2 { margin: 0; font-size: 20px; font-weight: 500; }
+.contextDetails > summary { margin: 20px 0; cursor: pointer; font-size: 13px; }
+.conceptsScreen :is(button, a, textarea, select, summary, [role=button]):focus-visible { outline: 2px solid var(--accent-text, #990091); outline-offset: 3px; }
+@media (max-width: 1000px) { .conceptsScreen .gallery .concepts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) {
+  .conceptsScreen > :global(.project-workbench-canvas) { padding: 24px 16px 224px; }
+  .conceptsScreen .workspaceHeader { padding-right: 0; }
+  .conceptsScreen .gallery .concepts { grid-template-columns: minmax(0, 1fr); }
+  .conceptFilters { flex-wrap: wrap; }
+  .conceptFilters button { min-height: 44px; }
+  .conceptsComposer { left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); width: calc(100vw - 24px); }
+  .contextButton { min-height: 44px; }
+  .contextDialog { padding: 18px; }
+}
+.galleryCard { position: relative; }
+
+.backToInspiration { display: inline-flex; align-items: center; min-height: 32px; margin: -8px 0 12px; color: var(--secondary, #696965); font-size: 13px; text-decoration: none; }
+.backToInspiration:hover { color: var(--text, #191919); text-decoration: underline; text-underline-offset: 3px; }
+
+.galleryCard[data-selected=true] { border-color: var(--foreground, #191919); box-shadow: 0 0 0 1px var(--foreground, #191919); }
+.galleryPreview[role=button]:focus-visible { outline: 2px solid var(--foreground, #191919); outline-offset: -4px; }
+
+.composerSelection { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; color: var(--secondary, #696965); font-size: 12px; }
+.composerSelection img { width: 36px; height: 36px; object-fit: contain; border: 1px solid var(--border, #e4e3df); border-radius: 6px; background: white; }
+.composerStatus { font-size: 12px; color: var(--secondary, #696965); margin: 4px 0 8px; }
+.refinementPreview { position: relative; overflow: hidden; display: grid; place-items: center; width: 100%; height: 200px; background: white; border: 0; padding: 16px; cursor: pointer; }
+.refinementPreview:disabled { cursor: default; }
+.refinementPreview img { position: absolute; inset: 16px; width: calc(100% - 32px); height: calc(100% - 32px); object-fit: contain; }
+.refinementPreview:focus-visible { outline: 2px solid #191919; outline-offset: -4px; }
+
+.versionPicker { position: absolute; top: 12px; right: 12px; z-index: 1; font-size: 12px; color: var(--secondary, #696965); }
+.versionPicker select { width: auto; max-width: 180px; padding: 5px 9px; border: 1px solid var(--border, #e4e3df); border-radius: 6px; background: white; color: #191919; font: inherit; }
+
+.continueToBoard { display: flex; justify-content: flex-end; margin-top: 24px; }
+.brandBoard { padding: 24px; }
+.brandBoardHeader { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; }
+.brandBoardHeader .backToInspiration { margin: 0; flex-shrink: 0; }
+.brandBoard h1 { font-size: 24px; font-weight: 500; }
+.brandBoard header p { color: var(--secondary, #696965); }
+.brandBoardLogo { position: relative; min-height: 180px; display: grid; place-items: center; padding: 16px; background: white; border: 1px solid var(--border, #e4e3df); border-radius: 10px; }
+.brandBoardLogo img { width: min(100%, 420px); height: 160px; object-fit: contain; }
+
+@media (min-width: 1001px) and (min-height: 650px) {
+  .brandBoard { height: 100%; min-height: 0; display: flex; flex-direction: column; padding: 16px 20px; }
+  .brandBoardHeader { flex-shrink: 0; margin-bottom: 12px; }
+  .brandBoardHeader h1 { font-size: 22px; line-height: 28px; }
+  .brandBoardHeader p { margin-top: 2px; font-size: 12px; line-height: 18px; }
+}
+@media (max-width: 600px) { .brandBoardHeader { align-items: flex-start; flex-direction: column-reverse; gap: 8px; } }

@@ -6,7 +6,7 @@ import { LOGO_CONCEPT_OPERATION, logoConceptJobInputSchema, logoResolvedConceptI
 } from "../../src/domain/logo-jobs";
 import { identityAssetReceiptSchema, type VerifiedAssetBytes } from "../../src/domain/logo-deliverables";
 import type { IdentityAssetStore } from "../../src/server/data/identity-asset-store";
-import { inspectIdentityRaster } from "../../src/features/logo-vector/server/converter";
+import { inspectIdentityRaster, normalizeLogoConceptRaster } from "../../src/features/logo-vector/server/converter";
 import { resolveLogoReferenceInputs } from "../../src/server/logo-creation/reference-inputs";
 import { IMAGE_INPUT_LIMITS } from "../../src/server/logo-creation/openai-image-transport";
 import { LOGO_IMAGE_HANDLER_VERSION, type LogoImageProducer, type LogoImageProductionResult } from "../../src/server/logo-creation/openai-logo-provider";
@@ -41,7 +41,12 @@ export async function executeLogoRasterAttempt(options: {
   if (result.status === "completed") {
     try {
       if (!(result.bytes instanceof Uint8Array) || result.mimeType !== "image/png" || !result.bytes.length || result.bytes.length > IMAGE_INPUT_LIMITS.outputBytes) throw new Error("Invalid output");
-      result = { ...result, bytes: Uint8Array.from(result.bytes) }; artifactHash = sha256(result.bytes);
+      result = { ...result, bytes: Uint8Array.from(result.bytes) };
+      // Both raster preview prompts promise black and white. Normalize their
+      // output before artifact evidence; vector/color producers never use this.
+      if (input.input.operation === LOGO_CONCEPT_OPERATION || input.input.operation === "identity.logo_refine" && input.input.source.kind === "preview")
+        result = { ...result, bytes: await normalizeLogoConceptRaster(result.bytes, signal) };
+      artifactHash = sha256(result.bytes);
       const raster = await inspectIdentityRaster(result.bytes, result.mimeType, signal);
       normalizedPixelHash = raster.pixelHash;
       if (raster.width !== 1024 || raster.height !== 1024) invalidOutput = "invalid_dimensions";

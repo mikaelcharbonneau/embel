@@ -1,0 +1,91 @@
+.websiteScene, .socialScene, .stationeryScene { position: relative; flex: 1; min-height: 260px; min-width: 0; display: grid; place-items: center; overflow: hidden; font-family: inherit; }
+.websiteScene { background: radial-gradient(ellipse at 50% 15%, #fff 0%, #edede9 62%, #dcdedb 100%); padding: 22px 16px; }
+.laptop { width: 100%; max-width: 570px; position: relative; padding-bottom: 9px; filter: drop-shadow(0 14px 12px #1e272820); }
+.screen { margin: 0 4%; overflow: hidden; border: 5px solid #303536; border-top-width: 7px; border-radius: 8px 8px 3px 3px; background: #fff; box-shadow: inset 0 0 0 1px #101414, 0 0 0 1px #ffffff9c; }
+.browserBar { height: 22px; padding: 0 9px; display: flex; align-items: center; gap: 12px; background: #f1f1f1; border-bottom: 1px solid #e4e4e4; }
+.trafficLights { display: flex; gap: 3px; }
+.trafficLights i { width: 4px; height: 4px; border-radius: 50%; background: #c3c6c6; }
+.address { flex: 1; max-width: 65%; margin: auto; background: white; color: #777; border-radius: 3px; text-align: center; font-size: 7px; line-height: 13px; }
+.browserMenu { color: #777; font-size: 8px; }
+.site { color: var(--board-ink); background: var(--board-paper); }
+.siteNav { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 14px; background: white; border-bottom: 1px solid #1919190a; }
+.siteLogo { width: 62px; height: 24px; }
+.siteLogo img, .postLogo img, .printLogo img { width: 100%; height: 100%; object-fit: contain; }
+.siteNav > span { font-size: 7px; }
+.navAction { color: var(--board-primary); font-weight: 500; }
+.siteHero { padding: 16px 20px 18px; min-height: 150px; }
+.siteEyebrow { color: var(--board-primary); font-size: 8px; font-weight: 500; }
+.siteHero h3 { font-size: clamp(24px, 2.4vw, 36px); line-height: 1.05; letter-spacing: var(--board-tracking); font-weight: var(--board-weight); margin: 5px 0 8px; overflow-wrap: anywhere; }
+.siteHero p { font-size: 9px; line-height: 1.5; max-width: 40ch; margin: 0; }
+.siteButton { display: inline-flex; align-items: center; justify-content: space-between; gap: 18px; padding: 7px 10px; margin-top: 10px; color: white; background: var(--board-primary); font-size: 8px; border-radius: 3px; font-weight: 500; }
+.siteFooter { display: flex; justify-content: space-between; gap: 12px; padding: 8px 14px; border-top: 1px solid #19191910; font-size: 6px; color: #696965; }
+.laptopBase { position: absolute; bottom: 0; width: 100%; height: 10px; border-radius: 1px 1px 55% 55% / 1px 1px 8px 8px; background: linear-gradient(#e7e9e9 0%, #b6bcbd 45%, #929899 100%); border: 1px solid #b7bdbc; }
+.laptopBase i { position: absolute; top: 0; left: 40%; width: 20%; height: 3px; background: #a2a9aa; border-radius: 0 0 4px 4px; box-shadow: inset 0 1px 1px #72797b; }
+.socialScene { background: radial-gradient(ellipse at 30% 25%, #fafaf8, #e4e5e1); padding: 15px; }
+.phone { width: 176px; padding: 5px; background: #242727; border: 1px solid #6d7373; border-radius: 24px; box-shadow: 12px 18px 25px #18222024, inset 0 0 0 1px #000; position: relative; }
+.phone::before { content: ""; position: absolute; top: 54px; right: -3px; width: 2px; height: 28px; background: #555e5e; border-radius: 2px; }
+.phoneScreen { overflow: hidden; background: white; border-radius: 19px; color: #191919; }
+.statusBar { position: relative; display: flex; justify-content: space-between; align-items: center; height: 21px; padding: 0 12px; font-size: 7px; font-weight: 600; }
+.statusBar i { position: absolute; left: 34%; width: 32%; height: 10px; top: 3px; border-radius: 8px; background: #171a1a; }
+.feedHeader { display: flex; align-items: center; gap: 5px; padding: 7px; }
+.avatar { display: grid; place-items: center; width: 18px; height: 18px; background: var(--board-primary); color: white; font-size: 9px; border-radius: 50%; font-weight: 500; }
+.feedHeader > div { flex: 1; }
+.feedHeader strong { display: block; font-size: 7px; font-weight: 600; }
+.feedHeader div span { font-size: 5px; color: #777; display: block; margin-top: 1px; }
+.feedHeader b { font-size: 10px; }
+.postArtwork { position: relative; display: flex; flex-direction: column; justify-content: space-between; min-height: 178px; padding: 12px; color: white; background: var(--board-primary); border-bottom: 4px solid var(--board-accent); gap: 10px; }
+.postLogo { width: 50px; height: 22px; padding: 3px; background: white; }
+.postArtwork h3 { font-size: 13px; line-height: 1.16; letter-spacing: var(--board-tracking); font-weight: var(--board-weight); margin: 0; overflow-wrap: anywhere; }
+.postBrand { font-size: 6px; }
+.postActions { display: flex; gap: 7px; padding: 8px 8px 4px; }
+.postActions svg { width: 11px; height: 11px; stroke: currentColor; stroke-width: 1.6; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+.postActions .bookmark { margin-left: auto; }
+.postCaption { display: flex; gap: 4px; flex-wrap: wrap; padding: 2px 8px 8px; font-size: 6px; line-height: 1.4; }
+.postCaption strong { font-weight: 600; }
+.phoneHome { width: 35%; height: 3px; background: #171a1a; border-radius: 2px; margin: 0 auto 5px; }
+.stationeryScene { background: linear-gradient(125deg, #f0eee8 0%, #e5e1d7 65%, #d5d1c8 100%); padding: 20px; }
+.stationeryScene::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .2; background: repeating-linear-gradient(0deg, #fff0 0 2px, #fff6 2px 3px); }
+.cardPair { position: relative; width: 100%; max-width: 290px; height: 215px; isolation: isolate; }
+.cardBack, .cardFront { position: absolute; width: 92%; aspect-ratio: 1.75; padding: 16px; border-radius: 2px; }
+.cardBack { top: 0; right: 0; background: var(--board-primary); color: white; display: flex; align-items: flex-end; justify-content: space-between; box-shadow: 0 1px 0 var(--board-primary), 0 3px 0 #afb1aa, 5px 10px 14px #31372a28; transform: rotate(7deg); }
+.cardBack > span { font-size: 10px; font-weight: 500; }
+.cardBack i { width: 24px; height: 4px; background: var(--board-accent); }
+.cardFront { left: 0; bottom: 4px; background: linear-gradient(135deg, #fff, #faf9f6); border: 1px solid #e4e1d9; box-shadow: 0 1px 0 #c9c7bf, 0 2px 0 #eeede7, -2px 12px 18px #3c3e3126; display: flex; flex-direction: column; justify-content: space-between; transform: rotate(-5deg); }
+.printLogo { width: 100%; height: 60px; }
+.printFooter { display: flex; justify-content: space-between; align-items: end; gap: 8px; padding-top: 8px; }
+.printFooter span { font-size: 8px; color: #696965; }
+.printFooter i { width: 18px; height: 3px; background: var(--board-primary); }
+@media (min-width: 1001px) and (min-height: 650px) {
+  .websiteScene, .socialScene, .stationeryScene { min-height: 0; }
+  .websiteScene { padding: 14px 12px; }
+  .siteHero { padding: 12px 16px; min-height: 130px; }
+  .siteHero h3 { font-size: clamp(23px, 2.1vw, 32px); }
+  .socialScene { padding: 12px; }
+  .phone { width: clamp(138px, 17vh, 176px); border-radius: 21px; padding: 4px; }
+  .phoneScreen { border-radius: 17px; }
+  .postArtwork { min-height: clamp(120px, 17vh, 178px); padding: 10px; gap: 8px; }
+  .postArtwork h3 { font-size: clamp(10px, 1.35vh, 13px); }
+  .stationeryScene { padding: 16px; }
+  .cardPair { height: clamp(145px, 23vh, 215px); }
+  .cardBack, .cardFront { padding: 12px; }
+  .printLogo { height: clamp(34px, 6vh, 60px); }
+}
+@media (min-width: 1001px) and (max-height: 780px) and (min-height: 650px) {
+  .browserBar { height: 17px; }
+  .siteNav { padding: 3px 10px; }
+  .siteLogo { height: 20px; }
+  .siteHero { min-height: 110px; padding: 8px 12px; }
+  .siteHero h3 { font-size: 24px; margin-bottom: 5px; }
+  .siteHero p { font-size: 8px; }
+  .siteButton { margin-top: 7px; padding: 5px 8px; font-size: 7px; }
+  .siteFooter { padding: 5px 10px; }
+  .statusBar { height: 17px; }
+  .feedHeader { padding: 5px 6px; }
+  .postArtwork { min-height: 104px; padding: 7px; gap: 5px; }
+  .postArtwork h3 { font-size: 10px; }
+  .postLogo { height: 18px; width: 42px; }
+  .postActions { padding: 5px 7px 3px; }
+  .postCaption { padding-bottom: 5px; }
+  .phone { width: 132px; }
+}
+@media (max-width: 700px) { .websiteScene { padding: 24px 12px; min-height: 300px; } .siteHero h3 { font-size: 28px; } .socialScene { min-height: 345px; } .stationeryScene { min-height: 290px; } .cardPair { max-width: 290px; } }

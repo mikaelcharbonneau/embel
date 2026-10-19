@@ -67,11 +67,21 @@ describe("fresh owner-scoped operation readiness", () => {
     await s.controller.refresh(); s.advance(10_000); await vi.advanceTimersByTimeAsync(10_000);
     expect(reads).toBe(2); s.controller.dispose(); s.advance(60_000); await vi.advanceTimersByTimeAsync(60_000); expect(reads).toBe(2);
   });
-  it("hides previous availability while loading and after a read failure", async () => {
+  it("retains unexpired readiness during polling and clears it after a read failure", async () => {
     let fail = false; const response = deferred<LogoCapabilities | null>(); const s = setup(() => fail ? response.promise : Promise.resolve(dto()));
     await s.controller.refresh(); fail = true; const pending = s.controller.refresh();
-    expect(s.controller.isAvailable("identity.logo_vectorize")).toBe(false); expect(s.controller.getSnapshot().status).toBe("loading");
+    expect(s.controller.isAvailable("identity.logo_vectorize")).toBe(true); expect(s.controller.getSnapshot().status).toBe("loading");
     response.resolve(null); await pending; expect(s.controller.getSnapshot().status).toBe("unavailable"); s.controller.dispose();
+  });
+  it("does not extend the old readiness deadline while a refresh is pending", async () => {
+    let reads = 0;
+    const response = deferred<LogoCapabilities | null>();
+    const s = setup(() => ++reads === 1 ? Promise.resolve(dto()) : response.promise);
+    await s.controller.refresh();
+    const pending = s.controller.refresh();
+    s.advance(24_000);
+    expect(s.controller.isAvailable("identity.logo_vectorize")).toBe(false);
+    response.resolve(null); await pending; s.controller.dispose();
   });
 });
 

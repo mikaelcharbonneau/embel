@@ -2,6 +2,7 @@ import { z } from "zod";
 import * as W from "@/domain/logo-workspace";
 import * as J from "@/domain/logo-jobs";
 import { logoCapabilitiesSchema } from "@/domain/logo-capabilities";
+import { logoSavedInputsSchema, LOGO_SAVED_INPUTS_MAX_BYTES } from "@/domain/logo-saved-inputs";
 import * as D from "@/domain/logo-deliverables";
 import * as V from "@/domain/logo-vector";
 import * as Directions from "@/domain/logo-directions";
@@ -243,6 +244,9 @@ export function createAccountLogoClient(
       const value = await request(project(), W.logoWorkspaceV2Schema, owned, { signal });
       if (value) workspaceRevision = value.heads.projectRevision;
       return value;
+    },
+    async readLogoSavedInputs(signal?: AbortSignal) {
+      return request(`${project()}/saved-inputs`, logoSavedInputsSchema, owned, { signal, maximum: LOGO_SAVED_INPUTS_MAX_BYTES });
     },
     async readStrategyContext(signal?: AbortSignal): Promise<{ ownerId: string; projectId: string; revision: number; context: ContextSnapshot } | null> {
       if (!current() || signal?.aborted) return null;

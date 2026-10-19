@@ -5,7 +5,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { inspirationCatalog, inspirationLabels, filterInspiration, hasInspirationChoice, type InspirationDesign, type InspirationPreferences } from "@/domain/inspiration";
 import { AccountStatus, useAccountSession } from "@/components/workspace/account-session";
 import { Icon } from "@/components/ui/icon";
-import { ProjectArtwork } from "@/components/ui/project-artwork";
 import { useInspiration, type InspirationController } from "./use-inspiration";
 import "./inspiration.css";
 
@@ -13,9 +12,7 @@ const noChoice: InspirationPreferences = { ensemble: false, elements: [] };
 const order = [0, 1, 2, 3, 4, 8, 9, 6, 5, 7, 13, 12, 14, 10, 11];
 const designs = order.map(index => inspirationCatalog[index]!);
 function Heart({ liked }: { liked: boolean }) {
-  // Original Figma exports, with their native 18 × 18 geometry.
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={`/inspiration/${liked ? "heart-filled" : "heart"}.svg`} width={18} height={18} alt="" aria-hidden="true" />;
+  return <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill={liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z" /></svg>;
 }
 function Artwork({ design, eager = false, retry = false }: { design: InspirationDesign; eager?: boolean; retry?: boolean }) {
   const [failed, setFailed] = useState(false);
@@ -64,8 +61,8 @@ function OwnedInspiration({ account, projectId }: { account: Extract<ReturnType<
 /** The view accepts the real controller contract so isolated browser checks use the same UI. */
 export function InspirationView({ controller, projectId }: { controller: InspirationController; projectId: string }) {
   const [query, setQuery] = useState(""), [kind, setKind] = useState<"all" | "identity" | "logo">("all"), [liked, setLiked] = useState(false);
-  const [selected, setSelected] = useState<InspirationDesign | null>(null), [styleOpen, setStyleOpen] = useState(false), [columnCount, setColumnCount] = useState(5);
-  const feed = useRef<HTMLDivElement>(null), styleToggle = useRef<HTMLButtonElement>(null);
+  const [selected, setSelected] = useState<InspirationDesign | null>(null), [columnCount, setColumnCount] = useState(5);
+  const feed = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const node = feed.current; if (!node) return;
     const observer = new ResizeObserver(entries => { const width = entries[0]!.contentRect.width; setColumnCount(width >= 1200 ? 5 : width >= 900 ? 4 : width >= 620 ? 3 : width >= 350 ? 2 : 1); });
@@ -78,12 +75,11 @@ export function InspirationView({ controller, projectId }: { controller: Inspira
   }, [saved, controller.intents]);
   const visible = filterInspiration(designs, query, kind, liked, displayed);
   const count = [...saved.values()].filter(hasInspirationChoice).length;
-  const closeStyle = () => { setStyleOpen(false); styleToggle.current?.focus(); };
-  return <div className={`inspiration-workspace ${styleOpen ? "inspiration-with-style" : ""}`}>
-    <section className="inspiration-browse" aria-label="Inspiration gallery"><header className="inspiration-heading"><div><h1>Inspiration</h1><p>Like designs to shape your project’s visual direction.</p></div><button ref={styleToggle} type="button" className="inspiration-action" aria-expanded={styleOpen} aria-controls="inspiration-style" onClick={() => setStyleOpen(value => !value)}><ProjectArtwork name="collapse" />{styleOpen ? "Close style" : "Your style"}</button></header>
+  return <div className="inspiration-workspace">
+    <section className="inspiration-browse" aria-label="Inspiration gallery"><header className="inspiration-heading"><div><h1>Inspiration</h1><p>Like designs to shape your project’s visual direction.</p></div></header>
       <div className="inspiration-toolbar"><div className="inspiration-views" aria-label="Inspiration views"><button type="button" aria-pressed={!liked} onClick={() => setLiked(false)}>Browse</button><button type="button" aria-pressed={liked} onClick={() => setLiked(true)}>Liked <span>· {controller.overview ? count : "—"}</span></button></div>
-        <div className="inspiration-categories" aria-label="Reference categories">{([['all', 'All'], ['identity', 'Identities'], ['logo', 'Logos']] as const).map(([value, label]) => <button type="button" key={value} aria-pressed={kind === value} onClick={() => setKind(value)}>{label}</button>)}</div>
         <label className="inspiration-search"><Icon name="search" size={16} /><input type="search" aria-label="Search identities and logos" placeholder="Search identities and logos…" value={query} maxLength={160} onChange={event => setQuery(event.target.value)} /></label>
+        <div className="inspiration-categories" aria-label="Reference categories">{([['identity', 'Identities'], ['logo', 'Logos'], ['all', 'All']] as const).map(([value, label]) => <button type="button" key={value} aria-pressed={kind === value} onClick={() => setKind(value)}>{label}</button>)}</div>
       </div>
       {controller.error ? <div className="inspiration-notice" role="status"><span>{controller.error}</span><button type="button" onClick={() => void controller.refresh()} disabled={controller.loading}>Retry connection</button></div> : controller.loading ? <p className="inspiration-notice" role="status">Loading saved choices…</p> : controller.blocked ? <p className="inspiration-notice">Save or resolve your project edits before changing inspiration.</p> : controller.overview?.projectScope === "naming_only" ? <p className="inspiration-notice">Expand this project to a complete brand to save visual preferences. <Link href={`/brands/account/${projectId}`}>Open project</Link></p> : null}
       <div className="inspiration-feed" ref={feed}>
@@ -99,13 +95,10 @@ export function InspirationView({ controller, projectId }: { controller: Inspira
             </article>;
           })}</div>)}
         </div> : <div className="inspiration-empty"><Icon name="assets" size={30} /><h2>{liked && !query && kind === "all" ? "Start with a few likes" : "No designs match these filters"}</h2><p>{liked && !query && kind === "all" ? "Like an overall look or open a design to choose its details." : "Try a brand, studio, color, or design detail."}</p><button type="button" onClick={() => { setQuery(""); setKind("all"); setLiked(false); }}>Browse all designs</button></div>}
-        <footer className="inspiration-footer"><span>{visible.length} of {designs.length} curated designs</span><Link href={`/brands/account/${projectId}/identity`}>Saved references &amp; systems</Link><Link href={`/brands/account/${projectId}/logo/directions#visual-direction-review`}>Review visual direction</Link><Link href={`/brands/account/${projectId}/logo`}>Continue to logo<Icon name="arrow" size={14} /></Link></footer>
+        <footer className="inspiration-footer"><span>{visible.length} of {designs.length} curated designs</span><Link href={`/brands/account/${projectId}/identity`}>Saved references &amp; systems</Link><Link href={`/brands/account/${projectId}/logo/directions#visual-direction-review`}>Review visual direction</Link></footer>
       </div>
+      <Link className="inspiration-continue" href={`/brands/account/${projectId}/logo`}>Continue to logo generation<Icon name="arrow" size={16} /></Link>
     </section>
-    {styleOpen && <aside id="inspiration-style" className="inspiration-style" aria-label="Your style" onKeyDown={event => { if (event.key === "Escape") { event.stopPropagation(); closeStyle(); } }}><header><h2>Your style</h2><button type="button" className="inspiration-icon-button" aria-label="Close style" onClick={closeStyle}><Icon name="close" size={18} /></button></header><p>Your saved design preferences.</p>
-      {count ? <ul>{designs.filter(design => hasInspirationChoice(saved.get(design.id))).map(design => <li key={design.id}><button type="button" onClick={() => setSelected(design)}><Artwork design={design} /><span><strong>{design.brand}</strong><small>{[...(saved.get(design.id)?.ensemble ? ["Overall look"] : []), ...saved.get(design.id)!.elements.map(element => inspirationLabels[element])].join(" · ")}</small></span></button></li>)}</ul> : <p>{controller.overview ? "Start with a few likes to collect a visual starting point." : "Connect to load your saved preferences."}</p>}
-      <p className="inspiration-style-note">Review these saved choices and add guidance for the colors, typography and graphics around your approved logo.</p><Link className="inspiration-action" href={`/brands/account/${projectId}/logo/directions#visual-direction-review`}>Review visual direction<Icon name="arrow" size={14} /></Link>
-    </aside>}
     {selected && <DesignDetail key={selected.id} design={selected} choice={displayed.get(selected.id) ?? noChoice} controller={controller} onClose={() => setSelected(null)} />}
   </div>;
 }

@@ -8,6 +8,8 @@ import type { IdentityAssetStore } from "../../src/server/data/identity-asset-st
 import type { LogoProviderObservation, LogoProviderResponseReceipt } from "../../src/domain/logo-jobs";
 import type { LogoImageProductionResult, LogoImageProducer } from "../../src/server/logo-creation/openai-logo-provider";
 import type { StepOutcome } from "../../src/domain/jobs";
+import { inspectIdentityRaster } from "../../src/features/logo-vector/server/converter";
+import { IMAGE_INPUT_LIMITS } from "../../src/domain/logo-image-limits";
 import { logoFixtureId as id, syntheticLogoJob, syntheticResolvedLogoConcept } from "../fixtures/logo-creation";
 let png: Uint8Array, color: Uint8Array;
 beforeAll(async () => {
@@ -44,14 +46,32 @@ describe("one durable concept child handler", () => {
     expect(f.publish.mock.calls[0]![1].inputRevisions).toEqual(f.input.inputRevisions);
   });
   it("completed preview with unknown billing is published and remains reconciliation rather than free", async () => {
-    const f = setup(); f.produce.mockResolvedValue({ status: "completed", bytes: png, mimeType: "image/png", providerRequestId: "req_fixture", responseHash: "a".repeat(64), billing: unknown });
+    const f = setup(); f.produce.mockResolvedValue({ status: "completed", bytes: color, mimeType: "image/png", providerRequestId: "req_fixture", responseHash: "a".repeat(64), billing: unknown });
     expect(await f.handler.steps(f.job)[0]!.execute({ job: f.job, signal: new AbortController().signal })).toMatchObject({ status: "needs_reconciliation", code: "billing_unknown", costMicrousd: 0, result: { kind: "logo_concept" } });
     expect(f.publish).toHaveBeenCalledTimes(1); expect(f.observations[0]?.billing).toEqual(unknown);
   });
-  it("chromatic output records actual charge/evidence without publishing or silently regenerating", async () => {
-    const f = setup(); f.produce.mockResolvedValue({ status: "completed", bytes: color, mimeType: "image/png", providerRequestId: "req_fixture", responseHash: "a".repeat(64), billing: { status: "recorded", confirmedMicrousd: 1000 } });
-    expect(await f.handler.steps(f.job)[0]!.execute({ job: f.job, signal: new AbortController().signal })).toMatchObject({ status: "failed", code: "chromatic_output", costMicrousd: 1000 });
-    expect(f.produce).toHaveBeenCalledTimes(1); expect(f.record).toHaveBeenCalledTimes(1); expect(f.publish).not.toHaveBeenCalled();
+  it("normalizes concept color before artifact evidence while retaining the original provider response and actual charge", async () => {
+    const f = setup(), response: LogoImageProductionResult = { status: "completed", bytes: color, mimeType: "image/png", providerRequestId: "req_fixture", responseHash: "a".repeat(64), billing: { status: "recorded", confirmedMicrousd: 1000 } };
+    f.produce.mockResolvedValue(response);
+    expect(await f.handler.steps(f.job)[0]!.execute({ job: f.job, signal: new AbortController().signal })).toMatchObject({ status: "succeeded", costMicrousd: 1000 });
+    expect(f.produce).toHaveBeenCalledTimes(1); expect(f.record).toHaveBeenCalledTimes(1); expect(f.publish).toHaveBeenCalledTimes(1);
+    const normalized = f.publish.mock.calls[0]![2], inspection = await inspectIdentityRaster(normalized, "image/png");
+    expect(inspection.isMonochrome).toBe(true);
+    expect(normalized).not.toEqual(color);
+    expect(f.observations[0]).toMatchObject({ providerRequestId: response.providerRequestId, responseHash: response.responseHash, billing: response.billing,
+      artifactHash: createHash("sha256").update(normalized).digest("hex"), normalizedPixelHash: inspection.pixelHash });
+    expect(f.publish.mock.calls[0]![1]).toMatchObject({ contentHash: f.observations[0]!.artifactHash, byteLength: normalized.length });
+    expect(response.bytes).toBe(color);
+    expect((await inspectIdentityRaster(response.bytes, "image/png")).isMonochrome).toBe(false);
+  });
+  it("retains provider accounting when concept normalization rejects malformed, oversized or wrong-dimension output", async () => {
+    const small = new Uint8Array(await sharp({ create: { width: 8, height: 8, channels: 3, background: "red" } }).png().toBuffer());
+    for (const bytes of [small, new Uint8Array([137,80,78,71,13,10,26,10]), new Uint8Array(IMAGE_INPUT_LIMITS.outputBytes + 1)]) {
+      const f = setup(); f.produce.mockResolvedValue({ status: "completed", bytes, mimeType: "image/png", providerRequestId: "req_fixture", responseHash: "a".repeat(64), billing: { status: "recorded", confirmedMicrousd: 1000 } });
+      expect(await f.handler.steps(f.job)[0]!.execute({ job: f.job, signal: new AbortController().signal })).toMatchObject({ status: "failed", code: "invalid_output", costMicrousd: 1000 });
+      expect(f.observations[0]).toMatchObject({ responseHash: "a".repeat(64), billing: { status: "recorded", confirmedMicrousd: 1000 } });
+      expect(f.produce).toHaveBeenCalledTimes(1); expect(f.publish).not.toHaveBeenCalled();
+    }
   });
   it("refuses a resolved provenance list that omits the exact captured brief", async () => {
     const f = setup(); f.resolve.mockResolvedValue({ ...f.input, inputRevisions: [] });
