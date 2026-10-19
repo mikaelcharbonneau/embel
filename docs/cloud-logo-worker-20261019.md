@@ -6,8 +6,15 @@ The user requested Logo generation on Vercel so it works when the Mac is
 offline. This authorizes preparing the same account's existing Logo flow for a
 cloud worker. D084's explicit credential transfer and paid activation approval
 was for **Naming**. It does not transfer Logo's restricted database or Storage
-credentials. Logo cloud credential transfer, one running daemon and its
-applicable image/compute usage still need the concrete activation approval.
+credentials. After reviewing verified PR #23 and the estimate below, the user
+explicitly selected **Activate Logo on Vercel**. This approves secure transfer of
+the existing image API key, restricted Logo database credential and separate
+Storage login into this dedicated project's production settings; one worker on
+the existing Pro trial with applicable CPU/build/AI usage; and separate Vercel
+and live-app tabs to verify six concepts and one refinement with the Mac worker
+stopped. It does not authorize a plan upgrade, purchased provider credits, new
+credentials, grants or unrelated operations. Actual activation and acceptance
+still require the checks recorded below.
 
 Preparation began from clean main
 `5507923fd40e458d66f66a42b0085916bed54f91`. The lead created the empty,
@@ -321,7 +328,8 @@ role definitions, cross-owner denial, pending requests and privilege/binding
 drift. Together with existing refinement and publication-adjudication suites,
 54 tests pass. Targeted ESLint passes. These are local synthetic checks.
 
-The live read-only baseline packet ran successfully. Freeze and enable have
+The user has now approved the concrete Logo activation above. The live read-only
+baseline packet ran successfully. Freeze and enable have
 **not** run against the live database. Actual credential transfer, cloud native
 authentication and Storage renewal, hosted build/secret-canary inspection,
 process stop evidence, fresh cloud readiness, real image execution and reload
