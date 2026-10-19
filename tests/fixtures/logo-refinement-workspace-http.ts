@@ -51,6 +51,7 @@ export async function syntheticRefinementWorkspaceHttp(preexisting = false) {
       const body = request.postDataJSON() as typeof state.selections[number]; state.selections.push(body);
       if (state.loseSelection) { state.loseSelection = false; throw new Error("Synthetic lost selection acknowledgement"); }
       const prior = state.requests.get(body.requestKey); if (prior && prior.status === "succeeded") return json(prior.receipt);
+      if (JSON.stringify(body.expected) !== JSON.stringify(workspace.heads)) return json({ error: { code: "conflict" } }, 409);
       const revision = logoStageRevisionSchema.parse({ ...resolved.brief, id: id(920), stage: "concepts", revision: 2, parentRevisionId: id(900), payload: { batchIds: [batch.id], selected: body.source } });
       stages.set(revision.id, revision); workspace = { ...workspace, heads: { ...workspace.heads, workspaceRevision: workspace.heads.workspaceRevision + 1, stageRevisions: { ...workspace.heads.stageRevisions, concepts: 2 } }, stages: { ...workspace.stages, concepts: { stage: "concepts", id: revision.id, revision: 2 } } };
       const receipt: LogoMutationReceipt = logoMutationReceiptSchema.parse({ ownerId: foundation.ownerId, projectId: foundation.projectId, requestKey: body.requestKey, workspace, revision });
