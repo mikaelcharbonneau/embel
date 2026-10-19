@@ -221,7 +221,7 @@ describe("independent cloud Naming deployment artifact", () => {
     const patterns = readFileSync(path.join(root, "services/naming-worker/.dockerignore"), "utf8").split(/\r?\n/u)
       .map(line => line.trim()).filter(line => line && !line.startsWith("#"));
     expect(["*", "**"]).toContain(patterns[0]);
-    for (const pattern of patterns.slice(1)) expect(["!Containerfile", "!.dockerignore", "!dist/", "!dist/index.js", "!dist/package.json", "!dist/build-manifest.json"]).toContain(pattern);
+    for (const pattern of patterns.slice(1)) expect(["!Containerfile", "!.dockerignore", "!dist", "!dist/index.js", "!dist/package.json", "!dist/build-manifest.json"]).toContain(pattern);
   });
 
   it("keeps the dedicated Vercel release dormant with no web runtime, functions or secret configuration", () => {
@@ -250,6 +250,11 @@ describe("independent isolated Naming release packaging", () => {
     expect(readdirSync(path.join(receipt.release, "naming-worker")).sort()).toEqual([".dockerignore", "Containerfile", "dist"]);
     expect(readdirSync(path.join(receipt.release, "naming-worker/dist")).sort()).toEqual(["build-manifest.json", "index.js", "package.json"]);
     expect(readdirSync(path.join(receipt.release, "static"))).toEqual(["index.html"]);
+    // Vercel CLI ignores directory negations ending in a slash. They can make
+    // a complete local release upload without its runtime and static files.
+    const uploadPatterns = readFileSync(path.join(receipt.release, ".vercelignore"), "utf8").split(/\r?\n/u);
+    expect(uploadPatterns).toEqual(expect.arrayContaining(["!static", "!naming-worker", "!naming-worker/dist"]));
+    expect(uploadPatterns.filter(pattern => /^!.+\/$/u.test(pattern))).toEqual([]);
     const configuration = JSON.parse(readFileSync(path.join(receipt.release, "vercel.json"), "utf8"));
     expect(configuration.daemons["naming-worker"].instances).toEqual({ iad1: mode === "stopped" ? 0 : 1 });
     expect(configuration.daemons["naming-worker"].command).toEqual(mode === "standby" ? ["node", "dist/index.js", "--standby"] : undefined);

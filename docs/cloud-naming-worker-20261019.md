@@ -135,6 +135,10 @@ Vercel execution or Mac-independent provider generation. The final combined
 matrix passed **169 tests in 10 files**, including 97 runtime/configuration and
 22 independent artifact/process/packaging checks. Full TypeScript, ESLint and
 the production Next.js build passed. Independent QA found no source blockers.
+An actual Vercel CLI no-upload dry run exposed a trailing-slash ignore-rule
+issue; the corrected rules collect exactly eight payload files: the Containerfile,
+Docker ignore file, three bundle files, root package/configuration and inert
+static page. No source checkout or credential file is selected for upload.
 
 The provider-neutral freeze/enable packets passed **25 disposable database
 scenarios** using full migration replay. All tables other than the two exact

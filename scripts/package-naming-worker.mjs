@@ -42,7 +42,7 @@ await writeFile(path.join(release, "vercel.json"), JSON.stringify(configuration,
 await writeFile(path.join(release, "package.json"), JSON.stringify({ name: "embel-naming-worker-release", private: true, type: "module" }) + "\n");
 await mkdir(path.join(release, "static"));
 await writeFile(path.join(release, "static", "index.html"), "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>Embel</title></head><body></body></html>\n");
-await writeFile(path.join(release, ".vercelignore"), "**\n!vercel.json\n!package.json\n!static/\n!static/index.html\n!naming-worker/\n!naming-worker/Containerfile\n!naming-worker/.dockerignore\n!naming-worker/dist/\n!naming-worker/dist/index.js\n!naming-worker/dist/package.json\n!naming-worker/dist/build-manifest.json\n");
+await writeFile(path.join(release, ".vercelignore"), "**\n!vercel.json\n!package.json\n!static\n!static/index.html\n!naming-worker\n!naming-worker/Containerfile\n!naming-worker/.dockerignore\n!naming-worker/dist\n!naming-worker/dist/index.js\n!naming-worker/dist/package.json\n!naming-worker/dist/build-manifest.json\n");
 // Only public provenance is printed. This script neither loads nor transfers
 // credentials and never creates a deployment or enables the database pilot.
 console.log(JSON.stringify({ release, mode, projectId, sourceRevision: revision, bundleSha256: manifest.bundleSha256 }));

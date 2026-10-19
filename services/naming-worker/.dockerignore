@@ -1,7 +1,7 @@
 **
 !Containerfile
 !.dockerignore
-!dist/
+!dist
 !dist/index.js
 !dist/package.json
 !dist/build-manifest.json
