@@ -2,9 +2,11 @@ import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
 import { TLSSocket, type PeerCertificate } from "node:tls";
 import type { Pool } from "pg";
+import JavaScriptPool from "pg-pool";
 import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { runCloudLogoWorker, verifyCloudLogoDatabase, type CloudLogoDependencies } from "../../services/logo-worker/runtime";
+import { createPooledIdentityConnectionFactory } from "../../src/server/runtime/identity-pool";
 import { CLOUD_LOGO_BINDING, CLOUD_LOGO_STORAGE_USER_ID, CLOUD_LOGO_WORKER_ID, type CloudLogoMode } from "../../worker/cloud-logo-configuration";
 import { cloudLogoConfiguration, cloudLogoEnv, cloudLogoSecret, cloudLogoToken } from "./cloud-logo-fixture";
 
@@ -72,18 +74,51 @@ describe("cloud Logo safe modes and actual host composition", () => {
 });
 
 describe("cloud Logo shutdown and failure classification", () => {
-  it.each(["verifyDatabase", "createSession", "verifySession", "startHost"] as const)("retains pool failure during %s as failure through early shutdown", async step => {
+  it.each([
+    ["verifyDatabase", "database_qualification"], ["createSession", "storage_sign_in"],
+    ["verifySession", "storage_session_verification"], ["startHost", "host_construction"],
+  ] as const)("lets the pool replace a discarded idle client during %s without skipping qualification", async (step, phase) => {
     const f = fixture("preflight"), original = f.dependencies[step].getMockImplementation()!;
     f.dependencies[step].mockImplementation((async (...args: unknown[]) => {
       f.pool.emit("error", new Error(cloudLogoSecret));
       return Reflect.apply(original, undefined, args);
     }) as never);
-    await expect(f.run()).rejects.toThrow(/^cloud_logo_runtime_unavailable$/u);
-    expect(f.host.run).not.toHaveBeenCalled(); expect(f.dependencies.emit).not.toHaveBeenCalled(); expect(f.pool.end).toHaveBeenCalledOnce();
+    await f.run();
+    expect(f.host.run).not.toHaveBeenCalled(); expect(f.pool.end).toHaveBeenCalledOnce();
+    expect(f.dependencies.verifyDatabase).toHaveBeenCalledOnce(); expect(f.dependencies.verifySession).toHaveBeenCalledOnce();
+    expect(f.dependencies.startHost).toHaveBeenCalledOnce();
+    expect(f.dependencies.emit.mock.calls.map(([event]) => event.event)).toEqual(["cloud_logo_database_idle_client_removed", "cloud_logo_preflight_verified"]);
+    expect(f.dependencies.emit.mock.calls[0]![0]).toMatchObject({ phase });
+    expect(JSON.stringify(f.dependencies.emit.mock.calls)).not.toContain(cloudLogoSecret);
   });
-  it("treats a pool error during disposal as failure and never announces standby", async () => {
-    const f = fixture("standby"); vi.mocked(f.pool.end).mockImplementation(async () => { f.pool.emit("error", new Error(cloudLogoSecret)); });
-    await expect(f.run()).rejects.toThrow(/^cloud_logo_runtime_unavailable$/u); expect(f.dependencies.emit).not.toHaveBeenCalled();
+  it("does not mistake an idle-client event during confirmed disposal for a failed pool close", async () => {
+    const f = fixture("preflight"); vi.mocked(f.pool.end).mockImplementation(async () => { f.pool.emit("error", new Error(cloudLogoSecret)); });
+    await f.run();
+    expect(f.dependencies.emit.mock.calls.map(([event]) => event.event)).toEqual(["cloud_logo_database_idle_client_removed", "cloud_logo_preflight_verified"]);
+    expect(f.dependencies.emit.mock.calls[0]![0]).toMatchObject({ phase: "pool_disposal" });
+    expect(f.pool.end).toHaveBeenCalledOnce(); expect(f.session.close).toHaveBeenCalledOnce();
+  });
+  it.each([
+    ["qualifyRaster", "raster_qualification", "raster_qualification_failed"],
+    ["verifyDatabase", "database_qualification", "database_qualification_failed"],
+    ["createSession", "storage_sign_in", "storage_sign_in_failed"],
+    ["verifySession", "storage_session_verification", "storage_session_verification_failed"],
+    ["startHost", "host_construction", "host_construction_failed"],
+  ] as const)("reports a fixed %s failure without private diagnostics or a false ready event", async (step, phase, reason) => {
+    const f = fixture("preflight"); f.dependencies[step].mockRejectedValue(new Error(cloudLogoSecret));
+    await expect(f.run()).rejects.toThrow(step === "startHost" ? /^cloud_logo_drain_unconfirmed$/u : /^cloud_logo_runtime_unavailable$/u);
+    expect(f.dependencies.emit.mock.calls[0]![0]).toMatchObject({ event: "cloud_logo_runtime_failure", phase, reason });
+    expect(f.dependencies.emit.mock.calls.every(([event]) => event.event === "cloud_logo_runtime_failure")).toBe(true);
+    expect(JSON.stringify(f.dependencies.emit.mock.calls)).not.toContain(cloudLogoSecret);
+    expect(f.host.run).not.toHaveBeenCalled();
+  });
+  it("still rejects an actual database qualification failure after an unrelated idle-client event", async () => {
+    const f = fixture("preflight");
+    f.dependencies.verifyDatabase.mockImplementation(async () => { f.pool.emit("error", new Error(cloudLogoSecret)); throw new Error(cloudLogoSecret); });
+    await expect(f.run()).rejects.toThrow(/^cloud_logo_runtime_unavailable$/u);
+    expect(f.dependencies.emit.mock.calls.map(([event]) => event.event)).toEqual(["cloud_logo_database_idle_client_removed", "cloud_logo_runtime_failure"]);
+    expect(f.dependencies.emit.mock.calls[1]![0]).toMatchObject({ phase: "database_qualification", reason: "database_qualification_failed" });
+    expect(f.dependencies.createSession).not.toHaveBeenCalled(); expect(f.dependencies.startHost).not.toHaveBeenCalled();
   });
   it.each(["qualifyRaster", "verifyDatabase", "createSession", "verifySession", "startHost"] as const)("stops cleanly when a signal arrives during %s", async step => {
     const f = fixture("preflight"), original = f.dependencies[step].getMockImplementation()!;
@@ -109,11 +144,20 @@ describe("cloud Logo shutdown and failure classification", () => {
     await expect(f.run()).rejects.toThrow(/^cloud_logo_drain_unconfirmed$/u);
     expect(f.pool.end).not.toHaveBeenCalled(); expect(f.session.close).not.toHaveBeenCalled();
     expect(f.dependencies.emit.mock.calls.some(([event]) => event.event === "cloud_logo_drain_complete")).toBe(false);
+    expect(f.dependencies.emit).toHaveBeenLastCalledWith(expect.objectContaining({ event: "cloud_logo_runtime_failure", phase: "host_drain", reason: "host_drain_unconfirmed" }));
   });
   it("keeps session resources when pool disposal is unconfirmed", async () => {
     const f = fixture(); vi.mocked(f.pool.end).mockRejectedValue(new Error(cloudLogoSecret));
     await expect(f.run()).rejects.toThrow(/^cloud_logo_disposal_unconfirmed$/u);
     expect(f.session.close).not.toHaveBeenCalled();
+    expect(f.dependencies.emit).toHaveBeenLastCalledWith(expect.objectContaining({ event: "cloud_logo_runtime_failure", phase: "pool_disposal", reason: "pool_disposal_unconfirmed" }));
+  });
+  it("reports failed session disposal without claiming a completed drain", async () => {
+    const f = fixture(); f.session.close.mockRejectedValue(new Error(cloudLogoSecret));
+    await expect(f.run()).rejects.toThrow(/^cloud_logo_disposal_unconfirmed$/u);
+    expect(f.host.close).toHaveBeenCalledOnce(); expect(f.pool.end).toHaveBeenCalledOnce();
+    expect(f.dependencies.emit.mock.calls.map(([event]) => event.event)).toEqual(["cloud_logo_worker_started", "cloud_logo_runtime_failure"]);
+    expect(f.dependencies.emit).toHaveBeenLastCalledWith(expect.objectContaining({ phase: "storage_session_disposal", reason: "storage_session_disposal_unconfirmed" }));
   });
   it("redacts startup/host failures and still disposes confirmed resources", async () => {
     const f = fixture(); f.dependencies.verifySession.mockRejectedValue(new Error(cloudLogoSecret));
@@ -124,6 +168,69 @@ describe("cloud Logo shutdown and failure classification", () => {
     const f = fixture(); f.host.run.mockResolvedValue(undefined);
     await expect(f.run()).rejects.toThrow(/^cloud_logo_runtime_unavailable$/u);
     expect(f.host.close).toHaveBeenCalledOnce(); expect(f.session.close).toHaveBeenCalledOnce();
+    expect(f.dependencies.emit).toHaveBeenLastCalledWith(expect.objectContaining({ event: "cloud_logo_runtime_failure", phase: "host_run", reason: "host_returned_without_shutdown" }));
+  });
+  it("keeps diagnostics from interfering with clean shutdown", async () => {
+    const f = fixture();
+    f.dependencies.emit.mockImplementation(() => { throw new Error(cloudLogoSecret); });
+    await f.run(); expect(f.host.close).toHaveBeenCalledOnce(); expect(f.pool.end).toHaveBeenCalledOnce(); expect(f.session.close).toHaveBeenCalledOnce();
+  });
+});
+
+describe("cloud Logo with the installed PostgreSQL pool", () => {
+  // The actual pool creates/removes/replaces these offline clients. There is no
+  // network transport, provider, database mutation or credential in this fixture.
+  function driverFixture() {
+    const clients: OfflineClient[] = [];
+    class OfflineClient extends EventEmitter {
+      _queryable = true;
+      _ending = false;
+      query = vi.fn(async () => ({ rows: [{ value: "synthetic" }] }));
+      end = vi.fn((callback?: () => void) => { this._ending = true; callback?.(); return Promise.resolve(); });
+      constructor() { super(); clients.push(this); }
+      connect(callback: (error?: Error) => void) { queueMicrotask(() => callback()); }
+    }
+    const pool = new JavaScriptPool({ Client: OfflineClient as unknown as typeof import("pg").Client, max: 2, idleTimeoutMillis: 0 });
+    const factory = createPooledIdentityConnectionFactory([{ ...CLOUD_LOGO_BINDING, pool }]);
+    return { pool, factory, clients };
+  }
+  it("replaces an errored idle client while preserving a checked-out connection and the running host", async () => {
+    const f = fixture(), d = driverFixture(); f.dependencies.createPool.mockReturnValue(d.pool);
+    f.host.run.mockImplementation(async () => {
+      const active = await d.factory.acquire(CLOUD_LOGO_BINDING.ownerId);
+      const idle = await d.pool.connect(); idle.release();
+      expect(d.pool.totalCount).toBe(2); expect(d.pool.idleCount).toBe(1);
+      // pg-pool removes and closes this client before notifying the cloud runtime.
+      idle.emit("error", new Error(cloudLogoSecret));
+      expect(d.clients[1]!.end).toHaveBeenCalledOnce(); expect(d.pool.totalCount).toBe(1); expect(d.pool.idleCount).toBe(0);
+      const options = f.dependencies.startHost.mock.calls[0]![0];
+      if (!options.enabled) throw new Error("Synthetic cloud host was not enabled.");
+      expect(options.signal?.aborted).toBe(false); expect(f.host.close).not.toHaveBeenCalled(); expect(f.session.close).not.toHaveBeenCalled();
+      await expect(active.connection.query("synthetic active request")).resolves.toEqual({ rows: [{ value: "synthetic" }] });
+      const replacement = await d.pool.connect(); expect(replacement).not.toBe(idle); expect(d.clients).toHaveLength(3);
+      expect(d.clients[0]!.end).not.toHaveBeenCalled(); expect(d.pool.ending).toBe(false);
+      replacement.release(); await active.connection.release(false); f.controller.abort();
+    });
+    await f.run();
+    expect(f.dependencies.startHost).toHaveBeenCalledOnce(); expect(f.host.run).toHaveBeenCalledOnce();
+    expect(f.dependencies.emit.mock.calls.map(([event]) => event.event)).toEqual(["cloud_logo_worker_started", "cloud_logo_database_idle_client_removed", "cloud_logo_drain_complete"]);
+    expect(f.dependencies.emit.mock.calls[1]![0]).toMatchObject({ phase: "host_run" });
+    expect(JSON.stringify(f.dependencies.emit.mock.calls)).not.toContain(cloudLogoSecret);
+    expect(d.pool.ended).toBe(true); expect(f.session.close).toHaveBeenCalledOnce();
+  });
+  it("still rejects and discards a checked-out client failure without treating it as idle recovery", async () => {
+    const f = fixture(), d = driverFixture(); f.dependencies.createPool.mockReturnValue(d.pool);
+    f.host.run.mockImplementation(async () => {
+      const active = await d.factory.acquire(CLOUD_LOGO_BINDING.ownerId);
+      d.clients[0]!.emit("error", new Error(cloudLogoSecret));
+      await active.connection.query("synthetic request after failure");
+    });
+    await expect(f.run()).rejects.toThrow(/^cloud_logo_runtime_unavailable$/u);
+    expect(d.clients[0]!.query).not.toHaveBeenCalled(); expect(d.clients[0]!.end).toHaveBeenCalledOnce();
+    expect(f.dependencies.emit.mock.calls.map(([event]) => event.event)).toEqual(["cloud_logo_worker_started", "cloud_logo_runtime_failure"]);
+    expect(f.dependencies.emit).toHaveBeenLastCalledWith(expect.objectContaining({ phase: "host_run", reason: "host_run_failed" }));
+    expect(JSON.stringify(f.dependencies.emit.mock.calls)).not.toContain(cloudLogoSecret);
+    expect(d.pool.ended).toBe(true); expect(f.session.close).toHaveBeenCalledOnce();
   });
 });
 

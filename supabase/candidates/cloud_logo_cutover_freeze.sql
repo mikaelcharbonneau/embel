@@ -24,7 +24,8 @@ begin
   ('fluid_private.logo_local_project_clear(uuid,uuid)','00eaa6d40429c91eadeaccedecf12a0b',false,'s',array['search_path=""'],'{postgres=X/postgres}'),
   ('public.claim_logo_job(text,integer)','9f9df81497f1c23ef25697a89fa9de2e',true,'v',array['search_path=""'],'{postgres=X/postgres,fluid_logo_worker=X/postgres}'),
   ('public.report_logo_worker_ready(text,jsonb,integer)','512b77ff6b01205f07e4dbf09e2adee3',true,'v',array['search_path=""'],'{postgres=X/postgres,fluid_logo_worker=X/postgres}'),
-  ('fluid_private.logo_publication_failure_adjudication_matches(uuid)','2a421d795cfd73b10b20a8b18b80c212',false,'s',array['search_path=""','TimeZone=UTC'],'{postgres=X/postgres}'),
+  ('fluid_private.logo_publication_failure_adjudication_matches(uuid)','3aefd0303d54cd31382fb7debbaf90e3',false,'s',array['search_path=""','TimeZone=UTC'],'{postgres=X/postgres}'),
+  ('fluid_private.logo_absent_publication_adjudication_matches(uuid)','b35222e467ee7e74be8b74d91aea1c4b',false,'s',array['search_path=""','TimeZone=UTC'],'{postgres=X/postgres}'),
   ('fluid_private.logo_worker_owner()','28c3876cb1de6b2adf58ba12b6ecec2c',true,'s',array['search_path=""'],'{postgres=X/postgres,fluid_logo_worker=X/postgres}')
  ) e(signature,source_hash,definer,volatility,config,acl) loop
   if not exists(select 1 from pg_catalog.pg_proc p where p.oid=expected.signature::regprocedure

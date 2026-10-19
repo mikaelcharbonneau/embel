@@ -50,6 +50,15 @@ describe("immutable raster refinement handler", () => {
     expect(await f.handler.steps(f.job)[0]!.execute({ job: f.job, signal: new AbortController().signal })).toMatchObject({ status: "needs_reconciliation" });
     expect(f.produce).toHaveBeenCalledTimes(1); expect(f.publication).not.toHaveBeenCalled();
   });
+  it("replays only the same refinement publication after a transient save failure", async () => {
+    const f = setup(), normal = f.publication.getMockImplementation()!;
+    f.publication.mockRejectedValueOnce(new Error("Lost save acknowledgement")).mockImplementation(normal);
+    expect(await f.handler.steps(f.job)[0]!.execute({ job: f.job, signal: new AbortController().signal })).toMatchObject({ status: "succeeded", costMicrousd: 1000 });
+    expect(f.produce).toHaveBeenCalledTimes(1); expect(f.recordProviderResponse).toHaveBeenCalledTimes(1); expect(f.publication).toHaveBeenCalledTimes(2);
+    expect(f.publication.mock.calls[0]![1]).toEqual(f.publication.mock.calls[1]![1]);
+    expect(f.publication.mock.calls[0]![2]).toEqual(f.publication.mock.calls[1]![2]);
+    expect(f.publication.mock.calls[1]![1].requestKey).toBe(f.input.input.rasterRevisionId);
+  });
   it("normalizes black-and-white preview refinements before evidence while retaining the original response and charge", async () => {
     const f = setup(), bytes = new Uint8Array(await sharp({ create: { width: 1024, height: 1024, channels: 3, background: "red" } }).png().toBuffer());
     f.produce.mockResolvedValue({ status: "completed", bytes, mimeType: "image/png", providerRequestId: "req_refine", responseHash: "a".repeat(64), billing: { status: "recorded", confirmedMicrousd: 1000 } });
