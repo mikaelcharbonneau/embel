@@ -11,7 +11,7 @@ import { ConversationComposer } from "./conversation-composer";
 import { GuidedChoiceWidget } from "./guided-interview-widgets";
 import { GuidedThinking } from "./guided-thinking";
 import { guidedAllowance, guidedMessageContext, guidedTimeline, guidedTurnResult, initialGuidedContext, nextGuidedProposal, recordGuidedChoice } from "./guided-interview-client";
-import type { ProjectEditorForm } from "./project-editor";
+import type { DraftPatch, ProjectEditorForm } from "./project-editor";
 import { useStrategyJobs } from "./use-strategy-jobs";
 import "@/styles/conversation.css";
 
@@ -180,7 +180,7 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
   const failed = bound && !strategyJobActive(bound.job) && !reply && bound.job.state !== "succeeded";
   const unverified = bound?.job.state === "succeeded" && !reply;
   const stale = currentTurn && !workspace.pendingGuidedContext && currentTurn.inputRevision !== saved.current_revision;
-  const unavailable = currentTurn && !bound && strategy.overview && !allowance;
+  const unavailable = currentTurn && !bound && strategy.overview && !allowance || !state && saved.scope === "complete_brand" && strategy.overview && !guidedAllowance(availability, "strategy.competitors");
   const legacyJobs = [...jobs].filter(job => job.state === "succeeded" && !job.results.some(result => result.output.guidance)).sort((a, b) => a.created_at.localeCompare(b.created_at));
   const legacyReplies = legacyJobs.map(job => <Fragment key={job.id}>{job.results.map(result => <article key={result.stepKey} className="guided-assistant-message" aria-label="Earlier Embel response"><div className="guided-assistant-identity"><ProjectArtwork name="mark" /><span>Embel</span></div><p className="guided-assistant-copy">{result.output.proposal.message}</p></article>)}</Fragment>);
 
@@ -202,12 +202,13 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
       {!state && saved.scope === "complete_brand" && <div className="guided-interview-start"><p>Let’s find the right points of comparison for your brand.</p><button type="button" className="button primary small" disabled={blocked || !guidedAllowance(availability, "strategy.competitors")} onClick={() => void startResearch()}>Start competitor research</button></div>}
       {!state && saved.scope !== "complete_brand" && <p className="guided-assistant-copy">{saved.context.description}</p>}
       {(active || checkingResearch) && <GuidedThinking onStop={bound && strategyJobActive(bound.job) ? () => void strategy.cancel(bound.job) : undefined} stopping={bound?.job.state === "cancel_requested"} stopDisabled={strategy.pending} />}
-      {state?.answers.length === 3 && context.competitorReviewComplete && context.intake.audienceReviewedAt && context.intake.personalityReviewedAt && <p className="guided-complete" role="status">Your brand strategy is saved. You can revisit any answer above.</p>}
+      {!dirty && !workspace.conflict && state?.answers.length === 3 && context.competitorReviewComplete && context.intake.audienceReviewedAt && context.intake.personalityReviewedAt && <p className="guided-complete" role="status">Your brand strategy is saved. You can revisit any answer above.</p>}
+      <GuidedProjectDetails workspace={workspace} storage={storage} blocked={pending || workspace.conflict || Boolean(workspace.pendingGuidedContext || workspace.pendingDraftSave)} />
     </div>
     <div className="guided-interview-compose">
       <div className="conversation-compose-notices" role="region" aria-label="Conversation notices" tabIndex={0}>
       {(error || strategy.actionError || strategy.readError || failed || unverified || unavailable || stale) && <div className="guided-conversation-error" role="alert">
-        <p>{error || strategy.actionError || statusReadError || (stale ? "The project changed after this response was requested. Your conversation is kept. Send a new message to continue from the current version." : bound?.job.state === "needs_reconciliation" ? "This research outcome needs verification before another request can start. Your prompt is saved." : failed ? bound?.job.state === "cancelled" ? "Research was cancelled. Your prompt is saved." : currentTurn?.stage === "competitors" && currentTurn.purpose !== "message" ? "Research could not produce verified suggestions. Your prompt is saved. You can retry research." : "This response did not finish. Your prompt is saved." : unverified ? "This response could not be matched to your question. Your conversation is kept." : strategyAvailabilityMessage(availability ?? null, "project"))}</p>
+        <p>{error || strategy.actionError || statusReadError || (stale ? "The project changed after this response was requested. Your conversation is kept. Send a new message to continue from the current version." : bound?.job.state === "needs_reconciliation" ? "This research outcome needs verification before another request can start. Your prompt is saved." : failed ? bound?.job.state === "cancelled" ? "Research was cancelled. Your prompt is saved." : currentTurn?.stage === "competitors" && currentTurn.purpose !== "message" ? "Research could not produce verified suggestions. Your prompt is saved. You can retry research." : "This response did not finish. Your prompt is saved." : unverified ? "This response could not be matched to your question. Your conversation is kept." : !state ? "AI replies are unavailable right now. Your brief is saved. You can edit it below and check status to try again." : strategyAvailabilityMessage(availability ?? null, "project"))}</p>
         <button type="button" className="text-link" disabled={busy || working || strategy.pending} onClick={strategy.refresh}>Check status</button>
         {currentTurn && !stale && (!bound || bound.job.state === "failed" || bound.job.state === "cancelled") && <button type="button" className="text-link" disabled={blocked} onClick={() => void retry()}>{currentTurn.stage === "competitors" && currentTurn.purpose !== "message" ? "Retry research" : "Retry request"}</button>}
       </div>}
@@ -217,4 +218,17 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
       {(saved.scope === "complete_brand" || state) && <ConversationComposer project value={prompt} onChange={setPrompt} onSend={() => void send()} label="Message Embel" placeholder="Reply in your own words, or ask a question…" disabled={blocked || !prompt.trim()} readOnly={pending} hint={null} sendLabel="Send prompt" />}
     </div>
   </div>;
+}
+
+function GuidedProjectDetails({ workspace, storage, blocked }: { workspace: AccountWorkspace; storage: ComponentProps<typeof ProjectEditorForm>["storage"]; blocked: boolean }) {
+  const draft = workspace.draft;
+  function editBrief(patch: DraftPatch) {
+    storage.onUpdate({ ...patch, confirmedBrief: undefined, competitorReviewKey: null, audienceReviewedAt: null, audienceConversationKey: null, personalityReviewedAt: null, personalityReviewKey: null, positioningReviewedAt: null, positioningReviewKey: null });
+  }
+  return <details className="project-details-disclosure"><summary>Project details and editing</summary>
+    <span className="save-label" role="status">{storage.saveLabel}</span>
+    <label className="field-label">Project label<input value={draft.title} maxLength={160} disabled={blocked} placeholder="Untitled brand" onChange={event => storage.onUpdate({ title: event.target.value })} /></label>
+    <label className="field-label">Brief description<textarea value={draft.description} maxLength={12000} rows={4} disabled={blocked} onChange={event => editBrief({ description: event.target.value })} /></label>
+    {([['activity', 'What the business does'], ['offering', 'First products / services'], ['knownAudience', 'Known audience']] as const).map(([field, label]) => <label className="field-label" key={field}>{label}<input value={draft[field]} maxLength={2000} disabled={blocked} onChange={event => editBrief({ [field]: event.target.value })} /></label>)}
+  </details>;
 }

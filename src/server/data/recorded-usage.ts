@@ -5,7 +5,7 @@ import { strategyUsageSchema, subscriptionUsageSchema } from "@/domain/strategy-
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
 
-const jobSchema = z.object({ id: z.uuid(), owner_id: z.uuid(), project_id: z.uuid(), operation: recordedUsageOperationSchema, state: z.literal("succeeded"), finished_at: z.iso.datetime({ offset: true }) });
+const jobSchema = z.object({ id: z.uuid(), owner_id: z.uuid(), project_id: z.uuid(), operation: recordedUsageOperationSchema, billing_mode: z.enum(["openai_api", "chatgpt_subscription"]), state: z.literal("succeeded"), finished_at: z.iso.datetime({ offset: true }) });
 const stepSchema = z.object({ job_id: z.uuid(), owner_id: z.uuid(), project_id: z.uuid(), state: z.literal("succeeded"), receipt_operation: recordedUsageOperationSchema.nullable(), usage: z.unknown().optional() });
 function verified<T>(schema: z.ZodType<T>, value: unknown): T {
   const parsed = schema.safeParse(value);
@@ -22,7 +22,7 @@ function recordedTokens(value: unknown) {
 
 /** Existing user-scoped RLS reads; JSON projection avoids fetching result content. */
 export async function listRecordedUsage(auth: AuthenticatedContext) {
-  const reply = await auth.client.from("jobs").select("id,owner_id,project_id,operation,state,finished_at")
+  const reply = await auth.client.from("jobs").select("id,owner_id,project_id,operation,billing_mode,state,finished_at")
     .eq("owner_id", auth.userId).eq("state", "succeeded")
     .in("operation", [...recordedUsageOperationSchema.options[0].options, "naming.generate"])
     .order("finished_at", { ascending: false }).order("id", { ascending: false }).limit(RECORDED_USAGE_LIMIT);
@@ -30,10 +30,13 @@ export async function listRecordedUsage(auth: AuthenticatedContext) {
   const jobs = verified(z.array(jobSchema).max(RECORDED_USAGE_LIMIT), reply.data);
   if (jobs.some(job => job.owner_id !== auth.userId) || new Set(jobs.map(job => job.id)).size !== jobs.length) throw new ApiError("integration_unavailable");
   const tokens = new Map<string, ReturnType<typeof recordedTokens>>();
-  if (jobs.length) {
+  // Managed stages can contain overlapping session/turn observations. They do
+  // not supply a single verified request token total. Keep their entries unknown.
+  const legacyJobs = jobs.filter(job => !(job.operation === "naming.generate" && job.billing_mode === "openai_api"));
+  if (legacyJobs.length) {
     const stepReply = await auth.client.from("job_steps")
       .select("job_id,owner_id,project_id,state,receipt_operation:output->>operation,usage:output->usage")
-      .eq("owner_id", auth.userId).eq("state", "succeeded").in("job_id", jobs.map(job => job.id)).limit(RECORDED_USAGE_LIMIT + 1);
+      .eq("owner_id", auth.userId).eq("state", "succeeded").in("job_id", legacyJobs.map(job => job.id)).limit(RECORDED_USAGE_LIMIT + 1);
     if (stepReply.error) throw new ApiError("integration_unavailable");
     const steps = verified(z.array(stepSchema).max(RECORDED_USAGE_LIMIT), stepReply.data);
     for (const step of steps) {

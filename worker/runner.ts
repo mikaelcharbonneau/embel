@@ -1,4 +1,4 @@
-import { assertAffordableStep, stepOutcomeSchema, type ClaimedJob, type JobStatus, type StepOutcome } from "../src/domain/jobs";
+import { assertAffordableStep, moneySchema, stepOutcomeSchema, type ClaimedJob, type JobStatus, type StepOutcome } from "../src/domain/jobs";
 
 export interface JobStore {
   claim(workerId: string, leaseSeconds: number): Promise<ClaimedJob | null>;
@@ -53,7 +53,7 @@ async function executeBounded(step: JobStep, job: ClaimedJob, controller: AbortC
 
 export async function runOneJob(options: {
   store: JobStore; handlers: HandlerRegistry; workerId: string;
-  leaseSeconds?: number; heartbeatMs?: number; abortGraceMs?: number; signal?: AbortSignal;
+  localPrototype?: boolean; leaseSeconds?: number; heartbeatMs?: number; abortGraceMs?: number; signal?: AbortSignal;
 }): Promise<"idle" | "lease_lost" | JobStatus> {
   const { store, handlers } = options;
   const leaseSeconds = options.leaseSeconds ?? 120;
@@ -78,9 +78,10 @@ export async function runOneJob(options: {
     let plannedCost = 0;
     for (const step of steps) {
       if (!/^[a-zA-Z0-9._:-]{1,100}$/.test(step.key)) throw new Error("Invalid step key");
-      assertAffordableStep(job.reservedCostMicrousd, step.maximumCostMicrousd);
+      moneySchema.parse(step.maximumCostMicrousd);
       plannedCost += step.maximumCostMicrousd;
-      assertAffordableStep(job.reservedCostMicrousd, plannedCost);
+      moneySchema.parse(plannedCost);
+      if (!options.localPrototype) assertAffordableStep(job.reservedCostMicrousd, plannedCost);
       if (step.timeoutMs !== undefined && (!Number.isSafeInteger(step.timeoutMs) || step.timeoutMs < 1 || step.timeoutMs > 3_600_000)) throw new Error("Invalid provider deadline");
     }
   } catch {
@@ -139,11 +140,11 @@ export async function runOneJob(options: {
 
       let outcome: StepOutcome;
       try {
-        try { assertAffordableStep(job.reservedCostMicrousd - spent, step.maximumCostMicrousd); }
+        try { if (!options.localPrototype) assertAffordableStep(job.reservedCostMicrousd - spent, step.maximumCostMicrousd); }
         catch { throw new NotDispatchedError("Cost cap exceeded"); }
         outcome = stepOutcomeSchema.parse(await executeBounded(step, job, controller, abortGraceMs));
         // Keep known spend even if a provider violates the bound; reconcile the overage.
-        if (outcome.costMicrousd > step.maximumCostMicrousd || spent + outcome.costMicrousd > job.reservedCostMicrousd) {
+        if (!options.localPrototype && (outcome.costMicrousd > step.maximumCostMicrousd || spent + outcome.costMicrousd > job.reservedCostMicrousd)) {
           outcome = { status: "needs_reconciliation", code: "provider_cost_exceeded", costMicrousd: outcome.costMicrousd, providerRequestId: outcome.providerRequestId,
             ...("result" in outcome ? { result: outcome.result } : {}) };
         }

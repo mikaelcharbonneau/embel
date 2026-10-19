@@ -8,8 +8,10 @@ import {
   NAMING_MAX_BATCH_SIZE, NAMING_MAX_PAGE_SIZE, NAMING_MAX_SNAPSHOT_ENTRIES, nameIdentityKeySchema, namingBatchSchema, isNamingBatchTargetCompatible,
   namingCursorSchema, namingExclusionSnapshotSchema, namingPreferenceRevisionSchema, namingReadinessSchema, namingRejectionCountsSchema,
   namingSessionSchema, namingStrategyBasisSchema, namingStrategyKey, namingStrategyKeyFromBasis,
-  namingTargetCountSchema, projectNamePageSchema, type NamingRejectionCounts, type NamingTargetCount,
+  namingTargetCountSchema, projectNamePageSchema, legacyNamingBatchSchema, namingBrainBatchSchema, type NamingRejectionCounts, type NamingTargetCount,
 } from "./project-naming";
+import { namingBrainJobInputSchema, namingBrainFulfillmentSchema, namingPreparedSetSchema, namingProgressiveCompletionSchema, type NamingBrainJobInput } from "./naming-brain";
+export { namingBrainJobInputSchema, type NamingBrainJobInput } from "./naming-brain";
 
 export const NAMING_JOB_MUTATION_MAX_BYTES = 2_048;
 export const namingOperationSchema = z.literal("naming.generate");
@@ -52,7 +54,7 @@ const namingInputBatchSchema = z.preprocess(raw => {
     if (basis.success) return { ...record, strategyKey: namingStrategyKeyFromBasis(basis.data) };
   }
   return raw;
-}, namingBatchSchema);
+}, legacyNamingBatchSchema);
 
 /** Server/DB-derived immutable input; none of these snapshots are browser writes. */
 export const chatGPTNamingJobInputSchema = z.strictObject({
@@ -70,7 +72,8 @@ export const chatGPTNamingJobInputSchema = z.strictObject({
   if (new TextEncoder().encode(JSON.stringify(input)).byteLength > input.policy.limits.maxInputBytes) ctx.addIssue({ code: "custom", message: "Frozen naming input exceeds its accepted byte limit" });
 }).transform(freezeSnapshot);
 export type ChatGPTNamingJobInput = z.infer<typeof chatGPTNamingJobInputSchema>;
-export type NamingJobInput = ChatGPTNamingJobInput;
+export const namingJobInputSchema = z.union([chatGPTNamingJobInputSchema, namingBrainJobInputSchema]);
+export type NamingJobInput = ChatGPTNamingJobInput | NamingBrainJobInput;
 
 export const namingFulfillmentSchema = z.strictObject({
   status: z.enum(["pending", "complete", "partial", "none"]), targetCount: namingTargetCountSchema,
@@ -117,7 +120,18 @@ export const namingBatchResultSchema = z.strictObject({
   candidateIds: z.array(z.uuid()).max(NAMING_MAX_BATCH_SIZE), fulfillment: namingFulfillmentSchema, completedAt: timestampSchema,
 }).refine(value => value.fulfillment.status !== "pending" && value.candidateIds.length === value.fulfillment.acceptedCount && new Set(value.candidateIds).size === value.candidateIds.length, { message: "Published result must count its unique immutable candidates" }).transform(freezeSnapshot);
 export type NamingBatchResult = z.infer<typeof namingBatchResultSchema>;
-export const namingBatchEntrySchema = z.strictObject({ batch: namingBatchSchema, result: namingBatchResultSchema.nullable() }).refine(value => value.result === null || (sameScope(value.batch, value.result) && value.result.batchId === value.batch.id && value.result.jobId === value.batch.jobId && value.result.fulfillment.targetCount === value.batch.targetCount), { message: "Published result must match its owned batch and job" });
+const preparedNamingBrainBatchResultSchema = z.strictObject({
+  version: z.literal(2), ...ownershipFields, batchId: z.uuid(), jobId: z.uuid(), runId: z.uuid(), preparedSetId: z.uuid(), stepKey: z.literal("prepare"),
+  candidateIds: z.array(z.uuid()).max(100), fulfillment: namingBrainFulfillmentSchema, completedAt: timestampSchema,
+}).refine(value => value.candidateIds.length === value.fulfillment.acceptedCount && new Set(value.candidateIds).size === value.candidateIds.length, "Managed publication counts the exact unique prepared membership").transform(freezeSnapshot);
+export const namingBrainBatchResultSchema = z.union([preparedNamingBrainBatchResultSchema, z.strictObject({
+  version: z.literal(2), localPipelineVersion: z.literal(2), ...ownershipFields, batchId: z.uuid(), jobId: z.uuid(), runId: z.uuid(), completionId: z.uuid(), stepKey: z.literal("prepare"),
+  candidateIds: z.array(z.uuid()).length(100).refine(rows => new Set(rows).size === rows.length), fulfillment: namingBrainFulfillmentSchema, completedAt: timestampSchema,
+}).refine(value => value.fulfillment.status === "complete" && value.fulfillment.acceptedCount === 100 && value.fulfillment.coverageSatisfied).transform(freezeSnapshot)]);
+export type NamingBrainBatchResult = z.infer<typeof namingBrainBatchResultSchema>;
+export const namingAnyBatchResultSchema = z.union([namingBatchResultSchema, namingBrainBatchResultSchema]);
+
+export const namingBatchEntrySchema = z.strictObject({ batch: namingBatchSchema, result: namingAnyBatchResultSchema.nullable() }).refine(value => value.result === null || (sameScope(value.batch, value.result) && value.result.batchId === value.batch.id && value.result.jobId === value.batch.jobId && value.result.fulfillment.targetCount === value.batch.targetCount && ("version" in value.batch ? "version" in value.result && value.result.runId === value.batch.runId : !("version" in value.result))), { message: "Published result must match its owned batch and job" });
 export type NamingBatchEntry = z.infer<typeof namingBatchEntrySchema>;
 export const namingBatchPageSchema = z.strictObject({ ...ownershipFields, items: z.array(namingBatchEntrySchema).max(NAMING_MAX_PAGE_SIZE), nextCursor: namingCursorSchema.nullable() }).superRefine((page, ctx) => {
   if (page.items.some(row => !sameScope(page, row.batch)) || new Set(page.items.map(row => row.batch.id)).size !== page.items.length || new Set(page.items.map(row => row.batch.sequence)).size !== page.items.length) ctx.addIssue({ code: "custom", path: ["items"], message: "Batch rows and sequences must be unique and belong to this owner and project" });
@@ -147,11 +161,11 @@ export const namingJobSchema = z.strictObject({
 });
 export type NamingJob = z.infer<typeof namingJobSchema>;
 export const namingJobResponseSchema = z.strictObject({ job: namingJobSchema });
-export const enqueueNamingBatchResponseSchema = z.strictObject({ batch: namingBatchSchema, job: namingJobSchema, session: namingSessionSchema }).superRefine((value, ctx) => {
+export const enqueueNamingBatchResponseSchema = z.strictObject({ batch: legacyNamingBatchSchema, job: namingJobSchema, session: namingSessionSchema }).superRefine((value, ctx) => {
   if (!sameScope(value.batch, value.session) || value.batch.ownerId !== value.job.owner_id || value.batch.projectId !== value.job.project_id || value.batch.jobId !== value.job.id || value.batch.id !== value.job.batchId || value.batch.contextRevision !== value.job.input_revision || value.batch.sequence !== value.job.sequence || value.batch.targetCount !== value.job.targetCount || value.batch.acceptedPolicyIdentity !== value.job.policyIdentity || value.session.latestBatchSequence < value.batch.sequence) ctx.addIssue({ code: "custom", message: "Enqueue response must bind one owned batch, job and session" });
 });
 export type EnqueueNamingBatchResponse = z.infer<typeof enqueueNamingBatchResponseSchema>;
-export const namingBatchDetailResponseSchema = z.strictObject({ batch: namingBatchSchema, job: namingJobSchema, result: namingBatchResultSchema.nullable() }).superRefine((value, ctx) => {
+export const namingBatchDetailResponseSchema = z.strictObject({ batch: legacyNamingBatchSchema, job: namingJobSchema, result: namingBatchResultSchema.nullable() }).superRefine((value, ctx) => {
   const { batch, job, result } = value;
   if (batch.ownerId !== job.owner_id || batch.projectId !== job.project_id || batch.id !== job.batchId || batch.jobId !== job.id || batch.contextRevision !== job.input_revision || batch.sequence !== job.sequence || batch.targetCount !== job.targetCount || batch.acceptedPolicyIdentity !== job.policyIdentity) ctx.addIssue({ code: "custom", message: "Batch detail must bind the owned job and frozen admission" });
   const output = job.results[0];
@@ -196,3 +210,43 @@ export const projectNamingOverviewSchema = z.strictObject({
 });
 export type ProjectNamingOverview = z.infer<typeof projectNamingOverviewSchema>;
 export const projectNamingOverviewResponseSchema = projectNamingOverviewSchema;
+
+/** V2 readers expose the final application preparation, never seven raw role outputs. */
+const preparedNamingBrainJobResultSchema = z.strictObject({
+  version: z.literal(2), operation: namingOperationSchema, handlerVersion: z.literal("naming-brain-v1"), provider: z.literal("openai"), billingMode: z.literal("openai_api"),
+  runId: z.uuid(), jobId: z.uuid(), batchId: z.uuid(), preparedSet: namingPreparedSetSchema, completedAt: timestampSchema,
+}).refine(value => value.runId === value.preparedSet.runId, "Prepared result must bind its exact run").transform(freezeSnapshot);
+export const namingBrainJobResultSchema = z.union([preparedNamingBrainJobResultSchema, z.strictObject({
+  version: z.literal(2), localPipelineVersion: z.literal(2), operation: namingOperationSchema, handlerVersion: z.literal("naming-brain-v1"), provider: z.literal("openai"), billingMode: z.literal("openai_api"),
+  runId: z.uuid(), jobId: z.uuid(), batchId: z.uuid(), completionId: z.uuid(), completion: namingProgressiveCompletionSchema, completedAt: timestampSchema,
+}).refine(value => value.runId === value.completion.runId, "Progressive completion must retain its exact run").transform(freezeSnapshot)]);
+export type NamingBrainJobResult = z.infer<typeof namingBrainJobResultSchema>;
+export const namingAnyJobResultSchema = z.union([namingJobResultSchema, namingBrainJobResultSchema]);
+export const namingBrainJobSummarySchema = z.strictObject({
+  ...namingJobFields, version: z.literal(2), handlerVersion: z.literal("naming-brain-v1"), billingMode: z.literal("openai_api"),
+  policyIdentity: z.null(), acceptedPolicyIdentity: subscriptionPolicyIdentitySchema, runId: z.uuid(), targetCount: z.literal(100),
+});
+export type NamingBrainJobSummary = z.infer<typeof namingBrainJobSummarySchema>;
+export const namingAnyJobSummarySchema = z.union([namingJobSummarySchema, namingBrainJobSummarySchema]);
+export const namingBrainJobSchema = namingBrainJobSummarySchema.extend({ results: z.array(z.strictObject({ stepKey: z.literal("prepare"), output: namingBrainJobResultSchema })).max(1) }).superRefine((value, ctx) => {
+  if (value.state === "succeeded" && value.results.length !== 1) ctx.addIssue({ code: "custom", path: ["results"], message: "Succeeded managed jobs require their final persisted preparation" });
+  if (value.results.some(result => result.output.runId !== value.runId || result.output.jobId !== value.id || result.output.batchId !== value.batchId)) ctx.addIssue({ code: "custom", path: ["results"], message: "Final preparation must bind the owned run, job and batch" });
+});
+export type NamingBrainJob = z.infer<typeof namingBrainJobSchema>;
+export const namingAnyJobSchema = z.union([namingJobSchema, namingBrainJobSchema]);
+
+/** Explicit mixed-history read seam; legacy enqueue/detail/overview jobs stay strict. */
+export const namingBrainBatchDetailResponseSchema = z.strictObject({ batch: namingBrainBatchSchema, job: namingBrainJobSchema, result: namingBrainBatchResultSchema.nullable() }).superRefine((value, ctx) => {
+  const { batch, job, result } = value;
+  if (batch.ownerId !== job.owner_id || batch.projectId !== job.project_id || batch.id !== job.batchId || batch.jobId !== job.id || batch.runId !== job.runId || batch.contextRevision !== job.input_revision || batch.sequence !== job.sequence || batch.targetCount !== job.targetCount || batch.acceptedPolicyIdentity !== job.acceptedPolicyIdentity) ctx.addIssue({ code: "custom", message: "Managed batch detail must bind the owned job, run and frozen admission" });
+  const output = job.results[0];
+  const membership = output && ("preparedSet" in output.output ? output.output.preparedSet : output.output.completion);
+  const fulfillmentMatches = !result || !output ? true : "preparedSet" in output.output
+    ? !("localPipelineVersion" in result) && JSON.stringify(result.fulfillment) === JSON.stringify(output.output.preparedSet.fulfillment)
+    : "localPipelineVersion" in result && result.completionId === output.output.completionId;
+  if (result ? !sameScope(batch, result) || result.batchId !== batch.id || result.jobId !== job.id || result.runId !== batch.runId || !output || result.stepKey !== output.stepKey || JSON.stringify(result.candidateIds) !== JSON.stringify(membership?.candidateIds) || !fulfillmentMatches : output !== undefined) ctx.addIssue({ code: "custom", path: ["result"], message: "Managed publication must match its exact immutable membership, run and fulfillment" });
+  if (membership && JSON.stringify(membership.primaryCounts.map(row => row.approach)) !== JSON.stringify(batch.preferences.approaches)) ctx.addIssue({ code: "custom", path: ["job", "results"], message: "Published primary coverage must retain the batch's selected approaches" });
+});
+export type NamingBrainBatchDetailResponse = z.infer<typeof namingBrainBatchDetailResponseSchema>;
+export const namingAnyBatchDetailResponseSchema = z.union([namingBatchDetailResponseSchema, namingBrainBatchDetailResponseSchema]);
+export type NamingAnyBatchDetailResponse = z.infer<typeof namingAnyBatchDetailResponseSchema>;

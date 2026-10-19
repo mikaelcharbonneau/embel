@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-import { getApiTextPublicationOrigin } from "../../src/server/api-text/config";
+import { getApiTextPublicationOrigin, isLocalPrototypeRuntime } from "../../src/server/api-text/config";
 
 const workerOrigin = "https://fluid-api-text-worker-qualified.vercel.app";
 const projectId = "prj_WKrFUPy3wptZ3qI9l1hTuqPmzkDt";
@@ -11,6 +11,27 @@ const local: Record<string, string | undefined> = {
   VERCEL_PROJECT_ID: projectId,
   FLUID_API_TEXT_WORKER_ORIGIN: workerOrigin,
 };
+
+describe("local prototype runtime boundary", () => {
+  const prototype = { FLUID_LOCAL_PROTOTYPE: "true", FLUID_RUNTIME: "local", NODE_ENV: "production", APP_ORIGIN: "http://127.0.0.1:3106" };
+  it("accepts only the explicit production loopback prototype", () => {
+    expect(isLocalPrototypeRuntime(prototype)).toBe(true);
+    expect(isLocalPrototypeRuntime({ ...prototype, VERCEL: undefined })).toBe(true);
+    expect(isLocalPrototypeRuntime({ ...prototype, VERCEL_PROJECT_ID: projectId })).toBe(true);
+    expect(getApiTextPublicationOrigin(prototype)).toBeNull();
+  });
+  it.each([
+    ["FLUID_LOCAL_PROTOTYPE", undefined], ["FLUID_LOCAL_PROTOTYPE", "TRUE"], ["FLUID_LOCAL_PROTOTYPE", "false"],
+    ["FLUID_RUNTIME", undefined], ["FLUID_RUNTIME", "hosted"], ["NODE_ENV", "development"], ["NODE_ENV", "test"],
+    ["APP_ORIGIN", "http://localhost:3106"], ["APP_ORIGIN", "http://127.0.0.1:3105"],
+    ["APP_ORIGIN", "http://127.0.0.1:3106/"], ["APP_ORIGIN", "https://127.0.0.1:3106"],
+    ["VERCEL", ""], ["VERCEL", "0"], ["VERCEL", "1"], ["VERCEL_ENV", "production"],
+    ["VERCEL_TARGET_ENV", "preview"], ["VERCEL_DEPLOYMENT_ID", "dpl_fixture"],
+    ["VERCEL_OIDC_TOKEN", "synthetic-token"],
+  ])("refuses prototype dispatch with %s=%s", (key, value) => {
+    expect(isLocalPrototypeRuntime({ ...prototype, [key!]: value })).toBe(false);
+  });
+});
 
 describe("API text publication configuration", () => {
   it("permits the explicitly enabled loopback development web app without a hosted deployment identity", () => {

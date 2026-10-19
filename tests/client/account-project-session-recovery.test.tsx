@@ -10,6 +10,7 @@ import { accountProjectSchema, type AccountProject } from "@/domain/project-api"
 import { guidedMessageContext } from "@/components/workspace/guided-interview-client";
 import { getNamingReadiness } from "@/domain/project-naming";
 import { strategyJobSchema, type StrategyOverview } from "@/domain/strategy-jobs";
+import { contextSnapshotSchema } from "@/domain/projects";
 
 const owner = "aaaaaaaa-1111-4111-8111-111111111111";
 const projectId = "bbbbbbbb-1111-4111-8111-111111111111";
@@ -37,7 +38,7 @@ async function mount() {
 }
 async function typePrompt(text: string) {
   await act(async () => {
-    const field = host.querySelector("textarea")!;
+    const field = host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")!;
     Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(field, text);
     field.dispatchEvent(new Event("input", { bubbles: true }));
   });
@@ -96,14 +97,14 @@ it("continues a naming-only project to its own Naming workspace without requirin
 it("keeps unsent conversation text through same-owner verification and protects unsaved exit", async () => {
   await mount();
   await typePrompt("Please keep my unsent message");
-  expect(host.querySelector("textarea")!.value).toBe("Please keep my unsent message");
+  expect(host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")!.value).toBe("Please keep my unsent message");
   expect(account.drafts.hasUnsaved()).toBe(true);
   const beforeUnload = new Event("beforeunload", { cancelable: true });
   window.dispatchEvent(beforeUnload);
   expect(beforeUnload.defaultPrevented).toBe(true);
   await act(async () => window.dispatchEvent(new Event("focus")));
   expect(account.session).toMatchObject({ status: "ready", userId: owner, generation: 2 });
-  expect(host.querySelector("textarea")!.value).toBe("Please keep my unsent message");
+  expect(host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")!.value).toBe("Please keep my unsent message");
   expect(account.drafts.hasUnsaved()).toBe(true);
   expect(await account.signOut()).toEqual({ ok: false, reason: "confirmation_required" });
   expect(fetcher.mock.calls.filter(([, init]) => init.method !== "GET")).toHaveLength(0);
@@ -130,6 +131,57 @@ it("acknowledges an exact committed guided answer on retry without another PATCH
   expect(host.textContent).not.toContain("A newer version is saved in your account.");
   expect(account.drafts.get(projectId)!.saved.current_revision).toBe(2);
   expect(account.drafts.hasUnsaved()).toBe(false);
+});
+
+it.each([false, true])("withholds the final saved-strategy notice until an exact acknowledgement (committed before failed reply: %s)", async committed => {
+  const now = "2026-10-15T00:00:00Z";
+  const turns = (["competitors", "audience", "personality"] as const).map((stage, index) => ({ id: `saved-${stage}`, userMessageId: null, stage, purpose: "propose", inputRevision: index + 1 }));
+  const answers = turns.map(turn => ({ stage: turn.stage, turnId: turn.id, optionIds: [`choice-${turn.stage}`], customText: null, confirmedAt: now }));
+  project = accountProjectSchema.parse({ ...project, current_revision: 3, context: { ...project.context,
+    competitorReviewComplete: true,
+    audienceSegments: [{ id: "eeeeeeee-1111-4111-8111-111111111111", label: "Neighbors", needs: ["A convenient lunch"], reason: "Nearby regulars", origin: "proposal", selected: true, sources: [] }],
+    intake: { ...project.context.intake, audienceReviewedAt: now, guidedInterview: { version: 1, stage: "personality", turns, answers: answers.slice(0, 2) } },
+  } });
+  const complete = contextSnapshotSchema.parse({ ...project.context,
+    personality: { sincerity: 80, excitement: 40, competence: 80, sophistication: 30, ruggedness: 10 },
+    intake: { ...project.context.intake, personalityReviewedAt: now, guidedInterview: { ...project.context.intake.guidedInterview!, stage: "complete", answers } },
+  });
+  await mount();
+  const notice = "Your brand strategy is saved. You can revisit any answer above.";
+  expect(host.textContent).not.toContain(notice);
+  const response = deferred<Response>();
+  const writes = { patches: 0 };
+  fetcher.mockImplementation(async (_path: string, init: RequestInit) => {
+    expect(init.method).toBe("PATCH"); writes.patches++;
+    expect(JSON.parse(String(init.body))).toEqual({ expectedRevision: 3, context: complete });
+    return response.promise;
+  });
+  let saving!: Promise<unknown>;
+  await act(async () => { saving = capture.editor!.saveContext(complete); });
+  expect(account.drafts.get(projectId)!.pendingGuidedContext).toEqual(complete);
+  expect(host.textContent).toContain("Unsaved project edits");
+  expect(host.textContent).not.toContain(notice);
+  if (committed) project = { ...project, current_revision: 4, context: complete };
+  await act(async () => { response.resolve(new Response(null, { status: 503 })); await saving; });
+  expect(account.drafts.hasUnsaved()).toBe(true);
+  expect(host.textContent).not.toContain(notice);
+  expect(host.textContent).toContain("Retry save");
+  fetcher.mockImplementation(async (_path: string, init: RequestInit) => {
+    if (init.method === "GET") return Response.json({ project });
+    expect(init.method).toBe("PATCH"); writes.patches++;
+    expect(JSON.parse(String(init.body))).toEqual({ expectedRevision: 3, context: complete });
+    project = { ...project, current_revision: 4, context: complete };
+    return Response.json({ revision: { project_id: projectId, owner_id: owner, revision: 4, context: complete, input_hash: "a".repeat(64), created_at: now } });
+  });
+  await retrySave();
+  expect(writes.patches).toBe(committed ? 1 : 2);
+  expect(account.drafts.get(projectId)!.pendingGuidedContext).toBeUndefined();
+  expect(account.drafts.hasUnsaved()).toBe(false);
+  expect(host.textContent).toContain("Saved project · v4");
+  expect(host.textContent).toContain(notice);
+  await act(async () => { account.drafts.set({ ...account.drafts.get(projectId)!, conflict: true }); });
+  expect(host.textContent).toContain("Unsaved project edits");
+  expect(host.textContent).not.toContain(notice);
 });
 
 it.each([0, 1])("acknowledges a committed guided save during re-verification when read %s resolves first", async first => {
@@ -191,10 +243,10 @@ it("hides an unsent message while identity is checking and restores only the sam
   fetcher.mockImplementation(async (path: string) => path === "/api/session" ? verification.promise : Response.json({ project }));
   await act(async () => window.dispatchEvent(new Event("focus")));
   expect(account.session.status).toBe("checking");
-  expect(host.querySelector("textarea")).toBeNull(); expect(host.textContent).not.toContain("Private unsent text");
+  expect(host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")).toBeNull(); expect(host.textContent).not.toContain("Private unsent text");
   expect(account.drafts.hasUnsaved()).toBe(true);
   await act(async () => verification.resolve(Response.json({ user: { id: owner } })));
-  expect(host.querySelector("textarea")!.value).toBe("Private unsent text");
+  expect(host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")!.value).toBe("Private unsent text");
   const otherOwner = "dddddddd-1111-4111-8111-111111111111";
   fetcher.mockImplementation(async (path: string) => path === "/api/session" ? Response.json({ user: { id: otherOwner } }) : new Response(null, { status: 404 }));
   await act(async () => window.dispatchEvent(new Event("focus")));
@@ -203,7 +255,7 @@ it("hides an unsent message while identity is checking and restores only the sam
   expect(host.textContent).not.toContain("Private unsent text");
   fetcher.mockImplementation(async (path: string) => path === "/api/session" ? Response.json({ user: { id: owner } }) : Response.json({ project }));
   await act(async () => window.dispatchEvent(new Event("focus")));
-  expect(host.querySelector("textarea")!.value).toBe("");
+  expect(host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")!.value).toBe("");
 });
 
 it("cannot republish a late guided PATCH after another owner has been verified", async () => {
@@ -308,13 +360,13 @@ it.each([false, true])("clears only the acknowledged submitted prompt after guid
     throw new TypeError("Lost submitted prompt acknowledgement");
   });
   await act(async () => host.querySelector<HTMLButtonElement>('button[title="Send prompt"]')!.click());
-  expect(host.querySelector("textarea")!.value).toBe("The submitted question");
+  expect(host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")!.value).toBe("The submitted question");
   if (newerTyping) await typePrompt("A different unsent question");
   await retrySave();
   expect(patches).toBe(1);
   expect(project.context.intake.conversation).toHaveLength(1);
   expect(project.context.intake.conversation![0]).toMatchObject({ text: "The submitted question" });
-  expect(host.querySelector("textarea")!.value).toBe(newerTyping ? "A different unsent question" : "");
+  expect(host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")!.value).toBe(newerTyping ? "A different unsent question" : "");
   expect(account.drafts.hasUnsaved()).toBe(newerTyping);
 });
 
@@ -338,7 +390,7 @@ it.each([false, true])("retains the rejected guided prompt intent through a 429 
   expect(requests[2]!.body).toBe(requests[0]!.body);
   expect(project.context.intake.conversation).toHaveLength(1);
   expect(project.context.intake.conversation![0]).toMatchObject({ text: "A submitted question after rate limiting" });
-  expect(host.querySelector("textarea")!.value).toBe(newerTyping ? "Keep this different unsent question" : "");
+  expect(host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")!.value).toBe(newerTyping ? "Keep this different unsent question" : "");
   expect(account.drafts.hasUnsaved()).toBe(newerTyping);
   if (newerTyping) { await typePrompt(""); expect(account.drafts.hasUnsaved()).toBe(false); }
 });
@@ -363,7 +415,7 @@ it.each([false, true])("retains rejected choice metadata through a 429 and ackno
   expect(requests[2]!.body).toBe(requests[0]!.body);
   expect(project.context.intake.guidedInterview!.answers).toEqual([expect.objectContaining({ turnId: "audience-choice", stage: "audience", optionIds: ["eeeeeeee-1111-4111-8111-111111111111"] })]);
   expect(project.context.audienceSegments.filter(segment => segment.selected).map(segment => segment.label)).toEqual(["Neighbors"]);
-  expect(host.querySelector("textarea")!.value).toBe(newerTyping ? "Keep this unsent follow-up to my choice" : "");
+  expect(host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")!.value).toBe(newerTyping ? "Keep this unsent follow-up to my choice" : "");
   expect(account.drafts.hasUnsaved()).toBe(newerTyping);
   if (newerTyping) { await typePrompt(""); expect(account.drafts.hasUnsaved()).toBe(false); }
 });

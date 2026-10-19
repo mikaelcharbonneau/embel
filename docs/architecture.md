@@ -1,5 +1,73 @@
 # Embel foundation architecture
 
+## Local prototype execution
+
+D077 authorizes a local simplification that preserves the account database,
+current UI and saved work. Its explicit `npm run local -- --prototype` entrypoint
+builds this checkout and supervises Next.js and the existing Strategy/Naming
+worker at `http://127.0.0.1:3106`. The local opt-in is bounded to that origin and
+cannot activate on a hosted deployment. The default legacy launcher is separate.
+
+Home saves the project before AI admission. Name enters project Naming directly;
+Brand uses the existing competitors → audience → personality interview. New work
+in Names uses the same project Naming path, with earlier standalone requests
+retained as history. Signed-in creation no longer depends on space in the legacy
+browser-draft collection; recovery remains explicit and owner-bound.
+
+Local Strategy uses the database worker heartbeat and existing durable job,
+provider and result-save contracts. Additive scoped capabilities replace local
+hosted queue publication and rollout/subscription prerequisites. Only newly
+admitted local jobs receive this authority. Unknown outcomes block their own
+project, while unrelated projects can proceed. D078 removes the local prototype's
+monetary and quota admission gates; historical jobs and holds remain unchanged.
+The web receives
+no provider or worker database credentials. This implementation remains subject
+to the real acceptance recorded in [local prototype](local-prototype.md).
+
+Local Naming recovery revalidates retained genuine completed responses. When
+both Research and Director receipts identify the explicit local execution mode,
+the Director's self-reported novelty flag is advisory for initial and subsequent
+batches. Actual normalized-name deduplication, selected-approach coverage and
+factual-source validation remain mandatory. Native/default validation is
+unchanged. Successful recovered completion and the existing continuation gate
+run atomically; a new stage receives its own execution deadline. Every issued
+sibling is observed before classifying a failed or unresolved set. This does not
+permit continuation around an unknown issued call, cancellation or deletion.
+
+New trusted local Naming jobs record `localTimingVersion: 2` in their immutable
+input. Those jobs give each provider call up to 15 minutes from its database
+authorization time, bounded by a 20-minute single-role stage envelope or the
+existing one-hour Creation/Gap envelope. Earlier jobs without that witness retain
+their four-minute request reconstruction and saved hashes. Earlier queued work
+does not consume another call's own window, and recovery cannot reset either
+clock. The local stream permits normal high-volume
+SSE framing while retaining final-output, schema, source, identity and time
+bounds. See the live evidence in [local prototype](local-prototype.md).
+
+The server derives an optional local scroll-resume capability for a current,
+safely resumable failed or partial run. A fresh native result-grid interaction
+may then invoke the existing idempotent Resume action. Saved pages load first;
+polling, remounts, synthetic events, paused work, unknown outcomes and stale
+account/context cannot create that resume request. This changes behavior plumbing,
+not the approved chat and grid layout.
+
+Durable authorization and provider create invocation are separate boundaries.
+Local failures before create can close only with an acknowledged exact per-call
+`local_dispatch_not_attempted` proof. A pre-create base receipt alone is not
+terminal evidence, and any attempted create with an unknown outcome remains
+unresolved. Ordinary local Creator failure stops new assignments while already
+started calls settle within their own bounds; explicit cancellation still aborts
+them. Stage reads are sequential within each load to avoid flooding the small
+connection pool and delaying heartbeats.
+
+The local prototype supervisor keeps the web available when its worker exits and
+attempts at most three worker replacements with one-, two- and four-second
+backoff. Explicit shutdown cancels backoff and bounds termination of its own
+children. Fixed operational events record child role, exit code and signal.
+Transient local Strategy readiness failures retry without stopping Naming;
+Strategy claims and provider dispatch still require an acknowledged readiness
+check. These supervision and readiness changes do not change hosted behavior.
+
 ## Account-first persistence
 
 D065 supersedes the historical local draft and Names persistence sections below.
@@ -164,17 +232,94 @@ Subscription input version 2 carries up to five validated completed proposals fr
 
 The worker accepts both legacy v1 inputs and v2, revalidates history ownership/provenance before dispatch, and includes normalized v2 input in its step fingerprint. Old v1 plans remain compatible. Rollout must replace every old local worker before applying the v2 enqueue migration; no worker table-read grant is expanded.
 
-## Project Naming increment under local integration
+## Naming brain V2 (locally verified, 2026-10-17)
+
+Naming V2 uses saved preferences, immutable run snapshots and a continuous owned
+feed, separate from the historical 250-name subscription path below. Measured code
+is `d654d62fcbaaddad0002eff088bbf0983d97d6c9`, tree `483278cbdc0ce6f6d9100b53cdf122a5dc075b59`;
+all 1,907 source hashes match manifest
+`ba317ea3b0a61046da8564b14ee740f4bf1a072f0a7e58f48d7b69af301c800a`. The final eight-command matrix
+passed: 8,636 tests, 23 intentional native-PostgreSQL gates, 0 failures; 172 browser
+checks (86+86, zero skips/retries); types, full lint, web/both worker builds and diff.
+Independent scoped repair review closed 7 addressed / 0 open / 0 new findings. See the
+[verification record](naming-brain-verification-20261016.md) for preserved red
+history and evidence. This later four-file update is documentation-only; the tested
+code identity remains d654d62. Local checks do not establish native PostgreSQL
+qualification, live installation, model access, funding or paid activation.
+
+D071 requires Naming decisions as widgets in the same chat used to answer them.
+After those decisions, the chat occupies a smaller left panel and generated names
+occupy a larger right-hand grid. The reviewed correction retains unfinished
+questions through interruption and excludes action-key activation from exploration
+demand. The [verified local sample preview](http://127.0.0.1:3137/__preview) uses
+d654d62 / build `EjbFioaYQxauMXsNryONs`; both full wrapper smoke flows pass, including
+interrupted questions, 100→200 names, feedback, selection and reset. Its names and
+saves are simulated; no live generation. The earlier 3135/a13e94c preview remains
+historical evidence.
+Account saves/recovery, historical batches and Workshop remain part of
+the account workspace; opening or navigating to Naming does not upgrade saved
+choices or admit paid work. Approaches and directness require explicit answers.
+
+The database freezes the owned project/Strategy basis, exact saved preference
+version/hash, steering/demand sequence and accepted policy in each run. A restricted
+Node worker validates preferences with the shared JavaScript normalizer and
+attests that exact version/hash and its Node/ICU/Unicode implementation fingerprint.
+Browser flags and SQL case conversion cannot stand in for this readiness evidence.
+Account verification/generation fences and stable request identities preserve
+unsaved edits and uncertain acknowledgements without silently attaching them to a
+different account or creating another paid request.
+
+Managed OpenAI Agents is primary, with an explicitly configured model and no
+Responses or alternate-model fallback. The seven durable stages are research,
+direction, creation, curation, verification, gap and prepare. Independent Creator
+sessions run at most three concurrently; the initial target is 150 raw candidates
+and 100 published names. Research and Verification have their own bounded search
+and reference-reader capabilities; other roles cannot inherit those tools. One
+optional ordered gap has fixed 10/40/5/20-cent phase envelopes and 0/0/0/8 searches.
+Complete Creator provenance, retained source text/hashes and quote bindings must
+survive review before publication. A known failed/invalid gap may preserve the
+earlier reviewed pool as truthful partial fulfillment; unknown execution does not
+produce invented names or a replacement call.
+
+Scrolling may consume saved prepared output and request bounded continuation only
+with qualifying recent interaction; 60 seconds without interaction pauses demand.
+Stop advances a persisted sequence and fences late ensure requests. An explicit
+terminal Resume may consume eligible saved output for free or create a linked run
+with its own allowance; ordinary scrolling does not perform terminal paid Resume.
+Known-session recovery retains the original identity and full allowance, with
+observation bounded to 12 claims / one hour and persisted backoff. Disabling paid
+readiness prevents new dispatch while retaining scoped observation.
+
+Every paid run holds the full US$5 until verified settlement. Pilot commitment is
+confirmed final expense plus every unsettled full hold, capped at US$25; completion,
+session caps, provisional counters and estimates do not release money or establish
+final charges. Unknown dispatch/execution or an observed overrun blocks new work.
+The dedicated graph is `worker/index.ts` (`npm run worker`), with its own Naming
+connection/deployment, both paid environment gates, private pilot policy and nine
+scoped RPC capabilities. The hosted `build:api-text-worker` graph and the existing
+`npm run local` subscription launcher do not activate it. See the exact source
+hashes, environment names, grant signatures and separate authorization requirements
+in the [activation packet](naming-brain-activation-20261016.md) and the
+[source-specific verification record](naming-brain-verification-20261016.md).
+
+The 2026-10-17 connector-only metadata snapshot identifies the configured target as
+`fluid-platform-dev`, ref `fricsfwqibyhemknqgyf`, `us-east-1`. Migration
+`20261016180000` and all nine Naming RPCs are absent there. Catalog role
+`fluid_api_text_worker` exists at OID `21484`; its actual owner binding, direct/pooler
+authentication, new Naming grants and deployment/policy remain unverified. No live
+Naming installation, credentials, funding or inference was performed.
+
+## Historical project Naming subscription path (V1)
 
 Naming has its own session, preference versions, batches, candidates, retention flags and immutable selections. It reads the saved project context without changing the Strategy conversation. Complete-brand generation requires reviewed Strategy; naming-only can start from a saved description while showing missing strategy. Unsaved or conflicted account edits block context-dependent Naming actions.
 
-Each explicit batch freezes the project revision, relevant strategy content, preferences, favorite values, existing-name identities and accepted operation policy. New first batches target 250 unique names with visible explanations under the 2026-10-05 approval; immutable historical first batches retain their 100-name target. Subsequent 50-name batches require an explicit action. Batch reads use stable 100-row pages, with exact published membership verified across all pages. A completed provider response and fulfillment are separate: rejected or missing names produce partial/none fulfillment with actual counts, never invented replacements or an automatic second request. Browser closure does not own the durable job. Raw streamed JSON is retained for recovery and never becomes selectable candidates.
+In this earlier subscription path, each explicit batch freezes the project revision, relevant strategy content, preferences, favorite values, existing-name identities and accepted operation policy. First batches admitted under the 2026-10-05 correction target 250 unique names with visible explanations; earlier immutable first batches retain their 100-name target. Subsequent 50-name batches require an explicit action. These historical targets do not define V2 managed runs. Batch reads use stable 100-row pages, with exact published membership verified across all pages. A completed provider response and fulfillment are separate: rejected or missing names produce partial/none fulfillment with actual counts, never invented replacements or an automatic second request. Browser closure does not own the durable job. Raw streamed JSON is retained for recovery and never becomes selectable candidates.
 
 Generated candidates acquire provider provenance only through atomic leased worker completion. Deterministic transformations use the existing pinned V1 algorithms. Their text is classified as user-supplied; generated ancestry does not turn a derivative into provider-authored output. SQL derives owned parent/root links and stores unverified transformation claims. Before returning, selecting, transforming or promoting candidates, the server must resolve those immutable owned references and replay the exact bounded history. SQL does not approximate JavaScript Unicode/grapheme behavior.
 
 Selecting a candidate appends a project revision and selection record, mirrors the name into both saved name fields, and preserves previous results. An earlier strategy basis requires explicit acknowledgement. Likes and saves remain independent from selection. Account Names stays separate from the existing browser library; importing is an explicit copy and never writes private account data into browser storage. Domains, Handles and Trademarks remain visibly unchecked until real providers exist.
 
-The shared local runtime preserves the selected model and registration across operation-specific policies. Naming uses zero web tools. Reading configuration or restarting the worker never silently enables Naming. The original Naming migration and its two exact existing-worker EXECUTE grants were applied under the 2026-10-04 approval. The bounded 250-name correction has separate approval for a target-only forward migration and one first-batch/one-append acceptance run, without new grants. Its verification and rollout evidence are recorded in naming-250-rollout.md.
+The historical subscription runtime preserves the selected model and registration across operation-specific policies and uses zero web tools for V1 Naming. Reading configuration or restarting that worker never silently enables Naming. The original Naming migration and its two exact existing-worker EXECUTE grants were applied under the 2026-10-04 approval. The bounded 250-name correction received separate approval for a target-only forward migration and one first-batch/one-append acceptance run, without new grants. Its source-specific verification and rollout evidence are recorded in naming-250-rollout.md. Those historical grants, calls and approvals do not activate the V2 managed graph or expand its authority.
 
 ### Global generation activity (local integration)
 
@@ -250,3 +395,68 @@ changing worker lock behavior. Derived completion needs no finalizer or cron.
 Restore withdraws pending deletion without restarting canceled work. Revision and
 lifecycle CAS retain history and reject stale delete-after-restore requests. See
 [the exact contract and qualification](project-deletion.md).
+## Local progressive Naming continuation — D079, acceptance pending
+
+The current performance implementation is under verification; the earlier
+functional checkpoint remains the last accepted runtime. Future trusted local
+jobs use immutable `localPipelineVersion: 2` alongside the existing timing
+witness. Historical and hosted jobs keep their original seven-step pipeline.
+
+The new orchestration uses two durable steps, Creation and Prepare. Within
+Creation, small independent Creator → Curator chains publish committed groups
+while genuine Research and Director guidance run alongside them. Required
+factual claims and routes also require Verifier evidence with retained quotes.
+Brief-seeded assignments identify their application origin honestly. Guidance
+can shape only unissued assignments; acknowledged requests remain exact restart
+authority. Route allocation stays flexible, reserves five genuine credits for
+each selected approach, and retains unusual but valid names.
+
+Each immutable microbatch binds real source/review artifacts and feed positions.
+Final membership references those publications through an explicit progressive
+completion record, with no invented global Curator, Verifier or prepared set.
+Visible saved names and execution closure are separate facts: unknown issued
+work remains quarantined even when 100 names are already readable. Stop and
+direction changes fence future dispatch/publication while preserving history.
+
+The existing grid observes actually visible saved cards after deliberate native
+scroll input, prefetches at a bounded low-water mark, and polls committed deltas.
+Saved pages take priority over a new run. Mounting, restored scroll, observers,
+idle/hidden views and unknown outcomes cannot admit another exploration. The
+approved widgets, chat/grid layout, account persistence and recovery buffers
+remain unchanged. See [the measured acceptance record](local-prototype.md).
+
+The local worker uses two Naming database connections and one Strategy
+connection, leaving one slot under the existing restricted login's four-slot
+limit. Three Creator chains can still await the provider concurrently. Only
+acknowledged server capacity/cancellation errors or proven pre-query connection
+failures in maintenance retry with abortable capped backoff. A raw client query
+read timeout does not prove cancellation and is not replayed. Local expiry uses
+one checked-out transaction with server statement/lock bounds, shared process
+serialization and cooldown, nonblocking owner locks and ordered eligibility
+checks. Leased execution and provider observation retain their existing outcome
+rules. Strategy rechecks fresh readiness before every initial or retried claim.
+Hosted pools and database grants are unchanged.
+
+An acknowledged generation request remains available in memory for polling but
+does not create a browser draft-recovery prompt: the account feed already owns
+that durable run. Owner-verified legacy recovery entries discard only those
+acknowledged intents. Unsaved preferences, uncertain admissions, Stop, steering
+and project-creation work retain explicit recovery and their account fences.
+
+Progressive receipt history has its own aggregate observation envelope of 5,000
+receipts/64 MiB, matching the progressive provider-record envelope. Historical
+jobs keep 500 receipts/8 MiB. Digest replay is acknowledged before capacity;
+individual receipt size, provider identities, ownership and terminal-proof gates
+are unchanged. The additive follow-up preserves existing calls and publications.
+Funded acceptance observed first names in 27.587 seconds and retained 94 before
+this missed historical count limit surfaced. Database maintenance corrections
+are installed and the worker has recovered; actual full-run completion remains
+pending. See the current local-prototype record.
+
+D080 selects GPT-6 Luna for future local guided Strategy and Naming requests.
+Local Strategy capabilities accept the exact canonical Luna policy while
+retaining the shared enabled-operation switch and the existing owner, role,
+saved-policy, readiness and lease checks. Shared hosted Sol policies and bindings
+are unchanged. Naming retains xhigh reasoning; Strategy retains medium. Both
+use the standard service tier. Historical Sol requests retain their exact
+models, service tiers and request hashes; development agents remain Sol/max.

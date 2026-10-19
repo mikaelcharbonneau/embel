@@ -2,6 +2,7 @@ import { z } from "zod";
 import { nameTransformInputSchema, nameValueSchema, namingSourceSchema, transformNames } from "./naming";
 import { contextSnapshotSchema, missingStrategy, personalitySchema, projectScopeSchema, type ContextSnapshot, type ProjectScope } from "./projects";
 import { accountProjectSchema, accountProjectSummarySchema } from "./project-api";
+import { getNamingPreferencesReadiness, namingPreferencesV2Schema } from "./naming-brain-preferences";
 
 export const NAMING_INITIAL_TARGET = 250;
 /** Immutable first batches admitted before the 250-name correction remain readable. */
@@ -43,16 +44,18 @@ export function isNamingBatchTargetCompatible(sequence: number, targetCount: Nam
     : targetCount === NAMING_CONTINUATION_TARGET);
 }
 
-export const namingPreferencesSchema = z.strictObject({
+export const namingPreferencesV1Schema = z.strictObject({
   version: z.literal(1), creativeLocale: z.string().trim().min(2).max(30), notes: z.string().trim().max(2000),
   minimumGraphemes: z.number().int().min(1).max(160).nullable(), maximumGraphemes: z.number().int().min(1).max(160).nullable(),
 }).refine(value => value.minimumGraphemes === null || value.maximumGraphemes === null || value.minimumGraphemes <= value.maximumGraphemes,
   { message: "Minimum length must not exceed maximum length", path: ["minimumGraphemes"] }).transform(freezeSnapshot);
+export const namingPreferencesSchema = z.union([namingPreferencesV1Schema, namingPreferencesV2Schema]).transform(freezeSnapshot);
+export type NamingPreferencesV1 = z.infer<typeof namingPreferencesV1Schema>;
 export type NamingPreferences = z.infer<typeof namingPreferencesSchema>;
 
 /** An unsaved starting suggestion, never an invented preference revision or answer. */
-export function initialNamingPreferences(context: ContextSnapshot): NamingPreferences {
-  return namingPreferencesSchema.parse({ version: 1, creativeLocale: context.creativeLocale, notes: context.intake.namingNotes, minimumGraphemes: null, maximumGraphemes: null });
+export function initialNamingPreferences(context: ContextSnapshot): NamingPreferencesV1 {
+  return namingPreferencesV1Schema.parse({ version: 1, creativeLocale: context.creativeLocale, notes: context.intake.namingNotes, minimumGraphemes: null, maximumGraphemes: null });
 }
 
 export const namingPreferenceRevisionSchema = z.strictObject({
@@ -152,7 +155,7 @@ const graphemeSegmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
 export function validateGeneratedNames(raw: unknown, preferences: NamingPreferences, existingKeys: ReadonlySet<string> | readonly string[], targetCount: NamingTargetCount = NAMING_INITIAL_TARGET): { accepted: AcceptedGeneratedName[]; rejections: NamingRejectionCounts } {
   if (!Array.isArray(raw)) throw new Error("Naming candidates must be an array");
   namingTargetCountSchema.parse(targetCount);
-  const settings = namingPreferencesSchema.parse(preferences);
+  const settings = namingPreferencesV1Schema.parse(preferences);
   const existing = new Set(Array.from(existingKeys, key => nameIdentityKeySchema.parse(key))), seen = new Set<string>();
   const accepted: AcceptedGeneratedName[] = [], rejections = emptyNamingRejectionCounts();
   rejections.over_target = Math.max(0, raw.length - targetCount);
@@ -182,23 +185,48 @@ export const namingExclusionSnapshotSchema = z.array(z.strictObject({
 })).max(NAMING_MAX_SNAPSHOT_ENTRIES).refine(rows => new Set(rows.map(row => row.candidateId)).size === rows.length, { message: "Exclusion candidate IDs must be unique" }).transform(freezeSnapshot);
 export type NamingExclusionSnapshot = z.infer<typeof namingExclusionSnapshotSchema>;
 const strategyFields = { strategyBasis: namingStrategyBasisSchema, strategyKey: strategyKeySchema };
-export const namingBatchSchema = z.strictObject({
+export const legacyNamingBatchSchema = z.strictObject({
   id: z.uuid(), ...ownershipFields, contextRevision: revisionSchema, ...strategyFields,
-  preferencesVersion: revisionSchema, preferences: namingPreferencesSchema, favoritesSnapshot: namingFavoritesSnapshotSchema,
+  preferencesVersion: revisionSchema, preferences: namingPreferencesV1Schema, favoritesSnapshot: namingFavoritesSnapshotSchema,
   acceptedPolicyIdentity: policyIdentitySchema, targetCount: namingTargetCountSchema, sequence: revisionSchema, jobId: z.uuid(), createdAt: timestampSchema,
 }).superRefine((batch, ctx) => {
   if (!isNamingBatchTargetCompatible(batch.sequence, batch.targetCount)) ctx.addIssue({ code: "custom", path: ["targetCount"], message: "Target must match the initial or continuation sequence" });
   const basis = namingStrategyBasisSchema.safeParse(batch.strategyBasis);
   if (basis.success && batch.strategyKey !== namingStrategyKeyFromBasis(basis.data)) ctx.addIssue({ code: "custom", path: ["strategyKey"], message: "Strategy key must match its frozen basis" });
 }).transform(freezeSnapshot);
+export type LegacyNamingBatch = z.infer<typeof legacyNamingBatchSchema>;
+export const namingBrainBatchSchema = z.strictObject({
+  version: z.literal(2), handlerVersion: z.literal("naming-brain-v1"), billingMode: z.literal("openai_api"), runId: z.uuid(),
+  id: z.uuid(), ...ownershipFields, contextRevision: revisionSchema, ...strategyFields,
+  preferencesVersion: revisionSchema, preferences: namingPreferencesV2Schema, favoritesSnapshot: namingFavoritesSnapshotSchema,
+  acceptedPolicyIdentity: policyIdentitySchema, targetCount: z.literal(100), sequence: revisionSchema, jobId: z.uuid(), createdAt: timestampSchema,
+}).superRefine((batch, ctx) => {
+  if (batch.strategyKey !== namingStrategyKeyFromBasis(batch.strategyBasis)) ctx.addIssue({ code: "custom", path: ["strategyKey"], message: "Strategy key must match its frozen basis" });
+  if (!getNamingPreferencesReadiness(batch.preferences).ready) ctx.addIssue({ code: "custom", path: ["preferences"], message: "An admitted Naming brain batch requires ready saved choices" });
+}).transform(freezeSnapshot);
+export type NamingBrainBatch = z.infer<typeof namingBrainBatchSchema>;
+export const namingBatchSchema = z.union([legacyNamingBatchSchema, namingBrainBatchSchema]);
 export type NamingBatch = z.infer<typeof namingBatchSchema>;
 
 const rootFields = { ...ownershipFields, candidateId: z.uuid(), contextRevision: revisionSchema };
-export const generatedNamingOriginSchema = z.strictObject({
+export const generatedNamingOriginV1Schema = z.strictObject({
   kind: z.literal("generated"), ...rootFields, value: nameValueSchema.refine(value => value.replace(/[\p{P}\s]/gu, "").length > 0, "Generated ancestry requires a nonempty identity"), batchId: z.uuid(), jobId: z.uuid(), stepKey: z.string().min(1).max(200),
   provider: z.literal("openai"), billingMode: z.literal("chatgpt_subscription"), model: z.string().min(1).max(150),
   responseId: z.string().min(1).max(300), requestId: z.string().min(1).max(300).nullable(), generatedAt: timestampSchema,
 });
+const generatedV2Fields = {
+  kind: z.literal("generated"), version: z.literal(2), handlerVersion: z.literal("naming-brain-v1"), ...rootFields,
+  value: nameValueSchema.refine(value => value.replace(/[\p{P}\s]/gu, "").length > 0, "Generated ancestry requires a nonempty identity"),
+  batchId: z.uuid(), jobId: z.uuid(), stepKey: z.literal("prepare"), runId: z.uuid(), sourceArtifactId: z.uuid(), sourceStageKey: z.enum(["creation", "gap"]),
+  provider: z.literal("openai"), billingMode: z.literal("openai_api"), model: z.string().min(1).max(150), requestId: z.string().min(1).max(300).nullable(),
+  providerItemId: z.string().min(1).max(300), generatedAt: timestampSchema,
+};
+export const generatedNamingOriginV2Schema = z.discriminatedUnion("protocol", [
+  z.strictObject({ ...generatedV2Fields, protocol: z.literal("openai_agents"), sessionId: z.string().min(1).max(300), turnId: z.string().min(1).max(300), agentId: z.string().min(1).max(300).nullable(), responseId: z.null() }),
+  z.strictObject({ ...generatedV2Fields, protocol: z.literal("openai_responses"), sessionId: z.null(), turnId: z.null(), agentId: z.null(), responseId: z.string().min(1).max(300) }),
+]);
+export type GeneratedNamingOriginV2 = z.infer<typeof generatedNamingOriginV2Schema>;
+export const generatedNamingOriginSchema = z.discriminatedUnion("billingMode", [generatedNamingOriginV1Schema, generatedNamingOriginV2Schema]);
 export const importedNamingOriginSchema = z.strictObject({ kind: z.literal("local_import"), ...rootFields, source: namingSourceSchema, capturedContext: contextSnapshotSchema });
 export const namingRootOriginSchema = z.discriminatedUnion("kind", [generatedNamingOriginSchema, importedNamingOriginSchema]);
 export type NamingRootOrigin = z.infer<typeof namingRootOriginSchema>;
@@ -218,11 +246,14 @@ function lineage(origin: ProjectNameOrigin): { root: NamingRootOrigin; history: 
 }
 
 /** Read-only provenance; passing this schema never proves ownership of references. */
+export const namingVerificationNoteSchema = z.strictObject({ claimKey: z.string().min(1).max(100), originalStatement: z.string().min(1).max(2000), status: z.enum(["supported", "corrected", "unresolved", "contradicted"]), explanation: z.string().min(1).max(2000) });
 export const projectNameCandidateSchema = z.strictObject({
   id: z.uuid(), ...ownershipFields, value: nameValueSchema, identityKey: nameIdentityKeySchema,
   rationale: generatedNameProposalSchema.shape.rationale, caution: generatedNameProposalSchema.shape.caution,
+  verificationNotes: z.array(namingVerificationNoteSchema).max(8).optional(),
   contextRevision: revisionSchema, ...strategyFields, origin: projectNameOriginSchema, createdAt: timestampSchema,
 }).superRefine((candidate, ctx) => {
+  if (candidate.verificationNotes && (candidate.origin.kind !== "generated" || candidate.origin.billingMode !== "openai_api" || new Set(candidate.verificationNotes.map(note => note.claimKey)).size !== candidate.verificationNotes.length)) ctx.addIssue({ code: "custom", path: ["verificationNotes"], message: "Verification findings require a managed original with unique claim keys" });
   const name = nameValueSchema.safeParse(candidate.value);
   if (name.success && nameIdentityKey(name.data) !== candidate.identityKey) ctx.addIssue({ code: "custom", path: ["identityKey"], message: "Identity must match the candidate value" });
   const basis = namingStrategyBasisSchema.safeParse(candidate.strategyBasis);

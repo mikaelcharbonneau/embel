@@ -4,7 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { accountProjectSchema } from "@/domain/project-api";
 import { DEFAULT_SUBSCRIPTION_LIMITS } from "@/domain/strategy-jobs";
-import { getNamingReadiness, initialNamingPreferences, nameIdentityKey, namingStrategyBasis, namingStrategyKey, type NamingBatch, type ProjectNameEntry } from "@/domain/project-naming";
+import { namingPreferencesV1Schema, getNamingReadiness, initialNamingPreferences, nameIdentityKey, namingStrategyBasis, namingStrategyKey, type NamingBatch, type ProjectNameEntry } from "@/domain/project-naming";
 import { projectNamingOverviewSchema, type NamingJob, type ProjectNamingOverview } from "@/domain/naming-jobs";
 import { createAccountDraftMemory } from "@/components/workspace/account-draft-memory";
 import { accountProjectDraft } from "@/components/workspace/project-draft-adapter";
@@ -43,7 +43,7 @@ function overview(path = base) {
   return projectNamingOverviewSchema.parse({ ...state, candidates: { ownerId: account.userId, projectId, items, nextCursor: last && start + items.length < rows.length ? { id: last.id, createdAt: last.createdAt } : null } });
 }
 function admitted() {
-  const batch: NamingBatch = { id: "cccccccc-1111-4111-8111-111111111111", ownerId: account.userId, projectId, contextRevision: 1, strategyBasis: namingStrategyBasis(state.project.context), strategyKey: namingStrategyKey(state.project.context), preferencesVersion: 1, preferences: state.preferences!.preferences, favoritesSnapshot: [], acceptedPolicyIdentity: policyIdentity, sequence: 1, targetCount: 250, jobId: "ffffffff-1111-4111-8111-111111111111", createdAt: when };
+  const batch: NamingBatch = { id: "cccccccc-1111-4111-8111-111111111111", ownerId: account.userId, projectId, contextRevision: 1, strategyBasis: namingStrategyBasis(state.project.context), strategyKey: namingStrategyKey(state.project.context), preferencesVersion: 1, preferences: namingPreferencesV1Schema.parse(state.preferences!.preferences), favoritesSnapshot: [], acceptedPolicyIdentity: policyIdentity, sequence: 1, targetCount: 250, jobId: "ffffffff-1111-4111-8111-111111111111", createdAt: when };
   const job: NamingJob = { id: batch.jobId, owner_id: account.userId, project_id: projectId, operation: "naming.generate", input_revision: 1, state: "queued", progress: 0, error_code: null, cancel_requested_at: null, created_at: when, finished_at: null, billingMode: "chatgpt_subscription", policyIdentity, batchId: batch.id, sequence: 1, targetCount: 250, results: [] };
   state = { ...state, session: { ...state.session!, latestBatchSequence: 1 }, batches: { ...state.batches, items: [{ batch, result: null }] }, jobs: [job] };
   return { batch, job, session: state.session };

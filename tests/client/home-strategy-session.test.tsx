@@ -3,9 +3,10 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NewProjectForm } from "@/components/workspace/project-editor";
-import { clearLocalDrafts, DRAFT_STORAGE_KEY } from "@/components/workspace/local-drafts";
+import { clearLocalDrafts, createLocalDraft, DRAFT_STORAGE_KEY } from "@/components/workspace/local-drafts";
 import { createHomeInputSession, type HomeInputSession } from "@/features/home-inputs/home-input-session";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
+import { rememberPromptForSignIn } from "@/components/workspace/prompt-recovery";
 const mock = vi.hoisted(() => ({ session: { status: "ready", userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", generation: 1 } as VerifiedAccount | { status: "checking" | "signed_out"; generation: number }, memory: null as HomeInputSession | null, push: vi.fn(), current: vi.fn(), expire: vi.fn(), refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mock.push }) }));
 vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ session: mock.session, homeInputSession: mock.memory, isCurrent: mock.current, expire: mock.expire, refresh: mock.refresh }) }));
@@ -23,7 +24,8 @@ async function defaultFetch(path: string, init: RequestInit) {
   if (path === "/api/session") return Response.json({ user: { id: owner } });
   if (path === "/api/strategy") return Response.json({ availability: ready });
   if (path === "/api/projects") return Response.json({ project: { ...JSON.parse(String(init.body)), id: JSON.parse(String(init.body)).requestKey, owner_id: owner, current_revision: 1, created_at: "2026-10-07T00:00:00Z" } });
-  if (path.endsWith("/strategy")) return Response.json({ job: { id: crypto.randomUUID(), owner_id: owner, project_id: path.split("/")[3], operation: "strategy.competitors", input_revision: 1, state: "queued", progress: 0, error_code: null, cancel_requested_at: null, created_at: "2026-10-07T00:00:00Z", finished_at: null, reserved_cost_microusd: 10000, actual_cost_microusd: 0, results: [] } });
+  if (init.method === "PATCH") { const body = JSON.parse(String(init.body)); return Response.json({ revision: { project_id: path.split("/")[3], owner_id: owner, revision: body.expectedRevision + 1, context: body.context, input_hash: "synthetic-context", created_at: "2026-10-07T00:00:00Z" } }); }
+  if (path.endsWith("/strategy")) return Response.json({ job: { id: crypto.randomUUID(), owner_id: owner, project_id: path.split("/")[3], operation: "strategy.competitors", input_revision: JSON.parse(String(init.body)).expectedRevision, state: "queued", progress: 0, error_code: null, cancel_requested_at: null, created_at: "2026-10-07T00:00:00Z", finished_at: null, reserved_cost_microusd: 10000, actual_cost_microusd: 0, results: [] } });
   throw new Error(`Unexpected fixture request ${path}`);
 }
 beforeEach(() => {
@@ -49,7 +51,7 @@ describe("Home account persistence and sign-in continuation", () => {
     expect(mutations()).toHaveLength(1); expect(creations()).toHaveLength(1);
     const stored = JSON.parse(window.localStorage.getItem(DRAFT_STORAGE_KEY)!);
     expect(stored.drafts).toHaveLength(1); expect(stored.drafts[0]).toMatchObject({ description: original, scope: "naming_only", ownerId: owner, accountProjectId: stored.drafts[0].id });
-    expect(mock.push).toHaveBeenLastCalledWith(`/brands/account/${stored.drafts[0].id}`);
+    expect(mock.push).toHaveBeenLastCalledWith(`/brands/account/${stored.drafts[0].id}/naming`);
   });
 
   it("retires current prompt recovery after confirmed Send and starts a distinct next project", async () => {
@@ -97,11 +99,63 @@ describe("Home account persistence and sign-in continuation", () => {
     expect(creations()).toHaveLength(2); expect(creations()[1]![1].body).toBe(body); expect(mutations()).toHaveLength(2);
   });
 
-  it("saves the latest prompt to the account when AI is unavailable without requesting AI", async () => {
+  it("saves a Brand on Send even when AI is unavailable and returns Home without resurrecting its recovery buffer", async () => {
     fetcher.mockImplementation((path: string, init: RequestInit) => path === "/api/strategy" ? Promise.resolve(Response.json({ availability: { status: "unavailable", operations: [], reason: "worker_unavailable" } })) : defaultFetch(path, init));
-    await render(); await click("Send prompt"); expect(mutations()).toHaveLength(0);
-    await click("A neighborhood coffee shop"); const latest = host.querySelector("textarea")!.value; await click("Save project");
-    expect(mutations()).toHaveLength(1); expect(JSON.parse(String(creations()[0]![1].body)).context.description).toBe(latest);
+    await render(); const original = host.querySelector("textarea")!.value; await click("Send prompt");
+    expect(mutations()).toHaveLength(1); expect(JSON.parse(String(creations()[0]![1].body)).context.description).toBe(original);
+    expect(JSON.parse(String(creations()[0]![1].body)).context.intake.guidedInterview).toBeUndefined();
     expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${JSON.parse(String(creations()[0]![1].body)).requestKey}`);
+    expect(window.sessionStorage.getItem(`fluid.prompt-buffer.v1:${owner}`)).toBeNull();
+    await remountHome(); expect(host.querySelector("textarea")!.value).toBe(""); expect(host.textContent).not.toContain(original);
+  });
+
+  it("saves before checking research and binds the initial guided request to the acknowledged new revision", async () => {
+    await render(); await click("Send prompt");
+    const paths = fetcher.mock.calls.map(([path, init]) => `${init.method ?? "GET"} ${path}`), projectKey = JSON.parse(String(creations()[0]![1].body)).requestKey;
+    expect(paths.indexOf("POST /api/projects")).toBeLessThan(paths.lastIndexOf("GET /api/strategy"));
+    const patch = fetcher.mock.calls.find(([path, init]) => path === `/api/projects/${projectKey}` && init.method === "PATCH")!;
+    expect(JSON.parse(String(patch[1].body)).context.intake.guidedInterview.turns[0].inputRevision).toBe(2);
+    expect(JSON.parse(String(mutations().at(-1)![1].body))).toMatchObject({ operation: "strategy.competitors", expectedRevision: 2 });
+  });
+
+  it("sends a Name straight to the same saved project Naming route without researching competitors", async () => {
+    await render();
+    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.click());
+    await act(async () => [...host.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')].find(button => button.textContent === "Name")!.click());
+    const reads = fetcher.mock.calls.filter(([path]) => path === "/api/strategy").length;
+    await click("Send prompt");
+    const body = JSON.parse(String(creations()[0]![1].body));
+    expect(body.scope).toBe("naming_only"); expect(body.context.intake.guidedInterview).toBeUndefined();
+    expect(mutations()).toHaveLength(1); expect(fetcher.mock.calls.filter(([path]) => path === "/api/strategy")).toHaveLength(reads);
+    expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${body.requestKey}/naming`);
+  });
+
+  it("creates signed-in work with 50 legacy drafts without modifying their durable bytes", async () => {
+    for (let i = 0; i < 50; i++) createLocalDraft({ title: `Legacy ${i}`, scope: "complete_brand", description: `Unattributed retained work ${i}`, suppliedName: "", namingNotes: "", identityNotes: "", example: false });
+    const original = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+    await render(); await click("Save project");
+    expect(creations()).toHaveLength(1); expect(mock.push).toHaveBeenCalledOnce(); expect(window.localStorage.getItem(DRAFT_STORAGE_KEY)).toBe(original);
+    await remountHome(); expect(host.querySelector("textarea")!.value).toBe(""); expect(window.localStorage.getItem(DRAFT_STORAGE_KEY)).toBe(original);
+  });
+
+  it("keeps a pending new-account brief private after switching to another verified owner", async () => {
+    fetcher.mockImplementation((path: string, init: RequestInit) => path === "/api/projects" ? Promise.reject(new TypeError("Lost acknowledgement")) : defaultFetch(path, init));
+    await render(); const original = host.querySelector("textarea")!.value; await click("Save project");
+    const originalBuffer = window.sessionStorage.getItem(`fluid.prompt-buffer.v1:${owner}`);
+    const firstOwner = owner; owner = crypto.randomUUID(); mock.session = { status: "ready", userId: owner, generation: 2 }; mock.memory!.bind(mock.session);
+    await remountHome(); expect(host.querySelector("textarea")!.value).toBe(""); expect(host.textContent).not.toContain(original);
+    expect(window.sessionStorage.getItem(`fluid.prompt-buffer.v1:${firstOwner}`)).toBe(originalBuffer); expect(creations()).toHaveLength(1);
+  });
+
+  it("requires an explicit continuation marker and lets a newer retained prompt take priority over an older account buffer", async () => {
+    fetcher.mockImplementation((path: string, init: RequestInit) => path === "/api/projects" ? Promise.reject(new TypeError("Lost acknowledgement")) : defaultFetch(path, init));
+    await render(); await click("Save project"); expect(window.sessionStorage.getItem(`fluid.prompt-buffer.v1:${owner}`)).not.toBeNull();
+    window.sessionStorage.removeItem("fluid.prompt-sign-in.v1");
+    await remountHome(); expect(host.querySelector("textarea")!.value).toBe("");
+    const id = createLocalDraft({ title: "Explicitly retained prompt", scope: "naming_only", description: "My newer prompt for sign-in", suppliedName: "", namingNotes: "", identityNotes: "", example: false })!;
+    rememberPromptForSignIn(id);
+    await remountHome(); expect(host.querySelector("textarea")!.value).toBe("My newer prompt for sign-in");
+    expect(host.querySelector('button[aria-haspopup="menu"]')?.getAttribute("aria-label")).toBe("Project scope: Name");
+    expect(creations()).toHaveLength(1);
   });
 });

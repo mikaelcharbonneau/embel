@@ -132,7 +132,7 @@ test("signup: prompt and scope survive signup, email waiting and subsequent sign
   await page.getByLabel("Account menu", { exact: true }).click();
   await page.locator(".workspace-account-menu").getByRole("link", { name: "Sign in", exact: true }).click();
   await page.getByRole("dialog").getByRole("link", { name: "Create account", exact: true }).click();
-  await expect(page.getByText("Your prompt and scope are saved in this browser.", { exact: false })).toBeVisible();
+  await expect(page.getByText("Your prompt is kept while you sign in.", { exact: false })).toBeVisible();
   await fillSignup(page);
   await expect(page.getByRole("heading", { name: "Check your email", exact: true })).toBeVisible();
   await page.getByRole("dialog").getByRole("link", { name: "Sign in", exact: true }).click();
@@ -149,7 +149,8 @@ test("signup: prompt and scope survive signup, email waiting and subsequent sign
   expect(state.privateWrites).toBe(0);
 });
 
-test("signup: confirmation redirects discard provider URL fragments", async ({ page }) => {
+test("signup: confirmation redirects discard provider URL fragments", async ({ page, baseURL }) => {
+  test.skip(process.env.APP_ORIGIN !== baseURL, "Requires this browser server to be the explicitly configured trusted callback origin; route-level redirect security is covered separately.");
   const { state } = await fixtures(page);
   await page.goto("/auth/callback#error=synthetic_provider_error&access_token=synthetic_fragment_only");
   await expect(page).toHaveURL(/\/sign-in\?confirmation=failed#?$/);

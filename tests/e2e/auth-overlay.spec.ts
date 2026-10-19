@@ -92,10 +92,13 @@ test("auth overlay: pending dismissal retains the global cookie-mutation fence a
   await dialog.getByLabel("Password", { exact: true }).fill("  inert overlay fixture  ");
   await dialog.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect.poll(() => submissions).toBe(1);
-  await expect(dialog.getByLabel("Password", { exact: true })).toHaveValue("");
+  const password = dialog.getByLabel("Password", { exact: true });
+  await expect(password).toHaveValue("  inert overlay fixture  ");
+  const detachedPassword = await password.elementHandle();
   const before = sessionReads;
   await dialog.getByRole("button", { name: "Close sign-in" }).click();
   await expect(dialog).toHaveCount(0);
+  expect(await detachedPassword?.evaluate(element => (element as HTMLInputElement).value)).toBe("");
   await expect(page).toHaveURL(/\/settings$/);
   await expect(page.locator(".workspace-account-menu").getByRole("button", { name: "Signing in…", exact: true })).toBeDisabled();
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));

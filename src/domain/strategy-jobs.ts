@@ -22,8 +22,11 @@ const strategyPolicyFields = {
 };
 export const strategyJobPolicySchema = z.discriminatedUnion("version", [
   z.strictObject({ ...strategyPolicyFields, version: z.literal(1), pricingVersion: z.literal("2026-10-03"), handlerVersion: z.literal("strategy-openai-v1"), maxInputTokens: z.number().int().positive().max(1_000_000) }),
-  z.strictObject({ ...strategyPolicyFields, version: z.literal(2), pricingVersion: z.literal("2026-10-14"), handlerVersion: z.literal("strategy-openai-guided-v1"), maxInputTokens: z.number().int().positive().max(3_150_000) }),
-]);
+  z.strictObject({ ...strategyPolicyFields, version: z.literal(2), pricingVersion: z.enum(["2026-10-14", "2026-10-18"]), handlerVersion: z.literal("strategy-openai-guided-v1"), maxInputTokens: z.number().int().positive().max(3_150_000) }),
+]).superRefine((policy, ctx) => {
+  if (policy.version === 2 && ((policy.model === "gpt-6-luna") !== (policy.pricingVersion === "2026-10-18")))
+    ctx.addIssue({ code: "custom", message: "The local Luna model requires its exact price card", path: ["pricingVersion"] });
+});
 export type StrategyJobPolicy = z.infer<typeof strategyJobPolicySchema>;
 
 /** Application stop/rate limits; these do not claim remaining ChatGPT plan quota. */

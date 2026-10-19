@@ -10,7 +10,7 @@ import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
 import { apiTextDispatchMessageSchema } from "@/domain/api-text-dispatch";
 import { publishApiTextDispatch } from "../api-text/publication";
-import { getApiTextPublicationOrigin } from "../api-text/config";
+import { getApiTextPublicationOrigin, isLocalPrototypeRuntime } from "../api-text/config";
 import { getApiTextWorkerReadiness } from "../api-text/readiness";
 
 const jobColumns = "id,owner_id,project_id,operation,input_revision,state,progress,billing_mode,policy_identity,reserved_cost_microusd,actual_cost_microusd,cancel_requested_at,error_code,created_at,finished_at";
@@ -72,10 +72,11 @@ function ownSummary(auth: AuthenticatedContext, projectId: string, value: unknow
 
 export async function getStrategyAvailability(auth: AuthenticatedContext, projectId?: string) {
   if (projectId !== undefined) resourceId(projectId);
-  const { data, error } = await auth.client.rpc("get_strategy_availability", { p_project_id: projectId ?? null });
+  const local = isLocalPrototypeRuntime();
+  const { data, error } = await auth.client.rpc(local ? "get_local_strategy_availability" : "get_strategy_availability", { p_project_id: projectId ?? null });
   databaseError(error);
   const availability = parseStored(strategyAvailabilitySchema, data);
-  if (availability.status !== "available" || availability.operations.every(operation => operation.billingMode === "chatgpt_subscription")) return availability;
+  if (local || availability.status !== "available" || availability.operations.every(operation => operation.billingMode === "chatgpt_subscription")) return availability;
   // Caller-specific SQL remains authoritative for policy, eligibility and cost.
   // A configured origin alone does not establish that its protected worker is
   // reachable and qualified. Subscription readiness is independent of this probe.
@@ -164,15 +165,16 @@ export async function enqueueStrategyJob(auth: AuthenticatedContext, projectId: 
   const parsed = enqueueStrategyJobSchema.safeParse(input);
   if (!parsed.success) throw new ApiError("invalid_input");
   const { operation, expectedRevision, idempotencyKey } = parsed.data;
+  const local = isLocalPrototypeRuntime() && parsed.data.billingMode !== "chatgpt_subscription";
   const args = { p_project_id: projectId, p_expected_revision: expectedRevision, p_operation: operation, p_idempotency_key: idempotencyKey };
   const { data, error } = parsed.data.billingMode === "chatgpt_subscription"
     ? await auth.client.rpc("enqueue_subscription_strategy_job", { ...args, p_accepted_policy_identity: parsed.data.acceptedPolicyIdentity })
-    : await auth.client.rpc("enqueue_strategy_job", { ...args, p_accepted_max_cost_microusd: parsed.data.acceptedMaxCostMicrousd });
+    : await auth.client.rpc(local ? "enqueue_local_strategy_job" : "enqueue_strategy_job", { ...args, p_accepted_max_cost_microusd: parsed.data.acceptedMaxCostMicrousd });
   databaseError(error);
   const summary = ownSummary(auth, projectId, data);
   if (summary.operation !== operation || summary.input_revision !== expectedRevision || (summary.billingMode ?? "openai_api") !== (parsed.data.billingMode ?? "openai_api")) throw new ApiError("integration_unavailable");
   if (parsed.data.billingMode === "chatgpt_subscription" && (summary.billingMode !== "chatgpt_subscription" || summary.policyIdentity !== parsed.data.acceptedPolicyIdentity)) throw new ApiError("integration_unavailable");
-  if (parsed.data.billingMode !== "chatgpt_subscription" && summary.billingMode !== "chatgpt_subscription") {
+  if (!local && parsed.data.billingMode !== "chatgpt_subscription" && summary.billingMode !== "chatgpt_subscription") {
     const terminal = ["succeeded", "failed", "partial", "cancelled", "needs_reconciliation"].includes(summary.state);
     if (!terminal) {
       const raw = parseStored(z.record(z.string(), z.unknown()), data);

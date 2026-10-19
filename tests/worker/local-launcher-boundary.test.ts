@@ -70,7 +70,7 @@ describe("local launcher credential boundary", () => {
     const { workerFile, envFile, launch } = await fixture();
     await workerFile();
     await envFile(".env.local", "NEXT_PUBLIC_SUPABASE_URL=https://public-config.example.invalid\nNEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=synthetic-public-key\nFLUID_LOCAL_CONNECTION_APPROVED=true\n");
-    const result = launch({ NODE_ENV: "test", OPENAI_API_KEY: "synthetic-api-key", PGPASSWORD: "synthetic-pg-password" });
+    const result = launch({ NODE_ENV: "test", OPENAI_API_KEY: "synthetic-api-key", PGPASSWORD: "synthetic-pg-password", FLUID_LOCAL_PROTOTYPE: "true" });
     expect(result.error).toBeUndefined();
     expect(result.children).toHaveLength(2);
     const web = result.children.find(child => child.fixture === "web")!.env;
@@ -82,6 +82,7 @@ describe("local launcher credential boundary", () => {
       expect(env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY).toBe("synthetic-public-key");
       expect(env.NODE_ENV).toBe("production");
       expect(env.FLUID_LOCAL_CONNECTION_APPROVED).toBe("false");
+      expect(env.FLUID_LOCAL_PROTOTYPE).toBe("false");
       expect(env.FLUID_PAID_CALLS_APPROVED).toBe("false");
       expect(env).not.toHaveProperty("OPENAI_API_KEY");
       expect(env).not.toHaveProperty("PGPASSWORD");

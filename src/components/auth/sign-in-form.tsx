@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { Icon } from "@/components/ui/icon";
 import { AuthArtwork } from "@/components/ui/auth-artwork";
 import { useAccountSession } from "@/components/workspace/account-session";
-import { requestSignIn, signInErrorMessage } from "./sign-in-request";
+import { requestSignIn, SignInRequestError, signInErrorMessage } from "./sign-in-request";
 import { requestSignUp, signUpErrorMessage } from "./sign-up-request";
 import { hasPromptRecovery } from "@/components/workspace/prompt-recovery";
 import "@/styles/auth.css";
@@ -33,6 +33,7 @@ export function SignInForm({ configured, overlay = false, mode = "sign-in", conf
   const resendEmailInput = useRef<HTMLInputElement>(null);
   const titleElement = useRef<HTMLHeadingElement>(null);
   const requestPending = useRef(false);
+  const credentialGeneration = useRef(0);
   const mounted = useRef(true);
   const [error, setError] = useState("");
   const [resend, setResend] = useState(false);
@@ -43,6 +44,14 @@ export function SignInForm({ configured, overlay = false, mode = "sign-in", conf
   const checking = session.status === "checking";
   const signedIn = session.status === "ready";
   const disabled = !configured || submitting || checking;
+
+  const clearPasswords = useCallback(() => {
+    credentialGeneration.current++;
+    if (passwordInput.current) passwordInput.current.value = "";
+    if (confirmPasswordInput.current) confirmPasswordInput.current.value = "";
+  }, []);
+
+  useEffect(() => () => clearPasswords(), [mode, clearPasswords]);
 
   useEffect(() => { if (confirming) titleElement.current?.focus(); }, [confirming]);
 
@@ -55,11 +64,6 @@ export function SignInForm({ configured, overlay = false, mode = "sign-in", conf
     mounted.current = true;
     return () => { mounted.current = false; };
   }, []);
-
-  function clearPasswords() {
-    if (passwordInput.current) passwordInput.current.value = "";
-    if (confirmPasswordInput.current) confirmPasswordInput.current.value = "";
-  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -78,13 +82,15 @@ export function SignInForm({ configured, overlay = false, mode = "sign-in", conf
       return;
     }
     const body = JSON.stringify({ email, password });
-    clearPasswords();
+    if (signingUp) clearPasswords();
+    const submittedGeneration = credentialGeneration.current;
     setError("");
     requestPending.current = true;
     const result = await signIn(() => signingUp ? requestSignUp(body) : requestSignIn(body), mode);
     requestPending.current = false;
-    if (!mounted.current) return;
-    clearPasswords();
+    if (!mounted.current || credentialGeneration.current !== submittedGeneration) return;
+    const transientSignIn = !signingUp && !result.ok && result.reason === "failed" && result.error instanceof SignInRequestError && result.error.status === 503;
+    if (!transientSignIn) clearPasswords();
     if (result.ok) {
       if (emailInput.current) emailInput.current.value = "";
       if (result.confirmationRequired) return;
@@ -124,7 +130,7 @@ export function SignInForm({ configured, overlay = false, mode = "sign-in", conf
         {!configured && <div className="auth-unavailable" role="status"><Icon name="offline" size={18} /><p>{signingUp ? "Account creation" : "Sign-in"} is unavailable right now. Your prompt is kept; please try again shortly.</p></div>}
         {confirming ? <div className="auth-confirmation-note" role="status"><p>If this address is eligible, a confirmation email will arrive shortly. Open its link in this browser. Check your spam folder too.</p><p>Already have an account? Sign in with your existing password.</p></div> : <form method="post" action={signingUp ? "/api/auth/sign-up" : "/api/auth/sign-in"} onSubmit={submit} aria-label={signingUp ? "Create account" : "Sign in"} aria-busy={submitting}>
           <fieldset disabled={disabled}>
-            <label className="auth-field" htmlFor={`${idPrefix}-email`}>Email<input ref={emailInput} id={`${idPrefix}-email`} name="email" type="email" placeholder="you@example.com" autoComplete="username" autoCapitalize="none" spellCheck={false} maxLength={320} required onChange={() => setError("")} /></label>
+            <label className="auth-field" htmlFor={`${idPrefix}-email`}>Email<input ref={emailInput} id={`${idPrefix}-email`} name="email" type="email" placeholder="you@example.com" autoComplete="username" autoCapitalize="none" spellCheck={false} maxLength={320} required onChange={() => { if (!signingUp) clearPasswords(); setError(""); }} /></label>
             <label className="auth-field" htmlFor={`${idPrefix}-password`}>Password<input ref={bindPasswordInput} id={`${idPrefix}-password`} name="password" type="password" placeholder={signingUp ? "Create a password" : "Enter your password"} autoComplete={signingUp ? "new-password" : "current-password"} minLength={signingUp ? 12 : undefined} maxLength={1024} required onChange={() => setError("")} aria-describedby={error ? `${idPrefix}-error` : signingUp ? `${idPrefix}-password-guidance` : undefined} /></label>
             {signingUp && <><p className="auth-field-help" id={`${idPrefix}-password-guidance`}>Use at least 12 characters.</p><label className="auth-field auth-confirm-password" htmlFor={`${idPrefix}-confirm-password`}>Confirm password<input ref={bindConfirmPasswordInput} id={`${idPrefix}-confirm-password`} name="confirmPassword" type="password" placeholder="Enter your password again" autoComplete="new-password" minLength={12} maxLength={1024} required onChange={() => setError("")} /></label><p className="auth-field-help">You&apos;ll need to confirm your email before signing in.</p></>}
             <button type="submit" className="button primary auth-submit">{submitting ? signingUp ? "Creating account…" : "Signing in…" : signingUp ? "Create account" : "Sign in"}{submitting ? <span className="auth-progress" aria-hidden="true" /> : <AuthArtwork name="submit-arrow" />}</button>

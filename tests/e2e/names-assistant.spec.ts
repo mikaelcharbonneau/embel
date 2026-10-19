@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { accountProjectSchema, type AccountProject } from "../../src/domain/project-api";
+import { accountProjectPageSchema } from "../../src/domain/project-pages";
 import { projectNamingOverviewSchema } from "../../src/domain/naming-jobs";
 import { createEmptyNamesWorkspace, namesWorkspaceSchema } from "../../src/components/naming/local-names";
 import { contextSnapshotSchema } from "../../src/domain/projects";
@@ -20,6 +21,11 @@ async function fixture(page: Page) {
     const reply = async (data: unknown, status = 200) => route.fulfill({ contentType: "application/json", status, body: JSON.stringify(data) }).catch(() => undefined);
     if (path === "/api/session") return reply(state.owner ? { user: { id: state.owner } } : {}, state.owner ? 200 : 401);
     if (!state.owner) return reply({}, 401);
+    if (path === "/api/projects" && route.request().method() === "POST") {
+      const body = route.request().postDataJSON();
+      const created = accountProjectSchema.parse({ ...body, id: id(50), owner_id: state.owner, current_revision: 1, created_at: "2026-10-17T12:00:00Z" });
+      state.projects.unshift(created); return reply({ project: created }, 201);
+    }
     if (path === "/api/names/ai") return reply({ ownerId: state.owner, availability: { status: "unavailable", reason: "local_runtime_required" }, jobs: [], hasMore: false });
     if (path === "/api/names/workspace") {
       if (route.request().method() === "PUT") {
@@ -31,13 +37,15 @@ async function fixture(page: Page) {
     if (path === "/api/projects/page") {
       if (state.status !== 200) return reply({}, state.status);
       const rows = url.searchParams.has("cursorId") ? [project(0, state.owner)] : state.projects;
-      const frozen = { ownerId: state.owner, items: rows.map(item => ({ id: item.id, owner_id: item.owner_id, scope: item.scope, title: item.title, current_revision: item.current_revision, created_at: item.created_at })), nextCursor: state.next && !url.searchParams.has("cursorId") ? { id: rows.at(-1)!.id, createdAt: rows.at(-1)!.created_at } : null };
+      const frozen = accountProjectPageSchema.parse({ ownerId: state.owner, items: rows.map(item => ({ id: item.id, owner_id: item.owner_id, scope: item.scope, title: item.title, current_revision: item.current_revision, created_at: item.created_at, deleted_at: null, deletion_requested_at: null, deletion_state: "active", lifecycle_version: 0 })), nextCursor: state.next && !url.searchParams.has("cursorId") ? { id: rows.at(-1)!.id, createdAt: rows.at(-1)!.created_at } : null });
       if (state.delay && !state.delay.started) { state.delay.started = true; await state.delay.promise; }
       return reply(frozen);
     }
     const chosen = state.projects.find(item => path === `/api/projects/${item.id}/naming`);
     if (chosen) return reply(projectNamingOverviewSchema.parse({ project: chosen, readiness: getNamingReadiness(chosen.context, chosen.scope), session: null, preferences: null, currentSelection: null, batches: { ownerId: chosen.owner_id, projectId: chosen.id, items: [], nextCursor: null }, candidates: { ownerId: chosen.owner_id, projectId: chosen.id, items: [], nextCursor: null }, availability: { status: "unavailable", operation: "naming.generate", reason: "worker_unavailable" }, jobs: [], screening: { domains: { status: "not_checked", reason: "integration_unavailable" }, handles: { status: "not_checked", reason: "integration_unavailable" }, trademarks: { status: "not_checked", reason: "integration_unavailable" } } }));
     if (path === "/api/names") return reply({ ownerId: state.owner, items: [], nextCursor: null });
+    const saved = state.projects.find(item => path === `/api/projects/${item.id}`);
+    if (saved) return reply({ project: saved });
     return reply({}, 404);
   });
   return state;
@@ -45,6 +53,31 @@ async function fixture(page: Page) {
 async function bridge(page: Page) { await page.getByRole("button", { name: "AI Assistant", exact: true }).click(); await page.getByText("Continue with a saved project", { exact: true }).click(); await expect(page.getByRole("heading", { name: "AI naming assistant" })).toBeVisible(); }
 async function open(page: Page) { await page.goto("/names"); await bridge(page); }
 const mutations = (state: Awaited<ReturnType<typeof fixture>>) => state.requests.filter(item => item.method !== "GET" && item.path !== "/api/names/workspace");
+
+test("assistant entry: a new brief opens the current project Naming conversation without legacy generation", async ({ page }) => {
+  const state = await fixture(page); await page.goto("/names");
+  await page.getByRole("button", { name: "AI Assistant", exact: true }).click();
+  await page.getByRole("textbox", { name: "What are you naming?", exact: true }).fill("A synthetic naming brief for a new neighborhood studio.");
+  await page.getByRole("button", { name: "Continue to Naming", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/brands/account/${id(50)}/naming$`));
+  await expect(page.getByRole("complementary", { name: "Naming conversation", exact: true })).toBeVisible();
+  await expect(page.getByText("Which approaches would you like to explore?", { exact: true })).toBeVisible();
+  expect(mutations(state)).toEqual([{ path: "/api/projects", method: "POST" }]);
+  expect(state.projects[0]).toMatchObject({ scope: "naming_only", context: { description: "A synthetic naming brief for a new neighborhood studio." } });
+});
+
+test("Home Name: saves its brief and opens the same current Naming conversation without Strategy research", async ({ page }) => {
+  const state = await fixture(page); await page.goto("/");
+  await page.getByRole("textbox", { name: "Your prompt", exact: true }).fill("A synthetic naming brief submitted from Home.");
+  await page.getByRole("button", { name: "Project scope: Brand", exact: true }).click();
+  await page.getByRole("menuitemradio", { name: "Name", exact: true }).click();
+  await page.getByRole("button", { name: "Send prompt", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/brands/account/${id(50)}/naming$`));
+  await expect(page.getByRole("complementary", { name: "Naming conversation", exact: true })).toBeVisible();
+  await expect(page.getByText("Which approaches would you like to explore?", { exact: true })).toBeVisible();
+  expect(mutations(state)).toEqual([{ path: "/api/projects", method: "POST" }]);
+  expect(state.projects[0]!.context.intake.guidedInterview).toBeUndefined();
+});
 
 test("assistant bridge: choose projects, readiness and reload never enqueue", async ({ page }, info) => {
   const state = await fixture(page); await open(page);
@@ -58,12 +91,15 @@ test("assistant bridge: choose projects, readiness and reload never enqueue", as
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.getByRole("link", { name: "Open project Naming" }).click();
   await expect(page.getByText("Strategy needs review", { exact: true })).toBeVisible();
-  await expect(page.getByRole("region", { name: "Naming conversation" })).toHaveCount(0);
+  await expect(page.getByRole("complementary", { name: "Naming conversation", includeHidden: true })).toContainText("Review Strategy to continue the Naming conversation.");
+  await expect(page.getByRole("region", { name: "Naming choices", includeHidden: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Start exploring|Continue exploring/, includeHidden: true })).toHaveCount(0);
   await page.reload(); await expect(page.getByText("Strategy needs review", { exact: true })).toBeVisible();
   expect(mutations(state)).toEqual([]);
   await open(page); await page.getByLabel("Account project").selectOption(id(3));
   await page.getByRole("link", { name: "Open project Naming" }).click();
-  await expect(page.getByRole("region", { name: "Naming conversation" })).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "Naming conversation" })).toBeVisible();
+  await page.getByText("Saved project context", { exact: true }).click();
   await expect(page.getByText("Synthetic naming brief 3.", { exact: true })).toBeVisible();
   expect(mutations(state)).toEqual([]);
 });

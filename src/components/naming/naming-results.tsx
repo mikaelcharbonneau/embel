@@ -6,6 +6,7 @@ import { NameSymbol } from "./name-candidate-card";
 import { namingBatchTarget, type NamingViewState, type ProjectNameEntry } from "@/domain/project-naming";
 import type { NamingBatchEntry, NamingJob, ProjectNamingOverview } from "@/domain/naming-jobs";
 import { namingJobActive } from "./use-project-naming";
+import styles from "./naming-chat.module.css";
 
 export function namingFulfillmentLabel(entry: NamingBatchEntry) {
   if (!entry.result) return `0 / ${entry.batch.targetCount} names · awaiting completed results`;
@@ -13,12 +14,22 @@ export function namingFulfillmentLabel(entry: NamingBatchEntry) {
   return `${result.acceptedCount} / ${result.targetCount} names${result.status === "partial" ? " · partial" : result.status === "none" ? " · none accepted" : ""}`;
 }
 
-export function ProjectNameCard({ entry, selected, earlierContext, pending, blockSelection, onFavorite, onSave, onSelect, onWorkshop, onInspect }: {
+export function ProjectNameCard({ entry, selected, earlierContext, pending, blockSelection, onFavorite, onSave, onSelect, onWorkshop, onInspect, compact = false }: {
   entry: ProjectNameEntry; selected: boolean; earlierContext: boolean; pending: boolean; blockSelection: boolean;
-  onFavorite: () => void; onSave: () => void; onSelect: () => void; onWorkshop: () => void; onInspect?: () => void;
+  onFavorite: () => void; onSave: () => void; onSelect: () => void; onWorkshop: () => void; onInspect?: () => void; compact?: boolean;
 }) {
   const { candidate, retention } = entry;
   const origin = candidate.origin;
+  if (compact && onInspect) return <article id={`project-name-${candidate.id}`} className={`project-naming-card ${styles.compactCard}${selected ? " is-selected" : ""}`} tabIndex={-1}>
+    <h3 aria-label={candidate.value}><button type="button" className={styles.openName} onClick={onInspect} aria-label={`Inspect name ${candidate.value}`}>{candidate.value}</button></h3>
+    <button className={`project-naming-favorite ${styles.heart}`} type="button" aria-label={`${retention.favorite ? "Unfavorite" : "Favorite"} ${candidate.value}`} aria-pressed={retention.favorite} disabled={pending} onClick={onFavorite}>
+      {/* Exact original Figma heart export, native 16 × 16. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/naming/heart.svg" width={16} height={16} alt="" aria-hidden="true" />
+    </button>
+    <p>{candidate.rationale}</p>
+    <span className="sr-only">{[selected ? "Selected name" : "", retention.saved ? "Saved" : "", earlierContext ? "Earlier strategy" : ""].filter(Boolean).join(" · ")}</span>
+  </article>;
   return <article id={`project-name-${candidate.id}`} className={`project-naming-card${selected ? " is-selected" : ""}`} tabIndex={-1}>
     <div className="project-naming-card-title"><h3>{candidate.value}</h3><button className="project-naming-favorite" type="button" aria-label={`${retention.favorite ? "Unfavorite" : "Favorite"} ${candidate.value}`} aria-pressed={retention.favorite} disabled={pending} onClick={onFavorite}><NameSymbol name="favorite" /></button></div>
     <div className="project-naming-badges">{selected ? <span className="is-selected">Selected</span> : null}{retention.favorite ? <span>Favorite</span> : null}{retention.saved ? <span>Saved</span> : null}{earlierContext ? <span>Earlier strategy</span> : null}</div>
@@ -47,8 +58,8 @@ function NamingJobStatus({ job, currentRevision, pending, onCancel }: { job: Nam
   </section>;
 }
 
-export function NamingResults({ overview, view, pending, blocked, readFailed, listStatus, strategyKey, onView, onModify, onEnqueue, onCancel, onRetain, onSelect, onInspect, onWorkshop, onLoadMore, onLoadMoreBatches }: {
-  overview: ProjectNamingOverview; view: NamingViewState; pending: boolean; blocked: boolean; readFailed: boolean; listStatus: "loading" | "failed" | "ready"; strategyKey: string;
+export function NamingResults({ overview, view, pending, blocked, readFailed, listStatus, strategyKey, onView, onModify, onEnqueue, onCancel, onRetain, onSelect, onInspect, onWorkshop, onLoadMore, onLoadMoreBatches, historyOnly = false, compact = false }: {
+  historyOnly?: boolean; compact?: boolean; overview: ProjectNamingOverview; view: NamingViewState; pending: boolean; blocked: boolean; readFailed: boolean; listStatus: "loading" | "failed" | "ready"; strategyKey: string;
   onView: (patch: Partial<NamingViewState>) => void; onModify: () => void; onEnqueue: () => void; onCancel: (job: NamingJob) => void;
   onInspect?: (entry: ProjectNameEntry) => void;
   onRetain: (entry: ProjectNameEntry, field: "favorite" | "saved") => void; onSelect: (entry: ProjectNameEntry) => void; onWorkshop: (entry: ProjectNameEntry) => void;
@@ -72,12 +83,12 @@ export function NamingResults({ overview, view, pending, blocked, readFailed, li
       <label><span className="sr-only">Filter project names</span><select aria-label="Filter project names" value={view.filter} disabled={pending} onChange={event => onView({ filter: event.target.value as NamingViewState["filter"], scrollCandidateId: null })}><option value="all">All names</option><option value="favorite">Favorites</option><option value="saved">Saved</option><option value="retained">Favorite, saved or selected</option></select></label>
       <label><span className="sr-only">Shown batch</span><select aria-label="Shown batch" value={view.visibleBatchId ?? ""} disabled={pending} onChange={event => onView({ visibleBatchId: event.target.value || null, scrollCandidateId: null })}><option value="">All batches and workshop</option>{overview.batches.items.map(entry => <option key={entry.batch.id} value={entry.batch.id}>Batch {entry.batch.sequence}</option>)}</select></label><span>{entries.length} names loaded{overview.candidates.nextCursor ? " · more available" : ""}</span>
     </form> : null}
-    {entries.length ? <div className="project-naming-grid">{entries.map(entry => <ProjectNameCard key={entry.candidate.id} entry={entry} selected={overview.currentSelection?.candidate.id === entry.candidate.id} earlierContext={entry.candidate.strategyKey !== strategyKey} pending={pending} blockSelection={blocked || readFailed} onFavorite={() => onRetain(entry, "favorite")} onSave={() => onRetain(entry, "saved")} onInspect={onInspect ? () => onInspect(entry) : undefined} onSelect={() => onSelect(entry)} onWorkshop={() => onWorkshop(entry)} />)}</div> : listStatus !== "ready" ? <p className="project-naming-notice" role="status">{listStatus === "loading" ? "Loading names in this view…" : "This list could not be loaded. Check the latest version to try again."}</p> : !activeJob ? <div className="project-naming-empty"><h3>{view.filter !== "all" || view.query || view.visibleBatchId ? "No names in this view" : "Let a direction take shape"}</h3><p>{view.filter !== "all" || view.query || view.visibleBatchId ? "Your earlier names are retained. Change the filters to explore them." : "Your preferences are saved. Start one batch when you are ready."}</p>{view.filter !== "all" || view.query || view.visibleBatchId ? <button className="button secondary small" type="button" disabled={pending} onClick={() => { setQuery(""); onView({ filter: "all", query: "", visibleBatchId: null }); }}>View all names</button> : null}</div> : null}
+    {entries.length ? <div className="project-naming-grid">{entries.map(entry => <ProjectNameCard compact={compact} key={entry.candidate.id} entry={entry} selected={overview.currentSelection?.candidate.id === entry.candidate.id} earlierContext={entry.candidate.strategyKey !== strategyKey} pending={pending} blockSelection={blocked || readFailed} onFavorite={() => onRetain(entry, "favorite")} onSave={() => onRetain(entry, "saved")} onInspect={onInspect ? () => onInspect(entry) : undefined} onSelect={() => onSelect(entry)} onWorkshop={() => onWorkshop(entry)} />)}</div> : listStatus !== "ready" ? <p className="project-naming-notice" role="status">{listStatus === "loading" ? "Loading names in this view…" : "This list could not be loaded. Check the latest version to try again."}</p> : !activeJob ? <div className="project-naming-empty"><h3>{view.filter !== "all" || view.query || view.visibleBatchId ? "No names in this view" : "Let a direction take shape"}</h3><p>{view.filter !== "all" || view.query || view.visibleBatchId ? "Your earlier names are retained. Change the filters to explore them." : "Your preferences are saved. Start one batch when you are ready."}</p>{view.filter !== "all" || view.query || view.visibleBatchId ? <button className="button secondary small" type="button" disabled={pending} onClick={() => { setQuery(""); onView({ filter: "all", query: "", visibleBatchId: null }); }}>View all names</button> : null}</div> : null}
     {overview.candidates.nextCursor ? <div className="project-naming-next"><button className="button secondary" type="button" disabled={pending} onClick={onLoadMore}>Load more saved names</button></div> : null}
-    <div className="project-naming-next"><button className="button primary" type="button" disabled={pending || blocked || readFailed || Boolean(activeJob) || !overview.preferences || !overview.readiness.ready || overview.availability.status !== "available"} onClick={onEnqueue}>{pending ? "Saving…" : `Generate ${target} ${overview.session?.latestBatchSequence ? "more " : ""}names`}<Icon name="arrow" size={15} /></button>
+    {!historyOnly && <div className="project-naming-next"><button className="button primary" type="button" disabled={pending || blocked || readFailed || Boolean(activeJob) || !overview.preferences || !overview.readiness.ready || overview.availability.status !== "available"} onClick={onEnqueue}>{pending ? "Saving…" : `Generate ${target} ${overview.session?.latestBatchSequence ? "more " : ""}names`}<Icon name="arrow" size={15} /></button>
       {overview.availability.status === "available" ? <p className="project-naming-muted">One request using your ChatGPT plan. Limits: {overview.availability.limits.maxRequestsPerHour} requests per hour, {overview.availability.limits.maxQueuedJobs} queued jobs and {Math.ceil(overview.availability.limits.deadlineMs / 1000)} seconds per request. ChatGPT plan limits apply.</p> : <p className="project-naming-muted">{availabilityMessage(overview.availability.reason)}</p>}
       {overview.preferences ? <p className="project-naming-muted">Uses preferences {overview.preferences.version} and your current favorites. Earlier batches stay unchanged.</p> : null}
-    </div>
+    </div>}
   </section>;
 }
 

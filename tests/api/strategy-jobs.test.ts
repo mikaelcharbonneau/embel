@@ -12,6 +12,7 @@ import { GET as getJob, DELETE as cancel } from "../../src/app/api/projects/[pro
 import { POST as apply } from "../../src/app/api/projects/[projectId]/strategy/[jobId]/apply/route";
 import { GET as runtime } from "../../src/app/api/strategy/route";
 import { ApiError } from "../../src/server/http/errors";
+import { enqueueStrategyJob, getStrategyAvailability } from "../../src/server/data/strategy-jobs";
 
 const ownerId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const otherOwner = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -70,6 +71,17 @@ describe("strategy API authorization, bounded inputs and actual durable outputs"
     });
   });
   afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+
+  it("uses the explicit local database witness and durable admission without hosted publication", async () => {
+    for (const key of Object.keys(process.env)) if (key === "VERCEL" || key.startsWith("VERCEL_")) vi.stubEnv(key, undefined);
+    vi.stubEnv("NODE_ENV", "production"); vi.stubEnv("FLUID_RUNTIME", "local"); vi.stubEnv("FLUID_LOCAL_PROTOTYPE", "true"); vi.stubEnv("APP_ORIGIN", "http://127.0.0.1:3106");
+    doubles.rpc.mockImplementation(async (name: string) => ({ data: name === "get_local_strategy_availability" ? available : job, error: null }));
+    const auth = await doubles.auth();
+    expect(await getStrategyAvailability(auth, projectId)).toEqual(available);
+    expect(await enqueueStrategyJob(auth, projectId, enqueueInput)).toEqual({ ...job, results: [] });
+    expect(doubles.rpc.mock.calls.map(([name]) => name)).toEqual(["get_local_strategy_availability", "enqueue_local_strategy_job"]);
+    expect(doubles.publish).not.toHaveBeenCalled(); expect(doubles.readiness).not.toHaveBeenCalled();
+  });
 
   it("enqueues only the authenticated revision-bound request and returns sanitized durable status", async () => {
     doubles.rpc.mockResolvedValueOnce({ data: { ...job, dispatch, lease_token: "private-fencing-token", input: { secret: "never expose" } }, error: null });

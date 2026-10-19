@@ -331,6 +331,11 @@ describe("independent database boundary attacks", () => {
       "public.request_job_cancel(uuid)",
       "public.get_strategy_availability(uuid)",
       "public.enqueue_strategy_job(uuid, integer, text, text, bigint)",
+      // 20261017090000: explicit operator-bound local prototype admission and
+      // owner-scoped readiness. Worker actions and metadata remain ungranted.
+      "public.get_local_strategy_availability(uuid)",
+      "public.enqueue_local_strategy_job(uuid, integer, text, text, bigint)",
+      "public.ensure_local_naming_brain_run(uuid, jsonb)",
       "public.enqueue_subscription_strategy_job(uuid, integer, text, text, text)",
       "public.apply_strategy_job_result(uuid, uuid, integer, text)",
       "public.apply_strategy_job_result_v2(uuid, uuid, integer, text)",
@@ -349,6 +354,16 @@ describe("independent database boundary attacks", () => {
       "public.get_naming_batches(uuid, jsonb)",
       "public.get_project_naming(uuid, jsonb)",
       "public.get_account_names(jsonb)",
+      // 20261016180000: exactly the authenticated owner-scoped Naming surface.
+      "public.append_prepared_naming_set(uuid, uuid)",
+      "public.ensure_naming_brain_run(uuid, jsonb)",
+      "public.get_naming_brain_candidate_source(uuid, uuid)",
+      "public.get_naming_brain_candidate_sources(uuid, jsonb)",
+      "public.get_naming_brain_job_accounting(uuid)",
+      "public.get_naming_brain_run(uuid, uuid)",
+      "public.get_naming_feed(uuid, jsonb)",
+      "public.steer_naming_feed(uuid, jsonb)",
+      "public.stop_naming_feed(uuid, jsonb)",
       "public.list_account_assets(jsonb)",
       "public.get_asset_detail(uuid, jsonb)",
       "public.set_asset_retention(uuid, integer, boolean, boolean)",
@@ -426,6 +441,10 @@ describe("independent database boundary attacks", () => {
       expect(grant.worker, grant.signature).toBe(workerFunctions.has(grant.signature));
       expect(grant.subscription_worker, grant.signature).toBe(subscriptionFunctions.has(grant.signature));
     }
+    await asRole(db, "authenticated", OWNER_A, async () => {
+      await expect(db.query("select public.local_strategy_job_action($1,'finish','[]')", [randomUUID()])).rejects.toMatchObject({ code: "42501" });
+      await expect(db.query("select * from public.read_local_strategy_steps($1,$2,$3,null)", [randomUUID(), OWNER_A, randomUUID()])).rejects.toMatchObject({ code: "42501" });
+    });
     expect((await db.query("select has_schema_privilege('authenticated','fluid_private','USAGE') as usage")).rows).toEqual([{ usage: false }]);
     for (const signature of [...authenticatedPolicyFunctions, ...authenticatedWrapperFunctions]) {
       expect((await db.query("select has_function_privilege('authenticated',$1,'EXECUTE WITH GRANT OPTION') as grantable", [signature])).rows).toEqual([{ grantable: false }]);

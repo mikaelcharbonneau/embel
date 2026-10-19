@@ -52,6 +52,18 @@ describe("durable worker boundaries", () => {
     expect(f.execute).toHaveBeenCalledTimes(1);
     expect(f.results[0]?.status).toBe("needs_reconciliation");
   });
+  it.each(["53300", "57014"])("contains %s after dispatch so maintenance cannot repeat a leased execution", async code => {
+    const f = fixture(); f.execute.mockRejectedValue(Object.assign(new Error("synthetic database failure after dispatch"), { code }));
+    expect(await runOneJob({ ...f.options, localPrototype: true })).toBe("needs_reconciliation");
+    expect(f.store.claim).toHaveBeenCalledOnce(); expect(f.execute).toHaveBeenCalledOnce();
+    expect(f.results[0]?.status).toBe("needs_reconciliation");
+  });
+  it.each(["timeout expired", "Query read timeout", "timeout exceeded when trying to connect"])("retains a client timeout after dispatch (%s) without leaking it into maintenance retry", async message => {
+    const f = fixture(); f.execute.mockRejectedValue(new Error(message));
+    expect(await runOneJob({ ...f.options, localPrototype: true })).toBe("needs_reconciliation");
+    expect(f.store.claim).toHaveBeenCalledOnce(); expect(f.execute).toHaveBeenCalledOnce();
+    expect(f.results[0]?.status).toBe("needs_reconciliation");
+  });
   it("cancels before dispatch without discarding earlier outputs", async () => {
     const f = fixture(); vi.mocked(f.store.heartbeat).mockResolvedValue({ cancelled: true });
     expect(await runOneJob(f.options)).toBe("cancelled");
@@ -67,6 +79,32 @@ describe("durable worker boundaries", () => {
     const f = fixture(); f.handler.steps = () => [{ key: "one", maximumCostMicrousd: 101, execute: f.execute }];
     expect(await runOneJob(f.options)).toBe("failed");
     expect(f.execute).not.toHaveBeenCalled();
+  });
+  it.each([false, true])("retains actual overage and applies monetary quarantine only outside local prototype (%s)", async localPrototype => {
+    const f = fixture(); const overage = { ...success, costMicrousd: 150 };
+    f.execute.mockResolvedValue(overage);
+    expect(await runOneJob({ ...f.options, localPrototype })).toBe(localPrototype ? "succeeded" : "needs_reconciliation");
+    expect(f.results).toEqual([localPrototype ? overage : { ...overage, status: "needs_reconciliation", code: "provider_cost_exceeded" }]);
+    expect(f.execute).toHaveBeenCalledTimes(1);
+  });
+  it("executes a local plan and subsequent steps beyond nominal reservations without bypassing intent persistence", async () => {
+    const f = fixture(); f.execute.mockResolvedValue({ ...success, costMicrousd: 150 });
+    f.handler.steps = () => [{ key: "one", maximumCostMicrousd: 60, execute: f.execute }, { key: "two", maximumCostMicrousd: 60, execute: f.execute }];
+    expect(await runOneJob({ ...f.options, localPrototype: true })).toBe("succeeded");
+    expect(f.execute).toHaveBeenCalledTimes(2);
+    expect(f.results.map(outcome => outcome.costMicrousd)).toEqual([150, 150]);
+    expect(vi.mocked(f.store.beginStep).mock.invocationCallOrder[1]).toBeLessThan(f.execute.mock.invocationCallOrder[1]!);
+  });
+  it.each([-1, Number.NaN, Number.MAX_SAFE_INTEGER + 1])("retains numeric plan validation in local prototype (%s)", async maximumCostMicrousd => {
+    const f = fixture(); f.handler.steps = () => [{ key: "invalid", maximumCostMicrousd, execute: f.execute }];
+    expect(await runOneJob({ ...f.options, localPrototype: true })).toBe("failed");
+    expect(f.execute).not.toHaveBeenCalled();
+  });
+  it("still quarantines unknown provider execution in local prototype without retry", async () => {
+    const f = fixture(); f.execute.mockRejectedValue(new Error("synthetic lost acknowledgement"));
+    expect(await runOneJob({ ...f.options, localPrototype: true })).toBe("needs_reconciliation");
+    expect(f.results).toMatchObject([{ status: "needs_reconciliation", code: "provider_outcome_unknown" }]);
+    expect(f.execute).toHaveBeenCalledTimes(1); expect(f.store.finish).not.toHaveBeenCalled();
   });
   it("does not re-reserve the cost of a completed step during recovery", async () => {
     const f = fixture();

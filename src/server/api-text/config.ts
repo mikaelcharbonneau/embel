@@ -1,5 +1,15 @@
 import "server-only";
 
+/** The prototype keeps normal account persistence and SQL-owned readiness while
+ * using the local polling worker instead of hosted Queue publication. */
+export function isLocalPrototypeRuntime(env: Record<string, string | undefined> = process.env): boolean {
+  return env.FLUID_LOCAL_PROTOTYPE === "true" && env.FLUID_RUNTIME === "local" &&
+    env.NODE_ENV === "production" && env.APP_ORIGIN === "http://127.0.0.1:3106" &&
+    // A CLI-linked project ID can exist in local .env files. It conveys no
+    // hosted execution identity, unlike runtime, deployment and OIDC markers.
+    !Object.keys(env).some(key => key !== "VERCEL_PROJECT_ID" && /^VERCEL(?:_|$)/u.test(key) && env[key] !== undefined);
+}
+
 /** Transport configuration only; signed workload identity, SQL and the worker
  * independently establish permission and runtime readiness. */
 export function getApiTextPublicationOrigin(env: Record<string, string | undefined> = process.env): string | null {

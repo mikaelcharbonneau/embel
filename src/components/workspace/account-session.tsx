@@ -2,6 +2,7 @@
 
 import { createInspirationMemory } from "@/components/inspiration/inspiration-memory";
 import { createVisualDirectionMemory } from "@/features/identity-directions/components/visual-direction-memory";
+import { createNamingBrainMemory } from "@/components/naming/naming-brain-memory";
 import { createAccountNamesMemory } from "@/components/naming/account-names-memory";
 import { createProjectScreeningMemory } from "@/components/naming/project-screening-memory";
 
@@ -36,6 +37,7 @@ type AccountSession = {
   visualDirectionDrafts: ReturnType<typeof createVisualDirectionMemory>;
   screeningDrafts: ReturnType<typeof createProjectScreeningMemory>;
   namesDrafts: ReturnType<typeof createAccountNamesMemory>;
+  namingBrainDrafts: ReturnType<typeof createNamingBrainMemory>;
   identityDrafts: ReturnType<typeof createIdentityDraftMemory>;
   logoDrafts: ReturnType<typeof createLogoDraftMemory>;
   ideaDrafts: ReturnType<typeof createIdeaDraftMemory>;
@@ -71,6 +73,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
   const [visualDirectionDrafts] = useState(createVisualDirectionMemory);
   const [screeningDrafts] = useState(createProjectScreeningMemory);
   const [namesDrafts] = useState(createAccountNamesMemory);
+  const [namingBrainDrafts] = useState(createNamingBrainMemory);
   const [identityDrafts] = useState(createIdentityDraftMemory);
   const [logoDrafts] = useState(createLogoDraftMemory);
   const [ideaDrafts] = useState(createIdeaDraftMemory);
@@ -94,6 +97,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
     visualDirectionDrafts.bind(next.status === "ready" ? next : null);
     screeningDrafts.bind(next.status === "ready" ? next : null);
     namesDrafts.bind(next.status === "ready" ? next : null);
+    namingBrainDrafts.bind(next.status === "ready" ? next : null);
     profileDrafts.bind(next.status === "ready" ? next : null);
     lifecycleMemory.bind(next.status === "ready" ? next : null);
     homeInputSession.bind(next.status === "ready" ? next : null);
@@ -105,7 +109,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
       previousOwner.current = next.userId;
     }
     setSession(next);
-  }, [drafts, profileDrafts, inspirationDrafts, visualDirectionDrafts, screeningDrafts, namesDrafts, identityDrafts, logoDrafts, ideaDrafts, standaloneDrafts, lifecycleMemory, homeInputSession, logoInputSession]);
+  }, [drafts, profileDrafts, inspirationDrafts, visualDirectionDrafts, screeningDrafts, namesDrafts, namingBrainDrafts, identityDrafts, logoDrafts, ideaDrafts, standaloneDrafts, lifecycleMemory, homeInputSession, logoInputSession]);
   const isCurrent = useCallback((account: VerifiedAccount) => current.current.status === "ready" && current.current.userId === account.userId && current.current.generation === account.generation, []);
   const refresh = useCallback(() => {
     if (signOutRequest.current || signInPending.current) return;
@@ -129,7 +133,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
     publish({ status: "signed_out", generation: current.current.generation + 1 });
   }, [isCurrent, publish]);
 
-  useEffect(() => { namesDrafts.setUnauthorized(account => expire({ ...account, status: "ready" })); }, [namesDrafts, expire]);
+  useEffect(() => { namesDrafts.setUnauthorized(account => expire({ ...account, status: "ready" })); namingBrainDrafts.setUnauthorized(account => expire({ ...account, status: "ready" })); }, [namesDrafts, namingBrainDrafts, expire]);
 
   const signIn = useCallback(async (attempt: () => Promise<void | "confirmation_required">, mode: "sign-in" | "sign-up" = "sign-in"): Promise<SignInResult> => {
     if (signInPending.current || signOutRequest.current) return { ok: false, reason: "pending" };
@@ -175,7 +179,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
 
   const signOut = useCallback(async (discardUnsaved = false): Promise<SignOutResult> => {
     if (signOutRequest.current || signInPending.current) return { ok: false, reason: "pending" };
-    if ((drafts.hasUnsaved() || profileDrafts.hasUnsaved() || inspirationDrafts.hasUnsaved() || visualDirectionDrafts.hasUnsaved() || screeningDrafts.hasUnsaved() || namesDrafts.hasUnsaved() || identityDrafts.hasUnsaved() || logoDrafts.hasUnsaved() || ideaDrafts.hasUnsaved() || standaloneDrafts.hasUnsaved() || lifecycleMemory.hasUnsaved() || homeInputSession.hasUnsaved() || logoInputSession.hasUnsaved()) && !discardUnsaved) return { ok: false, reason: "confirmation_required" };
+    if ((drafts.hasUnsaved() || profileDrafts.hasUnsaved() || inspirationDrafts.hasUnsaved() || visualDirectionDrafts.hasUnsaved() || screeningDrafts.hasUnsaved() || namesDrafts.hasUnsaved() || namingBrainDrafts.hasUnsaved() || identityDrafts.hasUnsaved() || logoDrafts.hasUnsaved() || ideaDrafts.hasUnsaved() || standaloneDrafts.hasUnsaved() || lifecycleMemory.hasUnsaved() || homeInputSession.hasUnsaved() || logoInputSession.hasUnsaved()) && !discardUnsaved) return { ok: false, reason: "confirmation_required" };
     request.current?.abort();
     const controller = new AbortController();
     signOutRequest.current = controller;
@@ -196,6 +200,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
       visualDirectionDrafts.clear();
       screeningDrafts.clear();
       namesDrafts.clear();
+      namingBrainDrafts.clear();
       identityDrafts.clear();
       logoDrafts.clear();
       ideaDrafts.clear();
@@ -218,14 +223,14 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
       window.clearTimeout(timeout);
       if (signOutRequest.current === controller) { signOutRequest.current = null; setSigningOut(false); }
     }
-  }, [drafts, profileDrafts, inspirationDrafts, visualDirectionDrafts, screeningDrafts, namesDrafts, identityDrafts, logoDrafts, ideaDrafts, standaloneDrafts, lifecycleMemory, homeInputSession, logoInputSession, publish]);
+  }, [drafts, profileDrafts, inspirationDrafts, visualDirectionDrafts, screeningDrafts, namesDrafts, namingBrainDrafts, identityDrafts, logoDrafts, ideaDrafts, standaloneDrafts, lifecycleMemory, homeInputSession, logoInputSession, publish]);
 
   useEffect(() => {
     // Start asynchronously so all private consumers share this one verification.
     const automaticRefresh = () => { if (!suppressAutomaticRefresh.current && !signOutRequest.current && !signInPending.current) refresh(); };
     const startup = window.setTimeout(automaticRefresh, 0);
     const onVisible = () => { if (document.visibilityState === "visible") automaticRefresh(); };
-    const retainEdits = (event: BeforeUnloadEvent) => { if (drafts.hasUnsaved() || profileDrafts.hasUnsaved() || inspirationDrafts.hasUnsaved() || visualDirectionDrafts.hasUnsaved() || screeningDrafts.hasUnsaved() || namesDrafts.hasUnsaved() || identityDrafts.hasUnsaved() || logoDrafts.hasUnsaved() || ideaDrafts.hasUnsaved() || standaloneDrafts.hasUnsaved() || lifecycleMemory.hasUnsaved() || homeInputSession.hasUnsaved() || logoInputSession.hasUnsaved()) event.preventDefault(); };
+    const retainEdits = (event: BeforeUnloadEvent) => { if (drafts.hasUnsaved() || profileDrafts.hasUnsaved() || inspirationDrafts.hasUnsaved() || visualDirectionDrafts.hasUnsaved() || screeningDrafts.hasUnsaved() || namesDrafts.hasUnsaved() || namingBrainDrafts.hasUnsaved() || identityDrafts.hasUnsaved() || logoDrafts.hasUnsaved() || ideaDrafts.hasUnsaved() || standaloneDrafts.hasUnsaved() || lifecycleMemory.hasUnsaved() || homeInputSession.hasUnsaved() || logoInputSession.hasUnsaved()) event.preventDefault(); };
     window.addEventListener("focus", automaticRefresh);
     window.addEventListener("beforeunload", retainEdits);
     document.addEventListener("visibilitychange", onVisible);
@@ -235,13 +240,14 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
       window.removeEventListener("beforeunload", retainEdits);
       document.removeEventListener("visibilitychange", onVisible);
       namesDrafts.bind(null);
+      namingBrainDrafts.bind(null);
       request.current?.abort();
       signOutRequest.current?.abort();
       signOutRequest.current = null;
     };
-  }, [refresh, drafts, profileDrafts, inspirationDrafts, visualDirectionDrafts, screeningDrafts, namesDrafts, identityDrafts, logoDrafts, ideaDrafts, standaloneDrafts, lifecycleMemory, homeInputSession, logoInputSession]);
+  }, [refresh, drafts, profileDrafts, inspirationDrafts, visualDirectionDrafts, screeningDrafts, namesDrafts, namingBrainDrafts, identityDrafts, logoDrafts, ideaDrafts, standaloneDrafts, lifecycleMemory, homeInputSession, logoInputSession]);
 
-  return <SessionContext.Provider value={{ session, refresh, expire, isCurrent, drafts, profileDrafts, inspirationDrafts, visualDirectionDrafts, screeningDrafts, namesDrafts, identityDrafts, logoDrafts, ideaDrafts, standaloneDrafts, lifecycleMemory, homeInputSession, logoInputSession, signIn, signingIn, signingUp, awaitingConfirmation, dismissConfirmation, signInSlow, signOut, signingOut, signOutError }}><LogoDraftMemoryProvider memory={logoDrafts}>{children}</LogoDraftMemoryProvider></SessionContext.Provider>;
+  return <SessionContext.Provider value={{ session, refresh, expire, isCurrent, drafts, profileDrafts, inspirationDrafts, visualDirectionDrafts, screeningDrafts, namesDrafts, namingBrainDrafts, identityDrafts, logoDrafts, ideaDrafts, standaloneDrafts, lifecycleMemory, homeInputSession, logoInputSession, signIn, signingIn, signingUp, awaitingConfirmation, dismissConfirmation, signInSlow, signOut, signingOut, signOutError }}><LogoDraftMemoryProvider memory={logoDrafts}>{children}</LogoDraftMemoryProvider></SessionContext.Provider>;
 }
 
 export function useAccountSession() {
