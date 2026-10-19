@@ -15,6 +15,17 @@ the provider key locally. Its heartbeat gates hosted generation. Deployment of
 the web alone does not keep the Mac worker online. See
 [hosted Naming activation](hosted-naming-generation-20261018.md).
 
+D084 prepares an independent Render background-worker entrypoint for moving that
+same Naming execution off the Mac. It bundles only the Naming dependency graph,
+qualifies the exact cloud service/source/runtime and native restricted TLS login,
+and supports a read-only preflight before any worker mutation. It retains the
+existing job-derived authority and immutable database/deployment bindings. The
+prepared single-instance manifest disables preview and automatic deployments;
+cutover and later releases require no overlapping readiness publishers. The
+Mac remains the executor until cloud provisioning and credential transfer are
+approved and the guarded cutover is verified. See
+[cloud Naming worker](cloud-naming-worker-20261019.md).
+
 ## Local prototype execution
 
 D077 authorizes a local simplification that preserves the account database,

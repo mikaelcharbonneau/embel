@@ -1,0 +1,45 @@
+# Dedicated Naming process. No public listener, database, cache or persistent disk.
+# Secret values are supplied only after the cloud deployment is authorized.
+previews:
+  generation: off
+services:
+  - type: worker
+    name: embel-naming-worker-production
+    runtime: node
+    repo: https://github.com/mikaelcharbonneau/embel
+    branch: main
+    region: virginia
+    plan: 0.5c-512mb
+    numInstances: 1
+    autoDeployTrigger: off
+    maxShutdownDelaySeconds: 300
+    buildCommand: npm ci --include=dev && npm run build:naming-worker
+    preDeployCommand: node services/naming-worker/dist/index.js --preflight
+    startCommand: node services/naming-worker/dist/index.js
+    envVars:
+      - key: NODE_VERSION
+        value: 22.22.2
+      - key: NODE_ENV
+        value: production
+      - key: FLUID_RUNTIME
+        value: cloud
+      - key: FLUID_LOCAL_PROTOTYPE
+        value: "false"
+      - key: FLUID_NAMING_BRAIN_MODEL
+        value: gpt-6-luna
+      - key: FLUID_OPENAI_VERIFIED_MODELS
+        value: gpt-6-luna
+      - key: FLUID_NAMING_BRAIN_DEPLOYMENT_ID
+        value: embel-naming-local-b2ff6ce8bbc2-20261017
+      - key: FLUID_NAMING_BRAIN_ENABLED
+        value: "true"
+      - key: FLUID_PAID_CALLS_APPROVED
+        value: "true"
+      - key: EMBEL_NAMING_CLOUD_ACTIVATED
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: FLUID_NAMING_BRAIN_DATABASE_URL
+        sync: false
+      - key: FLUID_NAMING_BRAIN_DATABASE_CA_PEM
+        sync: false
