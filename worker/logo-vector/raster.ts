@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { LogoVectorError } from "../../src/features/logo-vector/model/errors";
+import { IMAGE_INPUT_LIMITS } from "../../src/domain/logo-image-limits";
 export type IdentityRasterInspection = { width: number; height: number; format: "png" | "jpeg" | "webp"; isMonochrome: boolean; pixelHash: string; originalOrientation: number; outputColorSpace: "srgb" };
 const failed = (message: string): never => { throw new LogoVectorError("conversion_failed", message); };
 function assertSingleFrame(bytes: Uint8Array, format: string): void {
@@ -62,4 +63,19 @@ export async function decodeIdentityRaster(input: { bytes: Uint8Array; mimeType:
 }
 export async function inspectDecodedIdentityRaster(input: { bytes: Uint8Array; mimeType: string }): Promise<IdentityRasterInspection> {
   return (await decodeIdentityRaster(input)).inspection;
+}
+
+/** Concept previews and their raster refinements have a grayscale contract.
+ * Normalize in the same bounded child as inspection, before artifact identity
+ * is assigned. Existing monochrome bytes and all alpha values are preserved. */
+export async function normalizeDecodedLogoConcept(input: { bytes: Uint8Array; mimeType: string }): Promise<{ pngBase64: string }> {
+  if (input.mimeType !== "image/png" || input.bytes.byteLength > IMAGE_INPUT_LIMITS.outputBytes) throw new LogoVectorError("limit_exceeded", "Concept preview exceeds its PNG byte limit.");
+  const { raw, inspection } = await decodeIdentityRaster(input);
+  if (inspection.width !== 1024 || inspection.height !== 1024) return failed("Concept preview must be 1024 by 1024 pixels.");
+  if (inspection.isMonochrome) return { pngBase64: Buffer.from(input.bytes).toString("base64") };
+  const sharp = (await import("sharp")).default;
+  const bytes = await sharp(raw.data, { raw: { width: raw.info.width, height: raw.info.height, channels: 4 } })
+    .grayscale().png({ compressionLevel: 9, adaptiveFiltering: false, palette: false }).toBuffer();
+  if (!bytes.length || bytes.length > IMAGE_INPUT_LIMITS.outputBytes) throw new LogoVectorError("limit_exceeded", "Normalized concept preview exceeds its PNG byte limit.");
+  return { pngBase64: bytes.toString("base64") };
 }

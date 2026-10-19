@@ -4,29 +4,33 @@
 .inspiration-heading h1 { margin: 0; font-size: 24px; line-height: 32px; font-weight: 500; letter-spacing: -.5px; }
 .inspiration-heading p { color: #696965; font-size: 13px; line-height: 18px; margin: 4px 0 0; }
 .inspiration-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 12px; background: #fff; border: 1px solid #e4e3df; border-radius: 6px; min-height: 36px; white-space: nowrap; font-size: 13px; line-height: 18px; }
-.inspiration-toolbar { display: flex; gap: 20px; align-items: center; padding: 18px 24px 24px; }
-.inspiration-views { display: flex; align-items: center; gap: 20px; min-height: 40px; padding-right: 24px; position: relative; }
-.inspiration-views::after { content: ""; position: absolute; right: 0; height: 20px; width: 1px; background: #e4e3df; }
+.inspiration-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, 430px) minmax(0, 1fr); gap: 20px; align-items: center; padding: 18px 24px 24px; }
+.inspiration-views { display: flex; align-items: center; gap: 20px; min-height: 40px; justify-self: start; position: relative; }
 .inspiration-views button { position: relative; min-height: 40px; padding: 0; border: 0; background: transparent; white-space: nowrap; color: #696965; }
 .inspiration-views button[aria-pressed="true"] { color: #191919; }
 .inspiration-views button[aria-pressed="true"]::after { content: ""; position: absolute; inset: auto 0 0; height: 2px; background: #191919; }
 .inspiration-views span { padding-left: 6px; }
-.inspiration-categories { display: flex; gap: 6px; }
+.inspiration-categories { display: flex; gap: 6px; justify-self: end; }
 .inspiration-categories button, .inspiration-elements button { border: 1px solid #e4e3df; border-radius: 6px; background: #fff; min-height: 34px; padding: 7px 16px; font-size: 12px; line-height: 18px; color: #696965; }
 .inspiration-categories button[aria-pressed="true"] { background: #191919; border-color: #191919; color: #fff; }
-.inspiration-search { margin-left: auto; width: min(430px, 40%); min-width: 150px; height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 12px; border: 1px solid #e4e3df; border-radius: 7px; background: #fff; color: #696965; }
+.inspiration-search { width: 100%; min-width: 150px; height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 12px; border: 1px solid #e4e3df; border-radius: 7px; background: #fff; color: #696965; }
 .inspiration-search input { border: 0; outline: 0; box-shadow: none; border-radius: 0; background: transparent; width: 100%; min-width: 0; font: inherit; padding: 0; }
 .inspiration-search:focus-within { outline: 2px solid var(--accent-text, #a300ad); outline-offset: 2px; }
-.inspiration-feed { padding: 0 24px 24px; }
+.inspiration-feed { padding: 0 24px 96px; }
+.inspiration-continue { position: fixed; right: 24px; bottom: 24px; z-index: 20; display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 44px; padding: 12px 18px; border: 1px solid #191919; border-radius: 8px; background: #191919; color: #fff; box-shadow: 0 4px 16px #0002; font-size: 13px; line-height: 18px; text-decoration: none; }
+.inspiration-continue:hover { background: #333; }
 .inspiration-columns { display: grid; gap: 16px; align-items: start; }
 .inspiration-column { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 .inspiration-card { min-width: 0; }
 .inspiration-card-art { position: relative; }
 .inspiration-open { cursor: pointer; border-radius: 10px; overflow: hidden; }
 .inspiration-image { display: block; width: 100%; height: auto; object-fit: contain; border-radius: 10px; }
-.inspiration-heart { position: absolute; right: 8px; top: 8px; width: 36px; height: 36px; display: grid; place-items: center; background: #fff; border: 0; border-radius: 50%; padding: 0; }
-.inspiration-heart[aria-pressed="true"] { background: #fff0fd; }
-.inspiration-heart img, .inspiration-overall img { width: 18px; height: 18px; flex-shrink: 0; }
+.inspiration-heart { position: absolute; right: 8px; top: 8px; width: 36px; height: 36px; display: grid; place-items: center; background: transparent; color: rgb(255 255 255 / 75%); border: 0; border-radius: 6px; padding: 0; }
+.inspiration-heart svg { width: 24px; height: 24px; fill: rgb(255 255 255 / 18%); filter: drop-shadow(0 1px 2px rgb(0 0 0 / 35%)); transition: fill 150ms, color 150ms; }
+.inspiration-heart:hover { color: #fff; }
+.inspiration-heart[aria-pressed="true"] { color: #fff; }
+.inspiration-heart[aria-pressed="true"] svg { fill: rgb(255 255 255 / 85%); }
+.inspiration-heart svg, .inspiration-overall svg { flex-shrink: 0; }
 .inspiration-caption { display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: 1px; padding: 8px 2px 0; border: 0; background: none; width: 100%; }
 .inspiration-caption strong { font-size: 14px; line-height: 22px; font-weight: 500; }
 .inspiration-caption span { font-size: 12px; line-height: 18px; color: #696965; }
@@ -41,17 +45,6 @@
 .inspiration-footer { display: flex; gap: 20px; flex-wrap: wrap; justify-content: flex-end; margin: 28px 0 0; color: #696965; font-size: 12px; line-height: 20px; }
 .inspiration-footer > span { margin-right: auto; }
 .inspiration-footer a { display: inline-flex; gap: 8px; align-items: center; text-decoration: underline; text-underline-offset: 3px; }
-.inspiration-style { width: 340px; flex: 0 0 340px; padding: 24px 20px; border-left: 1px solid #e4e3df; background: #fff; }
-.inspiration-style header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.inspiration-style h2 { font-size: 18px; font-weight: 500; margin: 0; }
-.inspiration-style > p { color: #696965; line-height: 20px; }
-.inspiration-style ul { margin: 24px 0; padding: 0; list-style: none; }
-.inspiration-style li + li { margin-top: 20px; }
-.inspiration-style li button { display: flex; width: 100%; align-items: center; gap: 12px; background: none; border: 0; text-align: left; padding: 0; }
-.inspiration-style li img { width: 56px; height: 60px; object-fit: contain; border-radius: 4px; background: #f7f7f5; }
-.inspiration-style li strong { display: block; font-size: 13px; font-weight: 500; }
-.inspiration-style li small { display: block; font-size: 12px; margin-top: 6px; color: #696965; line-height: 18px; }
-.inspiration-style-note { border-top: 1px solid #e4e3df; padding-top: 20px; }
 .inspiration-icon-button { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; background: none; border-radius: 6px; }
 .inspiration-detail { padding: 0; width: min(1100px, calc(100vw - 48px)); max-width: none; max-height: calc(100dvh - 64px); margin: auto; border: 1px solid #e4e3df; border-radius: 12px; color: #191919; background: #fff; box-shadow: 0 24px 100px #0003; }
 .inspiration-detail::backdrop { background: #19191966; }
@@ -76,19 +69,18 @@
 .inspiration-workspace button:disabled, .inspiration-detail button:disabled { cursor: not-allowed; opacity: .5; }
 .inspiration-workspace :is(button, a, input, [role="button"]):focus-visible, .inspiration-detail :is(button, a):focus-visible { outline: 2px solid #a300ad; outline-offset: 3px; }
 @media (max-width: 1100px) {
-  .inspiration-toolbar { flex-wrap: wrap; gap: 12px; }
-  .inspiration-with-style .inspiration-search { width: 100%; margin-left: 0; }
+  .inspiration-toolbar { grid-template-columns: auto minmax(150px, 1fr) auto; gap: 12px; }
 }
 @media (max-width: 760px) {
   .inspiration-heading { padding: 24px 16px 0; align-items: flex-start; gap: 10px; }
   .inspiration-heading h1 { font-size: 22px; }
   .inspiration-heading p { max-width: 235px; }
-  .inspiration-heading > button { white-space: normal; }
-  .inspiration-toolbar { padding: 18px 16px 20px; gap: 14px 12px; }
+  .inspiration-toolbar { grid-template-columns: 1fr auto; padding: 18px 16px 20px; gap: 14px 12px; }
   .inspiration-views { padding-right: 16px; gap: 14px; }
   .inspiration-categories button { padding: 10px 12px; }
-  .inspiration-search { width: 100%; height: 44px; }
-  .inspiration-feed { padding: 0 16px 24px; }
+  .inspiration-search { grid-column: 1 / -1; grid-row: 2; width: 100%; height: 44px; }
+  .inspiration-feed { padding: 0 16px 96px; }
+  .inspiration-continue { right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); max-width: calc(100vw - 32px); }
   .inspiration-notice { margin-left: 16px; margin-right: 16px; }
   .inspiration-heart { width: 44px; height: 44px; }
   .inspiration-detail { width: calc(100vw - 24px); max-height: calc(100dvh - 24px); }
@@ -99,6 +91,5 @@
   .inspiration-detail-top { margin: 0; }
   .inspiration-detail-top button { position: absolute; right: 8px; top: 6px; background: #fff; }
   .inspiration-detail :is(button, a), .inspiration-icon-button, .inspiration-action, .inspiration-views button { min-height: 44px; }
-  .inspiration-style { position: fixed; top: 64px; right: 0; bottom: 0; z-index: 35; width: min(340px, 100vw); overflow: auto; box-shadow: -12px 0 40px #0002; }
   .inspiration-footer { justify-content: flex-start; gap: 14px; }
 }

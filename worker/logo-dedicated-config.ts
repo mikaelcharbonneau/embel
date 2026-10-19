@@ -85,11 +85,17 @@ export function getLogoDedicatedConfiguration(configuration: LogoDedicatedConfig
  * explicit files fail closed. Never searches cwd/home, reads env, creates a file
  * or follows configuration symlinks. POSIX owner/mode checks are mandatory. */
 export async function readProtectedLogoDedicatedConfiguration(filename: string): Promise<LogoDedicatedConfiguration> {
+  try { return parseLogoDedicatedConfiguration(await readProtectedLogoConfigurationFile(filename, "logo-worker.json")); }
+  catch { return bad("unsafe_configuration_file"); }
+}
+
+/** Internal credential reader for explicit local startup. Never log its value. */
+export async function readProtectedLogoConfigurationFile(filename: string, expectedName: "logo-worker.json" | "logo-storage-identity.json"): Promise<unknown> {
   let handle: Awaited<ReturnType<typeof open>> | undefined;
   const safe = (stat: Stats, mode: number) => !stat.isSymbolicLink() && (stat.mode & 0o7777) === mode
     && typeof process.getuid === "function" && stat.uid === process.getuid();
   try {
-    if (typeof filename !== "string" || !isAbsolute(filename) || resolve(filename) !== filename || basename(filename) !== "logo-worker.json"
+    if (typeof filename !== "string" || !isAbsolute(filename) || resolve(filename) !== filename || basename(filename) !== expectedName
       || basename(dirname(filename)) !== ".local-fluid") throw unavailable();
     const directory = dirname(filename), before = await lstat(directory);
     if (!before.isDirectory() || !safe(before, 0o700) || await realpath(directory) !== directory) throw unavailable();
@@ -106,8 +112,8 @@ export async function readProtectedLogoDedicatedConfiguration(filename: string):
     if (length > 65_536 || length !== opened.size || afterFile.size !== opened.size || afterFile.mtimeMs !== opened.mtimeMs || afterFile.ctimeMs !== opened.ctimeMs
       || !safe(afterFile, 0o600) || afterFile.nlink !== 1 || afterPath.ino !== opened.ino || afterPath.dev !== opened.dev || !safe(afterPath, 0o600)
       || !after.isDirectory() || !safe(after, 0o700) || after.ino !== before.ino || after.dev !== before.dev || await realpath(directory) !== directory) throw unavailable();
-    return parseLogoDedicatedConfiguration(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(0, length))));
-  } catch { return bad("unsafe_configuration_file"); }
+    return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(0, length)));
+  } catch { throw unavailable(); }
   finally { await handle?.close().catch(() => {}); }
 }
 

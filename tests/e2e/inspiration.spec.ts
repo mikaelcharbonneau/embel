@@ -35,6 +35,11 @@ const inspect = (page: Page) => card(page).getByRole("button", { name: /^Inspect
 test("catalog search, filters, original images and read-only inspection", async ({ page }, info) => {
   const fixture = await setup(page); await expect(page.locator(".inspiration-card")).toHaveCount(15);
   await expect.poll(() => card(page).locator(".inspiration-image").evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(720);
+  await expect(page.locator(".inspiration-categories button")).toHaveText(["Identities", "Logos", "All"]);
+  const next = page.getByRole("link", { name: "Continue to logo generation", exact: true });
+  await expect(next).toBeVisible();
+  await expect(next).toHaveAttribute("href", `/brands/account/${projectId}/logo`);
+  await expect(next).toBeInViewport();
   await page.screenshot({ path: info.outputPath("gallery.png") });
   await page.getByRole("searchbox").fill("collins blue"); await expect(page.locator(".inspiration-card")).toHaveCount(1);
   await page.getByRole("button", { name: "Identities", exact: true }).click(); await expect(page.getByRole("heading", { name: "No designs match these filters" })).toBeVisible();
@@ -45,14 +50,15 @@ test("catalog search, filters, original images and read-only inspection", async 
   await expect(inspect(page)).toBeFocused();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
-test("whole and component likes are independent, reloadable and visible in Liked and Your style", async ({ page }, info) => {
+test("whole and component likes are independent, reloadable and visible in Liked", async ({ page }, info) => {
   const fixture = await setup(page); await inspect(page).click(); const dialog = page.getByRole("dialog"), colors = dialog.getByRole("button", { name: "Colors", exact: true }), overall = dialog.getByRole("button", { name: "Overall look" });
   await colors.click(); await expect(colors).toBeEnabled(); await expect(colors).toHaveAttribute("aria-pressed", "true"); await expect(overall).toHaveAttribute("aria-pressed", "false");
   await overall.click(); await expect(overall).toBeEnabled(); await overall.click(); await expect(overall).toBeEnabled(); await expect(colors).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.press("Escape"); await page.reload(); await expect(page.getByRole("button", { name: "Liked · 1", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Liked · 1", exact: true }).click(); await expect(page.locator(".inspiration-card")).toHaveCount(1);
   await expect(card(page).getByText("Colors liked", { exact: true })).toBeVisible(); await page.screenshot({ path: info.outputPath("liked.png") });
-  await page.getByRole("button", { name: "Your style", exact: true }).click(); await expect(page.getByRole("complementary", { name: "Your style" }).getByText("Colors", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Your style", exact: true })).toHaveCount(0);
+  await expect(page.locator(".inspiration-style")).toHaveCount(0);
   expect(fixture.writes).toBe(3); expect(fixture.overview.choices[0]).toMatchObject({ ensemble: false, elements: ["colors"] });
   expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain(design.id);
 });

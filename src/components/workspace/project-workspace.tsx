@@ -91,7 +91,9 @@ function OwnedProjectShell({ projectId, account, children }: { projectId: string
   if (!isCurrent(account)) return null;
   const current = workspace?.ownerId === account.userId && workspace.generation === account.generation && workspace.saved.id === projectId ? workspace : null;
   const inspiration = pathname.endsWith("/inspiration");
-  const stage = pathname.endsWith("/deliverables") ? "files" : pathname.endsWith("/naming") ? "naming" : /\/identity|\/logo|\/inspiration/.test(pathname) ? "identity" : "strategy";
+  const concepts = pathname === `/brands/account/${projectId}/logo`;
+  const brandBoard = pathname === `/brands/account/${projectId}/brand-board`;
+  const stage = pathname.endsWith("/deliverables") ? "files" : pathname.endsWith("/naming") ? "naming" : /\/identity|\/logo|\/inspiration|\/brand-board/.test(pathname) ? "identity" : "strategy";
   const project = current?.saved;
   const dirty = Boolean(current && (accountDraftChanged(current) || current.conflict));
   const handoff = project && getProjectHandoff(project);
@@ -99,10 +101,10 @@ function OwnedProjectShell({ projectId, account, children }: { projectId: string
   const logoStatus = projectEvidenceStatus(logoEvidence, project?.current_revision);
   return <IdentityEvidenceContext.Provider value={reportIdentity}><LogoEvidenceContext.Provider value={reportLogo}><section className={`project-workspace project-stage-${stage}`}>
     <header className="project-workspace-header"><div><Link href="/brands">Projects</Link><ProjectArtwork name="chevron" /><span className="project-workspace-title">{project?.title ?? "Project"}</span></div><span className="project-workspace-save">{project && !dirty && <ProjectArtwork name="check" />}{dirty ? "Unsaved project edits" : project ? `Saved project · v${project.current_revision}` : "Checking project…"}</span></header>
-    {!inspiration && stage !== "strategy" && <ProjectStageNavigation base={`/brands/account/${projectId}`} stage={stage} scope={project?.scope ?? "complete_brand"} strategyReady={Boolean(handoff?.strategyReady)} namingReady={Boolean(project && getNamingReadiness(project.context, project.scope).ready)} nameSelected={Boolean(project?.context.selectedName)} identityReady={!dirty && !error && identityStatus === "approved"} dirty={dirty || !project} />}
+    {!inspiration && !concepts && !brandBoard && stage !== "strategy" && <ProjectStageNavigation base={`/brands/account/${projectId}`} stage={stage} scope={project?.scope ?? "complete_brand"} strategyReady={Boolean(handoff?.strategyReady)} namingReady={Boolean(project && getNamingReadiness(project.context, project.scope).ready)} nameSelected={Boolean(project?.context.selectedName)} identityReady={!dirty && !error && identityStatus === "approved"} dirty={dirty || !project} />}
     {error && <div className="project-read-notice" role="alert">{error}<button type="button" className="text-link" onClick={() => setAttempt(value => value + 1)}>Check saved project</button></div>}
     {current?.conflict && <div className="project-read-notice" role="alert">A newer project version is saved. Your edits are kept in this tab. <Link className="text-link" href={`/brands/account/${projectId}`}>Resolve in Strategy</Link></div>}
-    {!inspiration && handoff?.savedName && !handoff.strategyReady && project?.scope === "complete_brand" && <div className="project-read-notice" role="status">Strategy needs review. Your saved name, {handoff.savedName}, is kept for review against the updated context. <Link className="text-link" href={handoff.next.href}>Continue Strategy review</Link></div>}
+    {!inspiration && !brandBoard && handoff?.savedName && !handoff.strategyReady && project?.scope === "complete_brand" && <div className="project-read-notice" role="status">Strategy needs review. Your saved name, {handoff.savedName}, is kept for review against the updated context. <Link className="text-link" href={handoff.next.href}>Continue Strategy review</Link></div>}
     {([['Logo', logoStatus, `/brands/account/${projectId}/logo`], ['Identity', identityStatus, `/brands/account/${projectId}/logo/directions`]] as const).map(([label, status, href]) => status === "needs_review" || status === "recheck" ? <div className="project-read-notice" role="status" key={label}>{status === "needs_review" ? `${label} needs review. Earlier work is kept.` : `Check ${label} against the current project version. Earlier work is kept.`} <Link className="text-link" href={href}>Review {label}</Link></div> : null)}
     <div className="project-workspace-content">{children}</div>
   </section></LogoEvidenceContext.Provider></IdentityEvidenceContext.Provider>;

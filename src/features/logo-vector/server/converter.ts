@@ -7,7 +7,8 @@ import type { LogoType } from "../../../domain/logo-workspace";
 import { LogoVectorError } from "../model/errors";
 import { validateLogoVectorDocument } from "../model/geometry";
 import { serializeLogoSvg } from "../model/svg";
-import { runIdentityRasterProcess, runLogoVectorProcess } from "../../../../worker/logo-vector/process";
+import { runIdentityRasterProcess, runLogoConceptGrayscaleProcess, runLogoVectorProcess } from "../../../../worker/logo-vector/process";
+import { IMAGE_INPUT_LIMITS } from "../../../domain/logo-image-limits";
 
 export const LOGO_RASTER_LIMITS = Object.freeze({ bytes: 33_554_432, pixels: 16_777_216, edge: 8192, timeoutMs: 60_000, teardownMs: 5_000 });
 export type LogoVectorWorkInput = { source: VerifiedAssetBytes; logoType: LogoType; settings: LogoTraceSettings };
@@ -67,5 +68,17 @@ export async function inspectIdentityRaster(bytes: Uint8Array, mimeType: string,
   assertIdentityRasterFormat(bytes, mimeType);
   const result = await runIdentityRasterProcess({ bytes: Uint8Array.from(bytes), mimeType }, signal);
   assertLogoConversionNotAborted(signal);
+  return result;
+}
+
+/** Normalize newly generated concept and saved-preview refinement output.
+ * Reference inputs, retained sources and vector/color producers are unchanged. */
+export async function normalizeLogoConceptRaster(bytes: Uint8Array, signal: AbortSignal): Promise<Uint8Array> {
+  assertLogoConversionNotAborted(signal);
+  if (!(bytes instanceof Uint8Array) || bytes.byteLength > IMAGE_INPUT_LIMITS.outputBytes) throw new LogoVectorError("limit_exceeded", "Concept preview exceeds its PNG byte limit.");
+  assertIdentityRasterFormat(bytes, "image/png");
+  const result = await runLogoConceptGrayscaleProcess({ bytes: Uint8Array.from(bytes), mimeType: "image/png" }, signal);
+  assertLogoConversionNotAborted(signal);
+  assertIdentityRasterFormat(result, "image/png");
   return result;
 }

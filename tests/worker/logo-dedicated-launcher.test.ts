@@ -19,6 +19,24 @@ function fixture() {
 }
 afterEach(() => { vi.restoreAllMocks(); });
 describe("dedicated checked logo process owner", () => {
+  it("qualifies and drains in check mode without reporting readiness or claiming work", async () => {
+    const f = fixture(); f.drain.resolve();
+    const result = await runLogoDedicatedWorker(parseLogoDedicatedConfiguration(configurationInput()), f.dependencies, { checkOnly: true });
+    expect(result).toEqual({ status: "qualified", exitCode: 0 });
+    expect(f.dependencies.startHost).toHaveBeenCalledTimes(1);
+    expect(f.host.run).not.toHaveBeenCalled();
+    expect(f.host.close).toHaveBeenCalledTimes(1);
+    expect(f.pool.end).toHaveBeenCalledTimes(1);
+    expect(f.events).toEqual(["drain_complete", "qualified"]);
+    expect(f.signals.eventNames()).toEqual([]);
+  });
+  it("does not acknowledge check qualification after a failed drain", async () => {
+    const f = fixture(); f.host.close = vi.fn(async () => { throw Error("synthetic drain failure"); });
+    const result = await runLogoDedicatedWorker(parseLogoDedicatedConfiguration(configurationInput()), f.dependencies, { checkOnly: true });
+    expect(result).toEqual({ status: "drain_unconfirmed", exitCode: 2 });
+    expect(f.host.run).not.toHaveBeenCalled(); expect(f.pool.end).not.toHaveBeenCalled();
+    expect(f.events).not.toContain("qualified");
+  });
   it("does nothing for disabled or invalid handles", async () => {
     const f = fixture();
     expect(await runLogoDedicatedWorker(parseLogoDedicatedConfiguration(), f.dependencies)).toMatchObject({ status: "disabled", exitCode: 0 });

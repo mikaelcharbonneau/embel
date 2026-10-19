@@ -33,17 +33,18 @@ function setup(options: { refinement?: boolean; bytes?: Uint8Array; mime?: strin
   const publication: IdentityAssetPublication = { requestKey: row.requestKey, contentHash: reference.contentHash, mimeType: row.mimeType, byteLength: row.byteLength, inputRevisions: base.inputRevisions, source: { kind: 'concept', sourceId } };
   const scope = { job, reservation: row }, write = { ...scope, publication };
   const state = { live: true, corrupt: false, mime: row.mimeType, afterIO: undefined as undefined | (() => void), grant: (value: object) => value as unknown,
-    auth: { id: authUser, is_anonymous: false } as unknown, failPost: false, now: 1_900_000_000_000, response: undefined as undefined | ((url: string, init: RequestInit) => Response | Promise<Response>) };
+    auth: { id: authUser, is_anonymous: false } as unknown, jsonHeaders: undefined as HeadersInit | undefined,
+    failPost: false, now: 1_900_000_000_000, response: undefined as undefined | ((url: string, init: RequestInit) => Response | Promise<Response>) };
   const requests: { url: string; init: RequestInit }[] = [], blobs = new Map<string, Uint8Array>();
   if (options.read) blobs.set(row.storagePath, new Uint8Array(bytes));
   const fetcher: typeof fetch = async (input, init = {}) => {
     const url = String(input); requests.push({ url, init });
     if (state.response) return state.response(url, init);
-    if (url.endsWith('/auth/v1/user')) return Response.json(state.auth);
+    if (url.endsWith('/auth/v1/user')) return Response.json(state.auth, { headers: state.jsonHeaders });
     if (url.endsWith('/rpc/authorize_logo_generative_storage')) {
       if (!state.live) return Response.json({ code: '42501' }, { status: 403 }); const body = JSON.parse(String(init.body));
       return Response.json(state.grant({ ...context, capability: cap, jobId: job.id, leaseToken: job.leaseToken, inputRevision: job.inputRevision, jobInput: job.input, mode: body.p_mode,
-        member: body.p_mode === 'probe' ? null : body.p_mode === 'write' ? 'output' : options.base ? 'base' : 'reference', reservation: body.p_mode === 'probe' ? null : row, publication: body.p_mode === 'write' ? publication : null }));
+        member: body.p_mode === 'probe' ? null : body.p_mode === 'write' ? 'output' : options.base ? 'base' : 'reference', reservation: body.p_mode === 'probe' ? null : row, publication: body.p_mode === 'write' ? publication : null }), { headers: state.jsonHeaders });
     }
     const path = url.split('/fluid-assets/')[1]!;
     if (init.method === 'POST') {
@@ -136,8 +137,22 @@ describe('generative Storage broker with synthetic transport', () => {
     (f.job.input as typeof base.input).references = refs; expect(JSON.stringify(f.job.input).length).toBeGreaterThan(16_384); expect(JSON.stringify(f.job.input).length).toBeLessThan(32_768);
     expect((await (await f.authorization!.authorizeRead(f.scope)).read()).bytes).toEqual(f.bytes);
   });
+  it.each(['gzip', 'deflate', 'br'])('accepts fetch-decoded %s Auth and grant JSON with their wire Content-Length', async encoding => {
+    const f = setup(); f.state.jsonHeaders = { 'content-encoding': encoding, 'content-length': '1' };
+    await f.authorization!.assertAvailable(f.job);
+    const writer = await f.authorization!.authorizeWrite(f.write);
+    await writer.putIfAbsent(f.bytes, 'image/png');
+    expect((await writer.read()).bytes).toEqual(f.bytes);
+  });
+  it.each(['auth', 'grant'])('bounds decoded %s JSON even when its compressed Content-Length is small', async boundary => {
+    const f = setup(); f.state.jsonHeaders = { 'content-encoding': 'gzip', 'content-length': '1' };
+    if (boundary === 'auth') f.state.auth = { id: authUser, is_anonymous: false, padding: 'x'.repeat(16_384) };
+    else f.state.grant = value => ({ ...value, padding: 'x'.repeat(131_072) });
+    await expect(f.authorization!.assertAvailable(f.job)).rejects.toThrow();
+    expect(f.requests.some(r => r.url.includes('/storage/'))).toBe(false);
+  });
   it('bounds auth/grant response streaming, content-length and encoding', async () => {
-    for (const headers of [new Headers({ 'content-length': '16385' }), new Headers({ 'content-encoding': 'gzip' })]) { const f = setup({ read: true }); f.state.response = () => new Response('{}', { headers }); await expect(f.authorization!.authorizeRead(f.scope)).rejects.toThrow(); }
+    for (const headers of [new Headers({ 'content-length': '16385' }), new Headers({ 'content-length': '1' }), new Headers({ 'content-encoding': 'unsupported' })]) { const f = setup({ read: true }); f.state.response = () => new Response('{}', { headers }); await expect(f.authorization!.authorizeRead(f.scope)).rejects.toThrow(); }
     const f = setup({ read: true }); f.state.response = url => url.endsWith('/auth/v1/user') ? Response.json(f.state.auth) : new Response(new Uint8Array(131_073)); await expect(f.authorization!.authorizeRead(f.scope)).rejects.toThrow(); expect(f.requests.some(r => r.url.includes('/storage/'))).toBe(false);
   });
   it('settles timeout and close even if injected transport ignores abort', async () => {

@@ -17,9 +17,11 @@ function setup() {
   const read = vi.fn<IdentityAssetStore["readLeasedAsset"]>(async (_, reference) => ({ reference, bytes: png, mimeType: "image/png", verification: { status: "verified", checkedAt: "2026-10-06T12:00:00Z", contentHash: hash, mimeType: "image/png", byteLength: png.length } }));
   const unused = async (): Promise<never> => { throw new Error("Unavailable fixture"); };
   const assets: IdentityAssetStore = { publishLeasedAsset: publication, readLeasedAsset: read, readOwnedAsset: unused, stageOwnedAsset: unused, publishOwnedUpload: unused };
+  const recordProviderResponse = vi.fn<Parameters<typeof createLogoRefinementHandler>[0]["recordProviderResponse"]>(async (bound, observation) =>
+    ({ ...observation, id: id(723), ownerId: bound.ownerId, projectId: bound.projectId, jobId: bound.id, leaseToken: bound.leaseToken }));
   const handler = createLogoRefinementHandler({ producer: { produce }, assets, assertPolicyReady: async () => undefined, resolveInputs: async () => input,
-    recordProviderResponse: async (bound, observation) => ({ ...observation, id: id(723), ownerId: bound.ownerId, projectId: bound.projectId, jobId: bound.id, leaseToken: bound.leaseToken }), loadGeneratedRaster: unused, vectorRefinement: null });
-  return { input, job, produce, publication, read, handler };
+    recordProviderResponse, loadGeneratedRaster: unused, vectorRefinement: null });
+  return { input, job, produce, publication, read, handler, recordProviderResponse };
 }
 describe("immutable raster refinement handler", () => {
   it("uses the exact retained base and one paid step without replacing or approving the source", async () => {
@@ -47,5 +49,20 @@ describe("immutable raster refinement handler", () => {
     const f = setup(); f.produce.mockResolvedValue({ status: "needs_reconciliation", code: "outcome_unknown", providerRequestId: "req_refine", responseHash: null, billing: { status: "unknown", confirmedMicrousd: null } });
     expect(await f.handler.steps(f.job)[0]!.execute({ job: f.job, signal: new AbortController().signal })).toMatchObject({ status: "needs_reconciliation" });
     expect(f.produce).toHaveBeenCalledTimes(1); expect(f.publication).not.toHaveBeenCalled();
+  });
+  it("normalizes black-and-white preview refinements before evidence while retaining the original response and charge", async () => {
+    const f = setup(), bytes = new Uint8Array(await sharp({ create: { width: 1024, height: 1024, channels: 3, background: "red" } }).png().toBuffer());
+    f.produce.mockResolvedValue({ status: "completed", bytes, mimeType: "image/png", providerRequestId: "req_refine", responseHash: "a".repeat(64), billing: { status: "recorded", confirmedMicrousd: 1000 } });
+    expect(await f.handler.steps(f.job)[0]!.execute({ job: f.job, signal: new AbortController().signal })).toMatchObject({ status: "succeeded", costMicrousd: 1000 });
+    expect(f.produce).toHaveBeenCalledTimes(1); expect(f.publication).toHaveBeenCalledTimes(1);
+    const output = f.publication.mock.calls[0]![2], hash = createHash("sha256").update(output).digest("hex");
+    expect(hash).not.toBe(createHash("sha256").update(bytes).digest("hex"));
+    const { data, info } = await sharp(output).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+    for (let offset = 0; offset < data.length; offset += info.channels) {
+      if (data[offset] !== data[offset + 1] || data[offset] !== data[offset + 2]) throw new Error("Preview output is not monochrome");
+    }
+    expect(f.recordProviderResponse.mock.calls[0]![1]).toMatchObject({ artifactHash: hash, responseHash: "a".repeat(64),
+      billing: { status: "recorded", confirmedMicrousd: 1000 }, providerRequestId: "req_refine" });
+    expect(f.publication.mock.calls[0]![1].contentHash).toBe(hash);
   });
 });

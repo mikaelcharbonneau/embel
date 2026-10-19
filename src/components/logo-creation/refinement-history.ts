@@ -14,7 +14,7 @@ function compatible(previous: LogoRasterRefinement, next: LogoRasterRefinement) 
   return same(identity(previous), identity(next))
     && (!previous.preview || same(previous.preview, next.preview))
     && (!previous.providerResponseReceiptId || previous.providerResponseReceiptId === next.providerResponseReceiptId)
-    && (previous.billing.status !== "recorded" || same(previous.billing, next.billing))
+    && (previous.billing.status !== "recorded" || !previous.providerResponseReceiptId && ["queued", "running"].includes(previous.state) || same(previous.billing, next.billing))
     && (previous.state !== "succeeded" || next.state === "succeeded");
 }
 

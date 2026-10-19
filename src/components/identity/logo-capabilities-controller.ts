@@ -37,7 +37,7 @@ export function createLogoCapabilitiesController(input: Input) {
   function refresh(): Promise<void> {
     if (!current()) return Promise.resolve();
     if (pending) return pending;
-    clearTimeout(refreshTimer); clearTimeout(expiryTimer); deadlines.clear(); publish("loading");
+    clearTimeout(refreshTimer); publish("loading");
     const controller = new AbortController(); request = controller;
     const startWall = wallNow(), startMonotonic = monotonicNow();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -46,8 +46,9 @@ export function createLogoCapabilitiesController(input: Input) {
       try {
         const raw = await Promise.race([Promise.resolve().then(() => current() && request === controller && !controller.signal.aborted ? input.client.getLogoCapabilities(controller.signal) : null), aborted]);
         if (!current() || request !== controller) return;
-        if (controller.signal.aborted || !raw) { publish("unavailable"); return; }
+        if (controller.signal.aborted || !raw) { deadlines.clear(); publish("unavailable"); return; }
         const parsed = logoCapabilitiesSchema.safeParse(raw), endWall = wallNow(), endMonotonic = monotonicNow();
+        deadlines.clear();
         const elapsed = Math.max(endMonotonic - startMonotonic, endWall - startWall, 0);
         if (!parsed.success || parsed.data.ownerId !== input.ownerId || parsed.data.projectId !== input.projectId
           || ![startWall, startMonotonic, endWall, endMonotonic, elapsed].every(Number.isFinite) || endMonotonic < startMonotonic) { publish("unavailable"); return; }
