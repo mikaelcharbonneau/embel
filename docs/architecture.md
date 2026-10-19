@@ -156,6 +156,23 @@ Optional versioned `intake.guidedInterview` metadata stores actual user-message 
 
 Automatic saves retain a pending context in owner/generation-fenced session memory until acknowledged. Conflicts and lost acknowledgements keep that branch available for retry, latest-version recovery or a browser backup. A persisted turn retains its revision-derived request identity across reload; unknown provider outcomes remain reserved and cannot be replaced by an automatic retry. New guided runtime policies and private operation grants preserve existing lease, source, usage, cancellation and restricted worker boundaries. See [guided runtime](guided-interview-runtime.md).
 
+D086 isolates the existing operator-granted hosted Strategy testing lane from
+unrelated Naming and Logo requests. An owned target project and the exact
+existing per-operation testing authority are required. Unresolved Strategy work
+across the account and uncertain work in that target project still block new
+requests. Account-wide confirmed or observed overruns remain blocking. Exact
+research and Logo adjudication witnesses can establish a resolved outcome
+without rewriting its retained ambiguous step or accounting. Ordinary accounts
+and reads without a target project retain their global guards.
+
+Availability, admission and execution use the same scoped predicates. Paid
+execution derives its project from the existing restricted worker gateway and
+immutable job descriptor; a caller flag cannot establish that context. The
+testing account's single active Strategy slot counts Strategy work and work in
+the target project. All historical rows and grants are retained. Initial
+conversation errors show the actual request blocker and do not claim that
+pending edits are saved. See [Strategy request isolation](strategy-request-isolation-20261019.md).
+
 Sign-in and account creation support intercepted native dialogs alongside direct-page fallbacks. Both render the same server-configured form inside the existing account-session provider; dismissal preserves drafts and the pending authentication fence. Email confirmation uses a bounded PKCE exchange and a configured-origin redirect. See [Sign-in overlay](auth-overlay-design.md) and [account creation](account-creation.md).
 
 Settings follows the seven approved Figma categories. The presentation composes existing account, local drafts, text readiness, local ChatGPT and recorded usage components; no new settings API or persistence contract is added. Unsupported preferences and integrations are disabled rather than represented as saved settings. See [Settings design and behavior](settings-guided-design.md).

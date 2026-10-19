@@ -35,8 +35,11 @@ describe("account strategy availability messages", () => {
     ["worker_unavailable", "AI replies are unavailable right now."],
     ["subscription_unavailable", "The ChatGPT connection is unavailable."],
     ["quota_unavailable", "The current AI request limit is unavailable."],
+    ["request_unresolved", "A previous request needs review before another can start. Check its status before trying again."],
+    ["request_active", "A request is already in progress. Wait for it to finish, then check status."],
   ] as const)("retains the verified %s reason without making claims about earlier requests", (reason, expected) => {
-    const message = strategyAvailabilityMessage({ status: "unavailable", operations: [], reason }, "project");
+    const overview = strategyOverviewResponseSchema.parse({ availability: { status: "unavailable", operations: [], reason }, jobs: [] });
+    const message = strategyAvailabilityMessage(overview.availability, "project");
     expect(message).toContain(expected);
     expect(message).toContain("You can still edit and save your project.");
     expect(message).not.toContain("No AI request was sent");

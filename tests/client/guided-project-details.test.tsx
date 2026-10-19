@@ -39,7 +39,7 @@ describe("saved brief editing during unavailable Strategy", () => {
   it("keeps a real saved Brand editable and acknowledges its autosave without implying an AI answer", async () => {
     await render();
     expect([...host.querySelectorAll<HTMLButtonElement>("button")].find(button => button.textContent === "Start competitor research")!.disabled).toBe(true);
-    expect(host.textContent).toContain("AI replies are unavailable right now. Your brief is saved."); expect(host.querySelector(".guided-assistant-message")).toBeNull();
+    expect(host.textContent).toContain("AI replies are unavailable right now. You can still edit and save your project."); expect(host.querySelector(".guided-assistant-message")).toBeNull();
     const details = host.querySelector<HTMLDetailsElement>(".project-details-disclosure")!;
     await act(async () => details.querySelector("summary")!.click()); expect(details.open).toBe(true);
     const brief = details.querySelector<HTMLTextAreaElement>("textarea")!; expect(brief.disabled).toBe(false);

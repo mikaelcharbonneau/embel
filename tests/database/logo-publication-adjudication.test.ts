@@ -205,6 +205,26 @@ describe("exact uncommitted logo publication adjudication", () => {
     expect(await snapshot()).toEqual(after);
   });
 
+  it("lets exact Strategy testing recognize the existing Logo witness while preserving global and tampered-evidence blocks", async () => {
+    // Synthetic account authority only; no runtime activation or production grant.
+    await db.query(`insert into fluid_private.api_text_allowance_cohorts(id,role_name,role_oid,deployment_id,operations,
+      signup_after,signup_before,expires_at,owner_attempt_limit,owner_cost_limit,owner_active_limit,account_limit,attempt_limit,cost_limit)
+      select 'strategy-logo-fixture',rolname,oid,'dpl_synthetic_logo',array['strategy.competitors'],clock_timestamp()-interval '1 day',
+      clock_timestamp()+interval '1 day',clock_timestamp()+interval '1 day',1,122880,1,1,1,122880 from pg_roles where rolname=$1`, [workerRole]);
+    await db.query("insert into fluid_private.api_text_owner_entitlements(owner_id,cohort_id,attempt_limit,cost_limit,active_limit,expires_at) values($1,'strategy-logo-fixture',1,122880,1,clock_timestamp()+interval '1 day')", [OWNER_A]);
+    await db.query("insert into fluid_private.api_text_testing_access(owner_id,cohort_id,operation,enabled) values($1,'strategy-logo-fixture','strategy.competitors',true)", [OWNER_A]);
+    const strategyPaused = async () => (await db.query<{ value: boolean }>("select fluid_private.api_text_strategy_paused($1,'strategy.competitors',$2) value", [OWNER_A, projectId])).rows[0]!.value;
+    expect(await strategyPaused()).toBe(true);
+    await adjudicate(); const before = await snapshot();
+    expect(await strategyPaused()).toBe(false);
+    expect((await db.query<{ value: boolean }>("select fluid_private.api_text_strategy_outcome_resolved($1) value", [jobId])).rows[0]!.value).toBe(true);
+    expect((await db.query<{ value: boolean }>("select fluid_private.api_text_paid_paused($1) value", [OWNER_A])).rows[0]!.value).toBe(true);
+    expect(await snapshot()).toEqual(before);
+    await tamper("update public.job_steps set actual_cost_microusd=16 where id=$1", [stepId]);
+    expect(await strategyPaused()).toBe(true);
+    expect((await db.query<{ value: boolean }>("select fluid_private.api_text_strategy_outcome_resolved($1) value", [jobId])).rows[0]!.value).toBe(false);
+  });
+
   it("keeps the witness immutable and blocks duplicate adjudication and late ordinary completion", async () => {
     await adjudicate(); const before = await snapshot();
     await rejected(() => db.query(`update ${table} set reason='Changed'`));

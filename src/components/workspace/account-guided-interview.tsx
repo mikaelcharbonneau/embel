@@ -38,6 +38,7 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
   const turn = state?.turns.at(-1);
   const jobs = strategy.overview?.jobs ?? [];
   const availability = strategy.readError ? null : strategy.overview?.availability;
+  const requestBlocked = availability?.status === "unavailable" && (availability.reason === "request_unresolved" || availability.reason === "request_active");
   const bound = turn ? guidedTurnResult(jobs, turn, account.userId, saved.id) : null;
   const reply = bound?.reply ?? null;
   const active = jobs.some(strategyJobActive);
@@ -121,7 +122,7 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
   async function send() {
     if (lock.current || blocked || !prompt.trim()) return;
     const intendedOperation = state?.turns.length ? "strategy.reformulate" : "strategy.competitors";
-    if (!guidedAllowance(availability, intendedOperation)) { setError("AI replies are unavailable right now. Your prompt is kept. Please check availability and try again."); return; }
+    if (!guidedAllowance(availability, intendedOperation)) { setError(strategyAvailabilityMessage(availability ?? null)); return; }
     lock.current = true; setWorking(true); setError(null);
     const text = prompt;
     try {
@@ -158,7 +159,7 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
   }
 
   async function retry() {
-    if (lock.current || blocked || !currentTurn) return;
+    if (lock.current || blocked || requestBlocked || !currentTurn) return;
     setError(null);
     if (!bound) {
       if (allowance) {
@@ -208,9 +209,9 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
     <div className="guided-interview-compose">
       <div className="conversation-compose-notices" role="region" aria-label="Conversation notices" tabIndex={0}>
       {(error || strategy.actionError || strategy.readError || failed || unverified || unavailable || stale) && <div className="guided-conversation-error" role="alert">
-        <p>{error || strategy.actionError || statusReadError || (stale ? "The project changed after this response was requested. Your conversation is kept. Send a new message to continue from the current version." : bound?.job.state === "needs_reconciliation" ? "This research outcome needs verification before another request can start. Your prompt is saved." : failed ? bound?.job.state === "cancelled" ? "Research was cancelled. Your prompt is saved." : currentTurn?.stage === "competitors" && currentTurn.purpose !== "message" ? "Research could not produce verified suggestions. Your prompt is saved. You can retry research." : "This response did not finish. Your prompt is saved." : unverified ? "This response could not be matched to your question. Your conversation is kept." : !state ? "AI replies are unavailable right now. Your brief is saved. You can edit it below and check status to try again." : strategyAvailabilityMessage(availability ?? null, "project"))}</p>
+        <p>{error || strategy.actionError || statusReadError || (stale ? "The project changed after this response was requested. Your conversation is kept. Send a new message to continue from the current version." : bound?.job.state === "needs_reconciliation" ? "This research outcome needs verification before another request can start. Your prompt is saved." : requestBlocked ? strategyAvailabilityMessage(availability, "project") : failed ? bound?.job.state === "cancelled" ? "Research was cancelled. Your prompt is saved." : currentTurn?.stage === "competitors" && currentTurn.purpose !== "message" ? "Research could not produce verified suggestions. Your prompt is saved. You can retry research." : "This response did not finish. Your prompt is saved." : unverified ? "This response could not be matched to your question. Your conversation is kept." : strategyAvailabilityMessage(availability ?? null, "project"))}</p>
         <button type="button" className="text-link" disabled={busy || working || strategy.pending} onClick={strategy.refresh}>Check status</button>
-        {currentTurn && !stale && (!bound || bound.job.state === "failed" || bound.job.state === "cancelled") && <button type="button" className="text-link" disabled={blocked} onClick={() => void retry()}>{currentTurn.stage === "competitors" && currentTurn.purpose !== "message" ? "Retry research" : "Retry request"}</button>}
+        {currentTurn && !stale && !requestBlocked && (!bound || bound.job.state === "failed" || bound.job.state === "cancelled") && <button type="button" className="text-link" disabled={blocked} onClick={() => void retry()}>{currentTurn.stage === "competitors" && currentTurn.purpose !== "message" ? "Retry research" : "Retry request"}</button>}
       </div>}
       {!busy && storage.actions}
       {storage.resultNavigation}

@@ -64,6 +64,8 @@ describe("Settings text runtime status", () => {
     ["budget_unavailable", "The approved text budget is unavailable"],
     ["subscription_unavailable", "The ChatGPT subscription connection is unavailable"],
     ["quota_unavailable", "The current text request limit is unavailable"],
+    ["request_unresolved", "A previous request needs review before another can start. Check its status before trying again."],
+    ["request_active", "A request is already in progress. Wait for it to finish, then check status."],
   ])("shows the authenticated %s reason without claiming disconnection", async (reason, message) => {
     runtime = unavailable(reason); await render();
     expect(statusText()).toContain(message); expect(statusText()).toContain("Unavailable");
