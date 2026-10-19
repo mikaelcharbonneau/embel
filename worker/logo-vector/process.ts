@@ -9,6 +9,11 @@ import type { LogoVectorEngineOutput } from "./engine";
 import type { IdentityRasterInspection } from "./raster";
 import { IMAGE_INPUT_LIMITS } from "../../src/domain/logo-image-limits";
 
+// Only the isolated cloud build substitutes these literals. Local invocation
+// keeps the reviewed TypeScript entrypoint and its ordinary direct-run guard.
+declare const __EMBEL_LOGO_RASTER_ENTRYPOINT__: string;
+declare const __EMBEL_LOGO_RASTER_CHILD__: boolean;
+
 const OUTPUT_LIMIT = 8_388_608, INPUT_LIMIT = 33_554_432, HEADER_LIMIT = 2048;
 const rasterObservationSchema = z.strictObject({
   inputFormat: z.enum(["png", "jpeg", "webp"]), inputWidth: z.number().int().min(1).max(8192), inputHeight: z.number().int().min(1).max(8192),
@@ -29,7 +34,10 @@ const headerSchema = z.strictObject({ mode: z.enum(["trace", "inspect", "concept
 function launchChild(): ChildProcessWithoutNullStreams {
   // Fixed repository-owned entrypoint; no user URL/path, shell, credentials, or
   // inherited NODE_OPTIONS. The heap flag is not a native/WASM memory guarantee.
-  return spawn(process.execPath, ["--conditions=react-server", "--max-old-space-size=256", "--import", "tsx", resolve(process.cwd(), "worker/logo-vector/process.ts")], {
+  const compiled = typeof __EMBEL_LOGO_RASTER_ENTRYPOINT__ === "string" ? __EMBEL_LOGO_RASTER_ENTRYPOINT__ : null;
+  const arguments_ = compiled ? ["--conditions=react-server", "--max-old-space-size=256", resolve(process.cwd(), compiled)]
+    : ["--conditions=react-server", "--max-old-space-size=256", "--import", "tsx", resolve(process.cwd(), "worker/logo-vector/process.ts")];
+  return spawn(process.execPath, arguments_, {
     stdio: ["pipe", "pipe", "pipe"], windowsHide: true,
     env: { NODE_ENV: "production", PATH: process.env.PATH ?? "", TMPDIR: process.env.TMPDIR ?? "/tmp", VIPS_CONCURRENCY: "1" },
   });
@@ -128,6 +136,7 @@ async function childMain(): Promise<void> {
     process.stdout.write(JSON.stringify({ status: "error", code: known.code, message: known.message }));
   }
 }
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+if (typeof __EMBEL_LOGO_RASTER_CHILD__ === "boolean" ? __EMBEL_LOGO_RASTER_CHILD__
+  : process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   void childMain().then(() => { process.exitCode = 0; }, () => { process.exitCode = 1; });
 }

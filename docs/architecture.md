@@ -30,6 +30,27 @@ stopping a deployed worker. The Mac remains the executor until cloud credential
 transfer is approved and the guarded cutover is verified. See
 [cloud Naming worker](cloud-naming-worker-20261019.md).
 
+## Cloud Logo execution preparation
+
+D085 prepares the existing concepts and saved-preview refinement lanes for a
+separate Vercel Daemon. The production web opt-in checks the exact canonical
+project, origin and production environment before choosing the existing
+authenticated `local_logo_operation` RPC. Its historical name and the fixed
+worker ID remain compatibility identifiers; Postgres still enforces the exact
+owner, policy, worker, request and lease. This does not grant a client-selected
+owner or change generic admission for other accounts or operations.
+
+The worker reuses the restricted Logo database principal and the separate Storage
+Auth identity. Provider and Storage credentials belong only to its production
+environment. A renewable in-memory Storage session retains the existing
+job-bound grants and immutable private object publication. The cloud image must
+include the isolated raster child and verified Linux native image dependencies;
+bundling the JavaScript alone is insufficient. Mac/cloud and cloud/cloud
+readiness publishers must not overlap. Activation follows the reviewed drain,
+freeze, stopped deployment, identity qualification and re-enable sequence. See
+[cloud Logo worker](cloud-logo-worker-20261019.md) for verification and the
+remaining transfer/activation boundary.
+
 ## Local prototype execution
 
 D077 authorizes a local simplification that preserves the account database,

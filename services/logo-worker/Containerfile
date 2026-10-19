@@ -1,0 +1,10 @@
+# Runtime-only: the reviewed release contains bundles and hash-verified Linux
+# native dependencies. No ARG is declared: supplied Vercel build arguments are
+# never read or embedded by this image.
+FROM node:22.22.2-bookworm-slim
+WORKDIR /opt/embel/logo
+ENV NODE_ENV=production
+COPY --chown=node:node dist/ ./dist/
+COPY --chown=node:node node_modules/ ./node_modules/
+USER node
+CMD ["node", "dist/index.js"]
