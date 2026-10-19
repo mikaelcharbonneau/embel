@@ -86,6 +86,38 @@ describe("standalone Names UI and acknowledgement recovery", () => {
     expect(button("Generate names")).toBeUndefined(); expect(button("Refine selected names")).toBeUndefined();
     expect(host.querySelector('[type="checkbox"]')).toBeNull(); expect(fetcher.mock.calls.every(([, init]) => init.method === "GET")).toBe(true); expect(job).toEqual(original);
   });
+  it.each(["queued", "running"] as const)("cancels an earlier %s request through its existing owned endpoint", async state => {
+    const job = jobFixture(state); overview.jobs = [job];
+    fetcher.mockImplementation(async (_path, init) => Response.json(init.method === "POST" ? { job: { ...job, state: state === "queued" ? "cancelled" : "cancel_requested", finishedAt: state === "queued" ? "2026-10-13T12:01:00Z" : null } } : overview));
+    await render(); await click(button("Cancel request"));
+    const writes = fetcher.mock.calls.filter(([, init]) => init.method !== "GET");
+    expect(writes).toHaveLength(1); expect(writes[0]![0]).toBe(`/api/names/ai/${job.id}`);
+    expect(new Headers(writes[0]![1].headers).get("X-Embel-Account")).toBe(owner);
+    expect(JSON.parse(writes[0]![1].body)).toEqual({ action: "cancel" });
+    if (state === "running") expect(button("Cancelling…").disabled).toBe(true);
+    else expect(button("Cancel request")).toBeUndefined();
+    expect(button("Generate names")).toBeUndefined(); expect(mock.navigate).not.toHaveBeenCalled();
+  });
+  it("keeps an uncertain legacy cancellation actionable and retries only the same job", async () => {
+    const job = jobFixture("running"); overview.jobs = [job]; let reject = true;
+    fetcher.mockImplementation(async (_path, init) => init.method === "POST"
+      ? reject ? Response.json({}, { status: 503 }) : Response.json({ job: { ...job, state: "cancel_requested" } })
+      : Response.json(overview));
+    await render(); await click(button("Cancel request"));
+    expect(host.textContent).toContain("Cancellation could not be confirmed"); expect(button("Cancel request").disabled).toBe(false);
+    reject = false; await click(button("Cancel request"));
+    const writes = fetcher.mock.calls.filter(([, init]) => init.method === "POST");
+    expect(writes.map(([path, init]) => [path, JSON.parse(init.body)])).toEqual(Array(2).fill([`/api/names/ai/${job.id}`, { action: "cancel" }]));
+    expect(host.textContent).not.toContain("Cancellation could not be confirmed"); expect(button("Cancelling…").disabled).toBe(true);
+  });
+  it("rejects a late legacy cancellation receipt after the verified account changes", async () => {
+    const job = jobFixture("running"); overview.jobs = [job]; let finish!: (value: Response) => void;
+    fetcher.mockImplementation((_path, init) => init.method === "POST" ? new Promise<Response>(resolve => { finish = resolve; }) : Promise.resolve(Response.json(overview)));
+    await render(); await click(button("Cancel request"));
+    mock.session = { status: "ready", userId: other, generation: 2 }; overview = { ...overview, ownerId: other, jobs: [] };
+    await render(); await act(async () => finish(Response.json({ job: { ...job, state: "cancel_requested" } })));
+    expect(host.textContent).not.toContain(brief.description); expect(button("Cancelling…")).toBeUndefined(); expect(mock.expire).not.toHaveBeenCalled();
+  });
   it("hides an account immediately and refuses late replies after owner changes", async () => {
     let finish!: (value: Response) => void; fetcher.mockImplementationOnce(() => new Promise<Response>(resolve => { finish = resolve; }));
     await render(); mock.session = { status: "ready", userId: other, generation: 2 }; overview = { ...overview, ownerId: other, jobs: [] };

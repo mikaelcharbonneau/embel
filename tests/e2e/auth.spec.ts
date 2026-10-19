@@ -139,7 +139,7 @@ test("auth fixture: unconfigured sign-in stays accessible and does not accept cr
   state.sessionStatus = 401;
   await page.goto("/sign-in");
   await expect(page.getByRole("heading", { name: "Sign in to Embel" })).toBeVisible();
-  await expect(page.getByText("Sign-in is not connected.", { exact: false })).toBeVisible();
+  await expect(page.getByText("Sign-in is unavailable right now.", { exact: false })).toBeVisible();
   const form = page.getByRole("form", { name: "Sign in", exact: true });
   await expect(form).toHaveAttribute("method", "post");
   await expect(form).toHaveAttribute("action", "/api/auth/sign-in");

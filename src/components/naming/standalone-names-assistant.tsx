@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AccountRequestError } from "@/components/workspace/account-api";
 import { AccountStatus, useAccountSession } from "@/components/workspace/account-session";
-import { standaloneNamesActive, standaloneNamesOverviewSchema, type StandaloneNamesOverview } from "@/domain/standalone-names";
+import { standaloneNamesActive, standaloneNamesJobResponseSchema, standaloneNamesOverviewSchema, type StandaloneNamesJob, type StandaloneNamesOverview } from "@/domain/standalone-names";
 import { standaloneNamesRequest } from "./standalone-names-client";
 import "./standalone-names.css";
 
@@ -57,6 +57,28 @@ export function StandaloneNamesAssistant() {
   }, [running, load]);
   const selected = overview?.jobs.find(job => job.id === selectedId);
   const displayed = savedOnly ? overview?.jobs.filter(job => job.likedIndexes.length || job.savedIndexes.length) ?? [] : selected ? [selected] : [];
+  async function cancel(job: StandaloneNamesJob) {
+    if (!account || !current() || request.current || job.ownerId !== account.userId || !standaloneNamesActive(job.state) || job.state === "cancel_requested") return;
+    const controller = new AbortController(); request.current = controller;
+    setPending(true); setError(null); setNotice(null);
+    try {
+      const reply = await standaloneNamesRequest(`/api/names/ai/${job.id}`, standaloneNamesJobResponseSchema, { method: "POST", body: { action: "cancel" }, expectedOwnerId: account.userId, signal: controller.signal });
+      if (!current() || controller.signal.aborted || request.current !== controller) return;
+      if (reply.job.ownerId !== account.userId) { expire(account); return; }
+      if (reply.job.id !== job.id || standaloneNamesActive(reply.job.state) && reply.job.state !== "cancel_requested") throw new AccountRequestError(502);
+      const previous = overviewRef.current;
+      if (previous?.ownerId === account.userId) {
+        const overview = { ...previous, jobs: previous.jobs.map(item => item.id === job.id ? reply.job : item) };
+        overviewRef.current = overview; setSnapshot({ ownerId: account.userId, overview });
+      }
+    } catch (cause) {
+      if (!current() || controller.signal.aborted) return;
+      if (cause instanceof AccountRequestError && cause.status === 401) expire(account);
+      else setError("Cancellation could not be confirmed. Refresh this request or retry cancelling it. Earlier saved names are kept.");
+    } finally {
+      if (request.current === controller) { request.current = null; if (current()) setPending(false); }
+    }
+  }
   async function copy(value: string) {
     if (!current()) return;
     try { await navigator.clipboard.writeText(value); if (current()) setNotice("Name copied."); }
@@ -72,7 +94,7 @@ export function StandaloneNamesAssistant() {
       {!overview && !error ? <p role="status">Loading earlier requests…</p> : null}
       {overview?.jobs.length ? <label className="names-field">Request history<select value={selected?.id ?? ""} onChange={event => { setSelectedId(event.target.value); setSavedOnly(false); }}>{overview.jobs.map(job => <option key={job.id} value={job.id}>{new Date(job.createdAt).toLocaleString("en-CA", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} · {job.refinement ? "Refinement" : "Generation"} · {job.state.replaceAll("_", " ")} · {job.brief.description.slice(0, 55)}</option>)}</select></label> : overview ? <p>No earlier AI requests. Your manual names remain in Workshop and Library.</p> : null}
       {displayed.map(job => <article key={job.id} className="standalone-names-batch"><div className="names-section-heading"><h3>{job.refinement ? `Refinement ${job.depth}` : "Name proposals"}</h3><span>{job.state.replaceAll("_", " ")}</span></div><p>{job.brief.description}</p>
-        {standaloneNamesActive(job.state) ? <p role="status">This earlier request is still in progress. Refresh to check its saved result.</p> : null}
+        {standaloneNamesActive(job.state) ? <div className="standalone-names-actions"><p role="status">{job.state === "cancel_requested" ? "Cancellation requested. Any started provider request may still consume plan usage." : "This earlier request is still in progress. Refresh to check its saved result."}</p><button type="button" className="button secondary small" disabled={pending || job.state === "cancel_requested"} onClick={() => void cancel(job)}>{job.state === "cancel_requested" ? "Cancelling…" : "Cancel request"}</button></div> : null}
         {job.state === "needs_reconciliation" ? <p role="alert">The outcome of this earlier request still needs verification. Its retained history is unchanged.</p> : job.state === "failed" ? <p>This earlier request did not produce a verified result.</p> : null}
         {job.result ? <><p>{job.result.candidates.length} saved proposals. Domains, handles and trademarks have not been checked.</p><div className="standalone-names-grid">{job.result.candidates.map((name, index) => savedOnly && !job.likedIndexes.includes(index) && !job.savedIndexes.includes(index) ? null : <div className="standalone-names-card" key={`${job.id}:${index}`}><h4>{name.value}</h4><p>{name.rationale}</p>{name.caution ? <p className="names-muted">{name.caution}</p> : null}<div className="standalone-names-actions">{job.likedIndexes.includes(index) ? <span>Shortlisted</span> : null}{job.savedIndexes.includes(index) ? <span>Saved</span> : null}<button type="button" className="text-link" onClick={() => void copy(name.value)}>Copy</button></div></div>)}</div></> : null}
       </article>)}
