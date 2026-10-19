@@ -1,0 +1,177 @@
+# Cloud Naming worker — 2026-10-19
+
+## Approved goal and host
+
+The user requested cloud Naming generation that continues when their Mac is
+offline, then selected **Vercel, where the app runs**, after declining Render.
+No Render service or credential transfer was performed. Preserve saved account
+data, GPT-6 Luna/xhigh, durable jobs, immutable requests, cancellation and
+accounting evidence. The starting shared main revision is
+`814c4f866da40e01f59b61b6a9c1b8c265652100`.
+
+After the verified PR #22 preparation, the user explicitly selected **Activate
+on Vercel**. This approves secure transfer of the existing Naming API key and
+restricted database connection to the dedicated worker project, one worker under
+the existing Pro trial and applicable compute/AI usage, and a separate Vercel
+dashboard tab for the cutover and real verification. It does not authorize a plan
+upgrade, provider-credit purchase or new credentials.
+
+## Prepared Vercel deployment
+
+Vercel Daemons are a public beta for long-running container processes, available
+on all plans within their quotas. They fit the existing dedicated Node poll
+worker, which executes outside HTTP request lifetimes. No Workflow or queue
+replacement is needed. Production instances restart after exit or failure;
+preview deployments, inbound networking and persistent disks are unsupported.
+
+An empty protected project has been created in the existing Embel team:
+
+- Team: `team_0Koie5796IDOraQkDFg6J0AF` / `embel`.
+- Worker project: `prj_vTOc6Kf8th7tXK2cOVwWTTaR20yx` / `embel-naming-worker`.
+- Daemon: `naming-worker`, one instance in `iad1` when activated, 1 GiB, 300-second
+  termination grace. The checked-in configuration has **zero instances**.
+- Vercel Authentication: all deployments; public source disabled. No Git
+  automatic deployment connection is configured for this worker project.
+- Existing web project: `prj_WKrFUPy3wptZ3qI9l1hTuqPmzkDt`, unchanged.
+
+The project currently has no deployment, worker credentials or running compute.
+The user's explicit activation approval is recorded above. An authenticated read-only team
+lookup confirmed **Pro / trialing**. No billing-plan upgrade or provider-credit
+purchase is included. Current Washington D.C. Fluid compute rates are US$0.0106
+per GB-hour of provisioned memory and US$0.128 per Active CPU-hour. Assuming
+continuous 1 GB allocation for 730 hours, the memory estimate is about US$8 per
+month before credits/taxes, plus active CPU, image/build and existing AI usage.
+This is an estimate from the published compute rates, not a fixed service price
+or a verified future invoice. Applicable trial credits and actual metering must
+be checked on activation.
+
+### Release and credential boundaries
+
+`npm run build:naming-worker` builds only the reviewed Naming dependency graph,
+binding its public source revision and dedicated worker project. The package
+script verifies a clean checkout, source revision, bundle digest and project pin
+before staging an isolated release under ignored `.tmp/`. Running modes require
+the checkout's `main` branch. The stage contains only three bundle files, a
+runtime-only Containerfile, deny-by-default ignore files, a worker configuration
+and an inert static page. It contains no source checkout, `.git`, environment
+files, Mac launchers or web routes. Deploy this release directory with explicit
+worker project and Embel scope; never deploy the repository root to this project.
+
+```sh
+EMBEL_NAMING_VERCEL_PROJECT_ID=prj_vTOc6Kf8th7tXK2cOVwWTTaR20yx npm run build:naming-worker
+npm run package:naming-worker -- --project prj_vTOc6Kf8th7tXK2cOVwWTTaR20yx --mode stopped
+```
+
+`stopped` stages zero instances. `standby` stages one instance that verifies the
+actual runtime, authorized TLS socket and restricted role/OID in a read-only
+transaction, then waits for shutdown. It never constructs the job store,
+publishes readiness, attests preferences, expires leases, claims work or calls
+the provider. `--preflight` remains the one-shot equivalent. `active` stages the
+normal poll loop and additionally requires `EMBEL_NAMING_CLOUD_ACTIVATED=true`
+and the existing provider-dispatch flags.
+
+Vercel passes deployment environment variables to both container runtime and
+image-build arguments. Do not claim they bypass Vercel's builder. The
+Containerfile declares **no ARG**, runs no build command and copies only the
+three bundled files, using nonroot Node `22.22.2-bookworm-slim`. Before real
+credential transfer, inspect a hosted synthetic-secret canary build's logs,
+image configuration/history and any provenance attestations. Confirm supplied
+markers do not enter the image or exposed metadata. Actual hosted Git metadata
+and Node/ICU/Unicode must match before activation; missing metadata fails closed.
+
+After explicit approval, only the worker project's production encrypted/sensitive
+settings receive the existing API key and restricted database URL, plus the
+public hash-pinned CA. No credentials go to the web project or shared environment
+groups. The existing login has scoped Naming **and local Strategy RPC** grants;
+the cloud executable contains only Naming handlers. No administrator or
+Supabase service-role credential is used and no grants are added.
+
+The existing logical deployment ID containing `local` remains unchanged. It is
+a compatibility binding, not a requirement to execute on the Mac. Runtime
+qualification requires the dedicated Vercel project, production/main Git
+metadata, exact compiled revision, `iad1`, Node 22.22.2 / ICU 78.2 / Unicode 17.0,
+approved model and native TLS. Job claims and database policy remain the final
+execution authority.
+
+## Controlled cutover and future releases
+
+The readiness row identifies one process. Mac/cloud or cloud/cloud readiness
+publishers must never overlap. Vercel production deployments and rollbacks can
+overlap old/new instances, even when the configuration asks for only one.
+
+1. Publish the verified source through the existing PR and reconcile local main.
+   Build from that exact clean main; verify source and bundle digest in the
+   release, Vercel deployment metadata and hosted logs. Confirm quotas/charges.
+2. With no real secrets installed, deploy the stopped synthetic-canary release,
+   inspect its file inventory, image metadata and provenance. After transfer
+   approval, deploy standby and verify native TLS, restricted identity and
+   runtime without touching jobs or cloud readiness.
+3. Capture the account/pilot/policy binding, jobs, names, preferences, favorites,
+   holds and current `ready_until` **before** the freeze clears it. Let active
+   leased work finish. Do not reset attempts or issued provider requests.
+4. Run the reviewed freeze packet under the owner lock. It rejects active
+   execution, outstanding leases and ambiguous pending creates, then disables
+   only the exact pilot and hosted capability. It preserves historical unknown
+   outcomes, queued work, results, held usage and accounting evidence.
+5. Unload the Mac Naming LaunchAgent and any other Naming supervisor. Verify
+   actual process exit, wait the captured readiness deadline, and recheck that
+   no observation lease appeared during shutdown. SQL cannot prove that an
+   external process has stopped.
+6. Stop the Vercel standby instance using a dashboard scaling override of zero
+   in every region. Verify process exit, deploy the active package while that
+   override persists, enable the same pilot with the reviewed enable packet,
+   and clear the override only after verifying exactly `iad1:1`.
+7. Confirm a fresh `naming-cloud-<UUID>` heartbeat, then verify a genuine
+   progressive 100-name run with every Mac Naming process stopped. Verify
+   terminal receipts, reload and exact preservation of previous names,
+   preferences, favorites and historical accounting.
+
+Subsequent releases use the same drain/freeze/stop procedure and persistent
+dashboard override before deploying or rolling back. Vercel CLI/API scaling is
+not currently supported; do not invent an endpoint. Dashboard use requires its
+own shared-browser permission. Rollback never resets attempts, deletes evidence
+or resends an uncertain provider request. Process IDs stay unique; a fixed worker
+ID is not a substitute for excluding overlapping publishers.
+
+## Verification evidence and pending activation
+
+Runtime/configuration, source/build isolation, transport-denial, restricted TLS
+preflight and package tests are local checks. They do not demonstrate actual
+Vercel execution or Mac-independent provider generation. The final combined
+matrix passed **169 tests in 10 files**, including 97 runtime/configuration and
+22 independent artifact/process/packaging checks. Full TypeScript, ESLint and
+the production Next.js build passed. Independent QA found no source blockers.
+An actual Vercel CLI no-upload dry run exposed a trailing-slash ignore-rule
+issue; the corrected rules collect exactly eight payload files: the Containerfile,
+Docker ignore file, three bundle files, root package/configuration and inert
+static page. No source checkout or credential file is selected for upload.
+
+The provider-neutral freeze/enable packets passed **25 disposable database
+scenarios** using full migration replay. All tables other than the two exact
+operational pilot/capability rows retained their row digests. Live read-only
+inspection at `2026-10-19T13:16:53.528633Z` found zero active-work or
+pending-provider blockers. Historical unresolved work remains untouched.
+
+Reviewed operator SHA-256 values:
+
+```text
+freeze  18ad9ac3e831a2b1b84903bf474e3126ffa8db9067074861d9852535d1b2c342
+enable  6c58efde02b46e1f3043397549126cd848a7a97301c94cd31ea7dec2de540d12
+```
+
+Neither operator packet has run against the live database. Existing Mac
+configuration remains unchanged. Hosted build/secret-canary inspection,
+approved credential transfer, actual standby qualification, controlled cutover
+and real cloud generation remain pending. No success or offline availability is
+claimed until those checks pass.
+
+## Current official references
+
+- [Vercel Daemons](https://vercel.com/docs/daemons)
+- [Daemon configuration](https://vercel.com/docs/daemons/config-reference)
+- [Lifecycle, scaling and shutdown](https://vercel.com/docs/daemons/managing-daemons)
+- [Beta quotas and unsupported features](https://vercel.com/docs/daemons/limits)
+- [Container Registry](https://vercel.com/docs/container-registry)
+- [System environment variables](https://vercel.com/docs/environment-variables/system-environment-variables)
+- [Fluid compute rates](https://vercel.com/docs/functions/usage-and-pricing)
+- [Node 22.22.2 ICU source](https://github.com/nodejs/node/blob/v22.22.2/deps/icu-small/source/common/unicode/uvernum.h)
