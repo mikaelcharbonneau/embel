@@ -328,13 +328,64 @@ role definitions, cross-owner denial, pending requests and privilege/binding
 drift. Together with existing refinement and publication-adjudication suites,
 54 tests pass. Targeted ESLint passes. These are local synthetic checks.
 
-The user has now approved the concrete Logo activation above. The live read-only
-baseline packet ran successfully. Freeze and enable have
-**not** run against the live database. Actual credential transfer, cloud native
-authentication and Storage renewal, hosted build/secret-canary inspection,
-process stop evidence, fresh cloud readiness, real image execution and reload
-acceptance remain pending. Hosting/source preparation does not establish that
-Logo works while the Mac is offline.
+### Initial live activation and reliability correction
+
+PR #23 merged as `7618040e6ad3e9ce360444a174383f2bfbf49133`. The approved
+credentials were transferred only to sensitive production settings in the
+dedicated Logo project. Hosted synthetic secret-canary inspection, actual Linux
+PNG processing, native pinned database TLS/role qualification and dedicated
+Storage authentication passed. Freeze and enable completed with all 1,527
+baseline rows retained. The web and single `iad1` worker used that same revision,
+and the Mac Logo process was absent.
+
+The first live six-concept request saved four results. One child remained queued
+after an expired claim without a dispatched step. Another retained its confirmed
+15,075 micro-USD provider receipt but failed before any publication reservation
+or output Storage grant. Its ambiguous step correctly fenced further work in
+that project. No provider call was blindly retried. The worker was scaled to zero
+after all active leases had ended; the saved results and charge were preserved.
+
+The existing daemon reported one generic restart. Source review found that its
+pool error handler stopped the complete host when `pg-pool` had already removed
+an errored idle client. The correction consumes that event, lets the pool replace
+the idle client, and preserves the existing checked-out identity/lease failures.
+Fixed phase/reason events distinguish future startup, run and drain failures
+without logging driver errors, credentials or client objects. The old generic
+event does not establish the exact cause of the observed restart.
+
+The image handler now replays a failed publication at most once while holding
+the original bytes, under the identical immutable request key and content hash.
+Every invocation revalidates the current lease and object authority; it never
+repeats the image-provider request or receipt recording. Cancellation, permanent
+validation/ownership errors, invalid acknowledgements and a second persistence
+failure retain the existing fail-closed outcome. This cannot recover bytes that
+were already lost from a finished attempt.
+
+Database logs showed SQL cancellation code `57014` across PostgREST, Auth and
+management reads during the first test. Two original preservation queries hit
+their 30-second read-only deadlines; their resource impact is plausible but not
+proven as the cause. The fingerprint query was optimized to about five seconds.
+Full preservation audits run after active image work settles. A lightweight
+status query is sufficient during generation.
+
+`supabase/activation/logo_cloud_60_absent_publication_adjudication.sql` prepares
+an operator-only recovery for the single failed child. Installation records no
+decision and grants no client or worker access. Its insertion trigger pins the
+job and complete step/provider/reservation/worker-marker hashes, requires a
+drained worker, and verifies that no reservation, grant, result, artifact version
+or new/unmapped private object exists. The immutable witness retains the original
+ambiguous step and confirmed charge. Only the job's terminal status and unused
+reservation balance change. A late worker response cannot revive its cleared
+lease. The previous uploaded-but-uncommitted witness remains supported; all other
+ambiguous outcomes remain blocked. Updated cutover packets pin both the combined
+matcher and its new delegated absence matcher, including their existing security
+properties.
+
+Six-result, refinement and reload acceptance is verified separately after the
+reviewed exact-incident recovery and corrected worker rollout. Deployment IDs
+and the final live outcome belong in the release PR and safe operational receipt
+in the ignored owner-only `.local-fluid` directory; no credential values are
+committed.
 
 ## Official references checked on 2026-10-19
 
@@ -349,3 +400,6 @@ Logo works while the Mac is offline.
 - [Published compute rates](https://vercel.com/docs/functions/usage-and-pricing):
   the hosting estimate is based on `iad1` memory and Active CPU rates, not an
   actual invoice.
+- [node-postgres pool error handling](https://node-postgres.com/apis/pool#events):
+  background idle-client errors remove that client from the pool; active
+  checked-out operations retain their separate error handling.

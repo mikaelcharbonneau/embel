@@ -10,6 +10,7 @@ import type { LogoImageProductionResult, LogoImageProducer } from "../../src/ser
 import type { StepOutcome } from "../../src/domain/jobs";
 import { inspectIdentityRaster } from "../../src/features/logo-vector/server/converter";
 import { IMAGE_INPUT_LIMITS } from "../../src/domain/logo-image-limits";
+import { ApiError } from "../../src/server/http/errors";
 import { logoFixtureId as id, syntheticLogoJob, syntheticResolvedLogoConcept } from "../fixtures/logo-creation";
 let png: Uint8Array, color: Uint8Array;
 beforeAll(async () => {
@@ -88,8 +89,38 @@ describe("one durable concept child handler", () => {
   it("lost publication acknowledgement or foreign provider receipt cannot publish success", async () => {
     const f = setup(); f.publish.mockRejectedValue(new Error("commit uncertain"));
     expect(await f.handler.steps(f.job)[0]!.execute({ job: f.job, signal: new AbortController().signal })).toMatchObject({ status: "needs_reconciliation", code: "publication_unknown", costMicrousd: 1000 });
+    expect(f.publish).toHaveBeenCalledTimes(2); expect(f.produce).toHaveBeenCalledTimes(1); expect(f.record).toHaveBeenCalledTimes(1);
     const g = setup(); g.record.mockImplementation(async (_, observation) => ({ ...observation, id: id(710), ownerId: id(999), projectId: g.job.projectId, jobId: g.job.id, leaseToken: g.job.leaseToken }));
     expect(await g.handler.steps(g.job)[0]!.execute({ job: g.job, signal: new AbortController().signal })).toMatchObject({ status: "needs_reconciliation" }); expect(g.publish).not.toHaveBeenCalled();
+  });
+  it("recovers a lost publication acknowledgement using the exact key and bytes without another image request", async () => {
+    const f = setup(), normal = f.publish.getMockImplementation()!;
+    f.publish.mockImplementationOnce(async (_job, publication, bytes) => {
+      // Neither a failed port nor a reused buffer may change the next attempt.
+      publication.requestKey = id(999); bytes.fill(0);
+      throw new Error("Lost publication acknowledgement");
+    }).mockImplementation(normal);
+    expect(await f.handler.steps(f.job)[0]!.execute({ job: f.job, signal: new AbortController().signal })).toMatchObject({ status: "succeeded", costMicrousd: 1000 });
+    expect(f.publish).toHaveBeenCalledTimes(2); expect(f.produce).toHaveBeenCalledTimes(1); expect(f.record).toHaveBeenCalledTimes(1);
+    expect(f.publish.mock.calls[1]![1].requestKey).toBe(f.input.input.attemptId);
+    expect(createHash("sha256").update(f.publish.mock.calls[1]![2]).digest("hex")).toBe(f.observations[0]!.artifactHash);
+  });
+  it("does not replay a publication after cancellation or accept a foreign acknowledgement", async () => {
+    const f = setup(), controller = new AbortController();
+    f.publish.mockImplementationOnce(async () => { controller.abort(); throw new Error("Cancelled publication"); });
+    expect(await f.handler.steps(f.job)[0]!.execute({ job: f.job, signal: controller.signal })).toMatchObject({ status: "needs_reconciliation", code: "publication_unknown", costMicrousd: 1000 });
+    expect(f.publish).toHaveBeenCalledTimes(1); expect(f.produce).toHaveBeenCalledTimes(1);
+    const g = setup(), normal = g.publish.getMockImplementation()!;
+    g.publish.mockImplementation(async (...args) => { const receipt = await normal(...args); return { ...receipt, reference: { ...receipt.reference, ownerId: id(999) } }; });
+    expect(await g.handler.steps(g.job)[0]!.execute({ job: g.job, signal: new AbortController().signal })).toMatchObject({ status: "needs_reconciliation", code: "publication_unknown" });
+    expect(g.publish).toHaveBeenCalledTimes(1);
+  });
+  it("does not replay a permanent validation or ownership rejection", async () => {
+    for (const code of ["invalid_input", "not_found", "conflict"] as const) {
+      const f = setup(); f.publish.mockRejectedValue(new ApiError(code));
+      expect(await f.handler.steps(f.job)[0]!.execute({ job: f.job, signal: new AbortController().signal })).toMatchObject({ status: "needs_reconciliation", code: "publication_unknown", costMicrousd: 1000 });
+      expect(f.publish).toHaveBeenCalledTimes(1); expect(f.produce).toHaveBeenCalledTimes(1);
+    }
   });
   it("an uncertain child does not prevent five other independent jobs from retaining their outputs", async () => {
     const outcomes: StepOutcome[] = [];

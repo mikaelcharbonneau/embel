@@ -159,7 +159,14 @@ describe("independent packaged cloud Logo startup", () => {
     // working directory and entrypoint separation, not Linux native execution.
     const result = launch(["--preflight"], { EMBEL_QA_SIMULATE_LINUX: "true" });
     expect(result.error).toBeUndefined(); expect(result.status).toBe(1); expect(result.stdout).toBe("");
-    expect(result.stderr.trim().split("\n")).toEqual(["QA_NETWORK_BLOCKED", JSON.stringify(stopped)]);
+    expect(result.stderr.trim().split("\n")).toEqual([
+      "QA_NETWORK_BLOCKED",
+      JSON.stringify({ event: "cloud_logo_runtime_failure", projectId: project,
+        vercelDeploymentId: "dpl_independentLogoQa01", daemon: "logo-worker", sourceRevision: revision,
+        phase: "database_qualification", reason: "database_qualification_failed",
+        runtime: { node: "22.22.2", icu: "78.2", unicode: "17.0", platform: "linux", arch: "x64" } }),
+      JSON.stringify(stopped),
+    ]);
     expect(result.stdout + result.stderr).not.toContain(canary);
   });
 });

@@ -45,8 +45,21 @@ export async function verifyCloudLogoDatabase(pool: Pool, hostname: string): Pro
   if (failure) throw failure;
 }
 
-type Event = { event: "cloud_logo_preflight_verified" | "cloud_logo_standby_verified" | "cloud_logo_worker_started" | "cloud_logo_drain_complete";
+type Phase = "raster_qualification" | "database_qualification" | "storage_sign_in" | "storage_configuration" | "storage_session_verification"
+  | "host_construction" | "host_run" | "host_drain" | "pool_disposal" | "storage_session_disposal" | "standby";
+type FailureReason = "raster_qualification_failed" | "database_qualification_failed" | "storage_sign_in_failed" | "storage_configuration_failed"
+  | "storage_session_verification_failed" | "host_construction_failed" | "host_unavailable" | "host_run_failed" | "host_returned_without_shutdown"
+  | "host_drain_unconfirmed" | "pool_disposal_unconfirmed" | "storage_session_disposal_unconfirmed" | "standby_wait_failed";
+const phaseFailure: Readonly<Record<Phase, FailureReason>> = Object.freeze({
+  raster_qualification: "raster_qualification_failed", database_qualification: "database_qualification_failed", storage_sign_in: "storage_sign_in_failed",
+  storage_configuration: "storage_configuration_failed", storage_session_verification: "storage_session_verification_failed",
+  host_construction: "host_construction_failed", host_run: "host_run_failed", host_drain: "host_drain_unconfirmed", pool_disposal: "pool_disposal_unconfirmed",
+  storage_session_disposal: "storage_session_disposal_unconfirmed", standby: "standby_wait_failed",
+});
+type Event = { event: "cloud_logo_preflight_verified" | "cloud_logo_standby_verified" | "cloud_logo_worker_started" | "cloud_logo_drain_complete"
+    | "cloud_logo_database_idle_client_removed" | "cloud_logo_runtime_failure";
   projectId: string; vercelDeploymentId: string; daemon: string; sourceRevision: string;
+  phase?: Phase; reason?: FailureReason;
   restrictedRoleVerified?: boolean; tlsVerified?: boolean; storageSessionVerified?: boolean; rasterVerified?: boolean; jobMutations?: boolean; providerCalls?: boolean };
 export type CloudLogoDependencies = {
   createPool(options: PoolConfig): Pool; verifyDatabase: typeof verifyCloudLogoDatabase;
@@ -60,7 +73,7 @@ const defaults: CloudLogoDependencies = {
   createPool: options => new JavaScriptPool({ ...options, Client: JavaScriptClient }), verifyDatabase: verifyCloudLogoDatabase,
   createSession: createLocalLogoStorageSession, verifySession: verifyLocalLogoStorageSession,
   startHost: startLogoProductionHost, qualifyRaster: qualifyCloudLogoRaster,
-  emit: event => console.info(JSON.stringify({ ...event, runtime: CLOUD_LOGO_RUNTIME })),
+  emit: event => (event.event === "cloud_logo_runtime_failure" ? console.error : console.info)(JSON.stringify({ ...event, runtime: CLOUD_LOGO_RUNTIME })),
 };
 
 export async function runCloudLogoWorker(options: { configuration: CloudLogoConfiguration; mode: CloudLogoMode; signal: AbortSignal },
@@ -76,30 +89,45 @@ export async function runCloudLogoWorker(options: { configuration: CloudLogoConf
   let pool: Pool | undefined, session: Awaited<ReturnType<typeof createLocalLogoStorageSession>> | undefined, host: LogoProductionHost | undefined;
   const authorizations: LogoGenerativeStorageAuthorization[] = [];
   let hostInvoked = false, failed = false, disposed = false;
-  const poolError = () => { failed = true; stop(); };
+  let phase: Phase = "raster_qualification", failureReason: FailureReason | undefined;
+  // pg-pool emits this only after removing a failed IDLE client. It replaces
+  // that client on demand. A pool event neither identifies an active query nor
+  // proves its result was lost; aborting the whole host would unnecessarily fence
+  // new work and force a drain. Checked-out errors still fail through the existing identity,
+  // lease and publication gates. Never inspect/log the private Error or Client.
+  const poolError = () => emit({ event: "cloud_logo_database_idle_client_removed", ...identity, phase });
+  const reportFailure = (reason: FailureReason = phaseFailure[phase]) => emit({ event: "cloud_logo_runtime_failure", ...identity, phase, reason });
   async function dispose() {
     if (disposed) return;
     // Never release session/pool when a constructor cannot prove drain or a
     // returned host reports unconfirmed closure. The platform may terminate it;
     // durable leases and unknown-outcome guards then retain the ambiguity.
+    phase = "host_drain";
     if (hostInvoked && !host) throw new Error("cloud_logo_drain_unconfirmed");
     try { await host?.close(); } catch { throw new Error("cloud_logo_drain_unconfirmed"); }
     for (const authorization of authorizations) authorization.close();
+    phase = "pool_disposal";
     try { await pool?.end(); } catch { throw new Error("cloud_logo_disposal_unconfirmed"); }
     pool?.removeListener("error", poolError);
+    phase = "storage_session_disposal";
     try { await session?.close(); } catch { throw new Error("cloud_logo_disposal_unconfirmed"); }
     disposed = true;
   }
   try {
     await dependencies.qualifyRaster(lifetime.signal); if (lifetime.signal.aborted) return;
+    phase = "database_qualification";
     pool = dependencies.createPool(cloudLogoPoolOptions(options.configuration)); pool.on("error", poolError);
     await dependencies.verifyDatabase(pool, raw.configuration.database.host); if (lifetime.signal.aborted) return;
+    phase = "storage_sign_in";
     session = await dependencies.createSession(raw.identity, raw.configuration); if (lifetime.signal.aborted) return;
     const accessToken = await session.tokenProvider(lifetime.signal);
+    phase = "storage_configuration";
     const configuration = parseLogoDedicatedConfiguration({ ...raw.configuration, storage: { ...raw.configuration.storage, accessToken } });
     const c = getLogoDedicatedConfiguration(configuration);
     if (!c?.storage || !c.image) throw unavailable();
+    phase = "storage_session_verification";
     await dependencies.verifySession(configuration, accessToken); if (lifetime.signal.aborted) return;
+    phase = "storage_configuration";
     const selected: Pick<Extract<LogoProductionHostOptions, { enabled: true }>, "concepts" | "refinements"> = {};
     for (const lane of ["concepts", "refinements"] as const) {
       const capability = c.operations[lane]; if (!capability) throw unavailable();
@@ -108,28 +136,36 @@ export async function runCloudLogoWorker(options: { configuration: CloudLogoConf
         publishableKey: c.storage.publishableKey, accessToken, capability }, { fetch: globalThis.fetch, tokenProvider: session.tokenProvider });
       if (!authorization) throw unavailable(); authorizations.push(authorization); selected[lane] = { capability, authorization, image: c.image };
     }
-    hostInvoked = true;
+    phase = "host_construction"; hostInvoked = true;
     host = await dependencies.startHost({ enabled: true, binding: c.binding, workerId: c.workerId, pool, signal: lifetime.signal, ...selected });
     if (lifetime.signal.aborted) return;
-    if (host.status !== "qualified") throw unavailable();
+    if (host.status !== "qualified") { failureReason = "host_unavailable"; throw unavailable(); }
     if (options.mode !== "run") {
       await dispose(); if (lifetime.signal.aborted) return;
       emit({ event: options.mode === "standby" ? "cloud_logo_standby_verified" : "cloud_logo_preflight_verified", ...identity,
         restrictedRoleVerified: true, tlsVerified: true, storageSessionVerified: true, rasterVerified: true, jobMutations: false, providerCalls: false });
-      if (options.mode === "standby") while (!lifetime.signal.aborted) await delay(60_000, undefined, { signal: lifetime.signal }).catch(error => {
-        if (!lifetime.signal.aborted) throw error;
-      });
+      if (options.mode === "standby") {
+        phase = "standby";
+        while (!lifetime.signal.aborted) await delay(60_000, undefined, { signal: lifetime.signal }).catch(error => {
+          if (!lifetime.signal.aborted) throw error;
+        });
+      }
       return;
     }
+    phase = "host_run";
     emit({ event: "cloud_logo_worker_started", ...identity });
     // Only this existing run loop publishes readiness and claims work. Its
     // storage brokers revalidate the exact renewed session and each lease.
     await host.run(lifetime.signal);
-    if (!lifetime.signal.aborted) throw unavailable();
-  } catch { failed = true; }
+    if (!lifetime.signal.aborted) { failureReason = "host_returned_without_shutdown"; throw unavailable(); }
+  } catch { failed = true; reportFailure(failureReason); }
   finally {
     stop();
-    try { await dispose(); if (failed) throw unavailable(); }
+    try {
+      try { await dispose(); }
+      catch (error) { reportFailure(); throw error; }
+      if (failed) throw unavailable();
+    }
     finally { options.signal.removeEventListener("abort", stop); }
   }
   if (options.mode === "run") emit({ event: "cloud_logo_drain_complete", ...identity });

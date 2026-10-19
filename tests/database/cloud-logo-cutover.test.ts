@@ -60,6 +60,7 @@ describe("cloud Logo cutover operational packets", () => {
       logo_policy_identity: policy, logo_reservation_microusd: "2000000" }))
       await db.query("select set_config($1,$2,false)", [`embel.${key}`, value]);
     await db.exec(await sql("activation/logo_concepts_30_bind_disabled.sql"));
+    await db.exec(await sql("activation/logo_cloud_60_absent_publication_adjudication.sql"));
     await db.exec(`update fluid_private.logo_runtime_policies set enabled=true; update fluid_private.logo_storage_principals set enabled=true;
       update fluid_private.logo_generative_storage_capabilities set enabled=true; update fluid_private.logo_local_capabilities set enabled=true;`);
     await db.exec(await sql("candidates/logo_local_refinements.sql"));
@@ -140,6 +141,11 @@ describe("cloud Logo cutover operational packets", () => {
     ["function owner", "alter function public.local_logo_operation(uuid,text,jsonb) owner to service_role", "cloud_logo_function_drift"],
     ["function search path", "alter function public.local_logo_operation(uuid,text,jsonb) set search_path=public", "cloud_logo_function_drift"],
     ["function security mode", "alter function public.local_logo_operation(uuid,text,jsonb) security invoker", "cloud_logo_function_drift"],
+    ["delegated matcher source", "create or replace function fluid_private.logo_absent_publication_adjudication_matches(p_job uuid) returns boolean language sql stable set search_path='' set timezone='UTC' as $$select true$$", "cloud_logo_function_drift"],
+    ["delegated matcher ACL", "grant execute on function fluid_private.logo_absent_publication_adjudication_matches(uuid) to authenticated", "cloud_logo_function_drift"],
+    ["delegated matcher owner", "alter function fluid_private.logo_absent_publication_adjudication_matches(uuid) owner to service_role", "cloud_logo_function_drift"],
+    ["delegated matcher search path", "alter function fluid_private.logo_absent_publication_adjudication_matches(uuid) set search_path=public", "cloud_logo_function_drift"],
+    ["delegated matcher security mode", "alter function fluid_private.logo_absent_publication_adjudication_matches(uuid) security definer", "cloud_logo_function_drift"],
     ["function drift", "create or replace function fluid_private.logo_local_project_clear(p_owner uuid,p_project uuid) returns boolean language sql stable set search_path='' as $$select true$$", "cloud_logo_function_drift"],
   ]) it(`rejects ${label} before changing any row`, async () => {
     await db.exec(mutation!); const before = await snapshot();
