@@ -68,6 +68,21 @@ apply the exact owner activation packet, and verify genuine generation and
 reload in the authorized live-app tab. Real-provider and deployment evidence
 is recorded in that release record separately from the fixture results above.
 
+The first production canary admitted the hosted job but exposed a remaining
+local-only exception in the shared step gate. No provider request was issued.
+The additive `20261019032503_hosted_naming_step_authority.sql` migration repairs
+that boundary for the exact restricted worker and immutable hosted admission.
+Same-project unknown outcomes and fresh capability checks still block paid
+dispatch. Historical holds, requests, attempts and prior migrations remain
+intact. Its SHA-256 is
+`9b72e08837a35a72608ca3ee767fac70589923f991507c79f8ed2fabe526b341`.
+Independent behavioral and catalog checks reproduce the failure, reach genuine
+dispatch authorization after the repair, preserve existing function permissions
+and saved rows, and cover disablement, saved preparation and ordinary job limits.
+Native installation is recorded as `20261019033024_hosted_naming_step_authority`;
+both installed function bodies match the full disposable migration replay and
+the 34-table data baseline is unchanged by this migration.
+
 Local evidence files are `/private/tmp/embel-hosted-naming-baseline-20261019.json`,
 `/private/tmp/embel-hosted-naming-tests-20261019.log` and
 `/private/tmp/embel-hosted-naming-build-20261019.log`. They contain no credentials.
