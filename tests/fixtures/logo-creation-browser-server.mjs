@@ -15,7 +15,7 @@ const server = createServer(async (request, response) => {
     response.setHeader("content-type", ext === "js" ? "application/javascript" : "text/css"); response.end(await readFile(`${output}/preview.${ext}`));
   } else if (/^\/[A-Za-z0-9_-]+\.woff2$/.test(request.url ?? "")) {
     response.setHeader("content-type", "font/woff2"); response.end(await readFile(`${output}${request.url}`));
-  } else if (/^\/project-workspace\/[a-z-]+\.svg$/.test(request.url ?? "")) {
+  } else if (/^\/(?:project-workspace|logo-concepts)\/[a-z-]+\.svg$/.test(request.url ?? "")) {
     try { response.setHeader("content-type", "image/svg+xml"); response.end(await readFile(`${root}public${request.url}`)); }
     catch { response.writeHead(404); response.end(); }
   } else if (request.url?.startsWith("/api/")) { response.writeHead(503, { "content-type": "application/json" }); response.end('{}'); }

@@ -9,15 +9,57 @@ import { POST as stopFeed } from "../../src/app/api/projects/[projectId]/naming/
 import { DELETE as stop } from "../../src/app/api/projects/[projectId]/naming/runs/[runId]/route";
 import { GET as genericJob, DELETE as genericCancel } from "../../src/app/api/jobs/[jobId]/route";
 import { brainPreferences, initialIntent } from "../database/naming-brain-fixture";
+import { ensureNextNamingRun } from "../../src/server/data/naming-brain";
 const owner="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",project="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",run="11111111-1111-4111-8111-111111111111";
 const emptyFeed={version:1,ownerId:owner,projectId:project,projectRevision:1,preferencesVersion:1,feedbackRevision:0,steeringRevision:0,demandSequence:0,entries:[],nextCursor:null,consumedThrough:null,activeRun:null,preparedSetId:null,paused:false,state:"active",availability:{status:"unavailable",code:"naming_runtime_unavailable"}};
+const partialRun={version:1,ownerId:owner,projectId:project,runId:run,jobId:run,batchId:run,revision:1,resumedFromRunId:null,canResume:true,state:"partial",projectRevision:1,preferencesVersion:1,feedbackRevision:0,steeringRevision:0,demandSequence:0,snapshotHash:"a".repeat(64),acceptedPolicyIdentity:"a".repeat(64),progress:40,preparedSetId:null,fulfillment:{status:"none",targetCount:100,acceptedCount:0,missingCount:100,coverageSatisfied:false,message:"Synthetic retained partial exploration."},accounting:{status:"held_unsettled",heldAllowanceMicrousd:5000000,confirmedActualCostMicrousd:null},createdAt:"2026-10-18T05:00:00Z",updatedAt:"2026-10-18T05:01:00Z"};
+const resumableFeed={...emptyFeed,activeRun:partialRun,availability:{status:"available",handlerVersion:"naming-brain-v1",protocol:"openai_agents",acceptedPolicyIdentity:"a".repeat(64)}};
+function localRuntime(){for(const key of Object.keys(process.env))if(key==="VERCEL"||key.startsWith("VERCEL_"))vi.stubEnv(key,undefined);vi.stubEnv("NODE_ENV","production");vi.stubEnv("FLUID_RUNTIME","local");vi.stubEnv("FLUID_LOCAL_PROTOTYPE","true");vi.stubEnv("APP_ORIGIN","http://127.0.0.1:3106");}
 const ctx={params:Promise.resolve({projectId:project,runId:run,jobId:run})};
 const request=(body?:unknown,method="POST",headers:Record<string,string>={},query="")=>new Request(`https://embel.example/api/naming${query}`,{method,headers:{origin:"https://embel.example","content-type":"application/json","X-Embel-Account":owner,...headers},...(body===undefined?{}:{body:JSON.stringify(body)})});
 describe("Naming Brain route account and privacy boundaries",()=>{
  beforeEach(()=>{vi.resetAllMocks();vi.stubEnv("APP_ORIGIN","https://embel.example");mock.auth.mockResolvedValue({userId:owner,client:{rpc:mock.rpc,from:mock.from}});mock.rpc.mockResolvedValue({data:emptyFeed,error:null});mock.from.mockImplementation(()=>{const q={select:()=>q,eq:()=>q,maybeSingle:async()=>({data:{owner_id:owner,project_id:project,version:1,preferences:brainPreferences},error:null})};return q;});});afterEach(()=>vi.unstubAllEnvs());
+ it("selects only the explicit local admission wrapper under the complete local boundary",async()=>{
+  for(const key of Object.keys(process.env))if(key==="VERCEL"||key.startsWith("VERCEL_"))vi.stubEnv(key,undefined);
+  vi.stubEnv("NODE_ENV","production");vi.stubEnv("FLUID_RUNTIME","local");vi.stubEnv("FLUID_LOCAL_PROTOTYPE","true");vi.stubEnv("APP_ORIGIN","http://127.0.0.1:3106");
+  const blocked={status:"blocked",feed:emptyFeed,code:"naming_runtime_unavailable",message:"Naming is not configured.",action:"configure"};
+  mock.rpc.mockResolvedValue({data:blocked,error:null});
+  expect(await ensureNextNamingRun(await mock.auth(),project,initialIntent())).toEqual(blocked);
+  expect(mock.rpc).toHaveBeenCalledExactlyOnceWith("ensure_local_naming_brain_run",{p_project_id:project,p_intent:initialIntent()});
+ });
  it("reads without admission and rejects non-owned cursors or unbounded query shape",async()=>{
   const response=await feed(request(undefined,"GET"),ctx);expect(response.status).toBe(200);expect(await response.json()).toEqual({feed:emptyFeed});expect(response.headers.get("cache-control")).toBe("private, no-store");
   expect((await feed(request(undefined,"GET",{},"?limit=101"),ctx)).status).toBe(422);expect((await feed(request(undefined,"GET",{},"?cursorPosition=1"),ctx)).status).toBe(422);
+ });
+ it.each(["partial","failed"])("derives local scroll Resume only for acknowledged resumable %s work",async state=>{
+  localRuntime();mock.rpc.mockResolvedValue({data:{...resumableFeed,activeRun:{...partialRun,state}},error:null});
+  const response=await feed(request(undefined,"GET"),ctx);expect(response.status).toBe(200);expect((await response.json()).feed.canResumeOnScroll).toBe(true);
+  const incomplete={status:"incomplete",feed:resumableFeed,run:partialRun,fulfillment:partialRun.fulfillment,message:"Synthetic retained partial exploration.",canResume:true};
+  mock.rpc.mockResolvedValue({data:incomplete,error:null});
+  expect((await ensureNextNamingRun(await mock.auth(),project,initialIntent())).feed.canResumeOnScroll).toBe(true);
+ });
+ it.each([false,true])("derives prefetch only from the genuine current complete membership (progressive=%s)",async progressive=>{
+  localRuntime();
+  const complete={...partialRun,state:"succeeded",canResume:false,preparedSetId:progressive?null:run,...(progressive?{localPipelineVersion:2,progressiveCompletionId:run}:{}),fulfillment:{status:"complete",targetCount:100,acceptedCount:100,missingCount:0,coverageSatisfied:true,message:null}};
+  mock.rpc.mockResolvedValue({data:{...resumableFeed,activeRun:complete},error:null});
+  const response=await feed(request(undefined,"GET"),ctx);expect(response.status).toBe(200);expect((await response.json()).feed.canPrefetchOnScroll).toBe(true);
+ });
+ it.each(["hosted","paused","stale","unknown","stopped100"])("strips an asserted prefetch capability for %s",async label=>{
+  if(label!=="hosted")localRuntime();
+  const complete={...partialRun,state:label==="unknown"?"needs_reconciliation":label==="stopped100"?"partial":"succeeded",canResume:label==="stopped100",preparedSetId:null,localPipelineVersion:2,...(label==="stopped100"?{}:{progressiveCompletionId:run}),fulfillment:{status:"complete",targetCount:100,acceptedCount:100,missingCount:0,coverageSatisfied:true,message:null}};
+  mock.rpc.mockResolvedValue({data:{...resumableFeed,...(label==="paused"?{paused:true,state:"paused"}:{}),...(label==="stale"?{projectRevision:2}:{}),activeRun:complete,canPrefetchOnScroll:true,canResumeOnScroll:true},error:null});
+  const response=await feed(request(undefined,"GET"),ctx);expect(response.status).toBe(200);const loaded=(await response.json()).feed;
+  expect(loaded).not.toHaveProperty("canPrefetchOnScroll");expect(loaded).not.toHaveProperty("canResumeOnScroll");
+ });
+ it.each([
+  ["hosted",{}], ["paused",{paused:true,state:"paused"}], ["blocked",{state:"blocked"}],
+  ["unavailable",{availability:emptyFeed.availability}], ["cancelled",{activeRun:{...partialRun,state:"cancelled"}}],
+  ["unknown",{activeRun:{...partialRun,state:"needs_reconciliation",canResume:false}}], ["not_resumable",{activeRun:{...partialRun,canResume:false}}],
+  ["stale_context",{projectRevision:2}], ["stale_preferences",{preferencesVersion:2}], ["stale_steering",{steeringRevision:1}],
+ ])("strips a supplied scroll capability for %s instead of trusting stored JSON",async(label,patch)=>{
+  if(label!=="hosted")localRuntime();
+  mock.rpc.mockResolvedValue({data:{...resumableFeed,...patch,canResumeOnScroll:true},error:null});
+  const response=await feed(request(undefined,"GET"),ctx);expect(response.status).toBe(200);expect((await response.json()).feed).not.toHaveProperty("canResumeOnScroll");
  });
  it("requires the captured account and origin on every new mutation",async()=>{
   for(const handler of [ensure,steering,stop,stopFeed]){

@@ -29,6 +29,24 @@ describe("Managed Naming SDK boundary (synthetic HTTP)", () => {
     expect(calls).toBe(1);
   });
 
+  it("retains only bounded provider rejection classifications", async () => {
+    const diagnostics: unknown[] = [];
+    const protocol = createNamingManagedProtocol({ apiKey: "synthetic-fixture", onDiagnostic: value => diagnostics.push(value), fetch: async () => new Response(JSON.stringify({ error: {
+      message: "private prompt and credential fixture", code: "unsupported_parameter", param: "agent.reasoning.effort", type: "invalid_request_error",
+    } }), { status: 400, headers: { "x-request-id": "req_rejected_fixture" } }) });
+    const failure = await protocol.createSession({ environment: { type: "none" }, agent: { model: "gpt-6.1-sol" }, input: "Synthetic only", spend_control: { limit: 50 }, stream: true }, new AbortController().signal).catch(error => error);
+    expect(failure).toMatchObject({ code: "request_rejected", requestId: "req_rejected_fixture", diagnostic: { status: 400, providerCode: "unsupported_parameter", parameter: "agent.reasoning.effort" } });
+    expect(diagnostics).toEqual([{ status: 400, providerCode: "unsupported_parameter", parameter: "agent.reasoning.effort" }]);
+    expect(JSON.stringify(failure)).not.toContain("private");
+  });
+
+  it("drops arbitrary error codes and parameter values instead of logging provider content", async () => {
+    const diagnostics: unknown[] = [];
+    const protocol = createNamingManagedProtocol({ apiKey: "synthetic-fixture", onDiagnostic: value => diagnostics.push(value), fetch: async () => new Response(JSON.stringify({ error: { code: "private_secret_fixture", param: "input.private_secret_fixture" } }), { status: 422 }) });
+    await expect(protocol.createSession({ environment: { type: "none" }, agent: { model: "gpt-6.1-sol" }, input: "Fixture", spend_control: { limit: 10 }, stream: true }, new AbortController().signal)).rejects.toMatchObject({ code: "request_rejected" });
+    expect(diagnostics).toEqual([{ status: 422, providerCode: null, parameter: null }]);
+  });
+
   it("submits tool results with the documented session/turn/call protocol", async () => {
     const sent: unknown[] = [];
     const protocol = createNamingManagedProtocol({ apiKey: "synthetic-fixture", fetch: async (input, init) => { const request = new Request(input, init); sent.push({ url: request.url, body: await request.json(), key: request.headers.get("idempotency-key") }); return new Response(null, { status: 202 }); } });

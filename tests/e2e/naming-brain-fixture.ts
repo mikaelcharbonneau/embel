@@ -2,7 +2,7 @@ import { expect, type Page, type Route } from "@playwright/test";
 import { accountProjectSchema, accountProjectSummarySchema } from "../../src/domain/project-api";
 import { contextSnapshotSchema } from "../../src/domain/projects";
 import { initialNamingPreferencesV2, namingPreferencesV2Schema } from "../../src/domain/naming-brain-preferences";
-import { ensureNamingRunIntentSchema, namingBrainRunSummarySchema, namingFeedEnsureResultSchema, namingFeedSchema, steerNamingFeedIntentSchema, stopNamingFeedIntentSchema, type NamingBrainRunSummary, type NamingFeedEntry, type NamingFeedEnsureResult } from "../../src/domain/naming-brain";
+import { ensureNamingRunIntentSchema, namingBrainRunSummarySchema, namingFeedEnsureResultSchema, namingFeedSchema, steerNamingFeedIntentSchema, stopNamingFeedIntentSchema, type NamingBrainRunSummary, type NamingFeedCursor, type NamingFeedEntry, type NamingFeedEnsureResult } from "../../src/domain/naming-brain";
 import { getNamingReadiness, nameIdentityKey, namingStrategyBasis, namingStrategyKey, type NamingPreferenceRevision, type NamingSession } from "../../src/domain/project-naming";
 import { projectNamingOverviewSchema } from "../../src/domain/naming-jobs";
 
@@ -13,12 +13,13 @@ export const base = `/api/projects/${projectId}/naming`, namingUrl = `/brands/ac
 const when = "2026-10-16T12:00:00.000Z", policy = "a".repeat(64);
 export const savedChoices = namingPreferencesV2Schema.parse({ ...initialNamingPreferencesV2(contextSnapshotSchema.parse({ description: "Synthetic neighborhood kitchen" })), approaches: ["real_words", "compounds"], directness: "all" });
 export type RequestRecord = { path: string; method: string; body: Record<string, unknown> | null; account: string | undefined };
-export async function namingFixture(page: Page, options: { saved?: boolean; count?: number; terminal?: "partial" | "needs_reconciliation" } = {}) {
+export async function namingFixture(page: Page, options: { saved?: boolean; count?: number; terminal?: "partial" | "needs_reconciliation"; progressive?: boolean } = {}) {
   const project = accountProjectSchema.parse({ id: projectId, owner_id: ownerId, title: "Synthetic Naming QA", scope: "naming_only", current_revision: 3, created_at: when, context: { description: "Synthetic brief: a warm neighborhood kitchen.", creativeLocale: "en", intake: { namingNotes: "Synthetic preferences only" } } });
   const session: NamingSession = { ownerId, projectId, revision: 1, currentPreferencesVersion: options.saved ? 1 : 0, latestBatchSequence: 0, currentSelectionId: null, viewRevision: 1, viewState: { pane: "results", conversationOpen: !options.saved, filter: "all", query: "", visibleBatchId: null, scrollCandidateId: null, workshopCandidateId: null }, createdAt: when, updatedAt: when };
   const state = { owner: ownerId as string | null, project, session, preferences: options.saved ? { ownerId, projectId, version: 1, preferences: savedChoices, createdAt: when } as NamingPreferenceRevision : null,
     rows: [] as NamingFeedEntry[], activeRun: null as NamingBrainRunSummary | null, demand: options.count ? 1 : 0, steering: 0, feedback: 0, paused: false, requests: [] as RequestRecord[], ensureMode: "append" as "append" | "pending" | "partial" | "unknown", failOnce: null as null | { path: string; status: number; afterSave?: boolean },
     savedEnsures: new Map<string, NamingFeedEnsureResult>(), created: new Map<string, typeof project>(), nextRun: 1,
+    progressive: false, consumedThrough: null as NamingFeedCursor | null,
   };
   const holds: { path: string; method: string; ready: boolean; settled: boolean; release: () => void; wait: Promise<void> }[] = [];
   function hold(path: string, method: string) { let release!: () => void; const wait = new Promise<void>(resolve => { release = resolve; }); const value = { path, method, ready: false, settled: false, release, wait }; holds.push(value); return value; }
@@ -37,7 +38,11 @@ export async function namingFixture(page: Page, options: { saved?: boolean; coun
   if (options.terminal) state.activeRun = makeRun(options.terminal);
   function feed(after = 0, explicit?: NamingFeedEntry[]) {
     const entries = explicit ?? state.rows.filter(item => item.position > after).slice(0, 100), last = entries.at(-1);
-    return namingFeedSchema.parse({ version: 1, ownerId, projectId, projectRevision: state.project.current_revision, preferencesVersion: state.session.currentPreferencesVersion, feedbackRevision: state.feedback, steeringRevision: state.steering, demandSequence: state.demand, entries, nextCursor: !explicit && last && state.rows.some(item => item.position > last.position) ? { entryId: last.entryId, position: last.position } : null, consumedThrough: null, activeRun: state.activeRun, preparedSetId: null, paused: state.paused, state: state.paused ? "paused" : state.activeRun?.state === "needs_reconciliation" ? "blocked" : "active", availability: { status: "available", handlerVersion: "naming-brain-v1", protocol: "openai_agents", acceptedPolicyIdentity: policy } });
+    return namingFeedSchema.parse({ version: 1, ownerId, projectId, projectRevision: state.project.current_revision, preferencesVersion: state.session.currentPreferencesVersion, feedbackRevision: state.feedback, steeringRevision: state.steering, demandSequence: state.demand, entries, nextCursor: !explicit && last && state.rows.some(item => item.position > last.position) ? { entryId: last.entryId, position: last.position } : null, consumedThrough: state.consumedThrough, activeRun: state.activeRun, preparedSetId: null, paused: state.paused, state: state.paused ? "paused" : state.activeRun?.state === "needs_reconciliation" ? "blocked" : "active", availability: { status: "available", handlerVersion: "naming-brain-v1", protocol: "openai_agents", acceptedPolicyIdentity: policy },
+      ...(options.progressive ? { retentionRevision: state.rows.reduce((sum, row) => sum + row.entry.retention.revision, 0),
+        ...(!state.paused && state.activeRun?.state === "succeeded" && state.activeRun.fulfillment?.status === "complete" ? { canPrefetchOnScroll: true } : {}),
+        ...(state.progressive ? { progressive: { version: 1, targetCount: 100, publishedCount: state.rows.filter(row => row.runId === state.activeRun?.runId).length } } : {}) } : {}),
+    });
   }
   function overview(params: URLSearchParams) {
     const filter = params.get("filter") ?? state.session.viewState.filter, query = params.get("query") ?? state.session.viewState.query;
@@ -85,6 +90,7 @@ export async function namingFixture(page: Page, options: { saved?: boolean; coun
       else if (!state.demand) state.demand = 1;
       const run = makeRun(state.ensureMode === "append" ? "succeeded" : state.ensureMode === "pending" ? "running" : state.ensureMode === "partial" ? "partial" : "needs_reconciliation", undefined, intent.reason === "resume" ? intent.resumeOfRunId : null);
       state.activeRun = run;
+      if (options.progressive) { state.progressive = true; state.consumedThrough = intent.consumedThrough; }
       let result: NamingFeedEnsureResult;
       if (state.ensureMode === "append") { const added = add(100, run); result = { status: "appended", feed: feed(0, added), runId: run.runId, appendedEntryIds: added.map(row => row.entryId) }; }
       else if (state.ensureMode === "pending") result = { status: "pending", feed: feed(), run, reused: false };

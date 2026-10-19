@@ -50,7 +50,8 @@ export interface LogoGenerativeStorageAuthorization {
   authorizeWrite(scope: LogoGenerativeStorageScope & Readonly<{ publication: IdentityAssetPublication }>, signal?: AbortSignal): Promise<LogoGenerativeStorageWrite>;
   close(): void;
 }
-export type LogoGenerativeStorageDependencies = { fetch: typeof fetch; now?: () => number };
+export type LogoStorageTokenProvider = (signal?: AbortSignal) => Promise<string>;
+export type LogoGenerativeStorageDependencies = { fetch: typeof fetch; now?: () => number; tokenProvider?: LogoStorageTokenProvider };
 /** Descriptor validation is not proof of live policy, Auth or source authority. */
 export function qualifiedLogoGenerativeStorageCapability(input: unknown): LogoWorkerCapability | null {
   try {
@@ -61,15 +62,17 @@ export function qualifiedLogoGenerativeStorageCapability(input: unknown): LogoWo
   } catch { return null; }
 }
 /** A separate, disabled-by-default uploaded-reference/raster-refinement lane.
- * The already-approved dedicated Auth session is injected, never discovered,
- * created, refreshed or persisted. SQL derives actual frozen source membership,
+ * The already-approved dedicated Auth session is injected, never discovered or
+ * persisted here. An explicit local token provider may renew the same session.
+ * SQL derives actual frozen source membership,
  * upload evidence and lease authority; caller metadata and decoded JWT claims
  * are rejection checks only. Each capability retains one immutable object.
  */
 export function createLogoGenerativeStorageAuthorization(configuration: unknown = null,
   dependencies: LogoGenerativeStorageDependencies = { fetch: globalThis.fetch }): LogoGenerativeStorageAuthorization | null {
   const parsed = configurationSchema.safeParse(configuration);
-  if (!parsed.success || typeof dependencies.fetch !== "function") return null;
+  if (!parsed.success || typeof dependencies.fetch !== "function"
+    || dependencies.tokenProvider !== undefined && typeof dependencies.tokenProvider !== "function") return null;
   const c = parsed.data, now = dependencies.now ?? Date.now, capability = qualifiedLogoGenerativeStorageCapability(c.capability);
   if (!capability) return null;
   let sessionId: string, expires: number;
@@ -81,7 +84,8 @@ export function createLogoGenerativeStorageAuthorization(configuration: unknown 
   } catch { return null; }
   const lifetime = new AbortController(), deadlines = new WeakMap<AbortSignal, number>();
   const active = (signal?: AbortSignal) => {
-    if (lifetime.signal.aborted || signal?.aborted || now() >= expires || signal && performance.now() >= (deadlines.get(signal) ?? Infinity)) throw unavailable();
+    if (lifetime.signal.aborted || signal?.aborted || !dependencies.tokenProvider && now() >= expires
+      || signal && performance.now() >= (deadlines.get(signal) ?? Infinity)) throw unavailable();
   };
   function discard(response: Response) { try { void response.body?.cancel().catch(() => {}); } catch { /* Cleanup only. */ } }
   async function bounded<T>(caller: AbortSignal | undefined, run: (signal: AbortSignal) => Promise<T>): Promise<T> {
@@ -104,10 +108,17 @@ export function createLogoGenerativeStorageAuthorization(configuration: unknown 
     active(signal);
     const headers = new Headers(init.headers);
     if (headers.has("authorization") || headers.has("apikey")) throw unavailable();
-    headers.set("authorization", `Bearer ${c.accessToken}`); headers.set("apikey", c.publishableKey);
+    const accessToken = dependencies.tokenProvider ? await dependencies.tokenProvider(signal) : c.accessToken;
+    active(signal);
+    const claims = decodeJwt(z.string().max(16_384).regex(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/).parse(accessToken));
+    if (claims.sub !== c.authUserId || claims.session_id !== sessionId || claims.role !== "authenticated" || claims.aud !== "authenticated"
+      || claims.iss !== `${ORIGIN}/auth/v1` || claims.is_anonymous !== false || !Number.isSafeInteger(claims.exp) || claims.exp! * 1000 <= now()
+      || claims.nbf !== undefined && (!Number.isSafeInteger(claims.nbf) || claims.nbf * 1000 > now())) throw unavailable();
+    headers.set("authorization", `Bearer ${accessToken}`); headers.set("apikey", c.publishableKey);
     const response = await dependencies.fetch(url, { ...init, headers, signal, redirect: "error", credentials: "omit", cache: "no-store" });
     try {
       active(signal);
+      if (claims.exp! * 1000 <= now()) throw unavailable();
       if (!(response instanceof Response) || response.redirected || response.url && response.url !== url
         || response.status >= 300 && response.status < 400) throw unavailable();
       return response;
@@ -116,7 +127,11 @@ export function createLogoGenerativeStorageAuthorization(configuration: unknown 
   async function json(url: string, init: RequestInit, signal: AbortSignal, maximum: number): Promise<unknown> {
     const response = await request(url, init, signal);
     const advertised = response.headers.get("content-length"), encoding = response.headers.get("content-encoding");
-    if (response.status !== 200 || !response.body || encoding && encoding !== "identity"
+    // Fetch exposes decoded bytes but retains the wire encoding/length headers.
+    // Supabase compresses both Auth and RPC JSON; bound the decoded stream below
+    // and compare Content-Length only when it describes that same byte stream.
+    const decoded = encoding !== null && encoding !== "identity";
+    if (response.status !== 200 || !response.body || decoded && !["gzip", "deflate", "br"].includes(encoding)
       || advertised !== null && (!/^(0|[1-9][0-9]*)$/.test(advertised) || Number(advertised) > maximum)) { discard(response); throw unavailable(); }
     const reader = response.body.getReader(), bytes = new Uint8Array(maximum);
     let length = 0;
@@ -129,7 +144,7 @@ export function createLogoGenerativeStorageAuthorization(configuration: unknown 
         if (!(part.value instanceof Uint8Array) || part.value.length > bytes.length - length) throw unavailable();
         bytes.set(part.value, length); length += part.value.length;
       }
-      if (!length || advertised !== null && Number(advertised) !== length) throw unavailable();
+      if (!length || !decoded && advertised !== null && Number(advertised) !== length) throw unavailable();
       return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(0, length)));
     } catch { cancel(); throw unavailable(); }
     finally { signal.removeEventListener("abort", cancel); try { reader.releaseLock(); } catch { /* Settling cancellation. */ } }

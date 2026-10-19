@@ -21,7 +21,25 @@ export type JobDatabase = { query(sql: string, values?: unknown[]): Promise<{ ro
 
 /** Dedicated worker database role. Never construct in a web route or browser bundle. */
 export class PostgresJobStore implements JobStore {
-  constructor(private readonly pool: JobDatabase) {}
+  constructor(private readonly pool: JobDatabase, private readonly options: { localPrototype?: boolean } = {}) {}
+
+  private async readLocalStepMetadata(job: ClaimedJob, stepKey: string | null) {
+    // These identifiers are assertions. SQL derives authority from the restricted
+    // login's local capability and the immutable admitted-job marker.
+    return this.pool.query("select * from public.read_local_strategy_steps($1,$2,$3,$4)",
+      [job.id, job.ownerId, job.projectId, stepKey]);
+  }
+
+  private async mutate(job: ClaimedJob, action: "heartbeat" | "plan" | "begin" | "complete" | "finish",
+    arguments_: unknown[], sql: string, values: unknown[]) {
+    if (!this.options.localPrototype) return this.pool.query(sql, values);
+    // The shared Naming login receives this Strategy-only gateway rather than
+    // generic mutations that could bypass Naming's richer stage validation.
+    const result = await this.pool.query("select public.local_strategy_job_action($1,$2,$3) as result",
+      [job.id, action, JSON.stringify(arguments_)]);
+    if (result.rows.length !== 1) throw new Error("Local Strategy mutation unconfirmed");
+    return { rows: [z.record(z.string(), z.unknown()).parse(result.rows[0]?.result)] };
+  }
 
   async claim(workerId: string, leaseSeconds: number) {
     const result = await this.pool.query("select * from public.claim_job($1, $2)", [workerId, leaseSeconds]);
@@ -29,7 +47,8 @@ export class PostgresJobStore implements JobStore {
   }
 
   async heartbeat(job: ClaimedJob, leaseSeconds: number) {
-    const result = await this.pool.query("select * from public.heartbeat_job($1, $2, $3)", [job.id, job.leaseToken, leaseSeconds]);
+    const result = await this.mutate(job, "heartbeat", [job.leaseToken, leaseSeconds],
+      "select * from public.heartbeat_job($1, $2, $3)", [job.id, job.leaseToken, leaseSeconds]);
     const current = parseClaimedJob(result.rows[0]);
     if (current.ownerId !== job.ownerId || current.projectId !== job.projectId) throw new Error("Lease ownership mismatch");
     return { cancelled: current.status === "cancel_requested" };
@@ -37,9 +56,14 @@ export class PostgresJobStore implements JobStore {
 
   async registerPlan(job: ClaimedJob, manifest: readonly PlannedStep[]) {
     try {
-      await this.pool.query("select * from public.register_job_plan($1, $2, $3)", [job.id, job.leaseToken, JSON.stringify(manifest)]);
+      await this.mutate(job, "plan", [job.leaseToken, manifest],
+        "select * from public.register_job_plan($1, $2, $3)", [job.id, job.leaseToken, JSON.stringify(manifest)]);
     } catch (error) {
       if (error instanceof Error && error.message === "plan_conflict") {
+        if (this.options.localPrototype) {
+          const result = await this.readLocalStepMetadata(job, null);
+          throw new PlanConflictError(result.rows.some(row => row.state === "succeeded"));
+        }
         const result = await this.pool.query("select exists(select 1 from public.job_steps where job_id=$1 and owner_id=$2 and project_id=$3 and state='succeeded') as has_results", [job.id, job.ownerId, job.projectId]);
         throw new PlanConflictError(z.boolean().parse(result.rows[0]?.has_results));
       }
@@ -49,7 +73,7 @@ export class PostgresJobStore implements JobStore {
 
   async beginStep(job: ClaimedJob, stepKey: string, maximumCostMicrousd: number): Promise<"started" | "already_succeeded"> {
     const requestKey = createHash("sha256").update(`${job.id}:${stepKey}`).digest("hex");
-    const existing = await this.pool.query(
+    const existing = this.options.localPrototype ? await this.readLocalStepMetadata(job, stepKey) : await this.pool.query(
       "select state, request_key, reserved_cost_microusd from public.job_steps where job_id = $1 and owner_id = $2 and project_id = $3 and step_key = $4",
       [job.id, job.ownerId, job.projectId, stepKey],
     );
@@ -58,19 +82,23 @@ export class PostgresJobStore implements JobStore {
       if (row.state === "succeeded" && row.request_key === requestKey && databaseMoney.parse(row.reserved_cost_microusd) === maximumCostMicrousd) return "already_succeeded";
       throw new Error("Step requires reconciliation or explicit retry");
     }
-    await this.pool.query("select * from public.begin_job_step($1, $2, $3, $4, $5)", [job.id, job.leaseToken, stepKey, requestKey, maximumCostMicrousd]);
+    await this.mutate(job, "begin", [job.leaseToken, stepKey, requestKey, maximumCostMicrousd],
+      "select * from public.begin_job_step($1, $2, $3, $4, $5)", [job.id, job.leaseToken, stepKey, requestKey, maximumCostMicrousd]);
     return "started";
   }
 
   async completeStep(job: ClaimedJob, stepKey: string, outcome: StepOutcome) {
     const state = outcome.status === "needs_reconciliation" ? "ambiguous" : outcome.status;
     const output = outcome.status === "succeeded" ? outcome.result : { error: outcome.code, ...("result" in outcome ? { result: outcome.result } : {}) };
-    await this.pool.query("select * from public.complete_job_step($1, $2, $3, $4, $5, $6, $7)",
+    await this.mutate(job, "complete", [job.leaseToken, stepKey, state, outcome.costMicrousd, output, outcome.providerRequestId],
+      "select * from public.complete_job_step($1, $2, $3, $4, $5, $6, $7)",
       [job.id, job.leaseToken, stepKey, state, outcome.costMicrousd, JSON.stringify(output), outcome.providerRequestId]);
   }
 
   async finish(job: ClaimedJob, state: "succeeded" | "failed" | "partial" | "cancelled") {
-    await this.pool.query("select * from public.finish_job($1, $2, $3, $4)", [job.id, job.leaseToken, state, state === "failed" || state === "partial" ? "operation_incomplete" : null]);
+    const code = state === "failed" || state === "partial" ? "operation_incomplete" : null;
+    await this.mutate(job, "finish", [job.leaseToken, state, code],
+      "select * from public.finish_job($1, $2, $3, $4)", [job.id, job.leaseToken, state, code]);
   }
 
   async expireLeases(): Promise<number> {

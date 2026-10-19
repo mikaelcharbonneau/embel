@@ -102,6 +102,7 @@ type FixtureState = {
   commitBeforeQueueFailure: boolean;
   enqueueGate: Promise<void> | null;
   pendingReply: GuidedReply | null;
+  runtimeUnavailable: boolean;
 };
 const scenarios = new WeakMap<Page, FixtureState>();
 
@@ -110,13 +111,13 @@ async function fixtures(page: Page, { guided = true, seeded = false }: { guided?
   const state: FixtureState = {
     project, owner, jobs: seeded ? [completedJob(queuedJob("strategy.competitors", 1, 1), choiceReply(project.context.intake.guidedInterview!.turns[0]!))] : [],
     enqueues: [], patches: [], creates: [], cancels: [], unhandledWrites: [], externalRequests: [], snapshots: new Map([[1, project.context]]),
-    queueStatus: 202, queueReplies: 0, overviewStatus: 200, overviewReads: 0, patchStatus: 200, losePatchAcknowledgement: false, commitBeforeQueueFailure: false, enqueueGate: null, pendingReply: null,
+    queueStatus: 202, queueReplies: 0, overviewStatus: 200, overviewReads: 0, patchStatus: 200, losePatchAcknowledgement: false, commitBeforeQueueFailure: false, enqueueGate: null, pendingReply: null, runtimeUnavailable: false,
   };
   await page.route("**/*", async route => {
     const request = route.request(), url = new URL(request.url()), path = url.pathname, method = request.method();
     if (url.hostname !== "127.0.0.1") { state.externalRequests.push(url.origin); return route.abort("blockedbyclient"); }
     if (!path.startsWith("/api/")) return route.continue();
-    const availability = { status: "available", operations };
+    const availability = state.runtimeUnavailable ? { status: "unavailable", operations: [], reason: "worker_unavailable" } : { status: "available", operations };
     if (path === "/api/session") return json(route, { user: { id: state.owner } });
     if (path === "/api/strategy") return json(route, { availability });
     if (state.owner !== owner) return json(route, {}, 404);
@@ -202,6 +203,10 @@ function widget(page: Page, stage: GuidedStage) {
   return page.getByRole("group", { name: questions[stage], exact: true });
 }
 
+function userMessage(page: Page, text: string) {
+  return page.getByRole("log", { name: "Conversation", exact: true }).locator(".guided-user-message").getByText(text, { exact: true });
+}
+
 async function expectSingleWidget(page: Page, stage: GuidedStage) {
   await expect(widget(page, stage)).toBeVisible();
   await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(1);
@@ -233,7 +238,9 @@ async function expectNoLegacyClutter(page: Page) {
   await expect(page.getByText("Project context", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /^Apply (response|competitor research|audience proposal|personality proposal)$/ })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "View latest AI activity", exact: true })).toHaveCount(0);
-  await expect(page.locator(".conversation-result-navigation, .strategy-proposal-details, .project-details-disclosure")).toHaveCount(0);
+  await expect(page.locator(".conversation-result-navigation, .strategy-proposal-details")).toHaveCount(0);
+  await expect(page.locator(".project-details-disclosure")).toHaveCount(1);
+  await expect(page.locator(".project-details-disclosure")).not.toHaveAttribute("open", "");
   await expect(page.getByText(/Sending uses OpenAI|Reserved limit|OpenAI is processing this saved version|Step [1-4] of 4/)).toHaveCount(0);
 }
 
@@ -258,7 +265,7 @@ for (const length of ["short", "long"] as const) test(`guided interview: the cha
   try {
     await openHomeAndSend(page, submittedPrompt);
     await expect.poll(() => state.enqueues.length).toBe(1);
-    await expect(page.getByText(submittedPrompt, { exact: true })).toBeVisible();
+    await expect(userMessage(page, submittedPrompt)).toBeVisible();
     await expect(page.getByRole("status", { name: "Embel is thinking", exact: true })).toBeInViewport({ ratio: 1 });
     await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
     await expect(page.locator(".guided-research-screen")).toHaveCount(0);
@@ -278,7 +285,7 @@ test("guided interview: Home opens the conversation and keeps the prompt and thi
   expect(state.project.context.intake.guidedInterview).toMatchObject({ version: 1, stage: "competitors", answers: [] });
   const loading = page.getByRole("status", { name: "Embel is thinking", exact: true });
   await expect(loading).toBeVisible();
-  await expect(page.getByText(initialPrompt, { exact: true })).toBeVisible();
+  await expect(userMessage(page, initialPrompt)).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   await expect(page.locator(".guided-research-screen")).toHaveCount(0);
   await expect(loading.locator('img[src="/project-workspace/mark.svg"]')).toBeVisible();
@@ -309,6 +316,24 @@ test("guided interview: Home opens the conversation and keeps the prompt and thi
   await page.screenshot({ path: info.outputPath("guided-competitor-choices.png"), fullPage: true, scale: "css" });
   expect(state.enqueues).toHaveLength(1);
   expect(state.externalRequests).toEqual([]); expect(state.unhandledWrites).toEqual([]);
+});
+
+test("guided interview: unavailable AI still saves a Brand and permits acknowledged brief edits", async ({ page }) => {
+  const state = await fixtures(page, { guided: false }); state.runtimeUnavailable = true;
+  await openHomeAndSend(page);
+  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  await expect(page.getByRole("button", { name: "Start competitor research", exact: true })).toBeDisabled();
+  await expect(page.getByText("AI replies are unavailable right now. Your brief is saved.", { exact: false })).toBeVisible();
+  await expect(page.getByRole("status", { name: "Embel is thinking", exact: true })).toHaveCount(0);
+  await page.getByText("Project details and editing", { exact: true }).click();
+  const brief = page.getByRole("textbox", { name: "Brief description", exact: true });
+  await expect(brief).toBeEditable(); await brief.fill("A saved Brand correction while AI is unavailable.");
+  await expect.poll(() => state.project.context.description).toBe("A saved Brand correction while AI is unavailable.");
+  await expect(page.locator(".project-details-disclosure").getByRole("status")).toHaveText("Saved");
+  await page.reload(); await page.getByText("Project details and editing", { exact: true }).click();
+  await expect(brief).toHaveValue("A saved Brand correction while AI is unavailable.");
+  expect(state.creates).toHaveLength(1); expect(state.enqueues).toHaveLength(0); expect(state.project.context.intake.guidedInterview).toBeUndefined();
+  expect(await page.evaluate(() => localStorage.getItem("fluid.local-drafts.v1"))).toBeNull();
 });
 
 test("guided interview: explicit selections save, reload, and finish at personality", async ({ page }, info) => {
@@ -353,7 +378,7 @@ test("guided interview: explicit selections save, reload, and finish at personal
   await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(0);
   await page.reload();
   await expect(page.getByRole("button", { name: `Edit your answer: ${questions.personality}`, exact: true })).toBeVisible();
-  await expect(page.getByText(initialPrompt, { exact: true })).toBeVisible();
+  await expect(userMessage(page, initialPrompt)).toBeVisible();
   await expectComposerInViewport(page);
   await expectNoLegacyClutter(page);
   expect(state.enqueues.map(item => item.operation)).toEqual(["strategy.audience", "strategy.personality"]);
@@ -448,7 +473,7 @@ for (const errorCode of ["provider_error", "operator_abandoned_billing_unresolve
   const state = await fixtures(page);
   state.jobs = [strategyJobSchema.parse({ ...queuedJob("strategy.competitors", 1, 1), state: "failed", error_code: errorCode, finished_at: when })];
   await openProject(page);
-  await expect(page.getByText(initialPrompt, { exact: true })).toBeVisible();
+  await expect(userMessage(page, initialPrompt)).toBeVisible();
   await expect(page.getByRole("status", { name: "Embel is thinking", exact: true })).toHaveCount(0);
   await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(0);
   await expect(page.getByText("Research could not produce verified suggestions. Your prompt is saved. You can retry research.", { exact: true })).toBeVisible();
@@ -475,7 +500,7 @@ test("guided interview: cancellation follows the job and never fabricates comple
   await page.getByRole("button", { name: "Stop", exact: true }).click();
   await expect.poll(() => state.cancels.length).toBe(1);
   await expect(page.getByRole("status", { name: "Embel is thinking", exact: true })).toHaveCount(0);
-  await expect(page.getByText(initialPrompt, { exact: true })).toBeVisible();
+  await expect(userMessage(page, initialPrompt)).toBeVisible();
   await expect(page.getByText(/cancelled/i)).toBeVisible();
   await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(0);
   await page.reload();
@@ -517,7 +542,7 @@ test("guided interview: an uncertain provider outcome offers status recovery wit
   const state = await fixtures(page);
   state.jobs = [strategyJobSchema.parse({ ...queuedJob("strategy.competitors", 1, 1), state: "needs_reconciliation", error_code: "provider_outcome_uncertain" })];
   await openProject(page);
-  await expect(page.getByText(initialPrompt, { exact: true })).toBeVisible();
+  await expect(userMessage(page, initialPrompt)).toBeVisible();
   await expect(page.getByRole("status", { name: "Embel is thinking", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Retry research|Retry request/, exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Check status", exact: true }).click();
@@ -548,8 +573,18 @@ test("guided interview: a verified saved reply clears a lost acknowledgement war
   expect(state.enqueues).toHaveLength(1);
   expect(state.jobs).toHaveLength(2);
   const originalJob = state.jobs.at(-1)!.id;
-  state.overviewStatus = 200;
-  await warning.getByRole("button", { name: "Check status", exact: true }).click();
+  // Keep background polling from resolving the warning before the manual
+  // recovery click. Both paths still consume the same acknowledged saved job.
+  let releaseOverview!: () => void;
+  const overviewGate = new Promise<void>(resolve => { releaseOverview = resolve; });
+  await page.route(`**/api/projects/${projectId}/strategy`, async route => {
+    if (route.request().method() === "GET") await overviewGate;
+    return route.fallback();
+  });
+  try {
+    await warning.getByRole("button", { name: "Check status", exact: true }).click();
+    state.overviewStatus = 200;
+  } finally { releaseOverview(); }
   await expect(page.getByText(message, { exact: true })).toBeVisible();
   await expect(warning).toHaveCount(0);
   expect(state.enqueues).toHaveLength(1);
@@ -569,7 +604,7 @@ test("guided interview: a selection save conflict retains the decision and block
   expect(state.patches).toHaveLength(1); expect(state.enqueues).toHaveLength(0);
   expect(state.project.current_revision).toBe(1);
   expect(state.patches[0]!.context.intake.guidedInterview?.answers[0]).toMatchObject({ optionIds: [competitors[0]!.id] });
-  await expect(page.getByText(initialPrompt, { exact: true })).toBeVisible();
+  await expect(userMessage(page, initialPrompt)).toBeVisible();
   await expect(page.getByRole("button", { name: "Load latest version", exact: true })).toBeVisible();
 });
 
@@ -636,10 +671,8 @@ test("guided interview: a lost queue acknowledgement recovers the existing resea
   const state = await fixtures(page); state.queueStatus = 503; state.commitBeforeQueueFailure = true;
   await openHomeAndSend(page);
   await expect.poll(() => state.enqueues.length).toBe(1);
-  await expect(page.getByRole("link", { name: /Open saved account project.*status/ })).toBeVisible();
-  state.queueStatus = 202;
-  await page.getByRole("link", { name: /Open saved account project.*status/ }).click();
   await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  state.queueStatus = 202;
   await expect(page.getByRole("status", { name: "Embel is thinking", exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByRole("status", { name: "Embel is thinking", exact: true })).toBeVisible();
@@ -652,7 +685,7 @@ test("guided interview: opening a legacy project keeps its original response and
   const state = await fixtures(page, { guided: false });
   state.jobs = [completedJob(queuedJob("strategy.reformulate", 1, 1))];
   await openProject(page);
-  await expect(page.getByText(initialPrompt, { exact: true })).toBeVisible();
+  await expect(userMessage(page, initialPrompt)).toBeVisible();
   await expect(page.getByText("Synthetic saved legacy response.", { exact: true })).toBeVisible();
   expect(state.project.context.intake.guidedInterview).toBeUndefined();
   expect(state.enqueues).toHaveLength(0); expect(state.patches).toHaveLength(0);

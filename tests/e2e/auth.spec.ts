@@ -1,5 +1,6 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { accountProjectSchema, accountProjectSummarySchema } from "../../src/domain/project-api";
+import { accountProjectSchema, accountProjectSummarySchema, updateProjectInputSchema } from "../../src/domain/project-api";
+import { accountProjectPageSchema } from "../../src/domain/project-pages";
 import { contextSnapshotSchema } from "../../src/domain/projects";
 
 // Synthetic same-origin responses only. These tests never authenticate against a live provider.
@@ -12,6 +13,9 @@ const project = accountProjectSchema.parse({
   id: projectId, owner_id: ownerId, title: privateTitle, scope: "naming_only", current_revision: 1, created_at: when,
   context: contextSnapshotSchema.parse({ description: "A local account fixture used to verify sign-out behavior.", intake: { step: "description" } }),
 });
+const projectPage = accountProjectPageSchema.parse({ ownerId, items: [{
+  ...accountProjectSummarySchema.parse(project), deleted_at: null, deletion_requested_at: null, deletion_state: "active", lifecycle_version: 0,
+}], nextCursor: null });
 const browserWorkspace = JSON.stringify({ version: 1, drafts: [{
   id: "33333333-4444-4444-8444-444444444444", title: "Browser auth fixture", scope: "naming_only",
   description: "A separate browser draft used only for this local test.", activity: "", offering: "", knownAudience: "", suppliedName: "", namingNotes: "", identityNotes: "",
@@ -31,7 +35,7 @@ async function fixtures(page: Page) {
   let signInStarted!: () => void;
   const pendingSignIn = new Promise<void>(resolve => { releaseSignIn = resolve; });
   const signInRequested = new Promise<void>(resolve => { signInStarted = resolve; });
-  const state = { sessionStatus: 200, sessionRequests: 0, signInRequests: 0, signOutRequests: 0, signOutStatus: 200, malformed: false, hold: false, released: false, holdSignIn: false, signInStatus: 200, signInBody: { authenticated: true } as unknown };
+  const state = { sessionStatus: 200, sessionRequests: 0, signInRequests: 0, signOutRequests: 0, projectSaveTitles: [] as string[], signOutStatus: 200, malformed: false, hold: false, released: false, holdSignIn: false, signInStatus: 200, signInBody: { authenticated: true } as unknown };
   await page.route("**/api/**", async route => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
@@ -60,10 +64,17 @@ async function fixtures(page: Page) {
       return reply(route, { authenticated: false });
     }
     if (state.sessionStatus !== 200) return reply(route, { error: { code: "unauthenticated", message: "Synthetic signed-out fixture" } }, 401);
-    if (path === "/api/projects/page") return reply(route, { ownerId, items: [accountProjectSummarySchema.parse(project)], nextCursor: null });
+    if (path === "/api/projects/page") return reply(route, projectPage);
     if (path === "/api/projects") return reply(route, { projects: [accountProjectSummarySchema.parse(project)] });
     if (path === `/api/projects/${projectId}/strategy` && request.method() === "GET") return reply(route, { availability: { status: "unavailable", operations: [], reason: "runtime_disabled" }, jobs: [] });
     if (path === `/api/projects/${projectId}` && request.method() === "GET") return reply(route, { project });
+    if (path === `/api/projects/${projectId}` && request.method() === "PATCH") {
+      const input = updateProjectInputSchema.parse(request.postDataJSON());
+      expect(input.expectedRevision).toBe(project.current_revision);
+      expect(input.title).toBeTruthy();
+      state.projectSaveTitles.push(input.title!);
+      return reply(route, { error: { code: "integration_unavailable", message: "Synthetic save rejection" } }, 503);
+    }
     return reply(route, { error: { code: "not_found", message: "Synthetic missing fixture" } }, 404);
   });
   return { state, requested, signInRequested, releaseSignIn, release: () => { state.released = true; release(); } };
@@ -80,14 +91,33 @@ async function revealProjectDetails(page: Page) {
 async function openAccount(page: Page) {
   await page.goto(`/brands/account/${projectId}`);
   await revealProjectDetails(page);
-  await revealAccountMenu(page);
-  await expect(page.getByRole("heading", { name: privateTitle, exact: true, level: 1 })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Project label", exact: true })).toHaveValue(privateTitle);
 }
 
 async function rename(page: Page, title: string) {
-  await page.getByRole("button", { name: "Rename project", exact: true }).click();
   await page.getByRole("textbox", { name: "Project label", exact: true }).fill(title);
-  await page.getByRole("textbox", { name: "Project label", exact: true }).press("Enter");
+  // Wait for the explicit failed autosave, rather than racing the debounce.
+  await expect(page.locator(".project-details-disclosure").getByRole("status")).toHaveText("Changes not saved");
+}
+
+async function openAccountSettings(page: Page) {
+  await page.getByRole("link", { name: "Account settings", exact: true }).click();
+  await expect(page).toHaveURL(/\/settings$/);
+  await revealAccountMenu(page);
+}
+
+async function returnToProject(page: Page) {
+  // Client history preserves the session provider and its owner-bound draft.
+  await page.goBack();
+  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+}
+
+async function verifyProjectAccount(page: Page) {
+  await openAccountSettings(page);
+  await page.getByRole("button", { name: "Check account", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Sign out", exact: true })).toBeVisible();
+  await returnToProject(page);
+  await revealProjectDetails(page);
 }
 
 async function revealAccountMenu(page: Page) {
@@ -151,9 +181,12 @@ test("auth fixture: pending sign-in blocks refresh and sign-out across internal 
   await revealAccountMenu(page);
   await expect(page.getByRole("button", { name: /^(Check|Checking) account(?:…)?$/ })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Sign out", exact: true })).toHaveCount(0);
-  await expect(form.getByLabel("Password", { exact: true })).toHaveValue("");
+  const pendingPassword = form.getByLabel("Password", { exact: true });
+  await expect(pendingPassword).toHaveValue(" local-fixture-only password ");
+  const detachedPassword = await pendingPassword.elementHandle();
   await page.getByRole("link", { name: "Return to Home", exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
+  expect(await detachedPassword?.evaluate(element => (element as HTMLInputElement).value)).toBe("");
   await revealAccountMenu(page);
   await expect(page.locator(".topbar").getByRole("button", { name: "Signing in…", exact: true })).toBeDisabled();
   await triggerAutomaticRefresh(page);
@@ -162,7 +195,7 @@ test("auth fixture: pending sign-in blocks refresh and sign-out across internal 
   await expect(page.getByText(privateTitle, { exact: true })).toHaveCount(0);
   fixture.releaseSignIn();
   await expect(page.getByRole("button", { name: "Sign out", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: privateTitle, exact: true, level: 2 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: privateTitle, exact: true, level: 3 })).toBeVisible();
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(page.locator(".topbar").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
   await triggerAutomaticRefresh(page);
@@ -172,7 +205,7 @@ test("auth fixture: pending sign-in blocks refresh and sign-out across internal 
   expect(fixture.state.signOutRequests).toBe(1);
 });
 
-test("auth fixture: configured sign-in clears credentials, rejects unsafe replies and preserves browser drafts", async ({ page }, testInfo) => {
+test("auth fixture: configured sign-in retains only transient retries, rejects unsafe replies and preserves browser drafts", async ({ page }, testInfo) => {
   test.skip(process.env.FLUID_TEST_CONFIGURED_AUTH !== "1", "Run against the inert configured build with intercepted fixture responses.");
   const fixture = await fixtures(page);
   fixture.state.sessionStatus = 401;
@@ -197,13 +230,15 @@ test("auth fixture: configured sign-in clears credentials, rejects unsafe replie
   await submit();
   await fixture.signInRequested;
   await expect(form.getByRole("button", { name: "Signing in…", exact: true })).toBeDisabled();
-  await expect(password).toHaveValue("");
+  await expect(password).toHaveValue(" local-fixture-only password ");
   await form.dispatchEvent("submit");
   expect(fixture.state.signInRequests).toBe(1);
   fixture.state.holdSignIn = false;
   fixture.releaseSignIn();
   await expect(form.getByRole("alert")).toContainText("We couldn't sign you in with those details");
+  await expect(password).toHaveValue("");
   await expect(page.getByText("Synthetic private detail must not be echoed", { exact: true })).toHaveCount(0);
+  let retryRetainedCredentials = false;
   for (const response of [
     { status: 429, body: { error: { code: "auth_rate_limited", message: "Synthetic detail" } }, expected: "Too many sign-in attempts" },
     { status: 503, body: { error: { code: "integration_unavailable", message: "Synthetic detail" } }, expected: "Sign-in is unavailable right now" },
@@ -215,9 +250,19 @@ test("auth fixture: configured sign-in clears credentials, rejects unsafe replie
   ]) {
     fixture.state.signInStatus = response.status;
     fixture.state.signInBody = response.body;
-    await submit();
+    const previousRequests = fixture.state.signInRequests;
+    if (retryRetainedCredentials) {
+      // Retry the unchanged masked fields through an explicit click, without retyping.
+      await form.getByRole("button", { name: "Sign in", exact: true }).click();
+    } else await submit();
     await expect(form.getByRole("alert")).toContainText(response.expected);
-    await expect(password).toHaveValue("");
+    expect(fixture.state.signInRequests).toBe(previousRequests + 1);
+    retryRetainedCredentials = response.status === 503;
+    await expect(password).toHaveValue(retryRetainedCredentials ? " local-fixture-only password " : "");
+    if (retryRetainedCredentials) {
+      await triggerAutomaticRefresh(page);
+      expect(fixture.state.signInRequests).toBe(previousRequests + 1);
+    }
     await expect(page).toHaveURL(/\/sign-in$/);
   }
   fixture.state.signInStatus = 200;
@@ -240,34 +285,39 @@ test("auth fixture: sign-out confirms unsaved edits, fences pending requests and
   fixture.state.signOutStatus = 503;
   await openAccount(page);
   await rename(page, "Unsaved auth recovery fixture");
+  await openAccountSettings(page);
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Sign out with unsaved account edits?", exact: true });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Keep editing", exact: true })).toBeFocused();
   expect(fixture.state.signOutRequests).toBe(0);
   await dialog.getByRole("button", { name: "Keep editing", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Unsaved auth recovery fixture", exact: true, level: 1 })).toBeVisible();
+  await returnToProject(page);
+  await revealProjectDetails(page);
+  await expect(page.getByRole("textbox", { name: "Project label", exact: true })).toHaveValue("Unsaved auth recovery fixture");
+  await openAccountSettings(page);
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   const sessionCount = fixture.state.sessionRequests;
   await dialog.getByRole("button", { name: "Discard edits and sign out", exact: true }).click();
   await fixture.requested;
-  await expect(page.getByRole("textbox")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Signing out…", exact: true })).toBeDisabled();
   await revealAccountMenu(page);
   await expect(page.getByRole("button", { name: /^(Check|Checking) account(?:…)?$/ })).toBeDisabled();
   await triggerAutomaticRefresh(page);
   expect(fixture.state.sessionRequests).toBe(sessionCount);
+  await returnToProject(page);
+  await expect(page.getByRole("textbox")).toHaveCount(0);
+  expect(fixture.state.signOutRequests).toBe(1);
   fixture.release();
   await expect(page.getByRole("alert").filter({ hasText: "Sign-out couldn't be confirmed" })).toBeVisible();
   await expect(page.getByText("Synthetic private detail must not be echoed", { exact: true })).toHaveCount(0);
   await triggerAutomaticRefresh(page);
   expect(fixture.state.sessionRequests).toBe(sessionCount);
   await expect(page.getByRole("textbox")).toHaveCount(0);
-  await revealAccountMenu(page);
-  await page.getByRole("button", { name: "Check account", exact: true }).click();
-  await revealProjectDetails(page);
-  await expect(page.getByRole("heading", { name: "Unsaved auth recovery fixture", exact: true, level: 1 })).toBeVisible();
+  await verifyProjectAccount(page);
+  await expect(page.getByRole("textbox", { name: "Project label", exact: true })).toHaveValue("Unsaved auth recovery fixture");
   expect(fixture.state.signOutRequests).toBe(1);
+  expect(fixture.state.projectSaveTitles).toEqual(["Unsaved auth recovery fixture"]);
   expect(await page.evaluate(key => localStorage.getItem(key), storageKey)).toBeNull();
 });
 
@@ -276,19 +326,20 @@ test("auth fixture: confirmed sign-out clears private buffers and preserves brow
   await page.addInitScript(({ key, value }) => { if (!localStorage.getItem(key)) localStorage.setItem(key, value); }, { key: storageKey, value: browserWorkspace });
   await openAccount(page);
   await rename(page, "Unsaved auth discard fixture");
+  await openAccountSettings(page);
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Discard edits and sign out", exact: true }).click();
+  await expect(page.locator(".topbar").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
+  await returnToProject(page);
   await expect(page.getByText("No verified account session.", { exact: false })).toBeVisible();
   await expect(page.getByRole("textbox")).toHaveCount(0);
-  await expect(page.locator(".topbar").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
   expect(await page.evaluate(key => localStorage.getItem(key), storageKey)).toBe(browserWorkspace);
   fixture.state.sessionStatus = 200;
-  await revealAccountMenu(page);
-  await page.getByRole("button", { name: "Check account", exact: true }).click();
-  await revealProjectDetails(page);
-  await expect(page.getByRole("heading", { name: privateTitle, exact: true, level: 1 })).toBeVisible();
+  await verifyProjectAccount(page);
+  await expect(page.getByRole("textbox", { name: "Project label", exact: true })).toHaveValue(privateTitle);
   expect(await page.evaluate(key => localStorage.getItem(key), storageKey)).toBe(browserWorkspace);
   expect(fixture.state.signOutRequests).toBe(1);
+  expect(fixture.state.projectSaveTitles).toEqual(["Unsaved auth discard fixture"]);
 });
 
 test("auth fixture: malformed sign-out success never clears an unsaved account draft", async ({ page }) => {
@@ -296,12 +347,14 @@ test("auth fixture: malformed sign-out success never clears an unsaved account d
   fixture.state.malformed = true;
   await openAccount(page);
   await rename(page, "Unverified logout fixture");
+  await openAccountSettings(page);
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Discard edits and sign out", exact: true }).click();
   await expect(page.getByRole("alert").filter({ hasText: "Sign-out couldn't be confirmed" })).toBeVisible();
+  await returnToProject(page);
   await expect(page.getByRole("textbox")).toHaveCount(0);
-  await revealAccountMenu(page);
-  await page.getByRole("button", { name: "Check account", exact: true }).click();
-  await revealProjectDetails(page);
-  await expect(page.getByRole("heading", { name: "Unverified logout fixture", exact: true, level: 1 })).toBeVisible();
+  await verifyProjectAccount(page);
+  await expect(page.getByRole("textbox", { name: "Project label", exact: true })).toHaveValue("Unverified logout fixture");
+  expect(fixture.state.signOutRequests).toBe(1);
+  expect(fixture.state.projectSaveTitles).toEqual(["Unverified logout fixture"]);
 });

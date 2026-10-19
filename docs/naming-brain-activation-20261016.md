@@ -1,14 +1,223 @@
 # Naming brain activation packet — 2026-10-16, updated 2026-10-17
 
-**Preparation only; execution is not authorized or verified.** The implementation
-approval covers local source and synthetic qualification. It does not authorize
-hosted migrations, grants, credentials, provider access, funding, inference or a
-new deployment. The user-approved pilot ceiling is US$25; it is not evidence that
-an account has been funded or that a configured model is accessible. See
-[naming engineering decisions](naming-brain-engineering-decisions-20261016.md).
+**Current D080 status: real Luna Naming and Strategy acceptance passed.**
+The local account signs in after the approved backend restart. Actual Home →
+Brand → competitors → audience → personality → Naming passed on Luna. Direct
+Home → Name produced a genuine completed 100-name run: first 12 visibly observed
+within 37.171 seconds, final publication/completion in 229.764/231.245 seconds.
+Free Pause/Continue and cold reload preserved names, choices and favorite with no
+new job/call. One native grid scroll admitted exactly one child and brought the
+project to 200 unique names; both actual runs and all issued calls completed.
+All legacy names, Quince and saved preference histories remain intact.
 
-The user selected **“Review the corrected UI first.”** Live setup remains pending;
-no live execution authorization was granted.
+The final tiny saved-message acknowledgement gate is independently reviewed and
+passes 53 relevant tests plus 22 independently rerun cases, with no layout/text
+change. Production build `GUGdw0AI73cej6K6qZK2n` is running locally on port 3106;
+TypeScript, full lint, diff check and build pass. Its cold reload, saved-page
+browsing and Continue restored all 200 names, all five choices and the favorite.
+The final read at 18:43:14 UTC confirmed five fresh Luna capabilities, exactly
+two Naming admissions/80 issued calls/zero leases, unchanged saved work and all
+three genuine completed Luna Strategy results. All twelve final comparisons
+passed. The preview is ready for local testing. Exact evidence, the direct
+preview link and test-scope limitations are in [the current record](local-prototype.md).
+
+**Earlier diagnosis:**
+The worker exhausted its restart allowance after the earlier valid readiness
+snapshots; the web remains available. Supabase logs establish token/session 5xx
+and database-client timeouts. Local idle polling load is being reduced and
+independently tested before another controlled restart. No auth credential,
+cookie policy or provider setting has changed. See the current availability
+investigation in [local prototype](local-prototype.md).
+
+All four local guided Strategy operations and Naming use `gpt-6-luna` for future
+requests. Build `fSVe3SllOhh0ZxeM-AMPx` runs on port 3106; fresh database
+readiness was verified before and after one automatic worker recovery. Existing
+374 names, Quince, 94 newer names, projects and preferences are preserved. No
+new paid batch ran during the switch. Typecheck, full lint and production build
+pass; the integration-suite permission fixture was corrected and retested
+without changing protected-store behavior. The exact qualification and
+remaining real Luna acceptance are recorded in [local prototype](local-prototype.md).
+
+**D079 status: funded; actual full completion and sustained continuation pending.**
+The user added credits, and a positive balance was verified on October 18. The
+funded clean-project continuation showed its first four reviewed names in
+27.587 seconds and retained 94 distinct names before exhausting the old receipt
+count limit. Reload preserved the names and five choices. The strict progressive
+receipt-capacity fix is installed and independently verified with unchanged
+saved history and permissions. Database maintenance corrections are installed;
+the local worker recovered and reports fresh Luna readiness. The earlier
+94-name run is truthfully partial after a cancelled Verifier.
+
+The receipt-fix implementation passed 9,097 tests (23 optional native-PostgreSQL
+skips), TypeScript, full lint and production build. The 242 browser cases qualify
+the unchanged web source. Diagnostic-only worker reporting separately passes
+29 focused checks and TypeScript/lint. All 374 main-project names and saved work
+remain preserved. Actual 100-name completion, scrolling continuation and free
+saved Continue still require renewed live acceptance; see
+[the current record](local-prototype.md).
+
+**Earlier D077 local live acceptance passed.** D077's local simplification
+and D078's removal of monetary/quota gates are installed. Actual Home Brand →
+Strategy → Naming has published 300 unique real generated names across three
+successful batches. Direct Home Name navigation also passed. The final build
+`J0PXpzaYP3VjnzJXhuMCJ` passed 8,969 tests, all 236 desktop/mobile browser
+cases, whole-project TypeScript, lint and production build. Twenty-three
+explicitly optional native-PostgreSQL checks remain skipped.
+
+A fresh native grid scroll used the new trusted-scroll recovery path to admit
+exactly one real resumed run. All fourteen actual managed turns completed,
+including a Creator taking about 270 seconds beyond the former cutoff. The
+batch published 100 new names without a generation-button click, covering all
+three selected approaches. Cold reload and saved-page scrolling restored all
+300 names, Quince and all five choices with no extra admission or provider call.
+Prior names, partial drafts and the original lifecycle are preserved. The
+significant remaining limitation is latency: this batch took about 19 minutes.
+See [local prototype](local-prototype.md) for the current build,
+preservation evidence and remaining limitations. The user resolved the earlier API
+funding rejection. All older process, source, budget and readiness snapshots
+below are historical; earlier button/availability checks were not generation
+proof.
+
+The corrected chat and enabled Start exploring button had been verified in the
+signed-in page before that first request. After reviewing
+the corrected UI, the user requested the live Naming brain for real-name testing
+under the existing US$25 aggregate pilot ceiling and US$5 full hold per run
+([D072–D075](decisions.md)). The user also completed the dedicated OpenAI key's
+secure local save and selected the application model `gpt-6.1-sol` with `xhigh`
+reasoning. These approvals supersede the earlier preparation-only hold for this
+local activation. They do not approve public deployment, another provider/model,
+exporting protected hosted secrets or resetting a shared database password.
+
+The reviewed additive migration is installed and independently checked. The initial
+local web app built and started from source
+`b2ff6ce8bbc2f176625bf4b4bff6132eb5e4bf75` at
+`http://127.0.0.1:3106`, build `0B7iki-w5Q1jj2yGuxovb`. This revision changes
+documentation only after measured code `d654d62`; the synthetic preview at 3137
+remains separate. The separately approved Naming login, nine scoped grants,
+owner-bound pilot and account allowance are installed and independently checked.
+After the user completed the reviewed save-only correction, the full actual
+pooler verification passed at `2026-10-18T01:06:02.244Z`: TLS 1.3 with certificate
+verification, exact native restricted role/OID, expected grants and denied reads.
+The earlier two `28P01` pooler failures are resolved for this saved connection;
+the direct diagnostic's DNS `ENOTFOUND` remains inconclusive for direct access.
+The OpenAI key was preserved and no password was reset.
+
+The exact pilot was initially enabled under the reviewed guarded packet, and dedicated
+worker PID `60197` started at `2026-10-18T01:10:35.571Z` from the same archived
+source. Independent QA at `2026-10-18T01:11:03Z` observed available Naming with a
+fresh heartbeat, exact GPT-6.1 Sol / `xhigh` policy and US$5/run / US$25 aggregate
+limits. The complete owner inventory had zero Naming runs, jobs, calls, receipts
+or provider records, zero pilot commitment and US$25 account headroom. The user
+initiates the first real run through the signed-in local UI; no diagnostic
+generation, sample project or managed session was created during activation.
+
+That initial availability check covered the legacy test owner, not the account
+used in the user's subsequent screenshot. The actual page is project
+`5b1a400c-7997-4bda-bc1b-8d6727b3058a`, owned by
+`6840f4c2-15a6-45a7-97be-41e7e5e37f42`, with saved V2 preferences revision 14.
+The initial pilot was mistakenly bound to
+`12f09fb8-3713-48d9-b5e2-f7d6de1118d0`. The actual project's feed and client
+controller correctly reported `naming_runtime_unavailable`; the saved choices
+were valid and current. The D076 correction retains the same pilot ID and US$25
+ceiling, preserves unrelated usage and reservations, and corrects its owner.
+Historical source/build/worker and allowance snapshots below describe the initial
+activation; the following evidence supersedes that account binding and worker.
+
+Read-only API checks succeeded: the exact model lookup and managed Agents session
+listing both returned HTTP 200. The listing was empty. This proves those read
+capabilities, not a successful managed-model execution or a final charge. See
+[naming engineering decisions](naming-brain-engineering-decisions-20261016.md) for
+implementation choices distinct from these approvals.
+
+## Actual-account correction and admission qualification
+
+The old worker PID `60197` stopped gracefully at `2026-10-18T01:27:25.787Z`.
+After its heartbeat expired, the database specialist applied the exact reviewed
+correction once at 01:28:37Z: SHA-256
+`330a1ac4fe95a4dc0c9767d4b6b4b152e86a50ccbd8cdc6427dec27726f77a37`.
+Pilot `742aefc5-b222-48a6-8ee6-668f818d3c2a` now belongs to actual owner
+`6840f4c2-15a6-45a7-97be-41e7e5e37f42`; no second pilot was created. The original
+restricted login/OID, nine grants, deployment, fingerprint, managed Agents
+protocol, model/reasoning policy and US$5/run / US$25 aggregate caps are unchanged.
+
+The mistaken legacy account's unused top-up was removed, restoring its internal
+limit to 5,000,000 micro-USD while retaining historical spent/provider-actual
+5,002 and reserved 0. The actual account's internal limit is 73,212,987, with
+historical spent/provider-actual 760,449 and all three unrelated active
+reservations totalling 47,452,538 preserved: exactly 25,000,000 remains available
+for the single Naming pilot. No provider credits were purchased and no old
+reservation was released, reconciled or relabelled.
+
+Independent comparison of the ignored launcher and startup approval against their
+backups showed only the exact owner UUID replacement in each. Corrected SHA-256
+digests are `ee7bedf5265420dae55c7617a4afd7ff782f10f102e1027be7673e1498ab9839`
+and `36dad4920c8fbe5406c0eaf2bf3ec91881b1104fa8926312b436d8ff6b9bb2d5`,
+respectively; source and worker archive remain unchanged. Actual native
+restricted-login qualification at `2026-10-18T01:31:28Z` confirmed verified TLS
+1.3, session/current user `fluid_naming_brain_worker`, OID 23033, and preference
+work for the exact actual owner/project/version 14. Its separate receipt SHA-256
+is `ccc9e7a9d424ab39b4f0e73e6c3e571a633bf6967de3347526a4bd8bc292e977`.
+
+The corrected worker PID `74193` started at `2026-10-18T01:31:56.545Z`, worker ID
+`naming-7a046556-62b9-4281-9aae-02d653d9dd42`. Independent database read-back at
+01:32:38Z confirmed a fresh heartbeat, a ready version-14 preference attestation,
+and the actual project's `get_naming_feed` availability `available`. The real
+server/client feed contracts independently parsed owner, project, revision 10,
+preferences 14 and the empty feed successfully.
+
+The exact reviewed rollback-only qualification SQL SHA-256
+`2bbb8bc99d1f889c6e93b6efa6ef760b680767f26a6bdcf8fcfcf1210ccf2f02`
+admitted one uncommitted run/queued job with a full 5,000,000 micro-USD hold,
+then rolled back. No worker could claim those uncommitted rows. Independent
+post-rollback read-back at 01:33:14Z found zero diagnostic runs/intents, zero
+owner Naming runs/calls/active Naming holds, unchanged historical amounts and
+US$25 available. The application's identity in the SQL admission/feed probes was
+operator-simulated authenticated claims, **not a real end-user JWT session**;
+the separate restricted worker proof used actual native authentication. This
+qualifies live admission without claiming successful model execution or billing.
+
+The accompanying D076 UI correction removes only the three inspiration questions
+and their answer cards. Saved values and all naming approaches remain intact.
+
+## Verified D076 web refresh
+
+The revised web-only archive is
+`.local-fluid/naming-web-correction-20261018-r2/app`, based on
+`b2ff6ce8bbc2f176625bf4b4bff6132eb5e4bf75` plus eight explicitly hashed source/test
+changes. It is **not a clean b2ff6ce build**. Its 1,908-file source manifest is
+`1ec002ea4fbfd5738128ad9c2d04c26527560cdfc9db8f643290c7ebb0df78a4`, code-patch
+manifest `ac367356b10ac77f19ec2dfe2b8d8c8abf06f0c9fca67e3fe0b00d9cf34bafaa`,
+and production build `Ub5lazMmLCPeVaPMyBTyY`. Root-owned documentation updates
+are recorded separately from those frozen code hashes.
+
+Independent checks passed on that exact archive: nonincremental TypeScript,
+full lint, 1,186 client tests in 120 files, production build, diff check and all
+176 Naming browser cases (88 desktop + 88 mobile, zero failures/skips/retries).
+The first candidate's 175/176 result exposed a real stale-observer admission
+race; its trace was retained, three deterministic red cases established the
+cause, and the reviewed current-geometry/observer-retirement fix passed the full
+revised matrix. The original unfiltered 8,636-test result above remains bound to
+its earlier code checkpoint; it was not rerun or relabelled for this UI repair.
+
+At `2026-10-18T01:48:26.912Z`, the reviewed switch helper identity-checked and
+gracefully stopped old web PID `41326`, then started web PID `83018` from the
+verified revised archive on `http://127.0.0.1:3106`. Sign-in HTTP 200 readiness
+passed. Only approved public web configuration and Node basics were supplied;
+worker credentials were not read or copied. Worker PID `74193`, its source,
+credentials and policy remain unchanged. No listener was present on sample port
+3137 before or after this switch; its archived sample is historical evidence,
+not the current test destination.
+
+After the switch, the lead verified the existing signed-in browser tab for project
+`5b1a400c-7997-4bda-bc1b-8d6727b3058a`. A full visible-state check confirmed Saved
+and an empty composer before refresh. The refreshed page omitted all three retired
+questions. Continue acknowledged the already-saved output language, flexible
+length and text constraints without editing them. The final page showed Saved,
+an enabled **Start exploring** button and no unavailable-account message. This is
+actual browser-session acceptance, distinct from the simulated SQL app claims
+above. No session/cookie was extracted and Start was left unclicked; the first
+real generated output and its eventual charge remain unverified. The screenshot
+is retained in the ignored local QA packet as `r2/actual-naming-start-enabled.png`.
 
 ## Revision and migration gate
 
@@ -55,14 +264,16 @@ it does not start this managed Naming graph.
 | Item | Preparation status / required read-back |
 | --- | --- |
 | Additive migration | `supabase/migrations/20261016180000_naming_brain.sql` |
-| Reviewed migration SHA-256 | `f6ccb8ff3b5a8fd280defa311ec045d51fc18ae5d708e94a30b0f8d93a46044f`, independently confirmed at d654d62. Unapplied; live installation/grant read-back remains separately gated. |
+| Reviewed migration SHA-256 | `f6ccb8ff3b5a8fd280defa311ec045d51fc18ae5d708e94a30b0f8d93a46044f`, independently confirmed at d654d62. Installed as target-assigned ledger `20261018004512_naming_brain`; source file remains `20261016180000_naming_brain.sql`. Independent read-back matched all 56 reviewed function bodies, migration ACLs and all 15 FORCE-RLS tables. No Naming EXECUTE grants were added to the existing API worker. |
 | Historical round-one candidate digest | `8759c191bcb20c56db56d763bb6370e523921c65d1944353bb84ba431bf61b1e`; superseded by the reviewed fixes, **not an activation digest**. |
 | Measured code commit and tree | `d654d62fcbaaddad0002eff088bbf0983d97d6c9` / `483278cbdc0ce6f6d9100b53cdf122a5dc075b59`. The complete local matrix and scoped repair review passed; this later documentation-only follow-up is separate. |
 | Configured database target | Public URL `https://fricsfwqibyhemknqgyf.supabase.co` exactly matches connector project `fluid-platform-dev`, ref `fricsfwqibyhemknqgyf`, `us-east-1`, `ACTIVE_HEALTHY`. |
-| Naming installation | At the 2026-10-17 connector metadata read, migration `20261016180000`, all nine scoped Naming RPCs and private `naming_brain_*` tables were absent. |
-| Application origin / worker deployment | Live activation identities remain unverified. The sample preview above is not their substitute. |
-| Existing personal runtime login and role OID | Catalog confirms `fluid_api_text_worker`, OID `21484`, LOGIN without SUPERUSER/BYPASSRLS/INHERIT/CREATEROLE/CREATEDB/REPLICATION. Owner binding and actual direct/pooler authentication remain unverified; no credentials or grants were created. |
-| Model and managed API capability | Unverified. Pin the actual model in the reviewed policy; do not substitute another model. |
+| Naming installation | Installed and independently checked as above. The earlier 2026-10-17 absent-object snapshot below is historical. |
+| Application origin / worker deployment | Real local production web: `http://127.0.0.1:3106`, PID `83018`, revised eight-path source manifest and build `Ub5lazMmLCPeVaPMyBTyY` above. Dedicated worker retains source `b2ff6ce8bbc2f176625bf4b4bff6132eb5e4bf75` and deployment `embel-naming-local-b2ff6ce8bbc2-20261017`; corrected-owner PID `74193` started `2026-10-18T01:31:56.545Z`, actual process independently observed alive. Initial worker PID `60197` and web PID `41326` stopped gracefully before their replacements. |
+| Restricted runtime login and role OID | Separate Naming-only `fluid_naming_brain_worker` / actual OID `23033`: LOGIN, NOINHERIT, no privileged flags, zero outgoing memberships or owned objects, connection limit 4. Only incoming creator-admin membership is postgres with ADMIN=true, INHERIT=false, SET=false. Full native pooler qualification passed with session_user=current_user, verified TLS 1.3, all nine grants, null/false unrelated helpers, no direct table/column/private-schema access and two actual SQLSTATE 42501 forbidden reads. Existing API-worker OID `21484` and its password remain unchanged. Direct access remains unqualified after DNS ENOTFOUND. |
+| Restricted activation packet | Exact independently reviewed SQL SHA-256 `d8af098c5909ab0a0c52ab8dfbfd567d55382f3745448657ce671a61cd26b198`, installed once as `20261018004955_naming_brain_local_activation`. Exact nine Naming EXECUTEs; only four pre-existing PUBLIC owner/read-step helpers are additionally effective. No application table/column access, private schema USAGE, public schema CREATE or unrelated principal binding. |
+| Pilot and account allowance | Same pilot `742aefc5-b222-48a6-8ee6-668f818d3c2a`, corrected to actual owner `6840f4c2-15a6-45a7-97be-41e7e5e37f42` under the reviewed packet above. Original role/OID, deployment/model/policy/fingerprint and US$5/run / US$25 total remain unchanged. QA observed fresh readiness and actual project/prefs 14 availability `available`. Account limit 73,212,987 / historical spent and provider actual 760,449 / unrelated reserved 47,452,538 / available 25,000,000 micro-USD. Independent post-rollback admission read-back retained zero Naming runs/calls/holds and preserved every historical reservation. |
+| Model and managed API capability | User selected exact `gpt-6.1-sol` / `xhigh`. Read-only model and managed Agents session-list requests returned HTTP 200 using the securely saved key. No managed session was created and exact managed-model execution is still unverified. |
 
 Before authorized installation, compare local `git rev-parse HEAD`, tracked tree,
 clean worktree state and migration SHA-256 with the approved packet. Reconcile any
@@ -74,7 +285,7 @@ cookies, API keys or raw private payloads.
 
 ## Restricted runtime identity and grants
 
-The bounded connector-only metadata pass at 2026-10-17T15:12:47Z matched the root
+The historical connector-only metadata pass at 2026-10-17T15:12:47Z matched the root
 checkout's public project URL without reading other environment values. Its ledger
 has 55 entries, latest `20261016023224` / `third_terminal_research_operator_adjudication`;
 the Naming migration is missing. All nine exact `to_regprocedure` lookups return
@@ -84,8 +295,15 @@ no object, so their live owners/ACLs cannot yet be validated. The existing valid
 function, user/auth/balance row, credential or direct/pooler login was used. This
 identifies the target and missing installation; it grants no activation authority.
 
-Use the **existing restricted personal login** only after its name, OID and
-approved account owner are verified. Check `session_user`, `current_user`,
+The current activation uses a **separate Naming-only restricted login**, because the
+existing API worker password is a sensitive hosted secret. Do not export that
+secret, rotate the shared role or grant the existing API worker Naming access.
+The user approved the new role, nine scoped grants, credential setup and local
+persistence under D075. Independent catalog read-back confirms actual OID `23033`
+and its exact pilot binding. The reviewed hidden-prompt helper's protected approval
+record binds that same OID; the user supplies the existing administrator password
+only to native psql and enters a new Naming password privately. After its local
+save, check `session_user`, `current_user`,
 `pg_roles.oid`, `rolcanlogin`, `rolsuper`, `rolbypassrls`, inheritance and every role
 membership using the real direct connection and the actual pooler path. Confirm
 `api_text_restricted_role` accepts precisely this principal; a renamed/recreated
@@ -98,9 +316,10 @@ below, and only those Naming capabilities. The first seven are the scoped worker
 lifecycle; the last two are the trusted preference-readiness seam. Apply no wildcard
 `GRANT EXECUTE ON ALL FUNCTIONS` and no direct table grants. This migration does not
 install a worker login or grant these private functions to browser principals.
-All nine definitions match the reviewed migration source and are absent from the
-configured target at the metadata snapshot. Installation and exact live ACL
-read-back remain separately authorized steps.
+All nine definitions match the installed reviewed migration source. Their exact
+live ACLs and the new restricted role's effective privileges were independently
+read back after the D075-authorized provisioning packet. No grant to the old
+API-worker role was added.
 
 ```sql
 public.report_naming_brain_worker_ready(jsonb, text, text, integer)
@@ -184,19 +403,33 @@ Both paid gates and SQL readiness must pass. SQL separately binds the owner,
 restricted login/OID, deployment, exact policy and readiness fingerprint; its
 pilot must be enabled and its heartbeat fresh. `worker/index.ts` receives these
 keys from its invoking environment; it does not load a Naming credential file.
-The exact secure action-time configuration destination remains unapproved and
-must be recorded before configuration. The existing protected
+The user approved and completed the OpenAI key's secure save to the ignored
+`/Users/mikael/embel/.local-fluid/naming-worker.env`: an owner-only 0600 regular
+file under a 0700 directory. The user subsequently saved the approved separate
+Naming database connection there. Presence/permissions and boolean-only parsing
+checks pass. Historical pooler authentication returned `28P01` twice. The user
+then completed the reviewed save-only correction, which verifies the existing
+Naming password on the same encrypted restricted connection before replacing
+only the database entry and preserving the OpenAI key. No agent ran the hidden
+prompt or captured secret input. The subsequent full native verifier passed.
+Next.js receives only the
+existing public Supabase configuration and fixed local runtime settings. The
+dedicated launcher passes the API key only in the worker's sanitized environment.
+The existing protected
 `.local-fluid/worker.env` accepts only the historical subscription
 `FLUID_WORKER_DATABASE_URL` and is not a Naming configuration destination.
 
-Keep paid flags false during separately authorized attestation/startup validation.
+Keep paid flags false during configuration/preflight. Enable them only after
+actual native authentication, exact enabled-pilot read-back and review of the
+isolated startup binding. The final startup above passed those gates and left
+all generation inventory empty for the user's first test.
 Disabled paid flags do not make worker startup offline: it can attest preferences,
 claim existing scoped work and observe known sessions. Initial setup failure closes
 the pool and exits. A hosted Strategy build is not a readiness attestation for this
 graph. The managed protocol pins `https://api.openai.com/v1`, disables SDK retries,
 and has no Responses, alternate endpoint or alternate-model fallback.
 
-The 2026-10-17 read-only local audit found all seven keys absent from the inherited
+The earlier 2026-10-17 read-only local audit found all seven keys absent from the inherited
 audit environment. None of the six standard `.env*` files or
 `.local-fluid/worker.env` exists in the QA worktree. Main-checkout `.env.local`
 exists with mode 0600 and contains the public web configuration key names and
@@ -206,8 +439,13 @@ running-process configuration and is not permission to copy private runtime file
 
 ## Funding and known-session observation
 
-Separately authorize any owner funding and its exact amount. Read back the account
-balance and complete pilot commitment before enabling a new run. Every paid run
+The user approved the operator account allowance for one US$25 Naming pilot.
+D076 corrected its mistaken legacy test-owner binding to the actual owner while
+preserving historical spent/provider-actual 760,449 and unrelated reserved
+47,452,538 micro-USD. Independent read-back confirms exactly US$25 remains
+available under the counters above; this does not establish OpenAI
+billing-account funding. Read back the account balance and complete pilot
+commitment before enabling a new run. Every paid run
 holds 5,000,000 micro-USD (US$5). Aggregate commitment is **confirmed final expense
 plus every full unsettled hold**, at most 25,000,000 micro-USD (US$25); at most five
 fully held unreconciled runs fit an otherwise empty pilot. Ordinary account
@@ -280,24 +518,30 @@ qualification.
    whole-branch review and scoped F1–F7 closure (7/0/0). Preserve that tested
    commit/tree/manifest and the migration/normalizer digests above. This completes
    local source qualification only; the following live steps retain their gates.
-2. Under separate explicit activation authority, install/read back that exact
-   additive migration and the nine scoped EXECUTE grants on the identified
-   `fluid-platform-dev` database (`fricsfwqibyhemknqgyf`); verify the existing
-   `fluid_api_text_worker`/OID `21484`, owner, policy,
-   runtime fingerprint and deployment. Configure the seven worker keys through the
-   approved secure destination, verify exact managed-model access and available
-   funding, then validate attestation/readiness before enabling paid admission.
-   Any new credentials, grant change or additional funding needs its exact action
-   authorization; the US$25 ceiling does not itself perform or approve those acts.
+2. Preserve the installed/read-back migration; do not replay it. Under the exact
+   D075 Naming-login and allowance approval, provision/read back only the nine
+   scoped EXECUTE grants on `fluid-platform-dev` (`fricsfwqibyhemknqgyf`) for the
+   new `fluid_naming_brain_worker`, verify its actual OID and native login, and
+   bind the confirmed owner, policy, runtime fingerprint and deployment. Complete
+   its secure local credential setup, verify available account funding, then
+   validate attestation/readiness before enabling paid admission. Existing
+   `fluid_api_text_worker`/OID `21484` and its sensitive password stay unchanged.
+   Any new credential, grant or funding change needs its exact action authority;
+   the US$25 ceiling does not itself perform or approve those acts.
 3. Use the same reviewed local web/Node source, sign into the intended account,
    save its Naming choices, and admit one explicitly approved initial run with a
    full US$5 hold inside the US$25 total. Review actual published names and retained
    evidence; keep final charges null and the full hold until verified settlement.
 
-Source/doc fixes, inert tests, builds and the final packet can continue under the
-existing local approval. None of those authorizes starting the connected worker,
-applying database changes, supplying credentials or making the paid pilot call.
-A public deployment is not required for a local browser test.
+The local setup gates are complete: source/build, actual restricted pooler login,
+exact grants/pilot/allowance, reviewed sanitized worker launch and fresh available
+readiness passed independent checks. The worker's two paid flags are true only in
+its isolated Naming environment; every dispatch still requires the exact SQL
+policy, owner, held allowance and readiness. Opening the UI is not a provider
+test. The first real run is left to the user in the signed-in local app, under the
+approved US$5 hold and US$25 aggregate ceiling. Actual generated names, managed
+execution quality and final billing have not been validated by setup. A public
+deployment is not required for this local browser test.
 
 ## Revision-bound pause and rollback
 

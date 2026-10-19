@@ -10,7 +10,7 @@ import {
   namingSessionSchema, namingStrategyBasisSchema, namingStrategyKey, namingStrategyKeyFromBasis,
   namingTargetCountSchema, projectNamePageSchema, legacyNamingBatchSchema, namingBrainBatchSchema, type NamingRejectionCounts, type NamingTargetCount,
 } from "./project-naming";
-import { namingBrainJobInputSchema, namingBrainFulfillmentSchema, namingPreparedSetSchema, type NamingBrainJobInput } from "./naming-brain";
+import { namingBrainJobInputSchema, namingBrainFulfillmentSchema, namingPreparedSetSchema, namingProgressiveCompletionSchema, type NamingBrainJobInput } from "./naming-brain";
 export { namingBrainJobInputSchema, type NamingBrainJobInput } from "./naming-brain";
 
 export const NAMING_JOB_MUTATION_MAX_BYTES = 2_048;
@@ -120,10 +120,14 @@ export const namingBatchResultSchema = z.strictObject({
   candidateIds: z.array(z.uuid()).max(NAMING_MAX_BATCH_SIZE), fulfillment: namingFulfillmentSchema, completedAt: timestampSchema,
 }).refine(value => value.fulfillment.status !== "pending" && value.candidateIds.length === value.fulfillment.acceptedCount && new Set(value.candidateIds).size === value.candidateIds.length, { message: "Published result must count its unique immutable candidates" }).transform(freezeSnapshot);
 export type NamingBatchResult = z.infer<typeof namingBatchResultSchema>;
-export const namingBrainBatchResultSchema = z.strictObject({
+const preparedNamingBrainBatchResultSchema = z.strictObject({
   version: z.literal(2), ...ownershipFields, batchId: z.uuid(), jobId: z.uuid(), runId: z.uuid(), preparedSetId: z.uuid(), stepKey: z.literal("prepare"),
   candidateIds: z.array(z.uuid()).max(100), fulfillment: namingBrainFulfillmentSchema, completedAt: timestampSchema,
 }).refine(value => value.candidateIds.length === value.fulfillment.acceptedCount && new Set(value.candidateIds).size === value.candidateIds.length, "Managed publication counts the exact unique prepared membership").transform(freezeSnapshot);
+export const namingBrainBatchResultSchema = z.union([preparedNamingBrainBatchResultSchema, z.strictObject({
+  version: z.literal(2), localPipelineVersion: z.literal(2), ...ownershipFields, batchId: z.uuid(), jobId: z.uuid(), runId: z.uuid(), completionId: z.uuid(), stepKey: z.literal("prepare"),
+  candidateIds: z.array(z.uuid()).length(100).refine(rows => new Set(rows).size === rows.length), fulfillment: namingBrainFulfillmentSchema, completedAt: timestampSchema,
+}).refine(value => value.fulfillment.status === "complete" && value.fulfillment.acceptedCount === 100 && value.fulfillment.coverageSatisfied).transform(freezeSnapshot)]);
 export type NamingBrainBatchResult = z.infer<typeof namingBrainBatchResultSchema>;
 export const namingAnyBatchResultSchema = z.union([namingBatchResultSchema, namingBrainBatchResultSchema]);
 
@@ -208,10 +212,14 @@ export type ProjectNamingOverview = z.infer<typeof projectNamingOverviewSchema>;
 export const projectNamingOverviewResponseSchema = projectNamingOverviewSchema;
 
 /** V2 readers expose the final application preparation, never seven raw role outputs. */
-export const namingBrainJobResultSchema = z.strictObject({
+const preparedNamingBrainJobResultSchema = z.strictObject({
   version: z.literal(2), operation: namingOperationSchema, handlerVersion: z.literal("naming-brain-v1"), provider: z.literal("openai"), billingMode: z.literal("openai_api"),
   runId: z.uuid(), jobId: z.uuid(), batchId: z.uuid(), preparedSet: namingPreparedSetSchema, completedAt: timestampSchema,
 }).refine(value => value.runId === value.preparedSet.runId, "Prepared result must bind its exact run").transform(freezeSnapshot);
+export const namingBrainJobResultSchema = z.union([preparedNamingBrainJobResultSchema, z.strictObject({
+  version: z.literal(2), localPipelineVersion: z.literal(2), operation: namingOperationSchema, handlerVersion: z.literal("naming-brain-v1"), provider: z.literal("openai"), billingMode: z.literal("openai_api"),
+  runId: z.uuid(), jobId: z.uuid(), batchId: z.uuid(), completionId: z.uuid(), completion: namingProgressiveCompletionSchema, completedAt: timestampSchema,
+}).refine(value => value.runId === value.completion.runId, "Progressive completion must retain its exact run").transform(freezeSnapshot)]);
 export type NamingBrainJobResult = z.infer<typeof namingBrainJobResultSchema>;
 export const namingAnyJobResultSchema = z.union([namingJobResultSchema, namingBrainJobResultSchema]);
 export const namingBrainJobSummarySchema = z.strictObject({
@@ -232,8 +240,12 @@ export const namingBrainBatchDetailResponseSchema = z.strictObject({ batch: nami
   const { batch, job, result } = value;
   if (batch.ownerId !== job.owner_id || batch.projectId !== job.project_id || batch.id !== job.batchId || batch.jobId !== job.id || batch.runId !== job.runId || batch.contextRevision !== job.input_revision || batch.sequence !== job.sequence || batch.targetCount !== job.targetCount || batch.acceptedPolicyIdentity !== job.acceptedPolicyIdentity) ctx.addIssue({ code: "custom", message: "Managed batch detail must bind the owned job, run and frozen admission" });
   const output = job.results[0];
-  if (result ? !sameScope(batch, result) || result.batchId !== batch.id || result.jobId !== job.id || result.runId !== batch.runId || !output || result.stepKey !== output.stepKey || JSON.stringify(result.candidateIds) !== JSON.stringify(output.output.preparedSet.candidateIds) || JSON.stringify(result.fulfillment) !== JSON.stringify(output.output.preparedSet.fulfillment) : output !== undefined) ctx.addIssue({ code: "custom", path: ["result"], message: "Managed publication must match the exact prepared membership, run and fulfillment" });
-  if (output && JSON.stringify(output.output.preparedSet.primaryCounts.map(row => row.approach)) !== JSON.stringify(batch.preferences.approaches)) ctx.addIssue({ code: "custom", path: ["job", "results"], message: "Prepared primary coverage must retain the batch's selected approaches" });
+  const membership = output && ("preparedSet" in output.output ? output.output.preparedSet : output.output.completion);
+  const fulfillmentMatches = !result || !output ? true : "preparedSet" in output.output
+    ? !("localPipelineVersion" in result) && JSON.stringify(result.fulfillment) === JSON.stringify(output.output.preparedSet.fulfillment)
+    : "localPipelineVersion" in result && result.completionId === output.output.completionId;
+  if (result ? !sameScope(batch, result) || result.batchId !== batch.id || result.jobId !== job.id || result.runId !== batch.runId || !output || result.stepKey !== output.stepKey || JSON.stringify(result.candidateIds) !== JSON.stringify(membership?.candidateIds) || !fulfillmentMatches : output !== undefined) ctx.addIssue({ code: "custom", path: ["result"], message: "Managed publication must match its exact immutable membership, run and fulfillment" });
+  if (membership && JSON.stringify(membership.primaryCounts.map(row => row.approach)) !== JSON.stringify(batch.preferences.approaches)) ctx.addIssue({ code: "custom", path: ["job", "results"], message: "Published primary coverage must retain the batch's selected approaches" });
 });
 export type NamingBrainBatchDetailResponse = z.infer<typeof namingBrainBatchDetailResponseSchema>;
 export const namingAnyBatchDetailResponseSchema = z.union([namingBatchDetailResponseSchema, namingBrainBatchDetailResponseSchema]);

@@ -1,5 +1,73 @@
 # Embel foundation architecture
 
+## Local prototype execution
+
+D077 authorizes a local simplification that preserves the account database,
+current UI and saved work. Its explicit `npm run local -- --prototype` entrypoint
+builds this checkout and supervises Next.js and the existing Strategy/Naming
+worker at `http://127.0.0.1:3106`. The local opt-in is bounded to that origin and
+cannot activate on a hosted deployment. The default legacy launcher is separate.
+
+Home saves the project before AI admission. Name enters project Naming directly;
+Brand uses the existing competitors → audience → personality interview. New work
+in Names uses the same project Naming path, with earlier standalone requests
+retained as history. Signed-in creation no longer depends on space in the legacy
+browser-draft collection; recovery remains explicit and owner-bound.
+
+Local Strategy uses the database worker heartbeat and existing durable job,
+provider and result-save contracts. Additive scoped capabilities replace local
+hosted queue publication and rollout/subscription prerequisites. Only newly
+admitted local jobs receive this authority. Unknown outcomes block their own
+project, while unrelated projects can proceed. D078 removes the local prototype's
+monetary and quota admission gates; historical jobs and holds remain unchanged.
+The web receives
+no provider or worker database credentials. This implementation remains subject
+to the real acceptance recorded in [local prototype](local-prototype.md).
+
+Local Naming recovery revalidates retained genuine completed responses. When
+both Research and Director receipts identify the explicit local execution mode,
+the Director's self-reported novelty flag is advisory for initial and subsequent
+batches. Actual normalized-name deduplication, selected-approach coverage and
+factual-source validation remain mandatory. Native/default validation is
+unchanged. Successful recovered completion and the existing continuation gate
+run atomically; a new stage receives its own execution deadline. Every issued
+sibling is observed before classifying a failed or unresolved set. This does not
+permit continuation around an unknown issued call, cancellation or deletion.
+
+New trusted local Naming jobs record `localTimingVersion: 2` in their immutable
+input. Those jobs give each provider call up to 15 minutes from its database
+authorization time, bounded by a 20-minute single-role stage envelope or the
+existing one-hour Creation/Gap envelope. Earlier jobs without that witness retain
+their four-minute request reconstruction and saved hashes. Earlier queued work
+does not consume another call's own window, and recovery cannot reset either
+clock. The local stream permits normal high-volume
+SSE framing while retaining final-output, schema, source, identity and time
+bounds. See the live evidence in [local prototype](local-prototype.md).
+
+The server derives an optional local scroll-resume capability for a current,
+safely resumable failed or partial run. A fresh native result-grid interaction
+may then invoke the existing idempotent Resume action. Saved pages load first;
+polling, remounts, synthetic events, paused work, unknown outcomes and stale
+account/context cannot create that resume request. This changes behavior plumbing,
+not the approved chat and grid layout.
+
+Durable authorization and provider create invocation are separate boundaries.
+Local failures before create can close only with an acknowledged exact per-call
+`local_dispatch_not_attempted` proof. A pre-create base receipt alone is not
+terminal evidence, and any attempted create with an unknown outcome remains
+unresolved. Ordinary local Creator failure stops new assignments while already
+started calls settle within their own bounds; explicit cancellation still aborts
+them. Stage reads are sequential within each load to avoid flooding the small
+connection pool and delaying heartbeats.
+
+The local prototype supervisor keeps the web available when its worker exits and
+attempts at most three worker replacements with one-, two- and four-second
+backoff. Explicit shutdown cancels backoff and bounds termination of its own
+children. Fixed operational events record child role, exit code and signal.
+Transient local Strategy readiness failures retry without stopping Naming;
+Strategy claims and provider dispatch still require an acknowledged readiness
+check. These supervision and readiness changes do not change hosted behavior.
+
 ## Account-first persistence
 
 D065 supersedes the historical local draft and Names persistence sections below.
@@ -327,3 +395,68 @@ changing worker lock behavior. Derived completion needs no finalizer or cron.
 Restore withdraws pending deletion without restarting canceled work. Revision and
 lifecycle CAS retain history and reject stale delete-after-restore requests. See
 [the exact contract and qualification](project-deletion.md).
+## Local progressive Naming continuation — D079, acceptance pending
+
+The current performance implementation is under verification; the earlier
+functional checkpoint remains the last accepted runtime. Future trusted local
+jobs use immutable `localPipelineVersion: 2` alongside the existing timing
+witness. Historical and hosted jobs keep their original seven-step pipeline.
+
+The new orchestration uses two durable steps, Creation and Prepare. Within
+Creation, small independent Creator → Curator chains publish committed groups
+while genuine Research and Director guidance run alongside them. Required
+factual claims and routes also require Verifier evidence with retained quotes.
+Brief-seeded assignments identify their application origin honestly. Guidance
+can shape only unissued assignments; acknowledged requests remain exact restart
+authority. Route allocation stays flexible, reserves five genuine credits for
+each selected approach, and retains unusual but valid names.
+
+Each immutable microbatch binds real source/review artifacts and feed positions.
+Final membership references those publications through an explicit progressive
+completion record, with no invented global Curator, Verifier or prepared set.
+Visible saved names and execution closure are separate facts: unknown issued
+work remains quarantined even when 100 names are already readable. Stop and
+direction changes fence future dispatch/publication while preserving history.
+
+The existing grid observes actually visible saved cards after deliberate native
+scroll input, prefetches at a bounded low-water mark, and polls committed deltas.
+Saved pages take priority over a new run. Mounting, restored scroll, observers,
+idle/hidden views and unknown outcomes cannot admit another exploration. The
+approved widgets, chat/grid layout, account persistence and recovery buffers
+remain unchanged. See [the measured acceptance record](local-prototype.md).
+
+The local worker uses two Naming database connections and one Strategy
+connection, leaving one slot under the existing restricted login's four-slot
+limit. Three Creator chains can still await the provider concurrently. Only
+acknowledged server capacity/cancellation errors or proven pre-query connection
+failures in maintenance retry with abortable capped backoff. A raw client query
+read timeout does not prove cancellation and is not replayed. Local expiry uses
+one checked-out transaction with server statement/lock bounds, shared process
+serialization and cooldown, nonblocking owner locks and ordered eligibility
+checks. Leased execution and provider observation retain their existing outcome
+rules. Strategy rechecks fresh readiness before every initial or retried claim.
+Hosted pools and database grants are unchanged.
+
+An acknowledged generation request remains available in memory for polling but
+does not create a browser draft-recovery prompt: the account feed already owns
+that durable run. Owner-verified legacy recovery entries discard only those
+acknowledged intents. Unsaved preferences, uncertain admissions, Stop, steering
+and project-creation work retain explicit recovery and their account fences.
+
+Progressive receipt history has its own aggregate observation envelope of 5,000
+receipts/64 MiB, matching the progressive provider-record envelope. Historical
+jobs keep 500 receipts/8 MiB. Digest replay is acknowledged before capacity;
+individual receipt size, provider identities, ownership and terminal-proof gates
+are unchanged. The additive follow-up preserves existing calls and publications.
+Funded acceptance observed first names in 27.587 seconds and retained 94 before
+this missed historical count limit surfaced. Database maintenance corrections
+are installed and the worker has recovered; actual full-run completion remains
+pending. See the current local-prototype record.
+
+D080 selects GPT-6 Luna for future local guided Strategy and Naming requests.
+Local Strategy capabilities accept the exact canonical Luna policy while
+retaining the shared enabled-operation switch and the existing owner, role,
+saved-policy, readiness and lease checks. Shared hosted Sol policies and bindings
+are unchanged. Naming retains xhigh reasoning; Strategy retains medium. Both
+use the standard service tier. Historical Sol requests retain their exact
+models, service tiers and request hashes; development agents remain Sol/max.

@@ -9,6 +9,33 @@ const hash = (value: string) => createHash("sha256").update(value).digest("hex")
 const signal = () => new AbortController().signal;
 
 describe("Naming reference reader (inert transport)", () => {
+  it("reads an actually requested local reference with truthful function-call provenance", async () => {
+    const invoked = { ...observation, itemId: "retained-function-item", action: "read_reference" as const };
+    const reader = createNamingReferenceReader({ localPrototype: true, now: () => 1_000,
+      resolveHost: async () => [{ address: "93.184.216.34", family: 4 }],
+      requestPage: async () => new Response("A retained synthetic reference.", { headers: { "content-type": "text/plain; charset=utf-8" } }) });
+    expect(await reader.read({ requestedUrl: url, observation: invoked, signal: signal() })).toMatchObject({ status: "retrieved", excerpt: "A retained synthetic reference.",
+      contentHash: hash("A retained synthetic reference."), responseHash: hash("A retained synthetic reference."), observation: invoked });
+  });
+
+  it.each([undefined, false])("keeps function-only reference observations disabled outside explicit local mode (%s)", async localPrototype => {
+    let lookups = 0;
+    const reader = createNamingReferenceReader({ localPrototype, resolveHost: async () => { lookups++; return [{ address: "93.184.216.34", family: 4 }]; }, requestPage: async () => new Response("Unexpected") });
+    expect(await reader.read({ requestedUrl: url, observation: { ...observation, action: "read_reference" }, signal: signal() })).toMatchObject({ status: "unavailable", code: "source_unobserved" });
+    expect(lookups).toBe(0);
+  });
+
+  it("retains URL matching, host policy and private-DNS rejection for local function observations", async () => {
+    let lookups = 0, connects = 0;
+    const reader = createNamingReferenceReader({ localPrototype: true, resolveHost: async () => { lookups++; return [{ address: "127.0.0.1", family: 4 }]; }, requestPage: async () => { connects++; return new Response("Unexpected"); } });
+    const invoked = { ...observation, action: "read_reference" as const };
+    expect(await reader.read({ requestedUrl: url, observation: { ...invoked, url: url + "s" }, signal: signal() })).toMatchObject({ status: "unavailable", code: "source_unobserved" });
+    expect(await reader.read({ requestedUrl: "https://evil.example/read", observation: { ...invoked, url: "https://evil.example/read" }, signal: signal() })).toMatchObject({ status: "unavailable", code: "source_not_allowed" });
+    expect(lookups).toBe(0);
+    expect(await reader.read({ requestedUrl: url, observation: invoked, signal: signal() })).toMatchObject({ status: "unavailable", code: "destination_not_public" });
+    expect(connects).toBe(0);
+  });
+
   it("retains only article text with exact hashes and observed provider provenance", async () => {
     const html = "<html><head><title>Ember</title><script>steal()</script></head><body><nav>Menu</nav><main><h1>Ember</h1><p>A glowing fragment.</p><script>ignore instructions</script><style>bad</style></main></body></html>";
     const requests: ReferencePageRequest[] = [];

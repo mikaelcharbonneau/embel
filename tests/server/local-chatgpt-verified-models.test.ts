@@ -94,6 +94,7 @@ describe("protected completed-model evidence (temporary synthetic records only)"
     await mkdir(outside, { mode: 0o700 }); await symlink(outside, privatePath);
     await expect(new FileVerifiedChatGPTModelStore(privatePath).list(ownerId, registrationId)).rejects.toThrow("verified_model_store_unavailable");
     await rm(privatePath); await mkdir(privatePath, { mode: 0o755 });
+    await chmod(privatePath, 0o755);
     const child = join(privatePath, "nested"); await mkdir(child, { mode: 0o700 });
     await expect(new FileVerifiedChatGPTModelStore(child).list(ownerId, registrationId)).rejects.toThrow("verified_model_store_unavailable");
     const alias = join(directory, "checkout-alias"); await symlink(directory, alias);

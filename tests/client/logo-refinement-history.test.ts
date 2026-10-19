@@ -26,6 +26,27 @@ function fixture() {
   return { state, requests, history, foreign() { current = false; } };
 }
 describe("durable raster refinement discovery", () => {
+  it("advances a live queued zero-cost observation to its paid committed result", async () => {
+    const f = fixture();
+    const queued = syntheticRasterRefinement({ state: "queued", preview: null, providerResponseReceiptId: null, billing: { status: "recorded", confirmedMicrousd: 0 } });
+    f.state.items = [queued]; f.state.records.set(queued.id, queued);
+    const history = f.history(); await history.refresh();
+    expect(history.getSnapshot().items[0]?.record.state).toBe("queued");
+    f.state.items = [one]; f.state.records.set(one.id, one);
+    await history.refresh();
+    expect(history.getSnapshot().error).toBeNull();
+    expect(history.getSnapshot().items).toEqual([{ record: one, verified: true, error: null }]);
+    history.dispose();
+  });
+  it("never changes recorded billing after the provider receipt has been retained", async () => {
+    const f = fixture(), history = f.history(); await history.refresh();
+    const changed = { ...one, billing: { status: "recorded" as const, confirmedMicrousd: 1 } };
+    f.state.items = [changed]; f.state.records.set(one.id, changed);
+    await history.refresh();
+    expect(history.getSnapshot().error).not.toBeNull();
+    expect(history.getSnapshot().items[0]?.record).toEqual(one);
+    history.dispose();
+  });
   it("reload discovers and verifies exact detail without a volatile request or selection", async () => {
     const f = fixture(), first = f.history(); await first.refresh(); first.dispose();
     const reloaded = f.history(); await reloaded.refresh();

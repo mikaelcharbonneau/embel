@@ -4,9 +4,12 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { NamingApproachWidgets } from "@/components/naming/naming-approach-widgets";
 import { createNamingBrainMemory } from "@/components/naming/naming-brain-memory";
+import { NAMING_APPROACHES, initialNamingPreferencesV2 } from "@/domain/naming-brain-preferences";
+import type { NamingPreferenceRevision } from "@/domain/project-naming";
 import { contextSnapshotSchema } from "@/domain/projects";
 const owner = "a0000000-0000-4000-8000-000000000001", projectId = "b0000000-0000-4000-8000-000000000001", account = { userId: owner, generation: 1 };
 const context = contextSnapshotSchema.parse({ description: "A synthetic coffee studio", personality: { sincerity: 60, excitement: 30, competence: 40, sophistication: 20, ruggedness: 10 } });
+const retiredQuestions = ["Any languages or roots to draw from?", "Any people or places to draw from?", "Any stories or cultural references to explore?"];
 let root: Root, host: HTMLDivElement;
 beforeEach(() => { vi.useFakeTimers(); vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true); host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); vi.useRealTimers(); });
@@ -59,7 +62,7 @@ it("asks one decision at a time, preserves every approach, and revisits without 
   const selected = host.querySelector<HTMLButtonElement>('[role="radio"][aria-checked="true"]')!;
   await act(async () => selected.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })));
   expect(memory.get(account, projectId)?.preferences?.draft.directness).toBe("open_ended");
-  await click("Continue"); expect(host.querySelector('textarea')?.closest('label')?.textContent).toContain("Source languages");
+  await click("Continue"); expect(host.querySelector('h2')?.textContent).toBe("Which language should the names work in?");
   expect(start).not.toHaveBeenCalled();
   await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Edit answer: Which approaches would you like to explore?"]')!.click());
   expect(host.querySelector('[aria-pressed="true"]')?.textContent).toContain("Real words");
@@ -108,14 +111,14 @@ it("saves real guidance before clearing the composer and never admits a run", as
 it("resumes the unconfirmed language follow-up after remount and same-owner verification", async () => {
   const { memory } = memoryWithSave(), start = await render(memory);
   await click("Other languages"); await click("Continue"); await click("Explore all"); await click("Continue");
-  const question = "Any languages or roots to draw from?";
+  const question = "Which language should the names work in?";
   expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe(question);
   const saved = memory.get(account, projectId)!.preferences!.saved;
   await act(async () => root.unmount()); root = createRoot(host);
   memory.bind(null); const verified = { ...account, generation: 2 }; memory.bind(verified);
   await act(async () => root.render(createElement(NamingApproachWidgets, { memory, account: verified, projectId, context, saved, blocked: false, runtimeReady: true, onContinue: start })));
   expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe(question);
-  for (const unseen of [question, "Which language should the names work in?", "Do you have a length in mind?", "Any text to include or avoid?"]) expect(host.querySelector(`[aria-label="Your answer: ${unseen}"]`)).toBeNull();
+  for (const unseen of [question, "Do you have a length in mind?", "Any text to include or avoid?", ...retiredQuestions]) expect(host.querySelector(`[aria-label="Your answer: ${unseen}"]`)).toBeNull();
   expect([...host.querySelectorAll('button')].some(item => item.textContent === "Start exploring")).toBe(false);
   expect(start).not.toHaveBeenCalled();
 });
@@ -127,22 +130,44 @@ it("a fresh memory conservatively asks unseen follow-ups with saved values, then
   await act(async () => root.unmount()); root = createRoot(host);
   const fresh = memoryWithSave();
   await act(async () => root.render(createElement(NamingApproachWidgets, { memory: fresh.memory, account, projectId, context, saved, blocked: false, runtimeReady: true, onContinue: start })));
-  expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe("Any languages or roots to draw from?");
+  expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe("Which language should the names work in?");
   expect(fresh.memory.get(account, projectId)?.preferences?.draft).toEqual(saved.preferences);
   expect(fresh.request).not.toHaveBeenCalled();
-  await click("Continue"); await click("Continue"); await click("Continue"); await click("Continue");
+  await click("Continue"); await click("Continue"); await click("Continue");
   expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe("Ready to explore your names?");
   expect(start).not.toHaveBeenCalled(); await click("Start exploring"); expect(start).toHaveBeenCalledTimes(1);
 });
 
-it("asks a newly relevant follow-up after editing a completed approach answer", async () => {
+it("keeps confirmed choices complete when newly selected approaches used to add inspiration questions", async () => {
   const { memory } = memoryWithSave(), start = await render(memory);
   await click("Real words"); await click("Continue"); await click("Explore all");
   await click("Continue"); await click("Continue"); await click("Continue"); await click("Continue");
   expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe("Ready to explore your names?");
   await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Edit answer: Which approaches would you like to explore?"]')!.click());
-  await click("Other languages"); await click("Continue");
-  expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe("Any languages or roots to draw from?");
-  expect(host.querySelector('[aria-label="Your answer: Any languages or roots to draw from?"]')).toBeNull();
+  await click("Other languages"); await click("Classical roots"); await click("People & places"); await click("Stories & culture"); await click("Continue");
+  expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe("Ready to explore your names?");
+  for (const question of retiredQuestions) expect(host.textContent).not.toContain(question);
+  expect(memory.get(account, projectId)?.preferences?.saved?.preferences).toMatchObject({ approaches: ["real_words", "other_languages", "classical_roots", "people_places", "stories_culture"] });
   expect(start).not.toHaveBeenCalled();
+});
+
+it("never asks retired inspiration questions or renders their answers and preserves every saved field", async () => {
+  const { memory, request } = memoryWithSave(), start = vi.fn(async () => true);
+  const saved: NamingPreferenceRevision = { ownerId: owner, projectId, version: 4, createdAt: "2026-10-16T12:00:00Z", preferences: {
+    ...initialNamingPreferencesV2(context), approaches: NAMING_APPROACHES.map(approach => approach.id), directness: "all",
+    sourceLanguages: ["French", "Latin"], heritageNotes: "Synthetic saved family place", culturalNotes: "Synthetic saved story reference",
+  } };
+  await act(async () => root.render(createElement(NamingApproachWidgets, { memory, account, projectId, context, saved, blocked: false, runtimeReady: true, onContinue: start })));
+  expect(host.querySelector('h2')?.textContent).toBe("Which language should the names work in?");
+  expect(request).not.toHaveBeenCalled();
+  for (const question of retiredQuestions) expect(host.textContent).not.toContain(question);
+  await act(async () => memory.editPreferences(account, projectId, { ...memory.get(account, projectId)!.preferences!.draft, creativeLocale: "fr" }));
+  for (const next of ["Do you have a length in mind?", "Any text to include or avoid?", "Ready to explore your names?"]) {
+    await click("Continue"); expect(host.querySelector('h2')?.textContent).toBe(next);
+    for (const question of retiredQuestions) expect(host.textContent).not.toContain(question);
+  }
+  expect(request).toHaveBeenCalledTimes(1);
+  expect(request.mock.calls[0]![2].body.preferences).toEqual({ ...saved.preferences, creativeLocale: "fr" });
+  expect(memory.get(account, projectId)?.preferences?.saved?.preferences).toEqual({ ...saved.preferences, creativeLocale: "fr" });
+  expect(start).not.toHaveBeenCalled(); await click("Start exploring"); expect(start).toHaveBeenCalledTimes(1);
 });

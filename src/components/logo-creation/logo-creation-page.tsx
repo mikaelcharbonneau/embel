@@ -2,7 +2,6 @@
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { logoUuidSchema } from "@/domain/logo-vector";
-import { LogoJourneyNavigation } from "@/components/identity/logo-journey-navigation";
 import { LogoCreationWorkspace } from "./logo-creation-workspace";
 
 export function LogoCreationPage({ projectId }: { projectId?: string }) {
@@ -11,5 +10,5 @@ export function LogoCreationPage({ projectId }: { projectId?: string }) {
     const parsed = logoUuidSchema.safeParse(id);
     if (parsed.success) router.replace(`/brands/account/${parsed.data}/logo`);
   }, [router]);
-  return <div className="page project-logo-page">{projectId && <LogoJourneyNavigation projectId={projectId} current="concepts" />}<LogoCreationWorkspace projectId={projectId} onProjectCreated={projectId ? undefined : confirmedCreation} /></div>;
+  return <div className="page project-logo-page"><LogoCreationWorkspace projectId={projectId} onProjectCreated={projectId ? undefined : confirmedCreation} /></div>;
 }

@@ -7,16 +7,16 @@ import { namingEvidenceSourceSchema, namingProviderReceiptSchema, namingStageOut
 import { buildNamingManagedRequest, namingRequestHash } from "./prompts";
 import { extractManagedFinalOutput, readManagedTurnHistory } from "./history";
 import { namingHash } from "./identity";
-import { createNamingManagedProtocol, NamingManagedProtocolError, type ManagedEventStream, type ManagedToolResult, type NamingManagedProtocol } from "./protocol";
+import { createNamingManagedProtocol, namingProgressiveServiceTier, NamingManagedProtocolError, type ManagedEventStream, type ManagedToolResult, type NamingManagedProtocol } from "./protocol";
 import { createNamingReferenceReader, NAMING_REFERENCE_HOSTS, type ReferenceObservation } from "./source-reader";
 import { validateNamingRoleOutput } from "./outputs";
 
 export type NamingProviderTurnRecord = { providerCallKey: string; sessionId: string; turnId: string; turn: Turn };
 export type NamingProviderItemRecord = { providerCallKey: string; sessionId: string; turnId: string; itemId: string; item: unknown };
 export type NamingToolResultRecord = { providerCallKey: string; sessionId: string; turnId: string; callId: string; requestHash: string; result: { argumentsHash: string; reply: ManagedToolResult }; sourceEvidence: NamingEvidenceSource | null };
-export type NamingRuntimeState = { startedAt: string; observationDeadlineAt?: string | null; request: NamingStageRequest | null; dependencies: NamingRoleOutput[]; providerItems: NamingProviderItemRecord[]; toolResults: NamingToolResultRecord[] };
+export type NamingRuntimeState = { startedAt: string; authorizedAt?: string | null; recoveryMode?: "execute" | "observe_only"; observationDeadlineAt?: string | null; request: NamingStageRequest | null; dependencies: NamingRoleOutput[]; providerItems: NamingProviderItemRecord[]; toolResults: NamingToolResultRecord[] };
 export type NamingRuntimePersistence = { load(identity: Pick<NamingStageRequest, "runId" | "stageKey" | "providerCallKey" | "requestHash">): Promise<NamingRuntimeState>; saveToolResult(record: NamingToolResultRecord): Promise<void> };
-type Options = { model: string; apiKey?: string; protocol?: NamingManagedProtocol; persistence: NamingRuntimePersistence; now?: () => number; assertContinuation?: () => Promise<void>; referenceReader?: ReturnType<typeof createNamingReferenceReader> };
+type Options = { model: string; apiKey?: string; localPrototype?: boolean; protocol?: NamingManagedProtocol; persistence: NamingRuntimePersistence; now?: () => number; assertContinuation?: () => Promise<void>; referenceReader?: ReturnType<typeof createNamingReferenceReader> };
 type ManagedReceipt = Extract<NamingProviderReceipt, { protocol: "openai_agents" }>;
 function managedReceipt(value: unknown): ManagedReceipt { const receipt = namingProviderReceiptSchema.parse(value); if (receipt.protocol !== "openai_agents") throw new Error("protocol_mismatch"); return receipt; }
 const usageShape = z.object({ input_tokens: z.number().int().nonnegative().safe(), output_tokens: z.number().int().nonnegative().safe(), total_tokens: z.number().int().nonnegative().safe() });
@@ -32,6 +32,8 @@ function abortable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
 }
 function baseReceipt(request: NamingStageRequest, now: () => number): ManagedReceipt {
   return managedReceipt({ version: 1, provider: "openai", protocol: "openai_agents", billingMode: "openai_api", runId: request.runId, stageKey: request.stageKey, role: request.role, snapshotHash: request.snapshotHash,
+    ...(request.policy.budgetControl ? { budgetControl: request.policy.budgetControl } : {}),
+    ...(request.policy.localPipelineVersion ? { localPipelineVersion: request.policy.localPipelineVersion } : {}),
     requestKey: request.requestKey, providerCallKey: request.providerCallKey, assignmentKey: request.assignmentKey, requestHash: request.requestHash, sessionLimitCents: request.policy.sessionLimitCents,
     dispatchState: "not_dispatched", requestId: null, sessionId: null, turnId: null, agentId: null, responseId: null, callIds: [], observedModel: null, toolCalls: [], artifactItemIds: [], usageObservations: [], providerCostCounters: [], estimatedCostMicrousd: null, accountingStatus: "provisional", confirmedActualCostMicrousd: null, recordedAt: new Date(now()).toISOString() });
 }
@@ -69,7 +71,7 @@ function isOlderTurnSnapshot(older: Turn, terminal: Turn): boolean {
 
 export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
   if (!options.protocol && !options.apiKey) throw new Error("naming_runtime_unavailable");
-  const protocol = options.protocol ?? createNamingManagedProtocol({ apiKey: options.apiKey! });
+  const protocol = options.protocol ?? createNamingManagedProtocol({ apiKey: options.apiKey!, localPrototype: options.localPrototype });
   const now = options.now ?? Date.now;
   const cancel = async (receipt: NamingProviderReceipt) => {
     if (receipt.protocol !== "openai_agents" || !receipt.sessionId) throw new Error("session_identity_unknown");
@@ -77,25 +79,40 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
   };
   async function execute(rawRequest: NamingStageRequest, hooks: NamingStageHooks, prior: NamingProviderReceipt | null): Promise<NamingStageOutcome> {
     let request: NamingStageRequest;
-    try { request = namingStageRequestSchema.parse(rawRequest); buildNamingManagedRequest(request); if (request.policy.model !== options.model || namingRequestHash(request) !== request.requestHash || request.policy.referenceHosts.some(host => !NAMING_REFERENCE_HOSTS.some(allowed => allowed === host))) throw new Error("runtime_policy_mismatch"); }
+    try { request = namingStageRequestSchema.parse(rawRequest); buildNamingManagedRequest(request); if (request.policy.budgetControl && !options.localPrototype || request.policy.model !== options.model || namingRequestHash(request) !== request.requestHash || request.policy.referenceHosts.some(host => !NAMING_REFERENCE_HOSTS.some(allowed => allowed === host))) throw new Error("runtime_policy_mismatch"); }
     catch { return { status: "rejected_before_dispatch", code: "request_invalid" }; }
     let receipt = prior ? managedReceipt(prior) : baseReceipt(request, now);
-    if (prior && (prior.requestHash !== request.requestHash || prior.providerCallKey !== request.providerCallKey || prior.runId !== request.runId || prior.stageKey !== request.stageKey || prior.requestKey !== request.requestKey || prior.protocol !== "openai_agents")) return { status: "unresolved", code: "receipt_mismatch", receipt, partialArtifacts: [] };
+    if (prior && (prior.localPipelineVersion !== request.policy.localPipelineVersion || prior.budgetControl !== request.policy.budgetControl || prior.requestHash !== request.requestHash || prior.providerCallKey !== request.providerCallKey || prior.runId !== request.runId || prior.stageKey !== request.stageKey || prior.requestKey !== request.requestKey || prior.protocol !== "openai_agents")) return { status: "unresolved", code: "receipt_mismatch", receipt, partialArtifacts: [] };
     if (prior && !receipt.sessionId) return { status: "unresolved", code: "session_identity_unknown", receipt, partialArtifacts: [] };
     const state = await options.persistence.load(request);
     if (state.request && !isDeepStrictEqual(namingStageRequestSchema.parse(state.request), request)) return { status: "unresolved", code: "saved_request_mismatch", receipt, partialArtifacts: [] };
     if (!prior && state.request) return { status: "unresolved", code: "dispatch_already_authorized", receipt: { ...receipt, dispatchState: "unknown" }, partialArtifacts: [] };
-    const deadlineAt = Date.parse(state.startedAt) + request.policy.deadlineMs;
-    if (!Number.isFinite(deadlineAt)) return { status: "rejected_before_dispatch", code: "stage_deadline_missing" };
+    const localUnlimited = request.policy.budgetControl === "local_unlimited_v1";
+    const stageEnvelopeAt = localUnlimited
+      ? request.stageKey === "creation" || request.stageKey === "gap" ? Date.parse(state.startedAt) + 3_600_000
+        : request.policy.deadlineMs === 900_000 ? Date.parse(state.startedAt) + 1_200_000 : Infinity
+      : Infinity;
+    // Local allocations run in several waves. Each issued call retains its own
+    // database authorization clock; queued work has not started its allowance.
+    // Missing saved authority permits only observation, never renewed execution.
+    let deadlineAt = localUnlimited ? prior ? state.authorizedAt ? Math.min(Date.parse(state.authorizedAt) + request.policy.deadlineMs, stageEnvelopeAt) : 0 : stageEnvelopeAt
+      : Date.parse(state.startedAt) + request.policy.deadlineMs;
+    if (Number.isNaN(deadlineAt) || !localUnlimited && !Number.isFinite(deadlineAt)) return { status: "rejected_before_dispatch", code: "stage_deadline_missing" };
     const observationDeadlineAt = prior && state.observationDeadlineAt !== undefined && state.observationDeadlineAt !== null ? Date.parse(state.observationDeadlineAt) : Infinity;
     if (Number.isNaN(observationDeadlineAt) || now() >= observationDeadlineAt) return { status: "unresolved", code: "observation_deadline_exceeded", receipt, partialArtifacts: [] };
     const expiredOnEntry = now() >= deadlineAt;
     if (!prior && (hooks.signal.aborted || expiredOnEntry)) return { status: "rejected_before_dispatch", code: "cancelled_before_dispatch" };
-    const controller = new AbortController(), readonlyRecovery = !!prior && (expiredOnEntry || hooks.signal.aborted);
+    const controller = new AbortController(), readonlyRecovery = !!prior && (state.recoveryMode === "observe_only" || expiredOnEntry || hooks.signal.aborted);
     const abort = () => controller.abort();
     if (!readonlyRecovery) hooks.signal.addEventListener("abort", abort, { once: true });
-    const timer = setTimeout(abort, Math.min(readonlyRecovery ? 5_000 : Math.max(1, deadlineAt - now()), observationDeadlineAt - now())); timer.unref();
-    let stream: ManagedEventStream | undefined, dispatched = !!prior, session: AgentSession | null = null, turn: Turn | null = null;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const armDeadline = () => {
+      clearTimeout(timer);
+      const remaining = Math.min(readonlyRecovery ? 5_000 : Math.max(1, deadlineAt - now()), observationDeadlineAt - now());
+      if (Number.isFinite(remaining)) { timer = setTimeout(abort, remaining); timer.unref(); }
+    };
+    armDeadline();
+    let stream: ManagedEventStream | undefined, dispatchAuthorized = !!prior, createInvoked = !!prior, session: AgentSession | null = null, turn: Turn | null = null;
     const items = new Map<string, AgentSessionItem>(), toolResults = new Map(state.toolResults.filter(row => row.providerCallKey === request.providerCallKey).map(row => [row.callId, row]));
     const newSources = () => [...toolResults.values()].flatMap(row => row.sourceEvidence ? [row.sourceEvidence] : []);
     const partials = () => [...items.values()].filter(item => item.type !== "reasoning").slice(-3).map(item => ({ providerItemId: item.id, type: item.type, content: JSON.stringify(item).slice(0, 100_000) }));
@@ -105,14 +122,21 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
       const entry = { scope, scopeId, inputTokens: parsed.data.input_tokens, outputTokens: parsed.data.output_tokens, totalTokens: parsed.data.total_tokens, observedAt: new Date(now()).toISOString() };
       if (!receipt.usageObservations.some(old => old.scope === scope && old.scopeId === scopeId && old.inputTokens === entry.inputTokens && old.outputTokens === entry.outputTokens && old.totalTokens === entry.totalTokens)) receipt = { ...receipt, usageObservations: [...receipt.usageObservations, entry] };
     };
-    const hasObservedOverrun = () => receipt.providerCostCounters.some(counter => counter.kind === "consumed_usd_cents" && counter.value > request.policy.sessionLimitCents);
+    const hasObservedOverrun = () => request.policy.budgetControl !== "local_unlimited_v1" && receipt.providerCostCounters.some(counter => counter.kind === "consumed_usd_cents" && counter.value > request.policy.sessionLimitCents);
+    const hasObservedToolOverrun = () => !localUnlimited && (receipt.toolCalls.filter(call => call.type === "web_search").length > request.policy.maxWebSearchCalls || receipt.toolCalls.filter(call => call.type === "function").length > request.policy.maxWebSearchCalls);
     const acceptSession = async (value: AgentSession) => {
-      if (!safeId(value?.id) || receipt.sessionId && value.id !== receipt.sessionId || !safeId(value.agent?.id) || value.agent.model !== request.policy.model || value.environment?.type !== "none" || value.agent.multi_agent?.enabled !== false || value.spend_control?.limit !== request.policy.sessionLimitCents || value.metadata?.embel_request_hash !== request.requestHash || value.metadata?.embel_call !== request.providerCallKey || value.metadata?.embel_run !== request.runId || value.metadata?.embel_request !== request.requestKey || value.metadata?.embel_snapshot !== request.snapshotHash) throw new Error("provider_configuration_mismatch");
+      const progressiveMismatch = request.policy.localPipelineVersion === 2
+        ? value.metadata?.embel_pipeline_version !== "2" || value.agent?.service_tier !== namingProgressiveServiceTier(request.policy.model) || value.agent?.text?.verbosity !== "low"
+        : value.metadata?.embel_pipeline_version !== undefined;
+      const budgetMismatch = request.policy.budgetControl === "local_unlimited_v1"
+        ? value.metadata?.embel_budget_control !== "local_unlimited_v1" || value.agent?.reasoning?.effort !== request.policy.reasoningEffort
+        : value.spend_control?.limit !== request.policy.sessionLimitCents || value.metadata?.embel_budget_control !== undefined;
+      if (progressiveMismatch || budgetMismatch || !safeId(value?.id) || receipt.sessionId && value.id !== receipt.sessionId || !safeId(value.agent?.id) || value.agent.model !== request.policy.model || value.environment?.type !== "none" || value.agent.multi_agent?.enabled !== false || value.metadata?.embel_request_hash !== request.requestHash || value.metadata?.embel_call !== request.providerCallKey || value.metadata?.embel_run !== request.runId || value.metadata?.embel_request !== request.requestKey || value.metadata?.embel_snapshot !== request.snapshotHash) throw new Error("provider_configuration_mismatch");
       const expected = request.policy.allowedTools;
       if (!Array.isArray(value.agent.tools) || value.agent.tools.length !== expected.length || value.agent.tools.some(tool => tool.type === "web_search" ? !expected.includes("web_search") : tool.type !== "function" || tool.name !== "read_reference" || !expected.includes("read_reference"))) throw new Error("provider_tools_mismatch");
       session = value; receipt = { ...receipt, sessionId: value.id, agentId: value.agent.id, observedModel: value.agent.model, dispatchState: "dispatched" };
       usage(value.usage, "session", value.id);
-      const consumed = value.spend_control.consumed;
+      const consumed = value.spend_control?.consumed;
       if (typeof consumed === "number" && Number.isSafeInteger(consumed) && consumed >= 0 && !receipt.providerCostCounters.some(counter => counter.scopeId === value.id && counter.value === consumed)) receipt = { ...receipt, providerCostCounters: [...receipt.providerCostCounters, { scope: "session", scopeId: value.id, kind: "consumed_usd_cents", value: consumed, observedAt: new Date(now()).toISOString() }] };
       await emit();
       if (hasObservedOverrun()) throw new Error("provider_cost_exceeded");
@@ -144,7 +168,9 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
         const status = item.status === "completed" ? "completed" : item.status === "failed" ? "failed" : item.status === "in_progress" ? "started" : "unknown";
         receipt = { ...receipt, callIds: [...new Set([...receipt.callIds, callId])], toolCalls: [...receipt.toolCalls.filter(call => call.callId !== callId), { callId, providerItemId: item.id, type: item.type === "web_search_call" ? "web_search" : "function", status }] };
         await emit();
-        if (receipt.toolCalls.filter(call => call.type === "web_search").length > request.policy.maxWebSearchCalls || receipt.toolCalls.filter(call => call.type === "function").length > request.policy.maxWebSearchCalls) throw new Error("provider_tool_limit");
+        // Observation must retain known terminal evidence even when an earlier
+        // execution exceeded a native quota. Local unlimited mode has no quota.
+        if (!readonlyRecovery && hasObservedToolOverrun()) throw new Error("provider_tool_limit");
       }
       items.set(item.id, item);
       if (items.size > 200 || Buffer.byteLength(JSON.stringify([...items.values()])) > 1_048_576) throw new Error("provider_item_limit");
@@ -165,6 +191,7 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
       const terminal = turn as Turn;
       if (terminal.status === "failed" || terminal.status === "cancelled") return namingStageOutcomeSchema.parse({ status: terminal.status, code: terminal.status === "failed" ? "provider_turn_failed" : "provider_turn_cancelled", receipt, partialArtifacts: partials() });
       if (terminal.status !== "completed") return null;
+      if (hasObservedToolOverrun()) throw new Error("provider_tool_limit");
       try {
         const final = extractManagedFinalOutput({ session, turn: terminal, items: [...items.values()] }, request.policy.maxOutputBytes);
         const output = validateNamingRoleOutput({ request, receipt, final, dependencies: state.dependencies, sources: newSources() });
@@ -183,18 +210,29 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
           if (saved.sessionId !== receipt.sessionId || saved.turnId !== receipt.turnId || saved.requestHash !== request.requestHash || saved.result.argumentsHash !== argumentsHash) throw new Error("tool_result_mismatch");
           record = saved;
         } else {
-          if (toolResults.size >= request.policy.maxWebSearchCalls) throw new Error("reference_limit_exceeded");
+          if (!localUnlimited && toolResults.size >= request.policy.maxWebSearchCalls) throw new Error("reference_limit_exceeded");
           const args = z.strictObject({ url: z.string().min(1).max(2000) }).parse(typeof action.arguments === "string" ? JSON.parse(action.arguments) : action.arguments);
           const canonical = (value: string) => { try { const u = new URL(value); u.hash = ""; return u.href; } catch { return null; } };
           const observed = [...items.values()].find(item => item.type === "web_search_call" && item.status === "completed" && (item.action?.type === "open_page" || item.action?.type === "find_in_page") && typeof item.action.url === "string" && canonical(item.action.url) === canonical(args.url));
+          // A retained completed function call is the actual request to read this
+          // URL. Local mode can fetch it directly without inventing a native open.
+          const invoked = localUnlimited ? [...items.values()].find(item => {
+            if (item.type !== "function_call" || item.status !== "completed" || item.name !== "read_reference" || item.call_id !== action.call_id) return false;
+            try {
+              const retained = z.strictObject({ url: z.string().min(1).max(2000) }).parse(typeof item.arguments === "string" ? JSON.parse(item.arguments) : item.arguments);
+              return retained.url === args.url;
+            } catch { return false; }
+          }) : undefined;
+          const observation: ReferenceObservation | null = observed?.type === "web_search_call" && (observed.action?.type === "open_page" || observed.action?.type === "find_in_page") && observed.action.url
+            ? { sessionId: receipt.sessionId, turnId: receipt.turnId!, itemId: observed.id, url: observed.action.url, action: observed.action.type, status: "completed" }
+            : invoked ? { sessionId: receipt.sessionId, turnId: receipt.turnId!, itemId: invoked.id!, url: args.url, action: "read_reference", status: "completed" } : null;
           const sourceKey = `ref_${namingHash([receipt.sessionId, receipt.turnId, action.call_id]).slice(0, 24)}`;
           let sourceEvidence: NamingEvidenceSource | null = null, output: unknown = { sourceKey, status: "unavailable", code: "source_unobserved" };
-          if (observed?.type === "web_search_call" && (observed.action?.type === "open_page" || observed.action?.type === "find_in_page") && observed.action.url) {
-            const observation: ReferenceObservation = { sessionId: receipt.sessionId, turnId: receipt.turnId!, itemId: observed.id, url: observed.action.url, action: observed.action.type, status: "completed" };
-            const result = await (options.referenceReader ?? createNamingReferenceReader({ allowedHosts: request.policy.referenceHosts })).read({ requestedUrl: args.url, observation, signal: controller.signal });
+          if (observation) {
+            const result = await (options.referenceReader ?? createNamingReferenceReader({ allowedHosts: request.policy.referenceHosts, localPrototype: localUnlimited })).read({ requestedUrl: args.url, observation, signal: controller.signal });
             const retrievedAt = result.status === "retrieved" ? result.retrievedAt : new Date(now()).toISOString();
-            sourceEvidence = namingEvidenceSourceSchema.parse({ sourceKey, url: observation.url, title: result.status === "retrieved" ? result.title : new URL(observation.url).hostname, retrievedAt, providerItemId: observed.id,
-              provenance: { protocol: "openai_agents", sessionId: receipt.sessionId, turnId: receipt.turnId, responseId: null, itemId: observed.id, observedUrl: observation.url }, evidenceStatus: result.status === "retrieved" ? "retrieved" : "unretrieved",
+            sourceEvidence = namingEvidenceSourceSchema.parse({ sourceKey, url: observation.url, title: result.status === "retrieved" ? result.title : new URL(observation.url).hostname, retrievedAt, providerItemId: observation.itemId,
+              provenance: { protocol: "openai_agents", sessionId: receipt.sessionId, turnId: receipt.turnId, responseId: null, itemId: observation.itemId, observedUrl: observation.url }, evidenceStatus: result.status === "retrieved" ? "retrieved" : "unretrieved",
               excerpt: result.status === "retrieved" ? result.excerpt : null, contentHash: result.status === "retrieved" ? result.contentHash : null, retrieval: result.status === "retrieved" ? { retrievedAt, responseHash: result.responseHash, extractorVersion: result.extractorVersion, truncated: result.truncated } : null });
             output = result.status === "retrieved" ? { sourceKey, status: "retrieved", url: observation.url, title: result.title, excerpt: result.excerpt, truncated: result.truncated } : { sourceKey, status: "unavailable", code: result.code };
           }
@@ -225,9 +263,27 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
     try {
       if (!prior) {
         await hooks.beforeDispatch();
-        if (controller.signal.aborted) return { status: "rejected_before_dispatch", code: "cancelled_before_dispatch" };
-        await emit(); dispatched = true;
-        stream = await protocol.createSession(buildNamingManagedRequest(request), controller.signal);
+        if (localUnlimited) {
+          // Durable authorization does not mean the provider create was invoked.
+          // Its clock must be acknowledged before that separate boundary.
+          dispatchAuthorized = true;
+          const authorized = await options.persistence.load(request);
+          if (!authorized.request || !isDeepStrictEqual(namingStageRequestSchema.parse(authorized.request), request)
+            || !authorized.authorizedAt || !Number.isFinite(Date.parse(authorized.authorizedAt))) throw new Error("call_authorization_clock_missing");
+          if (authorized.recoveryMode === "observe_only") throw new Error("naming_observe_only");
+          deadlineAt = Math.min(Date.parse(authorized.authorizedAt) + request.policy.deadlineMs, stageEnvelopeAt);
+          if (now() >= deadlineAt) throw new Error("stage_deadline_exceeded");
+          armDeadline();
+        }
+        if (controller.signal.aborted) {
+          if (localUnlimited) throw new Error("cancelled_before_dispatch");
+          return { status: "rejected_before_dispatch", code: "cancelled_before_dispatch" };
+        }
+        await emit(); dispatchAuthorized = true;
+        const managedRequest = buildNamingManagedRequest(request);
+        if (localUnlimited && (controller.signal.aborted || hooks.signal.aborted || now() >= deadlineAt)) throw new Error("cancelled_before_dispatch");
+        createInvoked = true;
+        stream = await protocol.createSession(managedRequest, controller.signal);
         receipt = { ...receipt, requestId: stream.requestId, dispatchState: "dispatched" }; await emit();
       } else stream = await protocol.streamSession(receipt.sessionId!, controller.signal);
       const iterator = stream.events[Symbol.asyncIterator]();
@@ -238,7 +294,7 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
         // Turn. Drain only immediately available tail events, then read this same
         // session once. Both reads and the quiet window share the existing deadline.
         const observationSignal = AbortSignal.any([controller.signal, AbortSignal.timeout(5_000)]);
-        for (let count = 0; count < 64; count++) {
+        for (let count = 0; localUnlimited || count < 64; count++) {
           let quietTimer: ReturnType<typeof setTimeout> | undefined;
           const quiet = new Promise<null>(resolve => { quietTimer = setTimeout(() => resolve(null), 25); });
           let next: IteratorResult<AgentSessionEvent> | null;
@@ -247,13 +303,13 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
           if (next === null || next.done) break;
           pending = iterator.next(); void pending.catch(() => {});
           await acceptEvent(next.value, true);
-          if (count === 63) throw new Error("provider_event_limit");
+          if (!localUnlimited && count === 63) throw new Error("provider_event_limit");
         }
         await acceptSession(await protocol.retrieveSession(receipt.sessionId!, observationSignal));
         return finish();
       };
       if (prior) { await reconcile(); const result = await finishObservedTerminal(); if (result) return result; if (readonlyRecovery) throw new Error("stage_deadline_exceeded"); if ((session as AgentSession | null)?.status === "requires_action") await answerRequired(); }
-      for (let eventCount = 0; eventCount < 2_000; eventCount++) {
+      for (let eventCount = 0; localUnlimited || eventCount < 2_000; eventCount++) {
         const next = await abortable(pending, controller.signal);
         if (next.done) { await reconcile(); return await finishObservedTerminal() ?? { status: "unresolved", code: "stream_ended_before_turn", receipt, partialArtifacts: partials() }; }
         pending = iterator.next(); void pending.catch(() => {});
@@ -262,10 +318,18 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
       }
       throw new Error("provider_event_limit");
     } catch (error) {
-      if (!dispatched) return { status: "rejected_before_dispatch", code: "dispatch_not_authorized" };
+      if (localUnlimited && !prior && !createInvoked) {
+        // This control path has never invoked createSession. Retain that exact
+        // fact; a durable allocation or failed local read is not a remote outcome.
+        receipt = managedReceipt({ ...receipt, dispatchState: "not_dispatched", recordedAt: new Date(now()).toISOString() });
+        let retained = false;
+        try { await hooks.onReceipt(receipt); retained = true; } catch {}
+        return { status: "rejected_before_dispatch", code: "local_dispatch_not_attempted", ...(retained ? { receipt } : {}) };
+      }
+      if (!dispatchAuthorized) return { status: "rejected_before_dispatch", code: "dispatch_not_authorized" };
       if (error instanceof NamingManagedProtocolError && error.code === "request_rejected" && receipt.sessionId === null) { receipt = { ...receipt, dispatchState: "not_dispatched", requestId: error.requestId }; try { await emit(); } catch {} return { status: "rejected_before_dispatch", code: "provider_request_rejected" }; }
       if (receipt.sessionId) {
-        try { await cancel(receipt); } catch {}
+        if (!readonlyRecovery) { try { await cancel(receipt); } catch {} }
         // Cancellation acceptance is not terminal. Only retained provider history
         // can establish completion or cancellation after the observer was aborted.
         if ((controller.signal.aborted || hooks.signal.aborted) && now() < observationDeadlineAt) {

@@ -4,8 +4,17 @@ import { useAccountSession, type VerifiedAccount } from "@/components/workspace/
 import { getNamingPreferencesReadiness } from "@/domain/naming-brain-preferences";
 import type { NamingViewState } from "@/domain/project-naming";
 import { createNamingFeedController, NAMING_EXPLORATION_IDLE_MS } from "./naming-feed-controller";
+import { visibleNamingFeedCursor } from "./naming-feed-viewport";
 const hidden = () => null;
 const emptySteeringDraft = { candidateIds: [] as string[], instruction: "" };
+function nearResultsTail(sentinel: HTMLElement | null) {
+  const root = sentinel?.closest<HTMLElement>("[data-naming-results-scroll]") ?? sentinel?.closest<HTMLElement>(".project-workspace-content");
+  if (!sentinel?.isConnected || !root?.isConnected || root.closest("[hidden]") || getComputedStyle(root).visibility !== "visible" || getComputedStyle(sentinel).visibility !== "visible") return false;
+  const viewport = root.clientHeight, bounds = root.getBoundingClientRect(), tail = sentinel.getBoundingClientRect();
+  return viewport > 0 && bounds.width > 0 && bounds.height > 0 && tail.width > 0 && tail.height > 0 &&
+    bounds.bottom > 0 && bounds.top < window.innerHeight && bounds.right > 0 && bounds.left < window.innerWidth &&
+    tail.top <= bounds.bottom + viewport * 2 && tail.bottom >= bounds.top - viewport * 2 && tail.right > bounds.left && tail.left < bounds.right;
+}
 export type NamingFeedView = NamingViewState & { inspecting?: boolean; historyOpen?: boolean; explorationHidden?: boolean };
 export function useNamingFeed({ account, projectId, enabled, view, projectRevision }: { account: VerifiedAccount; projectId: string; enabled: boolean; view: NamingFeedView; projectRevision?: number }) {
   const { namingBrainDrafts: memory, expire } = useAccountSession();
@@ -19,30 +28,59 @@ export function useNamingFeed({ account, projectId, enabled, view, projectRevisi
     return enabled && eligibleView && Boolean(p?.saved?.preferences.version === 2 && !p.dirty && !p.pending && getNamingPreferencesReadiness(p.saved.preferences).ready);
   }), [controller, memory, account, projectId, enabled, eligibleView]);
   const [sentinel, setSentinel] = useState<HTMLElement | null>(null);
-  const near = useRef(false), idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const interactionFrame = useRef<number | null>(null);
+  const loadedController = useRef<typeof controller | null>(null);
+  const progressiveActive = Boolean(record?.feed.feed?.progressive && (record.feed.pending || ["queued", "running", "cancel_requested"].includes(record.feed.feed.activeRun?.state ?? "")));
+  // Observer entries describe an earlier layout. Admission needs the current tail.
+  const demandNearTail = useCallback(() => { if (nearResultsTail(sentinel)) void controller.demand(); }, [controller, sentinel]);
   const [interacting, setInteracting] = useState(false);
-  const deactivate = useCallback(() => { controller.deactivate(); setInteracting(false); if (idleTimer.current) clearTimeout(idleTimer.current); }, [controller]);
-  const interaction = useCallback(() => {
-    controller.interact(); setInteracting(true);
+  const deactivate = useCallback(() => { controller.deactivate(); setInteracting(false); if (idleTimer.current) clearTimeout(idleTimer.current); if (interactionFrame.current !== null) cancelAnimationFrame(interactionFrame.current); interactionFrame.current = null; }, [controller]);
+  const interaction = useCallback((trustedResume: boolean) => {
+    controller.interact(trustedResume); setInteracting(true);
     if (idleTimer.current) clearTimeout(idleTimer.current);
     idleTimer.current = setTimeout(() => { controller.deactivate(); setInteracting(false); }, NAMING_EXPLORATION_IDLE_MS);
-    if (near.current) void controller.demand();
-  }, [controller]);
+    demandNearTail();
+    if (trustedResume) {
+      if (interactionFrame.current !== null) cancelAnimationFrame(interactionFrame.current);
+      interactionFrame.current = requestAnimationFrame(() => {
+        interactionFrame.current = null;
+        const feed = memory.get(account, projectId)?.feed;
+        if (feed?.feed?.canPrefetchOnScroll || feed?.feed?.progressive) {
+          const cursor = visibleNamingFeedCursor(sentinel, feed.entries);
+          if (cursor) void controller.demand(cursor);
+        }
+      });
+    }
+  }, [controller, demandNearTail, memory, account, projectId, sentinel]);
   useEffect(() => {
     controller.activate();
+    loadedController.current = null;
+    return () => { if (idleTimer.current) clearTimeout(idleTimer.current); if (interactionFrame.current !== null) cancelAnimationFrame(interactionFrame.current); interactionFrame.current = null; loadedController.current = null; controller.dispose(); };
+  }, [controller]);
+  useEffect(() => {
     let disposed = false, timer: ReturnType<typeof setTimeout>;
+    const interval = () => {
+      const state = memory.get(account, projectId)?.feed;
+      return state?.feed?.progressive && (state.pending || ["queued", "running", "cancel_requested"].includes(state.feed.activeRun?.state ?? "")) ? 1000 : state?.pending ? 1500 : 15_000;
+    };
     async function poll() {
-      if (document.visibilityState === "visible") await controller.load();
-      if (!disposed) timer = setTimeout(() => void poll(), memory.get(account, projectId)?.feed.pending ? 1500 : 15_000);
+      if (document.visibilityState === "visible") {
+        const initial = loadedController.current !== controller;
+        if (initial) loadedController.current = controller;
+        const received = await (initial ? controller.load() : controller.poll());
+        if (initial && !received && !disposed) loadedController.current = null;
+      }
+      if (!disposed) timer = setTimeout(() => void poll(), interval());
     }
-    void poll();
-    return () => { disposed = true; clearTimeout(timer); if (idleTimer.current) clearTimeout(idleTimer.current); controller.dispose(); };
-  }, [controller, memory, account, projectId]);
+    if (loadedController.current === controller) timer = setTimeout(() => void poll(), interval()); else void poll();
+    return () => { disposed = true; clearTimeout(timer); };
+  }, [controller, memory, account, projectId, progressiveActive]);
   useEffect(() => { if (projectRevision !== undefined) void controller.load(); }, [projectRevision, controller]);
   useEffect(() => { if (!enabled || !eligibleView || !resultsVisible) controller.deactivate(); }, [enabled, eligibleView, resultsVisible, controller]);
   useEffect(() => {
     if (!enabled || !eligibleView || !resultsVisible) return;
-    const move = (event: Event) => { const target = event.target; if (target instanceof Element && target.closest("input,textarea,select,[contenteditable=true],.naming-approach-widgets")) return; const root = sentinel?.closest<HTMLElement>("[data-naming-results-scroll]"); if (root && (!(target instanceof Node) || !root.contains(target))) return; interaction(); };
+    const move = (event: Event) => { const target = event.target; if (target instanceof Element && target.closest("input,textarea,select,[contenteditable=true],.naming-approach-widgets")) return; const root = sentinel?.closest<HTMLElement>("[data-naming-results-scroll]"); if (root && (!(target instanceof Node) || !root.contains(target))) return; interaction(event.isTrusted); };
     const keyboard = (event: KeyboardEvent) => {
       // Activation/navigation inside a control is not a request to scroll names.
       // Wheel/touch still use move(): compact cards themselves are buttons.
@@ -54,14 +92,19 @@ export function useNamingFeed({ account, projectId, enabled, view, projectRevisi
     return () => { window.removeEventListener("wheel", move); window.removeEventListener("touchmove", move); window.removeEventListener("keydown", keyboard); document.removeEventListener("visibilitychange", visibility); };
   }, [enabled, eligibleView, resultsVisible, interaction, deactivate, sentinel]);
   useEffect(() => {
-    near.current = false;
     if (!sentinel || !eligibleView || !resultsVisible || typeof IntersectionObserver === "undefined") return;
     const root = sentinel.closest<HTMLElement>("[data-naming-results-scroll]") ?? sentinel.closest<HTMLElement>(".project-workspace-content");
     let observer: IntersectionObserver | null = null;
+    let disposed = false;
     const observe = () => {
-      observer?.disconnect(); near.current = false;
+      if (disposed) return;
+      observer?.disconnect();
       const viewport = root?.clientHeight || window.innerHeight;
-      observer = new IntersectionObserver(entries => { near.current = entries.some(entry => entry.isIntersecting); if (near.current) void controller.demand(); }, { root, rootMargin: `${viewport * 2}px 0px` });
+      const current = new IntersectionObserver(entries => {
+        if (disposed || observer !== current) return;
+        if (entries.some(entry => entry.target === sentinel && entry.isIntersecting)) demandNearTail();
+      }, { root, rootMargin: `${viewport * 2}px 0px` });
+      observer = current;
       observer.observe(sentinel);
     };
     observe();
@@ -69,8 +112,8 @@ export function useNamingFeed({ account, projectId, enabled, view, projectRevisi
     // Recompute prefetch distance when its actual viewport changes.
     const resize = root && typeof ResizeObserver !== "undefined" ? new ResizeObserver(observe) : null;
     if (root) resize?.observe(root);
-    return () => { observer?.disconnect(); resize?.disconnect(); near.current = false; };
-  }, [sentinel, controller, eligibleView, resultsVisible]);
+    return () => { disposed = true; observer?.disconnect(); resize?.disconnect(); };
+  }, [sentinel, demandNearTail, eligibleView, resultsVisible]);
   const start = useCallback(async () => { const started = await controller.start(); if (started) { setInteracting(true); if (idleTimer.current) clearTimeout(idleTimer.current); idleTimer.current = setTimeout(deactivate, NAMING_EXPLORATION_IDLE_MS); } return started; }, [controller, deactivate]);
   const stop = useCallback(async () => { deactivate(); return controller.stop(); }, [controller, deactivate]);
   const contextReady = enabled && eligibleView && record?.preferences?.saved?.preferences.version === 2 && !record.preferences.dirty && !record.preferences.pending && getNamingPreferencesReadiness(record.preferences.saved.preferences).ready && !record.feed.stop && !record.feed.steering;

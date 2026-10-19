@@ -60,6 +60,9 @@ export type NamingProtocol = z.infer<typeof namingProtocolSchema>;
 const observationScope = { scope: z.enum(["session", "turn", "agent", "call", "response"]), scopeId: providerId, observedAt: timestamp };
 const receiptFields = {
   version: z.literal(1), provider: z.literal("openai"), billingMode: z.literal("openai_api"), runId: z.uuid(), stageKey: namingStageKeySchema, role: namingRoleSchema,
+  // Absence retains the historical native-cap contract. Local monetary fields remain compatibility metadata.
+  budgetControl: z.literal("local_unlimited_v1").optional(),
+  localPipelineVersion: z.literal(2).optional(),
   snapshotHash: hash, requestKey, providerCallKey: localKey, assignmentKey: localKey.nullable(), requestHash: hash, sessionLimitCents: z.number().int().min(1).max(150), dispatchState: z.enum(["not_dispatched", "dispatched", "unknown"]), requestId: providerId.nullable(),
   callIds: z.array(providerId).max(200).refine(unique), observedModel: z.string().min(1).max(150).nullable(),
   toolCalls: z.array(z.strictObject({ callId: providerId, type: z.enum(["web_search", "function", "subagent", "other"]), providerItemId: providerId.nullable(), status: z.enum(["started", "completed", "failed", "unknown"]) })).max(200),
@@ -73,8 +76,11 @@ export const namingProviderReceiptSchema = z.discriminatedUnion("protocol", [
   z.strictObject({ ...receiptFields, protocol: z.literal("openai_agents"), sessionId: providerId.nullable(), turnId: providerId.nullable(), agentId: providerId.nullable(), responseId: z.null() }),
   z.strictObject({ ...receiptFields, protocol: z.literal("openai_responses"), sessionId: z.null(), turnId: z.null(), agentId: z.null(), responseId: providerId.nullable() }),
 ]).superRefine((value, ctx) => {
+  if (value.budgetControl && value.protocol !== "openai_agents") issue(ctx, "Local unlimited control requires the managed Agents protocol");
   if ((value.role === "creator") !== (value.assignmentKey !== null)) issue(ctx, "Creator call receipts require the exact assignment key");
-  if (!rolesForStage[value.stageKey].includes(value.role)) issue(ctx, "Provider role must match the stage");
+  const progressive = value.localPipelineVersion === 2 && value.budgetControl === "local_unlimited_v1" && value.stageKey === "creation";
+  if (value.localPipelineVersion && !progressive) issue(ctx, "Progressive receipts require explicit local creation execution");
+  if (!progressive && !rolesForStage[value.stageKey].includes(value.role)) issue(ctx, "Provider role must match the stage");
   if (!unique(value.toolCalls.map(call => call.callId))) issue(ctx, "Retained tool calls must be unique");
   if ((value.accountingStatus === "confirmed") !== (value.confirmedActualCostMicrousd !== null)) issue(ctx, "Confirmed expense is separate from provisional estimates and counters");
   if (value.turnId !== null && value.sessionId === null) issue(ctx, "A known turn requires its observed session");
@@ -163,6 +169,7 @@ const envelopeFields = { artifactId: z.uuid(), runId: z.uuid(), stageKey: naming
 function checkEnvelope(value: { runId: string; stageKey: NamingStageKey; snapshotHash: string; providerReceipt: NamingProviderReceipt; output: { role: NamingRole } }, ctx: z.RefinementCtx): void {
   const receipt = value.providerReceipt;
   if (value.runId !== receipt.runId || value.stageKey !== receipt.stageKey || value.snapshotHash !== receipt.snapshotHash || value.output.role !== receipt.role) issue(ctx, "Artifact must bind its exact server-recorded provider receipt");
+  if (value.stageKey === "creation" && value.output.role !== "creator" && (receipt.localPipelineVersion !== 2 || receipt.budgetControl !== "local_unlimited_v1")) issue(ctx, "Cross-role creation artifacts require the immutable local progressive profile");
   if (receipt.dispatchState !== "dispatched" || (receipt.protocol === "openai_agents" ? receipt.sessionId === null || receipt.turnId === null : receipt.responseId === null) || receipt.observedModel === null) issue(ctx, "Completed artifacts require actual completed-session evidence");
   if (!boundedBytes(value, 524_288)) issue(ctx, "Completed artifact exceeds its byte limit");
 }
@@ -190,13 +197,13 @@ function checkSources(value: { artifactId: string; runId: string; snapshotHash: 
   }
   if (value.sources.some(source => !inherited.has(source.sourceKey) && !sourceObservedBy(source, value.providerReceipt))) issue(ctx, "New sources require actual current-call observations; inherited sources require original dependency receipts");
 }
-export const namingResearchPackSchema = z.strictObject({ ...envelopeFields, stageKey: z.literal("research"), output: namingResearchOutputSchema, readiness: z.enum(["sourced", "partial"]), sources: sourcesSchema }).superRefine((value, ctx) => {
+export const namingResearchPackSchema = z.strictObject({ ...envelopeFields, stageKey: z.enum(["research", "creation"]), output: namingResearchOutputSchema, readiness: z.enum(["sourced", "partial"]), sources: sourcesSchema }).superRefine((value, ctx) => {
   checkEnvelope(value, ctx); checkSources(value, [...value.output.territories, ...value.output.facts, ...value.output.interpretations].flatMap(row => row.sourceKeys), ctx);
   const retrieved = new Set(value.sources.filter(source => source.evidenceStatus === "retrieved").map(source => source.sourceKey));
   if (value.readiness === "sourced" && (!retrieved.size || !value.output.facts.some(fact => fact.sourceKeys.length > 0 && fact.sourceKeys.every(key => retrieved.has(key))))) issue(ctx, "Generation-ready research requires retrieved supporting material; retain other results as partial");
 }).transform(freeze);
 export type NamingResearchPack = z.infer<typeof namingResearchPackSchema>;
-export const namingAssignmentPlanSchema = z.strictObject({ ...envelopeFields, stageKey: z.enum(["direction", "gap"]), output: namingAssignmentOutputSchema }).superRefine((value, ctx) => {
+export const namingAssignmentPlanSchema = z.strictObject({ ...envelopeFields, stageKey: z.enum(["direction", "gap", "creation"]), output: namingAssignmentOutputSchema }).superRefine((value, ctx) => {
   checkEnvelope(value, ctx);
   if ((value.stageKey === "gap") !== (value.output.round === "gap")) issue(ctx, "Assignment round must match its saved stage");
 }).transform(freeze);
@@ -217,9 +224,9 @@ export const namingCreatorSetSchema = z.strictObject({ ...envelopeFields, stageK
   if (value.candidateIds.length !== keys.size || !unique(value.candidateIds.map(row => row.candidateId)) || !unique(value.candidateIds.map(row => row.candidateKey)) || value.candidateIds.some(row => !keys.has(row.candidateKey))) issue(ctx, "The application must resolve exactly one immutable ID for each candidate");
 }).transform(freeze);
 export type NamingCreatorSet = z.infer<typeof namingCreatorSetSchema>;
-export const namingCurationSchema = z.strictObject({ ...envelopeFields, stageKey: z.enum(["curation", "gap"]), output: namingCurationOutputSchema }).superRefine(checkEnvelope).transform(freeze);
+export const namingCurationSchema = z.strictObject({ ...envelopeFields, stageKey: z.enum(["curation", "gap", "creation"]), output: namingCurationOutputSchema }).superRefine(checkEnvelope).transform(freeze);
 export type NamingCuration = z.infer<typeof namingCurationSchema>;
-const verificationFields = { ...envelopeFields, stageKey: z.enum(["verification", "gap"]), output: namingVerificationOutputSchema, sources: sourcesSchema };
+const verificationFields = { ...envelopeFields, stageKey: z.enum(["verification", "gap", "creation"]), output: namingVerificationOutputSchema, sources: sourcesSchema };
 export const namingVerificationSchema = z.strictObject({ ...verificationFields, sourceDependencies: z.array(namingSourceDependencySchema).max(3).refine(rows => unique(rows.map(row => row.artifactId))).default([]) }).superRefine((value, ctx) => {
   checkEnvelope(value, ctx); checkSources(value, value.output.findings.flatMap(row => row.sourceKeys), ctx);
   const sources = new Map(value.sources.map(source => [source.sourceKey, source]));
@@ -271,10 +278,20 @@ export type NamingRoleOutput = z.infer<typeof namingRoleOutputSchema>;
 
 export const namingValidatedAssignmentSchema = z.strictObject({ ...namingCreatorAssignmentSchema.shape, runId: z.uuid(), snapshotHash: hash, assignmentOrder: z.number().int().min(0).max(59), planArtifactId: z.uuid(), round: z.enum(["initial", "gap"]), sources: sourcesSchema });
 export type NamingValidatedAssignment = z.infer<typeof namingValidatedAssignmentSchema>;
+export const namingProgressiveAssignmentSchema = z.strictObject({ ...namingCreatorAssignmentSchema.shape,
+  runId: z.uuid(), snapshotHash: hash, assignmentOrder: z.number().int().min(0).max(59), round: z.literal("initial"), sources: sourcesSchema,
+  assignmentBasis: z.discriminatedUnion("kind", [
+    z.strictObject({ kind: z.literal("brief_seed"), snapshotHash: hash }),
+    z.strictObject({ kind: z.literal("director_guidance"), artifactId: z.uuid(), runId: z.uuid(), snapshotHash: hash }),
+  ]),
+}).superRefine((value, ctx) => {
+  if (value.assignmentBasis.kind === "brief_seed" && (value.assignmentBasis.snapshotHash !== value.snapshotHash || value.sources.length || value.sourceKeys.length)) issue(ctx, "Brief seeds retain their honest frozen basis without claiming sourced research");
+});
+export type NamingProgressiveAssignment = z.infer<typeof namingProgressiveAssignmentSchema>;
 export function validateNamingAssignmentPlan(snapshotInput: unknown, researchInput: unknown, planInput: unknown, gapContextInput?: unknown): NamingValidatedAssignment[] {
   const snapshot = namingBriefSnapshotSchema.parse(snapshotInput), research = namingResearchPackSchema.parse(researchInput), plan = namingAssignmentPlanSchema.parse(planInput);
   assert(getNamingPreferencesReadiness(snapshot.preferences).ready, "Generation requires explicit saved approach/directness choices and possible constraints");
-  assert(research.readiness === "sourced", "Director admission requires a sourced research pack; partial research remains retained");
+  assert(research.readiness === "sourced" || research.readiness === "partial" && research.providerReceipt.budgetControl === "local_unlimited_v1" && plan.providerReceipt.budgetControl === "local_unlimited_v1", "Director admission requires sourced research or an explicitly local plan using the retained partial pack");
   assert(research.snapshotHash === snapshot.snapshotHash && plan.snapshotHash === snapshot.snapshotHash && research.runId === plan.runId, "Research and plan must bind the same frozen run");
   const selected = new Set(snapshot.preferences.approaches), territories = new Set(research.output.territories.map(row => row.territoryId)), sources = new Map(research.sources.map(row => [row.sourceKey, row]));
   const total = plan.output.assignments.reduce((sum, row) => sum + row.targetCount, 0);
@@ -290,7 +307,9 @@ export function validateNamingAssignmentPlan(snapshotInput: unknown, researchInp
   } else assert(gapContextInput === undefined, "Initial direction cannot receive a gap context");
   if (plan.output.round === "initial") {
     for (const approach of selected) assert(plan.output.assignments.filter(row => row.primaryApproach === approach).reduce((sum, row) => sum + row.targetCount, 0) >= NAMING_BRAIN_PRIMARY_FLOOR, "Every selected approach needs five primary candidate targets");
-    assert(plan.output.assignments.some(row => row.freshTerritory), "Initial and continuation exploration must leave room for fresh territory");
+    // Local novelty uses retained candidate identities, not a model's editorial flag.
+    const localExploration = research.providerReceipt.budgetControl === "local_unlimited_v1" && plan.providerReceipt.budgetControl === "local_unlimited_v1";
+    assert(localExploration || plan.output.assignments.some(row => row.freshTerritory), "Initial and continuation exploration must leave room for fresh territory");
   }
   return freeze(plan.output.assignments.map((assignment, index) => {
     assert(selected.has(assignment.primaryApproach) && assignment.additionalApproaches.every(approach => selected.has(approach)), "Assignment cannot add or relabel selected approaches");
@@ -316,11 +335,12 @@ export type NamingCreatorValidation = { accepted: NamingValidatedCandidate[]; re
 const graphemes = new Intl.Segmenter("en", { granularity: "grapheme" });
 const factualApproaches = new Set<NamingApproach>(["other_languages", "classical_roots", "stories_culture"]);
 export function validateNamingCreatorSet(snapshotInput: unknown, assignmentInput: unknown, outputInput: unknown): NamingCreatorValidation {
-  const snapshot = namingBriefSnapshotSchema.parse(snapshotInput), assignment = namingValidatedAssignmentSchema.parse(assignmentInput), output = namingCreatorSetSchema.parse(outputInput);
+  const snapshot = namingBriefSnapshotSchema.parse(snapshotInput), assignment = z.union([namingValidatedAssignmentSchema, namingProgressiveAssignmentSchema]).parse(assignmentInput), output = namingCreatorSetSchema.parse(outputInput);
+  assert(!("assignmentBasis" in assignment) || output.providerReceipt.localPipelineVersion === 2 && output.providerReceipt.budgetControl === "local_unlimited_v1", "Application assignments require an explicitly local progressive provider result");
   assert(output.runId === assignment.runId && output.snapshotHash === snapshot.snapshotHash && assignment.snapshotHash === snapshot.snapshotHash, "Creator output must bind its validated assignment and frozen run");
   assert(output.output.assignmentKey === assignment.assignmentKey && (output.stageKey === "gap") === (assignment.round === "gap"), "Creator output must match its assignment and round");
   assert(output.output.candidates.length <= assignment.targetCount, "Creator output exceeds its assigned target");
-  assert(output.providerReceipt.sessionLimitCents <= assignment.targetCount, "Creator session allowance exceeds its validated assignment allocation");
+  assert(output.providerReceipt.budgetControl === "local_unlimited_v1" || output.providerReceipt.sessionLimitCents <= assignment.targetCount, "Creator session allowance exceeds its validated assignment allocation");
   const selected = new Set(snapshot.preferences.approaches), sourceMap = new Map(assignment.sources.map(row => [row.sourceKey, row])), ids = new Map(output.candidateIds.map(row => [row.candidateKey, row.candidateId]));
   assert(selected.has(assignment.primaryApproach) && assignment.additionalApproaches.every(approach => selected.has(approach)), "Assignment must retain the selected approaches");
   const accepted: NamingValidatedCandidate[] = [], rejected: NamingCandidateRejection[] = [], identities = new Set<string>();
@@ -335,7 +355,7 @@ export function validateNamingCreatorSet(snapshotInput: unknown, assignmentInput
     else if (snapshot.preferences.requiredText.some(fragment => !matchesNamingTextFragment(candidate.value, fragment))) reason = "required_text";
     else if (snapshot.preferences.excludedText.some(fragment => matchesNamingTextFragment(candidate.value, fragment))) reason = "excluded_text";
     else if (identities.has(identityKey)) reason = "duplicate_response";
-    else if (factualApproaches.has(candidate.primaryApproach) && !candidate.claims.some(claim => claim.requirement === "primary_approach")) reason = "unsupported_primary_claim";
+    else if ((factualApproaches.has(candidate.primaryApproach) || output.providerReceipt.localPipelineVersion === 2 && candidate.primaryApproach === "people_places") && !candidate.claims.some(claim => claim.requirement === "primary_approach")) reason = "unsupported_primary_claim";
     const candidateId = ids.get(candidate.candidateKey)!;
     if (reason) { rejected.push({ assignmentKey: assignment.assignmentKey, candidateKey: candidate.candidateKey, candidateId, reason }); return; }
     identities.add(identityKey);
@@ -386,7 +406,10 @@ const retainedPartialsSchema = z.array(z.strictObject({ providerItemId: provider
 export const namingStageOutcomeSchema = z.discriminatedUnion("status", [
   z.strictObject({ status: z.literal("completed"), receipt: namingProviderReceiptSchema, output: namingRoleOutputSchema }).refine(value => JSON.stringify(value.receipt) === JSON.stringify(value.output.providerReceipt), "Completed output must retain the exact provider receipt"),
   z.strictObject({ status: z.enum(["failed", "cancelled"]), code: z.string().regex(/^[a-z][a-z0-9_]{0,79}$/), receipt: namingProviderReceiptSchema, partialArtifacts: retainedPartialsSchema }).refine(value => value.receipt.dispatchState === "dispatched" && (value.receipt.protocol === "openai_agents" ? value.receipt.sessionId !== null && value.receipt.turnId !== null : value.receipt.responseId !== null) && boundedBytes(value, 524_288), "Known terminal outcomes require observed dispatch and bounded retained artifacts"),
-  z.strictObject({ status: z.literal("rejected_before_dispatch"), code: z.string().regex(/^[a-z][a-z0-9_]{0,79}$/) }),
+  z.strictObject({ status: z.literal("rejected_before_dispatch"), code: z.string().regex(/^[a-z][a-z0-9_]{0,79}$/), receipt: namingProviderReceiptSchema.optional() }).refine(value => !value.receipt || value.code === "local_dispatch_not_attempted"
+    && value.receipt.budgetControl === "local_unlimited_v1" && value.receipt.dispatchState === "not_dispatched" && value.receipt.requestId === null
+    && value.receipt.observedModel === null && value.receipt.estimatedCostMicrousd === null && value.receipt.accountingStatus === "provisional"
+    && value.receipt.confirmedActualCostMicrousd === null, "A retained local pre-dispatch failure must contain no provider execution evidence"),
   z.strictObject({ status: z.literal("unresolved"), code: z.string().regex(/^[a-z][a-z0-9_]{0,79}$/), receipt: namingProviderReceiptSchema.nullable(), partialArtifacts: retainedPartialsSchema }).refine(value => boundedBytes(value, 524_288), "Retained partials exceed the bounded output limit"),
 ]);
 export type NamingStageOutcome = z.infer<typeof namingStageOutcomeSchema>;
@@ -423,18 +446,25 @@ export const namingBrainPolicySchema = z.strictObject({
 export type NamingBrainPolicy = z.infer<typeof namingBrainPolicySchema>;
 export const namingRolePolicySchema = z.strictObject({
   version: z.literal(1), role: namingRoleSchema, protocol: z.literal("openai_agents"), model: z.string().trim().min(1).max(150), reasoningEffort: z.literal("xhigh"),
+  // The legacy monetary fields below remain canonical bookkeeping in this local mode; they do not limit spend.
+  budgetControl: z.literal("local_unlimited_v1").optional(),
+  localPipelineVersion: z.literal(2).optional(),
   maximumCostMicrousd: z.number().int().min(1).max(1_500_000), sessionLimitCents: z.number().int().min(1).max(150), maxWebSearchCalls: z.number().int().min(0).max(20),
-  maxInputBytes: z.literal(131_072), maxOutputBytes: z.literal(524_288), deadlineMs: z.literal(240_000), nativeDelegation: z.literal(false),
+  maxInputBytes: z.literal(131_072), maxOutputBytes: z.literal(524_288), deadlineMs: z.union([z.literal(240_000), z.literal(900_000)]), nativeDelegation: z.literal(false),
   allowedTools: z.array(z.enum(["web_search", "read_reference"])).max(2).refine(unique),
   referenceHosts: z.array(z.string().min(3).max(253).regex(/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/)).max(40).refine(unique),
 }).superRefine((value, ctx) => {
-  if (value.maximumCostMicrousd !== value.sessionLimitCents * 10_000) issue(ctx, "Native session cents must exactly match the server-allocated micro-USD bound");
+  if (value.localPipelineVersion === 2 && (value.budgetControl !== "local_unlimited_v1" || value.deadlineMs !== 900_000)) issue(ctx, "Progressive calls require the explicit local execution and timing policy");
+  if (value.deadlineMs === 900_000 && value.budgetControl !== "local_unlimited_v1") issue(ctx, "Extended call timing requires explicit local execution");
+  if (value.maximumCostMicrousd !== value.sessionLimitCents * 10_000) issue(ctx, "Session allocation cents must exactly match the server-allocated micro-USD bound");
   const searchRole = value.role === "researcher" || value.role === "verifier";
   if (searchRole ? value.allowedTools.length !== 2 || !value.referenceHosts.length : value.allowedTools.length !== 0 || value.maxWebSearchCalls !== 0 || value.referenceHosts.length !== 0) issue(ctx, "Only Research and Verification receive explicit read-only research tools");
-  if (value.role === "researcher" && (value.maxWebSearchCalls > 4 || value.maximumCostMicrousd > 750_000)) issue(ctx, "Research must fit its admitted stage bounds");
-  if (value.role === "director" && value.maximumCostMicrousd > 250_000) issue(ctx, "Direction must fit its admitted stage bound");
-  if (value.role === "curator" && value.maximumCostMicrousd > 500_000) issue(ctx, "Curation must fit its admitted stage bound");
-  if (value.role === "verifier" && value.maximumCostMicrousd > 1_250_000) issue(ctx, "Verification must fit its admitted stage bound");
+  if (value.role === "researcher" && (value.maxWebSearchCalls > 4 || !value.budgetControl && value.maximumCostMicrousd > 750_000)) issue(ctx, "Research must fit its admitted stage bounds");
+  if (!value.budgetControl) {
+    if (value.role === "director" && value.maximumCostMicrousd > 250_000) issue(ctx, "Direction must fit its admitted stage bound");
+    if (value.role === "curator" && value.maximumCostMicrousd > 500_000) issue(ctx, "Curation must fit its admitted stage bound");
+    if (value.role === "verifier" && value.maximumCostMicrousd > 1_250_000) issue(ctx, "Verification must fit its admitted stage bound");
+  }
 }).transform(freeze);
 export type NamingRolePolicy = z.infer<typeof namingRolePolicySchema>;
 /** Request-only tables. Full saved candidate/artifact/evidence records remain unchanged. */
@@ -534,7 +564,7 @@ export type NamingGapContext = z.infer<typeof namingGapContextSchema>;
 export const namingStageInputSchema = z.discriminatedUnion("role", [
   z.strictObject({ role: z.literal("researcher"), snapshot: namingBriefSnapshotSchema }),
   z.strictObject({ role: z.literal("director"), snapshot: namingBriefSnapshotSchema, research: namingResearchPackSchema, gapContext: namingGapContextSchema.optional() }),
-  z.strictObject({ role: z.literal("creator"), snapshot: namingBriefSnapshotSchema, assignment: namingValidatedAssignmentSchema }),
+  z.strictObject({ role: z.literal("creator"), snapshot: namingBriefSnapshotSchema, assignment: z.union([namingValidatedAssignmentSchema, namingProgressiveAssignmentSchema]) }),
   z.strictObject({ role: z.literal("curator"), snapshot: namingBriefSnapshotSchema, review: namingReviewProjectionSchema, validationRejections: z.array(namingCandidateRejectionSchema).max(200) }),
   z.strictObject({ role: z.literal("verifier"), snapshot: namingBriefSnapshotSchema, review: namingReviewProjectionSchema, curation: namingCurationProjectionSchema }),
 ]);
@@ -544,10 +574,12 @@ export const namingStageRequestSchema = z.strictObject({
   requestKey, providerCallKey: localKey, assignmentKey: localKey.nullable(), requestHash: hash, policy: namingRolePolicySchema,
 }).superRefine((value, ctx) => {
   const { input } = value;
-  if (value.stageKey === "gap" && (value.policy.maximumCostMicrousd > 750_000 || value.policy.maxWebSearchCalls > 8)) issue(ctx, "Every gap call must remain within the shared gap stage limits");
-  if (!rolesForStage[value.stageKey].includes(value.role) || value.role !== input.role || value.role !== value.policy.role || value.snapshotHash !== input.snapshot.snapshotHash || !getNamingPreferencesReadiness(input.snapshot.preferences).ready) issue(ctx, "Role request must bind its ready frozen input, stage and accepted policy");
+  if (value.stageKey === "gap" && (!value.policy.budgetControl && value.policy.maximumCostMicrousd > 750_000 || value.policy.maxWebSearchCalls > 8)) issue(ctx, "Every gap call must remain within the shared gap stage limits");
+  const progressive = value.policy.localPipelineVersion === 2 && value.stageKey === "creation";
+  if (value.policy.localPipelineVersion === 2 && !progressive) issue(ctx, "Progressive role calls use their real creation orchestration stage");
+  if ((!progressive && !rolesForStage[value.stageKey].includes(value.role)) || value.role !== input.role || value.role !== value.policy.role || value.snapshotHash !== input.snapshot.snapshotHash || !getNamingPreferencesReadiness(input.snapshot.preferences).ready) issue(ctx, "Role request must bind its ready frozen input, stage and accepted policy");
   const dependencies = new Set(value.dependencyArtifactIds);
-  if (input.role === "director" && (input.research.runId !== value.runId || input.research.snapshotHash !== value.snapshotHash || input.research.readiness !== "sourced" || !dependencies.has(input.research.artifactId))) issue(ctx, "Direction must depend on saved sourced research from this run");
+  if (input.role === "director" && (input.research.runId !== value.runId || input.research.snapshotHash !== value.snapshotHash || !(input.research.readiness === "sourced" || input.research.readiness === "partial" && value.policy.budgetControl === "local_unlimited_v1" && input.research.providerReceipt.budgetControl === "local_unlimited_v1") || !dependencies.has(input.research.artifactId))) issue(ctx, "Direction must depend on saved research from this run with the same explicit local mode for a partial pack");
   if (input.role === "director") {
     const gap = input.gapContext;
     if ((value.stageKey === "gap") !== (gap !== undefined)) issue(ctx, "Director gap context is required only for the gap phase");
@@ -555,8 +587,13 @@ export const namingStageRequestSchema = z.strictObject({
   }
   if (input.role === "creator") {
     if ((value.stageKey === "gap") !== (input.assignment.round === "gap")) issue(ctx, "Creator requests must use the stage reserved for their assignment round");
-    if (value.assignmentKey !== input.assignment.assignmentKey || input.assignment.runId !== value.runId || input.assignment.snapshotHash !== value.snapshotHash || !dependencies.has(input.assignment.planArtifactId)) issue(ctx, "Creator requests must bind one saved validated assignment");
-    if (value.policy.sessionLimitCents > input.assignment.targetCount) issue(ctx, "Creator session allowance cannot exceed its share of the creation-stage allocation");
+    if (value.assignmentKey !== input.assignment.assignmentKey || input.assignment.runId !== value.runId || input.assignment.snapshotHash !== value.snapshotHash) issue(ctx, "Creator requests must bind one saved validated assignment");
+    if ("assignmentBasis" in input.assignment) {
+      if (!progressive) issue(ctx, "Application assignments require the progressive local pipeline");
+      const basis = input.assignment.assignmentBasis;
+      if (basis.kind === "director_guidance" && (basis.runId !== value.runId || basis.snapshotHash !== value.snapshotHash || !dependencies.has(basis.artifactId))) issue(ctx, "Director guidance must retain its actual immutable artifact dependency");
+    } else if (!dependencies.has(input.assignment.planArtifactId)) issue(ctx, "Creator requests must bind one saved validated assignment");
+    if (!value.policy.budgetControl && value.policy.sessionLimitCents > input.assignment.targetCount) issue(ctx, "Creator session allowance cannot exceed its share of the creation-stage allocation");
   } else if (value.assignmentKey !== null) issue(ctx, "Only Creator calls bind a Creator assignment key");
   if (input.role === "curator" || input.role === "verifier") {
     if (input.review.runId !== value.runId || input.review.snapshotHash !== value.snapshotHash || input.review.artifacts.some(artifact => !dependencies.has(artifact.sourceArtifactId))) issue(ctx, "Review requires saved candidate artifacts from this run");
@@ -587,9 +624,38 @@ export interface NamingAgentRuntime {
 }
 export const namingBrainJobInputSchema = z.strictObject({
   version: z.literal(2), handlerVersion: z.literal(NAMING_BRAIN_HANDLER_VERSION), billingMode: z.literal("openai_api"), runId: z.uuid(), jobId: z.uuid(), batchId: z.uuid(),
+  localTimingVersion: z.literal(2).optional(),
+  localPipelineVersion: z.literal(2).optional(),
   snapshot: namingBriefSnapshotSchema, acceptedPolicyIdentity: hash, policy: namingBrainPolicySchema,
-}).refine(value => getNamingPreferencesReadiness(value.snapshot.preferences).ready, "Admission requires generation-ready saved preferences").transform(freeze);
+}).refine(value => getNamingPreferencesReadiness(value.snapshot.preferences).ready, "Admission requires generation-ready saved preferences")
+ .refine(value => value.localPipelineVersion !== 2 || value.localTimingVersion === 2, "Progressive admission retains its explicit local timing witness").transform(freeze);
 export type NamingBrainJobInput = z.infer<typeof namingBrainJobInputSchema>;
+
+export const namingProgressivePhaseSchema = z.union([z.literal("context.research"), z.literal("context.direction"), z.string().regex(/^part[0-9]{3}\.(?:creation|curation|verification)$/)]);
+export type NamingProgressivePhase = z.infer<typeof namingProgressivePhaseSchema>;
+export const namingMicrobatchInputSchema = z.strictObject({
+  version: z.literal(1), key: z.string().regex(/^part[0-9]{3}$/),
+  candidates: z.array(z.strictObject({ candidateId: z.uuid(), sourceArtifactId: z.uuid(), candidateKey: localKey, assignmentKey: localKey, identityKey: nameIdentityKeySchema.min(1) })).min(1).max(30),
+  curationArtifactId: z.uuid(), verification: z.discriminatedUnion("kind", [
+    z.strictObject({ kind: z.literal("not_required"), reason: z.literal("no_factual_claims") }),
+    z.strictObject({ kind: z.literal("verified"), artifactId: z.uuid() }),
+  ]),
+}).refine(value => unique(value.candidates.map(row => row.candidateId)), "A microbatch retains unique candidate identities");
+export type NamingMicrobatchInput = z.infer<typeof namingMicrobatchInputSchema>;
+export const namingProgressivePublicationSchema = z.strictObject({ key: z.string().regex(/^part[0-9]{3}$/), publicationId: z.uuid(), entryIds: z.array(z.uuid()).max(30).refine(unique), candidateIds: z.array(z.uuid()).max(30).refine(unique) })
+ .refine(value => value.entryIds.length === value.candidateIds.length, "Published microbatch membership and feed entries correspond exactly");
+export type NamingProgressivePublication = z.infer<typeof namingProgressivePublicationSchema>;
+export const namingMicrobatchResultSchema = namingProgressivePublicationSchema.safeExtend({ publishedCount: z.number().int().min(0).max(100), primaryCounts: z.array(z.strictObject({ approach: namingApproachSchema, count: z.number().int().min(0).max(100) })).max(11), complete: z.boolean() });
+export type NamingMicrobatchResult = z.infer<typeof namingMicrobatchResultSchema>;
+/** Final membership references the genuine reviewed publications, not an
+ * invented global Curator or Verifier artifact. */
+export const namingProgressiveCompletionSchema = z.strictObject({
+  version: z.literal(1), runId: z.uuid(), targetCount: z.literal(100), publishedCount: z.literal(100),
+  candidateIds: z.array(z.uuid()).length(100).refine(unique), entryIds: z.array(z.uuid()).length(100).refine(unique),
+  primaryCounts: z.array(z.strictObject({ approach: namingApproachSchema, count: z.number().int().min(5).max(100) })).min(1).max(11),
+  sourcePublicationIds: z.array(z.uuid()).min(1).max(100).refine(unique),
+}).refine(value => unique(value.primaryCounts.map(row => row.approach)) && value.primaryCounts.reduce((sum, row) => sum + row.count, 0) === 100);
+export type NamingProgressiveCompletion = z.infer<typeof namingProgressiveCompletionSchema>;
 
 export const namingFeedCursorSchema = z.strictObject({ entryId: z.uuid(), position: revision });
 export type NamingFeedCursor = z.infer<typeof namingFeedCursorSchema>;
@@ -616,27 +682,34 @@ const runSummaryFields = {
   canResume: z.boolean().default(false),
   // An independent server witness permits only reuse of saved membership.
   canResumeSaved: z.boolean().optional(),
+  localPipelineVersion: z.literal(2).optional(),
+  progressiveCompletionId: z.uuid().optional(),
   state: z.enum(["queued", "running", "partial", "cancel_requested", "cancelled", "succeeded", "failed", "needs_reconciliation", "prepared", "superseded"]),
   projectRevision: revision, preferencesVersion: revision, feedbackRevision: counter, steeringRevision: counter, demandSequence: counter, snapshotHash: hash, acceptedPolicyIdentity: hash,
   progress: z.number().int().min(0).max(100), preparedSetId: z.uuid().nullable(), fulfillment: namingBrainFulfillmentSchema.nullable(), accounting: namingRunAccountingSchema, createdAt: timestamp, updatedAt: timestamp,
 };
-function hasCompletePreparedMembership(value: { state: string; preparedSetId: string | null; fulfillment: NamingBrainFulfillment | null }): boolean {
-  return ["prepared", "succeeded", "cancelled"].includes(value.state) && value.preparedSetId !== null && value.fulfillment?.status === "complete";
+function hasCompletePreparedMembership(value: { state: string; preparedSetId: string | null; localPipelineVersion?: 2; progressiveCompletionId?: string; fulfillment: NamingBrainFulfillment | null }): boolean {
+  return value.fulfillment?.status === "complete" && (["prepared", "succeeded", "cancelled"].includes(value.state) && value.preparedSetId !== null
+    || value.localPipelineVersion === 2 && value.progressiveCompletionId !== undefined && ["prepared", "succeeded", "cancelled", "partial", "failed"].includes(value.state));
 }
-function validResumeWitness(value: { canResume: boolean; canResumeSaved?: boolean; state: string; preparedSetId: string | null; fulfillment: NamingBrainFulfillment | null }): boolean {
-  if (value.canResumeSaved && (!value.canResume || !value.preparedSetId || !value.fulfillment?.acceptedCount)) return false;
-  return !value.canResume || hasCompletePreparedMembership(value) || (["partial", "cancelled", "failed"].includes(value.state) && value.fulfillment?.status !== "complete");
+function validResumeWitness(value: { canResume: boolean; canResumeSaved?: boolean; state: string; preparedSetId: string | null; localPipelineVersion?: 2; progressiveCompletionId?: string; fulfillment: NamingBrainFulfillment | null }): boolean {
+  if (value.canResumeSaved && (!value.canResume || !(value.preparedSetId || value.localPipelineVersion === 2 && value.progressiveCompletionId) || !value.fulfillment?.acceptedCount)) return false;
+  return !value.canResume || hasCompletePreparedMembership(value) || (["partial", "cancelled", "failed"].includes(value.state) && (value.fulfillment?.status !== "complete" || value.localPipelineVersion === 2 && !value.progressiveCompletionId));
 }
 export const namingBrainRunSummarySchema = z.strictObject(runSummaryFields).refine(value => value.runId !== value.resumedFromRunId, "Resume creates a new run linked to its terminal predecessor")
+  .refine(value => !value.progressiveCompletionId || value.localPipelineVersion === 2 && value.preparedSetId === null && value.fulfillment?.status === "complete", "Progressive completion retains its distinct genuine membership witness")
   .refine(validResumeWitness, "A server Resume witness requires admissible terminal work or complete prepared membership");
 export type NamingBrainRunSummary = z.infer<typeof namingBrainRunSummarySchema>;
 export const namingBrainRunSchema = z.strictObject({ ...runSummaryFields, snapshot: namingBriefSnapshotSchema,
-  stages: z.array(z.strictObject({ stageKey: namingStageKeySchema, state: z.enum(["pending", "running", "succeeded", "skipped", "failed", "cancelled", "unresolved"]), artifactIds: z.array(z.uuid()).max(60).refine(unique), startedAt: timestamp.nullable(), finishedAt: timestamp.nullable(), errorCode: z.string().regex(/^[a-z][a-z0-9_]{0,79}$/).nullable() })).length(7),
+  stages: z.array(z.strictObject({ stageKey: namingStageKeySchema, state: z.enum(["pending", "running", "succeeded", "skipped", "failed", "cancelled", "unresolved"]), artifactIds: z.array(z.uuid()).max(300).refine(unique), startedAt: timestamp.nullable(), finishedAt: timestamp.nullable(), errorCode: z.string().regex(/^[a-z][a-z0-9_]{0,79}$/).nullable() })).min(2).max(7),
 }).superRefine((value, ctx) => {
   const snapshot = value.snapshot;
+  if (value.progressiveCompletionId && (value.localPipelineVersion !== 2 || value.preparedSetId !== null || value.fulfillment?.status !== "complete")) issue(ctx, "Progressive completion retains its distinct genuine membership witness");
   if (!validResumeWitness(value)) issue(ctx, "A server Resume witness requires admissible terminal work or complete prepared membership", ["canResume"]);
   if (value.runId === value.resumedFromRunId || value.ownerId !== snapshot.ownerId || value.projectId !== snapshot.projectId || value.projectRevision !== snapshot.contextRevision || value.preferencesVersion !== snapshot.preferencesVersion || value.feedbackRevision !== snapshot.feedbackRevision || value.steeringRevision !== snapshot.steeringRevision || value.snapshotHash !== snapshot.snapshotHash) issue(ctx, "Run and snapshot must bind one owned revision basis");
-  if (!unique(value.stages.map(stage => stage.stageKey)) || value.stages.some((stage, index) => stage.stageKey !== namingStageKeySchema.options[index])) issue(ctx, "The complete fixed stage manifest must precede execution");
+  const expectedStages = value.localPipelineVersion === 2 ? ["creation", "prepare"] : namingStageKeySchema.options;
+  if (value.stages.length !== expectedStages.length || !unique(value.stages.map(stage => stage.stageKey)) || value.stages.some((stage, index) => stage.stageKey !== expectedStages[index])) issue(ctx, "The complete fixed stage manifest must precede execution");
+  if (value.localPipelineVersion !== 2 && value.stages.some(stage => stage.artifactIds.length > 60)) issue(ctx, "Historical stages retain their original artifact bound");
 }).transform(freeze);
 export type NamingBrainRun = z.infer<typeof namingBrainRunSchema>;
 export const namingFeedEntrySchema = z.strictObject({
@@ -657,6 +730,9 @@ export const namingBrainAvailabilitySchema = z.discriminatedUnion("status", [
 export type NamingBrainAvailability = z.infer<typeof namingBrainAvailabilitySchema>;
 export const namingFeedSchema = z.strictObject({
   version: z.literal(1), ownerId: z.uuid(), projectId: z.uuid(), projectRevision: revision, preferencesVersion: counter, feedbackRevision: counter, steeringRevision: counter, demandSequence: counter,
+  canResumeOnScroll: z.literal(true).optional(),
+  canPrefetchOnScroll: z.literal(true).optional(), retentionRevision: counter.optional(),
+  progressive: z.strictObject({ version: z.literal(1), targetCount: z.literal(100), publishedCount: z.number().int().min(0).max(100) }).optional(),
   entries: z.array(namingFeedEntrySchema).max(100), nextCursor: namingFeedCursorSchema.nullable(), consumedThrough: namingFeedCursorSchema.nullable(), activeRun: namingBrainRunSummarySchema.nullable(), preparedSetId: z.uuid().nullable(), paused: z.boolean().default(false), state: z.enum(["active", "paused", "blocked"]), availability: namingBrainAvailabilitySchema,
 }).superRefine((value, ctx) => {
   if (!unique(value.entries.map(row => row.entryId)) || !unique(value.entries.map(row => row.entry.candidate.id)) || value.entries.some((row, index) => row.entry.candidate.ownerId !== value.ownerId || row.entry.candidate.projectId !== value.projectId || row.steeringRevision > value.steeringRevision || (index > 0 && row.position <= value.entries[index - 1]!.position))) issue(ctx, "Feed rows require unique stable owned membership in increasing position order");
@@ -672,7 +748,9 @@ export const namingFeedEnsureResultSchema = z.discriminatedUnion("status", [
     : value.feed.activeRun?.runId === value.runId && hasCompletePreparedMembership(value.feed.activeRun), "Appended IDs must resolve to saved membership; an empty acknowledgement requires the retained complete prepared head"),
   z.strictObject({ status: z.literal("pending"), feed: namingFeedSchema, run: namingBrainRunSummarySchema, reused: z.boolean() }).refine(value => value.run.ownerId === value.feed.ownerId && value.run.projectId === value.feed.projectId && value.feed.activeRun?.runId === value.run.runId && ["queued", "running", "cancel_requested"].includes(value.run.state), "Pending result must identify this feed's active owned run"),
   z.strictObject({ status: z.enum(["paused", "blocked"]), feed: namingFeedSchema, code: z.string().regex(/^[a-z][a-z0-9_]{0,79}$/), message: text, action: resultAction }),
-  z.strictObject({ status: z.literal("incomplete"), feed: namingFeedSchema, run: namingBrainRunSummarySchema, fulfillment: namingBrainFulfillmentSchema, message: text, canResume: z.boolean() }).refine(value => value.run.ownerId === value.feed.ownerId && value.run.projectId === value.feed.projectId && value.fulfillment.status !== "complete" && value.run.fulfillment?.status !== "complete" && value.canResume === value.run.canResume && (!value.canResume || ["partial", "cancelled", "failed"].includes(value.run.state)), "Incomplete work remains owned and Resume must match the included run's server-qualified witness"),
+  z.strictObject({ status: z.literal("incomplete"), feed: namingFeedSchema, run: namingBrainRunSummarySchema, fulfillment: namingBrainFulfillmentSchema, message: text, canResume: z.boolean() }).refine(value => value.run.ownerId === value.feed.ownerId && value.run.projectId === value.feed.projectId
+    && (value.fulfillment.status !== "complete" && value.run.fulfillment?.status !== "complete" || value.run.localPipelineVersion === 2 && !value.run.progressiveCompletionId && ["partial", "cancelled", "failed"].includes(value.run.state))
+    && value.canResume === value.run.canResume && (!value.canResume || ["partial", "cancelled", "failed"].includes(value.run.state)), "Incomplete work remains owned and Resume must match the included run's server-qualified witness"),
 ]);
 export type NamingFeedEnsureResult = z.infer<typeof namingFeedEnsureResultSchema>;
 export const steerNamingFeedResponseSchema = z.strictObject({ feed: namingFeedSchema, supersededRunIds: z.array(z.uuid()).max(2).refine(unique), cancellationRequestedRunIds: z.array(z.uuid()).max(1) });

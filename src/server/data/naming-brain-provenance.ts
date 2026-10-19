@@ -18,13 +18,21 @@ export function normalizeNamingBrain(value: unknown, ownerId: string): unknown {
  }
  return row;
 }
-const sourceSchema = z.strictObject({
+const sourceFields = {
  ownerId: z.uuid(), projectId: z.uuid(), candidateId: z.uuid(), runId: z.uuid(), jobId: z.uuid(), batchId: z.uuid(),
  snapshot: namingBriefSnapshotSchema, sourceArtifactId: z.uuid(), sourceStageKey: z.enum(["creation", "gap"]),
  sourceCandidate: namingCandidateProposalSchema, providerReceipt: namingProviderReceiptSchema, creatorAttribution: namingCreatorAttributionSchema,
- verificationArtifactId: z.uuid(), verificationFindings: z.array(namingVerificationFindingSchema).max(8),
- preparedSetId: z.uuid(), preparedCandidateIds: z.array(z.uuid()).min(1).max(100),
-});
+ verificationFindings: z.array(namingVerificationFindingSchema).max(8),
+ preparedCandidateIds: z.array(z.uuid()).min(1).max(100),
+};
+const sourceSchema = z.union([
+ z.strictObject({ ...sourceFields, verificationArtifactId: z.uuid(), preparedSetId: z.uuid() }),
+ z.strictObject({ ...sourceFields, verificationArtifactId: z.uuid().nullable(), preparedSetId: z.null(), microbatchId: z.uuid(), verificationMode: z.enum(["verified", "not_required"]) }).superRefine((value, ctx) => {
+  if (value.sourceStageKey !== "creation" || value.providerReceipt.localPipelineVersion !== 2 || value.providerReceipt.budgetControl !== "local_unlimited_v1"
+   || (value.verificationMode === "verified") !== (value.verificationArtifactId !== null)
+   || value.verificationMode === "not_required" && (value.sourceCandidate.claims.length !== 0 || value.verificationFindings.length !== 0 || ["other_languages", "classical_roots", "stories_culture", "people_places"].includes(value.sourceCandidate.primaryApproach))) ctx.addIssue({ code: "custom", message: "Microbatch provenance must retain its actual verification requirement" });
+ }),
+]);
 export async function loadManagedNamingSources(auth: AuthenticatedContext, projectId: string, candidates: readonly ProjectNameCandidate[]) {
  const ids = candidates.filter(candidate => candidate.origin.kind === "generated" && candidate.origin.billingMode === "openai_api").map(candidate => candidate.id);
  const proofs = new Map<string, unknown>();

@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 const fixture = vi.hoisted(() => ({ query: vi.fn(), end: vi.fn() }));
-vi.mock("pg", () => ({ Pool: class { query = fixture.query; end = fixture.end; } }));
+vi.mock("pg", () => ({ Pool: class { query = fixture.query; end = fixture.end; on() { return this; } removeListener() { return this; } } }));
 vi.mock("../../src/server/ai/config", () => ({ readOpenAIStrategyConfiguration: () => null }));
 vi.mock("../../worker/naming-brain-configuration", async importOriginal => {
   const actual = await importOriginal<typeof import("../../worker/naming-brain-configuration")>();

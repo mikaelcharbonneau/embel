@@ -6,6 +6,7 @@ import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
 import { getVerifiedProjectName, verifyProjectNameCandidates } from "./project-naming";
 import { normalizeNamingBrain } from "./naming-brain-provenance";
+import { isLocalPrototypeRuntime } from "../api-text/config";
 
 function id(value: string) { if (!z.uuid().safeParse(value).success) throw new ApiError("not_found"); return value; }
 function parse<T>(schema: z.ZodType<T>, value: unknown, stored = false): T {
@@ -24,7 +25,15 @@ async function rpc<T>(auth: AuthenticatedContext, name: string, args: Record<str
 async function verifyFeed(auth: AuthenticatedContext, projectId: string, feed: NamingFeed) {
  if (feed.ownerId !== auth.userId || feed.projectId !== projectId) throw new ApiError("not_found");
  await verifyProjectNameCandidates(auth, projectId, feed.entries.map(entry => entry.entry.candidate));
- return feed;
+ const verified = { ...feed };
+ delete verified.canResumeOnScroll;
+ delete verified.canPrefetchOnScroll;
+ const localCurrent = isLocalPrototypeRuntime() && feed.activeRun
+  && feed.activeRun.projectRevision === feed.projectRevision && feed.activeRun.preferencesVersion === feed.preferencesVersion && feed.activeRun.steeringRevision === feed.steeringRevision
+  && !feed.paused && feed.state === "active" && feed.availability.status === "available";
+ if (localCurrent && feed.activeRun?.canResume && ["partial", "failed"].includes(feed.activeRun.state) && feed.activeRun.fulfillment?.status !== "complete") verified.canResumeOnScroll = true;
+ if (localCurrent && feed.activeRun?.state === "succeeded" && feed.activeRun.fulfillment?.status === "complete" && (feed.activeRun.localPipelineVersion === 2 ? feed.activeRun.progressiveCompletionId : feed.activeRun.preparedSetId !== null)) verified.canPrefetchOnScroll = true;
+ return verified;
 }
 export async function getNamingFeed(auth: AuthenticatedContext, projectId: string, cursor?: NamingFeedCursor, limit = 100) {
  id(projectId); if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new ApiError("invalid_input");
@@ -40,20 +49,19 @@ export async function ensureNextNamingRun(auth: AuthenticatedContext, projectId:
  const preferences=namingPreferencesV2Schema.safeParse(saved.data.preferences);
  if(!preferences.success || !getNamingPreferencesReadiness(preferences.data).ready) return parse(namingFeedEnsureResultSchema,{
   status:"blocked",feed:await getNamingFeed(auth,projectId),code:"preferences_incomplete",message:"Review your saved naming approaches, directness, text constraints and length limits before continuing.",action:"review_preferences"});
- const result = await rpc(auth, "ensure_naming_brain_run", { p_project_id: projectId, p_intent: parsed }, namingFeedEnsureResultSchema);
- await verifyFeed(auth, projectId, result.feed);
- return result;
+ const result = await rpc(auth, isLocalPrototypeRuntime() ? "ensure_local_naming_brain_run" : "ensure_naming_brain_run", { p_project_id: projectId, p_intent: parsed }, namingFeedEnsureResultSchema);
+ return { ...result, feed: await verifyFeed(auth, projectId, result.feed) };
 }
 export async function stopNamingFeed(auth: AuthenticatedContext, projectId: string, intent: unknown) {
  id(projectId); const parsed = parse(stopNamingFeedIntentSchema, intent);
  const result = await rpc(auth, "stop_naming_feed", { p_project_id: projectId, p_intent: parsed }, stopNamingFeedResponseSchema);
- await verifyFeed(auth, projectId, result.feed); return result;
+ return { ...result, feed: await verifyFeed(auth, projectId, result.feed) };
 }
 export async function steerNamingFeed(auth: AuthenticatedContext, projectId: string, intent: unknown) {
  id(projectId); const parsed = parse(steerNamingFeedIntentSchema, intent);
  for (const candidateId of parsed.candidateIds) await getVerifiedProjectName(auth, projectId, candidateId);
  const result = await rpc(auth, "steer_naming_feed", { p_project_id: projectId, p_intent: parsed }, steerNamingFeedResponseSchema);
- await verifyFeed(auth, projectId, result.feed); return result;
+ return { ...result, feed: await verifyFeed(auth, projectId, result.feed) };
 }
 export async function getNamingBrainRun(auth: AuthenticatedContext, projectId: string, runId: string) {
  const run = await rpc(auth, "get_naming_brain_run", { p_project_id: id(projectId), p_run_id: id(runId) }, namingBrainRunSchema);

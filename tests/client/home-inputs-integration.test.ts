@@ -28,7 +28,7 @@ beforeEach(() => {
  window.localStorage.clear(); window.sessionStorage.clear();
  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }); mock.session = account; mock.memory = createHomeInputSession(); mock.memory.bind(account);
  mock.current.mockReset().mockImplementation((value: VerifiedAccount) => mock.session.status === "ready" && mock.session.userId === value.userId && mock.session.generation === value.generation);
- mock.update.mockReset().mockReturnValue(true); mock.create.mockReset().mockReturnValue(projectId); mock.get.mockReset().mockReturnValue(draft); mock.push.mockReset(); mock.strategy.mockReset().mockResolvedValue(false); mock.save.mockReset().mockResolvedValue(true);
+ mock.update.mockReset().mockReturnValue(true); mock.create.mockReset().mockReturnValue(projectId); mock.get.mockReset().mockImplementation((id: string) => id === projectId ? draft : undefined); mock.push.mockReset(); mock.strategy.mockReset().mockResolvedValue(false); mock.save.mockReset().mockResolvedValue(true);
  forgetReceipt({ ownerId: owner, draftId: projectId, projectId: null });
  host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
@@ -83,9 +83,9 @@ describe("mounted Home attached brief integration", () => {
   });
   expect(mock.strategy).not.toHaveBeenCalled();
  });
- it("keeps a blocked text-only AI prompt on Home, without silent manual navigation", async () => {
+ it("retains a text-only prompt when its account-start action cannot be confirmed", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => capability())); await render(); await click("Send prompt");
-  expect(mock.create).toHaveBeenCalledTimes(1); expect(mock.strategy).toHaveBeenCalledExactlyOnceWith(draft); expect(mock.push).not.toHaveBeenCalled(); expect(host.querySelector("textarea")!.value).toContain("subscription tool");
+  expect(mock.create).not.toHaveBeenCalled(); expect(mock.strategy).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ ownerId: owner, description: expect.stringContaining("subscription tool") })); expect(mock.push).not.toHaveBeenCalled(); expect(host.querySelector("textarea")!.value).toContain("subscription tool");
  });
  it("retains an interrupted pre-hash selection guard through same-owner verification until explicit cancellation", async () => {
   vi.stubGlobal("crypto", webcrypto);
@@ -165,19 +165,20 @@ describe("mounted Home attached brief integration", () => {
   expect(host.querySelector("textarea")!.readOnly).toBe(true); expect(mock.create).toHaveBeenCalledTimes(1);
  });
 
- it("reuses the retained browser draft on AI retries and an explicit Save project", async () => {
+ it("reuses the pending account draft on retries and an explicit Save project", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => capability())); await render();
   await click("Send prompt"); await click("Send prompt");
-  expect(mock.create).toHaveBeenCalledTimes(1); expect(mock.strategy).toHaveBeenCalledTimes(2); expect(mock.push).not.toHaveBeenCalled();
-  await click("Save project"); expect(mock.create).toHaveBeenCalledTimes(1); expect(mock.strategy).toHaveBeenCalledTimes(2);
-  expect(mock.save).toHaveBeenCalledExactlyOnceWith(draft); expect(mock.push).not.toHaveBeenCalled();
+  expect(mock.create).not.toHaveBeenCalled(); expect(mock.strategy).toHaveBeenCalledTimes(2); expect(mock.push).not.toHaveBeenCalled();
+  const first = mock.strategy.mock.calls[0]![0]; expect(mock.strategy.mock.calls[1]![0]).toEqual(first);
+  await click("Save project"); expect(mock.create).not.toHaveBeenCalled(); expect(mock.strategy).toHaveBeenCalledTimes(2);
+  expect(mock.save).toHaveBeenCalledExactlyOnceWith(first); expect(mock.push).not.toHaveBeenCalled();
  });
  it("does not duplicate local drafts or AI starts on same-turn Send clicks", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => capability())); let finish!: (value: boolean) => void;
   mock.strategy.mockImplementation(() => new Promise<boolean>(resolve => { finish = resolve; })); await render();
   const submit = host.querySelector<HTMLButtonElement>('button[type="submit"]')!;
   await act(async () => { submit.click(); submit.click(); });
-  expect(mock.create).toHaveBeenCalledTimes(1); expect(mock.strategy).toHaveBeenCalledTimes(1);
+  expect(mock.create).not.toHaveBeenCalled(); expect(mock.strategy).toHaveBeenCalledTimes(1);
   await act(async () => finish(false)); expect(mock.push).not.toHaveBeenCalled();
  });
  it("keeps Save project unavailable while attached files need recovery", async () => {
@@ -200,7 +201,7 @@ describe("mounted Home attached brief integration", () => {
   const link = host.querySelector<HTMLAnchorElement>('a[href="/sign-in"]')!;
   link.addEventListener("click", event => event.preventDefault());
   await act(async () => link.click());
-  expect(mock.create).toHaveBeenCalledTimes(1); expect(mock.create.mock.calls[0]?.[0].description).toContain("subscription tool");
+  expect(mock.create).not.toHaveBeenCalled(); expect(JSON.parse(window.sessionStorage.getItem(`fluid.prompt-buffer.v1:${owner}`)!).input.context.description).toContain("subscription tool");
   expect(mock.strategy).not.toHaveBeenCalled();
  });
 
@@ -209,8 +210,8 @@ describe("mounted Home attached brief integration", () => {
   await click("A neighborhood coffee shop");
   const latest = host.querySelector("textarea")!.value; expect(latest).toContain("neighborhood coffee shop");
   mock.update.mockClear(); await click("Save project");
-  expect(mock.update).toHaveBeenCalledExactlyOnceWith(projectId, expect.objectContaining({ description: latest }));
-  expect(mock.strategy).toHaveBeenCalledTimes(1); expect(mock.create).toHaveBeenCalledTimes(1);
+  expect(mock.update).not.toHaveBeenCalled(); expect(mock.save).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ description: latest, id: mock.strategy.mock.calls[0]![0].id }));
+  expect(mock.strategy).toHaveBeenCalledTimes(1); expect(mock.create).not.toHaveBeenCalled();
  });
 
  it.each(["ordinary", "historical"] as const)("does not bypass an uncertain %s save by adding files", async kind => {

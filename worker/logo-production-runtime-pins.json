@@ -471,7 +471,7 @@
     {
       "operation": "vector",
       "path": "worker/logo-vector/process.ts",
-      "sha256": "3939a1db81ac2b67dccb2e1b33b2ef9f537f165f4517d77dd91937749003b384"
+      "sha256": "9473a807f0750639c97f978e2b331c10335e2b21e805f19816e7c14b1ce6259e"
     },
     {
       "operation": "vector",
@@ -481,7 +481,7 @@
     {
       "operation": "vector",
       "path": "worker/logo-vector/raster.ts",
-      "sha256": "2aebbb0c55c725e8b332debf8cc8dcd815be997373bb8913cb0fab8dc3c6fa79"
+      "sha256": "14d088d9960e59b115590e65cbddcc7ba5d419aa4fae0bed78f8ac2782ccbdd7"
     },
     {
       "operation": "exports",

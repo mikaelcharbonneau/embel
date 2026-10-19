@@ -4,12 +4,13 @@ import type { PoolConfig } from "pg";
 import { createLogoDedicatedPool } from "./logo-dedicated-pool";
 import { getLogoDedicatedConfiguration, logoDedicatedPoolOptions, type LogoDedicatedConfiguration } from "./logo-dedicated-config";
 import { startLogoProductionHost, type LogoProductionHost, type LogoProductionHostOptions } from "./logo-production-host";
-import { createLogoGenerativeStorageAuthorization } from "./logo-generative-storage-authorization";
+import { createLogoGenerativeStorageAuthorization, type LogoStorageTokenProvider } from "./logo-generative-storage-authorization";
 import { createLogoProductionStorageAuthorization } from "./logo-production-storage-authorization";
 import type { IdentityPoolPort } from "../src/server/runtime/identity-pool";
 
-export type LogoDedicatedEvent = "disabled" | "unavailable" | "running" | "stop_requested" | "drain_complete" | "drain_unconfirmed" | "disposal_unconfirmed";
+export type LogoDedicatedEvent = "disabled" | "unavailable" | "qualified" | "running" | "stop_requested" | "drain_complete" | "drain_unconfirmed" | "disposal_unconfirmed";
 export type LogoDedicatedResult = Readonly<{ status: "disabled"; exitCode: 0 } | { status: "unavailable" | "drain_unconfirmed" | "disposal_unconfirmed"; exitCode: 2 }
+  | { status: "qualified"; exitCode: 0 }
   | { status: "drained"; reason: "signal" | "idle_pool_error" | "runtime_failure"; exitCode: 0 | 1 }>;
 export interface LogoDedicatedPool extends IdentityPoolPort {
   on(event: "error", listener: (error: Error) => void): unknown;
@@ -32,7 +33,8 @@ const defaults: LogoDedicatedDependencies = {
  * injected pool/host/event ports are for synthetic lifecycle checks only.
  * No environment/credential discovery, grant, refresh, retry or restart.
  * A resolved close proves tracked host drain, not OS/HTTP cessation. */
-export async function runLogoDedicatedWorker(configuration: LogoDedicatedConfiguration, dependencies: LogoDedicatedDependencies = defaults): Promise<LogoDedicatedResult> {
+export async function runLogoDedicatedWorker(configuration: LogoDedicatedConfiguration, dependencies: LogoDedicatedDependencies = defaults,
+  options: Readonly<{ checkOnly?: boolean; storageTokenProvider?: LogoStorageTokenProvider }> = {}): Promise<LogoDedicatedResult> {
   // Diagnostics are best effort and must never bypass a shutdown fence.
   const emit = (event: LogoDedicatedEvent) => { try { dependencies.emit(event); } catch { /* No private logger error may escape. */ } };
   if (configuration.status === "disabled") { emit("disabled"); return Object.freeze({ status: "disabled", exitCode: 0 }); }
@@ -64,7 +66,8 @@ export async function runLogoDedicatedWorker(configuration: LogoDedicatedConfigu
     for (const lane of ["concepts", "refinements"] as const) {
       const capability = c.operations[lane]; if (!capability) continue;
       if (!brokerConfiguration) throw new Error("Logo dedicated storage configuration is unavailable.");
-      const authorization = createLogoGenerativeStorageAuthorization({ ...brokerConfiguration, capability });
+      const authorization = createLogoGenerativeStorageAuthorization({ ...brokerConfiguration, capability },
+        { fetch: globalThis.fetch, tokenProvider: options.storageTokenProvider });
       if (!authorization || !c.image) throw new Error("Logo dedicated configuration is unavailable.");
       authorizations.push(authorization); selected[lane] = { capability, authorization, image: c.image };
     }
@@ -89,7 +92,7 @@ export async function runLogoDedicatedWorker(configuration: LogoDedicatedConfigu
     pool.on("error", onPoolError);
     hostInvoked = true;
     host = await dependencies.startHost({ enabled: true, binding: c.binding, workerId: c.workerId, pool, signal: lifetime.signal, ...selected });
-    if (host.status === "qualified" && !lifetime.signal.aborted) {
+    if (host.status === "qualified" && !lifetime.signal.aborted && options.checkOnly !== true) {
       emit("running");
       try { await host.run(lifetime.signal); } catch { stop("runtime_failure"); }
     }
@@ -119,5 +122,11 @@ export async function runLogoDedicatedWorker(configuration: LogoDedicatedConfigu
   pool!.removeListener("error", onPoolError); removeSignals();
   if (host!.status !== "qualified") { emit("unavailable"); return Object.freeze({ status: "unavailable", exitCode: 2 }); }
   emit("drain_complete");
+  // Host construction validates the actual database identity and configured
+  // runtime composition. Storage Auth/session and job-bound authorization are
+  // checked before dispatch; check mode does not prove them or model access.
+  // Only run() reports readiness or claims work. Check mode disposes all
+  // resources before acknowledging qualification and never calls run().
+  if (options.checkOnly === true && !reason) { emit("qualified"); return Object.freeze({ status: "qualified", exitCode: 0 }); }
   return Object.freeze({ status: "drained", reason: reason ?? "runtime_failure", exitCode: reason === "signal" ? 0 : 1 });
 }

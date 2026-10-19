@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useSyncExternalStore, type RefObject } from "react";
 import type { LogoCreationController } from "./creation-controller";
 import type { LogoBillingObservation, LogoConceptBatch, LogoCostQuote } from "../../domain/logo-jobs";
 import type { LogoRasterSource } from "../../domain/logo-workspace";
@@ -58,12 +58,18 @@ export function LogoCostConfirmationView({ quote = null, billing = null, batch =
       <button className={styles.primaryButton} type="button" aria-label={onConfirm && context ? context.action : "Confirm generation"} disabled={!quote || !onConfirm || busy} onClick={onConfirm}>{busy ? "Confirming request…" : onConfirm && context ? context.action : "Confirm generation"}</button>
       {onCancel && <button className={styles.secondaryButton} type="button" disabled={busy} onClick={onCancel}>Cancel</button>}
     </div>
-    {!onConfirm && <p className={styles.note}>Generation is unavailable. No request can be started from this cost review.</p>}
+    {!onConfirm && !busy && <p className={styles.note}>Generation is unavailable. No request can be started from this cost review.</p>}
   </section>;
 }
 
 
-export function LogoCostConfirmation({ controller, batch = null }: { controller: LogoCreationController; batch?: LogoConceptBatch | null }) {
+export function LogoCostConfirmation({ controller, batch = null, returnFocusRef, hideDialog = false }: {
+  controller: LogoCreationController; batch?: LogoConceptBatch | null;
+  /** A preparatory save can disable the initiating control before quoting. */
+  returnFocusRef?: RefObject<HTMLElement | null>;
+  /** A direct composer submission still quotes and admits the exact request. */
+  hideDialog?: boolean;
+}) {
   const trigger = useRef<{ controller: LogoCreationController; element: HTMLElement } | null>(null);
   const subscribe = useCallback((listener: () => void) => controller.subscribe(() => {
     // Capture synchronously, before quoting disables and blurs the triggering
@@ -76,16 +82,16 @@ export function LogoCostConfirmation({ controller, batch = null }: { controller:
   }), [controller]);
   const state = useSyncExternalStore(subscribe, controller.getSnapshot, controller.getSnapshot);
   const dialog = useRef<HTMLDialogElement>(null);
-  const shown = state.quote !== null && (state.phase === "awaiting_confirmation" || state.phase === "admitting");
+  const shown = !hideDialog && state.quote !== null && (state.phase === "awaiting_confirmation" || state.phase === "admitting");
   useEffect(() => {
     const element = dialog.current;
     if (!shown || !element) return;
-    const previous = trigger.current?.controller === controller ? trigger.current.element : document.activeElement;
+    const previous = returnFocusRef?.current ?? (trigger.current?.controller === controller ? trigger.current.element : document.activeElement);
     element.showModal();
     return () => { element.close(); if (previous instanceof HTMLElement && previous.isConnected) previous.focus(); };
-  }, [shown, controller]);
+  }, [shown, controller, returnFocusRef]);
   return <>
-    {state.phase === "quoting" && <p role="status" className={styles.note}>Preparing your cost estimate…</p>}
+    {state.phase === "quoting" && <p role="status" className={styles.note}>{hideDialog ? "Preparing your refinement…" : "Preparing your cost estimate…"}</p>}
     {state.error && <p role="status" className={styles.warning}>{state.error}</p>}
     {state.phase === "refreshing_workspace" && <p role="status" className={styles.note}>Refreshing saved logo inputs…</p>}
     {(state.phase === "rejected" || state.phase === "resolve_draft") && <div className={styles.actions}><button className={styles.secondaryButton} type="button" onClick={() => void controller.returnToCostReview()}>Return to cost review</button></div>}

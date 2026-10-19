@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, createElement } from "react";
+import { act, createElement, Fragment } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
@@ -9,6 +9,7 @@ const mock = vi.hoisted(() => ({ session: null as (VerifiedAccount | { status: "
 vi.mock("../../src/components/workspace/account-session", () => ({ useAccountSession: () => ({ session: mock.session, isCurrent: mock.current, expire: mock.expire, namingBrainDrafts: mock.memory }), AccountStatus: () => createElement("p", {}, "Account verification required") }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mock.navigate }) }));
 import { StandaloneNamesAssistant } from "../../src/components/naming/standalone-names-assistant";
+import { NamingProjectEntryForm } from "../../src/components/naming/naming-project-entry-form";
 import { STANDALONE_NAMES_MAX_RESPONSE_BYTES, standaloneNamesRequest } from "../../src/components/naming/standalone-names-client";
 import { standaloneNamesOverviewSchema, type StandaloneNamesOverview } from "../../src/domain/standalone-names";
 import { brief, jobFixture, owner, other, proposal } from "../fixtures/standalone-names";
@@ -16,7 +17,7 @@ import { brief, jobFixture, owner, other, proposal } from "../fixtures/standalon
 let root: Root, host: HTMLDivElement, fetcher: ReturnType<typeof vi.fn>, overview: StandaloneNamesOverview;
 const availability = { status: "available" as const, billingMode: "chatgpt_subscription" as const, policyIdentity: "a".repeat(64), model: "fixture-model", maxNames: 20 as const, maxRequestsPerHour: 20, deadlineMs: 240000 };
 const button = (text: string) => [...host.querySelectorAll<HTMLButtonElement>("button")].find(item => item.textContent === text)!;
-async function render() { mock.memory!.bind(mock.session?.status === "ready" ? mock.session : null); await act(async () => root.render(createElement(StandaloneNamesAssistant))); await act(async () => { await vi.advanceTimersByTimeAsync(0); }); }
+async function render() { mock.memory!.bind(mock.session?.status === "ready" ? mock.session : null); await act(async () => root.render(createElement(Fragment, null, createElement(NamingProjectEntryForm), createElement(StandaloneNamesAssistant)))); await act(async () => { await vi.advanceTimersByTimeAsync(0); }); }
 async function click(element: HTMLElement) { await act(async () => element.click()); }
 async function field(element: HTMLInputElement | HTMLTextAreaElement, value: string) {
   await act(async () => { const prototype = element instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype; Object.getOwnPropertyDescriptor(prototype, "value")!.set!.call(element, value); element.dispatchEvent(new Event("input", { bubbles: true })); });
@@ -76,21 +77,14 @@ describe("standalone Names UI and acknowledgement recovery", () => {
     await click(button("Retry this project save"));
     expect(fetcher.mock.calls.filter(([, init]) => init.method === "POST").map(([, init]) => init.body)).toEqual([first, first]);
   });
-  it("shortlists, saves, refines selected names and copies actual displayed text", async () => {
-    let job = jobFixture("succeeded"); overview.jobs = [job]; const clipboard = vi.fn(async () => {}); Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: clipboard } });
-    fetcher.mockImplementation(async (_path, init) => {
-      if (init.method === "PATCH") { const value = JSON.parse(init.body); job = { ...job, likedIndexes: value.liked ? [0] : [], savedIndexes: value.saved ? [0] : [] }; return Response.json({ job }); }
-      if (init.method === "POST") { const value = JSON.parse(init.body); return Response.json({ job: { ...jobFixture(), depth: 1, refinement: { ...value.refinement, sourceNames: [proposal.value] } } }); }
-      return Response.json(overview);
-    });
-    await render(); await click(button("Shortlist")); expect(button("Shortlisted").getAttribute("aria-pressed")).toBe("true");
-    await click(button("Save")); expect(button("Saved").getAttribute("aria-pressed")).toBe("true");
+  it("keeps earlier names and shortlist choices readable without exposing legacy generation or refinement", async () => {
+    const job = { ...jobFixture("succeeded"), likedIndexes: [0], savedIndexes: [0] }; overview.jobs = [job];
+    const original = structuredClone(job), clipboard = vi.fn(async () => {}); Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: clipboard } });
+    await render(); expect(host.textContent).toContain("Shortlisted"); expect(host.textContent).toContain("Saved");
     await click(button("Copy")); expect(clipboard).toHaveBeenCalledWith(proposal.value);
-    const choice = [...host.querySelectorAll<HTMLLabelElement>("label")].find(label => label.textContent?.includes("Refine this name"))!.querySelector<HTMLInputElement>("input")!;
-    await click(choice); await field(host.querySelectorAll<HTMLTextAreaElement>("textarea")[2]!, "Make it shorter");
-    await click(host.querySelector<HTMLInputElement>('input[type="checkbox"]')!); await click(button("Refine selected names"));
-    const body = JSON.parse(fetcher.mock.calls.filter(([, init]) => init.method === "POST").at(-1)![1].body);
-    expect(body.refinement).toEqual({ sourceJobId: job.id, candidateIndexes: [0], instruction: "Make it shorter" }); expect(body.refinement).not.toHaveProperty("sourceNames");
+    await click(button("Shortlist & saved")); expect(host.textContent).toContain(proposal.value);
+    expect(button("Generate names")).toBeUndefined(); expect(button("Refine selected names")).toBeUndefined();
+    expect(host.querySelector('[type="checkbox"]')).toBeNull(); expect(fetcher.mock.calls.every(([, init]) => init.method === "GET")).toBe(true); expect(job).toEqual(original);
   });
   it("hides an account immediately and refuses late replies after owner changes", async () => {
     let finish!: (value: Response) => void; fetcher.mockImplementationOnce(() => new Promise<Response>(resolve => { finish = resolve; }));
