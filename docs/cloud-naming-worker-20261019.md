@@ -9,6 +9,13 @@ data, GPT-6 Luna/xhigh, durable jobs, immutable requests, cancellation and
 accounting evidence. The starting shared main revision is
 `814c4f866da40e01f59b61b6a9c1b8c265652100`.
 
+After the verified PR #22 preparation, the user explicitly selected **Activate
+on Vercel**. This approves secure transfer of the existing Naming API key and
+restricted database connection to the dedicated worker project, one worker under
+the existing Pro trial and applicable compute/AI usage, and a separate Vercel
+dashboard tab for the cutover and real verification. It does not authorize a plan
+upgrade, provider-credit purchase or new credentials.
+
 ## Prepared Vercel deployment
 
 Vercel Daemons are a public beta for long-running container processes, available
@@ -28,8 +35,7 @@ An empty protected project has been created in the existing Embel team:
 - Existing web project: `prj_WKrFUPy3wptZ3qI9l1hTuqPmzkDt`, unchanged.
 
 The project currently has no deployment, worker credentials or running compute.
-The user's host selection is recorded separately from approval to transfer
-credentials or incur additional hosted usage. An authenticated read-only team
+The user's explicit activation approval is recorded above. An authenticated read-only team
 lookup confirmed **Pro / trialing**. No billing-plan upgrade or provider-credit
 purchase is included. Current Washington D.C. Fluid compute rates are US$0.0106
 per GB-hour of provisioned memory and US$0.128 per Active CPU-hour. Assuming
@@ -155,7 +161,7 @@ enable  6c58efde02b46e1f3043397549126cd848a7a97301c94cd31ea7dec2de540d12
 
 Neither operator packet has run against the live database. Existing Mac
 configuration remains unchanged. Hosted build/secret-canary inspection,
-credential-transfer approval, actual standby qualification, controlled cutover
+approved credential transfer, actual standby qualification, controlled cutover
 and real cloud generation remain pending. No success or offline availability is
 claimed until those checks pass.
 
