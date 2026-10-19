@@ -1,21 +1,22 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-import { CLOUD_NAMING_RUNTIME, readCloudNamingConfiguration, readCloudNamingMode } from "../../worker/cloud-naming-configuration";
+import { CLOUD_NAMING_RUNTIME, readCloudNamingConfiguration, readCloudNamingMode, type CloudNamingMode } from "../../worker/cloud-naming-configuration";
 
 const sourceRevision = "a".repeat(40);
+const expectedProjectId = "prj_SyntheticNamingWorker";
 const ca = readFileSync(new URL("../../scripts/certs/supabase-prod-ca-2021.crt", import.meta.url), "utf8");
 function environment(): Record<string, string | undefined> {
-  return { NODE_ENV: "production", FLUID_RUNTIME: "cloud", FLUID_LOCAL_PROTOTYPE: "false", RENDER: "true", IS_PULL_REQUEST: "false",
-    RENDER_SERVICE_TYPE: "worker", RENDER_SERVICE_NAME: "embel-naming-worker-production", RENDER_GIT_REPO_SLUG: "mikaelcharbonneau/embel",
-    RENDER_GIT_BRANCH: "main", RENDER_GIT_COMMIT: sourceRevision, RENDER_SERVICE_ID: "srv-syntheticfixture01", RENDER_INSTANCE_ID: "synthetic-instance-1",
+  return { NODE_ENV: "production", FLUID_RUNTIME: "cloud", FLUID_LOCAL_PROTOTYPE: "false", VERCEL: "1", VERCEL_ENV: "production", VERCEL_TARGET_ENV: "production",
+    VERCEL_REGION: "iad1", VERCEL_GIT_PROVIDER: "github", VERCEL_GIT_REPO_OWNER: "mikaelcharbonneau", VERCEL_GIT_REPO_SLUG: "embel",
+    VERCEL_GIT_COMMIT_REF: "main", VERCEL_GIT_COMMIT_SHA: sourceRevision, VERCEL_PROJECT_ID: expectedProjectId, VERCEL_DEPLOYMENT_ID: "dpl_SyntheticNamingDeployment",
     EMBEL_NAMING_CLOUD_ACTIVATED: "true", FLUID_NAMING_BRAIN_ENABLED: "true", FLUID_PAID_CALLS_APPROVED: "true",
     OPENAI_API_KEY: "synthetic-cloud-provider-key", FLUID_NAMING_BRAIN_DATABASE_URL: "postgresql://fluid_naming_brain_worker.fricsfwqibyhemknqgyf:synthetic-password@aws-0-us-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full",
     FLUID_NAMING_BRAIN_DATABASE_CA_PEM: ca, FLUID_NAMING_BRAIN_DEPLOYMENT_ID: "embel-naming-local-b2ff6ce8bbc2-20261017",
     FLUID_NAMING_BRAIN_MODEL: "gpt-6-luna", FLUID_OPENAI_VERIFIED_MODELS: "gpt-6-luna" };
 }
-function configuration(env = environment(), mode: "run" | "preflight" = "run") {
-  return readCloudNamingConfiguration({ mode, sourceRevision, env, versions: CLOUD_NAMING_RUNTIME });
+function configuration(env = environment(), mode: CloudNamingMode = "run") {
+  return readCloudNamingConfiguration({ mode, sourceRevision, expectedProjectId, env, versions: CLOUD_NAMING_RUNTIME });
 }
 
 describe("cloud Naming production boundary", () => {
@@ -31,25 +32,35 @@ describe("cloud Naming production boundary", () => {
   });
   it.each([
     ["NODE_ENV", "development"], ["FLUID_RUNTIME", "local"], ["FLUID_LOCAL_PROTOTYPE", "true"], ["FLUID_LOCAL_PROTOTYPE", undefined],
-    ["RENDER", "false"], ["IS_PULL_REQUEST", "true"], ["IS_PULL_REQUEST", undefined], ["RENDER_SERVICE_TYPE", "web"],
-    ["RENDER_SERVICE_NAME", "embel-naming-preview"], ["RENDER_GIT_REPO_SLUG", "another/embel"], ["RENDER_GIT_BRANCH", "feature"],
-    ["RENDER_GIT_COMMIT", "b".repeat(40)], ["RENDER_SERVICE_ID", "unqualified"], ["RENDER_INSTANCE_ID", "bad instance"],
-    ["NODE_TLS_REJECT_UNAUTHORIZED", "0"], ["VERCEL_ENV", "production"],
+    ["VERCEL", "false"], ["VERCEL_ENV", "preview"], ["VERCEL_TARGET_ENV", "staging"], ["VERCEL_REGION", "sfo1"],
+    ["VERCEL_GIT_PROVIDER", "gitlab"], ["VERCEL_GIT_REPO_OWNER", "another"], ["VERCEL_GIT_REPO_SLUG", "another-repository"], ["VERCEL_GIT_COMMIT_REF", "feature"],
+    ["VERCEL_GIT_COMMIT_SHA", "b".repeat(40)], ["VERCEL_PROJECT_ID", "prj_AnotherNamingWorker"], ["VERCEL_DEPLOYMENT_ID", "bad deployment"],
+    ["VERCEL_GIT_PULL_REQUEST_ID", "123"], ["NODE_TLS_REJECT_UNAUTHORIZED", "0"], ["RENDER", "true"],
     ["PGOPTIONS", "-c role=postgres"], ["PGSSLMODE", "no-verify"], ["PGPASSWORD", "unrelated-private-password"],
   ])("rejects an unqualified %s value before returning any connection", (key, value) => {
     expect(() => configuration({ ...environment(), [key!]: value })).toThrow("cloud_naming_environment_unqualified");
   });
   it.each(["node", "icu", "unicode"] as const)("requires the qualified %s runtime version", key => {
-    expect(() => readCloudNamingConfiguration({ mode: "preflight", sourceRevision, env: environment(), versions: { ...CLOUD_NAMING_RUNTIME, [key]: "unqualified" } })).toThrow("cloud_naming_environment_unqualified");
+    expect(() => readCloudNamingConfiguration({ mode: "preflight", sourceRevision, expectedProjectId, env: environment(), versions: { ...CLOUD_NAMING_RUNTIME, [key]: "unqualified" } })).toThrow("cloud_naming_environment_unqualified");
   });
   it("rejects a source launch without a build revision", () => {
-    expect(() => readCloudNamingConfiguration({ mode: "preflight", sourceRevision: "", env: environment(), versions: CLOUD_NAMING_RUNTIME })).toThrow("cloud_naming_environment_unqualified");
+    expect(() => readCloudNamingConfiguration({ mode: "preflight", sourceRevision: "", expectedProjectId, env: environment(), versions: CLOUD_NAMING_RUNTIME })).toThrow("cloud_naming_environment_unqualified");
+  });
+  it.each(["", "unqualified", "prj_WKrFUPy3wptZ3qI9l1hTuqPmzkDt"])("rejects a missing, malformed or web project build pin (%s)", projectId => {
+    expect(() => readCloudNamingConfiguration({ mode: "preflight", sourceRevision, expectedProjectId: projectId,
+      env: { ...environment(), VERCEL_PROJECT_ID: projectId }, versions: CLOUD_NAMING_RUNTIME })).toThrow("cloud_naming_environment_unqualified");
   });
   it.each(["EMBEL_NAMING_CLOUD_ACTIVATED", "FLUID_NAMING_BRAIN_ENABLED", "FLUID_PAID_CALLS_APPROVED"])("never starts the worker when %s is not true", key => {
     for (const value of [undefined, "false", "TRUE"]) expect(() => configuration({ ...environment(), [key]: value })).toThrow("cloud_naming_activation_required");
   });
-  it("permits explicit read-only preflight while every activation gate is false", () => {
-    expect(configuration({ ...environment(), EMBEL_NAMING_CLOUD_ACTIVATED: "false", FLUID_NAMING_BRAIN_ENABLED: "false", FLUID_PAID_CALLS_APPROVED: "false" }, "preflight").paidDispatchEnabled).toBe(false);
+  it.each(["preflight", "standby"] as const)("permits explicit read-only %s while every activation gate is false", mode => {
+    expect(configuration({ ...environment(), EMBEL_NAMING_CLOUD_ACTIVATED: "false", FLUID_NAMING_BRAIN_ENABLED: "false", FLUID_PAID_CALLS_APPROVED: "false" }, mode).paidDispatchEnabled).toBe(false);
+  });
+  it("applies the same production, revision and credential boundary to standby", () => {
+    for (const changes of [{ VERCEL_ENV: "preview" }, { VERCEL_GIT_COMMIT_SHA: "f".repeat(40) }, { VERCEL_PROJECT_ID: "prj_AnotherNamingWorker" }])
+      expect(() => configuration({ ...environment(), ...changes }, "standby")).toThrow("cloud_naming_environment_unqualified");
+    expect(() => configuration({ ...environment(), OPENAI_API_KEY: "short" }, "standby")).toThrow("cloud_naming_configuration_invalid");
+    expect(() => configuration({ ...environment(), FLUID_NAMING_BRAIN_DATABASE_CA_PEM: undefined }, "standby")).toThrow("cloud_naming_database_configuration_invalid");
   });
   it.each([
     ["OPENAI_API_KEY", "short"], ["OPENAI_API_KEY", "synthetic key with whitespace"], ["FLUID_NAMING_BRAIN_DEPLOYMENT_ID", "bad deployment"],
@@ -58,9 +69,10 @@ describe("cloud Naming production boundary", () => {
   ])("requires exact Naming configuration for %s even in preflight", (key, value) => {
     expect(() => configuration({ ...environment(), [key!]: value }, "preflight")).toThrow("cloud_naming_configuration_invalid");
   });
-  it("supports only normal Naming execution or explicit preflight", () => {
+  it("supports only normal Naming execution or explicit preflight and standby", () => {
     expect(readCloudNamingMode([])).toBe("run"); expect(readCloudNamingMode(["--preflight"])).toBe("preflight");
-    for (const args of [["--naming-only"], ["--preflight", "extra"], ["--preflight", "--preflight"], ["--all"]]) expect(() => readCloudNamingMode(args)).toThrow("cloud_naming_arguments_invalid");
+    expect(readCloudNamingMode(["--standby"])).toBe("standby");
+    for (const args of [["--naming-only"], ["--preflight", "extra"], ["--preflight", "--preflight"], ["--all"], ["--standby", "--preflight"], ["--standby", "--standby"]]) expect(() => readCloudNamingMode(args)).toThrow("cloud_naming_arguments_invalid");
   });
 });
 

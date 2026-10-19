@@ -3,7 +3,7 @@ import { checkServerIdentity, TLSSocket } from "node:tls";
 import { setTimeout as delay } from "node:timers/promises";
 import { Pool } from "pg";
 import { z } from "zod";
-import { CLOUD_NAMING_DATABASE_ROLE, CLOUD_NAMING_DATABASE_ROLE_OID, CLOUD_NAMING_RUNTIME,
+import { CLOUD_NAMING_DAEMON_NAME, CLOUD_NAMING_DATABASE_ROLE, CLOUD_NAMING_DATABASE_ROLE_OID, CLOUD_NAMING_RUNTIME,
   type CloudNamingConfiguration, type CloudNamingMode } from "../../worker/cloud-naming-configuration";
 import { startNamingReadiness } from "../../worker/naming-brain-configuration";
 import { NamingBrainJobStore } from "../../worker/naming-brain-store";
@@ -66,15 +66,32 @@ export async function runCloudNamingWorker(options: {
     connectionFailed = true; stop();
   };
   pool.on("error", unavailable);
+  let poolClosed = false;
+  const closePool = async () => {
+    if (poolClosed) return;
+    poolClosed = true;
+    await pool.end();
+  };
   let readiness: Awaited<ReturnType<typeof startNamingReadiness>> | undefined;
   try {
     await verifyCloudNamingDatabase(pool, config.poolOptions.host!);
     if (controller.signal.aborted) return;
-    const identity = { serviceId: config.serviceId, instanceId: config.instanceId, sourceRevision: config.sourceRevision };
-    if (options.mode === "preflight") {
-      console.info(JSON.stringify({ event: "cloud_naming_preflight_verified", ...identity,
+    const identity = { projectId: config.projectId, vercelDeploymentId: config.vercelDeploymentId, daemon: CLOUD_NAMING_DAEMON_NAME, sourceRevision: config.sourceRevision };
+    if (options.mode === "preflight" || options.mode === "standby") {
+      // Standby releases its database connection before waiting. Its ref'd
+      // abortable timer keeps the container alive without polling any service.
+      if (options.mode === "standby") {
+        await closePool();
+        if (controller.signal.aborted) return;
+      }
+      console.info(JSON.stringify({ event: options.mode === "standby" ? "cloud_naming_standby_verified" : "cloud_naming_preflight_verified", ...identity,
         restrictedRoleVerified: true, tlsVerified: true, runtimeVerified: true,
         runtime: CLOUD_NAMING_RUNTIME, jobMutations: false, providerCalls: false }));
+      if (options.mode === "standby") {
+        while (!controller.signal.aborted) await delay(60_000, undefined, { signal: controller.signal }).catch(error => {
+          if (!controller.signal.aborted) throw error;
+        });
+      }
       return;
     }
     const store = new NamingBrainJobStore(pool, config.deploymentId), workerId = `naming-cloud-${randomUUID()}`;
@@ -105,7 +122,7 @@ export async function runCloudNamingWorker(options: {
     stop();
     try { await readiness?.stop(); }
     finally {
-      try { await pool.end(); }
+      try { await closePool(); }
       finally { pool.removeListener("error", unavailable); options.signal.removeEventListener("abort", stop); }
     }
     if (connectionFailed) throw new Error("cloud_naming_database_unavailable");

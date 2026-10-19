@@ -3,7 +3,7 @@ import type { PoolConfig } from "pg";
 import { readNamingBrainConfiguration, type NamingBrainConfiguration } from "./naming-brain-configuration";
 
 export const CLOUD_NAMING_RUNTIME = Object.freeze({ node: "22.22.2", icu: "78.2", unicode: "17.0" });
-export const CLOUD_NAMING_SERVICE_NAME = "embel-naming-worker-production";
+export const CLOUD_NAMING_DAEMON_NAME = "naming-worker";
 export const CLOUD_NAMING_DEPLOYMENT_ID = "embel-naming-local-b2ff6ce8bbc2-20261017";
 const DATABASE_CA_SHA256 = "700723581420dd1ac98fd7e9ac529f0ef210eadcaf87fc868a3ad7d114c2f3b7";
 const DIRECT_HOST = "db.fricsfwqibyhemknqgyf.supabase.co";
@@ -11,18 +11,19 @@ const POOLER_HOST = "aws-0-us-east-1.pooler.supabase.com";
 export const CLOUD_NAMING_DATABASE_ROLE = "fluid_naming_brain_worker";
 export const CLOUD_NAMING_DATABASE_ROLE_OID = 23033;
 
-export type CloudNamingMode = "run" | "preflight";
+export type CloudNamingMode = "run" | "preflight" | "standby";
 export type CloudNamingConfiguration = NamingBrainConfiguration & {
   poolOptions: PoolConfig;
   sourceRevision: string;
-  serviceId: string;
-  instanceId: string;
+  projectId: string;
+  vercelDeploymentId: string;
 };
 
 /** This service always selects Naming. There is no generic worker argument. */
 export function readCloudNamingMode(arguments_: readonly string[]): CloudNamingMode {
   if (arguments_.length === 0) return "run";
   if (arguments_.length === 1 && arguments_[0] === "--preflight") return "preflight";
+  if (arguments_.length === 1 && arguments_[0] === "--standby") return "standby";
   throw new Error("cloud_naming_arguments_invalid");
 }
 
@@ -56,18 +57,21 @@ function databaseOptions(connectionString: string, ca: string | undefined): Pool
 export function readCloudNamingConfiguration(options: {
   mode: CloudNamingMode;
   sourceRevision: string;
+  expectedProjectId: string;
   env?: Record<string, string | undefined>;
   versions?: Pick<NodeJS.ProcessVersions, "node" | "icu" | "unicode">;
 }): CloudNamingConfiguration {
   const env = options.env ?? process.env, versions = options.versions ?? process.versions;
   if (env.NODE_ENV !== "production" || env.FLUID_RUNTIME !== "cloud" || env.FLUID_LOCAL_PROTOTYPE !== "false"
-    || env.RENDER !== "true" || env.IS_PULL_REQUEST !== "false" || env.RENDER_SERVICE_TYPE !== "worker"
-    || env.RENDER_SERVICE_NAME !== CLOUD_NAMING_SERVICE_NAME || env.RENDER_GIT_REPO_SLUG !== "mikaelcharbonneau/embel"
-    || env.RENDER_GIT_BRANCH !== "main" || !/^[a-f0-9]{40}$/u.test(options.sourceRevision)
-    || env.RENDER_GIT_COMMIT !== options.sourceRevision || !/^srv-[a-z0-9]{10,64}$/u.test(env.RENDER_SERVICE_ID ?? "")
-    || !/^[A-Za-z0-9_-]{1,200}$/u.test(env.RENDER_INSTANCE_ID ?? "")
+    || env.VERCEL !== "1" || env.VERCEL_ENV !== "production" || env.VERCEL_TARGET_ENV !== "production"
+    || env.VERCEL_REGION !== "iad1" || env.VERCEL_GIT_PROVIDER !== "github" || env.VERCEL_GIT_REPO_OWNER !== "mikaelcharbonneau"
+    || env.VERCEL_GIT_REPO_SLUG !== "embel" || env.VERCEL_GIT_COMMIT_REF !== "main" || env.VERCEL_GIT_PULL_REQUEST_ID
+    || !/^[a-f0-9]{40}$/u.test(options.sourceRevision) || env.VERCEL_GIT_COMMIT_SHA !== options.sourceRevision
+    || !/^prj_[A-Za-z0-9]{10,100}$/u.test(options.expectedProjectId) || env.VERCEL_PROJECT_ID !== options.expectedProjectId
+    || options.expectedProjectId === "prj_WKrFUPy3wptZ3qI9l1hTuqPmzkDt"
+    || !/^dpl_[A-Za-z0-9]{10,100}$/u.test(env.VERCEL_DEPLOYMENT_ID ?? "")
     || env.NODE_TLS_REJECT_UNAUTHORIZED !== undefined && env.NODE_TLS_REJECT_UNAUTHORIZED !== "1"
-    || Object.keys(env).some(key => /^VERCEL(?:_|$)/u.test(key) && env[key] !== undefined)
+    || Object.keys(env).some(key => /^RENDER(?:_|$)/u.test(key) && env[key] !== undefined)
     || Object.keys(env).some(key => /^PG/u.test(key) && env[key] !== undefined)
     || Object.entries(CLOUD_NAMING_RUNTIME).some(([key, value]) => versions[key as keyof typeof versions] !== value))
     throw new Error("cloud_naming_environment_unqualified");
@@ -77,5 +81,5 @@ export function readCloudNamingConfiguration(options: {
   if (options.mode === "run" && (env.EMBEL_NAMING_CLOUD_ACTIVATED !== "true" || !naming.paidDispatchEnabled))
     throw new Error("cloud_naming_activation_required");
   return { ...naming, poolOptions: databaseOptions(naming.databaseUrl, env.FLUID_NAMING_BRAIN_DATABASE_CA_PEM),
-    sourceRevision: options.sourceRevision, serviceId: env.RENDER_SERVICE_ID!, instanceId: env.RENDER_INSTANCE_ID! };
+    sourceRevision: options.sourceRevision, projectId: env.VERCEL_PROJECT_ID!, vercelDeploymentId: env.VERCEL_DEPLOYMENT_ID! };
 }

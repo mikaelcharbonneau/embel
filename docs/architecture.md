@@ -15,15 +15,19 @@ the provider key locally. Its heartbeat gates hosted generation. Deployment of
 the web alone does not keep the Mac worker online. See
 [hosted Naming activation](hosted-naming-generation-20261018.md).
 
-D084 prepares an independent Render background-worker entrypoint for moving that
-same Naming execution off the Mac. It bundles only the Naming dependency graph,
-qualifies the exact cloud service/source/runtime and native restricted TLS login,
-and supports a read-only preflight before any worker mutation. It retains the
-existing job-derived authority and immutable database/deployment bindings. The
-prepared single-instance manifest disables preview and automatic deployments;
-cutover and later releases require no overlapping readiness publishers. The
-Mac remains the executor until cloud provisioning and credential transfer are
-approved and the guarded cutover is verified. See
+D084 prepares a dedicated Vercel Daemon for moving that same Naming execution off
+the Mac. The user selected Vercel after declining the Render proposal. The
+separate protected `embel-naming-worker` project receives only an isolated,
+verified Naming bundle and a runtime-only container. The web project receives no
+worker credentials. Runtime gates bind the exact Vercel project, main/source
+revision, Node/ICU/Unicode fingerprint and native restricted TLS login. Read-only
+preflight and standby modes precede any worker mutation. Existing job-derived
+authority and immutable database/deployment bindings remain authoritative.
+The committed manifest has zero instances; activation requires an explicit
+release mode and environment flag. Cutover and subsequent Vercel rollouts require
+no overlapping readiness publishers, with dashboard scaling overrides used when
+stopping a deployed worker. The Mac remains the executor until cloud credential
+transfer is approved and the guarded cutover is verified. See
 [cloud Naming worker](cloud-naming-worker-20261019.md).
 
 ## Local prototype execution

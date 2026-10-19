@@ -21,7 +21,8 @@
     "worker:naming": "node scripts/naming-worker.mjs",
     "check": "npm run typecheck && npm run lint && npm test && npm run build",
     "build:api-text-worker": "node scripts/build-api-text-worker.mjs",
-    "build:naming-worker": "node scripts/build-naming-worker.mjs"
+    "build:naming-worker": "node scripts/build-naming-worker.mjs",
+    "package:naming-worker": "node scripts/package-naming-worker.mjs"
   },
   "dependencies": {
     "@resvg/resvg-js": "2.6.2",

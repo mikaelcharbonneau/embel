@@ -3,7 +3,7 @@ import { PassThrough } from "node:stream";
 import { TLSSocket, type PeerCertificate } from "node:tls";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PoolConfig } from "pg";
-import type { CloudNamingConfiguration } from "../../worker/cloud-naming-configuration";
+import type { CloudNamingConfiguration, CloudNamingMode } from "../../worker/cloud-naming-configuration";
 vi.mock("server-only", () => ({}));
 const fixture = vi.hoisted(() => ({ pools: [] as EventEmitter[], poolOptions: [] as PoolConfig[], connect: vi.fn(), query: vi.fn(), release: vi.fn(), end: vi.fn(),
   attest: vi.fn(), reportReady: vi.fn(), expire: vi.fn(), handlers: vi.fn(), run: vi.fn(), deployments: [] as string[] }));
@@ -31,10 +31,10 @@ const identity = () => ({ session_user: "fluid_naming_brain_worker", current_use
   rolconnlimit: 4, has_memberships: false, owns_objects: false });
 function configuration(): CloudNamingConfiguration {
   return { apiKey: "synthetic-private-provider-key", databaseUrl: "postgresql://synthetic-private-database-url", deploymentId: "synthetic-bound-deployment", paidDispatchEnabled: true,
-    policy: createNamingBrainPolicy("gpt-6-luna"), sourceRevision: "a".repeat(40), serviceId: "srv-syntheticfixture01", instanceId: "synthetic-instance-1",
+    policy: createNamingBrainPolicy("gpt-6-luna"), sourceRevision: "a".repeat(40), projectId: "prj_SyntheticNamingWorker", vercelDeploymentId: "dpl_SyntheticNamingDeployment",
     poolOptions: { host: hostname, max: 2, password: "synthetic-private-password" } };
 }
-function run(controller: AbortController, mode: "run" | "preflight" = "run") {
+function run(controller: AbortController, mode: CloudNamingMode = "run") {
   return runCloudNamingWorker({ configuration: configuration(), mode, signal: controller.signal });
 }
 beforeEach(() => {
@@ -61,7 +61,7 @@ describe("cloud Naming read-only native preflight", () => {
     for (const method of [fixture.attest, fixture.reportReady, fixture.expire, fixture.handlers, fixture.run]) expect(method).not.toHaveBeenCalled();
     expect(fixture.deployments).toEqual([]);
     const log = JSON.parse(vi.mocked(console.info).mock.calls[0]![0] as string);
-    expect(log).toEqual({ event: "cloud_naming_preflight_verified", serviceId: "srv-syntheticfixture01", instanceId: "synthetic-instance-1", sourceRevision: "a".repeat(40),
+    expect(log).toEqual({ event: "cloud_naming_preflight_verified", projectId: "prj_SyntheticNamingWorker", vercelDeploymentId: "dpl_SyntheticNamingDeployment", daemon: "naming-worker", sourceRevision: "a".repeat(40),
       restrictedRoleVerified: true, tlsVerified: true, runtimeVerified: true, runtime: { node: "22.22.2", icu: "78.2", unicode: "17.0" }, jobMutations: false, providerCalls: false });
     expect(JSON.stringify(vi.mocked(console.info).mock.calls)).not.toContain("synthetic-private");
   });
@@ -104,6 +104,47 @@ describe("cloud Naming read-only native preflight", () => {
   });
 });
 
+describe("cloud Naming read-only standby", () => {
+  it("verifies once without activation, releases the database, and stays idle until shutdown without any Naming mutations", async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    let settled = false;
+    const pending = runCloudNamingWorker({ configuration: { ...configuration(), paidDispatchEnabled: false }, mode: "standby", signal: controller.signal })
+      .then(() => { settled = true; });
+    await vi.waitFor(() => expect(console.info).toHaveBeenCalledOnce());
+    expect(JSON.parse(vi.mocked(console.info).mock.calls[0]![0] as string)).toMatchObject({ event: "cloud_naming_standby_verified",
+      restrictedRoleVerified: true, tlsVerified: true, runtimeVerified: true, jobMutations: false, providerCalls: false });
+    expect(fixture.end).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(120_000);
+    expect(settled).toBe(false);
+    expect(fixture.connect).toHaveBeenCalledOnce();
+    expect(fixture.query.mock.calls.map(([sql]) => sql)).toEqual(["BEGIN READ ONLY", expect.stringContaining("from pg_catalog.pg_roles"), "ROLLBACK"]);
+    expect(fixture.deployments).toEqual([]);
+    for (const method of [fixture.attest, fixture.reportReady, fixture.expire, fixture.handlers, fixture.run]) expect(method).not.toHaveBeenCalled();
+    controller.abort(); await pending;
+    expect(settled).toBe(true); expect(fixture.end).toHaveBeenCalledOnce();
+    expect(fixture.pools[0]!.listenerCount("error")).toBe(0);
+    expect(console.info).toHaveBeenCalledOnce();
+    expect(JSON.stringify(vi.mocked(console.info).mock.calls)).not.toContain("synthetic-private");
+  });
+  it("fails before idle verification when the actual database identity is unqualified", async () => {
+    fixture.query.mockImplementation(async (sql: string) => ({ rows: sql.startsWith("select session_user") ? [{ ...identity(), rolsuper: true }] : [] }));
+    await expect(run(new AbortController(), "standby")).rejects.toThrow("cloud_naming_database_identity_unavailable");
+    expect(fixture.end).toHaveBeenCalledOnce(); expect(console.info).not.toHaveBeenCalled();
+    expect(fixture.deployments).toEqual([]); expect(fixture.run).not.toHaveBeenCalled();
+  });
+  it("does not announce standby when shutdown arrives during the connection check", async () => {
+    const controller = new AbortController();
+    fixture.query.mockImplementation(async (sql: string) => {
+      if (sql === "ROLLBACK") controller.abort();
+      return { rows: sql.startsWith("select session_user") ? [identity()] : [] };
+    });
+    await run(controller, "standby");
+    expect(fixture.end).toHaveBeenCalledOnce(); expect(console.info).not.toHaveBeenCalled();
+    expect(fixture.deployments).toEqual([]); expect(fixture.run).not.toHaveBeenCalled();
+  });
+});
+
 describe("cloud Naming loop and shutdown", () => {
   it("starts only existing Naming handlers after native qualification and never supplies process-wide authority", async () => {
     const controller = new AbortController(); fixture.run.mockImplementation(async () => { controller.abort(); return "idle"; });
@@ -127,8 +168,8 @@ describe("cloud Naming loop and shutdown", () => {
     await run(controller);
     expect(fixture.run).toHaveBeenCalledOnce(); expect(fixture.end).toHaveBeenCalledOnce();
   });
-  it("does not connect after a shutdown already requested", async () => {
-    const controller = new AbortController(); controller.abort(); await run(controller);
+  it.each(["run", "preflight", "standby"] as const)("does not connect in %s after a shutdown already requested", async mode => {
+    const controller = new AbortController(); controller.abort(); await run(controller, mode);
     expect(fixture.pools).toHaveLength(0); expect(fixture.connect).not.toHaveBeenCalled();
   });
   it("refuses a direct runtime call with disabled paid dispatch before connecting", async () => {
