@@ -387,6 +387,44 @@ and the final live outcome belong in the release PR and safe operational receipt
 in the ignored owner-only `.local-fluid` directory; no credential values are
 committed.
 
+### Completed cloud image test and selection check
+
+After the user separately approved the exact database recovery, the reviewed
+installation and operator decision completed. An independent before/after check
+retained all 1,594 existing rows: only the failed job's terminal fields, its
+reservation state and the account's unused hold changed. The original provider
+step and confirmed charge remain unchanged, both incident witnesses validate,
+and the worker still has exactly its original fourteen EXECUTE grants.
+
+The corrected cloud worker started on main
+`13f7fff99008bbc86f756b5843ea17a4d23f864d` at 15:39:27 UTC. Both Logo readiness
+lanes were fresh. The never-dispatched queued child resumed normally and saved
+its result; normal app retry admitted a separate immutable attempt for the
+confirmed publication failure. The live app displayed six ready concepts with
+all previews available. One chat refinement of the existing selected Glide
+wordmark also completed and saved a new raster while preserving earlier versions.
+No Mac Logo or generic worker process was present during these tests.
+
+The eight confirmed image responses total 129,207 micro-USD: 90,605 for six usable
+concepts, 23,527 for the refinement and the retained 15,075 failed-publication
+charge. All eight reservations settled normally; the pre-existing aggregate hold
+and account allowance were preserved. These are recorded image charges, separate
+from hosting costs.
+
+The final browser check exposed a client race after refinement completion:
+generation returned to idle before the workspace refresh finished, so automatic
+selection could submit old expected heads. Two real HTTP 409 responses rejected
+that selection without a saved request; the paid refinement itself remained
+committed. The selection correction awaits an acknowledged workspace refresh,
+rechecks the original source and account, and preserves concurrent user choices.
+Recovery of an already-stale manual command requires authoritative absence and a
+newer monotonic head, including a second exact-request read to catch a commit
+between the first two reads. It must never rebase an uncertain command or repeat
+generation. Independent review and 32 focused client tests cover delayed refresh,
+concurrent selection, stale commands, late receipts and account changes. Typecheck,
+repository lint and the production build pass. Final selection acknowledgement
+and reload are recorded with the release evidence.
+
 ## Official references checked on 2026-10-19
 
 - [Vercel daemon lifecycle and dashboard scaling](https://vercel.com/docs/daemons/managing-daemons):

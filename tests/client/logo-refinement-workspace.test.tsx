@@ -149,6 +149,63 @@ describe("refinement history through actual workspace, account client and memory
     await click("Retry original selection"); await until(() => expect(selection()?.getAttribute("aria-pressed")).toBe("true"));
     expect(f.selections).toEqual([original, original]); expect(f.admissions).toEqual([]); expect(f.quotes).toEqual([]); expect(memory?.get(f.workspace.projectId)?.pendingMutation).toBeNull();
   });
+  it("waits for acknowledged refinement heads before automatic selection", async () => {
+    const f = await syntheticRefinementWorkspaceHttp(); let finish!: () => void;
+    const fetcher: typeof fetch = async (path, init) => {
+      if (String(path) === `/api/projects/${f.workspace.projectId}/logo` && f.admissions.length && !f.selections.length) {
+        await new Promise<void>(resolve => { finish = resolve; });
+      }
+      return f.fetcher(path, init);
+    };
+    await mount(f, fetcher); await fillInstruction();
+    await until(() => expect(host.querySelector<HTMLButtonElement>('button[aria-label="Refine selected logo"]')?.disabled).toBe(false));
+    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Refine selected logo"]')!.click());
+    await until(() => expect(finish).toBeTypeOf("function"));
+    const completedHeads = structuredClone(f.workspace.heads);
+    expect(f.selections).toEqual([]); expect(memory?.get(f.workspace.projectId)?.pendingMutation).toBeNull();
+    await act(async () => finish());
+    await until(() => expect(selection()?.getAttribute("aria-pressed")).toBe("true"));
+    expect(f.selections).toHaveLength(1); expect(f.selections[0]?.expected).toEqual(completedHeads);
+    expect(f.admissions).toHaveLength(1); expect(f.quotes).toHaveLength(1);
+  });
+  it("does not overwrite a different saved selection observed by the refinement refresh", async () => {
+    const f = await syntheticRefinementWorkspaceHttp(); let changedSelection = false;
+    const fetcher: typeof fetch = async (path, init) => {
+      if (f.admissions.length && !changedSelection && String(path) === `/api/projects/${f.workspace.projectId}/logo`) {
+        // A second tab selects a saved version before this tab receives its
+        // refreshed baseline. Use the same strict fixture mutation path.
+        changedSelection = true;
+        await f.fetcher(`/api/projects/${f.workspace.projectId}/logo/rasters/selection`, { method: "POST", body: JSON.stringify({
+          requestKey: id(990), expected: f.workspace.heads, source: { kind: "refinement", rasterRevisionId: f.raster.id },
+        }) });
+      }
+      return f.fetcher(path, init);
+    };
+    await mount(f, fetcher); await fillInstruction();
+    await until(() => expect(host.querySelector<HTMLButtonElement>('button[aria-label="Refine selected logo"]')?.disabled).toBe(false));
+    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Refine selected logo"]')!.click());
+    await until(() => expect(changedSelection).toBe(true));
+    await until(() => expect(selection()?.getAttribute("aria-pressed")).toBe("true"));
+    expect(f.selections).toHaveLength(1); expect(f.selections[0]?.requestKey).toBe(id(990)); expect(f.admissions).toHaveLength(1);
+  });
+  it("recovers an absent stale selection without resubmitting, then explicitly selects from fresh heads", async () => {
+    const f = await syntheticRefinementWorkspaceHttp(true); await mount(f); await until(() => expect(selection()?.disabled).toBe(false));
+    // Another committed stage update advances the authoritative workspace after
+    // this tab loaded. The strict synthetic server rejects its old CAS body.
+    f.publish();
+    await act(async () => selection()!.click()); await until(() => expect(button("Check original selection")).toBeDefined());
+    const original = structuredClone(f.selections[0]), latestHeads = structuredClone(f.workspace.heads);
+    expect(host.textContent).toContain("Your saved workspace changed. Check the original selection");
+    await click("Check original selection");
+    await until(() => expect(button("Check original selection")).toBeUndefined());
+    expect(host.textContent).toContain("Choose your saved logo version again.");
+    expect(f.selections).toEqual([original]); expect(memory?.get(f.workspace.projectId)?.base).toEqual(latestHeads);
+    await until(() => expect(selection()?.disabled).toBe(false)); await act(async () => selection()!.click());
+    await until(() => expect(selection()?.getAttribute("aria-pressed")).toBe("true"));
+    expect(f.selections).toHaveLength(2); expect(f.selections[1]?.expected).toEqual(latestHeads);
+    expect(f.selections[1]?.requestKey).not.toBe(original?.requestKey); expect(f.selections[1]?.source).toEqual(original?.source);
+    expect(f.admissions).toEqual([]); expect(f.quotes).toEqual([]); expect(JSON.stringify(f.batch)).toBe(f.originalBatch);
+  });
   it("retains and selects successful history when image generation is unavailable", async () => {
     const f = await syntheticRefinementWorkspaceHttp(true); f.imageAvailable = false; await mount(f); await until(() => expect(selection()?.disabled).toBe(false));
     expect(host.textContent).toContain("Confirmed charge: $0.10"); await act(async () => selection()!.click());

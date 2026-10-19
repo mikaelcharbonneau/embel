@@ -13,7 +13,7 @@ import { useLogoDraftMemory } from "@/components/identity/logo-draft-memory-cont
 import { useLogoCreation } from "./use-logo-creation";
 import type { LogoCreationState } from "./creation-controller";
 import { LogoVerifiedPreview } from "./verified-preview";
-import { selectLogoCandidate, recoverLogoSelection } from "./selection-controller";
+import { selectLogoCandidate, recoverLogoSelection, LogoSelectionConflictResolvedError } from "./selection-controller";
 import { AccountRequestError, accountErrorMessage } from "../workspace/account-api";
 import { useLogoBatchHistory } from "./use-logo-batch-history";
 import { useLogoRefinementHistory } from "./use-logo-refinement-history";
@@ -82,6 +82,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
   const [comparison, setComparison] = useState<LogoRasterSource[]>([]);
   const [viewedVersions, setViewedVersions] = useState<Record<string, { key: string; count: number }>>({});
   const selectedRefinementRequests = useRef(new Set<string>());
+  const refreshedRefinementRequests = useRef(new Set<string>());
   const [conceptFilter, setConceptFilter] = useState<"all" | "saved">("all");
   const [refineInstruction, setRefineInstruction] = useState("");
   const [refinementSubmitting, setRefinementSubmitting] = useState(false);
@@ -342,7 +343,16 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
         setSelectionState({ selected: receipt.revision.payload.selected, workspaceRevision: receipt.workspace.heads.workspaceRevision, busy: false, error: null });
         if (!memory.get(projectId)?.dirty) void reloadWorkspace(false);
       }
-    } catch (error) { if (current()) setSelectionState(previous => ({ ...previous, error: accountErrorMessage(error) + " Your original selection request is kept." })); }
+    } catch (error) {
+      if (current() && error instanceof LogoSelectionConflictResolvedError) {
+        const result = await reloadWorkspace(false);
+        if (current()) setSelectionState(previous => ({ ...previous, error: result === "reloaded"
+          ? "Your saved workspace changed before this selection was applied. Choose your saved logo version again."
+          : "Your original selection was not applied. Your saved logos and edits are kept. Refresh the saved brand after resolving any local edits, then choose your logo version again." }));
+      } else if (current()) setSelectionState(previous => ({ ...previous, error: error instanceof AccountRequestError && error.status === 409
+        ? "Your saved workspace changed. Check the original selection before choosing a saved logo again."
+        : accountErrorMessage(error) + " Your original selection request is kept." }));
+    }
     finally { selecting.current = false; if (requestRead.current === controller) requestRead.current = null; if (current()) setSelectionState(previous => ({ ...previous, busy: false })); }
   }, [client, projectId, account, isCurrent, memory, reloadWorkspace]);
 
@@ -350,14 +360,30 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
     if (!completedRefinement || !projectId || !selectedLogo || completedRefinement.source.kind === "vector" || generationState.phase !== "idle"
       || !editing || workspace.pending || workspace.dirty || !saved || selectedRefinementRequests.current.has(completedRefinement.requestKey)
       || logoCandidateKey(completedRefinement.source) !== logoCandidateKey(selectedLogo)) return;
+    const originalSource = completedRefinement.source;
+    const concepts = workspace.stagePayloads?.concepts, refinements = workspace.stagePayloads?.refinements;
+    const acknowledged = refinements?.id === saved.stages.refinements?.id && refinements?.payload.rasterRevisionIds.includes(completedRefinement.id)
+      && concepts?.id === saved.stages.concepts?.id;
     let cancelled = false;
     queueMicrotask(() => {
-      if (cancelled || !isCurrent(account) || memory.get(projectId)?.workspace?.heads.workspaceRevision !== saved.heads.workspaceRevision) return;
+      if (cancelled || !isCurrent(account) || !draft || memory.get(projectId) !== draft || logoDraftHasProtectedWork(draft)) return;
+      // Completion can be observed before the workspace reload. Wait for the
+      // committed refinement stage and its matching selection baseline before
+      // creating a command. A failed refresh leaves the saved result available
+      // for explicit refresh/selection, without an automatic polling loop.
+      if (!acknowledged) {
+        if (!refreshedRefinementRequests.current.has(completedRefinement.requestKey)) {
+          refreshedRefinementRequests.current.add(completedRefinement.requestKey);
+          void reloadWorkspace(false);
+        }
+        return;
+      }
+      if (!concepts?.payload.selected || logoCandidateKey(concepts.payload.selected) !== logoCandidateKey(originalSource)) return;
       selectedRefinementRequests.current.add(completedRefinement.requestKey);
       void selectCandidate({ kind: "refinement", rasterRevisionId: completedRefinement.id });
     });
     return () => { cancelled = true; };
-  }, [completedRefinement, projectId, selectedLogo, generationState.phase, editing, workspace.pending, workspace.dirty, saved, isCurrent, account, memory, selectCandidate]);
+  }, [completedRefinement, projectId, selectedLogo, generationState.phase, editing, workspace.pending, workspace.dirty, workspace.stagePayloads, saved, draft, isCurrent, account, memory, reloadWorkspace, selectCandidate]);
 
   function discardAndReload() {
     if (!canDiscard || !projectId || requestRead.current) return;
