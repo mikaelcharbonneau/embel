@@ -75,3 +75,40 @@ Reviewed migration SHA-256:
 These tests use synthetic providers. Actual database installation, signed hosted
 worker readiness, genuine competitor results and reload persistence are separate
 release checks; source tests alone do not establish live success.
+
+## Native qualification and account compatibility
+
+PR #26 merged as `7ce6f12b8747694e6e029fc0d26ce1c3f21f4543` and reached
+protected production. The first migration installed as
+`20261019235632_strategy_testing_request_isolation`; all 16 expected function
+bodies and metadata matched, original permissions were unchanged, and native
+authenticated-role checks rejected a foreign project, an unverified identity
+and direct private-helper execution. All 146 table counts/digests remained
+unchanged apart from the two expected worker-heartbeat tables.
+
+The actual account then exposed a further legacy eligibility condition: its
+existing shared usage-account limit exceeds the older Strategy account-size
+ceiling. The current operator testing grants, owned-project scope, bindings,
+email verification, rollout and cohort were valid; scoped uncertainty and active
+Strategy counts were clear. The compatibility correction must honor that
+existing testing authority at availability, admission, descriptor and runtime
+checks, retaining ordinary-account limits and exact job/gateway proof during
+execution. It must not rewrite the usage account or release historical holds.
+
+The additive `20261019235937_strategy_testing_legacy_account_ceiling.sql`
+correction changes those four function bodies only. Availability and admission
+require the existing per-operation testing grant and owned project. Descriptor
+execution requires the immutable testing admission; runtime requires its exact
+private worker gateway. Original projectless, ordinary-account and route-switch
+limits remain unchanged, as do all request policies, leases, overruns,
+uncertainty and ownership checks. Its reviewed SHA-256 is
+`0aca45e02d06caa4e5421d0d37dd06e5c5c6ba90c7b7dbeb8849e3e9f3a1b286`.
+
+Independent full-lifecycle tests exercised an account above the legacy ceiling
+with both ordinary headroom and retained holds beyond that headroom. Exact
+testing jobs completed while historical jobs, steps, reservations, account
+limits and permissions remained unchanged. Unmarked jobs, revoked testing,
+foreign or unbound workers, unresolved work and overruns still refused dispatch.
+The combined nine-suite database run passed 159 tests; the strengthened 14-case
+compatibility suite also passed afterward. Whole-project TypeScript, full
+ESLint and the production build passed with the final follow-up source.
