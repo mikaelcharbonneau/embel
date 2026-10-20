@@ -3,9 +3,10 @@ import { confirmNamingChatQuestion, initialNamingChatProgress, namingChatQuestio
 import { boundedAccountRequest } from "@/components/workspace/bounded-account-request";
 import { AccountRequestError } from "@/components/workspace/account-api";
 import { getNamingPreferencesReadiness, initialNamingPreferencesV2, namingApproachSchema, namingDirectnessSchema, namingPreferencesV2Schema, type NamingPreferencesV2 } from "@/domain/naming-brain-preferences";
-import { namingPreferenceRevisionSchema, updateNamingPreferencesResponseSchema, updateNamingPreferencesSchema, type NamingPreferenceRevision, type ProjectNameEntry } from "@/domain/project-naming";
+import { namingPreferenceRevisionSchema, updateNamingPreferencesResponseSchema, updateNamingPreferencesSchema, type NamingPreferenceRevision, type NamingSession, type ProjectNameEntry } from "@/domain/project-naming";
 import { ensureNamingRunIntentSchema, stopNamingFeedIntentSchema, steerNamingFeedIntentSchema, type EnsureNamingRunIntent, type NamingFeed, type NamingFeedEntry, type NamingFeedEnsureResult, type SteerNamingFeedIntent, type StopNamingFeedIntent } from "@/domain/naming-brain";
 import { createProjectInputSchema, type ContextSnapshot, type CreateProjectInput } from "@/domain/projects";
+import type { NamingChatCheckpoint } from "@/domain/naming-chat-checkpoint";
 
 export type NamingAccount = { userId: string; generation: number };
 export type NamingPreferenceDraft = {
@@ -22,7 +23,7 @@ export type NamingSteeringDraft = { candidateIds: string[]; instruction: string 
 const emptySteeringDraft = (): NamingSteeringDraft => ({ candidateIds: [], instruction: "" });
 const hasSteeringDraft = (draft: NamingSteeringDraft) => draft.candidateIds.length > 0 || draft.instruction.trim().length > 0;
 const steeringDraftSchema = z.strictObject({ candidateIds: z.array(z.uuid()).max(5).refine(ids => new Set(ids).size === ids.length), instruction: z.string().max(2000) });
-export type NamingBrainRecord = { preferences: NamingPreferenceDraft | null; feed: NamingFeedState; steeringDraft: NamingSteeringDraft; chatProgress?: NamingChatProgress; chatProgressSource?: "saved_run" | "interaction" };
+export type NamingBrainRecord = { preferences: NamingPreferenceDraft | null; preferenceSession?: NamingSession; feed: NamingFeedState; steeringDraft: NamingSteeringDraft; chatProgress?: NamingChatProgress; chatProgressSource?: "saved_run" | "interaction" };
 export type NamingProjectEntry = { description: string; direction: string; language: string; input: CreateProjectInput | null; projectId: string | null; error: string | null; busy: boolean };
 const emptyFeed = (): NamingFeedState => ({ feed: null, entries: [], status: "loading", pending: null, acknowledged: false, acknowledgedRunId: null, stop: null, stopConflict: false, steering: null, outcome: null, error: null, stopped: true, stopRequested: false, directionEpoch: 0 });
 const emptyEntry = (): NamingProjectEntry => ({ description: "", direction: "", language: "English", input: null, projectId: null, error: null, busy: false });
@@ -130,7 +131,7 @@ export function createNamingBrainMemory(options: { request?: typeof boundedAccou
       replace(account, projectId, record => {
         const previous = record.preferences!, newest = normalizeDraft(previous.draft);
         const dirty = !newest.success || !equal(newest.data, pending.preferences);
-        return { ...record, preferences: { ...previous, saved: reply.preferences, pending: null, dirty, status: dirty ? "saving" : "saved", error: null } };
+        return { ...record, preferenceSession: reply.session, preferences: { ...previous, saved: reply.preferences, pending: null, dirty, status: dirty ? "saving" : "saved", error: null } };
       }); return true;
     } catch (error) {
       if (!operationCurrent(account, operation, controller)) return false;
@@ -196,13 +197,13 @@ export function createNamingBrainMemory(options: { request?: typeof boundedAccou
       recovery = null; publish();
     },
     discardRecovery(account: NamingAccount) { if (current(account)) { recovery = null; publish(); } },
-    connectPreferences(account: NamingAccount, projectId: string, saved: NamingPreferenceRevision | null, context: ContextSnapshot) {
+    connectPreferences(account: NamingAccount, projectId: string, saved: NamingPreferenceRevision | null, context: ContextSnapshot, checkpoint?: NamingChatCheckpoint) {
       if (!current(account) || saved && (saved.ownerId !== account.userId || saved.projectId !== projectId)) return;
       const previous = get(account, projectId)?.preferences;
       if (previous && (saved?.version ?? 0) < (previous.saved?.version ?? 0)) return;
       if (previous && equal(previous.saved, saved) && get(account, projectId)?.chatProgress) return;
       replace(account, projectId, currentRecord => {
-        const record = { ...currentRecord, chatProgress: currentRecord.chatProgress ?? initialNamingChatProgress(saved?.preferences.version === 2 ? saved.preferences : null) };
+        const record = { ...currentRecord, chatProgress: currentRecord.chatProgress ?? initialNamingChatProgress(saved?.preferences.version === 2 ? saved.preferences : null, checkpoint, saved?.version) };
         const p = record.preferences;
         if (!p || !p.dirty && !p.pending) return { ...record, preferences: { saved, draft: preferencesFrom(saved, context), dirty: false, pending: null, status: "saved", error: null, validationError: false } };
         if (p.pending && saved?.version === p.pending.expectedPreferencesVersion + 1 && equal(saved.preferences, p.pending.preferences)) {

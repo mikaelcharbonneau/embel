@@ -1,18 +1,20 @@
 "use client";
 
-import { Fragment, useEffect, useEffectEvent, useRef, useState, type ComponentProps } from "react";
+import { Fragment, useEffect, useEffectEvent, useId, useRef, useState, type ComponentProps } from "react";
 import { ProjectArtwork } from "@/components/ui/project-artwork";
 import { appendGuidedTurn, confirmGuidedSelection, guidedTurnOperation, revisitGuidedStage, type GuidedReply, type GuidedStage } from "@/domain/guided-interview";
 import type { ContextSnapshot } from "@/domain/projects";
 import { accountDraftChanged, type AccountWorkspace, type GuidedInterviewInput } from "./account-draft-memory";
-import { strategyAvailabilityMessage, strategyJobActive } from "./account-strategy-client";
+import { strategyAllowanceLabel, strategyAllowanceWithin, strategyAvailabilityMessage, strategyJobActive } from "./account-strategy-client";
 import type { VerifiedAccount } from "./account-session";
 import { ConversationComposer } from "./conversation-composer";
 import { GuidedChoiceWidget } from "./guided-interview-widgets";
 import { GuidedThinking } from "./guided-thinking";
+import { bindGuidedStartConsent, isGuidedStartTurn, markGuidedStartAttempt, readGuidedStartConsent, rememberGuidedStartConsent } from "./guided-start-consent";
 import { guidedAllowance, guidedMessageContext, guidedTimeline, guidedTurnResult, initialGuidedContext, nextGuidedProposal, recordGuidedChoice } from "./guided-interview-client";
 import type { DraftPatch, ProjectEditorForm } from "./project-editor";
 import { useStrategyJobs } from "./use-strategy-jobs";
+import { useConversationFollow } from "./use-conversation-follow";
 import "@/styles/conversation.css";
 
 export function AccountGuidedInterview({ account, workspace, busy, saveContext, onInputChange, storage }: {
@@ -31,7 +33,7 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
   const [working, setWorking] = useState(false);
   const lock = useRef(false), mounted = useRef(false);
   const attempts = useRef(new Set<string>());
-  const transcript = useRef<HTMLDivElement>(null);
+  const transcriptId = useId();
   const saved = workspace.saved;
   const context = workspace.pendingGuidedContext ?? saved.context;
   const state = context.intake.guidedInterview;
@@ -48,19 +50,13 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
   const currentTurn = turn && state?.stage === turn.stage && !state.answers.some(answer => answer.turnId === turn.id) ? turn : null;
   const operation = currentTurn ? guidedTurnOperation(currentTurn) : null;
   const allowance = operation ? guidedAllowance(availability, operation) : null;
+  const guardedStart = isGuidedStartTurn(currentTurn);
+  const retainedStart = guardedStart && currentTurn ? readGuidedStartConsent(account.userId, currentTurn.id) : null;
+  const startConsent = retainedStart?.projectId === saved.id && retainedStart.inputRevision === currentTurn?.inputRevision ? retainedStart : null;
+  const startNeedsReview = guardedStart && !bound && strategy.overview && !strategy.pending && (!startConsent || startConsent.attempted || Boolean(allowance && !strategyAllowanceWithin(allowance, startConsent.allowance)));
   const choiceTurn = state?.stage !== "complete" ? [...(state?.turns ?? [])].reverse().find(item => item.stage === state?.stage && guidedTurnResult(jobs, item, account.userId, saved.id)?.reply?.kind === "choices") : null;
-  const completedJobs = jobs.filter(job => job.state === "succeeded").length;
 
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
-  useEffect(() => { transcript.current?.scrollTo?.({ top: transcript.current.scrollHeight, behavior: "instant" }); }, [state?.turns.length]);
-  const revealReply = useEffectEvent(() => {
-    const area = transcript.current;
-    if (!area) return;
-    const message = turn ? document.getElementById(`guided-turn-${turn.id}`) : null;
-    const top = message ? area.scrollTop + message.getBoundingClientRect().top - area.getBoundingClientRect().top - 24 : area.scrollHeight;
-    area.scrollTo?.({ top: Math.max(0, top), behavior: "instant" });
-  });
-  useEffect(() => { revealReply(); }, [completedJobs]);
 
   function persist(next: ContextSnapshot, submittedInput?: Partial<GuidedInterviewInput>) {
     // The parent owns pending saves, conflicts and their acknowledged recovery.
@@ -106,9 +102,18 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
     if (bound || !allowance || currentTurn.inputRevision !== saved.current_revision) return;
     const key = `request:${currentTurn.id}`;
     if (attempts.current.has(key)) return;
+    let accepted = allowance;
+    if (isGuidedStartTurn(currentTurn)) {
+      const consent = readGuidedStartConsent(account.userId, currentTurn.id);
+      if (!consent || consent.projectId !== saved.id || consent.inputRevision !== currentTurn.inputRevision || consent.attempted || !strategyAllowanceWithin(allowance, consent.allowance)) return;
+      if (!markGuidedStartAttempt(account.userId, currentTurn.id)) { setError("Your project is saved. Research could not start safely. Check status, then retry research."); return; }
+      accepted = consent.allowance;
+    }
     attempts.current.add(key);
-    await strategy.enqueue(guidedTurnOperation(currentTurn), saved.current_revision, allowance);
+    await strategy.enqueue(guidedTurnOperation(currentTurn), saved.current_revision, accepted);
   });
+  // Report a genuine failed write to the external admission-recovery receipt.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void coordinate(); }, [saved.current_revision, state, bound, reply, busy, strategy.pending, strategy.overview, strategy.readError, active, dirty, allowance, currentTurn]);
 
   async function startResearch() {
@@ -162,9 +167,21 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
     if (lock.current || blocked || requestBlocked || !currentTurn) return;
     setError(null);
     if (!bound) {
-      if (allowance) {
+      if (allowance && strategy.overview && !strategy.readError) {
+        let accepted = allowance;
+        if (isGuidedStartTurn(currentTurn)) {
+          const receipt = readGuidedStartConsent(account.userId, currentTurn.id);
+          const consent = receipt?.projectId === saved.id && receipt.inputRevision === currentTurn.inputRevision ? receipt : null;
+          if (consent?.attempted) {
+            if (!strategyAllowanceWithin(allowance, consent.allowance)) { setError("The research limits changed. The original request is kept; check its status before starting another request."); return; }
+            accepted = consent.allowance;
+          } else if (!rememberGuidedStartConsent(account.userId, currentTurn.id, allowance) || !bindGuidedStartConsent(account.userId, currentTurn.id, saved.id)) {
+            setError("Your project is saved. The research request could not be retained safely. Check your browser storage and retry."); return;
+          }
+          if (!markGuidedStartAttempt(account.userId, currentTurn.id)) { setError("Your project is saved. The research request could not be retained safely. Check your browser storage and retry."); return; }
+        }
         attempts.current.add(`request:${currentTurn.id}`);
-        await strategy.enqueue(guidedTurnOperation(currentTurn), saved.current_revision, allowance);
+        await strategy.enqueue(guidedTurnOperation(currentTurn), saved.current_revision, accepted);
       } else strategy.refresh();
       return;
     }
@@ -183,17 +200,31 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
   const stale = currentTurn && !workspace.pendingGuidedContext && currentTurn.inputRevision !== saved.current_revision;
   const unavailable = currentTurn && !bound && strategy.overview && !allowance || !state && saved.scope === "complete_brand" && strategy.overview && !guidedAllowance(availability, "strategy.competitors");
   const legacyJobs = [...jobs].filter(job => job.state === "succeeded" && !job.results.some(result => result.output.guidance)).sort((a, b) => a.created_at.localeCompare(b.created_at));
-  const legacyReplies = legacyJobs.map(job => <Fragment key={job.id}>{job.results.map(result => <article key={result.stepKey} className="guided-assistant-message" aria-label="Earlier Embel response"><div className="guided-assistant-identity"><ProjectArtwork name="mark" /><span>Embel</span></div><p className="guided-assistant-copy">{result.output.proposal.message}</p></article>)}</Fragment>);
+  const timeline = guidedTimeline(context);
+  const responseIds = [
+    ...legacyJobs.flatMap(job => job.results.map(result => `guided-result-${job.id}-${result.stepKey}`)),
+    ...timeline.flatMap(item => {
+      if (item.kind !== "turn") return [];
+      const output = guidedTurnResult(jobs, item.turn, account.userId, saved.id)?.reply;
+      return output && output.kind !== "accepted" && output.kind !== "redirect" ? [`guided-turn-${item.turn.id}`] : [];
+    }),
+  ];
+  const { transcript, onScroll, hasNewResponse, revealNewResponse } = useConversationFollow({
+    conversationKey: `${account.userId}:${account.generation}:${saved.id}`,
+    contentKey: JSON.stringify([timeline.map(item => item.kind === "user" ? item.event.id : item.turn.id), state?.answers.map(answer => answer.turnId), Boolean(active || checkingResearch), state?.stage]),
+    responseIds,
+  });
+  const legacyReplies = legacyJobs.map(job => <Fragment key={job.id}>{job.results.map(result => <article key={result.stepKey} id={`guided-result-${job.id}-${result.stepKey}`} tabIndex={-1} className="guided-assistant-message flow-enter" aria-label="Earlier Embel response"><div className="guided-assistant-identity"><ProjectArtwork name="mark" /><span>Embel</span></div><p className="guided-assistant-copy">{result.output.proposal.message}</p></article>)}</Fragment>);
 
   return <div className="guided-interview" aria-label="Brand conversation">
-    <div ref={transcript} className="guided-interview-scroll" role="log" aria-label="Conversation" aria-live="polite">
-      {guidedTimeline(context).map(item => {
-        if (item.kind === "user") return <div key={item.event.id} className="guided-user-message"><span className="sr-only">You</span><p>{item.event.text}</p></div>;
+    <div ref={transcript} id={transcriptId} onScroll={onScroll} tabIndex={0} className="guided-interview-scroll" role="log" aria-label="Conversation" aria-live="polite">
+      {timeline.map(item => {
+        if (item.kind === "user") return <div key={item.event.id} className="guided-user-message flow-enter"><span className="sr-only">You</span><p>{item.event.text}</p></div>;
         const output = guidedTurnResult(jobs, item.turn, account.userId, saved.id)?.reply;
         if (!output || output.kind === "accepted" || output.kind === "redirect") return item.turn.id === state?.turns[0]?.id ? <Fragment key={item.turn.id}>{legacyReplies}</Fragment> : null;
         const answer = state?.answers.find(answer => answer.turnId === item.turn.id);
         const current = choiceTurn?.id === item.turn.id && !answer;
-        return <Fragment key={item.turn.id}>{item.turn.id === state?.turns[0]?.id && legacyReplies}<article id={`guided-turn-${item.turn.id}`} className="guided-assistant-message"><div className="guided-assistant-identity"><ProjectArtwork name="mark" /><span>Embel</span></div>
+        return <Fragment key={item.turn.id}>{item.turn.id === state?.turns[0]?.id && legacyReplies}<article id={`guided-turn-${item.turn.id}`} tabIndex={-1} className="guided-assistant-message flow-enter" aria-label="Embel response"><div className="guided-assistant-identity"><ProjectArtwork name="mark" /><span>Embel</span></div>
           <p className="guided-assistant-copy">{output.message}</p>
           {output.kind === "choices" ? <GuidedChoiceWidget reply={output} selectedIds={answer?.optionIds ?? (selection?.turnId === output.turnId ? selection.ids : [])} onSelectionChange={ids => setSelection({ turnId: output.turnId, ids })} onContinue={() => void confirm(output)} disabled={blocked} answered={!current || Boolean(answer)} onRevisit={!current ? () => void revisit(item.turn.stage, item.turn.userMessageId) : undefined} />
             : output.kind === "question" ? <p className="guided-assistant-question">{output.question}</p> : null}
@@ -202,16 +233,18 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
       {!state?.turns.length && legacyReplies}
       {!state && saved.scope === "complete_brand" && <div className="guided-interview-start"><p>Let’s find the right points of comparison for your brand.</p><button type="button" className="button primary small" disabled={blocked || !guidedAllowance(availability, "strategy.competitors")} onClick={() => void startResearch()}>Start competitor research</button></div>}
       {!state && saved.scope !== "complete_brand" && <p className="guided-assistant-copy">{saved.context.description}</p>}
-      {(active || checkingResearch) && <GuidedThinking onStop={bound && strategyJobActive(bound.job) ? () => void strategy.cancel(bound.job) : undefined} stopping={bound?.job.state === "cancel_requested"} stopDisabled={strategy.pending} />}
-      {!dirty && !workspace.conflict && state?.answers.length === 3 && context.competitorReviewComplete && context.intake.audienceReviewedAt && context.intake.personalityReviewedAt && <p className="guided-complete" role="status">Your brand strategy is saved. You can revisit any answer above.</p>}
+      {(active || checkingResearch) && <GuidedThinking label={active ? bound && strategyJobActive(bound.job) ? bound.job.state === "queued" ? "Request queued…" : currentTurn?.stage === "competitors" && currentTurn.purpose === "research" ? "Researching competitors…" : "Thinking…" : "A request is in progress…" : strategy.pending ? currentTurn?.purpose === "research" ? "Starting research…" : "Starting response…" : "Checking research status…"} onStop={bound && strategyJobActive(bound.job) ? () => void strategy.cancel(bound.job) : undefined} stopping={bound?.job.state === "cancel_requested"} stopDisabled={strategy.pending} />}
+      {!dirty && !workspace.conflict && state?.answers.length === 3 && context.competitorReviewComplete && context.intake.audienceReviewedAt && context.intake.personalityReviewedAt && <p className="guided-complete flow-enter" role="status">Your brand strategy is saved. You can revisit any answer above.</p>}
       <GuidedProjectDetails workspace={workspace} storage={storage} blocked={pending || workspace.conflict || Boolean(workspace.pendingGuidedContext || workspace.pendingDraftSave)} />
     </div>
     <div className="guided-interview-compose">
+      {hasNewResponse && <div className="guided-new-response flow-enter"><button type="button" className="button secondary small" aria-controls={transcriptId} onClick={revealNewResponse}>View new response<span aria-hidden="true"> ↓</span></button></div>}
       <div className="conversation-compose-notices" role="region" aria-label="Conversation notices" tabIndex={0}>
-      {(error || strategy.actionError || strategy.readError || failed || unverified || unavailable || stale) && <div className="guided-conversation-error" role="alert">
-        <p>{error || strategy.actionError || statusReadError || (stale ? "The project changed after this response was requested. Your conversation is kept. Send a new message to continue from the current version." : bound?.job.state === "needs_reconciliation" ? "This research outcome needs verification before another request can start. Your prompt is saved." : requestBlocked ? strategyAvailabilityMessage(availability, "project") : failed ? bound?.job.state === "cancelled" ? "Research was cancelled. Your prompt is saved." : currentTurn?.stage === "competitors" && currentTurn.purpose !== "message" ? "Research could not produce verified suggestions. Your prompt is saved. You can retry research." : "This response did not finish. Your prompt is saved." : unverified ? "This response could not be matched to your question. Your conversation is kept." : strategyAvailabilityMessage(availability ?? null, "project"))}</p>
+      {(error || strategy.actionError || strategy.readError || failed || unverified || unavailable || stale || startNeedsReview) && <div className="guided-conversation-error" role="alert">
+        <p>{error || strategy.actionError || statusReadError || (startNeedsReview && !unavailable ? startConsent?.attempted ? "Your project is saved. The research request is not confirmed. Check status or retry the same request." : "Your project is saved. Review the current research limit, then start research." : stale ? "The project changed after this response was requested. Your conversation is kept. Send a new message to continue from the current version." : bound?.job.state === "needs_reconciliation" ? "This research outcome needs verification before another request can start. Your prompt is saved." : requestBlocked ? strategyAvailabilityMessage(availability, "project") : failed ? bound?.job.state === "cancelled" ? "Research was cancelled. Your prompt is saved." : currentTurn?.stage === "competitors" && currentTurn.purpose !== "message" ? "Research could not produce verified suggestions. Your prompt is saved. You can retry research." : "This response did not finish. Your prompt is saved." : unverified ? "This response could not be matched to your question. Your conversation is kept." : strategyAvailabilityMessage(availability ?? null, "project"))}</p>
+        {startNeedsReview && allowance && !startConsent?.attempted && <p>{strategyAllowanceLabel(allowance)}</p>}
         <button type="button" className="text-link" disabled={busy || working || strategy.pending} onClick={strategy.refresh}>Check status</button>
-        {currentTurn && !stale && !requestBlocked && (!bound || bound.job.state === "failed" || bound.job.state === "cancelled") && <button type="button" className="text-link" disabled={blocked} onClick={() => void retry()}>{currentTurn.stage === "competitors" && currentTurn.purpose !== "message" ? "Retry research" : "Retry request"}</button>}
+        {currentTurn && !stale && !requestBlocked && (!bound || bound.job.state === "failed" || bound.job.state === "cancelled") && <button type="button" className="text-link" disabled={blocked} onClick={() => void retry()}>{guardedStart && !startConsent?.attempted && !bound ? "Start research" : currentTurn.stage === "competitors" && currentTurn.purpose !== "message" ? "Retry research" : "Retry request"}</button>}
       </div>}
       {!busy && storage.actions}
       {storage.resultNavigation}

@@ -26,7 +26,7 @@ async function click(label: string) { await act(async () => [...host.querySelect
 beforeEach(() => {
  Object.defineProperty(navigator, "locks", { configurable: true, value: { request: (_name: string, _options: unknown, action: () => Promise<unknown>) => action() } });
  window.localStorage.clear(); window.sessionStorage.clear();
- Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }); mock.session = account; mock.memory = createHomeInputSession(); mock.memory.bind(account);
+ Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }); HTMLElement.prototype.scrollTo = vi.fn(); mock.session = account; mock.memory = createHomeInputSession(); mock.memory.bind(account);
  mock.current.mockReset().mockImplementation((value: VerifiedAccount) => mock.session.status === "ready" && mock.session.userId === value.userId && mock.session.generation === value.generation);
  mock.update.mockReset().mockReturnValue(true); mock.create.mockReset().mockReturnValue(projectId); mock.get.mockReset().mockImplementation((id: string) => id === projectId ? draft : undefined); mock.push.mockReset(); mock.strategy.mockReset().mockResolvedValue(false); mock.save.mockReset().mockResolvedValue(true);
  forgetReceipt({ ownerId: owner, draftId: projectId, projectId: null });

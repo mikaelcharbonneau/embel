@@ -7,8 +7,9 @@ import { ConversationComposer } from "@/components/workspace/conversation-compos
 import { NAMING_APPROACHES, getNamingPreferencesReadiness, namingPreferencesV2Schema, type NamingDirectness, type NamingPreferencesV2 } from "@/domain/naming-brain-preferences";
 import type { ContextSnapshot } from "@/domain/projects";
 import type { NamingPreferenceRevision } from "@/domain/project-naming";
+import type { NamingChatCheckpoint } from "@/domain/naming-chat-checkpoint";
 import type { NamingAccount, NamingBrainMemory } from "./naming-brain-memory";
-import { confirmNamingChatQuestion, initialNamingChatProgress, namingChatQuestions, resolveNamingChatProgress, type NamingChatStep as Step } from "./naming-chat-progress";
+import { confirmNamingChatQuestion, initialNamingChatProgress, namingChatCheckpoint, namingChatQuestions, resolveNamingChatProgress, type NamingChatStep as Step } from "./naming-chat-progress";
 import styles from "./naming-chat.module.css";
 import "@/styles/conversation.css";
 import "@/styles/guided-interview.css";
@@ -44,8 +45,9 @@ export function NamingRecoveryNotice({ memory, account }: { memory: NamingBrainM
 function Assistant({ children }: { children: ReactNode }) {
   return <div className="guided-assistant-message"><div className="guided-assistant-identity"><AppMark /><span>Embel</span></div>{children}</div>;
 }
-export function NamingApproachWidgets({ memory, account, projectId, context, saved, blocked, runtimeReady, exploring = false, canSteer = false, onSteer, onContinue, onCheckSaved }: {
+export function NamingApproachWidgets({ memory, account, projectId, context, saved, savedChat, blocked, runtimeReady, exploring = false, canSteer = false, onSteer, onContinue, onCheckSaved, onSaveProgress }: {
   memory: NamingBrainMemory; account: NamingAccount; projectId: string; context: ContextSnapshot; saved: NamingPreferenceRevision | null;
+  savedChat?: NamingChatCheckpoint; onSaveProgress: (checkpoint: NamingChatCheckpoint) => Promise<boolean>;
   blocked: boolean; runtimeReady: boolean; exploring?: boolean; canSteer?: boolean; onSteer?: (ids: string[], instruction: string | null) => Promise<boolean>; onContinue: () => Promise<boolean>; onCheckSaved?: () => void;
 }) {
   const read = useCallback(() => memory.get(account, projectId), [memory, account, projectId]);
@@ -53,11 +55,11 @@ export function NamingApproachWidgets({ memory, account, projectId, context, sav
   const connected = Boolean(state);
   const resolvedProgress = state ? resolveNamingChatProgress(state.draft, record?.chatProgress ?? initialNamingChatProgress(state.saved?.preferences.version === 2 ? state.saved.preferences : null)) : null;
   const step = resolvedProgress?.activeStep ?? "approaches";
-  const [working, setWorking] = useState(false), [composerError, setComposerError] = useState<string | undefined>();
+  const [working, setWorking] = useState(false), [composerError, setComposerError] = useState<string | undefined>(), [progressError, setProgressError] = useState<string | null>(null);
   const lock = useRef(false), active = useRef<HTMLDivElement>(null), transcript = useRef<HTMLDivElement>(null);
   const transitionFocus = useRef<{ step: Step; from: Element | null } | null>(null);
   const id = useId();
-  useEffect(() => memory.connectPreferences(account, projectId, saved, context), [memory, account, projectId, saved, context]);
+  useEffect(() => memory.connectPreferences(account, projectId, saved, context, savedChat), [memory, account, projectId, saved, context, savedChat]);
   useLayoutEffect(() => {
     const transition = transitionFocus.current;
     if (!transition || transition.step !== step) return;
@@ -81,14 +83,21 @@ export function NamingApproachWidgets({ memory, account, projectId, context, sav
   async function confirm() {
     if (lock.current || blocked || invalid || saveBlocked || step === "review") return;
     const focusFrom = document.activeElement;
-    lock.current = true; setWorking(true);
+    lock.current = true; setWorking(true); setProgressError(null);
     try {
       if (!await memory.flushPreferences(account, projectId) || !memory.isCurrent(account)) return;
-      const acknowledged = memory.get(account, projectId)?.preferences?.saved?.preferences;
-      if (acknowledged?.version !== 2) return;
-      const next = confirmNamingChatQuestion(progress, step, acknowledged);
+      const acknowledged = memory.get(account, projectId)?.preferences?.saved;
+      if (acknowledged?.preferences.version !== 2) return;
+      const next = confirmNamingChatQuestion(progress, step, acknowledged.preferences);
+      if (!await onSaveProgress(namingChatCheckpoint(next, acknowledged.preferences, acknowledged.version))) {
+        if (memory.isCurrent(account)) setProgressError("This answer could not be confirmed as saved. Check saved choices, then continue again. Your choices are kept.");
+        return;
+      }
+      if (!memory.isCurrent(account)) return;
       transitionFocus.current = { step: next.activeStep, from: focusFrom };
       memory.setChatProgress(account, projectId, next);
+    } catch {
+      if (memory.isCurrent(account)) setProgressError("This answer could not be confirmed as saved. Check saved choices, then continue again. Your choices are kept.");
     } finally { lock.current = false; if (memory.isCurrent(account)) setWorking(false); }
   }
   async function proceed() {
@@ -135,6 +144,7 @@ export function NamingApproachWidgets({ memory, account, projectId, context, sav
         </Assistant>
       </div>
       {value.notes ? <section className={styles.guidance} aria-label="Naming guidance"><div><strong>Naming guidance</strong><button type="button" className="text-link" onClick={() => { const input = document.getElementById(`${id}-guidance`); input?.focus(); }}>Edit</button></div><textarea id={`${id}-guidance`} aria-label="Saved Naming guidance" rows={2} maxLength={2000} value={value.notes} disabled={blocked} onChange={event => patch({ notes: event.target.value })} /><small>{state.dirty ? "Changes save automatically" : "Saved with your Naming choices"}</small></section> : null}
+      {progressError ? <div className="project-naming-notice" role="alert"><p>{progressError}</p><button type="button" className="text-link" onClick={onCheckSaved}>Check saved choices</button></div> : null}
       {state.error ? <div className="project-naming-notice" role="alert"><p>{state.error}</p>{state.status === "conflict" ? <><button type="button" className="text-link" onClick={onCheckSaved}>Check saved choices</button><button type="button" className="button secondary small" onClick={() => memory.resolvePreferences(account, projectId, false)}>Use saved choices</button><button type="button" className="button secondary small" onClick={() => memory.resolvePreferences(account, projectId, true)}>Save my edits as the next version</button></> : <button type="button" className="button secondary small" onClick={() => void memory.flushPreferences(account, projectId, true)}>Retry saving choices</button>}</div> : null}
       {!runtimeReady ? <p className={styles.hint}>New Naming exploration is not available for this account yet. You can still edit your choices and browse saved names.</p> : null}
     </div>

@@ -120,6 +120,14 @@ describe("AI prompt start readiness and recovery", () => {
     await act(async () => { gate.resolve(Response.json({ user: { id: owner } })); await Promise.all([first, second]); });
     expect(mutations()).toHaveLength(2); expect(mock.push).toHaveBeenCalledOnce();
   });
+  it("keeps a successful navigation terminal for the outgoing mount", async () => {
+    await render(); expect(await start()).toBe(true);
+    expect(api.pending).toBe(true); expect(api.openingHref).toBe(`/brands/account/${projectId}`);
+    expect(await start()).toBe(false);
+    await act(async () => { expect(await api.save(draft)).toBe(false); api.detachPrompt(); });
+    expect(api.pending).toBe(true); expect(api.openingHref).toBe(`/brands/account/${projectId}`);
+    expect(mutations()).toHaveLength(2); expect(mock.push).toHaveBeenCalledOnce();
+  });
   it("fences a late readiness response after owner change", async () => {
     await render(); const gate = deferred<Response>();
     fetcher.mockImplementation((path: string, init: RequestInit) => path === "/api/strategy" ? gate.promise : defaultFetch(path, init));
@@ -224,6 +232,8 @@ describe("AI prompt start readiness and recovery", () => {
   });
   it("does not use unavailable storage as proof that a confirmed receipt can retire", async () => {
     await render(); await start(); const firstDraft = draft;
+    // Navigation keeps the outgoing view locked until its destination mounts.
+    await act(async () => root!.unmount()); root = createRoot(host); await render();
     const get = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => { throw new Error("Unavailable storage"); });
     const set = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("Unavailable storage"); });
     try {

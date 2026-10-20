@@ -9,10 +9,11 @@ import type { AccountWorkspace } from "@/components/workspace/account-draft-memo
 import { accountDraftChanged } from "@/components/workspace/account-draft-memory";
 import { accountProjectResponseSchema, type AccountProject } from "@/domain/project-api";
 import { accountProjectDraft } from "@/components/workspace/project-draft-adapter";
+import type { NamingChatCheckpoint } from "@/domain/naming-chat-checkpoint";
 import {
   importProjectNameResponseSchema, namingStrategyKey, selectProjectNameResponseSchema, transformProjectNamesResponseSchema,
   updateNameRetentionResponseSchema, updateNamingPreferencesResponseSchema, updateNamingViewStateResponseSchema,
-  type ImportProjectName, type NamingPreferences, type NamingViewState, type ProjectNameEntry, type TransformProjectNames,
+  type ImportProjectName, type NamingPreferences, type NamingSession, type NamingViewState, type ProjectNameEntry, type TransformProjectNames,
 } from "@/domain/project-naming";
 import {
   enqueueNamingBatchResponseSchema, namingBatchDetailResponseSchema, namingAnyBatchDetailResponseSchema, namingBatchPageSchema, projectNamingOverviewSchema,
@@ -231,13 +232,17 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
     });
     return Boolean(response);
   }
-  async function saveView(patch: Partial<NamingViewState>) {
-    const before = current.current; if (!before?.session || !scope.current()) return false;
+  async function saveView(patch: Partial<NamingViewState>, acknowledgedSession?: NamingSession) {
+    const overview = current.current;
+    const before = overview && acknowledgedSession ? { ...overview, session: acknowledgedSession } : overview;
+    if (!before?.session || !scope.current()) return false;
     const response = await mutate(async () => {
       const viewState = { ...before.session!.viewState, ...patch };
       const reply = await scope.request(`${base}/view`, updateNamingViewStateResponseSchema, value => owned(value.session), { method: "PATCH", body: { expectedViewRevision: before.session!.viewRevision, viewState } });
       if (!reply) return null;
-      if (reply.session.viewRevision !== before.session!.viewRevision + 1 || JSON.stringify(reply.session.viewState) !== JSON.stringify(viewState)) throw new AccountRequestError(502);
+      const expectedView = viewState.namingChat === undefined && reply.session.viewState.namingChat
+        ? { ...viewState, namingChat: reply.session.viewState.namingChat } : viewState;
+      if (reply.session.viewRevision !== before.session!.viewRevision + 1 || JSON.stringify(reply.session.viewState) !== JSON.stringify(expectedView)) throw new AccountRequestError(502);
       const latest = current.current;
       if (latest) {
         const changedListing = listingKey(before.session!.viewState) !== listingKey(reply.session.viewState);
@@ -247,6 +252,14 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
       return reply;
     });
     return Boolean(response);
+  }
+  async function saveChatProgress(checkpoint: NamingChatCheckpoint) {
+    // Preference autosave owns its newer receipt independently of this overview.
+    // The SQL view CAS also verifies the exact current preference version.
+    const preferenceSession = namingBrainDrafts.get(account, projectId)?.preferenceSession;
+    const viewSession = current.current?.session;
+    const session = preferenceSession && (!viewSession || preferenceSession.viewRevision >= viewSession.viewRevision) ? preferenceSession : viewSession;
+    return saveView({ namingChat: checkpoint }, session ?? undefined);
   }
   async function enqueue() {
     const before = readyForContextMutation();
@@ -367,5 +380,5 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
       return reply;
     } catch (error) { if (scope.current() && current.current?.session?.viewState.visibleBatchId === batchId) setActionError(namingErrorMessage(error)); return null; }
   }
-  return { loadBatchDetail, overview, workspace, blocked, readError, actionError, pending, listStatus, refresh, savePreferences, saveView, enqueue, cancel, retain, select, transform, importLocal, expand, loadMore, loadMoreBatches };
+  return { loadBatchDetail, overview, workspace, blocked, readError, actionError, pending, listStatus, refresh, savePreferences, saveView, saveChatProgress, enqueue, cancel, retain, select, transform, importLocal, expand, loadMore, loadMoreBatches };
 }

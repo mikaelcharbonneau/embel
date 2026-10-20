@@ -5,9 +5,11 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createNamingBrainMemory } from "@/components/naming/naming-brain-memory";
 import { NamingApproachWidgets } from "@/components/naming/naming-approach-widgets";
 import { namingFeedSchema, type NamingBrainRunSummary, type NamingFeed } from "@/domain/naming-brain";
+import type { NamingChatCheckpoint } from "@/domain/naming-chat-checkpoint";
 import { initialNamingPreferencesV2 } from "@/domain/naming-brain-preferences";
 import type { NamingPreferenceRevision } from "@/domain/project-naming";
 import { contextSnapshotSchema } from "@/domain/projects";
+import { confirmNamingChatQuestion, initialNamingChatProgress, namingChatCheckpoint, namingChatQuestions } from "@/components/naming/naming-chat-progress";
 
 const id = (n: number) => `b0000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const account = { userId: id(1), generation: 1 }, projectId = id(2), when = "2026-10-18T03:00:00Z";
@@ -33,10 +35,10 @@ function fixture() {
 let root: Root, host: HTMLDivElement;
 beforeEach(() => { vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true); host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); });
-async function render(memory: ReturnType<typeof createNamingBrainMemory>, saved = preferences) {
+async function render(memory: ReturnType<typeof createNamingBrainMemory>, saved = preferences, options: { savedChat?: NamingChatCheckpoint; onSaveProgress?: (checkpoint: NamingChatCheckpoint) => Promise<boolean>; exploring?: boolean } = {}) {
   const start = vi.fn(async () => true);
   await act(async () => root.render(createElement(NamingApproachWidgets, { memory, account, projectId, context, saved,
-    blocked: false, runtimeReady: true, exploring: true, onContinue: start })));
+    blocked: false, runtimeReady: true, exploring: options.exploring ?? true, savedChat: options.savedChat, onContinue: start, onSaveProgress: options.onSaveProgress ?? (async () => true) })));
   return start;
 }
 const heading = () => host.querySelector("#project-naming-preferences-heading")?.textContent;
@@ -97,4 +99,81 @@ it("does not interrupt a choice opened before the saved run arrives", () => {
   f.memory.setChatProgress(account, projectId, { ...progress, activeStep: "length" }); f.load();
   expect(f.memory.get(account, projectId)?.chatProgress?.activeStep).toBe("length");
   expect(f.memory.get(account, projectId)?.chatProgress?.confirmed.language).toBeUndefined();
+});
+
+
+async function continueAnswer() {
+  const button = [...host.querySelectorAll<HTMLButtonElement>("button")].find(item => item.textContent === "Continue")!;
+  expect(button).toBeDefined();
+  await act(async () => button.click());
+}
+const defaultChoices: NamingPreferenceRevision = { ...preferences, preferences: { ...initialNamingPreferencesV2(context), approaches: ["invented"], directness: "suggestive" } };
+
+it("restores explicitly accepted default answers after a cold reload before any exploration run", async () => {
+  let durable: NamingChatCheckpoint | undefined;
+  const saveProgress = vi.fn(async (value: NamingChatCheckpoint) => { durable = structuredClone(value); return true; });
+  const f = fixture(); f.load(feed(null));
+  const start = await render(f.memory, defaultChoices, { exploring: false, onSaveProgress: saveProgress });
+  expect(heading()).toBe("Which language should the names work in?");
+  for (const next of ["Do you have a length in mind?", "Any text to include or avoid?", "Ready to explore your names?"]) {
+    await continueAnswer(); expect(heading()).toBe(next);
+  }
+  expect(saveProgress).toHaveBeenCalledTimes(3);
+  expect(durable).toMatchObject({ version: 1, preferencesVersion: 4, confirmed: { language: '\"en\"', length: "[null,null]", fragments: "[[],[]]" } });
+  expect(f.request).not.toHaveBeenCalled(); expect(start).not.toHaveBeenCalled();
+  await act(async () => root.unmount()); root = createRoot(host);
+  const cold = fixture(); cold.load(feed(null));
+  await render(cold.memory, defaultChoices, { exploring: false, savedChat: durable });
+  expect(heading()).toBe("Ready to explore your names?");
+  expect(host.querySelectorAll(".guided-choice-answer")).toHaveLength(5);
+  expect(host.textContent).toContain("Flexible length"); expect(host.textContent).toContain("No required text");
+  expect(cold.request).not.toHaveBeenCalled(); expect(cold.memory.hasUnsaved()).toBe(false);
+});
+
+it("resumes the next question from a partially completed saved checkpoint", async () => {
+  let durable: NamingChatCheckpoint | undefined;
+  const f = fixture(); await render(f.memory, defaultChoices, { onSaveProgress: async value => { durable = value; return true; } });
+  await continueAnswer(); expect(heading()).toBe("Do you have a length in mind?");
+  await act(async () => root.unmount()); root = createRoot(host);
+  await render(fixture().memory, defaultChoices, { savedChat: durable });
+  expect(heading()).toBe("Do you have a length in mind?");
+  expect(host.querySelectorAll(".guided-choice-answer")).toHaveLength(3);
+});
+
+it("waits for the durable acknowledgement and does not advance on an uncertain view save", async () => {
+  let finish!: (saved: boolean) => void, durable: NamingChatCheckpoint | undefined;
+  const f = fixture();
+  const start = await render(f.memory, defaultChoices, { onSaveProgress: value => { durable = value; return new Promise(resolve => { finish = resolve; }); } });
+  await continueAnswer();
+  expect(heading()).toBe("Which language should the names work in?");
+  expect(f.memory.get(account, projectId)?.chatProgress?.confirmed.language).toBeUndefined();
+  await act(async () => finish(false));
+  expect(heading()).toBe("Which language should the names work in?");
+  expect(host.textContent).toContain("This answer could not be confirmed as saved"); expect(start).not.toHaveBeenCalled();
+  // A lost ACK may nevertheless have committed. A fresh owned read is authority.
+  await act(async () => root.unmount()); root = createRoot(host);
+  await render(fixture().memory, defaultChoices, { savedChat: durable });
+  expect(heading()).toBe("Do you have a length in mind?");
+});
+
+it("does not publish a checkpoint acknowledgement after the verified account changes", async () => {
+  let finish!: (saved: boolean) => void;
+  const f = fixture(); await render(f.memory, defaultChoices, { onSaveProgress: () => new Promise(resolve => { finish = resolve; }) });
+  await continueAnswer();
+  const other = { userId: id(8), generation: 2 };
+  await act(async () => f.memory.bind(other));
+  await act(async () => finish(true));
+  expect(f.memory.get(other, projectId)).toBeNull(); expect(f.memory.get(account, projectId)).toBeNull();
+});
+
+it.each(["notes", "language", "length", "fragments"] as const)("keeps unchanged acknowledged defaults after a later %s edit and reload", async edit => {
+  const value = defaultChoices.preferences;
+  if (value.version !== 2) throw new Error("Expected V2 fixture");
+  const complete = namingChatQuestions().reduce((progress, question) => confirmNamingChatQuestion(progress, question, value), initialNamingChatProgress(value));
+  const checkpoint = namingChatCheckpoint(complete, value, defaultChoices.version);
+  const changed = { ...value, ...(edit === "notes" ? { notes: "A quieter naming direction" } : edit === "language" ? { creativeLocale: "fr" } : edit === "length" ? { maximumGraphemes: 12 } : { excludedText: ["new fragment"] }) };
+  await render(fixture().memory, { ...defaultChoices, version: 5, preferences: changed }, { savedChat: checkpoint });
+  expect(heading()).toBe(edit === "notes" ? "Ready to explore your names?" : edit === "language" ? "Which language should the names work in?" : edit === "length" ? "Do you have a length in mind?" : "Any text to include or avoid?");
+  const record = host.querySelectorAll(".guided-choice-answer");
+  expect(record).toHaveLength(edit === "notes" ? 5 : 4);
 });
