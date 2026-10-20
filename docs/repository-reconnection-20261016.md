@@ -1,11 +1,12 @@
 # Repository reconnection and PR qualification — October 16, 2026
 
-## Approved scope
+## Historical scope
 
-The user requested GPT-6.1 Sol agents to reconnect this checkout to the existing
-Embel repository and prepare a PR with verified fixes while preserving local
-changes. This authorizes a feature branch and draft PR. Merge, deployment, live
-migrations, provider requests, provisioning and new credentials are separate.
+This workstream concerned reconnecting the checkout to the existing Embel
+repository and preparing verified fixes while preserving local changes. Its
+branch and PR evidence below is historical, not permission for another task,
+publication, merge, deployment, live migration, provider request, provisioning
+or credential change.
 
 ## Repository and preservation
 

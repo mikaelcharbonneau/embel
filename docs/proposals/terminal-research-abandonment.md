@@ -26,12 +26,10 @@ The operator action is limited to the exact reported request. It:
 - Sends no provider request. Starting replacement research requires a separate
   explicit user action in the conversation.
 
-This is a change to the current handling of unresolved billing, not evidence that
-the rejected answer or its total cost has been verified. Existing approval for
-ongoing testing funds normal requests; it does not by itself prove an ambiguous
-historical charge. The lead made that deliberate operator decision under the
-user's existing testing-account repair authorization and reported production
-blocker. Its reference is
+This incident-specific change to unresolved-billing handling does not establish
+that the rejected answer or its total cost was verified. The lead recorded the
+operator decision for the reported production blocker; it is not a reusable
+testing-spend or recovery authorization. Its reference is
 `operator-decision:lead-testing-account-recovery-20261015-6b310a38`;
 it does not claim a separate human approval or successful research verification.
 Local database tests, independent technical review and two exact native rollback

@@ -159,7 +159,7 @@ are not rewritten.
 
 ## Activation sequence and resources
 
-This describes the concrete activation sequence; it is not an activation receipt.
+This records the historical activation procedure, not current permission to execute it. Requalify the actual target, operation policies and required authorization before any new configuration, credential, migration or paid action.
 The known project IDs are web `prj_WKrFUPy3wptZ3qI9l1hTuqPmzkDt`, worker
 `prj_waP1hoGVtBiqJCTqTWKHfRy8iLMk`, and Supabase project `fricsfwqibyhemknqgyf`.
 The existing worker login is `fluid_api_text_worker`; resolve and compare its
@@ -193,13 +193,14 @@ fresh read-back is required before using those identities.
    directory to the existing worker project. Do not deploy the repository root,
    modify a hashed artifact after review or include environment files. Preserve
    protected production settings and obtain the new immutable deployment ID.
-5. Worker environment: add `FLUID_GUIDED_INTERVIEW_ENABLED=true`; explicitly set
-   `FLUID_TEXT_MODEL_REFORMULATE`, `FLUID_TEXT_MODEL_COMPETITORS`,
-   `FLUID_TEXT_MODEL_AUDIENCE`, and `FLUID_TEXT_MODEL_PERSONALITY` to `gpt-6.1-sol`.
-   Retain `FLUID_PAID_CALLS_APPROVED=true`, verified model membership in
-   `FLUID_OPENAI_VERIFIED_MODELS`, and `FLUID_API_TEXT_MULTI_ACCOUNT_ENABLED=true`.
-   Retain existing provider/database secrets and publisher OIDC configuration;
-   no new secret is needed. Do not use the broad `FLUID_TEXT_MODEL_STRATEGY`
+5. Worker qualification checks `FLUID_GUIDED_INTERVIEW_ENABLED`, the four
+   operation-specific `FLUID_TEXT_MODEL_REFORMULATE`, `FLUID_TEXT_MODEL_COMPETITORS`,
+   `FLUID_TEXT_MODEL_AUDIENCE` and `FLUID_TEXT_MODEL_PERSONALITY` values, verified
+   model membership in `FLUID_OPENAI_VERIFIED_MODELS`, and the independent
+   `FLUID_PAID_CALLS_APPROVED` / `FLUID_API_TEXT_MULTI_ACCOUNT_ENABLED` gates against
+   the actual versioned policy. Provider/database credentials and publisher OIDC
+   configuration remain separate protected configuration; this document does not
+   select a model or authorize changing those settings. Do not use the broad `FLUID_TEXT_MODEL_STRATEGY`
    fallback to add unrelated operations. There is no guided policy for positioning.
 6. In one guarded operator transaction, compare the old policy hashes, role/OID,
    bindings and cohort deployment; update the four exact policy JSON values and

@@ -1,6 +1,6 @@
 # API-text production dispatch repair — 2026-10-13
 
-The confirmed account's one-response trial has since been replaced, at the user's explicit request, by ongoing testing access without aggregate quotas or expiry. See [account AI testing](account-ai-testing.md) for the 2026-10-14 activation and verification. This supersedes the trial limits below for that explicitly approved account only.
+The confirmed account's one-response trial was replaced by the private testing mode documented in [account AI testing](account-ai-testing.md). Its 2026-10-14 activation and verification supersede the trial-limit snapshot below for that account. This historical record does not grant spending or activation permission.
 
 ## Implemented behavior
 
@@ -66,12 +66,12 @@ Fresh live reads found one API worker principal, two reformulation bindings (onl
 
 The two recorded provider costs are **2,540 and 2,462 microdollars** ($0.002540 and $0.002462). They establish actual historical cost for these two short requests, not a general cost forecast. Each current request must reserve **122,880 microdollars** ($0.122880), which covers the pinned maximum of 32,768 input tokens charged at the policy's worst input rate ($2.50/million) plus 4,096 output tokens ($10/million). A low average cost must not replace that reservation bound.
 
-Proposed initial pilot, **not enabled or funded**:
+Historical initial trial design, **not an authorization or a current funding instruction**:
 
 - One first reformulation per explicitly approved, email-confirmed account, with a lifetime allowance of 122,880 microdollars, one active request, and no automatic replenishment. Use a separate consumed-attempt counter as well as the dollar ledger: refunding unused reservations must not turn a one-response allowance into dozens of responses.
 - Limit the first cohort to 100 approved accounts and an aggregate reservation ceiling of 12,288,000 microdollars ($12.288). Hosting, queues, email and taxes are separate from this model-cost ceiling. No public automatic signup credits until the cohort and abuse controls are qualified.
 - Require a server-recorded approval/entitlement, verified email, signup protection and bounded account/network admission. A browser-provided flag, `user_metadata`, or possession of a project ID must never confer eligibility. Settle count, cohort reservation and owner reservation atomically under the admission lock. This implementation never restores a consumed attempt automatically, including cancellation and known predispatch refusal. An uncertain provider outcome retains its reservation and blocks replacement until reconciliation.
-- Keep the existing exact model, input/output cap, zero web tools, no paid provider retry, cancellation, owner isolation and immutable job/outbox rules. This allowance covers only first reformulation, not research, audience/personality/positioning, Naming, Identity or images.
+- The original first-reformulation policy bound an exact model and input/output cap, zero web tools, no paid provider retry, cancellation, owner isolation and immutable job/outbox rules. It did not cover research, audience/personality/positioning, Naming, Identity or images. This history does not select the model or fund a new request.
 
 The forward candidate [api_text_multi_account.sql](../supabase/candidates/api_text_multi_account.sql) now implements owner entitlements, atomic allowance admission and descriptor-bound worker execution. It seeds one disabled rollout row with zero limits, creates no cohort or allowance, and grants no worker capability. The lead applied its byte-identical versioned migration on 2026-10-13; [hosted verification](database-rollout-20261013.md) confirmed these disabled defaults and preserved existing bindings. The existing principal mapping, owner budget and direct single-owner worker path remain available when rollout is disabled. The worker adapter requires the exact separate opt-in `FLUID_API_TEXT_MULTI_ACCOUNT_ENABLED=true`; its default retains existing queries.
 

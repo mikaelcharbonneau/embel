@@ -26,8 +26,8 @@ authority and immutable database/deployment bindings remain authoritative.
 The committed manifest has zero instances; activation requires an explicit
 release mode and environment flag. Cutover and subsequent Vercel rollouts require
 no overlapping readiness publishers, with dashboard scaling overrides used when
-stopping a deployed worker. The Mac remains the executor until cloud credential
-transfer is approved and the guarded cutover is verified. See
+stopping a deployed worker. The migration design separates credential configuration from the guarded
+cutover and requires verified worker identity before execution. See
 [cloud Naming worker](cloud-naming-worker-20261019.md).
 
 ## Cloud Logo execution preparation
@@ -53,7 +53,7 @@ remaining transfer/activation boundary.
 
 ## Local prototype execution
 
-D077 authorizes a local simplification that preserves the account database,
+The local simplification recorded in D077 preserves the account database,
 current UI and saved work. Its explicit `npm run local -- --prototype` entrypoint
 builds this checkout and supervises Next.js and the existing Strategy/Naming
 worker at `http://127.0.0.1:3106`. The local opt-in is bounded to that origin and
@@ -69,8 +69,8 @@ Local Strategy uses the database worker heartbeat and existing durable job,
 provider and result-save contracts. Additive scoped capabilities replace local
 hosted queue publication and rollout/subscription prerequisites. Only newly
 admitted local jobs receive this authority. Unknown outcomes block their own
-project, while unrelated projects can proceed. D078 removes the local prototype's
-monetary and quota admission gates; historical jobs and holds remain unchanged.
+project, while unrelated projects can proceed. The local prototype implementation
+has no monetary or quota admission gates; historical jobs and holds remain unchanged.
 The web receives
 no provider or worker database credentials. This implementation remains subject
 to the real acceptance recorded in [local prototype](local-prototype.md).
@@ -230,13 +230,9 @@ Authenticated identities come from verified Supabase claims/user validation, nev
 
 Routes return 401 for missing authentication, 404 for inaccessible resources, 409 for conflicts, 422 for invalid input, and 503 for unconfigured integrations without leaking internals. Mutation origin checks and body limits apply. No production demo auth, local fixture fallback, automatic paid calls, or public upload buckets.
 
-## Execution plan
+## Verification responsibilities
 
-1. Create private repository, record decisions and scaffolding; pin current supported dependencies.
-2. In parallel: frontend shell/intake (max) and backend auth/RLS/data scaffolding (xhigh). Lead owns contracts, provider/job invariants, integration, and verification.
-3. Incorporate original tokens after inspecting supplied Pen. Reconcile later decisions as additive revisions.
-4. Verify unit contracts, two-user database isolation, cancellation/idempotency/partial results/cost guard, types/lint/build, mobile/keyboard and negative flows. Record unavailable live checks honestly.
-5. Push verified milestones. Present concrete service provisioning choices and costs only after capability checks; parent owns user delivery and approval conversation.
+Frontend and backend ownership remain disjoint; integration covers shared contracts and provider/job invariants. Verification covers unit contracts, two-user database isolation, cancellation/idempotency/partial results/cost guards, types/lint/build, mobile/keyboard and negative flows. Unavailable live checks must be reported honestly. Source verification does not imply service provisioning, provider use or deployment authority.
 
 ## Sources checked 2026-10-02
 
@@ -264,17 +260,17 @@ D026 supersedes the earlier brief-form and step-navigation presentation above. S
 
 The shared transcript allows only user messages, saved context and ordered unique widget references. It is bounded by event count, text length and UTF-8 bytes; the account request limit remains independently enforced. Provider results are separate owner-checked immutable job outputs, never trusted from client-supplied transcript events. A browser draft explicitly reports that AI replies are unavailable.
 
-The local strategy API prepares durable enqueue, polling, cancellation and explicit proposal acceptance. Admission derives ownership from authentication and requires a saved project revision, an enabled policy, fresh worker readiness and an approved budget. Applying a result checks its input revision against the current project; stale output cannot overwrite intervening edits. The strategy and subscription migrations are now applied to the approved development database; runtime policies, worker identity and provider credentials remain unconfigured. Standard API configuration and paid calls are paused under D029; the ChatGPT plan assessment does not itself enable subscription inference.
+The local strategy API prepares durable enqueue, polling, cancellation and explicit proposal acceptance. Admission derives ownership from authentication and requires a saved project revision, an enabled policy, fresh worker readiness and an approved budget. Applying a result checks its input revision against the current project; stale output cannot overwrite intervening edits. At the initial integration checkpoint, strategy and subscription migrations had been applied to the development database, while runtime policies, worker identity and provider credentials were still unconfigured. The D029 assessment did not itself enable subscription inference.
 
 The 2026-10-13 readiness record supersedes the historical runtime-status statements above: [brand creation readiness](brand-creation-readiness.md). Production API publication now has the same validated transport configuration boundary as preview, while execution still requires the existing owner policy, budget and qualified worker deployment. Account/project HTTP waits are bounded independently of durable job lifetimes. Manual project copies and Home share owner-scoped recovery receipts to prevent blind duplicate creation after a lost acknowledgement.
 
-## Approved local subscription runtime
+## Local subscription runtime
 
-D030 approves a local Mac execution option. Supabase Auth, owned projects, immutable revisions and durable Postgres jobs remain authoritative. Subscription access does not require a different data store, so no embedded database, data migration or new hosted service is introduced. The protected Vercel preview remains available for interface review and cannot expose the local connection endpoints.
+The local subscription implementation uses a Mac execution option. Supabase Auth, owned projects, immutable revisions and durable Postgres jobs remain authoritative. Subscription access does not require a different data store, so no embedded database, data migration or new hosted service is introduced. The protected Vercel preview remains available for interface review and cannot expose the local connection endpoints.
 
 The local web process binds to `127.0.0.1:3106`; the dedicated Node worker and OAuth callback bind to `127.0.0.1:3107`. A fresh in-memory capability connects these two processes. Browser requests go through a same-origin, host-checked Next.js route that verifies the Supabase user before forwarding a server-derived owner ID. Tokens and worker database access never enter browser bundles. Each ChatGPT registration is bound to its verified Supabase owner; signing into ChatGPT does not silently create or replace an Embel account.
 
-The local worker alone owns protected OAuth records, refresh rotation, account-specific model discovery and streaming Responses calls. Subscription jobs have quota/deadline/size admission limits and explicit subscription billing metadata, without invented API dollar estimates. The standard API text path remains disabled for this local mode; image execution remains unavailable until a separate API connection and spending limit are approved.
+The local worker alone owns protected OAuth records, refresh rotation, account-specific model discovery and streaming Responses calls. Subscription jobs have quota/deadline/size admission limits and explicit subscription billing metadata, without invented API dollar estimates. The local subscription mode and image/API execution have separate configuration and admission boundaries.
 
 Preparing code does not authorize grants or token persistence. First-time connection still requires the specific consent flow and a protected credential destination. Runtime activation additionally needs an existing verified Supabase user and the dedicated worker database connection. All independent fixture checks precede those steps; real prompt-to-chat verification remains unrun until they are complete.
 
@@ -282,7 +278,7 @@ Preparing code does not authorize grants or token persistence. First-time connec
 
 The local subscription worker uses a dedicated direct database login administratively bound to exactly one Embel owner. The binding uses both role name and OID and validates the actual `session_user`, with no privileged flags or role memberships. A request parameter, JWT claim or custom session setting cannot choose the owner. Subscription functions, bindings reads and shared lease operations enforce that mapping; subscription workers cannot operate API-mode jobs, and API workers cannot operate subscription jobs. The only direct table read is seven job-step recovery metadata columns, filtered to owned subscription jobs by RLS. The migration creates no login, password or owner mapping.
 
-The launcher reads a separately approved `.local-fluid/worker.env` (0600, under a 0700 directory), rejects worker credentials in Next.js environment files, and passes the connection only to the Node worker. Connections use the approved development endpoint with certificate-verified TLS. OAuth records remain separately protected under `.local-fluid/credentials`. These boundaries are checked before any live credential setup.
+The launcher reads a protected `.local-fluid/worker.env` (0600, under a 0700 directory), rejects worker credentials in Next.js environment files, and passes the connection only to the Node worker. Connections use the configured development endpoint with certificate-verified TLS. OAuth records remain separately protected under `.local-fluid/credentials`. These boundaries are checked before any live credential setup.
 
 ## Incomplete subscription model catalogs
 
@@ -337,8 +333,8 @@ Account verification/generation fences and stable request identities preserve
 unsaved edits and uncertain acknowledgements without silently attaching them to a
 different account or creating another paid request.
 
-Managed OpenAI Agents is primary, with an explicitly configured model and no
-Responses or alternate-model fallback. The seven durable stages are research,
+The Naming adapter implements the managed Agents protocol with an explicit
+operation policy; it does not implement a Responses or alternate-model fallback. The seven durable stages are research,
 direction, creation, curation, verification, gap and prepare. Independent Creator
 sessions run at most three concurrently; the initial target is 150 raw candidates
 and 100 published names. Research and Verification have their own bounded search
@@ -358,10 +354,12 @@ Known-session recovery retains the original identity and full allowance, with
 observation bounded to 12 claims / one hour and persisted backoff. Disabling paid
 readiness prevents new dispatch while retaining scoped observation.
 
-Every paid run holds the full US$5 until verified settlement. Pilot commitment is
-confirmed final expense plus every unsettled full hold, capped at US$25; completion,
-session caps, provisional counters and estimates do not release money or establish
-final charges. Unknown dispatch/execution or an observed overrun blocks new work.
+The initial pilot accounting design used US$5 per-run holds and a US$25
+commitment ceiling. Those figures describe the original pilot; applicable
+execution policy is determined by runtime configuration. Completion, session
+caps, provisional counters and estimates do not establish final charges or
+release unsettled historical reservations. Unknown execution remains distinct
+from successful settlement.
 The dedicated graph is `worker/index.ts` (`npm run worker`), with its own Naming
 connection/deployment, both paid environment gates, private pilot policy and nine
 scoped RPC capabilities. The hosted `build:api-text-worker` graph and the existing
@@ -387,7 +385,7 @@ Generated candidates acquire provider provenance only through atomic leased work
 
 Selecting a candidate appends a project revision and selection record, mirrors the name into both saved name fields, and preserves previous results. An earlier strategy basis requires explicit acknowledgement. Likes and saves remain independent from selection. Account Names stays separate from the existing browser library; importing is an explicit copy and never writes private account data into browser storage. Domains, Handles and Trademarks remain visibly unchecked until real providers exist.
 
-The historical subscription runtime preserves the selected model and registration across operation-specific policies and uses zero web tools for V1 Naming. Reading configuration or restarting that worker never silently enables Naming. The original Naming migration and its two exact existing-worker EXECUTE grants were applied under the 2026-10-04 approval. The bounded 250-name correction received separate approval for a target-only forward migration and one first-batch/one-append acceptance run, without new grants. Its source-specific verification and rollout evidence are recorded in naming-250-rollout.md. Those historical grants, calls and approvals do not activate the V2 managed graph or expand its authority.
+The historical subscription runtime preserves the selected model and registration across operation-specific policies and uses zero web tools for V1 Naming. Reading configuration or restarting that worker never silently enables Naming. The original Naming migration and two existing-worker EXECUTE grants were applied in October 2026. The later 250-name correction was a target-only forward migration, with no new grants; its historical acceptance design used one first batch and one append. Its source-specific verification and rollout evidence are recorded in naming-250-rollout.md. Historical migration and acceptance records do not activate the V2 managed graph.
 
 ### Global generation activity (local integration)
 
@@ -410,7 +408,7 @@ The trusted save service accepts only fixed select/refine operations on an injec
 The proposed personal login, nonlogin helper owner, two fixed helper signatures, owner-bound FORCE-RLS policies and secure user-completed credential route are recorded separately in [the unexecuted provisioning proposal](proposals/identity-trusted-provisioning-request.md). Real helper code, internal function/trigger dependencies, exact role privileges, source-writer locks and live pooler/session_user behavior require further review before that proposal can become execution-ready. Existing Naming permissions are separate; no worker/admin/service-role connection is reused.
 
 
-## Approved manual account Ideas — 2026-10-05
+## Manual account Ideas — 2026-10-05
 
 Manual Ideas uses its own owner-scoped head, immutable revision and immutable brand-link tables with bounded authenticated RPCs. Web requests perform bounded manual persistence; no generation job is introduced. Shared contracts are src/domain/ideas.ts, server access is src/server/data/ideas.ts, and private API routes are /api/ideas and /api/projects/[projectId]/idea-source. Client edits remain in owner-bound provider memory, fenced by verified account generation, cleared on verified owner change/confirmed logout and included in unsaved-exit confirmation. Explicit conversion derives normalized complete-brand context/hash server-side and retains a frozen source outside Strategy; review flags remain unset. Live SQL role-probe and local fixture evidence differ from the outstanding signed-in browser acceptance. The historical `manual-ideas-rollout.md` evidence record is absent from this source snapshot; its hosted acceptance must be re-established separately.
 
@@ -523,10 +521,8 @@ this missed historical count limit surfaced. Database maintenance corrections
 are installed and the worker has recovered; actual full-run completion remains
 pending. See the current local-prototype record.
 
-D080 selects GPT-6 Luna for future local guided Strategy and Naming requests.
-Local Strategy capabilities accept the exact canonical Luna policy while
-retaining the shared enabled-operation switch and the existing owner, role,
-saved-policy, readiness and lease checks. Shared hosted Sol policies and bindings
-are unchanged. Naming retains xhigh reasoning; Strategy retains medium. Both
-use the standard service tier. Historical Sol requests retain their exact
-models, service tiers and request hashes; development agents remain Sol/max.
+Local Strategy and Naming execution are governed by the application's configured
+runtime policies. Admission retains the shared enabled-operation switch and
+existing owner, role, saved-policy, readiness and lease checks. Local policy
+qualification is separate from hosted bindings. Previously admitted requests
+retain their original model identifiers, service tiers and request hashes.

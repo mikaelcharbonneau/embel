@@ -2,7 +2,7 @@
 
 The confirmed test account exhausted its one-response allowance on 2026-10-14. All three attempt counters (owner, cohort and rollout) had reached one, and each committed-cost allowance had been consumed. The successful response cost 1,858 microdollars; refunded unused reservations do not restore a consumed trial attempt.
 
-The user explicitly requested ongoing testing without a cap. The replacement is private, operator-granted testing access for an existing entitled account. It has no lifetime request limit, aggregate model-spending ceiling or expiry. This is an authorization mode, not a large numeric credit balance, periodic refill or reset of trial history.
+The installed replacement is private, operator-granted testing access for an existing entitled account. Its database mode has no lifetime request limit, aggregate model-spending ceiling or expiry; it is not a large numeric credit balance, periodic refill or reset of trial history. This describes the implementation, not permission to enable access or incur new spending.
 
 Testing covers the existing enabled brief-response operation, `strategy.reformulate`. Each request retains the pinned model and input/output limits, its 122,880-microdollar maximum reservation, one active request, exact authenticated project ownership, immutable dispatch identity and lease fencing. Unknown provider outcomes still block further paid requests until reconciled. No automatic repeat provider call is authorized by retrying or replaying a request.
 
