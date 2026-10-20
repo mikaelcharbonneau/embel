@@ -11,6 +11,7 @@ import Link from "next/link";
 import { z } from "zod";
 import { accountSessionSchema } from "@/domain/project-api";
 import { accountRequest, AccountRequestError } from "./account-api";
+import { boundedAccountRequest } from "./bounded-account-request";
 import { createAccountDraftMemory } from "./account-draft-memory";
 import { createAccountProfileMemory } from "./account-profile-memory";
 import { createIdentityDraftMemory } from "@/components/identity/identity-draft-memory";
@@ -120,12 +121,12 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
     request.current = controller;
     const generation = current.current.generation + 1;
     publish({ status: "checking", generation });
-    void accountRequest("/api/session", accountSessionSchema, { signal: controller.signal }).then(({ user }) => {
+    void boundedAccountRequest("/api/session", accountSessionSchema, { signal: controller.signal }).then(({ user }) => {
       if (!controller.signal.aborted && current.current.generation === generation) publish({ status: "ready", userId: user.id, generation });
     }).catch((error: unknown) => {
       if (controller.signal.aborted || current.current.generation !== generation) return;
       publish({ status: error instanceof AccountRequestError && error.status === 401 ? "signed_out" : error instanceof AccountRequestError && error.status === 503 ? "unavailable" : "error", generation });
-    });
+    }).finally(() => { if (request.current === controller) request.current = null; });
   }, [publish]);
   const expire = useCallback((account: VerifiedAccount) => {
     if (!isCurrent(account)) return;
@@ -227,16 +228,30 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
 
   useEffect(() => {
     // Start asynchronously so all private consumers share this one verification.
-    const automaticRefresh = () => { if (!suppressAutomaticRefresh.current && !signOutRequest.current && !signInPending.current) refresh(); };
-    const startup = window.setTimeout(automaticRefresh, 0);
-    const onVisible = () => { if (document.visibilityState === "visible") automaticRefresh(); };
+    // Focus and visibility commonly arrive together. Only events within one
+    // activation share a pending check; leaving the tab invalidates its read so
+    // a later return cannot restore an account verified before a cookie change.
+    // Startup/explicit reads while inactive cannot consume that return fence.
+    let needsActivationCheck = document.visibilityState === "hidden";
+    const automaticRefresh = (activation = false) => {
+      if (suppressAutomaticRefresh.current || signOutRequest.current || signInPending.current) return;
+      if (request.current && !request.current.signal.aborted && !(activation && needsActivationCheck)) return;
+      if (activation) needsActivationCheck = false;
+      refresh();
+    };
+    const onInactive = () => { needsActivationCheck = true; request.current?.abort(); };
+    const onFocus = () => { if (document.visibilityState === "visible") automaticRefresh(true); };
+    const startup = window.setTimeout(() => automaticRefresh(), 0);
+    const onVisible = () => { if (document.visibilityState === "visible") automaticRefresh(true); else onInactive(); };
     const retainEdits = (event: BeforeUnloadEvent) => { if (drafts.hasUnsaved() || profileDrafts.hasUnsaved() || inspirationDrafts.hasUnsaved() || visualDirectionDrafts.hasUnsaved() || screeningDrafts.hasUnsaved() || namesDrafts.hasUnsaved() || namingBrainDrafts.hasUnsaved() || identityDrafts.hasUnsaved() || logoDrafts.hasUnsaved() || ideaDrafts.hasUnsaved() || standaloneDrafts.hasUnsaved() || lifecycleMemory.hasUnsaved() || homeInputSession.hasUnsaved() || logoInputSession.hasUnsaved()) event.preventDefault(); };
-    window.addEventListener("focus", automaticRefresh);
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("blur", onInactive);
     window.addEventListener("beforeunload", retainEdits);
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       window.clearTimeout(startup);
-      window.removeEventListener("focus", automaticRefresh);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("blur", onInactive);
       window.removeEventListener("beforeunload", retainEdits);
       document.removeEventListener("visibilitychange", onVisible);
       namesDrafts.bind(null);

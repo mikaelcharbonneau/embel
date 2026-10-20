@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import type { IdentityBoardPreview, IdentityFreshness, IdentityProductionFile, IdentitySystemSource } from "@/domain/project-identity";
 import { identityErrorMessage, type AccountIdentityClient } from "./account-identity-client";
+import { privatePreviewIdentity } from "../assets/private-preview-identity";
 
 export function identitySourceLabel(source: IdentitySystemSource): string {
   return source.kind === "generated" ? "Generated system" : source.component === "colors" ? "Manual colors edit" : "Manual typography edit";
@@ -15,16 +16,19 @@ export function IdentityFreshnessNotice({ freshness }: { freshness: IdentityFres
 }
 export function IdentitySystemBoard({ board, name, client }: { board: IdentityBoardPreview; name: string; client: AccountIdentityClient }) {
   const node = useRef<HTMLDivElement>(null);
-  const key = `${board.asset.ownerId}:${board.asset.projectId}:${board.asset.versionId}:${board.asset.contentHash}`;
+  const key = privatePreviewIdentity(board.asset, [board.asset.mimeType, board.asset.purpose]);
+  const readAsset = useEffectEvent(() => board.asset);
   const [preview, setPreview] = useState<{ client: AccountIdentityClient; key: string; url?: string; release?: () => void; loading?: boolean; error?: string } | null>(null);
+  if (preview && (preview.client !== client || preview.key !== key)) setPreview(null);
   const [retry, setRetry] = useState(0);
   useEffect(() => {
+    const asset = readAsset();
     const controller = new AbortController(); let released: (() => void) | undefined, started = false;
     async function load() {
       if (started || controller.signal.aborted || !client.current()) return;
       started = true; setPreview({ client, key, loading: true });
       try {
-        const result = await client.preview(board.asset, controller.signal);
+        const result = await client.preview(asset, controller.signal);
         if (!result) return;
         if (controller.signal.aborted || !client.current()) { result.release(); return; }
         released = result.release; setPreview({ client, key, url: result.url, release: result.release });
@@ -35,7 +39,7 @@ export function IdentitySystemBoard({ board, name, client }: { board: IdentityBo
     }, { rootMargin: "240px" });
     if (observer && node.current) observer.observe(node.current); else void load();
     return () => { controller.abort(); observer?.disconnect(); released?.(); };
-  }, [client, key, board.asset, retry]);
+  }, [client, key, retry]);
   const shown = preview?.client === client && preview.key === key && client.current() ? preview : null;
   return <figure className="identity-board">
     <div className="identity-board-image" ref={node}>

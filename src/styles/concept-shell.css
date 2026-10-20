@@ -38,6 +38,8 @@
 .workspace-account-menu { position: relative; }
 .workspace-account-menu > summary { list-style: none; display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; color: var(--secondary); font-size: 13px; }
 .workspace-account-menu > summary::-webkit-details-marker { display: none; }
+.workspace-account-label { display: block; width: clamp(72px, 12vw, 128px); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-align: right; }
+.workspace-account-placeholder { display: inline-block; width: 88px; max-width: 100%; height: 12px; vertical-align: middle; border-radius: 3px; background: var(--border); }
 .workspace-account-avatar { display: grid; place-items: center; width: 32px; height: 32px; background: var(--paper); border: 1px solid var(--border); border-radius: 50%; }
 .workspace-account-panel { position: absolute; z-index: 50; top: calc(100% + 8px); right: 0; min-width: 270px; max-width: calc(100vw - 32px); padding: 16px; background: var(--paper); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px #19191914; }
 .workspace-account-panel .topbar-account { flex-wrap: wrap; gap: 12px; }

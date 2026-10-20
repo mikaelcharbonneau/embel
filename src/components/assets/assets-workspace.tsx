@@ -57,7 +57,7 @@ function OwnedAssetLibrary({ account }: { account: VerifiedAccount }) {
     {library.facetLimited && <p className="assets-muted">The project filter includes the 100 most recent projects and other projects from assets loaded below.</p>}
     {library.error && <div role="alert" className="assets-notice"><p>{library.error}</p><button type="button" className="button secondary small" disabled={library.busy} onClick={library.refresh}>Check assets again</button></div>}
     <div role="tabpanel" id="assets-results" aria-labelledby={`assets-tab-${library.query.tab}`} aria-busy={library.status === "loading"}>
-      {library.status === "loading" && <p className="assets-muted assets-loading" role="status">Loading assets…</p>}
+      <p className="assets-muted assets-loading" role="status">{library.status === "loading" ? library.page ? "Checking assets…" : "Loading assets…" : ""}</p>
       {library.page && <>
         {visible.length > 0 ? <><div className="assets-grid">{visible.map(item => <article className="assets-card" key={item.asset.id} aria-label={`${item.asset.kind} · ${item.project.title}`}>
           <button type="button" className="assets-open" aria-label={`Open ${item.asset.kind} from ${item.project.title}`} onClick={event => { returnFocus.current = event.currentTarget; setOpened(item); }}><AssetPreview version={item.displayedVersion} client={library.client} retryable={false} label={`${item.asset.kind} preview`} /></button>
