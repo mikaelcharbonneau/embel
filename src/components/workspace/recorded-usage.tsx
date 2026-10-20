@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { RECORDED_USAGE_LIMIT, recordedUsageSchema, type RecordedUsage } from "@/domain/recorded-usage";
 import { accountRequest, AccountRequestError } from "./account-api";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
@@ -11,6 +11,7 @@ const labels: Record<RecordedUsage["entries"][number]["operation"], string> = {
   "naming.generate": "Naming", "strategy.reformulate": "Strategy · Brief", "strategy.competitors": "Strategy · Competitors",
   "strategy.audience": "Strategy · Audience", "strategy.personality": "Strategy · Personality", "strategy.positioning": "Strategy · Positioning",
 };
+const refreshingUsageMessage = "Checking recorded usage… Previous recorded usage is still shown.";
 
 export function RecordedUsageSection({ active = true }: { active?: boolean }) {
   const { session } = useAccountSession();
@@ -19,8 +20,8 @@ export function RecordedUsageSection({ active = true }: { active?: boolean }) {
     <div className="settings-panel">
       <p className="recorded-usage-coverage">Shows up to {RECORDED_USAGE_LIMIT} most recent successfully completed Strategy and Naming requests. Other activity is excluded. This is a recent history, not an account-wide usage total.</p>
       {session.status === "ready" ? <OwnedRecordedUsage key={`${session.userId}:${session.generation}`} account={session} active={active} /> : <>
-        <p className="recorded-usage-notice" role="status">{session.status === "signed_out" ? "Sign in to view recorded usage." : session.status === "checking" ? "Checking your account…" : "Verify your account to view recorded usage."}</p>
-        {session.status === "checking" && <PendingUsageFrame />}
+        <UsageStatus reserve={session.status === "checking"} message={session.status === "signed_out" ? "Sign in to view recorded usage." : session.status === "checking" ? "Checking your account…" : "Verify your account to view recorded usage."} />
+        {session.status === "checking" && <><PendingUsageFrame /><UsageFooter /></>}
       </>}
     </div>
   </section>;
@@ -31,6 +32,22 @@ function PendingUsageFrame() {
   // geometry through account verification. Terminal states remove this frame.
   return <div className="recorded-usage-pending-frame" aria-hidden="true" inert>
     {Array.from({ length: RECORDED_USAGE_LIMIT }, (_, index) => <div key={index} className="recorded-usage-pending-slot" />)}
+  </div>;
+}
+
+function UsageStatus({ message, error = false, reserve = true }: { message: string; error?: boolean; reserve?: boolean }) {
+  return <div className="recorded-usage-status">
+    {/* Size only from public refresh copy, never private content or measurements.
+        Longer errors can still grow; terminal account states have no sizing copy. */}
+    {reserve && <span className="recorded-usage-status-sizer" aria-hidden="true" inert>{refreshingUsageMessage}</span>}
+    <p className="recorded-usage-notice" role={error ? "alert" : "status"}>{message}</p>
+  </div>;
+}
+
+function UsageFooter({ action }: { action?: ReactNode }) {
+  return <div className="recorded-usage-footer">
+    <p className="recorded-usage-note">Unknown means a token count was not recorded or could not be verified.</p>
+    <div className="recorded-usage-action" aria-hidden={action ? undefined : true} inert={!action}>{action}</div>
   </div>;
 }
 
@@ -84,9 +101,9 @@ function OwnedRecordedUsage({ account, active }: { account: VerifiedAccount; act
     reading.current = true; setRetry(value => value + 1);
   }
   return <>
-    <p className="recorded-usage-notice" role={error ? "alert" : "status"}>{error
+    <UsageStatus error={error} message={error
       ? snapshot ? "Recorded usage could not be refreshed. Previous recorded usage is still shown. Check your connection and try again." : "Recorded usage could not be loaded. Check your connection and try again."
-      : pending ? snapshot ? "Checking recorded usage… Previous recorded usage is still shown." : "Loading recorded usage…" : "Recorded usage loaded."}</p>
+      : pending ? snapshot ? refreshingUsageMessage : "Loading recorded usage…" : "Recorded usage loaded."} />
     {!snapshot && pending && <PendingUsageFrame />}
     {snapshot && <>
         {!snapshot.entries.length ? <p className="recorded-usage-notice">No completed Strategy or Naming requests in this account yet.</p> :
@@ -98,8 +115,7 @@ function OwnedRecordedUsage({ account, active }: { account: VerifiedAccount; act
                 <div key={title}><dt>{title}</dt><dd>{value == null ? "Unknown" : value.toLocaleString("en-US")}</dd></div>)}</dl>
             </article>;
           })}</div>}
-        <p className="recorded-usage-note">Unknown means a token count was not recorded or could not be verified.</p>
       </>}
-    <button type="button" className="button secondary small recorded-usage-refresh" disabled={!active} aria-disabled={!active || pending} onClick={refresh}>{snapshot ? "Refresh usage" : "Check usage again"}</button>
+    <UsageFooter action={<button type="button" className="button secondary small recorded-usage-refresh" disabled={!active} aria-disabled={!active || pending} onClick={refresh}>{snapshot ? "Refresh usage" : "Check usage again"}</button>} />
   </>;
 }

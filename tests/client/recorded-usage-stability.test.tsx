@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { readFileSync } from "node:fs";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -27,6 +28,8 @@ const render = () => act(async () => root.render(createElement(RecordedUsageSect
 const settle = (index: number, body = snapshot(), status = 200) => act(async () => requests[index]!.resolve(Response.json(body, { status })));
 const refresh = () => host.querySelector<HTMLButtonElement>(".recorded-usage-refresh")!;
 const rows = () => [...host.querySelectorAll(".recorded-usage-entry")];
+const publicRefreshStatus = "Checking recorded usage… Previous recorded usage is still shown.";
+const publicNote = "Unknown means a token count was not recorded or could not be verified.";
 function expectSameRows(original: Element[]) {
   const current = rows(); expect(current).toHaveLength(original.length);
   current.forEach((row, index) => expect(row).toBe(original[index]));
@@ -56,6 +59,15 @@ describe("Recorded usage refresh continuity", () => {
     expect(frame.getAttribute("style")).toBeNull();
     expect([...frame.children].every(slot => slot.className === "recorded-usage-pending-slot" && slot.attributes.length === 1)).toBe(true);
     expect(frame.querySelector("article, time, dl, button, a, input, [tabindex]")).toBeNull();
+    const footer = host.querySelector(".recorded-usage-footer")!;
+    expect(footer).not.toBeNull();
+    expect(footer.textContent).toBe(publicNote);
+    const action = footer.querySelector(".recorded-usage-action")!;
+    expect(action.hasAttribute("inert")).toBe(true);
+    expect(action.getAttribute("aria-hidden")).toBe("true");
+    expect(action.children).toHaveLength(0);
+    expect(footer.querySelector("article, time, dl, button, a, input, [tabindex], [style]")).toBeNull();
+    expect(host.querySelector(".recorded-usage-status-sizer")?.textContent).toBe(publicRefreshStatus);
     expect(rows()).toHaveLength(0); expect(refresh()).toBeNull();
     expect(host.textContent).toContain("Checking your account…");
     expect(host.textContent).not.toContain("2026-10-19");
@@ -63,8 +75,11 @@ describe("Recorded usage refresh continuity", () => {
     mock.session = { status: "ready", userId: owner, generation: 2 }; await render();
     expect(host.querySelector(".recorded-usage-pending-frame")?.children).toHaveLength(RECORDED_USAGE_LIMIT);
     expect(host.textContent).toContain("Loading recorded usage…");
+    expect(host.querySelector(".recorded-usage-footer")?.querySelector("p")?.textContent).toBe(publicNote);
+    expect(refresh().getAttribute("aria-disabled")).toBe("true");
     await settle(2, snapshot(0));
     expect(host.querySelector(".recorded-usage-pending-frame")).toBeNull();
+    expect(host.querySelector(".recorded-usage-footer")).not.toBeNull();
     expect(host.textContent).toContain("No completed Strategy or Naming requests");
   });
 
@@ -72,6 +87,8 @@ describe("Recorded usage refresh continuity", () => {
     await loaded(); mock.session = { status, generation: 2 }; await render();
     expect(rows()).toHaveLength(0); expect(refresh()).toBeNull();
     expect(host.querySelector(".recorded-usage-pending-frame")).toBeNull();
+    expect(host.querySelector(".recorded-usage-footer")).toBeNull();
+    expect(host.querySelector(".recorded-usage-status-sizer")).toBeNull();
     expect(host.textContent).toContain(status === "signed_out" ? "Sign in to view recorded usage." : "Verify your account to view recorded usage.");
   });
 
@@ -95,6 +112,79 @@ describe("Recorded usage refresh continuity", () => {
     await settle(1);
     expectSameRows(original); expect(refresh()).toBe(button);
     expect(document.activeElement).toBe(button); expect(button.getAttribute("aria-disabled")).not.toBe("true");
+  });
+
+  it("reserves the same public status and footer structure while ordinary refresh keeps the actual button and focus", async () => {
+    await loaded();
+    const status = host.querySelector(".recorded-usage-status")!;
+    expect(status).not.toBeNull();
+    const sizer = status.querySelector(".recorded-usage-status-sizer")!;
+    const notice = status.querySelector('[role="status"]')!;
+    const footer = host.querySelector(".recorded-usage-footer")!;
+    const note = footer.querySelector(".recorded-usage-note")!;
+    const action = footer.querySelector(".recorded-usage-action")!;
+    const button = refresh(); button.focus();
+    expect(sizer.textContent).toBe(publicRefreshStatus);
+    expect(sizer.getAttribute("aria-hidden")).toBe("true");
+    expect(sizer.hasAttribute("inert")).toBe(true);
+    expect(sizer.querySelector("button, a, input, [tabindex]")).toBeNull();
+    expect(notice.textContent).toBe("Recorded usage loaded.");
+    expect(note.textContent).toBe(publicNote);
+    expect(action.hasAttribute("inert")).toBe(false);
+    expect(action.getAttribute("aria-hidden")).toBeNull();
+    await act(async () => button.click());
+    expect(host.querySelector(".recorded-usage-status")).toBe(status);
+    expect(status.querySelector(".recorded-usage-status-sizer")).toBe(sizer);
+    expect(notice.textContent).toBe(publicRefreshStatus);
+    expect(host.querySelector(".recorded-usage-footer")).toBe(footer);
+    expect(footer.querySelector(".recorded-usage-note")).toBe(note);
+    expect(footer.querySelector(".recorded-usage-action")).toBe(action);
+    expect(refresh()).toBe(button); expect(document.activeElement).toBe(button);
+    await settle(1, snapshot(), 503);
+    expect(status.querySelector('[role="alert"]')).toBe(notice);
+    expect(notice.textContent).toBe("Recorded usage could not be refreshed. Previous recorded usage is still shown. Check your connection and try again.");
+    expect(host.querySelector(".recorded-usage-footer")).toBe(footer);
+    expect(refresh()).toBe(button); expect(document.activeElement).toBe(button);
+  });
+
+  it("shows complete long recorded labels, dates and token values without padding a sparse result to the public capacity", async () => {
+    await render();
+    const data = snapshot(1);
+    data.entries[0]!.operation = "strategy.competitors";
+    data.entries[0]!.completedAt = "2026-10-19T12:00:00+05:30";
+    data.entries[0]!.tokens = { inputTokens: Number.MAX_SAFE_INTEGER - 1, outputTokens: 1, totalTokens: Number.MAX_SAFE_INTEGER };
+    await settle(0, data);
+    expect(rows()).toHaveLength(1);
+    expect(rows()[0]!.querySelector("h3")?.textContent).toBe("Strategy · Competitors");
+    expect(rows()[0]!.querySelector("time")?.textContent).toBe(data.entries[0]!.completedAt);
+    expect([...rows()[0]!.querySelectorAll("dd")].map(cell => cell.textContent)).toEqual(["9,007,199,254,740,990", "1", "9,007,199,254,740,991"]);
+    expect(host.querySelector(".recorded-usage-pending-frame, .recorded-usage-pending-slot")).toBeNull();
+    expect(host.querySelector(".recorded-usage-footer")?.querySelector("p")?.textContent).toBe(publicNote);
+  });
+
+  it("defines shared public row minima, explicit growing text metrics and reserved status/action slots in scoped CSS", () => {
+    // Source contract only: jsdom does not establish browser pixel or scroll equality.
+    const css = readFileSync("src/styles/recorded-usage.css", "utf8");
+    const rules = [...css.matchAll(/([^{}]+)\{([^{}]+)\}/g)];
+    const declarations = (selector: string) => rules.filter(match => match[1]!.split(",").some(item => item.trim() === selector)).map(match => match[2]).join(" ");
+    for (const selector of [".recorded-usage-entry", ".recorded-usage-pending-slot"]) {
+      expect(declarations(selector)).toMatch(/min-block-size:\s*116px;/);
+      expect(declarations(selector)).toMatch(/border-top:\s*1px solid var\(--border\);/);
+    }
+    expect(declarations(".recorded-usage-entry dl")).toMatch(/margin:\s*14px 0 0;/);
+    for (const selector of [".recorded-usage-entry h3", ".recorded-usage-entry time", ".recorded-usage-entry dt", ".recorded-usage-entry dd"]) {
+      expect(declarations(selector)).toMatch(/line-height:\s*20px;/);
+    }
+    expect(declarations(".recorded-usage-entry-heading")).toMatch(/flex-wrap:\s*wrap;/);
+    expect(declarations(".recorded-usage-entry dd")).toMatch(/overflow-wrap:\s*anywhere;/);
+    expect(declarations(".recorded-usage-status")).toMatch(/display:\s*grid;/);
+    expect(declarations(".recorded-usage-status-sizer")).toMatch(/visibility:\s*hidden;/);
+    expect(declarations(".recorded-usage-status > .recorded-usage-notice")).toMatch(/grid-area:\s*1\s*\/\s*1;/);
+    expect(declarations(".recorded-usage-status-sizer")).toMatch(/grid-area:\s*1\s*\/\s*1;/);
+    expect(declarations(".recorded-usage .recorded-usage-note")).toMatch(/line-height:\s*20px;/);
+    expect(declarations(".recorded-usage-action")).toMatch(/min-block-size:\s*44px;/);
+    expect(declarations(".recorded-usage-action")).toMatch(/display:\s*flex;/);
+    expect(css).not.toMatch(/(?:^|[;{])\s*(?:height|block-size|max-height|max-block-size)\s*:|overflow:\s*(?:hidden|clip)|text-overflow:\s*ellipsis|line-clamp:/);
   });
 
   it("keeps prior rows and the same retry trigger after failure, then updates verified tokens", async () => {
