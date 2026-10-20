@@ -43,24 +43,32 @@ function SaveFooter({ scope = "account" }: { scope?: "account" | "workspace" }) 
 
 export function SettingsWorkspace({ localRuntimeEnabled = false }: { localRuntimeEnabled?: boolean }) {
   const [category, setCategory] = useState<Category>("account");
+  const [usageVisited, setUsageVisited] = useState(false);
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
-  function activate(index: number) { setCategory(categories[index]![0]); tabs.current[index]?.focus(); }
+  function selectCategory(next: Category) {
+    if (next === "billing") setUsageVisited(true);
+    setCategory(next);
+  }
+  function activate(index: number) { selectCategory(categories[index]![0]); tabs.current[index]?.focus(); }
   return <div className="page settings-guided" data-category={category}>
     <div className="sg-heading"><h1>Settings<span>.</span></h1><p>Manage your account, workspace, and how Embel works for you.</p></div>
     <div className="sg-tabs" role="tablist" aria-label="Settings categories">{categories.map(([id, label], index) =>
-      <button key={id} ref={node => { tabs.current[index] = node; }} type="button" role="tab" id={`settings-tab-${id}`} aria-controls={`settings-panel-${id}`} aria-selected={category === id} tabIndex={category === id ? 0 : -1} onClick={() => setCategory(id)} onKeyDown={event => {
+      <button key={id} ref={node => { tabs.current[index] = node; }} type="button" role="tab" id={`settings-tab-${id}`} aria-controls={`settings-panel-${id}`} aria-selected={category === id} tabIndex={category === id ? 0 : -1} onClick={() => selectCategory(id)} onKeyDown={event => {
         const next = event.key === "ArrowRight" ? (index + 1) % categories.length : event.key === "ArrowLeft" ? (index + categories.length - 1) % categories.length : event.key === "Home" ? 0 : event.key === "End" ? categories.length - 1 : null;
         if (next !== null) { event.preventDefault(); activate(next); }
       }}>{label}</button>)}</div>
-    <div className="sg-content" role="tabpanel" id={`settings-panel-${category}`} aria-labelledby={`settings-tab-${category}`} tabIndex={0}>
-      {category === "account" && <AccountSettings />}
-      {category === "workspace" && <WorkspaceSettings />}
-      {category === "ai" && <AISettings localRuntimeEnabled={localRuntimeEnabled} />}
-      {category === "billing" && <BillingSettings />}
-      {category === "notifications" && <NotificationSettings />}
-      {category === "security" && <SecuritySettings />}
-      {category === "integrations" && <IntegrationSettings />}
-    </div>
+    {categories.map(([id]) => {
+      const active = category === id;
+      return <div key={id} className="sg-content" role="tabpanel" id={`settings-panel-${id}`} aria-labelledby={`settings-tab-${id}`} tabIndex={active ? 0 : -1} hidden={!active} inert={!active} aria-hidden={!active || undefined}>
+        {active && id === "account" && <AccountSettings />}
+        {active && id === "workspace" && <WorkspaceSettings />}
+        {active && id === "ai" && <AISettings localRuntimeEnabled={localRuntimeEnabled} />}
+        {id === "billing" && usageVisited && <BillingSettings active={active} />}
+        {active && id === "notifications" && <NotificationSettings />}
+        {active && id === "security" && <SecuritySettings />}
+        {active && id === "integrations" && <IntegrationSettings />}
+      </div>;
+    })}
   </div>;
 }
 
@@ -115,7 +123,7 @@ function AISettings({ localRuntimeEnabled }: { localRuntimeEnabled: boolean }) {
   </>;
 }
 
-function BillingSettings() {
+function BillingSettings({ active }: { active: boolean }) {
   return <>
     <div className="sg-summary">
       <Card title="Current plan" description="Embel billing is not connected."><strong className="sg-metric">Unavailable</strong><p className="sg-note">No verified plan, price, or next invoice is available.</p><UnavailableAction>Manage plan</UnavailableAction></Card>
@@ -126,7 +134,7 @@ function BillingSettings() {
       <Row title="Billing email" description="No verified billing email available."><UnavailableAction>Edit</UnavailableAction></Row>
     </Card>
     <Card title="Invoices" description="Invoice history is not connected."><div className="sg-invoices"><table><thead><tr>{["Date", "Description", "Amount", "Status"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead><tbody><tr><td colSpan={4}>Invoices unavailable. No verified invoices or downloads are available.</td></tr></tbody></table></div></Card>
-    <RecordedUsageSection />
+    <RecordedUsageSection active={active} />
   </>;
 }
 

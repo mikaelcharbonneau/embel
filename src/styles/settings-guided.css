@@ -15,6 +15,7 @@
 .settings-guided .sg-tabs button { border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--secondary); white-space: nowrap; height: 44px; padding: 0 4px; font-size: 14px; flex-shrink: 0; }
 .settings-guided .sg-tabs button[aria-selected=true] { border-bottom-color: var(--magenta); color: var(--text); font-weight: 500; }
 .settings-guided .sg-content { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.settings-guided .sg-content[hidden] { display: none; }
 .settings-guided .sg-card { background: var(--paper); border: 1px solid var(--border); border-radius: 10px; padding: 24px; min-width: 0; }
 .settings-guided .sg-card > header h2, .settings-guided .sg-delete h2 { margin: 0; font-size: 16px; font-weight: 500; line-height: 20px; letter-spacing: 0; }
 .settings-guided .sg-card > header p { font-size: 13px; line-height: 20px; color: var(--secondary); margin-top: 4px; }

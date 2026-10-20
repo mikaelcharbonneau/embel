@@ -4,12 +4,12 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RecordedUsageSection } from "@/components/workspace/recorded-usage";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
-import type { RecordedUsage } from "@/domain/recorded-usage";
+import { RECORDED_USAGE_LIMIT, type RecordedUsage } from "@/domain/recorded-usage";
 
 const owner = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const other = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const mock = vi.hoisted(() => ({
-  session: { status: "ready", userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", generation: 1 } as VerifiedAccount | { status: "checking" | "signed_out"; generation: number },
+  session: { status: "ready", userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", generation: 1 } as VerifiedAccount | { status: "checking" | "signed_out" | "unavailable" | "error"; generation: number },
   current: vi.fn(), expire: vi.fn(),
 }));
 vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ session: mock.session, isCurrent: mock.current, expire: mock.expire }) }));
@@ -44,6 +44,45 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe("Recorded usage refresh continuity", () => {
+  it.each([0, 1, 20])("uses the same anonymous public-limit geometry after %i private rows and through the following initial read", async priorCount => {
+    await render(); await settle(0, snapshot(priorCount)); await act(async () => refresh().click());
+    mock.session = { status: "checking", generation: 2 }; await render();
+    const frame = host.querySelector(".recorded-usage-pending-frame")!;
+    expect(frame).not.toBeNull();
+    expect(frame.getAttribute("aria-hidden")).toBe("true");
+    expect(frame.hasAttribute("inert")).toBe(true);
+    expect(frame.children).toHaveLength(RECORDED_USAGE_LIMIT);
+    expect(frame.textContent).toBe("");
+    expect(frame.getAttribute("style")).toBeNull();
+    expect([...frame.children].every(slot => slot.className === "recorded-usage-pending-slot" && slot.attributes.length === 1)).toBe(true);
+    expect(frame.querySelector("article, time, dl, button, a, input, [tabindex]")).toBeNull();
+    expect(rows()).toHaveLength(0); expect(refresh()).toBeNull();
+    expect(host.textContent).toContain("Checking your account…");
+    expect(host.textContent).not.toContain("2026-10-19");
+    await settle(1); expect(rows()).toHaveLength(0);
+    mock.session = { status: "ready", userId: owner, generation: 2 }; await render();
+    expect(host.querySelector(".recorded-usage-pending-frame")?.children).toHaveLength(RECORDED_USAGE_LIMIT);
+    expect(host.textContent).toContain("Loading recorded usage…");
+    await settle(2, snapshot(0));
+    expect(host.querySelector(".recorded-usage-pending-frame")).toBeNull();
+    expect(host.textContent).toContain("No completed Strategy or Naming requests");
+  });
+
+  it.each(["signed_out", "unavailable", "error"] as const)("does not disguise %s as an indefinite usage loader", async status => {
+    await loaded(); mock.session = { status, generation: 2 }; await render();
+    expect(rows()).toHaveLength(0); expect(refresh()).toBeNull();
+    expect(host.querySelector(".recorded-usage-pending-frame")).toBeNull();
+    expect(host.textContent).toContain(status === "signed_out" ? "Sign in to view recorded usage." : "Verify your account to view recorded usage.");
+  });
+
+  it("removes the anonymous initial-read frame on failure without inventing an empty account", async () => {
+    await render(); expect(host.querySelector(".recorded-usage-pending-frame")).not.toBeNull();
+    await settle(0, snapshot(), 503);
+    expect(host.querySelector(".recorded-usage-pending-frame")).toBeNull();
+    expect(host.textContent).toContain("Recorded usage could not be loaded");
+    expect(host.textContent).not.toContain("No completed Strategy");
+  });
+
   it("retains all rows, the refresh trigger and focus through a deduplicated refresh", async () => {
     await loaded(); const original = rows(), button = refresh(); button.focus();
     await act(async () => { button.click(); button.click(); });
