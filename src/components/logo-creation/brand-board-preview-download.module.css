@@ -1,0 +1,4 @@
+.action { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; flex-shrink: 0; margin-bottom: 12px; }
+.action > p { color: var(--secondary, #696965); font-size: 12px; line-height: 1.5; margin: 0; flex: 1; min-width: min(100%, 260px); }
+.action > p[role] { flex-basis: 100%; }
+.action > p[role="alert"] { color: var(--text, #191919); }

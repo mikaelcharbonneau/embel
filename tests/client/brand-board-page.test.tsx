@@ -109,7 +109,8 @@ describe("saved brand board presentation", () => {
     expect(board()?.textContent).not.toContain("Review changed inputs");
     expect(host.querySelector('a[href$="/logo"]')?.textContent).toContain("Back to logo concepts");
     const previewPaths = f.requests.filter(row => row.path.endsWith("/preview")).map(row => row.path);
-    expect(previewPaths).toHaveLength(4);
+    // Four displayed images plus the independently verified download preparation.
+    expect(previewPaths).toHaveLength(5);
     expect(new Set(previewPaths)).toEqual(new Set([`/api/assets/${f.f.batch.slots[0]!.acceptedPreview!.reference.versionId}/preview`]));
     await act(async () => root!.unmount()); root = null;
     await mount(f);
