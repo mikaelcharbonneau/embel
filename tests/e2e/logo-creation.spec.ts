@@ -415,9 +415,13 @@ test("a running chat edit becomes a selectable saved refinement without reloadin
 
 test("brand board fits the desktop viewport and remains readable on mobile", async ({ page }) => {
   await page.goto("/brand-board-layout-fixture");
-  await expect(page.getByRole("heading", { name: "Color palette", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Proposed palette", exact: true })).toBeVisible();
+  await expect(page.getByText("From saved inspiration", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Proposed typography", exact: true })).toBeVisible();
+  await expect(page.getByText("Geist Sans · Default preview", { exact: true })).toBeVisible();
+  await expect(page.getByText("Glide · Saved selection", { exact: true })).toBeVisible();
   const logo = await page.getByRole("region", { name: "Selected brand logo" }).boundingBox();
-  const palette = await page.getByRole("region", { name: "Color palette" }).boundingBox();
+  const palette = await page.getByRole("region", { name: "Proposed palette" }).boundingBox();
   expect(logo).not.toBeNull();
   expect(palette).not.toBeNull();
   if (page.viewportSize()!.width > 700) {

@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useInspiration } from "@/components/inspiration/use-inspiration";
 import { BrandBoardSystem } from "./brand-board-system";
+import { brandBoardLogoNeedsReview } from "./brand-board-direction";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import { useLogoDraftMemory } from "@/components/identity/logo-draft-memory-context";
 import { useLogoWorkspace } from "@/components/identity/use-logo-workspace";
@@ -25,12 +26,12 @@ function SavedBrandBoard({ account, projectId }: { account: VerifiedAccount; pro
   const owned = isCurrent(account) && state.workspace?.ownerId === account.userId && state.workspace.projectId === projectId;
   const selected = owned ? state.stagePayloads?.concepts?.payload.selected ?? null : null;
   const candidate = useLogoCandidate(owned ? state.client : null, account, projectId, selected);
-  if (!owned || !state.client) return <p role="status">{state.error ?? "Loading your saved brand…"}</p>;
+  if (!owned || !state.client || !state.workspace) return <p role="status">{state.error ?? "Loading your saved brand…"}</p>;
   const brief = state.stagePayloads?.brief_references?.payload;
   return <>
     {state.error && <p role="alert">{state.error}</p>}
     {!candidate.item && <section className={styles.brandBoardLogo} aria-label="Selected brand logo"><p role="status">{candidate.error ? "Your selected logo could not be loaded." : candidate.loading || state.status === "loading" ? "Loading your selected logo…" : "Select a logo to start your brand board."}</p>{candidate.error && <button className={styles.secondaryButton} onClick={candidate.refresh}>Try again</button>}</section>}
     {inspiration.error && <p role="alert">{inspiration.error} <button className={styles.secondaryButton} onClick={() => void inspiration.refresh()}>Retry inspiration</button></p>}
-    {candidate.item && inspiration.overview && !inspiration.error ? <BrandBoardSystem name={brief?.name || "Your brand"} activity={brief?.activity || ""} logoType={candidate.item.logoType} choices={inspiration.overview.choices} logo={<LogoVerifiedPreview client={state.client} receipt={candidate.item.preview} alt="Selected logo in application preview" />} /> : inspiration.loading && <p role="status">Loading your saved inspiration…</p>}
+    {candidate.item && inspiration.overview && !inspiration.error ? <BrandBoardSystem name={brief?.name || "Your brand"} activity={brief?.activity || ""} logoType={candidate.item.logoType} choices={inspiration.overview.choices} logoNeedsReview={brandBoardLogoNeedsReview(state.workspace.staleStages, candidate.item.source)} logo={<LogoVerifiedPreview client={state.client} receipt={candidate.item.preview} alt="Selected logo in application preview" />} /> : inspiration.loading && <p role="status">Loading your saved inspiration…</p>}
   </>;
 }
