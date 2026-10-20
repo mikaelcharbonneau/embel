@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { LogoJourneyNavigation } from "@/components/identity/logo-journey-navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import { AccountRequestError, accountErrorMessage } from "@/components/workspace/account-api";
 import { useLogoDraftMemory } from "@/components/identity/logo-draft-memory-context";
@@ -41,7 +41,7 @@ export function LogoEditorWorkspace({ projectId }: { projectId: string }) {
 }
 
 type Preview = NonNullable<Awaited<ReturnType<AccountLogoClient["previewAsset"]>>>;
-type DetailRead = { source: string; client: AccountLogoClient; detail: LogoVectorDetail | null; preview: Preview | null; error: string | null; restoration?: LogoStageRevision | null };
+type DetailRead = { source: string; requestScope: string; requestedId: string | null | undefined; client: AccountLogoClient; detail: LogoVectorDetail | null; preview: Preview | null; error: string | null; restoration?: LogoStageRevision | null };
 function OwnedLogoEditor({ projectId, account, memory }: { projectId: string; account: VerifiedAccount; memory: LogoDraftMemory }) {
   const { isCurrent } = useAccountSession(), state = useLogoWorkspace({ projectId, memory }), { client } = state;
   const [read, setRead] = useState<DetailRead | null>(null), [selectedId, setSelectedId] = useState<string | null>(null);
@@ -56,15 +56,25 @@ function OwnedLogoEditor({ projectId, account, memory }: { projectId: string; ac
   const draft = currentClient ? state.draft : null;
   const historicalVectorId = historical && "vectorRevisionId" in historical.payload ? historical.payload.vectorRevisionId : null;
   const wantedId = draft?.vectorDraft?.baseVectorRevisionId ?? historicalVectorId ?? historyVector?.vectorRevisionId;
-  const source = workspace ? `${workspace.heads.workspaceRevision}:${wantedId ?? "current"}:${historical?.id ?? ""}:${readAttempt}` : null;
+  const requestScope = workspace ? `${workspace.heads.workspaceRevision}:${historical?.id ?? ""}:${readAttempt}` : null;
+  // Pinning the already resolved current revision for the first local edit is
+  // not a new read identity. Keep its verified detail/URL, but never reuse it
+  // across a changed head, client, requested vector or explicit reload.
+  const resolvedRead = read && read.requestScope === requestScope && read.client === client && read.detail
+    && (wantedId ? wantedId === read.detail.revision.id : !read.requestedId) ? read : null;
+  const source = requestScope ? resolvedRead ? resolvedRead.source : `${requestScope}:${wantedId ?? "current"}` : null;
+  // A real transition disposes the effect's URL. Forget that read immediately,
+  // including while its replacement is pending, so A/B/A cannot expose it again.
+  if (read && (!currentClient || read.client !== client || read.source !== source)) setRead(null);
+  const readWantedId = useEffectEvent(() => wantedId);
   useEffect(() => () => { operation.current?.abort(); operation.current = null; }, []);
   useEffect(() => {
-    if (!client || !currentClient || !source) return;
-    const controller = new AbortController(); let preview: Preview | null = null;
+    if (!client || !currentClient || !source || !requestScope) return;
+    const controller = new AbortController(), requestedId = readWantedId(); let preview: Preview | null = null;
     const current = () => !controller.signal.aborted && isCurrent(account) && isAccountLogoClientCurrent(client, account, projectId);
     void (async () => {
-      const id = wantedId ?? await client.readLogoCurrentVectorRevisionId(controller.signal); if (!current()) return;
-      if (!id) { setRead({ source, client, detail: null, preview: null, error: null }); return; }
+      const id = requestedId ?? await client.readLogoCurrentVectorRevisionId(controller.signal); if (!current()) return;
+      if (!id) { setRead({ source, requestScope, requestedId, client, detail: null, preview: null, error: null }); return; }
       const detail = await client.readLogoVectorDetail(id, controller.signal); if (!current()) return;
       if (!detail || detail.revision.id !== id || detail.revision.ownerId !== account.userId || detail.revision.projectId !== projectId) throw new AccountRequestError(502);
       const document = validateLogoVectorDocument(detail.document);
@@ -75,12 +85,12 @@ function OwnedLogoEditor({ projectId, account, memory }: { projectId: string; ac
         if (!restoration || restoration.revision !== ref.revision || !("vectorRevisionId" in restoration.payload) || restoration.payload.vectorRevisionId !== id) throw new AccountRequestError(502);
       }
       try { preview = await client.previewAsset(detail.sourcePreview, controller.signal); }
-      catch { if (current()) setRead({ source, client, detail: { ...detail, document }, preview: null, error: "The original preview could not be verified. Reload it before accepting or restoring." }); return; }
+      catch { if (current()) setRead({ source, requestScope, requestedId, client, detail: { ...detail, document }, preview: null, error: "The original preview could not be verified. Reload it before accepting or restoring." }); return; }
       if (!current()) { preview?.release(); return; }
-      setRead({ source, client, detail: { ...detail, document }, preview, restoration, error: preview ? null : "The original preview is unavailable." });
-    })().catch(() => { if (current()) setRead({ source, client, detail: null, preview: null, error: "The saved vector could not be verified and remains hidden." }); });
+      setRead({ source, requestScope, requestedId, client, detail: { ...detail, document }, preview, restoration, error: preview ? null : "The original preview is unavailable." });
+    })().catch(() => { if (current()) setRead({ source, requestScope, requestedId, client, detail: null, preview: null, error: "The saved vector could not be verified and remains hidden." }); });
     return () => { controller.abort(); preview?.release(); };
-  }, [account, client, currentClient, isCurrent, projectId, source, wantedId, historyVector]);
+  }, [account, client, currentClient, isCurrent, projectId, requestScope, source, historyVector]);
   const visible = currentClient && read?.source === source && read.client === client ? read : null, detail = visible?.detail ?? null;
   const vectorDraft = draft?.vectorDraft;
   const document = useMemo(() => {

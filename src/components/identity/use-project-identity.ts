@@ -33,6 +33,7 @@ export function useProjectIdentity(projectId: string, referenceState?: IdentityR
   const [state, setState] = useState<State>(() => freshState(""));
   const stateRef = useRef(state), readEpoch = useRef(0), detailEpoch = useRef(0), mutation = useRef<symbol | null>(null);
   const readAbort = useRef<AbortController | null>(null), detailAbort = useRef<AbortController | null>(null);
+  const referenceAttempt = useRef<{ client: typeof client; revision: number } | null>(null);
   stateRef.current = state;
   const publish = useCallback((update: (previous: State) => State) => {
     const next = update(stateRef.current); stateRef.current = next; setState(next);
@@ -67,8 +68,16 @@ export function useProjectIdentity(projectId: string, referenceState?: IdentityR
   const hintedRevision = hintValid ? referenceState.referenceRevision : null;
   useEffect(() => {
     if (hintedRevision === null || !overview || shown.loading || shown.pending || hintedRevision === overview.referenceSnapshot.referenceRevision) return;
-    const start = window.setTimeout(() => { void refresh(); }, 0); return () => window.clearTimeout(start);
-  }, [hintedRevision, overview, shown.loading, shown.pending, refresh]);
+    if (referenceAttempt.current?.client === client && referenceAttempt.current.revision === hintedRevision) return;
+    const start = window.setTimeout(() => {
+      if (!client?.current() || mutation.current) return;
+      // One automatic read per observed target. A failed or still-lagging read
+      // must settle; Check latest remains available, and a new target can retry.
+      referenceAttempt.current = { client, revision: hintedRevision };
+      void refresh();
+    }, 0);
+    return () => window.clearTimeout(start);
+  }, [client, hintedRevision, overview, shown.loading, shown.pending, refresh]);
 
   const strategyDraft = useSyncExternalStore(drafts.subscribe, () => drafts.get(projectId), () => null);
   const retained = useSyncExternalStore(identityDrafts.subscribe,
@@ -152,6 +161,9 @@ export function useProjectIdentity(projectId: string, referenceState?: IdentityR
   }
   async function viewSystem(systemVersionId: string) {
     if (!client?.current() || mutation.current) return;
+    // Viewing the same verified immutable version is not a refresh. Recovery
+    // reads after an error and every different target remain explicit reads.
+    if (shown.checked && !shown.error && !shown.detailLoading && system?.id === systemVersionId) return;
     const epoch = ++detailEpoch.current; detailAbort.current?.abort(); const controller = new AbortController(); detailAbort.current = controller;
     publish(previous => ({ ...previous, detail: null, detailLoading: true, error: null }));
     try {

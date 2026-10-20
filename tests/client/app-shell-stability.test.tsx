@@ -74,7 +74,7 @@ describe("persistent workspace shell", () => {
     expect(icons.every(Boolean)).toBe(true);
     await act(async () => toggle.click());
     links[1]!.focus();
-    const routes = ["/brands", "/assets", "/ideas", "/names", "/handles", "/domains", "/trademarks", "/settings", "/brands/new", "/brands/account/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "/sign-in", "/sign-up", "/"];
+    const routes = ["/brands", "/assets", "/ideas", "/names", "/handles", "/domains", "/trademarks", "/settings", "/brands/new", "/brands/logo/new", "/brands/account/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "/sign-in", "/sign-up", "/"];
     for (const pathname of routes) {
       route.pathname = pathname; await render();
       const currentLinks = navLinks();
@@ -103,6 +103,62 @@ describe("persistent workspace shell", () => {
     navLinks().forEach((link, index) => { expect(link).toBe(links[index]); expect(link.querySelector("svg")).toBe(icons[index]); });
     expect(links[1]!.getAttribute("aria-current")).toBe("page");
     expect(host.querySelector("aside.sidebar img")?.getAttribute("src")).toBe("/embel-mark.svg");
+  });
+
+  it("dismisses the account menu on an outside pointer without stealing the clicked control's focus or action", async () => {
+    const clicked = vi.fn();
+    await render(<button type="button" data-outside onClick={clicked}>Outside control</button>);
+    await until(() => expect(account.session.status).toBe("ready"));
+    const menu = host.querySelector<HTMLDetailsElement>(".workspace-account-menu")!;
+    const summary = menu.querySelector("summary")!, outside = host.querySelector<HTMLButtonElement>("[data-outside]")!;
+    const generation = account.session.generation;
+    await act(async () => summary.click());
+    expect(menu.open).toBe(true);
+    await act(async () => {
+      outside.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true }));
+      outside.focus(); outside.click();
+    });
+    expect(menu.open).toBe(false); expect(document.activeElement).toBe(outside); expect(clicked).toHaveBeenCalledOnce();
+    expect(account.session.generation).toBe(generation);
+    expect(fetcher.mock.calls.filter(([path]) => path === "/api/session")).toHaveLength(1);
+  });
+
+  it("dismisses the account menu on Escape even after keyboard focus has left the details subtree", async () => {
+    await render(<button type="button" data-outside>Outside control</button>);
+    const menu = host.querySelector<HTMLDetailsElement>(".workspace-account-menu")!;
+    const summary = menu.querySelector("summary")!, outside = host.querySelector<HTMLButtonElement>("[data-outside]")!;
+    await act(async () => summary.click());
+    outside.focus();
+    await act(async () => outside.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })));
+    expect(menu.open).toBe(false); expect(document.activeElement).toBe(summary);
+  });
+
+  it.each([false, true])("dismisses the account menu on actual navigation without remounting it (intercepted: %s)", async intercepted => {
+    await render();
+    const menu = host.querySelector<HTMLDetailsElement>(".workspace-account-menu")!;
+    await act(async () => menu.querySelector("summary")!.click());
+    route.pathname = intercepted ? "/sign-in" : "/assets";
+    if (intercepted) { route.auth = "(.)sign-in"; route.background = []; }
+    await render();
+    expect(host.querySelector(".workspace-account-menu")).toBe(menu); expect(menu.open).toBe(false);
+  });
+
+  it("leaves inside interactions and open nested dialogs in control of their own dismissal", async () => {
+    await render(<button type="button" data-outside>Outside control</button>);
+    const menu = host.querySelector<HTMLDetailsElement>(".workspace-account-menu")!;
+    const summary = menu.querySelector("summary")!;
+    await act(async () => summary.click());
+    await act(async () => menu.querySelector(".workspace-account-panel")!.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true })));
+    expect(menu.open).toBe(true);
+    const modal = document.createElement("dialog"), control = document.createElement("button");
+    modal.open = true; modal.append(control); menu.append(modal); control.focus();
+    await act(async () => control.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })));
+    expect(menu.open).toBe(true); expect(modal.open).toBe(true); expect(document.activeElement).toBe(control);
+    await act(async () => host.querySelector("[data-outside]")!.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true })));
+    expect(menu.open).toBe(true);
+    modal.remove();
+    await act(async () => summary.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })));
+    expect(menu.open).toBe(false); expect(document.activeElement).toBe(summary);
   });
 
   it("shows a neutral checking placeholder, not signed-out controls or a stale private identity", async () => {

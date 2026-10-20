@@ -26,7 +26,7 @@ export interface IdentityDirectionsController {
   refresh(): Promise<void>; preview(ids: ComponentIds): Promise<void>; saveMix(): Promise<void>; approve(): Promise<void>;
   reconcile(): Promise<void>; retryOriginal(): Promise<void>; reviewWarnings(reviewed: boolean): void; discardAndReload(): Promise<void>;
 }
-type ReadState = { key: string; client: AccountLogoClient; overview: IdentityDirectionsOverview | null; loading: boolean; error: string | null; requestStatus: string | null; logo: LogoVectorDocument | null; directionIds: readonly string[] };
+type ReadState = { key: string; client: AccountLogoClient; overview: IdentityDirectionsOverview | null; loading: boolean; error: string | null; requestStatus: string | null; logo: LogoVectorDocument | null; logoHash: string | null; directionIds: readonly string[] };
 type HistoryState = { key: string; client: AccountLogoClient; overview: IdentityDirectionsOverview | null; cursors: string[]; index: number; loading: boolean; error: string | null };
 type MutationState = { scope: string; client: AccountLogoClient; loading: boolean };
 export function useIdentityDirections(client: AccountLogoClient, workspace: LogoWorkspaceV2): IdentityDirectionsController {
@@ -41,7 +41,7 @@ export function useIdentityDirections(client: AccountLogoClient, workspace: Logo
   const revision = active?.heads.workspaceRevision ?? null, approvedLogoId = active?.approvedLogo?.id ?? null;
   const vectorRevisionId = active?.approvedLogo?.vectorRevisionId ?? null, directionStageId = active?.stages.directions?.id ?? null;
   const scopeKey = account && projectId ? `${account.userId}:${account.generation}:${projectId}` : "";
-  const key = scopeKey && revision !== null ? `${scopeKey}:${revision}` : "";
+  const key = scopeKey && revision !== null ? `${scopeKey}:${revision}:${approvedLogoId ?? ""}:${vectorRevisionId ?? ""}` : "";
   const [state, setState] = useState<ReadState | null>(null), [mutation, setMutation] = useState<MutationState | null>(null);
   const [historyState, setHistoryState] = useState<HistoryState | null>(null);
   const historyOperation = useRef<AbortController | null>(null);
@@ -76,7 +76,8 @@ export function useIdentityDirections(client: AccountLogoClient, workspace: Logo
     const current = () => readOperation.current === controller && !controller.signal.aborted && currentScope()
       && memory.get(projectId)?.workspace?.heads.workspaceRevision === revision;
     setState(previous => ({ key, client, overview: previous?.key === key && previous.client === client ? previous.overview : null, loading: true, error: null, requestStatus: null,
-      logo: previous?.key === key && previous.client === client ? previous.logo : null, directionIds: previous?.key === key && previous.client === client ? previous.directionIds : [] }));
+      logo: previous?.key === key && previous.client === client ? previous.logo : null,
+      logoHash: previous?.key === key && previous.client === client ? previous.logoHash : null, directionIds: previous?.key === key && previous.client === client ? previous.directionIds : [] }));
     try {
       const overview = await client.getIdentityDirections({ limit: 50 }, controller.signal); if (!overview || !current()) return;
       if (overview.currentApprovedLogo?.id !== approvedLogoId) throw new AccountRequestError(409);
@@ -84,20 +85,28 @@ export function useIdentityDirections(client: AccountLogoClient, workspace: Logo
       if (!current()) return;
       const directionIds = savedStage?.stage === "directions" ? savedStage.payload.directionIds : [];
       setHistoryState(null);
-      setState({ key, client, overview, loading: false, error: null, requestStatus: null, logo: null, directionIds });
+      // The same owned approved vector remains valid while its metadata is rechecked.
+      // A different approval/vector/client gets a different key and is hidden immediately.
+      setState(previous => ({ key, client, overview, loading: false, error: null, requestStatus: null,
+        logo: previous?.key === key && previous.client === client ? previous.logo : null,
+        logoHash: previous?.key === key && previous.client === client ? previous.logoHash : null, directionIds }));
       if (vectorRevisionId) {
         try {
           const detail = await client.readLogoVectorDetail(vectorRevisionId, controller.signal);
           if (detail && current() && detail.revision.id === vectorRevisionId && detail.revision.ownerId === ownerId && detail.revision.projectId === projectId) {
             const logo = validateLogoVectorDocument(detail.document);
-            setState(value => value?.key === key && value.client === client ? { ...value, logo } : value);
-          }
-        } catch { /* A missing verified preview does not conceal saved specifications. */ }
+            setState(value => value?.key === key && value.client === client ? { ...value,
+              logo: value.logo && value.logoHash === detail.revision.documentHash ? value.logo : logo, logoHash: detail.revision.documentHash } : value);
+          } else if (current()) setState(value => value?.key === key && value.client === client ? { ...value, logo: null, logoHash: null } : value);
+        } catch {
+          // A completed failed verification must not keep previously eligible geometry.
+          if (current()) setState(value => value?.key === key && value.client === client ? { ...value, logo: null, logoHash: null } : value);
+        }
       }
     } catch (error) {
       if (current()) setState(previous => ({ key, client, overview: previous?.key === key && previous.client === client ? previous.overview : null, loading: false,
         error: error instanceof AccountRequestError && error.status === 409 ? "Your saved logo changed. Reload before reviewing directions." : "Saved directions are unavailable right now. Your work is retained.",
-        requestStatus: null, logo: null, directionIds: previous?.key === key && previous.client === client ? previous.directionIds : [] }));
+        requestStatus: null, logo: null, logoHash: null, directionIds: previous?.key === key && previous.client === client ? previous.directionIds : [] }));
     } finally {
       if (readOperation.current === controller) { readOperation.current = null; if (currentScope()) setState(value => value?.key === key && value.client === client ? { ...value, loading: false } : value); }
     }
@@ -160,7 +169,7 @@ export function useIdentityDirections(client: AccountLogoClient, workspace: Logo
       current: () => mutationOperation.current === controller && currentScope() };
     setMutation({ scope: scopeKey, client, loading: true });
     setState(value => value?.key === key && value.client === client ? { ...value, loading: false, error: null, requestStatus: null }
-      : { key, client, overview: null, loading: false, error: null, requestStatus: null, logo: null, directionIds: [] });
+      : { key, client, overview: null, loading: false, error: null, requestStatus: null, logo: null, logoHash: null, directionIds: [] });
     try {
       const value = memory.get(projectId); if (!value) return;
       const result = kind === "reconcile" ? await reconcileDirectionCommand(context) : kind === "retry" ? await replayDirectionCommand(context)

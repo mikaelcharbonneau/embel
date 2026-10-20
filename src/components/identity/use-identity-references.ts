@@ -37,6 +37,7 @@ export function useIdentityReferences(account: VerifiedAccount, projectId: strin
   const [page, setPage] = useState<IdentityReferencesOverview | null>(null);
   const [filterMetadata, setFilterMetadata] = useState<Pick<IdentityReferencesOverview, "availableTags" | "tagsComplete" | "referenceRevision" | "selectedReferenceCount"> | null>(null);
   const [query, setQuery] = useState<IdentityReferenceQuery>({ limit: 40, excludedTags: [] });
+  const requestedQuery = useRef(query);
   const [error, setError] = useState<string | null>(null), [projectError, setProjectError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true), [loadingMore, setLoadingMore] = useState(false);
   const [reload, setReload] = useState(0), [projectReload, setProjectReload] = useState(0);
@@ -88,6 +89,10 @@ export function useIdentityReferences(account: VerifiedAccount, projectId: strin
   function publishIntents(next: Map<string, ReferenceIntent>) { currentIntents.current = next; memory.put(account.userId, projectId, next); setIntents(next); }
   function changeExclusions(excludedTags: string[]) {
     const next = identityReferenceQuerySchema.parse({ limit: 40, excludedTags });
+    if (JSON.stringify(next.excludedTags) === JSON.stringify(requestedQuery.current.excludedTags)) return;
+    // The schema trims and sorts tags. Compare before invalidating the read,
+    // using the latest requested set rather than a potentially stale render.
+    requestedQuery.current = next;
     epoch.current += 1; sequence.current += 1; controller.current?.abort(); pageQueries.current = [next]; entryQueries.current.clear();
     setPage(null); setQuery(next); setLoading(true); setLoadingMore(false); setError(null);
   }

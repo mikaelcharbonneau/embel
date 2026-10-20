@@ -267,8 +267,9 @@ function GuidedProjectDetails({ workspace, storage, blocked }: { workspace: Acco
   }
   return <details className="project-details-disclosure"><summary>Project details and editing</summary>
     <span className="save-label" role="status">{storage.saveLabel}</span>
-    <label className="field-label">Project label<input value={draft.title} maxLength={160} disabled={blocked} placeholder="Untitled brand" onChange={event => storage.onUpdate({ title: event.target.value })} /></label>
-    <label className="field-label">Brief description<textarea value={draft.description} maxLength={12000} rows={4} disabled={blocked} onChange={event => editBrief({ description: event.target.value })} /></label>
-    {([['activity', 'What the business does'], ['offering', 'First products / services'], ['knownAudience', 'Known audience']] as const).map(([field, label]) => <label className="field-label" key={field}>{label}<input value={draft[field]} maxLength={2000} disabled={blocked} onChange={event => editBrief({ [field]: event.target.value })} /></label>)}
+    {/* Keep the native field and selection focusable while the existing save lock prevents editing. */}
+    <label className="field-label">Project label<input value={draft.title} maxLength={160} readOnly={blocked} placeholder="Untitled brand" onChange={event => storage.onUpdate({ title: event.target.value })} /></label>
+    <label className="field-label">Brief description<textarea value={draft.description} maxLength={12000} rows={4} readOnly={blocked} onChange={event => editBrief({ description: event.target.value })} /></label>
+    {([['activity', 'What the business does'], ['offering', 'First products / services'], ['knownAudience', 'Known audience']] as const).map(([field, label]) => <label className="field-label" key={field}>{label}<input value={draft[field]} maxLength={2000} readOnly={blocked} onChange={event => editBrief({ [field]: event.target.value })} /></label>)}
   </details>;
 }
