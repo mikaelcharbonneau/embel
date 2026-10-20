@@ -1,6 +1,6 @@
 # Guided Brand Interview Implementation Plan
 
-> **For agentic workers:** Use the approved disjoint specialist ownership below; lead integrates and owns commits. The user explicitly authorized implementation and optional Codex agents.
+> **Historical work breakdown:** The ownership below records the implementation split; the lead handled integration and commits. This plan does not assign a new task or authorize additional agents.
 
 **Goal:** Replace the cluttered project conversation with a durable guided interview and real competitor-research loading screen.
 
@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Product name Embel; existing FLUID identifiers stay compatible.
-- GPT-6 Astra max specialists; no nested delegation or specialist commits.
+- No nested delegation or specialist commits.
 - No fake research, generated historical replies, preselected recommendations or forced waiting time.
 - Preserve ownership, immutable revisions/results, exact workload identity, cancellation, reservation and uncertainty fences.
 - Use the existing checkout; preserve unrelated changes.
@@ -40,7 +40,7 @@ Files: worker/runtime and server admission policy files, a forward migration, fo
 
 - [x] Define exact versioned policies and prove conservative billable search bounds from official documentation.
 - [x] Freeze owned assistant history at admission; validate optional interview state at canonical database boundaries.
-- [x] Extend only the approved private testing access to the explicit interview operations. Verify ownership, immutable admission, role, cost, uncertainty, cancellation and legacy compatibility.
+- [x] Implement per-operation private testing access for the interview, with ownership, immutable admission, role, cost, uncertainty, cancellation and legacy-compatibility checks. This completed source task does not enable new runtime grants.
 - [x] Produce a reviewable migration and activation receipt; no model calls during verification.
 
 ### Task 3: Presentational widgets — guided_interview_widgets

@@ -1,15 +1,15 @@
 # Naming brain: local engineering decisions, 2026-10-16
 
-These are engineering choices made while implementing the user-approved Naming
-plan. They are distinct from the product decisions and authority recorded in
-[D069](decisions.md). The implementation is still undergoing local review and
-integration; this document is not evidence of live activation or provider access.
+These are historical engineering choices from the original Naming implementation,
+distinct from the product decisions in [D069](decisions.md). Later runtime changes
+and verification are recorded separately. This document is not current execution,
+spending or activation authority, nor evidence of live provider access.
 See the [design](superpowers/specs/2026-10-16-naming-brain-design.md) and
 [implementation plan](superpowers/plans/2026-10-16-naming-brain.md).
 
 | Choice | Reason | Cost if the choice is wrong |
 | --- | --- | --- |
-| Separate output completion from accounting. Hold the full US$5 admitted allowance until verified reconciliation, within the US$25 aggregate ceiling and at most five fully held unreconciled runs. | The available managed usage observations do not establish the final charge. Estimates, native counters and caps cannot become confirmed expense or refunds. | The pilot may pause early or require accounting changes. No additional allowance is implied. |
+| The original pilot separated output completion from accounting, retaining US$5 per admitted run against a US$25 aggregate ceiling until verified reconciliation, with at most five fully held unreconciled runs. These are historical policy values, not current spending instructions. | The available managed usage observations do not establish the final charge. Estimates, native counters and caps cannot become confirmed expense or refunds. | The pilot may pause early or require accounting changes. No additional allowance is implied. |
 | Use a fresh capped session per Creator assignment, with native delegation disabled and at most three concurrent Creators. | Application scheduling provides explicit call limits, independent sibling outputs and real root-turn/final-item provenance. | Session setup may increase latency. The five roles, 150 initial candidate target and 150-cent creation envelope remain fixed. |
 | Give Research and Verification a narrow root-only reference reader, using directly pinned parse5 8.0.1. | Search URL metadata does not supply the retained page text and quote evidence needed here. The reader permits only reviewed public HTTPS host/path combinations, with no redirects, credentials or executable parsing. | Some sources remain unavailable, or extraction needs more work. Missing evidence cannot become a verified fact. |
 | Scope the complete new Naming lifecycle to V2 while retaining `jobs.policy_identity = NULL` for API jobs. | Existing Strategy/subscription and generic expiry helpers do not authorize this managed workflow. Run/input/batch retain its accepted policy identity. | Recovery or least-privilege permissions may need rework. Generic service-role or direct-table shortcuts remain prohibited. |

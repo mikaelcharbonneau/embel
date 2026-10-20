@@ -2,7 +2,7 @@
 
 The account Strategy conversation now follows D063's [guided interview](superpowers/specs/2026-10-14-guided-brand-interview-design.md): initial prompt, actual competitor research with the original-logo loading screen, then competitors, target audience and brand personality. It presents one focused reply or detailed choice widget per turn, supports recommended options and free-text answers, and saves confirmed choices automatically. The Strategy surface omits the stage bar, progress count, legacy review/details disclosures, permanent provider notices and activity navigation. Other workspace surfaces keep their existing behavior. The earlier Strategy presentation described below is historical; its ownership, immutable history, recovery and honest integration constraints still apply.
 
-On 2026-10-11 the user requested all project workspace screens and explicitly confirmed the full workspace scope. The approved source is Fluid — Screens, Figma file `HP219GuYbpE8F1wHxj0h6N`. This extends the Projects collection increment and the D021 protected-preview milestone; it does not activate providers, change permissions or authorize paid requests.
+On 2026-10-11 the user requested all project workspace screens and explicitly confirmed the full workspace scope. The approved source is Fluid — Screens, Figma file `HP219GuYbpE8F1wHxj0h6N`. This extends the Projects collection design; it does not authorize preview publication, activate providers, change permissions or permit paid requests.
 
 | Page | Current 1440 × 900 artboard | Application surface |
 | --- | --- | --- |

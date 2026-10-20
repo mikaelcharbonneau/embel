@@ -1,10 +1,11 @@
 # Hosted Naming activation — 2026-10-18
 
-## Approved scope
+## Historical implementation scope
 
-D083 enables the existing owner's Naming flow on the production Embel app, with
-the same GPT-6 Luna model, managed Agents protocol, saved choices and progressive
-publication used locally. The source baseline is main
+The hosted Naming workstream added production routing for the existing owner's
+flow, retaining the managed Agents protocol, saved choices and progressive
+publication used locally. This record does not authorize activation or select a
+model for future work. The source baseline was main
 `e9498743439a7c8350bb7cc68882d1001ccabbfd`.
 
 The canonical application is `https://fluid-platform-preview.vercel.app`, Vercel
@@ -38,8 +39,8 @@ pilot. Production authentication stays enabled.
 ## Initial inventory
 
 The restricted `fluid_naming_brain_worker` retains OID `23033`, LOGIN,
-NOINHERIT, NOSUPERUSER, NOBYPASSRLS and a four-connection limit. The pilot policy
-uses `gpt-6-luna` and was enabled, with an expired heartbeat. There were zero
+NOINHERIT, NOSUPERUSER, NOBYPASSRLS and a four-connection limit. The inspected pilot policy
+recorded `gpt-6-luna` and was enabled, with an expired heartbeat. There were zero
 active leases. Existing unfinished requests, including a historical Sol
 reconciliation and an expired Luna progressive run, remain recovery evidence.
 

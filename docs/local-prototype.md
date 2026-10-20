@@ -78,8 +78,7 @@ not a newly claimed full-suite pass.
 The approved Supabase restart completed at 18:07:45 UTC. Dashboard health and
 server-bounded owner/saved-work reads recovered; no reset, new credential, Auth
 row edit or paid infrastructure change occurred. Earlier idle-load measurements
-and failures below are historical. Real application requests use GPT-6 Luna;
-development agents remain GPT-6.1 Sol/max. No deployment or Git push is included.
+and failures below are historical. The recorded acceptance used Luna; it does not select a model for future work. No deployment or Git push was included.
 
 **Earlier availability diagnosis, before this replacement:**
 The earlier readiness snapshots below were valid at their timestamps. The worker
@@ -95,19 +94,19 @@ cause remains unproven.
 The concrete removable load is local idle polling: four Strategy readiness
 updates before each one-second claim cycle plus the heartbeat timer, Naming
 preference/claim scans and expiry work can approach 447 RPCs/minute with no jobs.
-The Sol Max agents are qualifying a local-only acknowledged-readiness cache and
+The agents are qualifying a local-only acknowledged-readiness cache and
 five-second idle cadence, retaining fresh server claim and paid-dispatch checks.
 This is a load reduction, not a claim that polling caused every upstream error.
 No real Luna generation has run. The user requested handling the sign-in repair
 directly after the restored preview could not authenticate.
 
-All four guided Strategy capabilities and the existing Naming pilot now select
-`gpt-6-luna` for future requests. An installed-SDK exact-model metadata GET
-returned HTTP 200 without inference. Naming retains xhigh reasoning and uses
-the standard tier; Strategy retains medium reasoning and the standard tier.
-Development agents remain GPT-6.1 Sol/max. Earlier requests retain their original
-model identities. Shared hosted Strategy policies and bindings are unchanged.
-The switch itself has not created a paid model request.
+At this historical switch, the four local guided Strategy capabilities and
+Naming policy were configured with `gpt-6-luna`. An installed-SDK exact-model
+metadata GET returned HTTP 200 without inference. The recorded configuration
+used xhigh reasoning for Naming, medium for Strategy and the standard tier.
+Earlier requests kept their original model identities. Shared hosted Strategy
+policies and bindings were unchanged, and the switch created no paid request.
+These observations are not model or reasoning instructions for future work.
 
 Production build `fSVe3SllOhh0ZxeM-AMPx` serves port 3106. All four Strategy
 operations and Naming acknowledged fresh Luna readiness at 16:38:58 UTC. The
@@ -130,8 +129,7 @@ has no changed or missing files. No duplicate full-suite rerun was performed.
 Exact evidence: `/private/tmp/embel-local-luna-final-verification-20261018.json`.
 Actual complete generation, continued scroll and quality on Luna remain
 unverified. The restored preview is signed out; user sign-in is pending before
-that real acceptance. The temporary model-verification spending hold is over;
-D077–D078's existing execution authority applies, without a new budget gate.
+that real acceptance.
 
 Readback at 16:34:46 UTC verified the exact five future policies, 374 original
 saved names, Quince, 94 newer names, both projects and preferences. The local
@@ -183,16 +181,15 @@ published 100 new names automatically and retained the first 200. Cold reload
 and saved-page scrolling restored all 300, the Quince favorite and all five
 choices without another generation admission. The approved UI and saved work
 are preserved. The complete suite passed 8,969 tests and 236 browser cases;
-TypeScript, lint and production build passed. D077 records execution authority.
+TypeScript, lint and production build passed.
 
 **Known usability limitation: generation speed.** The verified new 100-name batch
 took 1,160 seconds (about 19 minutes) to prepare. This is a functional local
 Naming prototype, with substantial latency still to improve. Other product
 tools and production deployment are outside this acceptance. Earlier failure
 and readiness snapshots below are historical.
-**D078 removes all monetary and quota admission gates for this local prototype.**
-Earlier US$5/US$25 figures below describe historical configuration and evidence,
-not current user requirements.
+The installed local prototype has no monetary or quota admission gates.
+Earlier US$5/US$25 figures below describe preceding configuration and evidence.
 
 ## Scope
 
@@ -217,13 +214,11 @@ Implementation choices, distinct from the approved product requirements:
 - Isolate local execution failures by relevant project/operation. Retain every
   existing hold and the historical rejected Naming attempt; do not manufacture
   final provider expense or release an uncertain reservation.
-- Keep current Naming generation on the managed Agents protocol. D080 changes
-  future local Naming and all four guided Strategy operations to GPT-6 Luna;
-  existing admitted requests retain their original models. Naming retains xhigh
-  reasoning and selects the standard service tier; Strategy retains medium
-  reasoning and the standard tier. Development agents remain GPT-6.1 Sol/max.
-- Preserve existing Naming accounting, including its old unsettled holds, while
-  removing local monetary and quota admission gates as directed by D078.
+- Naming generation uses the managed Agents protocol. Configuration changes
+  apply only to new admissions; existing requests retain their original model,
+  reasoning and tier identities. The dated switch evidence above is historical,
+  not a requirement to keep those model settings.
+- Preserve existing Naming accounting, including its old unsettled holds.
   Provider diagnostics must retain specific safe classifications
   without logging prompts, credentials or raw provider response bodies.
 - Keep the protected API key and database connection in the worker environment.
@@ -236,7 +231,7 @@ and local publication/readiness configuration. The backend agent owns the
 additive SQL capabilities, local server data seams and Naming provider failure
 handling. The journey agent owns Home routing, account creation and current Names
 entry composition. The lead owns integration, documentation and real browser
-acceptance; an independently reviewing Sol agent verifies each source package.
+acceptance; an independent review verifies each source package.
 
 The initial eleven dirty files were snapshotted before implementation, including
 the untracked Naming progress test. No checkout reset or source replacement is
@@ -429,7 +424,7 @@ an overly strict observation gate rather than an API field-shape mismatch.
 Separate handler, domain and SQL gates also required sourced research before
 creative direction, preventing an honest partial pack from proceeding.
 
-Sol agents are correcting those strict-local paths while preserving the partial
+Agents are correcting those strict-local paths while preserving the partial
 artifact, native/default behavior and mandatory factual-claim verification. The
 reference correction binds an actual completed `read_reference` request to its
 exact requested URL and retained function item before applying the same safe
@@ -748,14 +743,14 @@ still pending; no readiness claim follows from installation alone.
 ## Corrected build verification and live scroll resume
 
 Build `J0PXpzaYP3VjnzJXhuMCJ` compiled, typechecked, generated all fourteen static
-pages and started on the existing port 3106. The Sol Max journey agent launched
+pages and started on the existing port 3106. The journey agent launched
 the final unfiltered `npm test -- --maxWorkers=2` and desktop/mobile browser
 checks against its frozen source. Their completed logs show 8,969 tests passed
 in 622 files; 23 explicitly gated optional native-PostgreSQL checks and two files
 were skipped. All 236 browser cases passed with no skips. The 1,655 source/test/
 script/SQL files still matched the frozen manifest at `2026-10-18 08:49 UTC`.
 Whole-project TypeScript and lint were separately reconfirmed with exit zero after the
-agents reached their Codex usage limit; no development model was substituted.
+agents reached their Codex usage limit.
 
 The actual signed-in page was cold-reloaded into the new build. Its first fresh
 wheel loaded the already saved second page, showing 200 names without another
@@ -861,10 +856,11 @@ The lead's implementation choices, under the user's optimization request:
 - Prefetch from deliberate, visible exploration before the saved buffer empties,
   with at most one active refill. Poll new saved groups without rereading the
   whole feed; preserve reaction updates and full recovery on reload.
-- For new versioned calls only, use compact output, low text verbosity and the
-  official SDK's per-request priority tier with the same managed Agents /
-  GPT-6.1 Sol / xhigh identity. This does not change an account billing plan.
-  Actual tier access and performance still require a real check.
+- This performance increment tested compact output, low text verbosity and
+  the SDK's per-request priority tier for newly versioned calls. It retained
+  the then-configured model identity and did not change an account billing plan.
+  The observed tier behavior belongs to that benchmark, not a future model,
+  reasoning or spending instruction.
 
 Backend owns domain, store and additive SQL proofs; runtime owns scheduling,
 provider requests and the worker; journey owns client consumption/prefetch and

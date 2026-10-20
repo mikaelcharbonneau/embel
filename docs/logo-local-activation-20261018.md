@@ -1,12 +1,12 @@
 # Local logo concepts: setup and verification
 
-Status on 2026-10-18: the user approved provisioning and securely retaining the restricted identities and enabling local generation with the existing API key. The database and Storage identities are created, all four matching concept capabilities are enabled, and the dedicated worker has reported readiness. Live Auth and `logo_storage_session()` checks passed. No image inference has been run as setup validation.
+Setup checkpoint on 2026-10-18: the restricted database and Storage identities were created, all four matching concept capabilities were enabled, and the dedicated worker reported readiness. Live Auth and `logo_storage_session()` checks passed without image inference during setup validation. Later live generation is recorded below; this history does not grant new provisioning, credential retention, key use or activation permission.
 
 ### Installed checkpoint
 
 The connected Supabase migration API installed the worker Storage, generative Storage, concept permissions, local execution and restricted principal migrations. The principal is `fluid_logo_worker`, OID `25288`, with a dedicated SCRAM password, no inheritance, superuser, RLS bypass or outgoing memberships, and exactly 14 direct worker function grants. A temporary administrator-only password installation RPC was removed after use.
 
-The separate confirmed Auth identity is `853fa383-9606-4577-924f-966194dc2f67`, created through the normal Auth Admin API without sending an invitation. Worker `embel-logo-local-20261018` is bound to this identity and the verified owner of project `e849c14f-06b6-46a3-8e3a-bdb7693345dd`. Only concept generation is enabled in the four matching policy/binding rows. The model remains `gpt-image-2.5-sunburst-2026-09-08`.
+The separate confirmed Auth identity is `853fa383-9606-4577-924f-966194dc2f67`, created through the normal Auth Admin API without sending an invitation. Worker `embel-logo-local-20261018` is bound to this identity and the verified owner of project `e849c14f-06b6-46a3-8e3a-bdb7693345dd`. Only concept generation is enabled in the four matching policy/binding rows. The setup policy recorded `gpt-image-2.5-sunburst-2026-09-08`.
 
 The ignored `.local-fluid/logo-worker.json` and `.local-fluid/logo-storage-identity.json` are owner-only 0600 files inside a 0700 directory. The web process receives no worker or Storage credentials. Existing administrator credentials were used only transiently for provisioning and were removed from temporary storage. A portion of the existing administrator key appeared in a tool result during dashboard inspection; the user was informed and rotation is required. Restricted runtime identities do not depend on that key.
 
@@ -26,30 +26,24 @@ candidate removes the aggregate allowance gate only for newly admitted, privatel
 marked local concept jobs. It retains exact per-call policy/reservation matching,
 actual usage accounting, unknown-outcome protection for the same project,
 cancellation, leases, idempotency and immutable output. No allowance is reset or
-increased, and no new user spending-ceiling approval is requested.
+increased. The runtime exception is not permission for new spending.
 
-## Concrete approval scope
+## Provisioning boundaries
 
-Approve one restricted `fluid_logo_worker` database login and one separate,
-non-anonymous Supabase Auth identity for background Storage, both bound to the
-verified account that owns the current saved project. Securely retain their
-restricted credentials on this Mac and reuse the existing saved OpenAI key.
-Install the specific storage/local-runtime SQL below and enable only local logo
-concept generation for this owner. Initial concepts require no logo web login.
+The installed design separates the restricted `fluid_logo_worker` database login
+from the non-anonymous background Storage Auth identity and binds both to the
+verified project owner. Privileged provisioning is separate from runtime access.
+Storage identities use normal Auth administration, not forged Auth rows or an
+owner JWT. Administrator credentials must remain transient and must never enter
+the web or worker configuration. Database passwords belong in native psql hidden
+prompts, not chat, command arguments or SQL tool text.
 
-This setup needs privileged provisioning access. No local administrator or
-Storage credential was found. Provision the Storage identity with Supabase's
-normal Auth **Create user** action or Auth Admin `createUser`, without invitation
-email; never insert forged Auth rows or create an owner JWT. An existing approved
-management session or user-completed dashboard action is required for that step.
-The administrator credential is transient setup access and is never retained in
-the web or worker configuration. Database passwords are entered through native
-psql hidden prompts, not chat, command arguments or SQL tool text.
+## Historical database sequence
 
-## Exact database sequence after approval
-
-Apply each source through a reviewed, versioned migration to the same existing
-development project. These files are not applied automatically by the launcher.
+The sequence below documents source dependencies and restricted bindings. It is
+not a request to recreate identities, retain credentials, enable operations or
+reapply installed migrations. Any new setup requires current authorization and
+target read-back. The launcher does not apply these files automatically.
 
 1. `supabase/candidates/logo_worker_storage.sql`: the existing disabled Storage
    identity/session broker and restrictive object policies.
@@ -89,14 +83,14 @@ generic Strategy/Naming grants, web role, vector or export grants.
 
 ## Local configuration and startup
 
-Use the existing protected-file schema in `worker/logo-dedicated-config.ts`:
-`/Users/mikael/embel/.local-fluid/logo-worker.json`, owner-only 0600 regular file
-inside the existing owner-only 0700 directory. Its binding uses the fresh role
-OID and verified owner; its database password is the dedicated worker password.
-The Storage session is the separate Auth user. Reuse the existing key in memory
-while preparing the file without printing it. Enable only `operations.concepts`;
-the exact model, handler, price version and policy must match the SQL policy.
-No refresh token or credential is sent to the web process.
+The protected-file schema in `worker/logo-dedicated-config.ts` describes an
+owner-only 0600 regular file inside a 0700 directory. The recorded local path was
+`/Users/mikael/embel/.local-fluid/logo-worker.json`. The binding includes the exact
+restricted role OID, verified owner and dedicated database credential; Storage
+uses its separate Auth user. The initial configuration contained only
+`operations.concepts`. Its model, handler, price version and policy must match
+the corresponding SQL policy. No refresh token or credential is sent to the web
+process, and this schema description does not authorize reading or reusing a key.
 
 Run this non-dispatch check from the repository:
 

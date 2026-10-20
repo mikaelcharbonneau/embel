@@ -1,20 +1,13 @@
 # Cloud Logo worker preparation — 2026-10-19
 
-## Approved request and separate activation
+## Historical scope and separate activation
 
-The user requested Logo generation on Vercel so it works when the Mac is
-offline. This authorizes preparing the same account's existing Logo flow for a
-cloud worker. D084's explicit credential transfer and paid activation approval
-was for **Naming**. It does not transfer Logo's restricted database or Storage
-credentials. After reviewing verified PR #23 and the estimate below, the user
-explicitly selected **Activate Logo on Vercel**. This approves secure transfer of
-the existing image API key, restricted Logo database credential and separate
-Storage login into this dedicated project's production settings; one worker on
-the existing Pro trial with applicable CPU/build/AI usage; and separate Vercel
-and live-app tabs to verify six concepts and one refinement with the Mac worker
-stopped. It does not authorize a plan upgrade, purchased provider credits, new
-credentials, grants or unrelated operations. Actual activation and acceptance
-still require the checks recorded below.
+The cloud Logo workstream targeted Vercel so generation could continue with the
+Mac offline. PR #23 prepared a dedicated project, separate from Naming's worker,
+database connection and Storage identity. This record describes technical
+deployment requirements and the completed activation evidence below; it grants
+no credential transfer, persistent access, compute/AI spending, browser access,
+plan upgrade or activation authority.
 
 Preparation began from clean main
 `5507923fd40e458d66f66a42b0085916bed54f91`. The lead created the empty,
@@ -23,10 +16,11 @@ protected `embel-logo-worker` project
 `team_0Koie5796IDOraQkDFg6J0AF`. At creation it had no deployment,
 credentials, Git attachment or running compute. No live Logo database mutation,
 secret read, credential transfer or provider call was performed for this review.
-The existing team is on a verified Pro trial. The lead's current estimate for
-one always-running 1 GiB daemon is approximately US$8/month for memory before
-credits/taxes, plus CPU and actual image requests. This estimate belongs to the
-pending Logo activation scope; no paid compute is running.
+At preparation, the existing team was on a verified Pro trial. The recorded
+estimate for one always-running 1 GiB daemon was approximately US$8/month for
+memory before credits/taxes, plus CPU and actual image requests. This was an
+estimate, not a verified invoice; no paid compute was running at that checkpoint.
+Later activation and real-image results are recorded below.
 
 ## Existing execution authority
 

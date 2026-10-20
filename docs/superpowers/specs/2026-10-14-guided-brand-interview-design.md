@@ -22,7 +22,7 @@ The account conversation owns orchestration and presents a unified timeline. It 
 
 ## Runtime and integrity
 
-All requests use the existing authenticated project API, exact workload identity and durable worker. Existing generation fencing, revision compare-and-swap, idempotency, cancellation, lease settlement and uncertain-outcome handling remain mandatory. The private ongoing testing grant may cover explicitly approved interview operations; no other account or signup cohort becomes funded. Aggregate testing remains unbounded as the user requested, while each request retains a conservative validated reservation and tool/token limits.
+All requests use the existing authenticated project API, exact workload identity and durable worker. Existing generation fencing, revision compare-and-swap, idempotency, cancellation, lease settlement and uncertain-outcome handling remain mandatory. The private testing mode requires an explicit per-operation database grant; it does not fund other accounts or signup cohorts. Each request retains a conservative validated reservation and tool/token limits. The installed mode is described in [guided interview runtime](../../guided-interview-runtime.md), not authorized by this specification.
 
 Research requires observed search results and matching citations. An unavailable search operation is reported honestly; a loading animation is not evidence of successful research. No paid provider requests are needed for fixture verification. New policies and migrations require independent database checks before any runtime activation.
 

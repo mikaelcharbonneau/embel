@@ -1,6 +1,6 @@
 # Bounded Vector AI Refinement Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans when implementation is assigned. Use the already authorized staffing and execution method. This deliverable is source-only planning; it does not start implementation or activation.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans when implementation is assigned. This deliverable is source-only planning; it does not assign workers, start implementation or authorize activation.
 
 **Goal:** Add natural-language proposals for supported whole-component vector controls while preserving exact geometry, locks, immutable history, cost consent and owner/CAS provenance.
 
@@ -52,7 +52,7 @@ An `arrangement` already represents a single atomic layout edit. There is no exi
 - Saved locks come from the actual owned base and current selection. Model/client lock omissions, unlock requests, or prompt assurances are never authority. Preserve the six existing lock digests and conservative occlusion checks.
 - Preserve existing 32,768-byte commands, 8,388,608-byte canonical geometry, 64 components, 20,000 paths and 200,000 commands. New proposal/context limits below are independent; never enlarge general request ceilings.
 - No source files owned by the ongoing host integration are edited before that work is integrated. Host registration is the last, lead-owned step.
-- No live policy enablement, credentials, permission changes, migrations, paid calls, deployment, commits or pushes are authorized by this planning deliverable. Synthetic local implementation may be assigned under the existing implementation approval.
+- No live policy enablement, credentials, permission changes, migrations, paid calls, deployment, commits or pushes are authorized by this planning deliverable. Any implementation assignment comes from the current task, not this historical plan.
 
 ## Review focus
 
@@ -97,7 +97,7 @@ For future redraws, finish that already-planned unlocked flow with an explicit s
 - API adapter/policy version: `logo-vector-propose-api-v1`.
 - One durable step: `propose-vector-edit`; one inference maximum per admitted job. A step manifest/policy identity binds the handler/schema revision and cost bounds.
 - Paid mode is OpenAI API, with an independently frozen `textPolicy`. Do not reuse the directions `policy`/`chatgpt_subscription` fields or classify this as an image operation.
-- Proposed model is the selected API text route's `gpt-6.1-sol`, only through a new explicit configuration and qualified policy for this operation. No inheritance from `FLUID_TEXT_MODEL_REFORMULATE` or an image key/approval flag that automatically enables execution.
+- This operation needs its own explicit model configuration and qualified policy. No inheritance from `FLUID_TEXT_MODEL_REFORMULATE` or an image key/approval flag automatically enables execution.
 - Leave the current `worker/api-text-runtime.ts`, Strategy queue descriptors/handlers and directions provider unchanged. Execute through the logo runtime only after its final integration owner accepts the new explicit adapter. Reusing the Responses transport is not widening the current reformulation dispatcher's permissions.
 
 ### Domain module
