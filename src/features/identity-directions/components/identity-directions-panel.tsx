@@ -84,8 +84,8 @@ export function IdentityDirectionsView({ controller, controls, visualReview }: {
       <div className={styles.actions}><button type="button" disabled={controller.loading} onClick={() => { void controller.reconcile(); }}>Check saved request</button>
         <button type="button" disabled={controller.loading || !controller.canRetryRequest} onClick={() => { void controller.retryOriginal(); }}>Retry original {controller.pendingRequestKind === "approval" ? "approval" : "save"}</button></div>
     </div>}
-  </div><ProjectDock title="Identity directions" context={<p>{overview?.approval && !stale ? "Current identity approved" : "Review your saved logo and components"}</p>}>
-        {current?.approvedLogo && overview && directions.length > 0 && <section className={styles.selection} aria-label="Component choices"><div className={styles.headingRow}><h3>Mix components</h3><span className={styles.badge}>{overview.approval && exactSaved && !stale ? "Approved selection" : exactSaved ? "Saved selection" : choices ? "Unsaved preview" : "Choose a direction"}</span></div>
+  </div><ProjectDock title="Identity directions" context={<p>{approvedIdentity ? recheckingApproval ? "Identity approved at last check" : "Current identity approved" : "Review your saved logo and components"}</p>}>
+        {current?.approvedLogo && overview && directions.length > 0 && <section className={styles.selection} aria-label="Component choices"><div className={styles.headingRow}><h3>Mix components</h3><span className={styles.badge}>{approvedIdentity && exactSaved ? recheckingApproval ? "Selection approved at last check" : "Approved selection" : exactSaved ? "Saved selection" : choices ? "Unsaved preview" : "Choose a direction"}</span></div>
           <div className={styles.componentFields}>{(["palette", "typography", "graphics"] as const).map(part => {
             const field = part === "palette" ? "paletteVersionId" : part === "typography" ? "typographyVersionId" : "graphicsVersionId";
             const rows = part === "palette" ? overview.palettes : part === "typography" ? overview.typography : overview.graphics;

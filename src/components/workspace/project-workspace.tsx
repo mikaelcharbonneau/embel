@@ -13,7 +13,7 @@ import { boundedAccountRequest } from "./bounded-account-request";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "./account-session";
 import { accountDraftChanged, reconcileAccountWorkspace } from "./account-draft-memory";
 import { ProjectArtwork } from "@/components/ui/project-artwork";
-import { LogoJourneyNavigation, type LogoJourneyStage } from "@/components/identity/logo-journey-navigation";
+import { LogoJourneyNavigation, visualProjectNavigationLock, type LogoJourneyStage } from "@/components/identity/logo-journey-navigation";
 
 type Stage = "strategy" | "naming" | "identity" | "files";
 type EvidenceReporter = (value: ProjectStageEvidence) => void;
@@ -38,12 +38,13 @@ export function useProjectLogoEvidence(value: ProjectStageEvidence | null) {
 export function ProjectStageNavigation({ base, stage, scope, strategyReady, nameSelected, identityReady = false, namingReady = strategyReady, dirty = false, checking = false }: {
   base: string; stage: Stage; scope: ProjectScope; strategyReady: boolean; nameSelected: boolean; identityReady?: boolean; namingReady?: boolean; dirty?: boolean; checking?: boolean;
 }) {
+  const visualLock = visualProjectNavigationLock({ checking, dirty, scope });
   const stages = [
     { key: "strategy", label: "Strategy", href: base, approved: strategyReady, locked: false },
     { key: "naming", label: "Naming", href: `${base}/naming`, approved: nameSelected, locked: checking || dirty || scope === "visual_identity_only" || !namingReady },
     // References can be explored before approval; the saved generation gates still apply.
-    { key: "identity", label: "Logo & identity", href: `${base}/inspiration`, approved: identityReady, locked: checking || dirty || scope === "naming_only" },
-    { key: "files", label: "Files", href: `${base}/logo/deliverables`, approved: false, locked: checking || dirty || scope === "naming_only" },
+    { key: "identity", label: "Logo & identity", href: `${base}/inspiration`, approved: identityReady, locked: Boolean(visualLock) },
+    { key: "files", label: "Files", href: `${base}/logo/deliverables`, approved: false, locked: Boolean(visualLock) },
   ];
   const decisions = Number(strategyReady) + Number(nameSelected) + Number(identityReady);
   return <nav className="project-stage-navigation" aria-label="Project stages">{stages.map(item => item.locked
@@ -103,7 +104,7 @@ function OwnedProjectShell({ projectId, account, children }: { projectId: string
   return <IdentityEvidenceContext.Provider value={reportIdentity}><LogoEvidenceContext.Provider value={reportLogo}><section className={`project-workspace project-stage-${stage}`}>
     <header className="project-workspace-header"><div><Link href="/brands">Projects</Link><ProjectArtwork name="chevron" /><span className="project-workspace-title">{project?.title ?? "Project"}</span></div><span className="project-workspace-save">{project && !dirty && <ProjectArtwork name="check" />}{dirty ? "Unsaved project edits" : project ? `Saved project · v${project.current_revision}` : "Checking project…"}</span></header>
     <ProjectStageNavigation base={`/brands/account/${projectId}`} stage={stage} scope={project?.scope ?? "complete_brand"} strategyReady={Boolean(handoff?.strategyReady)} namingReady={Boolean(project && getNamingReadiness(project.context, project.scope).ready)} nameSelected={Boolean(project?.context.selectedName)} identityReady={!dirty && !error && identityStatus === "approved"} dirty={dirty} checking={!project} />
-    {stage === "identity" && <LogoJourneyNavigation projectId={projectId} current={identityStage} />}
+    {stage === "identity" && <LogoJourneyNavigation projectId={projectId} current={identityStage} scope={project?.scope ?? "complete_brand"} dirty={dirty} checking={!project} />}
     {error && <div className="project-read-notice" role="alert">{error}<button type="button" className="text-link" onClick={() => setAttempt(value => value + 1)}>Check saved project</button></div>}
     {current?.conflict && <div className="project-read-notice" role="alert">A newer project version is saved. Your edits are kept in this tab. <Link className="text-link" href={`/brands/account/${projectId}`}>Resolve in Strategy</Link></div>}
     {!inspiration && !brandBoard && handoff?.savedName && !handoff.strategyReady && project?.scope === "complete_brand" && <div className="project-read-notice" role="status">Strategy needs review. Your saved name, {handoff.savedName}, is kept for review against the updated context. <Link className="text-link" href={handoff.next.href}>Continue Strategy review</Link></div>}

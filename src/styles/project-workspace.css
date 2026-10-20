@@ -17,7 +17,10 @@
 .project-stage-navigation img { display: block; flex-shrink: 0; }
 .project-stage-progress { margin-left: auto; align-self: center; white-space: nowrap; color: var(--secondary); font-size: 12px; }
 .project-workspace > .logo-journey-navigation { flex: 0 0 44px; flex-wrap: nowrap; overflow-x: auto; gap: 24px; margin: 0; padding: 0 24px; background: var(--paper); }
-.project-workspace > .logo-journey-navigation a { flex-shrink: 0; min-height: 44px; padding: 12px 0; white-space: nowrap; }
+.project-workspace > .logo-journey-navigation :is(a, button) { flex-shrink: 0; min-height: 44px; padding: 12px 0; white-space: nowrap; }
+.project-workspace > .logo-journey-navigation button { background: none; border: 0; border-bottom: 2px solid transparent; font: inherit; font-size: 13px; }
+.project-workspace > .logo-journey-navigation button:disabled { color: var(--secondary); cursor: not-allowed; }
+.project-workspace > .logo-journey-navigation button[aria-current=page] { border-bottom-color: var(--text); font-weight: 500; }
 .project-workspace :is(.project-stage-navigation, .logo-journey-navigation) :is(a, button):focus-visible { outline: 2px solid var(--accent-text); outline-offset: -3px; }
 .project-workspace-content { flex: 1; min-height: 0; overflow: auto; background: var(--canvas); }
 .project-read-notice { padding: 12px 24px; display: flex; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid var(--border); font-size: 13px; }

@@ -46,3 +46,9 @@ Production reference screenshots remain in the audit workspace; Stage 1 screensh
 - A current-only Logo test selected the first dialog after the context drawer moved before cost review. It now targets `dialog[aria-label="Review generation cost"]`; all four operation-UI tests pass. No assertion or gate was relaxed to conceal the difference.
 
 Detailed local evidence lives in the task workspace at `implementation/stage-1/`: `baseline/baseline-comparison.md`, `baseline/focused-run-index.json`, `baseline/source-and-runtime-evidence.json`, the dedicated browser-result directories and `screenshots-verified-index.json`. This evidence uses synthetic local data, not live provider/production acceptance. F06–F16 remain as tracked above; PR75 remains an independent dependency.
+
+### Stage 1 independent-review follow-up
+
+- F01: the six visual subpages now share the top-level visual-navigation lock policy for checking, dirty/conflicted edits and naming-only scope. Disabled destinations retain the same frame, current-page indicator and truthful reason. No server, ownership or generation gate changes.
+- F05: the dock and component-choice badge use the same current-versus-last-confirmed approval qualification as the prerequisite summary. Retained selection controls, local values and focus stay mounted through checking and read errors; approval/save predicates are unchanged.
+- Verification: 34 focused tests in five suites, full lint/typecheck/production build, and eight serial desktop/narrow read-only intercepted-fixture browser contracts passed. The browser suite verifies the disabled six-item row remains 44px high and both rows agree on a naming-only direct visual route. Evidence is in `implementation/stage-1/review-followup/`; synthetic local acceptance does not imply authenticated deployment acceptance.

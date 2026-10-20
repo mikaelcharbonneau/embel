@@ -20,7 +20,7 @@ test.afterEach(async ({ page }, info) => {
 });
 
 // Original local fixture records only. No provider, database, storage or export call.
-async function setup(page: Page, approvedLogo = true) {
+async function setup(page: Page, approvedLogo = true, scope: "visual_identity_only" | "naming_only" = "visual_identity_only") {
   const overview = directionFixture(), foundation = syntheticLogoWorkspace(), source = syntheticResolvedLogoConcept();
   const rescope = <T,>(value: T): T => JSON.parse(JSON.stringify(value).replaceAll(foundation.ownerId, ownerId).replaceAll(foundation.projectId, projectId));
   const brief = rescope(source.brief), references = rescope(source.referenceSnapshot);
@@ -31,7 +31,7 @@ async function setup(page: Page, approvedLogo = true) {
   });
   const stage = logoStageRevisionSchema.parse({ ...brief, id: id(90), stage: "directions", payload: { directionIds: overview.directions.map(row => row.id), selectionId: null, approvalId: null } });
   const vectorStage = logoStageRevisionSchema.parse({ ...brief, id: id(5), stage: "vector", payload: { vectorRevisionId: id(4), approvalId: approvedLogo ? id(3) : null } });
-  const project = accountProjectSchema.parse({ id: projectId, owner_id: ownerId, title: "Synthetic identity project", scope: "visual_identity_only", current_revision: 1, created_at: brief.createdAt, context: { description: "Synthetic saved context", selectedName: "Élan & Co" } });
+  const project = accountProjectSchema.parse({ id: projectId, owner_id: ownerId, title: "Synthetic identity project", scope, current_revision: 1, created_at: brief.createdAt, context: { description: "Synthetic saved context", selectedName: "Élan & Co" } });
   const files = logoDeliverablesOverviewSchema.parse({ ownerId, projectId, logoApproval: approvedLogo ? overview.currentApprovedLogo : null, directionApproval: null, variantSets: [], variantReviews: [], exports: [], exportRequests: [], nextCursor: null, nextRequestCursor: null });
   const writes: string[] = [], base = `/api/projects/${projectId}/logo`;
   await page.route("**/*", async route => {
@@ -89,6 +89,23 @@ async function resetCaptureScroll(page: Page) {
     for (const element of document.querySelectorAll("#main-content, .project-workspace-content")) element.scrollTop = 0;
   });
 }
+
+test("naming-only direct visual routes retain a consistent locked navigation frame", async ({ page }, info) => {
+  const writes = await setup(page, false, "naming_only");
+  await page.goto(`/brands/account/${projectId}/logo/directions`);
+  const stages = page.getByRole("navigation", { name: "Project stages", exact: true });
+  const pages = page.getByRole("navigation", { name: "Logo and identity pages", exact: true });
+  await expect(stages.getByRole("button", { name: "Logo & identity", exact: true })).toBeDisabled();
+  await expect(pages.getByRole("button")).toHaveCount(6);
+  await expect(pages.getByRole("link")).toHaveCount(0);
+  for (const button of await pages.getByRole("button").all()) {
+    await expect(button).toBeDisabled(); await expect(button).toHaveAttribute("title", "Expand the project scope first");
+    expect((await button.boundingBox())!.height).toBe(44);
+  }
+  await expect(pages.getByRole("button", { name: "Identity directions", exact: true })).toHaveAttribute("aria-current", "page");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
+  expect(writes).toEqual([]); await resetCaptureScroll(page); await captureUiEvidence(page, info);
+});
 
 test("project design: three saved directions keep actual components and Files keeps approval gates", async ({ page }, info) => {
   const writes = await setup(page);

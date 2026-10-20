@@ -1,5 +1,10 @@
 import Link from "next/link";
 import { logoUuidSchema } from "@/domain/logo-vector";
+import type { ProjectScope } from "@/domain/projects";
+/** Both project navigation rows follow the same saved-edit and scope policy. */
+export function visualProjectNavigationLock({ checking = false, dirty = false, scope = "complete_brand" }: { checking?: boolean; dirty?: boolean; scope?: ProjectScope }) {
+  return checking ? "Checking saved project…" : dirty ? "Save or resolve your project edits first" : scope === "naming_only" ? "Expand the project scope first" : null;
+}
 export type LogoJourneyStage = "inspiration" | "concepts" | "board" | "vector" | "directions" | "systems";
 const stages = [
   { key: "inspiration", path: "/inspiration", label: "Inspiration" },
@@ -9,8 +14,11 @@ const stages = [
   { key: "directions", path: "/logo/directions", label: "Identity directions" },
   { key: "systems", path: "/identity", label: "Moodboard & systems" },
 ] as const;
-export function LogoJourneyNavigation({ projectId, current }: { projectId: string; current: LogoJourneyStage }) {
+export function LogoJourneyNavigation({ projectId, current, checking = false, dirty = false, scope = "complete_brand" }: { projectId: string; current: LogoJourneyStage; checking?: boolean; dirty?: boolean; scope?: ProjectScope }) {
   const parsed = logoUuidSchema.safeParse(projectId);
   if (!parsed.success) return null;
-  return <nav aria-label="Logo and identity pages" className="logo-journey-navigation">{stages.map(stage => <Link key={stage.key} href={`/brands/account/${parsed.data}${stage.path}`} className="text-link" aria-current={current === stage.key ? "page" : undefined}>{stage.label}</Link>)}</nav>;
+  const locked = visualProjectNavigationLock({ checking, dirty, scope });
+  return <nav aria-label="Logo and identity pages" className="logo-journey-navigation">{stages.map(stage => locked
+    ? <button key={stage.key} type="button" disabled title={locked} className="text-link" aria-current={current === stage.key ? "page" : undefined}>{stage.label}</button>
+    : <Link key={stage.key} href={`/brands/account/${parsed.data}${stage.path}`} className="text-link" aria-current={current === stage.key ? "page" : undefined}>{stage.label}</Link>)}</nav>;
 }
