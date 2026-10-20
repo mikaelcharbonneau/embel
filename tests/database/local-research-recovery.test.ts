@@ -221,4 +221,42 @@ describe("third exact local research recovery", () => {
     expect(securityAfterHostileAttempt).toEqual(beforeSecurity);
     expect(dataAfterHostileAttempt).toEqual(beforeInstallation);
   });
+  it("preserves exact legacy/current receipt matches and every evidence rejection with bounded join planning", async () => {
+    await db.query(insert);
+    const signature = "fluid_private.research_operator_adjudication_matches(uuid)";
+    const ids = [...incidents.map(incident => incident.job), crypto.randomUUID(), null];
+    const compare = async () => {
+      const rowsBefore = await snapshot();
+      await db.exec(`alter function ${signature} reset join_collapse_limit; set local join_collapse_limit=8`);
+      const values = async () => (await db.query<{ value: boolean }>(
+        "select fluid_private.research_operator_adjudication_matches(job) value from unnest($1::uuid[]) with ordinality ids(job,n) order by n", [ids])).rows.map(row => row.value);
+      const baseline = await values();
+      await db.exec(`alter function ${signature} set join_collapse_limit=1`);
+      expect(await values()).toEqual(baseline);
+      expect((await db.query("show join_collapse_limit")).rows).toEqual([{ join_collapse_limit: "8" }]);
+      expect(await snapshot()).toEqual(rowsBefore);
+      return baseline;
+    };
+    expect(await compare()).toEqual([true, true, true, false, false]);
+    // The first two receipts predate the nullable deletion marker; the third
+    // hashes its current shape. Both representations must remain exact.
+    for (const [sql, key] of [
+      ["update public.jobs set project_deletion_requested_at=clock_timestamp() where id=$1", incidents[0].job],
+      ["update public.jobs set project_deletion_requested_at=clock_timestamp() where id=$1", target.job],
+      ["update public.jobs set attempts=2 where id=$1", target.job],
+      ["update public.job_steps set output=output||'{\"changed\":true}' where id=$1", target.step],
+      ["update public.job_steps set actual_cost_microusd=actual_cost_microusd+1 where id=$1", target.step],
+      ["update public.usage_reservations set state='settled' where job_id=$1", target.job],
+      ["update public.usage_reservations set captured_microusd=0 where job_id=$1", target.job],
+      ["update public.usage_accounts set reserved_microusd=reserved_microusd-1 where owner_id=$1", OWNER_B],
+      ["update public.jobs set actual_cost_microusd=reserved_cost_microusd+1 where id=$1", target.job],
+    ]) {
+      await db.exec("savepoint evidence_mutation");
+      try {
+        await db.query(sql!, [key]);
+        const result = await compare();
+        expect(result[key === incidents[0].job ? 0 : 2]).toBe(false);
+      } finally { await db.exec("rollback to savepoint evidence_mutation; release savepoint evidence_mutation"); }
+    }
+  }, 60_000);
 });
