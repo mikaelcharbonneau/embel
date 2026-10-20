@@ -145,6 +145,56 @@ describe("Naming acknowledgement recovery", () => {
 });
 
 describe("Naming pagination resumes from current saved results", () => {
+  it.each(["empty", "failed"] as const)("clears changed-query rows and old cursors while the new first page is pending, then %s", async outcome => {
+    rows = Array.from({ length: 250 }, (_, index) => candidate(index + 1)); await render(); await act(async () => api.loadMore());
+    expect(api.overview?.candidates.items).toHaveLength(200); expect(api.overview?.candidates.nextCursor?.id).toBe(id(200));
+    const nextPage = deferred<Response>();
+    fetcher.mockImplementation(async (_path: string, init: RequestInit) => {
+      if (init.method === "PATCH") {
+        const body = JSON.parse(String(init.body));
+        state = { ...state, session: { ...state.session!, viewRevision: body.expectedViewRevision + 1, viewState: body.viewState } };
+        return Response.json({ session: state.session });
+      }
+      return nextPage.promise;
+    });
+    await act(async () => api.saveView({ query: "Juniper", filter: "favorite", scrollCandidateId: null }));
+    expect(api.listStatus).toBe("loading"); expect(api.overview?.session?.viewState).toMatchObject({ query: "Juniper", filter: "favorite" });
+    expect(api.overview?.candidates.items).toEqual([]); expect(api.overview?.candidates.nextCursor).toBeNull();
+    const requestCount = fetcher.mock.calls.length; await act(async () => api.loadMore()); expect(fetcher.mock.calls).toHaveLength(requestCount);
+    const lastRead = fetcher.mock.calls.filter(([, init]) => init.method === "GET").at(-1)!;
+    expect(lastRead[0]).toBe(base); expect(lastRead[0]).not.toContain("cursor");
+    rows = [];
+    await act(async () => nextPage.resolve(outcome === "empty" ? Response.json(overview()) : new Response(null, { status: 503 })));
+    expect(api.listStatus).toBe(outcome === "empty" ? "ready" : "failed");
+    expect(api.overview?.candidates.items).toEqual([]); expect(api.overview?.candidates.nextCursor).toBeNull();
+    await act(async () => api.loadMore()); expect(fetcher.mock.calls).toHaveLength(requestCount);
+    expect(writes()).toHaveLength(1); expect(writes()[0]![1].method).toBe("PATCH");
+  });
+
+  it("uses only the new query's acknowledged cursor after a populated first page", async () => {
+    rows = Array.from({ length: 250 }, (_, index) => candidate(index + 1)); await render(); await act(async () => api.loadMore());
+    const newRows = Array.from({ length: 101 }, (_, index) => { const entry = candidate(index + 501); return { ...entry, retention: { ...entry.retention, revision: 1, favorite: true, updatedAt: when } }; });
+    fetcher.mockImplementation(async (path: string, init: RequestInit) => {
+      if (init.method === "PATCH") {
+        const body = JSON.parse(String(init.body)); rows = newRows;
+        state = { ...state, session: { ...state.session!, viewRevision: body.expectedViewRevision + 1, viewState: body.viewState } };
+        return Response.json({ session: state.session });
+      }
+      return Response.json(overview(path));
+    });
+    await act(async () => api.saveView({ query: "Fixture", filter: "favorite", scrollCandidateId: null }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    expect(api.readError).toBeNull();
+    expect(api.overview?.candidates.items).toHaveLength(100); expect(api.overview?.candidates.nextCursor?.id).toBe(id(600));
+    expect(api.overview?.candidates.items.some(entry => entry.candidate.id === id(1))).toBe(false);
+    await act(async () => api.loadMore());
+    expect(api.overview?.candidates.items).toHaveLength(101); expect(api.overview?.candidates.nextCursor).toBeNull();
+    const page = new URL(fetcher.mock.calls.at(-1)![0], "https://fixture.invalid");
+    expect(page.searchParams.get("query")).toBe("Fixture"); expect(page.searchParams.get("filter")).toBe("favorite");
+    expect(page.searchParams.get("cursorId")).toBe(id(600)); expect(page.searchParams.get("cursorId")).not.toBe(id(200));
+    expect(writes()).toHaveLength(1);
+  });
+
   it("keeps an appended name reachable after all earlier pages were loaded", async () => {
     rows = Array.from({ length: 150 }, (_, index) => candidate(index + 1)); await render();
     await act(async () => api.loadMore()); expect(api.overview?.candidates.items).toHaveLength(150);

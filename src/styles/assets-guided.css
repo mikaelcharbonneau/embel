@@ -19,6 +19,9 @@
 .assets-filter select { appearance: none; width: 100%; height: 44px; border: 1px solid var(--border); border-radius: 7px; padding: 11px 34px 11px 16px; background: var(--paper); color: var(--text); font-size: 14px; font-weight: 500; text-overflow: ellipsis; }
 .assets-filter > img { position: absolute; right: 16px; top: 13px; pointer-events: none; }
 .assets-guided .assets-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 18px; }
+.assets-results-body { display: flow-root; }
+.assets-query-placeholders { pointer-events: none; }
+.assets-query-placeholder { height: 216px; border: 1px solid var(--border); border-radius: 10px; background: var(--paper); }
 .assets-guided .assets-card { position: relative; padding: 0; border-radius: 10px; overflow: visible; }
 .assets-guided .assets-open { border-radius: 9px 9px 0 0; overflow: hidden; }
 .assets-guided .assets-card .assets-preview { height: 130px; aspect-ratio: auto; border-radius: 0; }

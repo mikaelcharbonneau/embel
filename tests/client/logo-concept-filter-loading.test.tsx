@@ -23,6 +23,8 @@ afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi
 async function until(check: () => void) { let error: unknown; for (let i = 0; i < 100; i++) { await act(async () => { await new Promise(resolve => setTimeout(resolve, 5)); }); try { check(); return; } catch (cause) { error = cause; } } throw error; }
 function gate() { let release!: () => void; const promise = new Promise<void>(resolve => { release = resolve; }); return { promise, release }; }
 const grid = () => host.querySelector<HTMLElement>('[aria-label="Logo concepts"]')!;
+const composer = () => host.querySelector<HTMLFormElement>('form[aria-label="Logo concept changes"]')!;
+const instruction = () => composer().querySelector<HTMLTextAreaElement>('textarea[aria-label="Describe logo changes"]')!;
 const images = () => [...(grid()?.querySelectorAll<HTMLImageElement>('img[src^="blob:"]') ?? [])];
 const cards = () => [...(grid()?.querySelectorAll<HTMLLIElement>('li[data-concept-ordinal]') ?? [])];
 const button = (text: string) => [...host.querySelectorAll("button")].find(node => node.textContent === text)!;
@@ -58,6 +60,26 @@ function expectLoading() {
   expect(cards()).toHaveLength(6);
   expect([...grid().querySelectorAll("button")].some(node => node.textContent === "Generate six concepts" && !node.disabled)).toBe(false);
 }
+function expectInitialPresentation(state: "loading" | "unavailable") {
+  const message = state === "loading" ? "Loading saved logo details…" : "Saved logo details unavailable.";
+  expect(host.textContent).not.toContain("Choose a logo to select it.");
+  expect(host.textContent).not.toContain("Select a logo above to get started.");
+  expect(host.querySelector('[aria-label="Generation cost review"]')).toBeNull();
+  expect(composer().querySelector('[role="status"]')?.textContent).toBe(message);
+  expect(instruction().placeholder).toBe(message);
+  expect(composer().getAttribute("aria-busy")).toBe(String(state === "loading"));
+  expect(composer().querySelector('button[type="submit"]')!.getAttribute("aria-label")).toBe(message);
+  expect(composer().querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true);
+  const continuation = [...host.querySelectorAll("button")].find(node => node.textContent === "Continue to brand board →");
+  if (continuation) { expect(continuation.disabled).toBe(true); expect(continuation.title).toBe(message); }
+}
+async function typeInstruction(value: string) {
+  await act(async () => {
+    const input = instruction(); input.focus();
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(input, value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
 function noWrites(f: Awaited<ReturnType<typeof syntheticRefinementWorkspaceHttp>>) { expect(f.selections).toEqual([]); expect(f.quotes).toEqual([]); expect(f.admissions).toEqual([]); }
 
 describe("saved Logo gallery filtering and initial read presentation", () => {
@@ -91,11 +113,19 @@ describe("saved Logo gallery filtering and initial read presentation", () => {
       return real(input, init);
     };
     try {
-      await mount(f.workspace.projectId, fetcher); await until(() => { expect(historyReads).toBeGreaterThan(0); expect(workspaceReads).toBeGreaterThan(0); }); expectLoading();
-      await act(async () => history.release()); expectLoading();
-      await act(async () => workspace.release()); await until(() => expect(detailReads).toBeGreaterThan(0)); expectLoading();
+      await mount(f.workspace.projectId, fetcher); await until(() => { expect(historyReads).toBeGreaterThan(0); expect(workspaceReads).toBeGreaterThan(0); }); expectLoading(); expectInitialPresentation("loading");
+      const form = composer(), input = instruction(), status = form.querySelector('[role="status"]'), initialCards = cards();
+      await typeInstruction("Keep this local refinement message");
+      await act(async () => history.release()); expectLoading(); expectInitialPresentation("loading");
+      await act(async () => workspace.release()); await until(() => expect(detailReads).toBeGreaterThan(0)); expectLoading(); expectInitialPresentation("loading");
       await act(async () => detail.release()); await until(() => expect(images()).toHaveLength(6));
-      expect(grid().textContent).toContain("6 of 6 concepts ready"); expect(grid().getAttribute("aria-busy")).not.toBe("true"); noWrites(f);
+      expect(grid().textContent).toContain("6 of 6 concepts ready"); expect(grid().getAttribute("aria-busy")).not.toBe("true");
+      expect(composer()).toBe(form); expect(instruction()).toBe(input); expect(form.querySelector('[role="status"]')).toBe(status);
+      expect(input.value).toBe("Keep this local refinement message"); expect(document.activeElement).toBe(input);
+      cards().forEach((card, index) => expect(card).toBe(initialCards[index]));
+      expect(host.textContent).toContain("Selection saved.");
+      expect(input.placeholder).toBe("Describe what you’d like to change…");
+      expect(composer().getAttribute("aria-busy")).toBe("false"); noWrites(f);
     } finally { await act(async () => { history.release(); workspace.release(); detail.release(); }); }
   });
 
@@ -110,8 +140,12 @@ describe("saved Logo gallery filtering and initial read presentation", () => {
       return real(input, init);
     };
     try {
-      await mount(f.workspace.projectId, fetcher); await until(() => expect(reads).toBeGreaterThan(0)); expectLoading();
+      await mount(f.workspace.projectId, fetcher); await until(() => expect(reads).toBeGreaterThan(0)); expectLoading(); expectInitialPresentation("loading");
+      const form = composer(), input = instruction();
+      await typeInstruction("Keep my message after a failed read");
       await act(async () => held.release()); await until(() => expect(grid().textContent).toContain("Saved concept details unavailable"));
+      expectInitialPresentation("unavailable"); expect(composer()).toBe(form); expect(instruction()).toBe(input);
+      expect(input.value).toBe("Keep my message after a failed read"); expect(document.activeElement).toBe(input);
       expect(grid().textContent).not.toContain("Awaiting your first exploration"); expect(grid().textContent).not.toContain("0 of 6 concepts ready");
       expect(cards()).toHaveLength(6); expect(images()).toHaveLength(0); expect(grid().getAttribute("aria-busy")).not.toBe("true"); noWrites(f);
     } finally { await act(async () => held.release()); }
@@ -127,10 +161,46 @@ describe("saved Logo gallery filtering and initial read presentation", () => {
       return real(input, init);
     };
     try {
-      await mount(f.workspace.projectId, fetcher); await until(() => { expect(reads).toBeGreaterThan(0); expect(workspaceReads).toBeGreaterThan(0); }); expectLoading();
-      await act(async () => held.release()); expectLoading();
+      await mount(f.workspace.projectId, fetcher); await until(() => { expect(reads).toBeGreaterThan(0); expect(workspaceReads).toBeGreaterThan(0); }); expectLoading(); expectInitialPresentation("loading");
+      const form = composer(), input = instruction();
+      await act(async () => held.release()); expectLoading(); expectInitialPresentation("loading");
       await act(async () => workspace.release()); await until(() => expect(grid().textContent).toContain("Awaiting your first exploration"));
-      expect(grid().textContent).toContain("0 of 6 concepts ready"); expect(grid().getAttribute("aria-busy")).not.toBe("true"); expect(cards()).toHaveLength(6); noWrites(f);
+      expect(grid().textContent).toContain("0 of 6 concepts ready"); expect(grid().getAttribute("aria-busy")).not.toBe("true"); expect(cards()).toHaveLength(6);
+      expect(composer()).toBe(form); expect(instruction()).toBe(input);
+      expect(host.textContent).toContain("Choose a logo to select it.");
+      expect(composer().querySelector('[role="status"]')!.textContent).toBe("Select a logo above to get started.");
+      expect(input.placeholder).toBe("Select a logo, then describe your changes…");
+      expect(composer().querySelector('button[type="submit"]')!.getAttribute("aria-label")).toBe("Review refinement cost");
+      expect(host.querySelector('[aria-label="Generation cost review"]')).toBeNull(); noWrites(f);
     } finally { await act(async () => { held.release(); workspace.release(); }); }
+  });
+
+  it("does not reset a confirmed empty composer during a held same-owner workspace refresh", async () => {
+    const { f, fetcher: real, base } = await sixPreviews(), held = gate();
+    let refresh = false, refreshReads = 0;
+    const emptyWorkspace = { ...f.workspace, heads: { ...f.workspace.heads, workspaceRevision: 1, stageRevisions: { ...f.workspace.heads.stageRevisions, concepts: 0 } }, stages: { ...f.workspace.stages, concepts: null } };
+    const fetcher: typeof fetch = async (input, init) => {
+      const path = String(input).split("?")[0]!;
+      if (path === base) { if (refresh) { refreshReads++; await held.promise; } return Response.json(emptyWorkspace); }
+      if (path === `${base}/batches`) return Response.json({ ownerId: f.workspace.ownerId, projectId: f.workspace.projectId, items: [], nextCursor: null });
+      return real(input, init);
+    };
+    try {
+      await mount(f.workspace.projectId, fetcher);
+      await until(() => expect(grid().textContent).toContain("Awaiting your first exploration"));
+      const form = composer(), input = instruction(), status = form.querySelector('[role="status"]');
+      await typeInstruction("Keep this draft during an explicit refresh");
+      refresh = true; await click("Project context"); await click("Refresh saved brand");
+      await until(() => expect(refreshReads).toBeGreaterThan(0));
+      expect(composer()).toBe(form); expect(instruction()).toBe(input); expect(form.querySelector('[role="status"]')).toBe(status);
+      expect(status!.textContent).toBe("Select a logo above to get started.");
+      expect(input.placeholder).toBe("Select a logo, then describe your changes…");
+      expect(input.value).toBe("Keep this draft during an explicit refresh");
+      expect(composer().getAttribute("aria-busy")).not.toBe("true");
+      expect(host.querySelector('[aria-label="Generation cost review"]')).toBeNull();
+      await act(async () => held.release());
+      await until(() => expect(button("Refresh saved brand")).toBeDefined());
+      expect(composer()).toBe(form); expect(instruction()).toBe(input); noWrites(f);
+    } finally { await act(async () => held.release()); }
   });
 });

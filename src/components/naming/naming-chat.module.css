@@ -1,6 +1,5 @@
 /* Naming chat follows the Strategy conversation; compact results use frame 117:9404.
    The user's explicit left-chat placement supersedes the reference's right panel. */
-:global(.project-stage-naming):has(.workspace) > :global(.project-stage-navigation) { display: none; }
 .workspace.workspace { display: grid; grid-template-columns: 340px minmax(0, 1fr); height: 100%; min-height: 0; overflow: hidden; background: var(--paper); }
 .chatFirst.workspace { grid-template-columns: minmax(0, 1fr); }
 .chatPanel { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--paper); border-right: 1px solid var(--border); }
