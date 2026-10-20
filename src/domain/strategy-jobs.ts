@@ -200,7 +200,7 @@ const jobSummaryFields = {
   cancel_requested_at: z.string().nullable(),
   created_at: z.string(), finished_at: z.string().nullable(),
 };
-const apiJobSummarySchema = z.object({ ...jobSummaryFields, dispatchState: z.enum(["published", "dispatch_pending", "already_processing"]).optional(), billingMode: z.literal("openai_api").optional(), reserved_cost_microusd: moneySchema, actual_cost_microusd: moneySchema });
+const apiJobSummarySchema = z.object({ ...jobSummaryFields, dispatchState: z.enum(["published", "dispatch_pending", "already_processing"]).optional(), canRetryDelivery: z.boolean().optional(), billingMode: z.literal("openai_api").optional(), reserved_cost_microusd: moneySchema, actual_cost_microusd: moneySchema });
 const subscriptionJobSummarySchema = z.object({ ...jobSummaryFields, billingMode: z.literal("chatgpt_subscription"), policyIdentity: subscriptionPolicyIdentitySchema, partialText: z.string().max(1_048_576).optional() });
 export const strategyJobSummarySchema = z.union([apiJobSummarySchema, subscriptionJobSummarySchema]);
 /** Server-owned proof of the exact immutable result accepted into a revision. */

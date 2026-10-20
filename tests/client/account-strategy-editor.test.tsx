@@ -27,7 +27,7 @@ beforeEach(() => {
   const project = accountProjectSchema.parse({ id: projectId, owner_id: owner, title: "Response-only fixture", scope: "complete_brand", current_revision: 1, created_at: when, context: { description: "A neighborhood kitchen" } });
   const workspace = { ownerId: owner, generation: 1, saved: project, draft: accountProjectDraft(project), conflict: false };
   props = { account: { status: "ready", userId: owner, generation: 1 }, workspace, busy: false, saveDraft: vi.fn().mockResolvedValue(workspace), storage: { kind: "account", saveLabel: "Saved", onUpdate: () => true } };
-  mock.strategy = { overview: { availability: responseOnly, jobs: [] }, readError: null, actionError: null, pending: false, pendingLabel: "", continuationAvailable: false, enqueue: vi.fn().mockResolvedValue(null), cancel: vi.fn(), apply: vi.fn(), refresh: vi.fn(), report: vi.fn(), continueResearch: vi.fn() };
+  mock.strategy = { overview: { availability: responseOnly, jobs: [] }, readError: null, actionError: null, pending: false, pendingLabel: "", continuationAvailable: false, enqueue: vi.fn().mockResolvedValue(null), retryDelivery: vi.fn(), cancel: vi.fn(), apply: vi.fn(), refresh: vi.fn(), report: vi.fn(), continueResearch: vi.fn() };
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.replaceChildren(); });

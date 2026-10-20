@@ -44,6 +44,67 @@ beforeEach(() => {
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.replaceChildren(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe("saved-project strategy HTTP recovery", () => {
+  it("retries only the exact saved delivery on explicit action, with one in-flight POST and no new admission", async () => {
+    const job = strategyJobSchema.parse({ ...overview.jobs[0]!, state: "queued", progress: 0, finished_at: null, results: [],
+      dispatchState: "dispatch_pending", canRetryDelivery: true });
+    overview = { availability: { status: "unavailable", reason: "request_active", operations: [] }, jobs: [job] };
+    await render();
+    await act(async () => { await vi.advanceTimersByTimeAsync(4_500); });
+    expect(mutations()).toHaveLength(0);
+    const waiting = deferred<Response>();
+    fetcher.mockImplementation(async (_path: string, init: RequestInit) => init.method === "POST" ? waiting.promise : Response.json(overview));
+    await act(async () => { void api.retryDelivery(job); void api.retryDelivery(job); });
+    expect(mutations()).toHaveLength(1);
+    const [path, init] = mutations()[0]!;
+    expect(path).toBe(`/api/projects/${projectId}/strategy/${job.id}/delivery`);
+    expect(JSON.parse(init.body)).toEqual({});
+    expect(init.headers["X-Embel-Account"]).toBe(account.userId);
+    const published = { ...job, dispatchState: "published", canRetryDelivery: false };
+    overview = { ...overview, jobs: [strategyJobSchema.parse(published)] };
+    await act(async () => waiting.resolve(Response.json({ job: published })));
+    expect(api.pending).toBe(false); expect(api.actionError).toBeNull();
+    await act(async () => api.retryDelivery(job));
+    expect(mutations()).toHaveLength(1);
+  });
+
+  it("does not auto-retry delivery after an unconfirmed acknowledgement", async () => {
+    const job = strategyJobSchema.parse({ ...overview.jobs[0]!, state: "queued", progress: 0, finished_at: null, results: [],
+      dispatchState: "dispatch_pending", canRetryDelivery: true });
+    overview = { availability, jobs: [job] }; await render();
+    fetcher.mockImplementation(async (_path: string, init: RequestInit) => init.method === "POST" ? Response.json({ job }) : Response.json(overview));
+    await act(async () => api.retryDelivery(job));
+    expect(api.actionError).toContain("Delivery is still unconfirmed");
+    await act(async () => { await vi.advanceTimersByTimeAsync(6_000); });
+    expect(mutations()).toHaveLength(1);
+  });
+
+  it.each([
+    ["missing capability", { canRetryDelivery: false }],
+    ["published", { dispatchState: "published" }],
+    ["started", { state: "running" }],
+    ["stale", { input_revision: 2 }],
+    ["cancel requested", { cancel_requested_at: when }],
+  ])("refuses %s delivery client-side", async (_name, patch) => {
+    const job = strategyJobSchema.parse({ ...overview.jobs[0]!, state: "queued", progress: 0, finished_at: null, results: [],
+      dispatchState: "dispatch_pending", canRetryDelivery: true, ...patch });
+    overview = { availability, jobs: [job] }; await render();
+    await act(async () => api.retryDelivery(job));
+    expect(mutations()).toHaveLength(0);
+  });
+
+  it("ignores a late delivery response after the verified account expires", async () => {
+    const job = strategyJobSchema.parse({ ...overview.jobs[0]!, state: "queued", progress: 0, finished_at: null, results: [],
+      dispatchState: "dispatch_pending", canRetryDelivery: true });
+    overview = { availability, jobs: [job] }; await render();
+    const waiting = deferred<Response>();
+    fetcher.mockImplementation(async (_path: string, init: RequestInit) => init.method === "POST" ? waiting.promise : Response.json(overview));
+    await act(async () => { void api.retryDelivery(job); });
+    mock.current.mockReturnValue(false);
+    await act(async () => waiting.resolve(Response.json({ job: { ...job, dispatchState: "published" } })));
+    expect(api.overview!.jobs[0]).toEqual(job);
+    expect(mutations()).toHaveLength(1);
+  });
+
   it("recovers a stalled poll without mutations and ignores its late older snapshot", async () => {
     const stalled = deferred<Response>(); fetcher.mockImplementationOnce(() => stalled.promise);
     await render(); expect(api.overview).toBeNull();

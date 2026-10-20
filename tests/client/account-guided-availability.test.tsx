@@ -11,7 +11,7 @@ import { strategyJobSchema, strategyOverviewResponseSchema, type StrategyJob, ty
 
 const strategy = vi.hoisted(() => ({
   overview: null as StrategyOverview | null, pending: false, readError: null as string | null, actionError: null as string | null,
-  refresh: vi.fn(), enqueue: vi.fn(), cancel: vi.fn(),
+  refresh: vi.fn(), enqueue: vi.fn(), retryDelivery: vi.fn(), cancel: vi.fn(),
 }));
 vi.mock("@/components/workspace/use-strategy-jobs", () => ({ useStrategyJobs: () => strategy }));
 
@@ -52,7 +52,7 @@ async function render(saveLabel = "Saved", busy = false) {
 beforeEach(() => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true); HTMLElement.prototype.scrollTo = vi.fn();
   strategy.overview = null; strategy.pending = false; strategy.readError = null; strategy.actionError = null;
-  strategy.refresh.mockReset(); strategy.enqueue.mockReset(); strategy.cancel.mockReset(); saveContext.mockReset();
+  strategy.refresh.mockReset(); strategy.enqueue.mockReset(); strategy.retryDelivery.mockReset(); strategy.cancel.mockReset(); saveContext.mockReset();
   const saved = accountProjectSchema.parse({ id: "bbbbbbbb-1111-4111-8111-111111111111", owner_id: account.userId, title: "Synthetic Strategy availability", scope: "complete_brand", current_revision: 1, created_at: when, context: { description: "Synthetic saved neighborhood kitchen brief." } });
   workspace = { ownerId: account.userId, generation: 1, saved, draft: accountProjectDraft(saved), conflict: false };
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
@@ -60,6 +60,45 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); });
 
 describe("guided Strategy availability presentation", () => {
+  it("offers exact delivery recovery after reload despite request_active without automatically retrying", async () => {
+    addGuidedTurn(); unavailable("request_active");
+    const job = strategyJobSchema.parse({ ...boundJob("queued"), dispatchState: "dispatch_pending", canRetryDelivery: true });
+    strategy.overview!.jobs = [job];
+    await render();
+    expect(host.querySelector(".guided-delivery-notice")?.textContent).toContain("delivery to the worker is not confirmed");
+    expect(button("Retry delivery")?.disabled).toBe(false);
+    expect(strategy.retryDelivery).not.toHaveBeenCalled(); expect(strategy.enqueue).not.toHaveBeenCalled();
+    await act(async () => button("Check status")!.click());
+    expect(strategy.refresh).toHaveBeenCalledOnce(); expect(strategy.retryDelivery).not.toHaveBeenCalled();
+    await act(async () => button("Retry delivery")!.click());
+    expect(strategy.retryDelivery).toHaveBeenCalledExactlyOnceWith(job);
+    expect(saveContext).not.toHaveBeenCalled(); expect(strategy.enqueue).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["ordinary queued", {}], ["published queued", { dispatchState: "published", canRetryDelivery: false }],
+    ["unconfirmed but not recoverable", { dispatchState: "dispatch_pending", canRetryDelivery: false }],
+    ["stale", { dispatchState: "dispatch_pending", canRetryDelivery: true, input_revision: 2 }],
+    ["running", { dispatchState: "dispatch_pending", canRetryDelivery: true, state: "running" }],
+  ])("does not describe %s work as failed delivery", async (_name, patch) => {
+    addGuidedTurn(); unavailable("request_active");
+    strategy.overview!.jobs = [strategyJobSchema.parse({ ...boundJob("queued"), ...patch })];
+    await render();
+    expect(button("Retry delivery")).toBeUndefined();
+    expect(host.querySelector(".guided-delivery-notice")).toBeNull();
+    expect(strategy.retryDelivery).not.toHaveBeenCalled(); expect(strategy.enqueue).not.toHaveBeenCalled();
+  });
+
+  it("disables delivery while a request is in flight or saved content is conflicted", async () => {
+    addGuidedTurn(); unavailable("request_active");
+    strategy.overview!.jobs = [strategyJobSchema.parse({ ...boundJob("queued"), dispatchState: "dispatch_pending", canRetryDelivery: true })];
+    strategy.pending = true; await render();
+    expect(button("Retry delivery")?.disabled).toBe(true);
+    strategy.pending = false; workspace = { ...workspace, conflict: true }; await render();
+    expect(button("Retry delivery")?.disabled).toBe(true);
+    expect(strategy.retryDelivery).not.toHaveBeenCalled();
+  });
+
   it.each(reasons)("shows %s before the first turn without inventing request history or save completion", async (reason, expected) => {
     unavailable(reason);
     await render();

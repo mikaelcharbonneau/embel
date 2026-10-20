@@ -5,7 +5,7 @@ import { ProjectArtwork } from "@/components/ui/project-artwork";
 import { appendGuidedTurn, confirmGuidedSelection, guidedTurnOperation, revisitGuidedStage, type GuidedReply, type GuidedStage } from "@/domain/guided-interview";
 import type { ContextSnapshot } from "@/domain/projects";
 import { accountDraftChanged, type AccountWorkspace, type GuidedInterviewInput } from "./account-draft-memory";
-import { strategyAllowanceLabel, strategyAllowanceWithin, strategyAvailabilityMessage, strategyJobActive } from "./account-strategy-client";
+import { strategyAllowanceLabel, strategyAllowanceWithin, strategyAvailabilityMessage, strategyCanRetryDelivery, strategyJobActive } from "./account-strategy-client";
 import type { VerifiedAccount } from "./account-session";
 import { ConversationComposer } from "./conversation-composer";
 import { GuidedChoiceWidget } from "./guided-interview-widgets";
@@ -198,6 +198,7 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
   const failed = bound && !strategyJobActive(bound.job) && !reply && bound.job.state !== "succeeded";
   const unverified = bound?.job.state === "succeeded" && !reply;
   const stale = currentTurn && !workspace.pendingGuidedContext && currentTurn.inputRevision !== saved.current_revision;
+  const deliveryPending = bound && strategyCanRetryDelivery(bound.job, saved.current_revision);
   const unavailable = currentTurn && !bound && strategy.overview && !allowance || !state && saved.scope === "complete_brand" && strategy.overview && !guidedAllowance(availability, "strategy.competitors");
   const legacyJobs = [...jobs].filter(job => job.state === "succeeded" && !job.results.some(result => result.output.guidance)).sort((a, b) => a.created_at.localeCompare(b.created_at));
   const timeline = guidedTimeline(context);
@@ -240,6 +241,11 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
     <div className="guided-interview-compose">
       {hasNewResponse && <div className="guided-new-response flow-enter"><button type="button" className="button secondary small" aria-controls={transcriptId} onClick={revealNewResponse}>View new response<span aria-hidden="true"> ↓</span></button></div>}
       <div className="conversation-compose-notices" role="region" aria-label="Conversation notices" tabIndex={0}>
+      {deliveryPending && <div className="guided-delivery-notice" role="status">
+        <p>Your request is saved, but delivery to the worker is not confirmed. Retry delivery sends the same request, not a new research request.</p>
+        <button type="button" className="text-link" disabled={busy || working || strategy.pending} onClick={strategy.refresh}>Check status</button>
+        <button type="button" className="text-link" disabled={busy || working || strategy.pending || dirty || workspace.conflict || Boolean(strategy.readError)} onClick={() => void strategy.retryDelivery(bound.job)}>Retry delivery</button>
+      </div>}
       {(error || strategy.actionError || strategy.readError || failed || unverified || unavailable || stale || startNeedsReview) && <div className="guided-conversation-error" role="alert">
         <p>{error || strategy.actionError || statusReadError || (startNeedsReview && !unavailable ? startConsent?.attempted ? "Your project is saved. The research request is not confirmed. Check status or retry the same request." : "Your project is saved. Review the current research limit, then start research." : stale ? "The project changed after this response was requested. Your conversation is kept. Send a new message to continue from the current version." : bound?.job.state === "needs_reconciliation" ? "This research outcome needs verification before another request can start. Your prompt is saved." : requestBlocked ? strategyAvailabilityMessage(availability, "project") : failed ? bound?.job.state === "cancelled" ? "Research was cancelled. Your prompt is saved." : currentTurn?.stage === "competitors" && currentTurn.purpose !== "message" ? "Research could not produce verified suggestions. Your prompt is saved. You can retry research." : "This response did not finish. Your prompt is saved." : unverified ? "This response could not be matched to your question. Your conversation is kept." : strategyAvailabilityMessage(availability ?? null, "project"))}</p>
         {startNeedsReview && allowance && !startConsent?.attempted && <p>{strategyAllowanceLabel(allowance)}</p>}
