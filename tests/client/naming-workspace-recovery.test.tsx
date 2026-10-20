@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { readFileSync } from "node:fs";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -259,4 +260,58 @@ it("preserves an open batch history and its controls when filtering and choosing
   expect(host.querySelector(".project-naming-batch-history")).toBe(history); expect(history.open).toBe(true);
   expect(host.querySelector('[aria-label="Filter project names"]')).toBe(filter); expect(host.querySelector('[aria-label="Shown batch"]')).toBe(shown);
   expect(shown.value).toBe(batch.id); expect(ensures()).toHaveLength(0);
+});
+
+it("keeps one results body and count slot through changed-query loading, failure and actual zero", async () => {
+  overview = { ...overview, candidates: { ...overview.candidates, nextCursor: { id: candidateId, createdAt: when } } }; publish({ overview });
+  await render(); await click("Saved names & history");
+  const body = host.querySelector('.project-naming-results-body')!, count = host.querySelector('.project-naming-results-count')!;
+  const toolbar = host.querySelector('.project-naming-toolbar')!, field = toolbar.querySelector('input')!;
+  expect(body).not.toBeNull(); expect(count.textContent).toBe("1 names loaded · more available");
+  await input(field, "Juniper"); field.focus();
+  overview = { ...overview, session: { ...overview.session!, viewState: { ...overview.session!.viewState, query: "Juniper", filter: "favorite" } }, candidates: { ...overview.candidates, items: [], nextCursor: null } };
+  for (const listStatus of ["loading", "failed", "ready"] as const) {
+    await act(async () => publish({ overview, listStatus, readError: listStatus === "failed" ? "Synthetic changed-list read failed" : null }));
+    expect(host.querySelector('.project-naming-results-body')).toBe(body);
+    expect(host.querySelector('.project-naming-results-count')).toBe(count);
+    expect(host.querySelector('.project-naming-toolbar')).toBe(toolbar);
+    expect(toolbar.querySelector('input')).toBe(field); expect(document.activeElement).toBe(field);
+    expect(body.getAttribute("aria-busy")).toBe(String(listStatus === "loading"));
+    expect(count.textContent).toBe(listStatus === "loading" ? "Updating names…" : listStatus === "failed" ? "Count unavailable" : "0 names in this view");
+    expect(body.textContent).not.toContain("Juniper"); expect(body.querySelectorAll('button, article, [id^="project-name-"]')).toHaveLength(listStatus === "ready" ? 1 : 0);
+    expect(host.querySelectorAll('.project-naming-card')).toHaveLength(0); expect(button("Load more saved names")).toBeUndefined();
+    expect(host.textContent).not.toContain("0 names loaded");
+    if (listStatus !== "ready") expect(host.textContent).not.toContain("No names in this view");
+  }
+  expect(body.textContent).toContain("No names in this view"); expect(ensures()).toHaveLength(0);
+});
+
+it.each(["checking", "signed_out"] as const)("hides every private results node and draft during owner invalidation: %s", async status => {
+  await render(); await click("Saved names & history");
+  await input(host.querySelector<HTMLInputElement>('.project-naming-toolbar input')!, "Private unsubmitted query");
+  expect(host.querySelectorAll('.project-naming-card')).toHaveLength(1);
+  expect(host.textContent).toContain(project.title);
+  await act(async () => { mock.memory!.bind(null); mock.session = { status, generation: 2 }; }); await render();
+  expect(host.querySelector('.project-naming-results-body')).toBeNull(); expect(host.querySelector('.project-naming-toolbar')).toBeNull();
+  expect(host.querySelector('.project-naming-results-count')).toBeNull(); expect(host.querySelectorAll('.project-naming-card')).toHaveLength(0);
+  expect(host.innerHTML).not.toContain("Private unsubmitted query"); expect(host.textContent).not.toContain(project.title);
+  expect(host.textContent).not.toContain(entry.candidate.value); expect(host.textContent).not.toContain(entry.candidate.rationale);
+  expect(host.textContent).toContain("Verify account");
+  mock.session = { status: "ready", userId: "a0000000-0000-4000-8000-000000000002", generation: 3 }; mock.memory!.bind(mock.session);
+  publish({ overview: null }); await render();
+  expect(host.textContent).toContain("Loading your account naming workspace");
+  expect(host.innerHTML).not.toContain("Private unsubmitted query"); expect(host.textContent).not.toContain(project.title);
+  expect(host.querySelector('.project-naming-results-body')).toBeNull(); expect(ensures()).toHaveLength(0);
+});
+
+it("reserves route-based nonprivate chrome and the same bounded results geometry for loading, failure and empty", () => {
+  const sheet = readFileSync('src/styles/project-naming.css', 'utf8');
+  const chatSheet = readFileSync('src/components/naming/naming-chat.module.css', 'utf8');
+  expect(sheet).toMatch(/\.project-stage-naming\s*>\s*\.project-stage-navigation\s*\{\s*display:\s*none/);
+  expect(chatSheet).not.toContain(':has(.workspace)');
+  const body = sheet.match(/\.project-naming-results-body\s*\{([^}]+)\}/)?.[1];
+  expect(body).toContain('min-height: clamp(216px, 40vh, 480px)');
+  expect(body).not.toContain('animation');
+  expect(sheet).toMatch(/\.project-naming-results-body\s*>\s*\.project-naming-(?:notice|empty)[^{]*\{[^}]*min-height:\s*inherit/s);
+  expect(sheet).toMatch(/\.project-naming-toolbar\s*>\s*\.project-naming-results-count\s*\{[^}]*width:\s*18rem/s);
 });

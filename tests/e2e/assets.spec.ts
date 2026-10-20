@@ -147,9 +147,23 @@ test("assets fixture: query-bound library pagination retains its tab and filters
 });
 test("assets fixture: held filter read clears old rows and cursor", async ({ page }) => {
   const fixture = await setup(page); fixture.pageSize = 2; await page.goto("/assets"); await expect(page.getByRole("article")).toHaveCount(2);
-  fixture.holdRead = fixture.reads + 1; await page.getByRole("combobox", { name: "File type", exact: true }).selectOption("pdf");
+  const body = page.locator(".assets-results-body"), toolbar = page.locator(".assets-toolbar"), filter = page.getByRole("combobox", { name: "File type", exact: true });
+  const before = await body.boundingBox(), toolbarBefore = await toolbar.boundingBox();
+  await filter.focus();
+  fixture.holdRead = fixture.reads + 1; await filter.selectOption("pdf");
   await expect(page.getByRole("article")).toHaveCount(0); await expect(page.getByRole("button", { name: "Load more assets", exact: true })).toHaveCount(0);
+  await expect(page.locator(".assets-query-placeholder")).toHaveCount(2);
+  await expect(page.locator(".assets-query-placeholders")).toHaveAttribute("aria-hidden", "true");
+  await expect(page.locator(".assets-query-placeholders")).toHaveAttribute("inert", "");
+  await expect(page.locator(".assets-query-placeholders").locator("img, a, button, input, select, summary")).toHaveCount(0);
+  await expect(page.getByText("Matching asset count pending.", { exact: true })).toBeVisible();
+  await expect(filter).toBeFocused();
+  expect((await body.boundingBox())!.height).toBeGreaterThanOrEqual(before!.height - 1);
+  expect((await toolbar.boundingBox())!.y).toBe(toolbarBefore!.y);
   await expect.poll(() => fixture.held !== null).toBe(true); await fixture.held!(); await expect(page.getByRole("article")).toHaveCount(1);
+  await expect(page.locator(".assets-query-placeholder")).toHaveCount(0);
+  await expect(page.getByText("1 assets loaded", { exact: true })).toBeVisible();
+  await expect(body).not.toHaveAttribute("style", /min-height/);
 });
 test("assets fixture: late pre-mutation GET cannot roll back retention", async ({ page }) => {
   const fixture = await setup(page); await ready(page); fixture.holdRead = fixture.reads + 1; await page.getByRole("button", { name: "Check assets", exact: true }).click();
