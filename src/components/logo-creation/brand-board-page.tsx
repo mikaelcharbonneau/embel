@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useInspiration } from "@/components/inspiration/use-inspiration";
 import { BrandBoardSystem } from "./brand-board-system";
+import { BrandBoardPreviewDownload } from "./brand-board-preview-download";
 import { brandBoardLogoNeedsReview } from "./brand-board-direction";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import { useLogoDraftMemory } from "@/components/identity/logo-draft-memory-context";
@@ -32,6 +33,6 @@ function SavedBrandBoard({ account, projectId }: { account: VerifiedAccount; pro
     {state.error && <p role="alert">{state.error}</p>}
     {!candidate.item && <section className={styles.brandBoardLogo} aria-label="Selected brand logo"><p role="status">{candidate.error ? "Your selected logo could not be loaded." : candidate.loading || state.status === "loading" ? "Loading your selected logo…" : "Select a logo to start your brand board."}</p>{candidate.error && <button className={styles.secondaryButton} onClick={candidate.refresh}>Try again</button>}</section>}
     {inspiration.error && <p role="alert">{inspiration.error} <button className={styles.secondaryButton} onClick={() => void inspiration.refresh()}>Retry inspiration</button></p>}
-    {candidate.item && inspiration.overview && !inspiration.error ? <BrandBoardSystem name={brief?.name || "Your brand"} logoType={candidate.item.logoType} choices={inspiration.overview.choices} logoNeedsReview={brandBoardLogoNeedsReview(state.workspace.staleStages, candidate.item.source)} logo={<LogoVerifiedPreview client={state.client} receipt={candidate.item.preview} alt="Selected logo in application preview" />} /> : inspiration.loading && <p role="status">Loading your saved inspiration…</p>}
+    {candidate.item && inspiration.overview && !inspiration.error ? <><BrandBoardPreviewDownload client={state.client} account={account} projectId={projectId} name={brief?.name || "Your brand"} logoType={candidate.item.logoType} choices={inspiration.overview.choices} receipt={candidate.item.preview} logoNeedsReview={brandBoardLogoNeedsReview(state.workspace.staleStages, candidate.item.source)} /><BrandBoardSystem name={brief?.name || "Your brand"} logoType={candidate.item.logoType} choices={inspiration.overview.choices} logoNeedsReview={brandBoardLogoNeedsReview(state.workspace.staleStages, candidate.item.source)} logo={<LogoVerifiedPreview client={state.client} receipt={candidate.item.preview} alt="Selected logo in application preview" />} /></> : inspiration.loading && <p role="status">Loading your saved inspiration…</p>}
   </>;
 }
