@@ -1,9 +1,6 @@
 /* Approved Projects populated and empty frames: Figma 5:2 and 6:54. */
 .concept-projects .workspace-main { background-image: url('/projects/grid.svg'); background-size: 1360px 900px; background-repeat: repeat; }
 .concept-projects:has(.projects-empty) .workspace-main { background-image: url('/projects/empty-grid.svg'); }
-.projects-shell-empty { display: none; }
-.concept-projects:has(.projects-empty) .projects-shell-populated { display: none; }
-.concept-projects:has(.projects-empty) .projects-shell-empty { display: block; }
 .concept-projects.navigation-expanded .workspace-sidebar-toggle img { transform: rotate(180deg); }
 .concept-projects .workspace-sidebar-toggle { border: 1px solid var(--border); background: var(--paper); border-radius: 10px; }
 .projects-page { max-width: 1088px; margin: 0 auto; padding: 40px 40px 48px; }

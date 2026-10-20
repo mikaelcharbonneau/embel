@@ -45,7 +45,7 @@ function OwnedIdeasWorkspace({ account }: { account: VerifiedAccount }) {
         <label className="ideas-field ideas-filter-state"><span className="sr-only">Filter by state</span><span className="ideas-state-display" aria-hidden="true">{query.state === "all" ? "All states" : ideaStateLabels[query.state]}<Icon name="chevron" size={17} /></span><select value={query.state} onChange={event => { const state = event.target.value as IdeaState | "all"; setQuery(previous => previous.search === search.trim() && previous.state === state ? previous : { search: search.trim(), state }); }}><option value="all">All states</option>{Object.entries(ideaStateLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       </form>
       <p id="ideas-search-hint" className="sr-only">Press Enter to search all your saved ideas. State filters also apply across the full library.</p>
-      <OwnedIdeaListing key={JSON.stringify(query)} account={account} query={query} />
+      <OwnedIdeaListing account={account} query={query} />
     </section>
   </>;
 }
@@ -113,15 +113,21 @@ function IdeaCaptureForm({ account }: { account: VerifiedAccount }) {
 
 function OwnedIdeaListing({ account, query }: { account: VerifiedAccount; query: { search: string; state: IdeaState | "all" } }) {
   const { isCurrent, expire } = useAccountSession();
-  const [listing, setListing] = useState<IdeaListing | null>(null);
+  const queryKey = JSON.stringify(query);
+  const [snapshot, setSnapshot] = useState<{ queryKey: string; listing: IdeaListing } | null>(null);
+  const listing = snapshot?.listing ?? null;
+  const changingQuery = Boolean(snapshot && snapshot.queryKey !== queryKey);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const loaded = useRef<IdeaListing | null>(null);
+  const loaded = useRef<{ queryKey: string; listing: IdeaListing } | null>(null);
   const request = useRef<AbortController | null>(null);
   const active = useRef(false);
+  const activeQuery = useRef<string | null>(null);
   const load = useCallback(async () => {
-    if (!active.current || !isCurrent(account) || request.current) return;
-    const previous = loaded.current;
+    if (!active.current || activeQuery.current !== queryKey || !isCurrent(account) || request.current) return;
+    // Keep the previous verified grid visible, but never reuse its cursor for
+    // another filter or merge responses belonging to different queries.
+    const previous = loaded.current?.queryKey === queryKey ? loaded.current.listing : null;
     const cursor = previous?.nextCursor ?? null;
     if (previous && !cursor) return;
     const controller = new AbortController(); request.current = controller;
@@ -132,32 +138,32 @@ function OwnedIdeaListing({ account, query }: { account: VerifiedAccount; query:
     if (cursor) { params.set("cursorCreatedAt", cursor.createdAt); params.set("cursorId", cursor.id); }
     try {
       const page = await accountRequest(`/api/ideas?${params}`, ideaPageSchema, { signal: controller.signal });
-      if (!active.current || controller.signal.aborted || request.current !== controller || !isCurrent(account)) return;
+      if (!active.current || activeQuery.current !== queryKey || controller.signal.aborted || request.current !== controller || !isCurrent(account)) return;
       if (!sameIdeaId(page.ownerId, account.userId)) { expire(account); return; }
-      const next = mergeIdeaPage(loaded.current, page, cursor);
-      loaded.current = next; setListing(next);
+      const next = { queryKey, listing: mergeIdeaPage(previous, page, cursor) };
+      loaded.current = next; setSnapshot(next);
     } catch (cause) {
-      if (!active.current || request.current !== controller || !isCurrent(account)) return;
+      if (!active.current || activeQuery.current !== queryKey || request.current !== controller || !isCurrent(account)) return;
       if (cause instanceof AccountRequestError && cause.status === 401) expire(account);
       else setError("Your account ideas could not be loaded. Try again.");
     } finally {
       window.clearTimeout(timeout);
       if (request.current === controller) { request.current = null; if (active.current && isCurrent(account)) setBusy(false); }
     }
-  }, [account, query.search, query.state, isCurrent, expire]);
+  }, [account, queryKey, query.search, query.state, isCurrent, expire]);
   useEffect(() => {
-    active.current = true; void load();
-    return () => { active.current = false; request.current?.abort(); request.current = null; };
-  }, [load]);
-  return <>
-    {!listing && !error && <p className="quiet-empty" role="status">Loading your ideas…</p>}
+    active.current = true; activeQuery.current = queryKey; loaded.current = null; void load();
+    return () => { active.current = false; activeQuery.current = null; request.current?.abort(); request.current = null; };
+  }, [load, queryKey]);
+  return <div className="ideas-results" aria-busy={busy || changingQuery && !error}>
+    <p className="ideas-load-status" role="status">{!error && (!listing ? "Loading your ideas…" : busy || changingQuery ? "Updating ideas… Previous results remain visible." : "")}</p>
     {listing && (listing.items.length ? <div className="ideas-grid">{listing.items.map(idea => <Link key={idea.id} href={`/ideas/${idea.id}`} className="idea-card">
       <div className="idea-card-top"><Icon name="ideas" size={18} /><span>{ideaStateLabels[idea.state]}</span></div>
       <h3>{idea.title}</h3>{idea.description && <p>{idea.description}</p>}
       <div className="idea-card-footer"><span className="idea-theme">{idea.theme || "Idea"}</span><Icon name="arrow" size={16} /></div>
-    </Link>)}</div> : <p className="quiet-empty">{query.search || query.state !== "all" ? "No saved ideas match these filters." : "No saved ideas yet. Choose Add idea to capture your first idea."}</p>)}
-    {error && <div className="ideas-load-error"><p className="form-error" role="alert">{error}</p><button className="button secondary small" type="button" disabled={busy} onClick={() => void load()}>Try loading ideas again</button></div>}
-    {listing?.nextCursor && !error && <button className="button secondary small ideas-load-more" type="button" disabled={busy} onClick={() => void load()}>{busy ? "Loading more ideas…" : "Load more ideas"}</button>}
-    {listing && <p className="sr-only" role="status">{listing.items.length} {listing.items.length === 1 ? "idea" : "ideas"} loaded.{!listing.nextCursor && " End of this listing."}</p>}
-  </>;
+    </Link>)}</div> : !changingQuery && <p className="quiet-empty">{query.search || query.state !== "all" ? "No saved ideas match these filters." : "No saved ideas yet. Choose Add idea to capture your first idea."}</p>)}
+    {error && <div className="ideas-load-error"><p className="form-error" role="alert">{error}{changingQuery && " Previous results are still shown."}</p><button className="button secondary small" type="button" disabled={busy} onClick={() => void load()}>Try loading ideas again</button></div>}
+    {listing?.nextCursor && !changingQuery && !error && <button className="button secondary small ideas-load-more" type="button" disabled={busy} onClick={() => void load()}>{busy ? "Loading more ideas…" : "Load more ideas"}</button>}
+    {listing && !changingQuery && <p className="sr-only" role="status">{listing.items.length} {listing.items.length === 1 ? "idea" : "ideas"} loaded.{!listing.nextCursor && " End of this listing."}</p>}
+  </div>;
 }

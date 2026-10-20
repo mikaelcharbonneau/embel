@@ -42,7 +42,7 @@
 .assets-pagination { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-top: 25px; color: var(--secondary); font-size: var(--font-ui); }
 .assets-notice { margin: 15px 0; padding: 13px 15px; border: 1px solid var(--border); border-radius: 6px; background: var(--paper); font-size: var(--font-ui); line-height: 1.6; }
 .assets-notice .button { margin-top: 10px; }
-.assets-loading { margin: 20px 0; }
+.assets-loading { min-height: 1.65em; margin: 20px 0; }
 .assets-empty { padding: 62px 24px; text-align: center; background: var(--paper); border: 1px solid var(--border); border-radius: 8px; }
 .assets-empty > span { display: inline-grid; place-items: center; width: 55px; height: 55px; border-radius: 13px; background: var(--magenta-soft); color: var(--accent-text); margin-bottom: 20px; }
 .assets-empty h2 { font-size: 21px; font-weight: 500; letter-spacing: -.5px; }

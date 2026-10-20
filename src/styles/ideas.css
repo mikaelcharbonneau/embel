@@ -16,6 +16,7 @@
 .ideas-filter-state { width: 170px; }
 .ideas-filters .button { min-height: 44px; }
 .ideas-library-hint { margin: 10px 0 18px; }
+.ideas-load-status { min-height: 20px; margin-bottom: 12px; color: var(--secondary); font-size: 13px; line-height: 20px; }
 .ideas-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .idea-card { min-width: 0; padding: 18px; display: flex; flex-direction: column; background: var(--paper); border: 1px solid var(--border); border-radius: var(--panel-radius); }
 .idea-card:hover { border-color: #afaea9; }
