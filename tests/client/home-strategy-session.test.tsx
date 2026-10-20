@@ -13,7 +13,7 @@ vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: ()
 let root: Root | null, host: HTMLDivElement, owner: string, fetcher: ReturnType<typeof vi.fn>;
 const ready = { status: "available", operations: [{ operation: "strategy.reformulate", maximumCostMicrousd: 10000, interviewVersion: 1 }, { operation: "strategy.competitors", maximumCostMicrousd: 10000, interviewVersion: 1 }] };
 const deferred = <T,>() => { let resolve!: (value: T) => void; const promise = new Promise<T>(yes => { resolve = yes; }); return { promise, resolve }; };
-async function render(exampleId: string | undefined = "b2b") { await act(async () => root!.render(createElement(NewProjectForm, { initialScope: "complete_brand", home: true, exampleId }))); }
+async function render(exampleId: string | undefined = "b2b", home = true) { await act(async () => root!.render(createElement(NewProjectForm, { initialScope: "complete_brand", home, exampleId }))); }
 async function remountHome() { await act(async () => root!.unmount()); root = createRoot(host); await act(async () => root!.render(createElement(NewProjectForm, { initialScope: "complete_brand", home: true }))); }
 async function signInLink() { const link = host.querySelector<HTMLAnchorElement>('a[href="/sign-in"]')!; link.addEventListener("click", event => event.preventDefault()); await act(async () => link.click()); }
 async function click(label: string) { await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent?.includes(label))!.click()); }
@@ -38,6 +38,70 @@ beforeEach(() => {
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.replaceChildren(); vi.unstubAllGlobals(); });
 
 describe("Home account persistence and sign-in continuation", () => {
+  it("uses the same modern intake and scope menu on the New project route, including before sign-in", async () => {
+    mock.session = { status: "signed_out", generation: 2 }; mock.memory!.bind(null); await render("b2b", false);
+    expect(host.querySelector(".home-page .home-intake .home-composer")).not.toBeNull();
+    expect(host.querySelector('button[aria-label="Project scope: Brand"]')).not.toBeNull();
+    expect(host.querySelector('input[type="radio"]')).toBeNull();
+    expect(host.textContent).toContain("Your next brand starts here");
+    expect(host.querySelector("textarea")!.readOnly).toBe(false);
+  });
+
+  it("leaves typing, scope selection and saving available while the initial AI read is pending", async () => {
+    const held = deferred<Response>();
+    fetcher.mockImplementation((path: string, init: RequestInit) => path === "/api/strategy" ? held.promise : defaultFetch(path, init));
+    await render();
+    expect(host.querySelector("textarea")!.readOnly).toBe(false);
+    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.click());
+    await act(async () => [...host.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')].find(button => button.textContent === "Name")!.click());
+    await click("Save project");
+    const body = JSON.parse(String(creations()[0]![1].body));
+    expect(body.scope).toBe("naming_only"); expect(body.context.intake.guidedInterview).toBeUndefined();
+    expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${body.requestKey}/naming`);
+    await act(async () => held.resolve(Response.json({ availability: ready })));
+    expect(mutations()).toHaveLength(1); expect(host.textContent).toContain("Project saved. Opening your project…");
+  });
+
+  it("keeps a manual read-only AI recheck out of the editing and save lock", async () => {
+    fetcher.mockImplementation((path: string, init: RequestInit) => path === "/api/strategy" ? Promise.resolve(Response.json({ availability: { status: "unavailable", operations: [], reason: "worker_unavailable" } })) : defaultFetch(path, init));
+    await render(); const held = deferred<Response>();
+    fetcher.mockImplementation((path: string, init: RequestInit) => path === "/api/strategy" ? held.promise : defaultFetch(path, init));
+    await click("Check AI availability");
+    expect(host.querySelector("textarea")!.readOnly).toBe(false);
+    expect(host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.disabled).toBe(false);
+    await click("A skincare studio"); expect(host.querySelector("textarea")!.value).toContain("independent skincare studio");
+    await click("Save project"); expect(creations()).toHaveLength(1);
+    expect(JSON.parse(String(creations()[0]![1].body)).context.intake.guidedInterview).toBeUndefined();
+    await act(async () => held.resolve(Response.json({ availability: ready })));
+    expect(host.textContent).toContain("Project saved. Opening your project…");
+    expect(host.textContent).not.toContain("Competitor research is ready"); expect(mutations()).toHaveLength(1);
+  });
+
+  it("keeps the outgoing submitted prompt and navigation pending until the destination mounts", async () => {
+    const held = deferred<Response>();
+    fetcher.mockImplementation((path: string, init: RequestInit) => path === "/api/projects" ? held.promise : defaultFetch(path, init));
+    await render(); const original = host.querySelector("textarea")!.value; await click("Send prompt");
+    expect(host.textContent).toContain(original); expect(host.textContent).toContain("Saving your project…");
+    expect(host.textContent).not.toContain("Thinking…"); expect(mock.push).not.toHaveBeenCalled();
+    await act(async () => held.resolve(await defaultFetch("/api/projects", creations()[0]![1])));
+    expect(host.textContent).toContain("Project saved. Opening your project…"); expect(host.querySelector(".home-composer")).toBeNull();
+    expect(host.querySelector<HTMLAnchorElement>('a.text-link')?.textContent).toBe("Open saved project");
+    expect(creations()).toHaveLength(1); expect(mock.push).toHaveBeenCalledOnce();
+  });
+
+  it.each([true, false])("cannot replace an in-flight save with a late readiness result (available: %s)", async available => {
+    fetcher.mockImplementation((path: string, init: RequestInit) => path === "/api/strategy" ? Promise.resolve(Response.json({ availability: { status: "unavailable", operations: [], reason: "worker_unavailable" } })) : defaultFetch(path, init));
+    await render(); const readiness = deferred<Response>(), save = deferred<Response>();
+    fetcher.mockImplementation((path: string, init: RequestInit) => path === "/api/strategy" ? readiness.promise : path === "/api/projects" ? save.promise : defaultFetch(path, init));
+    await click("Check AI availability"); await click("Save project");
+    expect(host.textContent).toContain("Saving your project…"); expect(host.querySelector(".home-composer")).toBeNull();
+    await act(async () => readiness.resolve(available ? Response.json({ availability: ready }) : new Response(null, { status: 503 })));
+    expect(host.textContent).toContain("Saving your project…"); expect(host.querySelector(".home-composer")).toBeNull();
+    expect(mock.push).not.toHaveBeenCalled(); expect(creations()).toHaveLength(1);
+    await act(async () => save.resolve(await defaultFetch("/api/projects", creations()[0]![1])));
+    expect(host.textContent).toContain("Project saved. Opening your project…"); expect(mock.push).toHaveBeenCalledOnce();
+  });
+
   it("keeps the current guest prompt and scope through sign-in, then saves without AI", async () => {
     mock.session = { status: "signed_out", generation: 2 }; mock.memory!.bind(null); await render();
     await act(async () => host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.click());
@@ -59,10 +123,10 @@ describe("Home account persistence and sign-in continuation", () => {
     const original = host.querySelector("textarea")!.value; await signInLink();
     mock.session = { status: "ready", userId: owner, generation: 3 }; mock.memory!.bind(mock.session); await remountHome();
     expect(host.querySelector("textarea")!.value).toBe(original); await click("Send prompt");
-    expect(creations()).toHaveLength(1); expect(mutations()).toHaveLength(2); expect(window.sessionStorage.getItem("fluid.prompt-sign-in.v1")).toBeNull();
+    expect(creations()).toHaveLength(1); expect(mutations()).toHaveLength(1); expect(window.sessionStorage.getItem("fluid.prompt-sign-in.v1")).toBeNull();
     await remountHome(); expect(host.querySelector("textarea")!.value).toBe("");
     await click("A neighborhood coffee shop"); await click("Send prompt");
-    expect(creations()).toHaveLength(2); expect(mutations()).toHaveLength(4);
+    expect(creations()).toHaveLength(2); expect(mutations()).toHaveLength(2);
     expect(JSON.parse(String(creations()[1]![1].body)).requestKey).not.toBe(JSON.parse(String(creations()[0]![1].body)).requestKey);
   });
 
@@ -109,13 +173,17 @@ describe("Home account persistence and sign-in continuation", () => {
     await remountHome(); expect(host.querySelector("textarea")!.value).toBe(""); expect(host.textContent).not.toContain(original);
   });
 
-  it("saves before checking research and binds the initial guided request to the acknowledged new revision", async () => {
+  it("saves the exact initial turn and opens the project before destination-owned research preparation", async () => {
     await render(); await click("Send prompt");
-    const paths = fetcher.mock.calls.map(([path, init]) => `${init.method ?? "GET"} ${path}`), projectKey = JSON.parse(String(creations()[0]![1].body)).requestKey;
-    expect(paths.indexOf("POST /api/projects")).toBeLessThan(paths.lastIndexOf("GET /api/strategy"));
-    const patch = fetcher.mock.calls.find(([path, init]) => path === `/api/projects/${projectKey}` && init.method === "PATCH")!;
-    expect(JSON.parse(String(patch[1].body)).context.intake.guidedInterview.turns[0].inputRevision).toBe(2);
-    expect(JSON.parse(String(mutations().at(-1)![1].body))).toMatchObject({ operation: "strategy.competitors", expectedRevision: 2 });
+    const body = JSON.parse(String(creations()[0]![1].body));
+    expect(body.context.intake.guidedInterview.turns[0]).toMatchObject({ inputRevision: 1, stage: "competitors", purpose: "research" });
+    expect(body.context.intake.guidedInterview.turns[0].id).toMatch(/^guided-start-v1:/);
+    expect(mutations()).toHaveLength(1);
+    expect(fetcher.mock.calls.some(([, init]) => init.method === "PATCH")).toBe(false);
+    expect(fetcher.mock.calls.filter(([path]) => path === "/api/strategy")).toHaveLength(1);
+    expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${body.requestKey}`);
+    expect(host.textContent).toContain("Project saved. Opening your project…");
+    expect(host.querySelector(".home-composer")).toBeNull();
   });
 
   it("sends a Name straight to the same saved project Naming route without researching competitors", async () => {

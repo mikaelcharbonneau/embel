@@ -132,7 +132,7 @@ describe("guided Strategy availability presentation", () => {
   it("keeps a running bound request's thinking and Stop controls without reporting new-request refusal as its failure", async () => {
     addGuidedTurn(); unavailable("request_active"); const job = boundJob("running"); strategy.overview!.jobs = [job];
     await render();
-    expect(host.querySelector('[aria-label="Embel is thinking"]')).not.toBeNull(); expect(notice()).toBe("");
+    expect(host.querySelector('[aria-label="Researching competitors…"]')).not.toBeNull(); expect(notice()).toBe("");
     expect(button("Stop")?.disabled).toBe(false);
     await act(async () => button("Stop")!.click());
     expect(strategy.cancel).toHaveBeenCalledWith(job); expect(strategy.enqueue).not.toHaveBeenCalled();
@@ -141,7 +141,7 @@ describe("guided Strategy availability presentation", () => {
   it("shows thinking while the initial request acknowledgement is pending without a false unavailable message", async () => {
     addGuidedTurn(); strategy.overview = { availability: available, jobs: [] }; strategy.pending = true;
     await render();
-    expect(host.querySelector('[aria-label="Embel is thinking"]')).not.toBeNull(); expect(notice()).toBe("");
+    expect(host.querySelector('[aria-label="Starting research…"]')).not.toBeNull(); expect(notice()).toBe("");
     expect(button("Retry research")).toBeUndefined(); expect(strategy.enqueue).not.toHaveBeenCalled();
   });
 });

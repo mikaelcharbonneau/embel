@@ -58,9 +58,10 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const [moreBelow, setMoreBelow] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   const isHome = pathname === "/";
+  const isNewProject = pathname === "/brands/new";
   const ideaId = /^\/ideas\/([^/]+)$/.exec(pathname)?.[1];
   const projectWorkspace = /^\/brands\/(?:account\/)?[0-9a-f-]{36}(?:\/|$)/i.test(pathname);
-  const usesConceptShell = projectWorkspace || (pathname === "/sign-in" || pathname === "/sign-up") || pathname === "/settings" || pathname === "/trademarks" || pathname === "/assets" || pathname === "/brands" || isHome || pathname === "/ideas" || Boolean(ideaId) || pathname === "/domains" || pathname === "/handles" || pathname === "/names";
+  const usesConceptShell = isNewProject || projectWorkspace || (pathname === "/sign-in" || pathname === "/sign-up") || pathname === "/settings" || pathname === "/trademarks" || pathname === "/assets" || pathname === "/brands" || isHome || pathname === "/ideas" || Boolean(ideaId) || pathname === "/domains" || pathname === "/handles" || pathname === "/names";
   const usesBottomFade = isHome || Boolean(ideaId);
   const menuRef = useRef<HTMLDialogElement>(null);
   const pageLabel = [...primary, ...tools, { href: "/settings", label: "Settings" }, { href: "/sign-in", label: "Sign in" }, { href: "/sign-up", label: "Create account" }].find((item) => item.href !== "/" && pathname.startsWith(item.href))?.label ?? "Home";
@@ -83,7 +84,7 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
     return () => { observer.disconnect(); main.removeEventListener("scroll", measure); };
   }, [usesBottomFade, pathname]);
 
-  return <div className={`app-shell ${usesConceptShell ? "concept-shell" : ""} ${projectWorkspace ? "concept-project-workspace" : (pathname === "/sign-in" || pathname === "/sign-up") ? "concept-sign-in" : isHome ? "concept-home" : ideaId ? "concept-idea-detail" : pathname === "/ideas" ? "concept-ideas" : pathname === "/domains" ? "concept-domains" : pathname === "/handles" ? "concept-handles" : pathname === "/names" ? "concept-names" : pathname === "/settings" ? "concept-settings" : pathname === "/trademarks" ? "concept-trademarks" : pathname === "/assets" ? "concept-assets" : pathname === "/brands" ? "concept-projects" : ""} ${expanded ? "navigation-expanded" : "navigation-collapsed"}`}>
+  return <div className={`app-shell ${usesConceptShell ? "concept-shell" : ""} ${projectWorkspace ? "concept-project-workspace" : (pathname === "/sign-in" || pathname === "/sign-up") ? "concept-sign-in" : isHome || isNewProject ? "concept-home" : ideaId ? "concept-idea-detail" : pathname === "/ideas" ? "concept-ideas" : pathname === "/domains" ? "concept-domains" : pathname === "/handles" ? "concept-handles" : pathname === "/names" ? "concept-names" : pathname === "/settings" ? "concept-settings" : pathname === "/trademarks" ? "concept-trademarks" : pathname === "/assets" ? "concept-assets" : pathname === "/brands" ? "concept-projects" : ""} ${expanded ? "navigation-expanded" : "navigation-collapsed"}`}>
     <a className="skip-link" href="#main-content">Skip to content</a>
     <aside className="sidebar"><SidebarContent pathname={pathname} concept={usesConceptShell} /></aside>
     <dialog className="mobile-menu" ref={menuRef} onCancel={() => setMenuOpen(false)} onClick={(event) => { if (event.target === event.currentTarget) setMenuOpen(false); }} aria-label="Navigation"><button className="icon-button mobile-close" aria-label="Close navigation" onClick={() => setMenuOpen(false)}><Icon name="close" /></button><SidebarContent pathname={pathname} close={() => setMenuOpen(false)} /></dialog>

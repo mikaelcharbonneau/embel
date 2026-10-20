@@ -260,7 +260,11 @@ export async function saveNamingView(auth: AuthenticatedContext, projectId: stri
   for (const candidateId of [parsed.viewState.scrollCandidateId, parsed.viewState.workshopCandidateId]) if (candidateId) await verifier.candidate(projectId, candidateId);
   if (parsed.viewState.visibleBatchId) await verifier.batch(projectId, parsed.viewState.visibleBatchId);
   const response = await rpc(auth, "save_naming_view", { p_project_id: projectId, p_expected_revision: parsed.expectedViewRevision, p_view: parsed.viewState }, updateNamingViewStateResponseSchema);
-  scope(auth, projectId, response.session);invariant(response.session.viewRevision === parsed.expectedViewRevision + 1 && equal(response.session.viewState, parsed.viewState));return response;
+  // A legacy view body omits question metadata; SQL preserves the owned saved
+  // checkpoint rather than allowing older clients to erase explicit answers.
+  const expectedView = parsed.viewState.namingChat === undefined && response.session.viewState.namingChat
+    ? { ...parsed.viewState, namingChat: response.session.viewState.namingChat } : parsed.viewState;
+  scope(auth, projectId, response.session);invariant(response.session.viewRevision === parsed.expectedViewRevision + 1 && equal(response.session.viewState, expectedView));return response;
 }
 export async function selectProjectName(auth: AuthenticatedContext, projectId: string, value: unknown) {
   id(projectId);const parsed = input(selectProjectNameSchema, value);const verifier = new CandidateVerifier(auth);await verifier.candidate(projectId, parsed.candidateId);

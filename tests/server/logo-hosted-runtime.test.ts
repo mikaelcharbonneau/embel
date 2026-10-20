@@ -7,7 +7,7 @@ import { createLogoJobService, LogoAdmissionUncertainError } from "../../src/ser
 import type { AuthenticatedContext } from "../../src/server/auth/context";
 
 const hosted = { FLUID_HOSTED_LOGO_ENABLED: "true", NODE_ENV: "production", VERCEL: "1", VERCEL_ENV: "production",
-  VERCEL_PROJECT_ID: "prj_WKrFUPy3wptZ3qI9l1hTuqPmzkDt", APP_ORIGIN: "https://fluid-platform-preview.vercel.app" };
+  VERCEL_PROJECT_ID: "prj_WKrFUPy3wptZ3qI9l1hTuqPmzkDt", APP_ORIGIN: "https://www.embel.xyz" };
 const owner = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", project = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const expected = { projectRevision: 1, referenceRevision: 0, preferencesRevision: 0, workspaceRevision: 1,
   stageRevisions: { brief_references: 1, concepts: 0, vector: 0, refinements: 0, directions: 0, deliverables: 0 } };
@@ -28,11 +28,22 @@ describe("hosted Logo account routing", () => {
     ["NODE_ENV", "test"], ["NODE_ENV", "development"], ["VERCEL", undefined], ["VERCEL", "0"],
     ["VERCEL_ENV", "preview"], ["VERCEL_ENV", undefined], ["VERCEL_TARGET_ENV", "preview"],
     ["VERCEL_PROJECT_ID", "prj_vTOc6Kf8th7tXK2cOVwWTTaR20yx"], ["VERCEL_PROJECT_ID", undefined],
-    ["APP_ORIGIN", "https://unrelated.vercel.app"], ["APP_ORIGIN", "https://fluid-platform-preview.vercel.app/"],
+    ["APP_ORIGIN", "https://unrelated.vercel.app"], ["APP_ORIGIN", "https://www.embel.xyz/"],
     ["APP_ORIGIN", "http://127.0.0.1:3106"], ["FLUID_RUNTIME", "local"], ["FLUID_LOCAL_LOGO_ENABLED", "true"],
     ["FLUID_LOCAL_PROTOTYPE", "true"],
   ])("rejects a missing or conflicting runtime %s=%s", (key, value) => {
     expect(isHostedLogoRuntime({ ...hosted, [key!]: value })).toBe(false);
+  });
+  it.each([
+    undefined, "", "https://fluid-platform-preview.vercel.app", "https://embel.xyz",
+    "https://unrelated.vercel.app", "https://unrelated.example", "http://www.embel.xyz",
+    "https://www.embel.xyz/", "https://www.embel.xyz/path", "https://www.embel.xyz?hosted=true",
+    "https://www.embel.xyz#hosted", "https://www.embel.xyz:443", "https://www.embel.xyz:8443",
+    "https://user:password@www.embel.xyz", "https://www.embel.xyz@unrelated.example",
+    "https://www.embel.xyz.unrelated.example", "https://www.embel.xyz.",
+    "https://WWW.EMBEL.XYZ", "https://www.ｅmbel.xyz", " https://www.embel.xyz", "https://www.embel.xyz\n",
+  ])("rejects any noncanonical application origin %s", APP_ORIGIN => {
+    expect(isHostedLogoRuntime({ ...hosted, APP_ORIGIN })).toBe(false);
   });
   it("uses the existing authenticated capability boundary without a client owner parameter", async () => {
     enable();

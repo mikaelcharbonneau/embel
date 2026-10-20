@@ -6,7 +6,7 @@ import { assertMutationOrigin, readJson } from "@/server/http/request";
 export const dynamic = "force-dynamic";
 type RouteContext = { params: Promise<{ projectId: string }> };
 export async function PATCH(request: Request, context: RouteContext) {
-  try { assertMutationOrigin(request); const auth = await getAuthenticatedContext(); const input = await readJson(request, updateNamingViewStateSchema, 2_048);
+  try { assertMutationOrigin(request); const auth = await getAuthenticatedContext(); const input = await readJson(request, updateNamingViewStateSchema, 32_768);
     return privateJson(await saveNamingView(auth, (await context.params).projectId, input)); }
   catch (error) { return errorResponse(error); }
 }

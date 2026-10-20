@@ -3,7 +3,7 @@ import { accountProjectSchema, accountProjectSummarySchema } from "../../src/dom
 import { contextSnapshotSchema } from "../../src/domain/projects";
 import { initialNamingPreferencesV2, namingPreferencesV2Schema } from "../../src/domain/naming-brain-preferences";
 import { ensureNamingRunIntentSchema, namingBrainRunSummarySchema, namingFeedEnsureResultSchema, namingFeedSchema, steerNamingFeedIntentSchema, stopNamingFeedIntentSchema, type NamingBrainRunSummary, type NamingFeedCursor, type NamingFeedEntry, type NamingFeedEnsureResult } from "../../src/domain/naming-brain";
-import { getNamingReadiness, nameIdentityKey, namingStrategyBasis, namingStrategyKey, type NamingPreferenceRevision, type NamingSession } from "../../src/domain/project-naming";
+import { getNamingReadiness, nameIdentityKey, namingStrategyBasis, namingStrategyKey, updateNamingViewStateSchema, type NamingPreferenceRevision, type NamingSession } from "../../src/domain/project-naming";
 import { projectNamingOverviewSchema } from "../../src/domain/naming-jobs";
 
 // Deliberately synthetic public-route fixtures. No SDK, worker, database, DNS or provider is called.
@@ -81,7 +81,15 @@ export async function namingFixture(page: Page, options: { saved?: boolean; coun
       else if (Number(body!.expectedPreferencesVersion) + 1 !== state.session.currentPreferencesVersion || JSON.stringify(value) !== JSON.stringify(state.preferences?.preferences)) return reply(route, {}, 409);
       return reply(route, failure ? {} : { session: state.session, preferences: state.preferences }, failure?.status ?? 200);
     }
-    if (path === `${base}/view`) { if (body!.expectedViewRevision !== state.session.viewRevision) return reply(route, {}, 409); state.session.viewState = body!.viewState as NamingSession["viewState"]; state.session.viewRevision += 1; return reply(route, { session: state.session }); }
+    if (path === `${base}/view`) {
+      const input = updateNamingViewStateSchema.parse(body);
+      if (input.expectedViewRevision !== state.session.viewRevision) return reply(route, {}, 409);
+      const previous = state.session.viewState.namingChat, checkpoint = input.viewState.namingChat;
+      if (checkpoint && JSON.stringify(checkpoint) !== JSON.stringify(previous) && checkpoint.preferencesVersion !== state.session.currentPreferencesVersion) return reply(route, {}, 409);
+      state.session.viewState = { ...input.viewState, ...(!checkpoint && previous ? { namingChat: previous } : {}) };
+      state.session.viewRevision += 1; state.session.revision += 1;
+      return reply(route, failure ? {} : { session: state.session }, failure?.status ?? 200);
+    }
     if (path === `${base}/retention`) { const item = state.rows.find(row => row.entry.candidate.id === body!.candidateId)!; if (item.entry.retention.revision !== body!.expectedRevision) return reply(route, {}, 409); item.entry.retention = { ...item.entry.retention, revision: item.entry.retention.revision + 1, favorite: Boolean(body!.favorite), saved: Boolean(body!.saved), updatedAt: when }; state.feedback += 1; return reply(route, { entry: item.entry }); }
     if (path === `${base}/feed/ensure`) {
       const intent = ensureNamingRunIntentSchema.parse(body);

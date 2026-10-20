@@ -17,7 +17,7 @@ function button(label: string) { const item = [...host.querySelectorAll<HTMLButt
 async function click(label: string) { await act(async () => button(label).click()); }
 function receipt(body: { expectedPreferencesVersion: number; preferences: unknown }) { return { session: { ownerId: owner, projectId }, preferences: { ownerId: owner, projectId, version: body.expectedPreferencesVersion + 1, preferences: body.preferences, createdAt: "2026-10-16T12:00:00Z" } }; }
 function memoryWithSave() { const request = vi.fn(async (_path, _schema, options) => receipt(options.body)); const memory = createNamingBrainMemory({ storage: () => null, request: request as never }); memory.bind(account); return { memory, request }; }
-async function render(memory: ReturnType<typeof createNamingBrainMemory>, start = vi.fn(async () => true), exploring = false) { await act(async () => root.render(createElement(NamingApproachWidgets, { memory, account, projectId, context, saved: null, blocked: false, runtimeReady: true, onContinue: start, exploring }))); return start; }
+async function render(memory: ReturnType<typeof createNamingBrainMemory>, start = vi.fn(async () => true), exploring = false) { await act(async () => root.render(createElement(NamingApproachWidgets, { memory, account, projectId, context, saved: null, blocked: false, runtimeReady: true, onContinue: start, onSaveProgress: async () => true, exploring }))); return start; }
 
 it("focuses the next question on commit without a later animation frame stealing a keyboard choice", async () => {
   const frames: FrameRequestCallback[] = [];
@@ -116,7 +116,7 @@ it("resumes the unconfirmed language follow-up after remount and same-owner veri
   const saved = memory.get(account, projectId)!.preferences!.saved;
   await act(async () => root.unmount()); root = createRoot(host);
   memory.bind(null); const verified = { ...account, generation: 2 }; memory.bind(verified);
-  await act(async () => root.render(createElement(NamingApproachWidgets, { memory, account: verified, projectId, context, saved, blocked: false, runtimeReady: true, onContinue: start })));
+  await act(async () => root.render(createElement(NamingApproachWidgets, { memory, account: verified, projectId, context, saved, blocked: false, runtimeReady: true, onContinue: start, onSaveProgress: async () => true })));
   expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe(question);
   for (const unseen of [question, "Do you have a length in mind?", "Any text to include or avoid?", ...retiredQuestions]) expect(host.querySelector(`[aria-label="Your answer: ${unseen}"]`)).toBeNull();
   expect([...host.querySelectorAll('button')].some(item => item.textContent === "Start exploring")).toBe(false);
@@ -129,7 +129,7 @@ it("a fresh memory conservatively asks unseen follow-ups with saved values, then
   const saved = first.memory.get(account, projectId)!.preferences!.saved!;
   await act(async () => root.unmount()); root = createRoot(host);
   const fresh = memoryWithSave();
-  await act(async () => root.render(createElement(NamingApproachWidgets, { memory: fresh.memory, account, projectId, context, saved, blocked: false, runtimeReady: true, onContinue: start })));
+  await act(async () => root.render(createElement(NamingApproachWidgets, { memory: fresh.memory, account, projectId, context, saved, blocked: false, runtimeReady: true, onContinue: start, onSaveProgress: async () => true })));
   expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe("Which language should the names work in?");
   expect(fresh.memory.get(account, projectId)?.preferences?.draft).toEqual(saved.preferences);
   expect(fresh.request).not.toHaveBeenCalled();
@@ -157,7 +157,7 @@ it("never asks retired inspiration questions or renders their answers and preser
     ...initialNamingPreferencesV2(context), approaches: NAMING_APPROACHES.map(approach => approach.id), directness: "all",
     sourceLanguages: ["French", "Latin"], heritageNotes: "Synthetic saved family place", culturalNotes: "Synthetic saved story reference",
   } };
-  await act(async () => root.render(createElement(NamingApproachWidgets, { memory, account, projectId, context, saved, blocked: false, runtimeReady: true, onContinue: start })));
+  await act(async () => root.render(createElement(NamingApproachWidgets, { memory, account, projectId, context, saved, blocked: false, runtimeReady: true, onContinue: start, onSaveProgress: async () => true })));
   expect(host.querySelector('h2')?.textContent).toBe("Which language should the names work in?");
   expect(request).not.toHaveBeenCalled();
   for (const question of retiredQuestions) expect(host.textContent).not.toContain(question);

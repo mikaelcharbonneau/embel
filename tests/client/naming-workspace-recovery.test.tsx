@@ -62,7 +62,7 @@ beforeEach(() => {
       if (patch.filter === "all" && holdView && !await holdView) { publish({ pending: false, actionError: "The saved view could not be confirmed." }); return false; }
       overview = { ...overview, session: { ...overview.session!, viewRevision: overview.session!.viewRevision + 1, viewState: { ...overview.session!.viewState, ...patch } } };
       publish({ overview, pending: false }); return true;
-    }), retain: vi.fn(async () => true), select: vi.fn(async () => true), transform: vi.fn(async () => null), importLocal: vi.fn(async () => true), expand: vi.fn(async () => true), loadMore: vi.fn(), loadMoreBatches: vi.fn(), loadBatchDetail: vi.fn(), cancel: vi.fn(), enqueue: vi.fn() };
+    }), saveChatProgress: vi.fn(async () => true), retain: vi.fn(async () => true), select: vi.fn(async () => true), transform: vi.fn(async () => null), importLocal: vi.fn(async () => true), expand: vi.fn(async () => true), loadMore: vi.fn(), loadMoreBatches: vi.fn(), loadBatchDetail: vi.fn(), cancel: vi.fn(), enqueue: vi.fn() };
   vi.stubGlobal("fetch", vi.fn(async (path: string, options: RequestInit) => {
     const body = options.body ? JSON.parse(String(options.body)) : null; calls.push({ path, method: options.method ?? "GET", body });
     if (path.endsWith("/feed/ensure")) { server = { ...server, activeRun: { ...activeRun, preferencesVersion: server.preferencesVersion, steeringRevision: server.steeringRevision, demandSequence: server.demandSequence } }; return Response.json({ status: "pending", feed: server, run: server.activeRun, reused: false }); }

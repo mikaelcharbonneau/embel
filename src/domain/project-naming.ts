@@ -3,6 +3,7 @@ import { nameTransformInputSchema, nameValueSchema, namingSourceSchema, transfor
 import { contextSnapshotSchema, missingStrategy, personalitySchema, projectScopeSchema, type ContextSnapshot, type ProjectScope } from "./projects";
 import { accountProjectSchema, accountProjectSummarySchema } from "./project-api";
 import { getNamingPreferencesReadiness, namingPreferencesV2Schema } from "./naming-brain-preferences";
+import { namingChatCheckpointSchema } from "./naming-chat-checkpoint";
 
 export const NAMING_INITIAL_TARGET = 250;
 /** Immutable first batches admitted before the 250-name correction remain readable. */
@@ -310,6 +311,7 @@ export const namingListFilterSchema = z.enum(["all", "retained", "favorite", "sa
 export const namingViewStateSchema = z.strictObject({
   pane: z.enum(["results", "screening", "workshop"]), conversationOpen: z.boolean(), filter: namingListFilterSchema, query: z.string().max(200),
   visibleBatchId: z.uuid().nullable(), scrollCandidateId: z.uuid().nullable(), workshopCandidateId: z.uuid().nullable(),
+  namingChat: namingChatCheckpointSchema.optional(),
 });
 export type NamingViewState = z.infer<typeof namingViewStateSchema>;
 export const namingSessionSchema = z.strictObject({

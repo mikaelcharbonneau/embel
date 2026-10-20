@@ -108,5 +108,23 @@ describe("Naming API authentication, owner validation and actual byte bounds",()
   mocks.rpc.mockResolvedValue({data:null,error:{code:"PT409",message:"naming_history_capacity"}});
   const response=await enqueue(request(enqueueInput),params());expect(response.status).toBe(409);expect(await response.json()).toEqual({error:{code:"naming_history_capacity",message:"This project's naming history has reached the generation limit. Your saved names are preserved."}});
  });
+ it("accepts bounded durable answer checkpoints beyond the earlier small view-body limit",async()=>{
+  const namingChat={version:1,preferencesVersion:1,confirmed:{language:'"en"',length:"[null,null]",fragments:JSON.stringify([Array.from({length:20},(_,i)=>`${i}${"x".repeat(155)}`),[]])}};
+  const nextView={...viewState,namingChat};
+  mocks.rpc.mockResolvedValue({data:{session:{...session,viewRevision:2,viewState:nextView}},error:null});
+  const response=await viewRoute(request({expectedViewRevision:1,viewState:nextView},"PATCH"),params());
+  expect(response.status).toBe(200);expect((await response.json()).session.viewState.namingChat).toEqual(namingChat);
+  expect(mocks.rpc).toHaveBeenCalledWith("save_naming_view",{p_project_id:project,p_expected_revision:1,p_view:nextView});
+  mocks.rpc.mockClear();
+  expect((await viewRoute(request({expectedViewRevision:1,viewState:{...nextView,query:"x".repeat(32769)}},"PATCH"),params())).status).toBe(413);
+  expect(mocks.rpc).not.toHaveBeenCalled();
+ });
+ it("accepts preserved checkpoint metadata for an older view body but verifies all requested view fields",async()=>{
+  const namingChat={version:1,preferencesVersion:1,confirmed:{language:'"en"'}};
+  mocks.rpc.mockResolvedValue({data:{session:{...session,viewRevision:2,viewState:{...viewState,namingChat}}},error:null});
+  expect((await viewRoute(request({expectedViewRevision:1,viewState},"PATCH"),params())).status).toBe(200);
+  mocks.rpc.mockResolvedValue({data:{session:{...session,viewRevision:2,viewState:{...viewState,namingChat,query:"Unexpected change"}}},error:null});
+  expect((await viewRoute(request({expectedViewRevision:1,viewState},"PATCH"),params())).status).toBe(503);
+ });
 
 });

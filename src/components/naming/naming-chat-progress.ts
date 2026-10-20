@@ -1,8 +1,9 @@
 import type { NamingPreferencesV2 } from "@/domain/naming-brain-preferences";
+import { namingChatCheckpointSchema, type NamingChatCheckpoint } from "@/domain/naming-chat-checkpoint";
 
 export type NamingQuestion = "approaches" | "directness" | "language" | "length" | "fragments";
 export type NamingChatStep = NamingQuestion | "review";
-/** Owner-bound, in-memory UI progress. Saved preferences remain authoritative. */
+/** Owner-bound UI progress. Durable checkpoints acknowledge exact saved preferences. */
 export type NamingChatProgress = { activeStep: NamingChatStep; confirmed: Partial<Record<NamingQuestion, string>> };
 
 export function namingChatQuestions(): NamingQuestion[] {
@@ -18,14 +19,25 @@ function answerKey(question: NamingQuestion, value: NamingPreferencesV2): string
     case "fragments": return JSON.stringify([lines(value.requiredText), lines(value.excludedText)]);
   }
 }
-/** Older V2 values prove the explicit choices they contain, never unseen defaults. */
-export function initialNamingChatProgress(saved: NamingPreferencesV2 | null): NamingChatProgress {
+/** Older V2 values prove choices, never unseen defaults. A checkpoint proves only
+ * unchanged explicit answers, even when unrelated guidance creates a revision. */
+export function initialNamingChatProgress(saved: NamingPreferencesV2 | null, checkpoint?: NamingChatCheckpoint, savedVersion?: number): NamingChatProgress {
   const progress: NamingChatProgress = { activeStep: "approaches", confirmed: {} };
   if (!saved) return progress;
   if (saved.approaches.length) progress.confirmed.approaches = answerKey("approaches", saved);
   if (saved.directness) progress.confirmed.directness = answerKey("directness", saved);
+  if (checkpoint && savedVersion !== undefined && checkpoint.preferencesVersion <= savedVersion) {
+    for (const question of namingChatQuestions()) {
+      if (checkpoint.confirmed[question] === answerKey(question, saved)) progress.confirmed[question] = checkpoint.confirmed[question];
+    }
+  }
   progress.activeStep = namingChatQuestions().find(question => !progress.confirmed[question]) ?? "review";
   return progress;
+}
+
+/** Build only after a preference save ACK; the view write must also ACK before advancing. */
+export function namingChatCheckpoint(progress: NamingChatProgress, saved: NamingPreferencesV2, savedVersion: number): NamingChatCheckpoint {
+  return namingChatCheckpointSchema.parse({ version: 1, preferencesVersion: savedVersion, confirmed: resolveNamingChatProgress(saved, progress).confirmed });
 }
 /** Edited answers need confirmation again; retired questions cannot block progress. */
 export function resolveNamingChatProgress(value: NamingPreferencesV2, progress: NamingChatProgress): NamingChatProgress {

@@ -15,7 +15,7 @@ const emptyFeed={version:1,ownerId:owner,projectId:project,projectRevision:1,pre
 const partialRun={version:1,ownerId:owner,projectId:project,runId:run,jobId:run,batchId:run,revision:1,resumedFromRunId:null,canResume:true,state:"partial",projectRevision:1,preferencesVersion:1,feedbackRevision:0,steeringRevision:0,demandSequence:0,snapshotHash:"a".repeat(64),acceptedPolicyIdentity:"a".repeat(64),progress:40,preparedSetId:null,fulfillment:{status:"none",targetCount:100,acceptedCount:0,missingCount:100,coverageSatisfied:false,message:"Synthetic retained partial exploration."},accounting:{status:"held_unsettled",heldAllowanceMicrousd:5000000,confirmedActualCostMicrousd:null},createdAt:"2026-10-18T05:00:00Z",updatedAt:"2026-10-18T05:01:00Z"};
 const resumableFeed={...emptyFeed,activeRun:partialRun,availability:{status:"available",handlerVersion:"naming-brain-v1",protocol:"openai_agents",acceptedPolicyIdentity:"a".repeat(64)}};
 function localRuntime(){for(const key of Object.keys(process.env))if(key==="VERCEL"||key.startsWith("VERCEL_"))vi.stubEnv(key,undefined);vi.stubEnv("NODE_ENV","production");vi.stubEnv("FLUID_RUNTIME","local");vi.stubEnv("FLUID_LOCAL_PROTOTYPE","true");vi.stubEnv("APP_ORIGIN","http://127.0.0.1:3106");}
-function hostedRuntime(){vi.stubEnv("NODE_ENV","production");vi.stubEnv("FLUID_RUNTIME",undefined);vi.stubEnv("FLUID_LOCAL_PROTOTYPE",undefined);vi.stubEnv("FLUID_HOSTED_NAMING_ENABLED","true");vi.stubEnv("VERCEL","1");vi.stubEnv("VERCEL_ENV","production");vi.stubEnv("VERCEL_TARGET_ENV","production");vi.stubEnv("VERCEL_PROJECT_ID","prj_WKrFUPy3wptZ3qI9l1hTuqPmzkDt");vi.stubEnv("APP_ORIGIN","https://fluid-platform-preview.vercel.app");}
+function hostedRuntime(){vi.stubEnv("NODE_ENV","production");vi.stubEnv("FLUID_RUNTIME",undefined);vi.stubEnv("FLUID_LOCAL_PROTOTYPE",undefined);vi.stubEnv("FLUID_HOSTED_NAMING_ENABLED","true");vi.stubEnv("VERCEL","1");vi.stubEnv("VERCEL_ENV","production");vi.stubEnv("VERCEL_TARGET_ENV","production");vi.stubEnv("VERCEL_PROJECT_ID","prj_WKrFUPy3wptZ3qI9l1hTuqPmzkDt");vi.stubEnv("APP_ORIGIN","https://www.embel.xyz");}
 const hostedAvailable={status:"available",executionAuthority:"hosted_owner_v1"};
 const ctx={params:Promise.resolve({projectId:project,runId:run,jobId:run})};
 const request=(body?:unknown,method="POST",headers:Record<string,string>={},query="")=>new Request(`https://embel.example/api/naming${query}`,{method,headers:{origin:"https://embel.example","content-type":"application/json","X-Embel-Account":owner,...headers},...(body===undefined?{}:{body:JSON.stringify(body)})});
@@ -35,6 +35,20 @@ describe("Naming Brain route account and privacy boundaries",()=>{
   expect(await ensureNextNamingRun(await mock.auth(),project,initialIntent())).toEqual(blocked);
   expect(mock.rpc.mock.calls.map(([name])=>name)).toEqual(["ensure_hosted_naming_brain_run","get_hosted_naming_availability"]);
   expect(mock.rpc).toHaveBeenCalledWith("get_hosted_naming_availability",{p_project_id:project});
+ });
+ it("accepts the canonical production mutation while retaining account and SQL authority",async()=>{
+  hostedRuntime();const blocked={status:"blocked",feed:emptyFeed,code:"naming_runtime_unavailable",message:"Naming is not configured.",action:"configure"};
+  mock.rpc.mockImplementation(async(name:string)=>({data:name==="get_hosted_naming_availability"?hostedAvailable:blocked,error:null}));
+  const canonicalRequest=()=>new Request(`https://www.embel.xyz/api/projects/${project}/naming/feed/ensure`,{method:"POST",headers:{origin:"https://www.embel.xyz","content-type":"application/json","X-Embel-Account":owner},body:JSON.stringify(initialIntent())});
+  const response=await ensure(canonicalRequest(),ctx);expect(response.status).toBe(200);expect(await response.json()).toEqual(blocked);
+  expect(mock.rpc).toHaveBeenCalledWith("ensure_hosted_naming_brain_run",{p_project_id:project,p_intent:initialIntent()});
+  expect(mock.rpc).toHaveBeenCalledWith("get_hosted_naming_availability",{p_project_id:project});
+  mock.rpc.mockClear();const foreignAccount=canonicalRequest();foreignAccount.headers.set("X-Embel-Account",project);
+  expect((await ensure(foreignAccount,ctx)).status).toBe(401);expect(mock.rpc).not.toHaveBeenCalled();
+ });
+ it.each(["https://fluid-platform-preview.vercel.app","https://embel.xyz","https://unrelated.example","https://www.embel.xyz/"])("rejects a noncanonical production mutation origin %s before admission",async origin=>{
+  hostedRuntime();expect((await ensure(request(initialIntent(),"POST",{origin}),ctx)).status).toBe(403);
+  expect(mock.rpc).not.toHaveBeenCalled();
  });
  it.each(["resume","prefetch"])("grants hosted %s only with a fresh database capability",async mode=>{
   hostedRuntime();const activeRun=mode==="resume"?partialRun:{...partialRun,state:"succeeded",canResume:false,preparedSetId:null,localPipelineVersion:2,progressiveCompletionId:run,fulfillment:{status:"complete",targetCount:100,acceptedCount:100,missingCount:0,coverageSatisfied:true,message:null}};

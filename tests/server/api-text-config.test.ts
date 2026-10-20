@@ -13,7 +13,7 @@ const local: Record<string, string | undefined> = {
 };
 
 describe("hosted Naming routing boundary", () => {
-  const hosted = { FLUID_HOSTED_NAMING_ENABLED: "true", NODE_ENV: "production", VERCEL: "1", VERCEL_ENV: "production", VERCEL_PROJECT_ID: projectId, APP_ORIGIN: "https://fluid-platform-preview.vercel.app" };
+  const hosted = { FLUID_HOSTED_NAMING_ENABLED: "true", NODE_ENV: "production", VERCEL: "1", VERCEL_ENV: "production", VERCEL_PROJECT_ID: projectId, APP_ORIGIN: "https://www.embel.xyz" };
   it("routes only the explicitly enabled production application to account-scoped SQL", () => {
     expect(isHostedNamingRuntime(hosted)).toBe(true);
     expect(isHostedNamingRuntime({ ...hosted, VERCEL_TARGET_ENV: "production" })).toBe(true);
@@ -24,10 +24,21 @@ describe("hosted Naming routing boundary", () => {
     ["NODE_ENV", "development"], ["NODE_ENV", "test"], ["VERCEL", undefined], ["VERCEL", "0"],
     ["VERCEL_ENV", "preview"], ["VERCEL_ENV", undefined], ["VERCEL_TARGET_ENV", "preview"],
     ["VERCEL_PROJECT_ID", "other"], ["VERCEL_PROJECT_ID", undefined],
-    ["APP_ORIGIN", "http://127.0.0.1:3106"], ["APP_ORIGIN", "https://fluid-platform-preview.vercel.app/"],
+    ["APP_ORIGIN", "http://127.0.0.1:3106"], ["APP_ORIGIN", "https://www.embel.xyz/"],
     ["APP_ORIGIN", "https://unrelated.vercel.app"], ["FLUID_LOCAL_PROTOTYPE", "true"], ["FLUID_RUNTIME", "local"],
   ])("rejects an unapproved hosted identity %s=%s", (key, value) => {
     expect(isHostedNamingRuntime({ ...hosted, [key!]: value })).toBe(false);
+  });
+  it.each([
+    undefined, "", "https://fluid-platform-preview.vercel.app", "https://embel.xyz",
+    "https://unrelated.vercel.app", "https://unrelated.example", "http://www.embel.xyz",
+    "https://www.embel.xyz/", "https://www.embel.xyz/path", "https://www.embel.xyz?hosted=true",
+    "https://www.embel.xyz#hosted", "https://www.embel.xyz:443", "https://www.embel.xyz:8443",
+    "https://user:password@www.embel.xyz", "https://www.embel.xyz@unrelated.example",
+    "https://www.embel.xyz.unrelated.example", "https://www.embel.xyz.",
+    "https://WWW.EMBEL.XYZ", "https://www.ｅmbel.xyz", " https://www.embel.xyz", "https://www.embel.xyz\n",
+  ])("rejects any noncanonical application origin %s", APP_ORIGIN => {
+    expect(isHostedNamingRuntime({ ...hosted, APP_ORIGIN })).toBe(false);
   });
 });
 
