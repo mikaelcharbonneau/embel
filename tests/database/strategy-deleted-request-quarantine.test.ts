@@ -26,7 +26,7 @@ const contextFor = (operation: Operation) => {
 
 /** Full migrated disposable PostgreSQL and real authenticated/restricted gateway
  * calls. All retained jobs are explicit synthetic fixtures, never provider calls. */
-describe("deleted-project Strategy testing quarantine", () => {
+describe.each(["original planning", "bounded evidence planning"] as const)("deleted-project Strategy testing quarantine: %s", planning => {
   let db: TestDatabase;
   let projects: { a: string; b: string };
   let oldProject: string;
@@ -70,6 +70,11 @@ describe("deleted-project Strategy testing quarantine", () => {
     await db.exec("create role fixture_quarantine_hostile nologin; alter default privileges in schema public,fluid_private grant execute on functions to fixture_quarantine_hostile");
     await db.exec(migration);
     afterData = await allData(); afterSecurity = await security(); afterGlobals = await globalGuards();
+    // Replay the complete existing boundary suite with the additive planner-only
+    // migration too. Capture quarantine's own catalog comparison before tuning;
+    // strategy-evidence-join-planning.test.ts checks that separate exact delta.
+    if (planning === "bounded evidence planning")
+      await db.exec(await readFile(new URL("../../supabase/migrations/20261020031000_strategy_evidence_join_planning.sql", import.meta.url), "utf8"));
   }, 120_000);
   beforeEach(prepare, 30_000);
   afterAll(async () => { await db?.close(); });
