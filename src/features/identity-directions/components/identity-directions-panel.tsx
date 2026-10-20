@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useId, type ReactNode } from "react";
 import { useProjectIdentityEvidence, ProjectDock } from "@/components/workspace/project-workspace";
 import type { AccountLogoClient } from "@/components/identity/account-logo-client";
@@ -37,7 +38,7 @@ export function IdentityDirectionsView({ controller, controls, visualReview }: {
     <header className={styles.header}><div><p className={styles.eyebrow}>Visual identity</p><h2 id={titleId}>Identity directions</h2><p className={styles.caption}>Colors, typography and graphics around your approved logo.</p></div><span className={styles.badge}>Logo protected</span></header>
     {visualReview}
     {!controller.canRead ? <p className={styles.notice} role="status">{controller.error ?? "Waiting for your saved workspace. Sign in to view your identity directions."}</p>
-      : !current?.approvedLogo ? <div className={styles.empty}><h3>Start with an approved logo</h3><p>Approve your logo in the logo editor before exploring three coordinated identity directions.</p></div>
+      : !current?.approvedLogo ? <div className={styles.empty}><h3>Start with an approved logo</h3><p>Review and approve a converted vector logo before exploring identity directions. Selecting an image preview does not approve it.</p>{current && <Link className="text-link" href={`/brands/account/${current.projectId}/logo/vector`}>Review vector logo</Link>}</div>
       : <>
         <div className={styles.headingRow}><p className={styles.caption}>Manual mixing keeps your approved logo unchanged.</p><button type="button" disabled={controller.loading} onClick={() => { void controller.refresh(); }}>{controller.loading ? "Loading…" : "Refresh saved work"}</button></div>
         {controller.error && <p className={styles.notice} role="status">{controller.error}</p>}

@@ -6,7 +6,7 @@ The user requested describing changes and refining the selected logo directly on
 
 ## Implementation
 
-The composer shows the verified selected logo and its name. An explicit Send click quotes the exact saved source and entered instruction, verifies the returned quote matches, then admits one durable `identity.logo_refine` request. There is no extra cost-review dialog for this direct chat action. Refresh, selection, typing and mounting do not dispatch generation. Ctrl/Cmd+Enter submits; ordinary Enter remains a newline. Messages remain when availability or admission fails.
+The composer shows the verified selected logo and its name. An explicit Review refinement cost click quotes the exact saved source and entered instruction, verifies the returned quote matches, and opens the shared cost review. The review shows the operation, immutable source and requested changes alongside the existing server-provided estimate and maximum. Only its separate confirmation admits one durable `identity.logo_refine` request. Cancel or Escape dismisses an unadmitted estimate without enqueuing work and returns focus to the composer. Refresh, selection, typing and mounting do not dispatch generation. Ctrl/Cmd+Enter opens the same review; ordinary Enter remains a newline. Messages remain when availability or admission fails.
 
 Progress and verified saved refinement cards appear on the same screen. Selecting a refinement saves it through the existing account command; further edits use that exact refinement as the source. Only succeeded outputs with recorded billing, verified details and committed previews can be selected. No unverified image is presented as completed work.
 
@@ -33,3 +33,9 @@ Final audit: zero active image jobs/reservations; all six original concept jobs,
 The user requested that a refinement replace its original logo visually, with previous versions accessible on the same card. The concepts gallery now projects verified immutable refinement lineage into the original six slots. A completed chat refinement becomes the selected version in that slot; no additional refinement card is rendered. Each card with history has a Version selector (Original, Version 2, and subsequent versions), and changing it saves the selected source through the existing account selection API. Original output records remain unchanged. A later refinement updates the slot; deliberate earlier-version selections remain after reload.
 
 Verification: 40 relevant client tests passed; four desktop/mobile browser tests cover in-place completion, six retained slots, selection of Original, persistence after reload, and refining a previously refined source. Typecheck and targeted lint passed. These tests use explicitly synthetic provider records; no new paid generation was required.
+
+## Launch-readiness cost review (2026-10-20, issue #68)
+
+New refinements no longer bypass the existing estimate dialog. This changes only the client presentation and explicit confirmation boundary; server quote validation, caps, provider configuration, retained request keys and accepted request bodies remain unchanged. Unknown outcomes still use the original-request check/replay flow, never a replacement estimate. Existing originals and version assets are preserved.
+
+Synthetic client regressions cover cancellation by button and Escape, quoted instruction/source/amounts, keyboard review, rapid duplicate submissions and confirmation, expired quotes, unknown-outcome recovery and previous-version retention. Browser scenarios are updated to require review before admission; no live-provider acceptance is claimed.

@@ -59,13 +59,15 @@ export async function runCloudNamingWorker(options: {
   const controller = new AbortController(), stop = () => controller.abort();
   options.signal.addEventListener("abort", stop, { once: true });
   const pool = new Pool(config.poolOptions);
-  let connectionFailed = false;
-  // pg's idle error includes its Client, which can contain private credentials.
-  const unavailable = () => {
-    if (!connectionFailed) console.error(JSON.stringify({ event: "cloud_naming_database_unavailable" }));
-    connectionFailed = true; stop();
+  // pg removes a failed IDLE client before emitting this event, replacing it on
+  // demand. This says nothing about independently checked-out work. Actual
+  // identity/query, readiness, claim and heartbeat failures keep their gates.
+  // Never inspect/log the Error or Client, which can contain credentials.
+  const idleClientRemoved = () => {
+    try { console.info(JSON.stringify({ event: "cloud_naming_database_idle_client_removed" })); }
+    catch { /* A diagnostic sink cannot abort healthy work or bypass cleanup. */ }
   };
-  pool.on("error", unavailable);
+  pool.on("error", idleClientRemoved);
   let poolClosed = false;
   const closePool = async () => {
     if (poolClosed) return;
@@ -123,8 +125,7 @@ export async function runCloudNamingWorker(options: {
     try { await readiness?.stop(); }
     finally {
       try { await closePool(); }
-      finally { pool.removeListener("error", unavailable); options.signal.removeEventListener("abort", stop); }
+      finally { pool.removeListener("error", idleClientRemoved); options.signal.removeEventListener("abort", stop); }
     }
-    if (connectionFailed) throw new Error("cloud_naming_database_unavailable");
   }
 }

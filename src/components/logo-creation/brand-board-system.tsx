@@ -5,7 +5,7 @@ import { brandBoardDirection } from "./brand-board-direction";
 import { WebsiteMockup, SocialMockup, StationeryMockup } from "./brand-application-mockups";
 import styles from "./brand-board.module.css";
 
-export function BrandBoardSystem({ name, activity, logoType, choices, logo, logoNeedsReview = false }: { name: string; activity: string; logoType: LogoType; choices: readonly InspirationChoice[]; logo: ReactNode; logoNeedsReview?: boolean }) {
+export function BrandBoardSystem({ name, logoType, choices, logo, logoNeedsReview = false }: { name: string; logoType: LogoType; choices: readonly InspirationChoice[]; logo: ReactNode; logoNeedsReview?: boolean }) {
   const direction = brandBoardDirection(choices, logoType);
   const tokens = { "--board-primary": direction.primary.hex, "--board-accent": direction.accent.hex, "--board-weight": direction.type.headingWeight, "--board-tracking": direction.type.tracking } as CSSProperties;
   return <div className={styles.system} style={tokens} data-brand-board-layout>
@@ -23,12 +23,12 @@ export function BrandBoardSystem({ name, activity, logoType, choices, logo, logo
       <div className={styles.typeScale}>Labels · Medium 500</div>
     </section>
     <section className={`${styles.tile} ${styles.webTile}`} aria-labelledby="board-web" aria-describedby="board-web-status">
-      <WebsiteMockup name={name} activity={activity} logo={logo} />
-      <div className={styles.applicationCaption}><h2 id="board-web">Website landing page</h2><span id="board-web-status">Application preview</span></div>
+      <WebsiteMockup name={name} logo={logo} />
+      <div className={styles.applicationCaption}><h2 id="board-web">Website landing page</h2><span id="board-web-status">Application preview · Placeholder copy</span></div>
     </section>
     <section className={`${styles.tile} ${styles.socialTile}`} aria-labelledby="board-social" aria-describedby="board-social-status">
-      <SocialMockup name={name} activity={activity} logo={logo} />
-      <div className={styles.applicationCaption}><h2 id="board-social">Social announcement</h2><span id="board-social-status">Application preview</span></div>
+      <SocialMockup name={name} logo={logo} />
+      <div className={styles.applicationCaption}><h2 id="board-social">Social announcement</h2><span id="board-social-status">Application preview · Placeholder copy</span></div>
     </section>
     <section className={`${styles.tile} ${styles.cardTile}`} aria-labelledby="board-card" aria-describedby="board-card-status">
       <StationeryMockup name={name} logo={logo} />

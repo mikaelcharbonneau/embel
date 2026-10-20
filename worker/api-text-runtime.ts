@@ -1,12 +1,17 @@
 import { apiTextDeploymentSchema, apiTextDispatchMessageSchema } from "../src/domain/api-text-dispatch";
 import { isHostedStrategyPolicy, type OpenAIStrategyConfiguration } from "../src/server/ai/config";
-import type { OpenAIResponsesTransport } from "../src/server/ai/openai-transport";
+import { createOpenAIResponsesTransport, type OpenAIResponsesTransport } from "../src/server/ai/openai-transport";
 import type { JobDatabase } from "./postgres-store";
 import { ApiTextJobStore, expireApiTextJob, readApiTextDispatch } from "./api-text-store";
 import { createApiTextReadiness } from "./handlers/openai-readiness";
 import { createOpenAIStrategyHandlers } from "./handlers/openai-strategy";
 import { runOneJob } from "./runner";
 import { apiTextDispatchDatabase } from "./api-text-multi-account";
+
+import { diagnose, diagnosticErrorClass, observeStage, type DiagnosticSink } from "./hosting/diagnostics";
+import { OperationDeadlineError } from "./hosting/timing";
+import { observeDeliveryHandlers, observeDeliveryStore, observeProviderTransport } from "./hosting/delivery-diagnostics";
+
 
 export const API_TEXT_DATABASE_TIMEOUT_MS = 5_000;
 export const API_TEXT_HANDLER_TIMEOUT_MS = 270_000;
@@ -17,7 +22,7 @@ export type ApiTextDeliveryResult = { disposition: "ack" | "retry"; state: strin
 /** One delivery, one existing admitted job. This entrypoint never admits, enables or retries a paid step. */
 export async function runApiTextDelivery(options: {
   message: unknown; database: JobDatabase; configuration: OpenAIStrategyConfiguration | null;
-  deploymentId: string; signal?: AbortSignal; transport?: OpenAIResponsesTransport; multiAccount?: boolean;
+  deploymentId: string; signal?: AbortSignal; transport?: OpenAIResponsesTransport; multiAccount?: boolean; diagnostics?: DiagnosticSink;
 }): Promise<ApiTextDeliveryResult> {
   const parsed = apiTextDispatchMessageSchema.safeParse(options.message);
   if (!parsed.success) return { disposition: "ack", state: "invalid_message" };
@@ -36,27 +41,29 @@ export async function runApiTextDelivery(options: {
   options.signal?.addEventListener("abort", stop, { once: true });
   const stopTimer = setTimeout(stop, STOP_WORK_MS);
   const deadline = Date.now() + API_TEXT_HANDLER_TIMEOUT_MS;
-  let closed = false;
+  let closed = false; let databaseFailed = false;
   const database: JobDatabase = { async query(sql, values) {
-    if (closed || Date.now() >= deadline) throw new Error("Database deadline exceeded");
+    if (closed || Date.now() >= deadline) { databaseFailed = true; throw new OperationDeadlineError("Database deadline exceeded"); }
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       return await Promise.race([sourceDatabase.query(sql, values), new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error("Database unavailable")), Math.min(API_TEXT_DATABASE_TIMEOUT_MS, deadline - Date.now()));
+        timer = setTimeout(() => reject(new OperationDeadlineError("Database unavailable")), Math.min(API_TEXT_DATABASE_TIMEOUT_MS, deadline - Date.now()));
       })]);
-    } finally { clearTimeout(timer); }
+    } catch (error) { databaseFailed = true; throw error; }
+    finally { clearTimeout(timer); }
   } };
+  const started = Date.now();
   let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
   try {
     const execute = async (): Promise<ApiTextDeliveryResult> => {
-      const descriptor = await readApiTextDispatch(database, message.jobId);
+      const descriptor = await observeStage("descriptor_read", "database", () => readApiTextDispatch(database, message.jobId), options.diagnostics);
       if (!descriptor) return { disposition: "ack", state: "not_found" };
       if (descriptor.jobId !== message.jobId || descriptor.policyIdentity !== message.policyIdentity ||
           descriptor.deploymentId !== options.deploymentId || descriptor.dispatchIdentity !== message.dispatchIdentity) {
         return { disposition: "ack", state: "dispatch_mismatch" };
       }
       if (terminalStates.has(descriptor.state)) return { disposition: "ack", state: descriptor.state };
-      const expiry = await expireApiTextJob(database, message.jobId);
+      const expiry = await observeStage("expiry", "database", () => expireApiTextJob(database, message.jobId), options.diagnostics);
       if (expiry.disposition === "terminal" && terminalStates.has(expiry.state)) return { disposition: "ack", state: expiry.state };
       if (expiry.disposition === "not_found") return { disposition: "ack", state: "not_found" };
       if (expiry.disposition !== "available") return { disposition: "retry", state: expiry.state };
@@ -64,9 +71,11 @@ export async function runApiTextDelivery(options: {
       if (!policies.has(descriptor.operation)) return { disposition: "retry", state: "runtime_unavailable" };
       const store = new ApiTextJobStore(database, message, options.deploymentId, descriptor.operation);
       const assertPolicyReady = createApiTextReadiness(database, options.deploymentId);
-      const handlers = createOpenAIStrategyHandlers({ ...configured, policies }, options.transport,
-        assertPolicyReady, (job, key) => store.authorizeDispatch(job, key));
-      const state = await runOneJob({ store, handlers, workerId: `api-text-${crypto.randomUUID()}`,
+      const transport = observeProviderTransport(options.transport ?? createOpenAIResponsesTransport({ apiKey: configured.apiKey }), options.diagnostics);
+      const handlers = observeDeliveryHandlers(createOpenAIStrategyHandlers({ ...configured, policies }, transport,
+        (...args) => observeStage("policy_check", "database", () => assertPolicyReady(...args), options.diagnostics),
+        (job, key) => observeStage("dispatch_authorize", "database", () => store.authorizeDispatch(job, key), options.diagnostics)), options.diagnostics);
+      const state = await runOneJob({ store: observeDeliveryStore(store, options.diagnostics), handlers, workerId: `api-text-${crypto.randomUUID()}`,
         leaseSeconds: 120, heartbeatMs: 20_000, abortGraceMs: 5_000, signal: controller.signal });
       if (terminalStates.has(state)) return { disposition: "ack", state };
       const claim = store.lastClaim;
@@ -77,9 +86,10 @@ export async function runApiTextDelivery(options: {
     return await Promise.race([execute(), new Promise<ApiTextDeliveryResult>(resolve => {
       deadlineTimer = setTimeout(() => { closed = true; controller.abort(); resolve({ disposition: "retry", state: "handler_timeout" }); }, API_TEXT_HANDLER_TIMEOUT_MS);
     })]);
-  } catch {
+  } catch (error) {
+    diagnose("delivery", "error", started, diagnosticErrorClass(error, databaseFailed ? "database" : "handler"), options.diagnostics);
     // The database owns any uncertain write/lease outcome. Never repair by resetting it.
-    return { disposition: "retry", state: "database_unavailable" };
+    return { disposition: "retry", state: databaseFailed ? "database_unavailable" : "handler_unavailable" };
   } finally {
     closed = true;
     clearTimeout(stopTimer); clearTimeout(deadlineTimer);

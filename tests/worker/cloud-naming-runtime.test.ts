@@ -198,16 +198,120 @@ describe("cloud Naming loop and shutdown", () => {
     expect(fixture.reportReady).not.toHaveBeenCalled(); expect(fixture.run).not.toHaveBeenCalled(); expect(fixture.end).toHaveBeenCalledOnce();
     expect(fixture.pools[0]!.listenerCount("error")).toBe(0);
   });
-  it("handles idle pg errors without logging the attached Client and closes readiness before the pool", async () => {
+  it("keeps a healthy job and readiness alive after repeated sanitized idle-client errors", async () => {
     const controller = new AbortController();
     fixture.run.mockImplementation(async ({ signal }: { signal: AbortSignal }) => {
-      fixture.pools[0]!.emit("error", Object.assign(new Error("synthetic-private-diagnostic"), { client: { password: "synthetic-private-password" } }));
-      expect(signal.aborted).toBe(true); return "idle";
+      for (let i = 0; i < 3; i++) fixture.pools[0]!.emit("error", Object.assign(new Error("synthetic-private-diagnostic"), {
+        cause: { token: "synthetic-private-token" }, client: { password: "synthetic-private-password" },
+      }), { connectionParameters: { password: "synthetic-private-pool-client-password" } });
+      expect(signal.aborted).toBe(false);
+      await expect(fixture.handlers.mock.calls[0]![0].assertReady()).resolves.toBeUndefined();
+      expect(signal.aborted).toBe(false);
+      controller.abort(); return "succeeded";
     });
-    await expect(run(controller)).rejects.toThrow("cloud_naming_database_unavailable");
+    await run(controller);
     expect(fixture.end).toHaveBeenCalledOnce(); expect(fixture.pools[0]!.listenerCount("error")).toBe(0);
-    expect(console.error).toHaveBeenCalledExactlyOnceWith(JSON.stringify({ event: "cloud_naming_database_unavailable" }));
-    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain("synthetic-private");
+    expect(fixture.run).toHaveBeenCalledOnce(); expect(fixture.reportReady).toHaveBeenCalledTimes(2);
+    const events = vi.mocked(console.info).mock.calls.map(([event]) => JSON.parse(event as string));
+    expect(events.filter(event => event.event === "cloud_naming_database_idle_client_removed")).toEqual(
+      Array.from({ length: 3 }, () => ({ event: "cloud_naming_database_idle_client_removed" })));
+    expect(events).toContainEqual({ event: "naming_job_cycle", state: "succeeded" });
+    expect(console.error).not.toHaveBeenCalled();
+    expect(JSON.stringify([vi.mocked(console.info).mock.calls, vi.mocked(console.error).mock.calls])).not.toContain("synthetic-private");
+  });
+  it("contains an idle-event logging failure without aborting the job or losing cleanup", async () => {
+    const controller = new AbortController();
+    fixture.run.mockImplementation(async ({ signal }: { signal: AbortSignal }) => {
+      vi.mocked(console.info).mockImplementationOnce(() => { throw new Error("synthetic-diagnostic-sink-failure"); });
+      expect(() => fixture.pools[0]!.emit("error", new Error("synthetic-private-pool-error"))).not.toThrow();
+      expect(signal.aborted).toBe(false);
+      controller.abort(); return "succeeded";
+    });
+    await run(controller);
+    expect(fixture.run).toHaveBeenCalledOnce(); expect(fixture.end).toHaveBeenCalledOnce();
+    expect(fixture.pools[0]!.listenerCount("error")).toBe(0);
+  });
+  it("keeps an actual readiness query failure fail-closed after an idle event", async () => {
+    fixture.reportReady.mockResolvedValueOnce(true).mockRejectedValue(new Error("synthetic-private-readiness-query-error"));
+    const controller = new AbortController();
+    fixture.run.mockImplementation(async ({ signal }: { signal: AbortSignal }) => {
+      fixture.pools[0]!.emit("error", new Error("synthetic-private-idle-error"));
+      await expect(fixture.handlers.mock.calls[0]![0].assertReady()).rejects.toThrow("naming_readiness_unavailable");
+      expect(signal.aborted).toBe(false);
+      controller.abort(); return "needs_reconciliation";
+    });
+    await run(controller);
+    expect(fixture.reportReady).toHaveBeenCalledTimes(2); expect(fixture.run).toHaveBeenCalledOnce(); expect(fixture.end).toHaveBeenCalledOnce();
+    expect(JSON.stringify(vi.mocked(console.info).mock.calls)).not.toContain("synthetic-private");
+  });
+  it.each(["BEGIN READ ONLY", "select session_user", "ROLLBACK"])("still rejects a checked-out qualification query failure at %s after an idle event", async failedSql => {
+    fixture.query.mockImplementation(async (sql: string) => {
+      if (sql.startsWith(failedSql)) {
+        fixture.pools[0]!.emit("error", new Error("synthetic-private-idle-error"));
+        throw new Error("synthetic-private-active-query-error");
+      }
+      return { rows: sql.startsWith("select session_user") ? [identity()] : [] };
+    });
+    await expect(run(new AbortController(), "preflight")).rejects.toThrow("cloud_naming_database_identity_unavailable");
+    expect(fixture.release).toHaveBeenCalledWith(expect.any(Error)); expect(fixture.end).toHaveBeenCalledOnce();
+    expect(fixture.reportReady).not.toHaveBeenCalled(); expect(fixture.run).not.toHaveBeenCalled();
+    expect(vi.mocked(console.info).mock.calls.map(([event]) => JSON.parse(event as string)))
+      .toEqual([{ event: "cloud_naming_database_idle_client_removed" }]);
+  });
+  it("drains a manual readiness check before closing the pool during shutdown", async () => {
+    let resolve!: (value: boolean) => void;
+    const pendingReport = new Promise<boolean>(yes => { resolve = yes; });
+    fixture.reportReady.mockResolvedValueOnce(true).mockReturnValueOnce(pendingReport);
+    const controller = new AbortController();
+    let assertion: Promise<void> | undefined;
+    fixture.run.mockImplementation(async () => {
+      assertion = fixture.handlers.mock.calls[0]![0].assertReady();
+      void assertion!.catch(() => {});
+      await Promise.resolve();
+      controller.abort(); return "needs_reconciliation";
+    });
+    let stopped = false;
+    const pendingWorker = run(controller).then(() => { stopped = true; });
+    await vi.waitFor(() => { expect(fixture.reportReady).toHaveBeenCalledTimes(2); expect(controller.signal.aborted).toBe(true); });
+    expect(stopped).toBe(false); expect(fixture.end).not.toHaveBeenCalled();
+    resolve(true); await pendingWorker;
+    await expect(assertion).rejects.toThrow("naming_readiness_stopped");
+    expect(stopped).toBe(true); expect(fixture.end).toHaveBeenCalledOnce();
+    expect(fixture.pools[0]!.listenerCount("error")).toBe(0);
+  });
+  it.each(["heartbeat", "provider_unknown"] as const)("preserves actual runner %s safety after an idle-client event", async failure => {
+    const { runOneJob } = await vi.importActual<typeof import("../../worker/runner")>("../../worker/runner");
+    const controller = new AbortController();
+    const execute = vi.fn(async ({ signal }: { signal: AbortSignal }) => {
+      fixture.pools[0]!.emit("error", new Error("synthetic-private-idle-error"));
+      expect(signal.aborted).toBe(false);
+      if (failure === "provider_unknown") throw new Error("synthetic-private-provider-acknowledgement-lost");
+      await new Promise<void>(resolve => signal.addEventListener("abort", () => resolve(), { once: true }));
+      return { status: "succeeded" as const, costMicrousd: 0, providerRequestId: "req_synthetic", result: {} };
+    });
+    const completeStep = vi.fn(async () => {}), finish = vi.fn(async () => {});
+    const heartbeat = vi.fn(async () => ({ cancelled: false })).mockResolvedValueOnce({ cancelled: false });
+    if (failure === "heartbeat") heartbeat.mockRejectedValue(new Error("synthetic-private-heartbeat-query-error"));
+    const store = {
+      claim: vi.fn(async () => ({ id: "synthetic-job", ownerId: "synthetic-owner", projectId: "synthetic-project", operation: "synthetic",
+        input: {}, inputRevision: 1, leaseToken: "synthetic-lease", status: "running" as const, reservedCostMicrousd: 0, actualCostMicrousd: 0 })),
+      registerPlan: vi.fn(async () => {}), heartbeat, beginStep: vi.fn(async () => "started" as const), completeStep, finish,
+    };
+    fixture.run.mockImplementation(async ({ signal }: { signal: AbortSignal }) => {
+      const result = await runOneJob({ store, handlers: new Map([["synthetic", { steps: () => [{ key: "issued", maximumCostMicrousd: 0, execute }] }]]),
+        workerId: "synthetic", signal, heartbeatMs: 5 });
+      expect(result).toBe(failure === "heartbeat" ? "lease_lost" : "needs_reconciliation");
+      expect(signal.aborted).toBe(false);
+      controller.abort(); return result;
+    });
+    await run(controller);
+    expect(execute).toHaveBeenCalledOnce(); expect(store.claim).toHaveBeenCalledOnce();
+    expect(finish).not.toHaveBeenCalled();
+    if (failure === "heartbeat") expect(completeStep).not.toHaveBeenCalled();
+    else expect(completeStep).toHaveBeenCalledExactlyOnceWith(expect.anything(), "issued", {
+      status: "needs_reconciliation", code: "provider_outcome_unknown", costMicrousd: 0, providerRequestId: null,
+    });
+    expect(fixture.end).toHaveBeenCalledOnce();
   });
   it("wakes promptly from idle delay on shutdown and does not renew readiness afterward", async () => {
     vi.useFakeTimers(); const controller = new AbortController(); fixture.run.mockResolvedValue("idle");

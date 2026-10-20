@@ -69,7 +69,7 @@ function OwnedAssetLibrary({ account }: { account: VerifiedAccount }) {
         <div className="assets-pagination"><span>{needle ? `${visible.length} matches in ${library.page.items.length} loaded assets` : `${library.page.items.length} assets loaded`}</span><span>Versions stay in your library when a new selection is made.</span>{library.page.nextCursor && <button className="button secondary small" type="button" disabled={library.busy || library.status !== "ready"} onClick={() => void library.loadMore()}>Load more assets</button>}</div>
       </>}
     </div>
-    <div className="assets-library-notes"><button type="button" className="text-link" disabled={library.busy || library.status === "loading"} onClick={library.refresh}>Check assets</button><p className="assets-generation-note">Image generation is not connected. This library shows files and versions already saved in your account.</p></div>
+    <div className="assets-library-notes"><button type="button" className="text-link" disabled={library.busy || library.status === "loading"} onClick={library.refresh}>Check assets</button><p className="assets-generation-note">This library shows files and versions already saved in your account. For logo concepts and saved-preview refinements, <Link className="text-link" href="/brands">open a project</Link>. Available operations are shown in its logo workspace.</p></div>
     {opened && <AssetDetailDialog key={opened.asset.id} item={opened} client={library.client} onClose={close} onSelected={library.refresh} />}
   </section>;
 }

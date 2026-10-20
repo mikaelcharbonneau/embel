@@ -1,4 +1,6 @@
+import { attachDatabasePool } from "@vercel/functions";
 import { Pool } from "pg";
+import { diagnose } from "../../worker/hosting/diagnostics";
 import { QueueClient } from "@vercel/queue";
 import { readWorkerIdentity, workerPoolOptions } from "../../worker/hosting/config";
 import type { PublicationDependencies } from "../../worker/hosting/publication";
@@ -8,9 +10,11 @@ let pool: Pool | undefined;
 export function workerDatabase(): Pool {
   readWorkerIdentity();
   if (!pool) {
-    pool = new Pool(workerPoolOptions(process.env.FLUID_WORKER_DATABASE_URL, process.env.FLUID_WORKER_DATABASE_PASSWORD));
+    const created = new Pool(workerPoolOptions(process.env.FLUID_WORKER_DATABASE_URL, process.env.FLUID_WORKER_DATABASE_PASSWORD));
+    attachDatabasePool(created);
     // Idle connection errors must not crash unrelated concurrent deliveries.
-    pool.on("error", () => { console.error(JSON.stringify({ event: "api_text_database_idle_error" })); });
+    created.on("error", () => { diagnose("database_idle", "error", Date.now(), "database"); });
+    pool = created;
   }
   return pool;
 }

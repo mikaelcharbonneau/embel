@@ -40,7 +40,7 @@ async function until(check: () => void) {
   }
   throw failure;
 }
-async function fixture({ selected, colors = true, staleStages = [] }: { selected?: LogoRasterSource | null; colors?: boolean; staleStages?: LogoWorkspaceV2["staleStages"] } = {}) {
+async function fixture({ selected, colors = true, staleStages = [], briefText }: { selected?: LogoRasterSource | null; colors?: boolean; staleStages?: LogoWorkspaceV2["staleStages"]; briefText?: string } = {}) {
   const f = await syntheticRefinementWorkspaceHttp(true);
   const base = `/api/projects/${f.workspace.projectId}`;
   const inspiration: InspirationOverview = {
@@ -67,6 +67,10 @@ async function fixture({ selected, colors = true, staleStages = [] }: { selected
     if (!controls.candidateAvailable && path === `${base}/logo/batches/${f.batch.id}`) return Response.json({}, { status: 404 });
     if (!controls.imageAvailable && path.endsWith("/preview")) return new Response(null, { status: 503 });
     const response = await f.fetcher(url, init);
+    if (briefText !== undefined && path === `${base}/logo/stages/brief_references/revisions/${f.workspace.stages.brief_references!.id}`) {
+      const revision = await response.json();
+      return Response.json({ ...revision, payload: { ...revision.payload, activity: briefText, audience: briefText, personality: briefText } });
+    }
     if (selected !== undefined && path === `${base}/logo/stages/concepts/revisions/${id(900)}`) {
       const revision = await response.json();
       return Response.json({ ...revision, payload: { ...revision.payload, selected } });
@@ -99,6 +103,8 @@ describe("saved brand board presentation", () => {
     expect(board()?.textContent).toContain("Proposed paletteFrom saved inspiration");
     expect(board()?.textContent).toContain("Proposed typographyGeist Sans · Default preview");
     expect(board()?.textContent?.match(/Application preview/g)).toHaveLength(3);
+    expect(board()?.textContent?.match(/Placeholder copy/g)).toHaveLength(2);
+    expect(board()?.textContent).not.toContain("Tea shop");
     expect(board()?.textContent).not.toMatch(/\b(?:approved|final|exports?|download|licensed|generated)\b/i);
     expect(board()?.textContent).not.toContain("Review changed inputs");
     expect(host.querySelector('a[href$="/logo"]')?.textContent).toContain("Back to logo concepts");
@@ -109,6 +115,38 @@ describe("saved brand board presentation", () => {
     await mount(f);
     await until(() => expect(previews()).toHaveLength(4));
     expect(board()?.textContent).toContain("Élan & Co · Saved selection");
+    expect(JSON.stringify({ workspace: f.f.workspace, batch: f.f.batch, inspiration: f.inspiration })).toBe(before);
+    expect(f.f.selections).toEqual([]);
+    expect(f.f.quotes).toEqual([]);
+    expect(f.f.admissions).toEqual([]);
+    expect(f.requests.every(row => row.method === "GET")).toBe(true);
+  });
+
+  it.each([
+    "Fictional QA test. Create a warm identity; do not use mountains. Internal instruction token 883.",
+    "Une marque fictive pour le test.\nInstructions créatives : ne pas publier ce brief.",
+    "Thoughtful everyday goods for everyone.",
+    "",
+  ])("uses neutral placeholder copy instead of promoting saved brief text: %j", async briefText => {
+    const f = await fixture({ briefText });
+    const before = JSON.stringify({ workspace: f.f.workspace, batch: f.f.batch, inspiration: f.inspiration });
+    await mount(f);
+    await until(() => expect(previews()).toHaveLength(4));
+    if (briefText) expect(host.textContent).not.toContain(briefText);
+    expect(f.requests.some(row => row.path.includes("/stages/brief_references/"))).toBe(true);
+    expect(board()?.querySelector('[data-application-mockup="website"] p')?.textContent).toBe("Your brand introduction goes here.");
+    expect(board()?.querySelector('[data-application-mockup="social"] h3')?.textContent).toBe("Your announcement goes here.");
+    expect(board()?.textContent).toContain("Élan & Co · Saved selection");
+    expect(board()?.textContent).toContain("Proposed paletteFrom saved inspiration");
+    expect(board()?.textContent).toContain("Geist Sans · Default preview");
+    expect(board()?.textContent?.match(/Application preview · Placeholder copy/g)).toHaveLength(2);
+    expect(board()?.textContent).not.toMatch(/\b(?:approved|final|exports?|download|licensed|generated)\b/i);
+    const previewText = [...host.querySelectorAll("[data-application-mockup]")].map(node => node.textContent);
+    await act(async () => root!.unmount()); root = null;
+    await mount(f);
+    await until(() => expect(previews()).toHaveLength(4));
+    expect([...host.querySelectorAll("[data-application-mockup]")].map(node => node.textContent)).toEqual(previewText);
+    if (briefText) expect(host.textContent).not.toContain(briefText);
     expect(JSON.stringify({ workspace: f.f.workspace, batch: f.f.batch, inspiration: f.inspiration })).toBe(before);
     expect(f.f.selections).toEqual([]);
     expect(f.f.quotes).toEqual([]);

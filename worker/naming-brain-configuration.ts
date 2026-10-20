@@ -10,15 +10,34 @@ export function readNamingBrainConfiguration(env: Record<string, string | undefi
 }
 /** Readiness is a paid-dispatch gate; losing it never discards known-session observation. */
 export async function startNamingReadiness(report: () => Promise<boolean>, unavailable: () => void = () => {}): Promise<{ assertReady(): Promise<void>; stop(): Promise<void> }> {
-  let stopped = false, reporting: Promise<void> | undefined, ready = false;
-  const refresh = async () => {
-    try { ready = await report(); } catch { ready = false; }
-    if (!ready && !stopped) unavailable();
+  let stopped = false, reporting: Promise<boolean> | undefined;
+  // Timer and dispatch checks share one probe on the small worker pool. Track it
+  // before invoking report, including synchronous throws and reentrant callers.
+  const refresh = (): Promise<boolean> => {
+    if (stopped) return Promise.resolve(false);
+    reporting ??= Promise.resolve().then(() => stopped ? false : report()).catch(() => false).then(ready => {
+      if (!ready && !stopped) unavailable();
+      return ready;
+    }).finally(() => { reporting = undefined; });
+    return reporting;
   };
   await refresh();
-  const timer = setInterval(() => { if (!stopped && !reporting) reporting = refresh().finally(() => { reporting = undefined; }); }, 20_000);
+  const timer = setInterval(() => { void refresh(); }, 20_000);
   timer.unref();
-  return { async assertReady() { await reporting; if (stopped) throw new Error("naming_readiness_stopped"); await refresh(); if (!ready) throw new Error("naming_readiness_unavailable"); }, async stop() { stopped = true; clearInterval(timer); await reporting; } };
+  return {
+    async assertReady() {
+      if (stopped) throw new Error("naming_readiness_stopped");
+      const ready = await refresh();
+      if (stopped) throw new Error("naming_readiness_stopped");
+      if (!ready) throw new Error("naming_readiness_unavailable");
+    },
+    async stop() {
+      // Fence immediately, before draining either a manual or timer refresh.
+      stopped = true;
+      clearInterval(timer);
+      await reporting;
+    },
+  };
 }
 
 /** Build fingerprint of the shared implementation; the source-byte regression must

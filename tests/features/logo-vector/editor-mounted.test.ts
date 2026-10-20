@@ -37,6 +37,28 @@ describe("mounted account vector editor", () => {
     expect(f.state.posts).toHaveLength(0); await click("Accept this vector"); await until(() => host.textContent!.includes("Approved logo"));
     expect(f.state.posts).toHaveLength(1); expect(f.state.posts[0]!.path).toBe(`/api/projects/${source.input.projectId}/logo/vector/accept`);
   });
+  it("explains missing vector approval and links to conversion availability without starting work", async () => {
+    const f = createVectorHttpFixture(), projectId = source.input.projectId;
+    f.details.clear();
+    for (const [id, stage] of f.stages) if (stage.stage === "vector") f.stages.delete(id);
+    f.state.workspace = { ...f.state.workspace,
+      heads: { ...f.state.workspace.heads, stageRevisions: { ...f.state.workspace.heads.stageRevisions, vector: 0 } },
+      stages: { ...f.state.workspace.stages, vector: null },
+    };
+    vi.stubGlobal("fetch", (async (input, options) => String(input) === `/api/projects/${projectId}/logo/vector/current`
+      ? Response.json({ ownerId: source.input.ownerId, projectId, vectorRevisionId: null })
+      : f.fetcher(input, options)) satisfies typeof fetch);
+    await act(async () => root.render(createElement(AccountSessionProvider, null, createElement(LogoEditorWorkspace, { projectId }))));
+    await until(() => host.textContent!.includes("No vector ready for approval"));
+    expect(host.textContent).toContain("A saved image preview is not an approved vector");
+    expect(host.textContent).toContain("Open Project context, then Saved inputs and recovery");
+    expect(host.textContent).toContain("check conversion availability");
+    expect(host.querySelector(`[role="status"] a[href="/brands/account/${projectId}/logo"]`)?.textContent).toBe("Open Logo concepts");
+    expect(host.querySelector('a[href*="#logo-conversion-settings"]')).toBeNull();
+    expect(host.querySelector('nav[aria-label="Logo and identity stages"] [aria-current="page"]')?.textContent).toBe("Vector review");
+    expect(button("Accept this vector")).toBeUndefined(); expect(host.querySelector("svg")).toBeNull();
+    expect(f.state.posts).toHaveLength(0);
+  });
   it("manual preview remains unsent until Save and a stored candidate stays unapproved", async () => {
     const f = await mount(); await changeRotation("15"); await until(() => host.textContent!.includes("Unsaved vector change"));
     expect(f.state.posts).toHaveLength(0); await click("Save edit"); await until(() => rotation()?.value === "15" && button("Save edit")?.disabled === true);
@@ -63,6 +85,8 @@ describe("mounted account vector editor", () => {
       if (change === "proof") fixture.initial.revision.proof.svgContentHash = fixture.initial.revision.svgAsset.contentHash = "b".repeat(64);
     }, true);
     expect(host.querySelector("svg")).toBeNull(); expect(host.querySelector('img[alt="Original concept"]')).toBeNull();
+    expect(host.textContent).not.toContain("No vector ready for approval");
+    expect(host.textContent).not.toContain("Open Logo concepts");
     expect(button("Accept this vector")?.disabled ?? true).toBe(true); expect(f.state.posts).toHaveLength(0);
   });
   it("keyboard focus changes and equivalent numeric Enter leave every control available", async () => {
