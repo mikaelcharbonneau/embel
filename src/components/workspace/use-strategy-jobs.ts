@@ -8,7 +8,7 @@ import { boundedAccountRequest } from "./bounded-account-request";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
 import { accountDraftChanged, type AccountWorkspace } from "./account-draft-memory";
 import { accountProjectDraft } from "./project-draft-adapter";
-import { canContinueStrategy, forgetStrategyIntent, readStrategyIntent, strategyApplicationMatchesResult, strategyErrorMessage, strategyIdempotencyKey, strategyIntentPlan, strategyJobActive, strategyJobMatchesRequest, strategyRequestPayload, strategyResultApplication, verifyStrategyJobs, type StrategyAllowance } from "./account-strategy-client";
+import { canContinueStrategy, forgetStrategyIntent, readStrategyIntent, strategyApplicationMatchesResult, strategyCanRetryDelivery, strategyErrorMessage, strategyIdempotencyKey, strategyIntentPlan, strategyJobActive, strategyJobMatchesRequest, strategyRequestPayload, strategyResultApplication, verifyStrategyJobs, type StrategyAllowance } from "./account-strategy-client";
 
 type ReadState = { identity: string; overview: StrategyOverview | null; error: string | null };
 type ActionState = {
@@ -108,6 +108,40 @@ export function useStrategyJobs({ account, workspace, blocked, guided = false }:
       refresh(); return null;
     } finally { controllers.current.delete(controller); inFlight.current = false; }
   }, [account, expire, getWorkspace, identity, projectId, refresh, report]);
+
+  const retryDelivery = useCallback(async (job: StrategyJob) => {
+    const current = getWorkspace();
+    const latest = overview?.jobs.find(item => item.id === job.id);
+    if (!current || blocked || readError || inFlight.current || current.conflict || accountDraftChanged(current)
+      || !latest || !verifyStrategyJobs([job, latest], account.userId, projectId)
+      || latest.operation !== job.operation || latest.input_revision !== job.input_revision
+      || !strategyCanRetryDelivery(latest, current.saved.current_revision)) return;
+    const controller = new AbortController(); controllers.current.add(controller); inFlight.current = true;
+    mutationEpoch.current += 1;
+    setAction({ identity, pending: true, pendingLabel: "Retrying delivery of your saved request…", error: null });
+    try {
+      const { job: updated } = await boundedAccountRequest(`/api/projects/${projectId}/strategy/${job.id}/delivery`, strategyJobResponseSchema, {
+        method: "POST", body: {}, expectedOwnerId: account.userId, signal: controller.signal,
+      });
+      if (controller.signal.aborted || !getWorkspace()) return;
+      if (!verifyStrategyJobs([updated], account.userId, projectId)) { expire(account); return; }
+      if (updated.id !== job.id || updated.operation !== job.operation || updated.input_revision !== job.input_revision
+        || updated.billingMode === "chatgpt_subscription") throw new AccountRequestError(502);
+      setRead(previous => previous?.identity === identity && previous.overview ? { ...previous, overview: {
+        ...previous.overview, jobs: previous.overview.jobs.map(item => item.id === job.id ? updated : item),
+      } } : previous);
+      setAction({ identity, pending: false, error: updated.dispatchState === "dispatch_pending"
+        ? "Delivery is still unconfirmed. The same saved request is kept. Check status before retrying delivery." : null });
+      refresh();
+    } catch (error: unknown) {
+      if (controller.signal.aborted || !getWorkspace()) return;
+      if (error instanceof AccountRequestError && error.status === 401) expire(account);
+      else report(error instanceof AccountRequestError && [404, 409].includes(error.status)
+        ? "This request changed and cannot be sent again. Check its latest status."
+        : "Delivery could not be confirmed. The same saved request is kept. Check status before retrying delivery.");
+      refresh();
+    } finally { controllers.current.delete(controller); inFlight.current = false; }
+  }, [account, blocked, expire, getWorkspace, identity, overview, projectId, readError, refresh, report]);
 
   const cancel = useCallback(async (job: StrategyJob) => {
     if (!getWorkspace() || inFlight.current || !strategyJobActive(job)) return;
@@ -221,5 +255,5 @@ export function useStrategyJobs({ account, workspace, blocked, guided = false }:
   const continuationAvailable = !readError && Boolean(overview && canContinueStrategy(readStrategyIntent(account.userId, projectId, workspace.saved.current_revision - 1), workspace, overview));
   const checkStatus = useCallback(() => { recoveryAttempts.current.clear(); refresh(); }, [refresh]);
 
-  return { overview, readError, actionError, pending, pendingLabel, enqueue, cancel, apply, refresh: checkStatus, report, continueResearch, continuationAvailable };
+  return { overview, readError, actionError, pending, pendingLabel, enqueue, retryDelivery, cancel, apply, refresh: checkStatus, report, continueResearch, continuationAvailable };
 }

@@ -83,6 +83,11 @@ export function strategyJobMatchesRequest(job: StrategyJob, operation: StrategyO
 export function strategyJobActive(job: StrategyJob) {
   return ["queued", "running", "partial", "cancel_requested"].includes(job.state);
 }
+export function strategyCanRetryDelivery(job: StrategyJob, revision: number) {
+  return job.billingMode !== "chatgpt_subscription" && job.state === "queued" && !job.cancel_requested_at
+    && job.input_revision === revision && job.results.length === 0
+    && job.dispatchState === "dispatch_pending" && job.canRetryDelivery === true;
+}
 export function strategyApplicationMatchesResult(job: StrategyJob, stepKey: string, application: StrategyJobApplication) {
   return application.jobId === job.id && application.stepKey === stepKey && application.inputRevision === job.input_revision
     && application.appliedRevision === job.input_revision + 1 && job.results.some(result => result.stepKey === stepKey);

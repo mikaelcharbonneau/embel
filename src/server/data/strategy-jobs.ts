@@ -146,10 +146,10 @@ export async function getStrategyOverview(auth: AuthenticatedContext, projectId:
     .order("created_at", { ascending: false }).limit(64);
   databaseError(error);
   const rows = parseStored(z.array(z.unknown()).max(64), data).map(row => ownSummary(auth, projectId, row));
-  return parseStored(strategyOverviewResponseSchema, { availability, jobs: await withResults(auth, projectId, rows) });
+  return parseStored(strategyOverviewResponseSchema, { availability, jobs: await withResults(auth, projectId, await withDelivery(auth, projectId, rows)) });
 }
 
-export async function getStrategyJob(auth: AuthenticatedContext, projectId: string, jobId: string) {
+export async function getStrategyJob(auth: AuthenticatedContext, projectId: string, jobId: string, includeDelivery = true) {
   resourceId(projectId); resourceId(jobId);
   const { data, error } = await auth.client.from("jobs").select(jobColumns)
     .eq("id", jobId).eq("owner_id", auth.userId).eq("project_id", projectId).in("operation", strategyOperationSchema.options).maybeSingle();
@@ -157,7 +157,63 @@ export async function getStrategyJob(auth: AuthenticatedContext, projectId: stri
   if (!data) throw new ApiError("not_found");
   const summary = ownSummary(auth, projectId, data);
   if (summary.id !== jobId) throw new ApiError("not_found");
-  return (await withResults(auth, projectId, [summary]))[0]!;
+  return (await withResults(auth, projectId, includeDelivery ? await withDelivery(auth, projectId, [summary]) : [summary]))[0]!;
+}
+
+const deliveryRowSchema = z.object({
+  job: z.unknown(), dispatchState: z.enum(["published", "dispatch_pending"]),
+  canRetryDelivery: z.boolean(), dispatch: apiTextDispatchMessageSchema.nullable(),
+});
+
+async function readDeliveries(auth: AuthenticatedContext, projectId: string, jobIds: string[]) {
+  const { data, error } = await auth.client.rpc("get_strategy_job_deliveries", { p_project_id: projectId, p_job_ids: jobIds });
+  databaseError(error);
+  const rows = parseStored(z.array(deliveryRowSchema).max(64), data);
+  const seen = new Set<string>();
+  return rows.map(row => {
+    const job = ownSummary(auth, projectId, row.job);
+    if (!jobIds.includes(job.id) || seen.has(job.id) || job.billingMode === "chatgpt_subscription" || job.state !== "queued"
+      || (row.canRetryDelivery && (row.dispatchState !== "dispatch_pending" || !row.dispatch || job.cancel_requested_at !== null))
+      || (!row.canRetryDelivery && row.dispatch !== null) || (row.dispatch && row.dispatch.jobId !== job.id)) throw new ApiError("integration_unavailable");
+    seen.add(job.id);
+    return { ...row, job };
+  });
+}
+
+/** Reads never publish. Missing recovery infrastructure must not hide saved work. */
+async function withDelivery(auth: AuthenticatedContext, projectId: string, summaries: z.infer<typeof strategyJobSummarySchema>[]) {
+  const candidates = summaries.filter(job => job.state === "queued" && job.billingMode !== "chatgpt_subscription");
+  if (!candidates.length || isLocalPrototypeRuntime()) return summaries;
+  let rows: Awaited<ReturnType<typeof readDeliveries>>;
+  try { rows = await readDeliveries(auth, projectId, candidates.map(job => job.id)); }
+  catch (error) {
+    if (error instanceof ApiError && error.code === "integration_unavailable") return summaries;
+    throw error;
+  }
+  return summaries.map(job => {
+    const delivery = rows.find(row => row.job.id === job.id);
+    if (!delivery || delivery.job.operation !== job.operation || delivery.job.input_revision !== job.input_revision) return job;
+    return { ...job, dispatchState: delivery.dispatchState, canRetryDelivery: delivery.canRetryDelivery };
+  });
+}
+
+/** Explicit initial delivery retry only: no enqueue, redrive, claim or provider retry. */
+export async function retryStrategyJobDelivery(auth: AuthenticatedContext, projectId: string, jobId: string) {
+  resourceId(projectId); resourceId(jobId);
+  if (isLocalPrototypeRuntime()) throw new ApiError("conflict");
+  const rows = await readDeliveries(auth, projectId, [jobId]);
+  const delivery = rows[0];
+  if (!delivery || !delivery.canRetryDelivery || !delivery.dispatch) throw new ApiError("conflict");
+  let dispatchState: "published" | "dispatch_pending" | "already_processing" = "dispatch_pending";
+  try { dispatchState = (await publishApiTextDispatch(delivery.dispatch)).state; }
+  catch { /* An uncertain acknowledgement never creates a replacement request. */ }
+  // The worker re-reads the canonical descriptor and applies its existing claim,
+  // cancellation and publication-generation fences, including concurrent changes.
+  const current = await getStrategyJob(auth, projectId, jobId);
+  if (current.billingMode !== "chatgpt_subscription" && current.dispatchState === "published") dispatchState = "published";
+  return parseStored(strategyJobSchema, current.state === "queued"
+    ? { ...current, dispatchState, canRetryDelivery: dispatchState === "dispatch_pending" && current.billingMode !== "chatgpt_subscription" && current.canRetryDelivery === true }
+    : current);
 }
 
 export async function enqueueStrategyJob(auth: AuthenticatedContext, projectId: string, input: unknown) {
@@ -193,10 +249,10 @@ export async function enqueueStrategyJob(auth: AuthenticatedContext, projectId: 
 
 export async function cancelStrategyJob(auth: AuthenticatedContext, projectId: string, jobId: string) {
   // Verify the path's project binding before invoking the existing owner-scoped cancel RPC.
-  await getStrategyJob(auth, projectId, jobId);
+  await getStrategyJob(auth, projectId, jobId, false);
   const { error } = await auth.client.rpc("request_job_cancel", { p_job_id: jobId });
   databaseError(error);
-  return getStrategyJob(auth, projectId, jobId);
+  return getStrategyJob(auth, projectId, jobId, false);
 }
 
 export async function applyStrategyJob(auth: AuthenticatedContext, projectId: string, jobId: string, input: unknown) {
@@ -204,7 +260,7 @@ export async function applyStrategyJob(auth: AuthenticatedContext, projectId: st
   if (!parsed.success) throw new ApiError("invalid_input");
   let job: StrategyJob;
   try {
-    job = await getStrategyJob(auth, projectId, jobId);
+    job = await getStrategyJob(auth, projectId, jobId, false);
   } catch (error) {
     if (error instanceof ApiError && error.code === "integration_unavailable") localDiagnostic("apply_read");
     throw error;

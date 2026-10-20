@@ -8,7 +8,7 @@ import type { VerifiedAccount } from "./account-session";
 import { accountDraftChanged, type AccountWorkspace } from "./account-draft-memory";
 import { ProjectEditorForm } from "./project-editor";
 import type { LocalDraft } from "./local-drafts";
-import { formatStrategyCap, promptStrategyPlan, readStrategyIntent, rememberStrategyPlan, strategyAllowance, strategyAllowanceLabel, strategyAllowanceWithin, strategyAvailabilityMessage, strategyIntentPlan, strategyJobActive, strategyLabels, strategyResultApplication } from "./account-strategy-client";
+import { formatStrategyCap, promptStrategyPlan, readStrategyIntent, rememberStrategyPlan, strategyAllowance, strategyAllowanceLabel, strategyAllowanceWithin, strategyAvailabilityMessage, strategyCanRetryDelivery, strategyIntentPlan, strategyJobActive, strategyLabels, strategyResultApplication } from "./account-strategy-client";
 import { useStrategyJobs } from "./use-strategy-jobs";
 import { strategyPartialMessage } from "./strategy-partial-message";
 import { BrowserLocalDate } from "./browser-local-date";
@@ -102,6 +102,7 @@ export function AccountStrategyEditor({ account, workspace, busy, saveDraft, sto
       <div className="strategy-assistant-body">
         {!applied && job.input_revision !== revision && <p className="field-hint">Earlier version · {job.input_revision}</p>}
         {strategyJobActive(job) && <p className="field-hint" role="status">{job.state === "queued" ? ("dispatchState" in job && job.dispatchState === "dispatch_pending" ? "Request saved. Waiting for dispatch confirmation." : "Request saved. Waiting to start.") : job.state === "cancel_requested" ? "Cancellation is requested. Completed work may still arrive." : "OpenAI is processing this saved version."} {job.billingMode === "chatgpt_subscription" ? "Uses your ChatGPT plan. Your plan limits apply." : `Reserved limit: ${formatStrategyCap(job.reserved_cost_microusd)}.`}</p>}
+        {strategyCanRetryDelivery(job, revision) && <button type="button" className="text-link" disabled={pending || dirty || workspace.conflict || Boolean(strategy.readError)} onClick={() => void strategy.retryDelivery(job)}>Retry delivery</button>}
         {partialText && <div className="account-strategy-result" aria-label="Incomplete response"><p className="field-hint">Incomplete response</p>{partialMessage ? <p style={{ whiteSpace: "pre-wrap" }}>{partialMessage}</p> : <p className="field-hint">A partial response has been saved.</p>}</div>}
         {job.state === "failed" && <p className="form-error">This request did not complete. Any saved partial response is retained.</p>}
         {job.state === "needs_reconciliation" && <p className="account-notice">The provider outcome needs verification. Automatic retry is paused to avoid repeating work.</p>}
