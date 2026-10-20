@@ -5,7 +5,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createNamingBrainMemory } from "@/components/naming/naming-brain-memory";
 import { ProjectNamingWorkspace } from "@/components/naming/project-naming-workspace";
 import { accountProjectSchema } from "@/domain/project-api";
-import { getNamingReadiness, nameIdentityKey, namingStrategyBasis, namingStrategyKey, type NamingViewState, type ProjectNameEntry } from "@/domain/project-naming";
+import { getNamingReadiness, nameIdentityKey, namingBrainBatchSchema, namingStrategyBasis, namingStrategyKey, type NamingViewState, type ProjectNameEntry } from "@/domain/project-naming";
 import { initialNamingPreferencesV2 } from "@/domain/naming-brain-preferences";
 import { projectNamingOverviewSchema, type ProjectNamingOverview } from "@/domain/naming-jobs";
 import type { NamingFeed, NamingBrainRunSummary } from "@/domain/naming-brain";
@@ -34,7 +34,7 @@ const entry: ProjectNameEntry = { candidate: { id: candidateId, ownerId, project
   origin: { kind: "local_import", ownerId, projectId, candidateId, contextRevision: 1, source: { id: candidateId, value: "Juniper", createdAt: when, origin: "manual", history: [] }, capturedContext: project.context } }, retention: { ownerId, projectId, candidateId, revision: 0, favorite: false, saved: false, updatedAt: null } };
 const activeRun: NamingBrainRunSummary = { version: 1, ownerId, projectId, runId: "d0000000-0000-4000-8000-000000000001", jobId: "d0000000-0000-4000-8000-000000000002", batchId: "d0000000-0000-4000-8000-000000000003", revision: 1, resumedFromRunId: null, canResume: false, state: "queued", projectRevision: 1, preferencesVersion: 1, feedbackRevision: 0, steeringRevision: 0, demandSequence: 0, snapshotHash: "b".repeat(64), acceptedPolicyIdentity: "a".repeat(64), progress: 0, preparedSetId: null, fulfillment: null, accounting: { status: "held_unsettled", heldAllowanceMicrousd: 5_000_000, confirmedActualCostMicrousd: null }, createdAt: when, updatedAt: when };
 let root: Root, host: HTMLDivElement, overview: ProjectNamingOverview, server: NamingFeed, calls: { path: string; method: string; body: unknown }[], viewWrites: Partial<NamingViewState>[], holdView: Promise<boolean> | null, holdSteering: Promise<void> | null, holdFeed: Promise<void> | null, failSteering: boolean;
-function model() { return mock.model as { overview: ProjectNamingOverview; pending: boolean; actionError: string | null }; }
+function model() { return mock.model as ReturnType<typeof import("@/components/naming/use-project-naming").useProjectNaming>; }
 function publish(patch: Partial<ReturnType<typeof model>>) { mock.model = { ...model(), ...patch }; mock.notify(); }
 const button = (name: string) => [...host.querySelectorAll<HTMLButtonElement>("button")].find(element => element.textContent?.trim() === name || element.getAttribute("aria-label") === name || element.title === name);
 async function click(name: string) { const element = button(name); expect(element, name).toBeDefined(); await act(async () => element!.click()); }
@@ -187,4 +187,76 @@ it("allows explicit seed-only steering without an optional message or an automat
   await click("Send naming direction");
   expect(calls.filter(call => call.path.endsWith('/steering')).map(call => call.body)).toMatchObject([{ candidateIds: [candidateId], instruction: null }]);
   expect(mock.memory!.hasUnsaved()).toBe(false); expect(ensures()).toHaveLength(0);
+});
+
+it("keeps search controls, focus and newer text when a submitted listing is acknowledged", async () => {
+  await render(); await click("Saved names & history");
+  const field = host.querySelector<HTMLInputElement>('.project-naming-toolbar input[type="search"]')!;
+  const toolbar = field.closest("form")!, filter = toolbar.querySelector("select")!;
+  let acknowledge!: () => void;
+  const held = new Promise<void>(resolve => { acknowledge = resolve; });
+  vi.mocked(model().saveView).mockImplementationOnce(async patch => {
+    publish({ pending: true }); await held;
+    overview = { ...overview, session: { ...overview.session!, viewRevision: overview.session!.viewRevision + 1, viewState: { ...overview.session!.viewState, ...patch } }, candidates: { ...overview.candidates, items: [], nextCursor: null } };
+    publish({ overview, pending: false, listStatus: "loading" }); return true;
+  });
+  await input(field, "Juniper");
+  await act(async () => { toolbar.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })); });
+  await input(field, "Juniper with softer vowels"); field.focus();
+  await act(async () => acknowledge());
+  expect(host.querySelector('.project-naming-toolbar')).toBe(toolbar);
+  expect(toolbar.querySelector("input")).toBe(field); expect(toolbar.querySelector("select")).toBe(filter);
+  expect(document.activeElement).toBe(field); expect(field.value).toBe("Juniper with softer vowels");
+  expect(host.querySelectorAll(".project-naming-card")).toHaveLength(0);
+  expect(host.textContent).toContain("Loading names in this view"); expect(ensures()).toHaveLength(0);
+});
+
+it("synchronizes only clean search drafts across saved-view updates without replacing controls", async () => {
+  await render(); await click("Saved names & history");
+  const field = host.querySelector<HTMLInputElement>('.project-naming-toolbar input[type="search"]')!;
+  async function savedQuery(query: string) {
+    overview = { ...overview, session: { ...overview.session!, viewState: { ...overview.session!.viewState, query } } };
+    await act(async () => publish({ overview }));
+    expect(host.querySelector('.project-naming-toolbar input')).toBe(field);
+  }
+  await savedQuery("Juniper"); expect(field.value).toBe("Juniper");
+  await input(field, "Unsubmitted direction"); await savedQuery("Fir"); expect(field.value).toBe("Unsubmitted direction");
+  await input(field, "Fir"); await savedQuery(""); expect(field.value).toBe("");
+  expect(ensures()).toHaveLength(0);
+});
+
+it("keeps imported-only history controls mounted through a loading, empty and failed listing", async () => {
+  overview = { ...overview, preferences: null }; publish({ overview });
+  await render(); await click("Saved names & history");
+  const toolbar = host.querySelector('.project-naming-toolbar')!, field = toolbar.querySelector("input")!, filter = toolbar.querySelector("select")!;
+  await input(field, "Unsubmitted search");
+  overview = { ...overview, session: { ...overview.session!, viewState: { ...overview.session!.viewState, filter: "favorite" } }, candidates: { ...overview.candidates, items: [], nextCursor: null } };
+  for (const listStatus of ["loading", "ready", "failed"] as const) {
+    await act(async () => publish({ overview, listStatus, readError: listStatus === "failed" ? "Synthetic read failed" : null }));
+    expect(host.querySelector('.project-naming-toolbar')).toBe(toolbar);
+    expect(toolbar.querySelector("input")).toBe(field); expect(toolbar.querySelector("select")).toBe(filter);
+    expect(field.value).toBe("Unsubmitted search"); expect(host.querySelectorAll(".project-naming-card")).toHaveLength(0);
+    expect(button("Load more saved names")).toBeUndefined();
+  }
+  expect(host.textContent).toContain("This list could not be loaded"); expect(ensures()).toHaveLength(0);
+  overview = { ...overview, session: { ...overview.session!, viewState: { ...overview.session!.viewState, filter: "all", query: "" } } };
+  await act(async () => publish({ overview, listStatus: "ready", readError: null }));
+  expect(host.querySelector('.project-naming-toolbar')).toBe(toolbar);
+  expect(host.textContent).toContain("Review your Naming choices in the conversation");
+  expect(host.textContent).not.toContain("Your preferences are saved");
+});
+
+it("preserves an open batch history and its controls when filtering and choosing a batch", async () => {
+  const batch = namingBrainBatchSchema.parse({ version: 2, handlerVersion: "naming-brain-v1", billingMode: "openai_api", runId: activeRun.runId,
+    id: activeRun.batchId, ownerId, projectId, contextRevision: 1, strategyBasis: namingStrategyBasis(project.context), strategyKey: namingStrategyKey(project.context),
+    preferencesVersion: 1, preferences, favoritesSnapshot: [], acceptedPolicyIdentity: "a".repeat(64), targetCount: 100, sequence: 1, jobId: activeRun.jobId, createdAt: when });
+  overview = { ...overview, session: { ...overview.session!, latestBatchSequence: 1 }, batches: { ...overview.batches, items: [{ batch, result: null }] } }; publish({ overview });
+  await render(); await click("Saved names & history");
+  const history = host.querySelector<HTMLDetailsElement>(".project-naming-batch-history")!, filter = host.querySelector<HTMLSelectElement>('[aria-label="Filter project names"]')!, shown = host.querySelector<HTMLSelectElement>('[aria-label="Shown batch"]')!;
+  history.open = true;
+  await act(async () => { filter.value = "favorite"; filter.dispatchEvent(new Event("change", { bubbles: true })); });
+  await act(async () => { shown.value = batch.id; shown.dispatchEvent(new Event("change", { bubbles: true })); });
+  expect(host.querySelector(".project-naming-batch-history")).toBe(history); expect(history.open).toBe(true);
+  expect(host.querySelector('[aria-label="Filter project names"]')).toBe(filter); expect(host.querySelector('[aria-label="Shown batch"]')).toBe(shown);
+  expect(shown.value).toBe(batch.id); expect(ensures()).toHaveLength(0);
 });

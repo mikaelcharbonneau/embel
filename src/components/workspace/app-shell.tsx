@@ -52,9 +52,10 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const mainRef = useRef<HTMLElement>(null);
   const isHome = pathname === "/";
   const isNewProject = pathname === "/brands/new";
+  const isNewLogo = pathname === "/brands/logo/new";
   const ideaId = /^\/ideas\/([^/]+)$/.exec(pathname)?.[1];
   const projectWorkspace = /^\/brands\/(?:account\/)?[0-9a-f-]{36}(?:\/|$)/i.test(pathname);
-  const usesConceptShell = isNewProject || projectWorkspace || (pathname === "/sign-in" || pathname === "/sign-up") || pathname === "/settings" || pathname === "/trademarks" || pathname === "/assets" || pathname === "/brands" || isHome || pathname === "/ideas" || Boolean(ideaId) || pathname === "/domains" || pathname === "/handles" || pathname === "/names";
+  const usesConceptShell = isNewProject || isNewLogo || projectWorkspace || (pathname === "/sign-in" || pathname === "/sign-up") || pathname === "/settings" || pathname === "/trademarks" || pathname === "/assets" || pathname === "/brands" || isHome || pathname === "/ideas" || Boolean(ideaId) || pathname === "/domains" || pathname === "/handles" || pathname === "/names";
   const usesBottomFade = isHome || Boolean(ideaId);
   const menuRef = useRef<HTMLDialogElement>(null);
   const pageLabel = [...primary, ...tools, { href: "/settings", label: "Settings" }, { href: "/sign-in", label: "Sign in" }, { href: "/sign-up", label: "Create account" }].find((item) => item.href !== "/" && pathname.startsWith(item.href))?.label ?? "Home";
@@ -82,7 +83,7 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
     <aside className="sidebar"><SidebarContent pathname={pathname} concept={usesConceptShell} /></aside>
     <dialog className="mobile-menu" ref={menuRef} onCancel={() => setMenuOpen(false)} onClick={(event) => { if (event.target === event.currentTarget) setMenuOpen(false); }} aria-label="Navigation"><button className="icon-button mobile-close" aria-label="Close navigation" onClick={() => setMenuOpen(false)}><Icon name="close" /></button><SidebarContent pathname={pathname} close={() => setMenuOpen(false)} /></dialog>
     <div className="workspace-main">
-      <header className="topbar"><div className="topbar-left"><button className="icon-button mobile-menu-trigger" aria-label="Open navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}><Icon name="menu" /></button>{usesConceptShell && <><button className="icon-button workspace-sidebar-toggle" aria-label={expanded ? "Collapse navigation" : "Expand navigation"} aria-expanded={expanded} onClick={() => setExpanded(value => !value)}><Icon name="chevron" size={16} /></button><span className="workspace-breadcrumb-root">My workspace</span><span className="workspace-breadcrumb-slash" aria-hidden="true">/</span></>}{ideaId ? <IdeaBreadcrumb ideaId={ideaId} /> : pathname === "/names" ? <NamesBreadcrumb /> : <span>{pageLabel}</span>}</div>{usesConceptShell ? <WorkspaceAccountMenu /> : <div className="topbar-account-actions"><GenerationActivity /><AccountAccess /></div>}</header>
+      <header className="topbar"><div className="topbar-left"><button className="icon-button mobile-menu-trigger" aria-label="Open navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}><Icon name="menu" /></button>{usesConceptShell && <><button className="icon-button workspace-sidebar-toggle" aria-label={expanded ? "Collapse navigation" : "Expand navigation"} aria-expanded={expanded} onClick={() => setExpanded(value => !value)}><Icon name="chevron" size={16} /></button><span className="workspace-breadcrumb-root">My workspace</span><span className="workspace-breadcrumb-slash" aria-hidden="true">/</span></>}{ideaId ? <IdeaBreadcrumb ideaId={ideaId} /> : pathname === "/names" ? <NamesBreadcrumb /> : <span>{pageLabel}</span>}</div>{usesConceptShell ? <WorkspaceAccountMenu pathname={currentPathname} /> : <div className="topbar-account-actions"><GenerationActivity /><AccountAccess /></div>}</header>
       <AccountAccessNotice />
       <main id="main-content" ref={mainRef} tabIndex={-1}>{children}</main>
       {isHome && moreBelow && <div className="home-bottom-fade" aria-hidden="true" />}
@@ -107,18 +108,32 @@ function IdeaBreadcrumb({ ideaId }: { ideaId: string }) {
   return <div className="idea-breadcrumb"><Link href="/ideas" aria-label="Back to ideas">Ideas</Link><span className="idea-breadcrumb-divider" aria-hidden="true">/</span><span className="idea-breadcrumb-title">{title || "Idea detail"}</span></div>;
 }
 
-function WorkspaceAccountMenu() {
+function WorkspaceAccountMenu({ pathname }: { pathname: string }) {
   const { session } = useAccountSession();
   const profile = useAccountProfile();
   const menu = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const node = menu.current;
+    if (!node) return;
+    const modalOpen = () => Boolean(document.querySelector("dialog[open]"));
+    const outsidePointer = (event: PointerEvent) => {
+      if (!node.open || modalOpen() || !(event.target instanceof Node) || node.contains(event.target)) return;
+      // Let the outside control receive its normal pointer action and focus.
+      node.open = false;
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented || !node.open || modalOpen()) return;
+      event.preventDefault(); node.open = false; node.querySelector("summary")?.focus();
+    };
+    document.addEventListener("pointerdown", outsidePointer);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", outsidePointer);
+      document.removeEventListener("keydown", escape);
+    };
+  }, []);
+  useEffect(() => { if (menu.current) menu.current.open = false; }, [pathname]);
   const checking = session.status === "checking" || (session.status === "ready" && Boolean(profile?.busy) && !profile?.workspace);
   const label = session.status === "ready" ? (profile?.workspace?.saved.values.fullName || "My account") : session.status === "signed_out" ? "Sign in" : "Account";
-  return <details className="workspace-account-menu" ref={menu} onKeyDown={event => {
-    // A nested activity or sign-out dialog owns its own Escape dismissal.
-    if (event.key === "Escape" && !event.defaultPrevented && menu.current?.open && !(event.target instanceof Element && event.target.closest("dialog[open]"))) {
-      event.preventDefault();
-      menu.current.open = false;
-      menu.current.querySelector("summary")?.focus();
-    }
-  }}><summary aria-label="Account menu" aria-busy={checking}><span className="workspace-account-label" aria-busy={checking}>{checking ? <><span className="workspace-account-placeholder" aria-hidden="true" /><span className="sr-only" role="status">Checking account…</span></> : label}</span><span className="workspace-account-avatar"><Icon name="user" size={16} /></span></summary><div className="workspace-account-panel"><AccountAccess /><GenerationActivity /></div></details>;
+  return <details className="workspace-account-menu" ref={menu}><summary aria-label="Account menu" aria-busy={checking}><span className="workspace-account-label" aria-busy={checking}>{checking ? <><span className="workspace-account-placeholder" aria-hidden="true" /><span className="sr-only" role="status">Checking account…</span></> : label}</span><span className="workspace-account-avatar"><Icon name="user" size={16} /></span></summary><div className="workspace-account-panel"><AccountAccess /><GenerationActivity /></div></details>;
 }

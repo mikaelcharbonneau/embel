@@ -225,6 +225,62 @@ describe("loaded asset window reconciliation", () => {
 });
 
 describe("private query and request fencing", () => {
+  it("keeps loaded cards and pagination when the current normalized filters are selected again", async () => {
+    await loadTwoPages();
+    const previous = library.page!, query = library.query, card = host.querySelector("article"), count = reads.length;
+    await act(async () => library.changeQuery({ tab: "my_selection", projectId: undefined, format: undefined }));
+    expect(library.page).toBe(previous);
+    expect(library.query).toBe(query);
+    expect(host.querySelector("article")).toBe(card);
+    expect(reads).toHaveLength(count);
+    expect(library.status).toBe("ready");
+    await act(async () => library.loadMore());
+    expect(library.page?.items).toHaveLength(120);
+  });
+
+  it("does not abort an in-flight refresh when its current filters are selected again", async () => {
+    await loadTwoPages();
+    const previous = library.page!;
+    holdReads = true;
+    await act(async () => library.refresh());
+    const pending = pendingReads[0]!;
+    await act(async () => library.changeQuery({ ...library.query }));
+    expect(pending.signal.aborted).toBe(false);
+    expect(pendingReads).toHaveLength(1);
+    expect(library.page).toBe(previous);
+    await resolveRead(0); await resolveRead(1);
+    expect(library.status).toBe("ready");
+    expect(library.page?.items).toHaveLength(80);
+  });
+
+  it.each([
+    { tab: "all_generations" as const },
+    { tab: "my_selection" as const, projectId },
+    { tab: "my_selection" as const, format: "png" as const },
+  ])("preserves the current non-default filter %j without another read", async query => {
+    await loadTwoPages();
+    await act(async () => library.changeQuery(query));
+    const previous = library.page, card = host.querySelector("article"), count = reads.length;
+    await act(async () => library.changeQuery({ ...query }));
+    expect(library.page).toBe(previous);
+    expect(host.querySelector("article")).toBe(card);
+    expect(reads).toHaveLength(count);
+  });
+
+  it("compares against the last requested filters when changes arrive before a render", async () => {
+    await loadTwoPages();
+    holdReads = true;
+    await act(async () => {
+      library.changeQuery({ tab: "all_generations" });
+      library.changeQuery({ tab: "my_selection" });
+    });
+    expect(library.query.tab).toBe("my_selection");
+    expect(library.page).toBeNull();
+    expect(pendingReads).toHaveLength(1);
+    await resolveRead(0);
+    expect(library.page?.items).toHaveLength(40);
+  });
+
   it.each([
     { tab: "all_generations" as const },
     { tab: "my_selection" as const, projectId: otherProject },

@@ -12,6 +12,7 @@ import { IdentityDirectionsView } from "@/features/identity-directions/component
 import { fontCheckBinding } from "@/features/identity-directions/model/font-check-binding";
 import type { LogoMutationReceipt,LogoStageRevision,LogoWorkspaceV2 } from "@/domain/logo-workspace";
 import { directionFixture,id } from "./fixtures";
+import { createVectorHttpFixture } from "../logo-vector/http-fixture";
 const json=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status,headers:{"content-type":"application/json"}});
 const deferred=<T,>()=>{let resolve!:(value:T)=>void;const promise=new Promise<T>(yes=>{resolve=yes;});return{promise,resolve};};
 let mounted:Root|null=null;
@@ -58,6 +59,33 @@ async function mountDirections(){
  };
 }
 describe("mounted direction request lifecycle with local React DOM",()=>{
+ it("keeps verified approved-logo geometry visible during an equivalent refresh",async()=>{
+  const f=await mountDirections(),vector=createVectorHttpFixture().initial;
+  const scope={ownerId:f.overview.ownerId,projectId:f.overview.projectId};
+  const detail={...vector,sourcePreview:{...vector.sourcePreview,reference:{...vector.sourcePreview.reference,...scope}},
+   revision:{...vector.revision,...scope,id:id(4),sourcePreview:{...vector.revision.sourcePreview,...scope},
+    documentAsset:{...vector.revision.documentAsset,...scope},svgAsset:{...vector.revision.svgAsset,...scope}}};
+  const read=vi.spyOn(f.client,"readLogoVectorDetail").mockResolvedValue(detail);
+  try {
+   await act(async()=>{await f.controller.refresh();});
+   await until(()=>expect(f.container.querySelectorAll('svg[aria-label="Approved logo, unchanged"]')).toHaveLength(3));
+   const original=f.controller.approvedLogoDocument,node=f.container.querySelector('svg[aria-label="Approved logo, unchanged"]');
+   const pending=deferred<typeof detail|null>();read.mockReturnValue(pending.promise);
+   let refresh:Promise<void>|undefined;await act(async()=>{refresh=f.controller.refresh();});
+   await until(()=>expect(f.controller.overview).not.toBeNull());
+   expect(f.controller.approvedLogoDocument).toBe(original);expect(f.container.querySelector('svg[aria-label="Approved logo, unchanged"]')).toBe(node);
+   pending.resolve(detail);await act(async()=>{await refresh;});
+   expect(f.controller.approvedLogoDocument).toBe(original);expect(f.container.querySelector('svg[aria-label="Approved logo, unchanged"]')).toBe(node);
+   read.mockResolvedValue(null);await act(async()=>{await f.controller.refresh();});
+   expect(f.controller.approvedLogoDocument).toBeNull();expect(f.container.querySelector('svg[aria-label="Approved logo, unchanged"]')).toBeNull();
+   read.mockResolvedValue(detail);await act(async()=>{await f.controller.refresh();});
+   expect(f.controller.approvedLogoDocument).not.toBeNull();
+   const retained=f.memory.get(f.overview.projectId)!;
+   await act(async()=>{f.memory.set(f.overview.projectId,{...retained,workspace:{...retained.workspace!,approvedLogo:{...retained.workspace!.approvedLogo!,vectorRevisionId:id(404)}}});});
+   expect(f.controller.approvedLogoDocument).toBeNull();expect(f.container.querySelector('svg[aria-label="Approved logo, unchanged"]')).toBeNull();
+  }finally{f.client.dispose();}
+ });
+
  it("retaining an exact pending command does not abort its own delayed save",async()=>{
   const f=await mountDirections();let pending:Promise<void>|undefined;
   try{

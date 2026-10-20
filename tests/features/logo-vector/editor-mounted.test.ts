@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { webcrypto } from "node:crypto";
-import { act, createElement } from "react";
+import { act, createElement, useLayoutEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AccountSessionProvider, useAccountSession } from "../../../src/components/workspace/account-session";
+import type { LogoDraftMemory } from "../../../src/components/identity/logo-draft-memory";
 import { LogoEditorWorkspace } from "../../../src/features/logo-vector/components/logo-editor-workspace";
 import { createVectorHttpFixture, source } from "./http-fixture";
 import { dispatchLogoComparisonLoads } from "./preview-events";
@@ -11,7 +12,7 @@ import { dispatchLogoComparisonLoads } from "./preview-events";
 /** Mounted React with actual account/client/memory code, synthetic HTTP and
  * object URLs. This is not real-browser, raster decode or visual QA evidence. */
 describe("mounted account vector editor", () => {
-  let root: Root, host: HTMLDivElement;
+  let root: Root, host: HTMLDivElement, memory: LogoDraftMemory;
   beforeEach(() => {
     vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true); vi.stubGlobal("crypto", webcrypto);
     URL.createObjectURL = vi.fn(() => `blob:synthetic-${Math.random()}`); URL.revokeObjectURL = vi.fn();
@@ -28,7 +29,7 @@ describe("mounted account vector editor", () => {
   }
   async function mount(change?: (fixture: ReturnType<typeof createVectorHttpFixture>) => void, expectInvalid = false) {
     const f = createVectorHttpFixture(); change?.(f); vi.stubGlobal("fetch", f.fetcher);
-    function App() { const account = useAccountSession(); return createElement("div", null, createElement("button", { onClick: account.refresh }, "Recheck account"), createElement(LogoEditorWorkspace, { projectId: source.input.projectId })); }
+    function App() { const account = useAccountSession(); useLayoutEffect(() => { memory = account.logoDrafts; }); return createElement("div", null, createElement("button", { onClick: account.refresh }, "Recheck account"), createElement(LogoEditorWorkspace, { projectId: source.input.projectId })); }
     await act(async () => root.render(createElement(AccountSessionProvider, null, createElement(App))));
     await until(() => expectInvalid ? host.textContent!.includes("saved vector could not be verified") : !!host.querySelector('svg[aria-label="Vector candidate"]')); return f;
   }
@@ -58,6 +59,54 @@ describe("mounted account vector editor", () => {
     expect(host.querySelector('nav[aria-label="Logo and identity stages"] [aria-current="page"]')?.textContent).toBe("Vector review");
     expect(button("Accept this vector")).toBeUndefined(); expect(host.querySelector("svg")).toBeNull();
     expect(f.state.posts).toHaveLength(0);
+  });
+  it("keeps the same verified detail and original URL when the first local edit pins its current revision", async () => {
+    const detailReads: string[] = [];
+    const f = await mount(fixture => { const fetcher = fixture.fetcher; fixture.fetcher = async (input, options) => {
+      if (String(input).startsWith(`/api/projects/${source.input.projectId}/logo/vector/revisions/`)) detailReads.push(String(input));
+      return fetcher(input, options);
+    }; });
+    await until(() => button("Accept this vector")?.disabled === false);
+    expect(detailReads).toEqual([`/api/projects/${source.input.projectId}/logo/vector/revisions/${f.initial.revision.id}`]);
+    const controls = host.querySelector('[aria-label="Component controls"]'), components = host.querySelector('[aria-label="Saved logo components"]');
+    const originalUrl = host.querySelector('img[alt="Original concept"]')!.getAttribute("src");
+    await changeRotation("15");
+    expect(host.querySelector('[aria-label="Component controls"]')).toBe(controls);
+    expect(host.querySelector('[aria-label="Saved logo components"]')).toBe(components);
+    expect(host.textContent).not.toContain("Loading the saved vector candidate");
+    expect(URL.revokeObjectURL).not.toHaveBeenCalledWith(originalUrl);
+    expect(detailReads).toHaveLength(1); expect(button("Save edit")?.disabled).toBe(true);
+    await until(() => button("Save edit")?.disabled === false);
+    await click("Discard edit");
+    expect(host.querySelector('[aria-label="Component controls"]')).toBe(controls);
+    expect(URL.revokeObjectURL).not.toHaveBeenCalledWith(originalUrl);
+    expect(detailReads).toHaveLength(1); expect(f.state.posts).toHaveLength(0);
+  });
+  it("does not resurrect a released original when a different draft base is abandoned before its read settles", async () => {
+    const deferred = () => { let resolve!: () => void; const promise = new Promise<void>(yes => { resolve = yes; }); return { promise, resolve }; };
+    const other = deferred(), returned = deferred(); let returnPending = false, otherReads = 0, returnReads = 0;
+    const otherId = "75000000-0000-4000-8000-000000009999";
+    const f = await mount(fixture => { const fetcher = fixture.fetcher;
+      fixture.details.set(otherId, { ...fixture.initial, revision: { ...fixture.initial.revision, id: otherId } });
+      fixture.fetcher = async (input, options) => {
+        if (String(input).endsWith(`/vector/revisions/${otherId}`)) { otherReads++; await other.promise; }
+        if (returnPending && String(input).endsWith("/vector/current")) { returnReads++; await returned.promise; }
+        return fetcher(input, options);
+      };
+    });
+    await until(() => button("Accept this vector")?.disabled === false);
+    const originalUrl = host.querySelector('img[alt="Original concept"]')!.getAttribute("src"), retained = memory.get(source.input.projectId)!;
+    try {
+      await act(async () => memory.set(source.input.projectId, { ...retained, vectorDraft: { baseVectorRevisionId: otherId,
+        edit: { kind: "rotation", componentId: f.initial.document.components[0]!.id, degrees: 15 } } }));
+      await until(() => otherReads === 1); expect(host.querySelector('img[alt="Original concept"]')).toBeNull();
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith(originalUrl);
+      returnPending = true; await act(async () => memory.set(source.input.projectId, { ...retained, vectorDraft: null }));
+      await until(() => returnReads === 1); expect(host.querySelector('img[alt="Original concept"]')).toBeNull();
+      await act(async () => other.resolve()); expect(host.querySelector('img[alt="Original concept"]')).toBeNull();
+      await act(async () => returned.resolve()); await until(() => button("Accept this vector")?.disabled === false);
+      expect(host.querySelector('img[alt="Original concept"]')!.getAttribute("src")).not.toBe(originalUrl); expect(f.state.posts).toHaveLength(0);
+    } finally { other.resolve(); returned.resolve(); }
   });
   it("manual preview remains unsent until Save and a stored candidate stays unapproved", async () => {
     const f = await mount(); await changeRotation("15"); await until(() => host.textContent!.includes("Unsaved vector change"));

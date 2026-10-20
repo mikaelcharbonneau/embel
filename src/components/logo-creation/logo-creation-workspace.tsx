@@ -20,7 +20,7 @@ import { useLogoRefinementHistory } from "./use-logo-refinement-history";
 import { LogoRefinementGallery } from "./refinement-gallery";
 import { LogoVectorConversionControls } from "./vector-conversion-controls";
 import { logoBatchRecoveryRequestKeys, checkLogoBatchRequests, type LogoBatchRequestCheck } from "./batch-history";
-import { isAccountLogoClientCurrent } from "@/components/identity/account-logo-client";
+import { isAccountLogoClientCurrent, type AccountLogoClient } from "@/components/identity/account-logo-client";
 import { seedLogoBrief } from "./brief-model";
 import { LogoBriefFields } from "./brief-form";
 import { AccountLogoInputs } from "@/components/identity/account-logo-inputs";
@@ -75,7 +75,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
   const requestRead = useRef<AbortController | null>(null);
   const deliveredCreation = useRef<string | null>(null);
   const [strategy, setStrategy] = useState<{ busy: boolean; message: string | null; revision?: number; nameConflict: boolean }>({ busy: false, message: null, nameConflict: false });
-  const [batchRead, setBatchRead] = useState<{ id: string; revision: number; batch: LogoConceptBatch | null; unavailable: boolean } | null>(null);
+  const [batchRead, setBatchRead] = useState<{ id: string; client: AccountLogoClient; revision: number; batch: LogoConceptBatch | null; unavailable: boolean } | null>(null);
   const [requestReadouts, setRequestReadouts] = useState<Record<string, LogoBatchRequestCheck>>({});
   const [checkingRequest, setCheckingRequest] = useState(false);
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
@@ -107,7 +107,16 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
   const batchIds = [...new Set([...(dispatch?.batchId ? [dispatch.batchId] : []), ...batchHistoryState.items.map(batch => batch.id),
     ...(workspace.stagePayloads?.concepts?.payload.batchIds ?? []).slice().reverse(), ...(selectedBatchId && batchRead?.id === selectedBatchId && batchRead.batch ? [selectedBatchId] : [])])];
   const batchId = selectedBatchId && batchIds.includes(selectedBatchId) ? selectedBatchId : batchIds[0];
-  const activeBatch = batchRead && batchRead.id === batchId && batchRead.revision === workspaceRevision ? batchRead.batch : null;
+  const matchingBatchRead = client && projectId && saved?.ownerId === account.userId && saved.projectId === projectId
+    && isCurrent(account) && isAccountLogoClientCurrent(client, account, projectId) && batchRead?.client === client && batchRead.id === batchId ? batchRead : null;
+  // Successful immutable previews do not become different bytes when a selection
+  // advances workspace heads. Keep display separate from fresh action eligibility.
+  const activeBatch = matchingBatchRead?.batch ?? null;
+  const batchReady = !!matchingBatchRead && matchingBatchRead.revision === workspaceRevision && !matchingBatchRead.unavailable;
+  const savedBatchUnavailable = Boolean(matchingBatchRead?.unavailable || !activeBatch
+    && (conceptsScreen ? workspace.error || batchHistoryState.error : batchId));
+  const savedBatchLoading = Boolean(conceptsScreen && !activeBatch && !savedBatchUnavailable && (workspace.status !== "ready" || !saved || !client
+    || !batchHistoryState.loaded || saved.stages.concepts && !workspace.stagePayloads?.concepts || batchId));
   const pendingIntentKey = workspace.pendingIntent?.requestKey;
   const recoveryKeys = [...new Set([...(pendingIntentKey ? [pendingIntentKey] : []), ...logoBatchRecoveryRequestKeys(activeBatch)])];
   const activeRequest = generationState.request ?? recoveryKeys.map(key => requestReadouts[key]?.state).find(state => state !== null && state !== undefined) ?? null;
@@ -165,8 +174,8 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
       try {
         const batch = await client!.readLogoConceptBatch(batchId!, controller.signal);
         if (!current()) return;
-        setBatchRead(previous => batch ? { id: batchId!, revision: workspaceRevision!, batch, unavailable: false }
-          : previous && previous.id === batchId ? { ...previous, unavailable: true } : { id: batchId!, revision: workspaceRevision!, batch: null, unavailable: true });
+        setBatchRead(previous => batch ? { id: batchId!, client: client!, revision: workspaceRevision!, batch, unavailable: false }
+          : previous && previous.client === client && previous.id === batchId ? { ...previous, unavailable: true } : { id: batchId!, client: client!, revision: workspaceRevision!, batch: null, unavailable: true });
         if (batch?.slots.some(slot => ["queued", "running"].includes(slot.attempts.at(-1)?.state ?? ""))) timer = setTimeout(() => void read(), 3000);
         else if (generation?.getSnapshot().phase === "active") {
           await generation.checkRequest();
@@ -174,7 +183,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
           if (current() && retained && !retained.pendingIntent && !retained.dirty) void reloadWorkspace(false);
         }
       } catch {
-        if (current()) setBatchRead(previous => previous && previous.id === batchId ? { ...previous, unavailable: true } : { id: batchId!, revision: workspaceRevision!, batch: null, unavailable: true });
+        if (current()) setBatchRead(previous => previous && previous.client === client && previous.id === batchId ? { ...previous, unavailable: true } : { id: batchId!, client: client!, revision: workspaceRevision!, batch: null, unavailable: true });
       }
     }
     void read();
@@ -517,30 +526,30 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
     {conceptsScreen && projectId && <LogoSavedInputsStatus state={savedInputs} projectId={projectId} onChoice={choice => void prepareSavedInputs(choice)} onCancel={() => setSavedInputs({ status: "idle" })} onRefresh={() => { void capabilities.refresh(); void workspace.reload(false); }} />}
     {conceptsScreen && <div className={styles.conceptFilters} aria-label="Concept filters"><button type="button" aria-pressed={conceptFilter === "all"} onClick={() => setConceptFilter("all")}>All concepts · 6</button><button type="button" aria-pressed={conceptFilter === "saved"} onClick={() => setConceptFilter("saved")}>Selected</button><button type="button" disabled title="Concept likes are not available yet">Liked</button></div>}
     {workspace.error && conceptsScreen && <p className={styles.warning} role="alert">{workspace.error}</p>}
-    {activeBatch && workspace.stagePayloads?.brief_references?.id !== activeBatch.briefRevisionId && <p className={styles.warning}>This batch uses an earlier saved brief. Its original inputs and successful previews are kept.</p>}
+    {activeBatch && saved?.stages.brief_references && saved.stages.brief_references.id !== activeBatch.briefRevisionId && <p className={styles.warning}>This batch uses an earlier saved brief. Its original inputs and successful previews are kept.</p>}
     {conceptsScreen && <p className={styles.note} role="status">{selectionState.busy ? "Saving selection…" : selectionState.error ?? (selectedLogo ? "Selection saved." : "Choose a logo to select it.")}</p>}
     <LogoConceptGridView gallery={conceptsScreen} versions={cardVersions} selectedVersion={selectedLogo} selectionAt={workspace.stagePayloads?.concepts?.createdAt} viewedVersions={viewedVersions}
       onViewVersion={(slotId, key, count) => setViewedVersions(previous => ({ ...previous, [slotId]: { key, count } }))}
-      onSelectVersion={saved?.capabilities.save.status === "available" && !workspace.pending && !workspace.dirty && !draft?.conflict && editing ? source => void selectCandidate(source) : undefined} filter={conceptFilter} comparison={comparison} onCompare={compareCandidate} batch={activeBatch} savedBatchUnavailable={Boolean(batchId && !activeBatch)}
+      onSelectVersion={batchReady && saved?.capabilities.save.status === "available" && !workspace.pending && !workspace.dirty && !draft?.conflict && editing ? source => void selectCandidate(source) : undefined} filter={conceptFilter} comparison={comparison} onCompare={compareCandidate} batch={activeBatch} savedBatchUnavailable={savedBatchUnavailable} savedBatchLoading={savedBatchLoading}
       selected={selectedLogo?.kind === "concept" ? selectedLogo : null}
-      onSelect={saved?.capabilities.save.status === "available" && !workspace.pending && !workspace.dirty && editing ? source => void selectCandidate(source) : undefined}
+      onSelect={batchReady && saved?.capabilities.save.status === "available" && !workspace.pending && !workspace.dirty && editing ? source => void selectCandidate(source) : undefined}
       generation={capabilities.isAvailable("identity.logo_concept") ? { status: "available" } : { status: "unavailable", reason: "Concept generation is currently unavailable." }}
       refinement={capabilities.isAvailable("identity.logo_refine") ? { status: "available" } : { status: "unavailable", reason: "Image refinement is currently unavailable." }} plan={generationState.quote?.conceptPlan}
       renderPreview={client ? receipt => <LogoVerifiedPreview client={client} receipt={receipt} /> : undefined}
       allowInputPreparation={conceptsScreen}
       onRequestConcepts={conceptsScreen
-        ? !conceptReferenceLimitExceeded && !quoteReviewBlocked && batchHistoryState.loaded && !batchHistoryState.error && !batchId && generation && saved && editing && !workspace.pending && generationState.phase === "idle"
+        ? !savedBatchLoading && !savedBatchUnavailable && !conceptReferenceLimitExceeded && !quoteReviewBlocked && batchHistoryState.loaded && !batchHistoryState.error && !batchId && generation && saved && editing && !workspace.pending && generationState.phase === "idle"
           ? () => void prepareSavedInputs() : undefined
         : !conceptReferenceLimitExceeded && !quoteReviewBlocked && batchHistoryState.loaded && !batchHistoryState.error && generation && saved && workspace.stagePayloads?.brief_references && !workspace.pending && !workspace.dirty ? () => {
         const brief = workspace.stagePayloads!.brief_references!;
         void generation.prepare({ operation: "concepts", expected: saved.heads, briefRevisionId: brief.id, referenceSnapshotId: brief.payload.referenceSnapshotId });
       } : undefined}
-      onRequestMore={!conceptReferenceLimitExceeded && !quoteReviewBlocked && generation && saved && workspace.stagePayloads?.brief_references && !workspace.pending && !workspace.dirty ? () => {
+      onRequestMore={batchReady && !conceptReferenceLimitExceeded && !quoteReviewBlocked && generation && saved && workspace.stagePayloads?.brief_references && !workspace.pending && !workspace.dirty ? () => {
         const brief = workspace.stagePayloads!.brief_references!;
         void generation.prepare({ operation: "more_concepts", expected: saved.heads, briefRevisionId: brief.id, referenceSnapshotId: brief.payload.referenceSnapshotId });
       } : undefined}
-      onRequestRetryFailed={!quoteReviewBlocked && generation && saved && activeBatch && !workspace.pending && !workspace.dirty ? failedSlotIds => void generation.prepare({ operation: "retry_failed", expected: saved.heads, sourceBatchId: activeBatch.id, failedSlotIds }) : undefined}
-      onRequestRefine={!quoteReviewBlocked && generation && saved && !workspace.pending && !workspace.dirty && refineInstruction.trim() ? source => void generation.prepare({ operation: "refine_preview", expected: saved.heads, source, instruction: refineInstruction }) : undefined}
+      onRequestRetryFailed={batchReady && !quoteReviewBlocked && generation && saved && activeBatch && !workspace.pending && !workspace.dirty ? failedSlotIds => void generation.prepare({ operation: "retry_failed", expected: saved.heads, sourceBatchId: activeBatch.id, failedSlotIds }) : undefined}
+      onRequestRefine={batchReady && !quoteReviewBlocked && generation && saved && !workspace.pending && !workspace.dirty && refineInstruction.trim() ? source => void generation.prepare({ operation: "refine_preview", expected: saved.heads, source, instruction: refineInstruction }) : undefined}
       request={activeRequest} onCheckRequest={recoveryKeys.length > 0 && client && editing && !checkingRequest ? () => void checkRequest() : undefined} />
     {conceptsScreen && projectId && <div className={styles.continueToBoard}>{workspace.stagePayloads?.concepts?.payload.selected && !selectionState.busy
       ? <Link className={styles.primaryButton} href={`/brands/account/${projectId}/brand-board`}>Continue to brand board →</Link>

@@ -28,20 +28,26 @@ function AccountProjectChooser({ account }: { account: VerifiedAccount }) {
   const [query, setQuery] = useState("");
   const [projectId, setProjectId] = useState("");
   const [pending, setPending] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
   const currentListing = useRef<ProjectListing | null>(null);
   const request = useRef<AbortController | null>(null);
+  const retryRefresh = useRef(false);
   const active = useRef(false);
-  const load = useCallback(async () => {
+  const load = useCallback(async (refresh = false) => {
     if (!active.current || !isCurrent(account) || request.current) return;
     const controller = new AbortController(); request.current = controller;
-    setPending(true); setError(false);
+    retryRefresh.current = refresh;
+    setPending(true); setRefreshing(refresh); setError(false);
     const timeout = setTimeout(() => controller.abort(), 15_000);
     try {
-      const next = await readNamesAssistantProjects({ account, isCurrent, expire, previous: currentListing.current, signal: controller.signal });
+      const next = await readNamesAssistantProjects({ account, isCurrent, expire, previous: refresh ? null : currentListing.current, signal: controller.signal });
       if (!active.current || request.current !== controller || !isCurrent(account)) return;
       if (controller.signal.aborted) { setError(true); return; }
-      if (next) { currentListing.current = next; setListing(next); }
+      if (next) {
+        currentListing.current = next; setListing(next);
+        setProjectId(id => next.items.some(project => project.id === id && namesAssistantProjectHref(project, account)) ? id : "");
+      }
     } catch {
       if (active.current && request.current === controller && isCurrent(account)) setError(true);
     } finally {
@@ -61,7 +67,7 @@ function AccountProjectChooser({ account }: { account: VerifiedAccount }) {
   const projects = namesAssistantProjects(listing, account, query);
   const selected = projects.find(project => project.id === projectId);
   const href = selected ? namesAssistantProjectHref(selected, account) : null;
-  return <div className="names-assistant-projects">
+  return <div className="names-assistant-projects" aria-busy={pending}>
     {!listing && !error ? <p role="status">Loading your account projects…</p> : null}
     {listing ? <>
       <div className="names-assistant-fields"><label className="names-field">Search loaded projects<input type="search" value={query} maxLength={160} placeholder="Project title" onChange={event => { setQuery(event.target.value); setProjectId(""); }} /></label>
@@ -71,9 +77,10 @@ function AccountProjectChooser({ account }: { account: VerifiedAccount }) {
       {selected ? <p className="names-assistant-context">{selected.scope === "complete_brand" ? "Naming will check that this brand’s saved Strategy is reviewed." : "Naming will use this project’s saved description and show any missing Strategy."} Saved preferences, results, history and cancellation controls open in the project workspace.</p> : null}
       <div className="names-assistant-actions">{href ? <Link className="button primary small" href={href} prefetch={false} onNavigate={event => { if (!isCurrent(account)) event.preventDefault(); }}>Open project Naming<Icon name="arrow" size={14} /></Link> : <button className="button primary small" type="button" disabled>Choose a project to continue</button>}
         {listing.nextCursor && !error ? <button className="button secondary small" type="button" disabled={pending} onClick={() => void load()}>{pending ? "Loading more projects…" : "Load more projects"}</button> : null}
-        <button className="text-link" type="button" disabled={pending} onClick={() => { currentListing.current = null; setListing(null); setProjectId(""); void load(); }}>Refresh project list</button>
+        <button className="text-link" type="button" disabled={pending} onClick={() => void load(true)}>Refresh project list</button>
       </div>
+      <span className="sr-only" role="status">{pending ? refreshing ? "Refreshing your account projects…" : "Loading more account projects…" : ""}</span>
     </> : null}
-    {error ? <div className="form-error" role="alert"><p>Account projects could not be loaded.{listing ? " Your loaded projects remain available." : " Check your connection and try again."}</p><button className="button secondary small" type="button" disabled={pending} onClick={() => void load()}>Try loading projects again</button></div> : null}
+    {error ? <div className="form-error" role="alert"><p>Account projects could not be loaded.{listing ? " Your loaded projects remain available." : " Check your connection and try again."}</p><button className="button secondary small" type="button" disabled={pending} onClick={() => void load(retryRefresh.current)}>Try loading projects again</button></div> : null}
   </div>;
 }

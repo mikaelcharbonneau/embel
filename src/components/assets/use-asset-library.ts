@@ -10,6 +10,7 @@ export function useAssetLibrary(account: VerifiedAccount) {
   const { isCurrent, expire } = useAccountSession();
   const [client] = useState(() => createAccountAssetsClient(account, isCurrent, expire));
   const [query, setQuery] = useState<AssetLibraryQuery>({ tab: "my_selection", limit: 40 });
+  const requestedQuery = useRef(query);
   const [page, setPage] = useState<AssetLibraryPage | null>(null);
   const [projects, setProjects] = useState<AssetProjectSummary[]>([]);
   const [facetLimited, setFacetLimited] = useState(false);
@@ -61,9 +62,15 @@ export function useAssetLibrary(account: VerifiedAccount) {
   }, []);
   function changeQuery(next: Omit<AssetLibraryQuery, "cursor" | "limit">) {
     if (operation.current) return;
+    const current = requestedQuery.current;
+    if (current.tab === next.tab && current.projectId === next.projectId && current.format === next.format) return;
+    // Track the requested filter synchronously: several changes can arrive
+    // before React commits, and A → B → A must still issue the final A read.
+    const updated = { tab: next.tab, projectId: next.projectId, format: next.format, limit: 40 };
+    requestedQuery.current = updated;
     epoch.current += 1; sequence.current += 1; read.current?.abort();
     loaded.current = null;
-    setPage(null); setStatus("loading"); setError(null); setQuery({ tab: next.tab, projectId: next.projectId, format: next.format, limit: 40 });
+    setPage(null); setStatus("loading"); setError(null); setQuery(updated);
   }
   async function retain(item: AssetLibraryItem, field: "liked" | "saved") {
     const activePage = loaded.current;
