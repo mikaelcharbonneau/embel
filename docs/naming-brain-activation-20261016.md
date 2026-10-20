@@ -29,9 +29,10 @@ independently tested before another controlled restart. No auth credential,
 cookie policy or provider setting has changed. See the current availability
 investigation in [local prototype](local-prototype.md).
 
-All four local guided Strategy operations and Naming use `gpt-6-luna` for future
-requests. Build `fSVe3SllOhh0ZxeM-AMPx` runs on port 3106; fresh database
-readiness was verified before and after one automatic worker recovery. Existing
+At the recorded D080 switch, all four local guided Strategy operations and
+Naming were configured with `gpt-6-luna`. Build `fSVe3SllOhh0ZxeM-AMPx` ran on
+port 3106; fresh database readiness was verified before and after one automatic
+worker recovery. This is configuration history, not a future model selection. Existing
 374 names, Quince, 94 newer names, projects and preferences are preserved. No
 new paid batch ran during the switch. Typecheck, full lint and production build
 pass; the integration-suite permission fixture was corrected and retested
@@ -79,14 +80,11 @@ below are historical; earlier button/availability checks were not generation
 proof.
 
 The corrected chat and enabled Start exploring button had been verified in the
-signed-in page before that first request. After reviewing
-the corrected UI, the user requested the live Naming brain for real-name testing
-under the existing US$25 aggregate pilot ceiling and US$5 full hold per run
-([D072–D075](decisions.md)). The user also completed the dedicated OpenAI key's
-secure local save and selected the application model `gpt-6.1-sol` with `xhigh`
-reasoning. These approvals supersede the earlier preparation-only hold for this
-local activation. They do not approve public deployment, another provider/model,
-exporting protected hosted secrets or resetting a shared database password.
+signed-in page before the first request. The initial setup and pilot observations
+below are historical checkpoints, not reusable permission for spending, key use,
+credential retention, provider/model changes or activation. Protected hosted
+secrets must not be exported and shared database passwords must not be reset as
+a setup shortcut.
 
 The reviewed additive migration is installed and independently checked. The initial
 local web app built and started from source
@@ -273,7 +271,7 @@ it does not start this managed Naming graph.
 | Restricted runtime login and role OID | Separate Naming-only `fluid_naming_brain_worker` / actual OID `23033`: LOGIN, NOINHERIT, no privileged flags, zero outgoing memberships or owned objects, connection limit 4. Only incoming creator-admin membership is postgres with ADMIN=true, INHERIT=false, SET=false. Full native pooler qualification passed with session_user=current_user, verified TLS 1.3, all nine grants, null/false unrelated helpers, no direct table/column/private-schema access and two actual SQLSTATE 42501 forbidden reads. Existing API-worker OID `21484` and its password remain unchanged. Direct access remains unqualified after DNS ENOTFOUND. |
 | Restricted activation packet | Exact independently reviewed SQL SHA-256 `d8af098c5909ab0a0c52ab8dfbfd567d55382f3745448657ce671a61cd26b198`, installed once as `20261018004955_naming_brain_local_activation`. Exact nine Naming EXECUTEs; only four pre-existing PUBLIC owner/read-step helpers are additionally effective. No application table/column access, private schema USAGE, public schema CREATE or unrelated principal binding. |
 | Pilot and account allowance | Same pilot `742aefc5-b222-48a6-8ee6-668f818d3c2a`, corrected to actual owner `6840f4c2-15a6-45a7-97be-41e7e5e37f42` under the reviewed packet above. Original role/OID, deployment/model/policy/fingerprint and US$5/run / US$25 total remain unchanged. QA observed fresh readiness and actual project/prefs 14 availability `available`. Account limit 73,212,987 / historical spent and provider actual 760,449 / unrelated reserved 47,452,538 / available 25,000,000 micro-USD. Independent post-rollback admission read-back retained zero Naming runs/calls/holds and preserved every historical reservation. |
-| Model and managed API capability | User selected exact `gpt-6.1-sol` / `xhigh`. Read-only model and managed Agents session-list requests returned HTTP 200 using the securely saved key. No managed session was created and exact managed-model execution is still unverified. |
+| Historical model and managed API capability | Initial policy metadata recorded `gpt-6.1-sol` / `xhigh`. Read-only model and managed Agents session-list requests returned HTTP 200. No managed session was created during that setup check, so it did not verify managed-model execution. |
 
 Before authorized installation, compare local `git rev-parse HEAD`, tracked tree,
 clean worktree state and migration SHA-256 with the approved packet. Reconcile any
@@ -295,15 +293,13 @@ no object, so their live owners/ACLs cannot yet be validated. The existing valid
 function, user/auth/balance row, credential or direct/pooler login was used. This
 identifies the target and missing installation; it grants no activation authority.
 
-The current activation uses a **separate Naming-only restricted login**, because the
-existing API worker password is a sensitive hosted secret. Do not export that
+The historical activation installed a **separate Naming-only restricted login**,
+leaving the sensitive hosted API-worker password separate. Do not export that
 secret, rotate the shared role or grant the existing API worker Naming access.
-The user approved the new role, nine scoped grants, credential setup and local
-persistence under D075. Independent catalog read-back confirms actual OID `23033`
-and its exact pilot binding. The reviewed hidden-prompt helper's protected approval
-record binds that same OID; the user supplies the existing administrator password
-only to native psql and enters a new Naming password privately. After its local
-save, check `session_user`, `current_user`,
+Independent catalog read-back confirmed actual OID `23033`, its nine scoped
+grants and exact pilot binding. This records installed state, not permission to
+recreate a role or save a credential. Native identity qualification checks
+`session_user`, `current_user`,
 `pg_roles.oid`, `rolcanlogin`, `rolsuper`, `rolbypassrls`, inheritance and every role
 membership using the real direct connection and the actual pooler path. Confirm
 `api_text_restricted_role` accepts precisely this principal; a renamed/recreated
@@ -318,7 +314,7 @@ lifecycle; the last two are the trusted preference-readiness seam. Apply no wild
 install a worker login or grant these private functions to browser principals.
 All nine definitions match the installed reviewed migration source. Their exact
 live ACLs and the new restricted role's effective privileges were independently
-read back after the D075-authorized provisioning packet. No grant to the old
+read back after the historical provisioning packet. No grant to the old
 API-worker role was added.
 
 ```sql
@@ -403,11 +399,11 @@ Both paid gates and SQL readiness must pass. SQL separately binds the owner,
 restricted login/OID, deployment, exact policy and readiness fingerprint; its
 pilot must be enabled and its heartbeat fresh. `worker/index.ts` receives these
 keys from its invoking environment; it does not load a Naming credential file.
-The user approved and completed the OpenAI key's secure save to the ignored
-`/Users/mikael/embel/.local-fluid/naming-worker.env`: an owner-only 0600 regular
-file under a 0700 directory. The user subsequently saved the approved separate
-Naming database connection there. Presence/permissions and boolean-only parsing
-checks pass. Historical pooler authentication returned `28P01` twice. The user
+At setup, the ignored `/Users/mikael/embel/.local-fluid/naming-worker.env`
+contained the separate Naming provider/database configuration in an owner-only
+0600 regular file under a 0700 directory. Presence/permissions and boolean-only
+parsing checks passed. This records configuration safeguards, not permission to
+read, copy or reuse the credentials. Historical pooler authentication returned `28P01` twice. The user
 then completed the reviewed save-only correction, which verifies the existing
 Naming password on the same encrypted restricted connection before replacing
 only the database entry and preserving the OpenAI key. No agent ran the hidden
@@ -437,20 +433,19 @@ exists with mode 0600 and contains the public web configuration key names and
 presence was inspected, never secret values. This does not describe any hosted or
 running-process configuration and is not permission to copy private runtime files.
 
-## Funding and known-session observation
+## Historical pilot accounting and known-session observation
 
-The user approved the operator account allowance for one US$25 Naming pilot.
-D076 corrected its mistaken legacy test-owner binding to the actual owner while
-preserving historical spent/provider-actual 760,449 and unrelated reserved
-47,452,538 micro-USD. Independent read-back confirms exactly US$25 remains
-available under the counters above; this does not establish OpenAI
-billing-account funding. Read back the account balance and complete pilot
-commitment before enabling a new run. Every paid run
-holds 5,000,000 micro-USD (US$5). Aggregate commitment is **confirmed final expense
-plus every full unsettled hold**, at most 25,000,000 micro-USD (US$25); at most five
-fully held unreconciled runs fit an otherwise empty pilot. Ordinary account
-reservation rules apply as well. Completion does not release the hold. Estimates,
-session caps and provisional spend counters cannot create expense or a refund.
+D076 corrected the initial pilot's mistaken legacy test-owner binding while
+preserving spent/provider-actual 760,449 and unrelated reserved 47,452,538
+micro-USD. That read-back found US$25 available under the installed counters;
+it did not establish provider-account funding. The original policy held
+5,000,000 micro-USD (US$5) per run against a 25,000,000-micro-USD (US$25)
+aggregate ceiling, allowing at most five fully held unreconciled runs in an
+otherwise empty pilot. Its aggregate commitment included confirmed final
+expense plus every full unsettled hold. These are historical policy values,
+not current spending permission or instructions to restore those limits.
+Completion alone, estimates, session caps and provisional spend counters do not
+establish final expense or authorize releasing a historical hold.
 
 Unknown create/dispatch identity, unresolved execution or observed overrun blocks
 new work even when arithmetic headroom exists. Known-session recovery must use the
@@ -511,37 +506,6 @@ Keep sustainable-coffee and Namelix comparison answers outside model prompts.
 Record output fulfillment separately from nullable final charges. Do not describe
 local synthetic results as live generation, native database isolation or billing
 qualification.
-
-## Minimal path to the first local real-name test
-
-1. The local source gate is complete at d654d62: full frozen-source matrix,
-   whole-branch review and scoped F1–F7 closure (7/0/0). Preserve that tested
-   commit/tree/manifest and the migration/normalizer digests above. This completes
-   local source qualification only; the following live steps retain their gates.
-2. Preserve the installed/read-back migration; do not replay it. Under the exact
-   D075 Naming-login and allowance approval, provision/read back only the nine
-   scoped EXECUTE grants on `fluid-platform-dev` (`fricsfwqibyhemknqgyf`) for the
-   new `fluid_naming_brain_worker`, verify its actual OID and native login, and
-   bind the confirmed owner, policy, runtime fingerprint and deployment. Complete
-   its secure local credential setup, verify available account funding, then
-   validate attestation/readiness before enabling paid admission. Existing
-   `fluid_api_text_worker`/OID `21484` and its sensitive password stay unchanged.
-   Any new credential, grant or funding change needs its exact action authority;
-   the US$25 ceiling does not itself perform or approve those acts.
-3. Use the same reviewed local web/Node source, sign into the intended account,
-   save its Naming choices, and admit one explicitly approved initial run with a
-   full US$5 hold inside the US$25 total. Review actual published names and retained
-   evidence; keep final charges null and the full hold until verified settlement.
-
-The local setup gates are complete: source/build, actual restricted pooler login,
-exact grants/pilot/allowance, reviewed sanitized worker launch and fresh available
-readiness passed independent checks. The worker's two paid flags are true only in
-its isolated Naming environment; every dispatch still requires the exact SQL
-policy, owner, held allowance and readiness. Opening the UI is not a provider
-test. The first real run is left to the user in the signed-in local app, under the
-approved US$5 hold and US$25 aggregate ceiling. Actual generated names, managed
-execution quality and final billing have not been validated by setup. A public
-deployment is not required for this local browser test.
 
 ## Revision-bound pause and rollback
 

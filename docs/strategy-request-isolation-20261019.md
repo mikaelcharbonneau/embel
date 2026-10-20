@@ -1,11 +1,11 @@
 # Hosted Strategy request isolation — 2026-10-19
 
-## Approved repair
+## Historical repair scope
 
-D086 authorizes correcting both hosted Strategy admission blockers and the
-misleading unavailable message, deploying the verified source, and exercising
-real competitor research in the existing protected production app. Saved work,
-historical requests, results and accounting must remain intact.
+This repair concerned the hosted Strategy admission blockers and misleading
+unavailable message. Its source, deployment and real-research results are
+recorded below; this document grants no new deployment or paid-test authority.
+Saved work, historical requests, results and accounting must remain intact.
 
 ## Confirmed incident
 

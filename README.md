@@ -4,7 +4,7 @@ Embel is an account-based brand-building workspace for moving from an idea to st
 
 The product was renamed from Fluid to **Embel** on 2026-10-13. The private GitHub repository is now `mikaelcharbonneau/embel`; its earlier `emble` URL redirects there. Existing `FLUID_*` settings, storage keys, service identifiers and historical design references retain their original names for compatibility; see [the branding record](docs/embel-branding.md).
 
-For the subsequently authorized Codex Cloud setup and the latest Home/Ideas design handoff, read [Cloud development](docs/cloud-development.md). The source-checkpoint verification limits below describe the earlier transfer; later verification is recorded separately and does not imply live provider acceptance.
+For the historical Codex Cloud setup and Home/Ideas design handoff, read [Cloud development](docs/cloud-development.md). The source-checkpoint verification limits below describe the earlier transfer; later verification is recorded separately and does not imply live provider acceptance.
 
 ## Product and user journey
 

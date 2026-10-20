@@ -105,9 +105,9 @@ Installation added no receipt or privilege. The separate
 [apply-packet template](../supabase/candidates/research_operator_abandonment_beb22588_apply.sql),
 SHA-256 `c18469a42d55bfb386f7831c6c7a00246a3bb4c0406f26f4743ccdac09ea5336`,
 was instantiated with the deliberate lead operator decision
-`operator-decision:lead-local-preview-repair-20261015-beb22588` under the user's
-testing-account repair request. This is not a claim of separate human approval
-or a verified provider invoice. The checked-in template retains its invalid
+`operator-decision:lead-local-preview-repair-20261015-beb22588`. This records
+that incident-specific decision, not reusable repair authority, separate human
+approval or a verified provider invoice. The checked-in template retains its invalid
 placeholder so it cannot be reused without another explicit operator decision.
 
 At 22:36 America/Toronto, the exact job was marked failed and an immutable

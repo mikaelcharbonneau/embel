@@ -1,8 +1,8 @@
 # Codex Cloud development handoff
 
-## Authorized scope — 2026-10-09
+## Historical setup scope — 2026-10-09
 
-The user requested moving this local project into Codex Cloud and approved the proposed private repository, cloud environment setup, verification and new cloud chat handoff. Keep the local checkout available. This is development-environment setup, not a production release, provider activation or approval for additional app inference costs.
+This document records the private repository and Codex Cloud development setup workstream, its verification and handoff requirements. The local checkout remains a separate source to preserve. This record does not authorize a new cloud task, environment setup, credential transfer, production release, provider activation or additional app inference costs.
 
 The private repository is `mikaelcharbonneau/emble`; the product is **Embel** (formerly Fluid). Its existing checkpoint `b31570281f25e9ae74b3676f480578115a533b1c` was identified by matching 1,230 local file hashes and confirming that it contained no remote-only files. Git metadata was restored in the existing checkout without replacing source files. Do not import other Fluid implementations.
 
@@ -10,7 +10,7 @@ The private repository is `mikaelcharbonneau/emble`; the product is **Embel** (f
 
 Use the private **emble** environment for this repository's `main` branch. Node.js 24 (`.nvmrc`) and the committed npm lockfile are required. The project has native dependencies, so install them for the cloud host; do not upload the Mac's `node_modules`.
 
-For subsequent handoffs, use the latest shared verified `main` revision, check actual HEAD/status before starting, and preserve independent work before updating. The user-approved reconciliation procedure and separate local/cloud evidence are recorded in [local/cloud synchronization](local-cloud-sync.md). A saved cloud environment or older preview is not proof of the currently deployed revision.
+For subsequent handoffs, use the latest shared verified `main` revision, check actual HEAD/status before starting, and preserve independent work before updating. The reconciliation procedure and separate local/cloud evidence are recorded in [local/cloud synchronization](local-cloud-sync.md). A saved cloud environment or older preview is not proof of the currently deployed revision.
 
 For a fresh environment, the general installation commands are:
 
@@ -68,7 +68,7 @@ Cloud's documented lack of interactive computer/browser use does not remove the 
 
 ## First cloud chat
 
-Use GPT-6 Astra with Max reasoning, as required by the current root instructions. Suggested initial request:
+Suggested initial request:
 
 > Continue Embel in this cloud environment. Read AGENTS.md, docs/cloud-development.md, docs/decisions.md, docs/architecture.md, README.md and the Home/Ideas design records. Verify the checked-out revision and report environment readiness and the remaining product gaps. Keep the app's approved design and ownership boundaries. Do not activate paid inference, copy Mac credentials, apply migrations or deploy. Do not begin a new feature until we choose the next task together.
 

@@ -8,4 +8,4 @@ Original grid and 13 icons are unmodified native SVG exports in public/assets-li
 
 Collection vocabulary now says Projects. Likes/saves and additional version metadata remain accessible in each card's Actions menu, revealed on hover, keyboard focus and touch devices. Details remain available from both the preview and original chevron. Tabs retain active filters during keyboard navigation. Action menus are exclusive and Escape also dismisses them after a retention write temporarily disables the focused control. Narrow screens use one column.
 
-No provider activation, new storage ingestion, migration, credential change or public release is included. Verification uses dedicated headless browsers and synthetic account/file replies; it does not establish live account/provider acceptance. Private-preview publishing follows D021.
+No provider activation, new storage ingestion, migration, credential change or public release is included. Verification uses dedicated headless browsers and synthetic account/file replies; it does not establish live account/provider acceptance. This verification record does not authorize private-preview publication.

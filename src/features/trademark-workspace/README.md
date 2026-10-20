@@ -19,7 +19,7 @@ Pure public helpers: `validateTrademarkDraft` (strict Zod shape and product-size
 - Territory-versioned filing rules, verified document/classification requirements, official portal links, real files and an official export format still need definition and validation. No upload is performed. General fields here are a preparatory intake, not legal filing validation.
 - No filing, filed/registered transitions, registry requests, legal clearance, definitive registrability or new backend is implemented.
 
-The roadmap's proposed Bibliothèque/Recherche/Dépôt labels are open decisions. This independent surface uses Dossier/Research/Draft preview and leaves a persistent library and official filing handoff to integration. Current delegated instructions override older Astra-only and no-specialist-commit text in the baseline; no nested agents were used.
+The roadmap's proposed Bibliothèque/Recherche/Dépôt labels are open decisions. This independent surface uses Dossier/Research/Draft preview and leaves a persistent library and official filing handoff to integration. Current delegated instructions override older no-specialist-commit text in the baseline; no nested agents were used.
 
 ## Verification commands
 

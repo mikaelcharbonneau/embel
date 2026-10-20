@@ -1,9 +1,11 @@
 # Complete local source synchronization — 2026-10-18
 
-## Approved scope and preservation
+## Historical scope and preservation
 
-D081 authorizes publishing all local app changes, merging them into `main`, and
-updating `/Users/mikael/embel` to that same merged revision.
+This workstream concerned reconciling the complete local source with shared
+`main` and aligning `/Users/mikael/embel` to the reviewed revision. The results
+below are historical evidence, not permission for another publication, merge,
+checkout update or process restart.
 
 The complete non-ignored source was preserved before reconciliation: 2,025 files
 from local HEAD `b2ff6ce8bbc2f176625bf4b4bff6132eb5e4bf75`, including all

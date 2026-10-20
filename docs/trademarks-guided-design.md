@@ -12,4 +12,4 @@ Account saving, import replacement confirmation, revision conflict and uncertain
 
 Verification uses dedicated headless desktop/mobile browsers and synthetic account/provider replies only. Original SVG exports, hashes, screenshots, check results and deployment receipts are retained outside the checkout at `/workspace/scratch/fluid-trademarks-figma-20261010/`. These do not establish live registry research, database acceptance or hosted authenticated editing.
 
-The existing D021 protected preview milestone applies. Preserve Vercel Authentication for all deployments. No migration, new credentials, paid provider call, registry activation or public release is included.
+This design record does not authorize a new preview release or changes to deployment protection. No migration, new credentials, paid provider call, registry activation or public release is included.

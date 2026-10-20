@@ -1,6 +1,6 @@
 # Projects
 
-The user approved implementing the former Brands collection as Projects from [Fluid — Screens, page 3:2](https://www.figma.com/design/HP219GuYbpE8F1wHxj0h6N/Fluid-%E2%80%94-Screens?node-id=3-2) on 2026-10-10. Frames 5:2 and 6:54 define the populated and empty states. This continues the approved private preview milestones; it does not authorize provider spending, migrations or public access changes.
+The user approved implementing the former Brands collection as Projects from [Fluid — Screens, page 3:2](https://www.figma.com/design/HP219GuYbpE8F1wHxj0h6N/Fluid-%E2%80%94-Screens?node-id=3-2) on 2026-10-10. Frames 5:2 and 6:54 define the populated and empty states. This design record does not authorize preview publication, provider spending, migrations or public access changes.
 
 The collection now uses the approved 80px rail, 76px toolbar, 1008px workbench, three 324×264px cards per desktop row, search, Filter and Sort controls, and the first-project empty state. Mobile has a single column and the existing navigation dialog. Thirty-one original SVG exports preserve the native geometry and bytes for both shell variants, grids and actions. Reference project names and descriptions appear only in explicitly synthetic browser fixtures.
 

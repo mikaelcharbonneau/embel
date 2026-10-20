@@ -26,7 +26,7 @@ These supersede the earlier Domains Advanced Search variation for this UI reques
 
 The mockup's prices, registrars and personal identity are illustrative. Runtime rows show actual supplied evidence, or Unknown / Not quoted. Premium classification is unavailable and its switch is disabled. Hide unavailable removes only rows with current verified taken evidence. Price filters and sorting use current one-year USD quotes; unknown, expired or incomparable prices remain visible. No exchange rates or estimated annual prices are invented.
 
-The registrar adapter remains unavailable by default. No provider activation, purchases, paid calls, migrations or credential transfers are included. The subsequent user-approved reconciliation authorizes preserving both versions, publishing one reviewed PR, merging its verified revision, updating both checkouts and deploying that same revision to the existing protected preview.
+The registrar adapter remains unavailable by default. No provider activation, purchases, paid calls, migrations or credential transfers are included. The subsequent reconciliation workstream concerned preserving both versions and aligning a reviewed source revision across the checkouts and protected preview. Its history is not permission for another publication, merge or deployment.
 
 ## Verification
 

@@ -44,8 +44,8 @@ evidence tuples; there is no runtime incident-registration API. The existing
 receipt matcher and account/rollout pause predicates remain byte-for-byte
 unchanged. The original receipt remains immutable and valid.
 
-The separate application packet recorded the lead's deliberate operator
-decision under the existing testing-account repair authorization, referenced as
+The separate application packet recorded the lead's incident-specific operator
+decision, referenced as
 `operator-decision:lead-testing-account-recovery-20261015-5f31a4ff`.
 This is an operator decision, not a claim of separate human approval or verified
 provider billing. It changed only this job's state, error and completion time

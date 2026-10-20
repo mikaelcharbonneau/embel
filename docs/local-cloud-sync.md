@@ -1,8 +1,8 @@
 # Local/cloud reconciliation — 2026-10-10
 
-## Approved scope
+## Historical reconciliation scope
 
-D051 authorizes preserving both versions, reconciling the latest Wonder Domains design with useful cloud behavior, transferring current references, publishing and merging one verified PR, updating both checkouts to that merged revision, and deploying it to the existing protected Vercel preview. Runtime credentials, ignored files and service permissions do not transfer through Git.
+The reconciliation workstream concerned preserving the local Wonder Domains design and useful cloud behavior, retaining reference provenance, and aligning a reviewed source revision across both checkouts and the protected preview. The evidence below records actual results; this document grants no new transfer, publication, merge or deployment authority. Runtime credentials, ignored files and service permissions do not transfer through Git.
 
 ## Preserved sources
 
