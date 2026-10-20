@@ -1,5 +1,5 @@
 import { inspirationCatalog, type InspirationChoice } from "@/domain/inspiration";
-import type { LogoType } from "@/domain/logo-workspace";
+import type { LogoRasterSource, LogoType, LogoWorkspaceV2 } from "@/domain/logo-workspace";
 
 const hues = [
   { tag: "blue", name: "Electric blue", hex: "#2454DB" },
@@ -17,7 +17,15 @@ export function contrastRatio(a: string, b: string) {
   const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return (light! + .05) / (dark! + .05);
 }
-/** A repeatable design proposal from acknowledged choices, never sampled brand colors or AI output. */
+/** Only the inputs to the displayed raster selection can make it need review.
+ * Later vector, direction or export work does not replace that saved image. */
+export function brandBoardLogoNeedsReview(staleStages: LogoWorkspaceV2["staleStages"], selected: LogoRasterSource) {
+  return staleStages.some(({ stage }) => stage === "brief_references" || stage === "concepts"
+    || selected.kind === "refinement" && stage === "refinements");
+}
+
+/** A repeatable presentation proposal from acknowledged choices, never sampled
+ * brand colors, AI output or a persisted/approved identity decision. */
 export function brandBoardDirection(choices: readonly InspirationChoice[], logoType: LogoType) {
   const references = inspirationCatalog.flatMap(design => {
     const choice = choices.find(item => item.referenceId === design.id);
@@ -29,6 +37,8 @@ export function brandBoardDirection(choices: readonly InspirationChoice[], logoT
   const boldReferences = references.some(({ design, choice }) => (choice.ensemble || choice.elements.includes("typography")) && design.tags.includes("bold"));
   const expressive = boldReferences || logoType === "abstract" || logoType === "pictorial" || logoType === "emblem";
   return {
+    status: "proposal" as const,
+    paletteSource: primary.score ? "saved_inspiration" as const : "neutral_default" as const,
     references: references.map(({ design }) => design), primary, accent,
     palette: [
       { name: primary.name, hex: primary.hex, role: "Primary · buttons & key surfaces", foreground: "#FFFFFF" },
@@ -37,7 +47,7 @@ export function brandBoardDirection(choices: readonly InspirationChoice[], logoT
       { name: "Warm paper", hex: "#F5F3EC", role: "Background · quiet surfaces", foreground: "#191919" },
       { name: "White", hex: "#FFFFFF", role: "Surface · logo clear space", foreground: "#191919" },
     ],
-    type: { family: "Geist Sans", headingWeight: expressive ? 700 : 600, tracking: expressive ? "-0.045em" : "-0.03em", rationale: expressive ? boldReferences ? "Bold typography in your saved inspiration informs a compact, confident sans serif hierarchy around your selected logo." : "A bold, compact sans serif balances the character of your selected mark." : "Clean, open letterforms support your selected logo without imitating its custom lettering." },
+    type: { source: "preview_default" as const, family: "Geist Sans", headingWeight: expressive ? 700 : 600, tracking: expressive ? "-0.045em" : "-0.03em", rationale: expressive ? boldReferences ? "Bold typography in your saved inspiration informs a compact, confident sans serif hierarchy around your selected logo." : "A bold, compact sans serif balances the character of your selected mark." : "Clean, open letterforms support your selected logo without imitating its custom lettering." },
     rationale: primary.score ? `${/^[aeiou]/i.test(primary.name) ? "An" : "A"} ${primary.name.toLowerCase()} lead with ${accent.name.toLowerCase()} accents translates the color qualities in your saved inspiration into an original palette.` : "A restrained neutral system lets your selected logo lead. Choose color inspiration to develop a more expressive palette.",
   };
 }

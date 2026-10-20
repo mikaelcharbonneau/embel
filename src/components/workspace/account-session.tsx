@@ -272,8 +272,17 @@ export function useAccountSession() {
 }
 
 export function AccountStatus({ retainedEdits = false }: { retainedEdits?: boolean }) {
-  const { session, signingIn, signingUp, signingOut, signOutError } = useAccountSession();
+  const { session, refresh, signingIn, signingUp, signingOut, signOutError } = useAccountSession();
+  const retryGeneration = useRef<number | null>(null);
   if (session.status === "ready") return null;
+  const canRetry = (session.status === "error" || session.status === "unavailable") && !signingIn && !signingOut;
+  function checkAccount() {
+    // Guard repeated activation before React renders the checking state. Only
+    // the existing session refresh can verify identity or release private views.
+    if (!canRetry || retryGeneration.current === session.generation) return;
+    retryGeneration.current = session.generation;
+    refresh();
+  }
   const message = signingIn ? `${signingUp ? "Creating your account" : "Signing in"}… Account content is hidden while the request completes.` : signingOut ? "Signing out… Account content is hidden while the request completes." : signOutError ? "Account content remains hidden until your session is verified." : session.status === "checking" ? "Checking your account…" : session.status === "unavailable" ? "Account saving is unavailable. Check your connection and try again. Unsaved edits are kept in this tab." : session.status === "signed_out" ? "No verified account session. Sign in to view your account projects." : "Your account session could not be verified. Check your connection and try again.";
-  return <div className="account-notice" role="status"><p>{message}</p>{session.status === "signed_out" && <Link className="text-link" href="/sign-in">Sign in</Link>}{retainedEdits && <p>Unsaved account edits are held in this tab. Check your account after restoring the same session to recover them.</p>}</div>;
+  return <div className="account-notice" role="status"><p>{message}</p>{session.status === "signed_out" && <Link className="text-link" href="/sign-in">Sign in</Link>}{canRetry && <button type="button" className="button secondary small" onClick={checkAccount}>Check account</button>}{retainedEdits && <p>Unsaved account edits are held in this tab. Check your account after restoring the same session to recover them.</p>}</div>;
 }
