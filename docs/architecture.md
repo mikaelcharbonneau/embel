@@ -452,11 +452,13 @@ Name.com adds an explicitly enabled, server-credential-gated alternative to the 
 
 ## Recoverable project deletion
 
-The project-card confirmation stops work and records a recoverable deletion intent
+The project-card confirmation requests cancellation and records a recoverable deletion intent
 in one owner-scoped transaction. Acknowledged intent removes the project from the
-active collection and fences admissions and stale owner edits; Deleted projects
-shows Stopping, Awaiting resolution, or Deleted from retained job and accounting
-evidence. Existing workers may finish authorized evidence and cost settlement.
+active collection and fences admissions and stale owner edits. Every acknowledged
+deletion immediately shows Deleted, with a secondary Cancellation requested line
+only while work is stopping. Internal job and accounting status remains separate
+from visible deletion and Restore availability. Already-started provider work may
+still finish; existing workers may retain authorized evidence and cost settlement.
 Queued cancellation uses proven no-dispatch evidence, existing settlement rules,
 and nonblocking lock acquisition so contention retries the request without
 changing worker lock behavior. Derived completion needs no finalizer or cron.

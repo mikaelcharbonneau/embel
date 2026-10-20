@@ -90,12 +90,23 @@ afterEach(async () => {
   vi.useRealTimers();
 });
 
-describe("read-only pending project deletion status", () => {
+describe("deleted project presentation and read-only work status", () => {
+  it.each([stopping, awaiting, completed])("shows $deletion_state as Deleted before any status read", async project => {
+    await render(project);
+    expect(host.querySelector(".project-deletion-state")?.textContent).toBe("Deleted");
+    expect(host.querySelector(".project-deletion-state--deleted")).not.toBeNull();
+    expect(host.textContent).not.toMatch(/Stopping|Awaiting resolution|updates automatically|stopped automatically/);
+    expect(host.textContent?.includes("Cancellation requested")).toBe(project.deletion_state === "stopping");
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(updated).not.toHaveBeenCalled();
+    expect(project.deleted_at).toBeNull();
+  });
+
   it("checks every five seconds with the owner fence and observes same-version completion", async () => {
     fetcher.mockResolvedValueOnce(response(stopping)).mockResolvedValueOnce(response(completed));
     await render();
-    expect(host.querySelector('[role="status"]')?.textContent).toContain("Stopping…");
-    expect(host.textContent).toContain("Active work is being stopped automatically.");
+    expect(host.querySelector(".project-deletion-state")?.textContent).toBe("Deleted");
+    expect(host.textContent).toContain("Cancellation requested");
     await advance(4_999);
     expect(fetcher).not.toHaveBeenCalled();
     await advance(1);
@@ -120,12 +131,11 @@ describe("read-only pending project deletion status", () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
-  it("labels unresolved work honestly and checks it every thirty seconds", async () => {
+  it("keeps unresolved work internal while showing Deleted and checking every thirty seconds", async () => {
     fetcher.mockImplementation(async () => response(awaiting));
     await render(awaiting);
-    expect(host.querySelector('[role="status"]')?.textContent).toContain("Awaiting resolution");
-    expect(host.textContent).toContain("The remaining work is awaiting resolution. Its status updates automatically.");
-    expect(host.textContent).not.toContain("Active work is being stopped automatically.");
+    expect(host.querySelector('[role="status"]')?.textContent).toBe("Deleted");
+    expect(host.textContent).not.toMatch(/Awaiting resolution|Cancellation requested|cancelled|stopped|automatically/);
     await advance(29_999);
     expect(fetcher).not.toHaveBeenCalled();
     await advance(1);
@@ -156,9 +166,10 @@ describe("read-only pending project deletion status", () => {
     expect(host.textContent).toBe(deletion_state === "active" ? "" : "Deleted");
   });
 
-  it("keeps the compact awaiting label without a second live status region", async () => {
-    await render(awaiting, true);
-    expect(host.textContent).toBe("Awaiting resolution");
+  it.each([stopping, awaiting, completed])("keeps compact $deletion_state acknowledgment without a second live status region", async project => {
+    await render(project, true);
+    expect(host.querySelector(".project-deletion-state")?.textContent).toBe("Deleted");
+    expect(host.textContent).toBe(project.deletion_state === "stopping" ? "DeletedCancellation requested" : "Deleted");
     expect(host.querySelector('[role="status"]')).toBeNull();
     expect(host.querySelector(".project-deletion-status--compact")).not.toBeNull();
   });
@@ -177,7 +188,7 @@ describe("read-only pending project deletion status", () => {
     expect(signalAt(0).aborted).toBe(true);
     await advance(120_000);
     expect(fetcher).toHaveBeenCalledTimes(1);
-    expect(host.textContent).not.toContain("Progress could not be checked");
+    expect(host.textContent).not.toContain("Work status could not be checked");
     await setVisibility("visible");
     expect(fetcher).toHaveBeenCalledTimes(2);
     expect(updated).toHaveBeenCalledExactlyOnceWith(completed);
@@ -195,17 +206,18 @@ describe("read-only pending project deletion status", () => {
     await advance(14_999);
     expect(fetcher).toHaveBeenCalledTimes(1);
     expect(signalAt(0).aborted).toBe(false);
-    expect(host.textContent).not.toContain("Progress could not be checked");
+    expect(host.textContent).not.toContain("Work status could not be checked");
     await advance(1);
     expect(signalAt(0).aborted).toBe(true);
-    expect(host.textContent).toContain("Progress could not be checked. Trying again automatically.");
+    expect(host.textContent).toContain("Work status could not be checked. The project is still deleted.");
+    expect(host.querySelector(".project-deletion-state")?.textContent).toBe("Deleted");
     expect(updated).not.toHaveBeenCalled();
     await advance(29_999);
     expect(fetcher).toHaveBeenCalledTimes(1);
     await advance(1);
     expect(fetcher).toHaveBeenCalledTimes(2);
     expect(updated).toHaveBeenCalledExactlyOnceWith(stopping);
-    expect(host.textContent).not.toContain("Progress could not be checked");
+    expect(host.textContent).not.toContain("Work status could not be checked");
     await act(async () => stalled.resolve(response(completed)));
     expect(updated).toHaveBeenCalledExactlyOnceWith(stopping);
     await advance(4_999);
@@ -219,7 +231,8 @@ describe("read-only pending project deletion status", () => {
     await render(awaiting);
     await advance(30_000);
     expect(fetcher).toHaveBeenCalledTimes(1);
-    expect(host.textContent).toContain("Progress could not be checked");
+    expect(host.textContent).toContain("Work status could not be checked");
+    expect(host.querySelector(".project-deletion-state")?.textContent).toBe("Deleted");
     await advance(59_999);
     expect(fetcher).toHaveBeenCalledTimes(1);
     await advance(1);
@@ -298,8 +311,9 @@ describe("read-only pending project deletion status", () => {
     await render(newer);
     await advance(5_000);
     expect(updated).not.toHaveBeenCalled();
-    expect(host.textContent).toContain("Stopping…");
-    expect(host.textContent).toContain("Progress could not be checked");
+    expect(host.querySelector(".project-deletion-state")?.textContent).toBe("Deleted");
+    expect(host.textContent).toContain("Cancellation requested");
+    expect(host.textContent).toContain("Work status could not be checked");
     expect(mock.expire).not.toHaveBeenCalled();
     await advance(29_999);
     expect(fetcher).toHaveBeenCalledTimes(1);
@@ -328,7 +342,8 @@ describe("read-only pending project deletion status", () => {
     expect(signalAt(0).aborted).toBe(false);
     await act(async () => stale.resolve(response(completed)));
     expect(updated).not.toHaveBeenCalled();
-    expect(host.textContent).toContain("Stopping…");
+    expect(host.querySelector(".project-deletion-state")?.textContent).toBe("Deleted");
+    expect(host.textContent).toContain("Cancellation requested");
     expect(mock.expire).not.toHaveBeenCalled();
   });
 });

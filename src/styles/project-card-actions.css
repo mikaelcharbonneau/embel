@@ -32,8 +32,6 @@
 .project-lifecycle-buttons .project-delete-confirm { white-space: normal; }
 .project-deletion-status { display: flex; align-items: flex-start; flex-direction: column; gap: 5px; min-width: 0; }
 .project-deletion-state { display: inline-flex; align-items: center; min-height: 24px; padding: 2px 8px; border-radius: 5px; background: var(--surface); color: var(--secondary); font-size: 12px; font-weight: 500; line-height: 20px; }
-.project-deletion-state--stopping { background: #fff0fd; color: #990091; }
-.project-deletion-state--awaiting_resolution { background: #fff4db; color: #79591f; }
 .project-deletion-status p { margin: 0; color: var(--secondary); font-size: 12px; line-height: 18px; }
 .project-deletion-status--compact { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
 .project-card--deleted .project-details { gap: 12px; }

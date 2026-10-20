@@ -125,7 +125,52 @@ it("finishes queued-work deletion in one POST and moves an acknowledged card int
 });
 
 
-describe("pending deletion recovery", () => {
+describe("immediate acknowledged deletion and recovery", () => {
+  it.each(["stopping", "awaiting_resolution"] as const)("removes Home cards on an acknowledged %s response without waiting for work status", async state => {
+    const saved: LifecycleProject = { ...a, lifecycle_version: 1, deletion_requested_at: "2026-10-15T15:00:00Z", deletion_state: state };
+    fetcher.mockResolvedValueOnce(page([a])).mockResolvedValueOnce(Response.json({ project: saved }, { status: 202 })).mockResolvedValueOnce(page([]));
+    await act(async () => root.render(<HomeRecentBrands />));
+    await click(`Project options for ${a.title}`); await click("Delete"); await click("Stop active work and delete project");
+    expect(host.querySelector(".home-brand-card")).toBeNull();
+    expect(host.querySelector(".project-deletion-state")?.textContent).toBe("Deleted");
+    expect(host.textContent).not.toMatch(/Stopping…|Awaiting resolution/);
+    expect(fetcher).toHaveBeenCalledTimes(3);
+    expect(fetcher.mock.calls[2]![0]).toBe("/api/projects/page?limit=6");
+    expect(fetcher.mock.calls[1]![1]).toMatchObject({ method: "POST", body: JSON.stringify({ expectedRevision: 3, expectedLifecycleVersion: 0, stopActiveWork: true }) });
+  });
+
+  it("does not claim deletion after a lost acknowledgment until a status read confirms intent", async () => {
+    const saved: LifecycleProject = { ...a, lifecycle_version: 1, deletion_requested_at: "2026-10-15T15:00:00Z", deletion_state: "awaiting_resolution" };
+    fetcher.mockResolvedValueOnce(page([a])).mockRejectedValueOnce(new Error("Synthetic lost acknowledgment"))
+      .mockRejectedValueOnce(new Error("Synthetic status unavailable")).mockResolvedValueOnce(Response.json({ project: saved }));
+    await act(async () => root.render(<ProjectsWorkspace />));
+    await click(`Project options for ${a.title}`); await click("Delete"); await click("Stop active work and delete project");
+    expect(host.querySelector(".project-card")).not.toBeNull();
+    expect(host.querySelector(".project-deletion-state")).toBeNull();
+    expect(host.textContent).toContain("could not be confirmed");
+    await click("Check status");
+    expect(host.querySelector(".project-card")).toBeNull();
+    expect(host.querySelector(".project-deletion-state")?.textContent).toBe("Deleted");
+    expect(host.textContent).not.toContain("Awaiting resolution");
+    expect(fetcher.mock.calls.slice(1).map(([, options]) => options.method)).toEqual(["POST", "GET", "GET"]);
+  });
+
+  it.each(["stopping", "awaiting_resolution"] as const)("keeps a %s project deleted and restorable when work-status polling fails", async state => {
+    const saved: LifecycleProject = { ...a, lifecycle_version: 1, deletion_requested_at: "2026-10-15T15:00:00Z", deletion_state: state };
+    fetcher.mockResolvedValueOnce(page([saved])).mockRejectedValueOnce(new Error("Synthetic status unavailable"))
+      .mockResolvedValueOnce(Response.json({ project: { ...a, lifecycle_version: 2 } }));
+    await act(async () => root.render(<ProjectsWorkspace state="deleted" />));
+    await act(async () => vi.advanceTimersByTimeAsync(state === "stopping" ? 5_000 : 30_000));
+    expect(host.querySelector(".project-deletion-state")?.textContent).toBe("Deleted");
+    expect(host.querySelector(".project-footer > span")?.textContent).toMatch(/^Deleted /);
+    expect(host.textContent).toContain("The project is still deleted.");
+    expect(button("Restore").disabled).toBe(false);
+    await click("Restore");
+    expect(host.querySelector(".project-card")).toBeNull();
+    expect(host.querySelector(".project-change-notice")?.textContent).toContain("restored");
+    expect(fetcher.mock.calls.slice(1).map(([, options]) => options.method)).toEqual(["GET", "DELETE"]);
+  });
+
   it.each(["stopping", "awaiting_resolution"] as const)("shows accepted %s intent in Deleted and advances without another mutation", async state => {
     let saved = { ...a };
     fetcher.mockImplementation(async (path: string, options: RequestInit) => {
@@ -135,9 +180,16 @@ describe("pending deletion recovery", () => {
     });
     await act(async () => root.render(<ProjectsWorkspace />));
     await click(`Project options for ${a.title}`); await click("Delete"); await click("Stop active work and delete project");
-    expect(host.querySelector(".project-card")).toBeNull(); expect(host.textContent).toContain(state === "stopping" ? "Stopping…" : "Awaiting resolution");
+    expect(host.querySelector(".project-card")).toBeNull();
+    expect(host.querySelector(".project-deletion-state")?.textContent).toBe("Deleted");
+    expect(host.textContent).not.toMatch(/Stopping…|Awaiting resolution|Delete requested/);
+    expect(host.textContent?.includes("Cancellation requested")).toBe(state === "stopping");
     await act(async () => root.render(<ProjectsWorkspace state="deleted" />));
     expect(host.querySelector(".project-card")?.textContent).toContain(a.title); expect(button("Restore").disabled).toBe(false);
+    expect(host.querySelector(".project-card .project-deletion-state")?.textContent).toBe("Deleted");
+    expect(host.querySelector(".project-footer > span")?.textContent).toMatch(/^Deleted /);
+    expect(host.textContent).not.toMatch(/Awaiting resolution|Delete requested/);
+    expect(saved.deletion_state).toBe(state); expect(saved.deleted_at).toBeNull();
     expect(host.textContent).toContain("Restoring won’t restart cancelled AI work");
     await act(async () => vi.advanceTimersByTimeAsync(state === "stopping" ? 5_000 : 30_000));
     expect(host.querySelector(".project-deletion-state")?.textContent).toBe("Deleted"); expect(saved.lifecycle_version).toBe(1);

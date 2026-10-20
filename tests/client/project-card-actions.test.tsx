@@ -51,6 +51,9 @@ describe("project card contextual actions", () => {
   it("explains recovery and retains focus on cancellation without sending a request", async () => {
     await render(); await openDelete();
     expect(host.querySelector("dialog")?.open).toBe(true); expect(host.textContent).toContain("Its assets and history are kept");
+    expect(host.textContent).toContain("requests cancellation of active work");
+    expect(host.textContent).toContain("Work already started may still finish or incur usage");
+    expect(host.textContent).not.toContain("This stops any active work");
     expect(document.activeElement).toBe(button("Cancel")); await click("Cancel");
     expect(host.querySelector("dialog")).toBeNull(); expect(document.activeElement).toBe(button(`Project options for ${fixture.title}`));
     await openDelete(); await act(async () => host.querySelector("dialog")!.dispatchEvent(new Event("cancel", { cancelable: true })));
@@ -90,6 +93,7 @@ describe("project card contextual actions", () => {
     const restored = { ...fixture, lifecycle_version: 6 }; fetcher.mockResolvedValue(Response.json({ project: restored }));
     await render(pending); await click("Restore");
     expect(host.textContent).toContain("Restoring won’t restart cancelled AI work");
+    expect(host.textContent).not.toContain("pending deletion");
     expect(fetcher.mock.calls[0]![1]).toMatchObject({ method: "DELETE", body: JSON.stringify({ expectedRevision: 3, expectedLifecycleVersion: 5 }) });
     expect(changed).toHaveBeenCalledExactlyOnceWith(restored, "restore"); expect(fetcher).toHaveBeenCalledTimes(1);
   });

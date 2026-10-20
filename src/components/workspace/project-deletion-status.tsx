@@ -83,11 +83,12 @@ export function ProjectDeletionStatus({ account, project, onUpdated, compact = f
 }) {
   const failed = useDeletionStatus(account, project, onUpdated);
   if (project.deletion_state === "active") return null;
-  const label = project.deletion_state === "stopping" ? "Stopping…" : project.deletion_state === "awaiting_resolution" ? "Awaiting resolution" : "Deleted";
+  // Acknowledged deletion is complete for the workspace even when earlier work
+  // still needs cancellation or accounting evidence. Never present that cleanup
+  // as a prerequisite for removing or restoring the project.
   return <div className={`project-deletion-status${compact ? " project-deletion-status--compact" : ""}`} role={compact ? undefined : "status"}>
-    <span className={`project-deletion-state project-deletion-state--${project.deletion_state}`}>{label}</span>
-    {!compact && project.deletion_state === "stopping" && <p>Active work is being stopped automatically.</p>}
-    {!compact && project.deletion_state === "awaiting_resolution" && <p>The remaining work is awaiting resolution. Its status updates automatically.</p>}
-    {failed && <p>Progress could not be checked. Trying again automatically.</p>}
+    <span className="project-deletion-state project-deletion-state--deleted">Deleted</span>
+    {project.deletion_state === "stopping" && <p>Cancellation requested</p>}
+    {failed && <p>Work status could not be checked. The project is still deleted.</p>}
   </div>;
 }
