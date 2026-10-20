@@ -1,6 +1,8 @@
 .recorded-usage-coverage { margin: 20px 0; color: var(--secondary); font-size: var(--font-ui); line-height: 1.7; }
 .recorded-usage-notice { padding: 0 0 20px; font-size: 13px; line-height: 1.6; }
 .recorded-usage-notice .button { margin-top: 12px; }
+.recorded-usage-pending-frame { pointer-events: none; }
+.recorded-usage-pending-slot { min-block-size: 116px; border-top: 1px solid var(--border); }
 .recorded-usage-entry { padding: 18px 0; border-top: 1px solid var(--border); }
 .recorded-usage-entry-heading { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px 16px; }
 .recorded-usage-entry h3 { font-size: 13px; font-weight: 500; }

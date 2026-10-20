@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Icon } from "@/components/ui/icon";
 import { brandDraftFromName } from "@/components/workspace/name-promotion";
 import { saveLocalDraftToAccount } from "@/components/workspace/save-local-draft-to-account";
@@ -14,6 +14,7 @@ import { useNamesActions, useNamesStore } from "./use-names-store";
 import type { NameCandidate, NamesMutationResult, NamesUi } from "./local-names";
 import type { AccountNamesSnapshot } from "./account-names-memory";
 import { AccountNamesLibrary } from "./account-names-library";
+import { createAccountNamesLibrarySnapshot } from "./account-names-library-snapshot";
 import { GuidedWorkshop, SavedWordLists } from "./guided-workshop";
 import { NamesAssistant } from "@/features/names-assistant";
 import { NamesBackupImport } from "./names-backup-import";
@@ -98,7 +99,8 @@ function OwnedNamesWorkspace({ account }: { account: VerifiedAccount }) {
   const router = useRouter();
   const snapshot = useNamesStore();
   const namesStore = useNamesActions();
-  const { isCurrent, expire } = useAccountSession();
+  const { isCurrent, expire, namesDrafts } = useAccountSession();
+  const accountNamesSnapshot = useMemo(() => createAccountNamesLibrarySnapshot({ status: "ready", userId: account.userId, generation: account.generation }, { namesDrafts, isCurrent, expire }), [account.userId, account.generation, namesDrafts, isCurrent, expire]);
   const promotionRequest = useRef<AbortController | null>(null);
   useEffect(() => () => promotionRequest.current?.abort(), []);
   const { candidates, runs, ui } = snapshot.data;
@@ -173,7 +175,7 @@ function OwnedNamesWorkspace({ account }: { account: VerifiedAccount }) {
         <div className="names-library-toolbar"><label className="names-search"><span className="sr-only">Search names</span><input type="search" placeholder="Search names" value={ui.query} maxLength={160} onChange={event => namesStore.updateUi({ query: event.target.value })} /></label><label><span className="sr-only">Filter names</span><select aria-label="Filter names" value={ui.filter} onChange={event => namesStore.updateUi({ filter: event.target.value as NamesUi["filter"] })}><option value="retained">Saved or favorite</option><option value="favorite">Favorites</option><option value="saved">Saved</option><option value="all">All results</option></select></label><label><span className="sr-only">Name source</span><select aria-label="Name source" value={ui.origin} onChange={event => namesStore.updateUi({ origin: event.target.value as NamesUi["origin"] })}><option value="all">All sources</option><option value="manual">Manual</option><option value="workshop">Workshop</option></select></label><span className="names-library-count">{library.length} {library.length === 1 ? "name" : "names"}</span></div>
         {library.length ? <div className="names-library-list"><div className="names-library-columns" aria-hidden="true"><span>Name</span><span>Source</span><span>Status &amp; actions</span></div>{library.map(candidate => card(candidate, true))}</div> : <section className="names-empty"><div className="names-empty-icon"><Icon name="names" size={25} /></div><h2>{candidates.length ? "No names in this view" : "A name worth keeping"}</h2><p>{candidates.length ? "Save or favorite a result to keep it in your library, or change the filters to explore your full history." : "Add a name you have in mind, or shape a new one in the workshop."}</p><div>{candidates.length ? <button type="button" className="button secondary" onClick={() => namesStore.updateUi({ filter: "all", query: "", origin: "all" })}>View all results</button> : <><button type="button" className="button primary" onClick={addName}><Icon name="plus" size={15} />Add your first name</button><button type="button" className="text-link" onClick={() => switchTab("workshop")}>Try the workshop<Icon name="arrow" size={14} /></button></>}</div></section>}
         <p className="names-library-note"><NameSymbol name="favorite" />Favorite and saved are separate. Your default library includes either; All results keeps the full history.</p>
-        <h2 className="names-project-library-heading">From your projects</h2><AccountNamesLibrary />
+        <h2 className="names-project-library-heading">From your projects</h2><AccountNamesLibrary snapshot={accountNamesSnapshot} />
       </> : null}
       {ui.tab === "workshop" ? <><GuidedWorkshop ui={ui} candidates={candidates} onResult={onResult} /><details className="names-single-name-tools"><summary>Single-name controls</summary><div className="names-workshop"><WorkshopPanel ui={ui} candidates={candidates} onResult={onResult} /><div className="names-workshop-output"><section className="names-results" aria-label="Workshop results"><div className="names-section-heading"><h2>{activeRun ? `${transformLabels[activeRun.input.kind]} results` : "Make something your own"}</h2>{activeRun ? <span>{activeCandidates.length} {activeCandidates.length === 1 ? "result" : "results"}</span> : null}</div>
         {activeRun ? <><p className="names-run-origin">{activeRun.parentId ? "Continued from" : "Started with"} <strong>{activeRun.input.kind === "blend" ? activeRun.input.left : activeRun.input.seed}</strong></p>{activeCandidates.length ? <div className="names-results-grid">{activeCandidates.map(candidate => card(candidate))}</div> : <div className="names-no-results"><p>No new variants for these parameters.</p><span>Change the seed or settings and run again. This run is still in your history.</span></div>}{activeRun.notes.length ? <ul className="names-run-notes">{activeRun.notes.map((note, index) => <li key={`${index}-${note}`}>{note}</li>)}</ul> : null}{activeRun.truncated ? <p className="names-run-limit">This run reached its 64-result limit. Narrow the parameters to explore other combinations.</p> : null}<RunParameters run={activeRun} /></> : <div className="names-workshop-empty"><span className="names-word-play" aria-hidden="true">a<span>+</span>b</span><p>Start with a word, choose a transformation, and see what takes shape.</p><span>Literal transformations you control. No AI, no availability claims.</span></div>}

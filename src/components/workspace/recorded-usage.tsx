@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { RECORDED_USAGE_LIMIT, recordedUsageSchema, type RecordedUsage } from "@/domain/recorded-usage";
 import { accountRequest, AccountRequestError } from "./account-api";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
@@ -12,52 +12,82 @@ const labels: Record<RecordedUsage["entries"][number]["operation"], string> = {
   "strategy.audience": "Strategy · Audience", "strategy.personality": "Strategy · Personality", "strategy.positioning": "Strategy · Positioning",
 };
 
-export function RecordedUsageSection() {
+export function RecordedUsageSection({ active = true }: { active?: boolean }) {
   const { session } = useAccountSession();
   return <section className="settings-section recorded-usage" aria-labelledby="recorded-usage-title">
     <div><h2 id="recorded-usage-title">Recorded usage</h2><p>Tokens recorded with completed text requests.</p></div>
     <div className="settings-panel">
       <p className="recorded-usage-coverage">Shows up to {RECORDED_USAGE_LIMIT} most recent successfully completed Strategy and Naming requests. Other activity is excluded. This is a recent history, not an account-wide usage total.</p>
-      {session.status === "ready" ? <OwnedRecordedUsage key={`${session.userId}:${session.generation}`} account={session} /> :
-        <p className="recorded-usage-notice" role="status">{session.status === "signed_out" ? "Sign in to view recorded usage." : session.status === "checking" ? "Checking your account…" : "Verify your account to view recorded usage."}</p>}
+      {session.status === "ready" ? <OwnedRecordedUsage key={`${session.userId}:${session.generation}`} account={session} active={active} /> : <>
+        <p className="recorded-usage-notice" role="status">{session.status === "signed_out" ? "Sign in to view recorded usage." : session.status === "checking" ? "Checking your account…" : "Verify your account to view recorded usage."}</p>
+        {session.status === "checking" && <PendingUsageFrame />}
+      </>}
     </div>
   </section>;
 }
 
-function OwnedRecordedUsage({ account }: { account: VerifiedAccount }) {
+function PendingUsageFrame() {
+  // Public page capacity only: never carry private row counts, text or measured
+  // geometry through account verification. Terminal states remove this frame.
+  return <div className="recorded-usage-pending-frame" aria-hidden="true" inert>
+    {Array.from({ length: RECORDED_USAGE_LIMIT }, (_, index) => <div key={index} className="recorded-usage-pending-slot" />)}
+  </div>;
+}
+
+function OwnedRecordedUsage({ account, active }: { account: VerifiedAccount; active: boolean }) {
   const { isCurrent, expire } = useAccountSession();
-  const [snapshot, setSnapshot] = useState<RecordedUsage | null>(null);
-  const [error, setError] = useState(false);
-  const [pending, setPending] = useState(true);
+  const scope = useMemo(() => ({ account, isCurrent, expire }), [account, isCurrent, expire]);
   const [retry, setRetry] = useState(0);
+  const cycle = useMemo(() => ({ active, scope, retry }), [active, scope, retry]);
+  const [stored, setStored] = useState<{ scope: typeof scope; data: RecordedUsage } | null>(null);
+  const [settled, setSettled] = useState<{ cycle: typeof cycle; error: boolean } | null>(null);
+  // Provider replacement must mask the snapshot in the same render, even when
+  // the new provider happens to use the same owner and generation numbers.
+  const snapshot = stored?.scope === scope ? stored.data : null;
+  const pending = settled?.cycle !== cycle;
+  const error = settled?.cycle === cycle && settled.error;
   const reading = useRef(true);
+  const readEpoch = useRef(0);
+  const committedCycle = useRef<typeof cycle | null>(null);
+  useLayoutEffect(() => {
+    committedCycle.current = cycle;
+    return () => { committedCycle.current = null; };
+  }, [cycle]);
   useEffect(() => {
+    if (!active) { reading.current = false; return; }
     const controller = new AbortController();
+    const epoch = ++readEpoch.current;
     let disposed = false;
+    let failed = false;
+    const current = () => !disposed && readEpoch.current === epoch && committedCycle.current === cycle && scope.isCurrent(scope.account);
     reading.current = true;
     const timeout = setTimeout(() => controller.abort(), 15_000);
     void accountRequest("/api/usage", recordedUsageSchema, { signal: controller.signal }).then(reply => {
-      if (disposed || controller.signal.aborted || !isCurrent(account)) return;
-      if (reply.ownerId !== account.userId) { expire(account); return; }
-      setSnapshot(reply);
+      if (!current() || controller.signal.aborted) return;
+      if (reply.ownerId !== scope.account.userId) { scope.expire(scope.account); return; }
+      setStored({ scope, data: reply });
     }).catch(cause => {
-      if (disposed || !isCurrent(account)) return;
-      if (cause instanceof AccountRequestError && cause.status === 401) { expire(account); return; }
-      setError(true);
+      if (!current()) return;
+      if (cause instanceof AccountRequestError && cause.status === 401) { scope.expire(scope.account); return; }
+      failed = true;
     }).finally(() => {
       clearTimeout(timeout);
-      if (!disposed && isCurrent(account)) { reading.current = false; setPending(false); }
+      if (current()) { reading.current = false; setSettled({ cycle, error: failed }); }
     });
-    return () => { disposed = true; controller.abort(); clearTimeout(timeout); };
-  }, [account, expire, isCurrent, retry]);
+    return () => {
+      disposed = true; controller.abort(); clearTimeout(timeout);
+      readEpoch.current = epoch + 1; reading.current = false;
+    };
+  }, [active, scope, cycle]);
   function refresh() {
-    if (reading.current || !isCurrent(account)) return;
-    reading.current = true; setPending(true); setError(false); setRetry(value => value + 1);
+    if (!active || pending || reading.current || committedCycle.current !== cycle || !scope.isCurrent(scope.account)) return;
+    reading.current = true; setRetry(value => value + 1);
   }
   return <>
     <p className="recorded-usage-notice" role={error ? "alert" : "status"}>{error
       ? snapshot ? "Recorded usage could not be refreshed. Previous recorded usage is still shown. Check your connection and try again." : "Recorded usage could not be loaded. Check your connection and try again."
       : pending ? snapshot ? "Checking recorded usage… Previous recorded usage is still shown." : "Loading recorded usage…" : "Recorded usage loaded."}</p>
+    {!snapshot && pending && <PendingUsageFrame />}
     {snapshot && <>
         {!snapshot.entries.length ? <p className="recorded-usage-notice">No completed Strategy or Naming requests in this account yet.</p> :
           <div className="recorded-usage-list">{snapshot.entries.map(entry => {
@@ -70,6 +100,6 @@ function OwnedRecordedUsage({ account }: { account: VerifiedAccount }) {
           })}</div>}
         <p className="recorded-usage-note">Unknown means a token count was not recorded or could not be verified.</p>
       </>}
-    <button type="button" className="button secondary small recorded-usage-refresh" aria-disabled={pending} onClick={refresh}>{snapshot ? "Refresh usage" : "Check usage again"}</button>
+    <button type="button" className="button secondary small recorded-usage-refresh" disabled={!active} aria-disabled={!active || pending} onClick={refresh}>{snapshot ? "Refresh usage" : "Check usage again"}</button>
   </>;
 }

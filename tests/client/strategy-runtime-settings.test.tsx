@@ -50,7 +50,7 @@ describe("Settings text runtime status", () => {
     expect(statusText()).not.toContain("GPT-6.1"); // The contract does not expose model identity.
     expect(host.textContent).not.toContain("Text and image generation are not connected");
     expect(host.textContent).not.toContain("Competitor research, domains");
-    expect(host.textContent).toContain("Image availability is checked separately in Identity");
+    expect(host.textContent).toContain("Logo concepts and saved-preview refinements have separate readiness checks in each project’s logo workspace.");
   });
   it.each(["signed_out", "checking", "unavailable", "error"] as const)("does not query private readiness or claim a connection while %s", async status => {
     mock.session = { status, generation: 2 }; await render();
