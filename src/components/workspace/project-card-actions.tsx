@@ -96,7 +96,7 @@ export function ProjectCardActions({ project, account, onChanged, onReload }: {
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     }}>
       <h2 id={`${id}-title`} ref={dialogHeading} tabIndex={-1}>{action === "delete" ? "Delete" : "Restore"} “{project.title}”{action === "delete" ? "?" : ""}</h2>
-      <p id={`${id}-description`}>{action === "delete" ? "This stops any active work and moves the project to Deleted projects. Its assets and history are kept. You can restore the project, but cancelled AI work won’t restart." : "This returns the project to Projects and withdraws any pending deletion. Restoring won’t restart cancelled AI work."}</p>
+      <p id={`${id}-description`}>{action === "delete" ? "This moves the project to Deleted projects and requests cancellation of active work. Work already started may still finish or incur usage. Its assets and history are kept. Restoring won’t restart cancelled AI work." : "This returns the project to Projects. Restoring won’t restart cancelled AI work."}</p>
       {pending && <p className="project-lifecycle-pending" role="status">{reconciling ? "Checking project status…" : action === "delete" ? "Moving to Deleted projects…" : "Restoring project…"}</p>}
       {failure && <div className="project-lifecycle-error" role="alert"><p>{failure.message}</p>{refreshFailed && <p>Projects could not be refreshed. Check your connection and try again.</p>}</div>}
       <div className="project-lifecycle-buttons"><button ref={cancel} type="button" className="button secondary" disabled={busy} onClick={closeDialog}>{failure || action === "restore" ? "Close" : "Cancel"}</button>

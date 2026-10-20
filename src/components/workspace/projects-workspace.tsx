@@ -11,7 +11,7 @@ import { scopeDetails, scopeLabel } from "./local-drafts";
 import { UnsavedProjectRecovery } from "./unsaved-project-recovery";
 import { ProjectCardActions } from "./project-card-actions";
 import type { LifecycleProject, ProjectDeletionAction } from "./project-deletion-client";
-import { ProjectDeletionStatus, deletionIsPending } from "./project-deletion-status";
+import { ProjectDeletionStatus } from "./project-deletion-status";
 import "@/styles/projects.css";
 
 type ProjectCard = { key: string; id: string; title: string; scope: ProjectScope; created: string; updated: string | null; deleted: string | null; href: string; saved: LifecycleProject };
@@ -21,7 +21,7 @@ function recent(a: ProjectCard, b: ProjectCard) {
   return -compareProjectCursors({ createdAt: a.created, id: a.id }, { createdAt: b.created, id: b.id });
 }
 function dateLabel(project: ProjectCard, now: number | null) {
-  const date = project.deleted ?? project.updated ?? project.created, timestamp = Date.parse(date), prefix = project.deleted ? deletionIsPending(project.saved) ? "Delete requested" : "Deleted" : project.updated ? "Updated" : "Created";
+  const date = project.deleted ?? project.updated ?? project.created, timestamp = Date.parse(date), prefix = project.deleted ? "Deleted" : project.updated ? "Updated" : "Created";
   if (!Number.isFinite(timestamp)) return "Date unavailable";
   if (now === null) return `${prefix} ${new Date(timestamp).toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" })}`;
   const minutes = Math.max(0, Math.floor((now - timestamp) / 60_000));
