@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
+import { isDialogBackdropClick } from "@/components/ui/dialog-backdrop";
 import { useEffect, useRef, useState } from "react";
 import { jobActivityHref, jobOperationLabel, jobActivitySchema, type JobActivity, type JobActivityEntry } from "@/domain/job-activity";
 import { accountRequest, AccountRequestError } from "./account-api";
@@ -68,7 +69,7 @@ function OwnedGenerationActivity({ account }: { account: VerifiedAccount }) {
   }
   return <>
     <button className="icon-button subtle generation-activity-trigger" type="button" aria-label="Activity" title="Activity" aria-haspopup="dialog" onClick={showActivity}><Icon name="clock" size={18} /></button>
-    <dialog className="generation-activity-dialog" ref={dialog} aria-labelledby="generation-activity-title" onCancel={() => setOpen(false)} onClose={event => { if (!event.currentTarget.open) setOpen(false); }} onClick={event => { if (event.target === event.currentTarget) setOpen(false); }}>
+    <dialog className="generation-activity-dialog" ref={dialog} aria-labelledby="generation-activity-title" onCancel={() => setOpen(false)} onClose={event => { if (!event.currentTarget.open) setOpen(false); }} onClick={event => { if (isDialogBackdropClick(event)) setOpen(false); }}>
       <header><h2 id="generation-activity-title">Generation activity</h2><button className="button secondary small" type="button" onClick={() => setOpen(false)}>Close activity</button></header>
       <p>Open a project to review its results. Closing this panel does not cancel work.</p>
       {error && <div role="alert"><p>Activity could not be refreshed. Any entries below are from the last successful check.</p><button className="button secondary small" type="button" onClick={() => setRetry(value => value + 1)}>Check activity again</button></div>}

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isAssetRetained, type AssetLibraryItem, type AssetLibraryPage, type AssetLibraryQuery, type AssetProjectSummary } from "@/domain/asset-library";
 import { useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
-import { assetErrorMessage, createAccountAssetsClient } from "./account-assets-client";
+import { AssetWriteOutcomeUnknownError, assetErrorMessage, createAccountAssetsClient } from "./account-assets-client";
 import { appendAssetLibraryPage, AssetLibraryWindowChangedError, readAssetLibraryWindow } from "./asset-library-window";
 
 export function useAssetLibrary(account: VerifiedAccount) {
@@ -31,7 +31,15 @@ export function useAssetLibrary(account: VerifiedAccount) {
   useEffect(() => {
     const controller = new AbortController(); read.current = controller;
     const observedEpoch = epoch.current, observedSequence = ++sequence.current;
-    void readAssetLibraryWindow(client, query, loaded.current, controller.signal).then(reply => {
+    void (async () => {
+      if (typeof client.reconcileWrites === "function" && !await client.reconcileWrites(controller.signal)) {
+        if (controller.signal.aborted || !client.current()) return null;
+        // Another asset can become uncertain while the captured recovery reads
+        // are pending. Keep its fence and expose recovery instead of spinning.
+        throw new AssetWriteOutcomeUnknownError();
+      }
+      return readAssetLibraryWindow(client, query, loaded.current, controller.signal);
+    })().then(reply => {
       if (!reply || !client.current() || controller.signal.aborted || observedEpoch !== epoch.current || observedSequence !== sequence.current) return;
       loaded.current = reply;
       setPage(reply); setStatus("ready"); setError(null); setNeedsCheck(false);

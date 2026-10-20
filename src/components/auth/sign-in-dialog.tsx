@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/icon";
+import { isDialogBackdropClick } from "@/components/ui/dialog-backdrop";
 
 export function SignInDialog({ children, mode = "sign-in" }: { children: React.ReactNode; mode?: "sign-in" | "sign-up" }) {
   const router = useRouter();
@@ -26,8 +27,6 @@ export function SignInDialog({ children, mode = "sign-in" }: { children: React.R
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
   }} onCancel={event => { event.preventDefault(); router.back(); }} onClick={event => {
-    if (event.target !== event.currentTarget) return;
-    const bounds = event.currentTarget.getBoundingClientRect();
-    if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) router.back();
+    if (isDialogBackdropClick(event)) router.back();
   }}><button ref={close} className="icon-button auth-overlay-close" type="button" aria-label={mode === "sign-up" ? "Close account creation" : "Close sign-in"} onClick={() => router.back()}><Icon name="close" size={16} /></button>{children}</dialog>;
 }

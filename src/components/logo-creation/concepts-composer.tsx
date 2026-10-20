@@ -30,7 +30,7 @@ export function ConceptsComposer({ children, instruction, onInstructionChange, o
           <img src="/logo-concepts/paperclip.svg" width={16} height={16} alt="" />Project context
         </button>
         {onShowResult && <button type="button" className={styles.secondaryButton} onClick={onShowResult}>View refinement</button>}
-        <button type="submit" className={styles.composerSend} aria-label="Refine selected logo" disabled={!onReview} title={onReview ? "Refine selected logo" : status ?? "Select a logo and describe your changes first"}>
+        <button type="submit" className={styles.composerSend} aria-label="Review refinement cost" disabled={!onReview} title={onReview ? "Review refinement cost" : status ?? "Select a logo and describe your changes first"}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-concepts/send.svg" width={16} height={16} alt="" />
         </button>

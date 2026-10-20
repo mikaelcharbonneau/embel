@@ -3,6 +3,7 @@ import { act, useLayoutEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { assetLibraryPageSchema, assetRevisionFreshness, type AssetLibraryItem, type AssetLibraryPage, type AssetLibraryQuery } from "@/domain/asset-library";
+import { ASSET_REQUEST_TIMEOUT_MS, AssetWriteOutcomeUnknownError } from "@/components/assets/account-assets-client";
 import { useAssetLibrary } from "@/components/assets/use-asset-library";
 import { appendAssetLibraryPage, AssetLibraryWindowChangedError, readAssetLibraryWindow } from "@/components/assets/asset-library-window";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
@@ -88,6 +89,10 @@ beforeEach(() => {
       if (holdWrites) return new Promise<Response>(resolve => pendingWrites.push({ ...pending, resolve }));
       return Promise.resolve(applyWrite(pending));
     }
+    if (path.startsWith("/api/assets/library/")) {
+      const row = rows.find(row => row.asset.id === path.split("/")[4]!.split("?")[0])!;
+      return Promise.resolve(Response.json({ asset: row.asset, project: row.project, selectedVersion: row.selectedVersion, versions: row.matchingVersions }));
+    }
     const url = new URL(path, "https://fixture.invalid");
     expect(url.pathname).toBe("/api/assets");
     const query = { ...Object.fromEntries(url.searchParams), limit: Number(url.searchParams.get("limit")), ...(url.searchParams.has("cursor") ? { cursor: JSON.parse(url.searchParams.get("cursor")!) } : {}) } as AssetLibraryQuery;
@@ -97,7 +102,7 @@ beforeEach(() => {
     return Promise.resolve(Response.json(pageFor(rows, query)));
   }));
 });
-afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); });
+afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe("loaded asset window reconciliation", () => {
   it.each(["liked", "saved"] as const)("retains two loaded pages and card nodes after an acknowledged %s change", async field => {
@@ -375,5 +380,97 @@ describe("window traversal contracts", () => {
     await expect(readAssetLibraryWindow({ current: () => true, list }, query, previous, new AbortController().signal)).rejects.toBeInstanceOf(AssetLibraryWindowChangedError);
     expect(list).toHaveBeenCalledTimes(11);
     expect(previous.items).toHaveLength(1);
+  });
+});
+
+
+describe("library deadline recovery", () => {
+  it("exposes another uncertain write arriving during recovery without trapping the loaded view", async () => {
+    await loadTwoPages();
+    const previous = library.page!, first = previous.items[0]!, second = previous.items[1]!;
+    writeStatus = 503;
+    await act(async () => library.retain(first, "liked"));
+    expect(library.needsCheck).toBe(true);
+    const fixtureFetch = globalThis.fetch;
+    let finishHead!: (response: Response) => void, rejectSelection!: (error: Error) => void;
+    const fetcher = vi.fn((path: string, options: RequestInit) => {
+      if (path.endsWith("/selection")) return new Promise<Response>((_, reject) => { rejectSelection = reject; });
+      if (path.startsWith(`/api/assets/library/${first.asset.id}?`)) return new Promise<Response>(resolve => { finishHead = resolve; });
+      return fixtureFetch(path, options);
+    });
+    vi.stubGlobal("fetch", fetcher);
+    // A detail dialog can start this request, then close before it settles.
+    const selection = library.client.select(second.asset, { versionId: second.displayedVersion!.versionId, expectedProjectRevision: 1, expectedSelectionRevision: 0, acceptStaleBasis: false }).catch(error => error);
+    await act(async () => library.refresh());
+    expect(library.status).toBe("loading");
+    rejectSelection(new TypeError("Synthetic lost response during reconciliation"));
+    expect(await selection).toBeInstanceOf(AssetWriteOutcomeUnknownError);
+    await act(async () => finishHead(Response.json({ asset: first.asset, project: first.project, selectedVersion: first.selectedVersion, versions: first.matchingVersions })));
+    expect(library.status).toBe("error");
+    expect(library.error).toContain("may have been saved");
+    expect(library.error).toContain("Previously loaded assets are still shown");
+    expect(library.page).toBe(previous);
+    expect(library.needsCheck).toBe(true);
+    await expect(library.client.select(second.asset, { versionId: second.displayedVersion!.versionId, expectedProjectRevision: 1, expectedSelectionRevision: 0, acceptStaleBasis: false })).rejects.toBeInstanceOf(AssetWriteOutcomeUnknownError);
+    expect(fetcher.mock.calls.filter(([path]) => path.endsWith("/selection"))).toHaveLength(1);
+    await act(async () => library.refresh());
+    expect(library.status).toBe("ready");
+    expect(library.needsCheck).toBe(false);
+    expect(library.page?.items).toHaveLength(80);
+    expect(fetcher.mock.calls.filter(([path]) => path.endsWith("/selection"))).toHaveLength(1);
+  });
+
+  it("does not publish a recovery error after the account scope is disposed", async () => {
+    await loadTwoPages();
+    const first = library.page!.items[0]!;
+    writeStatus = 503;
+    await act(async () => library.retain(first, "liked"));
+    const fixtureFetch = globalThis.fetch;
+    let finishHead!: (response: Response) => void;
+    vi.stubGlobal("fetch", vi.fn((path: string, options: RequestInit) => path.startsWith(`/api/assets/library/${first.asset.id}?`)
+      ? new Promise<Response>(resolve => { finishHead = resolve; })
+      : fixtureFetch(path, options)));
+    await act(async () => library.refresh());
+    expect(library.status).toBe("loading");
+    const disposedClient = library.client;
+    await render({ ...account, generation: account.generation + 1 });
+    expect(disposedClient.current()).toBe(false);
+    expect(library.status).toBe("ready");
+    await act(async () => finishHead(Response.json({ asset: first.asset, project: first.project, selectedVersion: first.selectedVersion, versions: first.matchingVersions })));
+    expect(library.status).toBe("ready");
+    expect(library.error).toBeNull();
+    expect(library.needsCheck).toBe(false);
+    expect(library.page?.items).toHaveLength(40);
+  });
+
+  it("retains the complete loaded window and releases busy after a stalled page", async () => {
+    await loadTwoPages(); vi.useFakeTimers(); holdReads = true;
+    const previous = library.page;
+    let pending!: Promise<void>;
+    await act(async () => { pending = library.loadMore(); });
+    expect(library.busy).toBe(true);
+    await act(async () => { await vi.advanceTimersByTimeAsync(ASSET_REQUEST_TIMEOUT_MS); await pending; });
+    expect(library.busy).toBe(false); expect(library.page).toBe(previous); expect(library.error).toContain("timed out");
+    holdReads = false;
+    await act(async () => library.refresh());
+    expect(library.status).toBe("ready"); expect(library.page?.items).toHaveLength(80);
+  });
+
+  it("requires explicit verified recovery after a write deadline without automatic resend", async () => {
+    await loadTwoPages(); vi.useFakeTimers(); holdWrites = true;
+    const row = library.page!.items[50]!;
+    let pending!: Promise<void>;
+    await act(async () => { pending = library.retain(row, "liked"); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(ASSET_REQUEST_TIMEOUT_MS); await pending; });
+    expect(library.busy).toBe(false); expect(library.needsCheck).toBe(true); expect(library.error).toContain("may have been saved");
+    expect(library.page?.items[50]!.asset.liked).toBe(false);
+    await act(async () => library.retain(row, "liked")); expect(pendingWrites).toHaveLength(1);
+    // The timed-out request eventually committed. Its response cannot publish.
+    await act(async () => { pendingWrites[0]!.resolve(applyWrite(pendingWrites[0]!)); });
+    expect(library.needsCheck).toBe(true); expect(library.page?.items[50]!.asset.liked).toBe(false);
+    await act(async () => library.refresh());
+    expect(library.status).toBe("ready"); expect(library.needsCheck).toBe(false);
+    expect(library.page?.items).toHaveLength(80); expect(library.page?.items[50]!.asset.liked).toBe(true);
+    expect(pendingWrites).toHaveLength(1);
   });
 });

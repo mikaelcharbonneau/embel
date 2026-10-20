@@ -33,7 +33,7 @@ describe("brand board proposal", () => {
     expect(brandBoardDirection([], "wordmark").type.headingWeight).toBe(600);
   });
   it("renders all three application concepts with the supplied logo and does not claim approved outputs", () => {
-    const html = renderToStaticMarkup(createElement(BrandBoardSystem, { name: "Glide", activity: "Brand tools", logoType: "wordmark", choices: [choice("blue")], logo: createElement("span", null, "Exact selected logo") }));
+    const html = renderToStaticMarkup(createElement(BrandBoardSystem, { name: "Glide", logoType: "wordmark", choices: [choice("blue")], logo: createElement("span", null, "Exact selected logo") }));
     expect(html).toContain("Proposed palette");
     expect(html).toContain("From saved inspiration");
     expect(html).toContain("Proposed typography");
@@ -56,7 +56,7 @@ describe("brand board proposal", () => {
     expect(html).toContain("Body · Regular 400");
     expect(html).toContain("Primary");
     expect(html).toContain("Accent");
-    expect(html.match(/Brand tools/g)).toHaveLength(2);
+    expect(html.match(/Placeholder copy/g)).toHaveLength(2);
     const document = new DOMParser().parseFromString(html, "text/html");
     const tiles = [...document.querySelectorAll("[data-brand-board-layout] > section")];
     expect(tiles).toHaveLength(6);
@@ -68,21 +68,29 @@ describe("brand board proposal", () => {
     }
     expect(document.getElementById("board-palette")?.textContent).toBe("Proposed palette");
     expect(document.getElementById("board-type")?.textContent).toBe("Proposed typography");
+    expect(document.getElementById("board-web-status")?.textContent).toBe("Application preview · Placeholder copy");
+    expect(document.getElementById("board-social-status")?.textContent).toBe("Application preview · Placeholder copy");
+    expect(document.getElementById("board-card-status")?.textContent).toBe("Application preview");
+    expect(document.querySelector('[data-application-mockup="website"] p')?.textContent).toBe("Your brand introduction goes here.");
+    expect(document.querySelector('[data-application-mockup="social"] h3')?.textContent).toBe("Your announcement goes here.");
+    expect(document.querySelector('[data-application-mockup="social"]')?.textContent).toContain("Your message goes here.");
     expect(document.querySelector('[role="alert"], [role="status"]')).toBeNull();
   });
   it("uses a neutral proposal without attributing it to absent saved color inspiration", () => {
     const choices: InspirationChoice[] = [];
     const before = structuredClone(choices);
     const board = brandBoardDirection(choices, "wordmark");
-    const html = renderToStaticMarkup(createElement(BrandBoardSystem, { name: "Glide", activity: "", logoType: "wordmark", choices, logo: "Exact selected logo" }));
+    const props = { name: "Glide", logoType: "wordmark" as const, choices, logo: "Exact selected logo" };
+    const html = renderToStaticMarkup(createElement(BrandBoardSystem, props));
     expect(html).toContain("Neutral starting point");
     expect(html).not.toContain("From saved inspiration");
     expect(board.paletteSource).toBe("neutral_default");
     expect(brandBoardDirection(choices, "wordmark")).toEqual(board);
+    expect(renderToStaticMarkup(createElement(BrandBoardSystem, props))).toBe(html);
     expect(choices).toEqual(before);
   });
   it("keeps stale selection guidance inside the logo tile without a review banner", () => {
-    const html = renderToStaticMarkup(createElement(BrandBoardSystem, { name: "Glide", activity: "", logoType: "wordmark", choices: [], logo: "Exact saved logo", logoNeedsReview: true }));
+    const html = renderToStaticMarkup(createElement(BrandBoardSystem, { name: "Glide", logoType: "wordmark", choices: [], logo: "Exact saved logo", logoNeedsReview: true }));
     const document = new DOMParser().parseFromString(html, "text/html");
     expect(document.querySelector('[aria-label="Selected brand logo"]')?.textContent).toContain("Saved selection · Review changed inputs");
     expect(document.querySelectorAll("[data-brand-board-layout] > section")).toHaveLength(6);

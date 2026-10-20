@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
+import { isDialogBackdropClick } from "@/components/ui/dialog-backdrop";
 import { useEffect, useRef, useState } from "react";
 import { useAccountSession } from "./account-session";
 import { preparePromptForSignIn } from "./prompt-recovery";
@@ -30,7 +31,7 @@ export function AccountAccess() {
       {signingIn ? <button type="button" className="text-link auth-session-action" disabled>{signingUp ? "Creating account…" : "Signing in…"}</button> : session.status === "ready" || signingOut || signOutError ? <button type="button" className="text-link auth-session-action" onClick={() => void startSignOut()} disabled={signingOut}>{signingOut ? "Signing out…" : signOutError ? "Retry sign-out" : "Sign out"}</button> : session.status === "checking" ? <span className="text-link auth-session-action" role="status">Checking account…</span> : <Link className="text-link auth-session-action" href="/sign-in" onClick={event => { if (!preparePromptForSignIn()) event.preventDefault(); }}>Sign in</Link>}
       <Link className="preview-badge" href="/settings">{session.status === "ready" ? "Account connected" : session.status === "checking" ? "Checking account…" : "Sign in to save"}</Link>
     </div>
-    <dialog ref={dialog} className="auth-signout-dialog" aria-labelledby="sign-out-title" aria-describedby="sign-out-description" onCancel={() => setConfirmSignOut(false)} onClick={event => { if (event.target === event.currentTarget) setConfirmSignOut(false); }}>
+    <dialog ref={dialog} className="auth-signout-dialog" aria-labelledby="sign-out-title" aria-describedby="sign-out-description" onCancel={() => setConfirmSignOut(false)} onClose={event => { if (!event.currentTarget.open) setConfirmSignOut(false); }} onClick={event => { if (isDialogBackdropClick(event)) setConfirmSignOut(false); }}>
       <h2 id="sign-out-title">Sign out with unsaved account edits?</h2>
       <p id="sign-out-description">Saved work stays in your account. Unsaved edits will be discarded only after sign-out is confirmed.</p>
       <div className="auth-dialog-actions"><button ref={cancel} type="button" className="button secondary small" onClick={() => setConfirmSignOut(false)}>Keep editing</button><button type="button" className="button danger small" onClick={() => { setConfirmSignOut(false); void startSignOut(true); }}>Discard edits and sign out</button></div>

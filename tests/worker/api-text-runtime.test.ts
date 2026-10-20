@@ -7,52 +7,7 @@ import { guidedStrategyPolicy, strategyPolicy } from "../../src/server/ai/config
 import { OpenAITransportError } from "../../src/server/ai/openai-transport";
 import { guidedJobFixture, guidedResearchResponse } from "./guided-strategy-fixtures";
 
-const message = { version: 1 as const, jobId: jobFixture().id, policyIdentity: "a".repeat(64), deploymentId: "dpl_synthetic", dispatchIdentity: "b".repeat(64) };
-const configuration = { apiKey: "synthetic-test-credential", policies: new Map([["strategy.reformulate" as const, strategyPolicy("strategy.reformulate")]]) };
-/** Adapter fixture only. Actual role, lease and money fences are tested against PGlite separately. */
-function databaseFixture(job = jobFixture()) {
-  const state = { status: "queued", busy: false, found: true, enabled: true, authorized: true, expiredInFlight: false,
-    step: null as null | { state: string; request_key: string; reserved_cost_microusd: number },
-    outcomes: [] as unknown[][], claimCalls: 0, policyChecks: 0, authorizationChecks: 0, rowMode: "openai_api", rowId: job.id };
-  const descriptor = () => ({ ...message, operation: job.operation, state: state.status, retryable: state.status === "queued",
-    publicationGeneration: 0, publishedMessageId: null, publishedAt: null });
-  const row = () => ({ id: state.rowId, owner_id: job.ownerId, project_id: job.projectId, operation: job.operation,
-    input: job.input, input_revision: job.inputRevision, lease_token: job.leaseToken, state: state.status,
-    billing_mode: state.rowMode, reserved_cost_microusd: job.reservedCostMicrousd, actual_cost_microusd: 0 });
-  const queries: string[] = [];
-  const database = { async query(sql: string, values: unknown[] = []) {
-    queries.push(sql);
-    if (sql.includes("get_api_text_dispatch")) return { rows: [{ dispatch: state.found ? descriptor() : null }] };
-    if (sql.includes("expire_api_text_job")) {
-      if (state.expiredInFlight) { state.status = "needs_reconciliation"; return { rows: [{ result: { disposition: "terminal", state: state.status } }] }; }
-      return { rows: [{ result: { disposition: state.busy ? "busy" : state.status === "queued" ? "available" : "terminal", state: state.busy ? "running" : state.status } }] };
-    }
-    if (sql.includes("check_api_text_runtime")) { state.policyChecks++; return { rows: [{ ready: state.enabled }] }; }
-    if (sql.includes("claim_api_text_job")) {
-      state.claimCalls++;
-      if (state.busy) return { rows: [{ result: { disposition: "busy", state: "running" } }] };
-      if (state.status !== "queued") return { rows: [{ result: { disposition: "terminal", state: state.status } }] };
-      state.status = "running"; return { rows: [{ result: { disposition: "claimed", state: "running", job: row() } }] };
-    }
-    if (sql.includes("heartbeat_job")) return { rows: [row()] };
-    if (sql.includes("register_job_plan")) return { rows: [] };
-    if (sql.includes("select state, request_key")) return { rows: state.step ? [state.step] : [] };
-    if (sql.includes("begin_job_step")) { state.step = { state: "running", request_key: values[3] as string, reserved_cost_microusd: values[4] as number }; return { rows: [] }; }
-    if (sql.includes("authorize_api_text_dispatch")) { state.authorizationChecks++; return { rows: [{ authorized: state.authorized && state.enabled }] }; }
-    if (sql.includes("complete_job_step")) {
-      state.outcomes.push(values);
-      state.step!.state = values[3] as string;
-      if (values[3] === "ambiguous") state.status = "needs_reconciliation";
-      return { rows: [] };
-    }
-    if (sql.includes("finish_job")) { state.status = values[2] as string; return { rows: [] }; }
-    throw new Error(`Unexpected test SQL: ${sql}`);
-  } };
-  return { database, state, queries, descriptor };
-}
-function delivery(fixture = databaseFixture(), transport = transportFixture(), extra: Record<string, unknown> = {}) {
-  return runApiTextDelivery({ message, database: fixture.database, configuration, deploymentId: message.deploymentId, transport, ...extra });
-}
+import { message, configuration, databaseFixture, delivery } from "./api-text-runtime-fixture";
 afterEach(() => vi.useRealTimers());
 
 describe("restricted API delivery contract", () => {
@@ -164,5 +119,52 @@ describe("restricted API delivery contract", () => {
     const fixture = databaseFixture(); const controller = new AbortController(); controller.abort();
     expect(await delivery(fixture, transportFixture(), { signal: controller.signal })).toEqual({ disposition: "retry", state: "stopping" });
     expect(fixture.state.claimCalls).toBe(0);
+  });
+});
+
+describe("API delivery stage diagnostics", () => {
+  it.each(["claim_api_text_job", "register_job_plan"])("reports %s failures without changing retry disposition", async failure => {
+    const fixture = databaseFixture(); const events: Array<Record<string, unknown>> = [];
+    const original = fixture.database.query;
+    fixture.database.query = async (sql, values) => {
+      if (sql.includes(failure)) throw Object.assign(new Error("SYNTHETIC_PRIVATE_MESSAGE"), { client: { password: "SYNTHETIC_PRIVATE_MESSAGE" } });
+      return original(sql, values);
+    };
+    expect((await delivery(fixture, transportFixture(), { diagnostics: (event: Record<string, unknown>) => events.push(event) })).disposition).toBe("retry");
+    expect(events).toContainEqual(expect.objectContaining({ phase: failure === "claim_api_text_job" ? "claim" : "plan_write", outcome: "error", errorClass: "database" }));
+    expect(JSON.stringify(events)).not.toContain("SYNTHETIC_PRIVATE_MESSAGE");
+  });
+  it("distinguishes handler plan validation and provider execution from database failures", async () => {
+    const planEvents: Array<Record<string, unknown>> = []; const job = jobFixture();
+    const invalid = { ...job, input: { ...job.input as object, extra: "invalid" } };
+    // An incompatible reserved policy reaches the handler plan, after a valid claim.
+    const f = databaseFixture(invalid); const original = f.database.query;
+    f.database.query = async (sql, values) => {
+      const result = await original(sql, values);
+      if (sql.includes("claim_api_text_job")) {
+        const claim = result.rows[0] as { result: { job: { input: { policy: { model: string } } } } };
+        claim.result.job.input.policy.model = "synthetic-invalid-model";
+      }
+      return result;
+    };
+    expect((await delivery(f, transportFixture(), { diagnostics: (event: Record<string, unknown>) => planEvents.push(event) })).disposition).toBe("ack");
+    expect(planEvents).toContainEqual(expect.objectContaining({ phase: "plan", outcome: "error" }));
+    const providerEvents: Array<Record<string, unknown>> = []; const transport = transportFixture();
+    vi.mocked(transport.createResponse).mockRejectedValue(new Error("SYNTHETIC_PRIVATE_PROVIDER_PAYLOAD"));
+    expect(await delivery(databaseFixture(), transport, { diagnostics: (event: Record<string, unknown>) => providerEvents.push(event) })).toEqual({ disposition: "ack", state: "needs_reconciliation" });
+    expect(providerEvents).toContainEqual(expect.objectContaining({ phase: "provider_request", outcome: "error", errorClass: "provider" }));
+    expect(providerEvents).toContainEqual(expect.objectContaining({ phase: "provider_execution", outcome: "needs_reconciliation" }));
+    expect(JSON.stringify(providerEvents)).not.toContain("SYNTHETIC_PRIVATE_PROVIDER_PAYLOAD");
+  });
+  it("lets a healthy delivery and duplicate complete even if every diagnostic write throws", async () => {
+    const fixture = databaseFixture(); const transport = transportFixture();
+    const diagnostics = () => { throw new Error("synthetic logger failure"); };
+    expect(await delivery(fixture, transport, { diagnostics })).toEqual({ disposition: "ack", state: "succeeded" });
+    expect(await delivery(fixture, transport, { diagnostics })).toEqual({ disposition: "ack", state: "succeeded" });
+    expect(transport.createResponse).toHaveBeenCalledTimes(1);
+  });
+  it("does not classify malformed descriptor/handler data as a database transport failure", async () => {
+    const fixture = databaseFixture(); fixture.database.query = async () => ({ rows: [{ dispatch: { malformed: true } }] }) as never;
+    expect(await delivery(fixture)).toEqual({ disposition: "retry", state: "handler_unavailable" });
   });
 });

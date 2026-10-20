@@ -33,8 +33,8 @@ export function LogoEditorWorkspace({ projectId }: { projectId: string }) {
   const parsed = logoUuidSchema.safeParse(projectId);
   if (!parsed.success) return <section className="page project-logo-editor"><h1>Logo workspace not found</h1><Link href="/brands">Back to brands</Link></section>;
   return <section className="page project-logo-editor">
-    <header className={styles.editorHeader}><div><p className={styles.eyebrow}>Logo · Editor</p><h1>Refine your logo</h1></div><Link href={`/brands/account/${parsed.data}`}>Back to project</Link></header>
-    <LogoJourneyNavigation projectId={parsed.data} current="editor" />
+    <header className={styles.editorHeader}><div><p className={styles.eyebrow}>Logo · Vector</p><h1>Review your vector logo</h1></div><Link href={`/brands/account/${parsed.data}`}>Back to project</Link></header>
+    <LogoJourneyNavigation projectId={parsed.data} current="vector" />
     <AccountStatus retainedEdits={memory.hasUnsaved()} />
     {session.status === "ready" && <OwnedLogoEditor key={`${session.userId}:${session.generation}:${parsed.data}`} projectId={parsed.data} account={session} memory={memory} />}
   </section>;
@@ -156,7 +156,7 @@ function OwnedLogoEditor({ projectId, account, memory }: { projectId: string; ac
     </div></div>}
     {currentClient && source && !visible && <p role="status">Loading the saved vector candidate…</p>}
     {visible?.error && <p role="status">{visible.error}</p>}
-    {!detail && visible && <div className={styles.notice} role="status"><strong>Vector editing unavailable</strong><p>Select and convert a logo concept before opening its vector document.</p></div>}
+    {!detail && visible && !visible.error && <div className={styles.notice} role="status"><strong>No vector ready for approval</strong><p>A saved image preview is not an approved vector. Open Project context, then Saved inputs and recovery in Logo concepts to check conversion availability. Review the converted vector here before accepting it.</p><Link href={`/brands/account/${projectId}/logo`}>Open Logo concepts</Link></div>}
     {detail && document && <>
       <div className={styles.headingRow}><h2>{historical ? "Historical vector" : historyVector ? "Saved vector for review" : approved ? "Approved logo" : "Review required"}</h2><span className={styles.badge}>{historical ? `Saved ${historical.stage} version ${historical.revision}` : "Saved vector candidate"}</span></div>
       <p className={styles.caption}>{detail.revision.source.kind === "concept" ? "Original concept" : "Original refined preview"} · {detail.revision.locks.length} saved component {detail.revision.locks.length === 1 ? "lock" : "locks"}</p>

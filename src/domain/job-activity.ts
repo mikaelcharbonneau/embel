@@ -31,7 +31,7 @@ export const jobOperationLabel = (operation: JobActivityEntry["operation"]) => o
 export function jobActivityHref(job: Pick<JobActivityEntry, "projectId" | "operation">) {
   const suffix: Partial<Record<JobActivityEntry["operation"], string>> = {
     "naming.generate": "/naming", "identity.logo_concept": "/logo", "identity.logo_refine": "/logo",
-    "identity.logo_vector_propose": "/logo/editor", "identity.logo_vectorize": "/logo/editor", "identity.logo_directions": "/logo/directions", "identity.logo_export": "/logo/deliverables",
+    "identity.logo_vector_propose": "/logo/vector", "identity.logo_vectorize": "/logo/vector", "identity.logo_directions": "/logo/directions", "identity.logo_export": "/logo/deliverables",
   };
   return `/brands/account/${job.projectId}${suffix[job.operation] ?? ""}`;
 }

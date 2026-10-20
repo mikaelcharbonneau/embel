@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { logoUuidSchema } from "@/domain/logo-vector";
-export type LogoJourneyStage = "concepts" | "editor" | "directions" | "deliverables";
+export type LogoJourneyStage = "concepts" | "vector" | "directions" | "deliverables";
 const stages = [
   { key: "concepts", path: "", label: "Logo concepts" },
-  { key: "editor", path: "/editor", label: "Refine logo" },
+  { key: "vector", path: "/vector", label: "Vector review" },
   { key: "directions", path: "/directions", label: "Identity" },
   { key: "deliverables", path: "/deliverables", label: "Brand files" },
 ] as const;

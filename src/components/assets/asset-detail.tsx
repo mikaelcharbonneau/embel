@@ -6,6 +6,7 @@ import type { AssetDetail, AssetLibraryItem } from "@/domain/asset-library";
 import type { LogoExportManifest } from "@/domain/logo-deliverables";
 import { describeAssetEvidence } from "@/features/identity-deliverables/model/asset-evidence";
 import { Icon } from "@/components/ui/icon";
+import { isDialogBackdropClick } from "@/components/ui/dialog-backdrop";
 import { AssetPreview } from "./asset-preview";
 import { assetErrorMessage, canReadAssetFile, type AccountAssetsClient } from "./account-assets-client";
 
@@ -85,7 +86,7 @@ export function AssetDetailDialog({ item, client, onClose, onSelected, exportMan
     } catch (cause) { if (active.current && client.current()) setFileMessage(assetErrorMessage(cause, "file")); }
     finally { inFlight.current = false; if (active.current && client.current()) setBusy(false); }
   }
-  return <dialog ref={dialog} className="assets-detail" aria-labelledby="asset-detail-heading" onCancel={onClose} onClose={onClose} onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
+  return <dialog ref={dialog} className="assets-detail" aria-labelledby="asset-detail-heading" onCancel={onClose} onClose={onClose} onClick={event => { if (isDialogBackdropClick(event)) onClose(); }}>
     <header><div><span className="assets-eyebrow">{item.project.title}</span><h2 id="asset-detail-heading" tabIndex={-1}>{item.asset.kind}</h2></div><button type="button" className="assets-close" aria-label="Close asset details" onClick={onClose}><Icon name="close" size={19} /></button></header>
     {error && <div className="assets-notice" role="alert"><p>{error}</p><button className="button secondary small" type="button" disabled={busy} onClick={() => { setLoading(true); setAccepted(null); setReload(value => value + 1); }}>Check latest asset</button></div>}
     {loading && <p className="assets-muted" role="status">Loading version history…</p>}

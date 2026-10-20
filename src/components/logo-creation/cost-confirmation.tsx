@@ -44,6 +44,7 @@ export function LogoCostConfirmationView({ quote = null, billing = null, batch =
     <h2>Review the cost</h2>
     {quote && context ? <>
       <p className={styles.note}><strong>{context.action}</strong><br />{context.target}</p>
+      {quote.request.operation === "refine_preview" && <p className={styles.note} style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}><strong>Requested changes</strong><br />{quote.request.instruction}</p>}
       {quote.request.operation === "vectorize" && <LogoVectorSettingsSummary settings={quote.request.settings} />}
       <dl className={styles.costs}>
         <div><dt>Estimated cost</dt><dd>{displayLogoCost(quote.estimatedCostMicrousd)}</dd></div>
@@ -63,12 +64,10 @@ export function LogoCostConfirmationView({ quote = null, billing = null, batch =
 }
 
 
-export function LogoCostConfirmation({ controller, batch = null, returnFocusRef, hideDialog = false }: {
+export function LogoCostConfirmation({ controller, batch = null, returnFocusRef }: {
   controller: LogoCreationController; batch?: LogoConceptBatch | null;
   /** A preparatory save can disable the initiating control before quoting. */
   returnFocusRef?: RefObject<HTMLElement | null>;
-  /** A direct composer submission still quotes and admits the exact request. */
-  hideDialog?: boolean;
 }) {
   const trigger = useRef<{ controller: LogoCreationController; element: HTMLElement } | null>(null);
   const subscribe = useCallback((listener: () => void) => controller.subscribe(() => {
@@ -82,7 +81,7 @@ export function LogoCostConfirmation({ controller, batch = null, returnFocusRef,
   }), [controller]);
   const state = useSyncExternalStore(subscribe, controller.getSnapshot, controller.getSnapshot);
   const dialog = useRef<HTMLDialogElement>(null);
-  const shown = !hideDialog && state.quote !== null && (state.phase === "awaiting_confirmation" || state.phase === "admitting");
+  const shown = state.quote !== null && (state.phase === "awaiting_confirmation" || state.phase === "admitting");
   useEffect(() => {
     const element = dialog.current;
     if (!shown || !element) return;
@@ -91,7 +90,7 @@ export function LogoCostConfirmation({ controller, batch = null, returnFocusRef,
     return () => { element.close(); if (previous instanceof HTMLElement && previous.isConnected) previous.focus(); };
   }, [shown, controller, returnFocusRef]);
   return <>
-    {state.phase === "quoting" && <p role="status" className={styles.note}>{hideDialog ? "Preparing your refinement…" : "Preparing your cost estimate…"}</p>}
+    {state.phase === "quoting" && <p role="status" className={styles.note}>Preparing your cost estimate…</p>}
     {state.error && <p role="status" className={styles.warning}>{state.error}</p>}
     {state.phase === "refreshing_workspace" && <p role="status" className={styles.note}>Refreshing saved logo inputs…</p>}
     {(state.phase === "rejected" || state.phase === "resolve_draft") && <div className={styles.actions}><button className={styles.secondaryButton} type="button" onClick={() => void controller.returnToCostReview()}>Return to cost review</button></div>}

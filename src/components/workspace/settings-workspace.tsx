@@ -107,11 +107,11 @@ function AISettings({ localRuntimeEnabled }: { localRuntimeEnabled: boolean }) {
     <Card title="Brand context and output" description="These preferences do not change existing project generation behavior." className="sg-rows-card">
       <Row title="Use project context" description="An account-wide context preference is not available."><UnavailableSwitch label="Use project context" /></Row>
       <Row title="Remember my preferences" description="Cross-project tone and style preferences are not available."><UnavailableSwitch label="Remember my preferences" /></Row>
-      <Row title="Image quality" description="Image settings are handled separately in Identity."><UnavailableSelect label="Image quality" /></Row>
+      <Row title="Image quality" description="Logo options are managed in each project’s logo workspace."><UnavailableSelect label="Image quality" /></Row>
     </Card>
     <SaveFooter />
     {localRuntimeEnabled ? <LocalChatGPTSettings enabled /> : <Card title="Text and strategy" description="Read-only readiness for your verified account."><StrategyRuntimeSettings /></Card>}
-    <Card title="Images" description="Text readiness does not confirm image access. Image availability is checked separately in Identity."><Link className="sg-action" href="/brands">Open projects</Link></Card>
+    <Card title="Images" description="Logo concepts and saved-preview refinements have separate readiness checks in each project’s logo workspace. Text readiness does not confirm image access."><Link className="sg-action" href="/brands">Open projects</Link></Card>
   </>;
 }
 
@@ -182,6 +182,6 @@ function IntegrationSettings() {
       <Row title="Sync new exports" description="Automatic app exports are not available."><UnavailableSwitch label="Sync new exports" /></Row>
     </Card>
     <SaveFooter scope="workspace" />
-    <Card title="Availability checks" description="Domains, handles, and trademark registries are not connected."><p className="sg-note">No availability or trademark clearance is implied by an account connection.</p></Card>
+    <Card title="Availability checks" description="Availability checks are separate from connected apps. Each tool shows which checks are currently supported."><p className="sg-note">Sign in and open a tool to review its available checks. A connected app does not confirm availability, and trademark results are not legal clearance.</p><div className="sg-actions"><Link className="sg-action" href="/domains">Open domains</Link><Link className="sg-action" href="/handles">Open handles</Link><Link className="sg-action" href="/trademarks">Open trademarks</Link></div></Card>
   </>;
 }

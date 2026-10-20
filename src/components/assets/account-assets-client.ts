@@ -20,6 +20,20 @@ const mimeBase = (value: string) => value.split(";", 1)[0]!.trim().toLowerCase()
 export const canReadAssetFile = (version: AssetVersionDetail) => version.fileState === "unverified" || version.fileState === "verified";
 export const canPreviewAsset = (version: AssetVersionDetail) => canReadAssetFile(version) && rasterMimes.has(mimeBase(version.mimeType));
 
+/** One deadline covers headers, body consumption and integrity verification. */
+export const ASSET_REQUEST_TIMEOUT_MS = 30_000;
+export class AssetRequestTimeoutError extends Error {}
+export class AssetWriteOutcomeUnknownError extends Error {}
+
+function abortable<T>(work: Promise<T>, signal: AbortSignal): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => { signal.removeEventListener("abort", abort); reject(signal.reason); };
+    if (signal.aborted) { void work.catch(() => undefined); reject(signal.reason); return; }
+    signal.addEventListener("abort", abort, { once: true });
+    void work.then(resolve, reject).finally(() => signal.removeEventListener("abort", abort));
+  });
+}
+
 async function readBytes(response: Response, max: number, signal: AbortSignal): Promise<Uint8Array<ArrayBuffer>> {
   const length = response.headers.get("content-length");
   if (length !== null && (!/^\d+$/.test(length) || Number(length) > max)) throw new AccountRequestError(502);
@@ -30,7 +44,7 @@ async function readBytes(response: Response, max: number, signal: AbortSignal): 
   try {
     for (;;) {
       if (signal.aborted) throw new DOMException("Aborted", "AbortError");
-      const { done, value } = await reader.read();
+      const { done, value } = await abortable(reader.read(), signal);
       if (done) break;
       total += value.byteLength;
       if (total > max) throw new AccountRequestError(502);
@@ -55,6 +69,8 @@ export function createAccountAssetsClient(account: VerifiedAccount, isCurrent: (
   let closed = false, previews = 0;
   const controllers = new Set<AbortController>(), urls = new Set<string>();
   const waiting = new Set<() => void>();
+  const uncertainWrites = new Map<string, { asset: AssetRecord; token: symbol }>();
+  const writing = new Set<string>();
   const current = () => !closed && isCurrent(account);
   const owned = (row: { ownerId: string }) => row.ownerId === account.userId;
   function controller(external?: AbortSignal) {
@@ -62,7 +78,8 @@ export function createAccountAssetsClient(account: VerifiedAccount, isCurrent: (
     const abort = () => value.abort();
     if (external?.aborted) value.abort(); else external?.addEventListener("abort", abort, { once: true });
     controllers.add(value);
-    return { value, release: () => { controllers.delete(value); external?.removeEventListener("abort", abort); } };
+    const timer = setTimeout(() => value.abort(new AssetRequestTimeoutError()), ASSET_REQUEST_TIMEOUT_MS);
+    return { value, release: () => { clearTimeout(timer); controllers.delete(value); external?.removeEventListener("abort", abort); } };
   }
   function dispose() {
     closed = true;
@@ -71,18 +88,23 @@ export function createAccountAssetsClient(account: VerifiedAccount, isCurrent: (
   }
   function invalidate() { dispose(); expire(account); }
   async function request<T>(path: string, schema: z.ZodType<T>, verify: (value: T) => boolean, options: { method?: "GET" | "POST" | "PATCH"; body?: unknown; signal?: AbortSignal } = {}): Promise<T | null> {
-    if (!current()) return null;
+    if (!current() || options.signal?.aborted) return null;
     if (!/^\/api\/(?:assets(?:\/|\?|$)|projects(?:\?|$))/.test(path)) throw new AccountRequestError(422);
     const pending = controller(options.signal), signal = pending.value.signal;
+    let response: Response | undefined;
     try {
       const body = options.body === undefined ? undefined : JSON.stringify(options.body);
       if (body && new TextEncoder().encode(body).byteLength > 2048) throw new AccountRequestError(413);
-      const response = await fetch(path, { method: options.method ?? "GET", credentials: "same-origin", mode: "same-origin", cache: "no-store", redirect: "error", signal, headers: { Accept: "application/json", ...(body ? { "Content-Type": "application/json" } : {}) }, ...(body ? { body } : {}) });
+      const received = await abortable<Response>(fetch(path, { method: options.method ?? "GET", credentials: "same-origin", mode: "same-origin", cache: "no-store", redirect: "error", signal, headers: { Accept: "application/json", ...(body ? { "Content-Type": "application/json" } : {}) }, ...(body ? { body } : {}) }).then(response => {
+        if (signal.aborted || !current()) void response.body?.cancel().catch(() => undefined);
+        return response;
+      }), signal);
+      response = received;
       if (!current() || signal.aborted) return null;
-      if (response.status === 401) { invalidate(); return null; }
-      if (!response.ok) throw new AccountRequestError(response.status);
-      if (mimeBase(response.headers.get("content-type") ?? "") !== "application/json") throw new AccountRequestError(502);
-      const bytes = await readBytes(response, 4 * 1024 * 1024, signal);
+      if (received.status === 401) { invalidate(); return null; }
+      if (!received.ok) throw new AccountRequestError(received.status);
+      if (mimeBase(received.headers.get("content-type") ?? "") !== "application/json") throw new AccountRequestError(502);
+      const bytes = await readBytes(received, 4 * 1024 * 1024, signal);
       if (!current() || signal.aborted) return null;
       let value: unknown;
       try { value = JSON.parse(new TextDecoder().decode(bytes)); } catch { throw new AccountRequestError(502); }
@@ -90,8 +112,8 @@ export function createAccountAssetsClient(account: VerifiedAccount, isCurrent: (
       if (!parsed.success) throw new AccountRequestError(502);
       if (!verify(parsed.data)) { invalidate(); return null; }
       return parsed.data;
-    } catch (error) { if (!current() || signal.aborted) return null; throw error; }
-    finally { pending.release(); }
+    } catch (error) { if (!current()) return null; if (signal.reason instanceof AssetRequestTimeoutError) throw signal.reason; if (signal.aborted) return null; throw error; }
+    finally { pending.release(); if (response && !response.body?.locked) void response.body?.cancel().catch(() => undefined); }
   }
   async function acquire(signal: AbortSignal): Promise<boolean> {
     while (previews >= 3 && current() && !signal.aborted) {
@@ -104,32 +126,37 @@ export function createAccountAssetsClient(account: VerifiedAccount, isCurrent: (
     previews += 1; return true;
   }
   async function preview(input: AssetVersionDetail, external?: AbortSignal) {
-    if (!current()) return null;
+    if (!current() || external?.aborted) return null;
     const version = assetVersionDetailSchema.parse(input);
     if (!owned(version)) { invalidate(); return null; }
     if (!canPreviewAsset(version)) throw new AccountRequestError(422);
     const transportMime = mimeBase(version.mimeType);
     const pending = controller(external), signal = pending.value.signal;
     let acquired = false;
+    let response: Response | undefined;
     try {
       acquired = await acquire(signal);
-      if (!acquired) return null;
-      const response = await fetch(`/api/assets/${version.versionId}/preview`, { credentials: "same-origin", mode: "same-origin", cache: "no-store", redirect: "error", signal, headers: { Accept: transportMime } });
+      if (!acquired) { if (current() && signal.reason instanceof AssetRequestTimeoutError) throw signal.reason; return null; }
+      const received = await abortable<Response>(fetch(`/api/assets/${version.versionId}/preview`, { credentials: "same-origin", mode: "same-origin", cache: "no-store", redirect: "error", signal, headers: { Accept: transportMime } }).then(response => {
+        if (signal.aborted || !current()) void response.body?.cancel().catch(() => undefined);
+        return response;
+      }), signal);
+      response = received;
       if (!current() || signal.aborted) return null;
-      if (response.status === 401) { invalidate(); return null; }
-      if (!response.ok) throw new AccountRequestError(response.status);
-      if (mimeBase(response.headers.get("content-type") ?? "") !== transportMime) throw new AccountRequestError(502);
-      const bytes = await readBytes(response, ASSET_MAX_FILE_BYTES, signal);
+      if (received.status === 401) { invalidate(); return null; }
+      if (!received.ok) throw new AccountRequestError(received.status);
+      if (mimeBase(received.headers.get("content-type") ?? "") !== transportMime) throw new AccountRequestError(502);
+      const bytes = await readBytes(received, ASSET_MAX_FILE_BYTES, signal);
       if (!current() || signal.aborted) return null;
-      const digest = await crypto.subtle.digest("SHA-256", bytes);
+      const digest = await abortable(crypto.subtle.digest("SHA-256", bytes), signal);
       if (!current() || signal.aborted) return null;
       const hash = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
       if (hash !== version.contentHash) throw new AccountRequestError(502);
       const url = URL.createObjectURL(new Blob([bytes], { type: transportMime }));
       urls.add(url);
       return { url, release: () => { URL.revokeObjectURL(url); urls.delete(url); } };
-    } catch (error) { if (!current() || signal.aborted) return null; throw error; }
-    finally { pending.release(); if (acquired) { previews -= 1; [...waiting].forEach(wake => wake()); } }
+    } catch (error) { if (!current()) return null; if (signal.reason instanceof AssetRequestTimeoutError) throw signal.reason; if (signal.aborted) return null; throw error; }
+    finally { pending.release(); if (response && !response.body?.locked) void response.body?.cancel().catch(() => undefined); if (acquired) { previews -= 1; [...waiting].forEach(wake => wake()); } }
   }
   async function download(input: AssetVersionDetail) {
     const version = assetVersionDetailSchema.parse(input);
@@ -138,6 +165,30 @@ export function createAccountAssetsClient(account: VerifiedAccount, isCurrent: (
     if (!canReadAssetFile(version)) throw new AccountRequestError(422);
     const reply = await request(`/api/assets/${version.versionId}/download`, downloadSchema, () => true);
     if (reply && (reply.versionId !== version.versionId || reply.contentHash !== version.contentHash || mimeBase(reply.mimeType) !== mimeBase(version.mimeType))) throw new AccountRequestError(502);
+    return reply;
+  }
+  async function mutate<T>(asset: AssetRecord, execute: () => Promise<T | null>): Promise<T | null> {
+    if (!current()) return null;
+    if (writing.has(asset.id) || uncertainWrites.has(asset.id)) throw new AssetWriteOutcomeUnknownError();
+    writing.add(asset.id);
+    try { return await execute(); }
+    catch (error) {
+      // A transport failure or unverifiable successful reply cannot prove that
+      // the server did not commit. Known client rejections remain distinct.
+      if (current() && (!(error instanceof AccountRequestError) || error.status === 408 || error.status >= 500)) {
+        uncertainWrites.set(asset.id, { asset, token: Symbol() });
+        throw new AssetWriteOutcomeUnknownError();
+      }
+      throw error;
+    } finally { writing.delete(asset.id); }
+  }
+  async function detail(asset: AssetRecord, input: Partial<AssetDetailQuery> = {}, signal?: AbortSignal) {
+    const query = assetDetailQuerySchema.parse(input);
+    if (query.cursor && (query.cursor.assetId !== asset.id || query.cursor.projectId !== asset.projectId)) throw new AccountRequestError(422);
+    const uncertain = uncertainWrites.get(asset.id);
+    const reply = await request(`/api/assets/library/${asset.id}?${queryString(query)}`, assetDetailSchema, value => owned(value.asset) && value.asset.id === asset.id && value.asset.projectId === asset.projectId && value.versions.format === (query.format ?? null), { signal });
+    // Only a fresh head read begun after the uncertain outcome reconciles it.
+    if (reply && !query.cursor && uncertain && uncertainWrites.get(asset.id)?.token === uncertain.token && !writing.has(asset.id)) uncertainWrites.delete(asset.id);
     return reply;
   }
   return {
@@ -157,18 +208,20 @@ export function createAccountAssetsClient(account: VerifiedAccount, isCurrent: (
       const query = assetLibraryQuerySchema.parse(input);
       return request(`/api/assets?${queryString(query)}`, assetLibraryPageSchema, value => owned(value) && JSON.stringify(value.query) === JSON.stringify(query), { signal });
     },
-    detail(asset: AssetRecord, input: Partial<AssetDetailQuery> = {}, signal?: AbortSignal) {
-      const query = assetDetailQuerySchema.parse(input);
-      if (query.cursor && (query.cursor.assetId !== asset.id || query.cursor.projectId !== asset.projectId)) throw new AccountRequestError(422);
-      return request(`/api/assets/library/${asset.id}?${queryString(query)}`, assetDetailSchema, value => owned(value.asset) && value.asset.id === asset.id && value.asset.projectId === asset.projectId && value.versions.format === (query.format ?? null), { signal });
+    detail,
+    async reconcileWrites(signal?: AbortSignal) {
+      for (const { asset } of [...uncertainWrites.values()]) {
+        if (!await detail(asset, {}, signal)) return false;
+      }
+      return uncertainWrites.size === 0;
     },
     retain(asset: AssetRecord, input: SetAssetRetention) {
       const body = setAssetRetentionSchema.parse(input);
-      return request(`/api/assets/library/${asset.id}/retention`, assetRetentionResponseSchema, value => owned(value.asset) && value.asset.id === asset.id && value.asset.projectId === asset.projectId && value.asset.retentionRevision === body.expectedRetentionRevision + 1 && value.asset.liked === body.liked && value.asset.saved === body.saved, { method: "PATCH", body });
+      return mutate(asset, () => request(`/api/assets/library/${asset.id}/retention`, assetRetentionResponseSchema, value => owned(value.asset) && value.asset.id === asset.id && value.asset.projectId === asset.projectId && value.asset.retentionRevision === body.expectedRetentionRevision + 1 && value.asset.liked === body.liked && value.asset.saved === body.saved, { method: "PATCH", body }));
     },
     select(asset: AssetRecord, input: SelectAssetVersion) {
       const body = selectAssetVersionSchema.parse(input);
-      return request(`/api/assets/library/${asset.id}/selection`, assetSelectionResponseSchema, value => owned(value.asset) && value.asset.id === asset.id && value.asset.projectId === asset.projectId && value.asset.selectionRevision === body.expectedSelectionRevision + 1 && value.asset.currentSelection?.versionId === body.versionId && value.project.current_revision === body.expectedProjectRevision, { method: "POST", body });
+      return mutate(asset, () => request(`/api/assets/library/${asset.id}/selection`, assetSelectionResponseSchema, value => owned(value.asset) && value.asset.id === asset.id && value.asset.projectId === asset.projectId && value.asset.selectionRevision === body.expectedSelectionRevision + 1 && value.asset.currentSelection?.versionId === body.versionId && value.project.current_revision === body.expectedProjectRevision, { method: "POST", body }));
     },
     projects(signal?: AbortSignal) { return request("/api/projects", accountProjectListSchema, value => value.projects.every(project => project.owner_id === account.userId), { signal }); },
   };
@@ -176,6 +229,8 @@ export function createAccountAssetsClient(account: VerifiedAccount, isCurrent: (
 export type AccountAssetsClient = ReturnType<typeof createAccountAssetsClient>;
 
 export function assetErrorMessage(error: unknown, action: "read" | "write" | "file" = "read"): string {
+  if (error instanceof AssetWriteOutcomeUnknownError) return "The change may have been saved, but its outcome could not be confirmed. Check the latest asset before making another change.";
+  if (error instanceof AssetRequestTimeoutError) return action === "file" ? "The file check timed out. Try again." : "The asset request timed out. Check your connection and try again.";
   if (error instanceof AccountRequestError) {
     if (error.status === 409) return "This asset or its brand changed. Check the latest version before trying again.";
     if (error.status === 404) return action === "file" ? "This file is unavailable. Its saved version remains in the library." : "This asset is no longer available to this account.";

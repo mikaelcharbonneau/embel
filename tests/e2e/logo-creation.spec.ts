@@ -350,7 +350,7 @@ test("clicking a logo selects it in place and persists without an inspection scr
 
 test("composer refines the saved selected concept in place with the entered changes", async ({ page }) => {
   const f = await setup(page, "partial");
-  const send = page.getByRole("button", { name: "Refine selected logo", exact: true });
+  const send = page.getByRole("button", { name: "Review refinement cost", exact: true });
   await expect(send).toBeDisabled();
   await page.getByRole("button", { name: "Select concept 2", exact: true }).click();
   await expect(page.getByText("Editing Concept 2", { exact: true })).toBeVisible();
@@ -358,8 +358,13 @@ test("composer refines the saved selected concept in place with the entered chan
   await expect(send).toBeEnabled();
   f.advanceProjectRevisionOnly();
   await send.click();
+  const review = page.getByRole("dialog", { name: "Review generation cost" });
+  await expect(review).toBeVisible(); expect(f.posts).toHaveLength(0);
+  await expect(review).toContainText("Estimated cost"); await expect(review).toContainText("Maximum cost");
+  await expect(review).toContainText("Make the monogram more rounded and increase the inner spacing.");
+  await review.getByRole("button", { name: "Refine this concept", exact: true }).click();
   await expect.poll(() => f.posts.length).toBe(1);
-  await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
+  await expect(review).not.toBeVisible();
   expect(f.quotes).toHaveLength(1);
   expect(f.quotes[0]).toMatchObject({ operation: "refine_preview", expected: { projectRevision: 2 }, source: { kind: "concept", slotId: id(111) }, instruction: "Make the monogram more rounded and increase the inner spacing." });
   expect(f.posts).toHaveLength(1);
@@ -380,6 +385,9 @@ test("a saved refinement can be selected and edited again without leaving concep
   await page.getByRole("textbox", { name: "Describe logo changes" }).fill("Make the lettering slightly wider.");
   await page.getByRole("textbox", { name: "Describe logo changes" }).focus();
   await page.keyboard.press("Control+Enter");
+  const review = page.getByRole("dialog", { name: "Review generation cost" });
+  await expect(review).toBeVisible(); expect(f.posts).toHaveLength(0);
+  await review.getByRole("button", { name: "Refine this image refinement", exact: true }).click();
   await expect.poll(() => f.posts.length).toBe(1);
   expect(f.quotes.at(-1)).toMatchObject({ operation: "refine_preview", source: { kind: "refinement", rasterRevisionId: refinement.id }, instruction: "Make the lettering slightly wider." });
   expect(f.posts).toHaveLength(1);
@@ -390,7 +398,10 @@ test("a running chat edit becomes a selectable saved refinement without reloadin
   const f = await setup(page, "partial");
   await page.getByRole("button", { name: "Select concept 1", exact: true }).click();
   await page.getByRole("textbox", { name: "Describe logo changes" }).fill("Increase the letter spacing slightly.");
-  await page.getByRole("button", { name: "Refine selected logo", exact: true }).click();
+  await page.getByRole("button", { name: "Review refinement cost", exact: true }).click();
+  const review = page.getByRole("dialog", { name: "Review generation cost" });
+  await expect(review).toBeVisible(); expect(f.posts).toHaveLength(0);
+  await review.getByRole("button", { name: "Refine this concept", exact: true }).click();
   await expect.poll(() => f.posts.length).toBe(1);
   const result = page.getByRole("combobox", { name: "Versions for concept 1" });
   await expect(result).toHaveCount(0);
@@ -420,6 +431,11 @@ test("brand board fits the desktop viewport and remains readable on mobile", asy
   await expect(page.getByRole("heading", { name: "Proposed typography", exact: true })).toBeVisible();
   await expect(page.getByText("Geist Sans · Default preview", { exact: true })).toBeVisible();
   await expect(page.getByText("Glide · Saved selection", { exact: true })).toBeVisible();
+  await expect(page.getByText("Application preview · Placeholder copy", { exact: true })).toHaveCount(2);
+  await expect(page.getByRole("region", { name: "Website landing page" })).toHaveAccessibleDescription("Application preview · Placeholder copy");
+  await expect(page.getByRole("region", { name: "Social announcement" })).toHaveAccessibleDescription("Application preview · Placeholder copy");
+  await expect(page.getByText("Your brand introduction goes here.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Your announcement goes here.", { exact: true })).toBeVisible();
   const logo = await page.getByRole("region", { name: "Selected brand logo" }).boundingBox();
   const palette = await page.getByRole("region", { name: "Proposed palette" }).boundingBox();
   expect(logo).not.toBeNull();

@@ -60,3 +60,58 @@ describe("worker HTTP endpoints", () => {
     expect(await (await work).json()).toEqual({ error: "repair_incomplete", backlogMayRemain: true });
   });
 });
+
+function streamingRequest(chunks: Uint8Array[], options: { cancel?: () => void | PromiseLike<void>; signal?: AbortSignal; close?: boolean; headers?: Record<string, string> } = {}) {
+  const cancel = vi.fn(options.cancel ?? (() => {}));
+  const body = new ReadableStream<Uint8Array>({ start(controller) {
+    for (const chunk of chunks) controller.enqueue(chunk);
+    if (options.close) controller.close();
+  }, cancel });
+  const request = new Request("https://worker.invalid/api/enqueue", { method: "POST", body, duplex: "half",
+    headers: { "content-type": "application/json", ...options.headers }, signal: options.signal } as RequestInit);
+  return { request, cancel };
+}
+describe("rejected enqueue stream cleanup", () => {
+  it.each([new Uint8Array([0xff]), new Uint8Array(2_049)])("cancels invalid UTF-8 or oversized unfinished input once", async chunk => {
+    const f = fixture(); const stream = streamingRequest([chunk]);
+    expect((await handleEnqueue(stream.request, f)).status).toBe(400);
+    expect(stream.cancel).toHaveBeenCalledTimes(1); expect(stream.request.body?.locked).toBe(false);
+    expect(f.publish).not.toHaveBeenCalled();
+  });
+  it.each([{ "content-type": "text/plain" }, { "content-length": "2049" }, { "content-length": "no" }] as Record<string, string>[])("cancels a rejected declared body before reading", async headers => {
+    const f = fixture(); const stream = streamingRequest([], { headers });
+    expect((await handleEnqueue(stream.request, f)).status).toBe(400);
+    expect(stream.cancel).toHaveBeenCalledTimes(1); expect(f.publish).not.toHaveBeenCalled();
+  });
+  it("cancels a stalled read exactly once at the body deadline", async () => {
+    vi.useFakeTimers(); const f = fixture(); const stream = streamingRequest([]);
+    const work = handleEnqueue(stream.request, f);
+    await vi.advanceTimersByTimeAsync(3_001);
+    expect((await work).status).toBe(400); expect(stream.cancel).toHaveBeenCalledTimes(1);
+    expect(f.publish).not.toHaveBeenCalled();
+  });
+  it("cancels immediately on request abortion without publishing", async () => {
+    const controller = new AbortController(); const f = fixture();
+    const stream = streamingRequest([], { signal: controller.signal });
+    const work = handleEnqueue(stream.request, f);
+    await Promise.resolve(); controller.abort();
+    expect((await work).status).toBe(400); expect(stream.cancel).toHaveBeenCalledTimes(1);
+    expect(f.publish).not.toHaveBeenCalled();
+  });
+  it.each([() => Promise.reject(new Error("synthetic cleanup failure")), () => new Promise<void>(() => {})])("does not let rejecting or stalled cancellation change the response", async cancel => {
+    const f = fixture(); const stream = streamingRequest([new Uint8Array([0xff])], { cancel });
+    expect((await handleEnqueue(stream.request, f)).status).toBe(400);
+    expect(stream.cancel).toHaveBeenCalledTimes(1); expect(f.publish).not.toHaveBeenCalled();
+  });
+  it("never prematurely cancels fully consumed valid input", async () => {
+    const f = fixture(); const stream = streamingRequest([new TextEncoder().encode(JSON.stringify(message))], { close: true });
+    expect((await handleEnqueue(stream.request, f)).status).toBe(200);
+    expect(stream.cancel).not.toHaveBeenCalled(); expect(f.publish).toHaveBeenCalledTimes(1);
+  });
+  it("does not reinterpret a disconnect after validation as rollback of a publication", async () => {
+    const controller = new AbortController(); const f = fixture();
+    f.publish.mockImplementation(async (_message, signal) => { controller.abort(); expect(signal.aborted).toBe(false); return { state: "published", messageId: "msg_ok" }; });
+    const stream = streamingRequest([new TextEncoder().encode(JSON.stringify(message))], { close: true, signal: controller.signal });
+    expect((await handleEnqueue(stream.request, f)).status).toBe(200); expect(f.publish).toHaveBeenCalledTimes(1);
+  });
+});

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { z } from "zod";
 import { useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import { AccountRequestError } from "@/components/workspace/account-api";
@@ -9,14 +9,19 @@ import { useAccountProfile } from "@/components/workspace/account-profile-provid
 import { providerTargetSchema } from "@/domain/standalone-provider-evidence";
 import { lookupFailureMessage } from "@/domain/standalone-live-checks";
 import { screeningRecordFreshness, screeningRecordInputSchema, type ScreeningCheckResponse, type ScreeningOverview, type ScreeningRecordInput } from "@/domain/project-screening";
-import { availabilityAt, domainSyntaxError } from "@/features/domain-workspace/model";
+import { availabilityAt } from "@/features/domain-workspace/model";
 import { platforms, type HandlePlatform } from "@/features/handles-workspace/domain";
 import { createProjectScreeningClient } from "./project-screening-client";
+import { projectScreeningDomainError, projectScreeningDomainSuggestion } from "./project-screening-domain";
 import type { ScreeningDraft } from "./project-screening-memory";
 import styles from "./project-screening-evidence.module.css";
 
 type Props = { projectId: string; selectionId: string; projectRevision: number; name: string; disabled?: boolean };
 export function projectScreeningCriteria(draft: ScreeningDraft, name: string) {
+  if (draft.tool === "domains") {
+    const error = projectScreeningDomainError(draft.domain);
+    if (error) throw new Error(error);
+  }
   return providerTargetSchema.parse(draft.tool === "domains" ? { tool: "domains", domain: draft.domain.trim().toLowerCase() }
     : draft.tool === "handles" ? { tool: "handles", platform: draft.platform, handle: draft.handle.trim().replace(/^@/, "") }
       : { tool: "trademarks", mark: name, mode: "exact_word", jurisdictions: draft.jurisdictions.split(",").map(value => value.trim().toUpperCase()).filter(Boolean), niceClasses: draft.niceClasses.trim() ? draft.niceClasses.split(",").map(value => /^\d+$/.test(value.trim()) ? Number(value.trim()) : NaN) : [] });
@@ -60,9 +65,9 @@ function OwnedScreening({ account, ...props }: Props & { account: VerifiedAccoun
   const [client] = useState(() => createProjectScreeningClient({ ownerId: account.userId, projectId: props.projectId, isCurrent: () => isCurrent(account), expire: () => expire(account) }));
   const lifetime = useRef(new AbortController());
   const lookup = useRef<AbortController | null>(null);
-  const domainSeed = props.name.toLowerCase().replace(/\s/g, "");
+  const suggestedDomain = projectScreeningDomainSuggestion(props.name), domainHelpId = useId();
   const [draft, setDraft] = useState<ScreeningDraft>(() => screeningDrafts.get(account, props.projectId, props.selectionId, props.projectRevision) ?? {
-    tool: "domains", domain: domainSeed.includes(".") ? domainSeed : `${domainSeed}.com`, handle: props.name.toLowerCase().replace(/\s/g, ""), platform: "youtube",
+    tool: "domains", domain: suggestedDomain ?? "", handle: props.name.toLowerCase().replace(/\s/g, ""), platform: "youtube",
     jurisdictions: "EM", niceClasses: "", notes: "", sources: "", observedAt: new Date().toISOString(), acknowledged: false, dirty: false, pendingInput: null,
   });
   const [previousDrafts, setPreviousDrafts] = useState(() => screeningDrafts.previous(account, props.projectId, props.selectionId, props.projectRevision));
@@ -154,11 +159,16 @@ function OwnedScreening({ account, ...props }: Props & { account: VerifiedAccoun
     <fieldset className={styles.fields} disabled={blocked}>
       <legend>Exact research criteria</legend>
       <label>Research type<select value={draft.tool} onChange={event => edit({ tool: event.target.value as ScreeningDraft["tool"] }, true)}><option value="domains">Domain</option><option value="handles">Handle</option><option value="trademarks">Trademark</option></select></label>
-      {draft.tool === "domains" && <label>Exact domain<input value={draft.domain} maxLength={253} onChange={event => edit({ domain: event.target.value }, true)} /></label>}
+      {draft.tool === "domains" && <label>Exact domain<input value={draft.domain} maxLength={253} aria-describedby={domainHelpId} onChange={event => edit({ domain: event.target.value }, true)} /></label>}
       {draft.tool === "handles" && <><label>Platform<select value={draft.platform} onChange={event => edit({ platform: event.target.value as HandlePlatform }, true)}>{platforms.map(platform => <option key={platform.id} value={platform.id}>{platform.label}</option>)}</select></label><label>Exact handle<input value={draft.handle} maxLength={65} onChange={event => edit({ handle: event.target.value }, true)} /></label></>}
       {draft.tool === "trademarks" && <><label>Selected name<input value={props.name} readOnly /></label><label>Territory codes, comma separated<input value={draft.jurisdictions} maxLength={659} onChange={event => edit({ jurisdictions: event.target.value }, true)} placeholder="EM, CA, US" /></label><label>Nice classes, comma separated (optional)<input value={draft.niceClasses} maxLength={134} onChange={event => edit({ niceClasses: event.target.value }, true)} placeholder="9, 35" /></label></>}
     </fieldset>
-    {!criteria && <p className={styles.notice}>{draft.tool === "domains" ? domainSyntaxError(draft.domain) : draft.tool === "handles" ? "Enter a handle with 1–64 letters, numbers, dots, underscores or hyphens." : "Enter distinct territory codes such as EM, CA or US, and distinct Nice class numbers from 1 to 45."}</p>}
+    {draft.tool === "domains" && <p id={domainHelpId} className={styles.muted}>{suggestedDomain === null
+      ? <>No ASCII domain was suggested for “{props.name}”. Enter one to research; internationalized domains are not supported. Your selected brand spelling is unchanged.</>
+      : draft.domain === suggestedDomain
+        ? <>Suggested from “{props.name}”, with spaces removed and letters lowercased. Not checked or reserved; your brand spelling is unchanged.</>
+        : "Enter an ASCII domain. Internationalized domains are not supported; this does not change your selected brand spelling."}</p>}
+    {!criteria && <p className={styles.notice}>{draft.tool === "domains" ? projectScreeningDomainError(draft.domain) : draft.tool === "handles" ? "Enter a handle with 1–64 letters, numbers, dots, underscores or hyphens." : "Enter distinct territory codes such as EM, CA or US, and distinct Nice class numbers from 1 to 45."}</p>}
     <p className={styles.muted}>{draft.tool === "domains" ? "Public registry checks can establish a registration. A missing record stays Unknown. Domain prices and eligibility need the configured registrar." : draft.tool === "handles" ? "The connected YouTube API can observe profiles. A missing profile or access error does not establish handle availability." : "The connected EUIPO source searches exact names in EU marks (EM). Other territories remain unsearched; similar marks and legal relevance need separate review."}</p>
     <button type="button" className="button secondary small" disabled={blocked || !criteria} onClick={() => void check()}>Run live lookup</button>
     {busy === "checking" && <button type="button" className="button secondary small" onClick={() => { lookup.current?.abort(); lookup.current = null; setBusy(null); setNotice("Lookup cancelled. No live observation was recorded."); }}>Cancel lookup</button>}
