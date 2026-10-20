@@ -7,15 +7,13 @@ import { DeliverablesPanel } from "@/features/identity-deliverables/components/d
 import { useLogoDraftMemory } from "./logo-draft-memory-context";
 import { useLogoWorkspace } from "./use-logo-workspace";
 import { AccountLogoInputs } from "./account-logo-inputs";
-import { LogoJourneyNavigation } from "./logo-journey-navigation";
 type Stage = "directions" | "deliverables";
 export function LogoOutputPage({ projectId, stage }: { projectId: string; stage: Stage }) {
   const { session } = useAccountSession(), memory = useLogoDraftMemory();
   const parsed = logoUuidSchema.safeParse(projectId);
   if (!parsed.success) return <section className={`page project-output-page project-output-${stage}`}><h1>Logo workspace not found</h1><Link href="/brands">Back to brands</Link></section>;
   return <section className={`page project-output-page project-output-${stage}`}>
-    <header className="page-heading"><h1>{stage === "directions" ? "Build the whole identity" : "Your brand, ready to use"}</h1><Link href={`/brands/account/${parsed.data}`}>Back to project</Link></header>
-    <LogoJourneyNavigation projectId={parsed.data} current={stage} />
+    <header className="page-heading"><h1>{stage === "directions" ? "Identity directions" : "Brand files"}</h1><Link href={`/brands/account/${parsed.data}`}>Back to project</Link></header>
     <AccountStatus retainedEdits={memory.hasUnsaved()} />
     {session.status === "ready" && <OwnedLogoOutput key={`${session.userId}:${session.generation}:${parsed.data}:${stage}`} account={session} projectId={parsed.data} stage={stage} />}
   </section>;

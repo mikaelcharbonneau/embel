@@ -1,10 +1,10 @@
 "use client";
-import Link from "next/link";
 import { useId, type ReactNode } from "react";
 import { useProjectIdentityEvidence, ProjectDock } from "@/components/workspace/project-workspace";
 import type { AccountLogoClient } from "@/components/identity/account-logo-client";
 import type { IdentityDirectionBasis } from "@/domain/logo-directions";
 import type { LogoWorkspaceV2 } from "@/domain/logo-workspace";
+import { OutputPrerequisites } from "@/components/identity/output-prerequisites";
 import { DirectionCard } from "./direction-card";
 import { DirectionGenerationControls } from "./direction-generation";
 import { FontPicker } from "./font-picker";
@@ -24,6 +24,9 @@ export function IdentityDirectionsView({ controller, controls, visualReview }: {
   const current = controller.workspace, overview = controller.overview, selection = overview?.selection ?? null;
   const stale = !!(overview?.stale || current?.staleStages.some(item => item.stage === "directions"));
   const staleFiles = !!current?.staleStages.some(item => item.stage === "deliverables");
+  const staleLogo = !!current?.staleStages.some(item => item.stage === "vector");
+  const approvedIdentity = !!(overview?.approval && overview.approval.approvedLogoId === current?.approvedLogo?.id && !stale && !staleLogo);
+  const recheckingApproval = !!current?.approvedLogo && (controller.loading || !!controller.error);
   const directions = overview?.directions.filter(direction => controller.directionIds.includes(direction.id)) ?? [];
   const retained = controller.history?.overview ?? overview;
   const retainedDirections = retained?.directions.filter(direction => !controller.directionIds.includes(direction.id)) ?? [];
@@ -36,9 +39,18 @@ export function IdentityDirectionsView({ controller, controls, visualReview }: {
   };
   return <section className={`${styles.panel} project-workbench project-direction-workspace`} aria-labelledby={titleId} aria-busy={controller.loading}><div className="project-workbench-canvas">
     <header className={styles.header}><div><p className={styles.eyebrow}>Visual identity</p><h2 id={titleId}>Identity directions</h2><p className={styles.caption}>Colors, typography and graphics around your approved logo.</p></div><span className={styles.badge}>Logo protected</span></header>
+    {controller.canRead && current && <div className={styles.prerequisites}><OutputPrerequisites
+      heading={recheckingApproval ? "Check saved identity approval" : !current.approvedLogo ? "Start with an approved logo" : staleLogo ? "Review your changed logo" : approvedIdentity ? "Your identity is approved" : "Build around your approved logo"}
+      description={recheckingApproval ? controller.loading ? "Checking saved work. Retained approval statuses below are from the last confirmed check." : "The latest check failed. Retained approval statuses below are from the last confirmed check. Refresh saved work before continuing." : !current.approvedLogo ? "Review and approve a converted vector logo before exploring identity directions. Selecting an image preview does not approve it." : staleLogo ? "Your inputs changed. Review the vector logo before approving a new identity." : approvedIdentity ? "Your saved identity is approved for this logo. Brand files have their own variant review and export checks." : "Your vector logo is approved. Review a direction or mix, then approve the identity separately before creating brand files."}
+      steps={[
+        { label: "Vector logo", status: !current.approvedLogo ? "Not approved" : staleLogo ? "Review required" : recheckingApproval ? "Approved at last check" : "Approved" },
+        { label: "Identity direction", status: approvedIdentity ? recheckingApproval ? "Approved at last check" : "Approved" : stale ? "Review required" : controller.error ? "Not confirmed" : controller.loading || current.approvedLogo && !overview ? "Checking saved status" : "Not approved" },
+      ]}
+      action={recheckingApproval ? undefined : !current.approvedLogo || staleLogo ? { href: `/brands/account/${current.projectId}/logo/vector`, label: "Review vector logo" } : approvedIdentity ? { href: `/brands/account/${current.projectId}/logo/deliverables`, label: "Review brand files" } : undefined}
+    /></div>}
     {visualReview}
     {!controller.canRead ? <p className={styles.notice} role="status">{controller.error ?? "Waiting for your saved workspace. Sign in to view your identity directions."}</p>
-      : !current?.approvedLogo ? <div className={styles.empty}><h3>Start with an approved logo</h3><p>Review and approve a converted vector logo before exploring identity directions. Selecting an image preview does not approve it.</p>{current && <Link className="text-link" href={`/brands/account/${current.projectId}/logo/vector`}>Review vector logo</Link>}</div>
+      : !current?.approvedLogo ? null
       : <>
         <div className={styles.headingRow}><p className={styles.caption}>Manual mixing keeps your approved logo unchanged.</p><button type="button" disabled={controller.loading} onClick={() => { void controller.refresh(); }}>{controller.loading ? "Loading…" : "Refresh saved work"}</button></div>
         {controller.error && <p className={styles.notice} role="status">{controller.error}</p>}

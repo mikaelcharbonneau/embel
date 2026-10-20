@@ -4,19 +4,19 @@ import { captureUiEvidence } from "./ui-evidence";
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { syntheticLogoBatch, syntheticLogoQuote, syntheticLogoWorkspace, syntheticResolvedLogoConcept, logoFixtureId as id } from "../fixtures/logo-creation";
 import type { LogoCostQuote, LogoGenerationIntent, LogoQuoteRequest, LogoRequestState, LogoConceptBatch } from "../../src/domain/logo-jobs";
-import type { LogoBriefDraft, LogoWorkspaceV2 } from "../../src/domain/logo-workspace";
+import { logoStageRevisionSchema, type LogoBriefDraft, type LogoWorkspaceV2, type LogoStageRevision } from "../../src/domain/logo-workspace";
 import { syntheticRasterRefinement } from "../fixtures/logo-refinement-history";
 import type { LogoRasterRefinement } from "../../src/domain/logo-jobs";
 import type { LogoRasterSource } from "../../src/domain/logo-workspace";
 import { DEFAULT_LOGO_CONCEPT_TYPES } from "../../src/domain/logo-saved-inputs";
 
 const source = syntheticResolvedLogoConcept(), url = `/brands/account/${source.input.projectId}/logo`, base = `/api/projects/${source.input.projectId}/logo`;
-async function setup(page: Page, scenario: "empty" | "partial" | "uncertain" | "unavailable" | "retry_uncertain" | "uninitialized" | "save_uncertain" | "missing_name" = "empty") {
+async function setup(page: Page, scenario: "empty" | "partial" | "uncertain" | "unavailable" | "retry_uncertain" | "uninitialized" | "save_uncertain" | "missing_name" = "empty", savedSelection: LogoRasterSource | null = null) {
   const noBrief = ["uninitialized", "save_uncertain", "missing_name"].includes(scenario);
   const batch = syntheticLogoBatch(scenario === "uninitialized" ? Array.from({ length: 6 }, () => "succeeded" as const)
     : scenario === "uncertain" ? ["succeeded", "succeeded", "succeeded", "succeeded", "succeeded", "needs_reconciliation"] : undefined);
   let currentBrief = source.brief;
-  let selectedConcept: LogoRasterSource | null = null;
+  let selectedConcept: LogoRasterSource | null = savedSelection;
   const foundation = syntheticLogoWorkspace();
   const batches = new Map<string, LogoConceptBatch>([[batch.id, batch]]);
   if (scenario === "retry_uncertain") {
@@ -31,10 +31,22 @@ async function setup(page: Page, scenario: "empty" | "partial" | "uncertain" | "
     capabilities: { ...foundation.capabilities, save: { status: "available" }, generate: scenario === "unavailable" ? { status: "unavailable", reason: "Synthetic unavailable configuration" } : { status: "available" } } };
   const preparedBrief: LogoBriefDraft = { name: source.brief.payload.name, activity: source.brief.payload.activity, audience: source.brief.payload.audience,
     personality: "Saved inspiration · catalog 2026-10-13.1 · selection 2: synthetic lettering guidance.", logoTypes: [...DEFAULT_LOGO_CONCEPT_TYPES] };
+  let refinementStage: LogoStageRevision<"refinements"> | null = null;
   const state = { owner: foundation.ownerId, posts: [] as LogoGenerationIntent[], quotes: [] as LogoQuoteRequest[], readKeys: [] as string[], lose: false,
     refinements: [] as LogoRasterRefinement[], selections: [] as { requestKey: string; batchId: string; slotId: string; attemptId: string }[], inputReads: 0, saves: [] as { requestKey: string; brief: LogoBriefDraft }[], order: [] as string[],
-    request: { status: "not_found" } as LogoRequestState, quote: null as LogoCostQuote | null, batchReads: 0, summaries, admissionRejection: false,
+    request: { status: "not_found" } as LogoRequestState, quote: null as LogoCostQuote | null, quoteGate: null as Promise<void> | null, batchReads: 0, summaries, admissionRejection: false,
     advanceProjectRevisionOnly() { saved.heads = { ...saved.heads, projectRevision: saved.heads.projectRevision + 1 }; },
+    commitRefinement(record: LogoRasterRefinement) {
+      // Model the committed workspace acknowledgement, not only the polling
+      // receipt. Production cannot select a result before that stage is saved.
+      state.refinements = state.refinements.map(item => item.id === record.id ? record : item);
+      const revision = saved.heads.stageRevisions.refinements + 1;
+      const parentRevisionId = saved.stages.refinements?.id ?? null;
+      refinementStage = logoStageRevisionSchema.parse({ ...source.brief, id: id(1200 + revision), stage: "refinements", revision, parentRevisionId,
+        payload: { rasterRevisionIds: state.refinements.filter(item => item.state === "succeeded").map(item => item.id), vectorRevisionId: null, approvalId: null, sourceRequestKey: record.requestKey } }) as LogoStageRevision<"refinements">;
+      saved.heads = { ...saved.heads, workspaceRevision: saved.heads.workspaceRevision + 1, stageRevisions: { ...saved.heads.stageRevisions, refinements: revision } };
+      saved.stages.refinements = { stage: "refinements", id: refinementStage.id, revision };
+    },
     advanceSavedBrief() {
       saved.heads = { ...saved.heads, workspaceRevision: 2, stageRevisions: { ...saved.heads.stageRevisions, brief_references: 2 } };
       saved.stages.brief_references = { stage: "brief_references", id: id(990), revision: 2 };
@@ -98,6 +110,7 @@ async function setup(page: Page, scenario: "empty" | "partial" | "uncertain" | "
       return json(route, { ownerId: saved.ownerId, projectId: saved.projectId, requestKey: body.requestKey, workspace: saved, revision: concepts() });
     }
     if (path === `${base}/stages/concepts/revisions/${saved.stages.concepts?.id ?? id(901)}`) return json(route, concepts());
+    if (refinementStage && path === `${base}/stages/refinements/revisions/${refinementStage.id}`) return json(route, refinementStage);
     if (path === `${base}/batches`) return json(route, { ownerId: foundation.ownerId, projectId: foundation.projectId, items: state.summaries, nextCursor: null });
     if (path.startsWith(`${base}/batches/`)) { state.batchReads++; const found = batches.get(path.split("/").at(-1)!); return json(route, found ?? {}, found ? 200 : 404); }
     if (path === `${base}/quotes`) {
@@ -106,6 +119,7 @@ async function setup(page: Page, scenario: "empty" | "partial" | "uncertain" | "
       state.quote = { ...syntheticLogoQuote(), request: body, expected: saved.heads, expiresAt: new Date(Date.now() + 60000).toISOString(),
         conceptPlan: body.operation === "retry_failed" || body.operation === "refine_preview" ? null : batch.plan,
         targetSlotIds: body.operation === "retry_failed" ? body.failedSlotIds : body.operation === "refine_preview" ? [id(110)] : batch.slots.map(slot => slot.id) };
+      if (state.quoteGate) await state.quoteGate;
       return json(route, state.quote);
     }
     if (path === `${base}/requests` && request.method() === "POST") {
@@ -256,8 +270,8 @@ test("concepts landing matches the reference layout without inventing generated 
   await expect(page.locator('[data-concept-ordinal]')).toHaveCount(6);
   await expect(page.getByText(/^Review concept \d/)).toHaveCount(0);
   await expect(page.getByText("More, refine and retry each require a separate cost review.", { exact: false })).toHaveCount(0);
-  await expect(page.getByRole("navigation", { name: "Project stages" })).toHaveCount(0);
-  await expect(page.getByRole("navigation", { name: "Logo and identity stages" })).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Project stages", exact: true })).toHaveCount(1);
+  await expect(page.getByRole("navigation", { name: "Logo and identity pages", exact: true })).toHaveCount(1);
   await expect(page.getByRole("form", { name: "Logo concept changes" })).toBeInViewport();
   const cards = page.locator('[data-concept-ordinal]');
   const first = await cards.nth(0).boundingBox(), second = await cards.nth(1).boundingBox(), third = await cards.nth(2).boundingBox();
@@ -333,7 +347,7 @@ test("clicking a logo selects it in place and persists without an inspection scr
   const first = page.getByRole("button", { name: "Select concept 1", exact: true });
   await first.click();
   await expect(first).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByText("Selection saved.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Project logo choice saved.", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Explore your logo", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Refine a direction", exact: true })).toHaveCount(0);
   expect(f.selections).toHaveLength(1);
@@ -350,10 +364,11 @@ test("clicking a logo selects it in place and persists without an inspection scr
 
 test("composer refines the saved selected concept in place with the entered changes", async ({ page }) => {
   const f = await setup(page, "partial");
-  const send = page.getByRole("button", { name: "Review refinement cost", exact: true });
+  const send = page.locator('form[aria-label="Logo concept changes"] button[type="submit"]');
   await expect(send).toBeDisabled();
   await page.getByRole("button", { name: "Select concept 2", exact: true }).click();
-  await expect(page.getByText("Editing Concept 2", { exact: true })).toBeVisible();
+  await expect(page.getByText("Refinement target: Concept 2", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Refine logo", exact: true }).click();
   await page.getByRole("textbox", { name: "Describe logo changes" }).fill("Make the monogram more rounded and increase the inner spacing.");
   await expect(send).toBeEnabled();
   f.advanceProjectRevisionOnly();
@@ -373,6 +388,57 @@ test("composer refines the saved selected concept in place with the entered chan
   await expect(send).toBeDisabled();
 });
 
+test("canceling a delayed refinement quote restores the visible collapsed disclosure", async ({ page }) => {
+  const batch = syntheticLogoBatch(), slot = batch.slots[0]!, attempt = slot.attempts[0]!;
+  const f = await setup(page, "partial", { kind: "concept", batchId: batch.id, slotId: slot.id, attemptId: attempt.id });
+  let release!: () => void;
+  f.quoteGate = new Promise<void>(resolve => { release = resolve; });
+  const form = page.getByRole("form", { name: "Logo concept changes" });
+  await form.getByRole("button", { name: "Refine logo", exact: true }).click();
+  await form.getByRole("textbox", { name: "Describe logo changes" }).fill("Retained instruction during quote");
+  await form.getByRole("button", { name: "Review refinement cost", exact: true }).click();
+  await expect.poll(() => f.quotes.length).toBe(1);
+  await form.getByRole("button", { name: "Close refinement", exact: true }).click();
+  await expect(form.getByRole("textbox", { name: "Describe logo changes" })).toBeHidden();
+  release();
+  const dialog = page.getByRole("dialog", { name: "Review generation cost", exact: true });
+  await expect(dialog).toBeVisible(); await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(form.getByRole("button", { name: "Refine logo", exact: true })).toBeFocused();
+  expect(f.posts).toEqual([]); expect(f.selections).toEqual([]);
+});
+
+test("refinement disclosure reserves space, preserves edits and keeps context keyboard accessible", async ({ page }, info) => {
+  await page.setViewportSize(info.project.name === "mobile" ? { width: 390, height: 844 } : { width: 1440, height: 900 });
+  const batch = syntheticLogoBatch(), slot = batch.slots[0]!, attempt = slot.attempts[0]!;
+  const f = await setup(page, "partial", { kind: "concept", batchId: batch.id, slotId: slot.id, attemptId: attempt.id });
+  const form = page.getByRole("form", { name: "Logo concept changes" });
+  const toggle = form.getByRole("button", { name: "Refine logo", exact: true });
+  const input = form.getByRole("textbox", { name: "Describe logo changes" });
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(input).toBeHidden();
+  expect(await form.evaluate(node => getComputedStyle(node).position)).toBe("relative");
+  await form.getByRole("button", { name: "Project context", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("dialog", { name: "Project context", exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(form.getByRole("button", { name: "Project context", exact: true })).toBeFocused();
+  await toggle.click();
+  await input.fill("Retained local fixture instruction");
+  const formBox = await form.boundingBox(), cardBox = await page.locator('[data-concept-ordinal="0"]').boundingBox();
+  expect(formBox!.y + formBox!.height).toBeLessThanOrEqual(cardBox!.y);
+  await form.getByRole("button", { name: "Close refinement", exact: true }).click();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await toggle.click(); await expect(input).toHaveValue("Retained local fixture instruction");
+  await expect(form.getByText("Refinement target: Concept 1", { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole("link", { name: "Continue to brand board" }).scrollIntoViewIfNeeded();
+  await expect(page.getByRole("link", { name: "Continue to brand board" })).toBeInViewport();
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await form.getByRole("button", { name: "Close refinement", exact: true }).click();
+  await form.scrollIntoViewIfNeeded(); await captureUiEvidence(page, info);
+  expect(f.selections).toEqual([]); expect(f.quotes).toEqual([]); expect(f.posts).toEqual([]); expect(f.saves).toEqual([]);
+});
+
 
 test("a saved refinement can be selected and edited again without leaving concepts", async ({ page }) => {
   const f = await setup(page, "partial");
@@ -380,8 +446,9 @@ test("a saved refinement can be selected and edited again without leaving concep
   f.refinements.push(refinement);
   await page.reload();
   await page.getByRole("button", { name: "Select concept 1", exact: true }).click();
-  await expect(page.getByText("Editing Concept 1 · Version 2", { exact: true })).toBeVisible();
+  await expect(page.getByText("Refinement target: Concept 1 · Version 2", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Continue to brand board" })).toHaveAttribute("href", /\/brand-board$/);
+  await page.getByRole("button", { name: "Refine logo", exact: true }).click();
   await page.getByRole("textbox", { name: "Describe logo changes" }).fill("Make the lettering slightly wider.");
   await page.getByRole("textbox", { name: "Describe logo changes" }).focus();
   await page.keyboard.press("Control+Enter");
@@ -397,6 +464,7 @@ test("a saved refinement can be selected and edited again without leaving concep
 test("a running chat edit becomes a selectable saved refinement without reloading", async ({ page }) => {
   const f = await setup(page, "partial");
   await page.getByRole("button", { name: "Select concept 1", exact: true }).click();
+  await page.getByRole("button", { name: "Refine logo", exact: true }).click();
   await page.getByRole("textbox", { name: "Describe logo changes" }).fill("Increase the letter spacing slightly.");
   await page.getByRole("button", { name: "Review refinement cost", exact: true }).click();
   const review = page.getByRole("dialog", { name: "Review generation cost" });
@@ -406,21 +474,21 @@ test("a running chat edit becomes a selectable saved refinement without reloadin
   const result = page.getByRole("combobox", { name: "Versions for concept 1" });
   await expect(result).toHaveCount(0);
   const queued = f.refinements[0]!;
-  const completed = { ...syntheticRasterRefinement(), requestKey: queued.requestKey, jobId: queued.jobId, source: queued.source };
-  f.refinements[0] = completed;
+  const completed = { ...syntheticRasterRefinement(), id: queued.id, requestKey: queued.requestKey, jobId: queued.jobId, source: queued.source };
+  f.commitRefinement(completed);
   if (f.request.status === "not_found") throw new Error("Synthetic admission missing");
   f.request = { ...f.request, status: "succeeded", billing: completed.billing, outputs: [completed.preview!] };
   await expect(result).toBeVisible();
   await expect(page.locator("[data-concept-ordinal]")).toHaveCount(6);
   await expect(page.getByText("Saved image refinements could not be read.", { exact: false })).toHaveCount(0);
   expect(f.posts).toHaveLength(1);
-  await expect(page.getByText("Editing Concept 1 · Version 2", { exact: true })).toBeVisible();
+  await expect(page.getByText("Refinement target: Concept 1 · Version 2", { exact: true })).toBeVisible();
   await result.selectOption({ label: "Original" });
-  await expect(page.getByText("Editing Concept 1", { exact: true })).toBeVisible();
+  await expect(page.getByText("Refinement target: Concept 1", { exact: true })).toBeVisible();
   await page.reload();
   await expect(result).toHaveValue(/concept/);
   await result.selectOption({ label: "Version 2 · Latest" });
-  await expect(page.getByText("Editing Concept 1 · Version 2", { exact: true })).toBeVisible();
+  await expect(page.getByText("Refinement target: Concept 1 · Version 2", { exact: true })).toBeVisible();
 });
 
 

@@ -66,7 +66,7 @@ describe("same-batch display across selection revisions", () => {
       if (outcome === "succeeds") await until(() => { expect(select()).not.toBeNull(); for (const label of actions) expect(action(label).disabled, label).toBe(false); });
       else { await until(() => expect(grid().textContent).toContain("Saved concept details unavailable")); expect(select()).toBeNull(); for (const label of actions) expect(action(label).disabled, label).toBe(true); }
       expect(image()).toBe(before); expect(URL.revokeObjectURL).not.toHaveBeenCalledWith(url);
-      expect(host.textContent).toContain("Selection saved."); expect(f.selections).toHaveLength(1); expect(f.quotes).toEqual([]); expect(f.admissions).toEqual([]);
+      expect(host.textContent).toContain("Project logo choice saved."); expect(f.selections).toHaveLength(1); expect(f.quotes).toEqual([]); expect(f.admissions).toEqual([]);
     } finally { await act(async () => release?.()); }
   });
 

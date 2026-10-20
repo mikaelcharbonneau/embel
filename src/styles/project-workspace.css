@@ -1,13 +1,11 @@
 /* Fluid — Screens, project pages 3:16–3:29. Original 1440 × 900 shell. */
 .concept-project-workspace { --canvas: #f7f7f5; --paper: #fff; --border: #e4e3df; }
 .concept-project-workspace .workspace-main { background: var(--paper); background-image: none; }
-.concept-project-workspace .topbar { position: absolute; top: 0; right: 0; min-height: 64px; height: 64px; padding: 0 24px; z-index: 30; }
-.concept-project-workspace .topbar-left { display: none; }
-.concept-project-workspace .workspace-account-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.concept-project-workspace .topbar { border-bottom: 1px solid var(--border); background: var(--paper); }
 .concept-project-workspace .workspace-account-avatar { background: #f1f0ee; border: 0; }
 .concept-project-workspace #main-content { padding: 0; overflow: hidden; }
 .project-workspace { height: 100%; min-height: 0; display: flex; flex-direction: column; }
-.project-workspace-header { flex: 0 0 64px; height: 64px; padding: 0 86px 0 24px; border-bottom: 1px solid var(--border); background: #fff; display: flex; align-items: center; justify-content: space-between; gap: 20px; font-size: 13px; }
+.project-workspace-header { flex: 0 0 52px; min-height: 52px; padding: 0 24px; border-bottom: 1px solid var(--border); background: #fff; display: flex; align-items: center; justify-content: space-between; gap: 20px; font-size: 13px; }
 .project-workspace-header > div { min-width: 0; display: flex; gap: 16px; align-items: center; }
 .project-workspace-header a, .project-workspace-header > div > span[aria-hidden] { color: var(--secondary); flex-shrink: 0; }
 .project-workspace-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -18,6 +16,9 @@
 .project-stage-navigation button:disabled { color: var(--secondary); cursor: not-allowed; }
 .project-stage-navigation img { display: block; flex-shrink: 0; }
 .project-stage-progress { margin-left: auto; align-self: center; white-space: nowrap; color: var(--secondary); font-size: 12px; }
+.project-workspace > .logo-journey-navigation { flex: 0 0 44px; flex-wrap: nowrap; overflow-x: auto; gap: 24px; margin: 0; padding: 0 24px; background: var(--paper); }
+.project-workspace > .logo-journey-navigation a { flex-shrink: 0; min-height: 44px; padding: 12px 0; white-space: nowrap; }
+.project-workspace :is(.project-stage-navigation, .logo-journey-navigation) :is(a, button):focus-visible { outline: 2px solid var(--accent-text); outline-offset: -3px; }
 .project-workspace-content { flex: 1; min-height: 0; overflow: auto; background: var(--canvas); }
 .project-read-notice { padding: 12px 24px; display: flex; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
 .project-access-state { padding: 24px; }
@@ -233,13 +234,11 @@
   .project-export-layout { grid-template-columns: 1fr; }
   .project-direction-workspace > .project-workbench-canvas { padding: 0 0 20px; }
   .project-systems-workspace > .project-dock { margin-top: 0; }
-  .concept-project-workspace .topbar { padding-right: 16px; }
-  .concept-project-workspace .topbar-left { display: flex; }
-  .concept-project-workspace .topbar-left > :not(.mobile-menu-trigger) { display: none; }
-  .project-workspace-header { padding: 0 106px 0 16px; gap: 8px; }
+  .project-workspace-header { padding: 0 16px; gap: 8px; }
   .project-workspace-header > div { gap: 10px; }
   .project-workspace-save { display: none; }
   .project-stage-navigation { gap: 18px; padding-inline: 16px; overflow-x: auto; }
+  .project-workspace > .logo-journey-navigation { gap: 20px; padding-inline: 16px; }
   .project-stage-progress { display: none; }
   .project-workspace-content { overflow: auto; }
   .project-workbench, .project-strategy-columns { flex-direction: column; }

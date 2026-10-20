@@ -19,16 +19,18 @@ async function render(current: LogoJourneyStage, id = projectId) {
 it("links the saved project directly to vector review, not the raster editor alias", async () => {
   const host = await render("directions");
   expect([...host.querySelectorAll("a")].map(a => a.getAttribute("href"))).toEqual([
+    `/brands/account/${projectId}/inspiration`,
     `/brands/account/${projectId}/logo`,
+    `/brands/account/${projectId}/brand-board`,
     `/brands/account/${projectId}/logo/vector`,
     `/brands/account/${projectId}/logo/directions`,
-    `/brands/account/${projectId}/logo/deliverables`,
+    `/brands/account/${projectId}/identity`,
   ]);
   expect(host.querySelector('a[href$="/editor"]')).toBeNull();
   expect(host.querySelectorAll("button")).toHaveLength(0);
 });
 it.each([
-  ["concepts", "Logo concepts"], ["vector", "Vector review"], ["directions", "Identity"], ["deliverables", "Brand files"],
+  ["inspiration", "Inspiration"], ["concepts", "Logo concepts"], ["board", "Brand board"], ["vector", "Vector review"], ["directions", "Identity directions"], ["systems", "Moodboard & systems"],
 ] as const)("marks only %s as the current stage", async (current, label) => {
   const host = await render(current);
   expect(host.querySelectorAll('[aria-current="page"]')).toHaveLength(1);

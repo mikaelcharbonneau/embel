@@ -35,6 +35,8 @@ async function mount(f: Awaited<ReturnType<typeof syntheticRefinementWorkspaceHt
   await until(() => expect(host.querySelector<HTMLInputElement>('input[aria-label="Brand name"]')?.value).toBe("Élan & Co"));
 }
 async function fillInstruction() {
+  const disclosure = [...host.querySelectorAll<HTMLButtonElement>("button")].find(node => node.textContent === "Refine logo");
+  if (disclosure && !disclosure.disabled) await act(async () => disclosure.click());
   await until(() => expect(host.querySelector('textarea[aria-label="Describe logo changes"]')).not.toBeNull());
   const field = host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Describe logo changes"]')!;
   await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(field, "Simplify the silhouette"); field.dispatchEvent(new Event("input", { bubbles: true })); });
@@ -138,7 +140,7 @@ describe("refinement history through actual workspace, account client and memory
     await click("Review conversion"); await until(() => expect(f.quotes.at(-1)?.operation).toBe("vectorize"));
     expect(f.quotes.at(-1)).toMatchObject({ source: { kind: "refinement", rasterRevisionId: id(503) }, expected: f.workspace.heads });
     expect(f.admissions).toHaveLength(1); expect(JSON.stringify(f.batch)).toBe(f.originalBatch); expect(f.workspace.approvedLogo).toBeNull();
-    expect(host.querySelector("dialog")?.textContent).toContain(id(503));
+    expect(host.querySelector('dialog[aria-label="Review generation cost"]')?.textContent).toContain(id(503));
     expect(f.raster.preview!.reference.contentHash).not.toBe(f.batch.slots[0]!.acceptedPreview!.reference.contentHash);
     await click("Cancel"); await act(async () => root!.unmount()); root = null; await mount(f);
     await until(() => expect(selection()?.getAttribute("aria-pressed")).toBe("true")); expect(f.admissions).toHaveLength(1);
@@ -256,7 +258,7 @@ it("combined controls quote the exact saved refinement and disclose immutable cu
   await click("Review conversion"); await until(() => expect(f.quotes).toHaveLength(2));
   expect(f.quotes[1]).toEqual({ operation: "vectorize", expected: f.workspace.heads, source: { kind: "refinement", rasterRevisionId: id(503) }, settings: { preset: "poster", maxColors: 6, simplify: 1.75, filterSpeckle: 3 } });
   expect(host.querySelector('dialog [aria-label="Conversion settings"]')?.textContent).toBe("Poster color · Maximum colors 6 · Simplification 1.75 · Speckle filtering 3");
-  expect(host.querySelector("dialog")?.textContent).toContain(id(503)); expect(mode!.disabled).toBe(true);
+  expect(host.querySelector('dialog[aria-label="Review generation cost"]')?.textContent).toContain(id(503)); expect(mode!.disabled).toBe(true);
   expect(host.querySelector<HTMLInputElement>('input[aria-label="Simplification"]')?.disabled).toBe(true);
   expect(f.admissions).toEqual([]); expect(f.workspace.approvedLogo).toBeNull(); expect(JSON.stringify(f.batch)).toBe(f.originalBatch);
 });

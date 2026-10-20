@@ -91,7 +91,7 @@ it("continues a naming-only project to its own Naming workspace without requirin
   await mount();
   expect(host.querySelector(`a[href="/brands/account/${projectId}/naming"]`)).not.toBeNull();
   expect(host.textContent).not.toContain("Start competitor research");
-  expect(host.querySelector('nav[aria-label="Project stages"]')).toBeNull();
+  expect(host.querySelector('nav[aria-label="Project stages"] [aria-current="page"]')?.textContent).toBe("Strategy");
 });
 
 it("keeps unsent conversation text through same-owner verification and protects unsaved exit", async () => {
@@ -347,7 +347,7 @@ it("continues a visual-identity project to references without offering naming or
   expect(host.querySelector(`a[href="/brands/account/${projectId}/inspiration"]`)).not.toBeNull();
   expect(host.querySelector(`a[href="/brands/account/${projectId}/naming"]`)).toBeNull();
   expect(host.textContent).not.toContain("Start competitor research");
-  expect(host.querySelector('nav[aria-label="Project stages"]')).toBeNull();
+  expect(host.querySelector('nav[aria-label="Project stages"] [aria-current="page"]')?.textContent).toBe("Strategy");
 });
 
 it.each([false, true])("clears only the acknowledged submitted prompt after guided recovery (new typing: %s)", async newerTyping => {

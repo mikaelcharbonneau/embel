@@ -25,6 +25,28 @@ function Evidence({ evidenceOwner = owner, needsReview = false, revision = 4 }: 
 }
 
 describe("project progress is scoped to saved inputs", () => {
+  it("keeps one mounted project hierarchy and editor through every actual project subpage", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => response()));
+    const editor = <input aria-label="Retained editor" defaultValue="Unsaved local input" />;
+    await render(editor);
+    const header = host.querySelector(".project-workspace-header"), stages = host.querySelector('nav[aria-label="Project stages"]'), input = host.querySelector("input")!;
+    for (const [suffix, stage, page] of [
+      ["", "Strategy", null], ["/naming", "Naming", null],
+      ["/inspiration", "Logo & identity", "Inspiration"], ["/logo", "Logo & identity", "Logo concepts"],
+      ["/brand-board", "Logo & identity", "Brand board"], ["/logo/vector", "Logo & identity", "Vector review"],
+      ["/logo/editor", "Logo & identity", "Vector review"], ["/logo/directions", "Logo & identity", "Identity directions"],
+      ["/identity", "Logo & identity", "Moodboard & systems"], ["/logo/deliverables", "Files", null],
+    ]) {
+      input.focus(); pathname = `/brands/account/${projectId}${suffix}`; await render(editor);
+      expect(host.querySelector(".project-workspace-header")).toBe(header);
+      expect(host.querySelector('nav[aria-label="Project stages"]')).toBe(stages);
+      expect(stages?.querySelector('[aria-current="page"]')?.textContent).toBe(stage);
+      expect(host.querySelectorAll('nav[aria-label="Project stages"]')).toHaveLength(1);
+      const subnav = host.querySelector('nav[aria-label="Logo and identity pages"]');
+      expect(subnav?.querySelector('[aria-current="page"]')?.textContent ?? null).toBe(page);
+      expect(host.querySelector("input")).toBe(input); expect(document.activeElement).toBe(input);
+    }
+  });
   it("bounds a stuck verification even if fetch ignores abort and fences its late result", async () => {
     vi.useFakeTimers(); let resolve!: (value: Response) => void;
     vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(done => { resolve = done; })));
@@ -43,7 +65,7 @@ describe("project progress is scoped to saved inputs", () => {
   });
   it("does not count an entered name as a verified approval or discard it when Strategy needs review", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => response())); await render();
-    expect(host.querySelector('nav[aria-label="Project stages"]')).toBeNull();
+    expect(host.querySelector('nav[aria-label="Project stages"] [aria-current="page"]')?.textContent).toBe("Strategy");
     expect(host.textContent).not.toContain("verified approval");
     expect(drafts.get(projectId)?.saved.context.selectedName).toBe("Luma");
     expect(host.textContent).toContain("Luma"); expect(host.textContent).toContain("Strategy needs review");

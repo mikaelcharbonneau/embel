@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { LogoJourneyNavigation } from "@/components/identity/logo-journey-navigation";
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import { AccountRequestError, accountErrorMessage } from "@/components/workspace/account-api";
@@ -34,7 +33,6 @@ export function LogoEditorWorkspace({ projectId }: { projectId: string }) {
   if (!parsed.success) return <section className="page project-logo-editor"><h1>Logo workspace not found</h1><Link href="/brands">Back to brands</Link></section>;
   return <section className="page project-logo-editor">
     <header className={styles.editorHeader}><div><p className={styles.eyebrow}>Logo · Vector</p><h1>Review your vector logo</h1></div><Link href={`/brands/account/${parsed.data}`}>Back to project</Link></header>
-    <LogoJourneyNavigation projectId={parsed.data} current="vector" />
     <AccountStatus retainedEdits={memory.hasUnsaved()} />
     {session.status === "ready" && <OwnedLogoEditor key={`${session.userId}:${session.generation}:${parsed.data}`} projectId={parsed.data} account={session} memory={memory} />}
   </section>;

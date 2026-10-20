@@ -10,7 +10,7 @@ export function BrandBoardSystem({ name, logoType, choices, logo, logoNeedsRevie
   const tokens = { "--board-primary": direction.primary.hex, "--board-accent": direction.accent.hex, "--board-weight": direction.type.headingWeight, "--board-tracking": direction.type.tracking } as CSSProperties;
   return <div className={styles.system} style={tokens} data-brand-board-layout>
     <section className={`${styles.tile} ${styles.logoTile}`} aria-label="Selected brand logo" aria-describedby="board-logo-status">
-      <h2>Selected logo</h2><div className={styles.logoStage}>{logo}</div><span id="board-logo-status" className={styles.tileNote}>{name} · Saved selection{logoNeedsReview && " · Review changed inputs"}</span>
+      <h2>Project logo choice</h2><div className={styles.logoStage}>{logo}</div><span id="board-logo-status" className={styles.tileNote}>{name} · Saved selection{logoNeedsReview && " · Review changed inputs"}</span><p className={styles.tileNote}>This preview uses your project’s logo choice. Vector approval and asset-library selections are separate.</p>
     </section>
     <section className={`${styles.tile} ${styles.paletteTile}`} aria-labelledby="board-palette" aria-describedby="board-palette-source">
       <div className={styles.tileHeading}><h2 id="board-palette">Proposed palette</h2><span id="board-palette-source">{direction.paletteSource === "saved_inspiration" ? "From saved inspiration" : "Neutral starting point"}</span></div>

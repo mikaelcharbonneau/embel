@@ -8,6 +8,7 @@ import { useAccountProjectListing } from "./account-projects";
 import { ProjectCardActions } from "./project-card-actions";
 import type { LifecycleProject } from "./project-deletion-client";
 import { ProjectDeletionStatus } from "./project-deletion-status";
+import { ProjectCard } from "./project-card";
 
 export function HomeRecentBrands() {
   const { session } = useAccountSession();
@@ -39,12 +40,9 @@ function HomeAccountRecentBrands({ account }: { account: VerifiedAccount }) {
     <div className="home-recent-heading"><h2 id="recent-heading" ref={heading} tabIndex={-1}>Pick up where you left off</h2><Link href="/brands" className="text-link">All projects<Icon name="arrow" size={16} /></Link></div>
     {removed && <div className="project-change-notice" role="status"><span>“{removed.title}” moved to Deleted projects.</span><Link className="text-link" href="/brands?state=deleted">View deleted projects</Link><ProjectDeletionStatus account={account} project={removed} onUpdated={updateRemoved} compact /></div>}
     {!listing && !error ? <p className="quiet-empty" role="status">Loading your projects…</p> : !listing && error ? null : brands.length ? <div className="home-brand-grid">
-      {brands.map((brand, index) => <article key={brand.id} className="home-brand-card"><Link href={`/brands/account/${brand.id}`} className="home-brand-card-link">
-        <div className={`home-brand-preview home-brand-preview--${index === 1 ? "1" : index === 2 ? "2" : index === 4 ? "inverse" : "0"}`} aria-hidden="true"><span>{brand.title}</span></div>
-        <div className="home-brand-details"><div className="home-brand-identity"><h3>{brand.title}</h3></div>
-          <div className="home-brand-continue"><span>Continue your brand</span><Icon name="arrow" size={16} /></div>
-        </div>
-      </Link><ProjectCardActions key={`${brand.id}:${brand.current_revision}:${brand.lifecycle_version}`} project={brand} account={account} onChanged={changed} onReload={refreshProjects} /></article>)}
+      {brands.map(brand => <ProjectCard key={brand.id} project={brand} account={account} headingLevel={3}
+        date={Number.isFinite(Date.parse(brand.created_at)) ? `Created ${new Date(brand.created_at).toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" })}` : "Date unavailable"}
+        actions={<ProjectCardActions key={`${brand.id}:${brand.current_revision}:${brand.lifecycle_version}`} project={brand} account={account} onChanged={changed} onReload={refreshProjects} />} />)}
     </div> : pending ? <p className="quiet-empty" role="status">Loading your projects…</p> : listing?.nextCursor ? <p className="quiet-empty">More projects are available. <Link className="text-link" href="/brands">View all projects</Link></p> : <div className="home-brands-empty"><Icon name="brands" size={24} /><h3>Your first brand starts here</h3><p>Describe your idea above. Your saved work will appear here.</p></div>}
     {error && <p className="form-error" role="alert">Your projects could not be loaded. <button type="button" className="text-link" disabled={pending} onClick={() => void reload()}>Try again</button></p>}
   </section>;
