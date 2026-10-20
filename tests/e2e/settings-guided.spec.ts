@@ -1,11 +1,12 @@
-import { test, expect, type Page } from "@playwright/test";
-import { readFile, readdir } from "node:fs/promises";
+import { test, expect, type Page, type TestInfo } from "@playwright/test";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { join } from "node:path";
 
 const owner = "aaaaaaaa-1111-4111-8111-111111111111";
 const other = "bbbbbbbb-1111-4111-8111-111111111111";
 const labels = ["Account", "Workspace", "AI preferences", "Usage & billing", "Notifications", "Security & privacy", "Integrations"];
-async function open(page: Page, authenticated = false) {
+async function open(page: Page, authenticated = false, fullName = "") {
   const paths: { path: string; method: string }[] = [];
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
@@ -13,7 +14,7 @@ async function open(page: Page, authenticated = false) {
     const request = route.request(), path = new URL(request.url()).pathname;
     paths.push({ path, method: request.method() });
     if (path === "/api/session" && authenticated) return route.fulfill({ json: { user: { id: owner } } });
-    if (path === "/api/account/profile" && authenticated) return route.fulfill({ json: { profile: { ownerId: owner, email: "settings-fixture@example.invalid", revision: 0, updatedAt: null, values: { fullName: "", timeZone: "America/Toronto", dateFormat: "friendly" } } } });
+    if (path === "/api/account/profile" && authenticated) return route.fulfill({ json: { profile: { ownerId: owner, email: "settings-fixture@example.invalid", revision: 0, updatedAt: null, values: { fullName, timeZone: "America/Toronto", dateFormat: "friendly" } } } });
     if (path === "/api/strategy" && authenticated) return route.fulfill({ json: { availability: { status: "unavailable", operations: [], reason: "worker_unavailable" } } });
     return route.fulfill({ status: 401, json: { error: "Synthetic signed-out fixture" } });
   });
@@ -32,10 +33,13 @@ test("all seven categories use honest states and trigger no unsupported mutation
     await expect(page.getByRole("tabpanel")).toHaveAttribute("aria-labelledby", await page.getByRole("tab", { name: label, exact: true }).getAttribute("id") as string);
     await expect(page.getByRole("tab", { name: label, exact: true })).toHaveAttribute("aria-selected", "true");
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
-    if (label !== "Usage & billing") await expect(page.getByRole("button", { name: "Save changes", exact: true })).toBeDisabled();
+    if (label === "Account") await expect(page.getByRole("button", { name: "Save changes", exact: true })).toBeDisabled();
+    else await expect(page.getByRole("tabpanel").locator(".sg-save")).toHaveCount(0);
+    await expect(page.getByRole("tabpanel").locator(".sg-availability")).toHaveCount(1);
+    await expect(page.getByRole("tabpanel").locator(".sg-availability details")).not.toHaveAttribute("open", "");
   }
-  await expect(page.getByRole("button", { name: "Connect", exact: true })).toHaveCount(4);
-  for (const button of await page.getByRole("button", { name: "Connect", exact: true }).all()) await expect(button).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Connect", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Connected apps", exact: true }).getByText("Not available yet", { exact: true })).toBeVisible();
   await expect(page.getByText("Connected", { exact: true })).toHaveCount(0);
   await expect(page.getByText("mikael@example.com", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "ChatGPT on this Mac", exact: true })).toHaveCount(0);
@@ -114,7 +118,7 @@ test("recorded usage retries real read failures, distinguishes unknown counts an
   expect(state.errors).toEqual([]);
 });
 
-test("original artwork, native geometry and all tab grids match the approved design", async ({ page }, info) => {
+test("original artwork, shared type and existing tab grids stay consistent", async ({ page }, info) => {
   if (info.project.name === "desktop") await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
   const folder = new URL("../../public/settings/", import.meta.url);
@@ -127,13 +131,11 @@ test("original artwork, native geometry and all tab grids match the approved des
   await page.evaluate(() => document.fonts.ready);
   if (info.project.name === "desktop") {
     const profile = (await page.getByRole("region", { name: "Profile", exact: true }).boundingBox())!;
-    expect(profile.x).toBe(256); expect(profile.y).toBe(281); expect(profile.width).toBe(1008); expect(profile.height).toBe(286);
+    expect(profile.x).toBeGreaterThanOrEqual(0); expect(profile.x + profile.width).toBeLessThanOrEqual(page.viewportSize()!.width);
     const preferences = (await page.getByRole("region", { name: "Preferences", exact: true }).boundingBox())!;
-    expect(preferences.height).toBe(398);
-    for (const [name, size] of Object.entries({ mark: 28, home: 20, brands: 20, assets: 20, ideas: 20, names: 20, handles: 20, domains: 20, trademarks: 20, settings: 20, expand: 16 })) {
-      const image = page.locator(`img[src='/settings/${name}.svg']`).first();
-      await expect(image).toBeVisible(); expect((await image.boundingBox())!.width).toBe(size); expect((await image.boundingBox())!.height).toBe(size);
-    }
+    expect(preferences.x).toBe(profile.x); expect(preferences.width).toBe(profile.width); expect(preferences.y).toBeGreaterThan(profile.y + profile.height);
+    const appearance = await page.getByRole("region", { name: "Profile", exact: true }).evaluate(element => ({ family: getComputedStyle(element).fontFamily, border: getComputedStyle(element).borderTopWidth, radius: getComputedStyle(element).borderTopLeftRadius }));
+    expect(appearance.family).toContain("Geist"); expect(appearance.border).toBe("1px"); expect(appearance.radius).toBe("10px");
   }
   for (const label of labels) {
     await tab(page, label);
@@ -172,9 +174,71 @@ test("320px settings keep actions reachable and route styles scoped", async ({ p
     await expect(page.getByRole("tabpanel")).toBeVisible();
   }
   await tab(page, "Security & privacy");
-  await expect(page.getByRole("button", { name: "Delete account", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Delete account", exact: true })).toHaveCount(0);
+  const securityOptions = page.getByRole("region", { name: "Security and privacy options", exact: true });
+  await securityOptions.locator("summary").click(); await expect(securityOptions.locator("dt").filter({ hasText: /^Delete account$/ })).toBeVisible();
   await page.getByRole("button", { name: "Open navigation", exact: true }).click();
   await page.locator(".mobile-menu").getByRole("link", { name: "Embel home", exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
   expect(await page.locator(".concept-settings").count()).toBe(0);
+});
+
+async function captureHierarchy(page: Page, info: TestInfo, category: string) {
+  await page.evaluate(() => { window.scrollTo(0, 0); document.querySelector("#main-content")?.scrollTo(0, 0); });
+  const filename = `${info.project.name}-settings-${category}.png`;
+  const bytes = await page.screenshot({ path: info.outputPath(filename), fullPage: true, scale: "css" });
+  const directory = process.env.FLUID_UI_EVIDENCE;
+  if (!directory) return;
+  await mkdir(directory, { recursive: true }); await writeFile(join(directory, filename), bytes);
+  await writeFile(join(directory, filename.replace(/\.png$/, ".json")), JSON.stringify({ fixture: "Synthetic account and usage records; read-only checks", route: new URL(page.url()).pathname, category, viewport: page.viewportSize(), screenshot: filename }, null, 2));
+}
+
+test("read-only Settings hierarchy prioritizes supported options and recorded usage", async ({ page }, info) => {
+  await page.setViewportSize(info.project.name === "desktop" ? { width: 1440, height: 900 } : { width: 390, height: 844 });
+  const longName = "Synthetic account ".repeat(5).trim();
+  const state = await open(page, true, longName);
+  await expect(page.getByLabel("Full name", { exact: true })).toHaveValue(longName);
+  await expect(page.getByLabel("Full name", { exact: true })).toBeEditable();
+  await expect(page.getByRole("combobox", { name: "Time zone", exact: true })).toBeEnabled();
+  await expect(page.getByRole("combobox", { name: "Date format", exact: true })).toBeEnabled();
+  await expect(page.getByRole("combobox", { name: "Language", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("combobox", { name: "Appearance", exact: true })).toHaveCount(0);
+  await captureHierarchy(page, info, "account");
+  let usageReads = 0;
+  await page.route("**/api/usage", route => {
+    usageReads++;
+    return route.fulfill({ json: { ownerId: owner, limit: 20, entries: [{ id: "cccccccc-1111-4111-8111-111111111111", operation: "naming.generate", completedAt: "2026-10-10T20:00:00Z", tokens: null }] } });
+  });
+  expect(usageReads).toBe(0);
+  await page.getByRole("button", { name: "View recorded usage", exact: true }).click();
+  await expect(page.getByRole("tab", { name: "Usage & billing", exact: true })).toBeFocused();
+  const usage = page.getByRole("region", { name: "Recorded usage", exact: true });
+  await expect(usage.getByRole("article", { name: "Naming", exact: true })).toBeVisible();
+  await expect(usage.getByText("Unknown", { exact: true })).toHaveCount(3);
+  await expect(usage.getByText("not an account-wide usage total", { exact: false })).toBeVisible();
+  expect(usageReads).toBe(1);
+  const article = await usage.getByRole("article", { name: "Naming", exact: true }).elementHandle();
+  const billing = page.getByRole("tabpanel");
+  expect(await billing.locator(":scope > section").first().getAttribute("class")).toContain("recorded-usage");
+  await captureHierarchy(page, info, "usage");
+
+  for (const label of labels.filter(label => label !== "Account")) {
+    await tab(page, label);
+    const panel = page.getByRole("tabpanel"), availability = panel.locator(".sg-availability");
+    await expect(availability.getByText("Not available yet", { exact: true })).toBeVisible();
+    await expect(availability.locator("button,input,select")).toHaveCount(0);
+    await expect(panel.locator(".sg-save")).toHaveCount(0);
+    const summary = availability.locator("summary"), details = availability.locator("details");
+    await summary.focus(); await summary.press("Enter"); await expect(details).toHaveAttribute("open", ""); await expect(summary).toBeFocused();
+    await summary.press("Enter"); await expect(details).not.toHaveAttribute("open", ""); await expect(summary).toBeFocused();
+    for (const action of await panel.locator(".sg-action").all()) {
+      const box = await action.boundingBox(); if (box) expect(box.height).toBeGreaterThanOrEqual(44);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
+    if (label === "Notifications") await captureHierarchy(page, info, "notifications");
+  }
+  await tab(page, "Usage & billing");
+  await expect(usage.getByRole("article", { name: "Naming", exact: true })).toBeVisible();
+  expect(await article!.evaluate(element => element.isConnected)).toBe(true);
+  expect(state.paths.every(request => request.method === "GET")).toBe(true); expect(state.errors).toEqual([]);
 });

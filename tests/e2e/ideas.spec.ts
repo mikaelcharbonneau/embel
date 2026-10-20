@@ -119,11 +119,46 @@ async function openIdea(page: Page, id = ideaId) {
 async function clickAccountAction(page: Page, name: "Check account" | "Sign out") {
   const menu = page.getByLabel("Account menu", { exact: true });
   if (await menu.count() && !await menu.evaluate(element => element.parentElement?.hasAttribute("open"))) await menu.click();
-  const action = page.getByRole("button", { name, exact: true });
+  const action = page.locator(".workspace-account-panel").getByRole("button", { name, exact: true });
   await expect(action).toBeEnabled();
   await action.click();
 }
 async function browserValues(page: Page) { return page.evaluate(() => Object.values(localStorage).join("\n")); }
+async function expectSavedVersion(page: Page, version: number) {
+  const details = page.locator(".idea-detail-metadata");
+  if (!await details.evaluate(element => (element as HTMLDetailsElement).open)) await details.locator(":scope > summary").click();
+  await expect(details.getByText(`Saved to account · version ${version}.`, { exact: true })).toBeVisible();
+}
+
+test("Ideas design: progressive notes and saved details preserve fields, focus and one next-step region", async ({ page }, info) => {
+  await page.setViewportSize(info.project.name === "desktop" ? { width: 1440, height: 900 } : { width: 390, height: 844 });
+  const saved = idea(ideaId, ownerA, "A long retained idea title for a seasonal kitchen serving a changing neighborhood".repeat(2).slice(0, 160));
+  saved.content.details.problem = "Retained user-authored problem notes. ".repeat(15);
+  saved.content.details.solution = "Retained solution notes";
+  const state = await accountFixtures(page, [saved]); await openIdea(page);
+  const notes = page.locator(".idea-development-panel"), metadata = page.locator(".idea-detail-metadata");
+  await expect(notes).not.toHaveAttribute("open", ""); await expect(metadata).not.toHaveAttribute("open", "");
+  await expect(page.getByLabel("Save status", { exact: true })).toHaveText("Saved");
+  await expect(page.locator(".idea-detail-save-state")).toHaveCount(0);
+  const summary = notes.locator(":scope > summary"); await summary.focus(); await summary.press("Enter");
+  const problem = page.getByRole("textbox", { name: "Problem", exact: true }); await expect(problem).toHaveValue(saved.content.details.problem);
+  const node = await problem.elementHandle();
+  await summary.focus(); await summary.press("Enter"); await expect(summary).toBeFocused();
+  await summary.press("Enter"); expect(await problem.evaluate((element, original) => element === original, node)).toBe(true);
+  await expect(problem).toHaveValue(saved.content.details.problem);
+  const next = page.getByRole("complementary", { name: "Continue with this idea", exact: true });
+  await expect(next.getByRole("button", { name: "Create brand", exact: true })).toBeVisible();
+  const attachment = next.locator(".idea-attach-disclosure"); await expect(attachment).not.toHaveAttribute("open", "");
+  await attachment.locator(":scope > summary").focus(); await page.keyboard.press("Enter");
+  await expect(next.getByRole("heading", { name: "Attach to an existing brand", exact: true })).toBeVisible();
+  await expect(next.getByRole("button", { name: "Attach to brand", exact: true })).toBeDisabled();
+  await expectSavedVersion(page, 1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
+  expect(state.writes).toEqual([]);
+  await notes.locator(":scope > summary").click(); await attachment.locator(":scope > summary").click(); await metadata.locator(":scope > summary").click();
+  await page.evaluate(() => { document.querySelector("#main-content")?.scrollTo(0, 0); window.scrollTo(0, 0); });
+  await captureUiEvidence(page, info);
+});
 
 test("Ideas fixture: quick capture, optional details, automatic save and reload retain user text only in the account", async ({ page }, testInfo) => {
   const state = await accountFixtures(page, []);
@@ -135,6 +170,7 @@ test("Ideas fixture: quick capture, optional details, automatic save and reload 
   await expect(page).toHaveURL(new RegExp(`/ideas/${ideaId}$`));
   expect(state.writes[0]!.body).toMatchObject({ content: { title: "Private quick capture fixture", state: "to_explore" } });
   expect(Object.keys(state.writes[0]!.body).sort()).toEqual(["content", "requestKey"]);
+  await page.locator(".idea-development-panel > summary").click();
   await page.getByText("More details", { exact: true }).click();
   await page.getByRole("textbox", { name: "Revenue hypotheses", exact: true }).fill("A user-authored monthly lunch plan hypothesis");
   await page.getByRole("textbox", { name: "Proposed solution", exact: true }).fill("Seasonal lunches delivered nearby");
@@ -148,6 +184,7 @@ test("Ideas fixture: quick capture, optional details, automatic save and reload 
   expect(state.ideas.get(ideaId)!.revision).toBeGreaterThanOrEqual(2);
   await page.reload();
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Private quick capture fixture");
+  await page.locator(".idea-development-panel > summary").click();
   await page.getByText("More details", { exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Revenue hypotheses", exact: true })).toHaveValue("A user-authored monthly lunch plan hypothesis");
   expect(await browserValues(page)).not.toContain("Private quick capture fixture");
@@ -240,7 +277,7 @@ test("Ideas fixture: unknown save retains text and an explicit retry reuses its 
   await expect(page.getByRole("button", { name: "Retry", exact: true })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Private saved-response retry fixture");
   await page.getByRole("button", { name: "Retry", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 2.", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 2);
   expect(state.writes[1]!.body).toEqual(state.writes[0]!.body);
   expect(state.ideas.get(ideaId)?.revision).toBe(2);
 });
@@ -254,7 +291,7 @@ test("Ideas fixture: an unavailable mutation reports unconfirmed delivery while 
   await expect(page.getByRole("button", { name: "Retry", exact: true })).toBeVisible();
   state.patchStatus = 200;
   await page.getByRole("button", { name: "Retry", exact: true }).click();
-  await expect(page.getByText("Saved to account · version 2.", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 2);
   expect(state.writes[1]!.body).toEqual(state.writes[0]!.body);
 });
 
@@ -271,7 +308,7 @@ test("Ideas fixture: conflict preserves edits and replacing them requires an exp
   await page.getByRole("button", { name: "Load latest version", exact: true }).click();
   await page.getByRole("button", { name: "Replace with latest version", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Remote latest fixture");
-  await expect(page.getByText("Saved to account · version 2.", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 2);
 });
 
 test("Ideas fixture: a schema-valid multibyte idea cannot exceed the full request byte cap", async ({ page }) => {
@@ -306,7 +343,7 @@ test("Ideas fixture: explicit brand creation preserves its original source after
   await originalIdea.click();
   await expect(page.getByRole("link", { name: "Open created brand", exact: true })).toHaveAttribute("href", `/brands/account/${projectId}`);
   await page.getByRole("textbox", { name: "Idea title", exact: true }).fill("Edited idea title fixture");
-  await expect(page.getByText("Saved to account · version 3.", { exact: true })).toBeVisible();
+  await expectSavedVersion(page, 3);
   await expect(page.getByLabel("Save status", { exact: true })).toHaveText("Saved");
   expect(state.ideas.get(ideaId)?.content.title).toBe("Edited idea title fixture");
   await page.getByRole("link", { name: "Open created brand", exact: true }).click();

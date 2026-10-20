@@ -82,6 +82,20 @@ afterEach(async () => {
 });
 
 describe("owned IdeaDetail automatic saving", () => {
+  it("keeps optional development fields mounted through disclosure changes and puts version metadata in saved details", async () => {
+    stored = { ...stored, content: { ...stored.content, details: { ...stored.content.details, problem: "Retained problem notes", solution: "Retained solution notes" } } };
+    await render();
+    const development = host.querySelector<HTMLDetailsElement>(".idea-development-panel")!, metadata = host.querySelector<HTMLDetailsElement>(".idea-detail-metadata")!;
+    expect(development.open).toBe(false); expect(metadata.open).toBe(false);
+    const note = development.querySelector<HTMLTextAreaElement>('[aria-label="Problem"]')!;
+    development.open = true; note.focus();
+    await act(async () => { development.open = false; development.open = true; });
+    expect(development.querySelector("textarea")).toBe(note); expect(note.value).toBe("Retained problem notes");
+    expect(metadata.textContent).toContain("Saved to account · version 1."); expect(metadata.textContent).not.toContain("Storage");
+    expect(host.querySelector(".idea-detail-save-state")).toBeNull(); expect(status()).toBe("Saved");
+    const next = host.querySelector(".idea-brand-next")!; expect(next.textContent).toContain("or attach it to a brand you already have"); expect(next.querySelector(".idea-attach-disclosure")).not.toBeNull();
+    expect(writes).toEqual([]);
+  });
   it("debounces typing, displays Saved only after acknowledgement, and reloads the durable content", async () => {
     await render(); expect(status()).toBe("Saved"); expect(writes).toEqual([]);
     expect(button("Save changes")).toBeUndefined();

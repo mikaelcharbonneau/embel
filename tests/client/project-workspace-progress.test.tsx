@@ -10,13 +10,13 @@ import type { VerifiedAccount } from "@/components/workspace/account-session";
 
 const owner = "d0000000-0000-4000-8000-000000000001", projectId = "d0000000-0000-4000-8000-000000000002";
 const account: VerifiedAccount = { status: "ready", userId: owner, generation: 1 };
-let drafts: ReturnType<typeof createAccountDraftMemory>, pathname: string;
-const isCurrent = (value: VerifiedAccount) => value === account, expire = vi.fn();
+let drafts: ReturnType<typeof createAccountDraftMemory>, pathname: string, session: VerifiedAccount | { status: "checking" | "error" | "unavailable" | "signed_out"; generation: number };
+const isCurrent = (value: VerifiedAccount) => value === account && session === account, expire = vi.fn();
 vi.mock("next/navigation", () => ({ usePathname: () => pathname }));
-vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ session: account, drafts, isCurrent, expire }), AccountStatus: () => null }));
+vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ session, drafts, isCurrent, expire }), AccountStatus: () => <p>Account status fixture</p> }));
 const project = accountProjectSchema.parse({ id: projectId, owner_id: owner, title: "Owned fixture", scope: "complete_brand", current_revision: 4, created_at: "2026-10-13T00:00:00Z", context: { description: "A lighting studio", selectedName: "Luma" } });
 let root: Root | null, host: HTMLDivElement;
-beforeEach(() => { vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true); drafts = createAccountDraftMemory(); pathname = `/brands/account/${projectId}`; expire.mockReset(); host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
+beforeEach(() => { vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true); session = account; drafts = createAccountDraftMemory(); pathname = `/brands/account/${projectId}`; expire.mockReset(); host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.replaceChildren(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 const response = (saved = project) => new Response(JSON.stringify({ project: saved }));
 async function render(children: ReactNode = createElement("p", null, "Workspace")) { await act(async () => root!.render(<AccountProjectWorkspaceShell projectId={projectId}>{children}</AccountProjectWorkspaceShell>)); }
@@ -25,6 +25,47 @@ function Evidence({ evidenceOwner = owner, needsReview = false, revision = 4 }: 
 }
 
 describe("project progress is scoped to saved inputs", () => {
+  it.each(["checking", "error", "unavailable", "signed_out"] as const)("keeps a public project frame during account %s while masking all private work", async status => {
+    drafts.set({ ownerId: owner, generation: 1, saved: project, draft: accountProjectDraft(project), conflict: false });
+    session = { status, generation: 2 }; pathname = `/brands/account/${projectId}/identity`;
+    const fetch = vi.fn(); vi.stubGlobal("fetch", fetch);
+    await render(<input aria-label="Private retained editor" defaultValue="Private local input" />);
+    expect(host.querySelector(".project-workspace-header")).not.toBeNull();
+    expect(host.querySelectorAll('nav[aria-label="Project stages"]')).toHaveLength(1);
+    const pages = host.querySelector('nav[aria-label="Logo and identity pages"]')!;
+    expect(pages.querySelectorAll("button:disabled")).toHaveLength(6); expect(pages.querySelectorAll("a")).toHaveLength(0);
+    expect([...pages.querySelectorAll("button")].every(button => button.title === (status === "checking" ? "Checking your account…" : "Verify your account before continuing"))).toBe(true);
+    expect(host.textContent).not.toContain("Owned fixture"); expect(host.textContent).not.toContain("Unsaved project edits"); expect(host.querySelector("input")).toBeNull();
+    expect(drafts.get(projectId)?.saved.title).toBe("Owned fixture"); expect(fetch).not.toHaveBeenCalled();
+  });
+  it("keeps the shell and editor through an initial project-read failure and uses a failed-check reason", async () => {
+    let reject!: (error: Error) => void;
+    vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>((_resolve, no) => { reject = no; })));
+    pathname = `/brands/account/${projectId}/identity`;
+    await render(<input aria-label="Retained editor" defaultValue="Keep local input" />);
+    const header = host.querySelector(".project-workspace-header"), pages = host.querySelector('nav[aria-label="Logo and identity pages"]')!, input = host.querySelector("input")!;
+    expect(host.textContent).toContain("Checking project…"); input.focus();
+    await act(async () => reject(new Error("Synthetic read failure")));
+    expect(host.querySelector(".project-workspace-header")).toBe(header); expect(host.querySelector("input")).toBe(input); expect(document.activeElement).toBe(input);
+    expect(host.textContent).toContain("Project not verified"); expect(host.textContent).not.toContain("Checking project…"); expect(host.textContent).not.toContain("Unsaved project edits");
+    expect([...pages.querySelectorAll("button")].every(button => button.title === "Check saved project before continuing")).toBe(true);
+  });
+  it("immediately masks the owned title and editor when account verification is lost", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => response()));
+    const editor = <input aria-label="Private editor" defaultValue="Private retained input" />;
+    await render(editor); expect(host.textContent).toContain("Owned fixture"); expect(host.querySelector("input")).not.toBeNull();
+    session = { status: "checking", generation: 2 }; await render(editor);
+    expect(host.textContent).not.toContain("Owned fixture"); expect(host.querySelector("input")).toBeNull(); expect(host.querySelector(".project-workspace-header")).not.toBeNull();
+    expect(drafts.get(projectId)?.saved.title).toBe("Owned fixture");
+  });
+  it("qualifies a retained saved project after a failed recheck without clearing its editor or marking it dirty", async () => {
+    drafts.set({ ownerId: owner, generation: 1, saved: project, draft: accountProjectDraft(project), conflict: false });
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("Synthetic failed recheck"); }));
+    await render(<input aria-label="Retained editor" defaultValue="Kept" />);
+    expect(host.querySelector(".project-workspace-save")?.textContent).toBe("Last confirmed project · v4");
+    expect(host.textContent).not.toContain("Unsaved project edits"); expect(host.querySelector<HTMLInputElement>("input")?.value).toBe("Kept");
+    expect(drafts.get(projectId)?.saved).toBe(project);
+  });
   it.each(["checking", "dirty", "conflict", "naming_only"] as const)("applies the same %s lock to both visual navigation rows without remounting editors", async state => {
     const saved = { ...project, scope: state === "naming_only" ? "naming_only" as const : project.scope };
     if (state !== "checking") drafts.set({ ownerId: owner, generation: 1, saved, draft: { ...accountProjectDraft(saved), ...(state === "dirty" ? { namingNotes: "Retain this edit" } : {}) }, conflict: state === "conflict" });

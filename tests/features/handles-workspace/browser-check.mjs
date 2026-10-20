@@ -80,7 +80,8 @@ try {
   await page.getByRole("checkbox", { name: "LinkedIn", exact: true }).uncheck();
   await page.getByRole("button", { name: "Build comparison" }).click();
   await expect(page.getByRole("table")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Refresh results", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Refresh results", exact: true })).toHaveCount(0);
+  await expect(page.getByText("Checks not connected · availability unknown", { exact: true })).toBeVisible();
   await expect(page.getByText("To check", { exact: true })).toHaveCount(9);
   await expect(page.getByText("Confirmed available", { exact: true })).toHaveCount(0);
   checks.push("imported project context and three variants × three unavailable platforms");

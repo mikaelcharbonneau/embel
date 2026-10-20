@@ -67,3 +67,9 @@
 .tm-manual-research dt { font-size: 12px; color: #707079; }
 .tm-manual-research dd { margin: 4px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 .tm-manual-research p { font-size: 13px; line-height: 1.6; color: #64646b; }
+.tm-workspace .tm-coverage { color: var(--secondary); font-size: 12px; line-height: 20px; padding-top: 12px; border-top: 1px solid var(--border); }
+.tm-registry-evidence { margin-top: 24px; padding: 20px; border: 1px solid var(--border); border-radius: var(--panel-radius); background: var(--paper); }
+.tm-registry-evidence > .tm-research-details { margin-top: 12px; }
+.tm-workspace .tm-navigation { overflow-x: auto; white-space: nowrap; scrollbar-width: thin; }
+.tm-workspace .tm-navigation button { flex-shrink: 0; }
+.tm-workspace .tm-navigation button:focus-visible { outline-offset: -3px; }

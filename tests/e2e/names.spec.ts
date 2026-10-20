@@ -44,7 +44,9 @@ test("Names account library persists context, preferences, comparison and a real
   await expect(candidate(page, "Lumi").getByRole("button", { name: "Unfavorite Lumi", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(candidate(page, "Lumi").getByRole("button", { name: "Save Lumi", exact: true })).toHaveAttribute("aria-pressed", "false");
   await expect(page.getByRole("button", { name: "Browser library", exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Project names', exact: true }).click();
   await expect(page.getByRole("heading", { name: "From your projects", exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Workshop & manual', exact: true }).click();
   await page.getByRole("combobox", { name: "Filter names" }).selectOption("favorite");
   await expect(page.locator(".names-library-list").getByRole("article")).toHaveCount(1);
   await page.getByText("Backups and recovery ·", { exact: false }).click();

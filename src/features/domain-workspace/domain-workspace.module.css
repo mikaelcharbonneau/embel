@@ -155,7 +155,7 @@
 .resultPrice { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; min-width: 120px; }
 .resultPrice > strong { font-size: 20px; font-weight: 500; line-height: 28px; }
 .resultPrice > span { font-size: 12px; line-height: 16px; color: var(--secondary); }
-.resultArrow { display: grid; place-items: center; flex-shrink: 0; width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 50%; padding: 0; color: var(--secondary); }
+.resultArrow { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex-shrink: 0; min-height: 36px; border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; color: var(--secondary); font-size: 12px; }
 .resultArrow[aria-expanded="true"] svg { transform: rotate(90deg); }
 .shortlistButton { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex-shrink: 0; min-height: 36px; border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; color: var(--secondary); font-size: 12px; }
 .shortlistButton[aria-pressed="true"] { color: var(--accent-text); background: var(--magenta-soft); }
@@ -175,9 +175,17 @@
 .evidenceNote { margin: 0; font-size: 12px; line-height: 18px; color: var(--secondary); }
 .evidenceNote[data-results="false"] { text-align: center; }
 .draftControls { margin-top: 20px; }
-.tabs { justify-content: flex-end; gap: 16px; margin: 16px 0 0; border: 0; }
-.tabs > button { font-size: 12px; padding: 4px 0; border: 0; }
-.tabs > button[aria-current] { text-decoration: underline; text-underline-offset: 4px; }
+.tabs { gap: 32px; margin: 0 0 24px; border-bottom: 1px solid var(--border); }
+.tabs > button { min-height: 44px; font-size: 14px; padding: 10px 4px; border-bottom: 2px solid transparent; }
+.tabs > button[aria-current] { border-bottom-color: var(--text); }
+.filterSurface { position: relative; }
+.filterSurface .collapsedFilters { margin-bottom: 12px; }
+.filterSurface .filtersPanel { position: absolute; top: 100%; inset-inline: 0; z-index: 3; box-shadow: 0 8px 24px #0000000a; }
+.filtersPanel[hidden] { display: none; }
+.filterHeading > div { min-width: 0; }
+.filterScope { margin: 8px 0 0; max-width: 72ch; color: var(--secondary); font-size: 12px; line-height: 18px; }
+.filterHeading > button { min-height: 36px; flex-shrink: 0; }
+.filterBody { max-height: min(440px, 55dvh); overflow-y: auto; overscroll-behavior: contain; }
 .footer { margin-top: 16px; font-size: 12px; }
 @media (max-width: 1000px) {
   .workspace { padding-inline: 24px; }
@@ -200,8 +208,9 @@
   .resultPrice { min-width: 88px; }
   .resultIdentity h3 { font-size: 16px; }
   .resultIdentity p { font-size: 12px; }
-  .shortlistButton { width: 32px; padding: 0; }
-  .shortlistButtonLabel { display: none; }
+  .shortlistButton { padding: 6px 8px; }
+  .resultSummary { flex-wrap: wrap; gap: 10px; }
+  .resultIdentity { flex-basis: calc(100% - 112px); }
 }
 @media (max-width: 440px) {
   .searchLabelRow { flex-wrap: wrap; gap: 8px; }
@@ -209,10 +218,11 @@
   .nameInput { flex-basis: 100%; }
   .searchButton { margin-left: auto; }
   .resultSummary { flex-wrap: wrap; }
-  .resultIdentity { flex-basis: calc(100% - 88px); }
-  .resultPrice { order: 3; width: 100%; align-items: flex-start; flex-direction: row; gap: 8px; align-content: center; }
+  .resultIdentity { flex-basis: 100%; }
+  .resultPrice { width: 100%; align-items: flex-start; flex-direction: row; gap: 8px; align-content: center; }
   .resultPrice > span { align-self: center; }
   .resultPrice > .renewalPrice { margin: 0; }
   .resultPrice { flex-wrap: wrap; }
   .filterPill { font-size: 12px; min-height: 32px; }
 }
+@media (prefers-reduced-motion: reduce) { .switch::before { transition: none; } }

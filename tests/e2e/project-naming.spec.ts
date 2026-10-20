@@ -563,12 +563,12 @@ for (const action of ["overview", "preferences", "view", "retention", "selection
     if (action === "generation") { fixture.hold(`${base}/batches`, "POST"); await page.getByRole("button", { name: "Generate 50 more names" }).click(); }
     if (action === "cancellation") { fixture.hold(`${base}/batches/${fixture.state.jobs[0]!.batchId}`, "DELETE"); await page.getByRole("button", { name: "Cancel generation" }).click(); }
     if (action === "transform") { await workshopName(page, "Fixture 001"); await page.getByLabel("Suffixes", { exact: true }).fill("ly"); fixture.hold(`${base}/transforms`, "POST"); await page.getByRole("button", { name: "Run Affixes" }).click(); }
-    if (action === "library") { await page.goto("/names"); fixture.hold("/api/names", "GET"); await page.getByRole("tab", { name: "Library", exact: true }).click(); }
+    if (action === "library") { await page.goto("/names"); fixture.hold("/api/names", "GET"); await page.getByRole("tab", { name: "Library", exact: true }).click(); await page.getByRole("button", { name: "Project names", exact: true }).click(); }
     if (action === "import") { await page.getByText("Copy a name from your library", { exact: true }).click(); await page.getByLabel("Library name to copy").selectOption(uuid("abababab", 555)); fixture.hold(`${base}/imports`, "POST"); await page.getByRole("button", { name: "Copy into this project" }).click(); }
-    if (action === "promotion") { await page.goto("/names"); await page.getByRole("tab", { name: "Library", exact: true }).click(); await expect(card(page, "Fixture 001")).toBeVisible(); fixture.hold(`${base}/promote`, "POST"); await card(page, "Fixture 001").getByRole("button", { name: "Create brand" }).click(); }
+    if (action === "promotion") { await page.goto("/names"); await page.getByRole("tab", { name: "Library", exact: true }).click(); await page.getByRole("button", { name: "Project names", exact: true }).click(); await expect(card(page, "Fixture 001")).toBeVisible(); fixture.hold(`${base}/promote`, "POST"); await card(page, "Fixture 001").getByRole("button", { name: "Create brand" }).click(); }
     if (action === "candidate pagination") { fixture.hold(base, "GET"); await page.getByRole("button", { name: "Load more saved names" }).click(); }
     if (action === "batch pagination") { await page.getByText("Batch history · 100 loaded", { exact: true }).click(); fixture.hold(`${base}/batches`, "GET"); await page.getByRole("button", { name: "Load more batches" }).click(); }
-    if (action === "library pagination") { await page.goto("/names"); await page.getByRole("tab", { name: "Library", exact: true }).click(); await expect(card(page, firstName)).toBeVisible(); fixture.hold("/api/names", "GET"); await page.getByRole("button", { name: "Load more account names" }).click(); }
+    if (action === "library pagination") { await page.goto("/names"); await page.getByRole("tab", { name: "Library", exact: true }).click(); await page.getByRole("button", { name: "Project names", exact: true }).click(); await expect(card(page, firstName)).toBeVisible(); fixture.hold("/api/names", "GET"); await page.getByRole("button", { name: "Load more account names" }).click(); }
     if (action === "expansion") { fixture.hold(`/api/projects/${projectId}/expand`, "POST"); await page.getByRole("button", { name: "Expand to complete brand" }).click(); }
     // The held response remains addressable after capture so it can return late.
     const held = fixture.state.delay;
@@ -597,6 +597,50 @@ test("naming fixture: keyboard controls and long names fit desktop and mobile", 
   await page.locator("#project-naming-results-heading").focus();
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: info.outputPath("naming-long-names.png"), fullPage: true, scale: "css" });
+});
+
+test("naming presentation: selected name and screening actions fit 1440, 390 and 320 px without changing evidence", async ({ page }, info) => {
+  const name = "VeryLongSyntheticName".repeat(6);
+  const fixture = await fixtures(page); fixture.preferences(); fixture.enqueue(); fixture.complete(2, [name, "Courte"]);
+  await open(page); await useName(page, name);
+  const screening = page.getByRole("region", { name: "Name screening", exact: true });
+  await expect(screening).toBeVisible();
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }, { width: 320, height: 740 }]) {
+    await page.setViewportSize(viewport);
+    await page.evaluate(() => document.fonts.ready);
+    const selected = (await page.locator(".project-naming-selected").boundingBox())!;
+    const heading = (await page.locator("#project-naming-screening-heading").boundingBox())!;
+    const action = screening.getByRole("button", { name: "Change name", exact: true });
+    const bounds = (await action.boundingBox())!;
+    expect(bounds.height).toBeGreaterThanOrEqual(44);
+    expect(bounds.x).toBeGreaterThanOrEqual(selected.x);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(selected.x + selected.width + 1);
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(selected.y + selected.height + 1);
+    expect(await action.evaluate(element => {
+      const text = [...element.childNodes].find(node => node.nodeType === Node.TEXT_NODE && node.textContent?.trim());
+      if (!text) return 0;
+      const range = document.createRange(); range.selectNode(text); return range.getClientRects().length;
+    })).toBe(1);
+    if (viewport.width <= 600) expect(bounds.y).toBeGreaterThanOrEqual(heading.y + heading.height);
+    await expect(page.locator("#project-naming-screening-heading")).toHaveText(name);
+    for (const article of await screening.locator(".project-naming-screening-grid article").all()) {
+      const cardBounds = (await article.boundingBox())!, link = (await article.getByRole("link").boundingBox())!;
+      const icon = (await article.locator(":scope > svg").boundingBox())!, title = (await article.getByRole("heading").boundingBox())!;
+      expect(Math.abs((icon.y + icon.height / 2) - (title.y + title.height / 2))).toBeLessThanOrEqual(2);
+      expect(link.height).toBeGreaterThanOrEqual(44);
+      expect(link.x + link.width).toBeLessThanOrEqual(cardBounds.x + cardBounds.width + 1);
+      expect(link.y + link.height).toBeLessThanOrEqual(cardBounds.y + cardBounds.height + 1);
+    }
+    const research = page.getByRole("region", { name: "Project screening research", exact: true });
+    expect((await research.getByRole("combobox", { name: "Research type", exact: true }).boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    expect((await research.getByRole("textbox", { name: "Exact domain", exact: true }).boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
+    await expect(screening.getByText("Not checked here", { exact: true })).toHaveCount(3);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: info.outputPath(`naming-screening-${viewport.width}x${viewport.height}.png`), fullPage: true, scale: "css" });
+  }
+  expect(fixture.state.currentSelection?.candidate.value).toBe(name);
+  expect(fixture.state.requests.filter(request => /screening\/(?:check|records)$/.test(request.path) && request.method !== "GET")).toHaveLength(0);
 });
 
 test("naming fixture: a lost workshop response reuses one idempotent run", async ({ page }) => {
@@ -643,7 +687,7 @@ for (const field of ["favorite", "saved"] as const) for (const committed of [fal
     const fixture = await prepared(page);
     fixture.state.candidates[0]!.retention = { ...fixture.state.candidates[0]!.retention, revision: 1, favorite: field === "saved", saved: field === "favorite", updatedAt: when };
     const originals = JSON.stringify(fixture.state.candidates.map(entry => entry.candidate));
-    await page.goto("/names"); await page.getByRole("tab", { name: "Library", exact: true }).click();
+    await page.goto("/names"); await page.getByRole("tab", { name: "Library", exact: true }).click(); await page.getByRole("button", { name: "Project names", exact: true }).click();
     await expect(card(page, "Fixture 001")).toBeVisible();
     if (committed) fixture.state.lostRetention = true;
     else fixture.state.mutationStatus = 503;
@@ -660,7 +704,7 @@ for (const field of ["favorite", "saved"] as const) for (const committed of [fal
       : (committed ? "Unsave" : "Save"), exact: true })).toBeVisible();
     expect(fixture.state.requests.filter(request => request.path === `${base}/retention`)).toHaveLength(1);
     expect(fixture.state.requests.filter(request => request.path === `${base}/batches` && request.method === "POST")).toHaveLength(0);
-    await reload(page); await page.getByRole("tab", { name: "Library", exact: true }).click();
+    await reload(page); await page.getByRole("tab", { name: "Library", exact: true }).click(); await page.getByRole("button", { name: "Project names", exact: true }).click();
     await expect(card(page, "Fixture 001").getByRole("button", { name: field === "favorite"
       ? (committed ? "Unfavorite Fixture 001" : "Favorite Fixture 001")
       : (committed ? "Unsave" : "Save"), exact: true })).toBeVisible();
@@ -670,7 +714,7 @@ for (const field of ["favorite", "saved"] as const) for (const committed of [fal
 test("naming fixture: delayed library reads cannot roll back newer retention", async ({ page }) => {
   const fixture = await prepared(page);
   fixture.state.candidates[0]!.retention = { ...fixture.state.candidates[0]!.retention, revision: 1, favorite: true, saved: true, updatedAt: when };
-  await page.goto("/names"); await page.getByRole("tab", { name: "Library", exact: true }).click();
+  await page.goto("/names"); await page.getByRole("tab", { name: "Library", exact: true }).click(); await page.getByRole("button", { name: "Project names", exact: true }).click();
   await expect(card(page, "Fixture 001")).toBeVisible();
   fixture.state.mutationStatus = 409;
   await card(page, "Fixture 001").getByRole("button", { name: "Unfavorite Fixture 001", exact: true }).click();
@@ -699,7 +743,7 @@ test("naming fixture: library import preserves original and account promotion st
   expect(fixture.state.project.context.description).toContain("Synthetic brief");
   expect(await page.evaluate(() => localStorage.getItem("fluid.names.v1"))).toBe(original);
   await card(page, "Local fixture name").getByRole("button", { name: "Favorite Local fixture name", exact: true }).click();
-  await page.goto("/names"); await page.getByRole("tab", { name: "Library", exact: true }).click();
+  await page.goto("/names"); await page.getByRole("tab", { name: "Library", exact: true }).click(); await page.getByRole("button", { name: "Project names", exact: true }).click();
   await expect(card(page, "Local fixture name")).toBeVisible();
   await card(page, "Local fixture name").getByRole("button", { name: "Create brand" }).click();
   await expect(page).toHaveURL(`/brands/account/${uuid("bdbdbdbd", 1)}`);
@@ -713,7 +757,7 @@ test("naming fixture: promoting an earlier-context name requires acknowledgement
   const candidate = fixture.state.candidates[0]!.candidate, originalBasis = JSON.stringify(candidate.strategyBasis);
   fixture.state.candidates[0]!.retention = { ...fixture.state.candidates[0]!.retention, saved: true, revision: 1, updatedAt: when };
   fixture.state.project = { ...fixture.state.project, current_revision: 4, context: { ...fixture.state.project.context, description: "Newer source project direction" } };
-  await page.goto("/names"); await page.getByRole("tab", { name: "Library", exact: true }).click();
+  await page.goto("/names"); await page.getByRole("tab", { name: "Library", exact: true }).click(); await page.getByRole("button", { name: "Project names", exact: true }).click();
   await card(page, "Fixture 001").getByRole("button", { name: "Create brand", exact: true }).click();
   await expect(page.getByRole("region", { name: "Create brand confirmation" })).toBeVisible();
   const confirm = page.getByRole("button", { name: "Create brand with this name", exact: true });
@@ -762,6 +806,7 @@ test("naming fixture: dirty Strategy memory survives library navigation and bloc
   if (await navigation.isVisible()) await navigation.click();
   await page.getByRole("link", { name: "Names", exact: true }).click();
   await page.getByRole("tab", { name: "Library", exact: true }).click();
+  await page.getByRole("button", { name: "Project names", exact: true }).click();
   await card(page, "Fixture 001").getByRole("link", { name: "Synthetic naming project", exact: false }).click();
   await expect(page).toHaveURL(url);
   await expect(page.getByText("Save your Strategy changes first", { exact: true })).toBeVisible();

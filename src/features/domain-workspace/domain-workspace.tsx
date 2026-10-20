@@ -33,6 +33,10 @@ export type DomainsWorkspaceProps = {
 };
 type Row = { domain: string; check: DomainCheck | null; quote: DomainQuote | null; status: "idle" | "checking" | "quoting"; error: string | null; requestAdapter?: DomainSearchAdapter };
 function blankRows(domains: string[]): Row[] { return domains.map(domain => ({ domain, check: null, quote: null, status: "idle", error: null })); }
+function registrarLabel(provider: string | undefined) {
+  if (!provider) return "Not connected";
+  return ({ namecom_core: "Name.com", namecom_core_sandbox: "Name.com sandbox", vercel_registrar: "Vercel", cloudflare_registrar: "Cloudflare", "Public registry RDAP": "Public registry lookup" } as Record<string, string>)[provider] ?? "Connected provider";
+}
 const defaultLibrary = { status: "unavailable", message: "Purchased-domain records are not connected." } as const;
 function date(value: string) { return new Date(value).toLocaleString("en-CA", { timeZone: "America/Toronto", timeZoneName: "short" }); }
 function money(value: DomainQuote["total"]) {
@@ -166,6 +170,7 @@ export function DomainsWorkspace({ adapter = unavailableDomainAdapter, library =
   function selectSort(key: typeof sort.key) { setSort(current => ({ key, descending: key === current.key ? !current.descending : false })); }
   return <div className={styles.workspace}>
     <header className={styles.heading}><h1>A home for your brand<span>.</span></h1><p>Find the right domain for your next brand.</p></header>
+    <nav className={styles.tabs} aria-label="Domain views">{(["search", "shortlist", "library"] as const).map(value => <button type="button" key={value} aria-current={tab === value ? "page" : undefined} onClick={() => setTab(value)}>{value === "library" ? "Library" : value === "shortlist" ? `Shortlist${shortlisted.length ? ` (${shortlisted.length})` : ""}` : "Search"}</button>)}</nav>
     {tab === "library" ? <section aria-label="Purchased domains" className={styles.panel}>
       <div className={styles.sectionHeading}><h2>Purchased in Embel</h2><label className={styles.librarySearch}><span className="sr-only">Search purchased domains</span><input type="search" placeholder="Search domain or brand" value={filter} onChange={event => setFilter(event.target.value)} /></label></div>
       <p className={styles.muted}>Only registrar-confirmed Embel purchases appear here. Search candidates and pending orders stay separate.</p>
@@ -197,14 +202,14 @@ export function DomainsWorkspace({ adapter = unavailableDomainAdapter, library =
           const block = row.quote ? quoteBlockReason(row.quote, row.check, now) : null;
           const quote = verifiedQuote(row), expanded = expandedRows.includes(row.domain);
           return <li key={row.domain} className={styles.resultRow}>
-            <div className={styles.resultSummary}><div className={styles.resultIdentity}><h3>{row.domain}</h3><p>Registrar: {row.check?.provider ?? (adapter.status === "ready" ? adapter.provider : "Not connected")}<span aria-hidden="true"> · </span><span role="status" aria-label={`${row.domain} availability`}>{busy && row.status === "checking" ? "Checking…" : availability === "available" ? "Confirmed available" : availability === "taken" ? "Taken" : "Unknown"}</span></p></div>
+            <div className={styles.resultSummary}><div className={styles.resultIdentity}><h3>{row.domain}</h3><p><span role="status" aria-label={`${row.domain} availability`}>{busy && row.status === "checking" ? "Checking…" : availability === "available" ? "Confirmed available" : availability === "taken" ? "Taken" : "Unknown"}</span><span aria-hidden="true"> · </span>{registrarLabel(row.check?.provider ?? (adapter.status === "ready" ? adapter.provider : undefined))}</p></div>
               <div className={styles.resultPrice}><strong>{quote ? money(quote.total) : "—"}</strong><span>{quote ? `${quote.total.currency} / ${quote.periodYears === 1 ? "year" : `${quote.periodYears} years`}` : "Not quoted"}</span>{quote?.renewal && <span className={styles.renewalPrice}>Renewal {money(quote.renewal)} / {quote.periodYears === 1 ? "year" : `${quote.periodYears} years`}</span>}</div>
               <button type="button" className={styles.shortlistButton} disabled={editingDisabled} aria-pressed={shortlisted.includes(row.domain)} aria-label={`${shortlisted.includes(row.domain) ? "Remove" : "Add"} ${row.domain} ${shortlisted.includes(row.domain) ? "from" : "to"} shortlist`} title={shortlisted.includes(row.domain) ? "Remove from shortlist" : "Add to shortlist"} onClick={() => toggleShortlist(row.domain)}><Icon name={shortlisted.includes(row.domain) ? "check" : "plus"} size={16} /><span className={styles.shortlistButtonLabel}>{shortlisted.includes(row.domain) ? "Shortlisted" : "Shortlist"}</span></button>
-              <button type="button" className={styles.resultArrow} aria-label={`View ${row.domain} details`} aria-expanded={expanded} aria-controls={`${uid}-details-${row.domain}`} onClick={() => setExpandedRows(current => expanded ? current.filter(domain => domain !== row.domain) : [...current, row.domain])}><Icon name="arrow" size={15} /></button>
+              <button type="button" className={styles.resultArrow} aria-label={`View ${row.domain} details`} aria-expanded={expanded} aria-controls={`${uid}-details-${row.domain}`} onClick={() => setExpandedRows(current => expanded ? current.filter(domain => domain !== row.domain) : [...current, row.domain])}><span>Details</span><Icon name="arrow" size={15} /></button>
             </div>
             <div className={styles.rowDetails} id={`${uid}-details-${row.domain}`} hidden={!expanded}>
               <label className={styles.selectDomain}><input type="checkbox" aria-label={`Select ${row.domain}`} checked={selected.includes(row.domain)} onChange={event => select(row.domain, event.target.checked)} />Select domain</label>
-              <p className={styles.muted}>{row.check ? `${row.check.provider} · checked ${date(row.check.checkedAt)} · recheck after ${date(row.check.validUntil)} · evidence ${row.check.evidenceReference}${availability === "unknown" && row.check.availability !== "unknown" ? " · evidence expired or not current" : ""}` : "No availability evidence."}</p>
+              <p className={styles.muted}>{row.check ? `Provider ID: ${row.check.provider} · checked ${date(row.check.checkedAt)} · recheck after ${date(row.check.validUntil)} · evidence ${row.check.evidenceReference}${availability === "unknown" && row.check.availability !== "unknown" ? " · evidence expired or not current" : ""}` : `No availability evidence.${adapter.status === "ready" ? ` Provider ID: ${adapter.provider}.` : ""}`}</p>
               {row.check?.detail && <p className={styles.muted}>{row.check.detail}{row.check.sourceUrl && <> <a href={row.check.sourceUrl} target="_blank" rel="noopener noreferrer">Open source</a></>}</p>}
               {row.status !== "idle" && !busy && <p role="status">Previous request cancelled after a connection change.</p>}
               {row.error && <p role="alert">{row.error}</p>}
@@ -216,9 +221,8 @@ export function DomainsWorkspace({ adapter = unavailableDomainAdapter, library =
         })}</ul> : <div className={styles.empty}><h3>No domains match these filters</h3><p>Try a wider price range or include unavailable domains.</p><button type="button" className="button secondary small" onClick={() => setViewFilters({ ...defaultViewFilters, hideUnavailable: false })}>Clear result filters</button></div>}
         </>}</DomainResultTools>
       </section>}
-      <p className={styles.evidenceNote} data-results={rows.length > 0}>{adapter.status === "unavailable" ? adapter.reason : adapter.description ?? `Checks supplied by ${adapter.provider}.`}{rows.length > 0 && (tab === "shortlist" ? " All shortlisted domains remain visible." : " Unpriced results stay visible. Price filters use current one-year USD quotes.")}</p>
+      <p className={styles.evidenceNote} data-results={rows.length > 0}>{adapter.status === "unavailable" ? adapter.reason : adapter.description ?? `Checks supplied by ${registrarLabel(adapter.provider)}.`}{rows.length > 0 && (tab === "shortlist" ? " All shortlisted domains remain visible." : " Unpriced results stay visible. Price filters use current one-year USD quotes.")}</p>
     </section>}
-    <nav className={styles.tabs} aria-label="Domain views">{(["search", "shortlist", "library"] as const).map(value => <button type="button" key={value} aria-current={tab === value ? "page" : undefined} onClick={() => setTab(value)}>{value === "library" ? "Library" : value === "shortlist" ? `Shortlist${shortlisted.length ? ` (${shortlisted.length})` : ""}` : "Search"}</button>)}</nav>
     {draftControls && <div className={styles.draftControls}>{draftControls}</div>}
     {validOrders.length > 0 && <section className={styles.panel} aria-label="Domain orders"><h2>Orders</h2><p className={styles.muted}>Payment confirmation alone does not confirm domain registration.</p><ul className={styles.results}>{validOrders.map(order => <li key={order.id}><h3>{order.domain}</h3><p>{orderLabel(order)}</p><p className={styles.muted}>Payment: {order.payment}{order.paymentReference ? ` · payment reference ${order.paymentReference}` : ""}</p><p className={styles.muted}>{order.provider} · order {order.id}{order.confirmation ? ` · registrar reference ${order.confirmation.registrationReference}` : " · no registration confirmation"}</p></li>)}</ul></section>}
     {validOrders.length !== orders.length && <p role="alert">Some order records could not be verified and are not shown.</p>}

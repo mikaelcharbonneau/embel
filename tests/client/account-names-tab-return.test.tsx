@@ -69,11 +69,12 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => root.unmount()); mock.memory?.clear(); host.remove(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
-it('shows retained account rows immediately on tab return, keeps both toolbars and focus, but awaits fresh action authority', async () => {
+it('shows retained account rows on tab return, keeps independent scoped searches and focus, but awaits fresh action authority', async () => {
   await render(); expect(cards()).toHaveLength(2);
   await input(host.querySelector<HTMLInputElement>('.names-search input')!, 'Local');
   await select(host.querySelector<HTMLSelectElement>('[aria-label="Filter names"]')!, 'saved');
   await select(host.querySelector<HTMLSelectElement>('[aria-label="Name source"]')!, 'manual');
+  await click('Project names');
   await input(library().querySelector('input')!, 'Account');
   await select(library().querySelector('select')!, projectId);
   await click('History'); const before = requests().length; await tick(15_000); expect(requests()).toHaveLength(before);
@@ -95,6 +96,45 @@ it('shows retained account rows immediately on tab return, keeps both toolbars a
   await act(async () => held.resolve(Response.json(page([updated, row(2)]))));
   expect(cards()[0]).toBe(retainedCard); expect(library().querySelector('input')).toBe(field); expect(document.activeElement).toBe(field);
   expect(button('Favorite Account 1', library()).disabled).toBe(false); expect(mock.navigate).not.toHaveBeenCalled();
+});
+
+it('has one active search, retains independent source panels and an explicitly labeled source link without claiming active project status', async () => {
+  await render();
+  const manual = host.querySelector<HTMLInputElement>('.names-search input')!, projectSearch = library().querySelector<HTMLInputElement>('input[type="search"]')!;
+  const activeSearches = () => [...host.querySelectorAll<HTMLInputElement>('input[type="search"]')].filter(node => !node.closest('[hidden]'));
+  expect(activeSearches()).toEqual([manual]);
+  await input(manual, 'Local'); await select(host.querySelector<HTMLSelectElement>('[aria-label="Filter names"]')!, 'saved');
+  const card = cards()[0];
+  const reads = requests().length;
+  const source = button('Project names'); source.focus(); await click('Project names');
+  expect(document.activeElement).toBe(source); expect(activeSearches()).toEqual([projectSearch]);
+  await input(projectSearch, 'Account'); await select(library().querySelector<HTMLSelectElement>('[aria-label="Filter project names"]')!, 'favorite');
+  expect(library().querySelector(`a[href="/brands/account/${projectId}/naming"]`)?.getAttribute("aria-label")).toBe(`Open source project: ${project.title}`);
+  expect(library().textContent).toContain('does not show whether a source project is active');
+  await click('Workshop & manual');
+  expect(activeSearches()).toEqual([manual]); expect(manual.value).toBe('Local');
+  expect(host.querySelector<HTMLSelectElement>('[aria-label="Filter names"]')!.value).toBe('saved');
+  await click('Project names');
+  expect(activeSearches()).toEqual([projectSearch]); expect(projectSearch.value).toBe('Account'); expect(cards()[0]).toBe(card);
+  expect(library().querySelector<HTMLSelectElement>('[aria-label="Filter project names"]')!.value).toBe('favorite');
+  expect(writes()).toHaveLength(0); expect(requests()).toHaveLength(reads);
+});
+
+it('filters project favorites, saved names and project choices independently without changing retention', async () => {
+  const first = row(1), second = row(2);
+  first.retention.saved = false; second.retention.favorite = false; second.currentSelection = true;
+  read = async () => Response.json(page([first, second]));
+  await render(); await click('Project names');
+  const filter = library().querySelector<HTMLSelectElement>('[aria-label="Filter project names"]')!;
+  await select(filter, 'favorite'); expect(cards().map(card => card.querySelector('h3')!.textContent)).toEqual(['Account 1']);
+  await select(filter, 'saved'); expect(cards().map(card => card.querySelector('h3')!.textContent)).toEqual(['Account 2']);
+  await select(filter, 'selected'); expect(cards().map(card => card.querySelector('h3')!.textContent)).toEqual(['Account 2']);
+  expect(library().querySelector('option[value="' + projectId + '"]')?.textContent).toBe('Private project · Account 2');
+  await select(filter, 'all'); expect(cards()).toHaveLength(2);
+  expect(button('Unfavorite Account 1', library()).getAttribute('aria-pressed')).toBe('true');
+  expect(button('Favorite Account 2', library()).getAttribute('aria-pressed')).toBe('false');
+  expect(first.retention).toMatchObject({ favorite: true, saved: false }); expect(second.retention).toMatchObject({ favorite: false, saved: true });
+  expect(writes()).toHaveLength(0);
 });
 
 it('retains a failed return snapshot without enabling writes or pagination and retries the fresh first page', async () => {

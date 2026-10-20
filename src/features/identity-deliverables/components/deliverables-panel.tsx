@@ -15,7 +15,7 @@ export function DeliverablesView({controller:c,client}:{controller:LogoExportsCo
  const options=c.selectedOptions,locked=c.loading||!!c.pendingRequestKey;
  const social=(kind:"avatar"|"banner",selected:boolean)=>c.selectOptions({...options,socialSelections:[...options.socialSelections.filter(item=>item.kind!==kind),...(selected?[{kind,presetId:kind==="avatar"?"avatar-1024-contain-v1":"banner-1500x500-contain-v1"}]:[])]});
  return <section className={styles.panel} aria-labelledby={title} aria-busy={c.loading}>
-  <header className={styles.header}><div><p className={styles.eyebrow}>Final deliverables</p><h2 id={title}>Brand files</h2><p className={styles.caption}>Verified files from your approved logo and identity.</p></div><span className={styles.badge}>No AI generation</span></header>
+  <header className={styles.header}><div><p className={styles.eyebrow}>Final deliverables</p><h2 id={title} className="project-output-inner-heading">Brand files</h2><p className={styles.caption}>Verified files from your approved logo and identity.</p></div><span className={styles.badge}>No AI generation</span></header>
   {!c.canRead?<p className={styles.notice} role="status">Sign in to the matching account to view saved brand files.</p>:<>
    <FilePrerequisites controller={c} currentVariants={currentVariantSource} reviewed={reviewed} variantHref={`#${variantTitle}`} />
    <div className={styles.row}><p className={styles.caption}>Existing files retain their original approved version.</p><button type="button" disabled={c.loading} onClick={()=>void c.refresh()}>Refresh saved work</button></div>

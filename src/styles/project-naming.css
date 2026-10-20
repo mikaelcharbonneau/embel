@@ -45,6 +45,7 @@
 .project-naming-toolbar input, .project-naming-toolbar select { min-height: 44px; width: 100%; min-width: 0; max-width: 100%; background: var(--paper); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 9px 11px; font-size: var(--font-ui); }
 .project-naming-toolbar > span { color: var(--secondary); font-size: var(--font-ui); margin-left: auto; }
 .project-naming-toolbar > .project-naming-results-count { width: 18rem; max-width: 100%; flex-shrink: 0; min-height: 1.5em; }
+.project-naming-page .project-naming-toolbar > button { min-height: 44px; white-space: nowrap; }
 /* A bounded viewport floor survives changed-query loading, errors and true empty views. */
 .project-naming-results-body { min-width: 0; min-height: clamp(216px, 40vh, 480px); }
 .project-naming-results-body > .project-naming-notice,
@@ -54,7 +55,7 @@
 .project-naming-card.is-selected { border-color: var(--accent-text); }
 .project-naming-card-title { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
 .project-naming-card h3 { font-size: 22px; font-weight: 500; letter-spacing: -.55px; line-height: 1.35; overflow-wrap: anywhere; min-width: 0; }
-.project-naming-favorite { border: 0; padding: 5px; min-height: 44px; min-width: 32px; display: grid; place-items: center; border-radius: 5px; color: var(--secondary); flex-shrink: 0; }
+.project-naming-favorite { border: 0; padding: 5px; min-height: 44px; min-width: 44px; display: grid; place-items: center; border-radius: 5px; color: var(--secondary); flex-shrink: 0; }
 .project-naming-favorite:hover { background: var(--surface); }
 .project-naming-favorite[aria-pressed="true"] { color: var(--accent-text); }
 .project-naming-card > p { font-size: var(--font-ui); line-height: 1.65; margin: 14px 0 12px; color: var(--secondary); overflow-wrap: anywhere; }
@@ -75,7 +76,7 @@
 .project-naming-batch-history { margin-bottom: 18px; font-size: var(--font-ui); color: var(--secondary); }
 .project-naming-batch-history summary { cursor: pointer; padding: 5px 0; }
 .project-naming-batch-history ol { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
-.project-naming-batch-history button { display: flex; justify-content: space-between; gap: 20px; width: 100%; text-align: left; padding: 11px 13px; border: 1px solid var(--border); border-radius: 5px; background: var(--paper); color: var(--secondary); }
+.project-naming-batch-history button { display: flex; justify-content: space-between; gap: 20px; width: 100%; min-height: 44px; text-align: left; padding: 11px 13px; border: 1px solid var(--border); border-radius: 5px; background: var(--paper); color: var(--secondary); }
 .project-naming-batch-history button[aria-pressed="true"] { border-color: var(--accent-text); color: var(--text); }
 .project-naming-next { display: flex; flex-direction: column; gap: 12px; align-items: center; text-align: center; border-top: 1px solid var(--border); margin-top: 26px; padding: 28px 16px 10px; }
 .project-naming-next p { max-width: 600px; }
@@ -85,17 +86,17 @@
 .project-naming-empty .button { margin-top: 20px; }
 .project-naming-chat-toggle { position: fixed; bottom: 22px; right: 30px; z-index: 16; display: inline-flex; align-items: center; gap: 9px; min-height: 44px; padding: 10px 15px; background: var(--paper); color: var(--text); border: 1px solid var(--border); border-radius: 24px; box-shadow: 0 4px 20px #0000000d; font-size: var(--font-ui); }
 .project-naming-chat-toggle:hover { background: var(--magenta-soft); }
-.project-naming-selected { display: flex; justify-content: space-between; gap: 20px; align-items: center; position: sticky; top: 0; padding: 23px 24px; background: var(--paper); border: 1px solid var(--border); border-radius: 8px; z-index: 2; }
+.project-naming-selected { display: grid; grid-template-columns: minmax(0, 1fr) max-content; gap: 20px; align-items: center; position: sticky; top: 0; padding: 23px 24px; background: var(--paper); border: 1px solid var(--border); border-radius: 8px; z-index: 2; }
 .project-naming-selected > div { min-width: 0; }
 .project-naming-selected h2 { font-size: 32px; letter-spacing: -.9px; margin-top: 7px; overflow-wrap: anywhere; }
 .project-naming-selected p { font-size: var(--font-ui); color: var(--secondary); margin-top: 7px; }
-.project-naming-selected > button { flex-shrink: 0; }
+.project-naming-page .project-naming-selected > button { min-height: 44px; max-width: 100%; white-space: nowrap; }
 .project-naming-screening-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 20px 0 15px; }
-.project-naming-screening-grid article { min-width: 0; padding: 24px 20px; background: var(--paper); border: 1px solid var(--border); border-radius: 8px; }
-.project-naming-screening-grid h3 { font-size: 17px; margin-top: 16px; }
-.project-naming-screening-grid p { font-size: var(--font-ui); color: var(--secondary); line-height: 1.7; margin-top: 13px; }
-.project-naming-screening-grid .project-naming-screening-status { color: var(--text); font-size: var(--font-ui); background: var(--surface); padding: 7px 9px; border-radius: 5px; }
-.project-naming-screening-grid .button { margin-top: 22px; }
+.project-naming-screening-grid article { display: grid; grid-template-columns: 22px minmax(0, 1fr); align-content: start; align-items: center; gap: 12px; min-width: 0; padding: 20px; background: var(--paper); border: 1px solid var(--border); border-radius: 8px; }
+.project-naming-screening-grid h3 { font-size: 17px; margin: 0; }
+.project-naming-screening-grid p { grid-column: 1 / -1; font-size: var(--font-ui); color: var(--secondary); line-height: 1.7; margin: 0; }
+.project-naming-screening-grid .project-naming-screening-status { justify-self: start; color: var(--text); font-size: var(--font-ui); background: var(--surface); padding: 7px 9px; border-radius: 5px; }
+.project-naming-page .project-naming-screening-grid .button { grid-column: 1 / -1; justify-self: start; min-height: 44px; margin-top: 0; }
 .project-naming-stale-choice { background: var(--magenta-soft); padding: 20px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 20px; }
 .project-naming-stale-choice h2 { font-size: 17px; overflow-wrap: anywhere; }
 .project-naming-stale-choice p { font-size: var(--font-ui); color: var(--secondary); line-height: 1.7; margin-top: 8px; }
@@ -136,7 +137,6 @@
   .project-naming-workshop { grid-template-columns: minmax(0, 1fr); }
   .project-naming-screening-grid { grid-template-columns: minmax(0, 1fr); }
   .project-naming-screening-grid article { padding: 20px; }
-  .project-naming-screening-grid h3 { margin-top: 10px; }
 }
 @media (max-width: 600px) {
   .project-naming-page { padding-top: 23px; }
@@ -157,9 +157,9 @@
   .project-naming-context dl { grid-template-columns: minmax(0, 1fr); }
   .project-naming-section-heading { align-items: flex-start; }
   .project-naming-section-heading > .project-naming-actions { justify-content: flex-end; }
-  .project-naming-selected { padding: 20px 16px; align-items: flex-start; }
+  .project-naming-selected { grid-template-columns: minmax(0, 1fr); padding: 20px 16px; gap: 16px; align-items: start; }
   .project-naming-selected h2 { font-size: 25px; }
-  .project-naming-selected > button { max-width: 112px; padding: 8px; font-size: var(--font-ui); }
+  .project-naming-selected > button { justify-self: start; padding: 8px 11px; font-size: var(--font-ui); }
   .project-naming-chat-toggle { right: 18px; bottom: 16px; width: 42px; height: 42px; padding: 11px; }
   .project-naming-chat-toggle > span { display: none; }
 }
@@ -168,7 +168,7 @@
 .project-naming-card { border-radius: 10px; padding: 20px 18px 14px; }
 .project-naming-card.is-selected { border-color: var(--text); }
 .project-naming-toolbar select { border-radius: 999px; min-height: 44px; }
-.project-naming-screening-grid { gap: 24px; margin-top: 32px; }
+.project-naming-screening-grid { gap: 16px; margin-top: 24px; }
 .project-naming-screening-grid article { border-radius: 10px; }
 .project-naming-library .project-naming-grid { display: flex; flex-direction: column; gap: 0; }
 .project-naming-library .project-naming-card { position: relative; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(120px, .8fr) minmax(200px, 1fr); gap: 10px 24px; align-items: center; width: 100%; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: transparent; padding: 16px 20px; }
@@ -176,7 +176,7 @@
 .project-naming-library .project-naming-card h3 { font-size: 20px; }
 .project-naming-library .project-naming-favorite { position: absolute; right: 14px; top: 12px; }
 .project-naming-library .project-naming-card > .text-link { grid-column: 2; grid-row: 1; justify-content: flex-start; }
-.project-naming-library .project-naming-badges { grid-column: 3; grid-row: 1; margin: 0; padding-right: 24px; }
+.project-naming-library .project-naming-badges { grid-column: 3; grid-row: 1; margin: 0; padding-right: 48px; }
 .project-naming-library .project-naming-card > p { grid-column: 1 / 3; font-size: var(--font-ui); margin: 0; }
 .project-naming-library .project-naming-actions { grid-column: 3; margin: 0; justify-content: flex-start; }
 .project-naming-library .project-naming-card > details { grid-column: 1 / -1; }

@@ -113,6 +113,7 @@ test("project design: three saved directions keep actual components and Files ke
   const collectionTrigger = await checkGlobalNavigation(page);
   await page.goto(`/brands/account/${projectId}/logo/directions`);
   await expect(page.getByRole("heading", { name: "Identity directions", level: 1, exact: true })).toBeVisible();
+  await expect(page.locator("h2.project-output-inner-heading")).not.toBeInViewport();
   const directionTrigger = await checkGlobalNavigation(page);
   // Thin borders may place a centered control on a half CSS pixel.
   for (const coordinate of ["x", "y", "width", "height"] as const) expect(Math.abs(directionTrigger[coordinate] - collectionTrigger[coordinate])).toBeLessThanOrEqual(1);
@@ -134,6 +135,7 @@ test("project design: three saved directions keep actual components and Files ke
   await page.screenshot({ path: info.outputPath("project-directions.png"), fullPage: true });
   await page.getByRole("navigation", { name: "Project stages", exact: true }).getByRole("link", { name: "Files", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Brand files", level: 1, exact: true })).toBeVisible();
+  await expect(page.locator("h2.project-output-inner-heading")).not.toBeInViewport();
   const fileTrigger = await checkGlobalNavigation(page);
   for (const coordinate of ["x", "y", "width", "height"] as const) expect(Math.abs(fileTrigger[coordinate] - collectionTrigger[coordinate])).toBeLessThanOrEqual(1);
   await info.attach("navigation-trigger-geometry", { body: Buffer.from(JSON.stringify({ viewport: page.viewportSize(), collectionTrigger, directionTrigger, fileTrigger }, null, 2)), contentType: "application/json" });
