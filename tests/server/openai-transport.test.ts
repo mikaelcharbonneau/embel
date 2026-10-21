@@ -54,3 +54,23 @@ describe("OpenAI HTTPS transport (mock fetch only)", () => {
     }
   });
 });
+
+describe("background response observation boundaries", () => {
+  it("retrieves a saved response without a create payload and cancels only that response", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockImplementation(async () => new Response(JSON.stringify({id:"resp_fixture",status:"completed"})));
+    const transport = createOpenAIResponsesTransport({apiKey:"synthetic-test-credential",fetch:fetcher});
+    const signal=new AbortController().signal;
+    await transport.retrieveResponse!("resp_fixture",signal);
+    await transport.cancelResponse!("resp_fixture",signal);
+    expect(fetcher.mock.calls[0]).toEqual(["https://api.openai.com/v1/responses/resp_fixture",expect.objectContaining({method:"GET",redirect:"error",signal})]);
+    expect(fetcher.mock.calls[0]![1]).not.toHaveProperty("body");
+    expect(fetcher.mock.calls[1]).toEqual(["https://api.openai.com/v1/responses/resp_fixture/cancel",expect.objectContaining({method:"POST",body:"{}",redirect:"error",signal})]);
+  });
+  it.each(["https://example.test/resp_x","resp_x/../other","resp_x?key=secret","resp_x#fragment","resp_",`resp_${"x".repeat(195)}`])("rejects invalid saved identities before HTTP: %s", async id=>{
+    const fetcher=vi.fn<typeof fetch>();
+    const transport=createOpenAIResponsesTransport({apiKey:"synthetic-test-credential",fetch:fetcher});
+    await expect(async()=>transport.retrieveResponse!(id,new AbortController().signal)).rejects.toThrow("Invalid response identity");
+    await expect(async()=>transport.cancelResponse!(id,new AbortController().signal)).rejects.toThrow("Invalid response identity");
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+});

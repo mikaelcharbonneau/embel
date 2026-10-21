@@ -8,8 +8,8 @@ describe("separate worker deployment contract", () => {
     expect(configuration.functions["api/consume.js"]).toEqual({ maxDuration: 300, experimentalTriggers: [{ type: "queue/v2beta", topic: "fluid-api-text-v1", retryAfterSeconds: 60, maxDeliveries: 5 }] });
     expect(Object.keys(configuration.functions).sort()).toEqual(["api/consume.js", "api/cron/repair-api-text.js", "api/enqueue.js", "api/readiness.js"]);
   });
-  it("keeps daily repair inside the worker Production package without web secrets/configuration", () => {
-    expect(configuration.crons).toEqual([{ path: "/api/cron/repair-api-text", schedule: "0 3 * * *" }]);
+  it("keeps minute-scale recovery inside the worker Production package without web secrets/configuration", () => {
+    expect(configuration.crons).toEqual([{ path: "/api/cron/repair-api-text", schedule: "* * * * *" }]);
     expect(configuration).not.toHaveProperty("env"); expect(configuration).not.toHaveProperty("build.env");
     expect(configuration.framework).toBeNull();
     expect(configuration.functions["api/enqueue.js"].maxDuration).toBe(30);
