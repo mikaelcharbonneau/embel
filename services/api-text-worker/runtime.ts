@@ -4,6 +4,7 @@ import { diagnose } from "../../worker/hosting/diagnostics";
 import { QueueClient } from "@vercel/queue";
 import { readWorkerIdentity, workerPoolOptions } from "../../worker/hosting/config";
 import type { PublicationDependencies } from "../../worker/hosting/publication";
+import { apiTextBackgroundRecoveryEnabled } from "../../worker/api-text-background-config";
 import { multiAccountApiTextEnabled } from "../../worker/api-text-multi-account";
 
 let pool: Pool | undefined;
@@ -24,5 +25,5 @@ export function queueClient(): QueueClient {
 }
 export function publicationDependencies(signal: AbortSignal): PublicationDependencies {
   const { deploymentId } = readWorkerIdentity();
-  return { database: workerDatabase(), send: queueClient().send, deploymentId, signal, multiAccount: multiAccountApiTextEnabled() };
+  return { database: workerDatabase(), send: queueClient().send, deploymentId, signal, multiAccount: multiAccountApiTextEnabled(), backgroundRecovery: apiTextBackgroundRecoveryEnabled() };
 }

@@ -2,6 +2,8 @@ import type { RetryHandler } from "@vercel/queue";
 import { bounded } from "./timing";
 import { diagnose, diagnosticErrorClass, type DiagnosticSink } from "./diagnostics";
 
+class BackgroundObservationPending extends Error {}
+
 export async function handleApiTextQueueRequest(request: Request, dependencies: {
   queue: { handleCallback(handler: (message: unknown) => Promise<void>, options: {
     visibilityTimeoutSeconds: number; retry: RetryHandler;
@@ -19,13 +21,16 @@ export async function handleApiTextQueueRequest(request: Request, dependencies: 
       const result = await dependencies.deliver(message, controller.signal);
       controller.signal.throwIfAborted();
       diagnose("delivery", result.disposition === "ack" ? "terminal_ack_requested" : "retry_requested", started, "none", dependencies.diagnostics);
-      if (result.disposition !== "ack") throw new Error("Delivery requires recheck");
+      if (result.disposition !== "ack") {
+        if (result.state === "background_observing") throw new BackgroundObservationPending("Background observation pending");
+        throw new Error("Delivery requires recheck");
+      }
     }, {
       visibilityTimeoutSeconds: 300,
       // Exhaustion is never success. The generation-fenced SQL outbox owns redrive.
-      retry: (_error, metadata) => {
+      retry: (error, metadata) => {
         diagnose("queue_callback", "retry_requested", started, "none", dependencies.diagnostics);
-        return { afterSeconds: Math.min(300, 60 * metadata.deliveryCount) };
+        return { afterSeconds: error instanceof BackgroundObservationPending ? 2 : Math.min(300, 60 * metadata.deliveryCount) };
       },
     });
     // SDK receive/lease cleanup/ack are included, not only the provider callback.

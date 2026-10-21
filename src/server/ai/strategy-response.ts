@@ -6,7 +6,7 @@ import { guidedPersonalityDirectionSchema, guidedReplySchema, guidedTurnOperatio
 import { strategyJobResultSchema, type StrategyJobInput, type StrategyOperation } from "../../domain/strategy-jobs";
 import type { ClaimedJob, StepOutcome } from "../../domain/jobs";
 import { MAX_INITIAL_INPUT_TOKENS } from "./config";
-import { OpenAITransportError, type OpenAIResponsesTransport, type ResponsesRequest } from "./openai-transport";
+import { OpenAITransportError, type OpenAIResponsesTransport, type OpenAITransportResponse, type ResponsesRequest } from "./openai-transport";
 
 const message = z.string().trim().min(1).max(6000);
 const reformulation = z.strictObject({ message, activity: z.string().max(2000), offering: z.string().max(2000), knownAudience: z.string().max(2000), questions: z.array(z.string().min(1).max(1000)).max(8) });
@@ -262,14 +262,13 @@ export function calculateStrategyCost(usage: z.infer<typeof usageSchema>, search
   return result;
 }
 
-export async function executeStrategyResponse(options: {
+export async function prepareStrategyResponse(options: {
   job: ClaimedJob; operation: StrategyOperation; input: StrategyJobInput;
   transport: OpenAIResponsesTransport; signal: AbortSignal; now?: () => string;
   beforeDispatch?: () => Promise<void>;
-}): Promise<StepOutcome> {
+}): Promise<{kind:"request";request:ResponsesRequest;requestKey:string}|{kind:"failure";outcome:StepOutcome}> {
   const { job, operation, input, transport, signal } = options;
-  const failure = (code: string, costMicrousd = 0, providerRequestId: string | null = null, result?: z.infer<ReturnType<typeof z.json>>): StepOutcome => ({ status: "failed", code, costMicrousd, providerRequestId, ...(result ? { result } : {}) });
-  const uncertain = (code: string, costMicrousd = 0, providerRequestId: string | null = null, result?: z.infer<ReturnType<typeof z.json>>): StepOutcome => ({ status: "needs_reconciliation", code, costMicrousd, providerRequestId, ...(result ? { result } : {}) });
+  const failure = (code: string): {kind:"failure";outcome:StepOutcome} => ({kind:"failure",outcome:{status:"failed",code,costMicrousd:0,providerRequestId:null}});
   if (signal.aborted) return failure("not_dispatched");
   const turn = currentGuidedTurn(input);
   if (input.policy.handlerVersion === "strategy-openai-guided-v1") {
@@ -290,16 +289,38 @@ export async function executeStrategyResponse(options: {
   catch { return failure("runtime_policy_unavailable"); }
   if (signal.aborted) return failure("not_dispatched");
   const requestKey = createHash("sha256").update(`${job.id}:${input.policy.handlerVersion}:${operation}`).digest("hex");
+  return {kind:"request",requestKey,request:{...request,max_output_tokens:input.policy.maxOutputTokens,
+    ...(input.policy.maxWebSearchCalls ? {max_tool_calls:input.policy.maxWebSearchCalls,include:["web_search_call.action.sources"]}:{}),
+    service_tier:"default",store:false,background:false,stream:false}};
+}
+
+export async function executeStrategyResponse(options: Parameters<typeof prepareStrategyResponse>[0]): Promise<StepOutcome> {
+  const {job,operation,input,transport,signal}=options;
+  const prepared=await prepareStrategyResponse(options);
+  if(prepared.kind==="failure") return prepared.outcome;
+  const {request,requestKey}=prepared;
+  const failure=(code:string,costMicrousd=0,providerRequestId:string|null=null):StepOutcome=>({status:"failed",code,costMicrousd,providerRequestId});
+  const uncertain=(code:string,costMicrousd=0,providerRequestId:string|null=null):StepOutcome=>({status:"needs_reconciliation",code,costMicrousd,providerRequestId});
   let raw;
   try {
-    raw = await transport.createResponse({ ...request, max_output_tokens: input.policy.maxOutputTokens,
-      ...(input.policy.maxWebSearchCalls ? { max_tool_calls: input.policy.maxWebSearchCalls, include: ["web_search_call.action.sources"] } : {}),
-      service_tier: "default", store: false, background: false, stream: false,
-    }, requestKey, signal);
+    raw = await transport.createResponse(request, requestKey, signal);
   } catch (error) {
     if (error instanceof OpenAITransportError && error.code === "request_rejected") return failure("provider_request_rejected", 0, error.requestId);
     return uncertain("provider_outcome_unknown", 0, error instanceof OpenAITransportError ? error.requestId : null);
   }
+  return evaluateStrategyResponse({ job, operation, input, raw, now: options.now });
+}
+
+/** Pure interpretation shared by immediate and durably retrieved responses.
+ * Never issues a provider request or changes accounting state. */
+export function evaluateStrategyResponse(options: {
+  job: ClaimedJob; operation: StrategyOperation; input: StrategyJobInput;
+  raw: OpenAITransportResponse; now?: () => string;
+}): StepOutcome {
+  const { job, operation, input, raw } = options;
+  const turn = currentGuidedTurn(input);
+  const failure = (code: string, costMicrousd = 0, providerRequestId: string | null = null, result?: z.infer<ReturnType<typeof z.json>>): StepOutcome => ({ status: "failed", code, costMicrousd, providerRequestId, ...(result ? { result } : {}) });
+  const uncertain = (code: string, costMicrousd = 0, providerRequestId: string | null = null, result?: z.infer<ReturnType<typeof z.json>>): StepOutcome => ({ status: "needs_reconciliation", code, costMicrousd, providerRequestId, ...(result ? { result } : {}) });
   const parsed = responseSchema.safeParse(raw.body);
   if (!parsed.success) return uncertain("provider_invalid_envelope", 0, raw.requestId);
   const response = parsed.data;
@@ -389,7 +410,17 @@ export async function executeStrategyResponse(options: {
   };
   if (usageExceeded && refused) return uncertain("provider_usage_exceeded", cost, providerRequestId, partial);
   if (!["completed", "failed", "incomplete", "cancelled"].includes(response.status)) return uncertain("provider_not_terminal", cost, providerRequestId, partial);
-  if (response.status !== "completed") return uncertain(`provider_${response.status}`, cost, providerRequestId, partial);
+  if (response.status !== "completed") {
+    // A terminal text-only response with verified usage is a known unsuccessful
+    // execution, not an unknown charge. Research/tool ambiguity, unexpected
+    // modalities, missing usage and overruns retain the conservative path.
+    const settledTextFailure = input.policy.maxWebSearchCalls === 0 && toolCalls === 0 && !usageExceeded &&
+      response.output.every(item => item.type === "reasoning" || item.type === "message") &&
+      issues.every(issue => issue.code === "message_not_completed") && issueCount === issues.length &&
+      cost <= input.policy.maximumCostMicrousd && cost <= job.reservedCostMicrousd - job.actualCostMicrousd;
+    return settledTextFailure ? failure(`provider_${response.status}`, cost, providerRequestId, partial)
+      : uncertain(`provider_${response.status}`, cost, providerRequestId, partial);
+  }
   if (issueCount) return uncertain("provider_unexpected_output", cost, providerRequestId, partial);
   if (refused) return failure("provider_refusal", cost, providerRequestId);
 

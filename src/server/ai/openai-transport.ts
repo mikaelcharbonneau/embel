@@ -8,6 +8,8 @@ export type OpenAITransportResponse = { body: unknown; requestId: string | null 
 export interface OpenAIResponsesTransport {
   countInputTokens(request: ResponsesRequest, signal: AbortSignal): Promise<number>;
   createResponse(request: ResponsesRequest, requestKey: string, signal: AbortSignal): Promise<OpenAITransportResponse>;
+  retrieveResponse?(responseId: string, signal: AbortSignal): Promise<OpenAITransportResponse>;
+  cancelResponse?(responseId: string, signal: AbortSignal): Promise<OpenAITransportResponse>;
 }
 
 /** Exposes only operational classification; never retain or log raw provider errors. */
@@ -42,14 +44,14 @@ async function readBoundedJson(response: Response): Promise<unknown> {
 /** Fixed official origin, no redirects and no retries, including after timeouts. */
 export function createOpenAIResponsesTransport(options: { apiKey: string; fetch?: typeof fetch }): OpenAIResponsesTransport {
   const fetcher = options.fetch ?? fetch;
-  const post = async (url: string, body: ResponsesRequest, signal: AbortSignal, requestKey?: string) => {
+  const request = async (method: "GET" | "POST", url: string, body: ResponsesRequest | undefined, signal: AbortSignal, requestKey?: string) => {
     let requestId: string | null = null;
     try {
       const response = await fetcher(url, {
-        method: "POST", redirect: "error", signal,
+        method, redirect: "error", signal,
         headers: { Authorization: `Bearer ${options.apiKey}`, "Content-Type": "application/json",
           ...(requestKey ? { "X-Client-Request-Id": requestKey } : {}) },
-        body: JSON.stringify(body),
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       });
       requestId = safeRequestId(response.headers.get("x-request-id"));
       if (!response.ok) {
@@ -65,11 +67,18 @@ export function createOpenAIResponsesTransport(options: { apiKey: string; fetch?
       throw new OpenAITransportError("outcome_unknown", requestId);
     }
   };
+  const post = (url: string, body: ResponsesRequest, signal: AbortSignal, requestKey?: string) => request("POST", url, body, signal, requestKey);
+  const responseUrl = (id: string) => {
+    if (!/^resp_[A-Za-z0-9_-]{1,194}$/u.test(id)) throw new Error("Invalid response identity");
+    return `${OPENAI_RESPONSES_URL}/${id}`;
+  };
   return {
     async countInputTokens(request, signal) {
       const { body } = await post(`${OPENAI_RESPONSES_URL}/input_tokens`, request, signal);
       return z.object({ input_tokens: z.number().int().nonnegative().max(10_000_000) }).parse(body).input_tokens;
     },
     createResponse: (request, requestKey, signal) => post(OPENAI_RESPONSES_URL, request, signal, requestKey),
+    retrieveResponse: (id, signal) => request("GET", responseUrl(id), undefined, signal),
+    cancelResponse: (id, signal) => post(`${responseUrl(id)}/cancel`, {}, signal),
   };
 }

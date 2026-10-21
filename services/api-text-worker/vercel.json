@@ -14,5 +14,5 @@
       "experimentalTriggers": [{ "type": "queue/v2beta", "topic": "fluid-api-text-v1", "retryAfterSeconds": 60, "maxDeliveries": 5 }]
     }
   },
-  "crons": [{ "path": "/api/cron/repair-api-text", "schedule": "0 3 * * *" }]
+  "crons": [{ "path": "/api/cron/repair-api-text", "schedule": "* * * * *" }]
 }

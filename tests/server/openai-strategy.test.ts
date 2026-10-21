@@ -84,7 +84,7 @@ describe("OpenAI strategy adapter (mock transport only)", () => {
   it.each(["incomplete", "failed", "cancelled", "in_progress"])("retains partial output and known cost for %s", async (status) => {
     const response = responseFixture(); response.status = status;
     const outcome = await execute(response).run();
-    expect(outcome).toMatchObject({ status: "needs_reconciliation", costMicrousd: 691, result: { responseId: "resp_synthetic_fixture", partialText: JSON.stringify(reformulationFixture) } });
+    expect(outcome).toMatchObject({ status: status === "in_progress" ? "needs_reconciliation" : "failed", costMicrousd: 691, result: { responseId: "resp_synthetic_fixture", partialText: JSON.stringify(reformulationFixture) } });
   });
 
   it.each(["model", "service_tier"])("quarantines unexpected %s", async (key) => {
@@ -364,4 +364,19 @@ describe("OpenAI strategy adapter (mock transport only)", () => {
     expect(calculateStrategyCost(usage, 2, inputFixture("strategy.competitors"))).toBe(1_217_000);
     expect(strategyPolicy("strategy.competitors").maximumCostMicrousd).toBe(3_142_880);
   });
+});
+
+describe("verified terminal text failure accounting",()=>{
+ it.each(["cancelled","failed","incomplete"])("settles %s text without accepting a proposal",async status=>{
+  const response=responseFixture();response.status=status;response.output[0]!.status="incomplete";
+  const outcome=await execute(response).run();expect(outcome).toMatchObject({status:"failed",code:`provider_${status}`,costMicrousd:691});
+  expect(outcome.result).not.toHaveProperty("proposal");
+ });
+ it.each(["overrun","unexpected item","unexpected content"])("retains uncertainty for %s",async variant=>{
+  const response=responseFixture();response.status="cancelled";
+  if(variant==="overrun"){response.usage.output_tokens=5000;response.usage.total_tokens=5100;}
+  if(variant==="unexpected item")response.output.push({type:"image_generation_call"});
+  if(variant==="unexpected content")response.output[0]!.content=[{type:"audio"}];
+  expect(await execute(response).run()).toMatchObject({status:"needs_reconciliation"});
+ });
 });

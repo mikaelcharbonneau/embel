@@ -7,6 +7,7 @@ import { createApiTextReadiness } from "./handlers/openai-readiness";
 import { createOpenAIStrategyHandlers } from "./handlers/openai-strategy";
 import { runOneJob } from "./runner";
 import { apiTextDispatchDatabase } from "./api-text-multi-account";
+import { backgroundControl, runBackgroundApiTextDelivery } from "./api-text-background-runtime";
 
 import { diagnose, diagnosticErrorClass, observeStage, type DiagnosticSink } from "./hosting/diagnostics";
 import { OperationDeadlineError } from "./hosting/timing";
@@ -22,7 +23,7 @@ export type ApiTextDeliveryResult = { disposition: "ack" | "retry"; state: strin
 /** One delivery, one existing admitted job. This entrypoint never admits, enables or retries a paid step. */
 export async function runApiTextDelivery(options: {
   message: unknown; database: JobDatabase; configuration: OpenAIStrategyConfiguration | null;
-  deploymentId: string; signal?: AbortSignal; transport?: OpenAIResponsesTransport; multiAccount?: boolean; diagnostics?: DiagnosticSink;
+  deploymentId: string; signal?: AbortSignal; transport?: OpenAIResponsesTransport; multiAccount?: boolean; backgroundRecovery?: boolean; diagnostics?: DiagnosticSink;
 }): Promise<ApiTextDeliveryResult> {
   const parsed = apiTextDispatchMessageSchema.safeParse(options.message);
   if (!parsed.success) return { disposition: "ack", state: "invalid_message" };
@@ -42,16 +43,18 @@ export async function runApiTextDelivery(options: {
   const stopTimer = setTimeout(stop, STOP_WORK_MS);
   const deadline = Date.now() + API_TEXT_HANDLER_TIMEOUT_MS;
   let closed = false; let databaseFailed = false;
-  const database: JobDatabase = { async query(sql, values) {
+  const bindDatabase = (source: JobDatabase): JobDatabase => ({ async query(sql, values) {
     if (closed || Date.now() >= deadline) { databaseFailed = true; throw new OperationDeadlineError("Database deadline exceeded"); }
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      return await Promise.race([sourceDatabase.query(sql, values), new Promise<never>((_, reject) => {
+      return await Promise.race([source.query(sql, values), new Promise<never>((_, reject) => {
         timer = setTimeout(() => reject(new OperationDeadlineError("Database unavailable")), Math.min(API_TEXT_DATABASE_TIMEOUT_MS, deadline - Date.now()));
       })]);
     } catch (error) { databaseFailed = true; throw error; }
     finally { clearTimeout(timer); }
-  } };
+  } });
+  const database = bindDatabase(sourceDatabase);
+  const backgroundDatabase = bindDatabase(options.database);
   const started = Date.now();
   let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
   try {
@@ -63,6 +66,10 @@ export async function runApiTextDelivery(options: {
         return { disposition: "ack", state: "dispatch_mismatch" };
       }
       if (terminalStates.has(descriptor.state)) return { disposition: "ack", state: descriptor.state };
+      if (options.backgroundRecovery && options.multiAccount && await backgroundControl(backgroundDatabase, message, "profile") === true) {
+        return runBackgroundApiTextDelivery({ database: backgroundDatabase, scopedDatabase: database, message,
+          configuration: { ...configured, policies }, transport: options.transport ?? createOpenAIResponsesTransport({ apiKey: configured.apiKey }), signal: controller.signal });
+      }
       const expiry = await observeStage("expiry", "database", () => expireApiTextJob(database, message.jobId), options.diagnostics);
       if (expiry.disposition === "terminal" && terminalStates.has(expiry.state)) return { disposition: "ack", state: expiry.state };
       if (expiry.disposition === "not_found") return { disposition: "ack", state: "not_found" };
