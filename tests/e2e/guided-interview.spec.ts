@@ -1,3 +1,4 @@
+import { expectProjectCanvas } from "./project-canvas-contract";
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { accountProjectSchema, updateProjectInputSchema, type AccountProject } from "../../src/domain/project-api";
 import type { ContextSnapshot, GuidedStage, GuidedTurn } from "../../src/domain/projects";
@@ -217,7 +218,8 @@ async function expectReplyArrivalInViewport(page: Page, stage: GuidedStage, firs
   // Assert before any interaction: Playwright clicks/focus would otherwise hide
   // a scroll regression by bringing an offscreen question or card into view.
   await expectSingleWidget(page, stage);
-  await expect(page.locator(".project-workspace-header")).toBeInViewport({ ratio: 1 });
+  await expect(page.locator(".topbar")).toBeInViewport({ ratio: 1 });
+  await expectProjectCanvas(page);
   const question = widget(page, stage).locator("h3");
   await expect(question).toHaveText(questions[stage]);
   await expect(question).toBeInViewport({ ratio: 1 });

@@ -9,8 +9,10 @@ import { useInspiration, type InspirationController } from "./use-inspiration";
 import "./inspiration.css";
 
 const noChoice: InspirationPreferences = { ensemble: false, elements: [] };
-const order = [0, 1, 2, 3, 4, 8, 9, 6, 5, 7, 13, 12, 14, 10, 11];
-const designs = order.map(index => inspirationCatalog[index]!);
+// Keep immutable references and saved selections, but do not recommend images
+// whose mark is tiny, obscured or absent at gallery size.
+const retiredFromDiscovery = new Set(["mastercard-stationery", "dropbox-color-guide", "mastercard-brochures", "dropbox-street-posters", "cardless-credit-card", "into-illuminated-billboard", "dropbox-color-posters"]);
+const designs = inspirationCatalog.filter(design => !retiredFromDiscovery.has(design.slug));
 function Heart({ liked }: { liked: boolean }) {
   return <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill={liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z" /></svg>;
 }
@@ -34,12 +36,15 @@ function Recovery({ design, controller }: { design: InspirationDesign; controlle
 function DesignDetail({ design, choice, controller, onClose }: { design: InspirationDesign; choice: InspirationPreferences; controller: InspirationController; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => { const element = dialog.current; const previous = document.activeElement; element?.showModal(); return () => { element?.close(); if (previous instanceof HTMLElement && previous.isConnected) previous.focus(); }; }, []);
-  const disabled = !controller.canSave || controller.intents.has(design.id);
+  const available = controller.overview?.availableReferenceIds?.includes(design.id) ?? !design.availableSince;
+  const disabled = !controller.canSave || !available || controller.intents.has(design.id);
   return <dialog ref={dialog} className="inspiration-detail" aria-labelledby="inspiration-detail-title" onCancel={onClose} onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
     <div className="inspiration-detail-layout"><div className="inspiration-detail-art"><Artwork design={design} eager retry /></div>
       <div className="inspiration-detail-body"><div className="inspiration-detail-top"><span>DESIGN REFERENCE</span><button autoFocus type="button" className="inspiration-icon-button" aria-label="Close design detail" onClick={onClose}><Icon name="close" size={18} /></button></div>
         <h2 id="inspiration-detail-title">{design.brand}</h2><p>{design.creator} · {design.kind === "identity" ? "Identity" : "Logo"}</p><p>{design.description}</p>
         <a className="inspiration-action" href={design.sourceUrl} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">View original project<Icon name="arrow" size={16} /></a>
+        {design.provenance && <p className="inspiration-reference-rights">Reference icon via <a href={design.provenance.source} target="_blank" rel="noopener noreferrer">Simple Icons</a> ({design.provenance.license}). {design.provenance.trademarkNotice}</p>}
+        {!available && <p role="status">This new reference is available to browse. Saving it will be enabled with the catalog update.</p>}
         <hr /><h3>What do you like?</h3><p>Like the whole design or choose the details.</p>
         <button className="inspiration-overall" type="button" aria-pressed={choice.ensemble} disabled={disabled} onClick={() => void controller.save(design.id, { ...choice, ensemble: !choice.ensemble })}><Heart liked={choice.ensemble} />Overall look</button>
         <div className="inspiration-elements" aria-label="Design elements">{design.elements.map(element => <button key={element} type="button" aria-pressed={choice.elements.includes(element)} disabled={disabled} onClick={() => void controller.save(design.id, { ...choice, elements: choice.elements.includes(element) ? choice.elements.filter(value => value !== element) : [...choice.elements, element] })}>{inspirationLabels[element]}</button>)}</div>
@@ -98,10 +103,10 @@ export function InspirationView({ controller, projectId }: { controller: Inspira
     const choices = new Map<string, InspirationPreferences>(saved);
     controller.intents.forEach((intent, id) => choices.set(id, intent.desired)); return choices;
   }, [saved, controller.intents]);
-  const visible = filterInspiration(designs, query, kind, liked, displayed);
+  const visible = filterInspiration(liked ? inspirationCatalog : designs, query, kind, liked, displayed);
   const count = [...saved.values()].filter(hasInspirationChoice).length;
   return <div className="inspiration-workspace">
-    <section className="inspiration-browse" aria-label="Inspiration gallery"><header className="inspiration-heading"><div><h1>Inspiration</h1><p>Like designs to shape your project’s visual direction.</p></div></header>
+    <section className="inspiration-browse" aria-label="Inspiration gallery"><header className="inspiration-heading"><div><h1>Inspiration</h1><p>Like designs to shape your project’s visual direction. These choices guide logo previews; saved-system references are collected separately.</p></div></header>
       <div className="inspiration-toolbar"><div className="inspiration-views" aria-label="Inspiration views"><button type="button" aria-pressed={!liked} onClick={() => setLiked(false)}>Browse</button><button type="button" aria-pressed={liked} onClick={() => setLiked(true)}>Liked <span>· {controller.overview ? count : "—"}</span></button></div>
         <label className="inspiration-search"><Icon name="search" size={16} /><input type="search" aria-label="Search identities and logos" placeholder="Search identities and logos…" value={query} maxLength={160} onChange={event => setQuery(event.target.value)} /></label>
         <div className="inspiration-categories" aria-label="Reference categories">{([['identity', 'Identities'], ['logo', 'Logos'], ['all', 'All']] as const).map(([value, label]) => <button type="button" key={value} aria-pressed={kind === value} onClick={() => setKind(value)}>{label}</button>)}</div>
@@ -113,7 +118,7 @@ export function InspirationView({ controller, projectId }: { controller: Inspira
             const choice = displayed.get(design.id) ?? noChoice, busy = controller.busy.has(design.id), pending = controller.intents.has(design.id);
             return <article key={design.id} className="inspiration-card" aria-label={`${design.brand} — ${design.slug}`}>
               <div className="inspiration-card-art"><div role="button" tabIndex={0} className="inspiration-open" aria-label={`Inspect ${design.brand}: ${design.description}`} onClick={() => setSelected(design)} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelected(design); } }}><Artwork design={design} /></div>
-                <button type="button" className="inspiration-heart" aria-label={`${choice.ensemble ? "Unlike" : "Like"} ${design.brand} overall look: ${design.slug}`} aria-pressed={choice.ensemble} disabled={!controller.canSave || pending} onClick={() => void controller.save(design.id, { ...choice, ensemble: !choice.ensemble })}><Heart liked={choice.ensemble} /></button>
+                <button type="button" className="inspiration-heart" aria-label={`${choice.ensemble ? "Unlike" : "Like"} ${design.brand} overall look: ${design.slug}`} aria-pressed={choice.ensemble} disabled={!controller.canSave || pending || !(controller.overview?.availableReferenceIds?.includes(design.id) ?? !design.availableSince)} onClick={() => void controller.save(design.id, { ...choice, ensemble: !choice.ensemble })}><Heart liked={choice.ensemble} /></button>
               </div><button className="inspiration-caption" type="button" onClick={() => setSelected(design)}><strong>{design.brand}</strong><span>{design.creator}</span></button>
               {choice.elements.length > 0 && <p className="inspiration-element-label">{choice.elements.map(element => inspirationLabels[element]).join(", ")} liked</p>}
               {busy ? <p className="inspiration-saving" role="status">Saving…</p> : pending && <button className="inspiration-pending" type="button" onClick={() => setSelected(design)}>Review unsaved choices</button>}

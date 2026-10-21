@@ -62,6 +62,7 @@ export function DomainFilters({ extensions, onExtensionsChange, disabled, expand
   filters: DomainViewFilters; onFiltersChange: (filters: DomainViewFilters) => void;
 }) {
   const uid = useId();
+  const trigger = useRef<HTMLButtonElement>(null);
   const [category, setCategory] = useState<Category>("Popular");
   const [query, setQuery] = useState("");
   const [selectionError, setSelectionError] = useState<string | null>(null);
@@ -80,8 +81,16 @@ export function DomainFilters({ extensions, onExtensionsChange, disabled, expand
   }
   const range = `${filters.minimum || "0"}${filters.maximum ? `–$${filters.maximum}` : "+"}`;
   const invalidRange = Number(filters.minimum || 0) < 0 || Number(filters.maximum || Infinity) < Number(filters.minimum || 0);
-  return expanded ? <section className={styles.filtersPanel} aria-label="Domain search filters" id={`${uid}-filters`}>
-    <header className={styles.filterHeading}><h2><Icon name="settings" size={16} />Refine your search</h2><button type="button" aria-expanded="true" onClick={() => onExpandedChange(false)}>Hide filters<Icon name="chevron" size={12} className={styles.chevronUp} /></button></header>
+  function close() { onExpandedChange(false); trigger.current?.focus(); }
+  return <div className={styles.filterSurface} onBlur={event => { if (expanded && event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node)) onExpandedChange(false); }} onKeyDown={event => { if (event.key === "Escape" && expanded) { event.preventDefault(); close(); } }}>
+    <section className={styles.collapsedFilters} aria-label="Active domain filters">
+      <button ref={trigger} type="button" className={styles.editFilters} aria-expanded={expanded} aria-controls={`${uid}-filters`} onClick={() => onExpandedChange(!expanded)}><Icon name="settings" size={15} />Edit filters<Icon name="chevron" size={12} className={expanded ? styles.chevronUp : styles.chevronDown} /></button>
+      <span className={styles.filterPill}>{extensions.length} extensions</span><span className={styles.filterPill}>{filters.hideUnavailable ? "Unavailable hidden" : "Unavailable included"}</span><span className={styles.filterPill}>${range} USD / year</span>
+      <button type="button" className={styles.resetSearch} disabled={disabled} onClick={reset}>Reset</button>
+    </section>
+    <section className={styles.filtersPanel} aria-label="Domain search filters" id={`${uid}-filters`} hidden={!expanded}>
+    <header className={styles.filterHeading}><div><h2><Icon name="settings" size={16} />Refine your search</h2><p className={styles.filterScope}>Changing extensions resets prepared results. Price and availability filters only affect this view; unpriced and unknown results stay visible.</p></div><button type="button" onClick={close}>Done<Icon name="chevron" size={12} className={styles.chevronUp} /></button></header>
+    <div className={styles.filterBody}>
     <div className={styles.filterColumns}>
       <nav className={styles.categories} aria-label="Extension categories"><p>Categories</p>{([...Object.keys(extensionGroups), "All extensions"] as Category[]).map(item => <button type="button" key={item} aria-pressed={category === item} onClick={() => { setCategory(item); setQuery(""); }}>{item}</button>)}</nav>
       <div className={styles.extensionBrowser}>
@@ -97,15 +106,12 @@ export function DomainFilters({ extensions, onExtensionsChange, disabled, expand
           {invalidRange && <p role="alert" className={styles.filterError}>Maximum must be at least the minimum.</p>}
         </fieldset>
         <fieldset className={styles.inclusion} disabled={disabled}><legend className="sr-only">Include in results</legend><h3>Include in results</h3>
-          <label title="Premium classification is not supplied by the current integration.">Show premium<input className={styles.switch} type="checkbox" checked disabled readOnly /><span className="sr-only">Premium classification unavailable</span></label>
+          <p className={styles.muted}>Premium classification is not supplied. Results are not filtered by it.</p>
           <label>Hide unavailable<input className={styles.switch} type="checkbox" checked={filters.hideUnavailable} onChange={event => onFiltersChange({ ...filters, hideUnavailable: event.target.checked })} /></label>
         </fieldset><button type="button" className={styles.resetFilters} disabled={disabled} onClick={reset}>Reset filters</button>
       </div>
     </div>
     <footer className={styles.selectedExtensions}><span>{extensions.length} selected</span><div>{extensions.map(extension => <button type="button" key={extension} disabled={disabled} aria-label={`Remove extension .${extension}`} onClick={() => select(extensions.filter(item => item !== extension))}>.{extension}<Icon name="close" size={12} /></button>)}</div><button type="button" className={styles.clearSelection} disabled={disabled || !extensions.length} onClick={() => select([])}>Clear selection</button></footer>
-  </section> : <section className={styles.collapsedFilters} aria-label="Active domain filters">
-    <button type="button" className={styles.editFilters} aria-expanded="false" onClick={() => onExpandedChange(true)}><Icon name="settings" size={15} />Edit filters<Icon name="chevron" size={12} className={styles.chevronDown} /></button>
-    <span className={styles.filterPill}>{extensions.length} extensions</span><span className={styles.filterPill}>Premium included</span><span className={styles.filterPill}>{filters.hideUnavailable ? "Unavailable hidden" : "Unavailable included"}</span><span className={styles.filterPill}>${range} / year</span>
-    <button type="button" className={styles.resetSearch} disabled={disabled} onClick={reset}>Reset</button>
-  </section>;
+    </div>
+  </section></div>;
 }

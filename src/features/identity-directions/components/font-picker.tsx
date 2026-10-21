@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 
 import { useId } from "react";
 import type { FontPermission, FontPurpose, FontRecord, IdentityTypographyVersion } from "@/domain/logo-directions";
@@ -26,13 +27,10 @@ export function FontPicker({ typography, fonts, showActions = false, readPreview
         <p className={styles.caption}>Exact specimen: “{style.sampleText}”</p>
         {font && <OwnedFontPreview key={canonicalIdentityInput({ ownerId: typography.ownerId, projectId: typography.projectId, typographyVersionId: typography.id, font, style })} font={font} style={style} readPreview={readPreview ?? connectedReader} />}
         <p className={styles.version}>Font version: {style.fontVersionId}</p>
-        {font ? <details><summary>Usage permissions</summary>
-          <p className={styles.caption}>{reviewed ? "Reviewed license" : "User declaration · license not reviewed"}</p>
-          <dl className={styles.permissions}>
+        {font ? <ContextDetails  title={<>Usage permissions</>}><p className={styles.caption}>{reviewed ? "Reviewed license" : "User declaration · license not reviewed"}</p><dl className={styles.permissions}>
             <div><dt>Commercial use</dt><dd>{permission(font.rights.commercialUse, reviewed)}</dd></div>
             {purposes.map(([purpose, label]) => <div key={purpose}><dt>{label}</dt><dd>{permission(font.rights.permissions[purpose], reviewed)}</dd></div>)}
-          </dl>
-        </details> : <p className={styles.caption}>Permissions and character coverage are unavailable for this font.</p>}
+          </dl></ContextDetails> : <p className={styles.caption}>Permissions and character coverage are unavailable for this font.</p>}
       </section>;
     })}
     {showActions && <><div className={styles.actions}><button type="button" disabled aria-describedby={noticeId}>Choose font</button><button type="button" disabled aria-describedby={noticeId}>Upload font</button></div>

@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 import { useEffect, useEffectEvent, useId, useState } from "react";
 import type { AccountLogoClient } from "@/components/identity/account-logo-client";
 import { privatePreviewIdentity } from "@/components/assets/private-preview-identity";
@@ -49,7 +50,7 @@ export function VariantReview({set,client,disabled,reviewed,onSubmit}:{set:LogoV
  return <section aria-labelledby={id} className={styles.review}><div className={styles.row}><h3 id={id}>Review logo variants</h3><span className={styles.badge}>{reviewed?"Saved visual review":"Review required"}</span></div>
   <p className={styles.caption}>Check each arrangement and color on light, dark and transparent backgrounds. The color version preserves your approved artwork.</p>
   <div className={styles.variants}>{required.map(variant=><VariantCard key={`${set.id}:${variant.id}`} variant={variant} client={client} disabled={disabled||reviewed} checked={accepted.includes(variant.id)} onReview={(variantId,value)=>setSelection(prior=>prior.key!==key||prior.client!==client?prior:{...prior,ids:value?[...new Set([...prior.ids,variantId])]:prior.ids.filter(item=>item!==variantId)})}/>)}</div>
-  <details className={styles.details}><summary>Arrangements that do not apply</summary><ul>{set.items.filter(item=>item.applicability.status==="not_applicable").map(item=><li key={item.id}>{item.role.replaceAll("_"," ")} · {item.colorway}: {item.applicability.status==="not_applicable"&&item.applicability.reason==="no_symbol"?"No separate symbol":"Artwork cannot be safely separated"}</li>)}</ul></details>
+  <ContextDetails className={styles.details} title={<>Arrangements that do not apply</>}><ul>{set.items.filter(item=>item.applicability.status==="not_applicable").map(item=><li key={item.id}>{item.role.replaceAll("_"," ")} · {item.colorway}: {item.applicability.status==="not_applicable"&&item.applicability.reason==="no_symbol"?"No separate symbol":"Artwork cannot be safely separated"}</li>)}</ul></ContextDetails>
   {!reviewed&&<button type="button" disabled={disabled||accepted.length!==required.length||!required.length} onClick={()=>onSubmit(accepted)}>Save visual review</button>}
  </section>;
 }

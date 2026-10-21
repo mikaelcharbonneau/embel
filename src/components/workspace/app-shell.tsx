@@ -21,7 +21,6 @@ const tools: { href: string; label: string; icon: IconName }[] = [
 ];
 
 function SidebarContent({ close, concept = false, pathname }: { close?: () => void; concept?: boolean; pathname: string }) {
-  const { session } = useAccountSession();
   const navLink = (item: typeof primary[number]) => {
     const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
     // Shell artwork is route-independent. Only the active link styling changes;
@@ -31,7 +30,7 @@ function SidebarContent({ close, concept = false, pathname }: { close?: () => vo
   return <>
     <Link href="/" className={concept ? "app-mark" : "wordmark"} aria-label="Embel home" onClick={close}><AppMark /></Link>
     <nav className="sidebar-nav" aria-label="Main navigation">{concept ? <><div className="nav-group">{primary.map(navLink)}</div><div className="nav-group workspace-tools">{tools.map(navLink)}</div></> : <div className="nav-group">{[...primary, ...tools].map(navLink)}</div>}</nav>
-    <div className="sidebar-bottom">{navLink({ href: "/settings", label: "Settings", icon: "settings" })}<Link href="/settings" className="workspace-label" aria-label="My workspace settings" title="My workspace" onClick={close}><span className="workspace-avatar"><Icon name="user" size={18} /></span><div><strong>My workspace</strong><span>{session.status === "ready" ? "Personal workspace" : session.status === "checking" ? "Checking account…" : "Sign in to save"}</span></div></Link></div>
+    <div className="sidebar-bottom">{navLink({ href: "/settings", label: "Settings", icon: "settings" })}</div>
   </>;
 }
 
@@ -135,5 +134,9 @@ function WorkspaceAccountMenu({ pathname }: { pathname: string }) {
   useEffect(() => { if (menu.current) menu.current.open = false; }, [pathname]);
   const checking = session.status === "checking" || (session.status === "ready" && Boolean(profile?.busy) && !profile?.workspace);
   const label = session.status === "ready" ? (profile?.workspace?.saved.values.fullName || "My account") : session.status === "signed_out" ? "Sign in" : "Account";
-  return <details className="workspace-account-menu" ref={menu}><summary aria-label="Account menu" aria-busy={checking}><span className="workspace-account-label" aria-busy={checking}>{checking ? <><span className="workspace-account-placeholder" aria-hidden="true" /><span className="sr-only" role="status">Checking account…</span></> : label}</span><span className="workspace-account-avatar"><Icon name="user" size={16} /></span></summary><div className="workspace-account-panel"><AccountAccess /><GenerationActivity /></div></details>;
+  return <details className="workspace-account-menu" ref={menu}><summary aria-label="Account menu" aria-busy={checking}><span className="workspace-account-label" aria-busy={checking}>{checking ? <><span className="workspace-account-placeholder" aria-hidden="true" /><span className="sr-only" role="status">Checking account…</span></> : label}</span><span className="workspace-account-avatar"><Icon name="user" size={16} /></span></summary><div className="workspace-account-panel" role="group" aria-label="Account actions">
+      <div className="workspace-account-identity"><strong>{checking ? "Checking your account…" : label}</strong><span>{session.status === "ready" ? profile?.workspace?.saved.email || "Personal workspace" : session.status === "signed_out" ? "Sign in to save and continue your brands." : "Verify your connection to access saved work."}</span></div>
+      {session.status === "ready" && <div className="workspace-account-links"><Link href="/settings"><Icon name="settings" size={18} /><span>Account settings</span></Link><GenerationActivity labeled /></div>}
+      <AccountAccess menu />
+    </div></details>;
 }

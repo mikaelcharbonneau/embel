@@ -64,3 +64,12 @@ it("I3 excludes acknowledged creation from unfinished recovery after a hard relo
   const reloaded = createNamingBrainMemory({ storage }); reloaded.bind({ ...account, generation: 2 });
   expect(reloaded.getRecovery({ ...account, generation: 2 })).toBeNull(); expect(reloaded.hasUnsaved()).toBe(false);
 });
+it("infers the new project language from the submitted brief without a language field", async () => {
+  const memory = createNamingBrainMemory({ storage: () => null }); memory.bind(account);
+  memory.setEntry(account, value => ({ ...value, description: "Je souhaite créer une entreprise pour aider les familles", language: "en" }));
+  const request = vi.fn(async (_path, _schema, options) => {
+    expect(options.body.context.creativeLocale).toBe("fr");
+    return { project: { id: projectId, owner_id: account.userId, title: options.body.title, scope: options.body.scope, context: options.body.context, current_revision: 1, created_at: "2026-10-16T12:00:00Z" } };
+  });
+  expect(await startNamingProject({ memory, account, request: request as never })).toBe(projectId);
+});

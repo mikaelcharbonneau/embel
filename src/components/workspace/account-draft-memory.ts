@@ -4,10 +4,10 @@ import type { ContextSnapshot } from "@/domain/projects";
 import type { LocalDraft } from "./local-drafts";
 import { accountProjectDraft } from "./project-draft-adapter";
 
-export type GuidedInterviewInput = { prompt: string; selection: { turnId: string; ids: string[] } | null };
+export type GuidedInterviewInput = { prompt: string; selection: { turnId: string; ids: string[] } | null; competitorDraft?: { name: string; website: string } };
 export type AccountWorkspace = { generation: number; ownerId: string; saved: AccountProject; draft: LocalDraft; conflict: boolean; guidedInput?: GuidedInterviewInput; pendingGuidedContext?: ContextSnapshot; pendingDraftSave?: { body: z.infer<typeof updateProjectInputSchema>; draft: LocalDraft; submittedInput?: Partial<GuidedInterviewInput> } };
 export function accountDraftChanged(workspace: AccountWorkspace) { return Boolean(workspace.pendingGuidedContext || workspace.pendingDraftSave) || JSON.stringify(workspace.draft) !== JSON.stringify(accountProjectDraft(workspace.saved)); }
-function hasUnsaved(workspace: AccountWorkspace) { return accountDraftChanged(workspace) || Boolean(workspace.guidedInput?.prompt || workspace.guidedInput?.selection?.ids.length); }
+function hasUnsaved(workspace: AccountWorkspace) { return accountDraftChanged(workspace) || Boolean(workspace.guidedInput?.prompt || workspace.guidedInput?.selection?.ids.length || workspace.guidedInput?.competitorDraft?.name || workspace.guidedInput?.competitorDraft?.website); }
 
 /** An owned head can acknowledge one exact pending append without appending again. */
 export function reconcilePendingDraftSave(workspace: AccountWorkspace, project: AccountProject): AccountWorkspace | null {
@@ -15,6 +15,8 @@ export function reconcilePendingDraftSave(workspace: AccountWorkspace, project: 
   if (!pending || project.owner_id !== workspace.ownerId || project.id !== workspace.saved.id || project.scope !== workspace.saved.scope || project.current_revision !== pending.body.expectedRevision + 1 || project.title !== (pending.body.title ?? workspace.saved.title) || JSON.stringify(project.context) !== JSON.stringify(pending.body.context)) return null;
   const pendingGuidedContext = JSON.stringify(workspace.pendingGuidedContext) === JSON.stringify(pending.body.context) ? undefined : workspace.pendingGuidedContext;
   const guidedInput = workspace.guidedInput && {
+    ...workspace.guidedInput,
+    competitorDraft: pending.submittedInput?.competitorDraft && JSON.stringify(workspace.guidedInput.competitorDraft) === JSON.stringify(pending.submittedInput.competitorDraft) ? undefined : workspace.guidedInput.competitorDraft,
     prompt: pending.submittedInput?.prompt !== undefined && workspace.guidedInput.prompt === pending.submittedInput.prompt ? "" : workspace.guidedInput.prompt,
     selection: pending.submittedInput?.selection && JSON.stringify(workspace.guidedInput.selection) === JSON.stringify(pending.submittedInput.selection) ? null : workspace.guidedInput.selection,
   };

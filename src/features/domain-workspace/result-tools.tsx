@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { domainResultsCsv, type DomainResultEvidence } from "./result-export";
@@ -86,15 +87,12 @@ export function DomainResultTools<T extends DomainResultEvidence>({ rows, visibl
       {notice && <p role="status">{notice}</p>}
       {cooldownSeconds > 0 && <p role="status">Wait {cooldownSeconds} seconds before continuing.</p>}
     </div>
-    <details className={styles.resultTools}>
-      <summary>Result actions{selected.length ? ` · ${selected.length} selected` : ""}</summary>
-      <div className={styles.resultToolsActions}>
+    <ContextDetails className={styles.resultTools} title={<>Result actions{selected.length ? ` · ${selected.length} selected` : ""}</>}><div className={styles.resultToolsActions}>
         <label><input type="checkbox" aria-label="Select all visible domains" checked={allVisible} disabled={!visibleRows.length} onChange={event => setSelected(current => event.target.checked ? [...new Set([...current, ...visibleRows.map(row => row.domain)])] : current.filter(domain => !visibleRows.some(row => row.domain === domain)))} />Select visible</label>
         <button type="button" className="button secondary small" disabled={!selected.length} onClick={() => setSelected([])}>Clear selected domains</button>
         <button type="button" className="button secondary small" disabled={busy || cooldownSeconds > 0 || !selected.length || adapter.status !== "ready"} onClick={() => void checkRows(rows.filter(row => selected.includes(row.domain)))} title={adapter.status !== "ready" ? adapter.reason : undefined}>{busy ? "Checking selected…" : "Check selected domains"}</button>
         {busy && <button type="button" className="button secondary small" onClick={() => pending.current?.abort()}>Stop bulk checking</button>}
         <button type="button" className="button secondary small" disabled={!visibleRows.length && !selected.length} onClick={exportCsv}>Export CSV</button>
-      </div>
-    </details>
+      </div></ContextDetails>
   </>;
 }

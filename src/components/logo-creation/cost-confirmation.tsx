@@ -64,10 +64,12 @@ export function LogoCostConfirmationView({ quote = null, billing = null, batch =
 }
 
 
-export function LogoCostConfirmation({ controller, batch = null, returnFocusRef }: {
+export function LogoCostConfirmation({ controller, batch = null, returnFocusRef, fallbackFocusRef }: {
   controller: LogoCreationController; batch?: LogoConceptBatch | null;
   /** A preparatory save can disable the initiating control before quoting. */
   returnFocusRef?: RefObject<HTMLElement | null>;
+  /** Visible disclosure when its mounted initiating editor has been collapsed. */
+  fallbackFocusRef?: RefObject<HTMLElement | null>;
 }) {
   const trigger = useRef<{ controller: LogoCreationController; element: HTMLElement } | null>(null);
   const subscribe = useCallback((listener: () => void) => controller.subscribe(() => {
@@ -86,9 +88,15 @@ export function LogoCostConfirmation({ controller, batch = null, returnFocusRef 
     const element = dialog.current;
     if (!shown || !element) return;
     const previous = returnFocusRef?.current ?? (trigger.current?.controller === controller ? trigger.current.element : document.activeElement);
+    const fallback = fallbackFocusRef?.current;
     element.showModal();
-    return () => { element.close(); if (previous instanceof HTMLElement && previous.isConnected) previous.focus(); };
-  }, [shown, controller, returnFocusRef]);
+    return () => {
+      element.close();
+      const available = previous instanceof HTMLElement && previous.isConnected && !previous.closest("[hidden], [inert]") && !previous.matches(":disabled");
+      const target = available ? previous : fallback;
+      if (target?.isConnected) target.focus();
+    };
+  }, [shown, controller, returnFocusRef, fallbackFocusRef]);
   return <>
     {state.phase === "quoting" && <p role="status" className={styles.note}>Preparing your cost estimate…</p>}
     {state.error && <p role="status" className={styles.warning}>{state.error}</p>}

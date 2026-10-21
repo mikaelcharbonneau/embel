@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 
 import { identityDraftChanged } from "./identity-draft-memory";
 import type { ProjectIdentityController } from "./use-project-identity";
@@ -14,7 +15,7 @@ function RecoveryActions({ controller, component }: { controller: ProjectIdentit
 function ColorEditor({ controller, acknowledged }: { controller: ProjectIdentityController; acknowledged: boolean }) {
   const draft = controller.colors; if (!draft) return null;
   const form = draft.value;
-  return <details className="identity-component-editor"><summary>Edit colors</summary><form onSubmit={event => { event.preventDefault(); void controller.saveComponent("colors", acknowledged); }}>
+  return <ContextDetails className="identity-component-editor" title={<>Edit colors</>}><form onSubmit={event => { event.preventDefault(); void controller.saveComponent("colors", acknowledged); }}>
     <fieldset disabled={controller.pending || Boolean(draft.pending)}><legend className="sr-only">Manual color specification</legend>
       {form.swatches.map((swatch, index) => <div className="identity-color-row" key={swatch.key}>
         <label>Name<input aria-label={`Color ${index + 1} name`} value={swatch.name} maxLength={240} onChange={event => controller.setColors({ ...form, swatches: form.swatches.map((row, rowIndex) => rowIndex === index ? { ...row, name: event.target.value } : row) })} /></label>
@@ -28,12 +29,12 @@ function ColorEditor({ controller, acknowledged }: { controller: ProjectIdentity
     {!draft.pending && <div className="identity-actions"><button aria-describedby={controller.savesUnavailable ? "identity-colors-save-unavailable" : undefined} className="identity-primary-button" type="submit" disabled={controller.blocked || !acknowledged || !identityDraftChanged(draft)}>Save colors as new version</button>
       <button type="button" className="text-link" disabled={controller.pending || !identityDraftChanged(draft)} onClick={() => controller.discardComponent("colors")}>Discard color edits</button></div>}
     {draft.pending && <RecoveryActions controller={controller} component="colors" />}
-  </form></details>;
+  </form></ContextDetails>;
 }
 function TypographyEditor({ controller, acknowledged }: { controller: ProjectIdentityController; acknowledged: boolean }) {
   const draft = controller.typography; if (!draft) return null;
   const form = draft.value;
-  return <details className="identity-component-editor"><summary>Edit typography</summary><form onSubmit={event => { event.preventDefault(); void controller.saveComponent("typography", acknowledged); }}>
+  return <ContextDetails className="identity-component-editor" title={<>Edit typography</>}><form onSubmit={event => { event.preventDefault(); void controller.saveComponent("typography", acknowledged); }}>
     <fieldset disabled={controller.pending || Boolean(draft.pending)}><legend className="sr-only">Manual typography specification</legend>
       {form.styles.map((style, index) => <div className="identity-type-row" key={style.key}>
         <label>Role<input aria-label={`Type ${index + 1} role`} value={style.role} maxLength={240} onChange={event => controller.setTypography({ ...form, styles: form.styles.map((row, rowIndex) => rowIndex === index ? { ...row, role: event.target.value } : row) })} /></label>
@@ -49,7 +50,7 @@ function TypographyEditor({ controller, acknowledged }: { controller: ProjectIde
     {!draft.pending && <div className="identity-actions"><button aria-describedby={controller.savesUnavailable ? "identity-typography-save-unavailable" : undefined} type="submit" className="identity-primary-button" disabled={controller.blocked || !acknowledged || !identityDraftChanged(draft)}>Save typography as new version</button>
       <button type="button" className="text-link" disabled={controller.pending || !identityDraftChanged(draft)} onClick={() => controller.discardComponent("typography")}>Discard typography edits</button></div>}
     {draft.pending && <RecoveryActions controller={controller} component="typography" />}
-  </form></details>;
+  </form></ContextDetails>;
 }
 
 export function IdentityComponents({ controller, acknowledged }: { controller: ProjectIdentityController; acknowledged: boolean }) {

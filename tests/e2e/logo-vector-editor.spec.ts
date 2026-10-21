@@ -1,3 +1,4 @@
+import { expectProjectCanvas } from "./project-canvas-contract";
 import { captureUiEvidence } from "./ui-evidence";
 import { createHash } from "node:crypto";
 import { expect, test, type Page, type Route } from "@playwright/test";
@@ -89,10 +90,10 @@ test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));
 
 test("identity directions and brand files retain usable unavailable states without creating work", async ({ page }, info) => {
   const f = await setup(page);
-  for (const [stage, title] of [["directions", "Build the whole identity"], ["deliverables", "Your brand, ready to use"]]) {
+  for (const [stage, title] of [["directions", "Identity directions"], ["deliverables", "Brand files"]]) {
     await page.goto(`/brands/account/${projectId}/logo/${stage}`);
     await expect(page.getByRole("heading", { name: title, level: 1, exact: true })).toBeVisible();
-    await expect(page.getByRole("navigation", { name: "Logo and identity stages" })).toBeVisible();
+    await expectProjectCanvas(page);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
     await page.screenshot({ path: info.outputPath(`${stage}-unavailable.png`), fullPage: true, scale: "css" });
     expect(f.posts).toHaveLength(0);

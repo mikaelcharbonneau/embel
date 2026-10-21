@@ -1,3 +1,4 @@
+import { expectProjectCanvas } from "./project-canvas-contract";
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { accountProjectSchema, accountProjectSummarySchema, type AccountProject } from "../../src/domain/project-api";
 import { accountProjectDraft } from "../../src/components/workspace/project-draft-adapter";
@@ -10,6 +11,7 @@ const projectA = "11111111-1111-4111-8111-111111111111";
 const projectB = "22222222-2222-4222-8222-222222222222";
 const storageKey = "fluid.local-drafts.v1";
 const when = "2026-10-02T10:00:00Z";
+const accountStates = new WeakMap<Page, { projects: Map<string, AccountProject> }>();
 const source = { url: "https://example.com/fixture", title: "Local research fixture", retrievedAt: when };
 
 function fixtureProject(id = projectA, owner = ownerA): AccountProject {
@@ -36,6 +38,7 @@ async function accountFixtures(page: Page, initial: AccountProject[] = []) {
     writes: [] as { path: string; body: Record<string, unknown> }[],
     created: [] as AccountProject[],
   };
+  accountStates.set(page, state);
   await page.route("**/api/**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
@@ -109,7 +112,10 @@ async function checkAccount(page: Page) {
   await page.getByRole("button", { name: "Check account", exact: true }).click();
 }
 async function expectSavedVersion(page: Page, version: number) {
-  await expect(page.locator(".project-workspace-save")).toHaveText(`Saved project · v${version}`);
+  const id = new URL(page.url()).pathname.split("/").at(-1)!;
+  await expect.poll(() => accountStates.get(page)?.projects.get(id)?.current_revision).toBe(version);
+  await expect(page.locator(".save-label")).toHaveText("Saved");
+  await expectProjectCanvas(page);
 }
 async function save(page: Page, version: number) {
   await page.getByRole("button", { name: "Save changes", exact: true }).click();

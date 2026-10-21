@@ -1,8 +1,9 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { z } from "zod";
 import { Icon } from "@/components/ui/icon";
 import styles from "./naming-chat.module.css";
@@ -12,7 +13,7 @@ import { getProjectHandoff } from "@/domain/project-handoff";
 import type { NameTransformInput } from "@/domain/naming";
 import { NamingApproachWidgets } from "./naming-approach-widgets";
 import { useNamingFeed } from "./use-naming-feed";
-import { NamingFeedResults } from "./naming-feed-results";
+import { NamingFeedResults, NamingFeedTail } from "./naming-feed-results";
 import { NamingResults, ProjectNameCard } from "./naming-results";
 import { NamingInspect } from "./naming-inspect";
 import { NamingScreening } from "./naming-screening";
@@ -21,16 +22,16 @@ import { initialNamingView, namingScrollTarget, useProjectNaming } from "./use-p
 import { initialWorkshopControls, WorkshopControls } from "./workshop-controls";
 import { useNamesStore } from "./use-names-store";
 
-export function ProjectNamingWorkspace({ projectId }: { projectId: string }) {
+export function ProjectNamingWorkspace({ projectId, conversationHistory }: { projectId: string; conversationHistory?: ReactNode }) {
   const { session } = useAccountSession();
   if (!z.uuid().safeParse(projectId).success) return <div className="page"><h1>Naming workspace not found</h1><Link href="/brands" className="text-link">Back to brands</Link></div>;
   if (session.status !== "ready") return <div className="page project-naming-page"><h1>Naming</h1><AccountStatus /><Link href="/brands" className="text-link">Back to brands</Link></div>;
-  return <AccountProjectNaming key={`${session.userId}:${session.generation}:${projectId}`} projectId={projectId} account={session} />;
+  return <AccountProjectNaming key={`${session.userId}:${session.generation}:${projectId}`} projectId={projectId} account={session} conversationHistory={conversationHistory} />;
 }
 
 const missingLabels = { scope: "project scope", description: "description", reformulation: "activity and offering", competitors: "competitors", audience: "audience", personality: "personality", positioning: "positioning" };
 
-function AccountProjectNaming({ projectId, account }: { projectId: string; account: VerifiedAccount }) {
+function AccountProjectNaming({ projectId, account, conversationHistory }: { projectId: string; account: VerifiedAccount; conversationHistory?: ReactNode }) {
   const router = useRouter();
   const { isCurrent } = useAccountSession();
   const naming = useProjectNaming({ account, projectId });
@@ -41,12 +42,10 @@ function AccountProjectNaming({ projectId, account }: { projectId: string; accou
   const [transformResult, setTransformResult] = useState<TransformProjectNamesResponse | null>(null);
   const [inspectedId, setInspectedId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [conversationExpanded, setConversationExpanded] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [explorationStarted, setExplorationStarted] = useState(false);
-  const [mobilePanel, setMobilePanel] = useState<"chat" | "names">("names");
-  const [mobile, setMobile] = useState(false);
-  useEffect(() => { if (typeof window.matchMedia !== "function") return; const query = window.matchMedia("(max-width: 760px)"); const update = () => setMobile(query.matches); update(); query.addEventListener("change", update); return () => query.removeEventListener("change", update); }, []);
-  const feed = useNamingFeed({ account, projectId, projectRevision: overview?.project.current_revision, enabled: Boolean(overview?.readiness.ready && !blocked && !readError), view: { ...(overview?.session?.viewState ?? initialNamingView), inspecting: Boolean(inspectedId), historyOpen, explorationHidden: mobile && mobilePanel === "chat" } });
+  const feed = useNamingFeed({ account, projectId, projectRevision: overview?.project.current_revision, enabled: Boolean(overview?.readiness.ready && !blocked && !readError), view: { ...(overview?.session?.viewState ?? initialNamingView), inspecting: Boolean(inspectedId), historyOpen, explorationHidden: false } });
   const { eligibleView, start: startFeed } = feed;
   const continuation = useRef<{ started: boolean; resolve: (started: boolean) => void } | null>(null);
   const [continueVersion, setContinueVersion] = useState(0);
@@ -54,18 +53,22 @@ function AccountProjectNaming({ projectId, account }: { projectId: string; accou
     const request = continuation.current;
     if (!request || request.started) return;
     request.started = true;
-    // Only the explicit Continue action queues this request. The saved view and
+    // Only the explicit final answer or recovery action queues this request. The saved view and
     // the feed's layout-effect eligibility must both be committed first.
     if (!eligibleView || !isCurrent(account)) { continuation.current = null; request.resolve(false); return; }
     void startFeed().then(request.resolve).finally(() => { if (continuation.current === request) continuation.current = null; });
   }, [continueVersion, eligibleView, startFeed, account, isCurrent]);
   useEffect(() => () => { continuation.current?.resolve(false); continuation.current = null; }, []);
   const strategyHref = `/brands/account/${projectId}`;
-  if (!overview) return <div className="page project-naming-page"><header className="project-naming-header"><h1>Naming</h1><Link className="text-link" href={strategyHref}>Back to project</Link></header>{readError ? <div className="project-naming-notice" role="alert"><p>{readError}</p><button className="button secondary small" type="button" onClick={naming.refresh}>Check latest version</button></div> : <p className="project-naming-muted" role="status">Loading your account naming workspace…</p>}</div>;
+  if (!overview) return <div className="page project-naming-page">{conversationHistory}<header className="project-naming-header"><h1>Naming</h1><Link className="text-link" href={strategyHref}>Back to project</Link></header>{readError ? <div className="project-naming-notice" role="alert"><p>{readError}</p><button className="button secondary small" type="button" onClick={naming.refresh}>Check latest version</button></div> : <p className="project-naming-muted" role="status">Loading your account naming workspace…</p>}</div>;
   const { project } = overview;
   const view = overview.session?.viewState ?? initialNamingView;
   const exploring = explorationStarted || Boolean(feed.entries.length || overview.candidates.items.length || feed.state?.feed?.activeRun || feed.state?.pending);
-  const showCanvas = exploring || overview.preferences?.preferences.version === 1 || !overview.readiness.ready;
+  // Admission and partial publications are not the completed initial set.
+  // Existing completed libraries stay accessible during later generation/review.
+  const readyCount = feed.state?.feed?.activeRun?.fulfillment?.acceptedCount ?? 0;
+  const existingLibrary = feed.entries.some(row => row.runId === null) || overview.candidates.items.some(entry => entry.candidate.origin.kind !== "generated");
+  const showCanvas = historyOpen || existingLibrary || feed.entries.length >= 100 || overview.candidates.items.length >= 100 || readyCount >= 100 || Boolean(overview.currentSelection) || overview.preferences?.preferences.version === 1;
   const lookup = new Map(overview.candidates.items.map(entry => [entry.candidate.id, entry]));
   for (const row of feed.entries) { const old = lookup.get(row.entry.candidate.id); if (!old || old.retention.revision <= row.entry.retention.revision) lookup.set(row.entry.candidate.id, row.entry); }
   const candidates = [...lookup.values()];
@@ -94,13 +97,13 @@ function AccountProjectNaming({ projectId, account }: { projectId: string; accou
     return visible?.id.replace("project-name-", "") ?? view.scrollCandidateId;
   }
   async function closeConversation(restore = true) {
-    setMobilePanel("names");
+    setConversationExpanded(false);
     if (overview!.session) await naming.saveView({ conversationOpen: false });
     if (restore) restoreResults();
     else requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-naming-results-scroll]")?.scrollTo?.({ top: 0 }));
   }
   async function openConversation() {
-    setMobilePanel("chat");
+    setConversationExpanded(true);
     if (await naming.saveView({ conversationOpen: true, scrollCandidateId: candidateAnchor() })) requestAnimationFrame(() => { const heading = document.getElementById("project-naming-preferences-heading"); heading?.focus(); heading?.scrollIntoView({ block: "center" }); });
   }
   async function continueExploration() {
@@ -108,9 +111,9 @@ function AccountProjectNaming({ projectId, account }: { projectId: string; accou
     if ((view.pane !== "results" || view.filter !== "all" || view.query || view.visibleBatchId)
       && !await naming.saveView({ pane: "results", filter: "all", query: "", visibleBatchId: null })) return false;
     if (!isCurrent(account)) return false;
-    setHistoryOpen(false); setInspectedId(null); setMobilePanel("names"); naming.refresh();
+    setHistoryOpen(false); setInspectedId(null); naming.refresh();
     const started = await new Promise<boolean>(resolve => { continuation.current = { started: false, resolve }; setContinueVersion(version => version + 1); });
-    if (started && isCurrent(account)) { setExplorationStarted(true); await closeConversation(exploring); }
+    if (started && isCurrent(account)) { setExplorationStarted(true); if (showCanvas) await closeConversation(exploring); }
     return started;
   }
   async function choose(entry: ProjectNameEntry, acknowledged: boolean) {
@@ -141,11 +144,12 @@ function AccountProjectNaming({ projectId, account }: { projectId: string; accou
 
   if (project.scope === "visual_identity_only") return <div className="page project-naming-page"><header className="project-naming-header"><div><span className="project-naming-eyebrow">{project.title}</span><h1>Naming</h1></div></header><div className="project-naming-empty"><h2>This project focuses on visual identity</h2><p>Return to the project to expand its scope when you want to add Naming.</p><Link className="button secondary" href={strategyHref}>Back to project<Icon name="arrow" size={14} /></Link></div></div>;
 
-  return <div className={`page project-naming-page project-workbench ${styles.workspace} ${showCanvas ? styles.exploring : styles.chatFirst}`} data-naming-layout={showCanvas ? "results" : "chat"} data-mobile-panel={mobilePanel}>
-    {showCanvas ? <div className={styles.mobileTabs} role="group" aria-label="Naming workspace view"><button type="button" aria-pressed={mobilePanel === "chat"} onClick={() => setMobilePanel("chat")}>Chat</button><button type="button" aria-pressed={mobilePanel === "names"} onClick={() => setMobilePanel("names")}>Names<span>{candidates.length}</span></button></div> : null}
-    <aside className={styles.chatPanel} aria-label="Naming conversation"><header className={styles.chatHeader} hidden={!showCanvas}><strong>Chat</strong><Link href={strategyHref} className="text-link">Strategy<Icon name="arrow" size={13} /></Link></header>
+  return <div className={`page project-naming-page project-workbench ${styles.workspace} ${showCanvas ? styles.exploring : styles.chatFirst}`} data-naming-layout={showCanvas ? "results" : "chat"} data-chat-open={conversationExpanded}>
+
+    {!showCanvas && (readError || actionError) && <div className="project-naming-notice" role="alert"><p>{actionError ?? readError}</p><button type="button" className="button secondary small" disabled={pending} onClick={naming.refresh}>Check latest version</button></div>}
+    <aside className={styles.chatPanel} aria-label="Naming conversation"><header className={styles.chatHeader} hidden><strong>Chat</strong><Link href={strategyHref} className="text-link">Strategy<Icon name="arrow" size={13} /></Link></header>
       <h1 className={styles.openingTitle} hidden={showCanvas}>Find a name that feels right</h1>
-      {overview.readiness.ready ? <NamingApproachWidgets memory={feed.memory} account={account} projectId={projectId} context={project.context} saved={overview.preferences} savedChat={view.namingChat} onSaveProgress={naming.saveChatProgress} blocked={blocked} runtimeReady={feed.state?.feed?.availability.status === "available"} exploring={exploring} canSteer={feed.canExplore} onSteer={feed.steer} onCheckSaved={naming.refresh} onContinue={continueExploration} /> : <p className={styles.chatUnavailable}>Review Strategy to continue the Naming conversation. Your saved names remain available.</p>}
+      {overview.readiness.ready ? <NamingApproachWidgets conversationHistory={conversationHistory} compact={showCanvas} conversationOpen={conversationExpanded} onToggleConversation={() => void (conversationExpanded ? closeConversation(false) : openConversation())} memory={feed.memory} account={account} projectId={projectId} context={project.context} saved={overview.preferences} savedChat={view.namingChat} onSaveProgress={naming.saveChatProgress} blocked={blocked || Boolean(readError)} runtimeReady={feed.state?.feed?.availability.status === "available" && feed.state?.status !== "blocked" && feed.state?.feed?.activeRun?.state !== "needs_reconciliation"} exploring={exploring} canSteer={feed.canExplore} onSteer={feed.steer} onCheckSaved={naming.refresh} onContinue={continueExploration} generationStatus={<div className="naming-generation-status" role="status"><NamingFeedTail feed={feed} blocked={blocked} onModify={() => void openConversation()} />{!showCanvas && exploring && <p>{Math.min(100, Math.max(feed.entries.length, readyCount))} of 100 names saved. Your conversation stays here until they are ready.</p>}</div>} /> : <p className={styles.chatUnavailable}>Review Strategy to continue the Naming conversation. Your saved names remain available.</p>}
     </aside>
     <div className={`project-workbench-canvas ${styles.canvas}`} hidden={!showCanvas} data-naming-results-scroll tabIndex={0} aria-label="Naming results workspace">
     <header className="project-naming-header"><div><span className="project-naming-eyebrow">{project.title} · {project.scope === "naming_only" ? "Naming-only project" : "Complete brand"}</span><h1>{inspected ? "Inspect a name" : screening ? "Your selected name" : "Find a name that feels right"}</h1></div><div className="project-naming-header-actions"><Link className="text-link" href={strategyHref}>Back to Strategy<Icon name="arrow" size={14} /></Link>{currentSelection && !screening ? <button className="button secondary small" type="button" disabled={pending} onClick={() => void naming.saveView({ pane: "screening", scrollCandidateId: candidateAnchor() })}>View selected name</button> : null}</div></header>
@@ -172,8 +176,5 @@ function LocalNameImport({ disabled, onImport }: { disabled: boolean; onImport: 
   const snapshot = useNamesStore();
   const [chosen, setChosen] = useState("");
   const entry = snapshot.data.candidates.find(candidate => candidate.source.id === chosen);
-  return <details className="project-naming-import"><summary>Copy a name from your library</summary><p className="project-naming-muted">Copy a name and its captured context into this project. Its original history stays in your account; choosing it as the project name is a separate action.</p>
-    {snapshot.loaded && snapshot.data.candidates.length ? <><label><span className="sr-only">Library name to copy</span><select value={chosen} disabled={disabled} onChange={event => setChosen(event.target.value)}><option value="">Choose a name</option>{snapshot.data.candidates.map(candidate => <option key={candidate.source.id} value={candidate.source.id}>{candidate.source.value} · {candidate.source.origin}</option>)}</select></label><button className="button secondary small" type="button" disabled={disabled || !entry} onClick={() => { if (entry) void onImport(entry).then(ok => { if (ok) setChosen(""); }); }}>Copy into this project</button></> : <p className="project-naming-muted">{snapshot.loaded ? "No names in your account library." : "Loading your names…"}</p>}
-    {snapshot.storage !== "available" ? <p className="project-naming-muted">Some Names changes are not saved. Recovery options are in <Link href="/names">Names</Link>.</p> : null}
-  </details>;
+  return <ContextDetails className="project-naming-import" title={<>Copy a name from your library</>}><p className="project-naming-muted">Copy a name and its captured context into this project. Its original history stays in your account; choosing it as the project name is a separate action.</p>{snapshot.loaded && snapshot.data.candidates.length ? <><label><span className="sr-only">Library name to copy</span><select value={chosen} disabled={disabled} onChange={event => setChosen(event.target.value)}><option value="">Choose a name</option>{snapshot.data.candidates.map(candidate => <option key={candidate.source.id} value={candidate.source.id}>{candidate.source.value} · {candidate.source.origin}</option>)}</select></label><button className="button secondary small" type="button" disabled={disabled || !entry} onClick={() => { if (entry) void onImport(entry).then(ok => { if (ok) setChosen(""); }); }}>Copy into this project</button></> : <p className="project-naming-muted">{snapshot.loaded ? "No names in your account library." : "Loading your names…"}</p>}{snapshot.storage !== "available" ? <p className="project-naming-muted">Some Names changes are not saved. Recovery options are in <Link href="/names">Names</Link>.</p> : null}</ContextDetails>;
 }

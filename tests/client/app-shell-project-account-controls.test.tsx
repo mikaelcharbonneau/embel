@@ -91,6 +91,11 @@ describe("project account and activity controls", () => {
     route.pathname = pathname; await render();
     expect(host.querySelector(".concept-project-workspace")).not.toBeNull();
     expect(menu().open).toBe(false);
+    expect(host.querySelectorAll(".workspace-account-avatar")).toHaveLength(1);
+    expect(host.querySelector(".workspace-avatar")).toBeNull();
+    expect(menu().querySelector('[aria-label="Account actions"]')).not.toBeNull();
+    expect(menu().textContent).toContain("Account settings");
+    expect(menu().textContent).toContain("Generation activity");
     expect(summary().getAttribute("aria-label")).toBe("Account menu");
     expect(summary().getAttribute("aria-busy")).toBe("false");
     expect(checkAccount().disabled).toBe(false);
@@ -109,14 +114,14 @@ describe("project account and activity controls", () => {
     expect(document.activeElement).toBe(summary());
   });
 
-  it("retains the same menu, controls, expanded state and focus across project navigation", async () => {
+  it("retains the same menu and controls but dismisses it on project navigation", async () => {
     route.pathname = "/"; await render();
     const original = menu(), trigger = summary(), check = checkAccount(), activity = activityButton();
     await act(async () => trigger.click()); check.focus();
     for (const pathname of [`/brands/account/${project}`, `/brands/account/${project}/naming`, `/brands/account/${project}/logo`, "/assets", "/"]) {
       route.pathname = pathname; await render();
       expect(menu()).toBe(original); expect(summary()).toBe(trigger); expect(checkAccount()).toBe(check);
-      expect(activityButton()).toBe(activity); expect(menu().open).toBe(true); expect(document.activeElement).toBe(check);
+      expect(activityButton()).toBe(activity); expect(menu().open).toBe(false);
     }
     expect(sessionCalls()).toHaveLength(1);
   });

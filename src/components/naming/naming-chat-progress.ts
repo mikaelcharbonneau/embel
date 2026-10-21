@@ -7,7 +7,7 @@ export type NamingChatStep = NamingQuestion | "review";
 export type NamingChatProgress = { activeStep: NamingChatStep; confirmed: Partial<Record<NamingQuestion, string>> };
 
 export function namingChatQuestions(): NamingQuestion[] {
-  return ["approaches", "directness", "language", "length", "fragments"];
+  return ["approaches", "directness", "length"];
 }
 const lines = (values: string[]) => values.map(value => value.trim()).filter(Boolean);
 function answerKey(question: NamingQuestion, value: NamingPreferencesV2): string {
@@ -27,10 +27,11 @@ export function initialNamingChatProgress(saved: NamingPreferencesV2 | null, che
   if (saved.approaches.length) progress.confirmed.approaches = answerKey("approaches", saved);
   if (saved.directness) progress.confirmed.directness = answerKey("directness", saved);
   if (checkpoint && savedVersion !== undefined && checkpoint.preferencesVersion <= savedVersion) {
-    for (const question of namingChatQuestions()) {
+    for (const question of [...namingChatQuestions(), "fragments"] as NamingQuestion[]) {
       if (checkpoint.confirmed[question] === answerKey(question, saved)) progress.confirmed[question] = checkpoint.confirmed[question];
     }
   }
+  if (!progress.confirmed.fragments) delete progress.confirmed.length;
   progress.activeStep = namingChatQuestions().find(question => !progress.confirmed[question]) ?? "review";
   return progress;
 }
@@ -42,7 +43,10 @@ export function namingChatCheckpoint(progress: NamingChatProgress, saved: Naming
 /** Edited answers need confirmation again; retired questions cannot block progress. */
 export function resolveNamingChatProgress(value: NamingPreferencesV2, progress: NamingChatProgress): NamingChatProgress {
   const sequence = namingChatQuestions(), confirmed: NamingChatProgress["confirmed"] = {};
-  for (const question of sequence) if (progress.confirmed[question] === answerKey(question, value)) confirmed[question] = progress.confirmed[question];
+  for (const question of [...sequence, "fragments"] as NamingQuestion[]) if (progress.confirmed[question] === answerKey(question, value)) confirmed[question] = progress.confirmed[question];
+  // Length and fragments are one answer now, but keep both legacy checkpoint
+  // keys so old saved answers migrate only when both values are unchanged.
+  if (!confirmed.fragments) delete confirmed.length;
   const unfinished = sequence.find(question => !confirmed[question]);
   const activeStep = progress.activeStep !== "review" && sequence.includes(progress.activeStep) ? progress.activeStep : unfinished ?? "review";
   return { activeStep, confirmed };
@@ -51,6 +55,6 @@ export function resolveNamingChatProgress(value: NamingPreferencesV2, progress: 
 export function confirmNamingChatQuestion(progress: NamingChatProgress, question: NamingQuestion, saved: NamingPreferencesV2): NamingChatProgress {
   const current = resolveNamingChatProgress(saved, progress), sequence = namingChatQuestions();
   if (!sequence.includes(question)) return current;
-  const confirmed = { ...current.confirmed, [question]: answerKey(question, saved) };
+  const confirmed = { ...current.confirmed, [question]: answerKey(question, saved), ...(question === "length" ? { fragments: answerKey("fragments", saved) } : {}) };
   return { activeStep: sequence.find(item => !confirmed[item]) ?? "review", confirmed };
 }

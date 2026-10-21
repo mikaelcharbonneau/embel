@@ -15,7 +15,7 @@ export function NamingFeedResults({ feed, selectedId, strategyKey, pending, bloc
   </section>;
 }
 
-function NamingFeedTail({ feed, blocked, onModify }: { feed: ReturnType<typeof useNamingFeed>; blocked: boolean; onModify: () => void }) {
+export function NamingFeedTail({ feed, blocked, onModify }: { feed: ReturnType<typeof useNamingFeed>; blocked: boolean; onModify: () => void }) {
   const state = feed.state, active = state?.feed?.activeRun, prior = state?.outcome;
   const outcome = prior && prior.status === state?.status && !("run" in prior && active && (active.runId !== prior.run.runId || active.revision > prior.run.revision)) ? prior : null;
   if (state?.error) return <div role="alert"><p>{state.error}</p>{state.stopConflict ? <div className="project-naming-actions"><button type="button" className="button secondary small" onClick={() => void feed.refresh()}>Check saved state</button><button type="button" className="button secondary small" disabled={!state.stop || !state.feed || state.feed.demandSequence <= state.stop.expectedDemandSequence} onClick={() => void feed.stopCurrent()}>Stop current exploration</button></div> : <button type="button" className="button secondary small" onClick={() => void feed.retry()}>{state.stop ? "Retry stopping exploration" : state.pending || state.steering ? "Retry the same request" : "Check saved names"}</button>}</div>;

@@ -73,6 +73,10 @@
   .concept-home .home-introduction p { max-width: 480px; }
   .concept-home .home-composer.conversation-composer textarea { font-size: 18px; line-height: 28px; }
   .concept-home .home-input-controls--compact { flex: 1 1 auto; width: auto; }
+  .concept-home .home-composer.conversation-composer .conversation-composer-footer:has(.home-input-popover[open]) { flex-wrap: wrap; }
+  .concept-home .home-composer.conversation-composer .conversation-composer-footer:has(.home-input-popover[open]) .home-input-controls--compact { display: contents; }
+  .concept-home .home-composer.conversation-composer .conversation-composer-footer:has(.home-input-popover[open]) .home-input-popover[open] { flex: 1 0 100%; order: 3; margin: 0; }
+  .concept-home .home-composer.conversation-composer .conversation-composer-footer:has(.home-input-popover[open]) .composer-send-icon { order: 2; }
   .concept-home .home-input-popover-panel { max-width: calc(100vw - 48px); }
 }
 @media (max-width: 540px) {

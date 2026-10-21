@@ -2,3 +2,12 @@
 .action > p { color: var(--secondary, #696965); font-size: 12px; line-height: 1.5; margin: 0; flex: 1; min-width: min(100%, 260px); }
 .action > p[role] { flex-basis: 100%; }
 .action > p[role="alert"] { color: var(--text, #191919); }
+
+.board { margin: 0; width: 100%; min-height: 220px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--surface); }
+.board img { display: block; width: 100%; height: auto; }
+.board figcaption { padding: 12px 16px; color: var(--secondary); font-size: 12px; line-height: 18px; background: var(--paper); }
+.board > p { padding: 32px; }
+
+.boardImage { aspect-ratio: 1600 / 1800; width: 100%; display: grid; place-items: center; overflow: hidden; }
+.boardImage img { height: 100%; object-fit: contain; }
+.boardImage > p { padding: 24px; color: var(--secondary); }

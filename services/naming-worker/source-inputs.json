@@ -10,6 +10,7 @@
   "src/domain/naming-brain-progressive.ts",
   "src/domain/naming-brain-selection.ts",
   "src/domain/naming-brain.ts",
+  "src/domain/naming-chat-checkpoint.ts",
   "src/domain/naming.ts",
   "src/domain/project-api.ts",
   "src/domain/project-naming.ts",

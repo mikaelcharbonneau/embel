@@ -151,7 +151,16 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
     setAction({ identity, pending: true, message: "Saving your project…" });
     const current = () => mounted.current && !controller.signal.aborted && isCurrent(account);
     try {
-      const accepted = guidedAllowance(currentRuntime?.availability, "strategy.competitors");
+      // A quick Send can beat the background readiness read. Resolve that read
+      // within this explicit submit, before atomically saving its research turn.
+      // Never dispatch later merely because an unavailable runtime becomes ready.
+      let submittedAvailability = currentRuntime?.availability ?? null;
+      if (!submittedAvailability && !readReceipt(account.userId, draft.id)) {
+        try { submittedAvailability = await readReadiness(account, controller); }
+        catch (cause) { if (cause instanceof AccountRequestError && cause.status === 401) throw cause; }
+        if (!current()) return false;
+      }
+      const accepted = guidedAllowance(submittedAvailability, "strategy.competitors");
       const input = createAccountInput(draft);
       // Save the initial intent atomically with the project. The destination
       // resumes this exact turn under fresh readiness and the accepted allowance;

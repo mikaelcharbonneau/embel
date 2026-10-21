@@ -14,13 +14,13 @@ const statusLabels: Record<JobActivityEntry["state"], string> = {
   cancelled: "Cancelled", succeeded: "Request completed", failed: "Failed", needs_reconciliation: "Needs review",
 };
 
-export function GenerationActivity() {
+export function GenerationActivity({ labeled = false }: { labeled?: boolean }) {
   const { session } = useAccountSession();
   if (session.status !== "ready") return null;
-  return <OwnedGenerationActivity key={`${session.userId}:${session.generation}`} account={session} />;
+  return <OwnedGenerationActivity key={`${session.userId}:${session.generation}`} account={session} labeled={labeled} />;
 }
 
-function OwnedGenerationActivity({ account }: { account: VerifiedAccount }) {
+function OwnedGenerationActivity({ account, labeled }: { account: VerifiedAccount; labeled: boolean }) {
   const { isCurrent, expire } = useAccountSession();
   const dialog = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
@@ -68,7 +68,7 @@ function OwnedGenerationActivity({ account }: { account: VerifiedAccount }) {
     </li>)}</ul>;
   }
   return <>
-    <button className="icon-button subtle generation-activity-trigger" type="button" aria-label="Activity" title="Activity" aria-haspopup="dialog" onClick={showActivity}><Icon name="clock" size={18} /></button>
+    <button className="icon-button subtle generation-activity-trigger" type="button" aria-label="Activity" title="Activity" aria-haspopup="dialog" onClick={showActivity}><Icon name="clock" size={18} />{labeled && <span>Generation activity</span>}</button>
     <dialog className="generation-activity-dialog" ref={dialog} aria-labelledby="generation-activity-title" onCancel={() => setOpen(false)} onClose={event => { if (!event.currentTarget.open) setOpen(false); }} onClick={event => { if (isDialogBackdropClick(event)) setOpen(false); }}>
       <header><h2 id="generation-activity-title">Generation activity</h2><button className="button secondary small" type="button" onClick={() => setOpen(false)}>Close activity</button></header>
       <p>Open a project to review its results. Closing this panel does not cancel work.</p>

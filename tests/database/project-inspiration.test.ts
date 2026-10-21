@@ -62,3 +62,15 @@ describe("project inspiration database boundary", () => {
     await expect(db.query("update fluid_private.inspiration_catalog set descriptor='{}'")).rejects.toThrow();
   });
 });
+
+it("discovers only installed catalog identifiers without creating state or granting anonymous access", async () => {
+  const ids = await asRole(db, "authenticated", OWNER_A, async () => (await db.query<{ value: string[] }>("select public.get_inspiration_reference_ids() value")).rows[0]!.value);
+  expect(ids).toEqual(inspirationCatalog.map(item => item.id).sort());
+  expect((await db.query("select * from public.project_inspiration_heads")).rows).toEqual([]);
+  for (const role of ["anon", "service_role"] as const) await asRole(db, role, null, async () => {
+    await expect(db.query("select public.get_inspiration_reference_ids()")).rejects.toMatchObject({ code: "42501" });
+  });
+  await asRole(db, "authenticated", null, async () => {
+    await expect(db.query("select public.get_inspiration_reference_ids()")).rejects.toMatchObject({ code: "28000" });
+  });
+});

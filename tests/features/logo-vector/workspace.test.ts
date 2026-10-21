@@ -17,8 +17,9 @@ describe("official logo editor wrapper", () => {
     const html = render("00000000-0000-4000-8000-000000000001");
     expect(html).toContain("Checking your account");
     expect(html).toContain("Review your vector logo");
-    const currentLink = html.match(/<a\b[^>]*aria-current="page"[^>]*>Vector review<\/a>/)?.[0];
-    expect(currentLink).toContain('href="/brands/account/00000000-0000-4000-8000-000000000001/logo/vector"');
+    expect(html).toContain('href="/brands/account/00000000-0000-4000-8000-000000000001"');
+    expect(html).toContain("Back to project");
+    expect(html).not.toContain('aria-current="page"');
     expect(html).not.toContain("/logo/editor");
     expect(html).not.toContain("<svg");
     expect(html).not.toContain("synthetic");

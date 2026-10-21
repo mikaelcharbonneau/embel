@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 
 import { useId, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import { Icon } from "@/components/ui/icon";
@@ -94,8 +95,7 @@ export function PersonalityReview({ draft, notice, onChange, onComplete, onBack,
       <button ref={startButton} type="button" className="button secondary" onClick={startProfile}>Enter my own profile<Icon name="pencil" size={15} /></button>
     </div> : <>
       <ReviewNotice complete={complete} hasValue notice={notice} subject="profile" />
-      <details className="project-personality-advanced" open={selectedTraits.length === 0}><summary>Advanced personality settings</summary>
-      <div className="personality-panel">
+      <ContextDetails className="project-personality-advanced" inline={selectedTraits.length === 0} title={<>Advanced personality settings</>}><div className="personality-panel">
         <div className="personality-panel-heading"><h2>{startedHere ? "Your starting point" : "Current profile"}</h2><span className="small-badge">0–100 emphasis</span></div>
         <p className="personality-scale-hint" id={`${id}-scale`}>Each dimension is independent. Higher values mean more emphasis, not better quality.</p>
         <fieldset className="personality-dimensions"><legend className="sr-only">Personality profile</legend>{dimensions.map((dimension, index) => <div className="personality-dimension" key={dimension.key}>
@@ -103,8 +103,7 @@ export function PersonalityReview({ draft, notice, onChange, onComplete, onBack,
           <input ref={index === 0 ? (node) => { firstSlider.current = node; if (node && focusNewProfile.current) { node.focus(); focusNewProfile.current = false; } } : undefined} id={`${id}-${dimension.key}`} className="personality-slider" type="range" min={0} max={100} step={1} value={personality[dimension.key]} aria-describedby={`${id}-${dimension.key}-hint ${id}-scale`} aria-valuetext={`${personality[dimension.key]} out of 100 emphasis`} style={{ "--emphasis": `${personality[dimension.key]}%` } as CSSProperties} onChange={(event) => { onChange({ ...personality, [dimension.key]: Number(event.target.value) }); setError(""); setStartedHere(false); setSelectedTraits([]); }} />
           <div className="personality-range-labels" aria-hidden="true"><span>Less emphasis</span><span>More emphasis</span></div>
         </div>)}</fieldset>
-      </div>
-      </details>
+      </div></ContextDetails>
     </>}
     {complete && !inline && <div className="review-complete"><Icon name="check" size={20} /><div><strong>Personality review complete</strong><p>Your confirmed profile stays with this brief.</p></div></div>}
     {error && <p className="form-error" role="alert">{error}</p>}
@@ -158,8 +157,8 @@ export function StrategyContext({ draft }: { draft: LocalDraft }) {
   const personality = draftPersonality(draft);
   return <dl className="strategy-inputs">
     <div><dt>Offering</dt><dd>{draft.offering.trim() || "Not specified"}</dd></div>
-    <div><dt>Selected audience</dt><dd>{audience.length ? <><p>{audience.map((segment) => segment.name.trim() || "Unnamed audience").join(", ")}</p><details><summary>Needs and reasons</summary><ul>{audience.map((segment) => <li key={segment.id}><strong>{segment.name.trim() || "Unnamed audience"}</strong><p>{segment.needs.trim() || "Needs not specified"}</p>{segment.reason.trim() && <p>{segment.reason}</p>}</li>)}</ul></details></> : "No audience selected"}</dd></div>
-    <div><dt>Retained competitors</dt><dd>{competitors.length ? <><p>{competitors.map((competitor) => competitor.name.trim() || "Unnamed competitor").join(", ")}</p><details><summary>Why they are relevant</summary><ul>{competitors.map((competitor) => <li key={competitor.id}><strong>{competitor.name.trim() || "Unnamed competitor"}</strong><p>{competitor.relevance.trim() || "Relevance not specified"}</p></li>)}</ul></details></> : "No competitors retained"}</dd></div>
+    <div><dt>Selected audience</dt><dd>{audience.length ? <><p>{audience.map((segment) => segment.name.trim() || "Unnamed audience").join(", ")}</p><ContextDetails  title={<>Needs and reasons</>}><ul>{audience.map((segment) => <li key={segment.id}><strong>{segment.name.trim() || "Unnamed audience"}</strong><p>{segment.needs.trim() || "Needs not specified"}</p>{segment.reason.trim() && <p>{segment.reason}</p>}</li>)}</ul></ContextDetails></> : "No audience selected"}</dd></div>
+    <div><dt>Retained competitors</dt><dd>{competitors.length ? <><p>{competitors.map((competitor) => competitor.name.trim() || "Unnamed competitor").join(", ")}</p><ContextDetails  title={<>Why they are relevant</>}><ul>{competitors.map((competitor) => <li key={competitor.id}><strong>{competitor.name.trim() || "Unnamed competitor"}</strong><p>{competitor.relevance.trim() || "Relevance not specified"}</p></li>)}</ul></ContextDetails></> : "No competitors retained"}</dd></div>
     {draft.stage === "positioning" && <div><dt>Personality emphasis</dt><dd>{personality ? <><ul className="strategy-profile-summary">{dimensions.map((dimension) => <li key={dimension.key}><span>{dimension.label}</span><span>{personality[dimension.key]} / 100</span></li>)}</ul><p className="strategy-context-review">{isPersonalityReviewComplete(draft) ? "Personality confirmed" : "Personality not reviewed"}</p></> : "No profile yet"}</dd></div>}
   </dl>;
 }

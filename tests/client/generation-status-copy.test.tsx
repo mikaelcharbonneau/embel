@@ -72,7 +72,7 @@ describe("Settings capability-neutral guidance", () => {
     expect(checks.textContent).toContain("trademark results are not legal clearance");
     expect(checks.textContent).not.toContain("not connected");
     expect([...checks.querySelectorAll("a")].map(link => link.getAttribute("href"))).toEqual(["/domains", "/handles", "/trademarks"]);
-    expect(host.querySelector('[aria-label="Connected apps"]')?.textContent).toContain("app connections are not available yet");
+    expect(host.querySelector('[aria-label="Connected apps"]')?.textContent).toContain("app connections and automatic exports are not available");
     expect(fetcher).not.toHaveBeenCalled();
   });
   it("directs image readiness to project logo workspaces without promising vector or export access", async () => {

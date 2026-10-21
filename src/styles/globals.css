@@ -436,6 +436,11 @@ input:focus-visible, textarea:focus-visible { outline-offset: 2px; }
 .home-voice-popover > summary { width: 44px; justify-content: center; }
 .home-input-popover-panel { position: absolute; top: calc(100% + 10px); left: 0; z-index: 25; width: min(380px, calc(100vw - 80px)); padding: 20px; color: var(--text); background: var(--paper); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 30px #19191912; font-size: var(--font-ui); }
 .home-input-popover-panel input[type=file] { display: block; width: 100%; margin: 12px 0; font-size: var(--font-ui); }
+.home-input-popover-panel input[type=file][hidden] { display: none; }
+.home-input-popover-panel h3 { font-size: 14px; line-height: 22px; font-weight: 500; }
+.home-attachment-details { margin-top: 16px; }
+.home-attachment-details > summary { cursor: pointer; font-size: var(--font-ui); }
+.home-input-controls summary:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 3px; }
 .home-input-popover-panel input[type=file]::file-selector-button { border: 1px solid var(--border); background: var(--surface); border-radius: 6px; padding: 8px 10px; margin-right: 8px; font: inherit; }
 .home-voice-popover .home-input-popover-panel { left: auto; right: 0; }
 .home-input-popover-panel .field-hint { font-size: var(--font-ui); margin-top: 10px; }

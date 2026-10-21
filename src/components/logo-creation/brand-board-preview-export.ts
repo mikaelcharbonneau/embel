@@ -6,7 +6,7 @@ import { AccountRequestError } from "@/components/workspace/account-api";
 import { brandBoardDirection } from "./brand-board-direction";
 
 export const BOARD_PREVIEW_WIDTH = 1600;
-export const BOARD_PREVIEW_HEIGHT = 1100;
+export const BOARD_PREVIEW_HEIGHT = 1800;
 export const BOARD_PREVIEW_TIMEOUT_MS = 20_000;
 const maxPixels = 32_000_000;
 
@@ -147,8 +147,27 @@ export function drawBoardPreview(canvas: HTMLCanvasElement, image: HTMLImageElem
   text("The quick brown fox jumps", 850, 836, 27, 400, "#191919", 640);
   text("over the lazy dog.", 850, 873, 27, 400, "#191919", 640);
   text("Aa Bb Cc & 0123456789", 850, 928, 23, 400, "#191919", 640);
-  text("Opaque PNG board summary · Proposals, not an approved identity.", 64, 1002, 20, 500, "#696965");
-  text("Not SVG/PDF masters, transparent logo files or a final brand package. Application mockups are not included.", 64, 1036, 18, 400, "#696965", 1472);
+  // Application artwork is part of this one board raster, never inside a device.
+  const primary = snapshot.palette[0]!, accent = snapshot.palette[1] ?? primary;
+  text("SOCIAL APPLICATIONS", 64, 1012, 20, 500, "#696965");
+  rect(64, 1060, 560, 560, primary.hex);
+  const socialScale = Math.min(380 / image.naturalWidth, 180 / image.naturalHeight);
+  const sw = image.naturalWidth * socialScale, sh = image.naturalHeight * socialScale;
+  ctx.drawImage(image, 154 + (380 - sw) / 2, 1130 + (180 - sh) / 2, sw, sh);
+  text(snapshot.name, 104, 1400, 46, snapshot.type.headingWeight, primary.foreground, 480);
+  text("Your announcement goes here.", 104, 1475, 24, 400, primary.foreground, 480);
+  text("Social post · Artwork preview", 64, 1636, 18, 400, "#696965", 560);
+  // X's wide header format is shown directly, without social UI or device chrome.
+  rect(656, 1060, 880, 880 / 3, accent.hex);
+  const bannerScale = Math.min(260 / image.naturalWidth, 170 / image.naturalHeight);
+  const bw = image.naturalWidth * bannerScale, bh = image.naturalHeight * bannerScale;
+  ctx.drawImage(image, 706 + (260 - bw) / 2, 1122 + (170 - bh) / 2, bw, bh);
+  text(snapshot.name, 1000, 1150, 38, snapshot.type.headingWeight, accent.foreground, 470);
+  text("X header · Artwork preview", 656, 1370, 18, 400, "#696965", 880);
+  text("One cohesive visual identity.", 656, 1450, 40, snapshot.type.headingWeight, "#191919", 880);
+  text("Selected logo · Color palette · Typography · Social artwork", 656, 1514, 22, 400, "#696965", 880);
+  text("One raster Brand Board · Proposed design, not an approved identity.", 64, 1710, 20, 500, "#696965");
+  text("Not SVG/PDF masters, transparent logo files or a final brand package. Social copy is a placeholder.", 64, 1750, 18, 400, "#696965", 1472);
 }
 
 export async function prepareBoardPreview(client: Pick<AccountLogoClient, "previewAsset">, snapshot: BoardPreviewSnapshot, signal: AbortSignal): Promise<Blob> {

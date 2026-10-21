@@ -1,8 +1,9 @@
+import { initialInferredNamingPreferences } from "@/domain/naming-language";
 import { z } from "zod";
 import { confirmNamingChatQuestion, initialNamingChatProgress, namingChatQuestions, type NamingChatProgress } from "./naming-chat-progress";
 import { boundedAccountRequest } from "@/components/workspace/bounded-account-request";
 import { AccountRequestError } from "@/components/workspace/account-api";
-import { getNamingPreferencesReadiness, initialNamingPreferencesV2, namingApproachSchema, namingDirectnessSchema, namingPreferencesV2Schema, type NamingPreferencesV2 } from "@/domain/naming-brain-preferences";
+import { getNamingPreferencesReadiness, namingApproachSchema, namingDirectnessSchema, namingPreferencesV2Schema, type NamingPreferencesV2 } from "@/domain/naming-brain-preferences";
 import { namingPreferenceRevisionSchema, updateNamingPreferencesResponseSchema, updateNamingPreferencesSchema, type NamingPreferenceRevision, type NamingSession, type ProjectNameEntry } from "@/domain/project-naming";
 import { ensureNamingRunIntentSchema, stopNamingFeedIntentSchema, steerNamingFeedIntentSchema, type EnsureNamingRunIntent, type NamingFeed, type NamingFeedEntry, type NamingFeedEnsureResult, type SteerNamingFeedIntent, type StopNamingFeedIntent } from "@/domain/naming-brain";
 import { createProjectInputSchema, type ContextSnapshot, type CreateProjectInput } from "@/domain/projects";
@@ -30,7 +31,7 @@ const emptyEntry = (): NamingProjectEntry => ({ description: "", direction: "", 
 const equal = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
 function preferencesFrom(saved: NamingPreferenceRevision | null, context: ContextSnapshot): NamingPreferencesV2 {
   if (saved?.preferences.version === 2) return saved.preferences;
-  return { ...initialNamingPreferencesV2(context), ...saved?.preferences, version: 2 };
+  return { ...initialInferredNamingPreferences(context), ...saved?.preferences, version: 2 };
 }
 function normalizeDraft(draft: NamingPreferencesV2) {
   return namingPreferencesV2Schema.safeParse({ ...draft, sourceLanguages: draft.sourceLanguages.filter(value => value.trim()), requiredText: draft.requiredText.filter(value => value.trim()), excludedText: draft.excludedText.filter(value => value.trim()) });

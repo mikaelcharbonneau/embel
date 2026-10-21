@@ -1,0 +1,15 @@
+.root { min-width: 0; }
+.trigger { display: flex; align-items: center; justify-content: space-between; gap: 20px; width: 100%; min-height: 44px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--paper); color: var(--secondary); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.trigger:hover { color: var(--text); border-color: var(--secondary); }
+.trigger:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+.sheet { width: min(680px, calc(100vw - 32px)); max-height: min(84dvh, 850px); padding: 0; border: 1px solid var(--border); border-radius: 16px; background: var(--paper); color: var(--text); box-shadow: 0 20px 80px #19191926; overflow: auto; }
+.sheet::backdrop { background: #19191955; }
+.sheet > header { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 24px; border-bottom: 1px solid var(--border); background: var(--paper); }
+.sheet > header h2 { margin: 0; font-size: 18px; line-height: 26px; font-weight: 500; }
+.content { display: grid; gap: 16px; padding: 24px; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.content :is(input,textarea,select) { max-width: 100%; }
+.inline > h3 { margin-bottom: 12px; font-size: 14px; font-weight: 500; }
+@media (max-width: 600px) { .sheet { width: calc(100vw - 20px); max-height: 90dvh; } .sheet > header, .content { padding: 16px; } }
+
+.trigger > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trigger > span:last-child { flex-shrink: 0; }

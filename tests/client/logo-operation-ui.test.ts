@@ -80,7 +80,7 @@ describe("actual selected-concept conversion UI", () => {
     await act(async () => f.button("Review conversion")!.click()); await until(() => expect(f.button("Convert to vector")?.disabled).toBe(false));
     f.setReady(false); await act(async () => f.button("Refresh operation availability")!.click());
     await until(() => expect(f.button("Confirm generation")?.disabled).toBe(true));
-    expect(f.container.querySelector("dialog")?.textContent).toContain("Estimated cost"); expect(f.quotes).toHaveLength(1); expect(f.admissions).toEqual([]);
+    expect(f.container.querySelector('dialog[aria-label="Review generation cost"]')?.textContent).toContain("Estimated cost"); expect(f.quotes).toHaveLength(1); expect(f.admissions).toEqual([]);
   });
 });
 

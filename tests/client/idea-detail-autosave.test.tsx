@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { installDialogMethods } from "../helpers/dialog-methods";
 import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -59,7 +60,9 @@ async function editTitle(value: string) {
   });
 }
 
+let restoreDialogs: () => void;
 beforeEach(() => {
+  restoreDialogs = installDialogMethods();
   vi.useFakeTimers(); vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} unobserve() {} });
   fixture.session = { status: "ready", userId: owner, generation: 1 };
@@ -78,10 +81,25 @@ beforeEach(() => {
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
 afterEach(async () => {
-  await act(async () => root.unmount()); host.remove(); vi.useRealTimers(); vi.unstubAllGlobals();
+  await act(async () => root.unmount()); host.remove(); restoreDialogs(); vi.useRealTimers(); vi.unstubAllGlobals();
 });
 
 describe("owned IdeaDetail automatic saving", () => {
+  it("keeps optional development fields mounted through disclosure changes and puts version metadata in saved details", async () => {
+    stored = { ...stored, content: { ...stored.content, details: { ...stored.content.details, problem: "Retained problem notes", solution: "Retained solution notes" } } };
+    await render();
+    const development = host.querySelector<HTMLElement>(".idea-development-panel")!, metadata = host.querySelector<HTMLElement>(".idea-detail-metadata")!;
+    expect(development.querySelector("dialog")!.open).toBe(false); expect(metadata.querySelector("dialog")!.open).toBe(false);
+    const note = development.querySelector<HTMLTextAreaElement>('[aria-label="Problem"]')!;
+    await act(async () => development.querySelector<HTMLButtonElement>(":scope > button")!.click()); note.focus();
+    await act(async () => development.querySelector<HTMLButtonElement>("dialog header button")!.click());
+    await act(async () => development.querySelector<HTMLButtonElement>(":scope > button")!.click());
+    expect(development.querySelector("textarea")).toBe(note); expect(note.value).toBe("Retained problem notes");
+    expect(metadata.textContent).toContain("Saved to account · version 1."); expect(metadata.textContent).not.toContain("Storage");
+    expect(host.querySelector(".idea-detail-save-state")).toBeNull(); expect(status()).toBe("Saved");
+    const next = host.querySelector(".idea-brand-next")!; expect(next.textContent).toContain("or attach it to a brand you already have"); expect(next.querySelector(".idea-attach-disclosure")).not.toBeNull();
+    expect(writes).toEqual([]);
+  });
   it("debounces typing, displays Saved only after acknowledgement, and reloads the durable content", async () => {
     await render(); expect(status()).toBe("Saved"); expect(writes).toEqual([]);
     expect(button("Save changes")).toBeUndefined();

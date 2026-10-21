@@ -180,6 +180,16 @@
 .idea-detail-save-state { color: var(--secondary); font-size: 13px; line-height: 20px; margin: 4px 0 0; }
 .idea-detail-main .idea-recovery { margin: 0; }
 .idea-detail-attachment { margin-top: 24px; }
+.idea-development-panel > summary, .idea-detail-metadata > summary, .idea-attach-disclosure > summary { cursor: pointer; font-size: 14px; line-height: 22px; font-weight: 500; }
+.idea-development-panel > summary .field-hint { display: block; margin: 6px 0 0; font-weight: 400; }
+.idea-development-panel[open] > fieldset { margin-top: 20px; min-width: 0; }
+.idea-detail-metadata[open] > :not(summary) { margin-top: 16px; }
+.idea-attach-disclosure { border-top: 1px solid var(--border); padding-top: 20px; }
+.idea-attach-disclosure .account-copy-control { margin: 20px 0 0; padding: 0; border: 0; background: transparent; }
+.idea-attach-disclosure .account-copy-control h2 { font-size: 14px; line-height: 22px; }
+.idea-attach-disclosure :is(input, select, button) { max-width: 100%; }
+.idea-attach-disclosure .standalone-project-picker { min-width: 0; }
+.idea-detail-page :is(summary, .button, .text-link):focus-visible { outline: 2px solid var(--accent-text); outline-offset: 3px; }
 .idea-created-brands { gap: 16px; padding: 20px; }
 .idea-created-brands .field-hint { display: block; margin: 0; }
 @media (max-width: 900px) {

@@ -84,8 +84,8 @@ describe("local board PNG preview", () => {
     const blob = await prepare();
     const metadata = await sharp(new Uint8Array(await blob.arrayBuffer())).metadata();
     expect(blob.type).toBe("image/png");
-    expect(metadata).toMatchObject({ format: "png", width: 1600, height: 1100, hasAlpha: false });
-    expect(drawImage).toHaveBeenCalledTimes(1);
+    expect(metadata).toMatchObject({ format: "png", width: BOARD_PREVIEW_WIDTH, height: BOARD_PREVIEW_HEIGHT, hasAlpha: false });
+    expect(drawImage).toHaveBeenCalledTimes(3);
     const [, x, y, width, height] = drawImage.mock.calls[0]!;
     expect(width).toBe(height); expect(x).toBeGreaterThan(64); expect(y).toBeGreaterThan(230);
     const labels = text.mock.calls.map(row => row[0]);
@@ -95,7 +95,7 @@ describe("local board PNG preview", () => {
     expect(labels).toContain("Saved selection"); expect(labels.join(" ")).toContain("Not SVG/PDF masters, transparent logo files or a final brand package");
     for (const color of f.snapshot.palette) expect(labels).toContain(color.hex);
     expect(labels.join(" ")).not.toContain("Tea shop");
-    expect(fillRect.mock.calls[0]).toEqual([0, 0, 1600, 1100]);
+    expect(fillRect.mock.calls[0]).toEqual([0, 0, BOARD_PREVIEW_WIDTH, BOARD_PREVIEW_HEIGHT]);
     expect(contexts).toEqual(['400 24px "__GeistSans_test"', '500 24px "__GeistSans_test"', '600 24px "__GeistSans_test"']);
     expect(blobs.size).toBe(0); expect(revoke).toHaveBeenCalledTimes(2);
     expect(f.fixture.admissions).toEqual([]); expect(f.fixture.selections).toEqual([]); expect(f.fixture.quotes).toEqual([]);

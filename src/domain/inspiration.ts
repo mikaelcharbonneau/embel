@@ -8,6 +8,7 @@ export type InspirationDesign = {
   id: string; slug: string; brand: string; creator: string; kind: "identity" | "logo";
   description: string; sourceUrl: string; image: string; width: number; height: number; contentHash: string;
   elements: ReferenceElement[]; tags: string[];
+  availableSince?: string; provenance?: { source: string; license: string; trademarkNotice: string };
 };
 /** Curated reference artwork, never generated project output or a licensing claim. */
 export const inspirationCatalog: readonly InspirationDesign[] = catalogData as InspirationDesign[];
@@ -23,6 +24,7 @@ export const inspirationOverviewSchema = z.strictObject({
   ownerId: z.uuid(), projectId: z.uuid(), projectTitle: z.string().min(1).max(160), projectScope: projectScopeSchema,
   projectRevision: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
   catalogVersion: z.literal(INSPIRATION_CATALOG_VERSION),
+  availableReferenceIds: z.array(z.uuid()).max(100).optional(),
   selectionRevision: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
   choices: z.array(referenceReactionSchema).max(100),
 }).superRefine((value, ctx) => {

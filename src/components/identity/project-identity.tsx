@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 
 import { useState } from "react";
 import { ProjectDock } from "@/components/workspace/project-workspace";
@@ -18,8 +19,7 @@ function IdentityPreferences({ controller }: { controller: ProjectIdentityContro
   const parsed = identityPreferencesSchema.safeParse({ version: 1, ...form });
   const matchesLatest = parsed.success && JSON.stringify(parsed.data) === JSON.stringify(actual);
   const conflict = Boolean(draft && draft.baselineRevision !== (overview.preferences?.revision ?? 0));
-  return <details className="identity-preferences"><summary>Identity preferences{draft && identityDraftChanged(draft) ? " · unsaved edits" : ""}</summary>
-    <form onSubmit={event => { event.preventDefault(); void controller.savePreferences(); }}><fieldset disabled={controller.pending || Boolean(draft?.pending)}><legend className="sr-only">Identity preferences</legend>
+  return <ContextDetails className="identity-preferences" title={<>Identity preferences{draft && identityDraftChanged(draft) ? " · unsaved edits" : ""}</>}><form onSubmit={event => { event.preventDefault(); void controller.savePreferences(); }}><fieldset disabled={controller.pending || Boolean(draft?.pending)}><legend className="sr-only">Identity preferences</legend>
       <label>Creative locale<input aria-label="Identity creative locale" value={form.creativeLocale} maxLength={60} onChange={event => controller.setPreferenceValues({ ...form, creativeLocale: event.target.value })} /></label>
       <label>Direction notes<textarea aria-label="Identity direction notes" value={form.notes} maxLength={4000} onChange={event => controller.setPreferenceValues({ ...form, notes: event.target.value })} /></label>
       <label>Avoidance notes<textarea aria-label="Identity avoidance notes" value={form.avoidanceNotes} maxLength={4000} onChange={event => controller.setPreferenceValues({ ...form, avoidanceNotes: event.target.value })} /></label>
@@ -30,8 +30,7 @@ function IdentityPreferences({ controller }: { controller: ProjectIdentityContro
     {(conflict || draft?.pending) && <div className="identity-recovery"><p>Saved preferences and this draft are kept separately.</p><button type="button" className="identity-secondary-button" disabled={controller.pending || controller.loading || !controller.preferenceRebaseReady} onClick={controller.keepPreferencesAgainstLatest}>Keep edits against latest</button></div>}
     <div className="identity-actions"><button type="submit" className="identity-primary-button" disabled={controller.pending || controller.loading || !controller.checked || !draft || !identityDraftChanged(draft) || Boolean(draft.pending) || conflict}>Save Identity preferences</button>
       <button type="button" className="text-link" disabled={controller.pending || !draft} onClick={controller.discardPreference}>{draft?.pending ? "Discard preference recovery" : "Discard preference edits"}</button></div>
-    </form>
-  </details>;
+    </form></ContextDetails>;
 }
 export function ProjectIdentityWorkspace({ projectId, referenceState }: { projectId: string; referenceState?: IdentityReferenceHint }) {
   const controller = useProjectIdentity(projectId, referenceState);

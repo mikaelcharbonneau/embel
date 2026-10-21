@@ -30,8 +30,8 @@ it("focuses the next question on commit without a later animation frame stealing
   await act(async () => (document.activeElement as HTMLButtonElement).click());
   expect(choice.getAttribute("aria-checked")).toBe("true");
   await act(async () => { button("Continue").focus(); button("Continue").click(); });
-  expect(document.activeElement).toBe(host.querySelector("h2"));
-  expect(host.querySelector("h2")?.textContent).toBe("Which language should the names work in?");
+  expect(document.activeElement).toBe(host.querySelector("#project-naming-preferences-heading"));
+  expect(host.querySelector("#project-naming-preferences-heading")?.textContent).toBe("Any length limits or text to include or avoid?");
 });
 
 it("does not take focus from a composer used while an answer save is pending", async () => {
@@ -62,14 +62,14 @@ it("asks one decision at a time, preserves every approach, and revisits without 
   const selected = host.querySelector<HTMLButtonElement>('[role="radio"][aria-checked="true"]')!;
   await act(async () => selected.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })));
   expect(memory.get(account, projectId)?.preferences?.draft.directness).toBe("open_ended");
-  await click("Continue"); expect(host.querySelector('h2')?.textContent).toBe("Which language should the names work in?");
+  await click("Continue"); expect(host.querySelector("#project-naming-preferences-heading")?.textContent).toBe("Any length limits or text to include or avoid?");
   expect(start).not.toHaveBeenCalled();
   await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Edit answer: Which approaches would you like to explore?"]')!.click());
   expect(host.querySelector('[aria-pressed="true"]')?.textContent).toContain("Real words");
   expect(memory.get(account, projectId)?.preferences?.draft.approaches).toEqual(["real_words", "invented", "other_languages"]);
 });
 
-it("waits for each acknowledged answer before advancing and requires final explicit exploration", async () => {
+it("waits for each acknowledged answer before advancing and starts generation on the final acknowledged answer", async () => {
   let finish!: (value: unknown) => void; let held = true;
   const request = vi.fn((_path, _schema, options) => held ? new Promise(resolve => { finish = resolve; }) : Promise.resolve(receipt(options.body)));
   const memory = createNamingBrainMemory({ storage: () => null, request: request as never }); memory.bind(account);
@@ -81,9 +81,9 @@ it("waits for each acknowledged answer before advancing and requires final expli
   held = false; await act(async () => finish(receipt(body)));
   expect(host.querySelectorAll('[role="radio"]')).toHaveLength(4);
   await click("Explore all"); await click("Continue");
-  await click("Continue"); await click("Continue"); await click("Continue");
-  expect(start).not.toHaveBeenCalled(); expect(host.textContent).toContain("Ready to explore your names?");
-  await click("Start exploring"); expect(start).toHaveBeenCalledTimes(1);
+  await click("Continue");
+  expect(host.textContent).toContain("Your naming direction");
+  expect(start).toHaveBeenCalledTimes(1);
 });
 
 it("keeps the same conversation and unsent composer draft across the results transition", async () => {
@@ -111,7 +111,7 @@ it("saves real guidance before clearing the composer and never admits a run", as
 it("resumes the unconfirmed language follow-up after remount and same-owner verification", async () => {
   const { memory } = memoryWithSave(), start = await render(memory);
   await click("Other languages"); await click("Continue"); await click("Explore all"); await click("Continue");
-  const question = "Which language should the names work in?";
+  const question = "Any length limits or text to include or avoid?";
   expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe(question);
   const saved = memory.get(account, projectId)!.preferences!.saved;
   await act(async () => root.unmount()); root = createRoot(host);
@@ -123,32 +123,32 @@ it("resumes the unconfirmed language follow-up after remount and same-owner veri
   expect(start).not.toHaveBeenCalled();
 });
 
-it("a fresh memory conservatively asks unseen follow-ups with saved values, then requires final exploration", async () => {
+it("a fresh memory conservatively asks unseen follow-ups with saved values, then starts on the final answer", async () => {
   const first = memoryWithSave(), start = await render(first.memory);
   await click("Other languages"); await click("Continue"); await click("Explore all"); await click("Continue");
   const saved = first.memory.get(account, projectId)!.preferences!.saved!;
   await act(async () => root.unmount()); root = createRoot(host);
   const fresh = memoryWithSave();
   await act(async () => root.render(createElement(NamingApproachWidgets, { memory: fresh.memory, account, projectId, context, saved, blocked: false, runtimeReady: true, onContinue: start, onSaveProgress: async () => true })));
-  expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe("Which language should the names work in?");
+  expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe("Any length limits or text to include or avoid?");
   expect(fresh.memory.get(account, projectId)?.preferences?.draft).toEqual(saved.preferences);
   expect(fresh.request).not.toHaveBeenCalled();
-  await click("Continue"); await click("Continue"); await click("Continue");
-  expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe("Ready to explore your names?");
-  expect(start).not.toHaveBeenCalled(); await click("Start exploring"); expect(start).toHaveBeenCalledTimes(1);
+  await click("Continue");
+  expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe("Your naming direction");
+  expect(start).toHaveBeenCalledTimes(1);
 });
 
 it("keeps confirmed choices complete when newly selected approaches used to add inspiration questions", async () => {
   const { memory } = memoryWithSave(), start = await render(memory);
   await click("Real words"); await click("Continue"); await click("Explore all");
-  await click("Continue"); await click("Continue"); await click("Continue"); await click("Continue");
-  expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe("Ready to explore your names?");
+  await click("Continue"); await click("Continue");
+  expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe("Your naming direction");
   await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Edit answer: Which approaches would you like to explore?"]')!.click());
   await click("Other languages"); await click("Classical roots"); await click("People & places"); await click("Stories & culture"); await click("Continue");
-  expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe("Ready to explore your names?");
+  expect(host.querySelector('#project-naming-preferences-heading')?.textContent).toBe("Your naming direction");
   for (const question of retiredQuestions) expect(host.textContent).not.toContain(question);
   expect(memory.get(account, projectId)?.preferences?.saved?.preferences).toMatchObject({ approaches: ["real_words", "other_languages", "classical_roots", "people_places", "stories_culture"] });
-  expect(start).not.toHaveBeenCalled();
+  expect(start).toHaveBeenCalledTimes(1);
 });
 
 it("never asks retired inspiration questions or renders their answers and preserves every saved field", async () => {
@@ -158,16 +158,16 @@ it("never asks retired inspiration questions or renders their answers and preser
     sourceLanguages: ["French", "Latin"], heritageNotes: "Synthetic saved family place", culturalNotes: "Synthetic saved story reference",
   } };
   await act(async () => root.render(createElement(NamingApproachWidgets, { memory, account, projectId, context, saved, blocked: false, runtimeReady: true, onContinue: start, onSaveProgress: async () => true })));
-  expect(host.querySelector('h2')?.textContent).toBe("Which language should the names work in?");
+  expect(host.querySelector("#project-naming-preferences-heading")?.textContent).toBe("Any length limits or text to include or avoid?");
   expect(request).not.toHaveBeenCalled();
   for (const question of retiredQuestions) expect(host.textContent).not.toContain(question);
   await act(async () => memory.editPreferences(account, projectId, { ...memory.get(account, projectId)!.preferences!.draft, creativeLocale: "fr" }));
-  for (const next of ["Do you have a length in mind?", "Any text to include or avoid?", "Ready to explore your names?"]) {
-    await click("Continue"); expect(host.querySelector('h2')?.textContent).toBe(next);
+  for (const next of ["Your naming direction"]) {
+    await click("Continue"); expect(host.querySelector("#project-naming-preferences-heading")?.textContent).toBe(next);
     for (const question of retiredQuestions) expect(host.textContent).not.toContain(question);
   }
   expect(request).toHaveBeenCalledTimes(1);
   expect(request.mock.calls[0]![2].body.preferences).toEqual({ ...saved.preferences, creativeLocale: "fr" });
   expect(memory.get(account, projectId)?.preferences?.saved?.preferences).toEqual({ ...saved.preferences, creativeLocale: "fr" });
-  expect(start).not.toHaveBeenCalled(); await click("Start exploring"); expect(start).toHaveBeenCalledTimes(1);
+  expect(start).toHaveBeenCalledTimes(1);
 });

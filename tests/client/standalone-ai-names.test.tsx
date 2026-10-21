@@ -64,7 +64,7 @@ describe("standalone Names UI and acknowledgement recovery", () => {
   it("keeps brief entry independent of legacy generation availability and performs no inference on visit", async () => {
     overview.availability = { status: "unavailable", reason: "local_runtime_required" };
     await render(); await fillBrief(); expect(button("Continue to Naming").disabled).toBe(false);
-    expect(host.textContent).toContain("Choose your approaches there before starting exploration");
+    expect(host.textContent).toContain("suggestions will begin after your final response");
     expect(fetcher.mock.calls.every(([, init]) => init.method === "GET")).toBe(true);
   });
   it("retains and retries exactly the same project after a lost acknowledgement", async () => {

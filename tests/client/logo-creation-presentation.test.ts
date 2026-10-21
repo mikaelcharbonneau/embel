@@ -1,6 +1,6 @@
 import { Children, createElement, isValidElement, useState, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { LogoCreationFixturePreview } from "../fixtures/logo-creation-preview";
 import { LogoBriefFields } from "../../src/components/logo-creation/brief-form";
 import { LogoReferenceLimitNotice, LogoReferencePickerView } from "../../src/components/logo-creation/reference-picker";
@@ -9,6 +9,9 @@ import { LogoCostConfirmationView } from "../../src/components/logo-creation/cos
 import type { LogoBriefDraft, LogoReferenceSelection } from "../../src/domain/logo-workspace";
 import { LOGO_TEST_FIXTURE_LABEL, syntheticLogoBrief, syntheticLogoBatch, syntheticLogoReferences, syntheticLogoQuote } from "../fixtures/logo-creation";
 
+// The structural contract walker is not a React renderer. Exercise the sheet's
+// hooks in context-details.test.tsx and keep this walker focused on picker inputs.
+vi.mock("@/components/ui/context-details", () => ({ ContextDetails: ({ title, children }: { title: ReactNode; children: ReactNode }) => createElement("section", null, title, children) }));
 type Element = ReactElement<Record<string, unknown>>;
 function elements(node: ReactNode): Element[] {
   return Children.toArray(node).flatMap(child => {

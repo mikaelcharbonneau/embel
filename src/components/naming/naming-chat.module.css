@@ -1,8 +1,7 @@
-/* Naming chat follows the Strategy conversation; compact results use frame 117:9404.
-   The user's explicit left-chat placement supersedes the reference's right panel. */
-.workspace.workspace { display: grid; grid-template-columns: 340px minmax(0, 1fr); height: 100%; min-height: 0; overflow: hidden; background: var(--paper); }
+/* Naming begins in the conversation, then keeps one bottom composer below results. */
+.workspace.workspace { display: grid; grid-template-columns: minmax(0, 1fr); height: 100%; min-height: 0; overflow: hidden; background: var(--paper); }
 .chatFirst.workspace { grid-template-columns: minmax(0, 1fr); }
-.chatPanel { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--paper); border-right: 1px solid var(--border); }
+.chatPanel { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--paper); border-right: 0; }
 .chatFirst .chatPanel { border-right: 0; }
 .chatHeader { flex: 0 0 48px; min-width: 0; padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; justify-content: space-between; }
 .chatHeader > div { min-width: 0; display: grid; gap: 4px; }
@@ -17,7 +16,6 @@
 .chatFirst .transcript { padding-inline: max(24px, calc((100% - 760px) / 2)); }
 .transcript > * { flex-shrink: 0; }
 .context { color: var(--secondary); font-size: 12px; line-height: 20px; }
-.context summary { width: fit-content; cursor: pointer; }
 .context p { padding-top: 10px; overflow-wrap: anywhere; }
 .active { min-width: 0; scroll-margin-block: 20px; }
 .active h2 { font-size: 18px; font-weight: 500; line-height: 26px; letter-spacing: -.2px; margin-bottom: 14px; }
@@ -71,24 +69,15 @@
 .workspace .canvas .heart { position: absolute; z-index: 1; top: 3px; right: 3px; width: 38px; height: 38px; min-width: 38px; min-height: 38px; display: grid; place-items: center; padding: 11px; border: 0; border-radius: 7px; background: transparent; }
 .heart img { display: block; flex-shrink: 0; }
 .heart[aria-pressed=true] { background: var(--magenta-soft) !important; }
-.mobileTabs { display: none; }
 @media (max-width: 1150px) and (min-width: 761px) {
-  .workspace.workspace { grid-template-columns: 300px minmax(0, 1fr); }
   .chatFirst.workspace { grid-template-columns: minmax(0, 1fr); }
   .workspace .canvas :global(.project-naming-grid) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 900px) and (min-width: 761px) { .workspace .canvas :global(.project-naming-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) {
-  .workspace.workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: 48px minmax(0, 1fr); }
+  .workspace.workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
   .chatFirst.workspace { grid-template-rows: minmax(0, 1fr); }
-  .mobileTabs { display: flex; grid-column: 1; grid-row: 1; border-bottom: 1px solid var(--border); gap: 22px; padding-inline: 16px; background: var(--paper); }
-  .mobileTabs button { position: relative; display: flex; align-items: center; gap: 8px; min-height: 44px; background: transparent; border: 0; font: inherit; font-size: 13px; color: var(--secondary); }
-  .mobileTabs [aria-pressed=true] { color: var(--text); }
-  .mobileTabs [aria-pressed=true]::after { content: ""; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: var(--text); }
-  .mobileTabs span { font-size: 11px; padding: 2px 6px; border-radius: 5px; background: var(--surface); }
-  .chatPanel, .canvas { grid-column: 1; grid-row: 2; }
   .chatFirst .chatPanel { grid-row: 1; }
-  .exploring[data-mobile-panel=names] .chatPanel, .exploring[data-mobile-panel=chat] .canvas { display: none; }
   .chatPanel { border-right: 0; }
   .chatHeader { flex-basis: 48px; padding: 8px 16px; }
   .chatFirst .chatHeader { padding-inline: 16px; }
@@ -109,3 +98,20 @@
   .workspace .canvas .heart { top: 0; right: 0; width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 14px; }
 }
 @media (max-width: 340px) { .workspace .canvas :global(.project-naming-grid) { grid-template-columns: minmax(0, 1fr); } }
+
+/* Results are full width. Keep the same mounted composer below the canvas,
+   with an optional bottom conversation drawer rather than a sidebar. */
+.workspace.exploring { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+.exploring .canvas { grid-column: 1; grid-row: 1; }
+.exploring .chatPanel { grid-column: 1; grid-row: 2; width: 100%; border: 0; border-top: 1px solid var(--border); max-height: min(65vh, 620px); display: flex; }
+.exploring .conversation { width: min(100%, 860px); margin-inline: auto; }
+.exploring .compose { max-height: none; border-top: 0; padding: 12px 24px max(16px, env(safe-area-inset-bottom)); }
+.exploring .transcript { max-height: 42vh; min-height: 0; }
+.exploring .transcript[hidden] { display: none; }
+.exploring[data-chat-open=true] .transcript { display: flex; }
+.composerToolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--secondary); font-size: 12px; margin-bottom: 8px; }
+.composerToolbar button { min-height: 32px; flex-shrink: 0; }
+@media (max-width: 760px) { .exploring .compose { padding-inline: 16px; } .composerToolbar button { min-height: 44px; } }
+
+.chatFirst:has(> :global(.project-naming-notice)) { grid-template-rows: auto minmax(0, 1fr); }
+.chatFirst:has(> :global(.project-naming-notice)) .chatPanel { grid-row: 2; }

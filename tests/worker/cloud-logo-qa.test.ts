@@ -14,6 +14,7 @@ const storageUser = "853fa383-9606-4577-924f-966194dc2f67";
 const policy = "175c12bb65f63fe8839b58323ba6e5bbe605d06062a9a708bfdd23efbb8515d5";
 const model = "gpt-image-2.5-sunburst-2026-09-08";
 const hostEnvironment = { PATH: process.env.PATH, TMPDIR: process.env.TMPDIR, NODE_ENV: "test" as const };
+const supportedRuntime = process.versions.node === "22.22.2" && process.versions.icu === "78.2" && process.versions.unicode === "17.0";
 const stopped = { event: "cloud_logo_worker_stopped", reason: "configuration_or_runtime_failure" };
 type Manifest = { sourceRevision: string; sourceClean: boolean; sourceOrigin: string; projectId: string;
   bundleSha256: Record<string, string>; inputs: Record<string, string[]> };
@@ -153,7 +154,15 @@ describe("independent packaged cloud Logo startup", () => {
     expect(result.error).toBeUndefined(); expect(result.status).toBe(1); expect(result.stdout).toBe("");
     expect(result.stderr.trim()).toBe(JSON.stringify(stopped));
   });
-  it("reaches the blocked database boundary after real child processing under synthetic Linux identity metadata", () => {
+  it.runIf(!supportedRuntime)("rejects unsupported Node/ICU versions before any database or provider access", () => {
+    const result = launch(["--preflight"], { EMBEL_QA_SIMULATE_LINUX: "true" });
+    expect(result.error).toBeUndefined(); expect(result.status).toBe(1); expect(result.stdout).toBe("");
+    expect(result.stderr.trim()).toBe(JSON.stringify(stopped));
+    expect(result.stderr).not.toContain("QA_NETWORK_BLOCKED");
+    expect(result.stdout + result.stderr).not.toContain(canary);
+  });
+  // The production version gate must not be mocked away to claim native qualification.
+  it.runIf(supportedRuntime)("reaches the blocked database boundary after real child processing under synthetic Linux identity metadata", () => {
     // The parent platform fields alone are synthetic. Raster child processes
     // retain the actual host platform. This checks the packaged import graph,
     // working directory and entrypoint separation, not Linux native execution.

@@ -56,7 +56,7 @@ describe("mounted account vector editor", () => {
     expect(host.textContent).toContain("check conversion availability");
     expect(host.querySelector(`[role="status"] a[href="/brands/account/${projectId}/logo"]`)?.textContent).toBe("Open Logo concepts");
     expect(host.querySelector('a[href*="#logo-conversion-settings"]')).toBeNull();
-    expect(host.querySelector('nav[aria-label="Logo and identity stages"] [aria-current="page"]')?.textContent).toBe("Vector review");
+    expect(host.querySelector('nav')).toBeNull(); // Shared project layout owns the single stage hierarchy.
     expect(button("Accept this vector")).toBeUndefined(); expect(host.querySelector("svg")).toBeNull();
     expect(f.state.posts).toHaveLength(0);
   });

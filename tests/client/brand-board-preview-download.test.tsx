@@ -33,10 +33,10 @@ describe("board preview download lifetime", () => {
   it("enables download only after verification/rendering and keeps production-file claims separate", async () => {
     const pending = deferred<Blob>(); mocks.prepare.mockReturnValue(pending.promise);
     await render(); expect(download().disabled).toBe(true); expect(host.textContent).toContain("Preparing preview…");
-    expect(host.textContent).toContain("Opaque PNG summary"); expect(host.textContent).toContain("Not vector masters or a brand package");
+    expect(host.textContent).toContain("One PNG"); expect(host.textContent).toContain("not vector masters or an approved brand package");
     await act(async () => pending.resolve(blob));
     expect(download().disabled).toBe(false); expect(download().textContent).toBe("Download board preview (PNG)");
-    expect(createUrl).not.toHaveBeenCalled(); expect(click).not.toHaveBeenCalled();
+    expect(createUrl).toHaveBeenCalledTimes(1); expect(click).not.toHaveBeenCalled();
   });
   it("contains duplicate clicks, rechecks access, and starts only the prepared snapshot PNG", async () => {
     const pending = deferred<void>(); mocks.recheck.mockReturnValue(pending.promise);
@@ -54,14 +54,14 @@ describe("board preview download lifetime", () => {
   it("does not download a cached preview after access is revoked", async () => {
     mocks.recheck.mockRejectedValue(new BoardPreviewError("unavailable")); await render();
     await act(async () => download().click());
-    expect(click).not.toHaveBeenCalled(); expect(createUrl).not.toHaveBeenCalled(); expect(download().disabled).toBe(true);
+    expect(click).not.toHaveBeenCalled(); expect(createUrl).toHaveBeenCalledTimes(1); expect(host.querySelector("figure img")).toBeNull(); expect(download().disabled).toBe(true);
     expect(host.querySelector('[role="alert"]')?.textContent).toContain("selected image could not be verified");
   });
   it("discards a late download after the verified owner changes", async () => {
     const pending = deferred<void>(); mocks.recheck.mockReturnValue(pending.promise); await render();
     await act(async () => download().click()); mocks.current = false;
     await act(async () => pending.resolve());
-    expect(createUrl).not.toHaveBeenCalled(); expect(click).not.toHaveBeenCalled();
+    expect(createUrl).toHaveBeenCalledTimes(1); expect(click).not.toHaveBeenCalled();
   });
   it("cancels a late download on metadata/selection change without mixing new text and old artwork", async () => {
     const pending = deferred<void>(); mocks.recheck.mockReturnValue(pending.promise); await render();

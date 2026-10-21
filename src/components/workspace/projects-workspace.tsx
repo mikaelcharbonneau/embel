@@ -7,11 +7,12 @@ import { compareProjectCursors } from "@/domain/project-pages";
 import { ProjectsArtwork } from "@/components/ui/projects-artwork";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "./account-session";
 import { useAccountProjectListing } from "./account-projects";
-import { scopeDetails, scopeLabel } from "./local-drafts";
+import { scopeDetails } from "./local-drafts";
 import { UnsavedProjectRecovery } from "./unsaved-project-recovery";
 import { ProjectCardActions } from "./project-card-actions";
 import type { LifecycleProject, ProjectDeletionAction } from "./project-deletion-client";
 import { ProjectDeletionStatus } from "./project-deletion-status";
+import { ProjectCard as SavedProjectCard } from "./project-card";
 import "@/styles/projects.css";
 
 type ProjectCard = { key: string; id: string; title: string; scope: ProjectScope; created: string; updated: string | null; deleted: string | null; href: string; saved: LifecycleProject };
@@ -67,7 +68,7 @@ function ProjectsLibrary({ account, controls, state }: { account: VerifiedAccoun
   const projects: ProjectCard[] = (listing?.items ?? []).map(project => ({ key: project.id, id: project.id, title: project.title, scope: project.scope, created: project.created_at, updated: null, deleted: project.deletion_requested_at ?? project.deleted_at, href: `/brands/account/${project.id}`, saved: project }));
   const filtering = Boolean(query.trim()) || scope !== "all";
   const empty = Boolean(listing) && !projects.length && !listing?.nextCursor && !error;
-  const matching = projects.map((project, index) => ({ ...project, preview: ["neutral", "inverse", "neutral", "pink", "neutral", "inverse"][index % 6] })).filter(project =>
+  const matching = projects.filter(project =>
     (scope === "all" || project.scope === scope) && project.title.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())
   ).sort((a, b) => (sort === "alphabetical" ? a.title.localeCompare(b.title, "en", { sensitivity: "base", numeric: true }) : 0) || recent(a, b));
   function changed(project: LifecycleProject, action: ProjectDeletionAction) {
@@ -96,9 +97,8 @@ function ProjectsLibrary({ account, controls, state }: { account: VerifiedAccoun
       {!listing && !error && <p className="projects-notice" role="status">Loading your {deleted ? "deleted " : ""}projects…</p>}
       <section className="projects-grid" aria-label={deleted ? "Deleted projects" : "Projects"}>{matching.map(project => {
         const actions = <ProjectCardActions key={`${project.id}:${project.saved.current_revision}:${project.saved.lifecycle_version}`} project={project.saved} account={account} onChanged={changed} onReload={refreshProjects} />;
-        const content = <><div className={`project-preview project-preview--${project.preview}`} aria-hidden="true"><span>{project.title}</span></div>
-          <div className="project-details"><div className="project-card-identity"><h2 title={project.title}>{project.title}</h2><span>{scopeLabel(project.scope)}</span></div>{deleted && <ProjectDeletionStatus account={account} project={project.saved} onUpdated={update} />}<div className="project-footer"><span title={project.deleted ?? project.created}>{dateLabel(project, now)}</span>{deleted ? actions : <span className="project-continue">Continue<ProjectsArtwork name="continue" /></span>}</div></div></>;
-        return <article className={`project-card${deleted ? " project-card--deleted" : ""}`} key={project.key} data-storage="account">{deleted ? content : <><Link className="project-card-link" href={project.href} aria-label={`Continue ${project.title}`}>{content}</Link>{actions}</>}</article>;
+        return <SavedProjectCard key={project.key} project={project.saved} account={account} date={dateLabel(project, now)} actions={actions}
+          deletionStatus={deleted ? <ProjectDeletionStatus account={account} project={project.saved} onUpdated={update} /> : undefined} />;
       })}</section>
       {!matching.length && (projects.length > 0 || filtering) && <div className="projects-no-matches" role="status"><h2>No matching projects</h2><p>Try a different scope or project name.</p><button type="button" className="button secondary" onClick={() => { setQuery(""); setScope("all"); }}>Clear filters</button></div>}
     </>}

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { installDialogMethods } from "../helpers/dialog-methods";
 import { act, useLayoutEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -22,7 +23,7 @@ async function mount() {
   await act(async () => root.render(<AccountSessionProvider><Probe /><AccountProjectEditor projectId={projectId} /><button type="button" data-outside>Another control</button></AccountSessionProvider>));
   await act(async () => vi.advanceTimersByTimeAsync(0));
   expect(account.session.status).toBe("ready");
-  host.querySelector<HTMLDetailsElement>(".project-details-disclosure")!.open = true;
+  await act(async () => host.querySelector<HTMLButtonElement>('.project-details-disclosure > button[aria-haspopup="dialog"]')!.click());
 }
 function field(label: string) {
   return [...host.querySelectorAll("label")].find(node => node.textContent?.startsWith(label))!.querySelector<HTMLInputElement | HTMLTextAreaElement>("input, textarea")!;
@@ -44,7 +45,9 @@ async function acknowledge() {
     input_hash: "a".repeat(64), created_at: "2026-10-20T00:00:00Z",
   } })));
 }
+let restoreDialogs: () => void;
 beforeEach(() => {
+  restoreDialogs = installDialogMethods();
   vi.useFakeTimers(); vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true); bodies = []; patch = deferred<Response>();
   project = accountProjectSchema.parse({ id: projectId, owner_id: owner, scope: "complete_brand", title: "Focus fixture", current_revision: 1,
     created_at: "2026-10-20T00:00:00Z", context: { description: "A synthetic neighborhood lunch kitchen" } });
@@ -57,7 +60,7 @@ beforeEach(() => {
   }));
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
-afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.useRealTimers(); vi.unstubAllGlobals(); });
+afterEach(async () => { await act(async () => root.unmount()); host.remove(); restoreDialogs(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe("focus-preserving account draft locks", () => {
   it.each(["Project label", "Brief description", "What the business does", "First products / services", "Known audience"])(

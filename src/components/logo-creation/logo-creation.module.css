@@ -74,9 +74,9 @@
 .choice:has(input:checked) { border-color: var(--text); color: var(--text); background: var(--surface); }
 .warning { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
 
-/* Figma 303:54691: three columns, quiet captions and a floating composer. */
+/* Three columns and quiet captions; refinement controls reserve their own space. */
 .conceptsScreen { position: relative; }
-.conceptsScreen > :global(.project-workbench-canvas) { padding: 24px 24px 224px; }
+.conceptsScreen > :global(.project-workbench-canvas) { padding: 24px; }
 .conceptsScreen .workspaceHeader { position: relative; min-height: 56px; margin-bottom: 20px; }
 .conceptsScreen .workspaceHeader h1 { margin: 0; line-height: 32px; }
 .conceptsScreen .workspaceHeader > p { margin: 4px 0 0; font-size: 12px; line-height: 18px; }
@@ -103,7 +103,12 @@
 .galleryCaption p { margin: 6px 0 0; font-size: 12px; line-height: 18px; color: var(--secondary, #696965); }
 .galleryLike { display: inline-flex; gap: 6px; align-items: center; justify-content: center; min-height: 40px; min-width: 84px; padding: 8px; border: 1px solid #e4e3df; border-radius: 6px; background: #fff; color: #949494; font-size: 12px; cursor: not-allowed; }
 .galleryLike img { opacity: .55; }
-.conceptsComposer { position: fixed; bottom: 24px; left: calc(50% + 40px); transform: translateX(-50%); z-index: 22; width: min(760px, calc(100vw - 128px)); min-height: 108px; padding: 12px 14px; border: 1px solid var(--border, #e4e3df); border-radius: 18px; background: #fff; box-shadow: 0 8px 16px #00000014; }
+.conceptsComposer { position: relative; width: 100%; margin: 16px 0 24px; padding: 14px 16px; border: 1px solid var(--border, #e4e3df); border-radius: 10px; background: #fff; }
+.composerHeader { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.composerHeaderActions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; flex-shrink: 0; }
+.composerHeaderActions .secondaryButton { min-height: 36px; padding: 7px 12px; }
+.conceptsComposer [hidden] { display: none; }
+.conceptsComposer > div[id] { padding-top: 16px; }
 .conceptsComposer textarea { display: block; width: 100%; min-height: 28px; max-height: 100px; resize: vertical; padding: 0; border: 0; border-radius: 0; background: transparent; color: #191919; font: inherit; font-size: 14px; line-height: 22px; box-shadow: none; }
 .composerTools { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
 .composerTools > .secondaryButton { min-height: 36px; padding: 7px 12px; text-decoration: none; }
@@ -118,12 +123,15 @@
 .conceptsScreen :is(button, a, textarea, select, summary, [role=button]):focus-visible { outline: 2px solid var(--accent-text, #990091); outline-offset: 3px; }
 @media (max-width: 1000px) { .conceptsScreen .gallery .concepts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) {
-  .conceptsScreen > :global(.project-workbench-canvas) { padding: 24px 16px 224px; }
+  .conceptsScreen > :global(.project-workbench-canvas) { padding: 20px 16px; }
   .conceptsScreen .workspaceHeader { padding-right: 0; }
   .conceptsScreen .gallery .concepts { grid-template-columns: minmax(0, 1fr); }
   .conceptFilters { flex-wrap: wrap; }
   .conceptFilters button { min-height: 44px; }
-  .conceptsComposer { left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); width: calc(100vw - 24px); }
+  .composerHeader { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .composerHeaderActions { width: 100%; justify-content: space-between; gap: 12px; }
+  .composerHeaderActions .secondaryButton, .composerSend { min-height: 44px; }
+  .composerSend { width: 44px; height: 44px; flex-basis: 44px; }
   .contextButton { min-height: 44px; }
   .contextDialog { padding: 18px; }
 }
@@ -135,8 +143,13 @@
 .galleryCard[data-selected=true] { border-color: var(--foreground, #191919); box-shadow: 0 0 0 1px var(--foreground, #191919); }
 .galleryPreview[role=button]:focus-visible { outline: 2px solid var(--foreground, #191919); outline-offset: -4px; }
 
-.composerSelection { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; color: var(--secondary, #696965); font-size: 12px; }
+.composerSelection { display: flex; align-items: center; gap: 10px; min-width: 0; color: var(--secondary, #696965); font-size: 12px; overflow-wrap: anywhere; }
 .composerSelection img { width: 36px; height: 36px; object-fit: contain; border: 1px solid var(--border, #e4e3df); border-radius: 6px; background: white; }
+.composerThumbnail { position: relative; display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 36px; border: 1px solid var(--border, #e4e3df); border-radius: 6px; overflow: hidden; }
+.composerThumbnail > :is(img, svg) { grid-area: 1 / 1; }
+.composerThumbnail img { border: 0; }
+.composerThumbnail:has(img) > svg { visibility: hidden; }
+.composerThumbnail p { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .composerStatus { font-size: 12px; color: var(--secondary, #696965); margin: 4px 0 8px; }
 .refinementPreview { position: relative; overflow: hidden; display: grid; place-items: center; width: 100%; height: 200px; background: white; border: 0; padding: 16px; cursor: pointer; }
 .refinementPreview:disabled { cursor: default; }

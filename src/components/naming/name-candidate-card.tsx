@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 
 import type { ContextSnapshot } from "@/domain/projects";
 import type { NameTransformInput } from "@/domain/naming";
@@ -36,10 +37,7 @@ export function CapturedContext({ context }: { context: ContextSnapshot }) {
 }
 
 export function RunParameters({ run }: { run: NameRun }) {
-  return <details className="names-run-details"><summary>Exact parameters &amp; captured context</summary>
-    <TransformParameters input={run.input} />
-    <CapturedContext context={run.context} />
-  </details>;
+  return <ContextDetails className="names-run-details" title={<>Exact parameters &amp; captured context</>}><TransformParameters input={run.input} /><CapturedContext context={run.context} /></ContextDetails>;
 }
 
 export function NameCandidateCard({ candidate, compared, comparisonFull, onFavorite, onSave, onCompare, onSeed, onCreateBrand, row = false }: {
@@ -48,22 +46,16 @@ export function NameCandidateCard({ candidate, compared, comparisonFull, onFavor
 }) {
   const { source } = candidate;
   return <article className={`names-candidate${row ? " names-candidate-row" : ""}${compared ? " is-compared" : ""}`} aria-label={`Name: ${source.value}`}>
-    <div className="names-candidate-title">{row && <button type="button" className="names-row-compare" aria-label={`${compared ? "Remove" : "Compare"} ${source.value}${compared ? " from comparison" : ""}`} aria-pressed={compared} disabled={!compared && comparisonFull} onClick={onCompare}><span aria-hidden="true">{compared && <Icon name="check" size={12} />}</span></button>}<h3>{source.value}</h3><button type="button" className={`names-favorite${candidate.favorite ? " is-active" : ""}`} aria-label={`${candidate.favorite ? "Unfavorite" : "Favorite"} ${source.value}`} aria-pressed={candidate.favorite} onClick={onFavorite}><NameSymbol name="favorite" filled={candidate.favorite} /></button></div>
+    <div className="names-candidate-title">{row && <button type="button" className="names-row-compare" aria-label={`${compared ? "Remove" : "Compare"} ${source.value}${compared ? " from comparison" : ""}`} aria-pressed={compared} disabled={!compared && comparisonFull} onClick={onCompare}><span aria-hidden="true">{compared && <Icon name="check" size={12} />}</span></button>}<h3 title={source.value}>{source.value}</h3><button type="button" className={`names-favorite${candidate.favorite ? " is-active" : ""}`} aria-label={`${candidate.favorite ? "Unfavorite" : "Favorite"} ${source.value}`} aria-pressed={candidate.favorite} onClick={onFavorite}><NameSymbol name="favorite" filled={candidate.favorite} /></button></div>
     <p className="names-candidate-origin">{source.origin === "manual" ? "Added manually" : `${transformLabels[source.history.at(-1)!.input.kind]} · ${source.history.length} ${source.history.length === 1 ? "step" : "steps"}`}</p>
     <div className="names-candidate-controls">
       <button type="button" className={`names-chip${candidate.saved ? " is-active" : ""}`} aria-label={`${candidate.saved ? "Unsave" : "Save"} ${source.value}`} aria-pressed={candidate.saved} onClick={onSave}><NameSymbol name="saved" filled={candidate.saved} />{candidate.saved ? "Saved" : "Save"}</button>
       {!row && <button type="button" className={`names-chip${compared ? " is-active" : ""}`} aria-label={`${compared ? "Remove" : "Compare"} ${source.value}${compared ? " from comparison" : ""}`} aria-pressed={compared} disabled={!compared && comparisonFull} onClick={onCompare}><NameSymbol name="compare" />{compared ? "In tray" : "Compare"}</button>}
       <button type="button" className="names-seed-action" onClick={onSeed}>Use as seed<Icon name="arrow" size={14} /></button>
     </div>
-    <details className="names-candidate-details"><summary>Context &amp; history</summary>
-      <p className="names-explanation">{candidate.explanation}</p>
-      <CapturedContext context={candidate.context} />
-      {source.history.length ? <ol className="names-lineage">{source.history.map((step, index) => <li key={step.id}>
+    <ContextDetails className="names-candidate-details" title={<>Context &amp; history</>}>{row && source.value.length > 60 && <p className="names-full-value"><strong>Full name</strong>{source.value}</p>}<p className="names-explanation">{candidate.explanation}</p><CapturedContext context={candidate.context} />{source.history.length ? <ol className="names-lineage">{source.history.map((step, index) => <li key={step.id}>
         <div><span>{index + 1}. {transformLabels[step.input.kind]}</span><strong>{step.output}</strong></div>
-        <details><summary>Parameters</summary><TransformParameters input={step.input} /></details>
-      </li>)}</ol> : <p className="names-muted">No transformations yet.</p>}
-      <button type="button" className="button secondary small" onClick={onCreateBrand}>Create brand<Icon name="arrow" size={14} /></button>
-      <p className="names-muted">Creates a new project in your account with this name and its captured context.</p>
-    </details>
+        <ContextDetails  title={<>Parameters</>}><TransformParameters input={step.input} /></ContextDetails>
+      </li>)}</ol> : <p className="names-muted">No transformations yet.</p>}<button type="button" className="button secondary small" onClick={onCreateBrand}>Create brand<Icon name="arrow" size={14} /></button><p className="names-muted">Creates a new project in your account with this name and its captured context.</p></ContextDetails>
   </article>;
 }
