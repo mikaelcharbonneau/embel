@@ -162,7 +162,7 @@ describe("Naming pagination resumes from current saved results", () => {
     expect(api.overview?.candidates.items).toEqual([]); expect(api.overview?.candidates.nextCursor).toBeNull();
     const requestCount = fetcher.mock.calls.length; await act(async () => api.loadMore()); expect(fetcher.mock.calls).toHaveLength(requestCount);
     const lastRead = fetcher.mock.calls.filter(([, init]) => init.method === "GET").at(-1)!;
-    expect(lastRead[0]).toBe(base); expect(lastRead[0]).not.toContain("cursor");
+    expect(lastRead[0]).toBe(`${base}?limit=100`); expect(lastRead[0]).not.toContain("cursor");
     rows = [];
     await act(async () => nextPage.resolve(outcome === "empty" ? Response.json(overview()) : new Response(null, { status: 503 })));
     expect(api.listStatus).toBe(outcome === "empty" ? "ready" : "failed");
@@ -228,4 +228,18 @@ describe("Naming pagination resumes from current saved results", () => {
     await act(async () => stalled.resolve(new Response(null, { status: 503 })));
     expect(api.readError).toBeNull(); expect(api.listStatus).toBe("ready");
   });
+});
+
+it("requests all 100 initial names and retains the same owned overview across route remount", async () => {
+  rows = Array.from({ length: 100 }, (_, index) => candidate(index + 1));
+  await render();
+  expect(api.overview?.candidates.items).toHaveLength(100);
+  expect(fetcher.mock.calls.some(([path]) => path === `${base}?limit=100`)).toBe(true);
+  const saved = api.overview;
+  fetcher.mockImplementation(() => new Promise(() => {}));
+  await act(async () => root!.render(createElement(Harness, { key: "reopened" })));
+  expect(api.overview).toBe(saved);
+  await expireRequest();
+  expect(api.overview).toBe(saved);
+  expect(api.readError).toContain("could not be confirmed in time");
 });

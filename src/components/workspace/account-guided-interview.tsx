@@ -1,5 +1,4 @@
 "use client";
-import { ContextDetails } from "@/components/ui/context-details";
 
 import { Fragment, useEffect, useEffectEvent, useId, useRef, useState, type ComponentProps } from "react";
 import { ProjectNamingWorkspace } from "@/components/naming/project-naming-workspace";
@@ -17,7 +16,7 @@ import { GuidedChoiceWidget } from "./guided-interview-widgets";
 import { GuidedThinking } from "./guided-thinking";
 import { bindGuidedStartConsent, isGuidedStartTurn, markGuidedStartAttempt, readGuidedStartConsent, rememberGuidedStartConsent } from "./guided-start-consent";
 import { guidedAllowance, guidedMessageContext, guidedTimeline, guidedTurnResult, nextGuidedProposal, recordGuidedChoice } from "./guided-interview-client";
-import type { DraftPatch, ProjectEditorForm } from "./project-editor";
+import type { ProjectEditorForm } from "./project-editor";
 import { useStrategyJobs } from "./use-strategy-jobs";
 import { useConversationFollow } from "./use-conversation-follow";
 import "@/styles/conversation.css";
@@ -290,7 +289,6 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
       {!state && saved.scope !== "complete_brand" && <p className="guided-assistant-copy">{saved.context.description}</p>}
       {(active || checkingResearch) && <GuidedThinking label={active ? bound && strategyJobActive(bound.job) ? bound.job.state === "queued" ? "Request queued…" : currentTurn?.stage === "competitors" && currentTurn.purpose === "research" ? "Researching competitors…" : "Thinking…" : "A request is in progress…" : strategy.pending ? currentTurn?.purpose === "research" ? "Starting research…" : "Starting response…" : "Checking research status…"} onStop={bound && strategyJobActive(bound.job) ? () => void strategy.cancel(bound.job) : undefined} stopping={bound?.job.state === "cancel_requested"} stopDisabled={strategy.pending} />}
       {!dirty && !workspace.conflict && state?.answers.length === 3 && context.competitorReviewComplete && context.intake.audienceReviewedAt && context.intake.personalityReviewedAt && <p className="guided-complete flow-enter" role="status">Your brand strategy is saved. You can revisit any answer above.</p>}
-      <GuidedProjectDetails workspace={workspace} storage={storage} blocked={pending || workspace.conflict || Boolean(workspace.pendingGuidedContext || workspace.pendingDraftSave)} />
     </div>
     <div className="guided-interview-compose">
       {hasNewResponse && <div className="guided-new-response flow-enter"><button type="button" className="button secondary small" aria-controls={transcriptId} onClick={revealNewResponse}>View new response<span aria-hidden="true"> ↓</span></button></div>}
@@ -306,18 +304,11 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
         <button type="button" className="text-link" disabled={busy || working || strategy.pending} onClick={strategy.refresh}>Check status</button>
         {currentTurn && !stale && !requestBlocked && (!bound || bound.job.state === "failed" || bound.job.state === "cancelled") && <button type="button" className="text-link" disabled={blocked} onClick={() => void retry()}>{guardedStart && !startConsent?.attempted && !bound ? "Start research" : currentTurn.stage === "competitors" && currentTurn.purpose !== "message" ? "Retry research" : "Retry request"}</button>}
       </div>}
+      {busy && <p role="status">{storage.saveLabel}</p>}
       {!busy && storage.actions}
       {storage.resultNavigation}
       </div>
       {(saved.scope === "complete_brand" || state) && <ConversationComposer project value={prompt} onChange={setPrompt} onSend={() => void send()} label="Message Embel" placeholder="Reply in your own words, or ask a question…" disabled={blocked || !prompt.trim()} readOnly={pending} hint={null} sendLabel="Send prompt" />}
     </div>
   </div>;
-}
-
-function GuidedProjectDetails({ workspace, storage, blocked }: { workspace: AccountWorkspace; storage: ComponentProps<typeof ProjectEditorForm>["storage"]; blocked: boolean }) {
-  const draft = workspace.draft;
-  function editBrief(patch: DraftPatch) {
-    storage.onUpdate({ ...patch, confirmedBrief: undefined, competitorReviewKey: null, audienceReviewedAt: null, audienceConversationKey: null, personalityReviewedAt: null, personalityReviewKey: null, positioningReviewedAt: null, positioningReviewKey: null });
-  }
-  return <ContextDetails className="project-details-disclosure" title={<>Project details and editing</>}><span className="save-label" role="status">{storage.saveLabel}</span>{/* Keep the native field and selection focusable while the existing save lock prevents editing. */}<label className="field-label">Project label<input value={draft.title} maxLength={160} readOnly={blocked} placeholder="Untitled brand" onChange={event => storage.onUpdate({ title: event.target.value })} /></label><label className="field-label">Brief description<textarea value={draft.description} maxLength={12000} rows={4} readOnly={blocked} onChange={event => editBrief({ description: event.target.value })} /></label>{([['activity', 'What the business does'], ['offering', 'First products / services'], ['knownAudience', 'Known audience']] as const).map(([field, label]) => <label className="field-label" key={field}>{label}<input value={draft[field]} maxLength={2000} readOnly={blocked} onChange={event => editBrief({ [field]: event.target.value })} /></label>)}</ContextDetails>;
 }

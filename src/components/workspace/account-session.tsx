@@ -128,6 +128,25 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
       publish({ status: error instanceof AccountRequestError && error.status === 401 ? "signed_out" : error instanceof AccountRequestError && error.status === 503 ? "unavailable" : "error", generation });
     }).finally(() => { if (request.current === controller) request.current = null; });
   }, [publish]);
+  // A routine focus check must not tear down an already verified workspace.
+  // Every API still authenticates its own request and checks the expected owner.
+  // Explicit authentication changes retain the hard privacy fence in refresh/signIn/signOut.
+  const revalidate = useCallback(() => {
+    const before = current.current;
+    if (before.status !== "ready") { refresh(); return; }
+    if (signOutRequest.current || signInPending.current) return;
+    request.current?.abort();
+    const controller = new AbortController();
+    request.current = controller;
+    void boundedAccountRequest("/api/session", accountSessionSchema, { signal: controller.signal }).then(({ user }) => {
+      if (controller.signal.aborted || request.current !== controller || current.current !== before) return;
+      if (user.id !== before.userId) publish({ status: "ready", userId: user.id, generation: before.generation + 1 });
+      // Same owner: preserve the object, generation, drafts, focus and scroll.
+    }).catch((error: unknown) => {
+      if (controller.signal.aborted || request.current !== controller || current.current !== before) return;
+      publish({ status: error instanceof AccountRequestError && error.status === 401 ? "signed_out" : error instanceof AccountRequestError && error.status === 503 ? "unavailable" : "error", generation: before.generation + 1 });
+    }).finally(() => { if (request.current === controller) request.current = null; });
+  }, [publish, refresh]);
   const expire = useCallback((account: VerifiedAccount) => {
     if (!isCurrent(account)) return;
     request.current?.abort();
@@ -237,7 +256,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
       if (suppressAutomaticRefresh.current || signOutRequest.current || signInPending.current) return;
       if (request.current && !request.current.signal.aborted && !(activation && needsActivationCheck)) return;
       if (activation) needsActivationCheck = false;
-      refresh();
+      if (activation) revalidate(); else refresh();
     };
     const onInactive = () => { needsActivationCheck = true; request.current?.abort(); };
     const onFocus = () => { if (document.visibilityState === "visible") automaticRefresh(true); };
@@ -260,7 +279,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
       signOutRequest.current?.abort();
       signOutRequest.current = null;
     };
-  }, [refresh, drafts, profileDrafts, inspirationDrafts, visualDirectionDrafts, screeningDrafts, namesDrafts, namingBrainDrafts, identityDrafts, logoDrafts, ideaDrafts, standaloneDrafts, lifecycleMemory, homeInputSession, logoInputSession]);
+  }, [refresh, revalidate, drafts, profileDrafts, inspirationDrafts, visualDirectionDrafts, screeningDrafts, namesDrafts, namingBrainDrafts, identityDrafts, logoDrafts, ideaDrafts, standaloneDrafts, lifecycleMemory, homeInputSession, logoInputSession]);
 
   return <SessionContext.Provider value={{ session, refresh, expire, isCurrent, drafts, profileDrafts, inspirationDrafts, visualDirectionDrafts, screeningDrafts, namesDrafts, namingBrainDrafts, identityDrafts, logoDrafts, ideaDrafts, standaloneDrafts, lifecycleMemory, homeInputSession, logoInputSession, signIn, signingIn, signingUp, awaitingConfirmation, dismissConfirmation, signInSlow, signOut, signingOut, signOutError }}><LogoDraftMemoryProvider memory={logoDrafts}>{children}</LogoDraftMemoryProvider></SessionContext.Provider>;
 }
