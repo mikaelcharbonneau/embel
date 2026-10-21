@@ -61,6 +61,7 @@ export function NamingApproachWidgets({ memory, account, projectId, context, sav
   const lock = useRef(false), active = useRef<HTMLDivElement>(null), transcript = useRef<HTMLDivElement>(null);
   const transitionFocus = useRef<{ step: Step; from: Element | null } | null>(null);
   const id = useId();
+  const [appliedChoices, setAppliedChoices] = useState<string | null>(null);
   useEffect(() => memory.connectPreferences(account, projectId, saved, context, savedChat), [memory, account, projectId, saved, context, savedChat]);
   useLayoutEffect(() => {
     const transition = transitionFocus.current;
@@ -75,6 +76,9 @@ export function NamingApproachWidgets({ memory, account, projectId, context, sav
     if (area && target) area.scrollTo?.({ top: Math.max(0, area.scrollTop + target.getBoundingClientRect().top - area.getBoundingClientRect().top - 20), behavior: "instant" });
   }, [step, connected, exploring]);
   if (!state || !record || !resolvedProgress) return <p role="status">Loading Naming choices…</p>;
+  const appliedVersion = record.feed.feed?.activeRun?.preferencesVersion ?? record.feed.feed?.preferencesVersion;
+  if (appliedChoices === null) setAppliedChoices(JSON.stringify(state.saved?.preferences ?? state.draft));
+  const hasUpdatedChoices = JSON.stringify(state.draft) !== (appliedChoices ?? JSON.stringify(state.saved?.preferences ?? state.draft)) || Boolean(appliedVersion !== undefined && state.saved && state.saved.version !== appliedVersion);
   const progress = resolvedProgress;
   const value = state.draft, sequence = namingChatQuestions(), instruction = record.steeringDraft.instruction, seeds = record.steeringDraft.candidateIds;
   const parsed = namingPreferencesV2Schema.safeParse({ ...value, sourceLanguages: value.sourceLanguages.filter(item => item.trim()), requiredText: value.requiredText.filter(item => item.trim()), excludedText: value.excludedText.filter(item => item.trim()) });
@@ -110,7 +114,7 @@ export function NamingApproachWidgets({ memory, account, projectId, context, sav
   async function proceed() {
     if (lock.current || blocked || !runtimeReady || !readiness.ready || saveBlocked || step !== "review" || sequence.some(question => !progress.confirmed[question])) return;
     lock.current = true; setWorking(true);
-    try { if (await memory.flushPreferences(account, projectId) && memory.isCurrent(account)) await onContinue(); }
+    try { if (await memory.flushPreferences(account, projectId) && memory.isCurrent(account)) { if (await onContinue()) setAppliedChoices(JSON.stringify(value)); } }
     finally { lock.current = false; if (memory.isCurrent(account)) setWorking(false); }
   }
   async function send() {
@@ -149,7 +153,7 @@ export function NamingApproachWidgets({ memory, account, projectId, context, sav
           {step === "length" ? <div className={styles.field}><label>Include these text fragments<textarea rows={2} maxLength={3200} value={value.requiredText.join("\n")} disabled={blocked} onChange={event => patch({ requiredText: event.target.value.split("\n") })} /></label><label>Exclude these text fragments<textarea rows={2} maxLength={3200} value={value.excludedText.join("\n")} disabled={blocked} onChange={event => patch({ excludedText: event.target.value.split("\n") })} /></label><small>Optional · one per line. Matches include parts of words and ignore case; accents and punctuation still matter.</small></div> : null}
           {step === "review" ? <p className="guided-assistant-copy">{exploring ? "Edit any answer to change the direction for upcoming names. Earlier names keep their original context." : "We’ll keep this conversation here while your 100 names are being generated. Your results will open when the complete set is ready."}</p> : null}
           {readiness.missing.includes("conflicting_text") || readiness.missing.includes("impossible_length") ? <p role="alert">Review required text, excluded text and length limits so they can work together.</p> : null}
-          <div className={styles.stepActions}><p className={`naming-save-status ${styles.save}`} role="status">{state.status === "saved" ? state.saved?.preferences.version === 2 ? <><ProjectArtwork name="check" />Saved</> : "Your choices save automatically" : state.status === "saving" ? "Saving…" : "Changes need attention"}</p>{step !== "review" ? <button type="button" className="button primary" disabled={blocked || working || invalid || saveBlocked} onClick={() => void confirm()}>{working ? "Saving…" : "Continue"}</button> : <button type="button" className="button primary" disabled={blocked || working || !runtimeReady || !readiness.ready || saveBlocked} onClick={() => void proceed()}>{working ? "Checking generation…" : exploring ? "Apply updated choices" : "Retry generation"}</button>}</div>
+          <div className={styles.stepActions}><p className={`naming-save-status ${styles.save}`} role="status">{state.status === "saved" ? state.saved?.preferences.version === 2 ? <><ProjectArtwork name="check" />Saved</> : "Your choices save automatically" : state.status === "saving" ? "Saving…" : "Changes need attention"}</p>{step !== "review" ? <button type="button" className="button primary" disabled={blocked || working || invalid || saveBlocked} onClick={() => void confirm()}>{working ? "Saving…" : "Continue"}</button> : (!exploring || hasUpdatedChoices) ? <button type="button" className="button primary" disabled={blocked || working || !runtimeReady || !readiness.ready || saveBlocked} onClick={() => void proceed()}>{working ? "Checking generation…" : exploring ? "Apply updated choices" : "Retry generation"}</button> : null}</div>
         </Assistant>
       </div>
       {value.notes ? <section className={styles.guidance} aria-label="Naming guidance"><div><strong>Naming guidance</strong><button type="button" className="text-link" onClick={() => { const input = document.getElementById(`${id}-guidance`); input?.focus(); }}>Edit</button></div><textarea id={`${id}-guidance`} aria-label="Saved Naming guidance" rows={2} maxLength={2000} value={value.notes} disabled={blocked} onChange={event => patch({ notes: event.target.value })} /><small>{state.dirty ? "Changes save automatically" : "Saved with your Naming choices"}</small></section> : null}

@@ -72,7 +72,7 @@ it.each([0, 1])("keeps an unacknowledged guided answer after same-owner verifica
     if (path === "/api/session") return Response.json({ user: { id: owner } });
     const read = deferred<Response>(); reads.push(read); return read.promise;
   });
-  await act(async () => window.dispatchEvent(new Event("focus")));
+  await act(async () => account.refresh());
   expect(account.session).toMatchObject({ status: "ready", userId: owner, generation: 2 });
   expect(reads).toHaveLength(2);
   // The child editor starts read 0, then the parent shell starts read 1.
@@ -102,7 +102,7 @@ it("keeps unsent conversation text through same-owner verification and protects 
   const beforeUnload = new Event("beforeunload", { cancelable: true });
   window.dispatchEvent(beforeUnload);
   expect(beforeUnload.defaultPrevented).toBe(true);
-  await act(async () => window.dispatchEvent(new Event("focus")));
+  await act(async () => account.refresh());
   expect(account.session).toMatchObject({ status: "ready", userId: owner, generation: 2 });
   expect(host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")!.value).toBe("Please keep my unsent message");
   expect(account.drafts.hasUnsaved()).toBe(true);
@@ -179,7 +179,8 @@ it.each([false, true])("withholds the final saved-strategy notice until an exact
   expect(account.drafts.get(projectId)!.pendingGuidedContext).toBeUndefined();
   expect(account.drafts.hasUnsaved()).toBe(false);
   expect(account.drafts.get(projectId)!.saved.current_revision).toBe(4);
-  expect(host.textContent).toContain(notice);
+  // The acknowledged handoff opens Naming; do not dump Strategy outside its scroll container while Naming loads.
+  expect(host.textContent).toContain("Naming");
   const acknowledged = account.drafts.get(projectId)!;
   await act(async () => { account.drafts.set({ ...acknowledged, conflict: true }); });
   expect(account.drafts.get(projectId)!.conflict).toBe(true);
@@ -204,7 +205,7 @@ it.each([0, 1])("acknowledges a committed guided save during re-verification whe
     if (path === "/api/session") return Response.json({ user: { id: owner } });
     const read = deferred<Response>(); reads.push(read); return read.promise;
   });
-  await act(async () => window.dispatchEvent(new Event("focus")));
+  await act(async () => account.refresh());
   expect(reads).toHaveLength(2);
   await act(async () => reads[first]!.resolve(Response.json({ project })));
   expect(account.drafts.get(projectId)!.saved.current_revision).toBe(2);
@@ -233,7 +234,7 @@ it("keeps a newer acknowledged project when an earlier editor GET settles after 
     if (path === "/api/session") return Response.json({ user: { id: owner } });
     const read = deferred<Response>(); reads.push(read); return read.promise;
   });
-  await act(async () => window.dispatchEvent(new Event("focus")));
+  await act(async () => account.refresh());
   await act(async () => reads[1]!.resolve(Response.json({ project })));
   expect(account.drafts.get(projectId)!.saved.current_revision).toBe(2);
   await act(async () => reads[0]!.resolve(Response.json({ project: older })));
@@ -246,7 +247,7 @@ it("hides an unsent message while identity is checking and restores only the sam
   await mount(); await typePrompt("Private unsent text");
   const verification = deferred<Response>();
   fetcher.mockImplementation(async (path: string) => path === "/api/session" ? verification.promise : Response.json({ project }));
-  await act(async () => window.dispatchEvent(new Event("focus")));
+  await act(async () => account.refresh());
   expect(account.session.status).toBe("checking");
   expect(host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")).toBeNull(); expect(host.textContent).not.toContain("Private unsent text");
   expect(account.drafts.hasUnsaved()).toBe(true);
@@ -254,12 +255,12 @@ it("hides an unsent message while identity is checking and restores only the sam
   expect(host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")!.value).toBe("Private unsent text");
   const otherOwner = "dddddddd-1111-4111-8111-111111111111";
   fetcher.mockImplementation(async (path: string) => path === "/api/session" ? Response.json({ user: { id: otherOwner } }) : new Response(null, { status: 404 }));
-  await act(async () => window.dispatchEvent(new Event("focus")));
+  await act(async () => account.refresh());
   expect(account.session).toMatchObject({ status: "ready", userId: otherOwner });
   expect(account.drafts.get(projectId)).toBeNull(); expect(account.drafts.hasUnsaved()).toBe(false);
   expect(host.textContent).not.toContain("Private unsent text");
   fetcher.mockImplementation(async (path: string) => path === "/api/session" ? Response.json({ user: { id: owner } }) : Response.json({ project }));
-  await act(async () => window.dispatchEvent(new Event("focus")));
+  await act(async () => account.refresh());
   expect(host.querySelector<HTMLTextAreaElement>(".conversation-composer textarea")!.value).toBe("");
 });
 
@@ -273,7 +274,7 @@ it("cannot republish a late guided PATCH after another owner has been verified",
   expect(account.drafts.hasUnsaved()).toBe(true);
   const otherOwner = "dddddddd-1111-4111-8111-111111111111";
   fetcher.mockImplementation(async (path: string) => path === "/api/session" ? Response.json({ user: { id: otherOwner } }) : new Response(null, { status: 404 }));
-  await act(async () => window.dispatchEvent(new Event("focus")));
+  await act(async () => account.refresh());
   await act(async () => { reply.resolve(Response.json({ revision: { project_id: projectId, owner_id: owner, revision: 2, context: pending, input_hash: "a".repeat(64), created_at: "2026-10-15T00:00:00Z" } })); await saving; });
   expect(account.drafts.get(projectId)).toBeNull(); expect(account.drafts.hasUnsaved()).toBe(false);
   expect(host.textContent).not.toContain("Earlier owner's private");
@@ -340,7 +341,7 @@ it("keeps an unconfirmed choice across same-owner verification without treating 
   await act(async () => host.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click());
   expect(host.querySelector<HTMLInputElement>('input[type="checkbox"]')!.checked).toBe(true);
   expect(account.drafts.hasUnsaved()).toBe(true);
-  await act(async () => window.dispatchEvent(new Event("focus")));
+  await act(async () => account.refresh());
   expect(host.querySelector<HTMLInputElement>('input[type="checkbox"]')!.checked).toBe(true);
   expect(host.querySelector<HTMLInputElement>('input[type="checkbox"]')!.disabled).toBe(false);
   expect(project.context.intake.guidedInterview!.answers).toHaveLength(0);

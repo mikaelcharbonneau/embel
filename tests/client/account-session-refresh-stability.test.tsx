@@ -31,107 +31,63 @@ beforeEach(async () => {
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
-describe("automatic account verification single flight", () => {
-  it("shares only an in-flight check and immediately fences the first focus event", async () => {
+describe("automatic account verification without remounting", () => {
+  it("coalesces focus/visibility and retains the same verified session for the same owner", async () => {
     await focusAndVisible(); expect(reads).toHaveLength(1);
-    await resolveRead(0); const previous = account.session as VerifiedAccount;
-    await act(async () => {
-      window.dispatchEvent(new Event("focus"));
-      expect(account.isCurrent(previous)).toBe(false);
-      document.dispatchEvent(new Event("visibilitychange"));
-    });
-    expect(reads).toHaveLength(2); expect(reads[1]!.signal.aborted).toBe(false);
-    expect(account.session).toEqual({ status: "checking", generation: 2 });
-    expect(host.textContent).toBe("Account hidden");
+    await resolveRead(0); const before = account.session;
+    const node = host.querySelector("p");
     await focusAndVisible(); expect(reads).toHaveLength(2);
-    await resolveRead(1); expect(account.session).toMatchObject({ status: "ready", generation: 2, userId: owner });
-    await focusAndVisible(); expect(reads).toHaveLength(3);
-    expect(account.session.status).toBe("checking");
+    expect(account.session).toBe(before); expect(host.querySelector("p")).toBe(node);
+    await focusAndVisible(); expect(reads).toHaveLength(2);
+    await resolveRead(1); expect(account.session).toBe(before);
+    expect(host.querySelector("p")).toBe(node);
   });
-
-  it("explicit refresh supersedes automatic reads and stale cleanup cannot clear its replacement", async () => {
+  it("fences and replaces the owner when background verification confirms a different account", async () => {
+    await resolveRead(0); const before = account.session as VerifiedAccount;
+    await focusAndVisible(); await resolveRead(1, other);
+    expect(account.isCurrent(before)).toBe(false);
+    expect(account.session).toMatchObject({ userId: other, generation: 2 });
+    expect(host.textContent).not.toContain(owner);
+  });
+  it("explicit account refresh still hides private content and rejects stale responses", async () => {
     await resolveRead(0); await focusAndVisible();
     await act(async () => account.refresh());
-    expect(reads).toHaveLength(3); expect(reads[1]!.signal.aborted).toBe(true);
-    await resolveRead(1, other); await focusAndVisible();
-    expect(reads).toHaveLength(3); expect(host.textContent).toBe("Account hidden");
-    await resolveRead(2); expect(account.session).toMatchObject({ status: "ready", generation: 3, userId: owner });
+    expect(reads[1]!.signal.aborted).toBe(true);
+    expect(host.textContent).toBe("Account hidden");
+    await resolveRead(1, other); expect(account.session.status).toBe("checking");
+    await resolveRead(2); expect(account.session).toMatchObject({ userId: owner, generation: 2 });
   });
-
-  it.each(["blur", "hidden"] as const)("supersedes an unresolved read after a genuine %s/return activation", async (departure) => {
-    await resolveRead(0); await focusAndVisible();
+  it.each(["blur", "hidden"] as const)("invalidates a pending background read on %s and checks again on return", async departure => {
+    await resolveRead(0); const before = account.session;
+    await focusAndVisible();
     await act(async () => {
       if (departure === "blur") window.dispatchEvent(new Event("blur"));
-      else {
-        Object.defineProperty(document, "visibilityState", { configurable: true, value: "hidden" });
-        document.dispatchEvent(new Event("visibilitychange"));
-      }
+      else { Object.defineProperty(document, "visibilityState", { configurable: true, value: "hidden" }); document.dispatchEvent(new Event("visibilitychange")); }
     });
     expect(reads[1]!.signal.aborted).toBe(true);
+    Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
+    await focusAndVisible(); expect(reads).toHaveLength(3);
+    await resolveRead(1, other); expect(account.session).toBe(before);
+    await resolveRead(2); expect(account.session).toBe(before);
+  });
+  it("hides account content if background verification reports signed out", async () => {
+    await resolveRead(0); const before = account.session as VerifiedAccount;
+    await focusAndVisible(); await act(async () => reads[1]!.resolve(new Response(null, { status: 401 })));
+    expect(account.session.status).toBe("signed_out"); expect(account.isCurrent(before)).toBe(false);
     expect(host.textContent).toBe("Account hidden");
-    Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
-    await focusAndVisible(); expect(reads).toHaveLength(3);
-    await resolveRead(1); expect(account.session.status).toBe("checking");
-    await focusAndVisible(); expect(reads).toHaveLength(3);
-    await resolveRead(2, other);
-    expect(account.session).toMatchObject({ status: "ready", userId: other, generation: 3 });
-    expect(host.textContent).not.toContain(owner);
   });
-
-  it("does not let an explicit read while inactive consume the return fence", async () => {
-    await resolveRead(0);
-    await act(async () => window.dispatchEvent(new Event("blur")));
-    await act(async () => account.refresh()); expect(reads).toHaveLength(2);
-    await focusAndVisible(); expect(reads).toHaveLength(3);
-    expect(reads[1]!.signal.aborted).toBe(true);
-    await resolveRead(1); expect(account.session.status).toBe("checking");
-    await resolveRead(2, other); expect(account.session).toMatchObject({ status: "ready", userId: other });
-  });
-
-  it("supersedes startup verification begun in an initially hidden document", async () => {
-    await act(async () => root.unmount());
-    reads = [];
-    Object.defineProperty(document, "visibilityState", { configurable: true, value: "hidden" });
-    root = createRoot(host);
-    await act(async () => root.render(<AccountSessionProvider><Probe /></AccountSessionProvider>));
-    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
-    expect(reads).toHaveLength(1);
-    Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
-    await focusAndVisible(); expect(reads).toHaveLength(2); expect(reads[0]!.signal.aborted).toBe(true);
-    await resolveRead(0); expect(account.session.status).toBe("checking");
-    await resolveRead(1, other); expect(account.session).toMatchObject({ status: "ready", userId: other, generation: 2 });
-  });
-
-  it("sign-in supersedes verification and prevents automatic checks during the authentication fence", async () => {
-    await resolveRead(0); await focusAndVisible();
-    let finish!: () => void; const authentication = new Promise<void>(resolve => { finish = resolve; });
-    let result!: ReturnType<typeof account.signIn>;
-    await act(async () => { result = account.signIn(() => authentication); });
-    expect(reads[1]!.signal.aborted).toBe(true); await focusAndVisible(); expect(reads).toHaveLength(2);
-    await resolveRead(1); expect(host.textContent).toBe("Account hidden");
-    await act(async () => { finish(); await result; });
-    expect(reads).toHaveLength(3); await resolveRead(2, other);
-    expect(account.session).toMatchObject({ status: "ready", userId: other });
-    expect(host.textContent).not.toContain(owner);
-  });
-
-  it("sign-out cannot be undone by a late verification and does not leave automatic checks locked", async () => {
-    await resolveRead(0); await focusAndVisible();
-    await act(async () => { expect(await account.signOut()).toEqual({ ok: true }); });
-    expect(reads[1]!.signal.aborted).toBe(true); expect(account.session.status).toBe("signed_out");
-    await resolveRead(1); expect(account.session.status).toBe("signed_out");
-    await focusAndVisible(); expect(reads).toHaveLength(3); expect(host.textContent).toBe("Account hidden");
-    await act(async () => reads[2]!.resolve(new Response(null, { status: 401 })));
-    expect(account.session.status).toBe("signed_out");
-  });
-
-  it("bounds non-abortable stalled checks, ignores their late result, and permits a new check", async () => {
+  it("bounds stalled verification and ignores its eventual response", async () => {
     await resolveRead(0); await focusAndVisible();
     await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
-    expect(account.session.status).toBe("error"); expect(reads[1]!.signal.aborted).toBe(true);
-    await focusAndVisible(); expect(reads).toHaveLength(3);
-    await resolveRead(1, other); expect(account.session.status).toBe("checking");
+    expect(account.session.status).toBe("error"); expect(host.textContent).toBe("Account hidden");
+    await resolveRead(1, other); expect(account.session.status).toBe("error");
+    await focusAndVisible(); await resolveRead(2); expect(account.session).toMatchObject({ status: "ready", userId: owner });
+  });
+  it("cannot undo explicit sign-out with a late background response", async () => {
+    await resolveRead(0); await focusAndVisible();
+    await act(async () => { expect(await account.signOut()).toEqual({ ok: true }); });
+    expect(reads[1]!.signal.aborted).toBe(true);
+    await resolveRead(1); expect(account.session.status).toBe("signed_out");
     expect(host.textContent).toBe("Account hidden");
-    await resolveRead(2); expect(account.session).toMatchObject({ status: "ready", userId: owner, generation: 3 });
   });
 });

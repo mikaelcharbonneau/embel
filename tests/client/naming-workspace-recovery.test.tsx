@@ -43,7 +43,10 @@ async function input(element: HTMLInputElement | HTMLTextAreaElement, text: stri
 const message = () => host.querySelector<HTMLTextAreaElement>('form textarea')!;
 async function selectSeed() { await click("Inspect name Juniper"); await act(async () => host.querySelector<HTMLInputElement>('.naming-steering-choice input')!.click()); await click("Back to results"); }
 async function checkSeed() { await click("Inspect name Juniper"); expect(host.querySelector<HTMLInputElement>('.naming-steering-choice input')?.checked).toBe(true); await click("Back to results"); }
-async function finishQuestions() { while (button("Continue")) await click("Continue"); }
+async function finishQuestions() {
+  const account = mock.session as VerifiedAccount;
+  await act(async () => { mock.memory!.editPreferences(account, projectId, { ...mock.memory!.get(account, projectId)!.preferences!.draft, notes: "Updated direction" }); });
+  while (button("Continue")) await click("Continue"); }
 async function render() { await act(async () => root.render(createElement(ProjectNamingWorkspace, { projectId }))); }
 const ensures = () => calls.filter(call => call.path.endsWith("/feed/ensure"));
 beforeEach(() => {
@@ -314,4 +317,11 @@ it("keeps bounded results geometry for loading, failure and empty without page-s
   expect(body).not.toContain('animation');
   expect(sheet).toMatch(/\.project-naming-results-body\s*>\s*\.project-naming-(?:notice|empty)[^{]*\{[^}]*min-height:\s*inherit/s);
   expect(sheet).toMatch(/\.project-naming-toolbar\s*>\s*\.project-naming-results-count\s*\{[^}]*width:\s*18rem/s);
+});
+
+it("hides unchanged apply choices and removes library copying while offering manual names", async () => {
+  await render();
+  expect(button("Apply updated choices")).toBeUndefined();
+  expect(host.textContent).not.toContain("Copy a name from your library");
+  expect(host.querySelector('form[aria-label="Add your own name"]')).not.toBeNull();
 });

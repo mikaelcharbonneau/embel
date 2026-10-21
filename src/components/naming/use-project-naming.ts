@@ -113,13 +113,22 @@ function assertPageContinuation(cursor: { id: string; createdAt: string }, rows:
   }
 }
 const emptyWorkspace = () => null;
+// Session-provider scoped, generation-fenced read cache; never browser storage.
+const overviewCaches = new WeakMap<object, Map<string, ProjectNamingOverview>>();
+function overviewCache(memory: object) {
+  let cache = overviewCaches.get(memory);
+  if (!cache) { cache = new Map(); overviewCaches.set(memory, cache); }
+  return cache;
+}
 
 /** Account data remains in React/session-provider memory; this hook never uses browser storage. */
 export function useProjectNaming({ account, projectId }: { account: VerifiedAccount; projectId: string }) {
   const { isCurrent, expire, drafts, namingBrainDrafts } = useAccountSession();
   const [scope] = useState(() => createNamingRequestScope(account, isCurrent, expire));
-  const [overview, setOverview] = useState<ProjectNamingOverview | null>(null);
-  const current = useRef<ProjectNamingOverview | null>(null);
+  const cache = overviewCache(drafts);
+  const cacheKey = `${account.userId}:${account.generation}:${projectId}`;
+  const [overview, setOverview] = useState<ProjectNamingOverview | null>(() => cache.get(cacheKey) ?? null);
+  const current = useRef<ProjectNamingOverview | null>(overview);
   const [readError, setReadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -130,13 +139,18 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
   const readSequence = useRef(0);
   const loadedListing = useRef<string | null>(null);
   const transformIntents = useRef(new Map<string, string>());
+  const importIntent = useRef<ImportProjectName | null>(null);
   const base = `/api/projects/${projectId}/naming`;
   const getWorkspace = useCallback(() => drafts.get(projectId), [drafts, projectId]);
   const workspace = useSyncExternalStore(drafts.subscribe, getWorkspace, emptyWorkspace);
   const blocked = namingDraftBlocked(workspace, account, projectId);
   const owned = useCallback((value: { ownerId: string; projectId: string }) => namingOwned(value, account.userId, projectId), [account.userId, projectId]);
   const ownedProject = useCallback((project: AccountProject) => project.id === projectId && project.owner_id === account.userId, [account.userId, projectId]);
-  const publish = useCallback((next: ProjectNamingOverview) => { if (scope.current()) { current.current = next; setOverview(next); } }, [scope]);
+  const publish = useCallback((next: ProjectNamingOverview) => { if (scope.current()) {
+    cache.delete(cacheKey); cache.set(cacheKey, next);
+    while (cache.size > 20) cache.delete(cache.keys().next().value!);
+    current.current = next; setOverview(next);
+  } }, [scope, cache, cacheKey]);
   const refresh = useCallback(() => setRefreshVersion(version => version + 1), []);
 
   const syncProject = useCallback((project: AccountProject) => {
@@ -163,7 +177,7 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
       try {
         const before = current.current;
         // The server resolves its saved view and the first page together, including changes from another tab.
-        const reply = await scope.request(base, projectNamingOverviewSchema, value => ownedProject(value.project));
+        const reply = await scope.request(`${base}?limit=100`, projectNamingOverviewSchema, value => ownedProject(value.project));
         if (!reply || !stillCurrent()) return;
         if (before && reply.project.current_revision < before.project.current_revision) return;
         const key = listingKey(reply.session?.viewState ?? initialNamingView);
@@ -326,10 +340,14 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
   }
   async function importLocal(input: Pick<ImportProjectName, "source" | "capturedContext">) {
     const before = readyForContextMutation(); if (!before) return false;
+    if (importIntent.current && importIntent.current.source.id !== input.source.id) return false;
+    importIntent.current ??= { ...input, expectedProjectRevision: before.project.current_revision, idempotencyKey: `import:${projectId}:${input.source.id}:${before.project.current_revision}` };
+    const body = importIntent.current;
     return Boolean(await mutate(async () => {
-      const reply = await scope.request(`${base}/imports`, importProjectNameResponseSchema, value => owned(value.entry.candidate), { method: "POST", body: { ...input, expectedProjectRevision: before.project.current_revision, idempotencyKey: `import:${projectId}:${input.source.id}:${before.project.current_revision}` } });
+      const reply = await scope.request(`${base}/imports`, importProjectNameResponseSchema, value => owned(value.entry.candidate), { method: "POST", body });
       if (!reply) return null;
       if (reply.entry.candidate.value !== input.source.value) throw new AccountRequestError(502);
+      importIntent.current = null;
       const latest = current.current; if (latest) publish({ ...latest, candidates: { ...latest.candidates, items: mergeNames([reply.entry], latest.candidates.items) } });
       return reply;
     }));
