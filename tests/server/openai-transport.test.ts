@@ -62,7 +62,7 @@ describe("background response observation boundaries", () => {
     const signal=new AbortController().signal;
     await transport.retrieveResponse!("resp_fixture",signal);
     await transport.cancelResponse!("resp_fixture",signal);
-    expect(fetcher.mock.calls[0]).toEqual(["https://api.openai.com/v1/responses/resp_fixture",expect.objectContaining({method:"GET",redirect:"error",signal})]);
+    expect(fetcher.mock.calls[0]).toEqual(["https://api.openai.com/v1/responses/resp_fixture?include%5B%5D=web_search_call.action.sources",expect.objectContaining({method:"GET",redirect:"error",signal})]);
     expect(fetcher.mock.calls[0]![1]).not.toHaveProperty("body");
     expect(fetcher.mock.calls[1]).toEqual(["https://api.openai.com/v1/responses/resp_fixture/cancel",expect.objectContaining({method:"POST",body:"{}",redirect:"error",signal})]);
   });

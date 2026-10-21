@@ -78,7 +78,9 @@ export function createOpenAIResponsesTransport(options: { apiKey: string; fetch?
       return z.object({ input_tokens: z.number().int().nonnegative().max(10_000_000) }).parse(body).input_tokens;
     },
     createResponse: (request, requestKey, signal) => post(OPENAI_RESPONSES_URL, request, signal, requestKey),
-    retrieveResponse: (id, signal) => request("GET", responseUrl(id), undefined, signal),
+    // Include is request-scoped: polling must request the same research evidence
+    // as creation, otherwise completed responses omit consulted source URLs.
+    retrieveResponse: (id, signal) => request("GET", `${responseUrl(id)}?include%5B%5D=web_search_call.action.sources`, undefined, signal),
     cancelResponse: (id, signal) => post(`${responseUrl(id)}/cancel`, {}, signal),
   };
 }
