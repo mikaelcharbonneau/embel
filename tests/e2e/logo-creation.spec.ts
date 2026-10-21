@@ -1,3 +1,4 @@
+import { expectProjectCanvas } from "./project-canvas-contract";
 import { contextSnapshotSchema } from "../../src/domain/projects";
 import { DEFAULT_PROFILE_VALUES } from "../../src/domain/account-profile";
 import { captureUiEvidence } from "./ui-evidence";
@@ -270,8 +271,7 @@ test("concepts landing matches the reference layout without inventing generated 
   await expect(page.locator('[data-concept-ordinal]')).toHaveCount(6);
   await expect(page.getByText(/^Review concept \d/)).toHaveCount(0);
   await expect(page.getByText("More, refine and retry each require a separate cost review.", { exact: false })).toHaveCount(0);
-  await expect(page.getByRole("navigation", { name: "Project stages", exact: true })).toHaveCount(1);
-  await expect(page.getByRole("navigation", { name: "Logo and identity pages", exact: true })).toHaveCount(1);
+  await expectProjectCanvas(page);
   await expect(page.getByRole("form", { name: "Logo concept changes" })).toBeInViewport();
   const cards = page.locator('[data-concept-ordinal]');
   const first = await cards.nth(0).boundingBox(), second = await cards.nth(1).boundingBox(), third = await cards.nth(2).boundingBox();

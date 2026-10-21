@@ -1,8 +1,10 @@
+import { expectProjectCanvas } from "./project-canvas-contract";
 import { expect, test, type Page } from "@playwright/test";
 import { directionFixture, id, ownerId, projectId } from "../features/identity-directions/fixtures";
 import { syntheticLogoWorkspace, syntheticResolvedLogoConcept } from "../fixtures/logo-creation";
 import { accountProjectSchema } from "../../src/domain/project-api";
 import { logoWorkspaceV2Schema, logoStageRevisionSchema } from "../../src/domain/logo-workspace";
+import { identityDirectionsOverviewSchema } from "../../src/domain/logo-directions";
 import { logoDeliverablesOverviewSchema } from "../../src/domain/logo-deliverables";
 import { captureUiEvidence } from "./ui-evidence";
 
@@ -20,8 +22,14 @@ test.afterEach(async ({ page }, info) => {
 });
 
 // Original local fixture records only. No provider, database, storage or export call.
-async function setup(page: Page, approvedLogo = true, scope: "visual_identity_only" | "naming_only" = "visual_identity_only") {
-  const overview = directionFixture(), foundation = syntheticLogoWorkspace(), source = syntheticResolvedLogoConcept();
+async function setup(page: Page, approvedLogo = true, scope: "visual_identity_only" | "naming_only" = "visual_identity_only", approvedIdentity = false) {
+  let overview = directionFixture();
+  if (approvedIdentity) {
+    const direction = overview.directions[0]!;
+    const selectedComponents = { id: id(91), ownerId, projectId, approvedLogoId: direction.approvedLogoId, inputRevisions: direction.inputRevisions, paletteVersionId: direction.paletteVersionId, typographyVersionId: direction.typographyVersionId, graphicsVersionId: direction.graphicsVersionId, sourceDirectionIds: [direction.id], consistency: { hash: "a".repeat(64), status: "pass", checks: [], warnings: [], blockingReasons: [] } };
+    overview = identityDirectionsOverviewSchema.parse({ ...overview, selection: selectedComponents, approval: { id: id(92), ownerId, projectId, directionSelectionId: selectedComponents.id, approvedLogoId: direction.approvedLogoId, consistencyHash: selectedComponents.consistency.hash, approvedAt: "2026-10-15T10:00:00Z" } });
+  }
+  const foundation = syntheticLogoWorkspace(), source = syntheticResolvedLogoConcept();
   const rescope = <T,>(value: T): T => JSON.parse(JSON.stringify(value).replaceAll(foundation.ownerId, ownerId).replaceAll(foundation.projectId, projectId));
   const brief = rescope(source.brief), references = rescope(source.referenceSnapshot);
   const workspace = logoWorkspaceV2Schema.parse({ ...rescope(foundation), approvedLogo: approvedLogo ? overview.currentApprovedLogo : null,
@@ -29,10 +37,10 @@ async function setup(page: Page, approvedLogo = true, scope: "visual_identity_on
     stages: { ...foundation.stages, brief_references: { stage: "brief_references", id: brief.id, revision: 1 }, vector: { stage: "vector", id: id(5), revision: 1 }, directions: { stage: "directions", id: id(90), revision: 1 } },
     capabilities: { ...foundation.capabilities, save: { status: "available" } },
   });
-  const stage = logoStageRevisionSchema.parse({ ...brief, id: id(90), stage: "directions", payload: { directionIds: overview.directions.map(row => row.id), selectionId: null, approvalId: null } });
+  const stage = logoStageRevisionSchema.parse({ ...brief, id: id(90), stage: "directions", payload: { directionIds: overview.directions.map(row => row.id), selectionId: overview.selection?.id ?? null, approvalId: overview.approval?.id ?? null } });
   const vectorStage = logoStageRevisionSchema.parse({ ...brief, id: id(5), stage: "vector", payload: { vectorRevisionId: id(4), approvalId: approvedLogo ? id(3) : null } });
   const project = accountProjectSchema.parse({ id: projectId, owner_id: ownerId, title: "Synthetic identity project", scope, current_revision: 1, created_at: brief.createdAt, context: { description: "Synthetic saved context", selectedName: "Élan & Co" } });
-  const files = logoDeliverablesOverviewSchema.parse({ ownerId, projectId, logoApproval: approvedLogo ? overview.currentApprovedLogo : null, directionApproval: null, variantSets: [], variantReviews: [], exports: [], exportRequests: [], nextCursor: null, nextRequestCursor: null });
+  const files = logoDeliverablesOverviewSchema.parse({ ownerId, projectId, logoApproval: approvedLogo ? overview.currentApprovedLogo : null, directionApproval: overview.approval, variantSets: [], variantReviews: [], exports: [], exportRequests: [], nextCursor: null, nextRequestCursor: null });
   const writes: string[] = [], base = `/api/projects/${projectId}/logo`;
   await page.route("**/*", async route => {
     const url = new URL(route.request().url()), path = url.pathname;
@@ -90,20 +98,15 @@ async function resetCaptureScroll(page: Page) {
   });
 }
 
-test("naming-only direct visual routes retain a consistent locked navigation frame", async ({ page }, info) => {
+test("naming-only direct visual routes omit project bars and retain output prerequisites", async ({ page }, info) => {
   const writes = await setup(page, false, "naming_only");
   await page.goto(`/brands/account/${projectId}/logo/directions`);
-  const stages = page.getByRole("navigation", { name: "Project stages", exact: true });
-  const pages = page.getByRole("navigation", { name: "Logo and identity pages", exact: true });
-  await expect(stages.getByRole("button", { name: "Logo & identity", exact: true })).toBeDisabled();
-  await expect(pages.getByRole("button")).toHaveCount(6);
-  await expect(pages.getByRole("link")).toHaveCount(0);
-  for (const button of await pages.getByRole("button").all()) {
-    await expect(button).toBeDisabled(); await expect(button).toHaveAttribute("title", "Expand the project scope first");
-    expect((await button.boundingBox())!.height).toBe(44);
-  }
-  await expect(pages.getByRole("button", { name: "Identity directions", exact: true })).toHaveAttribute("aria-current", "page");
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
+  await expect(page.getByRole("heading", { name: "Identity directions", level: 1, exact: true })).toBeVisible();
+  await expectProjectCanvas(page);
+  await expect(page.getByRole("heading", { name: "Start with an approved logo", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Approve identity", exact: true })).toHaveCount(0);
+  const back = page.getByRole("link", { name: "Back to project", exact: true });
+  await expect(back).toHaveAttribute("href", `/brands/account/${projectId}`); await back.focus(); await expect(back).toBeFocused();
   expect(writes).toEqual([]); await resetCaptureScroll(page); await captureUiEvidence(page, info);
 });
 
@@ -117,11 +120,7 @@ test("project design: three saved directions keep actual components and Files ke
   const directionTrigger = await checkGlobalNavigation(page);
   // Thin borders may place a centered control on a half CSS pixel.
   for (const coordinate of ["x", "y", "width", "height"] as const) expect(Math.abs(directionTrigger[coordinate] - collectionTrigger[coordinate])).toBeLessThanOrEqual(1);
-  await expect(page.getByRole("navigation", { name: "Project stages", exact: true })).toHaveCount(1);
-  const identityPages = page.getByRole("navigation", { name: "Logo and identity pages", exact: true });
-  await expect(identityPages).toHaveCount(1);
-  await expect(identityPages.getByRole("link", { name: "Identity directions", exact: true })).toHaveAttribute("aria-current", "page");
-  await expect(page.locator(".project-output-page > .logo-journey-navigation")).toHaveCount(0);
+  await expectProjectCanvas(page);
   for (const number of [1, 2, 3]) await expect(page.getByRole("heading", { name: `Synthetic direction ${number}`, exact: true })).toBeVisible();
   await expect(page.getByRole("region", { name: "Component choices" })).toBeVisible();
   if (page.viewportSize()!.width > 760) {
@@ -133,15 +132,15 @@ test("project design: three saved directions keep actual components and Files ke
   expect(writes).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
   await page.screenshot({ path: info.outputPath("project-directions.png"), fullPage: true });
-  await page.getByRole("navigation", { name: "Project stages", exact: true }).getByRole("link", { name: "Files", exact: true }).click();
+  // An unapproved identity has no contextual Files entry. Exercise its direct
+  // prerequisite route here; the approved-fixture test below verifies the entry link.
+  await page.goto(`/brands/account/${projectId}/logo/deliverables`);
   await expect(page.getByRole("heading", { name: "Brand files", level: 1, exact: true })).toBeVisible();
   await expect(page.locator("h2.project-output-inner-heading")).not.toBeInViewport();
   const fileTrigger = await checkGlobalNavigation(page);
   for (const coordinate of ["x", "y", "width", "height"] as const) expect(Math.abs(fileTrigger[coordinate] - collectionTrigger[coordinate])).toBeLessThanOrEqual(1);
   await info.attach("navigation-trigger-geometry", { body: Buffer.from(JSON.stringify({ viewport: page.viewportSize(), collectionTrigger, directionTrigger, fileTrigger }, null, 2)), contentType: "application/json" });
-  const stages = page.getByRole("navigation", { name: "Project stages", exact: true });
-  await expect(stages).toHaveCount(1); await expect(stages.getByRole("link", { name: "Files", exact: true })).toHaveAttribute("aria-current", "page");
-  await expect(page.getByRole("navigation", { name: "Logo and identity pages", exact: true })).toHaveCount(0);
+  await expectProjectCanvas(page);
   await expect(page.getByRole("heading", { name: "Approve an identity direction", exact: true })).toBeVisible();
   const review = page.getByRole("link", { name: "Review identity direction", exact: true });
   await expect(review).toHaveAttribute("href", `/brands/account/${projectId}/logo/directions`);
@@ -172,4 +171,17 @@ for (const stage of ["directions", "deliverables"] as const) test(`project ${sta
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
   expect(writes).toEqual([]); await resetCaptureScroll(page); await captureUiEvidence(page, info);
   await review.focus(); await expect(review).toBeFocused();
+});
+
+
+test("approved identity keeps the existing keyboard route to brand files after bar removal", async ({ page }, info) => {
+  const writes = await setup(page, true, "visual_identity_only", true);
+  await page.goto(`/brands/account/${projectId}/logo/directions`);
+  const files = page.getByRole("link", { name: "Review brand files", exact: true });
+  await expect(files).toBeVisible(); await expect(files).toHaveAttribute("href", `/brands/account/${projectId}/logo/deliverables`);
+  await expectProjectCanvas(page);
+  await files.focus(); await files.press("Enter");
+  await expect(page).toHaveURL(`/brands/account/${projectId}/logo/deliverables`);
+  await expect(page.getByRole("heading", { name: "Brand files", level: 1, exact: true })).toBeVisible();
+  await expectProjectCanvas(page); expect(writes).toEqual([]); await captureUiEvidence(page, info);
 });

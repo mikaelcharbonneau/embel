@@ -96,10 +96,6 @@
 .identity-control-unavailable { color: var(--secondary); margin-top: 12px; }
 .identity-control-unavailable + .identity-actions { margin-top: 8px; }
 
-.logo-journey-navigation { display: flex; flex-wrap: wrap; gap: 28px; border-bottom: 1px solid var(--border); margin: 0 0 28px; }
-.logo-journey-navigation .text-link { color: var(--secondary); font-size: 13px; padding: 12px 0 16px; border-bottom: 2px solid transparent; margin-bottom: -1px; min-height: 48px; }
-.logo-journey-navigation [aria-current=page] { color: var(--text); font-weight: 500; border-bottom-color: var(--text); }
 .identity-history-grid { gap: 24px; }
 .identity-history-card { border-radius: 10px; padding: 8px; }
 .identity-history-card .identity-board-image { border-radius: 6px; }
-@media(max-width:600px) { .logo-journey-navigation { gap: 18px; } .logo-journey-navigation .text-link { font-size: var(--font-ui); } }

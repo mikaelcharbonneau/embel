@@ -1,3 +1,4 @@
+import { expectProjectCanvas } from "./project-canvas-contract";
 import { expect, test, type Page, type Route, type TestInfo } from "@playwright/test";
 import { accountProjectSchema, type AccountProject } from "../../src/domain/project-api";
 import { contextSnapshotSchema } from "../../src/domain/projects";
@@ -228,7 +229,9 @@ test("account fixture: strategy reviews save with values and provenance and surv
   await page.getByRole("textbox", { name: "Positioning statement", exact: true }).fill("My revised positioning fixture.");
   await page.getByRole("button", { name: "Approve strategy", exact: true }).click();
   await expect(page.getByText("Strategy approved and saved to your account.", { exact: true })).toBeVisible();
-  await expect(page.locator(".project-workspace-save")).toContainText("v5");
+  await expect.poll(() => state.project.current_revision).toBe(5);
+  await expect(page.locator(".save-label")).toHaveText("Saved");
+  await expectProjectCanvas(page);
   expect(state.project.context.personality).toEqual({ ...profile, sincerity: 0 });
   expect(state.project.context.positioning).toBe("My revised positioning fixture.");
   expect(state.project.context.intake.personalityReviewedAt).toBeTruthy();
@@ -259,7 +262,7 @@ test("account fixture: incomplete Strategy approval resumes the required review 
   await expect(page.getByRole("textbox", { name: "Positioning statement", exact: true })).toHaveValue(statement);
   await page.getByRole("button", { name: "Approve strategy", exact: true }).click();
   await expect(page.getByText("Strategy approved and saved to your account.", { exact: true })).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Project stages" }).getByRole("link", { name: "Naming", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open Naming", exact: true })).toHaveAttribute("href", `/brands/account/${id}/naming`);
   expect(state.writes).toHaveLength(1);
   expect(state.project.context.positioning).toBe(statement);
   expect(state.project.context.competitors[0]?.sources).toEqual([source]);
@@ -322,7 +325,8 @@ test("browser storage failure retains the current strategy without claiming a du
 test("project design: all Strategy reviews and optional live brief retain the saved context", async ({ page }, info) => {
   const state = await account(page), original = JSON.stringify(state.project);
   await page.goto(`/brands/account/${id}`);
-  await expect(page.locator(".project-workspace-title")).toHaveText(state.project.title);
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
+  await expectProjectCanvas(page);
   for (const widget of ["competitors", "audience", "personality", "positioning"] as const) {
     await page.goto(`/brands/account/${id}#strategy-${widget}`);
     await expect(page.getByRole("region", { name: widget.charAt(0).toUpperCase() + widget.slice(1), exact: true })).toBeVisible();

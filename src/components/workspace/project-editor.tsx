@@ -27,7 +27,6 @@ import { CompetitorReview } from "./competitor-review";
 import { PersonalityReview, PositioningReview } from "./strategy-review";
 import { ConversationComposer } from "./conversation-composer";
 import { OpeningGuidedConversation } from "./guided-thinking";
-import { ProjectStageNavigation } from "./project-workspace";
 import { ProjectArtwork } from "@/components/ui/project-artwork";
 import { AudienceConversationWidget, WidgetSummary, widgetLabels } from "./conversation-widgets";
 import {
@@ -428,7 +427,6 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
   }
 
   return <div className={`project-strategy-workspace ${briefOpen ? "has-live-brief" : ""}`}>
-    {!account && <><header className="project-workspace-header"><div><Link href="/brands">Projects</Link><ProjectArtwork name="chevron" /><span className="project-workspace-title">{draftTitle(draft)}</span></div><span className="project-workspace-save">{storage.saveLabel}</span></header><ProjectStageNavigation base={`/brands/${draft.id}`} stage="strategy" scope={draft.scope} strategyReady={false} nameSelected={false} dirty /></>}
     <div className="project-strategy-columns"><div className="page conversation-page">
     <div className="conversation-scroll-area" role="region" aria-label="Conversation and project details" tabIndex={0}>
     <div className="project-conversation-marker"><span>STRATEGY / {briefEditing ? "BRIEF" : (activeWidget ?? "brief").toUpperCase()}</span><span>{briefEditing || !activeWidget ? 1 : ["competitors", "audience", "personality", "positioning"].indexOf(activeWidget) + 2} of 5</span><button type="button" className="text-link" aria-expanded={briefOpen} onClick={() => setBriefOpen(value => !value)}>{briefOpen ? "Close live brief" : "Live brief"}</button></div>

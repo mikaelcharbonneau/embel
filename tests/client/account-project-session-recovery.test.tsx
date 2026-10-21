@@ -35,6 +35,7 @@ async function mount() {
   await act(async () => root.render(<AccountSessionProvider><Probe /><AccountProjectWorkspaceShell projectId={projectId}><AccountProjectEditor projectId={projectId} /></AccountProjectWorkspaceShell></AccountSessionProvider>));
   await act(async () => { await vi.advanceTimersByTimeAsync(0); });
   expect(account.session.status).toBe("ready"); expect(account.drafts.get(projectId)).not.toBeNull();
+  expect(host.querySelectorAll(".project-workspace-header, .project-stage-navigation, .logo-journey-navigation")).toHaveLength(0);
 }
 async function typePrompt(text: string) {
   await act(async () => {
@@ -91,7 +92,6 @@ it("continues a naming-only project to its own Naming workspace without requirin
   await mount();
   expect(host.querySelector(`a[href="/brands/account/${projectId}/naming"]`)).not.toBeNull();
   expect(host.textContent).not.toContain("Start competitor research");
-  expect(host.querySelector('nav[aria-label="Project stages"] [aria-current="page"]')?.textContent).toBe("Strategy");
 });
 
 it("keeps unsent conversation text through same-owner verification and protects unsaved exit", async () => {
@@ -159,7 +159,8 @@ it.each([false, true])("withholds the final saved-strategy notice until an exact
   let saving!: Promise<unknown>;
   await act(async () => { saving = capture.editor!.saveContext(complete); });
   expect(account.drafts.get(projectId)!.pendingGuidedContext).toEqual(complete);
-  expect(host.textContent).toContain("Unsaved project edits");
+  expect(account.drafts.hasUnsaved()).toBe(true);
+  expect(host.textContent).toContain("Saving…");
   expect(host.textContent).not.toContain(notice);
   if (committed) project = { ...project, current_revision: 4, context: complete };
   await act(async () => { response.resolve(new Response(null, { status: 503 })); await saving; });
@@ -177,10 +178,14 @@ it.each([false, true])("withholds the final saved-strategy notice until an exact
   expect(writes.patches).toBe(committed ? 1 : 2);
   expect(account.drafts.get(projectId)!.pendingGuidedContext).toBeUndefined();
   expect(account.drafts.hasUnsaved()).toBe(false);
-  expect(host.textContent).toContain("Saved project · v4");
+  expect(account.drafts.get(projectId)!.saved.current_revision).toBe(4);
   expect(host.textContent).toContain(notice);
-  await act(async () => { account.drafts.set({ ...account.drafts.get(projectId)!, conflict: true }); });
-  expect(host.textContent).toContain("Unsaved project edits");
+  const acknowledged = account.drafts.get(projectId)!;
+  await act(async () => { account.drafts.set({ ...acknowledged, conflict: true }); });
+  expect(account.drafts.get(projectId)!.conflict).toBe(true);
+  expect(account.drafts.get(projectId)!.saved).toBe(acknowledged.saved);
+  expect(account.drafts.get(projectId)!.draft).toBe(acknowledged.draft);
+  expect(host.textContent).toContain("A newer project version is saved. Your edits are kept in this tab.");
   expect(host.textContent).not.toContain(notice);
 });
 
@@ -347,7 +352,6 @@ it("continues a visual-identity project to references without offering naming or
   expect(host.querySelector(`a[href="/brands/account/${projectId}/inspiration"]`)).not.toBeNull();
   expect(host.querySelector(`a[href="/brands/account/${projectId}/naming"]`)).toBeNull();
   expect(host.textContent).not.toContain("Start competitor research");
-  expect(host.querySelector('nav[aria-label="Project stages"] [aria-current="page"]')?.textContent).toBe("Strategy");
 });
 
 it.each([false, true])("clears only the acknowledged submitted prompt after guided recovery (new typing: %s)", async newerTyping => {

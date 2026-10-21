@@ -304,10 +304,10 @@ it.each(["checking", "signed_out"] as const)("hides every private results node a
   expect(host.querySelector('.project-naming-results-body')).toBeNull(); expect(ensures()).toHaveLength(0);
 });
 
-it("reserves route-based nonprivate chrome and the same bounded results geometry for loading, failure and empty", () => {
+it("keeps bounded results geometry for loading, failure and empty without page-specific project-bar rules", () => {
   const sheet = readFileSync('src/styles/project-naming.css', 'utf8');
   const chatSheet = readFileSync('src/components/naming/naming-chat.module.css', 'utf8');
-  expect(sheet).toMatch(/\.project-stage-naming\s*>\s*\.project-stage-navigation\s*\{\s*display:\s*none/);
+  expect(sheet).not.toContain(".project-stage-navigation");
   expect(chatSheet).not.toContain(':has(.workspace)');
   const body = sheet.match(/\.project-naming-results-body\s*\{([^}]+)\}/)?.[1];
   expect(body).toContain('min-height: clamp(216px, 40vh, 480px)');

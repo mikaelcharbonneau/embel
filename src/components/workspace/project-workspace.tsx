@@ -5,15 +5,12 @@ import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { z } from "zod";
 import { accountProjectResponseSchema } from "@/domain/project-api";
-import { getNamingReadiness } from "@/domain/project-naming";
 import { getProjectHandoff, projectEvidenceStatus, type ProjectStageEvidence } from "@/domain/project-handoff";
-import type { ProjectScope } from "@/domain/projects";
 import { AccountRequestError } from "./account-api";
 import { boundedAccountRequest } from "./bounded-account-request";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "./account-session";
-import { accountDraftChanged, reconcileAccountWorkspace } from "./account-draft-memory";
+import { reconcileAccountWorkspace } from "./account-draft-memory";
 import { ProjectArtwork } from "@/components/ui/project-artwork";
-import { LogoJourneyNavigation, visualProjectNavigationLock, type LogoJourneyStage } from "@/components/identity/logo-journey-navigation";
 
 type Stage = "strategy" | "naming" | "identity" | "files";
 type EvidenceReporter = (value: ProjectStageEvidence) => void;
@@ -35,28 +32,10 @@ export function useProjectIdentityEvidence(value: ProjectStageEvidence | null) {
 export function useProjectLogoEvidence(value: ProjectStageEvidence | null) {
   useProjectEvidence(value, useContext(LogoEvidenceContext));
 }
-export function ProjectStageNavigation({ base, stage, scope, strategyReady, nameSelected, identityReady = false, namingReady = strategyReady, dirty = false, checking = false, checkingReason = "Checking saved project…" }: {
-  base: string; stage: Stage; scope: ProjectScope; strategyReady: boolean; nameSelected: boolean; identityReady?: boolean; namingReady?: boolean; dirty?: boolean; checking?: boolean; checkingReason?: string;
-}) {
-  const visualLock = visualProjectNavigationLock({ checking, checkingReason, dirty, scope });
-  const stages = [
-    { key: "strategy", label: "Strategy", href: base, approved: strategyReady, locked: false },
-    { key: "naming", label: "Naming", href: `${base}/naming`, approved: nameSelected, locked: checking || dirty || scope === "visual_identity_only" || !namingReady },
-    // References can be explored before approval; the saved generation gates still apply.
-    { key: "identity", label: "Logo & identity", href: `${base}/inspiration`, approved: identityReady, locked: Boolean(visualLock) },
-    { key: "files", label: "Files", href: `${base}/logo/deliverables`, approved: false, locked: Boolean(visualLock) },
-  ];
-  const decisions = Number(strategyReady) + Number(nameSelected) + Number(identityReady);
-  return <nav className="project-stage-navigation" aria-label="Project stages">{stages.map(item => item.locked
-    ? <button key={item.key} type="button" disabled aria-current={stage === item.key ? "page" : undefined} title={checking ? checkingReason : dirty ? "Save or resolve your project edits first" : item.key === "naming" && scope !== "visual_identity_only" ? "Complete Strategy review first" : "Expand the project scope first"}><ProjectArtwork name="lock" />{item.label}</button>
-    : <Link key={item.key} href={item.href} aria-current={stage === item.key ? "page" : undefined}>{item.approved && <ProjectArtwork name="check" />}{item.label}</Link>)}<span className="project-stage-progress">{checking ? "Saved decisions not confirmed" : `${decisions} saved ${decisions === 1 ? "decision" : "decisions"}`}<span className="sr-only">. A saved name is a project choice. Identity approval is checked in its saved workspace.</span></span></nav>;
-}
-
 function projectRoute(projectId: string, pathname: string) {
   const inspiration = pathname.endsWith("/inspiration"), brandBoard = pathname === `/brands/account/${projectId}/brand-board`;
   const stage: Stage = pathname.endsWith("/deliverables") ? "files" : pathname.endsWith("/naming") ? "naming" : /\/identity|\/logo|\/inspiration|\/brand-board/.test(pathname) ? "identity" : "strategy";
-  const identityStage: LogoJourneyStage = inspiration ? "inspiration" : brandBoard ? "board" : pathname.endsWith("/identity") ? "systems" : pathname.endsWith("/directions") ? "directions" : pathname.endsWith("/vector") || pathname.endsWith("/editor") ? "vector" : "concepts";
-  return { inspiration, brandBoard, stage, identityStage };
+  return { inspiration, brandBoard, stage };
 }
 
 export function AccountProjectWorkspaceShell({ projectId, children }: { projectId: string; children: ReactNode }) {
@@ -64,11 +43,8 @@ export function AccountProjectWorkspaceShell({ projectId, children }: { projectI
   const pathname = usePathname();
   if (!z.uuid().safeParse(projectId).success) return <div className="page"><h1>Project not found</h1><Link href="/brands">Back to Projects</Link></div>;
   if (session.status !== "ready") {
-    const { stage, identityStage } = projectRoute(projectId, pathname), checkingReason = session.status === "checking" ? "Checking your account…" : "Verify your account before continuing";
+    const { stage } = projectRoute(projectId, pathname);
     return <section className={`project-workspace project-stage-${stage}`}>
-      <header className="project-workspace-header"><div><Link href="/brands">Projects</Link><ProjectArtwork name="chevron" /><span className="project-workspace-title">Project</span></div><span className="project-workspace-save" role="status" data-project-status={session.status === "checking" ? "checking" : "unverified"}>{session.status === "checking" ? "Checking account…" : "Account not verified"}</span></header>
-      <ProjectStageNavigation base={`/brands/account/${projectId}`} stage={stage} scope="complete_brand" strategyReady={false} nameSelected={false} checking checkingReason={checkingReason} />
-      {stage === "identity" && <LogoJourneyNavigation projectId={projectId} current={identityStage} checking checkingReason={checkingReason} />}
       <div className="project-workspace-content"><div className="project-access-state"><h1>Project workspace</h1><AccountStatus /><Link href="/brands">Back to Projects</Link></div></div>
     </section>;
   }
@@ -108,16 +84,12 @@ function OwnedProjectShell({ projectId, account, children }: { projectId: string
   }, [account, projectId, pathname, attempt, drafts, isCurrent, expire]);
   if (!isCurrent(account)) return null;
   const current = workspace?.ownerId === account.userId && workspace.generation === account.generation && workspace.saved.id === projectId ? workspace : null;
-  const { inspiration, brandBoard, stage, identityStage } = projectRoute(projectId, pathname);
+  const { inspiration, brandBoard, stage } = projectRoute(projectId, pathname);
   const project = current?.saved;
-  const dirty = Boolean(current && (accountDraftChanged(current) || current.conflict));
   const handoff = project && getProjectHandoff(project);
   const identityStatus = projectEvidenceStatus(identityEvidence, project?.current_revision);
   const logoStatus = projectEvidenceStatus(logoEvidence, project?.current_revision);
   return <IdentityEvidenceContext.Provider value={reportIdentity}><LogoEvidenceContext.Provider value={reportLogo}><section className={`project-workspace project-stage-${stage}`}>
-    <header className="project-workspace-header"><div><Link href="/brands">Projects</Link><ProjectArtwork name="chevron" /><span className="project-workspace-title">{project?.title ?? "Project"}</span></div><span className="project-workspace-save" role="status" data-project-status={dirty ? "unsaved" : project ? error ? "last-confirmed" : "saved" : error ? "unverified" : "checking"}>{project && !dirty && !error && <ProjectArtwork name="check" />}{dirty ? "Unsaved project edits" : project ? `${error ? "Last confirmed project" : "Saved project"} · v${project.current_revision}` : error ? "Project not verified" : "Checking project…"}</span></header>
-    <ProjectStageNavigation base={`/brands/account/${projectId}`} stage={stage} scope={project?.scope ?? "complete_brand"} strategyReady={Boolean(handoff?.strategyReady)} namingReady={Boolean(project && getNamingReadiness(project.context, project.scope).ready)} nameSelected={Boolean(project?.context.selectedName)} identityReady={!dirty && !error && identityStatus === "approved"} dirty={dirty} checking={!project} checkingReason={error ? "Check saved project before continuing" : undefined} />
-    {stage === "identity" && <LogoJourneyNavigation projectId={projectId} current={identityStage} scope={project?.scope ?? "complete_brand"} dirty={dirty} checking={!project} checkingReason={error ? "Check saved project before continuing" : undefined} />}
     {error && <div className="project-read-notice" role="alert">{error}<button type="button" className="text-link" onClick={() => setAttempt(value => value + 1)}>Check saved project</button></div>}
     {current?.conflict && <div className="project-read-notice" role="alert">A newer project version is saved. Your edits are kept in this tab. <Link className="text-link" href={`/brands/account/${projectId}`}>Resolve in Strategy</Link></div>}
     {!inspiration && !brandBoard && handoff?.savedName && !handoff.strategyReady && project?.scope === "complete_brand" && <div className="project-read-notice" role="status">Strategy needs review. Your saved name, {handoff.savedName}, is kept for review against the updated context. <Link className="text-link" href={handoff.next.href}>Continue Strategy review</Link></div>}

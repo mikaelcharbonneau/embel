@@ -1,3 +1,4 @@
+import { expectProjectCanvas } from "./project-canvas-contract";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { accountProjectSchema } from "../../src/domain/project-api";
 import { logoWorkspaceV2Schema } from "../../src/domain/logo-workspace";
@@ -118,17 +119,8 @@ async function captureState(page: Page, info: TestInfo, state: string) {
 }
 
 async function frame(page: Page) {
-  const selectors = [".project-workspace-header", ".project-stage-navigation", ".project-workspace > .logo-journey-navigation", ".project-workspace-content"] as const;
-  const boxes = [];
-  for (const selector of selectors) {
-    const row = page.locator(selector); await expect(row).toHaveCount(1); await expect(row).toBeVisible();
-    const box = (await row.boundingBox())!; expect(box.width).toBeGreaterThan(0); expect(box.height).toBeGreaterThan(0);
-    boxes.push({ selector, ...box });
-  }
-  await expect(page.getByRole("navigation", { name: "Project stages", exact: true })).toHaveCount(1);
-  await expect(page.getByRole("navigation", { name: "Logo and identity pages", exact: true })).toHaveCount(1);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
-  return boxes;
+  const { shell } = await expectProjectCanvas(page);
+  return [{ selector: ".project-workspace", ...shell }];
 }
 
 function expectSameFrame(before: Awaited<ReturnType<typeof frame>>, after: Awaited<ReturnType<typeof frame>>) {
@@ -138,29 +130,9 @@ function expectSameFrame(before: Awaited<ReturnType<typeof frame>>, after: Await
   }
 }
 
-async function expectChecking(page: Page, reason: string) {
-  await expectVisibleProjectStatus(page);
-  await expect(page.locator(".project-workspace-title")).toHaveText("Project");
+async function expectNoProjectBars(page: Page) {
+  await expectProjectCanvas(page);
   await expect(page.getByText("Unsaved project edits", { exact: true })).toHaveCount(0);
-  const stages = page.getByRole("navigation", { name: "Project stages", exact: true });
-  await expect(stages.getByRole("link", { name: "Strategy", exact: true })).toBeVisible();
-  for (const button of await stages.getByRole("button").all()) { await expect(button).toBeDisabled(); await expect(button).toHaveAttribute("title", reason); }
-  const pages = page.getByRole("navigation", { name: "Logo and identity pages", exact: true });
-  await expect(pages.getByRole("button")).toHaveCount(6);
-  for (const button of await pages.getByRole("button").all()) { await expect(button).toBeDisabled(); await expect(button).toHaveAttribute("title", reason); }
-  await expect(pages.getByRole("button", { name: "Identity directions", exact: true })).toHaveAttribute("aria-current", "page");
-}
-
-async function expectVisibleProjectStatus(page: Page) {
-  const status = page.locator(".project-workspace-save"); await expect(status).toBeVisible();
-  const bounds = (await status.boundingBox())!, header = (await page.locator(".project-workspace-header").boundingBox())!;
-  const breadcrumb = (await page.locator(".project-workspace-header > div").boundingBox())!;
-  expect(await status.evaluate(element => getComputedStyle(element).display)).toBe("flex");
-  expect(bounds.width).toBeGreaterThan(0); expect(bounds.height).toBeGreaterThan(0);
-  expect(bounds.x).toBeGreaterThanOrEqual(header.x); expect(bounds.x + bounds.width).toBeLessThanOrEqual(header.x + header.width);
-  expect(bounds.y).toBeGreaterThanOrEqual(header.y); expect(bounds.y + bounds.height).toBeLessThanOrEqual(header.y + header.height);
-  expect(breadcrumb.x + breadcrumb.width).toBeLessThanOrEqual(bounds.x + 1);
-  expect(header.height).toBe(52);
 }
 
 async function expectMasked(page: Page) {
@@ -224,18 +196,15 @@ test("project frame stays stable through verification and account loss", async (
   const state = await fixture(page, true);
   try {
     await page.goto(projectRoute); await expect.poll(() => state.requests.some(row => row.path === "/api/session")).toBe(true);
-    await expect(page.locator(".project-workspace-save")).toHaveText("Checking account…");
-    await expectChecking(page, "Checking your account…"); await expectMasked(page);
+    await expect(page.getByText("Checking your account…", { exact: true })).toBeVisible();
+    await expectNoProjectBars(page); await expectMasked(page);
     expect(state.requests.some(row => row.path === `/api/projects/${projectId}`)).toBe(false);
     const accountChecking = await frame(page); await captureState(page, info, "account-checking");
     state.sessionGate!.release(); state.sessionGate = null;
     await expect.poll(() => state.requests.some(row => row.path === `/api/projects/${projectId}`)).toBe(true);
-    await expect(page.locator(".project-workspace-save")).toHaveText("Checking project…");
-    await expectChecking(page, "Checking saved project…");
+    await expectNoProjectBars(page);
     const projectChecking = await frame(page); expectSameFrame(accountChecking, projectChecking);
     state.projectGate!.release(); state.projectGate = null;
-    await expect(page.locator(".project-workspace-title")).toHaveText(privateTitle);
-    await expect(page.locator(".project-workspace-save")).toHaveText("Saved project · v1");
     await expect(page.getByRole("textbox", { name: "Overall character", exact: true })).toHaveValue(privateGuidance);
     const verified = await frame(page); expectSameFrame(accountChecking, verified);
     await info.attach("project-frame-geometry", { body: Buffer.from(JSON.stringify({ viewport: page.viewportSize(), accountChecking, projectChecking, verified }, null, 2)), contentType: "application/json" });
@@ -248,11 +217,11 @@ test("project frame stays stable through verification and account loss", async (
       Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" }); document.dispatchEvent(new Event("visibilitychange"));
     });
     await expect.poll(() => state.requests.filter(row => row.path === "/api/session").length).toBeGreaterThan(previousReads);
-    await expect(page.locator(".project-workspace-save")).toHaveText("Checking account…"); await expectMasked(page);
+    await expect(page.getByText("Checking your account…", { exact: true })).toBeVisible(); await expectMasked(page);
     expectSameFrame(verified, await frame(page));
     state.sessionGate.release(); state.sessionGate = null;
-    await expect(page.locator(".project-workspace-save")).toHaveText("Account not verified");
-    await expectChecking(page, "Verify your account before continuing"); await expectMasked(page);
+    await expect(page.getByText("No verified account session. Sign in to view your account projects.", { exact: true })).toBeVisible();
+    await expectNoProjectBars(page); await expectMasked(page);
     expectSameFrame(verified, await frame(page)); await captureState(page, info, "account-masked");
     expect(state.writes).toEqual([]);
   } finally { state.sessionGate?.release(); state.projectGate?.release(); }
@@ -270,19 +239,17 @@ test("Home disclosure dismissal preserves prompt with temporary reduced motion",
   } finally { await page.emulateMedia({ reducedMotion: null }); }
 });
 
-test("failed project read keeps navigation and actionable check copy", async ({ page }, info) => {
+test("failed project read keeps actionable recovery without project bars", async ({ page }, info) => {
   const state = await fixture(page, true, true);
   try {
     await page.goto(projectRoute); state.sessionGate!.release(); state.sessionGate = null;
-    await expect(page.locator(".project-workspace-save")).toHaveText("Checking project…");
     const checking = await frame(page);
     state.projectGate!.release(); state.projectGate = null;
-    await expect(page.locator(".project-workspace-save")).toHaveText("Project not verified");
     const notice = page.getByRole("alert").filter({ hasText: "The saved project could not be verified. Your existing work is kept." });
     await expect(notice).toBeVisible(); await expect(notice.getByRole("button", { name: "Check saved project", exact: true })).toBeEnabled();
-    await expectChecking(page, "Check saved project before continuing");
+    await expectNoProjectBars(page);
     const failed = await frame(page);
-    // The explicit read-error notice occupies content space; navigation rows retain their geometry.
+    // The explicit read-error notice occupies real content space; the shell keeps its bounds.
     expectSameFrame(checking.slice(0, 3), failed.slice(0, 3));
     const retry = notice.getByRole("button", { name: "Check saved project", exact: true });
     await retry.focus(); await expect(retry).toBeFocused();
@@ -290,20 +257,30 @@ test("failed project read keeps navigation and actionable check copy", async ({ 
   } finally { state.sessionGate?.release(); state.projectGate?.release(); }
 });
 
-test("retained project read failure keeps last-confirmed status visible without crowding the header", async ({ page }, info) => {
+test("retained project read failure keeps its actionable notice without adding project bars", async ({ page }, info) => {
   const state = await fixture(page);
   await page.goto(projectRoute);
   await expect(page.getByRole("textbox", { name: "Overall character", exact: true })).toHaveValue(privateGuidance);
-  const status = page.locator(".project-workspace-save");
-  await expect(status).toHaveAttribute("data-project-status", "saved");
-  if (page.viewportSize()!.width <= 760) await expect(status).toBeHidden();
-  else await expectVisibleProjectStatus(page);
+  await expectProjectCanvas(page);
   state.failedProject = true;
-  await page.getByRole("link", { name: "Logo concepts", exact: true }).click();
-  await expect(status).toHaveText("Last confirmed project · v1");
-  await expect(status).toHaveAttribute("data-project-status", "last-confirmed");
-  await expectVisibleProjectStatus(page);
-  await expect(page.locator(".project-workspace-title")).toHaveText(privateTitle);
-  await expect(page.getByRole("alert").filter({ hasText: "The saved project could not be verified. Your existing work is kept." })).toBeVisible();
-  expect(state.writes).toEqual([]); await captureState(page, info, "last-confirmed-project");
+  const reviewLogo = page.getByRole("link", { name: "Review logo", exact: true });
+  await reviewLogo.focus(); await reviewLogo.press("Enter");
+  await expect(page).toHaveURL(`/brands/account/${projectId}/logo`);
+  const notice = page.getByRole("alert").filter({ hasText: "The saved project could not be verified. Your existing work is kept." });
+  await expect(notice).toBeVisible(); await expect(notice.getByRole("button", { name: "Check saved project", exact: true })).toBeEnabled();
+  await expectProjectCanvas(page);
+  expect(state.writes).toEqual([]); await captureState(page, info, "retained-project-read-error");
 });
+
+for (const suffix of ["", "/naming", "/inspiration", "/logo", "/brand-board", "/logo/vector", "/logo/editor", "/logo/directions", "/identity", "/logo/deliverables"]) {
+  test(`removed project bars reserve no space on ${suffix || "Strategy"} during account verification`, async ({ page }, info) => {
+    const state = await fixture(page, true);
+    try {
+      await page.goto(`/brands/account/${projectId}${suffix}`);
+      await expect(page.getByText("Checking your account…", { exact: true })).toBeVisible();
+      await expectProjectCanvas(page); await expectMasked(page);
+      expect(state.requests.some(row => row.path === `/api/projects/${projectId}`)).toBe(false);
+      if (suffix === "/logo" || suffix === "/naming") await captureState(page, info, "bars-absent-account-checking");
+    } finally { state.sessionGate?.release(); state.projectGate?.release(); }
+  });
+}

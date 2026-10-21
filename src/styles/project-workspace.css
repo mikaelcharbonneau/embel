@@ -5,23 +5,6 @@
 .concept-project-workspace .workspace-account-avatar { background: #f1f0ee; border: 0; }
 .concept-project-workspace #main-content { padding: 0; overflow: hidden; }
 .project-workspace { height: 100%; min-height: 0; display: flex; flex-direction: column; }
-.project-workspace-header { flex: 0 0 52px; min-height: 52px; padding: 0 24px; border-bottom: 1px solid var(--border); background: #fff; display: flex; align-items: center; justify-content: space-between; gap: 20px; font-size: 13px; }
-.project-workspace-header > div { min-width: 0; display: flex; gap: 16px; align-items: center; }
-.project-workspace-header a, .project-workspace-header > div > span[aria-hidden] { color: var(--secondary); flex-shrink: 0; }
-.project-workspace-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.project-workspace-save { display: flex; gap: 10px; align-items: center; color: var(--secondary); font-size: 12px; flex-shrink: 0; }
-.project-stage-navigation { flex: 0 0 44px; display: flex; align-items: stretch; gap: 24px; padding: 0 24px; border-bottom: 1px solid var(--border); background: #fff; font-size: 13px; }
-.project-stage-navigation :is(a, button) { display: flex; gap: 8px; align-items: center; flex-shrink: 0; position: relative; background: none; border: 0; padding: 0 0 1px; color: var(--text); font: inherit; }
-.project-stage-navigation [aria-current=page]::after { content: ""; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: #191919; }
-.project-stage-navigation button:disabled { color: var(--secondary); cursor: not-allowed; }
-.project-stage-navigation img { display: block; flex-shrink: 0; }
-.project-stage-progress { margin-left: auto; align-self: center; white-space: nowrap; color: var(--secondary); font-size: 12px; }
-.project-workspace > .logo-journey-navigation { flex: 0 0 44px; flex-wrap: nowrap; overflow-x: auto; gap: 24px; margin: 0; padding: 0 24px; background: var(--paper); }
-.project-workspace > .logo-journey-navigation :is(a, button) { flex-shrink: 0; min-height: 44px; padding: 12px 0; white-space: nowrap; }
-.project-workspace > .logo-journey-navigation button { background: none; border: 0; border-bottom: 2px solid transparent; font: inherit; font-size: 13px; }
-.project-workspace > .logo-journey-navigation button:disabled { color: var(--secondary); cursor: not-allowed; }
-.project-workspace > .logo-journey-navigation button[aria-current=page] { border-bottom-color: var(--text); font-weight: 500; }
-.project-workspace :is(.project-stage-navigation, .logo-journey-navigation) :is(a, button):focus-visible { outline: 2px solid var(--accent-text); outline-offset: -3px; }
 .project-workspace-content { flex: 1; min-height: 0; overflow: auto; background: var(--canvas); }
 .project-read-notice { padding: 12px 24px; display: flex; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
 .project-access-state { padding: 24px; }
@@ -188,7 +171,6 @@
 .project-direction-workspace .project-dock [class*=selection] { border: 0; padding: 0; }
 .project-direction-workspace .project-dock :is(button, select) { font-size: 13px; }
 .project-logo-page.page { padding: 0; margin: 0; max-width: none; }
-.project-logo-page > .logo-journey-navigation, .project-output-page > .logo-journey-navigation { padding: 12px 24px; margin: 0; border-bottom: 1px solid var(--border); background: #fff; font-size: 12px; }
 .project-logo-creation .project-workbench-canvas > header { margin-bottom: 20px; }
 .project-logo-start { padding: 48px 24px; min-height: 300px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #f1f0ee; border-radius: 10px; text-align: center; margin-bottom: 20px; }
 .project-logo-start h2 { font-size: 28px; font-weight: 500; }
@@ -207,7 +189,6 @@
 .project-logo-inspection-preview p { font-size: 13px; color: var(--secondary); }
 .project-output-page { max-width: none; padding: 24px; margin: 0; }
 .project-output-page .page-heading h1 { font-size: 24px; font-weight: 500; }
-.project-output-page > .logo-journey-navigation { padding-inline: 0; background: transparent; margin-bottom: 24px; }
 .project-output-directions [class*=cards] { gap: 18px; }
 .project-output-directions [class*=panel] { border: 0; padding: 0; background: transparent; }
 .project-output-directions [class*=card] { border-radius: 10px; background: #fff; padding: 20px; }
@@ -239,13 +220,6 @@
   .project-export-layout { grid-template-columns: 1fr; }
   .project-direction-workspace > .project-workbench-canvas { padding: 0 0 20px; }
   .project-systems-workspace > .project-dock { margin-top: 0; }
-  .project-workspace-header { padding: 0 16px; gap: 8px; }
-  .project-workspace-header > div { gap: 10px; }
-  .project-workspace-save { flex: 0 1 auto; min-width: 0; max-width: 48%; font-size: 11px; line-height: 16px; text-align: right; }
-  .project-workspace-save[data-project-status=saved] { display: none; }
-  .project-stage-navigation { gap: 18px; padding-inline: 16px; overflow-x: auto; }
-  .project-workspace > .logo-journey-navigation { gap: 20px; padding-inline: 16px; }
-  .project-stage-progress { display: none; }
   .project-workspace-content { overflow: auto; }
   .project-workbench, .project-strategy-columns { flex-direction: column; }
   .project-workbench-canvas { padding: 20px 16px; }
@@ -260,7 +234,7 @@
   .project-strategy-workspace .conversation-widget-heading { flex-wrap: wrap; }
   .project-strategy-workspace .conversation-widget-heading > .text-link { margin-left: auto; }
   .project-naming-page.project-workbench .project-naming-grid, .identity-references-page.project-workbench .identity-reference-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .project-workbench :is(button, .button, summary), .project-stage-navigation :is(a, button) { min-height: 44px; }
+  .project-workbench :is(button, .button, summary) { min-height: 44px; }
   .project-output-page { padding: 20px 16px; }
 }
 @media (max-width: 540px) {
