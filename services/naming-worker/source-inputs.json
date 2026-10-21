@@ -36,6 +36,7 @@
   "worker/cloud-naming-configuration.ts",
   "worker/handlers/naming-brain.ts",
   "worker/handlers/naming-progressive.ts",
+  "worker/local-persistence-recovery.ts",
   "worker/naming-brain-configuration.ts",
   "worker/naming-brain-store.ts",
   "worker/postgres-store.ts",

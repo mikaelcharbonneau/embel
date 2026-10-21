@@ -36,6 +36,25 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("durable guided start allowance", () => {
+  it("supports a project-scoped initial turn saved at revision two", async () => {
+    const context = { ...workspace.saved.context, intake: { ...workspace.saved.context.intake, guidedInterview: undefined } };
+    const saved = { ...workspace.saved, current_revision: 2, context: guidedStartContext(context, account.userId, allowance, 2, workspace.saved.id) };
+    workspace = { ...workspace, saved, draft: accountProjectDraft(saved) };
+    expect(bindGuidedStartConsent(account.userId, turn().id, saved.id)).toBe(true);
+    await render();
+    expect(strategy.enqueue).toHaveBeenCalledExactlyOnceWith("strategy.competitors", 2, allowance);
+    await remount(); expect(strategy.enqueue).toHaveBeenCalledOnce();
+  });
+
+  it("binds explicit review of a missing revision-two receipt to revision two", async () => {
+    const context = { ...workspace.saved.context, intake: { ...workspace.saved.context.intake, guidedInterview: undefined } };
+    const saved = { ...workspace.saved, current_revision: 2, context: guidedStartContext(context, account.userId, allowance, 2, workspace.saved.id) };
+    workspace = { ...workspace, saved, draft: accountProjectDraft(saved) };
+    window.localStorage.clear(); await render();
+    await act(async () => button("Start research").click());
+    expect(strategy.enqueue).toHaveBeenCalledExactlyOnceWith("strategy.competitors", 2, allowance);
+    expect(readGuidedStartConsent(account.userId, turn().id)?.inputRevision).toBe(2);
+  });
   it("binds acceptance to owner, turn, acknowledged project and first revision", () => {
     expect(isGuidedStartTurn(turn())).toBe(true);
     expect(readGuidedStartConsent(account.userId, turn().id)).toMatchObject({ ownerId: account.userId, projectId: workspace.saved.id, inputRevision: 1, allowance, attempted: false });
