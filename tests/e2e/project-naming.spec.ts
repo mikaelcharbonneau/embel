@@ -211,6 +211,32 @@ const card = (page: Page, name: string) => page.locator(".project-naming-card").
 
 async function showChat(page: Page) { const tabs = page.getByRole("group", { name: "Naming workspace view" }); if (await tabs.isVisible()) await tabs.getByRole("button", { name: "Chat", exact: true }).click(); }
 async function showNames(page: Page) { const tabs = page.getByRole("group", { name: "Naming workspace view" }); if (await tabs.isVisible()) await tabs.getByRole("button", { name: /^Names/ }).click(); }
+async function namingStageFrame(page: Page) {
+  const stages = page.getByRole("navigation", { name: "Project stages", exact: true });
+  await expect(stages).toHaveCount(1); await expect(stages).toBeVisible();
+  await expect(stages.locator("[aria-current=page]")).toHaveText("Naming");
+  const bounds = (await stages.boundingBox())!, header = (await page.locator(".project-workspace-header").boundingBox())!;
+  const content = (await page.locator(".project-workspace-content").boundingBox())!;
+  expect(await stages.evaluate(element => getComputedStyle(element).display)).toBe("flex");
+  expect(bounds.width).toBeGreaterThan(0); expect(bounds.height).toBe(44);
+  expect(Math.abs(header.y + header.height - bounds.y)).toBeLessThanOrEqual(1);
+  expect(Math.abs(bounds.y + bounds.height - content.y)).toBeLessThanOrEqual(1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
+  const workbench = page.locator(".project-naming-page.project-workbench");
+  if (await workbench.count()) {
+    const box = (await workbench.boundingBox())!;
+    expect(box.y).toBeGreaterThanOrEqual(content.y); expect(box.y + box.height).toBeLessThanOrEqual(content.y + content.height + 1);
+  }
+  if (page.viewportSize()!.width <= 760 && await page.getByRole("group", { name: "Naming workspace view" }).count()) {
+    const tabs = page.getByRole("group", { name: "Naming workspace view" }); await expect(tabs).toBeVisible();
+    const box = (await tabs.boundingBox())!;
+    expect(box.y).toBeGreaterThanOrEqual(content.y); expect(box.height).toBeGreaterThan(0);
+    expect(box.y + box.height).toBeLessThanOrEqual(content.y + content.height);
+    await expect(tabs.getByRole("button", { name: "Chat", exact: true })).toBeVisible();
+    await expect(tabs.getByRole("button", { name: /^Names/ })).toBeVisible();
+  }
+  return { header, bounds, content };
+}
 async function inspectName(page: Page, name: string) { await showNames(page); await card(page, name).getByRole("button", { name: `Inspect name ${name}`, exact: true }).click(); }
 async function useName(page: Page, name: string) { await inspectName(page, name); await page.getByRole("region", { name: "Inspect name", exact: true }).getByRole("button", { name: "Use this name", exact: true }).click(); }
 async function workshopName(page: Page, name: string) { await inspectName(page, name); await page.getByRole("region", { name: "Inspect name", exact: true }).getByRole("button", { name: "Explore variations", exact: true }).click(); }
@@ -857,4 +883,82 @@ test("project design: changing responsive panes retains the same unsaved Naming 
   const width = page.viewportSize()!.width;
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   await page.screenshot({ path: info.outputPath("project-naming-controls.png"), fullPage: true });
+});
+
+test("Naming stage navigation: selected name, composer and results survive shell expansion", async ({ page }, info) => {
+  await page.setViewportSize(info.project.name === "mobile" ? { width: 390, height: 844 } : { width: 1440, height: 900 });
+  const fixture = await prepared(page, 3, "complete_brand"); await open(page); await useName(page, "Fixture 001");
+  await namingStageFrame(page);
+  const stages = page.getByRole("navigation", { name: "Project stages", exact: true });
+  await expect(stages.getByRole("link")).toHaveCount(4);
+  await stages.getByRole("link", { name: "Naming", exact: true }).focus(); await page.keyboard.press("Tab");
+  await expect(stages.getByRole("link", { name: "Logo & identity", exact: true })).toBeFocused();
+  await showChat(page);
+  const composer = page.getByRole("textbox", { name: "Naming message", exact: true });
+  const canvas = page.locator("[data-naming-results-scroll]");
+  await composer.fill("Unsent synthetic direction retained through navigation chrome changes");
+  await composer.evaluate(element => element.setAttribute("data-continuity", "original-composer"));
+  await canvas.evaluate(element => element.setAttribute("data-continuity", "original-results"));
+  const writes = fixture.state.requests.filter(request => request.method !== "GET").length;
+  if (info.project.name === "desktop") {
+    await page.getByRole("button", { name: "Expand navigation", exact: true }).click(); await namingStageFrame(page);
+    await page.getByRole("button", { name: "Collapse navigation", exact: true }).click();
+  } else {
+    await page.getByRole("button", { name: "Open navigation", exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "Navigation", exact: true })).toBeVisible();
+    await page.keyboard.press("Escape"); await expect(page.getByRole("button", { name: "Open navigation", exact: true })).toBeFocused();
+  }
+  await showNames(page); await showChat(page); await namingStageFrame(page);
+  await expect(composer).toHaveValue("Unsent synthetic direction retained through navigation chrome changes");
+  await expect(composer).toHaveAttribute("data-continuity", "original-composer");
+  await expect(canvas).toHaveAttribute("data-continuity", "original-results");
+  const composerBox = (await composer.boundingBox())!, stageBox = (await stages.boundingBox())!;
+  expect(composerBox.y).toBeGreaterThanOrEqual(stageBox.y + stageBox.height);
+  expect(composerBox.y + composerBox.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+  await showNames(page); await expect(page.locator("#project-naming-screening-heading")).toHaveText("Fixture 001");
+  await namingStageFrame(page);
+  expect(fixture.state.currentSelection?.candidate.value).toBe("Fixture 001");
+  expect(fixture.state.requests.filter(request => request.method !== "GET")).toHaveLength(writes);
+  await canvas.evaluate(element => { element.scrollTop = 0; });
+  await page.screenshot({ path: info.outputPath("naming-stage-selected.png"), fullPage: true });
+});
+
+for (const scenario of [
+  { label: "complete brand", scope: "complete_brand", incomplete: false },
+  { label: "naming only", scope: "naming_only", incomplete: false },
+  { label: "visual identity only", scope: "visual_identity_only", incomplete: false },
+  { label: "incomplete Strategy", scope: "complete_brand", incomplete: true },
+] as const) test(`Naming stage navigation: checking and ${scenario.label} keep a visible locked frame`, async ({ page }, info) => {
+  await page.setViewportSize(info.project.name === "mobile" ? { width: 390, height: 844 } : { width: 1440, height: 900 });
+  const fixture = await fixtures(page, scenario.scope);
+  if (scenario.incomplete) fixture.state.project.context.reformulationConfirmed = false;
+  // Either owned read can hydrate the shared project memory. Hold both so this
+  // genuinely exercises the unconfirmed frame rather than a confirmed snapshot.
+  let releaseOwnedReads!: () => void;
+  const ownedReads = new Promise<void>(resolve => { releaseOwnedReads = resolve; });
+  const pendingReads = new Set<string>();
+  await page.route(target => target.pathname === `/api/projects/${projectId}` || target.pathname === base, async route => {
+    if (route.request().method() === "GET") { pendingReads.add(new URL(route.request().url()).pathname); await ownedReads; }
+    await route.fallback();
+  });
+  try {
+    await page.goto(url); await expect.poll(() => pendingReads.has(`/api/projects/${projectId}`)).toBe(true);
+    const checking = await namingStageFrame(page);
+    const stages = page.getByRole("navigation", { name: "Project stages", exact: true });
+    await expect(stages.getByRole("button")).toHaveCount(3);
+    for (const button of await stages.getByRole("button").all()) { await expect(button).toBeDisabled(); await expect(button).toHaveAttribute("title", "Checking saved project…"); }
+    releaseOwnedReads(); await expect(page.locator(".project-workspace-title")).toHaveText("Synthetic naming project");
+    const ready = await namingStageFrame(page);
+    expect(ready.bounds.y).toBe(checking.bounds.y); expect(ready.bounds.height).toBe(checking.bounds.height);
+    if (scenario.scope === "visual_identity_only" || scenario.incomplete) {
+      await expect(stages.getByRole("button", { name: "Naming", exact: true })).toBeDisabled();
+      await expect(stages.getByRole("button", { name: "Naming", exact: true })).toHaveAttribute("title", scenario.incomplete ? "Complete Strategy review first" : "Expand the project scope first");
+    } else await expect(stages.getByRole("link", { name: "Naming", exact: true })).toHaveAttribute("href", url);
+    for (const label of ["Logo & identity", "Files"]) {
+      if (scenario.scope === "naming_only") await expect(stages.getByRole("button", { name: label, exact: true })).toBeDisabled();
+      else await expect(stages.getByRole("link", { name: label, exact: true })).toBeVisible();
+    }
+    expect(fixture.state.requests.filter(request => request.method !== "GET")).toEqual([]);
+    await page.screenshot({ path: info.outputPath(`naming-stage-${scenario.label.replaceAll(" ", "-")}.png`), fullPage: true });
+  } finally { releaseOwnedReads(); }
 });

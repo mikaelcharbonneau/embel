@@ -139,6 +139,7 @@ function expectSameFrame(before: Awaited<ReturnType<typeof frame>>, after: Await
 }
 
 async function expectChecking(page: Page, reason: string) {
+  await expectVisibleProjectStatus(page);
   await expect(page.locator(".project-workspace-title")).toHaveText("Project");
   await expect(page.getByText("Unsaved project edits", { exact: true })).toHaveCount(0);
   const stages = page.getByRole("navigation", { name: "Project stages", exact: true });
@@ -148,6 +149,18 @@ async function expectChecking(page: Page, reason: string) {
   await expect(pages.getByRole("button")).toHaveCount(6);
   for (const button of await pages.getByRole("button").all()) { await expect(button).toBeDisabled(); await expect(button).toHaveAttribute("title", reason); }
   await expect(pages.getByRole("button", { name: "Identity directions", exact: true })).toHaveAttribute("aria-current", "page");
+}
+
+async function expectVisibleProjectStatus(page: Page) {
+  const status = page.locator(".project-workspace-save"); await expect(status).toBeVisible();
+  const bounds = (await status.boundingBox())!, header = (await page.locator(".project-workspace-header").boundingBox())!;
+  const breadcrumb = (await page.locator(".project-workspace-header > div").boundingBox())!;
+  expect(await status.evaluate(element => getComputedStyle(element).display)).toBe("flex");
+  expect(bounds.width).toBeGreaterThan(0); expect(bounds.height).toBeGreaterThan(0);
+  expect(bounds.x).toBeGreaterThanOrEqual(header.x); expect(bounds.x + bounds.width).toBeLessThanOrEqual(header.x + header.width);
+  expect(bounds.y).toBeGreaterThanOrEqual(header.y); expect(bounds.y + bounds.height).toBeLessThanOrEqual(header.y + header.height);
+  expect(breadcrumb.x + breadcrumb.width).toBeLessThanOrEqual(bounds.x + 1);
+  expect(header.height).toBe(52);
 }
 
 async function expectMasked(page: Page) {
@@ -275,4 +288,22 @@ test("failed project read keeps navigation and actionable check copy", async ({ 
     await retry.focus(); await expect(retry).toBeFocused();
     expect(state.writes).toEqual([]); await captureState(page, info, "project-read-failed");
   } finally { state.sessionGate?.release(); state.projectGate?.release(); }
+});
+
+test("retained project read failure keeps last-confirmed status visible without crowding the header", async ({ page }, info) => {
+  const state = await fixture(page);
+  await page.goto(projectRoute);
+  await expect(page.getByRole("textbox", { name: "Overall character", exact: true })).toHaveValue(privateGuidance);
+  const status = page.locator(".project-workspace-save");
+  await expect(status).toHaveAttribute("data-project-status", "saved");
+  if (page.viewportSize()!.width <= 760) await expect(status).toBeHidden();
+  else await expectVisibleProjectStatus(page);
+  state.failedProject = true;
+  await page.getByRole("link", { name: "Logo concepts", exact: true }).click();
+  await expect(status).toHaveText("Last confirmed project · v1");
+  await expect(status).toHaveAttribute("data-project-status", "last-confirmed");
+  await expectVisibleProjectStatus(page);
+  await expect(page.locator(".project-workspace-title")).toHaveText(privateTitle);
+  await expect(page.getByRole("alert").filter({ hasText: "The saved project could not be verified. Your existing work is kept." })).toBeVisible();
+  expect(state.writes).toEqual([]); await captureState(page, info, "last-confirmed-project");
 });
