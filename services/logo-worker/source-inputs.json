@@ -79,6 +79,7 @@
     "src/server/logo-creation/openai-image-usage.ts",
     "src/server/logo-creation/openai-logo-provider.ts",
     "src/server/logo-creation/reference-inputs.ts",
+    "src/server/runtime/hosted-application.ts",
     "src/server/runtime/identity-pool.ts",
     "src/server/runtime/private-asset-storage.ts",
     "worker/cloud-logo-configuration.ts",

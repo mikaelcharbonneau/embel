@@ -4,8 +4,8 @@ import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import { filterInspiration, hasInspirationChoice, inspirationCatalog } from "@/domain/inspiration";
 describe("approved inspiration catalog", () => {
-  it("ships the 15 original images with matching byte hashes and dimensions", async () => {
-    expect(new Set(inspirationCatalog.map(row => row.id)).size).toBe(15);
+  it("ships the original images and additional logo studies with matching byte hashes and dimensions", async () => {
+    expect(new Set(inspirationCatalog.map(row => row.id)).size).toBe(30);
     for (const design of inspirationCatalog) {
       const bytes = readFileSync(`public${design.image}`), meta = await sharp(bytes).metadata();
       expect(createHash("sha256").update(bytes).digest("hex")).toBe(design.contentHash);

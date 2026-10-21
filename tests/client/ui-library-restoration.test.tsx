@@ -8,10 +8,10 @@ import type { NameCandidate } from "@/components/naming/local-names";
 import { IdeasWorkspace } from "@/components/ideas/ideas-workspace";
 import { createIdeaDraftMemory } from "@/components/ideas/ideas-draft-memory";
 import { emptyIdeaContent } from "@/components/ideas/ideas-client";
-const fixture = vi.hoisted(() => ({ memory: null as ReturnType<typeof createIdeaDraftMemory> | null, push: vi.fn() }));
+const fixture = vi.hoisted(() => ({ memory: null as ReturnType<typeof createIdeaDraftMemory> | null, push: vi.fn(), current: () => true, expire: vi.fn() }));
 const owner = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: fixture.push }) }));
-vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ session: { status: "ready", userId: owner, generation: 1 }, ideaDrafts: fixture.memory, isCurrent: () => true, expire: vi.fn() }), AccountStatus: () => null }));
+vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ session: { status: "ready", userId: owner, generation: 1 }, ideaDrafts: fixture.memory, isCurrent: fixture.current, expire: fixture.expire }), AccountStatus: () => null }));
 let root: Root, host: HTMLDivElement;
 beforeEach(() => {
  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }); fixture.memory = createIdeaDraftMemory();
@@ -28,8 +28,8 @@ describe("original library composition with current behavior", () => {
   for (const label of ["Compare Fixture name", "Favorite Fixture name", "Save Fixture name"]) await act(async () => host.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!.click());
   await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent?.includes("Use as seed"))!.click());
   expect(compare).toHaveBeenCalledOnce(); expect(favorite).toHaveBeenCalledOnce(); expect(save).toHaveBeenCalledOnce(); expect(seed).toHaveBeenCalledOnce();
-  expect(host.querySelector("details")?.textContent).toContain("A synthetic naming brief");
-  expect(host.querySelector("details")?.textContent).toContain("Create brand");
+  expect(host.querySelector(".names-candidate-details")?.textContent).toContain("A synthetic naming brief");
+  expect(host.querySelector(".names-candidate-details")?.textContent).toContain("Create brand");
  });
  it("keeps new Ideas capture collapsed while the library is the primary view", async () => {
   await act(async () => root.render(createElement(IdeasWorkspace)));

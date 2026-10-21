@@ -34,3 +34,26 @@ it("verifies exact write receipts and sanitizes unavailable/conflict database er
     expect(response.status).toBe(status); expect(await response.text()).not.toContain("private database details");
   }
 });
+it("retains installed reference capabilities after a successful selection save", async () => {
+  const receipt = { ...overview, selectionRevision: 1, choices: [{ ownerId, projectId, referenceId, revision: 1, ensemble: true, elements: [], updatedAt: "2026-10-13T00:00:00Z" }] };
+  const installed = inspirationCatalog.map(item => item.id);
+  mocks.rpc.mockImplementation(async (name: string) => ({ data: name === "get_inspiration_reference_ids" ? installed : receipt, error: null }));
+  const response = await PATCH(request(), params);
+  expect(response.status).toBe(200);
+  expect(JSON.stringify(await response.json())).toContain(installed.at(-1));
+});
+it("keeps old references available when the additive catalog migration is absent", async () => {
+  mocks.rpc.mockImplementation(async (name: string) => name === "get_inspiration_reference_ids" ? { data: null, error: { code: "42883" } } : { data: overview, error: null });
+  const response = await GET(request(), params);
+  expect(response.status).toBe(200);
+  const body = JSON.stringify(await response.json());
+  expect(body).toContain(referenceId);
+  expect(body).not.toContain(inspirationCatalog.find(item => item.availableSince)!.id);
+});
+it("does not lose a confirmed selection receipt when optional discovery throws", async () => {
+  const receipt = { ...overview, selectionRevision: 1, choices: [{ ownerId, projectId, referenceId, revision: 1, ensemble: true, elements: [], updatedAt: "2026-10-13T00:00:00Z" }] };
+  mocks.rpc.mockImplementation(async (name: string) => { if (name === "get_inspiration_reference_ids") throw new Error("connection interrupted"); return { data: receipt, error: null }; });
+  const response = await PATCH(request(), params);
+  expect(response.status).toBe(200);
+  expect(JSON.stringify(await response.json())).toContain('"selectionRevision":1');
+});

@@ -471,7 +471,7 @@
     {
       "operation": "vector",
       "path": "worker/logo-vector/process.ts",
-      "sha256": "9473a807f0750639c97f978e2b331c10335e2b21e805f19816e7c14b1ce6259e"
+      "sha256": "4cb59e585dbb0e0400dadfdaac6136830eb44b1761aa32bd5b167549b7685ab4"
     },
     {
       "operation": "vector",

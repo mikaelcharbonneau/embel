@@ -2,6 +2,7 @@
 import { act, useSyncExternalStore } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { installDialogMethods } from "../helpers/dialog-methods";
 import { GuidedWorkshop } from "@/components/naming/guided-workshop";
 import { createNamesStore } from "@/components/naming/local-names";
 import { emptyGuidedUi } from "@/components/naming/guided-names";
@@ -9,7 +10,7 @@ import { NameCandidateCard } from "@/components/naming/name-candidate-card";
 
 const mock = vi.hoisted(() => ({ store: null as ReturnType<typeof createNamesStore> | null }));
 vi.mock("@/components/naming/use-names-store", () => ({ useNamesActions: () => mock.store }));
-let host: HTMLDivElement, root: Root;
+let host: HTMLDivElement, root: Root, restoreDialogs: () => void;
 const store = () => mock.store!;
 const button = (label: string) => [...host.querySelectorAll<HTMLButtonElement>("button")].find(node => node.getAttribute("aria-label") === label || node.textContent === label)!;
 function Harness() {
@@ -22,12 +23,13 @@ async function input(node: HTMLInputElement, value: string) {
 }
 async function render() { await act(async () => root.render(<Harness />)); }
 beforeEach(() => {
+  restoreDialogs = installDialogMethods();
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   let raw: string | null = null;
   mock.store = createNamesStore({ storage: () => ({ getItem: () => raw, setItem: (_key, value) => { raw = value; } }), createId: () => crypto.randomUUID() });
   store().hydrate(); host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
-afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); });
+afterEach(async () => { await act(async () => root.unmount()); host.remove(); restoreDialogs(); vi.unstubAllGlobals(); });
 
 it("keeps empty, single-word and many-word counts explicit without changing delimiter behavior", async () => {
   await render(); expect(host.querySelector(".names-word-count")!.textContent).toBe("0 words");
@@ -48,11 +50,11 @@ it("bounds a long retained comma-containing seed without reparsing it, with full
   store().updateUi({ guided: { ...emptyGuidedUi(), words: [{ value, candidateId: null }] } });
   await render();
   expect(host.querySelectorAll(".names-word-chip")).toHaveLength(1);
-  const disclosure = host.querySelector<HTMLDetailsElement>(".names-long-word")!, summary = disclosure.querySelector("summary")!;
-  expect(disclosure.open).toBe(false); expect(summary.getAttribute("title")).toBe(value); expect(summary.textContent).toBe(value);
-  summary.focus(); await act(async () => summary.click()); expect(disclosure.open).toBe(true);
+  const disclosure = host.querySelector<HTMLElement>(".names-long-word")!, summary = disclosure.querySelector<HTMLButtonElement>(":scope > button")!;
+  expect(disclosure.querySelector("dialog")!.open).toBe(false); expect(summary.getAttribute("title")).toBe(value); expect(summary.textContent).toContain(value);
+  summary.focus(); await act(async () => summary.click()); expect(disclosure.querySelector("dialog")!.open).toBe(true);
   await act(async () => store().updateUi({ query: "unrelated saved view change" }));
-  expect(host.querySelector(".names-long-word")).toBe(disclosure); expect(disclosure.open).toBe(true); expect(document.activeElement).toBe(summary);
+  expect(host.querySelector(".names-long-word")).toBe(disclosure); expect(disclosure.querySelector("dialog")!.open).toBe(true); expect(disclosure.querySelector("dialog")!.contains(document.activeElement)).toBe(true);
   expect(store().getSnapshot().data.ui.guided!.words).toEqual([{ value, candidateId: null }]);
 });
 
@@ -71,13 +73,13 @@ it("switches narrow controls/preview presentation without unmounting or saving v
 it("keeps custom fields, current focus and active values through result updates and progressive disclosure", async () => {
   store().updateUi({ guided: { ...emptyGuidedUi(), words: [{ value: "cedar", candidateId: null }] } });
   await render();
-  const custom = host.querySelector<HTMLInputElement>('[aria-label="Custom prefix 1"]')!, disclosure = custom.closest("details")!;
-  const summary = disclosure.querySelector("summary")!;
+  const custom = host.querySelector<HTMLInputElement>('[aria-label="Custom prefix 1"]')!, disclosure = custom.closest(".names-custom-disclosure")!;
+  const summary = disclosure.querySelector<HTMLButtonElement>(":scope > button")!;
   await act(async () => summary.click()); custom.focus(); await input(custom, "Ultra");
-  expect(host.querySelector('[aria-label="Custom prefix 1"]')).toBe(custom); expect(document.activeElement).toBe(custom); expect(disclosure.open).toBe(true);
+  expect(host.querySelector('[aria-label="Custom prefix 1"]')).toBe(custom); expect(document.activeElement).toBe(custom); expect(disclosure.querySelector("dialog")!.open).toBe(true);
   expect(host.querySelector(".names-guided-preview-value")!.textContent).toBe("Ultracedar");
   expect(summary.textContent).toContain("1 active");
-  await act(async () => summary.click()); await act(async () => summary.click());
+  await act(async () => disclosure.querySelector<HTMLButtonElement>("dialog header button")!.click()); await act(async () => summary.click());
   expect(custom.value).toBe("Ultra"); expect(store().getSnapshot().data.ui.guided!.customPrefixes).toEqual(["Ultra"]);
   await click("prefix Neo"); expect(host.querySelector(".names-guided-preview-value")!.textContent).toBe("Neocedar");
 });
@@ -87,9 +89,9 @@ it("keeps the full long library name available inside its existing keyboard disc
   store().addManual(value); const candidate = store().getSnapshot().data.candidates[0]!;
   await act(async () => root.render(<NameCandidateCard row candidate={candidate} compared={false} comparisonFull={false} onFavorite={() => {}} onSave={() => {}} onCompare={() => {}} onSeed={() => {}} onCreateBrand={() => {}} />));
   expect(host.querySelector("h3")!.getAttribute("title")).toBe(value);
-  const disclosure = host.querySelector<HTMLDetailsElement>(".names-candidate-details")!, summary = disclosure.querySelector("summary")!;
+  const disclosure = host.querySelector<HTMLElement>(".names-candidate-details")!, summary = disclosure.querySelector<HTMLButtonElement>(":scope > button")!;
   summary.focus(); await act(async () => summary.click());
-  expect(disclosure.open).toBe(true); expect(document.activeElement).toBe(summary);
+  expect(disclosure.querySelector("dialog")!.open).toBe(true); expect(disclosure.querySelector("dialog")!.contains(document.activeElement)).toBe(true);
   expect(disclosure.querySelector(".names-full-value")!.textContent).toBe(`Full name${value}`);
   expect(store().getSnapshot().data.candidates[0]).toBe(candidate);
 });

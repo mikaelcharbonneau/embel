@@ -1,3 +1,4 @@
+import { ContextDetails } from "@/components/ui/context-details";
 import { logoReferenceAspectSchema, type LogoReferenceRegistration, type LogoReferenceSelection, type LogoReferenceSnapshot } from "../../domain/logo-workspace";
 import { REFERENCE_ASPECT_LABELS } from "./presentation";
 import styles from "./logo-creation.module.css";
@@ -43,7 +44,7 @@ export function LogoReferencePickerView({ references = [], selections = [], onCh
         return <fieldset className={styles.referenceCard} key={reference.referenceId} disabled={!onChange}>
           <legend>{source === "curated" ? "Curated" : "Uploaded"} reference {sourceOrdinal}</legend>
           <p className={styles.note}>Permission record attached. Preview unavailable.</p>
-          <details className={styles.note}><summary>Saved image details</summary><p>Image version: {reference.asset.versionId}</p><p>Content hash: {reference.asset.contentHash}</p></details>
+          <ContextDetails className={styles.note} title={<>Saved image details</>}><p>Image version: {reference.asset.versionId}</p><p>Content hash: {reference.asset.contentHash}</p></ContextDetails>
           <div className={styles.aspects}>
             {logoReferenceAspectSchema.options.map(aspect => <label className={styles.choice} key={aspect}>
               <input type="checkbox" aria-label={`${REFERENCE_ASPECT_LABELS[aspect]} for ${label}`} checked={selected.includes(aspect)} onChange={event => {

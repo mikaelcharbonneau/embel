@@ -38,10 +38,11 @@ afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi
 describe("saved brief editing during unavailable Strategy", () => {
   it("keeps a real saved Brand editable and acknowledges its autosave without implying an AI answer", async () => {
     await render();
-    expect([...host.querySelectorAll<HTMLButtonElement>("button")].find(button => button.textContent === "Start competitor research")!.disabled).toBe(true);
+    expect([...host.querySelectorAll<HTMLButtonElement>("button")].find(button => button.textContent === "Start competitor research")).toBeUndefined();
     expect(host.textContent).toContain("AI replies are unavailable right now. You can still edit and save your project."); expect(host.querySelector(".guided-assistant-message")).toBeNull();
     const details = host.querySelector<HTMLDetailsElement>(".project-details-disclosure")!;
-    await act(async () => details.querySelector("summary")!.click()); expect(details.open).toBe(true);
+    expect(details.querySelector('button[aria-haspopup="dialog"]')).not.toBeNull();
+    expect(details.querySelector("summary")).toBeNull();
     const brief = details.querySelector<HTMLTextAreaElement>("textarea")!; expect(brief.disabled).toBe(false);
     await fill(brief, "A more specific saved Brand brief"); expect(mock.memory!.hasUnsaved()).toBe(true); expect(details.textContent).toContain("Saving…");
     await act(async () => { await vi.advanceTimersByTimeAsync(650); });

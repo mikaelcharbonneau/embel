@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 vi.mock("server-only",()=>({}));
@@ -9,8 +9,11 @@ import type { LogoExportsController } from "@/features/identity-deliverables/com
 import type { AccountLogoClient } from "@/components/identity/account-logo-client";
 import type { LogoDeliverablesOverview } from "@/domain/logo-deliverables";
 import { syntheticLogoWorkspace } from "../../fixtures/logo-creation";
+import { installDialogMethods } from "../../helpers/dialog-methods";
+let restoreDialogs: () => void;
+beforeEach(() => { restoreDialogs = installDialogMethods(); });
 let root:Root|null=null;
-afterEach(async()=>{if(root)await act(async()=>root!.unmount());root=null;vi.unstubAllGlobals();});
+afterEach(async()=>{if(root)await act(async()=>root!.unmount());root=null;restoreDialogs();document.body.replaceChildren();vi.unstubAllGlobals();});
 function controller(extra:Partial<LogoExportsController>={}):LogoExportsController {return {workspace:null,overview:null,variantSetId:null,selectedOptions:{pngLongEdge:2048,socialSelections:[]},pendingRequestKey:null,requestState:null,loading:false,error:null,canRead:true,canPrepare:false,canExport:false,blockedReason:"Approve a logo and identity direction first.",downloadMessage:null,refresh:vi.fn(async()=>{}),prepareVariants:vi.fn(async()=>{}),reviewVariants:vi.fn(async()=>{}),request:vi.fn(async()=>{}),retryOriginalExport:vi.fn(async()=>{}),reconcile:vi.fn(async()=>{}),download:vi.fn(async()=>{}),selectOptions:vi.fn(),checkRequest:vi.fn(async()=>{}),loadMore:vi.fn(async()=>{}),...extra};}
 async function mount(c:LogoExportsController){vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT",true);const container=document.createElement("div");document.body.append(container);root=createRoot(container);await act(async()=>{root!.render(createElement(DeliverablesView,{controller:c,client:{previewAsset:async()=>null} as unknown as AccountLogoClient}));});return container;}
 describe("deliverables mounted controls",()=>{
@@ -25,15 +28,16 @@ describe("deliverables mounted controls",()=>{
   expect(summary.textContent).not.toContain("Ready to create brand files");
   expect(summary.querySelector("a")).toBeNull();expect(c.request).not.toHaveBeenCalled();
  });
- it("shows missing approvals and the direct review route before collapsed export preparation",async()=>{
+ it("shows missing approvals and the direct review route before the export options sheet",async()=>{
   const workspace={...syntheticLogoWorkspace(),approvedLogo:null,staleStages:[]};
   const overview:LogoDeliverablesOverview={ownerId:workspace.ownerId,projectId:workspace.projectId,logoApproval:null,directionApproval:null,variantSets:[],variantReviews:[],exports:[],exportRequests:[],nextCursor:null,nextRequestCursor:null};
   const c=controller({workspace,overview}),container=await mount(c);
   expect(container.querySelector("h3")!.textContent).toBe("Start with an approved logo");
   const review=container.querySelector<HTMLAnchorElement>(`a[href="/brands/account/${workspace.projectId}/logo/vector"]`);
   expect(review?.textContent).toBe("Review vector logo");
-  const options=container.querySelector("select")!,disclosure=options.closest("details")!;
-  expect(disclosure.open).toBe(false);expect(disclosure.querySelector("summary")!.textContent).toBe("Preview formats and export options");
+  const options=container.querySelector("select")!,disclosure=options.closest("dialog")!;
+  expect(disclosure.open).toBe(false);expect(disclosure.querySelector("h2")!.textContent).toBe("Preview formats and export options");
+  expect(container.querySelector("details,summary")).toBeNull();
   expect(review!.compareDocumentPosition(disclosure)&Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
   expect(container.textContent).toContain("A selected image preview is separate from approval");
   expect(c.prepareVariants).not.toHaveBeenCalled();expect(c.request).not.toHaveBeenCalled();
@@ -43,9 +47,10 @@ describe("deliverables mounted controls",()=>{
   expect(container.querySelector("h3")!.textContent).toBe("Check your brand file prerequisites");
   const summary=container.querySelector("h3")!.closest("section")!;
   expect(summary.textContent).toContain("Checking saved approvals");expect(summary.textContent).not.toContain("Not approved");
-  const select=container.querySelector("select"),disclosure=select!.closest("details")!;disclosure.open=true;
+  const select=container.querySelector("select"),disclosure=select!.closest("dialog")!;
+  await act(async()=>container.querySelector<HTMLButtonElement>('button[aria-haspopup="dialog"]')!.click());
   await act(async()=>root!.render(createElement(DeliverablesView,{controller:{...c,loading:false,error:"Synthetic read failed"},client:{previewAsset:async()=>null} as unknown as AccountLogoClient})));
-  expect(container.querySelector("select")).toBe(select);expect(select!.closest("details")).toBe(disclosure);expect(disclosure.open).toBe(true);
+  expect(container.querySelector("select")).toBe(select);expect(select!.closest("dialog")).toBe(disclosure);expect(disclosure.open).toBe(true);
   expect(summary.textContent).toContain("Saved approval status has not been confirmed");expect(summary.textContent).not.toContain("Ready to create");
   expect(c.request).not.toHaveBeenCalled();
  });

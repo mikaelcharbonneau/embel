@@ -2,6 +2,7 @@
 import { act, createElement, useEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { installDialogMethods } from "../helpers/dialog-methods";
 import { DEFAULT_PROFILE_VALUES } from "@/domain/account-profile";
 
 const fixture = vi.hoisted(() => ({
@@ -34,7 +35,7 @@ import { SettingsWorkspace } from "@/components/workspace/settings-workspace";
 
 // Synthetic presentation/lifetime checks. Actual usage owner masking and request
 // fencing remain exercised by the unchanged RecordedUsage continuity suites.
-let root: Root, host: HTMLDivElement;
+let root: Root, host: HTMLDivElement, restoreDialogs: () => void;
 const tab = (id: string) => host.querySelector<HTMLButtonElement>(`#settings-tab-${id}`)!;
 const panel = (id: string) => host.querySelector<HTMLElement>(`#settings-panel-${id}`)!;
 const select = (id: string) => act(async () => tab(id).click());
@@ -42,6 +43,7 @@ async function render(localRuntimeEnabled = false) {
   await act(async () => root.render(createElement(SettingsWorkspace, { localRuntimeEnabled })));
 }
 beforeEach(() => {
+  restoreDialogs = installDialogMethods();
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   vi.clearAllMocks();
   const saved = { ownerId: fixture.session.userId, email: "fixture@example.invalid", revision: 1, updatedAt: "2026-10-20T00:00:00Z", values: { ...DEFAULT_PROFILE_VALUES, fullName: "Synthetic account" } };
@@ -53,7 +55,7 @@ beforeEach(() => {
 afterEach(async () => {
   expect(fetch).not.toHaveBeenCalled();
   for (const action of [fixture.edit, fixture.save, fixture.discard, fixture.reload, fixture.keepEdits, fixture.checkAccount]) expect(action).not.toHaveBeenCalled();
-  await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals();
+  await act(async () => root.unmount()); host.remove(); restoreDialogs(); vi.unstubAllGlobals();
 });
 
 describe("Settings supported-first hierarchy", () => {
@@ -66,10 +68,10 @@ describe("Settings supported-first hierarchy", () => {
     expect(account.querySelectorAll('select[aria-label="Language"], select[aria-label="Appearance"]')).toHaveLength(0);
     const unsupported = account.querySelector(".sg-availability")!, footer = account.querySelector(".sg-save")!;
     expect(footer.compareDocumentPosition(unsupported) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-    const details = unsupported.querySelector("details")!;
-    expect(details.open).toBe(false); await act(async () => details.querySelector("summary")!.click()); expect(details.open).toBe(true);
+    const details = unsupported.querySelector(".sg-availability-details")!;
+    expect(details.querySelector("dialog")!.open).toBe(false); await act(async () => details.querySelector<HTMLButtonElement>(":scope > button")!.click()); expect(details.querySelector("dialog")!.open).toBe(true);
     expect(unsupported.textContent).toContain("Profile photo"); expect(unsupported.textContent).toContain("English"); expect(unsupported.textContent).toContain("light appearance");
-    expect(unsupported.querySelectorAll("button,input,select")).toHaveLength(0);
+    expect(unsupported.querySelectorAll("input,select")).toHaveLength(0);
     expect(account.querySelector('input[autocomplete="name"]')).toBe(name); expect(account.querySelector('select[aria-label="Time zone"]')).toBe(zone);
     fixture.profile = { ...fixture.profile, busy: true }; await render();
     expect(account.querySelector('input[autocomplete="name"]')).toBe(name); expect(name.disabled).toBe(true);
@@ -86,8 +88,8 @@ describe("Settings supported-first hierarchy", () => {
     expect(current.querySelector("h2")!.textContent).toBe(heading);
     const unsupported = current.querySelector(".sg-availability")!;
     expect(unsupported.textContent).toContain("Not available yet"); expect(unsupported.textContent).not.toContain("Loading");
-    expect(unsupported.querySelector("details")!.open).toBe(false);
-    expect(unsupported.querySelectorAll("button,input,select")).toHaveLength(0);
+    expect(unsupported.querySelector("dialog")!.open).toBe(false);
+    expect(unsupported.querySelectorAll("input,select")).toHaveLength(0);
     expect(current.querySelectorAll(".sg-save")).toHaveLength(0);
     expect([...current.querySelectorAll("button")].some(button => ["Save changes", "Cancel", "Connect"].includes(button.textContent ?? ""))).toBe(false);
   });
@@ -104,8 +106,8 @@ describe("Settings supported-first hierarchy", () => {
     };
     for (const [id, labels] of Object.entries(expected)) {
       await select(id);
-      const details = panel(id).querySelector(".sg-availability details")!;
-      await act(async () => details.querySelector("summary")!.click());
+      const details = panel(id).querySelector(".sg-availability-details")!;
+      await act(async () => details.querySelector<HTMLButtonElement>(":scope > button")!.click());
       expect([...details.querySelectorAll("dt")].map(node => node.textContent)).toEqual(labels);
     }
   });
@@ -132,12 +134,12 @@ describe("Usage hierarchy without changing its lifetime", () => {
   it("retains the same usage section while billing details expand and categories change", async () => {
     await render(); await select("billing");
     const usage = host.querySelector(".recorded-usage")!;
-    const details = panel("billing").querySelector<HTMLDetailsElement>(".sg-availability details")!;
-    await act(async () => details.querySelector("summary")!.click());
+    const details = panel("billing").querySelector<HTMLElement>(".sg-availability-details")!;
+    await act(async () => details.querySelector<HTMLButtonElement>(":scope > button")!.click());
     expect(host.querySelector(".recorded-usage")).toBe(usage); expect(fixture.usageMount).toHaveBeenCalledOnce();
     await select("workspace"); expect(host.querySelector(".recorded-usage")).toBe(usage);
     expect(panel("billing").hidden).toBe(true); expect(panel("billing").hasAttribute("inert")).toBe(true); expect(usage.getAttribute("data-active")).toBe("false");
     await select("billing"); expect(host.querySelector(".recorded-usage")).toBe(usage); expect(usage.getAttribute("data-active")).toBe("true");
-    expect(details.open).toBe(true); expect(fixture.usageUnmount).not.toHaveBeenCalled(); expect(fixture.usageMount).toHaveBeenCalledOnce();
+    expect(details.querySelector("dialog")!.open).toBe(true); expect(fixture.usageUnmount).not.toHaveBeenCalled(); expect(fixture.usageMount).toHaveBeenCalledOnce();
   });
 });

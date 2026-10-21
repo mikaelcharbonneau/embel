@@ -90,7 +90,7 @@ it('shows retained account rows on tab return, keeps independent scoped searches
   expect(host.querySelector<HTMLSelectElement>('[aria-label="Name source"]')!.value).toBe('manual');
   const field = library().querySelector<HTMLInputElement>('input')!, projectFilter = library().querySelector<HTMLSelectElement>('select')!, retainedCard = cards()[0];
   expect(field.value).toBe('Account'); expect(projectFilter.value).toBe(projectId); field.focus();
-  for (const node of library().querySelectorAll<HTMLButtonElement>('.project-naming-card button')) expect(node.disabled).toBe(true);
+  for (const node of library().querySelectorAll<HTMLButtonElement>('.project-naming-card button')) if (!node.hasAttribute('aria-haspopup') && node.textContent !== 'Close') expect(node.disabled).toBe(true);
   await click('Create brand', retainedCard); expect(writes()).toHaveLength(0);
   const updated = { ...row(1), retention: { ...row(1).retention, revision: 2, favorite: false } };
   await act(async () => held.resolve(Response.json(page([updated, row(2)]))));

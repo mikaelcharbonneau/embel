@@ -2,41 +2,41 @@ import { expect, it } from "vitest";
 import { confirmNamingChatQuestion, initialNamingChatProgress, namingChatCheckpoint, namingChatQuestions, resolveNamingChatProgress, type NamingChatProgress } from "@/components/naming/naming-chat-progress";
 import { initialNamingPreferencesV2 } from "@/domain/naming-brain-preferences";
 import { contextSnapshotSchema } from "@/domain/projects";
-
-it.each(["sourceLanguages", "heritage", "culture"])("resumes a retired %s question at the next real decision without changing saved preferences", retired => {
-  const value = { ...initialNamingPreferencesV2(contextSnapshotSchema.parse({ description: "Synthetic saved Naming context" })),
-    approaches: ["other_languages", "classical_roots", "people_places", "stories_culture"] as const, directness: "all" as const,
-    sourceLanguages: ["French"], heritageNotes: "Synthetic saved place", culturalNotes: "Synthetic saved story" };
-  const preferences = { ...value, approaches: [...value.approaches] }, original = structuredClone(preferences);
-  const approaches = confirmNamingChatQuestion(initialNamingChatProgress(null), "approaches", preferences);
-  const current = confirmNamingChatQuestion(approaches, "directness", preferences);
-  const legacy = { ...current, activeStep: retired, confirmed: { ...current.confirmed, [retired]: '"Synthetic earlier answer"' } } as unknown as NamingChatProgress;
-  expect(resolveNamingChatProgress(preferences, legacy)).toEqual(current);
-  expect(current.activeStep).toBe("language");
-  expect(preferences).toEqual(original);
-});
-
-it("restores only unchanged explicit answers from a current or older checkpoint", () => {
-  const saved = { ...initialNamingPreferencesV2(contextSnapshotSchema.parse({})), approaches: ["invented" as const], directness: "suggestive" as const };
-  const completed = namingChatQuestions().reduce((progress, question) => confirmNamingChatQuestion(progress, question, saved), initialNamingChatProgress(saved));
-  const checkpoint = namingChatCheckpoint(completed, saved, 7);
+const saved = { ...initialNamingPreferencesV2(contextSnapshotSchema.parse({})), approaches: ["invented" as const], directness: "suggestive" as const };
+const completed = () => namingChatQuestions().reduce((progress, question) => confirmNamingChatQuestion(progress, question, saved), initialNamingChatProgress(saved));
+it("asks three decisions, with length and fragments combined and language inferred", () => {
+  expect(namingChatQuestions()).toEqual(["approaches", "directness", "length"]);
+  const checkpoint = namingChatCheckpoint(completed(), saved, 7);
+  expect(checkpoint.confirmed.length).toBe("[null,null]");
+  expect(checkpoint.confirmed.fragments).toBe("[[],[]]");
   expect(initialNamingChatProgress(saved, checkpoint, 7).activeStep).toBe("review");
   expect(initialNamingChatProgress(saved, checkpoint, 8).activeStep).toBe("review");
-  expect(initialNamingChatProgress(saved, checkpoint, 6).activeStep).toBe("language");
-  expect(initialNamingChatProgress(saved).activeStep).toBe("language");
-  expect(initialNamingChatProgress({ ...saved, creativeLocale: "fr" }, checkpoint, 7).confirmed.language).toBeUndefined();
-  expect(initialNamingChatProgress({ ...saved, maximumGraphemes: 12 }, checkpoint, 7).confirmed.length).toBeUndefined();
-  expect(initialNamingChatProgress({ ...saved, requiredText: ["new"] }, checkpoint, 7).confirmed.fragments).toBeUndefined();
+  expect(initialNamingChatProgress(saved, checkpoint, 6).activeStep).toBe("length");
 });
-
-it("rebinds only unchanged confirmations when an edited answer is acknowledged", () => {
-  const saved = { ...initialNamingPreferencesV2(contextSnapshotSchema.parse({})), approaches: ["invented" as const], directness: "suggestive" as const };
-  const completed = namingChatQuestions().reduce((progress, question) => confirmNamingChatQuestion(progress, question, saved), initialNamingChatProgress(saved));
+it.each(["sourceLanguages", "heritage", "culture", "language", "fragments"])("resumes retired %s at the next real decision without mutating preferences", retired => {
+  const original = structuredClone(saved);
+  const progress = initialNamingChatProgress(saved);
+  expect(resolveNamingChatProgress(saved, { ...progress, activeStep: retired } as NamingChatProgress).activeStep).toBe("length");
+  expect(saved).toEqual(original);
+});
+it("reopens the combined answer when either length or text fragments change", () => {
+  for (const changed of [{ ...saved, maximumGraphemes: 12 }, { ...saved, requiredText: ["new"] }]) {
+    const resolved = resolveNamingChatProgress(changed, completed());
+    expect(resolved.activeStep).toBe("length");
+    expect(resolved.confirmed.length).toBeUndefined();
+    const acknowledged = confirmNamingChatQuestion(resolved, "length", changed);
+    expect(acknowledged.activeStep).toBe("review");
+    expect(initialNamingChatProgress(changed, namingChatCheckpoint(acknowledged, changed, 8), 8).activeStep).toBe("review");
+  }
+});
+it("preserves old checkpoint answers only when both parts of the combined question match", () => {
+  const legacy = namingChatCheckpoint(completed(), saved, 7);
+  legacy.confirmed.language = '"en"';
+  expect(initialNamingChatProgress(saved, legacy, 7).activeStep).toBe("review");
+  delete legacy.confirmed.fragments;
+  expect(initialNamingChatProgress(saved, legacy, 7).activeStep).toBe("length");
+});
+it("changing inferred language does not reintroduce a language question", () => {
   const edited = { ...saved, creativeLocale: "fr" };
-  const current = resolveNamingChatProgress(edited, completed);
-  expect(current.activeStep).toBe("language"); expect(current.confirmed.language).toBeUndefined();
-  const confirmed = confirmNamingChatQuestion(current, "language", edited);
-  const checkpoint = namingChatCheckpoint(confirmed, edited, 8);
-  expect(initialNamingChatProgress(edited, checkpoint, 8).activeStep).toBe("review");
-  expect(checkpoint.confirmed.length).toBe("[null,null]"); expect(checkpoint.confirmed.fragments).toBe("[[],[]]");
+  expect(resolveNamingChatProgress(edited, completed()).activeStep).toBe("review");
 });

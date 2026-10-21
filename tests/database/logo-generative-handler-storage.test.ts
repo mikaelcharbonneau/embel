@@ -297,12 +297,11 @@ describe("actual generative handlers through leased metadata and Storage RLS", (
     await assertNoPublication(job, heads);
   });
 
-  it.each(["cancel", "revoke", "lost_ack"] as const)("%s after an output INSERT retains uncertainty and cannot publish success or advance heads", async action => {
+  it.each(["cancel", "revoke"] as const)("%s after an output INSERT retains uncertainty and cannot publish success or advance heads", async action => {
     const { job } = await f.prepareConcept(1), heads = (await f.workspace(job.projectId)).heads;
     const bound = await compose(job, { afterWrite: async () => {
       if (action === "cancel") await f.rpc("request_job_cancel", [job.id]);
-      else if (action === "revoke") await db.query("update fluid_private.logo_generative_storage_capabilities set enabled=false where auth_user_id=$1 and operation=$2", [authUser, job.operation]);
-      else throw new Error("Synthetic upload acknowledgement lost after RLS INSERT");
+      else await db.query("update fluid_private.logo_generative_storage_capabilities set enabled=false where auth_user_id=$1 and operation=$2", [authUser, job.operation]);
     } });
     const outcome = await bound.step.execute({ job, signal: new AbortController().signal });
     expect(outcome).toMatchObject({ status: "needs_reconciliation", code: "publication_unknown", costMicrousd: 1 });
@@ -314,4 +313,28 @@ describe("actual generative handlers through leased metadata and Storage RLS", (
     expect((await db.query("select id from public.logo_provider_responses where job_id=$1", [job.id])).rows).toHaveLength(1);
     await assertNoPublication(job, heads);
   });
+  it.each([false, true])("recovers one lost upload acknowledgement only with exact authorized readback (readback unavailable=%s)", async unavailable => {
+    const { job } = await f.prepareConcept(1), heads = (await f.workspace(job.projectId)).heads;
+    let outputPath: string | null = null;
+    const bound = await compose(job, {
+      afterWrite: async path => { outputPath = path; throw new Error("Synthetic upload acknowledgement lost after RLS INSERT"); },
+      afterRead: async path => { if (unavailable && path === outputPath) throw new Error("Synthetic output readback unavailable"); },
+    });
+    const outcome = await bound.step.execute({ job, signal: new AbortController().signal });
+    expect(outcome).toMatchObject(unavailable
+      ? { status: "needs_reconciliation", code: "publication_unknown", costMicrousd: 1 }
+      : { status: "succeeded", costMicrousd: 1 });
+    expect(bound.produce).toHaveBeenCalledTimes(1);
+    expect(bound.writes).toHaveLength(2);
+    expect(bound.writes[0]).toBe(bound.writes[1]);
+    expect(bound.duplicates).toEqual([bound.writes[0]]);
+    expect(f.blobs.get(bound.writes[0]!)!.bytes).toEqual(output);
+    const rows = (await publications(job)).rows;
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.state).toBe(unavailable ? "reserved" : "staged");
+    expect((await db.query("select id from public.logo_provider_responses where job_id=$1", [job.id])).rows).toHaveLength(1);
+    await assertNoPublication(job, heads);
+    if (!unavailable) await complete(job, bound, outcome);
+  }, 30_000);
+
 });

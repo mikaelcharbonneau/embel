@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 
 import { useState, type FormEvent } from "react";
 import { Icon } from "@/components/ui/icon";
@@ -19,12 +20,7 @@ const operations: { value: NamesForm["operations"][number]; label: string }[] = 
 
 export function ContextEditor({ ui }: { ui: NamesUi }) {
   const namesStore = useNamesActions();
-  return <details className="names-context-editor"><summary>Context for new names <span>Optional</span></summary>
-    <p>Captured with each new name. Editing this brief leaves earlier results unchanged.</p>
-    <label className="names-field">Brief description<textarea value={ui.context.description} maxLength={12000} rows={3} onChange={event => namesStore.updateContext({ description: event.target.value })} placeholder="What are you naming?" /></label>
-    <label className="names-field">Known audience<textarea value={ui.context.knownAudience} maxLength={2000} rows={2} onChange={event => namesStore.updateContext({ knownAudience: event.target.value })} placeholder="Who is it for?" /></label>
-    <label className="names-field">Naming notes<textarea value={ui.context.intake.namingNotes} maxLength={2000} rows={2} onChange={event => namesStore.updateContext({ namingNotes: event.target.value })} placeholder="A tone, a constraint, something to keep in mind" /></label>
-  </details>;
+  return <ContextDetails className="names-context-editor" title={<>Context for new names <span>Optional</span></>}><p>Captured with each new name. Editing this brief leaves earlier results unchanged.</p><label className="names-field">Brief description<textarea value={ui.context.description} maxLength={12000} rows={3} onChange={event => namesStore.updateContext({ description: event.target.value })} placeholder="What are you naming?" /></label><label className="names-field">Known audience<textarea value={ui.context.knownAudience} maxLength={2000} rows={2} onChange={event => namesStore.updateContext({ knownAudience: event.target.value })} placeholder="Who is it for?" /></label><label className="names-field">Naming notes<textarea value={ui.context.intake.namingNotes} maxLength={2000} rows={2} onChange={event => namesStore.updateContext({ namingNotes: event.target.value })} placeholder="A tone, a constraint, something to keep in mind" /></label></ContextDetails>;
 }
 
 export function WorkshopPanel({ ui, candidates, onResult }: { ui: NamesUi; candidates: NameCandidate[]; onResult: (result: NamesMutationResult, success: string) => void }) {

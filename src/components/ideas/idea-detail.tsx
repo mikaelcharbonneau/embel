@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -200,12 +201,11 @@ function OwnedIdeaDetail({ account, ideaId }: { account: VerifiedAccount; ideaId
             <label className="ideas-field">Description<textarea aria-label="Description (optional)" className="idea-description" value={current.content.description} maxLength={12000} rows={4} onChange={event => edit({ ...current.content, description: event.target.value })} /></label>
             <div className="idea-metadata-fields"><label className="ideas-field">Idea state<select value={current.content.state} onChange={event => edit({ ...current.content, state: event.target.value as IdeaContent["state"] })}>{Object.entries(ideaStateLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label className="ideas-field">Theme<input aria-label="Theme (optional)" value={current.content.theme} maxLength={120} onChange={event => edit({ ...current.content, theme: event.target.value })} /></label></div>
           </fieldset>
-          <details className="idea-detail-panel idea-development-panel"><summary>Develop this idea<span className="field-hint">Optional problem, solution, audience and planning notes</span></summary>
-          <fieldset className="ideas-fields" disabled={busy === "brand" || busy === "load"}>
+          <ContextDetails className="idea-detail-panel idea-development-panel" title={<>Develop this idea<span className="field-hint">Optional problem, solution, audience and planning notes</span></>}><fieldset className="ideas-fields" disabled={busy === "brand" || busy === "load"}>
             <legend className="sr-only">Develop this idea</legend>
             {details.slice(0, 3).map(({ field, label }) => <IdeaNoteField key={field} label={label} accessibleLabel={field === "solution" ? "Proposed solution" : label} value={current.content.details[field]} onChange={value => edit({ ...current.content, details: { ...current.content.details, [field]: value } })} />)}
-            <details className="idea-extra-details"><summary>More details</summary><p className="field-hint">Optional notes you write and refine.</p><div className="ideas-fields">{details.slice(3).map(({ field, label, hint }) => <IdeaNoteField key={field} label={label} hint={hint} value={current.content.details[field]} onChange={value => edit({ ...current.content, details: { ...current.content.details, [field]: value } })} />)}</div></details>
-          </fieldset></details>
+            <ContextDetails className="idea-extra-details" title={<>More details</>}><p className="field-hint">Optional notes you write and refine.</p><div className="ideas-fields">{details.slice(3).map(({ field, label, hint }) => <IdeaNoteField key={field} label={label} hint={hint} value={current.content.details[field]} onChange={value => edit({ ...current.content, details: { ...current.content.details, [field]: value } })} />)}</div></ContextDetails>
+          </fieldset></ContextDetails>
         </form>
         {(saving || saveProblem || dirty) && <p className="idea-detail-save-state" role="status">{saving ? "Saving to account…" : saveProblem ? "Your edits are retained until account saving is confirmed." : "Your edits are waiting to save."}</p>}
         {current.conflict && <div className="account-conflict idea-recovery" role="alert"><strong>A newer version is saved in your account.</strong><p>Your edits are still here. Retry the original save or explicitly load the latest version.</p></div>}
@@ -221,9 +221,9 @@ function OwnedIdeaDetail({ account, ideaId }: { account: VerifiedAccount; ideaId
           <p className="idea-detail-caption">Your original idea stays linked.</p>
           {dirty && <p className="field-hint">Your edits must finish saving before creating a brand.</p>}
           {converted && !current.brandIntent && <p className="field-hint">This saved version has already been used to create a brand.</p>}
-          <details className="idea-attach-disclosure"><summary>Use an existing brand</summary><AttachIdeaControl account={account} idea={current.saved} dirty={dirty || current.conflict} pending={Boolean(busy || current.saveIntent || current.brandIntent)} memory={lifecycleMemory} /></details>
+          <ContextDetails className="idea-attach-disclosure" title={<>Use an existing brand</>}><AttachIdeaControl account={account} idea={current.saved} dirty={dirty || current.conflict} pending={Boolean(busy || current.saveIntent || current.brandIntent)} memory={lifecycleMemory} /></ContextDetails>
         </section>
-        <details className="idea-detail-panel idea-detail-metadata"><summary>Saved details</summary><p className="field-hint">Saved to account · version {current.saved.revision}.</p><dl><div><dt>State</dt><dd>{ideaStateLabels[current.content.state]}</dd></div><div><dt>Version</dt><dd>{current.saved.revision}</dd></div></dl></details>
+        <ContextDetails className="idea-detail-panel idea-detail-metadata" title={<>Saved details</>}><p className="field-hint">Saved to account · version {current.saved.revision}.</p><dl><div><dt>State</dt><dd>{ideaStateLabels[current.content.state]}</dd></div><div><dt>Version</dt><dd>{current.saved.revision}</dd></div></dl></ContextDetails>
         {current.saved.links.length > 0 && <section className="idea-detail-panel idea-created-brands" aria-labelledby="idea-brand-links-heading"><h2 id="idea-brand-links-heading">Created brands</h2>{current.saved.links.map(link => <div key={link.id}><Link className="text-link" href={`/brands/account/${link.projectId}`}>Open created brand<Icon name="arrow" size={16} /></Link><span className="field-hint">From idea version {link.ideaRevision}</span></div>)}</section>}
       </aside>
     </div>

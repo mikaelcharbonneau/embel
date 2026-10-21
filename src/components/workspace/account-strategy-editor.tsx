@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 
 import type { ComponentProps } from "react";
 import { ProjectArtwork } from "@/components/ui/project-artwork";
@@ -125,7 +126,7 @@ export function AccountStrategyEditor({ account, workspace, busy, saveDraft, sto
 function Proposal({ output }: { output: StrategyJobResult }) {
   return <>
     <p className="strategy-response-copy">{output.proposal.message}</p>
-    {output.operation === "strategy.reformulate" && <>{(output.proposal.activity || output.proposal.offering || output.proposal.knownAudience) && <details className="strategy-proposal-details"><summary>Brief details</summary><dl>{[["Activity", output.proposal.activity], ["Offering", output.proposal.offering], ["Known audience", output.proposal.knownAudience]].filter(([, value]) => value).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></details>}{output.proposal.questions.length > 0 && <ul className="strategy-response-questions">{output.proposal.questions.map(question => <li key={question}>{question}</li>)}</ul>}</>}
+    {output.operation === "strategy.reformulate" && <>{(output.proposal.activity || output.proposal.offering || output.proposal.knownAudience) && <ContextDetails className="strategy-proposal-details" title={<>Brief details</>}><dl>{[["Activity", output.proposal.activity], ["Offering", output.proposal.offering], ["Known audience", output.proposal.knownAudience]].filter(([, value]) => value).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></ContextDetails>}{output.proposal.questions.length > 0 && <ul className="strategy-response-questions">{output.proposal.questions.map(question => <li key={question}>{question}</li>)}</ul>}</>}
     {output.operation === "strategy.competitors" && <ul>{output.proposal.competitors.map(competitor => <li key={competitor.id}><strong>{competitor.name}</strong><p>{competitor.relevance}</p><ul>{competitor.sources.map((source, index) => <li key={`${source.url}:${index}`}><a href={source.url} target="_blank" rel="noopener noreferrer">{source.title}</a> <BrowserLocalDate dateTime={source.retrievedAt} /></li>)}</ul></li>)}</ul>}
     {output.operation === "strategy.audience" && <ul>{output.proposal.segments.map(segment => <li key={segment.id}><strong>{segment.label}</strong><p>{segment.reason}</p><ul>{segment.needs.map(need => <li key={need}>{need}</li>)}</ul></li>)}</ul>}
     {output.operation === "strategy.personality" && <dl>{Object.entries(output.proposal.personality).map(([dimension, value]) => <div key={dimension}><dt>{dimension[0]!.toUpperCase() + dimension.slice(1)}</dt><dd>{value}/100</dd></div>)}</dl>}

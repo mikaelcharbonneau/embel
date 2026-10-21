@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 
 import type { ContextSnapshot } from "@/domain/projects";
 import type { NameTransformInput } from "@/domain/naming";
@@ -36,10 +37,7 @@ export function CapturedContext({ context }: { context: ContextSnapshot }) {
 }
 
 export function RunParameters({ run }: { run: NameRun }) {
-  return <details className="names-run-details"><summary>Exact parameters &amp; captured context</summary>
-    <TransformParameters input={run.input} />
-    <CapturedContext context={run.context} />
-  </details>;
+  return <ContextDetails className="names-run-details" title={<>Exact parameters &amp; captured context</>}><TransformParameters input={run.input} /><CapturedContext context={run.context} /></ContextDetails>;
 }
 
 export function NameCandidateCard({ candidate, compared, comparisonFull, onFavorite, onSave, onCompare, onSeed, onCreateBrand, row = false }: {
@@ -55,16 +53,9 @@ export function NameCandidateCard({ candidate, compared, comparisonFull, onFavor
       {!row && <button type="button" className={`names-chip${compared ? " is-active" : ""}`} aria-label={`${compared ? "Remove" : "Compare"} ${source.value}${compared ? " from comparison" : ""}`} aria-pressed={compared} disabled={!compared && comparisonFull} onClick={onCompare}><NameSymbol name="compare" />{compared ? "In tray" : "Compare"}</button>}
       <button type="button" className="names-seed-action" onClick={onSeed}>Use as seed<Icon name="arrow" size={14} /></button>
     </div>
-    <details className="names-candidate-details"><summary>Context &amp; history</summary>
-      {row && source.value.length > 60 && <p className="names-full-value"><strong>Full name</strong>{source.value}</p>}
-      <p className="names-explanation">{candidate.explanation}</p>
-      <CapturedContext context={candidate.context} />
-      {source.history.length ? <ol className="names-lineage">{source.history.map((step, index) => <li key={step.id}>
+    <ContextDetails className="names-candidate-details" title={<>Context &amp; history</>}>{row && source.value.length > 60 && <p className="names-full-value"><strong>Full name</strong>{source.value}</p>}<p className="names-explanation">{candidate.explanation}</p><CapturedContext context={candidate.context} />{source.history.length ? <ol className="names-lineage">{source.history.map((step, index) => <li key={step.id}>
         <div><span>{index + 1}. {transformLabels[step.input.kind]}</span><strong>{step.output}</strong></div>
-        <details><summary>Parameters</summary><TransformParameters input={step.input} /></details>
-      </li>)}</ol> : <p className="names-muted">No transformations yet.</p>}
-      <button type="button" className="button secondary small" onClick={onCreateBrand}>Create brand<Icon name="arrow" size={14} /></button>
-      <p className="names-muted">Creates a new project in your account with this name and its captured context.</p>
-    </details>
+        <ContextDetails  title={<>Parameters</>}><TransformParameters input={step.input} /></ContextDetails>
+      </li>)}</ol> : <p className="names-muted">No transformations yet.</p>}<button type="button" className="button secondary small" onClick={onCreateBrand}>Create brand<Icon name="arrow" size={14} /></button><p className="names-muted">Creates a new project in your account with this name and its captured context.</p></ContextDetails>
   </article>;
 }

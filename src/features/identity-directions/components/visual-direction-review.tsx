@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 import Link from "next/link";
 import { useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import { BrowserLocalDate } from "@/components/workspace/browser-local-date";
@@ -34,14 +35,11 @@ function Review({ account, projectId, onSaved }: { account: VerifiedAccount; pro
       {overview.stale && <p className={styles.notice}>Project details or saved inspiration changed since version {overview.current!.revision}. Review the current choices below before saving a new version. Earlier guidance and generated results are retained.</p>}
       {controller.blocked && <p className={styles.notice}>Save or resolve your pending project and Inspiration changes before reviewing this direction.</p>}
       {overview.inspiration.projectScope === "naming_only" && <p className={styles.notice}>Expand this project to a complete brand before saving visual guidance.</p>}
-      <details open className={styles.references}><summary>{references.length} saved inspiration {references.length === 1 ? "reference" : "references"}</summary>
-        {references.length ? <ul>{references.map(reference => <li key={reference.referenceId}>
+      <ContextDetails inline className={styles.references} title={<>{references.length} saved inspiration {references.length === 1 ? "reference" : "references"}</>}>{references.length ? <ul>{references.map(reference => <li key={reference.referenceId}>
           <strong>{reference.brand}</strong><span>{reference.creator}</span>
           <p>{[...(reference.ensemble ? ["Overall look"] : []), ...reference.elements.map(element => inspirationLabels[element])].join(" · ")}</p>
           <p>{reference.description}</p><a href={reference.sourceUrl} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">Original project</a>
-        </li>)}</ul> : <p className={styles.caption}>No saved likes yet. You can browse Inspiration or write your own guidance.</p>}
-        <p className={styles.caption}>Reference descriptions and attribution are retained as guidance. They do not grant artwork or font rights.</p>
-      </details>
+        </li>)}</ul> : <p className={styles.caption}>No saved likes yet. You can browse Inspiration or write your own guidance.</p>}<p className={styles.caption}>Reference descriptions and attribution are retained as guidance. They do not grant artwork or font rights.</p></ContextDetails>
       <div className={styles.fields}>{fields.map(field => <label key={field.key}>{field.label}<textarea maxLength={1200} rows={3} value={guidance[field.key]} placeholder={field.placeholder}
         disabled={controller.saving || controller.loading || overview.inspiration.projectScope === "naming_only"}
         onChange={event => controller.edit({ ...guidance, [field.key]: event.target.value })} /></label>)}</div>
@@ -55,13 +53,10 @@ function Review({ account, projectId, onSaved }: { account: VerifiedAccount; pro
         {draft && !draft.mustReload && <button type="button" disabled={controller.saving} onClick={controller.discard}>Discard written edits</button>}
       </div>
       {overview.current && <p className={styles.caption}>Version {overview.current.revision} reviewed <BrowserLocalDate dateTime={overview.current.reviewedAt} />. Saving guidance does not approve a generated identity or start a provider request.</p>}
-      {overview.history.length > 0 && <details className={styles.history}><summary>Earlier reviewed guidance ({overview.history.length})</summary>
-        {overview.history.map(version => <article key={version.id}><h4>Version {version.revision}</h4><p className={styles.caption}><BrowserLocalDate dateTime={version.reviewedAt} /> · {version.references.length} references · project revision {version.projectRevision}</p>
+      {overview.history.length > 0 && <ContextDetails className={styles.history} title={<>Earlier reviewed guidance ({overview.history.length})</>}>{overview.history.map(version => <article key={version.id}><h4>Version {version.revision}</h4><p className={styles.caption}><BrowserLocalDate dateTime={version.reviewedAt} /> · {version.references.length} references · project revision {version.projectRevision}</p>
           <dl>{fields.map(field => <div key={field.key}><dt>{field.label}</dt><dd>{version.guidance[field.key] || "No written guidance"}</dd></div>)}</dl>
           <p>{version.references.map(reference => `${reference.brand}: ${[...(reference.ensemble ? ["Overall look"] : []), ...reference.elements.map(element => inspirationLabels[element])].join(", ")}`).join("; ")}</p>
-          <button type="button" disabled={controller.saving || controller.loading || !!draft?.mustReload} onClick={() => controller.edit(version.guidance)}>Use these words as a draft</button></article>)}
-        {overview.hasEarlierHistory && <p className={styles.caption}>The most recent 20 earlier versions are shown. Older versions remain retained.</p>}
-      </details>}
+          <button type="button" disabled={controller.saving || controller.loading || !!draft?.mustReload} onClick={() => controller.edit(version.guidance)}>Use these words as a draft</button></article>)}{overview.hasEarlierHistory && <p className={styles.caption}>The most recent 20 earlier versions are shown. Older versions remain retained.</p>}</ContextDetails>}
     </>}
     {!overview && !controller.loading && <button type="button" onClick={() => void controller.refresh()}>Retry connection</button>}
     <nav className={styles.links} aria-label="Visual direction navigation"><Link href={`/brands/account/${projectId}/inspiration`}>Browse Inspiration</Link><Link href={`/brands/account/${projectId}/logo`}>Review logo</Link><Link href={`/brands/account/${projectId}/logo/directions`}>Identity directions</Link></nav>

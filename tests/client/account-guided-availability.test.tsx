@@ -105,7 +105,7 @@ describe("guided Strategy availability presentation", () => {
     expect(notice()).toContain(expected);
     expect(notice()).toContain("You can still edit and save your project.");
     expect(notice()).not.toMatch(/Your brief is saved|No AI request was sent|exhausted|billing|database|storage/i);
-    expect(button("Start competitor research")?.disabled).toBe(true);
+    expect(button("Start competitor research")).toBeUndefined();
     expect(host.querySelector(".guided-assistant-message")).toBeNull();
     expect(host.querySelector(".save-label")?.textContent).toBe("Saved");
     await act(async () => button("Check status")!.click());
@@ -125,7 +125,7 @@ describe("guided Strategy availability presentation", () => {
 
   it("keeps a pending availability read distinct from an unavailable response", async () => {
     await render();
-    expect(notice()).toBe(""); expect(button("Start competitor research")?.disabled).toBe(true);
+    expect(notice()).toBe(""); expect(button("Start competitor research")).toBeUndefined();
     expect(strategy.enqueue).not.toHaveBeenCalled(); expect(saveContext).not.toHaveBeenCalled();
   });
 
@@ -133,7 +133,7 @@ describe("guided Strategy availability presentation", () => {
     unavailable("budget_unavailable"); strategy.readError = "Strategy status could not be checked. Try checking again.";
     await render();
     expect(notice()).toContain(strategy.readError); expect(notice()).not.toContain("No AI requests are available");
-    expect(button("Start competitor research")?.disabled).toBe(true); expect(strategy.enqueue).not.toHaveBeenCalled();
+    expect(button("Start competitor research")).toBeUndefined(); expect(strategy.enqueue).not.toHaveBeenCalled();
   });
 
   it("retains the typed prompt and specific refusal when sending is unavailable", async () => {

@@ -16,7 +16,7 @@ it("dismisses attachments with Escape from the prompt or an outside pointer with
   await act(async () => trigger.click()); expect(files.open).toBe(true);
   expect(files.querySelector<HTMLInputElement>("input")!.disabled).toBe(true); expect(files.querySelector<HTMLInputElement>("input")!.hidden).toBe(true);
   expect(files.querySelector('[role="status"]')?.textContent).toContain("keep writing your prompt");
-  expect(files.querySelector<HTMLDetailsElement>(".home-attachment-details")!.open).toBe(false);
+  expect(files.querySelector<HTMLDialogElement>(".home-attachment-details dialog")!.open).toBe(false);
   prompt.focus(); await act(async () => prompt.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })));
   expect(files.open).toBe(false); expect(document.activeElement).toBe(trigger); expect(prompt.value).toBe("Keep my typed prompt");
   await act(async () => trigger.click()); expect(files.open).toBe(true);

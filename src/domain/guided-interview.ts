@@ -93,7 +93,7 @@ function mergeSelections<T extends { id: string; selected: boolean }>(previous: 
 /** The caller must load the current choices from an owned immutable job result.
  * Clarification turns retain that widget; accepted free text must be the latest turn. */
 export function confirmGuidedSelection(context: ContextSnapshot, input: {
-  turnId: string; reply: GuidedReply; optionIds?: readonly string[]; customText?: string; now: string;
+  turnId: string; reply: GuidedReply; optionIds?: readonly string[]; retainedCompetitorIds?: readonly string[]; customText?: string; now: string;
 }): ContextSnapshot {
   const parsed = contextSnapshotSchema.parse(context);
   const state = parseGuidedInterview(parsed);
@@ -105,10 +105,16 @@ export function confirmGuidedSelection(context: ContextSnapshot, input: {
   let customText: string | null = null;
   if (reply.kind === "choices") {
     optionIds = [...(input.optionIds ?? [])];
-    if (!optionIds.length || new Set(optionIds).size !== optionIds.length || (reply.selectionMode === "single" && optionIds.length !== 1)) throw new Error("Choose an option before continuing");
+    const retainedIds = reply.stage === "competitors" ? [...(input.retainedCompetitorIds ?? [])] : [];
+    if (optionIds.length + retainedIds.length > 20 || (!optionIds.length && !retainedIds.length) || new Set(retainedIds).size !== retainedIds.length || new Set(optionIds).size !== optionIds.length || (reply.selectionMode === "single" && optionIds.length !== 1)) throw new Error("Choose an option before continuing");
     const options = optionIds.map(id => reply.options.find(option => option.id === id));
     if (options.some(option => !option)) throw new Error("Choose an option from this reply");
-    if (reply.stage === "competitors") selection = { stage: "competitors", competitors: options.flatMap(option => option?.stage === "competitors" ? [option.payload] : []) };
+    if (reply.stage === "competitors") {
+      const retained = retainedIds.map(id => parsed.competitors.find(item => item.id === id));
+      if (retained.some(item => !item)) throw new Error("Choose a competitor saved in this project");
+      selection = { stage: "competitors", competitors: [...options.flatMap(option => option?.stage === "competitors" ? [option.payload] : []), ...retained.flatMap(item => item ? [{ ...item, selected: false }] : [])] };
+      if (retained.length) customText = `Retained competitors: ${retained.map(item => item!.name).join("; ")}`;
+    }
     else if (reply.stage === "audience") selection = { stage: "audience", audienceSegments: options.flatMap(option => option?.stage === "audience" ? [option.payload] : []) };
     else {
       const direction = options[0];

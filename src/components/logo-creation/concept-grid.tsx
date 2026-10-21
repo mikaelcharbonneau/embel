@@ -1,3 +1,4 @@
+import { GenerationAnimation } from "./generation-animation";
 import type { ReactNode } from "react";
 import type { LogoConceptBatch, LogoConceptPlan, LogoRequestState } from "../../domain/logo-jobs";
 import type { IdentityAssetReceipt } from "../../domain/logo-deliverables";
@@ -92,7 +93,7 @@ export function LogoConceptGridView({ batch = null, plan = null, selected = null
             if (chosen && slot) { onViewVersion?.(slot.id, chosen.key, history.length); onSelectVersion?.(chosen.source); }
           }}>{history.map(item => <option key={item.key} value={item.key}>{item.label}{item === latest ? " · Latest" : ""}</option>)}</select></label>}
           <div className={gallery ? styles.galleryPreview : styles.preview} role={gallery && selectDisplayed ? "button" : undefined} tabIndex={gallery && selectDisplayed ? 0 : undefined} aria-label={gallery ? `Select concept ${ordinal + 1}` : undefined} aria-pressed={gallery && displayedSource ? isSelected : undefined} onClick={gallery ? selectDisplayed : undefined} onKeyDown={event => { if (gallery && selectDisplayed && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); selectDisplayed(); } }}>
-            {preview && renderPreview ? renderPreview(preview) : <p>{accepted ? "Image preview unavailable" : attempt ? "No image preview yet" : savedBatchLoading ? "Loading saved preview…" : savedBatchUnavailable ? "Saved preview unavailable" : "Your concept will appear here"}</p>}
+            {preview && renderPreview ? renderPreview(preview) : attempt && (attempt.state === "queued" || attempt.state === "running") ? <GenerationAnimation variant={ordinal} queued={attempt.state === "queued"} /> : <p>{accepted ? "Image preview unavailable" : attempt ? "No image preview yet" : savedBatchLoading ? "Loading saved preview…" : savedBatchUnavailable ? "Saved preview unavailable" : "Your concept will appear here"}</p>}
           </div>
           {gallery && <div className={styles.galleryCaption}><div><h3>Concept {ordinal + 1}</h3><button type="button" className={styles.galleryLike} disabled title="Concept likes are not available yet" aria-label={`Like concept ${ordinal + 1}`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}

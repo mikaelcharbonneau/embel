@@ -24,7 +24,22 @@ async function call(auth: AuthenticatedContext, projectId: string, name: string,
 }
 export async function getProjectInspiration(auth: AuthenticatedContext, id: string) {
   const projectId = uuid(id);
-  return call(auth, projectId, "get_project_inspiration", { p_project_id: projectId });
+  const overview = await call(auth, projectId, "get_project_inspiration", { p_project_id: projectId });
+  return withAvailableReferences(auth, overview);
+}
+async function withAvailableReferences(auth: AuthenticatedContext, overview: InspirationOverview): Promise<InspirationOverview> {
+  // Additive rollout: new references remain browseable but unsaveable until their
+  // immutable catalog rows are installed. Old web clients keep their old RPC shape.
+  const fallback = { ...overview, availableReferenceIds: inspirationCatalog.filter(item => !item.availableSince).map(item => item.id) };
+  try {
+    const available = await auth.client.rpc("get_inspiration_reference_ids");
+    const ids = z.array(z.uuid()).max(100).safeParse(available.error ? null : available.data);
+    return ids.success ? { ...overview, availableReferenceIds: ids.data.filter(id => inspirationCatalog.some(item => item.id === id)) } : fallback;
+  } catch {
+    // Optional discovery must never turn an acknowledged selection write into
+    // an apparently failed save or encourage replay of a completed mutation.
+    return fallback;
+  }
 }
 export async function setProjectInspiration(auth: AuthenticatedContext, id: string, reference: string, value: unknown) {
   const projectId = uuid(id), referenceId = uuid(reference), parsed = inspirationMutationSchema.safeParse(value);
@@ -33,5 +48,5 @@ export async function setProjectInspiration(auth: AuthenticatedContext, id: stri
   const result = await call(auth, projectId, "set_project_inspiration_reaction", { p_project_id: projectId, p_reference_id: referenceId, p_input: parsed.data });
   const choice = result.choices.find(item => item.referenceId === referenceId);
   if (result.projectRevision !== parsed.data.expectedProjectRevision || !choice || choice.revision !== parsed.data.expectedRevision + 1 || !sameInspirationChoice(choice, parsed.data)) throw new ApiError("integration_unavailable");
-  return result;
+  return withAvailableReferences(auth, result);
 }

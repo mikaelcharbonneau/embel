@@ -65,8 +65,15 @@ const reviewedLogoAndHomeFunctions = [
 ] as const;
 
 const reviewedAccountWorkflowFunctions = [
+  // Reviewed owner-scoped hosted admission/availability and read-only delivery recovery.
+  // Existing migrations 20261019024815 and 20261020033500; no grant changes here.
+  "public.get_hosted_naming_availability(uuid)",
+  "public.ensure_hosted_naming_brain_run(uuid, jsonb)",
+  "public.get_strategy_job_deliveries(uuid, uuid[])",
   // 20261013120000 / 20261013140801 / 20261013190225: owned project catalog
   // choices, immutable direction review and owner-authored screening evidence.
+  // Read-only authenticated discovery of public catalog IDs; no owner data or execution authority.
+  "public.get_inspiration_reference_ids()",
   "public.get_project_inspiration(uuid)",
   "public.set_project_inspiration_reaction(uuid, uuid, jsonb)",
   "public.get_project_visual_direction(uuid)",

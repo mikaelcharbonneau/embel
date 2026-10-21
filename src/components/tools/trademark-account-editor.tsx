@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 
 import { useState, type ReactNode } from "react";
 import { AccountStatus, useAccountSession } from "@/components/workspace/account-session";
@@ -42,7 +43,7 @@ function TrademarkAccountContent({ memory, importProjectId, importProjectTitle, 
       {importProjectId && <div className="tm-actions"><p>{importProjectTitle ? `Import from ${importProjectTitle}` : "Import the selected project's saved name"}</p><button type="button" className="button secondary" disabled={!workspace.canImport} onClick={requestImport}>Import saved name</button></div>}
       {importingProject && <div className="inline-confirm" role="alert"><p>Replace the mark name with the current name from this saved project? Other intake details stay in the draft; its review will be cleared.</p><button type="button" className="button secondary" disabled={workspace.busy} onClick={() => setConfirmImport(null)}>Keep current name</button><button type="button" className="button secondary" disabled={!workspace.canImport} onClick={() => void importName(importingProject)}>Replace mark name</button></div>}
       {notice && <p role="status">{notice}</p>}
-      {!!workspace.imports.length && <details><summary>Saved-name sources ({workspace.imports.length})</summary><ul>{workspace.imports.map(source => <li key={standaloneImportKey(source)}>{source.name} · {source.projectTitle} · revision {source.projectRevision}</li>)}</ul><p>Sources record copied names. They establish no ownership of a mark or legal clearance.</p></details>}
+      {!!workspace.imports.length && <ContextDetails  title={<>Saved-name sources ({workspace.imports.length})</>}><ul>{workspace.imports.map(source => <li key={standaloneImportKey(source)}>{source.name} · {source.projectTitle} · revision {source.projectRevision}</li>)}</ul><p>Sources record copied names. They establish no ownership of a mark or legal clearance.</p></ContextDetails>}
     </section>
     {promotion.controls}
   </>;

@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 import { emptyLogoInputDraft, type LogoInputDraft, type LogoInputSession } from "../client/session";
@@ -109,7 +110,7 @@ export function LogoInputsView({ controller, client, canWrite, isCurrent, mode =
           <legend>{reference.sourceKind === "curated" ? "Curated" : "Uploaded"} reference {ordinal + 1}</legend>
           <ReferencePreview client={client} reference={reference} isCurrent={isCurrent} />
           <div className={styles.choices}>{logoReferenceAspectSchema.options.map(aspect => <label key={aspect}><input type="checkbox" checked={selected.includes(aspect)} aria-label={`${REFERENCE_ASPECT_LABELS[aspect]} for saved reference ${ordinal + 1}`} onChange={event => changeSelection(reference, aspect, event.currentTarget.checked)} />{REFERENCE_ASPECT_LABELS[aspect]}</label>)}</div>
-          <details><summary>Source and permission record</summary><p>Permission declaration retained for this exact image.</p><p>Version: {reference.asset.versionId}</p><p>SHA-256: {reference.asset.contentHash}</p></details>
+          <ContextDetails  title={<>Source and permission record</>}><p>Permission declaration retained for this exact image.</p><p>Version: {reference.asset.versionId}</p><p>SHA-256: {reference.asset.contentHash}</p></ContextDetails>
         </fieldset>;
       })}</div>
       {state.referenceCursor && <button type="button" disabled={state.loading || state.busy} onClick={() => void controller.loadMore("references")}>Load more references</button>}
@@ -121,7 +122,7 @@ export function LogoInputsView({ controller, client, canWrite, isCurrent, mode =
         const added = state.fonts.some(row => row.source === "free_catalog" && row.asset.contentHash === font.rights.fontContentHash);
         return <div className={styles.card} key={font.id}><h4>{font.family} · {font.id.includes("italic") ? "Italic" : "Upright"}</h4>
           <p className={styles.caption}>Reviewed commercial use. Display, outlines, embedding, modification and redistribution are permitted subject to the license conditions.</p>
-          <details><summary>License conditions</summary><ul>{font.conditions.map(condition => <li key={condition}>{condition}</li>)}</ul>{font.rights.sourceUrl && <a href={font.rights.sourceUrl} target="_blank" rel="noreferrer">License source</a>}</details>
+          <ContextDetails  title={<>License conditions</>}><ul>{font.conditions.map(condition => <li key={condition}>{condition}</li>)}</ul>{font.rights.sourceUrl && <a href={font.rights.sourceUrl} target="_blank" rel="noreferrer">License source</a>}</ContextDetails>
           <button type="button" disabled={disabled || added} onClick={() => void controller.importCatalogFont(font.id)}>{added ? "Added to project" : `Add ${font.family} ${font.id.includes("italic") ? "italic" : "upright"}`}</button>
         </div>;
       })}</div>
@@ -134,7 +135,7 @@ export function LogoInputsView({ controller, client, canWrite, isCurrent, mode =
         <label className={styles.permission}><input type="checkbox" disabled={disabled} checked={fontPermission} onChange={event => changeDraft({ fontPermission: event.currentTarget.checked })} />{FONT_PERMISSION}</label>
         <button type="button" disabled={disabled || !fontFile || !fontPermission || !license.trim()} onClick={() => void uploadFont()}>Save font and license</button>
       </div>
-      {state.fonts.length > 0 && <><h3>Saved project fonts</h3><ul className={styles.saved}>{state.fonts.map(font => <li key={font.id}><strong>{font.family}</strong> · {fontPurposeAllowed(font, "render") ? "Reviewed display permission" : "Declaration saved; use unavailable pending review"}<details><summary>Exact version and permissions</summary><p>Font version: {font.id}</p><p>SHA-256: {font.asset.contentHash}</p><p>License SHA-256: {font.rights.licenseTextHash}</p><ul>{Object.entries(font.rights.permissions).map(([purpose, permission]) => <li key={purpose}>{purpose}: {font.rights.sourceKind === "reviewed_license" ? permission : "unreviewed"}</li>)}</ul></details></li>)}</ul></>}
+      {state.fonts.length > 0 && <><h3>Saved project fonts</h3><ul className={styles.saved}>{state.fonts.map(font => <li key={font.id}><strong>{font.family}</strong> · {fontPurposeAllowed(font, "render") ? "Reviewed display permission" : "Declaration saved; use unavailable pending review"}<ContextDetails  title={<>Exact version and permissions</>}><p>Font version: {font.id}</p><p>SHA-256: {font.asset.contentHash}</p><p>License SHA-256: {font.rights.licenseTextHash}</p><ul>{Object.entries(font.rights.permissions).map(([purpose, permission]) => <li key={purpose}>{purpose}: {font.rights.sourceKind === "reviewed_license" ? permission : "unreviewed"}</li>)}</ul></ContextDetails></li>)}</ul></>}
     </>}
     {state.unresolved.length > 0 && <div className={styles.notice}><h3>Interrupted input requests</h3><p>These requests were retained on the server. Checking does not upload or import again.</p>{state.unresolved.map(request => <div key={request.input.requestKey}><p>{request.kind === "reference_upload" ? "Reference image upload" : request.kind === "font_upload" ? "Font upload" : "Catalog font import"} · {request.input.requestKey}</p><button type="button" disabled={state.busy || !!state.pending} onClick={() => void controller.recover(request.input.requestKey)}>Check interrupted input</button></div>)}{state.requestCursor && <button type="button" disabled={state.loading || state.busy} onClick={() => void controller.loadMore("requests")}>Load more interrupted inputs</button>}</div>}
     {state.pending && <div className={styles.notice}><h3>Original input request</h3><p>Request: {state.pending.input.requestKey}</p><p>Its exact inputs are retained. A retry always reuses this request.</p>

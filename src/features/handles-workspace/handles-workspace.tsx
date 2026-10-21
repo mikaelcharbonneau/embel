@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 
 import { BrowserNameDialog } from "@/components/naming/browser-name-picker";
 
@@ -34,8 +35,7 @@ export type HandlesWorkspaceProps = CommonProps & (
 
 export function HandleEvidenceDetails({ entry }: { entry: HandleEntry }) {
   const latest = entry.evidence.at(-1);
-  return <details className="handles-evidence"><summary>Check evidence {entry.evidence.length ? `(${entry.evidence.length})` : ""}</summary>
-    {!latest ? <p>No check has been performed. A missing profile is not proof of availability.</p> : entry.evidence.slice().reverse().map((evidence, index) => <dl key={`${evidence.observedAt}-${index}`}>
+  return <ContextDetails className="handles-evidence" title={<>Check evidence {entry.evidence.length ? `(${entry.evidence.length})` : ""}</>}>{!latest ? <p>No check has been performed. A missing profile is not proof of availability.</p> : entry.evidence.slice().reverse().map((evidence, index) => <dl key={`${evidence.observedAt}-${index}`}>
       <dt>Platform</dt><dd>{platforms.find(platform => platform.id === evidence.platform)?.label}</dd>
       <dt>Exact handle</dt><dd>@{evidence.handle}</dd>
       <dt>Observation</dt><dd>{evidence.outcome.replaceAll("_", " ")}</dd>
@@ -44,8 +44,7 @@ export function HandleEvidenceDetails({ entry }: { entry: HandleEntry }) {
       <dt>Checked at</dt><dd>{evidence.checkedAt ?? "Not checked"}</dd>
       <dt>Recorded at</dt><dd>{evidence.observedAt}</dd>
       {evidence.detail && <><dt>Details</dt><dd>{evidence.detail}</dd></>}
-    </dl>)}
-  </details>;
+    </dl>)}</ContextDetails>;
 }
 
 function AccountDeclaration({ entry, onChange }: { entry: HandleEntry; onChange: (entry: HandleEntry) => void }) {

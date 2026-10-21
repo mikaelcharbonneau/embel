@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 
 import { useId } from "react";
 import { displayLogoCost } from "@/components/logo-creation/presentation";
@@ -23,10 +24,7 @@ export function DirectionGenerationControls({ controller }: { controller: Direct
     <div className={styles.generation}><div><h3>Three directions, one logo</h3><p id={descriptionId} className={styles.caption}>
       {state?.canEstimate ? "Get an estimate for exactly three coordinated palette, typography and graphics directions. Your approved logo stays unchanged." : state?.unavailableReason ?? "Generation is unavailable while your workspace is loading."}
     </p></div><button type="button" disabled={!state?.canEstimate} aria-describedby={descriptionId} onClick={() => { void controller?.prepare(); }}>Estimate directions</button></div>
-    {state?.fonts && state.fonts.length > 0 && <details className={styles.details}><summary>Permitted font versions ({state.fonts.length})</summary>
-      <p className={styles.caption}>Generation uses the saved, owned fonts with reviewed commercial-use and display permissions. Embedding and sharing files require their separate permissions. Paid-font suggestions are excluded.</p>
-      <ul className={styles.fontList}>{state.fonts.map(font => <li key={font.id}>{font.family} · {font.source === "free_catalog" ? "Free catalog" : "Reviewed upload"}<span className={styles.version}>Version {font.id}</span></li>)}</ul>
-    </details>}
+    {state?.fonts && state.fonts.length > 0 && <ContextDetails className={styles.details} title={<>Permitted font versions ({state.fonts.length})</>}><p className={styles.caption}>Generation uses the saved, owned fonts with reviewed commercial-use and display permissions. Embedding and sharing files require their separate permissions. Paid-font suggestions are excluded.</p><ul className={styles.fontList}>{state.fonts.map(font => <li key={font.id}>{font.family} · {font.source === "free_catalog" ? "Free catalog" : "Reviewed upload"}<span className={styles.version}>Version {font.id}</span></li>)}</ul></ContextDetails>}
     {state && <button type="button" onClick={() => { void controller?.refreshAvailability(); }}>Refresh operation availability</button>}
     {state && <button type="button" disabled={state.loadingFonts || state.checking} onClick={() => { void controller?.refreshFonts(); }}>Refresh generation inputs</button>}
     {generation?.phase === "quoting" && <p className={styles.caption} role="status">Preparing your cost estimate…</p>}

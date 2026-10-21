@@ -57,8 +57,8 @@ export function nextGuidedProposal(context: ContextSnapshot, revision: number, u
   return appendGuidedTurn(context, { id: crypto.randomUUID(), userMessageId, stage: state.stage, purpose: "propose", inputRevision: revision });
 }
 
-export function recordGuidedChoice(context: ContextSnapshot, reply: Extract<GuidedReply, { kind: "choices" }>, selectedIds: readonly string[], now: string) {
-  const labels = selectedIds.map(id => reply.options.find(option => option.id === id)?.label).filter(Boolean);
+export function recordGuidedChoice(context: ContextSnapshot, reply: Extract<GuidedReply, { kind: "choices" }>, selectedIds: readonly string[], now: string, retainedCompetitorIds: readonly string[] = []) {
+  const labels = [...selectedIds.map(id => reply.options.find(option => option.id === id)?.label), ...retainedCompetitorIds.map(id => context.competitors.find(item => item.id === id)?.name)].filter(Boolean);
   const submitted = addUserMessage(context, labels.join("; "), now);
   return { context: submitted.context, messageId: submitted.event.id };
 }

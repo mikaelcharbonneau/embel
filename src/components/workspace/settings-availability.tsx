@@ -1,3 +1,4 @@
+import { ContextDetails } from "@/components/ui/context-details";
 import { SettingsArtwork, type SettingsArtworkName } from "@/components/ui/settings-artwork";
 
 export type SettingsAvailabilityItem = { title: string; description: string; icon?: SettingsArtworkName };
@@ -11,12 +12,9 @@ export function SettingsAvailability({ title, description, items }: {
   return <section className="sg-card sg-availability" aria-label={title}>
     <header><h2>{title}</h2><span className="sg-badge">Not available yet</span></header>
     <p className="sg-availability-description">{description}</p>
-    <details className="sg-availability-details">
-      <summary>View unavailable features</summary>
-      <dl>{items.map(item => <div key={item.title}>
+    <ContextDetails className="sg-availability-details" title={<>View unavailable features</>}><dl>{items.map(item => <div key={item.title}>
         <dt>{item.icon && <span className="sg-availability-icon"><SettingsArtwork name={item.icon} /></span>}{item.title}</dt>
         <dd>{item.description}</dd>
-      </div>)}</dl>
-    </details>
+      </div>)}</dl></ContextDetails>
   </section>;
 }

@@ -108,5 +108,7 @@ describe("account editor comparison readiness", () => {
     await click("Group whole paths");
     expect(host.querySelectorAll("*").length).toBeLessThan(260); expect(host.querySelectorAll("path")).toHaveLength(0);
     expect(host.querySelectorAll("svg > image")).toHaveLength(2);
-  }, 30000);
+  // Real hash/geometry validation of 20,000 paths is CPU-bound in cloud CI.
+  // DOM-size and approval assertions above remain exact; no product deadline changes.
+  }, 120000);
 });

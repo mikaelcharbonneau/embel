@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import { createAccountLifecycleClient } from "@/components/workspace/account-lifecycle-client";
@@ -45,7 +46,7 @@ function FrozenInput({ record }: { record: StandalonePromotionSnapshotResponse }
  if (payload.tool === "domains") return <>
   <p>Availability was not checked. These are manually prepared domain candidates.</p>
   <Fields values={[["Selected candidate", selection.tool === "domains" ? selection.domain : ""], ["Original input", payload.data.input], ["Chosen extensions", payload.data.extensions.join(", ")]]} />
-  <details><summary>All candidates in this saved input ({payload.data.candidates.length})</summary><ul>{payload.data.candidates.map(domain => <li key={domain}>{domain}</li>)}</ul></details>
+  <ContextDetails  title={<>All candidates in this saved input ({payload.data.candidates.length})</>}><ul>{payload.data.candidates.map(domain => <li key={domain}>{domain}</li>)}</ul></ContextDetails>
  </>;
  if (payload.tool === "handles") {
   const selectedId = selection.tool === "handles" ? selection.bundleId : null;

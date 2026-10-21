@@ -87,3 +87,13 @@
   .guided-research-mark-motion { animation: none; opacity: 1; transform: scale(2); }
   .guided-choice-card { transition: none; }
 }
+
+.competitor-widget-controls { display: grid; gap: 14px; min-width: 0; }
+.competitor-widget-toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
+.competitor-add-form { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--border); border-radius: 10px; }
+.competitor-add-form[hidden] { display: none; }
+.competitor-add-form > p { font-size: 12px; line-height: 18px; color: var(--secondary); }
+.competitor-add-form > button { justify-self: start; }
+.competitor-retained { display: flex; align-items: start; gap: 12px; padding: 14px; }
+.competitor-retained > span { display: grid; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
+.competitor-retained small { color: var(--secondary); font-size: 12px; }

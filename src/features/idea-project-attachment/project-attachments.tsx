@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
@@ -26,7 +27,7 @@ function OwnedProjectIdeaAttachments({ account, projectId }: Props) {
  useEffect(() => { active.current = true; seen.current = new Set(); cursors.current = new Set(); const task = setTimeout(() => void load(), 0); return () => { clearTimeout(task); active.current = false; request.current?.abort(); request.current = null; }; }, [load]);
  if (!isCurrent(account)) return null;
  return <section className="account-notice" aria-label="Attached Idea sources"><h2>Attached Ideas</h2>
-  {items.map(item => <article key={item.association.id}><h3>{item.source.content.title}</h3><p>Frozen Idea version {item.association.ideaRevision}, attached at brand revision {item.association.projectRevision}.</p><p>{item.source.content.description}</p><details><summary>Saved Idea details</summary>{Object.entries(item.source.content.details).filter(([, text]) => text).map(([label, text]) => <p key={label}><strong>{label}:</strong> {text}</p>)}</details><Link href={`/ideas/${item.association.ideaId}`}>Open current Idea</Link></article>)}
+  {items.map(item => <article key={item.association.id}><h3>{item.source.content.title}</h3><p>Frozen Idea version {item.association.ideaRevision}, attached at brand revision {item.association.projectRevision}.</p><p>{item.source.content.description}</p><ContextDetails  title={<>Saved Idea details</>}>{Object.entries(item.source.content.details).filter(([, text]) => text).map(([label, text]) => <p key={label}><strong>{label}:</strong> {text}</p>)}</ContextDetails><Link href={`/ideas/${item.association.ideaId}`}>Open current Idea</Link></article>)}
   {!loaded && !error && <p role="status">Loading saved Idea sources…</p>}{loaded && !items.length && <p>No Ideas attached to this brand.</p>}
   {error && <p className="form-error" role="alert">Idea sources could not be loaded. Any sources already shown are retained.</p>}
   {(cursor || error) && <button type="button" className="button secondary small" disabled={busy} onClick={() => void load(cursor ?? undefined)}>{busy ? "Loading…" : error ? "Retry source listing" : "Load more Idea sources"}</button>}

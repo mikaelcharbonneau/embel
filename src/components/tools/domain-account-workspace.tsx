@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Icon } from "@/components/ui/icon";
@@ -53,7 +54,7 @@ function OwnedDomainsWorkspace({ memory, importProjectId, projectPicker, onCreat
   }
   const controls = <section className={styles.panel} aria-label="Domain workspace">
     <StandaloneSaveStatus state={state} />
-    {state.imports.length > 0 && <details className={styles.sources}><summary>Imported saved sources ({state.imports.length})</summary><ul>{state.imports.map(source => <li key={standaloneImportKey(source)}><strong>{source.name}</strong> · {source.projectTitle}<br /><span>Saved project version {source.projectRevision} · {source.origin === "naming_selection" ? "selected Naming candidate" : "supplied project name"}</span></li>)}</ul><p>Source references remain with this draft when you edit its text. Imports do not establish domain availability.</p></details>}
+    {state.imports.length > 0 && <ContextDetails className={styles.sources} title={<>Imported saved sources ({state.imports.length})</>}><ul>{state.imports.map(source => <li key={standaloneImportKey(source)}><strong>{source.name}</strong> · {source.projectTitle}<br /><span>Saved project version {source.projectRevision} · {source.origin === "naming_selection" ? "selected Naming candidate" : "supplied project name"}</span></li>)}</ul><p>Source references remain with this draft when you edit its text. Imports do not establish domain availability.</p></ContextDetails>}
     <p className={styles.note}>Your search, candidates and shortlist save automatically. Live checks and prices stay in this view; purchases are unavailable.</p>
   </section>;
   if (!state.payload) return <div className="page"><h1>Domains</h1>{state.status === "loading" && <p role="status">Loading your domain draft…</p>}{controls}</div>;

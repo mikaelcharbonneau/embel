@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 import { useEffect, useRef, useState } from "react";
 import type { IdentityReferenceEntry } from "@/domain/identity-references";
 import { Icon } from "@/components/ui/icon";
@@ -10,7 +11,7 @@ function ReferenceCard({ entry, reference }: { entry: IdentityReferenceEntry; re
   return <article className="identity-reference-card" aria-label={attribution.label} onPointerEnter={event => { if (event.pointerType === "mouse" && matchMedia("(hover: hover)").matches) setHovered(true); }} onPointerLeave={() => setHovered(false)}>
     <ReferencePreview media={entry.reference.media} label={attribution.label} client={reference.client} />
     <ReferenceControls entry={entry} hovered={hovered} busy={reference.pending.has(entry.reference.id)} blocked={reference.intents.has(entry.reference.id)} onChange={choices => void reference.react(entry, choices)} />
-    <div className="identity-reference-attribution"><h3>{attribution.label}</h3>{attribution.creator && <p>{attribution.creator}</p>}<details><summary>Attribution</summary><p>{entry.reference.source === "user_supplied" ? "User supplied reference" : "Attributed catalog reference"}</p>{attribution.sourceUrl && <a className="text-link" href={attribution.sourceUrl} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">View source<Icon name="arrow" size={12} /></a>}{attribution.rightsNote ? <p>Rights note: {attribution.rightsNote}</p> : null}<p>Attribution does not verify usage rights.</p></details></div>
+    <div className="identity-reference-attribution"><h3>{attribution.label}</h3>{attribution.creator && <p>{attribution.creator}</p>}<ContextDetails  title={<>Attribution</>}><p>{entry.reference.source === "user_supplied" ? "User supplied reference" : "Attributed catalog reference"}</p>{attribution.sourceUrl && <a className="text-link" href={attribution.sourceUrl} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">View source<Icon name="arrow" size={12} /></a>}{attribution.rightsNote ? <p>Rights note: {attribution.rightsNote}</p> : null}<p>Attribution does not verify usage rights.</p></ContextDetails></div>
   </article>;
 }
 export function ReferenceGrid({ reference }: { reference: IdentityReferencesController }) {

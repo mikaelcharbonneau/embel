@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -430,7 +431,7 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
     <div className="project-strategy-columns"><div className="page conversation-page">
     <div className="conversation-scroll-area" role="region" aria-label="Conversation and project details" tabIndex={0}>
     <div className="project-conversation-marker"><span>STRATEGY / {briefEditing ? "BRIEF" : (activeWidget ?? "brief").toUpperCase()}</span><span>{briefEditing || !activeWidget ? 1 : ["competitors", "audience", "personality", "positioning"].indexOf(activeWidget) + 2} of 5</span><button type="button" className="text-link" aria-expanded={briefOpen} onClick={() => setBriefOpen(value => !value)}>{briefOpen ? "Close live brief" : "Live brief"}</button></div>
-    {storage.actions && (account ? <div className="conversation-account-actions">{storage.actions}</div> : <details className="conversation-account-disclosure"><summary>Account saving</summary><div className="conversation-account-actions">{storage.actions}</div></details>)}
+    {storage.actions && (account ? <div className="conversation-account-actions">{storage.actions}</div> : <ContextDetails className="conversation-account-disclosure" title={<>Account saving</>}><div className="conversation-account-actions">{storage.actions}</div></ContextDetails>)}
     {briefEditing && <section className="conversation-widget project-brief-widget" aria-label="Project brief"><h2>Your starting point</h2><p>Keep your own description and offering. No AI response is implied.</p><label className="field-label">Description<textarea aria-label="Brief description" value={draft.description} maxLength={12000} onChange={event => update({ description: event.target.value, confirmedBrief: undefined, competitorReviewKey: null }, true)} /></label>{([['activity', 'What the business does'], ['offering', 'First products / services'], ['knownAudience', 'Known audience']] as const).map(([field, label]) => <label className="field-label" key={field}>{label}<input value={draft[field]} maxLength={2000} onChange={event => update({ [field]: event.target.value, confirmedBrief: undefined, competitorReviewKey: null }, true)} /></label>)}<button type="button" className="button primary small" disabled={!draft.description.trim() || !draft.activity.trim() || !draft.offering.trim()} onClick={() => { update({ confirmedBrief: { description: draft.description, activity: draft.activity, offering: draft.offering, knownAudience: draft.knownAudience, conversationKey: conversationContextKey(draft, storage.savedContext) } }); setBriefEditing(false); }}>Keep brief</button></section>}
     <ol id="strategy-brief" tabIndex={-1} className="conversation-history" aria-label="Project conversation">{conversation.map((event) => <Fragment key={event.id}>
       {event.kind === "user_message" && <li className="conversation-user-entry" ref={(node) => { if (node && newMessage.current === event.id) { node.scrollIntoView({ block: "nearest" }); newMessage.current = null; } }}><div className="conversation-message-meta sr-only"><span>You</span><time dateTime={event.createdAt}>{new Date(event.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time></div><p>{event.text}</p></li>}
@@ -440,8 +441,7 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
     </Fragment>)}</ol>
     {!lastPrompt && storage.strategy && <div className="conversation-service-entry">{storage.strategy}</div>}
     {storage.projectContext && <div className="conversation-context">{storage.projectContext}</div>}
-    <details className="project-details-disclosure"><summary>Project details and saving</summary>
-    <header className="conversation-project-header">
+    <ContextDetails className="project-details-disclosure" title={<>Project details and saving</>}><header className="conversation-project-header">
       <div className="conversation-project-title">
         <Link href="/brands" className="text-link">Projects</Link><Icon name="chevron" size={13} />
         {renaming ? <input className="conversation-title-input" aria-label="Project label" autoFocus value={draft.title} maxLength={160} placeholder="Untitled brand" onChange={(event) => update({ title: event.target.value })} onBlur={() => setRenaming(false)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === "Escape") { event.preventDefault(); setRenaming(false); } }} /> : <>
@@ -449,11 +449,7 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
         </>}
       </div>
       <span className="save-label"><Icon name={account ? "brands" : "device"} size={13} />{storage.saveLabel}</span>
-    </header>
-    <div className="conversation-project-meta"><span className="small-badge">{scopeLabel(draft.scope)}</span>{draft.example && <span className="small-badge">Example prompt</span>}{account ? storage.scopeControl : draft.scope !== "complete_brand" && <button className="text-link" type="button" onClick={() => update({ scope: "complete_brand" })}>Expand to complete brand</button>}</div>
-    {storage.namingSource && <NameOrigin source={storage.namingSource} />}
-    {details.length > 0 && <details className="conversation-saved-details"><summary>Saved project details</summary><dl>{details.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></details>}
-    </details>
+    </header><div className="conversation-project-meta"><span className="small-badge">{scopeLabel(draft.scope)}</span>{draft.example && <span className="small-badge">Example prompt</span>}{account ? storage.scopeControl : draft.scope !== "complete_brand" && <button className="text-link" type="button" onClick={() => update({ scope: "complete_brand" })}>Expand to complete brand</button>}</div>{storage.namingSource && <NameOrigin source={storage.namingSource} />}{details.length > 0 && <ContextDetails className="conversation-saved-details" title={<>Saved project details</>}><dl>{details.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></ContextDetails>}</ContextDetails>
     <footer className="conversation-footer"><Link href="/brands" className="text-link">Back to all projects</Link>{storage.onDelete && (!confirmDelete ? <button className="text-link danger-text" type="button" onClick={() => setConfirmDelete(true)}>Delete this draft</button> : <div className="inline-confirm"><span>Delete this browser draft?</span><button className="button secondary small" type="button" onClick={() => setConfirmDelete(false)}>Keep draft</button><button className="button danger small" type="button" onClick={storage.onDelete}>Delete draft</button></div>)}</footer>
     </div>
     <div className="conversation-compose-area">

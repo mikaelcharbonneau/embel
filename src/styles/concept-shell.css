@@ -66,3 +66,17 @@
 .concept-names .workspace-main:has(.names-guided-workshop[data-mode=blend]) { background-image: url('/names/blend-grid.svg'); background-size: 1360px 1437px; }
 .concept-names .workspace-main:has(.names-guided-workshop[data-mode=swap]) { background-image: url('/names/swap-grid.svg'); background-size: 1360px 1323px; }
 .concept-names.navigation-expanded .workspace-sidebar-toggle img { transform: rotate(180deg); }
+
+/* One account entry point: the top-bar avatar. Native disclosure keeps keyboard
+   activation and tab order; nested sign-out/activity dialogs retain ownership. */
+.workspace-account-menu > summary:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 3px; border-radius: 8px; }
+.workspace-account-panel { width: 288px; padding: 8px; border-radius: 14px; box-shadow: 0 12px 36px #19191914, 0 2px 6px #19191908; }
+.workspace-account-identity { display: grid; gap: 5px; padding: 12px 12px 16px; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.workspace-account-identity strong { font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text); }
+.workspace-account-identity span { font-size: 12px; line-height: 18px; color: var(--secondary); }
+.workspace-account-links { padding-block: 6px; border-bottom: 1px solid var(--border); }
+.workspace-account-links > a, .workspace-account-links > button, .workspace-account-panel .auth-account-menu-actions > button, .workspace-account-panel .auth-account-menu-actions > a, .workspace-account-panel .auth-account-menu-actions > span { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; height: auto; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent; color: var(--text); font-size: 13px; line-height: 20px; text-align: left; text-decoration: none; justify-content: flex-start; }
+.workspace-account-panel .auth-account-menu-actions { display: flex; flex-direction: column; align-items: stretch; gap: 2px; padding-top: 6px; }
+.workspace-account-panel .auth-account-menu-actions .account-check { color: var(--secondary); }
+.workspace-account-links > a:hover, .workspace-account-links > button:hover, .workspace-account-panel .auth-account-menu-actions > :is(a,button):hover { background: var(--surface); }
+.workspace-account-panel :is(a,button):focus-visible { outline: 2px solid var(--accent-text); outline-offset: -2px; }

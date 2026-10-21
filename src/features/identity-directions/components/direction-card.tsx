@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 
 import Image from "next/image";
 import { useState } from "react";
@@ -47,25 +48,22 @@ export function DirectionCard({ direction, palette, typography, graphics, fonts,
       <div className={styles.swatches} aria-label="Saved palette">{palette.swatches.map(swatch => <div key={swatch.key} className={styles.swatch}>
         <span className={styles.colorChip} style={{ backgroundColor: swatch.color.hex }} aria-hidden="true" /><span>{swatch.name}</span><code>{swatch.color.hex}</code>
       </div>)}</div>
-      <details className={styles.details}><summary>Color values</summary><dl className={styles.colorValues}>{palette.swatches.map(swatch => <div key={swatch.key}>
+      <ContextDetails className={styles.details} title={<>Color values</>}><dl className={styles.colorValues}>{palette.swatches.map(swatch => <div key={swatch.key}>
         <dt>{swatch.name}</dt><dd><code>{swatch.color.hex}</code><span>RGB {swatch.color.rgb.join(", ")}</span>
           {swatch.color.cmyk.status === "unavailable" ? <span>CMYK unavailable · no print profile</span> : <><span>CMYK {swatch.color.cmyk.channels.join(" / ")}%</span><span>Profile: {swatch.color.cmyk.profileId}</span><span>{swatch.color.cmyk.limitations.join(" ")}</span></>}
           {swatch.color.pantone.status === "unavailable" ? <span>Pantone unavailable · no licensed matching source</span> : <><span>Approximate Pantone reference: {swatch.color.pantone.reference}</span><span>{swatch.color.pantone.limitations.join(" ")}</span></>}
-        </dd></div>)}</dl></details>
+        </dd></div>)}</dl></ContextDetails>
     </> : <p className={styles.caption}>This palette is unavailable.</p>}
-    <details className={styles.details}><summary>Typography</summary><FontPicker typography={typography} fonts={fonts} /></details>
-    <details className={styles.details}><summary>Supporting graphics</summary>
-      {graphicsPreview.status === "ready"
+    <ContextDetails className={styles.details} title={<>Typography</>}><FontPicker typography={typography} fonts={fonts} /></ContextDetails>
+    <ContextDetails className={styles.details} title={<>Supporting graphics</>}>{graphicsPreview.status === "ready"
         ? <GraphicsPreviewImage key={graphicsPreview.key} src={graphicsPreview.src} name={direction.name} stale={stale} />
-        : <p className={styles.caption}>{graphicsPreview.message}</p>}
-      {graphicsPreview.elements.length > 0 && <ul className={styles.graphicList}>{graphicsPreview.elements.map((element, index) => <li key={index}>
+        : <p className={styles.caption}>{graphicsPreview.message}</p>}{graphicsPreview.elements.length > 0 && <ul className={styles.graphicList}>{graphicsPreview.elements.map((element, index) => <li key={index}>
           {element.kind === "dots" ? "Dots · radius " + element.radius + ", spacing " + element.spacing : element.kind === "stripes" ? "Stripes · width " + element.width + ", spacing " + element.spacing + ", rotation " + element.rotation + "°" : element.shape + " · " + element.width + " × " + element.height}
           <span>Color: {element.paletteKey}</span>
-        </li>)}</ul>}
-    </details>
-    <details className={styles.details}><summary>Saved versions</summary><dl className={styles.versions}>
+        </li>)}</ul>}</ContextDetails>
+    <ContextDetails className={styles.details} title={<>Saved versions</>}><dl className={styles.versions}>
       <div><dt>Direction</dt><dd>{direction.id}</dd></div><div><dt>Approved logo</dt><dd>{direction.approvedLogoId}</dd></div>
       <div><dt>Palette</dt><dd>{direction.paletteVersionId}</dd></div><div><dt>Typography</dt><dd>{direction.typographyVersionId}</dd></div><div><dt>Graphics</dt><dd>{direction.graphicsVersionId}</dd></div>
-    </dl></details>
+    </dl></ContextDetails>
   </article>;
 }

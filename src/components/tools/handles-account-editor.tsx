@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 
 import { useState, type ReactNode } from "react";
 import { AccountStatus, useAccountSession } from "@/components/workspace/account-session";
@@ -32,7 +33,7 @@ function HandlesAccountContent({ memory, importProjectId, importProjectTitle, pr
       <StandaloneSaveStatus state={workspace} onRecovered={() => setEditorEpoch(epoch => epoch + 1)} />
       {importProjectId && <div className="handles-actions"><p>{importProjectTitle ? `Import from ${importProjectTitle}` : "Import the selected project's saved name"}</p><button type="button" className="button secondary" disabled={!workspace.canImport} onClick={() => void importName()}>Import saved name</button></div>}
       {notice && <p role="status">{notice}</p>}
-      {!!workspace.imports.length && <details><summary>Saved-name sources ({workspace.imports.length})</summary><ul>{workspace.imports.map(source => <li key={handlesImportedName(source).id}>{source.name} · {source.projectTitle} · revision {source.projectRevision}</li>)}</ul><p>These are frozen name imports. No platform has been checked.</p></details>}
+      {!!workspace.imports.length && <ContextDetails  title={<>Saved-name sources ({workspace.imports.length})</>}><ul>{workspace.imports.map(source => <li key={handlesImportedName(source).id}>{source.name} · {source.projectTitle} · revision {source.projectRevision}</li>)}</ul><p>These are frozen name imports. No platform has been checked.</p></ContextDetails>}
     </section>
     {promotion.controls}
   </>;

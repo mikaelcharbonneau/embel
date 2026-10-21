@@ -6,6 +6,8 @@ import { AccountSessionProvider, useAccountSession } from "@/components/workspac
 import { AccountProjectEditor } from "@/components/workspace/account-project-editor";
 import { accountProjectSchema, type AccountProject } from "@/domain/project-api";
 
+// This suite checks the Strategy handoff, not Naming's independent API loader.
+vi.mock("@/components/naming/project-naming-workspace", () => ({ ProjectNamingWorkspace: ({ conversationHistory }: { conversationHistory?: import("react").ReactNode }) => createElement("section", { "aria-label": "Inline Naming continuation" }, conversationHistory, "Naming approaches") }));
 vi.mock("@/components/workspace/use-strategy-jobs", () => ({ useStrategyJobs: () => ({ overview: { jobs: [], availability: { status: "unavailable", operations: [], reason: "worker_unavailable" } }, pending: false, readError: null, actionError: null, refresh: vi.fn(), enqueue: vi.fn(), cancel: vi.fn() }) }));
 const id = (n: number) => `d0000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const when = "2026-10-15T00:00:00Z";
@@ -41,9 +43,11 @@ it.each([false, true])("continues reviewed saved strategy without adding the rem
   if (nameSelected) project = { ...project, context: { ...project.context, selectedName: "Tablelight" } };
   const originalContext = structuredClone(project.context);
   await render();
-  const destination = nameSelected ? "inspiration" : "naming";
-  expect(host.querySelector(`a[href="/brands/account/${id(2)}/${destination}"]`)).not.toBeNull();
-  expect(host.querySelector('[aria-label="Brand conversation"]')).not.toBeNull();
+  if (nameSelected) {
+    expect(host.querySelector(`a[href="/brands/account/${id(2)}/inspiration"]`)).not.toBeNull();
+    expect(host.querySelector('[aria-label="Brand conversation"]')).not.toBeNull();
+  } else expect(host.querySelector('[aria-label="Inline Naming continuation"]')).not.toBeNull();
+  expect(host.querySelector(`a[href="/brands/account/${id(2)}/naming"]`)).toBeNull();
   expect(host.querySelector('[aria-label="Brand context and continuation"]')).toBeNull();
   expect(host.querySelector('[aria-label="Project stages"]')).toBeNull();
   expect(account.drafts.get(id(2))!.saved.context).toEqual(originalContext);

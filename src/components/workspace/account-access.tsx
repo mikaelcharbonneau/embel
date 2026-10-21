@@ -8,7 +8,7 @@ import { useAccountSession } from "./account-session";
 import { preparePromptForSignIn } from "./prompt-recovery";
 import "@/styles/auth.css";
 
-export function AccountAccess() {
+export function AccountAccess({ menu = false }: { menu?: boolean }) {
   const { session, refresh, signOut, signingIn, signingUp, signingOut, signOutError } = useAccountSession();
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
@@ -26,10 +26,10 @@ export function AccountAccess() {
   }
 
   return <>
-    <div className="topbar-account auth-account-access">
-      <button type="button" className="icon-button subtle account-check" aria-label={session.status === "checking" ? "Checking account…" : "Check account"} title="Check account" onClick={refresh} disabled={session.status === "checking" || signingIn || signingOut}><Icon name="refresh" size={18} /></button>
+    <div className={`topbar-account auth-account-access ${menu ? "auth-account-menu-actions" : ""}`}>
+      <button type="button" className="icon-button subtle account-check" aria-label={session.status === "checking" ? "Checking account…" : "Check account"} title="Check account" onClick={refresh} disabled={session.status === "checking" || signingIn || signingOut}><Icon name="refresh" size={18} />{menu && <span>{session.status === "checking" ? "Checking connection…" : "Refresh connection"}</span>}</button>
       {signingIn ? <button type="button" className="text-link auth-session-action" disabled>{signingUp ? "Creating account…" : "Signing in…"}</button> : session.status === "ready" || signingOut || signOutError ? <button type="button" className="text-link auth-session-action" onClick={() => void startSignOut()} disabled={signingOut}>{signingOut ? "Signing out…" : signOutError ? "Retry sign-out" : "Sign out"}</button> : session.status === "checking" ? <span className="text-link auth-session-action" role="status">Checking account…</span> : <Link className="text-link auth-session-action" href="/sign-in" onClick={event => { if (!preparePromptForSignIn()) event.preventDefault(); }}>Sign in</Link>}
-      <Link className="preview-badge" href="/settings">{session.status === "ready" ? "Account connected" : session.status === "checking" ? "Checking account…" : "Sign in to save"}</Link>
+      {!menu && <Link className="preview-badge" href="/settings">{session.status === "ready" ? "Account connected" : session.status === "checking" ? "Checking account…" : "Sign in to save"}</Link>}
     </div>
     <dialog ref={dialog} className="auth-signout-dialog" aria-labelledby="sign-out-title" aria-describedby="sign-out-description" onCancel={() => setConfirmSignOut(false)} onClose={event => { if (!event.currentTarget.open) setConfirmSignOut(false); }} onClick={event => { if (isDialogBackdropClick(event)) setConfirmSignOut(false); }}>
       <h2 id="sign-out-title">Sign out with unsaved account edits?</h2>

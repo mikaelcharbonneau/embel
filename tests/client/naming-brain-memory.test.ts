@@ -120,14 +120,14 @@ it("keeps question progress owner-fenced in memory and does not turn it into bro
   const choices = { ...initial, approaches: ["other_languages" as const], directness: "all" as const };
   memory.connectPreferences(account, projectId, saved(1, choices), context);
   const progress = memory.get(account, projectId)!.chatProgress!;
-  expect(progress.activeStep).toBe("language"); expect(Object.keys(progress.confirmed)).toEqual(["approaches", "directness"]);
+  expect(progress.activeStep).toBe("length"); expect(Object.keys(progress.confirmed)).toEqual(["approaches", "directness"]);
   memory.setChatProgress(account, projectId, progress);
   expect(memory.hasUnsaved()).toBe(false); expect(write).not.toHaveBeenCalled();
   memory.bind(null); expect(memory.get(account, projectId)).toBeNull();
   const again = { ...account, generation: 2 }; memory.bind(again);
   expect(memory.get(again, projectId)?.chatProgress).toEqual(progress);
   memory.setChatProgress(account, projectId, { ...progress, activeStep: "review" });
-  expect(memory.get(again, projectId)?.chatProgress?.activeStep).toBe("language");
+  expect(memory.get(again, projectId)?.chatProgress?.activeStep).toBe("length");
   const other = { userId: "a0000000-0000-4000-8000-000000000002", generation: 3 }; memory.bind(other);
   expect(memory.get(other, projectId)).toBeNull(); expect(memory.hasUnsaved()).toBe(false);
 });

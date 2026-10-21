@@ -44,15 +44,15 @@ async function render(memory: ReturnType<typeof createNamingBrainMemory>, saved 
 const heading = () => host.querySelector("#project-naming-preferences-heading")?.textContent;
 
 for (const state of ["running", "failed"] as const) for (const order of ["preferences first", "run first"] as const) {
-  it(`restores all five completed answers from a saved ${state} run after a cold reload (${order})`, async () => {
+  it(`restores all three completed answers from a saved ${state} run after a cold reload (${order})`, async () => {
     const f = fixture(), original = structuredClone(preferences);
     if (order === "run first") f.load(feed(state));
     f.memory.connectPreferences(account, projectId, preferences, context);
     if (order === "preferences first") f.load(feed(state));
     const start = await render(f.memory);
-    expect(heading()).toBe("Ready to explore your names?");
-    expect(host.querySelectorAll(".guided-choice-answer")).toHaveLength(5);
-    expect(host.querySelector('[aria-label="Your answer: Which language should the names work in?"]')?.textContent).toContain("fr");
+    expect(heading()).toBe("Your naming direction");
+    expect(host.querySelectorAll(".guided-choice-answer")).toHaveLength(3);
+    expect(host.querySelector('[aria-label="Creative language"]')).toBeNull();
     expect(f.memory.get(account, projectId)?.preferences?.saved).toEqual(original);
     expect(f.memory.hasUnsaved()).toBe(false); expect(f.request).not.toHaveBeenCalled(); expect(f.write).not.toHaveBeenCalled(); expect(start).not.toHaveBeenCalled();
   });
@@ -61,8 +61,8 @@ for (const state of ["running", "failed"] as const) for (const order of ["prefer
 it.each(["en", "fr"])("keeps autosaved but unconfirmed %s follow-ups incomplete when no run has started", async creativeLocale => {
   const f = fixture(), saved = { ...preferences, preferences: { ...preferences.preferences, creativeLocale } };
   f.load(feed(null)); await render(f.memory, saved);
-  expect(heading()).toBe("Which language should the names work in?");
-  expect(host.querySelector<HTMLInputElement>('[aria-label="Creative language"]')?.value).toBe(creativeLocale);
+  expect(heading()).toBe("Any length limits or text to include or avoid?");
+  expect(f.memory.get(account, projectId)?.preferences?.draft.creativeLocale).toBe(creativeLocale);
   expect(host.querySelectorAll(".guided-choice-answer")).toHaveLength(2);
   expect(f.memory.get(account, projectId)?.chatProgress?.confirmed.language).toBeUndefined();
   expect(f.request).not.toHaveBeenCalled();
@@ -75,22 +75,22 @@ it.each(["older preferences", "older project", "other owner", "other project"] a
   if (mismatch === "other owner") { value.ownerId = id(8); value.activeRun!.ownerId = id(8); }
   if (mismatch === "other project") { value.projectId = id(9); value.activeRun!.projectId = id(9); }
   f.load(namingFeedSchema.parse(value)); await render(f.memory);
-  expect(heading()).toBe("Which language should the names work in?");
+  expect(heading()).toBe("Any length limits or text to include or avoid?");
   expect(host.querySelectorAll(".guided-choice-answer")).toHaveLength(2); expect(f.request).not.toHaveBeenCalled();
 });
 
 it("keeps an explicitly reopened answer open through later run polls and same-owner verification", async () => {
   const f = fixture(); f.load(); await render(f.memory);
-  expect(heading()).toBe("Ready to explore your names?");
-  const edit = host.querySelector<HTMLButtonElement>('[aria-label="Edit answer: Which language should the names work in?"]')!;
+  expect(heading()).toBe("Your naming direction");
+  const edit = host.querySelector<HTMLButtonElement>('[aria-label="Edit answer: Any length limits or text to include or avoid?"]')!;
   await act(async () => edit.click());
   await act(async () => f.load());
-  expect(heading()).toBe("Which language should the names work in?");
+  expect(heading()).toBe("Any length limits or text to include or avoid?");
   const verified = { ...account, generation: 2 };
   await act(async () => { f.memory.bind(null); f.memory.bind(verified); f.memory.setFeed(verified, projectId, previous => ({ ...previous, feed: feed() })); });
-  expect(f.memory.get(verified, projectId)?.chatProgress?.activeStep).toBe("language");
+  expect(f.memory.get(verified, projectId)?.chatProgress?.activeStep).toBe("length");
   f.memory.setFeed(account, projectId, previous => ({ ...previous, feed: feed() }));
-  expect(f.memory.get(verified, projectId)?.chatProgress?.activeStep).toBe("language");
+  expect(f.memory.get(verified, projectId)?.chatProgress?.activeStep).toBe("length");
 });
 
 it("does not interrupt a choice opened before the saved run arrives", () => {
@@ -114,18 +114,18 @@ it("restores explicitly accepted default answers after a cold reload before any 
   const saveProgress = vi.fn(async (value: NamingChatCheckpoint) => { durable = structuredClone(value); return true; });
   const f = fixture(); f.load(feed(null));
   const start = await render(f.memory, defaultChoices, { exploring: false, onSaveProgress: saveProgress });
-  expect(heading()).toBe("Which language should the names work in?");
-  for (const next of ["Do you have a length in mind?", "Any text to include or avoid?", "Ready to explore your names?"]) {
+  expect(heading()).toBe("Any length limits or text to include or avoid?");
+  for (const next of ["Your naming direction"]) {
     await continueAnswer(); expect(heading()).toBe(next);
   }
-  expect(saveProgress).toHaveBeenCalledTimes(3);
-  expect(durable).toMatchObject({ version: 1, preferencesVersion: 4, confirmed: { language: '\"en\"', length: "[null,null]", fragments: "[[],[]]" } });
-  expect(f.request).not.toHaveBeenCalled(); expect(start).not.toHaveBeenCalled();
+  expect(saveProgress).toHaveBeenCalledTimes(1);
+  expect(durable).toMatchObject({ version: 1, preferencesVersion: 4, confirmed: { length: "[null,null]", fragments: "[[],[]]" } });
+  expect(f.request).not.toHaveBeenCalled(); expect(start).toHaveBeenCalledOnce();
   await act(async () => root.unmount()); root = createRoot(host);
   const cold = fixture(); cold.load(feed(null));
   await render(cold.memory, defaultChoices, { exploring: false, savedChat: durable });
-  expect(heading()).toBe("Ready to explore your names?");
-  expect(host.querySelectorAll(".guided-choice-answer")).toHaveLength(5);
+  expect(heading()).toBe("Your naming direction");
+  expect(host.querySelectorAll(".guided-choice-answer")).toHaveLength(3);
   expect(host.textContent).toContain("Flexible length"); expect(host.textContent).toContain("No required text");
   expect(cold.request).not.toHaveBeenCalled(); expect(cold.memory.hasUnsaved()).toBe(false);
 });
@@ -133,10 +133,10 @@ it("restores explicitly accepted default answers after a cold reload before any 
 it("resumes the next question from a partially completed saved checkpoint", async () => {
   let durable: NamingChatCheckpoint | undefined;
   const f = fixture(); await render(f.memory, defaultChoices, { onSaveProgress: async value => { durable = value; return true; } });
-  await continueAnswer(); expect(heading()).toBe("Do you have a length in mind?");
+  await continueAnswer(); expect(heading()).toBe("Your naming direction");
   await act(async () => root.unmount()); root = createRoot(host);
   await render(fixture().memory, defaultChoices, { savedChat: durable });
-  expect(heading()).toBe("Do you have a length in mind?");
+  expect(heading()).toBe("Your naming direction");
   expect(host.querySelectorAll(".guided-choice-answer")).toHaveLength(3);
 });
 
@@ -145,15 +145,15 @@ it("waits for the durable acknowledgement and does not advance on an uncertain v
   const f = fixture();
   const start = await render(f.memory, defaultChoices, { onSaveProgress: value => { durable = value; return new Promise(resolve => { finish = resolve; }); } });
   await continueAnswer();
-  expect(heading()).toBe("Which language should the names work in?");
+  expect(heading()).toBe("Any length limits or text to include or avoid?");
   expect(f.memory.get(account, projectId)?.chatProgress?.confirmed.language).toBeUndefined();
   await act(async () => finish(false));
-  expect(heading()).toBe("Which language should the names work in?");
+  expect(heading()).toBe("Any length limits or text to include or avoid?");
   expect(host.textContent).toContain("This answer could not be confirmed as saved"); expect(start).not.toHaveBeenCalled();
   // A lost ACK may nevertheless have committed. A fresh owned read is authority.
   await act(async () => root.unmount()); root = createRoot(host);
   await render(fixture().memory, defaultChoices, { savedChat: durable });
-  expect(heading()).toBe("Do you have a length in mind?");
+  expect(heading()).toBe("Your naming direction");
 });
 
 it("does not publish a checkpoint acknowledgement after the verified account changes", async () => {
@@ -173,7 +173,7 @@ it.each(["notes", "language", "length", "fragments"] as const)("keeps unchanged 
   const checkpoint = namingChatCheckpoint(complete, value, defaultChoices.version);
   const changed = { ...value, ...(edit === "notes" ? { notes: "A quieter naming direction" } : edit === "language" ? { creativeLocale: "fr" } : edit === "length" ? { maximumGraphemes: 12 } : { excludedText: ["new fragment"] }) };
   await render(fixture().memory, { ...defaultChoices, version: 5, preferences: changed }, { savedChat: checkpoint });
-  expect(heading()).toBe(edit === "notes" ? "Ready to explore your names?" : edit === "language" ? "Which language should the names work in?" : edit === "length" ? "Do you have a length in mind?" : "Any text to include or avoid?");
+  expect(heading()).toBe(edit === "notes" || edit === "language" ? "Your naming direction" : "Any length limits or text to include or avoid?");
   const record = host.querySelectorAll(".guided-choice-answer");
-  expect(record).toHaveLength(edit === "notes" ? 5 : 4);
+  expect(record).toHaveLength(edit === "notes" || edit === "language" ? 3 : 2);
 });

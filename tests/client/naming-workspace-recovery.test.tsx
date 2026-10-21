@@ -109,7 +109,7 @@ it.each(["history", "filtered", "inspection"] as const)("I4 Continue explicitly 
   let acknowledge!: (ok: boolean) => void;
   if (view === "filtered") holdView = new Promise(resolve => { acknowledge = resolve; });
   await finishQuestions();
-  await click("Continue exploring");
+  await click("Apply updated choices");
   if (view === "filtered") { expect(ensures()).toHaveLength(0); expect(viewWrites.at(-1)).toMatchObject({ pane: "results", filter: "all", query: "", visibleBatchId: null }); await act(async () => acknowledge(true)); }
   expect(host.querySelector('.naming-continuous-results')).not.toBeNull(); expect(host.querySelector('[aria-label="Inspect name"]')).toBeNull();
   expect(ensures()).toHaveLength(1);
@@ -118,19 +118,19 @@ it("I4 keeps a failed saved-view transition actionable without admitting work", 
   overview = { ...overview, session: { ...overview.session!, viewState: { ...initialNamingView, filter: "saved", query: "Juniper" } } }; publish({ overview });
   await render(); await click("Modify filters"); holdView = Promise.resolve(false);
   await finishQuestions();
-  await click("Continue exploring");
+  await click("Apply updated choices");
   expect(viewWrites.at(-1)).toMatchObject({ pane: "results", filter: "all", query: "", visibleBatchId: null });
   expect(host.textContent).toContain("The saved view could not be confirmed.");
   expect(host.querySelector('.naming-continuous-results')).toBeNull(); expect(ensures()).toHaveLength(0);
   await act(async () => { window.dispatchEvent(new Event("wheel")); await vi.advanceTimersByTimeAsync(15_000); });
   expect(ensures()).toHaveLength(0);
-  holdView = null; await finishQuestions(); await click("Continue exploring"); expect(ensures()).toHaveLength(1);
+  holdView = null; await finishQuestions(); await click("Apply updated choices"); expect(ensures()).toHaveLength(1);
 });
 it("I4 does not admit work after leaving exploration while Continue awaits its saved-head read", async () => {
   await render(); await click("Saved names & history"); await click("Modify filters");
   let release!: () => void; holdFeed = new Promise(resolve => { release = resolve; });
   await finishQuestions();
-  await click("Continue exploring"); expect(host.querySelector('.naming-continuous-results')).not.toBeNull();
+  await click("Apply updated choices"); expect(host.querySelector('.naming-continuous-results')).not.toBeNull();
   await click("Saved names & history"); await act(async () => release());
   expect(ensures()).toHaveLength(0); expect(host.querySelector('.naming-continuous-results')).toBeNull();
 });

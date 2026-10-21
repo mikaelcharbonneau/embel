@@ -1,4 +1,5 @@
 "use client";
+import { ContextDetails } from "@/components/ui/context-details";
 import { useId, type ReactNode } from "react";
 import { useProjectIdentityEvidence, ProjectDock } from "@/components/workspace/project-workspace";
 import type { AccountLogoClient } from "@/components/identity/account-logo-client";
@@ -63,20 +64,11 @@ export function IdentityDirectionsView({ controller, controls, visualReview }: {
           stale={stale || direction.approvedLogoId !== current.approvedLogo!.id} approvedLogoDocument={direction.approvedLogoId === current.approvedLogo!.id ? controller.approvedLogoDocument : null}
           onChoose={() => { void controller.preview({ paletteVersionId: direction.paletteVersionId, typographyVersionId: direction.typographyVersionId, graphicsVersionId: direction.graphicsVersionId }); }} disabled={stale || controller.loading || !!controller.pendingRequestKey || controller.pendingGeneration} />)}</div>
           : !controller.loading && overview && <div className={styles.empty}><h3>No current directions yet</h3><p>A completed, current set of three directions will appear here. Earlier retained work stays in history below.</p></div>}
-        {(retainedDirections.length > 0 || controller.history?.canLoadMore || controller.history?.canLoadPrevious) && <details className={styles.details}>
-          <summary>Retained direction history</summary><p className={styles.caption}>These saved versions are kept for reference. Browsing history does not replace the current choices or approve an earlier result.</p>
-          {retained && <div className={styles.cards}>{retainedDirections.map(direction => <DirectionCard key={direction.id} direction={direction}
+        {(retainedDirections.length > 0 || controller.history?.canLoadMore || controller.history?.canLoadPrevious) && <ContextDetails className={styles.details} title={<>Retained direction history</>}><p className={styles.caption}>These saved versions are kept for reference. Browsing history does not replace the current choices or approve an earlier result.</p>{retained && <div className={styles.cards}>{retainedDirections.map(direction => <DirectionCard key={direction.id} direction={direction}
             palette={resolve(retained.palettes, direction.paletteVersionId, direction)} typography={resolve(retained.typography, direction.typographyVersionId, direction)} graphics={resolve(retained.graphics, direction.graphicsVersionId, direction)} fonts={retained.fonts}
-            selectedParts={[]} stale={true} approvedLogoDocument={direction.approvedLogoId === current.approvedLogo!.id ? controller.approvedLogoDocument : null} />)}</div>}
-          <div className={styles.actions}>{controller.history?.canLoadPrevious && <button type="button" disabled={controller.history.loading} onClick={() => { void controller.loadHistory("previous"); }}>Previous history page</button>}
-            {controller.history?.canLoadMore && <button type="button" disabled={controller.history.loading || controller.loading} onClick={() => { void controller.loadHistory(); }}>{controller.history.loading ? "Loading history…" : "Load earlier directions"}</button>}</div>
-          {controller.history?.error && <p className={styles.notice} role="status">{controller.history.error}</p>}
-        </details>}
-        {(controller.hasDirectionDraft || controller.pendingRequestKey || stale) && <details className={styles.details}><summary>Reload options</summary>
-          <p className={styles.caption}>Discarding removes only your unsaved mix. Saved requests and other brief or logo edits are retained.</p>
-          {!controller.canDiscardDraft && <p className={styles.caption}>Check or resolve the retained request and other logo edits before discarding this local mix.</p>}
-          <button type="button" disabled={controller.loading || !controller.canDiscardDraft} onClick={() => { if (window.confirm("Discard only this unsaved mix and reload saved work? Saved requests and other brief or logo edits will be kept.")) void controller.discardAndReload(); }}>Discard mix draft and reload</button>
-        </details>}
+            selectedParts={[]} stale={true} approvedLogoDocument={direction.approvedLogoId === current.approvedLogo!.id ? controller.approvedLogoDocument : null} />)}</div>}<div className={styles.actions}>{controller.history?.canLoadPrevious && <button type="button" disabled={controller.history.loading} onClick={() => { void controller.loadHistory("previous"); }}>Previous history page</button>}
+            {controller.history?.canLoadMore && <button type="button" disabled={controller.history.loading || controller.loading} onClick={() => { void controller.loadHistory(); }}>{controller.history.loading ? "Loading history…" : "Load earlier directions"}</button>}</div>{controller.history?.error && <p className={styles.notice} role="status">{controller.history.error}</p>}</ContextDetails>}
+        {(controller.hasDirectionDraft || controller.pendingRequestKey || stale) && <ContextDetails className={styles.details} title={<>Reload options</>}><p className={styles.caption}>Discarding removes only your unsaved mix. Saved requests and other brief or logo edits are retained.</p>{!controller.canDiscardDraft && <p className={styles.caption}>Check or resolve the retained request and other logo edits before discarding this local mix.</p>}<button type="button" disabled={controller.loading || !controller.canDiscardDraft} onClick={() => { if (window.confirm("Discard only this unsaved mix and reload saved work? Saved requests and other brief or logo edits will be kept.")) void controller.discardAndReload(); }}>Discard mix draft and reload</button></ContextDetails>}
         {controller.requestStatus && <p className={styles.notice} role="status">{controller.requestStatus}</p>}
       </>}
     {controller.canRead && controller.pendingRequestKey && <div className={styles.notice}><strong>A previous request needs checking</strong>
@@ -100,7 +92,7 @@ export function IdentityDirectionsView({ controller, controls, visualReview }: {
           <div className={styles.actions}><button type="button" disabled={!controller.canSave || controller.loading || !controller.draft || checks?.status === "blocked" || stale || exactSaved} onClick={() => { void controller.saveMix(); }}>Save mix</button>
             <button type="button" disabled={!controller.canSave || controller.loading || !exactSaved || stale || selection?.consistency.status === "blocked" || selection?.consistency.status === "warning" && !controller.reviewedWarnings || !!overview.approval} onClick={() => { void controller.approve(); }}>Approve identity</button></div>
           <p className={styles.caption}>Saving keeps this mix. Approval is a separate step before refreshed brand files.</p>
-          <details className={styles.details}><summary>Fonts and usage permissions</summary><FontPicker typography={choices ? overview.typography.find(t => t.id === choices.typographyVersionId) ?? null : null} fonts={overview.fonts} showActions /></details>
+          <ContextDetails className={styles.details} title={<>Fonts and usage permissions</>}><FontPicker typography={choices ? overview.typography.find(t => t.id === choices.typographyVersionId) ?? null : null} fonts={overview.fonts} showActions /></ContextDetails>
         </section>}
     {controls}
   </ProjectDock></section>;

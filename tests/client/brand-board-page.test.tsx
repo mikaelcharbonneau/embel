@@ -10,6 +10,19 @@ import type { LogoRasterSource, LogoWorkspaceV2 } from "../../src/domain/logo-wo
 import { syntheticRefinementWorkspaceHttp } from "../fixtures/logo-refinement-workspace-http";
 import { logoFixtureId as id } from "../fixtures/logo-creation";
 
+const rendered = vi.hoisted(() => ({ snapshots: [] as { name: string; paletteSource: string; logoNeedsReview: boolean }[] }));
+// Page lifecycle tests keep the real private preview client. Pixel rendering is
+// covered separately by the verified PNG export suite and browser screenshots.
+vi.mock("../../src/components/logo-creation/brand-board-preview-export", async original => {
+  const actual = await original<typeof import("../../src/components/logo-creation/brand-board-preview-export")>();
+  return { ...actual, prepareBoardPreview: async (client: { previewAsset: (receipt: unknown, signal: AbortSignal) => Promise<{ release(): void } | null> }, snapshot: Parameters<typeof actual.prepareBoardPreview>[1], signal: AbortSignal) => {
+    const image = await client.previewAsset(snapshot.receipt, signal);
+    if (!image) throw new actual.BoardPreviewError("unavailable");
+    image.release(); rendered.snapshots.push(snapshot);
+    return new Blob(["synthetic page-only raster"], { type: "image/png" });
+  } };
+});
+
 let root: Root | null = null, host: HTMLDivElement;
 const revokeUrl = vi.fn();
 beforeEach(() => {
@@ -17,7 +30,7 @@ beforeEach(() => {
   vi.stubGlobal("crypto", webcrypto);
   const OriginalURL = URL;
   let nextUrl = 0;
-  revokeUrl.mockReset();
+  revokeUrl.mockReset(); rendered.snapshots.length = 0;
   vi.stubGlobal("URL", class extends OriginalURL {
     static createObjectURL = () => `blob:synthetic-board-${++nextUrl}`;
     static revokeObjectURL = revokeUrl;
@@ -91,158 +104,71 @@ async function mount(f: Awaited<ReturnType<typeof fixture>>) {
   await act(async () => root!.render(createElement(AccountSessionProvider, null, createElement(Harness))));
 }
 const board = () => host.querySelector("[data-brand-board-layout]");
-const previews = () => host.querySelectorAll('img[alt="Selected logo in application preview"]');
+const previews = () => host.querySelectorAll('[data-brand-board-layout] img');
 
-describe("saved brand board presentation", () => {
-  it("reads the exact saved name and selected preview, distinguishes proposals and survives reload without writes", async () => {
-    const f = await fixture();
-    const before = JSON.stringify({ workspace: f.f.workspace, batch: f.f.batch, inspiration: f.inspiration });
-    await mount(f);
-    await until(() => expect(previews()).toHaveLength(4));
-    expect(board()?.textContent).toContain("Élan & Co · Saved selection");
-    expect(board()?.textContent).toContain("Proposed paletteFrom saved inspiration");
-    expect(board()?.textContent).toContain("Proposed typographyGeist Sans · Default preview");
-    expect(board()?.textContent?.match(/Application preview/g)).toHaveLength(3);
-    expect(board()?.textContent?.match(/Placeholder copy/g)).toHaveLength(2);
-    expect(board()?.textContent).not.toContain("Tea shop");
-    expect(board()?.textContent).not.toMatch(/\b(?:approved|final|exports?|download|licensed|generated)\b/i);
-    expect(board()?.textContent).not.toContain("Review changed inputs");
-    expect(host.querySelector('a[href$="/logo"]')?.textContent).toContain("Back to logo concepts");
-    const previewPaths = f.requests.filter(row => row.path.endsWith("/preview")).map(row => row.path);
-    // Four displayed images plus the independently verified download preparation.
-    expect(previewPaths).toHaveLength(5);
-    expect(new Set(previewPaths)).toEqual(new Set([`/api/assets/${f.f.batch.slots[0]!.acceptedPreview!.reference.versionId}/preview`]));
-    await act(async () => root!.unmount()); root = null;
-    await mount(f);
-    await until(() => expect(previews()).toHaveLength(4));
-    expect(board()?.textContent).toContain("Élan & Co · Saved selection");
-    expect(JSON.stringify({ workspace: f.f.workspace, batch: f.f.batch, inspiration: f.inspiration })).toBe(before);
-    expect(f.f.selections).toEqual([]);
-    expect(f.f.quotes).toEqual([]);
-    expect(f.f.admissions).toEqual([]);
+describe("unified raster Brand Board", () => {
+  it("shows one complete image and preserves selected inputs on reload without writes", async () => {
+    const f = await fixture(); const before = JSON.stringify(f.f.workspace);
+    await mount(f); await until(() => expect(previews()).toHaveLength(1));
+    expect(previews()[0]?.getAttribute("alt")).toContain("Élan & Co Brand Board");
+    expect(previews()[0]?.getAttribute("alt")).toContain("social post and X header in one image");
+    expect(board()?.querySelector("[data-application-mockup]")).toBeNull();
+    expect(rendered.snapshots.at(-1)).toMatchObject({ name: "Élan & Co", paletteSource: "saved_inspiration", logoNeedsReview: false });
+    expect(f.requests.filter(row => row.path.endsWith("/preview"))).toHaveLength(1);
+    await act(async () => root!.unmount()); root = null; await mount(f);
+    await until(() => expect(previews()).toHaveLength(1));
+    expect(JSON.stringify(f.f.workspace)).toBe(before);
+    expect(f.f.selections).toEqual([]); expect(f.f.quotes).toEqual([]); expect(f.f.admissions).toEqual([]);
     expect(f.requests.every(row => row.method === "GET")).toBe(true);
   });
-
-  it.each([
-    "Fictional QA test. Create a warm identity; do not use mountains. Internal instruction token 883.",
-    "Une marque fictive pour le test.\nInstructions créatives : ne pas publier ce brief.",
-    "Thoughtful everyday goods for everyone.",
-    "",
-  ])("uses neutral placeholder copy instead of promoting saved brief text: %j", async briefText => {
-    const f = await fixture({ briefText });
-    const before = JSON.stringify({ workspace: f.f.workspace, batch: f.f.batch, inspiration: f.inspiration });
-    await mount(f);
-    await until(() => expect(previews()).toHaveLength(4));
-    if (briefText) expect(host.textContent).not.toContain(briefText);
-    expect(f.requests.some(row => row.path.includes("/stages/brief_references/"))).toBe(true);
-    expect(board()?.querySelector('[data-application-mockup="website"] p')?.textContent).toBe("Your brand introduction goes here.");
-    expect(board()?.querySelector('[data-application-mockup="social"] h3')?.textContent).toBe("Your announcement goes here.");
-    expect(board()?.textContent).toContain("Élan & Co · Saved selection");
-    expect(board()?.textContent).toContain("Proposed paletteFrom saved inspiration");
-    expect(board()?.textContent).toContain("Geist Sans · Default preview");
-    expect(board()?.textContent?.match(/Application preview · Placeholder copy/g)).toHaveLength(2);
-    expect(board()?.textContent).not.toMatch(/\b(?:approved|final|exports?|download|licensed|generated)\b/i);
-    const previewText = [...host.querySelectorAll("[data-application-mockup]")].map(node => node.textContent);
-    await act(async () => root!.unmount()); root = null;
-    await mount(f);
-    await until(() => expect(previews()).toHaveLength(4));
-    expect([...host.querySelectorAll("[data-application-mockup]")].map(node => node.textContent)).toEqual(previewText);
-    if (briefText) expect(host.textContent).not.toContain(briefText);
-    expect(JSON.stringify({ workspace: f.f.workspace, batch: f.f.batch, inspiration: f.inspiration })).toBe(before);
-    expect(f.f.selections).toEqual([]);
-    expect(f.f.quotes).toEqual([]);
+  it.each(["Private creative instructions: do not publish this brief", "Une marque fictive pour le test", ""])("never promotes private brief text into artwork copy: %j", async briefText => {
+    const f = await fixture({ briefText }); await mount(f); await until(() => expect(previews()).toHaveLength(1));
+    if (briefText) { expect(host.textContent).not.toContain(briefText); expect(JSON.stringify(rendered.snapshots)).not.toContain(briefText); }
     expect(f.f.admissions).toEqual([]);
-    expect(f.requests.every(row => row.method === "GET")).toBe(true);
   });
-
-  it("does not invent a logo or display proposal applications when no logo is selected", async () => {
-    const f = await fixture({ selected: null });
-    await mount(f);
+  it("does not invent artwork when no logo is selected", async () => {
+    const f = await fixture({ selected: null }); await mount(f);
     await until(() => expect(host.textContent).toContain("Select a logo to start your brand board."));
-    expect(board()).toBeNull();
-    expect(previews()).toHaveLength(0);
-    expect(host.querySelector('[role="status"]')?.textContent).toContain("Select a logo");
-    expect(f.requests.some(row => row.path.includes("/batches/") || row.path.endsWith("/preview"))).toBe(false);
-    expect(f.f.selections).toEqual([]);
+    expect(board()).toBeNull(); expect(previews()).toHaveLength(0); expect(rendered.snapshots).toHaveLength(0);
   });
-
-  it("keeps the exact stale selection visible and scopes its review guidance to the logo tile", async () => {
+  it("keeps stale selected artwork but clearly flags changed inputs", async () => {
     const f = await fixture({ staleStages: [{ stage: "concepts", reasons: ["input_revision_changed"] }] });
-    await mount(f);
-    await until(() => expect(previews()).toHaveLength(4));
-    expect(host.querySelector('[aria-label="Selected brand logo"]')?.textContent).toContain("Saved selection · Review changed inputs");
-    expect(board()?.querySelectorAll(":scope > section")).toHaveLength(6);
-    expect(board()?.querySelector('[role="alert"], [role="status"]')).toBeNull();
-    expect(f.f.selections).toEqual([]);
-    expect(f.f.workspace.approvedLogo).toBeNull();
+    await mount(f); await until(() => expect(previews()).toHaveLength(1));
+    expect(board()?.textContent).toContain("Review changed logo inputs"); expect(rendered.snapshots.at(-1)?.logoNeedsReview).toBe(true);
+    expect(f.f.selections).toEqual([]); expect(f.f.workspace.approvedLogo).toBeNull();
   });
-
-  it("shows a saved refinement and its stale-input guidance without substituting its original concept", async () => {
+  it("uses the exact selected refinement instead of substituting its original", async () => {
     const f = await fixture({ selected: { kind: "refinement", rasterRevisionId: id(503) }, staleStages: [{ stage: "refinements", reasons: ["input_revision_changed"] }] });
-    await mount(f);
-    await until(() => expect(previews()).toHaveLength(4));
-    expect(board()?.textContent).toContain("Saved selection · Review changed inputs");
+    await mount(f); await until(() => expect(previews()).toHaveLength(1));
     expect(f.f.detailReads).toContain(id(503));
-    const paths = f.requests.filter(row => row.path.endsWith("/preview")).map(row => row.path);
-    expect(new Set(paths)).toEqual(new Set([`/api/assets/${f.f.raster.preview!.reference.versionId}/preview`]));
-    expect(f.f.selections).toEqual([]);
+    expect(new Set(f.requests.filter(row => row.path.endsWith("/preview")).map(row => row.path))).toEqual(new Set([`/api/assets/${f.f.raster.preview!.reference.versionId}/preview`]));
   });
-
-  it("labels the fallback palette as a neutral proposal when no color inspiration was saved", async () => {
-    const f = await fixture({ colors: false });
-    await mount(f);
-    await until(() => expect(previews()).toHaveLength(4));
-    expect(board()?.textContent).toContain("Proposed paletteNeutral starting point");
-    expect(board()?.textContent).not.toContain("From saved inspiration");
-    expect(board()?.textContent).toContain("Geist Sans · Default preview");
-    expect(f.inspiration.choices).toEqual([]);
+  it("retains an honest neutral palette when inspiration contains no colors", async () => {
+    const f = await fixture({ colors: false }); await mount(f); await until(() => expect(previews()).toHaveLength(1));
+    expect(rendered.snapshots.at(-1)?.paletteSource).toBe("neutral_default"); expect(f.inspiration.choices).toEqual([]);
   });
-
-  it("keeps an unreadable selection unavailable until its explicit read-only retry succeeds", async () => {
-    const f = await fixture(); f.controls.candidateAvailable = false;
-    await mount(f);
+  it("recovers an unreadable selected candidate only through read-only retry", async () => {
+    const f = await fixture(); f.controls.candidateAvailable = false; await mount(f);
     await until(() => expect(host.textContent).toContain("Your selected logo could not be loaded."));
-    expect(board()).toBeNull();
-    expect(previews()).toHaveLength(0);
-    f.controls.candidateAvailable = true;
+    expect(board()).toBeNull(); f.controls.candidateAvailable = true;
     await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent === "Try again")!.click());
-    await until(() => expect(previews()).toHaveLength(4));
-    expect(board()?.textContent).toContain("Saved selection");
-    expect(f.f.selections).toEqual([]);
+    await until(() => expect(previews()).toHaveLength(1)); expect(f.f.selections).toEqual([]);
   });
-
-  it("does not substitute fake artwork when the saved private image cannot be read", async () => {
-    const f = await fixture(); f.controls.imageAvailable = false;
-    const before = JSON.stringify(f.f.batch);
-    await mount(f);
-    await until(() => expect(board()?.textContent?.match(/Image preview unavailable\. Saved result retained\./g)).toHaveLength(4));
-    expect(previews()).toHaveLength(0);
-    expect(board()?.textContent).toContain("Saved selection");
-    expect(board()?.textContent).toContain("Proposed palette");
-    expect(JSON.stringify(f.f.batch)).toBe(before);
-    expect(f.f.selections).toEqual([]);
+  it("does not substitute fake artwork when the private source cannot be read", async () => {
+    const f = await fixture(); f.controls.imageAvailable = false; await mount(f);
+    await until(() => expect(board()?.textContent).toContain("Brand Board preview unavailable"));
+    expect(previews()).toHaveLength(0); expect(f.f.selections).toEqual([]);
   });
-
   it("does not replace unconfirmed inspiration with a claimed saved proposal", async () => {
-    const f = await fixture(); f.controls.inspirationAvailable = false;
-    await mount(f);
-    await until(() => expect(host.querySelector('[role="alert"]')?.textContent).toContain("Retry inspiration"));
-    expect(board()).toBeNull();
-    expect(host.textContent).not.toContain("Neutral starting point");
-    expect(f.f.selections).toEqual([]);
+    const f = await fixture(); f.controls.inspirationAvailable = false; await mount(f);
+    await until(() => expect(host.querySelector('[role="alert"]')).not.toBeNull());
+    expect(board()).toBeNull(); expect(rendered.snapshots).toHaveLength(0);
   });
-
-  it("removes the saved name, board and private image URLs when the verified owner changes", async () => {
-    const f = await fixture();
-    await mount(f);
-    await until(() => expect(previews()).toHaveLength(4));
-    const urls = [...previews()].map(image => image.getAttribute("src"));
-    f.f.owner = id(999);
+  it("removes the private raster and revokes its URL when the owner changes", async () => {
+    const f = await fixture(); await mount(f); await until(() => expect(previews()).toHaveLength(1));
+    const url = previews()[0]!.getAttribute("src"); f.f.owner = id(999);
     await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent === "Recheck account")!.click());
-    await until(() => expect(board()).toBeNull());
-    expect(host.textContent).not.toContain("Élan & Co");
-    expect(previews()).toHaveLength(0);
-    for (const url of urls) expect(revokeUrl).toHaveBeenCalledWith(url);
-    expect(f.f.selections).toEqual([]);
+    await until(() => expect(previews()).toHaveLength(0));
+    expect(host.textContent).not.toContain("Élan & Co"); expect(revokeUrl).toHaveBeenCalledWith(url);
   });
 });
