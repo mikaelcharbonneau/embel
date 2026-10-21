@@ -1,3 +1,4 @@
+import { LocalNamingFailure, reportNamingFailure, retryLocalPersistence } from "../local-persistence-recovery";
 import { isDeepStrictEqual } from "node:util";
 import { createNamingCurationProjection, createNamingReviewProjection, namingAssignmentPlanSchema, namingCreatorSetSchema, namingCurationSchema, namingResearchPackSchema, namingVerificationSchema, validateNamingCreatorSet,
   type NamingBrainJobInput, type NamingMicrobatchInput, type NamingProgressiveAssignment, type NamingProgressivePhase, type NamingResearchPack, type NamingAssignmentPlan,
@@ -72,12 +73,14 @@ export async function executeProgressiveNaming(options: Options): Promise<{ outc
       if (saved.role !== role || saved.stageKey !== "creation" || saved.policy.localPipelineVersion !== 2) throw new Error("progressive_saved_request_mismatch");
       return saved;
     }
+    try {
     const value = build();
     const request = createNamingRoleRequest({ runId: input.runId, stageKey: "creation", providerCallKey: key, input: value.input,
       dependencyArtifactIds: [...new Set(value.dependencies)], policy: createProgressiveNamingRolePolicy(input.policy, role, undefined, undefined, true) });
-    await store.saveProgressiveCallPlan(job, phase, [request]);
+    await retryLocalPersistence(() => store.saveProgressiveCallPlan(job, phase, [request]), signal);
     planned.set(key, request);
     return request;
+    } catch (error) { throw new LocalNamingFailure("planning", error); }
   }
 
   // Recover every issued sibling before any new provider authorization. A missing
@@ -110,7 +113,16 @@ export async function executeProgressiveNaming(options: Options): Promise<{ outc
     const result = await invoke(direction, "context.direction");
     if (result?.status === "completed") guidance = namingAssignmentPlanSchema.parse(result.output);
   }
-  const context = contextWork().catch(() => { blocked = true; outcomes.push({ status: "unresolved", code: "progressive_context_unknown", receipt: null, partialArtifacts: [] }); }).finally(() => { contextDone = true; });
+  function recordFailure(error: unknown, fallback: string) {
+    blocked = true;
+    reportNamingFailure(error, fallback);
+    // Planning never dispatches. Other already issued branches drain below and
+    // retain their own evidence; the DB still refuses to settle unknown calls.
+    outcomes.push(error instanceof LocalNamingFailure && error.phase === "planning"
+      ? { status: "rejected_before_dispatch", code: "local_planning_failed" }
+      : { status: "unresolved", code: error instanceof LocalNamingFailure ? "local_publication_failed" : fallback, receipt: null, partialArtifacts: [] });
+  }
+  const context = contextWork().catch(error => recordFailure(error, "progressive_context_unknown")).finally(() => { contextDone = true; });
 
   function availableApproaches(): ReadonlySet<NamingApproach> {
     const available = new Set(PROGRESSIVE_CREATIVE_APPROACHES);
@@ -146,7 +158,8 @@ export async function executeProgressiveNaming(options: Options): Promise<{ outc
     try { publication = createNamingMicrobatch({ key, snapshot, candidates: validated.accepted, curation, verification,
       ...(verificationRequest ? { sourceContext: namingSourceContext(verificationRequest, [...completed.values()]) } : {}) }); }
     catch (error) { if (error instanceof Error && error.message === "naming_microbatch_no_eligible_candidates") return; throw error; }
-    const result = await store.publishMicrobatch(job, publication, signal);
+    const result = await retryLocalPersistence(() => store.publishMicrobatch(job, publication, signal), signal)
+      .catch(error => { throw new LocalNamingFailure("publication", error); });
     publications.add(key);
     if (result.publishedCount >= publishedCount) { publishedCount = result.publishedCount; primaryCounts = result.primaryCounts; }
     console.info(JSON.stringify({ event: "naming_microbatch_published", key, count: result.entryIds.length, publishedCount: result.publishedCount }));
@@ -175,7 +188,7 @@ export async function executeProgressiveNaming(options: Options): Promise<{ outc
       try { await processPart(key, assignment); } finally { inFlight.delete(key); }
     }
   }
-  const workers = Array.from({ length: 3 }, () => partWorker().catch(() => { blocked = true; outcomes.push({ status: "unresolved", code: "progressive_execution_unknown", receipt: null, partialArtifacts: [] }); }));
+  const workers = Array.from({ length: 3 }, () => partWorker().catch(error => recordFailure(error, "progressive_execution_unknown")));
   // Ordinary failure closes scheduling. Already started calls drain under their
   // own durable deadlines; the parent signal still cancels them immediately.
   await Promise.all([context, ...workers]);

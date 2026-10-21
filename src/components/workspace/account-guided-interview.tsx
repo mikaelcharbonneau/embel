@@ -221,7 +221,7 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
           if (consent?.attempted) {
             if (!strategyAllowanceWithin(allowance, consent.allowance)) { setError("The research limits changed. The original request is kept; check its status before starting another request."); return; }
             accepted = consent.allowance;
-          } else if (!rememberGuidedStartConsent(account.userId, currentTurn.id, allowance) || !bindGuidedStartConsent(account.userId, currentTurn.id, saved.id)) {
+          } else if (!rememberGuidedStartConsent(account.userId, currentTurn.id, allowance, currentTurn.inputRevision) || !bindGuidedStartConsent(account.userId, currentTurn.id, saved.id)) {
             setError("Your project is saved. The research request could not be retained safely. Check your browser storage and retry."); return;
           }
           if (!markGuidedStartAttempt(account.userId, currentTurn.id)) { setError("Your project is saved. The research request could not be retained safely. Check your browser storage and retry."); return; }

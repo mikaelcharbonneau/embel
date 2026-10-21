@@ -110,5 +110,7 @@ describe("progressive receipt-capacity recovery through the actual SDK and SQL (
       expect((await db.query("select payload#>>'{turn,status}' status from fluid_private.naming_brain_provider_records where run_id=$1 and call_key=$2 and kind='provider_turn'", [f.input.runId, request.providerCallKey])).rows).toEqual([{ status: terminal }]);
       expect((await db.query("select count(*)::integer count from fluid_private.naming_brain_runs where project_id=$1", [f.project])).rows).toEqual([{ count: 1 }]);
     } finally { await db.close(); }
-  }, 60_000);
+  // Includes a full disposable database and >500 immutable receipt writes.
+  // This is a harness budget, not a provider timeout or performance assertion.
+  }, 120_000);
 });

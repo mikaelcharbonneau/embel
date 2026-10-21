@@ -1,3 +1,4 @@
+import { retryLocalPersistence } from "../local-persistence-recovery";
 import { isDeepStrictEqual } from "node:util";
 import {
   namingBrainJobInputSchema, namingStageKeySchema, namingStageOutcomeSchema, validateNamingAssignmentPlan, validateNamingCreatorSet,
@@ -101,7 +102,7 @@ export function createNamingBrainHandlers(options: Options): HandlerRegistry {
       if (stage.recoveryMode !== "execute") return { status: "rejected_before_dispatch", code: "naming_observe_only" };
       outcome = await agent.runStage(desired, hooks);
     }
-    if (outcome.status === "completed") await store.saveArtifact(job, outcome.output);
+    if (outcome.status === "completed") { const output = outcome.output; await retryLocalPersistence(() => store.saveArtifact(job, output), callSignal, undefined, true); }
     return outcome;
     } finally { detachCancellation(); }
   }

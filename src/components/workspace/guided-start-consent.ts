@@ -7,7 +7,7 @@ const prefix = "guided-start-v1:";
 const receiptSchema = z.strictObject({
   ownerId: z.uuid(),
   projectId: z.uuid().nullable(),
-  inputRevision: z.literal(1),
+  inputRevision: z.number().int().positive(),
   turnId: z.string().startsWith(prefix).max(128),
   allowance: z.strictObject({ billingMode: z.literal("openai_api"), maximumCostMicrousd: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) }),
   attempted: z.boolean(),
@@ -39,11 +39,11 @@ function write(receipt: GuidedStartConsent) {
 }
 
 /** Explicit acceptance may replace an unissued allowance, never an attempted request. */
-export function rememberGuidedStartConsent(ownerId: string, turnId: string, allowance: StrategyAllowance): boolean {
+export function rememberGuidedStartConsent(ownerId: string, turnId: string, allowance: StrategyAllowance, inputRevision?: number): boolean {
   if (allowance.billingMode !== "openai_api" || !isGuidedStartTurn({ id: turnId })) return false;
   const previous = readGuidedStartConsent(ownerId, turnId);
-  if (previous?.attempted) return previous.allowance.maximumCostMicrousd === allowance.maximumCostMicrousd;
-  return write({ ownerId, turnId, projectId: previous?.projectId ?? null, inputRevision: 1, allowance, attempted: false });
+  if (previous?.attempted) return previous.allowance.maximumCostMicrousd === allowance.maximumCostMicrousd && (inputRevision === undefined || previous.inputRevision === inputRevision);
+  return write({ ownerId, turnId, projectId: previous?.projectId ?? null, inputRevision: inputRevision ?? previous?.inputRevision ?? 1, allowance, attempted: false });
 }
 
 /** Bind only after an owned exact creation receipt has been acknowledged. */
@@ -59,13 +59,13 @@ export function markGuidedStartAttempt(ownerId: string, turnId: string): boolean
   return Boolean(receipt && write({ ...receipt, attempted: true }));
 }
 
-export function guidedStartContext(context: ContextSnapshot, ownerId: string, allowance: StrategyAllowance): ContextSnapshot {
-  const next = initialGuidedContext(context, 1);
+export function guidedStartContext(context: ContextSnapshot, ownerId: string, allowance: StrategyAllowance, inputRevision = 1, turnId?: string): ContextSnapshot {
+  const next = initialGuidedContext(context, inputRevision);
   const turn = next.intake.guidedInterview?.turns.at(-1);
   if (!turn || next.intake.guidedInterview!.turns.length === (context.intake.guidedInterview?.turns.length ?? 0)) return next;
-  turn.id = `${prefix}${turn.id}`;
+  turn.id = `${prefix}${turnId ?? turn.id}`;
   // A missing/unwritable receipt never blocks saving. The destination then
   // requires explicit acceptance instead of starting with an inferred allowance.
-  rememberGuidedStartConsent(ownerId, turn.id, allowance);
+  rememberGuidedStartConsent(ownerId, turn.id, allowance, inputRevision);
   return next;
 }

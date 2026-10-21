@@ -80,6 +80,27 @@ function fixture() {
 }
 
 describe("Progressive Naming reviewed publication", () => {
+  it("keeps a local planning failure separate from provider uncertainty", async () => {
+    const value = fixture();
+    value.store.saveProgressiveCallPlan = async () => { throw new Error("synthetic_plan_failure"); };
+    const result = await value.run();
+    expect(value.calls).toHaveLength(0);
+    expect(result.complete).toBe(false);
+    expect(result.outcomes).not.toContainEqual(expect.objectContaining({ status: "unresolved" }));
+    expect(result.outcomes).toContainEqual({ status: "rejected_before_dispatch", code: "local_planning_failed" });
+  });
+  it("retries an idempotent plan write on a transient database error without duplicate provider calls", async () => {
+    const value = fixture(), save = value.store.saveProgressiveCallPlan;
+    let failed = false;
+    value.store.saveProgressiveCallPlan = async (...args) => {
+      if (!failed) { failed = true; throw Object.assign(new Error("synthetic_connection_failure"), { code: "ECONNRESET" }); }
+      return save(...args);
+    };
+    const result = await value.run();
+    expect(result.complete).toBe(true);
+    expect(new Set(value.calls.map(call => call.providerCallKey)).size).toBe(value.calls.length);
+  });
+
   it("publishes the first genuine Creator+Curator part before Research or the other parts finish", async () => {
     const value = fixture(), research = deferred(), others = deferred(), first = deferred();
     value.setBeforeCall(async request => { if (request.role === "researcher") await research.promise; if (request.role === "creator" && request.providerCallKey !== "part001.creation.creator") await others.promise; });
