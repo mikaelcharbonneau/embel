@@ -348,6 +348,8 @@ test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));
 test("assets fixture: action menus dismiss outside without refreshing the library", async ({ page }, info) => {
   const fixture = await setup(page); await ready(page);
   const menu = page.locator(".assets-card-options").first(), trigger = menu.locator("summary");
+  const target = (await trigger.boundingBox())!;
+  expect(target.width).toBeGreaterThanOrEqual(44); expect(target.height).toBeGreaterThanOrEqual(44);
   await trigger.click(); await expect(menu).toHaveAttribute("open", "");
   const search = page.getByRole("searchbox", { name: "Search assets", exact: true });
   const reads = fixture.reads;
