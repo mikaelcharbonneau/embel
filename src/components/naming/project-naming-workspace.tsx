@@ -45,6 +45,7 @@ function AccountProjectNaming({ projectId, account, conversationHistory }: { pro
   const [conversationExpanded, setConversationExpanded] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [explorationStarted, setExplorationStarted] = useState(false);
+  const manualNameDraft = useManualProjectNameDraft();
   const feed = useNamingFeed({ account, projectId, projectRevision: overview?.project.current_revision, enabled: Boolean(overview?.readiness.ready && !blocked && !readError), view: { ...(overview?.session?.viewState ?? initialNamingView), inspecting: Boolean(inspectedId), historyOpen, explorationHidden: false } });
   const { eligibleView, start: startFeed } = feed;
   const continuation = useRef<{ started: boolean; resolve: (started: boolean) => void } | null>(null);
@@ -145,14 +146,22 @@ function AccountProjectNaming({ projectId, account, conversationHistory }: { pro
   async function changeName() {
     if (await naming.saveView({ pane: "results" })) restoreResults();
   }
+  async function importManualName(source: NamingSource) {
+    const saved = await naming.importLocal({ source, capturedContext: project.context }, custom.acknowledge);
+    if (saved) await custom.refresh();
+    return saved;
+  }
 
   if (project.scope === "visual_identity_only") return <div className="page project-naming-page"><header className="project-naming-header"><div><span className="project-naming-eyebrow">{project.title}</span><h1>Naming</h1></div></header><div className="project-naming-empty"><h2>This project focuses on visual identity</h2><p>Return to the project to expand its scope when you want to add Naming.</p><Link className="button secondary" href={strategyHref}>Back to project<Icon name="arrow" size={14} /></Link></div></div>;
+
+  const manualName = !screening && !inspected && (!showCanvas || view.pane === "results") ? <ManualProjectName disabled={pending || blocked} onAdd={importManualName} draft={manualNameDraft} /> : null;
 
   return <div className={`page project-naming-page project-workbench ${styles.workspace} ${showCanvas ? styles.exploring : styles.chatFirst}`} data-naming-layout={showCanvas ? "results" : "chat"} data-chat-open={conversationExpanded}>
 
     {!showCanvas && (readError || actionError) && <div className="project-naming-notice" role="alert"><p>{actionError ?? readError}</p><button type="button" className="button secondary small" disabled={pending} onClick={naming.refresh}>Check latest version</button></div>}
     <aside className={styles.chatPanel} aria-label="Naming conversation"><header className={styles.chatHeader} hidden><strong>Chat</strong><Link href={strategyHref} className="text-link">Strategy<Icon name="arrow" size={13} /></Link></header>
       <h1 className={styles.openingTitle} hidden={showCanvas}>Find a name that feels right</h1>
+      {!showCanvas && <div className={styles.compose}>{manualName}</div>}
       {overview.readiness.ready ? <NamingApproachWidgets conversationHistory={conversationHistory} compact={showCanvas} conversationOpen={conversationExpanded} onToggleConversation={() => void (conversationExpanded ? closeConversation(false) : openConversation())} memory={feed.memory} account={account} projectId={projectId} context={project.context} saved={overview.preferences} savedChat={view.namingChat} onSaveProgress={naming.saveChatProgress} blocked={blocked || Boolean(readError)} runtimeReady={feed.state?.feed?.availability.status === "available" && feed.state?.status !== "blocked" && feed.state?.feed?.activeRun?.state !== "needs_reconciliation"} exploring={exploring} canSteer={feed.canExplore} onSteer={feed.steer} onCheckSaved={naming.refresh} onContinue={continueExploration} generationStatus={<div className="naming-generation-status" role="status"><NamingFeedTail feed={feed} blocked={blocked} onModify={() => void openConversation()} />{!showCanvas && exploring && <p>{Math.min(100, Math.max(feed.entries.length, readyCount))} of 100 names saved. Your conversation stays here until they are ready.</p>}</div>} /> : <p className={styles.chatUnavailable}>Review Strategy to continue the Naming conversation. Your saved names remain available.</p>}
     </aside>
     <div className={`project-workbench-canvas ${styles.canvas}`} hidden={!showCanvas} data-naming-results-scroll tabIndex={0} aria-label="Naming results workspace">
@@ -160,7 +169,7 @@ function AccountProjectNaming({ projectId, account, conversationHistory }: { pro
     {blocked ? <div className="project-naming-notice" role="alert"><strong>{naming.workspace?.conflict ? "Resolve the saved-version conflict first" : "Save your Strategy changes first"}</strong><p>Your edits are preserved in this tab. Generation and name selection use the saved project.</p><Link className="text-link" href={strategyHref}>Return to Strategy<Icon name="arrow" size={13} /></Link></div> : null}
     {!overview.readiness.ready ? <div className="project-naming-notice"><strong>Strategy needs review</strong><p>Review {overview.readiness.missing.map(step => missingLabels[step]).join(", ")} before generating names for this brand. Earlier names stay available.</p><Link className="text-link" href={getProjectHandoff(project).next.href}>Continue the Strategy conversation<Icon name="arrow" size={13} /></Link></div> : project.scope === "naming_only" && overview.readiness.missing.length ? <p className="project-naming-muted">Naming uses your saved description and preferences. Strategy not yet reviewed: {overview.readiness.missing.map(step => missingLabels[step]).join(", ")}.</p> : null}
     {readError || actionError ? <div className="project-naming-notice" role="alert"><p>{actionError ?? readError}</p><button className="button secondary small" type="button" disabled={pending} onClick={naming.refresh}>Check latest version</button></div> : null}
-    {!screening && !inspected && view.pane === "results" && <ManualProjectName disabled={pending || blocked} onAdd={async source => { const saved = await naming.importLocal({ source, capturedContext: project.context }, custom.acknowledge); if (saved) await custom.refresh(); return saved; }} />}
+    {showCanvas && manualName}
     {!screening && !inspected && feed.eligibleView && candidates.some(entry => entry.candidate.origin.kind === "local_import" && !feed.entries.some(row => row.entry.candidate.id === entry.candidate.id)) && <section aria-label="Your custom names"><h2>Your custom names</h2><div className="project-naming-grid">{candidates.filter(entry => entry.candidate.origin.kind === "local_import" && !feed.entries.some(row => row.entry.candidate.id === entry.candidate.id)).map(entry => <ProjectNameCard key={entry.candidate.id} compact entry={entry} selected={currentSelection?.candidate.id === entry.candidate.id} earlierContext={entry.candidate.strategyKey !== strategyKey} pending={pending} blockSelection={blocked} onFavorite={() => void retain(entry, "favorite")} onSave={() => void retain(entry, "saved")} onSelect={() => select(entry)} onInspect={() => setInspectedId(entry.candidate.id)} onWorkshop={() => void openWorkshop(entry)} />)}</div></section>}
     {!screening && !inspected && feed.eligibleView && (custom.error || custom.nextCursor) && <div className="project-naming-actions">{custom.error ? <><p role="alert">Your custom names could not be refreshed. Any names already saved are retained.</p><button className="button secondary small" type="button" onClick={() => void custom.refresh()}>Check custom names</button></> : <button className="button secondary small" type="button" disabled={custom.pending} onClick={() => void custom.loadMore()}>Load more custom names</button>}</div>}
     {earlierChoice ? <section className="project-naming-stale-choice" aria-label="Earlier strategy confirmation"><h2 id="project-naming-earlier-heading" tabIndex={-1}>Use {earlierChoice.candidate.value} from an earlier strategy?</h2><p>The current saved strategy differs from the context used for this name. Choosing it creates a new selection and keeps the original history.</p><label><input type="checkbox" checked={acceptedEarlierFor === strategyKey} disabled={pending} onChange={event => setAcceptedEarlierFor(event.target.checked ? strategyKey : null)} />I have reviewed this name against the current strategy and want to use it.</label><div className="project-naming-actions"><button className="button secondary small" type="button" disabled={pending} onClick={() => { setEarlierChoice(null); setAcceptedEarlierFor(null); setInspectedId(null); }}>Keep browsing</button><button className="button primary small" type="button" disabled={acceptedEarlierFor !== strategyKey || pending || blocked} onClick={() => void choose(earlierChoice, true)}>Use earlier-context name</button></div></section> : null}
@@ -178,23 +187,29 @@ function AccountProjectNaming({ projectId, account, conversationHistory }: { pro
   </div></div>;
 }
 
-export function ManualProjectName({ disabled, onAdd }: { disabled: boolean; onAdd: (source: NamingSource) => Promise<boolean> }) {
+function useManualProjectNameDraft() {
   const [value, setValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [intent, setIntent] = useState<NamingSource | null>(null);
-  const lock = useRef(false);
+  const lockRef = useRef(false);
+  return { value, setValue, saving, setSaving, error, setError, intent, setIntent, lockRef };
+}
+
+export function ManualProjectName({ disabled, onAdd, draft }: { disabled: boolean; onAdd: (source: NamingSource) => Promise<boolean>; draft?: ReturnType<typeof useManualProjectNameDraft> }) {
+  const localDraft = useManualProjectNameDraft();
+  const { value, setValue, saving, setSaving, error, setError, intent, setIntent, lockRef } = draft ?? localDraft;
   async function submit() {
-    if (disabled || lock.current) return;
+    if (disabled || lockRef.current) return;
     const parsed = nameValueSchema.safeParse(value);
     if (!parsed.success) { setError("Enter a visible name of up to 160 characters."); return; }
     const source = intent ?? { id: crypto.randomUUID(), value: parsed.data, createdAt: new Date().toISOString(), origin: "manual", history: [] };
-    setIntent(source); lock.current = true; setSaving(true); setError(null);
+    setIntent(source); lockRef.current = true; setSaving(true); setError(null);
     try {
       if (await onAdd(source)) { setIntent(null); setValue(""); }
       else setError("This save could not be confirmed. Retry the same name to check it safely.");
     } catch { setError("This save could not be confirmed. Retry the same name to check it safely."); }
-    finally { lock.current = false; setSaving(false); }
+    finally { lockRef.current = false; setSaving(false); }
   }
   return <form className={styles.manualName} aria-label="Add your own name" onSubmit={event => { event.preventDefault(); void submit(); }}><label>Your own name<input value={value} maxLength={160} disabled={disabled || saving || Boolean(intent)} onChange={event => { setValue(event.target.value); setError(null); }} placeholder="Enter a name you have in mind" /></label><button className="button secondary small" type="submit" disabled={disabled || saving || !value.trim()}>{saving ? "Saving name…" : intent ? "Retry saving name" : "Add name"}</button>{error && <p role="alert">{error}</p>}</form>;
 }

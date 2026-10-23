@@ -10,6 +10,7 @@ import { projectNamingOverviewSchema, type ProjectNamingOverview } from "@/domai
 import { getNamingReadiness, nameIdentityKey, namingStrategyBasis, namingStrategyKey, type ProjectNameEntry } from "@/domain/project-naming";
 import { initialNamingPreferencesV2 } from "@/domain/naming-brain-preferences";
 import { initialNamingView } from "@/components/naming/use-project-naming";
+import { namingFeedSchema, type NamingFeed } from "@/domain/naming-brain";
 
 const mock = vi.hoisted(() => ({ memory: null as ReturnType<typeof createNamingBrainMemory> | null, drafts: null as ReturnType<typeof createAccountDraftMemory> | null, current: vi.fn(), expire: vi.fn() }));
 const id = (n: number) => `e0000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -19,6 +20,8 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("@/components/naming/project-screening-evidence", () => ({ ProjectScreeningEvidence: () => null }));
 let host: HTMLDivElement, root: Root, state: ProjectNamingOverview, generated: ProjectNameEntry[], manual: ProjectNameEntry[];
 let fetcher: ReturnType<typeof vi.fn>, failImport: boolean, failOverview: boolean, staleCustomRead: ProjectNameEntry[] | null;
+let savedFeed: NamingFeed | null;
+let importAcknowledgement: Promise<void> | null;
 const requests: { path: string; method: string; body: Record<string, unknown> | null; account: string | null }[] = [];
 const button = (name: string) => [...host.querySelectorAll<HTMLButtonElement>("button")].find(row => row.textContent?.trim() === name || row.getAttribute("aria-label") === name);
 async function click(name: string) { expect(button(name), name).toBeDefined(); await act(async () => button(name)!.click()); }
@@ -38,7 +41,7 @@ beforeEach(() => {
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { callback(0); return 0; }); Element.prototype.scrollIntoView = vi.fn();
   mock.memory = createNamingBrainMemory({ storage: () => null }); mock.memory.bind(account); mock.drafts = createAccountDraftMemory();
   mock.current.mockReset().mockImplementation(value => value.userId === account.userId && value.generation === account.generation); mock.expire.mockReset();
-  requests.length = 0; manual = []; failImport = false; failOverview = false; staleCustomRead = null;
+  requests.length = 0; manual = []; failImport = false; failOverview = false; staleCustomRead = null; savedFeed = null; importAcknowledgement = null;
   const project = accountProjectSchema.parse({ id: projectId, owner_id: account.userId, title: "Synthetic 130 saved names", scope: "naming_only", current_revision: 1, created_at: when, context: { description: "A synthetic kitchen brief" } });
   const owned = { ownerId: account.userId, projectId };
   state = projectNamingOverviewSchema.parse({ project, readiness: getNamingReadiness(project.context, project.scope), session: { ...owned, revision: 1, currentPreferencesVersion: 1, latestBatchSequence: 2, currentSelectionId: null, viewRevision: 1, viewState: initialNamingView, createdAt: when, updatedAt: when }, preferences: { ...owned, version: 1, preferences: { ...initialNamingPreferencesV2(project.context), approaches: ["real_words"], directness: "all" }, createdAt: when }, currentSelection: null, candidates: { ...owned, items: [], nextCursor: null }, batches: { ...owned, items: [], nextCursor: null }, jobs: [], availability: { status: "unavailable", operation: "naming.generate", reason: "worker_unavailable" }, screening: { domains: { status: "not_checked", reason: "integration_unavailable" }, handles: { status: "not_checked", reason: "integration_unavailable" }, trademarks: { status: "not_checked", reason: "integration_unavailable" } } });
@@ -50,7 +53,7 @@ beforeEach(() => {
     const url = new URL(path, "https://fixture.invalid"), method = options.method ?? "GET", body = options.body ? JSON.parse(String(options.body)) : null;
     requests.push({ path: url.pathname, method, body, account: new Headers(options.headers).get("X-Embel-Account") });
     const base = `/api/projects/${projectId}/naming`;
-    if (url.pathname === `${base}/feed`) return Response.json({}, { status: 503 });
+    if (url.pathname === `${base}/feed`) return savedFeed ? Response.json({ feed: savedFeed }) : Response.json({}, { status: 503 });
     if (url.pathname === `${base}/custom`) return Response.json(structuredClone({ ...owned, items: staleCustomRead ?? manual, nextCursor: null }));
     if (url.pathname === base) {
       if (failOverview) return Response.json({}, { status: 503 });
@@ -61,6 +64,7 @@ beforeEach(() => {
       const source = body.source;
       let entry = manual.find(row => row.candidate.origin.kind === "local_import" && row.candidate.origin.source.id === source.id);
       if (!entry) { entry = ownEntry(source.value, 999); entry = { ...entry, candidate: { ...entry.candidate, origin: { kind: "local_import", ...owned, candidateId: entry.candidate.id, contextRevision: 1, source, capturedContext: body.capturedContext } } }; manual.push(entry); }
+      if (importAcknowledgement) await importAcknowledgement;
       if (failImport) { failImport = false; return Response.json({}, { status: 503 }); }
       return Response.json({ entry });
     }
@@ -81,6 +85,101 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetcher); host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); mock.memory?.clear(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+
+it.each(["initial", "partial", "paused", "unavailable", "strategy_incomplete"])("adds and selects a manual name before the initial generated set is ready (%s)", async mode => {
+  const noGeneratedNames = mode === "initial" || mode === "strategy_incomplete";
+  generated = noGeneratedNames ? [] : generated.slice(0, 12);
+  if (mode === "strategy_incomplete") {
+    const project = accountProjectSchema.parse({ ...state.project, scope: "complete_brand", context: { selectedName: "Existing context name" } });
+    state = { ...state, project, readiness: getNamingReadiness(project.context, project.scope) };
+    expect(state.readiness.ready).toBe(false);
+  }
+  const owned = { ownerId: account.userId, projectId };
+  savedFeed = namingFeedSchema.parse({ version: 1, ...owned, projectRevision: 1, preferencesVersion: 1, feedbackRevision: 0, steeringRevision: 0, demandSequence: 0,
+    entries: generated.map((entry, index) => ({ entryId: id(2000 + index), position: index + 1, runId: id(7), steeringRevision: 0, entry, primaryApproach: "real_words", additionalApproaches: [], publishedClaims: [] })),
+    nextCursor: null, consumedThrough: null, activeRun: generated.length ? { version: 1, ...owned, runId: id(7), jobId: id(6), batchId: id(5), revision: 1, resumedFromRunId: null, canResume: mode !== "partial", state: mode === "partial" ? "running" : "partial", projectRevision: 1, preferencesVersion: 1, feedbackRevision: 0, steeringRevision: 0, demandSequence: 0, snapshotHash: "a".repeat(64), acceptedPolicyIdentity: "a".repeat(64), progress: 12, preparedSetId: null, localPipelineVersion: 2, fulfillment: { status: "partial", targetCount: 100, acceptedCount: 12, missingCount: 88, coverageSatisfied: false, message: "Synthetic unfinished exploration." }, accounting: { status: "held_unsettled", heldAllowanceMicrousd: 5000000, confirmedActualCostMicrousd: null }, createdAt: when, updatedAt: when } : null,
+    preparedSetId: null, paused: mode === "paused", state: mode === "paused" ? "paused" : "active", progressive: { version: 1, targetCount: 100, publishedCount: generated.length },
+    availability: mode === "unavailable" || mode === "strategy_incomplete" ? { status: "unavailable", code: "naming_runtime_unavailable" } : { status: "available", handlerVersion: "naming-brain-v1", protocol: "openai_agents", acceptedPolicyIdentity: "a".repeat(64) } });
+  await render();
+  expect(host.querySelector('[data-naming-layout="chat"]')).not.toBeNull();
+  expect(host.querySelector<HTMLElement>('[aria-label="Naming results workspace"]')?.hidden).toBe(true);
+  const forms = host.querySelectorAll('form[aria-label="Add your own name"]');
+  expect(forms).toHaveLength(1); expect(forms[0]!.closest("[hidden]")).toBeNull();
+  expect(manual).toHaveLength(0);
+  expect(requests.every(row => row.method === "GET")).toBe(true);
+  await enter("My first manual name"); await click("Add name");
+  expect(manual).toHaveLength(1);
+  expect(host.querySelector('[data-naming-layout="results"]')).not.toBeNull();
+  expect(host.querySelector<HTMLElement>('[aria-label="Naming results workspace"]')?.hidden).toBe(false);
+  expect(host.querySelectorAll('form[aria-label="Add your own name"]')).toHaveLength(1);
+  expect(button("Inspect name My first manual name")).toBeDefined();
+  await click("Inspect name My first manual name"); await click("Use this name");
+  expect(state.currentSelection?.candidate.value).toBe("My first manual name");
+  await act(async () => root.unmount()); root = createRoot(host); await render();
+  expect(host.textContent).toContain("My first manual name");
+  expect(state.session?.viewState.pane).toBe("screening");
+  expect(generated).toHaveLength(noGeneratedNames ? 0 : 12);
+  expect(requests.filter(row => row.method !== "GET").every(row => /\/(imports|selection|view)$/.test(row.path) && row.account === account.userId)).toBe(true);
+});
+
+it.each(["dirty", "conflict"])("keeps the chat-first manual form disabled for a %s project", async reason => {
+  generated = []; await render();
+  const workspace = mock.drafts!.get(projectId)!;
+  await act(async () => { mock.drafts!.set(reason === "conflict" ? { ...workspace, conflict: true } : { ...workspace, draft: { ...workspace.draft, title: "Unsaved Strategy edit" } }); });
+  const form = host.querySelector<HTMLFormElement>('form[aria-label="Add your own name"]')!;
+  expect(form.closest("[hidden]")).toBeNull();
+  expect(form.querySelector<HTMLInputElement>("input")!.disabled).toBe(true);
+  await act(async () => { form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })); });
+  expect(requests.every(row => row.method === "GET")).toBe(true);
+  expect(manual).toHaveLength(0);
+});
+
+it("keeps the exact unconfirmed manual intent when a saved-name poll reveals the canvas", async () => {
+  generated = generated.slice(0, 12); await render();
+  await enter("Name with a lost acknowledgement"); failImport = true; await click("Add name");
+  expect(button("Retry saving name")).toBeDefined(); expect(manual).toHaveLength(1);
+  await act(async () => { await vi.advanceTimersByTimeAsync(15_000); });
+  expect(host.querySelector('[data-naming-layout="results"]')).not.toBeNull();
+  expect(button("Inspect name Name with a lost acknowledgement")).toBeDefined();
+  expect(button("Retry saving name")).toBeDefined();
+  expect(host.querySelectorAll('form[aria-label="Add your own name"]')).toHaveLength(1);
+  await click("Retry saving name");
+  const imports = requests.filter(row => row.path.endsWith("/imports"));
+  expect(imports).toHaveLength(2); expect(imports[1]!.body).toEqual(imports[0]!.body);
+  expect(manual).toHaveLength(1);
+  expect(host.querySelector<HTMLInputElement>('form[aria-label="Add your own name"] input')!.value).toBe("");
+  expect(requests.some(row => row.path.endsWith("/ensure") || row.path.endsWith("/batches"))).toBe(false);
+});
+
+it.each([false, true])("preserves the manual draft when the independent feed reaches100 (pending ACK=%s)", async pendingAck => {
+  const complete = generated.slice(0, 100); generated = generated.slice(0, 12); staleCustomRead = [];
+  const feedFor = (entries: ProjectNameEntry[]) => namingFeedSchema.parse({ version: 1, ownerId: account.userId, projectId, projectRevision: 1, preferencesVersion: 1, feedbackRevision: 0, steeringRevision: 0, demandSequence: 0,
+    entries: entries.map((entry, index) => ({ entryId: id(2000 + index), position: index + 1, runId: id(7), steeringRevision: 0, entry, primaryApproach: "real_words", additionalApproaches: [], publishedClaims: [] })), nextCursor: null, consumedThrough: null, activeRun: null, preparedSetId: null, paused: false, state: "active", availability: { status: "unavailable", code: "naming_runtime_unavailable" } });
+  savedFeed = feedFor(generated); await render(); await enter("Keep my draft through generation");
+  let release = () => {};
+  if (pendingAck) {
+    importAcknowledgement = new Promise<void>(resolve => { release = resolve; }); failImport = true; await click("Add name");
+    expect(button("Saving name…")?.disabled).toBe(true);
+  }
+  savedFeed = feedFor(complete);
+  await act(async () => { await vi.advanceTimersByTimeAsync(15_000); });
+  expect(host.querySelector('[data-naming-layout="results"]')).not.toBeNull();
+  expect(host.querySelectorAll('form[aria-label="Add your own name"]')).toHaveLength(1);
+  expect(host.querySelector<HTMLInputElement>('form[aria-label="Add your own name"] input')!.value).toBe("Keep my draft through generation");
+  expect(button("Inspect name Synthetic 100")).toBeDefined();
+  if (pendingAck) {
+    expect(button("Saving name…")?.disabled).toBe(true);
+    await act(async () => release()); importAcknowledgement = null;
+    expect(button("Retry saving name")).toBeDefined();
+  }
+  await click(pendingAck ? "Retry saving name" : "Add name");
+  const imports = requests.filter(row => row.path.endsWith("/imports"));
+  expect(imports).toHaveLength(pendingAck ? 2 : 1);
+  if (pendingAck) expect(imports[1]!.body).toEqual(imports[0]!.body);
+  expect(manual).toHaveLength(1);
+  expect(host.querySelector<HTMLInputElement>('form[aria-label="Add your own name"] input')!.value).toBe("");
+  expect(requests.some(row => row.path.endsWith("/ensure") || row.path.endsWith("/batches"))).toBe(false);
+});
 
 it("adds, saves, selects and reloads a custom name after 130 saved generated names while generation reads fail", async () => {
   await render(); await enter("My kitchen name"); await click("Add name");
