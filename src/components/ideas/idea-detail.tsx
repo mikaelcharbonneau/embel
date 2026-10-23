@@ -35,10 +35,12 @@ export function IdeaDetail({ ideaId }: { ideaId: string }) {
 }
 
 function OwnedIdeaDetail({ account, ideaId }: { account: VerifiedAccount; ideaId: string }) {
-  const { ideaDrafts, isCurrent, expire, refresh, lifecycleMemory } = useAccountSession();
+  const { ideaDrafts, isCurrent, expire, lifecycleMemory } = useAccountSession();
   const readWorkspace = useCallback(() => ideaDrafts.get(account.userId, ideaId), [ideaDrafts, account.userId, ideaId]);
   const workspace = useSyncExternalStore(ideaDrafts.subscribe, readWorkspace, emptyWorkspace);
   const [verifiedRead, setVerifiedRead] = useState(false);
+  const [readRevision, setReadRevision] = useState(0);
+  const retryPending = useRef(false), returnReadFocus = useRef(false), heading = useRef<HTMLHeadingElement>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<"save" | "brand" | "load" | null>(null);
@@ -78,9 +80,17 @@ function OwnedIdeaDetail({ account, ideaId }: { account: VerifiedAccount; ideaId
       if (!active.current || readRequest.current !== controller || !isCurrent(account)) return;
       if (cause instanceof AccountRequestError && cause.status === 401) expire(account);
       else setLoadError(ideaErrorMessage(cause));
-    }).finally(() => { window.clearTimeout(timeout); if (readRequest.current === controller) readRequest.current = null; });
+    }).finally(() => { window.clearTimeout(timeout); if (readRequest.current === controller) { readRequest.current = null; retryPending.current = false; } });
     return () => { active.current = false; readRequest.current?.abort(); readRequest.current = null; mutation.current?.abort(); mutation.current = null; mutationKind.current = null; };
-  }, [account, ideaId, ideaDrafts, isCurrent, expire, owned, put]);
+  }, [account, ideaId, ideaDrafts, isCurrent, expire, owned, put, readRevision]);
+  useLayoutEffect(() => {
+    if (verifiedRead && returnReadFocus.current && isCurrent(account)) { returnReadFocus.current = false; heading.current?.focus(); }
+  }, [verifiedRead, account, isCurrent]);
+  function retryRead() {
+    if (!isCurrent(account) || readRequest.current || retryPending.current || mutation.current) return;
+    retryPending.current = true; returnReadFocus.current = true; setLoadError(null);
+    setReadRevision(value => value + 1);
+  }
 
   function edit(next: IdeaContent) {
     if (!active.current || !isCurrent(account) || (mutation.current && mutationKind.current !== "save")) return;
@@ -181,7 +191,7 @@ function OwnedIdeaDetail({ account, ideaId }: { account: VerifiedAccount; ideaId
   }
 
   const current = verifiedRead && workspace?.generation === account.generation && sameIdeaId(workspace.ownerId, account.userId) && sameIdeaId(workspace.saved.id, ideaId) ? workspace : null;
-  if (!current) return <><div className="page-heading ideas-heading"><h1>Account idea</h1></div>{loadError ? <div><p className="form-error" role="alert">{loadError}</p><p className="field-hint">Any unsaved idea edits remain in this tab for the same account.</p><button className="button secondary small idea-read-retry" type="button" onClick={() => { if (isCurrent(account)) refresh(); }}>Try loading idea again</button></div> : <p className="quiet-empty" role="status">Loading your idea…</p>}</>;
+  if (!current) return <><div className="page-heading ideas-heading"><h1>Account idea</h1></div>{loadError ? <div><p className="form-error" role="alert">{loadError}</p><p className="field-hint">Any unsaved idea edits remain in this tab for the same account.</p><button className="button secondary small idea-read-retry" type="button" onClick={retryRead}>Try loading idea again</button></div> : <p className="quiet-empty" role="status">Loading your idea…</p>}</>;
   const dirty = ideaDraftChanged(current);
   const converted = current.saved.content.state === "used" && current.saved.links.some(link => link.ideaRevision === current.saved.revision - 1);
   const saveDisabled = Boolean(busy) || Boolean(current.brandIntent) || (!dirty && !current.saveIntent) || (current.conflict && !current.saveIntent);
@@ -190,7 +200,7 @@ function OwnedIdeaDetail({ account, ideaId }: { account: VerifiedAccount; ideaId
   const brandDisabled = Boolean(busy || current.saveIntent) || (dirty && !current.brandIntent) || (current.conflict && !current.brandIntent) || (converted && !current.brandIntent);
   return <>
     <header className="page-heading idea-detail-heading">
-      <div><h1>{current.content.title || "Untitled idea"}<span>.</span></h1><p>{current.content.state === "developing" ? "An idea in development." : current.content.state === "used" ? "An idea taking shape as a brand." : "An idea worth exploring."}</p></div>
+      <div><h1 ref={heading} tabIndex={-1}>{current.content.title || "Untitled idea"}<span>.</span></h1><p>{current.content.state === "developing" ? "An idea in development." : current.content.state === "used" ? "An idea taking shape as a brand." : "An idea worth exploring."}</p></div>
       <div className="idea-detail-save" role="status" aria-label="Save status"><span>{saving ? "Saving…" : saveProblem ? "Not saved" : dirty ? "Unsaved changes" : "Saved"}</span>{saveProblem && (dirty || current.saveIntent) && <button className="button secondary small" type="button" disabled={saveDisabled} onClick={() => void save()}>Retry</button>}</div>
     </header>
     <div className="idea-detail-columns">

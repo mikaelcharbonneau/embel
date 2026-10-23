@@ -525,3 +525,23 @@ test("Ideas fixture: a verified account can capture a title without completing a
 });
 
 test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));
+
+test("idea read recovery: retry stays local and returns focus without restarting account", async ({ page }, info) => {
+  const state = await accountFixtures(page); let reads = 0, sessions = 0;
+  page.on("request", request => { if (new URL(request.url()).pathname === "/api/session") sessions++; });
+  await page.route(`**/api/ideas/${ideaId}`, async route => {
+    if (route.request().method() !== "GET") return route.fallback();
+    reads++;
+    if (reads === 1) return reply(route, {}, 503);
+    return route.fallback();
+  });
+  await page.goto(`/ideas/${ideaId}`);
+  const retry = page.getByRole("button", { name: "Try loading idea again", exact: true });
+  await expect(retry).toBeVisible(); const initialSessions = sessions;
+  await retry.focus(); await page.keyboard.press("Enter");
+  const heading = page.getByRole("heading", { level: 1, name: "Quiet kitchen fixture." });
+  await expect(heading).toBeVisible(); await expect(heading).toBeFocused();
+  expect(reads).toBe(2); expect(sessions).toBe(initialSessions); expect(state.writes).toEqual([]);
+  await expect(page.getByRole("textbox", { name: "Description (optional)", exact: true })).toHaveValue("A private fixture for seasonal lunches.");
+  await page.screenshot({ path: info.outputPath("idea-local-read-retry.png") });
+});
