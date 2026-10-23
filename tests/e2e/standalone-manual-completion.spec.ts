@@ -114,7 +114,7 @@ test("Handles prepares manual profile links and exports an unchecked comparison"
   await page.getByRole("button", { name: "Details for @cedar from cedar", exact: true }).click();
   await expect(page.locator('a[href="https://www.instagram.com/cedar/"]')).toBeVisible();
   await expect(page.getByRole("button", { name: "Refresh results", exact: true })).toHaveCount(0);
-  await expect(page.getByText("Checks not connected · availability unknown", { exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Handles results", exact: true }).getByText("Checks not connected · availability unknown", { exact: true })).toBeVisible();
   const pending = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export handles CSV", exact: true }).click();
   const download = await pending, path = info.outputPath("handles.csv"); await download.saveAs(path);

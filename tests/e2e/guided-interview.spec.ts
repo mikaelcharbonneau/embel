@@ -263,8 +263,9 @@ async function expectComposerInViewport(page: Page) {
   await expect(send).toBeVisible();
   const bounds = await send.boundingBox();
   expect(bounds).not.toBeNull();
-  expect(bounds!.width).toBe(44);
-  expect(bounds!.height).toBe(44);
+  const naming = await composer.getAttribute("aria-label") === "Naming message";
+  const target = naming && page.viewportSize()!.width > 760 ? 32 : 44;
+  expect(bounds!.width).toBe(target); expect(bounds!.height).toBe(target);
   expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(page.viewportSize()!.height + 1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 }
@@ -453,6 +454,7 @@ test("guided interview: explicit selections save, reload, and finish at personal
   expect(state.jobs.filter(job => job.state === "succeeded")).toHaveLength(3);
   completeLatest(state);
   await expectSingleWidget(page, "competitors");
+  await widget(page, "competitors").getByRole("checkbox", { name: "Table Next Door", exact: true }).uncheck();
   await widget(page, "competitors").getByRole("checkbox", { name: "Everyday Pantry", exact: true }).check();
   await widget(page, "competitors").getByRole("button", { name: "Continue", exact: true }).click();
   await expectRequest(state, 4, "strategy.audience");
