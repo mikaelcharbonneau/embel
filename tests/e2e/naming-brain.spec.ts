@@ -3,7 +3,7 @@ import { base, editNamingApproaches, finishNamingChat, showNamingChat, showNamin
 import { captureUiEvidence } from "./ui-evidence";
 
 // Synthetic account/API responses only, exercised through the real Next production UI.
-test("Naming V2: explicit choices save before initial100, never on mount, then restore", async ({ page }, info) => {
+test("Naming V2: submitting the final saved answer starts initial100, never mount or reload", async ({ page }, info) => {
   const fixture = await namingFixture(page); await openNaming(page);
   await expect(page.getByRole("region", { name: "Naming choices", exact: true })).toBeVisible();
   expect(fixture.mutations()).toHaveLength(0);
@@ -16,7 +16,7 @@ test("Naming V2: explicit choices save before initial100, never on mount, then r
   held.release();
   await page.getByRole("radio", { name: /^Explore all/ }).click();
   await finishNamingChat(page);
-  await page.getByRole("button", { name: "Start exploring", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Start exploring", exact: true })).toHaveCount(0);
   await expect(page.locator(".naming-feed-card")).toHaveCount(100);
   expect(fixture.mutations()).toHaveLength(1);
   expect(fixture.mutations()[0]).toMatchObject({ account: ownerId, body: { reason: "initial", consumedThrough: null, expectedPreferencesVersion: fixture.state.preferences!.version } });
@@ -55,8 +55,8 @@ test("Naming V2: scroll appends100 once, preserves anchor and retained likes dur
 });
 
 test("Naming V2: More like these supersedes a held demand and keeps the unsent draft across detail/history", async ({ page }) => {
-  const fixture = await namingFixture(page, { saved: true, count: 3 }); fixture.state.ensureMode = "pending";
-  await openNaming(page); await expect(page.locator(".naming-feed-card")).toHaveCount(3);
+  const fixture = await namingFixture(page, { saved: true, count: 100 }); fixture.state.ensureMode = "pending";
+  await openNaming(page); await expect(page.locator(".naming-feed-card")).toHaveCount(100);
   await namingCard(page, 1).getByRole("button", { name: "Inspect name Synthetic 001" }).click();
   await page.getByRole("checkbox", { name: /More like this\s*:\s*Synthetic 001/ }).check();
   await page.getByRole("button", { name: "Back to results" }).click(); await showNamingChat(page);
@@ -74,18 +74,19 @@ test("Naming V2: More like these supersedes a held demand and keeps the unsent d
   held.release(); await expect.poll(() => held.settled).toBe(true); await frameBarrier(page);
   expect(fixture.mutations("/steering")[0]).toMatchObject({ account: ownerId, body: { candidateIds: [id(100_001)], instruction: "Synthetic warm direction", expectedSteeringRevision: 0 } });
   await expect(page.getByText("Exploring your next names…", { exact: true })).toHaveCount(0);
-  await expect(page.locator(".naming-feed-card")).toHaveCount(3);
+  await expect(page.locator(".naming-feed-card")).toHaveCount(100);
   expect(fixture.mutations()).toHaveLength(1);
 });
 
-test("Naming V2: history/filter Continue restores exploration before admission", async ({ page }) => {
+test("Naming V2: returning from history restores exploration before scroll admission", async ({ page }) => {
   const fixture = await namingFixture(page, { saved: true, count: 3 }); await openNaming(page);
   await page.getByRole("button", { name: "Saved names & history" }).click();
   await page.getByLabel("Filter project names").selectOption("favorite");
   await expect(page.getByLabel("Filter project names")).toHaveValue("favorite");
   await page.getByRole("button", { name: "Modify filters" }).click();
   await finishNamingChat(page);
-  await page.getByRole("button", { name: "Continue exploring", exact: true }).click();
+  await showNamingNames(page);
+  await page.getByRole("button", { name: "Back to exploration", exact: true }).click();
   await expect(page.getByRole("region", { name: "Naming exploration" })).toBeVisible();
   expect(fixture.state.session.viewState).toMatchObject({ pane: "results", filter: "all", query: "", visibleBatchId: null });
   expect(fixture.mutations()).toHaveLength(0); // saved current exploration needs no new paid run
@@ -102,14 +103,14 @@ for (const elapsed of [30_000, 60_100]) test(`Naming V2: an unconsumed explorati
     const root = tail.closest<HTMLElement>("[data-naming-results-scroll]")!;
     return tail.getBoundingClientRect().top > root.getBoundingClientRect().bottom + root.clientHeight * 2;
   })).toBe(true);
-  await expect(page.getByText("Keep scrolling to explore more names.", { exact: true })).toHaveCount(1);
+  await expect(page.locator(".naming-feed-tail").getByText("Keep scrolling to explore more names.", { exact: true })).toHaveCount(1);
   expect(fixture.mutations()).toHaveLength(0);
   await page.clock.fastForward(elapsed);
-  await expect(page.getByText(elapsed < 60_000 ? "Keep scrolling to explore more names." : "Exploration pauses while you are away. Scroll to continue.", { exact: true })).toHaveCount(1);
+  await expect(page.locator(".naming-feed-tail").getByText(elapsed < 60_000 ? "Keep scrolling to explore more names." : "Exploration pauses while you are away. Scroll to continue.", { exact: true })).toHaveCount(1);
   await scrollToTail(page, false);
   if (elapsed < 60_000) await expect.poll(() => fixture.mutations().length).toBe(1);
   else {
-    await expect(page.getByText("Exploration pauses while you are away. Scroll to continue.", { exact: true })).toBeVisible();
+    await expect(page.locator(".naming-feed-tail").getByText("Exploration pauses while you are away. Scroll to continue.", { exact: true })).toBeVisible();
     expect(fixture.mutations()).toHaveLength(0);
     // The same sentinel can admit immediately after a fresh real interaction.
     await page.locator(".naming-feed-tail").hover(); await page.mouse.wheel(0, 120);
@@ -139,8 +140,12 @@ test("Naming V2: restored scroll, hidden, search/history, detail and Stop cannot
 
 for (const terminal of ["partial", "needs_reconciliation"] as const) test(`Naming V2: ${terminal} never retries on scroll and only eligible partial explicitly resumes`, async ({ page }) => {
   const fixture = await namingFixture(page, { saved: true, count: 20, terminal }); const previous = fixture.state.activeRun!; fixture.state.ensureMode = "pending";
-  await openNaming(page); await expect(page.locator(".naming-feed-card")).toHaveCount(20);
-  await scrollToTail(page); expect(fixture.mutations()).toHaveLength(0);
+  await openNaming(page); await finishNamingChat(page);
+  await expect(page.locator(".naming-feed-card")).toHaveCount(20);
+  await expect(page.locator(".naming-continuous-results")).toBeHidden();
+  expect(fixture.state.rows).toHaveLength(20);
+  await page.locator("[data-naming-chat-scroll]").hover(); await page.mouse.wheel(0, 120); await frameBarrier(page);
+  expect(fixture.mutations()).toHaveLength(0);
   if (terminal === "partial") {
     await page.getByRole("button", { name: "Resume unfinished exploration" }).click();
     await expect.poll(() => fixture.mutations().length).toBe(1);
@@ -158,17 +163,17 @@ test("Naming V2: same-owner verification keeps an exact pending preference save 
   await page.getByRole("button", { name: /^Real words/ }).click();
   await expect.poll(() => fixture.mutations("/preferences").length).toBe(1);
   const save = fixture.mutations("/preferences")[0]!.body;
-  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await page.evaluate(() => { window.dispatchEvent(new Event("blur")); window.dispatchEvent(new Event("focus")); });
   await expect(page.getByRole("region", { name: "Naming choices", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Retry saving choices" }).click();
   await expect.poll(() => fixture.mutations("/preferences").length).toBe(2);
   expect(fixture.mutations("/preferences")[1]!.body).toEqual(save);
   fixture.state.failOnce = { path: `${base}/feed/ensure`, status: 401 };
   await finishNamingChat(page);
-  await page.getByRole("button", { name: "Start exploring", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Start exploring", exact: true })).toHaveCount(0);
   await expect.poll(() => fixture.mutations().length).toBe(1);
   const demand = fixture.mutations()[0]!.body;
-  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await page.evaluate(() => { window.dispatchEvent(new Event("blur")); window.dispatchEvent(new Event("focus")); });
   await showNamingNames(page);
   await page.getByRole("button", { name: "Retry the same request" }).click();
   await expect(page.locator(".naming-feed-card")).toHaveCount(100);
@@ -182,7 +187,7 @@ test("Naming V2: a changed owner cannot see a held prior-owner response or steer
   await page.getByRole("button", { name: "Back to results" }).click(); await showNamingChat(page);
   await page.getByLabel("Naming message", { exact: true }).fill("Private synthetic old-owner draft"); await showNamingNames(page);
   const held = fixture.hold(`${base}/feed/ensure`, "POST"); await scrollToTail(page); await expect.poll(() => held.ready).toBe(true);
-  fixture.state.owner = otherOwnerId; await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  fixture.state.owner = otherOwnerId; await page.evaluate(() => { window.dispatchEvent(new Event("blur")); window.dispatchEvent(new Event("focus")); });
   await expect(page.getByText("Synthetic 001", { exact: true })).toHaveCount(0);
   held.release(); await expect.poll(() => held.settled).toBe(true); await frameBarrier(page);
   await expect(page.locator(".naming-feed-card")).toHaveCount(0);

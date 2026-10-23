@@ -207,3 +207,28 @@ describe("persistent workspace shell", () => {
     expect(host.textContent).not.toContain("Private fixture");
   });
 });
+
+it("protects mobile navigation padding and keeps explicit close and Escape available", async () => {
+  Object.defineProperties(HTMLDialogElement.prototype, {
+    showModal: { configurable: true, value: function (this: HTMLDialogElement) { this.open = true; } },
+    close: { configurable: true, value: function (this: HTMLDialogElement) { this.open = false; } },
+  });
+  await render(); await until(() => expect(account.session.status).toBe("ready"));
+  const trigger = host.querySelector<HTMLButtonElement>('[aria-label="Open navigation"]')!;
+  const dialog = host.querySelector<HTMLDialogElement>(".mobile-menu")!;
+  dialog.getBoundingClientRect = () => new DOMRect(0, 0, 300, 800);
+  const generation = account.session.generation;
+  await act(async () => trigger.click());
+  await act(async () => dialog.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 290, clientY: 700 })));
+  expect(dialog.open).toBe(true);
+  await act(async () => dialog.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 301, clientY: 700 })));
+  expect(dialog.open).toBe(false);
+  await act(async () => trigger.click());
+  await act(async () => dialog.dispatchEvent(new Event("cancel", { cancelable: true })));
+  expect(dialog.open).toBe(false);
+  await act(async () => trigger.click());
+  await act(async () => dialog.querySelector<HTMLButtonElement>('[aria-label="Close navigation"]')!.click());
+  expect(dialog.open).toBe(false); expect(account.session.generation).toBe(generation);
+  expect(fetcher.mock.calls.filter(([path]) => path === "/api/session")).toHaveLength(1);
+  Reflect.deleteProperty(HTMLDialogElement.prototype, "showModal"); Reflect.deleteProperty(HTMLDialogElement.prototype, "close");
+});
