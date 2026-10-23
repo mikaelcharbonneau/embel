@@ -37,6 +37,25 @@ describe("immutable database job plans across worker retries", () => {
     await expect(db.query("update public.jobs set plan_fingerprint=$1 where id=$2", ["f".repeat(64), job.id])).rejects.toThrow(/immutable_job_plan/);
   });
 
+  it("acknowledges only the identical saved plan after cancellation without enabling more work", async () => {
+    const job = await setup();
+    const original = await registerPlan(db, job, both);
+    await begin(job);
+    await asRole(db, "authenticated", OWNER_A, () => db.query("select public.request_job_cancel($1)", [job.id]));
+    const before = (await db.query("select * from public.jobs where id=$1", [job.id])).rows;
+    const reservations = (await db.query("select * from public.usage_reservations where job_id=$1", [job.id])).rows;
+    const replay = await registerPlan(db, job, both);
+    expect(replay.plan_manifest).toEqual(both);
+    expect(replay.plan_fingerprint).toBe(original.plan_fingerprint);
+    expect((await db.query("select * from public.jobs where id=$1", [job.id])).rows).toEqual(before);
+    expect((await db.query("select * from public.usage_reservations where job_id=$1", [job.id])).rows).toEqual(reservations);
+    await expect(registerPlan(db, job, one)).rejects.toThrow(/plan_conflict/);
+    await expect(begin(job, "two")).rejects.toThrow(/cancel_requested/);
+    await expect(registerPlan(db, { ...job, lease_token: OWNER_B }, both)).rejects.toThrow(/lease_lost/);
+    await db.query("update public.jobs set lease_expires_at=clock_timestamp()-interval '1 second' where id=$1", [job.id]);
+    await expect(registerPlan(db, job, both)).rejects.toThrow(/lease_lost/);
+  });
+
   it("validates array shape, strict fields, distinct keys, integer bounds, size and total reservation", async () => {
     const job = await setup();
     const invalid = [null, {}, [], [{ key: "one" }], [{ key: "one", maximumCostMicrousd: "1" }],
