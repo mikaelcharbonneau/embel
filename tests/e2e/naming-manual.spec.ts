@@ -78,7 +78,7 @@ test("manual name inspection preserves keyboard focus and describes its origin h
   await expect(page.getByText("Copied from your Names library", { exact: false })).toHaveCount(0);
   await origin.getByRole("button", { name: "Close", exact: true }).click();
   await expect(origin).not.toBeVisible();
-  const back = page.getByRole("button", { name: "Back to names", exact: true });
+  const back = page.getByRole("button", { name: "Back to results", exact: true });
   await back.focus(); await page.keyboard.press("Enter"); await expect(inspect).toBeFocused();
   expect(fixture.mutations()).toHaveLength(0);
   await page.screenshot({ path: info.outputPath("manual-name-keyboard-return.png") });
