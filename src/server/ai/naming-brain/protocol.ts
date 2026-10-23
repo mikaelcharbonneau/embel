@@ -98,11 +98,13 @@ export function createNamingManagedProtocol(options: { apiKey: string; localProt
     createSession: (body, signal) => safe(async () => {
       const localUnlimited = body.metadata?.embel_budget_control === "local_unlimited_v1";
       const progressive = body.metadata?.embel_pipeline_version === "2";
+      const contractInvalid = body.metadata?.embel_progressive_contract_version !== undefined
+        && (body.metadata.embel_progressive_contract_version !== "2" || !progressive || !localUnlimited);
       const cap = body.spend_control?.limit;
       const budgetInvalid = localUnlimited
         ? !options.localPrototype || Object.hasOwn(body, "spend_control")
         : body.metadata?.embel_budget_control !== undefined || typeof cap !== "number" || !Number.isSafeInteger(cap) || cap < 1 || cap > 150;
-      if (budgetInvalid || body.metadata?.embel_pipeline_version !== undefined && !progressive || progressive && (!localUnlimited || body.agent?.service_tier !== namingProgressiveServiceTier(body.agent?.model ?? "") || body.agent.text?.verbosity !== "low") || body.environment.type !== "none" || body.agent_id || body.vault_ids?.length || !body.agent?.model || !body.input || body.agent.multi_agent?.enabled || Buffer.byteLength(JSON.stringify(body), "utf8") > 131_072) throw new NamingManagedProtocolError("request_rejected");
+      if (budgetInvalid || contractInvalid || body.metadata?.embel_pipeline_version !== undefined && !progressive || progressive && (!localUnlimited || body.agent?.service_tier !== namingProgressiveServiceTier(body.agent?.model ?? "") || body.agent.text?.verbosity !== "low") || body.environment.type !== "none" || body.agent_id || body.vault_ids?.length || !body.agent?.model || !body.input || body.agent.multi_agent?.enabled || Buffer.byteLength(JSON.stringify(body), "utf8") > 131_072) throw new NamingManagedProtocolError("request_rejected");
       const result = await sessions.create(body, { signal, maxRetries: 0 }).withResponse();
       return wrapStream(result.data, safeRequestId(result.response.headers.get("x-request-id")));
     }),

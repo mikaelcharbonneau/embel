@@ -10,13 +10,15 @@ import { namingHash } from "./identity";
 import { createNamingManagedProtocol, namingProgressiveServiceTier, NamingManagedProtocolError, type ManagedEventStream, type ManagedToolResult, type NamingManagedProtocol } from "./protocol";
 import { createNamingReferenceReader, NAMING_REFERENCE_HOSTS, type ReferenceObservation } from "./source-reader";
 import { validateNamingRoleOutput } from "./outputs";
+import { parseNamingReferenceArguments, type NamingReferenceInvocation } from "./reference-invocation";
+import { namingOutputDiagnostic, type NamingOutputDiagnostic } from "./output-diagnostics";
 
 export type NamingProviderTurnRecord = { providerCallKey: string; sessionId: string; turnId: string; turn: Turn };
 export type NamingProviderItemRecord = { providerCallKey: string; sessionId: string; turnId: string; itemId: string; item: unknown };
-export type NamingToolResultRecord = { providerCallKey: string; sessionId: string; turnId: string; callId: string; requestHash: string; result: { argumentsHash: string; reply: ManagedToolResult }; sourceEvidence: NamingEvidenceSource | null };
+export type NamingToolResultRecord = { providerCallKey: string; sessionId: string; turnId: string; callId: string; requestHash: string; invocationWitness?: NamingReferenceInvocation; result: { argumentsHash: string; reply: ManagedToolResult }; sourceEvidence: NamingEvidenceSource | null };
 export type NamingRuntimeState = { startedAt: string; authorizedAt?: string | null; recoveryMode?: "execute" | "observe_only"; observationDeadlineAt?: string | null; request: NamingStageRequest | null; dependencies: NamingRoleOutput[]; providerItems: NamingProviderItemRecord[]; toolResults: NamingToolResultRecord[] };
 export type NamingRuntimePersistence = { load(identity: Pick<NamingStageRequest, "runId" | "stageKey" | "providerCallKey" | "requestHash">): Promise<NamingRuntimeState>; saveToolResult(record: NamingToolResultRecord): Promise<void> };
-type Options = { model: string; apiKey?: string; localPrototype?: boolean; protocol?: NamingManagedProtocol; persistence: NamingRuntimePersistence; now?: () => number; assertContinuation?: () => Promise<void>; referenceReader?: ReturnType<typeof createNamingReferenceReader> };
+type Options = { model: string; apiKey?: string; localPrototype?: boolean; protocol?: NamingManagedProtocol; persistence: NamingRuntimePersistence; now?: () => number; assertContinuation?: () => Promise<void>; referenceReader?: ReturnType<typeof createNamingReferenceReader>; onOutputDiagnostic?: (value: NamingOutputDiagnostic) => void };
 type ManagedReceipt = Extract<NamingProviderReceipt, { protocol: "openai_agents" }>;
 function managedReceipt(value: unknown): ManagedReceipt { const receipt = namingProviderReceiptSchema.parse(value); if (receipt.protocol !== "openai_agents") throw new Error("protocol_mismatch"); return receipt; }
 const usageShape = z.object({ input_tokens: z.number().int().nonnegative().safe(), output_tokens: z.number().int().nonnegative().safe(), total_tokens: z.number().int().nonnegative().safe() });
@@ -88,6 +90,7 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
     if (state.request && !isDeepStrictEqual(namingStageRequestSchema.parse(state.request), request)) return { status: "unresolved", code: "saved_request_mismatch", receipt, partialArtifacts: [] };
     if (!prior && state.request) return { status: "unresolved", code: "dispatch_already_authorized", receipt: { ...receipt, dispatchState: "unknown" }, partialArtifacts: [] };
     const localUnlimited = request.policy.budgetControl === "local_unlimited_v1";
+    const referenceContractV2 = localUnlimited && request.policy.progressiveContractVersion === 2;
     const stageEnvelopeAt = localUnlimited
       ? request.stageKey === "creation" || request.stageKey === "gap" ? Date.parse(state.startedAt) + 3_600_000
         : request.policy.deadlineMs === 900_000 ? Date.parse(state.startedAt) + 1_200_000 : Infinity
@@ -114,6 +117,10 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
     armDeadline();
     let stream: ManagedEventStream | undefined, dispatchAuthorized = !!prior, createInvoked = !!prior, session: AgentSession | null = null, turn: Turn | null = null;
     const items = new Map<string, AgentSessionItem>(), toolResults = new Map(state.toolResults.filter(row => row.providerCallKey === request.providerCallKey).map(row => [row.callId, row]));
+    type RequiredAction = AgentSession["required_actions"][number];
+    // A later history snapshot can lag the verified requires_action event. Keep
+    // its exact invocation until the matching item arrives or its reply is sent.
+    const pendingRequiredActions = new Map<string, RequiredAction>();
     const newSources = () => [...toolResults.values()].flatMap(row => row.sourceEvidence ? [row.sourceEvidence] : []);
     const partials = () => [...items.values()].filter(item => item.type !== "reasoning").slice(-3).map(item => ({ providerItemId: item.id, type: item.type, content: JSON.stringify(item).slice(0, 100_000) }));
     const emit = async () => { receipt = managedReceipt({ ...receipt, recordedAt: new Date(now()).toISOString() }); await hooks.onReceipt(receipt); };
@@ -128,13 +135,22 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
       const progressiveMismatch = request.policy.localPipelineVersion === 2
         ? value.metadata?.embel_pipeline_version !== "2" || value.agent?.service_tier !== namingProgressiveServiceTier(request.policy.model) || value.agent?.text?.verbosity !== "low"
         : value.metadata?.embel_pipeline_version !== undefined;
+      const contractMismatch = request.policy.progressiveContractVersion === 2
+        ? value.metadata?.embel_progressive_contract_version !== "2" : value.metadata?.embel_progressive_contract_version !== undefined;
       const budgetMismatch = request.policy.budgetControl === "local_unlimited_v1"
         ? value.metadata?.embel_budget_control !== "local_unlimited_v1" || value.agent?.reasoning?.effort !== request.policy.reasoningEffort
         : value.spend_control?.limit !== request.policy.sessionLimitCents || value.metadata?.embel_budget_control !== undefined;
-      if (progressiveMismatch || budgetMismatch || !safeId(value?.id) || receipt.sessionId && value.id !== receipt.sessionId || !safeId(value.agent?.id) || value.agent.model !== request.policy.model || value.environment?.type !== "none" || value.agent.multi_agent?.enabled !== false || value.metadata?.embel_request_hash !== request.requestHash || value.metadata?.embel_call !== request.providerCallKey || value.metadata?.embel_run !== request.runId || value.metadata?.embel_request !== request.requestKey || value.metadata?.embel_snapshot !== request.snapshotHash) throw new Error("provider_configuration_mismatch");
+      if (progressiveMismatch || contractMismatch || budgetMismatch || !safeId(value?.id) || receipt.sessionId && value.id !== receipt.sessionId || !safeId(value.agent?.id) || value.agent.model !== request.policy.model || value.environment?.type !== "none" || value.agent.multi_agent?.enabled !== false || value.metadata?.embel_request_hash !== request.requestHash || value.metadata?.embel_call !== request.providerCallKey || value.metadata?.embel_run !== request.runId || value.metadata?.embel_request !== request.requestKey || value.metadata?.embel_snapshot !== request.snapshotHash) throw new Error("provider_configuration_mismatch");
       const expected = request.policy.allowedTools;
       if (!Array.isArray(value.agent.tools) || value.agent.tools.length !== expected.length || value.agent.tools.some(tool => tool.type === "web_search" ? !expected.includes("web_search") : tool.type !== "function" || tool.name !== "read_reference" || !expected.includes("read_reference"))) throw new Error("provider_tools_mismatch");
       session = value; receipt = { ...receipt, sessionId: value.id, agentId: value.agent.id, observedModel: value.agent.model, dispatchState: "dispatched" };
+      if (referenceContractV2 && value.status === "requires_action") for (const action of value.required_actions) {
+        if (action.type !== "function_call" || action.name !== "read_reference" || !safeId(action.call_id)) throw new Error("provider_tool_refused");
+        const previous = pendingRequiredActions.get(action.call_id);
+        if (previous && !isDeepStrictEqual(previous, action)) throw new Error("reference_invocation_changed");
+        pendingRequiredActions.set(action.call_id, action);
+        if (pendingRequiredActions.size > 200) throw new Error("reference_limit_exceeded");
+      }
       usage(value.usage, "session", value.id);
       const consumed = value.spend_control?.consumed;
       if (typeof consumed === "number" && Number.isSafeInteger(consumed) && consumed >= 0 && !receipt.providerCostCounters.some(counter => counter.scopeId === value.id && counter.value === consumed)) receipt = { ...receipt, providerCostCounters: [...receipt.providerCostCounters, { scope: "session", scopeId: value.id, kind: "consumed_usd_cents", value: consumed, observedAt: new Date(now()).toISOString() }] };
@@ -155,6 +171,17 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
       if (item.type === "message" && item.role === "user" && item.id === null) return;
       if (!safeId(item.id)) throw new Error("provider_item_mismatch");
       const previous = items.get(item.id);
+      if (referenceContractV2) {
+        const witness = [...toolResults.values()].find(record => record.invocationWitness?.itemId === item.id
+          || item.type === "function_call" && record.invocationWitness?.callId === item.call_id)?.invocationWitness;
+        if (witness) {
+          if (item.type !== "function_call" || item.name !== "read_reference" || item.call_id !== witness.callId || item.id !== witness.itemId) throw new Error("reference_invocation_changed");
+          // Subscribe-before-history can deliver an older argument prefix after
+          // the exact full invocation was witnessed. Keep the stronger snapshot.
+          if (previous && !isDeepStrictEqual(previous, item) && isOlderItemSnapshot(item, previous)) return;
+          if (namingHash(parseNamingReferenceArguments(item.arguments)) !== witness.parsedArgumentsHash) throw new Error("reference_invocation_changed");
+        }
+      }
       if (previous && previous.type !== item.type) throw new Error("provider_item_changed");
       if (!["message", "reasoning", "web_search_call", "function_call", "function_call_output"].includes(item.type)) throw new Error("provider_tool_refused");
       if (previous && "status" in previous && ["completed", "failed", "incomplete"].includes(previous.status ?? "") && !isDeepStrictEqual(previous, item)) {
@@ -192,26 +219,49 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
       if (terminal.status === "failed" || terminal.status === "cancelled") return namingStageOutcomeSchema.parse({ status: terminal.status, code: terminal.status === "failed" ? "provider_turn_failed" : "provider_turn_cancelled", receipt, partialArtifacts: partials() });
       if (terminal.status !== "completed") return null;
       if (hasObservedToolOverrun()) throw new Error("provider_tool_limit");
+      let final: ReturnType<typeof extractManagedFinalOutput> | undefined;
       try {
-        const final = extractManagedFinalOutput({ session, turn: terminal, items: [...items.values()] }, request.policy.maxOutputBytes);
+        final = extractManagedFinalOutput({ session, turn: terminal, items: [...items.values()] }, request.policy.maxOutputBytes);
         const output = validateNamingRoleOutput({ request, receipt, final, dependencies: state.dependencies, sources: newSources() });
         return namingStageOutcomeSchema.parse({ status: "completed", receipt, output });
-      } catch { return namingStageOutcomeSchema.parse({ status: "failed", code: "provider_output_invalid", receipt, partialArtifacts: partials() }); }
+      } catch (error) {
+        const diagnostic = namingOutputDiagnostic(error, request.role, request.stageKey, final?.value);
+        try { if (options.onOutputDiagnostic) options.onOutputDiagnostic(diagnostic); else console.warn("[embel:naming-output]", diagnostic); } catch {}
+        return namingStageOutcomeSchema.parse({ status: "failed", code: "provider_output_invalid", receipt, partialArtifacts: partials() });
+      }
     };
     const answerRequired = async () => {
       if (!receipt.sessionId || readonlyRecovery || now() >= deadlineAt || controller.signal.aborted) throw new Error("stage_deadline_exceeded");
       await options.assertContinuation?.();
       await reconcile();
-      for (const action of (session as AgentSession | null)?.required_actions ?? []) {
-        if (action.type !== "function_call" || action.name !== "read_reference" || action.turn_id !== receipt.turnId || !request.policy.allowedTools.includes("read_reference")) throw new Error("provider_tool_refused");
+      if (referenceContractV2 && turn && ["completed", "failed", "cancelled"].includes((turn as Turn).status)) { pendingRequiredActions.clear(); return; }
+      for (const action of referenceContractV2 ? [...pendingRequiredActions.values()] : (session as AgentSession | null)?.required_actions ?? []) {
+        if (action.type !== "function_call" || action.name !== "read_reference" || !safeId(action.call_id) || action.turn_id !== receipt.turnId || !request.policy.allowedTools.includes("read_reference")) throw new Error("provider_tool_refused");
         const argumentsHash = namingHash(action.arguments), saved = toolResults.get(action.call_id);
         let record: NamingToolResultRecord;
         if (saved) {
-          if (saved.sessionId !== receipt.sessionId || saved.turnId !== receipt.turnId || saved.requestHash !== request.requestHash || saved.result.argumentsHash !== argumentsHash) throw new Error("tool_result_mismatch");
+          if (saved.sessionId !== receipt.sessionId || saved.turnId !== receipt.turnId || saved.requestHash !== request.requestHash || saved.result.argumentsHash !== argumentsHash
+            || referenceContractV2 && (saved.callId !== action.call_id || saved.result.reply.call_id !== action.call_id || saved.result.reply.turn_id !== receipt.turnId)) throw new Error("tool_result_mismatch");
           record = saved;
         } else {
           if (!localUnlimited && toolResults.size >= request.policy.maxWebSearchCalls) throw new Error("reference_limit_exceeded");
           const args = z.strictObject({ url: z.string().min(1).max(2000) }).parse(typeof action.arguments === "string" ? JSON.parse(action.arguments) : action.arguments);
+          let invocationWitness: NamingReferenceInvocation | undefined;
+          if (referenceContractV2) {
+            const invocations = [...items.values()].filter(item => item.type === "function_call" && item.call_id === action.call_id);
+            if (invocations.length > 1) throw new Error("reference_invocation_changed");
+            const item = invocations[0];
+            if (item && (item.type !== "function_call" || item.name !== "read_reference" || item.turn_id !== receipt.turnId)) throw new Error("reference_invocation_changed");
+            if (!item || item.type !== "function_call") continue;
+            let parsed: ReturnType<typeof parseNamingReferenceArguments>;
+            try { parsed = parseNamingReferenceArguments(item.arguments); }
+            catch { if (item.status === "in_progress") continue; throw new Error("reference_invocation_changed"); }
+            if (!isDeepStrictEqual(parsed, args)) throw new Error("reference_invocation_changed");
+            if (item.status !== "in_progress" && item.status !== "completed") throw new Error("reference_invocation_changed");
+            invocationWitness = { version: 1, kind: "required_action", providerCallKey: request.providerCallKey, requestHash: request.requestHash,
+              sessionId: receipt.sessionId, turnId: receipt.turnId!, callId: action.call_id, itemId: item.id,
+              actionArgumentsHash: argumentsHash, itemArgumentsHash: namingHash(item.arguments), parsedArgumentsHash: namingHash(parsed) };
+          }
           const canonical = (value: string) => { try { const u = new URL(value); u.hash = ""; return u.href; } catch { return null; } };
           const observed = [...items.values()].find(item => item.type === "web_search_call" && item.status === "completed" && (item.action?.type === "open_page" || item.action?.type === "find_in_page") && typeof item.action.url === "string" && canonical(item.action.url) === canonical(args.url));
           // A retained completed function call is the actual request to read this
@@ -223,7 +273,9 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
               return retained.url === args.url;
             } catch { return false; }
           }) : undefined;
-          const observation: ReferenceObservation | null = observed?.type === "web_search_call" && (observed.action?.type === "open_page" || observed.action?.type === "find_in_page") && observed.action.url
+          const observation: ReferenceObservation | null = invocationWitness
+            ? { sessionId: receipt.sessionId, turnId: receipt.turnId!, itemId: invocationWitness.itemId, url: args.url, action: "read_reference", status: "required_action", invocation: invocationWitness }
+            : observed?.type === "web_search_call" && (observed.action?.type === "open_page" || observed.action?.type === "find_in_page") && observed.action.url
             ? { sessionId: receipt.sessionId, turnId: receipt.turnId!, itemId: observed.id, url: observed.action.url, action: observed.action.type, status: "completed" }
             : invoked ? { sessionId: receipt.sessionId, turnId: receipt.turnId!, itemId: invoked.id!, url: args.url, action: "read_reference", status: "completed" } : null;
           const sourceKey = `ref_${namingHash([receipt.sessionId, receipt.turnId, action.call_id]).slice(0, 24)}`;
@@ -238,12 +290,14 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
           }
           if (Buffer.byteLength(JSON.stringify([...newSources(), ...(sourceEvidence ? [sourceEvidence] : [])])) > 262_144) throw new Error("source_evidence_limit");
           record = { providerCallKey: request.providerCallKey, sessionId: receipt.sessionId, turnId: receipt.turnId!, callId: action.call_id, requestHash: request.requestHash,
+            ...(invocationWitness ? { invocationWitness } : {}),
             result: { argumentsHash, reply: { type: "agent.session.input.tool_result", turn_id: receipt.turnId!, call_id: action.call_id, success: true, output: JSON.stringify(output) } }, sourceEvidence };
           await options.persistence.saveToolResult(record); toolResults.set(action.call_id, record);
         }
         if (controller.signal.aborted || now() >= deadlineAt) throw new Error("stage_deadline_exceeded");
         await options.assertContinuation?.();
         await protocol.submitToolResult(receipt.sessionId, record.result.reply, `tool-${namingHash([request.requestKey, action.call_id]).slice(0, 48)}`, controller.signal);
+        pendingRequiredActions.delete(action.call_id);
       }
     };
     const acceptEvent = async (event: AgentSessionEvent, terminalTail = false) => {
@@ -256,6 +310,7 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
       if ("turn" in event) { if (!session && receipt.sessionId) await acceptSession(await protocol.retrieveSession(receipt.sessionId, controller.signal)); await acceptTurn(event.turn); }
       if ("turn_id" in event && event.turn_id !== null && event.turn_id !== receipt.turnId) throw new Error("provider_turn_mismatch");
       if (event.type === "agent.session.turn.item.added" || event.type === "agent.session.turn.item.done") await acceptItem(event.item, event.type.endsWith(".done"));
+      if (referenceContractV2 && pendingRequiredActions.size && !terminalTail && (event.type === "agent.session.turn.item.added" || event.type === "agent.session.turn.item.done")) await answerRequired();
       if (event.type === "agent.session.requires_action" && !terminalTail) await answerRequired();
       if (event.type === "agent.session.failed" || event.type === "error" || event.type.startsWith("agent.session.subagent.")) throw new Error("provider_session_failed");
       if (event.type === "agent.session.idle" && !terminalTail) { await reconcile(); }
@@ -311,7 +366,14 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
       if (prior) { await reconcile(); const result = await finishObservedTerminal(); if (result) return result; if (readonlyRecovery) throw new Error("stage_deadline_exceeded"); if ((session as AgentSession | null)?.status === "requires_action") await answerRequired(); }
       for (let eventCount = 0; localUnlimited || eventCount < 2_000; eventCount++) {
         const next = await abortable(pending, controller.signal);
-        if (next.done) { await reconcile(); return await finishObservedTerminal() ?? { status: "unresolved", code: "stream_ended_before_turn", receipt, partialArtifacts: partials() }; }
+        if (next.done) {
+          await reconcile();
+          if (referenceContractV2 && pendingRequiredActions.size && !readonlyRecovery && turn && !["completed", "failed", "cancelled"].includes((turn as Turn).status)) {
+            await answerRequired();
+            await reconcile();
+          }
+          return await finishObservedTerminal() ?? { status: "unresolved", code: "stream_ended_before_turn", receipt, partialArtifacts: partials() };
+        }
         pending = iterator.next(); void pending.catch(() => {});
         await acceptEvent(next.value);
         const result = await finishObservedTerminal(); if (result) return result;

@@ -23,10 +23,10 @@ export function createNamingRolePolicy(policyInput: NamingBrainPolicy, stage: Na
     nativeDelegation: false, allowedTools: research ? ["web_search", "read_reference"] : [], referenceHosts: research ? [...NAMING_REFERENCE_HOSTS] : [] });
 }
 /** The immutable v2 witness selects this profile; legacy policy rendering stays unchanged. */
-export function createProgressiveNamingRolePolicy(policyInput: NamingBrainPolicy, role: NamingRole, cents?: number, searches?: number, localPrototype = false): NamingRolePolicy {
+export function createProgressiveNamingRolePolicy(policyInput: NamingBrainPolicy, role: NamingRole, cents?: number, searches?: number, localPrototype = false, progressiveContractVersion?: 2): NamingRolePolicy {
   if (!localPrototype) throw new Error("progressive_naming_unavailable");
   const stage: Record<NamingRole, NamingStageKey> = { researcher: "research", director: "direction", creator: "creation", curator: "curation", verifier: "verification" };
-  return namingRolePolicySchema.parse({ ...createNamingRolePolicy(policyInput, stage[role], role, cents, searches, true, 900_000), localPipelineVersion: 2 });
+  return namingRolePolicySchema.parse({ ...createNamingRolePolicy(policyInput, stage[role], role, cents, searches, true, 900_000), localPipelineVersion: 2, ...(progressiveContractVersion ? { progressiveContractVersion } : {}) });
 }
 export function allocateNamingCreatorCaps(targets: readonly number[], maximumCents: number): number[] {
   if (!targets.length || targets.length > 30 || targets.some(value => !Number.isSafeInteger(value) || value < 1) || !Number.isSafeInteger(maximumCents) || maximumCents < targets.length) throw new Error("creator_allocation_invalid");
