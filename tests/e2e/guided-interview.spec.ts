@@ -256,14 +256,13 @@ async function expectNoLegacyClutter(page: Page) {
   await expect(page.getByText(/Sending uses OpenAI|Reserved limit|OpenAI is processing this saved version|Step [1-4] of 4/)).toHaveCount(0);
 }
 
-async function expectComposerInViewport(page: Page) {
-  const composer = page.getByRole("textbox", { name: /^(Message Embel|Naming message)$/ });
+async function expectComposerInViewport(page: Page, naming = false) {
+  const composer = page.getByRole("textbox", { name: naming ? "Naming message" : "Message Embel", exact: true });
   await expect(composer).toBeVisible();
-  const send = page.getByRole("button", { name: /^(Send prompt|Save naming guidance)$/ });
+  const send = page.getByRole("button", { name: naming ? "Save naming guidance" : "Send prompt", exact: true });
   await expect(send).toBeVisible();
   const bounds = await send.boundingBox();
   expect(bounds).not.toBeNull();
-  const naming = await composer.getAttribute("aria-label") === "Naming message";
   const target = naming && page.viewportSize()!.width > 760 ? 32 : 44;
   expect(bounds!.width).toBe(target); expect(bounds!.height).toBe(target);
   expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(page.viewportSize()!.height + 1);
@@ -433,7 +432,9 @@ test("guided interview: explicit selections save, reload, and finish at personal
   await page.reload();
   await expect(page.getByRole("button", { name: `Edit your answer: ${questions.personality}`, exact: true })).toBeVisible();
   await expect(userMessage(page, initialPrompt)).toBeVisible();
-  await expectComposerInViewport(page);
+  // Accessible names come from <label>, not an aria-label attribute. Wait for
+  // the completed Strategy handoff before measuring the Naming control.
+  await expectComposerInViewport(page, true);
   await expectNoLegacyClutter(page);
   expect(state.enqueues.map(item => item.operation)).toEqual(["strategy.audience", "strategy.personality"]);
   expect(state.unhandledWrites).toEqual([]);
