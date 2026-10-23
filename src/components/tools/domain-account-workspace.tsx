@@ -1,4 +1,5 @@
 "use client";
+import { isDialogBackdropClick } from "@/components/ui/dialog-backdrop";
 import { ContextDetails } from "@/components/ui/context-details";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -60,7 +61,7 @@ function OwnedDomainsWorkspace({ memory, importProjectId, projectPicker, onCreat
   if (!state.payload) return <div className="page"><h1>Domains</h1>{state.status === "loading" && <p role="status">Loading your domain draft…</p>}{controls}</div>;
   return <DomainsWorkspace adapter={live?.domains ?? pendingDomainAdapter} draft={state.payload} initialView="search" draftDisabled={!state.canEdit} onDraftChange={state.setPayload} draftNotice="Saved candidates require fresh checks when reopened."
     onOpenNameLibrary={() => setNameLibraryOpen(true)}
-    draftControls={<>{controls}{promotion.controls}<dialog className={styles.nameLibrary} ref={nameLibrary} aria-label="Name library" onCancel={() => setNameLibraryOpen(false)} onClick={event => { if (event.target === event.currentTarget) setNameLibraryOpen(false); }}>
+    draftControls={<>{controls}{promotion.controls}<dialog className={styles.nameLibrary} ref={nameLibrary} aria-label="Name library" onCancel={() => setNameLibraryOpen(false)} onClick={event => { if (isDialogBackdropClick(event)) setNameLibraryOpen(false); }}>
       <header><h2>From name library</h2><button type="button" className="icon-button" aria-label="Close name library" onClick={() => setNameLibraryOpen(false)}><Icon name="close" size={18} /></button></header>
       {nameLibraryOpen && <BrowserNamePicker disabled={!state.canEdit} replacing={Boolean(state.payload.input.trim())} onUse={name => {
         if (!state.canEdit || !state.payload) return;

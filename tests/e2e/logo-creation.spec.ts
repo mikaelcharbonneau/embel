@@ -1,3 +1,4 @@
+import { checkDialogHitTesting } from "./dialog-hit-testing";
 import { expectProjectCanvas } from "./project-canvas-contract";
 import { contextSnapshotSchema } from "../../src/domain/projects";
 import { DEFAULT_PROFILE_VALUES } from "../../src/domain/account-profile";
@@ -544,4 +545,12 @@ test("brand board fits the desktop viewport and remains readable on mobile", asy
   for (const frame of mockups) for (const edge of Object.values(frame)) expect(edge).toBeGreaterThanOrEqual(-1);
 
   expect(await main.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+});
+
+test("dialog hit testing: logo project context protects padding without generation", async ({ page }) => {
+  const batch = syntheticLogoBatch(), slot = batch.slots[0]!, attempt = slot.attempts[0]!;
+  const f = await setup(page, "partial", { kind: "concept", batchId: batch.id, slotId: slot.id, attemptId: attempt.id });
+  const trigger = page.getByRole("form", { name: "Logo concept changes" }).getByRole("button", { name: "Project context", exact: true });
+  await checkDialogHitTesting(page, trigger, page.getByRole("dialog", { name: "Project context", exact: true }), "Close project context");
+  expect(f.posts).toEqual([]); expect(f.saves).toEqual([]); expect(f.selections).toEqual([]); expect(f.quotes).toEqual([]);
 });
