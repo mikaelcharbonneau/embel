@@ -67,7 +67,10 @@ test("manual name after 130 generated names stays saved and selected across relo
 test("manual name inspection preserves keyboard focus and describes its origin honestly", async ({ page }, info) => {
   const fixture = await namingFixture(page, { saved: true, count: 100 });
   await openNaming(page); await showNamingNames(page);
-  await page.getByRole("textbox", { name: "Your own name", exact: true }).fill("Keyboard brand");
+  const input = page.getByRole("textbox", { name: "Your own name", exact: true });
+  expect((await input.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  expect((await page.getByRole("button", { name: "Add name", exact: true }).boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  await input.fill("Keyboard brand");
   await page.getByRole("button", { name: "Add name", exact: true }).click();
   const inspect = page.getByRole("button", { name: "Inspect name Keyboard brand", exact: true });
   await expect(inspect).toBeVisible(); await inspect.focus(); await page.keyboard.press("Enter");
@@ -80,6 +83,14 @@ test("manual name inspection preserves keyboard focus and describes its origin h
   await expect(origin).not.toBeVisible();
   const back = page.getByRole("button", { name: "Back to results", exact: true });
   await back.focus(); await page.keyboard.press("Enter"); await expect(inspect).toBeFocused();
+  const custom = page.getByRole("region", { name: "Your custom names", exact: true });
+  const card = custom.locator("article"), cardBox = (await card.boundingBox())!;
+  const feedHeading = (await page.getByRole("heading", { name: "All names · 100", exact: true }).boundingBox())!;
+  expect(feedHeading.y - cardBox.y - cardBox.height).toBeGreaterThanOrEqual(20);
+  if (page.viewportSize()!.width <= 760) expect(cardBox.width).toBeGreaterThanOrEqual((await custom.boundingBox())!.width - 1);
+  expect(await inspect.evaluate(element => getComputedStyle(element).outlineStyle)).toBe("none");
+  expect(await card.evaluate(element => getComputedStyle(element).outlineStyle)).toBe("solid");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(fixture.mutations()).toHaveLength(0);
   await page.screenshot({ path: info.outputPath("manual-name-keyboard-return.png") });
 });
