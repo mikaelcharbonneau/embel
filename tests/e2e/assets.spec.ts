@@ -350,3 +350,34 @@ test("assets fixture: action menus dismiss outside without refreshing the librar
   expect(fixture.mutationBodies).toEqual([]); expect(fixture.reads).toBe(reads);
   await page.screenshot({ path: info.outputPath("asset-actions-dismissed.png") });
 });
+
+for (const field of ["liked", "saved"] as const) test(`assets pagination: ${field} changes retain the loaded window and card position`, async ({ page }, info) => {
+  const fixture = await setup(page); fixture.pageSize = 2;
+  await page.goto("/assets"); await page.getByRole("tab", { name: "All generations", exact: true }).click();
+  await expect(page.getByRole("article")).toHaveCount(2);
+  await page.getByRole("button", { name: "Load more assets", exact: true }).click();
+  await expect(page.getByRole("article")).toHaveCount(4);
+  const card = page.getByRole("article").filter({ has: page.getByRole("button", { name: "Open Wordmark from Morrow Works", exact: true }) });
+  await actions(page, "Wordmark", "Morrow Works");
+  const toggle = card.getByRole("button", { name: `${field === "liked" ? "Like" : "Save"} Wordmark from Morrow Works`, exact: true });
+  await toggle.focus();
+  const box = await card.boundingBox();
+  const node = await card.elementHandle();
+  const before = await page.getByRole("article").evaluateAll(nodes => nodes.map(node => node.getAttribute("aria-label") ?? node.textContent));
+  await page.keyboard.press("Enter");
+  await expect.poll(() => fixture.mutationBodies.length).toBe(1);
+  await expect(card.getByRole("button", { name: `${field === "liked" ? "Unlike" : "Unsave"} Wordmark from Morrow Works`, exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Check assets", exact: true })).toBeEnabled();
+  await expect(page.getByRole("article")).toHaveCount(4);
+  expect(await node!.evaluate(node => node.isConnected)).toBe(true);
+  expect((await card.boundingBox())!.y).toBeCloseTo(box!.y, 0);
+  expect(await page.getByRole("article").evaluateAll(nodes => nodes.map(node => node.getAttribute("aria-label") ?? node.textContent))).toEqual(before);
+  await page.screenshot({ path: info.outputPath(`assets-paginated-${field}.png`) });
+  await page.getByRole("button", { name: "Check assets", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Check assets", exact: true })).toBeEnabled();
+  await expect(page.getByRole("article")).toHaveCount(4);
+  await page.getByRole("button", { name: "Load more assets", exact: true }).click();
+  await expect(page.getByRole("article")).toHaveCount(6);
+  await expect(page.getByRole("button", { name: "Load more assets", exact: true })).toHaveCount(0);
+  expect(fixture.mutationBodies).toHaveLength(1);
+});
