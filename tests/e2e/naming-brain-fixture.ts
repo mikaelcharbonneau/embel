@@ -142,12 +142,12 @@ export async function scrollToTail(page: Page, interact = true) {
 
 /** Responsive presentation helpers preserve the real explicit decision/admission boundaries. */
 export async function showNamingChat(page: Page) {
-  const tabs = page.getByRole("group", { name: "Naming workspace view" });
-  if (await tabs.isVisible()) await tabs.getByRole("button", { name: "Chat", exact: true }).click();
+  const open = page.getByRole("button", { name: "Open chat", exact: true });
+  if (await open.isVisible()) await open.click();
 }
 export async function showNamingNames(page: Page) {
-  const tabs = page.getByRole("group", { name: "Naming workspace view" });
-  if (await tabs.isVisible()) await tabs.getByRole("button", { name: /^Names/ }).click();
+  const close = page.getByRole("button", { name: "Close chat", exact: true });
+  if (await close.isVisible()) await close.click();
 }
 export async function finishNamingChat(page: Page) {
   const next = page.getByRole("button", { name: "Continue", exact: true });
