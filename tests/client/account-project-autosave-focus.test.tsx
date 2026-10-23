@@ -23,7 +23,7 @@ async function mount() {
   await act(async () => root.render(<AccountSessionProvider><Probe /><AccountProjectEditor projectId={projectId} /><button type="button" data-outside>Another control</button></AccountSessionProvider>));
   await act(async () => vi.advanceTimersByTimeAsync(0));
   expect(account.session.status).toBe("ready");
-  await act(async () => host.querySelector<HTMLButtonElement>('.project-details-disclosure > button[aria-haspopup="dialog"]')!.click());
+  await act(async () => host.querySelector<HTMLButtonElement>('.guided-brief-editor > button[aria-haspopup="dialog"]')!.click());
 }
 function field(label: string) {
   return [...host.querySelectorAll("label")].find(node => node.textContent?.startsWith(label))!.querySelector<HTMLInputElement | HTMLTextAreaElement>("input, textarea")!;
@@ -101,10 +101,11 @@ describe("focus-preserving account draft locks", () => {
   it("still hides private editing immediately on verification and rejects the late save reply", async () => {
     await mount(); await edit(field("Project label"), "Private pending draft"); await startSave();
     const recheck = deferred<Response>(); sessionRead = () => recheck.promise;
-    await act(async () => window.dispatchEvent(new Event("focus")));
-    expect(account.session.status).toBe("checking"); expect(host.querySelector(".project-details-disclosure")).toBeNull();
+    // Explicit verification fences private content; ordinary tab focus deliberately does not.
+    await act(async () => account.refresh());
+    expect(account.session.status).toBe("checking"); expect(host.querySelector(".guided-brief-editor")).toBeNull();
     await acknowledge();
-    expect(host.querySelector(".project-details-disclosure")).toBeNull(); expect(host.textContent).not.toContain("Private pending draft");
+    expect(host.querySelector(".guided-brief-editor")).toBeNull(); expect(host.textContent).not.toContain("Private pending draft");
     await act(async () => recheck.resolve(new Response(null, { status: 401 })));
     expect(account.session.status).toBe("signed_out"); expect(bodies).toHaveLength(1);
   });

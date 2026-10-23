@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useEffectEvent, useId, useRef, useState, type ComponentProps } from "react";
+import { AccountBriefEditor } from "./account-brief-editor";
 import { ProjectNamingWorkspace } from "@/components/naming/project-naming-workspace";
 import { getNamingReadiness } from "@/domain/project-naming";
 import { getProjectHandoff } from "@/domain/project-handoff";
@@ -35,6 +36,8 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
   const setSelection = (selection: GuidedInterviewInput["selection"]) => changeInput(previous => ({ ...previous, selection }));
   const [error, setError] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
+  const [briefOpen, setBriefOpen] = useState(false);
+  const [briefFromNaming, setBriefFromNaming] = useState(false);
   const lock = useRef(false), mounted = useRef(false);
   const attempts = useRef(new Set<string>());
   const transcriptId = useId();
@@ -263,7 +266,9 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
   });
   const legacyReplies = legacyJobs.map(job => <Fragment key={job.id}>{job.results.map(result => <article key={result.stepKey} id={`guided-result-${job.id}-${result.stepKey}`} tabIndex={-1} className="guided-assistant-message flow-enter" aria-label="Earlier Embel response"><div className="guided-assistant-identity"><ProjectArtwork name="mark" /><span>Embel</span></div><p className="guided-assistant-copy">{result.output.proposal.message}</p></article>)}</Fragment>);
 
-  const conversationHistory = <>{timeline.map(item => {
+  const namingReady = state?.stage === "complete" && !dirty && !workspace.conflict && !busy && !workspace.pendingGuidedContext && saved.scope === "complete_brand" && getProjectHandoff(saved).next.stage === "naming" && getNamingReadiness(saved.context, saved.scope).ready;
+  const showNaming = briefOpen ? briefFromNaming : namingReady;
+  const conversationHistory = <><AccountBriefEditor workspace={workspace} open={briefOpen} onOpen={() => { setBriefFromNaming(Boolean(namingReady)); setBriefOpen(true); }} onClose={() => setBriefOpen(false)} readOnly={Boolean(pending || workspace.conflict || workspace.pendingDraftSave || workspace.pendingGuidedContext)} saveLabel={storage.saveLabel} onUpdate={storage.onUpdate} />{timeline.map(item => {
         if (item.kind === "user") return <div key={item.event.id} className="guided-user-message flow-enter"><span className="sr-only">You</span><p>{item.event.text}</p></div>;
         const output = guidedTurnResult(jobs, item.turn, account.userId, saved.id)?.reply;
         if (!output || output.kind === "accepted" || output.kind === "redirect") return item.turn.id === state?.turns[0]?.id ? <Fragment key={item.turn.id}>{legacyReplies}</Fragment> : null;
@@ -277,7 +282,7 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
       })}</>;
   // The next question belongs to this conversation after the Strategy save ACK.
   // Editing an earlier answer returns to Strategy without discarding Naming memory.
-  if (state?.stage === "complete" && !dirty && !workspace.conflict && !busy && !workspace.pendingGuidedContext && saved.scope === "complete_brand" && getProjectHandoff(saved).next.stage === "naming" && getNamingReadiness(saved.context, saved.scope).ready) {
+  if (showNaming) {
     return <ProjectNamingWorkspace projectId={saved.id} conversationHistory={<>{conversationHistory}<p className="guided-complete" role="status">Your brand strategy is saved. You can revisit any answer above.</p></>} />;
   }
 

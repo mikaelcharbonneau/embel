@@ -21,9 +21,10 @@ import { accountDraftChanged as changed, reconcileAccountWorkspace, reconcilePen
 const emptyWorkspace = () => null;
 
 export function AccountProjectEditor({ projectId }: { projectId: string }) {
-  const { session, isCurrent, expire, refresh, drafts } = useAccountSession();
+  const { session, isCurrent, expire, drafts } = useAccountSession();
   const readWorkspace = useCallback(() => drafts.get(projectId), [drafts, projectId]);
   const workspace = useSyncExternalStore(drafts.subscribe, readWorkspace, emptyWorkspace);
+  const [readAttempt, setReadAttempt] = useState(0);
   const [loadError, setLoadError] = useState<{ generation: number; text: string } | null>(null);
   const setWorkspace = useCallback((value: AccountWorkspace | ((previous: AccountWorkspace | null) => AccountWorkspace | null)) => {
     const next = typeof value === "function" ? value(drafts.get(projectId)) : value;
@@ -49,12 +50,12 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
       else setLoadError({ generation: session.generation, text: accountErrorMessage(error) });
     });
     return () => controller.abort();
-  }, [session, projectId, validId, isCurrent, expire, setWorkspace]);
+  }, [session, projectId, validId, isCurrent, expire, setWorkspace, readAttempt]);
   useEffect(() => () => { mutation.current?.abort(); mutation.current = null; }, [session.generation, projectId]);
   const dirty = Boolean(workspace && changed(workspace));
   if (!validId) return <UnavailableProject />;
   if (session.status !== "ready") return <div className="page"><h1>Account project</h1><AccountStatus retainedEdits={dirty} /><Link href="/brands" className="text-link">Back to brands</Link></div>;
-  if (loadError?.generation === session.generation) return <div className="page"><h1>Account project</h1><p className="form-error" role="alert">{loadError.text}</p>{dirty && workspace?.ownerId === session.userId && <p className="account-notice">Unsaved account edits remain in this tab. Check your account and retry to recover them.</p>}<div className="account-recovery-actions"><button className="button secondary small" type="button" onClick={refresh}>Check account and retry</button><Link href="/brands" className="text-link">Back to brands</Link></div></div>;
+  if (loadError?.generation === session.generation) return <div className="page"><h1>Account project</h1><p className="form-error" role="alert">{loadError.text}</p>{dirty && workspace?.ownerId === session.userId && <p className="account-notice">Unsaved account edits remain in this tab. Retry loading this project to recover them.</p>}<div className="account-recovery-actions"><button className="button secondary small" type="button" onClick={() => { setLoadError(null); setReadAttempt(attempt => attempt + 1); }}>Retry loading project</button><Link href="/brands" className="text-link">Back to brands</Link></div></div>;
   const current = workspace?.ownerId === session.userId && workspace.generation === session.generation && workspace.saved.id === projectId ? workspace : null;
   if (!current) return <div className="page"><h1>Account project</h1><p className="quiet-empty">Loading your account project…</p><Link href="/brands" className="text-link">Back to brands</Link></div>;
   const account = session;

@@ -175,7 +175,8 @@ describe("persistent workspace shell", () => {
     expect(accountLabel()).toBe(label);
 
     const recheck = deferred<Response>(); sessionRead = () => recheck.promise;
-    await act(async () => window.dispatchEvent(new Event("focus")));
+    // Explicit verification fences private content; ordinary tab focus deliberately does not.
+    await act(async () => account.refresh());
     expect(accountLabel()).toBe(label); expect(label.getAttribute("aria-busy")).toBe("true");
     expect(host.textContent).not.toContain("Private fixture");
     expect(host.textContent).not.toContain("Sign in");

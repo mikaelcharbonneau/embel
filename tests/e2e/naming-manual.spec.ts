@@ -63,3 +63,23 @@ test("manual name after 130 generated names stays saved and selected across relo
   expect(runtimeErrors).toEqual([]);
   await page.screenshot({ path: info.outputPath("custom-name-selected-after-reload.png") });
 });
+
+test("manual name inspection preserves keyboard focus and describes its origin honestly", async ({ page }, info) => {
+  const fixture = await namingFixture(page, { saved: true, count: 100 });
+  await openNaming(page); await showNamingNames(page);
+  await page.getByRole("textbox", { name: "Your own name", exact: true }).fill("Keyboard brand");
+  await page.getByRole("button", { name: "Add name", exact: true }).click();
+  const inspect = page.getByRole("button", { name: "Inspect name Keyboard brand", exact: true });
+  await expect(inspect).toBeVisible(); await inspect.focus(); await page.keyboard.press("Enter");
+  await expect(page.getByRole("heading", { name: "Keyboard brand", exact: true })).toBeFocused();
+  await page.getByRole("button", { name: "Origin and history", exact: false }).click();
+  const origin = page.getByRole("dialog", { name: "Origin and history", exact: true });
+  await expect(origin.getByText("User-supplied name, entered directly or imported with its captured context.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Copied from your Names library", { exact: false })).toHaveCount(0);
+  await origin.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(origin).not.toBeVisible();
+  const back = page.getByRole("button", { name: "Back to results", exact: true });
+  await back.focus(); await page.keyboard.press("Enter"); await expect(inspect).toBeFocused();
+  expect(fixture.mutations()).toHaveLength(0);
+  await page.screenshot({ path: info.outputPath("manual-name-keyboard-return.png") });
+});

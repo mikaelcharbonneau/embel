@@ -831,3 +831,26 @@ test.afterEach(async ({ page }, info) => {
   }
   await captureUiEvidence(page, info);
 });
+
+test("guided interview: current brief editing autosaves without rewriting conversation or starting AI", async ({ page }, info) => {
+  const state = await fixtures(page, { guided: false }); state.runtimeUnavailable = true;
+  const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
+  await openProject(page);
+  const trigger = page.getByRole("button", { name: "Edit brief", exact: true });
+  await trigger.click();
+  const dialog = page.getByRole("dialog", { name: "Edit current brief", exact: true });
+  await expect(dialog).toBeVisible();
+  const description = dialog.getByRole("textbox", { name: "Brief description", exact: true });
+  await description.fill("A more focused synthetic neighborhood lunch business.");
+  await expect(dialog.getByRole("status")).toHaveText("Saved");
+  await expect(description).toBeFocused();
+  expect(state.project.context.description).toBe("A more focused synthetic neighborhood lunch business.");
+  expect(state.patches).toHaveLength(1); expect(state.enqueues).toHaveLength(0);
+  expect(state.project.context.intake.conversation?.[0]).toMatchObject({ kind: "user_message", text: initialPrompt });
+  await page.screenshot({ path: info.outputPath("current-brief-editor-saved.png") });
+  await page.keyboard.press("Escape"); await expect(dialog).not.toBeVisible(); await expect(trigger).toBeFocused();
+  await expect(userMessage(page, initialPrompt)).toBeVisible();
+  await page.reload(); await trigger.click();
+  await expect(dialog.getByRole("textbox", { name: "Brief description", exact: true })).toHaveValue("A more focused synthetic neighborhood lunch business.");
+  expect(state.enqueues).toHaveLength(0); expect(state.unhandledWrites).toHaveLength(0); expect(errors).toEqual([]);
+});
