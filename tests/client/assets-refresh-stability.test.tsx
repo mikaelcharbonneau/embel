@@ -37,3 +37,35 @@ it("reserves one status slot and retains loaded grid/image nodes through backgro
   const css = readFileSync("src/styles/assets.css", "utf8");
   expect(css).toMatch(/\.assets-loading\s*\{[^}]*min-height:\s*1\.65em/);
 });
+
+it("dismisses the asset actions when clicking outside without stealing focus or writing", async () => {
+  await render();
+  const menu = host.querySelector<HTMLDetailsElement>(".assets-card-options")!;
+  menu.open = true;
+  const search = host.querySelector<HTMLInputElement>('input[type="search"]')!;
+  await act(async () => search.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true })));
+  expect(menu.open).toBe(false);
+  await act(async () => search.focus()); expect(document.activeElement).toBe(search);
+  expect(fixture.library.refresh).not.toHaveBeenCalled(); expect(fixture.library.changeQuery).not.toHaveBeenCalled();
+});
+
+
+it("keeps inside actions open and dismisses on keyboard focus leaving the menu", async () => {
+  await render(); const menu = host.querySelector<HTMLDetailsElement>(".assets-card-options")!;
+  menu.open = true; const inside = menu.querySelector<HTMLButtonElement>("button")!;
+  await act(async () => { inside.focus(); inside.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true })); });
+  expect(menu.open).toBe(true);
+  const search = host.querySelector<HTMLInputElement>('input[type="search"]')!;
+  await act(async () => search.focus()); expect(menu.open).toBe(false); expect(document.activeElement).toBe(search);
+});
+
+it("retains Escape focus return and removes its dismissal listeners on unmount", async () => {
+  const remove = vi.spyOn(document, "removeEventListener");
+  await render(); const menu = host.querySelector<HTMLDetailsElement>(".assets-card-options")!;
+  menu.open = true; const inside = menu.querySelector<HTMLButtonElement>("button")!;
+  await act(async () => { inside.focus(); inside.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); });
+  expect(menu.open).toBe(false); expect(document.activeElement).toBe(menu.querySelector("summary"));
+  await act(async () => root.render(null));
+  for (const event of ["keydown", "pointerdown", "focusin"]) expect(remove.mock.calls.some(([name]) => name === event)).toBe(true);
+  remove.mockRestore();
+});

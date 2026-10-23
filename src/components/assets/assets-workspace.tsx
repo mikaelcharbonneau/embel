@@ -29,8 +29,21 @@ function OwnedAssetLibrary({ account }: { account: VerifiedAccount }) {
         if (containedFocus) menu.querySelector("summary")?.focus();
       });
     };
+    const dismissOutside = (event: Event) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      section.current?.querySelectorAll<HTMLDetailsElement>(".assets-card-options[open]").forEach(menu => {
+        if (!menu.contains(target)) menu.open = false;
+      });
+    };
     document.addEventListener("keydown", dismiss);
-    return () => document.removeEventListener("keydown", dismiss);
+    document.addEventListener("pointerdown", dismissOutside);
+    document.addEventListener("focusin", dismissOutside);
+    return () => {
+      document.removeEventListener("keydown", dismiss);
+      document.removeEventListener("pointerdown", dismissOutside);
+      document.removeEventListener("focusin", dismissOutside);
+    };
   }, []);
   const [search, setSearch] = useState("");
   const [opened, setOpened] = useState<AssetLibraryItem | null>(null);
