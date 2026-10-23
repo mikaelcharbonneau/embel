@@ -206,5 +206,7 @@ describe("local Naming call clocks and issued-sibling recovery (synthetic SDK HT
     expect(resumed.run.runId).not.toBe(input.runId);
     expect(requests.filter(row => row.method === "POST")).toHaveLength(posted);
     expect(admitted.run.runId).toBe(input.runId);
-  });
+  // This case executes a complete migrated-database/SDK recovery scenario.
+  // Its harness budget is separate from the provider and job clocks asserted above.
+  }, 60_000);
 });
