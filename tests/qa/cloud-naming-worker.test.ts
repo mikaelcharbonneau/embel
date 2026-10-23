@@ -128,9 +128,12 @@ describe("independent cloud Naming deployment artifact", () => {
     expect(manifest.inputs.filter(input => input.startsWith("worker/handlers/"))).toEqual(["worker/handlers/naming-brain.ts", "worker/handlers/naming-progressive.ts"]);
     expect(manifest.inputs.some(input => input === "worker/naming-brain-store.ts")).toBe(true);
     expect(manifest.inputs.some(input => input === "src/server/ai/naming-brain/protocol.ts")).toBe(true);
+    // This shared persistence helper was already in the reviewed source graph;
+    // its historical filename is not a local launcher or service executable.
+    expect(manifest.inputs.filter(input => input.startsWith("worker/local-"))).toEqual(["worker/local-persistence-recovery.ts"]);
     for (const input of manifest.inputs) {
       expect(input).not.toMatch(/(?:^|\/)(?:\.local-fluid|\.env[^/]*|\.credentials|\.secrets|\.vercel)(?:\/|$)/u);
-      expect(input).not.toMatch(/^(?:src\/app\/|scripts\/|worker\/index\.|worker\/local-|worker\/hosting\/)/u);
+      expect(input).not.toMatch(/^(?:src\/app\/|scripts\/|worker\/index\.|worker\/hosting\/)/u);
     }
   });
 

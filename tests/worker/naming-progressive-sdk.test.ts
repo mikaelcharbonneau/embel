@@ -79,10 +79,13 @@ describe("progressive Naming through the actual SDK and migrated SQL", () => {
         { territoryId: "objects", title: "Synthetic objects", direction: "Explore unexpected ordinary objects.", sourceKeys: [] },
         { territoryId: "rhythm", title: "Synthetic rhythm", direction: "Explore varied sounds and movement.", sourceKeys: [] },
       ], facts: [], interpretations: [], uncertainties: ["Synthetic research attempts do not establish real factual claims."] };
-      if (request.input.role === "director") return { role: "director", round: "initial", assignments: request.input.snapshot.preferences.approaches.map((approach, index) => ({
-        assignmentKey: `guide-${approach}`, primaryApproach: approach, additionalApproaches: [], territoryId: index % 2 ? "rhythm" : "objects", constructionKey: `guide-${index}`,
-        direction: "Explore distinct imaginative associations.", targetCount: 150 / request.input.snapshot.preferences.approaches.length, sourceKeys: [], avoidPatterns: [], freshTerritory: false,
-      })), feedbackHypotheses: [] };
+      if (request.input.role === "director") {
+        const future = request.policy.progressiveContractVersion === 2, approaches = request.input.snapshot.preferences.approaches;
+        return { role: "director", round: "initial", assignments: Array.from({ length: future ? 15 : approaches.length }, (_, index) => ({
+          assignmentKey: future ? `guide-${index}` : `guide-${approaches[index]}`, primaryApproach: approaches[index % approaches.length]!, additionalApproaches: [], territoryId: index % 2 ? "rhythm" : "objects", constructionKey: `guide-${index}`,
+          direction: "Explore distinct imaginative associations.", targetCount: future ? 10 : 150 / approaches.length, sourceKeys: [], avoidPatterns: [], freshTerritory: false,
+        })), feedbackHypotheses: [] };
+      }
       if (request.input.role === "creator") {
         const assignment = request.input.assignment;
         return { role: "creator", assignmentKey: assignment.assignmentKey,
@@ -154,7 +157,9 @@ describe("progressive Naming through the actual SDK and migrated SQL", () => {
       await db.exec("set session authorization fixture_naming_brain_a");
       expect((await originalPublish(value.job, publications[0]!, new AbortController().signal)).publishedCount).toBe(4);
       releasePublication.resolve(); await savedUnissued.promise; context.resolve(); siblings.resolve();
-      expect((await pending).status).toBe("needs_reconciliation");
+      // This interruption is after the plan ACK but before authorization;
+      // issued siblings drain with terminal evidence, so the outcome is known.
+      expect(await pending).toMatchObject({ status: "failed", code: "local_planning_failed" });
       const original = requests.get("part004.creation.creator")!;
       expect(original.input.role === "creator" && "assignmentBasis" in original.input.assignment && original.input.assignment.assignmentBasis.kind).toBe("brief_seed");
       expect(creates).not.toContain(original.providerCallKey);

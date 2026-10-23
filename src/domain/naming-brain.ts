@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { namingDirectorAllocationSchema } from "./naming-director-allocation";
 import { nameValueSchema } from "./naming";
 import { nameIdentityKey, nameIdentityKeySchema, namingStrategyBasisSchema, namingStrategyKeyFromBasis, projectNameEntrySchema, projectNameOriginSchema } from "./project-naming";
 import { getNamingPreferencesReadiness, matchesNamingTextFragment, namingApproachSchema, namingPreferencesV2Schema, type NamingApproach } from "./naming-brain-preferences";
@@ -449,11 +450,13 @@ export const namingRolePolicySchema = z.strictObject({
   // The legacy monetary fields below remain canonical bookkeeping in this local mode; they do not limit spend.
   budgetControl: z.literal("local_unlimited_v1").optional(),
   localPipelineVersion: z.literal(2).optional(),
+  progressiveContractVersion: z.literal(2).optional(),
   maximumCostMicrousd: z.number().int().min(1).max(1_500_000), sessionLimitCents: z.number().int().min(1).max(150), maxWebSearchCalls: z.number().int().min(0).max(20),
   maxInputBytes: z.literal(131_072), maxOutputBytes: z.literal(524_288), deadlineMs: z.union([z.literal(240_000), z.literal(900_000)]), nativeDelegation: z.literal(false),
   allowedTools: z.array(z.enum(["web_search", "read_reference"])).max(2).refine(unique),
   referenceHosts: z.array(z.string().min(3).max(253).regex(/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/)).max(40).refine(unique),
 }).superRefine((value, ctx) => {
+  if (value.progressiveContractVersion === 2 && value.localPipelineVersion !== 2) issue(ctx, "The future role contract requires the immutable progressive execution profile");
   if (value.localPipelineVersion === 2 && (value.budgetControl !== "local_unlimited_v1" || value.deadlineMs !== 900_000)) issue(ctx, "Progressive calls require the explicit local execution and timing policy");
   if (value.deadlineMs === 900_000 && value.budgetControl !== "local_unlimited_v1") issue(ctx, "Extended call timing requires explicit local execution");
   if (value.maximumCostMicrousd !== value.sessionLimitCents * 10_000) issue(ctx, "Session allocation cents must exactly match the server-allocated micro-USD bound");
@@ -563,7 +566,7 @@ export type NamingGapContext = z.infer<typeof namingGapContextSchema>;
 
 export const namingStageInputSchema = z.discriminatedUnion("role", [
   z.strictObject({ role: z.literal("researcher"), snapshot: namingBriefSnapshotSchema }),
-  z.strictObject({ role: z.literal("director"), snapshot: namingBriefSnapshotSchema, research: namingResearchPackSchema, gapContext: namingGapContextSchema.optional() }),
+  z.strictObject({ role: z.literal("director"), snapshot: namingBriefSnapshotSchema, research: namingResearchPackSchema, gapContext: namingGapContextSchema.optional(), allocation: namingDirectorAllocationSchema.optional() }),
   z.strictObject({ role: z.literal("creator"), snapshot: namingBriefSnapshotSchema, assignment: z.union([namingValidatedAssignmentSchema, namingProgressiveAssignmentSchema]) }),
   z.strictObject({ role: z.literal("curator"), snapshot: namingBriefSnapshotSchema, review: namingReviewProjectionSchema, validationRejections: z.array(namingCandidateRejectionSchema).max(200) }),
   z.strictObject({ role: z.literal("verifier"), snapshot: namingBriefSnapshotSchema, review: namingReviewProjectionSchema, curation: namingCurationProjectionSchema }),
@@ -581,6 +584,7 @@ export const namingStageRequestSchema = z.strictObject({
   const dependencies = new Set(value.dependencyArtifactIds);
   if (input.role === "director" && (input.research.runId !== value.runId || input.research.snapshotHash !== value.snapshotHash || !(input.research.readiness === "sourced" || input.research.readiness === "partial" && value.policy.budgetControl === "local_unlimited_v1" && input.research.providerReceipt.budgetControl === "local_unlimited_v1") || !dependencies.has(input.research.artifactId))) issue(ctx, "Direction must depend on saved research from this run with the same explicit local mode for a partial pack");
   if (input.role === "director") {
+    if ((value.policy.progressiveContractVersion === 2) !== (input.allocation !== undefined)) issue(ctx, "Director allocation belongs only to the explicitly versioned future request contract");
     const gap = input.gapContext;
     if ((value.stageKey === "gap") !== (gap !== undefined)) issue(ctx, "Director gap context is required only for the gap phase");
     if (gap && (gap.runId !== value.runId || gap.snapshotHash !== value.snapshotHash || JSON.stringify(gap.primaryCounts.map(row => row.approach)) !== JSON.stringify(input.snapshot.preferences.approaches) || [gap.curationArtifactId, gap.verificationArtifactId, ...gap.sourceArtifactIds].some(id => !dependencies.has(id)))) issue(ctx, "Gap direction must bind the actual saved review outputs and source dependencies");

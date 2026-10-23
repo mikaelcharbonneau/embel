@@ -7,6 +7,8 @@ import { Readable } from "node:stream";
 import { checkServerIdentity } from "node:tls";
 import { parse, type DefaultTreeAdapterMap } from "parse5";
 import { boundedProviderWork } from "../../standalone-providers/bounded-request";
+import { namingReferenceInvocationSchema, type NamingReferenceInvocation } from "./reference-invocation";
+import { namingHash } from "./identity";
 
 export const NAMING_REFERENCE_HOSTS = Object.freeze([
   "www.merriam-webster.com", "dictionary.cambridge.org", "en.wiktionary.org", "en.wikipedia.org", "www.britannica.com",
@@ -14,7 +16,11 @@ export const NAMING_REFERENCE_HOSTS = Object.freeze([
 ] as const);
 export const NAMING_REFERENCE_LIMITS = Object.freeze({ responseBytes: 262_144, textBytes: 16_384, textCharacters: 8_000, chunks: 2_048, deadlineMs: 15_000 });
 export const NAMING_REFERENCE_EXTRACTOR = "embel-reference-text-v1";
-export type ReferenceObservation = { sessionId: string; turnId: string; itemId: string; url: string; action: "open_page" | "find_in_page" | "read_reference"; status: "completed" };
+type ReferenceIdentity = { sessionId: string; turnId: string; itemId: string; url: string };
+export type ReferenceObservation = ReferenceIdentity & (
+  { action: "open_page" | "find_in_page" | "read_reference"; status: "completed" }
+  | { action: "read_reference"; status: "required_action"; invocation: NamingReferenceInvocation }
+);
 export type ReferencePageRequest = { url: string; hostname: string; address: string; family: 4 | 6; signal: AbortSignal };
 type Address = { address: string; family: number };
 type UnavailableCode = "source_not_allowed" | "source_unobserved" | "destination_not_public" | "unavailable" | "invalid_response" | "source_too_large" | "source_text_unavailable" | "cancelled" | "timeout";
@@ -148,8 +154,13 @@ export function createNamingReferenceReader(dependencies: {
     const url = allowedUrl(input.requestedUrl);
     if (!url || !allowedHosts.has(url.hostname)) return unavailable("source_not_allowed");
     const observed = allowedUrl(input.observation.url);
-    const observedAction = ["open_page", "find_in_page"].includes(input.observation.action) || dependencies.localPrototype === true && input.observation.action === "read_reference";
-    if (!observed || observed.href !== url.href || input.observation.status !== "completed" || !observedAction || !input.observation.sessionId || !input.observation.turnId || !input.observation.itemId) return unavailable("source_unobserved");
+    const observation = input.observation;
+    const invocation = observation.status === "required_action" ? namingReferenceInvocationSchema.safeParse(observation.invocation) : null;
+    const requested = invocation?.success && invocation.data.sessionId === observation.sessionId && invocation.data.turnId === observation.turnId
+      && invocation.data.itemId === observation.itemId && invocation.data.parsedArgumentsHash === namingHash({ url: observation.url });
+    const observedAction = observation.status === "completed" && (["open_page", "find_in_page"].includes(observation.action) || dependencies.localPrototype === true && observation.action === "read_reference")
+      || dependencies.localPrototype === true && observation.action === "read_reference" && observation.status === "required_action" && requested;
+    if (!observed || observed.href !== url.href || !observedAction || !observation.sessionId || !observation.turnId || !observation.itemId) return unavailable("source_unobserved");
     const result = await boundedProviderWork<NamingReferenceRead>(async child => {
       const addresses = await resolveHost(url.hostname);
       if (!addresses.length || addresses.length > 16 || addresses.some(value => isIP(value.address) !== value.family || !isPublicReferenceAddress(value.address))) return unavailable("destination_not_public");

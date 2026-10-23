@@ -2,7 +2,7 @@ import "server-only";
 import { isDeepStrictEqual } from "node:util";
 import { bindNamingVerificationSources, namingAssignmentPlanSchema, namingCreatorSetSchema, namingCurationSchema, namingEvidenceSourceSchema, namingProviderReceiptSchema, namingResearchPackSchema, namingRoleOutputSchema, namingStageRequestSchema, namingVerificationSchema, validateNamingAssignmentPlan, validateNamingCreatorSet,
   type NamingEvidenceSource, type NamingProviderReceipt, type NamingRoleOutput, type NamingStageRequest, type NamingVerificationSourceContext } from "../../../domain/naming-brain";
-import { namingOutputSchemas } from "./prompts";
+import { namingOutputSchemaForRequest } from "./prompts";
 import { namingStableId, namingTextHash } from "./identity";
 import type { ManagedFinalOutput } from "./history";
 
@@ -19,7 +19,7 @@ export function validateNamingRoleOutput(options: { request: NamingStageRequest;
   if (namingTextHash(options.final.text) !== options.final.itemContentHash) throw new Error("provider_item_hash_mismatch");
   const raw: unknown = JSON.parse(options.final.text);
   if (!isDeepStrictEqual(raw, options.final.value)) throw new Error("provider_item_content_mismatch");
-  const output = namingOutputSchemas[request.role].parse(raw);
+  const output = namingOutputSchemaForRequest(request).parse(raw);
   if (!isDeepStrictEqual(raw, output)) throw new Error("model_output_normalization");
   const artifactId = namingStableId(`artifact:${request.runId}:${request.providerCallKey}:${receipt.sessionId}:${receipt.turnId}:${options.final.itemId}`);
   const envelope = { artifactId, runId: request.runId, stageKey: request.stageKey, snapshotHash: request.snapshotHash, schemaVersion: 1, promptVersion: "naming-brain-v1", providerReceipt: receipt };

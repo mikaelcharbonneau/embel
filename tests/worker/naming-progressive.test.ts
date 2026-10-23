@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-import { namingBrainJobInputSchema, namingProviderReceiptSchema, type NamingModelOutput, type NamingRoleOutput, type NamingStageOutcome, type NamingStageRequest } from "../../src/domain/naming-brain";
+import { namingBrainJobInputSchema, namingProviderReceiptSchema, type NamingModelOutput, type NamingResearchPack, type NamingRoleOutput, type NamingStageOutcome, type NamingStageRequest } from "../../src/domain/naming-brain";
+import type { NamingApproach } from "../../src/domain/naming-brain-preferences";
+import { directorApproaches, syntheticLegacyDirectorOutput } from "../fixtures/naming-director-allocation";
 import { executeProgressiveNaming, hasSettledProgressiveDirectorFailure } from "../../worker/handlers/naming-progressive";
 import { createNamingBrainHandlers } from "../../worker/handlers/naming-brain";
 import { createProgressiveNamingRolePolicy } from "../../src/server/ai/naming-brain/policy";
@@ -17,18 +19,22 @@ function deferred() { let resolve = () => {}; const promise = new Promise<void>(
 
 /** Synthetic role completions pass the real request/output/assignment validators.
  * The in-memory store models immutable phase plans and atomic publication ACKs. */
-function fixture() {
+function fixture(approaches?: NamingApproach[]) {
   const legacy = createInertNamingHarness({ localPrototype: true });
-  const input = namingBrainJobInputSchema.parse({ ...legacy.input, localTimingVersion: 2, localPipelineVersion: 2 });
+  const input = namingBrainJobInputSchema.parse({ ...legacy.input, ...(approaches ? { snapshot: { ...legacy.input.snapshot, preferences: { ...legacy.input.snapshot.preferences, approaches } } } : {}), localTimingVersion: 2, localPipelineVersion: 2 });
   const job = parseClaimedJob({ ...legacy.jobRow, input });
   const stage = legacy.stages.get("creation")!; stage.startedAt = new Date().toISOString();
   const state: NamingProgressiveState = { stage: { ...stage, callPlans: [] }, plannedRequests: [], publishedCount: 0, primaryCounts: input.snapshot.preferences.approaches.map(approach => ({ approach, count: 0 })), publications: [] };
   const calls: NamingStageRequest[] = [], published: string[] = [], plans: string[] = [];
   const abort = new AbortController();
-  const completed = (request: NamingStageRequest): NamingStageOutcome => {
+  const completed = (request: NamingStageRequest, suppliedOutput?: NamingModelOutput): NamingStageOutcome => {
     let output: NamingModelOutput;
-    if (request.input.role === "researcher") output = { role: "researcher", territories: [{ territoryId: "objects", title: "Objects", direction: "Unexpected everyday objects.", sourceKeys: [] }, { territoryId: "rhythm", title: "Rhythm", direction: "Distinct rhythm and texture.", sourceKeys: [] }], facts: [], interpretations: [], uncertainties: [] };
-    else if (request.input.role === "director") output = { role: "director", round: "initial", assignments: input.snapshot.preferences.approaches.map((approach, index) => ({ assignmentKey: `guide-${approach}`, primaryApproach: approach, additionalApproaches: [], territoryId: index ? "rhythm" : "objects", constructionKey: `guide-${index}`, direction: "Explore varied, unexpected associations.", targetCount: index ? 75 : 75, sourceKeys: [], avoidPatterns: [], freshTerritory: true })), feedbackHypotheses: [] };
+    if (suppliedOutput) output = suppliedOutput;
+    else if (request.input.role === "researcher") output = { role: "researcher", territories: [{ territoryId: "objects", title: "Objects", direction: "Unexpected everyday objects.", sourceKeys: [] }, { territoryId: "rhythm", title: "Rhythm", direction: "Distinct rhythm and texture.", sourceKeys: [] }], facts: [], interpretations: [], uncertainties: [] };
+    else if (request.input.role === "director") {
+      const future = request.policy.progressiveContractVersion === 2, approaches = input.snapshot.preferences.approaches;
+      output = { role: "director", round: "initial", assignments: Array.from({ length: future ? 15 : approaches.length }, (_, index) => ({ assignmentKey: future ? `guide-${index}` : `guide-${approaches[index]}`, primaryApproach: approaches[index % approaches.length]!, additionalApproaches: [], territoryId: index ? "rhythm" : "objects", constructionKey: `guide-${index}`, direction: "Explore varied, unexpected associations.", targetCount: future ? 10 : 75, sourceKeys: [], avoidPatterns: [], freshTerritory: true })), feedbackHypotheses: [] };
+    }
     else if (request.input.role === "creator") {
       const assignment = request.input.assignment;
       output = { role: "creator", assignmentKey: assignment.assignmentKey, candidates: Array.from({ length: assignment.targetCount }, (_, index) => ({ candidateKey: `c${index}`, value: `${assignment.assignmentKey}word${index}`, primaryApproach: assignment.primaryApproach, additionalApproaches: [], territoryId: assignment.territoryId, constructionKey: assignment.constructionKey, rationale: "A concise creative association.", caution: null, claims: [] })) };
@@ -80,6 +86,25 @@ function fixture() {
 }
 
 describe("Progressive Naming reviewed publication", () => {
+  it.each([66, 64] as const)("retains a saved eight-approach zero-source partial at %s names without new calls or plans", async count => {
+    const value = fixture([...directorApproaches]);
+    const policy = (role: "researcher" | "director") => createProgressiveNamingRolePolicy(value.input.policy, role, undefined, undefined, true);
+    const researchRequest = createNamingRoleRequest({ runId: value.input.runId, stageKey: "creation", providerCallKey: "context.research.researcher", input: { role: "researcher", snapshot: value.input.snapshot }, dependencyArtifactIds: [], policy: policy("researcher") });
+    const research = value.completed(researchRequest);
+    if (research.status !== "completed") throw Error("Missing synthetic research");
+    const directorRequest = createNamingRoleRequest({ runId: value.input.runId, stageKey: "creation", providerCallKey: "context.direction.director", input: { role: "director", snapshot: value.input.snapshot, research: research.output as NamingResearchPack }, dependencyArtifactIds: [research.output.artifactId], policy: policy("director") });
+    const output = syntheticLegacyDirectorOutput(150);
+    output.assignments.forEach((row, index) => { row.sourceKeys = []; row.territoryId = index % 2 ? "rhythm" : "objects"; });
+    value.completed(directorRequest, output);
+    value.state.plannedRequests.push(researchRequest, directorRequest); value.state.stage.requests.push(researchRequest, directorRequest);
+    value.state.publishedCount = count;
+    const counts = { real_words: count === 66 ? 16 : 14, blends: 16, modified: 16, invented: 18 };
+    value.state.primaryCounts = directorApproaches.map(approach => ({ approach, count: counts[approach as keyof typeof counts] ?? 0 }));
+    value.state.publications.push({ key: "part001", publicationId: id(1000), candidateIds: Array.from({ length: count }, (_, i) => id(2000 + i)), entryIds: Array.from({ length: count }, (_, i) => id(3000 + i)) });
+    const before = structuredClone(value.state), result = await value.run();
+    expect(result.complete).toBe(false); expect(value.calls).toEqual([]); expect(value.plans).toEqual([]); expect(value.published).toEqual([]);
+    expect(value.state).toEqual(before); expect(value.state.publishedCount).toBe(count);
+  });
   it("keeps a local planning failure separate from provider uncertainty", async () => {
     const value = fixture();
     value.store.saveProgressiveCallPlan = async () => { throw new Error("synthetic_plan_failure"); };

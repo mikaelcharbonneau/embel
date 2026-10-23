@@ -7,6 +7,7 @@ import { nameIdentityKey, namingStrategyBasisSchema, namingStrategyKeyFromBasis 
 import type { ClaimedJob, StepOutcome } from "../src/domain/jobs";
 import { NAMING_GAP_ENVELOPE } from "../src/server/ai/naming-brain/policy";
 import { namingHash } from "../src/server/ai/naming-brain/identity";
+import { namingReferenceInvocationSchema } from "../src/server/ai/naming-brain/reference-invocation";
 import type { NamingProviderItemRecord, NamingRuntimePersistence, NamingToolResultRecord } from "../src/server/ai/naming-brain/transport";
 import { parseClaimedJob, type JobDatabase } from "./postgres-store";
 import { PlanConflictError, type JobStore, type PlannedStep } from "./runner";
@@ -15,7 +16,12 @@ const identifier = z.string().min(1).max(300), hash = z.string().regex(/^[a-f0-9
 const providerTurnSchema = z.strictObject({ providerCallKey: identifier, sessionId: identifier, turnId: identifier, turn: z.object({ id: identifier, session_id: identifier, agent_id: identifier, subagent_id: z.null(), status: z.enum(["completed", "failed", "cancelled"]) }).catchall(z.json()) }).refine(row => row.turn.id === row.turnId && row.turn.session_id === row.sessionId);
 const providerItemSchema = z.strictObject({ providerCallKey: identifier, sessionId: identifier, turnId: identifier, itemId: identifier, item: z.json() });
 const toolResultSchema = z.strictObject({ providerCallKey: identifier, sessionId: identifier, turnId: identifier, callId: identifier, requestHash: hash,
-  result: z.strictObject({ argumentsHash: hash, reply: z.strictObject({ type: z.literal("agent.session.input.tool_result"), turn_id: identifier, call_id: identifier, success: z.boolean(), output: z.string().max(131_072).optional(), error: z.string().max(200).optional() }) }), sourceEvidence: namingEvidenceSourceSchema.nullable() });
+  invocationWitness: namingReferenceInvocationSchema.optional(),
+  result: z.strictObject({ argumentsHash: hash, reply: z.strictObject({ type: z.literal("agent.session.input.tool_result"), turn_id: identifier, call_id: identifier, success: z.boolean(), output: z.string().max(131_072).optional(), error: z.string().max(200).optional() }) }), sourceEvidence: namingEvidenceSourceSchema.nullable() })
+  .refine(row => !row.invocationWitness || row.invocationWitness.providerCallKey === row.providerCallKey && row.invocationWitness.requestHash === row.requestHash
+    && row.invocationWitness.sessionId === row.sessionId && row.invocationWitness.turnId === row.turnId && row.invocationWitness.callId === row.callId
+    && row.invocationWitness.actionArgumentsHash === row.result.argumentsHash && row.result.reply.turn_id === row.turnId && row.result.reply.call_id === row.callId
+    && (!row.sourceEvidence || row.sourceEvidence.providerItemId === row.invocationWitness.itemId), "Reference invocation must bind its exact durable result");
 const allocationSchema = z.strictObject({ providerCallKey: identifier, assignmentKey: identifier.nullable(), requestKey: identifier, requestHash: hash, sessionLimitCents: z.number().int().min(1).max(150), maxWebSearchCalls: z.number().int().min(0).max(20), role: z.enum(["researcher", "director", "creator", "curator", "verifier"]) });
 const completedOutputSchema = z.strictObject({ artifactIds: z.array(z.uuid()).max(60), errorCode: z.string().max(100).optional(), partialArtifacts: z.array(z.json()).max(100).optional() });
 const progressiveOutputSchema = completedOutputSchema.extend({ artifactIds: z.array(z.uuid()).max(300), partialArtifacts: z.array(z.json()).max(300).optional() });

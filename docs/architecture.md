@@ -2,6 +2,13 @@
 
 ## Hosted Naming execution
 
+Future progressive role requests can carry a separate immutable
+`progressiveContractVersion: 2` marker without changing the existing run profile.
+It freezes an application-specified fifteen-by-ten Director allocation and a
+distinct required-action reference witness. Saved requests retain their original
+wire bodies and hashes; actual retrieved excerpts and factual-route verification
+remain mandatory. See [generation contract corrections](naming-generation-contracts-20261023.md).
+
 D083 extends the existing owner's progressive Naming flow to the production
 application. A production routing opt-in selects account-scoped hosted RPCs;
 private database capabilities bind the exact owner, pilot, policy, restricted
