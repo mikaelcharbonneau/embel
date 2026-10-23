@@ -248,6 +248,9 @@ describe("independent isolated Naming release packaging", () => {
     expect(result.stdout + result.stderr).not.toContain(canary);
     const receipt = JSON.parse(result.stdout) as { release: string; sourceRevision: string; mode: string; projectId: string };
     expect(receipt).toMatchObject({ sourceRevision: fixture.revision, mode, projectId: syntheticProject });
+    expect(receipt).toMatchObject({ deploymentMetadata: { githubDeployment: "1", githubOrg: "mikaelcharbonneau", githubRepo: "embel", githubCommitOrg: "mikaelcharbonneau", githubCommitRepo: "embel", githubCommitRef: "main", githubCommitSha: fixture.revision } });
+    const metadata = JSON.parse(result.stdout).deploymentMetadata;
+    expect(JSON.parse(result.stdout).deploymentMetadataArgs).toEqual(Object.entries(metadata).flatMap(([key, value]) => ["--meta", `${key}=${value}`]));
     expect(realpathSync(path.dirname(receipt.release))).toBe(realpathSync(path.join(fixture.checkout, ".tmp")));
     expect(readdirSync(receipt.release).sort()).toEqual([".vercelignore", "naming-worker", "package.json", "static", "vercel.json"]);
     expect(readdirSync(path.join(receipt.release, "naming-worker")).sort()).toEqual([".dockerignore", "Containerfile", "dist"]);
