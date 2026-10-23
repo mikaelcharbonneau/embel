@@ -334,3 +334,19 @@ test("assets design: native artwork and compact responsive card geometry", async
 });
 
 test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));
+
+test("assets fixture: action menus dismiss outside without refreshing the library", async ({ page }, info) => {
+  const fixture = await setup(page); await ready(page);
+  const menu = page.locator(".assets-card-options").first(), trigger = menu.locator("summary");
+  await trigger.click(); await expect(menu).toHaveAttribute("open", "");
+  const search = page.getByRole("searchbox", { name: "Search assets", exact: true });
+  const reads = fixture.reads;
+  await search.click(); await expect(menu).not.toHaveAttribute("open", ""); await expect(search).toBeFocused();
+  await trigger.click(); await menu.getByRole("button").first().focus();
+  await expect(menu).toHaveAttribute("open", ""); await page.keyboard.press("Escape");
+  await expect(menu).not.toHaveAttribute("open", ""); await expect(trigger).toBeFocused();
+  await trigger.click(); await menu.getByRole("button").last().focus(); await page.keyboard.press("Tab");
+  await expect(menu).not.toHaveAttribute("open", "");
+  expect(fixture.mutationBodies).toEqual([]); expect(fixture.reads).toBe(reads);
+  await page.screenshot({ path: info.outputPath("asset-actions-dismissed.png") });
+});
