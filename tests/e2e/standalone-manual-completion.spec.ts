@@ -33,6 +33,8 @@ async function setup(page: Page, seedName = true) {
   await page.goto("/names");
   await page.getByRole("textbox", { name: "Add words", exact: true }).fill("cedar");
   await page.getByRole("textbox", { name: "Add words", exact: true }).press("Enter");
+  const preview = page.getByRole("button", { name: /^Preview ·/ });
+  if (await preview.isVisible()) await preview.click();
   await page.getByRole("button", { name: "Favorite result cedar", exact: true }).click();
   await waitForNamesSaved(page);
   }
