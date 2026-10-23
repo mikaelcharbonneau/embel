@@ -72,7 +72,12 @@ async function fixtures(page: Page) {
 }
 const dialog = (page: Page) => page.getByRole("dialog", { name: "Generation activity", exact: true });
 const trigger = (page: Page) => page.getByRole("button", { name: "Activity", exact: true });
-async function openPage(page: Page) { await page.goto("/ideas"); await expect(trigger(page)).toBeVisible(); }
+async function openAccountMenu(page: Page) {
+  const menu = page.locator(".workspace-account-menu");
+  await expect(menu.locator("summary")).toBeVisible();
+  if (!await menu.evaluate(element => (element as HTMLDetailsElement).open)) await menu.getByLabel("Account menu", { exact: true }).click();
+}
+async function openPage(page: Page) { await page.goto("/ideas"); await openAccountMenu(page); await expect(trigger(page)).toBeVisible(); }
 async function openActivity(page: Page) { await trigger(page).click(); await expect(dialog(page)).toBeVisible(); }
 async function settleRendering(page: Page) { await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))); }
 
@@ -101,7 +106,7 @@ test("activity fixture: loads only on explicit open and stops polling after clos
 test("activity fixture: signed-out sessions expose no activity trigger or requests", async ({ page }) => {
   const { state } = await fixtures(page); state.sessionOwner = null;
   await page.clock.install(); await page.goto("/ideas");
-  await expect(page.locator(".topbar").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
+  await expect(page.locator(".topbar").getByLabel("Account menu", { exact: true })).toContainText("Sign in");
   await page.clock.fastForward(30_000);
   await expect(trigger(page)).toHaveCount(0);
   expect(state.activityRequests).toBe(0);
@@ -166,7 +171,10 @@ for (const nextOwner of [otherOwnerId, null]) test(`activity privacy fixture: he
     await expect.poll(() => held.ready).toBe(true);
     await expect(dialog(page).getByRole("status")).toHaveText("Loading your activity…");
     fixture.state.sessionOwner = nextOwner; fixture.state.payload = emptyActivity(nextOwner ?? ownerId);
-    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    // Model an actual tab departure/return, not a duplicate focus event in
+    // an already verified activation. The background check must fence owners
+    // without replacing unchanged-account workspaces.
+    await page.evaluate(() => { window.dispatchEvent(new Event("blur")); window.dispatchEvent(new Event("focus")); });
     await expect.poll(() => fixture.state.sessionRequests).toBeGreaterThan(1);
     if (nextOwner) {
       await expect(trigger(page)).toBeVisible(); await expect(dialog(page)).not.toBeVisible();
@@ -174,7 +182,7 @@ for (const nextOwner of [otherOwnerId, null]) test(`activity privacy fixture: he
       await expect(dialog(page).getByText("No generation requests in this account yet.", { exact: true })).toBeVisible();
     } else {
       await expect(trigger(page)).toHaveCount(0);
-      await expect(page.locator(".topbar").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
+      await expect(page.locator(".topbar").getByLabel("Account menu", { exact: true })).toContainText("Sign in");
     }
     held.release(); await expect.poll(() => held.settled).toBe(true); await settleRendering(page);
     for (const title of Object.values(titles)) await expect(page.getByText(title, { exact: true })).toHaveCount(0);
@@ -185,7 +193,7 @@ test("activity privacy fixture: a foreign-owner response invalidates the current
   const { state } = await fixtures(page); state.payload = activity(otherOwnerId);
   await openPage(page); await trigger(page).click();
   await expect(trigger(page)).toHaveCount(0);
-  await expect(page.locator(".topbar").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
+  await expect(page.locator(".topbar").getByLabel("Account menu", { exact: true })).toContainText("Sign in");
   for (const title of Object.values(titles)) await expect(page.getByText(title, { exact: true })).toHaveCount(0);
 });
 
@@ -203,7 +211,7 @@ test("activity privacy fixture: a 401 clears previously displayed private rows",
   state.status = 401; state.payload = { error: { code: "unauthenticated" } }; state.sessionOwner = null;
   await page.clock.fastForward(3001);
   await expect(trigger(page)).toHaveCount(0);
-  await expect(page.locator(".topbar").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
+  await expect(page.locator(".topbar").getByLabel("Account menu", { exact: true })).toContainText("Sign in");
   for (const title of Object.values(titles)) await expect(page.getByText(title, { exact: true })).toHaveCount(0);
   const reads = state.activityRequests; await page.clock.fastForward(30_000); expect(state.activityRequests).toBe(reads);
 });
