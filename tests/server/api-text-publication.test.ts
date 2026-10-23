@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 vi.mock("@vercel/oidc", () => ({ getVercelOidcToken: vi.fn(async () => "synthetic-fixture-token") }));
 import { publishApiTextDispatch } from "../../src/server/api-text/publication";
@@ -20,7 +20,8 @@ function setupLocal() {
   for (const name of ["VERCEL", "VERCEL_ENV", "VERCEL_TARGET_ENV", "VERCEL_DEPLOYMENT_ID"]) vi.stubEnv(name, undefined);
   return fetch;
 }
-afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.clearAllMocks(); });
+beforeEach(() => { vi.spyOn(console, "warn").mockImplementation(() => {}); });
+afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.clearAllMocks(); vi.restoreAllMocks(); });
 describe("web publication transport", () => {
   it.each(["preview", "production"])("sends only the admitted descriptor from %s to the protected worker with request-context OIDC", async environment => {
     const fetch = setup(environment);
@@ -31,6 +32,7 @@ describe("web publication transport", () => {
     expect(request.redirect).toBe("error");
     expect(request.headers).toMatchObject({ authorization: "Bearer synthetic-fixture-token", "x-vercel-trusted-oidc-idp-token": "synthetic-fixture-token" });
     expect(getVercelOidcToken).toHaveBeenCalledExactlyOnceWith();
+    expect(console.warn).not.toHaveBeenCalled();
   });
   it("publishes the admitted descriptor locally through the approved project/team SDK token", async () => {
     const fetch = setupLocal();
@@ -90,6 +92,42 @@ describe("web publication transport", () => {
     vi.mocked(getVercelOidcToken).mockRejectedValueOnce(new Error("missing token"));
     expect(await publishApiTextDispatch(message)).toEqual({ state: "dispatch_pending" });
   });
+  it("classifies failures without retaining private values or changing publication behavior", async () => {
+    const fetch = setup();
+    const secret = "synthetic-private-token-prompt-database-detail";
+    const events = () => vi.mocked(console.warn).mock.calls.map(([value]) => JSON.parse(value as string));
+    await publishApiTextDispatch({ ...message, prompt: secret });
+    vi.stubEnv("FLUID_API_TEXT_WORKER_ORIGIN", `https://worker.vercel.app?token=${secret}`);
+    await publishApiTextDispatch(message);
+    vi.stubEnv("FLUID_API_TEXT_WORKER_ORIGIN", "https://fluid-api-text-worker-qualified.vercel.app");
+    vi.mocked(getVercelOidcToken).mockRejectedValueOnce(new Error(secret));
+    await publishApiTextDispatch(message);
+    fetch.mockRejectedValueOnce(new Error(secret));
+    await publishApiTextDispatch(message);
+    fetch.mockResolvedValueOnce(new Response(secret, { status: 503 }));
+    await publishApiTextDispatch(message);
+    fetch.mockResolvedValueOnce(Response.json({ state: "published", privateValue: secret }));
+    await publishApiTextDispatch(message);
+    fetch.mockResolvedValueOnce(Response.json({ state: "dispatch_pending" }, { status: 202 }));
+    await publishApiTextDispatch(message);
+    expect(events()).toEqual([
+      ["descriptor", null], ["configuration", null], ["authentication", null], ["transport", null],
+      ["http", 503], ["response", 200], ["worker_pending", 202],
+    ].map(([phase, httpStatus]) => ({ event: "api_text_publication_unconfirmed", phase, httpStatus, durationMs: expect.any(Number) })));
+    expect(JSON.stringify(events())).not.toContain(secret);
+    expect(JSON.stringify(events())).not.toContain(message.jobId);
+    expect(JSON.stringify(events())).not.toContain(message.dispatchIdentity);
+    expect(JSON.stringify(events())).not.toContain("vercel.app");
+    expect(fetch).toHaveBeenCalledTimes(4);
+  });
+  it("keeps pending and confirmed responses unchanged when the diagnostic sink fails", async () => {
+    const fetch = setup();
+    vi.mocked(console.warn).mockImplementation(() => { throw new Error("synthetic log failure"); });
+    fetch.mockResolvedValueOnce(Response.json({ state: "dispatch_pending" }, { status: 202 }));
+    expect(await publishApiTextDispatch(message)).toEqual({ state: "dispatch_pending" });
+    expect(await publishApiTextDispatch(message)).toEqual({ state: "published", messageId: "message-confirmed" });
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
   it("bounds request-context token retrieval as part of the whole publication deadline", async () => {
     vi.useFakeTimers(); setup();
     vi.mocked(getVercelOidcToken).mockImplementationOnce(() => new Promise(() => {}));
@@ -106,8 +144,13 @@ describe("web publication transport", () => {
     const publication = publishApiTextDispatch(message);
     await vi.advanceTimersByTimeAsync(12_001);
     expect(await publication).toEqual({ state: "dispatch_pending" });
+    expect(vi.mocked(console.warn).mock.calls).toHaveLength(1);
+    expect(JSON.parse(vi.mocked(console.warn).mock.calls[0]![0] as string)).toEqual({
+      event: "api_text_publication_unconfirmed", phase: "deadline", httpStatus: null, durationMs: 12_000,
+    });
     release?.("synthetic-late-token");
     await vi.advanceTimersByTimeAsync(1);
     expect(fetch).not.toHaveBeenCalled();
+    expect(vi.mocked(console.warn).mock.calls).toHaveLength(1);
   });
 });

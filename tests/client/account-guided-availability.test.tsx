@@ -46,7 +46,9 @@ function button(label: string) { return [...host.querySelectorAll<HTMLButtonElem
 function notice() { return host.querySelector(".guided-conversation-error")?.textContent ?? ""; }
 async function render(saveLabel = "Saved", busy = false) {
   await act(async () => root.render(createElement(AccountGuidedInterview, { account, workspace, busy, saveContext,
-    storage: { kind: "account", saveLabel, onUpdate: () => false } })));
+    storage: { kind: "account", saveLabel, onUpdate: () => false,
+      actions: createElement("p", { role: saveLabel === "Changes not saved" ? "alert" : "status", "aria-label": "Project save status" }, saveLabel),
+    } })));
 }
 
 beforeEach(() => {
@@ -66,12 +68,34 @@ describe("guided Strategy availability presentation", () => {
     strategy.overview!.jobs = [job];
     await render();
     expect(host.querySelector(".guided-delivery-notice")?.textContent).toContain("delivery to the worker is not confirmed");
+    const recovery = host.querySelector('[role="group"][aria-label="Delivery recovery"]');
+    expect(recovery).not.toBeNull();
+    expect([...recovery!.querySelectorAll("button")].map(control => control.textContent)).toEqual(["Check status", "Retry delivery"]);
     expect(button("Retry delivery")?.disabled).toBe(false);
     expect(strategy.retryDelivery).not.toHaveBeenCalled(); expect(strategy.enqueue).not.toHaveBeenCalled();
     await act(async () => button("Check status")!.click());
     expect(strategy.refresh).toHaveBeenCalledOnce(); expect(strategy.retryDelivery).not.toHaveBeenCalled();
     await act(async () => button("Retry delivery")!.click());
     expect(strategy.retryDelivery).toHaveBeenCalledExactlyOnceWith(job);
+    expect(saveContext).not.toHaveBeenCalled(); expect(strategy.enqueue).not.toHaveBeenCalled();
+  });
+
+  it("keeps the queued audience request after saved competitor selection and removes recovery when delivery advances", async () => {
+    const saved = { ...workspace.saved, current_revision: 2,
+      context: initialGuidedContext({ ...workspace.saved.context, competitorReviewComplete: true }, 2, when) };
+    workspace = { ...workspace, saved, draft: accountProjectDraft(saved) };
+    unavailable("request_active");
+    const job = strategyJobSchema.parse({ ...boundJob("queued"), operation: "strategy.audience", input_revision: 2,
+      dispatchState: "dispatch_pending", canRetryDelivery: true });
+    strategy.overview!.jobs = [job];
+    await render();
+    expect(button("Retry delivery")?.disabled).toBe(false);
+    await act(async () => button("Retry delivery")!.click());
+    expect(strategy.retryDelivery).toHaveBeenCalledExactlyOnceWith(job);
+    strategy.overview!.jobs = [strategyJobSchema.parse({ ...job, state: "running", dispatchState: "published", canRetryDelivery: false })];
+    await render();
+    expect(button("Retry delivery")).toBeUndefined();
+    expect(host.querySelector('[aria-label="Embel is thinking"]')).not.toBeNull();
     expect(saveContext).not.toHaveBeenCalled(); expect(strategy.enqueue).not.toHaveBeenCalled();
   });
 
@@ -107,7 +131,7 @@ describe("guided Strategy availability presentation", () => {
     expect(notice()).not.toMatch(/Your brief is saved|No AI request was sent|exhausted|billing|database|storage/i);
     expect(button("Start competitor research")).toBeUndefined();
     expect(host.querySelector(".guided-assistant-message")).toBeNull();
-    expect(host.querySelector(".save-label")?.textContent).toBe("Saved");
+    expect(host.querySelector('[role="status"][aria-label="Project save status"]')?.textContent).toBe("Saved");
     await act(async () => button("Check status")!.click());
     expect(strategy.refresh).toHaveBeenCalledOnce(); expect(strategy.enqueue).not.toHaveBeenCalled(); expect(saveContext).not.toHaveBeenCalled();
   });
@@ -115,11 +139,17 @@ describe("guided Strategy availability presentation", () => {
   it.each(["Saving…", "Changes not saved"])("keeps %s distinct from first-turn availability", async saveLabel => {
     unavailable("budget_unavailable");
     workspace = { ...workspace, draft: { ...workspace.draft, description: "Synthetic unsaved correction." } };
+    const draft = workspace.draft, saved = workspace.saved;
     await render(saveLabel, saveLabel === "Saving…");
     expect(notice()).toContain("No AI requests are available for this account.");
     expect(notice()).not.toMatch(/brief is saved|prompt is saved/i);
-    expect(host.querySelector(".save-label")?.textContent).toBe(saveLabel);
-    expect(host.querySelector<HTMLTextAreaElement>(".project-details-disclosure textarea")?.value).toBe("Synthetic unsaved correction.");
+    const saveState = saveLabel === "Saving…"
+      ? host.querySelector('.conversation-compose-notices > p[role="status"]')
+      : host.querySelector('[role="alert"][aria-label="Project save status"]');
+    expect(saveState?.textContent).toBe(saveLabel);
+    expect(workspace.draft).toBe(draft); expect(workspace.saved).toBe(saved);
+    expect(workspace.draft.description).toBe("Synthetic unsaved correction.");
+    expect(workspace.saved.context.description).toBe("Synthetic saved neighborhood kitchen brief.");
     expect(saveContext).not.toHaveBeenCalled(); expect(strategy.enqueue).not.toHaveBeenCalled();
   });
 
