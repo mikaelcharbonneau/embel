@@ -157,9 +157,11 @@ async function beginSignOut(page: Page) {
 }
 async function checkAccount(page: Page) {
   await closeContextSheet(page);
-  const button = page.getByRole("button", { name: "Check account", exact: true });
-  if (!await button.isVisible()) await page.getByLabel("Account menu", { exact: true }).click();
-  await button.click();
+  const menu = page.locator(".workspace-account-menu");
+  if (!await menu.evaluate(element => (element as HTMLDetailsElement).open)) await menu.locator("summary").click();
+  await menu.getByRole("button", { name: "Check account", exact: true }).click();
+  await expect(menu.getByRole("button", { name: "Check account", exact: true })).toBeEnabled();
+  if (await menu.evaluate(element => (element as HTMLDetailsElement).open)) await menu.locator("summary").click();
 }
 async function recheck(page: Page) { await checkAccount(page); await page.getByRole("button", { name: "Saved systems", exact: true }).click(); await expect(page.getByRole("heading", { name: "Identity systems", exact: true })).toBeVisible(); await expect(page.locator("#identity-detail-title")).toBeVisible(); }
 
@@ -185,7 +187,7 @@ test("identity fixture: real empty history and unavailable reads remain distinct
 test("identity fixture: older complete history stays reachable and explicit restoration appends a choice", async ({ page }) => {
   const fixture = await setup(page); fixture.systems = [initialSystem(0), initialSystem(1), initialSystem(2)]; fixture.pageSize = 1; await ready(page);
   await expect(page.locator(".identity-history-card")).toHaveCount(1); await page.getByRole("button", { name: "Load more systems" }).click(); await expect(page.locator(".identity-history-card")).toHaveCount(2);
-  await page.locator(".identity-history-card").first().getByRole("button", { name: "View system" }).click(); await expect(page.getByRole("button", { name: "Restore as current" })).toBeEnabled();
+  await closeContextSheet(page); await page.locator(".identity-history-card").first().getByRole("button", { name: "View system" }).click(); await expect(page.getByRole("button", { name: "Restore as current" })).toBeEnabled();
   await page.getByRole("button", { name: "Restore as current" }).click(); await expect(page.getByText("Current Identity choice saved.", { exact: true })).toBeVisible();
   expect(fixture.selection?.identityRevision).toBe(2); expect(fixture.writes.filter(write => write.kind === "selection")).toHaveLength(1); expect(fixture.systems).toHaveLength(3);
 });
@@ -301,7 +303,7 @@ test("identity fixture: current desktop and mobile design evidence", async ({ pa
 
 test("identity fixture: uncertain choice requires a fresh read before another choice", async ({ page }) => {
   const fixture = await setup(page); fixture.systems.push(initialSystem(1)); await ready(page);
-  await page.locator(".identity-history-card").first().getByRole("button", { name: "View system" }).click();
+  await closeContextSheet(page); await page.locator(".identity-history-card").first().getByRole("button", { name: "View system" }).click();
   fixture.loseSelection = true; await page.getByRole("button", { name: "Restore as current" }).click();
   await expect(page.locator(".project-identity").getByRole("alert")).toContainText("could not be confirmed");
   await expect(page.getByRole("button", { name: "Restore as current" })).toBeDisabled();
@@ -329,6 +331,7 @@ test("identity fixture: reference interruption clears earlier acknowledgment eve
   await expect(page.getByRole("button", { name: "Save colors as new version" })).toBeDisabled();
   await fixture.heldReference!(); await closeContextSheet(page); await page.getByRole("button", { name: "Moodboard", exact: true }).click(); await expect(page.getByRole("alert").filter({ hasText: "changed" })).toContainText("changed");
   await page.getByRole("button", { name: "Check references", exact: true }).click();
+  await page.getByRole("button", { name: "Saved systems", exact: true }).click();
   await expect(ack).not.toBeChecked(); await openColors(page); await expect(page.getByRole("button", { name: "Save colors as new version" })).toBeDisabled();
 });
 test("identity fixture: exact old replay checks the latest head after an independent restore", async ({ page }) => {
@@ -430,13 +433,13 @@ test("identity fixture: unavailable trusted saves keep history readable and pref
   await page.getByRole("textbox", { name: "Color 1 name", exact: true }).fill("My retained color");
   await expect(page.getByRole("button", { name: "Save colors as new version" })).toBeDisabled();
   await expect(page.getByText("Choosing a system and saving manual edits are unavailable right now.", { exact: true })).toBeVisible();
-  await page.locator(".identity-history-card").first().getByRole("button", { name: "View system" }).click(); await expect(page.getByRole("button", { name: "Restore as current" })).toBeDisabled();
+  await closeContextSheet(page); await page.locator(".identity-history-card").first().getByRole("button", { name: "View system" }).click(); await expect(page.getByRole("button", { name: "Restore as current" })).toBeDisabled();
   await expect(page.locator(".identity-history-card")).toHaveCount(2); await openPreferences(page);
   await page.getByRole("textbox", { name: "Identity direction notes", exact: true }).fill("Preferences can still save"); await page.getByRole("button", { name: "Save Identity preferences" }).click();
   await expect(page.getByText("Identity preferences saved.", { exact: true })).toBeVisible();
   expect(fixture.writes.map(write => write.kind)).toEqual(["preferences"]);
   const evidence = evidenceDirectory;
-  await mkdir(evidence, { recursive: true }); await page.getByRole("button", { name: "Check latest", exact: true }).focus();
+  await mkdir(evidence, { recursive: true }); await closeContextSheet(page); await page.locator(".identity-section-heading").getByRole("button", { name: "Check latest", exact: true }).focus();
   await page.locator(".identity-section-heading").filter({ has: page.getByRole("heading", { name: "Identity systems", exact: true }) }).screenshot({ path: `${evidence}/synthetic-identity-${testInfo.project.name}-unavailable-heading.png`, scale: "css" });
   await page.locator(".project-identity > .identity-save-gate").screenshot({ path: `${evidence}/synthetic-identity-${testInfo.project.name}-unavailable-gate.png`, scale: "css" });
   await openColors(page);
@@ -483,6 +486,7 @@ function visualFixture() {
   return fixture;
 }
 async function waitForBoard(page:Page,selector:string) {
+  await page.locator(selector).locator(".identity-board-image").scrollIntoViewIfNeeded();
   const image=page.locator(selector).locator(".identity-board-image img");
   await expect(image).toBeVisible();
   await expect(image).toHaveAttribute("alt",/^Saved Identity board for Synthetic fixture — /);
@@ -520,6 +524,7 @@ test("D041 synthetic evidence: three authored PNG boards and full viewport conte
   await openTypography(page);await page.getByRole("textbox",{name:"Type 1 family",exact:true}).focus();
   const typeSave=page.getByRole("button",{name:"Save typography as new version"});await expect(typeSave).toBeDisabled();await expect(typeSave).toHaveAttribute("aria-describedby","identity-typography-save-unavailable");await typeSave.scrollIntoViewIfNeeded();
   await viewportCapture(page,`${prefix}-05-unavailable-type-save`);
+  await closeContextSheet(page);
   const cards=page.locator(".identity-history-card");
   if(testInfo.project.name==="desktop"){
     await page.locator(".identity-history").evaluate(node=>node.scrollIntoView({block:"start"}));
@@ -527,7 +532,7 @@ test("D041 synthetic evidence: three authored PNG boards and full viewport conte
     await viewportCapture(page,`${prefix}-06-three-saved-systems`);
   }else{
     for(let index=0;index<3;index++){
-      await cards.nth(index).evaluate(node=>window.scrollTo(0,window.scrollY+node.getBoundingClientRect().top-70));await waitForBoard(page,`.identity-history-card:nth-child(${index+1})`);
+      await cards.nth(index).scrollIntoViewIfNeeded();await waitForBoard(page,`.identity-history-card:nth-child(${index+1})`);
       await viewportCapture(page,`${prefix}-0${6+index}-saved-system-${index+1}`);
     }
   }
