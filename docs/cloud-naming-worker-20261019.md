@@ -171,3 +171,30 @@ claimed until those checks pass.
 - [System environment variables](https://vercel.com/docs/environment-variables/system-environment-variables)
 - [Fluid compute rates](https://vercel.com/docs/functions/usage-and-pricing)
 - [Node 22.22.2 ICU source](https://github.com/nodejs/node/blob/v22.22.2/deps/icu-small/source/common/unicode/uvernum.h)
+
+## Preserve isolated-release Git provenance
+
+An isolated directory can upload successfully while losing automatic Git
+metadata. A deployment build marked READY is not evidence that the Naming
+runtime qualified. The runtime deliberately refuses missing or mismatched
+GitHub owner, repository, main branch and embedded source revision.
+
+The packaging command now returns `deploymentMetadata` and
+`deploymentMetadataArgs` alongside its existing release receipt. Save that JSON
+receipt locally. Pass the metadata object through the supported deployment API
+`meta` field, or pass the returned argument array to `vercel deploy` as separate
+arguments (never concatenate untrusted values into a shell command). These
+fields come from the same verified clean checkout and bundle, not an arbitrary
+revision selected to satisfy a runtime gate. Do not upload secrets or override
+system environment variables to bypass qualification.
+
+After upload, retrieve the raw deployment JSON using the existing authorized
+Vercel connection. Before enabling any instances, run this read-only check:
+
+    node scripts/verify-naming-deployment.mjs --receipt release-receipt.json --deployment deployment.json
+
+A mismatch exits unsuccessfully and must leave instances stopped. Successful
+output explicitly says `workerReadinessVerified: false`: still inspect packaged
+artifact identity and complete the restricted-role/TLS/runtime standby check,
+then follow the freeze/drain/no-overlap/enable sequence above. The check does
+not query Vercel, modify the database, change scaling or start generation.

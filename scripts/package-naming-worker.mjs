@@ -45,4 +45,12 @@ await writeFile(path.join(release, "static", "index.html"), "<!doctype html><htm
 await writeFile(path.join(release, ".vercelignore"), "**\n!vercel.json\n!package.json\n!static\n!static/index.html\n!naming-worker\n!naming-worker/Containerfile\n!naming-worker/.dockerignore\n!naming-worker/dist\n!naming-worker/dist/index.js\n!naming-worker/dist/package.json\n!naming-worker/dist/build-manifest.json\n");
 // Only public provenance is printed. This script neither loads nor transfers
 // credentials and never creates a deployment or enables the database pilot.
-console.log(JSON.stringify({ release, mode, projectId, sourceRevision: revision, bundleSha256: manifest.bundleSha256 }));
+// Isolated upload directories may lose automatic Git discovery. Supply these
+// factual public fields to the deployment API/CLI; never replace runtime gates.
+const deploymentMetadata = {
+  githubDeployment: "1", githubOrg: "mikaelcharbonneau", githubRepo: "embel",
+  githubCommitOrg: "mikaelcharbonneau", githubCommitRepo: "embel",
+  githubCommitRef: git("branch", "--show-current"), githubCommitSha: revision,
+};
+const deploymentMetadataArgs = Object.entries(deploymentMetadata).flatMap(([key, value]) => ["--meta", `${key}=${value}`]);
+console.log(JSON.stringify({ release, mode, projectId, sourceRevision: revision, bundleSha256: manifest.bundleSha256, deploymentMetadata, deploymentMetadataArgs }));
