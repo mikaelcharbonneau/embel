@@ -450,13 +450,13 @@ export const namingRolePolicySchema = z.strictObject({
   // The legacy monetary fields below remain canonical bookkeeping in this local mode; they do not limit spend.
   budgetControl: z.literal("local_unlimited_v1").optional(),
   localPipelineVersion: z.literal(2).optional(),
-  progressiveContractVersion: z.literal(2).optional(),
+  progressiveContractVersion: z.union([z.literal(2), z.literal(3)]).optional(),
   maximumCostMicrousd: z.number().int().min(1).max(1_500_000), sessionLimitCents: z.number().int().min(1).max(150), maxWebSearchCalls: z.number().int().min(0).max(20),
   maxInputBytes: z.literal(131_072), maxOutputBytes: z.literal(524_288), deadlineMs: z.union([z.literal(240_000), z.literal(900_000)]), nativeDelegation: z.literal(false),
   allowedTools: z.array(z.enum(["web_search", "read_reference"])).max(2).refine(unique),
   referenceHosts: z.array(z.string().min(3).max(253).regex(/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/)).max(40).refine(unique),
 }).superRefine((value, ctx) => {
-  if (value.progressiveContractVersion === 2 && value.localPipelineVersion !== 2) issue(ctx, "The future role contract requires the immutable progressive execution profile");
+  if (value.progressiveContractVersion !== undefined && value.localPipelineVersion !== 2) issue(ctx, "The future role contract requires the immutable progressive execution profile");
   if (value.localPipelineVersion === 2 && (value.budgetControl !== "local_unlimited_v1" || value.deadlineMs !== 900_000)) issue(ctx, "Progressive calls require the explicit local execution and timing policy");
   if (value.deadlineMs === 900_000 && value.budgetControl !== "local_unlimited_v1") issue(ctx, "Extended call timing requires explicit local execution");
   if (value.maximumCostMicrousd !== value.sessionLimitCents * 10_000) issue(ctx, "Session allocation cents must exactly match the server-allocated micro-USD bound");
@@ -584,7 +584,7 @@ export const namingStageRequestSchema = z.strictObject({
   const dependencies = new Set(value.dependencyArtifactIds);
   if (input.role === "director" && (input.research.runId !== value.runId || input.research.snapshotHash !== value.snapshotHash || !(input.research.readiness === "sourced" || input.research.readiness === "partial" && value.policy.budgetControl === "local_unlimited_v1" && input.research.providerReceipt.budgetControl === "local_unlimited_v1") || !dependencies.has(input.research.artifactId))) issue(ctx, "Direction must depend on saved research from this run with the same explicit local mode for a partial pack");
   if (input.role === "director") {
-    if ((value.policy.progressiveContractVersion === 2) !== (input.allocation !== undefined)) issue(ctx, "Director allocation belongs only to the explicitly versioned future request contract");
+    if ((value.policy.progressiveContractVersion !== undefined) !== (input.allocation !== undefined)) issue(ctx, "Director allocation belongs only to the explicitly versioned future request contract");
     const gap = input.gapContext;
     if ((value.stageKey === "gap") !== (gap !== undefined)) issue(ctx, "Director gap context is required only for the gap phase");
     if (gap && (gap.runId !== value.runId || gap.snapshotHash !== value.snapshotHash || JSON.stringify(gap.primaryCounts.map(row => row.approach)) !== JSON.stringify(input.snapshot.preferences.approaches) || [gap.curationArtifactId, gap.verificationArtifactId, ...gap.sourceArtifactIds].some(id => !dependencies.has(id)))) issue(ctx, "Gap direction must bind the actual saved review outputs and source dependencies");

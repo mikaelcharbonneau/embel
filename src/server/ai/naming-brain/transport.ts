@@ -90,7 +90,7 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
     if (state.request && !isDeepStrictEqual(namingStageRequestSchema.parse(state.request), request)) return { status: "unresolved", code: "saved_request_mismatch", receipt, partialArtifacts: [] };
     if (!prior && state.request) return { status: "unresolved", code: "dispatch_already_authorized", receipt: { ...receipt, dispatchState: "unknown" }, partialArtifacts: [] };
     const localUnlimited = request.policy.budgetControl === "local_unlimited_v1";
-    const referenceContractV2 = localUnlimited && request.policy.progressiveContractVersion === 2;
+    const referenceContractV2 = localUnlimited && request.policy.progressiveContractVersion !== undefined;
     const stageEnvelopeAt = localUnlimited
       ? request.stageKey === "creation" || request.stageKey === "gap" ? Date.parse(state.startedAt) + 3_600_000
         : request.policy.deadlineMs === 900_000 ? Date.parse(state.startedAt) + 1_200_000 : Infinity
@@ -135,8 +135,8 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
       const progressiveMismatch = request.policy.localPipelineVersion === 2
         ? value.metadata?.embel_pipeline_version !== "2" || value.agent?.service_tier !== namingProgressiveServiceTier(request.policy.model) || value.agent?.text?.verbosity !== "low"
         : value.metadata?.embel_pipeline_version !== undefined;
-      const contractMismatch = request.policy.progressiveContractVersion === 2
-        ? value.metadata?.embel_progressive_contract_version !== "2" : value.metadata?.embel_progressive_contract_version !== undefined;
+      const contractMismatch = request.policy.progressiveContractVersion !== undefined
+        ? value.metadata?.embel_progressive_contract_version !== String(request.policy.progressiveContractVersion) : value.metadata?.embel_progressive_contract_version !== undefined;
       const budgetMismatch = request.policy.budgetControl === "local_unlimited_v1"
         ? value.metadata?.embel_budget_control !== "local_unlimited_v1" || value.agent?.reasoning?.effort !== request.policy.reasoningEffort
         : value.spend_control?.limit !== request.policy.sessionLimitCents || value.metadata?.embel_budget_control !== undefined;

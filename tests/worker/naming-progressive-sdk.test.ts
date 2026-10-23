@@ -80,7 +80,7 @@ describe("progressive Naming through the actual SDK and migrated SQL", () => {
         { territoryId: "rhythm", title: "Synthetic rhythm", direction: "Explore varied sounds and movement.", sourceKeys: [] },
       ], facts: [], interpretations: [], uncertainties: ["Synthetic research attempts do not establish real factual claims."] };
       if (request.input.role === "director") {
-        const future = request.policy.progressiveContractVersion === 2, approaches = request.input.snapshot.preferences.approaches;
+        const future = request.policy.progressiveContractVersion !== undefined, approaches = request.input.snapshot.preferences.approaches;
         return { role: "director", round: "initial", assignments: Array.from({ length: future ? 15 : approaches.length }, (_, index) => ({
           assignmentKey: future ? `guide-${index}` : `guide-${approaches[index]}`, primaryApproach: approaches[index % approaches.length]!, additionalApproaches: [], territoryId: index % 2 ? "rhythm" : "objects", constructionKey: `guide-${index}`,
           direction: "Explore distinct imaginative associations.", targetCount: future ? 10 : 150 / approaches.length, sourceKeys: [], avoidPatterns: [], freshTerritory: false,

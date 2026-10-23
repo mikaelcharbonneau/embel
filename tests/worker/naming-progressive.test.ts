@@ -32,7 +32,7 @@ function fixture(approaches?: NamingApproach[]) {
     if (suppliedOutput) output = suppliedOutput;
     else if (request.input.role === "researcher") output = { role: "researcher", territories: [{ territoryId: "objects", title: "Objects", direction: "Unexpected everyday objects.", sourceKeys: [] }, { territoryId: "rhythm", title: "Rhythm", direction: "Distinct rhythm and texture.", sourceKeys: [] }], facts: [], interpretations: [], uncertainties: [] };
     else if (request.input.role === "director") {
-      const future = request.policy.progressiveContractVersion === 2, approaches = input.snapshot.preferences.approaches;
+      const future = request.policy.progressiveContractVersion !== undefined, approaches = input.snapshot.preferences.approaches;
       output = { role: "director", round: "initial", assignments: Array.from({ length: future ? 15 : approaches.length }, (_, index) => ({ assignmentKey: future ? `guide-${index}` : `guide-${approaches[index]}`, primaryApproach: approaches[index % approaches.length]!, additionalApproaches: [], territoryId: index ? "rhythm" : "objects", constructionKey: `guide-${index}`, direction: "Explore varied, unexpected associations.", targetCount: future ? 10 : 75, sourceKeys: [], avoidPatterns: [], freshTerritory: true })), feedbackHypotheses: [] };
     }
     else if (request.input.role === "creator") {

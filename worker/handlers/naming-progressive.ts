@@ -76,7 +76,7 @@ export async function executeProgressiveNaming(options: Options): Promise<{ outc
     try {
     const value = build();
     const request = createNamingRoleRequest({ runId: input.runId, stageKey: "creation", providerCallKey: key, input: value.input,
-      dependencyArtifactIds: [...new Set(value.dependencies)], policy: createProgressiveNamingRolePolicy(input.policy, role, undefined, undefined, true, 2) });
+      dependencyArtifactIds: [...new Set(value.dependencies)], policy: createProgressiveNamingRolePolicy(input.policy, role, undefined, undefined, true, 3) });
     await retryLocalPersistence(() => store.saveProgressiveCallPlan(job, phase, [request]), signal);
     planned.set(key, request);
     return request;

@@ -99,7 +99,7 @@ export function createNamingManagedProtocol(options: { apiKey: string; localProt
       const localUnlimited = body.metadata?.embel_budget_control === "local_unlimited_v1";
       const progressive = body.metadata?.embel_pipeline_version === "2";
       const contractInvalid = body.metadata?.embel_progressive_contract_version !== undefined
-        && (body.metadata.embel_progressive_contract_version !== "2" || !progressive || !localUnlimited);
+        && (!["2", "3"].includes(body.metadata.embel_progressive_contract_version) || !progressive || !localUnlimited);
       const cap = body.spend_control?.limit;
       const budgetInvalid = localUnlimited
         ? !options.localPrototype || Object.hasOwn(body, "spend_control")
