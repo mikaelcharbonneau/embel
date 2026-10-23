@@ -20,6 +20,7 @@ function parse<T>(schema: z.ZodType<T>, value: unknown, stored = false): T {
 async function rpc<T>(auth: AuthenticatedContext, name: string, args: Record<string, unknown>, schema: z.ZodType<T>) {
  const { data, error } = await auth.client.rpc(name, args);
  if (error) {
+  if (error.code === "PGRST301") throw new ApiError("unauthenticated");
   if (["P0002", "PGRST116"].includes(error.code)) throw new ApiError("not_found");
   if (["PT409", "23505", "40001"].includes(error.code)) throw new ApiError("conflict");
   if (["22023", "23514", "22P02", "23502"].includes(error.code)) throw new ApiError("invalid_input");
@@ -35,8 +36,15 @@ async function verifyFeed(auth: AuthenticatedContext, projectId: string, feed: N
  delete verified.canPrefetchOnScroll;
  let executionAvailable = isLocalPrototypeRuntime();
  if (isHostedNamingRuntime()) {
-  const hosted = await rpc(auth, "get_hosted_naming_availability", { p_project_id: projectId }, hostedNamingAvailabilitySchema);
-  executionAvailable = hosted.status === "available";
+  try {
+   const hosted = await rpc(auth, "get_hosted_naming_availability", { p_project_id: projectId }, hostedNamingAvailabilitySchema);
+   executionAvailable = hosted.status === "available";
+  } catch (error) {
+   // The saved feed was already owner-checked and replayed. A readiness outage
+   // disables new exploration without making those saved names unreadable.
+   if (error instanceof ApiError && ["not_found", "unauthenticated"].includes(error.code)) throw error;
+   executionAvailable = false;
+  }
   if (!executionAvailable) verified.availability = { status: "unavailable", code: "naming_runtime_unavailable" };
  }
  const executionCurrent = executionAvailable && feed.activeRun

@@ -3,8 +3,8 @@ import { accountProjectSchema, accountProjectSummarySchema } from "../../src/dom
 import { contextSnapshotSchema } from "../../src/domain/projects";
 import { initialNamingPreferencesV2, namingPreferencesV2Schema } from "../../src/domain/naming-brain-preferences";
 import { ensureNamingRunIntentSchema, namingBrainRunSummarySchema, namingFeedEnsureResultSchema, namingFeedSchema, steerNamingFeedIntentSchema, stopNamingFeedIntentSchema, type NamingBrainRunSummary, type NamingFeedCursor, type NamingFeedEntry, type NamingFeedEnsureResult } from "../../src/domain/naming-brain";
-import { getNamingReadiness, nameIdentityKey, namingStrategyBasis, namingStrategyKey, updateNamingViewStateSchema, type NamingPreferenceRevision, type NamingSession } from "../../src/domain/project-naming";
-import { projectNamingOverviewSchema } from "../../src/domain/naming-jobs";
+import { getNamingReadiness, importProjectNameSchema, nameIdentityKey, namingStrategyBasis, namingStrategyKey, selectProjectNameSchema, updateNamingViewStateSchema, type NamingPreferenceRevision, type NamingSession, type ProjectNameEntry } from "../../src/domain/project-naming";
+import { projectNamingOverviewSchema, type ProjectNamingOverview } from "../../src/domain/naming-jobs";
 
 // Deliberately synthetic public-route fixtures. No SDK, worker, database, DNS or provider is called.
 export const id = (n: number) => `cb000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -17,7 +17,7 @@ export async function namingFixture(page: Page, options: { saved?: boolean; coun
   const project = accountProjectSchema.parse({ id: projectId, owner_id: ownerId, title: "Synthetic Naming QA", scope: "naming_only", current_revision: 3, created_at: when, context: { description: "Synthetic brief: a warm neighborhood kitchen.", creativeLocale: "en", intake: { namingNotes: "Synthetic preferences only" } } });
   const session: NamingSession = { ownerId, projectId, revision: 1, currentPreferencesVersion: options.saved ? 1 : 0, latestBatchSequence: 0, currentSelectionId: null, viewRevision: 1, viewState: { pane: "results", conversationOpen: !options.saved, filter: "all", query: "", visibleBatchId: null, scrollCandidateId: null, workshopCandidateId: null }, createdAt: when, updatedAt: when };
   const state = { owner: ownerId as string | null, project, session, preferences: options.saved ? { ownerId, projectId, version: 1, preferences: savedChoices, createdAt: when } as NamingPreferenceRevision : null,
-    rows: [] as NamingFeedEntry[], activeRun: null as NamingBrainRunSummary | null, demand: options.count ? 1 : 0, steering: 0, feedback: 0, paused: false, requests: [] as RequestRecord[], ensureMode: "append" as "append" | "pending" | "partial" | "unknown", failOnce: null as null | { path: string; status: number; afterSave?: boolean },
+    rows: [] as NamingFeedEntry[], manual: [] as ProjectNameEntry[], currentSelection: null as ProjectNamingOverview["currentSelection"], activeRun: null as NamingBrainRunSummary | null, demand: options.count ? 1 : 0, steering: 0, feedback: 0, paused: false, requests: [] as RequestRecord[], ensureMode: "append" as "append" | "pending" | "partial" | "unknown", failOnce: null as null | { path: string; status: number; afterSave?: boolean },
     savedEnsures: new Map<string, NamingFeedEnsureResult>(), created: new Map<string, typeof project>(), nextRun: 1,
     progressive: false, consumedThrough: null as NamingFeedCursor | null,
   };
@@ -46,8 +46,8 @@ export async function namingFixture(page: Page, options: { saved?: boolean; coun
   }
   function overview(params: URLSearchParams) {
     const filter = params.get("filter") ?? state.session.viewState.filter, query = params.get("query") ?? state.session.viewState.query;
-    const items = state.rows.map(row => row.entry).filter(entry => (filter === "all" || filter === "favorite" && entry.retention.favorite || filter === "saved" && entry.retention.saved) && entry.candidate.value.toLowerCase().includes(query.toLowerCase())).slice(0, 100);
-    return projectNamingOverviewSchema.parse({ project: state.project, readiness: getNamingReadiness(state.project.context, state.project.scope), session: state.session, preferences: state.preferences, currentSelection: null, batches: { ownerId, projectId, items: [], nextCursor: null }, candidates: { ownerId, projectId, items, nextCursor: null }, availability: { status: "unavailable", operation: "naming.generate", reason: "naming_policy_unavailable" }, jobs: [], screening: { domains: { status: "not_checked", reason: "integration_unavailable" }, handles: { status: "not_checked", reason: "integration_unavailable" }, trademarks: { status: "not_checked", reason: "integration_unavailable" } } });
+    const items = [...state.rows.map(row => row.entry), ...state.manual].filter(entry => (filter === "all" || filter === "favorite" && entry.retention.favorite || filter === "saved" && entry.retention.saved) && entry.candidate.value.toLowerCase().includes(query.toLowerCase())).slice(0, 100);
+    return projectNamingOverviewSchema.parse({ project: state.project, readiness: getNamingReadiness(state.project.context, state.project.scope), session: state.session, preferences: state.preferences, currentSelection: state.currentSelection, batches: { ownerId, projectId, items: [], nextCursor: null }, candidates: { ownerId, projectId, items, nextCursor: null }, availability: { status: "unavailable", operation: "naming.generate", reason: "naming_policy_unavailable" }, jobs: [], screening: { domains: { status: "not_checked", reason: "integration_unavailable" }, handles: { status: "not_checked", reason: "integration_unavailable" }, trademarks: { status: "not_checked", reason: "integration_unavailable" } } });
   }
   async function reply(route: Route, value: unknown, status = 200) {
     const body = JSON.stringify(value), request = route.request();
@@ -74,6 +74,26 @@ export async function namingFixture(page: Page, options: { saved?: boolean; coun
     if (path === `/api/projects/${projectId}`) return reply(route, { project: state.project });
     if (path === `/api/projects/${projectId}/strategy`) return reply(route, { availability: { status: "unavailable", operations: [], reason: "runtime_disabled" }, jobs: [] });
     if (path === base) return reply(route, overview(target.searchParams));
+    if (path === `${base}/custom`) return reply(route, { ownerId, projectId, items: state.manual, nextCursor: null });
+    if (path === `${base}/imports`) {
+      const input = importProjectNameSchema.parse(body);
+      if (input.expectedProjectRevision !== state.project.current_revision) return reply(route, {}, 409);
+      let entry = state.manual.find(row => row.candidate.origin.kind === "local_import" && row.candidate.origin.source.id === input.source.id);
+      if (!entry) {
+        const candidateId = id(500_000 + state.manual.length), value = input.source.value;
+        entry = { candidate: { id: candidateId, ownerId, projectId, value, identityKey: nameIdentityKey(value), rationale: "Synthetic custom name", contextRevision: input.expectedProjectRevision, strategyBasis: namingStrategyBasis(input.capturedContext), strategyKey: namingStrategyKey(input.capturedContext), createdAt: when, origin: { kind: "local_import", ownerId, projectId, candidateId, contextRevision: input.expectedProjectRevision, source: input.source, capturedContext: input.capturedContext } }, retention: { ownerId, projectId, candidateId, revision: 0, favorite: false, saved: false, updatedAt: null } };
+        state.manual.push(entry);
+      }
+      return reply(route, failure ? {} : { entry }, failure?.status ?? 200);
+    }
+    if (path === `${base}/selection`) {
+      const input = selectProjectNameSchema.parse(body), entry = [...state.manual, ...state.rows.map(row => row.entry)].find(row => row.candidate.id === input.candidateId);
+      if (!entry || input.expectedRevision !== state.project.current_revision) return reply(route, {}, 409);
+      state.project = accountProjectSchema.parse({ ...state.project, current_revision: input.expectedRevision + 1, context: { ...state.project.context, selectedName: entry.candidate.value, intake: { ...state.project.context.intake, suppliedName: entry.candidate.value } } });
+      const selection = { id: id(600_000), ownerId, projectId, candidateId: input.candidateId, projectRevision: state.project.current_revision, previousSelectionId: state.session.currentSelectionId, acceptedEarlierContext: input.acceptEarlierContext, createdAt: when };
+      state.currentSelection = { selection, candidate: entry.candidate }; state.session.currentSelectionId = selection.id;
+      return reply(route, { project: state.project, currentSelection: state.currentSelection, session: state.session });
+    }
     if (path === `${base}/feed`) return reply(route, { feed: feed(Number(target.searchParams.get("cursorPosition") ?? 0)) });
     if (path === `${base}/preferences`) {
       const value = namingPreferencesV2Schema.parse(body!.preferences);
@@ -90,7 +110,7 @@ export async function namingFixture(page: Page, options: { saved?: boolean; coun
       state.session.viewRevision += 1; state.session.revision += 1;
       return reply(route, failure ? {} : { session: state.session }, failure?.status ?? 200);
     }
-    if (path === `${base}/retention`) { const item = state.rows.find(row => row.entry.candidate.id === body!.candidateId)!; if (item.entry.retention.revision !== body!.expectedRevision) return reply(route, {}, 409); item.entry.retention = { ...item.entry.retention, revision: item.entry.retention.revision + 1, favorite: Boolean(body!.favorite), saved: Boolean(body!.saved), updatedAt: when }; state.feedback += 1; return reply(route, { entry: item.entry }); }
+    if (path === `${base}/retention`) { const entry = [...state.manual, ...state.rows.map(row => row.entry)].find(row => row.candidate.id === body!.candidateId)!; if (entry.retention.revision !== body!.expectedRevision) return reply(route, {}, 409); entry.retention = { ...entry.retention, revision: entry.retention.revision + 1, favorite: Boolean(body!.favorite), saved: Boolean(body!.saved), updatedAt: when }; state.feedback += 1; return reply(route, { entry }); }
     if (path === `${base}/feed/ensure`) {
       const intent = ensureNamingRunIntentSchema.parse(body);
       if (state.savedEnsures.has(intent.idempotencyKey)) return reply(route, state.savedEnsures.get(intent.idempotencyKey));

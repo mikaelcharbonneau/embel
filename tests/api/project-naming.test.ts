@@ -11,6 +11,7 @@ import { PATCH as retention } from "../../src/app/api/projects/[projectId]/namin
 import { POST as selection } from "../../src/app/api/projects/[projectId]/naming/selection/route";
 import { POST as transform } from "../../src/app/api/projects/[projectId]/naming/transforms/route";
 import { POST as importRoute } from "../../src/app/api/projects/[projectId]/naming/imports/route";
+import { GET as customNames } from "../../src/app/api/projects/[projectId]/naming/custom/route";
 import { POST as promote } from "../../src/app/api/projects/[projectId]/naming/promote/route";
 import { GET as library } from "../../src/app/api/names/route";
 import { contextSnapshotSchema } from "../../src/domain/projects";
@@ -46,6 +47,20 @@ describe("Naming API authentication, owner validation and actual byte bounds",()
   mocks.from.mockImplementation(()=>{const q={select:()=>q,eq:()=>q,order:()=>q,limit:()=>Promise.resolve({data:[],error:null})};return q;});
   mocks.rpc.mockImplementation(async(name:string)=>({error:null,data:name==="get_project_naming"?baseOverview:name==="get_naming_batches"?baseOverview.batches:name==="get_account_names"?{ownerId:owner,items:[],nextCursor:null}:name==="enqueue_subscription_naming_job"?{batch:batchRecord,job:jobRecord,session}:name==="get_naming_batch"?{batch:batchRecord,job:jobRecord,result:null}:null}));});
  afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks();});
+ it("reads custom names privately through existing owner-filtered tables and rejects invalid cursors",async()=>{
+  const eq=vi.fn();mocks.from.mockImplementation((table:string)=>{const q={select:()=>q,eq:(...args:unknown[])=>{eq(...args);return q;},order:()=>q,maybeSingle:async()=>({data:{id:project,owner_id:owner},error:null}),limit:async()=>({data:[],error:null})};expect(["projects","name_candidates"]).toContain(table);return q;});
+  const response=await customNames(request(undefined,"GET"),params());expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({ownerId:owner,projectId:project,items:[],nextCursor:null});
+  expect(response.headers.get("cache-control")).toBe("private, no-store");expect(response.headers.get("vary")).toBe("Cookie");
+  expect(eq).toHaveBeenCalledWith("owner_id",owner);expect(eq).toHaveBeenCalledWith("project_id",project);expect(eq).toHaveBeenCalledWith("origin->>kind","local_import");
+  expect((await customNames(request(undefined,"GET",{},"?cursorId=invalid&cursorCreatedAt=bad"),params())).status).toBe(422);
+  expect((await customNames(request(undefined,"GET",{},"?filter=all"),params())).status).toBe(422);
+  expect(mocks.rpc).not.toHaveBeenCalled();
+ });
+ it("returns no custom rows for a project outside the verified account",async()=>{
+  mocks.from.mockImplementation(()=>{const q={select:()=>q,eq:()=>q,maybeSingle:async()=>({data:null,error:null})};return q;});
+  const response=await customNames(request(undefined,"GET"),params());expect(response.status).toBe(404);expect(mocks.from).toHaveBeenCalledTimes(1);
+ });
  it("enqueues one durable intent with exact server-derived arguments and private responses",async()=>{
   const response=await enqueue(request(enqueueInput),params());expect(response.status).toBe(202);expect((await response.json()).batch.id).toBe(batch);
   expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("enqueue_subscription_naming_job",{p_project_id:project,p_expected_project_revision:1,p_expected_preferences_version:1,p_expected_batch_sequence:0,p_idempotency_key:enqueueInput.idempotencyKey,p_accepted_policy_identity:enqueueInput.acceptedPolicyIdentity});

@@ -5,7 +5,7 @@ import {
   accountNamesPageSchema, createBrandFromProjectNameResponseSchema, createBrandFromProjectNameSchema,
   importProjectNameResponseSchema, importProjectNameSchema, listAccountNamesSchema, listNamingBatchesSchema,
   listProjectNamesSchema, NAMING_MAX_PAGE_SIZE, nameIdentityKey, nameTransformSchema, namingExclusionSnapshotSchema, namingStrategyBasis, namingStrategyBasisSchema,
-  namingStrategyKeyFromBasis, projectNameResponseSchema, selectProjectNameResponseSchema, selectProjectNameSchema,
+  namingStrategyKeyFromBasis, projectNamePageSchema, projectNameResponseSchema, selectProjectNameResponseSchema, selectProjectNameSchema,
   transformProjectNamesResponseSchema, transformProjectNamesSchema, updateNameRetentionResponseSchema,
   updateNameRetentionSchema, updateNamingPreferencesResponseSchema, updateNamingPreferencesSchema,
   updateNamingViewStateResponseSchema, updateNamingViewStateSchema, validateProjectNameTransformParents,
@@ -176,7 +176,8 @@ export async function getProjectNaming(auth: AuthenticatedContext, projectId: st
   id(projectId);
   const response = await rpc(auth, "get_project_naming", { p_project_id: projectId, p_query: query === undefined ? {} : input(listProjectNamesSchema, query) }, projectNamingOverviewSchema);
   if (response.project.id !== projectId || response.project.owner_id !== auth.userId) throw new ApiError("not_found");
-  const verifier = new CandidateVerifier(auth);
+  const proofs = await loadManagedNamingSources(auth, projectId, response.candidates.items.map(entry => entry.candidate));
+  const verifier = new CandidateVerifier(auth, proofs);
   for (const entry of response.batches.items) {
     const job = response.jobs.find(row => row.batchId === entry.batch.id);
     if (job) verifier.seedBatch(stored(namingBatchDetailResponseSchema, { ...entry, job }));
@@ -184,6 +185,46 @@ export async function getProjectNaming(auth: AuthenticatedContext, projectId: st
   for (const { candidate } of response.candidates.items) await verifier.candidate(projectId, candidate.id, candidate);
   if (response.currentSelection) await verifier.candidate(projectId, response.currentSelection.candidate.id, response.currentSelection.candidate);
   return response;
+}
+
+/** Manual names have their own bounded page: generation's chronological feed never contains imports. */
+export async function getCustomProjectNames(auth: AuthenticatedContext, projectId: string, value: unknown = {}) {
+  id(projectId);
+  const query = input(listNamingBatchesSchema, value);
+  const project = await auth.client.from("projects").select("id,owner_id").eq("id", projectId).eq("owner_id", auth.userId).maybeSingle();
+  databaseError(project.error);
+  if (!project.data || project.data.id !== projectId || project.data.owner_id !== auth.userId) throw new ApiError("not_found");
+  let read = auth.client.from("name_candidates").select("id,owner_id,project_id,value,identity_key,context_revision,strategy_basis,origin,rationale,caution,created_at")
+    .eq("owner_id", auth.userId).eq("project_id", projectId).eq("origin->>kind", "local_import")
+    .order("created_at", { ascending: true }).order("id", { ascending: true });
+  if (query.cursor) {
+    // Both values are schema-validated; PostgREST's tuple equivalent retains microsecond order.
+    read = read.or(`created_at.gt.${query.cursor.createdAt},and(created_at.eq.${query.cursor.createdAt},id.gt.${query.cursor.id})`);
+  }
+  const result = await read.limit(query.limit + 1);
+  databaseError(result.error);
+  const rows = stored(z.array(z.object({ id: z.uuid(), owner_id: z.uuid(), project_id: z.uuid(), value: z.string(), identity_key: z.string(), context_revision: z.number().int().positive(), strategy_basis: z.unknown(), origin: z.unknown(), rationale: z.string(), caution: z.string().nullable(), created_at: z.iso.datetime({ offset: true }) })).max(query.limit + 1), result.data);
+  if (rows.some(row => row.owner_id !== auth.userId || row.project_id !== projectId)) throw new ApiError("not_found");
+  const visible = rows.slice(0, query.limit), ids = visible.map(row => row.id);
+  const retained = ids.length ? await auth.client.from("name_retention").select("owner_id,project_id,candidate_id,revision,liked,saved,updated_at")
+    .eq("owner_id", auth.userId).eq("project_id", projectId).in("candidate_id", ids) : { data: [], error: null };
+  databaseError(retained.error);
+  const retentions = stored(z.array(z.object({ owner_id: z.uuid(), project_id: z.uuid(), candidate_id: z.uuid(), revision: z.number().int().positive(), liked: z.boolean(), saved: z.boolean(), updated_at: z.iso.datetime({ offset: true }) })).max(query.limit), retained.data);
+  if (retentions.some(row => row.owner_id !== auth.userId || row.project_id !== projectId || !ids.includes(row.candidate_id)) || new Set(retentions.map(row => row.candidate_id)).size !== retentions.length) throw new ApiError("not_found");
+  const verifier = new CandidateVerifier(auth);
+  const items: z.infer<typeof projectNameResponseSchema>["entry"][] = [];
+  for (const row of visible) {
+    const retention = retentions.find(item => item.candidate_id === row.id);
+    const entry = stored(projectNameResponseSchema, normalize({ entry: {
+      candidate: { id: row.id, ownerId: row.owner_id, projectId: row.project_id, value: row.value, identityKey: row.identity_key, contextRevision: row.context_revision, strategyBasis: row.strategy_basis, origin: row.origin, rationale: row.rationale, ...(row.caution === null ? {} : { caution: row.caution }), createdAt: row.created_at },
+      retention: { ownerId: auth.userId, projectId, candidateId: row.id, revision: retention?.revision ?? 0, favorite: retention?.liked ?? false, saved: retention?.saved ?? false, updatedAt: retention?.updated_at ?? null },
+    } }, auth.userId)).entry;
+    invariant(entry.candidate.origin.kind === "local_import");
+    await verifier.candidate(projectId, row.id, entry.candidate);
+    items.push(entry);
+  }
+  const last = items.at(-1)?.candidate;
+  return stored(projectNamePageSchema, { ownerId: auth.userId, projectId, items, nextCursor: rows.length > query.limit && last ? { id: last.id, createdAt: last.createdAt } : null });
 }
 export async function getNamingBatches(auth: AuthenticatedContext, projectId: string, query: unknown = {}) {
   const response = await rpc(auth, "get_naming_batches", { p_project_id: id(projectId), p_query: input(listNamingBatchesSchema, query) }, namingBatchPageSchema);

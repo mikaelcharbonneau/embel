@@ -20,7 +20,7 @@ const reason = "The confirmed provider output has no publication reservation, gr
  * ambiguous-completion paths produce this fixture before publication reservation.
  * Only the candidate's incident ID and five hashes use synthetic values;
  * no hosted data, credentials, image generation or live database is involved. */
-describe("exact absent cloud logo publication adjudication", () => {
+describe.each(["original", "bounded"] as const)("exact absent cloud logo publication adjudication (%s planning)", planning => {
   let db: TestDatabase;
   let projectId: string;
   let jobId: string;
@@ -156,9 +156,70 @@ describe("exact absent cloud logo publication adjudication", () => {
     await db.exec(candidate);
     installedSecurity = await security();
   }, 120_000);
-  beforeEach(async () => { await db.exec("begin"); });
+  beforeEach(async () => {
+    await db.exec("begin");
+    if (planning === "bounded") await db.exec((await sql("candidates/logo_publication_evidence_join_planning.sql"))
+      .replace(/^begin;$/m, "").replace(/^commit;$/m, ""));
+  });
   afterEach(async () => { await db.exec("rollback; set session authorization postgres; reset role"); });
   afterAll(async () => { await db?.close(); }, 30_000);
+
+  const plannerCandidate = async () => (await sql("candidates/logo_publication_evidence_join_planning.sql"))
+    .replace(/^begin;$/m, "").replace(/^commit;$/m, "");
+  const catalog = async () => (await db.query<{ oid: number; descriptor: unknown; proconfig: string[] }>(
+    "select oid,to_jsonb(p)-'proconfig' descriptor,proconfig from pg_proc p where pronamespace in ('public'::regnamespace,'fluid_private'::regnamespace) order by oid",
+  )).rows;
+
+  if (planning === "original") {
+    it("changes only the parent function-local setting, preserving catalog identities, source, grants, data and caller settings", async () => {
+      const before = await catalog(), rows = await snapshot();
+      const oid = (await db.query<{ oid: number }>("select 'fluid_private.logo_publication_failure_adjudication_matches(uuid)'::regprocedure::oid oid")).rows[0]!.oid;
+      await db.exec("set local join_collapse_limit=6");
+      await db.exec(await plannerCandidate());
+      expect(await catalog()).toEqual(before.map(row => row.oid === oid
+        ? { ...row, proconfig: ['search_path=""', "TimeZone=UTC", "join_collapse_limit=1"] } : row));
+      expect(await snapshot()).toEqual(rows);
+      expect(await matches()).toBe(false);
+      expect((await db.query("show join_collapse_limit")).rows).toEqual([{ join_collapse_limit: "6" }]);
+      expect((await db.query("select fluid_private.logo_publication_failure_adjudication_matches(null) value")).rows).toEqual([{ value: false }]);
+      expect((await db.query("show join_collapse_limit")).rows).toEqual([{ join_collapse_limit: "6" }]);
+    });
+
+    it.each([
+      ["source", "create or replace function fluid_private.logo_publication_failure_adjudication_matches(p_job uuid) returns boolean language sql stable set search_path='' set timezone='UTC' as $$select false$$"],
+      ["security mode", "alter function fluid_private.logo_publication_failure_adjudication_matches(uuid) security definer"],
+      ["search path", "alter function fluid_private.logo_publication_failure_adjudication_matches(uuid) set search_path=public"],
+      ["volatility", "alter function fluid_private.logo_publication_failure_adjudication_matches(uuid) volatile"],
+      ["permission", "grant execute on function fluid_private.logo_publication_failure_adjudication_matches(uuid) to authenticated"],
+      ["owner", "alter function fluid_private.logo_publication_failure_adjudication_matches(uuid) owner to service_role"],
+      ["nested helper configuration", "alter function fluid_private.logo_absent_publication_adjudication_matches(uuid) set join_collapse_limit=2"],
+      ["nested helper source", "create or replace function fluid_private.logo_absent_publication_adjudication_matches(p_job uuid) returns boolean language sql stable set search_path='' set timezone='UTC' as $$select false$$"],
+    ])("rejects an unexpected %s before changing the matcher", async (_name, change) => {
+      const before = await catalog();
+      await db.exec("savepoint unexpected_predecessor");
+      await db.exec(change);
+      await expect(db.exec(await plannerCandidate())).rejects.toThrow("unexpected_logo_evidence_planning_predecessor");
+      await db.exec("rollback to savepoint unexpected_predecessor; release savepoint unexpected_predecessor");
+      expect(await catalog()).toEqual(before);
+    });
+
+    it("reduces planning for the identical live-hash SELECT without changing evidence checks", async () => {
+      const { body, hash } = (await db.query<{ body: string; hash: string }>(
+        "select prosrc body,md5(prosrc) hash from pg_proc where oid='fluid_private.logo_publication_failure_adjudication_matches(uuid)'::regprocedure",
+      )).rows[0]!;
+      expect(hash).toBe("3aefd0303d54cd31382fb7debbaf90e3");
+      const timings = new Map<number, number[]>([[8, []], [1, []]]);
+      for (const setting of [8, 1, 8, 1, 8, 1]) {
+        await db.exec(`set local join_collapse_limit=${setting}`);
+        const result = await db.query<{ "QUERY PLAN": Array<{ "Planning Time": number }> }>(
+          `explain(analyze,format json,timing false) ${body.replaceAll("p_job", `'${jobId}'::uuid`)}`,
+        );
+        timings.get(setting)!.push(result.rows[0]!["QUERY PLAN"][0]!["Planning Time"]);
+      }
+      const median = (values: number[]) => [...values].sort((a, b) => a - b)[1]!;
+      expect(median(timings.get(1)!)).toBeLessThan(median(timings.get(8)!) / 2);
+    }, 60_000);
+  }
 
   it("installs no decision and preserves the existing gate security without new worker or client grants", async () => {
     expect(installedSecurity).toEqual(originalSecurity);

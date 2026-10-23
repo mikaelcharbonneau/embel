@@ -3,7 +3,7 @@ vi.mock("server-only", () => ({}));
 import { contextSnapshotSchema } from "../../src/domain/projects";
 import { nameIdentityKey, namingStrategyBasis, namingStrategyKey } from "../../src/domain/project-naming";
 import { getNamingFulfillment } from "../../src/domain/naming-jobs";
-import { createBrandFromProjectName, enqueueNamingBatch, getAccountNames, getNamingBatch, getProjectNaming, importLocalName, saveNamingPreferences, saveNamingView, selectProjectName, setNameRetention, transformProjectNames } from "../../src/server/data/project-naming";
+import { createBrandFromProjectName, enqueueNamingBatch, getAccountNames, getCustomProjectNames, getNamingBatch, getProjectNaming, importLocalName, saveNamingPreferences, saveNamingView, selectProjectName, setNameRetention, transformProjectNames } from "../../src/server/data/project-naming";
 import type { AuthenticatedContext } from "../../src/server/auth/context";
 import { asRole, asSubscriptionWorker, createTestDatabase, HASH, OWNER_A, OWNER_B, resetFixture, type TestDatabase } from "../database/local-supabase";
 
@@ -24,9 +24,9 @@ describe("Naming DAL with real local ownership and provenance rows",()=>{
      const row=await run(()=>db.query<{result:unknown}>(`select public.${name}(${keys.map((key,i)=>`${key}=>$${i+1}`).join(",")}) result`,Object.values(args).map(value=>value&&typeof value==="object"?JSON.stringify(value):value)),owner);
      return {data:row.rows[0]!.result,error:null};}catch(error){return {data:null,error:{code:(error as {code:string}).code}};}
    },
-   from:(table:string)=>{const filters:Array<[string,unknown]>=[];const query={select:()=>query,order:()=>query,limit:async(count:number)=>{if(table!=="name_candidates")throw Error("Unexpected fixture table");const result=await run(()=>db.query(`select id,owner_id,project_id,value,identity_key from public.name_candidates where ${filters.map(([field],i)=>`${field}=$${i+1}`).join(" and ")} order by created_at,id limit ${count}`,filters.map(([,value])=>value)),owner);return {data:result.rows,error:null};},eq:(field:string,value:unknown)=>{filters.push([field,value]);return query;},maybeSingle:async()=>{
-    if(table!=="project_revisions")throw Error("Unexpected fixture table");
-    const result=await run(()=>db.query(`select project_id,owner_id,revision from public.project_revisions where ${filters.map(([field],i)=>`${field}=$${i+1}`).join(" and ")}`,filters.map(([,value])=>value)),owner);
+   from:(table:string)=>{const filters:Array<[string,unknown]>=[];let after:{createdAt:string;id:string}|null=null;const fieldSql=(field:string)=>field==="origin->>kind"?"origin->>'kind'":field;const query={select:()=>query,order:()=>query,or:(value:string)=>{const match=/^created_at.gt.([^,]+),and\(created_at.eq.([^,]+),id.gt.([^)]+)\)$/.exec(value);if(!match||match[1]!==match[2])throw Error("Unexpected fixture cursor");after={createdAt:match[1]!,id:match[3]!};return query;},limit:async(count:number)=>{if(table!=="name_candidates")throw Error("Unexpected fixture table");const args=filters.map(([,value])=>value);let where=filters.map(([field],i)=>`${fieldSql(field)}=$${i+1}`).join(" and ");if(after){where+=` and (created_at,id)>($${args.length+1}::timestamptz,$${args.length+2}::uuid)`;args.push(after.createdAt,after.id);}const result=await run(()=>db.query<{result:unknown}>(`select to_jsonb(c) result from public.name_candidates c where ${where} order by created_at,id limit ${count}`,args),owner);return {data:result.rows.map(row=>row.result),error:null};},in:async(field:string,ids:string[])=>{if(table!=="name_retention"||field!=="candidate_id")throw Error("Unexpected fixture retention read");const args=filters.map(([,value])=>value);const result=await run(()=>db.query<{result:unknown}>(`select to_jsonb(r) result from public.name_retention r where ${filters.map(([key],i)=>`${key}=$${i+1}`).join(" and ")} and candidate_id=any($${args.length+1}::uuid[])`,[...args,ids]),owner);return {data:result.rows.map(row=>row.result),error:null};},eq:(field:string,value:unknown)=>{filters.push([field,value]);return query;},maybeSingle:async()=>{
+    if(!["project_revisions","projects"].includes(table))throw Error("Unexpected fixture table");
+    const result=await run(()=>db.query(`select ${table==="projects"?"id,owner_id":"project_id,owner_id,revision"} from public.${table} where ${filters.map(([field],i)=>`${field}=$${i+1}`).join(" and ")}`,filters.map(([,value])=>value)),owner);
     return {data:result.rows[0]??null,error:null};}};return query;},
   }} as unknown as AuthenticatedContext;
  }
@@ -52,6 +52,17 @@ describe("Naming DAL with real local ownership and provenance rows",()=>{
   const value=await imported();const read=await getProjectNaming(auth,project);expect(read.candidates.items[0]!.candidate).toEqual(value.entry.candidate);
   await expect(getProjectNaming(client(OWNER_B),project)).rejects.toMatchObject({code:"not_found"});
   await expect(importLocalName(auth,project,{expectedProjectRevision:1,source:{...source,origin:"generated"},capturedContext:context,idempotencyKey:"fixture-forged-server-001"})).rejects.toMatchObject({code:"invalid_input"});
+ });
+ it("pages custom names independently and retains account ownership with generation unavailable",async()=>{
+  const first=await imported();await imported("Elm","fixture-custom-import-002");
+  const page=await getCustomProjectNames(auth,project,{limit:1});
+  expect(page.items.map(row=>row.candidate.value)).toEqual(["Cedar"]);expect(page.nextCursor).not.toBeNull();
+  const next=await getCustomProjectNames(auth,project,{limit:1,cursor:page.nextCursor});
+  expect(next.items.map(row=>row.candidate.value)).toEqual(["Elm"]);expect(next.nextCursor).toBeNull();
+  expect((await getProjectNaming(auth,project)).availability.status).toBe("unavailable");
+  await selectProjectName(auth,project,{candidateId:first.entry.candidate.id,expectedRevision:1,acceptEarlierContext:false});
+  expect((await getProjectNaming(auth,project)).currentSelection?.candidate.value).toBe("Cedar");
+  await expect(getCustomProjectNames(client(OWNER_B),project)).rejects.toMatchObject({code:"not_found"});
  });
  it("rejects wrong but canonical direct-import history keys before enqueue",async()=>{
   const attack=await auth.client.rpc("import_local_name",{p_project_id:project,p_expected_revision:1,p_source:source,p_context:context,p_identity_key:"elm",p_idempotency_key:"fixture-poisoned-history01"});expect(attack.error).toBeNull();

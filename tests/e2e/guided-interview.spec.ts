@@ -101,6 +101,7 @@ type FixtureState = {
   patchStatus: number;
   losePatchAcknowledgement: boolean;
   commitBeforeQueueFailure: boolean;
+  dispatchPending: boolean;
   enqueueGate: Promise<void> | null;
   pendingReply: GuidedReply | null;
   runtimeUnavailable: boolean;
@@ -113,7 +114,7 @@ async function fixtures(page: Page, { guided = true, seeded = false }: { guided?
   const state: FixtureState = {
     project, owner, jobs: seeded ? [completedJob(queuedJob("strategy.competitors", 1, 1), choiceReply(project.context.intake.guidedInterview!.turns[0]!))] : [],
     enqueues: [], patches: [], creates: [], cancels: [], unhandledWrites: [], externalRequests: [], snapshots: new Map([[1, project.context]]),
-    queueStatus: 202, queueReplies: 0, overviewStatus: 200, overviewReads: 0, patchStatus: 200, losePatchAcknowledgement: false, commitBeforeQueueFailure: false, enqueueGate: null, pendingReply: null, runtimeUnavailable: false, unavailableReason: "worker_unavailable",
+    queueStatus: 202, queueReplies: 0, overviewStatus: 200, overviewReads: 0, patchStatus: 200, losePatchAcknowledgement: false, commitBeforeQueueFailure: false, dispatchPending: false, enqueueGate: null, pendingReply: null, runtimeUnavailable: false, unavailableReason: "worker_unavailable",
   };
   await page.route("**/*", async route => {
     const request = route.request(), url = new URL(request.url()), path = url.pathname, method = request.method();
@@ -152,7 +153,7 @@ async function fixtures(page: Page, { guided = true, seeded = false }: { guided?
       if (state.queueStatus !== 202 && !state.commitBeforeQueueFailure) return json(route, {}, state.queueStatus);
       if (body.expectedRevision !== state.project.current_revision) return json(route, {}, 409);
       let job = state.jobs.find(item => item.operation === body.operation && item.input_revision === body.expectedRevision);
-      if (!job) { job = queuedJob(body.operation, body.expectedRevision, state.jobs.length + 1); state.jobs.push(job); }
+      if (!job) { job = strategyJobSchema.parse({ ...queuedJob(body.operation, body.expectedRevision, state.jobs.length + 1), ...(state.dispatchPending ? { dispatchState: "dispatch_pending", canRetryDelivery: true } : {}) }); state.jobs.push(job); }
       if (state.enqueueGate) await state.enqueueGate;
       if (state.pendingReply) {
         job = completedJob(job, state.pendingReply);
@@ -784,6 +785,42 @@ test("guided interview: an account change hides a delayed reply and clears the p
   await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(0);
   expect(state.enqueues).toHaveLength(1);
   expect(await page.evaluate(() => localStorage.getItem("fluid.local-drafts.v1"))).toBeNull();
+});
+
+test("guided interview: delivery controls remain separate and retry only the saved audience request", async ({ page }, info) => {
+  const runtimeErrors: string[] = []; page.on("pageerror", error => runtimeErrors.push(error.message));
+  const state = await fixtures(page, { seeded: true }); state.dispatchPending = true;
+  const deliveries: { id: string; body: unknown; owner: string | undefined }[] = [];
+  await page.route(url => url.pathname.endsWith("/delivery"), async route => {
+    const request = route.request(), job = state.jobs.at(-1)!;
+    expect(new URL(request.url()).pathname).toBe(`/api/projects/${projectId}/strategy/${job.id}/delivery`);
+    deliveries.push({ id: job.id, body: request.postDataJSON(), owner: request.headers()["x-embel-account"] });
+    const delivered = strategyJobSchema.parse({ ...job, dispatchState: "published", canRetryDelivery: false });
+    state.jobs[state.jobs.length - 1] = delivered;
+    await json(route, { job: delivered }, 202);
+  });
+  await openProject(page); await expectSingleWidget(page, "competitors");
+  await widget(page, "competitors").getByRole("checkbox", { name: "Table Next Door", exact: true }).check();
+  await widget(page, "competitors").getByRole("button", { name: "Continue", exact: true }).click();
+  await expectRequest(state, 1, "strategy.audience");
+  const controls = page.getByRole("group", { name: "Delivery recovery", exact: true });
+  await expect(controls).toBeVisible();
+  const check = controls.getByRole("button", { name: "Check status", exact: true });
+  const retry = controls.getByRole("button", { name: "Retry delivery", exact: true });
+  const checkBox = await check.boundingBox(), retryBox = await retry.boundingBox();
+  expect(checkBox).not.toBeNull(); expect(retryBox).not.toBeNull();
+  expect(checkBox!.height).toBeGreaterThanOrEqual(44); expect(retryBox!.height).toBeGreaterThanOrEqual(44);
+  expect(retryBox!.y >= checkBox!.y + checkBox!.height || retryBox!.x >= checkBox!.x + checkBox!.width + 16).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({ path: info.outputPath("delivery-controls-separated.png"), fullPage: true });
+  const original = structuredClone(state.jobs.at(-1)!);
+  await check.click(); expect(deliveries).toHaveLength(0); expect(state.enqueues).toHaveLength(1);
+  await retry.click(); await expect(controls).toHaveCount(0);
+  expect(deliveries).toEqual([{ id: original.id, body: {}, owner }]);
+  expect(state.enqueues).toHaveLength(1); expect(state.jobs.at(-1)!.id).toBe(original.id);
+  await page.reload(); await expect(page.getByRole("button", { name: "Retry delivery", exact: true })).toHaveCount(0);
+  expect(state.enqueues).toHaveLength(1);
+  expect(runtimeErrors).toEqual([]);
 });
 
 test.afterEach(async ({ page }, info) => {

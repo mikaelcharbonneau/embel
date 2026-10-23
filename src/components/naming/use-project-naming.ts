@@ -299,7 +299,7 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
       return reply;
     }));
   }
-  async function retain(entry: ProjectNameEntry, field: "favorite" | "saved") {
+  async function retain(entry: ProjectNameEntry, field: "favorite" | "saved", onAcknowledged?: (entry: ProjectNameEntry) => void) {
     if (!scope.current()) return false;
     return Boolean(await mutate(async () => {
       const body = { candidateId: entry.candidate.id, expectedRevision: entry.retention.revision, favorite: entry.retention.favorite, saved: entry.retention.saved, [field]: !entry.retention[field] };
@@ -307,6 +307,7 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
       if (!reply) return null;
       if (reply.entry.candidate.id !== entry.candidate.id || reply.entry.retention.revision !== entry.retention.revision + 1 || reply.entry.retention[field] !== body[field]) throw new AccountRequestError(502);
       namingBrainDrafts?.applyRetention(account, projectId, reply.entry);
+      onAcknowledged?.(reply.entry);
       const latest = current.current; if (latest) publish({ ...latest, candidates: { ...latest.candidates, items: latest.candidates.items.map(item => item.candidate.id === entry.candidate.id ? reply.entry : item) } });
       return reply;
     }, true, field));
@@ -338,7 +339,7 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
       return reply;
     });
   }
-  async function importLocal(input: Pick<ImportProjectName, "source" | "capturedContext">) {
+  async function importLocal(input: Pick<ImportProjectName, "source" | "capturedContext">, onAcknowledged?: (entry: ProjectNameEntry) => void) {
     const before = readyForContextMutation(); if (!before) return false;
     if (importIntent.current && importIntent.current.source.id !== input.source.id) return false;
     importIntent.current ??= { ...input, expectedProjectRevision: before.project.current_revision, idempotencyKey: `import:${projectId}:${input.source.id}:${before.project.current_revision}` };
@@ -348,6 +349,7 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
       if (!reply) return null;
       if (reply.entry.candidate.value !== input.source.value) throw new AccountRequestError(502);
       importIntent.current = null;
+      onAcknowledged?.(reply.entry);
       const latest = current.current; if (latest) publish({ ...latest, candidates: { ...latest.candidates, items: mergeNames([reply.entry], latest.candidates.items) } });
       return reply;
     }));

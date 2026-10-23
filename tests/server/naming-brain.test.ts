@@ -48,6 +48,9 @@ describe("Naming Brain DAL over actual local SQL ownership",()=>{
   const run=await getNamingBrainRun(auth,project,job.input.runId);expect(run).toMatchObject({state:"succeeded",canResume:true});
   const result=await ensureNextNamingRun(auth,project,{...initialIntent("fixture-server-free-continue"),reason:"resume",expectedDemandSequence:1,resumeOfRunId:run.runId,expectedRunRevision:run.revision});expect(result.status).toBe("appended");
   const loaded=await getNamingFeed(auth,project);expect(loaded.entries).toHaveLength(100);expect(loaded.activeRun?.runId).toBe(run.runId);
+  const reads=vi.spyOn(auth.client,"rpc");await getProjectNaming(auth,project);
+  expect(reads.mock.calls.filter(([name])=>name==="get_naming_brain_candidate_sources")).toHaveLength(1);
+  expect(reads.mock.calls.filter(([name])=>name==="get_naming_brain_candidate_source")).toHaveLength(0);reads.mockRestore();
   const candidate=loaded.entries[0]!.entry.candidate;
   const detail=await getNamingBatch(auth,project,run.batchId);expect(detail.batch).toMatchObject({version:2});expect(detail.job.results).toHaveLength(1);
   const transformed=await transformProjectNames(auth,project,{parentCandidateId:candidate.id,input:{kind:"tweaks",seed:candidate.value,operations:["uppercase"]},idempotencyKey:"fixture-managed-workshop"});
