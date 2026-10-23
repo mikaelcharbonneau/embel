@@ -13,7 +13,7 @@ export const base = `/api/projects/${projectId}/naming`, namingUrl = `/brands/ac
 const when = "2026-10-16T12:00:00.000Z", policy = "a".repeat(64);
 export const savedChoices = namingPreferencesV2Schema.parse({ ...initialNamingPreferencesV2(contextSnapshotSchema.parse({ description: "Synthetic neighborhood kitchen" })), approaches: ["real_words", "compounds"], directness: "all" });
 export type RequestRecord = { path: string; method: string; body: Record<string, unknown> | null; account: string | undefined };
-export async function namingFixture(page: Page, options: { saved?: boolean; count?: number; terminal?: "partial" | "needs_reconciliation"; progressive?: boolean } = {}) {
+export async function namingFixture(page: Page, options: { saved?: boolean; count?: number; terminal?: "partial" | "needs_reconciliation"; progressive?: boolean; unavailable?: boolean } = {}) {
   const project = accountProjectSchema.parse({ id: projectId, owner_id: ownerId, title: "Synthetic Naming QA", scope: "naming_only", current_revision: 3, created_at: when, context: { description: "Synthetic brief: a warm neighborhood kitchen.", creativeLocale: "en", intake: { namingNotes: "Synthetic preferences only" } } });
   const session: NamingSession = { ownerId, projectId, revision: 1, currentPreferencesVersion: options.saved ? 1 : 0, latestBatchSequence: 0, currentSelectionId: null, viewRevision: 1, viewState: { pane: "results", conversationOpen: !options.saved, filter: "all", query: "", visibleBatchId: null, scrollCandidateId: null, workshopCandidateId: null }, createdAt: when, updatedAt: when };
   const state = { owner: ownerId as string | null, project, session, preferences: options.saved ? { ownerId, projectId, version: 1, preferences: savedChoices, createdAt: when } as NamingPreferenceRevision : null,
@@ -38,7 +38,7 @@ export async function namingFixture(page: Page, options: { saved?: boolean; coun
   if (options.terminal) state.activeRun = makeRun(options.terminal);
   function feed(after = 0, explicit?: NamingFeedEntry[]) {
     const entries = explicit ?? state.rows.filter(item => item.position > after).slice(0, 100), last = entries.at(-1);
-    return namingFeedSchema.parse({ version: 1, ownerId, projectId, projectRevision: state.project.current_revision, preferencesVersion: state.session.currentPreferencesVersion, feedbackRevision: state.feedback, steeringRevision: state.steering, demandSequence: state.demand, entries, nextCursor: !explicit && last && state.rows.some(item => item.position > last.position) ? { entryId: last.entryId, position: last.position } : null, consumedThrough: state.consumedThrough, activeRun: state.activeRun, preparedSetId: null, paused: state.paused, state: state.paused ? "paused" : state.activeRun?.state === "needs_reconciliation" ? "blocked" : "active", availability: { status: "available", handlerVersion: "naming-brain-v1", protocol: "openai_agents", acceptedPolicyIdentity: policy },
+    return namingFeedSchema.parse({ version: 1, ownerId, projectId, projectRevision: state.project.current_revision, preferencesVersion: state.session.currentPreferencesVersion, feedbackRevision: state.feedback, steeringRevision: state.steering, demandSequence: state.demand, entries, nextCursor: !explicit && last && state.rows.some(item => item.position > last.position) ? { entryId: last.entryId, position: last.position } : null, consumedThrough: state.consumedThrough, activeRun: state.activeRun, preparedSetId: null, paused: state.paused, state: state.paused ? "paused" : state.activeRun?.state === "needs_reconciliation" ? "blocked" : "active", availability: options.unavailable ? { status: "unavailable", code: "synthetic_unavailable" } : { status: "available", handlerVersion: "naming-brain-v1", protocol: "openai_agents", acceptedPolicyIdentity: policy },
       ...(options.progressive ? { retentionRevision: state.rows.reduce((sum, row) => sum + row.entry.retention.revision, 0),
         ...(!state.paused && state.activeRun?.state === "succeeded" && state.activeRun.fulfillment?.status === "complete" ? { canPrefetchOnScroll: true } : {}),
         ...(state.progressive ? { progressive: { version: 1, targetCount: 100, publishedCount: state.rows.filter(row => row.runId === state.activeRun?.runId).length } } : {}) } : {}),
@@ -154,7 +154,10 @@ export async function finishNamingChat(page: Page) {
   while (await next.isVisible()) {
     const question = await page.locator("#project-naming-preferences-heading").innerText();
     await next.click();
-    await expect(page.locator("#project-naming-preferences-heading")).not.toHaveText(question);
+    // A final submit may intentionally expire the account in a 401 fixture.
+    // Treat removal as a transition, while the calling test still verifies the
+    // exact pending request and explicit recovery behavior.
+    await expect.poll(async () => { const heading = page.locator("#project-naming-preferences-heading"); return await heading.count() ? await heading.textContent() : null; }).not.toBe(question);
   }
 }
 export async function editNamingApproaches(page: Page) {

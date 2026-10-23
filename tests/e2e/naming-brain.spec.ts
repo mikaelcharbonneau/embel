@@ -55,8 +55,8 @@ test("Naming V2: scroll appends100 once, preserves anchor and retained likes dur
 });
 
 test("Naming V2: More like these supersedes a held demand and keeps the unsent draft across detail/history", async ({ page }) => {
-  const fixture = await namingFixture(page, { saved: true, count: 3 }); fixture.state.ensureMode = "pending";
-  await openNaming(page); await expect(page.locator(".naming-feed-card")).toHaveCount(3);
+  const fixture = await namingFixture(page, { saved: true, count: 100 }); fixture.state.ensureMode = "pending";
+  await openNaming(page); await expect(page.locator(".naming-feed-card")).toHaveCount(100);
   await namingCard(page, 1).getByRole("button", { name: "Inspect name Synthetic 001" }).click();
   await page.getByRole("checkbox", { name: /More like this\s*:\s*Synthetic 001/ }).check();
   await page.getByRole("button", { name: "Back to results" }).click(); await showNamingChat(page);
@@ -74,7 +74,7 @@ test("Naming V2: More like these supersedes a held demand and keeps the unsent d
   held.release(); await expect.poll(() => held.settled).toBe(true); await frameBarrier(page);
   expect(fixture.mutations("/steering")[0]).toMatchObject({ account: ownerId, body: { candidateIds: [id(100_001)], instruction: "Synthetic warm direction", expectedSteeringRevision: 0 } });
   await expect(page.getByText("Exploring your next names…", { exact: true })).toHaveCount(0);
-  await expect(page.locator(".naming-feed-card")).toHaveCount(3);
+  await expect(page.locator(".naming-feed-card")).toHaveCount(100);
   expect(fixture.mutations()).toHaveLength(1);
 });
 
@@ -141,7 +141,8 @@ test("Naming V2: restored scroll, hidden, search/history, detail and Stop cannot
 for (const terminal of ["partial", "needs_reconciliation"] as const) test(`Naming V2: ${terminal} never retries on scroll and only eligible partial explicitly resumes`, async ({ page }) => {
   const fixture = await namingFixture(page, { saved: true, count: 20, terminal }); const previous = fixture.state.activeRun!; fixture.state.ensureMode = "pending";
   await openNaming(page); await finishNamingChat(page);
-  await expect(page.locator(".naming-feed-card")).toHaveCount(0);
+  await expect(page.locator(".naming-feed-card")).toHaveCount(20);
+  await expect(page.locator(".naming-continuous-results")).toBeHidden();
   expect(fixture.state.rows).toHaveLength(20);
   await page.locator("[data-naming-chat-scroll]").hover(); await page.mouse.wheel(0, 120); await frameBarrier(page);
   expect(fixture.mutations()).toHaveLength(0);

@@ -2,10 +2,10 @@ import { expect, test } from "@playwright/test";
 import { base, finishNamingChat, namingFixture, openNaming, showNamingChat } from "./naming-brain-fixture";
 
 const constraints = "Any length limits or text to include or avoid?";
-// An existing completed exploration isolates checkpoint persistence from admission.
+// An explicitly unavailable runtime isolates checkpoint persistence from admission.
 // All account responses and generated names are synthetic fixture data.
 test("combined default constraints survive a cold reload without another generation", async ({ page }) => {
-  const fixture = await namingFixture(page, { saved: true, count: 100 });
+  const fixture = await namingFixture(page, { saved: true, unavailable: true });
   const original = structuredClone(fixture.state.preferences);
   await openNaming(page); await showNamingChat(page);
   const heading = page.locator("#project-naming-preferences-heading");
@@ -22,7 +22,7 @@ test("combined default constraints survive a cold reload without another generat
 });
 
 test("guidance-only autosave preserves prior answers while edited combined constraints reopen", async ({ page }) => {
-  const fixture = await namingFixture(page, { saved: true, count: 100 });
+  const fixture = await namingFixture(page, { saved: true, unavailable: true });
   await openNaming(page); await showNamingChat(page); await finishNamingChat(page);
   const acknowledgedVersion = fixture.state.session.viewState.namingChat!.preferencesVersion;
   const composer = page.getByLabel("Naming message", { exact: true });
@@ -45,7 +45,7 @@ test("guidance-only autosave preserves prior answers while edited combined const
 });
 
 test("a lost checkpoint acknowledgement does not advance until the saved state is reloaded", async ({ page }) => {
-  const fixture = await namingFixture(page, { saved: true, count: 100 });
+  const fixture = await namingFixture(page, { saved: true, unavailable: true });
   await openNaming(page); await showNamingChat(page);
   fixture.state.failOnce = { path: `${base}/view`, status: 503, afterSave: true };
   const before = fixture.mutations("/view").length;
@@ -59,7 +59,7 @@ test("a lost checkpoint acknowledgement does not advance until the saved state i
 });
 
 test("keyboard Continue waits for the combined checkpoint acknowledgement before moving focus", async ({ page }) => {
-  const fixture = await namingFixture(page, { saved: true, count: 100 });
+  const fixture = await namingFixture(page, { saved: true, unavailable: true });
   await openNaming(page); await showNamingChat(page);
   const held = fixture.hold(`${base}/view`, "PATCH"), next = page.getByRole("button", { name: "Continue", exact: true });
   await next.focus(); await page.keyboard.press("Enter"); await expect.poll(() => held.ready).toBe(true);
