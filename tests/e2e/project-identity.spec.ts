@@ -367,7 +367,7 @@ test("identity fixture: incomplete output is rejected without replacing validate
 });
 test("identity fixture: keyboard editing remains usable at narrow mobile width", async ({ page }, testInfo) => {
   await setup(page); if (testInfo.project.name === "mobile") await page.setViewportSize({ width: 320, height: 568 }); await ready(page);
-  const summary = page.getByText("Edit colors", { exact: true }); await summary.focus(); await page.keyboard.press("Enter");
+  const summary = page.getByRole("button", { name: "Edit colors", exact: true }); await summary.focus(); await page.keyboard.press("Enter");
   const name = page.getByRole("textbox", { name: "Color 1 name", exact: true }); await name.focus(); await page.keyboard.press("ControlOrMeta+A"); await page.keyboard.type("Keyboard Berry");
   await page.keyboard.press("Tab"); await expect(page.getByRole("textbox", { name: "Color 1 hex", exact: true })).toBeFocused();
   await page.keyboard.press("ControlOrMeta+A"); await page.keyboard.type("#AA2255");
@@ -536,17 +536,17 @@ test("D041 synthetic evidence: three authored PNG boards and full viewport conte
 test("D041 synthetic evidence: unavailable controls preserve raw drafts and keyboard focus",async({page})=>{
   const fixture=visualFixture();await setup(page,fixture);await page.goto(url); await page.getByRole("button", { name: "Saved systems", exact: true }).click();await expect(page.locator(".identity-history-card")).toHaveCount(3);
   const transition=page.getByRole("link",{name:"View saved systems",exact:true});await transition.focus();await page.keyboard.press("Enter");await expect(page.getByRole("heading",{name:"Identity systems",exact:true})).toBeFocused();
-  const summary=page.getByText("Edit colors",{exact:true});await summary.focus();await page.keyboard.press("Enter");
+  const summary=page.getByRole("button",{name:"Edit colors",exact:true});await summary.focus();await page.keyboard.press("Enter");
   const name=page.getByRole("textbox",{name:"Color 1 name",exact:true});await name.focus();await page.keyboard.press("ControlOrMeta+A");await page.keyboard.type("  Raw local color  ");await page.keyboard.press("Tab");
   const hex=page.getByRole("textbox",{name:"Color 1 hex",exact:true});await expect(hex).toBeFocused();await hex.fill("#A");
   const save=page.getByRole("button",{name:"Save colors as new version"});await expect(save).toBeDisabled();await expect(save).toHaveAccessibleDescription("Saving manual edits is unavailable right now. Your local edits are kept in this tab.");
   await page.keyboard.press("Enter");await expect(hex).toHaveValue("#A");await expect(name).toHaveValue("  Raw local color  ");
-  await summary.focus();await page.keyboard.press("Enter");await page.keyboard.press("Enter");await expect(name).toHaveValue("  Raw local color  ");await expect(hex).toHaveValue("#A");expect(fixture.writes).toHaveLength(0);
+  await closeContextSheet(page);await summary.focus();await page.keyboard.press("Enter");await expect(name).toHaveValue("  Raw local color  ");await expect(hex).toHaveValue("#A");expect(fixture.writes).toHaveLength(0);
 });
 test("D041 synthetic evidence: explicit local fixture restoration appends a current choice",async({page},testInfo)=>{
   const fixture=visualFixture();fixture.saveAvailable=true;await setup(page,fixture);await page.goto(url); await page.getByRole("button", { name: "Saved systems", exact: true }).click();await expect(page.locator(".identity-history-card")).toHaveCount(3);
   const original=JSON.stringify(fixture.systems);await page.locator(".identity-history-card").first().getByRole("button",{name:"View system"}).click();
-  const ack=page.getByRole("checkbox",{name:"I understand this system uses earlier saved inputs."});await closeContextSheet(page); await ack.check(); await openColors(page);
+  const ack=page.getByRole("checkbox",{name:"I understand this system uses earlier saved inputs."});await closeContextSheet(page); await ack.check();
   const restore=page.getByRole("button",{name:"Restore as current"});await expect(restore).toBeEnabled();await restore.focus();await page.keyboard.press("Enter");
   await expect(page.getByText("Current Identity choice saved.",{exact:true})).toBeVisible();expect(fixture.selection).toMatchObject({identityRevision:2,reason:"restored",acceptedEarlierBasis:true});expect(JSON.stringify(fixture.systems)).toBe(original);
   await expect(page.locator(".identity-system-detail").getByText("Current choice",{exact:true})).toBeVisible();await expect(page.getByRole("button",{name:"Current Identity choice",exact:true})).toBeDisabled();
