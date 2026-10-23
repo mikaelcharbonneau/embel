@@ -23,9 +23,15 @@ it.each(["timeout", "invalid", "transport"])("retains the verified saved feed wh
   expect(mock.rpc.mock.calls.every(([name]) => name.startsWith("get_"))).toBe(true);
 });
 
-it.each([["P0002", "not_found"], ["PGRST301", "unauthenticated"]])("retains readiness authorization failure %s instead of concealing it as an outage", async (code, expected) => {
+it.each([["P0002", "not_found"], ["PGRST301", "unauthenticated"], ["PGRST302", "unauthenticated"], ["PGRST303", "unauthenticated"], ["42501", "unauthenticated"]])("retains readiness authorization failure %s instead of concealing it as an outage", async (code, expected) => {
   mock.rpc.mockImplementation(async (name: string) => name === "get_naming_feed" ? { data: feed, error: null } : { data: null, error: { code } });
-  await expect(getNamingFeed(auth, projectId)).rejects.toMatchObject({ code: expected });
+  await expect(getNamingFeed(auth, projectId)).rejects.toMatchObject({ code: expected, status: expected === "not_found" ? 404 : 401 });
+});
+
+it.each(["PGRST301", "PGRST302", "PGRST303", "42501"])("does not continue saved-feed verification after %s rejects authentication", async code => {
+  mock.rpc.mockResolvedValue({ data: null, error: { code, message: "unauthenticated" } });
+  await expect(getNamingFeed(auth, projectId)).rejects.toMatchObject({ code: "unauthenticated", status: 401 });
+  expect(mock.verify).not.toHaveBeenCalled(); expect(mock.rpc).toHaveBeenCalledTimes(1);
 });
 
 it("never conceals failed saved-name provenance verification", async () => {

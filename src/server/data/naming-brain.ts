@@ -20,7 +20,7 @@ function parse<T>(schema: z.ZodType<T>, value: unknown, stored = false): T {
 async function rpc<T>(auth: AuthenticatedContext, name: string, args: Record<string, unknown>, schema: z.ZodType<T>) {
  const { data, error } = await auth.client.rpc(name, args);
  if (error) {
-  if (error.code === "PGRST301") throw new ApiError("unauthenticated");
+  if (["PGRST301", "PGRST302", "PGRST303", "42501"].includes(error.code)) throw new ApiError("unauthenticated");
   if (["P0002", "PGRST116"].includes(error.code)) throw new ApiError("not_found");
   if (["PT409", "23505", "40001"].includes(error.code)) throw new ApiError("conflict");
   if (["22023", "23514", "22P02", "23502"].includes(error.code)) throw new ApiError("invalid_input");
