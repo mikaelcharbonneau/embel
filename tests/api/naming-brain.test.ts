@@ -63,10 +63,17 @@ describe("Naming Brain route account and privacy boundaries",()=>{
   expect(loaded).not.toHaveProperty("canResumeOnScroll");expect(loaded).not.toHaveProperty("canPrefetchOnScroll");
  });
  it("does not grant hosted continuation from malformed capability data or a foreign feed",async()=>{
-  hostedRuntime();mock.rpc.mockImplementation(async(name:string)=>({data:name==="get_hosted_naming_availability"?{status:"available"}:{...resumableFeed},error:null}));
-  expect((await feed(request(undefined,"GET"),ctx)).status).toBe(503);
+  hostedRuntime();mock.rpc.mockImplementation(async(name:string)=>({data:name==="get_hosted_naming_availability"?{status:"available"}:{...resumableFeed,canResumeOnScroll:true,canPrefetchOnScroll:true},error:null}));
+  const response=await feed(request(undefined,"GET"),ctx);expect(response.status).toBe(200);
+  const loaded=(await response.json()).feed;
+  expect(loaded.activeRun).toEqual(partialRun);expect(loaded.entries).toEqual(resumableFeed.entries);
+  expect(loaded.availability).toEqual({status:"unavailable",code:"naming_runtime_unavailable"});
+  expect(loaded).not.toHaveProperty("canResumeOnScroll");expect(loaded).not.toHaveProperty("canPrefetchOnScroll");
+  expect(response.headers.get("cache-control")).toBe("private, no-store");
+  expect(mock.rpc.mock.calls.map(([name])=>name)).toEqual(["get_naming_feed","get_hosted_naming_availability"]);
   mock.rpc.mockClear();mock.rpc.mockResolvedValue({data:{...resumableFeed,ownerId:project},error:null});
-  expect((await feed(request(undefined,"GET"),ctx)).status).toBe(404);
+  const foreign=await feed(request(undefined,"GET"),ctx);expect(foreign.status).toBe(404);
+  expect(await foreign.json()).not.toHaveProperty("feed");
   expect(mock.rpc.mock.calls.map(([name])=>name)).toEqual(["get_naming_feed"]);
  });
  it("reads without admission and rejects non-owned cursors or unbounded query shape",async()=>{
