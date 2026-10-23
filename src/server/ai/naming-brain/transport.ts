@@ -175,11 +175,25 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
         const witness = [...toolResults.values()].find(record => record.invocationWitness?.itemId === item.id
           || item.type === "function_call" && record.invocationWitness?.callId === item.call_id)?.invocationWitness;
         if (witness) {
-          if (item.type !== "function_call" || item.name !== "read_reference" || item.call_id !== witness.callId || item.id !== witness.itemId) throw new Error("reference_invocation_changed");
+          if (witness.providerCallKey !== request.providerCallKey || witness.requestHash !== request.requestHash || witness.sessionId !== receipt.sessionId || witness.turnId !== receipt.turnId
+            || item.type !== "function_call" || item.name !== "read_reference" || item.call_id !== witness.callId || item.id !== witness.itemId) throw new Error("reference_invocation_changed");
           // Subscribe-before-history can deliver an older argument prefix after
           // the exact full invocation was witnessed. Keep the stronger snapshot.
           if (previous && !isDeepStrictEqual(previous, item) && isOlderItemSnapshot(item, previous)) return;
-          if (namingHash(parseNamingReferenceArguments(item.arguments)) !== witness.parsedArgumentsHash) throw new Error("reference_invocation_changed");
+          let parsed: ReturnType<typeof parseNamingReferenceArguments>;
+          try { parsed = parseNamingReferenceArguments(item.arguments); }
+          catch (error) {
+            // Recovery starts with an empty item map. An unfinished JSON fragment
+            // cannot be compared with the retained hash yet: defer it, without
+            // storing it or granting another read. Saved-result replay separately
+            // requires the verified required action's exact original argument hash.
+            if (item.status === "in_progress" && typeof item.arguments === "string" && error instanceof SyntaxError) {
+              if (Buffer.byteLength(JSON.stringify(item)) > 1_048_576) throw new Error("provider_item_limit");
+              return;
+            }
+            throw new Error("reference_invocation_changed");
+          }
+          if (namingHash(parsed) !== witness.parsedArgumentsHash) throw new Error("reference_invocation_changed");
         }
       }
       if (previous && previous.type !== item.type) throw new Error("provider_item_changed");

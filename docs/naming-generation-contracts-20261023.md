@@ -76,6 +76,17 @@ history can resolve it within the same deadline. Terminal turns cannot start a
 late read. Conflicting identities, arguments or duplicate item IDs fail closed;
 proven older argument prefixes preserve the stronger observed snapshot.
 
+On recovery the in-memory item map starts empty. If a loaded witness's exact
+item/call identity arrives with unfinished JSON string arguments, defer that
+fragment without accepting, storing or using it as new read authority. The
+saved result may be submitted only for the verified required action with its
+exact original raw argument hash. Full arguments and completed malformed
+payloads still fail closed on any mismatch; loaded witness request/session/turn
+bindings are checked before deferral. Recovery tests start a fresh runtime after
+a lost result acknowledgement and prove identical result reuse with no second
+page read, result save or session create. Deferred stream fragments still obey
+the existing item byte limit.
+
 Only the reference reader's actual bounded bytes establish retrieved evidence.
 HTTPS host/path restrictions, public DNS, pinned IP/TLS, redirect refusal,
 response/text limits, cancellation and deadlines remain enforced. The invocation

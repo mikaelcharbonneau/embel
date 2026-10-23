@@ -21,14 +21,18 @@ function fixture(mode: Mode = "in_progress", contractVersion: 2 | null = 2) {
   const url = mode === "out_of_policy" ? "https://americanhistory.si.edu/freeze-frame/cyanotypes" : "https://en.wikipedia.org/wiki/Trail_blazing";
   const args = { url }, rawArguments = JSON.stringify(args);
   const records: NamingToolResultRecord[] = [], artifacts: unknown[] = [], receipts: NamingProviderReceipt[] = [], submitted: unknown[] = [], order: string[] = [];
+  const submittedKeys: (string | null)[] = [];
   const calls = { creates: 0, dns: 0, pages: 0, saves: 0, submits: 0, cancellations: 0 };
   let replied = false, itemReads = 0, loseAck = mode === "lost_ack", losePersistAck = mode === "lost_persist_ack";
+  let resumeItem: Record<string, unknown> | null = null;
+  let resumeAction: Record<string, unknown> | false | null = null;
+  const resumeEvents: unknown[] = [];
   const item = (terminal = false) => ({ id: itemId, type: "function_call", status: terminal ? "completed" : "in_progress", turn_id: turnId, name: "read_reference", call_id: mode === "different_call" ? "wrong_call" : callId,
     arguments: mode === "different_arguments" || terminal && mode === "changed_terminal" ? JSON.stringify({ url: "https://en.wikipedia.org/wiki/Unrelated" }) : rawArguments });
   const action = { type: "function_call", name: "read_reference", call_id: callId, turn_id: mode === "different_turn" ? "wrong_turn" : turnId, arguments: args };
   const session = (required = true) => ({ id: mode === "different_session" && required ? "wrong_session" : sessionId, object: "agent.session", agent: { id: "agent_reference_fixture", ...wire.agent }, environment: wire.environment,
     metadata: mode === "different_request" && required ? { ...wire.metadata, embel_request_hash: "a".repeat(64) } : wire.metadata,
-    status: replied ? "idle" : required ? "requires_action" : "running", required_actions: !replied && required ? [action] : [], usage: null });
+    status: replied ? "idle" : required ? "requires_action" : "running", required_actions: !replied && required && resumeAction !== false ? [{ ...action, ...resumeAction }] : [], usage: null });
   const turn = () => ({ id: turnId, session_id: sessionId, agent_id: "agent_reference_fixture", subagent_id: null, object: "agent.session.turn", status: replied ? "completed" : "waiting", error: null, usage: null, created_at: 1, started_at: 1, completed_at: replied ? 2 : null });
   const final = () => ({ id: "reference_final", type: "message", role: "assistant", phase: "final_answer", status: "completed", turn_id: turnId, content: [{ type: "output_text", text: JSON.stringify({ role: "researcher",
     territories: [{ territoryId: "nature", title: "Nature", direction: "Fictional trail marker imagery", sourceKeys: [] }, { territoryId: "rhythm", title: "Rhythm", direction: "Fictional sound exploration", sourceKeys: [] }],
@@ -55,17 +59,17 @@ function fixture(mode: Mode = "in_progress", contractVersion: 2 | null = 2) {
       const body = await outgoing.json() as { events: { type: string }[] };
       if (body.events[0]?.type === "agent.session.input.cancel") calls.cancellations++;
       else {
-        calls.submits++; order.push("submit"); submitted.push(body.events[0]);
+        calls.submits++; order.push("submit"); submitted.push(body.events[0]); submittedKeys.push(outgoing.headers.get("idempotency-key"));
         if (loseAck) { loseAck = false; throw new Error("Synthetic lost tool result acknowledgement"); }
         replied = true;
       }
       return new Response(null, { status: 202 });
     }
-    if (path.endsWith("/events")) return new Response("", { headers: { "content-type": "text/event-stream" } });
+    if (path.endsWith("/events")) return new Response(resumeEvents.map(event => `data: ${JSON.stringify(event)}\n\n`).join(""), { headers: { "content-type": "text/event-stream" } });
     const historyItems = () => {
       itemReads++;
       if (mode === "missing_item" || ["delayed_item", "end_history"].includes(mode) && itemReads === 1) return [];
-      return [item(replied), ...(mode === "duplicate_item" ? [{ ...item(replied), id: "duplicate_item" }] : []), ...(replied ? [final()] : [])];
+      return [{ ...item(replied), ...(!replied ? resumeItem : null) }, ...(mode === "duplicate_item" ? [{ ...item(replied), id: "duplicate_item" }] : []), ...(replied ? [final()] : [])];
     };
     const value = path.endsWith("/items") ? { data: historyItems(), has_more: false, last_id: itemId } : path.endsWith(`/${turnId}`) ? turn() : session();
     return new Response(JSON.stringify(value), { headers: { "content-type": "application/json" } });
@@ -73,15 +77,18 @@ function fixture(mode: Mode = "in_progress", contractVersion: 2 | null = 2) {
   const referenceReader = createNamingReferenceReader({ localPrototype: true, allowedHosts: request.policy.referenceHosts, now: () => 1000,
     resolveHost: async () => { calls.dns++; return [{ address: mode === "private_dns" ? "127.0.0.1" : "93.184.216.34", family: 4 }]; },
     requestPage: async () => { calls.pages++; order.push("read"); return new Response("A fictional bounded reference excerpt.", { headers: { "content-type": "text/plain; charset=utf-8" } }); } });
-  const runtime = createNamingAgentRuntime({ model: request.policy.model, localPrototype: true, protocol, now: () => 1000, referenceReader,
+  const createRuntime = () => createNamingAgentRuntime({ model: request.policy.model, localPrototype: true, protocol, now: () => 1000, referenceReader,
     persistence: { load: async () => state, saveToolResult: async record => {
       calls.saves++; order.push("persist"); records.push(record);
       if (losePersistAck) { losePersistAck = false; throw new Error("Synthetic lost persistence acknowledgement"); }
     } } });
+  const runtime = createRuntime();
   const hooks = { signal: new AbortController().signal, beforeDispatch: async () => { state.request = request; state.authorizedAt = new Date(1000).toISOString(); }, onReceipt: async (receipt: NamingProviderReceipt) => { receipts.push(receipt); }, onArtifact: async (artifact: unknown) => { artifacts.push(artifact); } };
   if (mode === "saved_unavailable") records.push({ providerCallKey: request.providerCallKey, sessionId, turnId, callId, requestHash: request.requestHash,
     result: { argumentsHash: namingHash(args), reply: { type: "agent.session.input.tool_result", call_id: callId, turn_id: turnId, success: true, output: JSON.stringify({ status: "unavailable", code: "source_unobserved" }) } }, sourceEvidence: null });
-  return { request, runtime, state, hooks, calls, records, artifacts, receipts, submitted, order, itemId, callId, args, rawArguments, sessionId, turnId };
+  return { request, runtime, createRuntime, state, hooks, calls, records, artifacts, receipts, submitted, submittedKeys, order, itemId, callId, args, rawArguments, sessionId, turnId,
+    setResumeItem: (value: Record<string, unknown>) => { resumeItem = value; }, setResumeAction: (value: Record<string, unknown> | false) => { resumeAction = value; },
+    setResumeItemEvent: (value: Record<string, unknown>) => { resumeEvents.push({ type: "agent.session.turn.item.added", event_id: "event_resume_item", session_id: sessionId, turn_id: turnId, output_index: 0, item: { ...item(), ...value } }); } };
 }
 
 describe("Versioned Naming required-action invocation (inert SDK HTTP)", () => {
@@ -128,6 +135,65 @@ describe("Versioned Naming required-action invocation (inert SDK HTTP)", () => {
     expect((await value.runtime.resumeStage(first.receipt, value.hooks)).status).toBe("completed");
     expect(value.calls).toMatchObject({ creates: 1, dns: 1, pages: 1, saves: 1, submits: 2 });
     expect(value.submitted[0]).toEqual(value.submitted[1]); expect(value.records[0]).toEqual(saved);
+  });
+
+  it("reuses the saved result with a fresh runtime when resume history contains an incomplete argument prefix", async () => {
+    const value = fixture("lost_ack"), first = await value.runtime.runStage(value.request, value.hooks);
+    if (first.status !== "unresolved" || !first.receipt) throw new Error("Missing synthetic receipt");
+    const saved = structuredClone(value.records[0]);
+    expect(saved?.invocationWitness).toBeDefined(); expect(value.state.providerItems).toEqual([]);
+    value.setResumeItem({ arguments: '{"url":' });
+    expect((await value.createRuntime().resumeStage(first.receipt, value.hooks)).status).toBe("completed");
+    expect(value.calls).toMatchObject({ creates: 1, dns: 1, pages: 1, saves: 1, submits: 2 });
+    expect(value.records[0]).toEqual(saved); expect(value.submitted[0]).toEqual(value.submitted[1]);
+    expect(value.submittedKeys[0]).toMatch(/^tool-[a-f0-9]{48}$/u); expect(value.submittedKeys[1]).toBe(value.submittedKeys[0]);
+    expect(value.artifacts).not.toContainEqual(expect.objectContaining({ item: expect.objectContaining({ status: "in_progress", arguments: '{"url":' }) }));
+  });
+
+  it.each([
+    { arguments: JSON.stringify({ url: "https://en.wikipedia.org/wiki/Unrelated" }) },
+    { arguments: JSON.stringify({ url: "" }) },
+    { arguments: JSON.stringify({ url: "https://en.wikipedia.org/wiki/Trail_blazing", unexpected: true }) },
+    { arguments: "null" },
+    { arguments: [] },
+    { arguments: '{"url":', status: "completed" },
+    { name: "wrong_function", arguments: '{"url":' },
+    { call_id: "wrong_call", arguments: '{"url":' },
+    { id: "wrong_item", arguments: '{"url":' },
+    { turn_id: "wrong_turn", arguments: '{"url":' },
+  ])("still refuses a conflicting resumed item without new work: %j", async resumed => {
+    const value = fixture("lost_ack"), first = await value.runtime.runStage(value.request, value.hooks);
+    if (first.status !== "unresolved" || !first.receipt) throw new Error("Missing synthetic receipt");
+    value.setResumeItem(resumed);
+    expect((await value.createRuntime().resumeStage(first.receipt, value.hooks)).status).toBe("unresolved");
+    expect(value.calls).toMatchObject({ creates: 1, dns: 1, pages: 1, saves: 1, submits: 1 });
+  });
+
+  it.each([false, { arguments: { url: "https://en.wikipedia.org/wiki/Unrelated" } }] as const)("does not replay a saved result without its exact current required action: %j", async action => {
+    const value = fixture("lost_ack"), first = await value.runtime.runStage(value.request, value.hooks);
+    if (first.status !== "unresolved" || !first.receipt) throw new Error("Missing synthetic receipt");
+    value.setResumeItem({ arguments: '{"url":' }); value.setResumeAction(action);
+    expect((await value.createRuntime().resumeStage(first.receipt, value.hooks)).status).toBe("unresolved");
+    expect(value.calls).toMatchObject({ creates: 1, dns: 1, pages: 1, saves: 1, submits: 1 });
+  });
+
+  it.each(["sessionId", "turnId", "requestHash", "providerCallKey"] as const)("refuses a loaded witness with a different %s before deferring a prefix", async field => {
+    const value = fixture("lost_ack"), first = await value.runtime.runStage(value.request, value.hooks);
+    if (first.status !== "unresolved" || !first.receipt) throw new Error("Missing synthetic receipt");
+    const witness = value.records[0]!.invocationWitness!;
+    witness[field] = field === "requestHash" ? "f".repeat(64) : "wrong_identity";
+    value.setResumeItem({ arguments: '{"url":' });
+    expect(await value.createRuntime().resumeStage(first.receipt, value.hooks)).toMatchObject({ status: "unresolved", code: "reference_invocation_changed" });
+    expect(value.calls).toMatchObject({ creates: 1, dns: 1, pages: 1, saves: 1, submits: 1 });
+  });
+
+  it("does not exempt a deferred stream fragment from the existing item byte limit", async () => {
+    const value = fixture("lost_ack"), first = await value.runtime.runStage(value.request, value.hooks);
+    if (first.status !== "unresolved" || !first.receipt) throw new Error("Missing synthetic receipt");
+    value.setResumeItem({ arguments: '{"url":' });
+    value.setResumeItemEvent({ arguments: '{"url":' + " ".repeat(1_048_576) });
+    expect(await value.createRuntime().resumeStage(first.receipt, value.hooks)).toMatchObject({ status: "unresolved", code: "provider_item_limit" });
+    expect(value.calls).toMatchObject({ creates: 1, dns: 1, pages: 1, saves: 1, submits: 2 });
   });
 
   it("loads an uncertain persistence acknowledgement before attempting another read", async () => {
