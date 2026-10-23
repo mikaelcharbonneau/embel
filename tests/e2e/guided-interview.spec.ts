@@ -257,9 +257,9 @@ async function expectNoLegacyClutter(page: Page) {
 }
 
 async function expectComposerInViewport(page: Page) {
-  const composer = page.getByRole("textbox", { name: "Message Embel", exact: true });
+  const composer = page.getByRole("textbox", { name: /^(Message Embel|Naming message)$/ });
   await expect(composer).toBeVisible();
-  const send = page.getByRole("button", { name: "Send prompt", exact: true });
+  const send = page.getByRole("button", { name: /^(Send prompt|Save naming guidance)$/ });
   await expect(send).toBeVisible();
   const bounds = await send.boundingBox();
   expect(bounds).not.toBeNull();
@@ -438,7 +438,7 @@ test("guided interview: explicit selections save, reload, and finish at personal
   expect(state.unhandledWrites).toEqual([]);
   await expect(page.getByRole("heading", { name: "Which approaches would you like to explore?", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Continue to Naming", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeEditable();
+  await expect(page.getByRole("textbox", { name: "Naming message", exact: true })).toBeEditable();
   expect(state.project.context.intake.guidedInterview?.answers).toHaveLength(3);
   expect(state.enqueues).toHaveLength(2);
   await page.screenshot({ path: info.outputPath("guided-interview-continues-to-naming.png"), fullPage: true, scale: "css" });
@@ -679,9 +679,9 @@ test("guided interview: committed answer with a lost save acknowledgement reconc
   await expect(page.getByRole("button", { name: "Retry save", exact: true })).toBeVisible();
   expect(state.project.current_revision).toBe(2);
   expect(state.patches).toHaveLength(1); expect(state.enqueues).toHaveLength(0);
-  await page.getByText("My account", { exact: true }).click();
+  await page.locator(".workspace-account-menu > summary").click();
   await page.getByRole("button", { name: "Check account", exact: true }).click();
-  await page.getByText("My account", { exact: true }).click();
+  await page.locator(".workspace-account-menu > summary").click();
   await expectRequest(state, 1, "strategy.reformulate");
   await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toHaveValue("");
   await expect(page.getByRole("button", { name: "Retry save", exact: true })).toHaveCount(0);

@@ -113,7 +113,8 @@ test("Handles prepares manual profile links and exports an unchecked comparison"
   await page.getByRole("button", { name: "Build comparison", exact: true }).click();
   await page.getByRole("button", { name: "Details for @cedar from cedar", exact: true }).click();
   await expect(page.locator('a[href="https://www.instagram.com/cedar/"]')).toBeVisible();
-  await expect(page.getByRole("button", { name: "Refresh results", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Refresh results", exact: true })).toHaveCount(0);
+  await expect(page.getByText("Checks not connected · availability unknown", { exact: true })).toBeVisible();
   const pending = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export handles CSV", exact: true }).click();
   const download = await pending, path = info.outputPath("handles.csv"); await download.saveAs(path);
@@ -125,7 +126,7 @@ test("Handles prepares manual profile links and exports an unchecked comparison"
 
 test("Names backup imports preserve existing account names and survive reload", async ({ page }, info) => {
   const audit = await setup(page);
-  await page.getByText(/^Backups and recovery ·/).click();
+  await expect(page.getByRole("heading", { name: "Backups and recovery", exact: true })).toBeVisible();
   const pending = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download a backup", exact: true }).click();
   const download = await pending, path = info.outputPath("names.json"); await download.saveAs(path);
@@ -136,7 +137,10 @@ test("Names backup imports preserve existing account names and survive reload", 
   await expect(page.getByText(/This backup contains 1 name and 0 runs/)).toBeVisible();
   expect(audit.names.payload().candidates).toHaveLength(2);
   await page.getByRole("button", { name: "Import into my account", exact: true }).click(); await waitForNamesSaved(page);
-  await page.reload(); await expect(page.getByRole("button", { name: "Favorite result birch", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.reload();
+  const preview = page.getByRole("button", { name: /^Preview ·/ });
+  if (await preview.isVisible() && await preview.getAttribute("aria-pressed") !== "true") await preview.click();
+  await expect(page.getByRole("button", { name: "Favorite result birch", exact: true })).toHaveAttribute("aria-pressed", "true");
   expect(audit.names.payload().candidates.map(item => item.source.value)).toEqual(["cedar", "birch"]);
   expect(await page.evaluate(() => localStorage.getItem("fluid.names.v1"))).toBeNull();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
