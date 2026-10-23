@@ -181,11 +181,18 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
         if (!current()) return false;
         if (project.owner_id !== account.userId || project.id !== created.receipt.projectId) { expire(account); return false; }
         if (project.current_revision === 1 && !project.context.intake.guidedInterview?.turns.length) {
-          const overview = await boundedAccountRequest(`/api/projects/${project.id}/strategy`, strategyOverviewResponseSchema, { signal: controller.signal });
+          // The project save is already verified. Readiness is optional: an outage
+          // must not turn a successful save into an apparent save failure. Keep
+          // auth/not-found failures visible, and never swallow a later PATCH.
+          let overview: z.infer<typeof strategyOverviewResponseSchema> | null = null;
+          try { overview = await boundedAccountRequest(`/api/projects/${project.id}/strategy`, strategyOverviewResponseSchema, { signal: controller.signal }); }
+          catch (cause) {
+            if (cause instanceof AccountRequestError && [401, 403, 404].includes(cause.status)) throw cause;
+          }
           if (!current()) return false;
-          if (!verifyStrategyJobs(overview.jobs, account.userId, project.id)) { expire(account); return false; }
-          const projectAllowance = guidedAllowance(overview.availability, "strategy.competitors");
-          if (projectAllowance && !overview.jobs.length) {
+          if (overview && !verifyStrategyJobs(overview.jobs, account.userId, project.id)) { expire(account); return false; }
+          const projectAllowance = guidedAllowance(overview?.availability ?? null, "strategy.competitors");
+          if (projectAllowance && overview && !overview.jobs.length) {
             const next = guidedStartContext(project.context, account.userId, projectAllowance, 2, project.id);
             const { revision } = await boundedAccountRequest(`/api/projects/${project.id}`, accountRevisionResponseSchema, {
               method: "PATCH", signal: controller.signal, body: { expectedRevision: 1, context: next },

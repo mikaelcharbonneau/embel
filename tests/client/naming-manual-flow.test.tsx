@@ -242,3 +242,31 @@ it("allows a manual save from a verified clean cached overview and retries the e
   expect(button("Inspect name Retained exact name")).toBeDefined();
   expect(requests.some(row => row.path.endsWith("/ensure"))).toBe(false);
 });
+
+
+it("describes a manually entered name without inventing a library-copy origin", async () => {
+  await render();
+  await enter("My own idea");
+  await click("Add name");
+  await click("Inspect name My own idea");
+  expect(host.textContent).toContain("User-supplied name, entered directly or imported with its captured context.");
+  expect(host.textContent).not.toContain("Copied from your Names library");
+  expect(requests.filter(row => row.path.endsWith("/ensure"))).toHaveLength(0);
+});
+
+
+it("moves focus into inspection and restores the originating name on Back without mutations", async () => {
+  await render(); await enter("Keyboard name"); await click("Add name");
+  const original = button("Inspect name Keyboard name")!;
+  original.focus();
+  const before = requests.filter(row => row.method !== "GET").length;
+  await click("Inspect name Keyboard name");
+  expect(document.activeElement?.textContent).toBe("Keyboard name");
+  expect(document.activeElement?.tagName).toBe("H3");
+  button("Back to results")!.focus();
+  await act(async () => { await vi.advanceTimersByTimeAsync(15_001); });
+  expect(document.activeElement).toBe(button("Back to results"));
+  await click("Back to results");
+  expect(document.activeElement).toBe(button("Inspect name Keyboard name"));
+  expect(requests.filter(row => row.method !== "GET")).toHaveLength(before);
+});

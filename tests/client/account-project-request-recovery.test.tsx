@@ -38,11 +38,23 @@ describe("saved-project HTTP recovery", () => {
   it("offers recovery when the initial project read stalls and ignores the late reply", async () => {
     const stalled = deferred<Response>(); fetcher.mockImplementationOnce(() => stalled.promise);
     await render(); expect(host.textContent).toContain("Loading your account project");
-    await expireRequest(); expect(host.textContent).toContain("Check account and retry");
+    await expireRequest(); expect(host.textContent).toContain("Retry loading project");
     await act(async () => stalled.resolve(Response.json({ project })));
     expect(mock.memory!.get(projectId)).toBeNull(); expect(mutations()).toHaveLength(0);
-    mock.session = { ...mock.session!, generation: 2 }; await render();
+    await click("Retry loading project");
     expect(mock.editor!.workspace.saved.id).toBe(projectId); expect(mock.expire).not.toHaveBeenCalled();
+    expect(mock.refresh).not.toHaveBeenCalled(); expect(mock.session!.generation).toBe(1);
+    expect(fetcher).toHaveBeenCalledTimes(2); expect(mutations()).toHaveLength(0);
+  });
+
+  it("keeps repeated project-read failures retryable without refreshing the account", async () => {
+    fetcher.mockImplementationOnce(async () => new Response(null, { status: 503 }));
+    fetcher.mockImplementationOnce(async () => new Response(null, { status: 503 }));
+    await render(); expect(host.textContent).toContain("Retry loading project");
+    await click("Retry loading project"); expect(host.textContent).toContain("Retry loading project");
+    await click("Retry loading project"); expect(mock.editor!.workspace.saved.id).toBe(projectId);
+    expect(mock.refresh).not.toHaveBeenCalled(); expect(mock.session!.generation).toBe(1);
+    expect(fetcher).toHaveBeenCalledTimes(3); expect(mutations()).toHaveLength(0);
   });
 
   it("reconciles a committed PATCH after timeout without appending a duplicate revision", async () => {

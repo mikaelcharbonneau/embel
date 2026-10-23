@@ -25,6 +25,7 @@ async function defaultFetch(path: string, init: RequestInit) {
   if (path === "/api/strategy") return Response.json({ availability: ready });
   if (path === "/api/projects") return Response.json({ project: { ...JSON.parse(String(init.body)), id: JSON.parse(String(init.body)).requestKey, owner_id: owner, current_revision: 1, created_at: "2026-10-07T00:00:00Z" } });
   if (init.method === "PATCH") { const body = JSON.parse(String(init.body)); return Response.json({ revision: { project_id: path.split("/")[3], owner_id: owner, revision: body.expectedRevision + 1, context: body.context, input_hash: "synthetic-context", created_at: "2026-10-07T00:00:00Z" } }); }
+  if (path.endsWith("/strategy") && init.method === "GET") return Response.json({ availability: { status: "unavailable", operations: [], reason: "worker_unavailable" }, jobs: [] });
   if (path.endsWith("/strategy")) return Response.json({ job: { id: crypto.randomUUID(), owner_id: owner, project_id: path.split("/")[3], operation: "strategy.competitors", input_revision: JSON.parse(String(init.body)).expectedRevision, state: "queued", progress: 0, error_code: null, cancel_requested_at: null, created_at: "2026-10-07T00:00:00Z", finished_at: null, reserved_cost_microusd: 10000, actual_cost_microusd: 0, results: [] } });
   throw new Error(`Unexpected fixture request ${path}`);
 }
@@ -171,6 +172,34 @@ describe("Home account persistence and sign-in continuation", () => {
     expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${JSON.parse(String(creations()[0]![1].body)).requestKey}`);
     expect(window.sessionStorage.getItem(`fluid.prompt-buffer.v1:${owner}`)).toBeNull();
     await remountHome(); expect(host.querySelector("textarea")!.value).toBe(""); expect(host.textContent).not.toContain(original);
+  });
+
+  it.each(["unavailable", "malformed", "network"])("opens the acknowledged project when its optional readiness read is %s", async failure => {
+    fetcher.mockImplementation((path: string, init: RequestInit) => {
+      if (path === "/api/strategy") return Promise.resolve(Response.json({ availability: { status: "unavailable", operations: [], reason: "worker_unavailable" } }));
+      if (path.endsWith("/strategy") && init.method === "GET") {
+        if (failure === "network") return Promise.reject(new TypeError("Synthetic network failure"));
+        return Promise.resolve(Response.json({}, { status: failure === "malformed" ? 200 : 503 }));
+      }
+      return defaultFetch(path, init);
+    });
+    await render(); await click("Send prompt");
+    const body = JSON.parse(String(creations()[0]![1].body));
+    expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${body.requestKey}`);
+    expect(mutations()).toHaveLength(1);
+    expect(window.sessionStorage.getItem(`fluid.prompt-buffer.v1:${owner}`)).toBeNull();
+    await remountHome(); expect(host.querySelector("textarea")!.value).toBe("");
+  });
+
+  it.each([401, 403, 404])("does not conceal readiness authorization or missing-project error %s", async status => {
+    fetcher.mockImplementation((path: string, init: RequestInit) => {
+      if (path === "/api/strategy") return Promise.resolve(Response.json({ availability: { status: "unavailable", operations: [], reason: "worker_unavailable" } }));
+      if (path.endsWith("/strategy") && init.method === "GET") return Promise.resolve(Response.json({}, { status }));
+      return defaultFetch(path, init);
+    });
+    await render(); await click("Send prompt");
+    expect(mock.push).not.toHaveBeenCalled(); expect(mutations()).toHaveLength(1);
+    if (status === 401) expect(mock.expire).toHaveBeenCalledOnce();
   });
 
   it("saves the exact initial turn and opens the project before destination-owned research preparation", async () => {
