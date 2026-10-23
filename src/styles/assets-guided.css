@@ -34,11 +34,11 @@
 .assets-card-context > span { flex-shrink: 0; }
 .assets-open-detail { display: grid; place-items: center; border: 0; background: transparent; margin: -12px -12px -12px auto; min-width: 38px; height: 44px; flex-shrink: 0; }
 .assets-card-options { position: absolute; top: 6px; right: 6px; z-index: 2; }
-.assets-card-options > summary { cursor: pointer; list-style: none; display: grid; place-items: center; width: 44px; height: 32px; background: var(--paper); border: 1px solid var(--border); border-radius: 7px; color: var(--secondary); font-size: 18px; opacity: 0; }
+.assets-card-options > summary { cursor: pointer; list-style: none; display: grid; place-items: center; width: 44px; height: 44px; background: var(--paper); border: 1px solid var(--border); border-radius: 7px; color: var(--secondary); font-size: 18px; opacity: 0; }
 .assets-card-options > summary::-webkit-details-marker { display: none; }
 .assets-card:hover .assets-card-options > summary, .assets-card:focus-within .assets-card-options > summary, .assets-card-options[open] > summary { opacity: 1; }
 .assets-card-options[open] { z-index: 10; }
-.assets-card-options-panel { position: absolute; right: 0; top: 38px; width: 220px; max-width: calc(100vw - 56px); background: var(--paper); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px #19191914; padding: 12px; font-size: 12px; }
+.assets-card-options-panel { position: absolute; right: 0; top: 50px; width: 220px; max-width: calc(100vw - 56px); background: var(--paper); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px #19191914; padding: 12px; font-size: 12px; }
 .assets-card-options-panel .assets-badges { margin: 0; }
 .assets-card-options-panel p { margin: 8px 0; color: var(--secondary); }
 .assets-card-options-panel > div:last-child { display: flex; gap: 8px; }
