@@ -1,3 +1,4 @@
+import { checkDialogHitTesting } from "./dialog-hit-testing";
 import { expect, test, type Page } from "@playwright/test";
 import { inspirationCatalog, INSPIRATION_CATALOG_VERSION, type InspirationOverview } from "../../src/domain/inspiration";
 import { contextSnapshotSchema } from "../../src/domain/projects";
@@ -74,4 +75,10 @@ test("a failed write retains intent and requires check then explicit retry", asy
   await expect(dialog.getByRole("button", { name: "Save my changes" })).toBeDisabled(); await dialog.getByRole("button", { name: "Check saved choices" }).click();
   await expect(dialog.getByRole("button", { name: "Save my changes" })).toBeEnabled(); fixture.fail = false; await dialog.getByRole("button", { name: "Save my changes" }).click();
   await expect(dialog.getByRole("button", { name: "Overall look" })).toBeEnabled(); expect(fixture.writes).toBe(2); expect(fixture.overview.choices[0]?.ensemble).toBe(true);
+});
+
+test("dialog hit testing: inspiration detail protects padding without saving choices", async ({ page }) => {
+  const fixture = await setup(page);
+  await checkDialogHitTesting(page, inspect(page), page.getByRole("dialog").filter({ has: page.locator("#inspiration-detail-title") }), "Close design detail");
+  expect(fixture.writes).toBe(0);
 });

@@ -1,3 +1,4 @@
+import { checkDialogHitTesting } from "./dialog-hit-testing";
 import { test, expect, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { createNamesAccountFixture, namesOwner, waitForNamesSaved } from "./fixtures/names-account";
@@ -136,4 +137,11 @@ test("Names backup imports preserve existing account names and survive reload", 
   expect(await page.evaluate(() => localStorage.getItem("fluid.names.v1"))).toBeNull();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   audit();
+});
+
+for (const tool of ["domains", "handles", "trademarks"]) test(`dialog hit testing: ${tool} name library protects padding without importing`, async ({ page }) => {
+  const audit = await setup(page); await page.goto(`/${tool}`);
+  const trigger = page.getByRole("button", { name: "From name library", exact: true });
+  await checkDialogHitTesting(page, trigger, page.getByRole("dialog", { name: "Name library", exact: true }), tool === "domains" ? "Close name library" : "Close");
+  expect(audit.names.payload().candidates.some(item => item.source.value === "cedar")).toBe(true); audit();
 });
