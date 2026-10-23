@@ -63,6 +63,8 @@ const receiptFields = {
   version: z.literal(1), provider: z.literal("openai"), billingMode: z.literal("openai_api"), runId: z.uuid(), stageKey: namingStageKeySchema, role: namingRoleSchema,
   // Absence retains the historical native-cap contract. Local monetary fields remain compatibility metadata.
   budgetControl: z.literal("local_unlimited_v1").optional(),
+  // Orthogonal v1 provider cap; the legacy marker retains execution compatibility only.
+  providerSpendCapCents: z.number().int().min(1).max(150).optional(),
   localPipelineVersion: z.literal(2).optional(),
   snapshotHash: hash, requestKey, providerCallKey: localKey, assignmentKey: localKey.nullable(), requestHash: hash, sessionLimitCents: z.number().int().min(1).max(150), dispatchState: z.enum(["not_dispatched", "dispatched", "unknown"]), requestId: providerId.nullable(),
   callIds: z.array(providerId).max(200).refine(unique), observedModel: z.string().min(1).max(150).nullable(),
@@ -77,6 +79,7 @@ export const namingProviderReceiptSchema = z.discriminatedUnion("protocol", [
   z.strictObject({ ...receiptFields, protocol: z.literal("openai_agents"), sessionId: providerId.nullable(), turnId: providerId.nullable(), agentId: providerId.nullable(), responseId: z.null() }),
   z.strictObject({ ...receiptFields, protocol: z.literal("openai_responses"), sessionId: z.null(), turnId: z.null(), agentId: z.null(), responseId: providerId.nullable() }),
 ]).superRefine((value, ctx) => {
+  if (value.providerSpendCapCents !== undefined && (value.localPipelineVersion !== 2 || value.providerSpendCapCents !== value.sessionLimitCents)) issue(ctx, "Provider cap requires an exact progressive session allocation");
   if (value.budgetControl && value.protocol !== "openai_agents") issue(ctx, "Local unlimited control requires the managed Agents protocol");
   if ((value.role === "creator") !== (value.assignmentKey !== null)) issue(ctx, "Creator call receipts require the exact assignment key");
   const progressive = value.localPipelineVersion === 2 && value.budgetControl === "local_unlimited_v1" && value.stageKey === "creation";
@@ -449,6 +452,8 @@ export const namingRolePolicySchema = z.strictObject({
   version: z.literal(1), role: namingRoleSchema, protocol: z.literal("openai_agents"), model: z.string().trim().min(1).max(150), reasoningEffort: z.literal("xhigh"),
   // The legacy monetary fields below remain canonical bookkeeping in this local mode; they do not limit spend.
   budgetControl: z.literal("local_unlimited_v1").optional(),
+  // Orthogonal v1 provider cap; the legacy marker retains execution compatibility only.
+  providerSpendCapCents: z.number().int().min(1).max(150).optional(),
   localPipelineVersion: z.literal(2).optional(),
   progressiveContractVersion: z.union([z.literal(2), z.literal(3)]).optional(),
   maximumCostMicrousd: z.number().int().min(1).max(1_500_000), sessionLimitCents: z.number().int().min(1).max(150), maxWebSearchCalls: z.number().int().min(0).max(20),
@@ -456,6 +461,7 @@ export const namingRolePolicySchema = z.strictObject({
   allowedTools: z.array(z.enum(["web_search", "read_reference"])).max(2).refine(unique),
   referenceHosts: z.array(z.string().min(3).max(253).regex(/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/)).max(40).refine(unique),
 }).superRefine((value, ctx) => {
+  if (value.providerSpendCapCents !== undefined && (value.localPipelineVersion !== 2 || value.providerSpendCapCents !== value.sessionLimitCents)) issue(ctx, "Provider cap requires an exact progressive session allocation");
   if (value.progressiveContractVersion !== undefined && value.localPipelineVersion !== 2) issue(ctx, "The future role contract requires the immutable progressive execution profile");
   if (value.localPipelineVersion === 2 && (value.budgetControl !== "local_unlimited_v1" || value.deadlineMs !== 900_000)) issue(ctx, "Progressive calls require the explicit local execution and timing policy");
   if (value.deadlineMs === 900_000 && value.budgetControl !== "local_unlimited_v1") issue(ctx, "Extended call timing requires explicit local execution");
@@ -633,8 +639,10 @@ export const namingBrainJobInputSchema = z.strictObject({
   // New hosted admissions retain a distinct authority witness. The local_* fields
   // remain protocol identifiers so historical provider requests stay exact.
   executionAuthority: z.literal("hosted_owner_v1").optional(),
+  providerBudgetVersion: z.literal(1).optional(),
   snapshot: namingBriefSnapshotSchema, acceptedPolicyIdentity: hash, policy: namingBrainPolicySchema,
 }).refine(value => getNamingPreferencesReadiness(value.snapshot.preferences).ready, "Admission requires generation-ready saved preferences")
+ .refine(value => value.providerBudgetVersion === undefined || value.localPipelineVersion === 2, "Provider budgeting requires progressive execution")
  .refine(value => value.localPipelineVersion !== 2 || value.localTimingVersion === 2, "Progressive admission retains its explicit local timing witness")
  .refine(value => value.executionAuthority !== "hosted_owner_v1" || value.localPipelineVersion === 2 && value.localTimingVersion === 2, "Hosted admission requires the complete approved execution profile").transform(freeze);
 export type NamingBrainJobInput = z.infer<typeof namingBrainJobInputSchema>;
@@ -692,6 +700,7 @@ const runSummaryFields = {
   canResumeSaved: z.boolean().optional(),
   localPipelineVersion: z.literal(2).optional(),
   executionAuthority: z.literal("hosted_owner_v1").optional(),
+  providerBudgetVersion: z.literal(1).optional(),
   progressiveCompletionId: z.uuid().optional(),
   state: z.enum(["queued", "running", "partial", "cancel_requested", "cancelled", "succeeded", "failed", "needs_reconciliation", "prepared", "superseded"]),
   projectRevision: revision, preferencesVersion: revision, feedbackRevision: counter, steeringRevision: counter, demandSequence: counter, snapshotHash: hash, acceptedPolicyIdentity: hash,

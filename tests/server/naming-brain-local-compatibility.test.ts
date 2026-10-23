@@ -2,17 +2,17 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { namingBriefSnapshotSchema, namingRoleOutputSchema, namingRolePolicySchema, validateNamingAssignmentPlan, type NamingProviderReceipt } from "../../src/domain/naming-brain";
 import { id, snapshot, research, plan, proposal } from "../domain/naming-brain-fixtures";
-import { createNamingBrainPolicy, createNamingRolePolicy, createProgressiveNamingRolePolicy } from "../../src/server/ai/naming-brain/policy";
+import { createNamingBrainPolicy, createNamingRolePolicy, createProgressiveNamingRolePolicy, createBudgetedProgressiveNamingRolePolicy } from "../../src/server/ai/naming-brain/policy";
 import { createProgressiveNamingAssignment } from "../../src/server/ai/naming-brain/progressive-assignments";
 import { buildNamingManagedRequest, createNamingRoleRequest } from "../../src/server/ai/naming-brain/prompts";
 import { createNamingManagedProtocol } from "../../src/server/ai/naming-brain/protocol";
 import { createNamingAgentRuntime, type NamingRuntimeState } from "../../src/server/ai/naming-brain/transport";
 
-function roleRequest(localPrototype: boolean, stageKey: "creation" | "gap" | "direction" = "creation", deadlineMs: 240000 | 900000 = 240_000, progressive = false, model = "gpt-6.1-sol") {
+function roleRequest(localPrototype: boolean, stageKey: "creation" | "gap" | "direction" = "creation", deadlineMs: 240000 | 900000 = 240_000, progressive = false, model = "gpt-6.1-sol", capped = false) {
   const brief = namingBriefSnapshotSchema.parse(snapshot()), assignment = validateNamingAssignmentPlan(brief, research(), plan())[0]!;
   if (progressive) return createNamingRoleRequest({ runId: id(3), stageKey: "creation", providerCallKey: "part001.creator", input: { role: "creator", snapshot: brief,
     assignment: createProgressiveNamingAssignment({ runId: id(3), snapshot: brief, partIndex: 0, approach: "real_words", targetCount: 4 }) }, dependencyArtifactIds: [],
-    policy: createProgressiveNamingRolePolicy(createNamingBrainPolicy(model), "creator", 4, undefined, localPrototype) });
+    policy: capped ? createBudgetedProgressiveNamingRolePolicy(createNamingBrainPolicy(model), "creator") : createProgressiveNamingRolePolicy(createNamingBrainPolicy(model), "creator", 4, undefined, localPrototype) });
   if (stageKey === "direction") {
     const pack = namingRoleOutputSchema.parse(research());
     if (!("readiness" in pack)) throw new Error("Synthetic Research missing");
@@ -23,18 +23,18 @@ function roleRequest(localPrototype: boolean, stageKey: "creation" | "gap" | "di
     policy: createNamingRolePolicy(createNamingBrainPolicy("gpt-6.1-sol"), stageKey, "creator", 90, undefined, localPrototype, deadlineMs) });
 }
 
-// The current public Agents contract has no spend_control in either direction.
+// Historical compatibility sessions omitted spend_control after a provider rejection.
 // Exercise the actual pinned SDK, durable hooks and post-parse together using that shape.
 function fixture(options: { localRequest?: boolean; trustedLocal?: boolean; missingWitness?: boolean; wrongReasoning?: boolean; largeCounter?: boolean; hanging?: boolean;
   stageKey?: "creation" | "gap" | "direction"; deadlineMs?: 240000 | 900000; stageAgeMs?: number; remainingMs?: number; clock?: () => number; missingAuthorization?: boolean; mismatchedAuthorization?: boolean; createAckLost?: boolean;
-  completionDelayMs?: number; nativeSessionCap?: boolean; progressive?: boolean; model?: string; wrongTier?: boolean; wrongVerbosity?: boolean; missingPipeline?: boolean; priorityRejected?: boolean } = {}) {
-  const request = roleRequest(options.localRequest ?? true, options.stageKey, options.deadlineMs, options.progressive, options.model), sent: unknown[] = [], receipts: NamingProviderReceipt[] = [], order: string[] = [];
+  completionDelayMs?: number; nativeSessionCap?: boolean; progressive?: boolean; model?: string; wrongTier?: boolean; wrongVerbosity?: boolean; missingPipeline?: boolean; priorityRejected?: boolean; capped?: boolean; returnedCap?: number | null; consumed?: number } = {}) {
+  const request = roleRequest(options.localRequest ?? true, options.stageKey, options.deadlineMs, options.progressive, options.model, options.capped), sent: unknown[] = [], receipts: NamingProviderReceipt[] = [], order: string[] = [];
   let creates = 0, cancellations = 0;
   const wire = buildNamingManagedRequest(request), now = options.clock?.() ?? Date.now();
   const body = { id: "sess_local_fixture", object: "agent.session", agent: { id: "agent_local_fixture", ...wire.agent, reasoning: { effort: options.wrongReasoning ? "low" : "xhigh", summary: null },
     ...(options.wrongTier ? { service_tier: wire.agent!.service_tier === "default" ? "priority" : "default" } : {}), ...(options.wrongVerbosity ? { text: { ...wire.agent!.text, verbosity: "high" } } : {}) },
     environment: { type: "none" }, metadata: { ...wire.metadata, ...(options.missingWitness ? { embel_budget_control: undefined } : {}), ...(options.missingPipeline ? { embel_pipeline_version: undefined } : {}) }, status: "idle", required_actions: [], usage: null,
-    ...(options.largeCounter ? { spend_control: { limit: 1, consumed: 10_000 } } : options.nativeSessionCap ? { spend_control: { limit: request.policy.sessionLimitCents, consumed: 0 } } : {}) };
+    ...(options.capped ? options.returnedCap === null ? {} : { spend_control: { limit: options.returnedCap ?? request.policy.providerSpendCapCents, consumed: options.consumed ?? 0 } } : options.largeCounter ? { spend_control: { limit: 1, consumed: 10_000 } } : options.nativeSessionCap ? { spend_control: { limit: request.policy.sessionLimitCents, consumed: 0 } } : {}) };
   const turn = { id: "turn_local_fixture", session_id: body.id, agent_id: body.agent.id, subagent_id: null, status: options.hanging ? "in_progress" : "completed", error: null, usage: null,
     created_at: 1, started_at: 1, completed_at: options.hanging ? null : 2, object: "agent.session.turn" };
   const candidate = request.input.role === "creator" ? { ...proposal(), primaryApproach: request.input.assignment.primaryApproach, territoryId: request.input.assignment.territoryId, constructionKey: request.input.assignment.constructionKey } : proposal();
@@ -407,4 +407,28 @@ describe("Explicit local managed-Agents compatibility (synthetic HTTP only)", ()
     expect(await value.runtime.runStage(value.request, value.hooks)).toEqual({ status: "rejected_before_dispatch", code: "cancelled_before_dispatch" });
     expect(value.creates()).toBe(0); expect(value.order).toEqual([]);
   });
+});
+
+
+describe("budgeted progressive provider acknowledgement", () => {
+ it("requires the returned cap, retains it on receipts and recovers without another create", async () => {
+  const f = fixture({ progressive: true, capped: true });
+  const result = await f.runtime.runStage(f.request, f.hooks);
+  expect(result).toMatchObject({ status: "completed", receipt: { providerSpendCapCents: 10, confirmedActualCostMicrousd: null } });
+  expect(f.sent[0]).toMatchObject({ spend_control: { limit: 10 } });
+  if (result.status !== "completed") throw new Error("Missing synthetic completion");
+  expect(await f.runtime.resumeStage(result.receipt, f.hooks)).toMatchObject({ status: "completed" });
+  expect(f.creates()).toBe(1);
+  expect(await f.runtime.resumeStage({ ...result.receipt, providerSpendCapCents: undefined }, f.hooks)).toMatchObject({ status: "unresolved", code: "receipt_mismatch" });
+ });
+ it.each([null, 9, 11])("refuses an absent or changed provider limit (%s)", async returnedCap => {
+  const f = fixture({ progressive: true, capped: true, returnedCap });
+  expect(await f.runtime.runStage(f.request, f.hooks)).toMatchObject({ status: "unresolved", code: "provider_configuration_mismatch", receipt: { sessionId: "sess_local_fixture" } });
+  expect(f.creates()).toBe(1); expect(f.cancellations()).toBe(1);
+ });
+ it("quarantines an observed overrun instead of publishing or claiming final charges", async () => {
+  const f = fixture({ progressive: true, capped: true, consumed: 11 });
+  expect(await f.runtime.runStage(f.request, f.hooks)).toMatchObject({ status: "unresolved", code: "provider_cost_exceeded", receipt: { providerSpendCapCents: 10, confirmedActualCostMicrousd: null } });
+  expect(f.creates()).toBe(1);
+ });
 });

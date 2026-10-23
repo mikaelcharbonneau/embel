@@ -6,7 +6,7 @@ import { createNamingCurationProjection, createNamingReviewProjection, namingAss
 import { createNamingMicrobatch } from "../../src/domain/naming-brain-progressive";
 import type { NamingApproach } from "../../src/domain/naming-brain-preferences";
 import type { ClaimedJob } from "../../src/domain/jobs";
-import { createProgressiveNamingRolePolicy } from "../../src/server/ai/naming-brain/policy";
+import { createBudgetedProgressiveNamingRolePolicy, createProgressiveNamingRolePolicy } from "../../src/server/ai/naming-brain/policy";
 import { createNamingRoleRequest } from "../../src/server/ai/naming-brain/prompts";
 import { namingSourceContext } from "../../src/server/ai/naming-brain/outputs";
 import { chooseProgressiveNamingApproach, createProgressiveNamingAssignment, PROGRESSIVE_CREATIVE_APPROACHES, PROGRESSIVE_PART_LIMIT, PROGRESSIVE_RAW_LIMIT, progressivePartKey } from "../../src/server/ai/naming-brain/progressive-assignments";
@@ -76,7 +76,7 @@ export async function executeProgressiveNaming(options: Options): Promise<{ outc
     try {
     const value = build();
     const request = createNamingRoleRequest({ runId: input.runId, stageKey: "creation", providerCallKey: key, input: value.input,
-      dependencyArtifactIds: [...new Set(value.dependencies)], policy: createProgressiveNamingRolePolicy(input.policy, role, undefined, undefined, true, 3) });
+      dependencyArtifactIds: [...new Set(value.dependencies)], policy: input.providerBudgetVersion === 1 ? createBudgetedProgressiveNamingRolePolicy(input.policy, role) : createProgressiveNamingRolePolicy(input.policy, role, undefined, undefined, true, 3) });
     await retryLocalPersistence(() => store.saveProgressiveCallPlan(job, phase, [request]), signal);
     planned.set(key, request);
     return request;

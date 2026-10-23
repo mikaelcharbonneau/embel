@@ -4,7 +4,7 @@ import { namingBrainJobInputSchema, namingRoleOutputSchema, namingProviderReceip
 import { createNamingMicrobatch } from "../../src/domain/naming-brain-progressive";
 import type { NamingApproach } from "../../src/domain/naming-brain-preferences";
 import { guidedStrategyPolicy } from "../../src/server/ai/config";
-import { createProgressiveNamingRolePolicy } from "../../src/server/ai/naming-brain/policy";
+import { createBudgetedProgressiveNamingRolePolicy, createProgressiveNamingRolePolicy } from "../../src/server/ai/naming-brain/policy";
 import { createNamingRoleRequest } from "../../src/server/ai/naming-brain/prompts";
 import { createProgressiveNamingAssignment, progressivePartKey } from "../../src/server/ai/naming-brain/progressive-assignments";
 import { NamingBrainJobStore, normalizeNamingStoredJson } from "../../worker/naming-brain-store";
@@ -33,7 +33,7 @@ export async function seedProgressiveFixture(db: TestDatabase, approaches: Namin
 export type ProgressiveFixture = Awaited<ReturnType<typeof seedProgressiveFixture>>;
 export function progressiveRequest(fixture: ProgressiveFixture, phase: NamingProgressivePhase, input: NamingStageInput, dependencies: string[] = []) {
  return createNamingRoleRequest({ runId: fixture.input.runId, stageKey: "creation", providerCallKey: `${phase}.${input.role}`, input,
-  dependencyArtifactIds: dependencies, policy: createProgressiveNamingRolePolicy(fixture.input.policy, input.role, undefined, undefined, true) });
+  dependencyArtifactIds: dependencies, policy: fixture.input.providerBudgetVersion === 1 ? createBudgetedProgressiveNamingRolePolicy(fixture.input.policy, input.role) : createProgressiveNamingRolePolicy(fixture.input.policy, input.role, undefined, undefined, true) });
 }
 export async function recordProgressiveOutput(fixture: ProgressiveFixture, phase: NamingProgressivePhase, request: NamingStageRequest, output: unknown, extra: Record<string, unknown> = {}, externalAttempt = false) {
  const { db, store, job, input } = fixture, suffix = request.providerCallKey.replaceAll(".", "_"), sessionId = `sess_${suffix}`, turnId = `turn_${suffix}`, itemId = `item_${suffix}`, agentId = `agent_${suffix}`;
@@ -41,6 +41,7 @@ export async function recordProgressiveOutput(fixture: ProgressiveFixture, phase
  await brainWorker(db, () => store.saveProgressiveCallPlan(job, phase, [request]));
  await brainWorker(db, () => store.authorizeDispatch(job, request));
  const receipt = namingProviderReceiptSchema.parse({ version: 1, provider: "openai", billingMode: "openai_api", protocol: "openai_agents", budgetControl: "local_unlimited_v1", localPipelineVersion: 2,
+  ...(request.policy.providerSpendCapCents !== undefined ? { providerSpendCapCents: request.policy.providerSpendCapCents } : {}),
   runId: input.runId, stageKey: "creation", role: request.role, snapshotHash: input.snapshot.snapshotHash,
   providerCallKey: request.providerCallKey, assignmentKey: request.assignmentKey, requestKey: request.requestKey, requestHash: request.requestHash, sessionLimitCents: request.policy.sessionLimitCents,
   dispatchState: "dispatched", requestId: `req_${suffix}`, sessionId, turnId, agentId, responseId: null, callIds: [], observedModel: input.policy.model,

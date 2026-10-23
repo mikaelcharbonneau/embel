@@ -119,7 +119,7 @@ describe("progressive Naming through the actual SDK and migrated SQL", () => {
       if (key === "part004.creation.creator") await directorSaved.promise;
       const sessionId = `sess_${key}`, turnId = `turn_${key}`, agentId = `agent_${key}`, itemId = `item_${key}`;
       const session = { id: sessionId, object: "agent.session", agent: { ...wire.agent, id: agentId }, environment: wire.environment, metadata: wire.metadata,
-        status: "idle", required_actions: [], usage: null };
+        status: "idle", required_actions: [], usage: null, ...(wire.spend_control ? { spend_control: { limit: wire.spend_control.limit, consumed: 0 } } : {}) };
       const failed = request.role === "director" && directorStatus === "failed";
       const turn = { id: turnId, session_id: sessionId, agent_id: agentId, subagent_id: null, object: "agent.session.turn", status: failed ? "failed" : "completed",
         created_at: 1, started_at: 1, completed_at: 2, error: failed ? { code: "server_error", message: "Synthetic optional guidance failure." } : null, usage: null };
