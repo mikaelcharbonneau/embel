@@ -1,6 +1,36 @@
 import { expect, test } from "@playwright/test";
 import { base, namingFixture, openNaming, ownerId, showNamingNames } from "./naming-brain-fixture";
 
+test("manual name is available before the first set completes with AI unavailable", async ({ page }, info) => {
+  const runtimeErrors: string[] = []; page.on("pageerror", error => runtimeErrors.push(error.message));
+  const fixture = await namingFixture(page, { saved: true, count: 12, terminal: "partial" });
+  fixture.state.paused = true;
+  fixture.state.activeRun = { ...fixture.state.activeRun!, progress: 12, fulfillment: { status: "partial", targetCount: 100, acceptedCount: 12, missingCount: 88, coverageSatisfied: false, message: "Synthetic partial result: 12 names retained." } };
+  const retained = structuredClone(fixture.state.rows), request = structuredClone(fixture.state.activeRun);
+  await page.route(url => url.pathname === `${base}/feed`, async route => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ feed: { ...fixture.feed(), availability: { status: "unavailable", code: "worker_unavailable" } } }) });
+  });
+  await openNaming(page);
+  const field = page.getByRole("textbox", { name: "Your own name", exact: true });
+  await expect(field).toBeVisible();
+  await expect(page.locator("[data-naming-results-scroll]")).toHaveAttribute("hidden", "");
+  await page.screenshot({ path: info.outputPath("manual-name-before-initial-set.png") });
+  await field.fill("My first manual name"); await page.getByRole("button", { name: "Add name", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Inspect name My first manual name", exact: true })).toBeVisible();
+  await page.reload(); await showNamingNames(page);
+  await page.getByRole("button", { name: "Inspect name My first manual name", exact: true }).click();
+  await page.getByRole("button", { name: "Use this name", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Name screening", exact: true })).toContainText("My first manual name");
+  await page.reload(); await showNamingNames(page);
+  await expect(page.getByRole("heading", { name: "My first manual name", exact: true })).toBeVisible();
+  expect(fixture.state.currentSelection?.candidate.value).toBe("My first manual name");
+  expect(fixture.state.manual).toHaveLength(1);
+  expect(fixture.state.rows).toEqual(retained); expect(fixture.state.activeRun).toEqual(request);
+  expect(fixture.mutations()).toHaveLength(0);
+  expect(runtimeErrors).toEqual([]);
+  await page.screenshot({ path: info.outputPath("first-manual-name-selected-after-reload.png") });
+});
+
 test("manual name after 130 generated names stays saved and selected across reload with AI unavailable", async ({ page }, info) => {
   const runtimeErrors: string[] = []; page.on("pageerror", error => runtimeErrors.push(error.message));
   const fixture = await namingFixture(page, { saved: true, count: 130, terminal: "partial" });
