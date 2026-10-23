@@ -133,6 +133,10 @@ async function setup(page: Page, fixture = makeFixture()) {
   });
   return fixture;
 }
+// Closed editors retain their drafts. Assert the active feedback surface rather
+// than hidden copies or the inert workspace behind an open native dialog.
+const identityAlert = (page: Page) => page.locator('.project-identity dialog[open] [role="alert"], .project-identity:not(:has(dialog[open])) > .project-workbench-canvas > [role="alert"]');
+const currentChoiceNotice = (page: Page) => page.locator('.project-identity > .project-workbench-canvas > .identity-notice[role="status"]').filter({ hasText: /^Current Identity choice saved\.$/ });
 async function ready(page: Page) { await page.goto(url); await page.getByRole("button", { name: "Saved systems", exact: true }).click(); await expect(page.getByRole("heading", { name: "Identity systems", exact: true })).toBeVisible(); await expect(page.locator("#identity-detail-title")).toHaveText("Cedar"); }
 async function openContextSheet(page: Page, title: string | RegExp) {
   const target = page.getByRole("dialog", { name: title, exact: typeof title === "string" });
@@ -180,7 +184,7 @@ test("identity fixture: uppercase direct route retains canonical private scope",
 });
 test("identity fixture: real empty history and unavailable reads remain distinct", async ({ page }) => {
   const fixture = await setup(page); fixture.systems = []; fixture.selection = null; fixture.readStatus = 503; await page.goto(url); await page.getByRole("button", { name: "Saved systems", exact: true }).click();
-  await expect(page.locator(".project-identity").getByRole("alert")).toContainText("unavailable"); await expect(page.getByText("No Identity systems have been saved yet. Generation is unavailable.")).toHaveCount(0);
+  await expect(identityAlert(page)).toContainText("unavailable"); await expect(page.getByText("No Identity systems have been saved yet. Generation is unavailable.")).toHaveCount(0);
   fixture.readStatus = 200; await closeContextSheet(page); await page.locator(".identity-section-heading").getByRole("button", { name: "Check latest", exact: true }).click();
   await expect(page.getByText("No Identity systems have been saved yet. Generation is unavailable.")).toBeVisible(); expect(fixture.writes).toHaveLength(0);
 });
@@ -188,7 +192,7 @@ test("identity fixture: older complete history stays reachable and explicit rest
   const fixture = await setup(page); fixture.systems = [initialSystem(0), initialSystem(1), initialSystem(2)]; fixture.pageSize = 1; await ready(page);
   await expect(page.locator(".identity-history-card")).toHaveCount(1); await page.getByRole("button", { name: "Load more systems" }).click(); await expect(page.locator(".identity-history-card")).toHaveCount(2);
   await closeContextSheet(page); await page.locator(".identity-history-card").first().getByRole("button", { name: "View system" }).click(); await expect(page.getByRole("button", { name: "Restore as current" })).toBeEnabled();
-  await page.getByRole("button", { name: "Restore as current" }).click(); await expect(page.getByText("Current Identity choice saved.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Restore as current" }).click(); await expect(currentChoiceNotice(page)).toBeVisible();
   expect(fixture.selection?.identityRevision).toBe(2); expect(fixture.writes.filter(write => write.kind === "selection")).toHaveLength(1); expect(fixture.systems).toHaveLength(3);
 });
 test("identity fixture: colors create a manual version and preserve a visibly stale board", async ({ page }) => {
@@ -229,7 +233,7 @@ test("identity fixture: missing saved name preserves history and blocks dependen
 test("identity fixture: conflict preserves preference edits and requires an explicit new baseline", async ({ page }) => {
   const fixture = await setup(page); await ready(page); await openPreferences(page); await page.getByRole("textbox", { name: "Identity direction notes", exact: true }).fill("My private direction");
   fixture.preferences = { ownerId: fixtureOwner, projectId: fixtureProject, revision: 1, preferences: { ...initialIdentityPreferences(fixture.project.context), notes: "Other saved direction" }, createdAt: fixtureAt };
-  await page.getByRole("button", { name: "Save Identity preferences" }).click(); await expect(page.locator(".project-identity").getByRole("alert")).toContainText("Saved inputs changed");
+  await page.getByRole("button", { name: "Save Identity preferences" }).click(); await expect(identityAlert(page)).toContainText("Saved inputs changed");
   await closeContextSheet(page); await page.locator(".identity-section-heading").getByRole("button", { name: "Check latest", exact: true }).click(); await openPreferences(page); await expect(page.getByRole("textbox", { name: "Identity direction notes", exact: true })).toHaveValue("My private direction");
   await page.getByRole("button", { name: "Keep edits against latest" }).click(); await page.getByRole("button", { name: "Save Identity preferences" }).click(); await expect(page.locator("dialog[open]").getByText("Identity preferences saved.", { exact: true })).toBeVisible(); expect(fixture.preferences.revision).toBe(2);
 });
@@ -305,7 +309,7 @@ test("identity fixture: uncertain choice requires a fresh read before another ch
   const fixture = await setup(page); fixture.systems.push(initialSystem(1)); await ready(page);
   await closeContextSheet(page); await page.locator(".identity-history-card").first().getByRole("button", { name: "View system" }).click();
   fixture.loseSelection = true; await page.getByRole("button", { name: "Restore as current" }).click();
-  await expect(page.locator(".project-identity").getByRole("alert")).toContainText("could not be confirmed");
+  await expect(identityAlert(page)).toContainText("could not be confirmed");
   await expect(page.getByRole("button", { name: "Restore as current" })).toBeDisabled();
   expect(fixture.writes.filter(write => write.kind === "selection")).toHaveLength(1);
   await closeContextSheet(page); await page.locator(".identity-section-heading").getByRole("button", { name: "Check latest", exact: true }).click();
@@ -317,7 +321,7 @@ test("identity fixture: preference recovery cannot rebase until a successful lat
   await page.getByRole("button", { name: "Save Identity preferences" }).click();
   await expect(page.getByRole("button", { name: "Keep edits against latest" })).toBeDisabled();
   fixture.readStatus = 503; await page.getByRole("button", { name: "Check latest preferences" }).click();
-  await expect(page.locator(".project-identity").getByRole("alert")).toContainText("unavailable");
+  await expect(identityAlert(page)).toContainText("unavailable");
   await expect(page.getByRole("button", { name: "Keep edits against latest" })).toBeDisabled();
   fixture.readStatus = 200; await page.getByRole("button", { name: "Check latest preferences" }).click();
   await expect(page.getByRole("button", { name: "Keep edits against latest" })).toBeEnabled();
@@ -365,7 +369,7 @@ test("identity fixture: reload and closed tab retain confirmed saved versions in
 test("identity fixture: incomplete output is rejected without replacing validated history", async ({ page }) => {
   const fixture = await setup(page); await ready(page); fixture.malformedOverview = true;
   await closeContextSheet(page); await page.locator(".identity-section-heading").getByRole("button", { name: "Check latest", exact: true }).click();
-  await expect(page.locator(".project-identity").getByRole("alert")).toContainText("could not be verified");
+  await expect(identityAlert(page)).toContainText("could not be verified");
   await expect(page.locator(".identity-history-card")).toHaveCount(1); await expect(page.locator("#identity-detail-title")).toHaveText("Cedar"); expect(fixture.writes).toHaveLength(0);
 });
 test("identity fixture: keyboard editing remains usable at narrow mobile width", async ({ page }, testInfo) => {
@@ -391,7 +395,7 @@ test("identity fixture: stale manual write preserves raw input and only retries 
   const fixture = await setup(page); await ready(page); await openColors(page); await page.getByRole("textbox", { name: "Color 1 name", exact: true }).fill("My raw color");
   fixture.project = { ...fixture.project, current_revision: 2, context: contextSnapshotSchema.parse({ ...fixture.project.context, description: "Other saved brief" }) };
   await page.getByRole("button", { name: "Save colors as new version" }).click();
-  await expect(page.locator(".project-identity").getByRole("alert")).toContainText("Saved inputs changed");
+  await expect(identityAlert(page)).toContainText("Saved inputs changed");
   await expect(page.getByRole("textbox", { name: "Color 1 name", exact: true })).toHaveValue("My raw color"); expect(fixture.systems).toHaveLength(1);
   const first = fixture.writes.filter(write => write.kind === "refinement")[0]!.body as ReturnType<typeof refineIdentityComponentSchema.parse>;
   await closeContextSheet(page); await page.locator(".identity-section-heading").getByRole("button", { name: "Check latest", exact: true }).click();
@@ -553,7 +557,7 @@ test("D041 synthetic evidence: explicit local fixture restoration appends a curr
   const original=JSON.stringify(fixture.systems);await page.locator(".identity-history-card").first().getByRole("button",{name:"View system"}).click();
   const ack=page.getByRole("checkbox",{name:"I understand this system uses earlier saved inputs."});await closeContextSheet(page); await ack.check();
   const restore=page.getByRole("button",{name:"Restore as current"});await expect(restore).toBeEnabled();await restore.focus();await page.keyboard.press("Enter");
-  await expect(page.getByText("Current Identity choice saved.",{exact:true})).toBeVisible();expect(fixture.selection).toMatchObject({identityRevision:2,reason:"restored",acceptedEarlierBasis:true});expect(JSON.stringify(fixture.systems)).toBe(original);
+  await expect(currentChoiceNotice(page)).toBeVisible();expect(fixture.selection).toMatchObject({identityRevision:2,reason:"restored",acceptedEarlierBasis:true});expect(JSON.stringify(fixture.systems)).toBe(original);
   await expect(page.locator(".identity-system-detail").getByText("Current choice",{exact:true})).toBeVisible();await expect(page.getByRole("button",{name:"Current Identity choice",exact:true})).toBeDisabled();
   await page.locator(".identity-system-detail").evaluate(node=>node.scrollIntoView({block:"start"}));await waitForBoard(page,".identity-system-detail");
   await viewportCapture(page,`d041-synthetic-${testInfo.project.name}-09-fixture-only-restored-choice`);expect(fixture.writes.map(write=>write.kind)).toEqual(["selection"]);
@@ -575,6 +579,7 @@ test("identity editor: stale colors can be approved and saved entirely inside th
   await panel.getByRole("checkbox", { name: "I understand this system uses earlier saved inputs.", exact: true }).check();
   await expect(submit).toBeEnabled(); await submit.click();
   await expect(panel.getByRole("status")).toContainText("The manual edit is saved in history.");
+  await expect.poll(async () => { const status = (await panel.getByRole("status").boundingBox())!, header = (await panel.locator(":scope > header").boundingBox())!, box = (await panel.boundingBox())!; return status.y >= header.y + header.height - 1 && status.y + status.height <= box.y + box.height; }).toBe(true);
   await expect(panel).toBeVisible();
   expect(fixture.systems).toHaveLength(2); expect(JSON.stringify(fixture.systems[0])).toBe(original);
   expect(fixture.writes.filter(write => write.kind === "refinement")).toHaveLength(1);

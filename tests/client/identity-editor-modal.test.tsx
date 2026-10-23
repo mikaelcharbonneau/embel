@@ -73,3 +73,13 @@ it("checks a failed save from the open editor without submitting or changing its
   expect(controller.refresh).toHaveBeenCalledOnce(); expect(dialog.open).toBe(true);
   expect(dialog.querySelector('input[aria-label="Color 1 name"]')).toBe(field); expect(save).not.toHaveBeenCalled();
 });
+
+it("reveals a new response once in the active modal without stealing input focus", async () => {
+  await render(); const dialog = await open("Edit colors"), field = dialog.querySelector<HTMLInputElement>('input[aria-label="Color 1 name"]')!;
+  const scroll = vi.fn(); dialog.scrollTo = scroll; field.focus();
+  controller = { ...controller, notice: "New saved result" }; await render();
+  expect(scroll).toHaveBeenCalledExactlyOnceWith({ top: 0, behavior: "instant" }); expect(document.activeElement).toBe(field);
+  controller = { ...controller }; await render(); expect(scroll).toHaveBeenCalledTimes(1);
+  await act(async () => button(dialog, "Close").click());
+  controller = { ...controller, notice: "Another background result" }; await render(); expect(scroll).toHaveBeenCalledTimes(1);
+});
