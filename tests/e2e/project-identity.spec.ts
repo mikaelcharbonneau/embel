@@ -441,7 +441,7 @@ test("identity fixture: unavailable trusted saves keep history readable and pref
   const evidence = evidenceDirectory;
   await mkdir(evidence, { recursive: true }); await closeContextSheet(page); await page.locator(".identity-section-heading").getByRole("button", { name: "Check latest", exact: true }).focus();
   await page.locator(".identity-section-heading").filter({ has: page.getByRole("heading", { name: "Identity systems", exact: true }) }).screenshot({ path: `${evidence}/synthetic-identity-${testInfo.project.name}-unavailable-heading.png`, scale: "css" });
-  await page.locator(".project-identity > .identity-save-gate").screenshot({ path: `${evidence}/synthetic-identity-${testInfo.project.name}-unavailable-gate.png`, scale: "css" });
+  await page.locator(".project-identity .identity-save-gate").screenshot({ path: `${evidence}/synthetic-identity-${testInfo.project.name}-unavailable-gate.png`, scale: "css" });
   await openColors(page);
   await page.getByRole("textbox", { name: "Color 1 name", exact: true }).focus();
   await expect(page.getByRole("textbox", { name: "Color 1 name", exact: true })).toBeFocused();
