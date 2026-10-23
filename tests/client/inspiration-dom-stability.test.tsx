@@ -126,3 +126,21 @@ describe("Inspiration stable masonry parentage", () => {
     await act(async () => root.render(null)); expect(observers.size).toBe(0);
   });
 });
+
+it("keeps reference detail open on padding and closes only outside without saving choices", async () => {
+  Object.defineProperties(HTMLDialogElement.prototype, {
+    showModal: { configurable: true, value: function (this: HTMLDialogElement) { this.open = true; } },
+    close: { configurable: true, value: function (this: HTMLDialogElement) { this.open = false; } },
+  });
+  await render();
+  const trigger = cards()[0]!.querySelector<HTMLButtonElement>(".inspiration-caption")!;
+  trigger.focus(); await act(async () => trigger.click());
+  const dialog = host.querySelector("dialog")!;
+  vi.spyOn(dialog, "getBoundingClientRect").mockReturnValue(new DOMRect(20, 30, 350, 500));
+  await act(async () => dialog.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 22, clientY: 32 })));
+  expect(dialog.open).toBe(true); expect(host.querySelector("dialog")).toBe(dialog);
+  await act(async () => dialog.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 19, clientY: 32 })));
+  expect(host.querySelector("dialog")).toBeNull(); expect(document.activeElement).toBe(trigger);
+  expect(controller.save).not.toHaveBeenCalled();
+  Reflect.deleteProperty(HTMLDialogElement.prototype, "showModal"); Reflect.deleteProperty(HTMLDialogElement.prototype, "close");
+});

@@ -1,4 +1,5 @@
 "use client";
+import { isDialogBackdropClick } from "@/components/ui/dialog-backdrop";
 
 import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
 import { Icon } from "@/components/ui/icon";
@@ -46,7 +47,7 @@ export function ConceptsComposer({ children, instruction, onInstructionChange, o
       </div>
       </div>
     </form>
-    <dialog ref={dialog} className={styles.contextDialog} aria-labelledby="logo-context-title" onCancel={() => setOpen(false)} onClick={event => { if (event.target === event.currentTarget) setOpen(false); }}>
+    <dialog ref={dialog} className={styles.contextDialog} aria-labelledby="logo-context-title" onCancel={() => setOpen(false)} onClick={event => { if (isDialogBackdropClick(event)) setOpen(false); }}>
       <header className={styles.heading}><h2 id="logo-context-title">Project context</h2><button type="button" className={styles.secondaryButton} aria-label="Close project context" onClick={() => setOpen(false)}><Icon name="close" size={16} /></button></header>
       {children}
     </dialog>

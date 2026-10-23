@@ -1,4 +1,5 @@
 "use client";
+import { isDialogBackdropClick } from "@/components/ui/dialog-backdrop";
 
 import { useEffect, useId, useRef, useState } from "react";
 import { useNamesStore } from "./use-names-store";
@@ -54,7 +55,7 @@ export function BrowserNameDialog({ onUse, disabled = false, replacing = false, 
   }, [open, disabled]);
   return <>
     <button type="button" className="text-link" disabled={disabled} onClick={() => setOpen(true)}>{label}</button>
-    <dialog className={styles.dialog} ref={dialog} aria-label="Name library" onClose={() => setOpen(false)} onCancel={() => setOpen(false)} onClick={event => { if (event.target === event.currentTarget) setOpen(false); }}>
+    <dialog className={styles.dialog} ref={dialog} aria-label="Name library" onClose={() => setOpen(false)} onCancel={() => setOpen(false)} onClick={event => { if (isDialogBackdropClick(event)) setOpen(false); }}>
       <header><h2>Name library</h2><button type="button" className="button secondary small" onClick={() => setOpen(false)}>Close</button></header>
       {open && <BrowserNamePicker disabled={disabled} replacing={replacing} onUse={name => { if (!disabled) { onUse(name); setOpen(false); } }} />}
     </dialog>

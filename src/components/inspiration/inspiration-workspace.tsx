@@ -1,4 +1,5 @@
 "use client";
+import { isDialogBackdropClick } from "@/components/ui/dialog-backdrop";
 
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -38,7 +39,7 @@ function DesignDetail({ design, choice, controller, onClose }: { design: Inspira
   useEffect(() => { const element = dialog.current; const previous = document.activeElement; element?.showModal(); return () => { element?.close(); if (previous instanceof HTMLElement && previous.isConnected) previous.focus(); }; }, []);
   const available = controller.overview?.availableReferenceIds?.includes(design.id) ?? !design.availableSince;
   const disabled = !controller.canSave || !available || controller.intents.has(design.id);
-  return <dialog ref={dialog} className="inspiration-detail" aria-labelledby="inspiration-detail-title" onCancel={onClose} onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
+  return <dialog ref={dialog} className="inspiration-detail" aria-labelledby="inspiration-detail-title" onCancel={onClose} onClick={event => { if (isDialogBackdropClick(event)) onClose(); }}>
     <div className="inspiration-detail-layout"><div className="inspiration-detail-art"><Artwork design={design} eager retry /></div>
       <div className="inspiration-detail-body"><div className="inspiration-detail-top"><span>DESIGN REFERENCE</span><button autoFocus type="button" className="inspiration-icon-button" aria-label="Close design detail" onClick={onClose}><Icon name="close" size={18} /></button></div>
         <h2 id="inspiration-detail-title">{design.brand}</h2><p>{design.creator} · {design.kind === "identity" ? "Identity" : "Logo"}</p><p>{design.description}</p>

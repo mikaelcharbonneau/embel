@@ -1,14 +1,24 @@
 // @vitest-environment jsdom
-import { act } from "react";
+import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AssetDetailDialog } from "@/components/assets/asset-detail";
 import { GenerationActivity } from "@/components/workspace/generation-activity";
 import { AccountAccess } from "@/components/workspace/account-access";
 import { SignInDialog } from "@/components/auth/sign-in-dialog";
+import { AccountDomainsWorkspace } from "@/components/tools/domain-account-workspace";
+import { createStandaloneDraftMemory } from "@/components/tools/standalone-draft-memory";
+import { BrowserNameDialog } from "@/components/naming/browser-name-picker";
+import { ConceptsComposer } from "@/components/logo-creation/concepts-composer";
 import type { AssetLibraryItem } from "@/domain/asset-library";
 import type { AccountAssetsClient } from "@/components/assets/account-assets-client";
 
+// Test the real Domains modal wiring without live providers or draft writes.
+vi.mock("@/components/tools/use-standalone-live-checks", () => ({ useStandaloneLiveChecks: () => null }));
+vi.mock("@/components/tools/use-standalone-workspace", () => ({ useStandaloneWorkspace: () => ({ payload: { input: "Kept search" }, imports: [], canEdit: true, status: "ready" }) }));
+vi.mock("@/components/tools/use-saved-standalone-promotion", () => ({ useSavedStandalonePromotion: () => ({ controls: null }) }));
+vi.mock("@/features/domain-workspace/domain-workspace", () => ({ DomainsWorkspace: ({ onOpenNameLibrary, draftControls }: { onOpenNameLibrary(): void; draftControls: ReactNode }) => <><button onClick={onOpenNameLibrary}>Open domain name library</button>{draftControls}</> }));
+vi.mock("@/components/naming/use-names-store", () => ({ useNamesStore: () => ({ loaded: true, storage: "available", data: { candidates: [] } }) }));
 const mocks = vi.hoisted(() => ({ back: vi.fn(), signOut: vi.fn(), request: vi.fn(), current: () => true, expire: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ back: mocks.back }) }));
 vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ session: { status: "ready", userId: "owner", generation: 1 }, signOut: mocks.signOut, isCurrent: mocks.current, expire: mocks.expire }) }));
@@ -29,7 +39,7 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-const kinds = ["asset", "activity", "sign-out", "sign-in"] as const;
+const kinds = ["asset", "activity", "sign-out", "sign-in", "name-library", "logo-context", "domain-library"] as const;
 type Kind = typeof kinds[number];
 async function mount(kind: Kind) {
   const dismissed = vi.fn();
@@ -37,10 +47,13 @@ async function mount(kind: Kind) {
     if (kind === "asset") root.render(<AssetDetailDialog item={{ asset: {}, project: { title: "Fixture" } } as AssetLibraryItem} client={{ detail: () => new Promise(() => {}), current: () => true } as unknown as AccountAssetsClient} onClose={dismissed} onSelected={vi.fn()} />);
     else if (kind === "activity") root.render(<GenerationActivity />);
     else if (kind === "sign-out") root.render(<AccountAccess />);
+    else if (kind === "domain-library") root.render(<AccountDomainsWorkspace memory={createStandaloneDraftMemory()} />);
+    else if (kind === "name-library") root.render(<BrowserNameDialog onUse={dismissed} />);
+    else if (kind === "logo-context") root.render(<ConceptsComposer projectId="fixture" instruction="Kept draft" onInstructionChange={vi.fn()}><input defaultValue="Kept brief" /></ConceptsComposer>);
     else root.render(<SignInDialog><h2 id="auth-overlay-title">Sign in</h2></SignInDialog>);
   });
-  if (kind === "activity" || kind === "sign-out") await act(async () => {
-    const trigger = Array.from(host.querySelectorAll("button")).find(button => kind === "activity" ? button.getAttribute("aria-label") === "Activity" : button.textContent === "Sign out");
+  if (kind === "activity" || kind === "sign-out" || kind === "name-library" || kind === "logo-context" || kind === "domain-library") await act(async () => {
+    const trigger = Array.from(host.querySelectorAll("button")).find(button => kind === "activity" ? button.getAttribute("aria-label") === "Activity" : button.textContent === ({ "sign-out": "Sign out", "name-library": "From name library", "logo-context": "Project context", "domain-library": "Open domain name library" } as Record<string, string>)[kind]);
     trigger!.click();
   });
   const dialog = host.querySelector("dialog")!;
@@ -83,7 +96,7 @@ it.each(["activity", "sign-out"] as const)("syncs %s native close state and can 
 });
 it.each(kinds)("preserves %s explicit close or keep-editing action", async kind => {
   const { wasDismissed } = await mount(kind);
-  const label = { asset: "Close asset details", activity: "Close activity", "sign-out": "Keep editing", "sign-in": "Close sign-in" }[kind];
+  const label = { asset: "Close asset details", activity: "Close activity", "sign-out": "Keep editing", "sign-in": "Close sign-in", "name-library": "Close", "logo-context": "Close project context", "domain-library": "Close name library" }[kind];
   const button = Array.from(host.querySelectorAll("button")).find(element => element.getAttribute("aria-label") === label || element.textContent === label)!;
   await act(async () => button.click()); expect(wasDismissed()).toBe(true);
   expect(mocks.signOut.mock.calls).toEqual(kind === "sign-out" ? [[false]] : []);
