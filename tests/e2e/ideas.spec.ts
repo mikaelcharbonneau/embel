@@ -1,5 +1,5 @@
 import { captureUiEvidence } from "./ui-evidence";
-import { expect, test, type Page, type Route } from "@playwright/test";
+import { expect, test, type Page, type Route, type Locator } from "@playwright/test";
 import { accountProjectSchema } from "../../src/domain/project-api";
 import { contextSnapshotSchema } from "../../src/domain/projects";
 
@@ -124,10 +124,26 @@ async function clickAccountAction(page: Page, name: "Check account" | "Sign out"
   await action.click();
 }
 async function browserValues(page: Page) { return page.evaluate(() => Object.values(localStorage).join("\n")); }
+async function openContext(page: Page, selector: string) {
+  const section = page.locator(selector), trigger = section.locator(":scope > button[aria-haspopup='dialog']");
+  await trigger.click();
+  const dialog = section.locator(":scope > dialog"); await expect(dialog).toBeVisible();
+  return dialog;
+}
+async function closeContext(dialog: Locator) {
+  await dialog.locator(":scope > header").getByRole("button", { name: "Close", exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+}
 async function expectSavedVersion(page: Page, version: number) {
-  const details = page.locator(".idea-detail-metadata");
-  if (!await details.evaluate(element => (element as HTMLDetailsElement).open)) await details.locator(":scope > summary").click();
-  await expect(details.getByText(`Saved to account · version ${version}.`, { exact: true })).toBeVisible();
+  const dialog = await openContext(page, ".idea-detail-metadata");
+  await expect(dialog.getByText(`Saved to account · version ${version}.`, { exact: true })).toBeVisible();
+  await closeContext(dialog);
+}
+async function expectProjectLabel(page: Page, title: string) {
+  await page.getByRole("button", { name: "Edit brief", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Edit current brief", exact: true });
+  await expect(dialog.getByRole("textbox", { name: "Project label", exact: true })).toHaveValue(title);
+  await closeContext(dialog);
 }
 
 test("Ideas design: progressive notes and saved details preserve fields, focus and one next-step region", async ({ page }, info) => {
@@ -137,25 +153,27 @@ test("Ideas design: progressive notes and saved details preserve fields, focus a
   saved.content.details.solution = "Retained solution notes";
   const state = await accountFixtures(page, [saved]); await openIdea(page);
   const notes = page.locator(".idea-development-panel"), metadata = page.locator(".idea-detail-metadata");
-  await expect(notes).not.toHaveAttribute("open", ""); await expect(metadata).not.toHaveAttribute("open", "");
+  await expect(notes.locator(":scope > dialog")).not.toBeVisible(); await expect(metadata.locator(":scope > dialog")).not.toBeVisible();
   await expect(page.getByLabel("Save status", { exact: true })).toHaveText("Saved");
   await expect(page.locator(".idea-detail-save-state")).toHaveCount(0);
-  const summary = notes.locator(":scope > summary"); await summary.focus(); await summary.press("Enter");
+  const trigger = notes.locator(":scope > button[aria-haspopup='dialog']"); await trigger.focus(); await trigger.press("Enter");
+  const notesDialog = notes.locator(":scope > dialog"); await expect(notesDialog).toBeVisible();
   const problem = page.getByRole("textbox", { name: "Problem", exact: true }); await expect(problem).toHaveValue(saved.content.details.problem);
   const node = await problem.elementHandle();
-  await summary.focus(); await summary.press("Enter"); await expect(summary).toBeFocused();
-  await summary.press("Enter"); expect(await problem.evaluate((element, original) => element === original, node)).toBe(true);
+  await closeContext(notesDialog); await expect(trigger).toBeFocused();
+  await trigger.press("Enter"); expect(await problem.evaluate((element, original) => element === original, node)).toBe(true);
   await expect(problem).toHaveValue(saved.content.details.problem);
+  await closeContext(notesDialog);
   const next = page.getByRole("complementary", { name: "Continue with this idea", exact: true });
   await expect(next.getByRole("button", { name: "Create brand", exact: true })).toBeVisible();
-  const attachment = next.locator(".idea-attach-disclosure"); await expect(attachment).not.toHaveAttribute("open", "");
-  await attachment.locator(":scope > summary").focus(); await page.keyboard.press("Enter");
+  const attachment = next.locator(".idea-attach-disclosure"); await expect(attachment.locator(":scope > dialog")).not.toBeVisible();
+  await attachment.locator(":scope > button[aria-haspopup='dialog']").focus(); await page.keyboard.press("Enter");
   await expect(next.getByRole("heading", { name: "Attach to an existing brand", exact: true })).toBeVisible();
   await expect(next.getByRole("button", { name: "Attach to brand", exact: true })).toBeDisabled();
+  await closeContext(attachment.locator(":scope > dialog"));
   await expectSavedVersion(page, 1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
   expect(state.writes).toEqual([]);
-  await notes.locator(":scope > summary").click(); await attachment.locator(":scope > summary").click(); await metadata.locator(":scope > summary").click();
   await page.evaluate(() => { document.querySelector("#main-content")?.scrollTo(0, 0); window.scrollTo(0, 0); });
   await captureUiEvidence(page, info);
 });
@@ -170,11 +188,12 @@ test("Ideas fixture: quick capture, optional details, automatic save and reload 
   await expect(page).toHaveURL(new RegExp(`/ideas/${ideaId}$`));
   expect(state.writes[0]!.body).toMatchObject({ content: { title: "Private quick capture fixture", state: "to_explore" } });
   expect(Object.keys(state.writes[0]!.body).sort()).toEqual(["content", "requestKey"]);
-  await page.locator(".idea-development-panel > summary").click();
-  await page.getByText("More details", { exact: true }).click();
-  await page.getByRole("textbox", { name: "Revenue hypotheses", exact: true }).fill("A user-authored monthly lunch plan hypothesis");
+  const notesDialog = await openContext(page, ".idea-development-panel");
   await page.getByRole("textbox", { name: "Proposed solution", exact: true }).fill("Seasonal lunches delivered nearby");
   await page.getByRole("textbox", { name: "Audience", exact: true }).fill("Local workers");
+  const extraDialog = await openContext(page, ".idea-extra-details");
+  await page.getByRole("textbox", { name: "Revenue hypotheses", exact: true }).fill("A user-authored monthly lunch plan hypothesis");
+  await closeContext(extraDialog); await closeContext(notesDialog);
   await page.getByRole("combobox", { name: "Idea state", exact: true }).selectOption("developing");
   await expect(page.getByRole("button", { name: "Create brand", exact: true })).toBeDisabled();
   await expect.poll(() => state.ideas.get(ideaId)?.content).toMatchObject({ state: "developing", details: {
@@ -184,9 +203,10 @@ test("Ideas fixture: quick capture, optional details, automatic save and reload 
   expect(state.ideas.get(ideaId)!.revision).toBeGreaterThanOrEqual(2);
   await page.reload();
   await expect(page.getByRole("textbox", { name: "Idea title", exact: true })).toHaveValue("Private quick capture fixture");
-  await page.locator(".idea-development-panel > summary").click();
-  await page.getByText("More details", { exact: true }).click();
+  const restoredNotes = await openContext(page, ".idea-development-panel");
+  const restoredExtra = await openContext(page, ".idea-extra-details");
   await expect(page.getByRole("textbox", { name: "Revenue hypotheses", exact: true })).toHaveValue("A user-authored monthly lunch plan hypothesis");
+  await closeContext(restoredExtra); await closeContext(restoredNotes);
   expect(await browserValues(page)).not.toContain("Private quick capture fixture");
   expect(await browserValues(page)).not.toContain("monthly lunch");
   await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); window.scrollTo(0, 0); });
@@ -329,7 +349,7 @@ test("Ideas fixture: explicit brand creation preserves its original source after
   await page.getByRole("button", { name: "Create brand", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
   await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
-  await expect(page.locator("main").getByText("Quiet kitchen fixture", { exact: true })).toBeVisible();
+  await expectProjectLabel(page, "Quiet kitchen fixture");
   expect(state.sources.get(projectId)).toMatchObject({ link: { ideaId, ideaRevision: 1, projectId }, content: original.content });
   expect(state.projects.get(projectId)?.context).toMatchObject({ offering: "Seasonal lunches", knownAudience: "Local workers", reformulationConfirmed: false, competitorReviewComplete: false, selectedName: null });
   const source = structuredClone(state.sources.get(projectId));
@@ -348,7 +368,7 @@ test("Ideas fixture: explicit brand creation preserves its original source after
   expect(state.ideas.get(ideaId)?.content.title).toBe("Edited idea title fixture");
   await page.getByRole("link", { name: "Open created brand", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
-  await expect(page.locator("main").getByText("Quiet kitchen fixture", { exact: true })).toBeVisible();
+  await expectProjectLabel(page, "Quiet kitchen fixture");
   await expect(page.locator("main")).not.toContainText("Edited idea title fixture");
   expect(state.sources.get(projectId)).toEqual(source);
   expect(state.projects.get(projectId)?.context).toEqual(projectContext);
@@ -491,7 +511,7 @@ test("Ideas fixture: unavailable optional source metadata does not block the own
   await composer.fill("Continue shaping the saved brand");
   await expect(composer).toHaveValue("Continue shaping the saved brand");
   await expect(page.getByRole("log", { name: "Conversation", exact: true })).toBeVisible();
-  await expect(page.locator("main").getByText("Quiet kitchen fixture", { exact: true })).toBeVisible();
+  await expectProjectLabel(page, "Quiet kitchen fixture");
   expect(state.sources.get(projectId)?.link).toMatchObject({ ideaId, ideaRevision: 1, projectId });
   expect(state.writes).toHaveLength(1);
 });
