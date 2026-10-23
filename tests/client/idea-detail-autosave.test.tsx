@@ -196,3 +196,47 @@ describe("owned IdeaDetail automatic saving", () => {
     expect(writes[1]!.expectedRevision).toBe(1); expect(status()).toBe("Saved");
   });
 });
+
+describe("owned IdeaDetail local read recovery", () => {
+  it("retries one failed read without refreshing the account or writing, then restores heading focus", async () => {
+    const pending = deferred<Response>(); let attempts = 0;
+    vi.mocked(fetch).mockImplementation(async (_path, options) => {
+      expect(options?.method).toBe("GET"); attempts++;
+      return attempts === 1 ? Response.json({}, { status: 503 }) : pending.promise;
+    });
+    await render(); const retry = button("Try loading idea again"); expect(retry).toBeTruthy();
+    await act(async () => { retry.click(); retry.click(); });
+    expect(attempts).toBe(2); expect(fixture.refresh).not.toHaveBeenCalled();
+    expect(host.textContent).toContain("Loading your idea");
+    await act(async () => pending.resolve(Response.json({ idea: stored })));
+    expect(host.querySelector("h1")?.textContent).toBe("Saved idea."); expect(document.activeElement).toBe(host.querySelector("h1"));
+    expect(writes).toEqual([]); expect(fixture.expire).not.toHaveBeenCalled();
+  });
+  it("preserves a retained draft and its exact unconfirmed save intent during read retry", async () => {
+    const draft = { ...stored.content, description: "Retained private draft" };
+    const intent = { requestKey: crypto.randomUUID(), expectedRevision: 1, content: draft };
+    fixture.ideaDrafts.set({ ownerId: owner, generation: 1, saved: stored, content: draft, conflict: false, saveIntent: intent, brandIntent: null });
+    const original = vi.mocked(fetch).getMockImplementation()!; let fail = true;
+    vi.mocked(fetch).mockImplementation((path, options) => {
+      if (fail) { fail = false; return Promise.resolve(Response.json({}, { status: 503 })); }
+      return original(path, options);
+    });
+    await render(); await act(async () => button("Try loading idea again").click()); await tick(5000);
+    expect(description().value).toBe("Retained private draft"); expect(current().saveIntent).toEqual(intent);
+    expect(writes).toEqual([]); expect(fixture.refresh).not.toHaveBeenCalled(); expect(status()).toBe("Not savedRetry");
+  });
+  it("expires authentication on an unauthorized retry rather than concealing it", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(Response.json({}, { status: 503 })).mockResolvedValueOnce(Response.json({}, { status: 401 }));
+    await render(); await act(async () => button("Try loading idea again").click());
+    expect(fixture.expire).toHaveBeenCalledWith(fixture.session); expect(fixture.refresh).not.toHaveBeenCalled(); expect(writes).toEqual([]);
+  });
+  it("aborts and ignores a retry reply after the component is unmounted", async () => {
+    const pending = deferred<Response>(); let signal: AbortSignal | undefined;
+    vi.mocked(fetch).mockResolvedValueOnce(Response.json({}, { status: 503 })).mockImplementationOnce(async (_path, options) => { signal = options?.signal as AbortSignal; return pending.promise; });
+    await render(); await act(async () => button("Try loading idea again").click());
+    await render(false); expect(signal?.aborted).toBe(true);
+    await act(async () => pending.resolve(Response.json({ idea: stored })));
+    expect(host.textContent).toBe(""); expect(fixture.ideaDrafts.get(owner, ideaId)).toBeNull();
+    expect(fixture.refresh).not.toHaveBeenCalled(); expect(writes).toEqual([]);
+  });
+});
