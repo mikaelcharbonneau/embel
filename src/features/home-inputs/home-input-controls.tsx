@@ -12,6 +12,7 @@ export type HomeInputControlsProps = { account: VerifiedAccount | null; sessionF
 const empty = () => null;
 export function HomeInputControls({ account, sessionFence, memory, value, onChange, language, voiceAdapter, policy, availability, disabled, compact = false, scopeControl }: HomeInputControlsProps) {
  const [pickerRevision, setPickerRevision] = useState(0);
+ const [voiceActivatedFor, setVoiceActivatedFor] = useState<string | null>(null);
  const read = useCallback(() => account ? memory.get(account) : null, [memory, account]);
  const intent = useSyncExternalStore(memory.subscribe, read, empty);
  const readSelection = useCallback(() => account ? memory.getSelection(account) : null, [memory, account]);
@@ -39,14 +40,14 @@ export function HomeInputControls({ account, sessionFence, memory, value, onChan
  return <div className={`home-input-controls ${compact ? "home-input-controls--compact" : ""}`}>
   <HomeInputPopover className="home-files-popover" label="Add files or images" trigger={<><Icon name="plus" size={compact ? 22 : 20} /><span className={compact ? "sr-only" : undefined}>Add files or images</span></>}><AttachmentPicker key={`${sessionFence}:${pickerRevision}`} files={files} policy={policy} availability={account ? availability : { status: "unavailable", reason: "Sign in to save verified input files. Your typed prompt stays available." }} busy={busy} onAdd={add} onRemove={localId => { if (!account || busy) return; const current = memory.get(account); if (current) memory.set(account, { ...current, files: current.files.filter(file => file.localId !== localId) }); }} /></HomeInputPopover>
   {scopeControl}
-  <HomeInputPopover className="home-voice-popover" label="Voice input" trigger={<Icon name="mic" size={compact ? 22 : 20} />}><HomeVoiceControl key={sessionFence} value={value} onChange={onChange} language={language} sessionFence={sessionFence} adapter={voiceAdapter} disabled={disabled || !!intent?.saveIntent} /></HomeInputPopover>
+  <HomeInputPopover key={sessionFence} onOpen={() => setVoiceActivatedFor(sessionFence)} className="home-voice-popover" label="Voice input" trigger={<Icon name="mic" size={compact ? 22 : 20} />}>{voiceActivatedFor === sessionFence && <HomeVoiceControl key={sessionFence} value={value} onChange={onChange} language={language} sessionFence={sessionFence} adapter={voiceAdapter} disabled={disabled || !!intent?.saveIntent} />}</HomeInputPopover>
   {intent?.saveOutcome === "confirmed" && <p role="status">These files were saved with your brand. <button className="text-link" type="button" disabled={disabled} onClick={() => { if (account) memory.set(account, emptyHomeInputIntent()); }}>Start a new attached brief</button></p>}
   {selection && <div role="status"><p>{selection.status === "interrupted" ? "File selection was interrupted. Ready files are kept. Cancel the pending selection, then choose any remaining files again." : `Reading ${selection.fileCount} selected ${selection.fileCount === 1 ? "file" : "files"}…`}</p><button className="text-link" type="button" disabled={disabled} onClick={() => { if (account && memory.cancelSelection(account, selection.id)) setPickerRevision(value => value + 1); }}>Cancel pending file selection</button></div>}
  </div>;
 }
 
-/** Native disclosure keeps file/voice state mounted when dismissed. */
-function HomeInputPopover({ className, label, trigger, children }: { className: string; label: string; trigger: ReactNode; children: ReactNode }) {
+/** Voice initializes only on explicit activation, then stays mounted on dismissal. */
+function HomeInputPopover({ className, label, trigger, children, onOpen }: { className: string; label: string; trigger: ReactNode; children: ReactNode; onOpen?: () => void }) {
  const root = useRef<HTMLDetailsElement>(null), summary = useRef<HTMLElement>(null), id = useId();
  useEffect(() => {
   const outside = (event: PointerEvent) => { if (root.current?.open && !root.current.contains(event.target as Node)) root.current.open = false; };
@@ -58,6 +59,7 @@ function HomeInputPopover({ className, label, trigger, children }: { className: 
   return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); };
  }, []);
  return <details ref={root} className={`home-input-popover ${className}`}><summary ref={summary} id={id} aria-label={label} title={label} onClick={() => {
+  if (!root.current?.open) onOpen?.();
   if (!root.current?.open) root.current?.closest(".home-input-controls")?.querySelectorAll<HTMLDetailsElement>(".home-input-popover").forEach(popover => { if (popover !== root.current) popover.open = false; });
  }}>{trigger}</summary><div className="home-input-popover-panel" role="region" aria-labelledby={id}>{children}</div></details>;
 }
