@@ -106,3 +106,13 @@ it("only the explicit discard action confirms unsaved-edit sign-out", async () =
   await act(async () => Array.from(host.querySelectorAll("button")).find(button => button.textContent === "Discard edits and sign out")!.click());
   expect(mocks.signOut.mock.calls).toEqual([[false], [true]]);
 });
+
+it("ignores a queued Name library close event after a new explicit opening", async () => {
+  const { dialog } = await mount("name-library");
+  await act(async () => [...dialog.querySelectorAll("button")].find(button => button.textContent === "Close")!.click());
+  expect(dialog.open).toBe(false);
+  await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent === "From name library")!.click());
+  expect(dialog.open).toBe(true);
+  await act(async () => dialog.dispatchEvent(new Event("close")));
+  expect(dialog.open).toBe(true); expect(mocks.request).not.toHaveBeenCalled();
+});

@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { createNamesAccountFixture, namesOwner, waitForNamesSaved } from "./fixtures/names-account";
 import { standalonePayloadCodec } from "../../src/features/domain-workspace/account-codec";
 
-async function setup(page: Page) {
+async function setup(page: Page, seedName = true) {
   const unexpected: string[] = [], errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.route("**/*", route => {
@@ -29,11 +29,13 @@ async function setup(page: Page) {
     }
     return route.fulfill({ json: { ownerId: namesOwner, workspace: workspaces.get(tool) ?? null } });
   });
+  if (seedName) {
   await page.goto("/names");
   await page.getByRole("textbox", { name: "Add words", exact: true }).fill("cedar");
   await page.getByRole("textbox", { name: "Add words", exact: true }).press("Enter");
   await page.getByRole("button", { name: "Favorite result cedar", exact: true }).click();
   await waitForNamesSaved(page);
+  }
   return Object.assign(() => { expect(unexpected).toEqual([]); expect(errors).toEqual([]); }, { names });
 }
 
@@ -140,8 +142,8 @@ test("Names backup imports preserve existing account names and survive reload", 
 });
 
 for (const tool of ["domains", "handles", "trademarks"]) test(`dialog hit testing: ${tool} name library protects padding without importing`, async ({ page }) => {
-  const audit = await setup(page); await page.goto(`/${tool}`);
+  const audit = await setup(page, false); await page.goto(`/${tool}`);
   const trigger = page.getByRole("button", { name: "From name library", exact: true });
   await checkDialogHitTesting(page, trigger, page.getByRole("dialog", { name: "Name library", exact: true }), tool === "domains" ? "Close name library" : "Close");
-  expect(audit.names.payload().candidates.some(item => item.source.value === "cedar")).toBe(true); audit();
+  expect(audit.names.payload().candidates).toEqual([]); expect(audit.names.state.puts).toEqual([]); audit();
 });
