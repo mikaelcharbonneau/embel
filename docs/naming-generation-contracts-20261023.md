@@ -107,6 +107,13 @@ corrected to the existing known `local_planning_failed` outcome; the independent
 actually-invoked unknown-call quarantine assertion remains unchanged. No runtime
 failure classification is changed for that fixture correction.
 
+The isolated worker build graph explicitly lists the five new Naming-only
+modules. Its packaging QA now recognizes the already-listed shared persistence
+helper by its exact historical filename, while still excluding every other
+`worker/local-*` input, launchers, web routes, credentials and unrelated services.
+The prior blanket filename-prefix assertion contradicted the existing reviewed
+graph even before this change.
+
 This is local synthetic verification, not a claim of live provider success or
 successful retrieval of either retained URL. No incomplete real-user run was
 replayed. A separate approved future test and release remain necessary to
