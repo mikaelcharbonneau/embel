@@ -7,6 +7,7 @@ import { identityPreferencesSchema, initialIdentityPreferences } from "@/domain/
 import { BrowserLocalDate } from "@/components/workspace/browser-local-date";
 import { identitySystemFreshness } from "./account-identity-client";
 import { identityDraftChanged } from "./identity-draft-memory";
+import { IdentityEditorFeedback } from "./identity-editor-feedback";
 import { IdentityComponents } from "./identity-components";
 import { IdentityHistory } from "./identity-history";
 import { IdentityFreshnessNotice, IdentitySystemBoard, identitySourceLabel } from "./identity-system-board";
@@ -19,7 +20,7 @@ function IdentityPreferences({ controller }: { controller: ProjectIdentityContro
   const parsed = identityPreferencesSchema.safeParse({ version: 1, ...form });
   const matchesLatest = parsed.success && JSON.stringify(parsed.data) === JSON.stringify(actual);
   const conflict = Boolean(draft && draft.baselineRevision !== (overview.preferences?.revision ?? 0));
-  return <ContextDetails className="identity-preferences" title={<>Identity preferences{draft && identityDraftChanged(draft) ? " · unsaved edits" : ""}</>}><form onSubmit={event => { event.preventDefault(); void controller.savePreferences(); }}><fieldset disabled={controller.pending || Boolean(draft?.pending)}><legend className="sr-only">Identity preferences</legend>
+  return <ContextDetails className="identity-preferences" title={<>Identity preferences{draft && identityDraftChanged(draft) ? " · unsaved edits" : ""}</>}><IdentityEditorFeedback controller={controller} /><form onSubmit={event => { event.preventDefault(); void controller.savePreferences(); }}><fieldset disabled={controller.pending || Boolean(draft?.pending)}><legend className="sr-only">Identity preferences</legend>
       <label>Creative locale<input aria-label="Identity creative locale" value={form.creativeLocale} maxLength={60} onChange={event => controller.setPreferenceValues({ ...form, creativeLocale: event.target.value })} /></label>
       <label>Direction notes<textarea aria-label="Identity direction notes" value={form.notes} maxLength={4000} onChange={event => controller.setPreferenceValues({ ...form, notes: event.target.value })} /></label>
       <label>Avoidance notes<textarea aria-label="Identity avoidance notes" value={form.avoidanceNotes} maxLength={4000} onChange={event => controller.setPreferenceValues({ ...form, avoidanceNotes: event.target.value })} /></label>
@@ -42,6 +43,8 @@ export function ProjectIdentityWorkspace({ projectId, referenceState }: { projec
   const freshness = system && overview ? identitySystemFreshness(system, overview) : null;
   const stale = freshness?.status === "stale";
   const acknowledged = !stale || acknowledgment === acknowledgmentKey;
+  const confirmation = stale && <label className="identity-acknowledgment"><input type="checkbox" checked={acknowledgment === acknowledgmentKey} disabled={controller.pending || controller.loading || controller.referencesPending} onChange={event => setAcknowledgment(event.target.checked ? acknowledgmentKey : null)} />I understand this system uses earlier saved inputs.</label>;
+  const editorContext = <>{freshness && <IdentityFreshnessNotice freshness={freshness} />}{confirmation}</>;
   return <section className="project-identity project-workbench project-systems-workspace" aria-labelledby="project-identity-title"><div className="project-workbench-canvas"><div className="identity-section-heading"><div><h2 id="project-identity-title" tabIndex={-1}>Identity systems</h2><p>Saved choices, components and version history</p></div>
     <button type="button" className="text-link" disabled={controller.loading || controller.pending} onClick={() => { void controller.refresh(); }}>{controller.loading ? "Checking saved systems…" : "Check latest"}</button></div>
     <p className="identity-generation-gate">New system generation is unavailable.</p>
@@ -59,9 +62,9 @@ export function ProjectIdentityWorkspace({ projectId, referenceState }: { projec
       {system && freshness && !controller.detailLoading && <section className="identity-system-detail" aria-labelledby="identity-detail-title"><div className="identity-section-heading"><div><h3 id="identity-detail-title">{system.input.basis.name}</h3><p>{identitySourceLabel(system.source)} · <BrowserLocalDate dateTime={system.createdAt} /></p></div>
         {overview.currentSelection?.system.id === system.id && <span className="identity-badge">Current choice</span>}</div>
         <IdentityFreshnessNotice freshness={freshness} /><IdentitySystemBoard board={system.board} name={system.input.basis.name} client={client} />
-        {stale && <label className="identity-acknowledgment"><input type="checkbox" checked={acknowledgment === acknowledgmentKey} disabled={controller.pending || controller.loading || controller.referencesPending} onChange={event => setAcknowledgment(event.target.checked ? acknowledgmentKey : null)} />I understand this system uses earlier saved inputs.</label>}
+        {confirmation}
         <div className="identity-actions"><button type="button" className="identity-primary-button" disabled={controller.blocked || !acknowledged || overview.currentSelection?.system.id === system.id} onClick={() => { void controller.chooseSystem(stale && acknowledged); }}>{overview.currentSelection?.system.id === system.id ? "Current Identity choice" : overview.currentSelection ? "Restore as current" : "Use this system"}</button></div>
-        <IdentityComponents controller={controller} acknowledged={acknowledged} />
+        <IdentityComponents controller={controller} acknowledged={acknowledged} editorContext={editorContext} />
       </section>}
       <IdentityHistory items={controller.items} currentSystemId={overview.currentSelection?.system.id ?? null} viewedSystemId={system?.id ?? null} client={client} pending={controller.pending || controller.detailLoading} hasMore={Boolean(controller.nextCursor)} loadingMore={controller.loadingMore} onView={id => { void controller.viewSystem(id); }} onMore={() => { void controller.loadMore(); }} />
     </>}
