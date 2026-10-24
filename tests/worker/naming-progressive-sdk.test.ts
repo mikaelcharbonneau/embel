@@ -1,6 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
+// This suite exercises the synthetic execution contract, not real provider readiness.
+vi.mock("@/server/ai/naming-brain/budget-availability", async importOriginal => ({ ...await importOriginal<typeof import("@/server/ai/naming-brain/budget-availability")>(), isNamingProviderBudgetAvailable: () => true }));
 import { namingResearchPackSchema, type NamingModelOutput, type NamingStageRequest } from "../../src/domain/naming-brain";
 import { buildNamingManagedRequest } from "../../src/server/ai/naming-brain/prompts";
 import { createNamingManagedProtocol, type ManagedCreateRequest } from "../../src/server/ai/naming-brain/protocol";

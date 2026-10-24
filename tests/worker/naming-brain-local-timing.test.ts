@@ -1,6 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
+// The global HTTP transport below is synthetic; this exercises historical
+// timing/recovery contracts rather than real provider budget support.
+vi.mock("@/server/ai/naming-brain/budget-availability", () => ({ isNamingProviderBudgetAvailable: () => true }));
 import { namingAssignmentPlanSchema, namingBrainJobInputSchema, namingProviderReceiptSchema, namingResearchPackSchema, validateNamingAssignmentPlan, type NamingStageRequest } from "../../src/domain/naming-brain";
 import { guidedStrategyPolicy } from "../../src/server/ai/config";
 import { buildNamingManagedRequest, createNamingRoleRequest } from "../../src/server/ai/naming-brain/prompts";

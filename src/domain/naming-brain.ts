@@ -407,10 +407,14 @@ export function applyNamingVerification(candidateInput: unknown, verificationInp
 
 /** Failed/disconnected creation is retained without inventing a session or zero cost. */
 const retainedPartialsSchema = z.array(z.strictObject({ providerItemId: providerId.nullable(), type: z.string().min(1).max(100), content: z.string().max(131_072) })).max(100);
+export const namingProviderFailureSchema = z.strictObject({
+  code: z.enum(["provider_budget_control_unavailable", "provider_configuration_rejected", "provider_request_rejected"]), retryable: z.literal(false),
+});
+export type NamingProviderFailure = z.infer<typeof namingProviderFailureSchema>;
 export const namingStageOutcomeSchema = z.discriminatedUnion("status", [
   z.strictObject({ status: z.literal("completed"), receipt: namingProviderReceiptSchema, output: namingRoleOutputSchema }).refine(value => JSON.stringify(value.receipt) === JSON.stringify(value.output.providerReceipt), "Completed output must retain the exact provider receipt"),
   z.strictObject({ status: z.enum(["failed", "cancelled"]), code: z.string().regex(/^[a-z][a-z0-9_]{0,79}$/), receipt: namingProviderReceiptSchema, partialArtifacts: retainedPartialsSchema }).refine(value => value.receipt.dispatchState === "dispatched" && (value.receipt.protocol === "openai_agents" ? value.receipt.sessionId !== null && value.receipt.turnId !== null : value.receipt.responseId !== null) && boundedBytes(value, 524_288), "Known terminal outcomes require observed dispatch and bounded retained artifacts"),
-  z.strictObject({ status: z.literal("rejected_before_dispatch"), code: z.string().regex(/^[a-z][a-z0-9_]{0,79}$/), receipt: namingProviderReceiptSchema.optional() }).refine(value => !value.receipt || value.code === "local_dispatch_not_attempted"
+  z.strictObject({ status: z.literal("rejected_before_dispatch"), code: z.string().regex(/^[a-z][a-z0-9_]{0,79}$/), failure: namingProviderFailureSchema.optional(), receipt: namingProviderReceiptSchema.optional() }).refine(value => !value.receipt || value.code === "local_dispatch_not_attempted"
     && value.receipt.budgetControl === "local_unlimited_v1" && value.receipt.dispatchState === "not_dispatched" && value.receipt.requestId === null
     && value.receipt.observedModel === null && value.receipt.estimatedCostMicrousd === null && value.receipt.accountingStatus === "provisional"
     && value.receipt.confirmedActualCostMicrousd === null, "A retained local pre-dispatch failure must contain no provider execution evidence"),
@@ -751,6 +755,7 @@ export type NamingBrainAvailability = z.infer<typeof namingBrainAvailabilitySche
 export const namingFeedSchema = z.strictObject({
   version: z.literal(1), ownerId: z.uuid(), projectId: z.uuid(), projectRevision: revision, preferencesVersion: counter, feedbackRevision: counter, steeringRevision: counter, demandSequence: counter,
   canResumeOnScroll: z.literal(true).optional(),
+  failure: namingProviderFailureSchema.optional(),
   canPrefetchOnScroll: z.literal(true).optional(), retentionRevision: counter.optional(),
   progressive: z.strictObject({ version: z.literal(1), targetCount: z.literal(100), publishedCount: z.number().int().min(0).max(100) }).optional(),
   entries: z.array(namingFeedEntrySchema).max(100), nextCursor: namingFeedCursorSchema.nullable(), consumedThrough: namingFeedCursorSchema.nullable(), activeRun: namingBrainRunSummarySchema.nullable(), preparedSetId: z.uuid().nullable(), paused: z.boolean().default(false), state: z.enum(["active", "paused", "blocked"]), availability: namingBrainAvailabilitySchema,

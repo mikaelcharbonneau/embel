@@ -1,0 +1,90 @@
+# Naming safety and UI fixes — 2026-10-24
+
+This is a reviewable, undeployed fix. AI generation remains unavailable because
+no enforceable provider-supported US$5 managed-Agents cap was established. See
+[native cap evidence and architecture options](naming-provider-budget-compatibility-20261024.md).
+No paid call, production deployment, database mutation, account/credential change
+or historical hold adjustment was performed.
+
+## Verified base and isolation
+
+GitHub repository `mikaelcharbonneau/embel`, ID `1410624483`, was checked through
+the connected repository API and the Mac checkout's exact origin. The branch
+starts at current main `75df99a920149b9c63a70625ba62b8594e9b5a27` (PR 144).
+The original `/Users/mikael/embel` dirty work and other worktrees were preserved.
+The final worktree is `/tmp/embel-naming-review-20261024`. The initial Documents
+worktree was preserved when iCloud repeatedly evicted regular source files into
+dataless placeholders; all reviewed changes were transferred, and the one evicted
+edited controller was reconstructed using its exact captured patch.
+
+## Root causes and behavior
+
+- The real pinned SDK sends `/v1/agents/sessions` with `agents=v1`; its declared
+  `spend_control` is rejected by the supplied production evidence. Types and
+  nullable usage do not establish enforcement or final cost. Web admission now
+  refuses the known incompatibility before the admission RPC, with no new job
+  or reservation. Independent default-adapter checks block creation and paid
+  tool-result continuation. Issued-session reads/cancellation remain available.
+- Stage evidence retained generic request rejection while the UI emphasized
+  incomplete fulfillment. Safe fixed configuration classifications now persist
+  in the existing stage evidence and are projected with owner/project/job checks.
+  Reload shows an actionable blocker and status check, without generation Retry
+  or a misleading 0-of-100 progress claim. Existing holds remain unsettled.
+- Final preferences Continue could collide with a polling feed-read lock. Start
+  now waits for that read, rechecks current account/visibility/eligibility, then
+  reads a fresh authoritative head before the same idempotent admission. Polls
+  and reloads alone do not start generation.
+- The topbar Projects breadcrumb was a span. It is now a real keyboard-operable
+  route link. The sidebar Projects link already worked in the local reproduction;
+  both controls passed from Naming screening.
+
+Manual add/select, reload, focus account re-verification, navigation/reopen and
+layout bounds passed with synthetic desktop/mobile APIs. No supplied production
+project was used for testing. Historical immutable requests, original model,
+allocations, unknown-call quarantine, ownership and accounting were retained.
+A server-qualified saved-membership continuation still works without a new job
+or reservation; it does not restart paid work.
+
+## Validation
+
+- Production web build, typecheck, repository lint and Naming worker bundle passed.
+- Four production-build browser checks passed on desktop/mobile using dedicated
+  headless Chrome and intercepted account APIs.
+- SQL regressions prove repeated blocked starts leave jobs/runs/reservations
+  unchanged; safe configuration errors survive repeated reads; the old US$5 hold
+  and null confirmed cost remain unchanged; saved membership continues for free.
+- Provider adapter tests prove zero real HTTP creation/continuation, with existing
+  retrieval/cancellation still usable. Historical SDK/SQL fixtures explicitly
+  model provider capability and use synthetic HTTP.
+- The full standard suite is running; final result is recorded in the PR.
+
+## Changed files
+
+- `docs/naming-provider-budget-compatibility-20261024.md`
+- `services/naming-worker/source-inputs.json`
+- `src/components/naming/naming-approach-widgets.tsx`
+- `src/components/naming/naming-feed-controller.ts`
+- `src/components/naming/naming-feed-results.tsx`
+- `src/components/naming/project-naming-workspace.tsx`
+- `src/components/workspace/app-shell.tsx`
+- `src/domain/naming-brain.ts`
+- `src/server/ai/naming-brain/budget-availability.ts`
+- `src/server/ai/naming-brain/protocol.ts`
+- `src/server/ai/naming-brain/transport.ts`
+- `src/server/data/naming-brain.ts`
+- `tests/api/naming-brain.test.ts`
+- `tests/client/naming-feed.test.tsx`
+- `tests/client/naming-provider-failure-presentation.test.tsx`
+- `tests/database/naming-brain-progressive.test.ts`
+- `tests/e2e/naming-safe-handoff.spec.ts`
+- `tests/server/naming-brain-protocol.test.ts`
+- `tests/server/naming-brain.test.ts`
+- `tests/server/naming-budget-unavailable.test.ts`
+- `tests/server/naming-read-availability.test.ts`
+- `tests/worker/naming-brain-local-sdk.test.ts`
+- `tests/worker/naming-brain-local-timing.test.ts`
+- `tests/worker/naming-brain-rejected-dispatch.test.ts`
+- `tests/worker/naming-progressive-sdk.test.ts`
+- `worker/handlers/naming-brain.ts`
+
+This record is also part of the change. No migrations are included.

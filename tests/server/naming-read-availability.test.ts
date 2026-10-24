@@ -1,5 +1,7 @@
 import { beforeEach, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
+// This suite exercises the synthetic execution contract, not real provider readiness.
+vi.mock("@/server/ai/naming-brain/budget-availability", async importOriginal => ({ ...await importOriginal<typeof import("@/server/ai/naming-brain/budget-availability")>(), isNamingProviderBudgetAvailable: () => true }));
 const mock = vi.hoisted(() => ({ verify: vi.fn(), rpc: vi.fn() }));
 vi.mock("@/server/data/project-naming", () => ({ verifyProjectNameCandidates: mock.verify }));
 vi.mock("@/server/api-text/config", () => ({ isHostedNamingRuntime: () => true, isLocalPrototypeRuntime: () => false }));

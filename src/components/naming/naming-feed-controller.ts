@@ -44,6 +44,7 @@ export function createNamingFeedController(options: { account: NamingAccount; pr
   let prefetchInteraction: { sequence: number; basis: string } | null = null;
   let refreshedRetention: number | undefined;
   let loadedThrough: NamingFeedCursor | null = null;
+  let readInFlight: Promise<boolean> | null = null;
   const current = () => !closed && memory.isCurrent(account);
   const state = () => memory.get(account, projectId)?.feed;
   const visible = () => options.visible ? options.visible() : typeof document === "undefined" || document.visibilityState === "visible";
@@ -122,7 +123,16 @@ export function createNamingFeedController(options: { account: NamingAccount; pr
     } catch (cause) { if (live(key, controller) && state()?.directionEpoch === direction) { if (cause instanceof AccountRequestError && [400, 403, 409, 413, 422, 429].includes(cause.status)) update(value => ({ ...value, pending: null, acknowledged: false, acknowledgedRunId: null })); error(cause); } return false; }
     finally { finish(key, controller); }
   }
-  async function load(cursor?: NamingFeedCursor | null, delta = false) {
+  function load(cursor?: NamingFeedCursor | null, delta = false): Promise<boolean> {
+    const pending = readFeed(cursor, delta);
+    if (!readInFlight) {
+      readInFlight = pending;
+      const clear = () => { if (readInFlight === pending) readInFlight = null; };
+      void pending.then(clear, clear);
+    }
+    return pending;
+  }
+  async function readFeed(cursor?: NamingFeedCursor | null, delta = false): Promise<boolean> {
     if (!current()) return false;
     if (!state()) memory.setFeed(account, projectId, value => value);
     const { key, controller } = begin("feed-read"); if (!controller) return false;
@@ -175,6 +185,11 @@ export function createNamingFeedController(options: { account: NamingAccount; pr
       if (!current() || !eligible() || !visible() || starting || state()?.pending || state()?.steering || state()?.stop) return false;
       starting = true;
       try {
+        // A final answered preference can arrive while an ordinary poll owns the
+        // read lock. Keep this explicit start alive, then verify a fresh head;
+        // a reload or poll alone still cannot queue admission.
+        if (readInFlight) await readInFlight;
+        if (!current() || !eligible() || !visible()) return false;
         if (!await load() || !current() || !eligible() || !visible() || state()?.pending || state()?.steering || state()?.stop) return false;
         if (memory.getRecovery(account)) return false;
         const feed = state()?.feed, run = feed?.activeRun;

@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only",()=>({}));
+// This route suite supplies a synthetic available provider; real admission is tested separately.
+vi.mock("@/server/ai/naming-brain/budget-availability", async importOriginal => ({ ...await importOriginal<typeof import("@/server/ai/naming-brain/budget-availability")>(), isNamingProviderBudgetAvailable: () => true }));
 const mock=vi.hoisted(()=>({auth:vi.fn(),rpc:vi.fn(),from:vi.fn()}));
 vi.mock("../../src/server/auth/context",()=>({getAuthenticatedContext:mock.auth}));
 import { GET as feed } from "../../src/app/api/projects/[projectId]/naming/feed/route";
@@ -20,7 +22,7 @@ const hostedAvailable={status:"available",executionAuthority:"hosted_owner_v1"};
 const ctx={params:Promise.resolve({projectId:project,runId:run,jobId:run})};
 const request=(body?:unknown,method="POST",headers:Record<string,string>={},query="")=>new Request(`https://embel.example/api/naming${query}`,{method,headers:{origin:"https://embel.example","content-type":"application/json","X-Embel-Account":owner,...headers},...(body===undefined?{}:{body:JSON.stringify(body)})});
 describe("Naming Brain route account and privacy boundaries",()=>{
- beforeEach(()=>{vi.resetAllMocks();vi.stubEnv("APP_ORIGIN","https://embel.example");mock.auth.mockResolvedValue({userId:owner,client:{rpc:mock.rpc,from:mock.from}});mock.rpc.mockResolvedValue({data:emptyFeed,error:null});mock.from.mockImplementation(()=>{const q={select:()=>q,eq:()=>q,maybeSingle:async()=>({data:{owner_id:owner,project_id:project,version:1,preferences:brainPreferences},error:null})};return q;});});afterEach(()=>vi.unstubAllEnvs());
+ beforeEach(()=>{vi.resetAllMocks();vi.stubEnv("APP_ORIGIN","https://embel.example");mock.auth.mockResolvedValue({userId:owner,client:{rpc:mock.rpc,from:mock.from}});mock.rpc.mockResolvedValue({data:emptyFeed,error:null});mock.from.mockImplementation(()=>{const q={select:()=>q,eq:()=>q,in:()=>q,limit:async()=>({data:[],error:null}),maybeSingle:async()=>({data:{owner_id:owner,project_id:project,version:1,preferences:brainPreferences},error:null})};return q;});});afterEach(()=>vi.unstubAllEnvs());
  it("selects only the explicit local admission wrapper under the complete local boundary",async()=>{
   for(const key of Object.keys(process.env))if(key==="VERCEL"||key.startsWith("VERCEL_"))vi.stubEnv(key,undefined);
   vi.stubEnv("NODE_ENV","production");vi.stubEnv("FLUID_RUNTIME","local");vi.stubEnv("FLUID_LOCAL_PROTOTYPE","true");vi.stubEnv("APP_ORIGIN","http://127.0.0.1:3106");

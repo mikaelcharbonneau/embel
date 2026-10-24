@@ -1,12 +1,13 @@
 import "server-only";
 import { z } from "zod";
 import { getNamingPreferencesReadiness, namingPreferencesV2Schema } from "@/domain/naming-brain-preferences";
-import { ensureNamingRunIntentSchema, namingBrainRunSchema, namingFeedCursorSchema, namingFeedEnsureResultSchema, namingFeedSchema, namingRunAccountingSchema, steerNamingFeedIntentSchema, steerNamingFeedResponseSchema, stopNamingFeedIntentSchema, stopNamingFeedResponseSchema, type NamingFeed, type NamingFeedCursor } from "@/domain/naming-brain";
+import { ensureNamingRunIntentSchema, namingBrainRunSchema, namingFeedCursorSchema, namingFeedEnsureResultSchema, namingFeedSchema, namingProviderFailureSchema, namingRunAccountingSchema, steerNamingFeedIntentSchema, steerNamingFeedResponseSchema, stopNamingFeedIntentSchema, stopNamingFeedResponseSchema, type NamingFeed, type NamingFeedCursor } from "@/domain/naming-brain";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
 import { getVerifiedProjectName, verifyProjectNameCandidates } from "./project-naming";
 import { normalizeNamingBrain } from "./naming-brain-provenance";
 import { isHostedNamingRuntime, isLocalPrototypeRuntime } from "../api-text/config";
+import { isNamingProviderBudgetAvailable, NAMING_BUDGET_UNAVAILABLE, NAMING_BUDGET_UNAVAILABLE_MESSAGE } from "../ai/naming-brain/budget-availability";
 
 const hostedNamingAvailabilitySchema = z.discriminatedUnion("status", [
  z.strictObject({ status: z.literal("available"), executionAuthority: z.literal("hosted_owner_v1") }),
@@ -34,6 +35,25 @@ async function verifyFeed(auth: AuthenticatedContext, projectId: string, feed: N
  const verified = { ...feed };
  delete verified.canResumeOnScroll;
  delete verified.canPrefetchOnScroll;
+ delete verified.failure;
+ // Only fixed safe classifications leave the owned persisted step. Never expose
+ // provider payloads, private diagnostic text or an unvalidated error string.
+ if (feed.activeRun && ["failed", "partial", "needs_reconciliation"].includes(feed.activeRun.state)) {
+  const result = await auth.client.from("job_steps").select("owner_id,project_id,job_id,output")
+   .eq("owner_id", auth.userId).eq("project_id", projectId).eq("job_id", feed.activeRun.jobId).in("state", ["failed", "ambiguous"]).limit(7);
+  if (!result.error && Array.isArray(result.data)) {
+   for (const row of result.data) {
+    if (row.owner_id !== auth.userId || row.project_id !== projectId || row.job_id !== feed.activeRun.jobId) throw new ApiError("not_found");
+    const output = z.object({ errorCode: z.string().optional(), partialArtifacts: z.array(z.unknown()).max(300).optional() }).safeParse(row.output);
+    if (!output.success) continue;
+    for (const partial of output.data.partialArtifacts ?? []) {
+     const marker = z.strictObject({ type: z.literal("provider_failure"), ...namingProviderFailureSchema.shape }).safeParse(partial);
+     if (marker.success) verified.failure = { code: marker.data.code, retryable: false };
+    }
+    if (!verified.failure && output.data.errorCode === "provider_request_rejected") verified.failure = { code: "provider_request_rejected", retryable: false };
+   }
+  }
+ }
  let executionAvailable = isLocalPrototypeRuntime();
  if (isHostedNamingRuntime()) {
   try {
@@ -46,6 +66,10 @@ async function verifyFeed(auth: AuthenticatedContext, projectId: string, feed: N
    executionAvailable = false;
   }
   if (!executionAvailable) verified.availability = { status: "unavailable", code: "naming_runtime_unavailable" };
+ }
+ if (!isNamingProviderBudgetAvailable()) {
+  executionAvailable = false;
+  verified.availability = { status: "unavailable", code: NAMING_BUDGET_UNAVAILABLE };
  }
  const executionCurrent = executionAvailable && feed.activeRun
   && feed.activeRun.projectRevision === feed.projectRevision && feed.activeRun.preferencesVersion === feed.preferencesVersion && feed.activeRun.steeringRevision === feed.steeringRevision
@@ -61,6 +85,13 @@ export async function getNamingFeed(auth: AuthenticatedContext, projectId: strin
 }
 export async function ensureNextNamingRun(auth: AuthenticatedContext, projectId: string, intent: unknown) {
  id(projectId); const parsed = parse(ensureNamingRunIntentSchema, intent);
+ if (!isNamingProviderBudgetAvailable()) {
+  const feed = await getNamingFeed(auth, projectId);
+  // An exact server-qualified saved-membership resume is a free read/append,
+  // never permission to restart incomplete or uncertain generation.
+  if (!(parsed.reason === "resume" && feed.activeRun?.canResumeSaved && feed.activeRun.runId === parsed.resumeOfRunId && feed.activeRun.revision === parsed.expectedRunRevision))
+   return parse(namingFeedEnsureResultSchema, { status: "blocked", feed, code: NAMING_BUDGET_UNAVAILABLE, message: NAMING_BUDGET_UNAVAILABLE_MESSAGE, action: "configure" });
+ }
  const saved = await auth.client.from("naming_preferences").select("owner_id,project_id,version,preferences")
   .eq("owner_id",auth.userId).eq("project_id",projectId).eq("version",parsed.expectedPreferencesVersion).maybeSingle();
  if(saved.error)throw new ApiError("integration_unavailable");
