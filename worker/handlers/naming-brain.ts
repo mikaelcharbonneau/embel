@@ -170,7 +170,8 @@ export function createNamingBrainHandlers(options: Options): HandlerRegistry {
         && !stage.providerTurns.some(record => record.providerCallKey === request.providerCallKey);
     };
     const ambiguous = bad?.status === "unresolved" || bad?.status === "rejected_before_dispatch" && stage.requests.some(request => !stage.artifacts.some(artifact => artifact.providerReceipt.providerCallKey === request.providerCallKey) && !rejectedCall(request) && !stage.providerTurns.some(record => record.providerCallKey === request.providerCallKey));
-    const result = { artifactIds: stage.artifacts.map(row => row.artifactId), ...(bad ? { errorCode: handledGap ? "gap_incomplete" : bad.code, partialArtifacts: [...invalidFailures, ...noDispatchFailures, ...outcomes.flatMap(row => "partialArtifacts" in row ? row.partialArtifacts : []).slice(-3)] } : completeProgressive && invalidFailures.length ? { partialArtifacts: invalidFailures } : {}) };
+    const providerFailures = outcomes.flatMap(row => row.status === "rejected_before_dispatch" && row.failure ? [{ type: "provider_failure", ...row.failure }] : []);
+    const result = { artifactIds: stage.artifacts.map(row => row.artifactId), ...(bad ? { errorCode: handledGap ? "gap_incomplete" : bad.code, partialArtifacts: [...invalidFailures, ...noDispatchFailures, ...providerFailures, ...outcomes.flatMap(row => "partialArtifacts" in row ? row.partialArtifacts : []).slice(-3)] } : completeProgressive && invalidFailures.length ? { partialArtifacts: invalidFailures } : {}) };
     // This is the verified-known subtotal (none). It is never a certified total expense.
     return bad && !handledGap ? { status: ambiguous ? "needs_reconciliation" : "failed", code: bad.code, costMicrousd: 0, providerRequestId: "receipt" in bad ? bad.receipt?.requestId ?? null : null, result }
       : { status: "succeeded", costMicrousd: 0, providerRequestId: null, result };

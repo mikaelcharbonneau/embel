@@ -20,6 +20,7 @@
   "src/domain/standalone-provider-evidence.ts",
   "src/features/domain-workspace/model.ts",
   "src/features/handles-workspace/domain.ts",
+  "src/server/ai/naming-brain/budget-availability.ts",
   "src/server/ai/naming-brain/creator-pool.ts",
   "src/server/ai/naming-brain/history.ts",
   "src/server/ai/naming-brain/identity.ts",

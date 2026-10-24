@@ -314,3 +314,36 @@ it("I2 keeps an acknowledged intent bound to its own run when an unrelated termi
   expect(f.memory.get(account, projectId)?.feed.pending).toEqual(exact); expect(await f.controller.resume()).toBe(false);
   expect(f.requests.filter(value => value.method === "POST")).toHaveLength(1);
 });
+
+
+it("retains an explicit start through an in-flight poll and dispatches once after a fresh head", async () => {
+  const f = fixture(); await f.controller.load();
+  let release!: (value: unknown) => void;
+  const held = new Promise(resolve => { release = resolve; });
+  let first = true;
+  f.respond(async (_path, options) => {
+    if (options.method === "POST") return { status: "pending", feed: { ...feed(), activeRun: run() }, run: run(), reused: false };
+    if (first) { first = false; return held; }
+    return { feed: feed() };
+  });
+  const poll = f.controller.poll(), start = f.controller.start();
+  expect(f.requests.filter(value => value.method === "POST")).toHaveLength(0);
+  release({ feed: feed() });
+  await poll; expect(await start).toBe(true);
+  expect(f.requests.filter(value => value.method === "POST")).toHaveLength(1);
+  expect(f.requests.filter(value => value.method === "GET")).toHaveLength(3);
+});
+
+it.each(["hidden", "left view", "disposed", "other owner"] as const)("does not start after a pending read when %s", async change => {
+  const f = fixture(); await f.controller.load();
+  let release!: (value: unknown) => void;
+  f.respond(() => new Promise(resolve => { release = resolve; }));
+  const poll = f.controller.poll(), start = f.controller.start();
+  if (change === "hidden") f.visible(false);
+  if (change === "left view") f.eligible(false);
+  if (change === "disposed") f.controller.dispose();
+  if (change === "other owner") f.memory.bind({ userId: id(99), generation: 2 });
+  release({ feed: feed() }); await poll;
+  expect(await start).toBe(false);
+  expect(f.requests.filter(value => value.method === "POST")).toHaveLength(0);
+});
