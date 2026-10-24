@@ -56,7 +56,20 @@ or reservation; it does not restart paid work.
 - Provider adapter tests prove zero real HTTP creation/continuation, with existing
   retrieval/cancellation still usable. Historical SDK/SQL fixtures explicitly
   model provider capability and use synthetic HTTP.
-- The full standard suite is running; final result is recorded in the PR.
+- Final affected Naming regressions: **168 tests / 12 suites passed** on the
+  finished code. This includes the corrected route, historical SDK/timing,
+  provider boundary, SQL admission/accounting and UI suites.
+- The broad standard sweep completed with 10,982 passing tests, 24 skipped and
+  31 failures while implementation/fixture updates were still in progress. All
+  30 Naming failures were superseded by the final affected-suite pass above.
+  The remaining failure is unchanged `tests/worker/openai-strategy.test.ts:60`
+  (`needs_reconciliation` expected, `failed` received). It reproduces in a
+  separate untouched-main worktree at `75df99a` (7 passed / 1 failed). No Strategy
+  source/test fix is included, and a clean full-standard-suite pass is not claimed.
+
+Final source commit: `66cc62956d58390309ed1d5d24fa865fbe522ec0`.
+Draft PR: https://github.com/mikaelcharbonneau/embel/pull/145.
+The follow-up evidence commit changes this record only.
 
 ## Changed files
 
