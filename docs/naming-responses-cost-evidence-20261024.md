@@ -222,12 +222,15 @@ requests:
 
 ```text
 1_050_000 * 200 + 32_768 * 750 = 234_576_000 nanodollars per model dispatch
-12 * 234_576_000 = 2_814_912_000 nanodollars = US$2.814912
-US$5 - US$2.814912 = US$2.185088 unallocated
+21 * 234_576_000 = 4_926_096_000 nanodollars = US$4.926096
+US$5 - US$4.926096 = US$0.073904 unallocated
 ```
 
-The proposed hard ceiling is twelve model dispatches, counting research planning,
-every explicit evidence/tool-return continuation and all review/generation calls.
+The proposed hard ceiling is twenty-one model dispatches: one source plan, one
+research synthesis, one Director, the existing fifteen independent Creators, one
+Curator, one verification plan and one verification synthesis. The eight HTTP
+attempts are shared across research and verification. Every evidence/tool-return
+continuation consumes its named slot; there is no spare repair or model-call slot.
 Atomically reserve the complete maximum before each dispatch, never re-lend an
 unknown or estimated charge, and do not use the unallocated difference to create
 unplanned calls. The existing public reference reader does not invoke a priced
@@ -237,8 +240,9 @@ the same aggregate budget before use.
 
 This arithmetic bounds the proposed model-only requests under the documented
 rate/capability assumptions. It does **not** prove that all existing approach
-coverage, independent Creator assignments, real research and 100 approved names
-can finish within twelve calls. That fit remains a reviewed orchestration/evaluation
+coverage, real research and 100 approved names can finish within those fixed slots.
+The fifteen initial Creator assignments are retained, not collapsed to fit the
+budget. That fit remains a reviewed orchestration/evaluation
 requirement; exhausting slots or unsupported factual routes must produce honest
 incomplete/unavailable work, not fewer promised names, fabricated sourcing, model
 changes or extra budget. Production qualification also retains explicit expiry

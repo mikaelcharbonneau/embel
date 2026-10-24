@@ -22,7 +22,8 @@ That preserves real fetched evidence but changes discovery and cannot be called
 search-equivalent. If search-equivalent discovery must remain, a separately
 approved source with qualified search prices and input limits, or a provider
 hosted-search guarantee, is still needed. No new paid service was selected or
-implemented. A twelve-call text-only proposal is an admission ceiling, not proof
+implemented. A twenty-one-call text-only proposal retains the fifteen initial
+Creator assignments and is an admission ceiling, not proof
 that every selected-approach/100-name configuration can complete within it.
 
 ## What is implemented
