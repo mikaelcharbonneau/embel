@@ -67,9 +67,31 @@ or reservation; it does not restart paid work.
   separate untouched-main worktree at `75df99a` (7 passed / 1 failed). No Strategy
   source/test fix is included, and a clean full-standard-suite pass is not claimed.
 
-Final source commit: `66cc62956d58390309ed1d5d24fa865fbe522ec0`.
+Initial source commit: `66cc62956d58390309ed1d5d24fa865fbe522ec0`.
 Draft PR: https://github.com/mikaelcharbonneau/embel/pull/145.
-The follow-up evidence commit changes this record only.
+The initial follow-up evidence commit changes this record only.
+
+## Review correction: unavailable continuation of an issued session
+
+Review found that `creation_unavailable` also comes from a refused tool-result
+submission. An unconditional catch had incorrectly returned
+`rejected_before_dispatch` for an already-issued session, discarding its receipt
+and skipping cancellation/observation. That classification now requires no prior
+receipt, no invoked create and no session ID. An issued session follows bounded
+cancellation and terminal-history observation instead. A cancellation acceptance
+without terminal history stays unresolved with its original session/turn/agent
+identity and null confirmed cost. Read-only recovery remains GET-only.
+
+The new composition suite uses the actual runtime and its default SDK adapter's
+unavailable continuation guard, with synthetic global HTTP and retained pending
+tool output. Before the fix, four issued-session cases failed exactly as reported;
+three read-only cases passed. After the fix, all seven pass for native/local
+profiles, cancellation acceptance versus observed cancellation, and observe-only,
+expired and already-aborted recovery. No create or tool-result submission occurs.
+The complete affected recovery/pre-dispatch run passed **80 tests / 9 suites**.
+Typecheck, lint and both local builds passed for this correction; the unchanged
+main Strategy failure above remains outside this patch. No production or paid
+call was made.
 
 ## Changed files
 
@@ -92,6 +114,7 @@ The follow-up evidence commit changes this record only.
 - `tests/e2e/naming-safe-handoff.spec.ts`
 - `tests/server/naming-brain-protocol.test.ts`
 - `tests/server/naming-brain.test.ts`
+- `tests/server/naming-brain-unavailable-recovery.test.ts`
 - `tests/server/naming-budget-unavailable.test.ts`
 - `tests/server/naming-read-availability.test.ts`
 - `tests/worker/naming-brain-local-sdk.test.ts`

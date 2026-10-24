@@ -412,7 +412,10 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
         return { status: "rejected_before_dispatch", code: "local_dispatch_not_attempted", ...(error instanceof NamingManagedProtocolError && error.code === "creation_unavailable" ? { failure: { code: "provider_budget_control_unavailable", retryable: false } as const } : {}), ...(retained ? { receipt } : {}) };
       }
       if (!dispatchAuthorized) return { status: "rejected_before_dispatch", code: "dispatch_not_authorized", ...(error instanceof NamingManagedProtocolError && error.code === "creation_unavailable" ? { failure: { code: "provider_budget_control_unavailable", retryable: false } as const } : {}) };
-      if (error instanceof NamingManagedProtocolError && error.code === "creation_unavailable") return { status: "rejected_before_dispatch", code: "dispatch_not_authorized", failure: { code: "provider_budget_control_unavailable", retryable: false } };
+      // The same boundary also rejects tool-result continuation in an issued
+      // session. Only an uninvoked create with no prior/session can be a local
+      // pre-dispatch rejection; issued identity must reach recovery below.
+      if (error instanceof NamingManagedProtocolError && error.code === "creation_unavailable" && !prior && !createInvoked && receipt.sessionId === null) return { status: "rejected_before_dispatch", code: "dispatch_not_authorized", failure: { code: "provider_budget_control_unavailable", retryable: false } };
       if (error instanceof NamingManagedProtocolError && error.code === "request_rejected" && receipt.sessionId === null) {
         receipt = { ...receipt, dispatchState: "not_dispatched", requestId: error.requestId }; try { await emit(); } catch {}
         return { status: "rejected_before_dispatch", code: "provider_request_rejected", ...(error.diagnostic?.status && [400, 401, 403, 404, 413, 422].includes(error.diagnostic.status) ? { failure: { code: "provider_configuration_rejected", retryable: false } as const } : {}) };
@@ -420,8 +423,9 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
       if (receipt.sessionId) {
         if (!readonlyRecovery) { try { await cancel(receipt); } catch {} }
         // Cancellation acceptance is not terminal. Only retained provider history
-        // can establish completion or cancellation after the observer was aborted.
-        if ((controller.signal.aborted || hooks.signal.aborted) && now() < observationDeadlineAt) {
+        // can establish completion or cancellation after observation aborts or a
+        // paid continuation is refused by the unavailable boundary.
+        if ((controller.signal.aborted || hooks.signal.aborted || error instanceof NamingManagedProtocolError && error.code === "creation_unavailable") && now() < observationDeadlineAt) {
           try { await reconcile(AbortSignal.timeout(Math.max(1, Math.min(3_000, observationDeadlineAt - now())))); const settled = finish(); if (settled) return settled; } catch {}
         }
       }
