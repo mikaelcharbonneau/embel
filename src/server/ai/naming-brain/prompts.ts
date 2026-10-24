@@ -52,8 +52,9 @@ export function buildNamingManagedRequest(raw: unknown): ManagedCreateRequest {
       { type: "function", name: "read_reference", description: future ? `Read and retain exact public reference text. Use only these exact HTTPS hosts and the permitted paths in the instructions: ${request.policy.referenceHosts.join(", ")}. Other hosts and redirects are unavailable.` : "Read one observed public reference and retain its exact text.", parameters: { type: "object", properties: { url: { type: "string", maxLength: 2000 } }, required: ["url"], additionalProperties: false } },
     ] : [], text: { format: { type: "json_schema", schema: z.toJSONSchema(namingOutputSchemaForRequest(request)) }, ...(progressive ? { verbosity: "low" } : {}) } },
     input: JSON.stringify({ stageKey: request.stageKey, ...request.input }), metadata: { embel_run: request.runId, embel_call: request.providerCallKey, embel_request: request.requestKey, embel_request_hash: request.requestHash, embel_snapshot: request.snapshotHash,
+      ...(request.policy.providerSpendCapCents !== undefined ? { embel_provider_spend_cap_cents: String(request.policy.providerSpendCapCents) } : {}),
       ...(localUnlimited ? { embel_budget_control: "local_unlimited_v1" } : {}), ...(progressive ? { embel_pipeline_version: "2" } : {}), ...(future ? { embel_progressive_contract_version: String(request.policy.progressiveContractVersion) } : {}) },
-    ...(localUnlimited ? {} : { spend_control: { limit: request.policy.sessionLimitCents } }), stream: true };
+    ...(request.policy.providerSpendCapCents !== undefined ? { spend_control: { limit: request.policy.providerSpendCapCents } } : localUnlimited ? {} : { spend_control: { limit: request.policy.sessionLimitCents } }), stream: true };
   assertNamingStageWireInput(request, body);
   return body;
 }

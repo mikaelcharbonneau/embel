@@ -34,3 +34,11 @@ export function allocateNamingCreatorCaps(targets: readonly number[], maximumCen
   for (let assigned = caps.length; assigned < total;) for (let index = 0; index < targets.length && assigned < total; index++) if (caps[index]! < targets[index]!) { caps[index] = caps[index]! + 1; assigned++; }
   return caps;
 }
+
+/** Versioned future-run allocation. Sum-of-issued caps is enforced atomically in
+ * Postgres; observed usage never replenishes this envelope. */
+export function createBudgetedProgressiveNamingRolePolicy(policy: NamingBrainPolicy, role: NamingRole): NamingRolePolicy {
+  const caps: Record<NamingRole, number> = { researcher: 25, director: 10, creator: 10, curator: 5, verifier: 10 };
+  const base = createProgressiveNamingRolePolicy(policy, role, caps[role], undefined, true, 3);
+  return namingRolePolicySchema.parse({ ...base, providerSpendCapCents: caps[role] });
+}

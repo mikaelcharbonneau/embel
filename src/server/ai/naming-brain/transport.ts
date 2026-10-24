@@ -34,6 +34,7 @@ function abortable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
 }
 function baseReceipt(request: NamingStageRequest, now: () => number): ManagedReceipt {
   return managedReceipt({ version: 1, provider: "openai", protocol: "openai_agents", billingMode: "openai_api", runId: request.runId, stageKey: request.stageKey, role: request.role, snapshotHash: request.snapshotHash,
+    ...(request.policy.providerSpendCapCents !== undefined ? { providerSpendCapCents: request.policy.providerSpendCapCents } : {}),
     ...(request.policy.budgetControl ? { budgetControl: request.policy.budgetControl } : {}),
     ...(request.policy.localPipelineVersion ? { localPipelineVersion: request.policy.localPipelineVersion } : {}),
     requestKey: request.requestKey, providerCallKey: request.providerCallKey, assignmentKey: request.assignmentKey, requestHash: request.requestHash, sessionLimitCents: request.policy.sessionLimitCents,
@@ -84,7 +85,7 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
     try { request = namingStageRequestSchema.parse(rawRequest); buildNamingManagedRequest(request); if (request.policy.budgetControl && !options.localPrototype || request.policy.model !== options.model || namingRequestHash(request) !== request.requestHash || request.policy.referenceHosts.some(host => !NAMING_REFERENCE_HOSTS.some(allowed => allowed === host))) throw new Error("runtime_policy_mismatch"); }
     catch { return { status: "rejected_before_dispatch", code: "request_invalid" }; }
     let receipt = prior ? managedReceipt(prior) : baseReceipt(request, now);
-    if (prior && (prior.localPipelineVersion !== request.policy.localPipelineVersion || prior.budgetControl !== request.policy.budgetControl || prior.requestHash !== request.requestHash || prior.providerCallKey !== request.providerCallKey || prior.runId !== request.runId || prior.stageKey !== request.stageKey || prior.requestKey !== request.requestKey || prior.protocol !== "openai_agents")) return { status: "unresolved", code: "receipt_mismatch", receipt, partialArtifacts: [] };
+    if (prior && (prior.providerSpendCapCents !== request.policy.providerSpendCapCents || prior.localPipelineVersion !== request.policy.localPipelineVersion || prior.budgetControl !== request.policy.budgetControl || prior.requestHash !== request.requestHash || prior.providerCallKey !== request.providerCallKey || prior.runId !== request.runId || prior.stageKey !== request.stageKey || prior.requestKey !== request.requestKey || prior.protocol !== "openai_agents")) return { status: "unresolved", code: "receipt_mismatch", receipt, partialArtifacts: [] };
     if (prior && !receipt.sessionId) return { status: "unresolved", code: "session_identity_unknown", receipt, partialArtifacts: [] };
     const state = await options.persistence.load(request);
     if (state.request && !isDeepStrictEqual(namingStageRequestSchema.parse(state.request), request)) return { status: "unresolved", code: "saved_request_mismatch", receipt, partialArtifacts: [] };
@@ -129,7 +130,7 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
       const entry = { scope, scopeId, inputTokens: parsed.data.input_tokens, outputTokens: parsed.data.output_tokens, totalTokens: parsed.data.total_tokens, observedAt: new Date(now()).toISOString() };
       if (!receipt.usageObservations.some(old => old.scope === scope && old.scopeId === scopeId && old.inputTokens === entry.inputTokens && old.outputTokens === entry.outputTokens && old.totalTokens === entry.totalTokens)) receipt = { ...receipt, usageObservations: [...receipt.usageObservations, entry] };
     };
-    const hasObservedOverrun = () => request.policy.budgetControl !== "local_unlimited_v1" && receipt.providerCostCounters.some(counter => counter.kind === "consumed_usd_cents" && counter.value > request.policy.sessionLimitCents);
+    const hasObservedOverrun = () => (request.policy.providerSpendCapCents !== undefined || request.policy.budgetControl !== "local_unlimited_v1") && receipt.providerCostCounters.some(counter => counter.kind === "consumed_usd_cents" && counter.value > request.policy.sessionLimitCents);
     const hasObservedToolOverrun = () => !localUnlimited && (receipt.toolCalls.filter(call => call.type === "web_search").length > request.policy.maxWebSearchCalls || receipt.toolCalls.filter(call => call.type === "function").length > request.policy.maxWebSearchCalls);
     const acceptSession = async (value: AgentSession) => {
       const progressiveMismatch = request.policy.localPipelineVersion === 2
@@ -137,6 +138,9 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
         : value.metadata?.embel_pipeline_version !== undefined;
       const contractMismatch = request.policy.progressiveContractVersion !== undefined
         ? value.metadata?.embel_progressive_contract_version !== String(request.policy.progressiveContractVersion) : value.metadata?.embel_progressive_contract_version !== undefined;
+      const providerCapMismatch = request.policy.providerSpendCapCents !== undefined
+        ? value.spend_control?.limit !== request.policy.providerSpendCapCents || value.metadata?.embel_provider_spend_cap_cents !== String(request.policy.providerSpendCapCents)
+        : value.metadata?.embel_provider_spend_cap_cents !== undefined;
       const budgetMismatch = request.policy.budgetControl === "local_unlimited_v1"
         ? value.metadata?.embel_budget_control !== "local_unlimited_v1" || value.agent?.reasoning?.effort !== request.policy.reasoningEffort
         : value.spend_control?.limit !== request.policy.sessionLimitCents || value.metadata?.embel_budget_control !== undefined;
@@ -144,6 +148,10 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
       const expected = request.policy.allowedTools;
       if (!Array.isArray(value.agent.tools) || value.agent.tools.length !== expected.length || value.agent.tools.some(tool => tool.type === "web_search" ? !expected.includes("web_search") : tool.type !== "function" || tool.name !== "read_reference" || !expected.includes("read_reference"))) throw new Error("provider_tools_mismatch");
       session = value; receipt = { ...receipt, sessionId: value.id, agentId: value.agent.id, observedModel: value.agent.model, dispatchState: "dispatched" };
+      // Retain the verified request-bound session identity even when its cap is
+      // missing. The failure path can then cancel that exact session and observe
+      // it later, rather than losing an already-started remote operation.
+      if (providerCapMismatch) { await emit(); throw new Error("provider_configuration_mismatch"); }
       if (referenceContractV2 && value.status === "requires_action") for (const action of value.required_actions) {
         if (action.type !== "function_call" || action.name !== "read_reference" || !safeId(action.call_id)) throw new Error("provider_tool_refused");
         const previous = pendingRequiredActions.get(action.call_id);

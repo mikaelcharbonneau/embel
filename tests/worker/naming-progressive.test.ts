@@ -19,9 +19,9 @@ function deferred() { let resolve = () => {}; const promise = new Promise<void>(
 
 /** Synthetic role completions pass the real request/output/assignment validators.
  * The in-memory store models immutable phase plans and atomic publication ACKs. */
-function fixture(approaches?: NamingApproach[]) {
+function fixture(approaches?: NamingApproach[], capped = false) {
   const legacy = createInertNamingHarness({ localPrototype: true });
-  const input = namingBrainJobInputSchema.parse({ ...legacy.input, ...(approaches ? { snapshot: { ...legacy.input.snapshot, preferences: { ...legacy.input.snapshot.preferences, approaches } } } : {}), localTimingVersion: 2, localPipelineVersion: 2 });
+  const input = namingBrainJobInputSchema.parse({ ...legacy.input, ...(capped ? { providerBudgetVersion: 1 } : {}), ...(approaches ? { snapshot: { ...legacy.input.snapshot, preferences: { ...legacy.input.snapshot.preferences, approaches } } } : {}), localTimingVersion: 2, localPipelineVersion: 2 });
   const job = parseClaimedJob({ ...legacy.jobRow, input });
   const stage = legacy.stages.get("creation")!; stage.startedAt = new Date().toISOString();
   const state: NamingProgressiveState = { stage: { ...stage, callPlans: [] }, plannedRequests: [], publishedCount: 0, primaryCounts: input.snapshot.preferences.approaches.map(approach => ({ approach, count: 0 })), publications: [] };
@@ -43,6 +43,7 @@ function fixture(approaches?: NamingApproach[]) {
     const observed = namingProviderReceiptSchema.parse({ ...receipt("creation", request.role), runId: request.runId, snapshotHash: request.snapshotHash,
       requestKey: request.requestKey, requestHash: request.requestHash, providerCallKey: request.providerCallKey, assignmentKey: request.assignmentKey,
       sessionId: `session-${request.providerCallKey}`, turnId: `turn-${request.providerCallKey}`, agentId: "agent-synthetic", observedModel: request.policy.model,
+      ...(request.policy.providerSpendCapCents !== undefined ? { providerSpendCapCents: request.policy.providerSpendCapCents } : {}),
       sessionLimitCents: request.policy.sessionLimitCents, budgetControl: "local_unlimited_v1", localPipelineVersion: 2,
       toolCalls: request.role === "researcher" ? [{ callId: "research-attempt", type: "web_search", providerItemId: "search-item", status: "completed" }] : [], artifactItemIds: ["final-item"] });
     const text = JSON.stringify(output);
@@ -292,4 +293,13 @@ describe("Progressive Naming reviewed publication", () => {
     const handlers = createNamingBrainHandlers({ store: authorized.store, assertReady: async () => {} });
     expect(handlers.get("naming.generate")!.steps(value.job).map(row => row.key)).toEqual(["creation", "prepare"]);
   });
+});
+
+
+it("selects capped requests only for the new immutable job witness", async () => {
+ const f = fixture(["real_words", "compounds", "invented"], true);
+ expect(await f.run()).toMatchObject({ complete: true });
+ expect(f.calls.length).toBeGreaterThan(0);
+ expect(f.calls.every(call => call.policy.providerSpendCapCents === call.policy.sessionLimitCents)).toBe(true);
+ expect(f.calls.reduce((sum, call) => sum + call.policy.providerSpendCapCents!, 0)).toBeLessThanOrEqual(500);
 });
