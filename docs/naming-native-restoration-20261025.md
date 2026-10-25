@@ -95,6 +95,17 @@ they are operational acceptance limits, not a reason to restore monetary gates.
 These are parent-owned future release steps, not actions executed by this coding
 task. A successful web build alone does not activate a worker.
 
+No-paid readiness checks are separate from generation acceptance. In the
+qualified release environment, `node services/naming-worker/dist/index.js
+--preflight` verifies the exact runtime, restricted database role and TLS inside
+a read-only transaction, then exits. `--standby` performs the same check, closes
+its database pool and waits for shutdown. Neither mode claims jobs, publishes a
+readiness heartbeat, calls a provider or writes job state. Require the emitted
+`jobMutations: false` and `providerCalls: false` facts. The offline deployment
+receipt verifier below and authenticated saved-feed/hosted-availability reads
+also require no inference. Do not start normal run mode as a readiness probe;
+it can claim and execute work.
+
 1. Review and merge the native repair, then pin that clean main SHA for the web
    and dedicated Naming artifact. Run `npm run typecheck`, `npm run lint`, the
    relevant mocked/database suites, `npm run build` and
