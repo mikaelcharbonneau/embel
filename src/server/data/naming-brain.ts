@@ -7,7 +7,6 @@ import { ApiError } from "../http/errors";
 import { getVerifiedProjectName, verifyProjectNameCandidates } from "./project-naming";
 import { normalizeNamingBrain } from "./naming-brain-provenance";
 import { isHostedNamingRuntime, isLocalPrototypeRuntime } from "../api-text/config";
-import { isNamingProviderBudgetAvailable, NAMING_BUDGET_UNAVAILABLE, NAMING_BUDGET_UNAVAILABLE_MESSAGE } from "../ai/naming-brain/budget-availability";
 
 const hostedNamingAvailabilitySchema = z.discriminatedUnion("status", [
  z.strictObject({ status: z.literal("available"), executionAuthority: z.literal("hosted_owner_v1") }),
@@ -67,14 +66,12 @@ async function verifyFeed(auth: AuthenticatedContext, projectId: string, feed: N
   }
   if (!executionAvailable) verified.availability = { status: "unavailable", code: "naming_runtime_unavailable" };
  }
- if (!isNamingProviderBudgetAvailable()) {
-  executionAvailable = false;
-  verified.availability = { status: "unavailable", code: NAMING_BUDGET_UNAVAILABLE };
- }
  const executionCurrent = executionAvailable && feed.activeRun
   && feed.activeRun.projectRevision === feed.projectRevision && feed.activeRun.preferencesVersion === feed.preferencesVersion && feed.activeRun.steeringRevision === feed.steeringRevision
   && !feed.paused && feed.state === "active" && feed.availability.status === "available";
- if (executionCurrent && feed.activeRun?.canResume && ["partial", "failed"].includes(feed.activeRun.state) && feed.activeRun.fulfillment?.status !== "complete") verified.canResumeOnScroll = true;
+ // Retained nonretryable failures require the explicit Resume action. Current
+ // availability and the owned manual Resume witness remain independent.
+ if (executionCurrent && verified.failure?.retryable !== false && feed.activeRun?.canResume && ["partial", "failed"].includes(feed.activeRun.state) && feed.activeRun.fulfillment?.status !== "complete") verified.canResumeOnScroll = true;
  if (executionCurrent && feed.activeRun?.state === "succeeded" && feed.activeRun.fulfillment?.status === "complete" && (feed.activeRun.localPipelineVersion === 2 ? feed.activeRun.progressiveCompletionId : feed.activeRun.preparedSetId !== null)) verified.canPrefetchOnScroll = true;
  return verified;
 }
@@ -85,13 +82,6 @@ export async function getNamingFeed(auth: AuthenticatedContext, projectId: strin
 }
 export async function ensureNextNamingRun(auth: AuthenticatedContext, projectId: string, intent: unknown) {
  id(projectId); const parsed = parse(ensureNamingRunIntentSchema, intent);
- if (!isNamingProviderBudgetAvailable()) {
-  const feed = await getNamingFeed(auth, projectId);
-  // An exact server-qualified saved-membership resume is a free read/append,
-  // never permission to restart incomplete or uncertain generation.
-  if (!(parsed.reason === "resume" && feed.activeRun?.canResumeSaved && feed.activeRun.runId === parsed.resumeOfRunId && feed.activeRun.revision === parsed.expectedRunRevision))
-   return parse(namingFeedEnsureResultSchema, { status: "blocked", feed, code: NAMING_BUDGET_UNAVAILABLE, message: NAMING_BUDGET_UNAVAILABLE_MESSAGE, action: "configure" });
- }
  const saved = await auth.client.from("naming_preferences").select("owner_id,project_id,version,preferences")
   .eq("owner_id",auth.userId).eq("project_id",projectId).eq("version",parsed.expectedPreferencesVersion).maybeSingle();
  if(saved.error)throw new ApiError("integration_unavailable");

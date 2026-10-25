@@ -64,14 +64,14 @@ function wrapped(stream: AsyncIterable<ResponseStreamEvent> & { controller: Abor
   })() };
 }
 
-/** The injected HTTP seam is for hermetic tests, not a production readiness
- * override. Default creation remains unavailable; known-response reads and
+/** The injected HTTP seam changes transport only, never admission. Creation
+ * remains unavailable with any transport; known-response reads and
  * cancellation do not create or continue paid model work. */
 export function createNamingResponsesProtocol(options: { apiKey: string; fetch?: typeof fetch }): NamingResponsesProtocol {
   const client = new OpenAI({ apiKey: options.apiKey, baseURL: "https://api.openai.com/v1", maxRetries: 0, logLevel: "off", organization: null, project: null,
     fetch: boundedFetch(options.fetch ?? fetch), fetchOptions: { redirect: "error" } });
   function assertCreateAvailable() {
-    if (!options.fetch && !namingResponsesProductionReadiness().available) throw new NamingResponsesProtocolError("creation_unavailable");
+    if (!namingResponsesProductionReadiness().available) throw new NamingResponsesProtocolError("creation_unavailable");
   }
   function responseIdentity(value: string) { if (!isNamingResponseId(value)) throw new NamingResponsesProtocolError("request_rejected"); }
   async function safe<T>(action: () => Promise<T>): Promise<T> { try { return await action(); } catch (error) { throw sanitized(error); } }

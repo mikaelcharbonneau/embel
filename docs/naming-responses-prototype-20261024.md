@@ -1,5 +1,11 @@
 # Inactive durable Naming Responses components — 2026-10-24
 
+The user's October 25 correction rejects monetary limits. The
+[native restoration](naming-native-restoration-20261025.md) uses the existing
+uncapped Agents flow; this Responses prototype and its cost decision are not
+required for that release. The following describes the original PR146 checkpoint
+and its expired qualification, rather than a current product cost requirement.
+
 ## Status and decision
 
 This draft is a tested **inactive adapter/ledger foundation**, not a complete

@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
+// Only synthetic dispatch enables this mock; saved-work reads keep the gate closed.
 import { createNamingManagedProtocol, type NamingManagedDiagnostic } from "../../src/server/ai/naming-brain/protocol";
 import { createNamingAgentRuntime } from "../../src/server/ai/naming-brain/transport";
 import { NamingBrainJobStore } from "../../worker/naming-brain-store";
@@ -55,7 +56,11 @@ describe("managed create rejection through SDK, transport, worker and real SQL (
     return query;
    },
   } } as unknown as AuthenticatedContext;
-  for (let read = 0; read < 2; read++) expect(await getNamingFeed(auth, project)).toMatchObject({ failure: { code: "provider_configuration_rejected", retryable: false }, availability: { status: "unavailable", code: "provider_budget_control_unavailable" } });
+  for (let read = 0; read < 2; read++) {
+   const feed = await getNamingFeed(auth, project);
+   expect(feed).toMatchObject({ failure: { code: "provider_configuration_rejected", retryable: false } });
+   expect(feed.availability).not.toHaveProperty("code", "provider_budget_control_unavailable");
+  }
   expect(await brainRpc(db, "get_naming_brain_job_accounting", [test.admitted.run.jobId])).toEqual({ status: "held_unsettled", heldAllowanceMicrousd: 5_000_000, confirmedActualCostMicrousd: null });
  });
 

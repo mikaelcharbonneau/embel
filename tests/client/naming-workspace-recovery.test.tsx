@@ -34,6 +34,11 @@ const preferences = { ...initialNamingPreferencesV2(project.context), approaches
 const entry: ProjectNameEntry = { candidate: { id: candidateId, ownerId, projectId, value: "Juniper", identityKey: nameIdentityKey("Juniper"), rationale: "Synthetic workspace candidate.", contextRevision: 1, strategyBasis: namingStrategyBasis(project.context), strategyKey: namingStrategyKey(project.context), createdAt: when,
   origin: { kind: "local_import", ownerId, projectId, candidateId, contextRevision: 1, source: { id: candidateId, value: "Juniper", createdAt: when, origin: "manual", history: [] }, capturedContext: project.context } }, retention: { ownerId, projectId, candidateId, revision: 0, favorite: false, saved: false, updatedAt: null } };
 const activeRun: NamingBrainRunSummary = { version: 1, ownerId, projectId, runId: "d0000000-0000-4000-8000-000000000001", jobId: "d0000000-0000-4000-8000-000000000002", batchId: "d0000000-0000-4000-8000-000000000003", revision: 1, resumedFromRunId: null, canResume: false, state: "queued", projectRevision: 1, preferencesVersion: 1, feedbackRevision: 0, steeringRevision: 0, demandSequence: 0, snapshotHash: "b".repeat(64), acceptedPolicyIdentity: "a".repeat(64), progress: 0, preparedSetId: null, fulfillment: null, accounting: { status: "held_unsettled", heldAllowanceMicrousd: 5_000_000, confirmedActualCostMicrousd: null }, createdAt: when, updatedAt: when };
+function rejectedCappedRun(): NamingBrainRunSummary {
+  return { ...activeRun, state: "failed", revision: 2, canResume: true,
+    executionAuthority: "hosted_owner_v1", localPipelineVersion: 2, providerBudgetVersion: 1,
+    fulfillment: { status: "none", targetCount: 100, acceptedCount: 0, missingCount: 100, coverageSatisfied: false, message: "The earlier provider configuration was rejected." } };
+}
 let root: Root, host: HTMLDivElement, overview: ProjectNamingOverview, server: NamingFeed, calls: { path: string; method: string; body: unknown }[], viewWrites: Partial<NamingViewState>[], holdView: Promise<boolean> | null, holdSteering: Promise<void> | null, holdFeed: Promise<void> | null, failSteering: boolean;
 function model() { return mock.model as ReturnType<typeof import("@/components/naming/use-project-naming").useProjectNaming>; }
 function publish(patch: Partial<ReturnType<typeof model>>) { mock.model = { ...model(), ...patch }; mock.notify(); }
@@ -77,6 +82,59 @@ beforeEach(() => {
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
 afterEach(async () => { if (root) await act(async () => root.unmount()); host?.remove(); mock.memory?.clear(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+
+it.each([true, false])("keeps the prior rejected capped request visible while current generation availability=%s governs updated choices", async available => {
+  const failedRun = rejectedCappedRun();
+  const original = structuredClone(failedRun);
+  server = { ...server, activeRun: failedRun, failure: { code: "provider_configuration_rejected", retryable: false },
+    availability: available ? server.availability : { status: "unavailable", code: "naming_runtime_unavailable" } };
+  await render();
+  expect(ensures()).toHaveLength(0);
+  await click("Naming choices"); await finishQuestions();
+  expect(ensures()).toHaveLength(0);
+  const action = button("Apply updated choices");
+  if (available) {
+    expect(host.textContent).toContain("previous generation request was rejected by the provider");
+    expect(action?.disabled).toBe(false);
+    expect(host.textContent).not.toMatch(/AI name generation is unavailable|verified spending limit/);
+  } else {
+    expect(action === undefined || action.disabled).toBe(true);
+    expect(host.textContent).toContain("AI name generation is unavailable");
+    expect(button("Resume unfinished exploration")).toBeUndefined();
+    await click("Check generation status");
+    expect(ensures()).toHaveLength(0);
+  }
+  expect(ensures()).toHaveLength(0);
+  expect(failedRun).toEqual(original);
+  expect(server.failure).toEqual({ code: "provider_configuration_rejected", retryable: false });
+});
+
+it("resumes a rejected capped request only through explicit server-qualified Resume into a separate uncapped run", async () => {
+  const failedRun = rejectedCappedRun(), original = structuredClone(failedRun);
+  server = { ...server, activeRun: failedRun, failure: { code: "provider_configuration_rejected", retryable: false } };
+  const existingFetch = globalThis.fetch;
+  vi.stubGlobal("fetch", vi.fn(async (path: string, options: RequestInit) => {
+    if (!path.endsWith("/feed/ensure")) return existingFetch(path, options);
+    const body = JSON.parse(String(options.body)); calls.push({ path, method: "POST", body });
+    server = { ...server, demandSequence: server.demandSequence + 1, activeRun: { ...activeRun,
+      runId: "d0000000-0000-4000-8000-000000000004", resumedFromRunId: failedRun.runId, demandSequence: server.demandSequence + 1,
+      executionAuthority: "hosted_owner_v1", localPipelineVersion: 2, providerBudgetVersion: 2 } };
+    return Response.json({ status: "pending", feed: server, run: server.activeRun, reused: false });
+  }));
+  await render();
+  expect(host.textContent).toContain("previous generation request was rejected by the provider");
+  expect(button("Resume unfinished exploration")?.disabled).toBe(false);
+  expect(ensures()).toHaveLength(0);
+  await act(async () => { await vi.advanceTimersByTimeAsync(15_000); });
+  expect(ensures()).toHaveLength(0);
+  await click("Resume unfinished exploration");
+  expect(ensures()).toHaveLength(1);
+  expect(ensures()[0]!.body).toMatchObject({ reason: "resume", resumeOfRunId: failedRun.runId, expectedRunRevision: 2, expectedPreferencesVersion: 1, expectedDemandSequence: 0 });
+  expect(server.activeRun).toMatchObject({ providerBudgetVersion: 2, localPipelineVersion: 2, executionAuthority: "hosted_owner_v1", resumedFromRunId: failedRun.runId });
+  expect(server.activeRun!.runId).not.toBe(failedRun.runId);
+  expect(failedRun).toEqual(original);
+  expect(server.failure).toEqual({ code: "provider_configuration_rejected", retryable: false });
+});
 
 it.each([true, false])("saved-partial continuation uses the server free witness=%s through the real workspace hook", async canResumeSaved => {
   const savedRow = server.entries[0]!, run: NamingBrainRunSummary = { ...activeRun, state: "partial", revision: 2, canResume: true, canResumeSaved, preparedSetId: "e0000000-0000-4000-8000-000000000001", fulfillment: { status: "partial", targetCount: 100, acceptedCount: 1, missingCount: 99, coverageSatisfied: false, message: "One saved synthetic name." } };

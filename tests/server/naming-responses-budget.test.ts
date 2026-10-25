@@ -61,8 +61,15 @@ describe("Responses exact maximum and immutable new requests", () => {
 
   it("rejects hidden cache breakpoints and cap/hosted-tool mismatches", () => {
     const { text, research } = bodies();
-    expect(namingResponsesWireSchema.safeParse({ ...text, text: { ...text.text, format: { ...text.text.format, schema: { prompt_cache_breakpoint: true } } } }).success).toBe(false);
+    for (const field of ["prompt_cache_breakpoint", "cache_breakpoint", "cache_control"]) {
+      expect(namingResponsesWireSchema.safeParse({ ...text, text: { ...text.text, format: { ...text.text.format, schema: { [field]: true } } } }).success).toBe(false);
+    }
     expect(namingResponsesWireSchema.safeParse({ ...text, max_tool_calls: 4 }).success).toBe(false);
     expect(namingResponsesWireSchema.safeParse({ ...research, max_tool_calls: undefined }).success).toBe(false);
+    expect(namingResponsesWireSchema.safeParse({ ...research, tools: research.tools.filter(tool => tool.type === "web_search") }).success).toBe(false);
+    expect(namingResponsesWireSchema.safeParse({ ...text, tools: research.tools.filter(tool => tool.type === "function") }).success).toBe(false);
+    expect(namingResponsesWireSchema.safeParse({ ...research, tools: [research.tools[0], research.tools[0]] }).success).toBe(false);
+    expect(namingResponsesWireSchema.safeParse({ ...text, include: ["web_search_call.action.sources"] }).success).toBe(false);
+    expect(namingResponsesWireSchema.safeParse({ ...text, include: ["reasoning.encrypted_content", "reasoning.encrypted_content"] }).success).toBe(false);
   });
 });

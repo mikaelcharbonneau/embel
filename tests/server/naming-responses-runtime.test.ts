@@ -1,12 +1,17 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
+const readiness = vi.hoisted(() => ({ available: true }));
+vi.mock("../../src/server/ai/naming-responses/budget", async importOriginal => {
+  const actual = await importOriginal<typeof import("../../src/server/ai/naming-responses/budget")>();
+  return { ...actual, namingResponsesProductionReadiness: () => ({ ...actual.namingResponsesProductionReadiness(), available: readiness.available }) };
+});
 import { namingResponsesWireSchema, type NamingResponsesDispatch, type NamingResponsesRequest } from "../../src/domain/naming-responses";
 import { createNamingResponsesRequest } from "../../src/server/ai/naming-responses/prompts";
 import { createNamingResponsesProtocol, type NamingResponsesResponse } from "../../src/server/ai/naming-responses/protocol";
 import { createNamingResponsesRuntime, type NamingResponsesPersistence } from "../../src/server/ai/naming-responses/runtime";
 import { namingTextHash } from "../../src/server/ai/naming-brain/identity";
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); readiness.available = true; });
 const started = Date.parse("2026-10-24T01:00:00Z"), runId = "11111111-1111-4111-8111-111111111111", responseId = "resp_synthetic_runtime";
 type Fault = "begin_ack" | "reserve_ack" | "handle_ack" | "observe_ack" | "create_unknown" | "create_rejected" | "create_rejected_no_id" | "get_unknown" | "none";
 function fixture(fault: Fault = "none", initial = "complete", withReference = false) {
@@ -15,11 +20,12 @@ function fixture(fault: Fault = "none", initial = "complete", withReference = fa
   const request = createNamingResponsesRequest({ runId, dispatchKey: "creation.synthetic", now: time, body: namingResponsesWireSchema.parse({
     model: "gpt-6-luna", reasoning: { effort: "xhigh", mode: "standard" }, service_tier: "default", prompt_cache_options: { mode: "explicit", ttl: "30m" },
     input: "Synthetic naming role", instructions: "Return only synthetic fixture JSON", max_output_tokens: 32_768,
-    tools: withReference ? [{ type: "function", name: "read_reference", description: "Synthetic reference", parameters: { type: "object", properties: {}, additionalProperties: false, required: [] }, strict: true }] : [], tool_choice: "auto", parallel_tool_calls: false,
+    ...(withReference ? { max_tool_calls: 4 } : {}),
+    tools: withReference ? [{ type: "web_search", search_context_size: "low", filters: { allowed_domains: ["www.merriam-webster.com"] } }, { type: "function", name: "read_reference", description: "Synthetic reference", parameters: { type: "object", properties: {}, additionalProperties: false, required: [] }, strict: true }] : [], tool_choice: "auto", parallel_tool_calls: false,
     background: true, store: true, stream: true, truncation: "disabled", include: ["reasoning.encrypted_content"],
     text: { verbosity: "low", format: { type: "json_schema", name: "synthetic_names", strict: true, schema: { type: "object", properties: { names: { type: "array", items: { type: "string" } } }, required: ["names"], additionalProperties: false } } },
     metadata: { embel_run: runId, embel_dispatch: "creation.synthetic", embel_contract: "naming-responses-v1", embel_owner: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", embel_project: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" },
-  }) });
+  }), ...(withReference ? { qualification: { id: "synthetic-research-only", validUntil: "2026-10-25T00:00:00Z", maximumInputTokens: 1_050_000, sourceComplete: true, hostedResearch: true } } : {}) });
   const clone = <T>(value: T): T => structuredClone(value);
   function maybeFail(which: Fault) { if (!injected && fault === which) { injected = true; throw Error(`synthetic_${which}_lost`); } }
   const row = (key: string) => { const found = rows.get(key); if (!found) throw Error("synthetic_dispatch_missing"); return found; };
@@ -36,7 +42,7 @@ function fixture(fault: Fault = "none", initial = "complete", withReference = fa
       mutations.push("observe"); const found = row(key); expect(found.responseId).toBe(response.id);
       const serialized = JSON.stringify(response), bytes = Buffer.byteLength(serialized);
       if (bytes > 2_097_152) found.observations.push({ kind: "oversize_response", responseId: String(response.id), requestId: null, bytes, sha256: namingTextHash(serialized), unsafeReason: "responses_output_limit" });
-      else { found.observations.push(JSON.parse(serialized)); if (["completed", "failed", "cancelled", "incomplete"].includes(String(response.status))) { found.state = "terminal"; found.terminalResponse = clone(response) as NamingResponsesDispatch["terminalResponse"]; } }
+      else { found.observations.push(JSON.parse(serialized)); if (!found.terminalResponse && ["completed", "failed", "cancelled", "incomplete"].includes(String(response.status))) { found.state = "terminal"; found.terminalResponse = clone(response) as NamingResponsesDispatch["terminalResponse"]; } }
       maybeFail("observe_ack"); return clone(found);
     },
     reject: async (key, id, code) => { expect(id).toMatch(/^req_/); expect(code).toBe("provider_request_rejected"); mutations.push("reject"); const found = row(key); found.state = "rejected"; return clone(found); },
@@ -83,10 +89,38 @@ describe("durable Naming Responses execution (synthetic HTTP/store)", () => {
   });
 
   it("blocks default real creation before a reservation or HTTP request", async () => {
+    readiness.available = false;
     const f = fixture(), fetcher = vi.fn(); vi.stubGlobal("fetch", fetcher);
     const runtime = createNamingResponsesRuntime({ apiKey: "synthetic-never-sent", persistence: f.persistence, now: () => started });
     expect(await runtime.run(f.request, { signal: f.controller.signal })).toEqual({ status: "blocked", code: "creation_unavailable", responseId: null });
     expect(f.mutations).toEqual([]); expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("blocks an injected HTTP transport before reserve or one-shot begin", async () => {
+    readiness.available = false;
+    const f = fixture();
+    expect(await f.runtime.run(f.request, { signal: f.controller.signal })).toEqual({ status: "blocked", code: "creation_unavailable", responseId: null });
+    expect(f.mutations).toEqual([]); expect(f.http).toEqual([]);
+  });
+
+  it("rejects a request for another run before any persistence mutation or HTTP", async () => {
+    const f = fixture();
+    vi.spyOn(f.persistence, "load").mockResolvedValue({ runId: "22222222-2222-4222-8222-222222222222", allocatedCostNanoUsd: 0, maximumCostNanoUsd: 5_000_000_000, dispatches: [] });
+    expect(await f.runtime.run(f.request, { signal: f.controller.signal })).toEqual({ status: "blocked", code: "responses_run_mismatch", responseId: null });
+    expect(f.mutations).toEqual([]); expect(f.http).toEqual([]);
+  });
+
+  it("returns a concurrent retained completion when a delayed GET reports progress", async () => {
+    const f = fixture("none", "running");
+    expect(await f.runtime.run(f.request, { signal: f.controller.signal })).toMatchObject({ status: "pending" });
+    const observe = f.persistence.observe;
+    vi.spyOn(f.persistence, "observe").mockImplementation(async (key, response, requestId) => {
+      await observe(key, f.response("completed"), "req_concurrent_terminal");
+      return observe(key, response, requestId);
+    });
+    expect(await f.runtime.resume(f.request.dispatchKey, { signal: f.controller.signal })).toMatchObject({ status: "completed", responseId });
+    expect(f.rows.get(f.request.dispatchKey)?.terminalResponse?.status).toBe("completed");
+    expect(f.http.filter(value => value.method === "POST")).toHaveLength(1);
   });
 
   it("never creates after a lost one-shot begin acknowledgement or a duplicate worker", async () => {

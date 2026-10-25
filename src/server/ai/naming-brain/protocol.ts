@@ -3,7 +3,6 @@ import OpenAI from "openai";
 import type { AgentSession, AgentSessionEvent, AgentSessionInputParam, AgentSessionItem } from "openai/resources/beta/agents/agents";
 import type { SessionCreateParamsStreaming } from "openai/resources/beta/agents/sessions/sessions";
 import type { Turn } from "openai/resources/beta/agents/sessions/turns/turns";
-import { isNamingProviderBudgetAvailable } from "./budget-availability";
 
 export type ManagedCreateRequest = SessionCreateParamsStreaming;
 /** The immutable model selects the approved tier; saved Sol calls stay exact. */
@@ -82,12 +81,6 @@ function wrapStream(stream: AsyncIterable<AgentSessionEvent> & { controller: Abo
 
 /** SDK retries are disabled for every method. A diagnostic request ID does not grant create idempotency. */
 export function createNamingManagedProtocol(options: { apiKey: string; localPrototype?: boolean; fetch?: typeof fetch; onDiagnostic?: (diagnostic: NamingManagedDiagnostic) => void }): NamingManagedProtocol {
-  // An injected transport is the existing hermetic SDK-test seam. Production
-  // construction never injects it. Neither model changes nor unlimited fallback
-  // can bypass the default boundary.
-  function assertCreateAvailable() {
-    if (!options.fetch && !isNamingProviderBudgetAvailable()) throw new NamingManagedProtocolError("creation_unavailable");
-  }
   const client = new OpenAI({ apiKey: options.apiKey, baseURL: "https://api.openai.com/v1", maxRetries: 0, logLevel: "off", organization: null, project: null,
     fetch: boundedFetch(options.fetch ?? fetch, options.localPrototype === true), fetchOptions: { redirect: "error" } });
   const sessions = client.beta.agents.sessions;
@@ -103,9 +96,7 @@ export function createNamingManagedProtocol(options: { apiKey: string; localProt
     }
   }
   return {
-    assertCreateAvailable,
     createSession: (body, signal) => safe(async () => {
-      assertCreateAvailable();
       const localUnlimited = body.metadata?.embel_budget_control === "local_unlimited_v1";
       const progressive = body.metadata?.embel_pipeline_version === "2";
       const contractInvalid = body.metadata?.embel_progressive_contract_version !== undefined
@@ -134,12 +125,7 @@ export function createNamingManagedProtocol(options: { apiKey: string; localProt
       const page = await sessions.turns.items.list(turnId, { session_id: sessionId, order: "asc", limit: 100, ...(after ? { after } : {}) }, { signal, maxRetries: 0 });
       return { data: page.data, hasMore: page.has_more, after: page.last_id || page.data.at(-1)?.id || null };
     }),
-    // A tool result can resume paid model work inside an issued session. While
-    // budget enforcement is unqualified, permit observation/cancellation only.
-    submitToolResult: (sessionId, result, requestKey, signal) => safe(() => {
-      assertCreateAvailable();
-      return sessions.events.create(sessionId, { "Idempotency-Key": requestKey, events: [result] }, { signal, maxRetries: 0 });
-    }),
+    submitToolResult: (sessionId, result, requestKey, signal) => safe(() => sessions.events.create(sessionId, { "Idempotency-Key": requestKey, events: [result] }, { signal, maxRetries: 0 })),
     cancelSession: (sessionId, signal) => safe(() => sessions.events.create(sessionId, { events: [{ type: "agent.session.input.cancel" }] }, { signal, maxRetries: 0 })),
   };
 }

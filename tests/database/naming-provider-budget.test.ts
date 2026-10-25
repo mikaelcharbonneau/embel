@@ -9,9 +9,9 @@ import { seedHostedNamingFixture } from "./hosted-naming-fixture";
 import { progressiveRequest, seedProgressiveFixture } from "./naming-brain-progressive-fixture";
 import { createProgressiveNamingAssignment } from "../../src/server/ai/naming-brain/progressive-assignments";
 
-describe("database-owned provider budget (no live provider)", () => {
+describe("historical database-owned provider budget (no live provider)", () => {
  let db: TestDatabase;
- beforeAll(async () => { db = await createTestDatabase(); await installBrainFixture(db); }, 60_000);
+ beforeAll(async () => { db = await createTestDatabase({ before: "20261025232300_naming_uncapped_hosted_execution.sql" }); await installBrainFixture(db); }, 60_000);
  afterAll(async () => { await db?.close(); });
  it("marks future hosted jobs, denies missing caps and reserves at most 500 cents without re-lending", async () => {
   const f = await seedHostedNamingFixture(db);

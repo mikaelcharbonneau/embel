@@ -3,28 +3,6 @@ vi.mock("server-only", () => ({}));
 import { createNamingManagedProtocol, NamingManagedProtocolError } from "../../src/server/ai/naming-brain/protocol";
 
 describe("Managed Naming SDK boundary (synthetic HTTP)", () => {
-  it("fails closed before real HTTP creation while retaining observation and cancellation", async () => {
-    const http = vi.fn(async (incoming: RequestInfo | URL, init?: RequestInit) => {
-      const request = new Request(incoming, init);
-      if (request.method === "POST") {
-        expect(new URL(request.url).pathname).toBe("/v1/agents/sessions/sess_fixture/events");
-        expect(await request.json()).toEqual({ events: [{ type: "agent.session.input.cancel" }] });
-        return new Response(null, { status: 202 });
-      }
-      return Response.json({ id: "sess_fixture" });
-    });
-    vi.stubGlobal("fetch", http);
-    try {
-      const protocol = createNamingManagedProtocol({ apiKey: "synthetic-never-sent" });
-      await expect(protocol.createSession({ environment: { type: "none" }, agent: { model: "gpt-6-luna" }, input: "Fixture", spend_control: { limit: 10 }, stream: true }, new AbortController().signal)).rejects.toMatchObject({ code: "creation_unavailable" });
-      expect(http).not.toHaveBeenCalled();
-      await expect(protocol.submitToolResult("sess_fixture", { type: "agent.session.input.tool_result", turn_id: "turn_fixture", call_id: "call_fixture", success: true, output: "Synthetic only" }, "synthetic-key", new AbortController().signal)).rejects.toMatchObject({ code: "creation_unavailable" });
-      expect(http).not.toHaveBeenCalled();
-      await protocol.retrieveSession("sess_fixture", new AbortController().signal);
-      await protocol.cancelSession("sess_fixture", new AbortController().signal);
-      expect(http).toHaveBeenCalledTimes(2);
-    } finally { vi.unstubAllGlobals(); }
-  });
   it("uses the real pinned SDK create shape and fixed no-redirect transport", async () => {
     const requests: { url: string; method: string; body: unknown; beta: string | null; redirect: RequestRedirect }[] = [];
     const protocol = createNamingManagedProtocol({ apiKey: "synthetic-fixture", fetch: async (input, init) => {

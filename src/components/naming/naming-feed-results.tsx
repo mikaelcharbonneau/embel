@@ -15,12 +15,22 @@ export function NamingFeedResults({ feed, selectedId, strategyKey, pending, bloc
   </section>;
 }
 
-export function NamingFeedTail({ feed, blocked, onModify }: { feed: ReturnType<typeof useNamingFeed>; blocked: boolean; onModify: () => void }) {
+type NamingFeedTailProps = { feed: ReturnType<typeof useNamingFeed>; blocked: boolean; onModify: () => void };
+
+export function NamingFeedTail(props: NamingFeedTailProps) {
+  const current = props.feed.state?.feed;
+  return <>
+    {current?.failure && current.availability.status === "available" && <p role="status">{current.failure.code === "provider_budget_control_unavailable" ? "A previous generation request could not start with its saved provider settings." : "The previous generation request was rejected by the provider."} Your saved names and choices are kept.</p>}
+    <NamingFeedCurrentStatus {...props} />
+  </>;
+}
+
+function NamingFeedCurrentStatus({ feed, blocked, onModify }: NamingFeedTailProps) {
   const state = feed.state, active = state?.feed?.activeRun, prior = state?.outcome;
   const outcome = prior && prior.status === state?.status && !("run" in prior && active && (active.runId !== prior.run.runId || active.revision > prior.run.revision)) ? prior : null;
-  const configurationFailure = state?.feed?.availability.status === "unavailable" && state.feed.availability.code === "provider_budget_control_unavailable"
-    || state?.feed?.failure?.retryable === false;
-  if (configurationFailure && !state?.stop && !active?.canResumeSaved && !active?.state.match(/^(queued|running|cancel_requested|needs_reconciliation)$/)) return <div role="alert"><strong>AI name generation is unavailable</strong><p>{state?.feed?.failure && state.feed.failure.code !== "provider_budget_control_unavailable" ? "The provider rejected the generation configuration." : "The provider’s required spending limit is not available."} Contact support to restore generation with a verified spending limit. Your saved names and preferences are kept.</p><button type="button" className="button secondary small" onClick={() => void feed.refresh()}>Check generation status</button></div>;
+  const configurationFailure = state?.feed?.availability.status === "unavailable"
+    && (state.feed.availability.code === "provider_budget_control_unavailable" || state.feed.failure?.retryable === false);
+  if (configurationFailure && !state?.stop && !active?.canResumeSaved && !active?.state.match(/^(queued|running|cancel_requested|needs_reconciliation)$/)) return <div role="alert"><strong>AI name generation is unavailable</strong><p>{state?.feed?.failure && state.feed.failure.code !== "provider_budget_control_unavailable" ? "The previous generation request was rejected by the provider. " : ""}The generation service is currently unavailable. Your saved names and choices are kept. Contact support if it remains unavailable.</p><button type="button" className="button secondary small" onClick={() => void feed.refresh()}>Check generation status</button></div>;
   if (state?.error) return <div role="alert"><p>{state.error}</p>{state.stopConflict ? <div className="project-naming-actions"><button type="button" className="button secondary small" onClick={() => void feed.refresh()}>Check saved state</button><button type="button" className="button secondary small" disabled={!state.stop || !state.feed || state.feed.demandSequence <= state.stop.expectedDemandSequence} onClick={() => void feed.stopCurrent()}>Stop current exploration</button></div> : <button type="button" className="button secondary small" onClick={() => void feed.retry()}>{state.stop ? "Retry stopping exploration" : state.pending || state.steering ? "Retry the same request" : "Check saved names"}</button>}</div>;
   if (state?.stop) return <p>Saving your pause… Names already created remain available.</p>;
   if (active?.canResumeSaved && (state?.feed?.paused || state?.feed?.preparedSetId)) return <><p>Saved names are ready to explore.</p><button type="button" className="button secondary small" disabled={blocked || !feed.canResume} onClick={() => void feed.resume()}>Continue with saved names</button></>;

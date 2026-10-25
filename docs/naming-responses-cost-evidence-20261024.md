@@ -1,5 +1,10 @@
 # Responses cost qualification — 2026-10-24
 
+Historical investigation only: the user's October 25 correction rejects monetary
+limits. [Native Naming restoration](naming-native-restoration-20261025.md) uses
+the existing uncapped Agents flow. The qualification and research-mode decision
+below are not requirements for that release.
+
 ## Conclusion
 
 The reviewed public sources support bounded generated tokens and built-in tool

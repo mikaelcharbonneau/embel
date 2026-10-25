@@ -17,7 +17,6 @@ export type NamingResponsesOutcome =
   | { status: "terminal"; state: "failed" | "cancelled" | "incomplete"; responseId: string; response: NamingResponsesResponse }
   | { status: "blocked" | "pending" | "unresolved"; code: string; responseId: string | null };
 type Hooks = { signal: AbortSignal; observeOnly?: boolean };
-const terminal = new Set(["completed", "failed", "cancelled", "incomplete"]);
 const safeCode = (error: unknown) => error instanceof Error && /^[a-z][a-z0-9_]{0,79}$/u.test(error.message) ? error.message : "responses_outcome_unknown";
 const stopped = (status: "blocked" | "pending" | "unresolved", code: string, responseId: string | null = null): NamingResponsesOutcome => ({ status, code, responseId });
 const record = (value: unknown): value is NamingResponsesResponse => Boolean(value && typeof value === "object" && !Array.isArray(value));
@@ -138,8 +137,10 @@ export function createNamingResponsesRuntime(options: { apiKey?: string; protoco
     }
     if (!row.responseId) return stopped("unresolved", "responses_identity_unknown");
     const read = await protocol.retrieve(row.responseId, observationSignal(row));
-    await observe(row, read.response, read.requestId);
-    return finalOutcome(read.response);
+    const observed = await observe(row, read.response, read.requestId);
+    // A concurrent observer may already have retained terminal evidence while
+    // this GET was in flight. Delayed progress cannot regress that outcome.
+    return finalOutcome(observed.terminalResponse ?? read.response);
   }
   async function resume(dispatchKey: string, hooks: Hooks): Promise<NamingResponsesOutcome> {
     // Execution signals never turn an observer into a cancellation or replay.
@@ -174,6 +175,7 @@ export function createNamingResponsesRuntime(options: { apiKey?: string; protoco
     let row: NamingResponsesDispatch | null = null, stream: NamingResponsesStream | undefined, createInvoked = false, executionSignal: AbortSignal | undefined;
     try {
       const savedRun = await loadRun();
+      if (savedRun.runId !== request.runId) return stopped("blocked", "responses_run_mismatch");
       row = savedRun.dispatches.find(value => value.request.dispatchKey === request.dispatchKey) ?? null;
       if (row) {
         checkedRow(row, request);
@@ -203,7 +205,7 @@ export function createNamingResponsesRuntime(options: { apiKey?: string; protoco
           if (row.responseId !== response.id) throw Error("responses_handle_mismatch");
         }
         row = await observe(row, response, stream.requestId);
-        if (terminal.has(String(response.status))) return finalOutcome(response);
+        if (row.terminalResponse) return finalOutcome(row.terminalResponse);
       }
       // SDK streams can end normally when aborted rather than throwing. A known
       // active execution still needs cancellation and independent GET evidence.

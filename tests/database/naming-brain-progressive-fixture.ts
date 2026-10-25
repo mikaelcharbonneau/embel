@@ -33,7 +33,7 @@ export async function seedProgressiveFixture(db: TestDatabase, approaches: Namin
 export type ProgressiveFixture = Awaited<ReturnType<typeof seedProgressiveFixture>>;
 export function progressiveRequest(fixture: ProgressiveFixture, phase: NamingProgressivePhase, input: NamingStageInput, dependencies: string[] = []) {
  return createNamingRoleRequest({ runId: fixture.input.runId, stageKey: "creation", providerCallKey: `${phase}.${input.role}`, input,
-  dependencyArtifactIds: dependencies, policy: fixture.input.providerBudgetVersion === 1 ? createBudgetedProgressiveNamingRolePolicy(fixture.input.policy, input.role) : createProgressiveNamingRolePolicy(fixture.input.policy, input.role, undefined, undefined, true) });
+  dependencyArtifactIds: dependencies, policy: fixture.input.providerBudgetVersion === 1 ? createBudgetedProgressiveNamingRolePolicy(fixture.input.policy, input.role) : createProgressiveNamingRolePolicy(fixture.input.policy, input.role, undefined, undefined, true, fixture.input.providerBudgetVersion === 2 ? 3 : undefined) });
 }
 export async function recordProgressiveOutput(fixture: ProgressiveFixture, phase: NamingProgressivePhase, request: NamingStageRequest, output: unknown, extra: Record<string, unknown> = {}, externalAttempt = false) {
  const { db, store, job, input } = fixture, suffix = request.providerCallKey.replaceAll(".", "_"), sessionId = `sess_${suffix}`, turnId = `turn_${suffix}`, itemId = `item_${suffix}`, agentId = `agent_${suffix}`;

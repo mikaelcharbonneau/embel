@@ -1,9 +1,16 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
+// Qualification is synthetic and explicit. A transport injection must never
+// grant production dispatch; only this test's module mock opens the adapter.
+const readiness = vi.hoisted(() => ({ available: true }));
+vi.mock("../../src/server/ai/naming-responses/budget", async importOriginal => {
+  const actual = await importOriginal<typeof import("../../src/server/ai/naming-responses/budget")>();
+  return { ...actual, namingResponsesProductionReadiness: () => ({ ...actual.namingResponsesProductionReadiness(), available: readiness.available }) };
+});
 import { namingResponsesWireSchema, type NamingResponsesWire } from "../../src/domain/naming-responses";
 import { createNamingResponsesProtocol, NamingResponsesProtocolError } from "../../src/server/ai/naming-responses/protocol";
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); readiness.available = true; });
 function body(): NamingResponsesWire {
   return namingResponsesWireSchema.parse({ model: "gpt-6-luna", reasoning: { effort: "xhigh", mode: "standard" }, service_tier: "default", prompt_cache_options: { mode: "explicit", ttl: "30m" },
     input: "Synthetic input", instructions: "Synthetic only", max_output_tokens: 32_768, tools: [], tool_choice: "auto", parallel_tool_calls: false,
@@ -28,6 +35,7 @@ describe("Naming Responses SDK boundary (synthetic HTTP)", () => {
   });
 
   it("keeps real creation blocked while known-response GET/stream/cancel remain available", async () => {
+    readiness.available = false;
     const calls: { path: string; method: string; query: string }[] = [];
     const fetcher = vi.fn(async (incoming: RequestInfo | URL, init?: RequestInit) => {
       const request = new Request(incoming, init), url = new URL(request.url);
@@ -46,9 +54,19 @@ describe("Naming Responses SDK boundary (synthetic HTTP)", () => {
     expect(new URLSearchParams(calls[1]!.query).get("starting_after")).toBe("7");
   });
 
+  it("cannot activate creation by injecting an HTTP transport", async () => {
+    readiness.available = false;
+    const fetcher = vi.fn();
+    const protocol = createNamingResponsesProtocol({ apiKey: "synthetic-never-sent", fetch: fetcher });
+    expect(() => protocol.assertCreateAvailable()).toThrow("creation_unavailable");
+    await expect(protocol.create(body(), new AbortController().signal)).rejects.toMatchObject({ code: "creation_unavailable" });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
   it("sends an exact hosted-tool ceiling without replacing it with a prompt instruction", async () => {
     const capped = namingResponsesWireSchema.parse({ ...body(), max_tool_calls: 4,
-      tools: [{ type: "web_search", search_context_size: "low", filters: { allowed_domains: ["www.merriam-webster.com"] } }], include: ["reasoning.encrypted_content", "web_search_call.action.sources"] });
+      tools: [{ type: "web_search", search_context_size: "low", filters: { allowed_domains: ["www.merriam-webster.com"] } },
+        { type: "function", name: "read_reference", description: "Synthetic approved reference reader", parameters: { type: "object", properties: {}, required: [], additionalProperties: false }, strict: true }], include: ["reasoning.encrypted_content", "web_search_call.action.sources"] });
     const fetcher = vi.fn(async (incoming: RequestInfo | URL, init?: RequestInit) => {
       expect(await new Request(incoming, init).json()).toEqual(capped);
       return new Response("", { headers: { "content-type": "text/event-stream" } });

@@ -34,9 +34,11 @@ export const namingResponsesWireSchema = z.strictObject({
   metadata: z.record(z.string().regex(/^[a-zA-Z0-9_]{1,64}$/u), z.string().max(512)),
 }).superRefine((body, ctx) => {
   const searches = body.tools.filter(tool => tool.type === "web_search").length;
-  if (searches > 1 || body.tools.filter(tool => tool.type === "function").length > 1 || Boolean(searches) !== (body.max_tool_calls !== undefined)) ctx.addIssue({ code: "custom", message: "Hosted tool caps must bind the exact available tools" });
+  const readers = body.tools.filter(tool => tool.type === "function").length;
+  if (searches > 1 || readers !== searches || Boolean(searches) !== (body.max_tool_calls !== undefined)) ctx.addIssue({ code: "custom", message: "Hosted research requires exactly one search and one reference reader with a tool cap" });
+  if (!body.include.includes("reasoning.encrypted_content") || new Set(body.include).size !== body.include.length) ctx.addIssue({ code: "custom", message: "Retained reasoning must be requested exactly once" });
   // Breakpoints on content would activate cache writes despite explicit mode.
-  const forbidden = (value: unknown): boolean => Boolean(value && typeof value === "object" && (Array.isArray(value) ? value.some(forbidden) : Object.entries(value).some(([field, child]) => field === "prompt_cache_breakpoint" || forbidden(child))));
+  const forbidden = (value: unknown): boolean => Boolean(value && typeof value === "object" && (Array.isArray(value) ? value.some(forbidden) : Object.entries(value).some(([field, child]) => ["prompt_cache_breakpoint", "cache_breakpoint", "cache_control"].includes(field) || forbidden(child))));
   if (forbidden(body)) ctx.addIssue({ code: "custom", message: "Cache breakpoints are not qualified" });
   if (new TextEncoder().encode(JSON.stringify(body)).byteLength > 131_072) ctx.addIssue({ code: "custom", message: "Frozen Responses input exceeds its byte envelope" });
 });

@@ -129,8 +129,25 @@ begin
 exception when others then return false;
 end $$;
 create function fluid_private.naming_responses_run_safe(p_run uuid) returns boolean language sql stable set search_path='' as $$
- select not exists(select 1 from fluid_private.naming_responses_observations o join fluid_private.naming_responses_dispatches d using(run_id,dispatch_key)
- where o.run_id=p_run and (o.observation->>'unsafeReason' is not null or not fluid_private.naming_responses_observation_safe(o.observation->'response',d.request)));
+ select not exists(select 1 from fluid_private.naming_responses_observations o
+ join fluid_private.naming_responses_dispatches d using(run_id,dispatch_key)
+ join fluid_private.naming_responses_attempts a using(run_id,dispatch_key)
+ where o.run_id=p_run and case
+  when jsonb_typeof(o.observation) is distinct from 'object' or o.observation ? 'unsafeReason' then true
+  -- A proven rejection consumes its allocation but is not an observed provider
+  -- policy/cost breach. Only the exact retained rejection of a rejected attempt
+  -- qualifies; unknown or forged observation shapes remain quarantined.
+  when a.state='rejected'
+   and o.observation=jsonb_build_object('code','provider_request_rejected','requestId',o.observation->'requestId')
+   and jsonb_typeof(o.observation->'requestId')='string'
+   and o.observation->>'requestId'~'^[A-Za-z0-9_-]{1,200}$' then false
+  when a.state in('accepted','terminal')
+   and o.observation=jsonb_build_object('response',o.observation->'response','requestId',o.observation->'requestId')
+   and o.observation#>>'{response,id}'=a.response_id
+   and o.observation#>'{response,metadata}'=d.request#>'{body,metadata}'
+   and (o.observation->'requestId'='null'::jsonb or (jsonb_typeof(o.observation->'requestId')='string' and o.observation->>'requestId'~'^[A-Za-z0-9_-]{1,200}$'))
+   then not fluid_private.naming_responses_observation_safe(o.observation->'response',d.request)
+  else true end);
 $$;
 -- No qualification setter is exposed to a worker or public caller.
 create function fluid_private.naming_responses_lock(p_job uuid,p_lease uuid) returns public.jobs language plpgsql set search_path='' as $$
@@ -264,7 +281,7 @@ begin
   if octet_length(observation::text)>2097152 or (select count(*) from fluid_private.naming_responses_observations where naming_responses_observations.run_id=run_id and dispatch_key=key)>=100
    or (select coalesce(sum(octet_length(naming_responses_observations.observation::text)),0) from fluid_private.naming_responses_observations where naming_responses_observations.run_id=run_id and dispatch_key=key)+octet_length(observation::text)>8388608 then
    observation:=jsonb_build_object('kind','oversize_response','responseId',a.response_id,'requestId',p_payload->'requestId','bytes',octet_length(body::text),'sha256',encode(sha256(convert_to(body::text,'UTF8')),'hex'),'unsafeReason','responses_output_limit');
-  elsif a.state='terminal' and body<>a.terminal_response then observation:=observation||jsonb_build_object('unsafeReason','responses_terminal_conflict'); end if;
+  elsif a.state='terminal' and body->>'status' in('completed','failed','cancelled','incomplete') and body<>a.terminal_response then observation:=observation||jsonb_build_object('unsafeReason','responses_terminal_conflict'); end if;
   content:=encode(sha256(convert_to(observation::text,'UTF8')),'hex');
   insert into fluid_private.naming_responses_observations(run_id,dispatch_key,observation,content_hash) values(run_id,key,observation,content) on conflict do nothing;
   if a.state<>'terminal' and observation ? 'response' and body->>'status' in('completed','failed','cancelled','incomplete') then update fluid_private.naming_responses_attempts set state='terminal',terminal_response=body where naming_responses_attempts.run_id=run_id and dispatch_key=key; end if;

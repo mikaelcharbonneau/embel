@@ -1,7 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only",()=>({}));
-// This route suite supplies a synthetic available provider; real admission is tested separately.
-vi.mock("@/server/ai/naming-brain/budget-availability", async importOriginal => ({ ...await importOriginal<typeof import("@/server/ai/naming-brain/budget-availability")>(), isNamingProviderBudgetAvailable: () => true }));
 const mock=vi.hoisted(()=>({auth:vi.fn(),rpc:vi.fn(),from:vi.fn()}));
 vi.mock("../../src/server/auth/context",()=>({getAuthenticatedContext:mock.auth}));
 import { GET as feed } from "../../src/app/api/projects/[projectId]/naming/feed/route";

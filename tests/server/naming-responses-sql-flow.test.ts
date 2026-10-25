@@ -1,5 +1,10 @@
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
+// Test-only qualification. Production transport injection cannot enable create.
+vi.mock("../../src/server/ai/naming-responses/budget", async importOriginal => {
+  const actual = await importOriginal<typeof import("../../src/server/ai/naming-responses/budget")>();
+  return { ...actual, namingResponsesProductionReadiness: () => ({ ...actual.namingResponsesProductionReadiness(), available: true }) };
+});
 import { namingBriefSnapshotSchema, namingCreatorOutputSchema, namingProgressiveAssignmentSchema, namingResearchOutputSchema } from "../../src/domain/naming-brain";
 import { namingResponsesRequestSchema, type NamingResponsesRequest } from "../../src/domain/naming-responses";
 import { nameIdentityKey } from "../../src/domain/project-naming";

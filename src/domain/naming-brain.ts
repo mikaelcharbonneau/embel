@@ -643,10 +643,13 @@ export const namingBrainJobInputSchema = z.strictObject({
   // New hosted admissions retain a distinct authority witness. The local_* fields
   // remain protocol identifiers so historical provider requests stay exact.
   executionAuthority: z.literal("hosted_owner_v1").optional(),
-  providerBudgetVersion: z.literal(1).optional(),
+  // Version 1 preserves issued provider caps; version 2 selects uncapped future
+  // hosted execution while retaining the historical bookkeeping fields.
+  providerBudgetVersion: z.union([z.literal(1), z.literal(2)]).optional(),
   snapshot: namingBriefSnapshotSchema, acceptedPolicyIdentity: hash, policy: namingBrainPolicySchema,
 }).refine(value => getNamingPreferencesReadiness(value.snapshot.preferences).ready, "Admission requires generation-ready saved preferences")
  .refine(value => value.providerBudgetVersion === undefined || value.localPipelineVersion === 2, "Provider budgeting requires progressive execution")
+ .refine(value => value.providerBudgetVersion !== 2 || value.executionAuthority === "hosted_owner_v1" && value.localPipelineVersion === 2 && value.localTimingVersion === 2, "Uncapped admission requires the complete hosted execution witness")
  .refine(value => value.localPipelineVersion !== 2 || value.localTimingVersion === 2, "Progressive admission retains its explicit local timing witness")
  .refine(value => value.executionAuthority !== "hosted_owner_v1" || value.localPipelineVersion === 2 && value.localTimingVersion === 2, "Hosted admission requires the complete approved execution profile").transform(freeze);
 export type NamingBrainJobInput = z.infer<typeof namingBrainJobInputSchema>;
@@ -704,7 +707,7 @@ const runSummaryFields = {
   canResumeSaved: z.boolean().optional(),
   localPipelineVersion: z.literal(2).optional(),
   executionAuthority: z.literal("hosted_owner_v1").optional(),
-  providerBudgetVersion: z.literal(1).optional(),
+  providerBudgetVersion: z.union([z.literal(1), z.literal(2)]).optional(),
   progressiveCompletionId: z.uuid().optional(),
   state: z.enum(["queued", "running", "partial", "cancel_requested", "cancelled", "succeeded", "failed", "needs_reconciliation", "prepared", "superseded"]),
   projectRevision: revision, preferencesVersion: revision, feedbackRevision: counter, steeringRevision: counter, demandSequence: counter, snapshotHash: hash, acceptedPolicyIdentity: hash,
@@ -720,6 +723,7 @@ function validResumeWitness(value: { canResume: boolean; canResumeSaved?: boolea
 }
 export const namingBrainRunSummarySchema = z.strictObject(runSummaryFields).refine(value => value.runId !== value.resumedFromRunId, "Resume creates a new run linked to its terminal predecessor")
   .refine(value => value.executionAuthority !== "hosted_owner_v1" || value.localPipelineVersion === 2, "Hosted run summaries require the approved progressive profile")
+  .refine(value => value.providerBudgetVersion !== 2 || value.executionAuthority === "hosted_owner_v1" && value.localPipelineVersion === 2, "Uncapped run summaries require the hosted progressive witness")
   .refine(value => !value.progressiveCompletionId || value.localPipelineVersion === 2 && value.preparedSetId === null && value.fulfillment?.status === "complete", "Progressive completion retains its distinct genuine membership witness")
   .refine(validResumeWitness, "A server Resume witness requires admissible terminal work or complete prepared membership");
 export type NamingBrainRunSummary = z.infer<typeof namingBrainRunSummarySchema>;
@@ -728,6 +732,7 @@ export const namingBrainRunSchema = z.strictObject({ ...runSummaryFields, snapsh
 }).superRefine((value, ctx) => {
   const snapshot = value.snapshot;
   if (value.executionAuthority === "hosted_owner_v1" && value.localPipelineVersion !== 2) issue(ctx, "Hosted runs require the approved progressive profile");
+  if (value.providerBudgetVersion === 2 && (value.executionAuthority !== "hosted_owner_v1" || value.localPipelineVersion !== 2)) issue(ctx, "Uncapped runs require the hosted progressive witness");
   if (value.progressiveCompletionId && (value.localPipelineVersion !== 2 || value.preparedSetId !== null || value.fulfillment?.status !== "complete")) issue(ctx, "Progressive completion retains its distinct genuine membership witness");
   if (!validResumeWitness(value)) issue(ctx, "A server Resume witness requires admissible terminal work or complete prepared membership", ["canResume"]);
   if (value.runId === value.resumedFromRunId || value.ownerId !== snapshot.ownerId || value.projectId !== snapshot.projectId || value.projectRevision !== snapshot.contextRevision || value.preferencesVersion !== snapshot.preferencesVersion || value.feedbackRevision !== snapshot.feedbackRevision || value.steeringRevision !== snapshot.steeringRevision || value.snapshotHash !== snapshot.snapshotHash) issue(ctx, "Run and snapshot must bind one owned revision basis");

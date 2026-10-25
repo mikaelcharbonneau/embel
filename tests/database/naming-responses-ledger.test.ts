@@ -112,6 +112,69 @@ describe("dormant Responses ledger over disposable SQL", () => {
   await expect(db.query("update fluid_private.naming_responses_attempts set state='reserved' where run_id=$1",[f.runId])).rejects.toMatchObject({message:"immutable_responses_attempt"});
   expect(await action(db,f,"load")).toMatchObject({allocatedCostNanoUsd:234576000});
  });
+ it("retains a proven rejection's allocation without quarantining other dispatches",async()=>{
+  const rejected=request(f,"rejected"),pending=request(f,"pending");
+  await action(db,f,"reserve",rejected);await action(db,f,"reserve",pending);
+  const holds=(await db.query("select * from public.usage_reservations where job_id=$1",[f.jobId])).rows;
+  await action(db,f,"begin",{dispatchKey:rejected.dispatchKey});
+  const rejection={dispatchKey:rejected.dispatchKey,requestId:"req_synthetic_rejected",code:"provider_request_rejected"};
+  await action(db,f,"reject",rejection);await action(db,f,"reject",rejection);
+  expect(await action(db,f,"begin",{dispatchKey:pending.dispatchKey})).toBe(true);
+  await action(db,f,"reserve",request(f,"after-rejection"));
+  expect(await action(db,f,"load")).toMatchObject({allocatedCostNanoUsd:703728000,dispatches:expect.arrayContaining([
+   expect.objectContaining({state:"rejected",observations:[{code:rejection.code,requestId:rejection.requestId}]}),
+  ])});
+  expect((await db.query("select * from public.usage_reservations where job_id=$1",[f.jobId])).rows).toEqual(holds);
+  expect((await db.query("select actual_cost_nano_usd from fluid_private.naming_responses_runs where id=$1",[f.runId])).rows).toEqual([{actual_cost_nano_usd:null}]);
+ });
+ it.each([
+  {kind:"wrong attempt state",rejected:false,observation:{code:"provider_request_rejected",requestId:"req_synthetic"}},
+  {kind:"unknown fields",rejected:true,observation:{code:"provider_request_rejected",requestId:"req_synthetic",extra:true}},
+  {kind:"wrong code",rejected:true,observation:{code:"unknown_rejection",requestId:"req_synthetic"}},
+  {kind:"missing request ID",rejected:true,observation:{code:"provider_request_rejected"}},
+  {kind:"null request ID",rejected:true,observation:{code:"provider_request_rejected",requestId:null}},
+  {kind:"numeric request ID",rejected:true,observation:{code:"provider_request_rejected",requestId:7}},
+  {kind:"invalid request ID",rejected:true,observation:{code:"provider_request_rejected",requestId:"req invalid"}},
+  {kind:"unsafe marker",rejected:true,observation:{code:"provider_request_rejected",requestId:"req_synthetic",unsafeReason:null}},
+ ])("keeps unrecognized rejection evidence quarantined: $kind",async({rejected,observation})=>{
+  const r=request(f,"rejected"),pending=request(f,"pending");
+  await action(db,f,"reserve",r);await action(db,f,"reserve",pending);await action(db,f,"begin",{dispatchKey:r.dispatchKey});
+  if(rejected)await action(db,f,"reject",{dispatchKey:r.dispatchKey,requestId:"req_synthetic_rejected",code:"provider_request_rejected"});
+  // Privileged insertion is a disposable adversarial fixture. Worker roles have
+  // no table writes, and the normal reject RPC always creates the exact shape.
+  await db.query("insert into fluid_private.naming_responses_observations(run_id,dispatch_key,observation,content_hash) values($1,$2,$3::jsonb,encode(sha256(convert_to($3::jsonb::text,'UTF8')),'hex'))",[f.runId,r.dispatchKey,JSON.stringify(observation)]);
+  expect(await action(db,f,"begin",{dispatchKey:pending.dispatchKey})).toBe(false);
+  await expect(action(db,f,"reserve",request(f,"after-unknown"))).rejects.toMatchObject({message:"responses_observed_bound_exceeded"});
+  expect(await action(db,f,"load")).toMatchObject({allocatedCostNanoUsd:469152000});
+ });
+ it("retains delayed progress after completion without inventing a terminal conflict",async()=>{
+  const r=request(f,"observed"),pending=request(f,"pending"),responseId="resp_synthetic_delayed_progress";
+  await action(db,f,"reserve",r);await action(db,f,"reserve",pending);await action(db,f,"begin",{dispatchKey:r.dispatchKey});
+  await action(db,f,"handle",{dispatchKey:r.dispatchKey,responseId});
+  const completed=responseBody(r,responseId),progress=responseBody(r,responseId,"in_progress");
+  await action(db,f,"observe",{dispatchKey:r.dispatchKey,response:completed,requestId:"req_synthetic_completed"});
+  expect(await action(db,f,"observe",{dispatchKey:r.dispatchKey,response:progress,requestId:"req_synthetic_delayed"})).toMatchObject({
+   state:"terminal",terminalResponse:completed,observations:[{response:completed,requestId:"req_synthetic_completed"},{response:progress,requestId:"req_synthetic_delayed"}],
+  });
+  expect(await action(db,f,"begin",{dispatchKey:pending.dispatchKey})).toBe(true);
+  await action(db,f,"reserve",request(f,"after-progress"));
+  expect(await action(db,f,"load")).toMatchObject({allocatedCostNanoUsd:703728000});
+  expect((await db.query("select actual_cost_nano_usd from fluid_private.naming_responses_runs where id=$1",[f.runId])).rows).toEqual([{actual_cost_nano_usd:null}]);
+ });
+ it.each(["configuration","cost"])("quarantines unsafe delayed %s progress while preserving the completed terminal",async kind=>{
+  const r=request(f,"observed"),pending=request(f,"pending"),responseId="resp_synthetic_unsafe_delayed";
+  await action(db,f,"reserve",r);await action(db,f,"reserve",pending);await action(db,f,"begin",{dispatchKey:r.dispatchKey});
+  await action(db,f,"handle",{dispatchKey:r.dispatchKey,responseId});
+  const completed=responseBody(r,responseId),progress=responseBody(r,responseId,"in_progress",kind==="configuration"?{service_tier:"priority"}:{usage:{input_tokens:r.quote.maximumInputTokens+1,output_tokens:1}});
+  await action(db,f,"observe",{dispatchKey:r.dispatchKey,response:completed,requestId:null});
+  expect(await action(db,f,"observe",{dispatchKey:r.dispatchKey,response:progress,requestId:null})).toMatchObject({
+   state:"terminal",terminalResponse:completed,observations:[{response:completed,requestId:null},{response:progress,requestId:null}],
+  });
+  expect(await action(db,f,"begin",{dispatchKey:pending.dispatchKey})).toBe(false);
+  await expect(action(db,f,"reserve",request(f,"after-unsafe-progress"))).rejects.toMatchObject({message:"responses_observed_bound_exceeded"});
+  expect(await action(db,f,"load")).toMatchObject({allocatedCostNanoUsd:469152000});
+  expect((await db.query("select actual_cost_nano_usd from fluid_private.naming_responses_runs where id=$1",[f.runId])).rows).toEqual([{actual_cost_nano_usd:null}]);
+ });
  it("prevents global response rebinding and unqualified cache or image requests",async()=>{
   for(const key of ["a","b"]){await action(db,f,"reserve",request(f,key));await action(db,f,"begin",{dispatchKey:key});}
   await action(db,f,"handle",{dispatchKey:"a",responseId:"resp_global_synthetic"});
