@@ -2,7 +2,7 @@
 import { isDialogBackdropClick } from "@/components/ui/dialog-backdrop";
 
 import Link from "next/link";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { inspirationCatalog, inspirationLabels, filterInspiration, hasInspirationChoice, type InspirationDesign, type InspirationPreferences } from "@/domain/inspiration";
 import { AccountStatus, useAccountSession } from "@/components/workspace/account-session";
 import { Icon } from "@/components/ui/icon";
@@ -97,6 +97,7 @@ function OwnedInspiration({ account, projectId }: { account: Extract<ReturnType<
 }
 /** The view accepts the real controller contract so isolated browser checks use the same UI. */
 export function InspirationView({ controller, projectId }: { controller: InspirationController; projectId: string }) {
+  const availabilityId = useId();
   const [query, setQuery] = useState(""), [kind, setKind] = useState<"all" | "identity" | "logo">("all"), [liked, setLiked] = useState(false);
   const [selected, setSelected] = useState<InspirationDesign | null>(null);
   const saved = useMemo(() => new Map(controller.overview?.choices.map(choice => [choice.referenceId, choice]) ?? []), [controller.overview]);
@@ -117,16 +118,19 @@ export function InspirationView({ controller, projectId }: { controller: Inspira
         {liked && !controller.overview ? <div className="inspiration-empty"><h2>Saved choices are not available yet</h2><p>Reconnect to load this project’s liked designs.</p></div> : visible.length ? <InspirationGrid>
           {visible.map(design => {
             const choice = displayed.get(design.id) ?? noChoice, busy = controller.busy.has(design.id), pending = controller.intents.has(design.id);
+            const available = controller.overview?.availableReferenceIds?.includes(design.id) ?? !design.availableSince;
+            const catalogPending = Boolean(controller.overview && !available);
             return <article key={design.id} className="inspiration-card" aria-label={`${design.brand} — ${design.slug}`}>
               <div className="inspiration-card-art"><div role="button" tabIndex={0} className="inspiration-open" aria-label={`Inspect ${design.brand}: ${design.description}`} onClick={() => setSelected(design)} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelected(design); } }}><Artwork design={design} /></div>
-                <button type="button" className="inspiration-heart" aria-label={`${choice.ensemble ? "Unlike" : "Like"} ${design.brand} overall look: ${design.slug}`} aria-pressed={choice.ensemble} disabled={!controller.canSave || pending || !(controller.overview?.availableReferenceIds?.includes(design.id) ?? !design.availableSince)} onClick={() => void controller.save(design.id, { ...choice, ensemble: !choice.ensemble })}><Heart liked={choice.ensemble} /></button>
+                <button type="button" className="inspiration-heart" aria-label={`${choice.ensemble ? "Unlike" : "Like"} ${design.brand} overall look: ${design.slug}`} aria-pressed={choice.ensemble} aria-describedby={catalogPending ? `${availabilityId}-${design.id}` : undefined} title={catalogPending ? "Browse this reference now. Saving becomes available after the catalog update." : undefined} disabled={!controller.canSave || pending || !available} onClick={() => void controller.save(design.id, { ...choice, ensemble: !choice.ensemble })}><Heart liked={choice.ensemble} /></button>
               </div><button className="inspiration-caption" type="button" onClick={() => setSelected(design)}><strong>{design.brand}</strong><span>{design.creator}</span></button>
+              {catalogPending && <p id={`${availabilityId}-${design.id}`} className="inspiration-element-label inspiration-availability">Browse only · catalog update pending</p>}
               {choice.elements.length > 0 && <p className="inspiration-element-label">{choice.elements.map(element => inspirationLabels[element]).join(", ")} liked</p>}
               {busy ? <p className="inspiration-saving" role="status">Saving…</p> : pending && <button className="inspiration-pending" type="button" onClick={() => setSelected(design)}>Review unsaved choices</button>}
             </article>;
           })}
         </InspirationGrid> : <div className="inspiration-empty"><Icon name="assets" size={30} /><h2>{liked && !query && kind === "all" ? "Start with a few likes" : "No designs match these filters"}</h2><p>{liked && !query && kind === "all" ? "Like an overall look or open a design to choose its details." : "Try a brand, studio, color, or design detail."}</p><button type="button" onClick={() => { setQuery(""); setKind("all"); setLiked(false); }}>Browse all designs</button></div>}
-        <footer className="inspiration-footer"><span>{visible.length} of {designs.length} curated designs</span><Link href={`/brands/account/${projectId}/identity`}>Saved references &amp; systems</Link><Link href={`/brands/account/${projectId}/logo/directions#visual-direction-review`}>Review visual direction</Link></footer>
+        <footer className="inspiration-footer"><span>{visible.length} of {liked ? inspirationCatalog.length : designs.length} curated designs</span><Link href={`/brands/account/${projectId}/identity`}>Saved references &amp; systems</Link><Link href={`/brands/account/${projectId}/logo/directions#visual-direction-review`}>Review visual direction</Link></footer>
       </div>
       <Link className="inspiration-continue" href={`/brands/account/${projectId}/logo`}>Continue to logo generation<Icon name="arrow" size={16} /></Link>
     </section>

@@ -11,6 +11,25 @@ function draft(): HandlesState {
 afterEach(() => vi.useRealTimers());
 
 describe("strict persisted Handles user draft codec", () => {
+  it.each([
+    "https://xn--.instagram.com/fixture", "https://xn--bcher-kva.instagram.com/fixture",
+    "https://bücher.instagram.com/fixture", "https://%77ww.instagram.com/fixture",
+    " https://www.instagram.com/fixture", "https://www.instagram.com\\@example.invalid/fixture",
+  ])("rejects noncanonical platform authority before a database save: %s", url => {
+    const payload = draft(); payload.bundles[0]!.entries[0]!.accountCreated!.url = url;
+    expect(handlesDraftSchema.safeParse(payload).success).toBe(false);
+    expect(payload.bundles[0]!.entries[0]!.accountCreated!.url).toBe(url);
+  });
+
+  it.each([
+    "HTTPS://WWW.INSTAGRAM.COM/Some%20Path?q=hello#section",
+    "https://business.instagram.com/équipe?view=one two#résumé",
+    "https://www.instagram.com:00000080/a path?profile=@fixture#bio",
+  ])("retains supported platform spellings and international paths unchanged: %s", url => {
+    const payload = draft(); payload.bundles[0]!.entries[0]!.accountCreated!.url = url;
+    expect(parseHandlesDraft(payload).bundles[0]!.entries[0]!.accountCreated!.url).toBe(url);
+  });
+
   it("round-trips user bundles, independent retention and an unverified declaration", () => {
     const input = draft(), saved = parseHandlesDraft(JSON.parse(JSON.stringify(input)));
     expect(saved).toEqual(input);

@@ -60,6 +60,35 @@ afterEach(async () => {
 });
 
 describe("Inspiration stable masonry parentage", () => {
+  it("counts retained liked references against the full catalog, not only discovery designs", async () => {
+    controller.overview!.choices = inspirationCatalog.map(design => ({
+      ownerId, projectId, referenceId: design.id, ensemble: true, elements: [], revision: 1, updatedAt: "2026-10-25T10:00:00Z",
+    }));
+    await render();
+    await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent?.startsWith("Liked"))!.click());
+    expect(cards()).toHaveLength(30);
+    expect(host.querySelector(".inspiration-footer")?.textContent).toContain("30 of 30 curated designs");
+    expect(controller.save).not.toHaveBeenCalled();
+  });
+
+  it("explains catalog-gated likes without blocking inspection or enabling uninstalled references", async () => {
+    await render();
+    const pending = inspirationCatalog.find(design => design.availableSince)!;
+    const card = cards().find(item => item.getAttribute("aria-label") === `${pending.brand} — ${pending.slug}`)!;
+    const heart = card.querySelector<HTMLButtonElement>(".inspiration-heart")!;
+    expect(heart.disabled).toBe(true);
+    expect(heart.title).toBe("Browse this reference now. Saving becomes available after the catalog update.");
+    expect(card.querySelector(".inspiration-availability")?.textContent).toBe("Browse only · catalog update pending");
+    expect(heart.getAttribute("aria-describedby")).toBe(card.querySelector(".inspiration-availability")?.id);
+    expect(card.querySelector<HTMLButtonElement>(".inspiration-caption")!.disabled).toBe(false);
+    controller.overview!.availableReferenceIds = inspirationCatalog.map(design => design.id);
+    await render();
+    expect(card.querySelector<HTMLButtonElement>(".inspiration-heart")!.disabled).toBe(false);
+    expect(card.querySelector(".inspiration-availability")).toBeNull();
+    expect(heart.getAttribute("aria-describedby")).toBeNull();
+    expect(controller.save).not.toHaveBeenCalled();
+  });
+
   it("keeps every image, card and focused control mounted across all existing width breakpoints", async () => {
     await render();
     const grid = host.querySelector<HTMLElement>(".inspiration-columns")!, originalCards = cards(), originalImages = images();
