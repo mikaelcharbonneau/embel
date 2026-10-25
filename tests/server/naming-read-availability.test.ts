@@ -44,7 +44,7 @@ it("never conceals failed saved-name provenance verification", async () => {
   expect(mock.rpc).toHaveBeenCalledTimes(1);
 });
 
-function configureFailedFeed(output: unknown | null) {
+function configureFailedFeed(output: unknown | null, read?: () => Promise<unknown>) {
   const when = "2026-10-25T12:00:00Z";
   const source = { ...feed, canResumeOnScroll: true,
     // Supplied feed classifications are replaced by verified owned step data.
@@ -68,18 +68,16 @@ function configureFailedFeed(output: unknown | null) {
       limit: async (limit: number) => {
         expect(limit).toBe(7);
         expect(Object.fromEntries(filters)).toEqual({ owner_id: ownerId, project_id: projectId, job_id: source.activeRun.jobId });
-        return { data: output === null ? [] : [{ owner_id: ownerId, project_id: projectId, job_id: source.activeRun.jobId, output }], error: null };
+        return read ? read() : { data: output === null ? [] : [{ owner_id: ownerId, project_id: projectId, job_id: source.activeRun.jobId, output }], error: null };
       } };
     return query;
   });
   return source;
 }
 
-it.each(["provider_configuration_rejected", "provider_budget_control_unavailable", "provider_request_rejected"] as const)("requires explicit Resume after a verified %s while retaining current uncapped availability", async code => {
-  const source = configureFailedFeed({ errorCode: "provider_request_rejected", ...(code === "provider_request_rejected" ? {} : { partialArtifacts: [{ type: "provider_failure", code, retryable: false }] }) });
-  const original = structuredClone(source.activeRun), projected = await getNamingFeed(auth, projectId);
+async function expectOnlyExplicitResume(projected: Awaited<ReturnType<typeof getNamingFeed>>, source: ReturnType<typeof configureFailedFeed>) {
+  const original = structuredClone(source.activeRun);
   expect(projected.availability).toEqual(feed.availability);
-  expect(projected.failure).toEqual({ code, retryable: false });
   expect(projected.activeRun).toEqual(original);
   expect(projected.activeRun?.canResume).toBe(true);
   expect(projected.canResumeOnScroll).toBeUndefined();
@@ -105,6 +103,43 @@ it.each(["provider_configuration_rejected", "provider_budget_control_unavailable
     expect(memory.get(account, projectId)?.feed.feed?.activeRun).toMatchObject({ providerBudgetVersion: 2, resumedFromRunId: original.runId });
     expect(source.activeRun).toEqual(original);
   } finally { controller.dispose(); }
+}
+
+it.each(["provider_configuration_rejected", "provider_budget_control_unavailable", "provider_request_rejected"] as const)("requires explicit Resume after a verified %s while retaining current uncapped availability", async code => {
+  const source = configureFailedFeed({ errorCode: "provider_request_rejected", ...(code === "provider_request_rejected" ? {} : { partialArtifacts: [{ type: "provider_failure", code, retryable: false }] }) });
+  const projected = await getNamingFeed(auth, projectId);
+  expect(projected.failure).toEqual({ code, retryable: false });
+  await expectOnlyExplicitResume(projected, source);
+});
+
+it.each(["query_error", "transport", "null_reply", "non_array", "missing_error", "malformed_row", "malformed_output", "malformed_marker",
+  "missing_marker_type", "misspelled_marker_type", "null_marker_type", "untyped_failure_code", "untyped_retryability"] as const)("withholds scroll Resume when the owned failure classification is unverified: %s", async failure => {
+  const source = configureFailedFeed({ partialArtifacts: [{ type: "provider_failure", code: "provider_configuration_rejected", retryable: false }] }, async () => {
+    const row = { owner_id: ownerId, project_id: projectId, job_id: source.activeRun.jobId, output: {} };
+    if (failure === "transport") throw Error("Synthetic classification transport failure");
+    if (failure === "query_error") return { data: null, error: { code: "57014" } };
+    if (failure === "null_reply") return null;
+    if (failure === "non_array") return { data: {}, error: null };
+    if (failure === "missing_error") return { data: [] };
+    if (failure === "malformed_row") return { data: [row, null], error: null };
+    if (failure === "malformed_output") return { data: [{ ...row, output: { partialArtifacts: "unavailable" } }], error: null };
+    let partial: unknown = { type: "provider_failure", code: "provider_configuration_rejected", retryable: true };
+    if (failure === "missing_marker_type") partial = { code: "provider_configuration_rejected", retryable: false };
+    if (failure === "misspelled_marker_type") partial = { type: "provider_failur", code: "provider_configuration_rejected", retryable: false };
+    if (failure === "null_marker_type") partial = { type: null, code: "provider_configuration_rejected", retryable: false };
+    if (failure === "untyped_failure_code") partial = { code: "provider_configuration_rejected" };
+    if (failure === "untyped_retryability") partial = { retryable: false };
+    return { data: [{ ...row, output: { partialArtifacts: [partial] } }], error: null };
+  });
+  const projected = await getNamingFeed(auth, projectId);
+  expect(projected.entries).toEqual(source.entries);
+  expect(projected.failure).toBeUndefined();
+  await expectOnlyExplicitResume(projected, source);
+});
+
+it("still rejects a foreign failure-classification row rather than concealing it as an outage", async () => {
+  configureFailedFeed(null, async () => ({ data: [{ owner_id: "a0000000-0000-4000-8000-000000000002", project_id: projectId, job_id: "d0000000-0000-4000-8000-000000000002", output: {} }], error: null }));
+  await expect(getNamingFeed(auth, projectId)).rejects.toMatchObject({ code: "not_found", status: 404 });
 });
 
 it("retains safe scroll Resume when no owned nonretryable failure is recorded", async () => {
@@ -112,6 +147,17 @@ it("retains safe scroll Resume when no owned nonretryable failure is recorded", 
   const result = await getNamingFeed(auth, projectId);
   expect(result.failure).toBeUndefined();
   expect(result.availability).toEqual(feed.availability);
+  expect(result.canResumeOnScroll).toBe(true);
+  expect(result.activeRun?.canResume).toBe(true);
+});
+
+it.each([
+  { providerItemId: "item_synthetic", type: "reasoning", content: "Synthetic retained provider output." },
+  { providerCallKey: "creation.synthetic", status: "rejected_before_dispatch", code: "local_dispatch_not_attempted", receipt: {} },
+])("retains safe scroll Resume with a non-failure partial: %j", async partial => {
+  configureFailedFeed({ partialArtifacts: [partial] });
+  const result = await getNamingFeed(auth, projectId);
+  expect(result.failure).toBeUndefined();
   expect(result.canResumeOnScroll).toBe(true);
   expect(result.activeRun?.canResume).toBe(true);
 });

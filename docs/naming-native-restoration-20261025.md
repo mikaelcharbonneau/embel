@@ -53,7 +53,9 @@ uncapped execution.
   disable a newly available uncapped generation path. Current server admission
   and explicit saved-run capabilities govern the controls. A retained
   nonretryable rejection requires the explicit Resume action; it does not receive
-  a server capability for scroll-triggered Resume.
+  a server capability for scroll-triggered Resume. An unavailable or malformed
+  failure-classification read also withholds that scroll capability while
+  preserving saved reads, current availability and manual Resume.
 
 Historical policy fields and bookkeeping reservations retain their original
 values for schema/request/accounting compatibility. They do not enforce a
