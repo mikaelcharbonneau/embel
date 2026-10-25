@@ -112,6 +112,13 @@ it.each(["provider_configuration_rejected", "provider_budget_control_unavailable
   await expectOnlyExplicitResume(projected, source);
 });
 
+it.each(["provider_configuration_rejected", "provider_budget_control_unavailable"] as const)("recognizes the nonretryable %s error code without a partial marker", async code => {
+  const source = configureFailedFeed({ errorCode: code });
+  const projected = await getNamingFeed(auth, projectId);
+  expect(projected.failure).toEqual({ code, retryable: false });
+  await expectOnlyExplicitResume(projected, source);
+});
+
 it.each(["query_error", "transport", "null_reply", "non_array", "missing_error", "malformed_row", "malformed_output", "malformed_marker",
   "missing_marker_type", "misspelled_marker_type", "null_marker_type", "untyped_failure_code", "untyped_retryability"] as const)("withholds scroll Resume when the owned failure classification is unverified: %s", async failure => {
   const source = configureFailedFeed({ partialArtifacts: [{ type: "provider_failure", code: "provider_configuration_rejected", retryable: false }] }, async () => {

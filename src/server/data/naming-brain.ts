@@ -58,7 +58,8 @@ async function verifyFeed(auth: AuthenticatedContext, projectId: string, feed: N
        || "type" in partial && partial.type === "provider_failure"
        || "code" in partial && namingProviderFailureSchema.shape.code.safeParse(partial.code).success)) failureClassificationVerified = false;
      }
-     if (!verified.failure && output.data.errorCode === "provider_request_rejected") verified.failure = { code: "provider_request_rejected", retryable: false };
+     const failureCode = namingProviderFailureSchema.shape.code.safeParse(output.data.errorCode);
+     if (!verified.failure && failureCode.success) verified.failure = { code: failureCode.data, retryable: false };
     }
    }
   } catch (error) {
