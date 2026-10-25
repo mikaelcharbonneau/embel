@@ -55,10 +55,33 @@ describe("durable OpenAI strategy handler (mock transport only)", () => {
     expect(await lost.run()).toBe("lease_lost"); expect(lost.transport.createResponse).not.toHaveBeenCalled();
   });
 
-  it("persists partial model content and stops uncertain generation without retry", async () => {
+  it("persists terminal incomplete text and verified cost as failed without retry or accepting a proposal", async () => {
     const f = fixture(); vi.mocked(f.transport.createResponse).mockResolvedValue({ requestId: "req_fixture", body: { ...responseFixture(), status: "incomplete" } });
+    // A terminal text-only response with bounded verified usage is a known
+    // unsuccessful execution. Nonterminal/tool ambiguity remains quarantined.
+    expect(await f.run()).toBe("failed");
+    expect(f.outcomes[0]).toMatchObject({ status: "failed", code: "provider_incomplete", costMicrousd: 691, result: { partialText: expect.any(String) } });
+    expect(f.outcomes[0]?.result).not.toHaveProperty("proposal");
+    expect(f.transport.createResponse).toHaveBeenCalledTimes(1);
+    expect(f.store.finish).toHaveBeenCalledWith(f.job, "failed");
+  });
+
+  it("persists partial model content and stops nonterminal generation without retry", async () => {
+    const f = fixture(); vi.mocked(f.transport.createResponse).mockResolvedValue({ requestId: "req_fixture", body: { ...responseFixture(), status: "in_progress" } });
+    expect(await f.run()).toBe("needs_reconciliation");
+    expect(f.outcomes[0]).toMatchObject({ status: "needs_reconciliation", code: "provider_not_terminal", result: { partialText: expect.any(String) } });
+    expect(f.outcomes[0]?.result).not.toHaveProperty("proposal");
+    expect(f.transport.createResponse).toHaveBeenCalledTimes(1);
+    expect(f.store.finish).not.toHaveBeenCalled();
+  });
+
+  it("does not settle terminal incomplete output with an unexpected tool", async () => {
+    const f = fixture(), response = responseFixture(); response.status = "incomplete";
+    response.output.push({ type: "image_generation_call" });
+    vi.mocked(f.transport.createResponse).mockResolvedValue({ requestId: "req_fixture", body: response });
     expect(await f.run()).toBe("needs_reconciliation");
     expect(f.outcomes[0]).toMatchObject({ status: "needs_reconciliation", code: "provider_incomplete", result: { partialText: expect.any(String) } });
+    expect(f.outcomes[0]?.result).not.toHaveProperty("proposal");
     expect(f.transport.createResponse).toHaveBeenCalledTimes(1);
     expect(f.store.finish).not.toHaveBeenCalled();
   });

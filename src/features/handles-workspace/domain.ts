@@ -50,6 +50,16 @@ export const entrySchema = z.object({
   }
   // Zod can run this parent refinement after the URL's own refinement failed.
   if (entry.accountCreated?.url && safeUrl.safeParse(entry.accountCreated.url).success) {
+    // Match the existing database's raw ASCII platform-host contract before
+    // WHATWG/ICU normalization. URL acceptance changes across runtimes (for
+    // example an empty ACE label), and normalization can hide encoded hosts.
+    // This does not restrict international path/query text or rewrite input.
+    const authority = /^https?:\/\/([^/?#]+)/i.exec(entry.accountCreated.url)?.[1];
+    const rawHost = authority?.split(":")[0];
+    if (!rawHost || !/^[a-zA-Z0-9._-]+$/.test(rawHost) || rawHost.split(".").some(label => /^xn--/i.test(label))) {
+      ctx.addIssue({ code: "custom", path: ["accountCreated", "url"], message: "Use a platform URL with an ASCII hostname. International paths are supported." });
+      return;
+    }
     const host = new URL(entry.accountCreated.url).hostname.toLowerCase();
     const root = new URL(platforms.find(item => item.id === entry.platform)!.url).hostname.replace(/^www\./, "");
     if (host !== root && !host.endsWith(`.${root}`)) ctx.addIssue({ code: "custom", message: "The account URL must belong to this platform." });

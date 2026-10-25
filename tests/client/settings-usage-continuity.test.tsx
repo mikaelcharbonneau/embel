@@ -101,6 +101,33 @@ describe("Settings Usage tab lifetime", () => {
     expect(host.textContent).toContain("Recorded usage loaded.");
   });
 
+  it("retains the public status and footer slots on tab return but removes every private row and action during account checking", async () => {
+    await loaded();
+    const status = host.querySelector(".recorded-usage-status")!;
+    const footer = host.querySelector(".recorded-usage-footer")!;
+    const button = refresh();
+    expect(status).not.toBeNull(); expect(footer).not.toBeNull();
+    await select("workspace"); await select("billing");
+    expect(host.querySelector(".recorded-usage-status")).toBe(status);
+    expect(host.querySelector(".recorded-usage-footer")).toBe(footer);
+    expect(refresh()).toBe(button);
+    const readyFooterNote = footer.querySelector(".recorded-usage-note")!.textContent;
+    mock.session = { status: "checking", generation: 2 }; await render();
+    expect(rows()).toHaveLength(0); expect(refresh()).toBeNull();
+    expect(button.isConnected).toBe(false);
+    const anonymousFooter = host.querySelector(".recorded-usage-footer")!;
+    expect(anonymousFooter).not.toBe(footer);
+    expect(anonymousFooter.textContent).toBe(readyFooterNote);
+    expect(anonymousFooter.querySelector(".recorded-usage-action")?.hasAttribute("inert")).toBe(true);
+    expect(anonymousFooter.querySelector("button, a, input, [tabindex], time, [style]")).toBeNull();
+    expect(host.querySelector(".recorded-usage-status [role='status']")?.textContent).toBe("Checking your account…");
+    await settle(1); expect(rows()).toHaveLength(0);
+    mock.session = { status: "signed_out", generation: 3 }; await render();
+    expect(host.querySelector(".recorded-usage-pending-frame, .recorded-usage-footer, .recorded-usage-status-sizer")).toBeNull();
+    expect(host.textContent).toContain("Sign in to view recorded usage.");
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
   it("revalidates once on every actual return but performs no hidden reads or captured-button actions", async () => {
     vi.useFakeTimers(); await loaded(); const original = rows(), button = refresh();
     for (let index = 1; index <= 3; index++) {
