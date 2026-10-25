@@ -265,6 +265,33 @@ test("activity accessibility fixture: long private titles remain inside desktop 
   await page.screenshot({ path: info.outputPath("generation-activity-long-title.png"), fullPage: true, scale: "css" });
 });
 
+for (const initial of [true, false]) test(`activity fixture: a stalled ${initial ? "first read" : "refresh"} offers retry and fences its late response`, async ({ page }) => {
+  const { state, holdNext } = await fixtures(page);
+  const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
+  await page.clock.install(); await openPage(page);
+  if (!initial) {
+    await openActivity(page);
+    await expect(dialog(page).getByText(titles.naming, { exact: true })).toBeVisible();
+  }
+  const held = holdNext();
+  if (initial) await openActivity(page);
+  else await page.clock.fastForward(3000);
+  await expect.poll(() => held.ready).toBe(true);
+  await page.clock.fastForward(15_001);
+  await expect(dialog(page).getByRole("alert")).toContainText("Activity could not be refreshed");
+  if (!initial) await expect(dialog(page).getByText(titles.naming, { exact: true })).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath("activity-timeout-recovery.png"), fullPage: true, scale: "css" });
+  state.payload = emptyActivity();
+  await dialog(page).getByRole("button", { name: "Check activity again", exact: true }).click();
+  await expect(dialog(page).getByText("No generation requests in this account yet.", { exact: true })).toBeVisible();
+  held.release(); await expect.poll(() => held.settled).toBe(true);
+  await expect(dialog(page).getByText(titles.naming, { exact: true })).toHaveCount(0);
+  await expect(dialog(page).getByRole("alert")).toHaveCount(0);
+  await dialog(page).getByRole("button", { name: "Close activity", exact: true }).click();
+  const reads = state.activityRequests; await page.clock.fastForward(30_000);
+  expect(state.activityRequests).toBe(reads); expect(errors).toEqual([]);
+});
+
 // Native close events are queued. An event from a prior dismissal must not
 // overwrite a subsequent opening of this persistent dialog element.
 test("activity accessibility fixture: a queued native close cannot dismiss a reopened panel", async ({ page }) => {

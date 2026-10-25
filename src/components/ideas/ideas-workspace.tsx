@@ -67,7 +67,9 @@ function IdeaCaptureForm({ account }: { account: VerifiedAccount }) {
   }, []);
 
   function edit(field: "title" | "description", value: string) {
-    if (!isCurrent(account) || request.current) return;
+    // A lost acknowledgement may already have created the idea. Keep its exact
+    // request until replay confirms it, including after this form is reopened.
+    if (!isCurrent(account) || request.current || ideaDrafts.getCapture(account.userId)?.intent) return;
     ideaDrafts.setCapture({ ownerId: account.userId, generation: account.generation, content: { ...content, [field]: value }, intent: null });
     setError(null);
   }
@@ -92,7 +94,15 @@ function IdeaCaptureForm({ account }: { account: VerifiedAccount }) {
     } catch (cause) {
       if (!active.current || request.current !== controller || !isCurrent(account)) return;
       if (cause instanceof AccountRequestError && cause.status === 401) expire(account);
-      else setError(ideaErrorMessage(cause, true));
+      else {
+        // These responses conclusively reject the content, so corrections may
+        // use a new request. Transport/server failures keep the original intent.
+        if (cause instanceof AccountRequestError && (cause.status === 413 || cause.status === 422)) {
+          const current = ideaDrafts.getCapture(account.userId);
+          if (current) ideaDrafts.setCapture({ ...current, intent: null });
+        }
+        setError(ideaErrorMessage(cause, true));
+      }
     } finally {
       window.clearTimeout(timeout);
       if (request.current === controller) { request.current = null; if (active.current && isCurrent(account)) setBusy(false); }
@@ -102,10 +112,11 @@ function IdeaCaptureForm({ account }: { account: VerifiedAccount }) {
     <h2 id="idea-capture-heading">Capture an idea</h2>
     <form onSubmit={event => { event.preventDefault(); void save(); }}>
       <fieldset disabled={busy} className="ideas-fields">
-        <label className="ideas-field">Idea title<input value={content.title} maxLength={160} onChange={event => edit("title", event.target.value)} placeholder="A working title is enough" required /></label>
-        <label className="ideas-field">Description (optional)<textarea value={content.description} maxLength={12000} rows={2} onChange={event => edit("description", event.target.value)} placeholder="What sparked the idea?" /></label>
+        <label className="ideas-field">Idea title<input value={content.title} readOnly={Boolean(capture?.intent)} aria-describedby={capture?.intent && !busy ? "idea-capture-recovery" : undefined} maxLength={160} onChange={event => edit("title", event.target.value)} placeholder="A working title is enough" required /></label>
+        <label className="ideas-field">Description (optional)<textarea value={content.description} readOnly={Boolean(capture?.intent)} aria-describedby={capture?.intent && !busy ? "idea-capture-recovery" : undefined} maxLength={12000} rows={2} onChange={event => edit("description", event.target.value)} placeholder="What sparked the idea?" /></label>
       </fieldset>
-      <div className="ideas-capture-actions"><p className="field-hint">Add the details when you’re ready.</p><button className="button primary small" type="submit" disabled={busy || !content.title.trim()}>{busy ? "Saving idea…" : capture?.intent ? "Retry saving idea" : "Save idea"}<Icon name="arrow" size={15} /></button></div>
+      <div className="ideas-capture-actions"><p className="field-hint">Add the details when you’re ready.</p><button className="button primary small" type="submit" disabled={!content.title.trim()} aria-disabled={busy} aria-busy={busy}>{busy ? "Saving idea…" : capture?.intent ? "Retry saving idea" : "Save idea"}<Icon name="arrow" size={15} /></button></div>
+      {capture?.intent && !busy && <p id="idea-capture-recovery" className="field-hint" role="status">Retry the pending save before editing. This avoids creating the same idea twice.</p>}
       {error && <p className="form-error" role="alert">{error}</p>}
     </form>
   </section>;
