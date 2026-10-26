@@ -2,6 +2,7 @@ import { z } from "zod";
 import { getNamingPreferencesReadiness, namingPreferencesV2Schema } from "../src/domain/naming-brain-preferences";
 import { namingPreferencesRuntimeFingerprint } from "./naming-brain-configuration";
 import { isDeepStrictEqual } from "node:util";
+import { NamingContinuationUnavailableError } from "../src/server/ai/naming-brain/continuation";
 import { namingBrainJobInputSchema, namingEvidenceSourceSchema, namingProviderReceiptSchema, namingReceiptState, namingPreparedSetSchema, namingRoleOutputSchema, namingStageKeySchema, namingStageRequestSchema, namingProgressivePhaseSchema, namingMicrobatchInputSchema, namingMicrobatchResultSchema, namingProgressivePublicationSchema, namingApproachSchema, type NamingBrainPolicy, type NamingProviderReceipt, type NamingRoleOutput, type NamingStageKey, type NamingStageRequest, type NamingPreparedSet, type NamingValidatedCandidate, type NamingVerification, type NamingProgressivePhase, type NamingMicrobatchInput } from "../src/domain/naming-brain";
 import { nameIdentityKey, namingStrategyBasisSchema, namingStrategyKeyFromBasis } from "../src/domain/project-naming";
 import type { ClaimedJob, StepOutcome } from "../src/domain/jobs";
@@ -34,6 +35,15 @@ const progressiveStageSchema = stageSchema.extend({ stageResults: z.array(stageR
 const progressiveStateSchema = z.strictObject({ stage: progressiveStageSchema, plannedRequests: z.array(namingStageRequestSchema).max(300), publishedCount: z.number().int().min(0).max(100), primaryCounts: z.array(z.strictObject({ approach: namingApproachSchema, count: z.number().int().min(0).max(100) })).max(11), publications: z.array(namingProgressivePublicationSchema).max(100) });
 export type NamingSavedStage = Omit<z.infer<typeof stageSchema>, "callPlans"> & { callPlans: { phase: string; calls: z.infer<typeof allocationSchema>[] }[] };
 export type NamingProgressiveState = z.infer<typeof progressiveStateSchema>;
+const workerStatusSchema = z.strictObject({ version: z.literal(1), leader: z.boolean(),
+  generation: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER).nullable(),
+  expiresAt: z.iso.datetime({ offset: true }).nullable(), serverTime: z.iso.datetime({ offset: true }), ready: z.boolean(),
+  reason: z.enum(["leader", "held", "expired", "fenced", "binding_mismatch"]),
+}).refine(status => status.leader
+  ? status.generation !== null && status.expiresAt !== null && status.reason === "leader"
+  : status.generation === null && status.expiresAt === null && !status.ready && status.reason !== "leader", "Worker authority response is inconsistent");
+export type NamingWorkerStatus = z.infer<typeof workerStatusSchema>;
+export type NamingMaintenanceAuthority = { workerId: string; generation: number };
 /** New SQL exposes insertion-authoritative receipts; old SQL retains its exact
  * historical timestamp/ID fallback. Current receipts must also exist in history. */
 export function namingLatestReceipt(stage: Pick<NamingSavedStage, "receipts" | "currentReceipts">, providerCallKey: string) {
@@ -69,11 +79,24 @@ export class NamingBrainJobStore implements JobStore {
   private readonly observedOnly = new Set<string>();
   private readonly stoppedJobs = new Set<string>();
   private readonly cancellationListeners = new Map<string, Set<() => void>>();
-  constructor(private readonly database: JobDatabase, readonly deploymentId: string) {}
-  private async rpc(name: "get_naming_brain_preference_work" | "attest_naming_brain_preferences" | "report_naming_brain_worker_ready" | "claim_naming_brain_job" | "expire_naming_brain_leases" | "naming_brain_worker_action" | "authorize_naming_brain_dispatch" | "record_naming_brain_provider_receipt" | "complete_naming_brain_stage", values: unknown[]): Promise<unknown> {
+  constructor(private readonly database: JobDatabase, readonly deploymentId: string,
+    private readonly maintenanceAuthority?: () => NamingMaintenanceAuthority | null) {}
+  private async rpc(name: "get_naming_brain_preference_work" | "attest_naming_brain_preferences" | "report_naming_brain_worker_ready" | "report_naming_brain_worker_status" | "naming_brain_worker_maintenance_v2" | "claim_naming_brain_job" | "expire_naming_brain_leases" | "naming_brain_worker_action" | "authorize_naming_brain_dispatch" | "record_naming_brain_provider_receipt" | "complete_naming_brain_stage", values: unknown[]): Promise<unknown> {
     const response = await this.database.query(`select public.${name}(${values.map((_value, index) => `$${index + 1}`).join(",")}) as result`, values);
     if (response.rows.length !== 1 || !Object.hasOwn(response.rows[0]!, "result")) throw new Error("naming_store_response_invalid");
     return normalizeNamingStoredJson(response.rows[0]!.result);
+  }
+  private maintenance(action: "preference_work" | "attest_preferences" | "expire_leases" | "claim" | "assert_continue", payload: unknown, workerId?: string, expected?: NamingMaintenanceAuthority) {
+    const authority = this.maintenanceAuthority?.();
+    if (!authority || workerId !== undefined && workerId !== authority.workerId
+      || expected && (expected.workerId !== authority.workerId || expected.generation !== authority.generation)
+      || !Number.isSafeInteger(authority.generation) || authority.generation < 1) throw new Error("naming_worker_authority_unavailable");
+    return this.rpc("naming_brain_worker_maintenance_v2", [authority.workerId, this.deploymentId, authority.generation, action, JSON.stringify(payload)]);
+  }
+  async reportWorkerStatus(policy: NamingBrainPolicy, workerId: string, generation: number | null): Promise<NamingWorkerStatus> {
+    const status = workerStatusSchema.parse(await this.rpc("report_naming_brain_worker_status", [JSON.stringify(policy), this.deploymentId, workerId, generation, 60]));
+    if (generation !== null && status.leader && status.generation !== generation) throw new Error("naming_worker_generation_mismatch");
+    return status;
   }
   async action(job: ClaimedJob, action: string, payload: unknown): Promise<unknown> {
     jobInput(job);
@@ -81,22 +104,28 @@ export class NamingBrainJobStore implements JobStore {
     return this.rpc("naming_brain_worker_action", [job.id, job.leaseToken, action, body]);
   }
   async attestPendingPreferences(): Promise<number> {
-    const work = z.array(z.strictObject({ ownerId: z.uuid(), projectId: z.uuid(), preferencesVersion: z.number().int().positive(), preferences: z.json(), preferencesHash: hash, expectedFingerprint: z.json() })).max(20).parse(await this.rpc("get_naming_brain_preference_work", [20]));
+    const authority = this.maintenanceAuthority?.();
+    const work = z.array(z.strictObject({ ownerId: z.uuid(), projectId: z.uuid(), preferencesVersion: z.number().int().positive(), preferences: z.json(), preferencesHash: hash, expectedFingerprint: z.json() })).max(20).parse(await (this.maintenanceAuthority
+      ? this.maintenance("preference_work", { limit: 20 }, undefined, authority ?? undefined) : this.rpc("get_naming_brain_preference_work", [20])));
     const fingerprint = namingPreferencesRuntimeFingerprint(); let count = 0;
     for (const row of work) {
       if (!isDeepStrictEqual(row.expectedFingerprint, fingerprint)) continue;
       const parsed = namingPreferencesV2Schema.safeParse(row.preferences);
       const readiness = parsed.success && isDeepStrictEqual(parsed.data, row.preferences) ? getNamingPreferencesReadiness(parsed.data) : { ready: false, missing: ["invalid_preferences"] };
-      const saved = z.object({ attestationId: z.uuid(), projectId: z.uuid(), preferencesVersion: z.number().int(), preferencesHash: hash, fingerprint: z.json(), ready: z.boolean(), missing: z.array(z.string()).max(5) }).parse(await this.rpc("attest_naming_brain_preferences", [row.projectId, row.preferencesVersion, row.preferencesHash, JSON.stringify(fingerprint), JSON.stringify(readiness)]));
+      const saved = z.object({ attestationId: z.uuid(), projectId: z.uuid(), preferencesVersion: z.number().int(), preferencesHash: hash, fingerprint: z.json(), ready: z.boolean(), missing: z.array(z.string()).max(5) }).parse(await (this.maintenanceAuthority
+        ? this.maintenance("attest_preferences", { projectId: row.projectId, preferencesVersion: row.preferencesVersion, preferencesHash: row.preferencesHash, fingerprint, readiness }, undefined, authority ?? undefined)
+        : this.rpc("attest_naming_brain_preferences", [row.projectId, row.preferencesVersion, row.preferencesHash, JSON.stringify(fingerprint), JSON.stringify(readiness)])));
       if (saved.projectId !== row.projectId || saved.preferencesVersion !== row.preferencesVersion || saved.preferencesHash !== row.preferencesHash || !isDeepStrictEqual(saved.fingerprint, fingerprint) || saved.ready !== readiness.ready || !isDeepStrictEqual(saved.missing, readiness.missing)) throw new Error("naming_attestation_mismatch");
       count++;
     }
     return count;
   }
   async reportReady(policy: NamingBrainPolicy, workerId: string) { return z.boolean().parse(await this.rpc("report_naming_brain_worker_ready", [JSON.stringify(policy), this.deploymentId, workerId, 60])); }
-  async expireLeases(workerId: string) { return z.number().int().nonnegative().parse(await this.rpc("expire_naming_brain_leases", [workerId, this.deploymentId])); }
+  async expireLeases(workerId: string) { return z.number().int().nonnegative().parse(await (this.maintenanceAuthority
+    ? this.maintenance("expire_leases", { limit: 20 }, workerId) : this.rpc("expire_naming_brain_leases", [workerId, this.deploymentId]))); }
   async claim(workerId: string, leaseSeconds: number): Promise<ClaimedJob | null> {
-    const raw = await this.rpc("claim_naming_brain_job", [workerId, this.deploymentId, leaseSeconds]); if (raw === null) return null;
+    const raw = await (this.maintenanceAuthority ? this.maintenance("claim", { leaseSeconds }, workerId)
+      : this.rpc("claim_naming_brain_job", [workerId, this.deploymentId, leaseSeconds])); if (raw === null) return null;
     const parsed = z.object({ mode: z.enum(["execute", "observe_only"]), executionAuthority: executionAuthoritySchema.optional(), job: z.object({ billing_mode: z.literal("openai_api") }).passthrough() }).parse(raw);
     const job = parseClaimedJob(parsed.job), input = jobInput(job), authority = parsed.executionAuthority ?? null;
     if (!["running", "cancel_requested"].includes(job.status)) throw new Error("naming_claim_state_invalid");
@@ -211,6 +240,34 @@ export class NamingBrainJobStore implements JobStore {
     return () => { listeners.delete(callback); if (!listeners.size) this.cancellationListeners.delete(job.id); };
   }
   async assertContinuation(job: ClaimedJob) {
+    if (this.maintenanceAuthority) {
+      // Required-action POSTs can resume paid model execution. This generation
+      // gateway checks the original claim sidecar, current policy and Stop under
+      // mutation locks; a cached heartbeat is insufficient authority.
+      const stopped = async () => {
+        const state = await this.heartbeat(job, 120);
+        // heartbeat delivers the authoritative Stop to the handler's cancellation
+        // listeners even when recovery mode has become observe_only.
+        return state.cancelled || this.stoppedJobs.has(job.id);
+      };
+      if (await stopped()) throw new Error("naming_observe_only");
+      let allowed: boolean;
+      try { allowed = z.boolean().parse(await this.maintenance("assert_continue", { jobId: job.id, leaseToken: job.leaseToken })); }
+      catch (error) {
+        const lost = error instanceof Error && (error.message === "naming_worker_authority_unavailable"
+          || error.message === "leadership_lost" && "code" in error && error.code === "PT409");
+        if (!lost) throw error;
+        if (await stopped()) throw new Error("naming_observe_only");
+        throw new NamingContinuationUnavailableError();
+      }
+      if (!allowed) {
+        // Stop can commit between the first heartbeat and the guarded denial.
+        // Refresh it before treating denial as observation-only authority loss.
+        if (await stopped()) throw new Error("naming_observe_only");
+        throw new NamingContinuationUnavailableError();
+      }
+      return;
+    }
     const heartbeat = await this.heartbeat(job, 120);
     if (heartbeat.cancelled || this.observedOnly.has(job.id) || this.stoppedJobs.has(job.id)) throw new Error("naming_observe_only");
   }

@@ -124,7 +124,10 @@ describe("independent cloud Naming deployment artifact", () => {
 
   it("includes only Naming handlers and no local secrets, app routes or other service executable", () => {
     expect(readdirSync(output).sort()).toEqual(["build-manifest.json", "index.js", "package.json"]);
-    expect(manifest.inputs.filter(input => input.startsWith("services/"))).toEqual(["services/naming-worker/index.ts", "services/naming-worker/runtime.ts"]);
+    expect(manifest.inputs.filter(input => input.startsWith("services/"))).toEqual([
+      "services/naming-worker/authority.ts", "services/naming-worker/index.ts",
+      "services/naming-worker/runtime.ts", "services/naming-worker/scheduling.ts",
+    ]);
     expect(manifest.inputs.filter(input => input.startsWith("worker/handlers/"))).toEqual(["worker/handlers/naming-brain.ts", "worker/handlers/naming-progressive.ts"]);
     expect(manifest.inputs.some(input => input === "worker/naming-brain-store.ts")).toBe(true);
     expect(manifest.inputs.some(input => input === "src/server/ai/naming-brain/protocol.ts")).toBe(true);

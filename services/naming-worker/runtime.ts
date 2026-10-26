@@ -5,10 +5,11 @@ import { Pool } from "pg";
 import { z } from "zod";
 import { CLOUD_NAMING_DAEMON_NAME, CLOUD_NAMING_DATABASE_ROLE, CLOUD_NAMING_DATABASE_ROLE_OID, CLOUD_NAMING_RUNTIME,
   type CloudNamingConfiguration, type CloudNamingMode } from "../../worker/cloud-naming-configuration";
-import { startNamingReadiness } from "../../worker/naming-brain-configuration";
 import { NamingBrainJobStore } from "../../worker/naming-brain-store";
 import { createNamingBrainHandlers } from "../../worker/handlers/naming-brain";
 import { runOneJob } from "../../worker/runner";
+import { startNamingWorkerAuthority, type NamingWorkerAuthority } from "./authority";
+import { runNamingPolling } from "./scheduling";
 
 const identitySchema = z.strictObject({ session_user: z.literal(CLOUD_NAMING_DATABASE_ROLE), current_user: z.literal(CLOUD_NAMING_DATABASE_ROLE),
   role_oid: z.literal(CLOUD_NAMING_DATABASE_ROLE_OID), rolcanlogin: z.literal(true), rolinherit: z.literal(false), rolsuper: z.literal(false),
@@ -74,7 +75,7 @@ export async function runCloudNamingWorker(options: {
     poolClosed = true;
     await pool.end();
   };
-  let readiness: Awaited<ReturnType<typeof startNamingReadiness>> | undefined;
+  let readiness: NamingWorkerAuthority | undefined;
   try {
     await verifyCloudNamingDatabase(pool, config.poolOptions.host!);
     if (controller.signal.aborted) return;
@@ -96,10 +97,16 @@ export async function runCloudNamingWorker(options: {
       }
       return;
     }
-    const store = new NamingBrainJobStore(pool, config.deploymentId), workerId = `naming-cloud-${randomUUID()}`;
-    await store.attestPendingPreferences();
+    const workerId = `naming-cloud-${randomUUID()}`;
+    const store = new NamingBrainJobStore(pool, config.deploymentId, () => {
+      const authority = readiness?.current(); return authority ? { workerId, generation: authority.generation } : null;
+    });
+    readiness = await startNamingWorkerAuthority({ signal: controller.signal,
+      report: generation => store.reportWorkerStatus(config.policy, workerId, generation),
+      onError: () => {
+        try { console.info(JSON.stringify({ event: "cloud_naming_authority_unavailable" })); } catch { /* Diagnostics cannot authorize work. */ }
+      } });
     if (controller.signal.aborted) return;
-    readiness = await startNamingReadiness(() => controller.signal.aborted ? Promise.resolve(false) : store.reportReady(config.policy, workerId));
     const gate = readiness;
     const handlers = createNamingBrainHandlers({ store, apiKey: config.apiKey, assertReady: async () => {
       if (controller.signal.aborted) throw new Error("cloud_naming_stopping");
@@ -107,19 +114,14 @@ export async function runCloudNamingWorker(options: {
       if (controller.signal.aborted) throw new Error("cloud_naming_stopping");
     } });
     console.info(JSON.stringify({ event: "cloud_naming_worker_started", ...identity, workerId }));
-    while (!controller.signal.aborted) {
-      await store.attestPendingPreferences();
-      if (controller.signal.aborted) break;
-      await store.expireLeases(workerId);
-      if (controller.signal.aborted) break;
+    await runNamingPolling({ signal: controller.signal, generation: () => gate.current()?.generation ?? null,
+      attestPreferences: () => store.attestPendingPreferences(), expireLeases: () => store.expireLeases(workerId),
       // Execution authority is read from the database claim. This cloud process
       // never supplies localPrototype or invents a per-job exception.
-      const state = await runOneJob({ store, handlers, workerId, signal: controller.signal, abortGraceMs: 15_000 });
-      if (state !== "idle") console.info(JSON.stringify({ event: "naming_job_cycle", state }));
-      if (state === "idle") await delay(5_000, undefined, { signal: controller.signal }).catch(error => {
-        if (!controller.signal.aborted) throw error;
-      });
-    }
+      runJob: () => runOneJob({ store, handlers, workerId, signal: controller.signal, abortGraceMs: 15_000 }),
+      onJob: state => { if (state !== "idle") console.info(JSON.stringify({ event: "naming_job_cycle", state })); },
+      onError: operation => console.info(JSON.stringify({ event: "cloud_naming_poll_failed", operation })),
+    });
   } finally {
     stop();
     try { await readiness?.stop(); }
