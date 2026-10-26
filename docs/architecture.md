@@ -2,6 +2,12 @@
 
 ## Hosted Naming execution
 
+Verifier quote positions can be bound to exact retained source text with a
+separate immutable raw-item witness. Inaccurate positions require a unique
+literal match; existing exact spans remain unchanged. Strict evidence, source
+ownership, provider history and database completion proof remain mandatory.
+See [quote binding and guarded release plan](naming-quote-binding-20261026.md).
+
 The October 25 user correction rejects monetary limits. Future hosted Naming
 uses the existing uncapped native Agents profile with `providerBudgetVersion: 2`,
 without `spend_control`. Historical capped requests, holds and unknown costs stay

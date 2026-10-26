@@ -1,10 +1,11 @@
 import "server-only";
 import { isDeepStrictEqual } from "node:util";
-import { bindNamingVerificationSources, namingAssignmentPlanSchema, namingCreatorSetSchema, namingCurationSchema, namingEvidenceSourceSchema, namingProviderReceiptSchema, namingResearchPackSchema, namingRoleOutputSchema, namingStageRequestSchema, namingVerificationSchema, validateNamingAssignmentPlan, validateNamingCreatorSet,
+import { bindNamingVerificationSources, namingAssignmentPlanSchema, namingCreatorSetSchema, namingCurationSchema, namingEvidenceSourceSchema, namingProviderReceiptSchema, namingResearchPackSchema, namingRoleOutputSchema, namingStageRequestSchema, namingVerificationProviderOutputSchema, namingVerificationSchema, validateNamingAssignmentPlan, validateNamingCreatorSet,
   type NamingEvidenceSource, type NamingProviderReceipt, type NamingRoleOutput, type NamingStageRequest, type NamingVerificationSourceContext } from "../../../domain/naming-brain";
 import { namingOutputSchemaForRequest } from "./prompts";
 import { namingStableId, namingTextHash } from "./identity";
 import type { ManagedFinalOutput } from "./history";
+import { bindNamingQuotePositions } from "./quote-binding";
 
 export function namingSourceContext(request: NamingStageRequest, dependencies: readonly NamingRoleOutput[]): NamingVerificationSourceContext {
   return { dependencyArtifactIds: [...request.dependencyArtifactIds], artifacts: dependencies.filter(artifact => request.dependencyArtifactIds.includes(artifact.artifactId)).flatMap<NamingVerificationSourceContext["artifacts"][number]>(artifact => artifact.output.role === "researcher" ? [namingResearchPackSchema.parse(artifact)] : artifact.output.role === "verifier" ? [namingVerificationSchema.parse(artifact)] : []) };
@@ -19,7 +20,7 @@ export function validateNamingRoleOutput(options: { request: NamingStageRequest;
   if (namingTextHash(options.final.text) !== options.final.itemContentHash) throw new Error("provider_item_hash_mismatch");
   const raw: unknown = JSON.parse(options.final.text);
   if (!isDeepStrictEqual(raw, options.final.value)) throw new Error("provider_item_content_mismatch");
-  const output = namingOutputSchemaForRequest(request).parse(raw);
+  const output = (request.role === "verifier" ? namingVerificationProviderOutputSchema : namingOutputSchemaForRequest(request)).parse(raw);
   if (!isDeepStrictEqual(raw, output)) throw new Error("model_output_normalization");
   const artifactId = namingStableId(`artifact:${request.runId}:${request.providerCallKey}:${receipt.sessionId}:${receipt.turnId}:${options.final.itemId}`);
   const envelope = { artifactId, runId: request.runId, stageKey: request.stageKey, snapshotHash: request.snapshotHash, schemaVersion: 1, promptVersion: "naming-brain-v1", providerReceipt: receipt };
@@ -63,5 +64,8 @@ export function validateNamingRoleOutput(options: { request: NamingStageRequest;
   }
   if (output.findings.some(finding => !candidates.get(`${finding.assignmentKey}/${finding.candidateKey}`)?.claims.some(claim => claim.claimKey === finding.claimKey))) throw new Error("verification_reference_mismatch");
   const sources = resolveSources(output.findings.flatMap(finding => finding.sourceKeys));
-  return bindNamingVerificationSources({ ...envelope, output, sources }, namingSourceContext(request, dependencies));
+  const binding = bindNamingQuotePositions(output, sources);
+  return bindNamingVerificationSources({ ...envelope, output: binding.output, sources,
+    ...(binding.corrected ? { quoteBinding: { version: 1, itemId: options.final.itemId, itemContentHash: options.final.itemContentHash } } : {}),
+  }, namingSourceContext(request, dependencies));
 }
