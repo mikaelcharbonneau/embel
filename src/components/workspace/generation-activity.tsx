@@ -43,9 +43,13 @@ function OwnedGenerationActivity({ account, labeled }: { account: VerifiedAccoun
     let timer: ReturnType<typeof setTimeout> | undefined;
     async function refresh() {
       let active = false;
+      const read = new AbortController();
+      const abortRead = () => read.abort();
+      controller.signal.addEventListener("abort", abortRead, { once: true });
+      const deadline = setTimeout(abortRead, 15_000);
       try {
-        const reply = await accountRequest("/api/jobs", jobActivitySchema, { signal: controller.signal });
-        if (controller.signal.aborted || !isCurrent(account)) return;
+        const reply = await accountRequest("/api/jobs", jobActivitySchema, { signal: read.signal });
+        if (controller.signal.aborted || read.signal.aborted || !isCurrent(account)) return;
         if (reply.ownerId !== account.userId) { expire(account); return; }
         setSnapshot(reply); setError(false); active = reply.active.length > 0;
       } catch (cause) {
@@ -53,6 +57,8 @@ function OwnedGenerationActivity({ account, labeled }: { account: VerifiedAccoun
         if (cause instanceof AccountRequestError && cause.status === 401) { expire(account); return; }
         setError(true);
       } finally {
+        clearTimeout(deadline);
+        controller.signal.removeEventListener("abort", abortRead);
         if (!controller.signal.aborted && isCurrent(account)) timer = setTimeout(() => void refresh(), active ? 3000 : 15000);
       }
     }
