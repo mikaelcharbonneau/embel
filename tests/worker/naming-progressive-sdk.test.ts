@@ -48,6 +48,21 @@ describe("progressive Naming through the actual SDK and migrated SQL", () => {
     { origin: "hosted", directorStatus: "completed" }, { origin: "hosted", directorStatus: "failed" },
   ] as const)("publishes before context, recovers an exact plan and finalizes100 for $origin with a $directorStatus Director", async ({ origin, directorStatus }) => {
     const value = origin === "hosted" ? await seedHostedNamingFixture(db) : await seedProgressiveFixture(db);
+    let canonicalAcknowledgements = 0;
+    const acknowledgeStoredTimestamp = (store: NamingBrainJobStore) => {
+      const record = store.recordReceipt.bind(store);
+      store.recordReceipt = async (job, incoming) => {
+        // Actual SQL first commits the substantive observation at an earlier
+        // synthetic clock value. The retry must receive that exact stored row,
+        // rather than bind artifacts to its newly supplied timestamp.
+        await record(job, { ...incoming, recordedAt: new Date(Date.parse(incoming.recordedAt) - 1000).toISOString() });
+        const saved = await record(job, incoming);
+        expect(saved.recordedAt).not.toBe(incoming.recordedAt);
+        canonicalAcknowledgements++;
+        return saved;
+      };
+    };
+    acknowledgeStoredTimestamp(value.store);
     const admissionFunction = origin === "hosted" ? "ensure_hosted_naming_brain_run" : "ensure_local_naming_brain_run";
     expect(value.input.localPipelineVersion).toBe(2);
     expect(value.input.executionAuthority).toBe(origin === "hosted" ? "hosted_owner_v1" : undefined);
@@ -177,6 +192,7 @@ describe("progressive Naming through the actual SDK and migrated SQL", () => {
       // expiry/reclaim. No production timestamp or attempt is changed.
       await db.query("update public.jobs set lease_expires_at=clock_timestamp()-interval '1 second' where id=$1", [value.job.id]);
       const nextStore = new NamingBrainJobStore(db, "fixture-deployment");
+      acknowledgeStoredTimestamp(nextStore);
       await brainWorker(db, () => nextStore.expireLeases("fixture-worker"));
       await db.query("update fluid_private.naming_brain_runs set next_observation_at=clock_timestamp()-interval '1 second' where id=$1", [value.input.runId]);
       const reclaimed = await brainWorker(db, () => nextStore.claim("fixture-worker", 120));
@@ -203,6 +219,7 @@ describe("progressive Naming through the actual SDK and migrated SQL", () => {
         expect(replay).toEqual(first); await nextStore.completeStep(reclaimed, "prepare", preparation); await nextStore.finish(reclaimed, "succeeded");
       });
       expect(requests.get(original.providerCallKey)).toEqual(original);
+      expect(canonicalAcknowledgements).toBeGreaterThan(20);
       for (const key of ["context.research.researcher", "part001.creation.creator", "part002.creation.creator", "part003.creation.creator", original.providerCallKey]) expect(creates.filter(value => value === key)).toHaveLength(1);
       const complete = await getNamingFeed(auth, value.project), final = await getNamingBrainRun(auth, value.project, value.input.runId);
       expect(complete.entries).toHaveLength(100); expect(new Set(complete.entries.map(row => row.entry.candidate.identityKey)).size).toBe(100);

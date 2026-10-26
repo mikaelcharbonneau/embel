@@ -639,7 +639,16 @@ export function assertNamingStageWireInput(requestInput: unknown, wireBody: unkn
   return bytes;
 }
 
-export type NamingStageHooks = { signal: AbortSignal; beforeDispatch(): Promise<void>; onReceipt(receipt: NamingProviderReceipt): Promise<void>; onArtifact(rawCompletedItem: unknown): Promise<void> };
+/** Only the observation timestamp may differ in a database receipt acknowledgement.
+ * All provider identity, dispatch, usage and evidence fields remain substantive. */
+export function namingReceiptState(receipt: NamingProviderReceipt) {
+  const { recordedAt: _recordedAt, ...state } = receipt;
+  void _recordedAt;
+  return state;
+}
+export type NamingStageHooks = { signal: AbortSignal; beforeDispatch(): Promise<void>;
+  onReceipt(receipt: NamingProviderReceipt): Promise<NamingProviderReceipt | void>;
+  onArtifact(rawCompletedItem: unknown): Promise<void> };
 export interface NamingAgentRuntime {
   runStage(request: NamingStageRequest, hooks: NamingStageHooks): Promise<NamingStageOutcome>;
   resumeStage(receipt: NamingProviderReceipt, hooks: NamingStageHooks): Promise<NamingStageOutcome>;

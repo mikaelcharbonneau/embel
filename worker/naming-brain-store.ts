@@ -2,7 +2,7 @@ import { z } from "zod";
 import { getNamingPreferencesReadiness, namingPreferencesV2Schema } from "../src/domain/naming-brain-preferences";
 import { namingPreferencesRuntimeFingerprint } from "./naming-brain-configuration";
 import { isDeepStrictEqual } from "node:util";
-import { namingBrainJobInputSchema, namingEvidenceSourceSchema, namingProviderReceiptSchema, namingPreparedSetSchema, namingRoleOutputSchema, namingStageKeySchema, namingStageRequestSchema, namingProgressivePhaseSchema, namingMicrobatchInputSchema, namingMicrobatchResultSchema, namingProgressivePublicationSchema, namingApproachSchema, type NamingBrainPolicy, type NamingProviderReceipt, type NamingRoleOutput, type NamingStageKey, type NamingStageRequest, type NamingPreparedSet, type NamingValidatedCandidate, type NamingVerification, type NamingProgressivePhase, type NamingMicrobatchInput } from "../src/domain/naming-brain";
+import { namingBrainJobInputSchema, namingEvidenceSourceSchema, namingProviderReceiptSchema, namingReceiptState, namingPreparedSetSchema, namingRoleOutputSchema, namingStageKeySchema, namingStageRequestSchema, namingProgressivePhaseSchema, namingMicrobatchInputSchema, namingMicrobatchResultSchema, namingProgressivePublicationSchema, namingApproachSchema, type NamingBrainPolicy, type NamingProviderReceipt, type NamingRoleOutput, type NamingStageKey, type NamingStageRequest, type NamingPreparedSet, type NamingValidatedCandidate, type NamingVerification, type NamingProgressivePhase, type NamingMicrobatchInput } from "../src/domain/naming-brain";
 import { nameIdentityKey, namingStrategyBasisSchema, namingStrategyKeyFromBasis } from "../src/domain/project-naming";
 import type { ClaimedJob, StepOutcome } from "../src/domain/jobs";
 import { NAMING_GAP_ENVELOPE } from "../src/server/ai/naming-brain/policy";
@@ -27,12 +27,25 @@ const completedOutputSchema = z.strictObject({ artifactIds: z.array(z.uuid()).ma
 const progressiveOutputSchema = completedOutputSchema.extend({ artifactIds: z.array(z.uuid()).max(300), partialArtifacts: z.array(z.json()).max(300).optional() });
 const stageResultSchema = z.strictObject({ id: z.uuid(), run_id: z.uuid(), stage_key: namingStageKeySchema, state: z.enum(["succeeded", "failed", "ambiguous"]), output: completedOutputSchema, created_at: z.iso.datetime({ offset: true }) });
 const authorizationSchema = z.strictObject({ providerCallKey: identifier, requestHash: hash, authorizedAt: z.iso.datetime({ offset: true }) });
-const stageSchema = z.strictObject({ stageKey: namingStageKeySchema, state: z.enum(["pending", "in_flight", "succeeded", "failed", "ambiguous"]), requestKey: z.string().nullable(), startedAt: z.iso.datetime({ offset: true }).nullable(), maximumCostMicrousd: z.number().int().nonnegative(), recoveryMode: z.enum(["execute", "observe_only"]), observationDeadlineAt: z.iso.datetime({ offset: true }).nullable(), stageResults: z.array(stageResultSchema).max(100), preparation: z.strictObject({ preparedSetId: z.uuid(), preparedSet: namingPreparedSetSchema }).nullable(),
+const stageEnvelopeSchema = z.strictObject({ stageKey: namingStageKeySchema, state: z.enum(["pending", "in_flight", "succeeded", "failed", "ambiguous"]), requestKey: z.string().nullable(), startedAt: z.iso.datetime({ offset: true }).nullable(), maximumCostMicrousd: z.number().int().nonnegative(), recoveryMode: z.enum(["execute", "observe_only"]), observationDeadlineAt: z.iso.datetime({ offset: true }).nullable(), stageResults: z.array(stageResultSchema).max(100), preparation: z.strictObject({ preparedSetId: z.uuid(), preparedSet: namingPreparedSetSchema }).nullable(),
   artifacts: z.array(namingRoleOutputSchema).max(60), receipts: z.array(namingProviderReceiptSchema).max(500), requests: z.array(namingStageRequestSchema).max(60), authorizations: z.array(authorizationSchema).max(60).optional(), providerItems: z.array(providerItemSchema).max(500), providerTurns: z.array(providerTurnSchema).max(500), toolResults: z.array(toolResultSchema).max(200), callPlans: z.array(z.strictObject({ phase: z.enum(["main", "direction", "creation", "curation", "verification"]), calls: z.array(allocationSchema).max(60) })).max(4), gapEnvelope: z.json(), gapPlanIdentity: hash });
+const stageSchema = stageEnvelopeSchema.extend({ currentReceipts: z.array(namingProviderReceiptSchema).max(300).optional() });
 const progressiveStageSchema = stageSchema.extend({ stageResults: z.array(stageResultSchema.extend({ output: progressiveOutputSchema })).max(100), artifacts: z.array(namingRoleOutputSchema).max(300), receipts: z.array(namingProviderReceiptSchema).max(5000), requests: z.array(namingStageRequestSchema).max(300), authorizations: z.array(authorizationSchema).max(300).optional(), providerItems: z.array(providerItemSchema).max(5000), providerTurns: z.array(providerTurnSchema).max(1000), toolResults: z.array(toolResultSchema).max(2000), callPlans: z.array(z.strictObject({ phase: namingProgressivePhaseSchema, calls: z.array(allocationSchema).max(3) })).max(300) });
 const progressiveStateSchema = z.strictObject({ stage: progressiveStageSchema, plannedRequests: z.array(namingStageRequestSchema).max(300), publishedCount: z.number().int().min(0).max(100), primaryCounts: z.array(z.strictObject({ approach: namingApproachSchema, count: z.number().int().min(0).max(100) })).max(11), publications: z.array(namingProgressivePublicationSchema).max(100) });
 export type NamingSavedStage = Omit<z.infer<typeof stageSchema>, "callPlans"> & { callPlans: { phase: string; calls: z.infer<typeof allocationSchema>[] }[] };
 export type NamingProgressiveState = z.infer<typeof progressiveStateSchema>;
+/** New SQL exposes insertion-authoritative receipts; old SQL retains its exact
+ * historical timestamp/ID fallback. Current receipts must also exist in history. */
+export function namingLatestReceipt(stage: Pick<NamingSavedStage, "receipts" | "currentReceipts">, providerCallKey: string) {
+  return stage.currentReceipts?.find(row => row.providerCallKey === providerCallKey)
+    ?? [...stage.receipts].reverse().find(row => row.providerCallKey === providerCallKey);
+}
+function assertCurrentReceipts(stage: Pick<NamingSavedStage, "receipts" | "currentReceipts">) {
+  if (!stage.currentReceipts) return;
+  const history = new Set(stage.receipts.map(row => JSON.stringify(row)));
+  if (new Set(stage.currentReceipts.map(row => row.providerCallKey)).size !== stage.currentReceipts.length
+    || stage.currentReceipts.some(row => !history.has(JSON.stringify(row)))) throw new Error("naming_current_receipt_mismatch");
+}
 export type NamingGapPhase = "direction" | "creation" | "curation" | "verification";
 const executionAuthoritySchema = z.enum(["local_owner_v1", "hosted_owner_v1"]).nullable();
 type NamingExecutionAuthority = z.infer<typeof executionAuthoritySchema>;
@@ -141,6 +154,7 @@ export class NamingBrainJobStore implements JobStore {
   }
   async loadStage(job: ClaimedJob, stageKey: NamingStageKey): Promise<NamingSavedStage> {
     const input = jobInput(job), stage = (input.localPipelineVersion === 2 ? progressiveStageSchema : stageSchema).parse(await this.action(job, "stage", { stageKey }));
+    assertCurrentReceipts(stage);
     if (stage.stageKey !== stageKey || !isDeepStrictEqual(stage.gapEnvelope, NAMING_GAP_ENVELOPE) || stage.maximumCostMicrousd !== input.policy.stageLimits[stageKey].maximumCostMicrousd || [...stage.artifacts, ...stage.requests, ...stage.receipts].some(value => value.runId !== input.runId || value.snapshotHash !== input.snapshot.snapshotHash || value.stageKey !== stageKey)) throw new Error("naming_stage_mismatch");
     if (stage.preparation && (stageKey !== "prepare" || stage.preparation.preparedSet.runId !== input.runId || stage.preparation.preparedSet.snapshotHash !== input.snapshot.snapshotHash)) throw new Error("naming_preparation_mismatch");
     if (stage.stageResults.some(result => result.run_id !== input.runId || result.stage_key !== stageKey)) throw new Error("naming_stage_result_mismatch");
@@ -173,6 +187,7 @@ export class NamingBrainJobStore implements JobStore {
     const input = jobInput(job); if (input.localPipelineVersion !== 2) throw new Error("naming_progressive_scope_mismatch");
     const state = progressiveStateSchema.parse(await this.action(job, "progressive_state", selector));
     const stage = state.stage;
+    assertCurrentReceipts(stage);
     if (stage.stageKey !== "creation" || [...stage.requests, ...stage.receipts, ...stage.artifacts, ...state.plannedRequests].some(row => row.runId !== input.runId || row.snapshotHash !== input.snapshot.snapshotHash || row.stageKey !== "creation")
       || stage.requests.some(row => row.policy.localPipelineVersion !== 2) || stage.receipts.some(row => row.localPipelineVersion !== 2)
       || stage.authorizations?.some(row => !stage.requests.some(request => request.providerCallKey === row.providerCallKey && request.requestHash === row.requestHash))) throw new Error("naming_progressive_state_mismatch");
@@ -205,7 +220,14 @@ export class NamingBrainJobStore implements JobStore {
     return response.resumed && response.recoveryMode === "execute";
   }
   async authorizeDispatch(job: ClaimedJob, request: NamingStageRequest) { if (await this.rpc("authorize_naming_brain_dispatch", [job.id, job.leaseToken, JSON.stringify(namingStageRequestSchema.parse(request))]) !== true) throw new Error("naming_dispatch_unavailable"); }
-  async recordReceipt(job: ClaimedJob, receipt: NamingProviderReceipt) { const saved = await this.rpc("record_naming_brain_provider_receipt", [job.id, job.leaseToken, JSON.stringify(namingProviderReceiptSchema.parse(receipt))]); if (!isDeepStrictEqual(saved, receipt)) throw new Error("naming_receipt_mismatch"); }
+  async recordReceipt(job: ClaimedJob, receipt: NamingProviderReceipt): Promise<NamingProviderReceipt> {
+    const parsed = namingProviderReceiptSchema.parse(receipt);
+    const saved = namingProviderReceiptSchema.parse(await this.rpc("record_naming_brain_provider_receipt", [job.id, job.leaseToken, JSON.stringify(parsed)]));
+    if (!isDeepStrictEqual(namingReceiptState(saved), namingReceiptState(parsed))) throw new Error("naming_receipt_mismatch");
+    // Bind later artifacts to the exact acknowledged receipt, including its
+    // original timestamp when SQL coalesces an unchanged observation.
+    return saved;
+  }
   async saveProviderItem(job: ClaimedJob, record: unknown) {
     if (record && typeof record === "object" && "kind" in record && record.kind === "provider_turn") {
       const { kind: _kind, ...payload } = record; void _kind;
