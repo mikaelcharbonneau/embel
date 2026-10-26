@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 // This suite intercepts global HTTP and exercises historical synthetic sessions;
 // it cannot establish real provider budget support.
-vi.mock("@/server/ai/naming-brain/budget-availability", () => ({ isNamingProviderBudgetAvailable: () => true }));
 import { namingAssignmentOutputSchema, namingAssignmentPlanSchema, namingBrainJobInputSchema, namingProviderReceiptSchema, namingResearchOutputSchema, namingResearchPackSchema, namingStageRequestSchema, validateNamingAssignmentPlan } from "../../src/domain/naming-brain";
 import { guidedStrategyPolicy } from "../../src/server/ai/config";
 import { buildNamingManagedRequest, createNamingRoleRequest, namingRequestHash } from "../../src/server/ai/naming-brain/prompts";

@@ -3,7 +3,6 @@ import { createClient } from "@supabase/supabase-js";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 // This suite exercises the synthetic execution contract, not real provider readiness.
-vi.mock("@/server/ai/naming-brain/budget-availability", async importOriginal => ({ ...await importOriginal<typeof import("@/server/ai/naming-brain/budget-availability")>(), isNamingProviderBudgetAvailable: () => true }));
 import { namingBrainRunSchema, namingFeedEnsureResultSchema, namingFeedSchema, namingProgressiveCompletionSchema, namingStageKeySchema, namingProgressiveAssignmentSchema, namingProviderReceiptSchema, namingCreatorSetSchema, namingCurationSchema, namingVerificationSchema, namingResearchPackSchema, createNamingReviewProjection, createNamingCurationProjection, validateNamingCreatorSet } from "../../src/domain/naming-brain";
 import { createNamingMicrobatch } from "../../src/domain/naming-brain-progressive";
 import { namingAnyBatchDetailResponseSchema } from "../../src/domain/naming-jobs";

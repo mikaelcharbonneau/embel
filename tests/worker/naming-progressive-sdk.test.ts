@@ -1,8 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-// This suite exercises the synthetic execution contract, not real provider readiness.
-vi.mock("@/server/ai/naming-brain/budget-availability", async importOriginal => ({ ...await importOriginal<typeof import("@/server/ai/naming-brain/budget-availability")>(), isNamingProviderBudgetAvailable: () => true }));
 import { namingResearchPackSchema, type NamingModelOutput, type NamingStageRequest } from "../../src/domain/naming-brain";
 import { buildNamingManagedRequest } from "../../src/server/ai/naming-brain/prompts";
 import { createNamingManagedProtocol, type ManagedCreateRequest } from "../../src/server/ai/naming-brain/protocol";
@@ -53,6 +51,7 @@ describe("progressive Naming through the actual SDK and migrated SQL", () => {
     const admissionFunction = origin === "hosted" ? "ensure_hosted_naming_brain_run" : "ensure_local_naming_brain_run";
     expect(value.input.localPipelineVersion).toBe(2);
     expect(value.input.executionAuthority).toBe(origin === "hosted" ? "hosted_owner_v1" : undefined);
+    expect(value.input.providerBudgetVersion).toBe(origin === "hosted" ? 2 : undefined);
     const requests = new Map<string, NamingStageRequest>();
     const histories = new Map<string, { session: object; turn: object; items: object[] }>();
     const creates: string[] = [], firstPublished = deferred(), releasePublication = deferred(), context = deferred(), siblings = deferred(), savedUnissued = deferred(), directorSaved = deferred();
@@ -116,12 +115,21 @@ describe("progressive Naming through the actual SDK and migrated SQL", () => {
       if (typeof key !== "string") throw new Error("synthetic_saved_call_missing");
       const request = requests.get(key); if (!request) throw new Error("synthetic_saved_request_missing");
       expect(wire).toEqual(buildNamingManagedRequest(request)); creates.push(key);
+      // The actual native SDK path is unmetered without a mocked availability
+      // escape hatch. Legacy numeric policy fields are retained bookkeeping.
+      expect(wire).not.toHaveProperty("spend_control");
+      expect(wire.metadata).not.toHaveProperty("embel_provider_spend_cap_cents");
+      expect(request.policy.providerSpendCapCents).toBeUndefined();
+      expect(wire.agent).toMatchObject({ model: value.input.policy.model, reasoning: { effort: "xhigh" } });
+      if (request.role === "researcher") expect(wire.agent?.tools).toEqual(expect.arrayContaining([
+        expect.objectContaining({ type: "web_search", mode: "live" }), expect.objectContaining({ type: "function", name: "read_reference" }),
+      ]));
       if (key === "context.research.researcher") await context.promise;
       if (key.endsWith(".creator") && key !== "part001.creation.creator" && !creates.includes("context.direction.director")) await siblings.promise;
       if (key === "part004.creation.creator") await directorSaved.promise;
       const sessionId = `sess_${key}`, turnId = `turn_${key}`, agentId = `agent_${key}`, itemId = `item_${key}`;
       const session = { id: sessionId, object: "agent.session", agent: { ...wire.agent, id: agentId }, environment: wire.environment, metadata: wire.metadata,
-        status: "idle", required_actions: [], usage: null, ...(wire.spend_control ? { spend_control: { limit: wire.spend_control.limit, consumed: 0 } } : {}) };
+        status: "idle", required_actions: [], usage: { input_tokens: 1_000_000, output_tokens: 500_000, total_tokens: 1_500_000 }, ...(wire.spend_control ? { spend_control: { limit: wire.spend_control.limit, consumed: 0 } } : {}) };
       const failed = request.role === "director" && directorStatus === "failed";
       const turn = { id: turnId, session_id: sessionId, agent_id: agentId, subagent_id: null, object: "agent.session.turn", status: failed ? "failed" : "completed",
         created_at: 1, started_at: 1, completed_at: 2, error: failed ? { code: "server_error", message: "Synthetic optional guidance failure." } : null, usage: null };
@@ -222,6 +230,7 @@ describe("progressive Naming through the actual SDK and migrated SQL", () => {
       expect((await db.query("select count(*)::integer count from public.jobs where id=$1", [value.job.id])).rows).toEqual([{ count: 1 }]);
       expect((await db.query("select jsonb_array_length(result->'candidateIds') count from fluid_private.naming_brain_progressive_results where run_id=$1", [value.input.runId])).rows).toEqual([{ count: 100 }]);
       expect((await db.query("select count(*)::integer count from fluid_private.naming_brain_artifacts where run_id=$1 and artifact#>>'{output,role}'='director'", [value.input.runId])).rows).toEqual([{ count: directorStatus === "completed" ? 1 : 0 }]);
+      expect((await db.query("select actual_cost_microusd from fluid_private.naming_brain_runs where id=$1", [value.input.runId])).rows).toEqual([{ actual_cost_microusd: null }]);
     } finally {
       releasePublication.resolve(); context.resolve(); siblings.resolve(); directorSaved.resolve();
       await pending;

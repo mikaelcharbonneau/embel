@@ -1,7 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only",()=>({}));
-// This suite exercises the synthetic execution contract, not real provider readiness.
-vi.mock("@/server/ai/naming-brain/budget-availability", async importOriginal => ({ ...await importOriginal<typeof import("@/server/ai/naming-brain/budget-availability")>(), isNamingProviderBudgetAvailable: () => true }));
 import { cancelNamingBrainRun, ensureNextNamingRun, getNamingBrainRun, getNamingFeed, stopNamingFeed } from "../../src/server/data/naming-brain";
 import { getProjectNaming, getNamingBatch, getAccountNames, selectProjectName, transformProjectNames, createBrandFromProjectName } from "../../src/server/data/project-naming";
 import type { AuthenticatedContext } from "../../src/server/auth/context";

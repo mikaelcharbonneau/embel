@@ -63,7 +63,7 @@ function AccountProjectNaming({ projectId, account, conversationHistory }: { pro
   const manualNameDraft = useManualProjectNameDraft();
   const feed = useNamingFeed({ account, projectId, projectRevision: overview?.project.current_revision, enabled: Boolean(overview?.readiness.ready && !blocked && !readError), view: { ...(overview?.session?.viewState ?? initialNamingView), inspecting: Boolean(inspectedId), historyOpen, explorationHidden: false } });
   const { eligibleView, start: startFeed } = feed;
-  const generationUnavailable = feed.state?.feed?.failure?.retryable === false || feed.state?.feed?.availability.status === "unavailable" && feed.state.feed.availability.code === "provider_budget_control_unavailable";
+  const generationUnavailable = feed.state?.feed?.availability.status === "unavailable";
   const continuation = useRef<{ started: boolean; resolve: (started: boolean) => void } | null>(null);
   const [continueVersion, setContinueVersion] = useState(0);
   useEffect(() => {

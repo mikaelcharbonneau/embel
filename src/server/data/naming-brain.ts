@@ -7,7 +7,6 @@ import { ApiError } from "../http/errors";
 import { getVerifiedProjectName, verifyProjectNameCandidates } from "./project-naming";
 import { normalizeNamingBrain } from "./naming-brain-provenance";
 import { isHostedNamingRuntime, isLocalPrototypeRuntime } from "../api-text/config";
-import { isNamingProviderBudgetAvailable, NAMING_BUDGET_UNAVAILABLE, NAMING_BUDGET_UNAVAILABLE_MESSAGE } from "../ai/naming-brain/budget-availability";
 
 const hostedNamingAvailabilitySchema = z.discriminatedUnion("status", [
  z.strictObject({ status: z.literal("available"), executionAuthority: z.literal("hosted_owner_v1") }),
@@ -36,22 +35,38 @@ async function verifyFeed(auth: AuthenticatedContext, projectId: string, feed: N
  delete verified.canResumeOnScroll;
  delete verified.canPrefetchOnScroll;
  delete verified.failure;
+ let failureClassificationVerified = false;
  // Only fixed safe classifications leave the owned persisted step. Never expose
  // provider payloads, private diagnostic text or an unvalidated error string.
  if (feed.activeRun && ["failed", "partial", "needs_reconciliation"].includes(feed.activeRun.state)) {
-  const result = await auth.client.from("job_steps").select("owner_id,project_id,job_id,output")
-   .eq("owner_id", auth.userId).eq("project_id", projectId).eq("job_id", feed.activeRun.jobId).in("state", ["failed", "ambiguous"]).limit(7);
-  if (!result.error && Array.isArray(result.data)) {
-   for (const row of result.data) {
-    if (row.owner_id !== auth.userId || row.project_id !== projectId || row.job_id !== feed.activeRun.jobId) throw new ApiError("not_found");
-    const output = z.object({ errorCode: z.string().optional(), partialArtifacts: z.array(z.unknown()).max(300).optional() }).safeParse(row.output);
-    if (!output.success) continue;
-    for (const partial of output.data.partialArtifacts ?? []) {
-     const marker = z.strictObject({ type: z.literal("provider_failure"), ...namingProviderFailureSchema.shape }).safeParse(partial);
-     if (marker.success) verified.failure = { code: marker.data.code, retryable: false };
+  try {
+   const result = await auth.client.from("job_steps").select("owner_id,project_id,job_id,output")
+    .eq("owner_id", auth.userId).eq("project_id", projectId).eq("job_id", feed.activeRun.jobId).in("state", ["failed", "ambiguous"]).limit(7);
+   if (result?.error === null && Array.isArray(result.data) && result.data.length <= 7) {
+    failureClassificationVerified = true;
+    for (const raw of result.data) {
+     const parsed = z.object({ owner_id: z.uuid(), project_id: z.uuid(), job_id: z.uuid(), output: z.unknown() }).safeParse(raw);
+     if (!parsed.success) { failureClassificationVerified = false; continue; }
+     const row = parsed.data;
+     if (row.owner_id !== auth.userId || row.project_id !== projectId || row.job_id !== feed.activeRun.jobId) throw new ApiError("not_found");
+     const output = z.object({ errorCode: z.string().optional(), partialArtifacts: z.array(z.unknown()).max(300).optional() }).safeParse(row.output);
+     if (!output.success) { failureClassificationVerified = false; continue; }
+     for (const partial of output.data.partialArtifacts ?? []) {
+      const marker = z.strictObject({ type: z.literal("provider_failure"), ...namingProviderFailureSchema.shape }).safeParse(partial);
+      if (marker.success) verified.failure = { code: marker.data.code, retryable: false };
+      else if (partial && typeof partial === "object" && ("retryable" in partial
+       || "type" in partial && partial.type === "provider_failure"
+       || "code" in partial && namingProviderFailureSchema.shape.code.safeParse(partial.code).success)) failureClassificationVerified = false;
+     }
+     const failureCode = namingProviderFailureSchema.shape.code.safeParse(output.data.errorCode);
+     if (!verified.failure && failureCode.success) verified.failure = { code: failureCode.data, retryable: false };
     }
-    if (!verified.failure && output.data.errorCode === "provider_request_rejected") verified.failure = { code: "provider_request_rejected", retryable: false };
    }
+  } catch (error) {
+   if (error instanceof ApiError) throw error;
+   // An unavailable classification must not grant an implicit retry. Saved
+   // reads and the independently qualified manual Resume remain available.
+   failureClassificationVerified = false;
   }
  }
  let executionAvailable = isLocalPrototypeRuntime();
@@ -67,14 +82,12 @@ async function verifyFeed(auth: AuthenticatedContext, projectId: string, feed: N
   }
   if (!executionAvailable) verified.availability = { status: "unavailable", code: "naming_runtime_unavailable" };
  }
- if (!isNamingProviderBudgetAvailable()) {
-  executionAvailable = false;
-  verified.availability = { status: "unavailable", code: NAMING_BUDGET_UNAVAILABLE };
- }
  const executionCurrent = executionAvailable && feed.activeRun
   && feed.activeRun.projectRevision === feed.projectRevision && feed.activeRun.preferencesVersion === feed.preferencesVersion && feed.activeRun.steeringRevision === feed.steeringRevision
   && !feed.paused && feed.state === "active" && feed.availability.status === "available";
- if (executionCurrent && feed.activeRun?.canResume && ["partial", "failed"].includes(feed.activeRun.state) && feed.activeRun.fulfillment?.status !== "complete") verified.canResumeOnScroll = true;
+ // Scroll Resume requires a verified absence of nonretryable failure. An outage
+ // or malformed classification cannot establish it; manual Resume is separate.
+ if (executionCurrent && failureClassificationVerified && verified.failure?.retryable !== false && feed.activeRun?.canResume && ["partial", "failed"].includes(feed.activeRun.state) && feed.activeRun.fulfillment?.status !== "complete") verified.canResumeOnScroll = true;
  if (executionCurrent && feed.activeRun?.state === "succeeded" && feed.activeRun.fulfillment?.status === "complete" && (feed.activeRun.localPipelineVersion === 2 ? feed.activeRun.progressiveCompletionId : feed.activeRun.preparedSetId !== null)) verified.canPrefetchOnScroll = true;
  return verified;
 }
@@ -85,13 +98,6 @@ export async function getNamingFeed(auth: AuthenticatedContext, projectId: strin
 }
 export async function ensureNextNamingRun(auth: AuthenticatedContext, projectId: string, intent: unknown) {
  id(projectId); const parsed = parse(ensureNamingRunIntentSchema, intent);
- if (!isNamingProviderBudgetAvailable()) {
-  const feed = await getNamingFeed(auth, projectId);
-  // An exact server-qualified saved-membership resume is a free read/append,
-  // never permission to restart incomplete or uncertain generation.
-  if (!(parsed.reason === "resume" && feed.activeRun?.canResumeSaved && feed.activeRun.runId === parsed.resumeOfRunId && feed.activeRun.revision === parsed.expectedRunRevision))
-   return parse(namingFeedEnsureResultSchema, { status: "blocked", feed, code: NAMING_BUDGET_UNAVAILABLE, message: NAMING_BUDGET_UNAVAILABLE_MESSAGE, action: "configure" });
- }
  const saved = await auth.client.from("naming_preferences").select("owner_id,project_id,version,preferences")
   .eq("owner_id",auth.userId).eq("project_id",projectId).eq("version",parsed.expectedPreferencesVersion).maybeSingle();
  if(saved.error)throw new ApiError("integration_unavailable");

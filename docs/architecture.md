@@ -2,6 +2,14 @@
 
 ## Hosted Naming execution
 
+The October 25 user correction rejects monetary limits. Future hosted Naming
+uses the existing uncapped native Agents profile with `providerBudgetVersion: 2`,
+without `spend_control`. Historical capped requests, holds and unknown costs stay
+exact. The [native restoration record](naming-native-restoration-20261025.md)
+describes the complete mocked flow and coordinated migration/activation sequence.
+Original research, Luna/xhigh, cancellation, ownership and recovery are retained;
+the inactive Responses candidate is not needed for native activation.
+
 Future progressive role requests can carry a separate immutable
 `progressiveContractVersion: 2` marker without changing the existing run profile.
 It freezes an application-specified fifteen-by-ten Director allocation and a
