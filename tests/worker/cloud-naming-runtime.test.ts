@@ -17,6 +17,10 @@ vi.mock("pg", async () => {
 vi.mock("../../worker/naming-brain-store", () => ({ NamingBrainJobStore: class {
   constructor(_pool: unknown, deployment: string) { fixture.deployments.push(deployment); }
   attestPendingPreferences = fixture.attest; reportReady = fixture.reportReady; expireLeases = fixture.expire;
+  async reportWorkerStatus(_policy: unknown, _workerId: string, generation: number | null) {
+    const ready = await fixture.reportReady(), now = Date.now();
+    return { version: 1, leader: true, generation: generation ?? 1, expiresAt: new Date(now + 60_000).toISOString(), serverTime: new Date(now).toISOString(), ready, reason: "leader" };
+  }
 } }));
 vi.mock("../../worker/handlers/naming-brain", () => ({ createNamingBrainHandlers: fixture.handlers }));
 vi.mock("../../worker/runner", () => ({ runOneJob: fixture.run }));
@@ -45,6 +49,7 @@ beforeEach(() => {
   fixture.query.mockImplementation(async (sql: string) => ({ rows: sql.startsWith("select session_user") ? [identity()] : [] }));
   fixture.end.mockResolvedValue(undefined); fixture.attest.mockResolvedValue(0); fixture.reportReady.mockResolvedValue(true); fixture.expire.mockResolvedValue(0);
   fixture.handlers.mockReturnValue(new Map([["naming.generate", {}]]));
+  fixture.run.mockResolvedValue("idle");
   vi.spyOn(console, "info").mockImplementation(() => {}); vi.spyOn(console, "error").mockImplementation(() => {});
 });
 afterEach(() => {
@@ -149,7 +154,7 @@ describe("cloud Naming loop and shutdown", () => {
   it("starts only existing Naming handlers after native qualification and never supplies process-wide authority", async () => {
     const controller = new AbortController(); fixture.run.mockImplementation(async () => { controller.abort(); return "idle"; });
     await run(controller);
-    expect(fixture.deployments).toEqual(["synthetic-bound-deployment"]); expect(fixture.attest).toHaveBeenCalledTimes(2);
+    expect(fixture.deployments).toEqual(["synthetic-bound-deployment"]); expect(fixture.attest).toHaveBeenCalledOnce();
     expect(fixture.expire).toHaveBeenCalledOnce(); expect(fixture.run).toHaveBeenCalledOnce(); expect(fixture.reportReady).toHaveBeenCalledOnce();
     const invocation = fixture.run.mock.calls[0]![0];
     expect(invocation.workerId).toMatch(/^naming-cloud-[a-f0-9-]{36}$/u);
@@ -176,11 +181,11 @@ describe("cloud Naming loop and shutdown", () => {
     await expect(runCloudNamingWorker({ configuration: { ...configuration(), paidDispatchEnabled: false }, mode: "run", signal: new AbortController().signal })).rejects.toThrow("cloud_naming_activation_required");
     expect(fixture.pools).toHaveLength(0); expect(fixture.connect).not.toHaveBeenCalled();
   });
-  it("stops before readiness and claims when shutdown arrives during initial preference attestation", async () => {
+  it("acquires authority first but never claims when shutdown arrives during initial preference attestation", async () => {
     const controller = new AbortController();
     fixture.attest.mockImplementation(async () => { controller.abort(); return 0; });
     await run(controller);
-    expect(fixture.attest).toHaveBeenCalledOnce(); expect(fixture.reportReady).not.toHaveBeenCalled(); expect(fixture.run).not.toHaveBeenCalled(); expect(fixture.end).toHaveBeenCalledOnce();
+    expect(fixture.attest).toHaveBeenCalledOnce(); expect(fixture.reportReady).toHaveBeenCalledOnce(); expect(fixture.run).not.toHaveBeenCalled(); expect(fixture.end).toHaveBeenCalledOnce();
   });
   it("fences new provider dispatch on shutdown even while an existing job settles", async () => {
     const controller = new AbortController();
@@ -192,10 +197,14 @@ describe("cloud Naming loop and shutdown", () => {
     await run(controller);
     expect(fixture.run).toHaveBeenCalledOnce(); expect(fixture.end).toHaveBeenCalledOnce();
   });
-  it("closes the pool when preference attestation fails before readiness is created", async () => {
+  it("backs off preference failures after qualified authority and closes the pool on shutdown", async () => {
+    vi.useFakeTimers(); const controller = new AbortController();
     fixture.attest.mockRejectedValue(new Error("synthetic-private-attestation-error"));
-    await expect(run(new AbortController())).rejects.toThrow("synthetic-private-attestation-error");
-    expect(fixture.reportReady).not.toHaveBeenCalled(); expect(fixture.run).not.toHaveBeenCalled(); expect(fixture.end).toHaveBeenCalledOnce();
+    const pending = run(controller); await vi.waitFor(() => expect(fixture.attest).toHaveBeenCalledOnce());
+    await vi.advanceTimersByTimeAsync(1000); expect(fixture.attest).toHaveBeenCalledTimes(2);
+    controller.abort(); await pending;
+    expect(fixture.reportReady).toHaveBeenCalledOnce(); expect(fixture.end).toHaveBeenCalledOnce();
+    expect(JSON.stringify(vi.mocked(console.info).mock.calls)).not.toContain("synthetic-private");
     expect(fixture.pools[0]!.listenerCount("error")).toBe(0);
   });
   it("keeps a healthy job and readiness alive after repeated sanitized idle-client errors", async () => {

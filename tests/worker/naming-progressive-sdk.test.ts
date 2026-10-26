@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-import { namingResearchPackSchema, type NamingModelOutput, type NamingStageRequest } from "../../src/domain/naming-brain";
+import { namingBrainJobInputSchema, namingResearchPackSchema, type NamingModelOutput, type NamingStageRequest } from "../../src/domain/naming-brain";
 import { buildNamingManagedRequest } from "../../src/server/ai/naming-brain/prompts";
 import { createNamingManagedProtocol, type ManagedCreateRequest } from "../../src/server/ai/naming-brain/protocol";
 import { createNamingAgentRuntime } from "../../src/server/ai/naming-brain/transport";
@@ -10,13 +10,29 @@ import { getNamingBatch } from "../../src/server/data/project-naming";
 import { createNamingBrainHandlers } from "../../worker/handlers/naming-brain";
 import { NamingBrainJobStore } from "../../worker/naming-brain-store";
 import { createTestDatabase, OWNER_A, type TestDatabase } from "../database/local-supabase";
-import { brainRpc, brainWorker, installBrainFixture } from "../database/naming-brain-fixture";
+import { brainPolicy, brainRpc, brainWorker, initialIntent, seedBrainFixture } from "../database/naming-brain-fixture";
 import { progressiveRequest, saveProgressivePart, saveProgressiveResearch, seedProgressiveFixture } from "../database/naming-brain-progressive-fixture";
-import { seedHostedNamingFixture } from "../database/hosted-naming-fixture";
+import { enableHostedNamingFixture, seedHostedNamingFixture } from "../database/hosted-naming-fixture";
+import { installAuthorityFixture } from "../database/naming-worker-authority-fixture";
 
 function deferred() {
   let resolve = () => {};
   return { promise: new Promise<void>(done => { resolve = done; }), resolve: () => resolve() };
+}
+
+async function seedVersionedHostedFixture(db: TestDatabase) {
+  const project = await seedBrainFixture(db); await enableHostedNamingFixture(db);
+  let generation = 0;
+  const store = new NamingBrainJobStore(db, "fixture-deployment", () => ({ workerId: "fixture-worker", generation }));
+  const status = await brainWorker(db, () => store.reportWorkerStatus(brainPolicy, "fixture-worker", null));
+  expect(status.leader).toBe(true); generation = status.generation!;
+  await brainWorker(db, () => store.attestPendingPreferences());
+  const intent = initialIntent("synthetic-versioned-hosted-initial"), admission = await brainRpc(db, "ensure_hosted_naming_brain_run", [project, intent]);
+  const job = await brainWorker(db, () => store.claim("fixture-worker", 120)); if (!job) throw new Error("synthetic_versioned_hosted_job_missing");
+  const input = namingBrainJobInputSchema.parse(job.input);
+  await brainWorker(db, () => store.registerPlan(job, [{ key: "creation", maximumCostMicrousd: 1_500_000 }, { key: "prepare", maximumCostMicrousd: 0 }]));
+  await brainWorker(db, () => store.beginStep(job, "creation", 1_500_000));
+  return { db, project, store, job, input, intent, admission };
 }
 
 function serverReader(db: TestDatabase) {
@@ -40,14 +56,15 @@ function serverReader(db: TestDatabase) {
 // worker, publication transaction and ordinary server provenance readers are real.
 describe("progressive Naming through the actual SDK and migrated SQL", () => {
   let db: TestDatabase;
-  beforeAll(async () => { db = await createTestDatabase(); await installBrainFixture(db); }, 30_000);
+  beforeAll(async () => { db = await createTestDatabase(); await installAuthorityFixture(db); }, 30_000);
   afterAll(async () => { await db?.close(); });
 
   it.each([
-    { origin: "local", directorStatus: "completed" }, { origin: "local", directorStatus: "failed" },
-    { origin: "hosted", directorStatus: "completed" }, { origin: "hosted", directorStatus: "failed" },
-  ] as const)("publishes before context, recovers an exact plan and finalizes100 for $origin with a $directorStatus Director", async ({ origin, directorStatus }) => {
-    const value = origin === "hosted" ? await seedHostedNamingFixture(db) : await seedProgressiveFixture(db);
+    { origin: "local", directorStatus: "completed", versioned: false }, { origin: "local", directorStatus: "failed", versioned: false },
+    { origin: "hosted", directorStatus: "completed", versioned: false }, { origin: "hosted", directorStatus: "failed", versioned: false },
+    { origin: "hosted", directorStatus: "completed", versioned: true }, { origin: "hosted", directorStatus: "failed", versioned: true },
+  ] as const)("publishes before context, recovers an exact plan and finalizes100 for $origin with a $directorStatus Director (versioned=$versioned)", async ({ origin, directorStatus, versioned }) => {
+    const value = versioned ? await seedVersionedHostedFixture(db) : origin === "hosted" ? await seedHostedNamingFixture(db) : await seedProgressiveFixture(db);
     let canonicalAcknowledgements = 0;
     const acknowledgeStoredTimestamp = (store: NamingBrainJobStore) => {
       const record = store.recordReceipt.bind(store);
@@ -191,7 +208,14 @@ describe("progressive Naming through the actual SDK and migrated SQL", () => {
       // Simulate a lost process after its saved plan ACK, then normal lease
       // expiry/reclaim. No production timestamp or attempt is changed.
       await db.query("update public.jobs set lease_expires_at=clock_timestamp()-interval '1 second' where id=$1", [value.job.id]);
-      const nextStore = new NamingBrainJobStore(db, "fixture-deployment");
+      let nextGeneration = 0;
+      const nextStore = new NamingBrainJobStore(db, "fixture-deployment", versioned ? () => ({ workerId: "fixture-worker", generation: nextGeneration }) : undefined);
+      if (versioned) {
+        await db.exec("update fluid_private.naming_worker_leadership set expires_at=clock_timestamp()-interval '1 second'");
+        const status = await brainWorker(db, () => nextStore.reportWorkerStatus(brainPolicy, "fixture-worker", null));
+        expect(status.leader).toBe(true); nextGeneration = status.generation!;
+        await brainWorker(db, () => nextStore.attestPendingPreferences());
+      }
       acknowledgeStoredTimestamp(nextStore);
       await brainWorker(db, () => nextStore.expireLeases("fixture-worker"));
       await db.query("update fluid_private.naming_brain_runs set next_observation_at=clock_timestamp()-interval '1 second' where id=$1", [value.input.runId]);

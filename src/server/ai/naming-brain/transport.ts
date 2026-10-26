@@ -12,6 +12,7 @@ import { createNamingReferenceReader, NAMING_REFERENCE_HOSTS, type ReferenceObse
 import { validateNamingRoleOutput } from "./outputs";
 import { parseNamingReferenceArguments, type NamingReferenceInvocation } from "./reference-invocation";
 import { namingOutputDiagnostic, type NamingOutputDiagnostic } from "./output-diagnostics";
+import { NamingContinuationUnavailableError } from "./continuation";
 
 export type NamingProviderTurnRecord = { providerCallKey: string; sessionId: string; turnId: string; turn: Turn };
 export type NamingProviderItemRecord = { providerCallKey: string; sessionId: string; turnId: string; itemId: string; item: unknown };
@@ -443,11 +444,12 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
         return { status: "rejected_before_dispatch", code: "provider_request_rejected", ...(error.diagnostic?.status && [400, 401, 403, 404, 413, 422].includes(error.diagnostic.status) ? { failure: { code: "provider_configuration_rejected", retryable: false } as const } : {}) };
       }
       if (receipt.sessionId) {
-        if (!readonlyRecovery) { try { await cancel(receipt); } catch {} }
+        const authorityUnavailable = error instanceof NamingContinuationUnavailableError && !controller.signal.aborted && !hooks.signal.aborted && now() < deadlineAt;
+        if (!readonlyRecovery && !authorityUnavailable) { try { await cancel(receipt); } catch {} }
         // Cancellation acceptance is not terminal. Only retained provider history
         // can establish completion or cancellation after observation aborts or a
         // paid continuation is refused by the unavailable boundary.
-        if ((controller.signal.aborted || hooks.signal.aborted || error instanceof NamingManagedProtocolError && error.code === "creation_unavailable") && now() < observationDeadlineAt) {
+        if ((authorityUnavailable || controller.signal.aborted || hooks.signal.aborted || error instanceof NamingManagedProtocolError && error.code === "creation_unavailable") && now() < observationDeadlineAt) {
           try { await reconcile(AbortSignal.timeout(Math.max(1, Math.min(3_000, observationDeadlineAt - now())))); const settled = finish(); if (settled) return settled; } catch {}
         }
       }
