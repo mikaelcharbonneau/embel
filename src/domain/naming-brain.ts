@@ -149,7 +149,8 @@ export const namingCurationOutputSchema = z.strictObject({ role: z.literal("cura
 }).refine(value => unique(value.annotations.map(refKey)), "Curator candidate references must be unique");
 export type NamingCurationOutput = z.infer<typeof namingCurationOutputSchema>;
 /** Offsets index the retained excerpt's UTF-16 code units, matching String.slice. */
-export const namingEvidenceQuoteSchema = z.strictObject({ sourceKey: localKey, start: z.number().int().min(0).max(7999), end: z.number().int().min(1).max(8000), quote: z.string().min(1).max(2000) })
+const evidenceQuoteFields = { sourceKey: localKey, start: z.number().int().min(0).max(7999), end: z.number().int().min(1).max(8000), quote: z.string().min(1).max(2000) };
+export const namingEvidenceQuoteSchema = z.strictObject(evidenceQuoteFields)
   .refine(value => value.end > value.start && value.end - value.start === value.quote.length, "Quote bounds must describe its exact retained text");
 export type NamingEvidenceQuote = z.infer<typeof namingEvidenceQuoteSchema>;
 const evidenceQuotes = z.array(namingEvidenceQuoteSchema).max(10);
@@ -165,6 +166,12 @@ export type NamingVerificationFinding = z.infer<typeof namingVerificationFinding
 export const namingVerificationOutputSchema = z.strictObject({ role: z.literal("verifier"), findings: z.array(namingVerificationFindingSchema).max(1600) })
   .refine(value => unique(value.findings.map(row => `${refKey(row)}/${row.claimKey}`)), "Claim findings must be unique");
 export type NamingVerificationOutput = z.infer<typeof namingVerificationOutputSchema>;
+// Provider intake preserves the existing wire schema. Only the worker may bind
+// inaccurate positions; persisted DTOs still require exact UTF-16 source spans.
+export const namingVerificationProviderOutputSchema = namingVerificationOutputSchema.safeExtend({
+  findings: z.array(namingVerificationFindingSchema.safeExtend({ evidence: z.array(z.strictObject(evidenceQuoteFields)
+    .refine(value => value.end > value.start, "Quote bounds must be ordered")).max(10) })).max(1600),
+});
 export const namingModelOutputSchema = z.union([namingResearchOutputSchema, namingAssignmentOutputSchema, namingCreatorOutputSchema, namingCurationOutputSchema, namingVerificationOutputSchema])
   .refine(value => boundedBytes(value, 524_288), "Completed role output exceeds its byte limit");
 export type NamingModelOutput = z.infer<typeof namingModelOutputSchema>;
@@ -230,9 +237,11 @@ export const namingCreatorSetSchema = z.strictObject({ ...envelopeFields, stageK
 export type NamingCreatorSet = z.infer<typeof namingCreatorSetSchema>;
 export const namingCurationSchema = z.strictObject({ ...envelopeFields, stageKey: z.enum(["curation", "gap", "creation"]), output: namingCurationOutputSchema }).superRefine(checkEnvelope).transform(freeze);
 export type NamingCuration = z.infer<typeof namingCurationSchema>;
-const verificationFields = { ...envelopeFields, stageKey: z.enum(["verification", "gap", "creation"]), output: namingVerificationOutputSchema, sources: sourcesSchema };
+const namingQuoteBindingSchema = z.strictObject({ version: z.literal(1), itemId: providerId, itemContentHash: hash });
+const verificationFields = { ...envelopeFields, stageKey: z.enum(["verification", "gap", "creation"]), output: namingVerificationOutputSchema, sources: sourcesSchema, quoteBinding: namingQuoteBindingSchema.optional() };
 export const namingVerificationSchema = z.strictObject({ ...verificationFields, sourceDependencies: z.array(namingSourceDependencySchema).max(3).refine(rows => unique(rows.map(row => row.artifactId))).default([]) }).superRefine((value, ctx) => {
   checkEnvelope(value, ctx); checkSources(value, value.output.findings.flatMap(row => row.sourceKeys), ctx);
+  if (value.quoteBinding && !value.providerReceipt.artifactItemIds.includes(value.quoteBinding.itemId)) issue(ctx, "Quote binding must identify the retained final provider item");
   const sources = new Map(value.sources.map(source => [source.sourceKey, source]));
   if (value.output.findings.some(finding => (finding.status === "supported" || finding.status === "corrected") && finding.sourceKeys.some(key => sources.get(key)?.evidenceStatus !== "retrieved"))) issue(ctx, "A URL or unretrieved source cannot support factual wording");
   if (value.output.findings.some(finding => finding.evidence.some(quote => {

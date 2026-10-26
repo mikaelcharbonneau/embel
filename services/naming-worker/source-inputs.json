@@ -32,6 +32,7 @@
   "src/server/ai/naming-brain/progressive-role-instructions.ts",
   "src/server/ai/naming-brain/prompts.ts",
   "src/server/ai/naming-brain/protocol.ts",
+  "src/server/ai/naming-brain/quote-binding.ts",
   "src/server/ai/naming-brain/reference-invocation.ts",
   "src/server/ai/naming-brain/role-instructions.ts",
   "src/server/ai/naming-brain/source-reader.ts",
