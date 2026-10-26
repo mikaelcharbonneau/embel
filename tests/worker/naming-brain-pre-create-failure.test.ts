@@ -83,8 +83,8 @@ describe("local pre-create proof through SDK transport, worker and SQL", () => {
         const base = receipt.dispatchState === "not_dispatched" && receipt.requestId === null && receipt.sessionId === null;
         if (!injected && base && (fault === "base_write" || fault === "base_ack" || fault === "cancel_after_base")) {
           injected = true;
-          if (fault !== "base_write") await super.recordReceipt(job, receipt);
-          if (fault === "cancel_after_base") { abort.abort(); return; }
+          const saved = fault !== "base_write" ? await super.recordReceipt(job, receipt) : undefined;
+          if (fault === "cancel_after_base") { abort.abort(); return saved!; }
           throw new Error(fault === "base_write" ? "synthetic_receipt_write_failed" : "synthetic_receipt_ack_lost");
         }
         if (!injected && fault === "create_ack" && receipt.dispatchState === "dispatched" && receipt.requestId !== null && receipt.sessionId === null) {
@@ -92,7 +92,7 @@ describe("local pre-create proof through SDK transport, worker and SQL", () => {
           await super.recordReceipt(job, receipt);
           throw new Error("synthetic_post_ack_lost");
         }
-        await super.recordReceipt(job, receipt);
+        return super.recordReceipt(job, receipt);
       }
     }
     const store = new FaultStore(await historicalNamingClaimDatabase(db), "fixture-deployment");

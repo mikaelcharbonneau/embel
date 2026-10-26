@@ -10,7 +10,7 @@ import { createBudgetedProgressiveNamingRolePolicy, createProgressiveNamingRoleP
 import { createNamingRoleRequest } from "../../src/server/ai/naming-brain/prompts";
 import { namingSourceContext } from "../../src/server/ai/naming-brain/outputs";
 import { chooseProgressiveNamingApproach, createProgressiveNamingAssignment, PROGRESSIVE_CREATIVE_APPROACHES, PROGRESSIVE_PART_LIMIT, PROGRESSIVE_RAW_LIMIT, progressivePartKey } from "../../src/server/ai/naming-brain/progressive-assignments";
-import type { NamingBrainJobStore, NamingSavedStage } from "../naming-brain-store";
+import { namingLatestReceipt, type NamingBrainJobStore, type NamingSavedStage } from "../naming-brain-store";
 
 type Options = {
   job: ClaimedJob; input: NamingBrainJobInput; store: Pick<NamingBrainJobStore, "loadProgressiveState" | "resumeExecution" | "saveProgressiveCallPlan" | "publishMicrobatch">; signal: AbortSignal;
@@ -28,7 +28,7 @@ export function hasSettledProgressiveDirectorFailure(stage: NamingSavedStage, re
   return receipt.localPipelineVersion === 2 && receipt.budgetControl === "local_unlimited_v1" && receipt.dispatchState === "dispatched"
     && receipt.runId === request.runId && receipt.snapshotHash === request.snapshotHash && receipt.stageKey === request.stageKey && receipt.role === request.role
     && receipt.requestHash === request.requestHash && receipt.requestKey === request.requestKey && receipt.providerCallKey === request.providerCallKey
-    && stage.requests.some(saved => isDeepStrictEqual(saved, request)) && isDeepStrictEqual(stage.receipts.filter(saved => saved.providerCallKey === request.providerCallKey).at(-1), receipt)
+    && stage.requests.some(saved => isDeepStrictEqual(saved, request)) && isDeepStrictEqual(namingLatestReceipt(stage, request.providerCallKey), receipt)
     && stage.providerTurns.some(record => record.providerCallKey === request.providerCallKey && record.sessionId === receipt.sessionId && record.turnId === receipt.turnId
       && record.turn.agent_id === receipt.agentId && record.turn.status === status);
 }

@@ -6,7 +6,7 @@ import { buildNamingManagedRequest } from "../../src/server/ai/naming-brain/prom
 import { createNamingManagedProtocol } from "../../src/server/ai/naming-brain/protocol";
 import { createNamingAgentRuntime } from "../../src/server/ai/naming-brain/transport";
 import { createNamingBrainHandlers } from "../../worker/handlers/naming-brain";
-import { NamingBrainJobStore } from "../../worker/naming-brain-store";
+import { NamingBrainJobStore, namingLatestReceipt } from "../../worker/naming-brain-store";
 import { receipt } from "../domain/naming-brain-fixtures";
 import { createTestDatabase } from "../database/local-supabase";
 import { brainWorker, installBrainFixture } from "../database/naming-brain-fixture";
@@ -17,8 +17,11 @@ const filename = "20261017171000_local_progressive_receipt_capacity.sql";
 const migration = await readFile(new URL(`../../supabase/migrations/${filename}`, import.meta.url), "utf8");
 
 describe("progressive receipt-capacity recovery through the actual SDK and SQL (synthetic)", () => {
-  it.each(["completed", "cancelled"] as const)("GETs the saved Verifier and honestly closes its %s outcome without another create", async terminal => {
-    const db = await createTestDatabase({ before: filename });
+  it.each([
+    { terminal: "completed", clockRegression: false }, { terminal: "cancelled", clockRegression: false },
+    { terminal: "completed", clockRegression: true }, { terminal: "cancelled", clockRegression: true },
+  ] as const)("GETs the saved Verifier and honestly closes $terminal without another create (clock regression=$clockRegression)", async ({ terminal, clockRegression }) => {
+    const db = await createTestDatabase(clockRegression ? {} : { before: filename });
     try {
       await installBrainFixture(db);
       const f = await seedProgressiveFixture(db), research = namingResearchPackSchema.parse(await saveProgressiveResearch(f));
@@ -41,15 +44,25 @@ describe("progressive receipt-capacity recovery through the actual SDK and SQL (
         runId: request.runId, snapshotHash: request.snapshotHash, requestKey: request.requestKey, requestHash: request.requestHash,
         providerCallKey: request.providerCallKey, assignmentKey: request.assignmentKey, sessionLimitCents: request.policy.sessionLimitCents,
         sessionId, turnId, agentId, requestId: "req_synthetic_receipt_recovery", observedModel: request.policy.model, callIds: [], artifactItemIds: [] });
-      await brainWorker(db, () => f.store.recordReceipt(f.job, prior));
+      if (clockRegression) {
+        await brainWorker(db, () => f.store.recordReceipt(f.job, { ...prior, dispatchState: "not_dispatched", requestId: null,
+          sessionId: null, turnId: null, agentId: null, observedModel: null }));
+        await db.exec(`create function public.synthetic_identity_clock() returns trigger language plpgsql as $$ begin NEW.created_at:='2020-01-01T00:00:00Z'; return NEW; end $$;
+          create trigger synthetic_identity_clock before insert on fluid_private.naming_brain_receipts for each row execute function public.synthetic_identity_clock();`);
+        try { await brainWorker(db, () => f.store.recordReceipt(f.job, prior)); }
+        finally { await db.exec("drop trigger synthetic_identity_clock on fluid_private.naming_brain_receipts; drop function public.synthetic_identity_clock()"); }
+        const stage = await brainWorker(db, () => f.store.loadStage(f.job, "creation"));
+        expect(stage.receipts.filter(row => row.providerCallKey === request.providerCallKey).at(-1)?.sessionId).toBeNull();
+        expect(namingLatestReceipt(stage, request.providerCallKey)).toEqual(prior);
+      } else await brainWorker(db, () => f.store.recordReceipt(f.job, prior));
       // Test-only append-only bulk history: genuine bound receipt snapshots with
       // distinct timestamps. The failing append and recovery use the real RPC.
-      await db.query(`with base as(select * from fluid_private.naming_brain_receipts where run_id=$1 and call_key=$2 order by created_at desc,id desc limit 1),
+      if (!clockRegression) await db.query(`with base as(select * from fluid_private.naming_brain_receipts where run_id=$1 and call_key=$2 order by created_at desc,id desc limit 1),
         numbered as(select base.*,base.receipt||jsonb_build_object('recordedAt',to_char(timestamptz '2026-10-18T12:00:00Z'+n*interval '1 millisecond','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')) next_receipt
         from base cross join generate_series((select count(*)::integer+1 from fluid_private.naming_brain_receipts where run_id=$1),500) n)
         insert into fluid_private.naming_brain_receipts(run_id,owner_id,project_id,stage_key,call_key,receipt,content_hash)
         select run_id,owner_id,project_id,stage_key,call_key,next_receipt,encode(sha256(convert_to(next_receipt::text,'UTF8')),'hex') from numbered`, [f.input.runId, request.providerCallKey]);
-      await expect(brainWorker(db, () => f.store.recordReceipt(f.job, { ...prior, recordedAt: "2026-10-18T14:00:00Z" }))).rejects.toThrow("receipt_capacity");
+      if (!clockRegression) await expect(brainWorker(db, () => f.store.recordReceipt(f.job, { ...prior, recordedAt: "2026-10-18T14:00:00Z" }))).rejects.toThrow("receipt_capacity");
       await brainWorker(db, () => f.store.completeStep(f.job, "creation", { status: "needs_reconciliation", code: "receipt_capacity", costMicrousd: 0, providerRequestId: null,
         result: { artifactIds: [], errorCode: "receipt_capacity" } }));
       const before = (await db.query(`select
@@ -58,7 +71,7 @@ describe("progressive receipt-capacity recovery through the actual SDK and SQL (
         (select md5(jsonb_agg(to_jsonb(q) order by q.phase_key)::text) from fluid_private.naming_brain_progressive_plans q where run_id=$1) plans,
         (select md5(jsonb_agg(to_jsonb(q) order by q.position)::text) from fluid_private.naming_brain_feed_entries q where run_id=$1 and position<=94) feed`, [f.input.runId])).rows[0]!;
       const oldReceiptIds = (await db.query<{ id: string }>("select id from fluid_private.naming_brain_receipts where run_id=$1", [f.input.runId])).rows.map(row => row.id);
-      await db.exec(migration);
+      if (!clockRegression) await db.exec(migration);
       // Synthetic clock eligibility only. Production recovery keeps its original
       // observation schedule and claims normally once it is due.
       await db.query("update fluid_private.naming_brain_runs set next_observation_at=clock_timestamp()-interval '1 second' where id=$1", [f.input.runId]);
@@ -106,7 +119,7 @@ describe("progressive receipt-capacity recovery through the actual SDK and SQL (
       expect(after).toEqual(before);
       expect((await db.query("select count(*)::integer count from fluid_private.naming_brain_feed_entries where run_id=$1", [f.input.runId])).rows).toEqual([{ count: terminal === "completed" ? 100 : 94 }]);
       expect((await db.query("select count(*)::integer count from fluid_private.naming_brain_progressive_results where run_id=$1", [f.input.runId])).rows).toEqual([{ count: terminal === "completed" ? 1 : 0 }]);
-      expect((await db.query<{ count: number }>("select count(*)::integer count from fluid_private.naming_brain_receipts where run_id=$1", [f.input.runId])).rows[0]!.count).toBeGreaterThan(500);
+      expect((await db.query<{ count: number }>("select count(*)::integer count from fluid_private.naming_brain_receipts where run_id=$1", [f.input.runId])).rows[0]!.count).toBeGreaterThan(clockRegression ? 0 : 500);
       expect((await db.query("select payload#>>'{turn,status}' status from fluid_private.naming_brain_provider_records where run_id=$1 and call_key=$2 and kind='provider_turn'", [f.input.runId, request.providerCallKey])).rows).toEqual([{ status: terminal }]);
       expect((await db.query("select count(*)::integer count from fluid_private.naming_brain_runs where project_id=$1", [f.project])).rows).toEqual([{ count: 1 }]);
     } finally { await db.close(); }

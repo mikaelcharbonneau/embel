@@ -70,12 +70,14 @@ async function legacyCall(db: TestDatabase, local = false) {
  * intact; this exercises both boundaries without allocating a64MiB fixture. */
 async function byteBoundary(db: TestDatabase, runId: string, receipt: NamingProviderReceipt, append: (value: NamingProviderReceipt) => Promise<unknown>, limit: number) {
  const original = (await db.query<{ definition: string }>("select pg_get_functiondef($1::regprocedure) definition", [signature])).rows[0]!.definition;
- const instrumented = original.replace("sum(octet_length(receipt::text))", "sum(octet_length(receipt::text))*1024").replace("+octet_length(p_receipt::text)>", "+octet_length(p_receipt::text)*1024>");
+ const instrumented = original.replace("sum(octet_length(receipt::text))", "sum(octet_length(receipt::text))*1024")
+  .replace("totals.receipt_bytes+", "totals.receipt_bytes*1024+")
+  .replace("+octet_length(p_receipt::text)>", "+octet_length(p_receipt::text)*1024>");
  expect(instrumented).not.toBe(original);
  await db.exec(instrumented);
  try {
   for (let index = 0; index < 100; index++) {
-   const next = namingProviderReceiptSchema.parse({ ...receipt, recordedAt: new Date(Date.parse("2026-10-18T13:00:00Z") + index).toISOString() });
+   const next = namingProviderReceiptSchema.parse({ ...receipt, requestId: `req_byte_boundary_${index}`, recordedAt: new Date(Date.parse("2026-10-18T13:00:00Z") + index).toISOString() });
    const measurement = (await db.query<{ stored: number; incoming: number; count: number }>("select (select coalesce(sum(octet_length(receipt::text)),0)::integer from fluid_private.naming_brain_receipts where run_id=$1) stored,octet_length($2::jsonb::text)::integer incoming,(select count(*)::integer from fluid_private.naming_brain_receipts where run_id=$1) count", [runId, JSON.stringify(next)])).rows[0]!;
    if ((measurement.stored + measurement.incoming) * 1024 > limit) {
     expect(measurement.stored * 1024).toBeLessThanOrEqual(limit); expect(measurement.count).toBeLessThan(500);
@@ -154,7 +156,8 @@ describe("progressive receipt observation capacity over restricted SQL (syntheti
   if (receipt.protocol !== "openai_agents") throw Error("synthetic_managed_receipt_required");
   await fillHistory(db, fixture.input.runId, 5000);
   await brainWorker(db, () => fixture.store.recordReceipt(fixture.job, receipt));
-  await expect(brainWorker(db, () => fixture.store.recordReceipt(fixture.job, { ...receipt, recordedAt: "2026-10-18T14:00:00Z" }))).rejects.toThrow("receipt_capacity");
+  await brainWorker(db, () => fixture.store.recordReceipt(fixture.job, { ...receipt, recordedAt: "2026-10-18T14:00:00Z" }));
+  await expect(brainWorker(db, () => fixture.store.recordReceipt(fixture.job, { ...receipt, requestId: "req_new_at_capacity", recordedAt: "2026-10-18T14:00:00Z" }))).rejects.toThrow("receipt_capacity");
   await expect(brainWorker(db, () => fixture.store.recordReceipt(fixture.job, { ...receipt, sessionId: "synthetic-foreign-session" }))).rejects.toThrow("provider_identity_changed");
   expect((await db.query("select count(*)::integer count from fluid_private.naming_brain_receipts where run_id=$1", [fixture.input.runId])).rows).toEqual([{ count: 5000 }]);
  });
@@ -163,7 +166,8 @@ describe("progressive receipt observation capacity over restricted SQL (syntheti
   const { job, receipt, append } = await legacyCall(db);
   await fillHistory(db, job.input.runId, 500);
   await append(receipt);
-  await expect(append({ ...receipt, recordedAt: "2026-10-18T14:00:00Z" })).rejects.toThrow("receipt_capacity");
+  await append({ ...receipt, recordedAt: "2026-10-18T14:00:00Z" });
+  await expect(append({ ...receipt, requestId: "req_new_at_capacity", recordedAt: "2026-10-18T14:00:00Z" })).rejects.toThrow("receipt_capacity");
   await expect(append({ ...receipt, requestHash: "f".repeat(64) })).rejects.toThrow("receipt_mismatch");
   expect((await db.query("select input ? 'localPipelineVersion' profile2 from public.jobs where id=$1", [job.id])).rows).toEqual([{ profile2: false }]);
  });

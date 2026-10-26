@@ -3,7 +3,7 @@ import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
 import type { AgentSession, AgentSessionEvent, AgentSessionItem, TokenUsage } from "openai/resources/beta/agents/agents";
 import type { Turn } from "openai/resources/beta/agents/sessions/turns/turns";
-import { namingEvidenceSourceSchema, namingProviderReceiptSchema, namingStageOutcomeSchema, namingStageRequestSchema, type NamingAgentRuntime, type NamingEvidenceSource, type NamingProviderReceipt, type NamingRoleOutput, type NamingStageHooks, type NamingStageOutcome, type NamingStageRequest } from "../../../domain/naming-brain";
+import { namingEvidenceSourceSchema, namingProviderReceiptSchema, namingReceiptState, namingStageOutcomeSchema, namingStageRequestSchema, type NamingAgentRuntime, type NamingEvidenceSource, type NamingProviderReceipt, type NamingRoleOutput, type NamingStageHooks, type NamingStageOutcome, type NamingStageRequest } from "../../../domain/naming-brain";
 import { buildNamingManagedRequest, namingRequestHash } from "./prompts";
 import { extractManagedFinalOutput, readManagedTurnHistory } from "./history";
 import { namingHash } from "./identity";
@@ -124,7 +124,22 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
     const pendingRequiredActions = new Map<string, RequiredAction>();
     const newSources = () => [...toolResults.values()].flatMap(row => row.sourceEvidence ? [row.sourceEvidence] : []);
     const partials = () => [...items.values()].filter(item => item.type !== "reasoning").slice(-3).map(item => ({ providerItemId: item.id, type: item.type, content: JSON.stringify(item).slice(0, 100_000) }));
-    const emit = async () => { receipt = managedReceipt({ ...receipt, recordedAt: new Date(now()).toISOString() }); await hooks.onReceipt(receipt); };
+    let acknowledgedReceipt: ManagedReceipt | undefined;
+    const retainReceipt = async (candidate: ManagedReceipt) => {
+      if (acknowledgedReceipt && isDeepStrictEqual(namingReceiptState(candidate), namingReceiptState(acknowledgedReceipt))) {
+        receipt = acknowledgedReceipt;
+        return;
+      }
+      const acknowledgement = await hooks.onReceipt(candidate);
+      // Void supports inert/legacy persistence adapters; the real SQL store
+      // returns the immutable receipt it acknowledged, possibly with an older
+      // timestamp. Never substitute an unacknowledged substantive observation.
+      const saved = acknowledgement === undefined ? candidate : managedReceipt(acknowledgement);
+      if (!isDeepStrictEqual(namingReceiptState(candidate), namingReceiptState(saved))) throw new Error("naming_receipt_mismatch");
+      acknowledgedReceipt = saved;
+      receipt = saved;
+    };
+    const emit = async () => { await retainReceipt(managedReceipt({ ...receipt, recordedAt: new Date(now()).toISOString() })); };
     const usage = (value: TokenUsage | null, scope: "session" | "turn", scopeId: string) => {
       const parsed = usageShape.safeParse(value); if (!parsed.success) return;
       const entry = { scope, scopeId, inputTokens: parsed.data.input_tokens, outputTokens: parsed.data.output_tokens, totalTokens: parsed.data.total_tokens, observedAt: new Date(now()).toISOString() };
@@ -214,8 +229,15 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
       if (item.type === "web_search_call" || item.type === "function_call") {
         if (item.type === "web_search_call" && !request.policy.allowedTools.includes("web_search") || item.type === "function_call" && (item.name !== "read_reference" || !request.policy.allowedTools.includes("read_reference"))) throw new Error("provider_tool_refused");
         const callId = item.type === "function_call" ? item.call_id : item.id;
-        const status = item.status === "completed" ? "completed" : item.status === "failed" ? "failed" : item.status === "in_progress" ? "started" : "unknown";
-        receipt = { ...receipt, callIds: [...new Set([...receipt.callIds, callId])], toolCalls: [...receipt.toolCalls.filter(call => call.callId !== callId), { callId, providerItemId: item.id, type: item.type === "web_search_call" ? "web_search" : "function", status }] };
+        const status: ManagedReceipt["toolCalls"][number]["status"] = item.status === "completed" ? "completed" : item.status === "failed" ? "failed" : item.status === "in_progress" ? "started" : "unknown";
+        const observed = { callId, providerItemId: item.id, type: item.type === "web_search_call" ? "web_search" as const : "function" as const, status };
+        const retained = receipt.toolCalls.find(call => call.callId === callId);
+        // A fresh observer may receive an old in-progress item before terminal
+        // history. Preserve its acknowledged terminal tool fact while retaining
+        // the incoming item for the existing invocation/history validation.
+        const older = retained && ["completed", "failed"].includes(retained.status) && ["started", "unknown"].includes(status);
+        if (older && (retained.type !== observed.type || retained.providerItemId !== null && retained.providerItemId !== item.id)) throw new Error("provider_item_changed");
+        receipt = { ...receipt, callIds: [...new Set([...receipt.callIds, callId])], toolCalls: [...receipt.toolCalls.filter(call => call.callId !== callId), older ? retained : observed] };
         await emit();
         // Observation must retain known terminal evidence even when an earlier
         // execution exceeded a native quota. Local unlimited mode has no quota.
@@ -408,7 +430,7 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
         // fact; a durable allocation or failed local read is not a remote outcome.
         receipt = managedReceipt({ ...receipt, dispatchState: "not_dispatched", recordedAt: new Date(now()).toISOString() });
         let retained = false;
-        try { await hooks.onReceipt(receipt); retained = true; } catch {}
+        try { await retainReceipt(receipt); retained = true; } catch {}
         return { status: "rejected_before_dispatch", code: "local_dispatch_not_attempted", ...(error instanceof NamingManagedProtocolError && error.code === "creation_unavailable" ? { failure: { code: "provider_budget_control_unavailable", retryable: false } as const } : {}), ...(retained ? { receipt } : {}) };
       }
       if (!dispatchAuthorized) return { status: "rejected_before_dispatch", code: "dispatch_not_authorized", ...(error instanceof NamingManagedProtocolError && error.code === "creation_unavailable" ? { failure: { code: "provider_budget_control_unavailable", retryable: false } as const } : {}) };
@@ -430,7 +452,7 @@ export function createNamingAgentRuntime(options: Options): NamingAgentRuntime {
         }
       }
       receipt = managedReceipt({ ...receipt, dispatchState: "unknown", recordedAt: new Date(now()).toISOString() });
-      try { await hooks.onReceipt(receipt); } catch {}
+      try { await retainReceipt(receipt); } catch {}
       return namingStageOutcomeSchema.parse({ status: "unresolved", code: hasObservedOverrun() ? "provider_cost_exceeded" : controller.signal.aborted ? "observation_cancelled" : reason(error), receipt, partialArtifacts: partials() });
     } finally { clearTimeout(timer); hooks.signal.removeEventListener("abort", abort); stream?.close(); controller.abort(); }
   }

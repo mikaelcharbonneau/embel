@@ -14,7 +14,7 @@ import { createNamingRoleRequest } from "../../src/server/ai/naming-brain/prompt
 import { allocateNamingCreatorCaps, createNamingRolePolicy } from "../../src/server/ai/naming-brain/policy";
 import { runNamingCreatorPool } from "../../src/server/ai/naming-brain/creator-pool";
 import { namingSourceContext } from "../../src/server/ai/naming-brain/outputs";
-import { NamingBrainJobStore, normalizeNamingStoredJson, type NamingGapPhase, type NamingSavedStage } from "../naming-brain-store";
+import { NamingBrainJobStore, namingLatestReceipt, normalizeNamingStoredJson, type NamingGapPhase, type NamingSavedStage } from "../naming-brain-store";
 import type { HandlerRegistry } from "../runner";
 import { executeProgressiveNaming, hasSettledProgressiveDirectorFailure } from "./naming-progressive";
 
@@ -95,7 +95,7 @@ export function createNamingBrainHandlers(options: Options): HandlerRegistry {
     let outcome: NamingStageOutcome;
     try {
     if (saved) {
-      const receipt = [...stage.receipts].reverse().find(row => row.providerCallKey === desired.providerCallKey);
+      const receipt = namingLatestReceipt(stage, desired.providerCallKey);
       if (!receipt) return { status: "unresolved", code: "dispatch_identity_unknown", receipt: null, partialArtifacts: [] };
       outcome = await agent.resumeStage(receipt, hooks);
     } else {
@@ -152,7 +152,7 @@ export function createNamingBrainHandlers(options: Options): HandlerRegistry {
       terminalProof(request, ["failed", "cancelled"]) || invalidFailures.some(failure => failure.providerCallKey === request.providerCallKey && terminalProof(request, ["completed"], failure.receipt)));
     const rejectedCall = (request: NamingStageRequest) => {
       const receipts = stage.receipts.filter(receipt => receipt.providerCallKey === request.providerCallKey);
-      const last = receipts.at(-1);
+      const last = namingLatestReceipt(stage, request.providerCallKey);
       if (request.policy.budgetControl === "local_unlimited_v1" && noDispatchFailures.some(proof => proof.providerCallKey === request.providerCallKey
         && proof.receipt.requestHash === request.requestHash && proof.receipt.requestKey === request.requestKey && isDeepStrictEqual(proof.receipt, last))
         && receipts.every(receipt => receipt.dispatchState !== "dispatched" && receipt.requestId === null && receipt.sessionId === null && receipt.turnId === null
