@@ -11,6 +11,8 @@ import { identityReferenceSnapshotSchema } from "@/domain/identity-references";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
 import { productionIdentityTransactions,productionIdentitySaveAvailability } from "./identity-transaction";
+import { resolveDevelopmentIdentityRuntime } from "../development/identity";
+import { acquireAccountIdentityRuntime } from "../runtime/account-http-binding-source";
 
 function input<T>(schema:z.ZodType<T>,value:unknown):T {const result=schema.safeParse(value);if(!result.success)throw new ApiError("invalid_input");return result.data;}
 function stored<T>(schema:z.ZodType<T>,value:unknown):T {const result=schema.safeParse(value);if(!result.success)throw new ApiError("integration_unavailable");return result.data;}
@@ -81,10 +83,14 @@ async function readHistory(auth:AuthenticatedContext,id:string,value:unknown,rpc
 }
 export async function getProjectIdentity(auth:AuthenticatedContext,id:string,value:unknown={}){
  id=projectId(id);const {response,currentBasis,systems}=await readHistory(auth,id,value,"get_project_identity");
+ const lease=await acquireAccountIdentityRuntime(auth);
+ try {
+ const runtime=lease.value??(!lease.configured?await resolveDevelopmentIdentityRuntime(auth.userId):null);
  return stored(projectIdentityOverviewSchema,{ownerId:auth.userId,projectId:id,project:response.project,session:response.session,preferences:response.preferences,
   referenceSnapshot:response.referenceSnapshot,currentBasis,readiness:getIdentityReadiness(response.project.context,response.project.scope,response.referenceSnapshot),systems,
-  saveAvailability:productionIdentitySaveAvailability,
+  saveAvailability:runtime?.saveAvailability??productionIdentitySaveAvailability,
   currentSelection:response.selection?{...response.selection,freshness:getIdentityFreshness(response.selection.system.input.basis,currentBasis)}:null});
+ } finally {await lease.release();}
 }
 export async function listIdentitySystems(auth:AuthenticatedContext,id:string,value:unknown={}){
  id=projectId(id);const {systems}=await readHistory(auth,id,value,"list_identity_systems");return systems;
@@ -116,9 +122,17 @@ async function checkMutationProject(auth:AuthenticatedContext,id:string){
 }
 export async function selectIdentitySystem(auth:AuthenticatedContext,id:string,value:unknown,signal?:AbortSignal){
  id=projectId(id);const request=input(selectIdentitySystemSchema,canonicalBody(value,"systemVersionId"));
- await checkMutationProject(auth,id);return productionIdentityTransactions.select(auth,id,request,signal);
+ await checkMutationProject(auth,id);const lease=await acquireAccountIdentityRuntime(auth,signal);
+ try {
+ const runtime=lease.value??(!lease.configured?await resolveDevelopmentIdentityRuntime(auth.userId,signal):null);
+ return await (runtime?.transactions??productionIdentityTransactions).select(auth,id,request,signal);
+ } finally {await lease.release();}
 }
 export async function refineIdentityComponent(auth:AuthenticatedContext,id:string,value:unknown,signal?:AbortSignal){
  id=projectId(id);const request=input(refineIdentityComponentSchema,canonicalBody(value,"baseSystemVersionId"));
- await checkMutationProject(auth,id);return productionIdentityTransactions.refine(auth,id,request,signal);
+ await checkMutationProject(auth,id);const lease=await acquireAccountIdentityRuntime(auth,signal);
+ try {
+ const runtime=lease.value??(!lease.configured?await resolveDevelopmentIdentityRuntime(auth.userId,signal):null);
+ return await (runtime?.transactions??productionIdentityTransactions).refine(auth,id,request,signal);
+ } finally {await lease.release();}
 }

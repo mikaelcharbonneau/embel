@@ -4,7 +4,7 @@ import { contextSnapshotSchema, projectScopeSchema } from "./projects";
 // Public response contracts only. Authorization stays in the server and database.
 // Individual field bounds do not replace the combined UTF-8 request limit.
 export const PROJECT_MUTATION_MAX_BYTES = 32_768;
-export const accountSessionSchema = z.strictObject({ user: z.strictObject({ id: z.uuid() }) });
+export const accountSessionSchema = z.strictObject({ user: z.strictObject({ id: z.uuid() }), enrollmentEnabled: z.literal(true).optional() });
 
 export const accountProjectSummarySchema = z.object({
   id: z.uuid(),

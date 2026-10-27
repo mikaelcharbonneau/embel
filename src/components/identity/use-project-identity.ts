@@ -6,6 +6,7 @@ import {
   type IdentitySystemCursor, type IdentitySystemSummary, type IdentitySystemVersion, type ProjectIdentityOverview, type RefineIdentityComponent,
 } from "@/domain/project-identity";
 import { AccountRequestError } from "@/components/workspace/account-api";
+import { IMAGE_INPUT_LIMITS } from "@/domain/logo-image-limits";
 import { useAccountSession } from "@/components/workspace/account-session";
 import { accountDraftChanged } from "@/components/workspace/account-draft-memory";
 import { createAccountIdentityClient, identityErrorMessage, identityObservation, type IdentityObservation } from "./account-identity-client";
@@ -14,6 +15,7 @@ import {
   type IdentityColorDraft, type IdentityColorForm, type IdentityDraft, type IdentityPreferenceDraft, type IdentityPreferenceForm,
   type IdentityTypographyDraft, type IdentityTypographyForm,
 } from "./identity-draft-memory";
+import { useIdentityGeneration } from "./use-identity-generation";
 
 export type IdentityReferenceHint = { ownerId: string; projectId: string; generation: number; referenceRevision: number | null; pending: boolean };
 type State = { scope: string; overview: ProjectIdentityOverview | null; items: IdentitySystemSummary[]; nextCursor: IdentitySystemCursor | null;
@@ -233,7 +235,19 @@ export function useProjectIdentity(projectId: string, referenceState?: IdentityR
     }, () => { identityDrafts.remove(pending); retain({ ...pending, pending: null }); });
     if (saved && client.current()) { await refresh(); publish(previous => ({ ...previous, notice: previous.checked ? "The manual edit is saved in history. The latest current choice has been checked." : "The manual edit is saved in history. Check the latest before choosing or refining again." })); }
   }
-  return { client, verified, overview, system, items: shown.items, nextCursor: shown.nextCursor, loading: shown.loading, loadingMore: shown.loadingMore,
+  const generationBlockedReason = !overview || !shown.checked || shown.loading || shown.pending || shown.selectionUncertain ? "Check the latest saved inputs before generating."
+    : strategyDirty ? "Save or resolve your project edits before generating."
+    : referencesPending ? "Finish checking your reference choices before generating."
+    : retained.some(identityDraftChanged) ? "Save or discard your Identity edits before generating."
+    : overview.referenceSnapshot.selectedReferenceCount > IMAGE_INPUT_LIMITS.images ? `Choose one to ${IMAGE_INPUT_LIMITS.images} references for generation. Your other saved choices are kept until you change them.`
+    : !overview.readiness.ready ? overview.readiness.blocking.includes("references") ? "Select at least one owned reference before generating." : "Finish the saved brief, strategy and brand name before generating."
+    : null;
+  const generation = useIdentityGeneration({ account: verified, projectId, client, memory: identityDrafts,
+    canStart: input => !generationBlockedReason && Boolean(overview && "version" in input && input.version === 2
+      && input.expectedProjectRevision === overview.project.current_revision && input.expectedReferenceRevision === overview.referenceSnapshot.referenceRevision
+      && input.expectedPreferencesRevision === (overview.preferences?.revision ?? 0) && input.expectedIdentityRevision === (overview.session?.identityRevision ?? 0)),
+    onResults: () => { void refresh(); } });
+  return { client, verified, overview, system, generation, generationBlockedReason, items: shown.items, nextCursor: shown.nextCursor, loading: shown.loading, loadingMore: shown.loadingMore,
     detailLoading: shown.detailLoading, pending: shown.pending, savesUnavailable, checked: shown.checked, selectionUncertain: shown.selectionUncertain, preferenceRebaseReady, error: shown.error, notice: shown.notice, blocked, strategyDirty, preferencesDirty, referencesPending,
     retained, preferenceDraft, preferenceValues, colors: componentDraft("colors"), typography: componentDraft("typography"), fence,
     refresh, loadMore, viewSystem, chooseSystem, setPreferenceValues, discardPreference, keepPreferencesAgainstLatest, savePreferences,

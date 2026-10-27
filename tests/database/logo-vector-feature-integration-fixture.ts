@@ -17,7 +17,7 @@ import type { IdentityConnectionFactory } from '@/server/data/identity-transacti
 import type { AuthenticatedContext } from '@/server/auth/context';
 import type { LogoWorkerConnection } from '@/server/data/logo-jobs';
 import { logoWorkspaceV2Schema } from '@/domain/logo-workspace';
-import { logoDispatchReceiptSchema } from '@/domain/logo-jobs';
+import { logoDispatchReceiptSchema, legacyLogoCostQuoteSchema } from '@/domain/logo-jobs';
 import { logoVectorProposalRecordSchema } from '@/domain/logo-vector-proposal-jobs';
 import { logoVectorProposalApplicationSchema, type ApplyLogoVectorProposalCommand } from '@/features/logo-vector/model/proposal-materialization';
 import { startLogoProductionWorker } from '../../worker/logo-production-startup';
@@ -116,7 +116,7 @@ export async function vectorFeatureFixture(db: TestDatabase, options: { loseObse
   }) };
   await connection.query("select public.report_logo_worker_ready('proposal-fixture',$1,90)", [[capability]]);
   const request = { operation: 'propose_vector_edit', expected: workspace.heads, baseVectorRevisionId: source.revision.id, instruction: 'Increase the selected lettering spacing to two while preserving its spelling and locked symbol.', targetComponentIds: [lettering.id] };
-  const quote = await services.proposalQuotes.quoteLogoVectorProposal(auth, projectId, request);
+  const quote = legacyLogoCostQuoteSchema.parse(await services.proposalQuotes.quoteLogoVectorProposal(auth, projectId, request));
   const intent = { requestKey: randomUUID(), quoteId: quote.id, acceptedMaxCostMicrousd: quote.maxCostMicrousd, expected: workspace.heads };
   const admission = logoDispatchReceiptSchema.parse(await rpc('admit_logo_operation', [projectId, intent]));
   const jobId = admission.jobIds[0]!, provider = providerFixture(), entered = deferred<void>(), releaseResponse = deferred<void>();

@@ -18,6 +18,7 @@ import { validateLogoExportAssetBytes } from "../src/features/identity-deliverab
 import { LOGO_EXPORT_POLICY_IDENTITY, LOGO_EXPORT_HANDLER_VERSION } from "./handlers/logo-exports";
 import { QUALIFIED_VTRACER } from "./logo-vector/engine";
 import { freezeLogoWorkerManifest, type LogoWorkerCapability } from "./logo-readiness";
+import { readDevelopmentConfiguration } from "../src/server/development/config";
 
 const ORIGIN = "https://fricsfwqibyhemknqgyf.supabase.co";
 const unavailable = () => new Error("Logo production Storage is unavailable.");
@@ -76,19 +77,34 @@ export function qualifiedLogoProductionStorageCapability(input: unknown): LogoWo
  */
 export function createLogoProductionStorageAuthorization(configuration: unknown = null,
   dependencies: LogoProductionStorageDependencies = { fetch: globalThis.fetch }): LogoProductionStorageAuthorization | null {
-  const parsed = configurationSchema.safeParse(configuration);
+  return createAuthorization(configuration, dependencies, ORIGIN, false);
+}
+
+/** Local dev uses the same grant/immutable-byte protocol with a separate target gate. */
+export function createDevelopmentLogoProductionStorageAuthorization(configuration: unknown = null,
+  dependencies: LogoProductionStorageDependencies = { fetch: globalThis.fetch }): LogoProductionStorageAuthorization | null {
+  const development = readDevelopmentConfiguration();
+  return development ? createAuthorization(configuration, dependencies, development.supabaseUrl, true) : null;
+}
+
+function createAuthorization(configuration: unknown, dependencies: LogoProductionStorageDependencies,
+  origin: string, development: boolean): LogoProductionStorageAuthorization | null {
+  const parsed = (development ? configurationSchema.safeExtend({ workerRoleName: z.literal("embel_development_logo_worker") }) : configurationSchema).safeParse(configuration);
   if (!parsed.success || typeof dependencies.fetch !== "function") return null;
   const c = parsed.data, now = dependencies.now ?? Date.now, capability = qualifiedLogoProductionStorageCapability(c.capability);
   if (!capability) return null;
   let sessionId: string, expires: number;
   try {
     const claims = decodeJwt(c.accessToken); sessionId = logoUuidSchema.parse(claims.session_id);
-    if (claims.sub !== c.authUserId || claims.role !== "authenticated" || claims.aud !== "authenticated" || claims.iss !== `${ORIGIN}/auth/v1`
+    if (claims.sub !== c.authUserId || claims.role !== "authenticated" || claims.aud !== "authenticated" || claims.iss !== `${origin}/auth/v1`
       || claims.is_anonymous !== false || !Number.isSafeInteger(claims.exp) || claims.exp! <= 0) return null;
     expires = claims.exp! * 1000;
   } catch { return null; }
   const lifetime = new AbortController();
-  const active = (signal?: AbortSignal) => { if (lifetime.signal.aborted || signal?.aborted || now() >= expires) throw unavailable(); };
+  const active = (signal?: AbortSignal) => {
+    if (development && readDevelopmentConfiguration()?.supabaseUrl !== origin) lifetime.abort();
+    if (lifetime.signal.aborted || signal?.aborted || now() >= expires) throw unavailable();
+  };
   function discard(response: Response) { try { void response.body?.cancel().catch(() => {}); } catch { /* Cleanup only. */ } }
 
   async function bounded<T>(caller: AbortSignal | undefined, run: (signal: AbortSignal) => Promise<T>): Promise<T> {
@@ -139,7 +155,7 @@ export function createLogoProductionStorageAuthorization(configuration: unknown 
   }
   const combined = (...signals: (AbortSignal | undefined)[]) => AbortSignal.any([lifetime.signal, ...signals.filter((s): s is AbortSignal => s !== undefined)]);
   async function verifyAuth(signal: AbortSignal) {
-    z.object({ id: z.literal(c.authUserId), is_anonymous: z.literal(false) }).parse(await json(`${ORIGIN}/auth/v1/user`, { method: "GET" }, signal));
+    z.object({ id: z.literal(c.authUserId), is_anonymous: z.literal(false) }).parse(await json(`${origin}/auth/v1/user`, { method: "GET" }, signal));
   }
   function snapshot(raw: ClaimedJob) {
     const job = jobSchema.parse(raw), input = job.input;
@@ -158,7 +174,7 @@ export function createLogoProductionStorageAuthorization(configuration: unknown 
   }
   async function grant(job: ClaimedJob, row: IdentityAssetReservation | null, mode: "probe" | "read" | "write" | "readback", signal: AbortSignal,
     expectedPublication?: IdentityAssetPublication | null) {
-    const raw = await json(`${ORIGIN}/rest/v1/rpc/authorize_logo_production_storage`, { method: "POST", headers: { "content-type": "application/json" },
+    const raw = await json(`${origin}/rest/v1/rpc/authorize_logo_production_storage`, { method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ p_job: job.id, p_lease: job.leaseToken, p_reservation: row?.id ?? null, p_mode: mode }) }, signal);
     const result = grantSchema.parse(raw);
     if (result.ownerId !== c.ownerId || result.authUserId !== c.authUserId || result.sessionId !== sessionId || result.workerRoleName !== c.workerRoleName
@@ -185,8 +201,9 @@ export function createLogoProductionStorageAuthorization(configuration: unknown 
       // Readback receives the immutable original publication from SQL. It never
       // accepts a browser-supplied publication or creates a new write grant.
       const write = await grant(job, row, mode, signal, readback ? undefined : supplied);
-      const url = `${ORIGIN}/storage/v1/object/fluid-assets/${row.storagePath}`;
+      const url = `${origin}/storage/v1/object/fluid-assets/${row.storagePath}`;
       const storage = createSupabasePrivateAssetStorage({ scope: { kind: "identity", ownerId: job.ownerId, projectId: job.projectId }, maxFileBytes: row.byteLength,
+        ...(development ? { developmentSupabaseUrl: origin } : {}),
         transport: (target, init) => {
           if (target !== url || !init.signal || !(mode === "write" ? ["POST", "GET"] : ["GET"]).includes(init.method ?? "")
             || init.method === "POST" && new Headers(init.headers).get("x-upsert") !== "false") throw unavailable();

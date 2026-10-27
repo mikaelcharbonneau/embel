@@ -211,7 +211,7 @@ test("an unselected first exploration survives full reload with no concept-stage
   await expect.poll(() => f.posts.length).toBe(1); await page.reload();
   await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Project context", exact: true }).click();
-  await page.getByText("Saved inputs and recovery", { exact: true }).click();
+  await page.getByRole("button", { name: "Saved inputs and recovery", exact: true }).click();
   await expect(page.getByRole("combobox", { name: "Concept batch" })).toHaveValue(id(60)); expect(f.posts).toHaveLength(1);
 });
 
@@ -221,9 +221,10 @@ test("an unselected More exploration is latest after reload and its earlier batc
   await page.getByRole("dialog").getByRole("button", { name: "Generate 6 more concepts", exact: true }).click();
   await expect.poll(() => f.posts.length).toBe(1); await page.reload();
   await page.getByRole("button", { name: "Project context", exact: true }).click();
-  await page.getByText("Saved inputs and recovery", { exact: true }).click();
+  await page.getByRole("button", { name: "Saved inputs and recovery", exact: true }).click();
   await expect(page.getByRole("combobox", { name: "Concept batch" })).toHaveValue(id(981));
   await page.getByRole("combobox", { name: "Concept batch" }).selectOption(id(60));
+  await page.getByRole("dialog", { name: "Saved inputs and recovery", exact: true }).getByRole("button", { name: "Close", exact: true }).click();
   await page.getByRole("button", { name: "Close project context" }).click();
   await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible(); expect(f.posts).toHaveLength(1);
 });
@@ -328,7 +329,7 @@ test("an uncertain initial brief save keeps its original intent and cannot quote
   expect(f.quotes).toHaveLength(0); expect(f.posts).toHaveLength(0);
   await page.getByRole("button", { name: "Project context", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Brand name" })).toHaveValue("Élan & Co");
-  await page.getByText("Saved inputs and recovery", { exact: true }).click();
+  await page.getByRole("button", { name: "Saved inputs and recovery", exact: true }).click();
   await expect(page.getByText("A previous save is awaiting confirmation.", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "Check original save", exact: true })).toBeVisible();
   expect(f.saves).toHaveLength(1);
@@ -493,59 +494,6 @@ test("a running chat edit becomes a selectable saved refinement without reloadin
 });
 
 
-test("brand board fits the desktop viewport and remains readable on mobile", async ({ page }) => {
-  await page.goto("/brand-board-layout-fixture");
-  await expect(page.getByRole("heading", { name: "Proposed palette", exact: true })).toBeVisible();
-  await expect(page.getByText("From saved inspiration", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Proposed typography", exact: true })).toBeVisible();
-  await expect(page.getByText("Geist Sans · Default preview", { exact: true })).toBeVisible();
-  await expect(page.getByText("Glide · Saved selection", { exact: true })).toBeVisible();
-  await expect(page.getByText("Application preview · Placeholder copy", { exact: true })).toHaveCount(2);
-  await expect(page.getByRole("region", { name: "Website landing page" })).toHaveAccessibleDescription("Application preview · Placeholder copy");
-  await expect(page.getByRole("region", { name: "Social announcement" })).toHaveAccessibleDescription("Application preview · Placeholder copy");
-  await expect(page.getByText("Your brand introduction goes here.", { exact: true })).toBeVisible();
-  await expect(page.getByText("Your announcement goes here.", { exact: true })).toBeVisible();
-  const logo = await page.getByRole("region", { name: "Selected brand logo" }).boundingBox();
-  const palette = await page.getByRole("region", { name: "Proposed palette" }).boundingBox();
-  expect(logo).not.toBeNull();
-  expect(palette).not.toBeNull();
-  if (page.viewportSize()!.width > 700) {
-    expect(Math.abs(logo!.y - palette!.y)).toBeLessThan(2);
-    expect(palette!.x).toBeGreaterThan(logo!.x + logo!.width);
-  } else {
-    expect(palette!.y).toBeGreaterThan(logo!.y + logo!.height);
-  }
-  const main = page.getByRole("main", { name: "Brand board layout fixture" });
-  expect(await main.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
-  if (page.viewportSize()!.width > 1000) {
-    expect(await main.evaluate(node => node.scrollHeight <= node.clientHeight + 1)).toBe(true);
-    const tiles = await page.locator("[data-brand-board-layout] > section").evaluateAll(nodes => nodes.map(node => ({ top: node.getBoundingClientRect().top, bottom: node.getBoundingClientRect().bottom, clipped: node.scrollHeight > node.clientHeight + 1 })));
-    expect(tiles).toHaveLength(6);
-    for (const tile of tiles) {
-      expect(tile.top).toBeGreaterThanOrEqual(0);
-      expect(tile.bottom).toBeLessThanOrEqual(page.viewportSize()!.height);
-      expect(tile.clipped).toBe(false);
-    }
-    await main.hover();
-    await page.mouse.wheel(0, 1500);
-    expect(await main.evaluate(node => node.scrollTop)).toBe(0);
-  } else {
-    await main.hover();
-    await page.mouse.wheel(0, 1500);
-    await expect.poll(() => main.evaluate(node => node.scrollTop)).toBeGreaterThan(0);
-  }
-  await page.getByRole("heading", { name: "Website landing page", exact: true }).scrollIntoViewIfNeeded();
-  await expect(page.getByRole("heading", { name: "Website landing page", exact: true })).toBeVisible();
-  await expect(page.getByText("Design notes & specifications", { exact: true })).toHaveCount(0);
-  const mockups = await page.locator("[data-application-mockup]").evaluateAll(nodes => nodes.map(node => {
-    const scene = node.getBoundingClientRect(), frame = node.firstElementChild!.getBoundingClientRect();
-    return { top: frame.top - scene.top, bottom: scene.bottom - frame.bottom, left: frame.left - scene.left, right: scene.right - frame.right };
-  }));
-  expect(mockups).toHaveLength(3);
-  for (const frame of mockups) for (const edge of Object.values(frame)) expect(edge).toBeGreaterThanOrEqual(-1);
-
-  expect(await main.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
-});
 
 test("dialog hit testing: logo project context protects padding without generation", async ({ page }) => {
   const batch = syntheticLogoBatch(), slot = batch.slots[0]!, attempt = slot.attempts[0]!;

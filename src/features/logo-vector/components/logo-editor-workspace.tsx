@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import { AccountRequestError, accountErrorMessage } from "@/components/workspace/account-api";
 import { useLogoDraftMemory } from "@/components/identity/logo-draft-memory-context";
@@ -22,6 +22,9 @@ import { createVectorRecoveryIntent, recoverVectorMutation, submitVectorIntent, 
 import { SavedVectorHistory } from "./saved-vector-history";
 import type { LogoVectorHistoryItem } from "../model/history";
 import styles from "./logo-vector.module.css";
+import { VectorProposalPanel } from "./vector-proposal-panel";
+import { proposalSessionUnsaved } from "../model/proposal-session";
+import type { LogoVectorProposalApplicationResult } from "../client/proposal-application";
 
 const textEditKinds = ["text", "font", "spacing", "replace_outlined_lettering"];
 
@@ -45,6 +48,8 @@ function OwnedLogoEditor({ projectId, account, memory }: { projectId: string; ac
   const [read, setRead] = useState<DetailRead | null>(null), [selectedId, setSelectedId] = useState<string | null>(null);
   const [historical, setHistorical] = useState<LogoStageRevision | null>(null), [historyVector, setHistoryVector] = useState<LogoVectorHistoryItem | null>(null), [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false), [readAttempt, setReadAttempt] = useState(0), [historyAttempt, setHistoryAttempt] = useState(0), [acknowledgement, setAcknowledgement] = useState<{ source: string; checked: boolean } | null>(null);
+  const [appliedVectorId, setAppliedVectorId] = useState<string | null>(null);
+  const proposalSession = useSyncExternalStore(memory.subscribe, () => memory.getVectorProposal(projectId), () => null);
   const [cancelNotice, setCancelNotice] = useState<string | null>(null);
   const [comparison, setComparison] = useState<ConversionReviewReadiness | null>(null);
   const operation = useRef<AbortController | null>(null);
@@ -53,7 +58,7 @@ function OwnedLogoEditor({ projectId, account, memory }: { projectId: string; ac
   const workspace = state.workspace?.ownerId === account.userId && state.workspace.projectId === projectId ? state.workspace : null;
   const draft = currentClient ? state.draft : null;
   const historicalVectorId = historical && "vectorRevisionId" in historical.payload ? historical.payload.vectorRevisionId : null;
-  const wantedId = draft?.vectorDraft?.baseVectorRevisionId ?? historicalVectorId ?? historyVector?.vectorRevisionId;
+  const wantedId = draft?.vectorDraft?.baseVectorRevisionId ?? appliedVectorId ?? historicalVectorId ?? historyVector?.vectorRevisionId;
   const requestScope = workspace ? `${workspace.heads.workspaceRevision}:${historical?.id ?? ""}:${readAttempt}` : null;
   // Pinning the already resolved current revision for the first local edit is
   // not a new read identity. Keep its verified detail/URL, but never reuse it
@@ -106,7 +111,8 @@ function OwnedLogoEditor({ projectId, account, memory }: { projectId: string; ac
   const approved = Boolean(detail && workspace?.approvedLogo?.vectorRevisionId === detail.revision.id);
   const earlier = Boolean(detail && workspace && detail.revision.inputRevisions.some(input => workspace.stages[input.stage]?.id !== input.id));
   const acceptedEarlier = source !== null && acknowledgement?.source === source && acknowledgement.checked;
-  const canMutate = Boolean(currentClient && workspace?.capabilities.save.status === "available" && !busy && !state.pending && !conflict && !draft?.dirty && !draft?.directionDraft);
+  const baseCanMutate = Boolean(currentClient && workspace?.capabilities.save.status === "available" && !busy && !state.pending && !conflict && !draft?.dirty && !draft?.directionDraft);
+  const canMutate = baseCanMutate && !proposalSessionUnsaved(proposalSession);
   const comparisonReady = Boolean(comparison?.ready && comparison.document === document && comparison.originalUrl === visible?.preview?.url && comparison.scopeKey === source);
   const actionReady = canMutate && comparisonReady && Boolean(detail && visible?.preview) && (!earlier || acceptedEarlier);
   async function perform(intent: LogoVectorRecoveryIntent | "check" | "retry" | "cancel") {
@@ -125,7 +131,7 @@ function OwnedLogoEditor({ projectId, account, memory }: { projectId: string; ac
         saved = result?.status === "succeeded";
         if (!result && intent === "retry") saved = Boolean(await recoverVectorMutation(context, true));
       } else saved = Boolean(typeof intent === "string" ? await recoverVectorMutation(context, intent === "retry") : await submitVectorIntent(context, intent));
-      if (saved && current()) { setHistorical(null); setHistoryVector(null); await state.reload(false); }
+      if (saved && current()) { setAppliedVectorId(null); setHistorical(null); setHistoryVector(null); await state.reload(false); }
     } catch (cause) {
       const textSave = typeof intent !== "string" ? intent.kind === "edit" && textEditKinds.includes(intent.request.edit.kind) : intent === "retry" && draft?.vectorDraft && textEditKinds.includes(draft.vectorDraft.edit.kind);
       if (current()) setError(intent === "cancel" ? "The edit request could not be cancelled yet. Its original request and draft are retained; check the original request before trying again."
@@ -140,19 +146,31 @@ function OwnedLogoEditor({ projectId, account, memory }: { projectId: string; ac
   }
   function review(revision: LogoStageRevision) {
     if (!currentClient || busy || state.pending || state.dirty) { setError("Save or discard your current change before reviewing another version."); return; }
-    setHistorical(revision); setHistoryVector(null); setReadAttempt(value => value + 1); setError(null);
+    setAppliedVectorId(null); setHistorical(revision); setHistoryVector(null); setReadAttempt(value => value + 1); setError(null);
   }
   function reviewVector(item: LogoVectorHistoryItem) {
     if (!currentClient || busy || state.pending || state.dirty) { setError("Save or discard your current change before reviewing another version."); return; }
-    setHistorical(null); setHistoryVector(item); setReadAttempt(value => value + 1); setError(null);
+    setAppliedVectorId(null); setHistorical(null); setHistoryVector(item); setReadAttempt(value => value + 1); setError(null);
   }
-  function backToCurrent() { setHistorical(null); setHistoryVector(null); setReadAttempt(value => value + 1); setError(null); }
+  function backToCurrent() { setAppliedVectorId(null); setHistorical(null); setHistoryVector(null); setReadAttempt(value => value + 1); setError(null); }
+  const reloadProposalWorkspace = state.reload;
+  const onProposalApplied = useCallback(async (result: Extract<LogoVectorProposalApplicationResult, { status: "succeeded" }>) => {
+    if (!activeClient()) return;
+    const revision = result.receipt.revision;
+    if (revision.stage !== "refinements" || !revision.payload.vectorRevisionId || revision.payload.approvalId !== null) throw new AccountRequestError(502);
+    const refreshed = await reloadProposalWorkspace(false); if (!activeClient()) return;
+    if (refreshed !== "reloaded") { setError("The unapproved candidate is saved. Resolve your current edit, then review it in saved vector history."); return; }
+    setHistorical(null); setHistoryVector(null); setAppliedVectorId(revision.payload.vectorRevisionId); setReadAttempt(value => value + 1); setHistoryAttempt(value => value + 1);
+  }, [activeClient, reloadProposalWorkspace]);
   const common = () => ({ requestKey: crypto.randomUUID(), expected: draft!.base! });
   return <section className={styles.editor} aria-label="Account logo editor">
     {state.status === "loading" && <p role="status">Loading your saved logo workspace…</p>}
     {(error || state.error) && <div className={styles.notice} role="alert"><p>{error ?? state.error}</p></div>}
     {workspace && <><div className={styles.headingRow}><h2>Saved logo workspace</h2><span className={styles.badge}>Workspace version {workspace.heads.workspaceRevision}</span></div>
       {workspace.staleStages.length > 0 && <div className={styles.notice} role="status"><strong>Earlier inputs need review</strong><ul>{workspace.staleStages.map(item => <li key={item.stage}>{item.stage.replaceAll("_", " ")}: {item.reasons.join(" ")}</li>)}</ul></div>}</>}
+    {client && currentClient && workspace && <VectorProposalPanel account={account} projectId={projectId} client={client} memory={memory} isCurrent={activeClient} onApplied={onProposalApplied}
+      context={detail && visible?.preview ? { workspace, detail, targetId: selectedComponent?.id ?? detail.document.components[0]!.id,
+        ready: baseCanMutate && comparisonReady && !inspecting && !draft?.vectorDraft && (!earlier || acceptedEarlier) } : null} />}
     {conflict && <div className={styles.notice} role="alert"><strong>Revision conflict</strong><p>Your vector change and original request remain in this tab.</p><button type="button" disabled={busy || Boolean(pending)} onClick={() => { if (!busy && !pending) { backToCurrent(); void state.reload(true); } }}>Discard change and load latest</button></div>}
     {cancelNotice && <p role="status">{cancelNotice}</p>}
     {draft?.vectorDraft && <p role="status">Unsaved vector change</p>}
@@ -184,7 +202,7 @@ function OwnedLogoEditor({ projectId, account, memory }: { projectId: string; ac
         {restoration && <button type="button" disabled={!actionReady} onClick={() => { if (actionReady) void perform(createVectorRecoveryIntent({ kind: "restore", request: { ...common(), stage: restoration.stage, revisionId: restoration.id, acceptEarlierBasis: acceptedEarlier } })); }}>Restore this version</button>}
       </div>
     </>}
-    <div className={styles.actions}>{inspecting && <button type="button" disabled={busy || Boolean(pending)} onClick={backToCurrent}>Back to current vector</button>}<button type="button" disabled={!currentClient || busy || state.pending || state.dirty} onClick={() => { setReadAttempt(value => value + 1); setHistoryAttempt(value => value + 1); void state.reload(false); }}>Reload workspace</button><Link href={`/brands/account/${projectId}/logo`}>Back to concept choices</Link></div>
+    <div className={styles.actions}>{(inspecting || appliedVectorId !== null) && <button type="button" disabled={busy || Boolean(pending)} onClick={backToCurrent}>Back to current vector</button>}<button type="button" disabled={!currentClient || busy || state.pending || state.dirty} onClick={() => { setReadAttempt(value => value + 1); setHistoryAttempt(value => value + 1); void state.reload(false); }}>Reload workspace</button><Link href={`/brands/account/${projectId}/logo`}>Back to concept choices</Link></div>
     {client && currentClient && workspace && <><SavedVectorHistory key={`all-vectors:${workspace.heads.workspaceRevision}:${historyAttempt}`} client={client} workspaceRevision={workspace.heads.workspaceRevision} current={activeClient} disabled={busy || state.pending || state.dirty} onReview={reviewVector} />{(["vector", "refinements"] as const).map(stage => <SavedHistory key={`${stage}:${workspace.heads.workspaceRevision}`} client={client} stage={stage} current={activeClient} disabled={busy || state.pending || state.dirty} onReview={review} />)}</>}
   </section>;
 }

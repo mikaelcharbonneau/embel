@@ -29,11 +29,17 @@ export function createProgressiveNamingAssignment(options: {
   const guidance = options.guidance, research = options.research;
   if (guidance && (guidance.runId !== options.runId || guidance.snapshotHash !== snapshot.snapshotHash || guidance.providerReceipt.localPipelineVersion !== 2)) throw new Error("progressive_guidance_mismatch");
   if (research && (research.runId !== options.runId || research.snapshotHash !== snapshot.snapshotHash || research.providerReceipt.localPipelineVersion !== 2)) throw new Error("progressive_research_mismatch");
+  if (guidance && "planVersion" in guidance.output && guidance.output.unavailableApproaches.some(row => row.approach === options.approach)) throw new Error("progressive_approach_unavailable");
   const routeIndex = snapshot.preferences.approaches.indexOf(options.approach);
   const variation = Math.floor(options.partIndex / snapshot.preferences.approaches.length);
-  const templates = guidance?.output.assignments.filter(row => row.primaryApproach === options.approach) ?? [];
-  const template = templates.length ? templates[variation % templates.length] : undefined;
   const sourceMap = new Map(research?.sources.map(source => [source.sourceKey, source]) ?? []);
+  // An unusable factual direction must not hide a genuinely sourced sibling.
+  // The retained Director artifact is untouched; only eligible templates are
+  // selected for a new, separately frozen application assignment.
+  const templates = guidance?.output.assignments.filter(row => row.primaryApproach === options.approach
+    && (PROGRESSIVE_CREATIVE_APPROACHES.has(options.approach)
+      || row.sourceKeys.length > 0 && row.sourceKeys.every(key => sourceMap.get(key)?.evidenceStatus === "retrieved"))) ?? [];
+  const template = templates.length ? templates[variation % templates.length] : undefined;
   // These are literal identities from retained outputs, never a prohibition on
   // related roots, sounds or imagery. Bound the tail so request size stays finite.
   const exactValues = [...new Set(options.generatedValues ?? [])].slice(-100);

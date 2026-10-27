@@ -70,10 +70,10 @@ function OwnedStrategyRuntimeSettings({ account }: { account: VerifiedAccount })
           <ul>{availability.operations.map((item, index) => <li key={`${item.operation}:${index}`}>
             {strategyLabels[item.operation]} · {item.billingMode === "chatgpt_subscription" ?
               `ChatGPT subscription · plan limits apply; up to ${item.limits.maxRequestsPerHour} requests/hour and ${item.limits.maxQueuedJobs} queued requests.` :
-              `OpenAI API · up to ${dollars.format(item.maximumCostMicrousd / 1_000_000)} USD per request.`}
+              "maximumCostMicrousd" in item ? `OpenAI API · up to ${dollars.format(item.maximumCostMicrousd / 1_000_000)} USD per request.` : "OpenAI API usage."}
           </li>)}</ul>
         </>}
-    <p>Availability is a readiness check, not proof of a completed live response. Image generation is checked separately. Sending a request rechecks its current limits.</p>
+    <p>Availability is a readiness check, not proof of a completed live response. Image generation is checked separately. Sending a request rechecks availability.</p>
     <button type="button" className="button secondary small" disabled={checking} onClick={() => {
       setAvailability(null); setError(false); setRevision(value => value + 1);
     }}>Check text status</button>

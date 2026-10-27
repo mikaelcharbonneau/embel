@@ -2,7 +2,7 @@ import {randomUUID} from 'node:crypto';
 import {expect} from 'vitest';
 import {asRole,OWNER_A,resetFixture,type TestDatabase} from './local-supabase';
 import {logoWorkspaceV2Schema} from '@/domain/logo-workspace';
-import {logoCostQuoteSchema,logoDispatchReceiptSchema} from '@/domain/logo-jobs';
+import {legacyLogoCostQuoteSchema as logoCostQuoteSchema,logoDispatchReceiptSchema} from '@/domain/logo-jobs';
 import {proposalFixture} from '../features/logo-vector/proposal-fixtures';
 import {buildLogoVectorProposalContext} from '@/features/logo-vector/server/proposal-context';
 import {proposalPolicy} from '../server/logo-vector-proposal-fixtures';

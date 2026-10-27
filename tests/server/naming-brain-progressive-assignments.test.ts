@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-import { bindNamingVerificationSources, namingAssignmentPlanSchema, namingBriefSnapshotSchema, namingCreatorSetSchema, namingCurationSchema, namingResearchPackSchema, validateNamingCreatorSet } from "../../src/domain/naming-brain";
+import { bindNamingVerificationSources, namingAssignmentPlanSchema, namingBriefSnapshotSchema, namingCreatorSetSchema, namingCurationSchema, namingResearchPackSchema, validateNamingAssignmentPlan, validateNamingCreatorSet } from "../../src/domain/naming-brain";
 import { createNamingMicrobatch } from "../../src/domain/naming-brain-progressive";
 import { chooseProgressiveNamingApproach, createProgressiveNamingAssignment, PROGRESSIVE_CREATIVE_APPROACHES } from "../../src/server/ai/naming-brain/progressive-assignments";
 import { namingTextHash } from "../../src/server/ai/naming-brain/identity";
@@ -43,6 +43,30 @@ describe("Honest compact progressive assignments", () => {
     expect(value.avoidPatterns.length).toBeLessThanOrEqual(20); expect(value.avoidPatterns.every(row => row.length <= 2000)).toBe(true);
     expect(value.avoidPatterns.join(" ")).not.toContain(JSON.stringify(values[0]));
     expect(value.avoidPatterns.join(" ")).toContain(JSON.stringify(values.at(-1)));
+  });
+
+  it("uses a genuinely retrieved factual direction even when unsourced siblings appear first", () => {
+    const brief = namingBriefSnapshotSchema.parse(snapshot()), { pack, guidance } = context();
+    const unread = { ...pack.sources[0]!, sourceKey: "source-unretrieved", evidenceStatus: "unretrieved" as const, excerpt: null, contentHash: null, retrieval: null };
+    const research = namingResearchPackSchema.parse({ ...pack, sources: [...pack.sources, unread] });
+    const factual = guidance.output.assignments.find(row => row.primaryApproach === "other_languages")!;
+    const directions = namingAssignmentPlanSchema.parse({ ...guidance, output: { ...guidance.output, assignments: [
+      ...guidance.output.assignments.filter(row => row.primaryApproach !== "other_languages"),
+      { ...factual, assignmentKey: "unsupported-first", targetCount: 5, sourceKeys: [] },
+      { ...factual, assignmentKey: "url-only", targetCount: 5, sourceKeys: [unread.sourceKey] },
+      { ...factual, assignmentKey: "retrieved-direction", targetCount: 10, constructionKey: "supported-root" },
+    ] } });
+    expect(validateNamingAssignmentPlan(brief, research, directions)).toHaveLength(6);
+    const before = JSON.stringify(directions);
+    for (const partIndex of [0, 3, 6]) {
+      const assignment = createProgressiveNamingAssignment({ runId: id(3), snapshot: brief, partIndex, approach: "other_languages", targetCount: 4, research, guidance: directions });
+      expect(assignment.constructionKey).toBe("supported-root"); expect(assignment.sourceKeys).toEqual(["source-one"]);
+      expect(assignment.sources.every(source => source.evidenceStatus === "retrieved")).toBe(true);
+    }
+    expect(JSON.stringify(directions)).toBe(before);
+    const unsupported = namingAssignmentPlanSchema.parse({ ...directions, output: { ...directions.output,
+      assignments: directions.output.assignments.filter(row => row.assignmentKey !== "retrieved-direction") } });
+    expect(() => createProgressiveNamingAssignment({ runId: id(3), snapshot: brief, partIndex: 0, approach: "other_languages", targetCount: 4, research, guidance: unsupported })).toThrow("progressive_factual_context_required");
   });
 
   it("reserves selected routes while three active parts diversify their primary credits", () => {

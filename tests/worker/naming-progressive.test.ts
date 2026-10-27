@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { namingBrainJobInputSchema, namingProviderReceiptSchema, type NamingModelOutput, type NamingResearchPack, type NamingRoleOutput, type NamingStageOutcome, type NamingStageRequest } from "../../src/domain/naming-brain";
 import type { NamingApproach } from "../../src/domain/naming-brain-preferences";
+import { NAMING_PROGRESSIVE_FACTUAL_APPROACHES } from "../../src/domain/naming-brain-progressive";
 import { directorApproaches, syntheticLegacyDirectorOutput } from "../fixtures/naming-director-allocation";
 import { executeProgressiveNaming, hasSettledProgressiveDirectorFailure } from "../../worker/handlers/naming-progressive";
 import { createNamingBrainHandlers } from "../../worker/handlers/naming-brain";
@@ -32,8 +33,10 @@ function fixture(approaches?: NamingApproach[], capped = false) {
     if (suppliedOutput) output = suppliedOutput;
     else if (request.input.role === "researcher") output = { role: "researcher", territories: [{ territoryId: "objects", title: "Objects", direction: "Unexpected everyday objects.", sourceKeys: [] }, { territoryId: "rhythm", title: "Rhythm", direction: "Distinct rhythm and texture.", sourceKeys: [] }], facts: [], interpretations: [], uncertainties: [] };
     else if (request.input.role === "director") {
-      const future = request.policy.progressiveContractVersion !== undefined, approaches = input.snapshot.preferences.approaches;
-      output = { role: "director", round: "initial", assignments: Array.from({ length: future ? 15 : approaches.length }, (_, index) => ({ assignmentKey: future ? `guide-${index}` : `guide-${approaches[index]}`, primaryApproach: approaches[index % approaches.length]!, additionalApproaches: [], territoryId: index ? "rhythm" : "objects", constructionKey: `guide-${index}`, direction: "Explore varied, unexpected associations.", targetCount: future ? 10 : 75, sourceKeys: [], avoidPatterns: [], freshTerritory: true })), feedbackHypotheses: [] };
+      const future = request.policy.progressiveContractVersion !== undefined, evidence = request.policy.progressiveContractVersion === 5;
+      const selected = input.snapshot.preferences.approaches, approaches = evidence ? selected.filter(approach => !NAMING_PROGRESSIVE_FACTUAL_APPROACHES.has(approach)) : selected;
+      const unavailable = selected.filter((approach): approach is "other_languages" | "classical_roots" | "people_places" | "stories_culture" => NAMING_PROGRESSIVE_FACTUAL_APPROACHES.has(approach));
+      output = { role: "director", round: "initial", ...(evidence ? { planVersion: 2, unavailableApproaches: unavailable.map(approach => ({ approach, reason: "no_retrieved_evidence" as const, explanation: "Synthetic research retained no passages for this factual route.", inspectedSourceKeys: [] })) } : {}), assignments: Array.from({ length: approaches.length ? future ? 15 : approaches.length : 0 }, (_, index) => ({ assignmentKey: future ? `guide-${index}` : `guide-${approaches[index]}`, primaryApproach: approaches[index % approaches.length]!, additionalApproaches: [], territoryId: index ? "rhythm" : "objects", constructionKey: `guide-${index}`, direction: "Explore varied, unexpected associations.", targetCount: future ? 10 : 75, sourceKeys: [], avoidPatterns: [], freshTerritory: true })), feedbackHypotheses: [] };
     }
     else if (request.input.role === "creator") {
       const assignment = request.input.assignment;
@@ -127,6 +130,25 @@ describe("Progressive Naming reviewed publication", () => {
     expect(new Set(value.calls.map(call => call.providerCallKey)).size).toBe(value.calls.length);
   });
 
+  it("freezes new uncapped requests with contract5 without adding a provider cap", async () => {
+    const value = fixture();
+    expect((await value.run()).complete).toBe(true);
+    expect(value.calls.length).toBeGreaterThan(0);
+    expect(value.calls.every(request => request.policy.progressiveContractVersion === 5 && request.policy.providerSpendCapCents === undefined)).toBe(true);
+  });
+
+  it("stops new contract5 calls at95 when one factual route has no evidence, preserving its credits", async () => {
+    const value = fixture(["real_words", "classical_roots"]);
+    const first = await value.run();
+    expect(first.complete).toBe(false); expect(first.unavailableApproaches).toMatchObject([{ approach: "classical_roots", reason: "no_retrieved_evidence" }]);
+    expect(value.state.publishedCount).toBe(95);
+    expect(value.state.primaryCounts).toEqual([{ approach: "real_words", count: 95 }, { approach: "classical_roots", count: 0 }]);
+    const creators = value.calls.filter(request => request.input.role === "creator");
+    expect(creators.reduce((sum, request) => sum + (request.input.role === "creator" ? request.input.assignment.targetCount : 0), 0)).toBe(95);
+    const count = value.calls.length, plans = structuredClone(value.state.plannedRequests);
+    expect((await value.run()).complete).toBe(false); expect(value.calls).toHaveLength(count); expect(value.state.plannedRequests).toEqual(plans);
+  });
+
   it("publishes the first genuine Creator+Curator part before Research or the other parts finish", async () => {
     const value = fixture(), research = deferred(), others = deferred(), first = deferred();
     value.setBeforeCall(async request => { if (request.role === "researcher") await research.promise; if (request.role === "creator" && request.providerCallKey !== "part001.creation.creator") await others.promise; });
@@ -157,11 +179,13 @@ describe("Progressive Naming reviewed publication", () => {
   it("reuses the exact saved unissued request when background Director context arrived before reclaim", async () => {
     const value = fixture(); await value.run();
     const assignment = createProgressiveNamingAssignment({ runId: value.input.runId, snapshot: value.input.snapshot, partIndex: 30, approach: "real_words", targetCount: 4 });
-    const request = createNamingRoleRequest({ runId: value.input.runId, stageKey: "creation", providerCallKey: "part031.creation.creator", input: { role: "creator", snapshot: value.input.snapshot, assignment }, dependencyArtifactIds: [], policy: createProgressiveNamingRolePolicy(value.input.policy, "creator", undefined, undefined, true) });
+    const request = createNamingRoleRequest({ runId: value.input.runId, stageKey: "creation", providerCallKey: "part031.creation.creator", input: { role: "creator", snapshot: value.input.snapshot, assignment }, dependencyArtifactIds: [], policy: createProgressiveNamingRolePolicy(value.input.policy, "creator", undefined, undefined, true, 3) });
+    const original = structuredClone(request);
     await value.store.saveProgressiveCallPlan(value.job, "part031.creation", [request]);
     value.state.publishedCount = 96; value.state.primaryCounts[0]!.count -= 4; value.calls.length = 0;
     expect((await value.run()).complete).toBe(true);
     expect(value.calls.find(row => row.providerCallKey === request.providerCallKey)).toEqual(request);
+    expect(request).toEqual(original); expect(request.policy.progressiveContractVersion).toBe(3);
     expect(value.state.plannedRequests.filter(row => row.providerCallKey === request.providerCallKey)).toHaveLength(1);
   });
 
@@ -176,11 +200,13 @@ describe("Progressive Naming reviewed publication", () => {
     expect(value.state.plannedRequests).toHaveLength(previous); expect(value.state.publishedCount).toBe(100);
   });
 
-  it("requires actual Research tool use before final completion", async () => {
+  it("rejects a changed Research receipt before trusting its saved evidence plan", async () => {
     const value = fixture(); await value.run();
     const index = value.state.stage.artifacts.findIndex(row => row.output.role === "researcher");
     value.state.stage.artifacts[index] = { ...value.state.stage.artifacts[index]!, providerReceipt: { ...value.state.stage.artifacts[index]!.providerReceipt, toolCalls: [] } } as NamingRoleOutput;
-    expect((await value.run()).complete).toBe(false);
+    const before = value.calls.length;
+    await expect(value.run()).rejects.toThrow("progressive_evidence_plan_binding_mismatch");
+    expect(value.calls).toHaveLength(before);
   });
 
   it.each(["failed", "cancelled", "provider_output_invalid"] as const)("retains genuine optional Director %s while independently reviewed creative names complete", async failure => {
@@ -301,5 +327,6 @@ it("selects capped requests only for the new immutable job witness", async () =>
  expect(await f.run()).toMatchObject({ complete: true });
  expect(f.calls.length).toBeGreaterThan(0);
  expect(f.calls.every(call => call.policy.providerSpendCapCents === call.policy.sessionLimitCents)).toBe(true);
+ expect(f.calls.every(call => call.policy.progressiveContractVersion === 3)).toBe(true);
  expect(f.calls.reduce((sum, call) => sum + call.policy.providerSpendCapCents!, 0)).toBeLessThanOrEqual(500);
 });

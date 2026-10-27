@@ -1,0 +1,13 @@
+**
+!Containerfile
+!.dockerignore
+!dist
+!dist/index.js
+!dist/raster.js
+!dist/text.js
+!dist/render.js
+!dist/package.json
+!dist/build-manifest.json
+!dist/runtime-manifest.json
+!node_modules
+!node_modules/**

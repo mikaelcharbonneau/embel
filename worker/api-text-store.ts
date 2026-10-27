@@ -6,14 +6,20 @@ import type { JobStore, PlannedStep } from "./runner";
 
 const dispositionSchema = z.object({
   disposition: z.enum(["claimed", "available", "busy", "terminal", "unavailable", "not_found"]),
-  state: z.union([jobStatusSchema, z.literal("not_found"), z.literal("unavailable")]), job: z.unknown().optional(),
+  state: z.union([jobStatusSchema, z.literal("not_found"), z.literal("unavailable")]), job: z.unknown().optional(), executionAuthority: z.unknown().optional(),
 });
+const uncappedAuthoritySchema = z.strictObject({ version: z.literal(1), contract: z.literal("hosted_strategy_owner_uncapped_v1"),
+  jobId: z.uuid(), ownerId: z.uuid(), projectId: z.uuid(), leaseToken: z.uuid(), inputHash: z.string().regex(/^[a-f0-9]{64}$/u),
+  policyIdentity: z.string().regex(/^[a-f0-9]{64}$/u), roleOid: z.number().int().positive(), generation: z.number().int().positive(), revision: z.number().int().positive() });
+const sharedUncappedAuthoritySchema=uncappedAuthoritySchema.omit({contract:true,revision:true}).extend({contract:z.literal("hosted_strategy_shared_uncapped_v1"),
+  slotId:z.uuid(),instanceId:z.uuid(),executionId:z.uuid(),executionToken:z.uuid()});
 export type ApiTextClaimDisposition = z.infer<typeof dispositionSchema>;
 
 /** Never exposes generic claim/expiry. Shared mutations retain their existing lease fences. */
 export class ApiTextJobStore implements JobStore {
   private readonly shared: PostgresJobStore;
   lastClaim: ApiTextClaimDisposition | null = null;
+  private readonly uncappedClaims = new WeakSet<ClaimedJob>();
   constructor(private readonly database: JobDatabase, private readonly message: ApiTextDispatchMessage,
     private readonly deploymentId: string, private readonly operation: string) {
     this.shared = new PostgresJobStore(database);
@@ -29,8 +35,17 @@ export class ApiTextJobStore implements JobStore {
     if (job.id !== this.message.jobId || job.operation !== this.operation || job.status !== "running" || result.state !== "running") {
       throw new Error("Claim binding mismatch");
     }
+    const input = z.object({ version: z.literal(3), spendControl: z.literal("uncapped"), policyIdentity: z.string() }).safeParse(job.input);
+    if (input.success || result.executionAuthority !== undefined) {
+      const authority = z.union([uncappedAuthoritySchema,sharedUncappedAuthoritySchema]).parse(result.executionAuthority);
+      if (!input.success || authority.jobId !== job.id || authority.ownerId !== job.ownerId || authority.projectId !== job.projectId ||
+        authority.leaseToken !== job.leaseToken || authority.inputHash !== z.object({ input_hash: z.string() }).parse(result.job).input_hash || authority.policyIdentity !== this.message.policyIdentity ||
+        input.data.policyIdentity !== authority.policyIdentity) throw new Error("Uncapped Strategy claim binding mismatch");
+      this.uncappedClaims.add(job);
+    }
     return job;
   }
+  hasUnmeteredExecutionAuthority(job: ClaimedJob) { return this.uncappedClaims.has(job); }
   async authorizeDispatch(job: ClaimedJob, stepKey: string): Promise<void> {
     const result = await this.database.query("select public.authorize_api_text_dispatch($1, $2, $3, $4, $5) as authorized",
       [job.id, job.leaseToken, stepKey, this.message.policyIdentity, this.deploymentId]);

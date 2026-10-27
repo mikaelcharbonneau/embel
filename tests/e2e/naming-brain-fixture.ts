@@ -63,6 +63,7 @@ export async function namingFixture(page: Page, options: { saved?: boolean; coun
     if (state.owner !== ownerId) return reply(route, {}, state.owner ? 404 : 401);
     const failure = state.failOnce?.path === path && method !== "GET" ? state.failOnce : null;
     if (failure) { state.failOnce = null; if (!failure.afterSave) return reply(route, {}, failure.status); }
+    if (path === "/api/account/profile") return reply(route, { profile: { ownerId, email: "synthetic@example.test", revision: 0, updatedAt: null, values: { fullName: "", timeZone: "UTC", dateFormat: "friendly" } } });
     if (path === "/api/names/workspace") return reply(route, { ownerId, workspace: null });
     if (path === "/api/names/ai") return reply(route, { ownerId, availability: { status: "unavailable", reason: "setup_required" }, jobs: [], hasMore: false });
     if (path === "/api/projects/page") return reply(route, { ownerId, items: [accountProjectSummarySchema.parse(state.project)], nextCursor: null });
@@ -157,7 +158,7 @@ export async function finishNamingChat(page: Page) {
     // A final submit may intentionally expire the account in a 401 fixture.
     // Treat removal as a transition, while the calling test still verifies the
     // exact pending request and explicit recovery behavior.
-    await expect.poll(async () => { const heading = page.locator("#project-naming-preferences-heading"); return await heading.count() ? await heading.textContent() : null; }).not.toBe(question);
+    await expect.poll(async () => { return page.locator("#project-naming-preferences-heading").evaluateAll(nodes => nodes[0]?.textContent ?? null); }).not.toBe(question);
   }
 }
 export async function editNamingApproaches(page: Page) {

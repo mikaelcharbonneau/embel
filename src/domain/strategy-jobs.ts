@@ -62,7 +62,13 @@ export const enqueueSubscriptionJobSchema = z.strictObject({
   idempotencyKey: z.string().min(16).max(128).regex(/^[A-Za-z0-9._:-]+$/), billingMode: z.literal("chatgpt_subscription"),
   acceptedPolicyIdentity: subscriptionPolicyIdentitySchema,
 });
-export const enqueueStrategyJobSchema = z.union([enqueueAPIJobSchema, enqueueSubscriptionJobSchema]);
+export const enqueueUncappedStrategyJobSchema = z.strictObject({
+  operation: strategyOperationSchema, expectedRevision: z.number().int().positive(),
+  idempotencyKey: z.string().min(16).max(128).regex(/^[A-Za-z0-9._:-]+$/),
+  billingMode: z.literal("openai_api"), spendControl: z.literal("uncapped"),
+  acceptedPolicyIdentity: subscriptionPolicyIdentitySchema,
+});
+export const enqueueStrategyJobSchema = z.union([enqueueAPIJobSchema, enqueueSubscriptionJobSchema, enqueueUncappedStrategyJobSchema]);
 export type EnqueueStrategyJob = z.infer<typeof enqueueStrategyJobSchema>;
 
 export const strategyUsageSchema = z.strictObject({
@@ -177,10 +183,12 @@ const apiJobInputFields = { context: contextSnapshotSchema, policy: strategyJobP
 export const strategyJobInputSchema = z.discriminatedUnion("version", [
   z.strictObject({ version: z.literal(1), ...apiJobInputFields }),
   z.strictObject({ version: z.literal(2), ...apiJobInputFields, assistantHistory: strategyAssistantHistorySchema }),
+  z.strictObject({ version: z.literal(3), context: contextSnapshotSchema, policy: strategyJobPolicySchema,
+    assistantHistory: strategyAssistantHistorySchema, spendControl: z.literal("uncapped"), policyIdentity: subscriptionPolicyIdentitySchema }),
 ]).superRefine((input, ctx) => {
-  if (input.acceptedMaxCostMicrousd < input.policy.maximumCostMicrousd) ctx.addIssue({ code: "custom", path: ["acceptedMaxCostMicrousd"], message: "Accepted cost must cover the approved reservation" });
-  if ((input.policy.version === 2) !== (input.version === 2)) ctx.addIssue({ code: "custom", path: ["version"], message: "Guided policies require versioned frozen assistant history" });
-  if (input.version === 2 && !input.context.intake.guidedInterview?.turns.length) ctx.addIssue({ code: "custom", path: ["context", "intake", "guidedInterview"], message: "A guided request requires an interview turn" });
+  if (input.version !== 3 && input.acceptedMaxCostMicrousd < input.policy.maximumCostMicrousd) ctx.addIssue({ code: "custom", path: ["acceptedMaxCostMicrousd"], message: "Accepted cost must cover the approved reservation" });
+  if ((input.policy.version === 2) !== (input.version >= 2)) ctx.addIssue({ code: "custom", path: ["version"], message: "Guided policies require versioned frozen assistant history" });
+  if (input.version >= 2 && !input.context.intake.guidedInterview?.turns.length) ctx.addIssue({ code: "custom", path: ["context", "intake", "guidedInterview"], message: "A guided request requires an interview turn" });
 });
 export type StrategyJobInput = z.infer<typeof strategyJobInputSchema>;
 const subscriptionJobInputFields = { billingMode: z.literal("chatgpt_subscription"), context: contextSnapshotSchema, policy: chatGPTStrategyPolicySchema };
@@ -200,7 +208,8 @@ const jobSummaryFields = {
   cancel_requested_at: z.string().nullable(),
   created_at: z.string(), finished_at: z.string().nullable(),
 };
-const apiJobSummarySchema = z.object({ ...jobSummaryFields, dispatchState: z.enum(["published", "dispatch_pending", "already_processing"]).optional(), canRetryDelivery: z.boolean().optional(), billingMode: z.literal("openai_api").optional(), reserved_cost_microusd: moneySchema, actual_cost_microusd: moneySchema });
+const apiJobSummarySchema = z.object({ ...jobSummaryFields, dispatchState: z.enum(["published", "dispatch_pending", "already_processing"]).optional(), canRetryDelivery: z.boolean().optional(), billingMode: z.literal("openai_api").optional(), reserved_cost_microusd: moneySchema, actual_cost_microusd: moneySchema,
+  spendControl: z.literal("uncapped").optional(), policyIdentity: subscriptionPolicyIdentitySchema.optional() }).refine(job => (job.spendControl === "uncapped") === (job.policyIdentity !== undefined), "Uncapped summaries require the exact policy identity");
 const subscriptionJobSummarySchema = z.object({ ...jobSummaryFields, billingMode: z.literal("chatgpt_subscription"), policyIdentity: subscriptionPolicyIdentitySchema, partialText: z.string().max(1_048_576).optional() });
 export const strategyJobSummarySchema = z.union([apiJobSummarySchema, subscriptionJobSummarySchema]);
 /** Server-owned proof of the exact immutable result accepted into a revision. */
@@ -215,7 +224,7 @@ export type StrategyJobApplication = z.infer<typeof strategyJobApplicationSchema
 const resultFields = {
   results: z.array(z.strictObject({ stepKey: z.string().min(1).max(200), output: strategyJobResultSchema, application: strategyJobApplicationSchema.optional() })).max(20),
 };
-export const strategyJobSchema = z.union([apiJobSummarySchema.extend(resultFields), subscriptionJobSummarySchema.extend(resultFields)]).superRefine((job, ctx) => {
+export const strategyJobSchema = z.union([apiJobSummarySchema.safeExtend(resultFields), subscriptionJobSummarySchema.extend(resultFields)]).superRefine((job, ctx) => {
   if (job.results.some(result => result.output.operation !== job.operation)) {
     ctx.addIssue({ code: "custom", path: ["results"], message: "Result operation must match the job" });
   }
@@ -236,6 +245,7 @@ export const strategyAvailabilitySchema = z.strictObject({
   status: z.enum(["available", "unavailable"]),
   operations: z.array(z.union([
     z.strictObject({ operation: strategyOperationSchema, maximumCostMicrousd: moneySchema, billingMode: z.literal("openai_api").optional(), interviewVersion: z.literal(1).optional() }),
+    z.strictObject({ operation: strategyOperationSchema, billingMode: z.literal("openai_api"), spendControl: z.literal("uncapped"), policyIdentity: subscriptionPolicyIdentitySchema, interviewVersion: z.literal(1) }),
     z.strictObject({ operation: strategyOperationSchema, billingMode: z.literal("chatgpt_subscription"), policyIdentity: subscriptionPolicyIdentitySchema, limits: subscriptionLimitsSchema }),
   ])).max(5),
   reason: z.enum(["runtime_disabled", "worker_unavailable", "budget_unavailable", "subscription_unavailable", "quota_unavailable", "request_unresolved", "request_active"]).optional(),

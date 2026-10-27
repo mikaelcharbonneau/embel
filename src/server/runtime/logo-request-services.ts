@@ -4,6 +4,7 @@ import { getLogoWorkspace } from "@/server/data/logo-workspace";
 import { logoId, logoOwner } from "@/server/data/logo-transaction";
 import { ApiError } from "@/server/http/errors";
 import { createLogoServices, type LogoServiceDependencies } from "./logo-services";
+import { sharedAccountHttpConfigured, resolveSharedLogoRequestServices } from "../shared-account/bootstrap";
 
 export type LogoRequestServiceDependencies = Omit<LogoServiceDependencies, "worker">;
 export type LogoRequestServiceResolution = {
@@ -42,7 +43,7 @@ export async function resolveLogoRequestServices(auth: AuthenticatedContext, pro
   const ownerId = logoOwner(auth);
   projectId = logoId(projectId);
   active(signal);
-  const resolve = Reflect.get(globalThis, RESOLVER) as LogoRequestServiceResolver | undefined;
+  const resolve = sharedAccountHttpConfigured() ? resolveSharedLogoRequestServices : Reflect.get(globalThis, RESOLVER) as LogoRequestServiceResolver | undefined;
   if (!resolve) return createLogoServices(null);
   await getLogoWorkspace(auth, projectId, signal);
   active(signal);

@@ -4,7 +4,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { z } from 'zod';
 import type { ClaimedJob } from '../../../domain/jobs';
 import { logoVectorProposalContextSchema, logoVectorProposalPayloadSchema, logoVectorProposalRequestSchema, type LogoVectorProposalContext } from '../../../domain/logo-vector-proposals';
-import { logoVectorProposalJobInputSchema, logoVectorProposalTextPolicySchema, logoVectorProposalUsageSchema, logoVectorProposalUsageCost, type LogoVectorProposalProviderObservation, type LogoVectorProposalTextPolicy } from '../../../domain/logo-vector-proposal-jobs';
+import { logoVectorProposalJobInputSchema, logoVectorProposalReservation, logoVectorProposalTextPolicySchema, logoVectorProposalUsageSchema, logoVectorProposalUsageCost, type LogoVectorProposalProviderObservation, type LogoVectorProposalTextPolicy } from '../../../domain/logo-vector-proposal-jobs';
 import { LOGO_VECTOR_PROPOSAL_RETAINED_BYTES, logoVectorProposalProviderResultSchema, type LogoVectorProposalObservedResult, type LogoVectorProposalProviderResult, type LogoVectorProposalRetainedOutput } from '../../../domain/logo-vector-proposal-evidence';
 import { createOpenAIResponsesTransport, OpenAITransportError, type OpenAIResponsesTransport, type ResponsesRequest } from '../../../server/ai/openai-transport';
 import { validateLogoVectorProposal } from '../model/proposal';
@@ -153,7 +153,7 @@ export function createLogoVectorProposalProvider(options: LogoVectorProposalProv
    const parsedPolicy = logoVectorProposalTextPolicySchema.parse(rawPolicy); if (!isDeepStrictEqual(parsedPolicy, policy)) throw unavailable();
    context = logoVectorProposalContextSchema.parse(rawContext); claim = freeze(structuredClone(dispatch.job));
    const input = logoVectorProposalJobInputSchema.parse(claim.input);
-   if (claim.operation !== configuration.operation || claim.ownerId !== input.ownerId || claim.projectId !== input.projectId || claim.ownerId !== context.ownerId || claim.projectId !== context.projectId || input.baseVectorRevisionId !== context.baseVectorRevisionId || !isDeepStrictEqual(input.targetComponentIds, context.targetComponentIds) || input.instruction !== instruction || !isDeepStrictEqual(input.textPolicy, policy) || claim.reservedCostMicrousd !== policy.maximumCostMicrousd || claim.actualCostMicrousd !== 0 || typeof dispatch.beforeDispatch !== 'function') throw unavailable();
+   if (claim.operation !== configuration.operation || claim.ownerId !== input.ownerId || claim.projectId !== input.projectId || claim.ownerId !== context.ownerId || claim.projectId !== context.projectId || input.baseVectorRevisionId !== context.baseVectorRevisionId || !isDeepStrictEqual(input.targetComponentIds, context.targetComponentIds) || input.instruction !== instruction || !isDeepStrictEqual(input.textPolicy, policy) || claim.reservedCostMicrousd !== logoVectorProposalReservation(policy) || claim.actualCostMicrousd !== 0 || typeof dispatch.beforeDispatch !== 'function') throw unavailable();
    request = createLogoVectorProposalRequest(context, instruction, policy);
    executionSignal = AbortSignal.any([signal, AbortSignal.timeout(policy.deadlineMs)]);
    fence(); await dispatch.beforeDispatch(structuredClone(claim)); executionSignal.throwIfAborted();

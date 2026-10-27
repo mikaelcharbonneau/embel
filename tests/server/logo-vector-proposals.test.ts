@@ -20,7 +20,7 @@ describe('disabled vector proposal operation recognition', () => {
 });
 
 import { createLogoVectorProposalService } from '@/server/data/logo-vector-proposals';
-import { logoVectorProposalTextPolicySchema, logoVectorProposalProviderObservationSchema, logoVectorProposalRecordSchema, logoVectorProposalUsageCost } from '@/domain/logo-vector-proposal-jobs';
+import { legacyLogoVectorProposalTextPolicySchema as logoVectorProposalTextPolicySchema, logoVectorProposalProviderObservationSchema, logoVectorProposalRecordSchema, logoVectorProposalUsageCost } from '@/domain/logo-vector-proposal-jobs';
 import type { AuthenticatedContext } from '@/server/auth/context';
 import { proposalPolicy, proposalObservation, proposalRecord } from './logo-vector-proposal-fixtures';
 const auth = (rpc: (...args: unknown[]) => unknown) => ({ userId: proposalId(1), client: { rpc } }) as unknown as AuthenticatedContext;
@@ -75,7 +75,7 @@ describe('read-only owned proposal DAL', () => {
  });
 });
 
-import { logoCostQuoteSchema } from '@/domain/logo-jobs';
+import { legacyLogoCostQuoteSchema as logoCostQuoteSchema } from '@/domain/logo-jobs';
 it('a text quote cannot inherit image or subscription policy identity', () => {
  const quote = { id: proposalId(71), ownerId: proposalId(1), projectId: proposalId(2), request, inputHash: 'a'.repeat(64), expected: request.expected, policyIdentity: 'b'.repeat(64), handlerVersion: 'logo-vector-propose-v1', provider: 'openai', model: 'gpt-6.1-sol', engine: null, estimatedCostMicrousd: 122880, maxCostMicrousd: 122880, externalProviderCostMicrousd: 122880, expiresAt: '2026-10-08T12:00:00Z', conceptPlan: null, targetSlotIds: [] };
  expect(logoCostQuoteSchema.safeParse(quote).success).toBe(false);

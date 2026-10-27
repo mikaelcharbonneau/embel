@@ -14,6 +14,7 @@ import { quoteNamingResponses, type ResponsesInputQualification } from "./budget
 function outputSchema(input: NamingStageInput) {
   if (input.role === "director") {
     const allocation = input.allocation ?? createNamingDirectorAllocation();
+    if (allocation.version !== 1) throw new Error("responses_evidence_planning_unavailable");
     return namingAssignmentOutputSchema.safeExtend({ round: z.literal("initial"), assignments: z.array(namingCreatorAssignmentSchema.safeExtend({
       primaryApproach: z.enum(input.snapshot.preferences.approaches), targetCount: z.literal(allocation.targetCountPerAssignment),
     })).length(allocation.assignmentCount) });

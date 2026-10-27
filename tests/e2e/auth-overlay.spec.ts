@@ -19,7 +19,7 @@ test("auth overlay: keyboard, history and backdrop preserve the underlying works
   await signedOut(page);
   await page.goto("/settings");
   await page.getByRole("tab", { name: "Notifications", exact: true }).click();
-  const { dialog, trigger } = await openOverlay(page);
+  const { dialog } = await openOverlay(page);
   await expect(page.locator(".app-shell")).toHaveClass(/concept-settings/);
   await expect(page.getByRole("tab", { name: "Notifications", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(dialog.getByLabel("Password", { exact: true })).toHaveAttribute("autocomplete", "current-password");
@@ -33,12 +33,37 @@ test("auth overlay: keyboard, history and backdrop preserve the underlying works
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await expect(page).toHaveURL(/\/settings$/);
-  await expect(trigger).toBeFocused();
+  await expect(page.locator(".workspace-account-menu > summary")).toBeVisible();
+  await expect(page.locator(".workspace-account-menu > summary")).toBeFocused();
+  await expect(page.locator(".workspace-account-menu")).not.toHaveAttribute("open", "");
   await page.goForward();
   await expect(dialog).toBeVisible();
   await page.mouse.click(2, 2);
   await expect(dialog).toHaveCount(0);
   await expect(page.getByRole("tab", { name: "Notifications", exact: true })).toHaveAttribute("aria-selected", "true");
+});
+
+test("auth overlay: closing returns focus to a visible Home opener without changing the prompt", async ({ page }) => {
+  await signedOut(page); await page.goto("/");
+  const prompt = page.getByRole("textbox", { name: "Your prompt", exact: true });
+  await prompt.fill("A neighborhood workshop for learning practical repair skills.");
+  const trigger = page.locator(".conversation-start-notice").getByRole("link", { name: "Sign in", exact: true });
+  await trigger.click();
+  const dialog = page.getByRole("dialog", { name: "Sign in to Embel", exact: true });
+  await expect(dialog).toBeVisible(); await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0); await expect(trigger).toBeVisible(); await expect(trigger).toBeFocused();
+  await expect(prompt).toHaveValue("A neighborhood workshop for learning practical repair skills.");
+});
+
+test("auth overlay: closed-menu focus restoration works without checkVisibility", async ({ page }) => {
+  await page.addInitScript(() => { Object.defineProperty(Element.prototype, "checkVisibility", { configurable: true, value: undefined }); });
+  await signedOut(page); await page.goto("/settings");
+  const { dialog } = await openOverlay(page);
+  await page.keyboard.press("Escape"); await expect(dialog).toHaveCount(0);
+  const menu = page.locator(".workspace-account-menu");
+  await expect(menu).not.toHaveAttribute("open", "");
+  await expect(menu.locator(":scope > summary")).toBeVisible();
+  await expect(menu.locator(":scope > summary")).toBeFocused();
 });
 
 test("auth overlay: continuation clears the slot; direct visits and reloads use the standalone card", async ({ page }, testInfo) => {
@@ -100,6 +125,10 @@ test("auth overlay: pending dismissal retains the global cookie-mutation fence a
   await expect(dialog).toHaveCount(0);
   expect(await detachedPassword?.evaluate(element => (element as HTMLInputElement).value)).toBe("");
   await expect(page).toHaveURL(/\/settings$/);
+  const accountSummary = page.locator(".workspace-account-menu > summary");
+  await expect(accountSummary).toBeVisible();
+  await expect(accountSummary).toBeFocused();
+  await accountSummary.click();
   await expect(page.locator(".workspace-account-menu").getByRole("button", { name: "Signing in…", exact: true })).toBeDisabled();
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   expect(sessionReads).toBe(before);

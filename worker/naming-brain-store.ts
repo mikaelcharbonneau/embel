@@ -57,7 +57,7 @@ function assertCurrentReceipts(stage: Pick<NamingSavedStage, "receipts" | "curre
     || stage.currentReceipts.some(row => !history.has(JSON.stringify(row)))) throw new Error("naming_current_receipt_mismatch");
 }
 export type NamingGapPhase = "direction" | "creation" | "curation" | "verification";
-const executionAuthoritySchema = z.enum(["local_owner_v1", "hosted_owner_v1"]).nullable();
+const executionAuthoritySchema = z.enum(["local_owner_v1", "hosted_owner_v1", "shared_slot_v1"]).nullable();
 type NamingExecutionAuthority = z.infer<typeof executionAuthoritySchema>;
 
 /** Reconstruct the established derived key after PostgreSQL JSONB serialization; substantive data is unchanged. */
@@ -79,6 +79,7 @@ export class NamingBrainJobStore implements JobStore {
   private readonly observedOnly = new Set<string>();
   private readonly stoppedJobs = new Set<string>();
   private readonly cancellationListeners = new Map<string, Set<() => void>>();
+  private readonly publicationTails = new Map<string, Promise<void>>();
   constructor(private readonly database: JobDatabase, readonly deploymentId: string,
     private readonly maintenanceAuthority?: () => NamingMaintenanceAuthority | null) {}
   private async rpc(name: "get_naming_brain_preference_work" | "attest_naming_brain_preferences" | "report_naming_brain_worker_ready" | "report_naming_brain_worker_status" | "naming_brain_worker_maintenance_v2" | "claim_naming_brain_job" | "expire_naming_brain_leases" | "naming_brain_worker_action" | "authorize_naming_brain_dispatch" | "record_naming_brain_provider_receipt" | "complete_naming_brain_stage", values: unknown[]): Promise<unknown> {
@@ -129,7 +130,7 @@ export class NamingBrainJobStore implements JobStore {
     const parsed = z.object({ mode: z.enum(["execute", "observe_only"]), executionAuthority: executionAuthoritySchema.optional(), job: z.object({ billing_mode: z.literal("openai_api") }).passthrough() }).parse(raw);
     const job = parseClaimedJob(parsed.job), input = jobInput(job), authority = parsed.executionAuthority ?? null;
     if (!["running", "cancel_requested"].includes(job.status)) throw new Error("naming_claim_state_invalid");
-    if ((input.executionAuthority === "hosted_owner_v1") !== (authority === "hosted_owner_v1")
+    if ((input.executionAuthority === "hosted_owner_v1") !== (authority === "hosted_owner_v1" || authority === "shared_slot_v1")
       || authority === null && (input.localTimingVersion !== undefined || input.localPipelineVersion !== undefined)) throw new Error("naming_execution_authority_mismatch");
     this.claimedAuthorities.set(job.id, { leaseToken: job.leaseToken, inputHash: namingHash(input), authority });
     if (parsed.mode === "observe_only") this.observedOnly.add(job.id); else this.observedOnly.delete(job.id);
@@ -226,8 +227,24 @@ export class NamingBrainJobStore implements JobStore {
   async publishMicrobatch(job: ClaimedJob, input: NamingMicrobatchInput, signal: AbortSignal) {
     if (jobInput(job).localPipelineVersion !== 2) throw new Error("naming_progressive_scope_mismatch");
     const payload = namingMicrobatchInputSchema.parse(input);
-    await this.identities(job, payload.candidates.map(candidate => candidate.identityKey), signal);
-    return namingMicrobatchResultSchema.parse(await this.action(job, "publish_microbatch", payload));
+    const previous = this.publicationTails.get(job.id) ?? Promise.resolve();
+    let release!: () => void;
+    const tail = new Promise<void>(resolve => { release = resolve; });
+    this.publicationTails.set(job.id, tail);
+    try {
+      await previous;
+      // Only the local identity-refresh/publication sequence is serialized.
+      // Scoped RPCs recheck the SQL lease after the wait, and publication also
+      // rechecks generation/Stop. No provider work or database transaction
+      // holds this queue.
+      if (signal.aborted) throw new Error("naming_index_cancelled");
+      await this.identities(job, payload.candidates.map(candidate => candidate.identityKey), signal);
+      if (signal.aborted) throw new Error("naming_index_cancelled");
+      return namingMicrobatchResultSchema.parse(await this.action(job, "publish_microbatch", payload));
+    } finally {
+      release();
+      if (this.publicationTails.get(job.id) === tail) this.publicationTails.delete(job.id);
+    }
   }
   async finalizeProgressive(job: ClaimedJob) {
     if (jobInput(job).localPipelineVersion !== 2) throw new Error("naming_progressive_scope_mismatch");

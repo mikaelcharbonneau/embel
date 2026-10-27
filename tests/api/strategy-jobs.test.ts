@@ -72,6 +72,64 @@ describe("strategy API authorization, bounded inputs and actual durable outputs"
   });
   afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
+  it("uses the separate policy-bound managed uncapped admission without a dollar field", async () => {
+    const identity = "e".repeat(64);
+    const input = { operation: "strategy.reformulate", expectedRevision: 1, idempotencyKey: "strategy.managed.v3.inert0001", billingMode: "openai_api", spendControl: "uncapped", acceptedPolicyIdentity: identity };
+    doubles.rpc.mockResolvedValueOnce({ data: { ...job, billingMode: "openai_api", spendControl: "uncapped", policyIdentity: identity, dispatch }, error: null });
+    const response = await enqueue(request(input), params());
+    expect(response.status).toBe(202);
+    expect(doubles.rpc.mock.calls[0]).toEqual(["enqueue_managed_strategy_job", { p_project_id: projectId, p_expected_revision: 1, p_operation: "strategy.reformulate", p_idempotency_key: input.idempotencyKey, p_accepted_policy_identity: identity }]);
+    expect((await response.json()).job).toMatchObject({ billingMode: "openai_api", spendControl: "uncapped", policyIdentity: identity });
+  });
+
+  it("does not fall back to bounded admission when the managed contract is unavailable", async () => {
+    doubles.rpc.mockResolvedValue({ data: null, error: { code: "42883" } });
+    const input = { operation: "strategy.reformulate", expectedRevision: 1, idempotencyKey: "strategy.managed.v3.inert0001", billingMode: "openai_api", spendControl: "uncapped", acceptedPolicyIdentity: "e".repeat(64) };
+    const response = await enqueue(request(input), params());
+    expect(response.status).toBe(503);
+    expect(doubles.rpc.mock.calls.map(([name]) => name)).toEqual(["enqueue_managed_strategy_job"]);
+    expect(doubles.publish).not.toHaveBeenCalled();
+  });
+
+  it("uses SQL managed readiness without substituting legacy aggregate worker readiness", async () => {
+    const configured = { status: "available", operations: [{ operation: "strategy.reformulate", billingMode: "openai_api", spendControl: "uncapped", policyIdentity: "e".repeat(64), interviewVersion: 1 }] };
+    doubles.rpc.mockResolvedValueOnce({ data: configured, error: null });
+    expect(await getStrategyAvailability(await doubles.auth(), projectId)).toEqual(configured);
+    expect(doubles.readiness).not.toHaveBeenCalled();
+  });
+
+  it("roundtrips owned v3 summaries using only projected metadata on both list and single-job reads", async () => {
+    const identity = "e".repeat(64);
+    rows.jobs = [{ ...job, state: "succeeded", input_version: 3, input_spend_control: "uncapped", input_policy_identity: identity }];
+    const list = await overview(request(undefined, "GET"), params());
+    expect(list.status).toBe(200);
+    expect((await list.json()).jobs[0]).toMatchObject({ id: jobId, billingMode: "openai_api", spendControl: "uncapped", policyIdentity: identity });
+    const single = await getJob(request(undefined, "GET"), params());
+    expect(single.status).toBe(200);
+    const payload = await single.json();
+    expect(payload.job).toMatchObject({ id: jobId, billingMode: "openai_api", spendControl: "uncapped", policyIdentity: identity });
+    expect(payload.job).not.toHaveProperty("input"); expect(payload.job).not.toHaveProperty("input_version");
+    const projections = doubles.select.mock.calls.filter(([table]) => table === "jobs").map(([, columns]) => String(columns));
+    expect(projections.length).toBeGreaterThanOrEqual(2);
+    for (const columns of projections) {
+      expect(columns.split(",")).not.toContain("input");
+      expect(columns).toContain("input_version:input->version");
+      expect(columns).toContain("input_spend_control:input->>spendControl");
+      expect(columns).toContain("input_policy_identity:input->>policyIdentity");
+    }
+  });
+
+  it("refuses malformed projected v3 metadata instead of relabelling it as a bounded job", async () => {
+    rows.jobs = [{ ...job, state: "succeeded", input_version: 3, input_spend_control: "uncapped", input_policy_identity: null }];
+    const response = await getJob(request(undefined, "GET"), params());
+    expect(response.status).toBe(503);
+  });
+
+  it("rejects a request mixing new uncapped authority and a dollar consent", async () => {
+    const response = await enqueue(request({ ...enqueueInput, billingMode: "openai_api", spendControl: "uncapped", acceptedPolicyIdentity: "e".repeat(64) }), params());
+    expect(response.status).toBe(422); expect(doubles.rpc).not.toHaveBeenCalled();
+  });
+
   it("uses the explicit local database witness and durable admission without hosted publication", async () => {
     for (const key of Object.keys(process.env)) if (key === "VERCEL" || key.startsWith("VERCEL_")) vi.stubEnv(key, undefined);
     vi.stubEnv("NODE_ENV", "production"); vi.stubEnv("FLUID_RUNTIME", "local"); vi.stubEnv("FLUID_LOCAL_PROTOTYPE", "true"); vi.stubEnv("APP_ORIGIN", "http://127.0.0.1:3106");

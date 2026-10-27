@@ -5,7 +5,7 @@ vi.mock('server-only', () => ({}));
 import { asRole, createTestDatabase, OWNER_A, OWNER_B, resetFixture, type TestDatabase } from './local-supabase';
 import { directionsStorageFixture, installDirectionsStorageFixture, authUser, workerRole, sessionId } from './logo-directions-storage-fixture';
 import { vectorCapability } from './logo-production-storage-fixture';
-import { logoCostQuoteSchema, logoDispatchReceiptSchema, type LogoConceptJobInput } from '../../src/domain/logo-jobs';
+import { legacyLogoCostQuoteSchema as logoCostQuoteSchema, logoDispatchReceiptSchema, type LogoConceptJobInput } from '../../src/domain/logo-jobs';
 import { logoWorkspaceV2Schema } from '../../src/domain/logo-workspace';
 import type { IdentityAssetReservation } from '../../src/server/data/identity-asset-store';
 import { parseClaimedJob } from '../../worker/postgres-store';

@@ -131,7 +131,7 @@ describe("strict storage acknowledgements and error sanitation",()=>{
 });
 
 describe("bounded response consumption and cancellation",()=>{
- it.each<Record<string,string>>([{"content-length":"2000"},{"content-length":"1"},{"content-length":"garbage"},{"content-type":"image/png; charset=UTF-8"},{"content-type":""},{"content-encoding":"gzip"}])("rejects invalid response metadata or inconsistent byte count %o",async headers=>{
+ it.each<Record<string,string>>([{"content-length":"2000"},{"content-length":"1"},{"content-length":"garbage"},{"content-type":"image/png; charset"},{"content-type":""},{"content-encoding":"gzip"}])("rejects invalid response metadata or inconsistent byte count %o",async headers=>{
   const f=fixture({transport:async()=>new Response(bytes,{headers:{"content-type":mimeType,...headers}})});
   await expect(f.storage.read(path)).rejects.toMatchObject({code:"integration_unavailable"});
  });

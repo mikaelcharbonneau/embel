@@ -12,6 +12,7 @@ import { IdentityComponents } from "./identity-components";
 import { IdentityHistory } from "./identity-history";
 import { IdentityFreshnessNotice, IdentitySystemBoard, identitySourceLabel } from "./identity-system-board";
 import { useProjectIdentity, type IdentityReferenceHint, type ProjectIdentityController } from "./use-project-identity";
+import { IdentityGeneration } from "./identity-generation";
 
 function IdentityPreferences({ controller }: { controller: ProjectIdentityController }) {
   const { overview, preferenceValues: form, preferenceDraft: draft } = controller;
@@ -47,7 +48,7 @@ export function ProjectIdentityWorkspace({ projectId, referenceState }: { projec
   const editorContext = <>{freshness && <IdentityFreshnessNotice freshness={freshness} />}{confirmation}</>;
   return <section className="project-identity project-workbench project-systems-workspace" aria-labelledby="project-identity-title"><div className="project-workbench-canvas"><div className="identity-section-heading"><div><h2 id="project-identity-title" tabIndex={-1}>Identity systems</h2><p>Saved choices, components and version history</p></div>
     <button type="button" className="text-link" disabled={controller.loading || controller.pending} onClick={() => { void controller.refresh(); }}>{controller.loading ? "Checking saved systems…" : "Check latest"}</button></div>
-    <p className="identity-generation-gate">New system generation is unavailable.</p>
+    {controller.generation ? <IdentityGeneration identity={controller} /> : <p className="identity-generation-gate">New system generation is unavailable.</p>}
     {controller.error && <p className="identity-notice identity-error" role="alert">{controller.error}</p>}
     {controller.notice && <p className="identity-notice" role="status">{controller.notice}</p>}
     {!overview ? <p className="identity-empty" role="status">{controller.loading ? "Loading saved Identity systems…" : "Saved Identity systems are unavailable."}</p> : <>

@@ -1,5 +1,11 @@
 import "server-only";
 import { HOSTED_APPLICATION_ORIGIN } from "../runtime/hosted-application";
+import { readDevelopmentConfiguration } from "../development/config";
+
+/** Both polling routes retain SQL-owned admission and independent worker readiness. */
+export function isLocalPollingRuntime(env: Record<string, string | undefined> = process.env): boolean {
+  return isLocalPrototypeRuntime(env) || readDevelopmentConfiguration(env) !== null;
+}
 
 /** The prototype keeps normal account persistence and SQL-owned readiness while
  * using the local polling worker instead of hosted Queue publication. */

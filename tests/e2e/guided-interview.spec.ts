@@ -108,6 +108,7 @@ type FixtureState = {
   enqueueGate: Promise<void> | null;
   pendingReply: GuidedReply | null;
   runtimeUnavailable: boolean;
+  uncapped: boolean;
   unavailableReason: "worker_unavailable" | "budget_unavailable" | "request_unresolved" | "request_active";
 };
 const scenarios = new WeakMap<Page, FixtureState>();
@@ -117,15 +118,16 @@ async function fixtures(page: Page, { guided = true, seeded = false }: { guided?
   const state: FixtureState = {
     project, owner, jobs: seeded ? [completedJob(queuedJob("strategy.competitors", 1, 1), choiceReply(project.context.intake.guidedInterview!.turns[0]!))] : [],
     enqueues: [], patches: [], creates: [], cancels: [], unhandledWrites: [], externalRequests: [], snapshots: new Map([[1, project.context]]),
-    queueStatus: 202, queueReplies: 0, overviewStatus: 200, overviewReads: 0, patchStatus: 200, losePatchAcknowledgement: false, commitBeforeQueueFailure: false, dispatchPending: false, enqueueGate: null, pendingReply: null, runtimeUnavailable: false, unavailableReason: "worker_unavailable",
+    queueStatus: 202, queueReplies: 0, overviewStatus: 200, overviewReads: 0, patchStatus: 200, losePatchAcknowledgement: false, commitBeforeQueueFailure: false, dispatchPending: false, enqueueGate: null, pendingReply: null, runtimeUnavailable: false, uncapped: false, unavailableReason: "worker_unavailable",
   };
   const namingSession: NamingSession = { ownerId: owner, projectId, revision: 1, currentPreferencesVersion: 0, latestBatchSequence: 0, currentSelectionId: null, viewRevision: 1, viewState: { pane: "results", conversationOpen: true, filter: "all", query: "", visibleBatchId: null, scrollCandidateId: null, workshopCandidateId: null }, createdAt: when, updatedAt: when };
   await page.route("**/*", async route => {
     const request = route.request(), url = new URL(request.url()), path = url.pathname, method = request.method();
     if (url.hostname !== "127.0.0.1") { state.externalRequests.push(url.origin); return route.abort("blockedbyclient"); }
     if (!path.startsWith("/api/")) return route.continue();
-    const availability = state.runtimeUnavailable ? { status: "unavailable", operations: [], reason: state.unavailableReason } : { status: "available", operations };
+    const availability = state.runtimeUnavailable ? { status: "unavailable", operations: [], reason: state.unavailableReason } : { status: "available", operations: state.uncapped ? operations.map((item, index) => ({ operation: item.operation, billingMode: "openai_api", spendControl: "uncapped", policyIdentity: String(index + 1).repeat(64), interviewVersion: 1 })) : operations };
     if (path === "/api/session") return json(route, { user: { id: state.owner } });
+    if (path === "/api/account/profile") return json(route, { profile: { ownerId: state.owner, email: "synthetic@example.test", revision: 0, updatedAt: null, values: { fullName: "", timeZone: "UTC", dateFormat: "friendly" } } });
     if (path === "/api/strategy") return json(route, { availability });
     if (state.owner !== owner) return json(route, {}, 404);
     // Owner-bound read fixtures for the continuous Strategy to Naming handoff.
@@ -162,7 +164,7 @@ async function fixtures(page: Page, { guided = true, seeded = false }: { guided?
       if (state.queueStatus !== 202 && !state.commitBeforeQueueFailure) return json(route, {}, state.queueStatus);
       if (body.expectedRevision !== state.project.current_revision) return json(route, {}, 409);
       let job = state.jobs.find(item => item.operation === body.operation && item.input_revision === body.expectedRevision);
-      if (!job) { job = strategyJobSchema.parse({ ...queuedJob(body.operation, body.expectedRevision, state.jobs.length + 1), ...(state.dispatchPending ? { dispatchState: "dispatch_pending", canRetryDelivery: true } : {}) }); state.jobs.push(job); }
+      if (!job) { job = strategyJobSchema.parse({ ...queuedJob(body.operation, body.expectedRevision, state.jobs.length + 1), ...("spendControl" in body && body.spendControl === "uncapped" ? { billingMode: "openai_api", spendControl: "uncapped", policyIdentity: body.acceptedPolicyIdentity, reserved_cost_microusd: 0 } : {}), ...(state.dispatchPending ? { dispatchState: "dispatch_pending", canRetryDelivery: true } : {}) }); state.jobs.push(job); }
       if (state.enqueueGate) await state.enqueueGate;
       if (state.pendingReply) {
         job = completedJob(job, state.pendingReply);
@@ -285,6 +287,27 @@ for (const length of ["short", "long"] as const) test(`guided interview: the cha
   await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
   expect(state.creates).toHaveLength(1);
   expect(state.enqueues).toHaveLength(1);
+});
+
+test("managed Strategy fixture: Home consent survives saved research and reload without a monetary ceiling or duplicate admission", async ({ page }, info) => {
+  const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
+  const state = await fixtures(page); state.uncapped = true;
+  await openHomeAndSend(page); await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  await expect.poll(() => state.enqueues.length).toBe(1);
+  expect(state.enqueues[0]).toEqual({ operation: "strategy.competitors", expectedRevision: 1,
+    idempotencyKey: `strategy.managed.v3:${projectId}:1:strategy.competitors`, billingMode: "openai_api", spendControl: "uncapped", acceptedPolicyIdentity: "2".repeat(64) });
+  await expect(page.locator(".guided-thinking[role=status]")).toBeVisible();
+  await expect(page.locator("main")).not.toContainText(/up to \$|Reserved limit|USD per request/);
+  await page.reload(); await expect(page.locator(".guided-thinking[role=status]")).toBeVisible(); expect(state.enqueues).toHaveLength(1);
+  completeLatest(state); await expect(widget(page, "competitors")).toBeVisible();
+  await widget(page, "competitors").getByRole("checkbox").first().check();
+  await widget(page, "competitors").getByRole("button", { name: "Continue", exact: true }).click();
+  await expect.poll(() => state.enqueues.length).toBe(2);
+  expect(state.enqueues[1]).toEqual({ operation: "strategy.audience", expectedRevision: 2,
+    idempotencyKey: `strategy.managed.v3:${projectId}:2:strategy.audience`, billingMode: "openai_api", spendControl: "uncapped", acceptedPolicyIdentity: "3".repeat(64) });
+  await page.reload(); await expect(page.locator(".guided-thinking[role=status]")).toBeVisible(); expect(state.enqueues).toHaveLength(2);
+  expect(state.externalRequests).toEqual([]); expect(state.unhandledWrites).toEqual([]); expect(errors).toEqual([]);
+  await captureUiEvidence(page, info);
 });
 
 test("guided interview: Home opens the conversation and keeps the prompt and thinking mark visible until the durable result", async ({ page }, info) => {

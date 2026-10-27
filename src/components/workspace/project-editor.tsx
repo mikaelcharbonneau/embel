@@ -45,7 +45,7 @@ const homeExamples = [
 ];
 
 export function NewProjectForm({ initialScope, exampleId, home = false }: { initialScope: ProjectScope; exampleId?: string; home?: boolean }) {
-  const { session, isCurrent, expire, homeInputSession } = useAccountSession();
+  const { session, enrollment, isCurrent, expire, homeInputSession } = useAccountSession();
   const account = session.status === "ready" ? session : null;
   const example = briefExamples.find((item) => item.id === exampleId);
   const [scope, setScope] = useState(initialScope);
@@ -141,8 +141,9 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
     if (client && account) void client.getHomeAttachmentCapability(controller.signal).then(result => {
       if (result && !controller.signal.aborted && isCurrent(account)) setCapability({ fence: sessionFence, policy: result.policy, reason: result.reason });
     }).catch(() => { if (!controller.signal.aborted && isCurrent(account)) setCapability({ fence: sessionFence, policy: null, reason: "Verified file storage is unavailable. Your typed prompt stays available." }); });
-    return () => { controller.abort(); attachedRequest.current?.abort(); };
-  }, [account, client, isCurrent, sessionFence]);
+    return () => { controller.abort(); };
+  }, [account, client, isCurrent, sessionFence, enrollment?.capabilities.home_attachments]);
+  useEffect(() => () => { attachedRequest.current?.abort(); }, [sessionFence]);
   const currentCapability = capability?.fence === sessionFence ? capability : null;
   const openingHref = opening?.fence === sessionFence ? opening.href : null;
   const hiddenFiles = retainedFiles && !account;

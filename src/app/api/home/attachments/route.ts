@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     assertMutationOrigin(request);
     const auth = await getAuthenticatedContext();
     assertExpectedAccount(request, auth.userId);
-    const policy = getHomeAttachmentCapability();
+    const policy = await getHomeAttachmentCapability(auth);
     if (!policy) throw new ApiError("integration_unavailable");
     let name: string;
     const encoded = request.headers.get("x-fluid-attachment-name");

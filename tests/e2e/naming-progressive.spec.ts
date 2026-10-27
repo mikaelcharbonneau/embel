@@ -2,6 +2,42 @@ import { expect, test } from "@playwright/test";
 import { frameBarrier, id, namingCard, namingFixture, openNaming, ownerId, scrollToTail } from "./naming-brain-fixture";
 import { captureUiEvidence } from "./ui-evidence";
 
+test("Naming partial result: 85 saved names remain accessible without restarting generation", async ({ page }, info) => {
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(error.message));
+  page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
+  const fixture = await namingFixture(page, { saved: true, progressive: true });
+  const run = { ...fixture.makeRun("partial"), canResume: false, fulfillment: {
+    status: "partial" as const, targetCount: 100 as const, acceptedCount: 85, missingCount: 15,
+    coverageSatisfied: false, message: "85 of 100 names are saved. Exploration continues while the remaining names are reviewed.",
+  } };
+  fixture.add(85, run);
+  const original = structuredClone(fixture.state.rows);
+  await openNaming(page);
+  await expect(page).toHaveTitle(/Embel/);
+  const status = page.locator(".naming-generation-status");
+  await expect(status).toContainText("Incomplete exploration.");
+  await expect(status).toContainText("85 of 100 names saved.");
+  await expect(status).not.toContainText("while exploration is active");
+  await expect(status).not.toContainText("Exploration continues");
+  await expect(status.getByRole("button", { name: "Review Naming choices", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "View saved names", exact: true })).toBeVisible();
+  expect(fixture.mutations()).toHaveLength(0);
+  await page.screenshot({ path: info.outputPath("partial-85-status.png"), fullPage: true });
+  await status.getByRole("button", { name: "Review Naming choices", exact: true }).click();
+  await expect(page.locator("#project-naming-preferences-heading")).toBeFocused();
+  expect(fixture.mutations()).toHaveLength(0);
+  await page.getByRole("button", { name: "View saved names", exact: true }).click();
+  const inspect = page.getByRole("button", { name: "Inspect name Synthetic 085", exact: true });
+  await expect(inspect).toBeVisible();
+  await inspect.click();
+  await expect(page.getByRole("heading", { name: "Synthetic 085", exact: true })).toBeVisible();
+  expect(fixture.mutations()).toHaveLength(0);
+  expect(fixture.state.rows).toEqual(original);
+  expect(errors).toEqual([]);
+  await captureUiEvidence(page, info);
+});
+
 // Synthetic acknowledged API pages exercise actual production UI timing and
 // native browser events. Provider speed/quality require separate real acceptance.
 test("Naming progressive: prefetches before the300 tail and renders saved microbatches while the run remains active", async ({ page }, info) => {

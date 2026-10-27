@@ -59,6 +59,37 @@ describe("progressive Naming through the actual SDK and migrated SQL", () => {
   beforeAll(async () => { db = await createTestDatabase(); await installAuthorityFixture(db); }, 30_000);
   afterAll(async () => { await db?.close(); });
 
+  it("rejects queued sibling publications after actual versioned leadership changes", async () => {
+    const value = await seedVersionedHostedFixture(db);
+    const firstPart = await saveProgressivePart(value, 0, 4), nextPart = await saveProgressivePart(value, 1, 4);
+    const action = value.store.action.bind(value.store);
+    let atFinalize!: () => void, release!: () => void, paused = false;
+    const indexed = new Promise<void>(resolve => { atFinalize = resolve; });
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const spy = vi.spyOn(value.store, "action").mockImplementation(async (...args) => {
+      if (args[1] === "index_finalize" && !paused) { paused = true; atFinalize(); await gate; }
+      return action(...args);
+    });
+    try {
+      await brainWorker(db, async () => {
+        const signal = new AbortController().signal;
+        const first = value.store.publishMicrobatch(value.job, firstPart.publication!, signal);
+        await indexed;
+        const next = value.store.publishMicrobatch(value.job, nextPart.publication!, signal);
+        const settled = Promise.allSettled([first, next]);
+        await db.exec("set session authorization postgres");
+        await db.query("update fluid_private.naming_worker_leadership set generation=generation+1 where owner_id=$1 and deployment_id='fixture-deployment'", [OWNER_A]);
+        await db.exec("set session authorization fixture_naming_brain_a");
+        release();
+        expect(await settled).toMatchObject([
+          { status: "rejected", reason: { message: "microbatch_stopped" } },
+          { status: "rejected", reason: { message: "microbatch_stopped" } },
+        ]);
+      });
+      expect((await db.query("select count(*)::integer count from fluid_private.naming_brain_microbatches where run_id=$1", [value.input.runId])).rows).toEqual([{ count: 0 }]);
+    } finally { release(); spy.mockRestore(); }
+  });
+
   it.each([
     { origin: "local", directorStatus: "completed", versioned: false }, { origin: "local", directorStatus: "failed", versioned: false },
     { origin: "hosted", directorStatus: "completed", versioned: false }, { origin: "hosted", directorStatus: "failed", versioned: false },
@@ -114,7 +145,7 @@ describe("progressive Naming through the actual SDK and migrated SQL", () => {
       ], facts: [], interpretations: [], uncertainties: ["Synthetic research attempts do not establish real factual claims."] };
       if (request.input.role === "director") {
         const future = request.policy.progressiveContractVersion !== undefined, approaches = request.input.snapshot.preferences.approaches;
-        return { role: "director", round: "initial", assignments: Array.from({ length: future ? 15 : approaches.length }, (_, index) => ({
+        return { role: "director", round: "initial", ...(request.policy.progressiveContractVersion === 5 ? { planVersion: 2, unavailableApproaches: [] } : {}), assignments: Array.from({ length: future ? 15 : approaches.length }, (_, index) => ({
           assignmentKey: future ? `guide-${index}` : `guide-${approaches[index]}`, primaryApproach: approaches[index % approaches.length]!, additionalApproaches: [], territoryId: index % 2 ? "rhythm" : "objects", constructionKey: `guide-${index}`,
           direction: "Explore distinct imaginative associations.", targetCount: future ? 10 : 150 / approaches.length, sourceKeys: [], avoidPatterns: [], freshTerritory: false,
         })), feedbackHypotheses: [] };
@@ -223,6 +254,12 @@ describe("progressive Naming through the actual SDK and migrated SQL", () => {
       if (!reclaimed) throw new Error("synthetic_progressive_reclaim_missing");
       expect(reclaimed.id).toBe(value.job.id); expect(reclaimed.leaseToken).not.toBe(value.job.leaseToken);
       capturePlans(nextStore);
+      const publicationFailures: string[] = [];
+      const publish = nextStore.publishMicrobatch.bind(nextStore);
+      nextStore.publishMicrobatch = async (...args) => {
+        try { return await publish(...args); }
+        catch (error) { publicationFailures.push(error instanceof Error ? error.message : String(error)); throw error; }
+      };
       const saveArtifact = nextStore.saveArtifact.bind(nextStore);
       nextStore.saveArtifact = async (job, artifact) => { const result = await saveArtifact(job, artifact); if (artifact.output.role === "director") directorSaved.resolve(); return result; };
       const saveRecord = nextStore.saveProviderItem.bind(nextStore);
@@ -235,6 +272,7 @@ describe("progressive Naming through the actual SDK and migrated SQL", () => {
       await brainWorker(db, async () => {
         await nextStore.beginStep(reclaimed, "creation", steps[0]!.maximumCostMicrousd);
         const result = await steps[0]!.execute({ job: reclaimed, signal: new AbortController().signal });
+        expect(publicationFailures).toEqual([]);
         expect(result.status).toBe("succeeded"); await nextStore.completeStep(reclaimed, "creation", result);
         await nextStore.beginStep(reclaimed, "prepare", 0);
         const preparation = await steps[1]!.execute({ job: reclaimed, signal: new AbortController().signal });

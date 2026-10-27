@@ -7,6 +7,7 @@ import { createIdentityDraftMemory } from "@/components/identity/identity-draft-
 import { useProjectIdentity, type IdentityReferenceHint } from "@/components/identity/use-project-identity";
 import type { useAccountSession, VerifiedAccount } from "@/components/workspace/account-session";
 import { getIdentityFreshness } from "@/domain/project-identity";
+import { IMAGE_MODEL } from "@/domain/providers";
 import { fixtureOverview, fixtureOwner, fixtureProject, fixtureSystem } from "./project-identity-fixtures";
 
 type Session = ReturnType<typeof useAccountSession>["session"];
@@ -39,6 +40,7 @@ beforeEach(() => {
   hint = { ownerId: fixtureOwner, projectId: fixtureProject, generation: 1, referenceRevision: 1, pending: false };
   vi.stubGlobal("fetch", vi.fn((path: string, init: RequestInit) => {
     expect(init.method).toBe("GET");
+    if (path.endsWith("/identity/batches")) return Promise.resolve(Response.json({ ownerId: fixtureOwner, projectId: fixtureProject, availability: { ownerId: fixtureOwner, projectId: fixtureProject, status: "unavailable", operation: "identity.image", requestedModel: IMAGE_MODEL, reason: "runtime_unavailable" }, latest: null }));
     return new Promise<Response>(resolve => reads.push({ path, signal: init.signal!, resolve }));
   }));
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);

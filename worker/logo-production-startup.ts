@@ -105,14 +105,15 @@ export async function startLogoProductionWorker(options: LogoProductionStartupOp
         assertAvailable: assertion ? async job => { if (closed) throw unavailable(); await assertion(job); if (closed) throw unavailable(); } : null });
       if (!directions || JSON.stringify(expected) !== JSON.stringify(directions.capability)) throw unavailable();
     }
-    let proposals: ReturnType<typeof createLogoVectorProposalRuntimeAdapter> = null;
+    let proposals:Readonly<{capability:NonNullable<ReturnType<typeof qualifiedLogoVectorProposalCapability>>;proposals:NonNullable<ReturnType<typeof createLogoVectorProposalRuntimeAdapter>>["proposals"]}>|null=null;
     if (options.proposals) {
       const input = options.proposals, capability = qualifiedLogoVectorProposalCapability(input.capability);
       if (!capability) throw unavailable();
-      proposals = createLogoVectorProposalRuntimeAdapter({ ownerId, policyIdentity: capability.policyIdentity,
+      const adapter = createLogoVectorProposalRuntimeAdapter({ ownerId, policyIdentity: capability.policyIdentity,
         configuration: input.configuration, apiKey: input.apiKey, transport: input.transport,
         ports: createLogoVectorProposalWorkerPorts(connection), acceptingWork: () => !closed });
-      if (!proposals || !isDeepStrictEqual(proposals.capability, capability)) throw unavailable();
+      if (!adapter || !isDeepStrictEqual(adapter.capability, capability)) throw unavailable();
+      proposals=Object.freeze({...adapter,capability});
     }
     const vector = options.vector ? createLogoVectorRuntimeAdapter({ ownerId, connection, assets: options.vector.assets,
       policyIdentity: options.vector.capability?.policyIdentity, assertAvailable: options.vector.assertAvailable?.bind(options.vector) ?? null }) : null;

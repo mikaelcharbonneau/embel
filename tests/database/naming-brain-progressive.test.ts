@@ -74,6 +74,71 @@ describe("future-only progressive Naming publication over restricted SQL (synthe
   await expect(brainWorker(db, () => fixture.store.publishMicrobatch(fixture.job, next, new AbortController().signal))).rejects.toThrow("microbatch_stopped");
  });
 
+ it("serializes sibling identity refresh and publication while retaining actual restricted SQL guards", async () => {
+  const parts: Awaited<ReturnType<typeof saveProgressivePart>>[] = [];
+  for (const index of [0, 1, 2]) parts.push(await saveProgressivePart(fixture, index, 4));
+  const action = fixture.store.action.bind(fixture.store), actions: string[] = [];
+  let atFinalize!: () => void, release!: () => void;
+  const indexed = new Promise<void>(resolve => { atFinalize = resolve; });
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  let paused = false;
+  const spy = vi.spyOn(fixture.store, "action").mockImplementation(async (...args) => {
+   actions.push(args[1]);
+   if (args[1] === "index_finalize" && !paused) { paused = true; atFinalize(); await gate; }
+   return action(...args);
+  });
+  try {
+   await brainWorker(db, async () => {
+    const signal = new AbortController().signal;
+    const first = fixture.store.publishMicrobatch(fixture.job, parts[0]!.publication!, signal);
+    await indexed;
+    const before = [...actions];
+    const siblings = parts.slice(1).map(part => fixture.store.publishMicrobatch(fixture.job, part.publication!, signal));
+    await Promise.resolve();
+    expect(actions).toEqual(before);
+    release();
+    const results = await Promise.all([first, ...siblings]);
+    expect(results.map(result => result.publishedCount)).toEqual([4, 8, 12]);
+    expect(new Set(results.flatMap(result => result.candidateIds)).size).toBe(12);
+   });
+   expect(actions).toEqual(Array.from({ length: 3 }, () => ["index_page", "index_finalize", "identities", "publish_microbatch"]).flat());
+   const head = (await db.query<{ coverage_epoch: number | null; writer_epoch: number }>("select coverage_epoch,writer_epoch from fluid_private.naming_brain_heads where project_id=$1", [fixture.project])).rows[0]!;
+   expect(head.coverage_epoch).toBe(head.writer_epoch);
+   expect((await feed()).entries).toHaveLength(12);
+  } finally { release(); spy.mockRestore(); }
+ });
+
+ it("rechecks the actual SQL lease after a queued publication wait and releases both failed callers", async () => {
+  const firstPart = await saveProgressivePart(fixture, 0, 4), nextPart = await saveProgressivePart(fixture, 1, 4);
+  const action = fixture.store.action.bind(fixture.store);
+  let atFinalize!: () => void, release!: () => void, paused = false;
+  const indexed = new Promise<void>(resolve => { atFinalize = resolve; });
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  const spy = vi.spyOn(fixture.store, "action").mockImplementation(async (...args) => {
+   if (args[1] === "index_finalize" && !paused) { paused = true; atFinalize(); await gate; }
+   return action(...args);
+  });
+  try {
+   await brainWorker(db, async () => {
+    const signal = new AbortController().signal;
+    const first = fixture.store.publishMicrobatch(fixture.job, firstPart.publication!, signal);
+    await indexed;
+    const next = fixture.store.publishMicrobatch(fixture.job, nextPart.publication!, signal);
+    const settled = Promise.allSettled([first, next]);
+    await db.exec("set session authorization postgres");
+    await db.query("update public.jobs set lease_token=gen_random_uuid() where id=$1", [fixture.job.id]);
+    await db.exec("set session authorization fixture_naming_brain_a");
+    release();
+    expect(await settled).toMatchObject([
+     { status: "rejected", reason: { message: "lease_lost" } },
+     { status: "rejected", reason: { message: "lease_lost" } },
+    ]);
+   });
+   expect((await feed()).entries).toHaveLength(0);
+   expect((await db.query("select count(*)::integer count from fluid_private.naming_brain_microbatches where run_id=$1", [fixture.input.runId])).rows).toEqual([{ count: 0 }]);
+  } finally { release(); spy.mockRestore(); }
+ });
+
  it("persists exact full requests before authorization and replays them after restart without reconstructing a changed plan", async () => {
   const request = progressiveRequest(fixture, "context.research", { role: "researcher", snapshot: fixture.input.snapshot });
   await brainWorker(db, () => fixture.store.saveProgressiveCallPlan(fixture.job, "context.research", [request]));

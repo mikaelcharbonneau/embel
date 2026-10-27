@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-const doubles = vi.hoisted(() => ({ client: vi.fn(), signIn: vi.fn(), signOut: vi.fn() }));
-vi.mock("../../src/server/auth/client", () => ({ createRouteAuthClient: doubles.client }));
+const doubles = vi.hoisted(() => ({ client: vi.fn(), transition: vi.fn(), signIn: vi.fn(), signOut: vi.fn(), commit: vi.fn() }));
+vi.mock("../../src/server/auth/client", () => ({ createRouteAuthClient: doubles.client, createAuthTransitionClient: doubles.transition }));
 import { POST as signIn } from "../../src/app/api/auth/sign-in/route";
 import { POST as signOut } from "../../src/app/api/auth/sign-out/route";
 import { ApiError } from "../../src/server/http/errors";
@@ -10,7 +10,7 @@ import { ApiError } from "../../src/server/http/errors";
 // Inert credentials and provider responses. The route client is mocked; no network.
 const origin = "https://fluid.example";
 const credentials = { email: "qa-fixture@example.invalid", password: "  inert local QA password  " };
-const user = { id: "aaaaaaaa-1111-4111-8111-111111111111", is_anonymous: false, email: credentials.email };
+const user = { id: "aaaaaaaa-1111-4111-8111-111111111111", is_anonymous: false, email: credentials.email, email_confirmed_at: "2026-10-13T10:00:00Z" };
 const session = { access_token: "inert-access-fixture", refresh_token: "inert-refresh-fixture", user };
 const actions = [
   { name: "sign-in", handler: signIn, body: credentials, maxBytes: 8192 },
@@ -33,6 +33,7 @@ beforeEach(() => {
   vi.stubEnv("APP_ORIGIN", origin);
   vi.stubGlobal("fetch", vi.fn(() => { throw new Error("Unexpected network request in route test"); }));
   doubles.client.mockResolvedValue({ auth: { signInWithPassword: doubles.signIn, signOut: doubles.signOut } });
+  doubles.transition.mockResolvedValue({ client: { auth: { signInWithPassword: doubles.signIn, signOut: doubles.signOut } }, commitCookies: doubles.commit });
   doubles.signIn.mockResolvedValue({ data: { user, session }, error: null });
   doubles.signOut.mockResolvedValue({ error: null });
 });
@@ -48,6 +49,7 @@ describe("sign-in and sign-out HTTP security boundaries", () => {
       expect(response.status).toBe(403);
     }
     expect(doubles.client).not.toHaveBeenCalled();
+    expect(doubles.transition).not.toHaveBeenCalled();
     const response = await signIn(request());
     expect(response.status).toBe(200);
     expect(doubles.signIn).toHaveBeenCalledExactlyOnceWith(credentials);
@@ -69,6 +71,7 @@ describe("sign-in and sign-out HTTP security boundaries", () => {
       expectPrivate(response);
     }
     expect(doubles.client).not.toHaveBeenCalled();
+    expect(doubles.transition).not.toHaveBeenCalled();
     expect(doubles.signIn).not.toHaveBeenCalled();
     expect(doubles.signOut).not.toHaveBeenCalled();
   });
@@ -88,6 +91,7 @@ describe("sign-in and sign-out HTTP security boundaries", () => {
       expectPrivate(response);
     }
     expect(doubles.client).not.toHaveBeenCalled();
+    expect(doubles.transition).not.toHaveBeenCalled();
   });
 
   it.each(actions)("$name rejects non-JSON and malformed JSON without calling Auth", async ({ name, handler, body }) => {
@@ -97,6 +101,7 @@ describe("sign-in and sign-out HTTP security boundaries", () => {
     });
     expect((await handler(malformed)).status).toBe(422);
     expect(doubles.client).not.toHaveBeenCalled();
+    expect(doubles.transition).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -110,6 +115,7 @@ describe("sign-in and sign-out HTTP security boundaries", () => {
     const response = await signIn(request("sign-in", body));
     expect(response.status).toBe(422);
     expect(doubles.client).not.toHaveBeenCalled();
+    expect(doubles.transition).not.toHaveBeenCalled();
     expect(doubles.signIn).not.toHaveBeenCalled();
   });
 
@@ -119,7 +125,9 @@ describe("sign-in and sign-out HTTP security boundaries", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ authenticated: true });
     expect(doubles.signIn).toHaveBeenCalledExactlyOnceWith(credentials);
-    expect(doubles.client).toHaveBeenCalledExactlyOnceWith(req.signal);
+    expect(doubles.transition).toHaveBeenCalledExactlyOnceWith(req.signal);
+    expect(doubles.client).not.toHaveBeenCalled();
+    expect(doubles.commit).toHaveBeenCalledOnce();
     expect(doubles.signOut).not.toHaveBeenCalled();
     expectPrivate(response);
   });
@@ -134,12 +142,17 @@ describe("sign-in and sign-out HTTP security boundaries", () => {
       expect(await response.json()).toEqual({ error: { code: "invalid_credentials", message: "The email and password could not be verified." } });
       expectPrivate(response);
     }
+    expect(doubles.commit).not.toHaveBeenCalled();
   });
 
   it.each([
     { label: "no session", data: { user, session: null } },
     { label: "no user", data: { user: null, session } },
     { label: "anonymous user", data: { user: { ...user, is_anonymous: true }, session } },
+    { label: "unconfirmed user", data: { user: { ...user, email_confirmed_at: undefined }, session } },
+    { label: "unconfirmed session", data: { user, session: { ...session, user: { ...user, email_confirmed_at: undefined } } } },
+    { label: "anonymous session", data: { user, session: { ...session, user: { ...user, is_anonymous: true } } } },
+    { label: "contradictory session owner", data: { user, session: { ...session, user: { ...user, id: "bbbbbbbb-1111-4111-8111-111111111111" } } } },
   ])("rejects $label even after provider success and cleans up the local session", async ({ data }) => {
     doubles.signIn.mockResolvedValue({ data, error: null });
     // A cleanup outage must not turn an invalid sign-in into success or leak it.
@@ -148,6 +161,7 @@ describe("sign-in and sign-out HTTP security boundaries", () => {
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: { code: "invalid_credentials", message: "The email and password could not be verified." } });
     expect(doubles.signOut).toHaveBeenCalledExactlyOnceWith({ scope: "local" });
+    expect(doubles.commit).not.toHaveBeenCalled();
     expectPrivate(response);
   });
 
@@ -180,7 +194,8 @@ describe("sign-in and sign-out HTTP security boundaries", () => {
     expect(response.status).toBe(503);
     expect(await response.text()).not.toContain("private transport diagnostic");
     expectPrivate(response);
-    doubles.client.mockRejectedValueOnce(new ApiError("integration_unavailable"));
+    expect(doubles.commit).not.toHaveBeenCalled();
+    (name === "sign-in" ? doubles.transition : doubles.client).mockRejectedValueOnce(new ApiError("integration_unavailable"));
     expect((await handler(request(name, body))).status).toBe(503);
   });
 

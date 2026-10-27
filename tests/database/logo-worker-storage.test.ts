@@ -4,7 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createTestDatabase, resetFixture, asRole, OWNER_A, OWNER_B, type TestDatabase } from './local-supabase';
 import { SYNTHETIC_CONCEPT_READINESS } from './logo-readiness-fixture';
 import { logoWorkspaceV2Schema } from '../../src/domain/logo-workspace';
-import { logoCostQuoteSchema } from '../../src/domain/logo-jobs';
+import { legacyLogoCostQuoteSchema as logoCostQuoteSchema } from '../../src/domain/logo-jobs';
 import type { IdentityAssetReservation } from '../../src/server/data/identity-asset-store';
 
 const candidate = new URL('../../supabase/candidates/logo_worker_storage.sql', import.meta.url);

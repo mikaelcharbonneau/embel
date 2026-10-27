@@ -5,7 +5,7 @@ import { namingTextHash } from "../../src/server/ai/naming-brain/identity";
 import { assignment, id, plan, proposal, receipt, research, snapshot } from "../domain/naming-brain-fixtures";
 
 /** Synthetic reproduction of unassigned secondary credit; contains no live provider data. */
-export function creatorContractFixture(version: 2 | 3 = 2) {
+export function creatorContractFixture(version: 2 | 3 | 4 | 5 = 2) {
   const original = snapshot();
   const brief = namingBriefSnapshotSchema.parse({ ...original, preferences: { ...original.preferences, approaches: ["real_words", "classical_roots"] } });
   const direction = plan(); direction.output.assignments = [assignment("real_words", "real", 90), assignment("classical_roots", "roots", 60)];

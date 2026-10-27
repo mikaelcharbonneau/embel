@@ -1,5 +1,26 @@
 # Embel foundation architecture
 
+## Shared account and worker candidate
+
+The October 27 source candidate replaces per-customer database-password and
+resident-process provisioning with fixed restricted worker slots and finite
+server credentials. Confirmed signup creates account metadata. Each execution
+derives its tenant from an immutable database admission, job lease, slot
+generation and policy. Home, Identity and Logo web operations use verified
+session-bound request capabilities; customer JWTs still govern web Storage.
+
+The worker uses outbound Vercel Queue polling and a durable Strategy outbox.
+Unknown outcomes retain observation authority and receipts without reserving
+every execution slot or creating another provider request. New target setup,
+credentials, real acceptance and release remain separate from source validation.
+See [shared worker setup and security boundaries](shared-worker-pool.md) and
+[shared web authority](../src/server/shared-account/README.md).
+
+The earlier account-enrollment/Vault candidates remain historical review and
+compatibility evidence. The shared configuration selects the new facades and
+prevents fallback to their per-customer runtime. No hosted migration or
+production deployment is implied by these source changes.
+
 ## Hosted Naming execution
 
 Verifier quote positions can be bound to exact retained source text with a

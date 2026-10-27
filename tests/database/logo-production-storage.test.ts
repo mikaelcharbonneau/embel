@@ -5,7 +5,7 @@ import { asRole, createTestDatabase, resetFixture, OWNER_A, OWNER_B, type TestDa
 import { installProductionStorageFixture, productionStorageFixture, vectorCapability, exportCapability, authUser, sessionId, workerRole, workerId } from './logo-production-storage-fixture';
 import type { IdentityAssetReservation } from '../../src/server/data/identity-asset-store';
 import { logoWorkspaceV2Schema } from '../../src/domain/logo-workspace';
-import { logoCostQuoteSchema } from '../../src/domain/logo-jobs';
+import { legacyLogoCostQuoteSchema as logoCostQuoteSchema } from '../../src/domain/logo-jobs';
 import { parseClaimedJob } from '../../worker/postgres-store';
 
 import { createLogoProductionStorageAuthorization } from '../../worker/logo-production-storage-authorization';

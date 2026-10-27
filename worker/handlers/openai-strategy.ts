@@ -9,7 +9,8 @@ import type { HandlerRegistry, JobHandler } from "../runner";
 
 export function createOpenAIStrategyHandlers(configuration: OpenAIStrategyConfiguration | null, transport?: OpenAIResponsesTransport,
   assertPolicyReady?: (operation: StrategyOperation, policy: StrategyJobPolicy) => Promise<void>,
-  authorizeDispatch?: (job: ClaimedJob, stepKey: string) => Promise<void>): HandlerRegistry {
+  authorizeDispatch?: (job: ClaimedJob, stepKey: string) => Promise<void>,
+  hasUnmeteredExecutionAuthority?: (job: ClaimedJob) => boolean): HandlerRegistry {
   if (!configuration) return new Map();
   const provider = transport ?? createOpenAIResponsesTransport({ apiKey: configuration.apiKey });
   const handlers = new Map<string, JobHandler>();
@@ -17,10 +18,12 @@ export function createOpenAIStrategyHandlers(configuration: OpenAIStrategyConfig
     handlers.set(operation, { steps(job) {
       const input = strategyJobInputSchema.parse(job.input);
       const actualOperation = strategyOperationSchema.parse(job.operation);
+      const unmetered = hasUnmeteredExecutionAuthority?.(job) === true;
+      if ((input.version === 3) !== unmetered) throw new Error("Unsupported Strategy execution authority");
       if (actualOperation !== operation || !matchesStrategyPolicy(operation, input.policy) ||
           JSON.stringify(configuration.policies.get(operation)) !== JSON.stringify(input.policy) ||
           job.reservedCostMicrousd < input.policy.maximumCostMicrousd) throw new Error("Unsupported strategy policy");
-      if (input.version === 2) {
+      if (input.version !== 1) {
         const state = input.context.intake.guidedInterview;
         const turn = state?.turns.at(-1);
         if (!turn || turn.inputRevision !== job.inputRevision || turn.stage !== state?.stage || guidedTurnOperation(turn) !== operation ||
@@ -32,11 +35,12 @@ export function createOpenAIStrategyHandlers(configuration: OpenAIStrategyConfig
       }
       // A compatible version, price card and request plan must survive worker restart.
       // Successful steps are skipped by the durable runner. Uncertain dispatch is never retried.
-      const fingerprint = createHash("sha256").update(JSON.stringify(input.version === 2 ? input : input.policy)).digest("hex").slice(0, 24);
+      const fingerprint = createHash("sha256").update(JSON.stringify(input.version !== 1 ? input : input.policy)).digest("hex").slice(0, 24);
       const stepKey = `${input.policy.handlerVersion}:${operation}:${fingerprint}`;
       return [{ key: stepKey,
         maximumCostMicrousd: input.policy.maximumCostMicrousd, timeoutMs: 240_000,
         execute: ({ job, signal }) => executeStrategyResponse({ job, operation, input, signal, transport: provider,
+          unmeteredExecution: unmetered,
           ...((assertPolicyReady || authorizeDispatch) ? { beforeDispatch: async () => {
             await assertPolicyReady?.(operation, input.policy);
             await authorizeDispatch?.(job, stepKey);

@@ -31,3 +31,7 @@ export const NAMING_PROGRESSIVE_APPROACH_INSTRUCTIONS: Readonly<Record<NamingApp
   people_places: "Distinguish real supplied ties from symbolic suggestions. Actual biographical or geographic attributions require explicit primary-route claims and retained evidence.",
   stories_culture: "Ground factual literary, historical or cultural allusions in actual references. Preserve explicit primary-route claims; do not invent a story or cultural association.",
 });
+
+/** New frozen requests only; historical contract 2/3 instructions stay exact. */
+export const NAMING_PROGRESSIVE_FACTUAL_CREATOR_INSTRUCTIONS_V4 = `For a factual primary approach (other_languages, classical_roots, people_places or stories_culture), every proposed candidate must include at least one explicit claim with requirement primary_approach and one or more supplied retrieved source keys. Each claim must state the actual root, translation, person, place or cultural attribution needed for that primary route; a creative rationale cannot replace it. All entries in claims for this factual assignment must be these required route claims. Omit unrelated optional factual asides instead of relabeling them as required evidence. Claims remain unverified until independent verification.
+Use only the assignment's actual retained evidence; never invent a source or promote a URL-only record into retrieved text. A smaller honest set, including candidates:[] when this evidence supports no suitable candidate, is valid. Do not change the assigned primary approach to avoid its evidence requirement.`;

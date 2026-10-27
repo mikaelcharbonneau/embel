@@ -6,7 +6,7 @@ import { logoVectorProposalContextSchema, logoVectorProposalPayloadSchema, logoV
 
 export const LOGO_VECTOR_PROPOSE_OPERATION = 'identity.logo_vector_propose' as const;
 /** Independent operator-supplied policy. Importing this schema enables nothing. */
-export const logoVectorProposalTextPolicySchema = z.strictObject({
+export const legacyLogoVectorProposalTextPolicySchema = z.strictObject({
  version: z.literal(1), billingMode: z.literal('openai_api'), handlerVersion: z.literal('logo-vector-propose-v1'),
  adapterVersion: z.literal('logo-vector-propose-api-v1'), schemaVersion: z.literal('logo-vector-proposal-v1'),
  model: z.literal('gpt-6.1-sol'), pricingVersion: z.literal('2026-10-03'), serviceTier: z.literal('default'),
@@ -19,7 +19,13 @@ export const logoVectorProposalTextPolicySchema = z.strictObject({
  const maximum = Number((BigInt(p.maxInputTokens) * 2_500_000n + BigInt(p.maxOutputTokens) * 10_000_000n + 999_999n) / 1_000_000n);
  if (p.maximumCostMicrousd !== maximum) logoIssue(ctx, 'Cost must be independently derived from the worst permitted token rates');
 });
+export const uncappedLogoVectorProposalTextPolicySchema = z.strictObject({...legacyLogoVectorProposalTextPolicySchema.shape})
+ .omit({maximumCostMicrousd:true}).extend({version:z.literal(2),spendControl:z.literal('uncapped'),adapterVersion:z.literal('logo-vector-propose-api-uncapped-v2')});
+export const logoVectorProposalTextPolicySchema=z.union([legacyLogoVectorProposalTextPolicySchema,uncappedLogoVectorProposalTextPolicySchema]);
+export type LegacyLogoVectorProposalTextPolicy=z.infer<typeof legacyLogoVectorProposalTextPolicySchema>;
 export type LogoVectorProposalTextPolicy = z.infer<typeof logoVectorProposalTextPolicySchema>;
+/** Zero is bookkeeping for the separately SQL-authorized uncapped contract. */
+export function logoVectorProposalReservation(policy:LogoVectorProposalTextPolicy):number{return policy.version===1?policy.maximumCostMicrousd:0;}
 export const logoVectorProposalUsageSchema = z.strictObject({ inputTokens: moneySchema, cachedInputTokens: moneySchema, cacheWriteInputTokens: moneySchema, outputTokens: moneySchema }).refine(u => u.cachedInputTokens + u.cacheWriteInputTokens <= u.inputTokens, 'Input token subcounts exceed total');
 export type LogoVectorProposalUsage = z.infer<typeof logoVectorProposalUsageSchema>;
 export function logoVectorProposalUsageCost(usage: LogoVectorProposalUsage): number {
@@ -40,11 +46,13 @@ export const logoVectorProposalProviderObservationSchema = boundedLogoJson(z.str
 export type LogoVectorProposalProviderObservation = z.infer<typeof logoVectorProposalProviderObservationSchema>;
 export const logoVectorProposalProviderReceiptSchema = z.strictObject({ id: uuid, ...scope, jobId: uuid, leaseToken: uuid, observation: logoVectorProposalProviderObservationSchema });
 export type LogoVectorProposalProviderReceipt = z.infer<typeof logoVectorProposalProviderReceiptSchema>;
-export const logoVectorProposalJobInputSchema = boundedLogoJson(z.strictObject({
+const legacyLogoVectorProposalJobInputSchema = z.strictObject({
  version: z.literal(2), ...scope, operation: z.literal(LOGO_VECTOR_PROPOSE_OPERATION), requestKey: uuid, quoteId: uuid,
  policyIdentity: hash, handlerVersion: z.literal('logo-vector-propose-v1'), inputHash: hash, baseVectorRevisionId: uuid, contextHash: hash,
- instruction: logoVectorProposalRequestSchema.shape.instruction, targetComponentIds: logoVectorProposalRequestSchema.shape.targetComponentIds, textPolicy: logoVectorProposalTextPolicySchema,
-}));
+ instruction: logoVectorProposalRequestSchema.shape.instruction, targetComponentIds: logoVectorProposalRequestSchema.shape.targetComponentIds, textPolicy: legacyLogoVectorProposalTextPolicySchema,
+});
+export const uncappedLogoVectorProposalJobInputSchema=legacyLogoVectorProposalJobInputSchema.extend({version:z.literal(3),billingMode:z.literal('openai_api'),spendControl:z.literal('uncapped'),textPolicy:uncappedLogoVectorProposalTextPolicySchema});
+export const logoVectorProposalJobInputSchema=boundedLogoJson(z.union([legacyLogoVectorProposalJobInputSchema,uncappedLogoVectorProposalJobInputSchema]));
 export type LogoVectorProposalJobInput = z.infer<typeof logoVectorProposalJobInputSchema>;
 export const logoVectorProposalRecordSchema = boundedLogoJson(z.strictObject({
  version: z.literal(1), id: uuid, ...scope, jobId: uuid, requestKey: uuid, quoteId: uuid, baseVectorRevisionId: uuid, contextHash: hash,
@@ -59,7 +67,7 @@ export const logoVectorProposalRecordSchema = boundedLogoJson(z.strictObject({
  if (p && (p.ownerId !== r.ownerId || p.projectId !== r.projectId || p.jobId !== r.jobId)) logoIssue(ctx, 'Provider receipt must bind the owned job');
  if (p?.observation.billing.status === 'recorded' && r.actualCostMicrousd !== p.observation.billing.confirmedMicrousd) logoIssue(ctx, 'Retained evidence cannot erase or substitute a known provider charge');
  if (r.state === 'succeeded' && (!r.payload || !p || !p.observation.responseComplete || p.observation.billing.status !== 'recorded' || !p.observation.responseId || !p.observation.responseHash || r.actualCostMicrousd !== p.observation.billing.confirmedMicrousd || r.reason !== null)) logoIssue(ctx, 'Success requires complete retained payload, identity and settled billing');
- if (r.state === 'succeeded' && p && (r.actualCostMicrousd > p.observation.textPolicy.maximumCostMicrousd || p.observation.usage === null || p.observation.usage.inputTokens > p.observation.textPolicy.maxInputTokens || p.observation.usage.outputTokens > p.observation.textPolicy.maxOutputTokens)) logoIssue(ctx, 'Over-budget or over-limit results remain pending reconciliation');
+ if (r.state === 'succeeded' && p && (p.observation.textPolicy.version===1&&r.actualCostMicrousd > p.observation.textPolicy.maximumCostMicrousd || p.observation.usage === null || p.observation.usage.inputTokens > p.observation.textPolicy.maxInputTokens || p.observation.usage.outputTokens > p.observation.textPolicy.maxOutputTokens)) logoIssue(ctx, 'Over-budget or over-limit results remain pending reconciliation');
  if (r.state === 'needs_reconciliation' && r.reason === null) logoIssue(ctx, 'Uncertain results retain their reason');
 }), 131_072);
 export type LogoVectorProposalRecord = z.infer<typeof logoVectorProposalRecordSchema>;

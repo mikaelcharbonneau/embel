@@ -2,7 +2,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 const mock = vi.hoisted(() => ({ verify: vi.fn(), rpc: vi.fn(), from: vi.fn() }));
 vi.mock("@/server/data/project-naming", () => ({ verifyProjectNameCandidates: mock.verify }));
-vi.mock("@/server/api-text/config", () => ({ isHostedNamingRuntime: () => true, isLocalPrototypeRuntime: () => false }));
+vi.mock("@/server/api-text/config", () => ({ isHostedNamingRuntime: () => true, isLocalPollingRuntime: () => false }));
 import { getNamingFeed } from "@/server/data/naming-brain";
 import type { AuthenticatedContext } from "@/server/auth/context";
 import { createNamingFeedController } from "@/components/naming/naming-feed-controller";

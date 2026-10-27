@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { asRole, createTestDatabase, OWNER_A, OWNER_B, resetFixture, type TestDatabase } from './local-supabase';
 import { logoWorkspaceV2Schema } from '../../src/domain/logo-workspace';
-import { logoCostQuoteSchema, logoDispatchReceiptSchema } from '../../src/domain/logo-jobs';
+import { legacyLogoCostQuoteSchema as logoCostQuoteSchema, logoDispatchReceiptSchema } from '../../src/domain/logo-jobs';
 
 // Disposable PostgreSQL, restricted session_user and explicit synthetic policies.
 // These reports exercise real SQL authentication; they do not certify providers.

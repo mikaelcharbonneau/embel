@@ -2,6 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import type { ClaimedJob } from "@/domain/jobs";
+import { identityGenerationJobInputSchema } from "@/domain/identity-jobs";
 import type { AssetVersionReference } from "@/domain/asset-library";
 import { ASSET_MAX_FILE_BYTES } from "@/domain/asset-library";
 import { logoAssetReferenceSchema, logoUuidSchema } from "@/domain/logo-vector";
@@ -57,8 +58,18 @@ function reservation(access:IdentityAssetAccess,raw:unknown):IdentityAssetReserv
 }
 function leased(job:ClaimedJob):IdentityAssetAccess {
  logoId(job.id);logoId(job.leaseToken);
- if(!job.operation.startsWith("identity.logo_")||!["running","partial","cancel_requested"].includes(job.status))throw new ApiError("not_found");
+ if(!(job.operation.startsWith("identity.logo_")||job.operation==="identity.image")||!["running","partial","cancel_requested"].includes(job.status))throw new ApiError("not_found");
+ if(job.operation==="identity.image"){
+  const input=parseLogoStored(identityGenerationJobInputSchema,job.input);
+  if(input.ownerId!==job.ownerId||input.projectId!==job.projectId||input.input.projectRevision!==job.inputRevision)throw new ApiError("not_found");
+ }
  return {kind:"leased",job,ownerId:logoId(job.ownerId),projectId:logoId(job.projectId)};
+}
+function identityPublication(job:ClaimedJob,publication:IdentityAssetPublication):void {
+ if(job.operation!=="identity.image"){if(publication.source.kind==="identity_system")throw new ApiError("not_found");return;}
+ const input=parseLogoStored(identityGenerationJobInputSchema,job.input);
+ if(input.ownerId!==job.ownerId||input.projectId!==job.projectId||publication.source.kind!=="identity_system"||publication.source.sourceId!==publication.requestKey
+  ||!input.systemIds.includes(publication.requestKey)||publication.inputRevisions.length!==0||publication.mimeType!=="image/png")throw new ApiError("not_found");
 }
 function verify(bytes:Uint8Array,mimeType:string,hash:string,length:number,now:()=>Date,error:"invalid_input"|"not_found"):VerifiedFileObservation {
  if(!(bytes instanceof Uint8Array)||bytes.byteLength<1||bytes.byteLength>ASSET_MAX_FILE_BYTES||bytes.byteLength!==length||!mimeType||mimeType!==mimeType.toLowerCase().trim()||mimeType.includes(";")||createHash("sha256").update(bytes).digest("hex")!==hash)throw new ApiError(error);
@@ -111,11 +122,14 @@ export function createIdentityAssetStore(dependencies:IdentityAssetStoreDependen
   return parseLogoStored(verifiedAssetBytesSchema,{reference,mimeType:row.mimeType,bytes,verification});
  }
  return {
-  stageOwnedAsset:(auth,projectId,publication,bytes,signal)=>publish({kind:"owned",auth,ownerId:logoOwner(auth),projectId:logoId(projectId)},{kind:"stage",publication:parseLogoInput(identityAssetPublicationSchema,publication)},bytes,signal),
+  stageOwnedAsset:async(auth,projectId,publication,bytes,signal)=>{const parsed=parseLogoInput(identityAssetPublicationSchema,publication);if(parsed.source.kind==="identity_system")throw new ApiError("not_found");return publish({kind:"owned",auth,ownerId:logoOwner(auth),projectId:logoId(projectId)},{kind:"stage",publication:parsed},bytes,signal);},
   publishOwnedUpload:(auth,projectId,intent,bytes,signal)=>publish({kind:"owned",auth,ownerId:logoOwner(auth),projectId:logoId(projectId)},{kind:"upload",intent:parseLogoInput(identityUploadIntentSchema,intent),byteLength:bytes instanceof Uint8Array?bytes.byteLength:0},bytes,signal),
-  publishLeasedAsset:(job,publication,bytes,signal)=>publish(leased(job),{kind:"stage",publication:parseLogoInput(identityAssetPublicationSchema,publication)},bytes,signal),
+  publishLeasedAsset:async(job,publication,bytes,signal)=>{const parsed=parseLogoInput(identityAssetPublicationSchema,publication);identityPublication(job,parsed);return publish(leased(job),{kind:"stage",publication:parsed},bytes,signal);},
   readOwnedAsset:(auth,reference,signal)=>read({kind:"owned",auth,ownerId:logoOwner(auth),projectId:logoId(reference.projectId)},reference,signal),
-  readLeasedAsset:(job,reference,signal)=>read(leased(job),reference,signal),
+  readLeasedAsset:async(job,reference,signal)=>{const access=leased(job);if(job.operation==="identity.image"){
+   const input=parseLogoStored(identityGenerationJobInputSchema,job.input);
+   if(!input.input.referenceSnapshot.selected.some(entry=>sameReference(entry.reference.media,reference)))throw new ApiError("not_found");
+  }return read(access,reference,signal);},
  };
 }
 export const productionIdentityAssetStore=createIdentityAssetStore(null);

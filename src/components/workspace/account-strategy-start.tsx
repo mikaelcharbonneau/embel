@@ -12,7 +12,7 @@ import { useAccountSession, type VerifiedAccount } from "./account-session";
 import { createAccountInput } from "./project-draft-adapter";
 import type { LocalDraft } from "./local-drafts";
 import { StartReceiptRecoveryError, readReceipt, readDraftFence, hasDraftReceipt, type StartReceipt } from "./account-project-start-recovery";
-import { forgetStrategyIntent, formatStrategyCap, promptStrategyPlan, rememberStrategyPlan, strategyAvailabilityMessage, strategyAllowanceWithin, strategyRequestPayload, strategyJobMatchesRequest, verifyStrategyJobs } from "./account-strategy-client";
+import { forgetStrategyIntent, formatStrategyCap, strategyPromptCost, promptStrategyPlan, rememberStrategyPlan, strategyAvailabilityMessage, strategyAllowanceWithin, strategyRequestPayload, strategyJobMatchesRequest, verifyStrategyJobs } from "./account-strategy-client";
 import { rememberPromptForSignIn } from "./prompt-recovery";
 import { guidedAllowance, initialGuidedContext } from "./guided-interview-client";
 import { finishLocalDraftRecovery, saveLocalDraftToAccount } from "./save-local-draft-to-account";
@@ -123,7 +123,7 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
     setAction({ identity, pending: false, message: "Checking AI availability. You can keep editing your prompt." });
     try {
       const availability = await verifySession(account, controller) ? await readReadiness(account, controller) : null;
-      if (availability && current()) setAction({ identity, pending: false, message: guided ? (guidedAllowance(availability, "strategy.competitors") ? "Competitor research is ready. Send your prompt to begin." : (availability.reason === "request_unresolved" || availability.reason === "request_active" ? "An earlier request is pending. Sending checks availability for your new project." : "Competitor research is unavailable right now. Your prompt is kept.")) : promptStrategyPlan(availability) ? "AI is available. Review the limits below, then Send to request a response." : strategyAvailabilityMessage(availability) });
+      if (availability && current()) setAction({ identity, pending: false, message: guided ? (guidedAllowance(availability, "strategy.competitors") ? "Competitor research is ready. Send your prompt to begin." : (availability.reason === "request_unresolved" || availability.reason === "request_active" ? "An earlier request is pending. Sending checks availability for your new project." : "Competitor research is unavailable right now. Your prompt is kept.")) : promptStrategyPlan(availability) ? "AI is available. Review the request details below, then Send to request a response." : strategyAvailabilityMessage(availability) });
     } catch (error: unknown) {
       if (!current()) return;
       if (error instanceof AccountRequestError && error.status === 401) expire(account);
@@ -253,7 +253,7 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
       const acceptedResearch = guided ? guidedAllowance(currentRuntime?.availability, "strategy.competitors") : null;
       if (guided ? !acceptedResearch || !strategyAllowanceWithin(selectedAllowance!, acceptedResearch) : !plan || !freshPlan || freshPlan.kind !== plan.kind || !strategyAllowanceWithin(freshPlan.reformulation, plan.reformulation)
         || (freshPlan.kind === "response_and_competitors" && plan.kind === "response_and_competitors" && !strategyAllowanceWithin(freshPlan.competitors, plan.competitors))) {
-        setAction({ identity, pending: false, message: "AI readiness or request limits changed. Review the limits below, then Send again. No AI request was sent." }); return false;
+        setAction({ identity, pending: false, message: "AI readiness or request details changed. Review the details below, then Send again. No AI request was sent." }); return false;
       }
       if (!selectedAllowance) return false;
       const input = createAccountInput(draft);
@@ -334,12 +334,13 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
       : session.status === "signed_out" ? "Sign in to save your project and request an AI response. Your prompt is kept."
       : session.status !== "ready" ? "Your account could not be verified. Recheck your account before requesting AI. Your prompt is kept."
       : !currentRuntime ? "Checking AI availability. Send rechecks readiness and keeps your prompt here if AI cannot start."
-      : !plan ? strategyAvailabilityMessage(currentRuntime.availability) : "AI is available. Send requests a response using the limits below.")}</p>
+      : !plan ? strategyAvailabilityMessage(currentRuntime.availability) : "AI is available. Send requests a response using the details below.")}</p>
     {plan && <p className="field-hint">{plan.billingMode === "chatgpt_subscription"
       ? "Sending saves your project and uses your ChatGPT plan for a response. Competitor research starts after you apply the response. Your plan limits apply."
+      : strategyPromptCost(plan) === null ? `Sending saves your project and uses OpenAI for ${plan.kind === "response_only" ? "a response. Competitor research is unavailable." : "a response and competitor research. Competitor research starts after you apply the response."}`
       : plan.kind === "response_only"
-        ? `Sending saves your project and requests a response, up to ${formatStrategyCap(plan.reformulation.maximumCostMicrousd)}. Competitor research is unavailable.`
-      : `Sending saves your project and uses OpenAI for a response and competitor research, up to ${formatStrategyCap(plan.reformulation.maximumCostMicrousd + plan.competitors.maximumCostMicrousd)} total. Competitor research starts after you apply the response.`}</p>}
+        ? `Sending saves your project and requests a response, up to ${formatStrategyCap(strategyPromptCost(plan)!)}. Competitor research is unavailable.`
+      : `Sending saves your project and uses OpenAI for a response and competitor research, up to ${formatStrategyCap(strategyPromptCost(plan)!)} total. Competitor research starts after you apply the response.`}</p>}
     {plan?.billingMode === "chatgpt_subscription" && <div>
       <p className="field-hint" aria-label="Response usage limits">Response: {subscriptionLimitsLabel(plan.reformulation)}</p>
       <p className="field-hint" aria-label="Competitor research usage limits">Competitor research: {subscriptionLimitsLabel(plan.competitors)}</p>

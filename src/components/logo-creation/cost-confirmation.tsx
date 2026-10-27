@@ -40,17 +40,18 @@ export function LogoCostConfirmationView({ quote = null, billing = null, batch =
   onConfirm?: () => void; onCancel?: () => void; busy?: boolean;
 }) {
   const context = quote ? quoteContext(quote, batch) : null;
-  return <section className={styles.costPanel} aria-label="Generation cost review">
-    <h2>Review the cost</h2>
+  const uncapped = quote !== null && "spendControl" in quote;
+  return <section className={styles.costPanel} aria-label={uncapped ? "Generation review" : "Generation cost review"}>
+    <h2>{uncapped ? "Review generation" : "Review the cost"}</h2>
     {quote && context ? <>
       <p className={styles.note}><strong>{context.action}</strong><br />{context.target}</p>
       {quote.request.operation === "refine_preview" && <p className={styles.note} style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}><strong>Requested changes</strong><br />{quote.request.instruction}</p>}
       {quote.request.operation === "vectorize" && <LogoVectorSettingsSummary settings={quote.request.settings} />}
-      <dl className={styles.costs}>
+      {"spendControl" in quote ? <p className={styles.note}>This request uses the configured AI service. Actual usage is recorded when the provider reports it.</p> : <><dl className={styles.costs}>
         <div><dt>Estimated cost</dt><dd>{displayLogoCost(quote.estimatedCostMicrousd)}</dd></div>
         <div><dt>Maximum cost</dt><dd>{displayLogoCost(quote.maxCostMicrousd)}</dd></div>
       </dl>
-      <p className={styles.note}>This is an estimate, not a confirmed charge. Failed provider requests can still incur costs.</p>
+      <p className={styles.note}>This is an estimate, not a confirmed charge. Failed provider requests can still incur costs.</p></>}
     </> : <p className={styles.note}>A cost estimate is unavailable. Generation cannot be confirmed.</p>}
     {billing?.status === "recorded" && <p className={styles.note}>Confirmed charge for this request: {displayLogoCost(billing.confirmedMicrousd)}</p>}
     {billing?.status === "unknown" && <p className={styles.note}>Charge not confirmed for this request.</p>}
