@@ -14,6 +14,7 @@ import { inspectIdentityRaster } from "../src/features/logo-vector/server/conver
 import { IMAGE_INPUT_LIMITS } from "../src/server/logo-creation/openai-image-transport";
 import { LOGO_IMAGE_HANDLER_VERSION } from "../src/server/logo-creation/openai-logo-provider";
 import { freezeLogoWorkerManifest, type LogoWorkerCapability } from "./logo-readiness";
+import { readDevelopmentConfiguration } from "../src/server/development/config";
 
 const ORIGIN = "https://fricsfwqibyhemknqgyf.supabase.co";
 const unavailable = () => new Error("Logo generative Storage is unavailable.");
@@ -70,7 +71,19 @@ export function qualifiedLogoGenerativeStorageCapability(input: unknown): LogoWo
  */
 export function createLogoGenerativeStorageAuthorization(configuration: unknown = null,
   dependencies: LogoGenerativeStorageDependencies = { fetch: globalThis.fetch }): LogoGenerativeStorageAuthorization | null {
-  const parsed = configurationSchema.safeParse(configuration);
+  return createAuthorization(configuration, dependencies, ORIGIN, false);
+}
+
+/** Separate local-only composition; production callers retain the pinned target. */
+export function createDevelopmentLogoGenerativeStorageAuthorization(configuration: unknown = null,
+  dependencies: LogoGenerativeStorageDependencies = { fetch: globalThis.fetch }): LogoGenerativeStorageAuthorization | null {
+  const development = readDevelopmentConfiguration();
+  return development ? createAuthorization(configuration, dependencies, development.supabaseUrl, true) : null;
+}
+
+function createAuthorization(configuration: unknown, dependencies: LogoGenerativeStorageDependencies,
+  origin: string, development: boolean): LogoGenerativeStorageAuthorization | null {
+  const parsed = (development ? configurationSchema.safeExtend({ workerRoleName: z.literal("embel_development_logo_worker") }) : configurationSchema).safeParse(configuration);
   if (!parsed.success || typeof dependencies.fetch !== "function"
     || dependencies.tokenProvider !== undefined && typeof dependencies.tokenProvider !== "function") return null;
   const c = parsed.data, now = dependencies.now ?? Date.now, capability = qualifiedLogoGenerativeStorageCapability(c.capability);
@@ -78,12 +91,13 @@ export function createLogoGenerativeStorageAuthorization(configuration: unknown 
   let sessionId: string, expires: number;
   try {
     const claims = decodeJwt(c.accessToken); sessionId = logoUuidSchema.parse(claims.session_id);
-    if (claims.sub !== c.authUserId || claims.role !== "authenticated" || claims.aud !== "authenticated" || claims.iss !== `${ORIGIN}/auth/v1`
+    if (claims.sub !== c.authUserId || claims.role !== "authenticated" || claims.aud !== "authenticated" || claims.iss !== `${origin}/auth/v1`
       || claims.is_anonymous !== false || !Number.isSafeInteger(claims.exp) || claims.exp! <= 0) return null;
     expires = claims.exp! * 1000;
   } catch { return null; }
   const lifetime = new AbortController(), deadlines = new WeakMap<AbortSignal, number>();
   const active = (signal?: AbortSignal) => {
+    if (development && readDevelopmentConfiguration()?.supabaseUrl !== origin) lifetime.abort();
     if (lifetime.signal.aborted || signal?.aborted || !dependencies.tokenProvider && now() >= expires
       || signal && performance.now() >= (deadlines.get(signal) ?? Infinity)) throw unavailable();
   };
@@ -112,7 +126,7 @@ export function createLogoGenerativeStorageAuthorization(configuration: unknown 
     active(signal);
     const claims = decodeJwt(z.string().max(16_384).regex(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/).parse(accessToken));
     if (claims.sub !== c.authUserId || claims.session_id !== sessionId || claims.role !== "authenticated" || claims.aud !== "authenticated"
-      || claims.iss !== `${ORIGIN}/auth/v1` || claims.is_anonymous !== false || !Number.isSafeInteger(claims.exp) || claims.exp! * 1000 <= now()
+      || claims.iss !== `${origin}/auth/v1` || claims.is_anonymous !== false || !Number.isSafeInteger(claims.exp) || claims.exp! * 1000 <= now()
       || claims.nbf !== undefined && (!Number.isSafeInteger(claims.nbf) || claims.nbf * 1000 > now())) throw unavailable();
     headers.set("authorization", `Bearer ${accessToken}`); headers.set("apikey", c.publishableKey);
     const response = await dependencies.fetch(url, { ...init, headers, signal, redirect: "error", credentials: "omit", cache: "no-store" });
@@ -151,7 +165,7 @@ export function createLogoGenerativeStorageAuthorization(configuration: unknown 
   }
   const combined = (...signals: (AbortSignal | undefined)[]) => AbortSignal.any([lifetime.signal, ...signals.filter((s): s is AbortSignal => s !== undefined)]);
   async function verifyAuth(signal: AbortSignal) {
-    z.object({ id: z.literal(c.authUserId), is_anonymous: z.literal(false) }).parse(await json(`${ORIGIN}/auth/v1/user`, { method: "GET" }, signal, 16_384));
+    z.object({ id: z.literal(c.authUserId), is_anonymous: z.literal(false) }).parse(await json(`${origin}/auth/v1/user`, { method: "GET" }, signal, 16_384));
   }
   function snapshot(raw: ClaimedJob) {
     const job = jobSchema.parse(raw), input = job.input;
@@ -180,7 +194,7 @@ export function createLogoGenerativeStorageAuthorization(configuration: unknown 
     expectedPublication: IdentityAssetPublication | null = null) {
     // Full bounded domain inputs and publication are echoed. Their individual
     // 32KiB ceilings plus exact context fit under this explicit 128KiB ceiling.
-    const raw = await json(`${ORIGIN}/rest/v1/rpc/authorize_logo_generative_storage`, { method: "POST", headers: { "content-type": "application/json" },
+    const raw = await json(`${origin}/rest/v1/rpc/authorize_logo_generative_storage`, { method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ p_job: job.id, p_lease: job.leaseToken, p_reservation: row?.id ?? null, p_mode: mode }) }, signal, 4 * LOGO_MUTATION_MAX_BYTES);
     const result = grantSchema.parse(raw), member = mode === "probe" ? null : mode === "write" ? "output" : row ? sourceFor(job, row) : null;
     if (result.ownerId !== c.ownerId || result.authUserId !== c.authUserId || result.sessionId !== sessionId || result.workerRoleName !== c.workerRoleName
@@ -196,8 +210,9 @@ export function createLogoGenerativeStorageAuthorization(configuration: unknown 
       const write = publication ? publicationFor(job, row, publication) : null;
       if (!write) sourceFor(job, row);
       await verifyAuth(signal); await grant(job, row, mode, signal, write);
-      const url = `${ORIGIN}/storage/v1/object/fluid-assets/${row.storagePath}`;
+      const url = `${origin}/storage/v1/object/fluid-assets/${row.storagePath}`;
       const storage = createSupabasePrivateAssetStorage({ scope: { kind: "identity", ownerId: job.ownerId, projectId: job.projectId }, maxFileBytes: row.byteLength,
+        ...(development ? { developmentSupabaseUrl: origin } : {}),
         transport: (target, init) => {
           if (target !== url || !init.signal || !(mode === "write" ? ["POST", "GET"] : ["GET"]).includes(init.method ?? "")
             || init.method === "POST" && new Headers(init.headers).get("x-upsert") !== "false") throw unavailable();

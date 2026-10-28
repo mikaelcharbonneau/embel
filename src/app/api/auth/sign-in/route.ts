@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { createRouteAuthClient } from "@/server/auth/client";
+import { createAuthTransitionClient } from "@/server/auth/client";
+import { isConfirmedAuthResult } from "@/server/auth/confirmation";
 import { authFailure } from "@/server/auth/failure";
 import { ApiError, errorResponse, privateJson } from "@/server/http/errors";
 import { assertMutationOrigin, readJson } from "@/server/http/request";
@@ -15,14 +16,15 @@ export async function POST(request: Request) {
   try {
     assertMutationOrigin(request);
     const credentials = await readJson(request, credentialsSchema, 8192);
-    const client = await createRouteAuthClient(request.signal);
+    const { client, commitCookies } = await createAuthTransitionClient(request.signal);
     const result = await client.auth.signInWithPassword(credentials)
       .catch(() => { throw new ApiError("integration_unavailable"); });
     if (result.error) throw authFailure(result.error);
-    if (!result.data.session || !result.data.user || result.data.user.is_anonymous) {
+    if (!isConfirmedAuthResult(result.data)) {
       await client.auth.signOut({ scope: "local" }).catch(() => undefined);
       throw new ApiError("invalid_credentials");
     }
+    commitCookies();
     return privateJson({ authenticated: true });
   } catch (error) { return errorResponse(error); }
 }

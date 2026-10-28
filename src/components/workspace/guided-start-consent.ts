@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { ContextSnapshot, GuidedTurn } from "@/domain/projects";
-import type { StrategyAllowance } from "./account-strategy-client";
+import { strategyAllowanceWithin, type StrategyAllowance } from "./account-strategy-client";
 import { initialGuidedContext } from "./guided-interview-client";
 
 const prefix = "guided-start-v1:";
@@ -9,7 +9,10 @@ const receiptSchema = z.strictObject({
   projectId: z.uuid().nullable(),
   inputRevision: z.number().int().positive(),
   turnId: z.string().startsWith(prefix).max(128),
-  allowance: z.strictObject({ billingMode: z.literal("openai_api"), maximumCostMicrousd: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) }),
+  allowance: z.union([
+    z.strictObject({ billingMode: z.literal("openai_api"), maximumCostMicrousd: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER) }),
+    z.strictObject({ billingMode: z.literal("openai_api"), spendControl: z.literal("uncapped"), policyIdentity: z.string().regex(/^[a-f0-9]{64}$/u) }),
+  ]),
   attempted: z.boolean(),
 });
 export type GuidedStartConsent = z.infer<typeof receiptSchema>;
@@ -42,7 +45,7 @@ function write(receipt: GuidedStartConsent) {
 export function rememberGuidedStartConsent(ownerId: string, turnId: string, allowance: StrategyAllowance, inputRevision?: number): boolean {
   if (allowance.billingMode !== "openai_api" || !isGuidedStartTurn({ id: turnId })) return false;
   const previous = readGuidedStartConsent(ownerId, turnId);
-  if (previous?.attempted) return previous.allowance.maximumCostMicrousd === allowance.maximumCostMicrousd && (inputRevision === undefined || previous.inputRevision === inputRevision);
+  if (previous?.attempted) return strategyAllowanceWithin(previous.allowance, allowance) && strategyAllowanceWithin(allowance, previous.allowance) && (inputRevision === undefined || previous.inputRevision === inputRevision);
   return write({ ownerId, turnId, projectId: previous?.projectId ?? null, inputRevision: inputRevision ?? previous?.inputRevision ?? 1, allowance, attempted: false });
 }
 

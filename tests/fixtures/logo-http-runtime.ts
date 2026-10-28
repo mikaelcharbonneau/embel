@@ -81,7 +81,7 @@ export function logoHttpFixture(ownerId = randomUUID(), projectId = randomUUID()
     const builder: RpcBuilder = { abortSignal(value) { signal = value; return builder; }, then(resolve, reject) { response ??= Promise.resolve().then(execute); return response.then(resolve, reject); } };
     return builder;
   }
-  const getUser = vi.fn(async () => ({ data: { user: { id: ownerId, is_anonymous: false } }, error: null }));
+  const getUser = vi.fn(async () => ({ data: { user: { id: ownerId, is_anonymous: false, email_confirmed_at: "2026-10-13T10:00:00Z" } }, error: null }));
   const client = { rpc, auth: { getUser } }, auth = { userId: ownerId, client } as unknown as AuthenticatedContext;
   function receiptFor(command: LogoManualCommand, evidence: Record<string, unknown>) {
     const stageName = command.method === "saveLogoEdit" ? "refinements" : "vector", id = randomUUID();

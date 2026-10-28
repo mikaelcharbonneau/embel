@@ -6,13 +6,18 @@ import { fontRecordSchema, fontPurposeSchema } from "../../src/domain/logo-direc
 import { logoHashSchema, logoTextSourceSchema } from "../../src/domain/logo-vector";
 import { LogoVectorError, type LogoVectorErrorCode } from "../../src/features/logo-vector/model/errors";
 import { LOGO_TEXT_LIMITS, shapedLogoTextSchema, snapshotLogoTextInput, type LogoTextInput, type ShapedLogoText } from "./text-engine";
+declare const __EMBEL_LOGO_TEXT_ENTRYPOINT__: string;
+declare const __EMBEL_LOGO_TEXT_CHILD__: boolean;
 const HEADER_LIMIT = 65_536, STDERR_LIMIT = 65_536;
 const codes = z.enum(["invalid_geometry", "unsupported_svg", "limit_exceeded", "empty_artwork", "invalid_font", "font_rights_required", "unsupported_text", "unsupported_edit", "locked_component_changed", "unsupported_locked_refinement", "source_mismatch", "engine_unavailable", "conversion_failed", "cancelled", "timeout"]);
 const headerSchema = z.strictObject({ source: logoTextSourceSchema, record: fontRecordSchema, purpose: fontPurposeSchema, contentHash: logoHashSchema, byteLength: z.number().int().min(1).max(LOGO_TEXT_LIMITS.fontBytes) });
 const responseSchema = z.discriminatedUnion("status", [z.strictObject({ status: z.literal("ok"), output: shapedLogoTextSchema }), z.strictObject({ status: z.literal("error"), code: codes, message: z.string().min(1).max(300) })]);
 function launchChild(): ChildProcessWithoutNullStreams {
   // Fixed entrypoint and clean environment. Heap limits do not cap all native/WASM memory.
-  return spawn(process.execPath, ["--conditions=react-server", "--max-old-space-size=128", "--import", "tsx", resolve(process.cwd(), "worker/logo-vector/text-process.ts")], { stdio: ["pipe", "pipe", "pipe"], windowsHide: true, env: { NODE_ENV: "production", PATH: process.env.PATH ?? "", TMPDIR: process.env.TMPDIR ?? "/tmp" } });
+  const compiled = typeof __EMBEL_LOGO_TEXT_ENTRYPOINT__ === "string" ? __EMBEL_LOGO_TEXT_ENTRYPOINT__ : null;
+  const arguments_ = compiled ? ["--conditions=react-server", "--max-old-space-size=128", resolve(process.cwd(), compiled)]
+    : ["--conditions=react-server", "--max-old-space-size=128", "--import", "tsx", resolve(process.cwd(), "worker/logo-vector/text-process.ts")];
+  return spawn(process.execPath, arguments_, { stdio: ["pipe", "pipe", "pipe"], windowsHide: true, env: { NODE_ENV: "production", PATH: process.env.PATH ?? "", TMPDIR: process.env.TMPDIR ?? "/tmp" } });
 }
 export type LogoTextProcessOptions = { timeoutMs?: number; launch?: () => ChildProcessWithoutNullStreams };
 let activeProcesses = 0;
@@ -89,4 +94,5 @@ async function childMain(): Promise<void> {
     process.stdout.write(JSON.stringify({ status: "error", code: known.code, message: known.message }));
   }
 }
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) void childMain().then(() => { process.exitCode = 0; }, () => { process.exitCode = 1; });
+if (typeof __EMBEL_LOGO_TEXT_CHILD__ === "boolean" ? __EMBEL_LOGO_TEXT_CHILD__
+  : process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) void childMain().then(() => { process.exitCode = 0; }, () => { process.exitCode = 1; });

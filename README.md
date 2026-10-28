@@ -41,19 +41,23 @@ The first separately authorized live **Strategy reformulation** was completed an
 
 The source includes browser drafting and recovery, account/session fencing, saved-project revision handling, manual Ideas, Strategy conversation/review controls, Naming and its history, standalone manual tools, Assets/reference handling, legacy Identity editing/history, and logo-first creation/editor/directions/deliverables surfaces with their associated contracts and worker infrastructure. Acceptance and live availability vary by feature; a route or a passing fixture is not proof of a fully connected user journey.
 
+The current unapplied shared-worker path adds full Identity generation with three linked systems and PNG boards, owned reference uploads with explicit selection, and all six Logo worker operations. Identity uses the existing Logo lane. Exact original requests, provider receipts, partial results and uncertain outcomes survive interruption; known export outputs recover without rendering or uploading again. External reference discovery remains unavailable until configured. The normal vector editor now includes proposal requests, quote review, recovery and explicit application as an unapproved candidate. These are source implementations with local evidence, not deployed provider acceptance. See [shared worker authority](docs/shared-worker-pool.md).
+
 The latest interface work improves app-wide framing and readability, keeps the Strategy composer visible, exposes latest activity, and preserves Home prompts through sign-in. Its follow-up correction also fences uncertain saves and retires successful-start recovery markers to avoid reopening an earlier project from a new prompt. See [UI repair notes](docs/ui-repair-20261008.md).
 
-### Newly integrated but disabled vector proposals
+### Integrated vector-proposal candidate
 
 The backend adds a separately priced durable text operation, `identity.logo_vector_propose`. It proposes exactly one supported command: size, rotation, color, arrangement, font or spacing. It cannot redraw arbitrary paths, invent components, unlock protected content, change spelling or silently split a multi-change request into paid jobs.
 
 The locally exercised chain covers verified source/font bytes, trusted quote and admission, the real host/provider adapter composition with synthetic HTTP responses, durable proposal retention, authenticated candidate creation, provenance and replay recovery. Applying a retained proposal uses existing vector producers without another AI call. It creates a review-required immutable candidate; the approved logo remains unchanged until explicit acceptance. Paid uncertainty and cancellation retain evidence instead of automatically regenerating work.
 
-**The proposal UI is not implemented. The operation remains disabled.** Its new SQL is unapplied, and no live provider, hosted Storage/RLS, real pooler concurrency or complete browser journey is established by the local qualification. See [vector-proposal integration](docs/logo-vector-feature-integration.md).
+The normal editor provides quote review and explicit generation consent, pending-request discovery after reload, exact original-intent lookup and safe Stop/closure. A missing lookup does not clear uncertain work. Applying a verified proposal uses the existing native producer without another AI call and opens an unapproved saved candidate; accepting that candidate remains a separate action. Historical accepted amounts are retained, while new shared uncapped quotes carry no invented spending ceiling.
+
+The operation remains unavailable until its real runtime is qualified. Its new SQL is unapplied, and local fixture/browser checks do not establish live provider or hosted release readiness. See [vector-proposal integration](docs/logo-vector-feature-integration.md).
 
 ### Remaining product and release gaps
 
-Finish the app-wide integration and full user journey rather than treating these component checkpoints as product completion. Important gaps include the proposal UI/recovery/comparison flow, logo runtime activation, approved reference ingestion, live provider qualification, trusted production persistence/storage capabilities, real export/download acceptance, and the remaining Identity, Guidelines and standalone-provider integrations. Preserve unavailable states until their real dependencies are ready. Arbitrary vector-source AI redraw and the earlier raster-to-vector refinement facade are not completed by the bounded proposal operation.
+Finish the app-wide integration and full user journey rather than treating these component checkpoints as product completion. Remaining release work includes runtime activation, external reference ingestion, live provider qualification, hosted persistence/private-file acceptance, genuine two-account generation/export acceptance, and the remaining Guidelines and standalone-provider integrations. Preserve unavailable states until their real dependencies are ready. Arbitrary vector-source AI redraw and the earlier raster-to-vector refinement facade are not completed by the bounded proposal operation.
 
 ## Run the ordinary interface
 
@@ -65,6 +69,9 @@ npm run dev
 ```
 
 The development UI binds to `http://127.0.0.1:3105`. Home can retain an initial prompt before sign-in; saving requires a verified account. Account data, AI, durable jobs and private files need separately configured services. Do not introduce demo success or substitute another provider when a capability is unavailable.
+
+For the opt-in isolated local database, Auth, Storage, restricted service bindings
+and development workers, see [the development environment guide](docs/development-environment.md).
 
 ### Package scripts
 

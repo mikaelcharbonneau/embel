@@ -33,6 +33,9 @@ export function createVectorHttpFixture(configuration: { applyEdit?(document: Lo
     const path = new URL(request.url).pathname; if (!path.startsWith("/api/")) return new Response(null, { status: 404 });
     if (path === "/api/session") return json({ user: { id: state.owner } });
     if (state.owner !== ownerId) return json({}, 404);
+    if (path === `${base}/capabilities` && request.method === "GET") return json({ ownerId, projectId, observedAt: new Date().toISOString(), operations: Object.fromEntries(["identity.logo_concept", "identity.logo_refine", "identity.logo_vectorize", "identity.logo_directions", "identity.logo_export", "identity.logo_vector_propose"].map(operation => [operation, { status: "unavailable" }])) });
+    if (path === `${base}/vector-proposals/requests/current` && request.method === "GET") return json({ ownerId, projectId, items: [], nextCursor: null });
+    if (path === `${base}/vector-proposals` && request.method === "GET") return json({ ownerId, projectId, items: [], nextCursor: null });
     if (path === base) return json(state.workspace);
     if (path === `${base}/vector/history`) {
       const query = new URL(request.url).searchParams, limit = Number(query.get("limit") ?? 20);

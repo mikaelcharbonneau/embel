@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { namingDirectorAllocationSchema } from "./naming-director-allocation";
+import { namingDirectorAllocationSchema, namingEvidenceDirectorAllocationSchema } from "./naming-director-allocation";
 import { nameValueSchema } from "./naming";
 import { nameIdentityKey, nameIdentityKeySchema, namingStrategyBasisSchema, namingStrategyKeyFromBasis, projectNameEntrySchema, projectNameOriginSchema } from "./project-naming";
 import { getNamingPreferencesReadiness, matchesNamingTextFragment, namingApproachSchema, namingPreferencesV2Schema, type NamingApproach } from "./naming-brain-preferences";
@@ -130,6 +130,21 @@ export const namingAssignmentOutputSchema = z.strictObject({
   role: z.literal("director"), round: z.enum(["initial", "gap"]), assignments: z.array(namingCreatorAssignmentSchema).min(1).max(30), feedbackHypotheses: z.array(text).max(20),
 }).refine(value => unique(value.assignments.map(row => row.assignmentKey)), "Assignment keys must be unique");
 export type NamingAssignmentOutput = z.infer<typeof namingAssignmentOutputSchema>;
+const evidencePlanFactualApproaches = new Set<NamingApproach>(["other_languages", "classical_roots", "people_places", "stories_culture"]);
+export const namingUnavailableApproachSchema = z.strictObject({
+  approach: z.enum(["other_languages", "classical_roots", "people_places", "stories_culture"]),
+  reason: z.enum(["no_retrieved_evidence", "retrieved_evidence_not_applicable"]),
+  explanation: text, inspectedSourceKeys: sourceKeys,
+});
+export type NamingUnavailableApproach = z.infer<typeof namingUnavailableApproachSchema>;
+export const namingEvidenceAssignmentOutputSchema = namingAssignmentOutputSchema.safeExtend({
+  planVersion: z.literal(2), round: z.literal("initial"), assignments: z.array(namingCreatorAssignmentSchema).max(15),
+  unavailableApproaches: z.array(namingUnavailableApproachSchema).max(4),
+}).superRefine((value, ctx) => {
+  const unavailable = value.unavailableApproaches.map(row => row.approach);
+  if (!unique(unavailable) || value.assignments.some(row => unavailable.includes(row.primaryApproach as typeof unavailable[number]))) issue(ctx, "Supported and unavailable approaches must be disjoint and unavailable approaches unique");
+});
+export type NamingEvidenceAssignmentOutput = z.infer<typeof namingEvidenceAssignmentOutputSchema>;
 export const namingCandidateProposalSchema = z.strictObject({
   candidateKey: localKey, value: nameValueSchema, primaryApproach: namingApproachSchema, additionalApproaches, territoryId: localKey, constructionKey: localKey,
   rationale: text, caution: text.nullable(), claims: z.array(namingFactualClaimSchema).max(8),
@@ -172,7 +187,7 @@ export const namingVerificationProviderOutputSchema = namingVerificationOutputSc
   findings: z.array(namingVerificationFindingSchema.safeExtend({ evidence: z.array(z.strictObject(evidenceQuoteFields)
     .refine(value => value.end > value.start, "Quote bounds must be ordered")).max(10) })).max(1600),
 });
-export const namingModelOutputSchema = z.union([namingResearchOutputSchema, namingAssignmentOutputSchema, namingCreatorOutputSchema, namingCurationOutputSchema, namingVerificationOutputSchema])
+export const namingModelOutputSchema = z.union([namingResearchOutputSchema, namingAssignmentOutputSchema, namingEvidenceAssignmentOutputSchema, namingCreatorOutputSchema, namingCurationOutputSchema, namingVerificationOutputSchema])
   .refine(value => boundedBytes(value, 524_288), "Completed role output exceeds its byte limit");
 export type NamingModelOutput = z.infer<typeof namingModelOutputSchema>;
 
@@ -214,9 +229,10 @@ export const namingResearchPackSchema = z.strictObject({ ...envelopeFields, stag
   if (value.readiness === "sourced" && (!retrieved.size || !value.output.facts.some(fact => fact.sourceKeys.length > 0 && fact.sourceKeys.every(key => retrieved.has(key))))) issue(ctx, "Generation-ready research requires retrieved supporting material; retain other results as partial");
 }).transform(freeze);
 export type NamingResearchPack = z.infer<typeof namingResearchPackSchema>;
-export const namingAssignmentPlanSchema = z.strictObject({ ...envelopeFields, stageKey: z.enum(["direction", "gap", "creation"]), output: namingAssignmentOutputSchema }).superRefine((value, ctx) => {
+export const namingAssignmentPlanSchema = z.strictObject({ ...envelopeFields, stageKey: z.enum(["direction", "gap", "creation"]), output: z.union([namingAssignmentOutputSchema, namingEvidenceAssignmentOutputSchema]) }).superRefine((value, ctx) => {
   checkEnvelope(value, ctx);
   if ((value.stageKey === "gap") !== (value.output.round === "gap")) issue(ctx, "Assignment round must match its saved stage");
+  if ("planVersion" in value.output && (value.stageKey !== "creation" || value.providerReceipt.localPipelineVersion !== 2 || value.providerReceipt.budgetControl !== "local_unlimited_v1" || value.providerReceipt.providerSpendCapCents !== undefined)) issue(ctx, "Evidence plans require a new uncapped progressive Director request");
 }).transform(freeze);
 export type NamingAssignmentPlan = z.infer<typeof namingAssignmentPlanSchema>;
 export const namingCreatorAttributionSchema = z.discriminatedUnion("protocol", [
@@ -308,7 +324,19 @@ export function validateNamingAssignmentPlan(snapshotInput: unknown, researchInp
   assert(research.snapshotHash === snapshot.snapshotHash && plan.snapshotHash === snapshot.snapshotHash && research.runId === plan.runId, "Research and plan must bind the same frozen run");
   const selected = new Set(snapshot.preferences.approaches), territories = new Set(research.output.territories.map(row => row.territoryId)), sources = new Map(research.sources.map(row => [row.sourceKey, row]));
   const total = plan.output.assignments.reduce((sum, row) => sum + row.targetCount, 0);
-  assert(plan.output.round === "initial" ? total === NAMING_BRAIN_INITIAL_RAW_CAP : total <= NAMING_BRAIN_GAP_RAW_CAP, "Assignment targets must respect the admitted initial/gap total");
+  const evidencePlan = "planVersion" in plan.output ? plan.output : undefined;
+  const unavailable = new Set<NamingApproach>(evidencePlan?.unavailableApproaches.map(row => row.approach) ?? []);
+  if (evidencePlan) {
+    const supported = new Set(evidencePlan.assignments.map(row => row.primaryApproach));
+    const retrieved = new Set(research.sources.filter(row => row.evidenceStatus === "retrieved").map(row => row.sourceKey));
+    assert([...unavailable].every(approach => selected.has(approach)) && [...selected].every(approach => supported.has(approach) !== unavailable.has(approach)), "Evidence plan must partition every selected approach exactly once into supported or unavailable");
+    assert(evidencePlan.assignments.every(row => row.additionalApproaches.every(approach => !unavailable.has(approach))), "Unavailable approaches cannot be relabeled as supported secondary tags");
+    assert(evidencePlan.assignments.length === (supported.size ? 15 : 0) && total === (supported.size ? NAMING_BRAIN_INITIAL_RAW_CAP : 0) && evidencePlan.assignments.every(row => row.targetCount === 10), "Evidence plan must retain fifteen directions of ten when any route is supported, or no directions when all routes are unavailable");
+    for (const row of evidencePlan.unavailableApproaches) {
+      assert(row.reason === "no_retrieved_evidence" ? retrieved.size === 0 && row.inspectedSourceKeys.length === 0 : retrieved.size > 0 && row.inspectedSourceKeys.length > 0 && row.inspectedSourceKeys.every(key => retrieved.has(key)), "Unavailable reasons must describe actual retained evidence and inspected retrieved keys");
+    }
+    assert(evidencePlan.assignments.every(row => !evidencePlanFactualApproaches.has(row.primaryApproach) || row.sourceKeys.length > 0 && row.sourceKeys.every(key => retrieved.has(key))), "Supported factual directions require actual retrieved source keys");
+  } else assert(plan.output.round === "initial" ? total === NAMING_BRAIN_INITIAL_RAW_CAP : total <= NAMING_BRAIN_GAP_RAW_CAP, "Assignment targets must respect the admitted initial/gap total");
   if (plan.output.round === "gap") {
     const gap = namingGapContextSchema.parse(gapContextInput);
     assert(gap.runId === plan.runId && gap.snapshotHash === snapshot.snapshotHash && JSON.stringify(gap.primaryCounts.map(row => row.approach)) === JSON.stringify(snapshot.preferences.approaches), "Gap assignments require the actual saved run's deficits and selected routes");
@@ -319,7 +347,7 @@ export function validateNamingAssignmentPlan(snapshotInput: unknown, researchInp
     assert(plannedCredits === Math.min(totalMissingCredits, total), "The bounded gap allocation must prioritize actual missing primary credits without inventing coverage");
   } else assert(gapContextInput === undefined, "Initial direction cannot receive a gap context");
   if (plan.output.round === "initial") {
-    for (const approach of selected) assert(plan.output.assignments.filter(row => row.primaryApproach === approach).reduce((sum, row) => sum + row.targetCount, 0) >= NAMING_BRAIN_PRIMARY_FLOOR, "Every selected approach needs five primary candidate targets");
+    for (const approach of selected) if (!unavailable.has(approach)) assert(plan.output.assignments.filter(row => row.primaryApproach === approach).reduce((sum, row) => sum + row.targetCount, 0) >= NAMING_BRAIN_PRIMARY_FLOOR, "Every supported selected approach needs five primary candidate targets");
     // Local novelty uses retained candidate identities, not a model's editorial flag.
     const localExploration = research.providerReceipt.budgetControl === "local_unlimited_v1" && plan.providerReceipt.budgetControl === "local_unlimited_v1";
     assert(localExploration || plan.output.assignments.some(row => row.freshTerritory), "Initial and continuation exploration must leave room for fresh territory");
@@ -468,7 +496,7 @@ export const namingRolePolicySchema = z.strictObject({
   // Orthogonal v1 provider cap; the legacy marker retains execution compatibility only.
   providerSpendCapCents: z.number().int().min(1).max(150).optional(),
   localPipelineVersion: z.literal(2).optional(),
-  progressiveContractVersion: z.union([z.literal(2), z.literal(3)]).optional(),
+  progressiveContractVersion: z.union([z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).optional(),
   maximumCostMicrousd: z.number().int().min(1).max(1_500_000), sessionLimitCents: z.number().int().min(1).max(150), maxWebSearchCalls: z.number().int().min(0).max(20),
   maxInputBytes: z.literal(131_072), maxOutputBytes: z.literal(524_288), deadlineMs: z.union([z.literal(240_000), z.literal(900_000)]), nativeDelegation: z.literal(false),
   allowedTools: z.array(z.enum(["web_search", "read_reference"])).max(2).refine(unique),
@@ -476,6 +504,7 @@ export const namingRolePolicySchema = z.strictObject({
 }).superRefine((value, ctx) => {
   if (value.providerSpendCapCents !== undefined && (value.localPipelineVersion !== 2 || value.providerSpendCapCents !== value.sessionLimitCents)) issue(ctx, "Provider cap requires an exact progressive session allocation");
   if (value.progressiveContractVersion !== undefined && value.localPipelineVersion !== 2) issue(ctx, "The future role contract requires the immutable progressive execution profile");
+  if (value.progressiveContractVersion === 5 && (value.budgetControl !== "local_unlimited_v1" || value.providerSpendCapCents !== undefined)) issue(ctx, "Evidence planning belongs only to future uncapped progressive requests");
   if (value.localPipelineVersion === 2 && (value.budgetControl !== "local_unlimited_v1" || value.deadlineMs !== 900_000)) issue(ctx, "Progressive calls require the explicit local execution and timing policy");
   if (value.deadlineMs === 900_000 && value.budgetControl !== "local_unlimited_v1") issue(ctx, "Extended call timing requires explicit local execution");
   if (value.maximumCostMicrousd !== value.sessionLimitCents * 10_000) issue(ctx, "Session allocation cents must exactly match the server-allocated micro-USD bound");
@@ -585,7 +614,7 @@ export type NamingGapContext = z.infer<typeof namingGapContextSchema>;
 
 export const namingStageInputSchema = z.discriminatedUnion("role", [
   z.strictObject({ role: z.literal("researcher"), snapshot: namingBriefSnapshotSchema }),
-  z.strictObject({ role: z.literal("director"), snapshot: namingBriefSnapshotSchema, research: namingResearchPackSchema, gapContext: namingGapContextSchema.optional(), allocation: namingDirectorAllocationSchema.optional() }),
+  z.strictObject({ role: z.literal("director"), snapshot: namingBriefSnapshotSchema, research: namingResearchPackSchema, gapContext: namingGapContextSchema.optional(), allocation: z.union([namingDirectorAllocationSchema, namingEvidenceDirectorAllocationSchema]).optional() }),
   z.strictObject({ role: z.literal("creator"), snapshot: namingBriefSnapshotSchema, assignment: z.union([namingValidatedAssignmentSchema, namingProgressiveAssignmentSchema]) }),
   z.strictObject({ role: z.literal("curator"), snapshot: namingBriefSnapshotSchema, review: namingReviewProjectionSchema, validationRejections: z.array(namingCandidateRejectionSchema).max(200) }),
   z.strictObject({ role: z.literal("verifier"), snapshot: namingBriefSnapshotSchema, review: namingReviewProjectionSchema, curation: namingCurationProjectionSchema }),
@@ -604,6 +633,7 @@ export const namingStageRequestSchema = z.strictObject({
   if (input.role === "director" && (input.research.runId !== value.runId || input.research.snapshotHash !== value.snapshotHash || !(input.research.readiness === "sourced" || input.research.readiness === "partial" && value.policy.budgetControl === "local_unlimited_v1" && input.research.providerReceipt.budgetControl === "local_unlimited_v1") || !dependencies.has(input.research.artifactId))) issue(ctx, "Direction must depend on saved research from this run with the same explicit local mode for a partial pack");
   if (input.role === "director") {
     if ((value.policy.progressiveContractVersion !== undefined) !== (input.allocation !== undefined)) issue(ctx, "Director allocation belongs only to the explicitly versioned future request contract");
+    if (input.allocation && (input.allocation.version === 2) !== (value.policy.progressiveContractVersion === 5)) issue(ctx, "Evidence-aware allocation requires the exact future contract5 marker");
     const gap = input.gapContext;
     if ((value.stageKey === "gap") !== (gap !== undefined)) issue(ctx, "Director gap context is required only for the gap phase");
     if (gap && (gap.runId !== value.runId || gap.snapshotHash !== value.snapshotHash || JSON.stringify(gap.primaryCounts.map(row => row.approach)) !== JSON.stringify(input.snapshot.preferences.approaches) || [gap.curationArtifactId, gap.verificationArtifactId, ...gap.sourceArtifactIds].some(id => !dependencies.has(id)))) issue(ctx, "Gap direction must bind the actual saved review outputs and source dependencies");

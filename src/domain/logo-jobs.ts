@@ -1,4 +1,4 @@
-import { logoVectorProposalTextPolicySchema } from "./logo-vector-proposal-jobs";
+import { legacyLogoVectorProposalTextPolicySchema,uncappedLogoVectorProposalTextPolicySchema,logoVectorProposalUsageSchema,logoVectorProposalUsageCost } from "./logo-vector-proposal-jobs";
 import { logoVectorProposalRequestSchema } from "./logo-vector-proposals";
 import { z } from "zod";
 import { moneySchema } from "./jobs";
@@ -24,6 +24,13 @@ export const logoDirectionsSubscriptionPolicySchema=z.strictObject({
  limits:subscriptionLimitsSchema.extend({maxInputBytes:z.number().int().min(1024).max(131_072),maxOutputBytes:z.number().int().min(1024).max(262_144),maxStreamBytes:z.number().int().min(1024).max(2_097_152),deadlineMs:z.number().int().min(1000).max(240_000),maxObservedWebSearchCalls:z.literal(0)}),
 });
 export type LogoDirectionsSubscriptionPolicy=z.infer<typeof logoDirectionsSubscriptionPolicySchema>;
+/** Future API directions are explicitly uncapped; finite resource limits are not money authority. */
+export const logoDirectionsApiPolicySchema=z.strictObject({version:z.literal(1),billingMode:z.literal("openai_api"),spendControl:z.literal("uncapped"),
+ handlerVersion:z.literal("logo-directions-api-v1"),adapterVersion:z.literal("logo-directions-openai-v1"),model:z.literal("gpt-6.1-sol"),pricingVersion:z.literal("2026-10-03"),serviceTier:z.literal("default"),
+ maxInputTokens:z.number().int().min(1).max(32768),maxOutputTokens:z.number().int().min(1).max(4096),maxInputBytes:z.number().int().min(1024).max(131072),maxOutputBytes:z.number().int().min(1024).max(32768),
+ maxStreamBytes:z.number().int().min(1024).max(2097152),deadlineMs:z.number().int().min(1000).max(240000),maxTools:z.literal(0),
+ inputMicrousdPerMillionTokens:z.literal(2000000),cachedInputMicrousdPerMillionTokens:z.literal(100000),cacheWriteMicrousdPerMillionTokens:z.literal(2500000),outputMicrousdPerMillionTokens:z.literal(10000000)});
+export type LogoDirectionsApiPolicy=z.infer<typeof logoDirectionsApiPolicySchema>;
 const ordinal=z.union([z.literal(0),z.literal(1),z.literal(2),z.literal(3),z.literal(4),z.literal(5)]);
 const plannedSlot=z.strictObject({ordinal,type:logoTypeSchema,directionId:identifier});
 const typeList=z.array(logoTypeSchema).max(7).refine(unique,"Duplicate logo type");
@@ -80,7 +87,7 @@ export const logoQuoteRequestSchema=bounded(z.discriminatedUnion("operation",[
  z.strictObject({...expected,operation:z.literal("directions"),approvedLogoId:uuid}),
 ]));
 export type LogoQuoteRequest=z.infer<typeof logoQuoteRequestSchema>;
-export const logoCostQuoteSchema=bounded(z.strictObject({id:uuid,...scope,request:logoQuoteRequestSchema,inputHash:hash,expected:logoExpectedHeadsSchema,policyIdentity:hash,handlerVersion:identifier,provider:identifier.nullable(),model:identifier.nullable(),engine:z.strictObject({id:identifier,version:identifier,artifactHash:hash,settingsHash:hash}).nullable(),estimatedCostMicrousd:moneySchema,maxCostMicrousd:moneySchema,externalProviderCostMicrousd:moneySchema.nullable(),expiresAt:timestamp,conceptPlan:logoConceptPlanSchema.nullable(),targetSlotIds:z.array(uuid).max(6).refine(unique,"Duplicate quote slot"),billingMode:z.literal("chatgpt_subscription").optional(),policy:logoDirectionsSubscriptionPolicySchema.optional(),textPolicy:logoVectorProposalTextPolicySchema.optional()}).superRefine((v,ctx)=>{
+export const legacyLogoCostQuoteSchema=bounded(z.strictObject({id:uuid,...scope,request:logoQuoteRequestSchema,inputHash:hash,expected:logoExpectedHeadsSchema,policyIdentity:hash,handlerVersion:identifier,provider:identifier.nullable(),model:identifier.nullable(),engine:z.strictObject({id:identifier,version:identifier,artifactHash:hash,settingsHash:hash}).nullable(),estimatedCostMicrousd:moneySchema,maxCostMicrousd:moneySchema,externalProviderCostMicrousd:moneySchema.nullable(),expiresAt:timestamp,conceptPlan:logoConceptPlanSchema.nullable(),targetSlotIds:z.array(uuid).max(6).refine(unique,"Duplicate quote slot"),billingMode:z.literal("chatgpt_subscription").optional(),policy:logoDirectionsSubscriptionPolicySchema.optional(),textPolicy:legacyLogoVectorProposalTextPolicySchema.optional()}).superRefine((v,ctx)=>{
  if((v.request.operation==="propose_vector_edit")!==(v.textPolicy!==undefined))issue(ctx,"Only a separately priced vector proposal has its complete text policy");
  if(v.textPolicy&&(v.handlerVersion!==v.textPolicy.handlerVersion||v.provider!=="openai"||v.model!==v.textPolicy.model||v.engine!==null||v.billingMode!==undefined||v.policy!==undefined||v.conceptPlan!==null||v.targetSlotIds.length!==0||v.maxCostMicrousd!==v.textPolicy.maximumCostMicrousd||v.externalProviderCostMicrousd!==v.textPolicy.maximumCostMicrousd))issue(ctx,"Vector text quotes require exact independent policy and cost bounds");
  if((v.billingMode===undefined)!==(v.policy===undefined))issue(ctx,"Subscription quotes require the full paired policy");
@@ -91,8 +98,16 @@ export const logoCostQuoteSchema=bounded(z.strictObject({id:uuid,...scope,reques
  if(["concepts","more_concepts"].includes(v.request.operation)&&(!v.conceptPlan||v.targetSlotIds.length!==6))issue(ctx,"A concept quote requires its frozen plan and six assigned slots");
  if(v.request.operation==="retry_failed"&&(v.targetSlotIds.length!==v.request.failedSlotIds.length||v.targetSlotIds.some(id=>v.request.operation==="retry_failed"&&!v.request.failedSlotIds.includes(id))))issue(ctx,"Retry quote must retain only explicitly failed slots");
 }));
+const uncappedQuoteBasis=z.strictObject({...legacyLogoCostQuoteSchema.shape}).omit({estimatedCostMicrousd:true,maxCostMicrousd:true,externalProviderCostMicrousd:true,billingMode:true,policy:true,textPolicy:true})
+ .extend({version:z.literal(3),billingMode:z.literal("openai_api"),spendControl:z.literal("uncapped"),provider:z.literal("openai"),model:z.literal("gpt-6.1-sol"),engine:z.null(),conceptPlan:z.null(),targetSlotIds:z.array(uuid).length(0)});
+export const uncappedLogoDirectionsQuoteSchema=uncappedQuoteBasis.extend({handlerVersion:z.literal("logo-directions-api-v1"),apiPolicy:logoDirectionsApiPolicySchema})
+ .superRefine((v,ctx)=>{if(v.request.operation!=="directions"||JSON.stringify(v.expected)!==JSON.stringify(v.request.expected))issue(ctx,"Directions quote must freeze exact owned request and policy");});
+export const uncappedLogoProposalQuoteSchema=uncappedQuoteBasis.extend({handlerVersion:z.literal("logo-vector-propose-v1"),textPolicy:uncappedLogoVectorProposalTextPolicySchema})
+ .superRefine((v,ctx)=>{if(v.request.operation!=="propose_vector_edit"||JSON.stringify(v.expected)!==JSON.stringify(v.request.expected))issue(ctx,"Proposal quote must freeze exact owned request and policy");});
+export const logoCostQuoteSchema=bounded(z.union([legacyLogoCostQuoteSchema,uncappedLogoDirectionsQuoteSchema,uncappedLogoProposalQuoteSchema]));
 export type LogoCostQuote=z.infer<typeof logoCostQuoteSchema>;
-export const logoGenerationIntentSchema=bounded(z.strictObject({requestKey:uuid,quoteId:uuid,acceptedMaxCostMicrousd:moneySchema,expected:logoExpectedHeadsSchema}));
+export const logoGenerationIntentSchema=bounded(z.union([z.strictObject({requestKey:uuid,quoteId:uuid,acceptedMaxCostMicrousd:moneySchema,expected:logoExpectedHeadsSchema}),
+ z.strictObject({requestKey:uuid,quoteId:uuid,expected:logoExpectedHeadsSchema})]));
 export type LogoGenerationIntent=z.infer<typeof logoGenerationIntentSchema>;
 export const logoDispatchReceiptSchema=bounded(z.strictObject({...scope,requestKey:uuid,operation:z.union([logoOperationSchema,z.literal("identity.logo_vector_propose")]),batchId:uuid.nullable(),jobIds:z.array(uuid).min(1).max(6).refine(unique,"Duplicate admitted job"),inputHash:hash}).refine(v=>(v.operation==="identity.logo_concept")===(v.batchId!==null),"Only concept operations have a batch").refine(v=>v.operation!=="identity.logo_vector_propose"||v.jobIds.length===1,"A vector proposal must bind exactly one durable job"));
 export type LogoDispatchReceipt=z.infer<typeof logoDispatchReceiptSchema>;
@@ -122,9 +137,13 @@ export const logoRefinementJobInputSchema=bounded(z.strictObject({...jobBasis,op
 export type LogoRefinementJobInput=z.infer<typeof logoRefinementJobInputSchema>;
 export const logoVectorizeJobInputSchema=bounded(z.strictObject({...jobBasis,operation:z.literal("identity.logo_vectorize"),source:logoRasterSourceSchema,settings:logoTraceSettingsSchema,engine:z.strictObject({id:identifier,version:identifier,artifactHash:hash})}));
 export type LogoVectorizeJobInput=z.infer<typeof logoVectorizeJobInputSchema>;
-export const logoDirectionsJobInputSchema=bounded(z.strictObject({...jobBasis,operation:z.literal("identity.logo_directions"),approvedLogoId:uuid,briefRevisionId:uuid,referenceSnapshotId:uuid,fontVersionIds:z.array(uuid).max(100).refine(unique,"Duplicate font"),targetCount:z.literal(3),billingMode:z.literal("chatgpt_subscription").optional(),policy:logoDirectionsSubscriptionPolicySchema.optional()}).superRefine((v,ctx)=>{
+const legacyLogoDirectionsJobInputSchema=z.strictObject({...jobBasis,operation:z.literal("identity.logo_directions"),approvedLogoId:uuid,briefRevisionId:uuid,referenceSnapshotId:uuid,fontVersionIds:z.array(uuid).max(100).refine(unique,"Duplicate font"),targetCount:z.literal(3),billingMode:z.literal("chatgpt_subscription").optional(),policy:logoDirectionsSubscriptionPolicySchema.optional()}).superRefine((v,ctx)=>{
  if((v.billingMode===undefined)!==(v.policy===undefined)||v.policy&&v.handlerVersion!==v.policy.handlerVersion)issue(ctx,"Subscription jobs require their exact paired frozen directions policy");
-}));
+});
+export const logoDirectionsApiJobInputSchema=bounded(z.strictObject({...jobBasis,version:z.literal(3),operation:z.literal("identity.logo_directions"),handlerVersion:z.literal("logo-directions-api-v1"),
+ approvedLogoId:uuid,briefRevisionId:uuid,referenceSnapshotId:uuid,fontVersionIds:z.array(uuid).min(1).max(100).refine(unique,"Duplicate font"),targetCount:z.literal(3),
+ billingMode:z.literal("openai_api"),spendControl:z.literal("uncapped"),apiPolicy:logoDirectionsApiPolicySchema,policy:z.never().optional()}));
+export const logoDirectionsJobInputSchema=bounded(z.union([legacyLogoDirectionsJobInputSchema.safeExtend({apiPolicy:z.never().optional(),spendControl:z.never().optional()}),logoDirectionsApiJobInputSchema]));
 export type LogoDirectionsJobInput=z.infer<typeof logoDirectionsJobInputSchema>;
 export const logoExportJobInputSchema=bounded(z.strictObject({...z.strictObject(jobBasis).omit({quoteId:true}).shape,operation:z.literal("identity.logo_export"),approvedLogoId:uuid,directionApprovalId:uuid,variantSetId:uuid,variantReviewId:uuid,sourceSnapshotHash:hash}));
 export type LogoExportJobInput=z.infer<typeof logoExportJobInputSchema>;
@@ -155,10 +174,16 @@ export type LogoExportPartialStepOutput=z.infer<typeof logoExportPartialStepOutp
 const legacyProviderObservationShape={provider:identifier,model:identifier,providerRequestId:text.min(1).max(200).nullable(),responseHash:hash.nullable(),observedAt:timestamp,billing:logoBillingObservationSchema,artifactHash:hash.nullable(),normalizedPixelHash:hash.optional()};
 const legacyProviderObservationSchema=z.strictObject(legacyProviderObservationShape);
 const subscriptionProviderObservationShape={provider:z.literal("openai"),model:identifier.max(150),providerRequestId:text.min(1).max(200).nullable(),responseHash:hash.nullable(),observedAt:timestamp,billing:z.discriminatedUnion("status",[z.strictObject({status:z.literal("unknown"),confirmedMicrousd:z.null()}),z.strictObject({status:z.literal("recorded"),confirmedMicrousd:z.literal(0)})]),artifactHash:z.null(),version:z.literal(2),billingMode:z.literal("chatgpt_subscription"),registrationId:localRegistrationIdSchema,responseId:z.string().regex(/^resp_[a-zA-Z0-9_-]+$/).max(200).nullable(),usage:subscriptionUsageSchema.nullable()};
-export const logoProviderObservationSchema=bounded(z.union([legacyProviderObservationSchema,z.strictObject(subscriptionProviderObservationShape)]));
+const apiDirectionsObservationShape={...legacyProviderObservationShape,provider:z.literal("openai"),artifactHash:z.null(),normalizedPixelHash:z.never().optional(),version:z.literal(3),kind:z.literal("logo_directions_text"),
+ billingMode:z.literal("openai_api"),spendControl:z.literal("uncapped"),apiPolicy:logoDirectionsApiPolicySchema,responseId:z.string().regex(/^resp_[a-zA-Z0-9_-]+$/).max(200).nullable(),
+ usage:logoVectorProposalUsageSchema.nullable(),serviceTier:z.string().min(1).max(100).nullable(),toolCalls:moneySchema.nullable(),responseComplete:z.boolean()};
+export const logoDirectionsApiObservationSchema=z.strictObject(apiDirectionsObservationShape).superRefine((o,ctx)=>{
+ if(o.billing.status==="recorded"&&(!o.usage||o.toolCalls!==0||o.model!==o.apiPolicy.model||o.serviceTier!==o.apiPolicy.serviceTier||o.billing.confirmedMicrousd!==logoVectorProposalUsageCost(o.usage)))issue(ctx,"Recorded API directions usage requires exact model, tier, tools and calculated price");
+});
+export const logoProviderObservationSchema=bounded(z.union([legacyProviderObservationSchema,z.strictObject(subscriptionProviderObservationShape),logoDirectionsApiObservationSchema]));
 export type LogoProviderObservation=z.infer<typeof logoProviderObservationSchema>;
 const providerReceiptShape={id:uuid,...scope,jobId:uuid,leaseToken:uuid};
-export const logoProviderResponseReceiptSchema=bounded(z.union([z.strictObject({...legacyProviderObservationShape,...providerReceiptShape}),z.strictObject({...subscriptionProviderObservationShape,...providerReceiptShape})]));
+export const logoProviderResponseReceiptSchema=bounded(z.union([z.strictObject({...legacyProviderObservationShape,...providerReceiptShape}),z.strictObject({...subscriptionProviderObservationShape,...providerReceiptShape}),logoDirectionsApiObservationSchema.safeExtend(providerReceiptShape)]));
 export type LogoProviderResponseReceipt=z.infer<typeof logoProviderResponseReceiptSchema>;
 /** Subscription completion can use the actual response ID without fabricating an HTTP header ID. */
 export function logoProviderHasResponseIdentity(observation:LogoProviderObservation):boolean{return observation.responseHash!==null&&("version" in observation ? observation.responseId!==null : observation.providerRequestId!==null);}

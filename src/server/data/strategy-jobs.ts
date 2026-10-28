@@ -3,17 +3,20 @@ import { z } from "zod";
 import {
   applyStrategyJobSchema, applyStrategyJobResponseSchema, enqueueStrategyJobSchema,
   strategyAvailabilitySchema, strategyJobSchema, strategyJobResultSchema, strategyJobSummarySchema, strategyJobApplicationSchema,
-  strategyOperationSchema, strategyOverviewResponseSchema,
+  strategyOperationSchema, strategyOverviewResponseSchema, subscriptionPolicyIdentitySchema,
   type StrategyJob, type StrategyJobApplication,
 } from "@/domain/strategy-jobs";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
 import { apiTextDispatchMessageSchema } from "@/domain/api-text-dispatch";
 import { publishApiTextDispatch } from "../api-text/publication";
-import { getApiTextPublicationOrigin, isLocalPrototypeRuntime } from "../api-text/config";
+import { getApiTextPublicationOrigin, isLocalPollingRuntime } from "../api-text/config";
 import { getApiTextWorkerReadiness } from "../api-text/readiness";
+import { isSharedWorkerRuntime } from "../shared-account/routing";
 
-const jobColumns = "id,owner_id,project_id,operation,input_revision,state,progress,billing_mode,policy_identity,reserved_cost_microusd,actual_cost_microusd,cancel_requested_at,error_code,created_at,finished_at";
+// PostgREST aliases project only the immutable contract metadata, rather than
+// loading every frozen context/history when listing account jobs.
+const jobColumns = "id,owner_id,project_id,operation,input_revision,input_version:input->version,input_spend_control:input->>spendControl,input_policy_identity:input->>policyIdentity,state,progress,billing_mode,policy_identity,reserved_cost_microusd,actual_cost_microusd,cancel_requested_at,error_code,created_at,finished_at";
 const stepSchema = z.object({
   job_id: z.uuid(), owner_id: z.uuid(), project_id: z.uuid(), step_key: z.string().min(1).max(200),
   state: z.literal("succeeded"), output: strategyJobResultSchema,
@@ -34,8 +37,9 @@ function localDiagnostic(stage: DiagnosticStage, details: {
   }
 }
 
-function databaseError(error: { code?: unknown } | null, stage: DiagnosticStage = "database", status?: unknown): void {
+function databaseError(error: { code?: unknown; message?: unknown } | null, stage: DiagnosticStage = "database", status?: unknown): void {
   if (!error) return;
+  if (error.code === "42501" && error.message === "account_required") throw new ApiError("unauthenticated");
   if (error.code === "P0002" || error.code === "PGRST116") throw new ApiError("not_found");
   if (error.code === "23505" || error.code === "40001" || error.code === "PT409") throw new ApiError("conflict");
   if (typeof error.code === "string" && ["23514", "23502", "22023"].includes(error.code)) throw new ApiError("invalid_input");
@@ -65,23 +69,26 @@ function ownSummary(auth: AuthenticatedContext, projectId: string, value: unknow
   const raw = parseStored(z.record(z.string(), z.unknown()), value);
   if (raw.billing_mode !== undefined && raw.billing_mode !== "openai_api" && raw.billing_mode !== "chatgpt_subscription") throw new ApiError("integration_unavailable");
   const mode = raw.billing_mode ?? raw.billingMode;
-  const job = parseStored(strategyJobSummarySchema, mode === "chatgpt_subscription" ? { ...raw, billingMode: mode, policyIdentity: raw.policy_identity ?? raw.policyIdentity } : raw);
+  const uncapped = z.object({ input_version: z.literal(3), input_spend_control: z.literal("uncapped"), input_policy_identity: subscriptionPolicyIdentitySchema }).safeParse(raw);
+  if (raw.input_version === 3 && !uncapped.success) throw new ApiError("integration_unavailable");
+  const job = parseStored(strategyJobSummarySchema, mode === "chatgpt_subscription" ? { ...raw, billingMode: mode, policyIdentity: raw.policy_identity ?? raw.policyIdentity }
+    : uncapped.success ? { ...raw, billingMode: "openai_api", spendControl: "uncapped", policyIdentity: uncapped.data.input_policy_identity } : raw);
   if (job.owner_id !== auth.userId || job.project_id !== projectId) throw new ApiError("not_found");
   return job;
 }
 
 export async function getStrategyAvailability(auth: AuthenticatedContext, projectId?: string) {
   if (projectId !== undefined) resourceId(projectId);
-  const local = isLocalPrototypeRuntime();
-  const { data, error } = await auth.client.rpc(local ? "get_local_strategy_availability" : "get_strategy_availability", { p_project_id: projectId ?? null });
+  const local = isLocalPollingRuntime();
+  const { data, error } = await auth.client.rpc(isSharedWorkerRuntime() ? "get_shared_strategy_availability" : local ? "get_local_strategy_availability" : "get_strategy_availability", { p_project_id: projectId ?? null });
   databaseError(error);
   const availability = parseStored(strategyAvailabilitySchema, data);
-  if (local || availability.status !== "available" || availability.operations.every(operation => operation.billingMode === "chatgpt_subscription")) return availability;
+  if (local || availability.status !== "available" || availability.operations.every(operation => operation.billingMode === "chatgpt_subscription" || ("spendControl" in operation && operation.spendControl === "uncapped"))) return availability;
   // Caller-specific SQL remains authoritative for policy, eligibility and cost.
   // A configured origin alone does not establish that its protected worker is
   // reachable and qualified. Subscription readiness is independent of this probe.
   const readiness = getApiTextPublicationOrigin() ? await getApiTextWorkerReadiness() : null;
-  const operations = availability.operations.filter(operation => operation.billingMode === "chatgpt_subscription" || readiness?.operations.some(readyOperation => readyOperation === operation.operation));
+  const operations = availability.operations.filter(operation => operation.billingMode === "chatgpt_subscription" || ("spendControl" in operation && operation.spendControl === "uncapped") || readiness?.operations.some(readyOperation => readyOperation === operation.operation));
   return parseStored(strategyAvailabilitySchema, operations.length
     ? { status: "available", operations }
     : { status: "unavailable", operations: [], reason: "worker_unavailable" });
@@ -183,7 +190,7 @@ async function readDeliveries(auth: AuthenticatedContext, projectId: string, job
 /** Reads never publish. Missing recovery infrastructure must not hide saved work. */
 async function withDelivery(auth: AuthenticatedContext, projectId: string, summaries: z.infer<typeof strategyJobSummarySchema>[]) {
   const candidates = summaries.filter(job => job.state === "queued" && job.billingMode !== "chatgpt_subscription");
-  if (!candidates.length || isLocalPrototypeRuntime()) return summaries;
+  if (!candidates.length || !isSharedWorkerRuntime() && isLocalPollingRuntime()) return summaries;
   let rows: Awaited<ReturnType<typeof readDeliveries>>;
   try { rows = await readDeliveries(auth, projectId, candidates.map(job => job.id)); }
   catch (error) {
@@ -200,10 +207,13 @@ async function withDelivery(auth: AuthenticatedContext, projectId: string, summa
 /** Explicit initial delivery retry only: no enqueue, redrive, claim or provider retry. */
 export async function retryStrategyJobDelivery(auth: AuthenticatedContext, projectId: string, jobId: string) {
   resourceId(projectId); resourceId(jobId);
-  if (isLocalPrototypeRuntime()) throw new ApiError("conflict");
+  if (!isSharedWorkerRuntime() && isLocalPollingRuntime()) throw new ApiError("conflict");
   const rows = await readDeliveries(auth, projectId, [jobId]);
   const delivery = rows[0];
   if (!delivery || !delivery.canRetryDelivery || !delivery.dispatch) throw new ApiError("conflict");
+  // The shared worker owns its same-project durable outbox publisher. The
+  // existing pending row is retried without an HTTP dispatch or a new job.
+  if (isSharedWorkerRuntime()) return getStrategyJob(auth, projectId, jobId);
   let dispatchState: "published" | "dispatch_pending" | "already_processing" = "dispatch_pending";
   try { dispatchState = (await publishApiTextDispatch(delivery.dispatch)).state; }
   catch { /* An uncertain acknowledgement never creates a replacement request. */ }
@@ -221,15 +231,20 @@ export async function enqueueStrategyJob(auth: AuthenticatedContext, projectId: 
   const parsed = enqueueStrategyJobSchema.safeParse(input);
   if (!parsed.success) throw new ApiError("invalid_input");
   const { operation, expectedRevision, idempotencyKey } = parsed.data;
-  const local = isLocalPrototypeRuntime() && parsed.data.billingMode !== "chatgpt_subscription";
+  const shared = isSharedWorkerRuntime();
+  if (shared && parsed.data.billingMode !== "chatgpt_subscription" && !("spendControl" in parsed.data)) throw new ApiError("invalid_input");
+  const local = isLocalPollingRuntime() && parsed.data.billingMode !== "chatgpt_subscription" && !("spendControl" in parsed.data);
   const args = { p_project_id: projectId, p_expected_revision: expectedRevision, p_operation: operation, p_idempotency_key: idempotencyKey };
   const { data, error } = parsed.data.billingMode === "chatgpt_subscription"
     ? await auth.client.rpc("enqueue_subscription_strategy_job", { ...args, p_accepted_policy_identity: parsed.data.acceptedPolicyIdentity })
-    : await auth.client.rpc(local ? "enqueue_local_strategy_job" : "enqueue_strategy_job", { ...args, p_accepted_max_cost_microusd: parsed.data.acceptedMaxCostMicrousd });
+    : "spendControl" in parsed.data
+      ? await auth.client.rpc(shared ? "enqueue_shared_strategy_job" : "enqueue_managed_strategy_job", { ...args, p_accepted_policy_identity: parsed.data.acceptedPolicyIdentity })
+      : await auth.client.rpc(local ? "enqueue_local_strategy_job" : "enqueue_strategy_job", { ...args, p_accepted_max_cost_microusd: parsed.data.acceptedMaxCostMicrousd });
   databaseError(error);
   const summary = ownSummary(auth, projectId, data);
   if (summary.operation !== operation || summary.input_revision !== expectedRevision || (summary.billingMode ?? "openai_api") !== (parsed.data.billingMode ?? "openai_api")) throw new ApiError("integration_unavailable");
   if (parsed.data.billingMode === "chatgpt_subscription" && (summary.billingMode !== "chatgpt_subscription" || summary.policyIdentity !== parsed.data.acceptedPolicyIdentity)) throw new ApiError("integration_unavailable");
+  if ("spendControl" in parsed.data && (summary.billingMode !== "openai_api" || summary.spendControl !== "uncapped" || summary.policyIdentity !== parsed.data.acceptedPolicyIdentity)) throw new ApiError("integration_unavailable");
   if (!local && parsed.data.billingMode !== "chatgpt_subscription" && summary.billingMode !== "chatgpt_subscription") {
     const terminal = ["succeeded", "failed", "partial", "cancelled", "needs_reconciliation"].includes(summary.state);
     if (!terminal) {
@@ -237,7 +252,7 @@ export async function enqueueStrategyJob(auth: AuthenticatedContext, projectId: 
       const dispatch = parseStored(apiTextDispatchMessageSchema, raw.dispatch);
       if (dispatch.jobId !== summary.id) throw new ApiError("integration_unavailable");
       let dispatchState: "published" | "dispatch_pending" | "already_processing" = "dispatch_pending";
-      try { dispatchState = (await publishApiTextDispatch(dispatch)).state; }
+      try { if (!shared) dispatchState = (await publishApiTextDispatch(dispatch)).state; }
       catch { /* The committed admission and exact idempotency key remain repairable. */ }
       // A publication receipt is distinct from execution. Keep the database job state.
       return (await withResults(auth, projectId, [{ ...summary, dispatchState }]))[0]!;

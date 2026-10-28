@@ -68,7 +68,8 @@ describe("account editor comparison readiness", () => {
   it.each(["canonical", "original"] as const)("disables Accept and Save when the active %s image fails", async which => {
     const f = await mount(); await loadComparison();
     const failed = which === "canonical" ? vector() : original(); await event(failed, "error");
-    expect(button("Accept this vector")?.disabled).toBe(true); expect(host.querySelector('[role="alert"]')?.textContent).toContain("unavailable");
+    const warning = host.querySelector(which === "canonical" ? '[aria-label="Canonical vector preview"] [role="alert"]' : '[aria-label="Original preview"] [role="alert"]');
+    expect(button("Accept this vector")?.disabled).toBe(true); expect(warning?.textContent).toContain("unavailable");
     await event(failed, "load"); expect(button("Accept this vector")?.disabled).toBe(true);
     await rotate("6"); await loadComparison(); expect(button("Save edit")?.disabled).toBe(false);
     await event(which === "canonical" ? vector() : original(), "error");

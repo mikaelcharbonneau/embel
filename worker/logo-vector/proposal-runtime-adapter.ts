@@ -3,7 +3,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { z } from 'zod';
 import { moneySchema, type ClaimedJob } from '../../src/domain/jobs';
 import { logoHashSchema, logoUuidSchema } from '../../src/domain/logo-vector';
-import { logoVectorProposalJobInputSchema, type LogoVectorProposalTextPolicy } from '../../src/domain/logo-vector-proposal-jobs';
+import { logoVectorProposalJobInputSchema, logoVectorProposalReservation } from '../../src/domain/logo-vector-proposal-jobs';
 import type { LogoVectorProposalWorkerPorts } from '../../src/domain/logo-vector-proposal-evidence';
 import type { OpenAIResponsesTransport } from '../../src/server/ai/openai-transport';
 import { createLogoVectorProposalProvider } from '../../src/features/logo-vector/server/proposal-provider';
@@ -12,11 +12,7 @@ import type { LogoVectorProposalHandlerDependencies } from '../handlers/logo-vec
 
 /** Separate passive descriptor. Deliberately not registered in the existing
  * five-lane LogoWorkerCapability parser or any host. */
-export type LogoVectorProposalCapability = Readonly<{
- operation: 'identity.logo_vector_propose'; policyIdentity: string; handlerVersion: 'logo-vector-propose-v1';
- provider: 'openai'; model: 'gpt-6.1-sol'; engine: null; maxCostMicrousd: number;
- textPolicy: Readonly<LogoVectorProposalTextPolicy>;
-}>;
+export type LogoVectorProposalCapability=Readonly<import('../logo-vector-proposal-capability').LegacyLogoVectorProposalCapability|import('../logo-vector-proposal-capability').UncappedLogoVectorProposalCapability>;
 export type LogoVectorProposalRuntimeAdapterInput = {
  ownerId: string; policyIdentity: string; configuration: LogoVectorProposalConfiguration;
  ports: LogoVectorProposalWorkerPorts | null; transport?: OpenAIResponsesTransport; apiKey?: string;
@@ -30,6 +26,8 @@ const unavailable = () => new Error('The exact vector proposal runtime is unavai
 /** Pure composition of explicit already-authorized ports. No I/O, environment
  * discovery, timers, pool, Storage/font capabilities or readiness registration.
  * The concrete SQL/DAL port implementation and activation are separate work. */
+export function createLogoVectorProposalRuntimeAdapter(input:LogoVectorProposalRuntimeAdapterInput&{configuration:LogoVectorProposalConfiguration&{textPolicy:import('../../src/domain/logo-vector-proposal-jobs').LegacyLogoVectorProposalTextPolicy}}):Readonly<{capability:Readonly<import('../logo-vector-proposal-capability').LegacyLogoVectorProposalCapability>;proposals:Readonly<LogoVectorProposalHandlerDependencies>}>|null;
+export function createLogoVectorProposalRuntimeAdapter(input?:LogoVectorProposalRuntimeAdapterInput|null):LogoVectorProposalRuntimeAdapter|null;
 export function createLogoVectorProposalRuntimeAdapter(input: LogoVectorProposalRuntimeAdapterInput | null = null): LogoVectorProposalRuntimeAdapter | null {
  if (!input) return null;
  try {
@@ -39,12 +37,14 @@ export function createLogoVectorProposalRuntimeAdapter(input: LogoVectorProposal
   const provider = createLogoVectorProposalProvider({ configuration, transport: input.transport, apiKey: input.apiKey, acceptingWork: input.acceptingWork });
   if (!provider) return null;
   const policy = configuration.textPolicy;
-  const capability: LogoVectorProposalCapability = Object.freeze({ operation: configuration.operation, policyIdentity, handlerVersion: policy.handlerVersion, provider: 'openai', model: policy.model, engine: null, maxCostMicrousd: policy.maximumCostMicrousd, textPolicy: policy });
+  const basis={operation:configuration.operation,policyIdentity,handlerVersion:policy.handlerVersion,provider:'openai' as const,model:policy.model,engine:null};
+  const capability:LogoVectorProposalCapability=policy.version===1?Object.freeze({...basis,maxCostMicrousd:policy.maximumCostMicrousd,textPolicy:policy})
+   :Object.freeze({...basis,spendControl:'uncapped' as const,textPolicy:policy});
   // Capture and bind functions once; caller mutation cannot switch the ports.
   const loadInput = input.ports.loadInput.bind(input.ports), assertReady = input.ports.assertReady.bind(input.ports), recordResponse = input.ports.recordResponse.bind(input.ports), stageProposal = input.ports.stageProposal.bind(input.ports);
   const snapshot = (raw: ClaimedJob) => {
    const job = claimSchema.parse(raw), frozen = job.input;
-   if (job.ownerId !== ownerId || frozen.ownerId !== ownerId || frozen.projectId !== job.projectId || frozen.policyIdentity !== policyIdentity || !isDeepStrictEqual(frozen.textPolicy, policy) || job.reservedCostMicrousd !== policy.maximumCostMicrousd) throw unavailable();
+   if (job.ownerId !== ownerId || frozen.ownerId !== ownerId || frozen.projectId !== job.projectId || frozen.policyIdentity !== policyIdentity || !isDeepStrictEqual(frozen.textPolicy, policy) || job.reservedCostMicrousd !== logoVectorProposalReservation(policy)) throw unavailable();
    return job;
   };
   const proposals: LogoVectorProposalHandlerDependencies = {

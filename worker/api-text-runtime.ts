@@ -11,6 +11,7 @@ import { backgroundControl, runBackgroundApiTextDelivery } from "./api-text-back
 
 import { diagnose, diagnosticErrorClass, observeStage, type DiagnosticSink } from "./hosting/diagnostics";
 import { OperationDeadlineError } from "./hosting/timing";
+import { stepOutcomeSchema,type ClaimedJob,type StepOutcome } from "../src/domain/jobs";
 import { observeDeliveryHandlers, observeDeliveryStore, observeProviderTransport } from "./hosting/delivery-diagnostics";
 
 
@@ -24,6 +25,10 @@ export type ApiTextDeliveryResult = { disposition: "ack" | "retry"; state: strin
 export async function runApiTextDelivery(options: {
   message: unknown; database: JobDatabase; configuration: OpenAIStrategyConfiguration | null;
   deploymentId: string; signal?: AbortSignal; transport?: OpenAIResponsesTransport; multiAccount?: boolean; backgroundRecovery?: boolean; diagnostics?: DiagnosticSink;
+  /** Explicit shared-lane receipt journal. The future is the actual handler
+   * execution, including an immutable outcome arriving after a runner deadline.
+   * Legacy callers omit this seam and retain their established behavior. */
+  observeStepOutcome?: Readonly<{record(job:ClaimedJob,stepKey:string,outcome:StepOutcome):Promise<void>;track(execution:Promise<unknown>):void}>;
 }): Promise<ApiTextDeliveryResult> {
   const parsed = apiTextDispatchMessageSchema.safeParse(options.message);
   if (!parsed.success) return { disposition: "ack", state: "invalid_message" };
@@ -79,9 +84,19 @@ export async function runApiTextDelivery(options: {
       const store = new ApiTextJobStore(database, message, options.deploymentId, descriptor.operation);
       const assertPolicyReady = createApiTextReadiness(database, options.deploymentId);
       const transport = observeProviderTransport(options.transport ?? createOpenAIResponsesTransport({ apiKey: configured.apiKey }), options.diagnostics);
-      const handlers = observeDeliveryHandlers(createOpenAIStrategyHandlers({ ...configured, policies }, transport,
+      const suppliedHandlers = observeDeliveryHandlers(createOpenAIStrategyHandlers({ ...configured, policies }, transport,
         (...args) => observeStage("policy_check", "database", () => assertPolicyReady(...args), options.diagnostics),
-        (job, key) => observeStage("dispatch_authorize", "database", () => store.authorizeDispatch(job, key), options.diagnostics)), options.diagnostics);
+        (job, key) => observeStage("dispatch_authorize", "database", () => store.authorizeDispatch(job, key), options.diagnostics),
+        job => store.hasUnmeteredExecutionAuthority(job)), options.diagnostics);
+      const observer=options.observeStepOutcome;
+      const handlers=observer?new Map([...suppliedHandlers].map(([operation,handler])=>[operation,{steps(job:ClaimedJob){
+        return handler.steps(job).map(step=>({...step,execute(args:{job:ClaimedJob;signal:AbortSignal}){
+          const execution=Promise.resolve().then(()=>step.execute(args)).then(async raw=>{
+            const outcome=stepOutcomeSchema.parse(raw);await observer.record(args.job,step.key,outcome);return outcome;
+          });
+          observer.track(execution);return execution;
+        }}));
+      }}])):suppliedHandlers;
       const state = await runOneJob({ store: observeDeliveryStore(store, options.diagnostics), handlers, workerId: `api-text-${crypto.randomUUID()}`,
         leaseSeconds: 120, heartbeatMs: 20_000, abortGraceMs: 5_000, signal: controller.signal });
       if (terminalStates.has(state)) return { disposition: "ack", state };

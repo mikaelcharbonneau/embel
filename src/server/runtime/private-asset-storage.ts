@@ -1,12 +1,16 @@
 import "server-only";
+import { MIMEType } from "node:util";
 import { z } from "zod";
 import { ASSET_MAX_FILE_BYTES } from "@/domain/asset-library";
 import { logoUuidSchema } from "@/domain/logo-vector";
 import type { IdentityAssetStorage } from "@/server/data/identity-asset-store";
 import { ApiError } from "@/server/http/errors";
+import { readDevelopmentConfiguration } from "@/server/development/config";
+import { qualifySharedSupabaseOrigin } from "./shared-supabase-origin";
 
-// Only the already-approved development project and its existing private bucket.
-// There is intentionally no caller-supplied URL, bucket or credential option.
+// Hosted calls retain the approved project and private bucket. The separate
+// server-owned development seam below accepts only the gated loopback target;
+// browser input never selects an endpoint, bucket or credential.
 const OBJECT_ENDPOINT = "https://fricsfwqibyhemknqgyf.supabase.co/storage/v1/object/fluid-assets/";
 const ACK_MAX_BYTES = 16_384;
 const HOME_MAX_BYTES = 10_485_760;
@@ -23,6 +27,10 @@ export type SupabasePrivateAssetScope = z.infer<typeof scopeSchema>;
 export type SupabasePrivateAssetTransport = (url: string, init: RequestInit) => Promise<Response>;
 export type SupabasePrivateAssetStorageDependencies = {
  transport: SupabasePrivateAssetTransport;
+ /** Isolated local runtime only; hosted callers cannot select another endpoint. */
+ developmentSupabaseUrl?: string;
+ /** Server-composed shared target; must match the configured project and strict local/hosted qualification. */
+ sharedSupabaseOrigin?: string;
  /** Derived by trusted composition from verified auth/current worker context,
   * never copied from a browser owner field. This is a path fence, not auth. */
  scope: SupabasePrivateAssetScope;
@@ -32,6 +40,27 @@ export type SupabasePrivateAssetStorageDependencies = {
 const unavailable = () => new ApiError("integration_unavailable");
 function mime(value: unknown): value is string {
  return typeof value === "string" && value.length <= 150 && /^[a-z0-9][a-z0-9!#$&^_.+-]*\/[a-z0-9][a-z0-9!#$&^_.+-]*$/.test(value);
+}
+/** HTTP media-type parameters describe the representation, not a different
+ * asset MIME. Enforce bounded complete syntax before using the standard parser:
+ * MIMEType alone intentionally tolerates malformed/duplicate parameters. Byte
+ * validators and the outer immutable reservation still verify the actual data. */
+function responseMimeEssence(raw: string | null): string | null {
+ if (!raw || raw.length > 512) return null;
+ const value = raw.replace(/^[ \t]+|[ \t]+$/g, "");
+ const essence = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+\/[!#$%&'*+.^_`|~0-9A-Za-z-]+/.exec(value);
+ if (!essence) return null;
+ const parameter = /[ \t]*;[ \t]*([!#$%&'*+.^_`|~0-9A-Za-z-]+)[ \t]*=[ \t]*(?:[!#$%&'*+.^_`|~0-9A-Za-z-]+|"(?:[\t\x20\x21\x23-\x5b\x5d-\x7e\x80-\xff]|\\[\t\x20-\x7e\x80-\xff])*")/y;
+ const names = new Set<string>();
+ let position = essence[0].length;
+ while (position < value.length) {
+  parameter.lastIndex = position;
+  const match = parameter.exec(value), name = match?.[1]?.toLowerCase();
+  if (!match || !name || names.has(name) || names.size >= 16) return null;
+  names.add(name); position = parameter.lastIndex;
+ }
+ try { const parsed = new MIMEType(value).essence; return mime(parsed) ? parsed : null; }
+ catch { return null; }
 }
 function discard(response: Response) {
  // Cleanup cannot hold the caller hostage if a transport ignores cancellation.
@@ -66,6 +95,16 @@ export function createSupabasePrivateAssetStorage(dependencies: SupabasePrivateA
  if (dependencies && (!parsed?.success || typeof dependencies.transport !== "function")) throw unavailable();
  const scope = parsed?.success ? Object.freeze(parsed.data) : null;
  const transport = dependencies?.transport;
+ let objectEndpoint = OBJECT_ENDPOINT;
+ if (dependencies?.sharedSupabaseOrigin !== undefined) {
+  if (dependencies.developmentSupabaseUrl !== undefined) throw unavailable();
+  objectEndpoint = `${qualifySharedSupabaseOrigin(dependencies.sharedSupabaseOrigin)}/storage/v1/object/fluid-assets/`;
+ }
+ if (dependencies?.developmentSupabaseUrl !== undefined) {
+  const development = readDevelopmentConfiguration();
+  if (!development || development.supabaseUrl !== dependencies.developmentSupabaseUrl) throw unavailable();
+  objectEndpoint = `${development.supabaseUrl}/storage/v1/object/fluid-assets/`;
+ }
  const ceiling = scope?.kind === "home" ? HOME_MAX_BYTES : ASSET_MAX_FILE_BYTES;
  const maxBytes = dependencies?.maxFileBytes ?? ceiling;
  const deadlineMs = dependencies?.deadlineMs ?? DEFAULT_DEADLINE_MS;
@@ -73,11 +112,13 @@ export function createSupabasePrivateAssetStorage(dependencies: SupabasePrivateA
 
  function objectUrl(path: string) {
   if (!scope || !transport) throw unavailable();
+  if (dependencies?.developmentSupabaseUrl !== undefined && readDevelopmentConfiguration()?.supabaseUrl !== dependencies.developmentSupabaseUrl) throw unavailable();
+  if (dependencies?.sharedSupabaseOrigin !== undefined) qualifySharedSupabaseOrigin(dependencies.sharedSupabaseOrigin);
   if (typeof path !== "string" || path.length > 147) throw new ApiError("not_found");
   const parts = path.split("/");
   if (parts.length !== 4 || parts[0] !== scope.ownerId || parts[1] !== (scope.kind === "home" ? "home" : scope.projectId) ||
       !logoUuidSchema.safeParse(parts[2]).success || !logoUuidSchema.safeParse(parts[3]).success) throw new ApiError("not_found");
-  return OBJECT_ENDPOINT + path;
+  return objectEndpoint + path;
  }
 
  async function bounded<T>(callerSignal: AbortSignal | undefined, work: (signal: AbortSignal, active: () => void) => Promise<T>): Promise<T> {
@@ -145,6 +186,7 @@ export function createSupabasePrivateAssetStorage(dependencies: SupabasePrivateA
  }
 
  async function acknowledgement(response: Response, signal: AbortSignal, active: () => void): Promise<Record<string, unknown>> {
+  if (responseMimeEssence(response.headers.get("content-type")) !== "application/json") { discard(response); throw unavailable(); }
   const value: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(await readBounded(response, ACK_MAX_BYTES, signal, active)));
   if (typeof value !== "object" || value === null || Array.isArray(value)) throw unavailable();
   return value as Record<string, unknown>;
@@ -159,9 +201,13 @@ export function createSupabasePrivateAssetStorage(dependencies: SupabasePrivateA
    const bytes = new Uint8Array(input);
    await bounded(signal, async (operationSignal, active) => {
     const response = await request(url, { method: "POST", headers: { "content-type": mimeType, "content-length": String(bytes.byteLength), "cache-control": "max-age=0", "x-upsert": "false", "accept-encoding": "identity" }, body: bytes }, operationSignal, active);
-    if (response.status !== 200 && response.status !== 409) { discard(response); throw unavailable(); }
+    if (response.status !== 200 && response.status !== 409 && response.status !== 400) { discard(response); throw unavailable(); }
     const ack = await acknowledgement(response, operationSignal, active); active();
-    if (response.status === 409 && typeof ack.code === "string" && ["ResourceAlreadyExists", "KeyAlreadyExists", "already_exists"].includes(ack.code)) return;
+    const existingKey = typeof ack.code === "string" && ["ResourceAlreadyExists", "KeyAlreadyExists", "already_exists"].includes(ack.code);
+    const conflictStatus = ack.statusCode === "409" || ack.statusCode === 409;
+    // Older Storage versions wrap an existing-key 409 in HTTP 400. This permits
+    // only original-object readback; it is never an upload or content receipt.
+    if (existingKey && (response.status === 409 && (ack.statusCode === undefined || conflictStatus) || response.status === 400 && conflictStatus)) return;
     if (response.status !== 200 || !logoUuidSchema.safeParse(ack.Id).success || ack.Key !== `fluid-assets/${path}`) throw unavailable();
    });
   },
@@ -170,8 +216,8 @@ export function createSupabasePrivateAssetStorage(dependencies: SupabasePrivateA
    return bounded(signal, async (operationSignal, active) => {
     const response = await request(url, { method: "GET", headers: { "accept-encoding": "identity" } }, operationSignal, active);
     if (response.status !== 200) { discard(response); throw response.status === 404 ? new ApiError("not_found") : unavailable(); }
-    const mimeType = response.headers.get("content-type");
-    if (!mime(mimeType)) { discard(response); throw unavailable(); }
+    const mimeType = responseMimeEssence(response.headers.get("content-type"));
+    if (!mimeType) { discard(response); throw unavailable(); }
     const bytes = await readBounded(response, maxBytes, operationSignal, active); active();
     return { bytes, mimeType };
    });

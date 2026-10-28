@@ -1,8 +1,8 @@
 import { LocalNamingFailure, reportNamingFailure, retryLocalPersistence } from "../local-persistence-recovery";
 import { isDeepStrictEqual } from "node:util";
-import { createNamingCurationProjection, createNamingReviewProjection, namingAssignmentPlanSchema, namingCreatorSetSchema, namingCurationSchema, namingResearchPackSchema, namingVerificationSchema, validateNamingCreatorSet,
+import { createNamingCurationProjection, createNamingReviewProjection, namingAssignmentPlanSchema, namingCreatorSetSchema, namingCurationSchema, namingResearchPackSchema, namingVerificationSchema, validateNamingAssignmentPlan, validateNamingCreatorSet,
   type NamingBrainJobInput, type NamingMicrobatchInput, type NamingProgressiveAssignment, type NamingProgressivePhase, type NamingResearchPack, type NamingAssignmentPlan,
-  type NamingStageInput, type NamingStageOutcome, type NamingStageRequest } from "../../src/domain/naming-brain";
+  type NamingStageInput, type NamingStageOutcome, type NamingStageRequest, type NamingUnavailableApproach } from "../../src/domain/naming-brain";
 import { createNamingMicrobatch } from "../../src/domain/naming-brain-progressive";
 import type { NamingApproach } from "../../src/domain/naming-brain-preferences";
 import type { ClaimedJob } from "../../src/domain/jobs";
@@ -34,7 +34,7 @@ export function hasSettledProgressiveDirectorFailure(stage: NamingSavedStage, re
 }
 
 /** One admitted logical exploration, with independent reviewed pages as they finish. */
-export async function executeProgressiveNaming(options: Options): Promise<{ outcomes: NamingStageOutcome[]; complete: boolean }> {
+export async function executeProgressiveNaming(options: Options): Promise<{ outcomes: NamingStageOutcome[]; complete: boolean; unavailableApproaches?: readonly NamingUnavailableApproach[] }> {
   const { job, input, store, signal } = options, snapshot = input.snapshot;
   const initial = await store.loadProgressiveState(job);
   const outcomes: NamingStageOutcome[] = [];
@@ -46,10 +46,21 @@ export async function executeProgressiveNaming(options: Options): Promise<{ outc
   const publications = new Set(initial.publications.map(publication => publication.key));
   const inFlight = new Map<string, NamingProgressiveAssignment>();
   let research: NamingResearchPack | undefined, guidance: NamingAssignmentPlan | undefined;
+  const readGuidance = (raw: unknown) => {
+    const plan = namingAssignmentPlanSchema.parse(raw);
+    const request = planned.get(callKey("context.direction", "director"));
+    if ("planVersion" in plan.output || request?.policy.progressiveContractVersion === 5) {
+      if (!research || request?.policy.progressiveContractVersion !== 5 || request.input.role !== "director"
+        || !("planVersion" in plan.output) || plan.providerReceipt.requestHash !== request.requestHash
+        || !isDeepStrictEqual(request.input.research, research)) throw new Error("progressive_evidence_plan_binding_mismatch");
+      validateNamingAssignmentPlan(snapshot, research, plan);
+    }
+    return plan;
+  };
   const refreshContext = () => {
     const pack = completed.get(callKey("context.research", "researcher")), plan = completed.get(callKey("context.direction", "director"));
     if (pack) research = namingResearchPackSchema.parse(pack);
-    if (plan) guidance = namingAssignmentPlanSchema.parse(plan);
+    if (plan) guidance = readGuidance(plan);
   };
   refreshContext();
 
@@ -76,7 +87,7 @@ export async function executeProgressiveNaming(options: Options): Promise<{ outc
     try {
     const value = build();
     const request = createNamingRoleRequest({ runId: input.runId, stageKey: "creation", providerCallKey: key, input: value.input,
-      dependencyArtifactIds: [...new Set(value.dependencies)], policy: input.providerBudgetVersion === 1 ? createBudgetedProgressiveNamingRolePolicy(input.policy, role) : createProgressiveNamingRolePolicy(input.policy, role, undefined, undefined, true, 3) });
+      dependencyArtifactIds: [...new Set(value.dependencies)], policy: input.providerBudgetVersion === 1 ? createBudgetedProgressiveNamingRolePolicy(input.policy, role) : createProgressiveNamingRolePolicy(input.policy, role, undefined, undefined, true, 5) });
     await retryLocalPersistence(() => store.saveProgressiveCallPlan(job, phase, [request]), signal);
     planned.set(key, request);
     return request;
@@ -111,7 +122,7 @@ export async function executeProgressiveNaming(options: Options): Promise<{ outc
     if (blocked || signal.aborted || publishedCount >= 100) return;
     const direction = await freezeRequest("context.direction", "director", () => ({ input: { role: "director", snapshot, research: research! }, dependencies: [research!.artifactId] }));
     const result = await invoke(direction, "context.direction");
-    if (result?.status === "completed") guidance = namingAssignmentPlanSchema.parse(result.output);
+    if (result?.status === "completed") guidance = readGuidance(result.output);
   }
   function recordFailure(error: unknown, fallback: string) {
     blocked = true;
@@ -174,7 +185,12 @@ export async function executeProgressiveNaming(options: Options): Promise<{ outc
         if (!request || request.input.role !== "creator" || !("assignmentBasis" in request.input.assignment)) throw new Error("progressive_saved_assignment_missing");
         key = previous; assignment = request.input.assignment;
       } else {
-        const remaining = 100 - publishedCount - [...inFlight.values()].reduce((sum, value) => sum + value.targetCount, 0);
+        // A contract5 limitation cannot be filled by another route. Reserve
+        // only its actual outstanding primary credits; historical plans keep
+        // their original scheduling behavior and issued requests still drain.
+        const unavailableCredits = guidance && "planVersion" in guidance.output
+          ? guidance.output.unavailableApproaches.reduce((sum, row) => sum + Math.max(0, 5 - (primaryCounts.find(count => count.approach === row.approach)?.count ?? 0)), 0) : 0;
+        const remaining = 100 - unavailableCredits - publishedCount - [...inFlight.values()].reduce((sum, value) => sum + value.targetCount, 0);
         if (remaining < 1 || nextPartIndex >= PROGRESSIVE_PART_LIMIT || plannedRaw >= PROGRESSIVE_RAW_LIMIT) return;
         const approach = chooseProgressiveNamingApproach(snapshot, primaryCounts, [...inFlight.values()], availableApproaches(), guidance);
         if (!approach) { if (!contextDone) { await context; continue; } return; }
@@ -194,5 +210,5 @@ export async function executeProgressiveNaming(options: Options): Promise<{ outc
   await Promise.all([context, ...workers]);
   const researchAttempt = [...completed.values()].some(artifact => artifact.output.role === "researcher" && artifact.providerReceipt.toolCalls.some(call => call.type === "web_search" || call.type === "function"));
   const complete = !blocked && !signal.aborted && publishedCount === 100 && snapshot.preferences.approaches.every(approach => (primaryCounts.find(row => row.approach === approach)?.count ?? 0) >= 5) && researchAttempt;
-  return { outcomes, complete };
+  return { outcomes, complete, ...(guidance && "planVersion" in guidance.output ? { unavailableApproaches: guidance.output.unavailableApproaches } : {}) };
 }

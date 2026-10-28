@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { asRole, OWNER_A, type TestDatabase } from './local-supabase';
 import { SYNTHETIC_CONCEPT_READINESS } from './logo-readiness-fixture';
-import { logoCostQuoteSchema, logoDispatchReceiptSchema } from '../../src/domain/logo-jobs';
+import { legacyLogoCostQuoteSchema as logoCostQuoteSchema, logoDispatchReceiptSchema } from '../../src/domain/logo-jobs';
 import { logoWorkspaceV2Schema } from '../../src/domain/logo-workspace';
 import { approvedDeliverableSnapshotSchema, type ApprovedLogoIdentitySnapshot, type IdentityAssetReceipt, type LogoVariantSet } from '../../src/domain/logo-deliverables';
 import { createIdentityAssetStore, createPostgresIdentityAssetBackend, type IdentityAssetReservation } from '../../src/server/data/identity-asset-store';

@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { vi } from 'vitest';
 import { logoVectorProposalResolvedInputSchema, type LogoVectorProposalWorkerPorts } from '@/domain/logo-vector-proposal-evidence';
-import { logoVectorProposalTextPolicySchema } from '@/domain/logo-vector-proposal-jobs';
+import { legacyLogoVectorProposalTextPolicySchema as logoVectorProposalTextPolicySchema } from '@/domain/logo-vector-proposal-jobs';
 import { buildLogoVectorProposalContext } from '@/features/logo-vector/server/proposal-context';
 import { proposalFixture, proposalId, proposed } from '../features/logo-vector/proposal-fixtures';
 import { proposalPolicy } from './logo-vector-proposal-fixtures';

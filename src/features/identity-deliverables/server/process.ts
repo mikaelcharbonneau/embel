@@ -2,13 +2,15 @@ import "server-only";
 import { fork } from "node:child_process";
 import { resolve as resolvePath } from "node:path";
 import { assertSupportedExportRuntime, LOGO_RENDER_DEADLINE_MS, LogoFileError } from "./render-policy";
+declare const __EMBEL_LOGO_RENDER_ENTRYPOINT__: string;
 
 /** Native encoders/parsers are isolated so cancellation and deadline can stop CPU work. */
 export function runLogoProcess<T>(input: Record<string, unknown>, signal: AbortSignal): Promise<T> {
   signal.throwIfAborted();
   assertSupportedExportRuntime();
   return new Promise((resolve, reject) => {
-    const child = fork(resolvePath(process.cwd(), "src/features/identity-deliverables/server/render-process.mjs"), [], {
+    const entrypoint = typeof __EMBEL_LOGO_RENDER_ENTRYPOINT__ === "string" ? __EMBEL_LOGO_RENDER_ENTRYPOINT__ : "src/features/identity-deliverables/server/render-process.mjs";
+    const child = fork(resolvePath(process.cwd(), entrypoint), [], {
       stdio: ["ignore", "ignore", "ignore", "ipc"], serialization: "advanced", execArgv: ["--max-old-space-size=256"],
       // Prevent inherited provider/database credentials and NODE_OPTIONS from reaching decoders.
       env: { NODE_ENV: "production" },

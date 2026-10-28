@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { identityReferenceUploadSchema, type IdentityReferenceUpload } from "@/domain/identity-reference-uploads";
+import { LOGO_REFERENCE_UPLOAD_MAX_BYTES } from "@/features/logo-inputs/model/contracts";
+import { identityGenerationIntentSchema } from "@/domain/identity-jobs";
 import {
   identityBasisSchema, identityColorsSchema, identityPreferencesSchema, identityTypographySchema,
   refineIdentityComponentSchema, updateIdentityPreferencesSchema,
@@ -85,14 +88,40 @@ const draftSchema = z.union([preferenceDraftSchema, colorDraftSchema, typography
   } catch { issue(); }
 }).transform(freeze);
 const empty: readonly IdentityDraft[] = Object.freeze([]);
+const generationRequestSchema = z.strictObject({ ...ownership, input: identityGenerationIntentSchema }).transform(freeze);
+export type IdentityReferenceUploadDraft = { ownerId: string; projectId: string; input: IdentityReferenceUpload; file: File };
+export type IdentityGenerationRequest = z.infer<typeof generationRequestSchema>;
 
-/** Provider-local edit buffers only. No browser persistence, file data or account singleton. */
+/** Provider-local edit buffers only. No browser persistence or account singleton. Pending raster Files are bounded and cleared with the account. */
 export function createIdentityDraftMemory() {
   const entries = new Map<string, IdentityDraft>();
+  const uploads = new Map<string, IdentityReferenceUploadDraft>();
+  const generationRequests = new Map<string, IdentityGenerationRequest>();
   const snapshots = new Map<string, readonly IdentityDraft[]>();
   const listeners = new Set<() => void>();
   const notify = () => { snapshots.clear(); for (const listener of listeners) listener(); };
   return {
+    referenceUpload(ownerId: string, projectId: string) { return uploads.get(encodedScope(ownerId, projectId)) ?? null; },
+    retainReferenceUpload(value: IdentityReferenceUploadDraft): boolean {
+      const key = encodedScope(value.ownerId, value.projectId), input = identityReferenceUploadSchema.parse(value.input), previous = uploads.get(key);
+      if (previous) return previous.file === value.file && same(previous.input, input);
+      if (!(value.file instanceof File) || !value.file.size || value.file.size > LOGO_REFERENCE_UPLOAD_MAX_BYTES || !["image/png", "image/jpeg", "image/webp"].includes(value.file.type) || uploads.size >= 2) return false;
+      uploads.set(key, Object.freeze({ ...value, input: freeze(input) })); notify(); return true;
+    },
+    resolveReferenceUpload(ownerId: string, projectId: string, requestKey: string) {
+      const key = encodedScope(ownerId, projectId); if (uploads.get(key)?.input.upload.requestKey === requestKey) { uploads.delete(key); notify(); }
+    },
+    generationRequest(ownerId: string, projectId: string): IdentityGenerationRequest | null { return generationRequests.get(encodedScope(ownerId, projectId)) ?? null; },
+    retainGenerationRequest(input: IdentityGenerationRequest): boolean {
+      const parsed = generationRequestSchema.parse(input), key = encodedScope(parsed.ownerId, parsed.projectId), previous = generationRequests.get(key);
+      if (previous) return same(previous, parsed);
+      if (generationRequests.size >= 20 || new TextEncoder().encode(JSON.stringify(parsed)).byteLength > 4096) return false;
+      generationRequests.set(key, parsed); notify(); return true;
+    },
+    resolveGenerationRequest(ownerId: string, projectId: string, requestKey: string): void {
+      const key = encodedScope(ownerId, projectId);
+      if (generationRequests.get(key)?.input.idempotencyKey === requestKey) { generationRequests.delete(key); notify(); }
+    },
     get(key: IdentityDraftKey): IdentityDraft | null { return entries.get(encodedKey(key)) ?? null; },
     list(ownerId: string, projectId: string): readonly IdentityDraft[] {
       const key = encodedScope(ownerId, projectId), cached = snapshots.get(key);
@@ -122,8 +151,8 @@ export function createIdentityDraftMemory() {
     },
     // Explicit save resolution/discard is the only way to clear uncertain evidence.
     remove(key: IdentityDraftKey): void { if (entries.delete(encodedKey(key))) notify(); },
-    hasUnsaved(): boolean { return [...entries.values()].some(identityDraftChanged); },
-    clear(): void { if (entries.size) { entries.clear(); notify(); } },
+    hasUnsaved(): boolean { return uploads.size > 0 || generationRequests.size > 0 || [...entries.values()].some(identityDraftChanged); },
+    clear(): void { if (entries.size || generationRequests.size || uploads.size) { entries.clear(); generationRequests.clear(); uploads.clear(); notify(); } },
     subscribe(listener: () => void): () => void { listeners.add(listener); return () => { listeners.delete(listener); }; },
   };
 }

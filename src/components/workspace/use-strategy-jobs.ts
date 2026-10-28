@@ -8,7 +8,7 @@ import { boundedAccountRequest } from "./bounded-account-request";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
 import { accountDraftChanged, type AccountWorkspace } from "./account-draft-memory";
 import { accountProjectDraft } from "./project-draft-adapter";
-import { canContinueStrategy, forgetStrategyIntent, readStrategyIntent, strategyApplicationMatchesResult, strategyCanRetryDelivery, strategyErrorMessage, strategyIdempotencyKey, strategyIntentPlan, strategyJobActive, strategyJobMatchesRequest, strategyRequestPayload, strategyResultApplication, verifyStrategyJobs, type StrategyAllowance } from "./account-strategy-client";
+import { canContinueStrategy, forgetStrategyIntent, readStrategyIntent, strategyApplicationMatchesResult, strategyCanRetryDelivery, strategyErrorMessage, strategyIntentPlan, strategyJobActive, strategyJobMatchesRequest, strategyRequestPayload, strategyResultApplication, verifyStrategyJobs, type StrategyAllowance } from "./account-strategy-client";
 
 type ReadState = { identity: string; overview: StrategyOverview | null; error: string | null };
 type ActionState = {
@@ -225,7 +225,7 @@ export function useStrategyJobs({ account, workspace, blocked, guided = false }:
     const plan = strategyIntentPlan(intent);
     if (plan.kind === "response_only") return;
     const revision = current.saved.current_revision;
-    chainAttempts.current.add(strategyIdempotencyKey(projectId, revision, "strategy.competitors", plan.billingMode));
+    chainAttempts.current.add(strategyRequestPayload(projectId, revision, "strategy.competitors", plan.competitors).idempotencyKey);
     await enqueue("strategy.competitors", revision, plan.competitors);
   }, [account.userId, blocked, enqueue, getWorkspace, overview, projectId, readError]);
 
@@ -247,7 +247,7 @@ export function useStrategyJobs({ account, workspace, blocked, guided = false }:
     if (!intent || !canContinueStrategy(intent, current, overview)) return;
     const plan = strategyIntentPlan(intent);
     if (plan.kind === "response_only") return;
-    const key = strategyIdempotencyKey(projectId, current.saved.current_revision, "strategy.competitors", plan.billingMode);
+    const key = strategyRequestPayload(projectId, current.saved.current_revision, "strategy.competitors", plan.competitors).idempotencyKey;
     if (chainAttempts.current.has(key)) return;
     void continueResearch();
   }, [account.userId, blocked, continueResearch, getWorkspace, guided, overview, pending, projectId, readError, recoverAppliedVersion, workspace]);

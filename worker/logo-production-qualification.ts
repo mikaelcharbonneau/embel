@@ -22,6 +22,11 @@ export type LogoProductionRuntimeQualificationInput = {
   workerId: string;
   capabilities: readonly LogoWorkerCapability[];
 };
+export type LogoProductionRuntimeQualification = {
+  assertRuntimeAvailable(scope: LogoProductionRuntimeScope, signal?: AbortSignal): Promise<void>;
+  invalidate(): void;
+  close(): Promise<void>;
+};
 const unavailable = () => new Error("Logo production runtime qualification failed.");
 const configurationSchema = z.strictObject({ ownerId: logoUuidSchema, workerId: z.string().min(1).max(200).regex(/^[A-Za-z0-9._:-]+$/), capabilities: z.unknown() });
 const exportPolicyIdentity = sha256(canonicalIdentityInput({ handlerVersion: "logo-export-v1", renderPolicy: LOGO_RENDER_POLICY, engineVersions: LOGO_ENGINE_VERSIONS }));
@@ -83,6 +88,21 @@ async function inspectInstallation(root: string, operation: Operation, signal: A
     hashes.push(`${pkg.name}:${actual}`); signal.throwIfAborted();
   }
   return { fingerprint: sha256(hashes.join("\n")), bodyFont, bodyFontLicense };
+}
+
+/** Ownerless source-installation probe for the explicit loopback development
+ * adapter. This inspects native files only and confers no SQL/job authority. */
+export async function preflightLogoProductionRuntimeInstallation(raw: readonly LogoWorkerCapability[], signal: AbortSignal): Promise<void> {
+  const capabilities = freezeLogoWorkerManifest(raw);
+  if (!capabilities.length || capabilities.length > 2) throw unavailable();
+  capabilities.forEach(assertCapability);
+  for (const capability of capabilities) {
+    const operation = capability.operation as Operation;
+    const before = await inspectInstallation(process.cwd(), operation, signal);
+    if (operation === "identity.logo_vectorize") await qualifyVectorSentinel(signal);
+    else await qualifyExportSentinel(before.bodyFont, before.bodyFontLicense, signal);
+    if ((await inspectInstallation(process.cwd(), operation, signal)).fingerprint !== before.fingerprint) throw unavailable();
+  }
 }
 
 /** Pure construction: no timer, file read, subprocess, connection or credential

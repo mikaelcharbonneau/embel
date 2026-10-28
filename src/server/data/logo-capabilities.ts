@@ -3,8 +3,7 @@ import { logoCapabilitiesSchema, type LogoCapabilities } from '@/domain/logo-cap
 import type { AuthenticatedContext } from '@/server/auth/context';
 import { ApiError } from '@/server/http/errors';
 import { logoDatabaseError, logoId, logoOwner, parseLogoStored } from './logo-transaction';
-import { isLocalLogoRuntime } from '../logo-creation/local-runtime';
-import { isHostedLogoRuntime } from '../logo-creation/hosted-runtime';
+import { logoOperationBoundary } from '../logo-creation/operation-routing';
 
 const active = (signal?: AbortSignal) => { if (signal?.aborted) throw new ApiError('integration_unavailable'); };
 
@@ -16,8 +15,8 @@ export async function readLogoCapabilities(auth: AuthenticatedContext, projectId
   active(signal);
   let response: { data: unknown; error: unknown };
   try {
-    const accountImageLane = isLocalLogoRuntime() || isHostedLogoRuntime();
-    const request = auth.client.rpc(accountImageLane ? 'local_logo_operation' : 'read_logo_capabilities', accountImageLane
+    const accountImageLane = logoOperationBoundary();
+    const request = auth.client.rpc(accountImageLane ?? 'read_logo_capabilities', accountImageLane
       ? { p_project_id: projectId, p_kind: 'capabilities', p_input: null } : { p_project_id: projectId });
     response = await (signal ? request.abortSignal(signal) : request);
   } catch (error) { throw logoDatabaseError(error); }

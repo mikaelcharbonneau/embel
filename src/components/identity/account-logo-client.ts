@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { logoVectorProposalPageSchema, logoVectorProposalRecordSchema } from "@/domain/logo-vector-proposal-jobs";
+import { logoVectorProposalRequestStateSchema, logoVectorProposalRequestCloseSchema, logoVectorProposalRequestPageSchema } from "@/features/logo-vector/model/proposal-session";
 import * as W from "@/domain/logo-workspace";
 import * as J from "@/domain/logo-jobs";
 import { logoCapabilitiesSchema } from "@/domain/logo-capabilities";
@@ -306,6 +308,27 @@ export function createAccountLogoClient(
     selectIdentityDirectionComponents: mutation(W.selectIdentityDirectionComponentsInputSchema, "/directions/selection", value => value.revision.stage === "directions"),
     approveIdentityDirection: mutation(W.approveIdentityDirectionInputSchema, "/directions/approval", (value, body) => value.revision.stage === "directions" && value.revision.payload.selectionId === body.directionSelectionId && value.revision.payload.approvalId !== null),
     reviewLogoVariants: mutation(W.reviewLogoVariantsInputSchema, "/variants/review", (value, body) => value.revision.stage === "deliverables" && value.revision.payload.variantSetId === body.variantSetId),
+    async listPendingVectorProposalRequests(input: { cursor?: string; limit?: number } = {}, signal?: AbortSignal) {
+      const body = parse(z.strictObject({ cursor: V.logoUuidSchema.optional(), limit: z.number().int().min(1).max(10).default(10) }), input);
+      const params = new URLSearchParams({ limit: String(body.limit) }); if (body.cursor) params.set("cursor", body.cursor);
+      return request(`${project()}/vector-proposals/requests/current?${params}`, logoVectorProposalRequestPageSchema, owned, { signal, maximum: 2_097_152 });
+    },
+    async listLogoVectorProposals(input: PageQuery = {}, signal?: AbortSignal) {
+      return request(`${project()}/vector-proposals?${query(input)}`, logoVectorProposalPageSchema, owned, { signal, maximum: 65_536 });
+    },
+    async readLogoVectorProposal(proposalId: string, signal?: AbortSignal) {
+      const id = parse(V.logoUuidSchema, proposalId);
+      return request(`${project()}/vector-proposals/${id}`, logoVectorProposalRecordSchema, value => owned(value) && value.id === id, { signal, maximum: 163_840 });
+    },
+    async readVectorProposalRequest(input: J.LogoGenerationIntent, signal?: AbortSignal) {
+      const body = parse(J.logoGenerationIntentSchema, input, W.LOGO_MUTATION_MAX_BYTES);
+      return request(`${project()}/vector-proposals/requests/${body.requestKey}/lookup`, logoVectorProposalRequestStateSchema, value => owned(value) && same(value.input, body), { method: "POST", body, signal, maximum: 524_288 });
+    },
+    async closeVectorProposalRequest(input: J.LogoGenerationIntent, signal?: AbortSignal) {
+      const body = parse(J.logoGenerationIntentSchema, input, W.LOGO_MUTATION_MAX_BYTES);
+      return request(`${project()}/vector-proposals/requests/${body.requestKey}/cancel`, logoVectorProposalRequestCloseSchema,
+        value => value.status === "not_admitted" ? owned(value) && same(value.input, body) : owned(value.request) && same(value.request.input, body), { method: "POST", body, signal, maximum: 524_288 });
+    },
     async quoteLogoOperation(input: J.LogoQuoteRequest, signal?: AbortSignal) {
       if (!current() || signal?.aborted) return null;
       const body = parse(J.logoQuoteRequestSchema, input, W.LOGO_MUTATION_MAX_BYTES);

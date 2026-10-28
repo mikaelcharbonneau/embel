@@ -198,7 +198,7 @@ export function createNamingBrainHandlers(options: Options): HandlerRegistry {
         if (stageKey === "prepare") { await store.finalizeProgressive(job); return stepOutcome(job, stageKey, []); }
         if (stageKey !== "creation") throw new Error("naming_progressive_stage_invalid");
         const result = await executeProgressiveNaming({ job, input, store, signal, call: (request, phase, callSignal) => call(job, input, request, callSignal, phase) });
-        if (!result.complete && allCompleted(result.outcomes)) result.outcomes.push({ status: "rejected_before_dispatch", code: "naming_progressive_incomplete" });
+        if (!result.complete && allCompleted(result.outcomes)) result.outcomes.push({ status: "rejected_before_dispatch", code: result.unavailableApproaches?.length ? "naming_evidence_unavailable" : "naming_progressive_incomplete" });
         return stepOutcome(job, stageKey, result.outcomes, result.complete);
       }
       let stages = await store.loadStages(job), rows = artifacts(stages);

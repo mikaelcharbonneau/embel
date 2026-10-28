@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { asRole, createTestDatabase, OWNER_A, OWNER_B, resetFixture, type TestDatabase } from "./local-supabase";
 import { SYNTHETIC_CONCEPT_READINESS } from "./logo-readiness-fixture";
-import { logoCostQuoteSchema, logoDispatchReceiptSchema, logoDirectionsSubscriptionPolicySchema } from "../../src/domain/logo-jobs";
+import { legacyLogoCostQuoteSchema as logoCostQuoteSchema, logoDispatchReceiptSchema, logoDirectionsSubscriptionPolicySchema } from "../../src/domain/logo-jobs";
 import { logoWorkspaceV2Schema, type LogoMutationReceipt } from "../../src/domain/logo-workspace";
 import { logoVectorRevisionSchema } from "../../src/domain/logo-vector";
 import { logoExportManifestSchema, logoVariantSetSchema } from "../../src/domain/logo-deliverables";

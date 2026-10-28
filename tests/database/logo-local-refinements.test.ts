@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { asRole, createTestDatabase, OWNER_A, OWNER_B, resetFixture, type TestDatabase } from "./local-supabase";
-import { logoCostQuoteSchema, logoDispatchReceiptSchema, type LogoConceptJobInput, type LogoRefinementJobInput } from "../../src/domain/logo-jobs";
+import { legacyLogoCostQuoteSchema as logoCostQuoteSchema, logoDispatchReceiptSchema, type LogoConceptJobInput, type LogoRefinementJobInput } from "../../src/domain/logo-jobs";
 import { logoWorkspaceV2Schema, type LogoWorkspaceV2 } from "../../src/domain/logo-workspace";
 import type { IdentityAssetReservation } from "../../src/server/data/identity-asset-store";
 import { digestBytes, syntheticPng } from "../features/logo-vector/raster-fixtures";

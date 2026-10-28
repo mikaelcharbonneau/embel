@@ -8,6 +8,8 @@ const profiles: { name: string; compatibilityExecution: boolean; body: ManagedCr
   { name: "historical capped", compatibilityExecution: false, body: { environment: { type: "none" }, agent: { model: "gpt-6.1-sol" }, input: "Synthetic historical request", spend_control: { limit: 50 }, stream: true } },
   { name: "historical local unlimited", compatibilityExecution: true, body: { environment: { type: "none" }, agent: { model: "gpt-6.1-sol" }, input: "Synthetic historical local request", metadata: { embel_budget_control: "local_unlimited_v1" }, stream: true } },
   { name: "future hosted unlimited", compatibilityExecution: true, body: { environment: { type: "none" }, agent: { model: "gpt-6.1-sol", service_tier: "priority", text: { verbosity: "low" } }, input: "Synthetic future hosted request", metadata: { embel_budget_control: "local_unlimited_v1", embel_pipeline_version: "2", embel_progressive_contract_version: "3", embel_request_hash: "a".repeat(64) }, stream: true } },
+  { name: "future factual contract4 unlimited", compatibilityExecution: true, body: { environment: { type: "none" }, agent: { model: "gpt-6.1-sol", service_tier: "priority", text: { verbosity: "low" } }, input: "Synthetic contract4 request", metadata: { embel_budget_control: "local_unlimited_v1", embel_pipeline_version: "2", embel_progressive_contract_version: "4", embel_request_hash: "b".repeat(64) }, stream: true } },
+  { name: "future evidence contract5 unlimited", compatibilityExecution: true, body: { environment: { type: "none" }, agent: { model: "gpt-6.1-sol", service_tier: "priority", text: { verbosity: "low" } }, input: "Synthetic contract5 request", metadata: { embel_budget_control: "local_unlimited_v1", embel_pipeline_version: "2", embel_progressive_contract_version: "5", embel_request_hash: "c".repeat(64) }, stream: true } },
 ];
 
 describe.each([false, true])("native Naming request compatibility (injected transport=%s)", injectedTransport => {
@@ -69,6 +71,14 @@ describe.each([false, true])("native Naming request compatibility (injected tran
     for (const profile of profiles.filter(profile => profile.compatibilityExecution)) {
       await expect(protocol.createSession(profile.body, new AbortController().signal)).rejects.toMatchObject({ code: "request_rejected" });
     }
+    expect(http).not.toHaveBeenCalled();
+  });
+
+  it("rejects a cap smuggled into contract5 before calling the SDK transport", async () => {
+    const http = vi.fn(); vi.stubGlobal("fetch", http);
+    const protocol = createNamingManagedProtocol({ apiKey: "synthetic-only", localPrototype: true, ...(injectedTransport ? { fetch: http } : {}) });
+    const body = profiles.at(-1)!.body;
+    await expect(protocol.createSession({ ...body, spend_control: { limit: 50 }, metadata: { ...body.metadata, embel_provider_spend_cap_cents: "50" } }, new AbortController().signal)).rejects.toMatchObject({ code: "request_rejected" });
     expect(http).not.toHaveBeenCalled();
   });
 });

@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { identityReferenceUploadSchema, identityReferenceUploadLookupSchema, type IdentityReferenceUpload } from "@/domain/identity-reference-uploads";
+import { identityReferenceEntrySchema } from "@/domain/identity-references";
+import { logoInputRequestSchema, logoInputRequestStateSchema, LOGO_REFERENCE_UPLOAD_MAX_BYTES } from "@/features/logo-inputs/model/contracts";
 import { ASSET_MAX_FILE_BYTES } from "@/domain/asset-library";
 import {
   IDENTITY_MUTATION_MAX_BYTES, getIdentityFreshness, identityBasisSchema, identityRefinementResponseSchema, identitySystemAssetSchema,
@@ -9,6 +12,7 @@ import {
   type RefineIdentityComponent, type SelectIdentitySystem, type UpdateIdentityPreferences,
 } from "@/domain/project-identity";
 import { AccountRequestError } from "@/components/workspace/account-api";
+import { identityBatchOverviewSchema, identityBatchRequestLookupSchema, identityBatchRequestCloseSchema, identityBatchStateSchema, identityGenerationIntentSchema, type IdentityBatchState, type IdentityGenerationIntent } from "@/domain/identity-jobs";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 
 export const IDENTITY_JSON_MAX_BYTES = 16 * 1024 * 1024;
@@ -83,10 +87,11 @@ export function createAccountIdentityClient(account: VerifiedAccount, inputProje
     if (!current()) return null;
     const pending = controller(options.signal), signal = pending.value.signal;
     try {
-      const body = options.body === undefined ? undefined : JSON.stringify(options.body);
-      if (body !== undefined && new TextEncoder().encode(body).byteLength > IDENTITY_MUTATION_MAX_BYTES) throw new AccountRequestError(413);
+      const multipart = options.body instanceof FormData;
+      const body = multipart ? options.body as FormData : options.body === undefined ? undefined : JSON.stringify(options.body);
+      if (typeof body === "string" && new TextEncoder().encode(body).byteLength > IDENTITY_MUTATION_MAX_BYTES) throw new AccountRequestError(413);
       const response = await fetch(path, { method: options.method ?? "GET", credentials: "same-origin", mode: "same-origin", cache: "no-store", redirect: "error", signal,
-        headers: { Accept: "application/json", ...(body === undefined ? {} : { "Content-Type": "application/json" }) }, ...(body === undefined ? {} : { body }) });
+        headers: { Accept: "application/json", ...(body === undefined || multipart ? {} : { "Content-Type": "application/json" }) }, ...(body === undefined ? {} : { body }) });
       if (!current() || signal.aborted) return null;
       if (response.status === 401) { invalidate(); return null; }
       if (!response.ok) throw new AccountRequestError(response.status);
@@ -131,6 +136,64 @@ export function createAccountIdentityClient(account: VerifiedAccount, inputProje
   }
   return {
     current, dispose, activate: () => { closed = false; },
+    async uploadReference(input: IdentityReferenceUpload, file: File | null, signal?: AbortSignal) {
+      const parsed = identityReferenceUploadSchema.parse(input);
+      let body: IdentityReferenceUpload | FormData = parsed;
+      if (file) {
+        if (!(file instanceof File) || file.size < 1 || file.size > LOGO_REFERENCE_UPLOAD_MAX_BYTES || !["image/png", "image/jpeg", "image/webp"].includes(file.type)) throw new AccountRequestError(422);
+        body = new FormData(); body.set("input", JSON.stringify(parsed)); body.set("file", file);
+      }
+      return request(`${prefix}/references/uploads`, identityReferenceEntrySchema, entry => owned(entry.reference)
+        && entry.reference.source === "user_supplied" && same(entry.reference.attribution, parsed.metadata.attribution)
+        && same(entry.reference.relevantElements, parsed.metadata.relevantElements) && same(entry.reference.tags, parsed.metadata.tags), { method: "POST", body, signal });
+    },
+    async referenceUpload(requestKey: string, signal?: AbortSignal) {
+      const key = z.uuid().parse(requestKey).toLowerCase();
+      return request(`${prefix}/references/uploads/${key}`, identityReferenceUploadLookupSchema, value => value.status === "registered" ? owned(value.entry.reference)
+        : value.upload.status === "not_found" || owned(value.upload) && value.upload.requestKey === key && value.upload.request.kind === "reference_upload", { signal });
+    },
+    async cancelReferenceUpload(input: IdentityReferenceUpload, file: File, signal?: AbortSignal) {
+      if (!current() || signal?.aborted) return null;
+      const original = identityReferenceUploadSchema.parse(input);
+      if (!(file instanceof File) || file.size < 1 || file.size > LOGO_REFERENCE_UPLOAD_MAX_BYTES) throw new AccountRequestError(422);
+      const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+      if (!current() || signal?.aborted) return null;
+      const contentHash = [...new Uint8Array(digest)].map(value => value.toString(16).padStart(2, "0")).join("");
+      const body = logoInputRequestSchema.parse({ kind: "reference_upload", input: original.upload, file: { contentHash, byteLength: file.size, mimeType: file.type } });
+      return request(`/api/projects/${projectId}/logo/inputs/requests/${original.upload.requestKey}/cancel`, logoInputRequestStateSchema,
+        value => value.status !== "not_found" && owned(value) && value.requestKey === original.upload.requestKey && same(value.request, body), { method: "POST", body, signal });
+    },
+    async generation(signal?: AbortSignal) {
+      return request(`${prefix}/batches`, identityBatchOverviewSchema, owned, { signal });
+    },
+    async batch(batchId: string, signal?: AbortSignal) {
+      const id = z.uuid().parse(batchId).toLowerCase();
+      return request(`${prefix}/batches/${id}`, identityBatchStateSchema, value => owned(value) && value.batchId === id, { signal });
+    },
+    async batchRequest(requestKey: string, signal?: AbortSignal) {
+      const key = z.string().min(16).max(128).regex(/^[A-Za-z0-9._:-]+$/).parse(requestKey);
+      return request(`${prefix}/batches/requests/${encodeURIComponent(key)}`, identityBatchRequestLookupSchema,
+        value => value.status === "not_found" || owned(value.batch) && value.batch.intent.idempotencyKey === key, { signal });
+    },
+    async closeBatchRequest(input: IdentityGenerationIntent, signal?: AbortSignal) {
+      const original = identityGenerationIntentSchema.parse(input);
+      if (!("version" in original) || original.version !== 2) throw new AccountRequestError(422);
+      return request(`${prefix}/batches/requests/${encodeURIComponent(original.idempotencyKey)}/cancel`, identityBatchRequestCloseSchema,
+        value => value.status === "not_admitted" ? owned(value) && same(value.intent, original) : owned(value.batch) && same(value.batch.intent, original), { method: "POST", body: original, signal });
+    },
+    async generate(input: IdentityGenerationIntent, signal?: AbortSignal) {
+      const body = identityGenerationIntentSchema.parse(input);
+      if (!("version" in body) || body.version !== 2) throw new AccountRequestError(422);
+      return request(`${prefix}/batches`, identityBatchStateSchema, value => owned(value) && same(value.intent, body)
+        && value.input.projectRevision === body.expectedProjectRevision && value.input.referenceSnapshot.referenceRevision === body.expectedReferenceRevision
+        && value.input.preferencesRevision === body.expectedPreferencesRevision, { method: "POST", body, signal });
+    },
+    async stopBatch(input: IdentityBatchState, signal?: AbortSignal) {
+      const batch = identityBatchStateSchema.parse(input);
+      if (!owned(batch)) return null;
+      return request(`${prefix}/batches/${batch.batchId}/cancel`, identityBatchStateSchema, value => owned(value) && value.batchId === batch.batchId
+        && value.jobId === batch.jobId && same(value.intent, batch.intent) && same(value.input, batch.input), { method: "POST", body: {}, signal });
+    },
     async overview(input: Partial<ListIdentitySystems> = {}, signal?: AbortSignal) {
       const parsed = query(input);
       return request(`${prefix}?${queryString(parsed)}`, projectIdentityOverviewSchema, value => owned(value) && same(value.systems.query, parsed), { signal });

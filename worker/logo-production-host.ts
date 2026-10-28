@@ -7,7 +7,7 @@ import type { LogoWorkerConnection } from "../src/server/data/logo-jobs";
 import type { IdentityPoolPort } from "../src/server/runtime/identity-pool";
 import type { GuidelinesDependencies } from "../src/features/identity-deliverables/server/guidelines";
 import type { LogoWorkerCapability } from "./logo-readiness";
-import { createLogoProductionConnection, type LogoProductionConnectionInput } from "./logo-production-connection";
+import { createDevelopmentLogoConnection, createLogoProductionConnection, type LogoProductionConnectionInput } from "./logo-production-connection";
 import { createLogoProductionAssetStore } from "./logo-production-asset-store";
 import { qualifiedLogoProductionStorageCapability, type LogoProductionStorageAuthorization } from "./logo-production-storage-authorization";
 import { createLogoProductionRuntimeQualification } from "./logo-production-qualification";
@@ -26,6 +26,8 @@ export type LogoProductionImageHostOperation = Pick<LogoProductionImageOperation
 export type LogoProductionHostOperation = { capability: LogoWorkerCapability; authorization: LogoProductionStorageAuthorization | null };
 export type LogoProductionHostOptions = { enabled: false } | {
   enabled: true; binding: IdentityConnectionBinding; pool: IdentityPoolPort | null; workerId: string;
+  /** Trusted isolated-dev composition only. The selected connection rechecks its gate. */
+  development?: true;
   concepts?: LogoProductionImageHostOperation | null;
   proposals?: LogoProductionProposalHostOperation | null;
   refinements?: LogoProductionImageHostOperation | null;
@@ -117,7 +119,7 @@ export async function startLogoProductionHost(options: LogoProductionHostOptions
     const exportOperation = capture(options.exports, "identity.logo_export"), guidelines = options.exports?.guidelines;
     if (guidelines !== undefined && (!guidelines || typeof guidelines !== "object" || guidelines.resolveEmbeddedFont !== undefined && typeof guidelines.resolveEmbeddedFont !== "function")) throw unavailable();
     exports = exportOperation ? { ...exportOperation, ...(guidelines ? { guidelines: Object.freeze(guidelines.resolveEmbeddedFont ? { resolveEmbeddedFont: guidelines.resolveEmbeddedFont.bind(guidelines) } : {}) } : {}) } : null;
-    connection = createLogoProductionConnection({ ...options.binding, ownerId, pool: options.pool, ...options.timeouts });
+    connection = (options.development === true ? createDevelopmentLogoConnection : createLogoProductionConnection)({ ...options.binding, ownerId, pool: options.pool, ...options.timeouts });
     if (!connection) throw unavailable();
     const productionCapabilities = [vector, exports].flatMap(operation => operation ? [operation.capability] : []);
     qualification = productionCapabilities.length ? createLogoProductionRuntimeQualification({ ownerId, workerId, capabilities: productionCapabilities }) : undefined;

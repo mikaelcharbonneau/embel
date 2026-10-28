@@ -36,7 +36,9 @@ export async function loadDirectionInputs(connection: LogoWorkerConnection, job:
 export async function stageLogoDirections(connection:LogoWorkerConnection,job:ClaimedJob,input:IdentityDirectionProductionResult,provider:LogoProviderResponseReceipt,assets:IdentityAssetStore,signal:AbortSignal) {
   provider=logoProviderResponseReceiptSchema.parse(provider);
   const frozen=logoDirectionsJobInputSchema.parse(job.input);
-  if(!logoProviderHasResponseIdentity(provider)||(frozen.policy ? !("version" in provider)||provider.registrationId!==frozen.policy.registrationId||provider.model!==frozen.policy.model : "version" in provider))throw new ApiError("not_found");
+  if(!logoProviderHasResponseIdentity(provider))throw new ApiError("not_found");
+  if(frozen.version===3){if(!("version" in provider)||provider.version!==3||!provider.responseComplete||provider.toolCalls!==0||!same(provider.apiPolicy,frozen.apiPolicy)||provider.model!==frozen.apiPolicy.model)throw new ApiError("not_found");}
+  else if(frozen.policy ? !("version" in provider)||provider.version!==2||provider.registrationId!==frozen.policy.registrationId||provider.model!==frozen.policy.model : "version" in provider)throw new ApiError("not_found");
   const result=identityDirectionProductionResultSchema.parse(input),snapshot=await loadSnapshot(connection,job);
   if(provider.jobId!==job.id||provider.leaseToken!==job.leaseToken||provider.ownerId!==job.ownerId||provider.projectId!==job.projectId)throw new ApiError("not_found");
   const resolve=createLeasedFontResolver({loadRecords:async activeJob=>(await loadSnapshot(connection,activeJob)).permittedFonts});

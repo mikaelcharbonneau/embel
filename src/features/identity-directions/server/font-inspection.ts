@@ -34,7 +34,8 @@ export async function inspectFontBytes(input: Uint8Array, declaredMime: string, 
   inspections++;
   try {
     return await new Promise<FontInspection>((resolve, reject) => {
-      const worker = new Worker(inspector, { eval: true, workerData: { module: requireHere.resolve("fontkit"), bytes }, resourceLimits: { maxOldGenerationSizeMb: 128, maxYoungGenerationSizeMb: 16, stackSizeMb: 4 } });
+      const worker = new Worker(inspector, { eval: true, env: { NODE_ENV: "production" }, execArgv: [],
+        workerData: { module: requireHere.resolve("fontkit"), bytes }, resourceLimits: { maxOldGenerationSizeMb: 128, maxYoungGenerationSizeMb: 16, stackSizeMb: 4 } });
       let finished = false;
       const finish = (error: Error | null, value?: FontInspection) => { if (finished) return; finished = true; clearTimeout(timer); signal?.removeEventListener("abort", abort); void worker.terminate(); if (error) reject(error); else resolve(value!); };
       const abort = () => finish(new Error("Font inspection was cancelled."));

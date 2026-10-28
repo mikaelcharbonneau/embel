@@ -2,7 +2,7 @@ import { reportLogoFixtureReady, SYNTHETIC_CONCEPT_READINESS } from './logo-read
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { asRole, createTestDatabase, OWNER_A, OWNER_B, resetFixture, type TestDatabase } from './local-supabase';
-import { logoConceptBatchSchema, logoCostQuoteSchema, logoDispatchReceiptSchema, logoRequestStateSchema } from '../../src/domain/logo-jobs';
+import { logoConceptBatchSchema, legacyLogoCostQuoteSchema as logoCostQuoteSchema, logoDispatchReceiptSchema, logoRequestStateSchema } from '../../src/domain/logo-jobs';
 import { logoWorkspaceV2Schema } from '../../src/domain/logo-workspace';
 import { planSixConcepts } from '../../src/server/logo-creation/concept-plan';
 

@@ -3,6 +3,7 @@ import { logoVectorProposalApplicationSchema, type LogoVectorProposalApplication
 import type { AuthenticatedContext } from '../auth/context';
 import { logoOwner, logoId, parseLogoStored, logoDatabaseError } from './logo-transaction';
 import { ApiError } from '../http/errors';
+import { validateLogoVectorProposal } from '@/features/logo-vector/model/proposal';
 
 /** Owned read projection, separate from the immutable historical proposal. The
  * database checks the authoritative prepared/provider/job/accounting bindings. */
@@ -16,6 +17,10 @@ export async function readLogoVectorProposalApplication(auth: AuthenticatedConte
   if (response.error) throw logoDatabaseError(response.error);
   const application = parseLogoStored(logoVectorProposalApplicationSchema, response.data), proposal = application.proposal;
   if (proposal.ownerId !== owner || proposal.projectId !== projectId || proposal.id !== proposalId || logoOwner(auth) !== owner) throw new ApiError('not_found');
+  if (proposal.payload !== null) {
+   try { validateLogoVectorProposal(proposal.payload, proposal.context); }
+   catch { throw new ApiError('integration_unavailable'); }
+  }
   return application;
  } catch (error) { throw logoDatabaseError(error); }
 }

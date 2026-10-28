@@ -16,7 +16,7 @@ export function syntheticLogoBrief(overrides: Partial<LogoBriefDraft> = {}): Log
 }
 
 import { logoWorkspaceV2Schema, logoReferenceRegistrationSchema } from "../../src/domain/logo-workspace";
-import { logoConceptBatchSchema, logoCostQuoteSchema, type LogoConceptAttempt } from "../../src/domain/logo-jobs";
+import { logoConceptBatchSchema, legacyLogoCostQuoteSchema as logoCostQuoteSchema, type LogoConceptAttempt } from "../../src/domain/logo-jobs";
 
 export const LOGO_TEST_FIXTURE_LABEL = "Test fixture — no live uploads, generation, saving or charges.";
 const fixtureId = (value: number) => `00000000-0000-4000-8000-${String(value).padStart(12, "0")}`;

@@ -6,7 +6,8 @@ import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
 import { getVerifiedProjectName, verifyProjectNameCandidates } from "./project-naming";
 import { normalizeNamingBrain } from "./naming-brain-provenance";
-import { isHostedNamingRuntime, isLocalPrototypeRuntime } from "../api-text/config";
+import { isHostedNamingRuntime, isLocalPollingRuntime } from "../api-text/config";
+import { isSharedWorkerRuntime } from "../shared-account/routing";
 
 const hostedNamingAvailabilitySchema = z.discriminatedUnion("status", [
  z.strictObject({ status: z.literal("available"), executionAuthority: z.literal("hosted_owner_v1") }),
@@ -69,10 +70,10 @@ async function verifyFeed(auth: AuthenticatedContext, projectId: string, feed: N
    failureClassificationVerified = false;
   }
  }
- let executionAvailable = isLocalPrototypeRuntime();
- if (isHostedNamingRuntime()) {
+ let executionAvailable = isLocalPollingRuntime();
+ if (isSharedWorkerRuntime() || isHostedNamingRuntime()) {
   try {
-   const hosted = await rpc(auth, "get_hosted_naming_availability", { p_project_id: projectId }, hostedNamingAvailabilitySchema);
+   const hosted = await rpc(auth, isSharedWorkerRuntime() ? "get_shared_naming_availability" : "get_hosted_naming_availability", { p_project_id: projectId }, hostedNamingAvailabilitySchema);
    executionAvailable = hosted.status === "available";
   } catch (error) {
    // The saved feed was already owner-checked and replayed. A readiness outage
@@ -105,7 +106,7 @@ export async function ensureNextNamingRun(auth: AuthenticatedContext, projectId:
  const preferences=namingPreferencesV2Schema.safeParse(saved.data.preferences);
  if(!preferences.success || !getNamingPreferencesReadiness(preferences.data).ready) return parse(namingFeedEnsureResultSchema,{
   status:"blocked",feed:await getNamingFeed(auth,projectId),code:"preferences_incomplete",message:"Review your saved naming approaches, directness, text constraints and length limits before continuing.",action:"review_preferences"});
- const admission = isLocalPrototypeRuntime() ? "ensure_local_naming_brain_run" : isHostedNamingRuntime() ? "ensure_hosted_naming_brain_run" : "ensure_naming_brain_run";
+ const admission = isSharedWorkerRuntime() ? "ensure_shared_naming_brain_run" : isLocalPollingRuntime() ? "ensure_local_naming_brain_run" : isHostedNamingRuntime() ? "ensure_hosted_naming_brain_run" : "ensure_naming_brain_run";
  const result = await rpc(auth, admission, { p_project_id: projectId, p_intent: parsed }, namingFeedEnsureResultSchema);
  return { ...result, feed: await verifyFeed(auth, projectId, result.feed) };
 }

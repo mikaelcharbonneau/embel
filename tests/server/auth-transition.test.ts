@@ -7,6 +7,7 @@ const next = vi.hoisted(() => ({ cookies: vi.fn() }));
 vi.mock("next/headers", () => ({ cookies: next.cookies }));
 import { createAuthTransitionClient } from "../../src/server/auth/client";
 import { GET as callback } from "../../src/app/auth/callback/route";
+import { POST as signIn } from "../../src/app/api/auth/sign-in/route";
 
 // Real pinned @supabase/ssr + auth-js, with a synthetic cookie jar and transport.
 // No requests reach Supabase, no accounts are created, and no email is sent.
@@ -18,6 +19,9 @@ let jar: Map<string, Cookie>;
 let flows: { id: string; challenge: string; path: string }[];
 let confirmed = true;
 let exchanges = 0;
+let passwordGrants = 0;
+let passwordFailure = false;
+let cleanupFailure = false;
 const storageKey = "sb-fixture-auth-token";
 
 beforeEach(() => {
@@ -27,6 +31,7 @@ beforeEach(() => {
   vi.stubEnv("APP_ORIGIN", origin);
   vi.stubEnv("NODE_ENV", "production");
   jar = new Map(); flows = []; confirmed = true; exchanges = 0;
+  passwordGrants = 0; passwordFailure = false; cleanupFailure = false;
   next.cookies.mockImplementation(async () => ({
     getAll: () => [...jar.values()].map(({ name, value }) => ({ name, value })),
     set: (name: string, value: string, options: CookieOptions) => {
@@ -39,7 +44,16 @@ beforeEach(() => {
     if (url.origin !== provider || init?.method !== "POST") throw new Error("Unexpected synthetic auth request");
     expect(init.redirect).toBe("error");
     expect(init.signal).toBeInstanceOf(AbortSignal);
+    if (url.pathname === "/auth/v1/logout") return cleanupFailure
+      ? Response.json({ code: "unexpected_failure", message: "Synthetic cleanup failure" }, { status: 503 })
+      : Response.json({});
     const body = JSON.parse(String(init.body));
+    if (url.pathname === "/auth/v1/token" && url.searchParams.get("grant_type") === "password") {
+      passwordGrants++;
+      if (passwordFailure) return Response.json({ code: "invalid_credentials", message: "Synthetic credential failure" }, { status: 400 });
+      return Response.json({ access_token: `synthetic-password-access-${passwordGrants}`, refresh_token: `synthetic-password-refresh-${passwordGrants}`,
+        token_type: "bearer", expires_in: 3600, user: { ...user, email_confirmed_at: confirmed ? user.email_confirmed_at : undefined } });
+    }
     if (url.pathname === "/auth/v1/signup" || url.pathname === "/auth/v1/resend") {
       const redirect = new URL(url.searchParams.get("redirect_to")!);
       expect(redirect.origin).toBe(origin);
@@ -74,6 +88,39 @@ async function startSignup() {
 function finish(index: number, flowId = flows[index]!.id) {
   return callback(new Request(`${origin}/auth/callback?code=${index === 0 ? "a".repeat(32) : "b".repeat(32)}&sb_flow_id=${flowId}`));
 }
+function signInRequest() {
+  return new Request(`${origin}/api/auth/sign-in`, { method: "POST", headers: { origin, "content-type": "application/json" },
+    body: JSON.stringify({ email: user.email, password: " synthetic password fixture " }) });
+}
+
+describe("pinned SSR password sign-in transition", () => {
+  it("commits a confirmed session with secure HttpOnly cookies", async () => {
+    const response = await signIn(signInRequest());
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ authenticated: true });
+    expect(passwordGrants).toBe(1);
+    expect(jar.has(storageKey)).toBe(true);
+    for (const cookie of jar.values()) expect(cookie.options).toMatchObject({ httpOnly: true, secure: true, sameSite: "lax", path: "/" });
+  });
+
+  it("preserves the prior cookie jar after an unconfirmed result even when cleanup fails", async () => {
+    expect((await signIn(signInRequest())).status).toBe(200);
+    const before = [...jar.entries()];
+    confirmed = false; cleanupFailure = true;
+    const response = await signIn(signInRequest());
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: { code: "invalid_credentials", message: "The email and password could not be verified." } });
+    expect(passwordGrants).toBe(2);
+    expect([...jar.entries()]).toEqual(before);
+  });
+
+  it("preserves an existing confirmed session after a failed password request", async () => {
+    expect((await signIn(signInRequest())).status).toBe(200);
+    const before = [...jar.entries()]; passwordFailure = true;
+    expect((await signIn(signInRequest())).status).toBe(401);
+    expect([...jar.entries()]).toEqual(before);
+  });
+});
 
 describe("pinned SSR PKCE compatibility", () => {
   it("stages signup verifiers until commit and writes only secure HttpOnly cookies", async () => {

@@ -127,7 +127,7 @@ describe("mounted direction generation admission", () => {
     await act(async () => { await Promise.all([f.controller.generation!.confirmQuote(id(100)), f.controller.generation!.confirmQuote(id(100))]); });
     expect(f.posts).toHaveLength(1);
     expect(f.memory.get(id(2))?.pendingIntent).toEqual(f.posts[0]);
-    expect(f.posts[0]?.acceptedMaxCostMicrousd).toBe(25000);
+    expect(f.posts[0]).toMatchObject({ acceptedMaxCostMicrousd: 25000 });
     expect(f.workspace.approvedLogo?.id).toBe(id(3));
   });
   it("disables quote admission when generation capability or owned font permissions are absent", async () => {

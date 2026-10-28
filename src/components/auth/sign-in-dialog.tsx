@@ -13,11 +13,22 @@ export function SignInDialog({ children, mode = "sign-in" }: { children: React.R
     const element = dialog.current;
     if (!element) return;
     const previous = document.activeElement;
+    const accountSummary = previous instanceof HTMLElement
+      ? previous.closest(".workspace-account-menu")?.querySelector<HTMLElement>("summary") : null;
     element.showModal();
     close.current?.focus();
     return () => {
       element.close();
-      if (previous instanceof HTMLElement && previous.isConnected) previous.focus();
+      // Route effects can collapse the account menu while the overlay closes.
+      // Restore after those effects, and never focus its now-hidden sign-in link.
+      requestAnimationFrame(() => {
+        if (document.querySelector("dialog[open]")) return;
+        const target = [previous instanceof HTMLElement ? previous : null, accountSummary].find(candidate => candidate?.isConnected
+          && candidate.getClientRects().length > 0 && !candidate.closest("details:not([open]) > :not(summary)")
+          && (candidate.checkVisibility?.() ?? true)
+          && !candidate.closest("[hidden], [inert]") && !candidate.matches(":disabled") && getComputedStyle(candidate).visibility !== "hidden");
+        target?.focus({ preventScroll: true });
+      });
     };
   }, []);
   return <dialog ref={dialog} className="auth-overlay" aria-labelledby="auth-overlay-title" onKeyDown={event => {

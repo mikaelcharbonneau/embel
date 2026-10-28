@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { asRole, createTestDatabase, OWNER_A, OWNER_B, resetFixture, type TestDatabase } from "./local-supabase";
-import { logoCostQuoteSchema, logoDispatchReceiptSchema, type LogoConceptJobInput } from "../../src/domain/logo-jobs";
+import { legacyLogoCostQuoteSchema as logoCostQuoteSchema, logoDispatchReceiptSchema, type LogoConceptJobInput } from "../../src/domain/logo-jobs";
 import { logoWorkspaceV2Schema } from "../../src/domain/logo-workspace";
 
 const table = "fluid_private.logo_publication_failure_adjudications";

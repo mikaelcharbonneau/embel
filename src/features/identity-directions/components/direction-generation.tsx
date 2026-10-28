@@ -11,6 +11,7 @@ export function DirectionGenerationControls({ controller }: { controller: Direct
   const state = controller?.state, generation = state?.generation, quote = generation?.quote;
   const request = generation?.request && generation.request.status !== "not_found" ? generation.request : null;
   const subscription = quote?.billingMode === "chatgpt_subscription";
+  const uncapped = quote !== null && quote !== undefined && "spendControl" in quote;
   const confirming = generation?.phase === "admitting" || !!state?.loadingFonts;
   const otherOperation = request?.receipt && "operation" in request.receipt && request.receipt.operation !== "identity.logo_directions";
   const status = otherOperation ? "Another logo operation is retained for this workspace. Check its status before generating directions." : request?.status === "admitted" ? "Request accepted. Waiting for the worker."
@@ -29,11 +30,11 @@ export function DirectionGenerationControls({ controller }: { controller: Direct
     {state && <button type="button" disabled={state.loadingFonts || state.checking} onClick={() => { void controller?.refreshFonts(); }}>Refresh generation inputs</button>}
     {generation?.phase === "quoting" && <p className={styles.caption} role="status">Preparing your cost estimate…</p>}
     {quote && ["awaiting_confirmation", "admitting"].includes(generation!.phase) && <section className={styles.costReview} aria-label="Direction generation cost review">
-      <h3>{subscription ? "Review subscription usage" : "Review the cost"}</h3><p className={styles.caption}>Generate exactly 3 identity directions around the approved logo. Existing saved directions remain in history.</p>
+      <h3>{uncapped ? "Review direction generation" : subscription ? "Review subscription usage" : "Review the cost"}</h3><p className={styles.caption}>Generate exactly 3 identity directions around the approved logo. Existing saved directions remain in history.</p>
       <p className={styles.caption}>{quote.provider && quote.model ? `${quote.provider} · ${quote.model}` : "Configured generation operation"}</p>
       <p className={styles.version}>Approved logo {quote.request.operation === "directions" ? quote.request.approvedLogoId : "unavailable"}</p>
       {state?.reviewedVisualDirection && <p className={styles.caption}>Reviewed visual direction version {state.reviewedVisualDirection.revision} · {state.reviewedVisualDirection.references.length} attributed references. Your written guidance and saved aspects are included as text.</p>}
-      {subscription ? <><p className={styles.caption}>ChatGPT subscription usage applies. No separate API charge under this verified subscription policy.</p>
+      {"spendControl" in quote ? <p className={styles.caption}>This request uses the configured AI service. Actual usage is recorded when the provider reports it.</p> : subscription ? <><p className={styles.caption}>ChatGPT subscription usage applies. No separate API charge under this verified subscription policy.</p>
         <p className={styles.caption}>Remaining allowance is unavailable. Token usage is unavailable unless the provider reports it; interrupted requests may still consume subscription usage.</p></> : <><dl className={styles.permissions}><div><dt>Estimated cost</dt><dd>{displayLogoCost(quote.estimatedCostMicrousd)}</dd></div><div><dt>Maximum cost</dt><dd>{displayLogoCost(quote.maxCostMicrousd)}</dd></div></dl>
         <p className={styles.caption}>This is an estimate, not a confirmed charge. Failed provider requests can still incur costs.</p></>}
       <div className={styles.actions}><button type="button" disabled={confirming || !state?.canConfirm} onClick={() => { void controller?.confirmQuote(quote.id); }}>{generation!.phase === "admitting" ? "Confirming request…" : "Confirm and generate 3 directions"}</button>

@@ -14,7 +14,7 @@ function reply(data: unknown, error: { code: string } | null = null) {
 }
 beforeEach(() => {
   vi.resetAllMocks(); mocks.client.mockResolvedValue({ auth: { getUser: mocks.user }, from: mocks.from });
-  mocks.user.mockResolvedValue({ data: { user: { id: owner, email: "verified@example.invalid", user_metadata: { email: "forged@example.invalid", owner_id: "forged", role: "admin" } } }, error: null });
+  mocks.user.mockResolvedValue({ data: { user: { id: owner, email: "verified@example.invalid", email_confirmed_at: "2026-10-13T10:00:00Z", user_metadata: { email: "forged@example.invalid", owner_id: "forged", role: "admin" } } }, error: null });
   auth = { client: { from: mocks.from } as unknown as ProfileContext["client"], userId: owner, email: "verified@example.invalid" };
 });
 describe("verified account profile data", () => {
@@ -24,6 +24,17 @@ describe("verified account profile data", () => {
     mocks.user.mockResolvedValue({ data: { user: { id: owner, is_anonymous: true } }, error: null });
     await expect(getProfileContext()).rejects.toMatchObject({ code: "unauthenticated" });
     mocks.user.mockRejectedValue(new Error("internal private detail")); await expect(getProfileContext()).rejects.toMatchObject({ code: "integration_unavailable" });
+  });
+  it("uses the confirmed-account policy and forwards request cancellation", async () => {
+    const signal = new AbortController().signal;
+    expect(await getProfileContext(signal)).toMatchObject({ userId: owner, email: "verified@example.invalid" });
+    expect(mocks.client).toHaveBeenCalledWith(signal);
+    mocks.user.mockResolvedValue({ data: { user: { id: owner, is_anonymous: false, email_confirmed_at: null } }, error: null });
+    await expect(getProfileContext(signal)).rejects.toMatchObject({ code: "unauthenticated" });
+    for (const error of [{ status: 429 }, { status: 503 }, { name: "AuthRetryableFetchError" }]) {
+      mocks.user.mockResolvedValue({ data: { user: null }, error });
+      await expect(getProfileContext(signal)).rejects.toMatchObject({ code: "integration_unavailable" });
+    }
   });
   it("returns unsaved defaults for an existing account without creating profile or project data", async () => {
     const query = reply(null); expect(await readAccountProfile(auth)).toEqual({ ownerId: owner, email: auth.email, values: DEFAULT_PROFILE_VALUES, revision: 0, updatedAt: null });

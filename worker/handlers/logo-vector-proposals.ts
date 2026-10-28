@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 import { stepOutcomeSchema, type ClaimedJob, type StepOutcome } from '../../src/domain/jobs';
-import { logoVectorProposalJobInputSchema, logoVectorProposalProviderObservationSchema, type LogoVectorProposalProviderObservation } from '../../src/domain/logo-vector-proposal-jobs';
+import { logoVectorProposalJobInputSchema, logoVectorProposalReservation, logoVectorProposalProviderObservationSchema, type LogoVectorProposalProviderObservation } from '../../src/domain/logo-vector-proposal-jobs';
 import { logoVectorProposalObservedResultSchema, logoVectorProposalRetainedOutputSchema, logoVectorProposalPreparedReceiptSchema, logoVectorProposalProviderReceiptSchema, logoVectorProposalProviderResultSchema, logoVectorProposalResolvedInputSchema, logoVectorProposalStepOutputSchema, logoVectorProposalUnpublishedOutputSchema, type LogoVectorProposalObservedResult, type LogoVectorProposalWorkerPorts } from '../../src/domain/logo-vector-proposal-evidence';
 import { validateLogoVectorProposal } from '../../src/features/logo-vector/model/proposal';
 import { retainLogoVectorProposalOutput, unknownLogoVectorProposalObservation, type LogoVectorProposalProvider } from '../../src/features/logo-vector/server/proposal-provider';
@@ -19,7 +19,7 @@ function checkRetainedHash(result: LogoVectorProposalObservedResult): void {
 export function createLogoVectorProposalHandler(deps: LogoVectorProposalHandlerDependencies): JobHandler {
  return { steps(raw) {
   const job = structuredClone(raw), input = logoVectorProposalJobInputSchema.parse(job.input);
-  if (job.operation !== input.operation || job.ownerId !== input.ownerId || job.projectId !== input.projectId || job.reservedCostMicrousd !== input.textPolicy.maximumCostMicrousd || job.actualCostMicrousd !== 0 || job.status !== 'running') throw new Error('Invalid exact proposal job binding.');
+  if (job.operation !== input.operation || job.ownerId !== input.ownerId || job.projectId !== input.projectId || job.reservedCostMicrousd !== logoVectorProposalReservation(input.textPolicy) || job.actualCostMicrousd !== 0 || job.status !== 'running') throw new Error('Invalid exact proposal job binding.');
   // A repeated invocation of this planned step joins its original attempt. The
   // durable begin-step/recovery boundary remains authoritative across processes.
   let pending: Promise<StepOutcome> | undefined;
@@ -81,12 +81,12 @@ export function createLogoVectorProposalHandler(deps: LogoVectorProposalHandlerD
     output = logoVectorProposalStepOutputSchema.parse({ version: 1, kind: 'logo_vector_proposal', preparedId: prepared.id, providerResponseReceiptId: receipt.id });
    } catch { return unpublished('publication_unconfirmed'); }
    const usage = observation.usage;
-   if (!observation.responseComplete || !observation.responseId || !observation.responseHash || observation.billing.status === 'unknown' || !usage || usage.inputTokens > input.textPolicy.maxInputTokens || usage.outputTokens > input.textPolicy.maxOutputTokens || common.costMicrousd > input.textPolicy.maximumCostMicrousd || result.status === 'incomplete')
+   if (!observation.responseComplete || !observation.responseId || !observation.responseHash || observation.billing.status === 'unknown' || !usage || usage.inputTokens > input.textPolicy.maxInputTokens || usage.outputTokens > input.textPolicy.maxOutputTokens || (input.textPolicy.version===1&&common.costMicrousd > input.textPolicy.maximumCostMicrousd) || result.status === 'incomplete')
     return { status: 'needs_reconciliation', code: 'provider_evidence_incomplete', result: output, ...common };
    if (result.status !== 'valid') return { status: 'failed', code: result.reason, result: output, ...common };
    return { status: 'succeeded', result: output, ...common };
   }
-  return [{ key: 'propose-vector-edit', maximumCostMicrousd: input.textPolicy.maximumCostMicrousd, timeoutMs: input.textPolicy.deadlineMs,
+  return [{ key: 'propose-vector-edit', maximumCostMicrousd: logoVectorProposalReservation(input.textPolicy), timeoutMs: input.textPolicy.deadlineMs,
    execute({ job: current, signal }) {
     if (!isDeepStrictEqual(current, job)) return Promise.resolve(nondispatch());
     pending ??= execute(current, signal).then(value => stepOutcomeSchema.parse(value));

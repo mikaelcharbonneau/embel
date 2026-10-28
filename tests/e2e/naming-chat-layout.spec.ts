@@ -1,14 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
-import { base, frameBarrier, namingCard, namingFixture, namingUrl, openNaming, scrollToTail } from "./naming-brain-fixture";
+import { base, frameBarrier, namingCard, namingFixture, namingUrl, openNaming, scrollToTail, showNamingChat as showChat, showNamingNames as showNames } from "./naming-brain-fixture";
 import { captureUiEvidence } from "./ui-evidence";
 
 // Explicit synthetic account/API fixtures through the production UI. No live model calls.
-async function showChat(page: Page) { const tabs = page.getByRole("group", { name: "Naming workspace view" }); if (await tabs.isVisible()) await tabs.getByRole("button", { name: "Chat", exact: true }).click(); }
-async function showNames(page: Page) { const tabs = page.getByRole("group", { name: "Naming workspace view" }); if (await tabs.isVisible()) await tabs.getByRole("button", { name: /^Names/ }).click(); }
 async function continueAnswer(page: Page) { await page.getByRole("button", { name: "Continue", exact: true }).click(); }
 async function noOverflow(page: Page) { expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true); }
 
-test("sequential chat saves each answer, then becomes the same left conversation beside compact names", async ({ page }, info) => {
+test("sequential chat saves each answer and preserves the same composer with compact names", async ({ page }, info) => {
   await page.setViewportSize(info.project.name === "desktop" ? { width: 1440, height: 900 } : { width: 390, height: 844 });
   const fixture = await namingFixture(page); await openNaming(page);
   const layout = page.locator("[data-naming-layout]"), composer = page.getByLabel("Naming message", { exact: true });
@@ -26,12 +24,11 @@ test("sequential chat saves each answer, then becomes the same left conversation
   await expect(page.getByRole("radio", { name: /^Explore all/ })).toHaveAttribute("aria-checked", "false");
   await page.getByRole("radio", { name: /^Explore all/ }).focus(); await page.keyboard.press("Enter");
   await expect(page.getByRole("radio", { name: /^Explore all/ })).toHaveAttribute("aria-checked", "true"); await continueAnswer(page);
-  await expect(page.getByLabel("Creative language", { exact: true })).toHaveValue("en"); await continueAnswer(page);
-  await expect(page.getByLabel("Maximum characters")).toBeVisible(); await continueAnswer(page); await continueAnswer(page);
-  await expect(page.getByRole("button", { name: "Start exploring", exact: true })).toBeVisible(); expect(fixture.mutations()).toHaveLength(0);
+  await expect(page.getByLabel("Maximum characters")).toBeVisible();
+  expect(fixture.mutations()).toHaveLength(0);
   await composer.fill("Synthetic unsent thought survives layout change");
   await composer.evaluate(input => input.setAttribute("data-chat-identity", "same-mounted-composer"));
-  await page.getByRole("button", { name: "Start exploring", exact: true }).click();
+  await continueAnswer(page);
   await expect(page.locator(".naming-feed-card")).toHaveCount(100); await expect(layout).toHaveAttribute("data-naming-layout", "results");
   expect(fixture.mutations()).toHaveLength(1);
   expect(fixture.state.preferences?.preferences).toMatchObject({ version: 2, approaches: ["real_words", "compounds"], directness: "all" });
@@ -41,7 +38,11 @@ test("sequential chat saves each answer, then becomes the same left conversation
   const geometry = await cards.evaluateAll(items => items.slice(0, 4).map(item => { const r = item.getBoundingClientRect(); return { x: r.x, y: r.y, height: r.height, width: r.width }; }));
   if (info.project.name === "desktop") {
     const chat = await page.getByRole("complementary", { name: "Naming conversation", exact: true }).boundingBox(), results = await page.locator("[data-naming-results-scroll]").boundingBox();
-    expect(chat!.y).toBe(64); expect(results!.y).toBe(64); expect(chat!.width).toBe(340); expect(results!.width).toBe(1020); expect(chat!.x + chat!.width).toBe(results!.x);
+    const header = await page.getByRole("banner").boundingBox();
+    expect(results!.y).toBeGreaterThanOrEqual(header!.y + header!.height);
+    expect(results!.y + results!.height).toBeLessThanOrEqual(chat!.y + 1);
+    expect(chat!.y + chat!.height).toBeLessThanOrEqual(901);
+    expect(chat!.width).toBeGreaterThan(0); expect(results!.width).toBeGreaterThan(0);
     expect(new Set(geometry.map(item => item.y)).size).toBe(1); expect(geometry[0]!.height).toBe(90); expect(geometry[1]!.x - geometry[0]!.x - geometry[0]!.width).toBe(12);
   } else { expect(geometry[0]!.y).toBe(geometry[1]!.y); expect(geometry[2]!.y).toBeGreaterThan(geometry[0]!.y); }
   expect(await namingCard(page, 1).getByRole("button").count()).toBe(2);
@@ -80,7 +81,8 @@ test("composer guidance waits for account acknowledgement and preserves all name
   await expect(detail.getByRole("button", { name: "Explore variations", exact: true })).toBeVisible();
   await detail.getByRole("button", { name: "Save Synthetic 001", exact: true }).click(); await expect.poll(() => fixture.state.rows[0]!.entry.retention.saved).toBe(true);
   await detail.getByRole("checkbox", { name: /More like this/ }).check();
-  await detail.getByText("Origin and history", { exact: true }).click(); await expect(detail.getByText(/Generated with synthetic-never-call/)).toBeVisible();
+  await detail.getByRole("button", { name: "Origin and history", exact: true }).click(); await expect(detail.getByText(/Generated with synthetic-never-call/)).toBeVisible();
+  await page.keyboard.press("Escape"); await expect(page.getByRole("dialog")).toBeHidden();
   await page.getByRole("button", { name: "Back to results", exact: true }).click(); await showChat(page);
   await expect(page.getByRole("button", { name: "Send naming direction", exact: true })).toBeEnabled();
   await composer.fill("Synthetic closer to the first name"); await page.getByRole("button", { name: "Send naming direction", exact: true }).click();

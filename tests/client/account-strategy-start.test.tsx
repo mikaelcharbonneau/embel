@@ -47,6 +47,18 @@ beforeEach(() => {
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.replaceChildren(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe("AI prompt start readiness and recovery", () => {
+  it("rechecks a managed uncapped plan and sends its exact policy without a dollar-ceiling field", async () => {
+    runtime = { status: "available", operations: ["strategy.reformulate", "strategy.competitors"].map(operation => ({ operation, billingMode: "openai_api", spendControl: "uncapped", policyIdentity: "a".repeat(64), interviewVersion: 1 })) };
+    fetcher.mockImplementation((path: string, init: RequestInit) => path === `/api/projects/${projectId}/strategy` && init.method === "POST"
+      ? Response.json({ job: { ...job(), billingMode: "openai_api", spendControl: "uncapped", policyIdentity: "a".repeat(64), reserved_cost_microusd: 0 } }) : defaultFetch(path, init));
+    await render(); expect(mutations()).toHaveLength(0);
+    expect(host.textContent).toContain("uses OpenAI for a response and competitor research"); expect(host.textContent).not.toContain("up to $");
+    expect(await start()).toBe(true);
+    const admitted = mutations().find(([path]) => path === `/api/projects/${projectId}/strategy`)!;
+    expect(JSON.parse(admitted[1].body)).toEqual({ operation: "strategy.reformulate", expectedRevision: 1,
+      idempotencyKey: `strategy.managed.v3:${projectId}:1:strategy.reformulate`, billingMode: "openai_api", spendControl: "uncapped", acceptedPolicyIdentity: "a".repeat(64) });
+    expect(mock.push).toHaveBeenCalledOnce();
+  });
   it("keeps signed-out account actions separated in a wrapping row", async () => {
     mock.session = { status: "signed_out", generation: 2 }; await render();
     const stylesheet = document.createElement("style");

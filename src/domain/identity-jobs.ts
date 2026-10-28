@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { moneySchema } from "./jobs";
+import { jobStatusSchema, moneySchema } from "./jobs";
 import { IMAGE_MODEL } from "./providers";
+import { logoVectorProposalUsageSchema } from "./logo-vector-proposal-jobs";
 import {
-  identityInputSnapshotSchema, identitySystemAssetSchema, identitySystemVersionSchema,
+  identityComponentsSchema, identityInputSnapshotSchema, identitySystemAssetSchema, identitySystemVersionSchema,
   type IdentitySystemAsset, type IdentitySystemVersion,
 } from "./project-identity";
 
@@ -10,7 +11,7 @@ export const IDENTITY_JOB_MUTATION_MAX_BYTES = 4096;
 export const IDENTITY_BATCH_TARGET = 3 as const;
 
 /** A client may acknowledge a server policy; this is never permission to spend. */
-export const identityGenerationIntentSchema = z.strictObject({
+const legacyIdentityGenerationIntentSchema = z.strictObject({
   expectedProjectRevision: z.number().int().positive(),
   expectedReferenceRevision: z.number().int().nonnegative(),
   expectedPreferencesRevision: z.number().int().nonnegative(),
@@ -18,15 +19,28 @@ export const identityGenerationIntentSchema = z.strictObject({
   acceptedPolicyIdentity: z.string().regex(/^[a-f0-9]{64}$/),
   acceptedMaxCostMicrousd: moneySchema,
 });
+export const identityGenerationIntentSchema = z.union([legacyIdentityGenerationIntentSchema, z.strictObject({
+  version: z.literal(2), spendControl: z.literal("uncapped"),
+  expectedProjectRevision: z.number().int().positive(), expectedReferenceRevision: z.number().int().nonnegative(),
+  expectedPreferencesRevision: z.number().int().nonnegative(), idempotencyKey: legacyIdentityGenerationIntentSchema.shape.idempotencyKey,
+  expectedIdentityRevision: z.number().int().nonnegative(),
+  acceptedPolicyIdentity: legacyIdentityGenerationIntentSchema.shape.acceptedPolicyIdentity,
+})]);
 export type IdentityGenerationIntent = z.infer<typeof identityGenerationIntentSchema>;
 
-// Deliberately cannot report "available" until a real pipeline and policy exist.
-// The requested model is not evidence of this account's access to that model.
-export const identityAvailabilitySchema = z.strictObject({
+const unavailableIdentitySchema = z.strictObject({
   ownerId: z.uuid(), projectId: z.uuid(), status: z.literal("unavailable"),
   operation: z.literal("identity.image"), requestedModel: z.literal(IMAGE_MODEL),
-  reason: z.literal("pipeline_not_implemented"),
+  reason: z.enum(["pipeline_not_implemented", "runtime_unavailable", "policy_unavailable", "inputs_not_ready", "references_unavailable", "reference_limit_exceeded", "reference_bytes_exceeded"]),
+  maxReferenceImages: z.literal(4).optional(),
+  maxReferenceBytes: z.literal(20_971_520).optional(),
 });
+/** Availability is loaded from actual SQL policy/slot/Storage readiness, never inferred from a model name. */
+export const identityAvailabilitySchema = z.discriminatedUnion("status", [unavailableIdentitySchema, z.strictObject({
+  version: z.literal(2), spendControl: z.literal("uncapped"), ownerId: z.uuid(), projectId: z.uuid(), status: z.literal("available"),
+  operation: z.literal("identity.image"), requestedModel: z.literal(IMAGE_MODEL), policyIdentity: z.string().regex(/^[a-f0-9]{64}$/),
+  handlerVersion: z.literal("identity-image-v1"), targetCount: z.literal(IDENTITY_BATCH_TARGET), maxReferenceImages:z.literal(4), maxReferenceBytes:z.literal(20_971_520),
+})]);
 export type IdentityAvailability = z.infer<typeof identityAvailabilitySchema>;
 
 /** Matches public.job_steps.output's existing UTF-8 jsonb::text ceiling. */
@@ -192,3 +206,76 @@ export function collectIdentityBatchResult(batch: unknown, bindings: unknown): I
   return identityBatchResultSchema.parse({ version: 1, ownerId: actualBatch.ownerId, projectId: actualBatch.projectId, batchId: actualBatch.id, jobId: actualBatch.jobId,
     systems: actualBindings.map(binding => binding.system), fulfillment: { targetCount: IDENTITY_BATCH_TARGET, acceptedCount: actualBindings.length, status: collectedStatus(actualBindings.length) } });
 }
+
+export const IDENTITY_IMAGE_HANDLER_VERSION = "identity-image-v1" as const;
+const digest = z.string().regex(/^[a-f0-9]{64}$/);
+/** Execution/resource bounds, not a monetary allowance or client authority. */
+export const identityTextPolicySchema = z.strictObject({
+  version: z.literal(1), model: z.literal("gpt-6.1-sol"), serviceTier: z.literal("default"), pricingVersion: z.literal("2026-10-03"),
+  maxInputTokens: z.number().int().min(1).max(32_768), maxOutputTokens: z.number().int().min(1).max(8192),
+  maxInputBytes: z.number().int().min(1024).max(131_072), maxOutputBytes: z.number().int().min(1024).max(65_536),
+  deadlineMs: z.number().int().min(1000).max(240_000), maxTools: z.literal(0),
+});
+export type IdentityTextPolicy = z.infer<typeof identityTextPolicySchema>;
+export const identityGenerationCapabilitySchema = z.strictObject({
+  operation: z.literal("identity.image"), policyIdentity: digest, handlerVersion: z.literal(IDENTITY_IMAGE_HANDLER_VERSION),
+  provider: z.literal("openai"), model: z.literal(IMAGE_MODEL), engine: z.null(), maxCostMicrousd: z.literal(0),
+  spendControl: z.literal("uncapped"), textPolicy: identityTextPolicySchema,
+});
+export type IdentityGenerationCapability = z.infer<typeof identityGenerationCapabilitySchema>;
+export const identityGenerationJobInputSchema = z.strictObject({
+  version: z.literal(2), operation: z.literal("identity.image"), ownerId: z.uuid(), projectId: z.uuid(), batchId: z.uuid(),
+  input: identityInputSnapshotSchema, policyIdentity: digest, handlerVersion: z.literal(IDENTITY_IMAGE_HANDLER_VERSION),
+  spendControl: z.literal("uncapped"), textPolicy: identityTextPolicySchema,
+  systemIds: z.array(z.uuid()).length(3).refine(ids => new Set(ids).size === 3),
+}).refine(v => sameScope(v,v.input), "Job must capture its actual owned full input");
+export type IdentityGenerationJobInput = z.infer<typeof identityGenerationJobInputSchema>;
+export const identitySystemSpecificationSchema = z.strictObject({ components: identityComponentsSchema, boardPrompt: z.string().trim().min(1).max(6000) });
+export type IdentitySystemSpecification = z.infer<typeof identitySystemSpecificationSchema>;
+const imageCount = z.number().int().nonnegative().max(1_000_000_000);
+/** Passive copy of the existing Images usage contract; no server imports enter the domain graph. */
+const imageUsage = z.object({ input_tokens: imageCount, output_tokens: imageCount,
+  input_tokens_details: z.object({text_tokens:imageCount,image_tokens:imageCount}), total_tokens: z.number().int().nonnegative().max(2_000_000_000).optional(),
+  output_tokens_details:z.object({text_tokens:imageCount,image_tokens:imageCount}).optional(),
+}).refine(v=>v.input_tokens===v.input_tokens_details.text_tokens+v.input_tokens_details.image_tokens
+  &&(v.total_tokens===undefined||v.total_tokens===v.input_tokens+v.output_tokens)
+  &&(!v.output_tokens_details||v.output_tokens_details.text_tokens===0&&v.output_tokens_details.image_tokens===v.output_tokens));
+export const identityGenerationObservationSchema = z.strictObject({
+  version:z.literal(1), phase:z.enum(["specifications","board"]),provider:z.literal("openai"),model:z.string().min(1).max(150).nullable(),
+  requestKey:digest,requestHash:digest,responseId:z.string().min(1).max(200).nullable(),providerRequestId:z.string().min(1).max(200).nullable(),
+  responseHash:digest.nullable(),observedAt:timestamp,responseComplete:z.boolean(),serviceTier:z.string().min(1).max(100).nullable(),
+  usage:z.union([logoVectorProposalUsageSchema,imageUsage]).nullable(),
+  billing:z.discriminatedUnion("status",[z.strictObject({status:z.literal("recorded"),confirmedMicrousd:moneySchema}),z.strictObject({status:z.literal("unknown"),confirmedMicrousd:z.null()})]),
+  specification:identitySystemSpecificationSchema.nullable(),artifactHash:digest.nullable(),
+}).refine(v=>v.phase==="specifications"?v.artifactHash===null:v.specification===null,"Phases retain only their actual output kind");
+export type IdentityGenerationObservation = z.infer<typeof identityGenerationObservationSchema>;
+export const identityGenerationProviderReceiptSchema=z.strictObject({id:z.uuid(),ownerId:z.uuid(),projectId:z.uuid(),jobId:z.uuid(),leaseToken:z.uuid(),callId:z.uuid(),observation:identityGenerationObservationSchema});
+export type IdentityGenerationProviderReceipt=z.infer<typeof identityGenerationProviderReceiptSchema>;
+export const identityBatchStateSchema=z.strictObject({ownerId:z.uuid(),projectId:z.uuid(),batchId:z.uuid(),jobId:z.uuid(),status:jobStatusSchema,terminal:z.boolean(),
+  intent:identityGenerationIntentSchema,input:identityInputSnapshotSchema,systems:generatedSystemsSchema,fulfillment:identityFulfillmentSchema,
+}).superRefine((v,ctx)=>{
+  if(!sameScope(v,v.input)||v.fulfillment.acceptedCount!==v.systems.length)issue(ctx,"Batch progress must describe its actual owned completed systems");
+  if(v.intent.expectedProjectRevision!==v.input.projectRevision||v.intent.expectedReferenceRevision!==v.input.referenceSnapshot.referenceRevision
+    ||v.intent.expectedPreferencesRevision!==v.input.preferencesRevision)issue(ctx,"Batch intent must bind the exact captured revisions");
+  if(v.status==="succeeded"&&v.systems.length!==IDENTITY_BATCH_TARGET||v.fulfillment.status==="pending"&&!["queued","running","cancel_requested"].includes(v.status))issue(ctx,"Batch state cannot imply missing complete systems or pending terminal work");
+  if(v.terminal!==["succeeded","failed","cancelled","partial"].includes(v.status))issue(ctx,"Identity terminal states must reflect the actual finished batch");
+  for(const s of v.systems)if(!sameScope(v,s)||s.source.kind!=="generated"||s.source.batchId!==v.batchId||s.source.jobId!==v.jobId||!same(s.input,v.input))issue(ctx,"Batch systems must retain exact immutable source");
+  validateUniqueSystems(v.systems,ctx);
+}).transform(freeze);
+export type IdentityBatchState=z.infer<typeof identityBatchStateSchema>;
+
+/** Read-only recovery includes the last durable request even when new work is unavailable. */
+export const identityBatchOverviewSchema = z.strictObject({ ...ownership, availability: identityAvailabilitySchema, latest: identityBatchStateSchema.nullable() })
+  .refine(value => sameScope(value, value.availability) && (!value.latest || sameScope(value, value.latest)), "Batch overview must belong to one owned project").transform(freeze);
+export type IdentityBatchOverview = z.infer<typeof identityBatchOverviewSchema>;
+export const identityBatchRequestLookupSchema = z.discriminatedUnion("status", [
+  z.strictObject({ status: z.literal("not_found") }), z.strictObject({ status: z.literal("found"), batch: identityBatchStateSchema }),
+]);
+export type IdentityBatchRequestLookup = z.infer<typeof identityBatchRequestLookupSchema>;
+/** Only a durable SQL tombstone may prove that an uncertain request cannot
+ * admit later. An already admitted request retains its real cancellation state. */
+export const identityBatchRequestCloseSchema = z.discriminatedUnion("status", [
+  z.strictObject({ status: z.literal("not_admitted"), ...ownership, intent: identityGenerationIntentSchema.refine(value => "version" in value && value.version === 2) }),
+  z.strictObject({ status: z.literal("admitted"), batch: identityBatchStateSchema }),
+]);
+export type IdentityBatchRequestClose = z.infer<typeof identityBatchRequestCloseSchema>;

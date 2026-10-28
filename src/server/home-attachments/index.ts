@@ -127,4 +127,33 @@ export function createHomeAttachmentService(dependencies: HomeAttachmentDependen
  };
 }
 export const productionHomeAttachmentService = createHomeAttachmentService(null);
-export const { stageHomeAttachment, readHomeAttachmentRequest, saveAttachedProjectDraft, readAttachedProjectDraftRequest, resolveOwnedAttachments, getHomeAttachmentCapability } = productionHomeAttachmentService;
+async function withRouteService<T>(auth: AuthenticatedContext, signal: AbortSignal | undefined, run: (service: ReturnType<typeof createHomeAttachmentService>) => Promise<T> | T): Promise<T> {
+ const { acquireAccountHomeAttachmentService } = await import('../runtime/account-http-binding-source');
+ const lease = await acquireAccountHomeAttachmentService(auth, signal);
+ try {
+  let service = lease.value;
+  if (!service && !lease.configured) {
+   const { getDevelopmentHomeAttachmentService } = await import('./development');
+   service = await getDevelopmentHomeAttachmentService(auth);
+  }
+  return await run(service ?? productionHomeAttachmentService);
+ } finally { await lease.release(); }
+}
+export async function getHomeAttachmentCapability(auth?: AuthenticatedContext): Promise<AttachmentPolicy | null> {
+ return auth ? withRouteService(auth, undefined, service => service.getHomeAttachmentCapability()) : null;
+}
+export async function stageHomeAttachment(auth: AuthenticatedContext, input: StageHomeAttachmentInput, bytes: Uint8Array, signal?: AbortSignal) {
+ return withRouteService(auth, signal, service => service.stageHomeAttachment(auth, input, bytes, signal));
+}
+export async function readHomeAttachmentRequest(auth: AuthenticatedContext, key: string, signal?: AbortSignal) {
+ return withRouteService(auth, signal, service => service.readHomeAttachmentRequest(auth, key, signal));
+}
+export async function saveAttachedProjectDraft(auth: AuthenticatedContext, input: AttachedProjectDraftInput, signal?: AbortSignal) {
+ return withRouteService(auth, signal, service => service.saveAttachedProjectDraft(auth, input, signal));
+}
+export async function readAttachedProjectDraftRequest(auth: AuthenticatedContext, key: string, signal?: AbortSignal) {
+ return withRouteService(auth, signal, service => service.readAttachedProjectDraftRequest(auth, key, signal));
+}
+export async function resolveOwnedAttachments(auth: AuthenticatedContext, projectId: string, refs: OwnedAttachmentRef[], signal?: AbortSignal) {
+ return withRouteService(auth, signal, service => service.resolveOwnedAttachments(auth, projectId, refs, signal));
+}

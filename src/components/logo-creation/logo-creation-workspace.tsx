@@ -12,6 +12,7 @@ import { VisualDirectionReview } from "@/features/identity-directions/components
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import { useLogoDraftMemory } from "@/components/identity/logo-draft-memory-context";
 import { useLogoCreation } from "./use-logo-creation";
+import { useRefinementPreparation } from "./use-refinement-preparation";
 import type { LogoCreationState } from "./creation-controller";
 import { LogoVerifiedPreview } from "./verified-preview";
 import { selectLogoCandidate, recoverLogoSelection, LogoSelectionConflictResolvedError } from "./selection-controller";
@@ -214,10 +215,13 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
   const selectedCard = Object.entries(cardVersions).find(([, versions]) => selectedLogo && versions.some(version => version.key === logoCandidateKey(selectedLogo)));
   const selectedOrdinal = activeBatch?.slots.find(slot => slot.id === selectedCard?.[0])?.ordinal;
   const selectedLabel = selectedLogo ? selectedOrdinal !== undefined ? `Concept ${selectedOrdinal + 1}${selectedLogo.kind === "refinement" ? ` · ${selectedCard?.[1].find(version => version.key === logoCandidateKey(selectedLogo))?.label ?? "Refined"}` : ""}` : "your selected logo" : undefined;
+  const refinementPreparation = useRefinementPreparation({ account, projectId, client, controller: generation, memory,
+    canEdit: workspace.canEdit, pending: workspace.pending, selectedSource: selectedLogo, isCurrent,
+    onRejected: () => setSelectionState(previous => ({ ...previous, error: "Your saved logo inputs changed. Check the selected logo, then send your changes again. Your message is kept." })) });
   const refinementBusy = Boolean(refinementRequestKey && ["admitted", "running", "needs_reconciliation"].includes(refinementRequestStatus ?? ""));
   const completedRefinement = refinementHistoryState.items.find(({ record, verified }) => verified && record.requestKey === refinementRequestKey && record.state === "succeeded" && record.billing.status === "recorded" && record.preview?.publicationState === "committed")?.record;
   const reviewingRefinement = generationState.quote?.request.operation === "refine_preview";
-  const composerStatus = refinementSubmitting ? "Preparing your cost estimate…" : reviewingRefinement && generationState.phase === "awaiting_confirmation" ? "Review the cost to start this refinement." : reviewingRefinement && generationState.phase === "admitting" ? "Starting your refinement…" : selectionState.busy ? "Saving your selection…" : refinementBusy ? refinementRequestStatus === "needs_reconciliation" ? "Checking the original refinement request…" : "Refining your selected logo…"
+  const composerStatus = refinementSubmitting || refinementPreparation.pending ? "Preparing your cost estimate…" : reviewingRefinement && generationState.phase === "awaiting_confirmation" ? "Review the cost to start this refinement." : reviewingRefinement && generationState.phase === "admitting" ? "Starting your refinement…" : selectionState.busy ? "Saving your selection…" : refinementBusy ? refinementRequestStatus === "needs_reconciliation" ? "Checking the original refinement request…" : "Refining your selected logo…"
     : completedRefinement ? "Your refined logo is ready on its card." : initialConceptReadState ? initialConceptReadMessage : !selectedLogo ? "Select a logo above to get started." : focusedReview.loading ? "Reading your selected logo…" : focusedReview.error ? "Your selected logo could not be verified. Try selecting it again."
     : !capabilities.isAvailable("identity.logo_refine") ? "Logo refinement is currently unavailable. Your message is kept." : "Review the cost before starting a new refinement.";
 
@@ -247,12 +251,9 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
         setSelectionState(previous => ({ ...previous, error: "Your saved logo inputs changed. Check the selected logo, then send your changes again. Your message is kept." }));
         return;
       }
-      // Wait for the refreshed account controller to commit its editability state.
-      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-      if (!isCurrent(account) || generation.getSnapshot().phase !== "idle") return;
-      // The shared controller binds and validates the exact source/instruction.
+      // The handoff waits for committed editability and rechecks this exact basis.
       // Preparing only opens the review; its explicit confirmation admits work.
-      await generation.prepare({ operation: "refine_preview", expected: latest.workspace.heads, source, instruction });
+      refinementPreparation.enqueue({ operation: "refine_preview", expected: latest.workspace.heads, source, instruction });
     } finally { refinementSubmission.current = false; setRefinementSubmitting(false); }
   }
 
@@ -482,7 +483,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
     {saved && !needsInitialization && <LogoIdentityContinuation workspace={saved} blocked={workspace.pending || workspace.dirty || !!draft?.conflict} hasSelection={Boolean(selectedLogo)} />}
   </>;
 
-  const conceptsComposer = conceptsScreen && projectId ? <ConceptsComposer disclosureRef={refinementDisclosure} projectId={projectId} selectionReadState={initialConceptReadState} selectedLabel={selectedLabel} selectedPreview={focusedReceipt && client ? <LogoVerifiedPreview client={client} receipt={focusedReceipt} alt="Selected logo" /> : undefined} status={composerStatus} onShowResult={completedRefinement ? () => { const slotId = Object.entries(cardVersions).find(([, versions]) => versions.some(version => version.source.kind === "refinement" && version.source.rasterRevisionId === completedRefinement.id))?.[0]; if (slotId) document.querySelector<HTMLElement>(`[data-concept-slot="${slotId}"]`)?.scrollIntoView({ block: "center" }); } : undefined} instruction={refineInstruction} onInstructionChange={setRefineInstruction} onReview={generationState.phase === "idle" && !refinementSubmitting && !refinementBusy && selectedLogo && focusedReceipt && generation && saved && editing && !workspace.pending && !workspace.dirty && !draft?.conflict && refineInstruction.trim() && !quoteReviewBlocked && capabilities.isAvailable("identity.logo_refine") ? () => { void reviewRefinement(); } : undefined}>
+  const conceptsComposer = conceptsScreen && projectId ? <ConceptsComposer disclosureRef={refinementDisclosure} projectId={projectId} selectionReadState={initialConceptReadState} selectedLabel={selectedLabel} selectedPreview={focusedReceipt && client ? <LogoVerifiedPreview client={client} receipt={focusedReceipt} alt="Selected logo" /> : undefined} status={composerStatus} onShowResult={completedRefinement ? () => { const slotId = Object.entries(cardVersions).find(([, versions]) => versions.some(version => version.source.kind === "refinement" && version.source.rasterRevisionId === completedRefinement.id))?.[0]; if (slotId) document.querySelector<HTMLElement>(`[data-concept-slot="${slotId}"]`)?.scrollIntoView({ block: "center" }); } : undefined} instruction={refineInstruction} onInstructionChange={setRefineInstruction} onReview={generationState.phase === "idle" && !refinementSubmitting && !refinementPreparation.pending && !refinementBusy && selectedLogo && focusedReceipt && generation && saved && editing && !workspace.pending && !workspace.dirty && !draft?.conflict && refineInstruction.trim() && !quoteReviewBlocked && capabilities.isAvailable("identity.logo_refine") ? () => { void reviewRefinement(); } : undefined}>
       <LogoBriefFields draft={draft?.brief} onChange={editing ? workspace.setBriefDraft : undefined} onReuseStrategy={editing && projectId && saved && !workspace.pending ? () => void reuseStrategy() : undefined} nameConflict={strategy.nameConflict} sourceProjectRevision={strategy.revision} saveMessage={saveMessage} saveLabel={needsInitialization ? "Create logo workspace" : "Save brief"} onSave={canSave ? () => { if (draft) void workspace.saveBrief(draft.brief); } : undefined} />
       <ContextDetails className={styles.contextDetails} title={<>Saved inputs and recovery</>}><p className={styles.muted}>Start with a brief, choose the kinds of logo you want to explore, and keep your work in a saved project.</p>{savedProjectId && <div className={styles.actions}>
         <Link className={styles.secondaryButton} href={"/brands/account/" + savedProjectId}>Open project</Link>

@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import type { LogoWorkerConnection } from "../src/server/data/logo-jobs";
 import { createPooledIdentityConnectionFactory, type IdentityPoolClientPort, type IdentityPoolPort } from "../src/server/runtime/identity-pool";
+import { readDevelopmentConfiguration } from "../src/server/development/config";
 
 export type LogoProductionConnectionInput = {
   ownerId: string; roleName: string; roleOid: number; pool: IdentityPoolPort | null;
@@ -14,6 +15,7 @@ export type LogoProductionConnection = Readonly<LogoWorkerConnection & {
 const unavailable = () => new Error("Logo production connection is unavailable.");
 const unconfirmed = () => new Error("Logo production connection drain is unconfirmed.");
 const principalSql = "SELECT session_user::text AS role_name, current_user::text AS active_role, pg_catalog.to_regrole(session_user)::oid::bigint AS role_oid, fluid_private.logo_worker_owner()::text AS owner_id";
+const developmentPrincipalSql = "SELECT session_user::text AS role_name, current_user::text AS active_role, pg_catalog.to_regrole(session_user)::oid::bigint AS role_oid, public.check_development_worker_binding('logo',$1,$2)::text AS owner_id";
 const configurationSchema = z.strictObject({
   ownerId: z.uuid(), roleName: z.string().max(63).regex(/^fluid_logo_worker(?:_[a-z0-9_]+)?$/), roleOid: z.number().int().min(1).max(4_294_967_295),
   acquireTimeoutMs: z.number().int().min(1).max(10_000), queryTimeoutMs: z.number().int().min(1).max(15_000), disposalTimeoutMs: z.number().int().min(1).max(15_000),
@@ -24,8 +26,21 @@ const configurationSchema = z.strictObject({
  * validates its actual SQL principal and owner on the SAME acquired client.
  * close fences synchronously; only a resolved close confirms the drain. */
 export function createLogoProductionConnection(input: LogoProductionConnectionInput | null = null): LogoProductionConnection | null {
+  return createConnection(input, false);
+}
+
+export function createDevelopmentLogoConnection(input: LogoProductionConnectionInput | null = null): LogoProductionConnection | null {
+  return readDevelopmentConfiguration() ? createConnection(input, true) : null;
+}
+
+function createConnection(input: LogoProductionConnectionInput | null, development: boolean): LogoProductionConnection | null {
   if (!input || typeof input.pool?.connect !== "function") return null;
-  const parsed = configurationSchema.safeParse({ ownerId: input.ownerId, roleName: input.roleName, roleOid: input.roleOid,
+  const developmentOrigin = development ? readDevelopmentConfiguration()?.supabaseUrl : undefined;
+  const developmentDeployment = development ? process.env.EMBEL_DEVELOPMENT_WORKER_DEPLOYMENT_ID : undefined;
+  if (development && (!developmentOrigin || !/^embel-dev-[A-Za-z0-9._:-]{1,170}$/u.test(developmentDeployment ?? ""))) return null;
+  const developmentActive = () => !development || readDevelopmentConfiguration()?.supabaseUrl === developmentOrigin
+    && process.env.EMBEL_DEVELOPMENT_WORKER_DEPLOYMENT_ID === developmentDeployment;
+  const parsed = (development ? configurationSchema.safeExtend({ roleName: z.literal("embel_development_logo_worker") }) : configurationSchema).safeParse({ ownerId: input.ownerId, roleName: input.roleName, roleOid: input.roleOid,
     acquireTimeoutMs: input.acquireTimeoutMs ?? 10_000, queryTimeoutMs: input.queryTimeoutMs ?? 15_000, disposalTimeoutMs: input.disposalTimeoutMs ?? 15_000 });
   if (!parsed.success) return null;
   const configuration = parsed.data, ownerId = configuration.ownerId.toLowerCase(), connect = input.pool.connect.bind(input.pool);
@@ -71,6 +86,7 @@ export function createLogoProductionConnection(input: LogoProductionConnectionIn
   }
   return Object.freeze({
     query<Row>(sql: string, parameters: unknown[] = [], signal?: AbortSignal): Promise<{ rows: Row[] }> {
+      if (!developmentActive()) closed = true;
       if (closed || signal?.aborted) return Promise.reject(unavailable());
       const values = [...parameters];
       return track(pending, (async () => {
@@ -79,10 +95,13 @@ export function createLogoProductionConnection(input: LogoProductionConnectionIn
         let acquired: Awaited<ReturnType<typeof factory.acquire>> | undefined, discard = false, validated = false;
         try {
           acquired = await factory.acquire(ownerId, lifetime);
-          const actual = await bounded(acquired.connection.query(principalSql), configuration.queryTimeoutMs, () => controller.abort());
-          if (lifetime.aborted || actual.rows.length !== 1 || !principalSchema.safeParse(actual.rows[0]).success) throw unavailable();
+          const actual = await bounded(acquired.connection.query(development ? developmentPrincipalSql : principalSql,
+            development ? [ownerId, developmentDeployment] : []), configuration.queryTimeoutMs, () => controller.abort());
+          if (lifetime.aborted || !developmentActive() || actual.rows.length !== 1 || !principalSchema.safeParse(actual.rows[0]).success) throw unavailable();
           validated = true;
-          return await bounded(acquired.connection.query(sql, values), configuration.queryTimeoutMs, () => controller.abort()) as { rows: Row[] };
+          const result = await bounded(acquired.connection.query(sql, values), configuration.queryTimeoutMs, () => controller.abort()) as { rows: Row[] };
+          if (!developmentActive()) throw unavailable();
+          return result;
         } catch (error) {
           discard = true;
           // This is the runner's sole durable-plan control signal. Never pass

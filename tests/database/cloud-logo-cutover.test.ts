@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { asRole, createTestDatabase, OWNER_A, OWNER_B, resetFixture, type TestDatabase } from "./local-supabase";
 import { logoWorkspaceV2Schema, type LogoWorkspaceV2 } from "../../src/domain/logo-workspace";
-import { logoCostQuoteSchema, logoDispatchReceiptSchema } from "../../src/domain/logo-jobs";
+import { legacyLogoCostQuoteSchema as logoCostQuoteSchema, logoDispatchReceiptSchema } from "../../src/domain/logo-jobs";
 
 const sql = (path: string) => readFile(new URL(`../../supabase/${path}`, import.meta.url), "utf8");
 const workerId = "embel-logo-local-20261018", storageUser = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";

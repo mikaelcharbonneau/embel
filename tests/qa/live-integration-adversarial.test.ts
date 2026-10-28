@@ -11,7 +11,7 @@ const url = "https://qa-sdk-fixture.invalid";
 const cookieName = "sb-qa-sdk-fixture-auth-token";
 const ownerA = "aaaaaaaa-1111-4111-8111-111111111111";
 const ownerB = "bbbbbbbb-1111-4111-8111-111111111111";
-const user = (id: string) => ({ id, aud: "authenticated", is_anonymous: false, app_metadata: {}, user_metadata: {}, created_at: "2026-10-02T00:00:00Z" });
+const user = (id: string) => ({ id, aud: "authenticated", is_anonymous: false, email_confirmed_at: "2026-10-02T00:00:00Z", app_metadata: {}, user_metadata: {}, created_at: "2026-10-02T00:00:00Z" });
 const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString("base64url");
 function token(id: string, expiresAt: number) {
   return `${encode({ alg: "HS256", typ: "JWT" })}.${encode({ sub: id, exp: expiresAt, aud: "authenticated", role: "authenticated" })}.unsigned-local-qa-fixture`;
@@ -57,6 +57,19 @@ describe("real SSR SDK with isolated synthetic Auth transport (not hosted valida
     expect((await getAuthenticatedContext()).userId).toBe(ownerA);
     expect(transport).toHaveBeenCalledOnce();
     expect(cookies.set).not.toHaveBeenCalled();
+  });
+
+  it("rejects an unconfirmed Auth response even when the cookie claims confirmation", async () => {
+    const stored = session(ownerA);
+    doubles.cookies.mockResolvedValue(cookieStore(stored));
+    const transport = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe(`${url}/auth/v1/user`);
+      expect(new Headers(init?.headers).get("authorization")).toBe(`Bearer ${stored.access_token}`);
+      return json({ ...user(ownerA), email_confirmed_at: undefined });
+    });
+    vi.stubGlobal("fetch", transport);
+    await expect(getAuthenticatedContext()).rejects.toMatchObject({ code: "unauthenticated" });
+    expect(transport).toHaveBeenCalledOnce();
   });
 
   it("keeps separate requests' cookie tokens and verified identities isolated", async () => {

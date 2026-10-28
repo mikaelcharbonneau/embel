@@ -38,8 +38,8 @@ function unpublished(code: UnpublishedReason, payload: RetainedPayload | null, c
 export function createLogoDirectionsHandler(deps: LogoDirectionsDependencies): JobHandler {
   return { steps(job) {
     const input = logoDirectionsJobInputSchema.parse(job.input);
-    if (job.operation !== input.operation || input.ownerId !== job.ownerId || input.projectId !== job.projectId || input.handlerVersion !== LOGO_DIRECTIONS_HANDLER_VERSION) throw new Error("Invalid directions job binding.");
-    return [{ key: "propose-directions", maximumCostMicrousd: job.reservedCostMicrousd, timeoutMs: input.policy?.limits.deadlineMs ?? 300_000,
+    if (job.operation !== input.operation || input.ownerId !== job.ownerId || input.projectId !== job.projectId || input.handlerVersion !== (input.version===3?"logo-directions-api-v1":LOGO_DIRECTIONS_HANDLER_VERSION)||input.version===3&&job.reservedCostMicrousd!==0) throw new Error("Invalid directions job binding.");
+    return [{ key: "propose-directions", maximumCostMicrousd: job.reservedCostMicrousd, timeoutMs: input.apiPolicy?.deadlineMs ?? input.policy?.limits.deadlineMs ?? 300_000,
       async execute({ job: claimed, signal }): Promise<StepOutcome> {
         let resolved: LogoResolvedDirectionInput;
         try {
@@ -54,12 +54,13 @@ export function createLogoDirectionsHandler(deps: LogoDirectionsDependencies): J
           const result = await deps.provider.propose(resolved, signal, { job: claimed, beforeDispatch: async current => { if (!same(current, claimed)) throw new Error("Dispatch claim changed."); await deps.assertReady(current); active(signal); } });
           retained = retainProviderResult("result" in result.outcome ? result.outcome.result : undefined);
           outcome = stepOutcomeSchema.parse(result.outcome); observation = logoProviderObservationSchema.parse(result.observation);
-          if (input.policy ? !("version" in observation) || observation.registrationId !== input.policy.registrationId || observation.model !== input.policy.model || observation.provider !== "openai" : "version" in observation) throw new Error("Observation billing route mismatch.");
+          if(input.version===3){if(!("version" in observation)||observation.version!==3||!same(observation.apiPolicy,input.apiPolicy))throw new Error("Observation API policy mismatch.");}
+          else if (input.policy ? !("version" in observation)||observation.version!==2 || observation.registrationId !== input.policy.registrationId || observation.model !== input.policy.model || observation.provider !== "openai" : "version" in observation) throw new Error("Observation billing route mismatch.");
         } catch { return unpublished("provider_outcome_unknown", retained, { costMicrousd: 0, providerRequestId: null }); }
         // No provider response exists for this explicit adapter preflight result.
         // Do not turn proven non-dispatch into unknown billing by recording an
         // empty observation. Contradictory identity/result evidence stays fenced.
-        if (input.policy && outcome.status === "failed" && outcome.code === "not_dispatched") {
+        if ((input.policy||input.version===3) && outcome.status === "failed" && outcome.code === "not_dispatched") {
           if (outcome.costMicrousd === 0 && outcome.providerRequestId === null && !("result" in outcome) && observation.providerRequestId === null && observation.responseHash === null && "version" in observation && observation.responseId === null && observation.usage === null && observation.billing.status === "unknown") return { status: "failed", code: "not_dispatched", costMicrousd: 0, providerRequestId: null };
           outcome = { ...outcome, status: "needs_reconciliation", code: "provider_evidence_incomplete" };
         }

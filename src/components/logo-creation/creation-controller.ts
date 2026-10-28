@@ -153,7 +153,8 @@ export function createLogoCreationController(input: LogoCreationControllerInput)
       if (!quoteValid(quote)) { emit({ ...state, phase: "idle", quote: null, error: staleMessage }); token.end(); return; }
       if (!available(quote.request)) { emit({ ...state, error: readinessMessage }); token.end(); return; }
       try {
-        const intent = logoGenerationIntentSchema.parse({ requestKey: input.createRequestKey(), quoteId: quote.id, acceptedMaxCostMicrousd: quote.maxCostMicrousd, expected: quote.expected });
+        const intent = logoGenerationIntentSchema.parse({ requestKey: input.createRequestKey(), quoteId: quote.id,
+          ...("spendControl" in quote ? {} : { acceptedMaxCostMicrousd: quote.maxCostMicrousd }), expected: quote.expected });
         // Retain before the first network byte, then verify that shared memory
         // accepted exactly this intent (its setter may be account-fenced).
         input.retainIntent(intent);

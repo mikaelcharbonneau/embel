@@ -5,6 +5,7 @@ import { parseClaimedJob } from './postgres-store';
 import { PlanConflictError,type JobStore } from './runner';
 import { logoOperationSchema,logoExportPartialStepOutputSchema } from '../src/domain/logo-jobs';
 import { logoVectorProposalStepOutputSchema, logoVectorProposalUnpublishedOutputSchema } from '../src/domain/logo-vector-proposal-evidence';
+import { identityGenerationJobInputSchema } from '../src/domain/identity-jobs';
 import { logoVectorProposalJobInputSchema } from '../src/domain/logo-vector-proposal-jobs';
 import { isDeepStrictEqual } from 'node:util';
 import { stepOutcomeSchema,type ClaimedJob, type StepOutcome } from '../src/domain/jobs';
@@ -12,7 +13,8 @@ import { stepOutcomeSchema,type ClaimedJob, type StepOutcome } from '../src/doma
 /** One restricted connection, existing runner. No privileged base-store fallback. */
 export function createLogoJobStore(connection:LogoWorkerConnection):JobStore & {expireLeases():Promise<number>}{
  function valid(job:ClaimedJob){
-  if(job.operation==='identity.logo_vector_propose') {
+  if(job.operation==='identity.image'){const input=identityGenerationJobInputSchema.parse(job.input);if(input.ownerId!==job.ownerId||input.projectId!==job.projectId)throw new Error('Identity claim scope mismatch');}
+  else if(job.operation==='identity.logo_vector_propose') {
    const input=logoVectorProposalJobInputSchema.parse(job.input);
    if(input.ownerId!==job.ownerId||input.projectId!==job.projectId)throw new Error('Proposal claim scope mismatch');
   } else logoOperationSchema.parse(job.operation);
@@ -36,7 +38,7 @@ export function createLogoJobStore(connection:LogoWorkerConnection):JobStore & {
   // The shared runner rewrites over-cap outcomes. Preserve the exact typed
   // unpublished reason required by SQL, but only for a proven observed overrun.
   // No amount/output changes: SQL independently retains the over-limit state.
-  if(outcome.code!==unpublished.reason&&!(outcome.code==='provider_cost_exceeded'&&job.reservedCostMicrousd===policy.maximumCostMicrousd&&outcome.costMicrousd>policy.maximumCostMicrousd))reject();
+  if(outcome.code!==unpublished.reason&&!(outcome.code==='provider_cost_exceeded'&&policy.version===1&&job.reservedCostMicrousd===policy.maximumCostMicrousd&&outcome.costMicrousd>policy.maximumCostMicrousd))reject();
   return {...outcome,code:unpublished.reason};
  }
  return{

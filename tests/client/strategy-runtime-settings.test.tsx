@@ -37,6 +37,13 @@ beforeEach(() => {
 afterEach(async () => { for (const [path, init] of fetcher.mock.calls) { expect(path).toBe("/api/strategy"); expect(init.method).toBe("GET"); expect(init.body).toBeUndefined(); } await act(async () => root.unmount()); document.body.replaceChildren(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe("Settings text runtime status", () => {
+  it("shows managed API readiness without inventing a monetary ceiling or exposing policy identifiers", async () => {
+    runtime = { status: "available", operations: [{ operation: "strategy.competitors", billingMode: "openai_api", spendControl: "uncapped", policyIdentity: "a".repeat(64), interviewVersion: 1 }] };
+    await render();
+    expect(statusText()).toContain("Available for requests"); expect(statusText()).toContain("OpenAI API usage");
+    expect(statusText()).not.toMatch(/\$|USD per request|up to/); expect(statusText()).not.toContain("a".repeat(64));
+    expect(fetcher).toHaveBeenCalledOnce();
+  });
   // Reintroducing the local-only hardcoded status must fail this mounted integration check.
   it("reports owner-scoped hosted response availability without asserting a live response or enabling other operations", async () => {
     await render();

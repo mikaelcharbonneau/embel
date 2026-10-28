@@ -299,6 +299,7 @@ describe("explicit refinement cost review", () => {
     await until(() => expect(reviewDialog()?.open).toBe(true));
     expect(f.quotes).toHaveLength(1); expect(f.admissions).toEqual([]);
     const quote = structuredClone(f.lastQuote!);
+    if (!("maxCostMicrousd" in quote)) throw Error("This historical image-refinement fixture requires its original priced quote");
     await act(async () => { const confirm = button("Refine this concept")!; confirm.click(); confirm.click(); });
     await until(() => expect(f.admissions).toHaveLength(1));
     expect(f.admissions[0]).toMatchObject({ quoteId: quote.id, acceptedMaxCostMicrousd: quote.maxCostMicrousd, expected: quote.expected });

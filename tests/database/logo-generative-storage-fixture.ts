@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { OWNER_A, type TestDatabase } from './local-supabase';
 import { installProductionStorageFixture, productionStorageFixture, workerRole, workerId, authUser, sessionId, vectorCapability, exportCapability } from './logo-production-storage-fixture';
 import { SYNTHETIC_CONCEPT_READINESS } from './logo-readiness-fixture';
-import { logoCostQuoteSchema, logoDispatchReceiptSchema, type LogoConceptJobInput, type LogoRefinementJobInput } from '../../src/domain/logo-jobs';
+import { legacyLogoCostQuoteSchema as logoCostQuoteSchema, logoDispatchReceiptSchema, type LogoConceptJobInput, type LogoRefinementJobInput } from '../../src/domain/logo-jobs';
 import { logoWorkspaceV2Schema, type LogoWorkspaceV2 } from '../../src/domain/logo-workspace';
 import type { ClaimedJob } from '../../src/domain/jobs';
 import type { IdentityAssetPublication, IdentityAssetReceipt } from '../../src/domain/logo-deliverables';

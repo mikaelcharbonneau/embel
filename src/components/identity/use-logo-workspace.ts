@@ -88,6 +88,7 @@ export function useLogoWorkspace({ projectId: routeProjectId, memory, client: in
   const client = account && scope && transport && sameScope(transport.scope, scope) && isCurrent(account) && isAccountLogoClientCurrent(transport.client, account, projectId) ? transport.client : null;
   const snapshot = useCallback(() => account && isCurrent(account) ? memory.get(projectId) : null, [account, isCurrent, memory, projectId]);
   const record = useSyncExternalStore(memory.subscribe, snapshot, () => null);
+  const proposal = useSyncExternalStore(memory.subscribe, () => projectId ? memory.getVectorProposal(projectId) : null, () => null);
   const visible = !!(account && isCurrent(account));
   const busy = !!(visible && scope && activity && sameScope(activity.scope, scope) && activity.busy);
   const completed = visible && scope && created && sameScope(created.scope, scope) ? created : null;
@@ -150,7 +151,7 @@ export function useLogoWorkspace({ projectId: routeProjectId, memory, client: in
     let result: LogoWorkspaceReloadResult = "unavailable";
     await perform(async (source, signal, current, verified) => {
       const previous = memory.get(projectId);
-      if (previous && (previous.dirty || previous.vectorDraft || previous.directionDraft || previous.conflict || unresolved(previous)) && !discard) { result = "draft_blocked"; return; }
+      if (previous && (previous.dirty || previous.vectorDraft || previous.directionDraft || previous.conflict || unresolved(previous) || projectId && memory.getVectorProposal(projectId) && (memory.getVectorProposal(projectId)!.dirty || memory.getVectorProposal(projectId)!.pendingGeneration || memory.getVectorProposal(projectId)!.pendingApplication)) && !discard) { result = "draft_blocked"; return; }
       if (projectId === null) { if (current()) { memory.set(null, empty()); setCreated(null); result = "reloaded"; } return; }
       const baseline = await loadLogoWorkspaceBaseline({ client: source, account: verified, projectId, memory, signal, isCurrent: current });
       if (!baseline || !current() || memory.get(projectId) !== previous) return;
@@ -165,7 +166,7 @@ export function useLogoWorkspace({ projectId: routeProjectId, memory, client: in
     if (!account || !client || !isCurrent(account)) return;
     const timer = setTimeout(() => {
       const value = memory.get(projectId);
-      if (!value || !value.dirty && !value.vectorDraft && !value.directionDraft && !value.conflict && !unresolved(value)) { void reload(false); return; }
+      if (!value || !value.dirty && !value.vectorDraft && !value.directionDraft && !value.conflict && !unresolved(value) && !(projectId && memory.getVectorProposal(projectId) && (memory.getVectorProposal(projectId)!.dirty || memory.getVectorProposal(projectId)!.pendingGeneration || memory.getVectorProposal(projectId)!.pendingApplication))) { void reload(false); return; }
       if (value.workspace) void perform(async (source, signal, current, verified) => {
         const unchanged = () => current() && memory.get(projectId) === value;
         const baseline = await readBaseline(source, value.workspace!, signal, unchanged);
@@ -353,7 +354,7 @@ export function useLogoWorkspace({ projectId: routeProjectId, memory, client: in
   const workspace = visible ? completed?.workspace ?? record?.workspace ?? loaded?.baseline.workspace ?? null : null;
   const stagePayloads = !visible ? null : loaded && workspace?.heads.workspaceRevision === loaded.baseline.workspace.heads.workspaceRevision ? loaded.baseline.stagePayloads : {};
   const referenceSnapshot = loaded && workspace?.heads.workspaceRevision === loaded.baseline.workspace.heads.workspaceRevision ? loaded.baseline.referenceSnapshot : null;
-  return { status, workspace, stagePayloads, referenceSnapshot, draft: visible ? record : null, dirty: !!(visible && (record?.dirty || record?.vectorDraft || record?.directionDraft)), pending: !!(visible && (busy || record && unresolved(record))), error,
+  return { status, workspace, stagePayloads, referenceSnapshot, draft: visible ? record : null, dirty: !!(visible && (record?.dirty || record?.vectorDraft || record?.directionDraft || proposal?.dirty)), pending: !!(visible && (busy || record && unresolved(record) || proposal?.pendingGeneration || proposal?.pendingApplication)), error,
     canEdit: !!(visible && client && !busy && !completed && (projectId === null || record)), client,
     pendingIntent: visible ? record?.pendingIntent ?? null : null, pendingCreation: visible ? completed?.pendingCreation ?? record?.pendingCreation ?? null : null,
     retainIntent, clearIntent, setBriefDraft, setReferenceDraft, reload, saveBrief, saveReferences, checkPendingSave, startProject, checkProjectCreation, retryProjectCreation, recoverProjectCreation };

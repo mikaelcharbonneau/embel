@@ -80,27 +80,38 @@ async function fixtures(page: Page) {
   return { state, requested, signInRequested, releaseSignIn, release: () => { state.released = true; release(); } };
 }
 
-async function revealProjectDetails(page: Page) {
+async function openBriefEditor(page: Page) {
   const menu = page.locator(".workspace-account-menu");
   if (await menu.count() && await menu.getAttribute("open") !== null) await menu.locator("summary").click();
-  const details = page.locator(".project-details-disclosure");
-  await expect(details).toBeVisible();
-  if (await details.getAttribute("open") === null) await details.locator("summary").click();
+  const editor = page.getByRole("dialog", { name: "Edit current brief", exact: true });
+  if (!await editor.isVisible()) await page.getByRole("button", { name: "Edit brief", exact: true }).click();
+  await expect(editor).toBeVisible();
 }
 
 async function openAccount(page: Page) {
   await page.goto(`/brands/account/${projectId}`);
-  await revealProjectDetails(page);
+  await openBriefEditor(page);
   await expect(page.getByRole("textbox", { name: "Project label", exact: true })).toHaveValue(privateTitle);
 }
 
 async function rename(page: Page, title: string) {
-  await page.getByRole("textbox", { name: "Project label", exact: true }).fill(title);
+  const editor = page.getByRole("dialog", { name: "Edit current brief", exact: true });
+  const label = editor.getByRole("textbox", { name: "Project label", exact: true });
+  await expect(label).toBeEditable();
+  await label.fill(title);
   // Wait for the explicit failed autosave, rather than racing the debounce.
-  await expect(page.locator(".project-details-disclosure").getByRole("status")).toHaveText("Changes not saved");
+  await expect(editor.getByRole("status")).toHaveText("Changes not saved");
+  await expect(label).not.toBeEditable();
+  await expect(editor.getByText("Close this editor to check and retry the original save.", { exact: true })).toBeVisible();
 }
 
 async function openAccountSettings(page: Page) {
+  const editor = page.getByRole("dialog", { name: "Edit current brief", exact: true });
+  if (await editor.isVisible()) {
+    await editor.getByRole("button", { name: "Close", exact: true }).click();
+    await expect(editor).not.toBeVisible();
+  }
+  await revealAccountMenu(page);
   await page.getByRole("link", { name: "Account settings", exact: true }).click();
   await expect(page).toHaveURL(/\/settings$/);
   await revealAccountMenu(page);
@@ -113,11 +124,15 @@ async function returnToProject(page: Page) {
 }
 
 async function verifyProjectAccount(page: Page) {
-  await openAccountSettings(page);
-  await page.getByRole("button", { name: "Check account", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Sign out", exact: true })).toBeVisible();
-  await returnToProject(page);
-  await revealProjectDetails(page);
+  // Account settings is intentionally hidden until the session is verified.
+  // Verify through the current page's account menu without losing its draft.
+  await revealAccountMenu(page);
+  const menu = page.locator(".workspace-account-menu");
+  await expect(menu.getByRole("link", { name: "Account settings", exact: true })).toHaveCount(0);
+  await menu.getByRole("button", { name: "Check account", exact: true }).click();
+  await expect(menu.getByRole("button", { name: "Sign out", exact: true })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  await openBriefEditor(page);
 }
 
 async function revealAccountMenu(page: Page) {
@@ -293,7 +308,7 @@ test("auth fixture: sign-out confirms unsaved edits, fences pending requests and
   expect(fixture.state.signOutRequests).toBe(0);
   await dialog.getByRole("button", { name: "Keep editing", exact: true }).click();
   await returnToProject(page);
-  await revealProjectDetails(page);
+  await openBriefEditor(page);
   await expect(page.getByRole("textbox", { name: "Project label", exact: true })).toHaveValue("Unsaved auth recovery fixture");
   await openAccountSettings(page);
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
@@ -316,6 +331,7 @@ test("auth fixture: sign-out confirms unsaved edits, fences pending requests and
   await expect(page.getByRole("textbox")).toHaveCount(0);
   await verifyProjectAccount(page);
   await expect(page.getByRole("textbox", { name: "Project label", exact: true })).toHaveValue("Unsaved auth recovery fixture");
+  await expect(page.getByRole("textbox", { name: "Project label", exact: true })).not.toBeEditable();
   expect(fixture.state.signOutRequests).toBe(1);
   expect(fixture.state.projectSaveTitles).toEqual(["Unsaved auth recovery fixture"]);
   expect(await page.evaluate(key => localStorage.getItem(key), storageKey)).toBeNull();
@@ -337,6 +353,7 @@ test("auth fixture: confirmed sign-out clears private buffers and preserves brow
   fixture.state.sessionStatus = 200;
   await verifyProjectAccount(page);
   await expect(page.getByRole("textbox", { name: "Project label", exact: true })).toHaveValue(privateTitle);
+  await expect(page.getByRole("textbox", { name: "Project label", exact: true })).toBeEditable();
   expect(await page.evaluate(key => localStorage.getItem(key), storageKey)).toBe(browserWorkspace);
   expect(fixture.state.signOutRequests).toBe(1);
   expect(fixture.state.projectSaveTitles).toEqual(["Unsaved auth discard fixture"]);
@@ -355,6 +372,7 @@ test("auth fixture: malformed sign-out success never clears an unsaved account d
   await expect(page.getByRole("textbox")).toHaveCount(0);
   await verifyProjectAccount(page);
   await expect(page.getByRole("textbox", { name: "Project label", exact: true })).toHaveValue("Unverified logout fixture");
+  await expect(page.getByRole("textbox", { name: "Project label", exact: true })).not.toBeEditable();
   expect(fixture.state.signOutRequests).toBe(1);
   expect(fixture.state.projectSaveTitles).toEqual(["Unverified logout fixture"]);
 });

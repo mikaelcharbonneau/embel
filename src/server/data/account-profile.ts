@@ -1,16 +1,13 @@
 import "server-only";
 import { z } from "zod";
 import { accountProfileSchema, accountProfileValuesSchema, DEFAULT_PROFILE_VALUES, type SaveAccountProfile } from "@/domain/account-profile";
-import { createRouteAuthClient } from "../auth/client";
+import { getVerifiedAccountContext } from "../auth/context";
 import { ApiError } from "../http/errors";
 
 /** A fresh Auth server check supplies both the owner and read-only account email. */
 export async function getProfileContext(signal?: AbortSignal) {
-  const client = await createRouteAuthClient(signal);
-  const { data, error } = await client.auth.getUser().catch(() => { throw new ApiError("integration_unavailable"); });
-  if (error && (error.name === "AuthRetryableFetchError" || error.status === 429 || (error.status ?? 0) >= 500)) throw new ApiError("integration_unavailable");
-  if (error || !data.user || data.user.is_anonymous) throw new ApiError("unauthenticated");
-  return { client, userId: data.user.id, email: data.user.email ?? null };
+  const { client, user } = await getVerifiedAccountContext(signal);
+  return { client, userId: user.id, email: user.email ?? null };
 }
 export type ProfileContext = Awaited<ReturnType<typeof getProfileContext>>;
 const columns = "owner_id,full_name,time_zone,date_format,revision,updated_at";
