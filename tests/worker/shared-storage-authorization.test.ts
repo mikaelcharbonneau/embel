@@ -96,6 +96,7 @@ describe("shared Storage HTTP adapter (mock HTTP, actual disposable SQL/RLS; syn
   expect((await f.db.query("select to_jsonb(a) value from fluid_private.shared_job_admissions a where job_id=$1", [p.job.id])).rows).toEqual(admissionBefore);
   expect((await f.db.query("select state from public.job_steps where job_id=$1", [p.job.id])).rows).toEqual([{ state: "ambiguous" }]);
   expect((await f.db.query("select count(*)::int n from public.logo_raster_results where job_id=$1", [p.job.id])).rows).toEqual([{ n: 0 }]);
+  // @ts-expect-error An observation-only job has no active lease and must be refused by the write entrypoint.
   await expect(p.authorization.authorizeWrite({ ...p.scope, job: actualJob })).rejects.toThrow();
   expect(p.transport.mock.calls.filter(([url, init]) => String(url).includes("/storage/v1/") && init?.method === "POST")).toHaveLength(1);
  });
