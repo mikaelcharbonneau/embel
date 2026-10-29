@@ -1,4 +1,4 @@
-import { loadManagedNamingSources, verifyManagedNamingSource } from "./naming-brain-provenance";
+import { loadManagedNamingSources, verifyManagedNamingSource, verifyBrainstormNamingSource } from "./naming-brain-provenance";
 import "server-only";
 import { z } from "zod";
 import {
@@ -73,7 +73,7 @@ function cursorAdvances(next: { createdAt: string; id: string }, previous: { cre
 }
 function ancestry(candidate: ProjectNameCandidate) {
   const origin = candidate.origin;
-  return origin.kind === "generated" || origin.kind === "local_import" ? { root: origin, history: [] } : { root: origin.root, history: origin.history };
+  return origin.kind === "generated" || origin.kind === "brainstorm" || origin.kind === "local_import" ? { root: origin, history: [] } : { root: origin.root, history: origin.history };
 }
 
 /**
@@ -120,7 +120,9 @@ class CandidateVerifier {
     invariant(!this.visiting.has(key)); this.visiting.add(key);
     try {
       const origin = candidate.origin;
-      if (origin.kind === "generated" && origin.billingMode === "openai_api") {
+      if (origin.kind === "brainstorm") {
+        await verifyBrainstormNamingSource(this.auth, candidate, this.managedSources.get(candidate.id));
+      } else if (origin.kind === "generated" && origin.billingMode === "openai_api") {
         await verifyManagedNamingSource(this.auth, candidate, this.managedSources.get(candidate.id));
       } else if (origin.kind === "generated") {
         const detail = await this.batch(projectId, origin.batchId);

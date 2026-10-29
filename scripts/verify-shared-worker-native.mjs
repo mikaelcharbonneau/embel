@@ -7,7 +7,9 @@ import { createHash, randomBytes } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 const image='ghcr.io/supabase/cli/postgres:17.11.0.006-r0@sha256:ee0f2d9747fb9d3c0a29703684ec718f070384ad05bf0d92823ed02cabde8e5a';
 const name=`embel-shared-native17-${randomBytes(6).toString('hex')}`;
-const packetPaths=['identity_transactions.sql','shared_worker_pool.sql','shared_account_http.sql','shared_worker_strategy.sql','shared_worker_naming.sql','shared_worker_logo.sql','shared_storage_authority.sql','shared_logo_http.sql','shared_logo_advanced.sql','shared_identity_generation.sql'];
+const compileAuthorityOnly=process.argv.length===3&&process.argv[2]==='--compile-authority-only';
+if(process.argv.length!==2&&!compileAuthorityOnly)throw Error('Unsupported native verification argument');
+const packetPaths=['identity_transactions.sql','shared_worker_pool.sql','shared_account_http.sql','shared_worker_strategy.sql','shared_worker_naming.sql','shared_worker_logo.sql','shared_storage_authority.sql','shared_logo_http.sql','shared_logo_advanced.sql','shared_identity_generation.sql','shared_naming_brainstorm.sql'];
 const packets=Object.fromEntries(packetPaths.map(path=>[path,readFileSync(new URL('../supabase/candidates/'+path,import.meta.url),'utf8')]));
 const env={...process.env};for(const key of ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH'])delete env[key];
 const docker=(args,input)=>execFileSync('docker',['--host=unix:///var/run/docker.sock',...args],{env,input,encoding:'utf8',stdio:['pipe','pipe','pipe'],maxBuffer:20*1024*1024});
@@ -74,6 +76,7 @@ try{
  }
  const compiledFunctions=catalog().filter(f=>baselineCatalog.get(functionKey(f))!==JSON.stringify(f)).map(f=>({...f,lanes:workerManifestKeys.has(functionKey(f))||f.schema==='fluid_private'&&f.name==='shared_http_customer_storage_live'?['strategy','naming','logo']:[]}));
  assert(sql("select count(*) from pg_roles where rolname='embel_account_role_manager';")==='0','no-online-role-manager-installed');
+ if(!compileAuthorityOnly){
  stage='fixture-only-bounded-probe';
  const strategyGatewayDefinition=sql("select pg_get_functiondef('public.shared_strategy_worker_action(jsonb,jsonb,text,jsonb)'::regprocedure);");
  const strategyGatewayBodyHash=sql("select encode(sha256(convert_to(prosrc,'UTF8')),'hex') from pg_proc where oid='public.shared_strategy_worker_action(jsonb,jsonb,text,jsonb)'::regprocedure;");
@@ -300,11 +303,12 @@ try{
   &&sql(`select count(*) from storage.objects where bucket_id='fluid-assets' and name=${quote(homePath)};`)==='1'
   &&sql(`select count(*) from auth.users where id=${quote(owners[0])};`)==='1','logout-preserves-owner-artifact-and-Storage-history');
  assert(sql(`select count(*) from auth.sessions where id=${quote(sessions[1].id)};`)==='1','logout-does-not-revoke-neighbor-session');
+ }
  stage='source-authority-manifest';const finalFunctions=new Map(catalog().map(f=>[functionKey(f),JSON.stringify(f)]));
  assert(compiledFunctions.every(({lanes,...f})=>{void lanes;return finalFunctions.get(functionKey(f))===JSON.stringify(f);}),'compiled-authority-functions-match-restored-native-catalog');
  assert(Object.entries(packets).every(([path,source])=>readFileSync(new URL('../supabase/candidates/'+path,import.meta.url),'utf8')===source),'source-packet-bytes-unchanged-during-native-verification');
  const manifest={version:1,packets:Object.entries(packets).map(([path,source])=>({path:`supabase/candidates/${path}`,sha256:createHash('sha256').update(source).digest('hex')})),functions:compiledFunctions};
  const manifestBytes=JSON.stringify(manifest,null,2)+'\n';writeFileSync(new URL('../worker/shared-pool/authority-manifest.json',import.meta.url),manifestBytes);
- stage='done';console.log(JSON.stringify({verification:'passed',nativeVersion:17,installer:'postgres NOSUPER CREATEROLE',migrationCount:migrationNames.length,checkCount:passed.length,passed,packetSha256:Object.fromEntries(Object.entries(packets).map(([p,s])=>[p,createHash('sha256').update(s).digest('hex')])),manifest:{path:'worker/shared-pool/authority-manifest.json',sha256:createHash('sha256').update(manifestBytes).digest('hex'),functions:compiledFunctions.length,workerFunctions:compiledFunctions.filter(f=>f.lanes.length).length},proofScope:'native fixed-slot authority plus lane installation and actual Home/Logo web SQL delegation; Strategy gateway temporarily replaced by finite core probe then restored with exact body hash; no provider engines or real upload observation',liveSupabaseServices:false,providerCalls:false}));
+ stage='done';console.log(JSON.stringify({verification:'passed',mode:compileAuthorityOnly?'compile-authority-only':'full-native',nativeVersion:17,installer:'postgres NOSUPER CREATEROLE',migrationCount:migrationNames.length,checkCount:passed.length,passed,packetSha256:Object.fromEntries(Object.entries(packets).map(([p,s])=>[p,createHash('sha256').update(s).digest('hex')])),manifest:{path:'worker/shared-pool/authority-manifest.json',sha256:createHash('sha256').update(manifestBytes).digest('hex'),functions:compiledFunctions.length,workerFunctions:compiledFunctions.filter(f=>f.lanes.length).length},proofScope:compileAuthorityOnly?'exact eleven source-packet installation and compiled catalog only; no unrelated runtime suites':'native fixed-slot authority plus lane installation and actual Home/Logo web SQL delegation; Strategy gateway temporarily replaced by finite core probe then restored with exact body hash; no provider engines or real upload observation',liveSupabaseServices:false,providerCalls:false}));
 }catch(error){console.error(JSON.stringify({verification:'failed',stage,sqlError:String(error?.stderr??'').match(/ERROR:\s+([^\n]{1,180})/)?.[1],error:error instanceof Error?error.message.split('\n')[0].replace(/Command failed:.*/,'native fixture command failed'):'native fixture failed'}));process.exitCode=1;
 }finally{if(created){try{docker(['rm','--force',name]);const absent=docker(['ps','--all','--quiet','--filter',`name=^/${name}$`]).trim()==='';if(!absent)throw Error('fixture-cleanup-incomplete');console.log(JSON.stringify({fixtureContainerRemoved:true,persistentAccessCreated:false}));}catch{console.error('Native fixture cleanup failed');process.exitCode=1;}}}

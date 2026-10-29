@@ -4,6 +4,41 @@ import { namingBriefSnapshotSchema, namingCandidateProposalSchema, namingCreator
 import { nameIdentityKey, namingStrategyBasisSchema, namingStrategyKeyFromBasis, type ProjectNameCandidate } from "@/domain/project-naming";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
+import { NAMING_BRAINSTORM_CAUTION } from "@/domain/naming-brainstorm";
+
+const brainstormSourceSchema = z.strictObject({
+ ownerId:z.uuid(),projectId:z.uuid(),candidateId:z.uuid(),runId:z.uuid(),jobId:z.uuid(),batchId:z.uuid(),callId:z.uuid(),
+ responseId:z.string().min(1).max(300),requestId:z.string().min(1).max(300).nullable(),model:z.string().min(1).max(150),
+ generatedAt:z.iso.datetime({offset:true}),value:z.string(),identityKey:z.string(),rationale:z.string(),
+ snapshot:namingBriefSnapshotSchema,profile:z.literal("brainstorm_v1"),
+});
+async function loadBrainstormSources(auth:AuthenticatedContext,projectId:string,ids:string[]) {
+ const proofs=new Map<string,unknown>();if(!ids.length)return proofs;
+ const {data,error}=await auth.client.rpc("get_naming_brainstorm_sources",{p_project_id:projectId,p_candidate_ids:ids});
+ if(error)throw new ApiError(error.code==="P0002"?"not_found":"integration_unavailable");
+ const parsed=z.array(brainstormSourceSchema).max(100).safeParse(normalizeNamingBrain(data,auth.userId));
+ if(!parsed.success||parsed.data.length!==ids.length)throw new ApiError("integration_unavailable");
+ for(const proof of parsed.data){
+  if(proof.ownerId!==auth.userId||proof.projectId!==projectId||!ids.includes(proof.candidateId)||proofs.has(proof.candidateId))throw new ApiError("integration_unavailable");
+  proofs.set(proof.candidateId,proof);
+ }
+ return proofs;
+}
+/** The future brainstorm contract proves durable response membership, never
+ * linguistic research, curator approval or trademark/availability clearance. */
+export async function verifyBrainstormNamingSource(auth:AuthenticatedContext,candidate:ProjectNameCandidate,supplied?:unknown){
+ const origin=candidate.origin;if(origin.kind!=="brainstorm")throw new ApiError("integration_unavailable");
+ const raw=supplied??(await loadBrainstormSources(auth,candidate.projectId,[candidate.id])).get(candidate.id);
+ const parsed=brainstormSourceSchema.safeParse(raw);if(!parsed.success)throw new ApiError("integration_unavailable");
+ const p=parsed.data;
+ if(p.ownerId!==auth.userId||p.projectId!==candidate.projectId||p.candidateId!==candidate.id
+  ||p.runId!==origin.runId||p.jobId!==origin.jobId||p.batchId!==origin.batchId||p.callId!==origin.callId
+  ||p.responseId!==origin.responseId||p.requestId!==origin.requestId||p.model!==origin.model||p.generatedAt!==origin.generatedAt
+  ||p.snapshot.contextRevision!==candidate.contextRevision||JSON.stringify(p.snapshot.strategyBasis)!==JSON.stringify(candidate.strategyBasis)
+  ||p.value!==candidate.value||p.identityKey!==candidate.identityKey||p.rationale!==candidate.rationale
+  ||nameIdentityKey(candidate.value)!==p.identityKey||candidate.caution!==NAMING_BRAINSTORM_CAUTION||(candidate.verificationNotes?.length??0)!==0)throw new ApiError("integration_unavailable");
+ return p;
+}
 
 /** Derive the existing display key from JSONB; it is not a stored authority. */
 export function normalizeNamingBrain(value: unknown, ownerId: string): unknown {
@@ -35,7 +70,7 @@ const sourceSchema = z.union([
 ]);
 export async function loadManagedNamingSources(auth: AuthenticatedContext, projectId: string, candidates: readonly ProjectNameCandidate[]) {
  const ids = candidates.filter(candidate => candidate.origin.kind === "generated" && candidate.origin.billingMode === "openai_api").map(candidate => candidate.id);
- const proofs = new Map<string, unknown>();
+ const proofs = await loadBrainstormSources(auth,projectId,candidates.filter(candidate=>candidate.origin.kind==="brainstorm").map(candidate=>candidate.id));
  if (!ids.length) return proofs;
  const { data, error } = await auth.client.rpc("get_naming_brain_candidate_sources", { p_project_id: projectId, p_candidate_ids: ids });
  if (error) throw new ApiError(error.code === "P0002" ? "not_found" : "integration_unavailable");

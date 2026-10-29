@@ -2,7 +2,8 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { afterAll,beforeAll,describe,expect,it,vi } from "vitest";
 vi.mock("server-only",()=>({}));
-import { verifySharedAuthorityCatalog,type SharedAuthorityManifest } from "../../worker/shared-pool/authority";
+import authorityManifest from "../../worker/shared-pool/authority-manifest.json";
+import { sharedAuthorityManifestSchema,verifySharedAuthorityCatalog,type SharedAuthorityManifest } from "../../worker/shared-pool/authority";
 import { createSharedWorkerFixture,type SharedWorkerFixture,type SharedFixtureSlot } from "../database/shared-worker-fixture";
 import { SHARED_CORE_RPC_PROOFS } from "../../worker/shared-pool/proofs";
 
@@ -39,5 +40,16 @@ describe("source-owned authority catalog guard before proof RPCs",()=>{
  it("rejects accidentally exposing a source-owned private helper to PUBLIC",async()=>{
   await f.db.exec("grant execute on function fluid_private.shared_worker_role_safe(name,oid) to PUBLIC");
   try{await expect(verify()).rejects.toThrow("manifest");}finally{await f.db.exec("revoke execute on function fluid_private.shared_worker_role_safe(name,oid) from PUBLIC");}
+ });
+});
+
+// Use the actual source-owned manifest, including the additive future Naming
+// packet, rather than a hand-built smaller roster that misses startup parsing.
+describe("reviewed authority packet roster",()=>{
+ it("parses the complete current source manifest before database qualification",()=>{
+  expect(sharedAuthorityManifestSchema.parse(authorityManifest)).toEqual(authorityManifest);
+ });
+ it("retains the finite eleven-packet bound",()=>{
+  expect(sharedAuthorityManifestSchema.safeParse({...authorityManifest,packets:Array.from({length:12},()=>authorityManifest.packets[0])}).success).toBe(false);
  });
 });

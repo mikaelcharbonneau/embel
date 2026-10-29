@@ -687,6 +687,7 @@ export interface NamingAgentRuntime {
 export const namingBrainJobInputSchema = z.strictObject({
   version: z.literal(2), handlerVersion: z.literal(NAMING_BRAIN_HANDLER_VERSION), billingMode: z.literal("openai_api"), runId: z.uuid(), jobId: z.uuid(), batchId: z.uuid(),
   localTimingVersion: z.literal(2).optional(),
+  generationProfile: z.literal("brainstorm_v1").optional(),
   localPipelineVersion: z.literal(2).optional(),
   // New hosted admissions retain a distinct authority witness. The local_* fields
   // remain protocol identifiers so historical provider requests stay exact.
@@ -696,6 +697,7 @@ export const namingBrainJobInputSchema = z.strictObject({
   providerBudgetVersion: z.union([z.literal(1), z.literal(2)]).optional(),
   snapshot: namingBriefSnapshotSchema, acceptedPolicyIdentity: hash, policy: namingBrainPolicySchema,
 }).refine(value => getNamingPreferencesReadiness(value.snapshot.preferences).ready, "Admission requires generation-ready saved preferences")
+ .refine(value => value.generationProfile === undefined || value.executionAuthority === "hosted_owner_v1" && value.providerBudgetVersion === 2 && value.localPipelineVersion === 2 && value.localTimingVersion === 2, "Future brainstorm execution requires the full frozen hosted witness")
  .refine(value => value.providerBudgetVersion === undefined || value.localPipelineVersion === 2, "Provider budgeting requires progressive execution")
  .refine(value => value.providerBudgetVersion !== 2 || value.executionAuthority === "hosted_owner_v1" && value.localPipelineVersion === 2 && value.localTimingVersion === 2, "Uncapped admission requires the complete hosted execution witness")
  .refine(value => value.localPipelineVersion !== 2 || value.localTimingVersion === 2, "Progressive admission retains its explicit local timing witness")
@@ -757,22 +759,26 @@ const runSummaryFields = {
   executionAuthority: z.literal("hosted_owner_v1").optional(),
   providerBudgetVersion: z.union([z.literal(1), z.literal(2)]).optional(),
   progressiveCompletionId: z.uuid().optional(),
+  generationProfile: z.literal("brainstorm_v1").optional(),
+  brainstormCompletionId: z.uuid().optional(),
   state: z.enum(["queued", "running", "partial", "cancel_requested", "cancelled", "succeeded", "failed", "needs_reconciliation", "prepared", "superseded"]),
   projectRevision: revision, preferencesVersion: revision, feedbackRevision: counter, steeringRevision: counter, demandSequence: counter, snapshotHash: hash, acceptedPolicyIdentity: hash,
   progress: z.number().int().min(0).max(100), preparedSetId: z.uuid().nullable(), fulfillment: namingBrainFulfillmentSchema.nullable(), accounting: namingRunAccountingSchema, createdAt: timestamp, updatedAt: timestamp,
 };
-function hasCompletePreparedMembership(value: { state: string; preparedSetId: string | null; localPipelineVersion?: 2; progressiveCompletionId?: string; fulfillment: NamingBrainFulfillment | null }): boolean {
+function hasCompletePreparedMembership(value: { state: string; preparedSetId: string | null; localPipelineVersion?: 2; progressiveCompletionId?: string; generationProfile?: "brainstorm_v1"; brainstormCompletionId?: string; fulfillment: NamingBrainFulfillment | null }): boolean {
   return value.fulfillment?.status === "complete" && (["prepared", "succeeded", "cancelled"].includes(value.state) && value.preparedSetId !== null
-    || value.localPipelineVersion === 2 && value.progressiveCompletionId !== undefined && ["prepared", "succeeded", "cancelled", "partial", "failed"].includes(value.state));
+    || value.localPipelineVersion === 2 && value.progressiveCompletionId !== undefined && ["prepared", "succeeded", "cancelled", "partial", "failed"].includes(value.state)
+    || value.generationProfile === "brainstorm_v1" && value.brainstormCompletionId !== undefined && value.state === "succeeded");
 }
-function validResumeWitness(value: { canResume: boolean; canResumeSaved?: boolean; state: string; preparedSetId: string | null; localPipelineVersion?: 2; progressiveCompletionId?: string; fulfillment: NamingBrainFulfillment | null }): boolean {
-  if (value.canResumeSaved && (!value.canResume || !(value.preparedSetId || value.localPipelineVersion === 2 && value.progressiveCompletionId) || !value.fulfillment?.acceptedCount)) return false;
+function validResumeWitness(value: { canResume: boolean; canResumeSaved?: boolean; state: string; preparedSetId: string | null; localPipelineVersion?: 2; progressiveCompletionId?: string; generationProfile?: "brainstorm_v1"; brainstormCompletionId?: string; fulfillment: NamingBrainFulfillment | null }): boolean {
+  if (value.canResumeSaved && (!value.canResume || !(value.preparedSetId || value.localPipelineVersion === 2 && value.progressiveCompletionId || value.generationProfile === "brainstorm_v1" && value.brainstormCompletionId) || !value.fulfillment?.acceptedCount)) return false;
   return !value.canResume || hasCompletePreparedMembership(value) || (["partial", "cancelled", "failed"].includes(value.state) && (value.fulfillment?.status !== "complete" || value.localPipelineVersion === 2 && !value.progressiveCompletionId));
 }
 export const namingBrainRunSummarySchema = z.strictObject(runSummaryFields).refine(value => value.runId !== value.resumedFromRunId, "Resume creates a new run linked to its terminal predecessor")
   .refine(value => value.executionAuthority !== "hosted_owner_v1" || value.localPipelineVersion === 2, "Hosted run summaries require the approved progressive profile")
   .refine(value => value.providerBudgetVersion !== 2 || value.executionAuthority === "hosted_owner_v1" && value.localPipelineVersion === 2, "Uncapped run summaries require the hosted progressive witness")
   .refine(value => !value.progressiveCompletionId || value.localPipelineVersion === 2 && value.preparedSetId === null && value.fulfillment?.status === "complete", "Progressive completion retains its distinct genuine membership witness")
+  .refine(value => !value.brainstormCompletionId || value.generationProfile === "brainstorm_v1" && value.preparedSetId === null && !value.progressiveCompletionId && value.fulfillment?.acceptedCount === 100 && value.state === "succeeded", "Brainstorm completion requires its distinct persisted full membership witness")
   .refine(validResumeWitness, "A server Resume witness requires admissible terminal work or complete prepared membership");
 export type NamingBrainRunSummary = z.infer<typeof namingBrainRunSummarySchema>;
 export const namingBrainRunSchema = z.strictObject({ ...runSummaryFields, snapshot: namingBriefSnapshotSchema,
@@ -797,6 +803,8 @@ export const namingFeedEntrySchema = z.strictObject({
   const origin = value.entry.candidate.origin;
   if (origin.kind === "generated" && origin.billingMode === "openai_api") {
     if (value.runId !== origin.runId || value.primaryApproach === null) issue(ctx, "Managed feed membership must retain its actual source run and primary credit");
+  } else if (origin.kind === "brainstorm") {
+    if (value.runId !== origin.runId || value.primaryApproach === null || value.publishedClaims.length || value.additionalApproaches.length) issue(ctx, "Unchecked brainstorm membership carries no researched claims");
   } else if (value.runId !== null || value.primaryApproach !== null || value.publishedClaims.length) issue(ctx, "Legacy and user-authored names cannot acquire managed run or claim attribution");
 });
 export type NamingFeedEntry = z.infer<typeof namingFeedEntrySchema>;

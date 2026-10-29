@@ -228,15 +228,23 @@ export const generatedNamingOriginV2Schema = z.discriminatedUnion("protocol", [
 ]);
 export type GeneratedNamingOriginV2 = z.infer<typeof generatedNamingOriginV2Schema>;
 export const generatedNamingOriginSchema = z.discriminatedUnion("billingMode", [generatedNamingOriginV1Schema, generatedNamingOriginV2Schema]);
+/** Future initial ideation has a distinct honest provenance contract. It is not
+ * a researched/verified Naming brain artifact and cannot acquire such claims. */
+export const brainstormNamingOriginSchema = z.strictObject({
+  kind: z.literal("brainstorm"), version: z.literal(1), profile: z.literal("brainstorm_v1"), ...rootFields,
+  value: nameValueSchema, batchId: z.uuid(), jobId: z.uuid(), runId: z.uuid(), callId: z.uuid(),
+  responseId: z.string().min(1).max(300), requestId: z.string().min(1).max(300).nullable(),
+  model: z.string().min(1).max(150), generatedAt: timestampSchema,
+});
 export const importedNamingOriginSchema = z.strictObject({ kind: z.literal("local_import"), ...rootFields, source: namingSourceSchema, capturedContext: contextSnapshotSchema });
-export const namingRootOriginSchema = z.discriminatedUnion("kind", [generatedNamingOriginSchema, importedNamingOriginSchema]);
+export const namingRootOriginSchema = z.discriminatedUnion("kind", [generatedNamingOriginSchema, brainstormNamingOriginSchema, importedNamingOriginSchema]);
 export type NamingRootOrigin = z.infer<typeof namingRootOriginSchema>;
 export const projectNameHistoryStepSchema = z.strictObject({
   transformId: z.uuid(), projectId: z.uuid(), parentCandidateId: z.uuid(), secondaryCandidateId: z.uuid().nullable(), input: nameTransformInputSchema, output: nameValueSchema, createdAt: timestampSchema,
 });
 const historySchema = z.array(projectNameHistoryStepSchema).max(NAMING_MAX_TRANSFORM_HISTORY);
 export const projectNameOriginSchema = z.discriminatedUnion("kind", [
-  generatedNamingOriginSchema, importedNamingOriginSchema,
+  generatedNamingOriginSchema, brainstormNamingOriginSchema, importedNamingOriginSchema,
   z.strictObject({ kind: z.literal("transform"), authorship: z.literal("user_supplied"), algorithmVersion: z.literal(1), transformId: z.uuid(), parentCandidateId: z.uuid(), secondaryCandidateId: z.uuid().nullable(), root: namingRootOriginSchema, history: historySchema.min(1) }),
   z.strictObject({ kind: z.literal("account_copy"), authorship: z.enum(["generated", "user_supplied"]), sourceProjectId: z.uuid(), sourceCandidateId: z.uuid(), sourceContextRevision: revisionSchema, root: namingRootOriginSchema, history: historySchema }),
 ]);
@@ -254,19 +262,19 @@ export const projectNameCandidateSchema = z.strictObject({
   verificationNotes: z.array(namingVerificationNoteSchema).max(8).optional(),
   contextRevision: revisionSchema, ...strategyFields, origin: projectNameOriginSchema, createdAt: timestampSchema,
 }).superRefine((candidate, ctx) => {
-  if (candidate.verificationNotes && (candidate.origin.kind !== "generated" || candidate.origin.billingMode !== "openai_api" || new Set(candidate.verificationNotes.map(note => note.claimKey)).size !== candidate.verificationNotes.length)) ctx.addIssue({ code: "custom", path: ["verificationNotes"], message: "Verification findings require a managed original with unique claim keys" });
+  if (candidate.verificationNotes && (candidate.origin.kind === "brainstorm" ? candidate.verificationNotes.length !== 0 : candidate.origin.kind !== "generated" || candidate.origin.billingMode !== "openai_api" || new Set(candidate.verificationNotes.map(note => note.claimKey)).size !== candidate.verificationNotes.length)) ctx.addIssue({ code: "custom", path: ["verificationNotes"], message: "Verification findings require a managed original with unique claim keys" });
   const name = nameValueSchema.safeParse(candidate.value);
   if (name.success && nameIdentityKey(name.data) !== candidate.identityKey) ctx.addIssue({ code: "custom", path: ["identityKey"], message: "Identity must match the candidate value" });
   const basis = namingStrategyBasisSchema.safeParse(candidate.strategyBasis);
   if (basis.success && candidate.strategyKey !== namingStrategyKeyFromBasis(basis.data)) ctx.addIssue({ code: "custom", path: ["strategyKey"], message: "Strategy key must match the recorded basis" });
   const { root, history } = lineage(candidate.origin);
   if (root.ownerId !== candidate.ownerId) ctx.addIssue({ code: "custom", path: ["origin"], message: "Root must belong to the candidate owner" });
-  const ownRoot = candidate.origin.kind === "generated" || candidate.origin.kind === "local_import";
+  const ownRoot = candidate.origin.kind === "generated" || candidate.origin.kind === "brainstorm" || candidate.origin.kind === "local_import";
   if (ownRoot && (root.candidateId !== candidate.id || root.projectId !== candidate.projectId || root.contextRevision !== candidate.contextRevision)) ctx.addIssue({ code: "custom", path: ["origin"], message: "Direct origin must bind this candidate and saved revision" });
   if (candidate.origin.kind === "generated" && !candidate.identityKey) ctx.addIssue({ code: "custom", path: ["identityKey"], message: "Generated names need a nonempty identity" });
   const importedDepth = root.kind === "local_import" ? root.source.history.length : 0;
   if (history.length + importedDepth > NAMING_MAX_TRANSFORM_HISTORY) ctx.addIssue({ code: "custom", path: ["origin", "history"], message: "Preserve at most 32 total transformation steps" });
-  let previous = root.kind === "generated" ? root.value : root.source.value;
+  let previous = root.kind !== "local_import" ? root.value : root.source.value;
   let lastExplanation: string | undefined;
   const stepIds = new Set<string>();
   // Do not replay an oversized or already-invalid nested transform input.
@@ -292,7 +300,7 @@ export const projectNameCandidateSchema = z.strictObject({
     }
   }
   if (candidate.origin.kind === "account_copy") {
-    const authorship = root.kind === "generated" && history.length === 0 ? "generated" : "user_supplied";
+    const authorship = (root.kind === "generated" || root.kind === "brainstorm") && history.length === 0 ? "generated" : "user_supplied";
     if (candidate.origin.authorship !== authorship || candidate.origin.sourceProjectId === candidate.projectId || candidate.origin.sourceCandidateId === candidate.id) ctx.addIssue({ code: "custom", path: ["origin"], message: "Account copies preserve source authorship and create a new candidate in a different project" });
   }
 }).transform(freezeSnapshot);

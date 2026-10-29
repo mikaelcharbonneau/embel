@@ -14,12 +14,15 @@ import type { NamingManagedProtocol } from "../../src/server/ai/naming-brain/pro
 import type { createNamingReferenceReader } from "../../src/server/ai/naming-brain/source-reader";
 import type { SharedLaneBase,SharedLaneEngine,SharedLaneResult } from "./contracts";
 import { createSharedLaneGateway } from "./gateway";
+import { NAMING_BRAINSTORM_PROFILE } from "../../src/domain/naming-brainstorm";
+import { createNamingBrainstormProvider, type NamingBrainstormProvider } from "../../src/server/ai/naming-brainstorm-provider";
+import { observeNamingBrainstorm, runNamingBrainstorm } from "../naming-brainstorm";
 
 const unavailable=()=>Error("shared_naming_authority_unavailable");
 const terminal=new Set(["succeeded","failed","partial","cancelled","needs_reconciliation"]);
 /** Existing durable Naming engine, one SQL-selected job per slot turn. The
  * frozen job still carries its historical input; shared SQL authority is new. */
-export function createSharedNamingLaneEngine(options:SharedLaneBase & {policy:NamingBrainPolicy},dependencies:{protocol?:NamingManagedProtocol;referenceReader?:ReturnType<typeof createNamingReferenceReader>}={}):SharedLaneEngine{
+export function createSharedNamingLaneEngine(options:SharedLaneBase & {policy:NamingBrainPolicy},dependencies:{protocol?:NamingManagedProtocol;referenceReader?:ReturnType<typeof createNamingReferenceReader>;brainstormProvider?:NamingBrainstormProvider}={}):SharedLaneEngine{
  const policy=namingBrainPolicySchema.parse(options.policy);
  if(policy.model!==options.provider.model||!options.provider.apiKey||!options.provider.modelVerificationReceipt)throw unavailable();
  const stop=new AbortController();let active:Promise<unknown>|null=null,closed=false,unconfirmed=false;
@@ -78,7 +81,20 @@ export function createSharedNamingLaneEngine(options:SharedLaneBase & {policy:Na
     const readiness=parsed.success&&isDeepStrictEqual(parsed.data,row.preferences)?getNamingPreferencesReadiness(parsed.data):{ready:false,missing:["invalid_preferences"]};
     await gateway.invoke("attest_preferences",[row.projectId,row.preferencesVersion,row.preferencesHash,fingerprint,readiness]);
    }
-   const state=await runOneJob({store,handlers,workerId:options.workerId,signal:combined,abortGraceMs:15_000});
+   // Claim once under the existing SQL authority, then select only the exact new
+   // immutable profile. Historical jobs keep the established handler unchanged.
+   const job=await store.claim(options.workerId,120);
+   let state:string;
+   if(job&&namingBrainJobInputSchema.parse(job.input).generationProfile===NAMING_BRAINSTORM_PROFILE){
+    const input=namingBrainJobInputSchema.parse(job.input);
+    state=await runNamingBrainstorm({gateway,input,job,signal:combined,
+     provider:dependencies.brainstormProvider??createNamingBrainstormProvider({apiKey:options.provider.apiKey}),
+     heartbeat:()=>store.heartbeat(job,120),assertContinuation:()=>store.assertContinuation(job)});
+   }else{
+    const originalClaim=store.claim.bind(store);let selected=true;
+    store.claim=async()=>{if(selected){selected=false;return job;}return originalClaim(options.workerId,120);};
+    state=await runOneJob({store,handlers,workerId:options.workerId,signal:combined,abortGraceMs:15_000});
+   }
    await Promise.allSettled([...pending]);if(unconfirmed)throw Error("shared_naming_drain_unconfirmed");return state;
   })();active=run;
   try{const state=await run;return{disposition:state==="idle"||terminal.has(state)?"ack":"retry",state};}
@@ -101,6 +117,14 @@ export function createSharedNamingLaneEngine(options:SharedLaneBase & {policy:Na
     gateway.assertJob(job.id,job.leaseToken,job.ownerId,job.projectId);
     const input=namingBrainJobInputSchema.parse(job.input);
     if(input.policy.model!==options.provider.model||input.providerBudgetVersion!==2||input.acceptedPolicyIdentity!==row.execution.policyIdentity)continue;
+    if(input.generationProfile===NAMING_BRAINSTORM_PROFILE){
+     attempted++;
+     try{retained+=await observeNamingBrainstorm({gateway,input,
+      provider:dependencies.brainstormProvider??createNamingBrainstormProvider({apiKey:options.provider.apiKey}),
+      signal:AbortSignal.any([combined,AbortSignal.timeout(180_000)])});}
+     catch{unconfirmed=true;throw Error("shared_naming_observation_unconfirmed");}
+     await gateway.drain();continue;
+    }
     const database:JobDatabase={async query(sql,values=[]){
      const match=/^select public\.(naming_brain_worker_action|record_naming_brain_provider_receipt)\((\$[1-9][0-9]*(?:,\$[1-9][0-9]*)*)\) as result$/u.exec(sql);
      if(!match||match[2]!==values.map((_,i)=>`$${i+1}`).join(","))throw unavailable();
