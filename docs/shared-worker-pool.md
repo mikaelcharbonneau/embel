@@ -53,6 +53,10 @@ chronological positions. Their dependency order is:
    contains ten forward packets: the standalone Identity packet and nine shared
    packets. Historical Logo setup in item 2 is a fixture prerequisite, not an
    instruction to reinstall it in production.
+   Fresh shared production compilation then applies the additive, hash-pinned
+   `shared_storage_download_metadata.sql` correction before COMMIT; it does not
+   rewrite any of those ten historical packets. See
+   [the metadata-read rollout](shared-storage-download-metadata.md).
 
 The superseded `account_service_enrollment.sql`, `account_worker_enrollment.sql`
 and `account_strategy_uncapped.sql` packets are not installation prerequisites.

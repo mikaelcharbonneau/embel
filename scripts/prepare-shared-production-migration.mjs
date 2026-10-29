@@ -21,6 +21,9 @@ export const PACKET_SHA256=Object.freeze({
  "shared_logo_advanced.sql": "e3796a279a59b866815008bb20ef3b5200248cae4d66aa2fa3f1f97609a5d4fb",
  "shared_identity_generation.sql": "a3282d7acb4a64867fa01509461fedc6f7f35079c5d8cfd1cac5bd3a9938b9f2"
 });
+// Additive post-install corrections run after all ten immutable shared packets.
+// They never rewrite a predecessor and are not used by non-shared installers.
+export const POST_INSTALL_PACKETS=Object.freeze([{name:'shared_storage_download_metadata.sql',sha256:'d7c32eff52cea335be05391ea0fdd33c8588193ad641b09cb00bf5f88d3b8cd6'}]);
 const sha=value=>createHash('sha256').update(value).digest('hex');
 const fail=code=>{throw new Error(code);};
 const quote=value=>"'"+String(value).replaceAll("'","''")+"'";
@@ -142,8 +145,12 @@ export function composeSharedProductionMigration(input){
   if(name==='shared_account_http.sql')parts.push(`INSERT INTO fluid_private.shared_http_target(singleton,mode,origin) VALUES(true,'hosted',${quote(PRODUCTION_ORIGIN)});\n`);
   if(name==='shared_storage_authority.sql')parts.push(`INSERT INTO fluid_private.shared_storage_target(singleton,origin) VALUES(true,${quote(PRODUCTION_ORIGIN)});\n`);
  }
+ for(const packet of POST_INSTALL_PACKETS){
+  const source=readFileSync(new URL('../supabase/candidates/'+packet.name,import.meta.url),'utf8');
+  parts.push(`\n-- POST-INSTALL ${packet.name} SHA256 ${packet.sha256}\n${stripReviewedTransactionEnvelope(source,packet.sha256)}\n`);
+ }
  parts.push(`DO $shared_final_guard$ BEGIN\n IF NOT EXISTS(SELECT 1 FROM fluid_private.shared_http_target WHERE singleton AND mode='hosted' AND origin=${quote(PRODUCTION_ORIGIN)}) OR NOT EXISTS(SELECT 1 FROM fluid_private.shared_storage_target WHERE singleton AND origin=${quote(PRODUCTION_ORIGIN)}) THEN RAISE EXCEPTION 'shared_production_issuer_missing' USING ERRCODE='55000'; END IF;\n IF EXISTS(SELECT 1 FROM fluid_private.logo_storage_principals b LEFT JOIN fluid_private.shared_service_actors s ON s.auth_user_id=b.auth_user_id WHERE s.purpose IS DISTINCT FROM 'legacy_logo_storage') THEN RAISE EXCEPTION 'shared_production_legacy_actor_missing' USING ERRCODE='55000'; END IF;\nEND $shared_final_guard$;\nCOMMIT;\n`);
- const sql=parts.join('');return Object.freeze({sql,sha256:sha(sql),packets:selected,sourceHashes:PACKET_SHA256,target:PRODUCTION_ORIGIN,requiresReviewedConnection:true});
+ const sql=parts.join('');return Object.freeze({sql,sha256:sha(sql),packets:selected,sourceHashes:PACKET_SHA256,postInstallPackets:POST_INSTALL_PACKETS,target:PRODUCTION_ORIGIN,requiresReviewedConnection:true});
 }
 
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
@@ -151,7 +158,7 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
   else if(args.length===1&&args[0]==='--prerequisite-sql')process.stdout.write(READ_ONLY_PREREQUISITE_SQL);
   else if(args.length===4&&args[0]==='--inventory'&&args[2]==='--output'){
    const result=composeSharedProductionMigration(JSON.parse(readFileSync(args[1],'utf8')));writeFileSync(args[3],result.sql,{flag:'wx',mode:0o600});
-   console.log(JSON.stringify({prepared:true,sha256:result.sha256,packets:result.packets,target:result.target,executed:false}));
+   console.log(JSON.stringify({prepared:true,sha256:result.sha256,packets:result.packets,postInstallPackets:result.postInstallPackets,target:result.target,executed:false}));
   }else fail('usage_inventory_sql_or_inventory_output');
  }catch(error){console.error(JSON.stringify({prepared:false,code:/^[a-z0-9_]+$/.test(error?.message??'')?error.message:'production_composer_unavailable',executed:false}));process.exitCode=1;}
 }
