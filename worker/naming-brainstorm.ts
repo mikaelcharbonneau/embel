@@ -9,6 +9,30 @@ import { normalizeNamingStoredJson } from "./naming-brain-store";
 const callSchema = z.object({ callId: z.uuid(), request: namingBrainstormWireSchema, candidateTarget: z.number().int().min(1).max(120), state: z.enum(["prepared", "created", "completed", "rejected", "unknown"]), responseId: namingBrainstormResponseIdSchema.nullable(), requestId: z.string().nullable() }).passthrough();
 const stateSchema = z.object({ generationProfile: z.literal(NAMING_BRAINSTORM_PROFILE), runId: z.uuid(), brief: namingBriefSnapshotSchema, exclusionIdentities: z.array(z.string().max(320)).max(100_000), historyEpoch: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), history: z.array(z.object({ candidateId: z.uuid(), value: z.string().max(320) })).max(10_000), publishedCount: z.number().int().min(0).max(100), calls: z.array(callSchema).max(NAMING_BRAINSTORM_MAX_CALLS) });
 type State = z.infer<typeof stateSchema>;
+type BrainstormResponseErrorCode = "response_id_invalid" | "response_identity_conflict" | "response_shape_invalid" | "response_size_limit" | "response_model_mismatch" | "created_event_missing" | "event_limit" | "provider_stream_error" | "stream_ended_without_terminal";
+/** Only this module can classify a settled local validation failure. Arbitrary
+ * SQL/authority/acknowledgement errors are deliberately not converted. */
+class BrainstormResponseError extends Error {
+  constructor(readonly code: BrainstormResponseErrorCode) { super(code); }
+}
+function checkedResponseId(value: unknown): string {
+  const parsed = namingBrainstormResponseIdSchema.safeParse(value);
+  if (!parsed.success) throw new BrainstormResponseError("response_id_invalid");
+  return parsed.data;
+}
+type BrainstormDiagnosticCode = BrainstormResponseErrorCode | "call_aborted" | "provider_request_rejected" | "provider_protocol_limit" | "provider_outcome_unknown" | "persistence_or_unexpected_failure";
+function diagnosticCode(error: unknown, aborted: boolean): BrainstormDiagnosticCode {
+  if (aborted) return "call_aborted";
+  if (error instanceof BrainstormResponseError) return error.code;
+  if (error instanceof NamingBrainstormProviderError) {
+    switch (error.code) {
+      case "request_rejected": return "provider_request_rejected";
+      case "protocol_limit": return "provider_protocol_limit";
+      case "outcome_unknown": return "provider_outcome_unknown";
+    }
+  }
+  return "persistence_or_unexpected_failure";
+}
 export type NamingBrainstormGateway = { invoke(action: string, args: unknown, observation?: boolean): Promise<unknown> };
 const finalStates = new Set(["completed", "failed", "incomplete", "cancelled"]);
 const terminalCalls = new Set(["completed", "rejected"]);
@@ -50,8 +74,9 @@ async function loadState(gateway: NamingBrainstormGateway, input: NamingBrainJob
 }
 async function observeResponse(options: { gateway: NamingBrainstormGateway; input: NamingBrainJobInput; state: State; callId: string; response: Record<string, unknown>; requestId: string | null; observation?: boolean }): Promise<boolean> {
   const { response, input, state, gateway, callId } = options;
-  const responseId = namingBrainstormResponseIdSchema.parse(response.id);
-  if (Buffer.byteLength(JSON.stringify(response), "utf8") > 524_288 || response.model !== input.policy.model) throw Error("naming_brainstorm_response_invalid");
+  const responseId = checkedResponseId(response.id);
+  if (Buffer.byteLength(JSON.stringify(response), "utf8") > 524_288) throw new BrainstormResponseError("response_size_limit");
+  if (response.model !== input.policy.model) throw new BrainstormResponseError("response_model_mismatch");
   if (typeof response.status !== "string" || !finalStates.has(response.status)) return false;
   const usage = namingBrainstormUsageSchema.safeParse(response.usage);
   const candidateTarget = state.calls.find(call => call.callId === callId)?.candidateTarget ?? (state.calls.length === 0 ? 120 : Math.min(60, 100 - state.publishedCount + 20));
@@ -60,13 +85,26 @@ async function observeResponse(options: { gateway: NamingBrainstormGateway; inpu
   return true;
 }
 /** A saved response ID grants retrieval only. No recovery path calls create. */
-export async function observeNamingBrainstorm(options: { gateway: NamingBrainstormGateway; input: NamingBrainJobInput; provider: NamingBrainstormProvider; signal: AbortSignal }): Promise<number> {
+export async function observeNamingBrainstorm(options: { gateway: NamingBrainstormGateway; input: NamingBrainJobInput; provider: Pick<NamingBrainstormProvider, "retrieve">; signal: AbortSignal }): Promise<number> {
   const state = await loadState(options.gateway, options.input, true); let retained = 0;
   for (const call of state.calls) {
     if (!call.responseId || terminalCalls.has(call.state) || options.signal.aborted) continue;
-    const read = await options.provider.retrieve(call.responseId, options.signal);
-    if (read.response.id !== call.responseId) throw Error("naming_brainstorm_response_mismatch");
-    if (await observeResponse({ ...options, state, callId: call.callId, ...read, requestId: call.requestId ?? read.requestId, observation: true })) retained++;
+    let read: Awaited<ReturnType<NamingBrainstormProvider["retrieve"]>>;
+    try { read = await options.provider.retrieve(call.responseId, options.signal); }
+    catch (error) {
+      // A settled GET failure grants no new create and leaves the immutable
+      // unknown call untouched. It is not an unconfirmed database drain.
+      if (error instanceof NamingBrainstormProviderError) continue;
+      throw error;
+    }
+    try {
+      if (read.response.id !== call.responseId) throw new BrainstormResponseError("response_identity_conflict");
+      if (await observeResponse({ ...options, state, callId: call.callId, ...read, requestId: call.requestId ?? read.requestId, observation: true })) retained++;
+    } catch (error) {
+      // Only locally classified response validation is contained. A failed
+      // gateway write/ACK still propagates to the unchanged fail-closed lane.
+      if (!(error instanceof BrainstormResponseError)) throw error;
+    }
   }
   return retained;
 }
@@ -84,7 +122,7 @@ export async function runNamingBrainstorm(options: { gateway: NamingBrainstormGa
       if (!terminalCalls.has(call.state)) {
         if (!call.responseId) return await finish();
         const read = await options.provider.retrieve(call.responseId, AbortSignal.any([signal, AbortSignal.timeout(180_000)]));
-        if (read.response.id !== call.responseId) throw Error("naming_brainstorm_response_mismatch");
+        if (read.response.id !== call.responseId) throw new BrainstormResponseError("response_identity_conflict");
         if (!await observeResponse({ ...options, state, callId: call.callId, ...read, requestId: call.requestId ?? read.requestId })) return await finish();
       }
       await options.assertContinuation();
@@ -107,25 +145,25 @@ export async function runNamingBrainstorm(options: { gateway: NamingBrainstormGa
         stream = await options.provider.create(request, callSignal); requestId = stream.requestId;
         let events = 0;
         for await (const event of stream.events) {
-          if (++events > 20_000) throw Error("naming_brainstorm_event_limit");
+          if (++events > 20_000) throw new BrainstormResponseError("event_limit");
           const raw = event as unknown as Record<string, unknown>;
           if (raw.type === "response.created") {
-            if (!record(raw.response)) throw Error("naming_brainstorm_response_invalid");
-            const id = namingBrainstormResponseIdSchema.parse(raw.response.id);
-            if (responseId !== null && responseId !== id) throw Error("naming_brainstorm_response_mismatch");
+            if (!record(raw.response)) throw new BrainstormResponseError("response_shape_invalid");
+            const id = checkedResponseId(raw.response.id);
+            if (responseId !== null && responseId !== id) throw new BrainstormResponseError("response_identity_conflict");
             responseId = id;
             // Await the committed ID before consuming any more provider events.
             await options.gateway.invoke("brainstorm_event", { callId: begun.callId, kind: "created", responseId, requestId, observedAt: new Date().toISOString() }, true);
           } else if (["response.completed", "response.failed", "response.incomplete", "response.cancelled"].includes(String(raw.type))) {
-            if (!record(raw.response)) throw Error("naming_brainstorm_response_mismatch");
-            const terminalId = namingBrainstormResponseIdSchema.parse(raw.response.id);
-            if (responseId === null) { responseId = terminalId; throw Error("naming_brainstorm_created_event_missing"); }
-            if (terminalId !== responseId) throw Error("naming_brainstorm_response_mismatch");
+            if (!record(raw.response)) throw new BrainstormResponseError("response_identity_conflict");
+            const terminalId = checkedResponseId(raw.response.id);
+            if (responseId === null) { responseId = terminalId; throw new BrainstormResponseError("created_event_missing"); }
+            if (terminalId !== responseId) throw new BrainstormResponseError("response_identity_conflict");
             completed = await observeResponse({ ...options, state, callId: begun.callId, response: raw.response, requestId });
             break;
-          } else if (raw.type === "error") throw Error("naming_brainstorm_provider_error");
+          } else if (raw.type === "error") throw new BrainstormResponseError("provider_stream_error");
         }
-        if (!completed) throw Error("naming_brainstorm_outcome_unknown");
+        if (!completed) throw new BrainstormResponseError("stream_ended_without_terminal");
       } catch (error) {
         const rejected = responseId === null && error instanceof NamingBrainstormProviderError && error.code === "request_rejected";
         if (error instanceof NamingBrainstormProviderError) requestId ??= error.requestId;
@@ -133,7 +171,7 @@ export async function runNamingBrainstorm(options: { gateway: NamingBrainstormGa
         // An observation may have committed even if its acknowledgement was
         // lost. Preserve that terminal row; finish independently quarantines
         // unpublished or unresolved work without creating another request.
-        await options.gateway.invoke("brainstorm_event", { callId: begun.callId, kind: rejected ? "rejected" : "unknown", responseId, requestId, observedAt: new Date().toISOString() }, true).catch(() => {});
+        await options.gateway.invoke("brainstorm_event", { callId: begun.callId, kind: rejected ? "rejected" : "unknown", errorCode: diagnosticCode(error, callSignal.aborted), responseId, requestId, observedAt: new Date().toISOString() }, true).catch(() => {});
         return await finish();
       } finally { stream?.close(); }
       await options.assertContinuation();

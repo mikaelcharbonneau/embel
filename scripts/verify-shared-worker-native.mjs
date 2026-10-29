@@ -9,7 +9,7 @@ const image='ghcr.io/supabase/cli/postgres:17.11.0.006-r0@sha256:ee0f2d9747fb9d3
 const name=`embel-shared-native17-${randomBytes(6).toString('hex')}`;
 const compileAuthorityOnly=process.argv.length===3&&process.argv[2]==='--compile-authority-only';
 if(process.argv.length!==2&&!compileAuthorityOnly)throw Error('Unsupported native verification argument');
-const packetPaths=['identity_transactions.sql','shared_worker_pool.sql','shared_account_http.sql','shared_worker_strategy.sql','shared_worker_naming.sql','shared_worker_logo.sql','shared_storage_authority.sql','shared_logo_http.sql','shared_logo_advanced.sql','shared_identity_generation.sql','shared_naming_brainstorm.sql'];
+const packetPaths=['identity_transactions.sql','shared_worker_pool.sql','shared_account_http.sql','shared_worker_strategy.sql','shared_worker_naming.sql','shared_worker_logo.sql','shared_storage_authority.sql','shared_logo_http.sql','shared_logo_advanced.sql','shared_identity_generation.sql','shared_naming_brainstorm.sql','shared_naming_brainstorm_event_capacity.sql'];
 const packets=Object.fromEntries(packetPaths.map(path=>[path,readFileSync(new URL('../supabase/candidates/'+path,import.meta.url),'utf8')]));
 const env={...process.env};for(const key of ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH'])delete env[key];
 const docker=(args,input)=>execFileSync('docker',['--host=unix:///var/run/docker.sock',...args],{env,input,encoding:'utf8',stdio:['pipe','pipe','pipe'],maxBuffer:20*1024*1024});
@@ -69,7 +69,11 @@ try{
  const baselineCatalog=new Map(catalog().map(f=>[functionKey(f),JSON.stringify(f)]));
  let previousCatalog=new Map(baselineCatalog);const workerManifestKeys=new Set();
  for(const path of packetPaths.filter(path=>path!=='identity_transactions.sql')){
+  // The bounded operational repair requires the exact hosted target. This is
+  // fixture-only target setup, removed before normal runtime fixture setup.
+  if(path==='shared_naming_brainstorm_event_capacity.sql')sql("insert into fluid_private.shared_http_target(singleton,mode,origin)values(true,'hosted','https://fricsfwqibyhemknqgyf.supabase.co');");
   stage=`shared-packet:${path}`;sql(packets[path]);assert(true,`${path}-installed-by-nosuper-postgres`);
+  if(path==='shared_naming_brainstorm_event_capacity.sql')sql('delete from fluid_private.shared_http_target;');
   const current=catalog();
   if(!['shared_account_http.sql','shared_logo_http.sql'].includes(path))for(const f of current){const key=functionKey(f);if(previousCatalog.get(key)!==JSON.stringify(f))workerManifestKeys.add(key);}
   previousCatalog=new Map(current.map(f=>[functionKey(f),JSON.stringify(f)]));
