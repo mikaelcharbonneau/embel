@@ -3,6 +3,7 @@ import { PollingQueueClient,type ReceiveOptions,type ReceiveResult,type MessageH
 import { z } from "zod";
 import type { SharedDeliveryResult } from "./contracts";
 import type { SharedQueuePublisherPort } from "./publication";
+import { reportSharedQueueFailure } from "./queue-diagnostics";
 
 export const sharedQueueConfigurationSchema=z.strictObject({region:z.literal("iad1"),topic:z.string().regex(/^[A-Za-z0-9_-]{1,100}$/u),
  consumerGroup:z.string().regex(/^[A-Za-z0-9_-]{1,100}$/u),deploymentId:z.string().min(1).max(200),
@@ -51,7 +52,7 @@ export async function runSharedStrategyQueue(options:{configuration:SharedQueueC
  const receive=async()=>{while(!signal.aborted){
   if(options.available&&!options.available()){await pause(config.emptyPollMs,signal);continue;}
   try{const result=await receiveSharedStrategyOnce({...options,configuration:config},signal);if(!result.ok)await pause(config.emptyPollMs,signal);}
-  catch{if(!signal.aborted)await pause(config.errorPollMs,signal);}
+  catch(error){if(!signal.aborted){reportSharedQueueFailure("queue_receive",error);await pause(config.errorPollMs,signal);}}
  }};
  if(config.concurrency<1)throw unavailable();
  await Promise.all(Array.from({length:config.concurrency},receive));
