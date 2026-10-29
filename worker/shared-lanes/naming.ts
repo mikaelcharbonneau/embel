@@ -106,8 +106,18 @@ export function createSharedNamingLaneEngine(options:SharedLaneBase & {policy:Na
   const execute=async()=>{let retained=0,attempted=0;
    for(const row of rows){
     if(combined.aborted||attempted>=3)break;
-    if(row.execution.lane!=="naming"||row.execution.deploymentId!==options.deploymentId)continue;
-    const gateway=createSharedLaneGateway({...options,lane:"naming",observationExecution:row.execution});
+    // A current slot may observe the exact original execution without
+    // rewriting its admitted deployment or obtaining active authority.
+    if(row.execution.lane!=="naming")continue;
+    const historical=row.execution.deploymentId!==options.deploymentId;
+    // The pending page grants no profile upgrade. Only an exact brainstorm
+    // input may select cross-deployment observation; the recovered SQL job is
+    // checked again before any provider access. Legacy same-DPL recovery stays exact.
+    if(historical&&!/^dpl_[A-Za-z0-9_-]{8,196}$/u.test(row.execution.deploymentId))continue;
+    const pendingInput=historical?namingBrainJobInputSchema.safeParse(normalizeNamingStoredJson(row.job.input)):null;
+    if(historical&&(!pendingInput?.success||pendingInput.data.generationProfile!==NAMING_BRAINSTORM_PROFILE))continue;
+    const gateway=createSharedLaneGateway({...options,lane:"naming",observationExecution:row.execution,
+     ...(historical?{observationGenerationProfile:NAMING_BRAINSTORM_PROFILE}:{})});
     const view=z.strictObject({observationJob:z.record(z.string(),z.unknown()),observationLeaseToken:z.uuid()})
      .parse(await gateway.invoke("recover",[],true));
     if(view.observationLeaseToken!==row.execution.leaseToken)throw unavailable();
@@ -116,6 +126,7 @@ export function createSharedNamingLaneEngine(options:SharedLaneBase & {policy:Na
     const job=parseClaimedJob(normalizeNamingStoredJson({...view.observationJob,lease_token:view.observationLeaseToken}));
     gateway.assertJob(job.id,job.leaseToken,job.ownerId,job.projectId);
     const input=namingBrainJobInputSchema.parse(job.input);
+    if(historical&&input.generationProfile!==NAMING_BRAINSTORM_PROFILE)continue;
     if(input.policy.model!==options.provider.model||input.providerBudgetVersion!==2||input.acceptedPolicyIdentity!==row.execution.policyIdentity)continue;
     if(input.generationProfile===NAMING_BRAINSTORM_PROFILE){
      attempted++;

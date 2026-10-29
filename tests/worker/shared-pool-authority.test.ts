@@ -49,7 +49,24 @@ describe("reviewed authority packet roster",()=>{
  it("parses the complete current source manifest before database qualification",()=>{
   expect(sharedAuthorityManifestSchema.parse(authorityManifest)).toEqual(authorityManifest);
  });
- it("retains the finite eleven-packet bound",()=>{
-  expect(sharedAuthorityManifestSchema.safeParse({...authorityManifest,packets:Array.from({length:12},()=>authorityManifest.packets[0])}).success).toBe(false);
+ it("pins the additive repair and exact two function bodies without changing the frozen original packet",async()=>{
+  for(const packet of authorityManifest.packets){
+   const source=await readFile(new URL("../../"+packet.path,import.meta.url),"utf8");
+   expect(createHash("sha256").update(source).digest("hex")).toBe(packet.sha256);
+  }
+  const original=await readFile(new URL("../../supabase/candidates/shared_naming_brainstorm.sql",import.meta.url),"utf8");
+  const repair=await readFile(new URL("../../supabase/candidates/shared_naming_brainstorm_event_capacity.sql",import.meta.url),"utf8");
+  const originalBody=/create or replace function public\.shared_naming_worker_action\([\s\S]*?as \$\$([\s\S]*?)end \$\$;/u.exec(original)?.[1];
+  expect(originalBody).toBeDefined();
+  const body=originalBody+"end ";
+  expect(createHash("sha256").update(body).digest("hex")).toBe("e8bae9ed6a46f0b87e8c78474d5d059dd608b27442421e730d2f0c9f4e599ea4");
+  const fixed=body.replace("select 1 from fluid_private.naming_brainstorm_events where call_id=c.call_id and payload=p_args","select 1 from fluid_private.naming_brainstorm_events replay_event where replay_event.call_id=c.call_id and replay_event.payload=p_args");
+  expect(authorityManifest.functions.find(f=>f.schema==="public"&&f.name==="shared_naming_worker_action")?.sha256).toBe(createHash("sha256").update(fixed).digest("hex"));
+  const helper=/AS \$guard_body\$([\s\S]*?)\$guard_body\$/u.exec(repair)?.[1];
+  expect(helper).toBeDefined();
+  expect(authorityManifest.functions.find(f=>f.name==="naming_brainstorm_event_replay_guard_v1")?.sha256).toBe(createHash("sha256").update(helper!).digest("hex"));
+ });
+ it("retains the finite twelve-packet bound",()=>{
+  expect(sharedAuthorityManifestSchema.safeParse({...authorityManifest,packets:Array.from({length:13},()=>authorityManifest.packets[0])}).success).toBe(false);
  });
 });

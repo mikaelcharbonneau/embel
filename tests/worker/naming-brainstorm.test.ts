@@ -9,16 +9,16 @@ import { id, snapshot, preferences, hash } from "../domain/naming-brain-fixtures
 import type { ClaimedJob } from "../../src/domain/jobs";
 
 type Call = {callId:string;request:NamingBrainstormWire;candidateTarget:number;state:string;responseId:string|null;requestId:string|null;candidates:unknown[]};
-function fixture(options:{counts?:number[];lostBeforeId?:boolean;lostAfterId?:boolean;loseCreatedAck?:boolean;loseCompletedAck?:boolean;denyBegin?:boolean;badCandidates?:boolean}={}) {
+function fixture(options:{counts?:number[];lostBeforeId?:boolean;lostAfterId?:boolean;loseCreatedAck?:boolean;loseCompletedAck?:boolean;denyBegin?:boolean;badCandidates?:boolean;returnedModel?:string;oversized?:boolean;reject?:boolean}={}) {
   const input=namingBrainJobInputSchema.parse({version:2,handlerVersion:"naming-brain-v1",billingMode:"openai_api",runId:id(3),jobId:id(4),batchId:id(5),snapshot:snapshot(),acceptedPolicyIdentity:hash,policy:createNamingBrainPolicy("gpt-6-luna"),executionAuthority:"hosted_owner_v1",providerBudgetVersion:2,localPipelineVersion:2,localTimingVersion:2,generationProfile:"brainstorm_v1"});
   const job:ClaimedJob={id:input.jobId,ownerId:input.snapshot.ownerId,projectId:input.snapshot.projectId,operation:"naming.generate",input,inputRevision:1,leaseToken:id(6),status:"running",reservedCostMicrousd:input.policy.runAllowanceMicrousd,actualCostMicrousd:0};
   const state={generationProfile:"brainstorm_v1",runId:input.runId,brief:input.snapshot,exclusionIdentities:[namingBrainstormIdentity("Owned Name")],historyEpoch:0,history:[{candidateId:id(9),value:"Owned Name"}],publishedCount:0,calls:[] as Call[]};
-  const actions:string[]=[],methods:string[]=[],bodies:NamingBrainstormWire[]=[],responses=new Map<string,Record<string,unknown>>();
+  const events:Record<string,unknown>[]=[],actions:string[]=[],methods:string[]=[],bodies:NamingBrainstormWire[]=[],responses=new Map<string,Record<string,unknown>>();
   let createdSaved=false,loseCreated=options.loseCreatedAck,loseCompleted=options.loseCompletedAck;
   const gateway:NamingBrainstormGateway={async invoke(action,args){actions.push(action);const arg=args as Record<string,unknown>;
     if(action==="brainstorm_state")return structuredClone(state);
     if(action==="brainstorm_begin") {if(options.denyBegin)throw Error("fenced");const call={callId:id(100+state.calls.length),request:structuredClone(arg.request as NamingBrainstormWire),candidateTarget:Number(arg.candidateTarget),state:"prepared",responseId:null,requestId:null,candidates:[]};state.calls.push(call);return {...call,dispatch:"create"};}
-    if(action==="brainstorm_event") {const call=state.calls.find(row=>row.callId===arg.callId)!;call.state=String(arg.kind);call.responseId=arg.responseId as string|null;call.requestId=arg.requestId as string|null;if(arg.kind==="created"){createdSaved=true;if(loseCreated){loseCreated=false;throw Error("ack_lost");}}
+    if(action==="brainstorm_event") {events.push(structuredClone(arg));const call=state.calls.find(row=>row.callId===arg.callId)!;call.state=String(arg.kind);call.responseId=arg.responseId as string|null;call.requestId=arg.requestId as string|null;if(arg.kind==="created"){createdSaved=true;if(loseCreated){loseCreated=false;throw Error("ack_lost");}}
       if(arg.kind==="completed"){call.candidates=arg.candidates as unknown[];if(loseCompleted){loseCompleted=false;throw Error("ack_lost");}}return true;}
     if(action==="brainstorm_publish") {const call=state.calls.find(row=>row.callId===arg.callId)!;const insertedCount=Math.min(100-state.publishedCount,call.candidates.length);state.publishedCount+=insertedCount;return {publishedCount:state.publishedCount,insertedCount};}
     if(action==="brainstorm_finish")return {state:state.calls.some(row=>!["completed","rejected"].includes(row.state))?"needs_reconciliation":state.publishedCount===100?"succeeded":state.publishedCount?"partial":"failed",publishedCount:state.publishedCount};
@@ -30,9 +30,10 @@ function fixture(options:{counts?:number[];lostBeforeId?:boolean;lostAfterId?:bo
     expect(url.pathname).toBe("/v1/responses");const body=await request.json() as NamingBrainstormWire;bodies.push(body);createdSaved=false;
     expect(state.calls.at(-1)?.request).toEqual(body);expect(request.headers.get("x-stainless-retry-count")).toBe("0");
     if(options.lostBeforeId)throw Error("private-fixture-value");
+    if(options.reject)return Response.json({error:{message:"private-provider-rejection",type:"invalid_request_error"}},{status:400});
     const responseId=`resp_fixture_${bodies.length}`;
     const candidates=options.badCandidates?[{value:"Owned Name",rationale:"Fixture sound.",primaryApproach:"invented"},{value:"",rationale:"",primaryApproach:"invented"}]:Array.from({length:options.counts?.[bodies.length-1]??120},(_,index)=>({value:`Fixture${bodies.length}Name${index}`,rationale:"A proposed sound and imagery.",primaryApproach:"invented"}));
-    const response={id:responseId,status:"completed",model:input.policy.model,output:[{type:"message",role:"assistant",status:"completed",content:[{type:"output_text",text:JSON.stringify({candidates})}]}],usage:{input_tokens:80,output_tokens:60,total_tokens:140}};responses.set(responseId,response);
+    const response={id:responseId,status:"completed",model:options.returnedModel??input.policy.model,...(options.oversized?{ignored:"x".repeat(524288)}:{}),output:[{type:"message",role:"assistant",status:"completed",content:[{type:"output_text",text:JSON.stringify({candidates})}]}],usage:{input_tokens:80,output_tokens:60,total_tokens:140}};responses.set(responseId,response);
     let part=0;
     return new Response(new ReadableStream<Uint8Array>({pull(controller){
       if(part++===0){controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({type:"response.created",sequence_number:0,response:{id:responseId}})}\n\n`));return;}
@@ -42,7 +43,7 @@ function fixture(options:{counts?:number[];lostBeforeId?:boolean;lostAfterId?:bo
     }}),{headers:{"content-type":"text/event-stream","x-request-id":`req_create_${bodies.length}`}});
   }});
   const run=()=>runNamingBrainstorm({gateway,input,job,provider,signal:new AbortController().signal,heartbeat:async()=>({cancelled:false}),assertContinuation:async()=>{}});
-  return {run,state,actions,methods,bodies,gateway,input,provider,createdSaved:()=>createdSaved};
+  return {run,state,actions,methods,bodies,events,gateway,input,provider,createdSaved:()=>createdSaved};
 }
 
 describe("fast-first Naming with native Responses SDK and inert HTTP",()=>{
@@ -57,6 +58,26 @@ describe("fast-first Naming with native Responses SDK and inert HTTP",()=>{
   it("quarantines an unknown create without an ID and never replays it",async()=>{const f=fixture({lostBeforeId:true});expect(await f.run()).toBe("needs_reconciliation");expect(await f.run()).toBe("needs_reconciliation");expect(f.bodies).toHaveLength(1);expect(f.state.calls[0]).toMatchObject({state:"unknown",responseId:null});});
   it("recovers a known ID with GET only and never publishes from observation",async()=>{const f=fixture({lostAfterId:true});expect(await f.run()).toBe("needs_reconciliation");expect(await observeNamingBrainstorm({gateway:f.gateway,input:f.input,provider:f.provider,signal:new AbortController().signal})).toBe(1);expect(f.methods).toEqual(["POST","GET"]);expect(f.state.publishedCount).toBe(0);expect(f.state.calls[0]?.state).toBe("completed");});
   it.each(["loseCreatedAck","loseCompletedAck"] as const)("retains an ID when %s fails and recovers without another create",async key=>{const f=fixture({[key]:true});expect(await f.run()).toBe("needs_reconciliation");await observeNamingBrainstorm({gateway:f.gateway,input:f.input,provider:f.provider,signal:new AbortController().signal});expect(f.methods).toEqual(["POST","GET"]);expect(f.state.publishedCount).toBe(0);});
+  it.each([
+    [{returnedModel:"gpt-6-luna-2026-10-01"},"response_model_mismatch"],
+    [{oversized:true},"response_size_limit"],
+    [{lostAfterId:true},"stream_ended_without_terminal"],
+    [{lostBeforeId:true},"provider_outcome_unknown"],
+    [{loseCreatedAck:true},"persistence_or_unexpected_failure"],
+    [{reject:true},"provider_request_rejected"],
+  ] as const)("retains only a fixed diagnostic for %j without echoing exception details",async(options,code)=>{
+    const f=fixture(options);await f.run();
+    expect(f.events.at(-1)).toMatchObject({kind:"reject" in options&&options.reject?"rejected":"unknown",errorCode:code});
+    expect(f.events.at(-1)).not.toHaveProperty("error");expect(f.events.at(-1)).not.toHaveProperty("message");
+    expect(JSON.stringify(f.events)).not.toMatch(/private-fixture-value|private-provider-rejection|ack_lost/);
+    expect(f.bodies).toHaveLength(1);expect(f.state.publishedCount).toBe(0);
+  });
+  it("does not replay or mutate a known model-mismatched response during observation",async()=>{
+    const f=fixture({returnedModel:"gpt-6-luna-2026-10-01"});expect(await f.run()).toBe("needs_reconciliation");
+    const before=structuredClone(f.state);
+    expect(await observeNamingBrainstorm({gateway:f.gateway,input:f.input,provider:f.provider,signal:new AbortController().signal})).toBe(0);
+    expect(f.methods).toEqual(["POST","GET"]);expect(f.state).toEqual(before);expect(f.bodies).toHaveLength(1);
+  });
   it("cannot dispatch when source authority rejects the persisted boundary",async()=>{const f=fixture({denyBegin:true});expect(await f.run()).toBe("failed");expect(f.methods).toEqual([]);});
 });
 
