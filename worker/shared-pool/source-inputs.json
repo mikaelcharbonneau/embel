@@ -187,6 +187,7 @@
   "worker/shared-pool/preflight.ts",
   "worker/shared-pool/proofs.ts",
   "worker/shared-pool/publication.ts",
+  "worker/shared-pool/queue-diagnostics.ts",
   "worker/shared-pool/queue.ts",
   "worker/shared-pool/runtime.ts",
   "worker/shared-pool/secrets.ts",
