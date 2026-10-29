@@ -36,6 +36,21 @@ describe("Naming Brain route account and privacy boundaries",()=>{
   expect(mock.rpc.mock.calls.map(([name])=>name)).toEqual(["ensure_hosted_naming_brain_run","get_hosted_naming_availability"]);
   expect(mock.rpc).toHaveBeenCalledWith("get_hosted_naming_availability",{p_project_id:project});
  });
+ it("selects the explicit future brainstorm admission only for shared runtime and preserves owned readiness",async()=>{
+  vi.stubEnv("EMBEL_SHARED_WORKERS_ENABLED","true");
+  const blocked={status:"blocked",feed:emptyFeed,code:"naming_runtime_unavailable",message:"Naming is not configured.",action:"configure"};
+  mock.rpc.mockImplementation(async(name:string)=>({data:name==="get_shared_naming_availability"?hostedAvailable:blocked,error:null}));
+  expect(await ensureNextNamingRun(await mock.auth(),project,initialIntent())).toEqual(blocked);
+  expect(mock.rpc.mock.calls.map(([name])=>name)).toEqual(["ensure_shared_naming_brainstorm_run","get_shared_naming_availability"]);
+  expect(mock.rpc).toHaveBeenCalledWith("ensure_shared_naming_brainstorm_run",{p_project_id:project,p_intent:initialIntent()});
+ });
+ it("cannot inject a historical or future execution profile through the customer intent",async()=>{
+  vi.stubEnv("EMBEL_SHARED_WORKERS_ENABLED","true");
+  for(const generationProfile of ["brainstorm_v1","historical"]){
+   expect((await ensure(request({...initialIntent(),generationProfile}),ctx)).status).toBe(422);
+  }
+  expect(mock.rpc).not.toHaveBeenCalled();
+ });
  it("accepts the canonical production mutation while retaining account and SQL authority",async()=>{
   hostedRuntime();const blocked={status:"blocked",feed:emptyFeed,code:"naming_runtime_unavailable",message:"Naming is not configured.",action:"configure"};
   mock.rpc.mockImplementation(async(name:string)=>({data:name==="get_hosted_naming_availability"?hostedAvailable:blocked,error:null}));

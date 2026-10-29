@@ -106,7 +106,7 @@ export async function ensureNextNamingRun(auth: AuthenticatedContext, projectId:
  const preferences=namingPreferencesV2Schema.safeParse(saved.data.preferences);
  if(!preferences.success || !getNamingPreferencesReadiness(preferences.data).ready) return parse(namingFeedEnsureResultSchema,{
   status:"blocked",feed:await getNamingFeed(auth,projectId),code:"preferences_incomplete",message:"Review your saved naming approaches, directness, text constraints and length limits before continuing.",action:"review_preferences"});
- const admission = isSharedWorkerRuntime() ? "ensure_shared_naming_brain_run" : isLocalPollingRuntime() ? "ensure_local_naming_brain_run" : isHostedNamingRuntime() ? "ensure_hosted_naming_brain_run" : "ensure_naming_brain_run";
+ const admission = isSharedWorkerRuntime() ? "ensure_shared_naming_brainstorm_run" : isLocalPollingRuntime() ? "ensure_local_naming_brain_run" : isHostedNamingRuntime() ? "ensure_hosted_naming_brain_run" : "ensure_naming_brain_run";
  const result = await rpc(auth, admission, { p_project_id: projectId, p_intent: parsed }, namingFeedEnsureResultSchema);
  return { ...result, feed: await verifyFeed(auth, projectId, result.feed) };
 }

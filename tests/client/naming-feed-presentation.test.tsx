@@ -2,7 +2,9 @@
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { expect, it, vi } from "vitest";
-import { NamingFeedResults } from "@/components/naming/naming-feed-results";
+import { NamingFeedResults, NamingFeedTail } from "@/components/naming/naming-feed-results";
+import { ProjectNameCard } from "@/components/naming/naming-results";
+import { NAMING_BRAINSTORM_CAUTION } from "@/domain/naming-brainstorm";
 import { contextSnapshotSchema } from "@/domain/projects";
 import { nameIdentityKey, namingStrategyBasis, namingStrategyKey, type ProjectNameEntry } from "@/domain/project-naming";
 import type { useNamingFeed } from "@/components/naming/use-naming-feed";
@@ -18,4 +20,32 @@ it("keeps favorite feedback usable while generation runs and offers no ordinary 
     expect(favorite.disabled).toBe(false); await act(async () => favorite.click()); expect(onRetain).toHaveBeenCalledWith(entry, "favorite");
     expect(host.textContent).toContain("Exploring your next names"); expect(host.textContent).not.toMatch(/Generate \d+|Regenerate|Load more/);
   } finally { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); }
+});
+it("labels saved brainstorm results honestly in compact and full cards while retaining favorite controls",async()=>{
+ vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT",true);
+ const context=contextSnapshotSchema.parse({description:"Synthetic unchecked presentation"}),ownerId="a0000000-0000-4000-8000-000000000001",projectId="b0000000-0000-4000-8000-000000000001",candidateId="c0000000-0000-4000-8000-000000000001",createdAt="2026-10-29T18:00:00Z";
+ const entry:ProjectNameEntry={candidate:{id:candidateId,ownerId,projectId,value:"Juniper",identityKey:nameIdentityKey("Juniper"),rationale:"A proposed nature association.",caution:NAMING_BRAINSTORM_CAUTION,verificationNotes:[],contextRevision:1,strategyBasis:namingStrategyBasis(context),strategyKey:namingStrategyKey(context),createdAt,origin:{kind:"brainstorm",version:1,profile:"brainstorm_v1",ownerId,projectId,candidateId,contextRevision:1,value:"Juniper",batchId:candidateId,jobId:candidateId,runId:candidateId,callId:candidateId,responseId:"resp_synthetic",requestId:null,model:"synthetic-model",generatedAt:createdAt}},retention:{ownerId,projectId,candidateId,revision:0,favorite:false,saved:false,updatedAt:null}};
+ const favorite=vi.fn(),host=document.createElement("div"),root=createRoot(host);document.body.append(host);
+ try{
+  for(const compact of [true,false]){
+   await act(async()=>root.render(createElement(ProjectNameCard,{entry,compact,selected:false,earlierContext:false,pending:false,blockSelection:false,onFavorite:favorite,onSave:vi.fn(),onSelect:vi.fn(),onWorkshop:vi.fn(),onInspect:vi.fn()})));
+   expect(host.textContent).toContain("Unchecked brainstorm");
+   expect(host.textContent).not.toMatch(/Verified origin|Researched etymology|Curator approved/);
+   await act(async()=>host.querySelector<HTMLButtonElement>('[aria-label="Favorite Juniper"]')!.click());
+  }
+  expect(favorite).toHaveBeenCalledTimes(2);
+ }finally{await act(async()=>root.unmount());host.remove();vi.unstubAllGlobals();}
+});
+it("shows the saved initial set and honest approach shortfall without promising automatic further generation",async()=>{
+ vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT",true);
+ const feed={entries:[{}],state:{status:"ready",feed:{activeRun:{generationProfile:"brainstorm_v1",state:"succeeded",progress:100,fulfillment:{acceptedCount:100,coverageSatisfied:false}},availability:{status:"available"}}}}as unknown as ReturnType<typeof useNamingFeed>;
+ const host=document.createElement("div"),root=createRoot(host);document.body.append(host);
+ try{
+  await act(async()=>root.render(createElement(NamingFeedTail,{feed,blocked:false,onModify:vi.fn()})));
+  expect(host.textContent).toContain("100 unchecked brainstorm names are saved");
+  expect(host.textContent).toContain("Research your shortlist before use");
+  expect(host.textContent).toContain("Some selected naming approaches have fewer examples");
+  expect(host.textContent).not.toMatch(/Keep scrolling|Regenerate|Verified/);
+  expect(host.querySelectorAll("button")).toHaveLength(0);
+ }finally{await act(async()=>root.unmount());host.remove();vi.unstubAllGlobals();}
 });

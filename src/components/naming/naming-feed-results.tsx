@@ -60,6 +60,7 @@ function NamingFeedCurrentStatus({ feed, blocked, onModify, onReviewSaved }: Nam
     <p>{active.state === "queued" ? "Preparing your next names…" : active.state === "cancel_requested" ? "Stopping at a safe point. Completed names stay saved." : "Exploring your next names…"}</p>
     <button className="text-link" type="button" onClick={() => void feed.stop()} disabled={active.state === "cancel_requested"}>Stop exploration</button>
   </>;
+  if (active?.generationProfile === "brainstorm_v1" && active.state === "succeeded") return <p>{active.fulfillment?.acceptedCount ?? active.progress} unchecked brainstorm names are saved. Research your shortlist before use.{active.fulfillment?.coverageSatisfied === false ? " Some selected naming approaches have fewer examples." : ""}</p>;
   if (active && ["partial", "failed", "cancelled", "needs_reconciliation"].includes(active.state)) return <>
     {incompleteSummary}{reviewSaved}
     <p>{terminalMessage(active.state)}</p>
