@@ -48,11 +48,12 @@ describe("atomic shared production composition on native PostgreSQL", () => {
   // The prepared production bundle contains none of these migrations/incidents.
   const names = readdirSync("supabase/migrations").filter(n => n.endsWith(".sql")).sort((a, b) => a.replace(/^local/, "").localeCompare(b.replace(/^local/, "")));
   for (const migration of names) sql(readFileSync("supabase/migrations/" + migration, "utf8"));
-  for (const packet of ["candidates/logo_worker_storage.sql", "candidates/logo_production_storage.sql", "activation/logo_production_storage.sql", "candidates/logo_generative_storage.sql", "activation/logo_generative_storage.sql", "candidates/logo_local_concepts.sql", "activation/logo_concepts_50_publication_adjudication.sql", "candidates/logo_local_refinements.sql"]) sql(readFileSync("supabase/" + packet, "utf8"));
+  for (const packet of ["candidates/logo_worker_storage.sql", "candidates/logo_generative_storage.sql", "candidates/logo_local_concepts.sql", "activation/logo_concepts_50_publication_adjudication.sql", "candidates/logo_local_refinements.sql"]) sql(readFileSync("supabase/" + packet, "utf8"));
   sql(`insert into auth.users(id,email_confirmed_at) values('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',clock_timestamp()),('cccccccc-cccc-4ccc-8ccc-cccccccccccc',clock_timestamp());
    create role fixture_legacy_logo login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
    insert into fluid_private.logo_worker_principals select rolname,oid,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' from pg_roles where rolname='fixture_legacy_logo';
    insert into fluid_private.logo_storage_principals select 'cccccccc-cccc-4ccc-8ccc-cccccccccccc','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',rolname,oid,'synthetic-legacy-worker',false from pg_roles where rolname='fixture_legacy_logo';`);
+  expect(sql("select to_regprocedure('fluid_private.logo_production_storage_member(public.jobs,public.logo_asset_publications,text)') is null and to_regclass('fluid_private.logo_production_storage_capabilities') is null and to_regprocedure('public.authorize_logo_production_storage(uuid,uuid,uuid,text)') is null;")).toBe("t");
   catalog = readInventory(); input = { target, catalog };
  }, 90_000);
  afterAll(() => { if (created) docker(["rm", "--force", name]); });
@@ -66,6 +67,7 @@ describe("atomic shared production composition on native PostgreSQL", () => {
   expect(bundle.sql).not.toContain("SOURCE logo_concepts_50_publication_adjudication.sql");
   expect(bundle.postInstallPackets).toEqual(POST_INSTALL_PACKETS);
   expect(bundle.sql.indexOf("-- POST-INSTALL shared_storage_download_metadata.sql")).toBeGreaterThan(bundle.sql.indexOf("-- SOURCE shared_identity_generation.sql"));
+  expect(bundle.sql.indexOf("-- POST-INSTALL shared_logo_storage_member.sql")).toBeGreaterThan(bundle.sql.indexOf("-- POST-INSTALL shared_storage_download_metadata.sql"));
   for (const name of PACKET_NAMES) expect(bundle.sql).toContain(stripReviewedTransactionEnvelope(readFileSync("supabase/candidates/" + name, "utf8"), PACKET_SHA256[name]));
   expect(() => sql(bundle.sql.replace(/COMMIT;\n$/, "SELECT 1/0;\nCOMMIT;\n"))).toThrow();
   expect(readInventory()).toEqual(catalog);
@@ -101,6 +103,7 @@ describe("atomic shared production composition on native PostgreSQL", () => {
   expect(output.includes(gate)).toBe(true);
   expect(sql("select to_regclass('fluid_private.shared_http_target') is null and not exists(select 1 from pg_policy where polname='embel_shared_customer_storage_live');")).toBe("t");
   expect(await done).toBe(0);
+  expect(sql("select exists(select 1 from pg_proc where oid=to_regprocedure('fluid_private.logo_production_storage_member(public.jobs,public.logo_asset_publications,text)') and encode(sha256(convert_to(prosrc,'UTF8')),'hex')='4daa68465c9c0ed4cb36223d8348d3d1b78c2bb8c0cdff889eb4f567e5e3d0ee') and to_regclass('fluid_private.logo_production_storage_capabilities') is null and to_regprocedure('public.authorize_logo_production_storage(uuid,uuid,uuid,text)') is null;")).toBe("t");
   const readPolicies = JSON.parse(sql("select jsonb_agg(jsonb_build_object('name',polname,'expression',pg_get_expr(polqual,polrelid)) order by polname) from pg_policy where polrelid='storage.objects'::regclass and polname in('embel_shared_storage_read','embel_shared_storage_read_fence');"));
   expect(readPolicies).toHaveLength(2);
   for (const policy of readPolicies) { expect(policy.expression).toContain("object.get_authenticated_info"); expect(policy.expression).toContain("shared_storage_object_allowed"); }

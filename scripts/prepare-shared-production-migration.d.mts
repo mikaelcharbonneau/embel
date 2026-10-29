@@ -14,7 +14,7 @@ export const PRODUCTION_ORIGIN: "https://fricsfwqibyhemknqgyf.supabase.co";
 export const PACKET_NAMES: SharedProductionPacketName[];
 export const PACKET_SHA256: Readonly<Record<SharedProductionPacketName, string>>;
 export const POST_INSTALL_PACKETS: readonly Readonly<{
-  name: "shared_storage_download_metadata.sql";
+  name: "shared_storage_download_metadata.sql" | "shared_logo_storage_member.sql";
   sha256: string;
 }>[];
 export const INVENTORY_EXPRESSION: string;

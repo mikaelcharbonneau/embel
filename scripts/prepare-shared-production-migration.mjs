@@ -23,7 +23,7 @@ export const PACKET_SHA256=Object.freeze({
 });
 // Additive post-install corrections run after all ten immutable shared packets.
 // They never rewrite a predecessor and are not used by non-shared installers.
-export const POST_INSTALL_PACKETS=Object.freeze([{name:'shared_storage_download_metadata.sql',sha256:'d7c32eff52cea335be05391ea0fdd33c8588193ad641b09cb00bf5f88d3b8cd6'}]);
+export const POST_INSTALL_PACKETS=Object.freeze([{name:'shared_storage_download_metadata.sql',sha256:'d7c32eff52cea335be05391ea0fdd33c8588193ad641b09cb00bf5f88d3b8cd6'},{name:'shared_logo_storage_member.sql',sha256:'6761a0c7dc7d605f20fee3233c7a50843be38b1410849efdb26806ed942f53f1'}]);
 const sha=value=>createHash('sha256').update(value).digest('hex');
 const fail=code=>{throw new Error(code);};
 const quote=value=>"'"+String(value).replaceAll("'","''")+"'";
