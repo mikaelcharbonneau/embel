@@ -20,7 +20,7 @@ let delivery: unknown[], current: unknown;
 beforeEach(() => {
   vi.resetAllMocks(); vi.stubEnv("APP_ORIGIN", "https://fluid.example"); vi.stubEnv("VERCEL", "1");
   current = job; delivery = [{ job, dispatchState: "dispatch_pending", canRetryDelivery: true, dispatch }];
-  mock.auth.mockResolvedValue({ userId: owner, client: { rpc: mock.rpc, from: mock.from } });
+  mock.auth.mockResolvedValue({ userId: owner, client: { rpc: (name: string, args: unknown) => name === "get_strategy_job_summaries" ? Promise.resolve({ data: current ? [current] : [], error: null }) : mock.rpc(name, args), from: mock.from } });
   mock.rpc.mockImplementation(async () => ({ data: delivery, error: null }));
   mock.publish.mockResolvedValue({ state: "published", messageId: "synthetic" });
   mock.from.mockImplementation((table: string) => {

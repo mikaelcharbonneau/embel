@@ -112,7 +112,7 @@ export function createSharedAdvancedLogoStorageAuthorization(input:{targetOrigin
   await verify(s,mode!=="observe");const returned=await grant(job,row,mode,s,p??(mode==="read"?null:undefined));
   if(mode!=="read"){p=publication(job,row,returned);if(raw&&!isDeepStrictEqual(p,raw))throw storageUnavailable();}
   const read=async(currentSignal?:AbortSignal)=>{const current=signal(AbortSignal.any([s,...currentSignal?[currentSignal]:[]])),readMode=p?"observe":"read";
-   await grant(job,row,readMode,current,p??null);const response=await request("/storage/v1/object/fluid-assets/"+row.storagePath,{method:"GET",headers:{"accept-encoding":"identity"}},current,row.byteLength,!p);
+   await grant(job,row,readMode,current,p??null);const response=await request("/storage/v1/object/authenticated/fluid-assets/"+row.storagePath,{method:"GET",headers:{"accept-encoding":"identity"}},current,row.byteLength,!p);
    if(response.status!==200)throw storageUnavailable();const mime=new MIMEType(response.headers.get("content-type")??"").essence,bytes=new Uint8Array(await response.arrayBuffer());
    await validate(row,bytes,mime,current,p??null);await grant(job,row,readMode,current,p??null);return{bytes,mimeType:mime};};
   if(mode!=="write")return Object.freeze({read});

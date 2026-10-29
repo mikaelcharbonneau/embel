@@ -3,7 +3,7 @@ import { z } from "zod";
 import {
   applyStrategyJobSchema, applyStrategyJobResponseSchema, enqueueStrategyJobSchema,
   strategyAvailabilitySchema, strategyJobSchema, strategyJobResultSchema, strategyJobSummarySchema, strategyJobApplicationSchema,
-  strategyOperationSchema, strategyOverviewResponseSchema, subscriptionPolicyIdentitySchema,
+  strategyOverviewResponseSchema, subscriptionPolicyIdentitySchema,
   type StrategyJob, type StrategyJobApplication,
 } from "@/domain/strategy-jobs";
 import type { AuthenticatedContext } from "../auth/context";
@@ -14,9 +14,14 @@ import { getApiTextPublicationOrigin, isLocalPollingRuntime } from "../api-text/
 import { getApiTextWorkerReadiness } from "../api-text/readiness";
 import { isSharedWorkerRuntime } from "../shared-account/routing";
 
-// PostgREST aliases project only the immutable contract metadata, rather than
-// loading every frozen context/history when listing account jobs.
-const jobColumns = "id,owner_id,project_id,operation,input_revision,input_version:input->version,input_spend_control:input->>spendControl,input_policy_identity:input->>policyIdentity,state,progress,billing_mode,policy_identity,reserved_cost_microusd,actual_cost_microusd,cancel_requested_at,error_code,created_at,finished_at";
+// JSON-path SELECT still requires access to the whole input column. This
+// owner-scoped facade exposes only public summaries and three contract fields.
+async function readJobSummaries(auth: AuthenticatedContext, projectId: string, jobId: string | null) {
+  const { data, error } = await auth.client.rpc("get_strategy_job_summaries", { p_project_id: projectId, p_job_id: jobId });
+  databaseError(error);
+  const rows = parseStored(z.array(z.unknown()).max(jobId === null ? 64 : 1), data);
+  return rows.map(row => ownSummary(auth, projectId, row));
+}
 const stepSchema = z.object({
   job_id: z.uuid(), owner_id: z.uuid(), project_id: z.uuid(), step_key: z.string().min(1).max(200),
   state: z.literal("succeeded"), output: strategyJobResultSchema,
@@ -148,21 +153,14 @@ export async function getStrategyOverview(auth: AuthenticatedContext, projectId:
   resourceId(projectId);
   // This RPC checks project ownership even when no jobs exist.
   const availability = await getStrategyAvailability(auth, projectId);
-  const { data, error } = await auth.client.from("jobs").select(jobColumns)
-    .eq("owner_id", auth.userId).eq("project_id", projectId).in("operation", strategyOperationSchema.options)
-    .order("created_at", { ascending: false }).limit(64);
-  databaseError(error);
-  const rows = parseStored(z.array(z.unknown()).max(64), data).map(row => ownSummary(auth, projectId, row));
+  const rows = await readJobSummaries(auth, projectId, null);
   return parseStored(strategyOverviewResponseSchema, { availability, jobs: await withResults(auth, projectId, await withDelivery(auth, projectId, rows)) });
 }
 
 export async function getStrategyJob(auth: AuthenticatedContext, projectId: string, jobId: string, includeDelivery = true) {
   resourceId(projectId); resourceId(jobId);
-  const { data, error } = await auth.client.from("jobs").select(jobColumns)
-    .eq("id", jobId).eq("owner_id", auth.userId).eq("project_id", projectId).in("operation", strategyOperationSchema.options).maybeSingle();
-  databaseError(error);
-  if (!data) throw new ApiError("not_found");
-  const summary = ownSummary(auth, projectId, data);
+  const [summary] = await readJobSummaries(auth, projectId, jobId);
+  if (!summary) throw new ApiError("not_found");
   if (summary.id !== jobId) throw new ApiError("not_found");
   return (await withResults(auth, projectId, includeDelivery ? await withDelivery(auth, projectId, [summary]) : [summary]))[0]!;
 }

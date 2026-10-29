@@ -118,10 +118,11 @@ export function createSharedLogoStorageAuthorization(input: SharedLogoStorageAut
     await inspectIdentityRaster(bytes, mime, s); s.throwIfAborted();
    }
    const path = `/storage/v1/object/fluid-assets/${row.storagePath}`;
+   const downloadPath = `/storage/v1/object/authenticated/fluid-assets/${row.storagePath}`;
    const read = async (callerSignal?: AbortSignal) => {
     const s = signal(callerSignal ? AbortSignal.any([operation, callerSignal]) : operation), readMode = p ? "observe" : "read";
     await grant(job, row, readMode, s, p);
-    const response = await request(path, { method: "GET", headers: { "accept-encoding": "identity" } }, s, row.byteLength, !p);
+    const response = await request(downloadPath, { method: "GET", headers: { "accept-encoding": "identity" } }, s, row.byteLength, !p);
     if (response.status !== 200) throw storageUnavailable();
     const mime = new MIMEType(response.headers.get("content-type") ?? "").essence, bytes = new Uint8Array(await response.arrayBuffer());
     await validate(bytes, mime, s); await grant(job, row, readMode, s, p); return { bytes, mimeType: mime };
