@@ -30,7 +30,7 @@ describe("subscription server mapping and owner-scoped partials", () => {
       };
       return query;
     };
-    auth = { userId: owner, client: { rpc, from } } as unknown as AuthenticatedContext;
+    auth = { userId: owner, client: { rpc: (name: string, args: unknown) => name === "get_strategy_job_summaries" ? Promise.resolve({ data: rows.jobs!.slice(0, 1), error: null }) : rpc(name, args), from } } as unknown as AuthenticatedContext;
   });
 
   it("enqueues only the subscription operation/revision and strips structural money and internal columns", async () => {

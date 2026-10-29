@@ -58,9 +58,9 @@ export async function createSharedStorageFixture() {
   let lease = sharedSlotLeaseSchema.parse(await scoped(roleName, async () => (await db.query<{ value: unknown }>("select public.claim_shared_worker_slot($1,$2,$3,120) value", [slotId, randomUUID(), deploymentId])).rows[0]!.value));
   const verifySession = () => auth(async () => (await db.query<{ value: unknown }>("select public.shared_logo_storage_session() value")).rows[0]!.value);
   await verifySession();
-  async function takeover() {
-   await db.query("update fluid_private.shared_worker_slots set expires_at=clock_timestamp()-interval '1 second' where slot_id=$1", [slotId]);
-   lease = sharedSlotLeaseSchema.parse(await scoped(roleName, async () => (await db.query<{ value: unknown }>("select public.claim_shared_worker_slot($1,$2,$3,120) value", [slotId, randomUUID(), deploymentId])).rows[0]!.value));
+  async function takeover(nextDeployment = deploymentId) {
+   await db.query("update fluid_private.shared_worker_slots set expires_at=clock_timestamp()-interval '1 second',deployment_id=$2 where slot_id=$1", [slotId,nextDeployment]);
+   lease = sharedSlotLeaseSchema.parse(await scoped(roleName, async () => (await db.query<{ value: unknown }>("select public.claim_shared_worker_slot($1,$2,$3,120) value", [slotId, randomUUID(), nextDeployment])).rows[0]!.value));
    await verifySession(); return lease;
   }
   async function action(execution: SharedExecution | null, name: string, args: unknown[], captured = lease) {

@@ -36,7 +36,7 @@ function fixture(){
    return Response.json({version:1,slotId:execution.slotId,instanceId:execution.instanceId,generation:execution.generation,roleName:initial.roleName,roleOid:initial.roleOid,authUserId,sessionId,execution,
     ownerId:state.forgedOwner?id(99):job.ownerId,projectId:job.projectId,jobId:job.id,leaseToken:job.leaseToken,inputRevision:1,jobInput:job.input,capability,mode:body.p_mode,
     member:body.p_mode==="probe"?null:"output",reservation:body.p_mode==="probe"?null:reservation,publication:body.p_mode==="probe"?null:publication});}
-  expect(url.pathname).toBe("/storage/v1/object/fluid-assets/"+reservation.storagePath);
+  expect(url.pathname).toBe("/storage/v1/object/"+(init?.method === "POST" ? "" : "authenticated/")+"fluid-assets/"+reservation.storagePath);
   if(init?.method==="POST"){state.uploaded=true;return Response.json({Id:id(16),Key:"fluid-assets/"+reservation.storagePath});}
   expect(state.uploaded).toBe(true);return new Response(Buffer.from(bytes),{headers:{"content-type":"application/json; charset=utf-8"}});
  });

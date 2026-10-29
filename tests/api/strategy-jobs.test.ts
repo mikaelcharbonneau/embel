@@ -3,7 +3,7 @@ import { contextSnapshotSchema } from "../../src/domain/projects";
 import { DEFAULT_SUBSCRIPTION_LIMITS } from "../../src/domain/strategy-jobs";
 
 vi.mock("server-only", () => ({}));
-const doubles = vi.hoisted(() => ({ auth: vi.fn(), rpc: vi.fn(), from: vi.fn(), eq: vi.fn(), select: vi.fn(), within: vi.fn(), publish: vi.fn(), readiness: vi.fn() }));
+const doubles = vi.hoisted(() => ({ auth: vi.fn(), rpc: vi.fn(), summaries: vi.fn(), from: vi.fn(), eq: vi.fn(), select: vi.fn(), within: vi.fn(), publish: vi.fn(), readiness: vi.fn() }));
 vi.mock("../../src/server/api-text/publication", () => ({ publishApiTextDispatch: doubles.publish }));
 vi.mock("../../src/server/api-text/readiness", () => ({ getApiTextWorkerReadiness: doubles.readiness }));
 vi.mock("../../src/server/auth/context", () => ({ getAuthenticatedContext: doubles.auth }));
@@ -54,8 +54,9 @@ describe("strategy API authorization, bounded inputs and actual durable outputs"
     vi.stubEnv("VERCEL_PROJECT_ID", "prj_WKrFUPy3wptZ3qI9l1hTuqPmzkDt");
     vi.stubEnv("FLUID_API_TEXT_WORKER_ORIGIN", "https://fluid-api-text-worker-qualified.vercel.app");
     rows = { jobs: [job], job_steps: [], strategy_job_applications: [] };
-    doubles.auth.mockResolvedValue({ userId: ownerId, client: { rpc: doubles.rpc, from: doubles.from } });
+    doubles.auth.mockResolvedValue({ userId: ownerId, client: { rpc: (name: string, args: { p_job_id?: string | null }) => name === "get_strategy_job_summaries" ? doubles.summaries(args) : doubles.rpc(name, args), from: doubles.from } });
     doubles.rpc.mockImplementation(async (name: string) => ({ data: name === "get_strategy_availability" ? available : { ...job, dispatch }, error: null }));
+    doubles.summaries.mockImplementation(async (args: { p_job_id: string | null }) => ({ data: args.p_job_id === null ? rows.jobs : rows.jobs.slice(0, 1), error: null }));
     doubles.publish.mockResolvedValue({ state: "published", messageId: "synthetic_queue_message" });
     doubles.readiness.mockResolvedValue({ version: 1, deploymentId: "dpl_synthetic", operations: ["strategy.reformulate"] });
     doubles.from.mockImplementation((table: keyof typeof rows) => {
@@ -109,14 +110,34 @@ describe("strategy API authorization, bounded inputs and actual durable outputs"
     const payload = await single.json();
     expect(payload.job).toMatchObject({ id: jobId, billingMode: "openai_api", spendControl: "uncapped", policyIdentity: identity });
     expect(payload.job).not.toHaveProperty("input"); expect(payload.job).not.toHaveProperty("input_version");
-    const projections = doubles.select.mock.calls.filter(([table]) => table === "jobs").map(([, columns]) => String(columns));
-    expect(projections.length).toBeGreaterThanOrEqual(2);
-    for (const columns of projections) {
-      expect(columns.split(",")).not.toContain("input");
-      expect(columns).toContain("input_version:input->version");
-      expect(columns).toContain("input_spend_control:input->>spendControl");
-      expect(columns).toContain("input_policy_identity:input->>policyIdentity");
-    }
+    expect(doubles.summaries).toHaveBeenNthCalledWith(1, { p_project_id: projectId, p_job_id: null });
+    expect(doubles.summaries).toHaveBeenNthCalledWith(2, { p_project_id: projectId, p_job_id: jobId });
+    expect(doubles.select.mock.calls.some(([table]) => table === "jobs")).toBe(false);
+  });
+
+  it("returns an empty shared overview without ever selecting raw job input", async () => {
+    vi.stubEnv("EMBEL_SHARED_WORKERS_ENABLED", "true");
+    rows.jobs = [];
+    const configured = { status: "available", operations: ["strategy.reformulate", "strategy.competitors", "strategy.audience", "strategy.personality"].map(operation => ({ operation, billingMode: "openai_api", spendControl: "uncapped", policyIdentity: "e".repeat(64), interviewVersion: 1 })) };
+    doubles.rpc.mockResolvedValue({ data: configured, error: null });
+    const response = await overview(request(undefined, "GET"), params());
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ availability: configured, jobs: [] });
+    expect(doubles.rpc).toHaveBeenCalledExactlyOnceWith("get_shared_strategy_availability", { p_project_id: projectId });
+    expect(doubles.summaries).toHaveBeenCalledExactlyOnceWith({ p_project_id: projectId, p_job_id: null });
+    expect(doubles.from).not.toHaveBeenCalled();
+    expect(doubles.publish).not.toHaveBeenCalled();
+  });
+
+  it.each(["42501", "PGRST202"])("does not fall back to raw input when metadata RPC fails (%s)", async code => {
+    doubles.summaries.mockResolvedValue({ data: null, error: { code } });
+    expect((await getJob(request(undefined, "GET"), params())).status).toBe(503);
+    expect(doubles.from).not.toHaveBeenCalled();
+  });
+
+  it("refuses multiple results for an exact-job read", async () => {
+    doubles.summaries.mockResolvedValue({ data: [job, job], error: null });
+    expect((await getJob(request(undefined, "GET"), params())).status).toBe(503);
   });
 
   it("refuses malformed projected v3 metadata instead of relabelling it as a bounded job", async () => {
@@ -214,8 +235,7 @@ describe("strategy API authorization, bounded inputs and actual durable outputs"
     const projectResponse = await overview(request(undefined, "GET"), params());
     expect(await projectResponse.json()).toEqual({ availability: available, jobs: [{ ...job, results: [] }] });
     expect(doubles.rpc).toHaveBeenCalledWith("get_strategy_availability", { p_project_id: projectId });
-    expect(doubles.eq).toHaveBeenCalledWith("jobs", "owner_id", ownerId);
-    expect(doubles.eq).toHaveBeenCalledWith("jobs", "project_id", projectId);
+    expect(doubles.summaries).toHaveBeenCalledWith({ p_project_id: projectId, p_job_id: null });
     doubles.auth.mockRejectedValueOnce(new ApiError("unauthenticated"));
     expect((await runtime()).status).toBe(401);
   });

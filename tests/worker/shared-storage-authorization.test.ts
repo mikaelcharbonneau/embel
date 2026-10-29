@@ -24,7 +24,7 @@ describe("shared Storage HTTP adapter (mock HTTP, actual disposable SQL/RLS; syn
      [body.p_execution, body.p_execution_token, body.p_job, body.p_lease, body.p_reservation, body.p_mode])).rows[0]!.value, claims);
     return Response.json(corruptProof ? { ...result, ownerId: "11111111-1111-4111-8111-111111111111" } : result);
    }
-   expect(url.pathname).toBe(`/storage/v1/object/fluid-assets/${p.reservation.storagePath}`);
+   expect(url.pathname).toBe(`/storage/v1/object/${init?.method === "POST" ? "" : "authenticated/"}fluid-assets/${p.reservation.storagePath}`);
    if (init?.method === "POST") {
     expect(headers.get("x-upsert")).toBe("false"); expect(headers.has("authorization")).toBe(true);
     try { await f.put(p.reservation); }
@@ -82,4 +82,22 @@ describe("shared Storage HTTP adapter (mock HTTP, actual disposable SQL/RLS; syn
   await expect(p.authorization.authorizeWrite({ ...p.scope, job: { ...p.job, status: "needs_reconciliation" } })).rejects.toThrow();
   expect(p.transport.mock.calls.filter(([url, init]) => String(url).includes("/storage/v1/") && init?.method === "POST")).toHaveLength(1);
  });
+ it("recovers only the original object after a real SQL deployment/generation takeover", async () => {
+  const p = await fixture(), object = await p.authorization.authorizeWrite(p.scope);
+  await object.putIfAbsent(p.bytes, "image/png");
+  const admissionBefore = (await f.db.query("select to_jsonb(a) value from fluid_private.shared_job_admissions a where job_id=$1", [p.job.id])).rows;
+  const frozen = p.job.input as { slotId: string; attemptId: string }, key = `logo-preview-v1:${frozen.slotId}:${frozen.attemptId}`;
+  await f.action(p.execution, "begin", [p.job.id, p.job.leaseToken, key, `fixture:${p.job.id}`, p.job.reservedCostMicrousd]);
+  await f.action(p.execution, "complete", [p.job.id, p.job.leaseToken, key, "ambiguous", 0, JSON.stringify({ error: "publication_unknown" }), null]);
+  await f.takeover("dpl_corrected_storage_fixture");
+  const actualJob = { ...p.job, status: "needs_reconciliation" as const, leaseToken: null };
+  const reader = await p.authorization.authorizeObservedOutput({ ...p.scope, job: actualJob, observationLeaseToken: p.execution.leaseToken });
+  expect((await reader.read()).bytes).toEqual(new Uint8Array(p.bytes));
+  expect((await f.db.query("select to_jsonb(a) value from fluid_private.shared_job_admissions a where job_id=$1", [p.job.id])).rows).toEqual(admissionBefore);
+  expect((await f.db.query("select state from public.job_steps where job_id=$1", [p.job.id])).rows).toEqual([{ state: "ambiguous" }]);
+  expect((await f.db.query("select count(*)::int n from public.logo_raster_results where job_id=$1", [p.job.id])).rows).toEqual([{ n: 0 }]);
+  await expect(p.authorization.authorizeWrite({ ...p.scope, job: actualJob })).rejects.toThrow();
+  expect(p.transport.mock.calls.filter(([url, init]) => String(url).includes("/storage/v1/") && init?.method === "POST")).toHaveLength(1);
+ });
+
 });
