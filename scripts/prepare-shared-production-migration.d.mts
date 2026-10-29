@@ -6,11 +6,17 @@ export type SharedProductionPacketName =
   | "shared_worker_naming.sql"
   | "shared_worker_logo.sql"
   | "shared_storage_authority.sql"
-  | "shared_logo_http.sql";
+  | "shared_logo_http.sql"
+  | "shared_logo_advanced.sql"
+  | "shared_identity_generation.sql";
 
 export const PRODUCTION_ORIGIN: "https://fricsfwqibyhemknqgyf.supabase.co";
 export const PACKET_NAMES: SharedProductionPacketName[];
 export const PACKET_SHA256: Readonly<Record<SharedProductionPacketName, string>>;
+export const POST_INSTALL_PACKETS: readonly Readonly<{
+  name: "shared_storage_download_metadata.sql";
+  sha256: string;
+}>[];
 export const INVENTORY_EXPRESSION: string;
 export const READ_ONLY_INVENTORY_SQL: string;
 export const READ_ONLY_PREREQUISITE_SQL: string;
@@ -22,6 +28,7 @@ export interface PreparedSharedProductionMigration {
   readonly sha256: string;
   readonly packets: SharedProductionPacketName[];
   readonly sourceHashes: Readonly<Record<SharedProductionPacketName, string>>;
+  readonly postInstallPackets: typeof POST_INSTALL_PACKETS;
   readonly target: typeof PRODUCTION_ORIGIN;
   readonly requiresReviewedConnection: true;
 }

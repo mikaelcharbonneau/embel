@@ -3,7 +3,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { composeSharedProductionMigration, READ_ONLY_INVENTORY_SQL, READ_ONLY_PREREQUISITE_SQL, PRODUCTION_ORIGIN,
- PACKET_NAMES, PACKET_SHA256, stripReviewedTransactionEnvelope } from "../../scripts/prepare-shared-production-migration.mjs";
+ PACKET_NAMES, PACKET_SHA256, POST_INSTALL_PACKETS, stripReviewedTransactionEnvelope } from "../../scripts/prepare-shared-production-migration.mjs";
 
 const digest = (source: string) => createHash("sha256").update(source).digest("hex");
 describe("reviewed packet transaction envelope", () => {
@@ -64,6 +64,9 @@ describe("atomic shared production composition on native PostgreSQL", () => {
  it("selects ten proven-missing packets and atomically rolls back every DDL/issuer/classification on a final failure", () => {
   const bundle = composeSharedProductionMigration(input); expect(bundle.packets).toEqual(PACKET_NAMES); expect(bundle.packets).toHaveLength(10);
   expect(bundle.sql).not.toContain("SOURCE logo_concepts_50_publication_adjudication.sql");
+  expect(bundle.postInstallPackets).toEqual(POST_INSTALL_PACKETS);
+  expect(bundle.sql.indexOf("-- POST-INSTALL shared_storage_download_metadata.sql")).toBeGreaterThan(bundle.sql.indexOf("-- SOURCE shared_identity_generation.sql"));
+  for (const name of PACKET_NAMES) expect(bundle.sql).toContain(stripReviewedTransactionEnvelope(readFileSync("supabase/candidates/" + name, "utf8"), PACKET_SHA256[name]));
   expect(() => sql(bundle.sql.replace(/COMMIT;\n$/, "SELECT 1/0;\nCOMMIT;\n"))).toThrow();
   expect(readInventory()).toEqual(catalog);
   expect(sql("select to_regclass('fluid_private.shared_accounts') is null and not exists(select 1 from pg_policy where polname='embel_shared_customer_storage_live');")).toBe("t");
@@ -98,6 +101,9 @@ describe("atomic shared production composition on native PostgreSQL", () => {
   expect(output.includes(gate)).toBe(true);
   expect(sql("select to_regclass('fluid_private.shared_http_target') is null and not exists(select 1 from pg_policy where polname='embel_shared_customer_storage_live');")).toBe("t");
   expect(await done).toBe(0);
+  const readPolicies = JSON.parse(sql("select jsonb_agg(jsonb_build_object('name',polname,'expression',pg_get_expr(polqual,polrelid)) order by polname) from pg_policy where polrelid='storage.objects'::regclass and polname in('embel_shared_storage_read','embel_shared_storage_read_fence');"));
+  expect(readPolicies).toHaveLength(2);
+  for (const policy of readPolicies) { expect(policy.expression).toContain("object.get_authenticated_info"); expect(policy.expression).toContain("shared_storage_object_allowed"); }
   expect(sql(`select exists(select 1 from fluid_private.shared_http_target where singleton and mode='hosted' and origin='${PRODUCTION_ORIGIN}') and exists(select 1 from fluid_private.shared_storage_target where singleton and origin='${PRODUCTION_ORIGIN}') and exists(select 1 from fluid_private.shared_service_actors where auth_user_id='cccccccc-cccc-4ccc-8ccc-cccccccccccc' and purpose='legacy_logo_storage') and exists(select 1 from pg_policy where polname='embel_shared_customer_storage_live');`)).toBe("t");
   expect(() => composeSharedProductionMigration({ target, catalog: readInventory() })).toThrow("existing_shared_install_unknown");
  }, 30_000);
