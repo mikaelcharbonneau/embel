@@ -2,6 +2,7 @@ import { captureUiEvidence } from "./ui-evidence";
 import { expect, test, type Page, type Route, type Locator } from "@playwright/test";
 import { accountProjectSchema } from "../../src/domain/project-api";
 import { contextSnapshotSchema } from "../../src/domain/projects";
+import { emptyLogoWorkspace } from "../fixtures/empty-logo-workspace";
 
 // Synthetic, intercepted account fixtures only. No live auth, persistence, or generation.
 const ownerA = "aaaaaaaa-1111-4111-8111-111111111111";
@@ -105,6 +106,7 @@ async function accountFixtures(page: Page, initial = [idea()]) {
     }
     const project = state.projects.get(path.split("/")[3] ?? "");
     if (!project || project.owner_id !== state.owner) return reply(route, {}, 404);
+    if (path === `/api/projects/${project.id}/logo` && request.method() === "GET") return reply(route, emptyLogoWorkspace(project));
     if (path.endsWith("/idea-source")) return reply(route, { ownerId: state.owner, projectId: project.id, source: state.sources.get(project.id) ?? null });
     if (path.endsWith("/strategy")) return reply(route, { availability: { status: "unavailable", operations: [], reason: "runtime_disabled" }, jobs: [] });
     return reply(route, { project });

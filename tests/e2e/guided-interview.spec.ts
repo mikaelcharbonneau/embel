@@ -8,6 +8,7 @@ import { getNamingReadiness, type NamingSession } from "../../src/domain/project
 import { projectNamingOverviewSchema } from "../../src/domain/naming-jobs";
 import { namingFeedSchema } from "../../src/domain/naming-brain";
 import { captureUiEvidence } from "./ui-evidence";
+import { emptyLogoWorkspace } from "../fixtures/empty-logo-workspace";
 
 // Dedicated headless-browser fixtures. Every API response is intercepted, and
 // non-local requests are blocked before they can reach a host or a provider.
@@ -130,6 +131,7 @@ async function fixtures(page: Page, { guided = true, seeded = false }: { guided?
     if (path === "/api/account/profile") return json(route, { profile: { ownerId: state.owner, email: "synthetic@example.test", revision: 0, updatedAt: null, values: { fullName: "", timeZone: "UTC", dateFormat: "friendly" } } });
     if (path === "/api/strategy") return json(route, { availability });
     if (state.owner !== owner) return json(route, {}, 404);
+    if (path === `/api/projects/${projectId}/logo` && method === "GET") return json(route, emptyLogoWorkspace(state.project));
     // Owner-bound read fixtures for the continuous Strategy to Naming handoff.
     // No Naming admission or preference mutation is accepted by this fixture.
     if (path === `/api/projects/${projectId}/naming` && method === "GET") return json(route, projectNamingOverviewSchema.parse({ project: state.project, readiness: getNamingReadiness(state.project.context, state.project.scope), session: namingSession, preferences: null, currentSelection: null, batches: { ownerId: owner, projectId, items: [], nextCursor: null }, candidates: { ownerId: owner, projectId, items: [], nextCursor: null }, availability: { status: "unavailable", operation: "naming.generate", reason: "naming_policy_unavailable" }, jobs: [], screening: { domains: { status: "not_checked", reason: "integration_unavailable" }, handles: { status: "not_checked", reason: "integration_unavailable" }, trademarks: { status: "not_checked", reason: "integration_unavailable" } } }));

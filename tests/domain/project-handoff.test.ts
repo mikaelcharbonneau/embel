@@ -15,12 +15,12 @@ const handoff = (context: ContextSnapshot, scope: ProjectScope = "complete_brand
 describe("saved project handoffs", () => {
   it("resumes the first genuinely unreviewed Strategy step without accepting filled text", () => {
     const context = ready(); context.intake.audienceReviewedAt = null;
-    expect(handoff(context)).toMatchObject({ strategyReady: false, reviews: [{ key: "audience", label: "Review audience", anchor: "audience" }], next: { stage: "strategy", href: `/brands/account/${projectId}#strategy-audience` } });
+    expect(handoff(context)).toMatchObject({ strategyReady: false, reviews: [{ key: "audience", label: "Review audience", anchor: "audience" }], next: { stage: "strategy", href: `/brands/account/${projectId}?view=strategy#strategy-audience` } });
   });
   it("combines missing description and unreviewed brief into one editable destination", () => {
     const context = contextSnapshotSchema.parse({});
     expect(handoff(context).reviews.filter(step => step.anchor === "brief")).toHaveLength(1);
-    expect(handoff(context)).toMatchObject({ briefReviewed: false, savedName: null, next: { href: `/brands/account/${projectId}#strategy-brief` } });
+    expect(handoff(context)).toMatchObject({ briefReviewed: false, savedName: null, next: { href: `/brands/account/${projectId}?view=strategy#strategy-brief` } });
   });
   it("continues approved Strategy to Naming, then a saved name to Inspiration", () => {
     const context = ready();
@@ -31,7 +31,7 @@ describe("saved project handoffs", () => {
   });
   it("keeps a selected name while upstream review becomes incomplete", () => {
     const context = ready(); context.selectedName = "Luma"; context.reformulationConfirmed = false;
-    expect(handoff(context)).toMatchObject({ savedName: "Luma", strategyReady: false, next: { stage: "strategy", href: `/brands/account/${projectId}#strategy-brief` } });
+    expect(handoff(context)).toMatchObject({ savedName: "Luma", strategyReady: false, next: { stage: "strategy", href: `/brands/account/${projectId}?view=strategy#strategy-brief` } });
   });
   it("respects naming-only and visual-only entry points without inventing Strategy approval", () => {
     const context = contextSnapshotSchema.parse({ description: "Repairable lighting", intake: { suppliedName: "Provided name" } });

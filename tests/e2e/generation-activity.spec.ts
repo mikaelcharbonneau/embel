@@ -116,9 +116,9 @@ test("activity fixture: owned active and recent rows have truthful labels and pr
   await fixtures(page); await openPage(page); await openActivity(page);
   const panel = dialog(page), active = panel.getByRole("region", { name: "Active generations" }), recent = panel.getByRole("region", { name: "Recent generations" });
   await expect(active.getByRole("link", { name: `${titles.naming} Naming`, exact: true })).toHaveAttribute("href", `/brands/account/${uuid(101)}/naming`);
-  await expect(active.getByRole("link", { name: `${titles.review} Competitors`, exact: true })).toHaveAttribute("href", `/brands/account/${uuid(102)}`);
+  await expect(active.getByRole("link", { name: `${titles.review} Competitors`, exact: true })).toHaveAttribute("href", `/brands/account/${uuid(102)}?view=strategy`);
   await expect(recent.getByRole("link", { name: `${titles.completed} Naming`, exact: true })).toHaveAttribute("href", `/brands/account/${uuid(103)}/naming`);
-  await expect(recent.getByRole("link", { name: `${titles.partial} Positioning`, exact: true })).toHaveAttribute("href", `/brands/account/${uuid(104)}`);
+  await expect(recent.getByRole("link", { name: `${titles.partial} Positioning`, exact: true })).toHaveAttribute("href", `/brands/account/${uuid(104)}?view=strategy`);
   await expect(active.getByText("Needs review", { exact: true })).toBeVisible();
   await expect(active.getByText("The outcome needs review. This request will not be retried automatically.", { exact: true })).toBeVisible();
   await expect(recent.getByText("Partial results", { exact: true })).toBeVisible();
@@ -130,7 +130,7 @@ test("activity fixture: owned active and recent rows have truthful labels and pr
 
 for (const [title, operation, href] of [
   [titles.naming, "Naming", `/brands/account/${uuid(101)}/naming`],
-  [titles.review, "Competitors", `/brands/account/${uuid(102)}`],
+  [titles.review, "Competitors", `/brands/account/${uuid(102)}?view=strategy`],
 ] as const) test(`activity fixture: ${operation} link navigates and closes the panel without a mutation`, async ({ page }) => {
   await fixtures(page); await openPage(page); await openActivity(page);
   await dialog(page).getByRole("link", { name: `${title} ${operation}`, exact: true }).click();

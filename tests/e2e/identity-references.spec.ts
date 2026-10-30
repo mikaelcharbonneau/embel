@@ -5,6 +5,7 @@ import { expect, test, type Page, type Route } from "@playwright/test";
 import { identityReferenceEntrySchema, identityReferenceQuerySchema, identityReferencesOverviewSchema, setReferenceReactionResponseSchema, setReferenceReactionSchema, type IdentityReferenceEntry, type IdentityReferenceQuery } from "../../src/domain/identity-references";
 import { accountProjectSchema, type AccountProject } from "../../src/domain/project-api";
 import { contextSnapshotSchema, type ProjectScope } from "../../src/domain/projects";
+import { emptyLogoWorkspace } from "../fixtures/empty-logo-workspace";
 
 // All images, accounts and responses below are synthetic local fixtures. No discovery,
 // provider, database or storage service is contacted or represented as working.
@@ -36,6 +37,8 @@ async function setup(page: Page, existing?: Fixture) {
     const request = route.request(), parsed = new URL(request.url()), path = parsed.pathname;
     if (path === "/api/auth/sign-out") { fixture.sessionStatus = 401; return json(route, { authenticated: false }); }
     if (path === "/api/session") return json(route, { user: { id: fixture.owner } }, fixture.sessionStatus);
+    if (path === `/api/projects/${projectId}/logo` && request.method() === "GET") return fixture.owner === ownerId && fixture.sessionStatus === 200
+      ? json(route, emptyLogoWorkspace(fixture.project)) : json(route, {}, 404);
     if (path === `/api/projects/${projectId}`) {
       if (fixture.owner !== ownerId) return json(route, {}, 404);
       if (request.method() === "GET") return json(route, { project: fixture.project });
@@ -92,7 +95,7 @@ test("references fixture: an unavailable source preserves real persisted referen
 });
 test("references fixture: naming-only links explicit scope expansion without reading references", async ({ page }) => {
   const fixture = await setup(page); fixture.project = project("naming_only"); await page.goto(url);
-  await expect(page.getByRole("heading", { name: "Expand this project to start Identity" })).toBeVisible(); await expect(page.getByRole("link", { name: "Open project", exact: true })).toHaveAttribute("href", `/brands/account/${projectId}`);
+  await expect(page.getByRole("heading", { name: "Expand this project to start Identity" })).toBeVisible(); await expect(page.getByRole("link", { name: "Open project", exact: true })).toHaveAttribute("href", `/brands/account/${projectId}?view=strategy`);
   await expect(page.getByRole("region", { name: "Brand references" })).toHaveCount(0); expect(fixture.reads).toHaveLength(0); expect(fixture.writes).toHaveLength(0);
 });
 test("references fixture: empty source is honest and failed reads are not empty success", async ({ page }) => {
@@ -167,10 +170,10 @@ test("references fixture: decoded image failure immediately releases its private
   await expect(card(page).getByText("Reference preview unavailable", { exact: true })).toBeVisible(); await expect.poll(() => page.evaluate(() => { const value = window as unknown as { referenceUrls: string[]; revokedReferenceUrls: string[] }; return value.referenceUrls.length > 0 && value.referenceUrls.every(url => value.revokedReferenceUrls.includes(url)); })).toBe(true);
 });
 for (const scope of ["complete_brand", "visual_identity_only"] as const) test(`references fixture: saved ${scope} editor navigation opens Identity before readiness`, async ({ page }) => {
-  const fixture = await setup(page); fixture.project = project(scope); await page.goto(`/brands/account/${projectId}`); await page.getByRole("link", { name: "Open Identity", exact: true }).click(); await expect(card(page)).toBeVisible(); await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toHaveCount(0);
+  const fixture = await setup(page); fixture.project = project(scope); await page.goto(`/brands/account/${projectId}?view=strategy`); await page.getByRole("link", { name: "Open Identity", exact: true }).click(); await expect(card(page)).toBeVisible(); await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toHaveCount(0);
 });
 test("references fixture: editor dirty busy and conflict states fence Identity navigation", async ({ page }) => {
-  const fixture = await setup(page); await page.goto(`/brands/account/${projectId}`); await rename(page); await expect(page.getByRole("button", { name: "Open Identity", exact: true })).toBeDisabled(); await expect(page.getByText("Save your edits before opening Identity.", { exact: true })).toBeVisible();
+  const fixture = await setup(page); await page.goto(`/brands/account/${projectId}?view=strategy`); await rename(page); await expect(page.getByRole("button", { name: "Open Identity", exact: true })).toBeDisabled(); await expect(page.getByText("Save your edits before opening Identity.", { exact: true })).toBeVisible();
   fixture.holdProjectPatch = true; await page.getByRole("button", { name: "Save changes", exact: true }).click(); await expect.poll(() => fixture.heldProjectPatch).not.toBeNull(); await expect(page.getByRole("button", { name: "Open Identity", exact: true })).toBeDisabled(); await fixture.heldProjectPatch!(); await expect(page.getByRole("link", { name: "Open Identity", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Rename project", exact: true }).click(); await page.getByRole("textbox", { name: "Project label", exact: true }).fill("Second private change"); await page.getByRole("textbox", { name: "Project label", exact: true }).press("Enter"); fixture.projectPatchStatus = 409; await page.getByRole("button", { name: "Save changes", exact: true }).click(); await expect(page.getByText("Resolve the saved-version conflict before opening Identity.", { exact: true })).toBeVisible(); await expect(page.getByRole("button", { name: "Open Identity", exact: true })).toBeDisabled();
 });

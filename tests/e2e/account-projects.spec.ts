@@ -3,6 +3,7 @@ import { expect, test, type Page, type Route } from "@playwright/test";
 import { accountProjectSchema, accountProjectSummarySchema, type AccountProject } from "../../src/domain/project-api";
 import { accountProjectDraft } from "../../src/components/workspace/project-draft-adapter";
 import { contextSnapshotSchema, createProjectInputSchema } from "../../src/domain/projects";
+import { emptyLogoWorkspace } from "../fixtures/empty-logo-workspace";
 
 // All account responses below are route-intercepted synthetic fixtures. No live auth or persistence is exercised.
 const ownerA = "aaaaaaaa-1111-4111-8111-111111111111";
@@ -62,6 +63,7 @@ async function accountFixtures(page: Page, initial: AccountProject[] = []) {
     const id = path.split("/")[3];
     const project = id ? state.projects.get(id) : undefined;
     if (!project || project.owner_id !== state.owner) return reply(route, { error: "Synthetic not-found fixture" }, 404);
+    if (path === `/api/projects/${project.id}/logo` && request.method() === "GET") return reply(route, emptyLogoWorkspace(project));
     if (path.endsWith("/idea-source") && request.method() === "GET") return reply(route, { ownerId: state.owner, projectId: project.id, source: null });
     if (path.endsWith("/standalone-source") && request.method() === "GET") return reply(route, { ownerId: state.owner, projectId: project.id, source: null });
     if (path.endsWith("/idea-attachments") && request.method() === "GET") return reply(route, { ownerId: state.owner, projectId: project.id, items: [], nextCursor: null });
@@ -85,7 +87,7 @@ async function accountFixtures(page: Page, initial: AccountProject[] = []) {
 }
 
 async function openAccount(page: Page, id = projectA) {
-  await Promise.all([waitForAccountProject(page, id), page.goto(`/brands/account/${id}`)]);
+  await Promise.all([waitForAccountProject(page, id), page.goto(`/brands/account/${id}?view=strategy`)]);
   await expect(page.getByRole("button", { name: "Edit brief", exact: true })).toBeVisible();
 }
 function waitForAccountProject(page: Page, id = projectA) {
@@ -154,7 +156,7 @@ async function expectUnsaved(page: Page) {
 test("account fixture: Naming entry preserves the saved-context boundary", async ({ page }) => {
   const project = fixtureProject();
   const state = await accountFixtures(page, [project]);
-  await Promise.all([waitForAccountProject(page), page.goto(`/brands/account/${projectA}`)]);
+  await Promise.all([waitForAccountProject(page), page.goto(`/brands/account/${projectA}?view=strategy`)]);
   await expect(page.getByRole("link", { name: "Review saved name", exact: true })).toHaveAttribute("href", `/brands/account/${projectA}/naming`);
   state.patchStatus = 503;
   await page.getByRole("button", { name: "Edit brief", exact: true }).click();
@@ -196,7 +198,8 @@ test("account fixture: explicit browser copy preserves legacy notes, audience an
   const localBefore = JSON.parse((await browserData(page))!).drafts[0];
   await page.getByRole("checkbox", { name: "This is my project, and I want to save it to the account I’m currently signed in to.", exact: true }).check();
   await page.getByRole("button", { name: "Save project", exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectA}$`)); await expectSavedVersion(page, 1);
+  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectA}/logo$`));
+  await openAccount(page); await expectSavedVersion(page, 1);
   const recoveredDraft = JSON.parse((await browserData(page))!).drafts[0];
   expect(recoveredDraft).toMatchObject({ ...localBefore, ownerId: ownerA, accountProjectId: projectA, updatedAt: expect.any(String) });
   expect(state.created[0]?.context).toEqual(legacyProject.context);
@@ -279,7 +282,9 @@ test("account fixture: an account switch fences a late save and never exposes or
   await expect(page.locator(".project-workspace-content").getByRole("alert")).toContainText("not available to this account"); release(); await completed;
   await expect(page.getByRole("textbox")).toHaveCount(0); await expect(page.getByText("Account A secret pending edit", { exact: true })).toHaveCount(0); await expect(page.getByRole("button", { name: "Keep a recovery copy", exact: true })).toHaveCount(0); expect(await browserData(page)).toBeNull();
   await page.getByRole("link", { name: "Back to brands", exact: true }).click(); await expect(page.getByRole("heading", { name: "Private account B fixture", exact: true })).toBeVisible(); await expect(page.getByRole("heading", { name: "Private account A fixture", exact: true })).toHaveCount(0);
-  await page.getByRole("link", { name: /Private account B fixture/ }).click(); await rename(page, "Account B safe edit"); await save(page, 2);
+  await page.getByRole("link", { name: /Private account B fixture/ }).click();
+  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectB}/naming$`));
+  await openAccount(page, projectB); await rename(page, "Account B safe edit"); await save(page, 2);
 });
 
 test("account fixture: late project loading and mismatched response ownership never render private content", async ({ page }) => {
@@ -297,7 +302,7 @@ test("account fixture: late project loading and mismatched response ownership ne
     await reply(route, { project: fixtureProject() });
     delivered();
   });
-  await page.goto(`/brands/account/${projectA}`);
+  await page.goto(`/brands/account/${projectA}?view=strategy`);
   await requested;
   state.owner = ownerB;
   await checkAccount(page);
@@ -307,7 +312,7 @@ test("account fixture: late project loading and mismatched response ownership ne
   await expect(page.getByRole("textbox")).toHaveCount(0);
   await expect(page.getByText("Private account A fixture", { exact: true })).toHaveCount(0);
   await page.route(`**/api/projects/${projectB}`, async (route) => reply(route, { project: { ...fixtureProject(), id: projectB } }));
-  await page.goto(`/brands/account/${projectB}`);
+  await page.goto(`/brands/account/${projectB}?view=strategy`);
   await expect(page.getByText("No verified account session.", { exact: false })).toBeVisible();
   await expect(page.getByRole("textbox")).toHaveCount(0);
   expect(await browserData(page)).toBeNull();
@@ -316,7 +321,7 @@ test("account fixture: late project loading and mismatched response ownership ne
 test("account fixture: malformed account data and unknown remote IDs cannot become browser drafts", async ({ page }) => {
   await accountFixtures(page);
   await page.route(`**/api/projects/${projectA}`, async (route) => reply(route, { project: { id: projectA, title: "Unverified malformed fixture" } }));
-  await page.goto(`/brands/account/${projectA}`);
+  await page.goto(`/brands/account/${projectA}?view=strategy`);
   await expect(page.locator(".project-workspace-content").getByRole("alert")).toContainText("could not be verified");
   await expect(page.getByText("Unverified malformed fixture", { exact: true })).toHaveCount(0);
   await page.goto("/brands/account/does-not-exist");
@@ -326,7 +331,10 @@ test("account fixture: malformed account data and unknown remote IDs cannot beco
 });
 
 test("account fixture: a delayed load after internal navigation cannot roll back a newer successful save", async ({ page }) => {
-  const original = fixtureProject(), state = await accountFixtures(page, [original]); await openAccount(page); await openProjects(page);
+  const original = fixtureProject(), state = await accountFixtures(page, [original]); await openAccount(page);
+  // An unsent Strategy note keeps this editor active when its generic project link is revisited.
+  await page.getByRole("textbox", { name: "Message Embel", exact: true }).fill("Unsent strategy note");
+  await openProjects(page);
   let release!: () => void, started!: () => void, held = false; const pending = new Promise<void>(r => { release = r; }), requested = new Promise<void>(r => { started = r; });
   await page.route(`**/api/projects/${projectA}`, async route => { if (held || route.request().method() !== "GET") return route.fallback(); held = true; started(); await pending; await reply(route, { project: original }); });
   await page.getByRole("link", { name: /Private account A fixture/ }).click(); await requested; await rename(page, "Newer successful save fixture"); await save(page, 2);

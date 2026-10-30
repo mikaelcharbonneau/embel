@@ -220,7 +220,7 @@ test("unselected context edits preserve strategy reviews while selected audience
 
 test("account fixture: strategy reviews save with values and provenance and survive reload", async ({ page }) => {
   const state = await account(page, false);
-  await page.goto(`/brands/account/${id}`);
+  await page.goto(`/brands/account/${id}?view=strategy`);
   await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   await stage(page, "Personality");
   await page.getByRole("slider", { name: "Sincerity", exact: true }).focus();
@@ -251,7 +251,7 @@ test("account fixture: strategy reviews save with values and provenance and surv
 test("account fixture: incomplete Strategy approval resumes the required review before saving", async ({ page }) => {
   const state = await account(page);
   state.project = { ...state.project, scope: "complete_brand", context: { ...state.project.context, intake: { ...state.project.context.intake, audienceReviewedAt: null, positioningReviewedAt: null } } };
-  await page.goto(`/brands/account/${id}`);
+  await page.goto(`/brands/account/${id}?view=strategy`);
   await stage(page, "Positioning");
   await page.getByRole("button", { name: "Approve strategy", exact: true }).click();
   await expect(page.getByText("Review your audience before approving Strategy. Your current content is kept.", { exact: true })).toBeVisible();
@@ -270,7 +270,7 @@ test("account fixture: incomplete Strategy approval resumes the required review 
 
 test("account fixture: failed saving and a revision conflict retain partial strategy for an explicit browser copy", async ({ page }) => {
   const state = await account(page);
-  await page.goto(`/brands/account/${id}`);
+  await page.goto(`/brands/account/${id}?view=strategy`);
   await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   await stage(page, "Personality");
   await page.getByRole("slider", { name: "Ruggedness", exact: true }).focus();
@@ -324,7 +324,7 @@ test("browser storage failure retains the current strategy without claiming a du
 
 test("project design: all Strategy reviews and optional live brief retain the saved context", async ({ page }, info) => {
   const state = await account(page), original = JSON.stringify(state.project);
-  await page.goto(`/brands/account/${id}`);
+  await page.goto(`/brands/account/${id}?view=strategy`);
   await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   await expectProjectCanvas(page);
   for (const widget of ["competitors", "audience", "personality", "positioning"] as const) {

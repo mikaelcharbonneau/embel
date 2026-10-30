@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { z } from "zod";
 import { accountProjectResponseSchema } from "@/domain/project-api";
-import { getProjectHandoff, projectEvidenceStatus, type ProjectStageEvidence } from "@/domain/project-handoff";
+import { getProjectHandoff, projectEvidenceStatus, projectStrategyHref, type ProjectStageEvidence } from "@/domain/project-handoff";
 import { AccountRequestError } from "./account-api";
 import { boundedAccountRequest } from "./bounded-account-request";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "./account-session";
@@ -91,7 +91,8 @@ function OwnedProjectShell({ projectId, account, children }: { projectId: string
   const logoStatus = projectEvidenceStatus(logoEvidence, project?.current_revision);
   return <IdentityEvidenceContext.Provider value={reportIdentity}><LogoEvidenceContext.Provider value={reportLogo}><section className={`project-workspace project-stage-${stage}`}>
     {error && <div className="project-read-notice" role="alert">{error}<button type="button" className="text-link" onClick={() => setAttempt(value => value + 1)}>Check saved project</button></div>}
-    {current?.conflict && <div className="project-read-notice" role="alert">A newer project version is saved. Your edits are kept in this tab. <Link className="text-link" href={`/brands/account/${projectId}`}>Resolve in Strategy</Link></div>}
+    {current?.conflict && <div className="project-read-notice" role="alert">A newer project version is saved. Your edits are kept in this tab. <Link className="text-link" href={projectStrategyHref(projectId)}>Resolve in Strategy</Link></div>}
+    {project && project.scope !== "naming_only" && pathname === `/brands/account/${projectId}/logo` && <nav className="project-read-notice" aria-label="Project navigation"><Link className="text-link" href={projectStrategyHref(projectId)}>{project.scope === "complete_brand" ? "Review Strategy" : "Project details"}</Link></nav>}
     {!inspiration && !brandBoard && handoff?.savedName && !handoff.strategyReady && project?.scope === "complete_brand" && <div className="project-read-notice" role="status">Strategy needs review. Your saved name, {handoff.savedName}, is kept for review against the updated context. <Link className="text-link" href={handoff.next.href}>Continue Strategy review</Link></div>}
     {([['Logo', logoStatus, `/brands/account/${projectId}/logo`], ['Identity', identityStatus, `/brands/account/${projectId}/logo/directions`]] as const).map(([label, status, href]) => status === "needs_review" || status === "recheck" ? <div className="project-read-notice" role="status" key={label}>{status === "needs_review" ? `${label} needs review. Earlier work is kept.` : `Check ${label} against the current project version. Earlier work is kept.`} <Link className="text-link" href={href}>Review {label}</Link></div> : null)}
     <div className="project-workspace-content">{children}</div>

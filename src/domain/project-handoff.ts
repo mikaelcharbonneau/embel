@@ -10,6 +10,8 @@ const reviews = {
 } as const;
 type Continuation = { stage: "strategy" | "naming" | "inspiration"; label: string; href: string };
 
+export function projectStrategyHref(projectId: string) { return `/brands/account/${projectId}?view=strategy`; }
+
 /** Derive guidance from saved decisions; navigation never approves or copies inputs. */
 export function getProjectHandoff(project: Pick<AccountProject, "id" | "scope" | "context">) {
   const base = `/brands/account/${project.id}`, context = project.context;
@@ -25,7 +27,7 @@ export function getProjectHandoff(project: Pick<AccountProject, "id" | "scope" |
   let next: Continuation;
   if (!context.description.trim() || project.scope === "complete_brand" && pendingReviews.length > 0) {
     const first = pendingReviews[0] ?? reviews.brief;
-    next = { stage: "strategy", label: first.label, href: `${base}#strategy-${first.anchor}` };
+    next = { stage: "strategy", label: first.label, href: `${projectStrategyHref(project.id)}#strategy-${first.anchor}` };
   } else if (project.scope === "naming_only" || project.scope === "complete_brand" && !savedName) {
     next = { stage: "naming", label: savedName ? "Review saved name" : "Continue to Naming", href: `${base}/naming` };
   } else {

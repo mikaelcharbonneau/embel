@@ -4,6 +4,7 @@ import { accountProjectSchema, accountProjectSummarySchema, type AccountProject 
 import { accountProjectDraft } from "../../src/components/workspace/project-draft-adapter";
 import { contextSnapshotSchema } from "../../src/domain/projects";
 import { accountProjectPageSchema } from "../../src/domain/project-pages";
+import { emptyLogoWorkspace } from "../fixtures/empty-logo-workspace";
 
 // All account and provider endpoints are synthetic local route fixtures.
 const owner = "aaaaaaaa-1111-4111-8111-111111111111";
@@ -36,6 +37,7 @@ async function setup(page: Page, initial: AccountProject[] = []) {
       return reply({ project: saved }, 201);
     }
     const saved = state.projects.get(path.split("/")[3]!);
+    if (saved && path === `/api/projects/${saved.id}/logo` && request.method() === "GET") return reply(emptyLogoWorkspace(saved));
     if (saved && path === `/api/projects/${saved.id}`) {
       if (request.method() === "GET") return reply({ project: saved });
       const body = request.postDataJSON(); state.patches.push(request.postData()!);

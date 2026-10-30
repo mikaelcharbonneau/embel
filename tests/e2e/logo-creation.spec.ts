@@ -362,7 +362,7 @@ test("an uncertain initial brief save keeps its original intent and cannot quote
 test("a project without a saved brand name is guided back before any logo write", async ({ page }) => {
   const f = await setup(page, "missing_name");
   await expect(page.getByText("Choose and save a brand name in your project before generating logo concepts.", { exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Open project to choose a name" })).toHaveAttribute("href", `/brands/account/${source.input.projectId}`);
+  await expect(page.getByRole("link", { name: "Open project to choose a name" })).toHaveAttribute("href", `/brands/account/${source.input.projectId}?view=strategy`);
   expect(f.inputReads).toBe(1); expect(f.saves).toHaveLength(0); expect(f.posts).toHaveLength(0);
   expect(f.quotes).toHaveLength(0);
 });

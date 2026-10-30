@@ -8,7 +8,7 @@ import { Icon } from "@/components/ui/icon";
 import styles from "./naming-chat.module.css";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import { namingStrategyKey, type ProjectNameEntry, type TransformProjectNamesResponse } from "@/domain/project-naming";
-import { getProjectHandoff } from "@/domain/project-handoff";
+import { getProjectHandoff, projectStrategyHref } from "@/domain/project-handoff";
 import type { NameTransformInput } from "@/domain/naming";
 import { NamingApproachWidgets } from "./naming-approach-widgets";
 import { useNamingFeed } from "./use-naming-feed";
@@ -76,7 +76,7 @@ function AccountProjectNaming({ projectId, account, conversationHistory }: { pro
     void startFeed().then(request.resolve).finally(() => { if (continuation.current === request) continuation.current = null; });
   }, [continueVersion, eligibleView, startFeed, account, isCurrent]);
   useEffect(() => () => { continuation.current?.resolve(false); continuation.current = null; }, []);
-  const strategyHref = `/brands/account/${projectId}`;
+  const strategyHref = projectStrategyHref(projectId);
   if (!overview) return <div className={`page project-naming-page ${styles.loading}`}><header className="project-naming-header"><h1>Naming</h1><Link className="text-link" href={strategyHref}>Back to project</Link></header>{readError ? <div className="project-naming-notice" role="alert"><p>{readError}</p><button className="button secondary small" type="button" onClick={naming.refresh}>Check latest version</button></div> : <p className="project-naming-muted" role="status">Loading your account naming workspace…</p>}</div>;
   const { project } = overview;
   const view = overview.session?.viewState ?? initialNamingView;
