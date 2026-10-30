@@ -7,6 +7,7 @@ import type { SharedPoolSecrets,SharedSlotSecret } from "./secrets";
 import { createSharedSlotPool,type SharedSlotPool } from "./database";
 import { createSharedStrategyQueue,runSharedStrategyQueue,type SharedQueuePort } from "./queue";
 import { publishSharedStrategyOutboxOnce } from "./publication";
+import { createSharedPoolBackoff } from "./backoff";
 
 const unavailable=()=>Error("shared_pool_runtime_unavailable");
 export type SharedEngineFactory=(options:{configuration:SharedPoolConfiguration;slot:SharedPoolSlot;secret:SharedSlotSecret;
@@ -27,7 +28,10 @@ export function createSharedExecutionCapacity(maximum:number){
 }
 export function sharedPoolPause(ms:number,signal:AbortSignal){if(signal.aborted)return Promise.resolve();
  return new Promise<void>(resolve=>{const done=()=>{clearTimeout(timer);signal.removeEventListener("abort",done);resolve();};const timer=setTimeout(done,ms);signal.addEventListener("abort",done,{once:true});});}
-export type SharedPoolControllerDependencies={createPool?:typeof createSharedSlotPool;createEngine:SharedEngineFactory;queue?:SharedQueuePort;instanceId?:string;now?:()=>number;onQualified?:(lane:string,slotId:string)=>void};
+type SharedPoolDiagnosticCode="qualification_failed"|"slot_busy"|"claim_failed"|"renewal_failed"|"engine_start_failed"|"observation_failed"|"execution_failed"|"strategy_poll_failed"|"fence_unconfirmed"|"drain_unconfirmed";
+export type SharedPoolDiagnostic={event:"shared_worker_pool_diagnostic";instanceId:string;lane:SharedPoolSlot["lane"];slotId:string;code:SharedPoolDiagnosticCode;attempt?:number;retryAfterMs?:number};
+export type SharedPoolControllerDependencies={createPool?:typeof createSharedSlotPool;createEngine:SharedEngineFactory;queue?:SharedQueuePort;instanceId?:string;now?:()=>number;random?:()=>number;
+ onQualified?:(lane:string,slotId:string)=>void;onDiagnostic?:(event:SharedPoolDiagnostic)=>void};
 type SlotState={configuration:SharedPoolSlot;secret:SharedSlotSecret;pool:SharedSlotPool;lease:SharedSlotLease|null;engine:SharedLaneEngine|null;
  state:"standby"|"qualified"|"draining"|"unavailable";busy:boolean;signal:AbortSignal;operation:Promise<SharedDeliveryResult>|null;withdraw:()=>Promise<void>};
 /** One process, a fixed number of actual restricted slot pools/engines, and no
@@ -37,6 +41,12 @@ export function createSharedPoolController(config:SharedPoolConfiguration,secret
  const states:SlotState[]=config.slots.map(slot=>{const secret=secrets.slots[slot.slotId];if(!secret)throw unavailable();
   return{configuration:slot,secret,pool:(dependencies.createPool??createSharedSlotPool)(config,slot,secret),lease:null,engine:null,state:"standby",busy:false,signal:lifetime.signal,operation:null,withdraw:async()=>{}};});
  let running:Promise<void>|undefined,closing:Promise<void>|undefined,queue:SharedQueuePort|undefined,closed=false,failed=false;
+ function diagnose(slot:SharedPoolSlot,code:SharedPoolDiagnosticCode,retry?:{attempt:number;retryAfterMs:number}){
+  // Only fixed codes and validated configuration IDs cross this boundary. Never
+  // include caught errors, SQL, provider payloads or credentials in diagnostics.
+  const event:SharedPoolDiagnostic={event:"shared_worker_pool_diagnostic",instanceId,lane:slot.lane,slotId:slot.slotId,code,...retry};
+  try{if(dependencies.onDiagnostic)dependencies.onDiagnostic(event);else process.stderr.write(`${JSON.stringify(event)}\n`);}catch{ /* Diagnostics do not alter authority. */ }
+ }
  function checkedLease(raw:unknown,state:SlotState,previous?:SharedSlotLease):SharedSlotLease{
   const lease=sharedSlotLeaseSchema.parse(raw),s=state.configuration;
   if(lease.slotId!==s.slotId||lease.instanceId!==instanceId||lease.lane!==s.lane||lease.roleName!==s.roleName||lease.roleOid!==s.roleOid||Date.parse(lease.expiresAt)<=now()+1000
@@ -58,15 +68,17 @@ export function createSharedPoolController(config:SharedPoolConfiguration,secret
   try{return await run;}finally{state.operation=null;state.busy=false;}
  }
  async function slotLoop(state:SlotState){
-  const spec=state.configuration;
+  const spec=state.configuration,backoff=createSharedPoolBackoff(config.capacity.idlePollMs,dependencies.random);
   while(!lifetime.signal.aborted){
    const owner=new AbortController(),signal=AbortSignal.any([lifetime.signal,owner.signal]);state.signal=signal;let renew:Promise<void>|undefined,fence:Promise<void>|undefined,timer:ReturnType<typeof setInterval>|undefined,engineClosed=false,cursor:string|null=null;
+   let phase:SharedPoolDiagnosticCode="qualification_failed",retryCode:SharedPoolDiagnosticCode|undefined,qualifiedAt:number|undefined;
+   const resetAfterStableOwnership=()=>{if(qualifiedAt!==undefined&&now()-qualifiedAt>=config.capacity.leaseSeconds*1000)backoff.reset();};
    state.withdraw=async()=>{
     state.state="draining";owner.abort();clearInterval(timer);const lease=state.lease;if(!lease)return;
     await (fence??=(async()=>{try{
      const result=await state.pool.query("SELECT public.fence_shared_worker_slot($1::jsonb) fenced",[JSON.stringify(lease)]);
      if(result.rows.length!==1||result.rows[0]?.fenced!==true)throw unavailable();
-    }catch{ /* Never claim a fence ACK; stopped renewals retain the SQL expiry boundary. */ }})());
+    }catch{diagnose(spec,"fence_unconfirmed"); /* Stopped renewals retain the SQL expiry boundary. */ }})());
    };
    const observePage=async()=>{
     if(state.busy)return;state.busy=true;
@@ -83,33 +95,49 @@ export function createSharedPoolController(config:SharedPoolConfiguration,secret
    };
    try{
     await state.pool.qualify();signal.throwIfAborted();
+    phase="claim_failed";
     const claim=await state.pool.query("SELECT public.claim_shared_worker_slot($1::uuid,$2::uuid,$3,$4) lease",[spec.slotId,instanceId,config.target.deploymentId,config.capacity.leaseSeconds]);
     if(claim.rows.length!==1)throw unavailable();
-    if(claim.rows[0]?.lease===null){await sharedPoolPause(config.capacity.idlePollMs,signal);continue;}
+    if(claim.rows[0]?.lease===null){retryCode="slot_busy";throw unavailable();}
     state.lease=checkedLease(claim.rows[0]?.lease,state);
     timer=setInterval(()=>{if(renew||signal.aborted)return;
      renew=(async()=>{const before=state.lease;if(!before)throw unavailable();
       const result=await state.pool.query("SELECT public.renew_shared_worker_slot($1::jsonb,$2) lease",[JSON.stringify(before),config.capacity.leaseSeconds]);
       if(result.rows.length!==1)throw unavailable();state.lease=checkedLease(result.rows[0]?.lease,state,before);
       if(state.state==="qualified")await state.engine?.renewReadiness?.();
-     })().catch(()=>state.withdraw()).finally(()=>{renew=undefined;});},config.capacity.renewalMs);timer.unref();
+     })().catch(()=>{retryCode="renewal_failed";return state.withdraw();}).finally(()=>{renew=undefined;});},config.capacity.renewalMs);timer.unref();
+    phase="engine_start_failed";
     state.engine=await dependencies.createEngine({configuration:config,slot:spec,secret:state.secret,provider:secrets.providers[spec.lane],
      ...(spec.lane==="logo"&&spec.textProvider?{textProvider:secrets.providers.logoText}:{}),database:state.pool,lease:()=>state.lease,signal});
     signal.throwIfAborted();
+    phase="observation_failed";
     await observePage();
-    signal.throwIfAborted();state.state="qualified";try{dependencies.onQualified?.(spec.lane,spec.slotId);}catch{ /* Diagnostics never grant or revoke authority. */ }
+    signal.throwIfAborted();state.state="qualified";qualifiedAt=now();try{dependencies.onQualified?.(spec.lane,spec.slotId);}catch{ /* Diagnostics never grant or revoke authority. */ }
     if(spec.lane==="strategy"){
+     const outboxBackoff=createSharedPoolBackoff(config.capacity.idlePollMs,dependencies.random);
      while(!signal.aborted){
-      try{if(!state.busy)await observePage();if(!queue)throw unavailable();await publishSharedStrategyOutboxOnce({database:state.pool,lease:()=>state.lease,queue,configuration:config.queue},signal);}
-      catch{ /* Durable outbox remains retryable; never invent a broker receipt. */ }
-      await sharedPoolPause(config.capacity.idlePollMs,signal);
+      let pause=config.capacity.idlePollMs,succeeded=false;
+      try{if(!state.busy)await observePage();if(!queue)throw unavailable();await publishSharedStrategyOutboxOnce({database:state.pool,lease:()=>state.lease,queue,configuration:config.queue},signal);succeeded=true;}
+      catch{if(!signal.aborted){const retry=outboxBackoff.next();pause=retry.retryAfterMs;diagnose(spec,"strategy_poll_failed",retry);}}
+      // A successful poll recovers this independent outbox retry schedule.
+      // Lease renewal and queue deliveries never wait for its delay.
+      if(succeeded)outboxBackoff.reset();
+      await sharedPoolPause(pause,signal);
      }
     }else while(!signal.aborted){
+     phase="observation_failed";
      await observePage();
+     phase="execution_failed";
      const result=await execute(state,undefined,signal);
      if(result.disposition==="retry"||["idle","not_found","busy","unavailable"].includes(result.state))await sharedPoolPause(config.capacity.idlePollMs,signal);
     }
-   }catch{state.state="unavailable";await state.withdraw();}
+   }catch(error){
+    if(!lifetime.signal.aborted){
+     const held=phase==="claim_failed"&&error instanceof Error&&error.message==="shared_slot_held"&&"code" in error&&error.code==="40001";
+     retryCode??=held?"slot_busy":phase;
+    }
+    state.state="unavailable";await state.withdraw();
+   }
    finally{
     state.state="draining";owner.abort();clearInterval(timer);await renew?.catch(()=>{});
     try{
@@ -121,10 +149,11 @@ export function createSharedPoolController(config:SharedPoolConfiguration,secret
       const release=await state.pool.query("SELECT public.release_shared_worker_slot($1::jsonb) released",[JSON.stringify(state.lease)]);
       if(release.rows.length!==1||release.rows[0]?.released!==true)throw unavailable();
      }
-    }catch{failed=true;lifetime.abort();}
+    }catch{diagnose(spec,"drain_unconfirmed");failed=true;lifetime.abort();}
+    resetAfterStableOwnership();
     state.lease=null;state.engine=null;state.busy=false;state.state=failed?"unavailable":"standby";
    }
-   if(!lifetime.signal.aborted)await sharedPoolPause(config.capacity.idlePollMs,lifetime.signal);
+   if(!lifetime.signal.aborted){const retry=backoff.next();diagnose(spec,retryCode??"execution_failed",retry);await sharedPoolPause(retry.retryAfterMs,lifetime.signal);}
   }
  }
  const controller={instanceId,

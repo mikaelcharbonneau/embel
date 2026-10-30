@@ -183,6 +183,7 @@
   "worker/shared-lanes/strategy.ts",
   "worker/shared-pool/authority-manifest.json",
   "worker/shared-pool/authority.ts",
+  "worker/shared-pool/backoff.ts",
   "worker/shared-pool/configuration.ts",
   "worker/shared-pool/contracts.ts",
   "worker/shared-pool/controller.ts",
