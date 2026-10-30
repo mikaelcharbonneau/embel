@@ -24,6 +24,7 @@ describe('selected-logo boards: actual SQL admission, storage and immutable publ
   await f.action('finish',[historical.job.id,historical.job.leaseToken,'cancelled'],historical.execution);
   await f.db.exec('create role fixture_board_default_acl nologin;alter default privileges grant all on tables to fixture_board_default_acl;alter default privileges grant all on functions to fixture_board_default_acl');
   await f.db.exec(await readFile(new URL('../../supabase/candidates/shared_identity_selected_logo_boards.sql', import.meta.url), 'utf8'));
+  await f.db.exec(await readFile(new URL('../../supabase/candidates/shared_identity_http_writer_permissions.sql', import.meta.url), 'utf8'));
   await f.db.exec('alter default privileges revoke all on tables from fixture_board_default_acl;alter default privileges revoke all on functions from fixture_board_default_acl');
  }, 60_000);
  afterAll(async () => { await f?.db.close(); });

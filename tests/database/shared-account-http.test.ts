@@ -13,6 +13,7 @@ import { contextSnapshotSchema } from "../../src/domain/projects";
 
 const hash = createHash("sha256").update("brief").digest("hex");
 const upload = () => ({ requestKey: randomUUID(), name: "brief.txt", mimeType: "text/plain", contentHash: hash });
+const identityWriters = ["fluid_private.prepare_identity_transaction(uuid,jsonb,boolean)", "fluid_private.commit_identity_transaction(uuid,jsonb,jsonb)"] as const;
 type Reservation = { ref: { id: string; ownerId: string }; verified: boolean };
 describe("shared web authority actual restricted SQL (synthetic verified PostgREST sessions)", () => {
   let f: SharedAccountFixture;
@@ -23,6 +24,13 @@ describe("shared web authority actual restricted SQL (synthetic verified PostgRE
     for (const [signature, hash] of Object.entries(sharedHttpHelperHashes)) {
       const body = (await f.db.query<{ body: string }>("select prosrc body from pg_proc where oid=to_regprocedure($1)", [signature])).rows[0]!.body;
       expect(createHash("sha256").update(body).digest("hex"), signature).toBe(hash);
+    }
+    for (const signature of identityWriters) {
+      expect((await f.db.query(`select pg_get_userbyid(a.grantor) grantor,a.is_grantable from pg_proc p cross join lateral aclexplode(p.proacl) a
+        where p.oid=to_regprocedure($1) and a.grantee=to_regrole('postgres')::oid and a.privilege_type='EXECUTE'`, [signature])).rows)
+        .toEqual([{ grantor: "fluid_identity_writer_definer_v1", is_grantable: false }]);
+      for (const role of ["anon", "authenticated", "service_role", ...Object.values(sharedHttpRoles)])
+        expect((await f.db.query("select has_function_privilege($1,$2,'EXECUTE') allowed", [role, signature])).rows).toEqual([{ allowed: false }]);
     }
     for (const role of Object.values(sharedHttpRoles)) {
       expect((await f.db.query("select has_table_privilege($1,'public.projects','SELECT,INSERT,UPDATE,DELETE') allowed", [role])).rows).toEqual([{ allowed: false }]);
@@ -206,6 +214,21 @@ describe("shared web authority actual restricted SQL (synthetic verified PostgRE
         await f.db.exec("set session authorization postgres");
         expect((await f.db.query("select count(*)::int count from fluid_private.shared_http_contexts")).rows).toEqual([{ count: 0 }]);
       }
+    } finally { await shared.close(); }
+  });
+
+  it.each(identityWriters)("does not advertise saving when nested EXECUTE is lost and recovers after repair: %s", async signature => {
+    const shared = await runtime().create(), customer = auth(OWNER_A), delegate = vi.spyOn(customer.client, "rpc");
+    try {
+      expect((await shared.acquireIdentity(customer)).value?.saveAvailability).toEqual({ status: "available" });
+      await f.db.exec("begin");
+      try {
+        await f.db.exec(`revoke execute on function ${signature} from postgres`);
+        expect(await shared.acquireIdentity(customer)).toMatchObject({ configured: true, value: null });
+        expect(delegate).not.toHaveBeenCalled();
+      } finally { await f.db.exec("rollback;set session authorization postgres"); }
+      expect((await shared.acquireIdentity(customer)).value?.saveAvailability).toEqual({ status: "available" });
+      expect(delegate).not.toHaveBeenCalled();
     } finally { await shared.close(); }
   });
 

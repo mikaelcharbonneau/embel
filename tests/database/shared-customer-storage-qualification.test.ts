@@ -21,6 +21,17 @@ describe("web qualification requires actual enforced customer Storage authority"
   for(const lane of ["home","identity"] as const)await (await qualify(lane)).run;
  });
  it.each([
+  "fluid_private.prepare_identity_transaction(uuid,jsonb,boolean)",
+  "fluid_private.commit_identity_transaction(uuid,jsonb,jsonb)",
+ ])("rejects missing nested writer EXECUTE before any proof RPC: %s",async signature=>{
+  await f.db.exec(`revoke execute on function ${signature} from postgres`);
+  // PGlite's postgres is a superuser, unlike hosted Supabase. An effective
+  // privilege check alone would incorrectly pass this broken installation.
+  expect((await f.db.query("select has_function_privilege('postgres',$1,'EXECUTE') allowed",[signature])).rows).toEqual([{allowed:true}]);
+  const probe=await qualify("identity");await expect(probe.run).rejects.toMatchObject({code:"integration_unavailable"});
+  expect(probe.calls.some(call=>call.includes("SELECT public.shared_account_http_principal()"))).toBe(false);
+ });
+ it.each([
   "drop policy embel_shared_customer_storage_live on storage.objects",
   "alter policy embel_shared_customer_storage_live on storage.objects using(true) with check(true)",
   "alter policy embel_shared_customer_storage_live on storage.objects to authenticated,service_role",
