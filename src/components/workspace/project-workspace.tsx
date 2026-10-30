@@ -26,9 +26,6 @@ function useProjectEvidence(value: ProjectStageEvidence | null, report: Evidence
     return () => report?.({ ownerId, projectId, projectRevision, approved: false, needsReview: Boolean(needsReview) });
   }, [report, ownerId, projectId, projectRevision, approved, needsReview]);
 }
-export function useProjectIdentityEvidence(value: ProjectStageEvidence | null) {
-  useProjectEvidence(value, useContext(IdentityEvidenceContext));
-}
 export function useProjectLogoEvidence(value: ProjectStageEvidence | null) {
   useProjectEvidence(value, useContext(LogoEvidenceContext));
 }
