@@ -1,5 +1,38 @@
 # Visual identity release — October 30, 2026
 
+## Latest published follow-up
+
+[PR #168](https://github.com/mikaelcharbonneau/embel/pull/168) published web source
+`5b6e0b3d81b7c07fc4cf45ea1ae732e1bdda319f` in deployment
+`dpl_9S7YcRdhmgcGV4JeCV6gdmHWYoME`. Public health confirms that source and reachable
+Auth, database and Storage. The shared worker remains on the compatible
+`00672941` release below; its authority proof and running instance were unchanged.
+
+Generic project links now resume saved Logo work, including after expanding the
+project to a complete brand. Explicit Strategy links, pending edits and recovery
+remain available. Generation Activity links open their corresponding workspace.
+
+The compatible `logo_brief_context_freshness` migration was applied once. It keeps
+an existing logo current when the original and current owned project contexts
+match exactly. Missing or changed context remains stale. No project or output
+records were rewritten. Hosted readback confirmed the new helper SHA-256
+`a7048b7df7505df2938c03823200a971254dbdedadfb9c2bc34d25376f6cef79`.
+See [migration details](logo-brief-context-freshness.md).
+
+Northline had expanded to revision 2 with identical context. After this fix, its
+original selected concept is current again and its stale-stage list is empty.
+Its project revision and original logo asset/selection records are unchanged.
+
+Follow-up verification: 100 focused integration tests, typecheck, lint and both
+the production build and a build from the actual 1,188-file upload payload pass.
+Native PostgreSQL installation and 53 SQL regression checks pass; the worker
+manifest remains byte-identical. Independent source review is clear. Production
+browser acceptance exercised 34 desktop/mobile cases: 32 passed initially; an
+obsolete Saved-status selector was corrected and both affected cases passed.
+The actual 16-file PNG/ZIP download journey passed on both sizes. These are local
+fixtures, not signed-in live provider acceptance. The owner has been asked to
+refresh Northline and generate its three directions.
+
 ## Published behavior
 
 The main journey is saved logo concept → three generated raster brand boards →
@@ -14,7 +47,7 @@ banner formats. The package has 16 files without an optional verified SVG logo.
 Editable social SVGs embed the original raster; they are not presented as vector
 logos. Bundled fonts support only their verified glyph coverage.
 
-## Exact release
+## Original three-board release
 
 - Integration: [PR #166](https://github.com/mikaelcharbonneau/embel/pull/166).
 - Runtime source: `00672941f41c18180e9a78a05d876cfd13910490`.
