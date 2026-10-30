@@ -2,6 +2,49 @@
 
 ## Latest published follow-up
 
+[PR #174](https://github.com/mikaelcharbonneau/embel/pull/174) publishes web source
+`0399516ac9a0ba9711670b69d36b2dfe0eaed7d5` in deployment
+`dpl_7cwK2zzHcGakACamMXng5MErtc1g`. Public health reports that source and reachable
+Auth, database and Storage. The compatible shared worker remains on `47e9ef7`.
+
+After the previous availability repair, choosing a board reached the save but
+failed. The actual 17:28:03 UTC database log reports SQLSTATE `42501`, permission
+denied for `prepare_identity_transaction` from `prepare_shared_identity_request`.
+Both private writers lacked EXECUTE for their public wrappers' owner, `postgres`.
+That role is not a superuser on hosted Supabase. The failed request persisted no
+selection; the original three generated boards remained intact.
+
+Applied `shared_identity_http_writer_permissions`, source
+`supabase/candidates/shared_identity_http_writer_permissions.sql`, SHA-256
+`03b7cf1a757b21b5116f9ebcceac370df78f61c7466dde467f732400c238a618`.
+The guarded correction adds exactly two nongrantable EXECUTEs to `postgres`,
+leaves function bodies and role memberships unchanged, and grants no direct
+writer access to web logins, anon, authenticated or service_role. Hosted catalog
+readback confirms these properties. Security advisory counts are unchanged.
+The web now requires those explicit grants before advertising saving available.
+
+Verification: 43 focused database tests; 16 native PostgreSQL installation tests;
+131 native PostgreSQL 17 checks, including 14 new Identity checks. The new native
+test reproduces the exact denied call, applies the correction, and uses the real
+shared HTTP runtime through prepare/commit/finish to persist one owned choice and
+mark its board asset used. It also verifies account isolation and unchanged role
+membership. Auth sessions and completed-board metadata are synthetic; this is
+not an authenticated hosted-owner test. Integrated typecheck, lint (zero errors,
+one existing warning), production build and native-script lint/syntax checks pass.
+
+PGlite's superuser `postgres` masked the absent nested permission in the earlier
+tests. The earlier native test covered Home saves but not Identity selection.
+Both gaps now have regression coverage. Worker authority manifest SHA-256 remains
+`9212afb1aedbc3fbf009c18175890a969928ba2f2505087dfe5188765d8bf049`; no worker rollout,
+AI calls, regeneration or customer-choice writes were performed by the workspace.
+
+For a web rollback, `dpl_CK7Ewz9sAHa5qqKJ6HkqnakKV67J` remains compatible with the
+corrected database permissions. Keep the permission repair; revoking it would
+restore the save failure. Signed-in saved selection and final download remain
+the owner's next acceptance check.
+
+## Selection availability follow-up
+
 [PR #172](https://github.com/mikaelcharbonneau/embel/pull/172) publishes web source
 `8e7ed90fc876e76e794084412e4eb6248d4e3325` in deployment
 `dpl_CK7Ewz9sAHa5qqKJ6HkqnakKV67J`. Public health reports the exact source and
