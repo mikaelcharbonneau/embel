@@ -10,7 +10,7 @@ vi.mock("../../../src/features/brand-assets/client/build-pack", () => ({ buildBr
 import { BrandAssetsPanel } from "../../../src/features/brand-assets/components/brand-assets-panel";
 
 let root: Root | null = null;
-afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.innerHTML = ""; vi.restoreAllMocks(); vi.unstubAllGlobals(); mocks.build.mockReset(); });
+afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.innerHTML = ""; vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); mocks.build.mockReset(); });
 async function setup() {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   const f = brandAssetFixture(), downloads: string[] = [], revoke = vi.fn(); let current = true;
@@ -48,6 +48,31 @@ describe("brand assets panel ownership and selection lifecycle", () => {
     const f = await setup(); await act(async () => f.button("Create brand assets").click());
     f.revalidate.mockResolvedValue(false); await act(async () => f.button("Download everything").click());
     expect(f.downloads).toEqual([]); expect(f.revoke).toHaveBeenCalled(); expect(f.button("Download everything")).toBeUndefined();
+    expect(f.container.querySelector("[role=alert]")?.textContent).toContain("changed");
+  });
+  it("keeps prepared files through a temporary check failure and rechecks before downloading again", async () => {
+    const f = await setup(); await act(async () => f.button("Create brand assets").click());
+    f.revalidate.mockRejectedValueOnce(new Error("Temporary connection failure"));
+    await act(async () => f.button("Download everything").click());
+    expect(f.downloads).toEqual([]); expect(f.revoke).not.toHaveBeenCalled();
+    expect(f.container.querySelector("[role=alert]")?.textContent).toContain("Your files are kept");
+    expect(f.button("Download everything").disabled).toBe(false);
+    await act(async () => f.button("Download everything").click());
+    expect(f.revalidate).toHaveBeenCalledTimes(4); expect(mocks.build).toHaveBeenCalledTimes(1);
+    expect(f.downloads).toEqual(["northline-brand-assets.zip"]);
+  });
+  it("keeps prepared files after a timed-out check but still rejects a changed selection on retry", async () => {
+    vi.useFakeTimers();
+    const f = await setup(); await act(async () => f.button("Create brand assets").click());
+    f.revalidate.mockImplementationOnce(() => new Promise<boolean>(() => {}));
+    await act(async () => f.button("Download everything").click());
+    await act(async () => vi.advanceTimersByTimeAsync(60_000));
+    expect(f.button("Download everything").disabled).toBe(false); expect(f.revoke).not.toHaveBeenCalled();
+    expect(f.downloads).toEqual([]); expect(mocks.build).toHaveBeenCalledTimes(1);
+    f.revalidate.mockResolvedValueOnce(false);
+    await act(async () => f.button("Download everything").click());
+    expect(f.downloads).toEqual([]); expect(f.revoke).toHaveBeenCalled();
+    expect(f.button("Download everything")).toBeUndefined();
     expect(f.container.querySelector("[role=alert]")?.textContent).toContain("changed");
   });
   it("never exposes a completed pack after the account changes during creation", async () => {

@@ -80,15 +80,24 @@ function OwnedBrandAssets({ snapshot, logoClient, identityClient, account, proje
   async function download(file?: BrandAssetFile) {
     if (!shown || operation.current || !current()) return;
     const controller = new AbortController(); operation.current = controller; setBusy(true); setError(null); setMessage(null);
+    let selectionChecked = false;
     try {
       await boundedBrandAssetWork(controller.signal, confirm);
       if (!current() || controller.signal.aborted) return;
+      selectionChecked = true;
       const url = URL.createObjectURL(new Blob([file?.bytes ?? shown.pack.archive], { type: file?.mimeType ?? "application/zip" }));
       urls.current.set(url, setTimeout(() => { urls.current.delete(url); URL.revokeObjectURL(url); }, 1000));
       const anchor = document.createElement("a"); anchor.href = url; anchor.download = file ? file.name.split("/").at(-1)! : `${brandAssetSlug(snapshot.name)}-brand-assets.zip`;
       document.body.append(anchor); try { anchor.click(); } finally { anchor.remove(); }
       setMessage("Download started. Check your browser’s downloads.");
-    } catch (error) { if (current() && !controller.signal.aborted) { clearPrepared(); setError(errorMessage(error)); } }
+    } catch (error) {
+      if (current() && !controller.signal.aborted) {
+        if (error instanceof BrandAssetError && error.reason === "selection") { clearPrepared(); setError(errorMessage(error)); }
+        else setError(selectionChecked
+          ? "The download could not start. Your files are kept. Try downloading again."
+          : "Your saved choice could not be checked. Your files are kept. Try downloading again.");
+      }
+    }
     finally { if (operation.current === controller) { operation.current = null; if (current() && !controller.signal.aborted) setBusy(false); } }
   }
   const disabled = busy || !current();
