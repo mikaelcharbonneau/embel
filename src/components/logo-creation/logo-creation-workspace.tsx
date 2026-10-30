@@ -8,7 +8,6 @@ import { logoBriefDraftSchema, type LogoRasterSource } from "@/domain/logo-works
 import { logoUuidSchema } from "@/domain/logo-vector";
 import type { LogoConceptBatch, LogoQuoteRequest } from "@/domain/logo-jobs";
 import { IMAGE_INPUT_LIMITS } from "@/domain/logo-image-limits";
-import { VisualDirectionReview } from "@/features/identity-directions/components/visual-direction-review";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import { useLogoDraftMemory } from "@/components/identity/logo-draft-memory-context";
 import { useLogoCreation } from "./use-logo-creation";
@@ -37,6 +36,7 @@ import { LogoCandidateComparison } from "./candidate-comparison";
 import { logoCandidateKey } from "./candidate-review";
 import { useLogoCandidate } from "./use-logo-candidate";
 import { LogoIdentityContinuation, LogoInputStatus } from "./workflow-status";
+import { LogoDownloadControls } from "./logo-download-controls";
 import { prepareSavedLogoConcepts, logoDraftHasProtectedWork, type LogoSavedInputChoice } from "./saved-inputs-controller";
 import { LogoSavedInputsStatus, type LogoSavedInputState } from "./saved-inputs-status";
 import styles from "./logo-creation.module.css";
@@ -420,7 +420,6 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
 
   const statusTools = <>
     {saved && <LogoInputStatus workspace={saved} />}
-    {saved && <VisualDirectionReview projectId={saved.projectId} />}
   </>;
   const inputTools = <>
     {!activeBatch && <div className="project-logo-start"><h2>{draft?.brief.name || "Your logo starts here"}</h2><p>Save a brief in Project context, then review the available generation options. Only verified image results will appear here.</p></div>}
@@ -573,9 +572,10 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
       </>}
       onRequestRefine={batchReady && selectedLogo && canEstimate ? () => { if (refinementDisclosure.current?.getAttribute("aria-expanded") === "false") refinementDisclosure.current.click(); refinementDisclosure.current?.focus(); } : undefined}
       request={activeRequest} onCheckRequest={recoveryKeys.length > 0 && client && editing && !checkingRequest ? () => void checkRequest() : undefined} />
+    {conceptsScreen && projectId && client && focusedReceipt && <LogoDownloadControls client={client} account={account} projectId={projectId} original={focusedReceipt} disabled={selectionState.busy} />}
     {conceptsScreen && projectId && <div className={styles.continueToBoard}>{workspace.stagePayloads?.concepts?.payload.selected && !selectionState.busy
-      ? <Link className={styles.primaryButton} href={`/brands/account/${projectId}/brand-board`}>Continue to brand board →</Link>
-      : <button className={styles.primaryButton} type="button" disabled title={initialConceptReadState ? initialConceptReadMessage : "Select a logo and wait for it to save"}>Continue to brand board →</button>}</div>}
+      ? <Link className={styles.primaryButton} href={`/brands/account/${projectId}/logo/directions`}>Continue to visual directions →</Link>
+      : <button className={styles.primaryButton} type="button" disabled title={initialConceptReadState ? initialConceptReadMessage : "Select a logo and wait for it to save"}>Continue to visual directions →</button>}</div>}
     {conceptsScreen && refinementHistoryState.error && <p role="status" className={styles.warning}>{refinementHistoryState.error}</p>}
     {conceptsScreen && refinementHistoryState.nextCursor && <button type="button" className={styles.secondaryButton} disabled={refinementHistoryState.loading} onClick={() => void refinementHistory?.loadMore()}>Load earlier versions</button>}
     {!conceptsScreen && advancedTools}

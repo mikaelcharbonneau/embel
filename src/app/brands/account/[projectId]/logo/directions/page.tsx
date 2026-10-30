@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { LogoOutputPage } from "@/components/identity/logo-output-page";
-export const metadata: Metadata = { title: "Visual identity" };
+import { VisualDirectionsPage } from "@/components/visual-directions/visual-directions-page";
+export const metadata: Metadata = { title: "Visual direction" };
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
-  return <LogoOutputPage projectId={(await params).projectId.toLowerCase()} stage="directions" />;
+  return <VisualDirectionsPage projectId={(await params).projectId.toLowerCase()} />;
 }

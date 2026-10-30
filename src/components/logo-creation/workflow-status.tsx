@@ -16,15 +16,14 @@ export function LogoInputStatus({ workspace }: { workspace: LogoWorkspaceV2 }) {
 }
 
 export function LogoIdentityContinuation({ workspace, blocked, hasSelection }: { workspace: LogoWorkspaceV2; blocked: boolean; hasSelection: boolean }) {
-  const logoNeedsReview = workspace.staleStages.some(({ stage }) => stage !== "directions" && stage !== "deliverables");
-  const ready = Boolean(workspace.approvedLogo && !logoNeedsReview);
+  const logoNeedsReview = workspace.staleStages.some(({ stage }) => stage === "brief_references" || stage === "concepts" || stage === "refinements");
+  const ready = hasSelection && !logoNeedsReview;
   return <section className={styles.panel} aria-label="Continue from logo to identity">
-    <h2>{ready ? "Build around your approved logo" : "Review your logo before Identity"}</h2>
-    <p className={styles.note}>{ready ? "Your approved vector logo is ready for colors, typography and supporting graphics."
-      : "Select an image, convert it to a vector, then review and approve the result. Each saved image and vector version stays in its history."}</p>
+    <h2>{ready ? "Explore your visual direction" : "Choose your logo concept"}</h2>
+    <p className={styles.note}>{ready ? "Compare three brand boards using your chosen logo, with colors, typography and example uses."
+      : "Choose a current logo concept to build your visual identity around it."}</p>
     {blocked ? <p className={styles.note}>Resolve the pending request or unsaved edits before continuing.</p>
-      : ready ? <Link className={styles.primaryButton} href={`/brands/account/${workspace.projectId}/logo/directions`}>Continue to Identity directions</Link>
-      : hasSelection || workspace.stages.vector || workspace.stages.refinements?.id ? <Link className={styles.secondaryButton} href={`/brands/account/${workspace.projectId}/logo/vector`}>Review vector logo</Link>
-      : <p className={styles.note}>Choose a saved concept or refinement to continue.</p>}
+      : ready ? <Link className={styles.primaryButton} href={`/brands/account/${workspace.projectId}/logo/directions`}>Continue to visual directions</Link>
+      : <Link className={styles.secondaryButton} href={`/brands/account/${workspace.projectId}/logo`}>Choose a logo concept</Link>}
   </section>;
 }

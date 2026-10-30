@@ -26,7 +26,7 @@ const equal = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.s
 const heads = (overview: ProjectIdentityOverview) => [overview.project.current_revision, overview.referenceSnapshot.referenceRevision, overview.preferences?.revision ?? 0, overview.session?.identityRevision ?? 0];
 const knownRejection = (error: unknown) => error instanceof AccountRequestError && [404, 409, 422].includes(error.status);
 
-export function useProjectIdentity(projectId: string, referenceState?: IdentityReferenceHint) {
+export function useProjectIdentity(projectId: string, referenceState?: IdentityReferenceHint, options?: { logoDirections?: boolean }) {
   const account = useAccountSession(), { session, isCurrent, expire, drafts, identityDrafts } = account;
   const verified = session.status === "ready" ? session : null;
   const scope = verified ? `${verified.userId}:${verified.generation}:${projectId}` : "";
@@ -175,12 +175,12 @@ export function useProjectIdentity(projectId: string, referenceState?: IdentityR
       if (stateRef.current.overview && !equal(stateRef.current.overview.currentBasis, detail.currentBasis)) await refresh();
     } catch (error) { if (client.current() && epoch === detailEpoch.current) publish(previous => ({ ...previous, detailLoading: false, error: identityErrorMessage(error) })); }
   }
-  async function chooseSystem(acceptEarlierBasis: boolean) {
-    if (!client?.current() || !overview || !system || blocked || overview.currentSelection?.system.id === system.id) return;
-    const observed = identityObservation(overview), request = { systemVersionId: system.id, expectedProjectRevision: observed.projectRevision,
+  async function chooseSystem(acceptEarlierBasis: boolean, selectedSystem: IdentitySystemVersion | null = system) {
+    if (!client?.current() || !overview || !selectedSystem || blocked || overview.currentSelection?.system.id === selectedSystem.id) return;
+    const observed = identityObservation(overview), request = { systemVersionId: selectedSystem.id, expectedProjectRevision: observed.projectRevision,
       expectedReferenceRevision: observed.referenceRevision, expectedPreferencesRevision: observed.preferencesRevision, expectedIdentityRevision: observed.identityRevision, acceptEarlierBasis };
     let saved = false;
-    await begin(() => client.select(request, observed, system), () => { saved = true; });
+    await begin(() => client.select(request, observed, selectedSystem), () => { saved = true; });
     if (saved && client.current()) { await refresh(); publish(previous => ({ ...previous, notice: previous.checked ? "Current Identity choice saved." : "The choice was saved. Check the latest to verify the current selection." })); }
     else if (client.current()) publish(previous => ({ ...previous, selectionUncertain: true }));
   }
@@ -240,10 +240,10 @@ export function useProjectIdentity(projectId: string, referenceState?: IdentityR
     : referencesPending ? "Finish checking your reference choices before generating."
     : retained.some(identityDraftChanged) ? "Save or discard your Identity edits before generating."
     : overview.referenceSnapshot.selectedReferenceCount > IMAGE_INPUT_LIMITS.images ? `Choose one to ${IMAGE_INPUT_LIMITS.images} references for generation. Your other saved choices are kept until you change them.`
-    : !overview.readiness.ready ? overview.readiness.blocking.includes("references") ? "Select at least one owned reference before generating." : "Finish the saved brief, strategy and brand name before generating."
+    : !options?.logoDirections && !overview.readiness.ready ? overview.readiness.blocking.includes("references") ? "Select at least one owned reference before generating." : "Finish the saved brief, strategy and brand name before generating."
     : null;
   const generation = useIdentityGeneration({ account: verified, projectId, client, memory: identityDrafts,
-    canStart: input => !generationBlockedReason && Boolean(overview && "version" in input && input.version === 2
+    canStart: input => !generationBlockedReason && Boolean(overview && "version" in input && input.version === (options?.logoDirections ? 3 : 2)
       && input.expectedProjectRevision === overview.project.current_revision && input.expectedReferenceRevision === overview.referenceSnapshot.referenceRevision
       && input.expectedPreferencesRevision === (overview.preferences?.revision ?? 0) && input.expectedIdentityRevision === (overview.session?.identityRevision ?? 0)),
     onResults: () => { void refresh(); } });
