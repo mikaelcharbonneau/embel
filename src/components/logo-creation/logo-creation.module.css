@@ -160,21 +160,6 @@
 .versionPicker select { width: auto; max-width: 180px; padding: 5px 9px; border: 1px solid var(--border, #e4e3df); border-radius: 6px; background: white; color: #191919; font: inherit; }
 
 .continueToBoard { display: flex; justify-content: flex-end; margin-top: 24px; }
-.brandBoard { padding: 24px; }
-.brandBoardHeader { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; }
-.brandBoardHeader .backToInspiration { margin: 0; flex-shrink: 0; }
-.brandBoard h1 { font-size: 24px; font-weight: 500; }
-.brandBoard header p { color: var(--secondary, #696965); }
-.brandBoardLogo { position: relative; min-height: 180px; display: grid; place-items: center; padding: 16px; background: white; border: 1px solid var(--border, #e4e3df); border-radius: 10px; }
-.brandBoardLogo img { width: min(100%, 420px); height: 160px; object-fit: contain; }
-
-@media (min-width: 1001px) and (min-height: 650px) {
-  .brandBoard { height: 100%; min-height: 0; display: flex; flex-direction: column; padding: 16px 20px; }
-  .brandBoardHeader { flex-shrink: 0; margin-bottom: 12px; }
-  .brandBoardHeader h1 { font-size: 22px; line-height: 28px; }
-  .brandBoardHeader p { margin-top: 2px; font-size: 12px; line-height: 18px; }
-}
-@media (max-width: 600px) { .brandBoardHeader { align-items: flex-start; flex-direction: column-reverse; gap: 8px; } }
 .generationAction { min-width: 0; text-align: left; }
 .generationActionRow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
 .generationEstimate { color: var(--muted, #666); font-size: 13px; line-height: 1.5; }

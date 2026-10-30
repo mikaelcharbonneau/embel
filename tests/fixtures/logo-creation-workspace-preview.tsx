@@ -1,7 +1,6 @@
 /** TEST ONLY: the actual production workspace/hooks against Playwright-intercepted
  * synthetic same-origin HTTP. Never import from an application route. */
 import { createRoot } from "react-dom/client";
-import { BrandBoardPage } from "../../src/components/logo-creation/brand-board-page";
 import { AccountSessionProvider, useAccountSession } from "../../src/components/workspace/account-session";
 import { LogoCreationWorkspace } from "../../src/components/logo-creation/logo-creation-workspace";
 import "../../src/styles/globals.css";
@@ -9,7 +8,6 @@ import "../../src/styles/project-workspace.css";
 import "./logo-creation-workspace-preview.css";
 function Preview() {
   const session = useAccountSession();
-  if (location.pathname === "/brand-board-layout-fixture") return <BrandBoardPage projectId="00000000-0000-4000-8000-000000000002" />;
   const projectId = location.pathname.match(/\/account\/([^/]+)\/logo/)?.[1];
   return <main style={{ maxWidth: 1140, margin: "auto", padding: 20 }}>
     <p>Local synthetic test only. No live provider, storage or charges.</p>
