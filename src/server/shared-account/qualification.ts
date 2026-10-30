@@ -23,8 +23,9 @@ export const sharedHttpHelperHashes = Object.freeze({
   "public.execute_shared_home_request(text,text,jsonb,jsonb)": "064e898d7fb743ef570c3ab6fd5da5b82594cd7aeb4f508c7ef064f7145bc59f",
   "public.shared_account_http_principal()": "64ab03fcab952b474a9e87df58c30d11c862727dd237549da4e0095880cc24cc",
   "fluid_private.identity_web_owner()": "b14fbff21d2585886f46f34a4e5d3911edf433561928d85c788da490f63f6131",
-  "fluid_private.prepare_identity_transaction(uuid,jsonb,boolean)": "f6db4c816fa1418cb76b40f7d9f9b43effacfec3bbdcaa462325c52c1eabf166",
-  "fluid_private.commit_identity_transaction(uuid,jsonb,jsonb)": "63febf976e3504873425fc3d388c319e320291d83a6bc048a4fb56a36a671f6a",
+  // Selected-logo boards extend these writers with captured logo-brief evidence.
+  "fluid_private.prepare_identity_transaction(uuid,jsonb,boolean)": "7eeebe5a9d06a4cf03eb172017b5287f1cfc728e8280aa9468ef1cb01ffa705d",
+  "fluid_private.commit_identity_transaction(uuid,jsonb,jsonb)": "a71ce5e81b90668260cabf1162abf30c9dc299234ce3e459efc25b511eb5d0a3",
   "fluid_private.home_attachment_owner()": "d56e97decff5330b4ad9a0ac36c9e1c56987b9e2ea07f3652c45f5d11b8fc291",
   "fluid_private.prepare_home_attachment(jsonb,bigint)": "c0eb091e034e62845fa67e75e8b8049a066c0677f980ebb7961d95866824a402",
   "fluid_private.observe_home_attachment(uuid,jsonb)": "fce80bafee4f77b9f1985e6d0235b065adeddfe26d3cab01f748f8e29e72edc8",

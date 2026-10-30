@@ -16,7 +16,7 @@ const upload = () => ({ requestKey: randomUUID(), name: "brief.txt", mimeType: "
 type Reservation = { ref: { id: string; ownerId: string }; verified: boolean };
 describe("shared web authority actual restricted SQL (synthetic verified PostgREST sessions)", () => {
   let f: SharedAccountFixture;
-  beforeAll(async () => { f = await createSharedAccountFixture(); }, 90_000);
+  beforeAll(async () => { f = await createSharedAccountFixture({ selectedLogoBoards: true }); }, 90_000);
   afterAll(async () => { await f?.db.close(); });
 
   it("installs exact helper bodies, no login defaults and zero direct customer grants", async () => {
