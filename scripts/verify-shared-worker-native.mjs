@@ -1,4 +1,5 @@
 import {verifySharedLogoRaster} from './verify-shared-logo-raster-native.mjs';
+import {verifySharedIdentitySelection} from './verify-shared-identity-selection-native.mjs';
 /** Isolated PG17 NOSUPER source-packet verification. No ports, network, host
  * mounts, live database, passwords, Auth service or provider calls. The cached
  * image is required; this script does not pull or install infrastructure. */
@@ -12,6 +13,7 @@ const compileAuthorityOnly=process.argv.length===3&&process.argv[2]==='--compile
 if(process.argv.length!==2&&!compileAuthorityOnly)throw Error('Unsupported native verification argument');
 const packetPaths=['identity_transactions.sql','shared_worker_pool.sql','shared_account_http.sql','shared_worker_strategy.sql','shared_worker_naming.sql','shared_worker_logo.sql','shared_storage_authority.sql','shared_logo_http.sql','shared_logo_advanced.sql','shared_identity_generation.sql','shared_naming_brainstorm.sql','shared_naming_brainstorm_event_capacity.sql','shared_logo_raster_uncapped.sql','shared_logo_raster_recovery.sql','shared_identity_selected_logo_boards.sql'];
 const packets=Object.fromEntries(packetPaths.map(path=>[path,readFileSync(new URL('../supabase/candidates/'+path,import.meta.url),'utf8')]));
+const identityWriterCorrection=readFileSync(new URL('../supabase/candidates/shared_identity_http_writer_permissions.sql',import.meta.url),'utf8');
 const env={...process.env};for(const key of ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH'])delete env[key];
 const docker=(args,input)=>execFileSync('docker',['--host=unix:///var/run/docker.sock',...args],{env,input,encoding:'utf8',stdio:['pipe','pipe','pipe'],maxBuffer:20*1024*1024});
 let created=false,stage='cached-image';const passed=[];
@@ -80,6 +82,9 @@ try{
   previousCatalog=new Map(current.map(f=>[functionKey(f),JSON.stringify(f)]));
  }
  const compiledFunctions=catalog().filter(f=>baselineCatalog.get(functionKey(f))!==JSON.stringify(f)).map(f=>({...f,lanes:workerManifestKeys.has(functionKey(f))||f.schema==='fluid_private'&&f.name==='shared_http_customer_storage_live'?['strategy','naming','logo']:[]}));
+ // This post-install ACL correction changes no pinned function/source metadata.
+ // Full verification first reproduces the failure through the actual wrapper.
+ if(compileAuthorityOnly)sql(identityWriterCorrection);
  assert(sql("select count(*) from pg_roles where rolname='embel_account_role_manager';")==='0','no-online-role-manager-installed');
  if(!compileAuthorityOnly){
  stage='fixture-only-bounded-probe';
@@ -210,6 +215,8 @@ try{
  checkDenied(`select public.execute_shared_home_request(${quote(wrongArgsCap.token)},'prepare',${quote(JSON.stringify(args))},null);`,httpRoles.home,'HTTP-request-arguments-immutable');
  checkDenied(`select public.execute_shared_home_request(${quote(wrongArgsCap.token)},'prepare',${quote(JSON.stringify(args))},null);`,httpRoles.identity,'HTTP-home-capability-cannot-cross-fixed-principals');
  assert(sql('select count(*) from fluid_private.shared_http_contexts;')==='0','HTTP-private-context-empty-after-owner-reuse-and-denials');
+ stage='actual-Identity-web-selection-under-nonsuper-definers';
+ await verifySharedIdentitySelection({sql,quote,assert,checkDenied,asVerifiedSession,sessions,origin,interactiveSql,correction:identityWriterCorrection});
  stage='actual-Logo-web-SQL-capability-boundary';const logoRole='embel_shared_http_logo_native';
  sql(`create role ${logoRole} login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
   grant usage on schema public to ${logoRole};grant execute on function public.shared_logo_http_principal(),public.execute_shared_logo_request(text,text,jsonb,jsonb) to ${logoRole};
@@ -338,6 +345,6 @@ try{
  assert(Object.entries(packets).every(([path,source])=>readFileSync(new URL('../supabase/candidates/'+path,import.meta.url),'utf8')===source),'source-packet-bytes-unchanged-during-native-verification');
  const manifest={version:1,packets:Object.entries(packets).map(([path,source])=>({path:`supabase/candidates/${path}`,sha256:createHash('sha256').update(source).digest('hex')})),functions:compiledFunctions};
  const manifestBytes=JSON.stringify(manifest,null,2)+'\n';writeFileSync(new URL('../worker/shared-pool/authority-manifest.json',import.meta.url),manifestBytes);
- stage='done';console.log(JSON.stringify({verification:'passed',mode:compileAuthorityOnly?'compile-authority-only':'full-native',nativeVersion:17,installer:'postgres NOSUPER CREATEROLE',migrationCount:migrationNames.length,checkCount:passed.length,passed,packetSha256:Object.fromEntries(Object.entries(packets).map(([p,s])=>[p,createHash('sha256').update(s).digest('hex')])),manifest:{path:'worker/shared-pool/authority-manifest.json',sha256:createHash('sha256').update(manifestBytes).digest('hex'),functions:compiledFunctions.length,workerFunctions:compiledFunctions.filter(f=>f.lanes.length).length},proofScope:compileAuthorityOnly?'exact source-packet installation and compiled catalog only; no unrelated runtime suites':'native fixed-slot authority, uncapped raster publication/accounting, tenant Storage boundaries and Home/Logo web delegation; Strategy gateway temporarily replaced by finite core probe then restored with exact body hash; no provider engines or real upload observation',liveSupabaseServices:false,providerCalls:false}));
+ stage='done';console.log(JSON.stringify({verification:'passed',mode:compileAuthorityOnly?'compile-authority-only':'full-native',nativeVersion:17,installer:'postgres NOSUPER CREATEROLE',migrationCount:migrationNames.length,checkCount:passed.length,passed,packetSha256:Object.fromEntries(Object.entries(packets).map(([p,s])=>[p,createHash('sha256').update(s).digest('hex')])),postInstallCorrectionSha256:createHash('sha256').update(identityWriterCorrection).digest('hex'),manifest:{path:'worker/shared-pool/authority-manifest.json',sha256:createHash('sha256').update(manifestBytes).digest('hex'),functions:compiledFunctions.length,workerFunctions:compiledFunctions.filter(f=>f.lanes.length).length},proofScope:compileAuthorityOnly?'exact source-packet installation and compiled catalog only; no unrelated runtime suites':'native fixed-slot authority, uncapped raster publication/accounting, tenant Storage boundaries and Home/Logo web delegation; real Identity web runtime selection through nonsuper definer prepare/commit/finish; Strategy gateway temporarily replaced by finite core probe then restored with exact body hash; no provider engines or real upload observation',liveSupabaseServices:false,providerCalls:false}));
 }catch(error){console.error(JSON.stringify({verification:'failed',stage,sqlError:String(error?.stderr??'').match(/ERROR:\s+([^\n]{1,180})/)?.[1],error:error instanceof Error?error.message.split('\n')[0].replace(/Command failed:.*/,'native fixture command failed'):'native fixture failed'}));process.exitCode=1;
 }finally{if(created){try{docker(['rm','--force',name]);const absent=docker(['ps','--all','--quiet','--filter',`name=^/${name}$`]).trim()==='';if(!absent)throw Error('fixture-cleanup-incomplete');console.log(JSON.stringify({fixtureContainerRemoved:true,persistentAccessCreated:false}));}catch{console.error('Native fixture cleanup failed');process.exitCode=1;}}}
