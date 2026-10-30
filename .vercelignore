@@ -18,3 +18,16 @@
 !scripts/local-environment.d.mts
 !scripts/certs
 !scripts/certs/supabase-prod-ca-2021.crt
+
+# Shared declarations and imports required by the project's TypeScript build.
+!services
+!services/logo-worker
+!services/logo-worker/pg-js.d.ts
+!services/naming-worker
+!services/naming-worker/authority.ts
+!services/naming-worker/scheduling.ts
+!services/shared-worker
+!services/shared-worker/runtime-files.json
+!services/shared-worker/runtime-packages.json
+# Worker service deployment settings are not inputs to the web build.
+services/**/vercel.json
