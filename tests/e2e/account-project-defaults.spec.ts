@@ -102,7 +102,10 @@ test("account default: failed automatic answer save stays retained and retries i
   state.patchStatus = 200; state.runtimeReady = false;
   await page.getByRole("button", { name: "Retry save", exact: true }).click();
   await expect.poll(() => state.projects.get(projectId)?.current_revision).toBe(2);
-  await expect(page.locator(".save-label")).toHaveText("Saved");
+  await page.getByRole("button", { name: "Edit brief", exact: true }).click();
+  const editor = page.getByRole("dialog", { name: "Edit current brief", exact: true });
+  await expect(editor.getByRole("status")).toHaveText("Saved");
+  await editor.getByRole("button", { name: "Close", exact: true }).click();
   await expectProjectCanvas(page);
   await expect(page.getByText(/Your answer is kept in this tab, but saving was not confirmed/)).toHaveCount(0);
   expect(state.patches).toHaveLength(2); expect(state.patches[1]).toBe(state.patches[0]);
