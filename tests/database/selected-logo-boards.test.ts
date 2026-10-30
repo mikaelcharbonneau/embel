@@ -143,6 +143,26 @@ describe('selected-logo boards: actual SQL admission, storage and immutable publ
   }
   await expect(f.asAuth(OWNER_B,()=>f.db.query('select * from fluid_private.identity_system_applications'))).rejects.toThrow();
  });
+ it('retains the selected logo across expansion and retitling with equal context, while real content changes still block new boards',async()=>{
+  const workspace=await f.start(OWNER_A),p={owner:OWNER_A,projectId:workspace.projectId};await logo(p);
+  const original=(await ready(p)).availability;
+  const saved=(await f.db.query<{context:Record<string,unknown>;input_hash:string}>('select context,input_hash from public.project_revisions where owner_id=$1 and project_id=$2 and revision=1',[p.owner,p.projectId])).rows[0]!;
+  const stages=(await f.db.query('select id,record from public.logo_stage_revisions where owner_id=$1 and project_id=$2 order by stage,revision',[p.owner,p.projectId])).rows;
+  await f.rpc(p.owner,'expand_project_scope',[p.projectId,1]);
+  const expanded=await ready(p);
+  expect(expanded.availability).toMatchObject({status:'available',expectedProjectRevision:2,sourceLogo:original.sourceLogo});
+  const batch=identityBatchStateSchema.parse(await f.rpc(p.owner,'ensure_shared_identity_batch',[p.projectId,expanded.intent]));
+  expect(batch.input).toMatchObject({version:2,scope:'complete_brand',projectRevision:2,context:saved.context});
+  expect(batch.sourceLogo).toEqual(original.sourceLogo);
+  expect(batch.sourceLogo?.brief.payload.sourceProjectRevision).toBe(1);
+  await f.rpc(p.owner,'cancel_shared_identity_batch',[p.projectId,batch.batchId]);
+  await f.rpc(p.owner,'append_project_revision',[p.projectId,2,saved.context,saved.input_hash,'Retitled fixture']);
+  expect((await ready(p)).availability).toMatchObject({status:'available',expectedProjectRevision:3,sourceLogo:original.sourceLogo});
+  const changed={...saved.context,description:'The actual saved product idea changed'};
+  await f.rpc(p.owner,'append_project_revision',[p.projectId,3,changed,hash(JSON.stringify(changed)),null]);
+  expect(await f.rpc(p.owner,'get_shared_identity_availability',[p.projectId])).toMatchObject({status:'unavailable',reason:'logo_needs_review'});
+  expect((await f.db.query('select id,record from public.logo_stage_revisions where owner_id=$1 and project_id=$2 order by stage,revision',[p.owner,p.projectId])).rows).toEqual(stages);
+ });
  it('retains exact historical v2 batches and v1 inputs after the forward packet',async()=>{
   const batch=identityBatchStateSchema.parse(await f.rpc(historical.owner,'ensure_shared_identity_batch',[historical.projectId,historical.intent]));
   expect(batch.intent).toEqual(historical.intent);expect(batch.input.version).toBe(1);expect(batch.systems).toHaveLength(1);expect(batch.sourceLogo).toBeUndefined();
