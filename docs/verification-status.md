@@ -1,7 +1,7 @@
 # Verification status
 
-The current published web runtime is `0399516ac9a0ba9711670b69d36b2dfe0eaed7d5` from
-[PR #174](https://github.com/mikaelcharbonneau/embel/pull/174), released October 30,
+The current published web runtime is `e7e51e63f9c3e33d090d6b5a03293ed53c9519ed` from
+[PR #176](https://github.com/mikaelcharbonneau/embel/pull/176), released October 30,
 2026. The shared worker remains on `47e9ef78942a7998b27715988fc60f63fbf503c7` from
 [PR #170](https://github.com/mikaelcharbonneau/embel/pull/170).
 The main path now goes from a chosen logo to three visual direction boards
@@ -15,14 +15,18 @@ and US$0.170487 recorded usage. The selection repairs recognize the installed
 writers, restore the two missing private permissions used by the save operation,
 and check those permissions before advertising saving. Failed checks offer
 bounded recovery. A native PostgreSQL test reproduces the live denial and then
-completes the real save path with a nonsuperuser wrapper owner. Signed-in
-saved-selection and final-download acceptance remain pending. See the
+completes the real save path with a nonsuperuser wrapper owner. Northline's actual
+Direction 3 selection is saved, and the owner confirmed that the full asset
+package downloads and opens. The live main journey is now accepted. See the
 [preflight repair evidence](identity-generation-preflight-20261030.md).
 
 See the [current release record](visual-identity-release-20261030.md) for exact
-web/worker deployments, tests, the resolved service outage and the pending
-signed-in selection/download acceptance check. Local browser checks used synthetic
-provider/authentication fixtures; they do not prove the live generated output.
+web/worker deployments, tests, resolved service outage and signed-in acceptance.
+The current follow-up bounds asset-page loading, preserves prepared files after
+temporary download-check failures, clarifies step/error labels and removes the
+unused old output screen. It keeps the current visual style. All 20 local browser
+journeys pass on desktop/mobile using synthetic provider/authentication fixtures.
+This does not establish high-volume capacity or readiness of every separate tool.
 
 ## Historical source checkpoints
 
