@@ -504,8 +504,9 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
   return <div className={`project-logo-creation project-workbench ${conceptsScreen ? styles.conceptsScreen : ""} `} aria-label="Logo creation workspace"><div className="project-workbench-canvas">
     {conceptsScreen && projectId && <Link className={styles.backToInspiration} href={`/brands/account/${projectId}/inspiration`}>← Back to inspiration</Link>}
     <header className={styles.workspaceHeader}>
+      {conceptsScreen && <p className={styles.muted}>Build your brand · Step 1 of 3</p>}
       <h1>{projectId ? "Explore your logo" : "Give your brand a visual voice"}</h1>
-      <p className={styles.muted}>{conceptsScreen ? (activeBatch ? `Six directions for ${draft?.brief.name || "your brand"}` : "Six directions, shaped by your brand and inspiration.") : "Review and refine your saved logo."}</p>
+      <p className={styles.muted}>{conceptsScreen ? (activeBatch ? `Six logo concepts for ${draft?.brief.name || "your brand"}` : "Six logo concepts, shaped by your brand and inspiration.") : "Review and refine your saved logo."}</p>
       {!conceptsScreen && <>      <p className={styles.muted}>Start with a brief, choose the kinds of logo you want to explore, and keep your work in a saved project.</p>
       {savedProjectId && <div className={styles.actions}>
         <Link className={styles.secondaryButton} href={projectStrategyHref(savedProjectId)}>Open project</Link>

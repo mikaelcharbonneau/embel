@@ -134,7 +134,8 @@ function OwnedVisualDirections({ account, projectId }: { account: VerifiedAccoun
       onGenerate: start, onCheck: () => void refresh(), onStop: unresolved && generation.stopAcknowledgedBatchId !== generation.batch?.batchId
         ? () => { if (generation.retained) void generation.controller?.closeOriginal(); else void generation.controller?.stop(); } : undefined }}
     selectionCheck={identity.selectionCheckAvailable ? { busy: identity.loading || identity.detailLoading, onCheck: () => void identity.refresh() } : undefined}
-    selectionStatus={selectedCard ? "Direction saved. You can now create your brand assets." : identity.selectionUncertain ? "Your choice could not be confirmed. Check the saved results before choosing again." : null}
+    selectionStatus={selectedCard ? "Direction saved. You can now create your brand assets." : null}
+    selectionError={!selectedCard && identity.selectionUncertain ? "Your choice could not be confirmed. Use Check saved choice before choosing again." : null}
     finalAction={selectedCard && <Link className="identity-primary-button" href={`/brands/account/${projectId}/logo/deliverables`}>Continue to brand assets</Link>}
     history={<>
       {shownHistory?.batch && shownHistory.batch.batchId !== requestBatch?.batchId && <p>You are viewing an earlier saved set. The progress above is for your latest request.</p>}
