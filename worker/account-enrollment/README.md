@@ -1,3 +1,10 @@
+# Historical per-account worker implementation
+
+The current shared runtime uses the [shared worker entrypoint](../shared-pool/README.md).
+`npm run build:shared-worker` and its `npm run build:account-worker` alias build
+`.tmp/shared-worker/`. The per-account implementation described below is retained
+for compatibility and historical review; it is not the shared deployment path.
+
 These modules prepare isolated per-owner hosted workers. Importing them does not
 enroll an account, create a role, enable a policy, launch a process or call a model.
 
@@ -16,7 +23,7 @@ path. Preserve the managed CA variables. Children inherit only the proxy/CA
 allowlist and actual deployment metadata, and enable Node's proxy support when
 a proxy is configured. No direct-network or TLS-disable fallback is provided.
 
-`npm run build:account-worker` builds `.tmp/account-worker/index.js` and the
+The historical `node scripts/build-account-worker.mjs` builds `.tmp/account-worker/index.js` and the
 isolated `raster.js`, with a reviewed first-party source allowlist and a composite
 artifact digest. The package requires the pinned Sharp 0.35.5 native runtime.
 The build targets Node 22.22; executing the inert tests on another supported Node

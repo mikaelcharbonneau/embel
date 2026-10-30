@@ -43,13 +43,21 @@ it.each([false, true])("continues reviewed saved strategy without adding the rem
   if (nameSelected) project = { ...project, context: { ...project.context, selectedName: "Tablelight" } };
   const originalContext = structuredClone(project.context);
   await render();
-  if (nameSelected) {
-    expect(host.querySelector(`a[href="/brands/account/${id(2)}/inspiration"]`)).not.toBeNull();
-    expect(host.querySelector('[aria-label="Brand conversation"]')).not.toBeNull();
-  } else expect(host.querySelector('[aria-label="Inline Naming continuation"]')).not.toBeNull();
+  expect(host.querySelector('[aria-label="Inline Naming continuation"]')).not.toBeNull();
+  expect(host.querySelector('[aria-label="Brand conversation"]')).toBeNull();
   expect(host.querySelector(`a[href="/brands/account/${id(2)}/naming"]`)).toBeNull();
   expect(host.querySelector('[aria-label="Brand context and continuation"]')).toBeNull();
   expect(host.querySelector('[aria-label="Project stages"]')).toBeNull();
+  expect(account.drafts.get(id(2))!.saved.context).toEqual(originalContext);
+  expect(requests.every(request => request.init.method === "GET")).toBe(true);
+});
+
+it("lets a reviewed legacy brand continue to Naming without creating an interview", async () => {
+  project = { ...project, context: { ...project.context, reformulationConfirmed: true, positioning: "A useful everyday kitchen", intake: { ...project.context.intake, positioningReviewedAt: when, guidedInterview: undefined } } };
+  const originalContext = structuredClone(project.context);
+  await render();
+  expect(host.querySelector(`a[href="/brands/account/${id(2)}/naming"]`)?.textContent).toBe("Continue to Naming");
+  expect(host.querySelector('[aria-label="Inline Naming continuation"]')).toBeNull();
   expect(account.drafts.get(id(2))!.saved.context).toEqual(originalContext);
   expect(requests.every(request => request.init.method === "GET")).toBe(true);
 });

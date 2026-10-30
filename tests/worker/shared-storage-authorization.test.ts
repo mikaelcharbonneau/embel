@@ -9,7 +9,7 @@ describe("shared Storage HTTP adapter (mock HTTP, actual disposable SQL/RLS; syn
  let f: Awaited<ReturnType<typeof createSharedStorageFixture>>;
  beforeAll(async () => { f = await createSharedStorageFixture(); }, 60_000); afterAll(async () => { await f?.close(); });
  beforeEach(async () => { await f.db.exec("begin"); await f.resetLease(); }); afterEach(async () => { await f.db.exec("rollback; set session authorization postgres"); });
- async function fixture() {
+ async function fixture(duplicateResponse: { status: number; body: Record<string, unknown> } = { status: 409, body: { code: "ResourceAlreadyExists", statusCode: 409 } }) {
   const p = await f.prepare(), blobs = new Map<string, { bytes: Uint8Array; mimeType: string }>();
   let corruptProof = false, oversized = false, redirect = false, foreignSession = false;
   const transport = vi.fn(async (raw: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
@@ -28,7 +28,7 @@ describe("shared Storage HTTP adapter (mock HTTP, actual disposable SQL/RLS; syn
    if (init?.method === "POST") {
     expect(headers.get("x-upsert")).toBe("false"); expect(headers.has("authorization")).toBe(true);
     try { await f.put(p.reservation); }
-    catch (error) { return (error as { code?: string }).code === "23505" ? Response.json({ code: "ResourceAlreadyExists", statusCode: 409 }, { status: 409 }) : Response.json({ code: "fixture_denied" }, { status: 403 }); }
+    catch (error) { return (error as { code?: string }).code === "23505" ? Response.json(duplicateResponse.body, { status: duplicateResponse.status }) : Response.json({ code: "fixture_denied" }, { status: 403 }); }
     blobs.set(p.reservation.storagePath, { bytes: new Uint8Array(init.body as Uint8Array), mimeType: headers.get("content-type")! });
     return Response.json({ Id: p.reservation.reference.versionId, Key: `fluid-assets/${p.reservation.storagePath}` });
    }
@@ -47,6 +47,29 @@ describe("shared Storage HTTP adapter (mock HTTP, actual disposable SQL/RLS; syn
   expect(await object.read()).toEqual({ bytes: new Uint8Array(p.bytes), mimeType: "image/png" });
   expect(p.transport.mock.calls.filter(([url, init]) => String(url).includes("/storage/v1/") && init?.method === "POST")).toHaveLength(2);
   p.authorization.close(); await expect(object.read()).rejects.toThrow("Shared slot Storage is unavailable");
+ });
+ it.each([
+  { status: 400, body: { code: "KeyAlreadyExists", statusCode: "409" } },
+  { status: 400, body: { error: "Duplicate", statusCode: "409", message: "The resource already exists" } },
+ ])("accepts documented duplicate format $body after immutable upload and verifies the original bytes", async response => {
+  const p = await fixture(response);
+  try {
+   const object = await p.authorization.authorizeWrite(p.scope);
+   await object.putIfAbsent(p.bytes, "image/png"); await object.putIfAbsent(p.bytes, "image/png");
+   expect(await object.read()).toEqual({ bytes: new Uint8Array(p.bytes), mimeType: "image/png" });
+  } finally { p.authorization.close(); }
+ });
+ it.each([
+  { status: 400, body: { error: "Duplicate", statusCode: "400" } },
+  { status: 403, body: { error: "Duplicate", statusCode: "409" } },
+  { status: 400, body: { error: "AccessDenied", statusCode: "409", message: "The resource already exists" } },
+  { status: 400, body: { code: "AccessDenied", error: "Duplicate", statusCode: "409" } },
+ ])("rejects a mismatched duplicate response $body", async response => {
+  const p = await fixture(response);
+  try {
+   const object = await p.authorization.authorizeWrite(p.scope); await object.putIfAbsent(p.bytes, "image/png");
+   await expect(object.putIfAbsent(p.bytes, "image/png")).rejects.toThrow("Shared slot Storage is unavailable");
+  } finally { p.authorization.close(); }
  });
  it.each(["owner", "lease", "path", "bytes"])("refuses a forged %s before object HTTP", async defect => {
   const p = await fixture(), scope = structuredClone(p.scope);

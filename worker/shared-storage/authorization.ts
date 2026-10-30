@@ -136,7 +136,11 @@ export function createSharedLogoStorageAuthorization(input: SharedLogoStorageAut
     const response = await request(path, { method: "POST", headers: { "content-type": mime, "content-length": String(bytes.byteLength),
      "cache-control": "max-age=0", "x-upsert": "false", "accept-encoding": "identity" }, body: bytes }, s, 16_384, true);
     if (![200, 400, 409].includes(response.status)) throw storageUnavailable(); const ack = z.record(z.string(), z.unknown()).parse(await response.json());
-    const duplicate = ["ResourceAlreadyExists", "KeyAlreadyExists", "already_exists"].includes(String(ack.code)) && (response.status === 409 || response.status === 400 && String(ack.statusCode) === "409");
+    const duplicateStatus = response.status === 409 || response.status === 400 && String(ack.statusCode) === "409";
+    // Supabase documents both code-based errors and the legacy StorageError
+    // shape. The original object's hash/length are still checked on readback.
+    const duplicate = duplicateStatus && (["ResourceAlreadyExists", "KeyAlreadyExists", "already_exists"].includes(String(ack.code))
+     || ack.code === undefined && ack.error === "Duplicate" && String(ack.statusCode) === "409");
     if (!duplicate && (response.status !== 200 || !z.uuid().safeParse(ack.Id).success || ack.Key !== `fluid-assets/${row.storagePath}`)) throw storageUnavailable();
     await grant(job, row, "observe", s, p);
    }) });

@@ -2,6 +2,10 @@
 
 Embel is an account-based brand-building workspace for moving from an idea to strategy, a name, a logo and usable identity files. Signed-in work saves automatically to the account, with acknowledged save status and retained recovery after errors. This source checkout is a development handoff; local qualification does not establish live provider or production acceptance.
 
+Start with [current reliability priorities and remaining gaps](docs/product-health.md).
+The implementation checkpoints below are historical; verify the current source,
+deployment and saved request before treating an older availability statement as current.
+
 The product was renamed from Fluid to **Embel** on 2026-10-13. The private GitHub repository is now `mikaelcharbonneau/embel`; its earlier `emble` URL redirects there. Existing `FLUID_*` settings, storage keys, service identifiers and historical design references retain their original names for compatibility; see [the branding record](docs/embel-branding.md).
 
 For the historical Codex Cloud setup and Home/Ideas design handoff, read [Cloud development](docs/cloud-development.md). The source-checkpoint verification limits below describe the earlier transfer; later verification is recorded separately and does not imply live provider acceptance.
@@ -12,7 +16,7 @@ A user can begin with a complete brand, naming only, or visual identity only, an
 
 - **Home, Ideas and Projects:** start from a freeform prompt, capture manual Ideas, save account work and explicitly turn useful material into a brand. Browser copies retain recovery material; legacy work requires an explicit selection and matching-account confirmation before recovery.
 - **Strategy:** develop the brief through a focused guided interview: Competitors, Target audience, then Brand personality. Preserve actual conversation history, sources and user choices; show inline thinking only during real work. Positioning is outside this interview.
-- **Naming:** explore names from saved context, keep favorites and history, choose a name and use deterministic Affixes, Tweaks, Blend and Swap controls. The approved initial project batch is 250 names with later 50-name batches; historical 100-name batches remain readable. Standalone Names saves its account workshop automatically and supports explicit continuation into a brand.
+- **Naming:** explore names from saved context, keep favorites and history, choose a name and use deterministic Affixes, Tweaks, Blend and Swap controls. The current shared flow targets 100 initial creative proposals, labelled as unchecked; see [fast-first Naming](docs/naming-fast-first.md). Earlier 250-name and 100-name batch formats and 50-name continuations remain readable. Standalone Names saves its account workshop automatically and supports explicit continuation into a brand.
 - **Logo and Visual Identity:** follow the logo-first workflow below. Existing legacy three-board Identity records stay readable and must not be reinterpreted as the new workflow.
 - **Assets and Guidelines:** retain owned files, provenance and immutable versions, then deliver verified files matching the approved selection. The default Assets view includes liked, saved or used material; all generations is a separate view.
 - **Domains, Handles and Trademarks:** maintain manual workspaces and screening preparation with explicit evidence limits. Provider contracts are present, but they do not establish live availability, reservation, ownership, legal clearance or filing.
@@ -148,7 +152,7 @@ Next implementation priorities:
 
 1. Read the [approved specification](docs/superpowers/specs/2026-10-06-fluid-logo-visual-identity-approved.md), [bounded refinement plan](docs/superpowers/plans/2026-10-08-vector-refinement.md) and [migration order](docs/migration-order.md). Preserve all seven types, six total concepts and the three post-logo directions; do not replace the full product scope with only the newest backend increment.
 2. Complete app-wide UI integration and the end-to-end Home/Idea → Brand → Strategy/Naming → Logo → Identity → Assets/Guidelines journey, including reload, account changes, interruption and error recovery.
-3. Add cost-confirmed vector-proposal UI, owned proposal discovery, exact-command review, candidate comparison and explicit acceptance, keeping manual edits provider-free.
+3. Complete live acceptance of the integrated vector-proposal UI, including quote review, saved-request recovery, candidate comparison and explicit acceptance, keeping manual edits provider-free.
 4. Reconcile migration prerequisites/order and prepare the smallest separately authorized logo/persistence/provider activation steps. Reuse existing durable evidence; never retry an uncertain paid request as a fresh inference.
 5. Finish remaining features and establish final verification and live acceptance under a newly agreed scope. Functionality and reliable recovery precede aesthetic benchmarking and prompt tuning.
 

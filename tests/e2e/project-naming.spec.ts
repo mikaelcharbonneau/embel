@@ -244,16 +244,38 @@ async function localNameFixture(page: Page, fixture: Awaited<ReturnType<typeof f
 
 test("naming fixture: reviewed Strategy opens Naming and keeps full context", async ({ page }, info) => {
   const { state } = await fixtures(page, "complete_brand");
+  const savedContext = structuredClone(state.project.context);
   await page.goto(`/brands/account/${projectId}`);
   await page.getByRole("navigation", { name: "Continue project" }).getByRole("link", { name: "Continue to Naming", exact: true }).click();
   await expect(page).toHaveURL(url);
-  await expect(page.getByRole("region", { name: "Naming choices", exact: true })).toBeVisible();
-  await page.getByText("Saved project context", { exact: true }).click();
-  await expect(page.getByText(state.project.context.description, { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Which approaches would you like to explore?", exact: true })).toBeVisible();
+  expect(state.project.context).toEqual(savedContext);
+  expect(state.project.context.intake.guidedInterview).toBeUndefined();
   expect(state.requests.filter(request => request.method === "POST")).toHaveLength(0);
   await page.locator("#project-naming-preferences-heading").focus();
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: info.outputPath("naming-preferences.png"), fullPage: true, scale: "css" });
+});
+
+test("guided Naming keeps the selected-name screen in the project conversation after saving and reloading", async ({ page }) => {
+  const fixture = await fixtures(page, "complete_brand");
+  fixture.state.project.context.intake.guidedInterview = { version: 1, stage: "complete", turns: [], answers: [] };
+  fixture.preferences(); fixture.enqueue(); fixture.complete(1);
+  await page.goto(`/brands/account/${projectId}`);
+  await expect(page.locator(".project-naming-page")).toBeVisible();
+  await page.getByRole("button", { name: "Saved names & history", exact: true }).click();
+  await useName(page, "Fixture 001");
+  await expect(page.getByRole("region", { name: "Name screening", exact: true })).toBeVisible();
+  await expect(page.locator("#project-naming-screening-heading")).toHaveText("Fixture 001");
+  await expect(page.getByRole("link", { name: "Continue to Inspiration", exact: true })).toHaveAttribute("href", `/brands/account/${projectId}/inspiration`);
+  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  await page.reload();
+  await expect(page.locator("#project-naming-screening-heading")).toHaveText("Fixture 001");
+  await page.getByRole("button", { name: "Change name", exact: true }).click();
+  await expect(page.locator(".project-naming-page")).toBeVisible();
+  expect(fixture.state.project.context.selectedName).toBe("Fixture 001");
+  expect(fixture.state.requests.filter(request => request.path === `${base}/selection` && request.method === "POST")).toHaveLength(1);
+  expect(fixture.state.requests.filter(request => request.method === "POST" && /\/(?:strategy|batches)$/.test(request.path))).toHaveLength(0);
 });
 
 test("naming fixture: saved complete-brand selection continues to Inspiration without generating images", async ({ page }) => {

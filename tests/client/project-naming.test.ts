@@ -4,7 +4,6 @@ import { accountProjectSchema } from "@/domain/project-api";
 import { accountProjectDraft } from "@/components/workspace/project-draft-adapter";
 import { accountRequest, AccountRequestError } from "@/components/workspace/account-api";
 import { createNamingRequestScope, namingBatchIntentKey, namingDraftBlocked, namingErrorMessage, namingOwned, namingScrollTarget } from "@/components/naming/use-project-naming";
-import { parseNamingPreferenceFields } from "@/components/naming/naming-preferences";
 import { initialWorkshopControls, workshopControlsInput } from "@/components/naming/workshop-controls";
 
 const ownerId = "aaaaaaaa-1111-4111-8111-111111111111";
@@ -130,14 +129,7 @@ describe("naming admission and view", () => {
   });
 });
 
-describe("focused preferences and deterministic controls", () => {
-  it("keeps saved language when the optional language field is blank and does not invent constraints", () => {
-    expect(parseNamingPreferenceFields({ locale: "", notes: "", minimum: "", maximum: "" }, "fr")).toEqual({ version: 1, creativeLocale: "fr", notes: "", minimumGraphemes: null, maximumGraphemes: null });
-  });
-  it("validates optional whole-number length bounds", () => {
-    expect(parseNamingPreferenceFields({ locale: "en", notes: "Warm", minimum: "3", maximum: "8" }, "fr")).toMatchObject({ creativeLocale: "en", notes: "Warm", minimumGraphemes: 3, maximumGraphemes: 8 });
-    for (const [minimum, maximum] of [["8", "3"], ["1.5", "8"], ["0", "8"], ["1", "161"]]) expect(() => parseNamingPreferenceFields({ locale: "en", notes: "", minimum: minimum!, maximum: maximum! }, "en")).toThrow();
-  });
+describe("deterministic naming controls", () => {
   it("produces validated deterministic input without choosing persistence", () => {
     const defaults = initialWorkshopControls();
     expect(workshopControlsInput("Lumen", { ...defaults, suffixes: "ly, io" })).toEqual({ kind: "affixes", seed: "Lumen", prefixes: [], suffixes: ["ly", "io"], separator: "" });

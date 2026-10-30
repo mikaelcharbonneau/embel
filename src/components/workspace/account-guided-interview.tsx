@@ -4,7 +4,6 @@ import { Fragment, useEffect, useEffectEvent, useId, useRef, useState, type Comp
 import { AccountBriefEditor } from "./account-brief-editor";
 import { ProjectNamingWorkspace } from "@/components/naming/project-naming-workspace";
 import { getNamingReadiness } from "@/domain/project-naming";
-import { getProjectHandoff } from "@/domain/project-handoff";
 import { ProjectArtwork } from "@/components/ui/project-artwork";
 import { appendGuidedTurn, confirmGuidedSelection, guidedTurnOperation, revisitGuidedStage, type GuidedReply, type GuidedStage } from "@/domain/guided-interview";
 import { competitorSchema, contextSnapshotSchema, type ContextSnapshot } from "@/domain/projects";
@@ -266,7 +265,9 @@ export function AccountGuidedInterview({ account, workspace, busy, saveContext, 
   });
   const legacyReplies = legacyJobs.map(job => <Fragment key={job.id}>{job.results.map(result => <article key={result.stepKey} id={`guided-result-${job.id}-${result.stepKey}`} tabIndex={-1} className="guided-assistant-message flow-enter" aria-label="Earlier Embel response"><div className="guided-assistant-identity"><ProjectArtwork name="mark" /><span>Embel</span></div><p className="guided-assistant-copy">{result.output.proposal.message}</p></article>)}</Fragment>);
 
-  const namingReady = state?.stage === "complete" && !dirty && !workspace.conflict && !busy && !workspace.pendingGuidedContext && saved.scope === "complete_brand" && getProjectHandoff(saved).next.stage === "naming" && getNamingReadiness(saved.context, saved.scope).ready;
+  // Selecting a name keeps this workspace open for screening and changing the
+  // selection. Strategy readiness and save guards still protect the handoff.
+  const namingReady = state?.stage === "complete" && !dirty && !workspace.conflict && !busy && !workspace.pendingGuidedContext && saved.scope === "complete_brand" && getNamingReadiness(saved.context, saved.scope).ready;
   const showNaming = briefOpen ? briefFromNaming : namingReady;
   const conversationHistory = <><AccountBriefEditor workspace={workspace} open={briefOpen} onOpen={() => { setBriefFromNaming(Boolean(namingReady)); setBriefOpen(true); }} onClose={() => setBriefOpen(false)} readOnly={Boolean(pending || workspace.conflict || workspace.pendingDraftSave || workspace.pendingGuidedContext)} saveLabel={storage.saveLabel} onUpdate={storage.onUpdate} />{timeline.map(item => {
         if (item.kind === "user") return <div key={item.event.id} className="guided-user-message flow-enter"><span className="sr-only">You</span><p>{item.event.text}</p></div>;

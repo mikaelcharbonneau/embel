@@ -85,7 +85,9 @@ describe("advanced shared Logo native execution against actual disposable SQL",(
         [body.p_execution,body.p_execution_token,body.p_job,body.p_lease,body.p_reservation,body.p_mode])).rows[0]!.value,claims);}catch(error){faults.push({storage:body.p_mode,code:(error as {code?:string}).code,message:(error as Error).message});throw error;}
        if(value.reservation)reservations.set(value.reservation.storagePath,value.reservation);return Response.json(value);
       }
-      const path=url.pathname.slice("/storage/v1/object/fluid-assets/".length),reservation=reservations.get(path);if(!reservation)throw Error("No exact SQLgrant");
+      const prefix=`/storage/v1/object/${init?.method==="POST"?"":"authenticated/"}fluid-assets/`;
+      if(!url.pathname.startsWith(prefix))throw Error("Unexpected synthetic Storage path");
+      const path=url.pathname.slice(prefix.length),reservation=reservations.get(path);if(!reservation)throw Error("No exact SQLgrant");
       if(init?.method==="POST"){await f.put(reservation);blobs.set(path,{bytes:new Uint8Array(await new Response(init.body).arrayBuffer()),mimeType:reservation.mimeType});return Response.json({Id:reservation.id,Key:"fluid-assets/"+path});}
       expect(await f.get(reservation)).toHaveLength(1);const blob=blobs.get(path);if(!blob)throw Error("Missing actual fixture bytes");
       return new Response(Buffer.from(blob.bytes),{headers:{"content-type":blob.mimeType}});
