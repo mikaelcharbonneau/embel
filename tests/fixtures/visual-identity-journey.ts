@@ -70,7 +70,7 @@ export function createVisualJourneyFixture(options: { standalone?: boolean } = {
     batch: null as (IdentityBatchState & { usage?: Usage }) | null,
     systems: [] as JourneySystem[], selection: null as IdentitySelection | null, sourceCurrent: true,
     admissions: [] as ReturnType<typeof logoBoardGenerationIntentSchema.parse>[], selections: [] as ReturnType<typeof selectIdentitySystemSchema.parse>[],
-    stopRequests: 0, loseAdmission: false, loseSelection: false,
+    stopRequests: 0, loseAdmission: false, loseSelection: false, savingAvailable: true,
     privateReads: [] as string[], unexpected: [] as string[], mutations: [] as string[],
   };
 
@@ -94,7 +94,8 @@ export function createVisualJourneyFixture(options: { standalone?: boolean } = {
     const currentBasis = getIdentityCurrentBasis({ ...scope, context: input.context, references: input.referenceSnapshot, preferences: input.preferences, logoBrief: brief });
     const chosen = state.selection ? state.systems.find(item => item.id === state.selection!.systemVersionId) : null;
     // Parse the response as the application does; fixtures must not bypass a real contract.
-    return projectIdentityOverviewSchema.parse({ ...scope, project, logoBrief: brief, saveAvailability: { status: "available" },
+    return projectIdentityOverviewSchema.parse({ ...scope, project, logoBrief: brief,
+      saveAvailability: state.savingAvailable ? { status: "available" } : { status: "unavailable", reason: "trusted_transaction_unavailable" },
       session: state.selection ? { ...scope, identityRevision: state.selection.identityRevision, currentSelectionId: state.selection.id, currentPreferencesRevision: 0, createdAt: fixtureAt, updatedAt: fixtureAt } : null,
       preferences: null, referenceSnapshot: input.referenceSnapshot, currentBasis, readiness: getIdentityReadiness(input.context, input.scope, input.referenceSnapshot),
       currentSelection: chosen && state.selection ? { selection: state.selection, system: chosen, freshness: getIdentityFreshness(chosen.input.basis, currentBasis), sourceLogo, sourceLogoCurrent: state.sourceCurrent } : null,

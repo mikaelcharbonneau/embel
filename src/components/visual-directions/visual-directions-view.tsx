@@ -39,6 +39,7 @@ export type VisualDirectionsViewProps = {
   backHref?: string;
   cards: readonly [VisualDirectionCard | null, VisualDirectionCard | null, VisualDirectionCard | null];
   generation: VisualDirectionGeneration;
+  selectionCheck?: { busy: boolean; onCheck(): void };
   selectionStatus?: string | null;
   selectionError?: string | null;
   finalAction?: ReactNode;
@@ -58,7 +59,7 @@ const progressMessages: Record<VisualDirectionGeneration["status"], string | nul
 };
 
 /** Presentation only. Callers supply verified previews, saved choices and request state. */
-export function VisualDirectionsView({ brandName, logoPreview, logoDownload, backHref, cards, generation,
+export function VisualDirectionsView({ brandName, logoPreview, logoDownload, backHref, cards, generation, selectionCheck,
   selectionStatus, selectionError, finalAction, history }: VisualDirectionsViewProps) {
   const titleId = useId(), generationId = useId(), estimateId = useId(), reasonId = useId(), dialogTitleId = useId();
   const dialog = useRef<HTMLDialogElement>(null), heading = useRef<HTMLHeadingElement>(null), triggers = useRef(new Map<string, HTMLButtonElement>());
@@ -135,6 +136,12 @@ export function VisualDirectionsView({ brandName, logoPreview, logoDownload, bac
       </div>}
       {generation.usageLabel && <p className={styles.usage}>{generation.usageLabel}</p>}
     </section>
+
+    {selectionCheck && cards.some(Boolean) && <div className={styles.progressActions}>
+      <button type="button" className={styles.secondaryButton} disabled={selectionCheck.busy} onClick={selectionCheck.onCheck}>
+        {selectionCheck.busy ? "Checking saved choice…" : "Check saved choice"}
+      </button>
+    </div>}
 
     <div className={styles.cards} aria-label="Direction comparison">
       {cards.map((card, index) => card ? <article key={card.id} className={styles.card} data-selected={Boolean(card.selected && !card.stale)}>
