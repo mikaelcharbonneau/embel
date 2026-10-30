@@ -1,6 +1,8 @@
 # Bounded Vector AI Refinement Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans when implementation is assigned. This deliverable is source-only planning; it does not assign workers, start implementation or authorize activation.
+> Historical implementation plan. The [current project rules](../../../AGENTS.md) supersede this plan's mandatory subskills, fixed monetary caps, task-specific approval holds and source-only stopping condition. No particular subskill is required by this record. Its technical contracts and test cases describe the original increment; verify them against current source before reuse. Current rules also govern redesign, model selection and disposal of test data.
+
+The original cost-dialog workflow below is historical. For new UI work, follow the current rule: show cost beside Generate and use one deliberate click, without a separate cost confirmation.
 
 **Goal:** Add natural-language proposals for supported whole-component vector controls while preserving exact geometry, locks, immutable history, cost consent and owner/CAS provenance.
 
@@ -41,7 +43,7 @@ The proposed bounded increment is:
 
 An `arrangement` already represents a single atomic layout edit. There is no existing atomic color-plus-font batch. This plan does not add one. A later batch version must have one separately versioned command envelope, a pure verified-source text-shaping seam, final lock validation of the whole result and one CAS/provenance commit; it cannot be implemented by looping HTTP manual saves.
 
-## Global constraints
+## Original increment constraints
 
 - “Manual editing does not itself dispatch an AI request or create an AI charge.” Creating/applying a retained proposal and accepting/restoring a vector dispatch zero AI calls.
 - “Font controls apply to actual editable text. Outlined custom lettering must not be presented as editable font text.”
@@ -51,8 +53,8 @@ An `arrangement` already represents a single atomic layout edit. There is no exi
 - Preserve the original preview, original canonical geometry and all prior revisions. Non-text edits preserve every path ID and `d`; text changes create qualified new glyph geometry only for the explicit editable-text target.
 - Saved locks come from the actual owned base and current selection. Model/client lock omissions, unlock requests, or prompt assurances are never authority. Preserve the six existing lock digests and conservative occlusion checks.
 - Preserve existing 32,768-byte commands, 8,388,608-byte canonical geometry, 64 components, 20,000 paths and 200,000 commands. New proposal/context limits below are independent; never enlarge general request ceilings.
-- No source files owned by the ongoing host integration are edited before that work is integrated. Host registration is the last, lead-owned step.
-- No live policy enablement, credentials, permission changes, migrations, paid calls, deployment, commits or pushes are authorized by this planning deliverable. Any implementation assignment comes from the current task, not this historical plan.
+- The original assignment deferred edits to files owned by a concurrent host integration, with host registration as the last, lead-owned step. Current file ownership comes from the active task.
+- This planning deliverable originally excluded live policy enablement, credentials, permission changes, migrations, paid calls, deployment, commits and pushes. Current authorization comes from the active user instructions and [project rules](../../../AGENTS.md), not those historical exclusions.
 
 ## Review focus
 
@@ -250,13 +252,13 @@ Retain the response envelope identity/hash, observed model/tier, token counts, e
 - [ ] Record exact source manifest/hashes, commands, actual results and synthetic evidence in `docs/evidence/logo-vector-proposals/`. Independent review checks financial replay, ownership, source→proposal→candidate provenance, locks, schema compatibility, cancellation, generic-worker exclusion and final-dispatch fencing.
 - [ ] Publish only the local completion claim supported by those checks. Live provider, live Postgres session/pooler concurrency, hosted storage and actual paid acceptance remain explicitly untested until separately authorized and executed.
 
-## Activation boundary and stopping condition
+## Historical activation boundary and stopping condition
 
-`docs/superpowers/plans/2026-10-08-api-worker-approval.md` approves setup of the API text worker and **one reformulation** as its first paid acceptance, capped at US$0.122880 within the shared US$5 ceiling. It does not enable `identity.logo_vector_propose`, grant it a budget, or switch `identity.logo_directions` to API billing. This new route remains disabled after local integration.
+The original plan cited `docs/superpowers/plans/2026-10-08-api-worker-approval.md` (absent from this checkout) for API text worker setup and **one reformulation** as its first paid acceptance, capped at US$0.122880 within a shared US$5 ceiling. That task left `identity.logo_vector_propose` disabled after local integration and did not switch `identity.logo_directions` to API billing. These are historical scope and spending decisions, not current limits.
 
-When local implementation is reviewed, the lead may prepare the exact activation request: operation/model/rate card and cap; number of paid test requests; existing shared budget consumption; destination worker; precise new helper permissions/policy changes; no broad credentials; and whether a hosted acceptance trial is wanted. Do not ask product questions now or imply that the existing setup approval covered this new paid use. Do not run a “small test call” under the reformulation allowance.
+The original activation handoff requested separate approval with the operation, model, rate card, cap, request count, consumed allowance, destination worker and helper permissions. The [current project rules](../../../AGENTS.md) replace that per-task approval process and fixed-cap requirement. Follow their standing authority for focused paid tests and publication; report actual results and costs without treating local fixtures as live acceptance.
 
-Planning is complete when this file is delivered. Local implementation is complete only when all assigned local checks pass and the new path stays unavailable without its explicit policy. Product reporting must say “bounded AI-assisted vector controls” and enumerate unsupported redraw/multi-command/outlined-text cases; it must not say arbitrary vector-source AI refinement or the original P3 candidate facade is complete.
+Delivery of this file and a locally verified disabled path were the original planning and implementation milestones. They are not the completion criteria for a current task to deliver a working feature. Follow the current verification and publication rules, and report the implementation's actual capabilities: the original one-command design did not establish arbitrary redraw, multi-command editing or outlined-text refinement.
 
 ## Self-review
 

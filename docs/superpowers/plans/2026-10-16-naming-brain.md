@@ -1,6 +1,6 @@
 # Naming Brain Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> Historical managed-Agents implementation plan. The [current project rules](../../../AGENTS.md) supersede its mandatory subskills, fixed monetary caps, task-specific approval holds and preservation requirements for disposable test data. No particular subskill or original staffing split is required by this record. [Fast-first Naming](../../naming-fast-first.md) describes the newer initial generation flow; use current rules for model selection, design and publication. The original contracts, amounts and test cases below remain dated implementation evidence.
 
 **Goal:** Deliver one account-owned Naming workflow with approach widgets, sourced creative exploration, 100 distinct initial names, feedback, and automatic scrolling continuation.
 
@@ -8,7 +8,7 @@
 
 ## Historical implementation corrections — 2026-10-16
 
-These corrections record the original managed-runtime design, including the separation of output completion from final accounting. Later local and hosted runtime changes are documented in their dated verification records. This plan grants no task execution, model selection, live access, funding, credential, migration or deployment authority.
+These corrections record the original managed-runtime design, including the separation of output completion from final accounting. Later local and hosted runtime changes are documented in their dated verification records. The historical caps below are not spending limits for new work. Current task and standing authority come from the user's instructions and [project rules](../../../AGENTS.md).
 
 - Output completion and final accounting are separate. The original pilot retained each full admitted allowance until verified reconciliation; its historical values appear below. Public `confirmedActualCostMicrousd` stays null until known. Native counters, caps and token estimates are provisional observations and cannot replenish allowance. Ordinary provisional billing does not fail valid completed output; unknown execution identity/dispatch or observed overrun blocks new paid work. Proven never-dispatched cancellation can reconcile verified zero. Model tools cannot submit financial settlement evidence.
 - Use one fresh managed session per validated Creator assignment, native delegation disabled, tools empty and `environment.type: "none"`. A caller-controlled pool runs at most three concurrently. Freeze assignment caps before dispatch so their sum is at most 150 cents; initial target counts in cents provide this allocation when they sum to 150. Do not re-lend unconfirmed unused caps. Split the gap stage's 75 cents across its calls before dispatch. Bind output to real session/root-turn/final-item and assignment evidence; do not invent child IDs.
@@ -24,7 +24,7 @@ These corrections record the original managed-runtime design, including the sepa
 
 **Spec:** [Naming brain design](../specs/2026-10-16-naming-brain-design.md). Also read [Namelix reference assessment](../../namelix-reference-review-20261016.md), `AGENTS.md`, `docs/decisions.md`, `docs/architecture.md`, and `docs/home-concept-22.md`.
 
-## Global Constraints
+## Original implementation constraints
 
 - Initial generation delivers 100 names. The grid continues automatically as the user scrolls, with advance generation and a bounded buffer. Ordinary exploration does not require a Regenerate action.
 - Allocation is flexible, with every selected approach represented. Equal quotas are not required.
@@ -195,5 +195,5 @@ The original policy specified a US$5 reservation per run, shared across sessions
 
 - The agreed widgets, research, Director assignments, independent creation, curated review, factual verification, 100 distinct names, automatic continuation, feedback, and account recovery each map to a task and explicit tests.
 - Runtime infrastructure remains the existing web/worker/database arrangement. Native tool constraints and immutable step manifests are accounted for without assuming every specialist can persist data.
-- This file records the implementation design and review boundaries, not a current assignment or a receipt of live activation. Execution environment and task approval come from the current request, not this historical handoff.
+- This file records the implementation design and review boundaries, not a current assignment or a receipt of live activation. Use the current request and [project rules](../../../AGENTS.md) for execution scope and standing authorization, not this historical handoff.
 - Reference sources: [Agents API overview](https://developers.openai.com/api/docs/guides/agents-api/overview), [multi-agent](https://developers.openai.com/api/docs/guides/agents-api/multi-agent), [session events and recovery](https://developers.openai.com/api/docs/guides/agents-api/sessions/events), and [application function tools](https://developers.openai.com/api/docs/guides/agents-api/tools/functions). Verify current public contracts again at implementation time.

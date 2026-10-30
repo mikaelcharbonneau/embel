@@ -1,5 +1,20 @@
 # Embel foundation architecture
 
+Use [AGENTS.md](../AGENTS.md) for current user preferences and working authority.
+This document combines current source structure with dated implementation
+records. Earlier rollout restrictions, model choices and design decisions are
+historical context, not additional standing instructions. Technical dependencies
+still need validation when changed; source descriptions do not prove deployment.
+
+## Current shared Naming path
+
+The current shared initial-creation path uses Responses for fast-first creative
+proposals, labelled as unchecked, with a target of 100 names. It does not run the
+older research/Director/curation pipeline before showing that first batch.
+See [fast-first Naming](naming-fast-first.md) for its precise implementation and
+evidence limits. Older native request formats and recovery paths remain in the
+source; their presence is not a requirement to use them for new requests.
+
 ## Shared account and worker candidate
 
 The October 27 source candidate replaces per-customer database-password and
@@ -21,7 +36,7 @@ compatibility evidence. The shared configuration selects the new facades and
 prevents fallback to their per-customer runtime. No hosted migration or
 production deployment is implied by these source changes.
 
-## Hosted Naming execution
+## Historical hosted Naming execution
 
 Verifier quote positions can be bound to exact retained source text with a
 separate immutable raw-item witness. Inaccurate positions require a unique
@@ -29,13 +44,14 @@ literal match; existing exact spans remain unchanged. Strict evidence, source
 ownership, provider history and database completion proof remain mandatory.
 See [quote binding and guarded release plan](naming-quote-binding-20261026.md).
 
-The October 25 user correction rejects monetary limits. Future hosted Naming
-uses the existing uncapped native Agents profile with `providerBudgetVersion: 2`,
+The October 25 user correction rejected monetary limits. That checkpoint used
+the uncapped native Agents profile with `providerBudgetVersion: 2`,
 without `spend_control`. Historical capped requests, holds and unknown costs stay
 exact. The [native restoration record](naming-native-restoration-20261025.md)
 describes the complete mocked flow and coordinated migration/activation sequence.
-Original research, Luna/xhigh, cancellation, ownership and recovery are retained;
-the inactive Responses candidate is not needed for native activation.
+That checkpoint retained original research, Luna/xhigh, cancellation, ownership
+and recovery. Its then-inactive Responses candidate was not needed for native
+activation; the current shared initial-creation path is described above.
 
 Future progressive role requests can carry a separate immutable
 `progressiveContractVersion: 2` marker without changing the existing run profile.
@@ -447,7 +463,7 @@ Identity's pure contracts bind six component specifications, a coordinated board
 
 The trusted save service accepts only fixed select/refine operations on an injected owner-bound connection. One checked-out connection owns BEGIN, locked preparation, shared context/WHATWG/Naming replay, source graph validation, four-head checks, immutable writes and COMMIT. Every error or precommit cancellation rolls back; uncertain commit/release delivery preserves the original canonical request without automatic retries. Exact refinement replay binds the complete original system/change/selection and original revision fences, without comparing to or restoring a later head. Private SQL helpers remain an unimplemented proposal; actual local tests use an explicitly synthetic PGlite adapter, not deployed permissions. Production has no connection factory and reports saveAvailability unavailable. Public select/refine RPCs remain unconditional guards after owner/project lookup. Separate narrow preference CAS and read-only history are independent.
 
-The proposed personal login, nonlogin helper owner, two fixed helper signatures, owner-bound FORCE-RLS policies and secure user-completed credential route are recorded separately in [the unexecuted provisioning proposal](proposals/identity-trusted-provisioning-request.md). Real helper code, internal function/trigger dependencies, exact role privileges, source-writer locks and live pooler/session_user behavior require further review before that proposal can become execution-ready. Existing Naming permissions are separate; no worker/admin/service-role connection is reused.
+This historical design referred to `proposals/identity-trusted-provisioning-request.md`, which is absent from this checkout. It proposed a personal login, nonlogin helper owner, two fixed helper signatures and owner-bound FORCE-RLS policies, while helper code, role privileges and live pooler behavior still needed review. The missing proposal is not a current setup prerequisite or approval gate; inspect the current implementation and follow the working agreement for new work.
 
 
 ## Manual account Ideas — 2026-10-05
