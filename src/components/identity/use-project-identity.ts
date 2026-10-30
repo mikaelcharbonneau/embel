@@ -44,15 +44,20 @@ export function useProjectIdentity(projectId: string, referenceState?: IdentityR
   const refresh = useCallback(async () => {
     if (!client?.current() || mutation.current) return;
     const epoch = ++readEpoch.current; readAbort.current?.abort(); const controller = new AbortController(); readAbort.current = controller;
+    const timeout = setTimeout(() => controller.abort(), 30_000);
     publish(previous => ({ ...(previous.scope === scope ? previous : freshState(scope)), loading: true, checked: false, error: null }));
     try {
       const overview = await client.overview({}, controller.signal);
-      if (!overview || !client.current() || epoch !== readEpoch.current) return;
+      if (!client.current() || epoch !== readEpoch.current) return;
+      if (!overview || controller.signal.aborted) throw new AccountRequestError(503);
       publish(previous => ({ ...(previous.scope === scope ? previous : freshState(scope)), overview, items: overview.systems.items,
         nextCursor: overview.systems.nextCursor, loading: false, loadingMore: false, checked: true, selectionUncertain: false,
         preferenceRecoveryChecked: (() => { const draft = identityDrafts.get({ kind: "preferences", ownerId: overview.ownerId, projectId }); return draft?.kind === "preferences" && draft.pending ? JSON.stringify(draft.pending.request) : null; })(), error: null }));
     } catch (error) {
       if (client.current() && epoch === readEpoch.current) publish(previous => ({ ...previous, loading: false, loadingMore: false, error: identityErrorMessage(error) }));
+    } finally {
+      clearTimeout(timeout);
+      if (readAbort.current === controller) readAbort.current = null;
     }
   }, [client, scope, publish, identityDrafts, projectId]);
   useEffect(() => {
@@ -89,6 +94,18 @@ export function useProjectIdentity(projectId: string, referenceState?: IdentityR
   const preferencesDirty = Boolean(preferenceDraft && identityDraftChanged(preferenceDraft));
   const savesUnavailable = overview?.saveAvailability.status !== "available";
   const blocked = savesUnavailable || !shown.checked || shown.selectionUncertain || !overview || overview.currentBasis.status !== "available" || overview.project.scope === "naming_only" || shown.loading || shown.detailLoading || shown.pending || referencesPending || strategyDirty || preferencesDirty;
+  const selectionBlockedReason = shown.pending ? "Saving your changes…"
+    : shown.loading || shown.detailLoading ? "Checking your saved choice…"
+    : shown.selectionUncertain ? "Your last choice could not be confirmed. Check your saved choice before choosing again."
+    : !shown.checked || !overview ? "Your saved choice could not be checked. Please try again."
+    : savesUnavailable ? "Saving your direction is temporarily unavailable. Your boards are saved."
+    : overview.project.scope === "naming_only" ? "This project is for names only."
+    : overview.currentBasis.status !== "available" ? "Review your saved brief and logo before choosing a direction."
+    : strategyDirty ? "Save or resolve your project edits before choosing a direction."
+    : preferencesDirty ? "Save or discard your identity edits before choosing a direction."
+    : referencesPending ? "Finish saving or checking your reference choices before choosing a direction." : null;
+  const selectionCheckAvailable = !shown.pending && !strategyDirty && !preferencesDirty && overview?.project.scope !== "naming_only"
+    && (shown.loading || shown.detailLoading || !shown.checked || shown.selectionUncertain || savesUnavailable || referencesPending);
   const system = shown.detail ?? overview?.currentSelection?.system ?? null;
   const preferenceRebaseReady = shown.checked && (!preferenceDraft?.pending || shown.preferenceRecoveryChecked === JSON.stringify(preferenceDraft.pending.request));
   const preferenceValues = preferenceDraft?.value ?? (overview ? identityPreferenceForm(overview.preferences?.preferences ?? initialIdentityPreferences(overview.project.context)) : null);
@@ -248,7 +265,7 @@ export function useProjectIdentity(projectId: string, referenceState?: IdentityR
       && input.expectedPreferencesRevision === (overview.preferences?.revision ?? 0) && input.expectedIdentityRevision === (overview.session?.identityRevision ?? 0)),
     onResults: () => { void refresh(); } });
   return { client, verified, overview, system, generation, generationBlockedReason, items: shown.items, nextCursor: shown.nextCursor, loading: shown.loading, loadingMore: shown.loadingMore,
-    detailLoading: shown.detailLoading, pending: shown.pending, savesUnavailable, checked: shown.checked, selectionUncertain: shown.selectionUncertain, preferenceRebaseReady, error: shown.error, notice: shown.notice, blocked, strategyDirty, preferencesDirty, referencesPending,
+    detailLoading: shown.detailLoading, pending: shown.pending, savesUnavailable, checked: shown.checked, selectionUncertain: shown.selectionUncertain, selectionBlockedReason, selectionCheckAvailable, preferenceRebaseReady, error: shown.error, notice: shown.notice, blocked, strategyDirty, preferencesDirty, referencesPending,
     retained, preferenceDraft, preferenceValues, colors: componentDraft("colors"), typography: componentDraft("typography"), fence,
     refresh, loadMore, viewSystem, chooseSystem, setPreferenceValues, discardPreference, keepPreferencesAgainstLatest, savePreferences,
     setColors, setTypography, discardComponent, saveComponent };

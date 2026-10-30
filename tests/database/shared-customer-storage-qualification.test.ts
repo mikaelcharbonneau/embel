@@ -6,7 +6,7 @@ import { qualifySharedStoragePolicies } from "../../src/server/runtime/shared-st
 
 describe("web qualification requires actual enforced customer Storage authority",()=>{
  let f:SharedAccountFixture;
- beforeAll(async()=>{f=await createSharedAccountFixture();},90_000);
+ beforeAll(async()=>{f=await createSharedAccountFixture({selectedLogoBoards:true});},90_000);
  afterAll(async()=>{await f?.db.close();});
  beforeEach(async()=>{await f.db.exec("begin");});
  afterEach(async()=>{await f.db.exec("rollback");});

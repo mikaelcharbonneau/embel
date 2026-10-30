@@ -50,6 +50,49 @@ afterEach(async () => {
 });
 
 describe("saved Identity read stability", () => {
+  it("distinguishes unavailable saving from an active read and recovers without selecting or generating", async () => {
+    await render(); await tick();
+    const unavailable = { ...fixtureOverview(), saveAvailability: { status: "unavailable", reason: "trusted_transaction_unavailable" } };
+    await resolveRead(0, unavailable);
+    expect(api.checked).toBe(true); expect(api.loading).toBe(false); expect(api.blocked).toBe(true);
+    expect(api.selectionBlockedReason).toBe("Saving your direction is temporarily unavailable. Your boards are saved.");
+    expect(api.selectionCheckAvailable).toBe(true);
+    await act(async () => api.chooseSystem(false, fixtureSystem()));
+    expect(reads).toHaveLength(1);
+    let retry!: Promise<void>;
+    await act(async () => { retry = api.refresh(); });
+    expect(api.selectionBlockedReason).toBe("Checking your saved choice…");
+    await resolveRead(1, fixtureOverview()); await act(async () => retry);
+    expect(api.blocked).toBe(false); expect(api.selectionBlockedReason).toBeNull();
+    expect(api.selectionCheckAvailable).toBe(false);
+    expect(reads).toHaveLength(2);
+  });
+
+  it("settles a timed-out saved-choice read and keeps an explicit retry available", async () => {
+    await render(); await tick();
+    const first = reads[0]!;
+    first.signal.addEventListener("abort", () => first.resolve(Response.json({})), { once: true });
+    await act(async () => vi.advanceTimersByTimeAsync(30_000));
+    expect(first.signal.aborted).toBe(true); expect(api.loading).toBe(false); expect(api.checked).toBe(false);
+    expect(api.blocked).toBe(true); expect(api.selectionCheckAvailable).toBe(true);
+    expect(api.selectionBlockedReason).toBe("Your saved choice could not be checked. Please try again.");
+    await tick(); expect(reads).toHaveLength(1);
+    let retry!: Promise<void>;
+    await act(async () => { retry = api.refresh(); });
+    await resolveRead(1, fixtureOverview()); await act(async () => retry);
+    expect(api.checked).toBe(true); expect(api.blocked).toBe(false);
+  });
+
+  it("explains unsaved preferences without suggesting that a read can save or discard them", async () => {
+    await start();
+    await act(async () => api.setPreferenceValues({ ...api.preferenceValues!, notes: "A changed visual preference" }));
+    expect(api.blocked).toBe(true); expect(api.preferencesDirty).toBe(true);
+    expect(api.selectionBlockedReason).toBe("Save or discard your identity edits before choosing a direction.");
+    expect(api.selectionCheckAvailable).toBe(false);
+    await act(async () => api.discardPreference());
+    expect(api.blocked).toBe(false); expect(api.selectionBlockedReason).toBeNull();
+  });
+
   it("settles a failed reference-head check without looping, while explicit and new-target checks remain eligible", async () => {
     await start(); const previous = api.overview;
     hint = { ...hint, referenceRevision: 2 }; await render(); await tick();

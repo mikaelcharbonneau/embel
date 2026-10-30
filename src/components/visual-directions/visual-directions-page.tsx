@@ -103,11 +103,15 @@ function OwnedVisualDirections({ account, projectId }: { account: VerifiedAccoun
   const cards = [0, 1, 2].map(index => {
     const system = batch?.systems[index];
     if (!system || !client) return null;
-    const stale = !currentBatch || !identity.overview || getIdentityFreshness(system.input.basis, identity.overview.currentBasis).status !== "current";
+    // Missing or still-loading observations block choosing; they do not prove
+    // that saved boards are stale or require another generation.
+    const stale = !logoPending && !currentBatch || Boolean(identity.overview
+      && getIdentityFreshness(system.input.basis, identity.overview.currentBasis).status !== "current");
     return { id: system.id, title: `Direction ${index + 1}`, summary: system.components.composition.direction,
       preview: <IdentitySystemBoard board={system.board} name={system.input.basis.name} client={client} />,
       selected: selectedSystem?.id === system.id, stale, pending: choosing === system.id,
-      disabledReason: stale ? "This board uses earlier inputs. Generate a new set with your current logo." : logoPending ? "Wait for your logo changes to save." : identity.blocked || choosing ? "Checking your saved choice…" : undefined,
+      disabledReason: stale ? "This board uses earlier inputs. Generate a new set with your current logo." : logoPending ? "Wait for your logo changes to save."
+        : choosing ? "Saving your choice…" : identity.selectionBlockedReason ?? undefined,
       onChoose: () => void choose(system) };
   }) as [VisualDirectionCard | null, VisualDirectionCard | null, VisualDirectionCard | null];
   const earlierSets = [...new Set((identity.items ?? []).flatMap(item => item.source.kind === "generated" ? [item.source.batchId] : []))];
@@ -129,6 +133,7 @@ function OwnedVisualDirections({ account, projectId }: { account: VerifiedAccoun
       busy: Boolean(generation.busy || shownHistory?.busy), disabledReason: blockedReason,
       onGenerate: start, onCheck: () => void refresh(), onStop: unresolved && generation.stopAcknowledgedBatchId !== generation.batch?.batchId
         ? () => { if (generation.retained) void generation.controller?.closeOriginal(); else void generation.controller?.stop(); } : undefined }}
+    selectionCheck={identity.selectionCheckAvailable ? { busy: identity.loading || identity.detailLoading, onCheck: () => void identity.refresh() } : undefined}
     selectionStatus={selectedCard ? "Direction saved. You can now create your brand assets." : identity.selectionUncertain ? "Your choice could not be confirmed. Check the saved results before choosing again." : null}
     finalAction={selectedCard && <Link className="identity-primary-button" href={`/brands/account/${projectId}/logo/deliverables`}>Continue to brand assets</Link>}
     history={<>

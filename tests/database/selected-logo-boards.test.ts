@@ -13,6 +13,7 @@ import { sharedHttpRoles } from './shared-account-fixture';
 import { getProjectIdentity } from '../../src/server/data/identity';
 import { identityDalAuth } from './identity-system-database';
 import { logoWorkspaceV2Schema } from '../../src/domain/logo-workspace';
+import { qualifySharedHttpConnection } from '../../src/server/shared-account/qualification';
 
 describe('selected-logo boards: actual SQL admission, storage and immutable publication', () => {
  let f: SharedIdentityFixture;let historical:Awaited<ReturnType<SharedIdentityFixture['admit']>>;
@@ -83,7 +84,13 @@ describe('selected-logo boards: actual SQL admission, storage and immutable publ
     if(sql==='COMMIT')await f.db.query('select public.finish_shared_identity_request()');
     return f.db.query(sql,[...parameters]);
    },release(){},discard(){}}};}};
-  return f.asSession(role,()=>createIdentityTransactionService(factory).select({userId:p.owner},p.projectId,request));
+  return f.asSession(role,async()=>{
+   // Exercise the same deployed web gate before the real selection transaction.
+   // Direct transaction-only tests missed stale helper hashes after packet 15.
+   await qualifySharedHttpConnection({query:(sql,args)=>f.db.query(sql,[...(args??[])]),release(){},discard(){}},'identity',
+    {roleName:role,roleOid:oid,host:'inert',port:5432,tls:true,user:role,password:'inert'},'https://fricsfwqibyhemknqgyf.supabase.co');
+   return createIdentityTransactionService(factory).select({userId:p.owner},p.projectId,request);
+  });
  }
  it('admits the exact selected raster without a vector, fonts or supplementary references; replays its same intent',async()=>{
   const p=await f.project(OWNER_A,false);await logo(p);

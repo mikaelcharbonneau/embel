@@ -102,4 +102,19 @@ describe("visual direction comparison", () => {
     await click(button("Choose direction")); expect(saved.onChoose).not.toHaveBeenCalled();
     await click(button("Check availability")); expect(onCheck).toHaveBeenCalledTimes(1);
   });
+
+  it("offers a read-only saved-choice recovery action while keeping unavailable choices disabled", async () => {
+    const onCheck = vi.fn(), onGenerate = vi.fn(), saved = card("A", {
+      disabledReason: "Saving your direction is temporarily unavailable. Your boards are saved.",
+    });
+    const value = props({ cards: [saved, null, null], generation: { status: "complete", completed: 1, onGenerate }, selectionCheck: { busy: false, onCheck } });
+    await render(value);
+    expect(button("Choose direction").disabled).toBe(true);
+    expect(host.textContent).not.toContain("Checking your saved choice…");
+    await click(button("Check saved choice"));
+    expect(onCheck).toHaveBeenCalledTimes(1); expect(onGenerate).not.toHaveBeenCalled(); expect(saved.onChoose).not.toHaveBeenCalled();
+    await render({ ...value, selectionCheck: { busy: true, onCheck } });
+    expect(button("Checking saved choice…").disabled).toBe(true);
+    await click(button("Checking saved choice…")); expect(onCheck).toHaveBeenCalledTimes(1);
+  });
 });

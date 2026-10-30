@@ -188,6 +188,27 @@ test("lost generation acknowledgement checks the original request and keeps a pa
   await fits(page); expect(health.pageErrors).toEqual([]);
 });
 
+test("saved boards explain unavailable selection and recover without another generation", async ({ page }) => {
+  const f = createVisualJourneyFixture(), health = await f.setup(page);
+  await page.goto(directionsUrl);
+  await page.getByRole("button", { name: "Generate three directions", exact: true }).click();
+  await expect.poll(() => f.admissions.length).toBe(1);
+  f.savingAvailable = false; f.complete(); await checkProgress(page);
+  await loadBoards(page, 3);
+  await expect(page.getByText("Saving your direction is temporarily unavailable. Your boards are saved.", { exact: true })).toHaveCount(3);
+  await expect(page.getByText("Checking your saved choice…", { exact: true })).toHaveCount(0);
+  for (const button of await page.getByRole("button", { name: "Choose direction", exact: true }).all()) await expect(button).toBeDisabled();
+  expect(f.selections).toHaveLength(0); expect(f.admissions).toHaveLength(1);
+  f.savingAvailable = true;
+  await page.getByRole("button", { name: "Check saved choice", exact: true }).click();
+  const choose = page.getByRole("button", { name: "Choose direction", exact: true }).nth(1);
+  await expect(choose).toBeEnabled(); expect(f.selections).toHaveLength(0); expect(f.admissions).toHaveLength(1);
+  await choose.click();
+  await expect(page.getByRole("link", { name: "Continue to brand assets", exact: true })).toBeVisible();
+  expect(f.selections).toHaveLength(1); expect(f.admissions).toHaveLength(1);
+  await fits(page); expect(health.pageErrors).toEqual([]);
+});
+
 test("a changed logo prevents old directions and prepared files from being presented as current", async ({ page }) => {
   test.setTimeout(90_000);
   const f = createVisualJourneyFixture(); await f.setup(page);

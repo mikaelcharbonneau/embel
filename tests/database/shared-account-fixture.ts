@@ -4,7 +4,7 @@ import { createTestDatabase, resetFixture, OWNER_A, OWNER_B, type TestDatabase }
 
 export const sharedHttpOrigin = "https://fricsfwqibyhemknqgyf.supabase.co";
 export const sharedHttpRoles = { home: "embel_shared_http_home_test", identity: "embel_shared_http_identity_test" } as const;
-export async function createSharedAccountFixture() {
+export async function createSharedAccountFixture(options: { selectedLogoBoards?: boolean } = {}) {
   const db = await createTestDatabase();
   await db.exec(`alter table auth.users add column if not exists email_confirmed_at timestamptz,
    add column if not exists is_anonymous boolean not null default false,add column if not exists banned_until timestamptz,add column if not exists deleted_at timestamptz;
@@ -21,6 +21,10 @@ export async function createSharedAccountFixture() {
   // policy/helper response to make the fixed web login appear ready.
   for (const name of ["candidates/logo_worker_storage.sql", "candidates/logo_production_storage.sql", "activation/logo_production_storage.sql", "candidates/logo_generative_storage.sql", "activation/logo_generative_storage.sql", "candidates/logo_local_concepts.sql", "activation/logo_concepts_50_publication_adjudication.sql", "candidates/logo_local_refinements.sql", "candidates/shared_worker_logo.sql", "candidates/shared_storage_authority.sql"])
    await db.exec(await readFile(new URL("../../supabase/" + name, import.meta.url), "utf8"));
+  // Web qualification must be tested against the final installed writers, not
+  // only the earlier HTTP packet. Historical generation fixtures opt in later.
+  if (options.selectedLogoBoards) for (const name of ["shared_logo_http.sql", "shared_logo_advanced.sql", "shared_identity_generation.sql", "shared_identity_selected_logo_boards.sql"])
+   await db.exec(await readFile(new URL("../../supabase/candidates/" + name, import.meta.url), "utf8"));
   await db.exec(`create role ${sharedHttpRoles.home} login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
    create role ${sharedHttpRoles.identity} login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
    grant usage on schema public to ${sharedHttpRoles.home},${sharedHttpRoles.identity};
