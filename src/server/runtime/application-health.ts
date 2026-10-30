@@ -11,8 +11,8 @@ export type CoreReadiness = {
   workers: "not_checked"; provider: "not_checked"; enrollment: "not_checked";
 };
 export function applicationRevision(env: Environment = process.env): string {
-  const value = env.VERCEL_GIT_COMMIT_SHA ?? env.EMBEL_SOURCE_REVISION;
-  return value && /^[a-f0-9]{40}$/u.test(value) ? value : "unknown";
+  return [env.VERCEL_GIT_COMMIT_SHA, env.EMBEL_SOURCE_REVISION]
+    .find(value => value !== undefined && /^[a-f0-9]{40}$/u.test(value)) ?? "unknown";
 }
 
 async function boundedBody(response: Response, signal: AbortSignal, allowEmpty = false): Promise<string> {

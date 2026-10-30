@@ -74,6 +74,22 @@ describe("logo presentation (test-only domain bindings)", () => {
     expect(fixtureMarkup(node)).toContain("6 of 6 concepts ready");
     expect(elements(node).some(element => String(element.props["aria-label"]).startsWith("Retry "))).toBe(false);
   });
+  it("explains a recovered delivery failure and retries only that slot after a deliberate click", () => {
+    const batch = structuredClone(syntheticLogoBatch(["succeeded", "succeeded", "succeeded", "succeeded", "succeeded", "failed"]));
+    batch.slots[5]!.attempts[0]!.reason = "logo_image_unavailable";
+    const retry = vi.fn();
+    const node = LogoConceptGridView({ batch, gallery: true, generation: { status: "available" }, onRequestRetryFailed: retry });
+    const html = fixtureMarkup(node);
+    expect(html).toContain("5 of 6 concepts ready");
+    expect(html).toContain("This image could not be saved.");
+    expect(html).toContain("AI usage for this attempt is still recorded.");
+    expect(html).not.toContain("Outcome uncertain");
+    expect(retry).not.toHaveBeenCalled();
+    const action = control(node, "Retry 1 failed concept");
+    expect(action.props.disabled).toBe(false);
+    click(action);
+    expect(retry).toHaveBeenCalledWith([batch.slots[5]!.id]);
+  });
   it("retains a previous recorded attempt charge while a later attempt has unknown billing", () => {
     const original = syntheticLogoBatch();
     const slot = original.slots[5]!;

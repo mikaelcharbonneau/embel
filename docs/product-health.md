@@ -111,7 +111,9 @@ Across both tests, all 13 image jobs succeeded with committed, verified PNGs and
 persisted previews. Total recorded usage was 194,372 microUSD (about US$0.194).
 The disposable project is `b0c19fc2-d24b-4b79-8082-40d79fb1ffaa` (Northline).
 No existing projects were deleted. The two previously uncertain jobs remain
-unresolved in their original project. Signed-in browser confirmation is pending.
+unresolved in their original project. On October 30, 2026, the user confirmed
+that the saved logos appear in their signed-in Northline project. This confirms
+preview visibility; it does not establish the remaining approval/export journey.
 
 One saved concept was selected in this disposable project and converted with
 the real VTracer worker. The job succeeded at zero provider cost, retained its
@@ -127,16 +129,44 @@ the actual upload-only file set; credential and build-artifact sentinels remaine
 excluded. Deployment verification must use that file set as well as the full
 checkout.
 
+## Recovery and continuation update
+
+Interrupted concept and preview-refinement delivery can now finish from the
+original complete provider receipt and verified saved PNG. When that receipt
+exists but no image publication or upload was ever issued, recovery records a
+delivery failure instead. It keeps the original usage and permits a deliberate
+new request. Recovery never calls the AI provider, invents a refund, changes
+current design selections or treats unknown billing as settled evidence.
+
+The resolver preserves original failure details in a private generic recovery
+record. Existing job-row formats remain unchanged so historical receipt checks
+continue to match. Cancellations, deleted projects, mismatched evidence and
+database contention do not publish a result. Install the compatible
+[forward packet](../supabase/candidates/shared_logo_raster_recovery.sql) with
+shared lanes drained, then deploy its regenerated worker manifest. Public
+gateway proofs and provider policies are unchanged.
+
+The interface now refreshes generation inputs after a project font is added,
+offers a verified retry for failed variant previews, and links approved vectors
+directly to Identity directions. Missing-image delivery failures explain how to
+continue while retaining usage. The health revision reader also handles the
+empty Vercel revision variable used by source-upload deployments.
+
+Local verification passed 382 feature tests, 59 focused recovery/authority tests,
+116 native PostgreSQL checks including concurrent locks, and 16 desktop/mobile
+production-build browser cases. Recovery tests use synthetic Auth/Storage/provider
+evidence and confirm zero provider calls. These are not live customer acceptance.
+The independent review's job-row compatibility finding was corrected before
+release. Hosted verification of this update is pending.
+
 ## Remaining work, in order
 
-1. Confirm the signed-in browser journey separately from the successful backend
-   acceptance above, including private previews and downloads. Repair the health
-   endpoint's source-revision label without confusing it with worker readiness.
-2. Make interrupted requests recover reliably without duplicate paid calls.
-   Current shared recovery verifies saved files but leaves ambiguous concept
-   steps unresolved; only exports have a completion resolver. Choose a maintainable
-   recovery design and verify actual saved image bytes. Existing test requests
-   may instead be retired deliberately; that does not establish future recovery.
+1. Publish and verify the recovery update against the two retained live requests.
+   Confirm the health source-revision label without treating it as worker readiness.
+2. Confirm the remaining signed-in journey separately from backend acceptance,
+   including review, approvals and private downloads. The user has confirmed
+   saved-logo visibility in Northline. Requests without conclusive provider or
+   billing evidence still need a separate recovery policy.
 3. Verify one complete journey: idea → Strategy → Naming → six logo concepts →
    selection → Identity → usable downloads. Include reload, cancellation,
    interrupted saves and a second account. Record local and live results

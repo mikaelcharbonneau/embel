@@ -74,6 +74,7 @@ export function LogoConceptGridView({ batch = null, plan = null, selected = null
         const planned = activePlan?.slots.find(item => item.ordinal === ordinal);
         const attempt = slot?.attempts.at(-1);
         const accepted = slot ? acceptedConceptAttempt(slot) : null;
+        const imageUnavailable = !accepted && attempt?.state === "failed" && attempt.reason === "logo_image_unavailable";
         const source: LogoConceptSource | null = batch && slot && accepted ? { kind: "concept", batchId: batch.id, slotId: slot.id, attemptId: accepted.id } : null;
         const history = slot ? versions[slot.id] ?? [] : [];
         const latest = history.at(-1);
@@ -95,12 +96,13 @@ export function LogoConceptGridView({ batch = null, plan = null, selected = null
             if (chosen && slot) { onViewVersion?.(slot.id, chosen.key, history.length); onSelectVersion?.(chosen.source); }
           }}>{history.map(item => <option key={item.key} value={item.key}>{item.label}{item === latest ? " · Latest" : ""}</option>)}</select></label>}
           <div className={gallery ? styles.galleryPreview : styles.preview} role={gallery && selectDisplayed ? "button" : undefined} tabIndex={gallery && selectDisplayed ? 0 : undefined} aria-label={gallery ? `Select concept ${ordinal + 1}` : undefined} aria-pressed={gallery && displayedSource ? isSelected : undefined} onClick={gallery ? selectDisplayed : undefined} onKeyDown={event => { if (gallery && selectDisplayed && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); selectDisplayed(); } }}>
-            {preview && renderPreview ? renderPreview(preview) : attempt && (attempt.state === "queued" || attempt.state === "running") ? <GenerationAnimation variant={ordinal} queued={attempt.state === "queued"} /> : <p>{accepted ? "Image preview unavailable" : attempt ? "No image preview yet" : savedBatchLoading ? "Loading saved preview…" : savedBatchUnavailable ? "Saved preview unavailable" : "Your concept will appear here"}</p>}
+            {preview && renderPreview ? renderPreview(preview) : attempt && (attempt.state === "queued" || attempt.state === "running") ? <GenerationAnimation variant={ordinal} queued={attempt.state === "queued"} /> : <p>{imageUnavailable ? "This image could not be saved." : accepted ? "Image preview unavailable" : attempt ? "No image preview yet" : savedBatchLoading ? "Loading saved preview…" : savedBatchUnavailable ? "Saved preview unavailable" : "Your concept will appear here"}</p>}
           </div>
           {gallery && <div className={styles.galleryCaption}><div><h3>Concept {ordinal + 1}</h3><button type="button" className={styles.galleryLike} disabled title="Concept likes are not available yet" aria-label={`Like concept ${ordinal + 1}`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo-concepts/heart.svg" width={16} height={16} alt="" />Like
           </button></div><p>{planned ? LOGO_TYPE_LABELS[planned.type] : savedBatchLoading ? "Loading saved exploration…" : savedBatchUnavailable ? "Saved exploration unavailable" : "Awaiting your first exploration"}{attempt ? ` · ${stateLabel[attempt.state]}` : ""}</p></div>}
+          {imageUnavailable && <p className={styles.note}>AI usage for this attempt is still recorded. You can use a ready concept or retry the failed concept.</p>}
           <div hidden={gallery}>
           {accepted && <p className={styles.note}>Image preview · Vector conversion and approval follow separately.</p>}
           {slot && <div aria-label={`Charges for concept ${ordinal + 1}`}>
