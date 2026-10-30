@@ -95,9 +95,10 @@ source `11a7e3a98a117f9a2ef1c3124332be8a564002e4`:
 
 All three worker lanes became ready after the update. The Naming owner binding
 advanced to revision 6. Production aliases point to the released web build;
-public liveness/readiness return 200 and the unauthenticated session route
-returns 401. The health response still labels its revision `unknown`; deployment
-metadata, rather than that label, establishes the source revision above.
+public liveness/readiness returned 200 and the unauthenticated session route
+returned 401. That release's health response labeled its revision `unknown`;
+deployment metadata established the source revision above. The recovery release
+below fixes that label.
 
 A second six-concept request used the new uncapped contract and saved all six
 previews, recording 85,835 microUSD. One uncapped refinement of a concept saved
@@ -110,8 +111,9 @@ honestly unavailable.
 Across both tests, all 13 image jobs succeeded with committed, verified PNGs and
 persisted previews. Total recorded usage was 194,372 microUSD (about US$0.194).
 The disposable project is `b0c19fc2-d24b-4b79-8082-40d79fb1ffaa` (Northline).
-No existing projects were deleted. The two previously uncertain jobs remain
-unresolved in their original project. On October 30, 2026, the user confirmed
+No existing projects were deleted. At that point, the two previously uncertain
+jobs remained unresolved; their recovery is recorded below. On October 30, 2026,
+the user confirmed
 that the saved logos appear in their signed-in Northline project. This confirms
 preview visibility; it does not establish the remaining approval/export journey.
 
@@ -157,23 +159,56 @@ Local verification passed 382 feature tests, 59 focused recovery/authority tests
 production-build browser cases. Recovery tests use synthetic Auth/Storage/provider
 evidence and confirm zero provider calls. These are not live customer acceptance.
 The independent review's job-row compatibility finding was corrected before
-release. Hosted verification of this update is pending.
+release. The integrated source also passed 94 focused tests, typecheck and lint
+(one existing warning), plus a production build from the actual upload file set.
+Test groups overlap and should not be summed.
+
+The update is live at `https://www.embel.xyz`, source
+`a0e1e1602947b2dc02f13f26bd81bbc83c2f89da`:
+
+- Web: `dpl_HurUbjDDpnbep1fdCFxTXbehU8tc`.
+- Shared worker: `dpl_5UW99NSFi8fiftFEUNJHmBgYQKbp`, artifact
+  `15b59ab2314beeba5aed07fff805468b740cc05e174a3fdb573586e32a052315`.
+- Forward packet SHA256:
+  `d70df635c40735a584916af4f63c0a11553017fc05a9b1a3d2599da79b077ac2`.
+
+All 273 installed function bodies match the compiled worker authority manifest.
+All three lanes are ready; the existing Naming owner binding advanced to
+revision 7. Production aliases point to this web deployment. Health and core
+readiness return 200 with the exact source revision; unauthenticated session
+access returns 401. The packaged native runtime smoke passed all seven checks.
+
+The real original batch `1146a4d2-a588-4805-a7e8-37ca4e5fb633`, in project
+`9843ef50-fbf7-4d70-abea-796f1b95ca78`, now has five successful saved concepts
+and one explicit `logo_image_unavailable` delivery failure. Recovery committed
+the existing staged PNG for job `8e30674d-90f4-4d03-a1bf-f36d0660909b` and
+closed job `c47f2d5a-797a-4a11-9547-efd6cd2654f2` without an image. Both
+executions are closed and their reservations settled. The six original provider
+receipts and total recorded usage of 87,395 microUSD are unchanged: recovery made
+no new provider request and recorded no new charge.
+
+A fresh owner-scoped public application read returns the original request as
+partial with five saved outputs and recorded billing. Preparing a quote for
+only the failed slot succeeds under the uncapped policy, with an informational
+estimate of 14,600 microUSD. That quote was not admitted; no replacement image
+was generated. No projects or existing outputs were deleted. Final readback
+found no unfinished shared executions or pending jobs and no new worker errors.
+This is live backend acceptance; full signed-in approval/download acceptance is
+still pending.
 
 ## Remaining work, in order
 
-1. Publish and verify the recovery update against the two retained live requests.
-   Confirm the health source-revision label without treating it as worker readiness.
-2. Confirm the remaining signed-in journey separately from backend acceptance,
-   including review, approvals and private downloads. The user has confirmed
-   saved-logo visibility in Northline. Requests without conclusive provider or
-   billing evidence still need a separate recovery policy.
-3. Verify one complete journey: idea → Strategy → Naming → six logo concepts →
+1. Verify one complete signed-in journey: idea → Strategy → Naming → six logo concepts →
    selection → Identity → usable downloads. Include reload, cancellation,
    interrupted saves and a second account. Record local and live results
-   separately.
-4. Improve the broader desktop/mobile journey with the newly permitted design
+   separately. Saved-logo visibility in Northline is user-confirmed; final
+   approval/download verification remains pending.
+2. Define recovery for requests without conclusive provider/billing evidence or
+   with an issued upload whose bytes cannot be verified. Do not automatically
+   repeat possibly completed paid work.
+3. Improve the broader desktop/mobile journey with the newly permitted design
    freedom. Check empty, loading, partial-result and recovery states together.
-5. Retire older execution paths after handling their callers and data dependencies.
+4. Retire older execution paths after handling their callers and data dependencies.
    Existing Embel projects/outputs are disposable test data; report deliberate
    resets. Establish measured concurrency and recovery before claiming capacity.
 
