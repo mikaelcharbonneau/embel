@@ -410,7 +410,7 @@ export const identitySaveAvailabilitySchema = z.discriminatedUnion("status", [
 ]);
 export const projectIdentityOverviewSchema = z.strictObject({
   ...ownership, project: identityProjectSchema, session: identitySessionSchema.nullable(), preferences: identityPreferenceRevisionSchema.nullable(),
-  referenceSnapshot: identityReferenceSnapshotSchema, readiness: identityReadinessSchema, currentBasis: identityCurrentBasisSchema,
+  referenceSnapshot: identityReferenceSnapshotSchema, logoBrief: logoBriefRevisionSchema.optional(), readiness: identityReadinessSchema, currentBasis: identityCurrentBasisSchema,
   currentSelection: identitySelectionWithSystemSchema.nullable(), systems: identitySystemPageSchema,
   // Older responses cannot implicitly enable saves while the trusted boundary is absent.
   saveAvailability: identitySaveAvailabilitySchema.default(() => ({ status: "unavailable", reason: "trusted_transaction_unavailable" } as const)),
@@ -419,7 +419,7 @@ export const projectIdentityOverviewSchema = z.strictObject({
   if (project.id !== value.projectId || project.owner_id !== value.ownerId || !sameScope(value, value.referenceSnapshot) || !sameScope(value, value.systems) || (session && !sameScope(value, session)) || (preferences && !sameScope(value, preferences))) issue(ctx, "Overview records must belong to this verified owner and project");
   if (!session ? preferences !== null || currentSelection !== null : (session.currentPreferencesRevision !== (preferences?.revision ?? 0) || session.currentSelectionId !== (currentSelection?.selection.id ?? null) || session.identityRevision !== (currentSelection?.selection.identityRevision ?? 0))) issue(ctx, "Overview must preserve actual preference and selection heads without inventing initialization");
   try {
-    const actual = getIdentityCurrentBasis({ ownerId: value.ownerId, projectId: value.projectId, context: project.context, references: value.referenceSnapshot, preferences: preferences?.preferences ?? initialIdentityPreferences(project.context) });
+    const actual = getIdentityCurrentBasis({ ownerId: value.ownerId, projectId: value.projectId, ...(value.logoBrief ? { logoBrief: value.logoBrief } : {}), context: project.context, references: value.referenceSnapshot, preferences: preferences?.preferences ?? initialIdentityPreferences(project.context) });
     if (!same(value.currentBasis, actual) || !same(value.readiness, getIdentityReadiness(project.context, project.scope, value.referenceSnapshot))) issue(ctx, "Overview readiness and material basis must derive from its current saved inputs");
     const currentRevisions = { projectRevision: project.current_revision, referenceRevision: value.referenceSnapshot.referenceRevision, preferencesRevision: preferences?.revision ?? 0 };
     if (value.systems.items.some(row => !atLeast(currentRevisions, { projectRevision: row.inputProjectRevision, referenceRevision: row.inputReferenceRevision, preferencesRevision: row.inputPreferencesRevision })

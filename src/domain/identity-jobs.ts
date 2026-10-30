@@ -279,7 +279,7 @@ export const identityBatchStateSchema=z.strictObject({ownerId:z.uuid(),projectId
 }).superRefine((v,ctx)=>{
   if ("version" in v.intent && v.intent.version === 3) {
     if (!v.sourceLogo || !v.usage || typeof v.sourceLogoCurrent !== "boolean" || !sameScope(v, v.sourceLogo.brief)
-      || !same(v.intent.sourceLogo, v.sourceLogo.source) || v.intent.expectedLogoRevision !== v.sourceLogo.selectionRevision)
+      || v.input.version !== 2 || !same(v.input.logoBrief, v.sourceLogo.brief) || !same(v.intent.sourceLogo, v.sourceLogo.source) || v.intent.expectedLogoRevision !== v.sourceLogo.selectionRevision)
       issue(ctx, "Logo board batches must retain the exact admitted selection and current-source status");
   } else if (v.sourceLogo || v.sourceLogoCurrent !== undefined) issue(ctx, "Historical system batches cannot invent a selected logo");
   if(!sameScope(v,v.input)||v.fulfillment.acceptedCount!==v.systems.length)issue(ctx,"Batch progress must describe its actual owned completed systems");
