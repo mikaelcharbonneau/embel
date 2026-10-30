@@ -33,13 +33,15 @@ export const sharedHttpHelperHashes = Object.freeze({
   "fluid_private.resolve_home_attachments(uuid[])": "c3d252d83aa79a51c3c294e2b1071fbe2c59ee725af8d72df3a8bc2ebb41d849"
 });
 const proofSchema = z.strictObject({ version: z.literal(1), lane: z.enum(["home", "identity"]), roleName: z.string(), roleOid: z.coerce.number().int().positive(), origin: z.string() });
-const rowSchema = z.strictObject({ signature: z.string(), body: z.string(), owner: z.string(), definer: z.boolean(), language: z.string(), volatility: z.string(), safe_path: z.boolean(), no_public_execute: z.boolean() });
+const rowSchema = z.strictObject({ signature: z.string(), body: z.string(), owner: z.string(), definer: z.boolean(), language: z.string(), volatility: z.string(), safe_path: z.boolean(), no_public_execute: z.boolean(), http_owner_execute: z.boolean() });
 export async function qualifySharedHttpConnection(connection: IdentityTransactionConnection, lane: "home" | "identity", principal: SharedHttpPrincipal, origin: string): Promise<void> {
   const unavailable = () => new ApiError("integration_unavailable");
   const functions = await connection.query(`SELECT expected.signature,p.prosrc AS body,pg_catalog.pg_get_userbyid(p.proowner) AS owner,p.prosecdef AS definer,
     (SELECT lanname FROM pg_catalog.pg_language WHERE oid=p.prolang) AS language,p.provolatile::text AS volatility,
     (p.proconfig=ARRAY['search_path=""'] AND NOT p.proleakproof) AS safe_path,
-    NOT EXISTS(SELECT 1 FROM pg_catalog.aclexplode(COALESCE(p.proacl,pg_catalog.acldefault('f',p.proowner))) a WHERE a.grantee=0 AND a.privilege_type='EXECUTE') AS no_public_execute
+    NOT EXISTS(SELECT 1 FROM pg_catalog.aclexplode(COALESCE(p.proacl,pg_catalog.acldefault('f',p.proowner))) a WHERE a.grantee=0 AND a.privilege_type='EXECUTE') AS no_public_execute,
+    EXISTS(SELECT 1 FROM pg_catalog.aclexplode(COALESCE(p.proacl,pg_catalog.acldefault('f',p.proowner))) a
+      WHERE a.grantee=(SELECT oid FROM pg_catalog.pg_roles WHERE rolname='postgres') AND a.privilege_type='EXECUTE') AS http_owner_execute
     FROM ROWS FROM(pg_catalog.unnest($1::text[]),pg_catalog.unnest($2::text[])) AS expected(signature,arguments)
     JOIN pg_catalog.pg_namespace n ON n.nspname=pg_catalog.split_part(expected.signature,'.',1)
     JOIN pg_catalog.pg_proc p ON p.pronamespace=n.oid AND p.proname=pg_catalog.split_part(pg_catalog.split_part(expected.signature,'(',1),'.',2)
@@ -53,7 +55,11 @@ export async function qualifySharedHttpConnection(connection: IdentityTransactio
     const sql = ["fluid_private.shared_storage_legacy_registry_present()", "fluid_private.shared_http_live(uuid,uuid,timestamptz)", "fluid_private.shared_account_customer_active(uuid)"].includes(row.signature);
     const stable = ["fluid_private.shared_storage_legacy_registry_present()", "fluid_private.shared_account_customer_active(uuid)", "fluid_private.shared_http_role(text)", "fluid_private.shared_http_context_owner(text)", "public.shared_account_http_principal()",
       "fluid_private.identity_web_owner()", "fluid_private.home_attachment_owner()", "fluid_private.lookup_home_attachment(uuid)", "fluid_private.resolve_home_attachments(uuid[])"].includes(row.signature);
+    // The HTTP wrappers run as postgres, but the two writers have a different
+    // owner. Supabase's postgres is not a superuser: require the actual nested
+    // EXECUTE grant, even when a local superuser would bypass its absence.
     if (!hash || seen.has(row.signature) || createHash("sha256").update(row.body).digest("hex") !== hash || !row.safe_path || !row.no_public_execute
+      || (writer && !row.http_owner_execute)
       || row.language !== (sql ? "sql" : "plpgsql") || row.volatility !== (stable ? "s" : "v")
       || row.owner !== (writer ? "fluid_identity_writer_definer_v1" : "postgres") || row.definer !== (row.signature !== "fluid_private.identity_web_owner()")) throw unavailable();
     seen.add(row.signature);

@@ -23,7 +23,7 @@ export async function createSharedAccountFixture(options: { selectedLogoBoards?:
    await db.exec(await readFile(new URL("../../supabase/" + name, import.meta.url), "utf8"));
   // Web qualification must be tested against the final installed writers, not
   // only the earlier HTTP packet. Historical generation fixtures opt in later.
-  if (options.selectedLogoBoards) for (const name of ["shared_logo_http.sql", "shared_logo_advanced.sql", "shared_identity_generation.sql", "shared_identity_selected_logo_boards.sql"])
+  if (options.selectedLogoBoards) for (const name of ["shared_logo_http.sql", "shared_logo_advanced.sql", "shared_identity_generation.sql", "shared_identity_selected_logo_boards.sql", "shared_identity_http_writer_permissions.sql"])
    await db.exec(await readFile(new URL("../../supabase/candidates/" + name, import.meta.url), "utf8"));
   await db.exec(`create role ${sharedHttpRoles.home} login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
    create role ${sharedHttpRoles.identity} login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
