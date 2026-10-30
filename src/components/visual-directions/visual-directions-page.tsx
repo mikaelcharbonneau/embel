@@ -122,6 +122,8 @@ function OwnedVisualDirections({ account, projectId }: { account: VerifiedAccoun
     logoDownload={candidate.item && logo.client ? <LogoDownloadControls client={logo.client} account={account} projectId={projectId} original={candidate.item.preview} disabled={logoPending} /> : undefined}
     cards={cards} generation={{ status: visibleStatus, completed: requestBatch?.systems.length ?? 0,
       estimatedCostLabel: availability?.status === "available" && availability.version === 3 && availability.estimatedCostMicrousd !== null ? `Estimated ${displayLogoCost(availability.estimatedCostMicrousd)} for three directions` : null,
+      usageLabel: requestBatch?.usage ? requestBatch.usage.status === "recorded" ? `Recorded usage for this set: ${displayLogoCost(requestBatch.usage.knownCostMicrousd)}`
+        : `Recorded usage so far: ${displayLogoCost(requestBatch.usage.knownCostMicrousd)}${requestBatch.usage.status === "unknown" ? ". Some usage is still being checked." : ""}` : null,
       error: generation.error ?? identity.error ?? logo.error ?? shownHistory?.error,
       busy: Boolean(generation.busy || shownHistory?.busy), disabledReason: blockedReason,
       onGenerate: start, onCheck: () => void refresh(), onStop: unresolved && generation.stopAcknowledgedBatchId !== generation.batch?.batchId

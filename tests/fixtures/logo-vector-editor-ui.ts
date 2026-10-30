@@ -31,10 +31,17 @@ export async function setupSavedVectorEditor(page: Page, options: { navigate?: b
   const stages = new Map([[source.brief.id, source.brief as LogoStageRevision], [vectorStage.id, vectorStage]]);
   const foundation = syntheticLogoWorkspace();
   const initialWorkspace: LogoWorkspaceV2 = { ...foundation, heads: { ...foundation.heads, workspaceRevision: 2, stageRevisions: { ...foundation.heads.stageRevisions, brief_references: 1, vector: 1 } }, stages: { ...foundation.stages, brief_references: { stage: "brief_references", id: source.brief.id, revision: 1 }, vector: { stage: "vector", id: vectorStage.id, revision: 1 } }, capabilities: { ...foundation.capabilities, save: { status: "available" } } };
-  const state = { owner: ownerId, currentVectorId: initial.revision.id, workspace: initialWorkspace, posts: [] as { path: string; body: LogoManualCommand["body"] }[], requests: new Map<string, LogoMutationReceipt>(), lose: false, conflict: false, requestReads: 0, sessionReads: 0, deniedPrivateReads: [] as string[], mutations: [] as string[], browserHealth };
+  const state = { owner: ownerId, currentVectorId: initial.revision.id, workspace: initialWorkspace, posts: [] as { path: string; body: LogoManualCommand["body"] }[], requests: new Map<string, LogoMutationReceipt>(), lose: false, conflict: false, requestReads: 0, sessionReads: 0, downloadReads: 0, deniedPrivateReads: [] as string[], mutations: [] as string[], browserHealth };
   const json = (route: Route, value: unknown, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(value) });
   await page.route("**/*", async route => {
-    const target = new URL(route.request().url()); if (target.hostname !== "127.0.0.1") return route.abort("blockedbyclient");
+    const target = new URL(route.request().url());
+    if (target.hostname === "saved-logo-download.example.invalid") {
+      const versionId = target.pathname.slice(1), vector = [...details.values()].find(value => value.revision.svgAsset.versionId === versionId);
+      if (vector) return route.fulfill({ status: 200, contentType: "image/svg+xml", body: Buffer.from(serializeLogoSvg(vector.document)), headers: { "Content-Disposition": 'attachment; filename="saved-logo.svg"' } });
+      if (versionId === preview.reference.versionId) return route.fulfill({ status: 200, contentType: "image/png", body: Buffer.from(png), headers: { "Content-Disposition": 'attachment; filename="original-logo.png"' } });
+      return route.fulfill({ status: 404 });
+    }
+    if (target.hostname !== "127.0.0.1") return route.abort("blockedbyclient");
     const path = target.pathname; if (!path.startsWith("/api/")) return route.continue();
     if (!["GET", "HEAD"].includes(route.request().method())) state.mutations.push(path);
     if (path === "/api/session") { state.sessionReads++; return json(route, { user: { id: state.owner } }); }
@@ -49,6 +56,12 @@ export async function setupSavedVectorEditor(page: Page, options: { navigate?: b
     if (path === `${base}/vector/current`) return json(route, { ownerId, projectId, vectorRevisionId: state.currentVectorId });
     if (path.startsWith(`${base}/vector/revisions/`)) return json(route, details.get(path.split("/").at(-1)!));
     if (path === `/api/assets/${preview.reference.versionId}/preview`) return route.fulfill({ status: 200, contentType: "image/png", body: Buffer.from(png) });
+    if (path.startsWith("/api/assets/") && path.endsWith("/download")) {
+      state.downloadReads++; const versionId = path.split("/")[3]!, vector = [...details.values()].find(value => value.revision.svgAsset.versionId === versionId);
+      const asset = vector?.revision.svgAsset ?? (versionId === preview.reference.versionId ? preview.reference : null);
+      if (!asset) return json(route, {}, 404);
+      return json(route, { url: `https://saved-logo-download.example.invalid/${versionId}`, versionId, contentHash: asset.contentHash, mimeType: vector ? "image/svg+xml" : "image/png", expiresInSeconds: 60 });
+    }
     if (path.includes("/stages/") && path.includes("/revisions/")) return json(route, stages.get(path.split("/").at(-1)!));
     if (path.includes("/reference-snapshots/")) return json(route, source.referenceSnapshot);
     if (path.endsWith("/history")) { const stage = path.split("/").at(-2)!; return json(route, { ownerId, projectId, items: [...stages.values()].filter(r => r.stage === stage).reverse(), nextCursor: null }); }

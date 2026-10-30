@@ -1,20 +1,25 @@
 import { expectProjectCanvas } from "./project-canvas-contract";
 import { captureUiEvidence } from "./ui-evidence";
 import { expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { logoFixtureId as id } from "../fixtures/logo-creation";
 import { checkNormalAccount } from "./account-check";
 import { setupSavedVectorEditor as setup, source } from "../fixtures/logo-vector-editor-ui";
 const projectId = source.input.projectId, base = `/api/projects/${projectId}/logo`, url = `/brands/account/${projectId}/logo/vector`;
 
-test("unapproved vector reload shows original comparison and requires explicit acceptance", async ({ page }) => {
+test("saved vectors can be downloaded before optional acceptance", async ({ page }) => {
   const f = await setup(page); await expect(page.getByRole("img", { name: "Original concept", exact: true })).toBeVisible(); expect(f.posts).toHaveLength(0);
-  const continueToIdentity = page.getByRole("link", { name: "Continue to Identity directions", exact: true });
-  await expect(continueToIdentity).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Download SVG", exact: true })).toBeEnabled();
+  const downloading = page.waitForEvent("download"); await page.getByRole("button", { name: "Download SVG", exact: true }).click();
+  const download = await downloading; expect(download.suggestedFilename()).toBe("saved-logo.svg");
+  const bytes = await readFile((await download.path())!);
+  expect(createHash("sha256").update(bytes).digest("hex")).toBe(f.initial.revision.svgAsset.contentHash);
+  expect(f.downloadReads).toBe(1); expect(f.posts).toHaveLength(0);
   await page.reload(); await expect(page.getByRole("button", { name: "Accept this vector", exact: true })).toBeEnabled(); expect(f.posts).toHaveLength(0);
   await page.getByRole("button", { name: "Accept this vector", exact: true }).click(); await expect.poll(() => f.posts.length).toBe(1); await expect(page.getByRole("heading", { name: "Approved logo", exact: true })).toBeVisible();
-  await expect(continueToIdentity).toBeVisible(); await expect(continueToIdentity).toHaveAttribute("href", `/brands/account/${projectId}/logo/directions`);
-  await page.reload(); await expect(continueToIdentity).toBeVisible(); expect(f.posts).toHaveLength(1);
-  await continueToIdentity.scrollIntoViewIfNeeded();
+  await expect(page.getByRole("link", { name: "Choose a logo concept", exact: true })).toBeVisible();
+  await page.reload(); await expect(page.getByRole("button", { name: "Download SVG", exact: true })).toBeEnabled(); expect(f.posts).toHaveLength(1);
 });
 test("keyboard manual edit waits for Save and retains an immutable new candidate", async ({ page }) => {
   const f = await setup(page); const rotation = page.getByRole("spinbutton", { name: "Component rotation", exact: true }); await expect(rotation).toBeEnabled(); await rotation.fill("15"); await rotation.press("Enter");
@@ -50,7 +55,7 @@ test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));
 
 test("identity directions and brand files retain usable unavailable states without creating work", async ({ page }, info) => {
   const f = await setup(page);
-  for (const [stage, title] of [["directions", "Identity directions"], ["deliverables", "Brand files"]]) {
+  for (const [stage, title] of [["directions", "Visual direction"], ["deliverables", "Brand assets"]]) {
     await page.goto(`/brands/account/${projectId}/logo/${stage}`);
     await expect(page.getByRole("heading", { name: title, level: 1, exact: true })).toBeVisible();
     await expectProjectCanvas(page);
