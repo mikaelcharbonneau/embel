@@ -1,5 +1,6 @@
 import type { BrandAssetSnapshot } from "./snapshot";
 import { BrandAssetError } from "./snapshot";
+import { brandBoardContrastRatio as contrast } from "@/domain/brand-board-design";
 
 type Shape = { kind: "rect"; x: number; y: number; width: number; height: number; fill: string; radius?: number; opacity?: number }
   | { kind: "circle"; x: number; y: number; radius: number; fill: string; opacity?: number }
@@ -21,11 +22,6 @@ function text(snapshot: BrandAssetSnapshot, value: string, x: number, y: number,
   const style = heading ? snapshot.heading : snapshot.body;
   return { kind: "text", text: value, x, y, size, maxWidth, family: style.family, weight: style.weight, color, align };
 }
-function luminance(hex: string): number {
-  const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(c => c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4);
-  return r! * .2126 + g! * .7152 + b! * .0722;
-}
-export function contrast(a: string, b: string): number { const first = luminance(a), second = luminance(b); return (Math.max(first, second) + .05) / (Math.min(first, second) + .05); }
 function foreground(snapshot: BrandAssetSnapshot, background: string): string {
   const choices = [snapshot.palette.text, ...snapshot.colors.map(color => color.hex)];
   const preferred = choices.find(color => contrast(color, background) >= 4.5);

@@ -6,6 +6,8 @@ import { createBrandAssetSnapshot } from "../../../src/features/brand-assets/mod
 import { brandGuideHtml, brandPaletteFiles } from "../../../src/features/brand-assets/model/guides";
 import { fontSupportsBrandText } from "../../../src/features/brand-assets/client/browser-assets";
 import provenance from "../../../public/fonts/brand/provenance.json";
+import { brandBoardContrastRatio } from "../../../src/domain/brand-board-design";
+import { createIdentityInputSnapshot } from "../../../src/domain/project-identity";
 import { brandAssetFixture, hash } from "./fixtures";
 const fontkit = createRequire(import.meta.url)("fontkit") as { create(bytes: Uint8Array): { variationAxes: Record<string, { min: number; max: number }> } };
 
@@ -27,6 +29,19 @@ describe("brand asset source and font contracts", () => {
     const f = brandAssetFixture();
     expect(() => createBrandAssetSnapshot({ ...f, ownerId: f.projectId })).toThrow();
     expect(() => createBrandAssetSnapshot({ ...f, ownerId: f.account.userId, system: { ...f.system, board: { ...f.system.board, staleComponents: ["colors"] } } })).toThrow();
+  });
+  it("binds a v2 final system to the complete exact saved source logo brief", () => {
+    const f = brandAssetFixture(), input = createIdentityInputSnapshot({ ...f.system.input, logoBrief: f.sourceLogo.brief });
+    const system = { ...f.system, input };
+    expect(createBrandAssetSnapshot({ ...f, system, ownerId: f.account.userId }).name).toBe("Northline");
+    const sourceLogo = { ...f.sourceLogo, brief: { ...f.sourceLogo.brief, payload: { ...f.sourceLogo.brief.payload, activity: "Changed source brief" } } };
+    expect(() => createBrandAssetSnapshot({ ...f, system, sourceLogo, ownerId: f.account.userId })).toThrow();
+  });
+  it("shares exact contrast measurements with generation validation", () => {
+    expect(brandBoardContrastRatio("#000000", "#FFFFFF")).toBe(21);
+    expect(brandBoardContrastRatio("#F3EFE5", "#F3EFE5")).toBe(1);
+    expect(brandBoardContrastRatio("#182A24", "#F3EFE5")).toBeGreaterThan(4.5);
+    expect(brandBoardContrastRatio("invalid", "#F3EFE5")).toBe(0);
   });
   it("ships exactly inspected variable font bytes and original OFL notices", () => {
     for (const font of BRAND_BOARD_FONTS) {
