@@ -1,10 +1,25 @@
-# Source checkpoint verification status
+# Verification status
 
-## Current integrated release and database rollout
+The current published runtime is `00672941f41c18180e9a78a05d876cfd13910490` from
+[PR #166](https://github.com/mikaelcharbonneau/embel/pull/166), released October 30,
+2026. The main path now goes from a chosen logo to three visual direction boards
+and a downloadable brand package.
+
+See the [current release record](visual-identity-release-20261030.md) for exact
+web/worker deployments, tests, the resolved service outage and the pending
+signed-in provider acceptance check. Local browser checks used synthetic
+provider/authentication fixtures; they do not prove the live generated output.
+
+## Historical source checkpoints
+
+These records describe past work. They are not current stopping instructions or
+release restrictions; follow the user-confirmed [working agreement](../AGENTS.md).
+
+### October 13 integrated release and database rollout
 
 The integrated application checkpoint `af0660696b9283bc9162b0055a2b8173dade81ff` is published in PR #11 and has a ready protected preview. Its recorded qualification includes 299 distinct focused tests, 42 distinct production-build browser checks, typecheck, lint, production web build and API worker packaging. Those results are reconciled across the retained runs; they are not a claim of one aggregate application-suite pass.
 
-The user subsequently authorized the database prerequisite. Eight migrations are now installed and verified in the existing Supabase project; see [database rollout and current remaining prerequisites](database-rollout-20261013.md). The following older source-handoff limitations describe an earlier checkpoint and do not negate that newer evidence.
+The user subsequently authorized the database prerequisite. Eight migrations are now installed and verified in the existing Supabase project; see [historical database rollout and prerequisites](database-rollout-20261013.md). The following older source-handoff limitations describe an earlier checkpoint and do not negate that newer evidence.
 
 ## Earlier source handoff
 
