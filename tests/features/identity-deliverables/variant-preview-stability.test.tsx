@@ -64,4 +64,18 @@ describe("variant preview immutable lifetime", () => {
     await act(async () => image()!.dispatchEvent(new Event("error"))); expect(checkbox().checked).toBe(false); expect(save().disabled).toBe(true);
     const next = structuredClone(f.set); next.items[0]!.preview = null; await f.render(next); expect(image()).toBeNull(); expect(save().disabled).toBe(true);
   });
+  it.each(["request", "missing", "image"] as const)("lets a failed %s preview recover without reloading or preserving a checked review", async failure => {
+    const f = fixture();
+    if (failure === "request") f.previewAsset.mockRejectedValueOnce(new Error("Temporary connection failure"));
+    if (failure === "missing") f.previewAsset.mockResolvedValueOnce(null);
+    await f.render();
+    if (failure === "image") { await accept(); await act(async () => image()!.dispatchEvent(new Event("error"))); }
+    expect(checkbox().disabled).toBe(true); expect(save().disabled).toBe(true);
+    await f.render(structuredClone(f.set)); expect(f.previewAsset).toHaveBeenCalledTimes(1);
+    const retry = [...host.querySelectorAll("button")].find(node => node.textContent === "Retry preview")!;
+    expect(retry).toBeDefined(); await act(async () => retry.click());
+    expect(f.previewAsset).toHaveBeenCalledTimes(2); expect(checkbox().checked).toBe(false);
+    expect(save().disabled).toBe(true); await accept(); expect(f.onSubmit).not.toHaveBeenCalled();
+    await act(async () => save().click()); expect(f.onSubmit).toHaveBeenCalledWith([f.set.items[0]!.id]);
+  });
 });

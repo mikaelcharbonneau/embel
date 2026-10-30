@@ -23,6 +23,9 @@ it("keeps liveness independent and does not reflect arbitrary revision/configura
   expect(response.status).toBe(200); expect(response.headers.get("cache-control")).toBe("no-store");
   expect(await response.json()).toEqual({ service: "fluid-web", status: "ok", release: "unknown", readiness: "not_checked" });
   expect(applicationRevision({ EMBEL_SOURCE_REVISION: "a".repeat(40) })).toBe("a".repeat(40));
+  expect(applicationRevision({ VERCEL_GIT_COMMIT_SHA: "", EMBEL_SOURCE_REVISION: "a".repeat(40) })).toBe("a".repeat(40));
+  expect(applicationRevision({ VERCEL_GIT_COMMIT_SHA: "invalid", EMBEL_SOURCE_REVISION: "a".repeat(40) })).toBe("a".repeat(40));
+  expect(applicationRevision({ VERCEL_GIT_COMMIT_SHA: "b".repeat(40), EMBEL_SOURCE_REVISION: "a".repeat(40) })).toBe("b".repeat(40));
 });
 it("fails closed without public configuration and performs no network/provider request", async () => {
   const fetcher = healthy(), read = createCoreReadinessReader({ env: {}, fetch: fetcher });

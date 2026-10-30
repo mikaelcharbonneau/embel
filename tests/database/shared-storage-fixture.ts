@@ -70,7 +70,7 @@ export async function createSharedStorageFixture() {
    return owner(ownerId, async () => logoWorkspaceV2Schema.parse((await db.query<{ value: unknown }>("select public.start_logo_project($1) value", [{ requestKey: randomUUID(), brief: {
     name: "Synthetic shared Storage", activity: "Isolated SQL tests", audience: "Testers", personality: "Calm", logoTypes: ["wordmark"] } }])).rows[0]!.value));
   }
-  async function prepare(ownerId = OWNER_A) {
+  async function prepare(ownerId = OWNER_A, cancelOtherJobs = true) {
    const workspace = await project(ownerId), snapshot = (await db.query<{ id: string }>("select reference_snapshot_id id from public.logo_stage_revisions where id=$1", [workspace.stages.brief_references!.id])).rows[0]!.id;
    const quote = await owner(ownerId, async () => logoCostQuoteSchema.parse((await db.query<{ value: unknown }>("select public.shared_logo_operation($1,'quote',$2) value", [workspace.projectId, {
     operation: "concepts", expected: workspace.heads, briefRevisionId: workspace.stages.brief_references!.id, referenceSnapshotId: snapshot }])).rows[0]!.value));
@@ -79,7 +79,7 @@ export async function createSharedStorageFixture() {
    const claimed = await action(null, "claim", ["synthetic-shared-logo", 120]), execution = sharedExecutionSchema.parse(claimed.execution);
    const job = parseClaimedJob((claimed.result as unknown[])[0]);
    if (job.ownerId !== ownerId || !admitted.jobIds.includes(job.id)) throw Error("Unexpected shared fixture job");
-   for (const id of admitted.jobIds.filter(id => id !== job.id)) await owner(ownerId, () => db.query("select public.request_job_cancel($1)", [id]));
+   if (cancelOtherJobs) for (const id of admitted.jobIds.filter(id => id !== job.id)) await owner(ownerId, () => db.query("select public.request_job_cancel($1)", [id]));
    const inputRevisions = (await action(execution, "read", [job.id, job.leaseToken, "input_revisions", null])).result as IdentityAssetPublication["inputRevisions"];
    const bytes = syntheticPng(8, 8, (x, y) => [x * 21, y * 22, 137, 255]);
    const sourceId = (job.input as { attemptId: string }).attemptId;

@@ -12,29 +12,31 @@ function previewIdentity(variant: LogoVariant): string | null {
   receipt.rightsEvidenceId,receipt.verification.status,receipt.verification.contentHash,receipt.verification.mimeType,receipt.verification.byteLength]):null;
 }
 function VariantCard({variant,client,disabled,checked,onReview}:{variant:LogoVariant;client:AccountLogoClient;disabled:boolean;checked:boolean;onReview(id:string,accepted:boolean):void}) {
- const [preview,setPreview]=useState<{client:AccountLogoClient;key:string;url:string;loaded:boolean}|null>(null),[background,setBackground]=useState<"light"|"dark"|"checker">(variant.colorway==="white"?"dark":"checker");
+ const [attempt,setAttempt]=useState(0);
+ const [preview,setPreview]=useState<{client:AccountLogoClient;key:string;attempt:number;url:string|null;status:"loading"|"ready"|"unavailable"}|null>(null),[background,setBackground]=useState<"light"|"dark"|"checker">(variant.colorway==="white"?"dark":"checker");
  const key=previewIdentity(variant),readReceipt=useEffectEvent(()=>variant.preview);
  // Parsed polling receipts are replaceable; immutable byte/eligibility evidence is not.
  // Clear released state on a real transition so A/B/A cannot resurrect an old URL.
- if(preview&&(preview.client!==client||preview.key!==key))setPreview(null);
+ if(preview&&(preview.client!==client||preview.key!==key||preview.attempt!==attempt))setPreview(null);
  useEffect(()=>{
   const receipt=readReceipt();if(!receipt||!key)return;
   const abort=new AbortController();let release:(()=>void)|undefined;
   void client.previewAsset(receipt,abort.signal).then(result=>{
-   if(!result)return;if(abort.signal.aborted){result.release();return;}
-   release=result.release;setPreview({client,key,url:result.url,loaded:false});
-  }).catch(()=>{});
+   if(abort.signal.aborted){result?.release();return;}
+   release=result?.release;setPreview({client,key,attempt,url:result?.url??null,status:result?"loading":"unavailable"});
+  }).catch(()=>{if(!abort.signal.aborted)setPreview({client,key,attempt,url:null,status:"unavailable"});});
   return()=>{abort.abort();release?.();};
- },[client,key]);
- const current=preview?.client===client&&preview.key===key?preview:null;
- const ready=!!current?.loaded;
+ },[client,key,attempt]);
+ const current=preview?.client===client&&preview.key===key&&preview.attempt===attempt?preview:null;
+ const ready=current?.status==="ready",unavailable=!key||current?.status==="unavailable";
  return <article className={styles.variant}>
   <h4>{variant.role.replaceAll("_"," ")} · {variant.colorway}</h4>
   <div className={`${styles.preview} ${styles[background]}`}>
    {/* Private bytes are verified by AccountLogoClient; the object URL is released on unmount. */}
    {/* eslint-disable-next-line @next/next/no-img-element */}
-   {current?<img src={current.url} alt={`${variant.role.replaceAll("_"," ")} logo, ${variant.colorway}`} onLoad={()=>setPreview(value=>value===current?{...value,loaded:true}:value)} onError={()=>{setPreview(value=>value===current?{...value,loaded:false}:value);onReview(variant.id,false);}}/>:<p>Verified preview unavailable</p>}
+   {current?.url&&!unavailable?<img src={current.url} alt={`${variant.role.replaceAll("_"," ")} logo, ${variant.colorway}`} onLoad={()=>setPreview(value=>value===current?{...value,status:"ready"}:value)} onError={()=>{setPreview(value=>value===current?{...value,status:"unavailable"}:value);onReview(variant.id,false);}}/>:<p role="status">{unavailable?"Preview unavailable. Your saved variant is kept.":"Loading logo preview…"}</p>}
   </div>
+  {key&&unavailable&&<button type="button" onClick={()=>{onReview(variant.id,false);setAttempt(value=>value+1);}}>Retry preview</button>}
   <div className={styles.backgrounds} aria-label="Preview background">{(["light","dark","checker"] as const).map(value=><button type="button" key={value} aria-pressed={background===value} onClick={()=>setBackground(value)}>{value}</button>)}</div>
   <p className={styles.caption}>Clear space: {variant.clearSpace.toFixed(1)} units. {variant.minimumDigitalSize===null?"Minimum digital size is not assigned.":`Minimum size: ${variant.minimumDigitalSize} px.`}</p>
   <label className={styles.check}><input type="checkbox" checked={checked&&ready} disabled={disabled||!ready} onChange={event=>onReview(variant.id,event.target.checked)}/>I checked spelling, edges and spacing.</label>

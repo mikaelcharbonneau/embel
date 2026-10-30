@@ -8,8 +8,13 @@ const projectId = source.input.projectId, base = `/api/projects/${projectId}/log
 
 test("unapproved vector reload shows original comparison and requires explicit acceptance", async ({ page }) => {
   const f = await setup(page); await expect(page.getByRole("img", { name: "Original concept", exact: true })).toBeVisible(); expect(f.posts).toHaveLength(0);
+  const continueToIdentity = page.getByRole("link", { name: "Continue to Identity directions", exact: true });
+  await expect(continueToIdentity).toHaveCount(0);
   await page.reload(); await expect(page.getByRole("button", { name: "Accept this vector", exact: true })).toBeEnabled(); expect(f.posts).toHaveLength(0);
   await page.getByRole("button", { name: "Accept this vector", exact: true }).click(); await expect.poll(() => f.posts.length).toBe(1); await expect(page.getByRole("heading", { name: "Approved logo", exact: true })).toBeVisible();
+  await expect(continueToIdentity).toBeVisible(); await expect(continueToIdentity).toHaveAttribute("href", `/brands/account/${projectId}/logo/directions`);
+  await page.reload(); await expect(continueToIdentity).toBeVisible(); expect(f.posts).toHaveLength(1);
+  await continueToIdentity.scrollIntoViewIfNeeded();
 });
 test("keyboard manual edit waits for Save and retains an immutable new candidate", async ({ page }) => {
   const f = await setup(page); const rotation = page.getByRole("spinbutton", { name: "Component rotation", exact: true }); await expect(rotation).toBeEnabled(); await rotation.fill("15"); await rotation.press("Enter");

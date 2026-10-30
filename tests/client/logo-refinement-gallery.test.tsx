@@ -48,6 +48,14 @@ describe("refined raster history presentation", () => {
     const node = LogoRefinementGallery({ history: history(), briefRevisionId: id(990), onSelect: () => undefined });
     expect(markup(node)).toContain("Uses an earlier saved brief"); expect(button(node, selectName).props.disabled).toBe(false);
   });
+  it("shows delivery failure with retained usage and keeps the missing refinement unselectable", () => {
+    const failed = syntheticRasterRefinement({ state: "failed", reason: "logo_image_unavailable", preview: null });
+    const node = LogoRefinementGallery({ history: history({ items: [{ record: failed, verified: true, error: null }] }), onSelect: () => undefined });
+    expect(markup(node)).toContain("This refinement could not be saved.");
+    expect(markup(node)).toContain("AI usage is still recorded.");
+    expect(markup(node)).not.toContain("Outcome uncertain");
+    expect(button(node, selectName).props.disabled).toBe(true);
+  });
   it("page loading and failed refresh leave good cards visible", () => {
     const node = LogoRefinementGallery({ history: history({ loading: true, error: "History could not be refreshed.", nextCursor: "older" }), onRefresh: () => undefined, onLoadMore: () => undefined });
     expect(markup(node)).toContain(record.id); expect(markup(node)).toContain("History could not be refreshed");

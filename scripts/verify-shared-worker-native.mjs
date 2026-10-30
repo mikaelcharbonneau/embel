@@ -10,7 +10,7 @@ const image='ghcr.io/supabase/cli/postgres:17.11.0.006-r0@sha256:ee0f2d9747fb9d3
 const name=`embel-shared-native17-${randomBytes(6).toString('hex')}`;
 const compileAuthorityOnly=process.argv.length===3&&process.argv[2]==='--compile-authority-only';
 if(process.argv.length!==2&&!compileAuthorityOnly)throw Error('Unsupported native verification argument');
-const packetPaths=['identity_transactions.sql','shared_worker_pool.sql','shared_account_http.sql','shared_worker_strategy.sql','shared_worker_naming.sql','shared_worker_logo.sql','shared_storage_authority.sql','shared_logo_http.sql','shared_logo_advanced.sql','shared_identity_generation.sql','shared_naming_brainstorm.sql','shared_naming_brainstorm_event_capacity.sql','shared_logo_raster_uncapped.sql'];
+const packetPaths=['identity_transactions.sql','shared_worker_pool.sql','shared_account_http.sql','shared_worker_strategy.sql','shared_worker_naming.sql','shared_worker_logo.sql','shared_storage_authority.sql','shared_logo_http.sql','shared_logo_advanced.sql','shared_identity_generation.sql','shared_naming_brainstorm.sql','shared_naming_brainstorm_event_capacity.sql','shared_logo_raster_uncapped.sql','shared_logo_raster_recovery.sql'];
 const packets=Object.fromEntries(packetPaths.map(path=>[path,readFileSync(new URL('../supabase/candidates/'+path,import.meta.url),'utf8')]));
 const env={...process.env};for(const key of ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH'])delete env[key];
 const docker=(args,input)=>execFileSync('docker',['--host=unix:///var/run/docker.sock',...args],{env,input,encoding:'utf8',stdio:['pipe','pipe','pipe'],maxBuffer:20*1024*1024});
@@ -284,6 +284,28 @@ try{
   if(!holdingProject.child.stdin.writableEnded)holdingProject.child.stdin.end('rollback;\n');
   if(!observingExport.child.stdin.writableEnded)observingExport.child.stdin.end('rollback;\n');
   await holdingProject.done;
+ }
+ stage='actual-two-client-raster-recovery-project-contention';
+ // Minimal synthetic history reaches the resolver's project lock; complete
+ // provider/publication binding is separately exercised by the SQL/worker tests.
+ const rasterSeed=contentionSeed.replaceAll('identity.logo_export','identity.logo_concept').replaceAll('export_publication_unknown','publication_unknown')
+  .replace('error_code,max_attempts)','error_code,max_attempts,attempts)').replace("'publication_unknown',1\n","'publication_unknown',1,1\n");
+ const rasterCase=JSON.parse(sql(`create temporary table shared_logo_contention_parameters(owner_id uuid,project_id uuid,slot_id uuid);
+  insert into shared_logo_contention_parameters values(${quote(sessions[1].owner)},${quote(identityProject.id)},${quote(nativeLogoSlot)});
+  ${rasterSeed.replace('select c.job_id,c.project_id,s.role_name,fluid_private.shared_worker_slot_json(s) slot,\n fluid_private.shared_worker_execution_json(e) execution',"select jsonb_build_object('jobId',c.job_id,'projectId',c.project_id,'roleName',s.role_name,'slot',fluid_private.shared_worker_slot_json(s),'execution',fluid_private.shared_worker_execution_json(e))")}`));
+ const holdingRasterProject=interactiveSql('postgres'),observingRaster=interactiveSql(nativeLogoRole);
+ try{
+  holdingRasterProject.child.stdin.write(`begin;select 1 from public.projects where id=${quote(identityProject.id)} for update;select 'native_raster_project_held';\n`);
+  await eventually(()=>holdingRasterProject.out.includes('native_raster_project_held'));
+  observingRaster.child.stdin.end(`set statement_timeout='2s';select public.shared_logo_worker_action(${quote(JSON.stringify(rasterCase.slot))},${quote(JSON.stringify(rasterCase.execution))},'finish_known','[]');\n`);
+  assert(await observingRaster.done===0,'native-raster-recovery-does-not-wait-for-a-conflicting-project-lock');
+  assert(JSON.parse(observingRaster.out.trim()).result.status==='retained_unknown','native-raster-project-contention-retains-uncertainty');
+  assert(sql(`select state='needs_reconciliation' and lease_token is null and error_code='publication_unknown' and not exists(select 1 from fluid_private.shared_logo_raster_recoveries where job_id=${quote(rasterCase.jobId)}) from public.jobs where id=${quote(rasterCase.jobId)};`)==='t','native-raster-contention-keeps-original-job-and-no-fabricated-recovery');
+  assert(sql(`select not exists(select 1 from public.logo_raster_results where job_id=${quote(rasterCase.jobId)}) and not exists(select 1 from fluid_private.shared_worker_gateway_context);`)==='t','native-raster-contention-leaves-no-output-or-private-context');
+ }finally{
+  if(!holdingRasterProject.child.stdin.writableEnded)holdingRasterProject.child.stdin.end('rollback;\n');
+  if(!observingRaster.child.stdin.writableEnded)observingRaster.child.stdin.end('rollback;\n');
+  await holdingRasterProject.done;
  }
  stage='actual-customer-Storage-RLS-and-session-logout';
  const homePath=sql(`select owner_id::text||'/home/'||id::text||'/'||blob_version_id::text from public.home_attachments where id=${quote(references[0])};`);

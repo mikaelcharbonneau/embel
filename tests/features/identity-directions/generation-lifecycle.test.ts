@@ -5,6 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { webcrypto } from "node:crypto";
 import { AccountSessionProvider, useAccountSession } from "@/components/workspace/account-session";
 import { createAccountLogoClient } from "@/components/identity/account-logo-client";
+import { AccountLogoInputs } from "@/components/identity/account-logo-inputs";
 import type { LogoDraftMemory } from "@/components/identity/logo-draft-memory";
 import { logoOperationSchema, type LogoCostQuote, type LogoGenerationIntent, type LogoRequestState } from "@/domain/logo-jobs";
 import type { IdentityDirectionsOverview } from "@/domain/logo-directions";
@@ -19,14 +20,14 @@ const deferred = <T,>() => { let resolve!: (value: T) => void; const promise = n
 let mounted: Root | null = null;
 afterEach(async () => { if (mounted) { await act(async () => mounted!.unmount()); mounted = null; } document.body.innerHTML = ""; vi.unstubAllGlobals(); });
 async function until(check: () => void) { let error: unknown; for (let i = 0; i < 100; i++) { await act(async () => { await new Promise(resolve => setTimeout(resolve, 5)); }); try { check(); return; } catch (e) { error = e; } } throw error; }
-async function setup(options: { available?: boolean; legacyUnavailable?: boolean; fonts?: boolean; lose?: boolean } = {}) {
+async function setup(options: { available?: boolean; legacyUnavailable?: boolean; fonts?: boolean; lose?: boolean; fontPicker?: boolean } = {}) {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true); vi.stubGlobal("crypto", webcrypto);
   const overview = directionFixture(); let history: IdentityDirectionsOverview | null = null, historyStatus = 200; let fonts = options.fonts === false ? [] : overview.fonts;
   let visual = visualOverview({ ownerId: overview.ownerId, projectId: overview.projectId });
   let workspace: LogoWorkspaceV2 = { version: 2, ownerId: overview.ownerId, projectId: overview.projectId, approvedLogo: overview.currentApprovedLogo,
     heads: { projectRevision: 1, referenceRevision: 0, preferencesRevision: 0, workspaceRevision: 3, stageRevisions: { brief_references: 1, concepts: 0, vector: 1, refinements: 0, directions: 1, deliverables: 0 } },
     stages: { brief_references: { stage: "brief_references", id: id(6), revision: 1 }, concepts: null, vector: { stage: "vector", id: id(5), revision: 1 }, refinements: null, directions: { stage: "directions", id: id(8), revision: 1 }, deliverables: null }, staleStages: [],
-    capabilities: { save: { status: "available" }, generate: options.legacyUnavailable || options.available === false ? { status: "unavailable", reason: "Synthetic provider unavailable" } : { status: "available" }, upload: { status: "unavailable", reason: "fixture" }, convert: { status: "unavailable", reason: "fixture" }, export: { status: "unavailable", reason: "fixture" } } };
+    capabilities: { save: { status: "available" }, generate: options.legacyUnavailable || options.available === false ? { status: "unavailable", reason: "Synthetic provider unavailable" } : { status: "available" }, upload: options.fontPicker ? { status: "available" } : { status: "unavailable", reason: "fixture" }, convert: { status: "unavailable", reason: "fixture" }, export: { status: "unavailable", reason: "fixture" } } };
   const stage = (name: string, revisionId: string, payload: unknown) => ({ version: 2, id: revisionId, ownerId: overview.ownerId, projectId: overview.projectId, stage: name, revision: 1, parentRevisionId: null, inputRevisions: [], inputHash: "a".repeat(64), payload, createdAt: "2026-10-07T00:00:00Z" });
   const revisions: Record<string, unknown> = {
     [id(6)]: stage("brief_references", id(6), { name: "Fluid", activity: "Design", audience: "Teams", personality: "Clear", logoTypes: ["wordmark"], referenceSnapshotId: id(9), sourceProjectRevision: 1 }),
@@ -36,12 +37,16 @@ async function setup(options: { available?: boolean; legacyUnavailable?: boolean
   const requests: { path: string; method: string; body: unknown; signal: AbortSignal | null | undefined }[] = [], posts: LogoGenerationIntent[] = [];
   let capabilityReady = options.available !== false;
   let requestStatus = 200, overviewStatus = 200, historyWait: Promise<Response> | null = null;
+  let nextFontRead: Promise<Response> | null = null;
   let quote: LogoCostQuote | null = null, state: LogoRequestState = { status: "not_found" }, owner = overview.ownerId, sessionWait: Promise<Response> | null = null, admissionWait: Promise<Response> | null = null;
   const fetcher: typeof fetch = async (input, init) => {
     const path = String(input), method = init?.method ?? "GET", body = init?.body ? JSON.parse(String(init.body)) : null; requests.push({ path, method, body, signal: init?.signal });
     if (path === "/api/session") return sessionWait ?? json({ user: { id: owner } });
     if (path.endsWith("/capabilities")) { const observed = Date.now(); return json({ ownerId: overview.ownerId, projectId: overview.projectId, observedAt: new Date(observed).toISOString(), operations: Object.fromEntries(logoOperationSchema.options.map(operation => [operation, capabilityReady && operation === "identity.logo_directions" ? { status: "available", expiresAt: new Date(observed + 30_000).toISOString() } : { status: "unavailable" }])) }); }
-    if (path.endsWith("/fonts")) return json(fonts);
+    if (path.endsWith("/fonts")) { const held = nextFontRead; nextFontRead = null; return held ?? json(fonts); }
+    if (path.endsWith("/fonts/catalog")) { const font = overview.fonts[0]!; return json([{ id: "geist-upright", family: font.family, mimeType: "font/ttf", byteLength: 100, rights: font.rights, conditions: ["Synthetic reviewed license"], reservedFontNames: [] }]); }
+    if (path.endsWith("/fonts/imports")) { fonts = overview.fonts; return json(fonts[0]); }
+    if (path.includes("/references?") || path.includes("/inputs/requests?")) return json({ ownerId: overview.ownerId, projectId: overview.projectId, items: [], nextCursor: null });
     if (path.endsWith("/visual-direction")) return json(visual);
     if (path.endsWith("/quotes")) { quote = { id: id(100), ownerId: overview.ownerId, projectId: overview.projectId, request: body, expected: body.expected, inputHash: "a".repeat(64), policyIdentity: "b".repeat(64), handlerVersion: "directions-v1", provider: "synthetic", model: "synthetic-directions", engine: null, estimatedCostMicrousd: 10000, maxCostMicrousd: 25000, externalProviderCostMicrousd: null, expiresAt: "2099-01-01T00:00:00Z", conceptPlan: null, targetSlotIds: [] }; return json(quote); }
     if (path.endsWith("/requests")) {
@@ -60,7 +65,12 @@ async function setup(options: { available?: boolean; legacyUnavailable?: boolean
   };
   vi.stubGlobal("fetch", fetcher);
   let value: IdentityDirectionsController | undefined, memory: LogoDraftMemory | undefined, sessionControl: ReturnType<typeof useAccountSession> | undefined, shown = true;
-  function Inner({ client }: { client: ReturnType<typeof createAccountLogoClient> }) { const controller = useIdentityDirections(client, workspace); useLayoutEffect(() => { value = controller; }); return createElement(IdentityDirectionsView, { controller }); }
+  function Inner({ client }: { client: ReturnType<typeof createAccountLogoClient> }) {
+    const controller = useIdentityDirections(client, workspace), { session } = useAccountSession();
+    useLayoutEffect(() => { value = controller; });
+    const controls = options.fontPicker && session.status === "ready" ? createElement(AccountLogoInputs, { account: session, workspace, client, canWrite: true, mode: "fonts" }) : undefined;
+    return createElement(IdentityDirectionsView, { controller, controls });
+  }
   function Harness() {
     const context = useAccountSession(), account = context.session.status === "ready" ? context.session : null;
     const client = useMemo(() => account ? createAccountLogoClient(account, overview.projectId, context.isCurrent, context.expire, fetcher) : null, [account, context.isCurrent, context.expire]);
@@ -95,6 +105,7 @@ async function setup(options: { available?: boolean; legacyUnavailable?: boolean
     async reverify(nextOwner = owner) { owner = nextOwner; await act(async () => { sessionControl!.refresh(); }); },
     pauseSession() { const pending = deferred<Response>(); sessionWait = pending.promise; return () => { sessionWait = null; pending.resolve(json({ user: { id: owner } })); }; },
     pauseAdmission() { const pending = deferred<Response>(); admissionWait = pending.promise; return pending; },
+    pauseNextFontRead() { const pending = deferred<Response>(), previous = structuredClone(fonts); nextFontRead = pending.promise; return () => pending.resolve(json(previous)); },
   };
 }
 
@@ -189,6 +200,26 @@ describe("mounted direction generation admission", () => {
     await act(async () => { await f.controller.generation!.prepare(); });
     expect(f.container.textContent).toContain("No owned fonts");
     expect(f.requests.some(r => r.path.endsWith("/quotes"))).toBe(false); expect(f.posts).toEqual([]);
+  });
+  it.each([false, true])("adding the first project font enables Generate without a manual refresh (read in flight: %s)", async inFlight => {
+    const f = await setup({ fonts: false, fontPicker: true });
+    await until(() => expect(f.controller.generation?.state.fonts).toEqual([]));
+    const addFont = () => [...f.container.querySelectorAll("button")].find(button => button.textContent === "Add Geist upright")!;
+    await until(() => expect(addFont()?.disabled).toBe(false));
+    let release: (() => void) | undefined, refreshing: Promise<void> | undefined;
+    if (inFlight) {
+      release = f.pauseNextFontRead();
+      await act(async () => { refreshing = f.controller.generation!.refreshFonts(); });
+      await until(() => expect(f.controller.generation?.state.loadingFonts).toBe(true));
+    }
+    await act(async () => addFont().click());
+    await until(() => expect(f.container.textContent).toContain("Reviewed free-commercial font saved to this project."));
+    if (release) await act(async () => { release(); await refreshing; });
+    await until(() => expect(f.controller.generation?.state.canConfirm).toBe(true));
+    expect(f.controller.generation?.state.fonts?.map(font => font.id)).toEqual([id(50)]);
+    expect(f.requests.filter(request => request.path.endsWith("/fonts/imports"))).toHaveLength(1);
+    expect(f.posts).toEqual([]);
+    expect(f.container.textContent).toContain("Expected cost:");
   });
   it("cancels an estimate without retaining or admitting a generation intent", async () => {
     const f = await setup(); await until(() => expect(f.controller.generation?.state.canEstimate).toBe(true));

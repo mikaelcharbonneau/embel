@@ -52,6 +52,10 @@
     {
       "path": "supabase/candidates/shared_logo_raster_uncapped.sql",
       "sha256": "91d7ab31e7da04c3f7edd82b924f2330d425f55aea9126453482094c6c280798"
+    },
+    {
+      "path": "supabase/candidates/shared_logo_raster_recovery.sql",
+      "sha256": "d70df635c40735a584916af4f63c0a11553017fc05a9b1a3d2599da79b077ac2"
     }
   ],
   "functions": [
@@ -1447,7 +1451,7 @@
       "name": "shared_identity_previous_logo_gateway",
       "owner": "postgres",
       "schema": "fluid_private",
-      "sha256": "585fa162edfd0263c6399017232c7373cb108a7f079434db35c8ba888ac1ac18",
+      "sha256": "c35e73ddf19625d529680543c40f577066521134f0f96533c9c05df2d98d66f3",
       "language": "plpgsql",
       "leakproof": false,
       "searchPath": [
@@ -2728,6 +2732,26 @@
       "owner": "postgres",
       "schema": "fluid_private",
       "sha256": "1776da6d87fd12bcb848d5020649e8a2d3eff3a27db2af62206a98e86ac48cd8",
+      "language": "plpgsql",
+      "leakproof": false,
+      "searchPath": [
+        "search_path=\"\""
+      ],
+      "volatility": "v",
+      "broadExecute": false,
+      "argumentTypes": "",
+      "securityDefiner": false,
+      "lanes": [
+        "strategy",
+        "naming",
+        "logo"
+      ]
+    },
+    {
+      "name": "shared_logo_resolve_raster",
+      "owner": "postgres",
+      "schema": "fluid_private",
+      "sha256": "321117c2b744c33b556d6a03cf12db8a3e86104828a172b8be758d64f7c4ec4a",
       "language": "plpgsql",
       "leakproof": false,
       "searchPath": [
