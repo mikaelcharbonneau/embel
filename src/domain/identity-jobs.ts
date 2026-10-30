@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { jobStatusSchema, moneySchema } from "./jobs";
 import { IMAGE_MODEL } from "./providers";
+import { identityLogoSourceSchema } from "./identity-logo-source";
+import { logoRasterSourceSchema } from "./logo-workspace";
 import { logoVectorProposalUsageSchema } from "./logo-vector-proposal-jobs";
 import {
   identityComponentsSchema, identityInputSnapshotSchema, identitySystemAssetSchema, identitySystemVersionSchema,
@@ -19,28 +21,41 @@ const legacyIdentityGenerationIntentSchema = z.strictObject({
   acceptedPolicyIdentity: z.string().regex(/^[a-f0-9]{64}$/),
   acceptedMaxCostMicrousd: moneySchema,
 });
-export const identityGenerationIntentSchema = z.union([legacyIdentityGenerationIntentSchema, z.strictObject({
+const uncappedIdentityGenerationIntentSchema = z.strictObject({
   version: z.literal(2), spendControl: z.literal("uncapped"),
   expectedProjectRevision: z.number().int().positive(), expectedReferenceRevision: z.number().int().nonnegative(),
   expectedPreferencesRevision: z.number().int().nonnegative(), idempotencyKey: legacyIdentityGenerationIntentSchema.shape.idempotencyKey,
   expectedIdentityRevision: z.number().int().nonnegative(),
   acceptedPolicyIdentity: legacyIdentityGenerationIntentSchema.shape.acceptedPolicyIdentity,
-})]);
+});
+export const logoBoardGenerationIntentSchema = uncappedIdentityGenerationIntentSchema.extend({
+  version: z.literal(3), sourceLogo: logoRasterSourceSchema,
+  expectedLogoRevision: z.number().int().positive(),
+});
+export const identityGenerationIntentSchema = z.union([legacyIdentityGenerationIntentSchema, uncappedIdentityGenerationIntentSchema, logoBoardGenerationIntentSchema]);
 export type IdentityGenerationIntent = z.infer<typeof identityGenerationIntentSchema>;
 
 const unavailableIdentitySchema = z.strictObject({
   ownerId: z.uuid(), projectId: z.uuid(), status: z.literal("unavailable"),
   operation: z.literal("identity.image"), requestedModel: z.literal(IMAGE_MODEL),
-  reason: z.enum(["pipeline_not_implemented", "runtime_unavailable", "policy_unavailable", "inputs_not_ready", "references_unavailable", "reference_limit_exceeded", "reference_bytes_exceeded"]),
+  reason: z.enum(["pipeline_not_implemented", "runtime_unavailable", "policy_unavailable", "inputs_not_ready", "references_unavailable", "reference_limit_exceeded", "reference_bytes_exceeded", "logo_selection_required", "logo_needs_review"]),
   maxReferenceImages: z.literal(4).optional(),
   maxReferenceBytes: z.literal(20_971_520).optional(),
 });
 /** Availability is loaded from actual SQL policy/slot/Storage readiness, never inferred from a model name. */
-export const identityAvailabilitySchema = z.discriminatedUnion("status", [unavailableIdentitySchema, z.strictObject({
+const legacyAvailableIdentitySchema = z.strictObject({
   version: z.literal(2), spendControl: z.literal("uncapped"), ownerId: z.uuid(), projectId: z.uuid(), status: z.literal("available"),
   operation: z.literal("identity.image"), requestedModel: z.literal(IMAGE_MODEL), policyIdentity: z.string().regex(/^[a-f0-9]{64}$/),
   handlerVersion: z.literal("identity-image-v1"), targetCount: z.literal(IDENTITY_BATCH_TARGET), maxReferenceImages:z.literal(4), maxReferenceBytes:z.literal(20_971_520),
-})]);
+});
+export const logoBoardAvailabilitySchema = legacyAvailableIdentitySchema.extend({
+  version: z.literal(3), sourceLogo: identityLogoSourceSchema,
+  expectedProjectRevision: z.number().int().positive(), expectedReferenceRevision: z.number().int().nonnegative(),
+  expectedPreferencesRevision: z.number().int().nonnegative(), expectedIdentityRevision: z.number().int().nonnegative(),
+  expectedLogoRevision: z.number().int().positive(), estimatedCostMicrousd: moneySchema.nullable(),
+}).refine(v => v.sourceLogo.brief.ownerId === v.ownerId && v.sourceLogo.brief.projectId === v.projectId
+  && v.sourceLogo.selectionRevision === v.expectedLogoRevision, "Availability must bind the current owned logo selection");
+export const identityAvailabilitySchema = z.union([unavailableIdentitySchema, legacyAvailableIdentitySchema, logoBoardAvailabilitySchema]);
 export type IdentityAvailability = z.infer<typeof identityAvailabilitySchema>;
 
 /** Matches public.job_steps.output's existing UTF-8 jsonb::text ceiling. */
@@ -223,12 +238,16 @@ export const identityGenerationCapabilitySchema = z.strictObject({
   spendControl: z.literal("uncapped"), textPolicy: identityTextPolicySchema,
 });
 export type IdentityGenerationCapability = z.infer<typeof identityGenerationCapabilitySchema>;
-export const identityGenerationJobInputSchema = z.strictObject({
+const legacyIdentityGenerationJobInputSchema = z.strictObject({
   version: z.literal(2), operation: z.literal("identity.image"), ownerId: z.uuid(), projectId: z.uuid(), batchId: z.uuid(),
   input: identityInputSnapshotSchema, policyIdentity: digest, handlerVersion: z.literal(IDENTITY_IMAGE_HANDLER_VERSION),
   spendControl: z.literal("uncapped"), textPolicy: identityTextPolicySchema,
   systemIds: z.array(z.uuid()).length(3).refine(ids => new Set(ids).size === 3),
-}).refine(v => sameScope(v,v.input), "Job must capture its actual owned full input");
+});
+export const identityGenerationJobInputSchema = z.union([
+  legacyIdentityGenerationJobInputSchema,
+  legacyIdentityGenerationJobInputSchema.extend({ version: z.literal(3), sourceLogo: identityLogoSourceSchema }),
+]).refine(v => sameScope(v,v.input) && (v.version !== 3 || sameScope(v, v.sourceLogo.brief)), "Job must capture its actual owned full input and logo");
 export type IdentityGenerationJobInput = z.infer<typeof identityGenerationJobInputSchema>;
 export const identitySystemSpecificationSchema = z.strictObject({ components: identityComponentsSchema, boardPrompt: z.string().trim().min(1).max(6000) });
 export type IdentitySystemSpecification = z.infer<typeof identitySystemSpecificationSchema>;
@@ -253,7 +272,13 @@ export const identityGenerationProviderReceiptSchema=z.strictObject({id:z.uuid()
 export type IdentityGenerationProviderReceipt=z.infer<typeof identityGenerationProviderReceiptSchema>;
 export const identityBatchStateSchema=z.strictObject({ownerId:z.uuid(),projectId:z.uuid(),batchId:z.uuid(),jobId:z.uuid(),status:jobStatusSchema,terminal:z.boolean(),
   intent:identityGenerationIntentSchema,input:identityInputSnapshotSchema,systems:generatedSystemsSchema,fulfillment:identityFulfillmentSchema,
+  sourceLogo:identityLogoSourceSchema.optional(),sourceLogoCurrent:z.boolean().optional(),
 }).superRefine((v,ctx)=>{
+  if ("version" in v.intent && v.intent.version === 3) {
+    if (!v.sourceLogo || typeof v.sourceLogoCurrent !== "boolean" || !sameScope(v, v.sourceLogo.brief)
+      || !same(v.intent.sourceLogo, v.sourceLogo.source) || v.intent.expectedLogoRevision !== v.sourceLogo.selectionRevision)
+      issue(ctx, "Logo board batches must retain the exact admitted selection and current-source status");
+  } else if (v.sourceLogo || v.sourceLogoCurrent !== undefined) issue(ctx, "Historical system batches cannot invent a selected logo");
   if(!sameScope(v,v.input)||v.fulfillment.acceptedCount!==v.systems.length)issue(ctx,"Batch progress must describe its actual owned completed systems");
   if(v.intent.expectedProjectRevision!==v.input.projectRevision||v.intent.expectedReferenceRevision!==v.input.referenceSnapshot.referenceRevision
     ||v.intent.expectedPreferencesRevision!==v.input.preferencesRevision)issue(ctx,"Batch intent must bind the exact captured revisions");
@@ -275,7 +300,7 @@ export type IdentityBatchRequestLookup = z.infer<typeof identityBatchRequestLook
 /** Only a durable SQL tombstone may prove that an uncertain request cannot
  * admit later. An already admitted request retains its real cancellation state. */
 export const identityBatchRequestCloseSchema = z.discriminatedUnion("status", [
-  z.strictObject({ status: z.literal("not_admitted"), ...ownership, intent: identityGenerationIntentSchema.refine(value => "version" in value && value.version === 2) }),
+  z.strictObject({ status: z.literal("not_admitted"), ...ownership, intent: identityGenerationIntentSchema.refine(value => "version" in value && (value.version === 2 || value.version === 3)) }),
   z.strictObject({ status: z.literal("admitted"), batch: identityBatchStateSchema }),
 ]);
 export type IdentityBatchRequestClose = z.infer<typeof identityBatchRequestCloseSchema>;
