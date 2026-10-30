@@ -94,7 +94,7 @@ export function VisualDirectionsView({ brandName, logoPreview, logoDownload, bac
   return <section className={styles.workspace} aria-labelledby={titleId}>
     <header className={styles.header}>
       <div>
-        <p className={styles.eyebrow}>Build your brand</p>
+        <p className={styles.eyebrow}>Build your brand · Step 2 of 3</p>
         <h1 ref={heading} id={titleId} tabIndex={-1}>Visual direction</h1>
         <p className={styles.intro}>Compare three ways to bring {brandName} to life.</p>
       </div>

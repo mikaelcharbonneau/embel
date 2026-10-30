@@ -23,8 +23,9 @@ dependencies when changing them.
   verification. Report tests, results and observed usage; distinguish estimated
   costs from confirmed charges.
 - Choose, test and explain application AI models on already connected services.
-- Broader redesigns are allowed when they improve the product. Old visual
-  references and pixel specifications do not freeze the interface.
+- Keep the current visual style while improving clarity and consistency (latest
+  preference, October 30). Improve the layout, labels and interaction flow as
+  needed; old references and pixel specifications do not freeze those details.
 - All existing projects and generated outputs inside Embel are disposable test
   data. Reset or
   remove them when useful for requested cleanup and report the scope. This
