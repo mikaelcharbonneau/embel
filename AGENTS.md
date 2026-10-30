@@ -1,28 +1,86 @@
-# Embel engineering
+# Embel working agreement
 
-The product is **Embel** (formerly Fluid). Use Embel in new user-facing copy and current documentation. Preserve existing storage keys, protocol/schema identifiers, service names and historical design references unless a separate compatibility migration is explicitly scoped. See docs/embel-branding.md.
+User-confirmed preferences, October 29, 2026. Embel helps people turn product
+ideas into usable branding. It has no customers yet. Prioritize a reliable,
+complete branding journey and a professional interface.
 
-Build Embel as a conventional account-based AI SaaS. Prefer established framework and provider patterns over custom infrastructure. For signed-in users, the database is authoritative and meaningful edits save automatically. Show Saving, Saved or an actionable save error based on acknowledged persistence. Browser storage is a recovery buffer, never a separate normal workspace or a silent substitute for a failed account save. Preserve legacy local work through explicit owner-confirmed recovery; never attach unattributed local data to an arbitrary signed-in account. Keep technical storage details out of ordinary product flows.
+## Current authority
 
-This is a greenfield external application. Never copy, branch from, import, or modify previous Fluid implementations, migrations, fixtures, services, or export pipelines. All work belongs to this isolated checkout and its new private repository.
+Follow the user's latest instructions and this agreement. Dated decisions,
+plans, specifications and handoffs preserve history; their old approval limits,
+mandatory skills, design freezes and stopping instructions are superseded where
+conflicting. Read relevant documentation as needed. Validate technical
+dependencies when changing them.
 
-The latest user continuation prioritizes quality and substantive progress and withdraws the earlier two-specialist limit; use appropriate parallelism with disjoint ownership. User updates override earlier working-plan wording.
+## Standing permissions
 
-Preserve the current UI, saved work, historical requests and accounting evidence, normal cancellation/timeouts, ownership and duplicate-request protection.
+- Within requested work, fix, refactor and remove obsolete code. While there are
+  no customers, integrate and publish tested bug fixes to the existing app
+  without asking again. Necessary routine configuration and compatible database
+  updates may use existing authorized access. Keep a rollback path and report
+  what went live.
+- Use existing application services, credentials and AI credits for focused
+  verification. Report tests, results and observed usage; distinguish estimated
+  costs from confirmed charges.
+- Choose, test and explain application AI models on already connected services.
+- Broader redesigns are allowed when they improve the product. Old visual
+  references and pixel specifications do not freeze the interface.
+- All existing projects and generated outputs inside Embel are disposable test
+  data. Reset or
+  remove them when useful for requested cleanup and report the scope. This
+  excludes accounts, service configuration, unrelated files and future customer
+  work.
+- Prioritize the main branding journey. Ask before removing features, adding
+  paid services/plans, materially expanding access, or destructive changes beyond
+  the agreed test-data scope.
+- Ask when product intent is unclear; resolve ordinary technical choices.
+  Existing permission remains valid within its scope. Continue independent
+  authorized work while waiting on a blocked part. Communicate concisely in
+  terms a nontechnical user understands.
 
-Read docs/decisions.md and docs/architecture.md before changes. The approved app design source is Wonder concept 22; see docs/home-concept-22.md before UI changes. Record approved facts separately from proposals. The user already authorized implementing agreed foundations; do not reopen that approval. No public deployment, paid calls, paid provisioning, persistent credentials, or unrelated permissions without explicit authorization.
+## Agreed app behavior
 
-Use current official docs and relevant local skills. There was no pre-existing .agents/skills checkout at initialization. Keep external design references in ignored .references; copy only original approved design tokens/assets, never old application code. The original Pen source is materialized and hash verified; see docs/references.md.
+- No fixed monetary caps that stop generation. Show usage and prevent accidental
+  duplicate requests; retain normal cancellation and timeouts.
+- Show expected cost beside Generate; one deliberate click starts the request.
+  No extra confirmation screen is required. Never invent an unavailable estimate.
+- Implement and verify these requirements in the app. Editing instructions alone
+  does not change runtime limits, dialogs or model bindings.
 
-One TypeScript repository, two process entrypoints: Next.js web in src/app and a dedicated Node worker in worker. Shared contracts in src/domain. Server modules belong to src/server. UI must never import privileged modules. Default to unavailable integrations rather than invented AI, availability, trademark clearance, purchase, or export success. Clearly label local fixtures.
+## Reliability and protection
 
-Every owned row and storage object requires enforced ownership. Never trust owner IDs from clients. Versioned outputs are immutable; restoration creates a new selection/version. Jobs are durable, cancellable, bounded by cost, leased, idempotent, and retain partial results. Do not execute jobs in HTTP request lifetimes.
+- Enforce account ownership and private file access on the server. Keep secrets
+  out of source, browser bundles, screenshots, logs and exports.
+- Save meaningful account edits automatically. Show Saved only after confirmation
+  and provide recovery after failures. Never invent successful AI output,
+  availability, legal clearance, real vectors or usable downloads.
+- Use durable background jobs for long AI work, with cancellation, bounded retries
+  and retained partial results. Recover uncertain outcomes using the original
+  request identity; never blindly repeat possibly completed paid work. Provide
+  useful recovery instead of indefinite blocking.
+- Preserve truthful request/billing evidence during active work. Deliberate
+  test-data cleanup is allowed; fabricated success or refunds are not.
+- Retire old implementations after handling their callers and data dependencies.
+  Old identifiers and formats are migration concerns, not permanent retention
+  requirements for unused code.
 
-Run typecheck, lint, relevant tests, and production build before verified pushes. Test actual tenant isolation at database boundaries when possible. Distinguish local tests from live provider validation. No secrets in source, output, logs, fixtures, or commits. Preserve all unrelated changes. Specialists own disjoint paths and do not commit or push; lead integrates.
+## Implementation and verification
 
-Local and cloud handoffs use this repository's verified `main` revision as their shared source. Check the actual commit and worktree status before starting. Preserve all uncommitted work before updating; reconcile independent changes on a feature branch and publish the verified checkpoint through one pull request. Report the merged commit when handing work off, and verify the receiving checkout and deployment identify that same revision. Credentials and ignored runtime/reference files require their separately authorized configuration or transfer; they are not synchronized by Git.
+Prefer standard framework/provider patterns and straightforward code. Use the
+existing TypeScript/Next.js/Supabase/Node structure, keeping privileged code out
+of UI modules. Consult relevant official guidance and skills for the change.
 
-Shared browser belongs to multiple tasks. Use a dedicated headless browser for local tests; do not disturb SourceAtlas tabs. Ask through the parent before shared GUI use.
+Check current main and preserve unrelated work. Use an isolated branch and a
+pull request for a coherent change. Use coordinated parallel agents when useful,
+with disjoint ownership and lead integration. Identify the revision actually
+deployed and align the working checkout with it.
+
+Runtime changes need typecheck, lint, relevant tests and a production build
+before publishing. Verify affected user journeys, desktop/mobile behavior and
+failure recovery where relevant, including focused live tests under the standing
+permission above. Text-only edits need consistency/link checks. Distinguish local
+mocks from live acceptance and report material failures or untested limits.
+Use isolated browser sessions. Preserve external reference provenance.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

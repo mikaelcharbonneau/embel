@@ -1,6 +1,8 @@
 # Naming provider budget compatibility — 2026-10-24
 
-## Finding and safe boundary
+> Historical investigation. The fixed cap, model restriction and task-specific approval holds below are superseded by the [current project rules](../AGENTS.md). The [October 25 correction](naming-native-restoration-20261025.md) removed the US$5 release gate; [fast-first Naming](naming-fast-first.md) describes the newer initial generation flow. The provider findings remain dated technical evidence, not requirements to restore the old spending limits.
+
+## Historical finding and task boundary
 
 No drop-in, enforceable US$5 managed-Agents execution path is established for
 the existing account. Keep new capped generation unavailable until that changes.
@@ -61,7 +63,7 @@ rejections for caps 25/10/10/10 cents, parameter `spend_control`, for job
 US$5 and null final cost remain unresolved accounting evidence. Actual/captured
 zero is not settlement proof. Do not alter those records or infer refunds.
 
-## Options requiring a separate decision
+## Historical options under the retired US$5 requirement
 
 1. **Provider-qualified native limit.** Obtain provider confirmation of exact
    endpoint/header/account support and strict limit semantics, including in-flight
@@ -93,7 +95,7 @@ proposal nor authorized here. If the required output and research cannot fit a
 proved US$5 envelope, changing quality/coverage, model or allowance is a separate
 product decision. No such change is silently included in this patch.
 
-## Implemented safety boundary
+## Historical implementation
 
 Web admission checks the known incompatibility before calling an admission RPC,
 so blocked starts create neither a job nor a new reservation. An exact

@@ -1,5 +1,11 @@
 # Decision log
 
+This is a historical record. The current working agreement is
+[AGENTS.md](../AGENTS.md); see D089 for the October 29 preference review.
+Earlier task-specific permissions, holds, spending caps, mandatory skills and
+design freezes must be interpreted in their original context. They do not
+override current user instructions or require permission already given again.
+
 Source: delegated human-approved foundation brief, 2026-10-02; follow-up decisions are received incrementally from the parent conversation. The 13-page Library plan is a working reference, not an immutable specification.
 
 ## Product decisions and implementation records
@@ -214,3 +220,26 @@ implementation records above. They do not grant activation or spending authority
 - D087: On 2026-10-25 at 23:22:44 UTC, the user corrected an obsolete delegated US$5 requirement: “I thought I made it clear that I didn't want us to use cost limits again?” Future hosted Naming therefore uses the original uncapped Agents pipeline, preserves Luna/xhigh and full research, and treats usage as observation rather than a spending stop. New jobs receive a separate immutable uncapped execution witness; historical capped requests, holds and unknown costs remain exact. This correction authorizes source implementation and mocked verification, not a new autonomous paid test, live migration, production deployment, credentials or worker scaling. See [native Naming restoration](naming-native-restoration-20261025.md).
 
 - D088: On 2026-10-27 the user approved implementing and security-reviewing a bounded shared worker design in the existing cloud task, correcting the two stale fixtures and rerunning validation. The candidate uses the existing Vercel/Supabase stack, fixed restricted service slots, job-derived authority, session-bound web request capabilities and managed project-sensitive settings. It replaces the proposed per-customer credentials/processes and Vault dependency. Preserve tenant isolation, ownership, cancellation, immutable history, uncertain-outcome recovery and accounting. Purposeful paid acceptance is separately authorized without a spending cap, using only the application's authorized credential. This approval does not provision external resources, create production access, push source or deploy. See [shared worker candidate](shared-worker-pool.md).
+
+## Current working preferences — October 29, 2026
+
+- D089: During the project-rules review, the user confirmed that Embel still has
+  no customers and approved these standing preferences:
+  1. Publish tested bug fixes within the work requested, without another release
+     confirmation while the app is in development.
+  2. Use existing application AI credits for focused verification and report
+     what was tested.
+  3. Allow a broader redesign when it improves the product.
+  4. Treat all existing projects and generated outputs as disposable test data.
+  5. Fix the main branding journey first and ask before removing features.
+  6. Use no fixed monetary generation caps; show usage and prevent accidental
+     duplicate requests.
+  7. Show expected cost beside Generate; one deliberate click starts generation.
+  8. Codex may choose, test and explain changes to application AI models on
+     already connected services.
+
+These preferences supersede conflicting historical task restrictions and design
+freezes. The operative agreement is [AGENTS.md](../AGENTS.md). This record does
+not claim that spending limits, confirmation dialogs or model bindings have
+already changed in the running application. Ownership, secret protection,
+truthful results and duplicate-request protection remain required.
