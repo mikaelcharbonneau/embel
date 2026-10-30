@@ -2,9 +2,14 @@
 
 Embel is an account-based brand-building workspace for moving from an idea to strategy, a name, a logo and usable identity files. Signed-in work saves automatically to the account, with acknowledged save status and retained recovery after errors. This source checkout is a development handoff; local qualification does not establish live provider or production acceptance.
 
-Start with [current reliability priorities and remaining gaps](docs/product-health.md).
-The implementation checkpoints below are historical; verify the current source,
-deployment and saved request before treating an older availability statement as current.
+Read [the current working agreement](AGENTS.md) for the user's development,
+release, testing, design and cleanup preferences. Dated implementation records
+below describe earlier checkpoints. Their task-specific approval restrictions
+and fixed design choices do not override that agreement. Changes to the written
+agreement do not establish that the corresponding app behavior has shipped.
+
+See [current reliability priorities and remaining gaps](docs/product-health.md)
+for the first stabilization changes and the next implementation work.
 
 The product was renamed from Fluid to **Embel** on 2026-10-13. The private GitHub repository is now `mikaelcharbonneau/embel`; its earlier `emble` URL redirects there. Existing `FLUID_*` settings, storage keys, service identifiers and historical design references retain their original names for compatibility; see [the branding record](docs/embel-branding.md).
 
@@ -27,7 +32,7 @@ The [approved logo and visual identity specification](docs/superpowers/specs/202
 
 Start from a standalone logo brief or reuse Strategy. Users choose one or more of seven logo types: **wordmarks, lettermarks/monograms, pictorial marks, abstract marks, combination marks, emblems and mascots**. Curated and uploaded references should support the same lettering, shape, composition and overall-feel preferences, with appropriate rights and attribution.
 
-The first exploration contains **six total black-and-white concepts**, not six per type. Identify each concept's type and any unrepresented selected types. Retain partial successes and retry only failed concepts after explicit cost consent. Generation and refinement are separate actions; typing, navigation and manual editing must not dispatch paid work.
+The first exploration contains **six total black-and-white concepts**, not six per type. Identify each concept's type and any unrepresented selected types. Retain partial successes and retry only failed concepts. The agreed cost experience shows the expected cost beside Generate and starts on one deliberate click, without an extra confirmation screen or fixed monetary stop. These changes still need runtime implementation and verification. Generation and refinement are separate actions; typing, navigation and manual editing must not dispatch paid work.
 
 A selected concept becomes genuine vector geometry before detailed editing and delivery. Retain the original raster, compare conversion differences, and require explicit vector acceptance. Direct controls cover text/font, spacing, size, rotation, color and arrangement where the actual document supports them. Preserve component locks, exact approved spelling and immutable history. Font editing requires real editable text; replacing outlined lettering is a distinct explicit change. Anchor-point editing is outside the launch scope.
 
@@ -105,9 +110,14 @@ These are the exact commands in `package.json`. Their presence is not an instruc
 - **Local subscription mode:** `npm run local` requires an existing build and approved protected configuration. It launches the local web interface on port 3106 and its separate worker; connection consent remains locked unless explicitly enabled through the approved setup. It is not required for the ordinary browser-only UI.
 - **Hosted API text:** `build:api-text-worker` prepares a separate deployment artifact. Building it does not deploy, provision credentials or authorize inference.
 
-Keep credentials, tokens, environment files, user sessions and private runtime state outside Git. Use secure, separately authorized configuration flows. Privileged database, service-role and provider credentials must never enter browser bundles, screenshots, logs or exported files. Existing non-secret target allowlists and deployment preflight settings are intentional, target-specific constraints; review them before using another host rather than loosening them to make setup pass.
+Keep credentials, tokens, environment files, user sessions and private runtime state outside Git. Use secure configuration flows and existing authorized access; discuss material access expansion under the current working agreement. Privileged database, service-role and provider credentials must never enter browser bundles, screenshots, logs or exported files. Existing non-secret target allowlists and deployment preflight settings are target-specific technical constraints that need review when changing hosts.
 
-Do not automatically apply migrations, create roles/grants, enable paid policies, start generation, deploy, change protection or publish this source. A private source push is not approval for those actions. Historical approvals in decision records do not transfer authority to a new operator or environment.
+Follow [AGENTS.md](AGENTS.md) for current authorization. Tested fixes to the
+existing app, necessary routine configuration/database updates and focused AI
+tests are authorized within requested work. Validate the actual target and
+technical prerequisites; use existing authorized access. New paid services/plans,
+material access expansion and destructive changes outside the agreed test-data
+scope still require discussion. Historical task restrictions are not new gates.
 
 ### New vector SQL order
 
@@ -146,16 +156,20 @@ There is no fully green aggregate or full-product acceptance claim for this chec
 - `supabase/migrations`, `supabase/candidates`, `supabase/activation`: historical schema, pending candidates and gated setup material
 - `tests`: local, database, adversarial, browser and opt-in live checks
 
-Read `AGENTS.md`, [architecture](docs/architecture.md), [decisions](docs/decisions.md), [standalone workspace contracts](docs/standalone-workspace-contract.md) and [standalone provider contracts](docs/standalone-provider-contracts.md). These documents include historical milestones; reconcile them with this checkpoint and current source before acting.
+Start with [AGENTS.md](AGENTS.md), then read the relevant parts of
+[architecture](docs/architecture.md), [workspace contracts](docs/standalone-workspace-contract.md)
+and [provider contracts](docs/standalone-provider-contracts.md) for the change.
+The [decision log](docs/decisions.md) preserves historical context; it is not a
+mandatory full read or a separate source of standing approval restrictions.
 
 Next implementation priorities:
 
-1. Read the [approved specification](docs/superpowers/specs/2026-10-06-fluid-logo-visual-identity-approved.md), [bounded refinement plan](docs/superpowers/plans/2026-10-08-vector-refinement.md) and [migration order](docs/migration-order.md). Preserve all seven types, six total concepts and the three post-logo directions; do not replace the full product scope with only the newest backend increment.
-2. Complete app-wide UI integration and the end-to-end Home/Idea → Brand → Strategy/Naming → Logo → Identity → Assets/Guidelines journey, including reload, account changes, interruption and error recovery.
-3. Complete live acceptance of the integrated vector-proposal UI, including quote review, saved-request recovery, candidate comparison and explicit acceptance, keeping manual edits provider-free.
-4. Reconcile migration prerequisites/order and prepare the smallest separately authorized logo/persistence/provider activation steps. Reuse existing durable evidence; never retry an uncertain paid request as a fresh inference.
-5. Finish remaining features and establish final verification and live acceptance under a newly agreed scope. Functionality and reliable recovery precede aesthetic benchmarking and prompt tuning.
+1. Make the complete Home/Idea → Brand → Strategy/Naming → Logo → Identity → Assets/Guidelines journey reliable. Keep the existing feature scope; ask before removing features.
+2. Verify real generation and usable downloads, including reload, account changes, interruption, partial results and recovery. Use the standing permission for focused AI tests and publishing tested fixes.
+3. Improve the interface consistently across desktop and mobile. Implement expected cost beside Generate, one deliberate click and usage reporting without fixed monetary generation caps.
+4. Simplify obsolete code and handle its data dependencies. Existing Embel projects/outputs are disposable test data; report deliberate resets. Review actual migration prerequisites and preserve account security and duplicate-request protection.
+5. Verify concurrency and recovery before claiming readiness for thousands of users. Record measured results and remaining gaps.
 
-The original `.pen` design file and design bundle are absent from this checkpoint. [Design references](docs/references.md) retain provenance; obtain the original through an authorized transfer before claiming pixel-perfect comparison. Preserve the accepted Geist, neutral/magenta tokens and existing licensed third-party assets.
+The original `.pen` design file and design bundle were absent from this historical checkpoint. [Design references](docs/references.md) retain provenance. Use available originals for actual comparisons; broader redesigns are now permitted, including changes to old layout and styling choices. Respect third-party asset and font licenses.
 
-This source has not been prepared for public release. No open-source license is granted here; preserve applicable third-party font and fixture licenses.
+The repository is private and grants no open-source license. Preserve applicable third-party font and fixture licenses.

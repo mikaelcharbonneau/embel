@@ -2,7 +2,7 @@
 
 ## Historical setup scope — 2026-10-09
 
-This document records the private repository and Codex Cloud development setup workstream, its verification and handoff requirements. The local checkout remains a separate source to preserve. This record does not authorize a new cloud task, environment setup, credential transfer, production release, provider activation or additional app inference costs.
+This document records the private repository and Codex Cloud development setup workstream, its verification and handoff requirements. Its task-specific approval holds and design restrictions are historical; the [current project rules](../AGENTS.md) govern new work, including publication, focused paid tests, redesign, model selection and disposal of test data. Preserve unrelated working-tree changes when reconciling checkouts. The environment paths, settings and results below describe the original setup; verify the actual environment before reusing them.
 
 The private repository is `mikaelcharbonneau/emble`; the product is **Embel** (formerly Fluid). Its existing checkpoint `b31570281f25e9ae74b3676f480578115a533b1c` was identified by matching 1,230 local file hashes and confirming that it contained no remote-only files. Git metadata was restored in the existing checkout without replacing source files. Do not import other Fluid implementations.
 
@@ -56,19 +56,19 @@ Fixture tests do not establish live Supabase ownership, provider access or produ
 
 ## Product and design context
 
-Read `AGENTS.md`, `docs/decisions.md`, `docs/architecture.md` and `README.md` before implementation. Home Concept 22 is the approved design source; details and tokens are in `docs/home-concept-22.md`. The implemented Ideas library and detail designs are documented in `docs/ideas-design.md` and `docs/idea-detail-design.md`.
+Start with [AGENTS.md](../AGENTS.md), then consult the relevant current implementation and documentation. Home Concept 22 was the original design source; details and tokens are in `docs/home-concept-22.md`. The implemented Ideas library and detail designs are documented in `docs/ideas-design.md` and `docs/idea-detail-design.md`. These references do not freeze the UI against redesign authorized by the current rules.
 
 - [Wonder home concepts](https://app.wonder.so/fluid/files/01a11dfe-6aa3-7091-98fe-2fad32cf9fc0/branches/main/pages/01a11dfe-6aa5-743e-bddf-2597d8f3b1ae): Concept 22 artboard `was`.
 - [Wonder Workspace screens](https://app.wonder.so/fluid/files/01a11dfe-6aa3-7091-98fe-2fad32cf9fc0/branches/main/pages/01a11ed5-9795-737b-b0ba-404021959e88): Ideas `psp`, Idea Detail `hod`, original Domains `vip`.
 - Current Domains authority: **A1 Guided Browser Filters** (`box`) and **A2 Guided Browser Results** (`nag`), the two exact screens subsequently linked by the user. See [current Domains design](domains-guided-design.md). The older Advanced Search (`sum`) checkpoint remains documented in [historical cloud evidence](domains-design.md); its selection, CSV export and sequential read utilities are retained within the newer design.
 
-Keep the collapsed sidebar, black active-edge marker, Geist typography, neutral/magenta palette, 16 px grid, approved app mark, and restrained corner radii. Preserve manual Ideas persistence, immutable revisions, account-generation fencing, conflict recovery and explicit brand conversion. Other screens in Wonder remain proposals unless subsequently approved. Original design snapshots and screenshots in ignored `.references` and `output/playwright` are local evidence, not available automatically in cloud.
+The original handoff preserved the collapsed sidebar, black active-edge marker, Geist typography, neutral/magenta palette, 16 px grid, app mark and restrained corner radii; other Wonder screens were proposals at that checkpoint. Current design authority comes from [AGENTS.md](../AGENTS.md). Account ownership, acknowledged persistence and conflict recovery remain technical requirements. Original design snapshots and screenshots in ignored `.references` and `output/playwright` are local evidence, not available automatically in cloud.
 
 Cloud's documented lack of interactive computer/browser use does not remove the repository's headless automated test commands. Wonder editing and access to the user's signed-in browser remain local tasks unless an authorized cloud connector is actually available. Do not claim visual comparison without the reference.
 
-## First cloud chat
+## Historical first cloud chat example
 
-Suggested initial request:
+The following was the suggested request for the October 9 setup chat. Its instruction to stop before new features, paid inference, migrations or deployment applied to that setup task; it is not a standing instruction and does not override current user authorization or [project rules](../AGENTS.md).
 
 > Continue Embel in this cloud environment. Read AGENTS.md, docs/cloud-development.md, docs/decisions.md, docs/architecture.md, README.md and the Home/Ideas design records. Verify the checked-out revision and report environment readiness and the remaining product gaps. Keep the app's approved design and ownership boundaries. Do not activate paid inference, copy Mac credentials, apply migrations or deploy. Do not begin a new feature until we choose the next task together.
 
