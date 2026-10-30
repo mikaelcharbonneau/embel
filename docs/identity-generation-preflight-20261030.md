@@ -47,7 +47,13 @@ services. No database schema migration was needed.
 
 The previous compatible source remains recoverable through the same stopped
 deployment cutover; do not overwrite admissions or receipts to force retries.
-The owner has been asked to generate another set using their actual session.
-Full live three-board generation, saved selection and final download acceptance
-remain pending. Local fixtures and the isolated specification test do not prove
-the complete customer journey or capacity for thousands of users.
+The owner's subsequent batch `362fe642-da70-487a-9b8f-04ff045cd617` succeeded in
+their actual session: three distinct committed boards and six settled provider
+receipts, with 170,487 micro-USD recorded usage. The selected logo remains current,
+and persisted board/publication evidence passes read-only verification. This is
+separate from the isolated specification call above.
+
+The subsequent disabled-choice issue and web repair are recorded in the
+[current release record](visual-identity-release-20261030.md). Signed-in saved
+selection and final download acceptance remain pending. The established checks
+do not prove capacity for thousands of users.
