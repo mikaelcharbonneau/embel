@@ -13,11 +13,13 @@ const noSubscription = () => () => undefined;
 type WorkspaceController = ReturnType<typeof useLogoWorkspace>;
 
 export function useDirectionGeneration(client: AccountLogoClient, workspace: WorkspaceController) {
-  const memory = useLogoDraftMemory(), { session, isCurrent, expire, visualDirectionDrafts, inspirationDrafts } = useAccountSession();
+  const memory = useLogoDraftMemory(), { session, isCurrent, expire, visualDirectionDrafts, inspirationDrafts, logoInputSession } = useAccountSession();
   const account = session.status === "ready" ? session : null;
   const projectId = workspace.workspace?.projectId, ownerId = workspace.workspace?.ownerId;
   const visualDraft = useSyncExternalStore(visualDirectionDrafts.subscribe, () => account && projectId ? visualDirectionDrafts.get(account, projectId) : null, () => null);
   const inspirationPending = useSyncExternalStore(inspirationDrafts.subscribe, () => account && projectId ? inspirationDrafts.get(account, projectId).size : 0, () => 0);
+  const registeredFonts = useSyncExternalStore(logoInputSession.subscribe,
+    () => account && projectId ? logoInputSession.get(account, projectId)?.getSnapshot().fonts ?? null : null, () => null);
   const capabilities = useLogoCapabilities(client, projectId ?? null);
   const readiness = useRef(capabilities);
   useLayoutEffect(() => { readiness.current = capabilities; }, [capabilities]);
@@ -59,6 +61,17 @@ export function useDirectionGeneration(client: AccountLogoClient, workspace: Wor
   }, [controller, preparationKey, state.canEstimate]);
   useEffect(() => { controller?.refreshInputs(); }, [controller, workspace.draft, workspace.canEdit, capabilities.status, capabilities.available, inspirationPending]);
   useEffect(() => { controller?.refreshInputs(); if (!visualDraft) void controller?.refreshFonts(); }, [controller, visualDraft]);
+  // The project-font picker has its own read/save lifecycle. Recheck its new
+  // versions through the generation client, including after an in-flight read,
+  // so adding a first font enables the estimate without another refresh button.
+  const checkedFontInputs = useRef<{ controller: DirectionGenerationController; fonts: typeof registeredFonts } | null>(null);
+  useEffect(() => {
+    if (!controller || registeredFonts === null || visualDraft) return;
+    const current = controller.getSnapshot();
+    if (current.loadingFonts || current.checking || checkedFontInputs.current?.controller === controller && checkedFontInputs.current.fonts === registeredFonts) return;
+    checkedFontInputs.current = { controller, fonts: registeredFonts };
+    void controller.refreshFonts();
+  }, [controller, registeredFonts, visualDraft, state.loadingFonts, state.checking]);
   const quoteExpiresAt = state.generation.quote?.expiresAt;
   useEffect(() => {
     if (!controller || !quoteExpiresAt) return;
