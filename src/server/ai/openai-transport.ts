@@ -1,8 +1,16 @@
 import "server-only";
 import { z } from "zod";
+import type { InputTokenCountParams } from "openai/resources/responses/input-tokens";
 
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const MAX_RESPONSE_BYTES = 1_048_576;
+// /input_tokens accepts the prompt-bearing subset of a Responses create request.
+// Keep the SDK contract exhaustive so a dependency update prompts a review here.
+const INPUT_TOKEN_COUNT_FIELDS = {
+  conversation: true, input: true, instructions: true, model: true,
+  parallel_tool_calls: true, personality: true, previous_response_id: true,
+  reasoning: true, text: true, tool_choice: true, tools: true, truncation: true,
+} satisfies Record<keyof InputTokenCountParams, true>;
 export type ResponsesRequest = Record<string, unknown>;
 export type OpenAITransportResponse = { body: unknown; requestId: string | null };
 export interface OpenAIResponsesTransport {
@@ -74,7 +82,8 @@ export function createOpenAIResponsesTransport(options: { apiKey: string; fetch?
   };
   return {
     async countInputTokens(request, signal) {
-      const { body } = await post(`${OPENAI_RESPONSES_URL}/input_tokens`, request, signal);
+      const countRequest = Object.fromEntries(Object.entries(request).filter(([field]) => Object.hasOwn(INPUT_TOKEN_COUNT_FIELDS, field)));
+      const { body } = await post(`${OPENAI_RESPONSES_URL}/input_tokens`, countRequest, signal);
       return z.object({ input_tokens: z.number().int().nonnegative().max(10_000_000) }).parse(body).input_tokens;
     },
     createResponse: (request, requestKey, signal) => post(OPENAI_RESPONSES_URL, request, signal, requestKey),

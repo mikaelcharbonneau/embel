@@ -23,6 +23,28 @@ describe("OpenAI HTTPS transport (mock fetch only)", () => {
     expect(fetcher.mock.calls[0]![0]).toBe("https://api.openai.com/v1/responses/input_tokens");
   });
 
+  it("counts every supported prompt field without forwarding generation controls or mutating the create request", async () => {
+    const prompt = {
+      conversation: "conv_fixture", input: [{ role: "user", content: "Return a JSON object." }],
+      instructions: "Synthetic instructions", model: "gpt-6.1-sol", parallel_tool_calls: false,
+      personality: "pragmatic", previous_response_id: null, reasoning: { effort: "medium" },
+      text: { format: { type: "json_object" } }, tool_choice: "none", tools: [], truncation: "disabled",
+    };
+    const request = { ...prompt, service_tier: "default", max_output_tokens: 8192,
+      store: false, background: false, stream: false, metadata: { fixture: "generation-only" } };
+    const original = JSON.stringify(request);
+    const fetcher = vi.fn<typeof fetch>().mockImplementation(async () => new Response(JSON.stringify({ input_tokens: 125 })));
+    const transport = createOpenAIResponsesTransport({ apiKey: "synthetic-test-credential", fetch: fetcher });
+    const signal = new AbortController().signal;
+
+    expect(await transport.countInputTokens(request, signal)).toBe(125);
+    expect(JSON.parse(fetcher.mock.calls[0]![1]!.body as string)).toEqual(prompt);
+    expect(JSON.stringify(request)).toBe(original);
+    await transport.createResponse(request, "fixture-trace-id", signal);
+    expect(fetcher.mock.calls[1]![0]).toBe("https://api.openai.com/v1/responses");
+    expect(fetcher.mock.calls[1]![1]!.body).toBe(original);
+  });
+
   it.each([400, 401, 403, 404, 413, 422, 429])("sanitizes definite rejection %s without retrying", async (status) => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response("synthetic private provider error", { status, headers: { "x-request-id": "req_fixture" } }));
     const transport = createOpenAIResponsesTransport({ apiKey: "synthetic-test-credential", fetch: fetcher });

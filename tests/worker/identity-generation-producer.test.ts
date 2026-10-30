@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import sharp from "sharp";
 vi.mock("server-only",()=>({}));
 import { createIdentitySystemProducer, createIdentitySpecificationRequest, identityDigest } from "../../worker/identity/producer";
+import { createOpenAIResponsesTransport } from "../../src/server/ai/openai-transport";
 import { selectedLogoJobInput,boardSpecification,hash, imageConfiguration, imageUsage, response, snapshot, specification, textPolicy } from "./identity-generation-fixture";
 import type { IdentityDispatch } from "../../worker/identity/producer";
 let png:Uint8Array;
@@ -27,7 +28,9 @@ describe("Identity real provider adapter — mocked transports only",()=>{
  it("requires reproducible layout and supported font choices for selected-logo boards",async()=>{
   const f=fixture(),input=selectedLogoJobInput(png);if(input.version!==3)throw Error('Expected v3');
   const request=createIdentitySpecificationRequest(input.input,[],1,textPolicy,input.sourceLogo);
-  const data=JSON.parse((request.input as {content:string}[])[0]!.content);
+  const content=(request.input as {content:string}[])[0]!.content;
+  expect(content.startsWith('Return one JSON object matching outputSchema.\n')).toBe(true);
+  const data=JSON.parse(content.slice(content.indexOf('\n')+1));
   expect(data.supportedTypography.map((s:{family:string})=>s.family)).toEqual(['Geist','Geist Mono','Lora','Fraunces','Manrope']);
   expect(data.outputSchema.required).toContain('applicationDesign');
   const valid=boardSpecification();f.createResponse.mockResolvedValue(response(valid));
@@ -35,6 +38,46 @@ describe("Identity real provider adapter — mocked transports only",()=>{
   const bad=boardSpecification();bad.components.typography.styles[0]!.family='Unbundled font';f.createResponse.mockResolvedValue(response(bad));
   const rejected=await createIdentitySystemProducer(f.options)!.specify(input.input,[],1,'b'.repeat(64),signal(),f.dispatch,input.sourceLogo);
   expect(rejected.status).toBe('failed');expect(rejected.observation?.billing.status).toBe('recorded');expect(rejected.observation?.specification).toBeNull();
+ });
+
+ it("passes selected-logo JSON preflight through the real HTTPS transport before one specification create",async()=>{
+  const f=fixture(),input=selectedLogoJobInput(png);if(input.version!==3)throw Error('Expected v3');
+  const fetcher=vi.fn<typeof fetch>().mockImplementation(async(url,options)=>{
+   const request=JSON.parse(options!.body as string);
+   if(url==='https://api.openai.com/v1/responses/input_tokens'){
+    // Model the two actual provider rejections, at the HTTP boundary rather than a stubbed count result.
+    if(['service_tier','max_output_tokens','store','background','stream'].some(field=>Object.hasOwn(request,field)))
+     return new Response('Unknown parameter',{status:400});
+    if(request.text?.format?.type==='json_object'&&!request.input.some((message:{content:string})=>/json/i.test(message.content)))
+     return new Response('Input must mention JSON',{status:400});
+    return new Response(JSON.stringify({input_tokens:2527}));
+   }
+   expect(url).toBe('https://api.openai.com/v1/responses');
+   expect(request).toEqual(createIdentitySpecificationRequest(input.input,[],1,textPolicy,input.sourceLogo));
+   return new Response(JSON.stringify(response(boardSpecification()).body),{headers:{'x-request-id':'req_fixture'}});
+  });
+  const textTransport=createOpenAIResponsesTransport({apiKey:'synthetic-test-only',fetch:fetcher});
+  const out=await createIdentitySystemProducer({...f.options,textTransport})!.specify(input.input,[],1,key,signal(),f.dispatch,input.sourceLogo);
+  expect(out.status).toBe('completed');expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(f.authorize).toHaveBeenCalledTimes(1);expect(f.beforeDispatch).toHaveBeenCalledTimes(1);
+  const counted=JSON.parse(fetcher.mock.calls[0]![1]!.body as string),created=JSON.parse(fetcher.mock.calls[1]![1]!.body as string);
+  expect(counted.input).toEqual(created.input);expect(counted.instructions).toEqual(created.instructions);expect(counted.text).toEqual(created.text);
+  expect(created).toMatchObject({service_tier:'default',max_output_tokens:8192,store:false,background:false,stream:false});
+  expect(f.authorize).toHaveBeenCalledWith('specifications',key,identityDigest(JSON.stringify(created)));
+ });
+
+ it("retains a rejected count preflight as zero generation calls with no implicit retry",async()=>{
+  const f=fixture(),input=selectedLogoJobInput(png);if(input.version!==3)throw Error('Expected v3');
+  const fetcher=vi.fn<typeof fetch>().mockResolvedValue(new Response('Private provider details',{status:400}));
+  const textTransport=createOpenAIResponsesTransport({apiKey:'synthetic-test-only',fetch:fetcher});
+  const warning=vi.spyOn(console,'warn').mockImplementation(()=>{});
+  try{
+   const out=await createIdentitySystemProducer({...f.options,textTransport})!.specify(input.input,[],1,key,signal(),f.dispatch,input.sourceLogo);
+   expect(out).toEqual({status:'not_dispatched',observation:null});
+   expect(fetcher).toHaveBeenCalledTimes(1);expect(fetcher.mock.calls[0]![0]).toBe('https://api.openai.com/v1/responses/input_tokens');
+   expect(f.authorize).not.toHaveBeenCalled();expect(f.observe).not.toHaveBeenCalled();
+   expect(warning.mock.calls).toEqual([['identity_specification_preflight_failed',{stage:'token_count',reason:'request_rejected'}]]);
+  }finally{warning.mockRestore();}
  });
 
 });
