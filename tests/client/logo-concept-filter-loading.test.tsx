@@ -68,8 +68,8 @@ function expectInitialPresentation(state: "loading" | "unavailable") {
   expect(composer().querySelector('[role="status"]')?.textContent).toBe(message);
   expect(instruction().placeholder).toBe(message);
   expect(composer().getAttribute("aria-busy")).toBe(String(state === "loading"));
-  expect(composer().querySelector('button[type="submit"]')!.getAttribute("aria-label")).toBe(message);
-  expect(composer().querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true);
+  expect(composer().querySelector('button[aria-label="Generate refinement"]')!.getAttribute("aria-label")).toBe("Generate refinement");
+  expect(composer().querySelector<HTMLButtonElement>('button[aria-label="Generate refinement"]')!.disabled).toBe(true);
   const continuation = [...host.querySelectorAll("button")].find(node => node.textContent === "Continue to brand board →");
   if (continuation) { expect(continuation.disabled).toBe(true); expect(continuation.title).toBe(message); }
 }
@@ -83,7 +83,7 @@ async function typeInstruction(value: string, focusEditor = false) {
     input.dispatchEvent(new Event("input", { bubbles: true }));
   });
 }
-function noWrites(f: Awaited<ReturnType<typeof syntheticRefinementWorkspaceHttp>>) { expect(f.selections).toEqual([]); expect(f.quotes).toEqual([]); expect(f.admissions).toEqual([]); }
+function noWrites(f: Awaited<ReturnType<typeof syntheticRefinementWorkspaceHttp>>) { expect(f.selections).toEqual([]); expect(f.admissions).toEqual([]); }
 
 describe("saved Logo gallery filtering and initial read presentation", () => {
   it("keeps the visible refinement editor and keyboard focus through a delayed same-owner refresh", async () => {
@@ -196,7 +196,7 @@ describe("saved Logo gallery filtering and initial read presentation", () => {
       expect(host.textContent).toContain("Choose a logo for this project.");
       expect(composer().querySelector('[role="status"]')!.textContent).toBe("Select a logo above to get started.");
       expect(input.placeholder).toBe("Select a logo, then describe your changes…");
-      expect(composer().querySelector('button[type="submit"]')!.getAttribute("aria-label")).toBe("Review refinement cost");
+      expect(composer().querySelector('button[aria-label="Generate refinement"]')!.getAttribute("aria-label")).toBe("Generate refinement");
       expect(host.querySelector('[aria-label="Generation cost review"]')).toBeNull(); noWrites(f);
     } finally { await act(async () => { held.release(); workspace.release(); }); }
   });

@@ -4,9 +4,8 @@ import { isDeepStrictEqual, MIMEType } from "node:util";
 import { decodeJwt } from "jose";
 import { z } from "zod";
 import { sharedExecutionSchema, sharedSlotLeaseSchema, type SharedExecution, type SharedSlotLease } from "../shared-pool/contracts";
-import { qualifiedLogoGenerativeStorageCapability, type LogoGenerativeStorageAuthorization, type LogoGenerativeStorageScope,
+import { qualifiedLogoRasterCapability, type LogoRasterCapability, type LogoRasterStorageAuthorization, type LogoGenerativeStorageScope,
   type LogoGenerativeStorageRead, type LogoGenerativeStorageWrite } from "../logo-generative-storage-authorization";
-import { type LogoWorkerCapability } from "../logo-readiness";
 import { logoConceptJobInputSchema, logoRefinementJobInputSchema } from "../../src/domain/logo-jobs";
 import { identityAssetPublicationSchema, type IdentityAssetPublication } from "../../src/domain/logo-deliverables";
 import { logoAssetReferenceSchema } from "../../src/domain/logo-vector";
@@ -22,11 +21,11 @@ const grantSchema = slotSessionSchema.extend({ execution: sharedExecutionSchema,
   inputRevision: z.number().int().positive(), jobInput: z.unknown(), capability: z.unknown(), mode: z.enum(["probe", "read", "write", "observe"]),
   member: z.enum(["reference", "base", "output"]).nullable(), reservation: reservationSchema.nullable(), publication: identityAssetPublicationSchema.nullable() });
 export type SharedLogoStorageAuthorizationInput = { targetOrigin: string; publishableKey: string; slot(): SharedSlotLease | null; execution: SharedExecution;
-  capability: LogoWorkerCapability; session: Pick<SharedStorageSession, "authUserId" | "sessionId" | "tokenProvider"> };
+  capability: LogoRasterCapability; session: Pick<SharedStorageSession, "authUserId" | "sessionId" | "tokenProvider"> };
 export type SharedLogoObservationScope = { job: Omit<ClaimedJob, "leaseToken"> & { leaseToken: string | null }; observationLeaseToken: string;
   reservation: Readonly<IdentityAssetReservation>; publication: IdentityAssetPublication };
 type StorageJob = SharedLogoObservationScope["job"];
-export type SharedLogoStorageAuthorization = LogoGenerativeStorageAuthorization & {
+export type SharedLogoStorageAuthorization = LogoRasterStorageAuthorization & {
   /** Recovery can read only an output whose write grant was issued earlier.
    * SQL proves the frozen reservation/execution; this never starts an upload. */
   authorizeObservedOutput(scope: SharedLogoObservationScope, signal?: AbortSignal): Promise<LogoGenerativeStorageRead>;
@@ -39,7 +38,7 @@ export function createSharedLogoStorageAuthorization(input: SharedLogoStorageAut
   dependencies: { fetch?: typeof fetch; now?: () => number } = {}): SharedLogoStorageAuthorization {
  try {
   const origin = storageOrigin(input.targetOrigin), publishableKey = storagePublicKey(input.publishableKey, origin), execution = sharedExecutionSchema.parse(input.execution);
-  const first = sharedSlotLeaseSchema.parse(input.slot()), capability = qualifiedLogoGenerativeStorageCapability(input.capability);
+  const first = sharedSlotLeaseSchema.parse(input.slot()), capability = qualifiedLogoRasterCapability(input.capability);
   const authUserId = z.uuid().parse(input.session.authUserId), sessionId = z.uuid().parse(input.session.sessionId);
   if (!capability || first.lane !== "logo" || execution.lane !== "logo" || first.slotId !== execution.slotId || first.generation < execution.generation
     || first.generation === execution.generation && first.instanceId !== execution.instanceId || execution.operation !== capability.operation

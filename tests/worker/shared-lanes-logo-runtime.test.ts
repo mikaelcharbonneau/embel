@@ -1,7 +1,9 @@
-import {qualifiedLogoGenerativeStorageCapability} from "../../worker/logo-generative-storage-authorization";
+import {qualifiedLogoRasterCapability} from "../../worker/logo-generative-storage-authorization";
 import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
 vi.mock('server-only',()=>({}));
 import {randomUUID,createHash} from 'node:crypto';
+import {readFile} from 'node:fs/promises';
+import type {UncappedLogoRasterCapability} from '../../src/domain/logo-jobs';
 import sharp from 'sharp';
 import {createSharedStorageFixture,SHARED_STORAGE_ACTOR,SHARED_STORAGE_SESSION,SHARED_STORAGE_ORIGIN,OWNER_A,type SharedStorageFixture} from '../database/shared-storage-fixture';
 import {conceptCapability} from '../database/logo-generative-storage-fixture';
@@ -15,10 +17,12 @@ import type {IdentityAssetReservation} from '../../src/server/data/identity-asse
 let f:SharedStorageFixture;
 beforeEach(async()=>{f=await createSharedStorageFixture();},60000);
 afterEach(async()=>{await f?.close();});
-function engine(options:{reservation?:IdentityAssetReservation;bytes?:Uint8Array;loseReceiptAck?:boolean;generatedBytes?:Uint8Array}={}){
+function engine(options:{reservation?:IdentityAssetReservation;bytes?:Uint8Array;loseReceiptAck?:boolean;generatedBytes?:Uint8Array;capability?:UncappedLogoRasterCapability;bytesByPath?:Map<string,Uint8Array>}={}){
  const methods:string[]=[];
  const receiptCalls:unknown[][]=[];
- let outputReservation=options.reservation,storedBytes=options.bytes;
+ let outputReservation=options.reservation;
+ const bytesByPath=new Map(options.bytesByPath);
+ if(options.reservation&&options.bytes)bytesByPath.set(options.reservation.storagePath,options.bytes);
  const token=[{alg:'HS256',typ:'JWT'},f.claims(),'synthetic-signature'].map(v=>typeof v==='string'?v:Buffer.from(JSON.stringify(v)).toString('base64url')).join('.');
  const createImage=vi.fn(async():Promise<OpenAIImageResponse>=>{
   if(options.generatedBytes)return{bytes:new Uint8Array(options.generatedBytes),mimeType:'image/png',providerRequestId:'req_shared_fixture_image',responseHash:'b'.repeat(64),usage:{input_tokens:1,output_tokens:1,input_tokens_details:{text_tokens:1,image_tokens:0}}};
@@ -31,8 +35,8 @@ function engine(options:{reservation?:IdentityAssetReservation;bytes?:Uint8Array
    return result;
   }finally{if(f.db.isInTransaction())await f.db.exec('rollback');await f.db.exec('set session authorization postgres');}}},slot:f.slot,deploymentId:'dpl_shared_storage_fixture',
   workerId:'synthetic-shared-logo',provider:{apiKey:'synthetic-never-live-key',model:conceptCapability.model!,modelVerificationReceipt:'synthetic-image-proof'},
-  capabilities:[conceptCapability,{...conceptCapability,operation:'identity.logo_refine'}],storage:async(execution,capability)=>createSharedLogoStorageAuthorization({
-   targetOrigin:SHARED_STORAGE_ORIGIN,publishableKey:'sb_publishable_synthetic_fixture',slot:f.slot,execution,capability:(()=>{const value=qualifiedLogoGenerativeStorageCapability(capability);if(!value)throw Error("Non-generative fixture capability");return value;})(),
+  capabilities:[options.capability??conceptCapability,{...(options.capability??conceptCapability),operation:'identity.logo_refine'}],storage:async(execution,capability)=>createSharedLogoStorageAuthorization({
+   targetOrigin:SHARED_STORAGE_ORIGIN,publishableKey:'sb_publishable_synthetic_fixture',slot:f.slot,execution,capability:(()=>{const value=qualifiedLogoRasterCapability(capability);if(!value)throw Error("Non-generative fixture capability");return value;})(),
    session:{authUserId:SHARED_STORAGE_ACTOR,sessionId:SHARED_STORAGE_SESSION,tokenProvider:async()=>token}},
    {fetch:async(incoming,init)=>{
     const url=new URL(String(incoming));methods.push(`${init?.method??'GET'} ${url.pathname}`);
@@ -40,20 +44,20 @@ function engine(options:{reservation?:IdentityAssetReservation;bytes?:Uint8Array
     if(url.pathname==='/rest/v1/rpc/authorize_shared_logo_storage'){
      const body=JSON.parse(String(init?.body)) as {p_execution:string;p_reservation:string|null;p_mode:string};
      expect(body.p_execution).toBe(execution.executionId);
-     if(body.p_reservation&&!outputReservation)outputReservation=(await f.db.query<{value:IdentityAssetReservation}>("select fluid_private.logo_asset_reservation(p) value from public.logo_asset_publications p where p.id=$1",[body.p_reservation])).rows[0]!.value;
+     if(body.p_reservation)outputReservation=(await f.db.query<{value:IdentityAssetReservation}>("select fluid_private.logo_asset_reservation(p) value from public.logo_asset_publications p where p.id=$1",[body.p_reservation])).rows[0]!.value;
      return Response.json(await f.grant(execution,body.p_reservation?outputReservation??null:null,body.p_mode));
     }
     if(outputReservation&&url.pathname===`/storage/v1/object/${init?.method==='POST'?'':'authenticated/'}fluid-assets/${outputReservation.storagePath}`){
      if(init?.method==='POST'){
-      await f.put(outputReservation);storedBytes=new Uint8Array(init.body as Uint8Array);
+      await f.put(outputReservation);bytesByPath.set(outputReservation.storagePath,new Uint8Array(init.body as Uint8Array));
       return Response.json({Id:outputReservation.reference.versionId,Key:`fluid-assets/${outputReservation.storagePath}`});
      }
      expect(init?.method).toBe('GET');expect(await f.get(outputReservation)).toHaveLength(1);
-     return new Response(Buffer.from(storedBytes!),{headers:{'content-type':outputReservation.mimeType}});
+     return new Response(Buffer.from(bytesByPath.get(outputReservation.storagePath)!),{headers:{'content-type':outputReservation.mimeType}});
     }
     throw Error('Unexpected synthetic Storage request');
    }})},{transport:{createImage}});
- return{runtime,createImage,methods,receiptCalls};
+ return{runtime,createImage,methods,receiptCalls,bytesByPath};
 }
 
 describe('actual shared Logo engine and SQL with synthetic Auth/Storage/provider transports',()=>{
@@ -71,20 +75,44 @@ describe('actual shared Logo engine and SQL with synthetic Auth/Storage/provider
    expect((await f.db.query('select * from fluid_private.shared_worker_gateway_context')).rows).toEqual([]);
   }finally{await test.runtime.close();}
  });
- it('keeps a generated concept usable when its committed receipt acknowledgement is lost',async()=>{
+ it.each([false,true])('keeps a generated concept usable when its committed receipt acknowledgement is lost; uncapped=%s',async uncapped=>{
+  const capability:UncappedLogoRasterCapability={operation:'identity.logo_concept',policyIdentity:'a5'.repeat(32),handlerVersion:'logo-image-v1',provider:'openai',model:conceptCapability.model as UncappedLogoRasterCapability['model'],engine:null,spendControl:'uncapped',estimatedCostMicrousd:1};
+  if(uncapped){
+   for(const file of ['shared_logo_advanced.sql','shared_logo_raster_uncapped.sql'])await f.db.exec(await readFile(new URL('../../supabase/candidates/'+file,import.meta.url),'utf8'));
+   for(const operation of ['identity.logo_concept','identity.logo_refine'])await f.db.query('update fluid_private.shared_worker_policies set policy_identity=$2,policy=$3 where slot_id=$1 and operation=$4',[f.slotId,capability.policyIdentity,{...capability,operation},operation]);
+   await f.action(null,'runtime_ready',[[capability,{...capability,operation:'identity.logo_refine'}]]);
+  }
   const workspace=await f.project(),snapshot=(await f.db.query<{id:string}>('select reference_snapshot_id id from public.logo_stage_revisions where id=$1',[workspace.stages.brief_references!.id])).rows[0]!.id;
   const quote=await f.owner(OWNER_A,async()=>logoCostQuoteSchema.parse((await f.db.query<{value:unknown}>("select public.shared_logo_operation($1,'quote',$2) value",[workspace.projectId,{operation:'concepts',expected:workspace.heads,briefRevisionId:workspace.stages.brief_references!.id,referenceSnapshotId:snapshot}])).rows[0]!.value));
   const admitted=await f.owner(OWNER_A,async()=>logoDispatchReceiptSchema.parse((await f.db.query<{value:unknown}>("select public.shared_logo_operation($1,'admit',$2) value",[workspace.projectId,{requestKey:randomUUID(),quoteId:quote.id,expected:workspace.heads}])).rows[0]!.value));
   const generatedBytes=new Uint8Array(await sharp({create:{width:1024,height:1024,channels:3,background:'#000000'}}).png().toBuffer());
-  const test=engine({loseReceiptAck:true,generatedBytes});
+  const test=engine({loseReceiptAck:true,generatedBytes,...(uncapped?{capability}:{})});
   try{
    expect(await test.runtime.run()).toEqual({disposition:'ack',state:'succeeded'});expect(test.createImage).toHaveBeenCalledTimes(1);
    expect(test.receiptCalls).toHaveLength(2);expect(test.receiptCalls[1]).toEqual(test.receiptCalls[0]);
+   if(uncapped){
+    const rows=await f.db.query("select j.actual_cost_microusd,r.captured_microusd,r.reserved_microusd,r.state from public.jobs j join public.usage_reservations r on r.job_id=j.id where j.id=any($1::uuid[]) and j.state='succeeded'",[admitted.jobIds]);
+    expect(rows.rows).toEqual([{actual_cost_microusd:35,captured_microusd:0,reserved_microusd:0,state:'settled'}]);
+   }
    expect((await f.db.query("select state from public.jobs where id=any($1::uuid[]) and state='succeeded'",[admitted.jobIds])).rows).toHaveLength(1);
    expect((await f.db.query("select id from public.logo_provider_responses where job_id=any($1::uuid[])",[admitted.jobIds])).rows).toHaveLength(1);
    const outputs=await f.db.query<{state:string;content_hash:string}>("select p.state,p.content_hash from public.logo_asset_publications p join public.logo_raster_results r on r.job_id=p.job_id where p.job_id=any($1::uuid[])",[admitted.jobIds]);
    expect(outputs.rows).toEqual([{state:'committed',content_hash:createHash('sha256').update(generatedBytes).digest('hex')}]);
    expect(test.methods.filter(method=>method.startsWith('POST /storage/'))).toHaveLength(1);
+   if(uncapped){
+    const saved=(await f.db.query<{input:{batchId:string;slotId:string;attemptId:string}}>("select input from public.jobs where id=any($1::uuid[]) and state='succeeded'",[admitted.jobIds])).rows[0]!.input;
+    for(const id of (await f.db.query<{id:string}>("select id from public.jobs where id=any($1::uuid[]) and state='queued'",[admitted.jobIds])).rows.map(row=>row.id))await f.owner(OWNER_A,()=>f.db.query('select public.request_job_cancel($1)',[id]));
+    const current=(await f.owner(OWNER_A,()=>f.db.query<{value:{heads:unknown}}>('select public.get_logo_workspace($1) value',[workspace.projectId]))).rows[0]!.value;
+    const refinementQuote=logoCostQuoteSchema.parse((await f.owner(OWNER_A,()=>f.db.query<{value:unknown}>("select public.shared_logo_operation($1,'quote',$2) value",[workspace.projectId,{operation:'refine_preview',expected:current.heads,source:{kind:'concept',batchId:saved.batchId,slotId:saved.slotId,attemptId:saved.attemptId},instruction:'Make the symbol rounder'}]))).rows[0]!.value);
+    const refined=logoDispatchReceiptSchema.parse((await f.owner(OWNER_A,()=>f.db.query<{value:unknown}>("select public.shared_logo_operation($1,'admit',$2) value",[workspace.projectId,{requestKey:randomUUID(),quoteId:refinementQuote.id,expected:refinementQuote.expected}]))).rows[0]!.value);
+    const second=engine({capability,generatedBytes:new Uint8Array(await sharp({create:{width:1024,height:1024,channels:3,background:'#123456'}}).png().toBuffer()),bytesByPath:test.bytesByPath});
+    try{
+     expect(await second.runtime.run()).toEqual({disposition:'ack',state:'succeeded'});expect(second.createImage).toHaveBeenCalledTimes(1);
+     expect((await f.db.query('select actual_cost_microusd,state from public.jobs where id=$1',[refined.jobIds[0]])).rows).toEqual([{actual_cost_microusd:35,state:'succeeded'}]);
+     expect(second.methods.some(method=>method.startsWith('GET /storage/'))).toBe(true);
+     expect(second.methods.filter(method=>method.startsWith('POST /storage/'))).toHaveLength(1);
+    }finally{await second.runtime.close();}
+   }
   }finally{await test.runtime.close();}
  });
  it('recovers only the bytes of a previously issued exact output, preserving an unknown provider outcome',async()=>{

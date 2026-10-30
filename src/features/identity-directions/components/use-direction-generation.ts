@@ -49,6 +49,14 @@ export function useDirectionGeneration(client: AccountLogoClient, workspace: Wor
   const controller = entry && account && client === entry.client && projectId === entry.projectId && ownerId === entry.ownerId
     && account.generation === entry.generation && isCurrent(account) ? entry.controller : null;
   const state = useSyncExternalStore(controller?.subscribe ?? noSubscription, controller?.getSnapshot ?? emptyDirectionGeneration, emptyDirectionGeneration);
+  const prepared = useRef<string | null>(null);
+  const preparationKey = JSON.stringify([workspace.workspace?.heads, workspace.workspace?.approvedLogo?.id,
+    state.reviewedVisualDirection?.id, state.fonts, state.generation.request]);
+  useEffect(() => {
+    if (!controller || !state.canEstimate || prepared.current === preparationKey) return;
+    const timer = setTimeout(() => { prepared.current = preparationKey; void controller.prepare(); }, 350);
+    return () => clearTimeout(timer);
+  }, [controller, preparationKey, state.canEstimate]);
   useEffect(() => { controller?.refreshInputs(); }, [controller, workspace.draft, workspace.canEdit, capabilities.status, capabilities.available, inspirationPending]);
   useEffect(() => { controller?.refreshInputs(); if (!visualDraft) void controller?.refreshFonts(); }, [controller, visualDraft]);
   const quoteExpiresAt = state.generation.quote?.expiresAt;

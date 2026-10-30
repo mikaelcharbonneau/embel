@@ -51,6 +51,40 @@ function setup(readiness?: (operation: LogoOperation) => boolean) {
 }
 
 describe("explicit logo generation controller", () => {
+  it("prepares a background estimate without changing request state, then starts once on a deliberate action", async () => {
+    const s = setup(), quote = await s.controller.estimate(s.quote.request, new AbortController().signal);
+    expect(s.controller.getSnapshot()).toMatchObject({ phase: "idle", quote: null, request: null });
+    expect(s.pending).toBeNull(); expect(s.posted).toEqual([]);
+    await Promise.all([s.controller.start(quote), s.controller.start(quote)]);
+    expect(s.posted).toHaveLength(1); expect(s.pending).toEqual(s.posted[0]);
+    expect(s.controller.getSnapshot().phase).toBe("active");
+  });
+  it.each(["expire", "headsChanged", "dirty", "foreign"] as const)("does not start a prepared estimate after %s", async change => {
+    const s = setup(), quote = await s.controller.estimate(s.quote.request, new AbortController().signal);
+    s[change](); await s.controller.start(quote);
+    expect(s.posted).toEqual([]); expect(s.pending).toBeNull();
+  });
+  it("cancels a delayed estimate without quoting or admitting after its inputs were abandoned", async () => {
+    const s = setup(), gate = s.holdReferences(), abort = new AbortController();
+    const result = s.controller.estimate(s.quote.request, abort.signal).catch(error => error);
+    await gate.started; abort.abort(); gate.release(); await result;
+    expect(s.paths.filter(path => path.endsWith("/quotes"))).toEqual([]);
+    expect(s.controller.getSnapshot().phase).toBe("idle"); expect(s.posted).toEqual([]); expect(s.pending).toBeNull();
+  });
+  it("never replaces uncertain work with a fresh background estimate or generation", async () => {
+    const s = setup(), quote = await s.controller.estimate(s.quote.request, new AbortController().signal);
+    s.lose(); await s.controller.start(quote); const original = s.pending;
+    await expect(s.controller.estimate(s.quote.request, new AbortController().signal)).rejects.toThrow();
+    await s.controller.start(quote); await s.controller.checkRequest();
+    expect(s.posted).toEqual([original]); expect(s.pending).toEqual(original);
+  });
+  it("offers saved-input recovery when a background estimate finds a server conflict", async () => {
+    const s = setup(); s.status(409);
+    await expect(s.controller.estimate(s.quote.request, new AbortController().signal)).rejects.toThrow();
+    expect(s.controller.getSnapshot().phase).toBe("rejected"); expect(s.posted).toEqual([]);
+    await s.controller.returnToCostReview(); expect(s.controller.getSnapshot().phase).toBe("idle");
+    expect(s.pending).toBeNull(); expect(s.posted).toEqual([]);
+  });
   it("quotes an estimate without admitting until explicit confirmation", async () => {
     const s = setup(); await s.controller.prepare(s.quote.request);
     expect(s.posted).toEqual([]); expect(s.pending).toBeNull();

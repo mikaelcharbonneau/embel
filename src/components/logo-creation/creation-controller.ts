@@ -20,6 +20,8 @@ export type LogoCreationControllerInput = {
   isOperationAvailable?(operation: LogoOperation): boolean;
 };
 export type LogoCreationController = {
+  estimate(request: LogoQuoteRequest, signal: AbortSignal): Promise<LogoCostQuote>;
+  start(quote: LogoCostQuote): Promise<void>;
   prepare(request: LogoQuoteRequest): Promise<void>; confirmQuote(quoteId: string): Promise<void>; checkRequest(): Promise<void>;
   retryOriginalIntent(): Promise<void>; cancelQuote(): void; returnToCostReview(): Promise<void>; refreshInputs(): void;
   canConfirmQuote(): boolean;
@@ -28,7 +30,7 @@ export type LogoCreationController = {
 const empty: LogoCreationState = Object.freeze({ phase: "idle", quote: null, request: null, error: null });
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
 const recoveryMessage = "The outcome is not confirmed. Your original request is kept. Check it before trying again.";
-const rejectedMessage = "This request was not admitted. Return to cost review for a new estimate before starting any generation.";
+const rejectedMessage = "This request did not start. Refresh the saved inputs and estimate before trying again.";
 const readinessMessage = "This operation is currently unavailable. Your estimate is kept; check availability again before confirming.";
 const preparationReadinessMessage = "This operation is currently unavailable. Refresh operation availability, then review the cost again. Your saved versions are kept.";
 export function logoOperationForQuote(request: LogoQuoteRequest): LogoOperation {
@@ -88,11 +90,44 @@ export function createLogoCreationController(input: LogoCreationControllerInput)
       } else emit({ ...state, phase: "needs_reconciliation", quote: null, error: `${accountErrorMessage(error)} ${recoveryMessage}` });
     } finally { token.end(); }
   }
-  return {
+  const api: LogoCreationController = {
     getSnapshot: () => current() ? state : empty,
     canConfirmQuote: () => !!(state.quote && state.phase === "awaiting_confirmation" && quoteValid(state.quote) && available(state.quote.request)),
     subscribe(listener) { listeners.add(listener); return () => { listeners.delete(listener); }; },
     dispose() { disposed = true; serial++; busy = false; controller?.abort(); controller = null; state = empty; listeners.clear(); },
+    async estimate(request, signal) {
+      const parsed = logoQuoteRequestSchema.parse(request), workspace = input.getWorkspace();
+      const valid = () => current() && !signal.aborted && state.phase === "idle" && !input.getPendingIntent()
+        && !input.hasUnsavedInputs() && same(parsed.expected, input.getWorkspace()?.heads);
+      if (!workspace || !valid()) throw new AccountRequestError(409);
+      if (!available(parsed)) throw new AccountRequestError(503);
+      try {
+        await checkLogoQuoteReferences({ client: input.client, ownerId: workspace.ownerId, projectId: input.projectId, request: parsed, signal });
+        if (!valid()) throw new AccountRequestError(409);
+        const value = await input.client.quoteLogoOperation(parsed, signal);
+        if (!value) throw new AccountRequestError(503);
+        const quote = logoCostQuoteSchema.parse(value);
+        if (!valid() || !same(quote.request, parsed) || !quoteValid(quote)) throw new AccountRequestError(409);
+        if (!available(parsed)) throw new AccountRequestError(503);
+        return quote;
+      } catch (error) {
+        // A still-current estimate rejected by the server needs fresh saved
+        // inputs. Offer the same safe refresh as an admission rejection.
+        if (valid() && error instanceof AccountRequestError && error.status === 409)
+          emit({ ...state, phase: "rejected", quote: null, error: staleMessage });
+        throw error;
+      }
+    },
+    async start(value) {
+      // Only a deliberate UI action calls this. Background estimates never
+      // retain an intent or admit work, even when they finish after an edit.
+      if (!current() || busy || state.phase !== "idle" || input.getPendingIntent()) return;
+      const quote = logoCostQuoteSchema.parse(value);
+      if (!quoteValid(quote)) { emit({ ...state, error: staleMessage }); return; }
+      if (!available(quote.request)) { emit({ ...state, error: readinessMessage }); return; }
+      emit({ ...state, phase: "awaiting_confirmation", quote, error: null });
+      await api.confirmQuote(quote.id);
+    },
     cancelQuote() {
       if (!current() || input.getPendingIntent() || !["quoting", "awaiting_confirmation"].includes(state.phase)) return;
       serial++; controller?.abort(); controller = null; busy = false; emit({ ...state, phase: "idle", quote: null, error: null });
@@ -106,10 +141,10 @@ export function createLogoCreationController(input: LogoCreationControllerInput)
         if (!token.current()) return;
         emit({ ...state, phase: result === "reloaded" ? "idle" : result === "draft_blocked" ? "resolve_draft" : "rejected", quote: null,
           error: result === "reloaded" ? null : result === "draft_blocked"
-            ? "Save or resolve your unsaved brief, vector or identity-direction edits before returning to cost review. Your edits are kept."
-            : "Current saved inputs could not be refreshed. Your edits are kept. Try returning to cost review again." });
+            ? "Save or resolve your unsaved brief, vector or identity-direction edits before refreshing the estimate. Your edits are kept."
+            : "Current saved inputs could not be refreshed. Your edits are kept. Try refreshing again." });
       } catch {
-        if (token.current()) emit({ ...state, phase: "rejected", quote: null, error: "Current saved inputs could not be refreshed. Your edits are kept. Try returning to cost review again." });
+        if (token.current()) emit({ ...state, phase: "rejected", quote: null, error: "Current saved inputs could not be refreshed. Your edits are kept. Try refreshing again." });
       } finally { token.end(); }
     },
     refreshInputs() {
@@ -205,4 +240,5 @@ export function createLogoCreationController(input: LogoCreationControllerInput)
       }
     },
   };
+  return api;
 }

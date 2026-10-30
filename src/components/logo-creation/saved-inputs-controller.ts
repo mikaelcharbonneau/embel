@@ -34,8 +34,8 @@ export const logoDraftHasProtectedWork = (draft: LogoDraftRecord) => draft.dirty
 const blockedEdits = "Save or resolve the changes in Project context before generating. Your changes are kept.";
 const changed = "Your saved brand or logo inputs changed. Refresh the saved brand in Project context, then try again.";
 
-/** Runs only for an explicit generation/confirmation click. A prepared result is
- * a request for cost review; this function cannot admit a provider job. */
+/** Prepares unambiguous saved inputs before quoting. Conflicting inputs still
+ * require an explicit choice; this function cannot admit a provider job. */
 export async function prepareSavedLogoConcepts(input: Input, choice?: LogoSavedInputChoice): Promise<LogoSavedInputPreparation> {
   const current = () => !input.signal.aborted && input.isCurrent();
   const captured = input.getDraft();

@@ -68,6 +68,6 @@ export function LogoRefinementGallery({ history, selected = null, briefRevisionI
       <button className={styles.secondaryButton} type="button" aria-label="Refine selected image refinement" disabled={!selectedRecord || !refinementAvailable || !onRequestRefine}
         onClick={() => { if (selectedRecord && refinementAvailable) onRequestRefine?.({ kind: "refinement", rasterRevisionId: selectedRecord.record.id }); }}>Refine selected image refinement</button>
     </div>
-    <p className={styles.note}>Further refinement requires its own cost review. Refreshing or selecting saved work does not start generation.</p>
+    <p className={styles.note}>Expected cost appears beside Generate. Refreshing or selecting saved work does not start generation.</p>
   </section>;
 }

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useLayoutEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 import { useAccountSession } from "@/components/workspace/account-session";
 import type { AccountLogoClient } from "@/components/identity/account-logo-client";
@@ -40,10 +40,26 @@ export function VectorProposalPanel({ account, projectId, client, memory, contex
   }, [account, projectId, memory, client, isCurrent, expire, onApplied]);
   useLayoutEffect(() => { controller?.updateContext(context); }, [controller, context]);
   const state = useSyncExternalStore(controller?.subscribe ?? noopSubscription, controller?.getSnapshot ?? empty, controller?.getServerSnapshot ?? empty);
-  const form = state.session, busy = !["idle", "review"].includes(state.phase), frozen = Boolean(form?.pendingGeneration || form?.pendingApplication);
+  const form = state.session, busy = !["idle", "review", "quoting"].includes(state.phase), quoting = state.phase === "quoting", frozen = Boolean(form?.pendingGeneration || form?.pendingApplication);
   const components = context?.detail.document.components ?? [], locks = context?.detail.revision.locks ?? [];
   const targets = form?.targetComponentIds ?? [context?.targetId ?? components[0]?.id ?? ""], instruction = form?.instruction ?? "";
   const proposal = state.application?.proposal, quote = state.quote;
+  const expectedCost = quote && "estimatedCostMicrousd" in quote && typeof quote.estimatedCostMicrousd === "number" ? quote.estimatedCostMicrousd : null;
+  const costId = useId();
+  const canPrepare = Boolean(controller?.canPrepare() && instruction.trim());
+  const canRefreshEstimate = Boolean(controller?.canRefreshEstimate() && instruction.trim());
+  const estimateKey = JSON.stringify([form?.baseVectorRevisionId, instruction, targets, context?.workspace.heads, context?.detail.revision.documentHash]);
+  const attemptedEstimate = useRef<{ controller: VectorProposalController; key: string } | null>(null);
+  useEffect(() => {
+    if (!controller || !canPrepare || busy || quoting || quote || attemptedEstimate.current?.controller === controller && attemptedEstimate.current.key === estimateKey) return;
+    const timer = setTimeout(() => { attemptedEstimate.current = { controller, key: estimateKey }; void controller.prepare(); }, 350);
+    return () => clearTimeout(timer);
+  }, [controller, canPrepare, busy, quoting, quote, estimateKey]);
+  useEffect(() => {
+    if (!controller || !quote || !["idle", "review"].includes(state.phase)) return;
+    const timer = setTimeout(() => controller.expireQuote(), Math.min(2_147_483_647, Math.max(0, Date.parse(quote.expiresAt) - Date.now())));
+    return () => clearTimeout(timer);
+  }, [controller, quote, state.phase]);
   useEffect(() => {
     if (!controller || !state.capabilities) return;
     const readiness = state.capabilities.operations["identity.logo_vector_propose"];
@@ -62,7 +78,7 @@ export function VectorProposalPanel({ account, projectId, client, memory, contex
     return () => { cancelled = true; clearTimeout(timer); document.removeEventListener("visibilitychange", visible); };
   }, [controller, active, state.discovery?.nextCursor, state.discoveryCursor]);
   return <section className={panel.panel} aria-label="AI vector edit suggestions">
-    <div className={styles.headingRow}><h3>AI vector edit suggestions</h3><button type="button" className="text-link" disabled={busy} onClick={() => void controller?.refresh()}>Check suggestions and requests</button></div>
+    <div className={styles.headingRow}><h3>AI vector edit suggestions</h3><button type="button" className="text-link" disabled={busy || quoting} onClick={() => void controller?.refresh()}>Check suggestions and requests</button></div>
     <p className={styles.caption}>Ask for one controlled change to saved components: size, rotation, color, arrangement, font or spacing. This creates a suggestion; it does not redraw or approve your logo.</p>
     {state.error && <p role="alert" className={styles.notice}>{state.error}</p>}{state.notice && <p role="status" className={styles.notice}>{state.notice}</p>}
     {!state.discovery && <p role="status">Pending AI requests have not been verified. A new suggestion cannot start until they are checked.</p>}
@@ -79,24 +95,26 @@ export function VectorProposalPanel({ account, projectId, client, memory, contex
       <button type="button" disabled={busy} onClick={() => void controller?.retryOriginal()}>Retry original suggestion request</button>
       <button type="button" disabled={busy || state.stopAcknowledged.includes(form.pendingGeneration.input.requestKey)} onClick={() => void controller?.stopRequest()}>{state.stopAcknowledged.includes(form.pendingGeneration.input.requestKey) ? "Stop requested" : "Stop original suggestion request"}</button>
     </div></div>}
-    <form className={panel.form} onSubmit={event => { event.preventDefault(); void controller?.prepare(); }}>
+    <form className={panel.form} onSubmit={event => { event.preventDefault(); if (controller?.canConfirm()) void controller.confirm(); }}>
       <fieldset disabled={busy || frozen || !context}><legend>Request a vector edit</legend>
         <label>Component<select aria-label="Suggestion component" value={targets[0] ?? ""} onChange={event => controller?.setForm(instruction, [event.target.value])}>
           {!components.some(component => component.id === targets[0]) && <option value={targets[0] ?? ""}>Earlier saved component</option>}
           {components.map((component, index) => <option key={component.id} value={component.id} disabled={locks.some(lock => lock.componentId === component.id)}>{component.role.replaceAll("_", " ")} · {index + 1}{locks.some(lock => lock.componentId === component.id) ? " (locked)" : ""}</option>)}
         </select></label>
         <label>Requested change<textarea aria-label="Requested vector change" maxLength={4000} value={instruction} onChange={event => controller?.setForm(event.target.value, targets)} placeholder="For example, make the selected symbol slightly smaller." rows={3} /></label>
-        <div className={styles.actions}><button type="submit" disabled={!controller?.canPrepare() || !instruction.trim()}>Review AI suggestion request</button>{form && !frozen && <button type="button" onClick={() => controller?.discardDraft()}>Discard suggestion draft</button>}</div>
+        <div className={panel.generation} role="group" aria-label="Generate AI suggestion">
+          <button type="submit" disabled={quoting || !controller?.canConfirm()} aria-describedby={costId}>Generate AI suggestion</button>
+          <span id={costId} role="status" className={styles.caption}>{quoting ? "Estimating cost…" : quote ? expectedCost === null ? "Expected cost unavailable." : `Expected cost: ${displayLogoCost(expectedCost)}`
+            : state.error || state.notice ? "Estimate not ready." : instruction.trim() ? canPrepare ? "Preparing estimate…" : "Estimate unavailable." : "Describe a change to see its expected cost."}</span>
+        </div>
+        {quote && <p className={styles.caption}>{expectedCost === null ? "Actual usage is recorded when reported." : "An estimate, not a confirmed charge. Actual usage may differ."}</p>}
+        <div className={styles.actions}>
+          {canRefreshEstimate && !quoting && <button type="button" onClick={() => { if (controller) { attemptedEstimate.current = { controller, key: estimateKey }; void controller.prepare(); } }}>Refresh estimate</button>}
+          {form && !frozen && <button type="button" onClick={() => controller?.discardDraft()}>Discard suggestion draft</button>}
+        </div>
       </fieldset>
-      {!controller?.canPrepare() && !frozen && <p className={styles.caption}>Use a verified current vector, resolve pending edits and requests, then check AI availability before reviewing a new request.</p>}
+      {!controller?.canPrepare() && !frozen && <p className={styles.caption}>Use a verified current vector, resolve pending edits and requests, then check AI availability before generating.</p>}
     </form>
-    {quote && <section className={styles.notice} aria-label="Review AI suggestion request"><h4>Review the exact request</h4>
-      {quote.request.operation === "propose_vector_edit" && <><p className={panel.instruction}>{quote.request.instruction}</p><p>Target: {quote.request.targetComponentIds.map(id => { const component = components.find(value => value.id === id); return component ? component.role.replaceAll("_", " ") : "Earlier saved component"; }).join(", ")}</p></>}
-      {"spendControl" in quote ? <p>This request uses the configured AI service. Actual usage is recorded when reported.</p> : <p>Estimated cost: {displayLogoCost(quote.estimatedCostMicrousd)}. Accepted maximum: {displayLogoCost(quote.maxCostMicrousd)}. Failed provider calls can still incur costs.</p>}
-      <p>Your approved logo stays unchanged. Applying the returned suggestion requires another explicit action.</p>
-      {!controller?.canConfirm() && <p role="status">Saved inputs, availability or this review changed. Check the current vector and review a new request.</p>}
-      <div className={styles.actions}><button type="button" disabled={busy || !controller?.canConfirm()} onClick={() => void controller?.confirm()}>Request AI suggestion</button><button type="button" disabled={busy} onClick={() => controller?.cancelQuote()}>Cancel suggestion review</button></div>
-    </section>}
     {state.application && proposal && <section className={styles.notice} aria-label="Saved AI vector suggestion"><h4>Review saved suggestion</h4><p>Result: {proposal.state.replaceAll("_", " ")}</p>
       {proposal.payload && <><p className={panel.instruction}>{proposal.payload.explanation}</p>{proposal.payload.status === "proposed" && <><p>Proposed change: {proposal.payload.edit.kind.replaceAll("_", " ")}. Only the saved permitted command will be applied.</p><p>{editSummary(proposal)}</p></>}{proposal.payload.status === "unsupported" && <p>This request did not produce a supported edit. The saved artwork is unchanged.</p>}</>}
       {proposal.state === "needs_reconciliation" && <p>The provider outcome or charge still needs verification. This is not an applicable candidate.</p>}

@@ -22,7 +22,7 @@ export async function syntheticRefinementWorkspaceHttp(preexisting = false) {
     capabilities: { ...foundation.capabilities, save: { status: "available" } } };
   const stages = new Map<string, LogoStageRevision>([[resolved.brief.id, resolved.brief], [id(900), logoStageRevisionSchema.parse({ ...resolved.brief, id: id(900), stage: "concepts", payload: { batchIds: [batch.id], selected: source } })]]);
   const state = { records: [] as LogoRasterRefinement[], quotes: [] as LogoQuoteRequest[], admissions: [] as LogoGenerationIntent[], selections: [] as { requestKey: string; expected: LogoWorkspaceV2["heads"]; source: LogoRasterSource }[],
-    detailReads: [] as string[], requests: new Map<string, LogoRequestState>(), lastQuote: null as LogoCostQuote | null, loseSelection: false, imageAvailable: true, owner: foundation.ownerId,
+    detailReads: [] as string[], requests: new Map<string, LogoRequestState>(), lastQuote: null as LogoCostQuote | null, issuedQuotes: new Map<string, LogoCostQuote>(), loseSelection: false, imageAvailable: true, owner: foundation.ownerId,
     get workspace() { return workspace; }, get batch() { return batch; }, originalBatch, raster, source,
     publish(requestKey = raster.requestKey) {
       const record = { ...raster, requestKey }; state.records = [record];
@@ -61,8 +61,11 @@ export async function syntheticRefinementWorkspaceHttp(preexisting = false) {
     if (path === `${base}/quotes`) {
       const body = request.postDataJSON() as LogoQuoteRequest; state.quotes.push(body);
       const vector = body.operation === "vectorize";
-      state.lastQuote = { ...syntheticLogoQuote(), request: body, expected: body.expected, expiresAt: new Date(Date.now() + 60000).toISOString(), conceptPlan: null, targetSlotIds: [],
+      state.lastQuote = { ...syntheticLogoQuote(), id: id(1400 + state.quotes.length), request: body, expected: body.expected, expiresAt: new Date(Date.now() + 60000).toISOString(),
+        conceptPlan: body.operation === "concepts" || body.operation === "more_concepts" ? batch.plan : null,
+        targetSlotIds: body.operation === "retry_failed" ? body.failedSlotIds : body.operation === "concepts" || body.operation === "more_concepts" ? batch.slots.map(slot => slot.id) : [],
         ...(vector ? { provider: null, model: null, engine: { id: "synthetic-local-vector", version: "1", artifactHash: "c".repeat(64), settingsHash: "d".repeat(64) }, estimatedCostMicrousd: 0, maxCostMicrousd: 0, externalProviderCostMicrousd: 0 } : {}) };
+      state.issuedQuotes.set(state.lastQuote.id, state.lastQuote);
       return json(state.lastQuote);
     }
     if (path === `${base}/requests` && request.method() === "POST") {

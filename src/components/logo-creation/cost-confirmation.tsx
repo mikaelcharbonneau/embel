@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useSyncExternalStore, type RefObject } from "react";
+import { useSyncExternalStore } from "react";
 import type { LogoCreationController } from "./creation-controller";
 import type { LogoBillingObservation, LogoConceptBatch, LogoCostQuote } from "../../domain/logo-jobs";
 import type { LogoRasterSource } from "../../domain/logo-workspace";
@@ -65,44 +65,16 @@ export function LogoCostConfirmationView({ quote = null, billing = null, batch =
 }
 
 
-export function LogoCostConfirmation({ controller, batch = null, returnFocusRef, fallbackFocusRef }: {
+/** Request status and safe recovery stay inline; this never opens a dialog. */
+export function LogoCostConfirmation({ controller, batch = null }: {
   controller: LogoCreationController; batch?: LogoConceptBatch | null;
-  /** A preparatory save can disable the initiating control before quoting. */
-  returnFocusRef?: RefObject<HTMLElement | null>;
-  /** Visible disclosure when its mounted initiating editor has been collapsed. */
-  fallbackFocusRef?: RefObject<HTMLElement | null>;
 }) {
-  const trigger = useRef<{ controller: LogoCreationController; element: HTMLElement } | null>(null);
-  const subscribe = useCallback((listener: () => void) => controller.subscribe(() => {
-    // Capture synchronously, before quoting disables and blurs the triggering
-    // control. Waiting for the dialog effect loses that keyboard return target.
-    if (controller.getSnapshot().phase === "quoting") {
-      const element = document.activeElement;
-      trigger.current = element instanceof HTMLElement && element !== document.body ? { controller, element } : null;
-    }
-    listener();
-  }), [controller]);
-  const state = useSyncExternalStore(subscribe, controller.getSnapshot, controller.getSnapshot);
-  const dialog = useRef<HTMLDialogElement>(null);
-  const shown = state.quote !== null && (state.phase === "awaiting_confirmation" || state.phase === "admitting");
-  useEffect(() => {
-    const element = dialog.current;
-    if (!shown || !element) return;
-    const previous = returnFocusRef?.current ?? (trigger.current?.controller === controller ? trigger.current.element : document.activeElement);
-    const fallback = fallbackFocusRef?.current;
-    element.showModal();
-    return () => {
-      element.close();
-      const available = previous instanceof HTMLElement && previous.isConnected && !previous.closest("[hidden], [inert]") && !previous.matches(":disabled");
-      const target = available ? previous : fallback;
-      if (target?.isConnected) target.focus();
-    };
-  }, [shown, controller, returnFocusRef, fallbackFocusRef]);
+  const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot, controller.getSnapshot);
   return <>
     {state.phase === "quoting" && <p role="status" className={styles.note}>Preparing your cost estimate…</p>}
     {state.error && <p role="status" className={styles.warning}>{state.error}</p>}
     {state.phase === "refreshing_workspace" && <p role="status" className={styles.note}>Refreshing saved logo inputs…</p>}
-    {(state.phase === "rejected" || state.phase === "resolve_draft") && <div className={styles.actions}><button className={styles.secondaryButton} type="button" onClick={() => void controller.returnToCostReview()}>Return to cost review</button></div>}
+    {(state.phase === "rejected" || state.phase === "resolve_draft") && <div className={styles.actions}><button className={styles.secondaryButton} type="button" onClick={() => void controller.returnToCostReview()}>Refresh saved inputs and estimate</button></div>}
     {state.phase === "needs_reconciliation" && <div className={styles.panel}>
       <p className={styles.note}>Check the original request to recover its results and charges. No new generation starts when you check.</p>
       <div className={styles.actions}>
@@ -110,9 +82,8 @@ export function LogoCostConfirmation({ controller, batch = null, returnFocusRef,
         {state.request?.status === "not_found" && <button className={styles.secondaryButton} type="button" onClick={() => void controller.retryOriginalIntent()}>Retry original request</button>}
       </div>
     </div>}
-    <dialog ref={dialog} className={styles.costDialog} aria-label="Review generation cost" onCancel={event => { event.preventDefault(); if (state.phase !== "admitting") controller.cancelQuote(); }}>
-      {shown && <LogoCostConfirmationView quote={state.quote} batch={batch} busy={state.phase === "admitting"}
-        onConfirm={controller.canConfirmQuote() ? () => { if (state.quote) void controller.confirmQuote(state.quote.id); } : undefined} onCancel={() => controller.cancelQuote()} />}
-    </dialog>
+    {state.quote && state.phase === "awaiting_confirmation" && <LogoCostConfirmationView quote={state.quote} batch={batch}
+      onConfirm={controller.canConfirmQuote() ? () => { if (state.quote) void controller.confirmQuote(state.quote.id); } : undefined} onCancel={() => controller.cancelQuote()} />}
+
   </>;
 }

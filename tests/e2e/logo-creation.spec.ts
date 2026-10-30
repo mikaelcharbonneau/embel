@@ -5,6 +5,8 @@ import { DEFAULT_PROFILE_VALUES } from "../../src/domain/account-profile";
 import { captureUiEvidence } from "./ui-evidence";
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { syntheticLogoBatch, syntheticLogoQuote, syntheticLogoWorkspace, syntheticResolvedLogoConcept, logoFixtureId as id } from "../fixtures/logo-creation";
+import { IMAGE_MODEL } from "../../src/domain/providers";
+import { logoCostQuoteSchema } from "../../src/domain/logo-jobs";
 import type { LogoCostQuote, LogoGenerationIntent, LogoQuoteRequest, LogoRequestState, LogoConceptBatch } from "../../src/domain/logo-jobs";
 import { logoStageRevisionSchema, type LogoBriefDraft, type LogoWorkspaceV2, type LogoStageRevision } from "../../src/domain/logo-workspace";
 import { syntheticRasterRefinement } from "../fixtures/logo-refinement-history";
@@ -13,8 +15,8 @@ import type { LogoRasterSource } from "../../src/domain/logo-workspace";
 import { DEFAULT_LOGO_CONCEPT_TYPES } from "../../src/domain/logo-saved-inputs";
 
 const source = syntheticResolvedLogoConcept(), url = `/brands/account/${source.input.projectId}/logo`, base = `/api/projects/${source.input.projectId}/logo`;
-async function setup(page: Page, scenario: "empty" | "partial" | "uncertain" | "unavailable" | "retry_uncertain" | "uninitialized" | "save_uncertain" | "missing_name" = "empty", savedSelection: LogoRasterSource | null = null) {
-  const noBrief = ["uninitialized", "save_uncertain", "missing_name"].includes(scenario);
+async function setup(page: Page, scenario: "empty" | "partial" | "uncertain" | "unavailable" | "retry_uncertain" | "uninitialized" | "save_uncertain" | "missing_name" | "quote_failed" | "quote_expired" | "unknown_estimate" | "inputs_failed" | "input_review" | "save_unavailable" = "empty", savedSelection: LogoRasterSource | null = null) {
+  const noBrief = ["uninitialized", "save_uncertain", "missing_name", "save_unavailable"].includes(scenario);
   const batch = syntheticLogoBatch(scenario === "uninitialized" ? Array.from({ length: 6 }, () => "succeeded" as const)
     : scenario === "uncertain" ? ["succeeded", "succeeded", "succeeded", "succeeded", "succeeded", "needs_reconciliation"] : undefined);
   let currentBrief = source.brief;
@@ -30,13 +32,14 @@ async function setup(page: Page, scenario: "empty" | "partial" | "uncertain" | "
   const summaries = ["partial", "uncertain", "retry_uncertain"].includes(scenario) ? [{ id: batch.id, requestKey: batch.requestKey, createdAt: batch.createdAt }] : [];
   const saved: LogoWorkspaceV2 = { ...foundation, heads: { ...foundation.heads, workspaceRevision: noBrief ? 0 : 1, stageRevisions: { ...foundation.heads.stageRevisions, brief_references: noBrief ? 0 : 1, concepts: ["partial", "uncertain"].includes(scenario) ? 1 : 0 } },
     stages: { ...foundation.stages, brief_references: noBrief ? null : { id: source.brief.id, revision: 1, stage: "brief_references" }, concepts: ["partial", "uncertain"].includes(scenario) ? { id: id(901), revision: 1, stage: "concepts" } : null },
-    capabilities: { ...foundation.capabilities, save: { status: "available" }, generate: scenario === "unavailable" ? { status: "unavailable", reason: "Synthetic unavailable configuration" } : { status: "available" } } };
+    capabilities: { ...foundation.capabilities, save: scenario === "save_unavailable" ? { status: "unavailable", reason: "Synthetic saving outage" } : { status: "available" }, generate: scenario === "unavailable" ? { status: "unavailable", reason: "Synthetic unavailable configuration" } : { status: "available" } } };
   const preparedBrief: LogoBriefDraft = { name: source.brief.payload.name, activity: source.brief.payload.activity, audience: source.brief.payload.audience,
     personality: "Saved inspiration · catalog 2026-10-13.1 · selection 2: synthetic lettering guidance.", logoTypes: [...DEFAULT_LOGO_CONCEPT_TYPES] };
   let refinementStage: LogoStageRevision<"refinements"> | null = null;
   const state = { owner: foundation.ownerId, posts: [] as LogoGenerationIntent[], quotes: [] as LogoQuoteRequest[], readKeys: [] as string[], lose: false,
     refinements: [] as LogoRasterRefinement[], selections: [] as { requestKey: string; batchId: string; slotId: string; attemptId: string }[], inputReads: 0, saves: [] as { requestKey: string; brief: LogoBriefDraft }[], order: [] as string[],
-    request: { status: "not_found" } as LogoRequestState, quote: null as LogoCostQuote | null, quoteGate: null as Promise<void> | null, batchReads: 0, summaries, admissionRejection: false,
+    issuedQuotes: new Map<string, LogoCostQuote>(), request: { status: "not_found" } as LogoRequestState, quote: null as LogoCostQuote | null, quoteGate: null as Promise<void> | null, failQuotes: scenario === "quote_failed", failInputReads: scenario === "inputs_failed", batchReads: 0, summaries, admissionRejection: false,
+    restoreSaving() { saved.capabilities.save = { status: "available" }; },
     advanceProjectRevisionOnly() { saved.heads = { ...saved.heads, projectRevision: saved.heads.projectRevision + 1 }; },
     commitRefinement(record: LogoRasterRefinement) {
       // Model the committed workspace acknowledgement, not only the polling
@@ -75,8 +78,9 @@ async function setup(page: Page, scenario: "empty" | "partial" | "uncertain" | "
     if (path === base) return json(route, saved);
     if (path === `${base}/saved-inputs`) {
       state.inputReads++; state.order.push("inputs");
+      if (state.failInputReads) return json(route, {}, 503);
       return json(route, { ownerId: foundation.ownerId, projectId: foundation.projectId, projectRevision: 1, inspirationSelectionRevision: 2,
-        inspirationCount: 2, nameConflict: false, draft: scenario === "missing_name" ? null : noBrief ? preparedBrief : { name: currentBrief.payload.name, activity: currentBrief.payload.activity, audience: currentBrief.payload.audience, personality: currentBrief.payload.personality, logoTypes: currentBrief.payload.logoTypes } });
+        inspirationCount: 2, nameConflict: scenario === "input_review", draft: scenario === "missing_name" ? null : noBrief ? preparedBrief : { name: currentBrief.payload.name, activity: currentBrief.payload.activity, audience: currentBrief.payload.audience, personality: currentBrief.payload.personality, logoTypes: currentBrief.payload.logoTypes } });
     }
     if ((path === `${base}/initialize` || path === `${base}/brief`) && request.method() !== "GET") {
       const body = request.postDataJSON() as { requestKey: string; brief: LogoBriefDraft };
@@ -118,23 +122,28 @@ async function setup(page: Page, scenario: "empty" | "partial" | "uncertain" | "
     if (path === `${base}/quotes`) {
       state.order.push("quote");
       const body = request.postDataJSON() as LogoQuoteRequest; state.quotes.push(body);
-      state.quote = { ...syntheticLogoQuote(), request: body, expected: saved.heads, expiresAt: new Date(Date.now() + 60000).toISOString(),
-        conceptPlan: body.operation === "retry_failed" || body.operation === "refine_preview" ? null : batch.plan,
-        targetSlotIds: body.operation === "retry_failed" ? body.failedSlotIds : body.operation === "refine_preview" ? [id(110)] : batch.slots.map(slot => slot.id) };
+      const rawQuote: Record<string, unknown> = { ...syntheticLogoQuote(), id: id(1400 + state.quotes.length), request: body, expected: saved.heads, expiresAt: new Date(Date.now() + (scenario === "quote_expired" ? 2000 : 60000)).toISOString(),
+        conceptPlan: body.operation === "refine_preview" ? null : batch.plan,
+        targetSlotIds: body.operation === "retry_failed" ? body.failedSlotIds : body.operation === "refine_preview" ? [] : batch.slots.map(slot => slot.id) };
+      delete rawQuote.maxCostMicrousd; delete rawQuote.externalProviderCostMicrousd;
+      const quote = logoCostQuoteSchema.parse({ ...rawQuote, version: 3, billingMode: "openai_api", spendControl: "uncapped", provider: "openai", model: IMAGE_MODEL,
+        handlerVersion: "logo-image-v1", estimatedCostMicrousd: scenario === "unknown_estimate" ? null : rawQuote.estimatedCostMicrousd });
+      state.quote = quote; state.issuedQuotes.set(quote.id, quote);
       if (state.quoteGate) await state.quoteGate;
-      return json(route, state.quote);
+      return json(route, quote, state.failQuotes ? 503 : 200);
     }
     if (path === `${base}/requests` && request.method() === "POST") {
       const body = request.postDataJSON() as LogoGenerationIntent; state.posts.push(body);
+      const quote = state.issuedQuotes.get(body.quoteId);
       if (state.admissionRejection) return json(route, { error: { code: "conflict", message: "This request conflicts with the current state." }, rejection: { status: "rejected", ownerId: foundation.ownerId, projectId: foundation.projectId, requestKey: body.requestKey, quoteId: body.quoteId } }, 409);
-      if (state.quote?.request.operation === "refine_preview") {
-        state.refinements.unshift(syntheticRasterRefinement({ id: id(503 + state.posts.length), requestKey: body.requestKey, jobId: id(600), source: state.quote.request.source,
+      if (quote?.request.operation === "refine_preview") {
+        state.refinements.unshift(syntheticRasterRefinement({ id: id(503 + state.posts.length), requestKey: body.requestKey, jobId: id(600), source: quote.request.source,
           state: "queued", preview: null, providerResponseReceiptId: null, billing: { status: "recorded", confirmedMicrousd: 0 } }));
         const receipt = { ownerId: foundation.ownerId, projectId: foundation.projectId, requestKey: body.requestKey, operation: "identity.logo_refine" as const, batchId: null, jobIds: [id(600)], inputHash: "b".repeat(64) };
         state.request = { status: "admitted", requestKey: body.requestKey, receipt, outputs: [], billing: { status: "unknown", confirmedMicrousd: null }, reason: null };
         return json(route, receipt);
       }
-      const admittedBatchId = state.quote?.request.operation === "more_concepts" ? id(980 + state.posts.length) : batch.id;
+      const admittedBatchId = quote?.request.operation === "more_concepts" ? id(980 + state.posts.length) : batch.id;
       const admittedBatch = { ...batch, id: admittedBatchId, requestKey: body.requestKey, createdAt: new Date().toISOString() };
       batches.set(admittedBatchId, admittedBatch);
       if (!state.summaries.some(item => item.id === admittedBatchId)) state.summaries.unshift({ id: admittedBatchId, requestKey: body.requestKey, createdAt: admittedBatch.createdAt });
@@ -164,40 +173,72 @@ async function setup(page: Page, scenario: "empty" | "partial" | "uncertain" | "
   return state;
 }
 
-test("saved brief seven types and explicit estimate click precede every generation", async ({ page }) => {
-  const f = await setup(page); expect(f.posts).toHaveLength(0);
-  await page.getByRole("button", { name: "Generate six concepts" }).click();
-  const dialog = page.getByRole("dialog", { name: "Review generation cost" }); await expect(dialog).toBeVisible();
-  await expect(dialog).toContainText("Not included in this batch: Mascot"); await expect(dialog).toContainText("Estimated cost"); await expect(dialog).toContainText("Maximum cost");
-  expect(f.posts).toHaveLength(0); await dialog.getByRole("button", { name: "Generate 6 concepts", exact: true }).click();
-  await expect.poll(() => f.posts.length).toBe(1); await expect(dialog).not.toBeVisible(); expect(f.quotes[0]?.operation).toBe("concepts");
+test("shows cost beside Generate and starts six concepts with one deliberate click", async ({ page }, info) => {
+  const f = await setup(page), action = page.getByRole("group", { name: "Generate six concepts", exact: true });
+  const generate = action.getByRole("button", { name: "Generate six concepts", exact: true });
+  await expect(generate).toBeEnabled(); await expect(action).toContainText("Expected cost: $0.60");
+  await expect(action).toContainText("Not included in this batch: Mascot");
+  await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
+  expect(f.posts).toHaveLength(0); await page.screenshot({ path: info.outputPath("generation-ready.png") }); await generate.click();
+  await expect.poll(() => f.posts.length).toBe(1);
+  expect(f.issuedQuotes.get(f.posts[0]!.quoteId)?.request.operation).toBe("concepts");
+  expect(f.posts[0]).not.toHaveProperty("acceptedMaxCostMicrousd");
+  await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
 });
-test("Escape cancels without admission and returns keyboard focus", async ({ page }) => {
-  const f = await setup(page), trigger = page.getByRole("button", { name: "Generate six concepts" });
-  await trigger.focus(); await trigger.press("Enter"); await expect(page.getByRole("dialog")).toBeVisible(); await page.keyboard.press("Escape");
-  await expect(page.getByRole("dialog")).not.toBeVisible(); await expect(trigger).toBeFocused(); expect(f.posts).toHaveLength(0);
+test("a keyboard action starts one request without opening a cost dialog", async ({ page }) => {
+  const f = await setup(page), trigger = page.getByRole("button", { name: "Generate six concepts", exact: true });
+  await expect(trigger).toBeEnabled(); expect(f.posts).toHaveLength(0);
+  await trigger.focus(); await page.keyboard.press("Enter");
+  await expect.poll(() => f.posts.length).toBe(1);
+  await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
 });
-test("partial results retain five cards and retry scope excludes successful concepts", async ({ page }) => {
+test("failed saved-input loading can be refreshed in place without starting generation", async ({ page }) => {
+  const f = await setup(page, "inputs_failed"), generate = page.getByRole("button", { name: "Generate six concepts", exact: true });
+  await expect(page.getByRole("button", { name: "Refresh logo inputs" })).toBeVisible();
+  await expect(generate).toBeDisabled(); expect(f.posts).toHaveLength(0); expect(f.quotes).toHaveLength(0);
+  f.failInputReads = false;
+  await page.getByRole("button", { name: "Refresh logo inputs" }).click();
+  await expect(generate).toBeEnabled(); expect(f.inputReads).toBeGreaterThan(1); expect(f.posts).toHaveLength(0);
+  await generate.click(); await expect.poll(() => f.posts.length).toBe(1);
+});
+test("a paused saved-input review can be resumed without choosing a brand automatically", async ({ page }) => {
+  const f = await setup(page, "input_review"), review = page.getByRole("region", { name: "Confirm logo inputs" });
+  await expect(review).toBeVisible(); await review.getByRole("button", { name: "Keep reviewing" }).click();
+  await expect(review).toHaveCount(0); expect(f.saves).toHaveLength(0); expect(f.posts).toHaveLength(0);
+  await page.getByRole("button", { name: "Refresh logo inputs" }).click();
+  await expect(review).toBeVisible(); expect(f.quotes).toHaveLength(0);
+  await review.getByRole("button", { name: "Use current logo brief" }).click();
+  await expect(page.getByRole("button", { name: "Generate six concepts", exact: true })).toBeEnabled();
+  expect(f.posts).toHaveLength(0); expect(f.saves).toHaveLength(0);
+});
+test("restored saving refreshes prepared inputs and enables a deliberate Generate click", async ({ page }) => {
+  const f = await setup(page, "save_unavailable");
+  await expect(page.getByText(/Logo saving is unavailable/)).toBeVisible();
+  expect(f.saves).toHaveLength(0); expect(f.posts).toHaveLength(0);
+  f.restoreSaving(); await page.getByRole("button", { name: "Refresh logo inputs" }).click();
+  await expect(page.getByRole("button", { name: "Generate six concepts", exact: true })).toBeEnabled();
+  expect(f.saves).toHaveLength(1); expect(f.posts).toHaveLength(0);
+});
+test("partial results retain five cards and one-click retry excludes successful concepts", async ({ page }) => {
   const f = await setup(page, "partial"); await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible();
-  await expect(page.getByText("Image preview · Vector conversion and approval follow separately.", { exact: true })).toHaveCount(5);
-  await page.getByRole("button", { name: "Retry 1 failed concept", exact: true }).click();
-  await expect(page.getByRole("dialog")).toBeVisible(); expect(f.posts).toHaveLength(0);
-  expect(f.quotes[0]).toMatchObject({ operation: "retry_failed", failedSlotIds: [id(115)] });
-  await expect(page.getByRole("dialog")).toContainText("Concept 6");
+  const action = page.getByRole("group", { name: "Retry 1 failed concept", exact: true });
+  await expect(action).toContainText("Expected cost:"); expect(f.posts).toHaveLength(0);
   const previousReads = f.batchReads;
-  await page.getByRole("dialog").getByRole("button", { name: "Retry 1 failed concept", exact: true }).click();
+  await action.getByRole("button", { name: "Retry 1 failed concept", exact: true }).click();
+  await expect.poll(() => f.posts.length).toBe(1);
+  expect(f.issuedQuotes.get(f.posts[0]!.quoteId)?.request).toMatchObject({ operation: "retry_failed", failedSlotIds: [id(115)] });
   await expect.poll(() => f.batchReads).toBeGreaterThan(previousReads);
-  expect(f.posts).toHaveLength(1);
+  await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible();
 });
 test("lost admission response recovers by original key without a second generation post", async ({ page }) => {
   const f = await setup(page); f.lose = true;
-  await page.getByRole("button", { name: "Generate six concepts" }).click(); await page.getByRole("dialog").getByRole("button", { name: "Generate 6 concepts", exact: true }).click();
+  await page.getByRole("button", { name: "Generate six concepts" }).click();
   await expect(page.getByRole("button", { name: "Check original generation request" })).toBeVisible();
   await page.getByRole("button", { name: "Check original generation request" }).click();
   await expect.poll(() => f.readKeys.length).toBeGreaterThan(0); expect(f.readKeys).toContain(f.posts[0]!.requestKey); expect(f.posts).toHaveLength(1);
 });
 test("unavailable generation preserves saved brief and stays within mobile viewport", async ({ page }) => {
-  const f = await setup(page, "unavailable"); await expect(page.getByRole("button", { name: "Generate six concepts" })).toBeEnabled();
+  const f = await setup(page, "unavailable"); await expect(page.getByRole("button", { name: "Generate six concepts" })).toBeDisabled();
   await page.getByRole("button", { name: "Project context", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Brand name" })).toHaveValue("Élan & Co");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); expect(f.posts).toHaveLength(0);
@@ -207,7 +248,7 @@ test("unavailable generation preserves saved brief and stays within mobile viewp
 test("an unselected first exploration survives full reload with no concept-stage pointer", async ({ page }) => {
   const f = await setup(page);
   await page.getByRole("button", { name: "Generate six concepts" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Generate 6 concepts", exact: true }).click();
+
   await expect.poll(() => f.posts.length).toBe(1); await page.reload();
   await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Project context", exact: true }).click();
@@ -217,8 +258,7 @@ test("an unselected first exploration survives full reload with no concept-stage
 
 test("an unselected More exploration is latest after reload and its earlier batch stays reachable", async ({ page }) => {
   const f = await setup(page, "partial"); await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "More concepts", exact: true }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Generate 6 more concepts", exact: true }).click();
+  await page.getByRole("button", { name: "Generate six more concepts", exact: true }).click();
   await expect.poll(() => f.posts.length).toBe(1); await page.reload();
   await page.getByRole("button", { name: "Project context", exact: true }).click();
   await page.getByRole("button", { name: "Saved inputs and recovery", exact: true }).click();
@@ -238,25 +278,23 @@ test("a reloaded uncertain retry checks its attempt identity and keeps five succ
   await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible();
 });
 
-test("a durable admission rejection offers a fresh review without silently generating again", async ({ page }) => {
+test("a rejected request offers fresh inputs and an estimate without silently generating again", async ({ page }) => {
   const f = await setup(page); f.admissionRejection = true;
-  await page.getByRole("button", { name: "Generate six concepts" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Generate 6 concepts", exact: true }).click();
-  await page.getByRole("button", { name: "Return to cost review" }).click(); expect(f.posts).toHaveLength(1);
-  await page.getByRole("button", { name: "Generate six concepts" }).click(); await expect(page.getByRole("dialog")).toBeVisible(); expect(f.posts).toHaveLength(1);
+  await page.getByRole("button", { name: "Generate six concepts", exact: true }).click();
+  await page.getByRole("button", { name: "Refresh saved inputs and estimate" }).click();
+  await expect(page.getByRole("button", { name: "Generate six concepts", exact: true })).toBeEnabled();
+  expect(f.posts).toHaveLength(1);
+  await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
 });
 
 
-test("return to cost review refreshes an H1 rejection to the other tab's saved H2 inputs", async ({ page }) => {
-  const f = await setup(page);
-  await page.getByRole("button", { name: "Generate six concepts" }).click();
-  await expect(page.getByRole("dialog")).toBeVisible(); f.advanceSavedBrief(); f.admissionRejection = true;
-  await page.getByRole("dialog").getByRole("button", { name: "Generate 6 concepts", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Generate six concepts" })).toBeDisabled();
-  await page.getByRole("button", { name: "Return to cost review" }).click();
-  await expect(page.getByRole("button", { name: "Generate six concepts" })).toBeEnabled();
-  await page.getByRole("button", { name: "Generate six concepts" }).click(); await expect(page.getByRole("dialog")).toBeVisible();
-  expect(f.quotes[1]).toMatchObject({ expected: { workspaceRevision: 2, stageRevisions: { brief_references: 2 } }, briefRevisionId: id(990) });
+test("recovery refreshes a rejected request to the other tab's saved inputs", async ({ page }) => {
+  const f = await setup(page), generate = page.getByRole("button", { name: "Generate six concepts", exact: true });
+  await expect(generate).toBeEnabled(); f.advanceSavedBrief(); f.admissionRejection = true;
+  await generate.click(); await expect(generate).toBeDisabled();
+  await page.getByRole("button", { name: "Refresh saved inputs and estimate" }).click();
+  await expect(generate).toBeEnabled();
+  expect(f.quotes.at(-1)).toMatchObject({ expected: { workspaceRevision: 2, stageRevisions: { brief_references: 2 } }, briefRevisionId: id(990) });
   expect(f.posts).toHaveLength(1);
 });
 
@@ -285,62 +323,48 @@ test("concepts landing matches the reference layout without inventing generated 
   await expect(page.getByText("No concept selected in this batch.", { exact: false })).toBeVisible();
   await page.getByRole("button", { name: "All concepts · 6", exact: true }).click();
   await expect(cards).toHaveCount(6);
-  expect(f.quotes).toHaveLength(0); expect(f.posts).toHaveLength(0);
+  expect(f.posts).toHaveLength(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);
   await page.screenshot({ path: info.outputPath("concepts-layout.png") });
 });
 
-test("new logo work saves brand and Inspiration before one explicit six-concept request", async ({ page }) => {
-  const errors: string[] = [];
-  page.on("pageerror", error => errors.push(error.message));
+test("new logo work prepares saved inputs and cost before one explicit six-concept request", async ({ page }) => {
+  const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
   const f = await setup(page, "uninitialized");
-  expect(page.url()).toContain(url);
-  await expect(page).toHaveTitle("Logo creation synthetic fixture");
   const generate = page.getByRole("button", { name: "Generate six concepts", exact: true });
-  await expect(generate).toBeEnabled();
-  await expect(generate).toBeInViewport();
-  expect(f.saves).toHaveLength(0); expect(f.quotes).toHaveLength(0); expect(f.posts).toHaveLength(0);
-  await generate.click();
-  const review = page.getByRole("dialog", { name: "Review generation cost" });
-  await expect(review).toBeVisible();
-  expect(f.order).toEqual(["inputs", "save", "quote"]);
-  expect(f.saves).toHaveLength(1);
+  await expect(generate).toBeEnabled(); await expect(generate).toBeInViewport();
+  expect(f.order).toEqual(["inputs", "save", "quote"]); expect(f.saves).toHaveLength(1);
   expect(f.saves[0]!.brief).toMatchObject({ name: "Élan & Co", activity: "Tea shop", audience: "Local readers", logoTypes: DEFAULT_LOGO_CONCEPT_TYPES });
-  expect(f.saves[0]!.brief.personality).toContain("selection 2");
-  expect(f.quotes[0]).toMatchObject({ operation: "concepts", briefRevisionId: source.brief.id, expected: { workspaceRevision: 1, stageRevisions: { brief_references: 1 } } });
-  expect(f.posts).toHaveLength(0);
-  await review.getByRole("button", { name: "Generate 6 concepts", exact: true }).click();
-  await expect.poll(() => f.posts.length).toBe(1);
-  await expect(review).not.toBeVisible();
-  await page.reload();
-  await expect(page.getByText("6 of 6 concepts ready", { exact: true })).toBeVisible();
+  expect(f.saves[0]!.brief.personality).toContain("selection 2"); expect(f.posts).toHaveLength(0);
+  await expect(page.getByRole("group", { name: "Generate six concepts", exact: true })).toContainText("Expected cost:");
+  await generate.click(); await expect.poll(() => f.posts.length).toBe(1);
+  await page.reload(); await expect(page.getByText("6 of 6 concepts ready", { exact: true })).toBeVisible();
   expect(f.saves).toHaveLength(1); expect(f.posts).toHaveLength(1);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  expect(errors).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); expect(errors).toEqual([]);
 });
 
 test("an uncertain initial brief save keeps its original intent and cannot quote or generate", async ({ page }) => {
   const f = await setup(page, "save_uncertain");
-  await page.getByRole("button", { name: "Generate six concepts", exact: true }).click();
   await expect.poll(() => f.saves.length).toBe(1);
   await expect(page.getByText("Your logo inputs have not been confirmed as saved.", { exact: false })).toBeVisible();
   await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
-  expect(f.quotes).toHaveLength(0); expect(f.posts).toHaveLength(0);
+  expect(f.posts).toHaveLength(0);
   await page.getByRole("button", { name: "Project context", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Brand name" })).toHaveValue("Élan & Co");
   await page.getByRole("button", { name: "Saved inputs and recovery", exact: true }).click();
   await expect(page.getByText("A previous save is awaiting confirmation.", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "Check original save", exact: true })).toBeVisible();
   expect(f.saves).toHaveLength(1);
+  expect(f.quotes).toHaveLength(0);
 });
 
 test("a project without a saved brand name is guided back before any logo write", async ({ page }) => {
   const f = await setup(page, "missing_name");
-  await page.getByRole("button", { name: "Generate six concepts", exact: true }).click();
   await expect(page.getByText("Choose and save a brand name in your project before generating logo concepts.", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Open project to choose a name" })).toHaveAttribute("href", `/brands/account/${source.input.projectId}`);
-  expect(f.inputReads).toBe(1); expect(f.saves).toHaveLength(0); expect(f.quotes).toHaveLength(0); expect(f.posts).toHaveLength(0);
+  expect(f.inputReads).toBe(1); expect(f.saves).toHaveLength(0); expect(f.posts).toHaveLength(0);
+  expect(f.quotes).toHaveLength(0);
 });
 
 
@@ -366,46 +390,35 @@ test("clicking a logo selects it in place and persists without an inspection scr
 
 test("composer refines the saved selected concept in place with the entered changes", async ({ page }) => {
   const f = await setup(page, "partial");
-  const send = page.locator('form[aria-label="Logo concept changes"] button[type="submit"]');
-  await expect(send).toBeDisabled();
+  const send = page.getByRole("button", { name: "Generate refinement", exact: true });
+  await expect(send).toBeHidden();
   await page.getByRole("button", { name: "Select concept 2", exact: true }).click();
   await expect(page.getByText("Refinement target: Concept 2", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Refine logo", exact: true }).click();
   await page.getByRole("textbox", { name: "Describe logo changes" }).fill("Make the monogram more rounded and increase the inner spacing.");
   await expect(send).toBeEnabled();
-  f.advanceProjectRevisionOnly();
   await send.click();
-  const review = page.getByRole("dialog", { name: "Review generation cost" });
-  await expect(review).toBeVisible(); expect(f.posts).toHaveLength(0);
-  await expect(review).toContainText("Estimated cost"); await expect(review).toContainText("Maximum cost");
-  await expect(review).toContainText("Make the monogram more rounded and increase the inner spacing.");
-  await review.getByRole("button", { name: "Refine this concept", exact: true }).click();
   await expect.poll(() => f.posts.length).toBe(1);
-  await expect(review).not.toBeVisible();
-  expect(f.quotes).toHaveLength(1);
-  expect(f.quotes[0]).toMatchObject({ operation: "refine_preview", expected: { projectRevision: 2 }, source: { kind: "concept", slotId: id(111) }, instruction: "Make the monogram more rounded and increase the inner spacing." });
+  await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
+  expect(f.issuedQuotes.get(f.posts[0]!.quoteId)?.request).toMatchObject({ operation: "refine_preview", source: { kind: "concept", slotId: id(111) }, instruction: "Make the monogram more rounded and increase the inner spacing." });
   expect(f.posts).toHaveLength(1);
   await expect(page.getByRole("heading", { name: "Refine a direction", exact: true })).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Describe logo changes" })).toHaveValue("Make the monogram more rounded and increase the inner spacing.");
   await expect(send).toBeDisabled();
 });
 
-test("canceling a delayed refinement quote restores the visible collapsed disclosure", async ({ page }) => {
+test("a delayed estimate never generates or takes focus after the refinement editor closes", async ({ page }) => {
   const batch = syntheticLogoBatch(), slot = batch.slots[0]!, attempt = slot.attempts[0]!;
   const f = await setup(page, "partial", { kind: "concept", batchId: batch.id, slotId: slot.id, attemptId: attempt.id });
-  let release!: () => void;
-  f.quoteGate = new Promise<void>(resolve => { release = resolve; });
+  let release!: () => void; f.quoteGate = new Promise<void>(resolve => { release = resolve; });
   const form = page.getByRole("form", { name: "Logo concept changes" });
   await form.getByRole("button", { name: "Refine logo", exact: true }).click();
   await form.getByRole("textbox", { name: "Describe logo changes" }).fill("Retained instruction during quote");
-  await form.getByRole("button", { name: "Review refinement cost", exact: true }).click();
-  await expect.poll(() => f.quotes.length).toBe(1);
+  await expect.poll(() => f.quotes.some(quote => quote.operation === "refine_preview")).toBe(true);
   await form.getByRole("button", { name: "Close refinement", exact: true }).click();
-  await expect(form.getByRole("textbox", { name: "Describe logo changes" })).toBeHidden();
-  release();
-  const dialog = page.getByRole("dialog", { name: "Review generation cost", exact: true });
-  await expect(dialog).toBeVisible(); await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  release(); await expect(form.getByRole("textbox", { name: "Describe logo changes" })).toBeHidden();
   await expect(form.getByRole("button", { name: "Refine logo", exact: true })).toBeFocused();
+  await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
   expect(f.posts).toEqual([]); expect(f.selections).toEqual([]);
 });
 
@@ -438,7 +451,7 @@ test("refinement disclosure reserves space, preserves edits and keeps context ke
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await form.getByRole("button", { name: "Close refinement", exact: true }).click();
   await form.scrollIntoViewIfNeeded(); await captureUiEvidence(page, info);
-  expect(f.selections).toEqual([]); expect(f.quotes).toEqual([]); expect(f.posts).toEqual([]); expect(f.saves).toEqual([]);
+  expect(f.selections).toEqual([]); expect(f.posts).toEqual([]); expect(f.saves).toEqual([]);
 });
 
 
@@ -453,10 +466,8 @@ test("a saved refinement can be selected and edited again without leaving concep
   await page.getByRole("button", { name: "Refine logo", exact: true }).click();
   await page.getByRole("textbox", { name: "Describe logo changes" }).fill("Make the lettering slightly wider.");
   await page.getByRole("textbox", { name: "Describe logo changes" }).focus();
-  await page.keyboard.press("Control+Enter");
-  const review = page.getByRole("dialog", { name: "Review generation cost" });
-  await expect(review).toBeVisible(); expect(f.posts).toHaveLength(0);
-  await review.getByRole("button", { name: "Refine this image refinement", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Generate refinement", exact: true })).toBeEnabled();
+  expect(f.posts).toHaveLength(0); await page.keyboard.press("Control+Enter");
   await expect.poll(() => f.posts.length).toBe(1);
   expect(f.quotes.at(-1)).toMatchObject({ operation: "refine_preview", source: { kind: "refinement", rasterRevisionId: refinement.id }, instruction: "Make the lettering slightly wider." });
   expect(f.posts).toHaveLength(1);
@@ -468,10 +479,7 @@ test("a running chat edit becomes a selectable saved refinement without reloadin
   await page.getByRole("button", { name: "Select concept 1", exact: true }).click();
   await page.getByRole("button", { name: "Refine logo", exact: true }).click();
   await page.getByRole("textbox", { name: "Describe logo changes" }).fill("Increase the letter spacing slightly.");
-  await page.getByRole("button", { name: "Review refinement cost", exact: true }).click();
-  const review = page.getByRole("dialog", { name: "Review generation cost" });
-  await expect(review).toBeVisible(); expect(f.posts).toHaveLength(0);
-  await review.getByRole("button", { name: "Refine this concept", exact: true }).click();
+  await page.getByRole("button", { name: "Generate refinement", exact: true }).click();
   await expect.poll(() => f.posts.length).toBe(1);
   const result = page.getByRole("combobox", { name: "Versions for concept 1" });
   await expect(result).toHaveCount(0);
@@ -500,5 +508,48 @@ test("dialog hit testing: logo project context protects padding without generati
   const f = await setup(page, "partial", { kind: "concept", batchId: batch.id, slotId: slot.id, attemptId: attempt.id });
   const trigger = page.getByRole("form", { name: "Logo concept changes" }).getByRole("button", { name: "Project context", exact: true });
   await checkDialogHitTesting(page, trigger, page.getByRole("dialog", { name: "Project context", exact: true }), "Close project context");
-  expect(f.posts).toEqual([]); expect(f.saves).toEqual([]); expect(f.selections).toEqual([]); expect(f.quotes).toEqual([]);
+  expect(f.posts).toEqual([]); expect(f.saves).toEqual([]); expect(f.selections).toEqual([]);
+});
+
+
+test("a failed estimate can be refreshed without starting generation", async ({ page }) => {
+  const f = await setup(page, "quote_failed");
+  const action = page.getByRole("group", { name: "Generate six concepts", exact: true });
+  await expect(action).toContainText("The cost estimate could not be loaded");
+  await expect(action.getByRole("button", { name: "Generate six concepts", exact: true })).toBeDisabled();
+  expect(f.posts).toHaveLength(0); f.failQuotes = false;
+  await action.getByRole("button", { name: "Refresh estimate" }).click();
+  await expect(action.getByRole("button", { name: "Generate six concepts", exact: true })).toBeEnabled();
+  expect(f.posts).toHaveLength(0); expect(f.quotes).toHaveLength(2);
+});
+
+test("an expired estimate needs a refresh and never starts generation on its own", async ({ page }) => {
+  const f = await setup(page, "quote_expired");
+  const action = page.getByRole("group", { name: "Generate six concepts", exact: true });
+  const generate = action.getByRole("button", { name: "Generate six concepts", exact: true });
+  await expect(action).toContainText("Estimate expired."); await expect(generate).toBeDisabled();
+  expect(f.posts).toHaveLength(0); expect(f.quotes).toHaveLength(1);
+  await action.getByRole("button", { name: "Refresh estimate" }).click();
+  await expect(generate).toBeEnabled(); expect(f.posts).toHaveLength(0);
+  await generate.click(); await expect.poll(() => f.posts.length).toBe(1);
+});
+
+test("a cancelled request keeps partial previews and allows a later deliberate generation", async ({ page }) => {
+  const f = await setup(page);
+  await page.getByRole("button", { name: "Generate six concepts", exact: true }).click();
+  await expect.poll(() => f.posts.length).toBe(1);
+  if (f.request.status === "not_found") throw Error("Synthetic admission missing");
+  f.request = { ...f.request, status: "cancelled", billing: { status: "recorded", confirmedMicrousd: 0 }, outputs: [] };
+  await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Generate six more concepts", exact: true })).toBeEnabled();
+  expect(f.posts).toHaveLength(1);
+});
+
+
+test("an unavailable estimate is stated honestly before an uncapped generation", async ({ page }) => {
+  const f = await setup(page, "unknown_estimate");
+  const action = page.getByRole("group", { name: "Generate six concepts", exact: true });
+  await expect(action).toContainText("Expected cost unavailable."); await expect(action).not.toContainText("$0");
+  expect(f.posts).toHaveLength(0); await action.getByRole("button", { name: "Generate six concepts", exact: true }).click();
+  await expect.poll(() => f.posts.length).toBe(1); expect(f.posts[0]).not.toHaveProperty("acceptedMaxCostMicrousd");
 });

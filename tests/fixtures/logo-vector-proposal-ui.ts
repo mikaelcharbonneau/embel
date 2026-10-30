@@ -28,7 +28,7 @@ export async function setupVectorProposalUi(page: Page, options: { legacy?: bool
   let sequence = 3200;
   const quotes = new Map<string, LogoCostQuote>(), paid = new Map<string, { input: LogoGenerationIntent; quote: LogoCostQuote; value: LogoVectorProposalRequestState }>();
   const records = new Map<string, LogoVectorProposalRecord>(), materializations = new Map<string, LogoVectorProposalMaterialization>(), applyReceipts = new Map<string, LogoMutationReceipt>(), cancelled = new Map<string, unknown>();
-  const state = { base: f, available: true, discoveryFailure: false, loseAdmissionAck: false, refuseAdmission: false, loseApplyAck: false, unsupported: false,
+  const state = { base: f, available: true, discoveryFailure: false, quoteFailure: false, quoteLifetimeMs: 60000, capabilityLifetimeMs: 30000, loseAdmissionAck: false, refuseAdmission: false, loseApplyAck: false, unsupported: false,
     quotes: [] as unknown[], admissions: [] as LogoGenerationIntent[], applications: [] as ApplyLogoVectorProposalInput[], lookups: [] as LogoGenerationIntent[], closures: [] as LogoGenerationIntent[],
     pending: paid, records, originalApproval, setOwner(value: string) { f.owner = value; } };
   const json = (route: Route, value: unknown, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(value) });
@@ -51,7 +51,7 @@ export async function setupVectorProposalUi(page: Page, options: { legacy?: bool
       const { maximumCostMicrousd: _maximum, ...rest } = policy; void _maximum;
       const textPolicy = options.legacy ? policy : { ...rest, version: 2, spendControl: "uncapped", adapterVersion: "logo-vector-propose-api-uncapped-v2" };
       const quote = logoCostQuoteSchema.parse({ id: id(sequence++), ownerId, projectId, request, inputHash: hash(request), expected: request.expected, policyIdentity: "7".repeat(64), handlerVersion: "logo-vector-propose-v1", provider: "openai", model: "gpt-6.1-sol", engine: null,
-        expiresAt: new Date(Date.now() + 60000).toISOString(), conceptPlan: null, targetSlotIds: [], textPolicy,
+        expiresAt: new Date(Date.now() + state.quoteLifetimeMs).toISOString(), conceptPlan: null, targetSlotIds: [], textPolicy,
         ...(options.legacy ? { estimatedCostMicrousd: policy.maximumCostMicrousd, maxCostMicrousd: policy.maximumCostMicrousd, externalProviderCostMicrousd: policy.maximumCostMicrousd } : { version: 3, billingMode: "openai_api", spendControl: "uncapped" }) });
     quotes.set(quote.id, quote); return quote;
   }
@@ -83,7 +83,7 @@ export async function setupVectorProposalUi(page: Page, options: { legacy?: bool
     const target = new URL(route.request().url()), path = target.pathname;
     if (!path.startsWith(base) || f.owner !== ownerId) return json(route, {}, 404);
     const body = () => route.request().postDataJSON();
-    if (path === `${base}/capabilities`) { const now = Date.now(); return json(route, { ownerId, projectId, observedAt: new Date(now).toISOString(), operations: Object.fromEntries(["identity.logo_concept", "identity.logo_refine", "identity.logo_vectorize", "identity.logo_directions", "identity.logo_export", "identity.logo_vector_propose"].map(operation => [operation, operation === "identity.logo_vector_propose" && state.available ? { status: "available", expiresAt: new Date(now + 30000).toISOString() } : { status: "unavailable" }])) }); }
+    if (path === `${base}/capabilities`) { const now = Date.now(); return json(route, { ownerId, projectId, observedAt: new Date(now).toISOString(), operations: Object.fromEntries(["identity.logo_concept", "identity.logo_refine", "identity.logo_vectorize", "identity.logo_directions", "identity.logo_export", "identity.logo_vector_propose"].map(operation => [operation, operation === "identity.logo_vector_propose" && state.available ? { status: "available", expiresAt: new Date(now + state.capabilityLifetimeMs).toISOString() } : { status: "unavailable" }])) }); }
     if (path === `${base}/vector-proposals/requests/current`) {
       if (state.discoveryFailure) return json(route, {}, 503);
       const pending = [...paid.values()].map(value => value.value).filter(value => value.state.status !== "not_found" && !["succeeded", "failed", "cancelled", "partial"].includes(value.state.status));
@@ -91,7 +91,7 @@ export async function setupVectorProposalUi(page: Page, options: { legacy?: bool
       return json(route, { ownerId, projectId, items, nextCursor: start + items.length < pending.length ? items.at(-1)!.input.requestKey : null });
     }
     if (path === `${base}/vector-proposals`) return json(route, { ownerId, projectId, items: [...records.values()].map(value => ({ id: value.id, jobId: value.jobId, requestKey: value.requestKey, baseVectorRevisionId: value.baseVectorRevisionId, state: value.state, createdAt: value.createdAt })), nextCursor: null });
-    if (path === `${base}/quotes`) { const request = logoVectorProposalRequestSchema.parse(body()); state.quotes.push(request); return json(route, makeQuote(request)); }
+    if (path === `${base}/quotes`) { const request = logoVectorProposalRequestSchema.parse(body()); state.quotes.push(request); return state.quoteFailure ? json(route, {}, 503) : json(route, makeQuote(request)); }
 
     if (path === `${base}/requests` && route.request().method() === "POST") {
       const original = logoGenerationIntentSchema.parse(body()); state.admissions.push(original); const quote = quotes.get(original.quoteId)!;

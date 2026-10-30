@@ -21,7 +21,9 @@ beforeEach(() => {
   host = document.createElement("div"); document.body.append(host);
 });
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; host.remove(); memory = null; vi.unstubAllGlobals(); vi.restoreAllMocks(); });
-async function until(check: () => void) { let error: unknown; for (let i = 0; i < 100; i++) { await act(async () => { await new Promise(resolve => setTimeout(resolve, 5)); }); try { check(); return; } catch (e) { error = e; } } throw error; }
+async function until(check: () => void) { let error: unknown; for (let i = 0; i < 100; i++) { await act(async () => { await new Promise(resolve => setTimeout(resolve, 15)); }); try { check(); return; } catch (e) { error = e; } } throw error; }
+const refinementQuotes = (f: Awaited<ReturnType<typeof syntheticRefinementWorkspaceHttp>>) => f.quotes.filter(quote => quote.operation === "refine_preview");
+const lastRefinementQuote = (f: Awaited<ReturnType<typeof syntheticRefinementWorkspaceHttp>>) => [...f.issuedQuotes.values()].filter(quote => quote.request.operation === "refine_preview").at(-1)!;
 const button = (label: string) => [...host.querySelectorAll("button")].find(node => node.textContent === label);
 const selection = () => host.querySelector<HTMLButtonElement>(`button[aria-label="Select image refinement ${id(503)}"]`);
 async function click(label: string) { await until(() => expect(button(label)?.disabled).toBe(false)); await act(async () => button(label)!.click()); }
@@ -51,12 +53,10 @@ describe("refinement history through actual workspace, account client and memory
     const fetcher: typeof fetch = (path, init) => String(path).endsWith(`/reference-snapshots/${source.referenceSnapshot.id}`)
       ? Promise.resolve(Response.json(source.referenceSnapshot)) : f.fetcher(path, init);
     await mount(f, fetcher, "refine"); await fillInstruction();
-    await until(() => expect(host.querySelector<HTMLButtonElement>('button[aria-label="Review refinement cost"]')?.disabled).toBe(false));
-    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Review refinement cost"]')!.click());
     await until(() => expect(host.textContent).toContain("Refinement allows at most 3 references plus the original logo image"));
     expect(host.querySelector('[aria-label="Reference image limits"]')?.textContent).toContain("4 selected reference images");
     expect(memory?.get(f.workspace.projectId)?.references).toHaveLength(4);
-    expect(source.referenceSnapshot).toEqual(before); expect(f.quotes).toEqual([]); expect(f.admissions).toEqual([]); expect(f.selections).toEqual([]);
+    expect(source.referenceSnapshot).toEqual(before); expect(refinementQuotes(f)).toEqual([]); expect(f.admissions).toEqual([]); expect(f.selections).toEqual([]);
     expect(host.querySelector('img[alt="Selected logo"]')).not.toBeNull();
   });
   it("compares a refinement with its exact original without changing selection or making a quote", async () => {
@@ -65,13 +65,13 @@ describe("refinement history through actual workspace, account client and memory
     const comparison = () => host.querySelector('[aria-label="Compare saved logos"]');
     await until(() => expect(comparison()?.querySelectorAll("img")).toHaveLength(2));
     expect(comparison()?.querySelectorAll('img')[0]?.getAttribute("src")).not.toBe(comparison()?.querySelectorAll('img')[1]?.getAttribute("src"));
-    expect(f.selections).toEqual([]); expect(f.quotes).toEqual([]); expect(f.admissions).toEqual([]);
+    expect(f.selections).toEqual([]); expect(refinementQuotes(f)).toEqual([]); expect(f.admissions).toEqual([]);
     expect(memory?.get(f.workspace.projectId)?.workspace?.approvedLogo).toBeNull();
     expect(host.querySelector<HTMLButtonElement>('[aria-label="Compare concept 2"]')?.disabled).toBe(true);
     await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Use comparison version 2"]')!.click());
     await until(() => expect(selection()?.getAttribute("aria-pressed")).toBe("true"));
     expect(f.selections).toHaveLength(1); expect(f.selections[0]?.source).toEqual({ kind: "refinement", rasterRevisionId: id(503) });
-    expect(f.quotes).toEqual([]); expect(f.admissions).toEqual([]); expect(JSON.stringify(f.batch)).toBe(f.originalBatch);
+    expect(refinementQuotes(f)).toEqual([]); expect(f.admissions).toEqual([]); expect(JSON.stringify(f.batch)).toBe(f.originalBatch);
     await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Remove comparison version 1"]')!.click());
     expect(host.querySelector<HTMLButtonElement>('[aria-label="Compare concept 2"]')?.disabled).toBe(false);
   });
@@ -91,12 +91,11 @@ describe("refinement history through actual workspace, account client and memory
     expect(host.querySelector('[aria-label="Logo concepts"] [data-concept-slot]')).not.toBeNull();
     expect([...host.querySelectorAll("select")].find(node => node.value === recent.id)).toBeDefined();
     await fillInstruction();
-    await until(() => expect(host.querySelector<HTMLButtonElement>('button[aria-label="Review refinement cost"]')?.disabled).toBe(false));
-    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Review refinement cost"]')!.click());
-    await click("Refine this concept");
+    await until(() => expect(host.querySelector<HTMLButtonElement>('button[aria-label="Generate refinement"]')?.disabled).toBe(false));
+    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Generate refinement"]')!.click());
     await until(() => expect(f.admissions).toHaveLength(1));
-    expect(f.quotes[0]).toMatchObject({ operation: "refine_preview", source: f.source, instruction: "Simplify the silhouette" });
-    expect(f.admissions[0]?.quoteId).toBe(f.lastQuote?.id);
+    expect(refinementQuotes(f)[0]).toMatchObject({ operation: "refine_preview", source: f.source, instruction: "Simplify the silhouette" });
+    expect(f.admissions[0]?.quoteId).toBe(lastRefinementQuote(f).id);
   });
 
   it("keeps an unverifiable comparison unavailable with explicit read-only retry", async () => {
@@ -109,7 +108,7 @@ describe("refinement history through actual workspace, account client and memory
     expect(host.querySelector<HTMLButtonElement>('[aria-label="Use comparison version 1"]')?.disabled).toBe(true);
     rejectSource = false; await click("Retry reading version 1");
     await until(() => expect(host.querySelector<HTMLButtonElement>('[aria-label="Use comparison version 1"]')?.disabled).toBe(false));
-    expect(f.quotes).toEqual([]); expect(f.admissions).toEqual([]); expect(f.selections).toEqual([]);
+    expect(refinementQuotes(f)).toEqual([]); expect(f.admissions).toEqual([]); expect(f.selections).toEqual([]);
   });
 
   it("removes comparison metadata and private image URLs when the verified account changes", async () => {
@@ -119,14 +118,13 @@ describe("refinement history through actual workspace, account client and memory
     f.owner = id(999); await click("Recheck account");
     await until(() => expect(host.querySelector('[aria-label="Compare saved logos"]')).toBeNull());
     for (const url of urls) expect(revokeUrl).toHaveBeenCalledWith(url);
-    expect(f.selections).toEqual([]); expect(f.quotes).toEqual([]); expect(f.admissions).toEqual([]);
+    expect(f.selections).toEqual([]); expect(refinementQuotes(f)).toEqual([]); expect(f.admissions).toEqual([]);
   });
 
   it("completed refinement survives cleared feature memory, exact selection and separate zero-image vector quote", async () => {
     const f = await syntheticRefinementWorkspaceHttp(); await mount(f); await fillInstruction();
-    await until(() => expect(host.querySelector<HTMLButtonElement>('button[aria-label="Review refinement cost"]')?.disabled).toBe(false));
-    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Review refinement cost"]')!.click());
-    await click("Refine this concept");
+    await until(() => expect(host.querySelector<HTMLButtonElement>('button[aria-label="Generate refinement"]')?.disabled).toBe(false));
+    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Generate refinement"]')!.click());
     await until(() => expect(f.admissions).toHaveLength(1));
     await until(() => expect(f.selections).toHaveLength(1));
     const oldMemory = memory; await act(async () => root!.unmount()); root = null; await mount(f);
@@ -137,12 +135,12 @@ describe("refinement history through actual workspace, account client and memory
     expect(host.querySelectorAll('[aria-label="Logo concepts"] ol > li')).toHaveLength(6);
     expect(host.querySelector('select[aria-label="Versions for concept 1"]')?.querySelectorAll("option")).toHaveLength(2);
     expect(f.selections).toHaveLength(1); expect(f.selections[0]?.source).toEqual({ kind: "refinement", rasterRevisionId: id(503) });
-    await click("Review conversion"); await until(() => expect(f.quotes.at(-1)?.operation).toBe("vectorize"));
+    await until(() => expect(button("Convert to vector")?.disabled).toBe(false));
     expect(f.quotes.at(-1)).toMatchObject({ source: { kind: "refinement", rasterRevisionId: id(503) }, expected: f.workspace.heads });
     expect(f.admissions).toHaveLength(1); expect(JSON.stringify(f.batch)).toBe(f.originalBatch); expect(f.workspace.approvedLogo).toBeNull();
-    expect(host.querySelector('dialog[aria-label="Review generation cost"]')?.textContent).toContain(id(503));
+    expect(host.querySelector('dialog[aria-label="Review generation cost"]')).toBeNull();
     expect(f.raster.preview!.reference.contentHash).not.toBe(f.batch.slots[0]!.acceptedPreview!.reference.contentHash);
-    await click("Cancel"); await act(async () => root!.unmount()); root = null; await mount(f);
+    await act(async () => root!.unmount()); root = null; await mount(f);
     await until(() => expect(selection()?.getAttribute("aria-pressed")).toBe("true")); expect(f.admissions).toHaveLength(1);
   });
   it("lost selection keeps its exact body/key for explicit check and retry", async () => {
@@ -151,7 +149,7 @@ describe("refinement history through actual workspace, account client and memory
     const original = structuredClone(f.selections[0]); expect(memory?.get(f.workspace.projectId)?.pendingMutation?.command).toMatchObject({ method: "selectLogoRaster", body: original });
     await click("Check original selection"); expect(f.selections).toHaveLength(1);
     await click("Retry original selection"); await until(() => expect(selection()?.getAttribute("aria-pressed")).toBe("true"));
-    expect(f.selections).toEqual([original, original]); expect(f.admissions).toEqual([]); expect(f.quotes).toEqual([]); expect(memory?.get(f.workspace.projectId)?.pendingMutation).toBeNull();
+    expect(f.selections).toEqual([original, original]); expect(f.admissions).toEqual([]); expect(refinementQuotes(f)).toEqual([]); expect(memory?.get(f.workspace.projectId)?.pendingMutation).toBeNull();
   });
   it("waits for acknowledged refinement heads before automatic selection", async () => {
     const f = await syntheticRefinementWorkspaceHttp(); let finish!: () => void;
@@ -162,16 +160,15 @@ describe("refinement history through actual workspace, account client and memory
       return f.fetcher(path, init);
     };
     await mount(f, fetcher); await fillInstruction();
-    await until(() => expect(host.querySelector<HTMLButtonElement>('button[aria-label="Review refinement cost"]')?.disabled).toBe(false));
-    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Review refinement cost"]')!.click());
-    await click("Refine this concept");
+    await until(() => expect(host.querySelector<HTMLButtonElement>('button[aria-label="Generate refinement"]')?.disabled).toBe(false));
+    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Generate refinement"]')!.click());
     await until(() => expect(finish).toBeTypeOf("function"));
     const completedHeads = structuredClone(f.workspace.heads);
     expect(f.selections).toEqual([]); expect(memory?.get(f.workspace.projectId)?.pendingMutation).toBeNull();
     await act(async () => finish());
     await until(() => expect(selection()?.getAttribute("aria-pressed")).toBe("true"));
     expect(f.selections).toHaveLength(1); expect(f.selections[0]?.expected).toEqual(completedHeads);
-    expect(f.admissions).toHaveLength(1); expect(f.quotes).toHaveLength(1);
+    expect(f.admissions).toHaveLength(1); expect(refinementQuotes(f)).toHaveLength(1);
   });
   it("does not overwrite a different saved selection observed by the refinement refresh", async () => {
     const f = await syntheticRefinementWorkspaceHttp(); let changedSelection = false;
@@ -187,9 +184,8 @@ describe("refinement history through actual workspace, account client and memory
       return f.fetcher(path, init);
     };
     await mount(f, fetcher); await fillInstruction();
-    await until(() => expect(host.querySelector<HTMLButtonElement>('button[aria-label="Review refinement cost"]')?.disabled).toBe(false));
-    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Review refinement cost"]')!.click());
-    await click("Refine this concept");
+    await until(() => expect(host.querySelector<HTMLButtonElement>('button[aria-label="Generate refinement"]')?.disabled).toBe(false));
+    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Generate refinement"]')!.click());
     await until(() => expect(changedSelection).toBe(true));
     await until(() => expect(selection()?.getAttribute("aria-pressed")).toBe("true"));
     expect(f.selections).toHaveLength(1); expect(f.selections[0]?.requestKey).toBe(id(990)); expect(f.admissions).toHaveLength(1);
@@ -210,7 +206,7 @@ describe("refinement history through actual workspace, account client and memory
     await until(() => expect(selection()?.getAttribute("aria-pressed")).toBe("true"));
     expect(f.selections).toHaveLength(2); expect(f.selections[1]?.expected).toEqual(latestHeads);
     expect(f.selections[1]?.requestKey).not.toBe(original?.requestKey); expect(f.selections[1]?.source).toEqual(original?.source);
-    expect(f.admissions).toEqual([]); expect(f.quotes).toEqual([]); expect(JSON.stringify(f.batch)).toBe(f.originalBatch);
+    expect(f.admissions).toEqual([]); expect(refinementQuotes(f)).toEqual([]); expect(JSON.stringify(f.batch)).toBe(f.originalBatch);
   });
   it("retains and selects successful history when image generation is unavailable", async () => {
     const f = await syntheticRefinementWorkspaceHttp(true); f.imageAvailable = false; await mount(f); await until(() => expect(selection()?.disabled).toBe(false));
@@ -238,118 +234,92 @@ describe("refinement history through actual workspace, account client and memory
 });
 
 
-it("combined controls quote the exact saved refinement and disclose immutable customized settings in the actual dialog", async () => {
+it("conversion estimates follow the saved selection and edited settings without approving or generating", async () => {
   const f = await syntheticRefinementWorkspaceHttp(true); await mount(f);
-  await until(() => expect(selection()?.disabled).toBe(false));
-  const mode = host.querySelector<HTMLSelectElement>('select[aria-label="Conversion color mode"]');
-  expect(mode, "live conversion color-mode control").not.toBeNull();
-  // Merely inspecting a refinement must not replace the saved concept source.
-  await click("Review conversion"); await until(() => expect(f.quotes).toHaveLength(1));
-  expect(f.quotes[0]).toMatchObject({ operation: "vectorize", source: f.source });
-  expect(host.querySelector('dialog [aria-label="Conversion settings"]')?.textContent).toBe("Black and white · Maximum colors 2 · Simplification 0 · Speckle filtering 0");
-  await click("Cancel"); await act(async () => selection()!.click());
+  await until(() => expect(button("Convert to vector")?.disabled).toBe(false));
+  expect(f.quotes.find(quote => quote.operation === "vectorize")).toMatchObject({ source: f.source });
+  await act(async () => selection()!.click());
   await until(() => expect(selection()?.getAttribute("aria-pressed")).toBe("true"));
-  await act(async () => { Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")!.set!.call(mode, "poster"); mode!.dispatchEvent(new Event("change", { bubbles: true })); });
+  const mode = host.querySelector<HTMLSelectElement>('select[aria-label="Conversion color mode"]')!;
+  await act(async () => { Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")!.set!.call(mode, "poster"); mode.dispatchEvent(new Event("change", { bubbles: true })); });
   for (const [label, value] of [["Maximum colors", "6"], ["Simplification", "1.75"], ["Speckle filtering", "3"]]) {
     const input = host.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`)!;
     await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, value); input.dispatchEvent(new Event("input", { bubbles: true })); });
   }
-  expect(f.quotes).toHaveLength(1); expect(f.admissions).toEqual([]);
-  await click("Review conversion"); await until(() => expect(f.quotes).toHaveLength(2));
-  expect(f.quotes[1]).toEqual({ operation: "vectorize", expected: f.workspace.heads, source: { kind: "refinement", rasterRevisionId: id(503) }, settings: { preset: "poster", maxColors: 6, simplify: 1.75, filterSpeckle: 3 } });
-  expect(host.querySelector('dialog [aria-label="Conversion settings"]')?.textContent).toBe("Poster color · Maximum colors 6 · Simplification 1.75 · Speckle filtering 3");
-  expect(host.querySelector('dialog[aria-label="Review generation cost"]')?.textContent).toContain(id(503)); expect(mode!.disabled).toBe(true);
-  expect(host.querySelector<HTMLInputElement>('input[aria-label="Simplification"]')?.disabled).toBe(true);
-  expect(f.admissions).toEqual([]); expect(f.workspace.approvedLogo).toBeNull(); expect(JSON.stringify(f.batch)).toBe(f.originalBatch);
+  await until(() => expect(button("Convert to vector")?.disabled).toBe(false));
+  expect(f.quotes.at(-1)).toEqual({ operation: "vectorize", expected: f.workspace.heads, source: { kind: "refinement", rasterRevisionId: id(503) }, settings: { preset: "poster", maxColors: 6, simplify: 1.75, filterSpeckle: 3 } });
+  expect(host.querySelector('dialog[aria-label="Review generation cost"]')).toBeNull();
+  expect(mode.disabled).toBe(false); expect(f.admissions).toEqual([]); expect(f.workspace.approvedLogo).toBeNull();
+  expect(JSON.stringify(f.batch)).toBe(f.originalBatch);
 });
 
-const reviewDialog = () => host.querySelector<HTMLDialogElement>('dialog[aria-label="Review generation cost"]');
-const reviewButton = () => host.querySelector<HTMLButtonElement>('button[aria-label="Review refinement cost"]');
-async function openRefinementReview() {
-  await until(() => expect(reviewButton()?.disabled).toBe(false));
-  await act(async () => { reviewButton()!.focus(); reviewButton()!.click(); });
-  await until(() => expect(reviewDialog()?.open).toBe(true));
-}
+const generateButton = () => host.querySelector<HTMLButtonElement>('button[aria-label="Generate refinement"]');
+async function waitForRefinementEstimate() { await until(() => expect(generateButton()?.disabled).toBe(false)); }
 
-describe("explicit refinement cost review", () => {
-  it.each(["Cancel", "Escape"])("shows the exact estimate and instruction, and %s keeps every saved version without admission", async cancel => {
+describe("one-click refinement with a visible estimate", () => {
+  it("shows cost beside Generate while closing the editor keeps inputs and versions without admission", async () => {
     const f = await syntheticRefinementWorkspaceHttp(true); await mount(f); await fillInstruction();
     const originalHeads = structuredClone(f.workspace.heads), originalRecords = structuredClone(f.records);
-    await openRefinementReview();
-    expect(reviewDialog()?.textContent).toContain("Refine this concept");
-    expect(reviewDialog()?.textContent).toContain("Concept 1 · Wordmark · attempt 1");
-    expect(reviewDialog()?.textContent).toContain("Requested changesSimplify the silhouette");
-    expect(reviewDialog()?.textContent).toContain("Estimated cost$0.60");
-    expect(reviewDialog()?.textContent).toContain("Maximum cost$1.20");
-    expect(f.quotes).toHaveLength(1); expect(f.admissions).toEqual([]);
-    expect(memory?.get(f.workspace.projectId)?.pendingIntent).toBeNull();
-    if (cancel === "Cancel") await click("Cancel");
-    else await act(async () => reviewDialog()!.dispatchEvent(new Event("cancel", { cancelable: true })));
-    await until(() => expect(reviewDialog()?.open).toBe(false));
-    expect(document.activeElement).toBe(reviewButton());
+    await waitForRefinementEstimate();
+    const action = generateButton()!.closest('[role="group"]');
+    expect(action?.textContent).toContain("Expected cost: $0.60"); expect(action?.textContent).not.toContain("Maximum cost");
+    expect(refinementQuotes(f)).toHaveLength(1); expect(f.admissions).toEqual([]);
+    await click("Close refinement");
+    expect(host.querySelector('dialog[aria-label="Review generation cost"]')).toBeNull();
     expect(host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Describe logo changes"]')?.value).toBe("Simplify the silhouette");
     expect(f.admissions).toEqual([]); expect(f.selections).toEqual([]); expect(f.workspace.heads).toEqual(originalHeads);
     expect(f.records).toEqual(originalRecords); expect(JSON.stringify(f.batch)).toBe(f.originalBatch);
   });
-
-  it("quotes once on rapid submission, then confirms one immutable request on a double click", async () => {
-    const f = await syntheticRefinementWorkspaceHttp(); await mount(f); await fillInstruction();
-    await until(() => expect(reviewButton()?.disabled).toBe(false));
-    await act(async () => { reviewButton()!.click(); reviewButton()!.click(); });
-    await until(() => expect(reviewDialog()?.open).toBe(true));
-    expect(f.quotes).toHaveLength(1); expect(f.admissions).toEqual([]);
-    const quote = structuredClone(f.lastQuote!);
-    if (!("maxCostMicrousd" in quote)) throw Error("This historical image-refinement fixture requires its original priced quote");
-    await act(async () => { const confirm = button("Refine this concept")!; confirm.click(); confirm.click(); });
+  it("starts exactly one immutable request on a rapid double click", async () => {
+    const f = await syntheticRefinementWorkspaceHttp(); await mount(f); await fillInstruction(); await waitForRefinementEstimate();
+    const quote = structuredClone(lastRefinementQuote(f));
+    await act(async () => { generateButton()!.click(); generateButton()!.click(); });
     await until(() => expect(f.admissions).toHaveLength(1));
-    expect(f.admissions[0]).toMatchObject({ quoteId: quote.id, acceptedMaxCostMicrousd: quote.maxCostMicrousd, expected: quote.expected });
-    expect(f.quotes).toHaveLength(1); expect(JSON.stringify(f.batch)).toBe(f.originalBatch);
+    expect(f.admissions[0]).toMatchObject({ quoteId: quote.id, expected: quote.expected });
+    expect(refinementQuotes(f)).toHaveLength(1); expect(JSON.stringify(f.batch)).toBe(f.originalBatch);
   });
-
-  it("Ctrl+Enter opens a review for the saved refinement rather than starting a new request", async () => {
+  it("Ctrl+Enter deliberately starts the quoted saved refinement; plain Enter does not", async () => {
     const f = await syntheticRefinementWorkspaceHttp(true); await mount(f);
     await until(() => expect(selection()?.disabled).toBe(false)); await act(async () => selection()!.click());
-    await until(() => expect(selection()?.getAttribute("aria-pressed")).toBe("true")); await fillInstruction();
-    await until(() => expect(reviewButton()?.disabled).toBe(false));
+    await until(() => expect(selection()?.getAttribute("aria-pressed")).toBe("true")); await fillInstruction(); await waitForRefinementEstimate();
     const field = host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Describe logo changes"]')!;
     await act(async () => { field.focus(); field.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })); });
-    expect(f.quotes).toEqual([]);
+    expect(f.admissions).toEqual([]);
     await act(async () => field.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true, bubbles: true, cancelable: true })));
-    await until(() => expect(reviewDialog()?.open).toBe(true));
-    expect(f.quotes[0]).toMatchObject({ operation: "refine_preview", source: { kind: "refinement", rasterRevisionId: id(503) }, instruction: "Simplify the silhouette" });
-    expect(reviewDialog()?.textContent).toContain(`Saved image refinement · ${id(503)}`);
-    expect(f.admissions).toEqual([]); await click("Cancel"); expect(document.activeElement).toBe(field);
+    await until(() => expect(f.admissions).toHaveLength(1));
+    expect(refinementQuotes(f)[0]).toMatchObject({ operation: "refine_preview", source: { kind: "refinement", rasterRevisionId: id(503) }, instruction: "Simplify the silhouette" });
+    expect(host.querySelector('dialog[aria-label="Review generation cost"]')).toBeNull();
   });
-
-  it("keeps an unknown admission separate from a new estimate and checks its unchanged original intent", async () => {
+  it("keeps an unknown admission and checks its original intent without generating again", async () => {
     const f = await syntheticRefinementWorkspaceHttp();
     const fetcher: typeof fetch = async (path, init) => {
-      if (String(path).endsWith("/requests") && init?.method === "POST") {
-        f.admissions.push(JSON.parse(String(init.body)));
-        throw new Error("Synthetic unknown admission outcome");
-      }
+      if (String(path).endsWith("/requests") && init?.method === "POST") { f.admissions.push(JSON.parse(String(init.body))); throw new Error("Synthetic unknown admission outcome"); }
       return f.fetcher(path, init);
     };
-    await mount(f, fetcher); await fillInstruction(); await openRefinementReview(); await click("Refine this concept");
+    await mount(f, fetcher); await fillInstruction(); await click("Generate refinement");
     await until(() => expect(button("Check original generation request")).toBeDefined());
     const original = structuredClone(memory?.get(f.workspace.projectId)?.pendingIntent);
-    expect(original).toEqual(f.admissions[0]); expect(reviewDialog()?.open).toBe(false); expect(reviewButton()?.disabled).toBe(true);
+    expect(original).toEqual(f.admissions[0]); expect(generateButton()?.disabled).toBe(true);
     await click("Check original generation request");
     expect(memory?.get(f.workspace.projectId)?.pendingIntent).toEqual(original);
-    expect(f.admissions).toEqual([original]); expect(f.quotes).toHaveLength(1); expect(f.selections).toEqual([]);
-    expect(reviewDialog()?.open).toBe(false); expect(button("Retry original request")).toBeDefined();
-    expect(JSON.stringify(f.batch)).toBe(f.originalBatch);
+    expect(f.admissions).toEqual([original]); expect(refinementQuotes(f)).toHaveLength(1); expect(f.selections).toEqual([]);
+    expect(button("Retry original request")).toBeDefined(); expect(JSON.stringify(f.batch)).toBe(f.originalBatch);
   });
-
-  it("rejects an expired estimate at confirmation without replacing the instruction or admitting work", async () => {
+  it("rejects an expired estimate without replacing the instruction or admitting work", async () => {
     const actualNow = Date.now; let time: number | null = null;
     vi.spyOn(Date, "now").mockImplementation(() => time ?? actualNow());
-    const f = await syntheticRefinementWorkspaceHttp(); await mount(f); await fillInstruction(); await openRefinementReview();
-    time = Date.parse(f.lastQuote!.expiresAt);
-    await act(async () => button("Refine this concept")!.click());
-    await until(() => expect(reviewDialog()?.open).toBe(false));
-    expect(f.admissions).toEqual([]); expect(f.quotes).toHaveLength(1); expect(memory?.get(f.workspace.projectId)?.pendingIntent).toBeNull();
-    expect(host.textContent).toContain("review a new estimate");
+    const f = await syntheticRefinementWorkspaceHttp();
+    const fetcher: typeof fetch = async (path, init) => {
+      const response = await f.fetcher(path, init);
+      if (!String(path).endsWith("/quotes")) return response;
+      const quote = await response.json(); quote.expiresAt = new Date(Date.now() + 10_000).toISOString();
+      f.issuedQuotes.set(quote.id, quote); return Response.json(quote);
+    };
+    await mount(f, fetcher); await fillInstruction(); await waitForRefinementEstimate();
+    time = Date.parse(lastRefinementQuote(f).expiresAt);
+    await act(async () => generateButton()!.click());
+    expect(f.admissions).toEqual([]); expect(refinementQuotes(f)).toHaveLength(1); expect(memory?.get(f.workspace.projectId)?.pendingIntent).toBeNull();
+    expect(host.textContent).toContain("Estimate expired."); expect(button("Refresh estimate")).toBeDefined();
     expect(host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Describe logo changes"]')?.value).toBe("Simplify the silhouette");
   });
 });

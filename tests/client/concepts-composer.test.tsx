@@ -14,9 +14,9 @@ beforeEach(() => {
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
 afterEach(async () => { await act(async () => root.unmount()); document.body.replaceChildren(); Reflect.deleteProperty(HTMLDialogElement.prototype, "showModal"); Reflect.deleteProperty(HTMLDialogElement.prototype, "close"); vi.unstubAllGlobals(); });
-async function render(label?: string, instruction = "Kept local instruction", onReview = vi.fn()) {
-  await act(async () => root.render(<ConceptsComposer projectId="fixture" selectedLabel={label} instruction={instruction} onInstructionChange={() => {}} onReview={onReview}><input aria-label="Saved brief" defaultValue="Kept brief" /></ConceptsComposer>));
-  return onReview;
+async function render(label?: string, instruction = "Kept local instruction", onGenerate = vi.fn()) {
+  await act(async () => root.render(<ConceptsComposer projectId="fixture" selectedLabel={label} instruction={instruction} onInstructionChange={() => {}} onGenerate={onGenerate}><input aria-label="Saved brief" defaultValue="Kept brief" /></ConceptsComposer>));
+  return onGenerate;
 }
 it("keeps refinement explicit, names its exact saved target and retains mounted edits when collapsed", async () => {
   const review = await render("Concept 2 · Version 3");
