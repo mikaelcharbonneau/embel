@@ -1,9 +1,10 @@
 # Verification status
 
-The current published runtime is `00672941f41c18180e9a78a05d876cfd13910490` from
-[PR #166](https://github.com/mikaelcharbonneau/embel/pull/166), released October 30,
+The current published runtime is `5b6e0b3d81b7c07fc4cf45ea1ae732e1bdda319f` from
+[PR #168](https://github.com/mikaelcharbonneau/embel/pull/168), released October 30,
 2026. The main path now goes from a chosen logo to three visual direction boards
-and a downloadable brand package.
+and a downloadable brand package. Opening a project resumes saved Logo work;
+explicit Strategy access remains available.
 
 See the [current release record](visual-identity-release-20261030.md) for exact
 web/worker deployments, tests, the resolved service outage and the pending
