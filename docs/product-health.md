@@ -84,6 +84,43 @@ The test called the same public database operations under the existing owner's
 account scope. It exercised the real worker, provider and Storage path. It did
 not test browser sign-in, customer HTTP downloads or visual output quality.
 
+The coordinated generation release is live at `https://www.embel.xyz`, using
+source `11a7e3a98a117f9a2ef1c3124332be8a564002e4`:
+
+- Web: `dpl_7vV4fpdatRQvt6YiYuqRW9kRwAmH`.
+- Shared worker: `dpl_EkEc31HfzEGFtgSrAf2VH7o3cEau`, artifact
+  `1abf7cf4573112f995388f22c3568de26092fa13a6ad55a9e60d346df3053cf3`.
+- Forward SQL packet SHA256:
+  `91d7ab31e7da04c3f7edd82b924f2330d425f55aea9126453482094c6c280798`.
+
+All three worker lanes became ready after the update. The Naming owner binding
+advanced to revision 6. Production aliases point to the released web build;
+public liveness/readiness return 200 and the unauthenticated session route
+returns 401. The health response still labels its revision `unknown`; deployment
+metadata, rather than that label, establishes the source revision above.
+
+A second six-concept request used the new uncapped contract and saved all six
+previews, recording 85,835 microUSD. One uncapped refinement of a concept saved
+under the previous contract also succeeded, recording 22,702 microUSD. Exact
+request replays returned the original jobs. The seven new jobs reserved and
+captured zero funds; recorded usage matched their retained provider receipts.
+The six-concept estimate was 87,600 microUSD; the refinement estimate remained
+honestly unavailable.
+
+Across both tests, all 13 image jobs succeeded with committed, verified PNGs and
+persisted previews. Total recorded usage was 194,372 microUSD (about US$0.194).
+The disposable project is `b0c19fc2-d24b-4b79-8082-40d79fb1ffaa` (Northline).
+No existing projects were deleted. The two previously uncertain jobs remain
+unresolved in their original project. Signed-in browser confirmation is pending.
+
+One saved concept was selected in this disposable project and converted with
+the real VTracer worker. The job succeeded at zero provider cost, retained its
+original source and produced a verified canonical document and SVG. A fresh
+owner-scoped read resolved both committed assets and the vector-history entry.
+The vector correctly remains review-required. Final acceptance, reviewed font
+import, Identity directions and customer downloads require the authenticated
+web path and were not bypassed with synthetic authorization or file evidence.
+
 The initial website upload omitted five required source files, although a full
 checkout built correctly. The corrected Vercel allowlist passed a build from
 the actual upload-only file set; credential and build-artifact sentinels remained
@@ -92,9 +129,9 @@ checkout.
 
 ## Remaining work, in order
 
-1. Complete the coordinated uncapped-generation release and verify a real
-   request plus saved results. Confirm the signed-in browser journey separately
-   from the successful backend acceptance above.
+1. Confirm the signed-in browser journey separately from the successful backend
+   acceptance above, including private previews and downloads. Repair the health
+   endpoint's source-revision label without confusing it with worker readiness.
 2. Make interrupted requests recover reliably without duplicate paid calls.
    Current shared recovery verifies saved files but leaves ambiguous concept
    steps unresolved; only exports have a completion resolver. Choose a maintainable
