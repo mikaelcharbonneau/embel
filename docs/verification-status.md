@@ -1,10 +1,16 @@
 # Verification status
 
-The current published runtime is `5b6e0b3d81b7c07fc4cf45ea1ae732e1bdda319f` from
-[PR #168](https://github.com/mikaelcharbonneau/embel/pull/168), released October 30,
+The current published web and shared worker runtime is `47e9ef78942a7998b27715988fc60f63fbf503c7` from
+[PR #170](https://github.com/mikaelcharbonneau/embel/pull/170), released October 30,
 2026. The main path now goes from a chosen logo to three visual direction boards
 and a downloadable brand package. Opening a project resumes saved Logo work;
 explicit Strategy access remains available.
+
+The first live visual-direction requests exposed two provider preflight errors.
+Both are fixed and reproduced by HTTP-boundary regression tests. A real isolated
+specification call now succeeds; the owner's full three-board generation and
+final download acceptance are still pending. See the
+[preflight repair evidence](identity-generation-preflight-20261030.md).
 
 See the [current release record](visual-identity-release-20261030.md) for exact
 web/worker deployments, tests, the resolved service outage and the pending
