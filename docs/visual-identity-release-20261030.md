@@ -2,11 +2,29 @@
 
 ## Latest published follow-up
 
+[PR #170](https://github.com/mikaelcharbonneau/embel/pull/170) publishes web and
+shared worker source `47e9ef78942a7998b27715988fc60f63fbf503c7`. It fixes the
+provider preflight failures discovered during the owner's first live direction
+requests. Web deployment: `dpl_5nqJSeVJscBgEojgn8jgXhef4kzW`. Worker deployment:
+`dpl_C1fd6MAvpd1eVu52TBTwtMzukbPT`, with one ready production daemon and all three
+lanes leased. Public health reports the exact source and reachable core services.
+No database schema or provider policies changed. Naming binding revision is 9.
+
+149 focused tests, typecheck, lint, production build, packaged native checks and
+independent review passed. A real isolated specification call succeeded with
+26,956 micro-USD recorded usage; it is not a completed customer board. Three
+failed Northline sets contain no provider calls and zero recorded cost. The owner
+has been asked to refresh and generate another set; full signed-in acceptance is
+still pending. See [the repair record](identity-generation-preflight-20261030.md).
+
+## Project-entry follow-up
+
 [PR #168](https://github.com/mikaelcharbonneau/embel/pull/168) published web source
 `5b6e0b3d81b7c07fc4cf45ea1ae732e1bdda319f` in deployment
 `dpl_9S7YcRdhmgcGV4JeCV6gdmHWYoME`. Public health confirms that source and reachable
-Auth, database and Storage. The shared worker remains on the compatible
-`00672941` release below; its authority proof and running instance were unchanged.
+Auth, database and Storage. At that release, the shared worker remained on the
+compatible `00672941` release below; its authority proof and running instance
+were unchanged.
 
 Generic project links now resume saved Logo work, including after expanding the
 project to a complete brand. Explicit Strategy links, pending edits and recovery
@@ -106,7 +124,8 @@ amplification; it does not establish the initiating outage's cause.
 Authenticated end-to-end provider acceptance is still pending. The owner was asked
 to generate three boards in the existing Northline test project. The workspace
 has no owner browser session, so it did not impersonate one or bypass admission.
-No new provider generation was initiated from the workspace for this release.
+The original `00672941` release initiated no provider generation from the workspace;
+the later isolated specification verification is recorded in the follow-up above.
 
 Northline: `b0c19fc2-d24b-4b79-8082-40d79fb1ffaa`.
 The next check is the real three-board result, recorded usage, saved selection and
