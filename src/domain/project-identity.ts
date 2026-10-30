@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { brandBoardApplicationDesignSchema, brandBoardContrastRatio, type BrandBoardApplicationDesign } from "./brand-board-design";
+import { identityLogoSourceSchema } from "./identity-logo-source";
+import { logoBriefRevisionSchema, type LogoBriefRevision } from "./logo-workspace";
 import { assetProjectSummarySchema, assetVersionReferenceSchema } from "./asset-library";
 import {
   identityReferenceBasis, identityReferenceMediaSchema, identityReferenceSnapshotSchema,
@@ -117,19 +120,21 @@ const materialReferenceBasisSchema = z.strictObject({
   if (new Set(value.references.map(row => row.referenceId)).size !== value.references.length || value.references.some(row => !sameScope(value, row.media) || (!row.ensemble && !row.elements.length)))
     issue(ctx, "Material references require unique owned media and actual selections");
 }).transform(value => ({ ...value, references: [...value.references].sort((a, b) => compare(a.referenceId, b.referenceId)) }));
-export const identityBasisSchema = z.strictObject({
-  version: z.literal(1), ...ownership, strategy: namingStrategyBasisSchema, name, referenceBasis: materialReferenceBasisSchema, preferences: identityPreferencesSchema,
-}).refine(value => sameScope(value, value.referenceBasis), "Identity basis must bind the owned reference selection").transform(freeze);
+const basisFields = { ...ownership, strategy: namingStrategyBasisSchema, name, referenceBasis: materialReferenceBasisSchema, preferences: identityPreferencesSchema };
+export const identityBasisSchema = z.discriminatedUnion("version", [
+  z.strictObject({ version: z.literal(1), ...basisFields }),
+  z.strictObject({ version: z.literal(2), ...basisFields, logoBrief: logoBriefRevisionSchema }),
+]).refine(value => sameScope(value, value.referenceBasis) && (value.version === 1 || sameScope(value, value.logoBrief) && value.name === value.logoBrief.payload.name.trim().normalize("NFC")), "Identity basis must bind the owned saved inputs").transform(freeze);
 export type IdentityBasis = z.infer<typeof identityBasisSchema>;
-type BasisInput = { ownerId: string; projectId: string; context: ContextSnapshot; references: IdentityReferenceSnapshot; preferences: IdentityPreferences };
+type BasisInput = { ownerId: string; projectId: string; context: ContextSnapshot; references: IdentityReferenceSnapshot; preferences: IdentityPreferences; logoBrief?: LogoBriefRevision };
 /** Authoritative constructors derive this from loaded saved records; SQL compares JSONB, not the public key. */
 export function identityBasis(input: BasisInput): IdentityBasis {
-  const resolved = resolveIdentityName(input.context);
+  const resolved = input.logoBrief ? { status: "resolved" as const, value: input.logoBrief.payload.name } : resolveIdentityName(input.context);
   if (resolved.status !== "resolved") throw new Error("A consistent saved name is required for an Identity basis");
-  return identityBasisSchema.parse({ version: 1, ownerId: input.ownerId, projectId: input.projectId, strategy: namingStrategyBasis(input.context), name: resolved.value,
+  return identityBasisSchema.parse({ version: input.logoBrief ? 2 : 1, ...(input.logoBrief ? { logoBrief: input.logoBrief } : {}), ownerId: input.ownerId, projectId: input.projectId, strategy: namingStrategyBasis(input.context), name: resolved.value,
     referenceBasis: identityReferenceBasis(input.references), preferences: input.preferences });
 }
-export function identityBasisKey(basis: IdentityBasis): string { return `identity-basis-v1:${JSON.stringify(identityBasisSchema.parse(basis))}`; }
+export function identityBasisKey(basis: IdentityBasis): string { return `identity-basis-v${basis.version}:${JSON.stringify(identityBasisSchema.parse(basis))}`; }
 export const identityCurrentBasisSchema = z.discriminatedUnion("status", [
   z.strictObject({ status: z.literal("available"), basis: identityBasisSchema }),
   z.strictObject({ status: z.literal("unavailable"), reason: z.enum(["missing_name", "inconsistent_name"]) }),
@@ -141,14 +146,16 @@ export function getIdentityCurrentBasis(input: BasisInput): IdentityCurrentBasis
   const references = identityReferenceSnapshotSchema.parse(input.references);
   if (!sameScope(input, references)) throw new Error("Reference snapshot belongs to another project");
   identityPreferencesSchema.parse(input.preferences);
-  const resolved = resolveIdentityName(input.context);
+  const resolved = input.logoBrief ? { status: "resolved" as const } : resolveIdentityName(input.context);
   return resolved.status === "resolved" ? { status: "available", basis: identityBasis(input) }
     : { status: "unavailable", reason: resolved.status === "missing" ? "missing_name" : "inconsistent_name" };
 }
-export const identityInputSnapshotSchema = z.strictObject({
-  version: z.literal(1), ...ownership, scope: projectScopeSchema, projectRevision: revision, context: contextSnapshotSchema,
-  referenceSnapshot: identityReferenceSnapshotSchema, preferencesRevision: counter, preferences: identityPreferencesSchema, capturedAt: timestamp, basis: identityBasisSchema,
-}).superRefine((value, ctx) => {
+const inputSnapshotFields = { ...ownership, scope: projectScopeSchema, projectRevision: revision, context: contextSnapshotSchema,
+  referenceSnapshot: identityReferenceSnapshotSchema, preferencesRevision: counter, preferences: identityPreferencesSchema, capturedAt: timestamp, basis: identityBasisSchema };
+export const identityInputSnapshotSchema = z.discriminatedUnion("version", [
+  z.strictObject({ version: z.literal(1), ...inputSnapshotFields }),
+  z.strictObject({ version: z.literal(2), ...inputSnapshotFields, logoBrief: logoBriefRevisionSchema }),
+]).superRefine((value, ctx) => {
   try {
     const expected = identityBasis({ ...value, references: value.referenceSnapshot });
     if (!same(value.basis, expected)) issue(ctx, "Captured material basis must match the complete saved inputs");
@@ -156,11 +163,11 @@ export const identityInputSnapshotSchema = z.strictObject({
   } catch { issue(ctx, "Captured inputs require a consistent saved name and exact owned reference selection"); }
 }).transform(freeze);
 export type IdentityInputSnapshot = z.infer<typeof identityInputSnapshotSchema>;
-export function createIdentityInputSnapshot(input: Omit<IdentityInputSnapshot, "version" | "basis">): IdentityInputSnapshot {
-  return identityInputSnapshotSchema.parse({ ...input, version: 1, basis: identityBasis({ ...input, references: input.referenceSnapshot }) });
+export function createIdentityInputSnapshot(input: Omit<IdentityInputSnapshot, "version" | "basis"> & { logoBrief?: LogoBriefRevision }): IdentityInputSnapshot {
+  return identityInputSnapshotSchema.parse({ ...input, version: input.logoBrief ? 2 : 1, basis: identityBasis({ ...input, references: input.referenceSnapshot }) });
 }
 
-const materialKeys = ["strategy", "name", "references", "preferences"] as const;
+const materialKeys = ["strategy", "name", "references", "preferences", "logoBrief"] as const;
 export const identityFreshnessSchema = z.discriminatedUnion("status", [
   z.strictObject({ status: z.literal("current"), changed: z.array(z.enum(materialKeys)).length(0) }),
   z.strictObject({ status: z.literal("stale"), changed: z.array(z.enum(materialKeys)).min(1).max(materialKeys.length).refine(value => new Set(value).size === value.length, "Material changes must be unique") }),
@@ -171,7 +178,7 @@ export function getIdentityFreshness(recordedBasis: IdentityBasis, current: Iden
   const recorded = identityBasisSchema.parse(recordedBasis), actual = identityCurrentBasisSchema.parse(current);
   if (actual.status === "unavailable") return { ...actual };
   if (!sameScope(recorded, actual.basis)) throw new Error("Identity bases belong to different projects");
-  const changed = materialKeys.filter(key => key === "references" ? !same(recorded.referenceBasis, actual.basis.referenceBasis) : !same(recorded[key], actual.basis[key]));
+  const changed = materialKeys.filter(key => key === "references" ? !same(recorded.referenceBasis, actual.basis.referenceBasis) : key === "logoBrief" ? !same(recorded.version === 2 ? recorded.logoBrief : undefined, actual.basis.version === 2 ? actual.basis.logoBrief : undefined) : !same(recorded[key], actual.basis[key]));
   return identityFreshnessSchema.parse({ status: changed.length ? "stale" : "current", changed });
 }
 
@@ -189,6 +196,14 @@ export const identityComponentsSchema = z.strictObject({
   logo: identityDirectionSchema, colors: identityColorsSchema, typography: identityTypographySchema,
   graphics: identityDirectionSchema, imagery: identityDirectionSchema, composition: identityDirectionSchema,
 }).transform(freeze);
+/** Renderer decisions may reference only components actually saved in this system. */
+export function validIdentityApplicationDesign(components: z.infer<typeof identityComponentsSchema>, design: BrandBoardApplicationDesign): boolean {
+  const colors = new Set(components.colors.swatches.map(swatch => swatch.key));
+  const typography = new Set(components.typography.styles.map(style => style.key));
+  const swatch = (key: string) => components.colors.swatches.find(value => value.key === key)?.hex ?? "";
+  return Object.values(design.paletteRoles).every(key => colors.has(key)) && typography.has(design.headingStyleKey) && typography.has(design.bodyStyleKey)
+    && brandBoardContrastRatio(swatch(design.paletteRoles.text), swatch(design.paletteRoles.background)) >= 4.5;
+}
 /** Immutable metadata only. Current byte verification remains a separate AssetVersionDetail observation. */
 export const identitySystemAssetSchema = assetVersionReferenceSchema.extend({ purpose: z.enum(["brand_asset", "legacy_unknown"]), mimeType: z.string().min(1).max(150) });
 export type IdentitySystemAsset = z.infer<typeof identitySystemAssetSchema>;
@@ -206,8 +221,9 @@ export const identitySystemSourceSchema = z.discriminatedUnion("kind", [
 export type IdentitySystemSource = z.infer<typeof identitySystemSourceSchema>;
 export const identitySystemVersionSchema = z.strictObject({
   id: z.uuid(), ...ownership, createdAt: timestamp, input: identityInputSnapshotSchema, source: identitySystemSourceSchema,
-  components: identityComponentsSchema, board: identityBoardPreviewSchema, productionFiles: z.array(identityProductionFileSchema).max(IDENTITY_MAX_PRODUCTION_FILES),
+  components: identityComponentsSchema, applicationDesign: brandBoardApplicationDesignSchema.optional(), board: identityBoardPreviewSchema, productionFiles: z.array(identityProductionFileSchema).max(IDENTITY_MAX_PRODUCTION_FILES),
 }).superRefine((value, ctx) => {
+  if (value.applicationDesign && !validIdentityApplicationDesign(value.components, value.applicationDesign)) issue(ctx, "Application design must reference saved color and typography keys");
   if (!sameScope(value, value.input) || !sameScope(value, value.board.asset) || value.productionFiles.some(file => !sameScope(value, file.asset))) issue(ctx, "Every system input and file must belong to its exact owner and project");
   const versions = new Map<string, IdentitySystemAsset>();
   versions.set(value.board.asset.versionId, value.board.asset);
@@ -244,7 +260,7 @@ export const identitySelectionSchema = z.strictObject({
   if (!sameScope(value, value.currentBasis) || value.previousSelectionId === value.id || (value.identityRevision === 1) !== (value.previousSelectionId === null)) issue(ctx, "Selections retain their exact owned basis and immutable predecessor");
 }).transform(freeze);
 export type IdentitySelection = z.infer<typeof identitySelectionSchema>;
-export const identitySelectionWithSystemSchema = z.strictObject({ selection: identitySelectionSchema, system: identitySystemVersionSchema, freshness: identityFreshnessSchema }).superRefine((value, ctx) => {
+export const identitySelectionWithSystemSchema = z.strictObject({ selection: identitySelectionSchema, system: identitySystemVersionSchema, freshness: identityFreshnessSchema, sourceLogo: identityLogoSourceSchema.optional(), sourceLogoCurrent: z.boolean().optional() }).superRefine((value, ctx) => {
   const { selection, system } = value;
   if (!sameScope(selection, system) || selection.systemVersionId !== system.id || !atLeast(selection, creationRevisions(system)) || (selection.reason === "refined" && system.source.kind !== "manual_edit")) issue(ctx, "A selection must bind this exact owned system after all creation revisions without inventing an edit");
   if (sameScope(selection, system) && selection.acceptedEarlierBasis !== !same(selection.currentBasis, system.input.basis)) issue(ctx, "Earlier-basis acknowledgment must describe the basis at selection time");
@@ -382,7 +398,7 @@ export const identitySystemPageSchema = z.strictObject({ ...ownership, query: li
   if (cursor && (!last || cursor.projectId !== value.projectId || cursor.createdAt !== last.createdAt || cursor.id !== last.id)) issue(ctx, "History continuation must bind its exact last row and project");
 });
 export type IdentitySystemPage = z.infer<typeof identitySystemPageSchema>;
-export const identitySystemDetailSchema = z.strictObject({ ...ownership, system: identitySystemVersionSchema, currentBasis: identityCurrentBasisSchema, freshness: identityFreshnessSchema }).superRefine((value, ctx) => {
+export const identitySystemDetailSchema = z.strictObject({ ...ownership, system: identitySystemVersionSchema, currentBasis: identityCurrentBasisSchema, freshness: identityFreshnessSchema, sourceLogo: identityLogoSourceSchema.optional(), sourceLogoCurrent: z.boolean().optional() }).superRefine((value, ctx) => {
   try {
     if (!sameScope(value, value.system) || !same(value.freshness, getIdentityFreshness(value.system.input.basis, value.currentBasis))) issue(ctx, "System detail must bind owned metadata and actual current material freshness");
   } catch { issue(ctx, "System detail requires a comparable owned basis or explicit unavailability"); }
@@ -396,7 +412,7 @@ export const identitySaveAvailabilitySchema = z.discriminatedUnion("status", [
 ]);
 export const projectIdentityOverviewSchema = z.strictObject({
   ...ownership, project: identityProjectSchema, session: identitySessionSchema.nullable(), preferences: identityPreferenceRevisionSchema.nullable(),
-  referenceSnapshot: identityReferenceSnapshotSchema, readiness: identityReadinessSchema, currentBasis: identityCurrentBasisSchema,
+  referenceSnapshot: identityReferenceSnapshotSchema, logoBrief: logoBriefRevisionSchema.optional(), readiness: identityReadinessSchema, currentBasis: identityCurrentBasisSchema,
   currentSelection: identitySelectionWithSystemSchema.nullable(), systems: identitySystemPageSchema,
   // Older responses cannot implicitly enable saves while the trusted boundary is absent.
   saveAvailability: identitySaveAvailabilitySchema.default(() => ({ status: "unavailable", reason: "trusted_transaction_unavailable" } as const)),
@@ -405,7 +421,7 @@ export const projectIdentityOverviewSchema = z.strictObject({
   if (project.id !== value.projectId || project.owner_id !== value.ownerId || !sameScope(value, value.referenceSnapshot) || !sameScope(value, value.systems) || (session && !sameScope(value, session)) || (preferences && !sameScope(value, preferences))) issue(ctx, "Overview records must belong to this verified owner and project");
   if (!session ? preferences !== null || currentSelection !== null : (session.currentPreferencesRevision !== (preferences?.revision ?? 0) || session.currentSelectionId !== (currentSelection?.selection.id ?? null) || session.identityRevision !== (currentSelection?.selection.identityRevision ?? 0))) issue(ctx, "Overview must preserve actual preference and selection heads without inventing initialization");
   try {
-    const actual = getIdentityCurrentBasis({ ownerId: value.ownerId, projectId: value.projectId, context: project.context, references: value.referenceSnapshot, preferences: preferences?.preferences ?? initialIdentityPreferences(project.context) });
+    const actual = getIdentityCurrentBasis({ ownerId: value.ownerId, projectId: value.projectId, ...(value.logoBrief ? { logoBrief: value.logoBrief } : {}), context: project.context, references: value.referenceSnapshot, preferences: preferences?.preferences ?? initialIdentityPreferences(project.context) });
     if (!same(value.currentBasis, actual) || !same(value.readiness, getIdentityReadiness(project.context, project.scope, value.referenceSnapshot))) issue(ctx, "Overview readiness and material basis must derive from its current saved inputs");
     const currentRevisions = { projectRevision: project.current_revision, referenceRevision: value.referenceSnapshot.referenceRevision, preferencesRevision: preferences?.revision ?? 0 };
     if (value.systems.items.some(row => !atLeast(currentRevisions, { projectRevision: row.inputProjectRevision, referenceRevision: row.inputReferenceRevision, preferencesRevision: row.inputPreferencesRevision })

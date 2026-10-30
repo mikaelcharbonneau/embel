@@ -1,3 +1,4 @@
+import { supportedBrandBoardTypography } from "../../src/domain/brand-board-fonts";
 import "server-only";
 import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
@@ -35,7 +36,7 @@ export function createIdentityGenerationRuntimeAdapter(options:IdentityGeneratio
   };
   async function value(sql:string,args:unknown[]){const rows=await query<{value:unknown}>(sql,args);if(rows.rows.length!==1)throw unavailable();return rows.rows[0]!.value;}
   return{steps(job){
-    const frozen=snapshot(job);
+    const frozen=snapshot(job),sourceLogo=frozen.version===3?frozen.sourceLogo:undefined;
     return frozen.systemIds.map((systemId,index)=>({key:`identity-system-v1:${index+1}`,maximumCostMicrousd:0,timeoutMs:600_000,
       async execute({job:claimed,signal}):Promise<StepOutcome>{
         let cost=0,requestId:string|null=null,phaseDispatched=false;
@@ -79,8 +80,15 @@ export function createIdentityGenerationRuntimeAdapter(options:IdentityGeneratio
           if(knownBoard){phaseDispatched=true;if(knownBoard.observation.phase!=="board")throw unavailable();acceptReceipt(knownBoard);return unknown("identity_known_board_requires_readback");}
           // Never silently omit selected images to fit a provider limit.
           const references=frozen.input.referenceSnapshot.selected;
-          if(!references.length||references.length>IMAGE_INPUT_LIMITS.images)throw unavailable();
+          if(!references.length&&!sourceLogo||references.length+(sourceLogo?1:0)>IMAGE_INPUT_LIMITS.images)throw unavailable();
           const images:VerifiedAssetBytes[]=[];let referenceBytes=0;
+          if(sourceLogo){
+            await ready();const reference=sourceLogo.preview.reference;
+            const bytes=verifiedAssetBytesSchema.parse(await read(claimed,reference,signal));
+            if(!isDeepStrictEqual(bytes.reference,reference)||bytes.mimeType!==sourceLogo.preview.verification.mimeType
+              ||bytes.bytes.byteLength!==sourceLogo.preview.verification.byteLength||identityDigest(bytes.bytes)!==reference.contentHash)throw unavailable();
+            referenceBytes=bytes.bytes.byteLength;if(referenceBytes>IMAGE_INPUT_LIMITS.inputBytes)throw unavailable();images.push(bytes);
+          }
           for(const entry of references){await ready();const media=entry.reference.media,reference={assetId:media.assetId,versionId:media.versionId,ownerId:claimed.ownerId,projectId:claimed.projectId,contentHash:media.contentHash};
             const bytes=verifiedAssetBytesSchema.parse(await read(claimed,reference,signal));
             if(!isDeepStrictEqual(bytes.reference,reference)||bytes.mimeType!==media.mimeType||identityDigest(bytes.bytes)!==media.contentHash)throw unavailable();
@@ -89,17 +97,18 @@ export function createIdentityGenerationRuntimeAdapter(options:IdentityGeneratio
           let text:IdentityProduction<IdentitySystemSpecification>;
           if(knownText){
             const observation=knownText.observation,usage=logoVectorProposalUsageSchema.safeParse(observation.usage);
-            const request=createIdentitySpecificationRequest(frozen.input,loaded.systems,index+1,frozen.textPolicy);
+            const request=createIdentitySpecificationRequest(frozen.input,loaded.systems,index+1,frozen.textPolicy,sourceLogo);
             if(observation.phase!=="specifications"||observation.requestKey!==textKey||observation.requestHash!==identityDigest(JSON.stringify(request))||!observation.responseComplete
               ||!observation.responseId?.startsWith("resp_")||!observation.responseHash||observation.model!==frozen.textPolicy.model||observation.serviceTier!==frozen.textPolicy.serviceTier
               ||!observation.specification||observation.billing.status!=="recorded"||!usage.success||usage.data.inputTokens>frozen.textPolicy.maxInputTokens||usage.data.outputTokens>frozen.textPolicy.maxOutputTokens
               ||observation.billing.confirmedMicrousd!==logoVectorProposalUsageCost(usage.data))return unknown("identity_known_specification_unconfirmed");
             text={status:"completed",value:observation.specification,observation};
-          }else text=await producer.specify(frozen.input,loaded.systems,index+1,textKey,signal,dispatch);
+          }else text=await producer.specify(frozen.input,loaded.systems,index+1,textKey,signal,dispatch,sourceLogo);
           if(text.status!=="completed")return text.status==="not_dispatched"&&!phaseDispatched?{status:"failed",code:"not_dispatched",costMicrousd:0,providerRequestId:null}:unknown("identity_specification_unconfirmed");
+          if(sourceLogo&&(!text.value.applicationDesign||!text.value.components.typography.styles.every(supportedBrandBoardTypography)))return unknown("identity_application_design_missing");
           if(loaded.systems.some(s=>isDeepStrictEqual(s.components,text.value.components)))return{status:"failed",code:"duplicate_identity_direction",costMicrousd:cost,providerRequestId:requestId};
           await ready();
-          const board=await producer.board(frozen.input,text.value,images,identityDigest(`${claimed.id}:${stepKey}:board`),signal,dispatch);
+          const board=await producer.board(frozen.input,text.value,images,identityDigest(`${claimed.id}:${stepKey}:board`),signal,dispatch,sourceLogo);
           if(board.status!=="completed")return unknown("identity_board_unconfirmed");
           if(loaded.systems.some(s=>s.board.asset.contentHash===board.observation.artifactHash))return{status:"failed",code:"duplicate_identity_board",costMicrousd:cost,providerRequestId:requestId};
           await ready();
@@ -110,7 +119,7 @@ export function createIdentityGenerationRuntimeAdapter(options:IdentityGeneratio
           const asset=identityAssetReceiptSchema.parse(acknowledgement);
           if(asset.publicationState!=="staged"||asset.purpose!=="brand_asset"||asset.sourceReceiptId!==systemId||asset.reference.ownerId!==claimed.ownerId||asset.reference.projectId!==claimed.projectId||asset.reference.contentHash!==publication.contentHash||asset.verification.mimeType!=="image/png"||asset.verification.byteLength!==publication.byteLength)throw unavailable();
           const system=identitySystemVersionSchema.parse({id:systemId,ownerId:claimed.ownerId,projectId:claimed.projectId,createdAt:new Date().toISOString(),input:frozen.input,
-            source:{kind:"generated",batchId:frozen.batchId,jobId:claimed.id,stepKey},components:text.value.components,
+            source:{kind:"generated",batchId:frozen.batchId,jobId:claimed.id,stepKey},components:text.value.components,...(text.value.applicationDesign?{applicationDesign:text.value.applicationDesign}:{}),
             board:{asset:{...asset.reference,purpose:"brand_asset",mimeType:"image/png"},depictsSystemVersionId:systemId,staleComponents:[]},productionFiles:[]});
           const output=identityStepOutputSchema.parse({identity:{version:1,operation:"identity.image",ownerId:claimed.ownerId,projectId:claimed.projectId,batchId:frozen.batchId,jobId:claimed.id,stepKey,targetCount:3,input:frozen.input,systems:[system]}});
           const staged=z.strictObject({status:z.literal("staged"),systemVersionId:z.uuid(),stepKey:z.string()}).parse(await value("select public.stage_identity_generation_system($1,$2,$3,$4,$5) value",[claimed.id,claimed.leaseToken,stepKey,output,{textReceiptId:receipts.get("specifications")!.id,imageReceiptId:receipts.get("board")!.id,publicationId:asset.id}]));

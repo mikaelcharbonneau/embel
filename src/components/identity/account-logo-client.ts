@@ -27,6 +27,11 @@ type PageQuery = { cursor?: string; limit?: number };
 type Preview = { url: string; release(): void };
 type FontImport = { requestKey: string; expected: W.LogoExpectedHeads; catalogFontId: string };
 type FontUpload = { requestKey: string; expected: W.LogoExpectedHeads; licenseSourceUrl: string | null; licenseText: string; rightsDeclaration: string; file: File };
+const assetDownloadSchema = z.strictObject({
+  url: z.url().max(8192).refine(value => { const url = new URL(value); return url.protocol === "https:" && !url.username && !url.password; }),
+  versionId: V.logoUuidSchema, contentHash: V.logoHashSchema, mimeType: z.string().min(1).max(150), expiresInSeconds: z.literal(60),
+});
+type AssetDownload = z.infer<typeof assetDownloadSchema>;
 
 function parse<T>(schema: z.ZodType<T>, value: unknown, maxBytes?: number): T {
   if (maxBytes !== undefined) {
@@ -192,6 +197,23 @@ export function createAccountLogoClient(
   async function unavailable<T>(signal?: AbortSignal): Promise<T | null> {
     if (!current() || signal?.aborted) return null;
     throw new AccountRequestError(503);
+  }
+  async function download(reference: AssetVersionReference, expectedMime: string, signal?: AbortSignal): Promise<AssetDownload | null> {
+    if (!current() || signal?.aborted) return null;
+    if (!owned(reference)) throw new AccountRequestError(404);
+    return request(`/api/assets/${reference.versionId}/download`, assetDownloadSchema,
+      value => value.versionId === reference.versionId && value.contentHash === reference.contentHash && value.mimeType === expectedMime,
+      { signal, maximum: 16_384 });
+  }
+  async function readVectorDetail(vectorRevisionId: string, signal?: AbortSignal): Promise<D.LogoVectorDetail | null> {
+    if (!current() || signal?.aborted) return null;
+    const id = parse(V.logoUuidSchema, vectorRevisionId);
+    const detail = await request(`${project()}/vector/revisions/${id}`, D.logoVectorDetailSchema, value => owned(value.revision) && value.revision.id === id, { signal, maximum: 8_421_376 });
+    if (!detail || !current() || signal?.aborted) return null;
+    try {
+      const document = await verifyLogoVectorDetailHashes(detail, () => current() && !signal?.aborted);
+      return document && current() && !signal?.aborted ? { ...detail, document } : null;
+    } catch { if (!current() || signal?.aborted) return null; throw new AccountRequestError(502); }
   }
   async function preview(reference: AssetVersionReference, expectedMime: string | null, expectedLength: number | null, signal?: AbortSignal): Promise<Preview | null> {
     if (!current() || signal?.aborted) return null;
@@ -390,14 +412,13 @@ export function createAccountLogoClient(
     async downloadAsset(input: D.IdentityAssetReceipt, signal?: AbortSignal) {
       if (!current() || signal?.aborted) return null;
       const receipt = parse(D.committedIdentityAssetReceiptSchema, input);
-      if (!owned(receipt.reference)) throw new AccountRequestError(404);
-      const schema = z.strictObject({
-        url: z.url().max(8192).refine(value => { const url = new URL(value); return url.protocol === "https:" && !url.username && !url.password; }),
-        versionId: V.logoUuidSchema, contentHash: V.logoHashSchema, mimeType: z.string().min(1).max(150), expiresInSeconds: z.literal(60),
-      });
-      return request(`/api/assets/${receipt.reference.versionId}/download`, schema,
-        value => value.versionId === receipt.reference.versionId && value.contentHash === receipt.reference.contentHash && value.mimeType === receipt.verification.mimeType,
-        { signal, maximum: 16_384 });
+      return download(receipt.reference, receipt.verification.mimeType, signal);
+    },
+    /** Download the exact saved SVG, independent of acceptance or a brand-pack export.
+     * Only a revision ID is accepted: local editor changes cannot become a saved file. */
+    async downloadLogoVector(vectorRevisionId: string, signal?: AbortSignal): Promise<AssetDownload | null> {
+      const detail = await readVectorDetail(vectorRevisionId, signal);
+      return detail ? download(detail.revision.svgAsset, "image/svg+xml", signal) : null;
     },
     async previewAsset(input: D.IdentityAssetReceipt, signal?: AbortSignal) {
       if (!current() || signal?.aborted) return null;
@@ -456,16 +477,7 @@ export function createAccountLogoClient(
       const selection = await request(`${project()}/vector/current`, W.logoCurrentVectorSelectionSchema, owned, { signal });
       return selection?.vectorRevisionId ?? null;
     },
-    async readLogoVectorDetail(vectorRevisionId: string, signal?: AbortSignal): Promise<D.LogoVectorDetail | null> {
-      if (!current() || signal?.aborted) return null;
-      const id = parse(V.logoUuidSchema, vectorRevisionId);
-      const detail = await request(`${project()}/vector/revisions/${id}`, D.logoVectorDetailSchema, value => owned(value.revision) && value.revision.id === id, { signal, maximum: 8_421_376 });
-      if (!detail || !current() || signal?.aborted) return null;
-      try {
-        const document = await verifyLogoVectorDetailHashes(detail, () => current() && !signal?.aborted);
-        return document && current() && !signal?.aborted ? { ...detail, document } : null;
-      } catch { if (!current() || signal?.aborted) return null; throw new AccountRequestError(502); }
-    },
+    readLogoVectorDetail: readVectorDetail,
     async resolveLogoVariantSet(variantSetId: string, signal?: AbortSignal): Promise<D.ResolvedLogoVariantSet | null> {
       if (!current() || signal?.aborted) return null;
       project(); parse(V.logoUuidSchema, variantSetId); return unavailable(signal);

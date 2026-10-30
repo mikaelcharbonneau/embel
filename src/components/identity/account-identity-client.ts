@@ -177,16 +177,17 @@ export function createAccountIdentityClient(account: VerifiedAccount, inputProje
     },
     async closeBatchRequest(input: IdentityGenerationIntent, signal?: AbortSignal) {
       const original = identityGenerationIntentSchema.parse(input);
-      if (!("version" in original) || original.version !== 2) throw new AccountRequestError(422);
+      if (!("version" in original) || ![2, 3].includes(original.version)) throw new AccountRequestError(422);
       return request(`${prefix}/batches/requests/${encodeURIComponent(original.idempotencyKey)}/cancel`, identityBatchRequestCloseSchema,
         value => value.status === "not_admitted" ? owned(value) && same(value.intent, original) : owned(value.batch) && same(value.batch.intent, original), { method: "POST", body: original, signal });
     },
     async generate(input: IdentityGenerationIntent, signal?: AbortSignal) {
       const body = identityGenerationIntentSchema.parse(input);
-      if (!("version" in body) || body.version !== 2) throw new AccountRequestError(422);
+      if (!("version" in body) || ![2, 3].includes(body.version)) throw new AccountRequestError(422);
       return request(`${prefix}/batches`, identityBatchStateSchema, value => owned(value) && same(value.intent, body)
         && value.input.projectRevision === body.expectedProjectRevision && value.input.referenceSnapshot.referenceRevision === body.expectedReferenceRevision
-        && value.input.preferencesRevision === body.expectedPreferencesRevision, { method: "POST", body, signal });
+        && value.input.preferencesRevision === body.expectedPreferencesRevision
+        && (body.version !== 3 || value.sourceLogo?.selectionRevision === body.expectedLogoRevision && same(value.sourceLogo.source, body.sourceLogo)), { method: "POST", body, signal });
     },
     async stopBatch(input: IdentityBatchState, signal?: AbortSignal) {
       const batch = identityBatchStateSchema.parse(input);

@@ -1,6 +1,6 @@
 # Embel working agreement
 
-User-confirmed preferences, October 29, 2026. Embel helps people turn product
+User-confirmed preferences, October 29–30, 2026. Embel helps people turn product
 ideas into usable branding. It has no customers yet. Prioritize a reliable,
 complete branding journey and a professional interface.
 
@@ -40,6 +40,14 @@ dependencies when changing them.
 
 ## Agreed app behavior
 
+- The Logo step is for raster concepts. After choosing a concept, the next step
+  presents three distinct raster visual identity directions using that exact
+  chosen logo. Vector editing is optional, not a prerequisite for directions.
+  Replace the old component-mixing directions screen; do not confuse this with
+  removing visual identity generation from the product.
+  Each direction shows the logo, colors, typography and example uses. Choosing
+  a direction leads to the final brand board and downloadable logo files, color
+  palette, font links, social profile images, post templates and banners.
 - No fixed monetary caps that stop generation. Show usage and prevent accidental
   duplicate requests; retain normal cancellation and timeouts.
 - Show expected cost beside Generate; one deliberate click starts the request.

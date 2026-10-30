@@ -130,7 +130,7 @@ export function InspirationView({ controller, projectId }: { controller: Inspira
             </article>;
           })}
         </InspirationGrid> : <div className="inspiration-empty"><Icon name="assets" size={30} /><h2>{liked && !query && kind === "all" ? "Start with a few likes" : "No designs match these filters"}</h2><p>{liked && !query && kind === "all" ? "Like an overall look or open a design to choose its details." : "Try a brand, studio, color, or design detail."}</p><button type="button" onClick={() => { setQuery(""); setKind("all"); setLiked(false); }}>Browse all designs</button></div>}
-        <footer className="inspiration-footer"><span>{visible.length} of {liked ? inspirationCatalog.length : designs.length} curated designs</span><Link href={`/brands/account/${projectId}/identity`}>Saved references &amp; systems</Link><Link href={`/brands/account/${projectId}/logo/directions#visual-direction-review`}>Review visual direction</Link></footer>
+        <footer className="inspiration-footer"><span>{visible.length} of {liked ? inspirationCatalog.length : designs.length} curated designs</span><Link href={`/brands/account/${projectId}/identity`}>Saved references &amp; systems</Link><Link href={`/brands/account/${projectId}/logo/directions`}>Visual directions</Link></footer>
       </div>
       <Link className="inspiration-continue" href={`/brands/account/${projectId}/logo`}>Continue to logo generation<Icon name="arrow" size={16} /></Link>
     </section>

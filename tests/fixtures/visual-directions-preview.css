@@ -1,0 +1,13 @@
+@font-face { font-family: "Fixture Geist"; font-style: normal; font-weight: 100 900; src: url("../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2") format("woff2"); }
+:root { --font-geist-sans: "Fixture Geist"; }
+.fixtureShell { min-height: 100vh; }
+.fixtureSidebar { position: fixed; inset: 0 auto 0 0; width: 208px; padding: 32px 24px; background: white; border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 18px; }
+.fixtureSidebar strong { font-size: 30px; line-height: 1; font-weight: 650; letter-spacing: -1.4px; margin-bottom: 48px; }
+.fixtureSidebar > span { font-size: 10px; letter-spacing: .08em; color: var(--secondary); }
+.fixtureSidebar a { min-height: 44px; padding: 10px 12px; border-radius: 7px; font-size: 13px; }
+.fixtureSidebar a:first-of-type { background: var(--surface); }
+.fixtureMain { margin-left: 208px; }
+.fixtureTopbar { min-height: 68px; display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 14px 32px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.fixtureTopbar b { margin: 0 10px; color: var(--secondary); font-weight: 400; }
+.fixtureTopbar small { color: var(--secondary); }
+@media (max-width: 760px) { .fixtureSidebar { display: none; } .fixtureMain { margin-left: 0; } .fixtureTopbar { padding-inline: 16px; font-size: 12px; gap: 12px; } .fixtureTopbar small { font-size: 10px; } }

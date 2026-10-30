@@ -70,7 +70,7 @@ function expectInitialPresentation(state: "loading" | "unavailable") {
   expect(composer().getAttribute("aria-busy")).toBe(String(state === "loading"));
   expect(composer().querySelector('button[aria-label="Generate refinement"]')!.getAttribute("aria-label")).toBe("Generate refinement");
   expect(composer().querySelector<HTMLButtonElement>('button[aria-label="Generate refinement"]')!.disabled).toBe(true);
-  const continuation = [...host.querySelectorAll("button")].find(node => node.textContent === "Continue to brand board →");
+  const continuation = [...host.querySelectorAll("button")].find(node => node.textContent === "Continue to visual directions →");
   if (continuation) { expect(continuation.disabled).toBe(true); expect(continuation.title).toBe(message); }
 }
 // Initial-read cases seed retained local text while collapsed. The separate

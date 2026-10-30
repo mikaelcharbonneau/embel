@@ -446,8 +446,8 @@ test("refinement disclosure reserves space, preserves edits and keeps context ke
   await toggle.click(); await expect(input).toHaveValue("Retained local fixture instruction");
   await expect(form.getByText("Refinement target: Concept 1", { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.getByRole("link", { name: "Continue to brand board" }).scrollIntoViewIfNeeded();
-  await expect(page.getByRole("link", { name: "Continue to brand board" })).toBeInViewport();
+  await page.getByRole("link", { name: "Continue to visual directions" }).scrollIntoViewIfNeeded();
+  await expect(page.getByRole("link", { name: "Continue to visual directions" })).toBeInViewport();
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await form.getByRole("button", { name: "Close refinement", exact: true }).click();
   await form.scrollIntoViewIfNeeded(); await captureUiEvidence(page, info);
@@ -462,7 +462,7 @@ test("a saved refinement can be selected and edited again without leaving concep
   await page.reload();
   await page.getByRole("button", { name: "Select concept 1", exact: true }).click();
   await expect(page.getByText("Refinement target: Concept 1 · Version 2", { exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Continue to brand board" })).toHaveAttribute("href", /\/brand-board$/);
+  await expect(page.getByRole("link", { name: "Continue to visual directions" })).toHaveAttribute("href", /\/logo\/directions$/);
   await page.getByRole("button", { name: "Refine logo", exact: true }).click();
   await page.getByRole("textbox", { name: "Describe logo changes" }).fill("Make the lettering slightly wider.");
   await page.getByRole("textbox", { name: "Describe logo changes" }).focus();

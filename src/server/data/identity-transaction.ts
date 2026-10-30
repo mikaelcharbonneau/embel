@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
+import { logoBriefRevisionSchema } from "@/domain/logo-workspace";
 import { contextSnapshotSchema } from "@/domain/projects";
 import { identityReferenceSnapshotSchema } from "@/domain/identity-references";
 import { collectIdentityBatchResult, identityGeneratedSystemBindingSchema } from "@/domain/identity-jobs";
@@ -35,7 +36,7 @@ const principalSchema = z.strictObject({ sessionUserName: z.string(), sessionUse
 const recordSchema = z.strictObject({ system: identitySystemVersionSchema, rootSystemId: z.uuid(), base: z.uuid().nullable(), change: identityComponentChangeSchema.nullable(), selection: identitySelectionSchema.nullable() });
 const rootSourceSchema = z.strictObject({
   systemVersionId: z.uuid(), job: z.strictObject({ id: z.uuid(), ownerId: z.uuid(), projectId: z.uuid(), operation: z.literal("identity.image"), inputRevision: z.number().int().positive() }),
-  context: contextSnapshotSchema, referenceSnapshot: identityReferenceSnapshotSchema,
+  logoBrief: logoBriefRevisionSchema.optional(), context: contextSnapshotSchema, referenceSnapshot: identityReferenceSnapshotSchema,
   preferencesRevision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER), preferences: identityPreferencesSchema,
 });
 const fileSchema = z.strictObject({ systemVersionId: z.uuid(), slot: z.number().int().min(0).max(48), component: z.enum(["logo","colors","typography","graphics","imagery","composition"]).nullable(), role: z.string(), asset: identitySystemAssetSchema });
@@ -46,7 +47,7 @@ const proofSchema = z.strictObject({
 });
 const common = { version: z.literal(1), principal: principalSchema, projectId: z.uuid(), ownerId: z.uuid(), proofs: proofSchema };
 const preparedSchema = z.discriminatedUnion("kind", [
-  z.strictObject({ ...common, kind: z.literal("new"), project: identityProjectSchema, session: identitySessionSchema.nullable(), preferences: identityPreferenceRevisionSchema.nullable(),
+  z.strictObject({ ...common, kind: z.literal("new"), logoBrief: logoBriefRevisionSchema.optional(), project: identityProjectSchema, session: identitySessionSchema.nullable(), preferences: identityPreferenceRevisionSchema.nullable(),
     referenceSnapshot: identityReferenceSnapshotSchema, previousSelection: identitySelectionSchema.nullable(), targetSystemId: z.uuid(),
     selectionId: z.uuid(), systemVersionId: z.uuid(), changeId: z.uuid(), now: z.iso.datetime({ offset: true }).max(64), reason: z.enum(["selected","restored"]),
   }),
@@ -120,6 +121,7 @@ function verifyProofs(prepared: Prepared): Map<string, z.infer<typeof recordSche
       requireStored(source.job.id === root.batch.jobId && source.job.ownerId === owner && source.job.projectId === project && source.job.inputRevision === row.system.input.projectRevision);
       const frozen = row.system.input;
       requireStored(same(frozen.context,source.context) && same(frozen.referenceSnapshot,source.referenceSnapshot) && frozen.preferencesRevision === source.preferencesRevision && same(frozen.preferences,source.preferences));
+      requireStored(same(frozen.version === 2 ? frozen.logoBrief : undefined, source.logoBrief));
       requireStored(source.preferencesRevision !== 0 || same(source.preferences,initialIdentityPreferences(source.context)));
     } else {
       requireStored(row.base === row.system.source.baseSystemVersionId && row.base !== null);
@@ -168,7 +170,7 @@ function buildProposal(prepared: Prepared, operation: Operation, request: Reques
   const target = records.get(targetId)?.system; if (!target) throw new ApiError("not_found");
   let currentInput;
   try { currentInput = createIdentityInputSnapshot({ ownerId: prepared.ownerId, projectId: prepared.projectId, scope: prepared.project.scope, projectRevision: prepared.project.current_revision,
-    context: prepared.project.context, referenceSnapshot: prepared.referenceSnapshot, preferencesRevision, preferences: prepared.preferences?.preferences ?? initialIdentityPreferences(prepared.project.context), capturedAt: prepared.now }); }
+    ...(prepared.logoBrief ? { logoBrief: prepared.logoBrief } : {}), context: prepared.project.context, referenceSnapshot: prepared.referenceSnapshot, preferencesRevision, preferences: prepared.preferences?.preferences ?? initialIdentityPreferences(prepared.project.context), capturedAt: prepared.now }); }
   catch { throw new ApiError("conflict"); }
   const args = { actorId: prepared.ownerId, projectId: prepared.projectId, currentInput, previousSelection: prepared.previousSelection, identityRevision, selectionId: prepared.selectionId, now: prepared.now, request };
   try {

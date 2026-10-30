@@ -5,12 +5,20 @@ import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
 
 const baseMime = (value: string) => value.split(";", 1)[0]!.trim().toLowerCase();
+const extensions = new Map([
+  ["image/svg+xml", "svg"], ["image/png", "png"], ["image/jpeg", "jpg"], ["image/webp", "webp"],
+  ["application/pdf", "pdf"], ["application/zip", "zip"], ["application/json", "json"], ["text/plain", "txt"],
+]);
 
 /** Authenticated, short-lived link to a persisted private object; never implies export production. */
 export async function getPrivateAssetDownload(auth: AuthenticatedContext, versionId: string) {
   const { path, contentHash, mimeType } = await readVerifiedPrivateAsset(auth, versionId);
   // Supabase applies the authenticated user's Storage SELECT policy when signing.
-  const result = await auth.client.storage.from("fluid-assets").createSignedUrl(path, 60, { download: true });
+  // Storage paths are extensionless IDs. Supply the extension from the verified
+  // MIME so a browser saves a file that opens in the appropriate application.
+  const extension = extensions.get(mimeType);
+  const filename = extension ? `embel-${versionId.slice(0, 8)}.${extension}` : true;
+  const result = await auth.client.storage.from("fluid-assets").createSignedUrl(path, 60, { download: filename });
   if (result.error || !result.data?.signedUrl) throw new ApiError("not_found");
   return { url: result.data.signedUrl, versionId, contentHash, mimeType, expiresInSeconds: 60 };
 }

@@ -27,7 +27,7 @@ export function createIdentityGenerationController({ account, projectId, client,
   function adopt(input: IdentityBatchState) {
     const batch = identityBatchStateSchema.parse(input), previous = state.batch;
     if (batch.ownerId !== account.userId || batch.projectId !== projectId) throw new AccountRequestError(502);
-    if (previous?.batchId === batch.batchId && (previous.jobId !== batch.jobId || !same(previous.input, batch.input) || !same(previous.intent, batch.intent)
+    if (previous?.batchId === batch.batchId && (previous.jobId !== batch.jobId || !same(previous.input, batch.input) || !same(previous.intent, batch.intent) || !same(previous.sourceLogo, batch.sourceLogo)
       || previous.systems.some(system => !batch.systems.some(next => next.id === system.id && same(system, next))))) throw new AccountRequestError(502);
     publish({ batch });
   }
@@ -84,10 +84,10 @@ export function createIdentityGenerationController({ account, projectId, client,
     },
     async start(value: IdentityGenerationIntent) {
       const input = identityGenerationIntentSchema.parse(value);
-      if (!current() || operation || retained() || !allowed(input) || !("version" in input) || input.version !== 2
+      if (!current() || operation || retained() || !allowed(input) || !("version" in input) || ![2, 3].includes(input.version)
         || identityBatchUnresolved(state.batch) || identityBatchUnresolved(state.overview?.latest ?? null)) return;
       const availability = state.overview?.availability;
-      if (availability?.status !== "available" || availability.policyIdentity !== input.acceptedPolicyIdentity) return;
+      if (availability?.status !== "available" || availability.version !== input.version || availability.policyIdentity !== input.acceptedPolicyIdentity) return;
       if (!memory.retainGenerationRequest({ ownerId: account.userId, projectId, input })) { publish({ error: "The request could not be retained safely. Resolve an earlier pending request before trying again." }); return; }
       await run("starting", async signal => {
         try {

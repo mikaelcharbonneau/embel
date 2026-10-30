@@ -28,8 +28,8 @@ describe("download authorization before signing", () => {
   const bytes = "local fixture bytes";
   const hash = createHash("sha256").update(bytes).digest("hex");
   const record = { id: version, owner_id: owner, project_id: project, asset_id: asset, storage_path: path, content_hash: hash, mime_type: "text/plain" };
-  function fixture(data: unknown, body = bytes) {
-    const download = vi.fn().mockResolvedValue({ data: new Blob([body], { type: "text/plain" }), error: null });
+  function fixture(data: unknown, body = bytes, mimeType = "text/plain") {
+    const download = vi.fn().mockResolvedValue({ data: new Blob([body], { type: mimeType }), error: null });
     const createSignedUrl = vi.fn().mockResolvedValue({ data: { signedUrl: "https://fixture.example/local-signed-link" }, error: null });
     const query = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), maybeSingle: vi.fn().mockResolvedValue({ data, error: null }) };
     const auth = { userId: owner, client: { from: vi.fn().mockReturnValue(query), storage: { from: vi.fn().mockReturnValue({ download, createSignedUrl }) } } } as unknown as AuthenticatedContext;
@@ -52,6 +52,12 @@ describe("download authorization before signing", () => {
     const valid = fixture(record);
     await expect(getPrivateAssetDownload(valid.auth, version)).resolves.toMatchObject({ contentHash: hash, mimeType: "text/plain", expiresInSeconds: 60 });
     expect(valid.query.eq).toHaveBeenCalledWith("owner_id", owner);
-    expect(valid.createSignedUrl).toHaveBeenCalledWith(path, 60, { download: true });
+    expect(valid.createSignedUrl).toHaveBeenCalledWith(path, 60, { download: "embel-dddddddd.txt" });
+  });
+
+  it.each([["image/svg+xml", "svg"], ["image/png", "png"], ["image/jpeg", "jpg"], ["image/webp", "webp"]])("names %s downloads using the actual saved format", async (mimeType, extension) => {
+    const valid = fixture({ ...record, mime_type: mimeType }, bytes, mimeType);
+    await expect(getPrivateAssetDownload(valid.auth, version)).resolves.toMatchObject({ mimeType });
+    expect(valid.createSignedUrl).toHaveBeenCalledWith(path, 60, { download: `embel-dddddddd.${extension}` });
   });
 });

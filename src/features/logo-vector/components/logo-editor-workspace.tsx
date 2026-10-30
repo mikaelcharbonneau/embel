@@ -5,6 +5,7 @@ import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, useS
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import { AccountRequestError, accountErrorMessage } from "@/components/workspace/account-api";
 import { LogoIdentityContinuation } from "@/components/logo-creation/workflow-status";
+import { LogoDownloadControls } from "@/components/logo-creation/logo-download-controls";
 import { useLogoDraftMemory } from "@/components/identity/logo-draft-memory-context";
 import { useLogoWorkspace } from "@/components/identity/use-logo-workspace";
 import { isAccountLogoClientCurrent, type AccountLogoClient } from "@/components/identity/account-logo-client";
@@ -188,6 +189,9 @@ function OwnedLogoEditor({ projectId, account, memory }: { projectId: string; ac
       <div className={styles.headingRow}><h2>{historical ? "Historical vector" : historyVector ? "Saved vector for review" : approved ? "Approved logo" : "Review required"}</h2><span className={styles.badge}>{historical ? `Saved ${historical.stage} version ${historical.revision}` : "Saved vector candidate"}</span></div>
       <p className={styles.caption}>{detail.revision.source.kind === "concept" ? "Original concept" : "Original refined preview"} · {detail.revision.locks.length} saved component {detail.revision.locks.length === 1 ? "lock" : "locks"}</p>
       <ConversionReviewPresentation document={document} originalUrl={visible?.preview?.url} scopeKey={source ?? undefined} onReadinessChange={setComparison} />
+      {client && <LogoDownloadControls client={client} account={account} projectId={projectId}
+        vectorRevisionId={detail.revision.id} original={detail.sourcePreview}
+        disabled={busy || Boolean(pending)} unsavedChanges={Boolean(draft?.vectorDraft) || proposalSessionUnsaved(proposalSession)} />}
       <div className={styles.editLayout}><nav className={styles.componentList} aria-label="Saved logo components"><h3>Components</h3>{document.components.map(component => <button key={component.id} type="button" aria-pressed={selectedComponent?.id === component.id} onClick={() => setSelectedId(component.id)}>{component.role.replaceAll("_", " ")}</button>)}</nav>
         <div><ComponentControls showTextPlaceholder={false} document={document} componentId={selectedComponent?.id ?? ""} lockedComponentIds={detail.revision.locks.map(lock => lock.componentId)}
           disabledReason={inspecting ? "Return to the current vector to edit. Accept or restore this saved vector explicitly to select it." : draft?.vectorDraft ? "Save or discard this change before editing again." : !canMutate ? "Editing is unavailable while a request or conflict is unresolved." : undefined} onEdit={edit} />
@@ -202,7 +206,7 @@ function OwnedLogoEditor({ projectId, account, memory }: { projectId: string; ac
         {!historical && <button type="button" disabled={!actionReady || Boolean(draft?.vectorDraft) || approved} onClick={() => { if (actionReady && !draft?.vectorDraft && !approved) void perform(createVectorRecoveryIntent({ kind: "accept", request: { ...common(), vectorRevisionId: detail.revision.id, acceptEarlierBasis: acceptedEarlier } })); }}>Accept this vector</button>}
         {restoration && <button type="button" disabled={!actionReady} onClick={() => { if (actionReady) void perform(createVectorRecoveryIntent({ kind: "restore", request: { ...common(), stage: restoration.stage, revisionId: restoration.id, acceptEarlierBasis: acceptedEarlier } })); }}>Restore this version</button>}
       </div>
-      {approved && workspace && <LogoIdentityContinuation workspace={workspace} blocked={!canMutate || Boolean(draft?.vectorDraft) || state.pending} hasSelection />}
+      {workspace && <LogoIdentityContinuation workspace={workspace} blocked={!canMutate || Boolean(draft?.vectorDraft) || state.pending} hasSelection={Boolean(state.stagePayloads?.concepts?.payload.selected)} />}
     </>}
     <div className={styles.actions}>{(inspecting || appliedVectorId !== null) && <button type="button" disabled={busy || Boolean(pending)} onClick={backToCurrent}>Back to current vector</button>}<button type="button" disabled={!currentClient || busy || state.pending || state.dirty} onClick={() => { setReadAttempt(value => value + 1); setHistoryAttempt(value => value + 1); void state.reload(false); }}>Reload workspace</button><Link href={`/brands/account/${projectId}/logo`}>Back to concept choices</Link></div>
     {client && currentClient && workspace && <><SavedVectorHistory key={`all-vectors:${workspace.heads.workspaceRevision}:${historyAttempt}`} client={client} workspaceRevision={workspace.heads.workspaceRevision} current={activeClient} disabled={busy || state.pending || state.dirty} onReview={reviewVector} />{(["vector", "refinements"] as const).map(stage => <SavedHistory key={`${stage}:${workspace.heads.workspaceRevision}`} client={client} stage={stage} current={activeClient} disabled={busy || state.pending || state.dirty} onReview={review} />)}</>}

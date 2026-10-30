@@ -6,7 +6,7 @@ import {capability,specification,textPolicy} from '../worker/identity-generation
 import {syntheticPng} from '../features/logo-vector/raster-fixtures';
 import {sharedExecutionSchema,sharedSlotLeaseSchema,type SharedExecution} from '../../worker/shared-pool/contracts';
 import {parseClaimedJob} from '../../worker/postgres-store';
-import {identityBatchStateSchema,identityGenerationJobInputSchema,type IdentityGenerationObservation} from '../../src/domain/identity-jobs';
+import {identityBatchStateSchema,identityGenerationJobInputSchema,type IdentityGenerationObservation,type IdentitySystemSpecification} from '../../src/domain/identity-jobs';
 import {logoWorkspaceV2Schema} from '../../src/domain/logo-workspace';
 import {identityReferenceEntrySchema} from '../../src/domain/identity-references';
 import type {IdentityAssetReservation} from '../../src/server/data/identity-asset-store';
@@ -63,9 +63,9 @@ export async function createSharedIdentityFixture(){
    const input=identityGenerationJobInputSchema.parse(job.input);if(job.ownerId!==p.owner||job.projectId!==p.projectId||input.batchId!==batch.batchId)throw Error('Foreign synthetic claim');
    return{...p,batch,job,input,execution,intent:value};
   }
-  async function grant(e:SharedExecution,reservation:IdentityAssetReservation|null,mode:string){return f.asAuth(actor,async()=>(await db.query<{value:unknown}>('select public.authorize_shared_logo_storage($1,$2,$3,$4,$5,$6) value',[e.executionId,e.executionToken,e.jobId,e.leaseToken,reservation?.id??null,mode])).rows[0]!.value);}
-  async function system(p:Awaited<ReturnType<typeof admit>>,ordinal=1,complete=true){
-   const e=p.execution,key=`identity-system-v1:${ordinal}`,spec=specification(ordinal);
+  async function grant(e:SharedExecution,reservation:{id:string}|null,mode:string){return f.asAuth(actor,async()=>(await db.query<{value:unknown}>('select public.authorize_shared_logo_storage($1,$2,$3,$4,$5,$6) value',[e.executionId,e.executionToken,e.jobId,e.leaseToken,reservation?.id??null,mode])).rows[0]!.value);}
+  async function system(p:Pick<Awaited<ReturnType<typeof admit>>,'owner'|'projectId'|'execution'|'input'|'batch'>,ordinal=1,complete=true,suppliedSpecification?:IdentitySystemSpecification){
+   const e=p.execution,key=`identity-system-v1:${ordinal}`;const spec:IdentitySystemSpecification=suppliedSpecification??specification(ordinal);
    await action('begin',[e.jobId,e.leaseToken,key,hash(`${e.jobId}:${key}`),0],e);
    const requestKey=hash(`${e.jobId}:${key}:spec`),requestHash=hash(JSON.stringify(spec));
    const call=(await action('identity_authorize',[e.jobId,e.leaseToken,key,'specifications',requestKey,requestHash],e)).result as {callId:string;disposition:string};
@@ -86,7 +86,7 @@ export async function createSharedIdentityFixture(){
    const readback=await f.asAuth(actor,()=>db.query('select name from storage.objects where name=$1',[reservation.storagePath]));if(readback.rows.length!==1)throw Error('Owned board readback denied');
    const verification={status:'verified',checkedAt:new Date().toISOString(),contentHash:hash(bytes),mimeType:'image/png',byteLength:bytes.byteLength};
    await action('observe_asset',[reservation.id,verification,e.jobId,e.leaseToken],e);
-   const output={identity:{version:1,operation:'identity.image',ownerId:p.owner,projectId:p.projectId,batchId:p.batch.batchId,jobId:e.jobId,stepKey:key,targetCount:3,input:p.input.input,systems:[{id:systemId,ownerId:p.owner,projectId:p.projectId,createdAt:new Date().toISOString(),input:p.input.input,source:{kind:'generated',batchId:p.batch.batchId,jobId:e.jobId,stepKey:key},components:spec.components,board:{asset:{...reservation.reference,purpose:'brand_asset',mimeType:'image/png'},depictsSystemVersionId:systemId,staleComponents:[]},productionFiles:[]}]}};
+   const output={identity:{version:1,operation:'identity.image',ownerId:p.owner,projectId:p.projectId,batchId:p.batch.batchId,jobId:e.jobId,stepKey:key,targetCount:3,input:p.input.input,systems:[{id:systemId,ownerId:p.owner,projectId:p.projectId,createdAt:new Date().toISOString(),input:p.input.input,source:{kind:'generated',batchId:p.batch.batchId,jobId:e.jobId,stepKey:key},components:spec.components,...(spec.applicationDesign?{applicationDesign:spec.applicationDesign}:{}),board:{asset:{...reservation.reference,purpose:'brand_asset',mimeType:'image/png'},depictsSystemVersionId:systemId,staleComponents:[]},productionFiles:[]}]}};
    const evidence={textReceiptId:t.id,imageReceiptId:i.id,publicationId:reservation.id};
    await action('identity_stage',[e.jobId,e.leaseToken,key,output,evidence],e);
    if(complete)await action('complete',[e.jobId,e.leaseToken,key,'succeeded',470,output,image.providerRequestId],e);
