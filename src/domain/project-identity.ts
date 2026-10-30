@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { brandBoardApplicationDesignSchema, type BrandBoardApplicationDesign } from "./brand-board-design";
+import { brandBoardApplicationDesignSchema, brandBoardContrastRatio, type BrandBoardApplicationDesign } from "./brand-board-design";
 import { identityLogoSourceSchema } from "./identity-logo-source";
 import { logoBriefRevisionSchema, type LogoBriefRevision } from "./logo-workspace";
 import { assetProjectSummarySchema, assetVersionReferenceSchema } from "./asset-library";
@@ -200,7 +200,9 @@ export const identityComponentsSchema = z.strictObject({
 export function validIdentityApplicationDesign(components: z.infer<typeof identityComponentsSchema>, design: BrandBoardApplicationDesign): boolean {
   const colors = new Set(components.colors.swatches.map(swatch => swatch.key));
   const typography = new Set(components.typography.styles.map(style => style.key));
-  return Object.values(design.paletteRoles).every(key => colors.has(key)) && typography.has(design.headingStyleKey) && typography.has(design.bodyStyleKey);
+  const swatch = (key: string) => components.colors.swatches.find(value => value.key === key)?.hex ?? "";
+  return Object.values(design.paletteRoles).every(key => colors.has(key)) && typography.has(design.headingStyleKey) && typography.has(design.bodyStyleKey)
+    && brandBoardContrastRatio(swatch(design.paletteRoles.text), swatch(design.paletteRoles.background)) >= 4.5;
 }
 /** Immutable metadata only. Current byte verification remains a separate AssetVersionDetail observation. */
 export const identitySystemAssetSchema = assetVersionReferenceSchema.extend({ purpose: z.enum(["brand_asset", "legacy_unknown"]), mimeType: z.string().min(1).max(150) });

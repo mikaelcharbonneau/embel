@@ -40,13 +40,14 @@ export async function getIdentityAvailability(auth:AuthenticatedContext,projectI
 export async function enqueueIdentityBatch(auth:AuthenticatedContext,projectId:string,input:unknown):Promise<IdentityBatchState>{
   const parsed=identityGenerationIntentSchema.safeParse(input);if(!parsed.success)throw new ApiError("invalid_input");
   projectId=uuid(projectId);
-  if(isSharedWorkerRuntime()&&"version" in parsed.data&&parsed.data.version===2){
+  if(isSharedWorkerRuntime()&&"version" in parsed.data&&(parsed.data.version===2||parsed.data.version===3)){
     const existing=await readIdentityBatchRequest(auth,projectId,parsed.data.idempotencyKey);
     if(existing){if(!isDeepStrictEqual(existing.intent,parsed.data))throw new ApiError("conflict");return existing;}
   }
   const availability=await getIdentityAvailability(auth,projectId);
-  if(availability.status!=="available"||!("version" in parsed.data)||parsed.data.version!==2)throw new ApiError("integration_unavailable");
-  if(parsed.data.acceptedPolicyIdentity!==availability.policyIdentity)throw new ApiError("conflict");
+  if(availability.status!=="available"||availability.version!==3||!("version" in parsed.data)||parsed.data.version!==3)throw new ApiError("integration_unavailable");
+  if(parsed.data.acceptedPolicyIdentity!==availability.policyIdentity||parsed.data.expectedLogoRevision!==availability.expectedLogoRevision
+    ||!isDeepStrictEqual(parsed.data.sourceLogo,availability.sourceLogo.source))throw new ApiError("conflict");
   try{const value=stored(identityBatchStateSchema,await rpc(auth,"ensure_shared_identity_batch",{p_project_id:projectId,p_intent:parsed.data}));scope(auth,projectId,value);
     if(!isDeepStrictEqual(value.intent,parsed.data))throw new ApiError("integration_unavailable");return value;
   }catch(e){if(e instanceof ApiError&&e.code!=="integration_unavailable")throw e;throw new IdentityAdmissionUncertainError(projectId,parsed.data);}
@@ -70,7 +71,7 @@ export async function cancelIdentityBatch(auth:AuthenticatedContext,projectId:st
  * can close the exact original intent, or request Stop for its actual admission. */
 export async function closeIdentityBatchRequest(auth:AuthenticatedContext,projectId:string,input:unknown):Promise<IdentityBatchRequestClose>{
   const parsed=identityGenerationIntentSchema.safeParse(input);
-  if(!parsed.success||!("version" in parsed.data)||parsed.data.version!==2)throw new ApiError("invalid_input");
+  if(!parsed.success||!("version" in parsed.data)||(parsed.data.version!==2&&parsed.data.version!==3))throw new ApiError("invalid_input");
   projectId=uuid(projectId);await ownedProject(auth,projectId);
   if(!isSharedWorkerRuntime())throw new ApiError("integration_unavailable");
   try{

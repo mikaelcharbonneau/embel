@@ -56,6 +56,10 @@
     {
       "path": "supabase/candidates/shared_logo_raster_recovery.sql",
       "sha256": "d70df635c40735a584916af4f63c0a11553017fc05a9b1a3d2599da79b077ac2"
+    },
+    {
+      "path": "supabase/candidates/shared_identity_selected_logo_boards.sql",
+      "sha256": "45ec832fda4d5ed44f5c18ee270b73ce8def68553cb610880e7498076173495b"
     }
   ],
   "functions": [
@@ -132,6 +136,26 @@
       "volatility": "v",
       "broadExecute": false,
       "argumentTypes": "jsonb, jsonb",
+      "securityDefiner": true,
+      "lanes": [
+        "strategy",
+        "naming",
+        "logo"
+      ]
+    },
+    {
+      "name": "commit_identity_transaction",
+      "owner": "fluid_identity_writer_definer_v1",
+      "schema": "fluid_private",
+      "sha256": "a71ce5e81b90668260cabf1162abf30c9dc299234ce3e459efc25b511eb5d0a3",
+      "language": "plpgsql",
+      "leakproof": false,
+      "searchPath": [
+        "search_path=\"\""
+      ],
+      "volatility": "v",
+      "broadExecute": false,
+      "argumentTypes": "uuid, jsonb, jsonb",
       "securityDefiner": true,
       "lanes": [
         "strategy",
@@ -228,6 +252,246 @@
       "volatility": "s",
       "broadExecute": false,
       "argumentTypes": "uuid",
+      "securityDefiner": false,
+      "lanes": [
+        "strategy",
+        "naming",
+        "logo"
+      ]
+    },
+    {
+      "name": "identity_application_design_valid",
+      "owner": "postgres",
+      "schema": "fluid_private",
+      "sha256": "3464745a80bc99468fa087c91804627dae328b373167dd9ac77e689e7fa5a17c",
+      "language": "plpgsql",
+      "leakproof": false,
+      "searchPath": [
+        "search_path=\"\""
+      ],
+      "volatility": "i",
+      "broadExecute": false,
+      "argumentTypes": "jsonb, jsonb",
+      "securityDefiner": false,
+      "lanes": [
+        "strategy",
+        "naming",
+        "logo"
+      ]
+    },
+    {
+      "name": "identity_board_contrast_ratio",
+      "owner": "postgres",
+      "schema": "fluid_private",
+      "sha256": "fc859286698abe86d7d0d39ea4f6b49e0d702804c7697ce1f90ebdf7c5bba4da",
+      "language": "plpgsql",
+      "leakproof": false,
+      "searchPath": [
+        "search_path=\"\""
+      ],
+      "volatility": "i",
+      "broadExecute": false,
+      "argumentTypes": "text, text",
+      "securityDefiner": false,
+      "lanes": [
+        "strategy",
+        "naming",
+        "logo"
+      ]
+    },
+    {
+      "name": "identity_board_typography_valid",
+      "owner": "postgres",
+      "schema": "fluid_private",
+      "sha256": "819baf18330395987dcb8815d7b20a33a6e8e1c17f0dcc1139a3d8285a963dc4",
+      "language": "plpgsql",
+      "leakproof": false,
+      "searchPath": [
+        "search_path=\"\""
+      ],
+      "volatility": "i",
+      "broadExecute": false,
+      "argumentTypes": "jsonb",
+      "securityDefiner": false,
+      "lanes": [
+        "strategy",
+        "naming",
+        "logo"
+      ]
+    },
+    {
+      "name": "identity_current_logo_brief",
+      "owner": "postgres",
+      "schema": "fluid_private",
+      "sha256": "52c73f361c6dc8c17eaff9d6052854893bc0af0e28430b20f63e1386bd01caec",
+      "language": "plpgsql",
+      "leakproof": false,
+      "searchPath": [
+        "search_path=\"\""
+      ],
+      "volatility": "s",
+      "broadExecute": false,
+      "argumentTypes": "uuid, uuid",
+      "securityDefiner": true,
+      "lanes": [
+        "strategy",
+        "naming",
+        "logo"
+      ]
+    },
+    {
+      "name": "identity_current_state",
+      "owner": "postgres",
+      "schema": "fluid_private",
+      "sha256": "b351e8ea7fbade4137d44ead99cea636113c160fc675008591659461a27fc4db",
+      "language": "plpgsql",
+      "leakproof": false,
+      "searchPath": [
+        "search_path=\"\""
+      ],
+      "volatility": "s",
+      "broadExecute": false,
+      "argumentTypes": "uuid",
+      "securityDefiner": true,
+      "lanes": [
+        "strategy",
+        "naming",
+        "logo"
+      ]
+    },
+    {
+      "name": "identity_inherit_application_design",
+      "owner": "postgres",
+      "schema": "fluid_private",
+      "sha256": "3653c57b1bfe41db21be377f31eabdec08b295228d3787649580041523619737",
+      "language": "plpgsql",
+      "leakproof": false,
+      "searchPath": [
+        "search_path=\"\""
+      ],
+      "volatility": "v",
+      "broadExecute": false,
+      "argumentTypes": "",
+      "securityDefiner": true,
+      "lanes": [
+        "strategy",
+        "naming",
+        "logo"
+      ]
+    },
+    {
+      "name": "identity_job_logo_brief",
+      "owner": "postgres",
+      "schema": "fluid_private",
+      "sha256": "4b2553b6bf029bfedb325ef782e6a829a5f64ea9cc25ab32ff7f985d8ba26e09",
+      "language": "plpgsql",
+      "leakproof": false,
+      "searchPath": [
+        "search_path=\"\""
+      ],
+      "volatility": "s",
+      "broadExecute": false,
+      "argumentTypes": "uuid, uuid, uuid",
+      "securityDefiner": true,
+      "lanes": [
+        "strategy",
+        "naming",
+        "logo"
+      ]
+    },
+    {
+      "name": "identity_logo_basis",
+      "owner": "postgres",
+      "schema": "fluid_private",
+      "sha256": "0614d2e635c2c45333d42bf0bae53cbf92ee7ce89dc083b52d884152539598bc",
+      "language": "plpgsql",
+      "leakproof": false,
+      "searchPath": [
+        "search_path=\"\""
+      ],
+      "volatility": "i",
+      "broadExecute": false,
+      "argumentTypes": "uuid, uuid, jsonb, jsonb, jsonb, jsonb",
+      "securityDefiner": false,
+      "lanes": [
+        "strategy",
+        "naming",
+        "logo"
+      ]
+    },
+    {
+      "name": "identity_manifest_shape",
+      "owner": "postgres",
+      "schema": "fluid_private",
+      "sha256": "8f3e9e2788c290e6dcbb6406160a9a423b74c7096b7eea28fd3c717313b5985f",
+      "language": "plpgsql",
+      "leakproof": false,
+      "searchPath": [
+        "search_path=\"\""
+      ],
+      "volatility": "s",
+      "broadExecute": false,
+      "argumentTypes": "jsonb, uuid, uuid",
+      "securityDefiner": false,
+      "lanes": [
+        "strategy",
+        "naming",
+        "logo"
+      ]
+    },
+    {
+      "name": "identity_root_evidence",
+      "owner": "postgres",
+      "schema": "fluid_private",
+      "sha256": "4b77facd804368f2d5148731315c1b89f5fcebf58df817ce5cf22d24fdd0d39c",
+      "language": "plpgsql",
+      "leakproof": false,
+      "searchPath": [
+        "search_path=\"\""
+      ],
+      "volatility": "s",
+      "broadExecute": false,
+      "argumentTypes": "public.identity_system_versions",
+      "securityDefiner": false,
+      "lanes": [
+        "strategy",
+        "naming",
+        "logo"
+      ]
+    },
+    {
+      "name": "identity_selection_current_logo",
+      "owner": "postgres",
+      "schema": "fluid_private",
+      "sha256": "c196d4611c8eca6ab64fa470a7788629b38d94d19f5e8863989003dc0eaccd18",
+      "language": "plpgsql",
+      "leakproof": false,
+      "searchPath": [
+        "search_path=\"\""
+      ],
+      "volatility": "v",
+      "broadExecute": false,
+      "argumentTypes": "",
+      "securityDefiner": true,
+      "lanes": [
+        "strategy",
+        "naming",
+        "logo"
+      ]
+    },
+    {
+      "name": "identity_system_json",
+      "owner": "postgres",
+      "schema": "fluid_private",
+      "sha256": "16320c809130b96642e83545c0eb5e24a1dc232a1b6d2b387d6d84d07031a0a1",
+      "language": "sql",
+      "leakproof": false,
+      "searchPath": [
+        "search_path=\"\""
+      ],
+      "volatility": "s",
+      "broadExecute": false,
+      "argumentTypes": "public.identity_system_versions",
       "securityDefiner": false,
       "lanes": [
         "strategy",
@@ -948,6 +1212,26 @@
       ]
     },
     {
+      "name": "prepare_identity_transaction",
+      "owner": "fluid_identity_writer_definer_v1",
+      "schema": "fluid_private",
+      "sha256": "7eeebe5a9d06a4cf03eb172017b5287f1cfc728e8280aa9468ef1cb01ffa705d",
+      "language": "plpgsql",
+      "leakproof": false,
+      "searchPath": [
+        "search_path=\"\""
+      ],
+      "volatility": "v",
+      "broadExecute": false,
+      "argumentTypes": "uuid, jsonb, boolean",
+      "securityDefiner": true,
+      "lanes": [
+        "strategy",
+        "naming",
+        "logo"
+      ]
+    },
+    {
       "name": "refresh_shared_account",
       "owner": "postgres",
       "schema": "fluid_private",
@@ -1151,7 +1435,7 @@
       "name": "shared_identity_batch_state",
       "owner": "postgres",
       "schema": "fluid_private",
-      "sha256": "dab36c2a0267de3c3b171e013695d7dc0490f50ca88b97a94045d020c2c0eccf",
+      "sha256": "f707b734c53d20a30beb331d69ff09b7c667f75c84e1710854c1bc302f93f1e8",
       "language": "plpgsql",
       "leakproof": false,
       "searchPath": [
@@ -1191,7 +1475,7 @@
       "name": "shared_identity_complete",
       "owner": "postgres",
       "schema": "fluid_private",
-      "sha256": "4c7c098be680e3fe149cfd2808725a7dbb2f99331d92ca1df47fd2d76c573562",
+      "sha256": "a3b543f8a21a76631ee5c5f1c5b1bad1da81fbc36d6a1046d998ec774d23a050",
       "language": "plpgsql",
       "leakproof": false,
       "searchPath": [
@@ -1291,7 +1575,7 @@
       "name": "shared_identity_intent_valid",
       "owner": "postgres",
       "schema": "fluid_private",
-      "sha256": "a5eb901a08fada6b7e410bb59ee364a1d9ef495a4ad353ca4a55cb7e68cd923e",
+      "sha256": "643deafa52dbae6efc34295b3e7f8c6bb6a75d237a998c5c00760906655b7774",
       "language": "plpgsql",
       "leakproof": false,
       "searchPath": [
@@ -1311,7 +1595,7 @@
       "name": "shared_identity_job",
       "owner": "postgres",
       "schema": "fluid_private",
-      "sha256": "a3bec93ead67c4dd902e75a314df07fb8aabc994614c533d4ecf19006a21dbb7",
+      "sha256": "30174ce0109b87ea83a5a308fa0e1682776bb41c5fbe4e2a991dfd10f311b836",
       "language": "sql",
       "leakproof": false,
       "searchPath": [
@@ -1328,10 +1612,30 @@
       ]
     },
     {
+      "name": "shared_identity_logo_source_valid",
+      "owner": "postgres",
+      "schema": "fluid_private",
+      "sha256": "facf0d59cafb6afde5dd67f7f67f9179a7b3af221cc8bbbc4d0c34d00d412eb6",
+      "language": "plpgsql",
+      "leakproof": false,
+      "searchPath": [
+        "search_path=\"\""
+      ],
+      "volatility": "s",
+      "broadExecute": false,
+      "argumentTypes": "uuid, uuid, jsonb",
+      "securityDefiner": false,
+      "lanes": [
+        "strategy",
+        "naming",
+        "logo"
+      ]
+    },
+    {
       "name": "shared_identity_manifest_shape",
       "owner": "postgres",
       "schema": "fluid_private",
-      "sha256": "a3baaee3003ab465e919df946d3925073af21da862143227a3520c8acae442ec",
+      "sha256": "c6401ab0a3b1f510bc043523c0cbab32b675939609f22ca039a5cfa20b59fbb8",
       "language": "plpgsql",
       "leakproof": false,
       "searchPath": [
@@ -1351,7 +1655,7 @@
       "name": "shared_identity_observation_valid",
       "owner": "postgres",
       "schema": "fluid_private",
-      "sha256": "6d0ea089b91191d4c27d9d1726c08f4e0484b8b5a74429d5974495c8d6be949b",
+      "sha256": "a1495e0196b4c06d07a1e550f159b58f197d02e5ab55e653f5c4906110a9e358",
       "language": "plpgsql",
       "leakproof": false,
       "searchPath": [
@@ -1568,10 +1872,30 @@
       ]
     },
     {
+      "name": "shared_identity_selected_logo",
+      "owner": "postgres",
+      "schema": "fluid_private",
+      "sha256": "157404646b0ee642ced2f143127a50a84654058a6080d069398b42255ffd6bb7",
+      "language": "plpgsql",
+      "leakproof": false,
+      "searchPath": [
+        "search_path=\"\""
+      ],
+      "volatility": "s",
+      "broadExecute": false,
+      "argumentTypes": "uuid, uuid",
+      "securityDefiner": false,
+      "lanes": [
+        "strategy",
+        "naming",
+        "logo"
+      ]
+    },
+    {
       "name": "shared_identity_stage",
       "owner": "postgres",
       "schema": "fluid_private",
-      "sha256": "e8097ea64d7298b74914b571e1d23c275d71108c5f7afb67793bdd37d0e6461f",
+      "sha256": "9cc3d2172cc13fd41323730b137cfab487c7cff524f157a99c0e851a0ad489dc",
       "language": "plpgsql",
       "leakproof": false,
       "searchPath": [
@@ -1591,7 +1915,7 @@
       "name": "shared_identity_storage_member",
       "owner": "postgres",
       "schema": "fluid_private",
-      "sha256": "683c22094d18990649c1d4b9c25929b3d6a2054c602e2c400126283fc73a0d9b",
+      "sha256": "15c1a74fa9bd6a05534347a9a3e3426f39694e5b73d8ad295af7c4497e55c270",
       "language": "plpgsql",
       "leakproof": false,
       "searchPath": [
@@ -4647,7 +4971,7 @@
       "name": "ensure_shared_identity_batch",
       "owner": "postgres",
       "schema": "public",
-      "sha256": "6039db6d7d94d14e595d266136b38fb60dccc26e4cead23a79518204bae863ef",
+      "sha256": "8ef50b5b3b9b4ee55fd12bc0c667cf3064ceb447036bc5f1f4bb82afc622abcc",
       "language": "plpgsql",
       "leakproof": false,
       "searchPath": [
@@ -4792,6 +5116,26 @@
       "lanes": []
     },
     {
+      "name": "get_identity_logo_source",
+      "owner": "postgres",
+      "schema": "public",
+      "sha256": "44f56e839a22585a4a321ec4c2423ea8b37aeeacc4b761d62d0426933bd02174",
+      "language": "plpgsql",
+      "leakproof": false,
+      "searchPath": [
+        "search_path=\"\""
+      ],
+      "volatility": "s",
+      "broadExecute": true,
+      "argumentTypes": "uuid, uuid",
+      "securityDefiner": true,
+      "lanes": [
+        "strategy",
+        "naming",
+        "logo"
+      ]
+    },
+    {
       "name": "get_naming_brainstorm_sources",
       "owner": "postgres",
       "schema": "public",
@@ -4835,7 +5179,7 @@
       "name": "get_shared_identity_availability",
       "owner": "postgres",
       "schema": "public",
-      "sha256": "8bf081c533cd9cf1f506d850f7be45ff45ea0035db5e02458731af84d3cdca2c",
+      "sha256": "f14686c3fcf29159065f15c44e817bb7e73e7dc14502baf59e59448cb8ad8dc3",
       "language": "plpgsql",
       "leakproof": false,
       "searchPath": [
@@ -5252,6 +5596,26 @@
       "volatility": "v",
       "broadExecute": false,
       "argumentTypes": "jsonb, integer",
+      "securityDefiner": true,
+      "lanes": [
+        "strategy",
+        "naming",
+        "logo"
+      ]
+    },
+    {
+      "name": "request_job_cancel",
+      "owner": "postgres",
+      "schema": "public",
+      "sha256": "b282ca8bccfb41b7f079460aa1aee3343ff5ddd2e2e60a1bb42a75be9f3d08a3",
+      "language": "plpgsql",
+      "leakproof": false,
+      "searchPath": [
+        "search_path=\"\""
+      ],
+      "volatility": "v",
+      "broadExecute": true,
+      "argumentTypes": "uuid",
       "securityDefiner": true,
       "lanes": [
         "strategy",

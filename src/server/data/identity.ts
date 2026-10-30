@@ -6,6 +6,9 @@ import {
  identitySystemVersionSchema,identitySelectionSchema,identityComponentChangeSchema,validateIdentityRefinement,identitySystemCursorSchema,listIdentitySystemsSchema,projectIdentityOverviewSchema,identitySystemPageSchema,identitySystemDetailSchema,
  initialIdentityPreferences,getIdentityCurrentBasis,getIdentityReadiness,getIdentityFreshness,summarizeIdentitySystem,
 } from "@/domain/project-identity";
+import { logoBriefRevisionSchema } from "@/domain/logo-workspace";
+import { identityLogoSourceSchema } from "@/domain/identity-logo-source";
+import { isSharedWorkerRuntime } from "../shared-account/routing";
 import { identityGeneratedSystemBindingSchema } from "@/domain/identity-jobs";
 import { identityReferenceSnapshotSchema } from "@/domain/identity-references";
 import type { AuthenticatedContext } from "../auth/context";
@@ -50,7 +53,7 @@ function verifyProofs(proofs:z.infer<typeof proofsSchema>,systems:Array<z.infer<
  }
  for(const system of systems){verify(system.id);invariant(same(records.get(system.id)!.system,system));}
 }
-const stateFields={project:identityProjectSchema,session:identitySessionSchema.nullable(),preferences:identityPreferenceRevisionSchema.nullable(),referenceSnapshot:identityReferenceSnapshotSchema};
+const stateFields={logoBrief:logoBriefRevisionSchema.optional(),project:identityProjectSchema,session:identitySessionSchema.nullable(),preferences:identityPreferenceRevisionSchema.nullable(),referenceSnapshot:identityReferenceSnapshotSchema};
 const historyTransportSchema=z.strictObject({...stateFields,proofs:proofsSchema,history:z.strictObject({query:listIdentitySystemsSchema,records:z.array(identitySystemVersionSchema).max(50),nextCursor:identitySystemCursorSchema.nullable()}),selection:z.strictObject({selection:identitySelectionSchema,system:identitySystemVersionSchema}).nullable()});
 const detailTransportSchema=z.strictObject({...stateFields,proofs:proofsSchema,system:identitySystemVersionSchema});
 type CurrentState=z.infer<z.ZodObject<typeof stateFields>>;
@@ -60,7 +63,7 @@ function checkState(auth:AuthenticatedContext,id:string,state:CurrentState){
  invariant(owned(state.referenceSnapshot) && (!state.session || owned(state.session)) && (!state.preferences || owned(state.preferences)) &&
   (state.session ? state.session.currentPreferencesRevision===(state.preferences?.revision??0) : state.preferences===null));
  const preferences=state.preferences?.preferences??initialIdentityPreferences(state.project.context);
- return getIdentityCurrentBasis({ownerId:auth.userId,projectId:id,context:state.project.context,references:state.referenceSnapshot,preferences});
+ return getIdentityCurrentBasis({ownerId:auth.userId,projectId:id,context:state.project.context,references:state.referenceSnapshot,preferences,...(state.logoBrief?{logoBrief:state.logoBrief}:{})});
 }
 function historyQuery(value:unknown,id?:string){
  let normalized=value;
@@ -81,15 +84,24 @@ async function readHistory(auth:AuthenticatedContext,id:string,value:unknown,rpc
  const systems=stored(identitySystemPageSchema,{ownerId:auth.userId,projectId:id,query,items:response.history.records.map(system=>summarizeIdentitySystem(system,currentBasis)),nextCursor:response.history.nextCursor});
  return {response,currentBasis,systems};
 }
+const sourceStateSchema = z.strictObject({ sourceLogo: identityLogoSourceSchema, sourceLogoCurrent: z.boolean() });
+async function logoSourceState(auth: AuthenticatedContext, id: string, systemId: string) {
+ if (!isSharedWorkerRuntime()) return {};
+ const result = await auth.client.rpc("get_identity_logo_source", { p_project_id: id, p_system_version_id: systemId });
+ databaseError(result.error);
+ const source = stored(sourceStateSchema.nullable(), result.data);
+ if (source) invariant(source.sourceLogo.brief.ownerId === auth.userId && source.sourceLogo.brief.projectId === id);
+ return source ?? {};
+}
 export async function getProjectIdentity(auth:AuthenticatedContext,id:string,value:unknown={}){
  id=projectId(id);const {response,currentBasis,systems}=await readHistory(auth,id,value,"get_project_identity");
  const lease=await acquireAccountIdentityRuntime(auth);
  try {
  const runtime=lease.value??(!lease.configured?await resolveDevelopmentIdentityRuntime(auth.userId):null);
  return stored(projectIdentityOverviewSchema,{ownerId:auth.userId,projectId:id,project:response.project,session:response.session,preferences:response.preferences,
-  referenceSnapshot:response.referenceSnapshot,currentBasis,readiness:getIdentityReadiness(response.project.context,response.project.scope,response.referenceSnapshot),systems,
+  ...(response.logoBrief?{logoBrief:response.logoBrief}:{}),referenceSnapshot:response.referenceSnapshot,currentBasis,readiness:getIdentityReadiness(response.project.context,response.project.scope,response.referenceSnapshot),systems,
   saveAvailability:runtime?.saveAvailability??productionIdentitySaveAvailability,
-  currentSelection:response.selection?{...response.selection,freshness:getIdentityFreshness(response.selection.system.input.basis,currentBasis)}:null});
+  currentSelection:response.selection?{...response.selection,...await logoSourceState(auth,id,response.selection.system.id),freshness:getIdentityFreshness(response.selection.system.input.basis,currentBasis)}:null});
  } finally {await lease.release();}
 }
 export async function listIdentitySystems(auth:AuthenticatedContext,id:string,value:unknown={}){
@@ -100,7 +112,7 @@ export async function getIdentitySystem(auth:AuthenticatedContext,id:string,syst
  const response=stored(detailTransportSchema,result.data);const currentBasis=checkState(auth,id,response);
  verifyProofs(response.proofs,[response.system],auth.userId,id);
  if(response.system.id!==systemId)throw new ApiError("not_found");
- return stored(identitySystemDetailSchema,{ownerId:auth.userId,projectId:id,system:response.system,currentBasis,freshness:getIdentityFreshness(response.system.input.basis,currentBasis)});
+ return stored(identitySystemDetailSchema,{ownerId:auth.userId,projectId:id,system:response.system,currentBasis,...await logoSourceState(auth,id,systemId),freshness:getIdentityFreshness(response.system.input.basis,currentBasis)});
 }
 export function readIdentityQuery(request:Request){
  const params=new URL(request.url).searchParams;const value:Record<string,unknown>={};

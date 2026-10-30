@@ -7,11 +7,11 @@ import type { ClaimedJob } from "../../src/domain/jobs";
 import type { IdentitySystemVersion } from "../../src/domain/project-identity";
 import type { LogoWorkerConnection } from "../../src/server/data/logo-jobs";
 import type { IdentityAssetStore } from "../../src/server/data/identity-asset-store";
-import { batchId, capability, hash, id, imageConfiguration, imageUsage, jobId, jobInput, leaseToken, ownerId, projectId, response, specification, textPolicy, timestamp } from "./identity-generation-fixture";
+import { selectedLogoJobInput, boardSpecification, batchId, capability, hash, id, imageConfiguration, imageUsage, jobId, jobInput, leaseToken, ownerId, projectId, response, specification, textPolicy, timestamp } from "./identity-generation-fixture";
 let reference:Uint8Array;const boards:Uint8Array[]=[];
 beforeAll(async()=>{reference=new Uint8Array(await sharp({create:{width:1024,height:1024,channels:3,background:"#999999"}}).png().toBuffer());for(const color of ["#dd6677","#4488cc","#226644"])boards.push(new Uint8Array(await sharp({create:{width:1024,height:1024,channels:3,background:color}}).png().toBuffer()));});
-function fixture(){
- const input=jobInput(hash(reference)),job:ClaimedJob={id:jobId,ownerId,projectId,operation:"identity.image",input,inputRevision:1,leaseToken,status:"running",reservedCostMicrousd:0,actualCostMicrousd:0};
+function fixture(selectedLogo=false){
+ const input=selectedLogo?selectedLogoJobInput(reference):jobInput(hash(reference)),job:ClaimedJob={id:jobId,ownerId,projectId,operation:"identity.image",input,inputRevision:1,leaseToken,status:"running",reservedCostMicrousd:0,actualCostMicrousd:0};
  const systems:IdentitySystemVersion[]=[],observations:IdentityGenerationObservation[]=[],knownCalls=new Map<string,unknown>();let callCounter=100,publishCounter=200,imageCounter=0,textCounter=0;
  const querySpy=vi.fn(),assertAvailable=vi.fn(async()=>{}),onAuthorize=vi.fn(async()=>{}),onStage=vi.fn(async()=>{});
  const connection:LogoWorkerConnection={async query<Row>(sql:string,parameters:unknown[]=[]){querySpy(sql,parameters);let value:unknown;
@@ -24,7 +24,7 @@ function fixture(){
  const publishLeasedAsset=vi.fn<IdentityAssetStore["publishLeasedAsset"]>(async(_job,publication,bytes)=>({id:id(publishCounter++),reference:{assetId:id(300),versionId:id(publishCounter++),ownerId,projectId,contentHash:hash(bytes)},verification:{status:"verified" as const,checkedAt:timestamp,mimeType:"image/png",byteLength:bytes.byteLength,contentHash:hash(bytes)},purpose:"brand_asset",sourceReceiptId:publication.source.sourceId,rightsEvidenceId:null,publicationState:"staged"}));
  const readLeasedAsset=vi.fn<IdentityAssetStore["readLeasedAsset"]>(async(_job,ref)=>({reference:ref,mimeType:"image/png",bytes:Uint8Array.from(reference),verification:{status:"verified" as const,checkedAt:timestamp,mimeType:"image/png",byteLength:reference.byteLength,contentHash:hash(reference)}}));
  const assets:IdentityAssetStore={publishLeasedAsset,readLeasedAsset,stageOwnedAsset:vi.fn(),publishOwnedUpload:vi.fn(),readOwnedAsset:vi.fn()};
- const createResponse=vi.fn(async()=>response(specification(++textCounter))),countInputTokens=vi.fn(async()=>100),createImage=vi.fn(async()=>({bytes:boards[imageCounter++]!,mimeType:"image/png" as const,providerRequestId:"req_board",responseHash:"b".repeat(64),usage:imageUsage}));
+ const createResponse=vi.fn(async()=>response(selectedLogo?boardSpecification(++textCounter):specification(++textCounter))),countInputTokens=vi.fn(async()=>100),createImage=vi.fn(async(request:import("../../src/server/logo-creation/openai-image-transport").OpenAIImageRequest)=>{void request;return {bytes:boards[imageCounter++]!,mimeType:"image/png" as const,providerRequestId:"req_board",responseHash:"b".repeat(64),usage:imageUsage};});
  const options={ownerId,capability,textProvider:{apiKey:"synthetic-test-only",model:textPolicy.model},image:imageConfiguration,connection,assets,assertAvailable,textTransport:{countInputTokens,createResponse},imageTransport:{createImage}};
  return{job,options,systems,observations,knownCalls,querySpy,onAuthorize,onStage,publishLeasedAsset,readLeasedAsset,assertAvailable,createResponse,createImage};
 }
@@ -41,4 +41,22 @@ describe("Full Identity system pipeline — real raster inspection, mocked provi
  it("reuses the exact settled specification after Stop without another text create",async()=>{const f=fixture();f.createResponse.mockImplementationOnce(async()=>{f.assertAvailable.mockRejectedValueOnce(Error("Stopped before board"));return response(specification());});expect((await run(f)).status).toBe("needs_reconciliation");expect(f.createImage).not.toHaveBeenCalled();expect((await run(f)).status).toBe("succeeded");expect(f.createResponse).toHaveBeenCalledTimes(1);expect(f.createImage).toHaveBeenCalledTimes(1);});
  it("never recreates either paid call after a saved board receipt and lost stage ACK",async()=>{const f=fixture();f.onStage.mockRejectedValue(Error("stage ACK lost"));expect((await run(f)).status).toBe("needs_reconciliation");f.onStage.mockResolvedValue();const retry=await run(f);expect(retry).toMatchObject({status:"needs_reconciliation",code:"identity_known_board_requires_readback",costMicrousd:8700});expect(f.createResponse).toHaveBeenCalledTimes(1);expect(f.createImage).toHaveBeenCalledTimes(1);});
  it("does not turn a missing text credential into image-only generation",()=>{const f=fixture();expect(createIdentityGenerationRuntimeAdapter({...f.options,textProvider:{apiKey:"",model:textPolicy.model}})).toBeNull();expect(f.createImage).not.toHaveBeenCalled();});
+ it("uses the exact selected raster first with no supplemental references and preserves its saved brief/specification",async()=>{
+  const f=fixture(true),result=await run(f);expect(result.status).toBe('succeeded');
+  const input=selectedLogoJobInput(reference);if(input.version!==3||result.status!=='succeeded')throw Error('Expected selected-logo output');
+  expect(f.readLeasedAsset.mock.calls[0]![1]).toEqual(input.sourceLogo.preview.reference);
+  expect(f.readLeasedAsset).toHaveBeenCalledTimes(1);
+  const request=f.createImage.mock.calls[0]![0] as import('../../src/server/logo-creation/openai-image-transport').OpenAIImageRequest;
+  expect(request.images).toHaveLength(1);expect(request.images[0]!.reference).toEqual(input.sourceLogo.preview.reference);
+  expect(request.prompt).toContain('Keep its exact symbol');
+  const output=identityStepOutputSchema.parse(result.result).identity;
+  expect(output.input.context.description).toBe('');expect(output.input.basis.name).toBe('Logo fixture');
+  expect(output.systems[0]!.applicationDesign).toEqual(boardSpecification().applicationDesign);
+ });
+ it("rejects changed selected-logo bytes before any provider dispatch",async()=>{
+  const f=fixture(true),read=f.readLeasedAsset.getMockImplementation()!;
+  f.readLeasedAsset.mockImplementation(async(...args)=>{const actual=await read(...args);return {...actual,bytes:Uint8Array.from(boards[0]!),verification:{...actual.verification,contentHash:hash(boards[0]!)}};});
+  expect((await run(f)).status).toBe('failed');expect(f.createResponse).not.toHaveBeenCalled();expect(f.createImage).not.toHaveBeenCalled();
+ });
+
 });

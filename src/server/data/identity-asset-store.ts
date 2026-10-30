@@ -128,7 +128,8 @@ export function createIdentityAssetStore(dependencies:IdentityAssetStoreDependen
   readOwnedAsset:(auth,reference,signal)=>read({kind:"owned",auth,ownerId:logoOwner(auth),projectId:logoId(reference.projectId)},reference,signal),
   readLeasedAsset:async(job,reference,signal)=>{const access=leased(job);if(job.operation==="identity.image"){
    const input=parseLogoStored(identityGenerationJobInputSchema,job.input);
-   if(!input.input.referenceSnapshot.selected.some(entry=>sameReference(entry.reference.media,reference)))throw new ApiError("not_found");
+   if(!(input.version===3&&sameReference(input.sourceLogo.preview.reference,reference))
+     &&!input.input.referenceSnapshot.selected.some(entry=>sameReference(entry.reference.media,reference)))throw new ApiError("not_found");
   }return read(access,reference,signal);},
  };
 }
