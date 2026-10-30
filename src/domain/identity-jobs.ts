@@ -2,10 +2,11 @@ import { z } from "zod";
 import { jobStatusSchema, moneySchema } from "./jobs";
 import { IMAGE_MODEL } from "./providers";
 import { identityLogoSourceSchema } from "./identity-logo-source";
+import { brandBoardApplicationDesignSchema } from "./brand-board-design";
 import { logoRasterSourceSchema } from "./logo-workspace";
 import { logoVectorProposalUsageSchema } from "./logo-vector-proposal-jobs";
 import {
-  identityComponentsSchema, identityInputSnapshotSchema, identitySystemAssetSchema, identitySystemVersionSchema,
+  identityComponentsSchema, identityInputSnapshotSchema, identitySystemAssetSchema, identitySystemVersionSchema, validIdentityApplicationDesign,
   type IdentitySystemAsset, type IdentitySystemVersion,
 } from "./project-identity";
 
@@ -247,9 +248,10 @@ const legacyIdentityGenerationJobInputSchema = z.strictObject({
 export const identityGenerationJobInputSchema = z.union([
   legacyIdentityGenerationJobInputSchema,
   legacyIdentityGenerationJobInputSchema.extend({ version: z.literal(3), sourceLogo: identityLogoSourceSchema }),
-]).refine(v => sameScope(v,v.input) && (v.version !== 3 || sameScope(v, v.sourceLogo.brief)), "Job must capture its actual owned full input and logo");
+]).refine(v => sameScope(v,v.input) && (v.version !== 3 || sameScope(v, v.sourceLogo.brief) && v.input.version === 2 && same(v.input.logoBrief, v.sourceLogo.brief)), "Job must capture its actual owned full input and logo");
 export type IdentityGenerationJobInput = z.infer<typeof identityGenerationJobInputSchema>;
-export const identitySystemSpecificationSchema = z.strictObject({ components: identityComponentsSchema, boardPrompt: z.string().trim().min(1).max(6000) });
+export const identitySystemSpecificationSchema = z.strictObject({ components: identityComponentsSchema, boardPrompt: z.string().trim().min(1).max(6000), applicationDesign: brandBoardApplicationDesignSchema.optional() })
+  .refine(v => !v.applicationDesign || validIdentityApplicationDesign(v.components, v.applicationDesign), "Application design must reference actual specification components");
 export type IdentitySystemSpecification = z.infer<typeof identitySystemSpecificationSchema>;
 const imageCount = z.number().int().nonnegative().max(1_000_000_000);
 /** Passive copy of the existing Images usage contract; no server imports enter the domain graph. */
@@ -273,9 +275,10 @@ export type IdentityGenerationProviderReceipt=z.infer<typeof identityGenerationP
 export const identityBatchStateSchema=z.strictObject({ownerId:z.uuid(),projectId:z.uuid(),batchId:z.uuid(),jobId:z.uuid(),status:jobStatusSchema,terminal:z.boolean(),
   intent:identityGenerationIntentSchema,input:identityInputSnapshotSchema,systems:generatedSystemsSchema,fulfillment:identityFulfillmentSchema,
   sourceLogo:identityLogoSourceSchema.optional(),sourceLogoCurrent:z.boolean().optional(),
+  usage:z.strictObject({status:z.enum(["pending","recorded","unknown"]),knownCostMicrousd:moneySchema}).optional(),
 }).superRefine((v,ctx)=>{
   if ("version" in v.intent && v.intent.version === 3) {
-    if (!v.sourceLogo || typeof v.sourceLogoCurrent !== "boolean" || !sameScope(v, v.sourceLogo.brief)
+    if (!v.sourceLogo || !v.usage || typeof v.sourceLogoCurrent !== "boolean" || !sameScope(v, v.sourceLogo.brief)
       || !same(v.intent.sourceLogo, v.sourceLogo.source) || v.intent.expectedLogoRevision !== v.sourceLogo.selectionRevision)
       issue(ctx, "Logo board batches must retain the exact admitted selection and current-source status");
   } else if (v.sourceLogo || v.sourceLogoCurrent !== undefined) issue(ctx, "Historical system batches cannot invent a selected logo");
