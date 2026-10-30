@@ -9,5 +9,5 @@ export function projectStartDraft(input: Pick<LocalDraft, "scope" | "description
 }
 
 export function projectStartHref(projectId: string, scope: ProjectScope) {
-  return `/brands/account/${projectId}${scope === "naming_only" ? "/naming" : ""}`;
+  return `/brands/account/${projectId}${scope === "naming_only" ? "/naming" : scope === "visual_identity_only" ? "/logo" : ""}`;
 }

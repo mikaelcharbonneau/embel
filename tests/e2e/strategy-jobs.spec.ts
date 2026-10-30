@@ -3,6 +3,7 @@ import { expect, test, type Page, type Route } from "@playwright/test";
 import { accountProjectSchema } from "../../src/domain/project-api";
 import { contextSnapshotSchema } from "../../src/domain/projects";
 import { DEFAULT_SUBSCRIPTION_LIMITS, strategyJobSchema, type StrategyJob, type StrategyOperation } from "../../src/domain/strategy-jobs";
+import { emptyLogoWorkspace } from "../fixtures/empty-logo-workspace";
 
 // Every provider, account and job response is a synthetic intercepted fixture. No live inference.
 const owner = "aaaaaaaa-1111-4111-8111-111111111111";
@@ -42,6 +43,7 @@ async function fixtures(page: Page) {
     if (path === "/api/session") return reply(route, { user: { id: state.owner } });
     if (path === "/api/strategy") return reply(route, { availability });
     if (state.owner !== owner) return reply(route, { error: "Synthetic unavailable account" }, 404);
+    if (path === `/api/projects/${projectId}/logo` && request.method() === "GET") return reply(route, emptyLogoWorkspace(state.project));
     if (path === `/api/projects/${projectId}/idea-source` || path === `/api/projects/${projectId}/standalone-source`) return reply(route, { ownerId: owner, projectId, source: null });
     if (path === `/api/projects/${projectId}/idea-attachments`) return reply(route, { ownerId: owner, projectId, items: [], nextCursor: null });
     if (path === "/api/projects" && request.method() === "POST") {

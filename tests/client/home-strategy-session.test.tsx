@@ -215,16 +215,16 @@ describe("Home account persistence and sign-in continuation", () => {
     expect(host.querySelector(".home-composer")).toBeNull();
   });
 
-  it("sends a Name straight to the same saved project Naming route without researching competitors", async () => {
+  it.each([["Name", "naming_only", "naming"], ["System", "visual_identity_only", "logo"]] as const)("sends %s straight to its saved workspace without researching competitors", async (label, scope, destination) => {
     await render();
     await act(async () => host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.click());
-    await act(async () => [...host.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')].find(button => button.textContent === "Name")!.click());
+    await act(async () => [...host.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')].find(button => button.textContent === label)!.click());
     const reads = fetcher.mock.calls.filter(([path]) => path === "/api/strategy").length;
     await click("Send prompt");
     const body = JSON.parse(String(creations()[0]![1].body));
-    expect(body.scope).toBe("naming_only"); expect(body.context.intake.guidedInterview).toBeUndefined();
+    expect(body.scope).toBe(scope); expect(body.context.intake.guidedInterview).toBeUndefined();
     expect(mutations()).toHaveLength(1); expect(fetcher.mock.calls.filter(([path]) => path === "/api/strategy")).toHaveLength(reads);
-    expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${body.requestKey}/naming`);
+    expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${body.requestKey}/${destination}`);
   });
 
   it("creates signed-in work with 50 legacy drafts without modifying their durable bytes", async () => {

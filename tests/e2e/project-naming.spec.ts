@@ -1,4 +1,5 @@
 import { expectProjectCanvas } from "./project-canvas-contract";
+import { emptyLogoWorkspace } from "../fixtures/empty-logo-workspace";
 import { captureUiEvidence } from "./ui-evidence";
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { accountProjectSchema, accountProjectSummarySchema, type AccountProject } from "../../src/domain/project-api";
@@ -110,6 +111,8 @@ async function fixtures(page: Page, scope: ProjectScope = "naming_only") {
       return routeResponse(route, { ownerId, workspace: { id: uuid("abababab", 999), ownerId, revision: Math.max(1, state.namesRevision), payload: state.names, createdAt: when, updatedAt: when } });
     }
     if (state.ownerId !== ownerId) return routeResponse(route, {}, 404);
+    if (path === `/api/projects/${projectId}/logo` && method === "GET") return routeResponse(route, emptyLogoWorkspace(state.project));
+    if (state.newProject && path === `/api/projects/${state.newProject.id}/logo` && method === "GET") return routeResponse(route, emptyLogoWorkspace(state.newProject));
     if (path === "/api/strategy") return routeResponse(route, { availability: { status: "unavailable", operations: [], reason: "runtime_disabled" } });
     if (path === `/api/projects/${projectId}/strategy`) return routeResponse(route, { availability: { status: "unavailable", operations: [], reason: "runtime_disabled" }, jobs: [] });
     if (path === `/api/projects/${projectId}`) return routeResponse(route, { project: state.project });

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { AccountProjectEditor } from "@/components/workspace/account-project-editor";
+import { AccountProjectEntry } from "@/components/workspace/account-project-entry";
 
 export const metadata: Metadata = { title: "Account brand" };
-export default async function AccountBrandPage({ params }: { params: Promise<{ projectId: string }> }) {
+export default async function AccountBrandPage({ params, searchParams }: { params: Promise<{ projectId: string }>; searchParams: Promise<{ view?: string }> }) {
   const { projectId } = await params;
-  return <AccountProjectEditor key={projectId} projectId={projectId} />;
+  return <AccountProjectEntry key={projectId} projectId={projectId.toLowerCase()} view={(await searchParams).view} />;
 }

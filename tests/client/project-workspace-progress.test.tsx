@@ -88,7 +88,7 @@ describe("project workspace retains account and saved-state safety without proje
     else expect(drafts.get(projectId)?.saved).toBe(saved);
     if (state === "conflict") {
       expect(host.textContent).toContain("A newer project version is saved. Your edits are kept in this tab.");
-      expect(host.querySelector(`a[href="/brands/account/${projectId}"]`)?.textContent).toContain("Resolve in Strategy");
+      expect(host.querySelector(`a[href="/brands/account/${projectId}?view=strategy"]`)?.textContent).toContain("Resolve in Strategy");
     }
   });
   it("keeps one content frame and focused editor without bars through every actual project subpage", async () => {
@@ -131,7 +131,7 @@ describe("project workspace retains account and saved-state safety without proje
     expectNoProjectBars();
     expect(drafts.get(projectId)?.saved.context.selectedName).toBe("Luma");
     expect(host.textContent).toContain("Luma"); expect(host.textContent).toContain("Strategy needs review");
-    expect(host.querySelector(`a[href="/brands/account/${projectId}#strategy-brief"]`)?.textContent).toBe("Continue Strategy review");
+    expect(host.querySelector(`a[href="/brands/account/${projectId}?view=strategy#strategy-brief"]`)?.textContent).toBe("Continue Strategy review");
   });
   it("shows actual stale Logo work without counting it as current approval", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => response())); await render(createElement(Evidence, { needsReview: true }));

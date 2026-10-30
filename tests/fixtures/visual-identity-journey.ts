@@ -55,10 +55,10 @@ export function createVisualJourneyFixture(options: { standalone?: boolean } = {
   const conceptStage = logoStageRevisionSchema.parse({ ...brief, id: id(800), stage: "concepts", inputRevisions: [{ stage: "brief_references", id: brief.id, revision: brief.revision }],
     payload: { batchIds: [logoBatch.id], selected } }) as LogoStageRevision<"concepts">;
   const foundation = own(syntheticLogoWorkspace());
-  const workspace = logoWorkspaceV2Schema.parse({ ...foundation, heads: { ...foundation.heads, projectRevision: input.projectRevision,
+  const workspace = structuredClone(logoWorkspaceV2Schema.parse({ ...foundation, heads: { ...foundation.heads, projectRevision: input.projectRevision,
     referenceRevision: input.referenceSnapshot.referenceRevision, workspaceRevision: 2, stageRevisions: { ...foundation.heads.stageRevisions, brief_references: 1, concepts: 1 } },
     stages: { ...foundation.stages, brief_references: { stage: "brief_references", id: brief.id, revision: 1 }, concepts: { stage: "concepts", id: conceptStage.id, revision: 1 } },
-    capabilities: { ...foundation.capabilities, save: { status: "available" } } });
+    capabilities: { ...foundation.capabilities, save: { status: "available" } } }));
   const sourceLogo = identityLogoSourceSchema.parse({ version: 1, source: selected, selectionRevision: 1, logoType: logoBatch.slots[0]!.type, brief,
     preview: logoBatch.slots[0]!.acceptedPreview });
   const stages = new Map<string, LogoStageRevision>([[brief.id, brief], [conceptStage.id, conceptStage]]);

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { jobStatusSchema } from "./jobs";
 import { operationSchema } from "./providers";
+import { projectStrategyHref } from "./project-handoff";
 
 export const activeJobStates = ["queued", "running", "cancel_requested", "needs_reconciliation"] as const;
 export const jobActivityEntrySchema = z.strictObject({
@@ -29,8 +30,9 @@ const operationLabels: Record<JobActivityEntry["operation"], string> = {
 };
 export const jobOperationLabel = (operation: JobActivityEntry["operation"]) => operationLabels[operation];
 export function jobActivityHref(job: Pick<JobActivityEntry, "projectId" | "operation">) {
+  if (job.operation.startsWith("strategy.")) return projectStrategyHref(job.projectId);
   const suffix: Partial<Record<JobActivityEntry["operation"], string>> = {
-    "naming.generate": "/naming", "identity.logo_concept": "/logo", "identity.logo_refine": "/logo",
+    "naming.generate": "/naming", "identity.image": "/logo/directions", "identity.logo_concept": "/logo", "identity.logo_refine": "/logo",
     "identity.logo_vector_propose": "/logo/vector", "identity.logo_vectorize": "/logo/vector", "identity.logo_directions": "/logo/directions", "identity.logo_export": "/logo/deliverables",
   };
   return `/brands/account/${job.projectId}${suffix[job.operation] ?? ""}`;

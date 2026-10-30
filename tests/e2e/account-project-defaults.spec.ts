@@ -4,6 +4,7 @@ import { accountProjectSchema, accountProjectSummarySchema, type AccountProject 
 import { accountProjectDraft } from "../../src/components/workspace/project-draft-adapter";
 import { contextSnapshotSchema } from "../../src/domain/projects";
 import { accountProjectPageSchema } from "../../src/domain/project-pages";
+import { emptyLogoWorkspace } from "../fixtures/empty-logo-workspace";
 
 // All account and provider endpoints are synthetic local route fixtures.
 const owner = "aaaaaaaa-1111-4111-8111-111111111111";
@@ -36,6 +37,7 @@ async function setup(page: Page, initial: AccountProject[] = []) {
       return reply({ project: saved }, 201);
     }
     const saved = state.projects.get(path.split("/")[3]!);
+    if (saved && path === `/api/projects/${saved.id}/logo` && request.method() === "GET") return reply(emptyLogoWorkspace(saved));
     if (saved && path === `/api/projects/${saved.id}`) {
       if (request.method() === "GET") return reply({ project: saved });
       const body = request.postDataJSON(); state.patches.push(request.postData()!);
@@ -100,7 +102,10 @@ test("account default: failed automatic answer save stays retained and retries i
   state.patchStatus = 200; state.runtimeReady = false;
   await page.getByRole("button", { name: "Retry save", exact: true }).click();
   await expect.poll(() => state.projects.get(projectId)?.current_revision).toBe(2);
-  await expect(page.locator(".save-label")).toHaveText("Saved");
+  await page.getByRole("button", { name: "Edit brief", exact: true }).click();
+  const editor = page.getByRole("dialog", { name: "Edit current brief", exact: true });
+  await expect(editor.getByRole("status")).toHaveText("Saved");
+  await editor.getByRole("button", { name: "Close", exact: true }).click();
   await expectProjectCanvas(page);
   await expect(page.getByText(/Your answer is kept in this tab, but saving was not confirmed/)).toHaveCount(0);
   expect(state.patches).toHaveLength(2); expect(state.patches[1]).toBe(state.patches[0]);

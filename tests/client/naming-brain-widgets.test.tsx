@@ -22,7 +22,9 @@ async function render(memory: ReturnType<typeof createNamingBrainMemory>, start 
 it("focuses the next question on commit without a later animation frame stealing a keyboard choice", async () => {
   const frames: FrameRequestCallback[] = [];
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { frames.push(callback); return frames.length; });
-  const { memory } = memoryWithSave(); await render(memory); await click("Real words");
+  const { memory } = memoryWithSave(); await render(memory);
+  expect([...host.querySelectorAll("a")].find(link => link.textContent === "Open the Strategy conversation")?.getAttribute("href")).toBe(`/brands/account/${projectId}?view=strategy`);
+  await click("Real words");
   await act(async () => { button("Continue").focus(); button("Continue").click(); });
   const choice = button("Explore all"); choice.focus();
   await act(async () => { for (const frame of frames.splice(0)) frame(16); });
