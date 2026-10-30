@@ -27,19 +27,29 @@ function OwnedBrandAssets({ account, projectId }: { account: VerifiedAccount; pr
   const { client } = identity;
   const system = identity.checked ? identity.overview?.currentSelection?.system ?? null : null;
   const batchId = system?.source.kind === "generated" ? system.source.batchId : null;
-  const [check, setCheck] = useState<{ client: typeof client; batchId: string; batch: IdentityBatchState | null; error: string | null } | null>(null);
+  const [check, setCheck] = useState<{ client: typeof client; batchId: string; attempt: number; batch: IdentityBatchState | null; error: string | null } | null>(null);
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
-    if (!client || !batchId) return;
+    if (!client || !batchId || !client.current() || !isCurrent(account)) return;
     const controller = new AbortController();
-    void client.batch(batchId, controller.signal).then(batch => {
-      if (!controller.signal.aborted && client.current()) setCheck({ client, batchId, batch, error: batch ? null : "The saved direction could not be checked." });
-    }).catch(() => {
-      if (!controller.signal.aborted && client.current()) setCheck({ client, batchId, batch: null, error: "The saved direction could not be checked. Your files are kept." });
-    });
-    return () => controller.abort();
-  }, [client, batchId, attempt]);
-  const checked = check?.client === client && check.batchId === batchId ? check : null;
+    let active = true;
+    const finish = (batch: IdentityBatchState | null, error: string | null) => {
+      if (!active) return;
+      active = false; clearTimeout(timeout);
+      if (client.current() && isCurrent(account)) setCheck({ client, batchId, attempt, batch, error });
+    };
+    const timeout = setTimeout(() => {
+      // Settle even if a stalled response does not acknowledge cancellation.
+      finish(null, "The saved direction took too long to load. Please try again. Your files are kept.");
+      controller.abort();
+    }, 30_000);
+    void client.batch(batchId, controller.signal).then(
+      batch => finish(batch, batch ? null : "The saved direction could not be checked."),
+      () => finish(null, "The saved direction could not be checked. Your files are kept."),
+    );
+    return () => { active = false; clearTimeout(timeout); controller.abort(); };
+  }, [client, batchId, attempt, account, isCurrent]);
+  const checked = check?.client === client && check.batchId === batchId && check.attempt === attempt ? check : null;
   const batch = checked?.batch, sourceLogo = batch?.sourceLogo;
   const sourceMatches = Boolean(batch?.sourceLogoCurrent && sourceLogo && system && batch.systems.some(saved => saved.id === system.id
     && saved.board.asset.versionId === system.board.asset.versionId && saved.board.asset.contentHash === system.board.asset.contentHash));
