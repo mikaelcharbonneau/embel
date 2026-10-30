@@ -2,6 +2,39 @@
 
 ## Latest published follow-up
 
+[PR #172](https://github.com/mikaelcharbonneau/embel/pull/172) publishes web source
+`8e7ed90fc876e76e794084412e4eb6248d4e3325` in deployment
+`dpl_CK7Ewz9sAHa5qqKJ6HkqnakKV67J`. Public health reports the exact source and
+reachable core services. The shared worker remains on the compatible `47e9ef7`
+deployment below. No schema, worker configuration or provider policy changed.
+
+Three boards generated successfully, but the web save check still expected the
+older Identity transaction writers. That kept every Choose direction button
+disabled and the UI incorrectly called the unavailable state "Checking…".
+The two expected hashes now match the reviewed packet-15 writers. Reads have a
+30-second timeout; unavailable or uncertain choices expose a read-only recovery
+action. Existing boards, ownership checks and selection freshness checks remain.
+
+39 database tests and 75 client tests pass. The database selection regression now
+passes through the actual web qualification gate. Four production-build browser
+checks pass on desktop/mobile: save recovery without regeneration and the full
+selection/16-file package journey. Integrated typecheck, lint (zero errors, one
+existing warning), build and independent review pass. All 22 expected helper
+hashes match the hosted catalog. Browser auth/provider fixtures are synthetic;
+the hosted HTTP principal and owner's final selection/download remain unverified.
+
+The user's actual Northline batch `362fe642-da70-487a-9b8f-04ff045cd617` succeeded
+with three distinct committed boards, valid publication/source-logo evidence,
+six settled provider receipts and 170,487 micro-USD (US$0.170487) recorded usage.
+Read-only checks confirmed these outputs remain saved and current. This repair
+made no AI calls and did not regenerate or rewrite the batch.
+
+Rollback, if needed, can promote the previous web deployment
+`dpl_5nqJSeVJscBgEojgn8jgXhef4kzW`; it retains boards but restores the selection
+bug. The compatible worker and database do not need a rollback for this web fix.
+
+## Generation preflight follow-up
+
 [PR #170](https://github.com/mikaelcharbonneau/embel/pull/170) publishes web and
 shared worker source `47e9ef78942a7998b27715988fc60f63fbf503c7`. It fixes the
 provider preflight failures discovered during the owner's first live direction
@@ -13,9 +46,9 @@ No database schema or provider policies changed. Naming binding revision is 9.
 149 focused tests, typecheck, lint, production build, packaged native checks and
 independent review passed. A real isolated specification call succeeded with
 26,956 micro-USD recorded usage; it is not a completed customer board. Three
-failed Northline sets contain no provider calls and zero recorded cost. The owner
-has been asked to refresh and generate another set; full signed-in acceptance is
-still pending. See [the repair record](identity-generation-preflight-20261030.md).
+failed Northline sets contain no provider calls and zero recorded cost. The
+owner's subsequent full set succeeded as recorded above. See
+[the repair record](identity-generation-preflight-20261030.md).
 
 ## Project-entry follow-up
 
@@ -121,15 +154,17 @@ amplification; it does not establish the initiating outage's cause.
 
 ## Live acceptance and recovery
 
-Authenticated end-to-end provider acceptance is still pending. The owner was asked
-to generate three boards in the existing Northline test project. The workspace
-has no owner browser session, so it did not impersonate one or bypass admission.
+The owner generated three real boards in Northline using their normal account.
+Persisted outputs, publication evidence and recorded usage are verified above.
+The workspace has no owner browser session, so it did not impersonate one or
+bypass admission. Saved selection and final download from that session remain
+the next acceptance check.
 The original `00672941` release initiated no provider generation from the workspace;
 the later isolated specification verification is recorded in the follow-up above.
 
 Northline: `b0c19fc2-d24b-4b79-8082-40d79fb1ffaa`.
-The next check is the real three-board result, recorded usage, saved selection and
-final download from the owner's browser. Local checks do not establish model
+The next check is saved selection and final download from the owner's browser.
+Local checks do not establish model
 quality or service capacity for thousands of simultaneous users.
 
 Packet 15 is forward-only. Do not restart the prior `a0e1e16` worker against it.

@@ -1,20 +1,25 @@
 # Verification status
 
-The current published web and shared worker runtime is `47e9ef78942a7998b27715988fc60f63fbf503c7` from
-[PR #170](https://github.com/mikaelcharbonneau/embel/pull/170), released October 30,
-2026. The main path now goes from a chosen logo to three visual direction boards
+The current published web runtime is `8e7ed90fc876e76e794084412e4eb6248d4e3325` from
+[PR #172](https://github.com/mikaelcharbonneau/embel/pull/172), released October 30,
+2026. The shared worker remains on `47e9ef78942a7998b27715988fc60f63fbf503c7` from
+[PR #170](https://github.com/mikaelcharbonneau/embel/pull/170).
+The main path now goes from a chosen logo to three visual direction boards
 and a downloadable brand package. Opening a project resumes saved Logo work;
 explicit Strategy access remains available.
 
 The first live visual-direction requests exposed two provider preflight errors.
-Both are fixed and reproduced by HTTP-boundary regression tests. A real isolated
-specification call now succeeds; the owner's full three-board generation and
-final download acceptance are still pending. See the
+Both are fixed and reproduced by HTTP-boundary regression tests. The owner's
+full three-board generation now succeeds, with six settled provider receipts
+and US$0.170487 recorded usage. The subsequent disabled-selection bug is fixed:
+the web save check now recognizes the installed identity writers, and failed
+checks offer bounded recovery. Signed-in saved-selection and final-download
+acceptance remain pending. See the
 [preflight repair evidence](identity-generation-preflight-20261030.md).
 
 See the [current release record](visual-identity-release-20261030.md) for exact
 web/worker deployments, tests, the resolved service outage and the pending
-signed-in provider acceptance check. Local browser checks used synthetic
+signed-in selection/download acceptance check. Local browser checks used synthetic
 provider/authentication fixtures; they do not prove the live generated output.
 
 ## Historical source checkpoints
