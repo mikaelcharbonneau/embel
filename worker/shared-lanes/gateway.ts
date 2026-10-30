@@ -1,4 +1,5 @@
 import { isDeepStrictEqual } from "node:util";
+import { setTimeout as delay } from "node:timers/promises";
 import { z } from "zod";
 import type { JobDatabase } from "../postgres-store";
 import type { SharedSlotLease, SharedExecution } from "../shared-pool/contracts";
@@ -8,6 +9,10 @@ const executionSchema = z.strictObject({version:z.literal(1),executionId:z.uuid(
  operation:z.string().min(1).max(100),policyIdentity:z.string().regex(/^[a-f0-9]{64}$/u),deploymentId:z.string().min(1).max(200)});
 const envelopeSchema=z.strictObject({execution:executionSchema.nullable(),result:z.unknown()});
 const unavailable=()=>new Error("shared_lane_authority_unavailable");
+const uncertainDelivery=(error:unknown)=>{
+ const code=error&&typeof error==="object"&&"code" in error?String(error.code):null;
+ return code===null||["ECONNRESET","ECONNREFUSED","ETIMEDOUT","EPIPE","ENETUNREACH","EHOSTUNREACH"].includes(code);
+};
 
 /** One facade per execution. A reusable database connection never supplies
  * ambient tenant authority, and an unrecognized query never reaches SQL. */
@@ -34,8 +39,20 @@ export function createSharedLaneGateway(options:{database:JobDatabase;slot:()=>S
    if(execution&&!observation){const current=options.slot();if(!current||current.slotId!==slot.slotId||current.instanceId!==slot.instanceId
     ||current.generation!==slot.generation||current.leaseToken!==slot.leaseToken)throw unavailable();}
    const parameters=options.lane==="strategy"?{message:options.message,values:args}:args;
-   const result=await options.database.query(`select public.shared_${options.lane}_worker_action($1::jsonb,$2::jsonb,$3,$4::jsonb) as envelope`,
-    [JSON.stringify(slot),execution===null?null:JSON.stringify(execution),action,JSON.stringify(parameters)]);
+   const sql=`select public.shared_${options.lane}_worker_action($1::jsonb,$2::jsonb,$3,$4::jsonb) as envelope`;
+   const values=[JSON.stringify(slot),execution===null?null:JSON.stringify(execution),action,JSON.stringify(parameters)];
+   let result:Awaited<ReturnType<JobDatabase["query"]>>;
+   try{result=await options.database.query(sql,[...values]);}
+   catch(error){
+    // A Logo receipt is immutable and SQL revalidates its exact execution on
+    // replay. Retain the same timestamp/body while its image bytes still exist.
+    // Retry only delivery uncertainty, never claim/dispatch or an acknowledged
+    // rejection. Validate returned authority below, outside this retry boundary.
+    if(options.lane!=="logo"||action!=="receipt"||!execution||!["identity.logo_concept","identity.logo_refine"].includes(execution.operation)
+     ||!observation||options.signal?.aborted||!uncertainDelivery(error))throw error;
+    await delay(250,undefined,{signal:options.signal});options.signal?.throwIfAborted();
+    result=await options.database.query(sql,[...values]);
+   }
    if(result.rows.length!==1)throw unavailable();
    const response=envelopeSchema.parse(result.rows[0]?.envelope);
    if(response.execution){const e=response.execution;

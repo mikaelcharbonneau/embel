@@ -8,6 +8,9 @@ below describe earlier checkpoints. Their task-specific approval restrictions
 and fixed design choices do not override that agreement. Changes to the written
 agreement do not establish that the corresponding app behavior has shipped.
 
+See [current reliability priorities and remaining gaps](docs/product-health.md)
+for the first stabilization changes and the next implementation work.
+
 The product was renamed from Fluid to **Embel** on 2026-10-13. The private GitHub repository is now `mikaelcharbonneau/embel`; its earlier `emble` URL redirects there. Existing `FLUID_*` settings, storage keys, service identifiers and historical design references retain their original names for compatibility; see [the branding record](docs/embel-branding.md).
 
 For the historical Codex Cloud setup and Home/Ideas design handoff, read [Cloud development](docs/cloud-development.md). The source-checkpoint verification limits below describe the earlier transfer; later verification is recorded separately and does not imply live provider acceptance.

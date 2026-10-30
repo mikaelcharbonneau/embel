@@ -469,6 +469,8 @@ test("guided interview: explicit selections save, reload, and finish at personal
   await page.screenshot({ path: info.outputPath("guided-interview-continues-to-naming.png"), fullPage: true, scale: "css" });
   await page.getByRole("button", { name: `Edit your answer: ${questions.competitors}`, exact: true }).click();
   await expectRequest(state, 3, "strategy.competitors");
+  await expect(page.locator(".project-naming-page")).toHaveCount(0);
+  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   expect(state.project.context.intake.guidedInterview?.stage).toBe("competitors");
   expect(state.project.context.intake.guidedInterview?.answers).toEqual([]);
   expect(state.project.context.competitorReviewComplete).toBe(false);

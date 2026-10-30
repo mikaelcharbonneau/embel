@@ -70,6 +70,9 @@ const reviewedAccountWorkflowFunctions = [
   "public.get_hosted_naming_availability(uuid)",
   "public.ensure_hosted_naming_brain_run(uuid, jsonb)",
   "public.get_strategy_job_deliveries(uuid, uuid[])",
+  // 20261029180000: owned read-only Strategy summaries. Raw input and lease
+  // fields stay private; this grants no worker mutation or execution authority.
+  "public.get_strategy_job_summaries(uuid, uuid)",
   // 20261013120000 / 20261013140801 / 20261013190225: owned project catalog
   // choices, immutable direction review and owner-authored screening evidence.
   // Read-only authenticated discovery of public catalog IDs; no owner data or execution authority.

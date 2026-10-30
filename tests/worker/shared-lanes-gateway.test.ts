@@ -63,6 +63,48 @@ describe('shared lane frozen execution facade (unit-only, no SQL/provider readin
  });
 });
 
+describe('Logo provider receipt delivery under the original execution',()=>{
+ async function receiptFixture(operation='identity.logo_concept'){
+  const f=fixture(),slot={...f.slot,lane:'logo' as const},e={...f.e,lane:'logo' as const,operation};
+  const response:{execution:SharedExecution;result:unknown}={execution:e,result:[{...f.job,operation:e.operation}]};
+  const query=vi.fn(async(sql:string,values?:unknown[])=>{void sql;void values;return{rows:[{envelope:response}]};});
+  const gateway=createSharedLaneGateway({database:{query},slot:()=>slot,lane:'logo',deploymentId:e.deploymentId,signal:f.controller.signal});
+  await gateway.invoke('claim',['worker',120]);response.result={id:randomUUID()};query.mockClear();
+  const args=[e.jobId,e.leaseToken,JSON.stringify({observedAt:'2026-10-30T01:59:00.123Z',artifactHash:'a'.repeat(64)})];
+  return{e,slot,response,query,gateway,args,controller:f.controller};
+ }
+ it('replays a lost receipt acknowledgement with the exact serialized body and original authority',async()=>{
+  const f=await receiptFixture();let first:unknown[]=[];
+  f.query.mockImplementationOnce(async(_sql,values)=>{first=[...values!];values![3]='mutated by failing transport';throw Error('Query read timeout');});
+  expect(await f.gateway.invoke('receipt',f.args,true)).toEqual(f.response.result);
+  expect(f.query).toHaveBeenCalledTimes(2);expect(f.query.mock.calls[1]![1]).toEqual(first);
+  expect(JSON.parse(String(first[0]))).toEqual(f.slot);expect(JSON.parse(String(first[1]))).toEqual(f.e);
+  expect(JSON.parse(String(first[3]))).toEqual(f.args);
+ });
+ it('bounds receipt retries when delivery remains unknown',async()=>{
+  const f=await receiptFixture();f.query.mockRejectedValue(Error('Query read timeout'));
+  await expect(f.gateway.invoke('receipt',f.args,true)).rejects.toThrow('Query read timeout');expect(f.query).toHaveBeenCalledTimes(2);
+ });
+ it.each(['42501','22023','PT409','40001'])('does not retry an acknowledged database rejection %s',async code=>{
+  const f=await receiptFixture();f.query.mockRejectedValue(Object.assign(Error('Database rejected receipt'),{code}));
+  await expect(f.gateway.invoke('receipt',f.args,true)).rejects.toThrow('Database rejected receipt');expect(f.query).toHaveBeenCalledTimes(1);
+ });
+ it('does not retry after cancellation or replay a different action',async()=>{
+  const f=await receiptFixture();f.query.mockImplementationOnce(async()=>{f.controller.abort();throw Error('Query read timeout');});
+  await expect(f.gateway.invoke('receipt',f.args,true)).rejects.toThrow();expect(f.query).toHaveBeenCalledTimes(1);
+  const g=await receiptFixture();g.query.mockRejectedValue(Error('Query read timeout'));
+  await expect(g.gateway.invoke('complete',g.args,true)).rejects.toThrow();expect(g.query).toHaveBeenCalledTimes(1);
+  const h=await receiptFixture('identity.logo_directions');h.query.mockRejectedValue(Error('Query read timeout'));
+  await expect(h.gateway.invoke('receipt',h.args,true)).rejects.toThrow();expect(h.query).toHaveBeenCalledTimes(1);
+ });
+ it('never turns a malformed or foreign acknowledgement into a retry',async()=>{
+  const f=await receiptFixture();f.response.execution={...f.e,ownerId:randomUUID()};
+  await expect(f.gateway.invoke('receipt',f.args,true)).rejects.toThrow();expect(f.query).toHaveBeenCalledTimes(1);
+  const g=await receiptFixture();g.query.mockResolvedValue({rows:[]} as never);
+  await expect(g.gateway.invoke('receipt',g.args,true)).rejects.toThrow();expect(g.query).toHaveBeenCalledTimes(1);
+ });
+});
+
 describe('Naming observation keeps original deployment authority across a successor slot',()=>{
  function observationFixture(){
   const f=fixture(),original={...f.e,lane:'naming' as const,operation:'naming.generate',deploymentId:'dpl_original'},slot={...f.slot,lane:'naming' as const,generation:3,instanceId:randomUUID(),leaseToken:randomUUID()};
