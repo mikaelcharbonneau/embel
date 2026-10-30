@@ -1,4 +1,4 @@
-# Shared worker authority (unapplied)
+# Shared worker authority
 
 The shared path replaces customer-specific SQL passwords, resident workers,
 Storage Auth users and online role provisioning with a finite operator-installed
@@ -16,8 +16,9 @@ generation.
 
 ## Installation dependencies
 
-The selected deployment target is the existing Embel app and database. Production
-updates still require explicit approval. Do not create a separate test app or
+The selected deployment target is the existing Embel app and database. Follow
+the current [working agreement](../AGENTS.md): tested updates within the user's
+requested work are authorized while Embel has no customers. Do not create a separate test app or
 reapply the baseline to an existing database. The source-only production composer
 checks the read-only target inventory and prepares one guarded transaction from
 the missing reviewed packets. It opens no database connection and grants nothing.

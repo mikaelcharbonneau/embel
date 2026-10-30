@@ -76,7 +76,8 @@ function OwnedVisualDirections({ account, projectId }: { account: VerifiedAccoun
     setHistory({ client, batch: shownHistory?.batch ?? null, busy: true, error: null });
     try {
       const result = await client.batch(batchId, controller.signal);
-      if (!controller.signal.aborted && client.current() && result) setHistory({ client, batch: result, busy: false, error: null });
+      if (!controller.signal.aborted && client.current()) setHistory({ client, batch: result ?? shownHistory?.batch ?? null, busy: false,
+        error: result ? null : "This saved set could not be loaded. Please try again." });
     } catch {
       if (!controller.signal.aborted && client.current()) setHistory({ client, batch: shownHistory?.batch ?? null, busy: false, error: "This saved set could not be loaded. Please try again." });
     } finally { if (historyRequest.current === controller) historyRequest.current = null; }
@@ -119,11 +120,11 @@ function OwnedVisualDirections({ account, projectId }: { account: VerifiedAccoun
     backHref={`/brands/account/${projectId}/logo`}
     logoPreview={candidate.item && logo.client ? <LogoVerifiedPreview client={logo.client} receipt={candidate.item.preview} alt="Chosen logo concept" />
       : <p role="status">{candidate.error || logo.error ? "Your selected logo could not be loaded." : candidate.loading ? "Loading your chosen logo…" : "Choose a logo concept to begin."}</p>}
-    logoDownload={candidate.item && logo.client ? <LogoDownloadControls client={logo.client} account={account} projectId={projectId} original={candidate.item.preview} disabled={logoPending} /> : undefined}
+    logoDownload={candidate.item && logo.client ? <LogoDownloadControls client={logo.client} account={account} projectId={projectId} original={candidate.item.preview} disabled={logoPending} compact /> : undefined}
     cards={cards} generation={{ status: visibleStatus, completed: requestBatch?.systems.length ?? 0,
       estimatedCostLabel: availability?.status === "available" && availability.version === 3 && availability.estimatedCostMicrousd !== null ? `Estimated ${displayLogoCost(availability.estimatedCostMicrousd)} for three directions` : null,
-      usageLabel: requestBatch?.usage ? requestBatch.usage.status === "recorded" ? `Recorded usage for this set: ${displayLogoCost(requestBatch.usage.knownCostMicrousd)}`
-        : `Recorded usage so far: ${displayLogoCost(requestBatch.usage.knownCostMicrousd)}${requestBatch.usage.status === "unknown" ? ". Some usage is still being checked." : ""}` : null,
+      usageLabel: batch?.usage ? batch.usage.status === "recorded" ? `Recorded usage for this set: ${displayLogoCost(batch.usage.knownCostMicrousd)}`
+        : `Recorded usage so far: ${displayLogoCost(batch.usage.knownCostMicrousd)}${batch.usage.status === "unknown" ? ". Some usage is still being checked." : ""}` : null,
       error: generation.error ?? identity.error ?? logo.error ?? shownHistory?.error,
       busy: Boolean(generation.busy || shownHistory?.busy), disabledReason: blockedReason,
       onGenerate: start, onCheck: () => void refresh(), onStop: unresolved && generation.stopAcknowledgedBatchId !== generation.batch?.batchId
@@ -131,6 +132,7 @@ function OwnedVisualDirections({ account, projectId }: { account: VerifiedAccoun
     selectionStatus={selectedCard ? "Direction saved. You can now create your brand assets." : identity.selectionUncertain ? "Your choice could not be confirmed. Check the saved results before choosing again." : null}
     finalAction={selectedCard && <Link className="identity-primary-button" href={`/brands/account/${projectId}/logo/deliverables`}>Continue to brand assets</Link>}
     history={<>
+      {shownHistory?.batch && shownHistory.batch.batchId !== requestBatch?.batchId && <p>You are viewing an earlier saved set. The progress above is for your latest request.</p>}
       {generation.retained && generation.lookup === "not_found" && <button type="button" className="identity-secondary-button" disabled={Boolean(generation.busy)} onClick={() => void generation.controller?.retryOriginal()}>Retry original request</button>}
       {selectedBatchId && selectedBatchId !== batch?.batchId && <p>Your chosen direction is in an earlier set. <button type="button" className="text-link" disabled={Boolean(shownHistory?.busy)} onClick={() => void viewBatch(selectedBatchId)}>View chosen direction</button></p>}
       {earlierSets.length > 1 && <details><summary>Earlier sets</summary>{earlierSets.map((batchId, index) => <button key={batchId} type="button" className="identity-secondary-button" disabled={batch?.batchId === batchId || Boolean(shownHistory?.busy)} onClick={() => void viewBatch(batchId)}>Saved set {earlierSets.length - index}</button>)}

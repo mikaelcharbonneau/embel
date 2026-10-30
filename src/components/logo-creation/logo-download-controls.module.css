@@ -8,4 +8,6 @@
 .option button:focus-visible { outline: 2px solid var(--text, #191919); outline-offset: 3px; }
 .option button:disabled { cursor: not-allowed; opacity: 0.5; }
 .notice { margin: 14px 0 0; font-size: 13px; line-height: 1.5; }
+.compact { margin: 0; padding: 0; border: 0; background: transparent; }
+.compact .options { margin-top: 0; }
 @media (max-width: 480px) { .options { flex-direction: column; } .option button { width: 100%; } }

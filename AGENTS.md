@@ -1,6 +1,6 @@
 # Embel working agreement
 
-User-confirmed preferences, October 29, 2026. Embel helps people turn product
+User-confirmed preferences, October 29–30, 2026. Embel helps people turn product
 ideas into usable branding. It has no customers yet. Prioritize a reliable,
 complete branding journey and a professional interface.
 

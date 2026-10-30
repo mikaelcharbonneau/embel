@@ -14,12 +14,13 @@ type Props = {
   original?: IdentityAssetReceipt | null;
   disabled?: boolean;
   unsavedChanges?: boolean;
+  compact?: boolean;
 };
 const rasterFormats = new Map([["image/png", "PNG"], ["image/jpeg", "JPG"], ["image/webp", "WEBP"]]);
 type DownloadState = { scope: string; client: AccountLogoClient; pending: "svg" | "original" | null; message: string; error: boolean };
 
 /** Existing saved files only. No generation, vector acceptance or identity approval is required. */
-export function LogoDownloadControls({ client, account, projectId, vectorRevisionId, original, disabled = false, unsavedChanges = false }: Props) {
+export function LogoDownloadControls({ client, account, projectId, vectorRevisionId, original, disabled = false, unsavedChanges = false, compact = false }: Props) {
   const originalFormat = original?.publicationState === "committed" ? rasterFormats.get(original.verification.mimeType) : undefined;
   const scope = `${account.userId}:${account.generation}:${projectId}:${vectorRevisionId ?? ""}:${original?.reference.versionId ?? ""}:${original?.reference.contentHash ?? ""}:${disabled}:${unsavedChanges}`;
   const operation = useRef<AbortController | null>(null);
@@ -55,16 +56,16 @@ export function LogoDownloadControls({ client, account, projectId, vectorRevisio
 
   if (!vectorRevisionId && !originalFormat) return null;
   const blocked = disabled || !currentClient || Boolean(activeState?.pending);
-  return <section className={styles.downloads} aria-label="Download your logo">
-    <div className={styles.heading}><h2>Download your logo</h2><p>Save your files to your device.</p></div>
+  return <section className={`${styles.downloads}${compact ? ` ${styles.compact}` : ""}`} aria-label="Download your logo">
+    {!compact && <div className={styles.heading}><h2>Download your logo</h2><p>Save your files to your device.</p></div>}
     <div className={styles.options}>
       {vectorRevisionId && <div className={styles.option}>
         <button type="button" disabled={blocked || unsavedChanges} onClick={() => void download("svg")}>{activeState?.pending === "svg" ? "Preparing SVG…" : "Download SVG"}</button>
-        <p>Saved vector. Stays sharp at any size.</p>
+        {!compact && <p>Saved vector. Stays sharp at any size.</p>}
       </div>}
       {originalFormat && <div className={styles.option}>
         <button type="button" disabled={blocked} onClick={() => void download("original")}>{activeState?.pending === "original" ? `Preparing ${originalFormat}…` : `Download ${originalFormat}`}</button>
-        <p>{vectorRevisionId ? "Original image, before vector edits." : "Saved original image."}</p>
+        {!compact && <p>{vectorRevisionId ? "Original image, before vector edits." : "Saved original image."}</p>}
       </div>}
     </div>
     {vectorRevisionId && unsavedChanges && <p className={styles.notice}>Save or discard your changes before downloading the SVG.</p>}
