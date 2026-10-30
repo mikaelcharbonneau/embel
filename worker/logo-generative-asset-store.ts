@@ -7,18 +7,18 @@ import { identityAssetPublicationSchema } from "../src/domain/logo-deliverables"
 import { createIdentityAssetStore, createPostgresIdentityAssetBackend, type IdentityAssetReservation, type IdentityAssetStore } from "../src/server/data/identity-asset-store";
 import type { LogoWorkerConnection } from "../src/server/data/logo-jobs";
 import { IMAGE_INPUT_LIMITS } from "../src/server/logo-creation/openai-image-transport";
-import { qualifiedLogoGenerativeStorageCapability, type LogoGenerativeStorageAuthorization, type LogoGenerativeStorageRead, type LogoGenerativeStorageWrite } from "./logo-generative-storage-authorization";
+import { qualifiedLogoRasterCapability, type LogoRasterStorageAuthorization, type LogoGenerativeStorageRead, type LogoGenerativeStorageWrite } from "./logo-generative-storage-authorization";
 const unavailable = () => new Error("Logo generative assets are unavailable.");
 /** Per-call composition only: metadata and exact-object capabilities never live
  * in a shared mutable registry. Source reads must already be committed; staged
  * output readback is available only inside its own immutable publication call.
  * No construction I/O, owner/browser API, credential lookup or activation.
  */
-export function createLogoGenerativeAssetStore(input: { connection: LogoWorkerConnection | null; authorization: LogoGenerativeStorageAuthorization | null } | null = null): IdentityAssetStore | null {
+export function createLogoGenerativeAssetStore(input: { connection: LogoWorkerConnection | null; authorization: LogoRasterStorageAuthorization | null } | null = null): IdentityAssetStore | null {
   if (!input || typeof input.connection?.query !== "function" || !input.authorization
     || typeof input.authorization.authorizeRead !== "function" || typeof input.authorization.authorizeWrite !== "function"
     || typeof input.authorization.assertAvailable !== "function") return null;
-  const capability = qualifiedLogoGenerativeStorageCapability(input.authorization.capability), owner = logoUuidSchema.safeParse(input.authorization.ownerId);
+  const capability = qualifiedLogoRasterCapability(input.authorization.capability), owner = logoUuidSchema.safeParse(input.authorization.ownerId);
   if (!capability || !owner.success) return null;
   const authorization = { ownerId: owner.data, capability, assertAvailable: input.authorization.assertAvailable.bind(input.authorization),
     authorizeRead: input.authorization.authorizeRead.bind(input.authorization), authorizeWrite: input.authorization.authorizeWrite.bind(input.authorization) };
@@ -30,9 +30,10 @@ export function createLogoGenerativeAssetStore(input: { connection: LogoWorkerCo
     if (job.operation !== authorization.capability.operation || job.ownerId !== authorization.ownerId || job.status !== "running"
       || !logoUuidSchema.safeParse(job.id).success || !logoUuidSchema.safeParse(job.leaseToken).success
       || !Number.isSafeInteger(job.inputRevision) || job.inputRevision < 1
-      || !moneySchema.safeParse(job.reservedCostMicrousd).success || !moneySchema.safeParse(job.actualCostMicrousd).success
-      || job.reservedCostMicrousd > authorization.capability.maxCostMicrousd || job.actualCostMicrousd > job.reservedCostMicrousd) throw unavailable();
+      || !moneySchema.safeParse(job.reservedCostMicrousd).success || !moneySchema.safeParse(job.actualCostMicrousd).success) throw unavailable();
     const frozen = job.operation === "identity.logo_concept" ? logoConceptJobInputSchema.parse(job.input) : logoRefinementJobInputSchema.parse(job.input);
+    if ("spendControl" in authorization.capability ? frozen.version !== 3 || job.reservedCostMicrousd !== 0
+      : frozen.version !== 2 || job.reservedCostMicrousd > authorization.capability.maxCostMicrousd || job.actualCostMicrousd > job.reservedCostMicrousd) throw unavailable();
     if (frozen.ownerId !== job.ownerId || frozen.projectId !== job.projectId || frozen.policyIdentity !== capability!.policyIdentity || frozen.handlerVersion !== capability!.handlerVersion
       || frozen.operation === "identity.logo_refine" && frozen.source.kind !== "preview") throw unavailable();
     job.input = frozen;

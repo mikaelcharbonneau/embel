@@ -68,8 +68,9 @@ describe("atomic shared production composition on native PostgreSQL", () => {
   expect(bundle.postInstallPackets).toEqual(POST_INSTALL_PACKETS);
   expect(bundle.sql.indexOf("-- POST-INSTALL shared_storage_download_metadata.sql")).toBeGreaterThan(bundle.sql.indexOf("-- SOURCE shared_identity_generation.sql"));
   expect(bundle.sql.indexOf("-- POST-INSTALL shared_logo_storage_member.sql")).toBeGreaterThan(bundle.sql.indexOf("-- POST-INSTALL shared_storage_download_metadata.sql"));
-  expect(bundle.postInstallPackets.map(packet => packet.name)).toEqual(["shared_storage_download_metadata.sql", "shared_logo_storage_member.sql", "shared_naming_brainstorm.sql", "shared_naming_brainstorm_event_capacity.sql"]);
+  expect(bundle.postInstallPackets.map(packet => packet.name)).toEqual(["shared_storage_download_metadata.sql", "shared_logo_storage_member.sql", "shared_naming_brainstorm.sql", "shared_naming_brainstorm_event_capacity.sql", "shared_logo_raster_uncapped.sql"]);
   expect(bundle.sql.indexOf("-- POST-INSTALL shared_naming_brainstorm_event_capacity.sql")).toBeGreaterThan(bundle.sql.indexOf("-- POST-INSTALL shared_naming_brainstorm.sql"));
+  expect(bundle.sql.indexOf("-- POST-INSTALL shared_logo_raster_uncapped.sql")).toBeGreaterThan(bundle.sql.indexOf("-- POST-INSTALL shared_naming_brainstorm_event_capacity.sql"));
   for (const name of PACKET_NAMES) expect(bundle.sql).toContain(stripReviewedTransactionEnvelope(readFileSync("supabase/candidates/" + name, "utf8"), PACKET_SHA256[name]));
   expect(() => sql(bundle.sql.replace(/COMMIT;\n$/, "SELECT 1/0;\nCOMMIT;\n"))).toThrow();
   expect(readInventory()).toEqual(catalog);

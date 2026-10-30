@@ -4,6 +4,8 @@ import { useId, useState, useSyncExternalStore } from "react";
 import { logoTraceSettingsSchema, type LogoTraceSettings } from "@/domain/logo-vector";
 import type { LogoCreationController, LogoCreationState } from "./creation-controller";
 import { captureLogoVectorReviewContext, createLogoVectorReviewRequest, type LogoVectorReviewContext } from "./vector-conversion-request";
+import { useGenerationEstimate } from "./use-generation-estimate";
+import { LogoGenerationAction } from "./generation-action";
 import styles from "./logo-creation.module.css";
 
 const EMPTY: LogoCreationState = Object.freeze({ phase: "idle", quote: null, request: null, error: null });
@@ -20,8 +22,8 @@ export function LogoVectorSettingsSummary({ settings }: { settings: LogoTraceSet
   </p>;
 }
 
-/** Changing settings is local. Only Review conversion requests a fresh quote;
- * the existing cost dialog owns confirmation and durable admission. */
+/** Settings prepare only an estimate. Conversion starts on one deliberate click;
+ * accepting the resulting vector remains a separate choice. */
 export function LogoVectorConversionControls({ context, getCurrentContext, controller, available, blocked, onRefreshAvailability }: {
   context: LogoVectorReviewContext | null;
   getCurrentContext(): LogoVectorReviewContext | null;
@@ -31,7 +33,7 @@ export function LogoVectorConversionControls({ context, getCurrentContext, contr
   onRefreshAvailability?: () => void;
 }) {
   const [draft, setDraft] = useState<SettingsDraft>(defaults);
-  const [stale, setStale] = useState(false);
+  const [changedBeforeClick, setChangedBeforeClick] = useState(false);
   const state = useSyncExternalStore(controller?.subscribe ?? noSubscription, controller?.getSnapshot ?? emptySnapshot, emptySnapshot);
   const description = useId(), error = useId();
   const captured = captureLogoVectorReviewContext(context);
@@ -40,13 +42,9 @@ export function LogoVectorConversionControls({ context, getCurrentContext, contr
   const invalid = (field: keyof SettingsDraft) => !settings.success && settings.error.issues.some(issue => issue.path[0] === field);
   const canReview = !!controller && !!captured?.source && available && !blocked && !locked && settings.success;
 
-  function review() {
-    if (!canReview || !controller || controller.getSnapshot().phase !== "idle" || !settings.success) return;
-    const request = createLogoVectorReviewRequest(captured, getCurrentContext(), settings.data);
-    if (!request) { setStale(true); return; }
-    setStale(false);
-    void controller.prepare(request);
-  }
+  const request = canReview && settings.success ? createLogoVectorReviewRequest(captured, getCurrentContext(), settings.data) : null;
+  const stale = changedBeforeClick || canReview && !request;
+  const estimate = useGenerationEstimate(controller, request);
 
   return <section id="logo-conversion-settings" className={styles.panel} aria-label="Convert selected logo">
     <h2>Convert your selected logo</h2>
@@ -70,9 +68,12 @@ export function LogoVectorConversionControls({ context, getCurrentContext, contr
     </div>
     {!settings.success && <p id={error} className={styles.warning} role="alert">Enter simplification from 0 to 2.5, whole-number speckle filtering from 0 to 16, and 2 to 32 whole-number colors. Black and white requires exactly two colors.</p>}
     {stale && <p className={styles.warning} role="status">The saved selection or account changed. Refresh the saved brand and review its current selection before converting.</p>}
-    <p className={styles.note}>Review conversion opens a new cost estimate. Nothing converts until you confirm it. An unfinished request must be checked before starting another conversion.</p>
+    <p className={styles.note}>Conversion starts when you choose Convert to vector. Review the result before accepting it. Check an unfinished request before starting another conversion.</p>
     <div className={styles.actions}>
-      <button className={styles.primaryButton} type="button" disabled={!canReview} aria-describedby={!settings.success ? error : description} onClick={review}>Review conversion</button>
+      <LogoGenerationAction estimate={estimate} label="Convert to vector" unavailable={available ? "Save a logo selection and valid settings first." : "Vector conversion is currently unavailable."} onStart={() => {
+        if (!settings.success || !createLogoVectorReviewRequest(captured, getCurrentContext(), settings.data)) { setChangedBeforeClick(true); return; }
+        setChangedBeforeClick(false); estimate.start();
+      }} />
       {onRefreshAvailability && <button className={styles.secondaryButton} type="button" onClick={onRefreshAvailability}>Refresh operation availability</button>}
     </div>
   </section>;

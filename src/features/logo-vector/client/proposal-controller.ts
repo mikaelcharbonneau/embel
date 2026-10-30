@@ -51,12 +51,18 @@ export function createVectorProposalController(input: { account: VerifiedAccount
       && quote.request.operation === "propose_vector_edit" && quote.request.baseVectorRevisionId === context.detail.revision.id && quote.request.baseVectorRevisionId === form.baseVectorRevisionId
       && same(quote.expected, context.workspace.heads) && same(quote.request.targetComponentIds, form.targetComponentIds) && quote.request.instruction === form.instruction && Date.parse(quote.expiresAt) > input.now());
   }
+  function cancelEstimate() {
+    if (state.phase === "quoting" && operation) { operation.abort(); operation = null; }
+    emit({ quote: null, ...(["idle", "review", "quoting"].includes(state.phase) ? { phase: "idle" as const } : {}) });
+  }
   async function run(phase: Exclude<ProposalControllerState["phase"], "idle" | "review">, work: (signal: AbortSignal) => Promise<void>) {
     if (!current() || operation) return;
     const controller = new AbortController(); operation = controller; const timer = setTimeout(() => controller.abort(), 30_000);
     emit({ phase, error: null, notice: null });
     try { await work(controller.signal); }
-    catch { if (current()) emit({ error: "This action could not be confirmed. Your original request, saved versions and any pending edit are kept. Check the original before retrying." }); }
+    catch { if (current() && operation === controller) emit({ error: phase === "quoting"
+      ? "The cost estimate could not be loaded. Check the saved vector and availability, then refresh the estimate. Your changes are kept."
+      : "This action could not be confirmed. Your original request, saved versions and any pending edit are kept. Check the original before retrying." }); }
     finally { clearTimeout(timer); if (operation === controller) { operation = null; emit({ phase: state.quote ? "review" : "idle" }); } }
   }
   function checked<T>(value: T | null, signal: AbortSignal): T { if (!value || !current() || signal.aborted) throw new AccountRequestError(503); return value; }
@@ -102,20 +108,24 @@ export function createVectorProposalController(input: { account: VerifiedAccount
       && state.application.proposal.baseVectorRevisionId === context.detail.revision.id && state.application.proposal.context.documentHash === context.detail.revision.documentHash
       && same(state.application.proposal.context.source, context.detail.revision.source) && same(state.application.proposal.expected, context.workspace.heads));
   }
+  const canRefreshEstimate = () => Boolean(current() && ownedContext() && context?.ready && free() && state.discoveryClear);
   return {
     getSnapshot: () => current() ? state : EMPTY_PROPOSALS, getServerSnapshot: () => EMPTY_PROPOSALS,
     subscribe(fn: () => void) { listeners.add(fn); return () => { listeners.delete(fn); }; },
-    updateContext(value: ProposalEditorContext) { context = value; const key = value ? `${value.detail.revision.id}:${value.detail.revision.documentHash}:${canonicalIdentityInput(value.workspace.heads)}:${value.ready}` : ""; if (contextKey !== key) { contextKey = key; emit({}); } },
+    updateContext(value: ProposalEditorContext) { context = value; const key = value ? `${value.detail.revision.id}:${value.detail.revision.documentHash}:${canonicalIdentityInput(value.workspace.heads)}:${value.ready}` : ""; if (contextKey !== key) { contextKey = key; cancelEstimate(); emit({}); } },
     canConfirm: () => Boolean(state.quote && quoteValid(state.quote) && freshCapability()),
-    canPrepare: () => Boolean(current() && ownedContext() && context?.ready && free() && state.discoveryClear && freshCapability()),
+    canPrepare: () => canRefreshEstimate() && freshCapability(),
+    canRefreshEstimate,
     canApply,
     setForm(instruction: string, targets: string[]) {
+      if (current() && state.phase === "quoting") cancelEstimate();
       if (!current() || operation || !free() || !context || !ownedContext()) return;
       const old = session(); if (old && old.baseVectorRevisionId !== context.detail.revision.id) { emit({ error: "This draft uses an earlier saved vector. Discard the draft before editing the current vector." }); return; }
-      save({ baseVectorRevisionId: context.detail.revision.id, instruction, targetComponentIds: targets, dirty: true, pendingGeneration: null, pendingApplication: null, selectedProposalId: old?.selectedProposalId ?? null }); emit({ quote: null });
+      save({ baseVectorRevisionId: context.detail.revision.id, instruction, targetComponentIds: targets, dirty: true, pendingGeneration: null, pendingApplication: null, selectedProposalId: old?.selectedProposalId ?? null }); emit({ quote: null, error: null, notice: null });
     },
-    discardDraft() { if (current() && !operation && free()) { input.memory.setVectorProposal(input.projectId, null); emit({ quote: null, error: null }); } },
-    cancelQuote() { if (current() && !operation && free()) emit({ quote: null }); },
+    discardDraft() { if (current() && state.phase === "quoting") cancelEstimate(); if (current() && !operation && free()) { input.memory.setVectorProposal(input.projectId, null); emit({ quote: null, error: null, notice: null }); } },
+    cancelQuote() { if (current() && free() && (!operation || state.phase === "quoting")) cancelEstimate(); },
+    expireQuote() { if (state.quote && Date.parse(state.quote.expiresAt) <= input.now() && free() && !operation && ["idle", "review"].includes(state.phase)) { cancelEstimate(); emit({ notice: "Estimate expired. Refresh the estimate before generating." }); } },
     async refresh() { await run("checking", async signal => {
       const results = await Promise.allSettled([input.client.getLogoCapabilities(signal), input.client.listPendingVectorProposalRequests({ limit: 10 }, signal), input.client.listLogoVectorProposals({ limit: 20 }, signal)]);
       if (!current() || signal.aborted) return;
@@ -130,7 +140,7 @@ export function createVectorProposalController(input: { account: VerifiedAccount
     expireAvailability() { emit({}); },
     async morePending() { const cursor = state.discovery?.nextCursor; if (cursor) await run("checking", signal => pending(signal, cursor)); },
     async moreHistory() { const cursor = state.history?.nextCursor; if (!cursor) return; await run("checking", async signal => { const page = checked(await input.client.listLogoVectorProposals({ cursor, limit: 20 }, signal), signal); emit({ history: page }); }); },
-    async prepare() { await run("quoting", async signal => {
+    async prepare() { if (!operation && free()) emit({ quote: null }); await run("quoting", async signal => {
       const form = session(); if (!form || !context?.ready || !ownedContext() || !free()) throw new AccountRequestError(409);
       await pending(signal); const caps = checked(await input.client.getLogoCapabilities(signal), signal); emit({ capabilities: caps });
       if (!state.discoveryClear || !freshCapability(caps) || form.baseVectorRevisionId !== context.detail.revision.id) throw new AccountRequestError(409);
@@ -139,7 +149,7 @@ export function createVectorProposalController(input: { account: VerifiedAccount
       const quote = checked(await input.client.quoteLogoOperation(request, signal), signal);
       if (!quoteValid(quote)) throw new AccountRequestError(409); emit({ quote });
     }); },
-    async confirm() { const quote = state.quote; if (!quote || !quoteValid(quote)) return; await run("admitting", async signal => {
+    async confirm() { const quote = state.quote; if (!quote) return; if (!quoteValid(quote)) { if (free() && !operation) { cancelEstimate(); emit({ notice: "The estimate or saved inputs changed. Refresh the estimate before generating." }); } return; } await run("admitting", async signal => {
       await pending(signal); const caps = checked(await input.client.getLogoCapabilities(signal), signal); emit({ capabilities: caps });
       if (!quoteValid(quote) || !freshCapability(caps)) throw new AccountRequestError(409);
       const original = logoGenerationIntentSchema.parse({ requestKey: input.newKey(), quoteId: quote.id, expected: quote.expected, ...("spendControl" in quote ? {} : { acceptedMaxCostMicrousd: quote.maxCostMicrousd }) });

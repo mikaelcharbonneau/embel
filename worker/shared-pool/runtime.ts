@@ -5,7 +5,7 @@ import { createSharedLogoLaneEngine } from "../shared-lanes/logo";
 import { namingBrainPolicySchema } from "../../src/domain/naming-brain";
 import { createSharedSlotStorageSession } from "../shared-storage/session";
 import { createSharedLogoStorageAuthorization } from "../shared-storage/authorization";
-import { qualifiedLogoGenerativeStorageCapability } from "../logo-generative-storage-authorization";
+import { qualifiedLogoRasterCapability } from "../logo-generative-storage-authorization";
 import { createSharedAdvancedLogoStorageAuthorization } from "../shared-lanes/logo-storage";
 import { createIdentityGenerationRuntimeAdapter } from "../identity/runtime";
 import { createSharedLaneGateway } from "../shared-lanes/gateway";
@@ -40,7 +40,7 @@ export const createSharedPoolLaneEngine:SharedEngineFactory=async options=>{
    identityFactory:createIdentityGenerationRuntimeAdapter,nativeQualification,storage:async(execution,capability)=>{
    const common={targetOrigin:options.configuration.target.supabaseOrigin,publishableKey:storage.publishableKey,
     slot:options.lease,execution,session};
-   const generative=qualifiedLogoGenerativeStorageCapability(capability);
+   const generative=qualifiedLogoRasterCapability(capability);
    const authorization=generative?createSharedLogoStorageAuthorization({...common,capability:generative})
     :createSharedAdvancedLogoStorageAuthorization({...common,capability});
    authorizations.add(authorization);return authorization;

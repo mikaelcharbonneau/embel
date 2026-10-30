@@ -34,9 +34,9 @@ export function LogoSavedInputsStatus({ state, projectId, onChoice, onCancel, on
     {state.source?.draft && <p>Prepared for <strong>{state.source.draft.name}</strong> with {state.source.inspirationCount} saved inspiration{state.source.inspirationCount === 1 ? "" : "s"}.</p>}
     <p>{state.message}</p>
     {state.source?.draft === null && <Link className={styles.secondaryButton} href={`/brands/account/${projectId}`}>Open project to choose a name</Link>}
-    {state.source?.draft && <button className={styles.secondaryButton} type="button" onClick={onRefresh}>Refresh availability</button>}
+    <button className={styles.secondaryButton} type="button" onClick={onRefresh}>Refresh logo inputs</button>
   </div>;
-  return <p className={styles.note} role="status">{state.status === "prepared" ? "Saved. Preparing cost review…"
+  return <p className={styles.note} role="status">{state.status === "prepared" ? "Using your saved brand and logo inputs."
     : state.used === "current" ? "Using your saved logo brief."
     : `Saved. Your brand${state.source.inspirationCount ? ` and ${state.source.inspirationCount} saved inspiration${state.source.inspirationCount === 1 ? "" : "s"}` : ""} will guide this exploration.`}</p>;
 }

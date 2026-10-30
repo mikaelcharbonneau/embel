@@ -40,14 +40,61 @@ quality or capacity for thousands of users.
   Storage verification and documentation changes.
 
 These checks used disposable local databases and synthetic provider responses.
-The complete repository test suite was not run to completion. No provider was
-charged, saved hosted record changed, or deployment performed by this change.
+The complete repository test suite was not run to completion.
+
+## Generation behavior
+
+Logo concepts, preview refinements, Identity directions and vector suggestions
+now place their estimate beside a single Generate action. Quotes are prepared
+without dispatching paid work. Changes to saved inputs invalidate the quote;
+uncertain requests retain their original identity for recovery. An unavailable
+estimate is stated honestly. Applying a vector suggestion and accepting a final
+logo remain deliberate, separate actions.
+
+Shared Logo concepts and preview refinements use an uncapped contract. Estimates
+do not reserve funds or stop generation; actual provider usage is recorded once.
+Existing capped job formats remain readable for historical work. Other current
+shared paid operations already use uncapped policies.
+
+Combined verification passed typecheck, production build and lint (one existing
+unused-variable warning). The UI changes passed 911 client/feature tests and 74
+production-build desktop/mobile browser checks. Backend verification passed 157
+focused tests, five shared-engine tests and 111 native PostgreSQL checks. A final
+integration run passed 84 focused tests. Independent reviews found no blocking
+issues. These test groups overlap and should not be added into one total.
+
+Deployment requires the compatible worker, two updated raster policies and
+[the forward SQL packet](../supabase/candidates/shared_logo_raster_uncapped.sql).
+Drain all shared lanes before changing database authority. Existing unadmitted
+quotes become stale; existing uncertain jobs are not repaired by this change.
+After SQL installation, retain the compatible worker when stopping admissions;
+rolling back only the worker would fail its database compatibility checks.
+
+## Hosted verification, October 30, 2026 UTC
+
+The first reliability worker release used source `ed9fe91`, deployment
+`dpl_2oMyT2u47nVF4vmskZiryzVmXmQv`. A disposable Northline project completed all
+six concepts: six successful jobs, six committed PNGs with matching saved byte
+checks, six provider receipts and six saved previews. Replaying the same
+admission returned the original batch. A fresh database read confirmed the
+results persisted. Recorded provider usage totaled 85,835 microUSD (about
+US$0.086); this is application-recorded usage, not invoice settlement.
+
+The test called the same public database operations under the existing owner's
+account scope. It exercised the real worker, provider and Storage path. It did
+not test browser sign-in, customer HTTP downloads or visual output quality.
+
+The initial website upload omitted five required source files, although a full
+checkout built correctly. The corrected Vercel allowlist passed a build from
+the actual upload-only file set; credential and build-artifact sentinels remained
+excluded. Deployment verification must use that file set as well as the full
+checkout.
 
 ## Remaining work, in order
 
-1. Release and verify the fixes in this change. Confirm a complete six-concept
-   request and reload through the real app under the standing permission for
-   focused AI tests, reporting the actual result and observed usage.
+1. Complete the coordinated uncapped-generation release and verify a real
+   request plus saved results. Confirm the signed-in browser journey separately
+   from the successful backend acceptance above.
 2. Make interrupted requests recover reliably without duplicate paid calls.
    Current shared recovery verifies saved files but leaves ambiguous concept
    steps unresolved; only exports have a completion resolver. Choose a maintainable
@@ -57,9 +104,8 @@ charged, saved hosted record changed, or deployment performed by this change.
    selection → Identity → usable downloads. Include reload, cancellation,
    interrupted saves and a second account. Record local and live results
    separately.
-4. Improve the desktop/mobile journey with the newly permitted design freedom.
-   Implement expected cost beside Generate, one deliberate click, no fixed
-   monetary generation caps, and honest usage reporting. Verify these in the app.
+4. Improve the broader desktop/mobile journey with the newly permitted design
+   freedom. Check empty, loading, partial-result and recovery states together.
 5. Retire older execution paths after handling their callers and data dependencies.
    Existing Embel projects/outputs are disposable test data; report deliberate
    resets. Establish measured concurrency and recovery before claiming capacity.

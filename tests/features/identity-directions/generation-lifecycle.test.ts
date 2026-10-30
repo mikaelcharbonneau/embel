@@ -115,16 +115,15 @@ describe("mounted direction generation admission", () => {
     expect(f.posts).toHaveLength(0); expect(f.controller.generation!.state.generation.quote).toBeNull();
     expect(f.controller.generation!.state.message).toContain("reviewed visual direction");
   });
-  it("prepares a directions-only estimate and requires a separate explicit cost confirmation", async () => {
+  it("automatically prepares a directions-only estimate and starts with one deliberate click after the expected cost appears", async () => {
     const f = await setup();
-    await until(() => expect(f.controller.generation?.state.canEstimate).toBe(true));
-    await act(async () => { await f.controller.generation!.prepare(); });
+    await until(() => expect(f.controller.generation?.state.canConfirm).toBe(true));
     expect(f.posts).toHaveLength(0);
     expect(f.quote?.request).toEqual({ operation: "directions", approvedLogoId: id(3), expected: f.workspace.heads });
-    expect(f.container.textContent).toContain("Estimated cost");
-    expect(f.container.textContent).toContain("Maximum cost");
-    expect(f.container.textContent).toContain("Failed provider requests can still incur costs");
-    await act(async () => { await Promise.all([f.controller.generation!.confirmQuote(id(100)), f.controller.generation!.confirmQuote(id(100))]); });
+    expect(f.container.textContent).toContain("Expected cost:");
+    expect(f.container.textContent).not.toContain("Maximum cost");
+    expect(f.container.textContent).toContain("An estimate, not a confirmed charge");
+    await act(async () => { const generate = [...f.container.querySelectorAll("button")].find(button => button.textContent === "Generate 3 directions")!; generate.click(); generate.click(); });
     expect(f.posts).toHaveLength(1);
     expect(f.memory.get(id(2))?.pendingIntent).toEqual(f.posts[0]);
     expect(f.posts[0]).toMatchObject({ acceptedMaxCostMicrousd: 25000 });
@@ -194,7 +193,7 @@ describe("mounted direction generation admission", () => {
   it("cancels an estimate without retaining or admitting a generation intent", async () => {
     const f = await setup(); await until(() => expect(f.controller.generation?.state.canEstimate).toBe(true));
     await act(async () => { await f.controller.generation!.prepare(); f.controller.generation!.cancelQuote(); });
-    expect(f.container.textContent).not.toContain("Confirm and generate 3 directions");
+    expect([...f.container.querySelectorAll("button")].find(button => button.textContent === "Generate 3 directions")?.disabled).toBe(true);
     expect(f.controller.generation!.state.canEstimate).toBe(true);
     expect(f.memory.get(id(2))?.pendingIntent).toBeNull(); expect(f.posts).toEqual([]);
   });
@@ -369,7 +368,7 @@ it("retains a displayed direction quote on readiness loss and resumes only on a 
   f.setCapabilityReady(false);
   await act(async () => { await f.controller.generation!.refreshAvailability(); });
   expect(f.controller.generation!.state.generation.quote).toEqual(original);
-  const confirm = [...f.container.querySelectorAll("button")].find(button => button.textContent === "Confirm and generate 3 directions");
+  const confirm = [...f.container.querySelectorAll("button")].find(button => button.textContent === "Generate 3 directions");
   expect(confirm?.disabled).toBe(true);
   await act(async () => { await f.controller.generation!.confirmQuote(id(100)); }); expect(f.posts).toEqual([]);
   f.setCapabilityReady(true); await act(async () => { await f.controller.generation!.refreshAvailability(); });

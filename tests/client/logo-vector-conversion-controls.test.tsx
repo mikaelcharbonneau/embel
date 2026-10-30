@@ -117,88 +117,96 @@ async function mount() {
     changeHeads() { workspace = { ...workspace, heads: { ...workspace.heads, workspaceRevision: 1 } }; },
   };
 }
+async function until(check: () => void) {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    try { check(); return; } catch (error) { if (attempt === 99) throw error; }
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 15)); });
+  }
+}
 describe("vector settings controls", () => {
-  it("returns keyboard focus to the review trigger after an asynchronous quote blurred it", async () => {
-    const f = await mount(), release = f.holdQuote(), trigger = f.button("Review conversion");
-    trigger.focus();
-    await act(async () => trigger.click());
-    expect(trigger.disabled).toBe(true); expect(f.controller.getSnapshot().phase).toBe("quoting");
-    // JSDOM neither blurs a disabled button nor implements its native blur().
-    // Move focus away while the quote is pending to reproduce the lost target.
-    const focusSink = document.createElement("button"); document.body.append(focusSink); focusSink.focus();
-    expect(document.activeElement).not.toBe(trigger);
-    await act(async () => { release(); });
-    expect(f.container.querySelector("dialog")?.open).toBe(true);
-    await act(async () => f.button("Cancel").click());
-    expect(document.activeElement).toBe(trigger); expect(trigger.disabled).toBe(false);
-    expect(f.admissions).toEqual([]); expect(f.pending).toBeNull();
+  it("prepares a delayed estimate without taking focus or starting conversion", async () => {
+    const f = await mount(), release = f.holdQuote();
+    const input = f.container.querySelector<HTMLInputElement>('[aria-label="Simplification"]')!;
+    input.focus();
+    await until(() => expect(f.quotes).toHaveLength(1));
+    expect(f.button("Convert to vector").disabled).toBe(true);
+    expect(f.admissions).toEqual([]);
+    await act(async () => release());
+    await until(() => expect(f.button("Convert to vector").disabled).toBe(false));
+    expect(document.activeElement).toBe(input); expect(f.container.querySelector("dialog")).toBeNull();
+    expect(f.pending).toBeNull();
   });
-  it("exposes supported controls and never requests conversion on mount or edit", async () => {
+  it("shows the expected cost before one click and never converts on mount or edit", async () => {
     const f = await mount();
-    expect(f.paths).toEqual([]); expect(f.container.textContent).toContain("small details");
     await f.change("Simplification", "1.25"); await f.change("Speckle filtering", "4");
     await f.change("Conversion color mode", "poster"); await f.change("Maximum colors", "12");
-    expect(f.paths).toEqual([]); expect(f.admissions).toEqual([]);
-    await act(async () => { f.button("Review conversion").click(); f.button("Review conversion").click(); });
+    await until(() => expect(f.button("Convert to vector").disabled).toBe(false));
     expect(f.quotes).toEqual([{ operation: "vectorize", expected: context().expected, source: context().source, settings: { preset: "poster", simplify: 1.25, filterSpeckle: 4, maxColors: 12 } }]);
-    expect(f.container.querySelector("dialog")?.open).toBe(true); expect(f.admissions).toEqual([]);
-    expect(f.workspace.approvedLogo).toEqual(f.approval);
+    expect(f.container.textContent).toContain("Expected cost: $0.00"); expect(f.admissions).toEqual([]);
     await act(async () => { f.button("Convert to vector").click(); f.button("Convert to vector").click(); });
     expect(f.admissions).toHaveLength(1); expect(f.pending).toEqual(f.admissions[0]);
     expect(f.workspace.approvedLogo).toEqual(f.approval);
   });
-  it.each([["Simplification", ""], ["Simplification", "2.6"], ["Speckle filtering", "1.5"], ["Speckle filtering", "17"]])("keeps invalid %s input visible and blocks new quotes", async (label, value) => {
+  it.each([["Simplification", ""], ["Simplification", "2.6"], ["Speckle filtering", "1.5"], ["Speckle filtering", "17"]])("keeps invalid %s input visible and blocks quotes and conversion", async (label, value) => {
     const f = await mount(); await f.change(label, value);
-    expect(f.button("Review conversion").disabled).toBe(true);
+    expect(f.button("Convert to vector").disabled).toBe(true);
     expect(f.container.querySelector("[role=alert]")?.textContent).toContain("Enter simplification");
-    await act(async () => f.button("Review conversion").click()); expect(f.paths).toEqual([]);
+    await act(async () => { f.button("Convert to vector").click(); await new Promise(resolve => setTimeout(resolve, 400)); });
+    expect(f.paths).toEqual([]); expect(f.admissions).toEqual([]);
   });
-  it("requires whole bounded poster colors and explicitly returns to two colors for black and white", async () => {
+  it("requires whole bounded poster colors and returns to two colors for black and white", async () => {
     const f = await mount(); const colors = f.container.querySelector<HTMLInputElement>('[aria-label="Maximum colors"]')!;
     expect(colors.disabled).toBe(true); expect(colors.value).toBe("2");
     await f.change("Conversion color mode", "poster"); expect(colors.disabled).toBe(false);
-    await f.change("Maximum colors", "33"); expect(f.button("Review conversion").disabled).toBe(true);
-    await f.change("Maximum colors", "2.5"); expect(f.button("Review conversion").disabled).toBe(true);
-    await f.change("Maximum colors", "32"); expect(f.button("Review conversion").disabled).toBe(false);
+    await f.change("Maximum colors", "33"); expect(f.button("Convert to vector").disabled).toBe(true);
+    await f.change("Maximum colors", "2.5"); expect(f.button("Convert to vector").disabled).toBe(true);
+    await f.change("Maximum colors", "32"); await until(() => expect(f.button("Convert to vector").disabled).toBe(false));
     await f.change("Conversion color mode", "bw"); expect(colors.disabled).toBe(true); expect(colors.value).toBe("2");
-    expect(f.paths).toEqual([]);
+    expect(f.button("Convert to vector").disabled).toBe(true);
+    await until(() => expect(f.button("Convert to vector").disabled).toBe(false));
+    expect(f.quotes.at(-1)).toMatchObject({ settings: { preset: "bw", maxColors: 2 } }); expect(f.admissions).toEqual([]);
   });
-  it("cancels an estimate without conversion and requires a fresh explicit review after settings change", async () => {
-    const f = await mount(); await act(async () => f.button("Review conversion").click());
-    const original = f.controller.getSnapshot().quote!;
-    expect(Object.isFrozen(original.request)).toBe(true);
-    await act(async () => f.button("Cancel").click()); expect(f.admissions).toEqual([]); expect(f.pending).toBeNull();
-    await f.change("Simplification", "2"); expect(f.quotes).toHaveLength(1);
-    expect(original.request.operation === "vectorize" && original.request.settings.simplify).toBe(0);
-    await act(async () => f.button("Review conversion").click()); expect(f.quotes).toHaveLength(2);
-    expect(f.quotes[1]).toMatchObject({ settings: { simplify: 2 } }); expect(f.admissions).toEqual([]);
+  it("refreshes changed settings without changing the earlier quote or starting work", async () => {
+    const f = await mount(); await until(() => expect(f.button("Convert to vector").disabled).toBe(false));
+    const original = structuredClone(f.quotes[0]);
+    await f.change("Simplification", "2"); expect(f.button("Convert to vector").disabled).toBe(true);
+    await until(() => expect(f.quotes).toHaveLength(2));
+    expect(f.quotes[0]).toEqual(original); expect(f.quotes[1]).toMatchObject({ settings: { simplify: 2 } });
+    expect(f.admissions).toEqual([]); expect(f.pending).toBeNull();
   });
-  it("fences a selection change before a stale rendered click without requesting a quote", async () => {
-    const f = await mount(); f.setCurrent({ ...context(), source: { kind: "refinement", rasterRevisionId: id(173) } });
-    await act(async () => f.button("Review conversion").click()); expect(f.paths).toEqual([]);
-    expect(f.container.textContent).toContain("saved selection or account changed");
+  it("fences a selection change before a stale rendered click", async () => {
+    const f = await mount(); await until(() => expect(f.button("Convert to vector").disabled).toBe(false));
+    f.setCurrent({ ...context(), source: { kind: "refinement", rasterRevisionId: id(173) } });
+    await act(async () => f.button("Convert to vector").click());
+    expect(f.admissions).toEqual([]); expect(f.container.textContent).toContain("saved selection or account changed");
   });
-  it("fences account expiration before review and a changed saved revision before confirmation", async () => {
-    const f = await mount(); f.setCurrent(null); await act(async () => f.button("Review conversion").click()); expect(f.paths).toEqual([]);
-    f.setCurrent(context()); await act(async () => f.button("Review conversion").click());
+  it("fences account expiration and changed saved revisions at the deliberate click", async () => {
+    const f = await mount(); await until(() => expect(f.button("Convert to vector").disabled).toBe(false));
+    f.setCurrent(null); await act(async () => f.button("Convert to vector").click()); expect(f.admissions).toEqual([]);
+    f.setCurrent(context()); await f.render();
     f.changeHeads(); await act(async () => f.button("Convert to vector").click());
     expect(f.admissions).toEqual([]); expect(f.workspace.approvedLogo).toEqual(f.approval);
   });
-  it("blocks unavailable and unsaved-input reviews and never auto-retries a failed quote", async () => {
-    const f = await mount(); f.setAvailable(false); await f.render(); expect(f.button("Review conversion").disabled).toBe(true);
-    f.setAvailable(true); f.setBlocked(true); await f.render(); expect(f.button("Review conversion").disabled).toBe(true);
+  it("blocks unavailable or unsaved inputs and offers an explicit retry after a failed estimate", async () => {
+    const f = await mount(); f.setAvailable(false); await f.render(); expect(f.button("Convert to vector").disabled).toBe(true);
+    f.setAvailable(true); f.setBlocked(true); await f.render(); expect(f.button("Convert to vector").disabled).toBe(true);
     expect(f.paths).toEqual([]); f.setBlocked(false); f.setQuoteStatus(503); await f.render();
-    await act(async () => f.button("Review conversion").click()); expect(f.quotes).toHaveLength(1); expect(f.admissions).toEqual([]);
-    expect(f.button("Review conversion").disabled).toBe(false); await f.render(); expect(f.quotes).toHaveLength(1);
+    await until(() => expect(f.button("Refresh estimate")).toBeDefined());
+    expect(f.quotes).toHaveLength(1); expect(f.admissions).toEqual([]);
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 450)); }); expect(f.quotes).toHaveLength(1);
+    f.setQuoteStatus(200); await act(async () => f.button("Refresh estimate").click());
+    await until(() => expect(f.button("Convert to vector").disabled).toBe(false));
+    expect(f.quotes).toHaveLength(2); expect(f.admissions).toEqual([]);
   });
-  it("keeps an unresolved conversion blocked and uses original-request recovery without a new settings quote", async () => {
-    const f = await mount(); await act(async () => f.button("Review conversion").click()); await act(async () => f.button("Convert to vector").click());
+  it("keeps an unresolved conversion blocked and checks the original request without another quote", async () => {
+    const f = await mount(); await until(() => expect(f.button("Convert to vector").disabled).toBe(false));
+    await act(async () => f.button("Convert to vector").click());
     const original = f.pending!; f.setRequestState({ status: "not_found" });
-    await act(async () => f.controller.checkRequest()); expect(f.button("Review conversion").disabled).toBe(true);
-    await act(async () => f.button("Review conversion").click()); expect(f.quotes).toHaveLength(1); expect(f.pending).toEqual(original);
+    await act(async () => f.controller.checkRequest()); expect(f.button("Convert to vector").disabled).toBe(true);
+    await act(async () => f.button("Convert to vector").click()); expect(f.quotes).toHaveLength(1); expect(f.pending).toEqual(original);
     expect(f.admissions).toHaveLength(1); expect(f.workspace.approvedLogo).toEqual(f.approval);
   });
-  it("discloses the exact immutable conversion settings for the existing cost confirmation", async () => {
+  it("describes the exact immutable conversion settings", async () => {
     vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
     const container = document.createElement("div"); document.body.append(container); root = createRoot(container);
     await act(async () => root!.render(createElement(LogoVectorSettingsSummary, { settings: { preset: "poster", simplify: 2.5, filterSpeckle: 16, maxColors: 32 } })));

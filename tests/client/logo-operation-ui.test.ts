@@ -11,7 +11,7 @@ import type { LogoDraftMemory } from "@/components/identity/logo-draft-memory";
 import { syntheticLogoBatch, syntheticLogoWorkspace, syntheticResolvedLogoConcept, syntheticLogoQuote, logoFixtureId as id } from "../fixtures/logo-creation";
 let root: Root | null = null;
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.innerHTML = ""; vi.unstubAllGlobals(); vi.restoreAllMocks(); });
-async function until(check: () => void) { let error: unknown; for (let i = 0; i < 80; i++) { await act(async () => { await new Promise(resolve => setTimeout(resolve, 5)); }); try { check(); return; } catch (e) { error = e; } } throw error; }
+async function until(check: () => void) { let error: unknown; for (let i = 0; i < 80; i++) { await act(async () => { await new Promise(resolve => setTimeout(resolve, 15)); }); try { check(); return; } catch (e) { error = e; } } throw error; }
 async function mount(refinement = false) {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true); vi.stubGlobal("crypto", webcrypto);
   HTMLDialogElement.prototype.showModal = function () { this.open = true; }; HTMLDialogElement.prototype.close = function () { this.open = false; };
@@ -55,16 +55,15 @@ async function mount(refinement = false) {
 }
 describe("actual selected-concept conversion UI", () => {
   it("uses vector-only live capability with an explicit estimate then one original admission", async () => {
-    const f = await mount(); await until(() => expect(f.button("Review conversion")?.disabled).toBe(false));
-    expect(f.button("More concepts")?.disabled).toBe(true); expect(f.admissions).toEqual([]); expect(f.quotes).toEqual([]);
-    await act(async () => f.button("Review conversion")!.click());
+    const f = await mount(); await until(() => expect(f.button("Convert to vector")?.disabled).toBe(false));
+    expect(f.button("Generate six more concepts")?.disabled).toBe(true); expect(f.admissions).toEqual([]);
     await until(() => expect(f.button("Convert to vector")?.disabled).toBe(false));
     expect(f.quotes).toEqual([{ operation: "vectorize", expected: f.workspace.heads, source: f.selected, settings: { preset: "bw", simplify: 0, filterSpeckle: 0, maxColors: 2 } }]);
     expect(f.admissions).toEqual([]); await act(async () => { f.button("Convert to vector")!.click(); f.button("Convert to vector")!.click(); });
     expect(f.admissions).toHaveLength(1); expect(f.memory.get(f.workspace.projectId)?.pendingIntent).toEqual(f.admissions[0]);
     expect(f.memory.get(f.workspace.projectId)?.workspace?.approvedLogo).toEqual(f.workspace.approvedLogo);
     f.setReady(false); await act(async () => f.button("Refresh operation availability")!.click());
-    await until(() => expect(f.button("Review conversion")?.disabled).toBe(true));
+    await until(() => expect(f.button("Convert to vector")?.disabled).toBe(true));
     const original = f.memory.get(f.workspace.projectId)?.pendingIntent;
     await act(async () => f.button("Check request")!.click());
     expect(f.memory.get(f.workspace.projectId)?.pendingIntent).toEqual(original); expect(f.admissions).toHaveLength(1);
@@ -76,18 +75,18 @@ describe("actual selected-concept conversion UI", () => {
     expect(f.admissions).toHaveLength(1); expect(f.memory.get(f.workspace.projectId)?.workspace?.approvedLogo).toEqual(f.workspace.approvedLogo);
   });
   it("retains its displayed conversion estimate through readiness failure without admitting from refresh", async () => {
-    const f = await mount(); await until(() => expect(f.button("Review conversion")?.disabled).toBe(false));
-    await act(async () => f.button("Review conversion")!.click()); await until(() => expect(f.button("Convert to vector")?.disabled).toBe(false));
+    const f = await mount(); await until(() => expect(f.button("Convert to vector")?.disabled).toBe(false));
+    await until(() => expect(f.button("Convert to vector")?.disabled).toBe(false));
     f.setReady(false); await act(async () => f.button("Refresh operation availability")!.click());
-    await until(() => expect(f.button("Confirm generation")?.disabled).toBe(true));
-    expect(f.container.querySelector('dialog[aria-label="Review generation cost"]')?.textContent).toContain("Estimated cost"); expect(f.quotes).toHaveLength(1); expect(f.admissions).toEqual([]);
+    await until(() => expect(f.button("Convert to vector")?.disabled).toBe(true));
+    expect(f.container.querySelector('dialog[aria-label="Review generation cost"]')).toBeNull(); expect(f.container.textContent).toContain("Vector conversion is currently unavailable"); expect(f.quotes).toHaveLength(1); expect(f.admissions).toEqual([]);
   });
 });
 
 
 it("quotes the saved refinement source without substituting a displayed concept", async () => {
-  const f = await mount(true); await until(() => expect(f.button("Review conversion")?.disabled).toBe(false));
-  await act(async () => f.button("Review conversion")!.click()); await until(() => expect(f.quotes).toHaveLength(1));
+  const f = await mount(true); await until(() => expect(f.button("Convert to vector")?.disabled).toBe(false));
+  await until(() => expect(f.quotes).toHaveLength(1));
   expect(f.quotes[0]).toMatchObject({ operation: "vectorize", source: { kind: "refinement", rasterRevisionId: id(173) } });
   expect(f.admissions).toEqual([]); expect(f.memory.get(f.workspace.projectId)?.workspace?.approvedLogo).toEqual(f.workspace.approvedLogo);
 });
@@ -101,9 +100,8 @@ it("uses a reloaded saved refinement after an earlier concept selection receipt"
   await until(() => expect(f.button("Refresh saved brand")).toBeDefined());
   await act(async () => f.button("Refresh saved brand")!.click());
   await until(() => expect(f.memory.get(f.workspace.projectId)?.workspace?.heads.stageRevisions.concepts).toBe(3));
-  await until(() => expect(f.button("Review conversion")?.disabled).toBe(false));
-  expect(f.admissions).toEqual([]); expect(f.quotes).toEqual([]);
-  await act(async () => f.button("Review conversion")!.click());
-  await until(() => expect(f.quotes).toHaveLength(1)); expect(f.quotes[0]).toMatchObject({ source: replacement, expected: f.workspace.heads });
+  await until(() => expect(f.button("Convert to vector")?.disabled).toBe(false));
+  expect(f.admissions).toEqual([]);
+  expect(f.quotes.at(-1)).toMatchObject({ source: replacement, expected: f.workspace.heads });
   expect(f.admissions).toEqual([]);
 });

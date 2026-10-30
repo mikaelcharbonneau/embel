@@ -11,7 +11,7 @@ const sourceRevision=execFileSync("git",["rev-parse","HEAD"],{cwd:root,encoding:
 const sourceClean=execFileSync("git",["status","--porcelain","--untracked-files=normal"],{cwd:root,encoding:"utf8"}).trim()==="";
 if(!/^[a-f0-9]{40}$/u.test(sourceRevision)||process.env.VERCEL==="1"&&!sourceClean)throw Error("Shared worker source is unqualified");
 const authority=JSON.parse(await readFile(path.join(root,"worker/shared-pool/authority-manifest.json"),"utf8"));
-const authorityPaths=["identity_transactions.sql","shared_worker_pool.sql","shared_account_http.sql","shared_worker_strategy.sql","shared_worker_naming.sql","shared_worker_logo.sql","shared_storage_authority.sql","shared_logo_http.sql","shared_logo_advanced.sql","shared_identity_generation.sql","shared_naming_brainstorm.sql","shared_naming_brainstorm_event_capacity.sql"].map(name=>"supabase/candidates/"+name);
+const authorityPaths=["identity_transactions.sql","shared_worker_pool.sql","shared_account_http.sql","shared_worker_strategy.sql","shared_worker_naming.sql","shared_worker_logo.sql","shared_storage_authority.sql","shared_logo_http.sql","shared_logo_advanced.sql","shared_identity_generation.sql","shared_naming_brainstorm.sql","shared_naming_brainstorm_event_capacity.sql","shared_logo_raster_uncapped.sql"].map(name=>"supabase/candidates/"+name);
 if(authority.version!==1||!Array.isArray(authority.packets)||JSON.stringify(authority.packets.map(packet=>packet.path))!==JSON.stringify(authorityPaths)||!Array.isArray(authority.functions)||!authority.functions.length
  ||authority.functions.some(fn=>typeof fn.broadExecute!=="boolean"))throw Error("Shared worker authority source manifest invalid");
 for(const packet of authority.packets){

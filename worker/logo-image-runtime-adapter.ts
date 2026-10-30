@@ -10,12 +10,13 @@ import { createSunburstStandardImageUsagePricer, SUNBURST_STANDARD_IMAGE_PRICING
 import { createOpenAIImageTransport, type OpenAIImageTransport } from "../src/server/logo-creation/openai-image-transport";
 import type { LogoConceptHandlerDependencies } from "./handlers/logo-concepts";
 import type { LogoRefinementHandlerDependencies } from "./handlers/logo-refinements";
-import { freezeLogoWorkerManifest, type LogoWorkerCapability } from "./logo-readiness";
+import type { LogoWorkerCapability } from "./logo-readiness";
+import { qualifiedLogoRasterCapability, type LogoRasterCapability } from "./logo-generative-storage-authorization";
 
 export type LogoImageRuntimeConfiguration = {
   apiKey: string; model: string; rateVersion: string;
-  /** Operator gate only. Actual quoted user acceptance and enabled exact policy
-   * are independently checked by admission, readiness and leased SQL. */
+  /** Runtime configuration only. The deliberate user request and exact enabled
+   * policy are independently checked by admission, readiness and leased SQL. */
   paidCallsApproved: boolean;
 };
 export type LogoImageRuntimeAdapterInput = {
@@ -29,8 +30,8 @@ export type LogoImageRuntimeAdapterInput = {
   /** Synchronous local host fence; never a consent or remote access check. */
   acceptingWork?: () => boolean;
 };
-export type LogoImageRuntimeAdapter = Readonly<{
-  capability: LogoWorkerCapability;
+export type LogoImageRuntimeAdapter<T extends LogoRasterCapability = LogoWorkerCapability> = Readonly<{
+  capability: T;
   concepts: Readonly<LogoConceptHandlerDependencies> | null;
   refinements: Readonly<LogoRefinementHandlerDependencies> | null;
 }>;
@@ -39,22 +40,24 @@ const imageSchema = z.strictObject({ apiKey: z.string().min(1).max(4096).regex(/
   rateVersion: z.literal(SUNBURST_STANDARD_IMAGE_PRICING.binding.rateVersion), paidCallsApproved: z.literal(true) });
 const jobSchema = z.strictObject({ id: z.uuid(), ownerId: z.uuid(), projectId: z.uuid(), operation: z.string(), input: z.unknown(),
   inputRevision: z.number().int().positive(), leaseToken: z.uuid(), status: z.enum(["running", "partial"]),
-  reservedCostMicrousd: moneySchema.positive(), actualCostMicrousd: moneySchema });
+  reservedCostMicrousd: moneySchema, actualCostMicrousd: moneySchema });
 
 /** Pure reusable dependency construction. No configuration discovery, pool,
  * Auth/Storage/model probe, timer, readiness report or image request. This is
  * not a runtime: the caller composes exactly one union runtime/readiness owner.
  * Neither a configuration marker nor successful construction proves consent,
  * model access or live background Storage access. */
-export function createLogoImageRuntimeAdapter(input: LogoImageRuntimeAdapterInput | null = null): LogoImageRuntimeAdapter | null {
+export function createLogoImageRuntimeAdapter(input: LogoImageRuntimeAdapterInput): LogoImageRuntimeAdapter | null;
+export function createLogoImageRuntimeAdapter(input?: (Omit<LogoImageRuntimeAdapterInput,"capability"> & { capability: LogoRasterCapability }) | null): LogoImageRuntimeAdapter<LogoRasterCapability> | null;
+export function createLogoImageRuntimeAdapter(input: (Omit<LogoImageRuntimeAdapterInput,"capability"> & { capability: LogoRasterCapability }) | null = null): LogoImageRuntimeAdapter<LogoRasterCapability> | null {
   if (!input) return null;
   try {
     const ownerId = z.uuid().parse(input.ownerId).toLowerCase();
     const image = imageSchema.parse(input.image), references = z.enum(["none", "uploaded"]).parse(input.references);
-    const capability = freezeLogoWorkerManifest([input.capability])[0]!;
-    if (!["identity.logo_concept", "identity.logo_refine"].includes(capability.operation) || capability.handlerVersion !== LOGO_IMAGE_HANDLER_VERSION
-      || capability.provider !== "openai" || capability.model !== image.model || capability.engine !== null || capability.maxCostMicrousd <= 0
-      || capability.billingMode !== undefined || capability.policy !== undefined || capability.operation === "identity.logo_refine" && references !== "uploaded"
+    const qualified = qualifiedLogoRasterCapability(input.capability);
+    if (!qualified) throw unavailable();
+    const capability = qualified;
+    if (capability.model !== image.model || capability.operation === "identity.logo_refine" && references !== "uploaded"
       || typeof input.connection?.query !== "function" || typeof input.assets?.readLeasedAsset !== "function"
       || typeof input.assets?.publishLeasedAsset !== "function" || typeof input.assertAvailable !== "function"
       || input.transport !== undefined && typeof input.transport?.createImage !== "function"
@@ -95,7 +98,8 @@ export function createLogoImageRuntimeAdapter(input: LogoImageRuntimeAdapterInpu
       const frozen = capability.operation === "identity.logo_concept" ? logoConceptJobInputSchema.parse(job.input) : logoRefinementJobInputSchema.parse(job.input);
       if (job.ownerId !== ownerId || job.operation !== capability.operation || frozen.operation !== capability.operation
         || frozen.ownerId !== ownerId || frozen.projectId !== job.projectId || frozen.policyIdentity !== capability.policyIdentity
-        || frozen.handlerVersion !== capability.handlerVersion || job.reservedCostMicrousd > capability.maxCostMicrousd
+        || frozen.handlerVersion !== capability.handlerVersion
+        || ("spendControl" in capability ? frozen.version !== 3 || job.reservedCostMicrousd !== 0 : frozen.version !== 2 || job.reservedCostMicrousd <= 0 || job.reservedCostMicrousd > capability.maxCostMicrousd)
         || frozen.operation === "identity.logo_concept" && (frozen.plan.targetCount !== 6 || references === "none" && frozen.references.length !== 0)
         || frozen.operation === "identity.logo_refine" && frozen.source.kind !== "preview") throw unavailable();
       return { ...job, input: frozen };

@@ -16,12 +16,12 @@ beforeEach(() => { vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true); vi.stubGloba
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); });
-async function until(check: () => void) { let error: unknown; for (let i = 0; i < 100; i++) { await act(async () => { await new Promise(resolve => setTimeout(resolve, 5)); }); try { check(); return; } catch (cause) { error = cause; } } throw error; }
+async function until(check: () => void) { let error: unknown; for (let i = 0; i < 100; i++) { await act(async () => { await new Promise(resolve => setTimeout(resolve, 15)); }); try { check(); return; } catch (cause) { error = cause; } } throw error; }
 const grid = () => host.querySelector('[aria-label="Logo concepts"]')!;
 const image = () => grid()?.querySelector('img[src^="blob:"]') ?? null;
 const select = () => grid()?.querySelector<HTMLElement>('[role="button"][aria-label="Select concept 1"]') ?? null;
 const action = (label: string) => grid().querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!;
-const actions = ["More concepts", "Retry 1 failed concept", "Refine selected"];
+const actions = ["Generate six more concepts", "Retry 1 failed concept", "Refine selected"];
 async function mount(projectId: string, fetcher: typeof fetch) {
   vi.stubGlobal("fetch", fetcher);
   function App() { const account = useAccountSession(); return createElement("main", null, createElement("button", { onClick: account.refresh }, "Recheck account"), createElement(LogoCreationWorkspace, { projectId })); }
@@ -61,12 +61,12 @@ describe("same-batch display across selection revisions", () => {
       expect(image()).toBe(before); expect(before.closest("li")).toBe(card); expect(before.getAttribute("src")).toBe(url);
       expect(URL.revokeObjectURL).not.toHaveBeenCalledWith(url); expect(grid().querySelectorAll("ol > li")).toHaveLength(6);
       expect(select()).toBeNull(); for (const label of actions) expect(action(label).disabled, label).toBe(true);
-      await act(async () => { for (const label of actions) action(label).click(); }); expect(f.quotes).toEqual([]); expect(f.admissions).toEqual([]);
+      await act(async () => { for (const label of actions) action(label).click(); }); expect(f.admissions).toEqual([]);
       await act(async () => release!());
       if (outcome === "succeeds") await until(() => { expect(select()).not.toBeNull(); for (const label of actions) expect(action(label).disabled, label).toBe(false); });
       else { await until(() => expect(grid().textContent).toContain("Saved concept details unavailable")); expect(select()).toBeNull(); for (const label of actions) expect(action(label).disabled, label).toBe(true); }
       expect(image()).toBe(before); expect(URL.revokeObjectURL).not.toHaveBeenCalledWith(url);
-      expect(host.textContent).toContain("Project logo choice saved."); expect(f.selections).toHaveLength(1); expect(f.quotes).toEqual([]); expect(f.admissions).toEqual([]);
+      expect(host.textContent).toContain("Project logo choice saved."); expect(f.selections).toHaveLength(1); expect(f.admissions).toEqual([]);
     } finally { await act(async () => release?.()); }
   });
 
@@ -90,7 +90,7 @@ describe("same-batch display across selection revisions", () => {
       await act(async () => releaseCurrent!()); await until(() => expect(image()).not.toBeNull()); expect(image()!.getAttribute("src")).not.toBe(url);
       holdCurrent = false; f.owner = "75000000-0000-4000-8000-000000009997"; await recheckAccount();
       await until(() => expect(host.querySelector('img[src^="blob:"]')).toBeNull());
-      expect(f.selections).toEqual([]); expect(f.quotes).toEqual([]); expect(f.admissions).toEqual([]);
+      expect(f.selections).toEqual([]); expect(f.admissions).toEqual([]);
     } finally { await act(async () => { releaseOther?.(Response.json(other)); releaseCurrent?.(); }); }
   });
 });

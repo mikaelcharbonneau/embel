@@ -6,7 +6,7 @@ import { z } from "zod";
 import { moneySchema, type ClaimedJob } from "../src/domain/jobs";
 import { IMAGE_MODEL } from "../src/domain/providers";
 import { LOGO_MUTATION_MAX_BYTES, logoAssetReferenceSchema, logoUuidSchema } from "../src/domain/logo-vector";
-import { logoConceptJobInputSchema, logoRefinementJobInputSchema } from "../src/domain/logo-jobs";
+import { logoConceptJobInputSchema, logoRefinementJobInputSchema, uncappedLogoRasterCapabilitySchema, type UncappedLogoRasterCapability } from "../src/domain/logo-jobs";
 import { identityAssetPublicationSchema, type IdentityAssetPublication } from "../src/domain/logo-deliverables";
 import type { IdentityAssetReservation } from "../src/server/data/identity-asset-store";
 import { createSupabasePrivateAssetStorage } from "../src/server/runtime/private-asset-storage";
@@ -42,6 +42,7 @@ const grantSchema = sessionSchema.extend({ capability: z.unknown(), jobId: logoU
 export type LogoGenerativeStorageScope = Readonly<{ job: ClaimedJob; reservation: Readonly<IdentityAssetReservation> }>;
 export type LogoGenerativeStorageRead = Readonly<{ read(signal?: AbortSignal): Promise<{ bytes: Uint8Array; mimeType: string }> }>;
 export type LogoGenerativeStorageWrite = LogoGenerativeStorageRead & Readonly<{ putIfAbsent(bytes: Uint8Array, mimeType: string, signal?: AbortSignal): Promise<void> }>;
+export type LogoRasterCapability = LogoWorkerCapability | UncappedLogoRasterCapability;
 export interface LogoGenerativeStorageAuthorization {
   readonly ownerId: string;
   readonly capability: LogoWorkerCapability;
@@ -51,6 +52,7 @@ export interface LogoGenerativeStorageAuthorization {
   authorizeWrite(scope: LogoGenerativeStorageScope & Readonly<{ publication: IdentityAssetPublication }>, signal?: AbortSignal): Promise<LogoGenerativeStorageWrite>;
   close(): void;
 }
+export type LogoRasterStorageAuthorization = Omit<LogoGenerativeStorageAuthorization,"capability"> & { readonly capability: LogoRasterCapability };
 export type LogoStorageTokenProvider = (signal?: AbortSignal) => Promise<string>;
 export type LogoGenerativeStorageDependencies = { fetch: typeof fetch; now?: () => number; tokenProvider?: LogoStorageTokenProvider };
 /** Descriptor validation is not proof of live policy, Auth or source authority. */
@@ -61,6 +63,11 @@ export function qualifiedLogoGenerativeStorageCapability(input: unknown): LogoWo
       || cap.provider !== "openai" || cap.model !== IMAGE_MODEL || cap.engine !== null || cap.maxCostMicrousd <= 0 || cap.billingMode !== undefined || cap.policy !== undefined) return null;
     return cap;
   } catch { return null; }
+}
+/** Shared raster jobs use real usage accounting with no monetary reservation. */
+export function qualifiedLogoRasterCapability(input: unknown): LogoRasterCapability | null {
+  const uncapped = uncappedLogoRasterCapabilitySchema.safeParse(input);
+  return uncapped.success ? Object.freeze(uncapped.data) : qualifiedLogoGenerativeStorageCapability(input);
 }
 /** A separate, disabled-by-default uploaded-reference/raster-refinement lane.
  * The already-approved dedicated Auth session is injected, never discovered or

@@ -13,6 +13,7 @@ export function DirectionGenerationControls({ controller }: { controller: Direct
   const subscription = quote?.billingMode === "chatgpt_subscription";
   const uncapped = quote !== null && quote !== undefined && "spendControl" in quote;
   const confirming = generation?.phase === "admitting" || !!state?.loadingFonts;
+  const expectedCost = quote && "estimatedCostMicrousd" in quote && typeof quote.estimatedCostMicrousd === "number" ? quote.estimatedCostMicrousd : null;
   const otherOperation = request?.receipt && "operation" in request.receipt && request.receipt.operation !== "identity.logo_directions";
   const status = otherOperation ? "Another logo operation is retained for this workspace. Check its status before generating directions." : request?.status === "admitted" ? "Request accepted. Waiting for the worker."
     : request?.status === "running" ? "Generating three coordinated directions."
@@ -23,26 +24,25 @@ export function DirectionGenerationControls({ controller }: { controller: Direct
     : request?.status === "needs_reconciliation" ? "The generation outcome still needs checking. Its original request is retained." : null;
   return <section className={styles.generationSection} aria-label="Generate identity directions">
     <div className={styles.generation}><div><h3>Three directions, one logo</h3><p id={descriptionId} className={styles.caption}>
-      {state?.canEstimate ? "Get an estimate for exactly three coordinated palette, typography and graphics directions. Your approved logo stays unchanged." : state?.unavailableReason ?? "Generation is unavailable while your workspace is loading."}
-    </p></div><button type="button" disabled={!state?.canEstimate} aria-describedby={descriptionId} onClick={() => { void controller?.prepare(); }}>Estimate directions</button></div>
+      Generate three coordinated palette, typography and graphics directions. Your approved logo stays unchanged.
+    </p></div><div className={styles.actions}>
+      <button type="button" disabled={!quote || confirming || !state?.canConfirm} aria-describedby={descriptionId} onClick={() => { if (quote) void controller?.confirmQuote(quote.id); }}>{generation?.phase === "admitting" ? "Starting directions…" : "Generate 3 directions"}</button>
+      <span role="status" className={styles.caption}>{quote ? subscription ? "Subscription usage applies." : expectedCost === null ? "Expected cost unavailable." : `Expected cost: ${displayLogoCost(expectedCost)}` : generation?.phase === "quoting" || state?.loadingFonts ? "Estimating cost…" : "Estimate not ready."}</span>
+    </div></div>
+    {!quote && state?.unavailableReason && <p className={styles.caption}>{state.unavailableReason}</p>}
+    {(state?.canEstimate || state?.canConfirm) && <button type="button" onClick={() => { controller?.cancelQuote(); void controller?.prepare(); }}>Refresh estimate</button>}
     {state?.fonts && state.fonts.length > 0 && <ContextDetails className={styles.details} title={<>Permitted font versions ({state.fonts.length})</>}><p className={styles.caption}>Generation uses the saved, owned fonts with reviewed commercial-use and display permissions. Embedding and sharing files require their separate permissions. Paid-font suggestions are excluded.</p><ul className={styles.fontList}>{state.fonts.map(font => <li key={font.id}>{font.family} · {font.source === "free_catalog" ? "Free catalog" : "Reviewed upload"}<span className={styles.version}>Version {font.id}</span></li>)}</ul></ContextDetails>}
     {state && <button type="button" onClick={() => { void controller?.refreshAvailability(); }}>Refresh operation availability</button>}
     {state && <button type="button" disabled={state.loadingFonts || state.checking} onClick={() => { void controller?.refreshFonts(); }}>Refresh generation inputs</button>}
     {generation?.phase === "quoting" && <p className={styles.caption} role="status">Preparing your cost estimate…</p>}
-    {quote && ["awaiting_confirmation", "admitting"].includes(generation!.phase) && <section className={styles.costReview} aria-label="Direction generation cost review">
-      <h3>{uncapped ? "Review direction generation" : subscription ? "Review subscription usage" : "Review the cost"}</h3><p className={styles.caption}>Generate exactly 3 identity directions around the approved logo. Existing saved directions remain in history.</p>
-      <p className={styles.caption}>{quote.provider && quote.model ? `${quote.provider} · ${quote.model}` : "Configured generation operation"}</p>
-      <p className={styles.version}>Approved logo {quote.request.operation === "directions" ? quote.request.approvedLogoId : "unavailable"}</p>
+    {quote && ["awaiting_confirmation", "admitting"].includes(generation!.phase) && <div aria-label="Direction generation estimate">
       {state?.reviewedVisualDirection && <p className={styles.caption}>Reviewed visual direction version {state.reviewedVisualDirection.revision} · {state.reviewedVisualDirection.references.length} attributed references. Your written guidance and saved aspects are included as text.</p>}
-      {"spendControl" in quote ? <p className={styles.caption}>This request uses the configured AI service. Actual usage is recorded when the provider reports it.</p> : subscription ? <><p className={styles.caption}>ChatGPT subscription usage applies. No separate API charge under this verified subscription policy.</p>
-        <p className={styles.caption}>Remaining allowance is unavailable. Token usage is unavailable unless the provider reports it; interrupted requests may still consume subscription usage.</p></> : <><dl className={styles.permissions}><div><dt>Estimated cost</dt><dd>{displayLogoCost(quote.estimatedCostMicrousd)}</dd></div><div><dt>Maximum cost</dt><dd>{displayLogoCost(quote.maxCostMicrousd)}</dd></div></dl>
-        <p className={styles.caption}>This is an estimate, not a confirmed charge. Failed provider requests can still incur costs.</p></>}
-      <div className={styles.actions}><button type="button" disabled={confirming || !state?.canConfirm} onClick={() => { void controller?.confirmQuote(quote.id); }}>{generation!.phase === "admitting" ? "Confirming request…" : "Confirm and generate 3 directions"}</button>
-        <button type="button" disabled={generation!.phase === "admitting"} onClick={() => controller?.cancelQuote()}>Cancel estimate</button></div>
-    </section>}
+      {uncapped ? <p className={styles.caption}>Actual usage is recorded when the provider reports it.</p> : subscription ? <><p className={styles.caption}>ChatGPT subscription usage applies. No separate API charge under this verified subscription policy.</p>
+        <p className={styles.caption}>Remaining allowance is unavailable. Token usage is unavailable unless the provider reports it; interrupted requests may still consume subscription usage.</p></> : <p className={styles.caption}>An estimate, not a confirmed charge. Actual usage may differ.</p>}
+    </div>}
     {generation?.error && <p className={styles.warning} role="status">{generation.error}</p>}
     {state?.message && <p className={styles.notice} role="status">{state.message}</p>}
-    {(generation?.phase === "rejected" || generation?.phase === "resolve_draft") && <button type="button" disabled={state?.checking} onClick={() => { void controller?.returnToCostReview(); }}>Return to cost review</button>}
+    {(generation?.phase === "rejected" || generation?.phase === "resolve_draft") && <button type="button" disabled={state?.checking} onClick={() => { void controller?.returnToCostReview(); }}>Refresh saved inputs and estimate</button>}
     {generation?.phase === "refreshing_workspace" && <p className={styles.caption} role="status">Refreshing saved inputs…</p>}
     {request && <div className={styles.notice} role="status"><strong>{status}</strong>
       {request.outputs.length > 0 && <p>{request.outputs.length} verified output{request.outputs.length === 1 ? " is" : "s are"} retained with this request. A partial result is not an approved identity.</p>}

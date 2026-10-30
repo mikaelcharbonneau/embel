@@ -6,12 +6,13 @@ import { Icon } from "@/components/ui/icon";
 import styles from "./logo-creation.module.css";
 
 /** Existing saved brief and request controls stay mounted while the panel is closed. */
-export function ConceptsComposer({ children, instruction, onInstructionChange, onReview, selectedLabel, selectedPreview, status, onShowResult, selectionReadState, disclosureRef }: {
+export function ConceptsComposer({ children, instruction, onInstructionChange, onGenerate, generationAction, selectedLabel, selectedPreview, status, onShowResult, selectionReadState, disclosureRef }: {
   projectId: string; children: ReactNode; instruction: string;
-  onInstructionChange(value: string): void; onReview?: () => void;
+  onInstructionChange(value: string): void; onGenerate?: () => void;
+  generationAction?: ReactNode;
   selectedLabel?: string; selectedPreview?: ReactNode; status?: string;
   onShowResult?: () => void;
-  /** Presentation only; callback presence remains the authority for cost review. */
+  /** Presentation only; callback presence remains the availability for deliberate generation. */
   selectionReadState?: "loading" | "unavailable";
   disclosureRef?: RefObject<HTMLButtonElement | null>;
 }) {
@@ -27,7 +28,7 @@ export function ConceptsComposer({ children, instruction, onInstructionChange, o
     return () => { if (open && previous instanceof HTMLElement && previous.isConnected) previous.focus(); };
   }, [open]);
   return <>
-    <form className={styles.conceptsComposer} aria-label="Logo concept changes" aria-busy={selectionReadState === "loading"} onSubmit={event => { event.preventDefault(); onReview?.(); }}>
+    <form className={styles.conceptsComposer} aria-label="Logo concept changes" aria-busy={selectionReadState === "loading"} onSubmit={event => { event.preventDefault(); onGenerate?.(); }}>
       <div className={styles.composerHeader}>
         <div className={styles.composerSelection}>{selectedPreview && <span className={styles.composerThumbnail}><Icon name="brands" size={18} />{selectedPreview}</span>}<span>{selectedLabel ? `Refinement target: ${selectedLabel}` : readMessage ?? "Select a project logo to refine"}</span></div>
         <div className={styles.composerHeaderActions}>
@@ -38,12 +39,12 @@ export function ConceptsComposer({ children, instruction, onInstructionChange, o
       </div>
       {status && <p className={styles.composerStatus} role="status">{status}</p>}
       <div id={fieldsId} hidden={!expanded}>
-      <textarea aria-label="Describe logo changes" placeholder={readMessage ?? (selectedLabel ? "Describe what you’d like to change…" : "Select a logo, then describe your changes…")} value={instruction} maxLength={2000} onChange={event => onInstructionChange(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.repeat && (event.metaKey || event.ctrlKey) && onReview) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} rows={1} />
+      <textarea aria-label="Describe logo changes" placeholder={readMessage ?? (selectedLabel ? "Describe what you’d like to change…" : "Select a logo, then describe your changes…")} value={instruction} maxLength={2000} onChange={event => onInstructionChange(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.repeat && (event.metaKey || event.ctrlKey) && onGenerate) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} rows={1} />
       <div className={styles.composerTools}>
-        <button type="submit" className={styles.composerSend} aria-label={onReview ? "Review refinement cost" : readMessage ?? "Review refinement cost"} disabled={!onReview} title={onReview ? "Review refinement cost" : readMessage ?? status ?? "Select a logo and describe your changes first"}>
+        {generationAction ?? <button type="submit" className={styles.composerSend} aria-label={onGenerate ? "Generate refinement" : readMessage ?? "Generate refinement"} disabled={!onGenerate} title={onGenerate ? "Generate refinement" : readMessage ?? status ?? "Select a logo and describe your changes first"}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-concepts/send.svg" width={16} height={16} alt="" />
-        </button>
+        </button>}
       </div>
       </div>
     </form>

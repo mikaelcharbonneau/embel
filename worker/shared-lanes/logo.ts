@@ -12,7 +12,7 @@ import { parseClaimedJob } from "../postgres-store";
 import { createLogoJobStore } from "../logo-job-store";
 import { createLogoImageRuntimeAdapter } from "../logo-image-runtime-adapter";
 import { createLogoGenerativeAssetStore } from "../logo-generative-asset-store";
-import { qualifiedLogoGenerativeStorageCapability,type LogoGenerativeStorageAuthorization } from "../logo-generative-storage-authorization";
+import { qualifiedLogoRasterCapability,type LogoRasterStorageAuthorization } from "../logo-generative-storage-authorization";
 import { createLogoConceptHandler } from "../handlers/logo-concepts";
 import { createLogoRefinementHandler } from "../handlers/logo-refinements";
 import { runOneJob,type HandlerRegistry } from "../runner";
@@ -28,7 +28,7 @@ import type {LogoProductionRuntimeQualification} from "../logo-production-qualif
 import {qualifiedLogoProductionStorageCapability} from "../logo-production-storage-authorization";
 import {isDeepStrictEqual as equalClaim} from "node:util";
 
-export type SharedLogoStorageFactory=(execution:SharedExecution,capability:SharedLogoCapability)=>Promise<LogoGenerativeStorageAuthorization|SharedAdvancedLogoStorageAuthorization>;
+export type SharedLogoStorageFactory=(execution:SharedExecution,capability:SharedLogoCapability)=>Promise<LogoRasterStorageAuthorization|SharedAdvancedLogoStorageAuthorization>;
 const unavailable=()=>Error("shared_logo_authority_unavailable");
 /** Fixed query grammar. The SQL gateway repeats every exact frozen binding;
  * metadata preparation never supplies a new owner to the restricted principal. */
@@ -107,11 +107,11 @@ export function createSharedLogoLaneEngine(options:SharedLaneBase & {capabilitie
       combined.throwIfAborted();if(await gateway.invoke("assert_continue",[])!==true)throw unavailable();
      }
      await authorization?.assertAvailable(current);};
-    const generative=qualifiedLogoGenerativeStorageCapability(capability);
+    const generative=qualifiedLogoRasterCapability(capability);
     let handler:ReturnType<typeof createLogoConceptHandler>|null=null;
     if(generative){
      if(!authorization)throw unavailable();
-     const assets=createLogoGenerativeAssetStore({connection,authorization:authorization as LogoGenerativeStorageAuthorization});
+     const assets=createLogoGenerativeAssetStore({connection,authorization:authorization as LogoRasterStorageAuthorization});
      const adapter=createLogoImageRuntimeAdapter({ownerId:job.ownerId,capability:generative,image:{apiKey:options.provider.apiKey,model:options.provider.model,
       rateVersion:SUNBURST_STANDARD_IMAGE_PRICING.binding.rateVersion,paidCallsApproved:true},connection,assets,references:"uploaded",
       transport:dependencies.transport,acceptingWork,assertAvailable});
@@ -130,7 +130,7 @@ export function createSharedLogoLaneEngine(options:SharedLaneBase & {capabilitie
     const store=createLogoJobStore(connection),trusted=new WeakSet<object>();
     const claimedStore={...store,async claim(workerId:string,seconds:number){const current=await store.claim(workerId,seconds);
      if(current){gateway.assertJob(current.id,current.leaseToken,current.ownerId,current.projectId);if(!equalClaim(current.input,job.input))throw unavailable();
-      const input=current.input as {spendControl?:unknown};if(input?.spendControl==="uncapped"&&["identity.image","identity.logo_directions","identity.logo_vector_propose"].includes(current.operation))trusted.add(current);}
+      const input=current.input as {spendControl?:unknown};if(input?.spendControl==="uncapped"&&["identity.image","identity.logo_directions","identity.logo_vector_propose","identity.logo_concept","identity.logo_refine"].includes(current.operation))trusted.add(current);}
      return current;},hasUnmeteredExecutionAuthority:(current:ClaimedJob)=>trusted.has(current)};
     const state=await runOneJob({store:claimedStore,handlers,workerId:options.workerId,leaseSeconds:120,signal:combined});
     await Promise.allSettled([...pending]);

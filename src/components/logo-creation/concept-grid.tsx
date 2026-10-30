@@ -8,11 +8,12 @@ import { acceptedConceptAttempt, CONCEPT_ORDINALS, displayLogoCost, LOGO_TYPE_LA
 import styles from "./logo-creation.module.css";
 import type { LogoCardVersion } from "./concept-versions";
 
-/** No polling, persistence or generation lives in this view. Request callbacks only open cost review. */
+/** No polling, persistence or generation lives in this view. */
 export function LogoConceptGridView({ batch = null, plan = null, selected = null, request = null, generation, refinement = generation, savedBatchUnavailable = false, savedBatchLoading = false,
-  gallery = false, versions = {}, selectedVersion = selected, selectionAt, viewedVersions = {}, onViewVersion, onSelectVersion, filter = "all", allowInputPreparation = false, renderPreview, onSelect, onInspect, comparison = [], onCompare, onRequestConcepts, onRequestMore, onRequestRefine, onRequestRetryFailed, onCheckRequest,
+  gallery = false, versions = {}, selectedVersion = selected, selectionAt, viewedVersions = {}, onViewVersion, onSelectVersion, filter = "all", allowInputPreparation = false, renderPreview, onSelect, onInspect, comparison = [], onCompare, onRequestConcepts, onRequestMore, onRequestRefine, onRequestRetryFailed, onCheckRequest, generationActions,
 }: {
   gallery?: boolean;
+  generationActions?: ReactNode;
   versions?: Record<string, LogoCardVersion[]>;
   selectedVersion?: LogoRasterSource | null;
   selectionAt?: string;
@@ -63,7 +64,8 @@ export function LogoConceptGridView({ batch = null, plan = null, selected = null
     <p className={styles.muted}>Six total concepts, with the logo type shown on each card. Review a cost estimate before every new generation or refinement.</p>
     {activePlan && <p className={styles.note}>Included: {activePlan.coveredTypes.map(type => LOGO_TYPE_LABELS[type]).join(", ")}.{activePlan.uncoveredTypes.length > 0 && <> Not included in this batch: {activePlan.uncoveredTypes.map(type => LOGO_TYPE_LABELS[type]).join(", ")}. A later batch can cover these types.</>}</p>}
     </>}
-    {gallery && !batch && !savedBatchLoading && !savedBatchUnavailable && <div className={styles.generationActions}><button className={styles.primaryButton} type="button" disabled={(!canGenerate && !allowInputPreparation) || !onRequestConcepts} onClick={onRequestConcepts}>Generate six concepts</button></div>}
+    {generationActions && (batch || !savedBatchLoading && !savedBatchUnavailable) && <div className={styles.generationActions}>{generationActions}</div>}
+    {!generationActions && gallery && !batch && !savedBatchLoading && !savedBatchUnavailable && <div className={styles.generationActions}><button className={styles.primaryButton} type="button" disabled={(!canGenerate && !allowInputPreparation) || !onRequestConcepts} onClick={onRequestConcepts}>Generate six concepts</button></div>}
     <p className={gallery ? styles.galleryProgress : styles.progress} role="status" aria-live="polite">{savedBatchUnavailable ? "Saved concept details unavailable" : savedBatchLoading ? "Loading saved concepts…" : readyCount + " of 6 concepts ready"}</p>
     {uncertain && <p className={styles.warning}>Outcome uncertain. Check the existing request before trying again. Completed concepts stay available.</p>}
     <ol className={styles.concepts}>
@@ -116,10 +118,10 @@ export function LogoConceptGridView({ batch = null, plan = null, selected = null
     {filter === "saved" && !savedBatchLoading && !savedBatchUnavailable && !validSelection && !Object.values(versions).some(history => selectedVersion && history.some(version => version.key === logoCandidateKey(selectedVersion))) && <p className={styles.note}>No concept selected in this batch. Open a concept to review and select it.</p>}
     {!canGenerate && <p className={styles.note}>Generation is unavailable. You can keep reviewing the brief and any saved results.</p>}
     <div className={styles.actions}>
-      {!gallery && !batch && <button className={styles.primaryButton} type="button" aria-label="Explore six concepts" disabled={!canGenerate || !onRequestConcepts} onClick={onRequestConcepts}>Explore six concepts</button>}
-      <button className={styles.secondaryButton} type="button" aria-label="More concepts" disabled={!batch || !canGenerate || !onRequestMore} onClick={onRequestMore}>More concepts</button>
+      {!generationActions && !gallery && !batch && <button className={styles.primaryButton} type="button" aria-label="Explore six concepts" disabled={!canGenerate || !onRequestConcepts} onClick={onRequestConcepts}>Explore six concepts</button>}
+      {!generationActions && <button className={styles.secondaryButton} type="button" aria-label="More concepts" disabled={!batch || !canGenerate || !onRequestMore} onClick={onRequestMore}>More concepts</button>}
       <button className={styles.secondaryButton} type="button" aria-label="Refine selected" disabled={!validSelection || refinement?.status !== "available" || !onRequestRefine} onClick={() => { if (validSelection && selected) onRequestRefine?.(selected); }}>Refine selected</button>
-      {failedSlotIds.length > 0 && <button className={styles.secondaryButton} type="button" aria-label={`Retry ${failedSlotIds.length} failed concept${failedSlotIds.length === 1 ? "" : "s"}`} disabled={!canGenerate || !onRequestRetryFailed} onClick={() => onRequestRetryFailed?.(failedSlotIds)}>Retry {failedSlotIds.length} failed concept{failedSlotIds.length === 1 ? "" : "s"}</button>}
+      {!generationActions && failedSlotIds.length > 0 && <button className={styles.secondaryButton} type="button" aria-label={`Retry ${failedSlotIds.length} failed concept${failedSlotIds.length === 1 ? "" : "s"}`} disabled={!canGenerate || !onRequestRetryFailed} onClick={() => onRequestRetryFailed?.(failedSlotIds)}>Retry {failedSlotIds.length} failed concept{failedSlotIds.length === 1 ? "" : "s"}</button>}
       <button className={styles.secondaryButton} type="button" aria-label="Check request" disabled={!onCheckRequest} onClick={onCheckRequest}>Check request</button>
     </div>
   </section>;

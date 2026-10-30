@@ -175,3 +175,9 @@
   .brandBoardHeader p { margin-top: 2px; font-size: 12px; line-height: 18px; }
 }
 @media (max-width: 600px) { .brandBoardHeader { align-items: flex-start; flex-direction: column-reverse; gap: 8px; } }
+.generationAction { min-width: 0; text-align: left; }
+.generationActionRow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.generationEstimate { color: var(--muted, #666); font-size: 13px; line-height: 1.5; }
+.estimateNote { margin: 7px 0 0; color: var(--muted, #666); font-size: 12px; line-height: 1.5; }
+.estimateRecovery { margin-top: 8px; font-size: 13px; }
+.estimateRecovery p { margin: 0 0 8px; }
