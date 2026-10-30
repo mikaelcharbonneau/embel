@@ -54,6 +54,7 @@ and persisted board/publication evidence passes read-only verification. This is
 separate from the isolated specification call above.
 
 The subsequent disabled-choice issue and web repair are recorded in the
-[current release record](visual-identity-release-20261030.md). Signed-in saved
-selection and final download acceptance remain pending. The established checks
-do not prove capacity for thousands of users.
+[current release record](visual-identity-release-20261030.md). The owner later
+selected Direction 3, with persisted selection readback, and confirmed that the
+final asset package downloads and opens. The established checks do not prove
+capacity for thousands of users.

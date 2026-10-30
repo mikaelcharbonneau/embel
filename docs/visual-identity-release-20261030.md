@@ -2,6 +2,41 @@
 
 ## Latest published follow-up
 
+[PR #176](https://github.com/mikaelcharbonneau/embel/pull/176) publishes web source
+`e7e51e63f9c3e33d090d6b5a03293ed53c9519ed` in deployment
+`dpl_5e4FL1oNzhJnjJot8KhkKwhwrNDD`. Public health reports this source and reachable
+Auth, database and Storage. The compatible shared worker remains on `47e9ef7`;
+this follow-up changes no database, worker configuration or provider policy.
+
+The owner successfully selected Northline Direction 3 and confirmed that the
+resulting package downloads and opens. The saved system is
+`44b0e3ca-d46c-4e29-8737-0125730d06f9`; selection
+`e2fab07d-50c7-458e-96eb-b96c50b45564`, Identity revision 1, was persisted at
+2026-10-30 17:50:45 UTC. This completes signed-in acceptance of the main path.
+
+The final asset screen now stops a stalled saved-direction read after 30 seconds
+and offers retry. Failed download checks keep prepared files available; every
+retry still revalidates the selection, and confirmed changes discard stale
+output. Step labels distinguish logo concepts from visual directions, and an
+unconfirmed choice uses the error state instead of a green saved message.
+
+Seven unused production UI files and their exclusive tests were removed,
+including the replaced deliverables screen and its prerequisites component:
+1,058 obsolete lines retired. Live export APIs, workers, models, Asset Detail,
+vector capabilities and mixed rejection tests remain. The working agreement now
+records the owner's preference to keep the current style and improve clarity
+and consistency.
+
+48 integrated focused tests across eight files pass; cleanup also passed 81
+retained export/asset checks. Typecheck, full lint (zero errors, one existing
+warning), production build and all 20 desktop/mobile browser journey checks pass.
+Browser tests use synthetic auth/providers and verify the 16-file package,
+recovery, selection freshness and account changes. No AI credits were used for
+this follow-up. Rollback can promote `dpl_7cwK2zzHcGakACamMXng5MErtc1g` while
+retaining the corrected database permissions.
+
+## Selection permission follow-up
+
 [PR #174](https://github.com/mikaelcharbonneau/embel/pull/174) publishes web source
 `0399516ac9a0ba9711670b69d36b2dfe0eaed7d5` in deployment
 `dpl_7cwK2zzHcGakACamMXng5MErtc1g`. Public health reports that source and reachable
@@ -40,8 +75,8 @@ AI calls, regeneration or customer-choice writes were performed by the workspace
 
 For a web rollback, `dpl_CK7Ewz9sAHa5qqKJ6HkqnakKV67J` remains compatible with the
 corrected database permissions. Keep the permission repair; revoking it would
-restore the save failure. Signed-in saved selection and final download remain
-the owner's next acceptance check.
+restore the save failure. At that release, signed-in selection and download were
+pending; the owner subsequently completed both as recorded above.
 
 ## Selection availability follow-up
 
@@ -64,7 +99,8 @@ checks pass on desktop/mobile: save recovery without regeneration and the full
 selection/16-file package journey. Integrated typecheck, lint (zero errors, one
 existing warning), build and independent review pass. All 22 expected helper
 hashes match the hosted catalog. Browser auth/provider fixtures are synthetic;
-the hosted HTTP principal and owner's final selection/download remain unverified.
+the hosted HTTP principal and owner's final selection/download were not yet
+verified at that release. The later live acceptance is recorded above.
 
 The user's actual Northline batch `362fe642-da70-487a-9b8f-04ff045cd617` succeeded
 with three distinct committed boards, valid publication/source-logo evidence,
@@ -200,15 +236,15 @@ amplification; it does not establish the initiating outage's cause.
 The owner generated three real boards in Northline using their normal account.
 Persisted outputs, publication evidence and recorded usage are verified above.
 The workspace has no owner browser session, so it did not impersonate one or
-bypass admission. Saved selection and final download from that session remain
-the next acceptance check.
+bypass admission. The owner selected Direction 3 in that session; database
+readback confirms the persisted choice. The owner also confirmed that the final
+downloaded package opens.
 The original `00672941` release initiated no provider generation from the workspace;
 the later isolated specification verification is recorded in the follow-up above.
 
 Northline: `b0c19fc2-d24b-4b79-8082-40d79fb1ffaa`.
-The next check is saved selection and final download from the owner's browser.
-Local checks do not establish model
-quality or service capacity for thousands of simultaneous users.
+The main branding journey is accepted. These checks do not establish every
+output's design quality or capacity for thousands of simultaneous users.
 
 Packet 15 is forward-only. Do not restart the prior `a0e1e16` worker against it.
 For recovery, stop the current daemon before incompatible database/worker edits;
