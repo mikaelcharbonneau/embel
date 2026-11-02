@@ -2,13 +2,15 @@ import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { strFromU8, unzipSync } from "fflate";
 import sharp from "sharp";
-import { brandBoardFont } from "../../src/domain/brand-board-fonts";
 import { assetsUrl, createVisualJourneyFixture, directionsUrl } from "../fixtures/visual-identity-journey";
 
 for (const [name, family, direction] of [["茶屋 Studio", "Noto Sans SC", "ltr"], ["مقهى Studio", "Noto Sans Arabic", "rtl"]] as const) {
   test(`multilingual brand pack preserves ${name} in real browser PNG and editable SVG`, async ({ page }, info) => {
     test.setTimeout(90_000);
-    const font = brandBoardFont(family)!, f = createVisualJourneyFixture({ name, fontFamily: family }), health = await f.setup(page);
+    const font = family === "Noto Sans SC"
+      ? { file: "/fonts/brand/noto-sans-sc-variable.ttf", url: "https://fonts.google.com/specimen/Noto+Sans+SC" }
+      : { file: "/fonts/brand/noto-sans-arabic-variable.ttf", url: "https://fonts.google.com/specimen/Noto+Sans+Arabic" };
+    const f = createVisualJourneyFixture({ name, fontFamily: family }), health = await f.setup(page);
     const fontRequests: string[] = [];
     page.on("request", request => { const path = new URL(request.url()).pathname; if (path.startsWith("/fonts/brand/")) fontRequests.push(path); });
     await page.goto(directionsUrl);
