@@ -218,7 +218,8 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
     : workspace.dirty ? workspace.autoSaveReady ? "Changes waiting to save…" : "Unsaved changes are kept in this tab." : needsInitialization ? "Create a logo workspace in this saved brand when your brief is ready." : saved ? "Saved." : "Save the brief to create your project.";
 
   const nameReadiness = brandTextReadiness(draft?.brief.name ?? "");
-  const canEstimate = Boolean(nameReadiness.supported && saved && editing && !workspace.pending && !workspace.dirty && !draft?.conflict && !quoteReviewBlocked);
+  const canPrepareInputs = Boolean(saved && editing && !workspace.pending && !workspace.dirty && !draft?.conflict && !quoteReviewBlocked);
+  const canEstimate = nameReadiness.supported && canPrepareInputs;
   const brief = workspace.stagePayloads?.brief_references;
   const conceptsRequest: LogoQuoteRequest | null = !activeBatch && !batchId && !savedBatchLoading && !savedBatchUnavailable && canEstimate && !conceptReferenceLimitExceeded && capabilities.isAvailable("identity.logo_concept")
     ? conceptsScreen ? savedInputs.status === "prepared" && JSON.stringify(savedInputs.request.expected) === JSON.stringify(saved?.heads) ? savedInputs.request : null
@@ -234,11 +235,11 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
   const prepareLatestInputs = useEffectEvent(() => { void prepareSavedInputs(); });
   const preparationKey = saved ? JSON.stringify(saved.heads) : null;
   useEffect(() => {
-    if (!conceptsScreen || !generation || !preparationKey || !canEstimate || batchId || savedBatchLoading || savedBatchUnavailable
+    if (!conceptsScreen || !generation || !preparationKey || !canPrepareInputs || batchId || savedBatchLoading || savedBatchUnavailable
       || generationState.phase !== "idle" || !["idle", "prepared"].includes(savedInputs.status) || preparedInputsKey.current === preparationKey) return;
     const timer = setTimeout(() => { preparedInputsKey.current = preparationKey; prepareLatestInputs(); }, 0);
     return () => clearTimeout(timer);
-  }, [conceptsScreen, generation, preparationKey, canEstimate, batchId, savedBatchLoading, savedBatchUnavailable, generationState.phase, savedInputs.status]);
+  }, [conceptsScreen, generation, preparationKey, canPrepareInputs, batchId, savedBatchLoading, savedBatchUnavailable, generationState.phase, savedInputs.status]);
 
   async function prepareSavedInputs(choice?: LogoSavedInputChoice, refreshWorkspace = false) {
     if (!projectId || !client || !generation || !isCurrent(account) || savedInputsRead.current || strategyRead.current || selecting.current
