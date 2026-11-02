@@ -8,10 +8,8 @@ targets. Check current deployment metadata and `/api/health` before updating a
 release; a historical record alone does not establish today's aliases.
 
 Follow [AGENTS.md](../AGENTS.md) for authorization and the current product scope.
-Within requested work, tested fixes and necessary compatible configuration or
-database updates are authorized. Runtime changes require typecheck, lint,
-relevant tests, a production build and affected journey verification. Keep a
-rollback path and record what actually went live.
+Within requested work, fixes and necessary compatible configuration or database
+updates are authorized. Keep a rollback path and record what actually went live.
 
 Production builds need the production application origin; previews use their
 own immutable origin. Validate the exact Vercel upload allowlist as well as the

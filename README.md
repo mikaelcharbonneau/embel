@@ -80,18 +80,26 @@ the packaged shared worker pins Node 22.22.2. Dependencies are pinned in
 
 ```sh
 npm ci
+npm run dev:setup
 npm run dev
 ```
 
-The ordinary development interface is at `http://127.0.0.1:3105`. Copy the public
-settings documented in [.env.example](.env.example) when configuring account
-access. Saving, AI, background jobs and private files require their real services;
-unconfigured features remain unavailable.
+The interface is at `http://127.0.0.1:3105`. For local accounts, database, private
+Storage and email, start Docker Desktop/Engine and run `npm run dev:up` before
+starting the web server. `npm run dev:doctor` reports service readiness and
+missing worker configuration. `npm run dev:down` stops this checkout's services
+and retains its local data.
 
-For the isolated local Auth, Postgres, Storage and restricted worker setup, use
-[the development environment guide](docs/development-environment.md). The
-separate `npm run local` subscription-mode launcher is not needed for the normal
-web interface.
+The commands resolve their paths from the checkout and are designed for local
+computers and Codex Cloud. Linux/Cloud is verified; macOS and native Windows
+have not yet been exercised with this setup.
+The pinned CLI, configuration templates and baseline migrations are in Git;
+generated settings and database state remain local. See
+[development setup](docs/development-environment.md) and
+[switching between local and cloud](docs/local-cloud-sync.md).
+AI workers, Home attachments and advanced Identity operations have additional
+bindings described in that guide; starting the core stack does not provision
+them. The historical `npm run local` subscription launcher is separate.
 
 ## Verification
 
@@ -109,10 +117,10 @@ with the `.live.ts` suffix run only through the separately configured
 `npm run test:live`; the ordinary test suite uses local fixtures. Passing fixture
 tests do not establish live provider, account or Storage acceptance.
 
-Use focused tests while developing, then verify the affected desktop/mobile
-journey and failure recovery. Worker changes also require their isolated build,
-native packaging checks and database authority tests. Do not sum overlapping
-test groups or describe an interrupted aggregate as passing.
+`npm run test:setup` exercises the portable setup commands. Worker build,
+packaging and database authority commands are documented with their runtimes.
+These commands are available for the changes being developed; they are not a
+mandatory publication checklist.
 
 ## Runtime and deployment
 

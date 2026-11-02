@@ -8,8 +8,13 @@
   },
   "scripts": {
     "local": "node scripts/local.mjs",
-    "dev": "next dev --hostname 127.0.0.1 --port 3105",
-    "dev:worker": "NODE_ENV=development node --env-file-if-exists=.env.development.local --conditions=react-server --import tsx worker/development/index.ts",
+    "dev": "node scripts/development-web.mjs",
+    "dev:setup": "node scripts/development.mjs setup",
+    "dev:up": "node scripts/development.mjs up",
+    "dev:down": "node scripts/development.mjs down",
+    "dev:doctor": "node scripts/development.mjs doctor",
+    "dev:worker": "node scripts/development-worker.mjs",
+    "test:setup": "node --test tests/setup/*.test.mjs",
     "build": "next build --webpack",
     "start": "next start --hostname 127.0.0.1 --port 3105",
     "lint": "eslint .",
@@ -71,6 +76,7 @@
     "eslint": "9.39.5",
     "eslint-config-next": "16.4.4",
     "jsdom": "30.1.2",
+    "supabase": "2.122.0",
     "typescript": "6.0.3",
     "vitest": "5.0.3"
   },

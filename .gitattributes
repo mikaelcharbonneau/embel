@@ -1,0 +1,8 @@
+# Keep migration hashes and container scripts stable across operating systems.
+*.sql text eol=lf
+*.mjs text eol=lf
+*.sh text eol=lf
+*.toml text eol=lf
+*.Dockerfile text eol=lf
+config/development/health/wget text eol=lf
+.nvmrc text eol=lf

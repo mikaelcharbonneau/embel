@@ -1,0 +1,63 @@
+# Rendered by npm run dev:setup into the ignored checkout-local workspace.
+project_id = "{{projectId}}"
+
+[api]
+enabled = true
+port = {{apiPort}}
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = {{dbPort}}
+shadow_port = {{shadowPort}}
+major_version = 17
+health_timeout = "2m"
+
+[db.migrations]
+enabled = true
+schema_paths = []
+
+[db.seed]
+enabled = false
+sql_paths = []
+
+[db.pooler]
+enabled = false
+
+[realtime]
+enabled = false
+
+[studio]
+enabled = false
+openai_api_key = ""
+
+[inbucket]
+enabled = true
+port = {{mailPort}}
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[storage.vector]
+enabled = false
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:{{webPort}}"
+additional_redirect_urls = ["http://127.0.0.1:{{webPort}}/auth/callback"]
+jwt_expiry = 3600
+enable_signup = true
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+double_confirm_changes = true
+
+[edge_runtime]
+enabled = false
+
+[analytics]
+enabled = false

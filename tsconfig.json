@@ -41,6 +41,7 @@
     ".tmp",
     ".references",
     ".local-fluid",
+    ".embel-dev",
     "docs/coordination/**/candidate-delta"
   ]
 }

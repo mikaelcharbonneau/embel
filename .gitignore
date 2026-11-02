@@ -9,6 +9,7 @@ test-results/
 .references/
 .tmp/
 .local-fluid/
+.embel-dev/
 supabase/.temp/
 *.tsbuildinfo
 .DS_Store

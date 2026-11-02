@@ -1,7 +1,8 @@
 # Decision log
 
 This is a historical record. The current working agreement is
-[AGENTS.md](../AGENTS.md); see D089 for the October 29 preference review.
+[AGENTS.md](../AGENTS.md); see D089 for the October 29 preference review and D090
+for the November 2 portability and workflow update.
 Earlier task-specific permissions, holds, spending caps, mandatory skills and
 design freezes must be interpreted in their original context. They do not
 override current user instructions or require permission already given again.
@@ -221,7 +222,7 @@ implementation records above. They do not grant activation or spending authority
 
 - D088: On 2026-10-27 the user approved implementing and security-reviewing a bounded shared worker design in the existing cloud task, correcting the two stale fixtures and rerunning validation. The candidate uses the existing Vercel/Supabase stack, fixed restricted service slots, job-derived authority, session-bound web request capabilities and managed project-sensitive settings. It replaces the proposed per-customer credentials/processes and Vault dependency. Preserve tenant isolation, ownership, cancellation, immutable history, uncertain-outcome recovery and accounting. Purposeful paid acceptance is separately authorized without a spending cap, using only the application's authorized credential. This approval does not provision external resources, create production access, push source or deploy. See [shared worker candidate](shared-worker-pool.md).
 
-## Current working preferences — October 29, 2026
+## Working preferences recorded October 29, 2026
 
 - D089: During the project-rules review, the user confirmed that Embel still has
   no customers and approved these standing preferences:
@@ -243,3 +244,14 @@ freezes. The operative agreement is [AGENTS.md](../AGENTS.md). This record does
 not claim that spending limits, confirmation dialogs or model bindings have
 already changed in the running application. Ownership, secret protection,
 truthful results and duplicate-request protection remain required.
+
+## Portability and workflow update — November 2, 2026
+
+- D090: The user requested a reproducible development setup for moving between
+  a local computer and Codex Cloud. They also removed the documentation's
+  mandatory instructions to preserve unrelated work, use branches and pull
+  requests, run checks before publishing, and distinguish mock tests from live
+  service verification. The separate requirement to ask before feature removal,
+  new paid services/plans, materially expanded access or broader destructive
+  changes was removed. [AGENTS.md](../AGENTS.md) incorporates this update; the
+  corresponding wording in older dated records is historical.

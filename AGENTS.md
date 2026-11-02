@@ -1,6 +1,6 @@
 # Embel working agreement
 
-User-confirmed preferences, October 29–30, 2026. Embel helps people turn product
+User-confirmed preferences, updated November 2, 2026. Embel helps people turn product
 ideas into usable branding. It has no customers yet. Prioritize a reliable,
 complete branding journey and a professional interface.
 
@@ -15,7 +15,7 @@ dependencies when changing them.
 ## Standing permissions
 
 - Within requested work, fix, refactor and remove obsolete code. While there are
-  no customers, integrate and publish tested bug fixes to the existing app
+  no customers, integrate and publish bug fixes to the existing app
   without asking again. Necessary routine configuration and compatible database
   updates may use existing authorized access. Keep a rollback path and report
   what went live.
@@ -31,9 +31,7 @@ dependencies when changing them.
   remove them when useful for requested cleanup and report the scope. This
   excludes accounts, service configuration, unrelated files and future customer
   work.
-- Prioritize the main branding journey. Ask before removing features, adding
-  paid services/plans, materially expanding access, or destructive changes beyond
-  the agreed test-data scope.
+- Prioritize the main branding journey.
 - Ask when product intent is unclear; resolve ordinary technical choices.
   Existing permission remains valid within its scope. Continue independent
   authorized work while waiting on a blocked part. Communicate concisely in
@@ -79,21 +77,16 @@ Prefer standard framework/provider patterns and straightforward code. Use the
 existing TypeScript/Next.js/Supabase/Node structure, keeping privileged code out
 of UI modules. Consult relevant official guidance and skills for the change.
 
-Check current main and preserve unrelated work. Use an isolated branch and a
-pull request for a coherent change. Use coordinated parallel agents when useful,
-with disjoint ownership and lead integration. Identify the revision actually
-deployed and align the working checkout with it.
+Check current main. Use coordinated parallel agents when useful, with disjoint
+ownership and lead integration. Identify the revision actually deployed and
+align the working checkout with it.
 
-Runtime changes need typecheck, lint, relevant tests and a production build
-before publishing. Verify affected user journeys, desktop/mobile behavior and
-failure recovery where relevant, including focused live tests under the standing
-permission above. Text-only edits need consistency/link checks. Distinguish local
-mocks from live acceptance and report material failures or untested limits.
+Report material failures or untested limits.
 Use isolated browser sessions. Preserve external reference provenance.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
-# This is NOT the Next.js you know
+## This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
 

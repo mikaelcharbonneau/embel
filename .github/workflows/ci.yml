@@ -33,6 +33,7 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - run: npm run test:setup
       - run: npm audit --omit=dev
       - run: npm run typecheck
       - run: npm run lint

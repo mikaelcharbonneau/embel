@@ -1,145 +1,172 @@
-# Isolated development environment
+# Portable development
 
-This checkout can opt into a separate loopback development target. It does not
-reuse the Mac launchers or impersonate a hosted Vercel deployment. Production
-defaults and target checks remain in place. Configuration and passing fixture
-tests do not establish live provider acceptance.
+The repository contains the setup used on a local computer and in Codex Cloud.
+It does not depend on a saved `/workspace/embel-onboarding` directory, an original
+Mac checkout, a globally installed Supabase CLI or copied browser sessions.
 
-## Web and local services
+## Start a checkout
 
-Use Node 24 and `npm ci`. The cloud onboarding setup keeps Supabase CLI tooling,
-configuration and staged migrations outside the checkout in
-`/workspace/embel-onboarding`. The provider stack requires PostgreSQL, Auth,
-PostgREST, private Storage, Kong and local email capture. Studio AI, analytics,
-edge execution and realtime are unnecessary for this workflow.
+Install Git and Node 24 (24.15.0 or newer within that major). `.nvmrc` selects
+Node 24; `nvm install` and `nvm use` are available when using nvm. Docker Desktop
+or Docker Engine is needed for local backend services. The Node launchers are
+designed for macOS, Linux and native Windows with Docker Desktop's Linux
+containers; WSL2 can use the Linux workflow. This setup has been exercised on
+Linux/Codex Cloud; macOS, native Windows and WSL2 remain untested. No POSIX shell
+assignment is needed in the npm development commands.
 
-Stage the 85 baseline migrations byte-for-byte, sorting after removing only the
-optional leading `local` from copied filenames. Preserve the original SQL and
-do not blanket-apply candidates or activation templates. The saved install
-instructions perform this staging and record hashes.
-
-The standard database image exceeds this cloud machine's disk budget with its
-VFS Docker driver. CLI 2.122.0 supports `SUPABASE_USE_SLIM_IMAGES=true`, which
-selects the official catalog-pinned images. Keep checksum and TLS validation
-enabled. Follow the saved setup instructions for any local healthcheck image
-overrides; never ignore failing health checks to claim readiness.
-
-The web process needs these non-secret settings and its genuine local public
-key, obtained from the running CLI stack without printing private keys:
-
-```text
-EMBEL_DEVELOPMENT_ENABLED=true
-APP_ORIGIN=http://127.0.0.1:3105
-NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<local public publishable key>
-FLUID_PAID_CALLS_APPROVED=false
-NEXT_TELEMETRY_DISABLED=1
+```sh
+npm ci
+npm run dev:setup
+npm run dev
 ```
 
-Run `npm run dev`. Both service origins must be distinct canonical
-`http://127.0.0.1:<port>` URLs with ports above 1023. The gate accepts only
-development/test mode and rejects every `VERCEL` runtime marker. Do not use
-`npm run start` for loopback HTTP Supabase. Do not put a service-role credential
-or any worker/provider credential in the web process.
+This starts the interface at `http://127.0.0.1:3105`, with account integrations
+unconfigured. For the local account backend, start Docker, then run:
 
-With the gate enabled, Strategy and Naming admission use the existing local
-SQL routes and polling workers. SQL still decides owner authority, policy and
-worker readiness; enabling the gate cannot grant an account inference access.
-Default and hosted routing are unchanged.
-
-## Restricted services
-
-Home attachments require a separately supplied owner-bound restricted login:
-
-```text
-EMBEL_DEVELOPMENT_ATTACHMENTS_DATABASE_URL
-EMBEL_DEVELOPMENT_ATTACHMENTS_OWNER_ID
-EMBEL_DEVELOPMENT_ATTACHMENTS_ROLE_NAME
-EMBEL_DEVELOPMENT_ATTACHMENTS_ROLE_OID
+```sh
+npm run dev:up
+npm run dev
 ```
 
-Its role must be named `embel_dev_attachments_*`. The resolver checks the actual
-login, OID, owner mapping, role restrictions and private helper privileges.
-Storage uses the verified account's session token and the existing create-only
-private bucket policies. It reads and verifies real bytes before acknowledging
-the immutable receipt. No service-role fallback or public verification helper
-is introduced. PDF support remains unavailable.
+`dev:up` includes setup. It starts Auth, PostgreSQL 17, PostgREST, private
+Storage, the API gateway and Mailpit, and applies the repository's baseline
+migrations. Email confirmation is enabled; local confirmation messages appear
+at `http://127.0.0.1:54324`. The app's database API is on port 54321 and PostgreSQL
+on 54322. Services bind to loopback on the selected local Docker daemon.
+Remote Docker contexts are rejected because the application runs on this machine.
 
-Identity selections and refinements use a separate restricted
-`embel_dev_identity_*` login and the `EMBEL_DEVELOPMENT_IDENTITY_*` settings.
-See [Identity transaction setup](development-identity-transactions.md). The
-resolver pins the trusted helper implementation and verifies owner binding in
-a bounded rollback-only probe. Baseline placeholder SQL is never advertised as
-working persistence. Genuine saved source records remain necessary.
-
-These server capabilities are configured separately from workers. This change
-does not create logins, passwords, grants, owner bindings or account data.
-Each supplied binding is limited to its verified owner; a different signed-in
-account remains unavailable rather than borrowing that connection.
-
-## Workers
-
-`npm run dev:worker -- --lane strategy` and `--lane naming` default to read-only
-preflight. The `logo` lane likewise checks its actual local database identity
-before any execution. The command selects development mode and loads the optional
-ignored public development settings; inherited explicit values take precedence.
-It uses these additional worker settings:
-
-```text
-EMBEL_DEVELOPMENT_WORKER_DATABASE_URL
-EMBEL_DEVELOPMENT_WORKER_OWNER_ID
-EMBEL_DEVELOPMENT_WORKER_DEPLOYMENT_ID
+```sh
+npm run dev:doctor
+npm run dev:down
 ```
 
-The database must be `postgres` at literal `127.0.0.1` on a separate explicit
-port. Text lanes share the restricted `embel_development_text_worker` role;
-Logo has its separate restricted role. Deployment IDs begin `embel-dev-`.
-The actual SQL principal/capability binding and required RPC permissions must
-also be qualified. Preflight never installs them or calls a provider.
+The doctor checks the actual core services, HTTP access and installed migration
+versions, and reports worker files separately. It does not change setup files.
+Stopping retains database and Storage volumes. Re-running `dev:up` starts the
+same checkout's stack and applies any new baseline migrations. It does not reset
+the database or apply the production candidates directory.
 
-The source-only [worker proof helper](../supabase/development/worker-preflight.sql)
-must be reviewed and installed on the isolated local database, then granted only
-to the dedicated development logins. It returns only their own validated binding;
-it does not expose private tables. This file is not part of the 85 baseline
-migrations and is not automatically installed or granted by setup.
+## What travels with Git
 
-Text execution requires `--run`, a dedicated
-`EMBEL_DEVELOPMENT_PROVIDER_API_KEY`, `EMBEL_DEVELOPMENT_MODEL`,
-`EMBEL_DEVELOPMENT_VERIFIED_MODELS`, and both
-`EMBEL_DEVELOPMENT_DISPATCH_APPROVED=true` and `FLUID_PAID_CALLS_APPROVED=true`.
-These settings are a separate operator action; they are not enabled by setup.
-The worker never falls back to the platform agent's `OPENAI_API_KEY`.
-Existing leases, duplicate protection, cancellation, evidence and recovery
-remain authoritative. No monetary cap is introduced by this development entry.
+| In the repository | Local to each machine/checkout |
+| --- | --- |
+| Application, `.nvmrc`, dependency lockfile and pinned Supabase CLI 2.122.0 | Installed dependencies and Docker images |
+| `config/development/supabase.toml`, setup code and baseline migrations | `.embel-dev/` settings, public web configuration, service versions and staged migration copies |
+| Worker environment template and service documentation | Worker passwords, provider credentials, sessions, database and Storage volumes |
+| Browser executable/channel options | Browser installation and temporary test output |
 
-Logo run mode additionally requires a stable
-`EMBEL_DEVELOPMENT_LOGO_WORKER_ID`, separate
-`EMBEL_DEVELOPMENT_LOGO_STORAGE_USER_ID` and short-lived
-`EMBEL_DEVELOPMENT_LOGO_STORAGE_ACCESS_TOKEN`, and reviewed operation descriptors
-in `EMBEL_DEVELOPMENT_LOGO_OPERATIONS`. Supported development lanes are concepts,
-saved-preview refinements, vectorization and exports. Image lanes additionally
-require the dedicated provider settings, both dispatch approvals and
-`EMBEL_DEVELOPMENT_IMAGE_RATE_VERSION`; its accepted value is checked against
-the existing pricing binding. Deterministic vector/export lanes do not borrow
-an AI key. The local session expires normally; this entrypoint does not discover,
-persist, refresh or create credentials.
+Setup derives paths from the checked-out scripts. A checkout-specific project
+ID isolates its containers and volumes from other checkouts. Moving the ignored
+state directory is unnecessary; a fresh clone gets a new local stack. Keeping
+the same existing checkout retains its stack. Git does not synchronize database
+contents, files uploaded to Storage or credentials.
 
-The web's local Logo RPC and Storage capability SQL also need separate local
-qualification. They are not implied by the baseline schema. In particular,
-`supabase/candidates/logo_local_concepts.sql` and its refinement companion are
-separate reviewed candidates, not instructions to apply every candidate. The
-existing disabled directions/proposal features are outside this environment
-support change.
+Baseline SQL is copied byte-for-byte, sorted after removing the optional leading
+`local` from filenames. The migration count is discovered from the checkout
+(currently 87); `.embel-dev/migration-manifest.json` records each original name,
+staged name and SHA-256. Changed or removed applied history needs a separate
+checkout/database rather than an implicit destructive reset.
+`.gitattributes` keeps SQL and container-script line endings consistent across
+operating systems, including checkouts that otherwise use Windows line endings.
 
-## Validation and limits
+## Ports and environment settings
 
-Run typecheck, lint, relevant server/database/worker tests and production builds.
-Stop only your own development server before building or running production
-browser tests. The cloud's ignored Playwright override selects system Chromium.
-Keep actual Auth/Storage/account and provider results separate from fixture
-results. No paid generation, remote migration, deployment or production access
-is authorized by ordinary development setup.
+To run alongside another checkout, stop this checkout's stack and select unused
+ports. All ports must be distinct and above 1023:
 
-Read the current environment's saved startup instructions and readiness report
-for service state, qualified checks and outstanding operator configuration.
-Do not label the full app ready until its actual required integrations pass.
+```sh
+npm run dev:down
+npm run dev:setup -- --web-port 3155 --api-port 55421 --db-port 55422 --shadow-port 55420 --mail-port 55424
+npm run dev:up
+npm run dev
+```
+
+On a fresh checkout, omit `dev:down`. Settings are saved in
+`.embel-dev/settings.json`. Changing ports invalidates the old public web
+configuration until `dev:up` refreshes it. The web launcher uses the configured
+port and matching application origin together.
+
+The managed public values in `.embel-dev/web.env` take precedence over inherited
+public connection settings, preventing a cloud shell's application origin from
+selecting a different backend. They contain only the local publishable key and
+public web settings. Raw Supabase CLI output also contains private bootstrap
+keys, so the setup reports allowlisted results rather than dumping that output.
+Hosted `VERCEL` markers belong to a deployment shell and are reported as a local
+configuration conflict.
+
+Existing manual development configuration can still use `.env.development.local`
+without running the managed setup. Once `.embel-dev/web.env` exists, it owns the
+public target for `npm run dev`. Production builds and deployments continue to
+use their own configuration.
+
+## Worker and feature configuration
+
+Core service readiness and worker configuration are separate:
+
+| Feature | Additional setup |
+| --- | --- |
+| Sign-up, confirmation, sign-in and ordinary projects | Available through the local core stack |
+| Home attachments | Owner-bound `embel_dev_attachments_*` login, principal binding and helper grants |
+| Identity selections/refinements | Trusted transaction helpers and owner-bound `embel_dev_identity_*` login; see [Identity transactions](development-identity-transactions.md) |
+| Strategy and Naming | Restricted text-worker login, actual owner/deployment binding, capabilities and provider settings |
+| Local Logo concepts, refinements, vectorization and exports | Restricted Logo login, operation policies and a separate Auth/Storage session; see [Logo Storage](development-logo-storage.md) |
+| Current shared-worker visual directions and complete branding generation | Not implemented by the older local worker launcher; the core bootstrap does not claim feature parity with the hosted shared worker |
+
+The previous cloud installer also supplied only the core stack. Copying its
+scripts would not enable the remaining capabilities. This portable setup makes
+those boundaries visible and provides one place for later provisioning work.
+
+Copy `config/development/worker.env.example` to `.embel-dev/strategy.env`,
+`.embel-dev/naming.env` or `.embel-dev/logo.env`, then supply that lane's actual
+local bindings. Secrets stay in ignored files or the machine's environment.
+The preflight command has no operating-system-specific shell syntax:
+
+```sh
+npm run dev:worker -- --lane strategy
+npm run dev:worker -- --lane naming
+npm run dev:worker -- --lane logo
+```
+
+The launcher reads optional `.env.development.local`, then the lane file, then
+inherited explicit worker settings. Managed public target values come from
+`.embel-dev/web.env`. It sets `NODE_ENV=development` in the child process.
+Preflight checks bindings and does not dispatch generation. `--run` selects
+execution when the runtime's required bindings and settings are present.
+
+Text lanes use `embel_development_text_worker`; Logo uses
+`embel_development_logo_worker`. Each binds to a real owner and a deployment ID
+beginning `embel-dev-`. The proof helper is
+`supabase/development/worker-preflight.sql`. Provider execution reads the dedicated
+`EMBEL_DEVELOPMENT_PROVIDER_API_KEY`, model and verified-model settings plus the
+existing dispatch flags. It does not borrow Codex's `OPENAI_API_KEY`.
+
+The existing local Logo issuer SQL uses API port 54321. Other ports are supported
+for the core stack; that legacy issuer needs a corresponding reviewed change
+when configuring Logo on a different API port. Put worker passwords and provider
+credentials in lane files or worker-only environments. The managed web file
+contains public values only; the launcher also inherits the invoking shell.
+
+## Codex Cloud and browsers
+
+The same `npm ci`, `dev:setup`, `dev:up` and `dev` commands apply in Cloud. See
+[cloud setup](cloud-development.md). In managed proxy environments where the
+Auth/Storage BusyBox health probes ignore `NO_PROXY`, use:
+
+```sh
+npm run dev:up -- --proxy-health
+```
+
+This builds repository-owned helpers for the pinned CLI images. Only the exact
+container-loopback health URLs bypass the HTTP proxy; health failures remain
+failures and other requests retain their usual proxy behavior. Normal Docker
+networking, registry authentication and certificate validation are retained.
+
+For browser tests, install Chromium with `npx playwright install chromium`, or
+set `FLUID_E2E_BROWSER_EXECUTABLE` to an existing browser's absolute path. The
+alternative `FLUID_E2E_BROWSER_CHANNEL=chrome` uses installed Chrome; choose one
+override at a time. No ignored config containing an old checkout path is needed.
+
+`npm run test:setup` covers setup behavior. `npm run typecheck`, `npm run lint`,
+`npm test`, `npm run build` and `npm run test:e2e` are available for application
+work. Browser journeys use a completed build. The opt-in live suite remains a
+separate command because it uses configured real accounts and services.

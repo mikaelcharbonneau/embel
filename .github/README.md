@@ -6,7 +6,9 @@ all four test shards succeed. Repository branch protection can require this
 single stable check; adding the workflow does not change branch protection.
 
 The web job uses Node 24 from `.nvmrc` and runs the existing typecheck, lint,
-production build, and production dependency audit. Unit/integration tests and
+production build, production dependency audit and `test:setup` portability checks.
+The setup checks use disposable directories and need no Docker or credentials.
+Unit/integration tests and
 worker bundle builds use Node **22.22.2**, matching the dedicated workers'
 runtime qualification and Containerfiles. Each job installs `package-lock.json`
 with `npm ci`; only the npm download cache is shared.

@@ -1,4 +1,33 @@
-# Local/cloud reconciliation — 2026-10-10
+# Moving between local development and Codex Cloud
+
+Both environments use the same Git repository and development commands. Before
+moving work, commit and push the changes you want in the other checkout. In the
+receiving checkout, fetch and pull that branch, then install the lockfile:
+
+```sh
+git fetch origin
+git switch YOUR_BRANCH
+git pull --ff-only
+npm ci
+npm run dev:setup
+```
+
+If the branch has no local copy, `git switch --track origin/YOUR_BRANCH` creates
+it. Branches and pull requests are available organizational tools, not a required
+handoff procedure. Separate branches are useful for simultaneous work; sequential
+local/cloud work can use the same branch.
+
+`npm run dev:up` starts this checkout's local backend; `npm run dev` starts its
+interface. `npm run dev:down` stops the backend and retains its data. See the
+[portable setup guide](development-environment.md) for prerequisites and ports.
+
+Only committed files travel through Git. `.embel-dev/`, `.env` files, downloaded
+dependencies, Docker volumes, browser sessions, ignored reports and chat history
+remain separate. Provider credentials use each environment's configuration.
+Database/Storage transfer is a separate export/import task, not part of Git pull.
+Switching a development environment does not itself deploy the website.
+
+## Historical reconciliation — October 10, 2026
 
 ## Historical reconciliation scope
 
@@ -29,6 +58,6 @@ The Vercel dry run selected 593 application inputs through the existing allowlis
 
 Independent Linux QA confirmed the candidate commit/tree and that same upload manifest, and passed typecheck, lint, 113 focused tests, 21 domain browser checks, production build and six production-route checks. Its account checker exposed a startup race: the replacement helper counted name chips before waiting for the editor. A diagnostic copy with an explicit input wait passed all 13 checks; that wait is now part of the committed test helper. This correction changes test synchronization only, leaving all application/deployment bytes unchanged. Cloud evidence and screenshots remain in ignored work storage; final PR verification records the qualified revision.
 
-## Handoff rule
-
-Future work starts by verifying `main`'s actual commit and worktree status. Preserve independent changes before updating, reconcile on a feature branch and publish the verified checkpoint through one PR. Report the merged commit and verify both receiving checkout and deployment against it. Ignored references/configuration require their separately authorized transfer; matching source does not imply identical runtime credentials or enabled providers.
+The earlier reconciliation used a feature branch and PR. Current handoff steps
+are at the top of this document, and current project instructions are in
+[AGENTS.md](../AGENTS.md).
