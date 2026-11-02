@@ -54,3 +54,19 @@ it("does not present 100 saved names with missing approach coverage as complete"
     expect(host.textContent).toContain("Some selected naming approaches are still missing.");
   } finally { await act(async () => root.unmount()); vi.unstubAllGlobals(); }
 });
+
+
+it('offers recovered saved names while keeping unresolved provider costs explicit', async () => {
+ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT',true);
+ const review=vi.fn(),resume=vi.fn(),retry=vi.fn();
+ const feed={canResume:false,resume,retry,state:{status:'incomplete',feed:{availability:{status:'available'},activeRun:{generationProfile:'brainstorm_v1',state:'needs_reconciliation',canResume:false,recoveredNameCount:12,fulfillment:{status:'partial',acceptedCount:12,targetCount:100,missingCount:88,coverageSatisfied:false}}}}} as unknown as ReturnType<typeof useNamingFeed>;
+ const host=document.createElement('div'),root=createRoot(host);
+ try{
+  await act(async()=>root.render(createElement(NamingFeedTail,{feed,blocked:false,onModify:vi.fn(),onReviewSaved:review})));
+  expect(host.textContent).toContain('Recovered names are saved and can be used.');
+  expect(host.textContent).toContain('provider outcome or cost still needs verification');
+  expect(host.textContent).not.toContain('Resume unfinished exploration');
+  await act(async()=>[...host.querySelectorAll<HTMLButtonElement>('button')].find(button=>button.textContent==='View saved names')!.click());
+  expect(review).toHaveBeenCalledOnce();expect(resume).not.toHaveBeenCalled();expect(retry).not.toHaveBeenCalled();
+ }finally{await act(async()=>root.unmount());vi.unstubAllGlobals();}
+});

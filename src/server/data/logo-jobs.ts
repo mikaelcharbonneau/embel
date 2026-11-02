@@ -8,6 +8,8 @@ import { ApiError } from '../http/errors';
 import { logoDatabaseError,logoOwner,logoId,parseLogoInput,parseLogoStored } from './logo-transaction';
 import type { IdentityAssetStore } from './identity-asset-store';
 import type { VerifiedAssetBytes } from '@/domain/logo-deliverables';
+import { brandTextReadiness } from '@/domain/brand-board-fonts';
+import { getLogoStageRevision } from './logo-workspace';
 import { logoOperationBoundary } from '../logo-creation/operation-routing';
 
 /** Inject only the separately authorized restricted owner-bound logo login.
@@ -32,7 +34,7 @@ function equal(a:unknown,b:unknown):boolean {if(a===b)return true;if(!a||!b||typ
 /** HTTP calls never run a provider and no missing connection gains a fallback. */
 export function createLogoJobService(){
  async function rpc(auth:AuthenticatedContext,name:string,args:Record<string,unknown>,selectedBoundary?:ReturnType<typeof logoOperationBoundary>){logoOwner(auth);let response:{data:unknown;error:unknown};const admission=name==='quote_logo_operation'||name==='admit_logo_operation';const accountImageLane=admission?(selectedBoundary===undefined?logoOperationBoundary():selectedBoundary):null;try{response=await auth.client.rpc(accountImageLane??name,accountImageLane?{...args,p_kind:name==='quote_logo_operation'?'quote':'admit'}:args);}catch(e){throw logoDatabaseError(e);}if(response.error)throw logoDatabaseError(response.error);return response.data;}
- async function quoteLogoOperation(auth:AuthenticatedContext,projectId:string,input:unknown):Promise<LogoCostQuote>{const owner=logoOwner(auth);projectId=logoId(projectId);const request=parseLogoInput(logoQuoteRequestSchema,input);const q=parseLogoStored(logoCostQuoteSchema,await rpc(auth,'quote_logo_operation',{p_project_id:projectId,p_input:request}));scope(owner,projectId,q);if(!equal(q.request,request))throw new ApiError('integration_unavailable');return q;}
+ async function quoteLogoOperation(auth:AuthenticatedContext,projectId:string,input:unknown):Promise<LogoCostQuote>{const owner=logoOwner(auth);projectId=logoId(projectId);const request=parseLogoInput(logoQuoteRequestSchema,input);if(request.operation==='concepts'||request.operation==='more_concepts'){const brief=await getLogoStageRevision(auth,projectId,'brief_references',request.briefRevisionId);if(brief.stage!=='brief_references'||!brandTextReadiness(brief.payload.name).supported)throw new ApiError('invalid_input');}const q=parseLogoStored(logoCostQuoteSchema,await rpc(auth,'quote_logo_operation',{p_project_id:projectId,p_input:request}));scope(owner,projectId,q);if(!equal(q.request,request))throw new ApiError('integration_unavailable');return q;}
  async function admitLogoOperation(auth:AuthenticatedContext,projectId:string,input:unknown):Promise<LogoDispatchReceipt>{const owner=logoOwner(auth);projectId=logoId(projectId);const body=parseLogoInput(logoGenerationIntentSchema,input);const boundary=logoOperationBoundary();let raw:unknown;try{raw=await rpc(auth,'admit_logo_operation',{p_project_id:projectId,p_input:body},boundary);}catch(e){if(e instanceof ApiError&&e.code!=='integration_unavailable')throw e;throw new LogoAdmissionUncertainError(projectId,body);}
   const rejected=admissionRejectionSchema.safeParse(raw);
   if(rejected.success){const proof=rejected.data.rejection;if(proof.ownerId!==owner||proof.projectId!==projectId||proof.requestKey!==body.requestKey||proof.quoteId!==body.quoteId)throw new LogoAdmissionUncertainError(projectId,body);throw new LogoAdmissionRejectedError(owner,projectId,body,rejected.data.errorCode);}

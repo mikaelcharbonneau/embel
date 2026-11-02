@@ -21,16 +21,16 @@ function fixture(mismatch=false,options:{legacy?:boolean;actualLegacy?:boolean;s
  const engine=createSharedNamingLaneEngine({slot:()=>slot,deploymentId:options.sameDeployment?'dpl_original':'dpl_successor',workerId:'synthetic-worker',policy,provider:{apiKey:'synthetic',model:policy.model,modelVerificationReceipt:'synthetic-model-proof'},database:{async query(_sql,values=[]){
   expect(JSON.parse(String(values[0]))).toEqual(slot);expect(JSON.parse(String(values[1]))).toEqual(execution);const action=String(values[2]);actions.push(action);payloads.push(JSON.parse(String(values[3])));
   const observedJob=options.actualLegacy?JSON.parse(JSON.stringify({...job,input:{...input,generationProfile:undefined}})):job;
-  const result=action==='recover'?{observationJob:observedJob,observationLeaseToken:execution.leaseToken}:action==='brainstorm_state'?state:action==='brainstorm_event'?true:undefined;
+  const result=action==='recover'?{observationJob:observedJob,observationLeaseToken:execution.leaseToken}:action==='brainstorm_state'?state:action==='brainstorm_event'?true:action==='brainstorm_recover_delivery'?{status:'retained_unknown',insertedCount:0}:undefined;
   if(result===undefined)throw Error('unexpected_mutation');return{rows:[{envelope:{execution:mismatch?{...execution,deploymentId:'dpl_successor'}:execution,result}}]};
  }}},{brainstormProvider:provider});
  return{engine,execution,job,actions,payloads,create,cancel,retrieve};
 }
 describe('historical Naming observe-only lane (mock SQL/provider, no live acceptance claim)',()=>{
- it('observes prior-DPL response through successor slot, retaining original immutable scope and never creating or publishing',async()=>{
+ it('observes prior-DPL response through successor slot and requests guarded saved delivery without a paid create',async()=>{
   const f=fixture(),jobBefore=structuredClone(f.job),executionBefore=structuredClone(f.execution);
   try{expect(await f.engine.recover!([{execution:f.execution,job:f.job,mode:'observe'}])).toEqual({disposition:'retry',state:'observation_retained'});
-   expect(f.retrieve).toHaveBeenCalledOnce();expect(f.create).not.toHaveBeenCalled();expect(f.cancel).not.toHaveBeenCalled();expect(f.actions).toEqual(['recover','brainstorm_state','brainstorm_event']);
+   expect(f.retrieve).toHaveBeenCalledOnce();expect(f.create).not.toHaveBeenCalled();expect(f.cancel).not.toHaveBeenCalled();expect(f.actions).toEqual(['recover','brainstorm_state','brainstorm_event','brainstorm_recover_delivery']);
    expect(f.payloads[2]).toMatchObject({kind:'completed',responseId:'resp_retained',requestId:'req_original'});expect((f.payloads[2] as {candidates:unknown[]}).candidates).toHaveLength(100);
    expect(f.job).toEqual(jobBefore);expect(f.execution).toEqual(executionBefore);
   }finally{await f.engine.close();}

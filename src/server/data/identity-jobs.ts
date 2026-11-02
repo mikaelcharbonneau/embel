@@ -3,6 +3,7 @@ import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
 import { identityAvailabilitySchema, identityBatchRequestCloseSchema, identityBatchStateSchema, identityGenerationIntentSchema, type IdentityAvailability, type IdentityBatchRequestClose, type IdentityBatchState, type IdentityGenerationIntent } from "@/domain/identity-jobs";
 import { IMAGE_MODEL } from "@/domain/providers";
+import { brandTextReadiness } from "@/domain/brand-board-fonts";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
 import { isSharedWorkerRuntime } from "../shared-account/routing";
@@ -35,7 +36,10 @@ function scope(auth:AuthenticatedContext,projectId:string,value:{ownerId:string;
 export async function getIdentityAvailability(auth:AuthenticatedContext,projectId:string):Promise<IdentityAvailability>{
   projectId=uuid(projectId);await ownedProject(auth,projectId);
   if(!isSharedWorkerRuntime())return identityAvailabilitySchema.parse({ownerId:auth.userId,projectId,status:"unavailable",operation:"identity.image",requestedModel:IMAGE_MODEL,reason:"pipeline_not_implemented"});
-  const value=stored(identityAvailabilitySchema,await rpc(auth,"get_shared_identity_availability",{p_project_id:projectId}));scope(auth,projectId,value);return value;
+  const value=stored(identityAvailabilitySchema,await rpc(auth,"get_shared_identity_availability",{p_project_id:projectId}));scope(auth,projectId,value);
+  if(value.status==="available"&&value.version===3&&!brandTextReadiness(value.sourceLogo.brief.payload.name).supported)
+    return {ownerId:auth.userId,projectId,status:"unavailable",operation:"identity.image",requestedModel:IMAGE_MODEL,reason:"unsupported_brand_text"};
+  return value;
 }
 export async function enqueueIdentityBatch(auth:AuthenticatedContext,projectId:string,input:unknown):Promise<IdentityBatchState>{
   const parsed=identityGenerationIntentSchema.safeParse(input);if(!parsed.success)throw new ApiError("invalid_input");

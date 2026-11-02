@@ -1,4 +1,5 @@
 [
+  "public/fonts/brand/provenance.json",
   "services/shared-worker/runtime-files.json",
   "services/shared-worker/runtime-packages.json",
   "src/domain/api-text-dispatch.ts",

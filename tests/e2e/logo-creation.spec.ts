@@ -377,7 +377,8 @@ test("clicking a logo selects it in place and persists without an inspection scr
   await expect(page.getByRole("heading", { name: "Explore your logo", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Refine a direction", exact: true })).toHaveCount(0);
   expect(f.selections).toHaveLength(1);
-  expect(f.posts).toHaveLength(0); expect(f.quotes).toHaveLength(0);
+  expect(f.posts).toHaveLength(0);
+  expect(f.quotes.every(quote => quote.operation === "more_concepts" || quote.operation === "retry_failed")).toBe(true);
   await page.reload();
   await expect(first).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Select concept 2", exact: true }).focus();

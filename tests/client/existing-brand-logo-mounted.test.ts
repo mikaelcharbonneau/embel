@@ -7,7 +7,7 @@ import { AccountSessionProvider, useAccountSession } from "../../src/components/
 import { LogoCreationWorkspace } from "../../src/components/logo-creation/logo-creation-workspace";
 import { contextSnapshotSchema } from "../../src/domain/projects";
 import { logoMutationReceiptSchema, type LogoMutationReceipt, type LogoStageRevision } from "../../src/domain/logo-workspace";
-import { syntheticLogoWorkspace, logoFixtureId as id } from "../fixtures/logo-creation";
+import { syntheticLogoBrief, syntheticLogoWorkspace, logoFixtureId as id } from "../fixtures/logo-creation";
 
 /** Mounted React, real owner-scoped client/hook/memory; synthetic same-origin
  * HTTP only. No browser, provider, storage, or live database is exercised. */
@@ -71,6 +71,40 @@ describe("existing-brand initialization through the actual logo workspace", () =
     await until(() => name()?.disabled === false); return f;
   }
   async function fill() { await click("Reuse Strategy"); await until(() => !!name()?.value); const choice = host.querySelector<HTMLInputElement>('input[aria-label="Wordmark"]')!; await act(async () => { choice.click(); }); }
+  it.each(["Élan & Co", "Cedar 🦊", null])("reads saved inputs from an empty Logo draft before checking generation font support: %s", async savedName => {
+    const f = fixture(), transport = f.fetcher, quotes: unknown[] = [], reads: string[] = [];
+    f.fetcher = async (url, options) => {
+      const path = String(url);
+      if (path.endsWith("/saved-inputs")) {
+        reads.push(path);
+        return Response.json({ ownerId: f.original.ownerId, projectId: f.original.projectId, projectRevision: 1, inspirationSelectionRevision: 0,
+          inspirationCount: 0, nameConflict: false, draft: savedName === null ? null : syntheticLogoBrief({ name: savedName }) });
+      }
+      if (path.endsWith("/capabilities")) {
+        const observed = Date.now();
+        return Response.json({ ownerId: f.original.ownerId, projectId: f.original.projectId, observedAt: new Date(observed).toISOString(), operations: {
+          "identity.logo_concept": { status: "available", expiresAt: new Date(observed + 30_000).toISOString() },
+          "identity.logo_refine": { status: "unavailable" }, "identity.logo_vectorize": { status: "unavailable" },
+          "identity.logo_directions": { status: "unavailable" }, "identity.logo_export": { status: "unavailable" },
+        } });
+      }
+      if (path.endsWith("/quotes")) { quotes.push(JSON.parse(String(options?.body))); return Response.json({}, { status: 503 }); }
+      return transport(url, options);
+    };
+    await mount(f); await until(() => reads.length > 0);
+    if (savedName === null) {
+      await until(() => host.textContent!.includes("Choose and save a brand name in your project before generating logo concepts."));
+      expect(f.state.posts).toEqual([]); expect(quotes).toEqual([]); return;
+    }
+    await until(() => host.textContent!.includes("Using your saved brand and logo inputs."));
+    expect(name()?.value).toBe(savedName); expect(f.state.posts).toHaveLength(1); expect(f.state.posts[0]!.path).toMatch(/\/initialize$/);
+    if (savedName === "Élan & Co") await until(() => quotes.length === 1);
+    else {
+      expect(host.textContent).toContain("Some characters in this name cannot yet be rendered");
+      expect(quotes).toEqual([]);
+    }
+    expect(button("Generate six concepts")?.disabled).toBe(true);
+  });
   it("offers explicit same-brand initialization with preserved legacy access and no automatic save or generation", async () => {
     const f = await mount();
     expect(button("Create logo workspace")?.disabled).toBe(true);

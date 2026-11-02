@@ -14,6 +14,9 @@ const workspace = () => logoWorkspaceV2Schema.parse({ version: 2, ownerId, proje
 const draft = (saved = false): LogoDraftRecord => ({ workspace: saved ? workspace() : null, base: saved ? heads : null, brief: structuredClone(brief), references: [], dirty: true,
   pendingIntent: null, pendingCreation: null, pendingExport: null, pendingMutation: null, conflict: false });
 const memory = () => { const store = createLogoDraftMemory(); store.bind({ ownerId, generation: 1 }); return store; };
+function savedDraft(project: string, dirty = false): LogoDraftRecord {
+  return { ...draft(true), workspace: { ...workspace(), projectId: project }, dirty };
+}
 
 describe("provider-owned logo drafts", () => {
   it("retains incomplete and overlong editable values synchronously with an unsaved guard", () => {
@@ -104,6 +107,56 @@ describe("provider-owned logo drafts", () => {
     expect((store.get(projectId) as LogoDraftRecord & { vectorDraft: unknown }).vectorDraft).toEqual(vectorDraft);
     store.clear(); expect(store.hasUnsaved()).toBe(false);
     expect(() => { store.bind({ ownerId, generation: 3 }); store.set(null, { ...draft(), vectorDraft } as LogoDraftRecord); }).toThrow();
+  });
+
+  it("opens more than twenty projects by evicting only saved baselines", () => {
+    const store = memory();
+    for (let n = 1; n <= 25; n++) store.set(id(100 + n), savedDraft(id(100 + n)));
+    expect(store.hasUnsaved()).toBe(false);
+    expect(store.get(id(101))).toBeNull();
+    expect(store.get(id(105))).toBeNull();
+    expect(store.get(id(106))?.workspace?.projectId).toBe(id(106));
+    expect(store.get(id(125))?.workspace?.projectId).toBe(id(125));
+    store.set(id(101), savedDraft(id(101)));
+    expect(store.get(id(101))?.workspace?.projectId).toBe(id(101));
+  });
+
+  it("preserves edits, pending requests and vector proposal drafts while making room", () => {
+    const store = memory(), pending = { requestKey, quoteId: id(9), acceptedMaxCostMicrousd: 7, expected: heads };
+    store.set(id(101), savedDraft(id(101), true));
+    store.set(id(102), { ...savedDraft(id(102)), pendingIntent: pending });
+    store.set(id(103), savedDraft(id(103)));
+    const proposal = { baseVectorRevisionId: id(400), instruction: "Make the symbol larger", targetComponentIds: ["symbol"], dirty: true,
+      pendingGeneration: null, pendingApplication: null, selectedProposalId: null };
+    store.setVectorProposal(id(103), proposal);
+    for (let n = 4; n <= 21; n++) store.set(id(100 + n), savedDraft(id(100 + n)));
+    expect(store.get(id(101))?.dirty).toBe(true);
+    expect(store.get(id(102))?.pendingIntent).toEqual(pending);
+    expect(store.get(id(103))).not.toBeNull();
+    expect(store.getVectorProposal(id(103))).toEqual(proposal);
+    expect(store.get(id(104))).toBeNull();
+    expect(store.get(id(121))).not.toBeNull();
+    expect(store.hasUnsaved()).toBe(true);
+  });
+
+  it("keeps every existing recovery record when no clean baseline can be evicted", () => {
+    const store = memory();
+    for (let n = 1; n <= 20; n++) store.set(id(100 + n), savedDraft(id(100 + n), true));
+    let notifications = 0; store.subscribe(() => { notifications += 1; });
+    expect(() => store.set(id(121), savedDraft(id(121)))).toThrow();
+    for (let n = 1; n <= 20; n++) expect(store.get(id(100 + n))?.dirty).toBe(true);
+    expect(store.get(id(121))).toBeNull(); expect(notifications).toBe(0);
+  });
+
+  it("makes room for a new brief and transfers its confirmed creation atomically", () => {
+    const store = memory();
+    for (let n = 1; n <= 20; n++) store.set(id(100 + n), savedDraft(id(100 + n)));
+    const value = draft(); value.pendingCreation = { input: { requestKey, brief }, state: null }; store.set(null, value);
+    expect(store.get(id(101))).toBeNull();
+    store.set(null, { ...value, pendingCreation: { input: value.pendingCreation.input,
+      state: { status: "succeeded", requestKey, projectId, workspace: workspace() } } });
+    expect(store.get(null)).toBeNull(); expect(store.get(projectId)?.workspace?.projectId).toBe(projectId);
+    expect(store.hasUnsaved()).toBe(false);
   });
 
 });

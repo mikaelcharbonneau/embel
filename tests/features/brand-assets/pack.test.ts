@@ -17,7 +17,7 @@ async function setup() {
   const image = (canvas: typeof logo, bytes: Uint8Array, release: () => void) => ({ image: canvas, width: canvas.width, height: canvas.height, bytes, dataUrl: `data:image/png;base64,${Buffer.from(bytes).toString("base64")}`, release });
   fakes.image.mockResolvedValueOnce(image(logo, logoBytes, releases[0]!)).mockResolvedValueOnce(image(board, boardBytes, releases[1]!));
   const names = new Map<string, string>();
-  for (const font of BRAND_BOARD_FONTS) { const name = `Pack_${font.id}`; GlobalFonts.registerFromPath(`public${font.file}`, name); names.set(font.family, name); }
+  for (const font of BRAND_BOARD_FONTS.filter(font => [f.snapshot.heading.family, f.snapshot.body.family].includes(font.family))) { const name = `Pack_${font.id}`; GlobalFonts.registerFromPath(`public${font.file}`, name); names.set(font.family, name); }
   fakes.fonts.mockResolvedValue({ names, release: releases[2] });
   fakes.png.mockImplementation(async (canvas: typeof logo) => Uint8Array.from(canvas.toBuffer("image/png")));
   vi.stubGlobal("document", { createElement: (name: string) => { expect(name).toBe("canvas"); return createCanvas(1, 1); } });

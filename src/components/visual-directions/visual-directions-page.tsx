@@ -31,6 +31,7 @@ function availabilityReason(availability: IdentityAvailability | undefined) {
     case "logo_selection_required": return "Choose a logo concept first.";
     case "logo_needs_review": return "Your logo uses earlier inputs. Review your concept choice before generating directions.";
     case "inputs_not_ready": return "Finish your saved brief and brand name before generating directions.";
+    case "unsupported_brand_text": return "Some characters in your name cannot yet be rendered in downloadable brand assets. Update the name in your logo brief before generating directions.";
     case "reference_limit_exceeded": return "Use up to three inspiration images alongside your chosen logo.";
     case "reference_bytes_exceeded": return "Your chosen logo and inspiration images are too large together. Remove a reference image and try again.";
     case "references_unavailable": return "An inspiration image could not be verified. Check your saved references.";

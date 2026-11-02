@@ -16,7 +16,7 @@ import type { SharedLaneBase,SharedLaneEngine,SharedLaneResult } from "./contrac
 import { createSharedLaneGateway } from "./gateway";
 import { NAMING_BRAINSTORM_PROFILE } from "../../src/domain/naming-brainstorm";
 import { createNamingBrainstormProvider, type NamingBrainstormProvider } from "../../src/server/ai/naming-brainstorm-provider";
-import { observeNamingBrainstorm, runNamingBrainstorm } from "../naming-brainstorm";
+import { observeNamingBrainstorm, recoverNamingBrainstormDelivery, runNamingBrainstorm } from "../naming-brainstorm";
 
 const unavailable=()=>Error("shared_naming_authority_unavailable");
 const terminal=new Set(["succeeded","failed","partial","cancelled","needs_reconciliation"]);
@@ -132,7 +132,10 @@ export function createSharedNamingLaneEngine(options:SharedLaneBase & {policy:Na
      attempted++;
      try{retained+=await observeNamingBrainstorm({gateway,input,
       provider:dependencies.brainstormProvider??createNamingBrainstormProvider({apiKey:options.provider.apiKey}),
-      signal:AbortSignal.any([combined,AbortSignal.timeout(180_000)])});}
+      signal:AbortSignal.any([combined,AbortSignal.timeout(180_000)])});
+      // A retained terminal response can deliver useful names even while its
+      // charge remains unknown. SQL checks cancellation, ownership and context.
+      if(!combined.aborted)retained+=(await recoverNamingBrainstormDelivery(gateway)).insertedCount;}
      catch{unconfirmed=true;throw Error("shared_naming_observation_unconfirmed");}
      await gateway.drain();continue;
     }

@@ -5,7 +5,7 @@ import { brandBoardFont, supportedBrandBoardTypography } from "@/domain/brand-bo
 
 export type BrandAssetSystem = IdentitySystemVersion & { applicationDesign?: BrandBoardApplicationDesign };
 export class BrandAssetError extends Error {
-  constructor(readonly reason: "selection" | "unsupported" | "source" | "font" | "canvas" | "timeout" | "size") { super(reason); }
+  constructor(readonly reason: "selection" | "unsupported" | "source" | "font" | "font_coverage" | "unsupported_text" | "canvas" | "timeout" | "size") { super(reason); }
 }
 
 /** Copy only the selected system's explicit design decisions. Historical boards

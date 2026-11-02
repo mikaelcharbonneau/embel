@@ -1,12 +1,13 @@
 import type { BrandAssetSnapshot } from "./snapshot";
 import { BrandAssetError } from "./snapshot";
 import { brandBoardContrastRatio as contrast } from "@/domain/brand-board-design";
+import { brandTextDirection } from "@/domain/brand-board-fonts";
 
 type Shape = { kind: "rect"; x: number; y: number; width: number; height: number; fill: string; radius?: number; opacity?: number }
   | { kind: "circle"; x: number; y: number; radius: number; fill: string; opacity?: number }
   | { kind: "line"; x: number; y: number; x2: number; y2: number; color: string; width: number }
   | { kind: "image"; source: "logo" | "direction"; x: number; y: number; width: number; height: number }
-  | { kind: "text"; text: string; x: number; y: number; size: number; family: string; weight: number; color: string; maxWidth: number; align?: "left" | "center" };
+  | { kind: "text"; text: string; x: number; y: number; size: number; family: string; weight: number; color: string; maxWidth: number; align?: "left" | "center"; textLength?: number };
 export type BrandArtwork = { width: number; height: number; title: string; nodes: Shape[] };
 export const BRAND_APPLICATIONS = [
   { id: "profile", label: "Profile image", width: 1024, height: 1024, editable: false },
@@ -126,9 +127,15 @@ export function drawBrandArtwork(canvas: HTMLCanvasElement, artwork: BrandArtwor
     else {
       const family = fonts.get(node.family); if (!family) throw new BrandAssetError("font");
       const setFont = () => { ctx.font = `${node.kind === "text" ? node.weight : 400} ${node.kind === "text" ? node.size : 12}px "${family}"`; };
+      const direction = brandTextDirection(node.text);
+      ctx.direction = direction;
       setFont();
       while (ctx.measureText(node.text).width > node.maxWidth && node.size > 10) { node = { ...node, size: node.size - 1 }; setFont(); }
-      ctx.fillStyle = node.color; ctx.textBaseline = "alphabetic"; ctx.textAlign = node.align === "center" ? "center" : "left"; ctx.fillText(node.text, node.x, node.y, node.maxWidth);
+      // Canvas still fits unusually long names at the minimum size. Record that
+      // final width so the editable SVG preserves the same complete lettering.
+      if (ctx.measureText(node.text).width > node.maxWidth) node = { ...node, textLength: node.maxWidth };
+      const x = node.align !== "center" && direction === "rtl" ? node.x + node.maxWidth : node.x;
+      ctx.fillStyle = node.color; ctx.textBaseline = "alphabetic"; ctx.textAlign = node.align === "center" ? "center" : "start"; ctx.fillText(node.text, x, node.y, node.maxWidth);
     }
     ctx.restore(); fitted.nodes.push(node);
   }
@@ -141,7 +148,8 @@ export function editableBrandSvg(artwork: BrandArtwork, images: BrandImages): Ui
     if (node.kind === "circle") return `<circle cx="${node.x}" cy="${node.y}" r="${node.radius}" fill="${node.fill}" opacity="${node.opacity ?? 1}"/>`;
     if (node.kind === "line") return `<line x1="${node.x}" y1="${node.y}" x2="${node.x2}" y2="${node.y2}" stroke="${node.color}" stroke-width="${node.width}"/>`;
     if (node.kind === "image") { const url = images[node.source].dataUrl; if (!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(url)) throw new BrandAssetError("source"); return `<image x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}" preserveAspectRatio="xMidYMid meet" href="${url}"/>`; }
-    return `<text x="${node.x}" y="${node.y}" font-family="${xml(node.family)}" font-weight="${node.weight}" font-size="${node.size}" fill="${node.color}" text-anchor="${node.align === "center" ? "middle" : "start"}">${xml(node.text)}</text>`;
+    const direction = brandTextDirection(node.text), x = node.align !== "center" && direction === "rtl" ? node.x + node.maxWidth : node.x;
+    return `<text x="${x}" y="${node.y}" font-family="${xml(node.family)}" font-weight="${node.weight}" font-size="${node.size}" fill="${node.color}" direction="${direction}" unicode-bidi="isolate" text-anchor="${node.align === "center" ? "middle" : "start"}"${node.textLength === undefined ? "" : ` textLength="${node.textLength}" lengthAdjust="spacingAndGlyphs"`}>${xml(node.text)}</text>`;
   });
   return new TextEncoder().encode(`<svg xmlns="http://www.w3.org/2000/svg" width="${artwork.width}" height="${artwork.height}" viewBox="0 0 ${artwork.width} ${artwork.height}"><title>${xml(artwork.title)}</title><desc>Editable text and shapes. The original logo remains an embedded raster image. Install the linked fonts before editing.</desc>${nodes.join("")}</svg>`);
 }

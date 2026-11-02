@@ -17,7 +17,7 @@ function fixture() {
   const status = (values: Partial<NamingWorkerStatus> = {}): NamingWorkerStatus => ({ version: 1, leader: true, generation: 1,
     serverTime: new Date(Date.UTC(2030, 0, 1) + now()).toISOString(), expiresAt: new Date(Date.UTC(2030, 0, 1) + now() + 60_000).toISOString(), ready: true, reason: "leader", ...values });
   const calls: { action: string; at: number; values: unknown[] }[] = [];
-  const report = vi.fn(async (_generation: number | null) => status());
+  const report = vi.fn<(_generation: number | null) => Promise<NamingWorkerStatus>>(async () => status());
   const database = { query: vi.fn(async (sql: string, values: unknown[] = []): Promise<{ rows: { result: unknown }[] }> => {
     const action = sql.includes("report_naming_brain_worker_status") ? "status" : String(values[3]);
     calls.push({ action, at: now(), values });

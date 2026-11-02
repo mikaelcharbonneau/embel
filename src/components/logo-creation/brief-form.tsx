@@ -1,11 +1,12 @@
 import { logoTypeSchema, type LogoBriefDraft } from "../../domain/logo-workspace";
+import { brandTextReadiness } from "../../domain/brand-board-fonts";
 import { LOGO_TYPE_LABELS } from "./presentation";
 import styles from "./logo-creation.module.css";
 
-/** Controlled fields; saving is available only through an explicitly supplied action. */
+/** Controlled fields; the workspace owns autosave and any immediate-save action. */
 export function LogoBriefFields({
   draft = { name: "", activity: "", audience: "", personality: "", logoTypes: [] },
-  onChange, onReuseStrategy, onSave, saveMessage = "Saving is unavailable. Changes have not been saved.", nameConflict = false, sourceProjectRevision, saveLabel = "Save brief",
+  onChange, onReuseStrategy, onSave, saveMessage = "Saving is unavailable. Changes have not been saved.", nameConflict = false, sourceProjectRevision, saveLabel = "Save brief", autoSave = false,
 }: {
   draft?: LogoBriefDraft;
   onChange?: (draft: LogoBriefDraft) => void;
@@ -15,7 +16,9 @@ export function LogoBriefFields({
   saveLabel?: string;
   nameConflict?: boolean;
   sourceProjectRevision?: number;
+  autoSave?: boolean;
 }) {
+  const nameReadiness = draft.name.trim() ? brandTextReadiness(draft.name) : null;
   const fields = [
     ["name", "Brand name"], ["activity", "What the business does"],
     ["audience", "Audience"], ["personality", "Desired personality"],
@@ -26,8 +29,9 @@ export function LogoBriefFields({
       <button className={styles.secondaryButton} type="button" aria-label="Reuse Strategy" disabled={!onReuseStrategy || !onChange} onClick={onReuseStrategy}>Reuse Strategy</button>
     </div>
     <p className={styles.muted}>Write a short brief or choose to reuse your saved Strategy. You can start before Strategy is complete.</p>
+    {autoSave && <p className={styles.note}>Changes save automatically. You can also save immediately below.</p>}
     {sourceProjectRevision !== undefined && <p className={styles.note}>Copied from Strategy revision {sourceProjectRevision}. Review and edit the brief below.</p>}
-    {nameConflict && <p className={styles.warning} role="alert">Your selected name differs from the original supplied name. The selected name is copied below; review its exact spelling before saving.</p>}
+    {nameConflict && <p className={styles.warning} role="alert">Your selected name differs from the original supplied name. The selected name is copied below; review its exact spelling before generating.</p>}
     <div className={styles.fields}>
       {fields.map(([key, label]) => <label className={styles.field} key={key}>
         <span>{label}</span>
@@ -37,6 +41,7 @@ export function LogoBriefFields({
             onChange={event => onChange?.({ ...draft, [key]: event.currentTarget.value })} />}
       </label>)}
     </div>
+    {nameReadiness?.message && <p className={styles.warning} role="alert">{nameReadiness.message}</p>}
     {Array.from(draft.name).length > 200 && <p className={styles.warning} role="alert">Shorten the brand name to 200 characters before saving. Your text is still here.</p>}
     <fieldset className={styles.typeChoices} disabled={!onChange}>
       <legend>Logo types <span className={styles.muted}>Choose one or more</span></legend>

@@ -60,6 +60,10 @@
     {
       "path": "supabase/candidates/shared_identity_selected_logo_boards.sql",
       "sha256": "45ec832fda4d5ed44f5c18ee270b73ce8def68553cb610880e7498076173495b"
+    },
+    {
+      "path": "supabase/candidates/shared_naming_brainstorm_delivery_recovery.sql",
+      "sha256": "c1bee52bffdcc2ebd26680dfe6b553b00388e63168139ee8cd428efc36d34ab3"
     }
   ],
   "functions": [
@@ -975,7 +979,7 @@
       "name": "naming_brain_summary",
       "owner": "postgres",
       "schema": "fluid_private",
-      "sha256": "8b50135a4883f4d6c5abe3ed03102627d3eca5fc58ce8428066e97b12ab2a5e4",
+      "sha256": "f2b0ec503ff74da663f9dba3267c70448466a304c63d7d8435113bf0a44c8aad",
       "language": "plpgsql",
       "leakproof": false,
       "searchPath": [
@@ -1225,6 +1229,26 @@
       "broadExecute": false,
       "argumentTypes": "uuid, jsonb, boolean",
       "securityDefiner": true,
+      "lanes": [
+        "strategy",
+        "naming",
+        "logo"
+      ]
+    },
+    {
+      "name": "recover_naming_brainstorm_delivery",
+      "owner": "postgres",
+      "schema": "fluid_private",
+      "sha256": "fe51e8b9ac9df1b690a82b626fd1e6ece488c20fadde4163c109cf87d42033f0",
+      "language": "plpgsql",
+      "leakproof": false,
+      "searchPath": [
+        "search_path=\"\""
+      ],
+      "volatility": "v",
+      "broadExecute": false,
+      "argumentTypes": "jsonb, jsonb, jsonb",
+      "securityDefiner": false,
       "lanes": [
         "strategy",
         "naming",
@@ -5739,7 +5763,7 @@
       "name": "shared_naming_worker_action",
       "owner": "postgres",
       "schema": "public",
-      "sha256": "5b9e16f786364d7cb5e58a5b9380a1da3490f5c950f8dfb7f47fde435518d7f9",
+      "sha256": "1a044e660bde27bf2d16cb3acce55fbe3e4f6bb88ada104ef354cc9b39c58d4f",
       "language": "plpgsql",
       "leakproof": false,
       "searchPath": [

@@ -97,15 +97,19 @@ export function createIdentityGenerationRuntimeAdapter(options:IdentityGeneratio
           let text:IdentityProduction<IdentitySystemSpecification>;
           if(knownText){
             const observation=knownText.observation,usage=logoVectorProposalUsageSchema.safeParse(observation.usage);
-            const request=createIdentitySpecificationRequest(frozen.input,loaded.systems,index+1,frozen.textPolicy,sourceLogo);
-            if(observation.phase!=="specifications"||observation.requestKey!==textKey||observation.requestHash!==identityDigest(JSON.stringify(request))||!observation.responseComplete
+            // Verify retained responses against either exact released request body.
+            // The historical typography list is for observation only; it never authorizes a new call.
+            const historicalRequest=createIdentitySpecificationRequest(frozen.input,loaded.systems,index+1,frozen.textPolicy,sourceLogo,1);
+            const requestHashes=[identityDigest(JSON.stringify(historicalRequest))];
+            try{requestHashes.push(identityDigest(JSON.stringify(createIdentitySpecificationRequest(frozen.input,loaded.systems,index+1,frozen.textPolicy,sourceLogo))));}catch{/* Unsupported saved text retains its original evidence. */}
+            if(observation.phase!=="specifications"||observation.requestKey!==textKey||!requestHashes.includes(observation.requestHash)||!observation.responseComplete
               ||!observation.responseId?.startsWith("resp_")||!observation.responseHash||observation.model!==frozen.textPolicy.model||observation.serviceTier!==frozen.textPolicy.serviceTier
               ||!observation.specification||observation.billing.status!=="recorded"||!usage.success||usage.data.inputTokens>frozen.textPolicy.maxInputTokens||usage.data.outputTokens>frozen.textPolicy.maxOutputTokens
               ||observation.billing.confirmedMicrousd!==logoVectorProposalUsageCost(usage.data))return unknown("identity_known_specification_unconfirmed");
             text={status:"completed",value:observation.specification,observation};
           }else text=await producer.specify(frozen.input,loaded.systems,index+1,textKey,signal,dispatch,sourceLogo);
           if(text.status!=="completed")return text.status==="not_dispatched"&&!phaseDispatched?{status:"failed",code:"not_dispatched",costMicrousd:0,providerRequestId:null}:unknown("identity_specification_unconfirmed");
-          if(sourceLogo&&(!text.value.applicationDesign||!text.value.components.typography.styles.every(supportedBrandBoardTypography)))return unknown("identity_application_design_missing");
+          if(sourceLogo&&(!text.value.applicationDesign||!text.value.components.typography.styles.every(style=>supportedBrandBoardTypography(style,sourceLogo.brief.payload.name))))return unknown("identity_application_design_missing");
           if(loaded.systems.some(s=>isDeepStrictEqual(s.components,text.value.components)))return{status:"failed",code:"duplicate_identity_direction",costMicrousd:cost,providerRequestId:requestId};
           await ready();
           const board=await producer.board(frozen.input,text.value,images,identityDigest(`${claimed.id}:${stepKey}:board`),signal,dispatch,sourceLogo);

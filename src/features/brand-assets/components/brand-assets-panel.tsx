@@ -26,6 +26,8 @@ function errorMessage(error: unknown): string {
     if (error.reason === "selection") return "Your selected logo or direction has changed. Reload this page to create its matching assets.";
     if (error.reason === "unsupported") return "This older direction does not contain the design details needed for a complete asset pack. Choose a newly generated direction.";
     if (error.reason === "font") return "The chosen fonts could not be loaded for these assets. Retry, or choose another direction if the problem continues.";
+    if (error.reason === "font_coverage") return "This saved direction uses fonts that cannot render all of its text. Choose or generate a new direction with compatible fonts.";
+    if (error.reason === "unsupported_text") return "Some characters in this brand's text cannot yet be rendered in downloadable assets. Remove unsupported symbols or use a supported spelling before generating a new direction.";
     if (error.reason === "timeout") return "Creating the assets took too long. Check your connection and try again.";
     if (error.reason === "canvas") return "This browser could not prepare the images. Please retry in a current browser.";
     if (error.reason === "size") return "These source files are too large to package in this browser.";

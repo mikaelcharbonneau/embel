@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   logoBriefDraftSchema, logoStageSchema, saveLogoBriefInputSchema, saveLogoReferencesInputSchema, type LogoBriefDraft, type LogoManualCommand,
   type LogoMutationReceipt, type LogoReferenceSnapshot, type LogoReferenceSelection, type LogoStage, type LogoStageRevision, type LogoWorkspaceV2,
@@ -15,7 +15,7 @@ import { isExistingBrandLogoReceipt } from "@/features/logo-creation/model/exist
 type Payloads = Partial<{ [S in LogoStage]: LogoStageRevision<S> }>;
 type Scope = { ownerId: string; generation: number; projectId: string | null; memory: LogoDraftMemory; injected?: AccountLogoClient };
 const sameScope = (a: Scope, b: Scope) => a.ownerId === b.ownerId && a.generation === b.generation && a.projectId === b.projectId && a.memory === b.memory && a.injected === b.injected;
-type Activity = { scope: Scope; busy: boolean; error: string | null; failed: boolean };
+type Activity = { scope: Scope; busy: boolean; error: string | null; failed: boolean; editableSave?: boolean };
 const same = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
 const unresolved = (record: LogoDraftRecord) => !!(record.pendingIntent || record.pendingCreation || record.pendingExport || record.pendingMutation);
 const empty = (): LogoDraftRecord => ({ workspace: null, base: null, brief: { name: "", activity: "", audience: "", personality: "", logoTypes: [] }, references: [], dirty: false,
@@ -27,6 +27,8 @@ const briefOf = (revision: LogoStageRevision<"brief_references"> | undefined): L
 };
 
 export type LogoWorkspaceReloadResult = "reloaded" | "draft_blocked" | "unavailable";
+export const LOGO_AUTOSAVE_DELAY_MS = 650;
+export const LOGO_SAVE_TIMEOUT_MS = 30_000;
 
 export type LogoWorkspaceBaseline = {
   workspace: LogoWorkspaceV2; stagePayloads: Payloads; referenceSnapshot: LogoReferenceSnapshot | null;
@@ -82,7 +84,7 @@ export function useLogoWorkspace({ projectId: routeProjectId, memory, client: in
   const [activity, setActivity] = useState<Activity | null>(null);
   const [payloads, setPayloads] = useState<{ scope: Scope; baseline: LogoWorkspaceBaseline } | null>(null);
   const [created, setCreated] = useState<{ scope: Scope; workspace: LogoWorkspaceV2; pendingCreation: LogoDraftRecord["pendingCreation"] } | null>(null);
-  const operation = useRef<{ controller: AbortController; scope: Scope } | null>(null);
+  const operation = useRef<{ controller: AbortController; scope: Scope; editableSave: boolean } | null>(null);
   const scope = account ? { ownerId: account.userId, generation: account.generation, projectId, memory, injected } : null;
   const committedScope = useRef<Scope | null>(null);
   const client = account && scope && transport && sameScope(transport.scope, scope) && isCurrent(account) && isAccountLogoClientCurrent(transport.client, account, projectId) ? transport.client : null;
@@ -91,6 +93,7 @@ export function useLogoWorkspace({ projectId: routeProjectId, memory, client: in
   const proposal = useSyncExternalStore(memory.subscribe, () => projectId ? memory.getVectorProposal(projectId) : null, () => null);
   const visible = !!(account && isCurrent(account));
   const busy = !!(visible && scope && activity && sameScope(activity.scope, scope) && activity.busy);
+  const saving = busy && activity?.editableSave === true;
   const completed = visible && scope && created && sameScope(created.scope, scope) ? created : null;
 
   useLayoutEffect(() => {
@@ -122,14 +125,21 @@ export function useLogoWorkspace({ projectId: routeProjectId, memory, client: in
     };
   }, [account, expire, injected, isCurrent, memory, projectId]);
 
-  const perform = useCallback(async (work: (client: AccountLogoClient, signal: AbortSignal, current: () => boolean, account: VerifiedAccount) => Promise<void>) => {
+  const perform = useCallback(async (work: (client: AccountLogoClient, signal: AbortSignal, current: () => boolean, account: VerifiedAccount) => Promise<void>, { editableSave = false, bounded = false }: { editableSave?: boolean; bounded?: boolean } = {}) => {
     if (!account || !client || !isCurrent(account) || operation.current) return;
     const capturedScope = { ownerId: account.userId, generation: account.generation, projectId, memory, injected };
     if (!committedScope.current || !sameScope(committedScope.current, capturedScope)) return;
-    const token = { controller: new AbortController(), scope: capturedScope }; operation.current = token;
+    const token = { controller: new AbortController(), scope: capturedScope, editableSave }; operation.current = token;
     const current = () => operation.current === token && committedScope.current !== null && sameScope(committedScope.current, capturedScope) && !token.controller.signal.aborted && isCurrent(account) && isAccountLogoClientCurrent(client, account, projectId);
-    setActivity({ scope: capturedScope, busy: true, error: null, failed: false });
-    try { await work(client, token.controller.signal, current, account); }
+    let timer: ReturnType<typeof setTimeout> | undefined, timedOut = false;
+    setActivity({ scope: capturedScope, busy: true, error: null, failed: false, editableSave });
+    try {
+      const result = work(client, token.controller.signal, current, account);
+      if (editableSave || bounded) await Promise.race([result, new Promise<never>((_, reject) => {
+        timer = setTimeout(() => { timedOut = true; reject(new AccountRequestError(408)); }, LOGO_SAVE_TIMEOUT_MS);
+      })]);
+      else await result;
+    }
     catch (error) {
       if (current()) {
         const value = memory.get(projectId);
@@ -140,10 +150,14 @@ export function useLogoWorkspace({ projectId: routeProjectId, memory, client: in
           : accountErrorMessage(error), failed: true });
       }
     } finally {
+      clearTimeout(timer);
       if (operation.current === token) {
         operation.current = null;
         if (!token.controller.signal.aborted && isCurrent(account)) setActivity(value => value && sameScope(value.scope, capturedScope) ? { ...value, busy: false } : value);
       }
+      // The original save may have committed. Keep its immutable pending intent
+      // while stopping transport and rejecting any late acknowledgement.
+      if (timedOut) token.controller.abort();
     }
   }, [account, client, injected, isCurrent, memory, projectId]);
 
@@ -176,10 +190,16 @@ export function useLogoWorkspace({ projectId: routeProjectId, memory, client: in
     return () => { clearTimeout(timer); };
   }, [account, client, injected, isCurrent, memory, perform, projectId, reload]);
 
-  const editable = () => !!(scope && committedScope.current && sameScope(committedScope.current, scope) && account && client && isCurrent(account) && isAccountLogoClientCurrent(client, account, projectId) && !operation.current && !completed && (projectId === null || memory.get(projectId)));
+  const editable = () => !!(scope && committedScope.current && sameScope(committedScope.current, scope) && account && client && isCurrent(account) && isAccountLogoClientCurrent(client, account, projectId) && (!operation.current || operation.current.editableSave) && !completed && (projectId === null || memory.get(projectId)));
   function edit(change: (value: LogoDraftRecord) => LogoDraftRecord) {
     if (!editable() || !scope) return;
-    try { memory.set(projectId, change(memory.get(projectId) ?? empty())); }
+    try {
+      const previous = memory.get(projectId) ?? empty();
+      memory.set(projectId, change(previous));
+      // A corrected local validation failure may save automatically. Uncertain
+      // requests and conflicts keep their original recovery state instead.
+      if (!operation.current && !previous.conflict && !unresolved(previous)) setActivity({ scope, busy: false, error: null, failed: false });
+    }
     catch (error) { setActivity({ scope, busy: false, error: accountErrorMessage(error), failed: false }); }
   }
   function setBriefDraft(brief: LogoBriefDraft): void { edit(value => ({ ...value, brief, dirty: true })); }
@@ -273,7 +293,7 @@ export function useLogoWorkspace({ projectId: routeProjectId, memory, client: in
         await applyMutation(result, source, signal, current);
         recovered = Boolean(value.pendingMutation) && current() && !memory.get(projectId)?.pendingMutation && !memory.get(projectId)?.dirty;
       }
-    });
+    }, { editableSave: true });
     // A receipt is the historical commit, not proof of today's workspace head.
     // Explicit recovery may rehydrate current saved work only without local edits.
     if (recovered) await reload(false);
@@ -289,7 +309,7 @@ export function useLogoWorkspace({ projectId: routeProjectId, memory, client: in
       if (!state || !current()) { state = null; return; }
       if (state.status === "succeeded" && state.receipt && "workspace" in state.receipt) await applyMutation(state.receipt, source, signal, current);
       // In particular, not_found NEVER dispatches a mutation from this action.
-    });
+    }, { bounded: true });
     return state;
   }
 
@@ -354,8 +374,27 @@ export function useLogoWorkspace({ projectId: routeProjectId, memory, client: in
   const workspace = visible ? completed?.workspace ?? record?.workspace ?? loaded?.baseline.workspace ?? null : null;
   const stagePayloads = !visible ? null : loaded && workspace?.heads.workspaceRevision === loaded.baseline.workspace.heads.workspaceRevision ? loaded.baseline.stagePayloads : {};
   const referenceSnapshot = loaded && workspace?.heads.workspaceRevision === loaded.baseline.workspace.heads.workspaceRevision ? loaded.baseline.referenceSnapshot : null;
-  return { status, workspace, stagePayloads, referenceSnapshot, draft: visible ? record : null, dirty: !!(visible && (record?.dirty || record?.vectorDraft || record?.directionDraft || proposal?.dirty)), pending: !!(visible && (busy || record && unresolved(record) || proposal?.pendingGeneration || proposal?.pendingApplication)), error,
-    canEdit: !!(visible && client && !busy && !completed && (projectId === null || record)), client,
+  const autoSaveReady = Boolean(projectId && visible && client && !busy && !error && record?.dirty && !record.conflict && !unresolved(record)
+    && !record.vectorDraft && !record.directionDraft && !proposal?.dirty && !proposal?.pendingGeneration && !proposal?.pendingApplication
+    && record.workspace?.stages.brief_references && record.workspace.capabilities.save.status === "available"
+    && loaded && same(record.base, loaded.baseline.workspace.heads) && logoBriefDraftSchema.safeParse(record.brief).success);
+  const saveAutomatic = useEffectEvent(async () => {
+    const value = memory.get(projectId), baseline = loaded?.baseline;
+    if (!autoSaveReady || !value || value !== record || !baseline) return;
+    // Each acknowledged receipt advances the baseline. A newer brief or
+    // reference edit then gets its own serialized intent on that exact head.
+    if (!same(value.brief, baseline.brief)) await saveBrief(value.brief);
+    else if (!sameSelections(value.references, baseline.references)) await saveReferences(value.references);
+    else memory.set(projectId, { ...value, dirty: false });
+  });
+  useEffect(() => {
+    if (!autoSaveReady) return;
+    const timer = setTimeout(() => { void saveAutomatic(); }, LOGO_AUTOSAVE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [autoSaveReady, record, loaded]);
+
+  return { status, workspace, stagePayloads, referenceSnapshot, draft: visible ? record : null, dirty: !!(visible && (record?.dirty || record?.vectorDraft || record?.directionDraft || proposal?.dirty)), pending: !!(visible && (busy || record && unresolved(record) || proposal?.pendingGeneration || proposal?.pendingApplication)), saving, autoSaveReady, error,
+    canEdit: !!(visible && client && (!busy || saving) && !completed && (projectId === null || record)), client,
     pendingIntent: visible ? record?.pendingIntent ?? null : null, pendingCreation: visible ? completed?.pendingCreation ?? record?.pendingCreation ?? null : null,
     retainIntent, clearIntent, setBriefDraft, setReferenceDraft, reload, saveBrief, saveReferences, checkPendingSave, startProject, checkProjectCreation, retryProjectCreation, recoverProjectCreation };
 }

@@ -1,11 +1,12 @@
-import fontProvenance from "../../../../public/fonts/brand/provenance.json";
-import { brandBoardFont, type BrandBoardFont } from "@/domain/brand-board-fonts";
+import { brandBoardFont, brandBoardFontByteLength, brandTextReadiness, fontSupportsBrandText } from "@/domain/brand-board-fonts";
+export { fontSupportsBrandText } from "@/domain/brand-board-fonts";
 import type { AssetVersionReference } from "@/domain/asset-library";
 import { BrandAssetError } from "../model/snapshot";
 import type { BrandArtwork, BrandFontNames } from "../model/artwork";
 
 export const BRAND_ASSET_TIMEOUT_MS = 60_000;
 export const MAX_BRAND_ASSET_BYTES = 52_428_800;
+export const MAX_BRAND_FONT_BYTES = 20_971_520;
 export function checkBrandAssetSignal(signal: AbortSignal) { if (signal.aborted) throw signal.reason ?? new DOMException("Cancelled", "AbortError"); }
 export function observed<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -71,13 +72,6 @@ export async function readBrandImage(reference: AssetVersionReference, mimeType:
     return { image, width: image.naturalWidth, height: image.naturalHeight, bytes, dataUrl: dataUrl(bytes, mimeType), release() { signal.removeEventListener("abort", release); release(); } };
   } catch (error) { signal.removeEventListener("abort", release); release(); throw error; }
 }
-export function fontSupportsBrandText(font: BrandBoardFont, text: string): boolean {
-  const ranges = fontProvenance.files.find(row => row.id === font.id)?.characterRanges;
-  return !!ranges && [...text].every(character => {
-    const code = character.codePointAt(0)!;
-    return code >= 32 && ranges.some(([start, end]) => code >= start! && code <= end!);
-  });
-}
 export async function loadBrandFonts(artworks: readonly BrandArtwork[], signal: AbortSignal): Promise<{ names: BrandFontNames; release(): void }> {
   if (typeof FontFace === "undefined" || !document.fonts?.add) throw new BrandAssetError("font");
   const used = new Map<string, string>();
@@ -86,10 +80,13 @@ export async function loadBrandFonts(artworks: readonly BrandArtwork[], signal: 
   try {
     for (const [family, text] of used) {
       const font = brandBoardFont(family);
-      if (!font || !fontSupportsBrandText(font, text)) throw new BrandAssetError("font");
+      if (!font) throw new BrandAssetError("font");
+      if (!fontSupportsBrandText(font, text)) throw new BrandAssetError(brandTextReadiness(text).supported ? "font_coverage" : "unsupported_text");
+      const byteLength = brandBoardFontByteLength(font);
+      if (byteLength <= 0 || byteLength > MAX_BRAND_FONT_BYTES) throw new BrandAssetError("font");
       const response = await observed(fetch(font.file, { signal, credentials: "omit", mode: "same-origin", redirect: "error", cache: "force-cache" }), signal);
-      const bytes = await bytesFrom(response, 2_097_152, signal);
-      if (await observed(sha256(bytes), signal) !== font.sha256) throw new BrandAssetError("font");
+      const bytes = await bytesFrom(response, byteLength, signal);
+      if (bytes.byteLength !== byteLength || await observed(sha256(bytes), signal) !== font.sha256) throw new BrandAssetError("font");
       const name = `EmbelBrand_${font.id.replace(/-/g, "_")}_${font.sha256.slice(0, 10)}`;
       const face = new FontFace(name, bytes.buffer, { style: "normal", weight: `${font.minWeight} ${font.maxWeight}`, display: "block" });
       await observed(face.load(), signal); checkBrandAssetSignal(signal);

@@ -48,10 +48,28 @@ const MAX_RECORD_BYTES = 524_288, MAX_TOTAL_BYTES = 8_388_608, MAX_RECORDS = 20;
 export function createLogoDraftMemory(): LogoDraftMemory {
   let owner: string | null = null;
   let verified: z.infer<typeof bindingSchema> | null = null;
-  const proposals = new Map<string, LogoVectorProposalSession>();
-  const records = new Map<string | null, LogoDraftRecord>(), listeners = new Set<() => void>();
+  let proposals = new Map<string, LogoVectorProposalSession>();
+  let records = new Map<string | null, LogoDraftRecord>();
+  const listeners = new Set<() => void>();
   const notify = () => { for (const listener of listeners) listener(); };
   const key = (projectId: string | null) => projectId === null ? null : logoUuidSchema.parse(projectId);
+  function commit(nextRecords: Map<string | null, LogoDraftRecord>, nextProposals: Map<string, LogoVectorProposalSession>, protectedKey: string | null) {
+    let total = [...nextRecords.values()].reduce((size, row) => size + bytes(row), 0)
+      + [...nextProposals.values()].reduce((size, row) => size + bytes(row), 0);
+    // Saved baselines can be read again. Keep every edit and unresolved request,
+    // including proposal work whose corresponding workspace is otherwise clean.
+    for (const [id, row] of nextRecords) {
+      if (nextRecords.size <= MAX_RECORDS && total <= MAX_TOTAL_BYTES) break;
+      const proposal = id === null ? null : nextProposals.get(id) ?? null;
+      if (id === protectedKey || unsaved(row) || proposalSessionUnsaved(proposal)) continue;
+      total -= bytes(row) + (proposal ? bytes(proposal) : 0);
+      nextRecords.delete(id);
+      if (id !== null) nextProposals.delete(id);
+    }
+    // Plan eviction on copies so a rejected write cannot discard other work.
+    if (nextRecords.size > MAX_RECORDS || total > MAX_TOTAL_BYTES) throw new AccountRequestError(413);
+    records = nextRecords; proposals = nextProposals; notify();
+  }
   return {
     bind(input) {
       const next = input === null ? null : bindingSchema.parse(input);
@@ -73,10 +91,9 @@ export function createLogoDraftMemory(): LogoDraftMemory {
       const value = logoVectorProposalSessionSchema.parse(input), quote = value.pendingGeneration?.quote;
       if (quote && (quote.ownerId !== verified.ownerId || quote.projectId !== slot)) throw new AccountRequestError(422);
       for (const field of ["pendingGeneration", "pendingApplication"] as const) if (previous?.[field] && value[field] && !same(previous[field], value[field])) throw new AccountRequestError(409);
-      const size = bytes(value), others = [...proposals.entries()].reduce((n, [id, row]) => n + (id === slot ? 0 : bytes(row)), 0);
-      if (size > MAX_RECORD_BYTES || [...records.values()].reduce((n, row) => n + bytes(row), size + others) > MAX_TOTAL_BYTES) throw new AccountRequestError(413);
+      if (bytes(value) > MAX_RECORD_BYTES) throw new AccountRequestError(413);
       if (previous && same(previous, value)) return;
-      proposals.set(slot, freezeLogoRecord(value)); notify();
+      commit(new Map(records), new Map(proposals).set(slot, freezeLogoRecord(value)), slot);
     },
     set(projectId, input) {
       if (!verified) throw new AccountRequestError(401);
@@ -100,19 +117,14 @@ export function createLogoDraftMemory(): LogoDraftMemory {
         const receipt = creation.state;
         if (receipt.requestKey !== creation.input.requestKey || receipt.workspace.ownerId !== verified.ownerId) throw new AccountRequestError(422);
         const destination = records.get(receipt.projectId);
-        if (destination && unsaved(destination)) throw new AccountRequestError(409);
+        if (destination && (unsaved(destination) || proposalSessionUnsaved(proposals.get(receipt.projectId) ?? null))) throw new AccountRequestError(409);
         const saved: LogoDraftRecord = freezeLogoRecord({ ...value, workspace: receipt.workspace, base: receipt.workspace.heads,
           dirty: !same(value.brief, creation.input.brief) || value.references.length > 0, pendingCreation: null, conflict: false });
-        // Validate capacity before either change; notification observes the whole transfer.
-        const others = [...records.entries()].filter(([id]) => id !== null && id !== receipt.projectId);
-        if (others.length >= MAX_RECORDS || others.reduce((n, [, row]) => n + bytes(row), bytes(saved) + [...proposals.values()].reduce((n, row) => n + bytes(row), 0)) > MAX_TOTAL_BYTES) throw new AccountRequestError(413);
-        records.delete(null); records.set(receipt.projectId, saved); notify(); return;
+        const next = new Map(records); next.delete(null); next.set(receipt.projectId, saved);
+        commit(next, new Map(proposals), receipt.projectId); return;
       }
-      if (!previous && records.size >= MAX_RECORDS) throw new AccountRequestError(413);
-      const total = [...records.entries()].reduce((n, [id, row]) => n + (id === slot ? 0 : bytes(row)), bytes(value)) + [...proposals.values()].reduce((n, row) => n + bytes(row), 0);
-      if (total > MAX_TOTAL_BYTES) throw new AccountRequestError(413);
       if (previous && same(previous, value)) return;
-      records.set(slot, freezeLogoRecord(value)); notify();
+      commit(new Map(records).set(slot, freezeLogoRecord(value)), new Map(proposals), slot);
     },
   };
 }

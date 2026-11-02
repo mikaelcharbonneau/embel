@@ -16,6 +16,7 @@ import { identityBatchOverviewSchema, identityBatchRequestLookupSchema, identity
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 
 export const IDENTITY_JSON_MAX_BYTES = 16 * 1024 * 1024;
+export const IDENTITY_REQUEST_TIMEOUT_MS = 30_000;
 const counter = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const observationSchema = z.strictObject({
   ownerId: z.uuid(), projectId: z.uuid(), projectRevision: counter.min(1), referenceRevision: counter, preferencesRevision: counter,
@@ -46,6 +47,8 @@ async function readBytes(response: Response, maximum: number, signal: AbortSigna
   if (advertised !== null && (!/^\d+$/.test(advertised) || Number(advertised) > maximum)) throw new AccountRequestError(502);
   const reader = response.body?.getReader(); if (!reader) throw new AccountRequestError(502);
   const chunks: Uint8Array[] = []; let total = 0;
+  const abort = () => { void reader.cancel().catch(() => undefined); };
+  signal.addEventListener("abort", abort, { once: true });
   try {
     for (;;) {
       if (signal.aborted) throw new DOMException("Aborted", "AbortError");
@@ -53,7 +56,7 @@ async function readBytes(response: Response, maximum: number, signal: AbortSigna
       total += value.byteLength; if (total > maximum) throw new AccountRequestError(502);
       chunks.push(value);
     }
-  } finally { void reader.cancel().catch(() => undefined); reader.releaseLock(); }
+  } finally { signal.removeEventListener("abort", abort); void reader.cancel().catch(() => undefined); reader.releaseLock(); }
   if (!total) throw new AccountRequestError(502);
   const bytes = new Uint8Array(total); let offset = 0;
   for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
@@ -86,27 +89,47 @@ export function createAccountIdentityClient(account: VerifiedAccount, inputProje
   async function request<T>(path: string, schema: z.ZodType<T>, verify: (value: T) => boolean, options: { method?: "GET" | "PATCH" | "POST"; body?: unknown; signal?: AbortSignal } = {}): Promise<T | null> {
     if (!current()) return null;
     const pending = controller(options.signal), signal = pending.value.signal;
+    let timedOut = false;
+    let removeAbort = () => {};
+    const interrupted = new Promise<never>((_resolve, reject) => {
+      const abort = () => reject(signal.reason ?? new DOMException("Aborted", "AbortError"));
+      signal.addEventListener("abort", abort, { once: true });
+      removeAbort = () => signal.removeEventListener("abort", abort);
+      if (signal.aborted) abort();
+    });
+    const timeout = setTimeout(() => {
+      // Bound the acknowledgement, not durable work. A committed mutation may
+      // have lost its reply; callers retain its uncertainty and never auto-retry.
+      timedOut = true; pending.value.abort(new AccountRequestError(408));
+    }, IDENTITY_REQUEST_TIMEOUT_MS);
     try {
-      const multipart = options.body instanceof FormData;
-      const body = multipart ? options.body as FormData : options.body === undefined ? undefined : JSON.stringify(options.body);
-      if (typeof body === "string" && new TextEncoder().encode(body).byteLength > IDENTITY_MUTATION_MAX_BYTES) throw new AccountRequestError(413);
-      const response = await fetch(path, { method: options.method ?? "GET", credentials: "same-origin", mode: "same-origin", cache: "no-store", redirect: "error", signal,
-        headers: { Accept: "application/json", ...(body === undefined || multipart ? {} : { "Content-Type": "application/json" }) }, ...(body === undefined ? {} : { body }) });
-      if (!current() || signal.aborted) return null;
-      if (response.status === 401) { invalidate(); return null; }
-      if (!response.ok) throw new AccountRequestError(response.status);
-      if (mimeBase(response.headers.get("content-type") ?? "") !== "application/json") throw new AccountRequestError(502);
-      const bytes = await readBytes(response, IDENTITY_JSON_MAX_BYTES, signal);
-      if (!current() || signal.aborted) return null;
-      let raw: unknown;
-      try { raw = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)); } catch { throw new AccountRequestError(502); }
-      const parsed = schema.safeParse(raw); if (!parsed.success) throw new AccountRequestError(502);
-      const verified = verify(parsed.data);
-      if (!current() || signal.aborted) return null;
-      if (!verified) throw new AccountRequestError(502);
-      return parsed.data;
-    } catch (error) { if (!current() || signal.aborted) return null; throw error; }
-    finally { pending.release(); }
+      return await Promise.race([interrupted, (async () => {
+        if (signal.aborted) return null;
+        const multipart = options.body instanceof FormData;
+        const body = multipart ? options.body as FormData : options.body === undefined ? undefined : JSON.stringify(options.body);
+        if (typeof body === "string" && new TextEncoder().encode(body).byteLength > IDENTITY_MUTATION_MAX_BYTES) throw new AccountRequestError(413);
+        const response = await fetch(path, { method: options.method ?? "GET", credentials: "same-origin", mode: "same-origin", cache: "no-store", redirect: "error", signal,
+          headers: { Accept: "application/json", ...(body === undefined || multipart ? {} : { "Content-Type": "application/json" }) }, ...(body === undefined ? {} : { body }) });
+        if (!current() || signal.aborted) return null;
+        if (response.status === 401) { invalidate(); return null; }
+        if (!response.ok) throw new AccountRequestError(response.status);
+        if (mimeBase(response.headers.get("content-type") ?? "") !== "application/json") throw new AccountRequestError(502);
+        const bytes = await readBytes(response, IDENTITY_JSON_MAX_BYTES, signal);
+        if (!current() || signal.aborted) return null;
+        let raw: unknown;
+        try { raw = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)); } catch { throw new AccountRequestError(502); }
+        const parsed = schema.safeParse(raw); if (!parsed.success) throw new AccountRequestError(502);
+        const verified = verify(parsed.data);
+        if (!current() || signal.aborted) return null;
+        if (!verified) throw new AccountRequestError(502);
+        return parsed.data;
+      })()]);
+    } catch (error) {
+      if (!current()) return null;
+      if (timedOut) throw new AccountRequestError(408);
+      if (signal.aborted) return null;
+      throw error;
+    } finally { clearTimeout(timeout); removeAbort(); pending.release(); }
   }
   function query(input: Partial<ListIdentitySystems>) {
     const parsed = listIdentitySystemsSchema.parse(input);

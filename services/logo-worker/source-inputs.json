@@ -1,13 +1,17 @@
 {
   "index": [
+    "public/fonts/brand/provenance.json",
     "services/logo-worker/index.ts",
     "services/logo-worker/raster-qualification.ts",
     "services/logo-worker/runtime.ts",
     "src/domain/asset-library.ts",
     "src/domain/assets.ts",
+    "src/domain/brand-board-design.ts",
+    "src/domain/brand-board-fonts.ts",
     "src/domain/conversation.ts",
     "src/domain/guided-interview.ts",
     "src/domain/identity-jobs.ts",
+    "src/domain/identity-logo-source.ts",
     "src/domain/identity-references.ts",
     "src/domain/inspiration-catalog.json",
     "src/domain/inspiration.ts",

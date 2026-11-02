@@ -83,7 +83,9 @@ export function createSharedPoolController(config:SharedPoolConfiguration,secret
    const observePage=async()=>{
     if(state.busy)return;state.busy=true;
     try{
-    const pending=await state.pool.query("SELECT public.read_shared_worker_execution_page($1::jsonb,$2::uuid,$3) page",[JSON.stringify(state.lease),cursor,25]);
+    // Naming's recovery budget belongs to one execution. Advancing a 25-row
+    // page after three attempts would permanently skip its remaining rows.
+    const pending=await state.pool.query("SELECT public.read_shared_worker_execution_page($1::jsonb,$2::uuid,$3) page",[JSON.stringify(state.lease),cursor,spec.lane==="naming"?1:25]);
     if(pending.rows.length!==1)throw unavailable();const page=sharedPendingPageSchema.parse(pending.rows[0]?.page);
     if(page.items.some(value=>value.execution.slotId!==spec.slotId||value.execution.lane!==spec.lane)||page.nextCursor!==null
      &&(!page.items.length||page.nextCursor!==page.items.at(-1)!.execution.executionId||cursor!==null&&page.nextCursor<=cursor))throw unavailable();

@@ -30,8 +30,9 @@ or changes to historical literal-key configuration. Resolved referenced keys
 remain process-only and are omitted from JSON serialization.
 
 The release must identify clean committed source. Running packages additionally
-require main. The current uncommitted implementation cannot be packaged as a
-clean production release. After review, the local packaging command is:
+require main. Development builds from an uncommitted checkout are diagnostic
+artifacts and cannot be treated as clean production releases. After review, the
+local packaging command is:
 
     node scripts/package-shared-worker.mjs --project <reviewed-existing-worker-project-id> --mode stopped
 

@@ -1,4 +1,18 @@
-# Database and vector-proposal migration handoff
+# Database migration records
+
+The handoff below is the **October 13, 2026 historical checkpoint**. Its
+"unapplied" labels describe that checkpoint, not the current database. The shared
+runtime, including advanced Logo operations, has since shipped; see
+[shared worker authority](shared-worker-pool.md) and
+[the visual identity release record](visual-identity-release-20261030.md).
+
+For current work, compare the target's actual migration history, installed
+function bodies and the compiled `worker/shared-pool/authority-manifest.json`.
+The production composer prepares only missing reviewed forward packets.
+Preserve historical files and their exact predecessors; do not apply both a
+candidate and its promoted migration, or treat every candidate as pending.
+
+## Historical database and vector-proposal handoff
 
 The authorized 2026-10-13 database rollout applied eight changes for the integrated application release. See the [exact source-to-hosted migration mapping and verification](database-rollout-20261013.md). The three promoted candidates now have byte-identical versioned migrations; do not apply both copies. The vector-proposal candidates below remain separate and unapplied.
 
@@ -21,3 +35,12 @@ All 28 function-body predecessor guards were independently checked against the o
 The optional proposal operation remains disabled without an independently qualified policy, explicit configuration and approved provider route. The text worker receives no vector/font storage capability. Ordinary web UI setup must not install worker grants, provision credentials, apply migrations or authorize paid inference.
 
 See the [approved logo/identity specification](superpowers/specs/2026-10-06-fluid-logo-visual-identity-approved.md), [bounded refinement plan](superpowers/plans/2026-10-08-vector-refinement.md) and [current verification limits](verification-status.md).
+
+## November 2 forward recovery packet
+
+`supabase/candidates/shared_naming_brainstorm_delivery_recovery.sql` follows the
+installed brainstorm and event-capacity packets. It publishes verified retained
+names without settling unknown provider costs. Use the coordinated worker drain,
+compatibility checks and rollback in [Naming recovery](naming-delivery-recovery.md)
+and [the rollout procedure](review-fixes-rollout-20261102.md). Historical migration
+files remain unchanged.

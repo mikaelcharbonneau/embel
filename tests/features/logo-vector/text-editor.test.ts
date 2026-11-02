@@ -15,7 +15,13 @@ describe("actual font-backed lettering through the account editor", () => {
   beforeEach(() => { vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true); vi.stubGlobal("crypto", webcrypto); URL.createObjectURL = vi.fn(() => "blob:synthetic-text-edit"); URL.revokeObjectURL = vi.fn(); host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
   afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); });
   const button = (name: string) => [...host.querySelectorAll("button")].find(item => item.textContent === name);
-  async function until(test: () => boolean) { for (let n = 0; n < 100 && !test(); n++) await act(async () => { dispatchLogoComparisonLoads(host); await new Promise(resolve => setTimeout(resolve, 10)); }); expect(test(), host.textContent ?? "DOM").toBe(true); }
+  async function until(test: () => boolean) {
+    // Font edits launch real HarfBuzz work; observe completion without requiring
+    // a cold native process to finish within one second on a shared CI CPU.
+    const deadline = performance.now() + 5_000;
+    while (!test() && performance.now() < deadline) await act(async () => { dispatchLogoComparisonLoads(host); await new Promise(resolve => setTimeout(resolve, 10)); });
+    expect(test(), host.textContent ?? "DOM").toBe(true);
+  }
   async function click(name: string) { await until(() => button(name)?.disabled === false); await act(async () => button(name)!.click()); }
   async function field(label: string, value: string) {
     const target = host.querySelector<HTMLSelectElement | HTMLInputElement>(`[aria-label="${label}"]`)!;
