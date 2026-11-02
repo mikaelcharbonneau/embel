@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { parseEnv } from "node:util";
 import { readOptional, repositoryRoot, settingsFor } from "./development/config.mjs";
+import { sharedWebEnvironment } from "./development/shared-web.mjs";
 
 const configured = await readOptional(path.join(repositoryRoot, ".embel-dev/web.env"));
 const settings = await settingsFor(repositoryRoot);
@@ -17,8 +18,11 @@ if (args.some(arg => /^(?:--port(?:=|$)|--hostname(?:=|$)|-p|-H)/.test(arg))) {
   const publicFields = ["EMBEL_DEVELOPMENT_ENABLED", "APP_ORIGIN", "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "FLUID_PAID_CALLS_APPROVED", "NEXT_TELEMETRY_DISABLED"];
   const values = configured ? parseEnv(configured) : {};
   const managed = Object.fromEntries(publicFields.filter(key => Object.hasOwn(values, key)).map(key => [key, values[key]]));
+  let shared;
+  try { shared = await sharedWebEnvironment(repositoryRoot, settings, values); }
+  catch { console.error("Local shared configuration is stale; run npm run dev:up."); process.exit(1); }
   const child = spawn(process.execPath, [path.join(repositoryRoot, "node_modules/next/dist/bin/next"), "dev", "--hostname", "127.0.0.1", "--port", String(settings.webPort), ...args], {
-    cwd: repositoryRoot, env: { ...process.env, ...managed, NODE_ENV: "development" }, stdio: "inherit",
+    cwd: repositoryRoot, env: { ...process.env, ...managed, ...shared, NODE_ENV: "development" }, stdio: "inherit",
   });
   for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => child.kill(signal));
   child.on("error", () => { console.error("Cannot start Next.js; run npm ci first."); process.exitCode = 1; });

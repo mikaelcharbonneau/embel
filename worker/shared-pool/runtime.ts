@@ -1,4 +1,5 @@
 import "server-only";
+import { createDevelopmentStrategyQueue } from "./development-queue";
 import { createSharedStrategyLaneEngine } from "../shared-lanes/strategy";
 import { createSharedNamingLaneEngine } from "../shared-lanes/naming";
 import { createSharedLogoLaneEngine } from "../shared-lanes/logo";
@@ -64,5 +65,7 @@ export function createSharedPoolRuntime(env:Readonly<Record<string,string|undefi
  dependencies:Omit<SharedPoolControllerDependencies,"createEngine">&{createEngine?:SharedEngineFactory}={}){
  const config=readSharedPoolConfiguration(env);if(!config)return null;
  assertSharedPoolAttestation(config,attestation);const secrets=readSharedPoolSecrets(config,env);
- return createSharedPoolController(config,secrets,{...dependencies,createEngine:dependencies.createEngine??createSharedPoolLaneEngine});
+ const queue=dependencies.queue??(config.target.kind==="development"?createDevelopmentStrategyQueue(config.queue,env.EMBEL_DEVELOPMENT_QUEUE_DIRECTORY??""):undefined);
+ const onQualified=dependencies.onQualified??(config.target.kind==="development"?((lane:string,slotId:string)=>{process.stdout.write(JSON.stringify({event:"development_shared_worker_lane_ready",lane,slotId})+"\n");}):undefined);
+ return createSharedPoolController(config,secrets,{...dependencies,...(queue?{queue}:{}),...(onQualified?{onQualified}:{}),createEngine:dependencies.createEngine??createSharedPoolLaneEngine});
 }

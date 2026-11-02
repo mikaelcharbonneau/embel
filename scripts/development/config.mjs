@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { lstat, mkdir, readFile, readdir, realpath, writeFile } from "node:fs/promises";
+import { chmod, lstat, mkdir, readFile, readdir, realpath, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -37,6 +37,7 @@ export async function privateDirectory(directory) {
   await mkdir(directory, { recursive: true, mode: 0o700 });
   const info = await lstat(directory);
   if (!info.isDirectory() || info.isSymbolicLink()) throw new DevelopmentError("Development state must be a real directory.");
+  await chmod(directory, 0o700);
 }
 
 export async function writeState(file, value) {
@@ -45,6 +46,7 @@ export async function writeState(file, value) {
     if (!info.isFile() || info.isSymbolicLink() || info.nlink !== 1) throw new DevelopmentError("Development state cannot replace a link or non-file.");
   } catch (error) { if (error.code !== "ENOENT") throw error; }
   await writeFile(file, value, { mode: 0o600 });
+  await chmod(file, 0o600);
 }
 
 export async function migrationSources(root) {
@@ -107,4 +109,13 @@ export function publicEnvironment(settings, status = null) {
     "NEXT_PUBLIC_SUPABASE_URL=" + (status ? status.API_URL : "") + "\n" +
     "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=" + (status ? status.PUBLISHABLE_KEY : "") + "\n" +
     "FLUID_PAID_CALLS_APPROVED=false\nNEXT_TELEMETRY_DISABLED=1\n";
+}
+
+export function localDockerEnvironment(endpoint, environment = process.env) {
+  const unix = /^unix:\/\/\/[^\r\n\0]+$/.test(endpoint);
+  const pipe = typeof endpoint === "string" && endpoint.startsWith("npipe:////./pipe/") && /^[A-Za-z0-9_.-]+$/.test(endpoint.slice("npipe:////./pipe/".length));
+  if (!unix && !pipe) throw new DevelopmentError("Select a local Docker Desktop/Engine context; remote Docker endpoints are not supported for local development.");
+  const result = { ...environment, DOCKER_HOST: endpoint };
+  for (const key of ["DOCKER_CONTEXT", "DOCKER_TLS", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH"]) delete result[key];
+  return result;
 }

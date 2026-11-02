@@ -18,12 +18,17 @@ handoff procedure. Separate branches are useful for simultaneous work; sequentia
 local/cloud work can use the same branch.
 
 `npm run dev:up` starts this checkout's local backend; `npm run dev` starts its
-interface. `npm run dev:down` stops the backend and retains its data. See the
+interface. With the dedicated development provider key configured,
+`npm run dev:branding` starts the shared generation worker. `npm run dev:down`
+stops the services and retains database, private files and queue state. See the
 [portable setup guide](development-environment.md) for prerequisites and ports.
 
 Only committed files travel through Git. `.embel-dev/`, `.env` files, downloaded
 dependencies, Docker volumes, browser sessions, ignored reports and chat history
-remain separate. Provider credentials use each environment's configuration.
+remain separate. Provider credentials use each environment's private configuration. If the
+central Vercel Development binding is configured, authenticate and run
+`npm run dev:secrets -- pull` in the receiving checkout to retrieve it. The
+[source-of-truth guide](source-of-truth.md) explains which data lives where.
 Database/Storage transfer is a separate export/import task, not part of Git pull.
 Switching a development environment does not itself deploy the website.
 

@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { ApiError } from "@/server/http/errors";
 import { getSupabaseConfiguration } from "@/server/config";
-import { qualifySharedSupabaseOrigin } from "@/server/runtime/shared-supabase-origin";
+import { qualifySharedSupabaseOrigin, sharedDevelopmentDatabasePort } from "@/server/runtime/shared-supabase-origin";
 export { qualifySharedSupabaseOrigin } from "@/server/runtime/shared-supabase-origin";
 
 type Environment = Readonly<Record<string, string | undefined>>;
@@ -20,7 +20,8 @@ export function readSharedAccountHttpConfiguration(env: Environment): SharedAcco
   try {
     const { url: origin, publishableKey } = getSupabaseConfiguration(env);
     qualifySharedSupabaseOrigin(origin, env);
-    const target = /^https:\/\/([a-z0-9]{20})\.supabase\.co$/u.exec(origin), local = origin === "http://127.0.0.1:54321";
+    const target = /^https:\/\/([a-z0-9]{20})\.supabase\.co$/u.exec(origin), local = target === null;
+    const port = local ? sharedDevelopmentDatabasePort(env) : 5432;
     const raw = env.EMBEL_SHARED_ACCOUNT_HTTP_CONFIG;
     if (!/^sb_publishable_[A-Za-z0-9_-]{1,500}$/u.test(publishableKey) || !raw || Buffer.byteLength(raw) > 32_768) throw unavailable();
     const config = schema.parse(JSON.parse(raw));
@@ -32,12 +33,12 @@ export function readSharedAccountHttpConfiguration(env: Environment): SharedAcco
         || /[\s\x00-\x1f\x7f]/u.test(value.databaseUrl)) throw unavailable();
       const url = new URL(value.databaseUrl), project = target?.[1], host = url.hostname;
       if (!["postgres:", "postgresql:"].includes(url.protocol) || url.pathname !== "/postgres" || url.hash || [...url.searchParams].length !== 1
-        || (local ? host !== "127.0.0.1" || url.port !== "54322" || url.searchParams.get("sslmode") !== "disable"
+        || (local ? host !== "127.0.0.1" || url.port !== String(port) || url.searchParams.get("sslmode") !== "disable"
           : url.port !== "5432" || (host !== `db.${project}.supabase.co` && !/^aws-[0-9]+-[a-z0-9-]+\.pooler\.supabase\.com$/u.test(host)) || url.searchParams.get("sslmode") !== "verify-full")) throw unavailable();
       const user = decodeURIComponent(url.username), password = decodeURIComponent(url.password);
       if (user !== (local || host.startsWith("db.") ? value.roleName : `${value.roleName}.${project}`) || !password || password.length > 4096 || /[\x00-\x1f\x7f]/u.test(password)) throw unavailable();
       roles.add(value.roleName); oids.add(value.roleOid);
-      const parsed = { roleName: value.roleName, roleOid: value.roleOid, host, port: local ? 54322 : 5432, tls: !local, user, password: "" };
+      const parsed = { roleName: value.roleName, roleOid: value.roleOid, host, port, tls: !local, user, password: "" };
       Object.defineProperty(parsed, "password", { value: password, enumerable: false });
       return Object.freeze(parsed);
     }

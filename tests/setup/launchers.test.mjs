@@ -16,7 +16,7 @@ async function checkout(t) {
   for (const directory of ["scripts/development", "worker/development", ".embel-dev", "node_modules/tsx", "node_modules/next/dist/bin"]) {
     await mkdir(path.join(root, directory), { recursive: true });
   }
-  for (const file of ["scripts/development-worker.mjs", "scripts/development-web.mjs", "scripts/development/config.mjs"]) {
+  for (const file of ["scripts/development-worker.mjs", "scripts/development-web.mjs", "scripts/development/config.mjs", "scripts/development/shared-web.mjs"]) {
     await copyFile(path.join(repository, file), path.join(root, file));
   }
   await writeFile(path.join(root, "package.json"), '{"type":"module"}\n');

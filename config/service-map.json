@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "source": {
+    "repository": "https://github.com/mikaelcharbonneau/embel",
+    "defaultBranch": "main"
+  },
+  "production": {
+    "applicationOrigin": "https://www.embel.xyz",
+    "supabase": {
+      "projectRef": "fricsfwqibyhemknqgyf"
+    },
+    "vercel": {
+      "teamId": "team_0Koie5796IDOraQkDFg6J0AF",
+      "webProjectId": "prj_WKrFUPy3wptZ3qI9l1hTuqPmzkDt",
+      "workerProjectId": "prj_vTOc6Kf8th7tXK2cOVwWTTaR20yx"
+    }
+  },
+  "development": {
+    "providerSecret": {
+      "service": "vercel",
+      "projectId": "prj_WKrFUPy3wptZ3qI9l1hTuqPmzkDt",
+      "teamId": "team_0Koie5796IDOraQkDFg6J0AF",
+      "target": "development",
+      "keys": ["EMBEL_DEVELOPMENT_PROVIDER_API_KEY"]
+    }
+  }
+}

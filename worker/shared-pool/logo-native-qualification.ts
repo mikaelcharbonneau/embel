@@ -128,6 +128,9 @@ function validScope(scope: Parameters<LogoProductionRuntimeQualification["assert
 /** One fixed-slot native proof, without customer credentials or owner caches.
  * Job admission/storage/lease authorization remains a separate required proof. */
 export function createPackagedLogoProductionRuntimeQualification(input: SharedNativeInput): SharedLogoNativeRuntimeQualification {
+  return createPackagedQualification(input, true);
+}
+function createPackagedQualification(input: SharedNativeInput, requireClean: boolean): SharedLogoNativeRuntimeQualification {
   const { workerId, capabilities } = nativeInput(input);
   let closed = false, pending: Promise<void> | null = null, validUntil = 0;
   let active: AbortController | null = null;
@@ -138,11 +141,11 @@ export function createPackagedLogoProductionRuntimeQualification(input: SharedNa
     const timer = setTimeout(abort, 20_000);
     const boundary = new Promise<never>((_, reject) => controller.signal.addEventListener("abort", () => reject(unavailable()), { once: true }));
     const work = (async () => {
-      const before = await inspect(controller.signal, true);
+      const before = await inspect(controller.signal, requireClean);
       if (performance.now() >= validUntil) {
         await qualifyVectorSentinel(controller.signal); await qualifyText(before.bodyFont, before.bodyFontLicense, controller.signal);
         await qualifyExportSentinel(before.bodyFont, before.bodyFontLicense, controller.signal);
-        if (!isDeepStrictEqual(before.manifest, (await inspect(controller.signal, true)).manifest)) throw unavailable();
+        if (!isDeepStrictEqual(before.manifest, (await inspect(controller.signal, requireClean)).manifest)) throw unavailable();
         validUntil = performance.now() + 300_000;
       }
       controller.signal.throwIfAborted(); if (closed) throw unavailable();
@@ -174,6 +177,9 @@ export function createPackagedLogoProductionRuntimeQualification(input: SharedNa
  * no owner registry, credentials, production fallback or unbounded cache. */
 export function createDevelopmentSharedLogoProductionRuntimeQualification(input: SharedNativeInput): SharedLogoNativeRuntimeQualification {
   if (!readDevelopmentConfiguration()) throw unavailable();
+  // Portable development executes the exact Linux package, so qualify its
+  // pinned bytes and native sentinels just as hosted execution does.
+  if (fileURLToPath(import.meta.url) === resolve(process.cwd(), "dist/index.js")) return createPackagedQualification(input, false);
   const { workerId, capabilities } = nativeInput(input);
   let closed = false, pending: Promise<void> | null = null, active: LogoProductionRuntimeQualification | null = null;
   let activeController: AbortController | null = null;

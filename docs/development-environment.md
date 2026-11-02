@@ -29,8 +29,9 @@ npm run dev
 ```
 
 `dev:up` includes setup. It starts Auth, PostgreSQL 17, PostgREST, private
-Storage, the API gateway and Mailpit, and applies the repository's baseline
-migrations. Email confirmation is enabled; local confirmation messages appear
+Storage, the API gateway and Mailpit, applies the repository's baseline
+migrations, and installs the shared application schema and restricted local
+principals. Email confirmation is enabled; local confirmation messages appear
 at `http://127.0.0.1:54324`. The app's database API is on port 54321 and PostgreSQL
 on 54322. Services bind to loopback on the selected local Docker daemon.
 Remote Docker contexts are rejected because the application runs on this machine.
@@ -40,11 +41,17 @@ npm run dev:doctor
 npm run dev:down
 ```
 
-The doctor checks the actual core services, HTTP access and installed migration
-versions, and reports worker files separately. It does not change setup files.
-Stopping retains database and Storage volumes. Re-running `dev:up` starts the
-same checkout's stack and applies any new baseline migrations. It does not reset
-the database or apply the production candidates directory.
+The doctor checks actual core services, HTTP access, installed migration
+versions and shared worker status. It does not change setup files.
+Stopping retains database, Storage and shared queue volumes. Re-running
+`dev:up` starts the same checkout's stack and applies any new baseline migrations. The shared
+installer composes 25 pinned sources: five reviewed Logo predecessors, ten
+shared production packets, nine corrections and one development target adapter.
+The first installation is atomic; repeated installation verifies the source
+manifest, target and installed SQL authority. It does not reset the database or
+blanket-apply the production candidates directory. Changed installed shared
+authority is rejected instead of silently replacing it; use a separate checkout
+for an incompatible schema history.
 
 ## What travels with Git
 
@@ -52,7 +59,7 @@ the database or apply the production candidates directory.
 | --- | --- |
 | Application, `.nvmrc`, dependency lockfile and pinned Supabase CLI 2.122.0 | Installed dependencies and Docker images |
 | `config/development/supabase.toml`, setup code and baseline migrations | `.embel-dev/` settings, public web configuration, service versions and staged migration copies |
-| Worker environment template and service documentation | Worker passwords, provider credentials, sessions, database and Storage volumes |
+| Shared worker packaging, policy composer, service map and documentation | Worker passwords, provider credentials, sessions, database, queue and Storage volumes |
 | Browser executable/channel options | Browser installation and temporary test output |
 
 Setup derives paths from the checked-out scripts. A checkout-specific project
@@ -71,20 +78,21 @@ operating systems, including checkouts that otherwise use Windows line endings.
 
 ## Ports and environment settings
 
-To run alongside another checkout, stop this checkout's stack and select unused
-ports. All ports must be distinct and above 1023:
+To run alongside another checkout, select unused ports before the first
+`dev:up`. All ports must be distinct and above 1023:
 
 ```sh
-npm run dev:down
 npm run dev:setup -- --web-port 3155 --api-port 55421 --db-port 55422 --shadow-port 55420 --mail-port 55424
 npm run dev:up
 npm run dev
 ```
 
-On a fresh checkout, omit `dev:down`. Settings are saved in
-`.embel-dev/settings.json`. Changing ports invalidates the old public web
-configuration until `dev:up` refreshes it. The web launcher uses the configured
-port and matching application origin together.
+Settings are saved in `.embel-dev/settings.json`. Once the shared schema and
+principals are installed, their origins and ports are pinned to that checkout's
+installation. Use a fresh checkout for different ports; stopping services alone
+does not migrate those authority bindings. Changing settings invalidates the
+old public web configuration until `dev:up` refreshes it. The web launcher uses
+the configured port and matching application origin together.
 
 The managed public values in `.embel-dev/web.env` take precedence over inherited
 public connection settings, preventing a cloud shell's application origin from
@@ -96,55 +104,100 @@ configuration conflict.
 
 Existing manual development configuration can still use `.env.development.local`
 without running the managed setup. Once `.embel-dev/web.env` exists, it owns the
-public target for `npm run dev`. Production builds and deployments continue to
-use their own configuration.
+public target for `npm run dev`. The generated `.embel-dev/shared-web.env`
+separately supplies restricted server-side HTTP principals for the shared application. Production builds and
+deployments continue to use their own configuration.
 
-## Worker and feature configuration
+## Complete branding development
 
-Core service readiness and worker configuration are separate:
+The shared development installer uses the same guarded SQL packets and worker
+engines as the hosted application. It registers restricted Strategy, Naming and
+Logo worker identities, separate Identity/Home/Logo web principals, and an actual
+local Auth account for private worker Storage. These credentials are generated
+for this checkout and saved under ignored `.embel-dev/`. They do not come from
+production.
 
-| Feature | Additional setup |
-| --- | --- |
-| Sign-up, confirmation, sign-in and ordinary projects | Available through the local core stack |
-| Home attachments | Owner-bound `embel_dev_attachments_*` login, principal binding and helper grants |
-| Identity selections/refinements | Trusted transaction helpers and owner-bound `embel_dev_identity_*` login; see [Identity transactions](development-identity-transactions.md) |
-| Strategy and Naming | Restricted text-worker login, actual owner/deployment binding, capabilities and provider settings |
-| Local Logo concepts, refinements, vectorization and exports | Restricted Logo login, operation policies and a separate Auth/Storage session; see [Logo Storage](development-logo-storage.md) |
-| Current shared-worker visual directions and complete branding generation | Not implemented by the older local worker launcher; the core bootstrap does not claim feature parity with the hosted shared worker |
-
-The previous cloud installer also supplied only the core stack. Copying its
-scripts would not enable the remaining capabilities. This portable setup makes
-those boundaries visible and provides one place for later provisioning work.
-
-Copy `config/development/worker.env.example` to `.embel-dev/strategy.env`,
-`.embel-dev/naming.env` or `.embel-dev/logo.env`, then supply that lane's actual
-local bindings. Secrets stay in ignored files or the machine's environment.
-The preflight command has no operating-system-specific shell syntax:
+After starting the local services, configure the dedicated application provider
+key securely, then run:
 
 ```sh
-npm run dev:worker -- --lane strategy
-npm run dev:worker -- --lane naming
-npm run dev:worker -- --lane logo
+npm run dev:branding
+npm run dev
 ```
 
-The launcher reads optional `.env.development.local`, then the lane file, then
-inherited explicit worker settings. Managed public target values come from
-`.embel-dev/web.env`. It sets `NODE_ENV=development` in the child process.
-Preflight checks bindings and does not dispatch generation. `--run` selects
-execution when the runtime's required bindings and settings are present.
+`npm run dev:branding -- --build-only` verifies the package and native tools
+without a provider key or paid request.
 
-Text lanes use `embel_development_text_worker`; Logo uses
-`embel_development_logo_worker`. Each binds to a real owner and a deployment ID
-beginning `embel-dev-`. The proof helper is
-`supabase/development/worker-preflight.sql`. Provider execution reads the dedicated
-`EMBEL_DEVELOPMENT_PROVIDER_API_KEY`, model and verified-model settings plus the
-existing dispatch flags. It does not borrow Codex's `OPENAI_API_KEY`.
+`dev:branding` packages the shared worker for Linux/amd64 with Node 22.22.2,
+checks its real artifact and native dependencies, verifies configured model
+access, installs matching operation policies, and starts the three worker lanes
+in Docker. Strategy, Naming, Logo concepts/refinements, the three visual identity
+directions, identity generation and exports use the shared engine. The web
+launcher loads the generated private HTTP principal configuration on the server.
+The Docker requirement also applies on macOS and Windows; Docker supplies the
+worker's pinned Linux runtime instead of depending on host-native binaries.
+Apple Silicon requires Docker's amd64 emulation. Worker proxy settings and
+`NODE_EXTRA_CA_CERTS` are passed through explicitly when configured.
 
-The existing local Logo issuer SQL uses API port 54321. Other ports are supported
-for the core stack; that legacy issuer needs a corresponding reviewed change
-when configuring Logo on a different API port. Put worker passwords and provider
-credentials in lane files or worker-only environments. The managed web file
-contains public values only; the launcher also inherits the invoking shell.
+The development Strategy queue persists messages and acknowledgements on a
+checkout-specific Docker volume. It replaces the hosted Vercel Queue transport
+while retaining the same Strategy engine and database outbox. Database jobs,
+Storage files and queue state survive ordinary shutdown/restart.
+
+Provider keys are read only from `EMBEL_DEVELOPMENT_PROVIDER_API_KEY` in the
+worker's calling environment or ignored `.embel-dev/provider.env`. The launcher
+does not borrow Codex's `OPENAI_API_KEY`. Model-access checks establish access to
+model IDs; they do not prove successful paid image/text generation. Generation
+uses the configured application provider account and its normal billing.
+
+The optional central development-secret source is the existing Vercel web
+project's Development environment. Once its dedicated key is configured and
+`VERCEL_TOKEN` is supplied securely to the shell:
+
+```sh
+npm run dev:secrets -- pull
+```
+
+This saves the development key into `.embel-dev/provider.env`. To publish an
+already configured dedicated development key to that same secret store:
+
+```sh
+npm run dev:secrets -- push
+```
+
+Scope VERCEL_TOKEN to the secret-sync command or remove it from the shell afterward.
+The local runtime deliberately rejects inherited VERCEL-prefixed deployment markers.
+
+These commands synchronize only the dedicated development provider binding.
+They do not synchronize local database passwords, select a production database
+or commit credentials. A fresh clone does not receive Vercel access tokens or
+API keys. See [source of truth and service connections](source-of-truth.md).
+
+`npm run dev:worker -- --lane strategy`, `--lane naming` and `--lane logo` remain
+available for historical per-lane development contracts. Their manual bindings
+and `config/development/worker.env.example` belong to that older launcher;
+`dev:branding` is the shared application flow.
+
+## Verification limits
+
+Linux/Codex Cloud verification used actual local Auth, PostgreSQL, Storage and
+email confirmation. Two new accounts completed sign-up, confirmation, sign-in,
+project creation/reload, cross-account denial and restart persistence with shared
+HTTP routing enabled. The 25-source installation and all 292 release-authority
+functions were verified; repeated provisioning retained the same principals.
+All three actual restricted web logins passed their TypeScript SQL qualification.
+The packaged Linux worker passed native rendering/vector/export probes.
+
+Type checking, lint, production build and focused setup/HTTP/worker tests passed.
+GitHub CI now includes the actual local stack and credential-free native package
+checks; its first hosted run is separate from these local results.
+
+The OpenAI Platform connector rejected creation of the dedicated development key
+on November 2, 2026. No key was saved and no inference request was made. Full
+worker activation, a completed local AI branding journey, and central Vercel
+secret synchronization therefore remain unverified. Model-catalog access or
+preflight success would not by itself prove a completed branding journey.
+macOS, native Windows and WSL2 have not yet been exercised with this setup.
 
 ## Codex Cloud and browsers
 

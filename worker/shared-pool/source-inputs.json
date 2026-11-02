@@ -189,6 +189,7 @@
   "worker/shared-pool/contracts.ts",
   "worker/shared-pool/controller.ts",
   "worker/shared-pool/database.ts",
+  "worker/shared-pool/development-queue.ts",
   "worker/shared-pool/entry.ts",
   "worker/shared-pool/lifecycle.ts",
   "worker/shared-pool/logo-native-qualification.ts",

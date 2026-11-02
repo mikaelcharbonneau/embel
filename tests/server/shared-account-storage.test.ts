@@ -39,8 +39,8 @@ describe("shared Home Storage remains customer JWT and exact selected target", (
     await expect(transport(`${staging}/storage/v1/object/fluid-assets/${path}`, { method: "GET" })).rejects.toMatchObject({ code: "integration_unavailable" });
     expect(fetch).not.toHaveBeenCalled();
   });
-  it("local target requires the exact development gate and cannot become a hosted HTTP override", async () => {
-    const local = "http://127.0.0.1:54321"; configure(local); vi.stubEnv("EMBEL_DEVELOPMENT_ENABLED", "true"); vi.stubEnv("APP_ORIGIN", "http://127.0.0.1:3105");
+  it.each(["http://127.0.0.1:54321", "http://127.0.0.1:55421"])("local target %s requires the exact development gate and cannot become a hosted HTTP override", async local => {
+    configure(local); vi.stubEnv("EMBEL_DEVELOPMENT_ENABLED", "true"); vi.stubEnv("APP_ORIGIN", "http://127.0.0.1:3155");
     const fetch = vi.fn<typeof globalThis.fetch>(async () => new Response("brief", { headers: { "content-type": "text/plain" } }));
     const transport = await createAccountHomeStorageTransport(auth(), { fetch, publishableKey: key, sharedSupabaseOrigin: local });
     const storage = createSupabasePrivateAssetStorage({ transport, scope: { kind: "home", ownerId: owner }, sharedSupabaseOrigin: local });

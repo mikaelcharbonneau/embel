@@ -14,9 +14,11 @@ npm run dev:setup
 
 The startup command is `npm run dev`. To use the local Auth/database/Storage
 stack, make Docker available and run `npm run dev:up` before starting the web
-server. The core stack has no provider-key requirement. Application AI workers
-use separately configured lane files or environment bindings described in the
-development guide.
+server. The local service and shared schema installation has no provider-key
+requirement. Configure the dedicated development provider binding securely, then
+run `npm run dev:branding` to package and start the full shared worker in Docker.
+The same command is used on a laptop; the Cloud environment is not a different
+application edition.
 
 This managed Cloud environment needs the exact-loopback health compatibility
 option because BusyBox's health probes ignore the injected `NO_PROXY` setting:
@@ -37,8 +39,9 @@ absolute path (in this environment, `/usr/bin/chromium`). On a fresh environment
 
 `npm run dev:doctor` reports actual service state and outstanding worker setup.
 Its core-ready result covers Auth, database, private Storage and local email;
-the current shared-worker branding flow has additional integration work described
-in the [capability table](development-environment.md#worker-and-feature-configuration).
+worker status is reported separately. The shared worker needs its real model
+bindings and a successful preflight, as described in
+[complete branding development](development-environment.md#complete-branding-development).
 
 The [local/cloud workflow](local-cloud-sync.md) describes how to move source
 changes through GitHub. Environment secrets and database contents are configured

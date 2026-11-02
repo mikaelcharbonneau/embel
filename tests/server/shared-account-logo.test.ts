@@ -24,6 +24,14 @@ describe("separate finite Logo verifier and purpose-bound customer delegation", 
     expect(() => readSharedLogoHttpConfiguration({ ...local, VERCEL: "1" })).toThrow();
     expect(() => readSharedLogoHttpConfiguration({ ...local, NODE_ENV: "production" })).toThrow();
   });
+  it("uses the configured development ports without permitting another database or hosted fallback", () => {
+    const local = { ...env(), NODE_ENV: "development", EMBEL_DEVELOPMENT_ENABLED: "true", APP_ORIGIN: "http://127.0.0.1:3155", NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:55421", EMBEL_DEVELOPMENT_DATABASE_PORT: "55422",
+      EMBEL_SHARED_LOGO_HTTP_CONFIG: JSON.stringify({ ...principal, databaseUrl: `postgresql://${role}:inert-local@127.0.0.1:55422/postgres?sslmode=disable` }) };
+    expect(readSharedLogoHttpConfiguration(local)).toMatchObject({ origin: local.NEXT_PUBLIC_SUPABASE_URL, principal: { tls: false, port: 55422, host: "127.0.0.1" } });
+    for (const override of [{ EMBEL_DEVELOPMENT_DATABASE_PORT: undefined }, { EMBEL_DEVELOPMENT_DATABASE_PORT: "55421" }, { VERCEL_URL: "localhost" }, { NEXT_PUBLIC_SUPABASE_URL: "http://localhost:55421" }, { NEXT_PUBLIC_SUPABASE_URL: origin }, { EMBEL_SHARED_LOGO_HTTP_CONFIG: JSON.stringify(principal) }]) {
+      expect(() => readSharedLogoHttpConfiguration({ ...local, ...override })).toThrowError(expect.objectContaining({ code: "integration_unavailable" }));
+    }
+  });
   it("issuer receives only owned public intent, and stale/foreign proof cannot reach verifier", async () => {
     const rpc = vi.fn((name: string, args: Record<string, unknown>) => { void name; void args; return Promise.resolve({ data: { version: 1, token: "a".repeat(64), ownerId: owner, expiresAt: new Date(Date.now() + 20_000).toISOString() }, error: null }); });
     const auth = { userId: owner, client: { rpc } } as unknown as AuthenticatedContext;

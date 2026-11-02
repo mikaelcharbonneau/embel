@@ -32,7 +32,9 @@
     "build:logo-worker": "node scripts/build-logo-worker.mjs",
     "package:logo-worker": "node scripts/package-logo-worker.mjs",
     "build:account-worker": "node scripts/build-shared-worker.mjs",
-    "build:shared-worker": "node scripts/build-shared-worker.mjs"
+    "build:shared-worker": "node scripts/build-shared-worker.mjs",
+    "dev:branding": "node scripts/development-branding.mjs",
+    "dev:secrets": "node scripts/development/secrets.mjs"
   },
   "dependencies": {
     "@resvg/resvg-js": "2.6.2",

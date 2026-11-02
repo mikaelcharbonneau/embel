@@ -12,6 +12,18 @@ export function qualifySharedSupabaseOrigin(origin: string, env: Environment = p
   if (getSupabaseConfiguration(env).url !== origin) throw unavailable();
   if (/^https:\/\/[a-z0-9]{20}\.supabase\.co$/u.test(origin)) return origin;
   const development = readDevelopmentConfiguration(env);
-  if (development?.supabaseUrl === "http://127.0.0.1:54321" && origin === development.supabaseUrl) return origin;
+  if (development && origin === development.supabaseUrl) return origin;
   throw unavailable();
+}
+
+/** Local HTTP principals connect only to the database port selected by the
+ * development launcher. This setting never changes hosted connection rules. */
+export function sharedDevelopmentDatabasePort(env: Environment): number {
+  const development = readDevelopmentConfiguration(env);
+  const raw = env.EMBEL_DEVELOPMENT_DATABASE_PORT ?? "54322";
+  if (!development || !/^[1-9][0-9]{3,4}$/u.test(raw)) throw unavailable();
+  const port = Number(raw);
+  if (port < 1024 || port > 65535 ||
+    [development.origin, development.supabaseUrl].some(origin => Number(new URL(origin).port) === port)) throw unavailable();
+  return port;
 }

@@ -87,7 +87,7 @@ npm run dev
 The interface is at `http://127.0.0.1:3105`. For local accounts, database, private
 Storage and email, start Docker Desktop/Engine and run `npm run dev:up` before
 starting the web server. `npm run dev:doctor` reports service readiness and
-missing worker configuration. `npm run dev:down` stops this checkout's services
+shared worker status. `npm run dev:down` stops this checkout's services
 and retains its local data.
 
 The commands resolve their paths from the checkout and are designed for local
@@ -97,9 +97,18 @@ The pinned CLI, configuration templates and baseline migrations are in Git;
 generated settings and database state remain local. See
 [development setup](docs/development-environment.md) and
 [switching between local and cloud](docs/local-cloud-sync.md).
-AI workers, Home attachments and advanced Identity operations have additional
-bindings described in that guide; starting the core stack does not provision
-them. The historical `npm run local` subscription launcher is separate.
+`dev:up` also provisions the shared application schema, restricted web/worker
+principals and a local worker Storage identity. With a dedicated application
+provider key configured, `npm run dev:branding` builds and starts the same shared
+Strategy/Naming/Logo engine used by the hosted application, including visual
+identity directions. The worker runs in Docker with its pinned Linux/amd64
+Node 22.22.2 runtime. The historical `npm run local` subscription launcher is
+separate.
+
+GitHub remains the shared reference for code, nonsecret configuration and SQL
+changes. Credentials and database contents have their own authoritative stores;
+cloning the repository does not copy them or deploy production. See
+[source of truth and service connections](docs/source-of-truth.md).
 
 ## Verification
 

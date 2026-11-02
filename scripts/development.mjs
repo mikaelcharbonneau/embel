@@ -4,7 +4,9 @@ import { promisify } from "node:util";
 import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { cliVersion, defaults, digest, DevelopmentError, migrationSources, prepare, publicEnvironment, readOptional, repositoryRoot, settingsFor, writeState } from "./development/config.mjs";
+import { cliVersion, defaults, digest, DevelopmentError, localDockerEnvironment, migrationSources, prepare, publicEnvironment, readOptional, repositoryRoot, settingsFor, writeState } from "./development/config.mjs";
+
+export { localDockerEnvironment } from "./development/config.mjs";
 
 const execute = promisify(execFile);
 const services = ["db", "auth", "kong", "inbucket", "rest", "storage"];
@@ -29,14 +31,6 @@ function localEnvironment(state) {
   return { ...(dockerEnvironment ?? process.env), SUPABASE_HOME: path.join(state, "cli-home"), SUPABASE_TELEMETRY_DISABLED: "1", SUPABASE_USE_SLIM_IMAGES: "true" };
 }
 
-export function localDockerEnvironment(endpoint, environment = process.env) {
-  const unix = /^unix:\/\/\/[^\r\n\0]+$/.test(endpoint);
-  const pipe = typeof endpoint === "string" && endpoint.startsWith("npipe:////./pipe/") && /^[A-Za-z0-9_.-]+$/.test(endpoint.slice("npipe:////./pipe/".length));
-  if (!unix && !pipe) throw new DevelopmentError("Select a local Docker Desktop/Engine context; remote Docker endpoints are not supported for local development.");
-  const result = { ...environment, DOCKER_HOST: endpoint };
-  for (const key of ["DOCKER_CONTEXT", "DOCKER_TLS", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH"]) delete result[key];
-  return result;
-}
 
 async function selectLocalDocker() {
   let endpoint = process.env.DOCKER_CONTEXT ? null : process.env.DOCKER_HOST;
@@ -135,7 +129,7 @@ export function parseArguments(args) {
 export async function main(args, root = repositoryRoot) {
   const options = parseArguments(args);
   if (options.action === "help") {
-    console.log("Embel portable development\n  npm run dev:setup     Prepare this checkout (no Docker required)\n  npm run dev:up        Start local Auth, database, Storage and email\n  npm run dev:doctor    Check core services and list worker configuration\n  npm run dev:down      Stop this checkout's stack, retaining its data\n  npm run dev          Start the web interface\n\nsetup/up options: --web-port, --api-port, --db-port, --shadow-port, --mail-port\nup option: --proxy-health (exact loopback health probes in managed proxy environments)");
+    console.log("Embel portable development\n  npm run dev:setup     Prepare this checkout (no Docker required)\n  npm run dev:up        Start local services and provision full shared database\n  npm run dev:doctor    Check local services and shared worker process\n  npm run dev:down      Stop this checkout's stack, retaining its data\n  npm run dev:branding Build and start the shared branding worker\n  npm run dev          Start the web interface\n\nsetup/up options: --web-port, --api-port, --db-port, --shadow-port, --mail-port\nup option: --proxy-health (exact loopback health probes in managed proxy environments)");
     return;
   }
   if (options.action === "down") {
@@ -143,6 +137,8 @@ export async function main(args, root = repositoryRoot) {
     const state = path.join(root, ".embel-dev");
     if (!await readOptional(path.join(state, "settings.json"))) throw new DevelopmentError("This checkout has no managed development stack.");
     await selectLocalDocker();
+    const { stopSharedRuntime } = await import("./development/shared-runtime.mjs");
+    await stopSharedRuntime(root);
     await cli(root, state, ["stop", "--project-id", settings.projectId]);
     console.log("Stopped " + settings.projectId + "; local database and file volumes retained.");
     return;
@@ -187,13 +183,17 @@ export async function main(args, root = repositoryRoot) {
   if (options.action === "up") {
     await writeState(publicFile, publicEnvironment(settings, status));
     await writeState(path.join(state, "applied-config.sha256"), digest(await readFile(path.join(state, "supabase/config.toml"))) + "\n");
+    const { provisionDevelopmentSchema } = await import("./development/shared-schema-install.mjs");
+    const { prepareSharedWeb } = await import("./development/shared-web.mjs");
+    await provisionDevelopmentSchema(root);
+    await prepareSharedWeb(root, settings);
   }
-  const workers = {};
-  for (const lane of ["strategy", "naming", "logo"]) workers[lane] = await readOptional(path.join(state, lane + ".env")) ? "configuration file present; run its dev:worker preflight" : "not configured";
+  const { sharedRuntimeStatus } = await import("./development/shared-runtime.mjs");
+  const worker = await sharedRuntimeStatus(root);
+  const sharedHttpConfigured = Boolean(await readOptional(path.join(state, "shared-web.env")));
   const ambientHostedMarkers = Object.keys(process.env).filter(key => /^VERCEL(?:_|$)/.test(key));
-  console.log(JSON.stringify({ ...report, web: "http://127.0.0.1:" + settings.webPort, email: "http://127.0.0.1:" + settings.mailPort, workers, ambientHostedMarkers,
-    unsupportedLocalGeneration: ["shared visual directions", "complete shared branding generation"],
-    generation: "Requires separate worker bindings and application credentials; see docs/development-environment.md." }, null, 2));
+  console.log(JSON.stringify({ ...report, web: "http://127.0.0.1:" + settings.webPort, email: "http://127.0.0.1:" + settings.mailPort, sharedHttpConfigured, worker, ambientHostedMarkers,
+    generation: worker.ready ? "All three worker lanes qualified; this is not proof of a completed provider generation." : worker.running ? "Worker process running but not all three lanes are qualified." : "Run npm run dev:branding with the dedicated application provider key to configure and start the shared engine." }, null, 2));
   if (ambientHostedMarkers.length) throw new DevelopmentError("Hosted Vercel markers are present in this shell; use a local development shell for npm run dev.");
 }
 
