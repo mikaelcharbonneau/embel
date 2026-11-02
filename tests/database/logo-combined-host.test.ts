@@ -219,9 +219,13 @@ describe("combined host with actual four-operation handlers, one readiness union
     expect(host.status).toBe("qualified"); if (host.status !== "qualified") throw Error(`Local host unavailable: ${JSON.stringify(host)}`); return host;
   }
   async function runUntil(host: Extract<LogoProductionHost, { status: "qualified" }>, mode: "finish" | "idle") {
-    const controller = new AbortController(); stoppingAt = mode; stopHost = () => controller.abort();
-    const timer = setTimeout(() => controller.abort(), 45_000);
+    const controller = new AbortController(); let reachedStop = false; stoppingAt = mode;
+    stopHost = () => { reachedStop = true; controller.abort(); };
+    // SQL progress ends the run. Allow the full six-image native batch on a
+    // constrained CI CPU; the watchdog must report a stall, not a partial run.
+    const timer = setTimeout(() => controller.abort(), 120_000);
     try { await host.run(controller.signal); } finally { clearTimeout(timer); await host.close(); await serial; stopHost = undefined; }
+    expect(reachedStop, `Logo host did not reach ${mode} before its 120-second fixture deadline`).toBe(true);
   }
   it("runs uploaded-reference concepts, raster refinement, reviewed conversion and exact export without extra image dispatch", async () => {
     await runUntil(await start(), "idle");
@@ -375,7 +379,7 @@ describe("combined host with actual four-operation handlers, one readiness union
         writeFile(`${directory}/synthetic-evidence.json`, JSON.stringify({ fixture: "Disposable local database and in-memory private blobs; no hosted/provider activity",
           originalHash: original.reference.contentHash, vectorRevision: revision, manifest, colorVerification: verification }, null, 2) + "\n")]);
     } finally { await exporting.close(); }
-  }, 180_000);
+  }, 300_000);
   it("fences new work on stop while retaining a dispatched image response, publication and cost", async () => {
     await runUntil(await start(), "idle");
     const w = logoWorkspaceV2Schema.parse(await rpc("start_logo_project", [{ requestKey: randomUUID(), brief: {
