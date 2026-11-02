@@ -116,6 +116,8 @@ test("signup: overlay dismissal retains pending authentication and the underlyin
   expect(fixture.state.sessionReads).toBe(reads);
   expect(fixture.state.signupCount).toBe(1);
   fixture.release();
+  // Route changes close the account menu; reopen it to inspect its actions.
+  await page.getByLabel("Account menu", { exact: true }).click();
   await expect(page.locator(".workspace-account-menu").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   expect(fixture.state.sessionReads).toBe(reads);
