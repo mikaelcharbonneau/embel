@@ -9,9 +9,9 @@ import type { SharedQueuePort } from "../../worker/shared-pool/queue";
 import { sharedConfiguration,sharedSecrets,sharedLease,sharedInstance } from "./shared-pool-fixture";
 afterEach(()=>{vi.useRealTimers();vi.restoreAllMocks();});
 function harness(options:{holdNaming?:boolean;holdLogoStartup?:boolean;readinessFailure?:boolean;generationMismatch?:boolean;releaseDenied?:boolean;pending?:boolean;fatalNaming?:boolean;fatalStrategy?:boolean;
- logoQualificationFailures?:number;logoClaim?:"standby"|"held"|"error";outboxFailure?:boolean;defaultDiagnostics?:boolean;throwDiagnostics?:boolean}={}){
+ logoQualificationFailures?:number;logoClaim?:"standby"|"held"|"error";outboxFailure?:boolean;defaultDiagnostics?:boolean;throwDiagnostics?:boolean;pendingNamingCount?:number}={}){
  const config=sharedConfiguration(),stop=new AbortController(),events:string[]=[],pools=new Map<string,SharedSlotPool>(),engines=new Map<string,SharedLaneEngine>();
- const diagnostics:SharedPoolDiagnostic[]=[],qualifications:Record<string,number>={};let outboxPolls=0;
+ const diagnostics:SharedPoolDiagnostic[]=[],qualifications:Record<string,number>={},recoveredNaming:string[]=[];let outboxPolls=0;
  const renewals:Record<string,number>={},qualified:string[]=[],claims:Record<string,number>={},releaseFunctions:Array<()=>void>=[],startupReleases:Array<()=>void>=[];
  let active=0,maximum=0;
  const createPool=(_c:unknown,slot:SharedPoolSlot):SharedSlotPool=>{
@@ -27,7 +27,10 @@ function harness(options:{holdNaming?:boolean;holdLogoStartup?:boolean;readiness
     if(sql.includes("read_shared_worker_execution_page")){
      const old:SharedExecution={version:1,executionId:"77777777-7777-4777-8777-777777777777",executionToken:"88888888-8888-4888-8888-888888888888",slotId:slot.slotId,instanceId:"99999999-9999-4999-8999-999999999999",generation:1,
       lane:slot.lane,ownerId:"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",projectId:"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",jobId:"cccccccc-cccc-4ccc-8ccc-cccccccccccc",leaseToken:"dddddddd-dddd-4ddd-8ddd-dddddddddddd",operation:slot.lane==="naming"?"naming.generate":"strategy.reformulate",policyIdentity:"e".repeat(64),deploymentId:config.target.deploymentId};
-     return{rows:[{page:{version:1,items:options.pending?[{execution:old,job:{immutable:"old-issued-input"},mode:"observe"}]:[],nextCursor:null}}]};
+     const count=slot.lane==="naming"?options.pendingNamingCount??1:1;
+     const pending=options.pending?Array.from({length:count},(_,index)=>({execution:{...old,executionId:`77777777-7777-4777-8777-${String(index+1).padStart(12,"0")}`},job:{immutable:"old-issued-input"},mode:"observe"})):[];
+     const remaining=pending.filter(row=>args[1]===null||row.execution.executionId>String(args[1])),items=remaining.slice(0,Number(args[2]));
+     return{rows:[{page:{version:1,items,nextCursor:remaining.length>items.length?items.at(-1)!.execution.executionId:null}}]};
     }
     if(sql.includes("list_shared_strategy_dispatches")){outboxPolls++;if(options.outboxFailure)throw Error("Synthetic secret outbox payload");return{rows:[]};}
     if(sql.includes("fence_shared_worker_slot")){events.push(`fence:${slot.lane}`);return{rows:[{fenced:true}]};}
@@ -42,7 +45,7 @@ function harness(options:{holdNaming?:boolean;holdLogoStartup?:boolean;readiness
    try{if(options.fatalNaming&&slot.lane==="naming"||options.fatalStrategy&&slot.lane==="strategy")throw Error(`shared_${slot.lane}_drain_unconfirmed`);
     if(options.holdNaming&&slot.lane==="naming")await new Promise<void>(resolve=>releaseFunctions.push(resolve));
     if(slot.lane!=="strategy")expect(message).toBeUndefined();return{disposition:"ack" as const,state:slot.lane==="strategy"?"succeeded":"idle"};}finally{active--;}}),
-   recover:vi.fn(async pending=>{expect(pending).toHaveLength(1);events.push(`observe:${slot.lane}`);return{disposition:"retry" as const,state:"observation_required"};}),
+   recover:vi.fn(async pending=>{expect(pending).toHaveLength(1);events.push(`observe:${slot.lane}`);if(slot.lane==="naming")recoveredNaming.push(pending[0]!.execution.executionId);return{disposition:"retry" as const,state:"observation_required"};}),
    ...(slot.lane==="logo"?{renewReadiness:vi.fn(async()=>{events.push("ready_refresh:logo");if(options.readinessFailure)throw Error("Synthetic readiness acknowledgement lost");})}:{}),
    close:vi.fn(async()=>{events.push(`engine_close:${slot.lane}`);if(options.fatalNaming&&slot.lane==="naming"||options.fatalStrategy&&slot.lane==="strategy")throw Error(`shared_${slot.lane}_drain_unconfirmed`);})};engines.set(slot.lane,engine);return engine;
  });
@@ -50,7 +53,7 @@ function harness(options:{holdNaming?:boolean;holdLogoStartup?:boolean;readiness
  const controller=createSharedPoolController(config,sharedSecrets(config),{createPool,createEngine,queue,instanceId:sharedInstance,random:()=>1,onQualified:lane=>qualified.push(lane),
   ...(!options.defaultDiagnostics?{onDiagnostic:(event:SharedPoolDiagnostic)=>{diagnostics.push(event);if(options.throwDiagnostics)throw Error("Synthetic diagnostic sink unavailable");}}:{})});
  const running=controller.run(stop.signal);void running.catch(()=>{});
- return{config,controller,stop,running,events,pools,engines,qualified,claims,renewals,qualifications,diagnostics,releaseFunctions,startupReleases,get maximum(){return maximum;},get outboxPolls(){return outboxPolls;},createEngine};
+ return{config,controller,stop,running,events,pools,engines,qualified,claims,renewals,qualifications,diagnostics,releaseFunctions,startupReleases,recoveredNaming,get maximum(){return maximum;},get outboxPolls(){return outboxPolls;},createEngine};
 }
 describe("fixed shared slot lifecycle (inert ports; SQL authority tested separately)",()=>{
  it("constructs only configured slot resources, composes all three lanes and drains actual work before lease release",async()=>{
@@ -65,6 +68,17 @@ describe("fixed shared slot lifecycle (inert ports; SQL authority tested separat
   for(const lane of ["strategy","naming","logo"]){expect(f.engines.get(lane)!.recover).toHaveBeenCalled();
    for(const call of vi.mocked(f.engines.get(lane)!.run).mock.calls)expect(call[0]).toBeUndefined();}
   f.stop.abort();await f.running;await f.controller.close();
+ });
+ it("reaches every Naming execution even when earlier recoveries remain unresolved across page boundaries",async()=>{
+  vi.useFakeTimers();const f=harness({pending:true,pendingNamingCount:30});
+  await vi.advanceTimersByTimeAsync(2900);
+  expect(new Set(f.recoveredNaming.slice(0,30)).size).toBe(30);
+  expect(f.recoveredNaming[30]).toBe(f.recoveredNaming[0]);
+  const namingPool=f.pools.get(f.config.slots.find(slot=>slot.lane==="naming")!.slotId)!;
+  expect(vi.mocked(namingPool.query).mock.calls.filter(([sql])=>sql.includes("read_shared_worker_execution_page")).every(([,args])=>args?.[2]===1)).toBe(true);
+  for(const lane of ["strategy","logo"]){const pool=f.pools.get(f.config.slots.find(slot=>slot.lane===lane)!.slotId)!;
+   expect(vi.mocked(pool.query).mock.calls.filter(([sql])=>sql.includes("read_shared_worker_execution_page")).every(([,args])=>args?.[2]===25)).toBe(true);}
+  f.stop.abort();await vi.advanceTimersByTimeAsync(0);await f.running;await f.controller.close();
  });
  it("retains local capacity and refuses a successful drain while a noncooperative engine is still executing",async()=>{
   const f=harness({holdNaming:true});await vi.waitFor(()=>expect(f.releaseFunctions).toHaveLength(1));f.stop.abort();

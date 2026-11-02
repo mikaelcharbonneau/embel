@@ -1,175 +1,187 @@
 # Embel
 
-Embel is an account-based brand-building workspace for moving from an idea to strategy, a name, a logo and usable identity files. Signed-in work saves automatically to the account, with acknowledged save status and retained recovery after errors. This source checkout is a development handoff; local qualification does not establish live provider or production acceptance.
+Embel is an account-based workspace for turning a product idea into strategy, a
+name, a logo, visual directions and usable brand assets. It uses Next.js, React,
+TypeScript, Supabase Auth/Postgres/private Storage, and durable background workers.
 
-Read [the current working agreement](AGENTS.md) for the user's development,
-release, testing, design and cleanup preferences. Dated implementation records
-below describe earlier checkpoints. Their task-specific approval restrictions
-and fixed design choices do not override that agreement. Changes to the written
-agreement do not establish that the corresponding app behavior has shipped.
+[AGENTS.md](AGENTS.md) records the current working agreement and product decisions.
+This README describes the current source. Dated specifications and release
+records preserve history; they do not override that agreement or prove that a
+new source change is deployed.
 
-See [current reliability priorities and remaining gaps](docs/product-health.md)
-for the first stabilization changes and the next implementation work.
+## Product journey
 
-The product was renamed from Fluid to **Embel** on 2026-10-13. The private GitHub repository is now `mikaelcharbonneau/embel`; its earlier `emble` URL redirects there. Existing `FLUID_*` settings, storage keys, service identifiers and historical design references retain their original names for compatibility; see [the branding record](docs/embel-branding.md).
+Users can start a complete brand, Naming only, or visual identity only, and expand
+a saved project without discarding its context.
 
-For the historical Codex Cloud setup and Home/Ideas design handoff, read [Cloud development](docs/cloud-development.md). The source-checkpoint verification limits below describe the earlier transfer; later verification is recorded separately and does not imply live provider acceptance.
+1. **Home, Ideas and Projects:** capture a prompt or idea, sign in, and save an
+   account project. Browser copies support recovery; they are not the ordinary
+   source of account data.
+2. **Strategy:** develop the brief through Competitors, Target audience and Brand
+   personality. Preserve the actual conversation, sources and explicit choices.
+3. **Naming:** explore unchecked creative proposals, keep favorites and history,
+   try deterministic transformations, and choose a name. The current initial
+   brainstorm targets 100 names. Generation does not establish availability,
+   uniqueness or legal clearance. See [fast-first Naming](docs/naming-fast-first.md).
+4. **Logo concepts:** generate six total black-and-white raster concepts across
+   the chosen logo types. Keep partial successes and retry only failed work.
+   Choose one exact concept to continue. Optional vector conversion and editing
+   preserve the original raster and require explicit acceptance of a vector.
+5. **Visual directions:** generate three distinct raster brand boards using the
+   exact chosen logo. Each direction combines colors, typography, graphics and
+   example uses. Vector approval is not a prerequisite, and the retired
+   component-mixing screen is not part of this journey.
+6. **Brand assets:** choose a direction, then prepare a final board, original logo,
+   palette files, font links, social profile image, post templates and banners.
+   The standard package has 16 files; a verified saved SVG logo is optional.
+   Editable social SVGs can embed the original raster and are not vector logos.
 
-## Product and user journey
+Project context, Naming choices, and existing Logo brief/reference edits save
+automatically, with confirmation
+before showing Saved and explicit recovery after failures. Project creation,
+AI generation, selection and final acceptance remain deliberate actions. An
+estimate appears beside Generate when a verified estimate is available. One
+click starts generation; there is no extra cost-confirmation screen or fixed
+monetary generation ceiling. Usage and uncertain billing remain visible.
 
-A user can begin with a complete brand, naming only, or visual identity only, and expand later without discarding known context.
+Domains, Handles and Trademarks retain their manual workspaces and screening
+tools. A provider interface or configured route is not proof of live
+availability, reservation, ownership, legal clearance or filing. External
+reference discovery remains unavailable unless a real source is configured.
 
-- **Home, Ideas and Projects:** start from a freeform prompt, capture manual Ideas, save account work and explicitly turn useful material into a brand. Browser copies retain recovery material; legacy work requires an explicit selection and matching-account confirmation before recovery.
-- **Strategy:** develop the brief through a focused guided interview: Competitors, Target audience, then Brand personality. Preserve actual conversation history, sources and user choices; show inline thinking only during real work. Positioning is outside this interview.
-- **Naming:** explore names from saved context, keep favorites and history, choose a name and use deterministic Affixes, Tweaks, Blend and Swap controls. The current shared flow targets 100 initial creative proposals, labelled as unchecked; see [fast-first Naming](docs/naming-fast-first.md). Earlier 250-name and 100-name batch formats and 50-name continuations remain readable. Standalone Names saves its account workshop automatically and supports explicit continuation into a brand.
-- **Logo and Visual Identity:** follow the logo-first workflow below. Existing legacy three-board Identity records stay readable and must not be reinterpreted as the new workflow.
-- **Assets and Guidelines:** retain owned files, provenance and immutable versions, then deliver verified files matching the approved selection. The default Assets view includes liked, saved or used material; all generations is a separate view.
-- **Domains, Handles and Trademarks:** maintain manual workspaces and screening preparation with explicit evidence limits. Provider contracts are present, but they do not establish live availability, reservation, ownership, legal clearance or filing.
+## Reliability and privacy
 
-### Approved logo-first scope
+- Server-side sessions and database ownership checks govern account access.
+  Private files use immutable versions and verified bytes; browser-supplied
+  owner IDs never grant access.
+- Writes retain their original request identity through lost acknowledgements.
+  Conflicting revisions and account changes cannot silently overwrite another
+  draft or expose another account's work.
+- Long AI operations use durable jobs, cancellation, bounded retries and retained
+  partial results. An uncertain paid request must not be repeated automatically.
+  Recovery can make verified completed output usable while its provider outcome
+  or financial accounting still needs reconciliation.
+- Vector geometry, font rights, usable downloads, successful saves and provider
+  results must be real. Exporting branding does not establish exclusive rights
+  or trademark clearance.
 
-The [approved logo and visual identity specification](docs/superpowers/specs/2026-10-06-fluid-logo-visual-identity-approved.md) defines this workflow. The [bounded vector-refinement plan](docs/superpowers/plans/2026-10-08-vector-refinement.md) covers the narrower proposal increment.
+See [product reliability](docs/product-health.md) for remaining work and evidence
+limits. The [October 30 visual identity release record](docs/visual-identity-release-20261030.md)
+records signed-in selection and package download confirmed by the owner. It does
+not establish every failure scenario, every supported language or production
+capacity for thousands of concurrent users.
 
-Start from a standalone logo brief or reuse Strategy. Users choose one or more of seven logo types: **wordmarks, lettermarks/monograms, pictorial marks, abstract marks, combination marks, emblems and mascots**. Curated and uploaded references should support the same lettering, shape, composition and overall-feel preferences, with appropriate rights and attribution.
+## Local development
 
-The first exploration contains **six total black-and-white concepts**, not six per type. Identify each concept's type and any unrepresented selected types. Retain partial successes and retry only failed concepts. The agreed cost experience shows the expected cost beside Generate and starts on one deliberate click, without an extra confirmation screen or fixed monetary stop. These changes still need runtime implementation and verification. Generation and refinement are separate actions; typing, navigation and manual editing must not dispatch paid work.
-
-A selected concept becomes genuine vector geometry before detailed editing and delivery. Retain the original raster, compare conversion differences, and require explicit vector acceptance. Direct controls cover text/font, spacing, size, rotation, color and arrangement where the actual document supports them. Preserve component locks, exact approved spelling and immutable history. Font editing requires real editable text; replacing outlined lettering is a distinct explicit change. Anchor-point editing is outside the launch scope.
-
-After logo approval, propose **three coordinated identity directions** for color, typography and supporting graphics. Allow compatible component mixing while protecting the selected logo and flagging stale downstream work. Track commercial-use and redistribution rights for free and uploaded fonts. Show RGB/HEX; disclose CMYK profile limitations; leave Pantone unavailable without a lawful matching source.
-
-The intended default delivery includes appropriate primary/horizontal/stacked/symbol-only variants, black/white/color versions, SVG, genuine vector PDF, transparent PNG and a simple guidelines PDF. Social avatars and banners are optional. Downloads must contain verified bytes for the approved version. Exporting a file does not establish exclusive rights, uniqueness or trademark clearance.
-
-## What this checkpoint establishes
-
-### Live evidence
-
-The first separately authorized live **Strategy reformulation** was completed and verified. This is a bounded acceptance result for that operation. It does not establish the entire Strategy journey, Naming, live logo generation, vector proposals, exports or a production-ready service. The private source handoff neither reruns that paid request nor enables additional generation.
-
-### Previously accepted implementation
-
-The source includes browser drafting and recovery, account/session fencing, saved-project revision handling, manual Ideas, Strategy conversation/review controls, Naming and its history, standalone manual tools, Assets/reference handling, legacy Identity editing/history, and logo-first creation/editor/directions/deliverables surfaces with their associated contracts and worker infrastructure. Acceptance and live availability vary by feature; a route or a passing fixture is not proof of a fully connected user journey.
-
-The current unapplied shared-worker path adds full Identity generation with three linked systems and PNG boards, owned reference uploads with explicit selection, and all six Logo worker operations. Identity uses the existing Logo lane. Exact original requests, provider receipts, partial results and uncertain outcomes survive interruption; known export outputs recover without rendering or uploading again. External reference discovery remains unavailable until configured. The normal vector editor now includes proposal requests, quote review, recovery and explicit application as an unapproved candidate. These are source implementations with local evidence, not deployed provider acceptance. See [shared worker authority](docs/shared-worker-pool.md).
-
-The latest interface work improves app-wide framing and readability, keeps the Strategy composer visible, exposes latest activity, and preserves Home prompts through sign-in. Its follow-up correction also fences uncertain saves and retires successful-start recovery markers to avoid reopening an earlier project from a new prompt. See [UI repair notes](docs/ui-repair-20261008.md).
-
-### Integrated vector-proposal candidate
-
-The backend adds a separately priced durable text operation, `identity.logo_vector_propose`. It proposes exactly one supported command: size, rotation, color, arrangement, font or spacing. It cannot redraw arbitrary paths, invent components, unlock protected content, change spelling or silently split a multi-change request into paid jobs.
-
-The locally exercised chain covers verified source/font bytes, trusted quote and admission, the real host/provider adapter composition with synthetic HTTP responses, durable proposal retention, authenticated candidate creation, provenance and replay recovery. Applying a retained proposal uses existing vector producers without another AI call. It creates a review-required immutable candidate; the approved logo remains unchanged until explicit acceptance. Paid uncertainty and cancellation retain evidence instead of automatically regenerating work.
-
-The normal editor provides quote review and explicit generation consent, pending-request discovery after reload, exact original-intent lookup and safe Stop/closure. A missing lookup does not clear uncertain work. Applying a verified proposal uses the existing native producer without another AI call and opens an unapproved saved candidate; accepting that candidate remains a separate action. Historical accepted amounts are retained, while new shared uncapped quotes carry no invented spending ceiling.
-
-The operation remains unavailable until its real runtime is qualified. Its new SQL is unapplied, and local fixture/browser checks do not establish live provider or hosted release readiness. See [vector-proposal integration](docs/logo-vector-feature-integration.md).
-
-### Remaining product and release gaps
-
-Finish the app-wide integration and full user journey rather than treating these component checkpoints as product completion. Remaining release work includes runtime activation, external reference ingestion, live provider qualification, hosted persistence/private-file acceptance, genuine two-account generation/export acceptance, and the remaining Guidelines and standalone-provider integrations. Preserve unavailable states until their real dependencies are ready. Arbitrary vector-source AI redraw and the earlier raster-to-vector refinement facade are not completed by the bounded proposal operation.
-
-## Run the ordinary interface
-
-Use Node.js matching `package.json`: `>=22.13.0 <23 || >=24`. Dependencies are pinned in `package-lock.json`.
+Use a Node.js version supported by the complete toolchain:
+`^22.22.2 || ^24.15.0 || >=26.0.0`. The development default in `.nvmrc` is Node 24;
+the packaged shared worker pins Node 22.22.2. Dependencies are pinned in
+`package-lock.json`.
 
 ```sh
 npm ci
 npm run dev
 ```
 
-The development UI binds to `http://127.0.0.1:3105`. Home can retain an initial prompt before sign-in; saving requires a verified account. Account data, AI, durable jobs and private files need separately configured services. Do not introduce demo success or substitute another provider when a capability is unavailable.
+The ordinary development interface is at `http://127.0.0.1:3105`. Copy the public
+settings documented in [.env.example](.env.example) when configuring account
+access. Saving, AI, background jobs and private files require their real services;
+unconfigured features remain unavailable.
 
-For the opt-in isolated local database, Auth, Storage, restricted service bindings
-and development workers, see [the development environment guide](docs/development-environment.md).
+For the isolated local Auth, Postgres, Storage and restricted worker setup, use
+[the development environment guide](docs/development-environment.md). The
+separate `npm run local` subscription-mode launcher is not needed for the normal
+web interface.
 
-### Package scripts
+## Verification
 
-These are the exact commands in `package.json`. Their presence is not an instruction to run validation or activate a service during this handoff.
+```sh
+npm run typecheck
+npm run lint
+npm test -- --maxWorkers=2 --reporter=verbose
+npm run build
+npm run test:e2e
+```
 
-| Script | Command |
+`npm run check` runs typecheck, lint, the repository test suite and the production
+build. Browser tests use a completed production build. Tests in `tests/live`
+with the `.live.ts` suffix run only through the separately configured
+`npm run test:live`; the ordinary test suite uses local fixtures. Passing fixture
+tests do not establish live provider, account or Storage acceptance.
+
+Use focused tests while developing, then verify the affected desktop/mobile
+journey and failure recovery. Worker changes also require their isolated build,
+native packaging checks and database authority tests. Do not sum overlapping
+test groups or describe an interrupted aggregate as passing.
+
+## Runtime and deployment
+
+- **Web:** Next.js handles the interface, authenticated APIs and private download
+  authorization. Production uses `https://www.embel.xyz`; public Supabase
+  configuration and the exact application origin are validated at deployment.
+- **Supabase:** Auth, Postgres and private Storage retain authoritative ownership,
+  revisions, jobs, provider evidence and files. A SQL filename is not evidence
+  that a database has that change installed.
+- **Shared worker:** one Vercel Daemon contains fixed Strategy, Naming and Logo
+  lanes. Identity generation uses the Logo lane. Restricted service principals,
+  immutable job scope and compiled SQL authority checks govern execution.
+- **Historical runtimes:** separate API-text, dedicated Naming/Logo and local
+  subscription entrypoints remain for their existing callers and data formats.
+  Their existence does not enable them or make their older contracts current.
+
+See [production deployment](docs/production-deployment.md),
+[shared worker authority](docs/shared-worker-pool.md), and
+[worker packaging](services/shared-worker/README.md). Keep credentials and private
+runtime state outside Git and browser bundles. Use the actual upload file set
+when verifying a Vercel source deployment, not only the full checkout.
+
+Database changes must reconcile the target's migration history and installed
+function bodies. Historical SQL stays immutable. Use a reviewed forward packet
+with exact predecessor guards, and coordinate the compatible worker when its
+authority changes. Files in `supabase/candidates` can already be deployed; do not
+blanket-apply them or infer installation status from that directory name.
+[Migration history](docs/migration-order.md) explains the older handoff and links
+the current installation authority.
+
+## Source map and historical records
+
+| Location | Purpose |
 | --- | --- |
-| `local` | `node scripts/local.mjs` |
-| `dev` | `next dev --hostname 127.0.0.1 --port 3105` |
-| `build` | `next build --webpack` |
-| `start` | `next start --hostname 127.0.0.1 --port 3105` |
-| `lint` | `eslint .` |
-| `typecheck` | `next typegen && tsc --noEmit` |
-| `test` | `vitest run` |
-| `test:watch` | `vitest` |
-| `test:e2e` | `playwright test` |
-| `test:live` | `vitest run --config vitest.live.config.ts` |
-| `worker` | `node --conditions=react-server --import tsx worker/index.ts` |
-| `check` | `npm run typecheck && npm run lint && npm test && npm run build` |
-| `build:api-text-worker` | `node scripts/build-api-text-worker.mjs` |
+| `src/app`, `src/components`, `src/features` | Routes, interface and feature implementations |
+| `src/domain` | Shared contracts and validation |
+| `src/server` | Authentication, persistence, providers and runtime boundaries |
+| `worker`, `services` | Durable execution and deployment entrypoints |
+| `supabase` | Historical migrations, guarded forward packets and setup material |
+| `tests` | Unit, database, security, browser and opt-in live checks |
 
-## Runtime and configuration boundaries
+The product was renamed from Fluid to Embel on October 13, 2026. Existing
+`FLUID_*` configuration names and historical identifiers can remain for
+compatibility; see [the branding record](docs/embel-branding.md). The repository
+is private and grants no open-source license. Preserve all third-party font and
+fixture licenses and [external reference provenance](docs/references.md).
 
-- **Web application:** Next.js/React handles the UI, authenticated APIs and private download authorization. Core public configuration uses `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `APP_ORIGIN`. A publishable key is not a privileged service credential.
-- **Supabase:** Auth, Postgres and private Storage provide authoritative ownership, revisions, jobs, cost reservations and file access. Browser fields never establish ownership. Schema files and activation templates in this repository are not proof that a target database has them installed.
-- **Dedicated workers:** background work has separate process, identity, policy, budget, lease and readiness requirements. The ordinary `worker` command does not implicitly enable every logo operation. Local subscription mode, the hosted API-text worker and the dedicated logo host are distinct configurations; never share their credentials as a shortcut.
-- **Local subscription mode:** `npm run local` requires an existing build and approved protected configuration. It launches the local web interface on port 3106 and its separate worker; connection consent remains locked unless explicitly enabled through the approved setup. It is not required for the ordinary browser-only UI.
-- **Hosted API text:** `build:api-text-worker` prepares a separate deployment artifact. Building it does not deploy, provision credentials or authorize inference.
+[Architecture](docs/architecture.md), [workspace contracts](docs/standalone-workspace-contract.md)
+and [provider contracts](docs/standalone-provider-contracts.md) explain technical
+boundaries. Earlier source-transfer verification is preserved in
+[the October 15 regression record](docs/regression-verification-20261015.md) and
+[the October 16 reconnection record](docs/repository-reconnection-20261016.md).
+Those dated results are not current full-product acceptance claims.
 
-Keep credentials, tokens, environment files, user sessions and private runtime state outside Git. Use secure configuration flows and existing authorized access; discuss material access expansion under the current working agreement. Privileged database, service-role and provider credentials must never enter browser bundles, screenshots, logs or exported files. Existing non-secret target allowlists and deployment preflight settings are target-specific technical constraints that need review when changing hosts.
+## Multilingual brand assets
 
-Follow [AGENTS.md](AGENTS.md) for current authorization. Tested fixes to the
-existing app, necessary routine configuration/database updates and focused AI
-tests are authorized within requested work. Validate the actual target and
-technical prerequisites; use existing authorized access. New paid services/plans,
-material access expansion and destructive changes outside the agreed test-data
-scope still require discussion. Historical task restrictions are not new gates.
+Finished brand assets use bundled, licensed font files with inspected character
+coverage. The catalog includes Latin, Greek, Cyrillic, Japanese, simplified and
+traditional Chinese, Korean, Arabic, Hebrew, Devanagari, Bengali, Gurmukhi,
+Gujarati, Tamil, Telugu, Kannada, Malayalam, Sinhala, Thai, Lao, Myanmar, Khmer,
+Armenian, Georgian and Ethiopic. Font choice is limited to faces that cover the
+complete saved name; right-to-left names retain their direction in PNG and SVG.
+PNG preparation loads only the chosen, verified fonts. Editable SVGs retain the
+selected family and Unicode text; install the linked fonts before opening or
+editing them. Font binaries are not embedded in SVGs or the ZIP.
 
-### New vector SQL order
-
-The following reviewed files in `supabase/candidates/` remain separate and unapplied, in this predecessor order:
-
-1. `logo-vector-proposals.sql`
-2. `logo-vector-proposal-quotes.sql`
-3. `logo-vector-proposal-admission.sql`
-4. `logo-vector-proposal-observations.sql` (accepted v2)
-5. `logo-vector-proposal-completion.sql`
-6. `logo-vector-proposal-materialization.sql`
-7. `logo-vector-proposal-capabilities.sql`
-
-Before any authorized rollout, reconcile the target's actual migration history, prerequisite schema and other pending candidates. Do not edit historical migrations, invent applied timestamps or run a blanket database push. See [migration order and rollout gates](docs/migration-order.md) and the integration document before packaging these files as forward migrations.
-
-## Historical source-transfer verification
-
-The earlier source transfer stopped validation at the user's request. The subsequent October 15 review and regression-fix task explicitly authorized local implementation and full checks. The results below remain historical; later evidence is recorded in [the regression verification record](docs/regression-verification-20261015.md) and [the fresh repository-reconnection qualification](docs/repository-reconnection-20261016.md).
-
-Evidence must remain separated by source and scope:
-
-- The combined focused vector run reported **891/892** passing. Its sole failure was an obsolete assertion rejecting the newly supported optional sixth capability. That test assertion was corrected after explicit approval; do not relabel the original run as an all-green result.
-- The latest changed-focused checks passed **23/23**, with scoped TypeScript and lint passing.
-- A later whole-project aggregate lost its process/result record. Its result is **unknown**, not a reported test failure or a successful completion.
-- Full typecheck with a 1 GiB heap ended in out-of-memory failure, exit **134**. Full lint and build were not run for the combined checkpoint.
-- Earlier UI checks and known base failures are documented separately in the UI repair notes. They are not a new full-candidate result. Synthetic database/browser/provider checks do not establish live integration, production output quality or hosted concurrency.
-
-There is no fully green aggregate or full-product acceptance claim for this checkpoint.
-
-## Source map and next steps
-
-- `src/app`, `src/components`, `src/features`: routes, UI and feature implementations
-- `src/domain`: shared contracts and validation
-- `src/server`: server-only authentication, data, provider and runtime boundaries
-- `worker`, `services/api-text-worker`: durable operation execution and separate hosted entrypoints
-- `supabase/migrations`, `supabase/candidates`, `supabase/activation`: historical schema, pending candidates and gated setup material
-- `tests`: local, database, adversarial, browser and opt-in live checks
-
-Start with [AGENTS.md](AGENTS.md), then read the relevant parts of
-[architecture](docs/architecture.md), [workspace contracts](docs/standalone-workspace-contract.md)
-and [provider contracts](docs/standalone-provider-contracts.md) for the change.
-The [decision log](docs/decisions.md) preserves historical context; it is not a
-mandatory full read or a separate source of standing approval restrictions.
-
-Next implementation priorities:
-
-1. Make the complete Home/Idea → Brand → Strategy/Naming → Logo → Identity → Assets/Guidelines journey reliable. Keep the existing feature scope; ask before removing features.
-2. Verify real generation and usable downloads, including reload, account changes, interruption, partial results and recovery. Use the standing permission for focused AI tests and publishing tested fixes.
-3. Improve the interface consistently across desktop and mobile. Implement expected cost beside Generate, one deliberate click and usage reporting without fixed monetary generation caps.
-4. Simplify obsolete code and handle its data dependencies. Existing Embel projects/outputs are disposable test data; report deliberate resets. Review actual migration prerequisites and preserve account security and duplicate-request protection.
-5. Verify concurrency and recovery before claiming readiness for thousands of users. Record measured results and remaining gaps.
-
-The original `.pen` design file and design bundle were absent from this historical checkpoint. [Design references](docs/references.md) retain provenance. Use available originals for actual comparisons; broader redesigns are now permitted, including changes to old layout and styling choices. Respect third-party asset and font licenses.
-
-The repository is private and grants no open-source license. Preserve applicable third-party font and fixture licenses.
+This is broad script coverage, not every Unicode character or language. Emoji,
+rare characters and some combinations of scripts may have no supported face.
+The app identifies unsupported names before new generation. Drafts and historical
+results remain readable; it never silently substitutes missing glyphs. Font
+sources, licenses, hashes and coverage are recorded in
+[font provenance](public/fonts/brand/provenance.json).

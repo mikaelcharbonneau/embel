@@ -1,4 +1,5 @@
 import "server-only";
+import { brandTextReadiness } from "../../domain/brand-board-fonts";
 import { IMAGE_MODEL } from "../../domain/providers";
 import { logoBillingObservationSchema, logoResolvedConceptInputSchema, logoResolvedRefinementInputSchema,
   type LogoBillingObservation, type LogoResolvedConceptInput, type LogoResolvedRefinementInput,
@@ -71,6 +72,7 @@ export function createLogoImageProvider({ configuration, transport }: { configur
     try {
       if (signal.aborted) throw new Error("Aborted");
       const input = raw.input.operation === "identity.logo_concept" ? logoResolvedConceptInputSchema.parse(raw) : logoResolvedRefinementInputSchema.parse(raw);
+      if (!brandTextReadiness(input.brief.payload.name).supported) return { status: "not_dispatched", code: "unsupported_brand_text", providerRequestId: null, responseHash: null, billing: { status: "recorded", confirmedMicrousd: 0 } };
       if (input.input.policyIdentity !== config.policyIdentity || input.input.handlerVersion !== config.handlerVersion) throw new Error("Unadmitted policy");
       if (input.input.operation === "identity.logo_refine" && input.input.source.kind === "vector" && getVectorRefinementCapability(input.input.source.locks).status !== "available") throw new Error("Unsupported locks");
       const expected = "basePreview" in input ? [input.basePreview, ...input.referenceSnapshot.references.map(ref => ref.asset)] : input.referenceSnapshot.references.map(ref => ref.asset);

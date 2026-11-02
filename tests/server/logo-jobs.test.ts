@@ -1,6 +1,7 @@
 import { describe,expect,it,vi } from 'vitest';
 vi.mock('server-only',()=>({}));
 import { createLogoJobService,LogoAdmissionUncertainError, LogoAdmissionRejectedError, loadLogoVectorInput } from '../../src/server/data/logo-jobs';
+import { syntheticLogoQuote, syntheticResolvedLogoConcept } from '../fixtures/logo-creation';
 import type { AuthenticatedContext } from '../../src/server/auth/context';
 const id=(n:number)=>`a0000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const expected={projectRevision:1,referenceRevision:0,preferencesRevision:0,workspaceRevision:1,stageRevisions:{brief_references:1,concepts:0,vector:0,refinements:0,directions:0,deliverables:0}};
@@ -26,4 +27,15 @@ describe('leased local vector input loader',()=>{
   const readLeasedAsset=vi.fn();
   await expect(loadLogoVectorInput({query},{readLeasedAsset} as unknown as import('../../src/server/data/identity-asset-store').IdentityAssetStore,job)).rejects.toMatchObject({code:'not_found'});expect(readLeasedAsset).not.toHaveBeenCalled();
  });
+});
+
+
+it.each([['茶屋',true],['مرحبا',true],['Studio 🦄',false]])('checks the exact saved brief before preparing a concept quote for %s',async(name,supported)=>{
+ const quote=syntheticLogoQuote(), brief=structuredClone(syntheticResolvedLogoConcept().brief);
+ brief.payload.name=name;
+ const rpc=vi.fn(async(method:string)=>({data:method==='read_logo_workspace_record'?brief:quote,error:null}));
+ const account={userId:quote.ownerId,client:{rpc}} as unknown as AuthenticatedContext;
+ const promise=createLogoJobService().quoteLogoOperation(account,quote.projectId,quote.request);
+ if(supported){expect(await promise).toEqual(quote);expect(rpc.mock.calls.map(call=>call[0])).toEqual(['read_logo_workspace_record','quote_logo_operation']);}
+ else {await expect(promise).rejects.toMatchObject({code:'invalid_input'});expect(rpc.mock.calls.map(call=>call[0])).toEqual(['read_logo_workspace_record']);}
 });

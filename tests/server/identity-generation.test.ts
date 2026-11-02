@@ -72,3 +72,16 @@ describe("Identity intent closure — durable witness only",()=>{
   await expect(closeIdentityBatchRequest(f.auth,projectId,generationIntent)).rejects.toBeInstanceOf(IdentityIntentClosureUncertainError);
  });
 });
+
+
+it.each([['茶屋', true], ['مرحبا', true], ['Studio 🦄', false]])('preflights new direction admissions for %s while preserving saved requests', async (name, supported) => {
+ const f=fixture(), availability=structuredClone(available); availability.sourceLogo.brief.payload.name=name;
+ f.rpc.mockImplementation(async rpc=>({data:rpc==='get_shared_identity_availability'?availability:rpc==='get_shared_identity_batch'?null:batchState(),error:null}));
+ expect(await getIdentityAvailability(f.auth,projectId)).toMatchObject(supported?{status:'available'}:{status:'unavailable',reason:'unsupported_brand_text'});
+ if(!supported){
+  await expect(enqueueIdentityBatch(f.auth,projectId,generationIntent)).rejects.toMatchObject({code:'integration_unavailable'});
+  expect(f.rpc.mock.calls.some(call=>call[0]==='ensure_shared_identity_batch')).toBe(false);
+  f.rpc.mockResolvedValue({data:batchState(),error:null});
+  expect(await enqueueIdentityBatch(f.auth,projectId,generationIntent)).toEqual(batchState());
+ }
+});

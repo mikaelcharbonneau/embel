@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createAccountIdentityClient, identityObservation, IDENTITY_JSON_MAX_BYTES } from "@/components/identity/account-identity-client";
+import { createAccountIdentityClient, identityObservation, IDENTITY_JSON_MAX_BYTES, IDENTITY_REQUEST_TIMEOUT_MS } from "@/components/identity/account-identity-client";
 import { getIdentityFreshness, selectIdentitySystem, type RefineIdentityComponent } from "@/domain/project-identity";
 import { fixtureAt, fixtureId, fixtureInput, fixtureOverview, fixtureOwner, fixtureProject, fixtureRefinement, fixtureSystem } from "./project-identity-fixtures";
 
@@ -11,7 +11,7 @@ function setup() {
   const client = createAccountIdentityClient(account, fixtureProject, () => current, expire);
   return { client, fetcher, expire, loseScope: () => { current = false; } };
 }
-afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe("fenced Identity account client", () => {
   it("uses the exact strict overview query and same-origin private route", async () => {
@@ -169,6 +169,42 @@ describe("actual private Identity files", () => {
 
 
 describe("Identity interruption and receipt edges", () => {
+  it.each(["selection", "preferences", "refinement"] as const)("bounds a stalled %s acknowledgement without replaying the mutation", async kind => {
+    vi.useFakeTimers();
+    const { client, fetcher, expire } = setup(), overview = fixtureOverview(), system = fixtureSystem(), observation = identityObservation(overview);
+    let finish!: (response: Response) => void;
+    fetcher.mockReturnValue(new Promise<Response>(resolve => { finish = resolve; }));
+    const revisions = { expectedProjectRevision: 1, expectedReferenceRevision: 1, expectedPreferencesRevision: 0, expectedIdentityRevision: 0 };
+    const pending = kind === "selection" ? client.select({ ...revisions, systemVersionId: system.id, acceptEarlierBasis: false }, observation, system)
+      : kind === "preferences" ? client.preferences({ expectedPreferencesRevision: 0, preferences: system.input.preferences })
+        : client.refine({ ...revisions, baseSystemVersionId: system.id, component: "colors", acceptEarlierBasis: false,
+          input: { swatches: [{ key: "primary", name: "Berry", hex: "#AA2255" }], usageNotes: "Manual" }, idempotencyKey: "local-timeout-refinement" }, observation, system);
+    const rejected = expect(pending).rejects.toMatchObject({ status: 408 });
+    await vi.advanceTimersByTimeAsync(IDENTITY_REQUEST_TIMEOUT_MS);
+    await rejected;
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher.mock.calls[0]![1]?.signal?.aborted).toBe(true);
+    expect(client.current()).toBe(true); expect(expire).not.toHaveBeenCalled();
+    finish(json({ error: "Late response" }, 401)); await Promise.resolve(); await Promise.resolve();
+    expect(client.current()).toBe(true); expect(expire).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it("bounds an unfinished mutation body and releases its stream", async () => {
+    vi.useFakeTimers();
+    const { client, fetcher } = setup(), cancel = vi.fn();
+    fetcher.mockResolvedValue(new Response(new ReadableStream<Uint8Array>({ cancel }), { headers: { "Content-Type": "application/json" } }));
+    const pending = client.preferences({ expectedPreferencesRevision: 0, preferences: fixtureSystem().input.preferences });
+    const rejected = expect(pending).rejects.toMatchObject({ status: 408 });
+    await vi.advanceTimersByTimeAsync(IDENTITY_REQUEST_TIMEOUT_MS); await rejected;
+    expect(cancel).toHaveBeenCalledTimes(1); expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+  it("settles a disposed mutation even if its transport ignores cancellation", async () => {
+    vi.useFakeTimers();
+    const { client, fetcher } = setup(); fetcher.mockReturnValue(new Promise<Response>(() => {}));
+    const pending = client.preferences({ expectedPreferencesRevision: 0, preferences: fixtureSystem().input.preferences });
+    client.dispose();
+    expect(await pending).toBeNull(); expect(vi.getTimerCount()).toBe(0);
+  });
   it("checks every independent refinement counter and predecessor in the actual receipt", async () => {
     const { client, fetcher } = setup(), overview = fixtureOverview(), base = fixtureSystem(), observation = identityObservation(overview);
     const input: RefineIdentityComponent = { baseSystemVersionId: base.id, component: "colors", expectedProjectRevision: 1, expectedReferenceRevision: 1, expectedPreferencesRevision: 0, expectedIdentityRevision: 0,

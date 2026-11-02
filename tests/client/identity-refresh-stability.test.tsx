@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createAccountDraftMemory } from "@/components/workspace/account-draft-memory";
 import { createIdentityDraftMemory } from "@/components/identity/identity-draft-memory";
 import { useProjectIdentity, type IdentityReferenceHint } from "@/components/identity/use-project-identity";
+import { IDENTITY_REQUEST_TIMEOUT_MS } from "@/components/identity/account-identity-client";
 import type { useAccountSession, VerifiedAccount } from "@/components/workspace/account-session";
 import { getIdentityFreshness } from "@/domain/project-identity";
 import { IMAGE_MODEL } from "@/domain/providers";
@@ -50,6 +51,59 @@ afterEach(async () => {
 });
 
 describe("saved Identity read stability", () => {
+  it("recovers a timed-out choice by reading its saved result without another selection", async () => {
+    await render(); await tick(); await resolveRead(0, fixtureOverview());
+    const read = vi.mocked(fetch).getMockImplementation()!, writes: RequestInit[] = [];
+    let acknowledge!: (response: Response) => void;
+    vi.mocked(fetch).mockImplementation((path, init) => {
+      if (init?.method !== "POST") return read(path, init);
+      writes.push(init); return new Promise<Response>(resolve => { acknowledge = resolve; });
+    });
+    let choosing!: Promise<void>;
+    await act(async () => { choosing = api.chooseSystem(false, fixtureSystem()); });
+    expect(api.pending).toBe(true); expect(api.selectionCheckAvailable).toBe(false);
+    await act(async () => vi.advanceTimersByTimeAsync(IDENTITY_REQUEST_TIMEOUT_MS));
+    await act(async () => choosing);
+    expect(writes[0]!.signal!.aborted).toBe(true); expect(api.pending).toBe(false);
+    expect(api.selectionUncertain).toBe(true); expect(api.selectionCheckAvailable).toBe(true);
+    expect(api.blocked).toBe(true); expect(api.notice).toBeNull();
+    await act(async () => api.chooseSystem(false, fixtureSystem()));
+    expect(writes).toHaveLength(1);
+    let checking!: Promise<void>;
+    await act(async () => { checking = api.refresh(); });
+    const saved = fixtureOverview({ selected: true });
+    await resolveRead(1, saved); await act(async () => checking);
+    expect(api.selectionUncertain).toBe(false); expect(api.pending).toBe(false);
+    expect(api.system?.id).toBe(saved.currentSelection!.system.id); expect(api.blocked).toBe(false);
+    await act(async () => acknowledge(Response.json({ session: saved.session, currentSelection: saved.currentSelection })));
+    expect(api.system?.id).toBe(saved.currentSelection!.system.id); expect(api.selectionUncertain).toBe(false);
+    expect(writes).toHaveLength(1);
+  });
+
+  it("retains the exact preference intent after its acknowledgement times out", async () => {
+    await start();
+    const read = vi.mocked(fetch).getMockImplementation()!, writes: RequestInit[] = [];
+    vi.mocked(fetch).mockImplementation((path, init) => {
+      if (init?.method !== "PATCH") return read(path, init);
+      writes.push(init); return new Promise<Response>(() => {});
+    });
+    await act(async () => api.setPreferenceValues({ ...api.preferenceValues!, notes: "A calmer visual direction" }));
+    let saving!: Promise<void>;
+    await act(async () => { saving = api.savePreferences(); });
+    const original = api.preferenceDraft?.pending;
+    expect(original?.request.preferences.notes).toBe("A calmer visual direction");
+    await act(async () => vi.advanceTimersByTimeAsync(IDENTITY_REQUEST_TIMEOUT_MS));
+    await act(async () => saving);
+    expect(api.pending).toBe(false); expect(api.preferenceDraft?.pending).toEqual(original);
+    expect(api.preferencesDirty).toBe(true); expect(api.notice).toBeNull();
+    await act(async () => api.savePreferences()); expect(writes).toHaveLength(1);
+    let checking!: Promise<void>;
+    await act(async () => { checking = api.refresh(); });
+    await resolveRead(1, fixtureOverview({ selected: true })); await act(async () => checking);
+    expect(api.preferenceRebaseReady).toBe(true); expect(api.preferenceDraft?.pending).toEqual(original);
+    expect(writes).toHaveLength(1);
+  });
+
   it("distinguishes unavailable saving from an active read and recovers without selecting or generating", async () => {
     await render(); await tick();
     const unavailable = { ...fixtureOverview(), saveAvailability: { status: "unavailable", reason: "trusted_transaction_unavailable" } };

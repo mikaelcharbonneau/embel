@@ -7,6 +7,7 @@ import { IMAGE_MODEL } from "../../src/domain/providers";
 import { identityBatchStateSchema, logoBoardGenerationIntentSchema, type IdentityBatchState } from "../../src/domain/identity-jobs";
 import { identityLogoSourceSchema } from "../../src/domain/identity-logo-source";
 import type { BrandBoardApplicationDesign } from "../../src/domain/brand-board-design";
+import type { BrandBoardFontFamily } from "../../src/domain/brand-board-fonts";
 import {
   createIdentityInputSnapshot, getIdentityCurrentBasis, getIdentityFreshness, getIdentityReadiness, initialIdentityPreferences, projectIdentityOverviewSchema,
   selectIdentitySystem, selectIdentitySystemSchema, summarizeIdentitySystem,
@@ -34,11 +35,11 @@ function own<T>(value: T): T {
   return JSON.parse(JSON.stringify(value).replaceAll(original.ownerId, ownerId).replaceAll(original.projectId, projectId));
 }
 
-export function createVisualJourneyFixture(options: { standalone?: boolean } = {}) {
-  const baseInput = fixtureInput({ name: "Cedar", references: 0 });
+export function createVisualJourneyFixture(options: { standalone?: boolean; name?: string; fontFamily?: BrandBoardFontFamily } = {}) {
+  const name = options.name ?? "Cedar", baseInput = fixtureInput({ name, references: 0 });
   const png = Buffer.from(syntheticConversionInput("combination").source.bytes), pngHash = hash(png);
   const resolved = own(syntheticResolvedLogoConcept());
-  const brief = { ...resolved.brief, payload: { ...resolved.brief.payload, name: "Cedar" } };
+  const brief = { ...resolved.brief, payload: { ...resolved.brief.payload, name } };
   const context = options.standalone ? contextSnapshotSchema.parse({}) : baseInput.context;
   const input = createIdentityInputSnapshot({ ...scope, scope: baseInput.scope, projectRevision: baseInput.projectRevision,
     context, referenceSnapshot: baseInput.referenceSnapshot, preferencesRevision: 0, preferences: initialIdentityPreferences(context), capturedAt: fixtureAt, logoBrief: brief });
@@ -63,7 +64,7 @@ export function createVisualJourneyFixture(options: { standalone?: boolean } = {
     preview: logoBatch.slots[0]!.acceptedPreview });
   const stages = new Map<string, LogoStageRevision>([[brief.id, brief], [conceptStage.id, conceptStage]]);
   const boardImages = new Map<string, Buffer>(fixtureBoards.map(board => [board.sha256, Buffer.from(board.base64, "base64")]));
-  const project = { id: projectId, owner_id: ownerId, title: "Cedar · synthetic journey fixture", scope: input.scope, current_revision: input.projectRevision,
+  const project = { id: projectId, owner_id: ownerId, title: `${name} · synthetic journey fixture`, scope: input.scope, current_revision: input.projectRevision,
     created_at: fixtureAt, context: input.context };
   const state = {
     owner: ownerId, sessionReads: 0, project, input, workspace, sourceLogo, stages, logoBatch, logoBytes: png,
@@ -82,8 +83,8 @@ export function createVisualJourneyFixture(options: { standalone?: boolean } = {
         { key: "background", name: "Warm paper", hex: "#F7F1E3" }, { key: "text", name: "Ink", hex: "#10241A" },
       ], usageNotes: "Use the light surface for long-form content." },
       typography: { styles: [
-        { key: "heading", role: "Heading", family: index === 1 ? "Fraunces" : "Lora", weight: 600, style: "normal" },
-        { key: "body", role: "Body", family: "Manrope", weight: 400, style: "normal" },
+        { key: "heading", role: "Heading", family: options.fontFamily ?? (index === 1 ? "Fraunces" : "Lora"), weight: 600, style: "normal" },
+        { key: "body", role: "Body", family: options.fontFamily ?? "Manrope", weight: 400, style: "normal" },
       ], usageNotes: "Use the heading face for short statements and the body face for detail." },
       composition: { direction: ["An editorial direction with generous space.", "A warm, expressive direction with soft forms.", "A structured direction with confident blocks."][index]!, usageNotes: "Synthetic saved specification." },
     }, applicationDesign: { version: 1, graphic: ["fine_lines", "rounded_shapes", "bold_blocks"][index] as BrandBoardApplicationDesign["graphic"],

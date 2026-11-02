@@ -61,12 +61,21 @@ describe("reviewed authority packet roster",()=>{
   const body=originalBody+"end ";
   expect(createHash("sha256").update(body).digest("hex")).toBe("e8bae9ed6a46f0b87e8c78474d5d059dd608b27442421e730d2f0c9f4e599ea4");
   const fixed=body.replace("select 1 from fluid_private.naming_brainstorm_events where call_id=c.call_id and payload=p_args","select 1 from fluid_private.naming_brainstorm_events replay_event where replay_event.call_id=c.call_id and replay_event.payload=p_args");
-  expect(authorityManifest.functions.find(f=>f.schema==="public"&&f.name==="shared_naming_worker_action")?.sha256).toBe(createHash("sha256").update(fixed).digest("hex"));
+  const recovery=await readFile(new URL("../../supabase/candidates/shared_naming_brainstorm_delivery_recovery.sql",import.meta.url),"utf8");
+  const gatewayNeedle=/needle:=\$needle\$([\s\S]*?)\$needle\$;/u.exec(recovery)?.[1];
+  const gatewayReplacement=/replacement:=\$replacement\$([\s\S]*?)\$replacement\$;/u.exec(recovery)?.[1];
+  expect(gatewayNeedle).toBeDefined();expect(gatewayReplacement).toBeDefined();
+  const current=fixed.replace(gatewayNeedle!,gatewayReplacement!);
+  expect(current).not.toBe(fixed);
+  expect(authorityManifest.functions.find(f=>f.schema==="public"&&f.name==="shared_naming_worker_action")?.sha256).toBe(createHash("sha256").update(current).digest("hex"));
+  const deliveryBody=/create function fluid_private\.recover_naming_brainstorm_delivery\([\s\S]*?as \$\$([\s\S]*?)\$\$;/u.exec(recovery)?.[1];
+  expect(deliveryBody).toBeDefined();
+  expect(authorityManifest.functions.find(f=>f.name==="recover_naming_brainstorm_delivery")?.sha256).toBe(createHash("sha256").update(deliveryBody!).digest("hex"));
   const helper=/AS \$guard_body\$([\s\S]*?)\$guard_body\$/u.exec(repair)?.[1];
   expect(helper).toBeDefined();
   expect(authorityManifest.functions.find(f=>f.name==="naming_brainstorm_event_replay_guard_v1")?.sha256).toBe(createHash("sha256").update(helper!).digest("hex"));
  });
- it("retains the finite fifteen-packet bound",()=>{
-  expect(sharedAuthorityManifestSchema.safeParse({...authorityManifest,packets:Array.from({length:16},()=>authorityManifest.packets[0])}).success).toBe(false);
+ it("retains the finite sixteen-packet bound",()=>{
+  expect(sharedAuthorityManifestSchema.safeParse({...authorityManifest,packets:Array.from({length:17},()=>authorityManifest.packets[0])}).success).toBe(false);
  });
 });

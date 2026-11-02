@@ -1,6 +1,24 @@
 # Product reliability
 
-## Current priority
+## Current status, November 2, 2026
+
+The owner completed the signed-in main journey on October 30, including selecting
+Northline Direction 3 and opening its downloaded brand package. The later
+[visual identity release record](visual-identity-release-20261030.md) supersedes
+the pending selection/download status in the earlier checkpoints below.
+
+The November 2 review identified stalled save acknowledgements, Logo draft-cache
+exhaustion, missing automatic saves, unfair Naming recovery paging, retained
+Naming output that was not delivered, limited font coverage and vulnerable
+runtime dependencies. Corrections are implemented with focused regression coverage. The integrated
+release is undergoing final checks; source status is not a deployment or live
+acceptance claim. See [the coordinated rollout](review-fixes-rollout-20261102.md).
+
+The user selected broad multilingual support for finished assets. The supported
+scripts and remaining character limits are documented in the repository README.
+Preserve the current visual style while improving reliability and clarity.
+
+## Product priority
 
 The product helps people turn a product idea into usable branding. The user
 confirmed on October 29, 2026 that Embel has no customers yet. Reliability comes
@@ -9,7 +27,7 @@ review permits broader redesign, deliberate cleanup of existing disposable test
 projects/outputs, publication of tested fixes and focused real AI tests within
 requested work. Follow [the current working agreement](../AGENTS.md).
 
-## Confirmed findings
+## Historical October 29 findings
 
 | Finding | Action |
 | --- | --- |
@@ -193,24 +211,21 @@ only the failed slot succeeds under the uncapped policy, with an informational
 estimate of 14,600 microUSD. That quote was not admitted; no replacement image
 was generated. No projects or existing outputs were deleted. Final readback
 found no unfinished shared executions or pending jobs and no new worker errors.
-This is live backend acceptance; full signed-in approval/download acceptance is
-still pending.
+This checkpoint established live backend acceptance. Signed-in selection and
+download were subsequently accepted by the owner on October 30, as recorded in
+[the later release](visual-identity-release-20261030.md).
 
-## Remaining work, in order
+## Continuing verification
 
-1. Verify one complete signed-in journey: idea → Strategy → Naming → six logo concepts →
-   selection → Identity → usable downloads. Include reload, cancellation,
-   interrupted saves and a second account. Record local and live results
-   separately. Saved-logo visibility in Northline is user-confirmed; final
-   approval/download verification remains pending.
-2. Define recovery for requests without conclusive provider/billing evidence or
-   with an issued upload whose bytes cannot be verified. Do not automatically
-   repeat possibly completed paid work.
-3. Improve the broader desktop/mobile journey with the newly permitted design
-   freedom. Check empty, loading, partial-result and recovery states together.
+1. Recheck affected desktop/mobile journeys and failure recovery for each release.
+   The October 30 owner acceptance is evidence for that release, not a substitute
+   for testing later changes or broader languages.
+2. Deliver verified retained results while keeping uncertain provider outcomes
+   and costs explicit. Never repeat a possibly completed paid request.
+3. Keep measured account isolation, cancellation and recovery coverage. Capacity
+   for thousands of users has not been established.
 4. Retire older execution paths after handling their callers and data dependencies.
-   Existing Embel projects/outputs are disposable test data; report deliberate
-   resets. Establish measured concurrency and recovery before claiming capacity.
+   Existing projects/outputs are disposable test data; report deliberate resets.
 
 Current authorization comes from [AGENTS.md](../AGENTS.md), including its scope
 for existing services and test data. This work does not certify the whole product

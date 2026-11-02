@@ -108,6 +108,13 @@ export async function observeNamingBrainstorm(options: { gateway: NamingBrainsto
   }
   return retained;
 }
+
+/** Deliver only retained, SQL-verified candidates. Financial uncertainty stays
+ * explicit; this action cannot dispatch, resume, settle or close a paid call. */
+export async function recoverNamingBrainstormDelivery(gateway: NamingBrainstormGateway): Promise<{status:"retained_unknown"|"published_unsettled";insertedCount:number}> {
+  return z.strictObject({status:z.enum(["retained_unknown","published_unsettled"]),insertedCount:z.number().int().min(0).max(100)})
+    .parse(await gateway.invoke("brainstorm_recover_delivery",{},true));
+}
 /** Durable SQL admission precedes each of at most three independent paid creates. */
 export async function runNamingBrainstorm(options: { gateway: NamingBrainstormGateway; input: NamingBrainJobInput; job: ClaimedJob; provider: NamingBrainstormProvider; signal: AbortSignal; heartbeat(): Promise<{ cancelled: boolean }>; assertContinuation(): Promise<void> }): Promise<string> {
   const controller = new AbortController(), signal = AbortSignal.any([options.signal, controller.signal, AbortSignal.timeout(600_000)]);

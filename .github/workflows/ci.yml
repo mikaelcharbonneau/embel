@@ -1,0 +1,108 @@
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+  FLUID_RUN_LIVE_TESTS: "0"
+
+jobs:
+  quality:
+    name: Web quality and production dependencies
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm audit --omit=dev
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+
+  unit:
+    name: Unit and integration tests (${{ matrix.shard }}/4)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    env:
+      NODE_OPTIONS: --max-old-space-size=2048
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          # Native worker qualification is bound to this exact Node release.
+          node-version: "22.22.2"
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Run this shard of the ordinary Vitest suite
+        run: >-
+          npm test -- --shard=${{ matrix.shard }}/4 --maxWorkers=2
+          --reporter=default --reporter=junit
+          --outputFile.junit=test-results/vitest-${{ matrix.shard }}.xml
+      - name: Retain test report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: vitest-${{ matrix.shard }}
+          path: test-results/vitest-${{ matrix.shard }}.xml
+          if-no-files-found: warn
+          retention-days: 7
+
+  worker-builds:
+    name: Worker bundles
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "22.22.2"
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build:shared-worker
+      - run: npm run build:naming-worker
+      - run: npm run build:logo-worker
+      - run: npm run build:api-text-worker
+
+  ci:
+    name: CI
+    if: ${{ always() }}
+    needs: [quality, unit, worker-builds]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      QUALITY_RESULT: ${{ needs.quality.result }}
+      UNIT_RESULT: ${{ needs.unit.result }}
+      WORKER_RESULT: ${{ needs.worker-builds.result }}
+    steps:
+      - name: Require every check to pass
+        run: |
+          test "$QUALITY_RESULT" = success
+          test "$UNIT_RESULT" = success
+          test "$WORKER_RESULT" = success

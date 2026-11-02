@@ -34,6 +34,20 @@ function fixtureMarkup(node: ReactNode) {
 }
 
 describe("logo presentation (test-only domain bindings)", () => {
+  it("warns before generating unsupported name characters while preserving editing and saving", () => {
+    const onChange = vi.fn(), onSave = vi.fn();
+    const node = LogoBriefFields({ draft: { ...syntheticLogoBrief(), name: "Cedar 🦊" }, onChange, onSave, autoSave: true });
+    expect(renderToStaticMarkup(node)).toContain("Some characters in this name cannot yet be rendered");
+    expect(control(node, "Brand name").props.disabled).toBe(false);
+    expect(control(node, "Save brief").props.disabled).toBe(false);
+    change(control(node, "Brand name"), "さくら"); expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ name: "さくら" }));
+    click(control(node, "Save brief")); expect(onSave).toHaveBeenCalledOnce();
+  });
+  it.each(["", "さくら", "العربية", "देव Studio"])("does not warn about supported or unentered brand names: %s", name => {
+    const node = LogoBriefFields({ draft: { ...syntheticLogoBrief(), name }, onChange: () => undefined });
+    expect(renderToStaticMarkup(node)).not.toContain("cannot yet be rendered");
+    expect(renderToStaticMarkup(node)).not.toContain("Enter a brand name before generating");
+  });
   it("shows the operation-specific image limits and retains an over-limit reference count", () => {
     const overLimit = renderToStaticMarkup(createElement(LogoReferenceLimitNotice, { count: 5 }));
     expect(overLimit).toContain("5 selected reference images"); expect(overLimit).toContain("Concepts allow up to 4");
@@ -176,7 +190,7 @@ describe("logo presentation (test-only domain bindings)", () => {
     const node = LogoBriefFields({ draft: syntheticLogoBrief(), onChange: () => {}, nameConflict: true, sourceProjectRevision: 4 });
     expect(control(node, "Brand name").props["aria-invalid"]).toBe(false);
     expect(fixtureMarkup(node)).toContain("Strategy revision 4");
-    expect(fixtureMarkup(node)).toContain("The selected name is copied below; review its exact spelling before saving");
+    expect(fixtureMarkup(node)).toContain("The selected name is copied below; review its exact spelling before generating");
   });
   it("offers the same four independent aspects for curated and uploaded references", () => {
     const references = syntheticLogoReferences();

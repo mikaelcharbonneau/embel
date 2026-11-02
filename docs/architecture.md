@@ -15,9 +15,9 @@ See [fast-first Naming](naming-fast-first.md) for its precise implementation and
 evidence limits. Older native request formats and recovery paths remain in the
 source; their presence is not a requirement to use them for new requests.
 
-## Shared account and worker candidate
+## Current shared account and worker architecture
 
-The October 27 source candidate replaces per-customer database-password and
+The shared implementation, initially prepared on October 27, replaces per-customer database-password and
 resident-process provisioning with fixed restricted worker slots and finite
 server credentials. Confirmed signup creates account metadata. Each execution
 derives its tenant from an immutable database admission, job lease, slot
@@ -26,15 +26,17 @@ session-bound request capabilities; customer JWTs still govern web Storage.
 
 The worker uses outbound Vercel Queue polling and a durable Strategy outbox.
 Unknown outcomes retain observation authority and receipts without reserving
-every execution slot or creating another provider request. New target setup,
-credentials, real acceptance and release remain separate from source validation.
+every execution slot or creating another provider request. The existing hosted app uses this architecture; exact revisions and live
+acceptance evidence belong to the release records. Source checks alone do not
+prove a deployment.
 See [shared worker setup and security boundaries](shared-worker-pool.md) and
 [shared web authority](../src/server/shared-account/README.md).
 
 The earlier account-enrollment/Vault candidates remain historical review and
 compatibility evidence. The shared configuration selects the new facades and
-prevents fallback to their per-customer runtime. No hosted migration or
-production deployment is implied by these source changes.
+prevents fallback to their per-customer runtime. See
+[the October 30 release record](visual-identity-release-20261030.md) for the
+confirmed hosted rollout and subsequent owner acceptance.
 
 ## Historical hosted Naming execution
 

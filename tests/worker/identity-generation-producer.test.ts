@@ -81,3 +81,30 @@ describe("Identity real provider adapter — mocked transports only",()=>{
  });
 
 });
+
+
+describe("multilingual selected-logo generation", () => {
+ it.each([['茶屋', 'Noto Sans JP'], ['مرحبا', 'Noto Sans Arabic'], ['नमस्ते', 'Noto Sans Devanagari']])("offers and validates fonts for %s before rendering a board", async (name, family) => {
+  const f=fixture(), input=structuredClone(selectedLogoJobInput(png)); if(input.version!==3) throw Error('Expected v3');
+  input.sourceLogo.brief.payload.name=name;
+  const request=createIdentitySpecificationRequest(input.input,[],1,textPolicy,input.sourceLogo);
+  const content=(request.input as {content:string}[])[0]!.content;
+  const data=JSON.parse(content.slice(content.indexOf('\n')+1));
+  expect(data.supportedTypography.map((font:{family:string})=>font.family)).toContain(family);
+  expect(data.supportedTypography.map((font:{family:string})=>font.family)).not.toContain('Lora');
+  const spec=boardSpecification(); spec.components.typography.styles[0]!.family=family;
+  f.createResponse.mockResolvedValue(response(spec));
+  expect((await createIdentitySystemProducer(f.options)!.specify(input.input,[],1,key,signal(),f.dispatch,input.sourceLogo)).status).toBe('completed');
+  f.createResponse.mockResolvedValue(response(boardSpecification()));
+  const rejected=await createIdentitySystemProducer(f.options)!.specify(input.input,[],1,key,signal(),f.dispatch,input.sourceLogo);
+  expect(rejected.status).toBe('failed');expect(rejected.observation?.specification).toBeNull();
+ });
+ it("rejects unsupported text before token counting, reservation or paid generation", async () => {
+  const f=fixture(), input=structuredClone(selectedLogoJobInput(png)); if(input.version!==3) throw Error('Expected v3');
+  input.sourceLogo.brief.payload.name='Studio 🦄';
+  expect((await createIdentitySystemProducer(f.options)!.specify(input.input,[],1,key,signal(),f.dispatch,input.sourceLogo)).status).toBe('not_dispatched');
+  expect(f.countInputTokens).not.toHaveBeenCalled();expect(f.authorize).not.toHaveBeenCalled();expect(f.createResponse).not.toHaveBeenCalled();
+  expect((await createIdentitySystemProducer(f.options)!.board(input.input,boardSpecification(),[],key,signal(),f.dispatch,input.sourceLogo)).status).toBe('not_dispatched');
+  expect(f.createImage).not.toHaveBeenCalled();
+ });
+});

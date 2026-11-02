@@ -1,13 +1,14 @@
 /** Isolated PG17 NOSUPER source-packet verification. No ports, network, host
  * mounts, live database, passwords, Auth service or provider calls. The cached
  * image is required; this script does not pull or install infrastructure. */
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { readFileSync, readdirSync } from 'node:fs';
 import { createHash, randomBytes } from 'node:crypto';
 const image='ghcr.io/supabase/cli/postgres:17.11.0.006-r0@sha256:ee0f2d9747fb9d3c0a29703684ec718f070384ad05bf0d92823ed02cabde8e5a';
 const name=`embel-brainstorm-native17-${randomBytes(6).toString('hex')}`;
-const packetPaths=['shared_worker_pool.sql','shared_worker_naming.sql','shared_naming_brainstorm.sql'];
+const packetPaths=['shared_worker_pool.sql','shared_worker_naming.sql','shared_naming_brainstorm.sql','shared_naming_brainstorm_event_capacity.sql','shared_naming_brainstorm_delivery_recovery.sql'];
 const packets=Object.fromEntries(packetPaths.map(path=>[path,readFileSync(new URL('../supabase/candidates/'+path,import.meta.url),'utf8')]));
+const rollback=readFileSync(new URL('../supabase/operator/rollback_naming_brainstorm_delivery_recovery.sql',import.meta.url),'utf8');
 const env={...process.env};for(const key of ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH'])delete env[key];
 const docker=(args,input)=>execFileSync('docker',['--host=unix:///var/run/docker.sock',...args],{env,input,encoding:'utf8',stdio:['pipe','pipe','pipe'],maxBuffer:20*1024*1024});
 let created=false,stage='cached-image';const passed=[];
@@ -52,10 +53,25 @@ try{
    assert(guarded&&sql("select to_regclass('fluid_private.naming_brainstorm_calls') is null;")==='t','incremental-install-rejects-changed-copy-predecessor-before-mutation');
    sql(predecessor);
   }
+  if(path==='shared_naming_brainstorm_delivery_recovery.sql'){
+   const predecessor=sql("select pg_get_functiondef('public.shared_naming_worker_action(jsonb,jsonb,text,jsonb)'::regprocedure);");
+   sql("alter function public.shared_naming_worker_action(jsonb,jsonb,text,jsonb) set search_path=public;");
+   let guarded=false;try{sql(packets[path]);}catch(error){guarded=/brainstorm_delivery_predecessor_mismatch/.test(String(error.stderr));}
+   assert(guarded&&sql("select to_regclass('fluid_private.naming_brainstorm_delivery_recoveries') is null;")==='t','delivery-install-rejects-changed-predecessor-before-mutation');
+   sql(predecessor);
+  }
+  // The capacity packet checks the hosted target singleton; this isolated
+  // Naming fixture needs only that exact source-owned table, not HTTP actors.
+  if(path==='shared_naming_brainstorm_event_capacity.sql'){
+   const httpSource=readFileSync(new URL('../supabase/candidates/shared_account_http.sql',import.meta.url),'utf8');
+   const targetDefinition=/create table fluid_private\.shared_http_target\([\s\S]*?\n\);/.exec(httpSource)?.[0];
+   if(!targetDefinition)throw Error('Missing source-owned HTTP target table');
+   sql(targetDefinition+"\ninsert into fluid_private.shared_http_target(singleton,mode,origin)values(true,'hosted','https://fricsfwqibyhemknqgyf.supabase.co');");
+  }
   stage=`packet:${path}`;sql(packets[path]);
  }
  assert(sql("select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='fluid_private'and c.relname like 'naming_brainstorm_%'and c.relkind='r'and(not c.relrowsecurity or not c.relforcerowsecurity or has_table_privilege('fixture_brainstorm_acl_probe',c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'));")==='0','new-private-tables-force-RLS-and-strip-hostile-default-grantees');
- assert(sql("select count(*)from pg_proc p join pg_namespace n on n.oid=p.pronamespace,lateral aclexplode(coalesce(p.proacl,acldefault('f',p.proowner)))acl where n.nspname='fluid_private'and(p.proname like 'naming_brainstorm_%'or p.proname='shared_naming_brainstorm_ensure_core')and acl.grantee<>p.proowner;")==='0','new-private-helper-execute-owner-only');
+ assert(sql("select count(*)from pg_proc p join pg_namespace n on n.oid=p.pronamespace,lateral aclexplode(coalesce(p.proacl,acldefault('f',p.proowner)))acl where n.nspname='fluid_private'and(p.proname like 'naming_brainstorm_%'or p.proname in('shared_naming_brainstorm_ensure_core','recover_naming_brainstorm_delivery'))and acl.grantee<>p.proowner;")==='0','new-private-helper-execute-owner-only');
  stage='native-brainstorm-capability';
  const owner='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',foreign='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',role='embel_shared_naming_brainstorm',slot='00000000-0000-4000-8000-000000000001';
  const fingerprint={version:1,normalizer:'naming-preferences-v1:nfc-lower-nfc',implementationHash:'7108319323898692a388fcf17cb542509583288b0d4b05d7384f8c5b707aeb01',nodeVersion:process.versions.node,icuVersion:process.versions.icu,unicodeVersion:process.versions.unicode};
@@ -126,6 +142,77 @@ try{
  const newPublicGrants=JSON.parse(sql("select jsonb_agg(jsonb_build_object('name',p.proname,'role',r.rolname))from pg_proc p join pg_namespace n on n.oid=p.pronamespace,lateral aclexplode(coalesce(p.proacl,acldefault('f',p.proowner)))acl left join pg_roles r on r.oid=acl.grantee where n.nspname='public'and p.proname in('ensure_shared_naming_brainstorm_run','get_naming_brainstorm_sources')and acl.grantee<>p.proowner;"));
  assert(newPublicGrants.length===2&&newPublicGrants.every(x=>x.role==='authenticated'),'exact-two-owner-RPCs-authenticated-only-no-worker-grants');
 
- console.log(JSON.stringify({verification:'passed',nativeVersion:sql('show server_version;'),installer:'postgres NOSUPER CREATEROLE',migrationCount:migrationNames.length,checkCount:passed.length,passed,packetSha256:Object.fromEntries(Object.entries(packets).map(([p,s])=>[p,createHash('sha256').update(s).digest('hex')])),proofScope:'Disposable native PostgreSQL SQL capability tests with synthetic Auth/provider fixture records. Runtime ICU metadata describes local derived candidate normalization; no real provider inference or factual evidence.',providerCalls:false,liveSupabaseServices:false,authorityManifestWritten:false}));
+ stage='native-delivery-recovery';
+ lease=rpc('renew_shared_worker_slot',[lease,120],role);execution=null;
+ action('qualify',[policy,fingerprint]);
+ const recoveryProject=customer('create_project',['naming_only','Native saved delivery',{description:'Synthetic recovery brief'},'b'.repeat(64)]).id;
+ customer('save_naming_preferences',[recoveryProject,0,prefs]);
+ const recoveryIntent={...intent,idempotencyKey:'native-brainstorm-recovery'};
+ customer('ensure_shared_naming_brainstorm_run',[recoveryProject,recoveryIntent]);
+ const recoveryWork=action('preference_work',[20]).find(x=>x.projectId===recoveryProject);
+ action('attest_preferences',[recoveryProject,recoveryWork.preferencesVersion,recoveryWork.preferencesHash,fingerprint,{ready:true,missing:[]}]);
+ assert(customer('ensure_shared_naming_brainstorm_run',[recoveryProject,recoveryIntent]).status==='pending','recovery-fixture-real-admission');
+ const recoveryClaim=rpc('shared_naming_worker_action',[lease,null,'claim',['native-brainstorm-worker','native-brainstorm-fixture',300]],role);execution=recoveryClaim.execution;
+ const recoveryRun=recoveryClaim.result.job.input.runId;
+ const recoveryRequest={...request,metadata:{...request.metadata,embel_job_id:execution.jobId,embel_run_id:recoveryRun}};
+ const recoveryCall=action('brainstorm_begin',{callIndex:1,candidateTarget:120,request:recoveryRequest});
+ const recoveryResponseId='resp_native_retained';
+ action('brainstorm_event',{callId:recoveryCall.callId,kind:'created',responseId:recoveryResponseId,requestId:'req_native_retained',observedAt:'2026-10-29T12:02:00Z'});
+ action('brainstorm_event',{callId:recoveryCall.callId,kind:'unknown',responseId:recoveryResponseId,requestId:'req_native_retained',observedAt:'2026-10-29T12:03:00Z'});
+ assert(action('brainstorm_finish').state==='needs_reconciliation','unknown-outcome-preserved-before-recovery');
+ action('recover',[]);
+ assert(action('brainstorm_recover_delivery').status==='retained_unknown','no-terminal-response-never-invents-delivery');
+ const recoveryRaw={value:'SavedCedar',rationale:'Synthetic recovered construction.',primaryApproach:'real_words'};
+ const recoveryCandidate={...recoveryRaw,identityKey:'savedcedar',graphemeCount:10,caution:'Unchecked brainstorm. Research and screening are needed before use.'};
+ const recoveryResponse={id:recoveryResponseId,status:'completed',model:'gpt-6-luna',output:[{type:'message',role:'assistant',status:'completed',content:[{type:'output_text',text:JSON.stringify({candidates:[recoveryRaw]})}]}]};
+ action('brainstorm_event',{callId:recoveryCall.callId,kind:'completed',responseId:recoveryResponseId,requestId:'req_native_retained_get',observedAt:'2026-10-29T12:04:00Z',response:recoveryResponse,candidates:[recoveryCandidate],usage:{input_tokens:100,output_tokens:200,total_tokens:300}});
+ const originalEvidence=()=>sql(`select jsonb_build_object('call',(select to_jsonb(c)from fluid_private.naming_brainstorm_calls c where call_id=${quote(recoveryCall.callId)}),'events',(select jsonb_agg(to_jsonb(e)order by created_at,event_id)from fluid_private.naming_brainstorm_events e where call_id=${quote(recoveryCall.callId)}),'job',(select to_jsonb(j)-array['progress']from public.jobs j where id=${quote(execution.jobId)}),'reservation',(select to_jsonb(r)from public.usage_reservations r where job_id=${quote(execution.jobId)}),'actualCost',(select actual_cost_microusd from fluid_private.naming_brain_runs where id=${quote(recoveryRun)}));`);
+ const retainedEvidence=originalEvidence();
+ denied(()=>rpc('shared_naming_worker_action',[lease,{...execution,ownerId:foreign},'brainstorm_recover_delivery',{}],role),'delivery-rejects-forged-owner');
+ denied(()=>sql(`select fluid_private.recover_naming_brainstorm_delivery(${quote(JSON.stringify(lease))},${quote(JSON.stringify(execution))},'{}');`,role),'delivery-private-helper-not-callable-by-lane-login');
+ sql(`update fluid_private.naming_brain_heads set paused=true where project_id=${quote(recoveryProject)};`);
+ assert(action('brainstorm_recover_delivery').insertedCount===0,'delivery-respects-paused-project');
+ sql(`update fluid_private.naming_brain_heads set paused=false where project_id=${quote(recoveryProject)};`);
+ stage='native-delivery-concurrent-editor';
+ const holder=spawn('docker',['--host=unix:///var/run/docker.sock','exec','-i',name,'psql','-X','-q','-A','-t','-v','ON_ERROR_STOP=1','-h','/tmp','-U','postgres','-d','postgres'],{env,stdio:['pipe','pipe','pipe']});
+ const holderClosed=new Promise(resolve=>holder.once('close',resolve));
+ try{
+  await new Promise((resolve,reject)=>{
+   let output='';const timeout=setTimeout(()=>reject(Error('Native row-lock fixture timed out')),5000);
+   holder.once('error',error=>{clearTimeout(timeout);reject(error);});
+   holder.stdout.on('data',chunk=>{output+=String(chunk);if(output.includes('delivery-row-locked')){clearTimeout(timeout);resolve();}});
+   holder.stdin.write(`begin;select id from public.projects where id=${quote(recoveryProject)} for update;\n\\echo delivery-row-locked\n`);
+  });
+  const started=Date.now();
+  assert(action('brainstorm_recover_delivery').status==='retained_unknown'&&Date.now()-started<3000,'delivery-contention-is-bounded-and-retryable');
+  assert(sql(`select count(*)from fluid_private.naming_brainstorm_delivery_recoveries where run_id=${quote(recoveryRun)};`)==='0'&&originalEvidence()===retainedEvidence,'contended-delivery-preserves-evidence-and-has-no-partial-publication');
+ }finally{holder.stdin.end('rollback;\n');await holderClosed;}
+ stage='native-delivery-public-result';
+ assert(action('brainstorm_recover_delivery').insertedCount===1,'completed-saved-response-delivered-once');
+ assert(action('brainstorm_recover_delivery').insertedCount===0,'lost-delivery-ack-replay-does-not-duplicate');
+ assert(originalEvidence()===retainedEvidence,'delivery-preserves-original-call-events-job-cost-and-reservation');
+ assert(sql(`select recovery.evidence->>'requestHash'=encode(sha256(convert_to(call.request::text,'UTF8')),'hex')
+  and recovery.evidence->>'responseHash'=encode(sha256(convert_to((event.payload->'response')::text,'UTF8')),'hex')
+  and recovery.evidence->>'eventHash'=encode(sha256(convert_to(event.payload::text,'UTF8')),'hex')
+  and recovery.evidence->>'originalJobState'='needs_reconciliation'
+  from fluid_private.naming_brainstorm_delivery_recoveries recovery join fluid_private.naming_brainstorm_calls call using(call_id)
+  join fluid_private.naming_brainstorm_events event using(event_id) where recovery.call_id=${quote(recoveryCall.callId)};`)==='t','delivery-receipt-hashes-bind-original-immutable-evidence');
+ denied(()=>sql(`update fluid_private.naming_brainstorm_delivery_recoveries set candidate_ids='[]' where call_id=${quote(recoveryCall.callId)};`),'delivery-receipt-is-immutable-even-to-owner');
+ assert(sql(`select count(*)from fluid_private.naming_brainstorm_completions where run_id=${quote(recoveryRun)};`)==='0','delivery-never-manufactures-completion-or-settlement');
+ const recoveredFeed=customer('get_naming_feed',[recoveryProject,{}]);
+ assert(recoveredFeed.entries.length===1&&recoveredFeed.activeRun.state==='needs_reconciliation'&&recoveredFeed.activeRun.recoveredNameCount===1&&recoveredFeed.activeRun.accounting.status==='held_unsettled'&&recoveredFeed.activeRun.accounting.confirmedActualCostMicrousd===null,'delivered-result-visible-with-unknown-outcome-and-billing');
+ assert(customer('select_project_name',[recoveryProject,recoveredFeed.entries[0].entry.candidate.id,1,false]).currentSelection.candidate.value==='SavedCedar','delivered-result-selectable-while-accounting-unresolved');
+ stage='native-delivery-rollback';
+ const deliveryDefinition=sql("select pg_get_functiondef('fluid_private.recover_naming_brainstorm_delivery(jsonb,jsonb,jsonb)'::regprocedure);");
+ sql("alter function fluid_private.recover_naming_brainstorm_delivery(jsonb,jsonb,jsonb) set search_path=public;");
+ let rollbackGuarded=false;try{sql(rollback);}catch(error){rollbackGuarded=/brainstorm_delivery_rollback_source_mismatch/.test(String(error.stderr));}
+ assert(rollbackGuarded&&customer('get_naming_feed',[recoveryProject,{}]).activeRun.recoveredNameCount===1,'rollback-rejects-changed-function-before-mutation');
+ sql(deliveryDefinition);sql(rollback);
+ const rolledBackFeed=customer('get_naming_feed',[recoveryProject,{}]);
+ assert(rolledBackFeed.entries.length===1&&rolledBackFeed.activeRun.recoveredNameCount===undefined&&rolledBackFeed.activeRun.state==='needs_reconciliation','rollback-restores-old-projection-and-keeps-usable-results');
+ assert(sql(`select count(*)from fluid_private.naming_brainstorm_delivery_recoveries where run_id=${quote(recoveryRun)};`)==='1','rollback-keeps-immutable-delivery-receipt');
+ denied(()=>action('brainstorm_recover_delivery'),'rollback-disables-recovery-entry-point');
+
+ console.log(JSON.stringify({verification:'passed',nativeVersion:sql('show server_version;'),installer:'postgres NOSUPER CREATEROLE',migrationCount:migrationNames.length,checkCount:passed.length,passed,packetSha256:Object.fromEntries(Object.entries(packets).map(([p,s])=>[p,createHash('sha256').update(s).digest('hex')])),rollbackSha256:createHash('sha256').update(rollback).digest('hex'),proofScope:'Disposable native PostgreSQL SQL capability tests with synthetic Auth/provider fixture records. Runtime ICU metadata describes local derived candidate normalization; no real provider inference or factual evidence.',providerCalls:false,liveSupabaseServices:false,authorityManifestWritten:false}));
 }catch(error){console.error(JSON.stringify({verification:'failed',stage,sqlError:String(error?.stderr??'').match(/ERROR:\s+([^\n]{1,180})/)?.[1],error:error instanceof Error?error.message.split('\n')[0].replace(/Command failed:.*/,'native fixture command failed'):'native fixture failed'}));process.exitCode=1;
 }finally{if(created){try{docker(['rm','--force',name]);console.log(JSON.stringify({fixtureContainerRemoved:true,persistentAccessCreated:false}));}catch{console.error('Native fixture cleanup failed');process.exitCode=1;}}}

@@ -57,3 +57,14 @@ describe("logo image producer capability and frozen prompt", () => {
     expect(JSON.stringify(output)).not.toContain("PRIVATE SECRET"); expect(output).toMatchObject({ status: "needs_reconciliation", billing: { status: "unknown" } });
   });
 });
+
+
+it.each([['茶屋', true], ['مرحبا', true], ['Studio 🦄', false]])('checks brand asset character coverage before paid Logo generation: %s', async (name, supported) => {
+ const createImage=vi.fn().mockResolvedValue(result), input=structuredClone(syntheticResolvedLogoConcept());
+ input.brief.payload.name=name;
+ const producer=createLogoImageProvider({configuration:config,transport:{createImage}})!;
+ const output=await producer.produce(input,[],"font-coverage-test",new AbortController().signal);
+ expect(output.status).toBe(supported?'completed':'not_dispatched');
+ expect(createImage).toHaveBeenCalledTimes(supported?1:0);
+ if(!supported) expect(output).toMatchObject({code:'unsupported_brand_text',billing:{status:'recorded',confirmedMicrousd:0}});
+});

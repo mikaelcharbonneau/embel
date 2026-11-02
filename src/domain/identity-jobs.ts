@@ -39,7 +39,7 @@ export type IdentityGenerationIntent = z.infer<typeof identityGenerationIntentSc
 const unavailableIdentitySchema = z.strictObject({
   ownerId: z.uuid(), projectId: z.uuid(), status: z.literal("unavailable"),
   operation: z.literal("identity.image"), requestedModel: z.literal(IMAGE_MODEL),
-  reason: z.enum(["pipeline_not_implemented", "runtime_unavailable", "policy_unavailable", "inputs_not_ready", "references_unavailable", "reference_limit_exceeded", "reference_bytes_exceeded", "logo_selection_required", "logo_needs_review"]),
+  reason: z.enum(["pipeline_not_implemented", "runtime_unavailable", "policy_unavailable", "inputs_not_ready", "references_unavailable", "reference_limit_exceeded", "reference_bytes_exceeded", "logo_selection_required", "logo_needs_review", "unsupported_brand_text"]),
   maxReferenceImages: z.literal(4).optional(),
   maxReferenceBytes: z.literal(20_971_520).optional(),
 });

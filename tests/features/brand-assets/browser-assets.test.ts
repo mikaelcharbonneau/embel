@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { webcrypto } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { brandAssetFixture, logoBytes } from "./fixtures";
-import { BRAND_BOARD_FONTS } from "../../../src/domain/brand-board-fonts";
+import { BRAND_BOARD_FONTS, brandBoardFont } from "../../../src/domain/brand-board-fonts";
 import { boundedBrandAssetWork, BRAND_ASSET_TIMEOUT_MS, loadBrandFonts, readBrandImage } from "../../../src/features/brand-assets/client/browser-assets";
 import { createBrandApplication, BRAND_APPLICATIONS } from "../../../src/features/brand-assets/model/artwork";
 
@@ -55,6 +55,38 @@ describe("browser asset verification and resource lifetimes", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response("changed font")));
     await expect(loadBrandFonts([createBrandApplication(f.snapshot, BRAND_APPLICATIONS[1])], new AbortController().signal)).rejects.toMatchObject({ reason: "font" });
     expect(load).not.toHaveBeenCalled();
+  });
+  it("loads only the selected full CJK font and verifies bytes beyond the former 2 MiB limit", async () => {
+    const f = setup(), font = brandBoardFont("Noto Sans SC")!, add = vi.fn(), remove = vi.fn(), loaded: ArrayBuffer[] = [];
+    vi.stubGlobal("FontFace", class { status = "unloaded"; constructor(_name: string, readonly bytes: ArrayBuffer) { loaded.push(bytes); } async load() { this.status = "loaded"; return this; } });
+    Object.defineProperty(document, "fonts", { configurable: true, value: { add, delete: remove } });
+    const original = readFileSync(`public${font.file}`);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(original)));
+    const snapshot = { ...f.snapshot, name: "茶屋 Studio", heading: { ...f.snapshot.heading, family: font.family, font }, body: { ...f.snapshot.body, family: font.family, font } };
+    const art = createBrandApplication(snapshot, BRAND_APPLICATIONS[3]);
+    const fonts = await loadBrandFonts([art, art], new AbortController().signal);
+    expect(original.byteLength).toBeGreaterThan(2 * 1024 * 1024);
+    expect(fetch).toHaveBeenCalledExactlyOnceWith(font.file, expect.objectContaining({ cache: "force-cache", mode: "same-origin", credentials: "omit", redirect: "error" }));
+    expect(loaded).toHaveLength(1); expect(Buffer.from(loaded[0]!).equals(original)).toBe(true);
+    expect([...fonts.names.keys()]).toEqual([font.family]); expect(add).toHaveBeenCalledOnce();
+    fonts.release(); expect(remove).toHaveBeenCalledOnce();
+  });
+  it.each([["茶屋", "font_coverage"], ["Tea 🍵", "unsupported_text"]])("rejects %s before fetching an incompatible saved font", async (name, reason) => {
+    const f = setup();
+    vi.stubGlobal("FontFace", class {});
+    Object.defineProperty(document, "fonts", { configurable: true, value: { add: vi.fn(), delete: vi.fn() } });
+    const art = createBrandApplication({ ...f.snapshot, name }, BRAND_APPLICATIONS[3]);
+    await expect(loadBrandFonts([art], new AbortController().signal)).rejects.toMatchObject({ reason });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+  it("rejects appended bytes at the selected font's exact bound without registering it", async () => {
+    const f = setup(), font = brandBoardFont(f.snapshot.heading.family)!, add = vi.fn();
+    vi.stubGlobal("FontFace", class {});
+    Object.defineProperty(document, "fonts", { configurable: true, value: { add, delete: vi.fn() } });
+    const original = readFileSync(`public${font.file}`);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(Buffer.concat([original, Buffer.from([0])]))));
+    await expect(loadBrandFonts([createBrandApplication(f.snapshot, BRAND_APPLICATIONS[3])], new AbortController().signal)).rejects.toMatchObject({ reason: "size" });
+    expect(add).not.toHaveBeenCalled();
   });
   it("bounds a browser operation that never settles", async () => {
     vi.useFakeTimers(); const controller = new AbortController();

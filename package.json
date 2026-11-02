@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22.13.0 <23 || >=24"
+    "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
   },
   "scripts": {
     "local": "node scripts/local.mjs",
@@ -43,7 +43,7 @@
     "harfbuzzjs": "1.6.2",
     "img-fx": "0.5.1",
     "jose": "6.2.12",
-    "next": "16.3.8",
+    "next": "16.4.4",
     "openai": "7.35.0",
     "parse5": "8.0.1",
     "pdfjs-dist": "6.2.108",
@@ -57,7 +57,7 @@
     "svg-pathdata": "7.2.0",
     "three": "0.186.1",
     "tsx": "4.23.15",
-    "zod": "4.6.5"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8",
@@ -69,14 +69,21 @@
     "@types/react-dom": "19.3.0",
     "esbuild": "0.28.2",
     "eslint": "9.39.5",
-    "eslint-config-next": "16.3.8",
+    "eslint-config-next": "16.4.4",
     "jsdom": "30.1.2",
     "typescript": "6.0.3",
     "vitest": "5.0.3"
   },
   "overrides": {
     "@vercel/queue": {
-      "@vercel/oidc": "$@vercel/oidc"
+      "@vercel/oidc": "$@vercel/oidc",
+      "minimatch": "11.0.4"
+    },
+    "@vercel/cli-config": {
+      "zod": "$zod"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "11.0.4"
     }
   }
 }

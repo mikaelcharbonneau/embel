@@ -8,6 +8,7 @@ import { useCallback, useEffect, useEffectEvent, useRef, useState, useSyncExtern
 import { logoBriefDraftSchema, type LogoRasterSource } from "@/domain/logo-workspace";
 import { logoUuidSchema } from "@/domain/logo-vector";
 import type { LogoConceptBatch, LogoQuoteRequest } from "@/domain/logo-jobs";
+import { brandTextReadiness } from "@/domain/brand-board-fonts";
 import { IMAGE_INPUT_LIMITS } from "@/domain/logo-image-limits";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import { useLogoDraftMemory } from "@/components/identity/logo-draft-memory-context";
@@ -208,13 +209,16 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
   const referenceCount = draft?.references.length ?? snapshot?.references.length ?? 0;
   const conceptReferenceLimitExceeded = referenceCount > IMAGE_INPUT_LIMITS.images;
   const canSaveReferences = Boolean(editing && snapshot && saveAvailable && !workspace.pending && !draft?.conflict);
-  const saveMessage = savedInputs.status === "saving" ? "Saving…" : strategy.busy ? "Reading your saved Strategy…" : workspace.pending ? "A request is awaiting confirmation. Your edits are kept in this tab."
+  const autoSave = Boolean(projectId && !needsInitialization);
+  const saveMessage = savedInputs.status === "saving" || workspace.saving ? "Saving…" : strategy.busy ? "Reading your saved Strategy…" : workspace.pending ? "A request is awaiting confirmation. Your edits are kept in this tab."
     : !saveAvailable ? "Saving is unavailable. " + (saved?.capabilities.save.status === "unavailable" ? saved.capabilities.save.reason : "Your edits are kept in this tab.")
     : workspace.status === "loading" ? "Loading your workspace…" : draft?.conflict ? "The saved brief has changed. Your edits are kept in this tab."
     : !validBrief ? "Enter a brand name and choose at least one logo type. Brief details must fit the save limits."
-    : workspace.dirty ? "Unsaved changes are kept in this tab." : needsInitialization ? "Create a logo workspace in this saved brand when your brief is ready." : saved ? "Saved." : "Save the brief to create your project.";
+    : workspace.error ? "Changes could not be saved. Your edits are kept in this tab."
+    : workspace.dirty ? workspace.autoSaveReady ? "Changes waiting to save…" : "Unsaved changes are kept in this tab." : needsInitialization ? "Create a logo workspace in this saved brand when your brief is ready." : saved ? "Saved." : "Save the brief to create your project.";
 
-  const canEstimate = Boolean(saved && editing && !workspace.pending && !workspace.dirty && !draft?.conflict && !quoteReviewBlocked);
+  const nameReadiness = brandTextReadiness(draft?.brief.name ?? "");
+  const canEstimate = Boolean(nameReadiness.supported && saved && editing && !workspace.pending && !workspace.dirty && !draft?.conflict && !quoteReviewBlocked);
   const brief = workspace.stagePayloads?.brief_references;
   const conceptsRequest: LogoQuoteRequest | null = !activeBatch && !batchId && !savedBatchLoading && !savedBatchUnavailable && canEstimate && !conceptReferenceLimitExceeded && capabilities.isAvailable("identity.logo_concept")
     ? conceptsScreen ? savedInputs.status === "prepared" && JSON.stringify(savedInputs.request.expected) === JSON.stringify(saved?.heads) ? savedInputs.request : null
@@ -431,7 +435,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
         : draft?.references.length ? "Your reference selections are kept. Their saved details are currently unavailable."
         : projectId ? "Saved reference details are unavailable. Your selections will be kept when they can be read." : "References are optional. Save your brief before attaching references."} />}
     <LogoReferenceLimitNotice count={referenceCount} />
-    {snapshot && <div className={styles.panel}><button className={styles.primaryButton} type="button" disabled={!canSaveReferences} onClick={() => { if (canSaveReferences && draft) void workspace.saveReferences(draft.references); }}>Save references</button></div>}
+    {snapshot && <div className={styles.panel}><p className={styles.note}>Reference choices save automatically.</p><button className={styles.primaryButton} type="button" disabled={!canSaveReferences} onClick={() => { if (canSaveReferences && draft) void workspace.saveReferences(draft.references); }}>Save references</button></div>}
     {batchId && !activeBatch && <p className={styles.note} role="status">{batchRead?.id === batchId && batchRead.unavailable ? "Saved concepts are unavailable. Their original records are kept." : "Loading saved concepts…"}</p>}
     {projectId && <section className={styles.panel} aria-label="Saved explorations">
       <h2>Saved explorations</h2>
@@ -475,7 +479,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
   </>;
 
   const conceptsComposer = conceptsScreen && projectId ? <ConceptsComposer disclosureRef={refinementDisclosure} projectId={projectId} selectionReadState={initialConceptReadState} selectedLabel={selectedLabel} selectedPreview={focusedReceipt && client ? <LogoVerifiedPreview client={client} receipt={focusedReceipt} alt="Selected logo" /> : undefined} status={composerStatus} onShowResult={completedRefinement ? () => { const slotId = Object.entries(cardVersions).find(([, versions]) => versions.some(version => version.source.kind === "refinement" && version.source.rasterRevisionId === completedRefinement.id))?.[0]; if (slotId) document.querySelector<HTMLElement>(`[data-concept-slot="${slotId}"]`)?.scrollIntoView({ block: "center" }); } : undefined} instruction={refineInstruction} onInstructionChange={setRefineInstruction} onGenerate={refinementEstimate.canStart ? refinementEstimate.start : undefined} generationAction={<LogoGenerationAction estimate={refinementEstimate} label="Generate refinement" unavailable="Select a logo and describe your changes." />}>
-      <LogoBriefFields draft={draft?.brief} onChange={editing ? workspace.setBriefDraft : undefined} onReuseStrategy={editing && projectId && saved && !workspace.pending ? () => void reuseStrategy() : undefined} nameConflict={strategy.nameConflict} sourceProjectRevision={strategy.revision} saveMessage={saveMessage} saveLabel={needsInitialization ? "Create logo workspace" : "Save brief"} onSave={canSave ? () => { if (draft) void workspace.saveBrief(draft.brief); } : undefined} />
+      <LogoBriefFields draft={draft?.brief} autoSave={autoSave} onChange={editing ? workspace.setBriefDraft : undefined} onReuseStrategy={editing && projectId && saved && !workspace.pending ? () => void reuseStrategy() : undefined} nameConflict={strategy.nameConflict} sourceProjectRevision={strategy.revision} saveMessage={saveMessage} saveLabel={needsInitialization ? "Create logo workspace" : "Save brief"} onSave={canSave ? () => { if (draft) void workspace.saveBrief(draft.brief); } : undefined} />
       <ContextDetails className={styles.contextDetails} title={<>Saved inputs and recovery</>}><p className={styles.muted}>Start with a brief, choose the kinds of logo you want to explore, and keep your work in a saved project.</p>{savedProjectId && <div className={styles.actions}>
         <Link className={styles.secondaryButton} href={projectStrategyHref(savedProjectId)}>Open project</Link>
         <Link className={styles.secondaryButton} href={"/brands/account/" + savedProjectId + "/identity"}>Open moodboard and saved systems</Link>
@@ -568,6 +572,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
       refinement={capabilities.isAvailable("identity.logo_refine") ? { status: "available" } : { status: "unavailable", reason: "Image refinement is currently unavailable." }} plan={conceptEstimate.quote?.conceptPlan}
       renderPreview={client ? receipt => <LogoVerifiedPreview client={client} receipt={receipt} /> : undefined}
       generationActions={<>
+        {!nameReadiness.supported && <p role="status">{nameReadiness.message}</p>}
         {!activeBatch && <LogoGenerationAction estimate={conceptEstimate} label="Generate six concepts" unavailable={savedInputsBusy ? "Preparing saved inputs…" : !capabilities.isAvailable("identity.logo_concept") ? "Generation is currently unavailable." : "Complete your saved logo inputs to continue."} />}
         {activeBatch && <LogoGenerationAction estimate={moreEstimate} label="Generate six more concepts" unavailable={!batchReady ? "Refresh saved logo details to continue." : "Save your inputs to continue."} />}
         {failedSlotIds.length > 0 && <LogoGenerationAction estimate={retryEstimate} label={`Retry ${failedSlotIds.length} failed concept${failedSlotIds.length === 1 ? "" : "s"}`} unavailable={!batchReady ? "Refresh saved logo details to continue." : "Save your inputs to continue."} />}
@@ -585,7 +590,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
     {recoveryKeys.filter(key => requestReadouts[key]?.error).map(key => <p key={key} className={styles.note} role="status">Request {key.slice(0, 8)}: {requestReadouts[key]!.error}</p>)}
     {generation && <LogoCostConfirmation controller={generation} batch={activeBatch} />}
   </div>{!conceptsScreen && <ProjectDock title="Logo setup" context={<p>{draft?.brief.name || "No saved brand name"}</p>}>
-    <LogoBriefFields draft={draft?.brief} onChange={editing ? value => {
+    <LogoBriefFields draft={draft?.brief} autoSave={autoSave} onChange={editing ? value => {
       if (value.name !== draft?.brief.name) setStrategy(previous => ({ ...previous, nameConflict: false }));
       workspace.setBriefDraft(value);
     } : undefined} onReuseStrategy={editing && projectId && saved && !workspace.pending ? () => void reuseStrategy() : undefined}

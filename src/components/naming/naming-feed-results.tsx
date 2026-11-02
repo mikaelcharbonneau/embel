@@ -19,8 +19,10 @@ type NamingFeedTailProps = { feed: ReturnType<typeof useNamingFeed>; blocked: bo
 
 // Persisted fulfillment messages can describe an earlier running snapshot.
 // Terminal presentation follows the acknowledged run state, not that old copy.
-function terminalMessage(state: string) {
-  return state === "needs_reconciliation" ? "A previous request has an unconfirmed outcome. Saved names are retained."
+function terminalMessage(state: string, recoveredNameCount = 0) {
+  return state === "needs_reconciliation" ? recoveredNameCount > 0
+    ? "Recovered names are saved and can be used. The remaining provider outcome or cost still needs verification."
+    : "A previous request has an unconfirmed outcome. Saved names are retained."
     : state === "cancelled" ? "This exploration was stopped. Your saved names remain available."
       : state === "failed" ? "This exploration could not finish. Your saved names remain available."
         : "This exploration ended before a complete set was saved. Your saved names remain available.";
@@ -49,7 +51,7 @@ function NamingFeedCurrentStatus({ feed, blocked, onModify, onReviewSaved }: Nam
   if (state?.stop) return <p>Saving your pause… Names already created remain available.</p>;
   if (active?.canResumeSaved && (state?.feed?.paused || state?.feed?.preparedSetId)) return <>{incompleteSummary}<p>Saved names are ready to explore.</p>{reviewSaved}<button type="button" className="button secondary small" disabled={blocked || !feed.canResume} onClick={() => void feed.resume()}>Continue with saved names</button></>;
   if (outcome?.status === "incomplete") return <>
-    <p>{terminalMessage((active ?? outcome.run).state)}</p><p><strong>Incomplete exploration.</strong> {outcome.fulfillment.acceptedCount} of {outcome.fulfillment.targetCount} names saved. Earlier names stay available.</p>{reviewSaved}
+    <p>{terminalMessage((active ?? outcome.run).state, (active ?? outcome.run).recoveredNameCount)}</p><p><strong>Incomplete exploration.</strong> {outcome.fulfillment.acceptedCount} of {outcome.fulfillment.targetCount} names saved. Earlier names stay available.</p>{reviewSaved}
     {(active ?? outcome.run).canResume ? <button type="button" className="button secondary small" disabled={blocked || !feed.canResume} onClick={() => void feed.resume()}>Resume unfinished exploration</button> : <p>This outcome needs resolution before another request can start.</p>}
     <button type="button" className="text-link" onClick={onModify}>Review Naming choices</button>
   </>;
@@ -63,7 +65,7 @@ function NamingFeedCurrentStatus({ feed, blocked, onModify, onReviewSaved }: Nam
   if (active?.generationProfile === "brainstorm_v1" && active.state === "succeeded") return <p>{active.fulfillment?.acceptedCount ?? active.progress} unchecked brainstorm names are saved. Research your shortlist before use.{active.fulfillment?.coverageSatisfied === false ? " Some selected naming approaches have fewer examples." : ""}</p>;
   if (active && ["partial", "failed", "cancelled", "needs_reconciliation"].includes(active.state)) return <>
     {incompleteSummary}{reviewSaved}
-    <p>{terminalMessage(active.state)}</p>
+    <p>{terminalMessage(active.state, active.recoveredNameCount)}</p>
     {active.canResume ? <button type="button" className="button secondary small" disabled={blocked || !feed.canResume} onClick={() => void feed.resume()}>Resume unfinished exploration</button> : <button type="button" className="button secondary small" onClick={() => void feed.refresh()}>Check saved result</button>}
     {active.state !== "needs_reconciliation" ? <button type="button" className="text-link" onClick={onModify}>Review Naming choices</button> : null}
   </>;

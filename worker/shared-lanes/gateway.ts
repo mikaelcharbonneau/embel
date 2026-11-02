@@ -31,7 +31,7 @@ export function createSharedLaneGateway(options:{database:JobDatabase;slot:()=>S
  async function invoke(action:string,args:unknown,observation=false):Promise<unknown>{
   const run=tail.then(async()=>{
    if(options.observationExecution&&!observation)throw unavailable();
-   if(historicalBrainstorm&&(!["recover","brainstorm_state","brainstorm_event"].includes(action)
+   if(historicalBrainstorm&&(!["recover","brainstorm_state","brainstorm_event","brainstorm_recover_delivery"].includes(action)
     ||action==="brainstorm_event"&&(!args||typeof args!=="object"||Array.isArray(args)||(args as Record<string,unknown>).kind!=="completed")))throw unavailable();
    if(!observation)options.signal?.throwIfAborted();
    const slot=execution?capturedSlot:options.slot();

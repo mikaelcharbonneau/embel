@@ -761,6 +761,8 @@ const runSummaryFields = {
   progressiveCompletionId: z.uuid().optional(),
   generationProfile: z.literal("brainstorm_v1").optional(),
   brainstormCompletionId: z.uuid().optional(),
+  // Owned saved membership recovered without another paid call or settled cost.
+  recoveredNameCount: z.number().int().min(1).max(100).optional(),
   state: z.enum(["queued", "running", "partial", "cancel_requested", "cancelled", "succeeded", "failed", "needs_reconciliation", "prepared", "superseded"]),
   projectRevision: revision, preferencesVersion: revision, feedbackRevision: counter, steeringRevision: counter, demandSequence: counter, snapshotHash: hash, acceptedPolicyIdentity: hash,
   progress: z.number().int().min(0).max(100), preparedSetId: z.uuid().nullable(), fulfillment: namingBrainFulfillmentSchema.nullable(), accounting: namingRunAccountingSchema, createdAt: timestamp, updatedAt: timestamp,
@@ -779,12 +781,14 @@ export const namingBrainRunSummarySchema = z.strictObject(runSummaryFields).refi
   .refine(value => value.providerBudgetVersion !== 2 || value.executionAuthority === "hosted_owner_v1" && value.localPipelineVersion === 2, "Uncapped run summaries require the hosted progressive witness")
   .refine(value => !value.progressiveCompletionId || value.localPipelineVersion === 2 && value.preparedSetId === null && value.fulfillment?.status === "complete", "Progressive completion retains its distinct genuine membership witness")
   .refine(value => !value.brainstormCompletionId || value.generationProfile === "brainstorm_v1" && value.preparedSetId === null && !value.progressiveCompletionId && value.fulfillment?.acceptedCount === 100 && value.state === "succeeded", "Brainstorm completion requires its distinct persisted full membership witness")
+  .refine(value => value.recoveredNameCount === undefined || value.generationProfile === "brainstorm_v1" && value.recoveredNameCount <= (value.fulfillment?.acceptedCount ?? 0), "Recovered names require actual saved brainstorm membership")
   .refine(validResumeWitness, "A server Resume witness requires admissible terminal work or complete prepared membership");
 export type NamingBrainRunSummary = z.infer<typeof namingBrainRunSummarySchema>;
 export const namingBrainRunSchema = z.strictObject({ ...runSummaryFields, snapshot: namingBriefSnapshotSchema,
   stages: z.array(z.strictObject({ stageKey: namingStageKeySchema, state: z.enum(["pending", "running", "succeeded", "skipped", "failed", "cancelled", "unresolved"]), artifactIds: z.array(z.uuid()).max(300).refine(unique), startedAt: timestamp.nullable(), finishedAt: timestamp.nullable(), errorCode: z.string().regex(/^[a-z][a-z0-9_]{0,79}$/).nullable() })).min(2).max(7),
 }).superRefine((value, ctx) => {
   const snapshot = value.snapshot;
+  if (value.recoveredNameCount !== undefined && (value.generationProfile !== "brainstorm_v1" || value.recoveredNameCount > (value.fulfillment?.acceptedCount ?? 0))) issue(ctx, "Recovered names require actual saved brainstorm membership");
   if (value.executionAuthority === "hosted_owner_v1" && value.localPipelineVersion !== 2) issue(ctx, "Hosted runs require the approved progressive profile");
   if (value.providerBudgetVersion === 2 && (value.executionAuthority !== "hosted_owner_v1" || value.localPipelineVersion !== 2)) issue(ctx, "Uncapped runs require the hosted progressive witness");
   if (value.progressiveCompletionId && (value.localPipelineVersion !== 2 || value.preparedSetId !== null || value.fulfillment?.status !== "complete")) issue(ctx, "Progressive completion retains its distinct genuine membership witness");

@@ -103,7 +103,7 @@ export function LogoInputsView({ controller, client, canWrite, isCurrent, mode =
         <label className={styles.permission}><input type="checkbox" checked={referencePermission} disabled={disabled} onChange={event => changeDraft({ referencePermission: event.currentTarget.checked })} />{REFERENCE_PERMISSION}</label>
         <button type="button" disabled={disabled || !referenceFile || !referencePermission || !aspects.length} onClick={() => void uploadReference()}>Upload reference</button>
       </div>
-      {references.length > 0 && <p className={styles.caption}>Choose the aspects to use, then save references in your logo brief. Uploading alone does not change the saved selection.</p>}
+      {references.length > 0 && <p className={styles.caption}>Choose the aspects to use in your logo brief. Uploading alone does not change the saved selection.</p>}
       <div className={styles.grid}>{references.map((reference, ordinal) => {
         const selected = selections.find(item => item.referenceId === reference.referenceId)?.aspects ?? [];
         return <fieldset className={styles.card} key={reference.referenceId} disabled={!onSelectionsChange || !canWrite || state.busy}>
