@@ -75,6 +75,8 @@ describe('actual shared Logo engine and SQL with synthetic Auth/Storage/provider
    expect((await f.db.query('select * from fluid_private.shared_worker_gateway_context')).rows).toEqual([]);
   }finally{await test.runtime.close();}
  });
+ // The uncapped case executes two real native image pipelines plus SQL receipt
+ // recovery. Give that work room on shared CI CPUs without changing its checks.
  it.each([false,true])('keeps a generated concept usable when its committed receipt acknowledgement is lost; uncapped=%s',async uncapped=>{
   const capability:UncappedLogoRasterCapability={operation:'identity.logo_concept',policyIdentity:'a5'.repeat(32),handlerVersion:'logo-image-v1',provider:'openai',model:conceptCapability.model as UncappedLogoRasterCapability['model'],engine:null,spendControl:'uncapped',estimatedCostMicrousd:1};
   if(uncapped){
@@ -114,7 +116,7 @@ describe('actual shared Logo engine and SQL with synthetic Auth/Storage/provider
     }finally{await second.runtime.close();}
    }
   }finally{await test.runtime.close();}
- });
+ },60_000);
  it('recovers only the bytes of a previously issued exact output, preserving an unknown provider outcome',async()=>{
   const p=await f.prepare();await f.grant(p.execution,p.reservation,'write');await f.put(p.reservation);
   const frozen=p.job.input as {slotId:string;attemptId:string};const step=`logo-preview-v1:${frozen.slotId}:${frozen.attemptId}`;
