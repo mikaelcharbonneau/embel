@@ -8,7 +8,7 @@ import { clearLocalDrafts, createLocalDraft, getLocalDraft, updateLocalDraft } f
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 const mock = vi.hoisted(() => ({ session: null as VerifiedAccount | { status: "signed_out"; generation: number } | null, current: vi.fn(), expire: vi.fn(), push: vi.fn(), projectId: "cccccccc-1111-4111-8111-111111111111" }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mock.push }) }));
-vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ session: mock.session, isCurrent: mock.current, expire: mock.expire }), AccountStatus: () => createElement("a", { href: "/sign-in" }, "Sign in") }));
+vi.mock("@/components/workspace/account-session", async () => { const drafts = (await import("@/components/workspace/account-draft-memory")).createAccountDraftMemory(); return { useAccountSession: () => ({ session: mock.session, isCurrent: mock.current, expire: mock.expire, drafts }), AccountStatus: () => createElement("a", { href: "/sign-in" }, "Sign in") }; });
 let root: Root, host: HTMLDivElement, owner: string, fetcher: ReturnType<typeof vi.fn>, legacyId: string;
 const makeDraft = (title: string, ownerId?: string) => createLocalDraft({ title, description: `Private brief for ${title}`, scope: "complete_brand", suppliedName: "", namingNotes: "", identityNotes: "", example: false, ownerId })!;
 async function render(legacy = false) { await act(async () => root.render(legacy ? createElement(ProjectEditor, { projectId: legacyId }) : createElement(ProjectsWorkspace))); }

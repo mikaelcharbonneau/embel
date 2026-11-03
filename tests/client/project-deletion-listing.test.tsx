@@ -9,7 +9,7 @@ import type { LifecycleProject } from "@/components/workspace/project-deletion-c
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 
 const mock = vi.hoisted(() => ({ session: null as VerifiedAccount | { status: "checking"; generation: number } | null, current: vi.fn(), expire: vi.fn() }));
-vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ session: mock.session, isCurrent: mock.current, expire: mock.expire }) }));
+vi.mock("@/components/workspace/account-session", async () => { const drafts = (await import("@/components/workspace/account-draft-memory")).createAccountDraftMemory(); return { useAccountSession: () => ({ session: mock.session, isCurrent: mock.current, expire: mock.expire, drafts }) }; });
 const owner = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", other = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const a: LifecycleProject = { id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", owner_id: owner, title: "Synthetic recent project", scope: "complete_brand", current_revision: 3, lifecycle_version: 0, deleted_at: null, deletion_requested_at: null, deletion_state: "active", created_at: "2026-10-15T12:00:00Z" };
 const b = { ...a, id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd", title: "Synthetic older project", created_at: "2026-10-14T12:00:00Z" };
