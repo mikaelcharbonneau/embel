@@ -46,7 +46,8 @@ it.each([false, true])("continues reviewed saved strategy without adding the rem
   expect(host.querySelector('[aria-label="Inline Naming continuation"]')).not.toBeNull();
   // Naming continues inside the shared conversation and its floating composer.
   const conversation = host.querySelector<HTMLElement>('[aria-label="Brand conversation"]');
-  expect(conversation?.querySelector(".guided-naming-messages")).not.toBeNull();
+  expect(conversation).not.toBeNull();
+  expect(conversation!.querySelector(".guided-naming-messages")).not.toBeNull();
   expect(host.querySelector('[aria-label="Naming composer"]')).not.toBeNull();
   expect(host.querySelector(`a[href="/brands/account/${id(2)}/naming"]`)).toBeNull();
   expect(host.querySelector('[aria-label="Brand context and continuation"]')).toBeNull();
