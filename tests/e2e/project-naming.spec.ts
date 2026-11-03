@@ -214,8 +214,8 @@ async function open(page: Page) { await page.goto(url); await expect(page.getByR
 async function reload(page: Page) { await page.reload(); await showLegacyHistory(page); }
 const card = (page: Page, name: string) => page.locator(".project-naming-card").filter({ has: page.getByRole("heading", { name, exact: true }) });
 
-async function showChat(page: Page) { const tabs = page.getByRole("group", { name: "Naming workspace view" }); if (await tabs.isVisible()) await tabs.getByRole("button", { name: "Chat", exact: true }).click(); }
-async function showNames(page: Page) { const tabs = page.getByRole("group", { name: "Naming workspace view" }); if (await tabs.isVisible()) await tabs.getByRole("button", { name: /^Names/ }).click(); }
+async function showChat(page: Page) { const toggle = page.getByRole("button", { name: "Open chat", exact: true }); if (await toggle.isVisible()) await toggle.click(); }
+async function showNames(page: Page) { const toggle = page.getByRole("button", { name: "Close chat", exact: true }); if (await toggle.isVisible()) await toggle.click(); }
 async function namingCanvasFrame(page: Page) {
   const { content } = await expectProjectCanvas(page);
   const workbench = page.locator(".project-naming-page.project-workbench");
@@ -249,8 +249,8 @@ async function localNameFixture(page: Page, fixture: Awaited<ReturnType<typeof f
 test("naming fixture: reviewed Strategy opens Naming and keeps full context", async ({ page }, info) => {
   const { state } = await fixtures(page, "complete_brand");
   const savedContext = structuredClone(state.project.context);
+  // A generic project link resumes the next saved step: reviewed Strategy continues in Naming.
   await page.goto(`/brands/account/${projectId}`);
-  await page.getByRole("navigation", { name: "Continue project" }).getByRole("link", { name: "Continue to Naming", exact: true }).click();
   await expect(page).toHaveURL(url);
   await expect(page.getByRole("heading", { name: "Which approaches would you like to explore?", exact: true })).toBeVisible();
   expect(state.project.context).toEqual(savedContext);
@@ -272,7 +272,7 @@ test("guided Naming keeps the selected-name screen in the project conversation a
   await expect(page.getByRole("region", { name: "Name screening", exact: true })).toBeVisible();
   await expect(page.locator("#project-naming-screening-heading")).toHaveText("Fixture 001");
   await expect(page.getByRole("link", { name: "Continue to Inspiration", exact: true })).toHaveAttribute("href", `/brands/account/${projectId}/inspiration`);
-  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}/naming$`));
   await page.reload();
   await expect(page.locator("#project-naming-screening-heading")).toHaveText("Fixture 001");
   await page.getByRole("button", { name: "Change name", exact: true }).click();
@@ -386,10 +386,12 @@ test("legacy Naming: partial73/250 and V1 values survive navigation; only an exp
   await open(page);
   await expect(page.getByText("Latest batch · 1 · 73 / 250 names · partial", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Modify filters" }).click(); await showChat(page);
-  const legacy = page.getByRole("group", { name: "Earlier Naming choices" });
-  await legacy.getByText("Earlier Naming choices · v1", { exact: true }).click();
+  const legacy = page.getByRole("region", { name: "Earlier Naming choices" });
+  await legacy.getByRole("button", { name: "Earlier Naming choices · v1", exact: true }).click();
   await expect(legacy.getByText("Creative language: fr", { exact: true })).toBeVisible();
   await expect(legacy.getByText("Length: 3–14 characters", { exact: true })).toBeVisible();
+  // The earlier choices open as a panel over the composer; close it to continue.
+  await page.getByRole("button", { name: "Close", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Saved Naming guidance", exact: true })).toHaveValue("Warm and concise");
   await expect(page.getByRole("group", { name: "Naming approaches" }).locator('[aria-pressed="true"]')).toHaveCount(0);
   await expect(page.getByRole("radio")).toHaveCount(0);
@@ -403,7 +405,7 @@ test("legacy Naming: partial73/250 and V1 values survive navigation; only an exp
   expect(JSON.stringify(fixture.state.batches[0])).toBe(frozenBatch); expect(JSON.stringify(fixture.state.candidates)).toBe(frozenNames);
   expect(fixture.state.requests.filter(request => request.method === "POST")).toHaveLength(0);
   await showNames(page);
-  await page.getByText("Batch history · 1 loaded", { exact: true }).click();
+  await page.getByRole("button", { name: "Batch history · 1 loaded", exact: true }).click();
   await expect(page.getByRole("button", { name: /Batch 1 · preferences 1/ })).toBeVisible();
 });
 
@@ -507,7 +509,7 @@ test("naming fixture: cancellation retains prior batches and absent runtime neve
 
 test("naming fixture: incomplete Strategy and identity-only direct routes never enable naming", async ({ page }) => {
   const fixture = await fixtures(page, "complete_brand"); fixture.state.project.context = contextSnapshotSchema.parse({ description: "Missing strategy fixture" }); await open(page);
-  await expect(page.getByText("Strategy needs review", { exact: true })).toBeVisible();
+  await expect(page.getByText("Review Strategy to continue the Naming conversation. Your saved names remain available.", { exact: true })).toBeVisible();
   await expect(page.getByRole("region", { name: "Naming choices", exact: true })).toHaveCount(0);
   fixture.state.project.scope = "visual_identity_only"; await reload(page);
   await expect(page.getByRole("heading", { name: "This project focuses on visual identity" })).toBeVisible();
@@ -609,10 +611,10 @@ for (const action of ["overview", "preferences", "view", "retention", "selection
     if (action === "cancellation") { fixture.hold(`${base}/batches/${fixture.state.jobs[0]!.batchId}`, "DELETE"); await page.getByRole("button", { name: "Cancel generation" }).click(); }
     if (action === "transform") { await workshopName(page, "Fixture 001"); await page.getByLabel("Suffixes", { exact: true }).fill("ly"); fixture.hold(`${base}/transforms`, "POST"); await page.getByRole("button", { name: "Run Affixes" }).click(); }
     if (action === "library") { await page.goto("/names"); fixture.hold("/api/names", "GET"); await page.getByRole("tab", { name: "Library", exact: true }).click(); await page.getByRole("button", { name: "Project names", exact: true }).click(); }
-    if (action === "import") { await page.getByText("Copy a name from your library", { exact: true }).click(); await page.getByLabel("Library name to copy").selectOption(uuid("abababab", 555)); fixture.hold(`${base}/imports`, "POST"); await page.getByRole("button", { name: "Copy into this project" }).click(); }
+    if (action === "import") { await page.getByRole("textbox", { name: "Your own name", exact: true }).fill("Local fixture name"); fixture.hold(`${base}/imports`, "POST"); await page.getByRole("button", { name: "Add name", exact: true }).click(); }
     if (action === "promotion") { await page.goto("/names"); await page.getByRole("tab", { name: "Library", exact: true }).click(); await page.getByRole("button", { name: "Project names", exact: true }).click(); await expect(card(page, "Fixture 001")).toBeVisible(); fixture.hold(`${base}/promote`, "POST"); await card(page, "Fixture 001").getByRole("button", { name: "Create brand" }).click(); }
     if (action === "candidate pagination") { fixture.hold(base, "GET"); await page.getByRole("button", { name: "Load more saved names" }).click(); }
-    if (action === "batch pagination") { await page.getByText("Batch history · 100 loaded", { exact: true }).click(); fixture.hold(`${base}/batches`, "GET"); await page.getByRole("button", { name: "Load more batches" }).click(); }
+    if (action === "batch pagination") { await page.getByRole("button", { name: "Batch history · 100 loaded", exact: true }).click(); fixture.hold(`${base}/batches`, "GET"); await page.getByRole("button", { name: "Load more batches" }).click(); }
     if (action === "library pagination") { await page.goto("/names"); await page.getByRole("tab", { name: "Library", exact: true }).click(); await page.getByRole("button", { name: "Project names", exact: true }).click(); await expect(card(page, firstName)).toBeVisible(); fixture.hold("/api/names", "GET"); await page.getByRole("button", { name: "Load more account names" }).click(); }
     if (action === "expansion") { fixture.hold(`/api/projects/${projectId}/expand`, "POST"); await page.getByRole("button", { name: "Expand to complete brand" }).click(); }
     // The held response remains addressable after capture so it can return late.
@@ -776,13 +778,12 @@ test("naming fixture: delayed library reads cannot roll back newer retention", a
   await expect(card(page, "Fixture 001").getByRole("button", { name: "Favorite Fixture 001", exact: true })).toBeVisible();
 });
 
-test("naming fixture: library import preserves original and account promotion stays private", async ({ page }) => {
+test("naming fixture: own-name import preserves the browser library and account promotion stays private", async ({ page }) => {
   const fixture = await prepared(page);
   const original = await localNameFixture(page, fixture);
   await open(page);
-  await page.getByText("Copy a name from your library", { exact: true }).click();
-  await page.getByLabel("Library name to copy").selectOption(uuid("abababab", 555));
-  await page.getByRole("button", { name: "Copy into this project" }).click();
+  await page.getByRole("textbox", { name: "Your own name", exact: true }).fill("Local fixture name");
+  await page.getByRole("button", { name: "Add name", exact: true }).click();
   await expect(card(page, "Local fixture name")).toBeVisible();
   expect(fixture.state.currentSelection).toBeNull();
   expect(fixture.state.project.context.description).toContain("Synthetic brief");
@@ -791,7 +792,7 @@ test("naming fixture: library import preserves original and account promotion st
   await page.goto("/names"); await page.getByRole("tab", { name: "Library", exact: true }).click(); await page.getByRole("button", { name: "Project names", exact: true }).click();
   await expect(card(page, "Local fixture name")).toBeVisible();
   await card(page, "Local fixture name").getByRole("button", { name: "Create brand" }).click();
-  await expect(page).toHaveURL(`/brands/account/${uuid("bdbdbdbd", 1)}`);
+  await expect(page).toHaveURL(new RegExp(`/brands/account/${uuid("bdbdbdbd", 1)}(?:[/?#].*)?$`));
   expect(fixture.state.newProject!.scope).toBe("complete_brand");
   expect(fixture.state.newProject!.context.selectedName).toBe("Local fixture name");
   expect(await page.evaluate(() => localStorage.getItem("fluid.names.v1"))).toBe(original);
@@ -818,7 +819,7 @@ test("naming fixture: promoting an earlier-context name requires acknowledgement
   await expect(confirm).toBeDisabled();
   await expect(acknowledgement).not.toBeChecked();
   await acknowledgement.check(); await confirm.click();
-  await expect(page).toHaveURL(`/brands/account/${uuid("bdbdbdbd", 1)}`);
+  await expect(page).toHaveURL(new RegExp(`/brands/account/${uuid("bdbdbdbd", 1)}(?:[/?#].*)?$`));
   const requests = fixture.state.requests.filter(request => request.path === `${base}/promote`);
   expect(requests).toHaveLength(2);
   expect(requests[1]!.body).toMatchObject({ expectedSourceProjectRevision: 5, acceptEarlierContext: true });
@@ -923,6 +924,7 @@ test("Naming canvas: selected name, composer and results survive shell expansion
   await composer.evaluate(element => element.setAttribute("data-continuity", "original-composer"));
   await canvas.evaluate(element => element.setAttribute("data-continuity", "original-results"));
   const writes = fixture.state.requests.filter(request => request.method !== "GET").length;
+  const contentWrites = fixture.state.requests.filter(request => request.method !== "GET" && request.path !== `${base}/view`).length;
   if (info.project.name === "desktop") {
     await page.getByRole("button", { name: "Expand navigation", exact: true }).click(); await namingCanvasFrame(page);
     await page.getByRole("button", { name: "Collapse navigation", exact: true }).click();
@@ -931,6 +933,8 @@ test("Naming canvas: selected name, composer and results survive shell expansion
     await expect(page.getByRole("dialog", { name: "Navigation", exact: true })).toBeVisible();
     await page.keyboard.press("Escape"); await expect(page.getByRole("button", { name: "Open navigation", exact: true })).toBeFocused();
   }
+  // Navigation chrome alone never writes. Opening or closing the chat below saves only the view.
+  expect(fixture.state.requests.filter(request => request.method !== "GET")).toHaveLength(writes);
   await showNames(page); await showChat(page); await namingCanvasFrame(page);
   await expect(composer).toHaveValue("Unsent synthetic direction retained through navigation chrome changes");
   await expect(composer).toHaveAttribute("data-continuity", "original-composer");
@@ -941,7 +945,7 @@ test("Naming canvas: selected name, composer and results survive shell expansion
   await showNames(page); await expect(page.locator("#project-naming-screening-heading")).toHaveText("Fixture 001");
   await namingCanvasFrame(page);
   expect(fixture.state.currentSelection?.candidate.value).toBe("Fixture 001");
-  expect(fixture.state.requests.filter(request => request.method !== "GET")).toHaveLength(writes);
+  expect(fixture.state.requests.filter(request => request.method !== "GET" && request.path !== `${base}/view`)).toHaveLength(contentWrites);
   await canvas.evaluate(element => { element.scrollTop = 0; });
   await page.screenshot({ path: info.outputPath("naming-stage-selected.png"), fullPage: true });
 });
