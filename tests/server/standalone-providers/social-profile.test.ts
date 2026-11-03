@@ -21,6 +21,22 @@ describe("social profile observations", () => {
     expect(await createSocialProfileContract({ clock, fetch }).check({ ...target, platform }, signal())).toMatchObject({ status: "failed", code: "unsupported_target" });
     expect(fetch).not.toHaveBeenCalled();
   });
+  it("accepts documented channel-list metadata without exposing it in profile observations", async () => {
+    const result = await check(json({ ...body([resource]), eventId: "demo-event", visitorId: "demo-visitor", tokenPagination: {} }));
+    expect(result).toMatchObject({ status: "observed", value: { profile: "found", profileId: resource.id, availability: "unknown" } });
+    expect(JSON.stringify(result)).not.toMatch(/demo-event|demo-visitor/);
+  });
+  it("requires positive empty-list evidence and rejects contradictory counts or paging", async () => {
+    const envelope = { kind: "youtube#channelListResponse" };
+    expect(await check(json({ ...envelope, pageInfo: { totalResults: 0 } }))).toMatchObject({
+      status: "observed", value: { profile: "not_found", profileId: null, availability: "unknown", ownership: "unverified", reservation: "unverified" },
+    });
+    for (const malformed of [
+      envelope, { ...envelope, pageInfo: { resultsPerPage: 5 } }, { ...envelope, pageInfo: { totalResults: 1 } },
+      { ...body([resource]), pageInfo: { totalResults: 0 } }, { ...body([resource]), pageInfo: { totalResults: 1, resultsPerPage: 0 } },
+      { ...body(), pageInfo: { totalResults: 1 } }, { ...body(), prevPageToken: "previous" }, { ...body(), tokenPagination: { nextPageToken: "next" } },
+    ]) expect(await check(json(malformed))).toMatchObject({ status: "failed", code: "invalid_response" });
+  });
   it("http_status_is_not_profile_evidence", async () => {
     for (const [status, code] of [[404, "invalid_response"], [403, "not_authorized"], [429, "rate_limited"]] as const) expect(await check(json(body(), status))).toMatchObject({ status: "failed", code });
     expect(await check(new Response("<p>CAPTCHA login</p>", { headers: { "content-type": "text/html" } }))).toMatchObject({ status: "failed", code: "invalid_response" });

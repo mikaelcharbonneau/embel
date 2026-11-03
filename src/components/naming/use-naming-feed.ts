@@ -20,7 +20,8 @@ export function useNamingFeed({ account, projectId, enabled, view, projectRevisi
   const { namingBrainDrafts: memory, expire } = useAccountSession();
   const read = useCallback(() => memory.get(account, projectId), [memory, account, projectId]);
   const record = useSyncExternalStore(memory.subscribe, read, hidden);
-  const eligibleView = view.pane === "results" && view.filter === "all" && !view.query && !view.visibleBatchId && !view.inspecting && !view.historyOpen;
+  const showingFeed = view.pane === "results" && view.filter === "all" && !view.query && !view.visibleBatchId && !view.historyOpen;
+  const eligibleView = showingFeed && !view.inspecting;
   const resultsVisible = !view.explorationHidden;
   const controller = useMemo(() => createNamingFeedController({ account, projectId, memory, expire: value => expire({ ...value, status: "ready" }), eligible: () => false }), [account, projectId, memory, expire]);
   useLayoutEffect(() => controller.configure(() => {
@@ -121,6 +122,6 @@ export function useNamingFeed({ account, projectId, enabled, view, projectRevisi
   const run = record?.feed.feed?.activeRun;
   const canResume = contextReady && !record?.feed.pending && run?.canResume && (canExplore || run.canResumeSaved === true);
   const updateSteeringDraft = useCallback((patch: Partial<typeof emptySteeringDraft>) => memory.setSteeringDraft(account, projectId, draft => ({ ...draft, ...patch })), [memory, account, projectId]);
-  return { steeringDraft: record?.steeringDraft ?? emptySteeringDraft, updateSteeringDraft, canExplore: Boolean(canExplore), canResume: Boolean(canResume), record, state: record?.feed ?? null, entries: record?.feed.entries ?? [], memory, eligibleView, interacting: interacting && enabled && eligibleView && resultsVisible, attachSentinel: setSentinel,
-    start, stop, stopCurrent: controller.stopCurrent, retry: controller.retry, resume: controller.resume, steer: controller.steer, refresh: controller.load };
+  return { steeringDraft: record?.steeringDraft ?? emptySteeringDraft, updateSteeringDraft, canExplore: Boolean(canExplore), canResume: Boolean(canResume), record, state: record?.feed ?? null, entries: record?.feed.entries ?? [], memory, showingFeed, eligibleView, interacting: interacting && enabled && eligibleView && resultsVisible, attachSentinel: setSentinel,
+    start, stop, locateSavedSet: controller.locateSavedSet, stopCurrent: controller.stopCurrent, retry: controller.retry, resume: controller.resume, steer: controller.steer, refresh: controller.load };
 }

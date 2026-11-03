@@ -24,7 +24,7 @@ test("sequential chat saves each answer and preserves the same composer with com
   await expect(page.getByRole("radio", { name: /^Explore all/ })).toHaveAttribute("aria-checked", "false");
   await page.getByRole("radio", { name: /^Explore all/ }).focus(); await page.keyboard.press("Enter");
   await expect(page.getByRole("radio", { name: /^Explore all/ })).toHaveAttribute("aria-checked", "true"); await continueAnswer(page);
-  await expect(page.getByLabel("Maximum characters")).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Maximum characters" })).toBeVisible();
   expect(fixture.mutations()).toHaveLength(0);
   await composer.fill("Synthetic unsent thought survives layout change");
   await composer.evaluate(input => input.setAttribute("data-chat-identity", "same-mounted-composer"));
@@ -37,10 +37,10 @@ test("sequential chat saves each answer and preserves the same composer with com
   const cards = page.locator(".naming-feed-card .project-naming-card");
   const geometry = await cards.evaluateAll(items => items.slice(0, 4).map(item => { const r = item.getBoundingClientRect(); return { x: r.x, y: r.y, height: r.height, width: r.width }; }));
   if (info.project.name === "desktop") {
-    const chat = await page.getByRole("complementary", { name: "Naming conversation", exact: true }).boundingBox(), results = await page.locator("[data-naming-results-scroll]").boundingBox();
+    const chat = await page.locator("[data-floating-composer]").boundingBox(), results = await page.locator("[data-naming-results-scroll]").boundingBox();
     const header = await page.getByRole("banner").boundingBox();
     expect(results!.y).toBeGreaterThanOrEqual(header!.y + header!.height);
-    expect(results!.y + results!.height).toBeLessThanOrEqual(chat!.y + 1);
+    expect(results!.y + results!.height).toBeGreaterThanOrEqual(chat!.y + chat!.height - 1);
     expect(chat!.y + chat!.height).toBeLessThanOrEqual(901);
     expect(chat!.width).toBeGreaterThan(0); expect(results!.width).toBeGreaterThan(0);
     expect(new Set(geometry.map(item => item.y)).size).toBe(1); expect(geometry[0]!.height).toBe(90); expect(geometry[1]!.x - geometry[0]!.x - geometry[0]!.width).toBe(12);
@@ -76,14 +76,13 @@ test("composer guidance waits for account acknowledgement and preserves all name
   await expect(composer).toHaveValue("Synthetic warm and useful direction"); expect(fixture.mutations()).toHaveLength(0);
   held.release(); await expect(composer).toHaveValue(""); expect(fixture.state.preferences?.preferences.notes).toContain("Synthetic warm and useful direction");
   await showNames(page); await namingCard(page, 1).getByRole("button", { name: "Inspect name Synthetic 001", exact: true }).click();
-  const detail = page.getByRole("region", { name: "Inspect name", exact: true });
+  const detail = page.getByRole("dialog", { name: "Synthetic 001", exact: true });
   await expect(detail.getByRole("button", { name: "Use this name", exact: true })).toBeVisible();
+  await detail.getByText("More actions", { exact: true }).click();
   await expect(detail.getByRole("button", { name: "Explore variations", exact: true })).toBeVisible();
   await detail.getByRole("button", { name: "Save Synthetic 001", exact: true }).click(); await expect.poll(() => fixture.state.rows[0]!.entry.retention.saved).toBe(true);
   await detail.getByRole("checkbox", { name: /More like this/ }).check();
-  await detail.getByRole("button", { name: "Origin and history", exact: true }).click(); await expect(detail.getByText(/Generated with synthetic-never-call/)).toBeVisible();
-  await page.keyboard.press("Escape"); await expect(page.getByRole("dialog")).toBeHidden();
-  await page.getByRole("button", { name: "Back to results", exact: true }).click(); await showChat(page);
+  await page.getByRole("button", { name: "Close name preview", exact: true }).click(); await showChat(page);
   await expect(page.getByRole("button", { name: "Send naming direction", exact: true })).toBeEnabled();
   await composer.fill("Synthetic closer to the first name"); await page.getByRole("button", { name: "Send naming direction", exact: true }).click();
   await expect.poll(() => fixture.state.steering).toBe(1); await expect(composer).toHaveValue(""); expect(fixture.mutations()).toHaveLength(0);

@@ -91,16 +91,19 @@ export function createVisualJourneyFixture(options: { standalone?: boolean; name
       layout: ["editorial", "centered", "split"][index] as BrandBoardApplicationDesign["layout"],
       paletteRoles: { primary: "primary", accent: "accent", background: "background", text: "text" }, headingStyleKey: "heading", bodyStyleKey: "body" } };
   }
-  function overview(): ProjectIdentityOverview {
-    const currentBasis = getIdentityCurrentBasis({ ...scope, context: input.context, references: input.referenceSnapshot, preferences: input.preferences, logoBrief: brief });
+  function overview(limit = 20): ProjectIdentityOverview {
+    const currentBasis = getIdentityCurrentBasis({ ...scope, context: project.context, references: input.referenceSnapshot, preferences: initialIdentityPreferences(project.context), logoBrief: brief });
     const chosen = state.selection ? state.systems.find(item => item.id === state.selection!.systemVersionId) : null;
+    const sorted = [...state.systems].sort((left, right) => right.createdAt.localeCompare(left.createdAt) || right.id.localeCompare(left.id));
+    const items = sorted.slice(0, limit).map(item => summarizeIdentitySystem(item, currentBasis));
+    const last = items.at(-1);
     // Parse the response as the application does; fixtures must not bypass a real contract.
     return projectIdentityOverviewSchema.parse({ ...scope, project, logoBrief: brief,
       saveAvailability: state.savingAvailable ? { status: "available" } : { status: "unavailable", reason: "trusted_transaction_unavailable" },
       session: state.selection ? { ...scope, identityRevision: state.selection.identityRevision, currentSelectionId: state.selection.id, currentPreferencesRevision: 0, createdAt: fixtureAt, updatedAt: fixtureAt } : null,
-      preferences: null, referenceSnapshot: input.referenceSnapshot, currentBasis, readiness: getIdentityReadiness(input.context, input.scope, input.referenceSnapshot),
+      preferences: null, referenceSnapshot: input.referenceSnapshot, currentBasis, readiness: getIdentityReadiness(project.context, project.scope, input.referenceSnapshot),
       currentSelection: chosen && state.selection ? { selection: state.selection, system: chosen, freshness: getIdentityFreshness(chosen.input.basis, currentBasis), sourceLogo, sourceLogoCurrent: state.sourceCurrent } : null,
-      systems: { ...scope, query: { limit: 20 }, items: [...state.systems].sort((left, right) => right.createdAt.localeCompare(left.createdAt) || right.id.localeCompare(left.id)).map(item => summarizeIdentitySystem(item, currentBasis)), nextCursor: null },
+      systems: { ...scope, query: { limit }, items, nextCursor: sorted.length > limit && last ? { projectId, id: last.id, createdAt: last.createdAt } : null },
     });
   }
   function availability() {
@@ -171,7 +174,7 @@ export function createVisualJourneyFixture(options: { standalone?: boolean; name
       if (path === `${identityBase}/batches/${state.batch?.batchId}/cancel` && request.method() === "POST") {
         state.stopRequests++; if (state.batch) state.batch = { ...state.batch, status: "cancel_requested" }; return json(route, readBatch());
       }
-      if (path === identityBase || path === `${identityBase}/systems`) { const value = overview(); return json(route, path === identityBase ? value : value.systems); }
+      if (path === identityBase || path === `${identityBase}/systems`) { const value = overview(Number(url.searchParams.get("limit") ?? 20)); return json(route, path === identityBase ? value : value.systems); }
       if (path.startsWith(`${identityBase}/systems/`)) {
         const selected = state.systems.find(item => item.id === path.split("/").at(-1));
         if (!selected) return json(route, {}, 404);

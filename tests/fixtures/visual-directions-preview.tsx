@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element -- Synthetic local PNGs exercise the actual unoptimized private-preview layout. */
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
+import { brandBoardFont } from "@/domain/brand-board-fonts";
 import { VisualDirectionsView, type VisualDirectionCard } from "@/components/visual-directions/visual-directions-view";
 import "../../src/styles/globals.css";
 import "../../src/styles/identity.css";
@@ -8,9 +9,9 @@ import "./visual-directions-preview.css";
 
 // Synthetic presentation data only. No customer records, provider calls or saved app state.
 const designs = [
-  { title: "Natural confidence", ink: "#194D39", paper: "#EEEDE2", accent: "#D1ED98", font: "Georgia", summary: "Rich greens, an expressive serif and generous space create a grounded, welcoming presence." },
-  { title: "Quiet precision", ink: "#254BD0", paper: "#EBF0FC", accent: "#A6BDF5", font: "Arial", summary: "Clear blue, crisp typography and a structured layout bring focus and a sense of forward motion." },
-  { title: "Warm momentum", ink: "#9B3730", paper: "#F6E6DC", accent: "#EBAC8D", font: "Georgia", summary: "Warm neutrals and confident contrasts give the brand an approachable, editorial character." },
+  { title: "Natural confidence", ink: "#194D39", paper: "#EEEDE2", accent: "#D1ED98", font: "Lora", summary: "Rich greens, an expressive serif and generous space create a grounded, welcoming presence." },
+  { title: "Quiet precision", ink: "#254BD0", paper: "#EBF0FC", accent: "#A6BDF5", font: "Manrope", summary: "Clear blue, crisp typography and a structured layout bring focus and a sense of forward motion." },
+  { title: "Warm momentum", ink: "#9B3730", paper: "#F6E6DC", accent: "#EBAC8D", font: "Lora", summary: "Warm neutrals and confident contrasts give the brand an approachable, editorial character." },
 ];
 function logo(context: CanvasRenderingContext2D, x: number, y: number, size: number, color: string) {
   context.strokeStyle = color; context.lineWidth = size * .14; context.lineJoin = "miter";
@@ -34,10 +35,17 @@ function board(index: number) {
   c.fillStyle = d.ink; c.fillRect(728, 798, 248, 178); c.fillStyle = d.paper; c.font = "14px Arial"; c.fillText("NORTHLINE", 750, 832); c.font = `27px ${d.font}`; c.fillText("Made to move", 750, 905); c.fillText("you forward.", 750, 937);
   return canvas.toDataURL("image/png");
 }
-const boards = designs.map((_d, index) => board(index));
+async function drawBoards() {
+  await Promise.all([...new Set(designs.map(design => design.font))].map(async family => {
+    const font = brandBoardFont(family)!;
+    const face = new FontFace(family, `url("${font.file}")`, { weight: `${font.minWeight} ${font.maxWeight}` });
+    document.fonts.add(await face.load());
+  }));
+  return designs.map((_design, index) => board(index));
+}
 const logoCanvas = document.createElement("canvas"); logoCanvas.width = logoCanvas.height = 140; logo(logoCanvas.getContext("2d")!, 35, 22, 95, "#191919");
 const logoImage = logoCanvas.toDataURL("image/png");
-function Preview() {
+function Preview({ boards }: { boards: string[] }) {
   const mode = new URLSearchParams(location.search).get("state") ?? "complete";
   const [selected, setSelected] = useState<string | null>(mode === "complete" ? "1" : null);
   const [message, setMessage] = useState<string | null>(null);
@@ -46,6 +54,8 @@ function Preview() {
   const cards = designs.map((d, index): VisualDirectionCard | null => index >= amount ? null : ({
     id: String(index), title: mode === "long" && index === 0 ? "A deliberately longer name for this saved visual direction" : d.title,
     summary: d.summary, selected: selected === String(index),
+    swatches: [{ name: "Ink", hex: d.ink }, { name: "Paper", hex: d.paper }, { name: "Accent", hex: d.accent }],
+    sampleStyle: { family: d.font, weight: 600, style: "normal" },
     preview: <figure className="identity-board"><div className="identity-board-image"><img src={boards[index]} alt={`Synthetic board ${index + 1}`} /></div></figure>,
     onChoose: () => { setSelected(String(index)); setMessage("Direction saved."); },
   })) as [VisualDirectionCard | null, VisualDirectionCard | null, VisualDirectionCard | null];
@@ -56,7 +66,7 @@ function Preview() {
         generation={{ status: started ? "queued" : mode === "empty" ? "idle" : mode === "partial" ? "partial" : "complete", completed: amount,
           estimatedCostLabel: "Estimated $0.06 for three directions", usageLabel: amount ? "Recorded usage for this set: $0.04" : null,
           onGenerate: () => setStarted(true), onCheck: () => setMessage("Progress checked."), onStop: () => setStarted(false) }}
-        selectionStatus={message} finalAction={<button className="button primary" disabled={selected === null} onClick={() => setMessage("Synthetic next-step action.")}>Create brand assets <span aria-hidden="true">→</span></button>} />
+        selectionStatus={message} finalAction={selected !== null && <a className="identity-primary-button" href="#brand-assets">View brand assets</a>} />
     </main></div>;
 }
-createRoot(document.getElementById("root")!).render(<Preview />);
+void drawBoards().then(boards => createRoot(document.getElementById("root")!).render(<Preview boards={boards} />));

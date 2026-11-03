@@ -8,9 +8,26 @@ import { brandGuideHtml, brandPackReadme, brandPaletteFiles } from "../model/gui
 import { brandCanvasPng, checkBrandAssetSignal, loadBrandFonts, readBrandImage } from "./browser-assets";
 
 export type BrandAssetFile = { name: string; label: string; category: "board" | "logo" | "direction" | "social" | "guide"; mimeType: string; bytes: Uint8Array<ArrayBuffer>; width?: number; height?: number; editable?: boolean };
-export type PreparedBrandAssets = { files: BrandAssetFile[]; archive: Uint8Array<ArrayBuffer>; vectorIncluded: boolean };
+export type PreparedBrandAssets = { files: readonly BrandAssetFile[]; getArchive(): Uint8Array<ArrayBuffer>; vectorIncluded: boolean };
 const extension = (mime: string) => mime === "image/png" ? "png" : mime === "image/jpeg" ? "jpg" : mime === "image/webp" ? "webp" : (() => { throw new BrandAssetError("source"); })();
 const sameReference = (a: BrandAssetSnapshot["logo"]["reference"], b: BrandAssetSnapshot["logo"]["reference"]) => a.ownerId === b.ownerId && a.projectId === b.projectId && a.assetId === b.assetId && a.versionId === b.versionId && a.contentHash === b.contentHash;
+
+function preparedAssets(files: readonly BrandAssetFile[], vectorIncluded: boolean): PreparedBrandAssets {
+  if (files.reduce((size, file) => size + file.bytes.length, 0) > 157_286_400) throw new BrandAssetError("size");
+  let archive: Uint8Array<ArrayBuffer> | undefined;
+  return {
+    files,
+    vectorIncluded,
+    getArchive() {
+      if (archive) return archive;
+      const mtime = new Date("2000-01-01T00:00:00Z");
+      const compressed = zipSync(Object.fromEntries(files.map(file => [file.name, [file.bytes, { mtime }]])), { level: 6 });
+      if (compressed.length > 104_857_600) throw new BrandAssetError("size");
+      archive = compressed;
+      return archive;
+    },
+  };
+}
 
 /** Local rendering from verified saved sources. This never admits a generation job. */
 export async function buildBrandAssetPack(input: { snapshot: BrandAssetSnapshot; logoClient: AccountLogoClient; identityClient: AccountIdentityClient; vectorRevisionId?: string | null }, signal: AbortSignal): Promise<PreparedBrandAssets> {
@@ -49,12 +66,8 @@ export async function buildBrandAssetPack(input: { snapshot: BrandAssetSnapshot;
           { name: "guides/colors.css", label: "Color variables", category: "guide", mimeType: "text/css", bytes: palette.css },
           { name: "guides/brand-guide.html", label: "Colors, font links and guide", category: "guide", mimeType: "text/html", bytes: brandGuideHtml(snapshot) },
           { name: "README.txt", label: "File guide", category: "guide", mimeType: "text/plain", bytes: brandPackReadme(snapshot, vectorIncluded) });
-        if (files.reduce((size, file) => size + file.bytes.length, 0) > 157_286_400) throw new BrandAssetError("size");
         checkBrandAssetSignal(signal);
-        const archive = Uint8Array.from(zipSync(Object.fromEntries(files.map(file => [file.name, [file.bytes, { mtime: new Date("2000-01-01T00:00:00Z") }]])), { level: 6 }));
-        if (archive.length > 104_857_600) throw new BrandAssetError("size");
-        checkBrandAssetSignal(signal);
-        return { files, archive, vectorIncluded };
+        return preparedAssets(files, vectorIncluded);
       } finally { fonts.release(); }
     } finally { direction.release(); }
   } finally { logo.release(); }

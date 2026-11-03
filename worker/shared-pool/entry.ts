@@ -22,10 +22,19 @@ async function main(){
  if(process.argv[2]==="--preflight"){process.stdout.write(JSON.stringify(await preflightSharedPool(process.env,await artifact()))+"\n");return;}
  if(process.env.EMBEL_SHARED_WORKER_POOL_ENABLED!=="true"){process.stdout.write('{"event":"shared_worker_pool_disabled"}\n');return;}
  const controller=createSharedPoolRuntime(process.env,await artifact());if(!controller)throw Error("shared_pool_configuration_unavailable");
- const lifetime=new AbortController();let fatal=false;const stop=()=>lifetime.abort(),fault=()=>{fatal=true;stop();};
- process.once("SIGTERM",stop);process.once("SIGINT",stop);process.on("unhandledRejection",fault);process.on("uncaughtException",fault);
+ const lifetime=new AbortController();let fatal=false;const stop=()=>lifetime.abort();
+ const fault=(kind:"unhandled_rejection"|"uncaught_exception",error:unknown)=>{
+  if(!fatal){
+   const code=error instanceof Error&&"code" in error?error.code:null;
+   const reason=typeof code==="string"&&["ECONNRESET","EPIPE","ETIMEDOUT","ECONNREFUSED","ENETUNREACH","EHOSTUNREACH","57P01","57P02","57P03"].includes(code)?"connection_lost":"unclassified";
+   process.stderr.write(JSON.stringify({event:"shared_worker_pool_process_fault",kind,reason})+"\n");
+  }
+  fatal=true;stop();
+ };
+ const rejected=(reason:unknown)=>fault("unhandled_rejection",reason),uncaught=(error:Error)=>fault("uncaught_exception",error);
+ process.once("SIGTERM",stop);process.once("SIGINT",stop);process.on("unhandledRejection",rejected);process.on("uncaughtException",uncaught);
  process.stdout.write('{"event":"shared_worker_pool_starting"}\n');
  try{await runSharedPoolLifecycle(controller,lifetime.signal,{unconfirmed:()=>{process.stderr.write('{"event":"shared_worker_pool_drain_unconfirmed"}\n');},exit:code=>{process.exit(code);}});if(fatal)throw Error("shared_pool_process_failed");}
- finally{lifetime.abort();process.removeListener("SIGTERM",stop);process.removeListener("SIGINT",stop);process.removeListener("unhandledRejection",fault);process.removeListener("uncaughtException",fault);}
+ finally{lifetime.abort();process.removeListener("SIGTERM",stop);process.removeListener("SIGINT",stop);process.removeListener("unhandledRejection",rejected);process.removeListener("uncaughtException",uncaught);}
 }
 void main().catch(()=>{process.stderr.write('{"event":"shared_worker_pool_unavailable_or_drain_unconfirmed"}\n');process.exit(2);});

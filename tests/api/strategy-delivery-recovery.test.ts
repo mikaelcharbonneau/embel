@@ -46,6 +46,29 @@ describe("explicit exact-job delivery POST", () => {
     expect(await response.json()).toEqual({ job: { ...job, dispatchState: "dispatch_pending", canRetryDelivery: true, results: [] } });
     expect(mock.publish).not.toHaveBeenCalled();
   });
+  it.each([[2_000, "awaiting_worker"], [65_000, "worker_delayed"]] as const)("reports a shared outbox at %i ms without offering HTTP retry", async (age, workerDelivery) => {
+    vi.stubEnv("EMBEL_SHARED_WORKERS_ENABLED", "true");
+    current = { ...job, created_at: new Date(Date.now() - age).toISOString(), billingMode: "openai_api", spendControl: "uncapped", policyIdentity: dispatch.policyIdentity };
+    delivery = [{ job: current, dispatchState: "dispatch_pending", canRetryDelivery: true, dispatch }];
+    const url = `https://fluid.example/api/projects/${project}/strategy/${id}`;
+    const status = (await (await GET(new Request(url), params)).json()).job;
+    expect(status).toMatchObject({ id, state: "queued", dispatchState: "dispatch_pending", workerDelivery, canRetryDelivery: false });
+    // An old client may still call the retry endpoint. Observing the same job is safe.
+    expect((await (await POST(request(), params)).json()).job).toEqual(status);
+    expect(mock.publish).not.toHaveBeenCalled();
+    delivery = [{ job: current, dispatchState: "published", canRetryDelivery: false, dispatch: null }];
+    expect((await (await GET(new Request(url), params)).json()).job).toMatchObject({ dispatchState: "published", canRetryDelivery: false });
+  });
+  it("preserves actual HTTP-publisher recovery for a historical job on a shared installation", async () => {
+    vi.stubEnv("EMBEL_SHARED_WORKERS_ENABLED", "true");
+    // Both kinds of admission can use v3 inputs. The delivery record decides who publishes.
+    current = { ...job, input_version: 3, input_spend_control: "uncapped", input_policy_identity: dispatch.policyIdentity };
+    const status = await GET(new Request(`https://fluid.example/api/projects/${project}/strategy/${id}`), params);
+    expect((await status.json()).job).toMatchObject({ spendControl: "uncapped", dispatchState: "dispatch_pending", canRetryDelivery: true });
+    const response = await POST(request(), params);
+    expect((await response.json()).job).toMatchObject({ id, dispatchState: "published", canRetryDelivery: false });
+    expect(mock.publish).toHaveBeenCalledExactlyOnceWith(dispatch);
+  });
   it("keeps the recovery capability when ordinary new-admission availability is request_active", async () => {
     const availability = { status: "unavailable", reason: "request_active", operations: [] };
     mock.rpc.mockImplementation(async (name: string) => ({ data: name === "get_strategy_availability" ? availability : delivery, error: null }));

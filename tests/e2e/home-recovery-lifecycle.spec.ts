@@ -84,7 +84,7 @@ test("Home recovery: confirmed start retires the ID and a new prompt creates a d
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await capture(page, info, "second-intended-request", state);
   await expect.poll(() => state.creates.length).toBe(2);
-  await expect(page).toHaveURL(/\/brands\/account\/bbbbbbbb-1111-4111-8111-000000000002$/);
+  await expect(page).toHaveURL("/brands/account/bbbbbbbb-1111-4111-8111-000000000002?view=strategy");
   expect(state.creates.map(item => (item.context as { description: string }).description)).toEqual([prompt, nextPrompt]);
   expect(state.enqueues).toEqual([]);
   expect(await page.evaluate(key => sessionStorage.getItem(key), marker)).toBeNull();

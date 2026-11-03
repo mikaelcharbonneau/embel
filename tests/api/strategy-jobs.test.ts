@@ -129,6 +129,19 @@ describe("strategy API authorization, bounded inputs and actual durable outputs"
     expect(doubles.publish).not.toHaveBeenCalled();
   });
 
+  it("returns a newly admitted shared job as awaiting the worker, without trying HTTP publication", async () => {
+    vi.stubEnv("EMBEL_SHARED_WORKERS_ENABLED", "true");
+    const policyIdentity = dispatch.policyIdentity;
+    const input = { operation: job.operation, expectedRevision: 1, idempotencyKey: enqueueInput.idempotencyKey,
+      billingMode: "openai_api", spendControl: "uncapped", acceptedPolicyIdentity: policyIdentity };
+    doubles.rpc.mockResolvedValueOnce({ data: { ...job, billingMode: "openai_api", spendControl: "uncapped", policyIdentity, dispatch }, error: null });
+    const response = await enqueue(request(input), params());
+    expect(response.status).toBe(202);
+    expect((await response.json()).job).toMatchObject({ id: jobId, state: "queued", dispatchState: "dispatch_pending", workerDelivery: "awaiting_worker", canRetryDelivery: false });
+    expect(doubles.rpc.mock.calls[0]?.[0]).toBe("enqueue_shared_strategy_job");
+    expect(doubles.publish).not.toHaveBeenCalled();
+  });
+
   it.each(["42501", "PGRST202"])("does not fall back to raw input when metadata RPC fails (%s)", async code => {
     doubles.summaries.mockResolvedValue({ data: null, error: { code } });
     expect((await getJob(request(undefined, "GET"), params())).status).toBe(503);

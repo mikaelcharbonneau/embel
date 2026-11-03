@@ -2,6 +2,7 @@ import { logoTypeSchema, type LogoBriefDraft } from "../../domain/logo-workspace
 import { brandTextReadiness } from "../../domain/brand-board-fonts";
 import { LOGO_TYPE_LABELS } from "./presentation";
 import styles from "./logo-creation.module.css";
+import stage from "@/styles/branding-stage.module.css";
 
 /** Controlled fields; the workspace owns autosave and any immediate-save action. */
 export function LogoBriefFields({
@@ -25,7 +26,7 @@ export function LogoBriefFields({
   ] as const;
   return <section className={styles.panel} aria-label="Logo brief">
     <div className={styles.heading}>
-      <div><p className={styles.eyebrow}>01 / Brief</p><h2>Start with your brand</h2></div>
+      <div><p className={styles.eyebrow}>01 / Brief</p><h2 className={stage.sectionHeading}>Start with your brand</h2></div>
       <button className={styles.secondaryButton} type="button" aria-label="Reuse Strategy" disabled={!onReuseStrategy || !onChange} onClick={onReuseStrategy}>Reuse Strategy</button>
     </div>
     <p className={styles.muted}>Write a short brief or choose to reuse your saved Strategy. You can start before Strategy is complete.</p>

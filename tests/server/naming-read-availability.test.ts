@@ -14,6 +14,13 @@ const feed = { version: 1, ownerId, projectId, projectRevision: 1, preferencesVe
 const auth = { userId: ownerId, client: { rpc: mock.rpc, from: mock.from } } as unknown as AuthenticatedContext;
 beforeEach(() => { vi.resetAllMocks(); mock.verify.mockResolvedValue(undefined); });
 
+it("preserves a verified worker outage as the reason generation is unavailable", async () => {
+  mock.rpc.mockImplementation(async (name: string) => ({ data: name === "get_naming_feed" ? feed
+    : { status: "unavailable", executionAuthority: "hosted_owner_v1", reason: "worker_unavailable" }, error: null }));
+  const result = await getNamingFeed(auth, projectId);
+  expect(result.availability).toEqual({ status: "unavailable", code: "worker_unavailable" });
+});
+
 it.each(["timeout", "invalid", "transport"])("retains the verified saved feed when hosted readiness has a %s failure", async failure => {
   mock.rpc.mockImplementation(async (name: string) => {
     if (name === "get_naming_feed") return { data: feed, error: null };

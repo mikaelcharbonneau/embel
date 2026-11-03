@@ -10,12 +10,25 @@ import { useProjectIdentity } from "@/components/identity/use-project-identity";
 import { useLogoDraftMemory } from "@/components/identity/logo-draft-memory-context";
 import { useLogoWorkspace } from "@/components/identity/use-logo-workspace";
 import { BrandAssetsPanel } from "@/features/brand-assets/components/brand-assets-panel";
+import stage from "@/styles/branding-stage.module.css";
+import styles from "@/features/brand-assets/components/brand-assets.module.css";
+import { describeVisualDirections } from "./direction-presentation";
 
 export function BrandAssetsPage({ projectId }: { projectId: string }) {
   const { session } = useAccountSession();
-  if (!logoUuidSchema.safeParse(projectId).success) return <section className="page"><h1>Project not found</h1><Link href="/brands">Back to projects</Link></section>;
-  return <section className="page project-brand-assets">
-    <header className="page-heading"><div><p>Build your brand · Step 3 of 3</p><h1>Brand assets</h1><p>Your chosen direction, ready to use.</p></div><Link href={`/brands/account/${projectId}/logo/directions`}>Back to visual directions</Link></header>
+  if (!logoUuidSchema.safeParse(projectId).success) return <section className={stage.frame}>
+    <h1 className={stage.title}>Project not found</h1>
+    <Link className={stage.actionLink} href="/brands">Back to projects</Link>
+  </section>;
+  return <section className={stage.frame}>
+    <header className={styles.pageHeader}>
+      <div>
+        <p className={stage.eyebrow}>Build your brand · Step 3 of 3</p>
+        <h1 className={stage.title}>Brand assets</h1>
+        <p className={stage.intro}>Your chosen direction, ready to use.</p>
+      </div>
+      <Link className={stage.actionLink} href={`/brands/account/${projectId}/logo/directions`}>Back to visual directions</Link>
+    </header>
     <AccountStatus />{session.status === "ready" && <OwnedBrandAssets key={`${session.userId}:${session.generation}:${projectId}`} account={session} projectId={projectId} />}
   </section>;
 }
@@ -67,10 +80,12 @@ function OwnedBrandAssets({ account, projectId }: { account: VerifiedAccount; pr
   if (!isCurrent(account)) return null;
   if (identity.error || checked?.error || logo.error) return <div role="alert"><p>{identity.error ?? checked?.error ?? logo.error}</p><button className="identity-secondary-button" type="button" onClick={() => { void identity.refresh(); void logo.reload(false); setAttempt(value => value + 1); }}>Check saved direction</button></div>;
   if (!identity.checked || identity.loading || logo.status === "loading" || batchId && !checked) return <p role="status">Loading your chosen direction…</p>;
-  if (!system || !batchId || !sourceLogo || !sourceMatches || !fresh) return <div><h2>{system ? "Choose a current visual direction" : "Choose your visual direction first"}</h2><p>{system ? "Your saved direction uses earlier inputs. Return to visual directions to choose a board built around your current logo." : "Compare the three boards, then choose one to create your brand assets."}</p><Link className="identity-primary-button" href={`/brands/account/${projectId}/logo/directions`}>Choose a visual direction</Link></div>;
+  if (!system || !batchId || !sourceLogo || !sourceMatches || !fresh) return <div><h2 className={stage.sectionHeading}>{system ? "Choose a current visual direction" : "Choose your visual direction first"}</h2><p>{system ? "Your saved direction uses earlier inputs. Return to visual directions to choose a board built around your current logo." : "Compare the three boards, then choose one to create your brand assets."}</p><Link className="identity-primary-button" href={`/brands/account/${projectId}/logo/directions`}>Choose a visual direction</Link></div>;
   if (!client || !logo.client || logo.workspace?.ownerId !== account.userId || logo.workspace.projectId !== projectId) return <p role="status">Checking your saved logo…</p>;
-  if (identity.strategyDirty || identity.preferencesDirty || logo.dirty || logo.pending) return <p role="status">Save or resolve your changes before creating brand assets. Your chosen direction is kept.</p>;
+  if (identity.strategyDirty || identity.preferencesDirty || logo.dirty || logo.pending) return <p role="status">Save or resolve your changes before opening the kit. Your chosen direction is kept.</p>;
+  const directionTitle = describeVisualDirections(batch.systems).find(direction => direction.id === system.id)?.title;
   return <BrandAssetsPanel key={`${system.id}:${sourceLogo.preview.reference.versionId}`} system={system} sourceLogo={sourceLogo}
-    identityClient={client} logoClient={logo.client} account={account} projectId={projectId} revalidate={revalidate}
+    identityClient={client} logoClient={logo.client} account={account} projectId={projectId} revalidate={revalidate} directionTitle={directionTitle}
+    onRefreshSelection={() => { void identity.refresh(); void logo.reload(false); setAttempt(value => value + 1); }}
     vectorRevisionId={logo.workspace.approvedLogo?.vectorRevisionId ?? null} />;
 }

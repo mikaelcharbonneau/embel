@@ -2,7 +2,8 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import sharp from "sharp";
 vi.mock("server-only",()=>({}));
 import { createIdentityGenerationRuntimeAdapter } from "../../worker/identity/runtime";
-import { identityStepOutputSchema, identityGenerationObservationSchema, type IdentityGenerationObservation } from "../../src/domain/identity-jobs";
+import { createIdentitySpecificationRequest, identityDigest } from "../../worker/identity/producer";
+import { identityStepOutputSchema, identityGenerationObservationSchema, identityGenerationProviderReceiptSchema, type IdentityGenerationObservation } from "../../src/domain/identity-jobs";
 import type { ClaimedJob } from "../../src/domain/jobs";
 import type { IdentitySystemVersion } from "../../src/domain/project-identity";
 import type { LogoWorkerConnection } from "../../src/server/data/logo-jobs";
@@ -10,8 +11,8 @@ import type { IdentityAssetStore } from "../../src/server/data/identity-asset-st
 import { selectedLogoJobInput, boardSpecification, batchId, capability, hash, id, imageConfiguration, imageUsage, jobId, jobInput, leaseToken, ownerId, projectId, response, specification, textPolicy, timestamp } from "./identity-generation-fixture";
 let reference:Uint8Array;const boards:Uint8Array[]=[];
 beforeAll(async()=>{reference=new Uint8Array(await sharp({create:{width:1024,height:1024,channels:3,background:"#999999"}}).png().toBuffer());for(const color of ["#dd6677","#4488cc","#226644"])boards.push(new Uint8Array(await sharp({create:{width:1024,height:1024,channels:3,background:color}}).png().toBuffer()));});
-function fixture(selectedLogo=false){
- const input=selectedLogo?selectedLogoJobInput(reference):jobInput(hash(reference)),job:ClaimedJob={id:jobId,ownerId,projectId,operation:"identity.image",input,inputRevision:1,leaseToken,status:"running",reservedCostMicrousd:0,actualCostMicrousd:0};
+function fixture(selectedLogo=false,name="Logo fixture"){
+ const input=selectedLogo?selectedLogoJobInput(reference,name):jobInput(hash(reference)),job:ClaimedJob={id:jobId,ownerId,projectId,operation:"identity.image",input,inputRevision:1,leaseToken,status:"running",reservedCostMicrousd:0,actualCostMicrousd:0};
  const systems:IdentitySystemVersion[]=[],observations:IdentityGenerationObservation[]=[],knownCalls=new Map<string,unknown>();let callCounter=100,publishCounter=200,imageCounter=0,textCounter=0;
  const querySpy=vi.fn(),assertAvailable=vi.fn(async()=>{}),onAuthorize=vi.fn(async()=>{}),onStage=vi.fn(async()=>{});
  const connection:LogoWorkerConnection={async query<Row>(sql:string,parameters:unknown[]=[]){querySpy(sql,parameters);let value:unknown;
@@ -39,6 +40,33 @@ describe("Full Identity system pipeline — real raster inspection, mocked provi
  it("rejects a foreign board publication acknowledgement without another provider call",async()=>{const f=fixture(),original=f.publishLeasedAsset.getMockImplementation()!;f.publishLeasedAsset.mockImplementation(async(...args)=>{const receipt=await original(...args);return{...receipt,reference:{...receipt.reference,ownerId:id(99)}};});const out=await run(f);expect(out.status).toBe("needs_reconciliation");expect(f.createImage).toHaveBeenCalledTimes(1);expect(f.onStage).not.toHaveBeenCalled();});
  it("keeps earlier accepted systems intact after a later Stop",async()=>{const f=fixture(),first=await run(f);if(first.status!=="succeeded")throw Error("Expected first system");f.systems.push(identityStepOutputSchema.parse(first.result).identity.systems[0]!);const saved=structuredClone(f.systems);f.assertAvailable.mockRejectedValue(Error("Stopped"));expect((await run(f,1)).status).toBe("failed");expect(f.systems).toEqual(saved);expect(f.createResponse).toHaveBeenCalledTimes(1);});
  it("reuses the exact settled specification after Stop without another text create",async()=>{const f=fixture();f.createResponse.mockImplementationOnce(async()=>{f.assertAvailable.mockRejectedValueOnce(Error("Stopped before board"));return response(specification());});expect((await run(f)).status).toBe("needs_reconciliation");expect(f.createImage).not.toHaveBeenCalled();expect((await run(f)).status).toBe("succeeded");expect(f.createResponse).toHaveBeenCalledTimes(1);expect(f.createImage).toHaveBeenCalledTimes(1);});
+ it.each([0, 1, 2, 3, "unrecognized"] as const)("checks a retained selected-logo specification (%s) before issuing a board", async version => {
+   const name = "茶屋", f = fixture(true, name), input = selectedLogoJobInput(reference, name);
+   if (input.version !== 3) throw Error("Expected selected logo");
+   const saved = boardSpecification();
+   saved.components.typography.styles[0]!.family = "Noto Sans JP";
+   f.createResponse.mockImplementationOnce(async () => {
+     f.assertAvailable.mockRejectedValueOnce(Error("Stopped before board"));
+     return response(saved);
+   });
+   expect((await run(f)).status).toBe("needs_reconciliation");
+   expect(f.createImage).not.toHaveBeenCalled();
+   const key = "identity-system-v1:1:specifications";
+   const receipt = identityGenerationProviderReceiptSchema.parse(f.knownCalls.get(key));
+   const requestHash = version === "unrecognized" ? "0".repeat(64)
+     : identityDigest(JSON.stringify(createIdentitySpecificationRequest(input.input, [], 1, textPolicy, input.sourceLogo, version)));
+   f.knownCalls.set(key, { ...receipt, observation: { ...receipt.observation, requestHash } });
+   const result = await run(f);
+   if (version === "unrecognized") {
+     expect(result).toMatchObject({ status: "needs_reconciliation", code: "identity_known_specification_unconfirmed" });
+     expect(f.createImage).not.toHaveBeenCalled();
+   } else {
+     expect(result.status).toBe("succeeded");
+     expect(f.createImage).toHaveBeenCalledTimes(1);
+   }
+   expect(f.createResponse).toHaveBeenCalledTimes(1);
+   expect(f.options.textTransport.countInputTokens).toHaveBeenCalledTimes(1);
+ });
  it("never recreates either paid call after a saved board receipt and lost stage ACK",async()=>{const f=fixture();f.onStage.mockRejectedValue(Error("stage ACK lost"));expect((await run(f)).status).toBe("needs_reconciliation");f.onStage.mockResolvedValue();const retry=await run(f);expect(retry).toMatchObject({status:"needs_reconciliation",code:"identity_known_board_requires_readback",costMicrousd:8700});expect(f.createResponse).toHaveBeenCalledTimes(1);expect(f.createImage).toHaveBeenCalledTimes(1);});
  it("does not turn a missing text credential into image-only generation",()=>{const f=fixture();expect(createIdentityGenerationRuntimeAdapter({...f.options,textProvider:{apiKey:"",model:textPolicy.model}})).toBeNull();expect(f.createImage).not.toHaveBeenCalled();});
  it("uses the exact selected raster first with no supplemental references and preserves its saved brief/specification",async()=>{

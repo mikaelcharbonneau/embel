@@ -9,16 +9,18 @@ async function constraints(page: Page) {
   await page.getByRole("radio", { name: /^Explore all/ }).click();
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Any length limits or text to include or avoid?", exact: true })).toBeVisible();
-  await expect(page.getByLabel("Minimum characters", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Maximum characters", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Include these text fragments", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Exclude these text fragments", { exact: true })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Minimum characters", exact: true })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Maximum characters", exact: true })).toBeVisible();
+  await expect(page.getByLabel("Text to include (optional)", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Text to avoid (optional)", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Creative language", { exact: true })).toHaveCount(0);
 }
 test("last answer starts one request, keeps chat for 99 names, then opens full-width results with a bottom composer", async ({ page }, info) => {
   const f = await namingFixture(page, { progressive: true }); f.state.ensureMode = "pending";
   await constraints(page);
-  await page.getByLabel("Maximum characters", { exact: true }).fill("16");
+  const maximum = page.getByRole("slider", { name: "Maximum characters", exact: true });
+  await maximum.press("Home");
+  for (let n = 1; n < 16; n++) await maximum.press("ArrowRight");
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect.poll(() => f.mutations().length).toBe(1);
   await expect(page.locator('[data-naming-layout="chat"]')).toBeVisible();
@@ -57,7 +59,7 @@ test("an uncertain final answer save does not start generation", async ({ page }
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page.getByText("This answer could not be confirmed as saved.", { exact: false })).toBeVisible();
   expect(f.mutations()).toHaveLength(0);
-  await expect(page.getByLabel("Maximum characters", { exact: true })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Maximum characters", exact: true })).toBeVisible();
 });
 test("one account entry and a keyboard-dismissable account menu", async ({ page }, info) => {
   await namingFixture(page, { saved: true, count: 100 }); await page.goto(namingUrl);

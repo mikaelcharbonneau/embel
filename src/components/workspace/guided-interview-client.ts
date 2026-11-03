@@ -1,4 +1,4 @@
-import { appendGuidedTurn, guidedReplySchema, guidedTurnOperation, initializeGuidedInterview, type GuidedReply, type GuidedStage, type GuidedTurn } from "@/domain/guided-interview";
+import { retainedCompetitorAnswerPrefix, appendGuidedTurn, guidedReplySchema, guidedTurnOperation, initializeGuidedInterview, type GuidedReply, type GuidedStage, type GuidedTurn } from "@/domain/guided-interview";
 import { validateConversation, type ConversationEvent } from "@/domain/conversation";
 import { contextSnapshotSchema, type ContextSnapshot } from "@/domain/projects";
 import type { StrategyJob, StrategyOperation, StrategyOverview } from "@/domain/strategy-jobs";
@@ -61,6 +61,22 @@ export function recordGuidedChoice(context: ContextSnapshot, reply: Extract<Guid
   const labels = [...selectedIds.map(id => reply.options.find(option => option.id === id)?.label), ...retainedCompetitorIds.map(id => context.competitors.find(item => item.id === id)?.name)].filter(Boolean);
   const submitted = addUserMessage(context, labels.join("; "), now);
   return { context: submitted.context, messageId: submitted.event.id };
+}
+
+/** Existing choice answers store the retained names in this display string.
+ * Match whole saved names so punctuation inside a brand name stays intact. */
+export function retainedAnswerNames(text: string | null | undefined, competitors: ContextSnapshot["competitors"]): string[] | null {
+  if (!text?.startsWith(retainedCompetitorAnswerPrefix)) return null;
+  let remaining = text.slice(retainedCompetitorAnswerPrefix.length);
+  const names = competitors.map(item => item.name).sort((a, b) => b.length - a.length);
+  const selected: string[] = [];
+  while (remaining) {
+    const name = names.find(item => remaining === item || remaining.startsWith(item + "; "));
+    if (!name) return null;
+    selected.push(name);
+    remaining = remaining.slice(name.length + 2);
+  }
+  return selected.length ? selected : null;
 }
 
 export type GuidedTimelineItem = { kind: "user"; event: Extract<ConversationEvent, { kind: "user_message" }> } | { kind: "turn"; turn: GuidedTurn };

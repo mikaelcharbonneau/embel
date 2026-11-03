@@ -9,9 +9,10 @@ import type { SharedQueuePort } from "../../worker/shared-pool/queue";
 import { sharedConfiguration,sharedSecrets,sharedLease,sharedInstance } from "./shared-pool-fixture";
 afterEach(()=>{vi.useRealTimers();vi.restoreAllMocks();});
 function harness(options:{holdNaming?:boolean;holdLogoStartup?:boolean;readinessFailure?:boolean;generationMismatch?:boolean;releaseDenied?:boolean;pending?:boolean;fatalNaming?:boolean;fatalStrategy?:boolean;
- logoQualificationFailures?:number;logoClaim?:"standby"|"held"|"error";outboxFailure?:boolean;defaultDiagnostics?:boolean;throwDiagnostics?:boolean;pendingNamingCount?:number}={}){
+ logoQualificationFailures?:number;logoClaim?:"standby"|"held"|"error";outboxFailure?:boolean;defaultDiagnostics?:boolean;throwDiagnostics?:boolean;pendingNamingCount?:number;
+ pendingStrategyCount?:number;holdFirstObservation?:boolean;unavailableFirstObservation?:boolean;fatalStrategyObservation?:boolean;wrongStrategyPage?:boolean;publishNewJob?:boolean}={}){
  const config=sharedConfiguration(),stop=new AbortController(),events:string[]=[],pools=new Map<string,SharedSlotPool>(),engines=new Map<string,SharedLaneEngine>();
- const diagnostics:SharedPoolDiagnostic[]=[],qualifications:Record<string,number>={},recoveredNaming:string[]=[];let outboxPolls=0;
+ const diagnostics:SharedPoolDiagnostic[]=[],qualifications:Record<string,number>={},recoveredNaming:string[]=[],recoveredStrategy:string[]=[];let outboxPolls=0,published=false;
  const renewals:Record<string,number>={},qualified:string[]=[],claims:Record<string,number>={},releaseFunctions:Array<()=>void>=[],startupReleases:Array<()=>void>=[];
  let active=0,maximum=0;
  const createPool=(_c:unknown,slot:SharedPoolSlot):SharedSlotPool=>{
@@ -23,16 +24,23 @@ function harness(options:{holdNaming?:boolean;holdLogoStartup?:boolean;readiness
      if(slot.lane==="logo"&&options.logoClaim==="held")throw Object.assign(Error("shared_slot_held"),{code:"40001"});
      if(slot.lane==="logo"&&options.logoClaim==="error")throw Error("Synthetic secret password and SQL must not appear in diagnostics");
      return{rows:[{lease:sharedLease(config,slot.lane,String(args[1]),claims[slot.lane])}]};}
-    if(sql.includes("renew_shared_worker_slot")){renewals[slot.lane]=(renewals[slot.lane]??0)+1;const lease=JSON.parse(String(args[0]));return{rows:[{lease:{...lease,expiresAt:new Date(Date.now()+45_000).toISOString(),...(options.generationMismatch&&slot.lane==="strategy"?{generation:lease.generation+1}:{})}}]};}
+    if(sql.includes("renew_shared_worker_slot")){renewals[slot.lane]=(renewals[slot.lane]??0)+1;const lease=JSON.parse(String(args[0]));
+     if(Date.parse(lease.expiresAt)<=Date.now())throw Error("expired lease");
+     return{rows:[{lease:{...lease,expiresAt:new Date(Date.now()+45_000).toISOString(),...(options.generationMismatch&&slot.lane==="strategy"?{generation:lease.generation+1}:{})}}]};}
     if(sql.includes("read_shared_worker_execution_page")){
      const old:SharedExecution={version:1,executionId:"77777777-7777-4777-8777-777777777777",executionToken:"88888888-8888-4888-8888-888888888888",slotId:slot.slotId,instanceId:"99999999-9999-4999-8999-999999999999",generation:1,
       lane:slot.lane,ownerId:"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",projectId:"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",jobId:"cccccccc-cccc-4ccc-8ccc-cccccccccccc",leaseToken:"dddddddd-dddd-4ddd-8ddd-dddddddddddd",operation:slot.lane==="naming"?"naming.generate":"strategy.reformulate",policyIdentity:"e".repeat(64),deploymentId:config.target.deploymentId};
-     const count=slot.lane==="naming"?options.pendingNamingCount??1:1;
+     const count=slot.lane==="naming"?options.pendingNamingCount??1:slot.lane==="strategy"?options.pendingStrategyCount??1:1;
      const pending=options.pending?Array.from({length:count},(_,index)=>({execution:{...old,executionId:`77777777-7777-4777-8777-${String(index+1).padStart(12,"0")}`},job:{immutable:"old-issued-input"},mode:"observe"})):[];
      const remaining=pending.filter(row=>args[1]===null||row.execution.executionId>String(args[1])),items=remaining.slice(0,Number(args[2]));
+     if(slot.lane==="strategy"&&options.wrongStrategyPage&&items[0])items[0].execution.slotId=config.slots.find(slot=>slot.lane==="logo")!.slotId;
      return{rows:[{page:{version:1,items,nextCursor:remaining.length>items.length?items.at(-1)!.execution.executionId:null}}]};
     }
-    if(sql.includes("list_shared_strategy_dispatches")){outboxPolls++;if(options.outboxFailure)throw Error("Synthetic secret outbox payload");return{rows:[]};}
+    if(sql.includes("list_shared_strategy_dispatches")){outboxPolls++;if(options.outboxFailure)throw Error("Synthetic secret outbox payload");
+     return{rows:options.publishNewJob&&!published?[{dispatch:{version:1,jobId:"f0000000-0000-4000-8000-000000000001",operation:"strategy.competitors",
+      policyIdentity:"e".repeat(64),deploymentId:config.target.deploymentId,dispatchIdentity:"d".repeat(64),state:"queued",retryable:true,
+      publicationGeneration:0,publishedAt:null,publishedMessageId:null}}]:[]};}
+    if(sql.includes("public.shared_strategy_worker_action")&&args[1]==="published"){published=true;return{rows:[{envelope:{execution:null,result:true}}]};}
     if(sql.includes("fence_shared_worker_slot")){events.push(`fence:${slot.lane}`);return{rows:[{fenced:true}]};}
     if(sql.includes("release_shared_worker_slot")){events.push(`release:${slot.lane}`);return{rows:[{released:!options.releaseDenied}]};}
     throw Error("Unexpected inert SQL");
@@ -45,15 +53,23 @@ function harness(options:{holdNaming?:boolean;holdLogoStartup?:boolean;readiness
    try{if(options.fatalNaming&&slot.lane==="naming"||options.fatalStrategy&&slot.lane==="strategy")throw Error(`shared_${slot.lane}_drain_unconfirmed`);
     if(options.holdNaming&&slot.lane==="naming")await new Promise<void>(resolve=>releaseFunctions.push(resolve));
     if(slot.lane!=="strategy")expect(message).toBeUndefined();return{disposition:"ack" as const,state:slot.lane==="strategy"?"succeeded":"idle"};}finally{active--;}}),
-   recover:vi.fn(async pending=>{expect(pending).toHaveLength(1);events.push(`observe:${slot.lane}`);if(slot.lane==="naming")recoveredNaming.push(pending[0]!.execution.executionId);return{disposition:"retry" as const,state:"observation_required"};}),
+   recover:vi.fn(async pending=>{expect(pending).toHaveLength(1);events.push(`observe:${slot.lane}`);const id=pending[0]!.execution.executionId;
+    if(slot.lane==="naming")recoveredNaming.push(id);
+    if(slot.lane==="strategy"){
+     recoveredStrategy.push(id);
+     if(options.holdFirstObservation&&recoveredStrategy.length===1)await new Promise<void>(resolve=>startupReleases.push(resolve));
+     if(options.fatalStrategyObservation)throw Error("shared_strategy_observation_unconfirmed");
+     if(options.unavailableFirstObservation&&id.endsWith("000000000001"))return{disposition:"retry" as const,state:"observation_unavailable"};
+    }
+    return{disposition:"retry" as const,state:"observation_required"};}),
    ...(slot.lane==="logo"?{renewReadiness:vi.fn(async()=>{events.push("ready_refresh:logo");if(options.readinessFailure)throw Error("Synthetic readiness acknowledgement lost");})}:{}),
-   close:vi.fn(async()=>{events.push(`engine_close:${slot.lane}`);if(options.fatalNaming&&slot.lane==="naming"||options.fatalStrategy&&slot.lane==="strategy")throw Error(`shared_${slot.lane}_drain_unconfirmed`);})};engines.set(slot.lane,engine);return engine;
+   close:vi.fn(async()=>{events.push(`engine_close:${slot.lane}`);if(options.fatalNaming&&slot.lane==="naming"||(options.fatalStrategy||options.fatalStrategyObservation)&&slot.lane==="strategy")throw Error(`shared_${slot.lane}_drain_unconfirmed`);})};engines.set(slot.lane,engine);return engine;
  });
  const queue:SharedQueuePort={receive:vi.fn(async()=>{await new Promise<void>(resolve=>{if(stop.signal.aborted)resolve();else stop.signal.addEventListener("abort",()=>resolve(),{once:true});});return{ok:false as const,reason:"empty" as const};}),send:vi.fn(async()=>({messageId:"msg_inert"}))};
  const controller=createSharedPoolController(config,sharedSecrets(config),{createPool,createEngine,queue,instanceId:sharedInstance,random:()=>1,onQualified:lane=>qualified.push(lane),
   ...(!options.defaultDiagnostics?{onDiagnostic:(event:SharedPoolDiagnostic)=>{diagnostics.push(event);if(options.throwDiagnostics)throw Error("Synthetic diagnostic sink unavailable");}}:{})});
  const running=controller.run(stop.signal);void running.catch(()=>{});
- return{config,controller,stop,running,events,pools,engines,qualified,claims,renewals,qualifications,diagnostics,releaseFunctions,startupReleases,recoveredNaming,get maximum(){return maximum;},get outboxPolls(){return outboxPolls;},createEngine};
+ return{config,controller,stop,running,events,pools,engines,qualified,claims,renewals,qualifications,diagnostics,releaseFunctions,startupReleases,recoveredNaming,recoveredStrategy,queue,get published(){return published;},get maximum(){return maximum;},get outboxPolls(){return outboxPolls;},createEngine};
 }
 describe("fixed shared slot lifecycle (inert ports; SQL authority tested separately)",()=>{
  it("constructs only configured slot resources, composes all three lanes and drains actual work before lease release",async()=>{
@@ -77,7 +93,7 @@ describe("fixed shared slot lifecycle (inert ports; SQL authority tested separat
   const namingPool=f.pools.get(f.config.slots.find(slot=>slot.lane==="naming")!.slotId)!;
   expect(vi.mocked(namingPool.query).mock.calls.filter(([sql])=>sql.includes("read_shared_worker_execution_page")).every(([,args])=>args?.[2]===1)).toBe(true);
   for(const lane of ["strategy","logo"]){const pool=f.pools.get(f.config.slots.find(slot=>slot.lane===lane)!.slotId)!;
-   expect(vi.mocked(pool.query).mock.calls.filter(([sql])=>sql.includes("read_shared_worker_execution_page")).every(([,args])=>args?.[2]===25)).toBe(true);}
+   expect(vi.mocked(pool.query).mock.calls.filter(([sql])=>sql.includes("read_shared_worker_execution_page")).every(([,args])=>args?.[2]===(lane==="strategy"?1:25))).toBe(true);}
   f.stop.abort();await vi.advanceTimersByTimeAsync(0);await f.running;await f.controller.close();
  });
  it("retains local capacity and refuses a successful drain while a noncooperative engine is still executing",async()=>{
@@ -93,6 +109,21 @@ describe("fixed shared slot lifecycle (inert ports; SQL authority tested separat
   vi.useFakeTimers();const f=harness({generationMismatch:true});await vi.advanceTimersByTimeAsync(0);expect(f.qualified).toHaveLength(3);
   await vi.advanceTimersByTimeAsync(10_001);expect(f.events).toContain("engine_close:strategy");expect(f.renewals.strategy).toBe(1);
   f.stop.abort();await vi.advanceTimersByTimeAsync(0);await f.running;await f.controller.close();
+ });
+ it("refuses expired authority on wake and reacquires while a historical Strategy response remains unresolved",async()=>{
+  vi.useFakeTimers();const f=harness({pending:true,unavailableFirstObservation:true});
+  await vi.advanceTimersByTimeAsync(0);
+  expect(f.recoveredStrategy.length).toBeGreaterThan(0);
+  // Wall time has moved while the VM's callbacks were paused.
+  vi.setSystemTime(Date.now()+90_000);
+  expect((await f.controller.deliverStrategy({immutable:"new"})).disposition).toBe("retry");
+  await vi.advanceTimersByTimeAsync(11_001);
+  expect(f.claims.strategy).toBe(2);
+  expect(f.events).toContain("fence:strategy");
+  expect(f.diagnostics.some(e=>e.lane==="strategy"&&e.code==="renewal_failed")).toBe(true);
+  expect(await f.controller.deliverStrategy({immutable:"new"})).toEqual({disposition:"ack",state:"succeeded"});
+  expect(f.engines.get("strategy")!.run).toHaveBeenCalledTimes(1);
+  f.stop.abort();await f.running;await f.controller.close();
  });
  it("renews readiness only after startup qualification completes, while preserving the slot lease during startup",async()=>{
   vi.useFakeTimers();const f=harness({holdLogoStartup:true});await vi.advanceTimersByTimeAsync(0);
@@ -122,6 +153,56 @@ describe("fixed shared slot lifecycle (inert ports; SQL authority tested separat
  });
 });
 describe("shared slot outage backoff",()=>{
+ it("qualifies on restart and publishes new work while an older Strategy read is still outstanding",async()=>{
+  vi.useFakeTimers();
+  const f=harness({pending:true,pendingStrategyCount:3,holdFirstObservation:true,unavailableFirstObservation:true,publishNewJob:true});
+  await vi.advanceTimersByTimeAsync(0);
+  expect(f.qualified).toContain("strategy");
+  expect(f.startupReleases).toHaveLength(1);
+  expect(f.published).toBe(true);
+  const sent=vi.mocked(f.queue.send).mock.calls[0]!;
+  expect(sent[1]).toMatchObject({jobId:"f0000000-0000-4000-8000-000000000001"});
+  const delivery=f.controller.deliverStrategy(sent[1]);
+  const cancelled=new AbortController(),interrupted=f.controller.deliverStrategy(sent[1],cancelled.signal);
+  cancelled.abort();
+  expect((await interrupted).disposition).toBe("retry");
+  expect(f.engines.get("strategy")!.run).not.toHaveBeenCalled();
+
+  // Let the old, read-only observation return unavailable. Its backoff must
+  // not touch the new message or delay another slot poll.
+  f.startupReleases[0]!();await vi.advanceTimersByTimeAsync(0);
+  expect(f.diagnostics).toContainEqual(expect.objectContaining({code:"strategy_observation_delayed",attempt:1}));
+  expect(await delivery).toEqual({disposition:"ack",state:"succeeded"});
+  await vi.advanceTimersByTimeAsync(1500);
+  expect(f.outboxPolls).toBeGreaterThan(10);
+  expect(new Set(f.recoveredStrategy.slice(0,3)).size).toBe(3);
+  expect(f.recoveredStrategy[3]).toBe(f.recoveredStrategy[0]);
+  expect(f.diagnostics.filter(e=>e.code==="strategy_observation_delayed").map(e=>e.retryAfterMs)).toEqual([1000,2000]);
+  expect(f.queue.send).toHaveBeenCalledTimes(1);
+  expect(f.engines.get("strategy")!.run).toHaveBeenCalledTimes(1);
+  expect(f.controller.status().slots.find(slot=>slot.lane==="strategy")?.state).toBe("qualified");
+  f.stop.abort();await vi.advanceTimersByTimeAsync(0);await f.running;await f.controller.close();
+ });
+ it("rejects a foreign execution page before it advertises or publishes from the Strategy slot",async()=>{
+  vi.useFakeTimers();
+  const f=harness({pending:true,wrongStrategyPage:true,publishNewJob:true});
+  await vi.advanceTimersByTimeAsync(0);
+  expect(f.qualified).not.toContain("strategy");
+  expect(f.events).toContain("fence:strategy");
+  expect(f.engines.get("strategy")!.recover).not.toHaveBeenCalled();
+  expect(f.outboxPolls).toBe(0);
+  f.stop.abort();await vi.advanceTimersByTimeAsync(0);await f.running;await f.controller.close();
+ });
+ it("fences and fails an unconfirmed Strategy observation write instead of treating it as a missing read",async()=>{
+  vi.useFakeTimers();
+  const f=harness({pending:true,fatalStrategyObservation:true});
+  await vi.advanceTimersByTimeAsync(0);
+  await expect(f.running).rejects.toThrow("runtime");
+  expect(f.events).toContain("fence:strategy");
+  expect(f.events).not.toContain("release:strategy");
+  expect(f.diagnostics.some(e=>e.code==="strategy_observation_delayed")).toBe(false);
+  await expect(f.controller.close()).rejects.toThrow("runtime");
+ });
  it("bounds failed qualification traffic while healthy lanes keep polling and renewing",async()=>{
   vi.useFakeTimers();const f=harness({logoQualificationFailures:Infinity});await vi.advanceTimersByTimeAsync(0);
   expect(f.qualifications.logo).toBe(1);expect(f.qualified).toEqual(["strategy","naming"]);

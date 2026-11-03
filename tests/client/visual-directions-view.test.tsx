@@ -66,12 +66,28 @@ describe("visual direction comparison", () => {
 
   it("renders selection only from saved state and does not offer an earlier board as current", async () => {
     const stale = card("A", { selected: true, stale: true }), current = card("B", { selected: true });
-    await render(props({ cards: [stale, current, null], selectionStatus: "Direction saved.", finalAction: createElement("button", null, "Create brand assets") }));
+    await render(props({ cards: [stale, current, null], selectionStatus: "Direction saved.", finalAction: createElement("a", { href: "/kit" }, "View brand assets") }));
     const articles = host.querySelectorAll("article");
     expect(articles[0]!.dataset.selected).toBe("false"); expect(articles[0]!.textContent).toContain("Earlier inputs");
     expect([...articles[0]!.querySelectorAll("button")].find(node => node.textContent === "Choose direction")?.disabled).toBe(true);
     expect(articles[1]!.dataset.selected).toBe("true"); expect(button("Chosen direction").disabled).toBe(true);
-    expect(host.textContent).toContain("Direction saved."); expect(button("Create brand assets")).toBeDefined();
+    expect(host.textContent).toContain("Direction saved."); expect(host.querySelector('a[href="/kit"]')?.textContent).toBe("View brand assets");
+  });
+
+  it("stops offering progress checks on completion and puts a confirmed kit before the comparison", async () => {
+    const cards = [card("A"), card("B"), card("C")] as const;
+    const generation = { status: "complete" as const, completed: 3, onCheck: vi.fn(), onGenerate: vi.fn() };
+    await render(props({ cards, generation }));
+    expect(button("Check progress")).toBeUndefined();
+    expect(host.textContent).toContain("3 of 3 ready");
+    expect(host.textContent).not.toContain("View brand assets");
+
+    // The current choice can belong to an earlier set than the three being compared.
+    await render(props({ cards, generation, finalAction: createElement("a", { href: "/kit" }, "View brand assets") }));
+    const link = host.querySelector('a[href="/kit"]')!;
+    expect(link.compareDocumentPosition(host.querySelector("article")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(button("Generate another set").disabled).toBe(false);
+    expect(generation.onGenerate).not.toHaveBeenCalled();
   });
 
   it("opens a larger board without choosing it and returns keyboard focus on close", async () => {

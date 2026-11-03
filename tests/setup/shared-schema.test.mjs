@@ -5,6 +5,7 @@ import path from 'node:path';
 import { test } from 'node:test';
 import pg from 'pg';
 import { composeDevelopmentSchema, developmentEventCapacity, developmentStorageRepair, CATALOG_FINGERPRINT_SQL } from '../../scripts/development/shared-schema.mjs';
+import { composeSupplementalUpgrade, SUPPLEMENTAL_PACKET } from '../../scripts/development/shared-schema-upgrade.mjs';
 import { provisionDevelopmentSchema, developmentDatabase, installDevelopmentSchema } from '../../scripts/development/shared-schema-install.mjs';
 import { defaults, repositoryRoot } from '../../scripts/development/config.mjs';
 
@@ -36,6 +37,17 @@ test('changed historical packets fail before any SQL execution',async t=>{
  await assert.rejects(composeDevelopmentSchema(settings,root),/Reviewed development SQL changed/);
 });
 
+test('a changed supplemental packet cannot use the reviewed forward-upgrade path', async t => {
+ const root=await mkdtemp(path.join(os.tmpdir(),'embel-supplemental-source-'));
+ t.after(()=>rm(root,{recursive:true,force:true}));
+ const dest=path.join(root,'supabase',SUPPLEMENTAL_PACKET.source);
+ await mkdir(path.dirname(dest),{recursive:true});
+ const source=await readFile(path.join(repositoryRoot,'supabase',SUPPLEMENTAL_PACKET.source),'utf8');
+ const base=await composeDevelopmentSchema(settings);
+ await writeFile(dest,source+'\n-- unrelated edit\n');
+ await assert.rejects(composeSupplementalUpgrade(settings,base.manifestHash,root),/reviewed_source_hash_mismatch/);
+});
+
 test('operational retargeting refuses absent or ambiguous target predicates',()=>{
  const naming="q.singleton AND q.mode='hosted'AND q.origin='https://fricsfwqibyhemknqgyf.supabase.co'";
  const storage="t.singleton AND t.origin='https://fricsfwqibyhemknqgyf.supabase.co'";
@@ -54,6 +66,10 @@ test('real isolated Supabase: repeated provisioning, restricted logins, source a
  assert.deepEqual(first,second,'a repeat must not rotate credentials, slots or the service actor');
  const db=await developmentDatabase();
  const catalog=await db.sql(CATALOG_FINGERPRINT_SQL);
+ const marker=JSON.parse(await db.sql('select row_to_json(i) from fluid_private.portable_development_installation i;'));
+ assert.equal(marker.brainstorm_supplement_v1.source,SUPPLEMENTAL_PACKET.sha256);
+ assert.equal(marker.brainstorm_supplement_v1.predecessor,marker.catalog_sha256);
+ assert.equal(marker.brainstorm_supplement_v1.catalog,catalog);
  assert.equal((await installDevelopmentSchema()).settings.projectId,first.target.deploymentId);
  assert.equal(await db.sql(CATALOG_FINGERPRINT_SQL),catalog);
  for(const principal of [...first.slots,...first.httpPrincipals]){

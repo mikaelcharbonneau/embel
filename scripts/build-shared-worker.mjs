@@ -20,7 +20,9 @@ for(const packet of authority.packets){
 }
 const runtimePackages=await readSharedRuntimePackages(root),runtimeFiles=await readSharedRuntimeFilePins(root);
 const runtimePinsSha256=createHash("sha256").update(JSON.stringify({packages:runtimePackages,files:runtimeFiles})).digest("hex");
-const nativeExternal=["pg-native",...runtimePackages.map(pin=>pin.name)];
+// The Queue SDK catches a missing optional telemetry peer. Keep that optional
+// import external so a parent checkout's installations can't alter the artifact.
+const nativeExternal=["pg-native","@opentelemetry/api",...runtimePackages.map(pin=>pin.name)];
 const childDefines={__EMBEL_LOGO_RASTER_ENTRYPOINT__:JSON.stringify("dist/raster.js"),__EMBEL_LOGO_RASTER_CHILD__:"false",__EMBEL_LOGO_TEXT_ENTRYPOINT__:JSON.stringify("dist/text.js"),__EMBEL_LOGO_TEXT_CHILD__:"false",__EMBEL_LOGO_RENDER_ENTRYPOINT__:JSON.stringify("dist/render.js")};
 const banner={js:'import { createRequire as __embelCreateRequire } from "node:module"; const require = __embelCreateRequire(import.meta.url);'};
 const result=await build({absWorkingDir:root,entryPoints:["worker/shared-pool/entry.ts"],outfile:entry,bundle:true,platform:"node",format:"esm",target:"node22.22",conditions:["react-server"],

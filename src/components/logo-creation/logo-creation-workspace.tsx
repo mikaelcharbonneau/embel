@@ -42,6 +42,7 @@ import { LogoDownloadControls } from "./logo-download-controls";
 import { prepareSavedLogoConcepts, logoDraftHasProtectedWork, type LogoSavedInputChoice } from "./saved-inputs-controller";
 import { LogoSavedInputsStatus, type LogoSavedInputState } from "./saved-inputs-status";
 import styles from "./logo-creation.module.css";
+import stage from "@/styles/branding-stage.module.css";
 
 const noSubscription = () => () => undefined;
 const EMPTY_CREATION: LogoCreationState = { phase: "idle", quote: null, request: null, error: null };
@@ -54,8 +55,8 @@ export function LogoCreationWorkspace({ projectId, onProjectCreated, mode = "set
 }): React.JSX.Element {
   const { session } = useAccountSession();
   const memory = useLogoDraftMemory();
-  if (session.status !== "ready") return <section className={styles.panel} aria-label="Create a logo"><h1>Create a logo</h1><AccountStatus retainedEdits={memory.hasUnsaved()} /></section>;
-  if (projectId !== undefined && !logoUuidSchema.safeParse(projectId).success) return <section className={styles.panel} role="alert"><h1>Project unavailable</h1><p>Open a saved project to continue.</p><Link href="/brands">View projects</Link></section>;
+  if (session.status !== "ready") return <section className={styles.panel} aria-label="Create a logo"><h1 className={projectId ? stage.title : undefined}>Create a logo</h1><AccountStatus retainedEdits={memory.hasUnsaved()} /></section>;
+  if (projectId !== undefined && !logoUuidSchema.safeParse(projectId).success) return <section className={styles.panel} role="alert"><h1 className={stage.title}>Project unavailable</h1><p>Open a saved project to continue.</p><Link className={stage.actionLink} href="/brands">View projects</Link></section>;
   return <OwnedLogoCreation key={session.userId + ":" + session.generation + ":" + (projectId ?? "new")} account={session} projectId={projectId} mode={mode} onProjectCreated={onProjectCreated} />;
 }
 
@@ -428,7 +429,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
     {saved && <LogoInputStatus workspace={saved} />}
   </>;
   const inputTools = <>
-    {!activeBatch && <div className="project-logo-start"><h2>{draft?.brief.name || "Your logo starts here"}</h2><p>Save a brief in Project context, then review the available generation options. Only verified image results will appear here.</p></div>}
+    {!activeBatch && <div className="project-logo-start"><h2 className={stage.sectionHeading}>{draft?.brief.name || "Your logo starts here"}</h2><p>Save a brief in Project context, then review the available generation options. Only verified image results will appear here.</p></div>}
     {strategy.message && <p className={styles.warning} role="status">{strategy.message}</p>}
     {saved && client ? <AccountLogoInputs account={account} workspace={saved} client={client} mode="references" canWrite={editing && !workspace.pending} selections={draft?.references} savedReferences={snapshot?.references} onSelectionsChange={editing && snapshot && !workspace.pending ? workspace.setReferenceDraft : undefined} /> : <LogoReferencePickerView references={snapshot?.references} selections={draft?.references}
       onChange={editing && snapshot && !workspace.pending ? workspace.setReferenceDraft : undefined}
@@ -439,7 +440,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
     {snapshot && <div className={styles.panel}><p className={styles.note}>Reference choices save automatically.</p><button className={styles.primaryButton} type="button" disabled={!canSaveReferences} onClick={() => { if (canSaveReferences && draft) void workspace.saveReferences(draft.references); }}>Save references</button></div>}
     {batchId && !activeBatch && <p className={styles.note} role="status">{batchRead?.id === batchId && batchRead.unavailable ? "Saved concepts are unavailable. Their original records are kept." : "Loading saved concepts…"}</p>}
     {projectId && <section className={styles.panel} aria-label="Saved explorations">
-      <h2>Saved explorations</h2>
+      <h2 className={stage.sectionHeading}>Saved explorations</h2>
       {batchHistoryState.loading && <p className={styles.note} role="status">Reading saved explorations…</p>}
       {batchHistoryState.error && <p className={styles.warning} role="status">{batchHistoryState.error}</p>}
       {batchHistoryState.loaded && !batchHistoryState.loading && !batchHistoryState.error && batchIds.length === 0 && <p className={styles.note}>No saved exploration has been requested yet.</p>}
@@ -506,12 +507,12 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
         </div>}
       </div>}{statusTools}{inputTools}{advancedTools}</ContextDetails>
     </ConceptsComposer> : null;
-  return <div className={`project-logo-creation project-workbench ${conceptsScreen ? styles.conceptsScreen : ""} `} aria-label="Logo creation workspace"><div className="project-workbench-canvas">
-    {conceptsScreen && projectId && <Link className={styles.backToInspiration} href={`/brands/account/${projectId}/inspiration`}>← Back to inspiration</Link>}
+  return <div className={`project-logo-creation ${conceptsScreen ? styles.conceptsScreen : "project-workbench"}`} aria-label="Logo creation workspace"><div className={conceptsScreen ? undefined : "project-workbench-canvas"}>
+    {conceptsScreen && projectId && <Link className={`${stage.actionLink} ${styles.backToInspiration}`} href={`/brands/account/${projectId}/inspiration`}>← Back to inspiration</Link>}
     <header className={styles.workspaceHeader}>
-      {conceptsScreen && <p className={styles.muted}>Build your brand · Step 1 of 3</p>}
-      <h1>{projectId ? "Explore your logo" : "Give your brand a visual voice"}</h1>
-      <p className={styles.muted}>{conceptsScreen ? (activeBatch ? `Six logo concepts for ${draft?.brief.name || "your brand"}` : "Six logo concepts, shaped by your brand and inspiration.") : "Review and refine your saved logo."}</p>
+      {conceptsScreen && <p className={stage.eyebrow}>Build your brand · Step 1 of 3</p>}
+      <h1 className={conceptsScreen ? stage.title : undefined}>{projectId ? "Explore your logo" : "Give your brand a visual voice"}</h1>
+      <p className={conceptsScreen ? stage.intro : styles.muted}>{conceptsScreen ? (activeBatch ? `Six logo concepts for ${draft?.brief.name || "your brand"}` : "Six logo concepts, shaped by your brand and inspiration.") : "Review and refine your saved logo."}</p>
       {!conceptsScreen && <>      <p className={styles.muted}>Start with a brief, choose the kinds of logo you want to explore, and keep your work in a saved project.</p>
       {savedProjectId && <div className={styles.actions}>
         <Link className={styles.secondaryButton} href={projectStrategyHref(savedProjectId)}>Open project</Link>
@@ -582,7 +583,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
       request={activeRequest} onCheckRequest={recoveryKeys.length > 0 && client && editing && !checkingRequest ? () => void checkRequest() : undefined} />
     {conceptsScreen && projectId && client && focusedReceipt && <LogoDownloadControls client={client} account={account} projectId={projectId} original={focusedReceipt} disabled={selectionState.busy} />}
     {conceptsScreen && projectId && <div className={styles.continueToBoard}>{workspace.stagePayloads?.concepts?.payload.selected && !selectionState.busy
-      ? <Link className={styles.primaryButton} href={`/brands/account/${projectId}/logo/directions`}>Continue to visual directions →</Link>
+      ? <Link className={`${styles.primaryButton} ${stage.actionLink}`} href={`/brands/account/${projectId}/logo/directions`}>Continue to visual directions →</Link>
       : <button className={styles.primaryButton} type="button" disabled title={initialConceptReadState ? initialConceptReadMessage : "Select a logo and wait for it to save"}>Continue to visual directions →</button>}</div>}
     {conceptsScreen && refinementHistoryState.error && <p role="status" className={styles.warning}>{refinementHistoryState.error}</p>}
     {conceptsScreen && refinementHistoryState.nextCursor && <button type="button" className={styles.secondaryButton} disabled={refinementHistoryState.loading} onClick={() => void refinementHistory?.loadMore()}>Load earlier versions</button>}

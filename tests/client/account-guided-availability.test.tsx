@@ -62,6 +62,34 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); });
 
 describe("guided Strategy availability presentation", () => {
+  it("keeps fresh worker handoff quiet, offers a check after a real delay, and clears it once running", async () => {
+    addGuidedTurn(); unavailable("request_active");
+    const queued = { ...boundJob("queued"), dispatchState: "dispatch_pending", workerDelivery: "awaiting_worker", canRetryDelivery: false };
+    strategy.overview!.jobs = [strategyJobSchema.parse(queued)];
+    await render();
+    expect(host.querySelector('[aria-label="Request queued…"]')).not.toBeNull();
+    expect(button("Stop")?.disabled).toBe(false);
+    expect(host.querySelector(".guided-delivery-notice")).toBeNull();
+    expect(button("Retry delivery")).toBeUndefined(); expect(notice()).toBe("");
+    strategy.overview!.jobs = [strategyJobSchema.parse({ ...queued, workerDelivery: "worker_delayed" })];
+    await render();
+    expect(host.querySelector(".guided-delivery-notice")?.textContent).toContain("still queued");
+    expect(button("Retry delivery")).toBeUndefined();
+    await act(async () => button("Check status")!.click());
+    expect(strategy.refresh).toHaveBeenCalledOnce();
+    strategy.overview!.jobs = [boundJob("running")];
+    await render();
+    expect(host.querySelector('[aria-label="Researching competitors…"]')).not.toBeNull();
+    expect(host.querySelector(".guided-delivery-notice")).toBeNull();
+    expect(strategy.retryDelivery).not.toHaveBeenCalled(); expect(strategy.enqueue).not.toHaveBeenCalled();
+  });
+
+  it("does not treat temporary refusal of new requests as a failed admission in progress", async () => {
+    addGuidedTurn(); unavailable("request_active"); strategy.pending = true;
+    await render();
+    expect(host.querySelector('[aria-label="Starting research…"]')).not.toBeNull();
+    expect(notice()).toBe(""); expect(button("Retry research")).toBeUndefined();
+  });
   it("offers exact delivery recovery after reload despite request_active without automatically retrying", async () => {
     addGuidedTurn(); unavailable("request_active");
     const job = strategyJobSchema.parse({ ...boundJob("queued"), dispatchState: "dispatch_pending", canRetryDelivery: true });

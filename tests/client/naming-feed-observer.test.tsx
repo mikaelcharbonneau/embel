@@ -46,11 +46,21 @@ it("survives StrictMode remount and observes two viewports ahead without admitti
   await act(async () => observe([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver));
   expect(requests).toHaveLength(0);
 });
-it("removes active demand when detail or saved views replace exploration", async () => {
-  await act(async () => root.render(createElement(Probe))); await act(async () => latest.start());
-  await act(async () => root.render(createElement(Probe, { view: { ...initialNamingView, inspecting: true } })));
-  await act(async () => window.dispatchEvent(new WheelEvent("wheel", { deltaY: 300 })));
-  expect(latest.eligibleView).toBe(false); expect(requests).toHaveLength(0);
+it("preserves the results scroller while preview is open and ignores both user demand and queued observer callbacks until it closes", async () => {
+  const draw = (inspecting: boolean) => root.render(createElement("div", { "data-naming-results-scroll": true }, createElement(Probe, { view: { ...initialNamingView, inspecting } })));
+  await act(async () => draw(false));
+  const scroller = host.querySelector("[data-naming-results-scroll]")!, tail = host.querySelector("[data-test-naming-tail]"), retired = observe;
+  await act(async () => draw(true));
+  expect(host.querySelector("[data-naming-results-scroll]")).toBe(scroller);
+  expect(host.querySelector("[data-test-naming-tail]")).toBe(tail);
+  await act(async () => { scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: 300, bubbles: true })); intersection(retired); });
+  expect(latest.eligibleView).toBe(false);
+  expect(requests).toEqual([]);
+  await act(async () => draw(false));
+  await act(async () => intersection());
+  expect(requests).toEqual([]);
+  await act(async () => scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: 300, bubbles: true })));
+  expect(requests).toHaveLength(1);
 });
 it("uses the actual workspace scroller as the observer root", async () => {
   await act(async () => root.render(createElement("div", { className: "project-workspace-content" }, createElement(Probe))));

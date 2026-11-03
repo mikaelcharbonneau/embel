@@ -1,0 +1,181 @@
+.host {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  box-sizing: border-box;
+  min-width: 0;
+  pointer-events: none;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+}
+
+.panel {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  width: min(40rem, var(--fc-width, calc(100% - 24px)));
+  max-height: var(--fc-height, calc(100% - 24px));
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-width: 0;
+  overflow: hidden;
+  pointer-events: auto;
+  color: var(--text, #191919);
+  background: var(--paper, #fff);
+  border: 1px solid var(--border, #d7d5d1);
+  border-radius: 18px;
+  box-shadow: 0 2px 5px #1919190a, 0 6px 24px #19191914;
+}
+
+.panel[data-placed="true"] {
+  left: var(--fc-x);
+  top: var(--fc-y);
+  bottom: auto;
+  transform: none;
+}
+
+.panel[data-minimized="true"] {
+  width: fit-content;
+  max-width: var(--fc-width, calc(100% - 24px));
+  border-radius: 999px;
+}
+
+.panel [hidden] { display: none !important; }
+
+.toolbar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 2px 7px;
+}
+
+.toolbar .handle, .toolbar .tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 28px;
+  min-width: 28px;
+  padding: 0 5px;
+  color: var(--secondary, #696965);
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.toolbar .handle {
+  flex: 1;
+  align-self: stretch;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+.toolbar .handle:active { cursor: grabbing; }
+.handle span {
+  width: 8px;
+  height: 13px;
+  background: radial-gradient(circle at 1.5px 1.5px, #97958f 1.2px, transparent 1.4px) 0 0 / 5px 5px;
+}
+.toolbar .tool:hover, .toolbar .handle:hover { background: var(--surface, #f3f2ef); }
+.toolbar button:focus-visible { outline: 2px solid var(--accent-text, #990091); outline-offset: -2px; }
+.panel[data-minimized="true"] .tool { gap: 6px; padding: 0 7px; font-size: 12px; }
+
+
+.history {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: min(24rem, calc(var(--fc-height, 75dvh) * .52));
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-bottom: 1px solid var(--border, #e4e3df);
+}
+
+.body {
+  flex: 0 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.body :global(.conversation-composer) {
+  margin: 0;
+  min-width: 0;
+  padding: 0 12px 8px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.panel:focus-within { border-color: #aaa7a3; }
+.body :global(.conversation-composer) textarea {
+  min-height: 32px;
+  max-height: min(10rem, 28dvh);
+  padding: 3px 3px 5px;
+  overflow-y: auto;
+}
+.body :global(.conversation-composer-footer) { align-items: flex-end; }
+.body :global(.conversation-composer-footer) :global(.composer-send-icon) {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+}
+@media (pointer: coarse) {
+  .toolbar .handle, .toolbar .tool { min-height: 36px; min-width: 36px; }
+}
+
+/* Compact mode keeps writing, movement and sending in one row. Notices can
+   still grow above the field without introducing a full-width footer. */
+.panel[data-expanded="false"][data-minimized="false"] {
+  flex-direction: row;
+  align-items: flex-end;
+}
+.panel[data-expanded="false"] .toolbar { align-items: center; min-height: 54px; padding: 0 0 0 5px; }
+.panel[data-expanded="false"] .handle { flex: none; }
+.panel[data-expanded="false"][data-minimized="false"] .body { flex: 1; max-height: var(--fc-height, calc(100% - 24px)); }
+.panel[data-expanded="false"] .body :global(.conversation-composer) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 5px;
+  padding: 5px 6px 5px 3px;
+}
+.panel[data-expanded="false"] .body :global(.conversation-composer) textarea {
+  grid-column: 1; width: 100%; min-width: 0;
+  min-height: 44px; max-height: min(7.5rem, 25dvh);
+  padding: 10px 2px; box-sizing: border-box;
+}
+.panel[data-expanded="false"] .body :global(.conversation-composer-footer) {
+  grid-column: 2;
+  align-self: center;
+  margin: 0;
+}
+.panel[data-expanded="false"] .body :global(.conversation-composer-footer) > span[id$="-hint"] {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+.panel[data-expanded="false"] .body :global(.form-error) { grid-column: 1 / -1; }
+.panel[data-expanded="true"] .body :global(.conversation-composer) textarea {
+  min-height: min(6.5rem, 22dvh);
+  max-height: min(12rem, 30dvh);
+}
+.panel[data-minimized="true"] .toolbar { min-height: 32px; padding: 3px 6px; }
+
+/* ConversationComposer autosizes via scrollHeight, which includes the default
+   two browser rows. The compact empty field always has one 44px writing row. */
+.panel[data-expanded="false"] .body :global(.conversation-composer) textarea:placeholder-shown {
+  height: 44px !important;
+  max-height: 44px;
+}
+@supports (field-sizing: content) {
+  .panel[data-expanded="false"] .body :global(.conversation-composer) textarea {
+    field-sizing: content;
+    height: auto !important;
+  }
+}

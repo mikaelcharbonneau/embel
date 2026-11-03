@@ -3,6 +3,7 @@ import { z } from "zod";
 import { namingBriefSnapshotSchema, namingCandidateProposalSchema, namingCreatorAttributionSchema, namingProviderReceiptSchema, namingVerificationFindingSchema, namingDisplayRationale } from "@/domain/naming-brain";
 import { nameIdentityKey, namingStrategyBasisSchema, namingStrategyKeyFromBasis, type ProjectNameCandidate } from "@/domain/project-naming";
 import type { AuthenticatedContext } from "../auth/context";
+import { readDevelopmentConfiguration } from "../development/config";
 import { ApiError } from "../http/errors";
 import { NAMING_BRAINSTORM_CAUTION } from "@/domain/naming-brainstorm";
 
@@ -14,7 +15,14 @@ const brainstormSourceSchema = z.strictObject({
 });
 async function loadBrainstormSources(auth:AuthenticatedContext,projectId:string,ids:string[]) {
  const proofs=new Map<string,unknown>();if(!ids.length)return proofs;
- const {data,error}=await auth.client.rpc("get_naming_brainstorm_sources",{p_project_id:projectId,p_candidate_ids:ids});
+ const args = { p_project_id: projectId, p_candidate_ids: ids };
+ let response = await auth.client.rpc("get_naming_brainstorm_sources", args);
+ // The original reader is authoritative for published members. Only its specific
+ // missing-membership diagnostic can reach the local supplemental proof reader.
+ if (response.error?.code === "55000" && response.error.message === "invalid_brainstorm_source" && readDevelopmentConfiguration()) {
+  response = await auth.client.rpc("get_naming_brainstorm_sources_v2", args);
+ }
+ const { data, error } = response;
  if(error)throw new ApiError(error.code==="P0002"?"not_found":"integration_unavailable");
  const parsed=z.array(brainstormSourceSchema).max(100).safeParse(normalizeNamingBrain(data,auth.userId));
  if(!parsed.success||parsed.data.length!==ids.length)throw new ApiError("integration_unavailable");

@@ -1,16 +1,11 @@
-/* Naming begins in the conversation, then keeps one bottom composer below results. */
-.workspace.workspace { display: grid; grid-template-columns: minmax(0, 1fr); height: 100%; min-height: 0; overflow: hidden; background: var(--paper); }
+/* Naming moves from a conversation to a results canvas with one floating composer. */
+.workspace.workspace { position: relative; isolation: isolate; display: grid; grid-template-columns: minmax(0, 1fr); height: 100%; min-height: 0; overflow: hidden; background: var(--paper); }
 .chatFirst.workspace { grid-template-columns: minmax(0, 1fr); }
 .chatPanel { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--paper); border-right: 0; }
 .chatFirst .chatPanel { border-right: 0; }
-.chatHeader { flex: 0 0 48px; min-width: 0; padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; justify-content: space-between; }
-.chatHeader > div { min-width: 0; display: grid; gap: 4px; }
-.chatHeader strong { font-size: 13px; font-weight: 500; }
-.chatHeader span { color: var(--secondary); font-size: 12px; }
-.chatHeader a { font-size: 12px; white-space: nowrap; }
-.chatFirst .chatHeader { padding-inline: max(24px, calc((100% - 760px) / 2)); }
 .openingTitle { flex-shrink: 0; width: 100%; max-width: 808px; padding: 28px 24px 0; margin: 0 auto; font-size: 24px; line-height: 32px; font-weight: 500; letter-spacing: -.5px; }
 .chatUnavailable { padding: 24px 16px; font-size: 13px; line-height: 20px; color: var(--secondary); }
+.conversation :global(.conversation-composer-footer > button[type=submit]) { margin-inline-start: auto; }
 .conversation.conversation { display: flex; flex: 1; flex-direction: column; min-height: 0; min-width: 0; gap: 0; overflow: hidden; }
 .transcript.transcript { padding: 24px 16px; gap: 22px; overscroll-behavior: contain; scrollbar-width: thin; }
 .chatFirst .transcript { padding-inline: max(24px, calc((100% - 760px) / 2)); }
@@ -37,14 +32,6 @@
 .guidance > div { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; }
 .guidance strong { font-weight: 500; }
 .guidance textarea { min-height: 64px; }
-.compose.compose { flex-shrink: 0; border-top: 1px solid var(--border); padding: 12px 16px; max-height: 45%; overflow-y: auto; }
-.chatFirst .compose { padding: 16px max(24px, calc((100% - 760px) / 2)) 24px; }
-.compose :global(.conversation-composer) { margin: 0; padding: 12px 14px; border-color: var(--border); border-radius: 12px; box-shadow: none; }
-.compose :global(.conversation-composer textarea) { min-height: 44px; max-height: 140px; overflow-y: auto; border: 0; border-radius: 0; padding: 0 0 8px; font-size: 14px; line-height: 22px; background: transparent; }
-.compose :global(.conversation-composer-footer) { margin-top: 4px; gap: 8px; }
-.compose :global(.conversation-composer-footer > span) { font-size: 11px; line-height: 17px; font-weight: 400; }
-.workspace .compose :global(.composer-send-icon) { width: 32px; min-width: 32px; height: 32px; min-height: 32px; padding: 8px; border-radius: 50%; background: var(--text); }
-.compose :global(.composer-send-icon img) { display: block; flex-shrink: 0; }
 .seedSummary { display: flex; align-items: center; gap: 8px; justify-content: space-between; margin-bottom: 10px; color: var(--secondary); font-size: 12px; line-height: 18px; }
 .seedSummary button { flex-shrink: 0; font-size: 12px; }
 .canvas.canvas { min-width: 0; min-height: 0; height: 100%; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-width: thin; padding: 24px; background: var(--canvas); }
@@ -79,16 +66,11 @@
   .chatFirst.workspace { grid-template-rows: minmax(0, 1fr); }
   .chatFirst .chatPanel { grid-row: 1; }
   .chatPanel { border-right: 0; }
-  .chatHeader { flex-basis: 48px; padding: 8px 16px; }
-  .chatFirst .chatHeader { padding-inline: 16px; }
   .openingTitle { padding: 20px 16px 0; font-size: 22px; line-height: 30px; }
   .chatFirst .transcript, .transcript.transcript { padding: 22px 16px; }
   .chatFirst .active :global(.naming-approach-options) { grid-template-columns: 1fr; }
   .answer > button { min-height: 44px; }
   .active :global(.button) { min-height: 44px; }
-  .chatFirst .compose, .compose.compose { padding: 12px 16px max(16px, env(safe-area-inset-bottom)); }
-  .compose :global(.conversation-composer textarea) { font-size: 16px; }
-  .workspace .compose :global(.composer-send-icon) { width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 14px; }
   .canvas.canvas { padding: 20px 16px; }
   .canvas :global(.project-naming-header h1) { font-size: 22px; line-height: 30px; }
   .workspace .canvas :global(.project-naming-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -99,19 +81,16 @@
 }
 @media (max-width: 340px) { .workspace .canvas :global(.project-naming-grid) { grid-template-columns: minmax(0, 1fr); } }
 
-/* Results are full width. Keep the same mounted composer below the canvas,
-   with an optional bottom conversation drawer rather than a sidebar. */
-.workspace.exploring { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
-.exploring .canvas { grid-column: 1; grid-row: 1; }
-.exploring .chatPanel { grid-column: 1; grid-row: 2; width: 100%; border: 0; border-top: 1px solid var(--border); max-height: min(65vh, 620px); display: flex; }
-.exploring .conversation { width: min(100%, 860px); margin-inline: auto; }
-.exploring .compose { max-height: none; border-top: 0; padding: 12px 24px max(16px, env(safe-area-inset-bottom)); }
-.exploring .transcript { max-height: 42vh; min-height: 0; }
-.exploring .transcript[hidden] { display: none; }
-.exploring[data-chat-open=true] .transcript { display: flex; }
-.composerToolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--secondary); font-size: 12px; margin-bottom: 8px; }
-.composerToolbar button { min-height: 32px; flex-shrink: 0; }
-@media (max-width: 760px) { .exploring .compose { padding-inline: 16px; } .composerToolbar button { min-height: 44px; } }
+/* The results pane keeps its full viewport. Only the floating panel intercepts input. */
+.workspace.exploring { grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
+.exploring .canvas, .exploring .chatPanel { grid-area: 1 / 1; }
+.exploring .chatPanel { z-index: 1; pointer-events: none; background: transparent; border: 0; }
+.exploring .conversation { background: transparent; }
+.exploring .transcript { max-height: 38dvh; overflow-y: auto; padding: 8px 4px 12px; }
+.exploring .canvas { z-index: 0; padding-bottom: calc(var(--floating-composer-clearance, 96px) + 16px); scroll-padding-bottom: var(--floating-composer-clearance, 96px); }
+.chatFirst .transcript { padding-bottom: calc(var(--floating-composer-clearance, 96px) + 20px); scroll-padding-bottom: var(--floating-composer-clearance, 96px); }
+.manualEntry { flex: 0 1 auto; min-height: 0; max-height: 32%; overflow-y: auto; padding: 12px max(24px, calc((100% - 760px) / 2)) 0; }
+@media (max-width: 760px) { .manualEntry { padding-inline: 16px; } }
 
 .chatFirst:has(> :global(.project-naming-notice)) { grid-template-rows: auto minmax(0, 1fr); }
 .chatFirst:has(> :global(.project-naming-notice)) .chatPanel { grid-row: 2; }
@@ -130,3 +109,37 @@
 .customNames > h2 { margin: 0 0 14px; font-size: 18px; line-height: 26px; font-weight: 500; }
 .workspace .canvas .customNames :global(.project-naming-grid) { grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
 @media (max-width: 760px) { .manualName input { font-size: 16px; } }
+
+.inlineTurn { min-width: 0; flex-shrink: 0; }
+.questionCard {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--panel-radius);
+  background: var(--paper);
+}
+.questionCard h2 { font-size: 16px; line-height: 24px; margin: 0 0 4px; }
+.inlineTurn :global(.naming-approach-options) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.inlineManual { font-size: 13px; color: var(--secondary); }
+.inlineManual > summary { width: fit-content; cursor: pointer; }
+@media (max-width: 700px) {
+  .questionCard { padding: 14px; }
+  .inlineTurn :global(.naming-approach-options) { grid-template-columns: 1fr; }
+}
+
+.lengthForm { display: grid; gap: 20px; min-width: 0; margin-top: 16px; }
+.fragmentFields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 235px), 1fr)); gap: 16px; }
+.lengthForm .fragmentFields label { display: block; min-width: 0; font-size: 14px; font-weight: 550; line-height: 1.5; }
+.fragmentFields label span { font-size: 12px; font-weight: 400; color: var(--secondary); }
+.fragmentFields label textarea { display: block; width: 100%; min-height: 76px; margin-top: 7px; padding: 10px 12px; resize: vertical; border: 1px solid var(--border); border-radius: 7px; color: var(--text); background: var(--paper); font: inherit; font-weight: 400; }
+.lengthForm > p:last-child { margin-top: -10px; font-size: 12px; }
+@media (max-width: 760px) {
+  .fragmentFields label textarea { font-size: 16px; }
+}
+
+.coverage { margin: 0 0 16px; }
+.coverage table { width: 100%; margin-top: 12px; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.coverage caption { text-align: start; font-weight: 500; margin-bottom: 10px; }
+.coverage :is(th,td) { padding: 9px 4px; border-bottom: 1px solid var(--border); text-align: start; }
+.coverage :is(th,td):last-child { text-align: end; }
+.coverage thead th { color: var(--secondary); font-size: 12px; font-weight: 500; }
+.coverage tbody th { font-weight: 400; }

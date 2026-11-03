@@ -9,6 +9,10 @@ export type AccountWorkspace = { generation: number; ownerId: string; saved: Acc
 export function accountDraftChanged(workspace: AccountWorkspace) { return Boolean(workspace.pendingGuidedContext || workspace.pendingDraftSave) || JSON.stringify(workspace.draft) !== JSON.stringify(accountProjectDraft(workspace.saved)); }
 function hasUnsaved(workspace: AccountWorkspace) { return accountDraftChanged(workspace) || Boolean(workspace.guidedInput?.prompt || workspace.guidedInput?.selection?.ids.length || workspace.guidedInput?.competitorDraft?.name || workspace.guidedInput?.competitorDraft?.website); }
 
+export function needsStrategyRecovery(workspace: AccountWorkspace | null | undefined) {
+  return Boolean(workspace && (workspace.conflict || hasUnsaved(workspace)));
+}
+
 /** An owned head can acknowledge one exact pending append without appending again. */
 export function reconcilePendingDraftSave(workspace: AccountWorkspace, project: AccountProject): AccountWorkspace | null {
   const pending = workspace.pendingDraftSave;

@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { installNamePreviewDialog, namePreview, openNamePreviewActions } from "../fixtures/name-preview-dialog";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createNamingBrainMemory } from "@/components/naming/naming-brain-memory";
 import { ProjectNamingWorkspace } from "@/components/naming/project-naming-workspace";
@@ -42,12 +43,12 @@ function rejectedCappedRun(): NamingBrainRunSummary {
 let root: Root, host: HTMLDivElement, overview: ProjectNamingOverview, server: NamingFeed, calls: { path: string; method: string; body: unknown }[], viewWrites: Partial<NamingViewState>[], holdView: Promise<boolean> | null, holdSteering: Promise<void> | null, holdFeed: Promise<void> | null, failSteering: boolean;
 function model() { return mock.model as ReturnType<typeof import("@/components/naming/use-project-naming").useProjectNaming>; }
 function publish(patch: Partial<ReturnType<typeof model>>) { mock.model = { ...model(), ...patch }; mock.notify(); }
-const button = (name: string) => [...host.querySelectorAll<HTMLButtonElement>("button")].find(element => element.textContent?.trim() === name || element.getAttribute("aria-label") === name || element.title === name);
+const button = (name: string) => [...(namePreview(host) ?? host).querySelectorAll<HTMLButtonElement>("button")].find(element => element.textContent?.trim() === name || element.getAttribute("aria-label") === name || element.title === name);
 async function click(name: string) { const element = button(name); expect(element, name).toBeDefined(); await act(async () => element!.click()); }
 async function input(element: HTMLInputElement | HTMLTextAreaElement, text: string) { await act(async () => { Object.getOwnPropertyDescriptor(element instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, "value")!.set!.call(element, text); element.dispatchEvent(new Event("input", { bubbles: true })); }); }
 const message = () => host.querySelector<HTMLTextAreaElement>('form textarea')!;
-async function selectSeed() { await click("Inspect name Juniper"); await act(async () => host.querySelector<HTMLInputElement>('.naming-steering-choice input')!.click()); await click("Back to results"); }
-async function checkSeed() { await click("Inspect name Juniper"); expect(host.querySelector<HTMLInputElement>('.naming-steering-choice input')?.checked).toBe(true); await click("Back to results"); }
+async function selectSeed() { await click("Inspect name Juniper"); await openNamePreviewActions(host); await act(async () => namePreview(host)!.querySelector<HTMLInputElement>('.naming-steering-choice input')!.click()); await click("Close name preview"); }
+async function checkSeed() { await click("Inspect name Juniper"); await openNamePreviewActions(host); expect(namePreview(host)!.querySelector<HTMLInputElement>('.naming-steering-choice input')?.checked).toBe(true); await click("Close name preview"); }
 async function finishQuestions() {
   const account = mock.session as VerifiedAccount;
   await act(async () => { mock.memory!.editPreferences(account, projectId, { ...mock.memory!.get(account, projectId)!.preferences!.draft, notes: "Updated direction" }); });
@@ -55,6 +56,7 @@ async function finishQuestions() {
 async function render() { await act(async () => root.render(createElement(ProjectNamingWorkspace, { projectId }))); }
 const ensures = () => calls.filter(call => call.path.endsWith("/feed/ensure"));
 beforeEach(() => {
+  installNamePreviewDialog();
   vi.useFakeTimers(); vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { callback(0); return 0; });
   Element.prototype.scrollIntoView = vi.fn();
@@ -74,6 +76,7 @@ beforeEach(() => {
     }), saveChatProgress: vi.fn(async () => true), retain: vi.fn(async () => true), select: vi.fn(async () => true), transform: vi.fn(async () => null), importLocal: vi.fn(async () => true), expand: vi.fn(async () => true), loadMore: vi.fn(), loadMoreBatches: vi.fn(), loadBatchDetail: vi.fn(), cancel: vi.fn(), enqueue: vi.fn() };
   vi.stubGlobal("fetch", vi.fn(async (path: string, options: RequestInit) => {
     const body = options.body ? JSON.parse(String(options.body)) : null; calls.push({ path, method: options.method ?? "GET", body });
+    if (path === "/api/standalone-checks" && options.method === "GET") return Response.json({ ownerId, domains: "unavailable", youtube: false, euipo: false });
     if (path.endsWith("/feed/ensure")) { server = { ...server, activeRun: { ...activeRun, preferencesVersion: server.preferencesVersion, steeringRevision: server.steeringRevision, demandSequence: server.demandSequence } }; return Response.json({ status: "pending", feed: server, run: server.activeRun, reused: false }); }
     if (path.endsWith("/steering")) { server = { ...server, steeringRevision: body.expectedSteeringRevision + 1, demandSequence: body.expectedSteeringRevision + 1 }; if (failSteering) { failSteering = false; throw new Error("Synthetic lost steering acknowledgement"); } if (holdSteering) await holdSteering; return Response.json({ feed: server, supersededRunIds: [], cancellationRequestedRunIds: [] }); }
     if (path.endsWith("/preferences")) { overview = { ...overview, preferences: { ...overview.preferences!, version: body.expectedPreferencesVersion + 1, preferences: body.preferences }, session: { ...overview.session!, currentPreferencesVersion: body.expectedPreferencesVersion + 1 } }; server = { ...server, preferencesVersion: body.expectedPreferencesVersion + 1 }; publish({ overview }); return Response.json({ session: overview.session, preferences: overview.preferences }); }
@@ -164,15 +167,22 @@ it.each(["history", "filtered", "inspection"] as const)("I4 Continue explicitly 
   if (view === "filtered") { overview = { ...overview, session: { ...overview.session!, viewState: { ...initialNamingView, filter: "saved", query: "Juniper" } } }; publish({ overview }); }
   await render();
   if (view === "history") await click("Saved names & history");
-  if (view === "inspection") await click("Inspect name Juniper");
-  if (view !== "inspection") await click("Modify filters");
+  if (view === "inspection") {
+    const feed = host.querySelector(".naming-continuous-results");
+    expect(feed).not.toBeNull();
+    await click("Inspect name Juniper");
+    expect(namePreview(host)?.querySelector("h2")?.textContent).toBe("Juniper");
+    expect(host.querySelector(".naming-continuous-results")).toBe(feed);
+    await click("Close name preview");
+  }
+  await click(view === "inspection" ? "Naming choices" : "Modify filters");
   expect(ensures()).toHaveLength(0);
   let acknowledge!: (ok: boolean) => void;
   if (view === "filtered") holdView = new Promise(resolve => { acknowledge = resolve; });
   await finishQuestions();
   await click("Apply updated choices");
   if (view === "filtered") { expect(ensures()).toHaveLength(0); expect(viewWrites.at(-1)).toMatchObject({ pane: "results", filter: "all", query: "", visibleBatchId: null }); await act(async () => acknowledge(true)); }
-  expect(host.querySelector('.naming-continuous-results')).not.toBeNull(); expect(host.querySelector('[aria-label="Inspect name"]')).toBeNull();
+  expect(host.querySelector('.naming-continuous-results')).not.toBeNull(); expect(namePreview(host)).toBeNull();
   expect(ensures()).toHaveLength(1);
 });
 it("I4 keeps a failed saved-view transition actionable without admitting work", async () => {
@@ -207,7 +217,7 @@ it.each(["logout", "different owner"])("I5 retains seeds and typed emphasis thro
   await render(); await selectSeed();
   await input(message(), "Keep the quiet rhythm and softer vowels");
   expect(mock.memory!.hasUnsaved()).toBe(true);
-  await click("Inspect name Juniper"); await click("Back to results");
+  await click("Inspect name Juniper"); await click("Close name preview");
   expect(message().value).toBe("Keep the quiet rhythm and softer vowels");
   await click("Saved names & history"); await click("Back to exploration");
   await checkSeed();

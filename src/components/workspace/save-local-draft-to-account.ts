@@ -16,12 +16,14 @@ type SaveOptions = {
   sessionVerified?: boolean;
 };
 
+type AccountSave = { receipt: StartReceipt; project: AccountProject | null; newProject: boolean };
+
 /** Manual persistence only: this function never admits an AI job. */
-export function saveLocalDraftToAccount(options: SaveOptions): Promise<{ receipt: StartReceipt; project: AccountProject | null } | null> {
+export function saveLocalDraftToAccount(options: SaveOptions): Promise<AccountSave | null> {
   return withProjectStartLock(options.account.userId, options.draft.id, options.signal, () => saveUnderLock(options));
 }
 
-async function saveUnderLock({ account, draft, signal, isCurrent, expire, input, onReceipt, sessionVerified = false }: SaveOptions): Promise<{ receipt: StartReceipt; project: AccountProject | null } | null> {
+async function saveUnderLock({ account, draft, signal, isCurrent, expire, input, onReceipt, sessionVerified = false }: SaveOptions): Promise<AccountSave | null> {
   const current = () => !signal.aborted && isCurrent(account);
   if (!current()) return null;
   if (draft.ownerId && draft.ownerId !== account.userId) throw new StartReceiptRecoveryError("Verify the account that owns this unsaved project before recovering it.");
@@ -31,7 +33,8 @@ async function saveUnderLock({ account, draft, signal, isCurrent, expire, input,
     if (user.id !== account.userId) { expire(account); return null; }
   }
   let receipt = readReceipt(account.userId, draft.id);
-  if (receipt?.projectId) { onReceipt?.(receipt); return { receipt, project: null }; }
+  const firstRequest = receipt === null;
+  if (receipt?.projectId) { onReceipt?.(receipt); return { receipt, project: null, newProject: false }; }
   if (receipt && !receipt.request) throw new StartReceiptRecoveryError("The earlier account save is not confirmed. Check your projects before recovering this older request.");
   if (!receipt && readDraftFence(draft.id)) throw new StartReceiptRecoveryError("This project has an earlier save in another account. Verify that account before continuing.");
   if (!receipt) {
@@ -54,7 +57,7 @@ async function saveUnderLock({ account, draft, signal, isCurrent, expire, input,
   // Exact replay may return a later saved head; never restore its first revision.
   if (project.current_revision === 1 && (project.scope !== request.input.scope || project.title !== request.input.title || JSON.stringify(project.context) !== JSON.stringify(request.input.context))) throw new AccountRequestError(502);
   receipt = { ...receipt, projectId: project.id }; rememberReceipt(receipt); onReceipt?.(receipt);
-  return { receipt, project };
+  return { receipt, project, newProject: firstRequest && project.current_revision === 1 };
 }
 
 /** Call after consuming the receipt: marking may unmount a recovery picker. */

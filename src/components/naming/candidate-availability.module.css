@@ -1,0 +1,16 @@
+.section { min-width: 0; }
+.tabs, .status { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.tabs { margin-bottom: 14px; border-bottom: 1px solid var(--border); }
+.tabs button { min-height: 44px; padding: 6px 10px; background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--secondary); font: inherit; cursor: pointer; }
+.tabs button[aria-selected=true] { border-bottom-color: currentColor; color: var(--text); }
+.form { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
+.form label { display: grid; flex: 1 1 130px; min-width: 0; gap: 5px; font-size: 12px; font-weight: 500; }
+.form :is(input,select) { width: 100%; min-height: 44px; min-width: 0; padding: 8px 10px; color: var(--text); background: var(--paper); border: 1px solid var(--border); border-radius: 7px; font: inherit; font-size: 14px; }
+.form > button { min-height: 44px; }
+.section p, .status { margin: 7px 0 0; color: var(--secondary); font-size: 13px; line-height: 1.5; }
+.result { padding: 12px; margin-top: 10px; border-radius: 7px; background: var(--surface); font-size: 14px; overflow-wrap: anywhere; }
+.result small { display: block; margin-top: 6px; color: var(--secondary); }
+.result ul { max-height: 14rem; overflow: auto; padding-inline-start: 20px; }
+.result details { margin-top: 8px; }
+.section a { text-decoration: underline; text-underline-offset: 2px; }
+@media (max-width: 700px) { .form :is(input,select) { font-size: 16px; } }

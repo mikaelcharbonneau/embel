@@ -64,8 +64,10 @@ export function useStrategyJobs({ account, workspace, blocked, guided = false }:
         }
       } catch (error: unknown) {
         if (controller.signal.aborted || !getWorkspace()) return;
-        if (error instanceof AccountRequestError && error.status === 401) { expire(account); return; }
-        setRead(previous => ({ identity, overview: previous?.identity === identity ? previous.overview : null, error: strategyErrorMessage(error) }));
+        if (epoch === mutationEpoch.current) {
+          if (error instanceof AccountRequestError && error.status === 401) { expire(account); return; }
+          setRead(previous => ({ identity, overview: previous?.identity === identity ? previous.overview : null, error: strategyErrorMessage(error) }));
+        }
       }
       if (!controller.signal.aborted) timer = setTimeout(() => void poll(), soon ? 1500 : 15000);
     }

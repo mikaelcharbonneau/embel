@@ -31,7 +31,7 @@ test("Naming partial result: 85 saved names remain accessible without restarting
   const inspect = page.getByRole("button", { name: "Inspect name Synthetic 085", exact: true });
   await expect(inspect).toBeVisible();
   await inspect.click();
-  await expect(page.getByRole("heading", { name: "Synthetic 085", exact: true })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Synthetic 085", exact: true })).toBeVisible();
   expect(fixture.mutations()).toHaveLength(0);
   expect(fixture.state.rows).toEqual(original);
   expect(errors).toEqual([]);

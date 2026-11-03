@@ -2,10 +2,13 @@ import { brandBoardFont } from "@/domain/brand-board-fonts";
 import type { BrandAssetSnapshot } from "./snapshot";
 const html = (value: string) => value.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 export const textBytes = (text: string) => new TextEncoder().encode(text);
+export function brandPaletteCss(colors: BrandAssetSnapshot["colors"]): string {
+  return `:root {\n${colors.map(color => `  --brand-${color.key}: ${color.hex};`).join("\n")}\n}\n`;
+}
 export function brandPaletteFiles(snapshot: BrandAssetSnapshot) {
   return {
     json: textBytes(JSON.stringify({ brand: snapshot.name, colors: snapshot.colors, roles: snapshot.design.paletteRoles, usage: snapshot.colorNotes }, null, 2) + "\n"),
-    css: textBytes(`:root {\n${snapshot.colors.map(color => `  --brand-${color.key}: ${color.hex};`).join("\n")}\n}\n`),
+    css: textBytes(brandPaletteCss(snapshot.colors)),
   };
 }
 export function brandGuideHtml(snapshot: BrandAssetSnapshot): Uint8Array<ArrayBuffer> {

@@ -1,7 +1,7 @@
 /* Feature-local presentation; uses the approved Embel tokens with readable fallbacks. */
 .panel, .costPanel { box-sizing: border-box; min-width: 0; background: var(--paper, #fff); color: var(--text, #191919); border: 1px solid var(--border, #e4e3df); border-radius: var(--panel-radius, 10px); padding: 24px; margin-bottom: 24px; overflow-wrap: anywhere; }
-.panel h2, .costPanel h2 { margin: 0; font-size: 19px; line-height: 1.35; font-weight: 550; }
-.panel h3 { margin: 0; font-size: 15px; line-height: 1.4; font-weight: 550; }
+.panel h2, .costPanel h2 { margin: 0; font-size: var(--branding-section-size, 19px); line-height: 1.35; font-weight: 550; }
+.panel h3 { margin: 0; font-size: var(--branding-subheading-size, 15px); line-height: 1.4; font-weight: 550; }
 .heading, .cardHeading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .eyebrow { margin: 0 0 7px; color: var(--accent-text, #990091); font-size: var(--font-ui, 13px); letter-spacing: .08em; text-transform: uppercase; font-weight: 650; }
 .muted, .note { color: var(--secondary, #696965); font-size: 13px; line-height: 1.6; }
@@ -18,7 +18,7 @@
 .choice:has(input:checked) { border-color: var(--accent-text, #990091); background: var(--magenta-soft, #fff0fd); }
 .choice input, .permission input { accent-color: var(--accent-text, #990091); width: 16px; height: 16px; flex: 0 0 16px; margin: 0; }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 20px; }
-.primaryButton, .secondaryButton { box-sizing: border-box; min-height: 44px; border: 1px solid var(--border, #e4e3df); border-radius: 7px; padding: 10px 16px; font: inherit; font-size: 13px; line-height: 1.4; cursor: pointer; }
+.primaryButton, .secondaryButton { box-sizing: border-box; min-height: var(--branding-action-height, 44px); border: 1px solid var(--border, #e4e3df); border-radius: 7px; padding: 10px 16px; font: inherit; font-size: 13px; line-height: 1.4; cursor: pointer; }
 .primaryButton { color: var(--paper, #fff); background: var(--text, #191919); border-color: var(--text, #191919); }
 .secondaryButton { color: var(--text, #191919); background: var(--paper, #fff); }
 .primaryButton:disabled, .secondaryButton:disabled { cursor: not-allowed; background: var(--surface, #f1f0ee); color: var(--secondary, #696965); border-color: var(--border, #e4e3df); }
@@ -76,12 +76,9 @@
 
 /* Three columns and quiet captions; refinement controls reserve their own space. */
 .conceptsScreen { position: relative; }
-.conceptsScreen > :global(.project-workbench-canvas) { padding: 24px; }
 .conceptsScreen .workspaceHeader { position: relative; min-height: 56px; margin-bottom: 20px; }
-.conceptsScreen .workspaceHeader h1 { margin: 0; line-height: 32px; }
-.conceptsScreen .workspaceHeader > p { margin: 4px 0 0; font-size: 12px; line-height: 18px; }
 .conceptFilters { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; }
-.conceptFilters button { min-height: 34px; padding: 6px 12px; border: 1px solid var(--border, #e4e3df); border-radius: 7px; background: #fff; font-size: 13px; }
+.conceptFilters button { min-height: var(--branding-action-height, 44px); padding: 6px 12px; border: 1px solid var(--border, #e4e3df); border-radius: 7px; background: #fff; font-size: 13px; }
 .conceptFilters [aria-pressed=true] { background: #f1f0ee; }
 .conceptFilters button:disabled { color: #949494; cursor: not-allowed; }
 .gallery { min-width: 0; }
@@ -99,31 +96,30 @@
 .galleryPreview p { font-size: 12px; line-height: 20px; color: var(--secondary, #696965); text-align: center; }
 .galleryCaption { padding: 10px 16px; }
 .galleryCaption > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.galleryCaption h3 { margin: 0; font-size: 14px; line-height: 20px; font-weight: 500; }
+.galleryCaption h3 { margin: 0; font-size: var(--branding-subheading-size, 14px); line-height: 1.4; font-weight: 500; }
 .galleryCaption p { margin: 6px 0 0; font-size: 12px; line-height: 18px; color: var(--secondary, #696965); }
-.galleryLike { display: inline-flex; gap: 6px; align-items: center; justify-content: center; min-height: 40px; min-width: 84px; padding: 8px; border: 1px solid #e4e3df; border-radius: 6px; background: #fff; color: #949494; font-size: 12px; cursor: not-allowed; }
+.galleryLike { display: inline-flex; gap: 6px; align-items: center; justify-content: center; min-height: var(--branding-action-height, 40px); min-width: 84px; padding: 8px; border: 1px solid #e4e3df; border-radius: 6px; background: #fff; color: #949494; font-size: 12px; cursor: not-allowed; }
 .galleryLike img { opacity: .55; }
 .conceptsComposer { position: relative; width: 100%; margin: 16px 0 24px; padding: 14px 16px; border: 1px solid var(--border, #e4e3df); border-radius: 10px; background: #fff; }
 .composerHeader { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .composerHeaderActions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; flex-shrink: 0; }
-.composerHeaderActions .secondaryButton { min-height: 36px; padding: 7px 12px; }
-.conceptsComposer [hidden] { display: none; }
+.composerHeaderActions .secondaryButton { min-height: var(--branding-action-height, 36px); padding: 7px 12px; }
+.conceptsScreen [hidden], .conceptsComposer [hidden] { display: none !important; }
 .conceptsComposer > div[id] { padding-top: 16px; }
 .conceptsComposer textarea { display: block; width: 100%; min-height: 28px; max-height: 100px; resize: vertical; padding: 0; border: 0; border-radius: 0; background: transparent; color: #191919; font: inherit; font-size: 14px; line-height: 22px; box-shadow: none; }
 .composerTools { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
-.composerTools > .secondaryButton { min-height: 36px; padding: 7px 12px; text-decoration: none; }
-.contextButton { display: flex; gap: 10px; align-items: center; padding: 0; border: 0; background: none; color: var(--secondary, #696965); font-size: 12px; }
-.composerSend { margin-left: auto; display: grid; place-items: center; width: 30px; height: 30px; flex: 0 0 30px; padding: 0; border: 0; border-radius: 50%; background: #191919; }
+.composerTools > .secondaryButton { min-height: var(--branding-action-height, 36px); padding: 7px 12px; text-decoration: none; }
+.contextButton { min-height: var(--branding-action-height, 36px); display: flex; gap: 10px; align-items: center; padding: 0; border: 0; background: none; color: var(--secondary, #696965); font-size: 12px; }
+.composerSend { margin-left: auto; display: grid; place-items: center; width: var(--branding-action-height, 30px); height: var(--branding-action-height, 30px); flex: 0 0 var(--branding-action-height, 30px); padding: 0; border: 0; border-radius: 50%; background: #191919; }
 .composerSend:disabled { opacity: .4; cursor: not-allowed; }
 .contextDialog { position: fixed; inset: 0; width: min(720px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); overflow: auto; margin: auto; padding: 24px; border: 1px solid var(--border, #e4e3df); border-radius: 12px; background: #fff; color: #191919; }
 .contextDialog::backdrop { background: #19191966; }
 .contextDialog > header { margin-bottom: 24px; }
-.contextDialog h2 { margin: 0; font-size: 20px; font-weight: 500; }
+.contextDialog h2 { margin: 0; font-size: var(--branding-section-size, 20px); font-weight: 500; }
 .contextDetails > summary { margin: 20px 0; cursor: pointer; font-size: 13px; }
 .conceptsScreen :is(button, a, textarea, select, summary, [role=button]):focus-visible { outline: 2px solid var(--accent-text, #990091); outline-offset: 3px; }
 @media (max-width: 1000px) { .conceptsScreen .gallery .concepts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) {
-  .conceptsScreen > :global(.project-workbench-canvas) { padding: 20px 16px; }
   .conceptsScreen .workspaceHeader { padding-right: 0; }
   .conceptsScreen .gallery .concepts { grid-template-columns: minmax(0, 1fr); }
   .conceptFilters { flex-wrap: wrap; }
@@ -135,9 +131,12 @@
   .contextButton { min-height: 44px; }
   .contextDialog { padding: 18px; }
 }
+@media (max-width: 540px) {
+  .conceptsScreen :is(input, textarea, select) { font-size: 16px; }
+}
 .galleryCard { position: relative; }
 
-.backToInspiration { display: inline-flex; align-items: center; min-height: 32px; margin: -8px 0 12px; color: var(--secondary, #696965); font-size: 13px; text-decoration: none; }
+.backToInspiration { margin: 0 0 12px; color: var(--secondary, #696965); font-size: 13px; text-decoration: none; }
 .backToInspiration:hover { color: var(--text, #191919); text-decoration: underline; text-underline-offset: 3px; }
 
 .galleryCard[data-selected=true] { border-color: var(--foreground, #191919); box-shadow: 0 0 0 1px var(--foreground, #191919); }

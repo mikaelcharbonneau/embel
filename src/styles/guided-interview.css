@@ -15,7 +15,6 @@
 .guided-choice-intro { display: grid; gap: 4px; }
 .guided-choice-intro h3 { margin: 0; font-size: 16px; font-weight: 500; line-height: 24px; letter-spacing: 0; overflow-wrap: anywhere; }
 .guided-choice-intro p,
-.guided-choice-actions p,
 .guided-choice-empty { margin: 0; color: var(--secondary); font-size: 12px; line-height: 20px; }
 .guided-choice-options { display: grid; gap: 8px; min-width: 0; }
 .guided-choice-card { min-width: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--paper); transition: border-color 120ms ease, background-color 120ms ease; }
@@ -94,6 +93,3 @@
 .competitor-add-form[hidden] { display: none; }
 .competitor-add-form > p { font-size: 12px; line-height: 18px; color: var(--secondary); }
 .competitor-add-form > button { justify-self: start; }
-.competitor-retained { display: flex; align-items: start; gap: 12px; padding: 14px; }
-.competitor-retained > span { display: grid; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
-.competitor-retained small { color: var(--secondary); font-size: 12px; }

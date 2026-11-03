@@ -275,7 +275,7 @@ test("strategy fixture: initial Send keeps the browser copy and creates a genuin
   await expect(page.getByText(/Sending saves an account copy.*\$3.27/)).toBeVisible();
   await page.getByRole("textbox", { name: "Your prompt" }).fill("Synthetic initial prompt for a local kitchen.");
   await sendInitialPrompt(page);
-  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  await expect(page).toHaveURL(`/brands/account/${projectId}?view=strategy`);
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   expect(state.project.context.intake.conversation?.[0]).toMatchObject({ kind: "user_message", text: "Synthetic initial prompt for a local kitchen." });
   expect(state.enqueues).toHaveLength(1);
@@ -510,7 +510,7 @@ test("subscription fixture: initial Send discloses plan usage and preserves the 
   await expect(page.getByText(/Sending saves an account copy and uses your ChatGPT plan/)).toBeVisible();
   await page.getByRole("textbox", { name: "Your prompt" }).fill("Synthetic plan-backed initial prompt.");
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  await expect(page).toHaveURL(`/brands/account/${projectId}?view=strategy`);
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   expect(state.enqueues[0]).toMatchObject({ billingMode: "chatgpt_subscription", expectedRevision: 1 });
   expect(state.enqueues[0]).not.toHaveProperty("acceptedMaxCostMicrousd");
@@ -526,7 +526,7 @@ for (const applyReplyStatus of [200, 503]) test(`response-only fixture: Home sav
   await expect(page.getByText(/Competitor research is unavailable/)).toBeVisible();
   await page.getByRole("textbox", { name: "Your prompt" }).fill("Synthetic response-only initial prompt.");
   await sendInitialPrompt(page);
-  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  await expect(page).toHaveURL(`/brands/account/${projectId}?view=strategy`);
   await expect(page.getByText("Response queued", { exact: true })).toBeVisible();
   expect(state.enqueues).toEqual([expect.objectContaining({ operation: "strategy.reformulate", expectedRevision: 1, acceptedMaxCostMicrousd: 122880 })]);
   expect(state.project.context.description).toBe("Synthetic response-only initial prompt.");

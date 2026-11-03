@@ -13,7 +13,7 @@ import { UnsavedProjectRecovery } from "./unsaved-project-recovery";
 import { useAccountStrategyStart } from "./account-strategy-start";
 import { readReceipt, rememberReceipt, StartReceiptRecoveryError, withProjectStartLock } from "./account-project-start-recovery";
 import { finishLocalDraftRecovery } from "./save-local-draft-to-account";
-import { projectStartDraft, projectStartHref } from "./project-start-draft";
+import { projectStartDraft, projectStartHref, prepareProjectStart } from "./project-start-draft";
 import { useAccountSession } from "./account-session";
 import { beforePromptSignInEvent, clearPromptRecovery, readPromptRecoveryState, rememberPromptForSignIn } from "./prompt-recovery";
 import { createAccountLifecycleClient } from "./account-lifecycle-client";
@@ -45,7 +45,7 @@ const homeExamples = [
 ];
 
 export function NewProjectForm({ initialScope, exampleId, home = false }: { initialScope: ProjectScope; exampleId?: string; home?: boolean }) {
-  const { session, enrollment, isCurrent, expire, homeInputSession } = useAccountSession();
+  const { session, enrollment, isCurrent, expire, homeInputSession, drafts: accountDrafts } = useAccountSession();
   const account = session.status === "ready" ? session : null;
   const example = briefExamples.find((item) => item.id === exampleId);
   const [scope, setScope] = useState(initialScope);
@@ -212,6 +212,7 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
         // ordinary text recovery before admission so it cannot create a second
         // project while the attachment result is unknown, including after reload.
         await withProjectStartLock(account.userId, id, controller.signal, async () => {
+        if (controller.signal.aborted || !isCurrent(account)) return;
         const prior = readReceipt(account.userId, id);
         if (prior?.projectId) {
           openSavedProject(projectStartHref(prior.projectId!, displayedScope));
@@ -226,7 +227,8 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
         } });
         if (receipt && !controller.signal.aborted && isCurrent(account)) {
           rememberReceipt({ ownerId: account.userId, draftId: id, projectId: receipt.project.id, attachedRequestKey: receipt.requestKey });
-          openSavedProject(projectStartHref(receipt.project.id, receipt.project.scope));
+          const newProject = !prior && !original.saveIntent && !original.receipt;
+          openSavedProject(prepareProjectStart(receipt.project.id, receipt.project.scope, newProject ? receipt.project : null, account, accountDrafts));
           finishLocalDraftRecovery(id, account.userId, receipt.project.id);
           clearPromptRecovery(account.userId);
         }

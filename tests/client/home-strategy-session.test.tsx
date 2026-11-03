@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { createAccountDraftMemory } from "@/components/workspace/account-draft-memory";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NewProjectForm } from "@/components/workspace/project-editor";
 import { clearLocalDrafts, createLocalDraft, DRAFT_STORAGE_KEY } from "@/components/workspace/local-drafts";
@@ -8,8 +9,9 @@ import { createHomeInputSession, type HomeInputSession } from "@/features/home-i
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 import { rememberPromptForSignIn } from "@/components/workspace/prompt-recovery";
 const mock = vi.hoisted(() => ({ session: { status: "ready", userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", generation: 1 } as VerifiedAccount | { status: "checking" | "signed_out"; generation: number }, memory: null as HomeInputSession | null, push: vi.fn(), current: vi.fn(), expire: vi.fn(), refresh: vi.fn() }));
+let accountDrafts: ReturnType<typeof createAccountDraftMemory>;
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mock.push }) }));
-vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ session: mock.session, homeInputSession: mock.memory, isCurrent: mock.current, expire: mock.expire, refresh: mock.refresh }) }));
+vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ drafts: accountDrafts, session: mock.session, homeInputSession: mock.memory, isCurrent: mock.current, expire: mock.expire, refresh: mock.refresh }) }));
 let root: Root | null, host: HTMLDivElement, owner: string, fetcher: ReturnType<typeof vi.fn>;
 const ready = { status: "available", operations: [{ operation: "strategy.reformulate", maximumCostMicrousd: 10000, interviewVersion: 1 }, { operation: "strategy.competitors", maximumCostMicrousd: 10000, interviewVersion: 1 }] };
 const deferred = <T,>() => { let resolve!: (value: T) => void; const promise = new Promise<T>(yes => { resolve = yes; }); return { promise, resolve }; };
@@ -30,6 +32,7 @@ async function defaultFetch(path: string, init: RequestInit) {
   throw new Error(`Unexpected fixture request ${path}`);
 }
 beforeEach(() => {
+  accountDrafts = createAccountDraftMemory();
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }); HTMLElement.prototype.scrollTo = vi.fn();
   window.sessionStorage.clear(); window.localStorage.clear(); clearLocalDrafts(); owner = crypto.randomUUID(); mock.session = { status: "ready", userId: owner, generation: 1 }; mock.memory = createHomeInputSession(); mock.memory.bind(mock.session);
   mock.current.mockReset().mockImplementation((account: VerifiedAccount) => mock.session.status === "ready" && account.userId === mock.session.userId && account.generation === mock.session.generation);
@@ -139,7 +142,10 @@ describe("Home account persistence and sign-in continuation", () => {
     await click("A neighborhood coffee shop"); expect(host.querySelector("textarea")!.value).toBe(original);
     fetcher.mockImplementation(defaultFetch); await click("Check and retry save");
     expect(creations()).toHaveLength(2); expect(creations()[1]![1].body).toBe(creations()[0]![1].body);
-    expect(mutations()).toHaveLength(2); expect(mock.push).toHaveBeenCalledOnce();
+    expect(mutations()).toHaveLength(2);
+    const id = JSON.parse(String(creations()[0]![1].body)).requestKey;
+    expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${id}`);
+    expect(accountDrafts.get(id)).toBeNull();
   });
 
   it("keeps legacy unowned history out of Home while preserving its original data", async () => {
@@ -169,7 +175,7 @@ describe("Home account persistence and sign-in continuation", () => {
     await render(); const original = host.querySelector("textarea")!.value; await click("Send prompt");
     expect(mutations()).toHaveLength(1); expect(JSON.parse(String(creations()[0]![1].body)).context.description).toBe(original);
     expect(JSON.parse(String(creations()[0]![1].body)).context.intake.guidedInterview).toBeUndefined();
-    expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${JSON.parse(String(creations()[0]![1].body)).requestKey}`);
+    expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${JSON.parse(String(creations()[0]![1].body)).requestKey}?view=strategy`);
     expect(window.sessionStorage.getItem(`fluid.prompt-buffer.v1:${owner}`)).toBeNull();
     await remountHome(); expect(host.querySelector("textarea")!.value).toBe(""); expect(host.textContent).not.toContain(original);
   });
@@ -185,7 +191,7 @@ describe("Home account persistence and sign-in continuation", () => {
     });
     await render(); await click("Send prompt");
     const body = JSON.parse(String(creations()[0]![1].body));
-    expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${body.requestKey}`);
+    expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${body.requestKey}?view=strategy`);
     expect(mutations()).toHaveLength(1);
     expect(window.sessionStorage.getItem(`fluid.prompt-buffer.v1:${owner}`)).toBeNull();
     await remountHome(); expect(host.querySelector("textarea")!.value).toBe("");
@@ -207,10 +213,12 @@ describe("Home account persistence and sign-in continuation", () => {
     const body = JSON.parse(String(creations()[0]![1].body));
     expect(body.context.intake.guidedInterview.turns[0]).toMatchObject({ inputRevision: 1, stage: "competitors", purpose: "research" });
     expect(body.context.intake.guidedInterview.turns[0].id).toMatch(/^guided-start-v1:/);
+    expect(accountDrafts.get(body.requestKey)).toMatchObject({ generation: 1, ownerId: owner,
+      saved: { current_revision: 1, context: body.context } });
     expect(mutations()).toHaveLength(1);
     expect(fetcher.mock.calls.some(([, init]) => init.method === "PATCH")).toBe(false);
     expect(fetcher.mock.calls.filter(([path]) => path === "/api/strategy")).toHaveLength(1);
-    expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${body.requestKey}`);
+    expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${body.requestKey}?view=strategy`);
     expect(host.textContent).toContain("Project saved. Opening your project…");
     expect(host.querySelector(".home-composer")).toBeNull();
   });

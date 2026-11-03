@@ -123,8 +123,8 @@ export function createNamingFeedController(options: { account: NamingAccount; pr
     } catch (cause) { if (live(key, controller) && state()?.directionEpoch === direction) { if (cause instanceof AccountRequestError && [400, 403, 409, 413, 422, 429].includes(cause.status)) update(value => ({ ...value, pending: null, acknowledged: false, acknowledgedRunId: null })); error(cause); } return false; }
     finally { finish(key, controller); }
   }
-  function load(cursor?: NamingFeedCursor | null, delta = false): Promise<boolean> {
-    const pending = readFeed(cursor, delta);
+  function load(cursor?: NamingFeedCursor | null, delta = false, reconcile = true): Promise<boolean> {
+    const pending = readFeed(cursor, delta, reconcile);
     if (!readInFlight) {
       readInFlight = pending;
       const clear = () => { if (readInFlight === pending) readInFlight = null; };
@@ -132,7 +132,7 @@ export function createNamingFeedController(options: { account: NamingAccount; pr
     }
     return pending;
   }
-  async function readFeed(cursor?: NamingFeedCursor | null, delta = false): Promise<boolean> {
+  async function readFeed(cursor?: NamingFeedCursor | null, delta = false, reconcile = true): Promise<boolean> {
     if (!current()) return false;
     if (!state()) memory.setFeed(account, projectId, value => value);
     const { key, controller } = begin("feed-read"); if (!controller) return false;
@@ -164,7 +164,7 @@ export function createNamingFeedController(options: { account: NamingAccount; pr
     if (refreshRetained) return load();
     const after = state();
     // This replays one acknowledged demand to expose its saved outcome; it cannot admit a new demand.
-    if (received && after?.pending && after.acknowledged && !after.stop && !after.stopRequested && !after.feed?.paused && !active(after.feed?.activeRun?.state)) await ensure(after.pending);
+    if (reconcile && received && after?.pending && after.acknowledged && !after.stop && !after.stopRequested && !after.feed?.paused && !active(after.feed?.activeRun?.state)) await ensure(after.pending);
     return received;
   }
   function intent(reason: "initial" | "scroll", consumedCursor?: NamingFeedCursor): EnsureNamingRunIntent | null {
@@ -176,6 +176,22 @@ export function createNamingFeedController(options: { account: NamingAccount; pr
   }
   return {
     load,
+    async locateSavedSet(runId: string) {
+      // Browsing saved results must not consume a scroll demand or replay an ensure.
+      lastInteraction = null; consumedInteraction = interaction; resumeInteraction = null; prefetchInteraction = null;
+      if (readInFlight) await readInFlight;
+      let previousPosition = 0;
+      for (let page = 0; page <= 200 && current(); page++) {
+        const value = state(), run = value?.feed?.activeRun;
+        if (!value || !run || run.runId !== runId || run.generationProfile !== "brainstorm_v1") return null;
+        const members = value.entries.filter(row => row.runId === runId);
+        const next = value.feed?.nextCursor;
+        if (!next || members.length >= (run.fulfillment?.acceptedCount ?? Infinity)) return members[0]?.entry.candidate.id ?? null;
+        if (page === 200 || next.position <= previousPosition || !await load(next, false, false)) return null;
+        previousPosition = next.position;
+      }
+      return null;
+    },
     poll() { const value = state(), cursor = loadedThrough ?? cursorOf(value?.entries.at(-1)); return value?.feed?.progressive && value.feed.retentionRevision !== undefined && cursor ? load(cursor, true) : load(); },
     activate() { closed = false; },
     configure(next: () => boolean) { eligible = next; if (!eligible()) { lastInteraction = null; consumedInteraction = interaction; } },

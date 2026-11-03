@@ -12,10 +12,10 @@ const owner = id(1), projectId = id(2), base = `/api/projects/${projectId}`;
 const account: VerifiedAccount = { status: "ready", userId: owner, generation: 1 };
 const replace = vi.fn(), router = { replace }, expire = vi.fn();
 let session: VerifiedAccount | { status: "checking"; generation: number }, drafts: ReturnType<typeof createAccountDraftMemory>;
-const isCurrent = (value: VerifiedAccount) => session === value;
+const isCurrent = (value: VerifiedAccount) => session.status === "ready" && session.userId === value.userId && session.generation === value.generation;
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ session, drafts, isCurrent, expire }), AccountStatus: () => <p>Checking account</p> }));
-vi.mock("@/components/workspace/account-project-editor", () => ({ AccountProjectEditor: () => <input aria-label="Strategy draft" defaultValue="Retained Strategy text" /> }));
+vi.mock("@/components/workspace/account-project-editor", () => ({ AccountProjectEditor: ({ navigation }: { navigation?: React.ReactNode }) => <>{navigation}<input aria-label="Strategy draft" defaultValue="Retained Strategy text" /></> }));
 let root: Root, host: HTMLDivElement;
 const project = () => accountProjectSchema.parse({ id: projectId, owner_id: owner, scope: "complete_brand", title: "Northline fixture", current_revision: 2, created_at: "2026-10-30T00:00:00Z", context: {} });
 const logo = (started = true) => {
@@ -33,9 +33,15 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 function fixture(saved = project(), workspace = logo()) {
   const fetcher = vi.fn(async (path: string, init: RequestInit) => {
-    expect(init.method).toBe("GET"); expect(init.headers).toMatchObject({ "X-Embel-Account": owner });
+    expect(init.method).toBe("GET");
+    if (path === base || path === `${base}/logo`) expect(init.headers).toMatchObject({ "X-Embel-Account": owner });
     if (path === base) return json({ project: saved });
     if (path === `${base}/logo`) return json(workspace);
+    if (path === `${base}/logo/stages/concepts/revisions/${id(99)}`) return json({
+      version: 2, id: id(99), ownerId: owner, projectId, revision: 1, parentRevisionId: null, inputRevisions: [],
+      inputHash: "a".repeat(64), createdAt: "2026-10-30T00:00:00Z", stage: "concepts", payload: { batchIds: [], selected: null },
+    });
+    if (path === `${base}/logo/batches?limit=1`) return json({ ownerId: owner, projectId, items: [], nextCursor: null });
     throw new Error(`Unexpected entry read: ${path}`);
   });
   vi.stubGlobal("fetch", fetcher); return fetcher;
@@ -45,18 +51,20 @@ describe("generic account project entry", () => {
   it("resumes saved Logo stages for an expanded complete brand without reading image bytes or changing anything", async () => {
     const fetcher = fixture(); await render();
     expect(replace).toHaveBeenCalledExactlyOnceWith(`/brands/account/${projectId}/logo`);
-    expect(fetcher.mock.calls.map(([path]) => path)).toEqual([base, `${base}/logo`]);
+    expect(fetcher.mock.calls.map(([path]) => path)).toEqual([
+      base, `${base}/logo`, `${base}/logo/stages/concepts/revisions/${id(99)}`, `${base}/logo/batches?limit=1`,
+    ]);
     expect(drafts.get(projectId)!.saved.scope).toBe("complete_brand");
     expect(host.querySelector("input")).toBeNull();
   });
   it.each([["visual_identity_only", "logo"], ["naming_only", "naming"]] as const)("routes %s without requiring or creating Logo state", async (scope, path) => {
-    const fetcher = fixture({ ...project(), scope }); await render();
+    const fetcher = fixture({ ...project(), scope }, logo(false)); await render();
     expect(replace).toHaveBeenCalledExactlyOnceWith(`/brands/account/${projectId}/${path}`);
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher.mock.calls.map(([url]) => url)).toEqual(scope === "naming_only" ? [base] : [base, `${base}/logo`]);
   });
-  it("keeps complete-brand Strategy when all saved Logo stage pointers are empty", async () => {
+  it("resumes the missing Strategy review when the project has no Logo progress", async () => {
     fixture(project(), logo(false)); await render();
-    expect(host.querySelector("input")).not.toBeNull(); expect(replace).not.toHaveBeenCalled();
+    expect(replace).toHaveBeenCalledExactlyOnceWith(`/brands/account/${projectId}?view=strategy#strategy-brief`);
   });
   it("keeps explicit Strategy access and a return link even with saved Logo work", async () => {
     const fetcher = fixture(); await render("strategy");
@@ -67,12 +75,13 @@ describe("generic account project entry", () => {
     window.history.replaceState(null, "", "#strategy-brief"); const fetcher = fixture(); await render();
     expect(host.querySelector("input")).not.toBeNull(); expect(fetcher).not.toHaveBeenCalled(); expect(replace).not.toHaveBeenCalled();
   });
-  it.each(["dirty", "conflict", "prompt", "selection", "pending"] as const)("keeps %s Strategy work mounted, including after its save is acknowledged", async kind => {
+  it.each(["dirty", "conflict", "prompt", "selection", "competitor", "pending"] as const)("keeps %s Strategy work mounted, including after its save is acknowledged", async kind => {
     const saved = project(), retained = reconcileAccountWorkspace(null, saved, 1);
     if (kind === "dirty") retained.draft.description = "Keep my edits";
     if (kind === "conflict") retained.conflict = true;
     if (kind === "prompt") retained.guidedInput = { prompt: "Unsent question", selection: null };
     if (kind === "selection") retained.guidedInput = { prompt: "", selection: { turnId: id(10), ids: [id(11)] } };
+    if (kind === "competitor") retained.guidedInput = { prompt: "", selection: null, competitorDraft: { name: "", website: "https://example.test" } };
     if (kind === "pending") retained.pendingGuidedContext = saved.context;
     drafts.set(retained); const fetcher = fixture(); await render(); const editor = host.querySelector("input")!; editor.focus();
     await act(async () => { drafts.set(reconcileAccountWorkspace(null, saved, 1)); });
@@ -87,7 +96,9 @@ describe("generic account project entry", () => {
     expect(host.querySelector("input")).not.toBeNull(); expect(replace).not.toHaveBeenCalled();
   });
   it("offers a bounded retry after a failed read without treating failure as an empty workspace", async () => {
-    let unavailable = true; const fetcher = fixture(); fetcher.mockImplementation(async path => path === base ? json({ project: project() }) : unavailable ? json({}, 503) : json(logo()));
+    let unavailable = true;
+    const fetcher = fixture(), read = fetcher.getMockImplementation()!;
+    fetcher.mockImplementation((path, init) => path === `${base}/logo` && unavailable ? Promise.resolve(json({}, 503)) : read(path, init));
     await render(); expect(host.querySelector('[role="alert"]')).not.toBeNull(); expect(host.querySelector("input")).toBeNull(); expect(replace).not.toHaveBeenCalled();
     unavailable = false; await act(async () => host.querySelector("button")!.click());
     expect(replace).toHaveBeenCalledExactlyOnceWith(`/brands/account/${projectId}/logo`);

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { installNamePreviewDialog, namePreview, openNamePreviewActions } from "../fixtures/name-preview-dialog";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { ProjectNamingWorkspace } from "@/components/naming/project-naming-workspace";
 import { createNamingBrainMemory } from "@/components/naming/naming-brain-memory";
@@ -23,7 +24,7 @@ let fetcher: ReturnType<typeof vi.fn>, failImport: boolean, failOverview: boolea
 let savedFeed: NamingFeed | null;
 let importAcknowledgement: Promise<void> | null;
 const requests: { path: string; method: string; body: Record<string, unknown> | null; account: string | null }[] = [];
-const button = (name: string) => [...host.querySelectorAll<HTMLButtonElement>("button")].find(row => row.textContent?.trim() === name || row.getAttribute("aria-label") === name);
+const button = (name: string) => [...(namePreview(host) ?? host).querySelectorAll<HTMLButtonElement>("button")].find(row => row.textContent?.trim() === name || row.getAttribute("aria-label") === name);
 async function click(name: string) { expect(button(name), name).toBeDefined(); await act(async () => button(name)!.click()); }
 async function render() { await act(async () => root.render(<ProjectNamingWorkspace projectId={projectId} />)); }
 async function enter(text: string) {
@@ -37,6 +38,7 @@ function ownEntry(value: string, n: number): ProjectNameEntry {
     origin: { kind: "local_import", ...owned, candidateId, contextRevision: 1, source: { id: candidateId, value, createdAt: when, origin: "manual", history: [] }, capturedContext: state.project.context } }, retention: { ...owned, candidateId, revision: 0, favorite: false, saved: false, updatedAt: null } };
 }
 beforeEach(() => {
+  installNamePreviewDialog();
   vi.useFakeTimers(); vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { callback(0); return 0; }); Element.prototype.scrollIntoView = vi.fn();
   mock.memory = createNamingBrainMemory({ storage: () => null }); mock.memory.bind(account); mock.drafts = createAccountDraftMemory();
@@ -50,6 +52,7 @@ beforeEach(() => {
     return { ...entry, candidate: { ...candidate, origin: { kind: "generated" as const, version: 2 as const, handlerVersion: "naming-brain-v1" as const, ...owned, candidateId: candidate.id, contextRevision: 1, value: candidate.value, batchId: id(5), jobId: id(6), runId: id(7), sourceArtifactId: id(8), sourceStageKey: "creation" as const, stepKey: "prepare" as const, provider: "openai" as const, billingMode: "openai_api" as const, protocol: "openai_agents" as const, model: "synthetic-never-call", sessionId: "synthetic-session", turnId: "synthetic-turn", responseId: null, agentId: null, requestId: null, providerItemId: `synthetic-item-${index}`, generatedAt: when } } };
   });
   fetcher = vi.fn(async (path: string, options: RequestInit) => {
+    if (path === "/api/standalone-checks" && (!options.method || options.method === "GET")) return Response.json({ ownerId: account.userId, domains: "unavailable", youtube: false, euipo: false });
     const url = new URL(path, "https://fixture.invalid"), method = options.method ?? "GET", body = options.body ? JSON.parse(String(options.body)) : null;
     requests.push({ path: url.pathname, method, body, account: new Headers(options.headers).get("X-Embel-Account") });
     const base = `/api/projects/${projectId}/naming`;
@@ -188,7 +191,7 @@ it("adds, saves, selects and reloads a custom name after 130 saved generated nam
   expect(button("Inspect name My kitchen name")).toBeDefined();
   await act(async () => { await root.unmount(); }); root = createRoot(host); await render();
   expect(button("Inspect name My kitchen name")).toBeDefined();
-  await click("Inspect name My kitchen name"); await click("Save My kitchen name");
+  await click("Inspect name My kitchen name"); await openNamePreviewActions(host); await click("Save My kitchen name");
   expect(manual[0]!.retention.saved).toBe(true);
   expect(button("Unsave My kitchen name")).toBeDefined();
   expect(button("Save My kitchen name")).toBeUndefined();
@@ -208,7 +211,7 @@ it("adds, saves, selects and reloads a custom name after 130 saved generated nam
 it("does not revert acknowledged custom retention when an older custom page arrives", async () => {
   await render(); await enter("Monotonic custom name"); await click("Add name");
   staleCustomRead = structuredClone(manual);
-  await click("Inspect name Monotonic custom name"); await click("Save Monotonic custom name");
+  await click("Inspect name Monotonic custom name"); await openNamePreviewActions(host); await click("Save Monotonic custom name");
   expect(button("Unsave Monotonic custom name")).toBeDefined();
   await act(async () => { await vi.advanceTimersByTimeAsync(15_000); });
   expect(button("Unsave Monotonic custom name")).toBeDefined();
@@ -244,29 +247,30 @@ it("allows a manual save from a verified clean cached overview and retries the e
 });
 
 
-it("describes a manually entered name without inventing a library-copy origin", async () => {
+it("previews the manual name without creative interpretation, origin or history", async () => {
   await render();
   await enter("My own idea");
   await click("Add name");
   await click("Inspect name My own idea");
-  expect(host.textContent).toContain("User-supplied name, entered directly or imported with its captured context.");
-  expect(host.textContent).not.toContain("Copied from your Names library");
+  const preview = namePreview(host)!;
+  expect(preview.querySelector("h2")?.textContent).toBe("My own idea");
+  expect(preview.getAttribute("aria-labelledby")).toBe(preview.querySelector("h2")!.id);
+  expect(preview.textContent).not.toMatch(/Creative interpretation|Things to consider|Origin and history|Copied from your Names library/);
   expect(requests.filter(row => row.path.endsWith("/ensure"))).toHaveLength(0);
 });
 
 
-it("moves focus into inspection and restores the originating name on Back without mutations", async () => {
+it("keeps focus inside the open preview across polling and restores the exact card on close without mutations", async () => {
   await render(); await enter("Keyboard name"); await click("Add name");
   const original = button("Inspect name Keyboard name")!;
   original.focus();
   const before = requests.filter(row => row.method !== "GET").length;
   await click("Inspect name Keyboard name");
-  expect(document.activeElement?.textContent).toBe("Keyboard name");
-  expect(document.activeElement?.tagName).toBe("H3");
-  button("Back to results")!.focus();
+  expect(namePreview(host)?.querySelector("h2")?.textContent).toBe("Keyboard name");
+  button("Close name preview")!.focus();
   await act(async () => { await vi.advanceTimersByTimeAsync(15_001); });
-  expect(document.activeElement).toBe(button("Back to results"));
-  await click("Back to results");
-  expect(document.activeElement).toBe(button("Inspect name Keyboard name"));
+  expect(document.activeElement).toBe(button("Close name preview"));
+  await click("Close name preview");
+  expect(document.activeElement).toBe(original);
   expect(requests.filter(row => row.method !== "GET")).toHaveLength(before);
 });

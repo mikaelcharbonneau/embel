@@ -1,0 +1,60 @@
+.dialog {
+  position: fixed;
+  inset: 0;
+  width: min(540px, calc(100% - 32px));
+  max-height: calc(100dvh - 48px);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  color: var(--text);
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 18px 64px #19191924;
+}
+.dialog::backdrop { background: rgb(25 25 25 / 25%); }
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 20px 14px 24px;
+  background: var(--paper);
+}
+.label { color: var(--secondary); font-size: 12px; }
+.title { margin: 3px 0 0; font-size: clamp(24px, 4vw, 32px); font-weight: 500; line-height: 1.2; letter-spacing: -.035em; overflow-wrap: anywhere; }
+.close {
+  display: grid;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  background: transparent;
+  color: var(--secondary);
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.close:hover, .close:focus-visible { background: var(--surface); color: var(--text); }
+.content { padding: 4px 24px 20px; }
+.footer { padding: 12px 24px; border-top: 1px solid var(--border); display: grid; grid-template-columns: 1fr auto; align-items: start; gap: 8px; }
+.footer > button { min-height: 40px; }
+.options { display: contents; }
+.options > summary { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; width: fit-content; font-size: 13px; color: var(--secondary); cursor: pointer; list-style: none; }
+.options > summary::-webkit-details-marker { display: none; }
+.options > summary svg { transform: rotate(90deg); }
+.options[open] > summary svg { transform: rotate(-90deg); }
+.actions { grid-column: 1 / -1; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; padding-block: 6px; }
+.footer > button { grid-column: 2; grid-row: 1; }
+.confirmation { padding: 0 24px; }
+@media (max-width: 600px) {
+  .dialog { width: calc(100% - 16px); max-height: calc(100dvh - 48px); margin: auto auto max(8px, env(safe-area-inset-bottom)); }
+  .header { padding: 14px 12px 12px 16px; }
+  .content { padding: 4px 16px 16px; }
+  .footer { padding: 10px 16px; }
+  .confirmation { padding-inline: 16px; }
+}

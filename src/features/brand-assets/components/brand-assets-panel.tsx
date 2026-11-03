@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { IdentityLogoSource } from "@/domain/identity-logo-source";
 import type { AccountIdentityClient } from "@/components/identity/account-identity-client";
 import { isAccountLogoClientCurrent, type AccountLogoClient } from "@/components/identity/account-logo-client";
@@ -8,6 +8,8 @@ import type { VerifiedAccount } from "@/components/workspace/account-session";
 import { BrandAssetError, brandAssetSlug, createBrandAssetSnapshot, type BrandAssetSnapshot, type BrandAssetSystem } from "../model/snapshot";
 import { boundedBrandAssetWork } from "../client/browser-assets";
 import { buildBrandAssetPack, type PreparedBrandAssets, type BrandAssetFile } from "../client/build-pack";
+import { BrandKitContents } from "./brand-kit-contents";
+import stage from "@/styles/branding-stage.module.css";
 import styles from "./brand-assets.module.css";
 
 export type BrandAssetsPanelProps = {
@@ -20,19 +22,21 @@ export type BrandAssetsPanelProps = {
   /** Freshly confirm this system is selected and its frozen source logo is still current. */
   revalidate(signal: AbortSignal): Promise<boolean>;
   vectorRevisionId?: string | null;
+  directionTitle?: string;
+  onRefreshSelection?(): void;
 };
 function errorMessage(error: unknown): string {
   if (error instanceof BrandAssetError) {
-    if (error.reason === "selection") return "Your selected logo or direction has changed. Reload this page to create its matching assets.";
+    if (error.reason === "selection") return "Your selected logo or direction has changed. Refresh the kit to see the current files.";
     if (error.reason === "unsupported") return "This older direction does not contain the design details needed for a complete asset pack. Choose a newly generated direction.";
-    if (error.reason === "font") return "The chosen fonts could not be loaded for these assets. Retry, or choose another direction if the problem continues.";
+    if (error.reason === "font") return "The chosen fonts could not be loaded. Check your connection and try downloading the kit again.";
     if (error.reason === "font_coverage") return "This saved direction uses fonts that cannot render all of its text. Choose or generate a new direction with compatible fonts.";
     if (error.reason === "unsupported_text") return "Some characters in this brand's text cannot yet be rendered in downloadable assets. Remove unsupported symbols or use a supported spelling before generating a new direction.";
-    if (error.reason === "timeout") return "Creating the assets took too long. Check your connection and try again.";
+    if (error.reason === "timeout") return "Preparing the kit took too long. Check your connection and try again.";
     if (error.reason === "canvas") return "This browser could not prepare the images. Please retry in a current browser.";
     if (error.reason === "size") return "These source files are too large to package in this browser.";
   }
-  return "The saved logo or direction could not be checked. Reload the page and try again.";
+  return "The saved artwork could not be loaded. Check your connection and try downloading the kit again.";
 }
 export function BrandAssetsPanel(props: BrandAssetsPanelProps) {
   const result = useMemo(() => {
@@ -43,89 +47,132 @@ export function BrandAssetsPanel(props: BrandAssetsPanelProps) {
   return <OwnedBrandAssets key={`${props.account.generation}:${JSON.stringify(result.snapshot)}:${props.vectorRevisionId ?? ""}`} {...props} snapshot={result.snapshot} />;
 }
 type Ready = { pack: PreparedBrandAssets; previews: Map<string, string>; logoClient: AccountLogoClient; identityClient: AccountIdentityClient };
-function OwnedBrandAssets({ snapshot, logoClient, identityClient, account, projectId, revalidate, vectorRevisionId }: BrandAssetsPanelProps & { snapshot: BrandAssetSnapshot }) {
-  const [ready, setReady] = useState<Ready | null>(null), [busy, setBusy] = useState(false), [message, setMessage] = useState<string | null>(null), [error, setError] = useState<string | null>(null);
-  const operation = useRef<AbortController | null>(null), urls = useRef(new Map<string, ReturnType<typeof setTimeout> | null>());
-  const current = () => identityClient.current() && isAccountLogoClientCurrent(logoClient, account, projectId);
-  const shown = ready?.logoClient === logoClient && ready.identityClient === identityClient && current() ? ready : null;
-  useEffect(() => {
-    const activeUrls = urls.current;
-    return () => {
-      operation.current?.abort(); operation.current = null;
-      for (const [url, timer] of activeUrls) { if (timer) clearTimeout(timer); URL.revokeObjectURL(url); } activeUrls.clear();
-    };
-  }, [logoClient, identityClient]);
-  function clearPrepared() {
-    for (const [url, timer] of urls.current) { if (timer) clearTimeout(timer); URL.revokeObjectURL(url); } urls.current.clear(); setReady(null);
-  }
-  async function confirm(signal: AbortSignal) {
-    if (!current() || signal.aborted || !await revalidate(signal) || !current() || signal.aborted) throw new BrandAssetError("selection");
-  }
-  async function create() {
-    if (operation.current || !current()) return;
-    const controller = new AbortController(); operation.current = controller; setBusy(true); setError(null); setMessage(null);
-    try {
-      const pack = await boundedBrandAssetWork(controller.signal, async signal => {
-        await confirm(signal);
-        const value = await buildBrandAssetPack({ snapshot, logoClient, identityClient, vectorRevisionId }, signal);
-        await confirm(signal); return value;
-      });
-      if (!current() || controller.signal.aborted) return;
-      clearPrepared(); const previews = new Map<string, string>();
-      for (const file of pack.files.filter(file => file.mimeType === "image/png" && ["board", "social"].includes(file.category))) {
-        const url = URL.createObjectURL(new Blob([file.bytes], { type: file.mimeType })); urls.current.set(url, null); previews.set(file.name, url);
+type DownloadSession = Pick<Ready, "logoClient" | "identityClient"> & { download(file?: BrandAssetFile): Promise<void> };
+
+function OwnedBrandAssets({ snapshot, logoClient, identityClient, account, projectId, revalidate, vectorRevisionId, directionTitle, onRefreshSelection }: BrandAssetsPanelProps & { snapshot: BrandAssetSnapshot }) {
+  const [ready, setReady] = useState<Ready | null>(null);
+  const [downloading, setDownloading] = useState(false), [stale, setStale] = useState(false);
+  const [message, setMessage] = useState<string | null>(null), [error, setError] = useState<string | null>(null);
+  const session = useRef<DownloadSession | null>(null);
+
+  // Install the download handler before the enabled button can receive a click.
+  useLayoutEffect(() => {
+    const lifetime = new AbortController();
+    const urls = new Map<string, ReturnType<typeof setTimeout> | null>();
+    let prepared: Promise<Ready> | null = null;
+    let downloadingFile = false, selectionChanged = false;
+    const current = () => !lifetime.signal.aborted && identityClient.current() && isAccountLogoClientCurrent(logoClient, account, projectId);
+    function releaseUrls() {
+      for (const [url, timer] of urls) {
+        if (timer) clearTimeout(timer);
+        URL.revokeObjectURL(url);
       }
-      setReady({ pack, previews, logoClient, identityClient }); setMessage("Your brand assets are ready.");
-    } catch (error) { if (current() && !controller.signal.aborted) { clearPrepared(); setError(errorMessage(error)); } }
-    finally { if (operation.current === controller) { operation.current = null; if (current() && !controller.signal.aborted) setBusy(false); } }
-  }
-  async function download(file?: BrandAssetFile) {
-    if (!shown || operation.current || !current()) return;
-    const controller = new AbortController(); operation.current = controller; setBusy(true); setError(null); setMessage(null);
-    let selectionChecked = false;
-    try {
-      await boundedBrandAssetWork(controller.signal, confirm);
-      if (!current() || controller.signal.aborted) return;
-      selectionChecked = true;
-      const url = URL.createObjectURL(new Blob([file?.bytes ?? shown.pack.archive], { type: file?.mimeType ?? "application/zip" }));
-      urls.current.set(url, setTimeout(() => { urls.current.delete(url); URL.revokeObjectURL(url); }, 1000));
-      const anchor = document.createElement("a"); anchor.href = url; anchor.download = file ? file.name.split("/").at(-1)! : `${brandAssetSlug(snapshot.name)}-brand-assets.zip`;
-      document.body.append(anchor); try { anchor.click(); } finally { anchor.remove(); }
-      setMessage("Download started. Check your browser’s downloads.");
-    } catch (error) {
-      if (current() && !controller.signal.aborted) {
-        if (error instanceof BrandAssetError && error.reason === "selection") { clearPrepared(); setError(errorMessage(error)); }
-        else setError(selectionChecked
-          ? "The download could not start. Your files are kept. Try downloading again."
-          : "Your saved choice could not be checked. Your files are kept. Try downloading again.");
+      urls.clear();
+    }
+    function discardSelection() {
+      selectionChanged = true;
+      prepared = null;
+      releaseUrls();
+      setReady(null);
+      setStale(true);
+    }
+    async function confirm(signal: AbortSignal) {
+      if (!current() || signal.aborted || !await revalidate(signal) || !current() || signal.aborted) throw new BrandAssetError("selection");
+    }
+    // Opening the page and clicking Download both consume this same preparation.
+    // The saved direction is the durable source, including in a fresh browser.
+    function prepare(): Promise<Ready> {
+      if (prepared) return prepared;
+      setError(null);
+      prepared = boundedBrandAssetWork(lifetime.signal, async signal => {
+        await confirm(signal);
+        const pack = await buildBrandAssetPack({ snapshot, logoClient, identityClient, vectorRevisionId }, signal);
+        await confirm(signal);
+        return pack;
+      }).then(pack => {
+        if (!current()) throw new BrandAssetError("selection");
+        const previews = new Map<string, string>();
+        for (const file of pack.files) {
+          if (file.mimeType !== "image/png" || !["board", "social"].includes(file.category)) continue;
+          const url = URL.createObjectURL(new Blob([file.bytes], { type: file.mimeType }));
+          urls.set(url, null); previews.set(file.name, url);
+        }
+        const value = { pack, previews, logoClient, identityClient };
+        setReady(value);
+        setMessage("Your brand assets are ready.");
+        return value;
+      }).catch(cause => {
+        if (current()) {
+          prepared = null;
+          if (cause instanceof BrandAssetError && cause.reason === "selection") discardSelection();
+          else { releaseUrls(); setReady(null); }
+          setError(errorMessage(cause));
+        }
+        throw cause;
+      });
+      return prepared;
+    }
+    async function download(file?: BrandAssetFile) {
+      if (!current() || downloadingFile || selectionChanged) return;
+      downloadingFile = true; setDownloading(true); setError(null); setMessage(null);
+      let built = false, checked = false;
+      try {
+        const { pack } = await prepare();
+        if (!current()) return;
+        built = true;
+        await boundedBrandAssetWork(lifetime.signal, confirm);
+        if (!current()) return;
+        if (file && !pack.files.includes(file)) throw new BrandAssetError("selection");
+        checked = true;
+        const url = URL.createObjectURL(new Blob([file?.bytes ?? pack.getArchive()], { type: file?.mimeType ?? "application/zip" }));
+        urls.set(url, setTimeout(() => { urls.delete(url); URL.revokeObjectURL(url); }, 1000));
+        const anchor = document.createElement("a");
+        anchor.href = url; anchor.download = file ? file.name.split("/").at(-1)! : `${brandAssetSlug(snapshot.name)}-brand-assets.zip`;
+        document.body.append(anchor); try { anchor.click(); } finally { anchor.remove(); }
+        setMessage("Download started. Check your browser’s downloads.");
+      } catch (cause) {
+        // Preparation already reported its own failure. A transient download
+        // failure leaves the verified previews available for another click.
+        if (current() && built) {
+          if (cause instanceof BrandAssetError) {
+            if (cause.reason === "selection") discardSelection();
+            setError(errorMessage(cause));
+          } else setError(checked ? "The download could not start. Your files are kept. Try downloading again."
+            : "Your saved choice could not be checked. Your files are kept. Try downloading again.");
+        }
+      } finally {
+        downloadingFile = false;
+        if (current()) setDownloading(false);
       }
     }
-    finally { if (operation.current === controller) { operation.current = null; if (current() && !controller.signal.aborted) setBusy(false); } }
+    session.current = { logoClient, identityClient, download };
+    // A discarded Strict Mode mount must not start a second private asset read.
+    queueMicrotask(() => {
+      if (!current()) return;
+      setStale(false); setDownloading(downloadingFile); setMessage(null); setReady(null);
+      void prepare().catch(() => { /* The panel displays the error; the next click retries. */ });
+    });
+    return () => { lifetime.abort(); session.current = null; releaseUrls(); };
+  }, [snapshot, logoClient, identityClient, account, projectId, revalidate, vectorRevisionId]);
+
+  if (!identityClient.current() || !isAccountLogoClientCurrent(logoClient, account, projectId)) return null;
+  const shown = ready?.logoClient === logoClient && ready.identityClient === identityClient ? ready : null;
+  function downloadFile(file?: BrandAssetFile) {
+    const active = session.current;
+    if (active?.logoClient === logoClient && active.identityClient === identityClient) void active.download(file);
   }
-  const disabled = busy || !current();
-  const fileButton = (file: BrandAssetFile) => <button key={file.name} type="button" disabled={disabled} onClick={() => void download(file)}>{file.editable ? "Editable SVG" : file.mimeType === "image/png" ? "Download PNG" : file.mimeType === "image/svg+xml" ? "Download SVG" : file.mimeType === "text/html" ? "Download guide" : file.mimeType === "image/jpeg" ? "Download JPG" : file.mimeType === "image/webp" ? "Download WEBP" : "Download"}</button>;
   return <section className={styles.panel} aria-label="Brand assets">
-    <header className={styles.header}><div><h2>{shown ? "Your brand assets" : "Create your brand assets"}</h2><p>{shown ? "Your selected identity, ready to use." : "Your logo, colors, fonts, social images and editable templates. No additional AI cost."}</p></div>
-      {shown ? <button className={styles.primary} type="button" disabled={disabled} onClick={() => void download()}>{busy ? "Checking selection…" : "Download everything"}</button>
-        : <button className={styles.primary} type="button" disabled={disabled} onClick={() => void create()}>{busy ? "Creating your assets…" : "Create brand assets"}</button>}
+    <header className={styles.header}><div><h2 className={stage.sectionHeading}>{snapshot.name} brand kit</h2>
+      {!stale && <p>{directionTitle ? `Selected direction: ${directionTitle}` : "From your selected visual direction."}</p>}</div>
+      {!stale && <div className={styles.archiveAction}>
+        <button type="button" className={styles.primary} disabled={downloading} onClick={() => downloadFile()}>Download brand kit</button>
+        <span>{shown ? `ZIP · ${shown.pack.files.length} files` : "ZIP archive"}</span>
+      </div>}
     </header>
-    {error && <p className={styles.error} role="alert">{error}</p>}{message && <p className={styles.notice} role="status">{message}</p>}
-    {shown && <>
-      <div className={styles.overview}><div className={styles.board}>
-        {/* eslint-disable-next-line @next/next/no-img-element -- Local output rendered from verified owned artwork. */}
-        <img src={shown.previews.get("brand-board.png")} alt={`${snapshot.name} final brand board`} />
-        {fileButton(shown.pack.files.find(file => file.category === "board")!)}
-      </div><div className={styles.details}><h3>Logo files</h3><p>Original saved artwork{shown.pack.vectorIncluded ? " and its matching SVG vector." : "."}</p><div className={styles.actions}>{shown.pack.files.filter(file => file.category === "logo").map(fileButton)}</div>
-        <h3>Colors and fonts</h3><div className={styles.swatches}>{snapshot.colors.map(color => <span key={color.key} title={`${color.name} ${color.hex}`} style={{ background: color.hex }} />)}</div><p>{[...new Set(snapshot.typography.map(style => style.family))].join(" · ")}</p>{fileButton(shown.pack.files.find(file => file.mimeType === "text/html")!)}
-        <p className={styles.help}>The guide includes color values and links to install your fonts.</p><h3>Editable templates</h3><p>SVG templates have editable text, colors and shapes. Their logo remains the original image.</p><p className={styles.help}>Replace the placeholder copy before publishing.</p>
-      </div></div>
-      <div className={styles.gallery}>{shown.pack.files.filter(file => file.category === "social" && file.mimeType === "image/png").map(file => <article className={styles.card} key={file.name}>
-        <div className={styles.artwork}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- Verified local output only. */}
-          <img src={shown.previews.get(file.name)} alt={`${snapshot.name} ${file.label.toLowerCase()}`} />
-        </div>
-        <div className={styles.cardBody}><h3>{file.label}</h3><p>{file.width} × {file.height}</p><div className={styles.actions}>{fileButton(file)}{shown.pack.files.filter(other => other.name === file.name.replace(/\.png$/, ".svg")).map(fileButton)}</div></div>
-      </article>)}</div>
+    {error && <p className={styles.error} role="alert">{error}</p>}
+    {stale ? (onRefreshSelection && <button type="button" onClick={onRefreshSelection}>Refresh kit</button>) : <>
+      <p className={styles.notice} role="status">{downloading ? "Preparing your download…" : message || (!error && !shown ? "Loading kit previews…" : "")}</p>
+      <BrandKitContents snapshot={snapshot} pack={shown?.pack ?? null} previews={shown?.previews} downloadFile={downloadFile} disabled={downloading} />
     </>}
   </section>;
 }

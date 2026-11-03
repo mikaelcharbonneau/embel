@@ -72,16 +72,18 @@ async function verifyFeed(auth: AuthenticatedContext, projectId: string, feed: N
  }
  let executionAvailable = isLocalPollingRuntime();
  if (isSharedWorkerRuntime() || isHostedNamingRuntime()) {
+  let unavailableCode = "naming_runtime_unavailable";
   try {
    const hosted = await rpc(auth, isSharedWorkerRuntime() ? "get_shared_naming_availability" : "get_hosted_naming_availability", { p_project_id: projectId }, hostedNamingAvailabilitySchema);
    executionAvailable = hosted.status === "available";
+   if (hosted.status === "unavailable" && hosted.reason === "worker_unavailable") unavailableCode = "worker_unavailable";
   } catch (error) {
    // The saved feed was already owner-checked and replayed. A readiness outage
    // disables new exploration without making those saved names unreadable.
    if (error instanceof ApiError && ["not_found", "unauthenticated"].includes(error.code)) throw error;
    executionAvailable = false;
   }
-  if (!executionAvailable) verified.availability = { status: "unavailable", code: "naming_runtime_unavailable" };
+  if (!executionAvailable) verified.availability = { status: "unavailable", code: unavailableCode };
  }
  const executionCurrent = executionAvailable && feed.activeRun
   && feed.activeRun.projectRevision === feed.projectRevision && feed.activeRun.preferencesVersion === feed.preferencesVersion && feed.activeRun.steeringRevision === feed.steeringRevision

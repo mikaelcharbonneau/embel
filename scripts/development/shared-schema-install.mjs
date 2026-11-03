@@ -4,7 +4,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { cliVersion, DevelopmentError, localDockerEnvironment, migrationSources, privateDirectory, readOptional, repositoryRoot, settingsFor, writeState } from './config.mjs';
-import { CATALOG_FINGERPRINT_SQL, composeDevelopmentSchema, sqlLiteral as q } from './shared-schema.mjs';
+import { composeSupplementalUpgrade, SUPPLEMENTAL_PACKET } from './shared-schema-upgrade.mjs';
+import { composeDevelopmentSchema, sqlLiteral as q } from './shared-schema.mjs';
 
 function command(binary, args, env, input) {
  return new Promise((resolve,reject)=>{
@@ -45,11 +46,12 @@ export async function installDevelopmentSchema(root=repositoryRoot) {
  const present=await db.sql("select to_regclass('fluid_private.portable_development_installation') is not null;");
  if(present==='f')await db.sql(bundle.sql);
  const marker=JSON.parse(await db.sql('select row_to_json(t) from fluid_private.portable_development_installation t;'));
- if(marker.project_id!==db.settings.projectId||marker.origin!=='http://127.0.0.1:'+db.settings.apiPort||marker.manifest_sha256!==bundle.manifestHash||marker.catalog_sha256!==await db.sql(CATALOG_FINGERPRINT_SQL))throw new DevelopmentError('Shared development schema differs from its recorded source or target. Use a separate checkout to install a changed schema.');
+ if(marker.project_id!==db.settings.projectId||marker.origin!=='http://127.0.0.1:'+db.settings.apiPort||marker.manifest_sha256!==bundle.manifestHash)throw new DevelopmentError('Shared development schema differs from its recorded source or target. Use a separate checkout to install a changed schema.');
  if(await db.sql(`select (select count(*)=1 and bool_and(mode='development' and origin=${q(marker.origin)}) from fluid_private.shared_http_target) and (select count(*)=1 and bool_and(origin=${q(marker.origin)}) from fluid_private.shared_storage_target);`)!=='t')throw new DevelopmentError('Shared development service targets changed.');
  await verifyDevelopmentAuthority(db,root);
+ await db.sql(await composeSupplementalUpgrade(db.settings,bundle.manifestHash,root));
  const directory=path.join(db.state,'shared'); await privateDirectory(directory);
- await writeState(path.join(directory,'schema-manifest.json'),JSON.stringify({version:1,cliVersion,manifestHash:bundle.manifestHash,packets:bundle.manifest},null,2)+'\n');
+ await writeState(path.join(directory,'schema-manifest.json'),JSON.stringify({version:1,cliVersion,manifestHash:bundle.manifestHash,packets:bundle.manifest,upgrades:[SUPPLEMENTAL_PACKET]},null,2)+'\n');
  return {...db,directory};
 }
 
@@ -148,7 +150,7 @@ export async function verifyDevelopmentPrincipals(data) {
 
 // Root's model-policy composer calls this only after generating a validated
 // SharedPoolConfiguration. This never creates model receipts or paid requests.
-export async function installDevelopmentPolicies(configuration,root=repositoryRoot) {
+export async function installDevelopmentPolicies(configuration,root,namingFingerprint) {
  const db=await installDevelopmentSchema(root),data=JSON.parse(await readOptional(path.join(db.directory,'provisioning.json')));
  if(configuration.target.kind!=='development'||Object.entries(data.target).some(([key,value])=>configuration.target[key]!==value))throw new DevelopmentError('Development policy target differs from local provisioning.');
  if(configuration.slots.length!==data.slots.length||new Set(configuration.slots.map(s=>s.slotId)).size!==data.slots.length)throw new DevelopmentError('Development policy requires every provisioned slot exactly once.');
@@ -156,6 +158,12 @@ export async function installDevelopmentPolicies(configuration,root=repositoryRo
  for(const slot of configuration.slots){
   const own=data.slots.find(s=>s.slotId===slot.slotId&&s.lane===slot.lane&&s.roleOid===slot.roleOid&&s.roleName===slot.roleName);
   if(!own)throw new DevelopmentError('Development policy slot is not provisioned locally.');
+  if(slot.lane==='naming'){
+   const expected=q(JSON.stringify(namingFingerprint))+'::jsonb';
+   statements.push(`insert into fluid_private.shared_naming_slot_configuration as cfg(slot_id,readiness_fingerprint) values(${q(slot.slotId)}::uuid,${expected})
+    on conflict(slot_id) do update set readiness_fingerprint=excluded.readiness_fingerprint,ready_until=null
+    where cfg.readiness_fingerprint is distinct from excluded.readiness_fingerprint;`);
+  }
   for(const [operation,policy] of Object.entries(slot.policies)){
    const body=q(JSON.stringify(policy))+'::jsonb';
    const identity=slot.lane==='logo'?q(policy.policyIdentity):`encode(sha256(convert_to((${body})::text,'UTF8')),'hex')`;

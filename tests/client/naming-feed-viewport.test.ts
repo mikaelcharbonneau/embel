@@ -35,3 +35,14 @@ it.each(["disconnected", "hiddenRoot", "hiddenTail", "zeroSize", "offscreen", "n
   if (mode === "offscreen") vi.mocked(root.getBoundingClientRect).mockReturnValue(new DOMRect(0, 9000, 600, 200));
   expect(visibleNamingFeedCursor(tail, entries(1, 300))).toBeNull();
 });
+
+it("excludes only the visible portion covered by the floating composer", () => {
+  root.dataset.namingLayout = "results";
+  const panel = document.createElement("section");
+  panel.dataset.floatingComposer = ""; root.append(panel);
+  const box = vi.spyOn(panel, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 140, 240, 60));
+  card(200, 10); card(201, 160); // The bottom of 201 is already outside the scrollport.
+  expect(visibleNamingFeedCursor(tail, entries(1, 300))).toEqual(cursor(200));
+  box.mockReturnValue(new DOMRect(240, 140, 240, 60));
+  expect(visibleNamingFeedCursor(tail, entries(1, 300))).toEqual(cursor(201));
+});

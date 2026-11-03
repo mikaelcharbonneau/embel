@@ -8,10 +8,28 @@ Mac checkout, a globally installed Supabase CLI or copied browser sessions.
 
 Install Git and Node 24 (24.15.0 or newer within that major). `.nvmrc` selects
 Node 24; `nvm install` and `nvm use` are available when using nvm. Docker Desktop
-or Docker Engine is needed for local backend services. The Node launchers are
+or Docker Engine is needed for local backend services. On this Apple Silicon Mac,
+the dedicated Colima profile provides Docker Engine. To restart it and select
+it in the current terminal without changing the default Docker context:
+
+```sh
+colima start embel
+export DOCKER_CONTEXT=colima-embel
+export PATH="/opt/homebrew/opt/node@24/bin:$PATH"
+docker version
+```
+
+For a first installation on another Apple Silicon Mac with Homebrew, install
+`colima docker node@24` and create the profile with
+`colima start embel --runtime docker --vm-type vz --vz-rosetta --cpu 4 --memory 6 --disk 28 --mount-type virtiofs --activate=false`.
+Rosetta must be available for the shared amd64 worker. To shut down, stop the
+web process with Ctrl-C, run `npm run dev:down`, then `colima stop embel`.
+
+The Node launchers are
 designed for macOS, Linux and native Windows with Docker Desktop's Linux
-containers; WSL2 can use the Linux workflow. This setup has been exercised on
-Linux/Codex Cloud; macOS, native Windows and WSL2 remain untested. No POSIX shell
+containers; WSL2 can use the Linux workflow. The local backend and native worker
+package have been exercised on Linux/Codex Cloud and Apple Silicon with Colima;
+native Windows and WSL2 remain untested. No POSIX shell
 assignment is needed in the npm development commands.
 
 ```sh
@@ -49,7 +67,12 @@ installer composes 25 pinned sources: five reviewed Logo predecessors, ten
 shared production packets, nine corrections and one development target adapter.
 The first installation is atomic; repeated installation verifies the source
 manifest, target and installed SQL authority. It does not reset the database or
-blanket-apply the production candidates directory. Changed installed shared
+blanket-apply the production candidates directory. A separately pinned, additive development upgrade
+installs an operator-only repair and an authenticated proof reader for names recovered
+from a retained brainstorm response. Setup verifies the original catalog before this
+upgrade and records its source, resulting catalog and permissions in a separate
+receipt on the installation marker. Repeating setup checks those fingerprints. The
+installer itself does not repair projects or call an AI provider. Changed installed shared
 authority is rejected instead of silently replacing it; use a separate checkout
 for an incompatible schema history.
 
@@ -192,12 +215,22 @@ Type checking, lint, production build and focused setup/HTTP/worker tests passed
 GitHub CI now includes the actual local stack and credential-free native package
 checks; its first hosted run is separate from these local results.
 
-The OpenAI Platform connector rejected creation of the dedicated development key
-on November 2, 2026. No key was saved and no inference request was made. Full
-worker activation, a completed local AI branding journey, and central Vercel
-secret synchronization therefore remain unverified. Model-catalog access or
-preflight success would not by itself prove a completed branding journey.
-macOS, native Windows and WSL2 have not yet been exercised with this setup.
+On November 2, 2026, a separate Apple Silicon run used the saved dedicated
+development key with the local Colima profile. Signup, Mailpit confirmation,
+fresh browser sign-in and project persistence passed. The packaged Linux/amd64
+worker passed native probes and all three lanes qualified against the local
+database. These checks alone do not establish inference or billing.
+Central Vercel secret synchronization was not exercised in this run.
+
+The same Mac then ran one real project, Patchpath, using the dedicated key.
+The shared worker completed a Strategy personality request, one Naming batch,
+six raster logo concepts, and three raster visual directions from the selected
+logo. The web app downloaded 16 files in one ZIP. Its original logo and selected
+direction matched their saved SHA-256 hashes; the board and social PNGs decoded
+at their expected dimensions. The app recorded USD 0.273928 across Strategy,
+logos and directions. Naming reported 872 input and 3,242 output tokens with no
+settled dollar amount. Those are observations from this run, not pricing
+estimates for another project or a provider invoice.
 
 ## Codex Cloud and browsers
 

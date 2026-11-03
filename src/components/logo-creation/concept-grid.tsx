@@ -6,6 +6,7 @@ import type { LogoCapability, LogoConceptSource, LogoRasterSource } from "../../
 import { logoCandidateKey } from "./candidate-review";
 import { acceptedConceptAttempt, CONCEPT_ORDINALS, displayLogoCost, LOGO_TYPE_LABELS } from "./presentation";
 import styles from "./logo-creation.module.css";
+import stage from "@/styles/branding-stage.module.css";
 import type { LogoCardVersion } from "./concept-versions";
 
 /** No polling, persistence or generation lives in this view. */
@@ -60,7 +61,7 @@ export function LogoConceptGridView({ batch = null, plan = null, selected = null
   });
   const stateLabel = { queued: "Waiting", running: "Creating", succeeded: "Ready", failed: "Failed", cancelled: "Cancelled", needs_reconciliation: "Outcome uncertain" };
   return <section className={gallery ? styles.gallery : styles.panel} aria-label="Logo concepts" aria-busy={savedBatchLoading}>
-    {!gallery && <><div className={styles.heading}><div><p className={styles.eyebrow}>03 / Explore</p><h2>Six starting points</h2></div><span className={styles.badge}>Black and white</span></div>
+    {!gallery && <><div className={styles.heading}><div><p className={styles.eyebrow}>03 / Explore</p><h2 className={stage.sectionHeading}>Six starting points</h2></div><span className={styles.badge}>Black and white</span></div>
     <p className={styles.muted}>Six total concepts, with the logo type shown on each card. Review a cost estimate before every new generation or refinement.</p>
     {activePlan && <p className={styles.note}>Included: {activePlan.coveredTypes.map(type => LOGO_TYPE_LABELS[type]).join(", ")}.{activePlan.uncoveredTypes.length > 0 && <> Not included in this batch: {activePlan.uncoveredTypes.map(type => LOGO_TYPE_LABELS[type]).join(", ")}. A later batch can cover these types.</>}</p>}
     </>}
@@ -88,7 +89,7 @@ export function LogoConceptGridView({ batch = null, plan = null, selected = null
         const isSelected = Boolean(displayedSource && selectedVersion && logoCandidateKey(displayedSource) === logoCandidateKey(selectedVersion));
         const isCompared = Boolean(source && comparison.some(item => logoCandidateKey(item) === logoCandidateKey(source)));
         return <li className={gallery ? styles.galleryCard : styles.conceptCard} key={ordinal} hidden={filter === "saved" && !savedBatchLoading && !isSelected && !savedVersion} data-concept-ordinal={ordinal} data-concept-slot={slot?.id} data-selected={isSelected || undefined}>
-          {!gallery && <><div className={styles.cardHeading}><h3>Concept {ordinal + 1}</h3><span className={styles.badge}>{attempt ? stateLabel[attempt.state] : savedBatchUnavailable ? "Unavailable" : "Not requested"}</span></div>
+          {!gallery && <><div className={styles.cardHeading}><h3 className={stage.subheading}>Concept {ordinal + 1}</h3><span className={styles.badge}>{attempt ? stateLabel[attempt.state] : savedBatchUnavailable ? "Unavailable" : "Not requested"}</span></div>
           <p className={styles.typeLabel}>{planned ? LOGO_TYPE_LABELS[planned.type] : savedBatchUnavailable ? "Saved logo type unavailable" : "Choose logo types to begin"}</p>
           </>}
           {gallery && history.length > 1 && <label className={styles.versionPicker}><select aria-label={`Versions for concept ${ordinal + 1}`} value={version?.key} disabled={!onSelectVersion} onChange={event => {
@@ -98,7 +99,7 @@ export function LogoConceptGridView({ batch = null, plan = null, selected = null
           <div className={gallery ? styles.galleryPreview : styles.preview} role={gallery && selectDisplayed ? "button" : undefined} tabIndex={gallery && selectDisplayed ? 0 : undefined} aria-label={gallery ? `Select concept ${ordinal + 1}` : undefined} aria-pressed={gallery && displayedSource ? isSelected : undefined} onClick={gallery ? selectDisplayed : undefined} onKeyDown={event => { if (gallery && selectDisplayed && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); selectDisplayed(); } }}>
             {preview && renderPreview ? renderPreview(preview) : attempt && (attempt.state === "queued" || attempt.state === "running") ? <GenerationAnimation variant={ordinal} queued={attempt.state === "queued"} /> : <p>{imageUnavailable ? "This image could not be saved." : accepted ? "Image preview unavailable" : attempt ? "No image preview yet" : savedBatchLoading ? "Loading saved preview…" : savedBatchUnavailable ? "Saved preview unavailable" : "Your concept will appear here"}</p>}
           </div>
-          {gallery && <div className={styles.galleryCaption}><div><h3>Concept {ordinal + 1}</h3><button type="button" className={styles.galleryLike} disabled title="Concept likes are not available yet" aria-label={`Like concept ${ordinal + 1}`}>
+          {gallery && <div className={styles.galleryCaption}><div><h3 className={stage.subheading}>Concept {ordinal + 1}</h3><button type="button" className={styles.galleryLike} disabled title="Concept likes are not available yet" aria-label={`Like concept ${ordinal + 1}`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo-concepts/heart.svg" width={16} height={16} alt="" />Like
           </button></div><p>{planned ? LOGO_TYPE_LABELS[planned.type] : savedBatchLoading ? "Loading saved exploration…" : savedBatchUnavailable ? "Saved exploration unavailable" : "Awaiting your first exploration"}{attempt ? ` · ${stateLabel[attempt.state]}` : ""}</p></div>}

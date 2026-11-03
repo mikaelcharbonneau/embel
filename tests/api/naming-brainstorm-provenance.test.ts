@@ -19,6 +19,27 @@ describe("future brainstorm public provenance boundary",()=>{
   expect(await verifyBrainstormNamingSource(f.auth,f.candidate,proofs.get(f.candidate.id))).toMatchObject({callId:id(8),profile:"brainstorm_v1"});
   expect(f.rpc).toHaveBeenCalledOnce();expect(f.rpc).toHaveBeenCalledWith("get_naming_brainstorm_sources",{p_project_id:id(2),p_candidate_ids:[id(7)]});
  });
+ it.each([
+  ["http://127.0.0.1:54321", "55000", "invalid_brainstorm_source", true],
+  ["https://example.invalid", "55000", "invalid_brainstorm_source", false],
+  ["http://127.0.0.1:54321", "P0002", "not_found", false],
+  ["http://127.0.0.1:54321", "55000", "different_state", false],
+ ] as const)("limits supplemental reads to local missing membership (%s, %s, %s)", async (url, code, message, allowed) => {
+  vi.stubEnv("EMBEL_DEVELOPMENT_ENABLED", "true"); vi.stubEnv("APP_ORIGIN", "http://127.0.0.1:3105");
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", url);
+  try {
+   const f=fixture();
+   f.rpc.mockResolvedValueOnce({data:null,error:{code,message}} as never);
+   if (allowed) {
+    const proofs=await loadManagedNamingSources(f.auth,id(2),[f.candidate]);
+    await expect(verifyBrainstormNamingSource(f.auth,f.candidate,proofs.get(f.candidate.id))).resolves.toMatchObject({candidateId:id(7)});
+    expect(f.rpc.mock.calls.map(([name])=>name)).toEqual(["get_naming_brainstorm_sources","get_naming_brainstorm_sources_v2"]);
+   } else {
+    await expect(loadManagedNamingSources(f.auth,id(2),[f.candidate])).rejects.toBeTruthy();
+    expect(f.rpc).toHaveBeenCalledOnce();
+   }
+  } finally { vi.unstubAllEnvs(); }
+ });
  it("fails closed on another account's proof and never uses the historical curator path",async()=>{
   const f=fixture();f.proof.ownerId=id(99);
   await expect(loadManagedNamingSources(f.auth,id(2),[f.candidate])).rejects.toMatchObject({code:"not_found"});

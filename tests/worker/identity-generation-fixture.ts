@@ -25,10 +25,10 @@ export const generationIntent={version:2 as const,spendControl:"uncapped" as con
 export const batchState=()=>({ownerId,projectId,batchId,jobId,status:"queued" as const,terminal:false,intent:generationIntent,input:jobInput().input,systems:[],fulfillment:{targetCount:3 as const,acceptedCount:0,status:"pending" as const}});
 
 /** Selected-logo v3 fixture: real empty Strategy stays separate from its saved logo brief. */
-export function selectedLogoJobInput(bytes:Uint8Array){
+export function selectedLogoJobInput(bytes:Uint8Array,name="Logo fixture"){
  const legacy=jobInput(),reference={ownerId,projectId,assetId:id(501),versionId:id(502),contentHash:hash(bytes)};
  const logoBrief={version:2 as const,id:id(503),ownerId,projectId,revision:1,parentRevisionId:null,inputRevisions:[],inputHash:'a'.repeat(64),createdAt:timestamp,stage:'brief_references' as const,
-  payload:{name:'Logo fixture',activity:'Saved studio activity',audience:'Saved founders audience',personality:'Calm',logoTypes:['wordmark' as const],referenceSnapshotId:id(504),sourceProjectRevision:1}};
+  payload:{name,activity:'Saved studio activity',audience:'Saved founders audience',personality:'Calm',logoTypes:['wordmark' as const],referenceSnapshotId:id(504),sourceProjectRevision:1}};
  const sourceLogo={version:1 as const,source:{kind:'concept' as const,batchId:id(505),slotId:id(506),attemptId:id(507)},selectionRevision:1,logoType:'wordmark' as const,brief:logoBrief,
   preview:{id:id(508),reference,verification:{status:'verified' as const,checkedAt:timestamp,mimeType:'image/png' as const,byteLength:bytes.length,contentHash:hash(bytes)},purpose:'brand_asset' as const,sourceReceiptId:id(507),rightsEvidenceId:null,publicationState:'committed' as const}};
  const context=contextSnapshotSchema.parse({}),refs=createIdentityReferenceSnapshot({ownerId,projectId,referenceRevision:0,selectedReferenceCount:0,capturedAt:timestamp,selected:[]});

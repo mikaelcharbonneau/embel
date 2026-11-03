@@ -110,6 +110,7 @@ async function fixtures(page: Page, scope: ProjectScope = "naming_only") {
       if (method === "PUT") { state.names = namesWorkspaceSchema.parse(body!.payload); state.namesRevision = Number(body!.expectedRevision) + 1; }
       return routeResponse(route, { ownerId, workspace: { id: uuid("abababab", 999), ownerId, revision: Math.max(1, state.namesRevision), payload: state.names, createdAt: when, updatedAt: when } });
     }
+    if (path === "/api/standalone-checks" && method === "GET" && state.ownerId === ownerId) return routeResponse(route, { ownerId, domains: "unavailable", youtube: false, euipo: false });
     if (state.ownerId !== ownerId) return routeResponse(route, {}, 404);
     if (path === `/api/projects/${projectId}/logo` && method === "GET") return routeResponse(route, emptyLogoWorkspace(state.project));
     if (state.newProject && path === `/api/projects/${state.newProject.id}/logo` && method === "GET") return routeResponse(route, emptyLogoWorkspace(state.newProject));
@@ -233,8 +234,8 @@ async function namingCanvasFrame(page: Page) {
   return content;
 }
 async function inspectName(page: Page, name: string) { await showNames(page); await card(page, name).getByRole("button", { name: `Inspect name ${name}`, exact: true }).click(); }
-async function useName(page: Page, name: string) { await inspectName(page, name); await page.getByRole("region", { name: "Inspect name", exact: true }).getByRole("button", { name: "Use this name", exact: true }).click(); }
-async function workshopName(page: Page, name: string) { await inspectName(page, name); await page.getByRole("region", { name: "Inspect name", exact: true }).getByRole("button", { name: "Explore variations", exact: true }).click(); }
+async function useName(page: Page, name: string) { await inspectName(page, name); await page.getByRole("dialog", { name, exact: true }).getByRole("button", { name: "Use this name", exact: true }).click(); }
+async function workshopName(page: Page, name: string) { await inspectName(page, name); const dialog = page.getByRole("dialog", { name, exact: true }); await dialog.getByText("More actions", { exact: true }).click(); await dialog.getByRole("button", { name: "Explore variations", exact: true }).click(); }
 
 async function localNameFixture(page: Page, fixture: Awaited<ReturnType<typeof fixtures>>) {
   const data = createEmptyNamesWorkspace();
@@ -463,7 +464,8 @@ test("naming fixture: a changed strategy requires a fresh earlier-context acknow
   await page.getByLabel("I have reviewed this name against the current strategy and want to use it.").check();
   await expect(page.getByRole("button", { name: "Use earlier-context name" })).toBeEnabled();
   fixture.state.project = { ...fixture.state.project, current_revision: 5, context: { ...fixture.state.project.context, description: "Second revised direction" } };
-  await page.getByRole("region", { name: "Inspect name", exact: true }).getByRole("button", { name: "Favorite Fixture 001", exact: true }).click();
+  await page.getByRole("dialog", { name: "Fixture 001", exact: true }).getByText("More actions", { exact: true }).click();
+  await page.getByRole("dialog", { name: "Fixture 001", exact: true }).getByRole("button", { name: "Favorite Fixture 001", exact: true }).click();
   await expect(page.getByRole("button", { name: "Use earlier-context name" })).toBeDisabled();
   await expect(page.getByLabel("I have reviewed this name against the current strategy and want to use it.")).not.toBeChecked();
   expect(fixture.state.requests.filter(request => request.path === `${base}/selection`)).toHaveLength(0);
@@ -826,8 +828,13 @@ test("naming fixture: promoting an earlier-context name requires acknowledgement
 });
 
 test("naming fixture: dirty Strategy memory survives library navigation and blocks direct Naming", async ({ page }) => {
-  test.setTimeout(45_000);
+  test.setTimeout(90_000);
   const fixture = await prepared(page, 3, "complete_brand");
+  // This fixture returns to Strategy to create an unsaved edit. Its saved
+  // manual strategy is complete, so explicitly reopen the personality question.
+  fixture.state.project.context = contextSnapshotSchema.parse({ ...fixture.state.project.context, intake: {
+    ...fixture.state.project.context.intake, guidedInterview: { version: 1, stage: "personality", turns: [], answers: [] },
+  } });
   fixture.state.candidates[0]!.retention = { ...fixture.state.candidates[0]!.retention, revision: 1, favorite: true, updatedAt: when };
   const answer = "Keep this unsaved direction for neighborhood families.";
   const patches: string[] = [];
@@ -839,7 +846,7 @@ test("naming fixture: dirty Strategy memory survives library navigation and bloc
     patches.push(route.request().postData()!);
     return route.fulfill({ status: 503, json: {} });
   });
-  await page.goto(`/brands/account/${projectId}`);
+  await page.goto(`/brands/account/${projectId}?view=strategy`);
   await page.getByRole("textbox", { name: "Message Embel", exact: true }).fill(answer);
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByRole("button", { name: "Retry save", exact: true })).toBeVisible();
@@ -856,9 +863,9 @@ test("naming fixture: dirty Strategy memory survives library navigation and bloc
   await showLegacyHistory(page);
   await expect(page.getByRole("button", { name: "Generate 50 more names" })).toBeDisabled();
   await inspectName(page, "Fixture 001");
-  await expect(page.getByRole("region", { name: "Inspect name", exact: true }).getByRole("button", { name: "Use this name" })).toBeDisabled();
-  await showChat(page);
-  await page.getByRole("complementary", { name: "Naming conversation", exact: true }).getByRole("link", { name: "Strategy", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Fixture 001", exact: true }).getByRole("button", { name: "Use this name" })).toBeDisabled();
+  await page.keyboard.press("Escape");
+  await page.getByRole("link", { name: "Return to Strategy", exact: true }).click();
   await expect(page.getByRole("log", { name: "Conversation" }).getByText(answer, { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Retry save", exact: true })).toBeVisible();
   expect(patches).toHaveLength(1);
@@ -872,15 +879,15 @@ test("project design: inspecting a name is read-only and selecting remains expli
   const fixture = await prepared(page, 3, "complete_brand"); await open(page);
   const before = fixture.state.requests.filter(request => request.method !== "GET").length;
   await card(page, "Fixture 001").getByRole("button", { name: "Inspect name Fixture 001", exact: true }).click();
-  await expect(page.getByRole("region", { name: "Inspect name", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Fixture 001", exact: true })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Fixture 001", exact: true })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Fixture 001", exact: true }).getByRole("heading", { name: "Fixture 001", exact: true })).toBeVisible();
   expect(fixture.state.project.context.selectedName).toBeNull();
   expect(fixture.state.requests.filter(request => request.method !== "GET")).toHaveLength(before);
-  await expect(page.getByText("Not checked", { exact: true })).toHaveCount(3);
-  await page.getByRole("button", { name: "Back to results", exact: true }).click();
+  await expect(page.getByRole("tab", { name: "Domains", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Close name preview", exact: true }).click();
   await expect(card(page, "Fixture 001")).toBeVisible();
   await card(page, "Fixture 001").getByRole("button", { name: "Inspect name Fixture 001", exact: true }).click();
-  await page.getByRole("region", { name: "Inspect name", exact: true }).getByRole("button", { name: "Use this name", exact: true }).click();
+  await page.getByRole("dialog", { name: "Fixture 001", exact: true }).getByRole("button", { name: "Use this name", exact: true }).click();
   await expect(page.getByRole("region", { name: "Name screening" })).toBeVisible();
   expect(fixture.state.project.context.selectedName).toBe("Fixture 001");
   await page.screenshot({ path: info.outputPath("project-name-screening.png"), fullPage: true });

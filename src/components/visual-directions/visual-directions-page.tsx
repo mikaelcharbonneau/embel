@@ -16,11 +16,14 @@ import { logoCandidateKey } from "@/components/logo-creation/candidate-review";
 import { LogoVerifiedPreview } from "@/components/logo-creation/verified-preview";
 import { LogoDownloadControls } from "@/components/logo-creation/logo-download-controls";
 import { displayLogoCost } from "@/components/logo-creation/presentation";
+import { describeVisualDirections } from "./direction-presentation";
+import { hasCurrentBrandAssets } from "./selected-assets";
+import stage from "@/styles/branding-stage.module.css";
 import { VisualDirectionsView, type VisualDirectionCard, type VisualDirectionGeneration } from "./visual-directions-view";
 
 export function VisualDirectionsPage({ projectId }: { projectId: string }) {
   const { session } = useAccountSession();
-  if (!logoUuidSchema.safeParse(projectId).success) return <section className="page"><h1>Project not found</h1><Link href="/brands">Back to projects</Link></section>;
+  if (!logoUuidSchema.safeParse(projectId).success) return <section className={stage.frame}><h1 className={stage.title}>Project not found</h1><Link className={stage.actionLink} href="/brands">Back to projects</Link></section>;
   return <><AccountStatus />{session.status === "ready" && <OwnedVisualDirections key={`${session.userId}:${session.generation}:${projectId}`} account={session} projectId={projectId} />}</>;
 }
 
@@ -61,8 +64,8 @@ function OwnedVisualDirections({ account, projectId }: { account: VerifiedAccoun
   const availability = generation.overview?.availability;
   const currentBatch = Boolean(batch?.sourceLogo && batch.sourceLogoCurrent && source
     && logoCandidateKey(batch.sourceLogo.source) === logoCandidateKey(source));
-  const selectedSystem = identity.checked ? identity.overview?.currentSelection?.system ?? null : null;
-  const selectedCard = currentBatch && selectedSystem ? batch?.systems.find(system => system.id === selectedSystem.id) : null;
+  const selection = identity.checked && !identity.selectionUncertain ? identity.overview?.currentSelection : null;
+  const selectedSystem = selection?.system;
   const logoPending = !ownedLogo || !logo.client || logo.pending || logo.dirty || Boolean(logo.draft?.conflict);
   const blockedReason = availabilityReason(availability) ?? (logoPending ? "Wait for your logo changes to save before continuing." : identity.generationBlockedReason);
   const unresolved = Boolean(generation.retained || identityBatchUnresolved(generation.batch) || identityBatchUnresolved(generation.overview?.latest ?? null));
@@ -101,14 +104,16 @@ function OwnedVisualDirections({ account, projectId }: { account: VerifiedAccoun
     finally { if (client.current()) setChoosing(null); }
   }
   if (!isCurrent(account) || !identity.verified || identity.verified.userId !== account.userId) return null;
+  const descriptions = describeVisualDirections(batch?.systems ?? []);
   const cards = [0, 1, 2].map(index => {
     const system = batch?.systems[index];
-    if (!system || !client) return null;
+    const description = descriptions[index];
+    if (!system || !description || !client) return null;
     // Missing or still-loading observations block choosing; they do not prove
     // that saved boards are stale or require another generation.
     const stale = !logoPending && !currentBatch || Boolean(identity.overview
       && getIdentityFreshness(system.input.basis, identity.overview.currentBasis).status !== "current");
-    return { id: system.id, title: `Direction ${index + 1}`, summary: system.components.composition.direction,
+    return { ...description,
       preview: <IdentitySystemBoard board={system.board} name={system.input.basis.name} client={client} />,
       selected: selectedSystem?.id === system.id, stale, pending: choosing === system.id,
       disabledReason: stale ? "This board uses earlier inputs. Generate a new set with your current logo." : logoPending ? "Wait for your logo changes to save."
@@ -121,6 +126,9 @@ function OwnedVisualDirections({ account, projectId }: { account: VerifiedAccoun
   const visibleStatus = generation.retained ? "uncertain" : progressStatus(requestBatch);
   const brandName = logo.stagePayloads?.brief_references?.payload.name
     ?? (identity.overview?.currentBasis.status === "available" ? identity.overview.currentBasis.basis.name : "Your brand");
+  const showAssets = !choosing && !identity.pending && !logoPending && !identity.strategyDirty && !identity.preferencesDirty &&
+    !identity.referencesPending && hasCurrentBrandAssets(selection, source);
+  const chosenTitle = descriptions.find(description => description.id === selectedSystem?.id)?.title;
   return <VisualDirectionsView brandName={brandName}
     backHref={`/brands/account/${projectId}/logo`}
     logoPreview={candidate.item && logo.client ? <LogoVerifiedPreview client={logo.client} receipt={candidate.item.preview} alt="Chosen logo concept" />
@@ -135,9 +143,9 @@ function OwnedVisualDirections({ account, projectId }: { account: VerifiedAccoun
       onGenerate: start, onCheck: () => void refresh(), onStop: unresolved && generation.stopAcknowledgedBatchId !== generation.batch?.batchId
         ? () => { if (generation.retained) void generation.controller?.closeOriginal(); else void generation.controller?.stop(); } : undefined }}
     selectionCheck={identity.selectionCheckAvailable ? { busy: identity.loading || identity.detailLoading, onCheck: () => void identity.refresh() } : undefined}
-    selectionStatus={selectedCard ? "Direction saved. You can now create your brand assets." : null}
-    selectionError={!selectedCard && identity.selectionUncertain ? "Your choice could not be confirmed. Use Check saved choice before choosing again." : null}
-    finalAction={selectedCard && <Link className="identity-primary-button" href={`/brands/account/${projectId}/logo/deliverables`}>Continue to brand assets</Link>}
+    selectionStatus={showAssets ? (chosenTitle ? `Selected direction: ${chosenTitle}.` : "Your saved direction is selected in another set.") : null}
+    selectionError={identity.selectionUncertain ? "Your choice could not be confirmed. Use Check saved choice before choosing again." : null}
+    finalAction={showAssets && <Link className="identity-primary-button" href={`/brands/account/${projectId}/logo/deliverables`}>View brand assets</Link>}
     history={<>
       {shownHistory?.batch && shownHistory.batch.batchId !== requestBatch?.batchId && <p>You are viewing an earlier saved set. The progress above is for your latest request.</p>}
       {generation.retained && generation.lookup === "not_found" && <button type="button" className="identity-secondary-button" disabled={Boolean(generation.busy)} onClick={() => void generation.controller?.retryOriginal()}>Retry original request</button>}

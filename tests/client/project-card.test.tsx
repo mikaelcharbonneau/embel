@@ -3,16 +3,24 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectCard } from "@/components/workspace/project-card";
+import { createAccountDraftMemory, reconcileAccountWorkspace } from "@/components/workspace/account-draft-memory";
+import { accountProjectSchema } from "@/domain/project-api";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 import type { LifecycleProject } from "@/components/workspace/project-deletion-client";
 import { syntheticLogoBatch, logoFixtureId as id } from "../fixtures/logo-creation";
 
+let drafts: ReturnType<typeof createAccountDraftMemory>;
 const mock = vi.hoisted(() => ({
   session: null as VerifiedAccount | { status: "checking"; generation: number } | null,
-  isCurrent: vi.fn(), expire: vi.fn(), createClient: vi.fn(), read: vi.fn(),
+  isCurrent: vi.fn(), expire: vi.fn(), createClient: vi.fn(), read: vi.fn(), project: vi.fn(), action: vi.fn(),
 }));
-vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ session: mock.session, isCurrent: mock.isCurrent, expire: mock.expire }) }));
+vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ session: mock.session, drafts, isCurrent: mock.isCurrent, expire: mock.expire }) }));
 vi.mock("@/components/identity/account-logo-client", () => ({ createAccountLogoClient: (...args: unknown[]) => mock.createClient(...args) }));
+vi.mock("@/components/workspace/account-api", async (importOriginal) => ({ ...await importOriginal<typeof import("@/components/workspace/account-api")>(), accountRequest: (...args: unknown[]) => mock.project(...args) }));
+vi.mock("@/components/workspace/project-continuation", () => ({
+  readProjectVisualState: async (_project: unknown, client: unknown) => client ? {} : null,
+  nextProjectAction: (...args: unknown[]) => mock.action(...args),
+}));
 vi.mock("@/components/workspace/project-card-preview", () => ({ readProjectCardPreview: (...args: unknown[]) => mock.read(...args) }));
 
 const account: VerifiedAccount = { status: "ready", userId: id(1), generation: 1 };
@@ -24,8 +32,10 @@ function client() {
   const requests: { resolve(value: Preview | null): void; signal: AbortSignal }[] = [];
   return { dispose: vi.fn(), previewAsset: vi.fn((_receipt: unknown, signal: AbortSignal) => new Promise<Preview | null>(resolve => { requests.push({ resolve, signal }); })), requests };
 }
+let currentProject: LifecycleProject;
 let host: HTMLDivElement, root: Root, source: ReturnType<typeof client>;
 async function render(value = project(), props: Partial<Parameters<typeof ProjectCard>[0]> = {}) {
+  currentProject = value;
   await act(async () => root.render(<ProjectCard project={value} account={account} date="Created Oct 20, 2026" actions={<button type="button">Project options</button>} {...props} />));
 }
 async function settle(index = 0, url = "blob:saved-logo") {
@@ -35,6 +45,9 @@ async function settle(index = 0, url = "blob:saved-logo") {
 }
 
 beforeEach(() => {
+  currentProject = project();
+  drafts = createAccountDraftMemory();
+  mock.action.mockReset().mockResolvedValue({ label: "View brand kit", href: `/brands/account/${id(2)}/logo/deliverables` });
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   vi.stubGlobal("IntersectionObserver", class {
     private disconnected = false;
@@ -42,6 +55,7 @@ beforeEach(() => {
     observe(target: Element) { queueMicrotask(() => { if (!this.disconnected) this.callback([{ isIntersecting: true, target } as IntersectionObserverEntry], this as unknown as IntersectionObserver); }); }
     disconnect() { this.disconnected = true; }
   });
+  mock.project.mockReset().mockImplementation((path: string) => Promise.resolve({ project: { ...currentProject, id: path.split("/").pop(), context: { selectedName: "Persimmon" } } }));
   mock.session = account;
   mock.isCurrent.mockReset().mockImplementation((value: VerifiedAccount) => mock.session?.status === "ready" && mock.session.userId === value.userId && mock.session.generation === value.generation);
   mock.expire.mockReset(); source = client(); mock.createClient.mockReset().mockReturnValue(source);
@@ -51,16 +65,17 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); document.body.replaceChildren(); vi.unstubAllGlobals(); });
 
 describe("shared Home and Projects card", () => {
-  it("shows saved selected artwork while retaining the project label and separate full name", async () => {
+  it("uses the selected brand name for its title and link without a redundant name row", async () => {
     await render(); await settle();
-    expect(host.querySelector("h2")?.textContent).toBe("Untitled brand");
-    expect(host.textContent).toContain("Logo brief: Persimmon");
+    expect(host.querySelector("h2")?.textContent).toBe("Persimmon");
+    expect(host.textContent).not.toContain("Logo brief:");
+    expect(host.querySelector("a")?.getAttribute("aria-label")).toBe("View brand kit · Persimmon");
     expect(host.querySelector("img")?.getAttribute("alt")).toBe("Saved selected logo for Persimmon");
-    expect(host.querySelector("a")?.getAttribute("href")).toBe(`/brands/account/${id(2)}`);
+    expect(host.querySelector("a")?.getAttribute("href")).toBe(`/brands/account/${id(2)}/logo/deliverables`);
     expect(host.querySelector("a button")).toBeNull();
     expect(host.querySelector("button")?.textContent).toBe("Project options");
     await render(project(), { headingLevel: 3 });
-    expect(host.querySelector("h3")?.textContent).toBe("Untitled brand");
+    expect(host.querySelector("h3")?.textContent).toBe("Persimmon");
   });
 
   it("keeps an equivalent snapshot's mounted image and avoids repeat private reads", async () => {
@@ -71,21 +86,42 @@ describe("shared Home and Projects card", () => {
   });
 
   it("gives long project labels their own row and exposes the full unchanged title", async () => {
+    mock.project.mockResolvedValue({ project: { ...project(), context: { selectedName: null } } });
     const title = "A very long project label with a product description that must remain available in full";
     await render({ ...project(), title }); await settle();
     expect(host.querySelector("h2")?.getAttribute("title")).toBe(title);
     expect(host.querySelector("h2")?.textContent).toBe(title);
-    expect(host.querySelector("a")?.getAttribute("aria-label")).toBe(`Continue ${title}`);
+    expect(host.querySelector("a")?.getAttribute("aria-label")).toBe(`View brand kit · ${title}`);
     expect(host.querySelector("h2")?.parentElement?.querySelector("span")?.textContent).toBe("Complete brand");
   });
 
   it("uses honest empty and unavailable states without inventing a logo", async () => {
+    mock.project.mockResolvedValue({ project: { ...project(), context: { selectedName: null } } });
     mock.read.mockResolvedValue({ name: null, receipt: null }); await render();
     expect(host.querySelector("img")).toBeNull(); expect(host.textContent).toContain("No logo selected");
     expect(source.previewAsset).not.toHaveBeenCalled();
+    mock.project.mockResolvedValue({ project: { ...project(), current_revision: 2, context: { selectedName: null } } });
     mock.read.mockRejectedValue(new Error("Preview not readable")); await render({ ...project(), current_revision: 2 });
     expect(host.textContent).toContain("Preview unavailable"); expect(host.textContent).toContain("Untitled brand");
     expect(host.querySelector("a")).not.toBeNull();
+  });
+
+  it("keeps the private preview and generic project link when the next step cannot be checked", async () => {
+    mock.action.mockRejectedValue(new Error("Direction lookup unavailable")); await render(); await settle();
+    expect(host.querySelector("img")).not.toBeNull();
+    expect(host.querySelector("a")?.getAttribute("href")).toBe(`/brands/account/${id(2)}`);
+    expect(host.querySelector("a")?.getAttribute("aria-label")).toBe("Open project · Persimmon");
+  });
+
+  it("links back to unsaved Strategy edits until the draft is clean", async () => {
+    await render(); await settle();
+    const saved = accountProjectSchema.parse({ ...project(), context: {} });
+    const clean = reconcileAccountWorkspace(null, saved, account.generation);
+    await act(async () => { drafts.set({ ...clean, guidedInput: { prompt: "Unsent edit", selection: null } }); });
+    expect(host.querySelector("a")?.getAttribute("href")).toBe(`/brands/account/${saved.id}?view=strategy`);
+    expect(host.textContent).toContain("Resume Strategy edits");
+    await act(async () => { drafts.set(clean); });
+    expect(host.querySelector("a")?.getAttribute("href")).toBe(`/brands/account/${saved.id}/logo/deliverables`);
   });
 
   it("does not fetch deleted or naming-only artwork and keeps lifecycle controls separate", async () => {
@@ -94,6 +130,7 @@ describe("shared Home and Projects card", () => {
     expect(host.textContent).toContain("Deleted project retained"); expect(host.querySelector("button")).not.toBeNull();
     await render({ ...project(), scope: "naming_only" });
     expect(mock.createClient).not.toHaveBeenCalled(); expect(host.textContent).toContain("Naming project");
+    expect(host.querySelector("h2")?.textContent).toBe("Persimmon");
   });
 
   it("masks private content immediately on re-verification and never resurrects its released URL", async () => {
@@ -123,7 +160,7 @@ describe("shared Home and Projects card", () => {
     await render(); await settle();
     await act(async () => host.querySelector("img")!.dispatchEvent(new Event("error")));
     expect(host.querySelector("img")).toBeNull(); expect(host.textContent).toContain("Preview unavailable");
-    expect(host.querySelector("h2")?.textContent).toBe("Untitled brand");
+    expect(host.querySelector("h2")?.textContent).toBe("Persimmon");
     expect(mock.read).toHaveBeenCalledTimes(1);
   });
 

@@ -63,6 +63,7 @@ export async function namingFixture(page: Page, options: { saved?: boolean; coun
     if (state.owner !== ownerId) return reply(route, {}, state.owner ? 404 : 401);
     const failure = state.failOnce?.path === path && method !== "GET" ? state.failOnce : null;
     if (failure) { state.failOnce = null; if (!failure.afterSave) return reply(route, {}, failure.status); }
+    if (path === "/api/standalone-checks" && method === "GET") return reply(route, { ownerId, domains: "unavailable", youtube: false, euipo: false });
     if (path === "/api/account/profile") return reply(route, { profile: { ownerId, email: "synthetic@example.test", revision: 0, updatedAt: null, values: { fullName: "", timeZone: "UTC", dateFormat: "friendly" } } });
     if (path === "/api/names/workspace") return reply(route, { ownerId, workspace: null });
     if (path === "/api/names/ai") return reply(route, { ownerId, availability: { status: "unavailable", reason: "setup_required" }, jobs: [], hasMore: false });

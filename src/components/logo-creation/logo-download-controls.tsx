@@ -5,6 +5,7 @@ import { isAccountLogoClientCurrent, type AccountLogoClient } from "@/components
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 import type { IdentityAssetReceipt } from "@/domain/logo-deliverables";
 import styles from "./logo-download-controls.module.css";
+import stage from "@/styles/branding-stage.module.css";
 
 type Props = {
   client: AccountLogoClient;
@@ -57,7 +58,7 @@ export function LogoDownloadControls({ client, account, projectId, vectorRevisio
   if (!vectorRevisionId && !originalFormat) return null;
   const blocked = disabled || !currentClient || Boolean(activeState?.pending);
   return <section className={`${styles.downloads}${compact ? ` ${styles.compact}` : ""}`} aria-label="Download your logo">
-    {!compact && <div className={styles.heading}><h2>Download your logo</h2><p>Save your files to your device.</p></div>}
+    {!compact && <div className={styles.heading}><h2 className={stage.sectionHeading}>Download your logo</h2><p>Save your files to your device.</p></div>}
     <div className={styles.options}>
       {vectorRevisionId && <div className={styles.option}>
         <button type="button" disabled={blocked || unsavedChanges} onClick={() => void download("svg")}>{activeState?.pending === "svg" ? "Preparing SVG…" : "Download SVG"}</button>

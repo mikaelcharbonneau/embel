@@ -15,6 +15,20 @@ describe("Identity real provider adapter — mocked transports only",()=>{
  it("keeps historical v2 specification request bytes identical for already-issued recovery",()=>{
   expect(identityDigest(JSON.stringify(createIdentitySpecificationRequest(snapshot(),[],1,textPolicy)))).toBe('3488761d9aa2b24c515300c1a4fa06703a558cd1a8e2ce39ecf5f6c6c3a74bd7');
  });
+ it("retains all released selected-logo request hashes and sends the named-direction form for new work",()=>{
+  const job = selectedLogoJobInput(Uint8Array.from([1, 2, 3]), "茶屋");
+  if (job.version !== 3) throw Error("Expected selected logo");
+  const request = (version?: 0|1|2|3) => createIdentitySpecificationRequest(job.input, [], 1, textPolicy, job.sourceLogo, version);
+  const digest = (version?: 0|1|2|3) => identityDigest(JSON.stringify(request(version)));
+  // Computed with the original producer and font catalog from each revision.
+  expect(digest(0)).toBe("7da4c3a96acbcfe5d95bca17e5fbfa7dbc8532c9ff3bece4f91f2a96e254bc17"); // 87579e3
+  expect(digest(1)).toBe("9bc860e708d640f38c991b14a0f1c8e5baa3aa2f5990a08078364caebadb91dd"); // 3716696
+  expect(digest(2)).toBe("3a89350c6c0eec0dea48bac54fe4e8bcda45d8c4c96d4173c07b616ebff55873"); // 59573f4
+  expect(digest()).toBe("c5c4a49bddea564e953c492a8003b7989af6e90459ccc8745b8420e2084d5149");
+  expect(request().instructions).toContain("The direction is called “<name>”. <one-sentence summary>.");
+  expect(request().instructions).toContain("technical composition guidance in components.composition.usageNotes and boardPrompt");
+  expect(request().input).toEqual(request(2).input);
+ });
  it("sends complete immutable input with no spend_control, tools, invented files or preset styles",()=>{const input=snapshot(),request=createIdentitySpecificationRequest(input,[],1,textPolicy);expect(JSON.stringify(request)).not.toContain("spend_control");expect(request.tools).toEqual([]);expect(request).toMatchObject({store:false,background:false,stream:false});expect(JSON.parse((request.input as {content:string}[])[0]!.content).capturedInput).toEqual(input);});
  it("records exact completed text usage, specifications and response identity",async()=>{const f=fixture(),producer=createIdentitySystemProducer(f.options)!;const out=await producer.specify(snapshot(),[],1,key,signal(),f.dispatch);expect(out.status).toBe("completed");expect(f.authorize).toHaveBeenCalledTimes(1);expect(f.beforeDispatch).toHaveBeenCalledTimes(1);expect(f.observe).toHaveBeenCalledWith(expect.objectContaining({phase:"specifications",model:textPolicy.model,billing:{status:"recorded",confirmedMicrousd:2200},specification:specification(),responseId:"resp_fixture"}));});
  it("uses actual inspected fullcolor PNG bytes and actual image usage",async()=>{const f=fixture(),out=await createIdentitySystemProducer(f.options)!.board(snapshot(),specification(),[],key,signal(),f.dispatch);expect(out.status).toBe("completed");expect(f.observe).toHaveBeenCalledWith(expect.objectContaining({phase:"board",artifactHash:hash(png),billing:{status:"recorded",confirmedMicrousd:6500}}));expect(f.createImage).toHaveBeenCalledTimes(1);});

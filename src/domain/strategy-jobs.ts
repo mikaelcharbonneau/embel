@@ -208,7 +208,8 @@ const jobSummaryFields = {
   cancel_requested_at: z.string().nullable(),
   created_at: z.string(), finished_at: z.string().nullable(),
 };
-const apiJobSummarySchema = z.object({ ...jobSummaryFields, dispatchState: z.enum(["published", "dispatch_pending", "already_processing"]).optional(), canRetryDelivery: z.boolean().optional(), billingMode: z.literal("openai_api").optional(), reserved_cost_microusd: moneySchema, actual_cost_microusd: moneySchema,
+const apiJobSummarySchema = z.object({ ...jobSummaryFields, dispatchState: z.enum(["published", "dispatch_pending", "already_processing"]).optional(),
+  workerDelivery: z.enum(["awaiting_worker", "worker_delayed"]).optional(), canRetryDelivery: z.boolean().optional(), billingMode: z.literal("openai_api").optional(), reserved_cost_microusd: moneySchema, actual_cost_microusd: moneySchema,
   spendControl: z.literal("uncapped").optional(), policyIdentity: subscriptionPolicyIdentitySchema.optional() }).refine(job => (job.spendControl === "uncapped") === (job.policyIdentity !== undefined), "Uncapped summaries require the exact policy identity");
 const subscriptionJobSummarySchema = z.object({ ...jobSummaryFields, billingMode: z.literal("chatgpt_subscription"), policyIdentity: subscriptionPolicyIdentitySchema, partialText: z.string().max(1_048_576).optional() });
 export const strategyJobSummarySchema = z.union([apiJobSummarySchema, subscriptionJobSummarySchema]);

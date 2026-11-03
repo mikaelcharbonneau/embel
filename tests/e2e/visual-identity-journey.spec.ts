@@ -28,20 +28,20 @@ async function loadBoards(page: Page, count: number) {
   }
 }
 
-test("generic project entry resumes the chosen logo before and after scope expansion without writes", async ({ page }) => {
+test("generic project entry resumes visual directions before and after scope expansion without writes", async ({ page }) => {
   const f = createVisualJourneyFixture({ standalone: true }), health = await f.setup(page);
   f.project.scope = "visual_identity_only";
   await page.goto(`/brands/account/${projectId}`);
-  await expect(page).toHaveURL(conceptsUrl);
-  await expect(page.getByRole("link", { name: "Continue to visual directions →", exact: true })).toBeVisible();
+  await expect(page).toHaveURL(directionsUrl);
+  await expect(page.getByRole("img", { name: "Chosen logo concept", exact: true })).toBeVisible();
   expect(f.mutations).toHaveLength(0);
   // Expansion retains the same context and selected Logo stages. Entry must
   // still resume them even though scope alone now describes a complete brand.
   f.project.scope = "complete_brand"; f.project.current_revision += 1; f.workspace.heads.projectRevision = f.project.current_revision;
   await page.goto(`/brands/account/${projectId}`);
-  await expect(page).toHaveURL(conceptsUrl);
-  await expect(page.getByRole("link", { name: "Continue to visual directions →", exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Review Strategy", exact: true })).toHaveAttribute("href", `/brands/account/${projectId}?view=strategy`);
+  await expect(page).toHaveURL(directionsUrl);
+  await expect(page.getByRole("img", { name: "Chosen logo concept", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Change logo/ })).toHaveAttribute("href", conceptsUrl);
   expect(f.mutations).toHaveLength(0); expect(f.workspace.stages.vector).toBeNull(); expect(f.workspace.approvedLogo).toBeNull();
   await fits(page); expect(health.pageErrors).toEqual([]);
 });
@@ -49,24 +49,26 @@ test("generic project entry resumes the chosen logo before and after scope expan
 test("a project with saved Logo work still allows deliberate Strategy review and return", async ({ page }) => {
   const f = createVisualJourneyFixture({ standalone: true }), health = await f.setup(page);
   f.project.scope = "complete_brand";
-  await page.goto(`/brands/account/${projectId}`); await expect(page).toHaveURL(conceptsUrl);
+  await page.goto(conceptsUrl);
   await page.getByRole("link", { name: "Review Strategy", exact: true }).click();
   await expect(page).toHaveURL(`/brands/account/${projectId}?view=strategy`);
   await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
-  await page.getByRole("link", { name: "Return to saved work", exact: true }).click();
-  await expect(page).toHaveURL(conceptsUrl);
+  await page.getByRole("button", { name: "Edit brief", exact: true }).click();
+  await page.getByRole("dialog").getByRole("link", { name: "Return to saved work", exact: true }).click();
+  await expect(page).toHaveURL(directionsUrl);
   expect(f.mutations).toHaveLength(0); expect(health.pageErrors).toEqual([]);
 });
 
 test("visual-only Logo work keeps explicit project editing and expansion accessible", async ({ page }) => {
   const f = createVisualJourneyFixture({ standalone: true }), health = await f.setup(page);
   f.project.scope = "visual_identity_only";
-  await page.goto(`/brands/account/${projectId}`); await expect(page).toHaveURL(conceptsUrl);
+  await page.goto(conceptsUrl);
   await page.getByRole("link", { name: "Project details", exact: true }).click();
   await expect(page).toHaveURL(`/brands/account/${projectId}?view=strategy`);
   await expect(page.getByRole("button", { name: "Expand to complete brand", exact: true }).first()).toBeVisible();
-  await page.getByRole("link", { name: "Return to saved work", exact: true }).click();
-  await expect(page).toHaveURL(conceptsUrl);
+  await page.getByRole("button", { name: "Edit brief", exact: true }).click();
+  await page.getByRole("dialog").getByRole("link", { name: "Return to saved work", exact: true }).click();
+  await expect(page).toHaveURL(directionsUrl);
   expect(f.project.scope).toBe("visual_identity_only"); expect(f.mutations).toHaveLength(0); expect(health.pageErrors).toEqual([]);
 });
 
@@ -78,7 +80,7 @@ test("a complete brand without saved Logo stages keeps the Strategy entry", asyn
   }
   await page.goto(`/brands/account/${projectId}`);
   await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
-  await expect(page).toHaveURL(`/brands/account/${projectId}`);
+  await expect(page).toHaveURL(`/brands/account/${projectId}?view=strategy#strategy-brief`);
   expect(f.mutations).toHaveLength(0); expect(health.pageErrors).toEqual([]);
 });
 
@@ -115,23 +117,44 @@ test("chosen concept leads to three directions, a saved choice and usable brand 
   expect(f.admissions[0]).toMatchObject({ version: 3, spendControl: "uncapped", sourceLogo: f.sourceLogo.source, expectedLogoRevision: f.sourceLogo.selectionRevision });
   expect(f.admissions[0]).not.toHaveProperty("acceptedMaxCostMicrousd");
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  f.complete(); await checkProgress(page);
-  await expect(page.getByText("3 of 3 ready", { exact: true })).toBeVisible();
+  f.complete();
+  await expect(page.getByText("3 of 3 ready", { exact: true })).toBeVisible({ timeout: 15_000 });
   await loadBoards(page, 3);
+  await expect(page.getByRole("button", { name: "Check progress", exact: true })).toHaveCount(0);
+  const cards = page.locator('[aria-label="Direction comparison"] article');
+  for (const [index, system] of f.systems.entries()) {
+    const card = cards.nth(index);
+    const palette = card.getByRole("list", { name: "Color palette" });
+    for (const color of system.components.colors.swatches) {
+      await expect(palette.getByTitle(`${color.name} ${color.hex}`, { exact: true })).toBeVisible();
+    }
+    const heading = system.components.typography.styles.find(style => style.key === system.applicationDesign.headingStyleKey)!;
+    await expect(card.getByText(`${heading.family} · ${heading.weight}`, { exact: true })).toBeVisible();
+  }
+  const assets = page.getByRole("link", { name: "View brand assets", exact: true });
+  await expect(assets).toHaveCount(0);
   await expect(page.getByRole("img", { name: "Saved Identity board for Cedar", exact: true })).toHaveCount(3);
   await fits(page);
   await page.getByRole("heading", { name: "Visual direction", exact: true }).scrollIntoViewIfNeeded();
   await page.screenshot({ path: info.outputPath("directions.png"), fullPage: true, scale: "css" });
-  await page.getByRole("button", { name: "Choose direction", exact: true }).nth(1).click();
+  const chosenCard = cards.nth(1);
+  await chosenCard.getByRole("button", { name: "Choose direction", exact: true }).click();
   await expect.poll(() => f.selections.length).toBe(1);
   await expect(page.getByRole("button", { name: "Chosen direction", exact: true })).toHaveCount(1);
+  await expect(chosenCard.getByRole("button", { name: "Chosen direction", exact: true })).toBeDisabled();
+  await expect(assets).toHaveAttribute("href", assetsUrl);
+  expect(await assets.evaluate(link => Boolean(link.compareDocumentPosition(document.querySelector('[aria-label="Direction comparison"]')!) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
   const selectedId = f.selection!.systemVersionId;
+  expect(selectedId).toBe(f.systems[1]!.id);
   await page.reload(); await expect(page.getByRole("button", { name: "Chosen direction", exact: true })).toHaveCount(1);
   expect(f.selection!.systemVersionId).toBe(selectedId); expect(f.admissions).toHaveLength(1);
-  await page.getByRole("link", { name: "Continue to brand assets", exact: true }).click();
+  await expect(chosenCard.getByRole("button", { name: "Chosen direction", exact: true })).toBeDisabled();
+  await assets.click();
   await expect(page).toHaveURL(assetsUrl);
-  await page.getByRole("button", { name: "Create brand assets", exact: true }).click();
-  await expect(page.getByText("Your brand assets are ready.", { exact: true })).toBeVisible({ timeout: 45_000 });
+  const kit = page.getByRole("button", { name: "Download brand kit", exact: true });
+  await expect(kit).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Create brand assets", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("img", { name: "Cedar final brand board", exact: true })).toBeVisible({ timeout: 45_000 });
   await fits(page);
   const boardDownloadPromise = page.waitForEvent("download");
   await page.getByRole("region", { name: "Brand assets", exact: true }).getByRole("button", { name: "Download PNG", exact: true }).first().click();
@@ -140,7 +163,7 @@ test("chosen concept leads to three directions, a saved choice and usable brand 
   expect(boardDownload.suggestedFilename()).toBe("brand-board.png");
   expect(await sharp(await downloadedBytes(boardDownload)).metadata()).toMatchObject({ format: "png", width: 1600, height: 2200 });
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Download everything", exact: true }).click();
+  await kit.click();
   const download = await downloadPromise;
   await download.saveAs(info.outputPath("brand-assets.zip"));
   expect(download.suggestedFilename()).toBe("cedar-brand-assets.zip");
@@ -163,6 +186,31 @@ test("chosen concept leads to three directions, a saved choice and usable brand 
   expect(guide).toContain("Fraunces"); expect(guide).toContain("Manrope"); expect(guide).toContain("https://");
   const template = strFromU8(files["social/post-square.svg"]!);
   expect(template).toContain("<text"); expect(template).toContain("data:image/png;base64,");
+  // A fresh visit prepares the same saved files. Hold the source read to ensure
+  // the single download click works even before preparation has finished.
+  let releaseLogo!: () => void;
+  const held = new Promise<void>(resolve => { releaseLogo = resolve; });
+  const logoPath = `/api/assets/${f.sourceLogo.preview.reference.versionId}/preview`;
+  const sourceRead = page.waitForRequest(request => new URL(request.url()).pathname === logoPath);
+  await page.route(`**${logoPath}`, async route => { await held; await route.fallback(); });
+  let reopened: Download;
+  try {
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await sourceRead;
+    await expect(page.getByRole("img", { name: "Cedar final brand board", exact: true })).toHaveCount(0);
+    await expect(kit).toBeEnabled();
+    const second = page.waitForEvent("download", { timeout: 45_000 });
+    await kit.click();
+    releaseLogo();
+    reopened = await second;
+  } finally { releaseLogo(); }
+  const reopenedFiles = unzipSync(await downloadedBytes(reopened));
+  expect(reopened.suggestedFilename()).toBe(download.suggestedFilename());
+  const hashes = (contents: Record<string, Uint8Array>) => Object.fromEntries(
+    Object.entries(contents).map(([name, bytes]) => [name, digest(bytes)]),
+  );
+  expect(hashes(reopenedFiles)).toEqual(hashes(files));
+  expect(f.selection!.systemVersionId).toBe(selectedId);
   expect(f.admissions).toHaveLength(1); expect(f.selections).toHaveLength(1);
   expect(f.mutations.every(path => path.endsWith("/identity/batches") || path.endsWith("/identity/selection"))).toBe(true);
   expect(health.pageErrors).toEqual([]); expect(health.consoleErrors).toEqual([]);
@@ -183,17 +231,19 @@ test("lost generation acknowledgement checks the original request and keeps a pa
   await expect(page.getByRole("img", { name: "Saved Identity board for Cedar", exact: true })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Choose direction", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: "Choose direction", exact: true }).click();
-  await expect(page.getByRole("link", { name: "Continue to brand assets", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "View brand assets", exact: true })).toBeVisible();
   expect(f.admissions).toEqual([original]); expect(f.selection!.systemVersionId).toBe(f.systems[0]!.id);
   await fits(page); expect(health.pageErrors).toEqual([]);
 });
 
 test("saved boards explain unavailable selection and recover without another generation", async ({ page }) => {
   const f = createVisualJourneyFixture(), health = await f.setup(page);
+  f.savingAvailable = false;
   await page.goto(directionsUrl);
   await page.getByRole("button", { name: "Generate three directions", exact: true }).click();
   await expect.poll(() => f.admissions.length).toBe(1);
-  f.savingAvailable = false; f.complete(); await checkProgress(page);
+  f.complete();
+  await expect(page.getByText("3 of 3 ready", { exact: true })).toBeVisible({ timeout: 15_000 });
   await loadBoards(page, 3);
   await expect(page.getByText("Saving your direction is temporarily unavailable. Your boards are saved.", { exact: true })).toHaveCount(3);
   await expect(page.getByText("Checking your saved choice…", { exact: true })).toHaveCount(0);
@@ -204,7 +254,7 @@ test("saved boards explain unavailable selection and recover without another gen
   const choose = page.getByRole("button", { name: "Choose direction", exact: true }).nth(1);
   await expect(choose).toBeEnabled(); expect(f.selections).toHaveLength(0); expect(f.admissions).toHaveLength(1);
   await choose.click();
-  await expect(page.getByRole("link", { name: "Continue to brand assets", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "View brand assets", exact: true })).toBeVisible();
   expect(f.selections).toHaveLength(1); expect(f.admissions).toHaveLength(1);
   await fits(page); expect(health.pageErrors).toEqual([]);
 });
@@ -213,18 +263,22 @@ test("a changed logo prevents old directions and prepared files from being prese
   test.setTimeout(90_000);
   const f = createVisualJourneyFixture(); await f.setup(page);
   await page.goto(directionsUrl); await page.getByRole("button", { name: "Generate three directions", exact: true }).click();
-  await expect.poll(() => f.admissions.length).toBe(1); f.complete(); await checkProgress(page);
+  await expect.poll(() => f.admissions.length).toBe(1); f.complete();
+  await expect(page.getByText("3 of 3 ready", { exact: true })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: "Choose direction", exact: true }).first().click();
-  await page.getByRole("link", { name: "Continue to brand assets", exact: true }).click();
-  await page.getByRole("button", { name: "Create brand assets", exact: true }).click();
-  await expect(page.getByText("Your brand assets are ready.", { exact: true })).toBeVisible({ timeout: 45_000 });
+  await page.getByRole("link", { name: "View brand assets", exact: true }).click();
+  const kit = page.getByRole("button", { name: "Download brand kit", exact: true });
+  await expect(kit).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Create brand assets", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("img", { name: "Cedar final brand board", exact: true })).toBeVisible({ timeout: 45_000 });
   const downloads: Download[] = []; page.on("download", value => downloads.push(value));
   f.sourceCurrent = false;
-  await page.getByRole("button", { name: "Download everything", exact: true }).click();
+  await kit.click();
   await expect(page.getByRole("region", { name: "Brand assets", exact: true }).getByRole("alert")).toContainText(/changed|current|saved direction/u);
   expect(downloads).toHaveLength(0);
   await page.goto(directionsUrl);
   await expect(page.getByText("Earlier inputs", { exact: true })).toHaveCount(3);
+  await expect(page.getByRole("link", { name: "View brand assets", exact: true })).toHaveCount(0);
   for (const button of await page.getByRole("button", { name: "Choose direction", exact: true }).all()) await expect(button).toBeDisabled();
   expect(f.admissions).toHaveLength(1); await fits(page);
 });
@@ -232,7 +286,8 @@ test("a changed logo prevents old directions and prepared files from being prese
 test("account changes clear the former account's private boards", async ({ page }) => {
   const f = createVisualJourneyFixture(), health = await f.setup(page);
   await page.goto(directionsUrl); await page.getByRole("button", { name: "Generate three directions", exact: true }).click();
-  await expect.poll(() => f.admissions.length).toBe(1); f.complete(); await checkProgress(page);
+  await expect.poll(() => f.admissions.length).toBe(1); f.complete();
+  await expect(page.getByText("3 of 3 ready", { exact: true })).toBeVisible({ timeout: 15_000 });
   await loadBoards(page, 3);
   await expect(page.getByRole("img", { name: "Saved Identity board for Cedar", exact: true })).toHaveCount(3);
   f.owner = ownerId.replace(/001$/u, "999"); await checkNormalAccount(page);

@@ -4,6 +4,7 @@ import { isDialogBackdropClick } from "@/components/ui/dialog-backdrop";
 import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
 import { Icon } from "@/components/ui/icon";
 import styles from "./logo-creation.module.css";
+import stage from "@/styles/branding-stage.module.css";
 
 /** Existing saved brief and request controls stay mounted while the panel is closed. */
 export function ConceptsComposer({ children, instruction, onInstructionChange, onGenerate, generationAction, selectedLabel, selectedPreview, status, onShowResult, selectionReadState, disclosureRef }: {
@@ -49,7 +50,7 @@ export function ConceptsComposer({ children, instruction, onInstructionChange, o
       </div>
     </form>
     <dialog ref={dialog} className={styles.contextDialog} aria-labelledby="logo-context-title" onCancel={() => setOpen(false)} onClick={event => { if (isDialogBackdropClick(event)) setOpen(false); }}>
-      <header className={styles.heading}><h2 id="logo-context-title">Project context</h2><button type="button" className={styles.secondaryButton} aria-label="Close project context" onClick={() => setOpen(false)}><Icon name="close" size={16} /></button></header>
+      <header className={styles.heading}><h2 id="logo-context-title" className={stage.sectionHeading}>Project context</h2><button type="button" className={styles.secondaryButton} aria-label="Close project context" onClick={() => setOpen(false)}><Icon name="close" size={16} /></button></header>
       {children}
     </dialog>
   </>;

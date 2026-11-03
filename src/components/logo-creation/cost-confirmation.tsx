@@ -7,6 +7,7 @@ import type { LogoRasterSource } from "../../domain/logo-workspace";
 import { displayLogoCost, LOGO_TYPE_LABELS } from "./presentation";
 import { LogoVectorSettingsSummary } from "./vector-conversion-controls";
 import styles from "./logo-creation.module.css";
+import stage from "@/styles/branding-stage.module.css";
 
 function quoteContext(quote: LogoCostQuote, batch: LogoConceptBatch | null) {
   const ownedBatch = batch?.ownerId === quote.ownerId && batch?.projectId === quote.projectId ? batch : null;
@@ -42,7 +43,7 @@ export function LogoCostConfirmationView({ quote = null, billing = null, batch =
   const context = quote ? quoteContext(quote, batch) : null;
   const uncapped = quote !== null && "spendControl" in quote;
   return <section className={styles.costPanel} aria-label={uncapped ? "Generation review" : "Generation cost review"}>
-    <h2>{uncapped ? "Review generation" : "Review the cost"}</h2>
+    <h2 className={stage.sectionHeading}>{uncapped ? "Review generation" : "Review the cost"}</h2>
     {quote && context ? <>
       <p className={styles.note}><strong>{context.action}</strong><br />{context.target}</p>
       {quote.request.operation === "refine_preview" && <p className={styles.note} style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}><strong>Requested changes</strong><br />{quote.request.instruction}</p>}

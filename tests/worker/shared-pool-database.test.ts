@@ -1,7 +1,8 @@
 import { beforeEach,describe,expect,it,vi } from "vitest";
 vi.mock("server-only",()=>({}));
-const doubles=vi.hoisted(()=>{
- const client={query:vi.fn<(sql:string,args?:unknown[])=>Promise<{rows:Record<string,unknown>[]}>>(),release:vi.fn()};
+const doubles=await vi.hoisted(async()=>{
+ const { EventEmitter:Emitter }=await import("node:events");
+ const client=Object.assign(new Emitter(),{query:vi.fn<(sql:string,args?:unknown[])=>Promise<{rows:Record<string,unknown>[]}>>(),release:vi.fn()});
  class Pool{connect=async()=>client;on=()=>{};end=async()=>{};}
  return{client,Pool};
 });
@@ -50,5 +51,16 @@ describe("shared preflight ordering and connection cleanup (inert driver)",()=>{
  });
  it("does not report qualification success after rollback cleanup fails",async()=>{
   const f=harness({rollbackFails:true});await expect(f.pool.qualify()).rejects.toThrow("database");expect(doubles.client.release).toHaveBeenCalledWith(expect.any(Error));await f.pool.close();
+ });
+ it("contains a socket loss on a checked-out qualification client and permits fresh qualification",async()=>{
+  const f=harness();let resume!:()=>void;
+  doubles.client.query.mockImplementationOnce(()=>new Promise(resolve=>{resume=()=>resolve({rows:[]});}));
+  const rejected=expect(f.pool.qualify()).rejects.toThrow("database");
+  await vi.waitFor(()=>expect(resume).toBeTypeOf("function"));
+  expect(()=>doubles.client.emit("error",Error("synthetic socket disconnect"))).not.toThrow();
+  resume();await rejected;
+  expect(doubles.client.release).toHaveBeenLastCalledWith(expect.any(Error));
+  expect(doubles.client.listenerCount("error")).toBe(0);
+  await f.pool.qualify();expect(doubles.client.release).toHaveBeenLastCalledWith(undefined);await f.pool.close();
  });
 });

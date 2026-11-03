@@ -5,6 +5,7 @@ import type { LogoRasterSource } from "../../domain/logo-workspace";
 import type { LogoRefinementHistoryState } from "./refinement-history";
 import { displayLogoCost, LOGO_TYPE_LABELS } from "./presentation";
 import styles from "./logo-creation.module.css";
+import stage from "@/styles/branding-stage.module.css";
 import { logoCandidateKey } from "./candidate-review";
 
 const labels: Record<LogoRasterRefinement["state"], string> = { queued: "Waiting", running: "Creating", succeeded: "Ready", failed: "Failed", cancelled: "Cancelled", needs_reconciliation: "Outcome uncertain" };
@@ -32,7 +33,7 @@ export function LogoRefinementGallery({ history, selected = null, briefRevisionI
 }) {
   const selectedRecord = selected?.kind === "refinement" ? history.items.find(row => row.record.id === selected.rasterRevisionId && row.verified && selectable(row.record)) : null;
   return <section className={styles.panel} aria-label="Saved image refinements">
-    <h2>Saved image refinements</h2>
+    <h2 className={stage.sectionHeading}>Saved image refinements</h2>
     <p className={styles.note}>Each image keeps its original source and inputs. Selecting an image saves it for review; vector conversion and approval are separate steps.</p>
     {history.loading && <p className={styles.note} role="status">Reading saved image refinements…</p>}
     {history.error && <p className={styles.warning} role="status">{history.error}</p>}
@@ -44,7 +45,7 @@ export function LogoRefinementGallery({ history, selected = null, briefRevisionI
         const isCompared = comparison.some(item => logoCandidateKey(item) === logoCandidateKey(source));
         const priorBrief = record.inputRevisions.find(input => input.stage === "brief_references");
         return <li className={styles.conceptCard} key={record.id} data-refinement-id={record.id}>
-          <div className={styles.cardHeading}><h3>Image refinement</h3><span className={styles.badge}>{verified ? labels[record.state] : "Details unverified"}</span></div>
+          <div className={styles.cardHeading}><h3 className={stage.subheading}>Image refinement</h3><span className={styles.badge}>{verified ? labels[record.state] : "Details unverified"}</span></div>
           <p className={styles.typeLabel}>{LOGO_TYPE_LABELS[record.logoType]} · {new Date(record.createdAt).toLocaleString()}</p>
           <div className={styles.preview}>{verified && record.preview && renderPreview ? renderPreview(record.preview) : <p>{verified ? "Image preview unavailable. Saved result retained." : "Image details await verification."}</p>}</div>
           <p className={styles.note}>Image preview · Vector conversion and approval follow separately.</p>

@@ -3,12 +3,16 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { isDialogBackdropClick } from "@/components/ui/dialog-backdrop";
+import { DirectionTypeSample } from "./direction-type-sample";
+import stage from "@/styles/branding-stage.module.css";
 import styles from "./visual-directions-view.module.css";
 
 export type VisualDirectionCard = {
   id: string;
   title: string;
   summary?: string;
+  swatches?: readonly { name: string; hex: string }[];
+  sampleStyle?: { family: string; weight: number; style: string } | null;
   preview: ReactNode;
   selected?: boolean;
   stale?: boolean;
@@ -70,7 +74,8 @@ export function VisualDirectionsView({ brandName, logoPreview, logoDownload, bac
   const unresolved = ["queued", "running", "stopping", "uncertain"].includes(generation.status);
   const canGenerate = Boolean(generation.onGenerate && !generation.busy && !generation.disabledReason && !unresolved);
   const completed = Math.max(0, Math.min(3, Math.floor(generation.completed)));
-  const selected = cards.find(card => card?.selected && !card.stale);
+  const comparing = cards.some(Boolean);
+  const finished = generation.status === "complete" && completed === 3;
   const progress = progressMessages[generation.status];
 
   useEffect(() => {
@@ -91,12 +96,12 @@ export function VisualDirectionsView({ brandName, logoPreview, logoDownload, bac
     if (!card.selected && !card.stale && !card.pending && !card.disabledReason) card.onChoose?.();
   }
 
-  return <section className={styles.workspace} aria-labelledby={titleId}>
+  return <section className={`${stage.frame} ${styles.workspace}`} aria-labelledby={titleId}>
     <header className={styles.header}>
       <div>
-        <p className={styles.eyebrow}>Build your brand · Step 2 of 3</p>
-        <h1 ref={heading} id={titleId} tabIndex={-1}>Visual direction</h1>
-        <p className={styles.intro}>Compare three ways to bring {brandName} to life.</p>
+        <p className={stage.eyebrow}>Build your brand · Step 2 of 3</p>
+        <h1 className={stage.title} ref={heading} id={titleId} tabIndex={-1}>Visual direction</h1>
+        <p className={stage.intro}>Compare three ways to bring {brandName} to life.</p>
       </div>
       <ol className={styles.steps} aria-label="Branding steps">
         <li><span>1</span> Logo concept</li>
@@ -107,34 +112,39 @@ export function VisualDirectionsView({ brandName, logoPreview, logoDownload, bac
 
     <section className={styles.logoStrip} aria-label="Chosen logo">
       <div className={styles.logoPreview}>{logoPreview}</div>
-      <div className={styles.logoDescription}><p className={styles.label}>Chosen logo</p><h2>{brandName}</h2><p>Each direction builds on this concept.</p></div>
+      <div className={styles.logoDescription}><p className={styles.label}>Chosen logo</p><h2 className={stage.sectionHeading}>{brandName}</h2><p>Each direction builds on this concept.</p></div>
       {backHref && <Link className={styles.textButton} href={backHref}>Change logo <span aria-hidden="true">↗</span></Link>}
       {logoDownload && <div className={styles.logoDownload}>{logoDownload}</div>}
     </section>
 
     <section className={styles.generation} aria-labelledby={generationId}>
-      <div className={styles.generationHeading}><div><h2 id={generationId}>Explore three directions</h2><p>Color, typography and example uses, together in one board.</p></div>
-        <div className={styles.generateAction}>
-          <button className={styles.primaryButton} type="button" disabled={!canGenerate}
-            aria-describedby={`${estimateId}${generation.disabledReason ? ` ${reasonId}` : ""}`}
-            onClick={() => { if (canGenerate) generation.onGenerate?.(); }}>
-            {unresolved ? generation.status === "stopping" ? "Stopping…" : generation.status === "uncertain" ? "Checking request…" : "Creating directions…"
-              : generation.busy ? "Please wait…" : generation.status === "idle" ? "Generate three directions" : "Generate another set"}
-          </button>
-          <p id={estimateId} className={styles.estimate}>{generation.estimatedCostLabel || "Cost estimate unavailable"}</p>
+      <div className={styles.generationHeading}><div><h2 className={stage.sectionHeading} id={generationId}>{comparing ? "Compare visual directions" : "Explore three directions"}</h2>
+        {selectionStatus ? <p className={styles.selectionStatus} role="status">{selectionStatus}</p> : <p>{comparing ? "Choose the look that fits your brand." : "Color, typography and example uses, together in one board."}</p>}</div>
+        <div className={styles.generationControls}>
+          {finalAction && <div className={styles.finalAction}>{finalAction}</div>}
+          <div className={styles.generateAction}>
+            <button className={comparing || finalAction ? styles.secondaryButton : styles.primaryButton} type="button" disabled={!canGenerate}
+              aria-describedby={`${estimateId}${generation.disabledReason ? ` ${reasonId}` : ""}`}
+              onClick={() => { if (canGenerate) generation.onGenerate?.(); }}>
+              {unresolved ? generation.status === "stopping" ? "Stopping…" : generation.status === "uncertain" ? "Checking request…" : "Creating directions…"
+                : generation.busy ? "Please wait…" : generation.status === "idle" ? "Generate three directions" : "Generate another set"}
+            </button>
+            <p id={estimateId} className={styles.estimate}>{generation.estimatedCostLabel || "Cost estimate unavailable"}</p>
+          </div>
         </div>
       </div>
       {generation.disabledReason && <p id={reasonId} className={styles.helper}>{generation.disabledReason}</p>}
       {generation.error && <p className={styles.error} role="alert">{generation.error}</p>}
-      {!progress && generation.onCheck && (generation.disabledReason || generation.error) && <button type="button" className={styles.textButton} disabled={generation.busy} onClick={generation.onCheck}>Check availability</button>}
-      {progress && <div className={styles.progressArea}>
+      {(!progress || finished) && generation.onCheck && (generation.disabledReason || generation.error) && <button type="button" className={styles.textButton} disabled={generation.busy} onClick={generation.onCheck}>Check availability</button>}
+      {finished && <div className={styles.finishedStatus} role="status"><span>3 of 3 ready</span>{generation.usageLabel && <span>{generation.usageLabel}</span>}</div>}
+      {progress && !finished && <div className={styles.progressArea}>
         <div className={styles.progressCopy} role="status"><span className={styles.progressCount}>{completed} of 3 ready</span><p>{progress}</p></div>
         <div className={styles.progressActions}>
           {generation.onCheck && <button type="button" className={styles.textButton} disabled={generation.busy} onClick={generation.onCheck}>Check progress</button>}
           {unresolved && generation.onStop && <button type="button" className={styles.secondaryButton} disabled={generation.busy || generation.status === "stopping"} onClick={generation.onStop}>{generation.status === "stopping" ? "Stop requested" : "Stop generation"}</button>}
         </div>
       </div>}
-      {generation.usageLabel && <p className={styles.usage}>{generation.usageLabel}</p>}
+      {!finished && generation.usageLabel && <p className={styles.usage}>{generation.usageLabel}</p>}
     </section>
 
     {selectionCheck && cards.some(Boolean) && <div className={styles.progressActions}>
@@ -142,18 +152,31 @@ export function VisualDirectionsView({ brandName, logoPreview, logoDownload, bac
         {selectionCheck.busy ? "Checking saved choice…" : "Check saved choice"}
       </button>
     </div>}
+    {selectionError && <p className={styles.error} role="alert">{selectionError}</p>}
 
     <div className={styles.cards} aria-label="Direction comparison">
       {cards.map((card, index) => card ? <article key={card.id} className={styles.card} data-selected={Boolean(card.selected && !card.stale)}>
         <div className={styles.cardTop}><span className={styles.cardNumber}>Direction {index + 1}</span>
           {card.stale ? <span className={styles.staleBadge}>Earlier inputs</span> : card.selected && <span className={styles.selectedBadge}><CheckIcon /> Chosen</span>}
         </div>
-        <div className={styles.preview}>{card.preview}</div>
-        <div className={styles.cardBody}>
-          <div className={styles.cardTitle}><h3>{card.title}</h3><button type="button" className={styles.expandButton} aria-label={`View ${card.title} larger`}
+        <header className={styles.cardIntro}>
+          <div className={styles.cardTitle}><h3 className={stage.subheading}>{card.title}</h3><button type="button" className={styles.expandButton} aria-label={`View ${card.title} larger`}
             ref={node => { if (node) triggers.current.set(card.id, node); else triggers.current.delete(card.id); }}
             onClick={() => setExpandedId(card.id)}><ExpandIcon /></button></div>
           {card.summary && <p className={styles.summary}>{card.summary}</p>}
+        </header>
+        {(card.swatches?.length || card.sampleStyle) ? <div className={styles.designDetails}>
+          {!!card.swatches?.length && <div><p className={styles.detailLabel}>Palette</p><ul className={styles.swatches} aria-label="Color palette">
+            {card.swatches.map(({ name, hex }, index) => <li key={index} title={`${name} ${hex}`} style={{ backgroundColor: hex }}>
+              <span className={styles.visuallyHidden}>{name} {hex}</span>
+            </li>)}
+          </ul></div>}
+          {card.sampleStyle && <div><p className={styles.detailLabel}>Typography</p>
+            <DirectionTypeSample style={card.sampleStyle} brandName={brandName} />
+          </div>}
+        </div> : null}
+        <div className={styles.preview}>{card.preview}</div>
+        <div className={styles.cardBody}>
           {card.stale && <p className={styles.cardNotice}>This board uses earlier inputs. Generate directions for the current logo.</p>}
           {card.disabledReason && <p className={styles.cardNotice}>{card.disabledReason}</p>}
           <div className={styles.cardActions}>
@@ -171,20 +194,13 @@ export function VisualDirectionsView({ brandName, logoPreview, logoDownload, bac
       </article>)}
     </div>
 
-    <section className={styles.nextStep} aria-label="Continue to brand assets">
-      <div><p className={styles.label}>Next · Brand assets</p><h2>{selected ? "Bring your chosen direction to life" : "Your direction becomes your brand"}</h2>
-        <p>{selected ? "Create your final brand board and downloadable assets from this direction." : "Choose a direction to create your final brand board and downloadable assets."}</p>
-        {selectionStatus && <p className={styles.selectionStatus} role="status">{selectionStatus}</p>}
-        {selectionError && <p className={styles.error} role="alert">{selectionError}</p>}
-      </div>
-      {finalAction && <div className={styles.finalAction}>{finalAction}</div>}
-    </section>
+    {!finalAction && <p className={styles.nextHint}>Choose a direction to continue to your brand assets.</p>}
     {history}
 
     <dialog ref={dialog} className={styles.dialog} aria-labelledby={dialogTitleId}
       onCancel={event => { event.preventDefault(); setExpandedId(null); }} onClose={() => setExpandedId(null)}
       onClick={event => { if (isDialogBackdropClick(event)) setExpandedId(null); }}>
-      {expanded && <><header className={styles.dialogHeader}><div><p className={styles.label}>Visual direction</p><h2 id={dialogTitleId}>{expanded.title}</h2></div>
+      {expanded && <><header className={styles.dialogHeader}><div><p className={styles.label}>Visual direction</p><h2 className={stage.sectionHeading} id={dialogTitleId}>{expanded.title}</h2></div>
         <button type="button" className={styles.closeButton} aria-label="Close larger preview" onClick={() => setExpandedId(null)}>×</button></header>
         <div className={styles.dialogPreview}>{expanded.preview}</div>
         {expanded.summary && <p className={styles.dialogSummary}>{expanded.summary}</p>}

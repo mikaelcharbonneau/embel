@@ -170,6 +170,12 @@ const deliveryRowSchema = z.object({
   canRetryDelivery: z.boolean(), dispatch: apiTextDispatchMessageSchema.nullable(),
 });
 
+// A shared admission commits before its worker polls the outbox. One minute
+// without publication is a delay worth showing, never proof of a failed job.
+function sharedQueueWait(createdAt: string): "worker_delayed" | "awaiting_worker" {
+  return Date.now() - Date.parse(createdAt) >= 60_000 ? "worker_delayed" : "awaiting_worker";
+}
+
 async function readDeliveries(auth: AuthenticatedContext, projectId: string, jobIds: string[]) {
   const { data, error } = await auth.client.rpc("get_strategy_job_deliveries", { p_project_id: projectId, p_job_ids: jobIds });
   databaseError(error);
@@ -181,7 +187,10 @@ async function readDeliveries(auth: AuthenticatedContext, projectId: string, job
       || (row.canRetryDelivery && (row.dispatchState !== "dispatch_pending" || !row.dispatch || job.cancel_requested_at !== null))
       || (!row.canRetryDelivery && row.dispatch !== null) || (row.dispatch && row.dispatch.jobId !== job.id)) throw new ApiError("integration_unavailable");
     seen.add(job.id);
-    return { ...row, job };
+    // In this RPC's SQL summary these fields identify a shared admission.
+    // The overview's generic v3 input metadata cannot distinguish its publisher.
+    const sharedOutbox = job.billingMode === "openai_api" && job.spendControl === "uncapped";
+    return { ...row, sharedOutbox, job };
   });
 }
 
@@ -198,6 +207,12 @@ async function withDelivery(auth: AuthenticatedContext, projectId: string, summa
   return summaries.map(job => {
     const delivery = rows.find(row => row.job.id === job.id);
     if (!delivery || delivery.job.operation !== job.operation || delivery.job.input_revision !== job.input_revision) return job;
+    if (delivery.sharedOutbox) {
+      const workerDelivery = delivery.dispatchState === "dispatch_pending" && delivery.canRetryDelivery
+        ? sharedQueueWait(delivery.job.created_at) : undefined;
+      return { ...job, dispatchState: delivery.dispatchState, workerDelivery, canRetryDelivery: false };
+    }
+    if (isLocalPollingRuntime()) return job;
     return { ...job, dispatchState: delivery.dispatchState, canRetryDelivery: delivery.canRetryDelivery };
   });
 }
@@ -209,9 +224,10 @@ export async function retryStrategyJobDelivery(auth: AuthenticatedContext, proje
   const rows = await readDeliveries(auth, projectId, [jobId]);
   const delivery = rows[0];
   if (!delivery || !delivery.canRetryDelivery || !delivery.dispatch) throw new ApiError("conflict");
-  // The shared worker owns its same-project durable outbox publisher. The
-  // existing pending row is retried without an HTTP dispatch or a new job.
-  if (isSharedWorkerRuntime()) return getStrategyJob(auth, projectId, jobId);
+  // Older clients may still POST for a shared admission. Only the worker
+  // retries its outbox; this endpoint can return the latest state.
+  if (delivery.sharedOutbox) return getStrategyJob(auth, projectId, jobId);
+  if (isLocalPollingRuntime()) throw new ApiError("conflict");
   let dispatchState: "published" | "dispatch_pending" | "already_processing" = "dispatch_pending";
   try { dispatchState = (await publishApiTextDispatch(delivery.dispatch)).state; }
   catch { /* An uncertain acknowledgement never creates a replacement request. */ }
@@ -249,8 +265,10 @@ export async function enqueueStrategyJob(auth: AuthenticatedContext, projectId: 
       const raw = parseStored(z.record(z.string(), z.unknown()), data);
       const dispatch = parseStored(apiTextDispatchMessageSchema, raw.dispatch);
       if (dispatch.jobId !== summary.id) throw new ApiError("integration_unavailable");
+      if (shared) return (await withResults(auth, projectId, [summary.state === "queued"
+        ? { ...summary, dispatchState: "dispatch_pending", workerDelivery: "awaiting_worker", canRetryDelivery: false } : summary]))[0]!;
       let dispatchState: "published" | "dispatch_pending" | "already_processing" = "dispatch_pending";
-      try { if (!shared) dispatchState = (await publishApiTextDispatch(dispatch)).state; }
+      try { dispatchState = (await publishApiTextDispatch(dispatch)).state; }
       catch { /* The committed admission and exact idempotency key remain repairable. */ }
       // A publication receipt is distinct from execution. Keep the database job state.
       return (await withResults(auth, projectId, [{ ...summary, dispatchState }]))[0]!;

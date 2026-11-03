@@ -72,6 +72,10 @@ const logoRuntimeFiles = [
 ];
 
 const nextConfig: NextConfig = {
+  // The development badge otherwise covers the floating composer's grip on phones.
+  devIndicators: false,
+  // Confirmation callbacks carry a one-time sign-in code in the query string.
+  logging: { incomingRequests: { ignore: [/^\/auth\/callback(?:[/?]|$)/] } },
   serverExternalPackages: ["@resvg/resvg-js","@napi-rs/canvas","@visioncortex/vtracer","fontkit","harfbuzzjs","pdfjs-dist","pdfkit","sharp"],
   outputFileTracingIncludes: {
     "/*": ["scripts/certs/supabase-prod-ca-2021.crt"],

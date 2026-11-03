@@ -97,12 +97,19 @@ export function createIdentityGenerationRuntimeAdapter(options:IdentityGeneratio
           let text:IdentityProduction<IdentitySystemSpecification>;
           if(knownText){
             const observation=knownText.observation,usage=logoVectorProposalUsageSchema.safeParse(observation.usage);
-            // Verify retained responses against either exact released request body.
-            // The historical typography list is for observation only; it never authorizes a new call.
-            const historicalRequest=createIdentitySpecificationRequest(frozen.input,loaded.systems,index+1,frozen.textPolicy,sourceLogo,1);
-            const requestHashes=[identityDigest(JSON.stringify(historicalRequest))];
-            try{requestHashes.push(identityDigest(JSON.stringify(createIdentitySpecificationRequest(frozen.input,loaded.systems,index+1,frozen.textPolicy,sourceLogo))));}catch{/* Unsupported saved text retains its original evidence. */}
-            if(observation.phase!=="specifications"||observation.requestKey!==textKey||!requestHashes.includes(observation.requestHash)||!observation.responseComplete
+            // Match only released request bodies. A match recovers the existing
+            // specification and never authorizes another paid text request.
+            const versions = sourceLogo ? [3, 2, 1, 0] as const : [3] as const;
+            const requestMatches = versions.some(version => {
+              try {
+                const body = createIdentitySpecificationRequest(frozen.input, loaded.systems, index + 1, frozen.textPolicy, sourceLogo, version);
+                return identityDigest(JSON.stringify(body)) === observation.requestHash;
+              } catch {
+                // A name unsupported by a newer font catalog can still have an older receipt.
+                return false;
+              }
+            });
+            if(observation.phase!=="specifications"||observation.requestKey!==textKey||!requestMatches||!observation.responseComplete
               ||!observation.responseId?.startsWith("resp_")||!observation.responseHash||observation.model!==frozen.textPolicy.model||observation.serviceTier!==frozen.textPolicy.serviceTier
               ||!observation.specification||observation.billing.status!=="recorded"||!usage.success||usage.data.inputTokens>frozen.textPolicy.maxInputTokens||usage.data.outputTokens>frozen.textPolicy.maxOutputTokens
               ||observation.billing.confirmedMicrousd!==logoVectorProposalUsageCost(usage.data))return unknown("identity_known_specification_unconfirmed");

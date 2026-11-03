@@ -28,18 +28,27 @@ export function createSharedExecutionCapacity(maximum:number){
 }
 export function sharedPoolPause(ms:number,signal:AbortSignal){if(signal.aborted)return Promise.resolve();
  return new Promise<void>(resolve=>{const done=()=>{clearTimeout(timer);signal.removeEventListener("abort",done);resolve();};const timer=setTimeout(done,ms);signal.addEventListener("abort",done,{once:true});});}
-type SharedPoolDiagnosticCode="qualification_failed"|"slot_busy"|"claim_failed"|"renewal_failed"|"engine_start_failed"|"observation_failed"|"execution_failed"|"strategy_poll_failed"|"fence_unconfirmed"|"drain_unconfirmed";
+type SharedPoolDiagnosticCode="qualification_failed"|"slot_busy"|"claim_failed"|"renewal_failed"|"engine_start_failed"|"observation_failed"|"execution_failed"|"strategy_poll_failed"|"strategy_observation_delayed"|"fence_unconfirmed"|"drain_unconfirmed";
 export type SharedPoolDiagnostic={event:"shared_worker_pool_diagnostic";instanceId:string;lane:SharedPoolSlot["lane"];slotId:string;code:SharedPoolDiagnosticCode;attempt?:number;retryAfterMs?:number};
 export type SharedPoolControllerDependencies={createPool?:typeof createSharedSlotPool;createEngine:SharedEngineFactory;queue?:SharedQueuePort;instanceId?:string;now?:()=>number;random?:()=>number;
  onQualified?:(lane:string,slotId:string)=>void;onDiagnostic?:(event:SharedPoolDiagnostic)=>void};
 type SlotState={configuration:SharedPoolSlot;secret:SharedSlotSecret;pool:SharedSlotPool;lease:SharedSlotLease|null;engine:SharedLaneEngine|null;
- state:"standby"|"qualified"|"draining"|"unavailable";busy:boolean;signal:AbortSignal;operation:Promise<SharedDeliveryResult>|null;withdraw:()=>Promise<void>};
+ state:"standby"|"qualified"|"draining"|"unavailable";busy:boolean;signal:AbortSignal;operation:Promise<SharedDeliveryResult>|null;
+ observation:Promise<boolean>|null;withdraw:()=>Promise<void>};
+function waitForObservation(observation:Promise<boolean>,signal:AbortSignal):Promise<boolean>{
+ if(signal.aborted)return Promise.resolve(false);
+ return new Promise(resolve=>{
+  const abort=()=>resolve(false);
+  signal.addEventListener("abort",abort,{once:true});
+  void observation.then(ok=>{signal.removeEventListener("abort",abort);resolve(ok);});
+ });
+}
 /** One process, a fixed number of actual restricted slot pools/engines, and no
  * per-customer map, password, child process, provider retry or invented drain. */
 export function createSharedPoolController(config:SharedPoolConfiguration,secrets:SharedPoolSecrets,dependencies:SharedPoolControllerDependencies){
  const instanceId=z.uuid().parse(dependencies.instanceId??randomUUID()),now=dependencies.now??Date.now,lifetime=new AbortController(),capacity=createSharedExecutionCapacity(config.capacity.maxConcurrentExecutions);
  const states:SlotState[]=config.slots.map(slot=>{const secret=secrets.slots[slot.slotId];if(!secret)throw unavailable();
-  return{configuration:slot,secret,pool:(dependencies.createPool??createSharedSlotPool)(config,slot,secret),lease:null,engine:null,state:"standby",busy:false,signal:lifetime.signal,operation:null,withdraw:async()=>{}};});
+  return{configuration:slot,secret,pool:(dependencies.createPool??createSharedSlotPool)(config,slot,secret),lease:null,engine:null,state:"standby",busy:false,signal:lifetime.signal,operation:null,observation:null,withdraw:async()=>{}};});
  let running:Promise<void>|undefined,closing:Promise<void>|undefined,queue:SharedQueuePort|undefined,closed=false,failed=false;
  function diagnose(slot:SharedPoolSlot,code:SharedPoolDiagnosticCode,retry?:{attempt:number;retryAfterMs:number}){
   // Only fixed codes and validated configuration IDs cross this boundary. Never
@@ -52,7 +61,9 @@ export function createSharedPoolController(config:SharedPoolConfiguration,secret
   if(lease.slotId!==s.slotId||lease.instanceId!==instanceId||lease.lane!==s.lane||lease.roleName!==s.roleName||lease.roleOid!==s.roleOid||Date.parse(lease.expiresAt)<=now()+1000
    ||(previous&&(lease.generation!==previous.generation||lease.leaseToken!==previous.leaseToken)))throw unavailable();return lease;
  }
- const available=(state:SlotState)=>state.state==="qualified"&&!state.busy&&!state.signal.aborted&&state.lease!==null&&Date.parse(state.lease.expiresAt)>now()+1000;
+ const qualified=(state:SlotState)=>state.state==="qualified"&&!state.signal.aborted&&state.lease!==null&&Date.parse(state.lease.expiresAt)>now()+1000;
+ const available=(state:SlotState)=>qualified(state)&&!state.busy;
+ const canReceive=(state:SlotState)=>state.configuration.lane==="strategy"&&qualified(state)&&(!state.busy||state.observation!==null);
  async function execute(state:SlotState,message?:unknown,signal:AbortSignal=state.signal):Promise<SharedDeliveryResult>{
   if(!available(state)||!state.engine)return{disposition:"retry",state:"slot_unavailable"};state.busy=true;
   const engine=state.engine,combined=AbortSignal.any([signal,state.signal,lifetime.signal]);
@@ -80,20 +91,64 @@ export function createSharedPoolController(config:SharedPoolConfiguration,secret
      if(result.rows.length!==1||result.rows[0]?.fenced!==true)throw unavailable();
     }catch{diagnose(spec,"fence_unconfirmed"); /* Stopped renewals retain the SQL expiry boundary. */ }})());
    };
-   const observePage=async()=>{
+   const readPage=async()=>{
+    // Naming and Strategy bound their recovery attempts per execution.
+    const limit=spec.lane==="logo"?25:1;
+    const pending=await state.pool.query("SELECT public.read_shared_worker_execution_page($1::jsonb,$2::uuid,$3) page",[JSON.stringify(state.lease),cursor,limit]);
+    if(pending.rows.length!==1)throw unavailable();const page=sharedPendingPageSchema.parse(pending.rows[0]?.page);
+    if(page.items.length>limit||page.items.some(value=>value.execution.slotId!==spec.slotId||value.execution.lane!==spec.lane)||page.nextCursor!==null
+     &&(!page.items.length||page.nextCursor!==page.items.at(-1)!.execution.executionId||cursor!==null&&page.nextCursor<=cursor))throw unavailable();
+    return page;
+   };
+   const observePage=async(first?:Awaited<ReturnType<typeof readPage>>)=>{
     if(state.busy)return;state.busy=true;
     try{
-    // Naming's recovery budget belongs to one execution. Advancing a 25-row
-    // page after three attempts would permanently skip its remaining rows.
-    const pending=await state.pool.query("SELECT public.read_shared_worker_execution_page($1::jsonb,$2::uuid,$3) page",[JSON.stringify(state.lease),cursor,spec.lane==="naming"?1:25]);
-    if(pending.rows.length!==1)throw unavailable();const page=sharedPendingPageSchema.parse(pending.rows[0]?.page);
-    if(page.items.some(value=>value.execution.slotId!==spec.slotId||value.execution.lane!==spec.lane)||page.nextCursor!==null
-     &&(!page.items.length||page.nextCursor!==page.items.at(-1)!.execution.executionId||cursor!==null&&page.nextCursor<=cursor))throw unavailable();
+    const page=first??await readPage();
     // Old issued uncertainty never enters run()/create or a process-wide owner
     // map. At most one bounded page is retained for scoped observation recovery.
-    if(page.items.length&&state.engine?.recover){const release=await capacity.acquire(signal);try{await state.engine.recover(page.items,signal);}finally{release();}}
+    let result:SharedDeliveryResult|undefined;
+    if(page.items.length&&state.engine?.recover){const release=await capacity.acquire(signal);try{result=await state.engine.recover(page.items,signal);}finally{release();}}
     cursor=page.nextCursor;
+    return result;
     }finally{state.busy=false;}
+   };
+   const observeStrategy=async(firstPage:Awaited<ReturnType<typeof readPage>>)=>{
+    const observationBackoff=createSharedPoolBackoff(config.capacity.idlePollMs,dependencies.random);
+    let first:typeof firstPage|undefined=firstPage,passDelayed=false;
+    while(!signal.aborted){
+     let pause=config.capacity.idlePollMs;
+     if(!state.busy){
+      const work=observePage(first);first=undefined;
+      // A receive may return during a bounded historical read. Let that
+      // delivery take the next free turn instead of forcing broker redelivery.
+      state.observation=work.then(()=>true,()=>false);
+      let result:SharedDeliveryResult|undefined;
+      try{result=await work;}finally{state.observation=null;}
+      // Only an explicitly unsuccessful read can defer observation. A bad
+      // page, lost authority or uncertain receipt write still withdraws the slot.
+      if(result?.disposition==="retry"&&result.state==="observation_unavailable"){
+       passDelayed=true;
+       const retry=observationBackoff.next();pause=retry.retryAfterMs;
+       diagnose(spec,"strategy_observation_delayed",retry);
+      }
+      if(cursor===null){if(!passDelayed)observationBackoff.reset();passDelayed=false;}
+     }
+     await sharedPoolPause(pause,signal);
+    }
+   };
+   const publishStrategy=async()=>{
+    if(!queue)throw unavailable();
+    const outboxBackoff=createSharedPoolBackoff(config.capacity.idlePollMs,dependencies.random);
+    while(!signal.aborted){
+     let pause=config.capacity.idlePollMs;
+     try{
+      await publishSharedStrategyOutboxOnce({database:state.pool,lease:()=>state.lease,queue,configuration:config.queue},signal);
+      outboxBackoff.reset();
+     }catch{
+      if(!signal.aborted){const retry=outboxBackoff.next();pause=retry.retryAfterMs;diagnose(spec,"strategy_poll_failed",retry);}
+     }
+     await sharedPoolPause(pause,signal);
+    }
    };
    try{
     await state.pool.qualify();signal.throwIfAborted();
@@ -113,19 +168,15 @@ export function createSharedPoolController(config:SharedPoolConfiguration,secret
      ...(spec.lane==="logo"&&spec.textProvider?{textProvider:secrets.providers.logoText}:{}),database:state.pool,lease:()=>state.lease,signal});
     signal.throwIfAborted();
     phase="observation_failed";
-    await observePage();
+    // Qualify the SQL recovery boundary before advertising the slot. A
+    // historical provider read is not a prerequisite for accepting new work.
+    const firstStrategyPage=spec.lane==="strategy"?await readPage():null;
+    if(!firstStrategyPage)await observePage();
     signal.throwIfAborted();state.state="qualified";qualifiedAt=now();try{dependencies.onQualified?.(spec.lane,spec.slotId);}catch{ /* Diagnostics never grant or revoke authority. */ }
-    if(spec.lane==="strategy"){
-     const outboxBackoff=createSharedPoolBackoff(config.capacity.idlePollMs,dependencies.random);
-     while(!signal.aborted){
-      let pause=config.capacity.idlePollMs,succeeded=false;
-      try{if(!state.busy)await observePage();if(!queue)throw unavailable();await publishSharedStrategyOutboxOnce({database:state.pool,lease:()=>state.lease,queue,configuration:config.queue},signal);succeeded=true;}
-      catch{if(!signal.aborted){const retry=outboxBackoff.next();pause=retry.retryAfterMs;diagnose(spec,"strategy_poll_failed",retry);}}
-      // A successful poll recovers this independent outbox retry schedule.
-      // Lease renewal and queue deliveries never wait for its delay.
-      if(succeeded)outboxBackoff.reset();
-      await sharedPoolPause(pause,signal);
-     }
+    if(firstStrategyPage){
+     const polls=[publishStrategy(),observeStrategy(firstStrategyPage)];
+     try{await Promise.all(polls);}
+     finally{owner.abort();await Promise.allSettled(polls);}
     }else while(!signal.aborted){
      phase="observation_failed";
      await observePage();
@@ -161,15 +212,20 @@ export function createSharedPoolController(config:SharedPoolConfiguration,secret
  const controller={instanceId,
   status(){return{instanceId,active:capacity.active,waiting:capacity.waiting,slots:states.map(s=>({slotId:s.configuration.slotId,lane:s.configuration.lane,state:s.state,busy:s.busy,generation:s.lease?.generation??null}))};},
   async deliverStrategy(message:unknown,signal:AbortSignal=lifetime.signal):Promise<SharedDeliveryResult>{
-   if(closed||lifetime.signal.aborted)return{disposition:"retry",state:"stopping"};const state=states.find(s=>s.configuration.lane==="strategy"&&available(s));
-   return state?execute(state,message,signal):{disposition:"retry",state:"slot_unavailable"};
+   if(closed||signal.aborted||lifetime.signal.aborted)return{disposition:"retry",state:"stopping"};
+   const free=states.find(s=>s.configuration.lane==="strategy"&&available(s));
+   if(free)return execute(free,message,signal);
+   const reading=states.find(canReceive);
+   if(reading?.observation&&await waitForObservation(reading.observation,AbortSignal.any([signal,reading.signal,lifetime.signal]))
+    &&!signal.aborted&&available(reading))return execute(reading,message,signal);
+   return{disposition:"retry",state:"slot_unavailable"};
   },
   run(signal:AbortSignal):Promise<void>{
    if(running)return running;if(closed)return Promise.reject(unavailable());
    const abort=()=>lifetime.abort();signal.addEventListener("abort",abort,{once:true});if(signal.aborted)lifetime.abort();
    queue=dependencies.queue??createSharedStrategyQueue(config.queue);
    running=(async()=>{try{
-    await Promise.all([...states.map(slotLoop),runSharedStrategyQueue({configuration:config.queue,queue:queue!,available:()=>states.some(s=>s.configuration.lane==="strategy"&&available(s)),
+    await Promise.all([...states.map(slotLoop),runSharedStrategyQueue({configuration:config.queue,queue:queue!,available:()=>states.some(canReceive),
      deliver:(message,deliverySignal)=>controller.deliverStrategy(message,deliverySignal)},lifetime.signal)]);
     if(failed)throw unavailable();
    }finally{signal.removeEventListener("abort",abort);}})();return running;

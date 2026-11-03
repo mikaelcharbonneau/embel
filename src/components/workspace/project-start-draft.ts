@@ -1,4 +1,8 @@
 import { initialConversation } from "@/domain/conversation";
+import type { AccountProject } from "@/domain/project-api";
+import { projectStrategyHref } from "@/domain/project-handoff";
+import { reconcileAccountWorkspace, type createAccountDraftMemory } from "./account-draft-memory";
+import type { VerifiedAccount } from "./account-session";
 import type { ProjectScope } from "@/domain/projects";
 import type { LocalDraft } from "./local-drafts";
 
@@ -10,4 +14,14 @@ export function projectStartDraft(input: Pick<LocalDraft, "scope" | "description
 
 export function projectStartHref(projectId: string, scope: ProjectScope) {
   return `/brands/account/${projectId}${scope === "naming_only" ? "/naming" : scope === "visual_identity_only" ? "/logo" : ""}`;
+}
+
+/** Seed only an acknowledged new Brand. A recovered project may already be at a later step. */
+export function prepareProjectStart(projectId: string, scope: ProjectScope, created: AccountProject | null,
+  account: VerifiedAccount, drafts: ReturnType<typeof createAccountDraftMemory>) {
+  if (scope !== "complete_brand" || !created || created.id !== projectId || created.owner_id !== account.userId) {
+    return projectStartHref(projectId, scope);
+  }
+  drafts.set(reconcileAccountWorkspace(drafts.get(projectId), created, account.generation));
+  return projectStrategyHref(projectId);
 }

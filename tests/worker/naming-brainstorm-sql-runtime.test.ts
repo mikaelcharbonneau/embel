@@ -10,6 +10,7 @@ import { createSharedNamingLaneEngine } from '../../worker/shared-lanes/naming';
 import type { JobDatabase } from '../../worker/postgres-store';
 import { createNamingBrainstormProvider } from '../../src/server/ai/naming-brainstorm-provider';
 import { getNamingFeed } from '../../src/server/data/naming-brain';
+import type { NamingApproach } from '../../src/domain/naming-brain-preferences';
 import type { AuthenticatedContext } from '../../src/server/auth/context';
 
 /** Composition only: real installed SDK, worker/store/gateway, SQL and server
@@ -21,6 +22,15 @@ describe('Naming brainstorm SQL/SDK/server composition',()=>{
   for(const file of ['shared_worker_naming.sql','shared_naming_brainstorm.sql']){
    await f.db.exec(await readFile(new URL(`../../supabase/candidates/${file}`,import.meta.url),'utf8'));
   }
+  // Use the shipped local target. This isolated PGlite runs PG18, whose catalog
+  // additionally represents NOT NULL columns as contype=n constraints.
+  const schemaModule = new URL('../../scripts/development/shared-schema.mjs', import.meta.url).href;
+  const { developmentEventCapacity } = await import(schemaModule) as { developmentEventCapacity(sql:string):string };
+  const repair = developmentEventCapacity(await readFile(new URL('../../supabase/candidates/shared_naming_brainstorm_event_capacity.sql',import.meta.url),'utf8'));
+  await f.db.exec("create table fluid_private.shared_http_target(singleton boolean, mode text, origin text); insert into fluid_private.shared_http_target values(true,'development','http://127.0.0.1:54321'); set embel.portable_origin='http://127.0.0.1:54321'; set embel.portable_development='true';");
+  await f.db.exec(repair
+    .replace("current_setting('server_version_num')::integer<>170011", "current_setting('server_version_num')::integer<>180003")
+    .replaceAll("count(*)FROM pg_constraint WHERE conrelid=t)", "count(*)FROM pg_constraint WHERE conrelid=t AND contype<>'n')"));
  },60_000);
  afterAll(async()=>{vi.unstubAllGlobals();vi.unstubAllEnvs();await f?.close();});
  it('runs the actual worker through one durable 120-candidate SDK stream and verifies its 100 saved names through getNamingFeed',async()=>{
@@ -41,7 +51,8 @@ describe('Naming brainstorm SQL/SDK/server composition',()=>{
   const gateway=createSharedLaneGateway({database,slot:()=>lease,lane:'naming',deploymentId:slot.deploymentId});
   expect(await gateway.invoke('qualify',[policy,brainReadinessFingerprint])).toBe(true);
   const project=(await brainRpc<{id:string}>(f.db,'create_project',['naming_only','Synthetic SDK SQL composition',{description:'Synthetic fixture brief'},'a'.repeat(64)])).id;
-  await brainRpc(f.db,'save_naming_preferences',[project,0,brainPreferences]);
+  const approaches:NamingApproach[]=['real_words','blends','invented','modified','other_languages','classical_roots','people_places','stories_culture'];
+  await brainRpc(f.db,'save_naming_preferences',[project,0,{...brainPreferences,approaches}]);
   const intent=initialIntent('sql-sdk-composition-initial');
   expect(await brainRpc(f.db,'ensure_shared_naming_brainstorm_run',[project,intent])).toMatchObject({code:'preferences_validation_pending'});
   const work=await gateway.invoke('preference_work',[20]) as {projectId:string;preferencesVersion:number;preferencesHash:string}[];
@@ -58,7 +69,14 @@ describe('Naming brainstorm SQL/SDK/server composition',()=>{
    const calls=(await f.db.query<{request:unknown;candidate_target:number}>('select request,candidate_target from fluid_private.naming_brainstorm_calls where run_id=$1',[runId])).rows;
    expect(calls).toHaveLength(1);expect(calls[0]!.request).toEqual(body);expect(calls[0]!.candidate_target).toBe(120);
    expect(body).toMatchObject({model:policy.model,store:true,stream:true,reasoning:{effort:'low'},metadata:{embel_job_id:jobId,embel_run_id:runId}});
-   const candidates=Array.from({length:120},(_,index)=>({value:`RuntimeCedar${index}`,rationale:'Synthetic creative sound and imagery.',primaryApproach:'real_words'}));
+   const {approachPlan}=JSON.parse(body.input.split("\n").at(-1)) as {approachPlan:{approach:NamingApproach;request:number}[]};
+   const candidates=approachPlan.flatMap(({approach,request})=>Array.from({length:request},(_,index)=>{
+     const label=approach.replaceAll("_",""), base=`Cedar${index}`;
+     const value=approach==="blends"?`Cedloom${index}`:approach==="modified"?`Ceda${index}`:`${label}${index}`;
+     const construction=approach==="real_words"?[value]:approach==="blends"?[base,`bloom${index}`]:approach==="modified"?[base]:approach==="invented"?[]:[`Source${index}`];
+     return {value,construction,primaryApproach:approach,rationale:`Synthetic test proposal from ${construction.join(" and ")}.`};
+   }));
+   expect(candidates).toHaveLength(120);
    const response={id:'resp_sql_runtime_fixture',status:'completed',model:policy.model,output:[{type:'message',role:'assistant',status:'completed',content:[{type:'output_text',text:JSON.stringify({candidates})}]}],usage:{input_tokens:80,output_tokens:60,total_tokens:140}};
    const events=[{type:'response.created',sequence_number:0,response:{id:response.id}},{type:'response.completed',sequence_number:1,response}];
    return new Response(events.map(event=>`data: ${JSON.stringify(event)}\n\n`).join(''),{headers:{'content-type':'text/event-stream','x-request-id':'req_sql_runtime_fixture'}});
@@ -83,6 +101,8 @@ describe('Naming brainstorm SQL/SDK/server composition',()=>{
    });
   }}} as unknown as AuthenticatedContext;
   const feed=await getNamingFeed(auth,project);
+  const counts=await f.db.query<{approach:NamingApproach;n:number}>("select metadata->>'primaryApproach' approach,count(*)::int n from fluid_private.naming_brain_feed_entries where run_id=$1 group by 1",[runId]);
+  expect(approaches.map(approach=>counts.rows.find(row=>row.approach===approach)?.n)).toEqual([13,13,13,13,12,12,12,12]);
   expect(feed.entries).toHaveLength(100);expect(feed.activeRun).toMatchObject({jobId,runId,state:'succeeded',generationProfile:'brainstorm_v1',fulfillment:{status:'complete',acceptedCount:100,coverageSatisfied:true}});
   expect(feed.activeRun!.brainstormCompletionId).toBeTypeOf('string');
   expect(feed.entries.every(entry=>entry.entry.candidate.origin.kind==='brainstorm'&&entry.publishedClaims.length===0)).toBe(true);

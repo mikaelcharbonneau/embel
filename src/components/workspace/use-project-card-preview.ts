@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createAccountIdentityClient } from "@/components/identity/account-identity-client";
 import { createAccountLogoClient } from "@/components/identity/account-logo-client";
 import { useAccountSession, type VerifiedAccount } from "./account-session";
+import { accountProjectResponseSchema } from "@/domain/project-api";
+import { accountRequest, AccountRequestError } from "./account-api";
 import { readProjectCardPreview } from "./project-card-preview";
+import { nextProjectAction, readProjectVisualState, type ProjectAction } from "./project-continuation";
 
 // A collection may contain fifty cards. Lazy visibility and a shared bound keep
 // private metadata/image reads from flooding the account connection pool.
@@ -20,9 +24,9 @@ async function withPreviewSlot(signal: AbortSignal, read: () => Promise<void>) {
   finally { activeReads--; [...waiters].forEach(wake => wake()); }
 }
 
-type PreviewState = { identity: string; name: string | null; url: string | null; status: "ready" | "unavailable" };
+type PreviewState = { identity: string; name: string | null; selectedName: string | null; url: string | null; action: ProjectAction | null; status: "loading" | "ready" | "unavailable" };
 
-export function useProjectCardPreview(account: VerifiedAccount, projectId: string, revision: number, enabled: boolean) {
+export function useProjectCardPreview(account: VerifiedAccount, projectId: string, revision: number, enabled: boolean, artwork = true) {
   const { session, isCurrent, expire } = useAccountSession();
   const target = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -53,27 +57,59 @@ export function useProjectCardPreview(account: VerifiedAccount, projectId: strin
     if (!enabled || !visible || !current) return;
     const captured: VerifiedAccount = { status: "ready", userId, generation };
     const controller = new AbortController();
-    const client = createAccountLogoClient(captured, projectId, isCurrent, expire);
+    const clients = {
+      logo: artwork ? createAccountLogoClient(captured, projectId, isCurrent, expire) : null,
+      identity: artwork ? createAccountIdentityClient(captured, projectId, isCurrent, expire) : null,
+    };
     let active = true;
+    const initial: PreviewState = { identity, name: null, selectedName: null, action: null, url: null, status: "loading" };
+    let loadingArtwork = true;
     let preview: { url: string; release(): void } | null = null;
+    const live = () => active && !controller.signal.aborted && isCurrent(captured);
+    function publish(changes: Partial<PreviewState>) {
+      if (!live()) return;
+      if (changes.status) loadingArtwork = changes.status === "loading";
+      setState(previous => ({ ...(previous?.identity === identity ? previous : initial), ...changes }));
+    }
+    function handleError(error: unknown) {
+      if (error instanceof AccountRequestError && error.status === 401 && live()) expire(captured);
+    }
     void withPreviewSlot(controller.signal, async () => {
-      const deadline = setTimeout(() => controller.abort(), 15_000);
+      const deadline = setTimeout(() => {
+        if (loadingArtwork) publish({ status: "unavailable" });
+        controller.abort();
+      }, 15_000);
       try {
-        const value = await readProjectCardPreview({ client, ownerId: userId, projectId, signal: controller.signal });
-        if (!active || controller.signal.aborted || !isCurrent(captured)) return;
-        if (!value) { setState({ identity, name: null, url: null, status: "unavailable" }); return; }
-        preview = value.receipt ? await client.previewAsset(value.receipt, controller.signal) : null;
-        if (!active || controller.signal.aborted || !isCurrent(captured)) { preview?.release(); preview = null; return; }
-        setState({ identity, name: value.name, url: preview?.url ?? null, status: value.receipt && !preview ? "unavailable" : "ready" });
-      } catch {
-        if (active && !controller.signal.aborted && isCurrent(captured)) setState({ identity, name: null, url: null, status: "unavailable" });
+        const { project } = await accountRequest(`/api/projects/${projectId}`, accountProjectResponseSchema, { signal: controller.signal, expectedOwnerId: userId });
+        if (!live()) return;
+        if (project.id !== projectId || project.owner_id !== userId || project.current_revision !== revision) throw new AccountRequestError(409);
+        publish({ selectedName: project.context.selectedName?.trim() || null });
+        const progress = await readProjectVisualState(project, clients.logo, controller.signal);
+        if (!live()) return;
+        // A broken thumbnail must not hide the next step, and a slow progress
+        // check must not prevent the verified logo from being displayed.
+        const [action, artworkResult] = await Promise.allSettled([
+          nextProjectAction(project, clients, progress, controller.signal).then(action => publish({ action })),
+          (async () => {
+            if (!clients.logo || !progress) { publish({ status: "ready" }); return; }
+            const value = await readProjectCardPreview({ client: clients.logo, ownerId: userId, projectId, signal: controller.signal, progress });
+            if (!value || !live()) { publish({ status: "unavailable" }); return; }
+            preview = value.receipt ? await clients.logo.previewAsset(value.receipt, controller.signal) : null;
+            if (!live()) { preview?.release(); preview = null; return; }
+            publish({ name: value.name, url: preview?.url ?? null, status: value.receipt && !preview ? "unavailable" : "ready" });
+          })(),
+        ]);
+        if (action.status === "rejected") handleError(action.reason);
+        if (artworkResult.status === "rejected") { handleError(artworkResult.reason); publish({ status: "unavailable" }); }
+      } catch (error) {
+        handleError(error);
+        publish({ status: "unavailable" });
       } finally {
         clearTimeout(deadline);
-        if (active && controller.signal.aborted && isCurrent(captured)) setState({ identity, name: null, url: null, status: "unavailable" });
       }
     });
-    return () => { active = false; controller.abort(); preview?.release(); client.dispose(); };
-  }, [current, enabled, expire, generation, identity, isCurrent, projectId, userId, visible]);
+    return () => { active = false; controller.abort(); preview?.release(); clients.logo?.dispose(); clients.identity?.dispose(); };
+  }, [artwork, current, enabled, expire, generation, identity, isCurrent, projectId, revision, userId, visible]);
 
   function rejectImage(url: string) {
     setState(previous => previous?.identity === identity && previous.url === url ? { ...previous, url: null, status: "unavailable" } : previous);

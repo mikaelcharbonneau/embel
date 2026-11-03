@@ -267,11 +267,53 @@ async function expectComposerInViewport(page: Page, naming = false) {
   await expect(send).toBeVisible();
   const bounds = await send.boundingBox();
   expect(bounds).not.toBeNull();
-  const target = naming && page.viewportSize()!.width > 760 ? 32 : 44;
+  const target = 44;
   expect(bounds!.width).toBe(target); expect(bounds!.height).toBe(target);
   expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(page.viewportSize()!.height + 1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 }
+
+test("the first prompt stays in place through the handoff from Home to Strategy", async ({ page }) => {
+  const state = await fixtures(page);
+  let finishCreate!: () => void, finishProjectRead!: () => void;
+  const creating = new Promise<void>(resolve => { finishCreate = resolve; });
+  const reading = new Promise<void>(resolve => { finishProjectRead = resolve; });
+  await page.route("**/api/projects", async route => {
+    if (route.request().method() === "POST") await creating;
+    await route.fallback();
+  });
+  await page.route(`**/api/projects/${projectId}`, async route => {
+    if (route.request().method() === "GET") await reading;
+    await route.fallback();
+  });
+  const visits: string[] = [];
+  page.on("framenavigated", frame => { if (frame === page.mainFrame()) visits.push(frame.url()); });
+  try {
+    const prompt = "A visual learning app with interactive lessons, realistic 3D models, videos and games.";
+    await openHomeAndSend(page, prompt);
+    const bubble = userMessage(page, prompt);
+    const composer = page.getByRole("textbox", { name: "Message Embel", exact: true });
+    await expect(page.getByText("Saving your project…", { exact: true })).toBeVisible();
+    await expect(bubble).toBeInViewport({ ratio: 1 });
+    const before = await bubble.boundingBox(), beforeComposer = await composer.boundingBox();
+    finishCreate();
+    // Hold both project re-reads. The confirmed new project must render immediately.
+    await expect(page).toHaveURL(`/brands/account/${projectId}?view=strategy`);
+    await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeVisible();
+    await expect(bubble).toBeInViewport({ ratio: 1 });
+    await expect(composer).toBeInViewport({ ratio: 1 });
+    const after = await bubble.boundingBox(), afterComposer = await composer.boundingBox();
+    expect(Math.abs(before!.y - after!.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(before!.x - after!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(beforeComposer!.y - afterComposer!.y)).toBeLessThanOrEqual(1);
+    expect(visits).not.toContain(`${new URL(page.url()).origin}/brands/account/${projectId}`);
+    expect(state.creates).toHaveLength(1);
+    expect(state.enqueues).toHaveLength(1);
+  } finally {
+    finishCreate();
+    finishProjectRead();
+  }
+});
 
 for (const length of ["short", "long"] as const) test(`guided interview: the chat opens for a ${length} prompt while the first enqueue acknowledgement is pending`, async ({ page }) => {
   const state = await fixtures(page);
@@ -286,7 +328,7 @@ for (const length of ["short", "long"] as const) test(`guided interview: the cha
     await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
     await expect(page.locator(".guided-research-screen")).toHaveCount(0);
   } finally { release(); }
-  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  await expect(page).toHaveURL(`/brands/account/${projectId}?view=strategy`);
   expect(state.creates).toHaveLength(1);
   expect(state.enqueues).toHaveLength(1);
 });
@@ -294,7 +336,7 @@ for (const length of ["short", "long"] as const) test(`guided interview: the cha
 test("managed Strategy fixture: Home consent survives saved research and reload without a monetary ceiling or duplicate admission", async ({ page }, info) => {
   const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
   const state = await fixtures(page); state.uncapped = true;
-  await openHomeAndSend(page); await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  await openHomeAndSend(page); await expect(page).toHaveURL(`/brands/account/${projectId}?view=strategy`);
   await expect.poll(() => state.enqueues.length).toBe(1);
   expect(state.enqueues[0]).toEqual({ operation: "strategy.competitors", expectedRevision: 1,
     idempotencyKey: `strategy.managed.v3:${projectId}:1:strategy.competitors`, billingMode: "openai_api", spendControl: "uncapped", acceptedPolicyIdentity: "2".repeat(64) });
@@ -315,7 +357,7 @@ test("managed Strategy fixture: Home consent survives saved research and reload 
 test("guided interview: Home opens the conversation and keeps the prompt and thinking mark visible until the durable result", async ({ page }, info) => {
   const state = await fixtures(page);
   await openHomeAndSend(page);
-  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  await expect(page).toHaveURL(`/brands/account/${projectId}?view=strategy`);
   await expectRequest(state, 1, "strategy.competitors");
   expect(state.creates).toHaveLength(1);
   expect(state.project.context.description).toBe(initialPrompt);
@@ -399,7 +441,7 @@ for (const reason of ["request_unresolved", "request_active"] as const) test(`gu
 test("guided interview: unavailable AI still saves a Brand and permits acknowledged brief edits", async ({ page }) => {
   const state = await fixtures(page, { guided: false }); state.runtimeUnavailable = true;
   await openHomeAndSend(page);
-  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  await expect(page).toHaveURL(`/brands/account/${projectId}?view=strategy`);
   await expect(page.getByRole("button", { name: "Start competitor research", exact: true })).toHaveCount(0);
   await expect(page.getByText("AI replies are unavailable right now. You can still edit and save your project.", { exact: false })).toBeVisible();
   await expect(page.locator(".guided-thinking[role=status]")).toHaveCount(0);
@@ -412,6 +454,49 @@ test("guided interview: unavailable AI still saves a Brand and permits acknowled
   await expect(brief).toHaveValue("A saved Brand correction while AI is unavailable.");
   expect(state.creates).toHaveLength(1); expect(state.enqueues).toHaveLength(0); expect(state.project.context.intake.guidedInterview).toBeUndefined();
   expect(await page.evaluate(() => localStorage.getItem("fluid.local-drafts.v1"))).toBeNull();
+});
+
+test("competitor cards keep their selection, descriptions and sources across suggestion rounds", async ({ page }, info) => {
+  const state = await fixtures(page, { seeded: true });
+  await openProject(page);
+  const group = widget(page, "competitors");
+  const previous = group.getByRole("checkbox", { name: competitors[0]!.name, exact: true });
+  await previous.check();
+  await group.getByRole("button", { name: "Add competitor" }).click();
+  await group.getByRole("textbox", { name: "Competitor name" }).fill("Coursera");
+  await group.getByRole("textbox", { name: /Website/ }).fill("https://coursera.org/");
+  await group.getByRole("button", { name: "Save competitor" }).click();
+  await expect(group.getByRole("checkbox", { name: "Coursera", exact: true })).toBeChecked();
+  await group.getByRole("button", { name: "Generate more suggestions" }).click();
+  await expectRequest(state, 1, "strategy.competitors");
+  const reply = choiceReply(currentTurn(state));
+  const fresh = structuredClone(reply.options[0]!);
+  if (fresh.stage !== "competitors") throw Error("Expected a competitor choice");
+  fresh.id = fresh.payload.id = "eeeeeeee-1111-4111-8111-000000000099";
+  fresh.label = fresh.payload.name = "Fresh Table";
+  completeLatest(state, { ...reply, options: [fresh] });
+  await expect(group.getByRole("checkbox", { name: "Fresh Table" })).toBeVisible();
+  await expect(previous).toBeChecked();
+  const previousCard = group.locator(".guided-choice-card").filter({ has: page.getByRole("checkbox", { name: competitors[0]!.name, exact: true }) });
+  await expect(previousCard.getByText("A close comparison for seasonal lunches and neighborhood familiarity.")).toBeVisible();
+  await expect(previousCard.getByText("Why we recommend it")).toBeVisible();
+  await expect(previousCard.getByRole("link", { name: /Synthetic source/ })).toBeVisible();
+  const manualCard = group.locator(".guided-choice-card").filter({ has: page.getByRole("checkbox", { name: "Coursera", exact: true }) });
+  await expect(manualCard.getByRole("link", { name: /Visit website/ })).toHaveAttribute("href", "https://coursera.org/");
+  await expect(manualCard.getByRole("checkbox")).toBeChecked();
+  const lists = group.locator(".guided-choice-options");
+  await expect(lists).toHaveCount(1);
+  await expect(lists.getByRole("checkbox")).toHaveCount(4);
+  await expect(page.getByRole("heading", { name: "Brand strategy", exact: true })).toHaveCount(0);
+  await expect(page.getByText("You can also write your own answer below.")).toHaveCount(0);
+  await previousCard.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: info.outputPath("unified-competitors.png"), scale: "css" });
+  await group.getByRole("button", { name: "Continue", exact: true }).click();
+  await expectRequest(state, 2, "strategy.audience");
+  expect(state.project.context.competitors.filter(item => item.selected).map(item => item.name).sort()).toEqual(["Coursera", competitors[0]!.name].sort());
+  const confirmed = page.locator(".guided-choice-answer").filter({ hasText: "Coursera" });
+  await expect(confirmed.getByRole("listitem")).toHaveCount(2);
+  await expect(confirmed.getByRole("listitem").filter({ hasText: competitors[0]!.name })).toBeVisible();
 });
 
 test("guided interview: explicit selections save, reload, and finish at personality", async ({ page }, info) => {
@@ -447,23 +532,78 @@ test("guided interview: explicit selections save, reload, and finish at personal
   await expect(widget(page, "personality").getByRole("radio", { checked: true })).toHaveCount(0);
   await expect(widget(page, "personality").getByText("Example tone", { exact: true })).toHaveCount(2);
   await widget(page, "personality").getByRole("radio", { name: "The warm guide", exact: true }).check();
-  await widget(page, "personality").getByRole("button", { name: "Continue", exact: true }).click();
-  await expect.poll(() => state.project.context.intake.guidedInterview?.stage).toBe("complete");
+  const transcript = await page.getByRole("log", { name: "Conversation", exact: true }).elementHandle();
+  const firstMessage = await userMessage(page, initialPrompt).elementHandle();
+  const floatingPanel = await page.getByRole("region", { name: "Strategy composer" }).elementHandle();
+  const before = await page.getByRole("textbox", { name: "Message Embel", exact: true }).boundingBox();
+  let finishRead!: () => void;
+  const heldRead = new Promise<void>(resolve => { finishRead = resolve; });
+  await page.route(url => url.pathname === `/api/projects/${projectId}/naming`, async route => {
+    if (route.request().method() === "GET") await heldRead;
+    await route.fallback();
+  });
+  try {
+    await widget(page, "personality").getByRole("button", { name: "Continue", exact: true }).click();
+    await expect.poll(() => state.project.context.intake.guidedInterview?.stage).toBe("complete");
+    await expect(page.getByText("Opening naming choices…", { exact: true })).toBeVisible();
+    expect(await transcript!.evaluate(node => node.isConnected)).toBe(true);
+    expect(await firstMessage!.evaluate(node => node.isConnected)).toBe(true);
+    await expect(page.getByText("Loading your account naming workspace…", { exact: true })).toHaveCount(0);
+  } finally { finishRead(); }
+  const namingQuestion = page.getByRole("heading", { name: "Which approaches would you like to explore?", exact: true });
+  await expect(namingQuestion).toBeInViewport({ ratio: 1 });
+  expect(await transcript!.evaluate(node => node.isConnected)).toBe(true);
+  expect(await firstMessage!.evaluate(node => node.isConnected)).toBe(true);
+  await expect(page.getByRole("textbox", { name: "Naming message", exact: true })).toBeEditable();
+  expect(await floatingPanel!.evaluate(panel => panel.isConnected && panel.getAttribute("aria-label") === "Naming composer")).toBe(true);
+  expect(await transcript!.evaluate(log => Math.abs(log.getBoundingClientRect().bottom - log.parentElement!.getBoundingClientRect().bottom))).toBeLessThanOrEqual(1);
+  const after = await page.getByRole("textbox", { name: "Naming message", exact: true }).boundingBox();
+  expect(Math.abs(after!.y - before!.y)).toBeLessThanOrEqual(1);
+  await page.screenshot({ path: info.outputPath("inline-naming-arrival.png"), scale: "css" });
+
   await expect(page.getByText("Your brand strategy is saved. You can revisit any answer above.", { exact: true })).toBeVisible();
   expect(state.project.context.personality).toEqual(personalities[0]!.profile);
   expect(state.project.context.intake.personalityReviewedAt).not.toBeNull();
   expect(state.project.context.intake.guidedInterview?.answers.map(answer => answer.stage)).toEqual(["competitors", "audience", "personality"]);
   await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(0);
-  await page.reload();
+  let finishReopen!: () => void;
+  const reopening = new Promise<void>(resolve => { finishReopen = resolve; });
+  await page.route(url => url.pathname === `/api/projects/${projectId}/naming`, async route => {
+    if (route.request().method() === "GET") await reopening;
+    await route.fallback();
+  });
+  // Replay a cold visit where all historical Strategy replies arrive first.
+  try {
+    await page.reload();
+    await expect(page.getByRole("button", { name: `Edit your answer: ${questions.personality}`, exact: true })).toBeVisible();
+    await expect(userMessage(page, initialPrompt)).toBeVisible();
+  } finally { finishReopen(); }
+  await expect(namingQuestion).toBeInViewport({ ratio: 1 });
+  await expect(page.getByRole("button", { name: /View new response/ })).toHaveCount(0);
+  // A slow Strategy history must not insert several tall cards above the
+  // already positioned Naming question and push that question off screen.
+  let finishHistory!: () => void;
+  const waitingForHistory = new Promise<void>(resolve => { finishHistory = resolve; });
+  await page.route(url => url.pathname === `/api/projects/${projectId}/strategy`, async route => {
+    if (route.request().method() === "GET") await waitingForHistory;
+    await route.fallback();
+  });
+  try {
+    await page.reload();
+    await expect(userMessage(page, initialPrompt)).toBeVisible();
+    await expect(page.getByRole("button", { name: `Edit your answer: ${questions.personality}`, exact: true })).toHaveCount(0);
+    await expect(namingQuestion).toHaveCount(0);
+  } finally { finishHistory(); }
   await expect(page.getByRole("button", { name: `Edit your answer: ${questions.personality}`, exact: true })).toBeVisible();
-  await expect(userMessage(page, initialPrompt)).toBeVisible();
+  await expect(namingQuestion).toBeInViewport({ ratio: 1 });
+  await expect(page.getByRole("button", { name: /View new response/ })).toHaveCount(0);
   // Accessible names come from <label>, not an aria-label attribute. Wait for
   // the completed Strategy handoff before measuring the Naming control.
   await expectComposerInViewport(page, true);
   await expectNoLegacyClutter(page);
   expect(state.enqueues.map(item => item.operation)).toEqual(["strategy.audience", "strategy.personality"]);
   expect(state.unhandledWrites).toEqual([]);
-  await expect(page.getByRole("heading", { name: "Which approaches would you like to explore?", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Which approaches would you like to explore?", exact: true })).toBeInViewport({ ratio: 1 });
   await expect(page.getByRole("button", { name: "Continue to Naming", exact: true })).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Naming message", exact: true })).toBeEditable();
   expect(state.project.context.intake.guidedInterview?.answers).toHaveLength(3);
@@ -686,7 +826,17 @@ test("guided interview: unsent text and a choice survive same-owner focus withou
   await openProject(page); await expectSingleWidget(page, "competitors");
   await widget(page, "competitors").getByRole("checkbox", { name: "Table Next Door", exact: true }).check();
   const text = "A private question I have not sent yet.";
-  await page.getByRole("textbox", { name: "Message Embel", exact: true }).fill(text);
+  const draft = page.getByRole("textbox", { name: "Message Embel", exact: true });
+  await draft.fill(text);
+  const compactHeight = (await draft.boundingBox())!.height;
+  await page.getByRole("button", { name: "Expand composer", exact: true }).click();
+  await expect.poll(async () => (await draft.boundingBox())!.height).toBeGreaterThan(compactHeight);
+  await page.getByRole("button", { name: "Collapse composer", exact: true }).click();
+  await expect.poll(async () => (await draft.boundingBox())!.height).toBe(compactHeight);
+  await page.getByRole("button", { name: "Minimize composer", exact: true }).click();
+  await expect(draft).toBeHidden();
+  await page.getByRole("button", { name: "Restore composer", exact: true }).click();
+  await expect(draft).toHaveValue(text);
   await expect(page.getByRole("button", { name: "Send prompt", exact: true })).toBeEnabled();
   expect(await page.evaluate(() => { const event = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(event); return event.defaultPrevented; })).toBe(true);
   await Promise.all([
@@ -743,7 +893,7 @@ test("guided interview: a lost queue acknowledgement recovers the existing resea
   const state = await fixtures(page); state.queueStatus = 503; state.commitBeforeQueueFailure = true;
   await openHomeAndSend(page);
   await expect.poll(() => state.enqueues.length).toBe(1);
-  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  await expect(page).toHaveURL(`/brands/account/${projectId}?view=strategy`);
   state.queueStatus = 202;
   await expect(page.locator(".guided-thinking[role=status]")).toBeVisible();
   await page.reload();

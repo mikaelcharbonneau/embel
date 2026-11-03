@@ -12,7 +12,10 @@ await mkdir(output, { recursive: true });
 await build({ entryPoints: [`${root}tests/fixtures/visual-directions-preview.tsx`], outfile: `${output}/preview.js`, bundle: true, jsx: "automatic", platform: "browser", loader: { ".woff2": "file" }, define: { "process.env.NODE_ENV": '"production"', "process.env": "{}" }, logLevel: "warning" });
 const server = createServer(async (request, response) => {
   const path = request.url?.split("?")[0];
-  if (path === "/preview.js" || path === "/preview.css" || /^\/[A-Za-z0-9_-]+\.woff2$/.test(path ?? "")) {
+  if (path === "/fonts/brand/lora-variable.ttf" || path === "/fonts/brand/manrope-variable.ttf") {
+    response.setHeader("content-type", "font/ttf");
+    response.end(await readFile(`${root}public${path}`));
+  } else if (path === "/preview.js" || path === "/preview.css" || /^\/[A-Za-z0-9_-]+\.woff2$/.test(path ?? "")) {
     response.setHeader("content-type", path.endsWith(".js") ? "application/javascript" : path.endsWith(".css") ? "text/css" : "font/woff2");
     response.end(await readFile(`${output}${path}`));
   } else {
@@ -36,7 +39,10 @@ try {
       assert.equal(await page.locator("article").count(), 3);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${device}/${state} overflows`);
       if (state !== "empty") {
-        await page.getByRole("img", { name: "Synthetic board 1", exact: true }).waitFor();
+        const first = page.locator("article").first();
+        await first.getByRole("img", { name: "Synthetic board 1", exact: true }).waitFor();
+        assert.equal(await first.getByRole("list", { name: "Color palette" }).getByTitle("Ink #194D39", { exact: true }).count(), 1);
+        await first.getByText("Lora · 600", { exact: true }).waitFor();
         const expand = page.getByRole("button", { name: /View .* larger/ }).first();
         await expand.click();
         assert.equal(await page.locator("dialog").evaluate(node => node.open), true);
@@ -44,11 +50,16 @@ try {
         assert.equal(await page.locator("dialog").evaluate(node => node.open), false);
         assert.equal(await expand.evaluate(node => node === document.activeElement), true);
       }
+      const assets = page.getByRole("link", { name: "View brand assets", exact: true });
+      if (state === "complete" || state === "long") {
+        assert.equal(await page.getByRole("button", { name: "Check progress", exact: true }).count(), 0);
+        assert.equal(await assets.count(), state === "complete" ? 1 : 0);
+      }
       if (state === "partial") {
         assert.equal(await page.getByText("2 of 3 ready", { exact: true }).count(), 1);
         await page.getByRole("button", { name: "Choose direction", exact: true }).first().click();
         await page.getByRole("button", { name: "Chosen direction", exact: true }).waitFor();
-        assert.equal(await page.getByRole("button", { name: "Create brand assets" }).isEnabled(), true);
+        assert.equal(await assets.getAttribute("href"), "#brand-assets");
       }
       await page.screenshot({ path: `${output}/${device}-${state}.png`, fullPage: true, scale: "css" });
       results.push(`${device}/${state}`);

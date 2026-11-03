@@ -1,24 +1,67 @@
 "use client";
-import { ContextDetails } from "@/components/ui/context-details";
-import Link from "next/link";
-import { useLayoutEffect, useRef } from "react";
-import type { NamingFeedEntry } from "@/domain/naming-brain";
-import type { ProjectNameEntry } from "@/domain/project-naming";
 
-export function NamingInspect({ entry, claims, selected, pending, blocked, onBack, onUse, onWorkshop, onSave, onFavorite, onSteering, steeringSelected = false, steeringDisabled = false }: {
-  onSave?: () => void; onFavorite?: () => void; onSteering?: () => void; steeringSelected?: boolean; steeringDisabled?: boolean;
-  claims?: NamingFeedEntry["publishedClaims"]; entry: ProjectNameEntry; selected: boolean; pending: boolean; blocked: boolean; onBack: () => void; onUse: () => void; onWorkshop: () => void;
-}) {
-  const nameHeading = useRef<HTMLHeadingElement>(null);
-  useLayoutEffect(() => { nameHeading.current?.focus({ preventScroll: true }); }, [entry.candidate.id]);
-  return <section className="project-name-inspect" aria-label="Inspect name"><header className="project-workbench-heading"><div><h2>A closer look</h2><p>{selected ? "Selected name" : "Candidate · not selected"}</p></div><button type="button" className="button secondary small" onClick={onBack}>Back to results</button></header>
-    <div className="project-name-hero"><h3 ref={nameHeading} tabIndex={-1}>{entry.candidate.value}</h3><p>{selected ? "Your saved selection" : "Inspecting keeps your current selection unchanged."}</p></div>
-    <div className="project-name-explanation"><article><h3>Creative interpretation</h3><p>{entry.candidate.rationale}</p></article><article><h3>Things to consider</h3><p>{entry.candidate.caution || "No additional caution was recorded. This is not clearance or proof of availability."}</p></article></div>
-    {entry.candidate.verificationNotes?.length ? <ContextDetails className="project-naming-origin" title={<>Verification findings</>}>{entry.candidate.verificationNotes.map(note => <article key={note.claimKey}><h3>Original claim · {note.status}</h3><blockquote>{note.originalStatement}</blockquote><p>{note.explanation}</p></article>)}</ContextDetails> : null}
-    {claims?.length ? <section className="naming-published-claims" aria-label="Recorded factual claims"><h3>Recorded factual claims</h3><ul>{claims.map(claim => <li key={claim.claimKey}><p>{claim.statement}</p>{claim.evidence.map((evidence, index) => <blockquote key={`${evidence.sourceKey}:${index}`}>{evidence.quote}</blockquote>)}</li>)}</ul><p>These findings concern the statements shown. They do not establish name availability or broader cultural acceptance.</p></section> : null}
-    <ContextDetails className="project-naming-origin" title={<>Origin and history</>}><p>{entry.candidate.origin.kind === "brainstorm" ? "Unchecked brainstorm · research your shortlist before use." : entry.candidate.origin.kind === "generated" ? `Generated with ${entry.candidate.origin.model} · saved strategy version ${entry.candidate.contextRevision}` : entry.candidate.origin.kind === "local_import" ? "User-supplied name, entered directly or imported with its captured context." : entry.candidate.origin.kind === "transform" ? `Deterministic workshop · ${entry.candidate.origin.history.length} recorded transformation steps` : "Copied from another account project with its original context and history."}</p>{entry.candidate.origin.kind === "transform" || entry.candidate.origin.kind === "account_copy" ? entry.candidate.origin.history.map(step => <p key={step.transformId}>{step.input.kind}: {step.output}</p>) : null}</ContextDetails>
-    <div className="project-naming-actions">{onFavorite ? <button type="button" className="button secondary small" disabled={pending} aria-pressed={entry.retention.favorite} onClick={onFavorite}>{entry.retention.favorite ? "Unfavorite" : "Favorite"} {entry.candidate.value}</button> : null}{onSave ? <button type="button" className="button secondary small" disabled={pending} aria-pressed={entry.retention.saved} onClick={onSave}>{entry.retention.saved ? "Unsave" : "Save"} {entry.candidate.value}</button> : null}{onSteering ? <label className="naming-steering-choice"><input type="checkbox" checked={steeringSelected} disabled={steeringDisabled} onChange={onSteering} />More like this<span className="sr-only">: {entry.candidate.value}</span></label> : null}</div>
-    <div className="project-name-checks">{([['Domains', '/domains'], ['Handles', '/handles'], ['Trademarks', '/trademarks']] as const).map(([label, href]) => <article key={href}><h3>{label}</h3><p>Not checked</p><Link className="button secondary small" href={href}>Open {label.toLowerCase()}</Link></article>)}</div>
-    <div className="project-naming-actions"><button type="button" className="button secondary small" disabled={pending || blocked} onClick={onWorkshop}>Explore variations</button><button type="button" className="button primary small" disabled={pending || blocked || selected} onClick={onUse}>{selected ? "Selected name" : "Use this name"}</button></div>
-  </section>;
+import { useId, useLayoutEffect, useRef, type ReactNode } from "react";
+import { isDialogBackdropClick } from "@/components/ui/dialog-backdrop";
+import { Icon } from "@/components/ui/icon";
+import type { VerifiedAccount } from "@/components/workspace/account-session";
+import type { ProjectNameEntry } from "@/domain/project-naming";
+import { CandidateAvailability } from "./candidate-availability";
+import styles from "./naming-inspect.module.css";
+
+type Props = {
+  account: VerifiedAccount;
+  entry: ProjectNameEntry;
+  selected: boolean;
+  pending: boolean;
+  blocked: boolean;
+  error?: string | null;
+  earlierConfirmation: ReactNode;
+  onClose: () => void;
+  onRefresh: () => void;
+  onUse: () => void;
+  onWorkshop: () => void;
+  onSave: () => void;
+  onFavorite: () => void;
+  onSteering?: () => void;
+  steeringSelected: boolean;
+  steeringDisabled: boolean;
+};
+
+export function NamingInspect({ account, entry, selected, pending, blocked, error, earlierConfirmation, onClose,
+  onRefresh, onUse, onWorkshop, onSave, onFavorite, onSteering, steeringSelected, steeringDisabled }: Props) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const name = entry.candidate.value;
+  useLayoutEffect(() => {
+    const element = dialog.current;
+    if (!element) return;
+    element.showModal();
+    return () => element.close();
+  }, []);
+
+  return <dialog ref={dialog} className={styles.dialog} aria-labelledby={titleId}
+    onCancel={event => { event.preventDefault(); onClose(); }}
+    onClick={event => { if (isDialogBackdropClick(event)) onClose(); }}>
+    <header className={styles.header}>
+      <div><p className={styles.label}>Name availability</p><h2 className={styles.title} id={titleId}>{name}</h2></div>
+      <button type="button" className={styles.close} onClick={onClose} aria-label="Close name preview"><Icon name="close" size={18} /></button>
+    </header>
+    <div className={styles.content}>
+      <CandidateAvailability name={name} account={account} />
+      {error && <div className="project-naming-notice" role="alert"><p>{error}</p><button type="button" className="text-link" disabled={pending} onClick={onRefresh}>Check latest version</button></div>}
+    </div>
+    {earlierConfirmation && <div className={styles.confirmation}>{earlierConfirmation}</div>}
+    <div className={styles.footer}>
+      <details className={styles.options}>
+        <summary>More actions<Icon name="chevron" size={14} /></summary>
+        <div className={styles.actions}>
+          <button type="button" className="button secondary small" disabled={pending} aria-pressed={entry.retention.favorite} onClick={onFavorite}>{entry.retention.favorite ? "Unfavorite" : "Favorite"} {name}</button>
+          <button type="button" className="button secondary small" disabled={pending} aria-pressed={entry.retention.saved} onClick={onSave}>{entry.retention.saved ? "Unsave" : "Save"} {name}</button>
+          <button type="button" className="button secondary small" disabled={pending || blocked} onClick={onWorkshop}>Explore variations</button>
+          {onSteering && <label className="naming-steering-choice"><input type="checkbox" checked={steeringSelected} disabled={steeringDisabled} onChange={onSteering} />More like this<span className="sr-only">: {name}</span></label>}
+        </div>
+      </details>
+      <button type="button" className="button secondary small" disabled={pending || blocked || selected || Boolean(earlierConfirmation)} onClick={onUse}>{selected ? "Selected name" : "Use this name"}</button>
+    </div>
+  </dialog>;
 }

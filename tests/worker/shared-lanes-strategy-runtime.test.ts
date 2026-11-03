@@ -7,13 +7,24 @@ import {responseFixture,transportFixture} from '../server/openai-fixtures';
 import {createOpenAIResponsesTransport,type OpenAIResponsesTransport,type OpenAITransportResponse} from '../../src/server/ai/openai-transport';
 import {sharedPendingExecutionSchema} from '../../worker/shared-pool/contracts';
 import {randomUUID} from 'node:crypto';
+import type {JobDatabase} from '../../worker/postgres-store';
 
 const body=()=>responseFixture({kind:'question',message:'Synthetic shared Strategy reply',question:'Which detail matters?',targetStage:null,options:[],selection:null});
 let f:Awaited<ReturnType<typeof createSharedStrategyFixture>>;
 beforeEach(async()=>{f=await createSharedStrategyFixture();},60000);
 afterEach(async()=>{await f?.close();});
-const create=(transport:OpenAIResponsesTransport)=>createSharedStrategyLaneEngine({database:{query:(sql,values)=>f.asSlot(f.slot,()=>f.db.query(sql,values))},slot:()=>sharedSlotLeaseSchema.parse(f.lease),
+const create=(transport:OpenAIResponsesTransport,database:JobDatabase={query:(sql,values)=>f.asSlot(f.slot,()=>f.db.query(sql,values))})=>createSharedStrategyLaneEngine({database,slot:()=>sharedSlotLeaseSchema.parse(f.lease),
  deploymentId:f.slot.deploymentId,workerId:'synthetic-shared-worker',provider:{apiKey:'synthetic-never-live-key',model:f.policies['strategy.reformulate']!.model,modelVerificationReceipt:'synthetic-model-proof'},policies:f.policies},{transport});
+
+async function ambiguousExecution() {
+ const admitted=await f.submit((await f.project()).id);
+ const claim=await f.claim(admitted.dispatch), token=claim.result.job.lease_token;
+ await f.action(admitted.dispatch,'plan',[token,[{key:'synthetic',maximumCostMicrousd:1}]],claim.execution);
+ await f.action(admitted.dispatch,'begin',[token,'synthetic',claim.requestKey,1],claim.execution);
+ await f.action(admitted.dispatch,'complete',[token,'synthetic','ambiguous',0,{error:'provider_usage_missing'},'resp_known_shared_fixture'],claim.execution);
+ const page=await f.asSlot(f.slot,()=>f.db.query<{page:{items:unknown[]}}>('select public.read_shared_worker_execution_page($1,null,25) page',[JSON.stringify(f.lease)]));
+ return {id:admitted.id,rows:page.rows[0]!.page.items.map(row=>sharedPendingExecutionSchema.parse(row))};
+}
 
 describe('actual shared Strategy engine and restricted SQL (inert response transport)',()=>{
  it('runs one admitted actual engine response and acknowledges duplicate without another create',async()=>{
@@ -72,4 +83,66 @@ describe('actual shared Strategy engine and restricted SQL (inert response trans
    expect((await f.db.query('select response_id from fluid_private.shared_strategy_observed_responses')).rows).toEqual([{response_id:'resp_known_shared_fixture'}]);
   }finally{await engine.close();}
  });
+ it('keeps an unavailable provider GET unresolved, then observes the same handle later',async()=>{
+  const {id,rows}=await ambiguousExecution();
+  let available=false;
+  const fetch=vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>{
+   expect(init?.method).toBe('GET');
+   expect(new URL(String(input)).pathname).toBe('/v1/responses/resp_known_shared_fixture');
+   return available ? Response.json({...body(),id:'resp_known_shared_fixture'}) : Response.json({},{status:404});
+  });
+  const engine=create(createOpenAIResponsesTransport({apiKey:'synthetic-never-live-key',fetch}));
+  try {
+   expect(await engine.recover!(rows)).toEqual({disposition:'retry',state:'observation_unavailable'});
+   expect(await f.db.query('select response_id from fluid_private.shared_strategy_observed_responses')).toMatchObject({rows:[]});
+   expect((await f.db.query('select state from public.jobs where id=$1',[id])).rows).toEqual([{state:'needs_reconciliation'}]);
+   available=true;
+   expect(await engine.recover!(rows)).toEqual({disposition:'retry',state:'observation_retained'});
+   expect(fetch).toHaveBeenCalledTimes(2);
+  }finally{await engine.close();}
+ });
+
+ it('rotates through unavailable handles and never records a mismatched provider response',async()=>{
+  const {rows}=await ambiguousExecution();
+  const ids=['resp_a','resp_b','resp_c','resp_d','resp_e'];
+  const observed:string[]=[];
+  const database:JobDatabase={async query(_sql,values){
+   const execution=JSON.parse(String(values?.[1])), action=values?.[2];
+   const args=JSON.parse(String(values?.[3]));
+   let result:unknown;
+   if(action==='recovery')result=ids.map(responseId=>({stepKey:'synthetic',responseId}));
+   else if(action==='observe_response'){observed.push(args.values[2]);result=true;}
+   else throw Error('Unexpected gateway call');
+   return {rows:[{envelope:{execution,result}}]};
+  }};
+  const retrieveResponse=vi.fn(async(id:string)=>{
+   if(id==='resp_e')return {body:{id,status:'completed'},requestId:null};
+   if(id==='resp_b')return {body:{id:'resp_other',status:'completed'},requestId:null};
+   throw Error('Synthetic GET failure');
+  });
+  const transport={...transportFixture(body()), retrieveResponse};
+  const engine=create(transport,database);
+  try{
+   expect(await engine.recover!(rows)).toEqual({disposition:'retry',state:'observation_unavailable'});
+   expect(retrieveResponse.mock.calls.map(([id])=>id)).toEqual(ids.slice(0,3));
+   expect(await engine.recover!(rows)).toEqual({disposition:'retry',state:'observation_unavailable'});
+   expect(retrieveResponse.mock.calls.slice(3).map(([id])=>id)).toEqual(['resp_d','resp_e','resp_a']);
+   expect(observed).toEqual(['resp_e']);
+   expect(transport.createResponse).not.toHaveBeenCalled();
+  }finally{await engine.close();}
+ });
+
+ it('does not treat missing SQL write acknowledgement as an unavailable provider lookup',async()=>{
+  const {rows}=await ambiguousExecution();
+  const transport={...transportFixture(body()),retrieveResponse:vi.fn(async()=>({body:{id:'resp_known_shared_fixture',status:'completed'},requestId:null}))};
+  const engine=create(transport,{query:(sql,values)=>{
+   if(values?.[2]==='observe_response')throw Error('Synthetic observation connection loss');
+   return f.asSlot(f.slot,()=>f.db.query(sql,values));
+  }});
+  await expect(engine.recover!(rows)).rejects.toThrow('shared_strategy_observation_unconfirmed');
+  await expect(engine.recover!(rows)).rejects.toThrow('shared_strategy_drain_unconfirmed');
+  await expect(engine.close()).rejects.toThrow('shared_strategy_drain_unconfirmed');
+  expect(transport.retrieveResponse).toHaveBeenCalledTimes(1);
+ });
+
 });

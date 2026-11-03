@@ -56,7 +56,7 @@ test("account default: manual Save project persists across reload without AI", a
   const state = await setup(page); await page.goto("/");
   await page.getByRole("textbox", { name: "Your prompt", exact: true }).fill(prompt);
   await page.getByRole("button", { name: "Save project", exact: true }).click();
-  await expect(page).toHaveURL(/\/brands\/account\/[a-f0-9-]+$/);
+  await expect(page).toHaveURL(/\/brands\/account\/[a-f0-9-]+\?view=strategy$/);
   await expect(page.getByRole("log", { name: "Conversation", exact: true }).getByRole("paragraph").filter({ hasText: prompt })).toBeVisible();
   await page.reload(); await expect(page.getByRole("log", { name: "Conversation", exact: true }).getByRole("paragraph").filter({ hasText: prompt })).toBeVisible();
   expect(state.creates).toHaveLength(1); expect(state.ai).toHaveLength(0); expect(state.projects.size).toBe(1);

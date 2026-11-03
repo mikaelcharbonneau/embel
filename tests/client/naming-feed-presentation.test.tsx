@@ -44,7 +44,7 @@ it("shows the saved initial set and honest approach shortfall without promising 
   await act(async()=>root.render(createElement(NamingFeedTail,{feed,blocked:false,onModify:vi.fn()})));
   expect(host.textContent).toContain("100 unchecked brainstorm names are saved");
   expect(host.textContent).toContain("Research your shortlist before use");
-  expect(host.textContent).toContain("Some selected naming approaches have fewer examples");
+  expect(host.textContent).toContain("This batch did not reach its approach coverage target");
   expect(host.textContent).not.toMatch(/Keep scrolling|Regenerate|Verified/);
   expect(host.querySelectorAll("button")).toHaveLength(0);
  }finally{await act(async()=>root.unmount());host.remove();vi.unstubAllGlobals();}

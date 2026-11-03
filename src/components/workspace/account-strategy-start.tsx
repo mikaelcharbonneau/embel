@@ -16,7 +16,7 @@ import { forgetStrategyIntent, formatStrategyCap, strategyPromptCost, promptStra
 import { rememberPromptForSignIn } from "./prompt-recovery";
 import { guidedAllowance, initialGuidedContext } from "./guided-interview-client";
 import { finishLocalDraftRecovery, saveLocalDraftToAccount } from "./save-local-draft-to-account";
-import { projectStartHref } from "./project-start-draft";
+import { projectStartHref, prepareProjectStart } from "./project-start-draft";
 import type { ProjectScope } from "@/domain/projects";
 import { bindGuidedStartConsent, guidedStartContext, isGuidedStartTurn } from "./guided-start-consent";
 
@@ -28,7 +28,7 @@ function subscriptionLimitsLabel(limits: NonNullable<ReturnType<typeof promptStr
 
 /** Saves an owned project before any separately authorized AI request. */
 export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, recoveryLocked = false, guided = false, scope = "complete_brand" }: { guided?: boolean; scope?: ProjectScope; beforeSignIn?: (locked: boolean) => boolean; recoveryDraftId?: string | null; recoveryLocked?: boolean } = {}) {
-  const { session, isCurrent, expire, refresh } = useAccountSession();
+  const { session, isCurrent, expire, refresh, drafts } = useAccountSession();
   const router = useRouter();
   const [, startNavigation] = useTransition();
   const destination = useRef<{ identity: string; href: string } | null>(null);
@@ -175,8 +175,9 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
       // Account-level availability is not project admission. A historical hold
       // may block Home while this newly owned project is eligible. Resolve the
       // exact project within this explicit Send, never on a later focus event.
+      let acknowledged = created.project;
       if (!accepted) {
-        let project = created.project;
+        let project = acknowledged;
         if (!project) project = (await boundedAccountRequest(`/api/projects/${created.receipt.projectId}`, accountProjectResponseSchema, { signal: controller.signal })).project;
         if (!current()) return false;
         if (project.owner_id !== account.userId || project.id !== created.receipt.projectId) { expire(account); return false; }
@@ -199,6 +200,7 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
             });
             if (!current()) return false;
             if (revision.owner_id !== account.userId || revision.project_id !== project.id || revision.revision !== 2) { expire(account); return false; }
+            acknowledged = { ...project, current_revision: revision.revision, context: revision.context };
             const turn = revision.context.intake.guidedInterview?.turns.at(-1);
             if (isGuidedStartTurn(turn)) bindGuidedStartConsent(account.userId, turn!.id, project.id);
           }
@@ -206,7 +208,7 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
       }
       const savedTurn = (created.project?.context ?? created.receipt.request?.input.context)?.intake.guidedInterview?.turns.at(-1);
       if (isGuidedStartTurn(savedTurn)) bindGuidedStartConsent(account.userId, savedTurn!.id, created.receipt.projectId);
-      openProject(projectStartHref(created.receipt.projectId, created.project?.scope ?? draft.scope));
+      openProject(prepareProjectStart(created.receipt.projectId, created.project?.scope ?? draft.scope, created.newProject ? acknowledged : null, account, drafts));
       finishLocalDraftRecovery(draft.id, account.userId, created.receipt.projectId);
       return true;
     } catch (cause) {
@@ -316,7 +318,7 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
       if (!result?.receipt.projectId || !current()) return false;
       const savedTurn = (result.project?.context ?? result.receipt.request?.input.context)?.intake.guidedInterview?.turns.at(-1);
       if (isGuidedStartTurn(savedTurn)) bindGuidedStartConsent(account.userId, savedTurn!.id, result.receipt.projectId);
-      openProject(projectStartHref(result.receipt.projectId, result.project?.scope ?? draft.scope)); finishLocalDraftRecovery(draft.id, account.userId, result.receipt.projectId); return true;
+      openProject(prepareProjectStart(result.receipt.projectId, result.project?.scope ?? draft.scope, result.newProject ? result.project : null, account, drafts)); finishLocalDraftRecovery(draft.id, account.userId, result.receipt.projectId); return true;
     } catch (cause) {
       if (!current()) return false;
       if (cause instanceof AccountRequestError && cause.status === 401) expire(account);

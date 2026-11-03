@@ -7,6 +7,7 @@ import { captureLogoVectorReviewContext, createLogoVectorReviewRequest, type Log
 import { useGenerationEstimate } from "./use-generation-estimate";
 import { LogoGenerationAction } from "./generation-action";
 import styles from "./logo-creation.module.css";
+import stage from "@/styles/branding-stage.module.css";
 
 const EMPTY: LogoCreationState = Object.freeze({ phase: "idle", quote: null, request: null, error: null });
 const noSubscription = () => () => undefined;
@@ -47,7 +48,7 @@ export function LogoVectorConversionControls({ context, getCurrentContext, contr
   const estimate = useGenerationEstimate(controller, request);
 
   return <section id="logo-conversion-settings" className={styles.panel} aria-label="Convert selected logo">
-    <h2>Convert your selected logo</h2>
+    <h2 className={stage.sectionHeading}>Convert your selected logo</h2>
     <p className={styles.note}>Adjust these settings to convert or retry the saved selected image. A successful conversion creates a new candidate. The original image, existing candidates and last approved logo are kept.</p>
     <p className={styles.note} id={description}>Higher simplification can reduce path detail and change curves. Speckle filtering can remove small details, including parts of lettering. Fewer colors can merge distinct areas. Compare every result with the original before accepting it; these controls cannot guarantee a faithful match.</p>
     {!captured?.source && <p className={styles.note}>Select and save a logo concept or image refinement first.</p>}

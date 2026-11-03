@@ -251,7 +251,7 @@ describe("saved-project strategy HTTP recovery", () => {
     expect(mutations()).toHaveLength(1);
   });
 
-  it("does not let an older confirmation read settle a newer in-flight mutation", async () => {
+  it.each([200, 503])("does not let an older confirmation read (HTTP %i) disrupt a newer in-flight mutation", async status => {
     const job = overview.jobs[0]!;
     overview = { availability, jobs: [] }; await render();
     fetcher.mockImplementation(async (_path: string, init: RequestInit) => {
@@ -263,10 +263,11 @@ describe("saved-project strategy HTTP recovery", () => {
     fetcher.mockImplementation(async (_path: string, init: RequestInit) => init.method === "POST" ? newRequest.promise : oldRead.promise);
     await act(async () => api.refresh());
     await act(async () => { void api.enqueue("strategy.competitors", 1, allowance); });
-    await act(async () => oldRead.resolve(Response.json({ availability, jobs: [job] })));
+    await act(async () => oldRead.resolve(Response.json({ availability, jobs: [job] }, { status })));
     expect(api.pending).toBe(true);
     expect(api.overview?.jobs).toEqual([]);
     expect(api.actionError).toBeNull();
+    expect(api.readError).toBeNull();
     await act(async () => { void api.enqueue("strategy.reformulate", 1, allowance); });
     expect(mutations()).toHaveLength(2);
   });

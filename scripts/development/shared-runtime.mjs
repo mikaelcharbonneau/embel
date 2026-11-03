@@ -66,15 +66,21 @@ export async function preflightSharedRuntime(root){const ctx=await context(root)
  * must independently be running; these events alone never prove liveness. */
 export function sharedRuntimeReadyLanes(stdout,stderr){
  const ready=new Map();
+ let draining=false;
  const lines=(stdout+"\n"+stderr).split("\n").filter(Boolean).sort();
  for(const line of lines){try{
   if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z /.test(line))continue;
   const event=JSON.parse(line.slice(line.indexOf(" ")+1));
+  if(event.event==="shared_worker_pool_starting"){ready.clear();draining=false;continue;}
+  if(["shared_worker_pool_process_fault","shared_worker_pool_drain_unconfirmed","shared_worker_pool_unavailable_or_drain_unconfirmed"].includes(event.event)){
+   ready.clear();draining=true;continue;
+  }
+  if(draining)continue;
   if(!["strategy","naming","logo"].includes(event.lane))continue;
   if(event.event==="development_shared_worker_lane_ready")ready.set(event.lane,true);
-  // Outbox polling retries do not withdraw an already qualified slot. Every
-  // other controller diagnostic precedes/follows actual withdrawal.
-  if(event.event==="shared_worker_pool_diagnostic"&&event.code!=="strategy_poll_failed")ready.set(event.lane,false);
+  // A delayed Strategy poll or historical lookup retries while the slot still accepts deliveries.
+  const independentRetry = event.lane === "strategy" && ["strategy_poll_failed", "strategy_observation_delayed"].includes(event.code);
+  if(event.event==="shared_worker_pool_diagnostic"&&!independentRetry)ready.set(event.lane,false);
  }catch{/* Native/Node diagnostics cannot grant readiness. */}}
  return[...ready].filter(([,value])=>value).map(([lane])=>lane).sort();
 }
@@ -84,9 +90,16 @@ export async function sharedRuntimeStatus(root){
  if(!names.includes(ctx.name))return{exists:false,running:false,ready:false,readyLanes:[]};
  const state=JSON.parse(await ctx.docker(["inspect",ctx.name,"--format","{{json .State}}"]));
  let readyLanes=[];
- if(state.Running===true){
-  let logs;try{logs=await execute("docker",["logs","--timestamps",ctx.name],{env:ctx.env,maxBuffer:8*1024*1024,timeout:10000,windowsHide:true});}catch{throw new DevelopmentError("Development worker readiness could not be read.");}
+ if(state.Running===true && !state.Restarting){
+  let logs;try{logs=await execute("docker",["logs","--since",state.StartedAt,"--timestamps",ctx.name],{env:ctx.env,maxBuffer:8*1024*1024,timeout:10000,windowsHide:true});}catch{throw new DevelopmentError("Development worker readiness could not be read.");}
   readyLanes=sharedRuntimeReadyLanes(logs.stdout,logs.stderr);
+  if(readyLanes.length){
+   // A startup event precedes Naming's first policy/fingerprint qualification.
+   // Report only live leases and the readiness actually attested by that lane.
+   const live=await ctx.docker(["exec","supabase_db_"+ctx.settings.projectId,"psql","-XqAt","-v","ON_ERROR_STOP=1","-U","postgres","-d","postgres","-c",
+    "select s.lane from fluid_private.shared_worker_slots s left join fluid_private.shared_naming_slot_configuration n using(slot_id) where s.enabled and s.expires_at>clock_timestamp() and (s.lane<>'naming' or n.ready_until>clock_timestamp());"]);
+   const lanes=new Set(live.split(/\r?\n/));readyLanes=readyLanes.filter(lane=>lanes.has(lane));
+  }
  }
  return{exists:true,running:state.Running===true,exitCode:state.ExitCode,ready:state.Running===true&&readyLanes.length===3,readyLanes};
 }
@@ -99,7 +112,7 @@ export async function startSharedRuntime(root){
  const ctx=await context(root),status=await sharedRuntimeStatus(root);
  if(status.running)return{started:false,alreadyRunning:true,...status};
  if(status.exists)await ctx.docker(["rm",ctx.name]);
- await ctx.docker(["run","--detach","--name",ctx.name,...await runtimeArguments(ctx,"run")]);
+ await ctx.docker(["run","--detach","--restart","on-failure:3","--name",ctx.name,...await runtimeArguments(ctx,"run")]);
  let state;
  for(let attempt=0;attempt<120;attempt++){state=await sharedRuntimeStatus(root);if(state.ready||!state.running)break;await new Promise(resolve=>setTimeout(resolve,250));}
  return{started:true,container:ctx.name,queueRetained:true,...state};

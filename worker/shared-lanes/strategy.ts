@@ -3,13 +3,27 @@ import { strategyJobPolicySchema,strategyOperationSchema, type StrategyOperation
 import { isHostedStrategyPolicy } from "../../src/server/ai/config";
 import { apiTextDispatchDatabase } from "../api-text-multi-account";
 import { runApiTextDelivery } from "../api-text-runtime";
-import type { OpenAIResponsesTransport } from "../../src/server/ai/openai-transport";
+import type { OpenAIResponsesTransport, OpenAITransportResponse } from "../../src/server/ai/openai-transport";
 import { createOpenAIResponsesTransport } from "../../src/server/ai/openai-transport";
 import { z } from "zod";
 import { sharedPendingExecutionSchema,type SharedPendingExecution } from "../shared-pool/contracts";
 import type { JobDatabase } from "../postgres-store";
 import type { SharedLaneBase,SharedLaneEngine,SharedLaneResult } from "./contracts";
 import { createSharedLaneGateway } from "./gateway";
+
+const lookupBudget = 3;
+const recoveryHandles = z.array(z.strictObject({
+ stepKey: z.string().min(1).max(100), responseId: z.string().regex(/^resp_[A-Za-z0-9_-]{1,195}$/u),
+})).max(25);
+const observedResponse = z.object({
+ id: z.string(), status: z.enum(["queued", "in_progress", "completed", "failed", "cancelled", "incomplete"]),
+});
+
+function rotate<T>(items: readonly T[], start: number): readonly T[] {
+ if (items.length < 2) return items;
+ const index = start % items.length;
+ return [...items.slice(index), ...items.slice(0, index)];
+}
 
 /** Runs the actual admitted-message engine; no admission, policy inference or
  * paid model probe occurs while constructing this bounded slot adapter. */
@@ -20,6 +34,9 @@ export function createSharedStrategyLaneEngine(options:SharedLaneBase & {policie
  }));
  if(!policies.size||!options.provider.apiKey||!options.provider.modelVerificationReceipt)throw Error("shared_strategy_configuration_unavailable");
  const transport=dependencies.transport??createOpenAIResponsesTransport({apiKey:options.provider.apiKey});
+ // SQL orders recovery pages by execution ID. Rotate handles on every sweep,
+ // keeping constant state even when many owners have unresolved responses.
+ let previousPageStart: string | undefined, sweep = 0;
  const stop=new AbortController();let active:Promise<unknown>|null=null,closed=false,unconfirmed=false;
  return Object.freeze({async run(raw?:unknown,signal?:AbortSignal):Promise<SharedLaneResult>{
   if(unconfirmed)throw Error("shared_strategy_drain_unconfirmed");
@@ -55,28 +72,52 @@ export function createSharedStrategyLaneEngine(options:SharedLaneBase & {policie
  },async recover(pending:readonly SharedPendingExecution[],signal?:AbortSignal):Promise<SharedLaneResult>{
   if(unconfirmed)throw Error("shared_strategy_drain_unconfirmed");
   if(closed||active||signal?.aborted)return{disposition:"retry",state:"stopping"};
-  const rows=z.array(sharedPendingExecutionSchema).max(25).parse(pending),combined=AbortSignal.any([stop.signal,...signal?[signal]:[]]);
-  const execute=async()=>{let retained=0,attempted=0;
-   for(const row of rows){
-    if(combined.aborted||attempted>=3)break;
-    if(row.execution.lane!=="strategy"||row.execution.deploymentId!==options.deploymentId)continue;
-    const gateway=createSharedLaneGateway({...options,lane:"strategy",message:null,observationExecution:row.execution});
-    const known=z.array(z.strictObject({stepKey:z.string().min(1).max(100),responseId:z.string().regex(/^resp_[A-Za-z0-9_-]{1,195}$/u)})).max(25)
-     .parse(await gateway.invoke("recovery",[],true));
-    if(!transport.retrieveResponse)continue;
-    for(const handle of known){
-     if(combined.aborted||attempted>=3)break;attempted++;
-     // Only a response ID independently selected from durable issued evidence
-     // reaches GET. Request-header IDs never become retrieval capabilities.
-     const observed=await transport.retrieveResponse(handle.responseId,AbortSignal.any([combined,AbortSignal.timeout(10_000)]));
-     let saved:unknown;
-     try{saved=await gateway.invoke("observe_response",[row.execution.leaseToken,handle.stepKey,handle.responseId,observed],true);}
-     catch{unconfirmed=true;throw Error("shared_strategy_observation_unconfirmed");}
-     if(saved===true)retained++;else if(saved!==false){unconfirmed=true;throw Error("shared_strategy_observation_unconfirmed");}
+  const rows = z.array(sharedPendingExecutionSchema).max(25).parse(pending)
+   .filter(row => row.execution.lane === "strategy" && row.execution.deploymentId === options.deploymentId);
+  const combined = AbortSignal.any([stop.signal, ...signal ? [signal] : []]);
+  const first = rows[0]?.execution.executionId;
+  if (first) {
+   if (previousPageStart && first <= previousPageStart) sweep++;
+   previousPageStart = first;
+  }
+  const execute = async (): Promise<SharedLaneResult> => {
+   let retained = false, lookupFailed = false, attempted = 0;
+   for (const row of rotate(rows, sweep)) {
+    if (combined.aborted || attempted >= lookupBudget) break;
+    const gateway = createSharedLaneGateway({...options, lane:"strategy", message:null, observationExecution:row.execution});
+    const known = recoveryHandles.parse(await gateway.invoke("recovery", [], true));
+    if (!transport.retrieveResponse) continue;
+    for (const handle of rotate(known, Math.floor(sweep / rows.length) * lookupBudget)) {
+     if (combined.aborted || attempted >= lookupBudget) break;
+     attempted++;
+     // Only an independently proven ID reaches GET. An unavailable response
+     // leaves the original execution unresolved and creates no receipt.
+     let observed: OpenAITransportResponse;
+     try {
+      observed = await transport.retrieveResponse(handle.responseId, AbortSignal.any([combined, AbortSignal.timeout(10_000)]));
+     } catch {
+      lookupFailed = true;
+      continue;
+     }
+     if (combined.aborted) break;
+     const body = observedResponse.safeParse(observed?.body);
+     if (!body.success || body.data.id !== handle.responseId) {
+      lookupFailed = true;
+      continue;
+     }
+     try {
+      const saved = await gateway.invoke("observe_response", [row.execution.leaseToken, handle.stepKey, handle.responseId, observed], true);
+      if (saved === true) retained = true;
+      else if (saved !== false) throw Error("Invalid observation acknowledgement");
+     } catch {
+      unconfirmed = true;
+      throw Error("shared_strategy_observation_unconfirmed");
+     }
     }
     await gateway.drain();
    }
-   return{disposition:"retry" as const,state:retained?"observation_retained":"retained_unsupported"};
+   const state = combined.aborted ? "stopping" : lookupFailed ? "observation_unavailable" : retained ? "observation_retained" : "retained_unsupported";
+   return {disposition:"retry", state};
   };
   const run=execute();active=run;try{return await run;}finally{active=null;}
  },async close(){closed=true;stop.abort();await active;if(unconfirmed)throw Error("shared_strategy_drain_unconfirmed");}});

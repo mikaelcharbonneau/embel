@@ -2,6 +2,7 @@ import { ContextDetails } from "@/components/ui/context-details";
 import { logoReferenceAspectSchema, type LogoReferenceRegistration, type LogoReferenceSelection, type LogoReferenceSnapshot } from "../../domain/logo-workspace";
 import { REFERENCE_ASPECT_LABELS } from "./presentation";
 import styles from "./logo-creation.module.css";
+import stage from "@/styles/branding-stage.module.css";
 import { IMAGE_INPUT_LIMITS } from "../../domain/logo-image-limits";
 
 export function LogoReferenceLimitNotice({ count }: { count: number }) {
@@ -21,15 +22,15 @@ export function LogoReferencePickerView({ references = [], selections = [], onCh
   statusMessage?: string;
 }) {
   return <section className={styles.panel} aria-label="Logo references">
-    <p className={styles.eyebrow}>02 / References</p><h2>What catches your eye?</h2>
+    <p className={styles.eyebrow}>02 / References</p><h2 className={stage.sectionHeading}>What catches your eye?</h2>
     <p className={styles.muted}>References are optional. Choose lettering, shape, composition or overall feel to guide an original logo.</p>
     <div className={styles.referenceSources}>
       <div className={styles.sourcePanel}>
-        <h3>Curated library</h3><p className={styles.note}>Reference library unavailable. Source and licensing checks must be completed before examples can be offered.</p>
+        <h3 className={stage.subheading}>Curated library</h3><p className={styles.note}>Reference library unavailable. Source and licensing checks must be completed before examples can be offered.</p>
         <button className={styles.secondaryButton} type="button" aria-label="Browse reference library" disabled>Browse reference library</button>
       </div>
       <div className={styles.sourcePanel}>
-        <h3>Your uploads</h3><p className={styles.note}>Uploads are unavailable. An image can be used only after its file and access checks and your permission declaration.</p>
+        <h3 className={stage.subheading}>Your uploads</h3><p className={styles.note}>Uploads are unavailable. An image can be used only after its file and access checks and your permission declaration.</p>
         <label className={styles.field}><span>Choose a reference image</span><input type="file" aria-label="Choose a reference image" accept="image/png,image/jpeg,image/webp" disabled /></label>
         <label className={styles.permission}><input type="checkbox" disabled checked={false} readOnly /><span>I have permission to use and process this image.</span></label>
       </div>

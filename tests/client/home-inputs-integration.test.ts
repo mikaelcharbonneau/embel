@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { createAccountDraftMemory } from "@/components/workspace/account-draft-memory";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { webcrypto } from "node:crypto";
 import { File as NodeFile } from "node:buffer";
@@ -12,8 +13,9 @@ import type { EnrollmentStatus } from "@/domain/account-enrollment";
 import { NewProjectForm } from "@/components/workspace/project-editor";
 import { forgetReceipt, readReceipt, rememberReceipt } from "@/components/workspace/account-project-start-recovery";
 const mock = vi.hoisted(() => ({ session: { status: "ready", userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", generation: 1 } as VerifiedAccount | { status: "checking"; generation: number }, enrollment: undefined as EnrollmentStatus | undefined, memory: null as HomeInputSession | null, create: vi.fn(), update: vi.fn(), get: vi.fn(), push: vi.fn(), strategy: vi.fn(), save: vi.fn(), current: vi.fn(), expire: vi.fn() }));
+let accountDrafts: ReturnType<typeof createAccountDraftMemory>;
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mock.push }) }));
-vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ session: mock.session, enrollment: mock.enrollment, homeInputSession: mock.memory, isCurrent: mock.current, expire: mock.expire }) }));
+vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ drafts: accountDrafts, session: mock.session, enrollment: mock.enrollment, homeInputSession: mock.memory, isCurrent: mock.current, expire: mock.expire }) }));
 vi.mock("@/components/workspace/account-strategy-start", () => ({ useAccountStrategyStart: (options?: { beforeSignIn?: () => boolean }) => ({ start: mock.strategy, save: mock.save, pending: false, notice: createElement("a", { href: "/sign-in", onClick: (event: { preventDefault: () => void }) => { if (options?.beforeSignIn && !options.beforeSignIn()) event.preventDefault(); } }, "Sign in fixture") }) }));
 vi.mock("@/components/workspace/local-drafts", async importOriginal => ({ ...await importOriginal<typeof import("@/components/workspace/local-drafts")>(), useLocalDrafts: () => ({ loaded: true, drafts: [], storage: "available" }), createLocalDraft: mock.create, updateLocalDraft: mock.update, getLocalDraft: mock.get }));
 const owner = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", projectId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc", fileId = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
@@ -25,6 +27,7 @@ let root: Root | null = null, host: HTMLDivElement;
 async function render() { await act(async () => root!.render(createElement(NewProjectForm, { initialScope: "complete_brand", home: true, exampleId: "b2b" }))); }
 async function click(label: string) { await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent?.includes(label))!.click()); }
 beforeEach(() => {
+  accountDrafts = createAccountDraftMemory();
  Object.defineProperty(navigator, "locks", { configurable: true, value: { request: (_name: string, _options: unknown, action: () => Promise<unknown>) => action() } });
  window.localStorage.clear(); window.sessionStorage.clear();
  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }); HTMLElement.prototype.scrollTo = vi.fn(); mock.session = account; mock.enrollment = undefined; mock.memory = createHomeInputSession(); mock.memory.bind(account);
@@ -69,7 +72,10 @@ describe("mounted Home attached brief integration", () => {
   expect(fetcher.mock.calls.filter(([, options]) => options.method === "POST")).toHaveLength(1);
   expect(mock.create).toHaveBeenCalledTimes(1); expect(mock.strategy).not.toHaveBeenCalled();
   if (changeAccount) expect(mock.push).not.toHaveBeenCalled();
-  else expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${projectId}`);
+  else {
+    expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${projectId}?view=strategy`);
+    expect(accountDrafts.get(projectId)?.saved.context.description).toBe(originalRequest.project.context.description);
+  }
  });
 
  it("lost Home save response reuses the original browser draft and never starts Strategy", async () => {
@@ -175,7 +181,7 @@ describe("mounted Home attached brief integration", () => {
   await act(async () => { host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.click(); host.querySelector<HTMLButtonElement>(".home-example-pills button:last-child")!.click(); });
   expect(textarea.value).toBe(originalPrompt);
   await act(async () => finish(Response.json(saved)));
-  expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${projectId}`); expect(mock.strategy).not.toHaveBeenCalled();
+  expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${projectId}?view=strategy`); expect(mock.strategy).not.toHaveBeenCalled();
  });
 
  it("hides rejected filename errors immediately during checking and a different verified owner", async () => {

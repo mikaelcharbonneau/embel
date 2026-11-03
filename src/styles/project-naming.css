@@ -218,9 +218,6 @@
 .naming-feed-tail { min-height: 130px; padding: 32px 12px; text-align: center; color: var(--secondary); font-size: 13px; line-height: 1.7; }
 .naming-feed-tail button { margin-top: 12px; }
 .naming-back-to-feed { margin-bottom: 20px; }
-.naming-published-claims { border: 1px solid var(--border); border-radius: 9px; padding: 20px; margin: 20px 0; font-size: 13px; line-height: 1.65; }
-.naming-published-claims ul { padding-left: 20px; }
-.naming-published-claims blockquote { border-left: 2px solid var(--border); margin: 10px 0; padding-left: 14px; color: var(--secondary); white-space: pre-wrap; overflow-wrap: anywhere; }
 @media (max-width: 760px) {
   .naming-widget-panel .naming-approach-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .naming-widget-panel .project-dock-content { padding: 20px 16px; }

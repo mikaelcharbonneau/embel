@@ -90,6 +90,8 @@ function mergeSelections<T extends { id: string; selected: boolean }>(previous: 
   return [...result.values()];
 }
 
+export const retainedCompetitorAnswerPrefix = "Retained competitors: ";
+
 /** The caller must load the current choices from an owned immutable job result.
  * Clarification turns retain that widget; accepted free text must be the latest turn. */
 export function confirmGuidedSelection(context: ContextSnapshot, input: {
@@ -113,7 +115,7 @@ export function confirmGuidedSelection(context: ContextSnapshot, input: {
       const retained = retainedIds.map(id => parsed.competitors.find(item => item.id === id));
       if (retained.some(item => !item)) throw new Error("Choose a competitor saved in this project");
       selection = { stage: "competitors", competitors: [...options.flatMap(option => option?.stage === "competitors" ? [option.payload] : []), ...retained.flatMap(item => item ? [{ ...item, selected: false }] : [])] };
-      if (retained.length) customText = `Retained competitors: ${retained.map(item => item!.name).join("; ")}`;
+      if (retained.length) customText = retainedCompetitorAnswerPrefix + retained.map(item => item!.name).join("; ");
     }
     else if (reply.stage === "audience") selection = { stage: "audience", audienceSegments: options.flatMap(option => option?.stage === "audience" ? [option.payload] : []) };
     else {

@@ -1,16 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { namingBrainJobInputSchema } from "../../src/domain/naming-brain";
-import { filterNamingBrainstormCandidates, namingBrainstormIdentity, type NamingBrainstormWire } from "../../src/domain/naming-brainstorm";
+import { allocateBrainstormApproaches, filterNamingBrainstormCandidates, namingBrainstormIdentity, type NamingBrainstormWire } from "../../src/domain/naming-brainstorm";
 import { createNamingBrainstormProvider } from "../../src/server/ai/naming-brainstorm-provider";
 import { createNamingBrainPolicy } from "../../src/server/ai/naming-brain/policy";
 import { observeNamingBrainstorm, runNamingBrainstorm, type NamingBrainstormGateway } from "../../worker/naming-brainstorm";
 import { id, snapshot, preferences, hash } from "../domain/naming-brain-fixtures";
+import type { NamingApproach } from "../../src/domain/naming-brain-preferences";
 import type { ClaimedJob } from "../../src/domain/jobs";
 
 type Call = {callId:string;request:NamingBrainstormWire;candidateTarget:number;state:string;responseId:string|null;requestId:string|null;candidates:unknown[]};
-function fixture(options:{counts?:number[];lostBeforeId?:boolean;lostAfterId?:boolean;loseCreatedAck?:boolean;loseCompletedAck?:boolean;denyBegin?:boolean;badCandidates?:boolean;returnedModel?:string;oversized?:boolean;reject?:boolean}={}) {
-  const input=namingBrainJobInputSchema.parse({version:2,handlerVersion:"naming-brain-v1",billingMode:"openai_api",runId:id(3),jobId:id(4),batchId:id(5),snapshot:snapshot(),acceptedPolicyIdentity:hash,policy:createNamingBrainPolicy("gpt-6-luna"),executionAuthority:"hosted_owner_v1",providerBudgetVersion:2,localPipelineVersion:2,localTimingVersion:2,generationProfile:"brainstorm_v1"});
+function fixture(options:{counts?:number[];approaches?:NamingApproach[];dominantFirst?:boolean;lostBeforeId?:boolean;lostAfterId?:boolean;loseCreatedAck?:boolean;loseCompletedAck?:boolean;denyBegin?:boolean;badCandidates?:boolean;returnedModel?:string;oversized?:boolean;reject?:boolean}={}) {
+  const input=namingBrainJobInputSchema.parse({version:2,handlerVersion:"naming-brain-v1",billingMode:"openai_api",runId:id(3),jobId:id(4),batchId:id(5),snapshot:{...snapshot(),preferences:{...preferences(),approaches:options.approaches??["invented"]}},acceptedPolicyIdentity:hash,policy:createNamingBrainPolicy("gpt-6-luna"),executionAuthority:"hosted_owner_v1",providerBudgetVersion:2,localPipelineVersion:2,localTimingVersion:2,generationProfile:"brainstorm_v1"});
   const job:ClaimedJob={id:input.jobId,ownerId:input.snapshot.ownerId,projectId:input.snapshot.projectId,operation:"naming.generate",input,inputRevision:1,leaseToken:id(6),status:"running",reservedCostMicrousd:input.policy.runAllowanceMicrousd,actualCostMicrousd:0};
   const state={generationProfile:"brainstorm_v1",runId:input.runId,brief:input.snapshot,exclusionIdentities:[namingBrainstormIdentity("Owned Name")],historyEpoch:0,history:[{candidateId:id(9),value:"Owned Name"}],publishedCount:0,calls:[] as Call[]};
   const events:Record<string,unknown>[]=[],actions:string[]=[],methods:string[]=[],bodies:NamingBrainstormWire[]=[],responses=new Map<string,Record<string,unknown>>();
@@ -32,7 +33,13 @@ function fixture(options:{counts?:number[];lostBeforeId?:boolean;lostAfterId?:bo
     if(options.lostBeforeId)throw Error("private-fixture-value");
     if(options.reject)return Response.json({error:{message:"private-provider-rejection",type:"invalid_request_error"}},{status:400});
     const responseId=`resp_fixture_${bodies.length}`;
-    const candidates=options.badCandidates?[{value:"Owned Name",rationale:"Fixture sound.",primaryApproach:"invented"},{value:"",rationale:"",primaryApproach:"invented"}]:Array.from({length:options.counts?.[bodies.length-1]??120},(_,index)=>({value:`Fixture${bodies.length}Name${index}`,rationale:"A proposed sound and imagery.",primaryApproach:"invented"}));
+    const plan=JSON.parse(body.input.split("\n").at(-1)!).approachPlan as {approach:NamingApproach;request:number}[];
+    const requested=plan.flatMap(row=>Array.from({length:row.request},()=>row.approach));
+    const candidates=options.badCandidates?[{value:"Owned Name",rationale:"Fixture sound.",primaryApproach:"invented"},{value:"",rationale:"",primaryApproach:"invented"}]:Array.from({length:options.counts?.[bodies.length-1]??requested.length},(_,index)=>{
+      const value=`Fixture${bodies.length}name${index}`,primaryApproach=options.dominantFirst&&bodies.length===1?"invented":requested[index%requested.length]!;
+      const construction=primaryApproach==="invented"?[]:primaryApproach==="real_words"?[value]:["Fixture"];
+      return {value,rationale:"Fixture imagery for this synthetic brief.",primaryApproach,construction};
+    });
     const response={id:responseId,status:"completed",model:options.returnedModel??input.policy.model,...(options.oversized?{ignored:"x".repeat(524288)}:{}),output:[{type:"message",role:"assistant",status:"completed",content:[{type:"output_text",text:JSON.stringify({candidates})}]}],usage:{input_tokens:80,output_tokens:60,total_tokens:140}};responses.set(responseId,response);
     let part=0;
     return new Response(new ReadableStream<Uint8Array>({pull(controller){
@@ -53,6 +60,17 @@ describe("fast-first Naming with native Responses SDK and inert HTTP",()=>{
     const body=f.bodies[0]!;expect(body).toMatchObject({store:true,stream:true,reasoning:{effort:"low"},max_output_tokens:16000});expect(body).not.toHaveProperty("tools");expect(body).not.toHaveProperty("spend_control");expect(body).not.toHaveProperty("previous_response_id");
   });
   it("runs only two bounded topups when committed usable counts need them",async()=>{const f=fixture({counts:[50,30,40]});expect(await f.run()).toBe("succeeded");expect(f.state.calls.map(c=>c.candidateTarget)).toEqual([120,60,40]);expect(f.methods).toEqual(["POST","POST","POST"]);});
+  it("caps a one-approach first response and spends both top-ups only on the other selected approaches",async()=>{
+    const f=fixture({approaches:["real_words","invented","other_languages"],dominantFirst:true});
+    expect(await f.run()).toBe("succeeded");
+    const plans=f.bodies.map(body=>JSON.parse(body.input.split("\n").at(-1)!).approachPlan as {approach:NamingApproach;request:number;admit:number;description:string}[]);
+    expect(plans[0]!.map(row=>[row.approach,row.admit,row.request])).toEqual([["real_words",34,41],["invented",33,40],["other_languages",33,39]]);
+    expect(plans[0]![0]!.description).toBe("Familiar words used in unexpected ways.");
+    expect(plans.slice(1).every(plan=>plan.every(row=>row.approach!=="invented"))).toBe(true);
+    const saved=f.state.calls.flatMap(call=>call.candidates as {primaryApproach:NamingApproach}[]);
+    expect(["real_words","invented","other_languages"].map(a=>saved.filter(row=>row.primaryApproach===a).length)).toEqual([34,33,33]);
+    expect(f.methods).toEqual(["POST","POST","POST"]);
+  });
   it("returns an honest short count after three terminal calls",async()=>{const f=fixture({counts:[10,10,10]});expect(await f.run()).toBe("partial");expect(f.state.publishedCount).toBe(30);expect(f.bodies).toHaveLength(3);});
   it("does not count duplicate history or malformed candidates",async()=>{const f=fixture({badCandidates:true});expect(await f.run()).toBe("failed");expect(f.state.publishedCount).toBe(0);expect(f.bodies).toHaveLength(3);});
   it("quarantines an unknown create without an ID and never replays it",async()=>{const f=fixture({lostBeforeId:true});expect(await f.run()).toBe("needs_reconciliation");expect(await f.run()).toBe("needs_reconciliation");expect(f.bodies).toHaveLength(1);expect(f.state.calls[0]).toMatchObject({state:"unknown",responseId:null});});
@@ -82,6 +100,52 @@ describe("fast-first Naming with native Responses SDK and inert HTTP",()=>{
 });
 
 describe("brainstorm deterministic admission",()=>{
+  const routes:NamingApproach[]=["real_words","invented","modified","blends","people_places","stories_culture","classical_roots","other_languages"];
+  it("reserves 12 or 13 places for each of eight selected approaches regardless of provider ordering",()=>{
+    const plan=allocateBrainstormApproaches(routes,[],100,120);
+    expect(plan.map(row=>row.admit)).toEqual([13,13,13,13,12,12,12,12]);
+    expect(plan.reduce((sum,row)=>sum+row.request,0)).toBe(120);
+    expect(plan.every(row=>row.request>=row.admit)).toBe(true);
+    const proposals=Array.from({length:120},(_,i)=>({value:`Alt${i}`,rationale:"A proposed sound.",primaryApproach:"invented",construction:[]}));
+    expect(filterNamingBrainstormCandidates(proposals,{...preferences(),approaches:routes},[],100,plan)).toHaveLength(13);
+  });
+  it("rejects multiword pairings and intact-word compounds disguised as blends, preserving the provider's actual construction",()=>{
+    const plan=allocateBrainstormApproaches(routes,[],100,120);
+    const row=(value:string,primaryApproach:NamingApproach,construction:string[],rationale:string)=>({value,primaryApproach,construction,rationale});
+    const raw=[
+      row("Wonderframe","blends",["wonder","frame"],"Joins wonder and frame."),
+      row("ThinkGarden","invented",[],"Suggestions grow in a garden."),
+      row("Question Works","stories_culture",["workshop"],"A workshop for asking questions."),
+      row("IdeaOrbit","real_words",["IdeaOrbit"],"A learning space."),
+      row("Learnscape","blends",["learn","landscape"],"Learn meets landscape, suggesting room to explore."),
+      row("Port Hope","people_places",["Port Hope"],"Port Hope suggests a sense of arrival."),
+    ];
+    const saved=filterNamingBrainstormCandidates(raw,{...preferences(),approaches:routes},[],100,plan);
+    expect(saved.map(x=>[x.value,x.primaryApproach])).toEqual([["Learnscape","blends"],["Port Hope","people_places"]]);
+    expect(saved[0]!.rationale).toBe(raw[4]!.rationale);
+    expect(saved[0]).not.toHaveProperty("construction");
+  });
+  it("recognizes references split across the name, source annotation and rationale while declining literal franchise titles",()=>{
+    const row=(value:string,primaryApproach:NamingApproach,source:string,rationale:string)=>({value,primaryApproach,construction:[source],rationale});
+    const raw=[
+      row("Éclat","other_languages","eclat (French)","A proposed French word that suggests a sudden insight; check the fit."),
+      row("Ariadne","stories_culture","Ariadne’s thread in Greek mythology","A guiding thread offers a clear path through a complex subject."),
+      row("Curie","people_places","Marie Curie","Experimental method suits a learning tool based on exploration."),
+      row("Quiet Harbor","stories_culture","The Odyssey","The Odyssey evokes a voyage."),
+      row("The Magic School Bus","stories_culture","The Magic School Bus","The series depicts exploratory field trips."),
+      row("The Matrix","stories_culture","The Matrix","The film evokes a different perspective."),
+      row("Target","other_languages","sora (Japanese)","A Japanese-inspired direction."),
+    ];
+    expect(filterNamingBrainstormCandidates(raw,{...preferences(),approaches:routes},[],100,allocateBrainstormApproaches(routes,[],100,120)).map(row=>row.value))
+      .toEqual(["Éclat","Ariadne","Curie"]);
+  });
+  it("allows a recognizable interior blend or two beginnings but never an intact two-word combination",()=>{
+    const row=(value:string,left:string,right:string)=>({value,primaryApproach:"blends",construction:[left,right],rationale:`A proposed blend of ${left} and ${right}.`});
+    const samples=[row("Infotain","information","entertainment"),row("EduVis","education","visual"),
+      row("MindLoom","mind","loom"),row("Mindloom","mind","loom"),row("Scope","scope","cope")];
+    expect(filterNamingBrainstormCandidates(samples,{...preferences(),approaches:["blends"]},[],100,[{approach:"blends",admit:100,request:120}]).map(row=>row.value))
+      .toEqual(["Infotain","EduVis"]);
+  });
   it("normalizes NFC, preserves existing identity semantics, and honors literal constraints",()=>{
     const prefs={...preferences(),approaches:["invented" as const],requiredText:["café"],excludedText:["bad"],minimumGraphemes:4,maximumGraphemes:10};
     const row=(value:string,primaryApproach="invented")=>({value,rationale:"  Intended sound.  ",primaryApproach});

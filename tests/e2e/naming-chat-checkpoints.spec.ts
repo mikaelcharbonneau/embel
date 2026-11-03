@@ -10,8 +10,8 @@ test("combined default constraints survive a cold reload without another generat
   await openNaming(page); await showNamingChat(page);
   const heading = page.locator("#project-naming-preferences-heading");
   await expect(heading).toHaveText(constraints);
-  await expect(page.getByLabel("Minimum characters", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Include these text fragments", { exact: true })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Minimum characters", exact: true })).toBeVisible();
+  await expect(page.getByLabel("Text to include (optional)", { exact: true })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Creative language", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(heading).toHaveText("Your naming direction");
@@ -36,7 +36,9 @@ test("guidance-only autosave preserves prior answers while edited combined const
   await expect(heading).toHaveText("Your naming direction");
   await expect(page.locator(".guided-choice-answer")).toHaveCount(3);
   await page.getByRole("button", { name: `Edit answer: ${constraints}`, exact: true }).click();
-  await page.getByLabel("Maximum characters", { exact: true }).fill("8");
+  const maximum = page.getByRole("slider", { name: "Maximum characters", exact: true });
+  await maximum.press("Home");
+  for (let n = 1; n < 8; n++) await maximum.press("ArrowRight");
   await expect.poll(() => fixture.state.preferences?.preferences.maximumGraphemes).toBe(8);
   await page.reload(); await showNamingChat(page); await expect(heading).toHaveText(constraints);
   await expect(page.getByRole("region", { name: "Your answer: Which approaches would you like to explore?", exact: true })).toBeVisible();
@@ -67,4 +69,42 @@ test("keyboard Continue waits for the combined checkpoint acknowledgement before
   expect(fixture.mutations()).toHaveLength(0);
   held.release(); await expect(heading).toHaveText("Your naming direction"); await expect(heading).toBeFocused();
   expect(fixture.mutations()).toHaveLength(0);
+});
+
+test("length handles drag on one track, meet without crossing and reset to flexible", async ({ page, isMobile }) => {
+  const f = await namingFixture(page, { saved: true, unavailable: true });
+  await openNaming(page); await showNamingChat(page);
+  const min = page.getByRole("slider", { name: "Minimum characters" });
+  const max = page.getByRole("slider", { name: "Maximum characters" });
+  await expect(min).toHaveAttribute("aria-valuetext", "No minimum");
+  await expect(max).toHaveAttribute("aria-valuetext", "No maximum");
+  await page.getByRole("group", { name: "Name length" }).scrollIntoViewIfNeeded();
+  const left = await min.locator("..").boundingBox(), right = await max.locator("..").boundingBox();
+  const x = left!.x + left!.width / 2, y = left!.y + left!.height / 2;
+  const midpoint = (x + right!.x + right!.width / 2) / 2;
+  if (isMobile) {
+    const cdp = await page.context().newCDPSession(page);
+    try {
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: midpoint, y }] });
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    } finally { await cdp.detach(); }
+  } else {
+    await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(midpoint, y, { steps: 4 }); await page.mouse.up();
+  }
+  await expect(min).toHaveValue("20");
+  await expect.poll(() => f.state.preferences?.preferences.minimumGraphemes).toBe(20);
+  expect(f.state.preferences!.preferences.maximumGraphemes).toBeNull();
+  await max.press("Home"); await max.press("ArrowLeft");
+  await expect(max).toHaveValue("20");
+  await min.press("ArrowRight");
+  await expect(min).toHaveValue("20");
+  await max.press("End");
+  await expect(max).toHaveValue("160");
+  await min.press("Delete");
+  await expect(min).toHaveAttribute("aria-valuetext", "No minimum");
+  await page.getByRole("button", { name: "Reset length" }).click();
+  await expect.poll(() => f.state.preferences?.preferences).toMatchObject({ minimumGraphemes: null, maximumGraphemes: null });
+  await expect(max).toHaveAttribute("aria-valuetext", "No maximum");
+  expect(f.mutations()).toHaveLength(0);
 });

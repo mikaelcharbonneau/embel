@@ -106,14 +106,14 @@
 .conversation-feedback { color: var(--secondary); font-size: var(--font-ui); }
 .conversation-compose-area { margin-top: 12px; padding: 0; }
 /* Keep Send in view while long prompts and recovery notices scroll independently. */
-.conversation-compose-area, .guided-interview-compose { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; max-height: 75%; }
+.conversation-compose-area { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; max-height: 75%; }
 .conversation-compose-notices { flex: 0 1 auto; min-height: 0; max-height: 30dvh; overflow-y: auto; }
 .conversation-compose-notices:empty { display: none; }
 .conversation-compose-area > .conversation-compose-notices > * { margin-bottom: 8px; }
 .conversation-compose-area > .conversation-compose-notices > .form-error { margin-top: 0; }
-:is(.conversation-compose-area, .guided-interview-compose) > form.conversation-composer { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; }
-:is(.conversation-compose-area, .guided-interview-compose) > form.conversation-composer textarea { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
-:is(.conversation-compose-area, .guided-interview-compose) .conversation-composer-footer { flex: 0 0 auto; }
+.conversation-compose-area > form.conversation-composer { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; }
+.conversation-compose-area > form.conversation-composer textarea { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
+.conversation-compose-area .conversation-composer-footer { flex: 0 0 auto; }
 .conversation-footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-top: 20px; }
 .conversation-footer > .text-link { font-size: var(--font-ui); }
 .conversation-footer .inline-confirm { margin: 0; }

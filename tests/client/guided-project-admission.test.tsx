@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, createElement, useLayoutEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { createAccountDraftMemory } from "@/components/workspace/account-draft-memory";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { contextSnapshotSchema } from "@/domain/projects";
 import { accountProjectDraft } from "@/components/workspace/project-draft-adapter";
@@ -9,8 +10,9 @@ import { readGuidedStartConsent } from "@/components/workspace/guided-start-cons
 const mocks = vi.hoisted(() => ({ push: vi.fn(), expire: vi.fn(), save: vi.fn(), current: vi.fn(() => true) }));
 const owner = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", projectId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const account = { status: "ready" as const, userId: owner, generation: 1 };
+let accountDrafts: ReturnType<typeof createAccountDraftMemory>;
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mocks.push }) }));
-vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ session: account, isCurrent: mocks.current, expire: mocks.expire, refresh: vi.fn() }) }));
+vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ drafts: accountDrafts, session: account, isCurrent: mocks.current, expire: mocks.expire, refresh: vi.fn() }) }));
 vi.mock("@/components/workspace/save-local-draft-to-account", () => ({ saveLocalDraftToAccount: (...args: unknown[]) => mocks.save(...args), finishLocalDraftRecovery: vi.fn() }));
 vi.mock("@/components/workspace/prompt-recovery", () => ({ rememberPromptForSignIn: vi.fn() }));
 let root: Root, host: HTMLDivElement, api: ReturnType<typeof useAccountStrategyStart>, fetcher: ReturnType<typeof vi.fn<(path: string, init?: RequestInit) => Promise<Response>>>;
@@ -18,8 +20,9 @@ const project = () => ({ id: projectId, owner_id: owner, current_revision: 1, cr
 function Harness() { const value = useAccountStrategyStart({ guided: true }); useLayoutEffect(() => { api = value; }); return createElement("div", null, value.notice); }
 const available = { status: "available", operations: [{ operation: "strategy.competitors", maximumCostMicrousd: 10000, interviewVersion: 1 }] };
 beforeEach(() => {
+  accountDrafts = createAccountDraftMemory();
  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true); window.localStorage.clear(); window.sessionStorage.clear(); mocks.push.mockReset(); mocks.expire.mockReset(); mocks.current.mockReturnValue(true);
- mocks.save.mockReset().mockResolvedValue({ project: project(), receipt: { ownerId: owner, draftId: projectId, projectId } });
+ mocks.save.mockReset().mockResolvedValue({ newProject: true, project: project(), receipt: { ownerId: owner, draftId: projectId, projectId } });
  fetcher = vi.fn(async (path: string, init?: RequestInit) => {
   if (path === "/api/strategy") return Response.json({ availability: { status: "unavailable", operations: [], reason: "request_unresolved" } });
   if (path === `/api/projects/${projectId}/strategy`) return Response.json({ availability: available, jobs: [] });
@@ -38,7 +41,8 @@ it("checks the saved project when the account-level check is blocked and retains
  const turn = body.context.intake.guidedInterview.turns[0];
  expect(turn.inputRevision).toBe(2);
  expect(readGuidedStartConsent(owner, turn.id)).toMatchObject({ projectId, inputRevision: 2, attempted: false });
- expect(mocks.push).toHaveBeenCalledOnce();
+ expect(mocks.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${projectId}?view=strategy`);
+ expect(accountDrafts.get(projectId)?.saved).toMatchObject({ current_revision: 2, context: { intake: { guidedInterview: { turns: [turn] } } } });
  expect(fetcher.mock.calls.filter(([,init]) => init?.method === "POST")).toHaveLength(0);
 });
 it("does not create a research intent when the scoped worker is unavailable", async () => {

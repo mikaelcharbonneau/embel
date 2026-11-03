@@ -27,6 +27,11 @@ export function createSharedSlotPool(config:SharedPoolConfiguration,slot:SharedP
  return {async query(sql,values=[]){if(closed)throw unavailable();return pool.query(sql,values);},
   async qualify(){
    if(closed)throw unavailable();const client=await pool.connect();let failed=true,transaction=false;
+   // pg-pool removes its idle error listener on checkout. pg rejects active
+   // queries AND emits a client error on disconnect, including after VM sleep.
+   let disconnected=false;
+   const onDisconnect=()=>{disconnected=true;};
+   client.on("error",onDisconnect);
    try{
     if(config.target.kind==="vercel"){
      const socket=client.connection.stream;
@@ -63,6 +68,8 @@ export function createSharedSlotPool(config:SharedPoolConfiguration,slot:SharedP
      ||!Array.isArray(configured.slotIds)||JSON.stringify([...configured.slotIds].sort())!==JSON.stringify(config.slots.map(s=>s.slotId).sort()))throw unavailable();
     failed=false;
    }catch{throw unavailable();}finally{let cleanupFailed=false;if(transaction)try{await client.query("ROLLBACK");}catch{failed=true;cleanupFailed=true;}
-    try{client.release(failed?unavailable():undefined);}catch{cleanupFailed=true;}if(cleanupFailed)throw unavailable();}
+    try{client.release(failed||disconnected?unavailable():undefined);}catch{cleanupFailed=true;}
+    finally{client.removeListener("error",onDisconnect);}
+    if(cleanupFailed||disconnected)throw unavailable();}
   },async close(){closed=true;await pool.end();}};
 }

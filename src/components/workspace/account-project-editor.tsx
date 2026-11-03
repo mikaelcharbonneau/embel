@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { z } from "zod";
 import { accountProjectResponseSchema, accountRevisionResponseSchema, updateProjectInputSchema } from "@/domain/project-api";
 import type { ContextSnapshot } from "@/domain/projects";
@@ -20,7 +20,7 @@ import { IdeaSourceBanner } from "@/components/ideas/idea-source-banner";
 import { accountDraftChanged as changed, reconcileAccountWorkspace, reconcilePendingDraftSave, type AccountWorkspace, type GuidedInterviewInput } from "./account-draft-memory";
 const emptyWorkspace = () => null;
 
-export function AccountProjectEditor({ projectId }: { projectId: string }) {
+export function AccountProjectEditor({ projectId, navigation }: { projectId: string; navigation?: ReactNode }) {
   const { session, isCurrent, expire, drafts } = useAccountSession();
   const readWorkspace = useCallback(() => drafts.get(projectId), [drafts, projectId]);
   const workspace = useSyncExternalStore(drafts.subscribe, readWorkspace, emptyWorkspace);
@@ -53,11 +53,14 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
   }, [session, projectId, validId, isCurrent, expire, setWorkspace, readAttempt]);
   useEffect(() => () => { mutation.current?.abort(); mutation.current = null; }, [session.generation, projectId]);
   const dirty = Boolean(workspace && changed(workspace));
+  function projectStatus(content: ReactNode) {
+    return <>{navigation}<div className="page"><h1>Account project</h1>{content}</div></>;
+  }
   if (!validId) return <UnavailableProject />;
-  if (session.status !== "ready") return <div className="page"><h1>Account project</h1><AccountStatus retainedEdits={dirty} /><Link href="/brands" className="text-link">Back to brands</Link></div>;
-  if (loadError?.generation === session.generation) return <div className="page"><h1>Account project</h1><p className="form-error" role="alert">{loadError.text}</p>{dirty && workspace?.ownerId === session.userId && <p className="account-notice">Unsaved account edits remain in this tab. Retry loading this project to recover them.</p>}<div className="account-recovery-actions"><button className="button secondary small" type="button" onClick={() => { setLoadError(null); setReadAttempt(attempt => attempt + 1); }}>Retry loading project</button><Link href="/brands" className="text-link">Back to brands</Link></div></div>;
+  if (session.status !== "ready") return projectStatus(<><AccountStatus retainedEdits={dirty} /><Link href="/brands" className="text-link">Back to brands</Link></>);
+  if (loadError?.generation === session.generation) return projectStatus(<><p className="form-error" role="alert">{loadError.text}</p>{dirty && workspace?.ownerId === session.userId && <p className="account-notice">Unsaved account edits remain in this tab. Retry loading this project to recover them.</p>}<div className="account-recovery-actions"><button className="button secondary small" type="button" onClick={() => { setLoadError(null); setReadAttempt(attempt => attempt + 1); }}>Retry loading project</button><Link href="/brands" className="text-link">Back to brands</Link></div></>);
   const current = workspace?.ownerId === session.userId && workspace.generation === session.generation && workspace.saved.id === projectId ? workspace : null;
-  if (!current) return <div className="page"><h1>Account project</h1><p className="quiet-empty">Loading your account project…</p><Link href="/brands" className="text-link">Back to brands</Link></div>;
+  if (!current) return projectStatus(<><p className="quiet-empty">Loading your account project…</p><Link href="/brands" className="text-link">Back to brands</Link></>);
   const account = session;
   const active = current;
   const busy = operation?.generation === account.generation && operation.projectId === projectId && operation.busy;
@@ -223,7 +226,7 @@ export function AccountProjectEditor({ projectId }: { projectId: string }) {
     {continuation && (continuationBlocked ? <button type="button" className="button primary small" disabled>{continuation.label}</button> : <Link className="button primary small" href={continuation.href}>{continuation.label}</Link>)}
     {active.saved.scope !== "complete_brand" && <button type="button" className="button secondary small" disabled={Boolean(continuationBlocked)} onClick={() => void expand()}>Expand to complete brand</button>}
   </nav>;
-  return <><AccountDraftAutosave workspace={active} blocked={Boolean(busy || hasSaveError)} save={save} /><AccountGuidedInterview key={`${projectId}:${account.userId}:${account.generation}`} account={account} workspace={active} busy={Boolean(busy)} saveContext={saveContext} onInputChange={updateGuidedInput} storage={{ kind: "account", saveLabel: busy ? "Saving…" : changed(active) ? hasSaveError || active.conflict || active.pendingDraftSave ? "Changes not saved" : "Saving…" : "Saved", onUpdate: update, actions, scopeControl, projectContext, resultNavigation, namingSource: active.saved.context.namingSource }} /></>;
+  return <><AccountDraftAutosave workspace={active} blocked={Boolean(busy || hasSaveError)} save={save} /><AccountGuidedInterview key={`${projectId}:${account.userId}:${account.generation}`} account={account} workspace={active} navigation={navigation} busy={Boolean(busy)} saveContext={saveContext} onInputChange={updateGuidedInput} storage={{ kind: "account", saveLabel: busy ? "Saving…" : changed(active) ? hasSaveError || active.conflict || active.pendingDraftSave ? "Changes not saved" : "Saving…" : "Saved", onUpdate: update, actions, scopeControl, projectContext, resultNavigation, namingSource: active.saved.context.namingSource }} /></>;
 }
 
 function AccountDraftAutosave({ workspace, blocked, save }: { workspace: AccountWorkspace; blocked: boolean; save: () => Promise<AccountWorkspace | null> }) {

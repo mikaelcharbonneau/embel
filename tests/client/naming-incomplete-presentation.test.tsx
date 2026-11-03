@@ -51,7 +51,7 @@ it("does not present 100 saved names with missing approach coverage as complete"
     await act(async () => root.render(createElement(NamingFeedTail, { feed, blocked: false, onModify: vi.fn() })));
     expect(host.textContent).toContain("Incomplete exploration.");
     expect(host.textContent).toContain("100 of 100 names saved.");
-    expect(host.textContent).toContain("Some selected naming approaches are still missing.");
+    expect(host.textContent).toContain("This batch did not reach its approach coverage target.");
   } finally { await act(async () => root.unmount()); vi.unstubAllGlobals(); }
 });
 
@@ -69,4 +69,19 @@ it('offers recovered saved names while keeping unresolved provider costs explici
   await act(async()=>[...host.querySelectorAll<HTMLButtonElement>('button')].find(button=>button.textContent==='View saved names')!.click());
   expect(review).toHaveBeenCalledOnce();expect(resume).not.toHaveBeenCalled();expect(retry).not.toHaveBeenCalled();
  }finally{await act(async()=>root.unmount());vi.unstubAllGlobals();}
+});
+
+it("reports complete saved membership without promoting its partial provider job", async () => {
+  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  const activeRun = { generationProfile: "brainstorm_v1", state: "partial", fulfillment: { status: "complete", targetCount: 100, acceptedCount: 100 } };
+  const feed = { state: { status: "incomplete", outcome: { status: "incomplete", run: activeRun, fulfillment: activeRun.fulfillment },
+    feed: { availability: { status: "available" }, activeRun } } } as unknown as ReturnType<typeof useNamingFeed>;
+  const host=document.createElement("div"), root=createRoot(host);
+  try {
+    await act(async () => root.render(createElement(NamingFeedTail, {feed,blocked:false,onModify:vi.fn()})));
+    expect(host.textContent).toContain("All 100 unchecked brainstorm names are saved");
+    expect(host.textContent).toContain("original generation request ended partially");
+    expect(host.textContent).not.toContain("Incomplete exploration");
+    expect(host.querySelector("button")).toBeNull();
+  } finally { await act(async()=>root.unmount());vi.unstubAllGlobals(); }
 });

@@ -4,7 +4,7 @@ import {namingBrainJobInputSchema} from '../../src/domain/naming-brain';
 import {createNamingBrainPolicy} from '../../src/server/ai/naming-brain/policy';
 import type {NamingBrainstormProvider} from '../../src/server/ai/naming-brainstorm-provider';
 import {createSharedNamingLaneEngine} from '../../worker/shared-lanes/naming';
-import {buildNamingBrainstormRequest} from '../../worker/naming-brainstorm';
+import {namingBrainstormWireSchema} from '../../src/domain/naming-brainstorm';
 import type {SharedExecution,SharedSlotLease} from '../../worker/shared-pool/contracts';
 import {hash,id,snapshot} from '../domain/naming-brain-fixtures';
 function fixture(mismatch=false,options:{legacy?:boolean;actualLegacy?:boolean;sameDeployment?:boolean}={}){
@@ -12,8 +12,13 @@ function fixture(mismatch=false,options:{legacy?:boolean;actualLegacy?:boolean;s
  const slot:SharedSlotLease={version:1,slotId:id(10),instanceId:id(11),lane:'naming',generation:9,leaseToken:id(12),expiresAt:new Date(Date.now()+60000).toISOString(),roleName:'embel_shared_naming_fixture',roleOid:123};
  const execution:SharedExecution={version:1,executionId:id(13),executionToken:id(14),slotId:slot.slotId,instanceId:id(15),generation:8,lane:'naming',ownerId:input.snapshot.ownerId,projectId:input.snapshot.projectId,jobId:input.jobId,leaseToken:id(16),operation:'naming.generate',policyIdentity:hash,deploymentId:'dpl_original'};
  const job={id:input.jobId,owner_id:execution.ownerId,project_id:execution.projectId,operation:execution.operation,input,input_revision:1,state:'needs_reconciliation',reserved_cost_microusd:policy.runAllowanceMicrousd,actual_cost_microusd:0,lease_token:null};
- const state={generationProfile:'brainstorm_v1' as const,runId:input.runId,brief:input.snapshot,historyEpoch:0,history:[],exclusionIdentities:[],publishedCount:0,calls:[] as Array<{callId:string;request:ReturnType<typeof buildNamingBrainstormRequest>;candidateTarget:number;state:'unknown';responseId:string;requestId:string}>};
- const request=buildNamingBrainstormRequest(input,state,1,120);state.calls.push({callId:id(17),request,candidateTarget:120,state:'unknown',responseId:'resp_retained',requestId:'req_original'});
+ const request=namingBrainstormWireSchema.parse({
+  model:policy.model,store:true,stream:true,reasoning:{effort:'low'},max_output_tokens:16000,input:'Stored historical fixture request',
+  text:{verbosity:'low',format:{type:'json_schema',name:'naming_brainstorm_v1',strict:true,schema:{type:'object'}}},
+  metadata:{embel_generation_profile:'brainstorm_v1',embel_job_id:input.jobId,embel_run_id:input.runId,embel_call_index:'1'},
+ });
+ const state={generationProfile:'brainstorm_v1',runId:input.runId,brief:input.snapshot,historyEpoch:0,history:[],exclusionIdentities:[],publishedCount:0,
+  calls:[{callId:id(17),request,candidateTarget:120,candidates:[],state:'unknown',responseId:'resp_retained',requestId:'req_original'}]};
  const candidates=Array.from({length:113},(_,index)=>({value:`Synthetic${index}`,rationale:'Creative sound proposal.',primaryApproach:'invented'}));
  const response={id:'resp_retained',status:'completed',model:policy.model,output:[{type:'message',role:'assistant',status:'completed',content:[{type:'output_text',text:JSON.stringify({candidates})}]}],usage:{input_tokens:10,output_tokens:20,total_tokens:30}};
  const create=vi.fn(),cancel=vi.fn(),retrieve=vi.fn(async()=>({response,requestId:'req_retrieval'})),provider:NamingBrainstormProvider={create,cancel,retrieve};
