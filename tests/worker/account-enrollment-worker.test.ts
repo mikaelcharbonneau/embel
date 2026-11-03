@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { chmod,mkdtemp,readFile,rm,symlink } from "node:fs/promises";
+import { chmod,mkdtemp,readFile,realpath,rm,symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach,describe,expect,it,vi } from "vitest";
@@ -74,7 +74,8 @@ describe("configured per-owner worker enrollment protocol (fixture authority onl
 });
 describe("durable prepared descriptors",()=>{
  it("stores public fields only, idempotently, and fences older generation/revision",async()=>{
-  const directory=await mkdtemp(join(tmpdir(),"embel-worker-publication-"));await chmod(directory,0o700);
+  // Real path: macOS tmpdir() is /var, a link to /private/var.
+  const directory=await realpath(await mkdtemp(join(tmpdir(),"embel-worker-publication-")));await chmod(directory,0o700);
   try{
    const f=fixture(),publisher=createPreparedWorkerDescriptorPublisher(directory);
    const publication=await publisher.publish(f.context(),{...f.descriptor,secret:"must-not-persist"} as OwnerWorkerProcessDescriptor);
@@ -86,7 +87,8 @@ describe("durable prepared descriptors",()=>{
   }finally{await rm(directory,{recursive:true,force:true});}
  });
  it("rejects symlink publication roots",async()=>{
-  const directory=await mkdtemp(join(tmpdir(),"embel-worker-link-"));await chmod(directory,0o700);
+  // Real path: macOS tmpdir() is /var, a link to /private/var.
+  const directory=await realpath(await mkdtemp(join(tmpdir(),"embel-worker-link-")));await chmod(directory,0o700);
   try{await symlink(directory,`${directory}-link`);const f=fixture();await expect(createPreparedWorkerDescriptorPublisher(`${directory}-link`).publish(f.context(),f.descriptor)).rejects.toThrow();}
   finally{await rm(`${directory}-link`,{force:true});await rm(directory,{recursive:true,force:true});}
  });

@@ -4,8 +4,10 @@ import { readSharedPoolConfiguration,assertSharedPoolAttestation } from "../../w
 import { readSharedPoolSecrets } from "../../worker/shared-pool/secrets";
 import { sharedSlotPoolOptions } from "../../worker/shared-pool/database";
 import { sharedConfiguration,sharedSecrets,sharedEnvironment } from "./shared-pool-fixture";
+import { simulateQualifiedLinuxRuntime } from "../helpers/linux-runtime";
 
 describe("opt-in fixed shared pool configuration (inert settings only)",()=>{
+ simulateQualifiedLinuxRuntime();
  it("is disabled without parsing settings or agent/provider environment fallbacks",()=>{
   expect(readSharedPoolConfiguration({OPENAI_API_KEY:"synthetic-agent-key",EMBEL_SHARED_WORKER_POOL_CONFIGURATION:"invalid"})).toBeNull();
   expect(readSharedPoolConfiguration({EMBEL_SHARED_WORKER_POOL_ENABLED:"false"})).toBeNull();

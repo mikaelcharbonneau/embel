@@ -3,8 +3,10 @@ vi.mock("server-only", () => ({}));
 import { preflightSharedPool } from "../../worker/shared-pool/preflight";
 import type { SharedPoolConfiguration, SharedPoolSlot } from "../../worker/shared-pool/configuration";
 import { sharedConfiguration, sharedEnvironment } from "./shared-pool-fixture";
+import { simulateQualifiedLinuxRuntime } from "../helpers/linux-runtime";
 
 describe("read-only prerequisite qualification, never active readiness", () => {
+ simulateQualifiedLinuxRuntime();
  it("qualifies and closes only the three fixed database pools, without a claim/query or engine", async () => {
   const config = sharedConfiguration(), events: string[] = [];
   const query = vi.fn(async () => { throw Error("No direct queries permitted by this port test"); });

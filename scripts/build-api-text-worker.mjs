@@ -1,4 +1,4 @@
-import { build } from "esbuild";
+import { build } from "./esbuild-project.mjs";
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
