@@ -7,7 +7,7 @@ import { HomeRecentBrands } from "@/components/workspace/home-recent-brands";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 
 const mock = vi.hoisted(() => ({ session: { status: "ready", userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", generation: 1 } as VerifiedAccount | { status: "checking"; generation: number }, current: vi.fn(), expire: vi.fn() }));
-vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ session: mock.session, isCurrent: mock.current, expire: mock.expire }) }));
+vi.mock("@/components/workspace/account-session", async () => { const drafts = (await import("@/components/workspace/account-draft-memory")).createAccountDraftMemory(); return { useAccountSession: () => ({ session: mock.session, isCurrent: mock.current, expire: mock.expire, drafts }) }; });
 vi.mock("@/components/workspace/local-drafts", async original => ({ ...await original<object>(), useLocalDrafts: () => ({ loaded: true, drafts: [], storage: "available" }) }));
 let root: Root, host: HTMLDivElement;
 beforeEach(() => {
