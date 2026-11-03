@@ -1,6 +1,11 @@
 # Verification status
 
-The current published web runtime is `e7e51e63f9c3e33d090d6b5a03293ed53c9519ed` from
+**Current release (November 3, 2026):** web and shared worker both run
+`e04add094cf9f3e4636b44efb6dd9169cd74a7e7`. See
+[the November 3 release record](release-20261103.md) for deployments, receipts,
+rollback and untested limits. The paragraphs below describe earlier releases.
+
+The October 30 published web runtime was `e7e51e63f9c3e33d090d6b5a03293ed53c9519ed` from
 [PR #176](https://github.com/mikaelcharbonneau/embel/pull/176), released October 30,
 2026. The shared worker remains on `47e9ef78942a7998b27715988fc60f63fbf503c7` from
 [PR #170](https://github.com/mikaelcharbonneau/embel/pull/170).

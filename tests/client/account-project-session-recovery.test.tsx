@@ -180,7 +180,7 @@ it.each([false, true])("withholds the final saved-strategy notice until an exact
   expect(account.drafts.hasUnsaved()).toBe(false);
   expect(account.drafts.get(projectId)!.saved.current_revision).toBe(4);
   // The acknowledged handoff opens Naming; do not dump Strategy outside its scroll container while Naming loads.
-  expect(host.textContent).toContain("Naming");
+  expect(host.querySelector('[aria-label="Naming composer"]')).not.toBeNull();
   const acknowledged = account.drafts.get(projectId)!;
   await act(async () => { account.drafts.set({ ...acknowledged, conflict: true }); });
   expect(account.drafts.get(projectId)!.conflict).toBe(true);
