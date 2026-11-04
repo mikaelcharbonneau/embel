@@ -31,20 +31,34 @@ export function NamingInspect({ account, entry, selected, pending, blocked, erro
   onRefresh, onUse, onWorkshop, onSave, onFavorite, onSteering, steeringSelected, steeringDisabled }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
-  const name = entry.candidate.value;
+  const { candidate, retention } = entry;
+  const name = candidate.value;
   useLayoutEffect(() => {
     const element = dialog.current;
     if (!element) return;
     element.showModal();
+    // Start on the dialog itself so opening never paints a focus ring on the first tab.
+    element.focus({ preventScroll: true });
     return () => element.close();
   }, []);
 
-  return <dialog ref={dialog} className={styles.dialog} aria-labelledby={titleId}
+  return <dialog ref={dialog} className={styles.dialog} aria-labelledby={titleId} tabIndex={-1}
     onCancel={event => { event.preventDefault(); onClose(); }}
     onClick={event => { if (isDialogBackdropClick(event)) onClose(); }}>
     <header className={styles.header}>
-      <div><p className={styles.label}>Name availability</p><h2 className={styles.title} id={titleId}>{name}</h2></div>
-      <button type="button" className={styles.close} onClick={onClose} aria-label="Close name preview"><Icon name="close" size={18} /></button>
+      <div className={styles.identity}>
+        {candidate.origin.kind === "brainstorm" && <p className={styles.label}>Unchecked brainstorm</p>}
+        <h2 className={styles.title} id={titleId}>{name}</h2>
+        {candidate.rationale && <p className={styles.rationale}>{candidate.rationale}</p>}
+      </div>
+      <div className={styles.headerActions}>
+        <button type="button" className={styles.iconButton} aria-label={`${retention.favorite ? "Unfavorite" : "Favorite"} ${name}`}
+          aria-pressed={retention.favorite} disabled={pending} onClick={onFavorite}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/naming/heart.svg" width={16} height={16} alt="" aria-hidden="true" />
+        </button>
+        <button type="button" className={styles.iconButton} onClick={onClose} aria-label="Close name preview"><Icon name="close" size={18} /></button>
+      </div>
     </header>
     <div className={styles.content}>
       <CandidateAvailability name={name} account={account} />
@@ -55,13 +69,14 @@ export function NamingInspect({ account, entry, selected, pending, blocked, erro
       <details className={styles.options}>
         <summary>More actions<Icon name="chevron" size={14} /></summary>
         <div className={styles.actions}>
-          <button type="button" className="button secondary small" disabled={pending} aria-pressed={entry.retention.favorite} onClick={onFavorite}>{entry.retention.favorite ? "Unfavorite" : "Favorite"} {name}</button>
-          <button type="button" className="button secondary small" disabled={pending} aria-pressed={entry.retention.saved} onClick={onSave}>{entry.retention.saved ? "Unsave" : "Save"} {name}</button>
+          <button type="button" className="button secondary small" disabled={pending} aria-pressed={retention.saved} onClick={onSave}>{retention.saved ? "Unsave" : "Save"} {name}</button>
           <button type="button" className="button secondary small" disabled={pending || blocked} onClick={onWorkshop}>Explore variations</button>
           {onSteering && <label className="naming-steering-choice"><input type="checkbox" checked={steeringSelected} disabled={steeringDisabled} onChange={onSteering} />More like this<span className="sr-only">: {name}</span></label>}
         </div>
       </details>
-      <button type="button" className="button secondary small" disabled={pending || blocked || selected || Boolean(earlierConfirmation)} onClick={onUse}>{selected ? "Selected name" : "Use this name"}</button>
+      <button type="button" className={`button ${selected ? "secondary" : "primary"} small`} disabled={pending || blocked || selected || Boolean(earlierConfirmation)} onClick={onUse}>
+        {selected ? <><Icon name="check" size={14} />Selected name</> : "Use this name"}
+      </button>
     </div>
   </dialog>;
 }
