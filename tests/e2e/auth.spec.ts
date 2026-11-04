@@ -89,7 +89,8 @@ async function openBriefEditor(page: Page) {
 }
 
 async function openAccount(page: Page) {
-  await page.goto(`/brands/account/${projectId}`);
+  // Generic project links resume the next saved step; the brief editor lives in Strategy.
+  await page.goto(`/brands/account/${projectId}?view=strategy`);
   await openBriefEditor(page);
   await expect(page.getByRole("textbox", { name: "Project label", exact: true })).toHaveValue(privateTitle);
 }
@@ -120,7 +121,7 @@ async function openAccountSettings(page: Page) {
 async function returnToProject(page: Page) {
   // Client history preserves the session provider and its owner-bound draft.
   await page.goBack();
-  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}\\?view=strategy`));
 }
 
 async function verifyProjectAccount(page: Page) {
@@ -131,7 +132,7 @@ async function verifyProjectAccount(page: Page) {
   await expect(menu.getByRole("link", { name: "Account settings", exact: true })).toHaveCount(0);
   await menu.getByRole("button", { name: "Check account", exact: true }).click();
   await expect(menu.getByRole("button", { name: "Sign out", exact: true })).toBeVisible();
-  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}\\?view=strategy`));
   await openBriefEditor(page);
 }
 

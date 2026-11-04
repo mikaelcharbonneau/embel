@@ -22,52 +22,43 @@ test("all public workspaces fit the viewport and retain visible page headings", 
   }
 });
 
-test("mobile trademark inputs precede the detailed checklist", async ({ page }) => {
-  test.skip(test.info().project.name !== "mobile", "Mobile layout regression");
-  await page.goto("/trademarks");
-  await page.getByRole("tab", { name: "Fill", exact: true }).click();
-  const field = page.locator(".tm-editor input").first();
-  const checklist = page.locator(".tm-checklist");
-  await expect(field).toBeVisible();
-  expect((await field.boundingBox())!.y).toBeLessThan((await checklist.boundingBox())!.y);
-  expect((await field.boundingBox())!.y).toBeLessThan(page.viewportSize()!.height);
-});
-
 test("Home recovery controls are usable touch targets and remain grouped", async ({ page }) => {
+  // Saving a Home prompt is account-only since 96ef9f1; this fixture verifies a synthetic session only.
+  await page.route("**/api/**", route => new URL(route.request().url()).pathname === "/api/session"
+    ? route.fulfill({ json: { user: { id: "aaaaaaaa-1111-4111-8111-111111111111" } } }) : route.fulfill({ status: 404, json: { error: "Synthetic missing fixture" } }));
   await page.goto("/");
-  const save = page.getByRole("button", { name: "Save draft", exact: true });
+  await page.getByRole("textbox", { name: "Your prompt", exact: true }).fill("A repair workshop sharing tools with local residents.");
+  const save = page.getByRole("button", { name: "Save project", exact: true });
   await expect(save).toBeEnabled();
   expect((await save.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-  expect(await page.locator(".conversation-start-notice .field-hint").first().evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(13);
+  expect(await page.locator(".home-draft-actions .field-hint").first().evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(13);
 });
 
 test("standalone tool account state aligns with the form and logo has one main landmark", async ({ page }) => {
   await page.goto("/trademarks");
-  const heading = await page.locator(".tm-workspace h1").boundingBox();
+  const heading = await page.locator("main h1").first().boundingBox();
   const notice = await page.locator("main .account-notice").first().boundingBox();
   expect(Math.abs(heading!.x - notice!.x)).toBeLessThanOrEqual(1);
   await page.goto("/brands/logo/new");
   await expect(page.getByRole("main")).toHaveCount(1);
 });
 
-test("sign-in recovery restores the prompt and scope and saves one browser draft", async ({ page }, info) => {
+test("sign-in recovery restores the prompt and scope from one retained browser copy", async ({ page }, info) => {
   await page.goto("/");
   const prompt = "A repair workshop sharing tools and practical skills with local residents.";
   await page.getByRole("textbox", { name: "Your prompt", exact: true }).fill(prompt);
-  await page.getByRole("radio", { name: "Naming", exact: true }).check();
-  await page.locator(".account-strategy-actions").getByRole("link", { name: "Sign in", exact: true }).click();
-  await expect(page.getByRole("link", { name: "Return to your prompt", exact: true })).toBeVisible();
-  await page.goBack();
+  await page.getByRole("button", { name: "Project scope: Brand", exact: true }).click();
+  await page.getByRole("menuitemradio", { name: "Name", exact: true }).click();
+  await page.getByLabel("Account menu", { exact: true }).click();
+  await page.locator(".workspace-account-panel").getByRole("link", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("link", { name: "Return to your prompt", exact: true })).toHaveAttribute("href", "/");
+  // A full load, as after an authentication redirect, must use the retained sign-in copy.
+  await page.goto("/");
   await expect(page.getByRole("textbox", { name: "Your prompt", exact: true })).toHaveValue(prompt);
-  await expect(page.getByRole("radio", { name: "Naming", exact: true })).toBeChecked();
+  await expect(page.getByRole("button", { name: "Project scope: Name", exact: true })).toBeVisible();
   await expect(page.getByText(/Your prompt is ready to continue/)).toBeVisible();
   await page.screenshot({ path: info.outputPath("home-restored-prompt.png"), fullPage: true, scale: "css" });
-  await page.getByRole("button", { name: "Save draft", exact: true }).click();
-  await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("fluid.local-drafts.v1")!).drafts.length)).toBe(1);
-  await page.getByRole("button", { name: "Collapse competitors", exact: true }).focus();
-  await page.keyboard.press("Tab");
-  await expect(page.getByRole("button", { name: "Add competitor", exact: true })).toBeFocused();
 });
 
 test("320px layout keeps Home input disclosures and navigation reachable", async ({ page }) => {

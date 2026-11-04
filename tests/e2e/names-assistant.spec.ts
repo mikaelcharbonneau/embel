@@ -50,8 +50,14 @@ async function fixture(page: Page) {
   });
   return state;
 }
-async function bridge(page: Page) { await page.getByRole("button", { name: "AI Assistant", exact: true }).click(); await page.getByText("Continue with a saved project", { exact: true }).click(); await expect(page.getByRole("heading", { name: "AI naming assistant" })).toBeVisible(); }
+// The saved-project bridge opens as a modal sheet from the AI Assistant tab.
+async function bridge(page: Page) {
+  await page.getByRole("button", { name: "AI Assistant", exact: true }).click();
+  await page.getByRole("button", { name: "Continue with a saved project", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Continue with a saved project", exact: true }).getByRole("heading", { name: "AI naming assistant" })).toBeVisible();
+}
 async function open(page: Page) { await page.goto("/names"); await bridge(page); }
+async function closeBridge(page: Page) { await page.getByRole("dialog", { name: "Continue with a saved project", exact: true }).getByRole("button", { name: "Close", exact: true }).click(); }
 const mutations = (state: Awaited<ReturnType<typeof fixture>>) => state.requests.filter(item => item.method !== "GET" && item.path !== "/api/names/workspace");
 
 test("assistant entry: a new brief opens the current project Naming conversation without legacy generation", async ({ page }) => {
@@ -90,17 +96,16 @@ test("assistant bridge: choose projects, readiness and reload never enqueue", as
   await page.screenshot({ path: info.outputPath("assistant-projects.png"), fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.getByRole("link", { name: "Open project Naming" }).click();
-  await expect(page.getByText("Strategy needs review", { exact: true })).toBeVisible();
-  await expect(page.getByRole("complementary", { name: "Naming conversation", includeHidden: true })).toContainText("Review Strategy to continue the Naming conversation.");
+  await expect(page.getByRole("complementary", { name: "Naming conversation" })).toContainText("Review Strategy to continue the Naming conversation.");
   await expect(page.getByRole("region", { name: "Naming choices", includeHidden: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Start exploring|Continue exploring/, includeHidden: true })).toHaveCount(0);
-  await page.reload(); await expect(page.getByText("Strategy needs review", { exact: true })).toBeVisible();
+  await page.reload(); await expect(page.getByRole("complementary", { name: "Naming conversation" })).toContainText("Review Strategy to continue the Naming conversation.");
   expect(mutations(state)).toEqual([]);
   await open(page); await page.getByLabel("Account project").selectOption(id(3));
   await page.getByRole("link", { name: "Open project Naming" }).click();
   await expect(page.getByRole("complementary", { name: "Naming conversation" })).toBeVisible();
-  await page.getByText("Saved project context", { exact: true }).click();
-  await expect(page.getByText("Synthetic naming brief 3.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Saved project context", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Saved project context", exact: true }).getByText("Synthetic naming brief 3.", { exact: true })).toBeVisible();
   expect(mutations(state)).toEqual([]);
 });
 
@@ -120,6 +125,7 @@ test("assistant bridge: account switch clears selection and delayed private repl
   state.delay = { started: false, promise: new Promise<void>(resolve => { release = resolve; }), release: () => release() };
   await open(page); await expect.poll(() => state.delay!.started).toBe(true);
   state.owner = other; state.projects = [project(8, other)];
+  await closeBridge(page);
   if (!await page.getByRole("button", { name: "Check account", exact: true }).isVisible()) await page.getByLabel("Account menu", { exact: true }).click();
   await page.getByRole("button", { name: "Check account", exact: true }).click();
   await bridge(page);
@@ -129,6 +135,7 @@ test("assistant bridge: account switch clears selection and delayed private repl
   await expect(page.getByLabel("Account project").locator("option").last()).toContainText("Synthetic project 8");
   await page.getByLabel("Account project").selectOption(id(8));
   state.owner = owner; state.projects = [project(3)];
+  await closeBridge(page);
   if (!await page.getByRole("button", { name: "Check account", exact: true }).isVisible()) await page.getByLabel("Account menu", { exact: true }).click();
   await page.getByRole("button", { name: "Check account", exact: true }).click();
   await bridge(page);

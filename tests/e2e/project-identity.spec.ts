@@ -40,45 +40,6 @@ function makeFixture() {
   };
 }
 
-test("identity generation fixture: explicit uncapped admission, Stop and partial systems keep immutable history", async ({ page }) => {
-  const fixture = makeFixture(); fixture.generationAvailable = true; await setup(page, fixture); await ready(page);
-  const panel = page.getByRole("region", { name: "Identity generation", exact: true });
-  await expect(panel.getByRole("button", { name: "Review Identity generation", exact: true })).toBeEnabled(); expect(fixture.writes).toHaveLength(0);
-  await panel.getByRole("button", { name: "Review Identity generation", exact: true }).click();
-  const review = page.getByRole("dialog", { name: "Review Identity generation", exact: true });
-  await expect(review).toContainText("Font names are specifications"); expect(fixture.writes).toHaveLength(0);
-  await review.getByRole("button", { name: "Start Identity generation", exact: true }).click();
-  await expect(panel).toContainText("Generation is queued.");
-  expect(fixture.writes.filter(write => write.kind === "generation")).toHaveLength(1);
-  const batch = fixture.generationBatch!; expect(batch.intent).toMatchObject({ version: 2, spendControl: "uncapped", expectedIdentityRevision: 1 }); expect(batch.intent).not.toHaveProperty("acceptedMaxCostMicrousd");
-  await panel.getByRole("button", { name: "Stop generation", exact: true }).click();
-  await expect(panel).toContainText("Stopping is requested."); await expect(panel.getByRole("button", { name: "Stopping…", exact: true })).toBeDisabled();
-  const created = fixtureSystem(batch.input, 2), system = { ...created, source: { kind: "generated" as const, batchId: batch.batchId, jobId: batch.jobId, stepKey: "identity.board.1" } };
-  fixture.systems.push(system); fixture.generationBatch = identityBatchStateSchema.parse({ ...batch, status: "partial", terminal: true, systems: [system], fulfillment: { targetCount: 3, acceptedCount: 1, status: "partial" } });
-  await panel.getByRole("button", { name: "Check generation status", exact: true }).click();
-  await expect(panel).toContainText("1 of 3 systems saved."); await expect(panel).toContainText("This set did not fully finish.");
-  await expect(page.locator(".identity-history-card")).toHaveCount(2);
-  expect(fixture.selection?.systemVersionId).toBe(initialSystem().id); expect(fixture.writes.filter(write => write.kind === "generation")).toHaveLength(1);
-  await page.reload(); await page.getByRole("button", { name: "Saved systems", exact: true }).click();
-  await expect(panel).toContainText("1 of 3 systems saved."); await expect(page.locator(".identity-history-card")).toHaveCount(2);
-  expect(fixture.writes.filter(write => write.kind === "generation")).toHaveLength(1);
-});
-
-test("identity generation fixture: lost admission acknowledgment recovers the original batch without another paid request", async ({ page }) => {
-  const fixture = makeFixture(); fixture.generationAvailable = true; fixture.loseAdmission = true; await setup(page, fixture); await ready(page);
-  const panel = page.getByRole("region", { name: "Identity generation", exact: true });
-  await panel.getByRole("button", { name: "Review Identity generation", exact: true }).click();
-  await page.getByRole("dialog", { name: "Review Identity generation", exact: true }).getByRole("button", { name: "Start Identity generation", exact: true }).click();
-  await expect(panel).toContainText("The original generation request is not confirmed.");
-  await expect(panel.getByRole("button", { name: "Review Identity generation", exact: true })).toBeDisabled();
-  const original = fixture.generationBatch!.intent;
-  await panel.getByRole("button", { name: "Check original generation", exact: true }).click(); await expect(panel).toContainText("Generation is queued.");
-  expect(fixture.generationBatch!.intent).toEqual(original); expect(fixture.writes.filter(write => write.kind === "generation")).toHaveLength(1);
-  await page.reload(); await page.getByRole("button", { name: "Saved systems", exact: true }).click(); await expect(panel).toContainText("Generation is queued.");
-  await expect(panel.getByRole("button", { name: "Review Identity generation", exact: true })).toBeDisabled();
-  expect(fixture.writes.filter(write => write.kind === "generation")).toHaveLength(1);
-});
-
 test("identity generation fixture: owned image upload keeps declared attribution and needs explicit reference selection", async ({ page }) => {
   const fixture = await setup(page); await page.goto(url);
   await expect(page.getByRole("heading", { name: "Build a visual starting point", exact: true })).toBeVisible();
@@ -104,21 +65,6 @@ test("identity generation fixture: owned image upload keeps declared attribution
   expect(fixture.writes.filter(write => write.kind === "reference-upload")).toHaveLength(1); expect(fixture.writes.filter(write => write.kind === "generation")).toHaveLength(0);
 });
 
-test("identity generation fixture: only an exact not-admitted server witness releases an unknown original request", async ({ page }) => {
-  const fixture = makeFixture(); fixture.generationAvailable = true; fixture.closeWithoutAdmission = true; await setup(page, fixture); await ready(page);
-  const panel = page.getByRole("region", { name: "Identity generation", exact: true });
-  await panel.getByRole("button", { name: "Review Identity generation", exact: true }).click();
-  await page.getByRole("dialog", { name: "Review Identity generation", exact: true }).getByRole("button", { name: "Start Identity generation", exact: true }).click();
-  await expect(panel).toContainText("The original generation request is not confirmed."); await expect(panel.getByRole("button", { name: "Review Identity generation", exact: true })).toBeDisabled();
-  const original = fixture.writes.find(write => write.kind === "generation")!.body;
-  await panel.getByRole("button", { name: "Stop original generation", exact: true }).click(); await expect(panel.getByRole("button", { name: "Review Identity generation", exact: true })).toBeEnabled();
-  expect(fixture.writes.find(write => write.kind === "close-generation")!.body).toEqual(original); expect(fixture.generationBatch).toBeNull();
-  fixture.closeWithoutAdmission = false; await panel.getByRole("button", { name: "Review Identity generation", exact: true }).click();
-  await page.getByRole("dialog", { name: "Review Identity generation", exact: true }).getByRole("button", { name: "Start Identity generation", exact: true }).click();
-  await expect(panel).toContainText("Generation is queued."); expect(fixture.writes.filter(write => write.kind === "generation")).toHaveLength(2);
-  expect(fixture.generationBatch!.intent.idempotencyKey).not.toBe(identityGenerationIntentSchema.parse(original).idempotencyKey);
-});
-
 test("identity generation fixture: exact upload cancellation releases a retained file only after the server rejects its original key", async ({ page }) => {
   const fixture = makeFixture(); fixture.failReferenceUpload = true; await setup(page, fixture); await page.goto(url);
   await page.getByRole("button", { name: "Add your own reference", exact: true }).click();
@@ -138,23 +84,6 @@ test("identity generation fixture: exact upload cancellation releases a retained
   expect(fixture.writes.filter(write => write.kind === "generation")).toHaveLength(0);
 });
 
-test("identity generation fixture: admitted uncertainty can request Stop without fabricating provider completion", async ({ page }) => {
-  const fixture = makeFixture(); fixture.generationAvailable = true; await setup(page, fixture); await ready(page);
-  const panel = page.getByRole("region", { name: "Identity generation", exact: true });
-  await panel.getByRole("button", { name: "Review Identity generation", exact: true }).click();
-  await page.getByRole("dialog", { name: "Review Identity generation", exact: true }).getByRole("button", { name: "Start Identity generation", exact: true }).click();
-  await expect(panel).toContainText("Generation is queued.");
-  fixture.generationBatch = identityBatchStateSchema.parse({ ...fixture.generationBatch, status: "needs_reconciliation", fulfillment: { targetCount: 3, acceptedCount: 0, status: "none" } });
-  await panel.getByRole("button", { name: "Check generation status", exact: true }).click(); await expect(panel).toContainText("This request needs verification");
-  await expect(panel.getByRole("button", { name: "Review Identity generation", exact: true })).toBeDisabled();
-  await panel.getByRole("button", { name: "Stop further work", exact: true }).click(); await expect(panel.getByRole("button", { name: "Stop requested", exact: true })).toBeDisabled();
-  await expect(panel).toContainText("Existing provider outcomes still need verification"); await expect(panel).not.toContainText("Generation stopped.");
-  expect(fixture.generationBatch.status).toBe("needs_reconciliation"); expect(fixture.generationBatch.terminal).toBe(false); expect(fixture.writes.filter(write => write.kind === "generation")).toHaveLength(1);
-  await page.reload(); await page.getByRole("button", { name: "Saved systems", exact: true }).click(); await expect(panel).toContainText("This request needs verification"); await expect(panel).not.toContainText("Generation stopped.");
-  fixture.generationBatch = identityBatchStateSchema.parse({ ...fixture.generationBatch, status: "cancelled", terminal: true });
-  await panel.getByRole("button", { name: "Check generation status", exact: true }).click(); await expect(panel).toContainText("Generation stopped. Completed systems remain in history.");
-  expect(fixture.writes.filter(write => write.kind === "generation")).toHaveLength(1); expect(fixture.writes.filter(write => write.kind === "stop-generation")).toHaveLength(1);
-});
 function referenceSnapshot(fixture: Fixture) {
   const selected = fixture.references.filter(entry => entry.reaction.ensemble || entry.reaction.elements.length);
   return createIdentityReferenceSnapshot({ ownerId: fixtureOwner, projectId: fixtureProject, referenceRevision: fixture.referenceRevision,
@@ -592,7 +521,8 @@ test("identity fixture: cancelling actual tab close keeps private raw edit buffe
 
 test("identity fixture: saved References has an honest keyboard transition to the actual Systems heading", async ({ page }) => {
   const fixture = await setup(page); await ready(page); const transition = page.getByRole("link", { name: "View saved systems", exact: true });
-  await expect(page.getByRole("region", { name: "Identity generation", exact: true })).toContainText("New system generation is unavailable.");
+  // New boards come from the chosen-logo visual directions flow, not from saved systems.
+  await expect(page.getByRole("region", { name: "Visual directions", exact: true }).getByRole("link", { name: "Open visual directions", exact: true })).toHaveAttribute("href", `/brands/account/${fixtureProject}/logo/directions`);
   await transition.focus(); await page.keyboard.press("Enter"); await expect(page.getByRole("heading", { name: "Identity systems", exact: true })).toBeFocused();
   await expect(page.getByRole("button", { name: /^Generate/ })).toHaveCount(0); expect(fixture.writes).toHaveLength(0);
 });

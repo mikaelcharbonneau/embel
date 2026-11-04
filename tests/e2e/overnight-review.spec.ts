@@ -47,9 +47,12 @@ test("last answer starts one request, keeps chat for 99 names, then opens full-w
 test("unknown generation remains in the conversation with recovery, not a misleading ready screen", async ({ page }) => {
   const f = await namingFixture(page); f.state.ensureMode = "unknown";
   await constraints(page); await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await expect(page.getByText("Synthetic unknown outcome requires resolution.", { exact: true })).toBeVisible();
+  // The outcome is also summarized in the exploration panel; the conversation must carry it.
+  await expect(page.getByRole("region", { name: "Naming choices" }).getByText("Synthetic unknown outcome requires resolution.", { exact: true })).toBeVisible();
   await expect(page.locator('[data-naming-layout="chat"]')).toBeVisible();
-  await expect(page.getByRole("button", { name: "Retry generation", exact: true })).toBeDisabled();
+  // An uncertain paid request offers no new generation, only a saved-state check.
+  await expect(page.getByRole("button", { name: /^(Retry generation|Generate names)$/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Apply updated choices", exact: true })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Check saved state", exact: true })).toBeVisible();
   expect(new Set(f.mutations().map(row => row.body?.idempotencyKey)).size).toBe(1);
 });

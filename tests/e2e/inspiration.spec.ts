@@ -34,7 +34,9 @@ async function setup(page: Page) {
 const card = (page: Page) => page.getByRole("article", { name: `Dropbox — ${design.slug}`, exact: true });
 const inspect = (page: Page) => card(page).getByRole("button", { name: /^Inspect / });
 test("catalog search, filters, original images and read-only inspection", async ({ page }, info) => {
-  const fixture = await setup(page); await expect(page.locator(".inspiration-card")).toHaveCount(15);
+  // The gallery lists the curated catalog minus designs retired from discovery
+  // (b38ff07 grew the catalog to 30 and retired 7 whose marks are too small at gallery size).
+  const fixture = await setup(page); await expect(page.locator(".inspiration-card")).toHaveCount(23);
   await expect.poll(() => card(page).locator(".inspiration-image").evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(720);
   await expect(page.locator(".inspiration-categories button")).toHaveText(["Identities", "Logos", "All"]);
   const next = page.getByRole("link", { name: "Continue to logo generation", exact: true });

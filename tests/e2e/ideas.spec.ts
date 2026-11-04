@@ -23,6 +23,8 @@ function idea(id = ideaId, ownerId = ownerA, title?: string): Idea {
 function summary(item: Idea) {
   return { id: item.id, ownerId: item.ownerId, revision: item.revision, title: item.content.title, description: item.content.description, theme: item.content.theme, state: item.content.state, createdAt: item.createdAt, updatedAt: item.updatedAt };
 }
+// A created brand opens, and its generic link resumes, at the Strategy step.
+const strategyUrl = new RegExp(`/brands/account/${projectId}\\?view=strategy`);
 function fixtureId(index: number) { return `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`; }
 
 async function reply(route: Route, body: unknown, status = 200) {
@@ -349,7 +351,7 @@ test("Ideas fixture: explicit brand creation preserves its original source after
   const state = await accountFixtures(page, [original]);
   await openIdea(page);
   await page.getByRole("button", { name: "Create brand", exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  await expect(page).toHaveURL(strategyUrl);
   await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   await expectProjectLabel(page, "Quiet kitchen fixture");
   expect(state.sources.get(projectId)).toMatchObject({ link: { ideaId, ideaRevision: 1, projectId }, content: original.content });
@@ -369,7 +371,7 @@ test("Ideas fixture: explicit brand creation preserves its original source after
   await expect(page.getByLabel("Save status", { exact: true })).toHaveText("Saved");
   expect(state.ideas.get(ideaId)?.content.title).toBe("Edited idea title fixture");
   await page.getByRole("link", { name: "Open created brand", exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  await expect(page).toHaveURL(strategyUrl);
   await expectProjectLabel(page, "Quiet kitchen fixture");
   await expect(page.locator("main")).not.toContainText("Edited idea title fixture");
   expect(state.sources.get(projectId)).toEqual(source);
@@ -385,7 +387,7 @@ test("Ideas fixture: uncertain brand creation retries its original key without c
   await expect(page.getByRole("button", { name: "Retry creating brand", exact: true })).toBeVisible();
   expect(state.writes).toHaveLength(1);
   await page.getByRole("button", { name: "Retry creating brand", exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  await expect(page).toHaveURL(strategyUrl);
   expect(state.writes[1]!.body).toEqual(state.writes[0]!.body);
   expect(state.projects.size).toBe(1);
 });
@@ -505,7 +507,7 @@ test("Ideas fixture: unavailable optional source metadata does not block the own
   await page.route(`**/api/projects/${projectId}/idea-source`, route => reply(route, {}, 503));
   await openIdea(page);
   await page.getByRole("button", { name: "Create brand", exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}$`));
+  await expect(page).toHaveURL(strategyUrl);
   expect(await page.evaluate(async id => (await fetch(`/api/projects/${id}/idea-source`, { cache: "no-store" })).status, projectId)).toBe(503);
   await page.reload();
   const composer = page.getByRole("textbox", { name: "Message Embel", exact: true });

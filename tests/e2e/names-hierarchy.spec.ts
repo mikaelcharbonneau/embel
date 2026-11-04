@@ -19,15 +19,16 @@ test("Names hierarchy: long retained seed and live preview stay accessible besid
   await expect(page.locator(".names-word-chip")).toHaveCount(1);
   await expect(page.locator(".names-word-count")).toHaveText("1 word");
   const words = await page.locator(".names-words-panel").boundingBox(); expect(words!.height).toBeLessThanOrEqual(page.viewportSize()!.height * .4);
-  const seed = page.locator(".names-long-word"), summary = seed.locator("summary");
-  const collapsedLines = await summary.evaluate(element => element.getBoundingClientRect().height / parseFloat(getComputedStyle(element).lineHeight));
+  // The full seed opens in a sheet from its compact trigger.
+  const summary = page.locator(".names-long-word").getByRole("button", { name: longSeed, exact: true }), sheet = page.getByRole("dialog", { name: longSeed, exact: true });
+  const collapsedLines = await summary.locator("span").first().evaluate(element => element.getBoundingClientRect().height / parseFloat(getComputedStyle(element).lineHeight));
   expect(collapsedLines).toBeLessThanOrEqual(2);
   if (info.project.name === "mobile") {
     expect((await page.getByRole("button", { name: `Remove word ${longSeed}`, exact: true }).boundingBox())!.height).toBeGreaterThanOrEqual(44);
     await expect(page.getByRole("button", { name: "Preview · 1", exact: true })).toBeInViewport();
   }
-  await summary.focus(); await summary.press("Enter"); await expect(seed).toHaveAttribute("open", "");
-  await summary.press("Enter"); await expect(seed).not.toHaveAttribute("open", "");
+  await summary.focus(); await summary.press("Enter"); await expect(sheet).toBeVisible(); await expect(sheet.getByRole("paragraph")).toHaveText(longSeed);
+  await page.keyboard.press("Escape"); await expect(sheet).toBeHidden(); await expect(summary).toBeFocused();
   const prefix = page.getByRole("button", { name: "prefix Neo", exact: true });
   await prefix.click(); await expect(prefix).toBeFocused(); await waitForNamesSaved(page); await expect(prefix).toBeFocused();
   const result = `Neo${longSeed}`;

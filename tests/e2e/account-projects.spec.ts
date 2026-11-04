@@ -137,6 +137,8 @@ async function save(page: Page, version: number) {
   if (await retry.first().isVisible()) await retry.first().click();
   await expectSavedVersion(page, version);
 }
+// Cards are titled by the selected name once their preview loads, so address them by project.
+function projectLink(page: Page, id = projectA) { return page.locator(`.project-card[data-project-id="${id}"]`).getByRole("link"); }
 async function browserData(page: Page) { return page.evaluate(key => localStorage.getItem(key), storageKey); }
 async function rename(page: Page, title: string) {
   const editor = await openProjectDetails(page);
@@ -214,8 +216,8 @@ test("account fixture: explicit browser copy preserves legacy notes, audience an
   expect(stored.audienceSegments).toEqual(legacyProject.context.audienceSegments); expect(stored.competitors).toEqual(legacyProject.context.competitors);
   expect(JSON.parse((await browserData(page))!).drafts[0]).toEqual(recoveredDraft); await expectProjectCanvas(page);
   await page.screenshot({ path: info.outputPath("account-editor.png"), fullPage: true, scale: "css" });
-  await openProjects(page); await expect(page.getByRole("heading", { name: "Renamed account fixture", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Culture browser fixture", exact: true })).toHaveCount(0);
+  await openProjects(page); await expect(page.getByRole("button", { name: "Project options for Renamed account fixture", exact: true })).toBeVisible();
+  await expect(page.locator(".project-card")).toHaveCount(1); await expect(page.getByText("Culture browser fixture", { exact: true })).toHaveCount(0);
   await expect(page.locator('.project-card[data-storage="browser"]')).toHaveCount(0);
 });
 
@@ -264,7 +266,7 @@ test("account fixture: 409 keeps edits, offers an explicit browser copy and requ
 test("account fixture: expired session masks private data and same-account recovery keeps edits across internal navigation", async ({ page }) => {
   const state = await accountFixtures(page, [fixtureProject()]); await openAccount(page); state.patchStatus = 503;
   await editDescription(page, "A private unsaved note"); await expectUnsaved(page); await openProjects(page);
-  await page.getByRole("link", { name: /Private account A fixture/ }).click(); const editor = await openProjectDetails(page);
+  await projectLink(page).click(); const editor = await openProjectDetails(page);
   await expect(editor.getByRole("textbox", { name: "Brief description", exact: true })).toHaveValue("A private unsaved note"); await closeProjectDetails(page);
   state.patchStatus = 401; await page.getByRole("button", { name: "Retry save", exact: true }).first().click();
   await expect(page.getByText("No verified account session.", { exact: false })).toBeVisible(); await expect(page.getByRole("textbox")).toHaveCount(0);
@@ -281,8 +283,8 @@ test("account fixture: an account switch fences a late save and never exposes or
   await rename(page, "Account A secret pending edit"); await requested; state.owner = ownerB; await checkAccount(page);
   await expect(page.locator(".project-workspace-content").getByRole("alert")).toContainText("not available to this account"); release(); await completed;
   await expect(page.getByRole("textbox")).toHaveCount(0); await expect(page.getByText("Account A secret pending edit", { exact: true })).toHaveCount(0); await expect(page.getByRole("button", { name: "Keep a recovery copy", exact: true })).toHaveCount(0); expect(await browserData(page)).toBeNull();
-  await page.getByRole("link", { name: "Back to brands", exact: true }).click(); await expect(page.getByRole("heading", { name: "Private account B fixture", exact: true })).toBeVisible(); await expect(page.getByRole("heading", { name: "Private account A fixture", exact: true })).toHaveCount(0);
-  await page.getByRole("link", { name: /Private account B fixture/ }).click();
+  await page.getByRole("link", { name: "Back to brands", exact: true }).click(); await expect(page.getByRole("button", { name: "Project options for Private account B fixture", exact: true })).toBeVisible(); await expect(page.locator(".project-card")).toHaveCount(1); await expect(page.getByText("Private account A fixture", { exact: true })).toHaveCount(0);
+  await projectLink(page, projectB).click();
   await expect(page).toHaveURL(new RegExp(`/brands/account/${projectB}/naming$`));
   await openAccount(page, projectB); await rename(page, "Account B safe edit"); await save(page, 2);
 });
@@ -331,13 +333,17 @@ test("account fixture: malformed account data and unknown remote IDs cannot beco
 });
 
 test("account fixture: a delayed load after internal navigation cannot roll back a newer successful save", async ({ page }) => {
-  const original = fixtureProject(), state = await accountFixtures(page, [original]); await openAccount(page);
+  // Naming-only projects have no Strategy composer; a complete brand with unreviewed Strategy does.
+  const original = fixtureProject(); original.scope = "complete_brand"; original.context.intake.audienceReviewedAt = null;
+  const state = await accountFixtures(page, [original]); await openAccount(page);
   // An unsent Strategy note keeps this editor active when its generic project link is revisited.
   await page.getByRole("textbox", { name: "Message Embel", exact: true }).fill("Unsent strategy note");
   await openProjects(page);
+  // Let the card preview read the project first, so the held read below is the editor's load.
+  await expect(page.locator(`.project-card[data-project-id="${projectA}"] h2`)).toHaveText(original.context.selectedName!);
   let release!: () => void, started!: () => void, held = false; const pending = new Promise<void>(r => { release = r; }), requested = new Promise<void>(r => { started = r; });
   await page.route(`**/api/projects/${projectA}`, async route => { if (held || route.request().method() !== "GET") return route.fallback(); held = true; started(); await pending; await reply(route, { project: original }); });
-  await page.getByRole("link", { name: /Private account A fixture/ }).click(); await requested; await rename(page, "Newer successful save fixture"); await save(page, 2);
+  await projectLink(page).click(); await requested; await rename(page, "Newer successful save fixture"); await save(page, 2);
   const response = page.waitForResponse(r => r.url().endsWith(`/api/projects/${projectA}`) && r.request().method() === "GET"); release(); await (await response).finished();
   await expectLabel(page, "Newer successful save fixture"); await expectSavedVersion(page, 2); expect(state.projects.get(projectA)?.title).toBe("Newer successful save fixture");
   await rename(page, "Follow-on version three fixture"); await save(page, 3); expect(state.writes.at(-1)?.body.expectedRevision).toBe(2); expect(await browserData(page)).toBeNull();
@@ -359,7 +365,7 @@ for (const status of [404, 503]) {
   test(`account fixture: ${status} during revalidation masks cached data and keeps edits for a successful retry`, async ({ page }) => {
     const state = await accountFixtures(page, [fixtureProject()]); await openAccount(page); state.patchStatus = 503; await rename(page, "Private unsaved revalidation fixture"); await expectUnsaved(page); await openProjects(page);
     let failing = true; await page.route(`**/api/projects/${projectA}`, async route => failing && route.request().method() === "GET" ? reply(route, { error: "Synthetic revalidation failure" }, status) : route.fallback());
-    await page.getByRole("link", { name: /Private account A fixture/ }).click(); await expect(page.locator(".project-workspace-content").getByRole("alert")).toContainText(status === 404 ? "not available to this account" : "Account saving is unavailable");
+    await projectLink(page).click(); await expect(page.locator(".project-workspace-content").getByRole("alert")).toContainText(status === 404 ? "not available to this account" : "Account saving is unavailable");
     await expect(page.getByRole("textbox")).toHaveCount(0); await expect(page.getByText("Private unsaved revalidation fixture", { exact: true })).toHaveCount(0); await expect(page.getByText("Unsaved account edits remain in this tab.", { exact: false })).toBeVisible();
     failing = false; state.patchStatus = 200; await page.getByRole("button", { name: "Retry loading project", exact: true }).click(); await expectLabel(page, "Private unsaved revalidation fixture"); await save(page, 2); expect(await browserData(page)).toBeNull();
   });
