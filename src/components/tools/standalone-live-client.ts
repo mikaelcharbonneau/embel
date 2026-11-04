@@ -1,4 +1,6 @@
 import { z } from "zod";
+
+const REGISTRY_PROVIDER = "Public registry RDAP";
 import { standaloneCapabilitiesSchema, standaloneLookupResponseSchema, lookupFailureMessage, type StandaloneCapabilities, type StandaloneLookupInput, type TrademarkLookup } from "@/domain/standalone-live-checks";
 import { type DomainSearchAdapter, type DomainQuote, DomainLookupError, quoteBlockReason } from "@/features/domain-workspace/model";
 import { type HandleCheckAdapter, unavailableEvidence } from "@/features/handles-workspace/adapters";
@@ -59,7 +61,7 @@ export function createStandaloneLiveAdapters(capabilities: StandaloneCapabilitie
       : lookupFailureMessage[response.result.code], response.result.code === "rate_limited" ? response.result.retryAfterSeconds ?? 60 : null);
     return response.result;
   }
-  const provider = capabilities.domains === "namecom" ? "namecom_core" : capabilities.domains === "cloudflare" ? "cloudflare_registrar" : capabilities.domains === "vercel" ? "vercel_registrar" : "Public registry RDAP";
+  const provider = capabilities.domains === "namecom" ? "namecom_core" : capabilities.domains === "cloudflare" ? "cloudflare_registrar" : capabilities.domains === "vercel" ? "vercel_registrar" : REGISTRY_PROVIDER;
   const hasPrices = capabilities.domains === "namecom" || capabilities.domains === "cloudflare" || capabilities.domains === "vercel";
   return {
     domains: capabilities.domains === "unavailable" ? { status: "unavailable", reason: "Domain checks are not connected." } : {
@@ -68,7 +70,9 @@ export function createStandaloneLiveAdapters(capabilities: StandaloneCapabilitie
       async check(domain, signal) {
         prices.delete(domain);
         const result = await lookup({ tool: "domains", domain }, signal);
-        if (result.status !== "domain" || result.check.domain !== domain || result.check.provider !== provider) throw new Error("The lookup did not match this domain.");
+        // A registrar may be corroborated by the public registry, but only to confirm a registration, never with a price.
+        const registryTaken = result.status === "domain" && provider !== REGISTRY_PROVIDER && result.check.provider === REGISTRY_PROVIDER && result.check.availability === "taken" && result.quote === null;
+        if (result.status !== "domain" || result.check.domain !== domain || (result.check.provider !== provider && !registryTaken)) throw new Error("The lookup did not match this domain.");
         if (result.quote && quoteBlockReason(result.quote, result.check, Date.now()) !== null) throw new Error("The price did not match this domain check.");
         if (prices.size >= 200) prices.delete(prices.keys().next().value!);
         prices.set(domain, { check: result.check, quote: result.quote }); return result.check;

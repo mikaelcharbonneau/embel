@@ -245,4 +245,33 @@ describe("optional Name.com selection preserves existing live providers", () => 
     expect(await runStandaloneLookup(owner, { tool: "domains", domain: "example.com" }, signal(), { config: settings, fetch: fetcher, clock, admit: createLookupAdmission(clock) })).toMatchObject({ status: "failed", code: "not_authorized" });
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
+  describe("registry confirmation of unregistrable domains", () => {
+    const settings = () => standaloneProviderConfig({ ...env, FLUID_NAMECOM_CHECKS_ENABLED: "true" });
+    const routed = (record: Record<string, unknown>, registry: "registered" | "missing") => vi.fn(async (request: Request) => request.url.startsWith("https://rdap.verisign.com/")
+      ? registry === "registered" ? json({ objectClassName: "domain", ldhName: "EXAMPLE.COM" }) : json({ errorCode: 404 }, 404)
+      : json({ results: [record] }));
+    const run = (fetcher: ReturnType<typeof routed>) => runStandaloneLookup(owner, { tool: "domains", domain: "example.com" }, signal(), { config: settings(), fetch: fetcher, clock, admit: createLookupAdmission(clock) });
+    it("reports Taken from the registry when Name.com cannot sell an existing registration", async () => {
+      const fetcher = routed(available("example.com", { purchasable: false }), "registered");
+      const result = await run(fetcher);
+      expect(result).toMatchObject({ status: "domain", quote: null, check: { provider: "Public registry RDAP", availability: "taken", sourceUrl: "https://rdap.verisign.com/com/v1/domain/example.com" } });
+      expect(standaloneLookupResultSchema.safeParse(result).success).toBe(true);
+      expect(fetcher.mock.calls.map(([request]) => request.url)).toEqual(["https://api.name.com/core/v1/domains:checkAvailability", "https://rdap.verisign.com/com/v1/domain/example.com"]);
+    });
+    it("keeps the resale offer in front of the registry evidence", async () => {
+      const result = await run(routed(available("example.com", { purchaseType: "aftermarket_b", purchasePrice: 2873.85 }), "registered"));
+      if (result.status !== "domain") throw new Error("fixture result");
+      expect(result.check.availability).toBe("taken"); expect(result.quote).toBeNull();
+      expect(result.check.detail).toMatch(/^Not available as a new registration: Name\.com lists it for resale by its current owner for 2873\.85 USD before tax\./u);
+      expect(result.check.detail).toContain("Listing type: aftermarket_b."); expect(result.check.detail).toContain("The authoritative registry returned an exact registration record.");
+    });
+    it("keeps Name.com's unknown result when the registry has no record", async () => {
+      expect(await run(routed(available("example.com", { purchasable: false }), "missing"))).toMatchObject({ status: "domain", check: { provider: "namecom_core", availability: "unknown" } });
+    });
+    it("never consults the registry for an available domain", async () => {
+      const fetcher = vi.fn(async (request: Request) => request.method === "POST" ? json({ results: [available()] }) : json(prices()));
+      expect(await run(fetcher)).toMatchObject({ check: { provider: "namecom_core", availability: "available" } });
+      expect(fetcher.mock.calls.every(([request]) => !request.url.includes("rdap"))).toBe(true);
+    });
+  });
 });
