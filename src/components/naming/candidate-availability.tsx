@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import { createStandaloneLiveAdapters, loadStandaloneCapabilities } from "@/components/tools/standalone-live-client";
 import { lookupFailureMessage, type TrademarkLookup } from "@/domain/standalone-live-checks";
@@ -27,6 +27,23 @@ function Source({ url, label }: { url?: string | null; label: string }) {
 function CheckedTime({ at }: { at: string }) {
   return <time dateTime={at}>{new Date(at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</time>;
 }
+type Tone = "positive" | "negative" | "neutral";
+function Status({ tone, children }: { tone: Tone; children: ReactNode }) {
+  return <span className={styles.pill} data-tone={tone}><span className={styles.dot} aria-hidden="true" />{children}</span>;
+}
+/** Provider details lead with one plain sentence; the remaining qualifications stay one click away. */
+function Explanation({ text }: { text: string }) {
+  const match = /^(.+?[.!?])\s+(\S[\s\S]*)$/u.exec(text.trim());
+  if (!match) return <p>{text}</p>;
+  return <><p>{match[1]}</p><details className={styles.more}><summary>Details</summary><p>{match[2]}</p></details></>;
+}
+function Card({ title, status, children, source }: { title: string; status: ReactNode; children?: ReactNode; source: ReactNode }) {
+  return <div className={styles.result} role="status">
+    <div className={styles.resultHead}><strong>{title}</strong>{status}</div>
+    {children}
+    <small className={styles.meta}>{source}</small>
+  </div>;
+}
 function DomainResult({ check }: { check: DomainCheck }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -36,23 +53,33 @@ function DomainResult({ check }: { check: DomainCheck }) {
     return () => clearTimeout(timer);
   }, [check, now]);
   const status = availabilityAt(check, now), expired = now >= Date.parse(check.validUntil);
-  return <><strong>{check.domain} · {status === "available" ? "Available to register" : status === "taken" ? "Taken" : "Availability unknown"}</strong>
-    {expired ? <p>This check has expired. Check again for a current result.</p> : check.detail && <p>{check.detail}</p>}
-    <small><Source url={check.sourceUrl} label={providerLabels[check.provider] ?? check.provider} /> · <CheckedTime at={check.checkedAt} /></small></>;
+  const pill = status === "available" ? <Status tone="positive">Available to register</Status>
+    : status === "taken" ? <Status tone="negative">Taken</Status> : <Status tone="neutral">{expired ? "Check expired" : "Not confirmed"}</Status>;
+  return <Card title={check.domain} status={pill}
+    source={<>Checked with <Source url={check.sourceUrl} label={providerLabels[check.provider] ?? check.provider} /> · <CheckedTime at={check.checkedAt} /></>}>
+    {expired ? <p>This check has expired. Check again for a current result.</p> : check.detail && <Explanation text={check.detail} />}
+  </Card>;
 }
 function Observation({ result }: { result: Result }) {
   if (result.tool === "Domains") return <DomainResult check={result.check} />;
   if (result.tool === "Handles") {
     const { evidence } = result;
-    return <><strong>@{evidence.handle}</strong><p>{evidence.detail}</p>
-      <small><Source url={evidence.sourceUrl} label={evidence.source ? "YouTube" : "Lookup"} /> · <CheckedTime at={evidence.checkedAt ?? evidence.observedAt} /></small></>;
+    const pill = evidence.outcome === "confirmed_available" ? <Status tone="positive">Available</Status> : evidence.outcome === "taken" ? <Status tone="negative">Taken</Status> : <Status tone="neutral">Not confirmed</Status>;
+    return <Card title={`@${evidence.handle}`} status={pill}
+      source={<>Checked with <Source url={evidence.sourceUrl} label={evidence.source ? "YouTube" : "Lookup"} /> · <CheckedTime at={evidence.checkedAt ?? evidence.observedAt} /></>}>
+      <Explanation text={evidence.detail} />
+    </Card>;
   }
   const { research } = result;
-  return <><strong>{!research.searched.length ? "No registry was searched" : research.hits.length ? `${research.hits.length} exact-name ${research.hits.length === 1 ? "record" : "records"} returned` : "No exact-name records returned"}</strong>
-    <p>Partial EUIPO search. Similar marks and legal clearance have not been assessed.</p>
+  const hits = research.hits.length;
+  const pill = !research.searched.length ? <Status tone="neutral">Not searched</Status>
+    : hits ? <Status tone="negative">{hits} exact {hits === 1 ? "match" : "matches"}</Status> : <Status tone="positive">No exact match</Status>;
+  return <Card title={research.query.mark} status={pill}
+    source={<>Searched <Source url={research.sourceUrl} label="EUIPO" /> · <CheckedTime at={research.checkedAt} /></>}>
+    <p>{!research.searched.length ? "No registry was searched" : hits ? `${hits} exact-name ${hits === 1 ? "record" : "records"} returned` : "No exact-name records returned"}. Similar marks and legal clearance have not been assessed.</p>
     {research.interrupted && <p>Search interrupted. {lookupFailureMessage[research.interrupted]}</p>}
-    {research.hits.length > 0 && <details><summary>Matching records ({research.hits.length})</summary><ul>{research.hits.map(hit => <li key={hit.registryId}><Source url={`https://euipo.europa.eu/eSearch/#details/trademarks/${hit.registryId}`} label={`${hit.mark} · ${hit.registryId}`} /> · {hit.status.replaceAll("_", " ")}{hit.niceClasses.length > 0 && ` · Classes ${hit.niceClasses.join(", ")}`}</li>)}</ul></details>}
-    <small><Source url={research.sourceUrl} label="EUIPO" /> · <CheckedTime at={research.checkedAt} /></small></>;
+    {hits > 0 && <details className={styles.more}><summary>Matching records ({hits})</summary><ul>{research.hits.map(hit => <li key={hit.registryId}><Source url={`https://euipo.europa.eu/eSearch/#details/trademarks/${hit.registryId}`} label={`${hit.mark} · ${hit.registryId}`} /> · {hit.status.replaceAll("_", " ")}{hit.niceClasses.length > 0 && ` · Classes ${hit.niceClasses.join(", ")}`}</li>)}</ul></details>}
+  </Card>;
 }
 
 type Props = { name: string; account: VerifiedAccount };
@@ -139,7 +166,7 @@ function OwnedChecks({ name, account }: Props) {
           <label>Handle<input value={handle} onChange={e => edit(() => setHandle(e.target.value))} maxLength={65} spellCheck={false} /></label></>}
         {tool === "Trademarks" && <><label>Jurisdiction<select value={region} onChange={e => edit(() => setRegion(e.target.value))}>{registries.map(r => <option key={r.code} value={r.code}>{r.label}</option>)}</select></label>
           <label>Word mark<input value={mark} onChange={e => edit(() => setMark(e.target.value))} maxLength={160} /></label></>}
-        <button className="button primary" type="submit" disabled={!adapters || busy || Boolean(notice)}>{tool === "Domains" ? "Check domain" : tool === "Handles" ? "Check handle" : "Search trademarks"}</button>
+        <button className="button secondary" type="submit" disabled={!adapters || busy || Boolean(notice)}>{tool === "Domains" ? "Check domain" : tool === "Handles" ? "Check handle" : "Search trademarks"}</button>
       </form>
       {busy && <div className={styles.status}><span role="status">Checking…</span><button type="button" className="text-link" onClick={stop}>Cancel check</button></div>}
       {connectionError && <div className={styles.status}><span role="alert">Lookup connections could not be checked.</span><button type="button" className="text-link" onClick={() => { setConnectionError(false); retry(n => n + 1); }}>Retry connection</button></div>}
@@ -147,7 +174,7 @@ function OwnedChecks({ name, account }: Props) {
       {notice && <p>{notice}</p>}
       {error && <p role="alert">{error}</p>}
       {(notice || error || connectionError) && manual && <p><Source url={manual.url} label={manual.label} /></p>}
-      {result && <div className={styles.result} role="status"><Observation result={result} /></div>}
+      {result && <Observation result={result} />}
     </div>
   </section>;
 }

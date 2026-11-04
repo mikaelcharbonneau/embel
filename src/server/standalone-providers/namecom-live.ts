@@ -139,8 +139,11 @@ export async function lookupNamecomBatch(domains: readonly string[], rawConfig: 
         } else if (record.purchaseType !== "registration") {
           const amount = record.purchasePrice === undefined ? null : usdMinorUnits(record.purchasePrice);
           if (record.purchasePrice !== undefined && amount === null) { results[index] = failure("invalid_response"); continue; }
-          const label = record.purchaseType.startsWith("aftermarket_") ? `aftermarket (${record.purchaseType})` : record.purchaseType;
-          results[index] = unknown(`Name.com reports a ${label} acquisition offer.${amount === null ? " Acquisition price unavailable." : ` Flat acquisition fee: ${usdText(amount)} before tax.`} This is not a new registration; registration length and renewal terms are unverified. Third-party fulfillment may be delayed or declined. No purchase is enabled.`);
+          // Lead with one plain sentence; keep Name.com's exact listing type as evidence.
+          const offer = record.purchaseType.startsWith("aftermarket_") ? "lists it for resale by its current owner"
+            : record.purchaseType === "expiring" ? "offers it as an expiring domain"
+            : record.purchaseType === "backorder" ? "offers it only as a backorder" : `offers it as a "${record.purchaseType}" acquisition`;
+          results[index] = unknown(`Not available as a new registration: Name.com ${offer}${amount === null ? "." : ` for ${usdText(amount)} before tax.`}${amount === null ? " Acquisition price unavailable." : ""} Listing type: ${record.purchaseType}. Its registration length and renewal terms are unverified, and third-party fulfillment may be delayed or declined. No purchase is enabled.`);
         } else {
           // Explicit term avoids pricing .ai's two-year minimum as one year. Other unsupported terms
           // fail closed; never silently retry another term or multiply discovery/renewal prices.

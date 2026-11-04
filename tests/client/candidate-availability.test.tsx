@@ -39,10 +39,10 @@ it("checks the exact edited domain on demand and withdraws a stale registration 
   const [, init] = lookup.mock.calls[1]!;
   expect(init.headers).toMatchObject({ "X-Embel-Account": account.userId });
   expect(JSON.parse(String(init.body))).toEqual({ tool: "domains", domain: "rivercoil.net" });
-  expect(host.textContent).toContain("rivercoil.net · Taken");
+  expect(host.querySelector("[role=status] strong")?.textContent).toBe("rivercoil.net"); expect(host.querySelector("[data-tone]")?.textContent).toBe("Taken");
   expect(host.querySelector('a')?.getAttribute("href")).toBe(check.sourceUrl);
   await act(() => vi.advanceTimersByTimeAsync(60002));
-  expect(host.textContent).toContain("Availability unknown"); expect(lookup).toHaveBeenCalledTimes(2);
+  expect(host.querySelector("[data-tone]")?.textContent).toBe("Check expired"); expect(lookup).toHaveBeenCalledTimes(2);
 });
 
 it("aborts a pending lookup on tab change or close and ignores its late response", async () => {
