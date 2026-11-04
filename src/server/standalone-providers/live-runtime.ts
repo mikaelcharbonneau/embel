@@ -27,6 +27,23 @@ export function createLookupAdmission(clock: ProviderClock = Date.now) {
     return () => { bucket.active = false; };
   };
 }
+/** A registrar only reports whether it can sell a new registration. When it cannot, the
+ * authoritative registry can confirm an existing registration; otherwise the registrar's
+ * own unknown result stands. No price is ever attached to a registry confirmation. */
+async function lookupDomain(domain: string, config: StandaloneProviderConfig, fetcher: ProviderFetch, clock: ProviderClock, signal: AbortSignal): Promise<StandaloneLookupResult> {
+  const registrar = config.namecom ? lookupNamecom(domain, config.namecom, fetcher, clock, signal) : config.cloudflare ? lookupCloudflare(domain, config.cloudflare, fetcher, clock, signal)
+    : config.vercel ? lookupVercel(domain, fetcher, clock, signal) : null;
+  if (!registrar) return config.rdap ? await lookupRdap(domain, fetcher, clock, signal) : { status: "failed", code: "unavailable", retryAfterSeconds: null };
+  const primary = await registrar;
+  if (primary.status !== "domain" || primary.check.availability !== "unknown" || !config.rdap || signal.aborted) return primary;
+  const registry = await lookupRdap(domain, fetcher, clock, signal);
+  if (registry.status !== "domain" || registry.check.availability !== "taken") return primary;
+  // Keep a registrar's resale offer (price and caveats) in front of the registry evidence.
+  const resale = primary.check.detail?.startsWith("Not available as a new registration:") ? primary.check.detail : null;
+  const combined = resale && `${resale} The authoritative registry returned an exact registration record.`;
+  const detail = combined && combined.length <= 500 ? combined : resale ?? registry.check.detail;
+  return { ...registry, check: { ...registry.check, detail } };
+}
 const admit = createLookupAdmission();
 // Stable identity lets simultaneous exact public-domain reads share one bounded request.
 const providerFetch: ProviderFetch = request => fetch(request);
@@ -36,7 +53,7 @@ export async function runStandaloneLookup(ownerId: string, target: StandaloneLoo
   const release = (deps.admit ?? admit)(ownerId);
   if (!release) return { status: "failed", code: "rate_limited", retryAfterSeconds: 60 };
   try {
-    if (target.tool === "domains") return config.namecom ? await lookupNamecom(target.domain, config.namecom, fetcher, clock, signal) : config.cloudflare ? await lookupCloudflare(target.domain, config.cloudflare, fetcher, clock, signal) : config.vercel ? await lookupVercel(target.domain, fetcher, clock, signal) : config.rdap ? await lookupRdap(target.domain, fetcher, clock, signal) : { status: "failed", code: "unavailable", retryAfterSeconds: null };
+    if (target.tool === "domains") return await lookupDomain(target.domain, config, fetcher, clock, signal);
     if (target.tool === "handles") return target.platform !== "youtube" ? { status: "failed", code: "unsupported_target", retryAfterSeconds: null } : config.youtube ? await lookupYoutube(target, config.youtube.apiKey, fetcher, clock, signal) : { status: "failed", code: "unavailable", retryAfterSeconds: null };
     return config.euipo ? await lookupEuipo(target, config.euipo, fetcher, clock, signal) : { status: "failed", code: "unavailable", retryAfterSeconds: null };
   } catch { return { status: "failed", code: signal.aborted ? "cancelled" : "invalid_response", retryAfterSeconds: null }; }

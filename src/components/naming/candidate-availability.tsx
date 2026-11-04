@@ -19,7 +19,7 @@ const registries = [
   { code: "US", label: "United States", url: "https://www.uspto.gov/trademarks/search" },
   { code: "CA", label: "Canada", url: "https://ised-isde.canada.ca/cipo/trademark-search/srch?lang=eng" },
 ] as const;
-const providerLabels: Record<string, string> = { namecom_core: "Name.com", cloudflare_registrar: "Cloudflare", vercel_registrar: "Vercel" };
+const providerLabels: Record<string, string> = { namecom_core: "Name.com", cloudflare_registrar: "Cloudflare", vercel_registrar: "Vercel", "Public registry RDAP": "the public registry" };
 
 function Source({ url, label }: { url?: string | null; label: string }) {
   return url ? <a href={url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">{label}</a> : <span>{label}</span>;
