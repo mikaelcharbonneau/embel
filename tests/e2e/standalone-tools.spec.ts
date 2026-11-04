@@ -1,6 +1,6 @@
 import { captureUiEvidence } from "./ui-evidence";
 import { readFile } from "node:fs/promises";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 const fixtureOrigin = `http://127.0.0.1:${process.env.FLUID_E2E_PORT ?? "3105"}`;
 
@@ -13,6 +13,14 @@ async function accountProfileRead(page: Page, currentOwner: () => string | null)
       values: { fullName: "", timeZone: "America/Toronto", dateFormat: "friendly" } } } });
   });
 }
+
+// Secondary controls open as modal sheets titled by their trigger.
+async function openSheet(page: Page, title: string) {
+  await page.getByRole("button", { name: title, exact: true }).click();
+  const sheet = page.getByRole("dialog", { name: title, exact: true });
+  await expect(sheet).toBeVisible(); return sheet;
+}
+async function closeSheet(sheet: Locator) { await sheet.getByRole("button", { name: "Close", exact: true }).click(); await expect(sheet).toBeHidden(); }
 
 async function manualWorkspace(page: Page, allowSignOut = false) {
   const requests: { path: string; method: string }[] = [];
@@ -72,11 +80,12 @@ test("integrated Domains autosaves candidates without checking availability or p
   }
   await expect(page.getByText("No availability evidence.", { exact: true })).toHaveCount(4);
   await page.getByRole("checkbox", { name: "Select northstar.com", exact: true }).check();
-  await page.getByText("Result actions · 1 selected", { exact: true }).click();
-  await expect(page.getByRole("button", { name: "Check selected domains", exact: true })).toBeDisabled();
+  const actions = await openSheet(page, "Result actions · 1 selected");
+  await expect(actions.getByRole("button", { name: "Check selected domains", exact: true })).toBeDisabled();
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Export CSV", exact: true }).click();
+  await actions.getByRole("button", { name: "Export CSV", exact: true }).click();
   expect((await downloadPromise).suggestedFilename()).toBe("embel-domain-candidates.csv");
+  await closeSheet(actions);
   await verify();
   await page.evaluate(() => { (document.activeElement as HTMLElement | null)?.blur(); window.scrollTo(0, 0); });
   await page.screenshot({ path: info.outputPath("domains-manual.png"), fullPage: true });
@@ -108,7 +117,7 @@ test("account Domains imports a selected saved name through the new library acti
   });
   await page.route(`${fixtureOrigin}/api/projects/page?*`, route => {
     requests.push("project listing");
-    return route.fulfill({ json: { ownerId: owner, items: [{ id: projectId, owner_id: owner, title: source.projectTitle, scope: "naming_only", current_revision: 3, created_at: "2026-10-06T10:00:00Z" }], nextCursor: null } });
+    return route.fulfill({ json: { ownerId: owner, items: [{ id: projectId, owner_id: owner, title: source.projectTitle, scope: "naming_only", current_revision: 3, created_at: "2026-10-06T10:00:00Z", deleted_at: null, deletion_requested_at: null, deletion_state: "active", lifecycle_version: 0 }], nextCursor: null } });
   });
   await page.route(`${fixtureOrigin}/api/workspaces/imports?*`, route => {
     expect(new URL(route.request().url()).searchParams.get("projectId")).toBe(projectId);
@@ -125,7 +134,7 @@ test("account Domains imports a selected saved name through the new library acti
   await dialog.getByRole("button", { name: "Import saved name", exact: true }).click();
   await expect(dialog).not.toBeVisible();
   await expect(page.getByRole("button", { name: "Remove name Cedar", exact: true })).toBeVisible();
-  await expect(page.getByText("Imported saved sources (1)", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Imported saved sources (1)", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Search domains", exact: true }).click();
   await expect(page.getByRole("heading", { name: "cedar.com", exact: true })).toBeVisible();
   expect(requests.filter(value => value === "import")).toHaveLength(1);
@@ -140,7 +149,8 @@ test("integrated Handles autosaves independent bundle states with checks unavail
   await page.getByRole("tab", { name: "Search", exact: true }).click();
   await page.getByLabel("Business handles", { exact: true }).fill("North Star");
   await page.getByRole("button", { name: "Build comparison", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Refresh results", exact: true })).toBeDisabled();
+  await expect(page.getByRole("region", { name: "Handles results" }).getByText("Checks not connected · availability unknown", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Refresh results", exact: true })).toHaveCount(0);
   await page.getByLabel("Choose @northstar on instagram for bundle", { exact: true }).check();
   await page.getByLabel("Choose @northstar on youtube for bundle", { exact: true }).check();
   await page.getByRole("button", { name: "Save bundle", exact: true }).click();
@@ -167,24 +177,26 @@ test("integrated Handles autosaves independent bundle states with checks unavail
 test("integrated Trademarks downloads an actual manual draft and invalidates review without registry or filing claims", async ({ page }, info) => {
   const verify = await manualWorkspace(page);
   await page.goto("/trademarks");
-  await page.getByRole("tab", { name: "Fill", exact: true }).click();
-  await page.getByText("Additional dossier details", { exact: true }).click();
+  await page.getByRole("tab", { name: "Prepare", exact: true }).click();
   await page.getByLabel("Mark name", { exact: true }).fill("North Star fixture");
-  await page.getByLabel("Mark type", { exact: true }).selectOption("word");
   await page.getByLabel("Requested territories", { exact: true }).fill("France");
   await page.getByLabel("Goods and services", { exact: true }).fill("User-proposed services, unvalidated.");
-  await page.getByLabel("Classification notes", { exact: true }).fill("Questions for later review.");
   await page.getByLabel("Owner name", { exact: true }).fill("Synthetic fixture owner");
   await page.getByLabel("Owner address", { exact: true }).fill("Synthetic fixture address");
-  await page.getByLabel("Owner contact", { exact: true }).fill("fixture@example.invalid");
-  await page.getByLabel("Supporting document plan", { exact: true }).selectOption("none-planned");
-  await page.getByLabel("Your research notes", { exact: true }).fill("Literal private fixture notes <script>ignored</script>");
+  const details = await openSheet(page, "Additional dossier details");
+  await details.getByLabel("Mark type", { exact: true }).selectOption("word");
+  await details.getByLabel("Classification notes", { exact: true }).fill("Questions for later review.");
+  await details.getByLabel("Owner contact", { exact: true }).fill("fixture@example.invalid");
+  await details.getByLabel("Supporting document plan", { exact: true }).selectOption("none-planned");
+  await details.getByLabel("Your research notes", { exact: true }).fill("Literal private fixture notes <script>ignored</script>");
+  await closeSheet(details);
   await expect(page.getByText("6 of 6 sections filled", { exact: true })).toBeVisible();
-  await page.getByRole("tab", { name: "Search", exact: true }).click();
-  await page.getByText("Research coverage and your notes", { exact: true }).click();
-  await expect(page.getByText("Literal private fixture notes <script>ignored</script>", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Search results", exact: true })).toBeVisible();
-  await page.getByRole("tab", { name: "Fill", exact: true }).click();
+  await page.getByRole("tab", { name: "Research", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Manual research", exact: true })).toBeVisible();
+  const research = await openSheet(page, "Research coverage and your notes");
+  await expect(research.getByText("Literal private fixture notes <script>ignored</script>", { exact: true })).toBeVisible();
+  await closeSheet(research);
+  await page.getByRole("tab", { name: "Prepare", exact: true }).click();
   await page.getByRole("button", { name: "Review draft preview", exact: true }).click();
   const downloading = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export draft preview", exact: true }).click();
@@ -269,10 +281,17 @@ for (const tool of ["domains", "handles", "trademarks"] as const) {
     const openAccountMenu = async () => {
       if (await page.locator(".workspace-account-menu").getAttribute("open") === null) await page.getByLabel("Account menu", { exact: true }).click();
     };
+    const accountPanel = page.locator(".workspace-account-panel");
+    // The open account panel can cover page controls on small screens.
+    const closeAccountMenu = async () => {
+      if (await page.locator(".workspace-account-menu").getAttribute("open") !== null) await page.keyboard.press("Escape");
+      await expect(accountPanel).toBeHidden();
+    };
     await openAccountMenu();
     await expect(page.getByRole("button", { name: "Sign out", exact: true })).toBeVisible();
     const field = () => page.getByRole("textbox", { name: tool === "domains" ? "Names or full domains" : tool === "handles" ? "Business handles" : "Mark name", exact: true });
     const edit = async (label: string, handleName: string) => {
+      await closeAccountMenu();
       if (tool !== "handles") {
         if (tool === "domains") {
           const removals = page.locator("[data-domain-entry] button");
@@ -292,6 +311,7 @@ for (const tool of ["domains", "handles", "trademarks"] as const) {
       await page.getByRole("button", { name: "Save bundle", exact: true }).click();
     };
     const hasDraft = async (label: string) => {
+      await closeAccountMenu();
       if (tool === "handles") {
         await page.getByRole("tab", { name: "Library", exact: true }).click();
         await expect(page.getByRole("heading", { name: label, exact: true })).toBeVisible();
@@ -304,6 +324,7 @@ for (const tool of ["domains", "handles", "trademarks"] as const) {
       else await expect(field()).toHaveValue(label);
     };
     const fresh = async () => {
+      await closeAccountMenu();
       if (!await field().count() && !await page.getByRole("tab", { name: "Library", exact: true }).count()) {
         await expect(field()).toHaveCount(0); return;
       }
@@ -320,7 +341,7 @@ for (const tool of ["domains", "handles", "trademarks"] as const) {
     const checkAccount = async () => {
       await openAccountMenu();
       const response = page.waitForResponse(`${fixtureOrigin}/api/session`);
-      await page.getByRole("button", { name: "Check account", exact: true }).click();
+      await accountPanel.getByRole("button", { name: "Check account", exact: true }).click();
       await (await response).finished();
       await expect(page.getByRole("button", { name: "Sign out", exact: true })).toBeVisible();
     };
@@ -334,7 +355,9 @@ for (const tool of ["domains", "handles", "trademarks"] as const) {
     let releaseRefresh!: () => void;
     pendingRefresh = new Promise(resolve => { releaseRefresh = resolve; });
     const settled = page.waitForResponse(`${fixtureOrigin}/api/session`);
-    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    // Routine focus revalidation keeps a verified workspace (11eae67); an explicit check still fences it.
+    await openAccountMenu();
+    await accountPanel.getByRole("button", { name: "Check account", exact: true }).click();
     await expect(page.getByRole("button", { name: "Checking account…", exact: true })).toBeDisabled();
     await expect(page.getByLabel("Saved project for import", { exact: true })).toHaveCount(0);
     await fresh();
@@ -343,16 +366,16 @@ for (const tool of ["domains", "handles", "trademarks"] as const) {
     await hasDraft(dirtyLabel);
     owner = null;
     const expired = page.waitForResponse(`${fixtureOrigin}/api/session`);
-    await page.getByRole("button", { name: "Check account", exact: true }).click(); await (await expired).finished();
+    await openAccountMenu(); await accountPanel.getByRole("button", { name: "Check account", exact: true }).click(); await (await expired).finished();
     await expect(page.locator(".topbar").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
     await fresh(); owner = ownerA; await checkAccount(); await hasDraft(dirtyLabel);
-    await page.getByRole("button", { name: "Sign out", exact: true }).click();
+    await openAccountMenu(); await accountPanel.getByRole("button", { name: "Sign out", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "Sign out with unsaved account edits?", exact: true });
     await expect(dialog).toBeVisible();
     expect(signOutRequests).toBe(0);
     await dialog.getByRole("button", { name: "Keep editing", exact: true }).click();
     await hasDraft(dirtyLabel);
-    await page.getByRole("button", { name: "Sign out", exact: true }).click();
+    await openAccountMenu(); await accountPanel.getByRole("button", { name: "Sign out", exact: true }).click();
     await dialog.getByRole("button", { name: "Discard edits and sign out", exact: true }).click();
     await expect(page.getByRole("alert").filter({ hasText: "Sign-out couldn't be confirmed" })).toBeVisible();
     await fresh(); await checkAccount(); await hasDraft(dirtyLabel);
@@ -361,7 +384,7 @@ for (const tool of ["domains", "handles", "trademarks"] as const) {
     await edit("Owner B unsaved logout fixture", "NorthstarB");
     signOutStatus = 200;
     const signedOut = page.waitForResponse(`${fixtureOrigin}/api/auth/sign-out`);
-    await page.getByRole("button", { name: "Sign out", exact: true }).click();
+    await openAccountMenu(); await accountPanel.getByRole("button", { name: "Sign out", exact: true }).click();
     await dialog.getByRole("button", { name: "Discard edits and sign out", exact: true }).click();
     await (await signedOut).finished();
     await expect(page.locator(".topbar").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();

@@ -186,11 +186,23 @@ test("320px Search and Fill keep forms, disclosures and recovery controls reacha
   await authenticated(page);
   await page.getByRole("button", { name: "Prepare manual search", exact: true }).click();
   await fillTab(page);
-  await page.getByText("Additional dossier details", { exact: true }).click();
-  await page.getByLabel("Owner contact", { exact: true }).fill("Synthetic contact");
+  await page.getByRole("button", { name: "Additional dossier details", exact: true }).click();
+  const details = page.getByRole("dialog", { name: "Additional dossier details", exact: true });
+  await details.getByLabel("Owner contact", { exact: true }).fill("Synthetic contact");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+  await details.getByRole("button", { name: "Close", exact: true }).click(); await expect(details).toBeHidden();
   await page.getByRole("button", { name: "Review draft preview", exact: true }).click();
   await expect(page.getByRole("button", { name: "Export draft preview", exact: true })).toBeEnabled();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+});
+
+test("mobile trademark inputs precede the detailed checklist", async ({ page }) => {
+  test.skip(test.info().project.name !== "mobile", "Mobile layout regression");
+  await authenticated(page); await fillTab(page);
+  const field = page.locator(".tm-editor input").first(), checklist = page.locator(".tm-checklist");
+  await expect(field).toBeVisible();
+  expect((await field.boundingBox())!.y).toBeLessThan((await checklist.boundingBox())!.y);
+  expect((await field.boundingBox())!.y).toBeLessThan(page.viewportSize()!.height);
 });
 
 test("account autosave receipts, unsaved revision history and explicit conflict recovery stay tied to actual data", async ({ page }) => {

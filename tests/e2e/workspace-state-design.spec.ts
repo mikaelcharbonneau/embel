@@ -135,10 +135,15 @@ async function expectNoProjectBars(page: Page) {
   await expect(page.getByText("Unsaved project edits", { exact: true })).toHaveCount(0);
 }
 
+// The page-level account notice; the account menu repeats the same text in its own identity row.
+const accountNotice = (page: Page) => page.getByRole("main").locator(".account-notice");
+// The saved logo and its directions render only for the verified owner.
+const ownedDirections = (page: Page) => page.getByRole("region", { name: "Chosen logo", exact: true });
+
 async function expectMasked(page: Page) {
   await expect(page.getByText(privateTitle, { exact: true })).toHaveCount(0);
   await expect(page.locator(".project-output-page")).toHaveCount(0);
-  await expect(page.getByRole("textbox", { name: "Overall character", exact: true })).toHaveCount(0);
+  await expect(ownedDirections(page)).toHaveCount(0);
 }
 
 test("Home input disclosures preserve prompt and honest availability", async ({ page }, info) => {
@@ -158,11 +163,14 @@ test("Home input disclosures preserve prompt and honest availability", async ({ 
   }
   const fileInput = panel.locator('input[type="file"]');
   await expect(fileInput).toBeDisabled(); await expect(fileInput).toHaveAttribute("hidden", ""); await expect(fileInput).toBeHidden();
-  const availability = panel.locator(".home-attachment-details"), availabilityTrigger = availability.locator("summary");
-  await expect(availabilityTrigger).toHaveText("Availability details"); await expect(availability).not.toHaveAttribute("open", "");
-  await availabilityTrigger.focus(); await availabilityTrigger.press("Enter"); await expect(availability).toHaveAttribute("open", "");
-  await expect(panel.getByText("Synthetic file storage is unavailable.", { exact: true })).toBeVisible();
-  await availabilityTrigger.press("Enter"); await expect(availability).not.toHaveAttribute("open", "");
+  // Availability details open as a dialog from the files panel and return focus to their trigger.
+  const availabilityTrigger = panel.getByRole("button", { name: "Availability details", exact: true });
+  const availability = page.getByRole("dialog", { name: "Availability details", exact: true });
+  await expect(availabilityTrigger).toHaveAttribute("aria-expanded", "false"); await expect(availability).toHaveCount(0);
+  await availabilityTrigger.focus(); await availabilityTrigger.press("Enter"); await expect(availability).toBeVisible();
+  await expect(availability.getByText("Synthetic file storage is unavailable.", { exact: true })).toBeVisible();
+  await availability.getByRole("button", { name: "Close", exact: true }).press("Enter");
+  await expect(availability).toHaveCount(0); await expect(availabilityTrigger).toBeFocused(); await expect(files).toHaveAttribute("open", "");
   await trigger.focus(); await trigger.press("Enter"); await expect(files).not.toHaveAttribute("open", ""); await expect(trigger).toBeFocused();
   await trigger.press("Enter"); await prompt.focus(); await page.keyboard.press("Escape");
   await expect(files).not.toHaveAttribute("open", ""); await expect(trigger).toBeFocused(); await expect(prompt).toHaveValue(promptText);
@@ -196,7 +204,7 @@ test("project frame stays stable through verification and account loss", async (
   const state = await fixture(page, true);
   try {
     await page.goto(projectRoute); await expect.poll(() => state.requests.some(row => row.path === "/api/session")).toBe(true);
-    await expect(page.getByText("Checking your account…", { exact: true })).toBeVisible();
+    await expect(accountNotice(page)).toHaveText("Checking your account…");
     await expectNoProjectBars(page); await expectMasked(page);
     expect(state.requests.some(row => row.path === `/api/projects/${projectId}`)).toBe(false);
     const accountChecking = await frame(page); await captureState(page, info, "account-checking");
@@ -205,7 +213,7 @@ test("project frame stays stable through verification and account loss", async (
     await expectNoProjectBars(page);
     const projectChecking = await frame(page); expectSameFrame(accountChecking, projectChecking);
     state.projectGate!.release(); state.projectGate = null;
-    await expect(page.getByRole("textbox", { name: "Overall character", exact: true })).toHaveValue(privateGuidance);
+    await expect(ownedDirections(page)).toBeVisible();
     const verified = await frame(page); expectSameFrame(accountChecking, verified);
     await info.attach("project-frame-geometry", { body: Buffer.from(JSON.stringify({ viewport: page.viewportSize(), accountChecking, projectChecking, verified }, null, 2)), contentType: "application/json" });
     await captureState(page, info, "verified");
@@ -217,10 +225,11 @@ test("project frame stays stable through verification and account loss", async (
       Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" }); document.dispatchEvent(new Event("visibilitychange"));
     });
     await expect.poll(() => state.requests.filter(row => row.path === "/api/session").length).toBeGreaterThan(previousReads);
-    await expect(page.getByText("Checking your account…", { exact: true })).toBeVisible(); await expectMasked(page);
+    // A routine tab-return check keeps the verified workspace in place until the session answers (11eae67).
+    await expect(accountNotice(page)).toHaveCount(0); await expect(ownedDirections(page)).toBeVisible();
     expectSameFrame(verified, await frame(page));
     state.sessionGate.release(); state.sessionGate = null;
-    await expect(page.getByText("No verified account session. Sign in to view your account projects.", { exact: true })).toBeVisible();
+    await expect(accountNotice(page).getByText("No verified account session. Sign in to view your account projects.", { exact: true })).toBeVisible();
     await expectNoProjectBars(page); await expectMasked(page);
     expectSameFrame(verified, await frame(page)); await captureState(page, info, "account-masked");
     expect(state.writes).toEqual([]);
@@ -260,10 +269,10 @@ test("failed project read keeps actionable recovery without project bars", async
 test("retained project read failure keeps its actionable notice without adding project bars", async ({ page }, info) => {
   const state = await fixture(page);
   await page.goto(projectRoute);
-  await expect(page.getByRole("textbox", { name: "Overall character", exact: true })).toHaveValue(privateGuidance);
+  await expect(ownedDirections(page)).toBeVisible();
   await expectProjectCanvas(page);
   state.failedProject = true;
-  const reviewLogo = page.getByRole("link", { name: "Review logo", exact: true });
+  const reviewLogo = ownedDirections(page).getByRole("link", { name: "Change logo", exact: true });
   await reviewLogo.focus(); await reviewLogo.press("Enter");
   await expect(page).toHaveURL(`/brands/account/${projectId}/logo`);
   const notice = page.getByRole("alert").filter({ hasText: "The saved project could not be verified. Your existing work is kept." });
@@ -277,7 +286,7 @@ for (const suffix of ["", "/naming", "/inspiration", "/logo", "/brand-board", "/
     const state = await fixture(page, true);
     try {
       await page.goto(`/brands/account/${projectId}${suffix}`);
-      await expect(page.getByText("Checking your account…", { exact: true })).toBeVisible();
+      await expect(accountNotice(page)).toHaveText("Checking your account…");
       await expectProjectCanvas(page); await expectMasked(page);
       expect(state.requests.some(row => row.path === `/api/projects/${projectId}`)).toBe(false);
       if (suffix === "/logo" || suffix === "/naming") await captureState(page, info, "bars-absent-account-checking");

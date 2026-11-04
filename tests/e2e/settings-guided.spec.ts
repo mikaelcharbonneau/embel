@@ -36,7 +36,8 @@ test("all seven categories use honest states and trigger no unsupported mutation
     if (label === "Account") await expect(page.getByRole("button", { name: "Save changes", exact: true })).toBeDisabled();
     else await expect(page.getByRole("tabpanel").locator(".sg-save")).toHaveCount(0);
     await expect(page.getByRole("tabpanel").locator(".sg-availability")).toHaveCount(1);
-    await expect(page.getByRole("tabpanel").locator(".sg-availability details")).not.toHaveAttribute("open", "");
+    await expect(page.getByRole("tabpanel").locator(".sg-availability").getByRole("button", { name: "View unavailable features", exact: true })).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByRole("dialog", { name: "View unavailable features", exact: true })).toHaveCount(0);
   }
   await expect(page.getByRole("button", { name: "Connect", exact: true })).toHaveCount(0);
   await expect(page.getByRole("region", { name: "Connected apps", exact: true }).getByText("Not available yet", { exact: true })).toBeVisible();
@@ -176,7 +177,11 @@ test("320px settings keep actions reachable and route styles scoped", async ({ p
   await tab(page, "Security & privacy");
   await expect(page.getByRole("button", { name: "Delete account", exact: true })).toHaveCount(0);
   const securityOptions = page.getByRole("region", { name: "Security and privacy options", exact: true });
-  await securityOptions.locator("summary").click(); await expect(securityOptions.locator("dt").filter({ hasText: /^Delete account$/ })).toBeVisible();
+  await securityOptions.getByRole("button", { name: "View unavailable features", exact: true }).click();
+  const unavailable = page.getByRole("dialog", { name: "View unavailable features", exact: true });
+  await expect(unavailable.locator("dt").filter({ hasText: /^Delete account$/ })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+  await unavailable.getByRole("button", { name: "Close", exact: true }).click(); await expect(unavailable).toBeHidden();
   await page.getByRole("button", { name: "Open navigation", exact: true }).click();
   await page.locator(".mobile-menu").getByRole("link", { name: "Embel home", exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
@@ -226,11 +231,15 @@ test("read-only Settings hierarchy prioritizes supported options and recorded us
     await tab(page, label);
     const panel = page.getByRole("tabpanel"), availability = panel.locator(".sg-availability");
     await expect(availability.getByText("Not available yet", { exact: true })).toBeVisible();
-    await expect(availability.locator("button,input,select")).toHaveCount(0);
+    // The only control is the read-only disclosure; unavailable features open in a sheet.
+    await expect(availability.locator("input,select")).toHaveCount(0);
+    await expect(availability.getByRole("button")).toHaveCount(1);
+    await expect(availability.getByRole("button", { name: "View unavailable features", exact: true })).toBeVisible();
     await expect(panel.locator(".sg-save")).toHaveCount(0);
-    const summary = availability.locator("summary"), details = availability.locator("details");
-    await summary.focus(); await summary.press("Enter"); await expect(details).toHaveAttribute("open", ""); await expect(summary).toBeFocused();
-    await summary.press("Enter"); await expect(details).not.toHaveAttribute("open", ""); await expect(summary).toBeFocused();
+    const summary = availability.getByRole("button", { name: "View unavailable features", exact: true }), details = page.getByRole("dialog", { name: "View unavailable features", exact: true });
+    await summary.focus(); await summary.press("Enter"); await expect(details).toBeVisible();
+    await expect(details.locator("input,select")).toHaveCount(0); await expect(details.getByRole("button")).toHaveCount(1);
+    await page.keyboard.press("Escape"); await expect(details).toBeHidden(); await expect(summary).toBeFocused();
     for (const action of await panel.locator(".sg-action").all()) {
       const box = await action.boundingBox(); if (box) expect(box.height).toBeGreaterThanOrEqual(44);
     }

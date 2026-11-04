@@ -7,6 +7,13 @@ const brief = "A lighting studio making warm, repairable lamps for small homes."
 const audience = "People living in small homes";
 const notes = "Readable in English and French";
 function candidate(page: Page, value: string): Locator { return page.getByRole("article", { name: `Name: ${value}`, exact: true }); }
+// Secondary controls open as modal sheets titled by their trigger.
+async function openSheet(page: Page, scope: Page | Locator, title: string) {
+  await scope.getByRole("button", { name: title }).click();
+  const sheet = page.getByRole("dialog", { name: title });
+  await expect(sheet).toBeVisible(); return sheet;
+}
+async function closeSheet(sheet: Locator) { await sheet.getByRole("button", { name: "Close", exact: true }).click(); await expect(sheet).toBeHidden(); }
 async function openNames(page: Page) {
   await page.goto("/names");
   await expect(page.getByRole("heading", { name: "Shape a name.", exact: true })).toBeVisible();
@@ -18,10 +25,11 @@ async function addName(page: Page, value: string, withContext = false) {
   const capture = page.getByRole("region", { name: "Add a name", exact: true });
   await capture.getByRole("textbox", { name: "Name", exact: true }).fill(value);
   if (withContext) {
-    await capture.getByText("Context for new names", { exact: false }).click();
-    await capture.getByRole("textbox", { name: "Brief description" }).fill(brief);
-    await capture.getByRole("textbox", { name: "Known audience", exact: true }).fill(audience);
-    await capture.getByRole("textbox", { name: "Naming notes" }).fill(notes);
+    const context = await openSheet(page, capture, "Context for new names");
+    await context.getByRole("textbox", { name: "Brief description" }).fill(brief);
+    await context.getByRole("textbox", { name: "Known audience", exact: true }).fill(audience);
+    await context.getByRole("textbox", { name: "Naming notes" }).fill(notes);
+    await closeSheet(context);
   }
   await capture.getByRole("button", { name: "Save name", exact: true }).click();
   await expect(candidate(page, value)).toBeVisible();
@@ -49,7 +57,7 @@ test("Names account library persists context, preferences, comparison and a real
   await page.getByRole('button', { name: 'Workshop & manual', exact: true }).click();
   await page.getByRole("combobox", { name: "Filter names" }).selectOption("favorite");
   await expect(page.locator(".names-library-list").getByRole("article")).toHaveCount(1);
-  await page.getByText("Backups and recovery ·", { exact: false }).click();
+  await expect(page.getByRole("heading", { name: "Backups and recovery", exact: true })).toBeVisible();
   const pending = page.waitForEvent("download"); await page.getByRole("button", { name: "Download a backup", exact: true }).click();
   const download = await pending; expect(download.suggestedFilename()).toBe("embel-names-backup.json");
   const copy = JSON.parse(await readFile((await download.path())!, "utf8"));
@@ -62,12 +70,12 @@ test("Names account library persists context, preferences, comparison and a real
 
 test("Workshop retains all four transformations and creates an account brand with the captured context", async ({ page }) => {
   const fixture = createNamesAccountFixture(); await fixture.install(page); await openNames(page);
-  await page.getByRole("tab", { name: "Workshop", exact: true }).click(); await page.getByText("Single-name controls", { exact: true }).click();
+  await page.getByRole("tab", { name: "Workshop", exact: true }).click(); await openSheet(page, page, "Single-name controls");
   const controls = page.getByRole("complementary", { name: "Workshop controls" });
   await controls.getByRole("textbox", { name: "Start with a word" }).fill("Lumi");
   await controls.getByRole("textbox", { name: "Suffixes", exact: true }).fill("na");
-  await controls.getByText("Context for new names", { exact: false }).click();
-  await controls.getByRole("textbox", { name: "Brief description" }).fill(brief);
+  let context = await openSheet(page, controls, "Context for new names");
+  await context.getByRole("textbox", { name: "Brief description" }).fill(brief); await closeSheet(context);
   await controls.getByRole("button", { name: "Run Affixes" }).click();
   await candidate(page, "Lumina").getByRole("button", { name: "Use as seed", exact: true }).click();
   await controls.getByRole("radio", { name: /^Tweaks/ }).check();
@@ -86,15 +94,16 @@ test("Workshop retains all four transformations and creates an account brand wit
   await controls.getByRole("textbox", { name: "Replace with" }).fill("Lum");
   await controls.getByRole("button", { name: "Run Swap" }).click();
   await candidate(page, "Lumova").getByRole("button", { name: "Save Lumova", exact: true }).click();
-  await controls.getByRole("textbox", { name: "Brief description" }).fill("A future name has different context.");
+  context = await openSheet(page, controls, "Context for new names");
+  await context.getByRole("textbox", { name: "Brief description" }).fill("A future name has different context."); await closeSheet(context);
   await waitForNamesSaved(page); const before = structuredClone(fixture.payload());
   const chosen = before.candidates.find(item => item.source.value === "Lumova")!;
   expect(chosen.source.history.map(step => step.input.kind)).toEqual(["affixes", "tweaks", "blend", "swap"]);
   expect(chosen.context.description).toBe(brief); expect(before.runs).toHaveLength(4);
-  await page.reload(); await page.getByText("Single-name controls", { exact: true }).click();
+  await page.reload(); await openSheet(page, page, "Single-name controls");
   await expect(controls.getByRole("textbox", { name: "Find exact text" })).toHaveValue("LUM");
-  await candidate(page, "Lumova").getByText("Context & history", { exact: true }).click();
-  await candidate(page, "Lumova").getByRole("button", { name: "Create brand", exact: true }).click();
+  const history = await openSheet(page, candidate(page, "Lumova"), "Context & history");
+  await history.getByRole("button", { name: "Create brand", exact: true }).click();
   await expect(page).toHaveURL(/\/brands\/account\/[a-f0-9-]+$/);
   expect(fixture.state.projects).toHaveLength(1);
   expect(fixture.state.projects[0]!.context).toMatchObject({ description: brief, selectedName: "Lumova", namingSource: chosen.source });
@@ -106,7 +115,7 @@ test("invalid transformations and keyboard tabs remain honest", async ({ page })
   const fixture = createNamesAccountFixture(); await fixture.install(page); await openNames(page);
   await page.getByRole("tab", { name: "Library", exact: true }).focus(); await page.keyboard.press("ArrowLeft");
   await expect(page.getByRole("tab", { name: "Workshop", exact: true })).toBeFocused();
-  await page.getByText("Single-name controls", { exact: true }).click();
+  await openSheet(page, page, "Single-name controls");
   const controls = page.getByRole("complementary", { name: "Workshop controls" });
   await controls.getByRole("textbox", { name: "Start with a word" }).fill("Lumi");
   await controls.getByRole("textbox", { name: "Prefixes", exact: true }).fill(Array.from({ length: 13 }, (_, i) => `p${i}`).join(","));
@@ -117,6 +126,7 @@ test("invalid transformations and keyboard tabs remain honest", async ({ page })
   await controls.getByRole("textbox", { name: "Replace with" }).fill("$&");
   await controls.getByRole("button", { name: "Run Swap" }).click();
   await expect(page.getByText("No new variants for these parameters.", { exact: true })).toBeVisible();
+  await closeSheet(page.getByRole("dialog", { name: "Single-name controls" }));
   await page.getByRole("tab", { name: "Workshop", exact: true }).focus(); await page.keyboard.press("End");
   await expect(page.getByRole("tab", { name: "History", exact: true })).toBeFocused();
   await waitForNamesSaved(page); expect(fixture.payload().candidates).toHaveLength(0); expect(fixture.payload().runs).toHaveLength(1);
@@ -151,7 +161,7 @@ test("unreadable legacy data is untouched and never replaces normal account Name
   const fixture = createNamesAccountFixture(); await fixture.install(page);
   await page.addInitScript(() => localStorage.setItem("fluid.names.v1", "{unreadable-legacy-fixture"));
   await openNames(page); await addName(page, "Account name"); await waitForNamesSaved(page);
-  await page.goto("/names?recover=1"); await expect(page.locator(".names-management")).toHaveAttribute("open", "");
+  await page.goto("/names?recover=1"); await expect(page.getByRole("heading", { name: "Backups and recovery", exact: true })).toBeInViewport();
   await page.getByRole("button", { name: "Recover earlier browser names", exact: true }).click();
   await expect(page.getByText("The earlier browser backup could not be read. Its stored data has been left untouched.", { exact: true })).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem("fluid.names.v1"))).toBe("{unreadable-legacy-fixture");

@@ -44,7 +44,8 @@ test("guided Names: four original layouts, live modes, native artwork and respon
       expect((await page.locator(".topbar").boundingBox())?.height).toBe(76);
       expect((await page.locator(".sidebar").boundingBox())?.width).toBe(80);
     }
-    expect(await page.locator('img[src^="/names/"]').evaluateAll(images => images.every(image => {
+    // Artwork may still be decoding right after a mode switch; poll for its native size.
+    await expect.poll(() => page.locator('img[src^="/names/"]').evaluateAll(images => images.every(image => {
       const img = image as HTMLImageElement;
       return img.complete && img.naturalWidth === img.width && img.naturalHeight === img.height;
     }))).toBe(true);
@@ -90,7 +91,7 @@ test("guided Names: saved words, exact retained history, independent favorite an
   await showControls(page);
   await page.getByRole("button", { name: "Double last", exact: true }).click();
   await page.getByRole("button", { name: "Reverse", exact: true }).click();
-  await expect(page.locator(".names-active-order")).toHaveText("Reverse → Double last");
+  await expect(page.locator(".names-transform-order > button .names-active-order")).toHaveText("Reverse → Double last");
   // The mixed-case input keeps its original case pattern; choose the actual first result.
   const value = await page.locator(".names-result-pill strong").first().innerText();
   const heart = page.getByRole("button", { name: `Favorite result ${value}`, exact: true });
