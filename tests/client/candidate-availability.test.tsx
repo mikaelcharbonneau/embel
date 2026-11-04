@@ -65,3 +65,17 @@ it("offers official manual checks when capabilities are unavailable without issu
   await click("Trademarks"); expect(button("Search trademarks").disabled).toBe(true);
   expect(host.querySelector("a")?.href).toBe("https://euipo.europa.eu/eSearch/"); expect(lookup).toHaveBeenCalledOnce();
 });
+
+it("shows a registrar's unregistrable domain as Taken when the public registry confirms it", async () => {
+  const check = { id: "registry", provider: "Public registry RDAP", domain: "rivercoil.com", availability: "taken", checkedAt: at,
+    validUntil: new Date(now + 60000).toISOString(), evidenceReference: "fixture", sourceUrl: "https://rdap.verisign.com/com/v1/domain/rivercoil.com",
+    detail: "The authoritative registry returned an exact registration record. Ownership and purchase are not verified." };
+  vi.stubGlobal("fetch", vi.fn(async (_path: string, init: RequestInit) => Response.json(init.method === "GET" ? { ...caps, domains: "namecom" } : {
+    ownerId: account.userId, result: { status: "domain", check, quote: null },
+  })));
+  await render(); await act(() => vi.advanceTimersByTimeAsync(0));
+  await click("Check domain"); await act(() => vi.advanceTimersByTimeAsync(0));
+  expect(host.textContent).not.toContain("does not match");
+  expect(host.querySelector("[data-tone]")?.textContent).toBe("Taken");
+  expect(host.textContent).toContain("Checked with the public registry");
+});

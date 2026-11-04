@@ -141,13 +141,19 @@ export type DomainSearchAdapter =
       quotesWithCheck?: boolean;
       check(domain: string, signal: AbortSignal): Promise<unknown>; quote?: (domain: string, checkId: string, signal: AbortSignal) => Promise<unknown> };
 export const unavailableDomainAdapter: DomainSearchAdapter = { status: "unavailable", reason: "No registrar is connected. Availability checks, quotes and purchases are unavailable." };
+export const REGISTRY_DOMAIN_PROVIDER = "Public registry RDAP";
+/** A registrar's check may be corroborated by the public registry, but only to confirm
+ * an existing registration. Registry checks never carry prices or claim availability. */
+export function acceptedDomainCheckProvider(check: Pick<DomainCheck, "provider" | "availability">, expected: string): boolean {
+  return check.provider === expected || expected !== REGISTRY_DOMAIN_PROVIDER && check.provider === REGISTRY_DOMAIN_PROVIDER && check.availability === "taken";
+}
 export async function readDomainCheck(adapter: DomainSearchAdapter, domain: string, signal: AbortSignal): Promise<DomainCheck> {
   const exact = domainNameSchema.parse(domain);
   if (signal.aborted) throw new Error("Check cancelled");
   if (adapter.status !== "ready") throw new Error(adapter.reason);
   const result = domainCheckSchema.parse(await adapter.check(exact, signal));
   if (signal.aborted) throw new Error("Check cancelled");
-  if (result.domain !== exact || result.provider !== adapter.provider) throw new Error("Check does not match this domain and provider");
+  if (result.domain !== exact || !acceptedDomainCheckProvider(result, adapter.provider)) throw new Error("Check does not match this domain and provider");
   return result;
 }
 export async function readDomainQuote(adapter: DomainSearchAdapter, check: DomainCheck, clock: () => number, signal: AbortSignal): Promise<DomainQuote> {
