@@ -50,7 +50,8 @@ test("a project with saved Logo work still allows deliberate Strategy review and
   const f = createVisualJourneyFixture({ standalone: true }), health = await f.setup(page);
   f.project.scope = "complete_brand";
   await page.goto(conceptsUrl);
-  await page.getByRole("link", { name: "Review Strategy", exact: true }).click();
+  // The project bar's Strategy step replaces the old Review Strategy link.
+  await page.getByRole("navigation", { name: "Brand journey" }).getByRole("link", { name: /^Strategy/ }).click();
   await expect(page).toHaveURL(`/brands/account/${projectId}?view=strategy`);
   await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Edit brief", exact: true }).click();

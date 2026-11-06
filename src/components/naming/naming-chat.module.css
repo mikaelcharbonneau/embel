@@ -44,7 +44,7 @@
 .canvas :global(.project-naming-section-heading h2) { font-size: 13px; font-weight: 500; letter-spacing: 0; }
 .canvas :global(.project-naming-section-heading p) { margin-top: 5px; font-size: 12px; }
 .workspace .canvas :global(.project-naming-grid) { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-.workspace .canvas :global(.project-naming-card).compactCard { position: relative; min-width: 0; height: auto; min-height: 76px; flex: none; display: block; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--paper); overflow: hidden; }
+.workspace .canvas :global(.project-naming-card).compactCard { position: relative; min-width: 0; height: 76px; min-height: 76px; flex: none; display: block; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--paper); overflow: hidden; }
 .workspace .canvas :global(.project-naming-card).compactCard:has(.openName:hover) { border-color: var(--secondary); }
 .workspace .canvas :global(.project-naming-card).compactCard:focus-within { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 .workspace .canvas :global(.project-naming-card).compactCard:global(.is-selected) { border-color: var(--text); }
