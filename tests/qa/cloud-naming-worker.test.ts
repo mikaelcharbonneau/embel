@@ -152,7 +152,7 @@ describe("independent cloud Naming deployment artifact", () => {
 
   it("builds from public Vercel metadata without Git, preserves missing provenance honestly and embeds no supplied secrets", () => {
     const context = path.join(temporary, "container-context");
-    for (const input of [...manifest.inputs.filter(file => !file.startsWith("node_modules/")), "scripts/build-naming-worker.mjs", "services/naming-worker/source-inputs.json", "package.json", "package-lock.json", "tsconfig.json"]) {
+    for (const input of [...manifest.inputs.filter(file => !file.startsWith("node_modules/")), "scripts/build-naming-worker.mjs", "scripts/esbuild-project.mjs", "services/naming-worker/source-inputs.json", "package.json", "package-lock.json", "tsconfig.json"]) {
       const destination = path.join(context, input);
       mkdirSync(path.dirname(destination), { recursive: true });
       cpSync(path.join(root, input), destination);

@@ -54,7 +54,7 @@ beforeAll(() => {
   temporary = mkdtempSync(path.join(tmpdir(), "embel-cloud-logo-independent-qa-"));
   checkout = path.join(temporary, "source"); runtime = path.join(temporary, "runtime");
   const allowlist = JSON.parse(readFileSync(path.join(root, "services/logo-worker/source-inputs.json"), "utf8")) as Record<string, string[]>;
-  const inputs = new Set([...Object.values(allowlist).flat(), "scripts/build-logo-worker.mjs", "services/logo-worker/source-inputs.json",
+  const inputs = new Set([...Object.values(allowlist).flat(), "scripts/build-logo-worker.mjs", "scripts/esbuild-project.mjs", "services/logo-worker/source-inputs.json",
     "services/logo-worker/runtime-packages.json", "services/logo-worker/package-runtime.mjs", "services/logo-worker/Containerfile",
     "services/logo-worker/.dockerignore", "services/logo-worker/vercel.json", "scripts/package-logo-worker.mjs", "package.json", "package-lock.json", "tsconfig.json"]);
   for (const input of inputs) {

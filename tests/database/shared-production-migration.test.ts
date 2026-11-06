@@ -24,9 +24,15 @@ describe("reviewed packet transaction envelope", () => {
 describe("atomic shared production composition on native PostgreSQL", () => {
  const image = "ghcr.io/supabase/cli/postgres:17.11.0.006-r0@sha256:ee0f2d9747fb9d3c0a29703684ec718f070384ad05bf0d92823ed02cabde8e5a";
  const name = "embel-shared-composer-" + randomBytes(6).toString("hex"), env = { ...process.env };
+ // CI's engine is /var/run/docker.sock. A developer's explicitly selected local
+ // engine (docs/development-environment.md: DOCKER_CONTEXT=colima-embel) is
+ // honoured too; remote or TLS endpoints are never used.
+ const selected = process.env.DOCKER_CONTEXT ? JSON.parse(execFileSync("docker", ["context", "inspect", process.env.DOCKER_CONTEXT, "--format", "{{json .Endpoints.docker.Host}}"], { encoding: "utf8" })) as string : process.env.DOCKER_HOST;
+ const host = selected || "unix:///var/run/docker.sock";
+ if (!/^unix:\/\/\/[^\r\n\0]+$/u.test(host)) throw Error("A local Docker socket is required for the native PostgreSQL fixture");
  for (const key of ["DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_TLS", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH"]) delete env[key];
  let created = false, catalog: Record<string, unknown>, input: Record<string, unknown>;
- const docker = (args: string[], source?: string) => execFileSync("docker", ["--host=unix:///var/run/docker.sock", ...args], { env, input: source, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], maxBuffer: 20_000_000 }).trim();
+ const docker = (args: string[], source?: string) => execFileSync("docker", ["--host=" + host, ...args], { env, input: source, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], maxBuffer: 20_000_000 }).trim();
  const sql = (source: string, role = "postgres") => docker(["exec", "-i", name, "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-h", "/tmp", "-U", role, "-d", "postgres"], source);
  const readInventory = () => JSON.parse(sql(READ_ONLY_INVENTORY_SQL)) as Record<string, unknown>;
  const target = { projectRef: "fricsfwqibyhemknqgyf", origin: PRODUCTION_ORIGIN, issuer: PRODUCTION_ORIGIN + "/auth/v1" };
@@ -99,7 +105,7 @@ describe("atomic shared production composition on native PostgreSQL", () => {
  });
  it("exposes neither an empty-issuer fence nor misclassified legacy actors to a second connection", async () => {
   const bundle = composeSharedProductionMigration(input), gate = "shared_migration_ready_to_commit";
-  const child = spawn("docker", ["--host=unix:///var/run/docker.sock", "exec", "-i", name, "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-h", "/tmp", "-U", "postgres", "-d", "postgres"], { env, stdio: ["pipe", "pipe", "pipe"] });
+  const child = spawn("docker", ["--host=" + host, "exec", "-i", name, "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-h", "/tmp", "-U", "postgres", "-d", "postgres"], { env, stdio: ["pipe", "pipe", "pipe"] });
   let output = ""; child.stdout.on("data", chunk => { output += String(chunk); }); child.stderr.resume();
   const done = new Promise<number | null>((resolve, reject) => { child.once("error", reject); child.once("close", resolve); });
   child.stdin.end(bundle.sql.replace(/COMMIT;\n$/, `SELECT '${gate}'; SELECT pg_sleep(2); COMMIT;\n`));

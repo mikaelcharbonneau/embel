@@ -1,4 +1,4 @@
-import { build } from "esbuild";
+import { build } from "./esbuild-project.mjs";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
