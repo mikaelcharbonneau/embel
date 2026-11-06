@@ -131,7 +131,7 @@ describe("project account and activity controls", () => {
     await render();
     await act(async () => summary().click());
     expect(summary().getAttribute("aria-busy")).toBe("true");
-    expect(label().querySelector(".workspace-account-placeholder")).not.toBeNull();
+    expect(label().textContent).toBe("Checking account…");
     expect(checkAccount().disabled).toBe(true); expect(activityButton()).toBeNull();
     expect(menu().querySelector('a[href="/sign-in"]')).toBeNull();
     expect(host.textContent).not.toContain("Private");

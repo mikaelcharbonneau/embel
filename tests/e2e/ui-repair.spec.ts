@@ -47,15 +47,14 @@ test("sign-in recovery restores the prompt and scope from one retained browser c
   await page.goto("/");
   const prompt = "A repair workshop sharing tools and practical skills with local residents.";
   await page.getByRole("textbox", { name: "Your prompt", exact: true }).fill(prompt);
-  await page.getByRole("button", { name: "Project scope: Brand", exact: true }).click();
-  await page.getByRole("menuitemradio", { name: "Name", exact: true }).click();
+  await page.getByRole("group", { name: "What to create", exact: true }).getByText("Name only", { exact: true }).click();
   await page.getByLabel("Account menu", { exact: true }).click();
   await page.locator(".workspace-account-panel").getByRole("link", { name: "Sign in", exact: true }).click();
   await expect(page.getByRole("link", { name: "Return to your prompt", exact: true })).toHaveAttribute("href", "/");
   // A full load, as after an authentication redirect, must use the retained sign-in copy.
   await page.goto("/");
   await expect(page.getByRole("textbox", { name: "Your prompt", exact: true })).toHaveValue(prompt);
-  await expect(page.getByRole("button", { name: "Project scope: Name", exact: true })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Name only", exact: true })).toBeChecked();
   await expect(page.getByText(/Your prompt is ready to continue/)).toBeVisible();
   await page.screenshot({ path: info.outputPath("home-restored-prompt.png"), fullPage: true, scale: "css" });
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("fluid.local-drafts.v1")!).drafts.length)).toBe(1);
@@ -64,10 +63,10 @@ test("sign-in recovery restores the prompt and scope from one retained browser c
 test("320px layout keeps Home input disclosures and navigation reachable", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 740 });
   await page.goto("/");
-  await page.getByRole("button", { name: "Open navigation", exact: true }).click();
-  await expect(page.getByRole("dialog", { name: "Navigation" })).toBeVisible();
+  const tools = page.getByRole("navigation", { name: "Main navigation", exact: true }).locator("summary");
+  await tools.click(); await expect(page.getByRole("navigation", { name: "Main navigation", exact: true }).getByRole("link", { name: "Trademarks", exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(page.getByRole("button", { name: "Open navigation", exact: true })).toBeFocused();
+  await expect(tools).toBeFocused();
   await page.locator(".home-files-popover summary").click();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
   await expect(page.getByRole("button", { name: "Send prompt", exact: true })).toBeVisible();

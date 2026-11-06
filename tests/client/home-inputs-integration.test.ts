@@ -176,9 +176,9 @@ describe("mounted Home attached brief integration", () => {
   await render(); const originalPrompt = host.querySelector("textarea")!.value; await click("Save brief with files");
   const textarea = host.querySelector("textarea")!;
   expect(textarea.readOnly || textarea.disabled).toBe(true);
-  expect(host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.disabled).toBe(true);
+  expect(host.querySelector<HTMLFieldSetElement>(".home-scope")!.disabled).toBe(true);
   expect([...host.querySelectorAll<HTMLButtonElement>(".home-example-pills button")].every(button => button.disabled)).toBe(true);
-  await act(async () => { host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.click(); host.querySelector<HTMLButtonElement>(".home-example-pills button:last-child")!.click(); });
+  await act(async () => { host.querySelectorAll<HTMLLabelElement>(".home-scope label")[1]!.click(); host.querySelector<HTMLButtonElement>(".home-example-pills button:last-child")!.click(); });
   expect(textarea.value).toBe(originalPrompt);
   await act(async () => finish(Response.json(saved)));
   expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${projectId}?view=strategy`); expect(mock.strategy).not.toHaveBeenCalled();
@@ -202,7 +202,7 @@ describe("mounted Home attached brief integration", () => {
   await act(async () => root!.unmount()); root = createRoot(host);
   await act(async () => root!.render(createElement(NewProjectForm, { initialScope: "complete_brand", home: true })));
   expect(host.querySelector("textarea")!.value).toBe("Original typed brief");
-  expect(host.querySelector('button[aria-haspopup="menu"]')?.getAttribute("aria-label")).toBe("Project scope: Name");
+  expect(host.querySelector<HTMLInputElement>(".home-scope input:checked")?.value).toBe("naming_only");
   expect(host.textContent).toContain("Example prompt");
   expect(host.querySelector("textarea")!.readOnly).toBe(true); expect(mock.create).toHaveBeenCalledTimes(1);
  });

@@ -111,7 +111,7 @@ test("chosen concept leads to three directions, a saved choice and usable brand 
   await next.click(); await expect(page).toHaveURL(directionsUrl);
   await expect(page.getByRole("img", { name: "Chosen logo concept", exact: true })).toBeVisible();
   const generate = page.getByRole("button", { name: "Generate three directions", exact: true });
-  await expect(generate).toBeEnabled(); await expect(page.getByText(/Estimated .*for three directions/u)).toBeVisible();
+  await expect(generate).toBeEnabled(); await expect(page.getByText(/Estimated .*for three directions/u)).toHaveCount(0);
   expect(f.admissions).toHaveLength(0);
   await generate.click(); await expect.poll(() => f.admissions.length).toBe(1);
   expect(f.admissions[0]).toMatchObject({ version: 3, spendControl: "uncapped", sourceLogo: f.sourceLogo.source, expectedLogoRevision: f.sourceLogo.selectionRevision });

@@ -157,8 +157,9 @@ test("Home input disclosures preserve prompt and honest availability", async ({ 
   const send = (await page.locator(".composer-send-icon").boundingBox())!, filePanel = (await panel.boundingBox())!;
   expect(filePanel.y).toBeGreaterThanOrEqual(send.y + send.height);
   if (info.project.name === "mobile") {
-    const scopeBox = (await page.getByRole("button", { name: "Project scope: Brand", exact: true }).boundingBox())!;
-    expect(Math.abs(send.y - scopeBox.y)).toBeLessThanOrEqual(1);
+    // Phones: attach, dictate and send share a row; the scope switch takes the next row.
+    const scopeBox = (await page.getByRole("group", { name: "What to create", exact: true }).boundingBox())!;
+    expect(scopeBox.y).toBeGreaterThanOrEqual(send.y + send.height);
     expect(filePanel.width).toBeGreaterThan(page.viewportSize()!.width * .8);
   }
   const fileInput = panel.locator('input[type="file"]');
@@ -176,20 +177,15 @@ test("Home input disclosures preserve prompt and honest availability", async ({ 
   await expect(files).not.toHaveAttribute("open", ""); await expect(trigger).toBeFocused(); await expect(prompt).toHaveValue(promptText);
   await trigger.press("Enter"); await prompt.click(); await expect(files).not.toHaveAttribute("open", ""); await expect(prompt).toBeFocused();
 
-  const scope = page.getByRole("button", { name: "Project scope: Brand", exact: true });
-  await scope.focus(); await scope.press("ArrowDown");
-  const menu = page.getByRole("menu", { name: "Project scope", exact: true }), options = menu.getByRole("menuitemradio");
-  expect(await options.locator(":scope > span").allTextContents()).toEqual(["Brand", "Name", "System", "Logo", "Font", "Color", "Guide"]);
-  await expect(options).toHaveCount(7);
-  for (let index = 0; index < 7; index++) {
-    if (index < 3) await expect(options.nth(index)).toBeEnabled();
-    else await expect(options.nth(index)).toBeDisabled();
-  }
-  await expect(options.nth(0)).toHaveAttribute("aria-checked", "true");
-  await page.keyboard.press("End"); await expect(options.nth(2)).toBeFocused();
-  await page.keyboard.press("ArrowDown"); await expect(options.nth(0)).toBeFocused();
-  await page.keyboard.press("Escape"); await expect(menu).toHaveCount(0); await expect(scope).toBeFocused();
-  await expect(scope).toHaveAccessibleName("Project scope: Brand");
+  // Scope is one radio group: arrow keys move the choice, and only the three
+  // supported project scopes are offered.
+  const scope = page.getByRole("group", { name: "What to create", exact: true }), options = scope.getByRole("radio");
+  await expect(options).toHaveCount(3);
+  expect(await scope.locator("label").allTextContents()).toEqual(["Complete brand", "Name only", "Visual identity"]);
+  await expect(options.nth(0)).toBeChecked();
+  await options.nth(0).focus(); await page.keyboard.press("ArrowRight");
+  await expect(options.nth(1)).toBeChecked(); await expect(options.nth(1)).toBeFocused();
+  await page.keyboard.press("ArrowLeft"); await expect(options.nth(0)).toBeChecked();
   const voice = page.locator(".home-voice-popover"), voiceTrigger = voice.locator(":scope > summary");
   await voiceTrigger.focus(); await voiceTrigger.press("Enter");
   await expect(voice.getByRole("button", { name: "Start voice input", exact: true })).toBeDisabled();

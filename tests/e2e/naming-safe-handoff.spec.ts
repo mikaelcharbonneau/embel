@@ -19,7 +19,7 @@ test("final Continue waits for an in-flight read, admits once, and reload never 
   expect(fixture.mutations()).toHaveLength(1);
 });
 
-test("manual selection survives screening reload, tab verification, Projects navigation and reopen", async ({ page }, info) => {
+test("manual selection survives screening reload, tab verification, Projects navigation and reopen", async ({ page }) => {
   const fixture = await namingFixture(page, { saved: true }); await openNaming(page);
   await page.getByRole("textbox", { name: "Your own name", exact: true }).fill("Cedarloom QA");
   await page.getByRole("button", { name: "Add name", exact: true }).click();
@@ -30,14 +30,13 @@ test("manual selection survives screening reload, tab verification, Projects nav
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   await expect(page.locator("#project-naming-screening-heading")).toHaveText("Cedarloom QA");
   await frameBarrier(page);
-  if (info.project.name === "mobile") await page.getByRole("button", { name: "Open navigation", exact: true }).click();
-  const navigation = info.project.name === "mobile" ? page.getByRole("dialog", { name: "Navigation", exact: true }) : page.locator("aside.sidebar");
+  const navigation = page.getByRole("navigation", { name: "Main navigation", exact: true });
   await navigation.getByRole("link", { name: "Projects", exact: true }).click();
   await expect(page).toHaveURL(/\/brands$/);
   await expect(page.getByRole("heading", { name: "Projects.", exact: true })).toBeVisible();
   await page.goto(namingUrl); await expect(page.locator("#project-naming-screening-heading")).toHaveText("Cedarloom QA");
-  // The project breadcrumb must also be a real, keyboard-operable route link.
-  await page.getByRole("link", { name: "Back to Projects", exact: true }).focus();
+  // The Projects link in the floating navigation is a real, keyboard-operable route link.
+  await page.getByRole("navigation", { name: "Main navigation", exact: true }).getByRole("link", { name: "Projects", exact: true }).focus();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/brands$/);
   await expect(page.locator("#project-naming-screening-heading")).toHaveCount(0);

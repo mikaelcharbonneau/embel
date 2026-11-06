@@ -14,7 +14,7 @@ export function ProjectCapsule({ projectName, projectControl, steps, saveState, 
   projectName: string; projectControl?: ReactNode; steps: readonly JourneyStepView[]; saveState: SaveState; account?: ReactNode;
 }) {
   return <header className={styles.navWrap}>
-    <div className={styles.capsule}>
+    <div className={`${styles.capsule} ${styles.projectCapsule}`}>
       <Link href="/" className={styles.brandIcon} aria-label="Embel home"><AppMark /></Link>
       {projectControl ?? <span className={styles.projectName}>{projectName}</span>}
       <span className={styles.sep} aria-hidden="true" />

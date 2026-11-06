@@ -28,7 +28,8 @@ export function FloatingNav({ pathname, items, tools = [], account }: { pathname
   }, [open]);
   const toolActive = tools.some(item => isActiveHref(item.href, pathname));
   return <header className={styles.navWrap}>
-    <nav className={styles.capsule} aria-label="Main navigation">
+    <div className={`${styles.capsule} ${styles.navCapsule}`}>
+    <nav className={styles.mainNav} aria-label="Main navigation">
       <Link href="/" className={styles.brand} aria-label="Embel home"><AppMark /><span aria-hidden="true">Embel</span></Link>
       <span className={styles.sep} aria-hidden="true" />
       <ul className={styles.navList}>
@@ -42,7 +43,8 @@ export function FloatingNav({ pathname, items, tools = [], account }: { pathname
           </details>
         </li>}
       </ul>
-      {account && <><span className={styles.sep} aria-hidden="true" /><div className={styles.end}>{account}</div></>}
     </nav>
+    {account && <><span className={styles.sep} aria-hidden="true" /><div className={styles.end}>{account}</div></>}
+    </div>
   </header>;
 }

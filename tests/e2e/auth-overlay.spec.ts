@@ -83,9 +83,9 @@ test("auth overlay: continuation clears the slot; direct visits and reloads use 
   const box = await card.boundingBox();
   if (testInfo.project.name === "desktop") {
     expect(box?.width).toBe(460);
-    expect(box?.x).toBe(530);
+    expect(box?.x).toBe(490);
     // Unavailable-account notice grows the honest card rather than hiding the status.
-    expect(box?.y).toBe(176);
+    expect(box?.y).toBe(172);
   }
   await expect(card.locator('img[src="/auth/card-mark.svg"]')).toHaveAttribute("width", "32");
   await expect(card.locator('img[src="/auth/submit-arrow.svg"]')).toHaveAttribute("width", "17");

@@ -6,7 +6,6 @@
 .concept-settings .workspace-main:has(.settings-guided[data-category=notifications]) { background-image: url('/settings/notifications-grid.svg'); background-size: 1360px 1047px; }
 .concept-settings .workspace-main:has(.settings-guided[data-category=security]) { background-image: url('/settings/security-grid.svg'); background-size: 1360px 1241px; }
 .concept-settings .workspace-main:has(.settings-guided[data-category=integrations]) { background-image: url('/settings/integrations-grid.svg'); background-size: 1360px 1097px; }
-.concept-settings.navigation-expanded .workspace-sidebar-toggle img { transform: rotate(180deg); }
 .settings-guided.page { max-width: 1088px; padding: 40px; margin: 0 auto; }
 .settings-guided .sg-heading { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px 24px; }
 .settings-guided .sg-heading > div { flex: 1 1 320px; min-width: 0; }

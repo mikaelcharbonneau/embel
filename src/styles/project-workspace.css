@@ -1,7 +1,6 @@
 /* Fluid — Screens, project pages 3:16–3:29. Original 1440 × 900 shell. */
 .concept-project-workspace { --canvas: #f7f7f5; --paper: #fff; --border: #e4e3df; }
 .concept-project-workspace .workspace-main { background: var(--paper); background-image: none; }
-.concept-project-workspace .topbar { border-bottom: 1px solid var(--border); background: var(--paper); }
 .concept-project-workspace .workspace-account-avatar { background: #f1f0ee; border: 0; }
 .concept-project-workspace #main-content { padding: 0; overflow: hidden; }
 .project-workspace { height: 100%; min-height: 0; display: flex; flex-direction: column; }
