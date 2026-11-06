@@ -92,7 +92,7 @@ describe("AI prompt start readiness and recovery", () => {
     expect(host.textContent).toMatch(status === "signed_out" ? /Sign in/ : /Checking your account/);
     expect(host.textContent).not.toContain("Send starts a conversation");
   });
-  it("waits for Send's fresh readiness read while initial readiness is still loading, then shows cost before dispatch", async () => {
+  it("waits for Send's fresh readiness read while initial readiness is still loading, then dispatches without showing a cost", async () => {
     const old = deferred<Response>(), fresh = deferred<Response>(); let reads = 0;
     fetcher.mockImplementation((path: string, init: RequestInit) => path === "/api/strategy" ? (++reads === 1 ? old.promise : fresh.promise) : defaultFetch(path, init));
     await render(); let result!: Promise<boolean>;
@@ -101,7 +101,7 @@ describe("AI prompt start readiness and recovery", () => {
     await act(async () => { fresh.resolve(Response.json({ availability: ready() })); await result; });
     expect(await result).toBe(false); expect(host.textContent).toContain("Send again"); expect(mutations()).toHaveLength(0);
     await act(async () => old.resolve(Response.json({ availability: unavailable() })));
-    expect(host.textContent).toContain("$0.02");
+    expect(host.textContent).not.toContain("$");
   });
   it("recovers newly available AI through a read-only Recheck and one explicit Send", async () => {
     runtime = unavailable(); await render(); await start(); runtime = ready();
@@ -112,9 +112,9 @@ describe("AI prompt start readiness and recovery", () => {
     await render(); runtime = unavailable(); expect(await start()).toBe(false);
     expect(mutations()).toHaveLength(0); expect(mock.push).not.toHaveBeenCalled(); expect(host.textContent).toContain("worker is not ready");
   });
-  it("does not accept a higher price than was shown at Send", async () => {
+  it("does not accept a higher price than the one confirmed at Send", async () => {
     await render(); runtime = ready(20000); expect(await start()).toBe(false);
-    expect(mutations()).toHaveLength(0); expect(host.textContent).toContain("Send again"); expect(host.textContent).toContain("$0.04");
+    expect(mutations()).toHaveLength(0); expect(host.textContent).toContain("Send again"); expect(host.textContent).not.toContain("$");
   });
   it("expires a session rejected during fresh verification before any mutation", async () => {
     await render(); fetcher.mockImplementation((path: string, init: RequestInit) => path === "/api/session" ? Promise.resolve(new Response(null, { status: 401 })) : defaultFetch(path, init));
@@ -196,7 +196,7 @@ describe("AI prompt start readiness and recovery", () => {
   });
   it("requires renewed Send when changing from subscription to API billing", async () => {
     runtime = subscription(); await render(); runtime = ready(30000);
-    expect(await start()).toBe(false); expect(mutations()).toHaveLength(0); expect(host.textContent).toContain("$0.06");
+    expect(await start()).toBe(false); expect(mutations()).toHaveLength(0); expect(host.textContent).toContain("Send again"); expect(host.textContent).not.toContain("$");
     expect(await start()).toBe(true); expect(mutations()).toHaveLength(2);
   });
   it("retires confirmed account-routing receipts whose browser drafts are gone", async () => {
@@ -261,7 +261,7 @@ describe("response-only Home start", () => {
   const responseOnly = () => ({ status: "available", operations: [{ operation: "strategy.reformulate", maximumCostMicrousd: 122880 }] });
   it("saves the owned prompt and enqueues exactly one bounded response", async () => {
     runtime = responseOnly(); await render();
-    expect(host.textContent).toContain("requests a response, up to $0.13");
+    expect(host.textContent).toContain("uses OpenAI for a response. Competitor research is unavailable."); expect(host.textContent).not.toContain("$");
     expect(host.textContent).toContain("Competitor research is unavailable");
     expect(await start()).toBe(true);
     expect(mutations()).toHaveLength(2);

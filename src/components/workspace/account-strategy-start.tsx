@@ -12,7 +12,7 @@ import { useAccountSession, type VerifiedAccount } from "./account-session";
 import { createAccountInput } from "./project-draft-adapter";
 import type { LocalDraft } from "./local-drafts";
 import { StartReceiptRecoveryError, readReceipt, readDraftFence, hasDraftReceipt, type StartReceipt } from "./account-project-start-recovery";
-import { forgetStrategyIntent, formatStrategyCap, strategyPromptCost, promptStrategyPlan, rememberStrategyPlan, strategyAvailabilityMessage, strategyAllowanceWithin, strategyRequestPayload, strategyJobMatchesRequest, verifyStrategyJobs } from "./account-strategy-client";
+import { forgetStrategyIntent, promptStrategyPlan, rememberStrategyPlan, strategyAvailabilityMessage, strategyAllowanceWithin, strategyRequestPayload, strategyJobMatchesRequest, verifyStrategyJobs } from "./account-strategy-client";
 import { rememberPromptForSignIn } from "./prompt-recovery";
 import { guidedAllowance, initialGuidedContext } from "./guided-interview-client";
 import { finishLocalDraftRecovery, saveLocalDraftToAccount } from "./save-local-draft-to-account";
@@ -339,10 +339,7 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
       : !plan ? strategyAvailabilityMessage(currentRuntime.availability) : "AI is available. Send requests a response using the details below.")}</p>
     {plan && <p className="field-hint">{plan.billingMode === "chatgpt_subscription"
       ? "Sending saves your project and uses your ChatGPT plan for a response. Competitor research starts after you apply the response. Your plan limits apply."
-      : strategyPromptCost(plan) === null ? `Sending saves your project and uses OpenAI for ${plan.kind === "response_only" ? "a response. Competitor research is unavailable." : "a response and competitor research. Competitor research starts after you apply the response."}`
-      : plan.kind === "response_only"
-        ? `Sending saves your project and requests a response, up to ${formatStrategyCap(strategyPromptCost(plan)!)}. Competitor research is unavailable.`
-      : `Sending saves your project and uses OpenAI for a response and competitor research, up to ${formatStrategyCap(strategyPromptCost(plan)!)} total. Competitor research starts after you apply the response.`}</p>}
+      : `Sending saves your project and uses OpenAI for ${plan.kind === "response_only" ? "a response. Competitor research is unavailable." : "a response and competitor research. Competitor research starts after you apply the response."}`}</p>}
     {plan?.billingMode === "chatgpt_subscription" && <div>
       <p className="field-hint" aria-label="Response usage limits">Response: {subscriptionLimitsLabel(plan.reformulation)}</p>
       <p className="field-hint" aria-label="Competitor research usage limits">Competitor research: {subscriptionLimitsLabel(plan.competitors)}</p>
