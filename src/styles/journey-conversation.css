@@ -281,3 +281,7 @@
 .identity-chosen-logo :is(figure, div) { display: contents; }
 .identity-chosen-logo img { width: 100%; height: 100%; object-fit: contain; }
 .identity-chosen-logo p { margin: 0; padding: 4px; font-size: 10px; text-align: center; color: var(--secondary); }
+.identity-chosen-logo-row { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.identity-chosen-logo-row .identity-chosen-logo { margin-top: 0; }
+.kit-message > .kit-card + .kit-card { margin-top: 12px; }
+.kit-board .kit-image-frame img { object-fit: contain; background: var(--paper); }

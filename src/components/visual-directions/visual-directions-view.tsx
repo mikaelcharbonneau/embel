@@ -101,10 +101,12 @@ export function VisualDirectionsView({ brandName, logoPreview, logoDownload, bac
     <div className="guided-assistant-message identity-conversation-message">
       <EmbelIdentity label={journeyPartLabel("identity", "Creative direction")} />
       <h1 className="sr-only" ref={heading} id={titleId} tabIndex={-1}>Creative direction</h1>
-      <p className="guided-assistant-copy">Here are three ways to bring {brandName} to life, each built on your chosen logo. Pick the one that feels right.
-        {backHref && <> <Link className="text-link" href={backHref}>Change logo</Link></>}</p>
+      <p className="guided-assistant-copy">Here are three ways to bring {brandName} to life, each built on your chosen logo. Pick the one that feels right.</p>
       {logoDownload && <div className={styles.logoDownload}>{logoDownload}</div>}
-      <section className="identity-chosen-logo" aria-label="Chosen logo">{logoPreview}</section>
+      <section className="identity-chosen-logo-row" aria-label="Chosen logo">
+        <div className="identity-chosen-logo">{logoPreview}</div>
+        {backHref && <Link className="text-link" href={backHref}>Change logo</Link>}
+      </section>
     </div>
 
     <section className={styles.generation} aria-labelledby={generationId}>

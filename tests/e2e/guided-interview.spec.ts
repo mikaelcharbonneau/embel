@@ -494,7 +494,7 @@ test("competitor cards keep their selection, descriptions and sources across sug
   await expect(previous).toBeChecked();
   const previousCard = group.locator(".guided-choice-card").filter({ has: page.getByRole("checkbox", { name: competitors[0]!.name, exact: true }) });
   await expect(previousCard.getByText("A close comparison for seasonal lunches and neighborhood familiarity.")).toBeVisible();
-  await expect(previousCard.getByText("Why we recommend it")).toBeVisible();
+  await expect(previousCard.getByText("Recommended", { exact: true })).toBeVisible();
   await expect(previousCard.getByRole("link", { name: /Synthetic source/ })).toBeVisible();
   const manualCard = group.locator(".guided-choice-card").filter({ has: page.getByRole("checkbox", { name: "Coursera", exact: true }) });
   await expect(manualCard.getByRole("link", { name: /Visit website/ })).toHaveAttribute("href", "https://coursera.org/");

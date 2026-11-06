@@ -56,11 +56,11 @@ function useOptionalAccountSession() {
 
 function useChecker() {
   const account = useOptionalAccountSession();
-  const session = account?.session ?? { status: "signed_out" as const, generation: 0 };
+  const session = account?.session;
   const isCurrent = account?.isCurrent;
-  const key = session.status === "ready" ? `${session.userId}:${session.generation}` : null;
+  const key = session?.status === "ready" ? `${session.userId}:${session.generation}` : null;
   useEffect(() => {
-    if (!key || session.status !== "ready" || !isCurrent || checker?.key === key) return;
+    if (!key || session?.status !== "ready" || !isCurrent || checker?.key === key) return;
     checker?.controller.abort();
     results.clear(); queue.length = 0;
     const controller = new AbortController();

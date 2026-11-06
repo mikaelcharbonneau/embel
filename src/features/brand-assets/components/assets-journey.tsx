@@ -50,6 +50,8 @@ export function AssetsJourney({ snapshot, pack, previews, downloadFile, disabled
   }, [logoFile]);
   const logoPreview = logoUrl && logoUrl.name === logoFile?.name ? logoUrl.url : previews?.get(logoFile?.name ?? "");
   const guide = files.find(file => file.category === "guide" && file.mimeType === "text/html");
+  const board = files.find(file => file.category === "board");
+  const boardPreview = board ? previews?.get(board.name) : undefined;
   const base = `/brands/account/${projectId}`;
   const competitors = context?.competitors.filter(item => item.selected).map(item => item.name) ?? [];
   const audience = context?.audienceSegments.filter(item => item.selected).map(item => item.label) ?? [];
@@ -64,6 +66,13 @@ export function AssetsJourney({ snapshot, pack, previews, downloadFile, disabled
     <article className="guided-assistant-message kit-message" aria-labelledby="assets-images">
       <EmbelIdentity label={journeyPartLabel("assets", "Brand images")} />
       <p className="guided-assistant-copy">{snapshot.name} is coming together. Here are images for your social accounts{directionTitle ? `, all in ${directionTitle}` : ""}. Download any of them, or the whole set.</p>
+      {board && <section className="kit-card" aria-label="Brand board">
+        <h2>Brand board</h2>
+        <figure className="kit-image kit-board">
+          <div className="kit-image-frame">{boardPreview /* eslint-disable-line @next/next/no-img-element */ ? <img src={boardPreview} alt={`${snapshot.name} final brand board`} /> : <span role="status">Preparing…</span>}</div>
+          <figcaption><span><strong>Your logo, colours and type on one page</strong></span><span className="kit-actions">{button(board, "PNG")}</span></figcaption>
+        </figure>
+      </section>}
       <section className="kit-card">
         <h2 id="assets-images">Social images and templates</h2>
         <p className="kit-hint">Posts and banners also come as editable SVG templates.</p>

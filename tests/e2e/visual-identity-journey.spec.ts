@@ -143,7 +143,7 @@ test("chosen concept leads to three directions, a saved choice and usable brand 
   await expect(page.locator('[aria-label="Direction comparison"] article[aria-checked="true"]')).toHaveCount(1);
   await expect(chosenCard).toHaveAttribute("aria-checked", "true");
   await expect(assets).toHaveAttribute("href", assetsUrl);
-  expect(await assets.evaluate(link => Boolean(link.compareDocumentPosition(document.querySelector('[aria-label="Direction comparison"]')!) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+  expect(await assets.evaluate(link => Boolean(link.compareDocumentPosition(document.querySelector('[aria-label="Direction comparison"]')!) & Node.DOCUMENT_POSITION_PRECEDING))).toBe(true);
   const selectedId = f.selection!.systemVersionId;
   expect(selectedId).toBe(f.systems[1]!.id);
   await page.reload(); await expect(page.locator('[aria-label="Direction comparison"] article[aria-checked="true"]')).toHaveCount(1);

@@ -30,7 +30,8 @@ export function ProjectNameCard({ entry, selected, earlierContext, pending, bloc
       <span className={styles.nameRadio} aria-hidden="true" />
       <span className={styles.nameValue}>{candidate.value}</span>
       <DotComStatus name={candidate.value} />
-      <span className="sr-only">{[selected ? "Chosen name" : "Choose this name", retention.saved ? "Saved" : "", earlierContext ? "Earlier strategy" : ""].filter(Boolean).join(" · ")}</span>
+      {earlierContext && <span className={styles.nameNote}>Earlier strategy</span>}
+      <span className="sr-only">{[selected ? "Chosen name" : "Choose this name", retention.saved ? "Saved" : ""].filter(Boolean).join(" · ")}</span>
     </button>
     <button className={`project-naming-favorite ${styles.heart}`} type="button" aria-label={`${retention.favorite ? "Unfavorite" : "Favorite"} ${candidate.value}`} aria-pressed={retention.favorite} disabled={pending} onClick={onFavorite}>
       {/* Exact original Figma heart export, native 16 × 16. */}

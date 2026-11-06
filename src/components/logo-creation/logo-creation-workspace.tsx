@@ -573,7 +573,6 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
     {workspace.error && conceptsScreen && <p className={styles.warning} role="alert">{workspace.error}</p>}
     {activeBatch && saved?.stages.brief_references && saved.stages.brief_references.id !== activeBatch.briefRevisionId && <p className={styles.warning}>This batch uses an earlier saved brief. Its original inputs and successful previews are kept.</p>}
     {conceptsScreen && activeBatch && <p className={styles.note} role="status">{selectionState.busy ? "Saving selection…" : selectionState.error ?? (initialConceptReadState ? initialConceptReadMessage : selectedLogo ? "Logo chosen. Continue, or describe a change below." : "Pick the concept you like most.")}</p>}
-    {conceptsComposer}
     <LogoConceptGridView gallery={conceptsScreen} versions={cardVersions} selectedVersion={selectedLogo} selectionAt={workspace.stagePayloads?.concepts?.createdAt} viewedVersions={viewedVersions}
       onViewVersion={(slotId, key, count) => setViewedVersions(previous => ({ ...previous, [slotId]: { key, count } }))}
       onSelectVersion={batchReady && saved?.capabilities.save.status === "available" && !workspace.pending && !workspace.dirty && !draft?.conflict && editing ? source => void selectCandidate(source) : undefined} filter={conceptFilter} comparison={comparison} onCompare={compareCandidate} batch={activeBatch} savedBatchUnavailable={savedBatchUnavailable} savedBatchLoading={savedBatchLoading}
@@ -590,6 +589,8 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
       </>}
       onRequestRefine={batchReady && selectedLogo && canEstimate ? () => { if (refinementDisclosure.current?.getAttribute("aria-expanded") === "false") refinementDisclosure.current.click(); refinementDisclosure.current?.focus(); } : undefined}
       request={activeRequest} onCheckRequest={recoveryKeys.length > 0 && client && editing && !checkingRequest ? () => void checkRequest() : undefined} />
+    {/* The refine box stays in one place below the concepts, so a draft survives the first set arriving. */}
+    {conceptsComposer}
     {conceptsScreen && projectId && client && focusedReceipt && <LogoDownloadControls client={client} account={account} projectId={projectId} original={focusedReceipt} disabled={selectionState.busy} />}
     {conceptsScreen && projectId && activeBatch && <div className={styles.continueToBoard}>{workspace.stagePayloads?.concepts?.payload.selected && !selectionState.busy
       ? <Link className={`${styles.primaryButton} ${stage.actionLink}`} href={`/brands/account/${projectId}/logo/directions`}
