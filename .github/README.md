@@ -20,13 +20,18 @@ native PostgreSQL 17 container. Each shard fetches its exact public image digest
 before running tests, so changing shard assignments does not depend on a cached
 image. That fixture has no network, exposed ports, or application credentials.
 Each shard retains its JUnit report for seven days.
-To reproduce a shard locally with Node 22.22.2:
+To reproduce a shard locally with Node 22.22.2, start your local Docker engine
+(Docker Desktop, Colima or OrbStack; the test uses the active local Docker
+context) and pull the fixture image once:
 
 ```sh
 npm ci
-docker --host=unix:///var/run/docker.sock pull ghcr.io/supabase/cli/postgres:17.11.0.006-r0@sha256:ee0f2d9747fb9d3c0a29703684ec718f070384ad05bf0d92823ed02cabde8e5a
+docker pull ghcr.io/supabase/cli/postgres:17.11.0.006-r0@sha256:ee0f2d9747fb9d3c0a29703684ec718f070384ad05bf0d92823ed02cabde8e5a
 npm test -- --shard=1/4 --maxWorkers=2
 ```
+
+Outside CI, the native PostgreSQL suite is skipped, with the reason in its name,
+when no local engine is running or the image has not been pulled.
 
 No application credentials or GitHub environment are attached to these jobs.
 The workflow has only read access to repository contents, does not persist the
