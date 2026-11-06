@@ -132,7 +132,7 @@ export function GuidedChoiceWidget({ reply, selectedIds, onSelectionChange, onCo
             <span className="guided-choice-description" id={`${optionId}-detail`}>
               <span className={option.stage === "positioning" ? "guided-positioning-statement" : undefined}>{option.stage === "positioning" ? option.payload.statement : option.description}</span>
               <OptionDetails option={option} />
-              {option.recommended && option.recommendationReason && <span className="guided-choice-reason"><span className="guided-choice-detail-label">Why we recommend it</span><span>{option.recommendationReason}</span></span>}
+              {option.recommended && option.recommendationReason && option.stage !== "competitors" && option.stage !== "positioning" && <span className="guided-choice-reason"><span className="guided-choice-detail-label">Why we recommend it</span><span>{option.recommendationReason}</span></span>}
             </span>
           </span>
         </label>

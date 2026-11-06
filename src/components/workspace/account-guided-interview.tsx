@@ -319,7 +319,17 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
 
   const briefEditor = <AccountBriefEditor workspace={workspace} open={briefOpen} onOpen={() => { setBriefFromNaming(Boolean(namingReady)); setBriefOpen(true); }} onClose={() => setBriefOpen(false)} readOnly={Boolean(pending || workspace.conflict || workspace.pendingDraftSave || workspace.pendingGuidedContext)} saveLabel={storage.saveLabel} onUpdate={storage.onUpdate} navigation={navigation} />;
   const firstMessage = timeline.find(item => item.kind === "user");
+  // Choosing cards records the labels as your message so the next question can
+  // refer to it. The answered card already shows them, so that echo is not repeated.
+  const choiceEchoes = new Set((state?.answers ?? []).flatMap(answer => {
+    const answeredTurn = state?.turns.find(turn => turn.id === answer.turnId);
+    const answeredReply = answeredTurn ? guidedTurnResult(jobs, answeredTurn, account.userId, saved.id)?.reply : null;
+    if (answeredReply?.kind !== "choices") return [];
+    const labels = [...answer.optionIds.map(id => answeredReply.options.find(option => option.id === id)?.label), ...(retainedAnswerNames(answer.customText, context.competitors) ?? [])].filter(Boolean);
+    return labels.length ? [labels.join("; ")] : [];
+  }));
   const renderItem = (item: (typeof timeline)[number]) => {
+        if (item.kind === "user" && item !== firstMessage && choiceEchoes.has(item.event.text.trim())) return null;
         if (item.kind === "user") {
           const first = item === firstMessage;
           const message = <div className="guided-user-turn">

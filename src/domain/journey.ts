@@ -71,10 +71,14 @@ export function projectJourney(input: { projectId: string; scope: ProjectScope; 
   const current = include.includes(viewed) ? viewed : include[0]!;
   const progress = input.nextHref ? journeyStepOfAction(input.projectId, input.nextHref) : null;
   const progressIndex = progress ? include.indexOf(progress) : -1;
-  const done = new Set(include.filter((_, index) => index < progressIndex));
+  // The conversation reports a later step only after the earlier one is answered
+  // (Voice follows a confirmed positioning), so the steps before it are done too.
+  const shownIndex = input.shown ? include.indexOf(input.shown) : -1;
+  const doneIndex = Math.max(progressIndex, shownIndex);
+  const done = new Set(include.filter((_, index) => index < doneIndex));
   const hrefs: Partial<Record<JourneyStepId, string>> = {};
   include.forEach((step, index) => {
-    if (index < progressIndex) hrefs[step] = journeyStepHref(input.projectId, step);
+    if (index < doneIndex) hrefs[step] = journeyStepHref(input.projectId, step);
     else if (index === progressIndex && input.nextHref) hrefs[step] = input.nextHref;
   });
   return journeySteps(current, done, hrefs, include);
