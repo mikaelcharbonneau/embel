@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { logoUuidSchema } from "@/domain/logo-vector";
 import { logoBoardGenerationIntentSchema, type IdentityAvailability, type IdentityBatchState } from "@/domain/identity-jobs";
 import { getIdentityFreshness, type IdentitySystemVersion } from "@/domain/project-identity";
@@ -96,6 +96,21 @@ function OwnedVisualDirections({ account, projectId }: { account: VerifiedAccoun
     historyRequest.current?.abort(); historyRequest.current = null; setHistory(null);
     void generation.controller?.start(input);
   }
+  // Creative direction starts once on arrival with a newly chosen logo: the
+  // Continue click on the logo step is the deliberate request. One marker per
+  // project and logo keeps a reload or a return visit from starting another set.
+  const latest = generation.overview?.latest ?? null;
+  const logoKey = availability?.status === "available" && availability.version === 3 ? logoCandidateKey(availability.sourceLogo.source) : null;
+  const latestForLogo = Boolean(logoKey && latest?.sourceLogo && logoCandidateKey(latest.sourceLogo.source) === logoKey);
+  const autoStart = useEffectEvent(() => {
+    if (!logoKey || latestForLogo || shownHistory || unresolved || blockedReason || generation.busy || !generation.overview || !identity.checked) return;
+    const marker = `embel.auto-directions.v1:${projectId}:${logoKey}`;
+    try { if (window.sessionStorage.getItem(marker)) return; window.sessionStorage.setItem(marker, "1"); } catch { return; }
+    start();
+  });
+  // The start itself clears a viewed earlier set; that is the intended reaction.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { autoStart(); }, [logoKey, latestForLogo, unresolved, blockedReason, generation.busy, generation.overview, identity.checked]);
   async function choose(system: IdentitySystemVersion) {
     if (!client?.current() || choosing || identity.blocked || logoPending || !currentBatch || !identity.overview
       || getIdentityFreshness(system.input.basis, identity.overview.currentBasis).status !== "current") return;
@@ -144,7 +159,7 @@ function OwnedVisualDirections({ account, projectId }: { account: VerifiedAccoun
     selectionCheck={identity.selectionCheckAvailable ? { busy: identity.loading || identity.detailLoading, onCheck: () => void identity.refresh() } : undefined}
     selectionStatus={showAssets ? (chosenTitle ? `Selected direction: ${chosenTitle}.` : "Your saved direction is selected in another set.") : null}
     selectionError={identity.selectionUncertain ? "Your choice could not be confirmed. Use Check saved choice before choosing again." : null}
-    finalAction={showAssets && <Link className="identity-primary-button" href={`/brands/account/${projectId}/logo/deliverables`}>View brand assets</Link>}
+    finalAction={showAssets && <Link className="identity-primary-button" href={`/brands/account/${projectId}/logo/deliverables`}>Continue</Link>}
     history={<>
       {shownHistory?.batch && shownHistory.batch.batchId !== requestBatch?.batchId && <p>You are viewing an earlier saved set. The progress above is for your latest request.</p>}
       {generation.retained && generation.lookup === "not_found" && <button type="button" className="identity-secondary-button" disabled={Boolean(generation.busy)} onClick={() => void generation.controller?.retryOriginal()}>Retry original request</button>}

@@ -166,13 +166,13 @@
 
 /* Phase 5 · Identity · Logo: the concepts screen opens with Embel's message and
    the logo-types question, in the conversation style. */
-.project-logo-creation .logo-conversation-message { display: grid; grid-template-columns: 32px minmax(0, 1fr); column-gap: 12px; align-items: start; margin-bottom: 20px; }
-.project-logo-creation .logo-conversation-message > * { grid-column: 2; }
-.project-logo-creation .logo-conversation-message > .guided-assistant-identity { display: contents; }
-.project-logo-creation .guided-assistant-avatar { grid-column: 1; grid-row: 1 / span 12; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--accent); }
-.project-logo-creation .guided-assistant-avatar img { width: 15px; height: 15px; filter: invert(1); }
-.project-logo-creation .guided-assistant-label { padding-top: 6px; margin-bottom: 10px; font-size: 12px; line-height: 18px; color: var(--secondary); }
-.project-logo-creation .guided-assistant-copy { margin: 0; font-size: 15px; line-height: 1.55; }
+.project-logo-creation .logo-conversation-message, .identity-conversation-message { display: grid; grid-template-columns: 32px minmax(0, 1fr); column-gap: 12px; align-items: start; margin-bottom: 20px; }
+.project-logo-creation .logo-conversation-message > *, .identity-conversation-message > * { grid-column: 2; }
+.project-logo-creation .logo-conversation-message > .guided-assistant-identity, .identity-conversation-message > .guided-assistant-identity { display: contents; }
+:is(.project-logo-creation, .identity-conversation-message) .guided-assistant-avatar { grid-column: 1; grid-row: 1 / span 12; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--accent); }
+:is(.project-logo-creation, .identity-conversation-message) .guided-assistant-avatar img { width: 15px; height: 15px; filter: invert(1); }
+:is(.project-logo-creation, .identity-conversation-message) .guided-assistant-label { padding-top: 6px; margin-bottom: 10px; font-size: 12px; line-height: 18px; color: var(--secondary); }
+:is(.project-logo-creation, .identity-conversation-message) .guided-assistant-copy { margin: 0; font-size: 15px; line-height: 1.55; }
 .logo-types-question { margin: 14px 0 0; padding: 18px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--paper); min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 .logo-types-question h2 { margin: 0; font-size: 17px; font-weight: 500; letter-spacing: -.01em; }
 .logo-types-question > p { margin: 0; font-size: 13px; color: var(--secondary); }
@@ -190,3 +190,12 @@
 .workspace-main .project-logo-creation:has(.logo-conversation-message) { width: min(840px, 100%); margin: 0 auto; padding: 40px 24px 120px; box-sizing: border-box; }
 .project-logo-creation:has(.logo-conversation-message) [class*="generationActions"] { display: flex; justify-content: flex-end; }
 .project-logo-creation:has(.logo-conversation-message) [class*="primaryButton"] { border-radius: var(--radius-pill); min-height: 44px; padding: 0 20px; }
+
+/* Identity · Creative direction: click a board to choose it. */
+.identity-conversation-message { margin-bottom: 20px; }
+.direction-choice-card { cursor: pointer; }
+.direction-choice-card[aria-disabled=true] { cursor: default; }
+.direction-choice-card:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+.direction-footer { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 16px; }
+.direction-footer .identity-primary-button { display: inline-flex; align-items: center; min-height: 44px; padding: 0 20px; border-radius: var(--radius-pill); }
+.concept-project-workspace .workspace-main:has(.identity-conversation-message) { background-color: var(--canvas); background-image: radial-gradient(#dad9d4 1px, transparent 1px); background-size: 22px 22px; }
