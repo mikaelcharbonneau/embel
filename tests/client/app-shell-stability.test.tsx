@@ -74,7 +74,7 @@ describe("persistent workspace shell", () => {
     expect(links.map(link => link.textContent)).toEqual(["Home", "Projects", "Library"]);
     expect([...mainNav().querySelectorAll("details a")].map(link => link.getAttribute("href"))).toEqual(["/ideas", "/names", "/handles", "/domains", "/trademarks"]);
     links[1]!.focus();
-    const routes = ["/brands", "/assets", "/ideas", "/names", "/handles", "/domains", "/trademarks", "/settings", "/brands/new", "/brands/logo/new", "/brands/account/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "/sign-in", "/sign-up", "/"];
+    const routes = ["/brands", "/assets", "/ideas", "/names", "/handles", "/domains", "/trademarks", "/settings", "/brands/new", "/brands/logo/new", "/sign-in", "/sign-up", "/"];
     for (const pathname of routes) {
       route.pathname = pathname; await render();
       navLinks().forEach((link, index) => {
@@ -90,6 +90,19 @@ describe("persistent workspace shell", () => {
     }
     expect(host.querySelector('aside, .mobile-menu, [aria-label="Open navigation"]')).toBeNull();
     expect(fetcher.mock.calls.filter(([path]) => path === "/api/session")).toHaveLength(1);
+  });
+
+  it("becomes the project bar inside a project and keeps the same account menu", async () => {
+    await render(); await until(() => expect(accountLabel().textContent).toBe("Private fixture name"));
+    const accountMenu = host.querySelector(".workspace-account-menu"), frame = host.querySelector("header");
+    route.pathname = "/brands/account/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"; await render();
+    expect(host.querySelector('nav[aria-label="Main navigation"]')).toBeNull();
+    expect(host.querySelector("header")?.textContent).toContain("Loading project…");
+    expect(host.querySelector(".workspace-account-menu")).toBe(accountMenu);
+    expect(host.querySelector("header")).toBe(frame);
+    route.pathname = "/"; await render();
+    expect(mainNav()).not.toBeNull();
+    expect(host.querySelector(".workspace-account-menu")).toBe(accountMenu);
   });
 
   it("keeps the underlying page highlighted when an auth dialog opens over it", async () => {

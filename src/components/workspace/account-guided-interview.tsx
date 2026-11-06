@@ -4,10 +4,11 @@ import { Fragment, useEffect, useEffectEvent, useId, useRef, useState, type Comp
 import { AccountBriefEditor } from "./account-brief-editor";
 import { ProjectNamingWorkspace } from "@/components/naming/project-naming-workspace";
 import { getNamingReadiness } from "@/domain/project-naming";
-import { ProjectArtwork } from "@/components/ui/project-artwork";
 import { appendGuidedTurn, confirmGuidedSelection, guidedTurnOperation, revisitGuidedStage, type GuidedReply, type GuidedStage } from "@/domain/guided-interview";
 import { competitorSchema, contextSnapshotSchema, type ContextSnapshot } from "@/domain/projects";
 import { CompetitorWidgetControls } from "./competitor-widget-controls";
+import { EmbelIdentity, guidedStageLabel } from "./embel-identity";
+import { useConversationStep } from "@/components/journey/project-header";
 import { accountDraftChanged, type AccountWorkspace, type GuidedInterviewInput } from "./account-draft-memory";
 import { strategyAllowanceWithin, strategyAvailabilityMessage, strategyCanRetryDelivery, strategyJobActive } from "./account-strategy-client";
 import type { VerifiedAccount } from "./account-session";
@@ -279,6 +280,7 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
   // positioning the first Naming question. A failed history read keeps its retry.
   const historyChecked = Boolean(strategy.overview || strategy.readError);
   const showNaming = (briefOpen ? briefFromNaming : namingReady) && historyChecked;
+  useConversationStep(showNaming ? "voice" : "strategy");
   // Once Strategy is complete its saved replies are history. They can load
   // after the Naming checkpoint and must not take the reader to an old turn.
   const responseIds = showNaming ? (namingQuestionId && !namingCanvas ? [namingQuestionId] : []) : [
@@ -294,15 +296,16 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
     contentKey: JSON.stringify([timeline.map(item => item.kind === "user" ? item.event.id : item.turn.id), state?.answers.map(answer => answer.turnId), Boolean(active || checkingResearch), state?.stage, showNaming]),
     responseIds,
   });
-  const legacyReplies = legacyJobs.map(job => <Fragment key={job.id}>{job.results.map(result => <article key={result.stepKey} id={`guided-result-${job.id}-${result.stepKey}`} tabIndex={-1} className="guided-assistant-message flow-enter" aria-label="Earlier Embel response"><div className="guided-assistant-identity"><ProjectArtwork name="mark" /><span>Embel</span></div><p className="guided-assistant-copy">{result.output.proposal.message}</p></article>)}</Fragment>);
+  const legacyReplies = legacyJobs.map(job => <Fragment key={job.id}>{job.results.map(result => <article key={result.stepKey} id={`guided-result-${job.id}-${result.stepKey}`} tabIndex={-1} className="guided-assistant-message flow-enter" aria-label="Earlier Embel response"><EmbelIdentity /><p className="guided-assistant-copy">{result.output.proposal.message}</p></article>)}</Fragment>);
 
   const briefEditor = <AccountBriefEditor workspace={workspace} open={briefOpen} onOpen={() => { setBriefFromNaming(Boolean(namingReady)); setBriefOpen(true); }} onClose={() => setBriefOpen(false)} readOnly={Boolean(pending || workspace.conflict || workspace.pendingDraftSave || workspace.pendingGuidedContext)} saveLabel={storage.saveLabel} onUpdate={storage.onUpdate} navigation={navigation} />;
   const firstMessage = timeline.find(item => item.kind === "user");
   const conversationHistory = timeline.map(item => {
         if (item.kind === "user") {
           const first = item === firstMessage;
-          const message = <div className={first ? "guided-user-message guided-brief-message" : "guided-user-message"}>
-            <span className="sr-only">You</span><p>{item.event.text}</p>
+          const message = <div className="guided-user-turn">
+            <span className="guided-user-label">You</span>
+            <div className={first ? "guided-user-message guided-brief-message" : "guided-user-message"}><p>{item.event.text}</p></div>
           </div>;
           return first ? <div key={item.event.id} className="guided-brief-turn">{message}{briefEditor}</div>
             : <Fragment key={item.event.id}>{message}</Fragment>;
@@ -311,7 +314,7 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
         if (!output || output.kind === "accepted" || output.kind === "redirect") return item.turn.id === state?.turns[0]?.id ? <Fragment key={item.turn.id}>{legacyReplies}</Fragment> : null;
         const answer = state?.answers.find(answer => answer.turnId === item.turn.id);
         const current = choiceTurn?.id === item.turn.id && !answer;
-        return <Fragment key={item.turn.id}>{item.turn.id === state?.turns[0]?.id && legacyReplies}<article id={`guided-turn-${item.turn.id}`} tabIndex={-1} className="guided-assistant-message flow-enter" aria-label="Embel response"><div className="guided-assistant-identity"><ProjectArtwork name="mark" /><span>Embel</span></div>
+        return <Fragment key={item.turn.id}>{item.turn.id === state?.turns[0]?.id && legacyReplies}<article id={`guided-turn-${item.turn.id}`} tabIndex={-1} className="guided-assistant-message flow-enter" aria-label="Embel response"><EmbelIdentity label={guidedStageLabel(item.turn.stage)} />
           <p className="guided-assistant-copy">{output.message}</p>
           {output.kind === "choices" ? <GuidedChoiceWidget reply={output} selectedIds={answer?.optionIds ?? selectedCompetitors(output)} additionalControls={current && output.stage === "competitors" ? <CompetitorWidgetControls draft={competitorDraft} onDraft={value => changeInput(previous => ({ ...previous, competitorDraft: value }))} onAdd={() => addCompetitor(output)} onMore={() => void moreCompetitors(output)} disabled={Boolean(blocked)} canGenerate={!requestBlocked && Boolean(guidedAllowance(availability, "strategy.competitors"))} generating={active} /> : undefined} retainedOptions={current && output.stage === "competitors" ? retainedOptions(output) : undefined} onSelectionChange={ids => setSelection({ turnId: output.turnId, ids })} onContinue={() => void confirm(output)} disabled={blocked} answered={!current || Boolean(answer)} additionalAnswer={answer?.customText} retainedAnswerLabels={output.stage === "competitors" ? retainedAnswerNames(answer?.customText, context.competitors) : undefined} onRevisit={!current ? () => void revisit(item.turn.stage, item.turn.userMessageId) : undefined} />
             : output.kind === "question" ? <p className="guided-assistant-question">{output.question}</p> : null}

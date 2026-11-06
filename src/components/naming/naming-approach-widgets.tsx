@@ -6,7 +6,6 @@ import Link from "next/link";
 import { createPortal } from "react-dom";
 import { GuidedThinking } from "@/components/workspace/guided-thinking";
 import { projectStrategyHref } from "@/domain/project-handoff";
-import { AppMark } from "@/components/ui/app-mark";
 import { ProjectArtwork } from "@/components/ui/project-artwork";
 import type { NamingComposerLayout } from "./use-naming-composer-layout";
 import { FloatingComposer } from "@/components/workspace/floating-composer";
@@ -18,6 +17,8 @@ import type { NamingPreferenceRevision } from "@/domain/project-naming";
 import type { NamingChatCheckpoint } from "@/domain/naming-chat-checkpoint";
 import type { NamingAccount, NamingBrainMemory } from "./naming-brain-memory";
 import { confirmNamingChatQuestion, initialNamingChatProgress, namingChatCheckpoint, namingChatQuestions, resolveNamingChatProgress, type NamingChatStep as Step } from "./naming-chat-progress";
+import { EmbelIdentity } from "@/components/workspace/embel-identity";
+import { journeyPartLabel } from "@/domain/journey";
 import styles from "./naming-chat.module.css";
 import "@/styles/conversation.css";
 import "@/styles/guided-interview.css";
@@ -63,7 +64,7 @@ export function NamingRecoveryNotice({ memory, account }: { memory: NamingBrainM
   return <div className="project-naming-notice" role="status"><strong>Unfinished Naming work is available</strong><p>Recover it into this verified account to check the saved version and confirm any unfinished request.</p><div className="project-naming-actions"><button type="button" className="button secondary small" onClick={() => memory.recover(account)}>Recover my Naming work</button><button type="button" className="text-link" onClick={() => memory.discardRecovery(account)}>Use saved account work</button></div></div>;
 }
 function Assistant({ children }: { children: ReactNode }) {
-  return <div className="guided-assistant-message"><div className="guided-assistant-identity"><AppMark /><span>Embel</span></div>{children}</div>;
+  return <div className="guided-assistant-message"><EmbelIdentity label={journeyPartLabel("voice", "Name")} />{children}</div>;
 }
 export function NamingApproachWidgets({ memory, account, projectId, context, saved, savedChat, blocked, runtimeReady, exploring = false, canSteer = false, onSteer, onContinue, onCheckSaved, onSaveProgress, generationStatus, generationUnavailable = false, compact = false, onToggleConversation, composerLayout, onComposerLayoutChange, conversationHistory, inline, manualName }: {
   memory: NamingBrainMemory; account: NamingAccount; projectId: string; context: ContextSnapshot; saved: NamingPreferenceRevision | null;

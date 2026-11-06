@@ -853,6 +853,7 @@ test("naming fixture: dirty Strategy memory survives library navigation and bloc
   await expect(page.getByRole("button", { name: "Retry save", exact: true })).toBeVisible();
   await expect(page.getByRole("log", { name: "Conversation" }).getByText(answer, { exact: true })).toBeVisible();
   expect(patches).toHaveLength(1);
+  await page.locator('header summary[aria-label^="Project:"]').click(); await page.getByRole("link", { name: "Home", exact: true }).click();
   await page.getByRole("navigation", { name: "Main navigation", exact: true }).locator("summary").click();
   await page.getByRole("navigation", { name: "Main navigation", exact: true }).getByRole("link", { name: "Names", exact: true }).click();
   await page.getByRole("tab", { name: "Library", exact: true }).click();
@@ -925,9 +926,9 @@ test("Naming canvas: selected name, composer and results survive shell expansion
   const writes = fixture.state.requests.filter(request => request.method !== "GET").length;
   const contentWrites = fixture.state.requests.filter(request => request.method !== "GET" && request.path !== `${base}/view`).length;
   {
-    const tools = page.getByRole("navigation", { name: "Main navigation", exact: true }).locator("summary");
-    await tools.click(); await namingCanvasFrame(page);
-    await page.keyboard.press("Escape"); await expect(tools).toBeFocused();
+    const projectMenu = page.locator('header summary[aria-label^="Project:"]');
+    await projectMenu.click(); await namingCanvasFrame(page);
+    await page.keyboard.press("Escape"); await expect(projectMenu).toBeFocused();
   }
   // Navigation chrome alone never writes. Opening or closing the chat below saves only the view.
   expect(fixture.state.requests.filter(request => request.method !== "GET")).toHaveLength(writes);

@@ -1,0 +1,65 @@
+/* Phase 2b: the project conversation in the redesigned journey style
+   (agreed designs "Flow · 1–6"). Loaded after the original conversation
+   styles; behaviour and markup contracts are unchanged. */
+
+/* Canvas and column: the dotted app background shows through, 792px of content. */
+.project-stage-strategy .project-workspace-content,
+.project-workspace .guided-interview, .guided-interview-opening { background: transparent; }
+:is(.project-workspace, .guided-interview-opening) .guided-interview-scroll { padding: 48px max(24px, calc((100% - 792px) / 2)) 32px; gap: 24px; }
+
+/* Your messages: a labelled bubble on the right. */
+:is(.project-workspace, .guided-interview-opening) .guided-user-turn { align-self: flex-end; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; max-width: min(560px, 88%); min-width: 0; }
+:is(.project-workspace, .guided-interview-opening) .guided-user-label { font-size: 12px; line-height: 18px; color: var(--secondary); }
+:is(.project-workspace, .guided-interview-opening) .guided-user-turn .guided-user-message { align-self: auto; max-width: 100%; padding: 14px 18px; border: 1px solid var(--border); border-radius: 20px 20px 6px 20px; background: var(--paper); }
+:is(.project-workspace, .guided-interview-opening) .guided-brief-turn { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+
+/* Embel's messages: round avatar on the left, everything else beside it. */
+:is(.project-workspace, .guided-interview-opening) .guided-assistant-message { display: grid; grid-template-columns: 32px minmax(0, 1fr); column-gap: 12px; align-items: start; }
+:is(.project-workspace, .guided-interview-opening) .guided-assistant-message > * { grid-column: 2; }
+:is(.project-workspace, .guided-interview-opening) .guided-assistant-message > .guided-assistant-identity { display: contents; }
+:is(.project-workspace, .guided-interview-opening) .guided-assistant-avatar { grid-column: 1; grid-row: 1 / span 12; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--accent); }
+:is(.project-workspace, .guided-interview-opening) .guided-assistant-avatar img { width: 15px; height: 15px; filter: invert(1); }
+:is(.project-workspace, .guided-interview-opening) .guided-assistant-label { grid-column: 2; padding-top: 6px; margin-bottom: 10px; font-size: 12px; line-height: 18px; font-weight: 400; color: var(--secondary); }
+:is(.project-workspace, .guided-interview-opening) .guided-assistant-copy { font-size: 15px; line-height: 1.55; }
+
+/* The current question: no outer box, one card per choice. */
+:is(.project-workspace, .guided-interview-opening) .guided-assistant-message .guided-choice-widget { margin-top: 14px; padding: 0; border: 0; background: transparent; gap: 12px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-intro h3 { font-size: 17px; letter-spacing: -.01em; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-intro p { font-size: 13px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-options { gap: 12px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-card { border-radius: var(--radius-card); background: var(--paper); }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-card.is-selected { border-color: var(--text); box-shadow: inset 0 0 0 .5px var(--text), 0 12px 28px -18px rgb(25 25 25 / 30%); }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-target { padding: 16px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-target input { order: 2; width: 18px; height: 18px; flex-basis: 18px; margin: 2px 0 0 auto; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-label { font-size: 15px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-recommended { min-height: 22px; padding: 0 9px; border-radius: var(--radius-pill); background: var(--accent-soft); color: #3a3a37; font-size: 11px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-description { color: #3a3a37; font-size: 14px; line-height: 1.45; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-reason { padding: 10px 12px; border-radius: 10px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-references { padding: 10px 16px; border-top-color: #f1f0ee; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-actions > .button { min-height: 44px; padding: 0 20px; border-radius: var(--radius-pill); font-size: 14px; }
+
+/* An answered question collapses into a compact card with its answer as chips. */
+:is(.project-workspace, .guided-interview-opening) .guided-assistant-message .guided-choice-answer { margin-top: 4px; align-items: center; flex-wrap: wrap; padding: 14px 14px 14px 16px; border-radius: var(--radius-card); background: rgb(255 255 255 / 75%); }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-answer-copy { gap: 10px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-answer ul { display: flex; flex-wrap: wrap; gap: 8px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-answer li { align-items: center; min-height: 32px; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); color: var(--text); }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-answer li img { display: none; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-answer > .button { min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); }
+
+/* The message box spans the conversation column with the rounder corners. */
+.project-workspace .guided-interview, .guided-interview-opening { --fc-max-width: 792px; --fc-radius: var(--radius-panel); }
+
+/* The project conversation sits on the dotted canvas, like the rest of the redesign.
+   The standalone Name page, logo, directions and brand kit keep their white page
+   until they are redesigned (Phases 4–6). */
+.concept-project-workspace .workspace-main:has(.project-stage-strategy) {
+  background-color: var(--canvas); background-image: radial-gradient(#dad9d4 1px, transparent 1px); background-size: 22px 22px;
+}
+
+/* The brief's edit button sits inside the bubble, below the "You" label. */
+:is(.project-workspace, .guided-interview-opening) .guided-brief-turn .guided-user-turn { max-width: 100%; }
+:is(.project-workspace, .guided-interview-opening) .guided-brief-turn > .guided-brief-editor { top: 26px; right: 4px; }
+:is(.project-workspace, .guided-interview-opening) .guided-user-turn .guided-user-message.guided-brief-message { padding-inline-end: 52px; }
+/* Secondary actions inside the conversation are pills too. */
+:is(.project-workspace, .guided-interview-opening) .competitor-widget-toolbar .button,
+:is(.project-workspace, .guided-interview-opening) .guided-assistant-message .button.secondary { min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); }

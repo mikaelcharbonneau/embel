@@ -30,13 +30,15 @@ test("manual selection survives screening reload, tab verification, Projects nav
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   await expect(page.locator("#project-naming-screening-heading")).toHaveText("Cedarloom QA");
   await frameBarrier(page);
-  const navigation = page.getByRole("navigation", { name: "Main navigation", exact: true });
-  await navigation.getByRole("link", { name: "Projects", exact: true }).click();
+  // Inside a project the bar's project menu leads back to all projects.
+  await page.locator('header summary[aria-label^="Project:"]').click();
+  await page.getByRole("link", { name: "All projects", exact: true }).click();
   await expect(page).toHaveURL(/\/brands$/);
   await expect(page.getByRole("heading", { name: "Projects.", exact: true })).toBeVisible();
   await page.goto(namingUrl); await expect(page.locator("#project-naming-screening-heading")).toHaveText("Cedarloom QA");
-  // The Projects link in the floating navigation is a real, keyboard-operable route link.
-  await page.getByRole("navigation", { name: "Main navigation", exact: true }).getByRole("link", { name: "Projects", exact: true }).focus();
+  // The project menu and its All projects link are keyboard operable.
+  await page.locator('header summary[aria-label^="Project:"]').focus(); await page.keyboard.press("Enter");
+  await page.getByRole("link", { name: "All projects", exact: true }).focus();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/brands$/);
   await expect(page.locator("#project-naming-screening-heading")).toHaveCount(0);

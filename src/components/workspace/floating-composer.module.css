@@ -13,7 +13,7 @@
   left: 50%;
   bottom: 12px;
   transform: translateX(-50%);
-  width: min(40rem, var(--fc-width, calc(100% - 24px)));
+  width: min(var(--fc-max-width, 40rem), var(--fc-width, calc(100% - 24px)));
   max-height: var(--fc-height, calc(100% - 24px));
   display: flex;
   flex-direction: column;
@@ -24,7 +24,7 @@
   color: var(--text, #191919);
   background: var(--paper, #fff);
   border: 1px solid var(--border, #d7d5d1);
-  border-radius: 18px;
+  border-radius: var(--fc-radius, 18px);
   box-shadow: 0 2px 5px #1919190a, 0 6px 24px #19191914;
 }
 
