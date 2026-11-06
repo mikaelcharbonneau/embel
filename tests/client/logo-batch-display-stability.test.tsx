@@ -21,7 +21,7 @@ const grid = () => host.querySelector('[aria-label="Logo concepts"]')!;
 const image = () => grid()?.querySelector('img[src^="blob:"]') ?? null;
 const select = () => grid()?.querySelector<HTMLElement>('[role="button"][aria-label="Select concept 1"]') ?? null;
 const action = (label: string) => grid().querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!;
-const actions = ["Generate six more concepts", "Retry 1 failed concept", "Refine selected"];
+const actions = ["More concepts", "Retry 1 failed concept", "Refine selected"];
 async function mount(projectId: string, fetcher: typeof fetch) {
   vi.stubGlobal("fetch", fetcher);
   function App() { const account = useAccountSession(); return createElement("main", null, createElement("button", { onClick: account.refresh }, "Recheck account"), createElement(LogoCreationWorkspace, { projectId })); }
@@ -66,7 +66,7 @@ describe("same-batch display across selection revisions", () => {
       if (outcome === "succeeds") await until(() => { expect(select()).not.toBeNull(); for (const label of actions) expect(action(label).disabled, label).toBe(false); });
       else { await until(() => expect(grid().textContent).toContain("Saved concept details unavailable")); expect(select()).toBeNull(); for (const label of actions) expect(action(label).disabled, label).toBe(true); }
       expect(image()).toBe(before); expect(URL.revokeObjectURL).not.toHaveBeenCalledWith(url);
-      expect(host.textContent).toContain("Project logo choice saved."); expect(f.selections).toHaveLength(1); expect(f.admissions).toEqual([]);
+      expect(host.textContent).toContain("Logo chosen. Continue, or describe a change below."); expect(f.selections).toHaveLength(1); expect(f.admissions).toEqual([]);
     } finally { await act(async () => release?.()); }
   });
 

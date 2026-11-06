@@ -573,7 +573,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
     {workspace.error && conceptsScreen && <p className={styles.warning} role="alert">{workspace.error}</p>}
     {activeBatch && saved?.stages.brief_references && saved.stages.brief_references.id !== activeBatch.briefRevisionId && <p className={styles.warning}>This batch uses an earlier saved brief. Its original inputs and successful previews are kept.</p>}
     {conceptsScreen && activeBatch && <p className={styles.note} role="status">{selectionState.busy ? "Saving selection…" : selectionState.error ?? (initialConceptReadState ? initialConceptReadMessage : selectedLogo ? "Logo chosen. Continue, or describe a change below." : "Pick the concept you like most.")}</p>}
-    {(!conceptsScreen || activeBatch) && conceptsComposer}
+    {conceptsComposer}
     <LogoConceptGridView gallery={conceptsScreen} versions={cardVersions} selectedVersion={selectedLogo} selectionAt={workspace.stagePayloads?.concepts?.createdAt} viewedVersions={viewedVersions}
       onViewVersion={(slotId, key, count) => setViewedVersions(previous => ({ ...previous, [slotId]: { key, count } }))}
       onSelectVersion={batchReady && saved?.capabilities.save.status === "available" && !workspace.pending && !workspace.dirty && !draft?.conflict && editing ? source => void selectCandidate(source) : undefined} filter={conceptFilter} comparison={comparison} onCompare={compareCandidate} batch={activeBatch} savedBatchUnavailable={savedBatchUnavailable} savedBatchLoading={savedBatchLoading}

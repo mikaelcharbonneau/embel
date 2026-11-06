@@ -176,7 +176,7 @@ export function AssetsJourney({ snapshot, pack, previews, downloadFile, disabled
         </section>
       </section>
       <div className="assets-footer"><span>{pack ? `Logo files, images, guidelines and tokens · ZIP · ${pack.files.length} files` : "Preparing your files…"}</span>
-        <button type="button" className="assets-button assets-primary" disabled={disabled || !pack} onClick={() => downloadFile()}>Download brand kit</button></div>
+        <button type="button" className="assets-button assets-primary" disabled={disabled} onClick={() => downloadFile()}>Download brand kit</button></div>
     </article>
   </div>;
 }
