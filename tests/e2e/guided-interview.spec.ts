@@ -514,7 +514,7 @@ test("competitor cards keep their selection, descriptions and sources across sug
   await expect(confirmed.getByRole("listitem").filter({ hasText: competitors[0]!.name })).toBeVisible();
 });
 
-test("guided interview: explicit selections save, reload, and finish at personality", async ({ page }, info) => {
+test("guided interview: explicit selections save, reload, and finish Strategy with positioning before personality", async ({ page }, info) => {
   const state = await fixtures(page, { seeded: true });
   await openProject(page);
   await expectSingleWidget(page, "competitors");
@@ -538,9 +538,20 @@ test("guided interview: explicit selections save, reload, and finish at personal
   await widget(page, "audience").getByRole("checkbox", { name: "Nearby office workers", exact: true }).check();
   await widget(page, "audience").getByRole("checkbox", { name: "Neighborhood families", exact: true }).check();
   await widget(page, "audience").getByRole("button", { name: "Continue", exact: true }).click();
-  await expectRequest(state, 2, "strategy.personality");
+  await expectRequest(state, 2, "strategy.positioning");
   expect(state.project.context.audienceSegments.filter(item => item.selected)).toHaveLength(2);
   expect(state.project.context.intake.audienceReviewedAt).not.toBeNull();
+  completeLatest(state);
+  await expectReplyArrivalInViewport(page, "positioning", "Lunch made easy");
+  await expect(widget(page, "positioning").getByText("What you’ll lead with", { exact: true })).toHaveCount(2);
+  await widget(page, "positioning").getByRole("radio", { name: "Lunch made easy", exact: true }).check();
+  await widget(page, "positioning").getByRole("button", { name: "Continue", exact: true }).click();
+  await expectRequest(state, 3, "strategy.personality");
+  expect(state.project.context.positioning).toBe(positionings[0]!.payload.statement);
+  expect(state.project.context.intake.positioningReviewedAt).not.toBeNull();
+  // Strategy is complete: its three answers collapse into one summary card.
+  await expect(page.getByRole("heading", { name: "Strategy", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: `Edit your answer: ${questions.competitors}`, exact: true })).toHaveCount(0);
   completeLatest(state);
   await expectReplyArrivalInViewport(page, "personality", "The warm guide");
   await page.screenshot({ path: info.outputPath("guided-personality-arrival-viewport.png"), scale: "css" });
@@ -559,7 +570,7 @@ test("guided interview: explicit selections save, reload, and finish at personal
   });
   try {
     await widget(page, "personality").getByRole("button", { name: "Continue", exact: true }).click();
-    await expect.poll(() => state.project.context.intake.guidedInterview?.stage).toBe("complete");
+    await expect.poll(() => state.project.context.intake.guidedInterview?.stage).toBe("slogan");
     await expect(page.getByText("Opening naming choices…", { exact: true })).toBeVisible();
     expect(await transcript!.evaluate(node => node.isConnected)).toBe(true);
     expect(await firstMessage!.evaluate(node => node.isConnected)).toBe(true);
@@ -576,10 +587,10 @@ test("guided interview: explicit selections save, reload, and finish at personal
   expect(Math.abs(after!.y - before!.y)).toBeLessThanOrEqual(1);
   await page.screenshot({ path: info.outputPath("inline-naming-arrival.png"), scale: "css" });
 
-  await expect(page.getByText("Your brand strategy is saved. You can revisit any answer above.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Edit strategy", exact: true })).toBeVisible();
   expect(state.project.context.personality).toEqual(personalities[0]!.profile);
   expect(state.project.context.intake.personalityReviewedAt).not.toBeNull();
-  expect(state.project.context.intake.guidedInterview?.answers.map(answer => answer.stage)).toEqual(["competitors", "audience", "personality"]);
+  expect(state.project.context.intake.guidedInterview?.answers.map(answer => answer.stage)).toEqual(["competitors", "audience", "positioning", "personality"]);
   await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(0);
   let finishReopen!: () => void;
   const reopening = new Promise<void>(resolve => { finishReopen = resolve; });
@@ -616,34 +627,36 @@ test("guided interview: explicit selections save, reload, and finish at personal
   // the completed Strategy handoff before measuring the Naming control.
   await expectComposerInViewport(page, true);
   await expectNoLegacyClutter(page);
-  expect(state.enqueues.map(item => item.operation)).toEqual(["strategy.audience", "strategy.personality"]);
+  expect(state.enqueues.map(item => item.operation)).toEqual(["strategy.audience", "strategy.positioning", "strategy.personality"]);
   expect(state.unhandledWrites).toEqual([]);
   await expect(page.getByRole("heading", { name: "Which approaches would you like to explore?", exact: true })).toBeInViewport({ ratio: 1 });
   await expect(page.getByRole("button", { name: "Continue to Naming", exact: true })).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Naming message", exact: true })).toBeEditable();
-  expect(state.project.context.intake.guidedInterview?.answers).toHaveLength(3);
-  expect(state.enqueues).toHaveLength(2);
+  expect(state.project.context.intake.guidedInterview?.answers).toHaveLength(4);
+  expect(state.enqueues).toHaveLength(3);
   await page.screenshot({ path: info.outputPath("guided-interview-continues-to-naming.png"), fullPage: true, scale: "css" });
+  await page.getByRole("button", { name: "Edit strategy", exact: true }).click();
   await page.getByRole("button", { name: `Edit your answer: ${questions.competitors}`, exact: true }).click();
-  await expectRequest(state, 3, "strategy.competitors");
+  await expectRequest(state, 4, "strategy.competitors");
   await expect(page.locator(".project-naming-page")).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   expect(state.project.context.intake.guidedInterview?.stage).toBe("competitors");
   expect(state.project.context.intake.guidedInterview?.answers).toEqual([]);
   expect(state.project.context.competitorReviewComplete).toBe(false);
   expect(state.project.context.intake.audienceReviewedAt).toBeNull();
+  expect(state.project.context.intake.positioningReviewedAt).toBeNull();
   expect(state.project.context.intake.personalityReviewedAt).toBeNull();
   expect(state.project.context.personality).toEqual(personalities[0]!.profile);
-  expect(state.jobs.filter(job => job.state === "succeeded")).toHaveLength(3);
+  expect(state.jobs.filter(job => job.state === "succeeded")).toHaveLength(4);
   completeLatest(state);
   await expectSingleWidget(page, "competitors");
   await widget(page, "competitors").getByRole("checkbox", { name: "Table Next Door", exact: true }).uncheck();
   await widget(page, "competitors").getByRole("checkbox", { name: "Everyday Pantry", exact: true }).check();
   await widget(page, "competitors").getByRole("button", { name: "Continue", exact: true }).click();
-  await expectRequest(state, 4, "strategy.audience");
+  await expectRequest(state, 5, "strategy.audience");
   expect(state.project.context.competitors.filter(item => item.selected).map(item => item.id)).toEqual([competitors[1]!.id]);
   expect(state.project.context.intake.audienceReviewedAt).toBeNull();
-  expect(state.enqueues.some(item => item.operation === "strategy.positioning")).toBe(false);
+  expect(state.enqueues.filter(item => item.operation === "strategy.positioning")).toHaveLength(1);
 });
 
 test("guided interview: a clear custom answer saves its interpreted decision and requests only the next stage", async ({ page }) => {
