@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { brandBoardFont } from "@/domain/brand-board-fonts";
 import { guidedSlogan } from "@/domain/guided-interview";
 import { journeyPartLabel } from "@/domain/journey";
@@ -39,8 +39,16 @@ export function AssetsJourney({ snapshot, pack, previews, downloadFile, disabled
   const [format, setFormat] = useState<"css" | "json">("css");
   const slogan = context ? guidedSlogan(context) : null;
   const button = (file: BrandAssetFile, label?: string) => <button key={file.name} type="button" className="assets-button" disabled={disabled} onClick={() => downloadFile(file)}>{label ?? downloadLabel(file)}</button>;
-  const logoFile = files.find(file => file.category === "logo" && file.mimeType.startsWith("image/") && previews?.has(file.name));
-  const logoPreview = logoFile ? previews?.get(logoFile.name) : undefined;
+  // The original logo file's bytes are already prepared for the kit; show them directly.
+  const logoFile = files.find(file => file.category === "logo" && /^image\/(png|jpeg|webp)$/u.test(file.mimeType));
+  const [logoUrl, setLogoUrl] = useState<{ name: string; url: string } | null>(null);
+  useEffect(() => {
+    if (!logoFile) return;
+    const url = URL.createObjectURL(new Blob([logoFile.bytes], { type: logoFile.mimeType }));
+    setLogoUrl({ name: logoFile.name, url });
+    return () => URL.revokeObjectURL(url);
+  }, [logoFile]);
+  const logoPreview = logoUrl && logoUrl.name === logoFile?.name ? logoUrl.url : previews?.get(logoFile?.name ?? "");
   const guide = files.find(file => file.category === "guide" && file.mimeType === "text/html");
   const base = `/brands/account/${projectId}`;
   const competitors = context?.competitors.filter(item => item.selected).map(item => item.name) ?? [];
