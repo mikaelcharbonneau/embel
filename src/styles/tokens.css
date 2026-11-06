@@ -5,11 +5,19 @@
   --text: #191919;
   --secondary: #696965;
   --border: #E4E3DF;
-  --magenta: #FF00F4;
-  --magenta-soft: #FFF0FD;
-  --accent-text: #990091;
+  /* Neutral emphasis: Embel no longer uses a magenta accent (2026-11-06). */
+  --accent: #191919;
+  --accent-soft: #F1F0EE;
+  --accent-ink: #191919;
+  --on-accent: #FFFFFF;
+  --selection: #E4E3DF;
   --positive: #3D6448;
   --font-ui: 13px;
   --font-body: 14px;
   --panel-radius: 10px;
+  /* Rounder shape scale for the redesigned brand journey. */
+  --radius-control: 12px;
+  --radius-card: 16px;
+  --radius-panel: 20px;
+  --radius-pill: 999px;
 }

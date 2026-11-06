@@ -15,7 +15,7 @@ test("vector proposal fixture: explicit uncapped request and candidate applicati
   const f = await setupVectorProposalUi(page), target = panel(page);
   await expect(page.getByRole("heading", { name: "Approved logo", exact: true })).toBeVisible(); expect(f.admissions).toHaveLength(0);
   await prepare(page); expect(f.admissions).toHaveLength(0); expect(f.applications).toHaveLength(0);
-  await expect(target.getByRole("group", { name: "Generate AI suggestion", exact: true })).toContainText("Expected cost unavailable.");
+  await expect(target.getByRole("group", { name: "Generate AI suggestion", exact: true })).not.toContainText(/cost|estimat|\$/i);
   await expect(target.getByRole("region", { name: "Review AI suggestion request", exact: true })).toHaveCount(0);
   await target.getByRole("button", { name: "Generate AI suggestion", exact: true }).click(); await expect.poll(() => f.admissions.length).toBe(1);
   expect(f.admissions[0]).not.toHaveProperty("acceptedMaxCostMicrousd"); expect(f.base.workspace.approvedLogo).toEqual(f.originalApproval);
@@ -47,7 +47,7 @@ test("vector proposal fixture: lost admission acknowledgment and full reload rec
 
 test("vector proposal fixture: a missing original remains retained until exact server closure", async ({ page }) => {
   const f = await setupVectorProposalUi(page, { legacy: true }); f.refuseAdmission = true; await prepare(page);
-  await expect(panel(page).getByRole("group", { name: "Generate AI suggestion", exact: true })).toContainText("Expected cost: $0.12288");
+  await expect(panel(page).getByRole("group", { name: "Generate AI suggestion", exact: true })).not.toContainText(/cost|estimat|\$/i);
   await expect(panel(page)).not.toContainText("Accepted maximum");
   await panel(page).getByRole("button", { name: "Generate AI suggestion", exact: true }).click(); await expect(panel(page)).toContainText("Original AI request retained");
   const original = f.admissions[0]!; expect(original).toHaveProperty("acceptedMaxCostMicrousd", 122880);
@@ -99,30 +99,30 @@ test("vector proposal fixture: failed pending discovery leaves manual review usa
   f.discoveryFailure = false; await panel(page).getByRole("button", { name: "Check suggestions and requests", exact: true }).click();
   await prepare(page); expect(f.admissions).toHaveLength(0);
 });
-test("vector proposal fixture: failed estimates keep the draft and saved preview, then refresh without generation", async ({ page }) => {
+test("vector proposal fixture: failed preparation keeps the draft and saved preview, then retries without generation", async ({ page }) => {
   const f = await setupVectorProposalUi(page), target = panel(page); f.quoteFailure = true;
   const instruction = target.getByRole("textbox", { name: "Requested vector change", exact: true });
   await expect(instruction).toBeEnabled(); await instruction.fill("Make the symbol blue.");
-  await expect(target.getByRole("alert")).toContainText("The cost estimate could not be loaded");
+  await expect(target.getByRole("alert")).toContainText("This suggestion could not be prepared");
   await expect(instruction).toHaveValue("Make the symbol blue."); await expect(instruction).toBeEnabled();
   await expect(page.getByRole("img", { name: "Vector candidate", exact: true })).toBeVisible();
   await expect(target.getByRole("button", { name: "Generate AI suggestion", exact: true })).toBeDisabled();
   expect(f.quotes).toHaveLength(1); expect(f.admissions).toHaveLength(0);
-  f.quoteFailure = false; await target.getByRole("button", { name: "Refresh estimate", exact: true }).click();
+  f.quoteFailure = false; await target.getByRole("button", { name: "Try again", exact: true }).click();
   await expect(target.getByRole("button", { name: "Generate AI suggestion", exact: true })).toBeEnabled();
-  await expect(target.getByRole("group", { name: "Generate AI suggestion", exact: true })).toContainText("Expected cost unavailable.");
+  await expect(target.getByRole("group", { name: "Generate AI suggestion", exact: true })).not.toContainText(/cost|estimat|\$/i);
   expect(f.quotes).toHaveLength(2); expect(f.admissions).toHaveLength(0); expect(f.base.workspace.approvedLogo).toEqual(f.originalApproval);
   await target.getByRole("button", { name: "Generate AI suggestion", exact: true }).click();
   await expect.poll(() => f.admissions.length).toBe(1); await expect(target).toContainText("Original AI request retained");
 });
-test("vector proposal fixture: expired estimates require refresh and changed instructions get a new exact estimate", async ({ page }) => {
+test("vector proposal fixture: expired requests need a retry and changed instructions get a new exact request", async ({ page }) => {
   const f = await setupVectorProposalUi(page), target = panel(page); f.quoteLifetimeMs = 1500; f.capabilityLifetimeMs = 750;
   await prepare(page); expect(f.admissions).toHaveLength(0);
-  await expect(target).toContainText("Estimate expired. Refresh the estimate before generating.");
+  await expect(target).toContainText("This request expired. Try again before generating.");
   await expect(target.getByRole("button", { name: "Generate AI suggestion", exact: true })).toBeDisabled();
   expect(f.quotes).toHaveLength(1); expect(f.admissions).toHaveLength(0);
   f.quoteLifetimeMs = 60000; f.capabilityLifetimeMs = 30000;
-  await target.getByRole("button", { name: "Refresh estimate", exact: true }).click();
+  await target.getByRole("button", { name: "Try again", exact: true }).click();
   await expect(target.getByRole("button", { name: "Generate AI suggestion", exact: true })).toBeEnabled();
   expect(f.quotes).toHaveLength(2); expect(f.admissions).toHaveLength(0);
   await target.getByRole("textbox", { name: "Requested vector change", exact: true }).fill("Make the selected symbol green instead.");

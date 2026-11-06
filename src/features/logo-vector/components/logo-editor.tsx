@@ -55,7 +55,7 @@ export function LogoEditorPresentation({ document, mode, selectedComponentId, lo
     <div className={styles.actions} aria-label="Conversion and refinement actions">
       <button type="button" disabled>Retry conversion</button><button type="button" disabled>Simplify conversion</button><button type="button" disabled>Refine with AI</button>
     </div>
-    <p className={styles.caption}>Conversion and AI refinement are unavailable. Refinement needs a real provider, a cost estimate and an explicit request. Raster refinement cannot preserve locked components.</p>
+    <p className={styles.caption}>Conversion and AI refinement are unavailable. Refinement needs a real provider and an explicit request. Raster refinement cannot preserve locked components.</p>
     <LogoHistoryPresentation history={history} />
   </section>;
 }

@@ -4,7 +4,7 @@
 .concept-trademarks.navigation-expanded .workspace-sidebar-toggle img { transform: rotate(180deg); }
 .tm-workspace.page { max-width: 1088px; margin: 0 auto; padding: 40px 40px; }
 .tm-workspace .tm-heading h1 { margin: 0; font-size: 32px; line-height: 48px; letter-spacing: -1px; font-weight: 500; }
-.tm-heading h1 > span { color: var(--magenta); }
+.tm-heading h1 > span { color: var(--accent); }
 .tm-heading > p { color: var(--secondary); margin-top: 4px; font-size: 14px; line-height: 20px; }
 .tm-workspace .tm-navigation { margin: 24px 0; gap: 36px; height: 45px; }
 .tm-workspace .tm-navigation button { padding: 0 4px; height: 44px; font-size: 14px; }

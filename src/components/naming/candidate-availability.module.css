@@ -69,7 +69,7 @@
 .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 .pill[data-tone=positive] { color: var(--positive); background: #3d64481a; }
 .pill[data-tone=negative] { color: var(--text); }
-.pill[data-tone=negative] .dot { background: var(--accent-text); }
+.pill[data-tone=negative] .dot { background: var(--accent-ink); }
 .more { margin-top: 6px; font-size: 13px; }
 .more > summary { width: fit-content; color: var(--secondary); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .more > summary:hover { color: var(--text); }

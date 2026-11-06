@@ -5,7 +5,7 @@
 .concept-home .home-page .home-intake { width: 100%; max-width: 800px; margin: 0 auto; }
 .concept-home .home-introduction { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; margin-bottom: 30px; }
 .concept-home .home-introduction h1 { font-size: 40px; line-height: 48px; font-weight: 500; letter-spacing: -1.5px; margin: 0; }
-.concept-home .home-introduction h1 > span { color: var(--magenta); }
+.concept-home .home-introduction h1 > span { color: var(--accent); }
 .concept-home .home-introduction p { margin: 0; font-size: 15px; line-height: 24px; color: var(--secondary); }
 .concept-home .home-composer.conversation-composer { padding: 0; border: 1px solid var(--border); border-radius: var(--panel-radius); box-shadow: 0 4px 18px #19191906; overflow: visible; }
 .concept-home .home-composer.conversation-composer:focus-within { border-color: #aaa9a5; box-shadow: 0 4px 18px #19191906; }
@@ -53,7 +53,7 @@
 .home-brand-preview--inverse { background: var(--text); color: var(--paper); }
 .home-brand-preview--1 { background: var(--text); color: var(--paper); }
 .home-brand-preview--1 > span { font-size: 22px; font-weight: 500; letter-spacing: 3px; text-transform: uppercase; line-height: 30px; }
-.home-brand-preview--2 { background: var(--magenta-soft); color: var(--accent-text); }
+.home-brand-preview--2 { background: var(--accent-soft); color: var(--accent-ink); }
 .home-brand-preview--2 > span { font-size: 36px; font-weight: 400; font-style: italic; line-height: 44px; }
 .home-brand-details { padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; }
 .home-brand-identity, .home-brand-continue { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-width: 0; }

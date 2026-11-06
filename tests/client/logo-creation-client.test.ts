@@ -204,7 +204,7 @@ describe("fresh exact-operation admission hints", () => {
   it("keeps an interrupted source review recoverable and requires explicit retry and confirmation", async () => {
     let ready = true; const s = setup(() => ready), gate = s.holdReferences();
     const prepared = s.controller.prepare(s.quote.request); await gate.started; ready = false; gate.release(); await prepared;
-    expect(s.controller.getSnapshot()).toMatchObject({ phase: "idle", quote: null, error: expect.stringContaining("Refresh operation availability, then review the cost again") });
+    expect(s.controller.getSnapshot()).toMatchObject({ phase: "idle", quote: null, error: expect.stringContaining("Refresh operation availability, then try again") });
     expect(s.paths.filter(path => path.endsWith("/quotes"))).toHaveLength(0); expect(s.posted).toEqual([]); expect(s.pending).toBeNull();
     ready = true; s.controller.refreshInputs();
     expect(s.paths.filter(path => path.endsWith("/quotes"))).toHaveLength(0);

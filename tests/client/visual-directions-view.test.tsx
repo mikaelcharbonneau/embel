@@ -23,20 +23,20 @@ const card = (id: string, overrides: Partial<VisualDirectionCard> = {}): VisualD
 });
 const props = (overrides: Partial<VisualDirectionsViewProps> = {}): VisualDirectionsViewProps => ({
   brandName: "Northline", logoPreview: createElement("p", null, "Chosen Northline logo"), backHref: "/brands/account/example/logo",
-  cards: [null, null, null], generation: { status: "idle", completed: 0, estimatedCostLabel: "Estimated $0.06", onGenerate: vi.fn() }, ...overrides,
+  cards: [null, null, null], generation: { status: "idle", completed: 0, onGenerate: vi.fn() }, ...overrides,
 });
 async function render(value: VisualDirectionsViewProps) { await act(async () => root!.render(createElement(VisualDirectionsView, value))); }
 const button = (name: string) => [...host.querySelectorAll("button")].find(node => node.textContent?.trim() === name)!;
 async function click(node: HTMLElement) { await act(async () => node.click()); }
 
 describe("visual direction comparison", () => {
-  it("starts only on a deliberate click, with the expected cost beside Generate", async () => {
+  it("starts only on a deliberate click, without showing a cost estimate", async () => {
     const value = props(); await render(value);
     expect(value.generation.onGenerate).not.toHaveBeenCalled();
     expect(host.querySelectorAll("article")).toHaveLength(3);
-    expect(host.textContent).toContain("Estimated $0.06");
+    expect(host.textContent).not.toMatch(/\$|estimat/i);
     const generate = button("Generate three directions");
-    expect(document.getElementById(generate.getAttribute("aria-describedby")!)?.textContent).toBe("Estimated $0.06");
+    expect(generate.hasAttribute("aria-describedby")).toBe(false);
     await click(generate);
     expect(value.generation.onGenerate).toHaveBeenCalledTimes(1);
     expect(host.querySelector("dialog")?.open).toBe(false);
@@ -46,7 +46,7 @@ describe("visual direction comparison", () => {
     const onGenerate = vi.fn(), onCheck = vi.fn(), onStop = vi.fn();
     await render(props({ cards: [card("A"), card("B"), null], generation: { status: "uncertain", completed: 2, onGenerate, onCheck, onStop } }));
     expect(host.textContent).toContain("Verified board A"); expect(host.textContent).toContain("Verified board B");
-    expect(host.textContent).toContain("2 of 3 ready"); expect(host.textContent).toContain("Cost estimate unavailable");
+    expect(host.textContent).toContain("2 of 3 ready"); expect(host.textContent).not.toMatch(/estimat/i);
     expect(button("Checking request…").disabled).toBe(true);
     await click(button("Checking request…")); await click(button("Check progress")); await click(button("Stop generation"));
     expect(onGenerate).not.toHaveBeenCalled(); expect(onCheck).toHaveBeenCalledTimes(1); expect(onStop).toHaveBeenCalledTimes(1);
@@ -54,7 +54,7 @@ describe("visual direction comparison", () => {
 
   it("shows an incomplete set without fabricating its missing board or selecting a result automatically", async () => {
     const saved = card("A");
-    await render(props({ cards: [saved, null, null], generation: { status: "partial", completed: 1, onGenerate: vi.fn(), estimatedCostLabel: "Estimated $0.06" } }));
+    await render(props({ cards: [saved, null, null], generation: { status: "partial", completed: 1, onGenerate: vi.fn() } }));
     expect(host.textContent).toContain("1 of 3 ready"); expect(host.textContent).toContain("This set is incomplete");
     expect(host.querySelectorAll("[data-selected='true']")).toHaveLength(0);
     expect(host.textContent?.match(/No board saved for this direction/g)).toHaveLength(2);

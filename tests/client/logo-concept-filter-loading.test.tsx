@@ -64,7 +64,7 @@ function expectInitialPresentation(state: "loading" | "unavailable") {
   const message = state === "loading" ? "Loading saved logo details…" : "Saved logo details unavailable.";
   expect(host.textContent).not.toContain("Choose a logo for this project.");
   expect(host.textContent).not.toContain("Select a logo above to get started.");
-  expect(host.querySelector('[aria-label="Generation cost review"]')).toBeNull();
+  expect(host.querySelector('[aria-label="Generation review"]')).toBeNull();
   expect(composer().querySelector('[role="status"]')?.textContent).toBe(message);
   expect(instruction().placeholder).toBe(message);
   expect(composer().getAttribute("aria-busy")).toBe(String(state === "loading"));
@@ -197,7 +197,7 @@ describe("saved Logo gallery filtering and initial read presentation", () => {
       expect(composer().querySelector('[role="status"]')!.textContent).toBe("Select a logo above to get started.");
       expect(input.placeholder).toBe("Select a logo, then describe your changes…");
       expect(composer().querySelector('button[aria-label="Generate refinement"]')!.getAttribute("aria-label")).toBe("Generate refinement");
-      expect(host.querySelector('[aria-label="Generation cost review"]')).toBeNull(); noWrites(f);
+      expect(host.querySelector('[aria-label="Generation review"]')).toBeNull(); noWrites(f);
     } finally { await act(async () => { held.release(); workspace.release(); }); }
   });
 
@@ -223,7 +223,7 @@ describe("saved Logo gallery filtering and initial read presentation", () => {
       expect(input.placeholder).toBe("Select a logo, then describe your changes…");
       expect(input.value).toBe("Keep this draft during an explicit refresh");
       expect(composer().getAttribute("aria-busy")).not.toBe("true");
-      expect(host.querySelector('[aria-label="Generation cost review"]')).toBeNull();
+      expect(host.querySelector('[aria-label="Generation review"]')).toBeNull();
       await act(async () => held.release());
       await until(() => expect(button("Refresh saved brand")).toBeDefined());
       expect(composer()).toBe(form); expect(instruction()).toBe(input); noWrites(f);

@@ -136,13 +136,13 @@ describe("vector settings controls", () => {
     expect(document.activeElement).toBe(input); expect(f.container.querySelector("dialog")).toBeNull();
     expect(f.pending).toBeNull();
   });
-  it("shows the expected cost before one click and never converts on mount or edit", async () => {
+  it("converts on one click without showing a cost, and never on mount or edit", async () => {
     const f = await mount();
     await f.change("Simplification", "1.25"); await f.change("Speckle filtering", "4");
     await f.change("Conversion color mode", "poster"); await f.change("Maximum colors", "12");
     await until(() => expect(f.button("Convert to vector").disabled).toBe(false));
     expect(f.quotes).toEqual([{ operation: "vectorize", expected: context().expected, source: context().source, settings: { preset: "poster", simplify: 1.25, filterSpeckle: 4, maxColors: 12 } }]);
-    expect(f.container.textContent).toContain("Expected cost: $0.00"); expect(f.admissions).toEqual([]);
+    expect(f.container.textContent).not.toMatch(/\$|cost|estimat/i); expect(f.admissions).toEqual([]);
     await act(async () => { f.button("Convert to vector").click(); f.button("Convert to vector").click(); });
     expect(f.admissions).toHaveLength(1); expect(f.pending).toEqual(f.admissions[0]);
     expect(f.workspace.approvedLogo).toEqual(f.approval);
@@ -187,14 +187,14 @@ describe("vector settings controls", () => {
     f.changeHeads(); await act(async () => f.button("Convert to vector").click());
     expect(f.admissions).toEqual([]); expect(f.workspace.approvedLogo).toEqual(f.approval);
   });
-  it("blocks unavailable or unsaved inputs and offers an explicit retry after a failed estimate", async () => {
+  it("blocks unavailable or unsaved inputs and offers an explicit retry after a failed preparation", async () => {
     const f = await mount(); f.setAvailable(false); await f.render(); expect(f.button("Convert to vector").disabled).toBe(true);
     f.setAvailable(true); f.setBlocked(true); await f.render(); expect(f.button("Convert to vector").disabled).toBe(true);
     expect(f.paths).toEqual([]); f.setBlocked(false); f.setQuoteStatus(503); await f.render();
-    await until(() => expect(f.button("Refresh estimate")).toBeDefined());
+    await until(() => expect(f.button("Try again")).toBeDefined());
     expect(f.quotes).toHaveLength(1); expect(f.admissions).toEqual([]);
     await act(async () => { await new Promise(resolve => setTimeout(resolve, 450)); }); expect(f.quotes).toHaveLength(1);
-    f.setQuoteStatus(200); await act(async () => f.button("Refresh estimate").click());
+    f.setQuoteStatus(200); await act(async () => f.button("Try again").click());
     await until(() => expect(f.button("Convert to vector").disabled).toBe(false));
     expect(f.quotes).toHaveLength(2); expect(f.admissions).toEqual([]);
   });

@@ -266,12 +266,12 @@ describe("logo presentation (test-only domain bindings)", () => {
     expect(fixtureMarkup(node)).toContain("Image preview unavailable");
     expect(elements(node).filter(element => element.type === "img")).toHaveLength(0);
   });
-  it("shows supplied estimates separately from recorded charges and never admits without the controller", () => {
+  it("shows recorded charges but never a cost estimate, and never admits without the controller", () => {
     const node = LogoCostConfirmationView({ quote: syntheticLogoQuote(), billing: { status: "recorded", confirmedMicrousd: 900000 } });
     const html = fixtureMarkup(node);
-    expect(html).toContain("Estimated cost");
-    expect(html).toContain("$0.60");
-    expect(html).toContain("$1.20");
+    expect(html).not.toMatch(/estimat/i);
+    expect(html).not.toContain("$0.60");
+    expect(html).not.toContain("$1.20");
     expect(html).toContain("Confirmed charge");
     expect(html).toContain("$0.90");
     expect(control(node, "Confirm generation").props.disabled).toBe(true);

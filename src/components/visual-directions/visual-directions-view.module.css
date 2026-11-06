@@ -3,7 +3,7 @@
 .workspace h1, .workspace h2, .workspace h3, .workspace p { margin: 0; }
 .workspace button, .workspace a { font: inherit; }
 .workspace button:disabled { opacity: 1; }
-.workspace :is(button, a):focus-visible { outline: 2px solid var(--accent-text, #990091); outline-offset: 4px; }
+.workspace :is(button, a):focus-visible { outline: 2px solid var(--accent-ink, #191919); outline-offset: 4px; }
 .header { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px 32px; margin-bottom: 24px; }
 .label { color: var(--secondary, #696965); font-size: 12px; line-height: 1.5; }
 .steps { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0 0 3px; padding: 0; list-style: none; font-size: 11px; color: var(--secondary, #696965); }
@@ -27,7 +27,6 @@
 .generationHeading .selectionStatus { color: var(--positive, #3d6448); }
 .generationControls { display: flex; justify-content: flex-end; align-items: flex-start; flex-wrap: wrap; gap: 10px; }
 .generateAction { display: flex; align-items: flex-end; flex-direction: column; gap: 6px; flex: 0 0 auto; max-width: 100%; }
-.generateAction > .estimate { margin: 0; font-size: 11px; text-align: right; color: var(--secondary, #696965); }
 .primaryButton, .secondaryButton, .chosenButton { min-height: var(--branding-action-height); display: inline-flex; justify-content: center; align-items: center; gap: 6px; border: 1px solid var(--border, #e4e3df); border-radius: 7px; padding: 10px 15px; font-size: 13px !important; line-height: 1.4; text-align: center; cursor: pointer; }
 .primaryButton { background: var(--text, #191919); border-color: var(--text, #191919); color: var(--paper, #fff); }
 .primaryButton:hover:not(:disabled) { background: #333; }
@@ -106,7 +105,6 @@
   .generationHeading { align-items: flex-start; flex-direction: column; gap: 16px; }
   .generationControls { justify-content: flex-start; }
   .generateAction { align-items: center; flex-direction: row; flex-wrap: wrap; gap: 8px 12px; }
-  .generateAction > .estimate { text-align: left; }
   .cards { grid-template-columns: minmax(0, 1fr); gap: 20px; }
   .cardTop, .cardIntro, .cardBody { padding-inline: 16px; }
   .designDetails { margin-inline: 16px; }
