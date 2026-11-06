@@ -23,6 +23,8 @@ afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi
 async function until(check: () => void) { let error: unknown; for (let i = 0; i < 100; i++) { await act(async () => { await new Promise(resolve => setTimeout(resolve, 5)); }); try { check(); return; } catch (cause) { error = cause; } } throw error; }
 function gate() { let release!: () => void; const promise = new Promise<void>(resolve => { release = resolve; }); return { promise, release }; }
 const grid = () => host.querySelector<HTMLElement>('[aria-label="Logo concepts"]')!;
+// Before the first set, Explore six concepts sits in the logo types question.
+const typesQuestion = () => host.querySelector<HTMLElement>("fieldset.logo-types-question")!;
 const composer = () => host.querySelector<HTMLFormElement>('form[aria-label="Logo concept changes"]')!;
 const instruction = () => composer().querySelector<HTMLTextAreaElement>('textarea[aria-label="Describe logo changes"]')!;
 const images = () => [...(grid()?.querySelectorAll<HTMLImageElement>('img[src^="blob:"]') ?? [])];
@@ -187,7 +189,7 @@ describe("saved Logo gallery filtering and initial read presentation", () => {
       await mount(f.workspace.projectId, fetcher); await until(() => { expect(reads).toBeGreaterThan(0); expect(workspaceReads).toBeGreaterThan(0); }); expectLoading(); expectInitialPresentation("loading");
       const form = composer(), input = instruction();
       await act(async () => held.release()); expectLoading(); expectInitialPresentation("loading");
-      await act(async () => workspace.release()); await until(() => expect(grid().textContent).toContain("Explore six concepts"));
+      await act(async () => workspace.release()); await until(() => expect(typesQuestion().textContent).toContain("Explore six concepts"));
       expect(host.textContent).toContain("Which logo types should I explore?"); expect(grid().getAttribute("aria-busy")).not.toBe("true"); expect(cards()).toHaveLength(0);
       expect(composer()).toBe(form); expect(instruction()).toBe(input);
       // Before the first set, Embel's message asks the logo-types question instead of "Choose a logo".
@@ -211,7 +213,7 @@ describe("saved Logo gallery filtering and initial read presentation", () => {
     };
     try {
       await mount(f.workspace.projectId, fetcher);
-      await until(() => expect(grid().textContent).toContain("Explore six concepts"));
+      await until(() => expect(typesQuestion().textContent).toContain("Explore six concepts"));
       const form = composer(), input = instruction(), status = form.querySelector('[role="status"]');
       await typeInstruction("Keep this draft during an explicit refresh");
       refresh = true; await click("Project context"); await click("Refresh saved brand");

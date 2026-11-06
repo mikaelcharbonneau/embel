@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 import { logoTypeSchema, type LogoType } from "@/domain/logo-vector";
 import { LOGO_TYPE_LABELS } from "./presentation";
 
@@ -16,7 +16,7 @@ const descriptions: Record<LogoType, string> = {
 
 /** Identity · Logo: the kinds of logo the six concepts are spread across. The
  * choice edits the saved brief, which saves on its own as on the brief form. */
-export function LogoTypesQuestion({ value, onChange, disabled = false }: { value: readonly LogoType[]; onChange?: (types: LogoType[]) => void; disabled?: boolean }) {
+export function LogoTypesQuestion({ value, onChange, disabled = false, action }: { value: readonly LogoType[]; onChange?: (types: LogoType[]) => void; disabled?: boolean; action?: ReactNode }) {
   const id = useId();
   return <fieldset className="logo-types-question" aria-describedby={`${id}-hint`}>
     <legend className="sr-only">Which logo types should I explore?</legend>
@@ -29,6 +29,9 @@ export function LogoTypesQuestion({ value, onChange, disabled = false }: { value
       </button>)}
     </div>
     {value.length === 7 && <p role="status" className="logo-types-note">With all seven chosen, one type waits for your next set of concepts.</p>}
-    <p role="status" className="logo-types-count">{value.length === 1 ? "1 type chosen" : `${value.length} types chosen`}</p>
+    <div className="logo-types-footer">
+      <p role="status" className="logo-types-count">{value.length === 1 ? "1 type chosen" : `${value.length} types chosen`}</p>
+      {action}
+    </div>
   </fieldset>;
 }

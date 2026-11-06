@@ -517,8 +517,9 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
       <p className="guided-assistant-copy">{activeBatch
         ? `Here are six concepts for ${draft?.brief.name || "your brand"}. Pick the one you like most. To change it, tell me what to adjust below.`
         : `Time for a logo. I’ll draw six concepts for ${draft?.brief.name || "your brand"}, guided by the designs you liked. First, which kinds of logo should I explore?`}</p>
-      {!activeBatch && draft && <LogoTypesQuestion value={draft.brief.logoTypes} disabled={!editing || !autoSave}
-        onChange={editing && autoSave ? types => workspace.setBriefDraft({ ...draft.brief, logoTypes: types }) : undefined} />}
+      {!activeBatch && <LogoTypesQuestion value={draft?.brief.logoTypes ?? []} disabled={!draft || !editing || !autoSave}
+        onChange={draft && editing && autoSave ? types => workspace.setBriefDraft({ ...draft.brief, logoTypes: types }) : undefined}
+        action={<LogoGenerationAction estimate={conceptEstimate} label="Explore six concepts" unavailable={savedInputsBusy ? "Preparing saved inputs…" : !capabilities.isAvailable("identity.logo_concept") ? "Generation is currently unavailable." : "Complete your saved logo inputs to continue."} />} />}
     </div>}
     <header className={styles.workspaceHeader}>
       {!conceptsScreen && <h1>{projectId ? "Explore your logo" : "Give your brand a visual voice"}</h1>}
@@ -583,7 +584,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
       renderPreview={client ? receipt => <LogoVerifiedPreview client={client} receipt={receipt} /> : undefined}
       generationActions={<>
         {!nameReadiness.supported && <p role="status">{nameReadiness.message}</p>}
-        {!activeBatch && <LogoGenerationAction estimate={conceptEstimate} label="Explore six concepts" unavailable={savedInputsBusy ? "Preparing saved inputs…" : !capabilities.isAvailable("identity.logo_concept") ? "Generation is currently unavailable." : "Complete your saved logo inputs to continue."} />}
+        {!activeBatch && !conceptsScreen && <LogoGenerationAction estimate={conceptEstimate} label="Explore six concepts" unavailable={savedInputsBusy ? "Preparing saved inputs…" : !capabilities.isAvailable("identity.logo_concept") ? "Generation is currently unavailable." : "Complete your saved logo inputs to continue."} />}
         {activeBatch && <LogoGenerationAction estimate={moreEstimate} label="More concepts" unavailable={!batchReady ? "Refresh saved logo details to continue." : "Save your inputs to continue."} />}
         {failedSlotIds.length > 0 && <LogoGenerationAction estimate={retryEstimate} label={`Retry ${failedSlotIds.length} failed concept${failedSlotIds.length === 1 ? "" : "s"}`} unavailable={!batchReady ? "Refresh saved logo details to continue." : "Save your inputs to continue."} />}
       </>}

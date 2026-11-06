@@ -157,7 +157,7 @@ test("chosen concept leads to three directions, a saved choice and usable brand 
   await expect(page.getByRole("img", { name: "Cedar final brand board", exact: true })).toBeVisible({ timeout: 45_000 });
   await fits(page);
   const boardDownloadPromise = page.waitForEvent("download");
-  await page.getByRole("region", { name: "Brand assets", exact: true }).getByRole("button", { name: "Download PNG", exact: true }).first().click();
+  await page.getByRole("region", { name: "Brand assets", exact: true }).getByRole("button", { name: "Download brand board PNG", exact: true }).click();
   const boardDownload = await boardDownloadPromise;
   await boardDownload.saveAs(info.outputPath("brand-board.png"));
   expect(boardDownload.suggestedFilename()).toBe("brand-board.png");

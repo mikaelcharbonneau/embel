@@ -38,7 +38,8 @@ export function AssetsJourney({ snapshot, pack, previews, downloadFile, disabled
   const tokens = useMemo(() => designTokens(snapshot), [snapshot]);
   const [format, setFormat] = useState<"css" | "json">("css");
   const slogan = context ? guidedSlogan(context) : null;
-  const button = (file: BrandAssetFile, label?: string) => <button key={file.name} type="button" className="kit-button" disabled={disabled} onClick={() => downloadFile(file)}>{label ?? downloadLabel(file)}</button>;
+  const button = (file: BrandAssetFile, label?: string, item?: string) => <button key={file.name} type="button" className="kit-button" disabled={disabled}
+    aria-label={label && item ? `Download ${item} ${label}` : undefined} onClick={() => downloadFile(file)}>{label ?? downloadLabel(file)}</button>;
   // The original logo file's bytes are already prepared for the kit; show them directly.
   const logoFile = files.find(file => file.category === "logo" && /^image\/(png|jpeg|webp)$/u.test(file.mimeType));
   const [logoUrl, setLogoUrl] = useState<{ name: string; url: string } | null>(null);
@@ -70,7 +71,7 @@ export function AssetsJourney({ snapshot, pack, previews, downloadFile, disabled
         <h2>Brand board</h2>
         <figure className="kit-image kit-board">
           <div className="kit-image-frame">{boardPreview /* eslint-disable-line @next/next/no-img-element */ ? <img src={boardPreview} alt={`${snapshot.name} final brand board`} /> : <span role="status">Preparing…</span>}</div>
-          <figcaption><span><strong>Your logo, colours and type on one page</strong></span><span className="kit-actions">{button(board, "PNG")}</span></figcaption>
+          <figcaption><span><strong>Your logo, colours and type on one page</strong></span><span className="kit-actions">{button(board, "PNG", "brand board")}</span></figcaption>
         </figure>
       </section>}
       <section className="kit-card">
@@ -85,7 +86,7 @@ export function AssetsJourney({ snapshot, pack, previews, downloadFile, disabled
               {preview /* eslint-disable-line @next/next/no-img-element */ ? <img src={preview} alt={`${snapshot.name} ${spec.label.toLowerCase()}`} /> : <span role="status">{pack ? "Not available" : "Preparing…"}</span>}
             </div>
             <figcaption><span><strong>{spec.label}</strong><small>{spec.width} × {spec.height}</small></span>
-              <span className="kit-actions">{png && button(png, "PNG")}{svg && button(svg, "SVG")}</span></figcaption>
+              <span className="kit-actions">{png && button(png, "PNG", spec.label.toLowerCase())}{svg && button(svg, "SVG", spec.label.toLowerCase())}</span></figcaption>
           </figure>;
         })}</div>
       </section>

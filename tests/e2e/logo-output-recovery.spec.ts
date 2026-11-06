@@ -26,6 +26,8 @@ for (const source of ["font", "logo"] as const) {
     const path = source === "font" ? "/fonts/brand/lora-variable.ttf"
       : `/api/assets/${fixture.sourceLogo.preview.reference.versionId}/preview`;
     await page.route(`**${path}`, async route => {
+      // The guidelines also show the chosen font on the page; only the kit's own read fails.
+      if (route.request().resourceType() === "font") return route.fallback();
       reads++;
       if (reads === 1) return route.fulfill({ status: 503, json: {}, headers: { "cache-control": "no-store" } });
       return route.fallback();

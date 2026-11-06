@@ -434,7 +434,8 @@ test("refinement disclosure reserves space, preserves edits and keeps context ke
   await toggle.click();
   await input.fill("Retained local fixture instruction");
   const formBox = await form.boundingBox(), cardBox = await page.locator('[data-concept-ordinal="0"]').boundingBox();
-  expect(formBox!.y + formBox!.height).toBeLessThanOrEqual(cardBox!.y);
+  // The refine box sits below the concepts, so opening it never pushes the cards around.
+  expect(formBox!.y).toBeGreaterThanOrEqual(cardBox!.y + cardBox!.height);
   await form.getByRole("button", { name: "Close refinement", exact: true }).click();
   await page.emulateMedia({ reducedMotion: "reduce" });
   await toggle.click(); await expect(input).toHaveValue("Retained local fixture instruction");
