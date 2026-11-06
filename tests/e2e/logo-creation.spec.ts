@@ -300,27 +300,22 @@ test("recovery refreshes a rejected request to the other tab's saved inputs", as
 
 test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));
 
-test("concepts landing matches the reference layout without inventing generated results", async ({ page }, info) => {
+test("concepts landing asks the logo-types question without inventing generated results", async ({ page }, info) => {
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
   const f = await setup(page);
-  await expect(page.getByRole("heading", { name: "Logo", exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Back to inspiration" })).toHaveAttribute("href", `/brands/account/${source.input.projectId}/inspiration`);
-  await expect(page.getByRole("link", { name: "Back to inspiration" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Logo", exact: true })).toBeAttached();
+  // Redesign (2026-11-06): Embel's message asks which logo types to explore; the
+  // project bar replaces the old back link, and no empty concept frames are shown.
+  await expect(page.getByText(/^Embel · Logo · 2 of 3$/)).toBeVisible();
+  await expect(page.getByRole("group", { name: "Which logo types should I explore?" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Back to inspiration" })).toHaveCount(0);
   await expect(page.locator("header").getByRole("combobox", { name: "Concept batch" })).toHaveCount(0);
-  await expect(page.locator('[data-concept-ordinal]')).toHaveCount(6);
+  await expect(page.locator('[data-concept-ordinal]')).toHaveCount(0);
   await expect(page.getByText(/^Review concept \d/)).toHaveCount(0);
   await expect(page.getByText("More, refine and retry each require a separate cost review.", { exact: false })).toHaveCount(0);
   await expectProjectCanvas(page);
-  await expect(page.getByRole("form", { name: "Logo concept changes" })).toBeInViewport();
-  const cards = page.locator('[data-concept-ordinal]');
-  const first = await cards.nth(0).boundingBox(), second = await cards.nth(1).boundingBox(), third = await cards.nth(2).boundingBox();
-  if (info.project.name === "desktop") {
-    expect(first!.y).toBe(second!.y); expect(second!.y).toBe(third!.y);
-    expect(first!.x).toBeLessThan(second!.x); expect(second!.x).toBeLessThan(third!.x);
-  } else expect(second!.y).toBeGreaterThan(first!.y);
-  // The redesigned gallery has no Selected/All filter; all six stay visible.
-  await expect(cards).toHaveCount(6);
+  await expect(page.getByRole("button", { name: "Explore six concepts", exact: true })).toBeVisible();
   expect(f.posts).toHaveLength(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);

@@ -67,8 +67,9 @@ describe("guided Strategy availability presentation", () => {
     const queued = { ...boundJob("queued"), dispatchState: "dispatch_pending", workerDelivery: "awaiting_worker", canRetryDelivery: false };
     strategy.overview!.jobs = [strategyJobSchema.parse(queued)];
     await render();
-    expect(host.querySelector('[aria-label="Request queued…"]')).not.toBeNull();
-    expect(button("Stop")?.disabled).toBe(false);
+    // Queued research already shows the research card (redesign, 2026-11-06).
+    expect(host.querySelector('[aria-label="Researching your competitors"]')).not.toBeNull();
+    expect(button("Cancel research")?.disabled).toBe(false);
     expect(host.querySelector(".guided-delivery-notice")).toBeNull();
     expect(button("Retry delivery")).toBeUndefined(); expect(notice()).toBe("");
     strategy.overview!.jobs = [strategyJobSchema.parse({ ...queued, workerDelivery: "worker_delayed" })];

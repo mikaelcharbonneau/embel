@@ -390,7 +390,7 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
   const runningJob = bound && strategyJobActive(bound.job) ? bound.job : null;
   const stop = runningJob ? () => void strategy.cancel(runningJob) : undefined;
   const stopping = bound?.job.state === "cancel_requested";
-  const researching = currentTurn?.stage === "competitors" && currentTurn.purpose === "research" && Boolean(runningJob && runningJob.state !== "queued" || strategy.pending && !bound);
+  const researching = currentTurn?.stage === "competitors" && currentTurn.purpose === "research" && Boolean(runningJob || strategy.pending && !bound);
   const thinkingLabel = active ? runningJob ? runningJob.state === "queued" ? "Request queued…" : "Thinking…" : "A request is in progress…"
     : strategy.pending ? currentTurn?.purpose === "research" ? "Starting research…" : "Starting response…" : "Checking research status…";
   const hasComposer = saved.scope === "complete_brand" || Boolean(state);
@@ -424,7 +424,7 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
       {!state && saved.scope !== "complete_brand" && <p className="guided-assistant-copy">{saved.context.description}</p>}
       {(active || checkingResearch) && (researching
         ? <article className="guided-assistant-message flow-enter" aria-label="Embel response"><EmbelIdentity label={guidedStageLabel("competitors")} />
-          <ProgressCard title={stopping ? "Cancelling research…" : "Researching your competitors"} description="Finding relevant brands and the sources behind them."
+          <ProgressCard title={stopping ? "Cancelling research…" : "Researching your competitors"} description={runningJob?.state === "queued" || !runningJob ? "Starting your research. Relevant brands and their sources appear here." : "Finding relevant brands and the sources behind them."}
             note="Your idea is saved. Suggestions appear here when they’re ready." onStop={stop} stopping={stopping} stopDisabled={strategy.pending} stopLabel="Cancel research" />
         </article>
         : <GuidedThinking label={thinkingLabel} onStop={stop} stopping={stopping} stopDisabled={strategy.pending} />)}
