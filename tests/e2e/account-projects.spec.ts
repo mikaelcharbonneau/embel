@@ -106,12 +106,10 @@ async function closeProjectDetails(page: Page) {
 }
 async function openProjects(page: Page) {
   await closeProjectDetails(page);
-  const desktop = page.locator(".sidebar").getByRole("link", { name: "Projects", exact: true });
-  if (await desktop.isVisible()) await desktop.click();
-  else {
-    await page.getByRole("button", { name: "Open navigation", exact: true }).click();
-    await page.getByRole("dialog", { name: "Navigation", exact: true }).getByRole("link", { name: "Projects", exact: true }).click();
-  }
+  // Project pages show the project bar; elsewhere the main navigation.
+  const projectMenu = page.locator('header summary[aria-label^="Project:"]');
+  if (await projectMenu.isVisible()) { await projectMenu.click(); await page.getByRole("link", { name: "All projects", exact: true }).click(); }
+  else await page.getByRole("navigation", { name: "Main navigation", exact: true }).getByRole("link", { name: "Projects", exact: true }).click();
   await expect(page).toHaveURL(/\/brands$/);
 }
 async function checkAccount(page: Page) {

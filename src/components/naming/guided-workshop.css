@@ -2,7 +2,7 @@
 .names-design .names-heading { margin-bottom: 24px; align-items: flex-start; }
 .names-design .names-heading > div:first-child { display: block; }
 .names-design .names-heading h1 { font-size: 32px; font-weight: 500; letter-spacing: -1px; line-height: 48px; }
-.names-design .names-heading h1 span { color: var(--magenta); }
+.names-design .names-heading h1 span { color: var(--accent); }
 .names-design .names-heading p { font-size: 14px; line-height: 20px; color: var(--secondary); margin-top: 4px; }
 .names-design .names-tabs { gap: 36px; height: 45px; margin-bottom: 24px; }
 .names-design .names-tabs button { font-size: 14px; padding: 11px 4px; height: 44px; flex-shrink: 0; }
@@ -74,7 +74,7 @@
 .names-result-pills { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
 .names-result-pill { display: inline-flex; gap: 12px; align-items: center; border: 1px solid var(--border); border-radius: 999px; padding: 9px 14px; min-height: 40px; background: var(--paper); min-width: 0; max-width: 100%; }
 .names-result-pill strong { font-size: 14px; font-weight: 500; line-height: 20px; overflow-wrap: anywhere; }
-.names-result-pill button[aria-pressed=true] { background: var(--magenta-soft); outline: 2px solid var(--magenta); outline-offset: 3px; }
+.names-result-pill button[aria-pressed=true] { background: var(--accent-soft); outline: 2px solid var(--accent); outline-offset: 3px; }
 .names-result-pill > div { min-width: 0; }
 .names-blend-pill { gap: 16px; min-height: 60px; }
 .names-blend-pill > div { display: grid; }
@@ -97,7 +97,7 @@
 .names-saved-word-lists article > div { display: flex; gap: 16px; flex-wrap: wrap; }
 .names-guided-history details > summary { cursor: pointer; font-size: 14px; line-height: 20px; overflow-wrap: anywhere; }
 .names-guided-history details[open] > summary { margin-bottom: 16px; }
-.names-guided-workshop :is(button, input, summary):focus-visible { outline: 2px solid var(--magenta); outline-offset: 3px; }
+.names-guided-workshop :is(button, input, summary):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 @media(max-width:900px) {
   .names-design.page { padding: 32px 24px; }
   .names-guided-layout { grid-template-columns: minmax(0, 1fr); }

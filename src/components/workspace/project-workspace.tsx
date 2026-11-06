@@ -9,13 +9,18 @@ import { getProjectHandoff, projectEvidenceStatus, projectStrategyHref, type Pro
 import { AccountRequestError } from "./account-api";
 import { boundedAccountRequest } from "./bounded-account-request";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "./account-session";
-import { reconcileAccountWorkspace } from "./account-draft-memory";
+import { accountDraftChanged, reconcileAccountWorkspace } from "./account-draft-memory";
+import { useProjectNextStep } from "./use-project-next-step";
+import { ConversationStepContext, useProjectHeader } from "@/components/journey/project-header";
+import type { SaveState } from "@/components/journey/project-capsule";
+import { projectJourney, type JourneyStepId } from "@/domain/journey";
 import { ProjectArtwork } from "@/components/ui/project-artwork";
 
 type Stage = "strategy" | "naming" | "identity" | "files";
 type EvidenceReporter = (value: ProjectStageEvidence) => void;
 const IdentityEvidenceContext = createContext<EvidenceReporter | null>(null);
 const LogoEvidenceContext = createContext<EvidenceReporter | null>(null);
+
 function useProjectEvidence(value: ProjectStageEvidence | null, report: EvidenceReporter | null) {
   const ownerId = value?.ownerId, projectId = value?.projectId, projectRevision = value?.projectRevision, approved = value?.approved, needsReview = value?.needsReview;
   useEffect(() => {
@@ -57,6 +62,7 @@ function OwnedProjectShell({ projectId, account, children }: { projectId: string
   const [attempt, setAttempt] = useState(0);
   const [identityEvidence, setIdentityEvidence] = useState<ProjectStageEvidence | null>(null);
   const [logoEvidence, setLogoEvidence] = useState<ProjectStageEvidence | null>(null);
+  const [conversationStep, setConversationStep] = useState<JourneyStepId | null>(null);
   const reportIdentity = useCallback((value: ProjectStageEvidence) => {
     if (!isCurrent(account) || value.ownerId !== account.userId || value.projectId !== projectId) return;
     setIdentityEvidence(previous => sameEvidence(previous, value) ? previous : value);
@@ -79,21 +85,29 @@ function OwnedProjectShell({ projectId, account, children }: { projectId: string
     });
     return () => controller.abort();
   }, [account, projectId, pathname, attempt, drafts, isCurrent, expire]);
-  if (!isCurrent(account)) return null;
-  const current = workspace?.ownerId === account.userId && workspace.generation === account.generation && workspace.saved.id === projectId ? workspace : null;
+  const live = isCurrent(account);
+  const current = live && workspace?.ownerId === account.userId && workspace.generation === account.generation && workspace.saved.id === projectId ? workspace : null;
+  const project = current?.saved ?? null;
+  const nextHref = useProjectNextStep(account, project);
+  // "Saved" only reflects a project head confirmed by the server with no
+  // pending edits; read failures and conflicts are reported, not hidden.
+  const saveState: SaveState | null = error || current?.conflict ? "error"
+    : current ? accountDraftChanged(current) ? current.pendingDraftSave ? "saving" : "unsaved" : "saved" : null;
+  useProjectHeader(project ? { projectId, projectName: project.context.selectedName?.trim() || project.title,
+    steps: projectJourney({ projectId, scope: project.scope, pathname, nextHref, shown: conversationStep }), saveState } : null);
+  if (!live) return null;
   const { inspiration, brandBoard, stage } = projectRoute(projectId, pathname);
-  const project = current?.saved;
   const handoff = project && getProjectHandoff(project);
   const identityStatus = projectEvidenceStatus(identityEvidence, project?.current_revision);
   const logoStatus = projectEvidenceStatus(logoEvidence, project?.current_revision);
-  return <IdentityEvidenceContext.Provider value={reportIdentity}><LogoEvidenceContext.Provider value={reportLogo}><section className={`project-workspace project-stage-${stage}`}>
+  return <ConversationStepContext.Provider value={setConversationStep}><IdentityEvidenceContext.Provider value={reportIdentity}><LogoEvidenceContext.Provider value={reportLogo}><section className={`project-workspace project-stage-${stage}`}>
     {error && <div className="project-read-notice" role="alert">{error}<button type="button" className="text-link" onClick={() => setAttempt(value => value + 1)}>Check saved project</button></div>}
     {current?.conflict && <div className="project-read-notice" role="alert">A newer project version is saved. Your edits are kept in this tab. <Link className="text-link" href={projectStrategyHref(projectId)}>Resolve in Strategy</Link></div>}
     {project && project.scope !== "naming_only" && pathname === `/brands/account/${projectId}/logo` && <nav className="project-read-notice" aria-label="Project navigation"><Link className="text-link" href={projectStrategyHref(projectId)}>{project.scope === "complete_brand" ? "Review Strategy" : "Project details"}</Link></nav>}
     {!inspiration && !brandBoard && handoff?.savedName && !handoff.strategyReady && project?.scope === "complete_brand" && <div className="project-read-notice" role="status">Strategy needs review. Your saved name, {handoff.savedName}, is kept for review against the updated context. <Link className="text-link" href={handoff.next.href}>Continue Strategy review</Link></div>}
     {([['Logo', logoStatus, `/brands/account/${projectId}/logo`], ['Identity', identityStatus, `/brands/account/${projectId}/logo/directions`]] as const).map(([label, status, href]) => status === "needs_review" || status === "recheck" ? <div className="project-read-notice" role="status" key={label}>{status === "needs_review" ? `${label} needs review. Earlier work is kept.` : `Check ${label} against the current project version. Earlier work is kept.`} <Link className="text-link" href={href}>Review {label}</Link></div> : null)}
     <div className="project-workspace-content">{children}</div>
-  </section></LogoEvidenceContext.Provider></IdentityEvidenceContext.Provider>;
+  </section></LogoEvidenceContext.Provider></IdentityEvidenceContext.Provider></ConversationStepContext.Provider>;
 }
 
 function sameEvidence(previous: ProjectStageEvidence | null, value: ProjectStageEvidence) {

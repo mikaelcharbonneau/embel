@@ -252,7 +252,7 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
   }
 
   const intake = <div className="home-intake conversation-intake">
-    <div className="home-introduction"><h1>Your next brand starts here<span>.</span></h1><p>An idea, a product, a place. Let’s give it a name and a world of its own.</p></div>
+    <div className="home-introduction"><h1>Your next brand starts here<span>.</span></h1><p>Describe the idea. Embel asks a few questions, then builds the name, logo and look with you.</p></div>
     {resumedPrompt && !hiddenPrompt && <div className="prompt-recovery-notice"><p role="status">{strategy.locked ? "Your original prompt is kept. Check its save status below before continuing." : "Your prompt is ready to continue."}</p><button type="button" className="text-link" disabled={frozenInputs} onClick={() => { if (!canEditInputs()) return; clearPromptRecovery(account?.userId); textDraft.current = null; pendingAccountDraft.current = null; setTextDraftId(null); setPrompt(""); setPromptOwner(null); setScope(initialScope); setExampleUsed(false); setResumedPrompt(false); setError(""); }}>Start a new prompt</button></div>}
     {hiddenPrompt && <div><p role="status">An unsaved prompt belongs to another account session. Sign in to that account to continue it.</p><button type="button" className="text-link" onClick={startNewPrompt}>Start a new prompt</button></div>}
     {hiddenFiles && <p role="status">An attached brief is retained in this tab. Verify the same account before sending so its files stay with it.</p>}
@@ -266,7 +266,7 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
       if (logoEntryBlocked || !canEditInputs() || homeInputSession.hasUnsaved() || homeInputSession.isSelecting()) event.preventDefault();
     }}>Create a logo</Link>{" "}<span id="new-logo-entry-note">{logoEntryBlocked ? "Your current prompt, files or pending work stay here. Finish or clear them before starting a separate logo project." : "Start in the dedicated logo workflow."}</span></p>}
     {!account && recoveryFull && !inputIntent?.browserDraftId && !textDraftId && <p className="form-error" role="alert">This device has 50 unsaved projects. <Link href="/brands?recover=1">Recover a project</Link> before starting another.</p>}
-    {<div className="home-examples"><h2>Try an idea</h2><div className="home-example-pills">{homeExamples.map(item => <button key={item.title} type="button" disabled={frozenInputs} onClick={() => { if (!canEditInputs()) return; setPrompt(item.description); setExampleUsed(true); setError(""); }}>{item.title}</button>)}</div></div>}
+    {<div className="home-examples"><h2 className="sr-only">Try an idea</h2><div className="home-example-pills">{homeExamples.map(item => <button key={item.title} type="button" disabled={frozenInputs} onClick={() => { if (!canEditInputs()) return; setPrompt(item.description); setExampleUsed(true); setError(""); }}>{item.title}</button>)}</div></div>}
   </div>;
   return home ? intake : <div className="page home-page">{intake}</div>;
 }
@@ -290,9 +290,6 @@ type EditorStorage = {
   promptHint?: React.ReactNode;
   resultNavigation?: React.ReactNode;
   projectContext?: React.ReactNode;
-  strategyActions?: Partial<Record<ConversationWidget, { label: string; maximumCostLabel: string; disabled?: boolean }>>;
-  onStrategyRequested?: (widget: ConversationWidget) => Promise<void>;
-  strategyPending?: boolean;
   onStrategyApproved?: (draft: LocalDraft) => Promise<boolean>;
 };
 
@@ -424,12 +421,6 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
     return <PositioningReview draft={draft} inline pending={approvalPending} notice={strategyNotice.positioning} onChange={(positioning) => update({ positioning })} onComplete={() => completeWidget("positioning")} onBack={() => openWidget("personality")} />;
   }
 
-  function proposalAction(widget: ConversationWidget) {
-    const action = storage.strategyActions?.[widget];
-    if (!action || !storage.onStrategyRequested) return null;
-    return <div className="conversation-proposal-action"><span>{action.maximumCostLabel}</span><button type="button" className="button secondary small" disabled={action.disabled || storage.strategyPending || storage.promptPending} onClick={() => { void storage.onStrategyRequested?.(widget).catch(() => setError("The request could not start. Your conversation is kept here.")); }}>{action.label}<Icon name="arrow" size={14} /></button></div>;
-  }
-
   return <div className={`project-strategy-workspace ${briefOpen ? "has-live-brief" : ""}`}>
     <div className="project-strategy-columns"><div className="page conversation-page">
     <div className="conversation-scroll-area" role="region" aria-label="Conversation and project details" tabIndex={0}>
@@ -439,7 +430,7 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
     <ol id="strategy-brief" tabIndex={-1} className="conversation-history" aria-label="Project conversation">{conversation.map((event) => <Fragment key={event.id}>
       {event.kind === "user_message" && <li className="conversation-user-entry" ref={(node) => { if (node && newMessage.current === event.id) { node.scrollIntoView({ block: "nearest" }); newMessage.current = null; } }}><div className="conversation-message-meta sr-only"><span>You</span><time dateTime={event.createdAt}>{new Date(event.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time></div><p>{event.text}</p></li>}
       {event.kind === "saved_context" && <li className="conversation-saved-entry"><span className="conversation-entry-label">Saved brief</span><p>{event.text}</p></li>}
-      {event.kind === "widget" && <li className={`conversation-widget-entry ${activeWidget === event.widget ? "is-open" : ""}`}><section className="conversation-widget" aria-labelledby={`widget-${event.id}`}><div className="conversation-widget-heading"><span className="conversation-tool-avatar" aria-hidden="true"><ProjectArtwork name="mark" /></span><h2 id={`widget-${event.id}`} tabIndex={-1} ref={(node) => { if (node && focusWidget.current === event.widget) { node.focus(); focusWidget.current = null; } }}>{widgetLabels[event.widget]}</h2><span className={`conversation-review-state ${reviewed[event.widget] ? "is-reviewed" : ""}`}>{reviewed[event.widget] ? <><Icon name="check" size={12} />Confirmed</> : "Not reviewed"}</span>{activeWidget === event.widget ? <button type="button" className="text-link" aria-label={`Collapse ${event.widget}`} onClick={() => setOpened({ anchor: lastWidget?.id ?? null, widget: null })}>Collapse</button> : <button type="button" className="text-link" aria-label={`Edit ${event.widget}`} onClick={() => openWidget(event.widget)}><Icon name="pencil" size={13} />Edit</button>}</div>{activeWidget === event.widget ? <div className="conversation-widget-body">{proposalAction(event.widget)}{renderWidget(event.widget)}</div> : <div className="conversation-widget-summary"><WidgetSummary widget={event.widget} draft={draft} reviewed={reviewed[event.widget]} /></div>}</section></li>}
+      {event.kind === "widget" && <li className={`conversation-widget-entry ${activeWidget === event.widget ? "is-open" : ""}`}><section className="conversation-widget" aria-labelledby={`widget-${event.id}`}><div className="conversation-widget-heading"><span className="conversation-tool-avatar" aria-hidden="true"><ProjectArtwork name="mark" /></span><h2 id={`widget-${event.id}`} tabIndex={-1} ref={(node) => { if (node && focusWidget.current === event.widget) { node.focus(); focusWidget.current = null; } }}>{widgetLabels[event.widget]}</h2><span className={`conversation-review-state ${reviewed[event.widget] ? "is-reviewed" : ""}`}>{reviewed[event.widget] ? <><Icon name="check" size={12} />Confirmed</> : "Not reviewed"}</span>{activeWidget === event.widget ? <button type="button" className="text-link" aria-label={`Collapse ${event.widget}`} onClick={() => setOpened({ anchor: lastWidget?.id ?? null, widget: null })}>Collapse</button> : <button type="button" className="text-link" aria-label={`Edit ${event.widget}`} onClick={() => openWidget(event.widget)}><Icon name="pencil" size={13} />Edit</button>}</div>{activeWidget === event.widget ? <div className="conversation-widget-body">{renderWidget(event.widget)}</div> : <div className="conversation-widget-summary"><WidgetSummary widget={event.widget} draft={draft} reviewed={reviewed[event.widget]} /></div>}</section></li>}
       {event.id === lastPrompt?.id && <li className="conversation-service-entry">{storage.strategy ?? <p className="conversation-service-note"><Icon name="offline" size={15} />{account ? "AI processing is not connected to this conversation yet." : "AI replies are not available in this browser draft."}</p>}</li>}
     </Fragment>)}</ol>
     {!lastPrompt && storage.strategy && <div className="conversation-service-entry">{storage.strategy}</div>}

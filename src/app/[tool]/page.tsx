@@ -9,7 +9,8 @@ const allowedTools = ["ideas", "names", "handles", "domains", "trademarks", "ass
 export function generateStaticParams() { return allowedTools.map((tool) => ({ tool })); }
 export async function generateMetadata({ params }: { params: Promise<{ tool: string }> }): Promise<Metadata> {
   const { tool } = await params;
-  return { title: tool.charAt(0).toUpperCase() + tool.slice(1) };
+  // The assets page appears as Library in the navigation.
+  return { title: tool === "assets" ? "Library" : tool.charAt(0).toUpperCase() + tool.slice(1) };
 }
 export default async function ToolPage({ params }: { params: Promise<{ tool: string }> }) {
   const { tool } = await params;

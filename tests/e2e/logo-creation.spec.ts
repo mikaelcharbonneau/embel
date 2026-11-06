@@ -173,10 +173,10 @@ async function setup(page: Page, scenario: "empty" | "partial" | "uncertain" | "
   return state;
 }
 
-test("shows cost beside Generate and starts six concepts with one deliberate click", async ({ page }, info) => {
+test("starts six concepts with one deliberate click and shows no cost", async ({ page }, info) => {
   const f = await setup(page), action = page.getByRole("group", { name: "Generate six concepts", exact: true });
   const generate = action.getByRole("button", { name: "Generate six concepts", exact: true });
-  await expect(generate).toBeEnabled(); await expect(action).toContainText("Expected cost: $0.60");
+  await expect(generate).toBeEnabled(); await expect(action).not.toContainText(/cost|estimat|\$/i);
   await expect(action).toContainText("Not included in this batch: Mascot");
   await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
   expect(f.posts).toHaveLength(0); await page.screenshot({ path: info.outputPath("generation-ready.png") }); await generate.click();
@@ -222,7 +222,7 @@ test("restored saving refreshes prepared inputs and enables a deliberate Generat
 test("partial results retain five cards and one-click retry excludes successful concepts", async ({ page }) => {
   const f = await setup(page, "partial"); await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible();
   const action = page.getByRole("group", { name: "Retry 1 failed concept", exact: true });
-  await expect(action).toContainText("Expected cost:"); expect(f.posts).toHaveLength(0);
+  await expect(action.getByRole("button", { name: "Retry 1 failed concept", exact: true })).toBeEnabled(); expect(f.posts).toHaveLength(0);
   const previousReads = f.batchReads;
   await action.getByRole("button", { name: "Retry 1 failed concept", exact: true }).click();
   await expect.poll(() => f.posts.length).toBe(1);
@@ -281,7 +281,7 @@ test("a reloaded uncertain retry checks its attempt identity and keeps five succ
 test("a rejected request offers fresh inputs and an estimate without silently generating again", async ({ page }) => {
   const f = await setup(page); f.admissionRejection = true;
   await page.getByRole("button", { name: "Generate six concepts", exact: true }).click();
-  await page.getByRole("button", { name: "Refresh saved inputs and estimate" }).click();
+  await page.getByRole("button", { name: "Refresh saved inputs", exact: true }).click();
   await expect(page.getByRole("button", { name: "Generate six concepts", exact: true })).toBeEnabled();
   expect(f.posts).toHaveLength(1);
   await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
@@ -292,7 +292,7 @@ test("recovery refreshes a rejected request to the other tab's saved inputs", as
   const f = await setup(page), generate = page.getByRole("button", { name: "Generate six concepts", exact: true });
   await expect(generate).toBeEnabled(); f.advanceSavedBrief(); f.admissionRejection = true;
   await generate.click(); await expect(generate).toBeDisabled();
-  await page.getByRole("button", { name: "Refresh saved inputs and estimate" }).click();
+  await page.getByRole("button", { name: "Refresh saved inputs", exact: true }).click();
   await expect(generate).toBeEnabled();
   expect(f.quotes.at(-1)).toMatchObject({ expected: { workspaceRevision: 2, stageRevisions: { brief_references: 2 } }, briefRevisionId: id(990) });
   expect(f.posts).toHaveLength(1);
@@ -337,7 +337,7 @@ test("new logo work prepares saved inputs and cost before one explicit six-conce
   expect(f.order).toEqual(["inputs", "save", "quote"]); expect(f.saves).toHaveLength(1);
   expect(f.saves[0]!.brief).toMatchObject({ name: "Élan & Co", activity: "Tea shop", audience: "Local readers", logoTypes: DEFAULT_LOGO_CONCEPT_TYPES });
   expect(f.saves[0]!.brief.personality).toContain("selection 2"); expect(f.posts).toHaveLength(0);
-  await expect(page.getByRole("group", { name: "Generate six concepts", exact: true })).toContainText("Expected cost:");
+  await expect(generate).toBeEnabled();
   await generate.click(); await expect.poll(() => f.posts.length).toBe(1);
   await page.reload(); await expect(page.getByText("6 of 6 concepts ready", { exact: true })).toBeVisible();
   expect(f.saves).toHaveLength(1); expect(f.posts).toHaveLength(1);
@@ -513,25 +513,24 @@ test("dialog hit testing: logo project context protects padding without generati
 });
 
 
-test("a failed estimate can be refreshed without starting generation", async ({ page }) => {
+test("a failed preparation can be retried without starting generation", async ({ page }) => {
   const f = await setup(page, "quote_failed");
   const action = page.getByRole("group", { name: "Generate six concepts", exact: true });
-  await expect(action).toContainText("The cost estimate could not be loaded");
+  await expect(action).toContainText("This request could not be prepared");
   await expect(action.getByRole("button", { name: "Generate six concepts", exact: true })).toBeDisabled();
   expect(f.posts).toHaveLength(0); f.failQuotes = false;
-  await action.getByRole("button", { name: "Refresh estimate" }).click();
+  await action.getByRole("button", { name: "Try again", exact: true }).click();
   await expect(action.getByRole("button", { name: "Generate six concepts", exact: true })).toBeEnabled();
   expect(f.posts).toHaveLength(0); expect(f.quotes).toHaveLength(2);
 });
 
-test("an expired estimate needs a refresh and never starts generation on its own", async ({ page }) => {
+test("an expired request is replaced quietly and never starts generation on its own", async ({ page }) => {
   const f = await setup(page, "quote_expired");
   const action = page.getByRole("group", { name: "Generate six concepts", exact: true });
   const generate = action.getByRole("button", { name: "Generate six concepts", exact: true });
-  await expect(action).toContainText("Estimate expired."); await expect(generate).toBeDisabled();
-  expect(f.posts).toHaveLength(0); expect(f.quotes).toHaveLength(1);
-  await action.getByRole("button", { name: "Refresh estimate" }).click();
-  await expect(generate).toBeEnabled(); expect(f.posts).toHaveLength(0);
+  await expect(generate).toBeEnabled();
+  await expect.poll(() => f.quotes.length).toBeGreaterThan(1); expect(f.posts).toHaveLength(0);
+  await expect(generate).toBeEnabled(); await expect(action).not.toContainText(/estimat|expired/i); expect(f.posts).toHaveLength(0);
   await generate.click(); await expect.poll(() => f.posts.length).toBe(1);
 });
 
@@ -547,10 +546,10 @@ test("a cancelled request keeps partial previews and allows a later deliberate g
 });
 
 
-test("an unavailable estimate is stated honestly before an uncapped generation", async ({ page }) => {
+test("an uncapped generation shows no cost and starts on one click", async ({ page }) => {
   const f = await setup(page, "unknown_estimate");
   const action = page.getByRole("group", { name: "Generate six concepts", exact: true });
-  await expect(action).toContainText("Expected cost unavailable."); await expect(action).not.toContainText("$0");
+  await expect(action).not.toContainText(/cost|estimat|\$/i);
   expect(f.posts).toHaveLength(0); await action.getByRole("button", { name: "Generate six concepts", exact: true }).click();
   await expect.poll(() => f.posts.length).toBe(1); expect(f.posts[0]).not.toHaveProperty("acceptedMaxCostMicrousd");
 });

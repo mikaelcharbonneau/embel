@@ -256,13 +256,13 @@ it("conversion estimates follow the saved selection and edited settings without 
 const generateButton = () => host.querySelector<HTMLButtonElement>('button[aria-label="Generate refinement"]');
 async function waitForRefinementEstimate() { await until(() => expect(generateButton()?.disabled).toBe(false)); }
 
-describe("one-click refinement with a visible estimate", () => {
-  it("shows cost beside Generate while closing the editor keeps inputs and versions without admission", async () => {
+describe("one-click refinement", () => {
+  it("shows no cost beside Generate while closing the editor keeps inputs and versions without admission", async () => {
     const f = await syntheticRefinementWorkspaceHttp(true); await mount(f); await fillInstruction();
     const originalHeads = structuredClone(f.workspace.heads), originalRecords = structuredClone(f.records);
     await waitForRefinementEstimate();
     const action = generateButton()!.closest('[role="group"]');
-    expect(action?.textContent).toContain("Expected cost: $0.60"); expect(action?.textContent).not.toContain("Maximum cost");
+    expect(action?.textContent).not.toMatch(/\$|cost|estimat/i);
     expect(refinementQuotes(f)).toHaveLength(1); expect(f.admissions).toEqual([]);
     await click("Close refinement");
     expect(host.querySelector('dialog[aria-label="Review generation cost"]')).toBeNull();
@@ -305,7 +305,7 @@ describe("one-click refinement with a visible estimate", () => {
     expect(f.admissions).toEqual([original]); expect(refinementQuotes(f)).toHaveLength(1); expect(f.selections).toEqual([]);
     expect(button("Retry original request")).toBeDefined(); expect(JSON.stringify(f.batch)).toBe(f.originalBatch);
   });
-  it("rejects an expired estimate without replacing the instruction or admitting work", async () => {
+  it("quietly prepares a new request when the old one expired, without replacing the instruction or admitting work", async () => {
     const actualNow = Date.now; let time: number | null = null;
     vi.spyOn(Date, "now").mockImplementation(() => time ?? actualNow());
     const f = await syntheticRefinementWorkspaceHttp();
@@ -319,7 +319,7 @@ describe("one-click refinement with a visible estimate", () => {
     time = Date.parse(lastRefinementQuote(f).expiresAt);
     await act(async () => generateButton()!.click());
     expect(f.admissions).toEqual([]); expect(refinementQuotes(f)).toHaveLength(1); expect(memory?.get(f.workspace.projectId)?.pendingIntent).toBeNull();
-    expect(host.textContent).toContain("Estimate expired."); expect(button("Refresh estimate")).toBeDefined();
+    await until(() => expect(refinementQuotes(f)).toHaveLength(2)); expect(f.admissions).toEqual([]); expect(host.textContent).not.toMatch(/estimat/i);
     expect(host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Describe logo changes"]')?.value).toBe("Simplify the silhouette");
   });
 });

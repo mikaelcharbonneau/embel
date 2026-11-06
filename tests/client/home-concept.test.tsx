@@ -3,7 +3,7 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HomeScopePicker } from "@/components/workspace/home-scope-picker";
-import { HomeRecentBrands } from "@/components/workspace/home-recent-brands";
+import { HomeRecentBrands, shortDate } from "@/components/workspace/home-recent-brands";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 
 const mock = vi.hoisted(() => ({ session: { status: "ready", userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", generation: 1 } as VerifiedAccount | { status: "checking"; generation: number }, current: vi.fn(), expire: vi.fn() }));
@@ -18,31 +18,25 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => root.unmount()); document.body.replaceChildren(); vi.unstubAllGlobals(); });
 
-describe("concept 22 scope control", () => {
-  it("defaults to Brand and supports keyboard selection without inventing unsupported scopes", async () => {
+describe("Home scope switch", () => {
+  it("offers exactly the three supported scopes as one radio group and reports a change", async () => {
     const change = vi.fn();
     await act(async () => root.render(createElement(HomeScopePicker, { value: "complete_brand", onChange: change })));
-    const trigger = host.querySelector<HTMLButtonElement>("button")!;
-    expect(trigger.getAttribute("aria-label")).toBe("Project scope: Brand");
-    await act(async () => trigger.click());
-    const options = [...host.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')];
-    expect(options).toHaveLength(7);
-    expect(options.filter(option => option.disabled).map(option => option.textContent)).toEqual(["LogoIn Projects", "FontUnavailable", "ColorUnavailable", "GuideUnavailable"]);
-    expect(options.filter(option => !option.disabled).map(option => option.textContent)).toEqual(["Brand", "Name", "System"]);
-    expect(options.filter(option => option.disabled).every(option => document.getElementById(option.getAttribute("aria-describedby")!)?.textContent === option.title)).toBe(true);
-    expect(document.activeElement).toBe(options[0]);
-    await act(async () => options[0]!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true })));
-    expect(document.activeElement).toBe(options[1]);
-    await act(async () => options[1]!.click());
+    expect(host.querySelector("fieldset > legend")?.textContent).toBe("What to create");
+    const radios = [...host.querySelectorAll<HTMLInputElement>('input[type="radio"]')];
+    expect(radios.map(radio => radio.parentElement!.textContent)).toEqual(["Complete brand", "Name only", "Visual identity"]);
+    expect(radios.map(radio => radio.value)).toEqual(["complete_brand", "naming_only", "visual_identity_only"]);
+    expect(new Set(radios.map(radio => radio.name)).size).toBe(1);
+    expect(radios[0]!.checked).toBe(true); expect(radios[0]!.parentElement!.dataset.checked).toBe("true");
+    await act(async () => radios[1]!.parentElement!.click());
     expect(change).toHaveBeenCalledExactlyOnceWith("naming_only");
-    expect(trigger.getAttribute("aria-expanded")).toBe("false");
-    expect(document.activeElement).toBe(trigger);
   });
   it("does not allow a frozen brief to change scope", async () => {
     const change = vi.fn();
     await act(async () => root.render(createElement(HomeScopePicker, { value: "complete_brand", onChange: change, disabled: true })));
-    await act(async () => host.querySelector<HTMLButtonElement>("button")!.click());
-    expect(host.querySelector('[role="menu"]')).toBeNull(); expect(change).not.toHaveBeenCalled();
+    expect(host.querySelector("fieldset")!.disabled).toBe(true);
+    await act(async () => host.querySelectorAll<HTMLLabelElement>("label")[2]!.click());
+    expect(change).not.toHaveBeenCalled();
   });
 });
 
@@ -86,5 +80,16 @@ describe("home account cards", () => {
     mock.session = { status: "checking", generation: 3 };
     await act(async () => root.render(createElement(HomeRecentBrands)));
     expect(host.textContent).not.toContain("Current account brand");
+  });
+});
+
+describe("recent card dates", () => {
+  it("says Today and Yesterday, then a short date with the year only when it differs", () => {
+    const now = new Date(2026, 10, 6, 9, 30);
+    expect(shortDate(new Date(2026, 10, 6, 0, 5).toISOString(), now)).toBe("Today");
+    expect(shortDate(new Date(2026, 10, 5, 23, 55).toISOString(), now)).toBe("Yesterday");
+    expect(shortDate(new Date(2026, 9, 31, 12).toISOString(), now)).toBe("Oct 31");
+    expect(shortDate(new Date(2025, 11, 24, 12).toISOString(), now)).toBe("Dec 24, 2025");
+    expect(shortDate("not a date", now)).toBe("Date unavailable");
   });
 });

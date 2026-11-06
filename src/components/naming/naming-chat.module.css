@@ -46,7 +46,7 @@
 .workspace .canvas :global(.project-naming-grid) { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .workspace .canvas :global(.project-naming-card).compactCard { position: relative; min-width: 0; height: 90px; min-height: 90px; flex: none; display: block; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--paper); overflow: hidden; }
 .workspace .canvas :global(.project-naming-card).compactCard:has(.openName:hover) { border-color: var(--secondary); }
-.workspace .canvas :global(.project-naming-card).compactCard:focus-within { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+.workspace .canvas :global(.project-naming-card).compactCard:focus-within { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 .workspace .canvas :global(.project-naming-card).compactCard:global(.is-selected) { border-color: var(--text); }
 .workspace .canvas .compactCard h3 { padding-right: 24px; margin: 0 0 4px; font-size: 20px; line-height: 26px; font-weight: 400; letter-spacing: -.2px; }
 .openName { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 0; background: transparent; padding: 0; color: inherit; font: inherit; text-align: left; }
@@ -55,7 +55,7 @@
 .workspace .canvas .compactCard > p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin: 0; color: var(--secondary); font-size: 13px; line-height: 20px; }
 .workspace .canvas .heart { position: absolute; z-index: 1; top: 3px; right: 3px; width: 38px; height: 38px; min-width: 38px; min-height: 38px; display: grid; place-items: center; padding: 11px; border: 0; border-radius: 7px; background: transparent; }
 .heart img { display: block; flex-shrink: 0; }
-.heart[aria-pressed=true] { background: var(--magenta-soft) !important; }
+.heart[aria-pressed=true] { background: var(--accent-soft) !important; }
 @media (max-width: 1150px) and (min-width: 761px) {
   .chatFirst.workspace { grid-template-columns: minmax(0, 1fr); }
   .workspace .canvas :global(.project-naming-grid) { grid-template-columns: repeat(3, minmax(0, 1fr)); }

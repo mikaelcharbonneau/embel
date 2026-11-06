@@ -46,9 +46,9 @@
 
 .conversation-history { display: flex; flex-direction: column; gap: 24px; list-style: none; padding: 0; margin: 24px 0 0; min-width: 0; }
 .conversation-history > li { min-width: 0; scroll-margin-block: 12px; }
-.conversation-user-entry { align-self: flex-end; width: fit-content; max-width: 88%; padding: 16px 18px; border: 1px solid #f0d8eb; border-radius: 12px 12px 3px 12px; background: var(--magenta-soft); }
+.conversation-user-entry { align-self: flex-end; width: fit-content; max-width: 88%; padding: 16px 18px; border: 1px solid var(--border); border-radius: 12px 12px 3px 12px; background: var(--accent-soft); }
 .conversation-message-meta { display: flex; gap: 14px; align-items: center; justify-content: space-between; margin-bottom: 7px; font-size: var(--font-ui); color: var(--secondary); }
-.conversation-message-meta > span { color: var(--accent-text); font-weight: 500; }
+.conversation-message-meta > span { color: var(--accent-ink); font-weight: 500; }
 .conversation-message-meta time { font-variant-numeric: tabular-nums; }
 .conversation-user-entry > p, .conversation-saved-entry > p { color: var(--text); font-size: 13px; line-height: 1.75; white-space: pre-wrap; overflow-wrap: anywhere; }
 .conversation-saved-entry { max-width: 88%; padding: 15px 18px; border-left: 2px solid var(--border); background: var(--paper); border-radius: 0 7px 7px 0; }
@@ -58,7 +58,7 @@
 .conversation-service-note > svg { margin-top: 2px; }
 .conversation-widget { position: relative; min-width: 0; padding: 20px; border: 1px solid var(--border); border-radius: 10px; background: var(--paper); }
 .conversation-widget-heading { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.conversation-tool-avatar { display: grid; place-items: center; width: 25px; height: 25px; flex: 0 0 25px; border-radius: 6px; background: var(--magenta); color: var(--text); font-size: 18px; line-height: 1; font-weight: 600; }
+.conversation-tool-avatar { display: grid; place-items: center; width: 25px; height: 25px; flex: 0 0 25px; border-radius: 6px; background: var(--accent); color: var(--on-accent); font-size: 18px; line-height: 1; font-weight: 600; }
 .conversation-widget-heading h2 { font-size: 14px; letter-spacing: -.1px; scroll-margin-block: 12px; }
 .conversation-widget-heading > .text-link { margin-left: auto; min-height: 44px; }
 .conversation-review-state { display: inline-flex; gap: 5px; align-items: center; color: var(--secondary); font-size: var(--font-ui); }

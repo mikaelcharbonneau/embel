@@ -12,8 +12,10 @@ import { useProjectCardPreview } from "./use-project-card-preview";
 import styles from "./project-card.module.css";
 
 /** Home and Projects share the selected brand name and saved logo preview. */
-export function ProjectCard({ project, account, headingLevel = 2, date, actions, deletionStatus }: {
+export function ProjectCard({ project, account, headingLevel = 2, date, actions, deletionStatus, compact = false }: {
   project: LifecycleProject; account: VerifiedAccount; headingLevel?: 2 | 3; date: string; actions: ReactNode; deletionStatus?: ReactNode;
+  /** Home: name and date on one line, then the next step. */
+  compact?: boolean;
 }) {
   const deleted = project.deletion_state !== "active";
   const owned = project.owner_id === account.userId;
@@ -35,11 +37,14 @@ export function ProjectCard({ project, account, headingLevel = 2, date, actions,
         ? <img src={preview.url} alt={`Saved selected logo${preview.name ? ` for ${preview.name}` : ""}`} onError={() => rejectImage(preview.url!)} />
         : <div className={styles.placeholder}><Icon name="brands" size={24} /><span>{deleted ? "Saved project" : project.scope === "naming_only" ? "Naming project" : preview?.status === "unavailable" ? "Preview unavailable" : preview?.status === "ready" ? "No logo selected" : "Saved project"}</span></div>}
     </div>
-    <div className={styles.details}>
+    {compact && !deleted ? <div className={`${styles.details} ${styles.compactDetails}`}>
+      <div className={styles.compactRow}><Heading className={styles.compactTitle} title={title}>{title}</Heading><span className={styles.compactDate} title={project.created_at}>{date}</span></div>
+      <span className={styles.next}>{action.label}</span>
+    </div> : <div className={styles.details}>
       <Heading className={styles.title} title={title}>{title}</Heading>
       <div className={styles.metadata}><span>{scopeLabel(project.scope)}</span>{!deleted && <span title={project.created_at}>{date}</span>}</div>
       {deleted ? <>{deletionStatus}<div className={`${styles.deletedFooter} project-footer`}><span title={project.deletion_requested_at ?? project.deleted_at ?? project.created_at}>{date}</span>{actions}</div></> : <span className={styles.footer}>{action.label}<Icon name="arrow" size={16} /></span>}
-    </div>
+    </div>}
   </>;
   return <article className={`${styles.card} ${headingLevel === 3 ? "home-brand-card" : "project-card"}${deleted ? " project-card--deleted" : ""}`} data-storage="account" data-project-id={project.id}>
     {deleted ? <div className={styles.deletedContent}>{content}</div> : <><Link className={styles.link} href={action.href} aria-label={`${action.label} · ${title}`}>{content}</Link>{actions}</>}
