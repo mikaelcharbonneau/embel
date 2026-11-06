@@ -104,7 +104,7 @@ export function VisualDirectionsView({ brandName, logoPreview, logoDownload, bac
       <p className="guided-assistant-copy">Here are three ways to bring {brandName} to life, each built on your chosen logo. Pick the one that feels right.
         {backHref && <> <Link className="text-link" href={backHref}>Change logo</Link></>}</p>
       {logoDownload && <div className={styles.logoDownload}>{logoDownload}</div>}
-      <div className="identity-chosen-logo" aria-label="Chosen logo">{logoPreview}</div>
+      <section className="identity-chosen-logo" aria-label="Chosen logo">{logoPreview}</section>
     </div>
 
     <section className={styles.generation} aria-labelledby={generationId}>
