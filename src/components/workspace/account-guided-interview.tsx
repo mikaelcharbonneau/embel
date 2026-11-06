@@ -9,6 +9,9 @@ import { competitorSchema, contextSnapshotSchema, type ContextSnapshot } from "@
 import { CompetitorWidgetControls } from "./competitor-widget-controls";
 import { EmbelIdentity, guidedStageLabel } from "./embel-identity";
 import { useConversationStep } from "@/components/journey/project-header";
+import { journeyPartLabel } from "@/domain/journey";
+import Link from "next/link";
+import { Icon } from "@/components/ui/icon";
 import { accountDraftChanged, type AccountWorkspace, type GuidedInterviewInput } from "./account-draft-memory";
 import { strategyAvailabilityMessage, strategyCanRetryDelivery, strategyJobActive } from "./account-strategy-client";
 import type { VerifiedAccount } from "./account-session";
@@ -39,6 +42,7 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
   const setSelection = (selection: GuidedInterviewInput["selection"]) => changeInput(previous => ({ ...previous, selection }));
   const [error, setError] = useState<string | null>(null);
   const [strategyExpanded, setStrategyExpanded] = useState(false);
+  const [namingReopened, setNamingReopened] = useState(false);
   const [working, setWorking] = useState(false);
   const [briefOpen, setBriefOpen] = useState(false);
   const [briefFromNaming, setBriefFromNaming] = useState(false);
@@ -299,10 +303,14 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
   // positioning the first Naming question. A failed history read keeps its retry.
   const historyChecked = Boolean(strategy.overview || strategy.readError);
   const showNaming = (briefOpen ? briefFromNaming : namingReady) && historyChecked;
+  // Once a name is chosen and the slogan is proposed for it, the names collapse
+  // into one answer and the conversation continues below. Change name reopens them.
+  const nameChosen = Boolean(context.selectedName) && Boolean(state?.turns.some(turn => turn.stage === "slogan"));
+  const namingOpen = showNaming && (!nameChosen || namingReopened);
   useConversationStep(showNaming || state?.stage === "personality" || state?.stage === "slogan" || state?.stage === "complete" ? "voice" : "strategy");
   // Once Strategy is complete its saved replies are history. They can load
   // after the Naming checkpoint and must not take the reader to an old turn.
-  const responseIds = showNaming ? (namingQuestionId && !namingCanvas ? [namingQuestionId] : []) : [
+  const responseIds = namingOpen ? (namingQuestionId && !namingCanvas ? [namingQuestionId] : []) : [
     ...legacyJobs.flatMap(job => job.results.map(result => `guided-result-${job.id}-${result.stepKey}`)),
     ...timeline.flatMap(item => {
       if (item.kind !== "turn") return [];
@@ -375,7 +383,7 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
     {voiceItems.map(renderItem)}
   </>;
   const sloganHistory = sloganItems.map(renderItem);
-  const canvasActive = showNaming && namingCanvas;
+  const canvasActive = namingOpen && namingCanvas;
   const history = <>{!firstMessage && briefEditor}{conversationHistory}</>;
   const completed = null;
 
@@ -423,17 +431,29 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
       {!canvasActive && completed}
       {!hasComposer && notices}
       <div ref={setNamingMessages} className="guided-naming-messages" />
+      {!canvasActive && nameChosen && !namingReopened && <article className="guided-assistant-message flow-enter" aria-label="Your name">
+        <EmbelIdentity label={journeyPartLabel("voice", "Name")} />
+        <section className="guided-choice-answer" aria-label="Your answer: Which name feels right?">
+          <div className="guided-choice-answer-copy"><h3>Which name feels right?</h3><ul aria-label="Your answer"><li><span>{context.selectedName}</span></li></ul></div>
+          <button className="button secondary small" type="button" disabled={blocked} onClick={() => setNamingReopened(true)}>Change name</button>
+        </section>
+      </article>}
       {!canvasActive && sloganHistory}
+      {!canvasActive && state?.stage === "complete" && nameChosen && saved.scope === "complete_brand" && <article className="guided-assistant-message flow-enter" aria-label="Next step">
+        <EmbelIdentity label={journeyPartLabel("identity", "Inspiration")} />
+        <p className="guided-assistant-copy">Your voice is set. Next is Identity: pick a few looks you like, then choose a logo for {context.selectedName}.</p>
+        <div className="guided-next-step"><Link className="button primary" href={`/brands/account/${saved.id}/inspiration`}>Continue to Identity<Icon name="arrow" size={14} /></Link></div>
+      </article>}
     </div>
-    {hasComposer && <FloatingComposer label={showNaming ? "Naming composer" : "Strategy composer"}>
+    {hasComposer && <FloatingComposer label={namingOpen ? "Naming composer" : "Strategy composer"}>
       <div ref={setNamingComposer} className="guided-floating-input">
         {hasNewResponse && <div className="guided-new-response flow-enter"><button type="button" className="button secondary small" aria-controls={transcriptId} onClick={revealNewResponse}>View new response<span aria-hidden="true"> ↓</span></button></div>}
         {notices}
-        {(!showNaming || !namingQuestionId) && <ConversationComposer project value={prompt} onChange={setPrompt} onSend={() => void send()} label="Message Embel" placeholder="Reply in your own words, or ask a question…" disabled={showNaming || blocked || !prompt.trim()} readOnly={showNaming || pending} hint={null} sendLabel="Send prompt" />}
+        {(!namingOpen || !namingQuestionId) && <ConversationComposer project value={prompt} onChange={setPrompt} onSend={() => void send()} label="Message Embel" placeholder="Reply in your own words, or ask a question…" disabled={namingOpen || blocked || !prompt.trim()} readOnly={namingOpen || pending} hint={null} sendLabel="Send prompt" />}
       </div>
     </FloatingComposer>}
   </div>
-    {showNaming && <ProjectNamingWorkspace projectId={saved.id}
+    {namingOpen && <ProjectNamingWorkspace projectId={saved.id}
       conversationHistory={<>{history}{completed}</>}
       inline={{ messages: namingMessages, composer: namingComposer, onQuestion: setNamingQuestionId, onCanvas: setNamingCanvas }} />}
   </>;
