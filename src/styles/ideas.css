@@ -103,7 +103,7 @@
 .ideas-home .ideas-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; min-height: 0; padding: 0; margin: 0 0 24px; }
 .ideas-introduction { min-width: 0; }
 .ideas-home .ideas-heading h1 { font-size: 32px; font-weight: 500; line-height: 48px; letter-spacing: -1px; }
-.ideas-heading h1 > span { color: var(--magenta); letter-spacing: 0; }
+.ideas-heading h1 > span { color: var(--accent); letter-spacing: 0; }
 .ideas-introduction p { margin: 4px 0 0; color: var(--secondary); font-size: 14px; line-height: 20px; }
 .ideas-home .ideas-add { height: 44px; min-height: 44px; flex-shrink: 0; padding: 0 16px; gap: 8px; border-radius: 7px; font-size: 14px; font-weight: 500; line-height: 20px; }
 .ideas-home #idea-capture-panel:not([hidden]) { margin-bottom: 24px; }
@@ -116,7 +116,7 @@
 .ideas-state-display { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; background: var(--paper); border: 1px solid var(--border); border-radius: 7px; font-size: 14px; font-weight: 500; line-height: 20px; white-space: nowrap; }
 .ideas-state-display svg { color: var(--secondary); }
 .ideas-home .ideas-filter-state select { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
-.ideas-home .ideas-filter-state:focus-within .ideas-state-display { outline: 2px solid var(--accent-text); outline-offset: 4px; }
+.ideas-home .ideas-filter-state:focus-within .ideas-state-display { outline: 2px solid var(--accent-ink); outline-offset: 4px; }
 .ideas-home .ideas-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 .ideas-home .idea-card { display: flex; flex-direction: column; gap: 12px; min-height: 192px; padding: 20px; }
 .ideas-home .idea-card-top { min-height: 20px; flex-wrap: nowrap; gap: 12px; margin: 0; color: var(--secondary); }
@@ -149,7 +149,7 @@
 .idea-detail-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin: 0 0 24px; }
 .idea-detail-heading > div { min-width: 0; }
 .idea-detail-heading h1 { font-size: 32px; font-weight: 500; line-height: 48px; letter-spacing: -1px; overflow-wrap: anywhere; }
-.idea-detail-heading h1 > span { color: var(--magenta); letter-spacing: 0; }
+.idea-detail-heading h1 > span { color: var(--accent); letter-spacing: 0; }
 .idea-detail-heading p { margin: 4px 0 0; color: var(--secondary); font-size: 14px; line-height: 20px; }
 .idea-detail-save { flex-shrink: 0; height: 44px; padding: 0 16px; border-radius: 7px; font-size: 14px; font-weight: 500; }
 .idea-detail-columns { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 24px; align-items: start; }
@@ -190,7 +190,7 @@
 .idea-attach-disclosure .account-copy-control h2 { font-size: 14px; line-height: 22px; }
 .idea-attach-disclosure :is(input, select, button) { max-width: 100%; }
 .idea-attach-disclosure .standalone-project-picker { min-width: 0; }
-.idea-detail-page :is(summary, .button, .text-link):focus-visible { outline: 2px solid var(--accent-text); outline-offset: 3px; }
+.idea-detail-page :is(summary, .button, .text-link):focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
 .idea-created-brands { gap: 16px; padding: 20px; }
 .idea-created-brands .field-hint { display: block; margin: 0; }
 @media (max-width: 900px) {

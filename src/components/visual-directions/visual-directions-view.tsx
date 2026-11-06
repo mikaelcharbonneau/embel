@@ -26,7 +26,6 @@ export type VisualDirectionCard = {
 export type VisualDirectionGeneration = {
   status: "idle" | "queued" | "running" | "stopping" | "partial" | "complete" | "failed" | "uncertain" | "cancelled";
   completed: number;
-  estimatedCostLabel?: string | null;
   usageLabel?: string | null;
   error?: string | null;
   disabledReason?: string | null;
@@ -65,7 +64,7 @@ const progressMessages: Record<VisualDirectionGeneration["status"], string | nul
 /** Presentation only. Callers supply verified previews, saved choices and request state. */
 export function VisualDirectionsView({ brandName, logoPreview, logoDownload, backHref, cards, generation, selectionCheck,
   selectionStatus, selectionError, finalAction, history }: VisualDirectionsViewProps) {
-  const titleId = useId(), generationId = useId(), estimateId = useId(), reasonId = useId(), dialogTitleId = useId();
+  const titleId = useId(), generationId = useId(), reasonId = useId(), dialogTitleId = useId();
   const dialog = useRef<HTMLDialogElement>(null), heading = useRef<HTMLHeadingElement>(null), triggers = useRef(new Map<string, HTMLButtonElement>());
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const expanded = cards.find(card => card?.id === expandedId) ?? null;
@@ -124,12 +123,11 @@ export function VisualDirectionsView({ brandName, logoPreview, logoDownload, bac
           {finalAction && <div className={styles.finalAction}>{finalAction}</div>}
           <div className={styles.generateAction}>
             <button className={comparing || finalAction ? styles.secondaryButton : styles.primaryButton} type="button" disabled={!canGenerate}
-              aria-describedby={`${estimateId}${generation.disabledReason ? ` ${reasonId}` : ""}`}
+              aria-describedby={generation.disabledReason ? reasonId : undefined}
               onClick={() => { if (canGenerate) generation.onGenerate?.(); }}>
               {unresolved ? generation.status === "stopping" ? "Stopping…" : generation.status === "uncertain" ? "Checking request…" : "Creating directions…"
                 : generation.busy ? "Please wait…" : generation.status === "idle" ? "Generate three directions" : "Generate another set"}
             </button>
-            <p id={estimateId} className={styles.estimate}>{generation.estimatedCostLabel || "Cost estimate unavailable"}</p>
           </div>
         </div>
       </div>

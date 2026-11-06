@@ -1,7 +1,7 @@
 .page.auth-page { max-width: 640px; padding-top: 56px; }
 .auth-card { background: var(--paper); border: 1px solid var(--border); border-radius: var(--panel-radius); padding: 30px; }
 .auth-heading { display: flex; align-items: center; gap: 11px; margin-bottom: 25px; }
-.auth-mark { display: grid; place-items: center; width: 34px; height: 34px; background: var(--magenta-soft); color: var(--accent-text); border-radius: 8px; font-size: 27px; font-weight: 600; line-height: 1; }
+.auth-mark { display: grid; place-items: center; width: 34px; height: 34px; background: var(--accent-soft); color: var(--accent-ink); border-radius: 8px; font-size: 27px; font-weight: 600; line-height: 1; }
 .auth-stage { font-size: var(--font-ui); color: var(--secondary); }
 .auth-card h1 { font-size: 24px; letter-spacing: -.7px; }
 .auth-intro { color: var(--secondary); font-size: 13px; line-height: 1.7; margin-top: 11px; }

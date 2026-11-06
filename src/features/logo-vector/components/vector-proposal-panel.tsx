@@ -4,7 +4,6 @@ import type { VerifiedAccount } from "@/components/workspace/account-session";
 import { useAccountSession } from "@/components/workspace/account-session";
 import type { AccountLogoClient } from "@/components/identity/account-logo-client";
 import type { LogoDraftMemory } from "@/components/identity/logo-draft-memory";
-import { displayLogoCost } from "@/components/logo-creation/presentation";
 import { createLogoVectorProposalApplicationClient, type LogoVectorProposalApplicationResult } from "../client/proposal-application";
 import { createVectorProposalController, EMPTY_PROPOSALS, type ProposalEditorContext, type VectorProposalController } from "../client/proposal-controller";
 import styles from "./logo-vector.module.css";
@@ -44,8 +43,7 @@ export function VectorProposalPanel({ account, projectId, client, memory, contex
   const components = context?.detail.document.components ?? [], locks = context?.detail.revision.locks ?? [];
   const targets = form?.targetComponentIds ?? [context?.targetId ?? components[0]?.id ?? ""], instruction = form?.instruction ?? "";
   const proposal = state.application?.proposal, quote = state.quote;
-  const expectedCost = quote && "estimatedCostMicrousd" in quote && typeof quote.estimatedCostMicrousd === "number" ? quote.estimatedCostMicrousd : null;
-  const costId = useId();
+  const statusId = useId();
   const canPrepare = Boolean(controller?.canPrepare() && instruction.trim());
   const canRefreshEstimate = Boolean(controller?.canRefreshEstimate() && instruction.trim());
   const estimateKey = JSON.stringify([form?.baseVectorRevisionId, instruction, targets, context?.workspace.heads, context?.detail.revision.documentHash]);
@@ -103,13 +101,12 @@ export function VectorProposalPanel({ account, projectId, client, memory, contex
         </select></label>
         <label>Requested change<textarea aria-label="Requested vector change" maxLength={4000} value={instruction} onChange={event => controller?.setForm(event.target.value, targets)} placeholder="For example, make the selected symbol slightly smaller." rows={3} /></label>
         <div className={panel.generation} role="group" aria-label="Generate AI suggestion">
-          <button type="submit" disabled={quoting || !controller?.canConfirm()} aria-describedby={costId}>Generate AI suggestion</button>
-          <span id={costId} role="status" className={styles.caption}>{quoting ? "Estimating cost…" : quote ? expectedCost === null ? "Expected cost unavailable." : `Expected cost: ${displayLogoCost(expectedCost)}`
-            : state.error || state.notice ? "Estimate not ready." : instruction.trim() ? canPrepare ? "Preparing estimate…" : "Estimate unavailable." : "Describe a change to see its expected cost."}</span>
+          <button type="submit" disabled={quoting || !controller?.canConfirm()} aria-describedby={statusId}>Generate AI suggestion</button>
+          <span id={statusId} role="status" className={styles.caption}>{quoting ? "Getting ready…" : quote ? ""
+            : state.error || state.notice ? "Not ready yet." : instruction.trim() ? canPrepare ? "Getting ready…" : "Unavailable right now." : "Describe a change to get a suggestion."}</span>
         </div>
-        {quote && <p className={styles.caption}>{expectedCost === null ? "Actual usage is recorded when reported." : "An estimate, not a confirmed charge. Actual usage may differ."}</p>}
         <div className={styles.actions}>
-          {canRefreshEstimate && !quoting && <button type="button" onClick={() => { if (controller) { attemptedEstimate.current = { controller, key: estimateKey }; void controller.prepare(); } }}>Refresh estimate</button>}
+          {canRefreshEstimate && !quoting && <button type="button" onClick={() => { if (controller) { attemptedEstimate.current = { controller, key: estimateKey }; void controller.prepare(); } }}>Try again</button>}
           {form && !frozen && <button type="button" onClick={() => controller?.discardDraft()}>Discard suggestion draft</button>}
         </div>
       </fieldset>

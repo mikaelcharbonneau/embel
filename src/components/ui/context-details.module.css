@@ -1,7 +1,7 @@
 .root { min-width: 0; }
 .trigger { display: flex; align-items: center; justify-content: space-between; gap: 20px; width: 100%; min-height: 44px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--paper); color: var(--secondary); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
 .trigger:hover { color: var(--text); border-color: var(--secondary); }
-.trigger:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+.trigger:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 .sheet { width: min(680px, calc(100vw - 32px)); max-height: min(84dvh, 850px); padding: 0; border: 1px solid var(--border); border-radius: 16px; background: var(--paper); color: var(--text); box-shadow: 0 20px 80px #19191926; overflow: auto; }
 .sheet::backdrop { background: #19191955; }
 .sheet > header { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 24px; border-bottom: 1px solid var(--border); background: var(--paper); }

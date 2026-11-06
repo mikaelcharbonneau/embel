@@ -21,12 +21,12 @@
 .personality-dimension-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .personality-dimension-heading label { font-size: 13px; font-weight: 500; }
 .personality-dimension-heading p { margin-top: 3px; color: var(--secondary); font-size: var(--font-ui); }
-.personality-value { display: grid; place-items: center; min-width: 42px; padding: 5px 8px; border-radius: 5px; background: var(--magenta-soft); color: var(--accent-text); font-size: 13px; font-variant-numeric: tabular-nums; }
-.personality-slider { display: block; appearance: none; width: 100%; height: 36px; margin: 8px 0 0; padding: 0; background: transparent; cursor: pointer; accent-color: var(--accent-text); }
-.personality-slider::-webkit-slider-runnable-track { height: 5px; border-radius: 4px; background: linear-gradient(to right, var(--magenta) var(--emphasis), var(--surface) var(--emphasis)); }
+.personality-value { display: grid; place-items: center; min-width: 42px; padding: 5px 8px; border-radius: 5px; background: var(--accent-soft); color: var(--accent-ink); font-size: 13px; font-variant-numeric: tabular-nums; }
+.personality-slider { display: block; appearance: none; width: 100%; height: 36px; margin: 8px 0 0; padding: 0; background: transparent; cursor: pointer; accent-color: var(--accent-ink); }
+.personality-slider::-webkit-slider-runnable-track { height: 5px; border-radius: 4px; background: linear-gradient(to right, var(--accent) var(--emphasis), var(--surface) var(--emphasis)); }
 .personality-slider::-webkit-slider-thumb { appearance: none; width: 19px; height: 19px; margin-top: -7px; border: 1px solid var(--text); border-radius: 50%; background: var(--paper); }
 .personality-slider::-moz-range-track { height: 5px; border-radius: 4px; background: var(--surface); }
-.personality-slider::-moz-range-progress { height: 5px; border-radius: 4px; background: var(--magenta); }
+.personality-slider::-moz-range-progress { height: 5px; border-radius: 4px; background: var(--accent); }
 .personality-slider::-moz-range-thumb { width: 17px; height: 17px; border: 1px solid var(--text); border-radius: 50%; background: var(--paper); }
 .personality-range-labels { display: flex; justify-content: space-between; gap: 16px; margin-top: 4px; color: var(--secondary); font-size: var(--font-ui); }
 .strategy-prerequisite { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; padding: 16px; border: 1px solid var(--border); border-radius: 7px; background: var(--paper); }

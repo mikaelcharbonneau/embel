@@ -76,8 +76,8 @@ test("refine_reload_select_vectorize_uses_retained_raster", async ({ page }) => 
   const f = await fixture(page); const composer = page.getByRole("form", { name: "Logo concept changes" });
   await composer.getByRole("button", { name: "Refine logo", exact: true }).click();
   await composer.getByRole("textbox", { name: "Describe logo changes" }).fill("Simplify the silhouette");
-  // The expected cost sits beside Generate; one deliberate click starts the request.
-  await expect(composer.getByRole("group", { name: "Generate refinement" }).getByRole("status")).toContainText("Expected cost:");
+  // No cost is shown; one deliberate click starts the request once it is ready.
+  await expect(composer.getByRole("button", { name: "Generate refinement", exact: true })).toBeEnabled();
   expect(f.admissions).toHaveLength(0); await composer.getByRole("button", { name: "Generate refinement", exact: true }).click();
   await expect.poll(() => f.admissions.length).toBe(1);
   // A refinement that completes in this session becomes the selected logo; reload must retain that raster.
@@ -87,9 +87,9 @@ test("refine_reload_select_vectorize_uses_retained_raster", async ({ page }) => 
   await expect(card(page)).toBeVisible(); await expect(card(page).getByRole("img", { name: "Image preview of saved logo refinement" })).toBeVisible();
   expect(f.detailReads).toContain(rasterId); expect(f.workspace.stages.refinements).not.toBeNull(); expect(f.workspace.approvedLogo).toBeNull();
   await expect(select(page)).toHaveAttribute("aria-pressed", "true"); expect(f.selections).toHaveLength(1);
-  // Optional vector conversion estimates the retained raster without starting another request.
+  // Optional vector conversion prepares the retained raster without starting another request.
   await expect.poll(() => f.quotes.at(-1)).toMatchObject({ operation: "vectorize", source: selectedRaster });
-  await expect(saved.getByRole("group", { name: "Convert to vector" }).getByRole("status")).toContainText("Expected cost:"); expect(f.admissions).toHaveLength(1);
+  await expect(saved.getByRole("button", { name: "Convert to vector", exact: true })).toBeEnabled(); expect(f.admissions).toHaveLength(1);
   expect(JSON.stringify(f.batch)).toBe(f.originalBatch); expect(f.raster.preview!.reference.contentHash).not.toBe(f.batch.slots[0]!.acceptedPreview!.reference.contentHash);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await reloadSavedWorkspace(page); await openSavedWork(page); await expect(select(page)).toHaveAttribute("aria-pressed", "true"); expect(f.admissions).toHaveLength(1);

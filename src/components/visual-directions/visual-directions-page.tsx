@@ -135,7 +135,6 @@ function OwnedVisualDirections({ account, projectId }: { account: VerifiedAccoun
       : <p role="status">{candidate.error || logo.error ? "Your selected logo could not be loaded." : candidate.loading ? "Loading your chosen logo…" : "Choose a logo concept to begin."}</p>}
     logoDownload={candidate.item && logo.client ? <LogoDownloadControls client={logo.client} account={account} projectId={projectId} original={candidate.item.preview} disabled={logoPending} compact /> : undefined}
     cards={cards} generation={{ status: visibleStatus, completed: requestBatch?.systems.length ?? 0,
-      estimatedCostLabel: availability?.status === "available" && availability.version === 3 && availability.estimatedCostMicrousd !== null ? `Estimated ${displayLogoCost(availability.estimatedCostMicrousd)} for three directions` : null,
       usageLabel: batch?.usage ? batch.usage.status === "recorded" ? `Recorded usage for this set: ${displayLogoCost(batch.usage.knownCostMicrousd)}`
         : `Recorded usage so far: ${displayLogoCost(batch.usage.knownCostMicrousd)}${batch.usage.status === "unknown" ? ". Some usage is still being checked." : ""}` : null,
       error: generation.error ?? identity.error ?? logo.error ?? shownHistory?.error,

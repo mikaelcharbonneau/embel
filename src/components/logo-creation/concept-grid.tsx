@@ -62,7 +62,7 @@ export function LogoConceptGridView({ batch = null, plan = null, selected = null
   const stateLabel = { queued: "Waiting", running: "Creating", succeeded: "Ready", failed: "Failed", cancelled: "Cancelled", needs_reconciliation: "Outcome uncertain" };
   return <section className={gallery ? styles.gallery : styles.panel} aria-label="Logo concepts" aria-busy={savedBatchLoading}>
     {!gallery && <><div className={styles.heading}><div><p className={styles.eyebrow}>03 / Explore</p><h2 className={stage.sectionHeading}>Six starting points</h2></div><span className={styles.badge}>Black and white</span></div>
-    <p className={styles.muted}>Six total concepts, with the logo type shown on each card. Review a cost estimate before every new generation or refinement.</p>
+    <p className={styles.muted}>Six total concepts, with the logo type shown on each card.</p>
     {activePlan && <p className={styles.note}>Included: {activePlan.coveredTypes.map(type => LOGO_TYPE_LABELS[type]).join(", ")}.{activePlan.uncoveredTypes.length > 0 && <> Not included in this batch: {activePlan.uncoveredTypes.map(type => LOGO_TYPE_LABELS[type]).join(", ")}. A later batch can cover these types.</>}</p>}
     </>}
     {generationActions && (batch || !savedBatchLoading && !savedBatchUnavailable) && <div className={styles.generationActions}>{generationActions}</div>}
