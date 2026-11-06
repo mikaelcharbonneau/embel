@@ -52,7 +52,7 @@ function AccountProjectNaming({ projectId, account, conversationHistory, inline 
     returnFromInspection.current = null;
     if (!isCurrent(account)) return;
     const card = document.getElementById(`project-name-${candidateId}`);
-    const target = card?.querySelector<HTMLElement>("h3 button, .project-naming-actions button") ?? card
+    const target = card?.querySelector<HTMLElement>("button[aria-haspopup=dialog], h3 button, .project-naming-actions button") ?? card
       ?? document.querySelector<HTMLElement>("[data-naming-results-scroll]");
     target?.focus({ preventScroll: true });
   }, [inspectedId, account, isCurrent]);
