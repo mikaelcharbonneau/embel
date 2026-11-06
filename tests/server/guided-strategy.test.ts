@@ -78,7 +78,7 @@ describe("guided provider contract (synthetic transports, no live inference)", (
     expect(result.proposal).toMatchObject({ competitors: [{ selected: false }] });
   });
 
-  it("retains a bounded completed three-option response as a failed request when one option relies on an unfinished search", async () => {
+  it("drops the option that relies on an unfinished search and keeps the two backed by completed searches", async () => {
     const raw = choices();
     const candidates = ["unfinished.example", "example.com", "another.example"].map((host, index) => ({
       ...rawCompetitor, name: `Synthetic candidate ${index + 1}`, url: `https://${host}/`, sourceUrls: [`https://${host}/`],
@@ -97,16 +97,12 @@ describe("guided provider contract (synthetic transports, no live inference)", (
       annotations: candidates.map(candidate => ({ type: "url_citation", url: candidate.url })),
     }] };
     const { outcome, transport } = await execute(raw, guidedInput(), response);
-    expect(outcome).toMatchObject({ status: "failed", code: "provider_research_unusable", costMicrousd: 78496, providerRequestId: response.id, result: {
-      usage: { inputTokens: 25693, outputTokens: 711, webSearchCalls: 2 }, partialText: JSON.stringify(raw),
-      outputDiagnostics: { responseStatus: "completed", outputItemCount: 5, toolCalls: 3, completedToolCalls: 2, completedSearchCalls: 1,
-        searchAttemptAtLimitIndex: 3, searchCallAccounting: "all_observed_search_attempts", usageExceeded: false,
-        items: [expect.any(Object), expect.any(Object), expect.any(Object), { outputIndex: 3, type: "web_search_call", status: "searching", actionType: "search" }, expect.any(Object)],
-      },
-    } });
-    expect(strategyJobResultSchema.safeParse(outcome.result).success).toBe(false);
-    expect(outcome.result).not.toHaveProperty("proposal");
-    expect(outcome.result).not.toHaveProperty("guidance");
+    expect(outcome).toMatchObject({ status: "succeeded", costMicrousd: 78496, providerRequestId: response.id });
+    const result = strategyJobResultSchema.parse(outcome.result);
+    if (result.guidance?.kind !== "choices") throw new Error("Synthetic fixture did not produce choices");
+    // The unfinished attempt never supplies a source or website.
+    expect(result.guidance.options.map(option => option.label)).toEqual(["Synthetic option 2", "Synthetic option 3"]);
+    expect(JSON.stringify(result)).not.toContain("unfinished.example");
     expect(JSON.stringify(outcome)).not.toContain("Synthetic private reasoning");
     expect(transport.createResponse).toHaveBeenCalledTimes(1);
   });

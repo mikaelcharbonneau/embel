@@ -147,6 +147,15 @@ function canonicalUrl(value: string): string {
   competitorWebsiteSchema.parse(value);
   return new URL(value).href;
 }
+/** Inline provider citations such as "([site](https://…))" are evidence, not
+ * prose: verified sources travel with each option, so visible text keeps only
+ * the words. Any other markdown link keeps its label. */
+function plainText(value: string): string {
+  const cleaned = value.replace(/\s*\(\[[^\]\n]{1,300}\]\(https?:\/\/[^\s)]{1,2048}\)\)/g, "")
+    .replace(/\[([^\]\n]{1,300})\]\(https?:\/\/[^\s)]{1,2048}\)/g, "$1")
+    .replace(/[ \t]{2,}/g, " ").replace(/[ \t]+([.,;:!?])/g, "$1").trim();
+  return cleaned || value.trim();
+}
 function resultId(responseId: string, index: number): string {
   const bytes = createHash("sha256").update(`${responseId}:${index}`).digest();
   bytes[6] = (bytes[6]! & 15) | 80;
@@ -156,6 +165,9 @@ function resultId(responseId: string, index: number): string {
 }
 
 type ObservedSource = { url: string; title: string };
+// When unverifiable competitors are dropped, the provider's message may count or
+// name them, so a neutral message replaces it.
+const VERIFIED_ONLY_MESSAGE = "Here are the competitors research could verify. Choose any that fit, or name others in your own words.";
 function normalizeGuidedReply(options: {
   value: unknown; input: StrategyJobInput; operation: StrategyOperation; responseId: string;
   generatedAt: string; sources: ReadonlyMap<string, ObservedSource>;
@@ -164,7 +176,7 @@ function normalizeGuidedReply(options: {
   const turn = currentGuidedTurn(input);
   if (!turn || input.version === 1) throw new Error("Missing guided request");
   const raw = guidedOutputSchema(turn.stage).parse(options.value);
-  const common = { turnId: turn.id, stage: turn.stage, message: raw.message };
+  const common = { turnId: turn.id, stage: turn.stage, message: plainText(raw.message) };
   const sourceMessage = input.context.intake.conversation?.find(event => event.kind === "user_message" && event.id === turn.userMessageId);
   const userText = sourceMessage?.kind === "user_message" ? sourceMessage.text.trim() : "";
   if (raw.kind === "redirect") {
@@ -194,7 +206,7 @@ function normalizeGuidedReply(options: {
         return { ...source, retrievedAt: generatedAt };
       });
       if (url && !sources.has(url)) throw new UnobservedResearchSourceError("Unobserved website");
-      return { id, name: candidate.name, relevance: candidate.relevance, ...(url ? { url } : {}), origin: "research" as const, selected: false, sources: observed };
+      return { id, name: candidate.name, relevance: plainText(candidate.relevance), ...(url ? { url } : {}), origin: "research" as const, selected: false, sources: observed };
     }
     if (turn.stage === "audience") return { ...guidedAudience.parse(value), id, origin: "proposal" as const, selected: false, sources: [] };
     return guidedPersonalityDirectionSchema.parse(value);
@@ -202,16 +214,29 @@ function normalizeGuidedReply(options: {
 
   if (raw.kind === "choices") {
     if (!raw.question || !raw.options.length || raw.selection !== null) throw new Error("Choices require one question and options");
-    return guidedReplySchema.parse({ ...common, kind: "choices", question: raw.question,
-      selectionMode: turn.stage === "personality" ? "single" : "multiple",
-      options: raw.options.map((option, index) => ({ ...option, stage: turn.stage, id: resultId(responseId, index), payload: normalizePayload(option.payload, index) })),
+    // One researched competitor whose website or sources the search did not
+    // return is dropped; the verified ones are still shown. Nothing unverified is
+    // ever published, and an answer with no verified competitor still fails.
+    const options = raw.options.flatMap((option, index) => {
+      try {
+        return [{ ...option, label: plainText(option.label), description: plainText(option.description),
+          recommendationReason: option.recommendationReason === null ? null : plainText(option.recommendationReason),
+          stage: turn.stage, id: resultId(responseId, index), payload: normalizePayload(option.payload, index) }];
+      } catch (error) {
+        if (error instanceof UnobservedResearchSourceError && operation === "strategy.competitors" && turn.stage === "competitors") return [];
+        throw error;
+      }
+    });
+    if (!options.length) throw new UnobservedResearchSourceError("No researched competitor had observed sources");
+    return guidedReplySchema.parse({ ...common, ...(options.length < raw.options.length ? { message: VERIFIED_ONLY_MESSAGE } : {}), kind: "choices", question: plainText(raw.question),
+      selectionMode: turn.stage === "personality" ? "single" : "multiple", options,
     });
   }
   if (raw.options.length) throw new Error("Only a choices reply can contain option cards");
   if (raw.kind === "answer" || raw.kind === "question") {
     if (raw.selection !== null || (raw.kind === "answer" && raw.question !== null) || (raw.kind === "question" && !raw.question)) throw new Error("A clarification cannot include a decision");
     if (turn.purpose !== "message" && !(turn.stage === "competitors" && raw.kind === "question")) throw new Error("An initial audience or personality proposal requires choices");
-    return guidedReplySchema.parse({ ...common, kind: raw.kind, ...(raw.kind === "question" ? { question: raw.question } : {}) });
+    return guidedReplySchema.parse({ ...common, kind: raw.kind, ...(raw.kind === "question" ? { question: plainText(raw.question!) } : {}) });
   }
   if (turn.purpose !== "message" || !userText || !raw.selection || raw.question !== null) throw new Error("Only an actual user reply may confirm a custom answer");
   if (new Set(raw.selection.optionIds).size !== raw.selection.optionIds.length) throw new Error("Repeated selection");
@@ -443,17 +468,16 @@ export function evaluateStrategyResponse(options: {
     if (!turn && operation === "strategy.competitors") {
       if (!completedSearchCalls) return failure("provider_research_missing", cost, providerRequestId);
       const data = competitors.parse(proposal);
-      proposal = { message: data.message, competitors: data.competitors.map((candidate, index) => {
-        const candidateSources = [...new Set(candidate.sourceUrls.map(canonicalUrl))].map(url => {
-          const source = proposalSources.get(url);
-          if (!source) throw new UnobservedResearchSourceError("Source not returned by completed research");
-          return { ...source, retrievedAt: generatedAt };
-        });
+      const verified = data.competitors.flatMap((candidate, index) => {
+        const candidateSources = [...new Set(candidate.sourceUrls.map(canonicalUrl))].map(url => proposalSources.get(url));
         const url = candidate.url === null ? undefined : canonicalUrl(candidate.url);
-        if (url && !proposalSources.has(url)) throw new UnobservedResearchSourceError("Unobserved website");
-        return { id: resultId(response.id, index), name: candidate.name, relevance: candidate.relevance,
-          ...(url ? { url } : {}), selected: false, origin: "research", sources: candidateSources };
-      }) };
+        // Drop only a competitor whose sources or website the search did not return.
+        if (candidateSources.some(source => !source) || (url && !proposalSources.has(url))) return [];
+        return [{ id: resultId(response.id, index), name: candidate.name, relevance: plainText(candidate.relevance),
+          ...(url ? { url } : {}), selected: false, origin: "research", sources: candidateSources.map(source => ({ ...source!, retrievedAt: generatedAt })) }];
+      });
+      if (data.competitors.length && !verified.length) throw new UnobservedResearchSourceError("No researched competitor had observed sources");
+      proposal = { message: verified.length < data.competitors.length ? VERIFIED_ONLY_MESSAGE : plainText(data.message), competitors: verified };
     } else if (!turn && operation === "strategy.audience") {
       const data = audience.parse(proposal);
       proposal = { message: data.message, segments: data.segments.map((segment, index) => ({ ...segment,
