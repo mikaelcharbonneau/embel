@@ -230,6 +230,10 @@ async function openHomeAndSend(page: Page, prompt = initialPrompt) {
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
 }
 
+function researchCard(page: Page) {
+  return page.getByRole("region", { name: "Researching your competitors", exact: true });
+}
+
 function widget(page: Page, stage: GuidedStage) {
   return page.getByRole("group", { name: questions[stage], exact: true });
 }
@@ -314,7 +318,7 @@ test("the first prompt stays in place through the handoff from Home to Strategy"
     finishCreate();
     // Hold both project re-reads. The confirmed new project must render immediately.
     await expect(page).toHaveURL(`/brands/account/${projectId}?view=strategy`);
-    await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Cancel research", exact: true })).toBeVisible();
     await expect(bubble).toBeInViewport({ ratio: 1 });
     await expect(composer).toBeInViewport({ ratio: 1 });
     const after = await bubble.boundingBox(), afterComposer = await composer.boundingBox();
@@ -339,7 +343,7 @@ for (const length of ["short", "long"] as const) test(`guided interview: the cha
     await openHomeAndSend(page, submittedPrompt);
     await expect.poll(() => state.enqueues.length).toBe(1);
     await expect(userMessage(page, submittedPrompt)).toBeVisible();
-    await expect(page.locator(".guided-thinking[role=status]")).toBeInViewport({ ratio: 1 });
+    await expect(researchCard(page)).toBeInViewport({ ratio: 1 });
     await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
     await expect(page.locator(".guided-research-screen")).toHaveCount(0);
   } finally { release(); }
@@ -377,23 +381,19 @@ test("guided interview: Home opens the conversation and keeps the prompt and thi
   expect(state.creates).toHaveLength(1);
   expect(state.project.context.description).toBe(initialPrompt);
   expect(state.project.context.intake.guidedInterview).toMatchObject({ version: 1, stage: "competitors", answers: [] });
-  const loading = page.locator(".guided-thinking[role=status]");
+  const loading = researchCard(page);
   await expect(loading).toBeVisible();
   await expect(userMessage(page, initialPrompt)).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   await expect(page.locator(".guided-research-screen")).toHaveCount(0);
-  await expect(loading.locator('img[src="/project-workspace/mark.svg"]')).toBeVisible();
-  await expect.poll(() => loading.locator('img[src="/project-workspace/mark.svg"]').evaluate(image => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0)).toBe(true);
-  await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeEnabled();
+  await expect(loading.getByText("Your idea is saved. Suggestions appear here when they’re ready.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Cancel research", exact: true })).toBeEnabled();
   await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(0);
-  await expect(loading.locator("img")).not.toHaveCSS("animation-name", "none");
   await page.screenshot({ path: info.outputPath("guided-research-pending.png"), fullPage: true, scale: "css" });
   state.jobs[0] = strategyJobSchema.parse({ ...state.jobs[0], state: "running", progress: 40 });
   await page.reload();
   await expect(loading).toBeVisible();
   expect(state.enqueues).toHaveLength(1);
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await expect(loading.locator("img")).toHaveCSS("animation-name", "none");
   completeLatest(state);
   await expectReplyArrivalInViewport(page, "competitors", "Table Next Door");
   await page.screenshot({ path: info.outputPath("guided-competitor-arrival-viewport.png"), scale: "css" });
