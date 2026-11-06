@@ -269,3 +269,11 @@
 .assets-spacing i { display: block; background: var(--text); border-radius: 2px; }
 .assets-corners i { display: block; width: 40px; height: 28px; border: 1.5px solid var(--text); }
 .assets-code { margin: 0; max-height: 220px; overflow: auto; padding: 12px; border-radius: 10px; background: #f7f7f5; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre; }
+
+/* Phase 5 · Identity · Inspiration: Embel's message above the gallery; Continue
+   sits at the end of the step instead of floating. */
+.inspiration-message { max-width: 792px; margin: 8px auto 16px; }
+.inspiration-question { margin: 14px 0 0; font-size: 17px; font-weight: 500; letter-spacing: -.01em; }
+.inspiration-continue-row { position: sticky; bottom: 16px; z-index: 5; display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 16px; font-size: 13px; color: var(--secondary); }
+.inspiration-continue-row .inspiration-continue { position: static; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px 0 20px; border-radius: var(--radius-pill); background: var(--text); color: var(--paper); text-decoration: none; font-size: 14px; font-weight: 500; box-shadow: 0 12px 28px -14px rgb(25 25 25 / 45%); }
+.concept-project-workspace .workspace-main:has(.inspiration-message) { background-color: var(--canvas); background-image: radial-gradient(#dad9d4 1px, transparent 1px); background-size: 22px 22px; }

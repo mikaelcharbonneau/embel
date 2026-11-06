@@ -1,4 +1,7 @@
 "use client";
+
+import { EmbelIdentity } from "@/components/workspace/embel-identity";
+import { journeyPartLabel } from "@/domain/journey";
 import { isDialogBackdropClick } from "@/components/ui/dialog-backdrop";
 
 import Link from "next/link";
@@ -108,7 +111,12 @@ export function InspirationView({ controller, projectId }: { controller: Inspira
   const visible = filterInspiration(liked ? inspirationCatalog : designs, query, kind, liked, displayed);
   const count = [...saved.values()].filter(hasInspirationChoice).length;
   return <div className="inspiration-workspace">
-    <section className="inspiration-browse" aria-label="Inspiration gallery"><header className="inspiration-heading"><div><h1>Inspiration</h1><p>Like designs to shape your project’s visual direction. These choices guide logo previews; saved-system references are collected separately.</p></div></header>
+    <section className="inspiration-browse" aria-label="Inspiration gallery"><div className="guided-assistant-message identity-conversation-message inspiration-message">
+        <EmbelIdentity label={journeyPartLabel("identity", "Inspiration")} />
+        <h1 className="sr-only">Inspiration</h1>
+        <p className="guided-assistant-copy">Let’s shape how your brand looks. Like the designs you’re drawn to: the whole look, or open one to choose just the colours, type or layout. Your likes guide the logo concepts.</p>
+        <h2 className="inspiration-question">What do you like?</h2>
+      </div>
       <div className="inspiration-toolbar"><div className="inspiration-views" aria-label="Inspiration views"><button type="button" aria-pressed={!liked} onClick={() => setLiked(false)}>Browse</button><button type="button" aria-pressed={liked} onClick={() => setLiked(true)}>Liked <span>· {controller.overview ? count : "—"}</span></button></div>
         <label className="inspiration-search"><Icon name="search" size={16} /><input type="search" aria-label="Search identities and logos" placeholder="Search identities and logos…" value={query} maxLength={160} onChange={event => setQuery(event.target.value)} /></label>
         <div className="inspiration-categories" aria-label="Reference categories">{([['identity', 'Identities'], ['logo', 'Logos'], ['all', 'All']] as const).map(([value, label]) => <button type="button" key={value} aria-pressed={kind === value} onClick={() => setKind(value)}>{label}</button>)}</div>
@@ -132,7 +140,7 @@ export function InspirationView({ controller, projectId }: { controller: Inspira
         </InspirationGrid> : <div className="inspiration-empty"><Icon name="assets" size={30} /><h2>{liked && !query && kind === "all" ? "Start with a few likes" : "No designs match these filters"}</h2><p>{liked && !query && kind === "all" ? "Like an overall look or open a design to choose its details." : "Try a brand, studio, color, or design detail."}</p><button type="button" onClick={() => { setQuery(""); setKind("all"); setLiked(false); }}>Browse all designs</button></div>}
         <footer className="inspiration-footer"><span>{visible.length} of {liked ? inspirationCatalog.length : designs.length} curated designs</span><Link href={`/brands/account/${projectId}/identity`}>Saved references &amp; systems</Link><Link href={`/brands/account/${projectId}/logo/directions`}>Visual directions</Link></footer>
       </div>
-      <Link className="inspiration-continue" href={`/brands/account/${projectId}/logo`}>Continue to logo generation<Icon name="arrow" size={16} /></Link>
+      <div className="inspiration-continue-row"><span>{count === 1 ? "1 liked" : `${count} liked`} · Next: Logo</span><Link className="inspiration-continue" href={`/brands/account/${projectId}/logo`}>Continue<Icon name="arrow" size={16} /></Link></div>
     </section>
     {selected && <DesignDetail key={selected.id} design={selected} choice={displayed.get(selected.id) ?? noChoice} controller={controller} onClose={() => setSelected(null)} />}
   </div>;
