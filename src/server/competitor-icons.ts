@@ -10,7 +10,7 @@ import { isPublicReferenceAddress } from "./ai/naming-brain/source-reader";
  * contacts competitor sites. Every hop is HTTPS to a public address that is
  * resolved, checked and pinned before connecting; only small raster images are
  * accepted, identified by their bytes rather than the server's content type. */
-export const COMPETITOR_ICON_LIMITS = Object.freeze({ pageBytes: 524_288, iconBytes: 262_144, redirects: 3, candidates: 4, deadlineMs: 8_000 });
+export const COMPETITOR_ICON_LIMITS = Object.freeze({ pageBytes: 524_288, manifestBytes: 65_536, iconBytes: 262_144, redirects: 3, candidates: 4, attempts: 8, sharpPixels: 96, deadlineMs: 8_000 });
 
 export type CompetitorIcon = { bytes: Buffer; contentType: string };
 type Address = { address: string; family: number };
@@ -47,6 +47,40 @@ export function sniffIconType(bytes: Buffer): string | null {
   if (bytes.subarray(0, 4).toString("latin1") === "RIFF" && bytes.subarray(8, 12).toString("latin1") === "WEBP") return "image/webp";
   if (bytes[0] === 0 && bytes[1] === 0 && bytes[2] === 1 && bytes[3] === 0 && bytes[4]! > 0) return "image/x-icon";
   return null;
+}
+
+/** The icon's pixel size (its shorter side; for an .ico, its largest image), read
+ * from the header bytes. 0 when unknown. Used only to prefer the sharpest icon. */
+export function iconPixelSize(bytes: Buffer, type: string): number {
+  const cap = (value: number) => Math.max(0, Math.min(value, 4096));
+  try {
+    if (type === "image/png") return bytes.length >= 24 ? cap(Math.min(bytes.readUInt32BE(16), bytes.readUInt32BE(20))) : 0;
+    if (type === "image/gif") return bytes.length >= 10 ? cap(Math.min(bytes.readUInt16LE(6), bytes.readUInt16LE(8))) : 0;
+    if (type === "image/x-icon") {
+      let best = 0;
+      for (let index = 0, count = Math.min(bytes.readUInt16LE(4), 64); index < count && 8 + 16 * index <= bytes.length; index += 1) {
+        best = Math.max(best, Math.min(bytes[6 + 16 * index] || 256, bytes[7 + 16 * index] || 256));
+      }
+      return best;
+    }
+    if (type === "image/webp") {
+      const chunk = bytes.subarray(12, 16).toString("latin1");
+      if (chunk === "VP8X" && bytes.length >= 30) return cap(Math.min(1 + bytes.readUIntLE(24, 3), 1 + bytes.readUIntLE(27, 3)));
+      if (chunk === "VP8L" && bytes.length >= 25) { const bits = bytes.readUInt32LE(21); return cap(Math.min((bits & 0x3fff) + 1, ((bits >>> 14) & 0x3fff) + 1)); }
+      if (chunk === "VP8 " && bytes.length >= 30) return cap(Math.min(bytes.readUInt16LE(26) & 0x3fff, bytes.readUInt16LE(28) & 0x3fff));
+      return 0;
+    }
+    if (type === "image/jpeg") {
+      for (let offset = 2; offset + 9 < bytes.length;) {
+        if (bytes[offset] !== 0xff) return 0;
+        const marker = bytes[offset + 1]!;
+        if (marker === 0xff) { offset += 1; continue; }
+        if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) return cap(Math.min(bytes.readUInt16BE(offset + 5), bytes.readUInt16BE(offset + 7)));
+        offset += 2 + bytes.readUInt16BE(offset + 2);
+      }
+    }
+  } catch { return 0; }
+  return 0;
 }
 
 function allowedUrl(raw: string, base?: URL): URL | null {
@@ -103,12 +137,20 @@ export function createCompetitorIconFetcher(dependencies: CompetitorIconDependen
     return null;
   }
 
-  async function image(url: URL, signal: AbortSignal): Promise<CompetitorIcon | null> {
+  async function image(url: URL, signal: AbortSignal): Promise<(CompetitorIcon & { pixels: number }) | null> {
     try {
       const result = await get(url, "image/png,image/x-icon,image/webp,image/jpeg,image/gif;q=0.9", COMPETITOR_ICON_LIMITS.iconBytes, signal);
       const contentType = result ? sniffIconType(result.response.bytes) : null;
-      return result && contentType ? { bytes: result.response.bytes, contentType } : null;
+      return result && contentType ? { bytes: result.response.bytes, contentType, pixels: iconPixelSize(result.response.bytes, contentType) } : null;
     } catch { return null; }
+  }
+
+  /** The web app manifest's own icons, which are usually the largest a site has. */
+  async function manifest(url: URL, signal: AbortSignal): Promise<URL[]> {
+    try {
+      const result = await get(url, "application/manifest+json,application/json;q=0.9", COMPETITOR_ICON_LIMITS.manifestBytes, signal);
+      return result ? manifestIcons(result.response.bytes.toString("utf8"), result.url) : [];
+    } catch { return []; }
   }
 
   return async function fetchCompetitorIcon(host: string, signal: AbortSignal): Promise<CompetitorIcon | null> {
@@ -118,17 +160,23 @@ export function createCompetitorIconFetcher(dependencies: CompetitorIconDependen
     const home = new URL(`https://${checked}/`);
     let page: { url: URL; response: PinnedResponse } | null = null;
     try { page = await get(home, "text/html", COMPETITOR_ICON_LIMITS.pageBytes, deadline); } catch { page = null; }
+    const declared = page && /^text\/html/iu.test(page.response.contentType) ? pageIcons(page.response.bytes.toString("utf8"), page.url) : { icons: [], manifest: null };
+    const fromManifest = declared.manifest && !deadline.aborted ? await manifest(declared.manifest, deadline) : [];
+    // Largest first: manifest icons, declared icons, then the conventional touch icon and favicon.
+    const origins = [...new Set([page?.url.origin, home.origin].filter((origin): origin is string => Boolean(origin)))];
     const candidates: URL[] = [];
-    if (page && /^text\/html/iu.test(page.response.contentType)) candidates.push(...iconLinks(page.response.bytes.toString("utf8"), page.url));
-    for (const fallback of [page && new URL("/favicon.ico", page.url), new URL("/favicon.ico", home)]) {
-      if (fallback && !candidates.some(item => item.href === fallback.href)) candidates.push(fallback);
+    for (const candidate of [...fromManifest, ...declared.icons, ...origins.map(origin => new URL("/apple-touch-icon.png", origin)), ...origins.map(origin => new URL("/favicon.ico", origin))]) {
+      if (!candidates.some(item => item.href === candidate.href)) candidates.push(candidate);
     }
-    for (const candidate of candidates.slice(0, COMPETITOR_ICON_LIMITS.candidates + 2)) {
-      if (deadline.aborted) return null;
+    // Keep the sharpest icon found; stop as soon as one is large enough to stay crisp.
+    let best: (CompetitorIcon & { pixels: number }) | null = null;
+    for (const candidate of candidates.slice(0, COMPETITOR_ICON_LIMITS.attempts)) {
+      if (deadline.aborted) break;
       const icon = await image(candidate, deadline);
-      if (icon) return icon;
+      if (icon && (!best || icon.pixels > best.pixels)) best = icon;
+      if (best && best.pixels >= COMPETITOR_ICON_LIMITS.sharpPixels) break;
     }
-    return null;
+    return best && { bytes: best.bytes, contentType: best.contentType };
   };
 }
 
@@ -136,18 +184,27 @@ type HtmlNode = DefaultTreeAdapterMap["node"];
 const childNodes = (node: HtmlNode): HtmlNode[] => "childNodes" in node ? node.childNodes : [];
 const attribute = (node: HtmlNode, name: string) => "attrs" in node ? node.attrs.find(item => item.name === name)?.value : undefined;
 
+const declaredSize = (sizes: string | undefined) => Math.max(0, ...((sizes ?? "").match(/\d+/gu) ?? []).map(Number).filter(value => value <= 1024));
+
 /** Declared icons, best first: touch icons are larger than favicons. */
 export function iconLinks(html: string, base: URL): URL[] {
+  return pageIcons(html, base).icons;
+}
+
+/** The page's declared icons, best first, and its web app manifest, if any. */
+export function pageIcons(html: string, base: URL): { icons: URL[]; manifest: URL | null } {
   const found: { url: URL; score: number }[] = [];
+  let manifest: URL | null = null;
   const visit = (node: HtmlNode, depth: number) => {
     if (depth > 64 || found.length > 32) return;
     if ("tagName" in node && node.tagName === "link") {
       const rel = (attribute(node, "rel") ?? "").toLowerCase().split(/\s+/u);
       const href = attribute(node, "href");
+      if (href && !manifest && rel.includes("manifest")) manifest = allowedUrl(href, base);
       const type = (attribute(node, "type") ?? "").toLowerCase();
       if (href && rel.some(value => value === "icon" || value.startsWith("apple-touch-icon")) && !type.includes("svg") && !/\.svg(\?|$)/iu.test(href)) {
         const url = allowedUrl(href, base);
-        const size = Math.max(0, ...((attribute(node, "sizes") ?? "").match(/\d+/gu) ?? []).map(Number).filter(value => value <= 1024));
+        const size = declaredSize(attribute(node, "sizes"));
         if (url) found.push({ url, score: (rel.some(value => value.startsWith("apple-touch-icon")) ? 400 : 0) + Math.min(size, 256) });
       }
     }
@@ -155,6 +212,27 @@ export function iconLinks(html: string, base: URL): URL[] {
     if ("content" in node && node.content) for (const child of childNodes(node.content as HtmlNode)) visit(child, depth + 1);
   };
   visit(parse(html.slice(0, COMPETITOR_ICON_LIMITS.pageBytes)), 0);
-  return found.sort((a, b) => b.score - a.score).map(item => item.url)
+  const icons = found.sort((a, b) => b.score - a.score).map(item => item.url)
     .filter((url, index, all) => all.findIndex(other => other.href === url.href) === index).slice(0, COMPETITOR_ICON_LIMITS.candidates);
+  return { icons, manifest };
+}
+
+/** A web app manifest's raster icons, largest first. Maskable icons carry extra
+ * padding and monochrome ones lose colour, so plain icons come first. */
+export function manifestIcons(json: string, base: URL): URL[] {
+  let parsed: unknown;
+  try { parsed = JSON.parse(json); } catch { return []; }
+  const entries = parsed && typeof parsed === "object" && Array.isArray((parsed as { icons?: unknown }).icons) ? (parsed as { icons: unknown[] }).icons.slice(0, 32) : [];
+  const found: { url: URL; score: number }[] = [];
+  for (const entry of entries) {
+    if (!entry || typeof entry !== "object") continue;
+    const { src, sizes, type, purpose } = entry as Record<string, unknown>;
+    if (typeof src !== "string" || (typeof type === "string" && type.toLowerCase().includes("svg")) || /\.svg(\?|$)/iu.test(src)) continue;
+    const purposes = typeof purpose === "string" ? purpose.toLowerCase().split(/\s+/u) : ["any"];
+    if (!purposes.includes("any") && !purposes.includes("maskable")) continue;
+    const url = allowedUrl(src, base);
+    if (url) found.push({ url, score: Math.min(declaredSize(typeof sizes === "string" ? sizes : undefined), 512) - (purposes.includes("any") ? 0 : 1000) });
+  }
+  return found.sort((a, b) => b.score - a.score).map(item => item.url)
+    .filter((url, index, all) => all.findIndex(other => other.href === url.href) === index).slice(0, 2);
 }

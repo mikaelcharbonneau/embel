@@ -590,6 +590,13 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
   expect(await transcript!.evaluate(log => Math.abs(log.getBoundingClientRect().bottom - log.parentElement!.getBoundingClientRect().bottom))).toBeLessThanOrEqual(1);
   const after = await page.getByRole("textbox", { name: "Naming message", exact: true }).boundingBox();
   expect(Math.abs(after!.y - before!.y)).toBeLessThanOrEqual(1);
+  // Each approach's check box sits in its own space, clear of the label.
+  const overlaps = await page.locator(".naming-approach-options .naming-approach-option").evaluateAll(options => options.map(option => {
+    const check = getComputedStyle(option, "::before"), label = option.querySelector("strong")!.getBoundingClientRect();
+    return option.getBoundingClientRect().left + parseFloat(check.left) + parseFloat(check.width) > label.left;
+  }));
+  expect(overlaps.length).toBeGreaterThan(0);
+  expect(overlaps.filter(Boolean)).toHaveLength(0);
   await page.screenshot({ path: info.outputPath("inline-naming-arrival.png"), scale: "css" });
 
   await expect(page.getByRole("button", { name: "Edit strategy", exact: true })).toBeVisible();

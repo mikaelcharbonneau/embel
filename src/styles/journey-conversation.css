@@ -66,8 +66,8 @@
 
 /* Phase 3 · competitors: each card shows the competitor's own site icon, or a
    neutral initial when the site has none. Answer chips show a small version. */
-.competitor-logo { flex: 0 0 auto; display: block; width: 40px; height: 40px; border-radius: 10px; object-fit: contain; background: var(--paper); box-shadow: inset 0 0 0 1px var(--border); }
-.competitor-logo-monogram { display: grid; place-items: center; background: var(--canvas); color: var(--secondary); font-size: 15px; font-weight: 500; box-shadow: inset 0 0 0 1px var(--border); }
+.competitor-logo { flex: 0 0 auto; display: block; box-sizing: border-box; width: 40px; height: 40px; border-radius: 10px; object-fit: contain; }
+.competitor-logo-monogram { display: grid; place-items: center; background: var(--canvas); color: var(--secondary); font-size: 15px; font-weight: 500; }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-target > .competitor-logo { order: 0; }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-target > .guided-choice-content { order: 1; flex: 1 1 auto; min-width: 0; }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-answer li { gap: 6px; }
@@ -136,7 +136,8 @@
 
 /* Phase 4 · Voice: the naming questions follow the conversation cards. Each
    approach shows a square check; each directness choice a round one. */
-.guided-interview .naming-approach-option, .guided-interview .naming-directness button { position: relative; padding: 12px 14px 12px 42px; border-radius: 12px; min-height: 64px; background: var(--paper); }
+/* Scoped through the option group so it outranks the Name page's own module styles, which load later. */
+.guided-interview .naming-approach-options .naming-approach-option, .guided-interview .naming-directness button { position: relative; padding: 12px 14px 12px 42px; border-radius: 12px; min-height: 64px; background: var(--paper); }
 .guided-interview .naming-approach-option::before, .guided-interview .naming-directness button::before {
   content: ""; position: absolute; left: 14px; top: 14px; width: 18px; height: 18px; box-sizing: border-box; border: 1.5px solid #c9c8c2; border-radius: 5px; background: var(--paper) center / 12px 12px no-repeat;
 }
