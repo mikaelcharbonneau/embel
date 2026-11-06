@@ -88,3 +88,44 @@
 
 /* Research in progress sits in Embel's message, like the other replies. */
 :is(.project-workspace, .guided-interview-opening) .guided-assistant-message > section[aria-label] { margin-top: 4px; }
+
+/* Phase 3 · Positioning: the angle is the card's heading, the statement its main line. */
+:is(.project-workspace, .guided-interview-opening) .guided-choice-widget-positioning .guided-choice-label { font-size: 13px; font-weight: 500; color: #3a3a37; }
+.guided-positioning-statement { display: block; font-size: 19px; line-height: 1.4; letter-spacing: -.015em; color: var(--text); }
+:is(.project-workspace, .guided-interview-opening) .guided-positioning-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 24px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f1f0ee; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-traits { display: flex; flex-wrap: wrap; gap: 6px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-traits > span { display: inline-flex; align-items: center; min-height: 26px; padding: 0 10px; border: 1px solid #eeedea; border-radius: var(--radius-pill); background: var(--canvas); font-size: 12px; color: #3a3a37; }
+
+/* Strategy, complete: one summary card replaces the three answered questions. */
+.strategy-summary { margin-left: 44px; display: flex; flex-direction: column; gap: 16px; padding: 16px 16px 18px 18px; border: 1px solid var(--border); border-radius: var(--radius-card); background: rgb(255 255 255 / 80%); }
+.strategy-summary-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.strategy-summary-head h2 { margin: 0; font-size: 15px; font-weight: 500; }
+.strategy-summary-mark { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--paper); }
+.strategy-summary-state { font-size: 12px; color: #3d6448; }
+.strategy-summary-head .button { margin-left: auto; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); }
+.strategy-summary dl { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px 24px; }
+.strategy-summary dt { margin-bottom: 8px; font-size: 12px; color: var(--secondary); }
+.strategy-summary dd { margin: 0; font-size: 14px; line-height: 1.45; }
+.strategy-summary-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.strategy-summary-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 10px 0 3px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); font-size: 13px; }
+.strategy-summary-chip .competitor-logo { border-radius: 50%; font-size: 10px; }
+.strategy-summary-positioning { display: flex; flex-direction: column; gap: 2px; }
+.strategy-summary-positioning strong { font-weight: 500; }
+.strategy-summary-positioning span { font-size: 13px; color: #3a3a37; }
+
+/* Voice · Slogan (optional): a live preview, the lines as compact cards, your own line, skip. */
+.guided-slogan-widget { margin: 14px 0 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.guided-slogan-preview { display: flex; flex-direction: column; gap: 2px; padding: 18px 20px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--paper); }
+.guided-slogan-preview-label { font-size: 12px; color: var(--secondary); }
+.guided-slogan-preview-name { font-size: 24px; font-weight: 500; letter-spacing: -.02em; }
+.guided-slogan-preview-line { font-size: 15px; color: #3a3a37; }
+.guided-slogan-preview-line.is-empty { color: #8a8a85; }
+.guided-slogan-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.guided-slogan-option { display: flex; align-items: flex-start; gap: 10px; min-height: 56px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--paper); font-size: 14px; line-height: 1.4; cursor: pointer; }
+.guided-slogan-option input, .guided-slogan-own > input[type="radio"] { flex: 0 0 auto; width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--text); }
+.guided-slogan-option.is-selected, .guided-slogan-own.is-selected { border: 1px solid var(--text); box-shadow: inset 0 0 0 .5px var(--text), 0 10px 24px -16px rgb(25 25 25 / 35%); }
+.guided-slogan-own { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border: 1px dashed #c9c8c2; border-radius: 14px; background: var(--paper); }
+.guided-slogan-own > input[type="text"] { flex: 1 1 auto; min-width: 0; min-height: 36px; border: 0; outline: none; background: transparent; font: inherit; font-size: 14px; }
+.guided-slogan-widget .guided-choice-actions .button { min-height: 44px; padding: 0 18px; border-radius: var(--radius-pill); }
+.guided-slogan-widget .guided-slogan-more { margin-right: auto; display: inline-flex; align-items: center; gap: 6px; min-height: 40px !important; }
+.guided-slogan-widget .guided-choice-actions .button.primary { display: inline-flex; align-items: center; gap: 8px; }

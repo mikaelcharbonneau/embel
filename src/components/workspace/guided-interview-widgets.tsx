@@ -58,6 +58,13 @@ function OptionDetails({ option }: { option: GuidedOption }) {
       {option.payload.reason.trim() !== option.description.trim() && <span className="guided-choice-detail"><span className="guided-choice-detail-label">Why they fit</span><span>{option.payload.reason}</span></span>}
     </span>;
   }
+  if (option.stage === "positioning") {
+    return <span className="guided-choice-details guided-positioning-details">
+      <span className="guided-choice-detail"><span className="guided-choice-detail-label">Why it works</span><span>{option.payload.why}</span></span>
+      <span className="guided-choice-detail"><span className="guided-choice-detail-label">What you’ll lead with</span><span className="guided-choice-traits">{option.payload.leads.map((lead, index) => <span key={`${lead}-${index}`}>{lead}</span>)}</span></span>
+    </span>;
+  }
+  if (option.stage !== "personality") return null;
   return <span className="guided-choice-details">
     {option.payload.traits.length > 0 && <span className="guided-choice-traits">{option.payload.traits.map((trait, index) => <span key={`${trait}-${index}`}>{trait}</span>)}</span>}
     {option.payload.expression.trim() !== option.description.trim() && <span className="guided-choice-detail"><span className="guided-choice-detail-label">How it comes to life</span><span>{option.payload.expression}</span></span>}
@@ -123,7 +130,7 @@ export function GuidedChoiceWidget({ reply, selectedIds, onSelectionChange, onCo
           <span className="guided-choice-content">
             <span className="guided-choice-heading"><span className="guided-choice-label" id={`${optionId}-label`}>{option.label}</span>{option.recommended && <span className="guided-choice-recommended">Recommended</span>}</span>
             <span className="guided-choice-description" id={`${optionId}-detail`}>
-              <span>{option.description}</span>
+              <span className={option.stage === "positioning" ? "guided-positioning-statement" : undefined}>{option.stage === "positioning" ? option.payload.statement : option.description}</span>
               <OptionDetails option={option} />
               {option.recommended && option.recommendationReason && <span className="guided-choice-reason"><span className="guided-choice-detail-label">Why we recommend it</span><span>{option.recommendationReason}</span></span>}
             </span>

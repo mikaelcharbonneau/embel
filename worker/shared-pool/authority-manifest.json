@@ -64,6 +64,10 @@
     {
       "path": "supabase/candidates/shared_naming_brainstorm_delivery_recovery.sql",
       "sha256": "c1bee52bffdcc2ebd26680dfe6b553b00388e63168139ee8cd428efc36d34ab3"
+    },
+    {
+      "path": "supabase/candidates/shared_guided_journey_stages.sql",
+      "sha256": "8a109bad7c30b1299bd40a729e00c5f92288edbbf2dca7ab3d0de0ed8ed3e8d1"
     }
   ],
   "functions": [
@@ -4279,7 +4283,7 @@
       "name": "shared_strategy_job",
       "owner": "postgres",
       "schema": "fluid_private",
-      "sha256": "271a2bfa4febbc3d1eb5fca6fae111742fcf79a83bd4b6254cc42212e5baa386",
+      "sha256": "1685619dedd2fe22f758d004b7685ee1025a366323bacce8d9274a27d1c5e56a",
       "language": "sql",
       "leakproof": false,
       "searchPath": [
@@ -4935,7 +4939,7 @@
       "name": "enqueue_shared_strategy_job",
       "owner": "postgres",
       "schema": "public",
-      "sha256": "04f19e2d1edbe6ba83e59ecefd575887b5ee0daef039bf698c851ea248e026ff",
+      "sha256": "8cb0cce3d24b4c47471eda6a4ba66f4b837b8f0450bae420fb013cfee3b43888",
       "language": "plpgsql",
       "leakproof": false,
       "searchPath": [
@@ -5263,7 +5267,7 @@
       "name": "get_shared_strategy_availability",
       "owner": "postgres",
       "schema": "public",
-      "sha256": "dd515d67706b21403576cd37c52400b0ec0db383a2b3b2553b5dfc058ab0b246",
+      "sha256": "5123441c5ff1b70b9e55c4e60bd0c349fe3227bf9d56902b669cc4acddd6e1a1",
       "language": "plpgsql",
       "leakproof": false,
       "searchPath": [

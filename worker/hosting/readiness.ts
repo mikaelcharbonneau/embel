@@ -7,7 +7,7 @@ type Readiness = { version: 1; deploymentId: string; operations: StrategyOperati
 type ReadinessDatabase = {
   query(sql: string, values: unknown[]): Promise<{ rows: Array<{ operation?: unknown; ready?: unknown }> }>;
 };
-const operations = ["strategy.reformulate", "strategy.competitors", "strategy.audience", "strategy.personality", "strategy.positioning"] as const;
+const operations = ["strategy.reformulate", "strategy.competitors", "strategy.audience", "strategy.personality", "strategy.positioning", "strategy.slogan"] as const;
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { "cache-control": "no-store" } });
 
 /** Checks existing approval using the existing restricted login. No admission or provider call. */

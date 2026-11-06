@@ -23,7 +23,7 @@ export type JobActivity = z.infer<typeof jobActivitySchema>;
 
 const operationLabels: Record<JobActivityEntry["operation"], string> = {
   "strategy.reformulate": "Brief", "strategy.competitors": "Competitors", "strategy.audience": "Audience",
-  "strategy.personality": "Personality", "strategy.positioning": "Positioning", "naming.generate": "Naming",
+  "strategy.personality": "Personality", "strategy.positioning": "Positioning", "strategy.slogan": "Slogan", "naming.generate": "Naming",
   "ideas.explore": "Ideas", "identity.image": "Identity images", "identity.vector": "Vector output", "brand.export": "Brand export",
   "identity.logo_concept": "Logo concepts", "identity.logo_refine": "Logo refinement", "identity.logo_vectorize": "Logo vector",
   "identity.logo_vector_propose": "AI-assisted vector controls", "identity.logo_directions": "Identity directions", "identity.logo_export": "Brand files",

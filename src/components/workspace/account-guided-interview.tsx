@@ -4,7 +4,7 @@ import { Fragment, useEffect, useEffectEvent, useId, useRef, useState, type Comp
 import { AccountBriefEditor } from "./account-brief-editor";
 import { ProjectNamingWorkspace } from "@/components/naming/project-naming-workspace";
 import { getNamingReadiness } from "@/domain/project-naming";
-import { appendGuidedTurn, confirmGuidedSelection, guidedTurnOperation, revisitGuidedStage, type GuidedReply, type GuidedStage } from "@/domain/guided-interview";
+import { appendGuidedTurn, confirmGuidedSelection, guidedTurnOperation, revisitGuidedStage, skipGuidedSlogan, type GuidedReply, type GuidedStage } from "@/domain/guided-interview";
 import { competitorSchema, contextSnapshotSchema, type ContextSnapshot } from "@/domain/projects";
 import { CompetitorWidgetControls } from "./competitor-widget-controls";
 import { EmbelIdentity, guidedStageLabel } from "./embel-identity";
@@ -15,6 +15,8 @@ import type { VerifiedAccount } from "./account-session";
 import { ConversationComposer } from "./conversation-composer";
 import { FloatingComposer } from "./floating-composer";
 import { GuidedChoiceWidget } from "./guided-interview-widgets";
+import { GuidedSloganWidget, type SloganDecision } from "./guided-slogan-widget";
+import { StrategySummary } from "./strategy-summary";
 import { GuidedThinking } from "./guided-thinking";
 import { ProgressCard } from "@/components/journey/progress-card";
 import { guidedAllowance, guidedMessageContext, guidedTimeline, guidedTurnResult, nextGuidedProposal, recordGuidedChoice, retainedAnswerNames } from "./guided-interview-client";
@@ -36,6 +38,7 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
   const setPrompt = (update: string | ((previous: string) => string)) => changeInput(previous => ({ ...previous, prompt: typeof update === "function" ? update(previous.prompt) : update }));
   const setSelection = (selection: GuidedInterviewInput["selection"]) => changeInput(previous => ({ ...previous, selection }));
   const [error, setError] = useState<string | null>(null);
+  const [strategyExpanded, setStrategyExpanded] = useState(false);
   const [working, setWorking] = useState(false);
   const [briefOpen, setBriefOpen] = useState(false);
   const [briefFromNaming, setBriefFromNaming] = useState(false);
@@ -75,6 +78,20 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
   // Persisted turns retain their request identity across a lost acknowledgement.
   // An uncertain enqueue retries the exact key; it never creates a replacement job.
   const coordinate = useEffectEvent(async () => {
+    // Voice · Slogan opens once a name is chosen. Choosing the name is the
+    // deliberate step; the proposal request keeps one identity per revision.
+    if (mounted.current && !lock.current && !busy && !strategy.pending && !active && !dirty && !workspace.conflict && strategy.overview && !strategy.readError
+      && state?.stage === "slogan" && saved.context.selectedName && !state.turns.some(item => item.stage === "slogan") && guidedAllowance(availability, "strategy.slogan")) {
+      const key = `slogan-start:${saved.current_revision}`;
+      if (attempts.current.has(key)) return;
+      attempts.current.add(key); lock.current = true; setWorking(true);
+      try {
+        const latest = [...(saved.context.intake.conversation ?? [])].reverse().find(event => event.kind === "user_message");
+        await persist(appendGuidedTurn(saved.context, { id: crypto.randomUUID(), userMessageId: latest?.id ?? null, stage: "slogan", purpose: "propose", inputRevision: saved.current_revision + 1 }));
+      } catch { if (mounted.current) setError("Slogan suggestions could not be started. Your name is saved."); }
+      finally { lock.current = false; if (mounted.current) setWorking(false); }
+      return;
+    }
     if (!mounted.current || lock.current || busy || strategy.pending || active || dirty || workspace.conflict || !currentTurn || !strategy.overview || strategy.readError) return;
     if (currentTurn.inputRevision !== saved.current_revision) return;
     if (reply?.kind === "redirect") {
@@ -88,7 +105,7 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
       finally { lock.current = false; if (mounted.current) setWorking(false); }
       return;
     }
-    if (reply?.kind === "answer" && ["competitors", "audience", "personality"].every(stage => state?.answers.some(answer => answer.stage === stage))) {
+    if (reply?.kind === "answer" && ["competitors", "audience", "positioning", "personality"].every(stage => state?.answers.some(answer => answer.stage === stage))) {
       const key = `clarification:${bound!.job.id}`;
       if (attempts.current.has(key)) return;
       attempts.current.add(key); lock.current = true; setWorking(true);
@@ -146,6 +163,31 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
       const result = await persist(next, { selection: { turnId: answer.turnId, ids } });
       if (result && mounted.current) setSelection(null);
     } catch (cause) { if (mounted.current) setError(cause instanceof Error ? cause.message : "Your selection could not be saved."); }
+    finally { lock.current = false; if (mounted.current) setWorking(false); }
+  }
+
+  async function confirmSlogan(answer: Extract<GuidedReply, { kind: "choices" }>, decision: SloganDecision) {
+    if (lock.current || blocked || choiceTurn?.id !== answer.turnId || state?.stage !== "slogan") return;
+    lock.current = true; setWorking(true); setError(null);
+    try {
+      const now = new Date().toISOString();
+      const next = confirmGuidedSelection(saved.context, { turnId: answer.turnId, reply: answer, optionIds: "optionId" in decision ? [decision.optionId] : [], ownSlogan: "own" in decision ? decision.own : undefined, now });
+      await persist(next);
+    } catch (cause) { if (mounted.current) setError(cause instanceof Error ? cause.message : "Your slogan could not be saved."); }
+    finally { lock.current = false; if (mounted.current) setWorking(false); }
+  }
+  async function skipSlogan(turnId: string) {
+    if (lock.current || blocked || state?.stage !== "slogan") return;
+    lock.current = true; setWorking(true); setError(null);
+    try { await persist(skipGuidedSlogan(saved.context, { turnId, now: new Date().toISOString() })); }
+    catch (cause) { if (mounted.current) setError(cause instanceof Error ? cause.message : "Your choice could not be saved."); }
+    finally { lock.current = false; if (mounted.current) setWorking(false); }
+  }
+  async function moreSlogans() {
+    if (lock.current || blocked || requestBlocked || state?.stage !== "slogan" || !guidedAllowance(availability, "strategy.reformulate")) return;
+    lock.current = true; setWorking(true); setError(null);
+    try { await persist(guidedMessageContext(saved.context, "Suggest a few more slogans, different from these.", saved.current_revision + 1)); }
+    catch { if (mounted.current) setError("More slogans could not be requested. The current ones are kept."); }
     finally { lock.current = false; if (mounted.current) setWorking(false); }
   }
 
@@ -252,12 +294,12 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
   const timeline = guidedTimeline(context);
   // Selecting a name keeps this workspace open for screening and changing the
   // selection. Strategy readiness and save guards still protect the handoff.
-  const namingReady = state?.stage === "complete" && !dirty && !workspace.conflict && !busy && !workspace.pendingGuidedContext && saved.scope === "complete_brand" && getNamingReadiness(saved.context, saved.scope).ready;
+  const namingReady = (state?.stage === "complete" || state?.stage === "slogan") && !dirty && !workspace.conflict && !busy && !workspace.pendingGuidedContext && saved.scope === "complete_brand" && getNamingReadiness(saved.context, saved.scope).ready;
   // On a cold reopen, let the saved Strategy cards take their place before
   // positioning the first Naming question. A failed history read keeps its retry.
   const historyChecked = Boolean(strategy.overview || strategy.readError);
   const showNaming = (briefOpen ? briefFromNaming : namingReady) && historyChecked;
-  useConversationStep(showNaming ? "voice" : "strategy");
+  useConversationStep(showNaming || state?.stage === "personality" || state?.stage === "slogan" || state?.stage === "complete" ? "voice" : "strategy");
   // Once Strategy is complete its saved replies are history. They can load
   // after the Naming checkpoint and must not take the reader to an old turn.
   const responseIds = showNaming ? (namingQuestionId && !namingCanvas ? [namingQuestionId] : []) : [
@@ -277,7 +319,7 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
 
   const briefEditor = <AccountBriefEditor workspace={workspace} open={briefOpen} onOpen={() => { setBriefFromNaming(Boolean(namingReady)); setBriefOpen(true); }} onClose={() => setBriefOpen(false)} readOnly={Boolean(pending || workspace.conflict || workspace.pendingDraftSave || workspace.pendingGuidedContext)} saveLabel={storage.saveLabel} onUpdate={storage.onUpdate} navigation={navigation} />;
   const firstMessage = timeline.find(item => item.kind === "user");
-  const conversationHistory = timeline.map(item => {
+  const renderItem = (item: (typeof timeline)[number]) => {
         if (item.kind === "user") {
           const first = item === firstMessage;
           const message = <div className="guided-user-turn">
@@ -293,15 +335,39 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
         const current = choiceTurn?.id === item.turn.id && !answer;
         return <Fragment key={item.turn.id}>{item.turn.id === state?.turns[0]?.id && legacyReplies}<article id={`guided-turn-${item.turn.id}`} tabIndex={-1} className="guided-assistant-message flow-enter" aria-label="Embel response"><EmbelIdentity label={guidedStageLabel(item.turn.stage)} />
           <p className="guided-assistant-copy">{output.message}</p>
-          {output.kind === "choices" ? <GuidedChoiceWidget projectId={saved.id} reply={output} selectedIds={answer?.optionIds ?? selectedCompetitors(output)} additionalControls={current && output.stage === "competitors" ? <CompetitorWidgetControls draft={competitorDraft} onDraft={value => changeInput(previous => ({ ...previous, competitorDraft: value }))} onAdd={() => addCompetitor(output)} onMore={() => void moreCompetitors(output)} disabled={Boolean(blocked)} canGenerate={!requestBlocked && Boolean(guidedAllowance(availability, "strategy.competitors"))} generating={active} /> : undefined} retainedOptions={current && output.stage === "competitors" ? retainedOptions(output) : undefined} onSelectionChange={ids => setSelection({ turnId: output.turnId, ids })} onContinue={() => void confirm(output)} disabled={blocked} answered={!current || Boolean(answer)} additionalAnswer={answer?.customText} retainedAnswerLabels={output.stage === "competitors" ? retainedAnswerNames(answer?.customText, context.competitors) : undefined} onRevisit={!current ? () => void revisit(item.turn.stage, item.turn.userMessageId) : undefined} />
+          {output.kind === "choices" && output.stage === "slogan" ? <GuidedSloganWidget reply={output} brandName={context.selectedName ?? saved.title} disabled={blocked}
+            answered={!current || Boolean(answer)} answer={answer ? answer.customText : undefined}
+            onContinue={decision => void confirmSlogan(output, decision)} onSkip={() => void skipSlogan(output.turnId)}
+            onMore={current ? () => void moreSlogans() : undefined} canMore={!requestBlocked && Boolean(guidedAllowance(availability, "strategy.reformulate"))}
+            onRevisit={!current ? () => void revisit("slogan", item.turn.userMessageId) : undefined} />
+          : output.kind === "choices" ? <GuidedChoiceWidget projectId={saved.id} reply={output} selectedIds={answer?.optionIds ?? selectedCompetitors(output)} additionalControls={current && output.stage === "competitors" ? <CompetitorWidgetControls draft={competitorDraft} onDraft={value => changeInput(previous => ({ ...previous, competitorDraft: value }))} onAdd={() => addCompetitor(output)} onMore={() => void moreCompetitors(output)} disabled={Boolean(blocked)} canGenerate={!requestBlocked && Boolean(guidedAllowance(availability, "strategy.competitors"))} generating={active} /> : undefined} retainedOptions={current && output.stage === "competitors" ? retainedOptions(output) : undefined} onSelectionChange={ids => setSelection({ turnId: output.turnId, ids })} onContinue={() => void confirm(output)} disabled={blocked} answered={!current || Boolean(answer)} additionalAnswer={answer?.customText} retainedAnswerLabels={output.stage === "competitors" ? retainedAnswerNames(answer?.customText, context.competitors) : undefined} onRevisit={!current ? () => void revisit(item.turn.stage, item.turn.userMessageId) : undefined} />
             : output.kind === "question" ? <p className="guided-assistant-question">{output.question}</p> : null}
         </article></Fragment>;
-      });
+      };
+  // Once Positioning is chosen, Strategy collapses into one summary card;
+  // Edit strategy shows its answers again. The slogan follows the name.
+  const strategyAnswer = state?.answers.find(answer => answer.stage === "positioning");
+  const voiceStart = timeline.findIndex(item => item.kind === "turn" && (item.turn.stage === "personality" || item.turn.stage === "slogan"));
+  const sloganStart = timeline.findIndex(item => item.kind === "turn" && item.turn.stage === "slogan");
+  const beforeVoice = voiceStart < 0 ? timeline : timeline.slice(0, voiceStart);
+  const voiceItems = voiceStart < 0 ? [] : timeline.slice(voiceStart, sloganStart < 0 ? undefined : sloganStart);
+  const sloganItems = sloganStart < 0 ? [] : timeline.slice(sloganStart);
+  const positioningTurn = strategyAnswer ? state?.turns.find(turn => turn.id === strategyAnswer.turnId) : undefined;
+  const positioningReply = positioningTurn ? guidedTurnResult(jobs, positioningTurn, account.userId, saved.id)?.reply : null;
+  const positioningChoice = positioningReply?.kind === "choices" ? positioningReply.options.find(option => strategyAnswer?.optionIds.includes(option.id)) : undefined;
+  const strategySummary = strategyAnswer ? <StrategySummary projectId={saved.id} context={context}
+    angle={positioningChoice?.stage === "positioning" ? positioningChoice.payload.angle : null}
+    expanded={strategyExpanded} onToggle={() => setStrategyExpanded(value => !value)} /> : null;
+  const conversationHistory = <>
+    {(strategyAnswer && !strategyExpanded ? beforeVoice.filter(item => item === firstMessage) : beforeVoice.slice(0, 1)).map(renderItem)}
+    {strategySummary}
+    {(strategyAnswer && !strategyExpanded ? [] : beforeVoice.slice(1)).map(renderItem)}
+    {voiceItems.map(renderItem)}
+  </>;
+  const sloganHistory = sloganItems.map(renderItem);
   const canvasActive = showNaming && namingCanvas;
   const history = <>{!firstMessage && briefEditor}{conversationHistory}</>;
-  const completed = !dirty && !workspace.conflict && state?.answers.length === 3 && context.competitorReviewComplete
-    && context.intake.audienceReviewedAt && context.intake.personalityReviewedAt
-    ? <p className="guided-complete" role="status">Your brand strategy is saved. You can revisit any answer above.</p> : null;
+  const completed = null;
 
   const runningJob = bound && strategyJobActive(bound.job) ? bound.job : null;
   const stop = runningJob ? () => void strategy.cancel(runningJob) : undefined;
@@ -347,6 +413,7 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
       {!canvasActive && completed}
       {!hasComposer && notices}
       <div ref={setNamingMessages} className="guided-naming-messages" />
+      {!canvasActive && sloganHistory}
     </div>
     {hasComposer && <FloatingComposer label={showNaming ? "Naming composer" : "Strategy composer"}>
       <div ref={setNamingComposer} className="guided-floating-input">

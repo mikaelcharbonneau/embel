@@ -58,7 +58,7 @@ export function developmentWorkerPolicies(): Record<z.infer<typeof lane>, Record
       engine: null, maxCostMicrousd: 0, spendControl: "uncapped", textPolicy: identityTextPolicy })),
   ].map(value => { const qualified = qualifySharedLogoCapability(value); if (!qualified) throw unavailable(); return qualified; });
   return {
-    strategy: Object.fromEntries((["strategy.reformulate", "strategy.competitors", "strategy.audience", "strategy.personality"] as const)
+    strategy: Object.fromEntries((["strategy.reformulate", "strategy.competitors", "strategy.audience", "strategy.positioning", "strategy.personality", "strategy.slogan"] as const)
       .map(operation => [operation, guidedStrategyPolicy(operation)])),
     naming: { "naming.generate": createNamingBrainPolicy(DEVELOPMENT_MODELS.naming) },
     logo: Object.fromEntries(capabilities.map(value => [value.operation, value])),

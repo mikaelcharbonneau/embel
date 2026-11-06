@@ -6,11 +6,13 @@ import type { GuidedStage } from "@/domain/guided-interview";
 const stageParts: Record<GuidedStage, [JourneyStepId, string]> = {
   competitors: ["strategy", "Competitors"],
   audience: ["strategy", "Audience"],
+  positioning: ["strategy", "Positioning"],
   personality: ["voice", "Personality"],
+  slogan: ["voice", "Slogan"],
 };
 export function guidedStageLabel(stage: GuidedStage): string {
   const [step, part] = stageParts[stage];
-  return journeyPartLabel(step, part);
+  return stage === "slogan" ? `${journeyPartLabel(step, part)} · Optional` : journeyPartLabel(step, part);
 }
 
 /** Embel's avatar and name above a reply, with the journey part when known,

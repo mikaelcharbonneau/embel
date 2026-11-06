@@ -20,13 +20,17 @@ const initialPrompt = "Synthetic brief: a neighborhood kitchen serving seasonal 
 const questions = {
   competitors: "Which brands should we keep as useful comparisons?",
   audience: "Who should this neighborhood kitchen serve first?",
+  positioning: "How will you stand apart?",
   personality: "How should the brand sound and feel?",
+  slogan: "Which slogan sounds like you?",
 };
 const operations = [
   { operation: "strategy.reformulate", maximumCostMicrousd: 122880, interviewVersion: 1 },
   { operation: "strategy.competitors", maximumCostMicrousd: 3142880, interviewVersion: 1 },
   { operation: "strategy.audience", maximumCostMicrousd: 200000, interviewVersion: 1 },
+  { operation: "strategy.positioning", maximumCostMicrousd: 200000, interviewVersion: 1 },
   { operation: "strategy.personality", maximumCostMicrousd: 200000, interviewVersion: 1 },
+  { operation: "strategy.slogan", maximumCostMicrousd: 200000, interviewVersion: 1 },
 ] as const;
 const competitors = [
   { id: "eeeeeeee-1111-4111-8111-000000000001", name: "Table Next Door", relevance: "A local seasonal lunch alternative for the same neighborhood.", url: "https://table.example/", selected: false, origin: "research" as const, sources: [{ url: "https://sources.example/table-profile", title: "Synthetic source: Table Next Door", retrievedAt: when }] },
@@ -40,6 +44,12 @@ const personalities = [
   { id: "warm-guide", label: "The warm guide", profile: { sincerity: 90, excitement: 35, competence: 75, sophistication: 30, ruggedness: 10 }, traits: ["Welcoming", "Practical", "Thoughtful"], toneExample: "Good food, a familiar face, and a little time for yourself.", expression: "Clear menu language with warm, direct invitations." },
   { id: "curious-host", label: "The curious host", profile: { sincerity: 70, excitement: 80, competence: 65, sophistication: 45, ruggedness: 15 }, traits: ["Curious", "Lively", "Open"], toneExample: "Something seasonal is on the table. Come try a bite.", expression: "Playful seasonal discoveries with friendly explanations." },
 ];
+
+const positionings = [
+  { id: "pos-lunch", label: "Lunch made easy", payload: { angle: "Lunch made easy", statement: "For nearby office workers, the kitchen that makes a good seasonal lunch the easy choice.", why: "Pairs a daily need with a short walk.", leads: ["Seasonal", "Quick", "Nearby"] } },
+  { id: "pos-table", label: "The neighborhood table", payload: { angle: "The neighborhood table", statement: "A kitchen run by neighbors, serving what is in season to the people around it.", why: "Makes the local, human scale the reason to choose it.", leads: ["Local", "Warm"] } },
+];
+const slogans = ["Seasonal lunch, around the corner.", "Good food, a short walk away.", "Lunch that knows the season."];
 
 function fixtureProject(guided = true): AccountProject {
   return accountProjectSchema.parse({
@@ -60,11 +70,15 @@ function queuedJob(operation: StrategyOperation, revision: number, ordinal: numb
 }
 
 function choiceReply(turn: GuidedTurn): Extract<GuidedReply, { kind: "choices" }> {
-  const common = { turnId: turn.id, stage: turn.stage, kind: "choices", message: `Synthetic ${turn.stage} guidance from the saved brief.`, question: questions[turn.stage], selectionMode: turn.stage === "personality" ? "single" : "multiple" };
+  const common = { turnId: turn.id, stage: turn.stage, kind: "choices", message: `Synthetic ${turn.stage} guidance from the saved brief.`, question: questions[turn.stage], selectionMode: ["positioning", "personality", "slogan"].includes(turn.stage) ? "single" : "multiple" };
   const options = turn.stage === "competitors"
     ? competitors.map((payload, index) => ({ id: payload.id, label: payload.name, description: index ? "A useful adjacent example of everyday convenience." : "A close comparison for seasonal lunches and neighborhood familiarity.", stage: "competitors", payload, recommended: index === 0, recommendationReason: index === 0 ? "Its local lunch focus makes the comparison useful for your first decisions." : null }))
     : turn.stage === "audience"
       ? audiences.map((payload, index) => ({ id: payload.id, label: payload.label, description: index ? "Families living within an easy walk." : "People working within a short walk at lunchtime.", stage: "audience", payload, recommended: index === 0, recommendationReason: index === 0 ? "A repeated weekday need can support a focused opening offer." : null }))
+      : turn.stage === "positioning"
+        ? positionings.map(({ id, label, payload }, index) => ({ id, label, description: payload.statement, stage: "positioning", payload, recommended: index === 0, recommendationReason: index === 0 ? "It fits the weekday lunch need." : null }))
+      : turn.stage === "slogan"
+        ? slogans.map((slogan, index) => ({ id: `slogan-${index}`, label: slogan, description: "A short line", stage: "slogan", payload: { slogan }, recommended: index === 0, recommendationReason: index === 0 ? "Warm and short." : null }))
       : personalities.map(({ id, label, ...payload }, index) => ({ id, label, description: index ? "An energetic host who makes discovery feel easy." : "A welcoming neighbor who makes good food feel uncomplicated.", stage: "personality", payload, recommended: index === 0, recommendationReason: index === 0 ? "Warmth and practical confidence fit the everyday neighborhood promise." : null }));
   return guidedReplySchema.parse({ ...common, options }) as Extract<GuidedReply, { kind: "choices" }>;
 }
@@ -75,7 +89,8 @@ function completedJob(job: StrategyJob, guidance?: GuidedReply): StrategyJob {
     : job.operation === "strategy.competitors" ? { message, competitors }
       : job.operation === "strategy.audience" ? { message, segments: audiences }
         : job.operation === "strategy.personality" ? { message, personality: personalities[0]!.profile }
-          : { message, positioning: "A synthetic legacy positioning statement." };
+          : job.operation === "strategy.slogan" ? { message, slogans }
+          : { message, positioning: positionings[0]!.payload.statement };
   return strategyJobSchema.parse({ ...job, state: "succeeded", progress: 100, finished_at: when, results: [{ stepKey: "response", output: {
     version: 1, provider: "openai", model: "synthetic-guided-model", responseId: `synthetic-${job.id}`, requestId: null, generatedAt: when,
     usage: { inputTokens: 50, outputTokens: 40, cachedInputTokens: 0, cacheWriteInputTokens: 0, webSearchCalls: job.operation === "strategy.competitors" ? 1 : 0 },

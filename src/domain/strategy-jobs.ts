@@ -5,7 +5,7 @@ import { accountProjectResponseSchema } from "./project-api";
 import { guidedReplySchema } from "./guided-interview";
 
 export const STRATEGY_JOB_MUTATION_MAX_BYTES = 2_048;
-export const strategyOperationSchema = z.enum(["strategy.reformulate", "strategy.competitors", "strategy.audience", "strategy.personality", "strategy.positioning"]);
+export const strategyOperationSchema = z.enum(["strategy.reformulate", "strategy.competitors", "strategy.audience", "strategy.personality", "strategy.positioning", "strategy.slogan"]);
 export type StrategyOperation = z.infer<typeof strategyOperationSchema>;
 
 /** Operator-owned policy, copied into immutable job input. Never browser input. */
@@ -115,6 +115,7 @@ export const audienceProposalSchema = z.strictObject({
 });
 export const personalityProposalSchema = z.strictObject({ message: z.string().trim().min(1).max(6000), personality: personalitySchema });
 export const positioningProposalSchema = z.strictObject({ message: z.string().trim().min(1).max(6000), positioning: z.string().trim().min(1).max(5000) });
+export const sloganProposalSchema = z.strictObject({ message: z.string().trim().min(1).max(6000), slogans: z.array(z.string().trim().min(1).max(120)).min(1).max(12) });
 
 const resultCommon = {
   version: z.literal(1), provider: z.literal("openai"),
@@ -132,6 +133,7 @@ const apiStrategyJobResultSchema = z.discriminatedUnion("operation", [
   z.strictObject({ ...resultCommon, operation: z.literal("strategy.audience"), proposal: audienceProposalSchema }),
   z.strictObject({ ...resultCommon, operation: z.literal("strategy.personality"), proposal: personalityProposalSchema }),
   z.strictObject({ ...resultCommon, operation: z.literal("strategy.positioning"), proposal: positioningProposalSchema }),
+  z.strictObject({ ...resultCommon, operation: z.literal("strategy.slogan"), proposal: sloganProposalSchema }),
 ]);
 export const subscriptionUsageSchema = z.strictObject({
   inputTokens: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
@@ -149,6 +151,7 @@ export const chatGPTStrategyResultSchema = z.discriminatedUnion("operation", [
   z.strictObject({ ...subscriptionResultCommon, operation: z.literal("strategy.audience"), proposal: audienceProposalSchema }),
   z.strictObject({ ...subscriptionResultCommon, operation: z.literal("strategy.personality"), proposal: personalityProposalSchema }),
   z.strictObject({ ...subscriptionResultCommon, operation: z.literal("strategy.positioning"), proposal: positioningProposalSchema }),
+  z.strictObject({ ...subscriptionResultCommon, operation: z.literal("strategy.slogan"), proposal: sloganProposalSchema }),
 ]);
 export type ChatGPTStrategyResult = z.infer<typeof chatGPTStrategyResultSchema>;
 export const strategyJobResultSchema = z.union([apiStrategyJobResultSchema, chatGPTStrategyResultSchema]).superRefine((result, ctx) => {
