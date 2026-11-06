@@ -25,6 +25,7 @@ export function ProjectNameCard({ entry, selected, earlierContext, pending, bloc
   // Compact cards: click to choose the name. Only the name, its .com status and
   // the heart are shown; Details opens its story and the other checks.
   if (compact && onInspect) return <article id={`project-name-${candidate.id}`} className={`project-naming-card ${styles.compactCard}${selected ? " is-selected" : ""}`} tabIndex={-1}>
+    <h3 className="sr-only">{candidate.value}</h3>
     <button type="button" className={styles.openName} aria-pressed={selected} disabled={pending || blockSelection} onClick={onSelect}>
       <span className={styles.nameRadio} aria-hidden="true" />
       <span className={styles.nameValue}>{candidate.value}</span>
