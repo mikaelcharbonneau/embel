@@ -4,7 +4,7 @@ import { accountProjectSchema, updateProjectInputSchema, type AccountProject } f
 import type { ContextSnapshot, GuidedStage, GuidedTurn } from "../../src/domain/projects";
 import { guidedReplySchema, type GuidedReply } from "../../src/domain/guided-interview";
 import { enqueueStrategyJobSchema, strategyJobSchema, type StrategyJob, type StrategyOperation } from "../../src/domain/strategy-jobs";
-import { getNamingReadiness, type NamingSession } from "../../src/domain/project-naming";
+import { getNamingReadiness, nameIdentityKey, namingStrategyBasis, namingStrategyKey, type NamingSession } from "../../src/domain/project-naming";
 import { projectNamingOverviewSchema } from "../../src/domain/naming-jobs";
 import { namingFeedSchema } from "../../src/domain/naming-brain";
 import { captureUiEvidence } from "./ui-evidence";
@@ -647,6 +647,33 @@ test("guided interview: explicit selections save, reload, and finish Strategy wi
   expect(state.project.context.intake.guidedInterview?.answers).toHaveLength(4);
   expect(state.enqueues).toHaveLength(3);
   await page.screenshot({ path: info.outputPath("guided-interview-continues-to-naming.png"), fullPage: true, scale: "css" });
+  // Names arrive in the conversation itself (Voice · Name), never on a separate page.
+  const namesUrl = (url: URL) => url.pathname === `/api/projects/${projectId}/naming/feed`;
+  const feedWithNames = async (route: Route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    const context = state.project.context, revision = state.project.current_revision, ids = (n: number) => `dddddddd-1111-4111-8111-${String(n).padStart(12, "0")}`;
+    const entries = ["Shelf Life", "Good Measure", "Jar & Journey"].map((value, index) => {
+      const candidateId = ids(index + 1);
+      return { entryId: ids(index + 11), position: index + 1, runId: ids(21), steeringRevision: 0, primaryApproach: "real_words", additionalApproaches: [], publishedClaims: [],
+        entry: { candidate: { id: candidateId, ownerId: owner, projectId, value, identityKey: nameIdentityKey(value), rationale: "Synthetic name for a layout check.", contextRevision: revision, strategyBasis: namingStrategyBasis(context), strategyKey: namingStrategyKey(context), createdAt: when,
+          origin: { kind: "generated", version: 2, handlerVersion: "naming-brain-v1", ownerId: owner, projectId, candidateId, contextRevision: revision, value, batchId: ids(22), jobId: ids(23), runId: ids(21), sourceArtifactId: ids(index + 31), sourceStageKey: "creation", stepKey: "prepare", provider: "openai", billingMode: "openai_api", protocol: "openai_agents", model: "synthetic-never-call", sessionId: `synthetic-session-${index}`, turnId: `synthetic-turn-${index}`, responseId: null, agentId: null, requestId: null, providerItemId: `synthetic-item-${index}`, generatedAt: when } },
+          retention: { ownerId: owner, projectId, candidateId, revision: 0, favorite: false, saved: false, updatedAt: null } } };
+    });
+    return json(route, { feed: namingFeedSchema.parse({ version: 1, ownerId: owner, projectId, projectRevision: revision, preferencesVersion: 0, feedbackRevision: 0, steeringRevision: 0, demandSequence: 0, entries, nextCursor: null, consumedThrough: null, activeRun: null, preparedSetId: null, paused: false, state: "active", availability: { status: "unavailable", code: "synthetic_unavailable" } }) });
+  };
+  await page.route(namesUrl, feedWithNames);
+  await page.reload();
+  const namesMessage = page.getByRole("article", { name: "Names", exact: true });
+  await expect(namesMessage.getByRole("heading", { name: "Which name feels right?", exact: true })).toBeVisible();
+  await expect(namesMessage.locator(".naming-feed-card")).toHaveCount(3);
+  await expect(namesMessage.getByText("Here are your first names.", { exact: false })).toBeVisible();
+  await expect(page.locator("[data-naming-layout]")).toHaveCount(0);
+  await expect(page.getByRole("log", { name: "Conversation", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: `Edit your answer: ${questions.personality}`, exact: true })).toBeVisible();
+  await page.screenshot({ path: info.outputPath("guided-interview-names-in-conversation.png"), scale: "css" });
+  await page.unroute(namesUrl, feedWithNames);
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Which approaches would you like to explore?", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Edit strategy", exact: true }).click();
   await page.getByRole("button", { name: `Edit your answer: ${questions.competitors}`, exact: true }).click();
   await expectRequest(state, 4, "strategy.competitors");

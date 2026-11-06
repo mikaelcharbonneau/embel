@@ -27,6 +27,8 @@ import "@/styles/guided-conversation.css";
 /** A saved Strategy conversation already owns the transcript and bottom composer. */
 export type InlineNamingConversation = {
   messages: HTMLDivElement | null;
+  /** Below the naming questions: Embel's message with the names themselves. */
+  results: HTMLDivElement | null;
   composer: HTMLDivElement | null;
   onQuestion: (id: string | null) => void;
   onCanvas: (visible: boolean) => void;

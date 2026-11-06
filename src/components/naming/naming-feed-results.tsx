@@ -4,8 +4,10 @@ import type { ProjectNameEntry } from "@/domain/project-naming";
 import { BrainstormCoverage } from "./brainstorm-coverage";
 import { ProjectNameCard } from "./naming-results";
 import type { useNamingFeed } from "./use-naming-feed";
-export function NamingFeedResults({ feed, selectedId, strategyKey, pending, blocked, onRetain, onSelect, onInspect, onWorkshop, onModify, onHistory }: {
+export function NamingFeedResults({ feed, selectedId, strategyKey, pending, blocked, onRetain, onSelect, onInspect, onWorkshop, onModify, onHistory, inConversation = false }: {
   feed: ReturnType<typeof useNamingFeed>; selectedId?: string; strategyKey: string; pending: boolean; blocked: boolean;
+  /** In the project conversation the naming answers above already offer Edit. */
+  inConversation?: boolean;
   onRetain: (entry: ProjectNameEntry, field: "favorite" | "saved") => void; onSelect: (entry: ProjectNameEntry) => void; onInspect: (entry: ProjectNameEntry) => void; onWorkshop: (entry: ProjectNameEntry) => void; onModify: () => void; onHistory: () => void;
 }) {
   const response = feed.state?.feed;
@@ -40,9 +42,9 @@ export function NamingFeedResults({ feed, selectedId, strategyKey, pending, bloc
       {feed.entries.length > 0 && <div className="naming-filter" role="group" aria-label="Show">
         <button type="button" aria-pressed={!onlySaved} onClick={() => setOnlySaved(false)}>{response?.nextCursor ? "Loaded" : "All"} {feed.entries.length}</button>
         <button type="button" aria-pressed={onlySaved} onClick={() => setOnlySaved(true)}>Saved {savedCount}</button>
-      </div>}</div><div className="project-naming-actions">{showLatest && <button className="button secondary small" type="button" onClick={() => void viewLatest()} disabled={locating}>{locating ? "Loading saved names…" : "View latest set"}</button>}<button className="button secondary small" type="button" onClick={onHistory}>Saved names &amp; history</button><button className="button secondary small" type="button" onClick={onModify}>Naming choices</button></div></div>
+      </div>}</div><div className="project-naming-actions">{showLatest && <button className="button secondary small" type="button" onClick={() => void viewLatest()} disabled={locating}>{locating ? "Loading saved names…" : "View latest set"}</button>}{inConversation ? <button className="text-link" type="button" onClick={onHistory}>Saved names &amp; history</button> : <><button className="button secondary small" type="button" onClick={onHistory}>Saved names &amp; history</button><button className="button secondary small" type="button" onClick={onModify}>Naming choices</button></>}</div></div>
     {lookupError && lookupError === currentRun?.runId && <p role="status">The latest saved names could not be located. Try again.</p>}
-    <BrainstormCoverage run={response?.preferencesVersion === currentRun?.preferencesVersion ? currentRun : null} saved={feed.record?.preferences?.saved} entries={feed.entries} />
+    {!inConversation && <BrainstormCoverage run={response?.preferencesVersion === currentRun?.preferencesVersion ? currentRun : null} saved={feed.record?.preferences?.saved} entries={feed.entries} />}
     <div className="project-naming-grid">{shown.map(row => <div className="naming-feed-card" key={row.entryId}><ProjectNameCard compact entry={row.entry} selected={selectedId === row.entry.candidate.id} earlierContext={row.entry.candidate.strategyKey !== strategyKey} pending={pending} blockSelection={blocked} onFavorite={() => onRetain(row.entry, "favorite")} onSave={() => onRetain(row.entry, "saved")} onSelect={() => onSelect(row.entry)} onInspect={() => onInspect(row.entry)} onWorkshop={() => onWorkshop(row.entry)} /></div>)}</div>
     <div ref={element => feed.attachSentinel(element)} className="naming-feed-tail" aria-live="polite" aria-atomic="true">
       <NamingFeedTail feed={feed} blocked={blocked} onModify={onModify} />

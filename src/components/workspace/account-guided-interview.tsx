@@ -48,6 +48,10 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
   const [briefFromNaming, setBriefFromNaming] = useState(false);
   const [namingMessages, setNamingMessages] = useState<HTMLDivElement | null>(null);
   const [namingComposer, setNamingComposer] = useState<HTMLDivElement | null>(null);
+  const [namingResults, setNamingResults] = useState<HTMLDivElement | null>(null);
+  // Choosing a different name after Change name closes the names again.
+  const [reopenedFor, setReopenedFor] = useState<string | null>(null);
+  if (namingReopened && reopenedFor !== null && reopenedFor !== (workspace.saved.context.selectedName ?? "")) { setNamingReopened(false); setReopenedFor(null); }
   const [namingQuestionId, setNamingQuestionId] = useState<string | null>(null);
   const [namingCanvas, setNamingCanvas] = useState(false);
   const lock = useRef(false), mounted = useRef(false);
@@ -417,7 +421,8 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
     </div>;
 
   return <><div className="guided-interview" data-composer={hasComposer ? "floating" : undefined} hidden={canvasActive} aria-label="Brand conversation">
-    <div ref={transcript} id={transcriptId} onScroll={onScroll} tabIndex={0} className="guided-interview-scroll" role="log" aria-label="Conversation" aria-live="polite">
+    <div ref={transcript} id={transcriptId} onScroll={onScroll} tabIndex={0} className="guided-interview-scroll" role="log" aria-label="Conversation" aria-live="polite"
+      data-naming-results-scroll={namingOpen ? "" : undefined}>
       {!canvasActive && history}
       {!state?.turns.length && legacyReplies}
       {!state && saved.scope === "complete_brand" && <div className="guided-interview-start"><p>Your brief is saved. Send a message below to begin competitor research when AI is available.</p></div>}
@@ -431,11 +436,12 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
       {!canvasActive && completed}
       {!hasComposer && notices}
       <div ref={setNamingMessages} className="guided-naming-messages" />
+      <div ref={setNamingResults} className="guided-naming-results" />
       {!canvasActive && nameChosen && !namingReopened && <article className="guided-assistant-message flow-enter" aria-label="Your name">
         <EmbelIdentity label={journeyPartLabel("voice", "Name")} />
         <section className="guided-choice-answer" aria-label="Your answer: Which name feels right?">
           <div className="guided-choice-answer-copy"><h3>Which name feels right?</h3><ul aria-label="Your answer"><li><span>{context.selectedName}</span></li></ul></div>
-          <button className="button secondary small" type="button" disabled={blocked} onClick={() => setNamingReopened(true)}>Change name</button>
+          <button className="button secondary small" type="button" disabled={blocked} onClick={() => { setNamingReopened(true); setReopenedFor(context.selectedName ?? ""); }}>Change name</button>
         </section>
       </article>}
       {!canvasActive && sloganHistory}
@@ -455,6 +461,6 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
   </div>
     {namingOpen && <ProjectNamingWorkspace projectId={saved.id}
       conversationHistory={<>{history}{completed}</>}
-      inline={{ messages: namingMessages, composer: namingComposer, onQuestion: setNamingQuestionId, onCanvas: setNamingCanvas }} />}
+      inline={{ messages: namingMessages, results: namingResults, composer: namingComposer, onQuestion: setNamingQuestionId, onCanvas: setNamingCanvas }} />}
   </>;
 }
