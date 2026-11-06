@@ -116,8 +116,6 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
     attempts.current.add(key);
     await strategy.enqueue(guidedTurnOperation(currentTurn), saved.current_revision, allowance);
   });
-  // Report a genuine failed write to the external admission-recovery receipt.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void coordinate(); }, [saved.current_revision, state, bound, reply, busy, strategy.pending, strategy.overview, strategy.readError, active, dirty, allowance, currentTurn]);
 
   async function send() {
