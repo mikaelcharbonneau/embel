@@ -462,12 +462,12 @@ test("competitor cards keep their selection, descriptions and sources across sug
   const group = widget(page, "competitors");
   const previous = group.getByRole("checkbox", { name: competitors[0]!.name, exact: true });
   await previous.check();
-  await group.getByRole("button", { name: "Add competitor" }).click();
+  await group.getByRole("button", { name: "Add a competitor" }).click();
   await group.getByRole("textbox", { name: "Competitor name" }).fill("Coursera");
   await group.getByRole("textbox", { name: /Website/ }).fill("https://coursera.org/");
   await group.getByRole("button", { name: "Save competitor" }).click();
   await expect(group.getByRole("checkbox", { name: "Coursera", exact: true })).toBeChecked();
-  await group.getByRole("button", { name: "Generate more suggestions" }).click();
+  await group.getByRole("button", { name: "Suggest more" }).click();
   await expectRequest(state, 1, "strategy.competitors");
   const reply = choiceReply(currentTurn(state));
   const fresh = structuredClone(reply.options[0]!);

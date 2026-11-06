@@ -69,7 +69,7 @@ it("adds a manual competitor without calling the AI and retains selections after
   await ready();
   const selected = host.querySelector<HTMLInputElement>(".guided-choice-card input")!;
   await act(async () => selected.click());
-  await click("Add competitor"); await fill(".competitor-add-form input", "Manual Studio");
+  await click("Add a competitor"); await fill(".competitor-add-form input", "Manual Studio");
   saveContext.mockImplementation(async context => {
     const saved = { ...workspace.saved, context, current_revision: workspace.saved.current_revision + 1 };
     workspace = { ...workspace, saved, draft: accountProjectDraft(saved) }; return workspace;
@@ -81,7 +81,7 @@ it("adds a manual competitor without calling the AI and retains selections after
   expect(host.querySelector<HTMLElement>(".competitor-add-form")!.hidden).toBe(true);
 });
 it("keeps manual entry visible after an unconfirmed save and rejects duplicate suggestions", async () => {
-  await ready(); await click("Add competitor"); await fill(".competitor-add-form input", "Existing Studio");
+  await ready(); await click("Add a competitor"); await fill(".competitor-add-form input", "Existing Studio");
   await click("Save competitor"); expect(saveContext).not.toHaveBeenCalled(); expect(host.textContent).toContain("already listed");
   await fill(".competitor-add-form input", "Manual Studio"); saveContext.mockRejectedValue(new Error("lost acknowledgment"));
   await click("Save competitor");
@@ -91,14 +91,14 @@ it("keeps manual entry visible after an unconfirmed save and rejects duplicate s
 });
 it("does not request more suggestions while an earlier provider request is unresolved", async () => {
   await ready(); strategy.overview!.availability = { status: "unavailable", reason: "request_unresolved", operations: [] }; await render();
-  expect(button("Generate more suggestions").disabled).toBe(true);
-  await click("Generate more suggestions"); expect(saveContext).not.toHaveBeenCalled(); expect(strategy.enqueue).not.toHaveBeenCalled();
+  expect(button("Suggest more").disabled).toBe(true);
+  await click("Suggest more"); expect(saveContext).not.toHaveBeenCalled(); expect(strategy.enqueue).not.toHaveBeenCalled();
 });
 it("requests additional suggestions only after explicit action while retaining existing choices", async () => {
   await ready(); strategy.overview!.availability = { status: "available", operations: [{ operation: "strategy.competitors", maximumCostMicrousd: 100000, interviewVersion: 1 }] }; await render();
   await act(async () => host.querySelector<HTMLInputElement>(".guided-choice-card input")!.click());
   saveContext.mockResolvedValue(workspace);
-  await click("Generate more suggestions");
+  await click("Suggest more");
   expect(saveContext).toHaveBeenCalledOnce();
   const context = saveContext.mock.calls[0]![0];
   expect(context.competitors).toHaveLength(1); expect(context.competitors[0]).toMatchObject({ name: "Existing Studio", selected: true, origin: "research" });

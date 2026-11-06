@@ -79,7 +79,7 @@ describe("guided Strategy availability presentation", () => {
     expect(strategy.refresh).toHaveBeenCalledOnce();
     strategy.overview!.jobs = [boundJob("running")];
     await render();
-    expect(host.querySelector('[aria-label="Researching competitors…"]')).not.toBeNull();
+    expect(host.querySelector('[aria-label="Researching your competitors"]')).not.toBeNull();
     expect(host.querySelector(".guided-delivery-notice")).toBeNull();
     expect(strategy.retryDelivery).not.toHaveBeenCalled(); expect(strategy.enqueue).not.toHaveBeenCalled();
   });
@@ -87,7 +87,7 @@ describe("guided Strategy availability presentation", () => {
   it("does not treat temporary refusal of new requests as a failed admission in progress", async () => {
     addGuidedTurn(); unavailable("request_active"); strategy.pending = true;
     await render();
-    expect(host.querySelector('[aria-label="Starting research…"]')).not.toBeNull();
+    expect(host.querySelector('[aria-label="Researching your competitors"]')).not.toBeNull();
     expect(notice()).toBe(""); expect(button("Retry research")).toBeUndefined();
   });
   it("offers exact delivery recovery after reload despite request_active without automatically retrying", async () => {
@@ -229,16 +229,16 @@ describe("guided Strategy availability presentation", () => {
   it("keeps a running bound request's thinking and Stop controls without reporting new-request refusal as its failure", async () => {
     addGuidedTurn(); unavailable("request_active"); const job = boundJob("running"); strategy.overview!.jobs = [job];
     await render();
-    expect(host.querySelector('[aria-label="Researching competitors…"]')).not.toBeNull(); expect(notice()).toBe("");
-    expect(button("Stop")?.disabled).toBe(false);
-    await act(async () => button("Stop")!.click());
+    expect(host.querySelector('[aria-label="Researching your competitors"]')).not.toBeNull(); expect(notice()).toBe("");
+    expect(button("Cancel research")?.disabled).toBe(false);
+    await act(async () => button("Cancel research")!.click());
     expect(strategy.cancel).toHaveBeenCalledWith(job); expect(strategy.enqueue).not.toHaveBeenCalled();
   });
 
   it("shows thinking while the initial request acknowledgement is pending without a false unavailable message", async () => {
     addGuidedTurn(); strategy.overview = { availability: available, jobs: [] }; strategy.pending = true;
     await render();
-    expect(host.querySelector('[aria-label="Starting research…"]')).not.toBeNull(); expect(notice()).toBe("");
+    expect(host.querySelector('[aria-label="Researching your competitors"]')).not.toBeNull(); expect(notice()).toBe("");
     expect(button("Retry research")).toBeUndefined(); expect(strategy.enqueue).not.toHaveBeenCalled();
   });
 });

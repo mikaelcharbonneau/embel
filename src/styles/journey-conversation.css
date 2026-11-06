@@ -43,7 +43,6 @@
 :is(.project-workspace, .guided-interview-opening) .guided-choice-answer-copy { gap: 10px; }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-answer ul { display: flex; flex-wrap: wrap; gap: 8px; }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-answer li { align-items: center; min-height: 32px; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); color: var(--text); }
-:is(.project-workspace, .guided-interview-opening) .guided-choice-answer li img { display: none; }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-answer > .button { min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); }
 
 /* The message box spans the conversation column with the rounder corners. */
@@ -63,3 +62,29 @@
 /* Secondary actions inside the conversation are pills too. */
 :is(.project-workspace, .guided-interview-opening) .competitor-widget-toolbar .button,
 :is(.project-workspace, .guided-interview-opening) .guided-assistant-message .button.secondary { min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); }
+
+/* Phase 3 · competitors: each card shows the competitor's own site icon, or a
+   neutral initial when the site has none. Answer chips show a small version. */
+.competitor-logo { flex: 0 0 auto; display: block; width: 40px; height: 40px; border-radius: 10px; object-fit: contain; background: var(--paper); box-shadow: inset 0 0 0 1px var(--border); }
+.competitor-logo-monogram { display: grid; place-items: center; background: var(--canvas); color: var(--secondary); font-size: 15px; font-weight: 500; box-shadow: inset 0 0 0 1px var(--border); }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-target > .competitor-logo { order: 0; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-target > .guided-choice-content { order: 1; flex: 1 1 auto; min-width: 0; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-answer li { gap: 6px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-answer li.has-logo { padding-left: 4px; gap: 8px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-answer li .competitor-logo { width: 24px; height: 24px; border-radius: 50%; font-size: 11px; }
+
+/* One row under the cards: add / suggest on the left, the count and Continue on the right.
+   The add form opens above that row. */
+:is(.project-workspace, .guided-interview-opening) .guided-choice-actions { justify-content: flex-end; gap: 8px; padding-top: 4px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-actions .competitor-widget-controls { display: contents; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-actions .competitor-widget-toolbar { margin-right: auto; display: flex; gap: 8px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-actions .competitor-add-form { order: -1; flex-basis: 100%; margin-bottom: 8px; padding: 16px; border-radius: var(--radius-card); background: var(--paper); grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+:is(.project-workspace, .guided-interview-opening) .competitor-add-form > p { grid-column: 1 / -1; }
+.competitor-add-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; }
+:is(.project-workspace, .guided-interview-opening) .competitor-add-actions .button { min-height: 40px; padding: 0 16px; border-radius: var(--radius-pill); }
+:is(.project-workspace, .guided-interview-opening) .competitor-widget-toolbar .button { display: inline-flex; align-items: center; gap: 6px; }
+.guided-choice-count { font-size: 13px; color: var(--secondary); margin-left: 4px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-actions > .button.primary { display: inline-flex; align-items: center; gap: 8px; margin-left: 4px; padding: 0 18px 0 20px; }
+
+/* Research in progress sits in Embel's message, like the other replies. */
+:is(.project-workspace, .guided-interview-opening) .guided-assistant-message > section[aria-label] { margin-top: 4px; }

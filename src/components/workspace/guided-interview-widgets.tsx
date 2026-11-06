@@ -2,9 +2,10 @@
 
 import { useId, type ReactNode } from "react";
 import { AppMark } from "@/components/ui/app-mark";
-import { ProjectArtwork } from "@/components/ui/project-artwork";
 import type { GuidedOption, GuidedReply } from "@/domain/guided-interview";
 import { competitorWebsiteSchema } from "@/domain/projects";
+import { Icon } from "@/components/ui/icon";
+import { CompetitorLogo } from "./competitor-logo";
 
 type ChoiceReply = Extract<GuidedReply, { kind: "choices" }>;
 
@@ -20,6 +21,8 @@ export type GuidedChoiceWidgetProps = {
   retainedOptions?: readonly GuidedOption[];
   additionalAnswer?: string | null;
   retainedAnswerLabels?: readonly string[] | null;
+  /** Shows each competitor's site icon, fetched privately for this project. */
+  projectId?: string;
 };
 
 export type ResearchLoadingScreenProps = {
@@ -75,7 +78,7 @@ function OptionReferences({ option }: { option: GuidedOption }) {
 }
 
 /** Controlled choices only: selecting a card never answers or starts work. */
-export function GuidedChoiceWidget({ reply, selectedIds, onSelectionChange, onContinue, disabled = false, answered = false, onRevisit, additionalControls, retainedOptions = [], additionalAnswer, retainedAnswerLabels }: GuidedChoiceWidgetProps) {
+export function GuidedChoiceWidget({ reply, selectedIds, onSelectionChange, onContinue, disabled = false, answered = false, onRevisit, additionalControls, retainedOptions = [], additionalAnswer, retainedAnswerLabels, projectId }: GuidedChoiceWidgetProps) {
   const id = useId();
   const options = [...reply.options, ...retainedOptions];
   const selected = options.filter((option) => selectedIds.includes(option.id));
@@ -92,12 +95,14 @@ export function GuidedChoiceWidget({ reply, selectedIds, onSelectionChange, onCo
     onSelectionChange(checked ? [...selectedIds.filter((selectedId) => selectedId !== optionId), optionId] : selectedIds.filter((selectedId) => selectedId !== optionId));
   }
 
-  const answerLabels = [...selectedOptions.map(option => option.label), ...(retainedAnswerLabels ?? [])];
+  const logo = (option: GuidedOption, size: number) => projectId && option.stage === "competitors"
+    ? <CompetitorLogo projectId={projectId} name={option.payload.name} url={option.payload.url} size={size} /> : null;
+  const answerChips = [...selectedOptions.map(option => ({ label: option.label, mark: logo(option, 24) })), ...(retainedAnswerLabels ?? []).map(label => ({ label, mark: null }))];
   if (answered) return <section className="guided-choice-answer" aria-labelledby={`${id}-question`}>
     <div className="guided-choice-answer-copy">
       <h3 id={`${id}-question`}>{reply.question}</h3>
       {additionalAnswer && !retainedAnswerLabels && <p>{additionalAnswer}</p>}
-      {answerLabels.length ? <ul>{answerLabels.map((label, index) => <li key={index}><ProjectArtwork name="check" /><span>{label}</span></li>)}</ul> : <p>Your answer is in the conversation.</p>}
+      {answerChips.length ? <ul aria-label="Your answer">{answerChips.map((chip, index) => <li key={index} className={chip.mark ? "has-logo" : undefined}>{chip.mark ?? <Icon name="check" size={13} />}<span>{chip.label}</span></li>)}</ul> : <p>Your answer is in the conversation.</p>}
     </div>
     {onRevisit && <button className="button secondary small" type="button" disabled={disabled} aria-label={`Edit your answer: ${reply.question}`} onClick={onRevisit}>Edit answer</button>}
   </section>;
@@ -113,6 +118,7 @@ export function GuidedChoiceWidget({ reply, selectedIds, onSelectionChange, onCo
       const checked = selection.includes(option.id);
       return <div className={`guided-choice-card${checked ? " is-selected" : ""}${disabled ? " is-disabled" : ""}`} key={option.id}>
         <label className="guided-choice-target" htmlFor={optionId}>
+          {logo(option, 40)}
           <input id={optionId} type={reply.selectionMode === "single" ? "radio" : "checkbox"} name={`${id}-choices`} checked={checked} disabled={disabled} aria-labelledby={`${optionId}-label`} aria-describedby={`${optionId}-detail`} onChange={(event) => select(option.id, event.target.checked)} />
           <span className="guided-choice-content">
             <span className="guided-choice-heading"><span className="guided-choice-label" id={`${optionId}-label`}>{option.label}</span>{option.recommended && <span className="guided-choice-recommended">Recommended</span>}</span>
@@ -126,9 +132,10 @@ export function GuidedChoiceWidget({ reply, selectedIds, onSelectionChange, onCo
         <OptionReferences option={option} />
       </div>;
     })}</div> : <p className="guided-choice-empty">No options are available for this question yet. You can reply in the conversation below.</p>}
-    {additionalControls}
     <div className="guided-choice-actions">
-      <button className="button primary" type="button" disabled={disabled || !selection.length} onClick={() => { if (!disabled && selection.length) onContinue(); }}>Continue</button>
+      {additionalControls}
+      {reply.selectionMode === "multiple" && <span className="guided-choice-count" role="status">{selection.length} selected</span>}
+      <button className="button primary" type="button" disabled={disabled || !selection.length} onClick={() => { if (!disabled && selection.length) onContinue(); }}>Continue<Icon name="arrow" size={14} /></button>
     </div>
   </fieldset>;
 }

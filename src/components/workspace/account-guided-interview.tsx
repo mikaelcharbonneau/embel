@@ -16,6 +16,7 @@ import { ConversationComposer } from "./conversation-composer";
 import { FloatingComposer } from "./floating-composer";
 import { GuidedChoiceWidget } from "./guided-interview-widgets";
 import { GuidedThinking } from "./guided-thinking";
+import { ProgressCard } from "@/components/journey/progress-card";
 import { guidedAllowance, guidedMessageContext, guidedTimeline, guidedTurnResult, nextGuidedProposal, recordGuidedChoice, retainedAnswerNames } from "./guided-interview-client";
 import type { ProjectEditorForm } from "./project-editor";
 import { useStrategyJobs } from "./use-strategy-jobs";
@@ -294,7 +295,7 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
         const current = choiceTurn?.id === item.turn.id && !answer;
         return <Fragment key={item.turn.id}>{item.turn.id === state?.turns[0]?.id && legacyReplies}<article id={`guided-turn-${item.turn.id}`} tabIndex={-1} className="guided-assistant-message flow-enter" aria-label="Embel response"><EmbelIdentity label={guidedStageLabel(item.turn.stage)} />
           <p className="guided-assistant-copy">{output.message}</p>
-          {output.kind === "choices" ? <GuidedChoiceWidget reply={output} selectedIds={answer?.optionIds ?? selectedCompetitors(output)} additionalControls={current && output.stage === "competitors" ? <CompetitorWidgetControls draft={competitorDraft} onDraft={value => changeInput(previous => ({ ...previous, competitorDraft: value }))} onAdd={() => addCompetitor(output)} onMore={() => void moreCompetitors(output)} disabled={Boolean(blocked)} canGenerate={!requestBlocked && Boolean(guidedAllowance(availability, "strategy.competitors"))} generating={active} /> : undefined} retainedOptions={current && output.stage === "competitors" ? retainedOptions(output) : undefined} onSelectionChange={ids => setSelection({ turnId: output.turnId, ids })} onContinue={() => void confirm(output)} disabled={blocked} answered={!current || Boolean(answer)} additionalAnswer={answer?.customText} retainedAnswerLabels={output.stage === "competitors" ? retainedAnswerNames(answer?.customText, context.competitors) : undefined} onRevisit={!current ? () => void revisit(item.turn.stage, item.turn.userMessageId) : undefined} />
+          {output.kind === "choices" ? <GuidedChoiceWidget projectId={saved.id} reply={output} selectedIds={answer?.optionIds ?? selectedCompetitors(output)} additionalControls={current && output.stage === "competitors" ? <CompetitorWidgetControls draft={competitorDraft} onDraft={value => changeInput(previous => ({ ...previous, competitorDraft: value }))} onAdd={() => addCompetitor(output)} onMore={() => void moreCompetitors(output)} disabled={Boolean(blocked)} canGenerate={!requestBlocked && Boolean(guidedAllowance(availability, "strategy.competitors"))} generating={active} /> : undefined} retainedOptions={current && output.stage === "competitors" ? retainedOptions(output) : undefined} onSelectionChange={ids => setSelection({ turnId: output.turnId, ids })} onContinue={() => void confirm(output)} disabled={blocked} answered={!current || Boolean(answer)} additionalAnswer={answer?.customText} retainedAnswerLabels={output.stage === "competitors" ? retainedAnswerNames(answer?.customText, context.competitors) : undefined} onRevisit={!current ? () => void revisit(item.turn.stage, item.turn.userMessageId) : undefined} />
             : output.kind === "question" ? <p className="guided-assistant-question">{output.question}</p> : null}
         </article></Fragment>;
       });
@@ -304,6 +305,12 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
     && context.intake.audienceReviewedAt && context.intake.personalityReviewedAt
     ? <p className="guided-complete" role="status">Your brand strategy is saved. You can revisit any answer above.</p> : null;
 
+  const runningJob = bound && strategyJobActive(bound.job) ? bound.job : null;
+  const stop = runningJob ? () => void strategy.cancel(runningJob) : undefined;
+  const stopping = bound?.job.state === "cancel_requested";
+  const researching = currentTurn?.stage === "competitors" && currentTurn.purpose === "research" && Boolean(runningJob && runningJob.state !== "queued" || strategy.pending && !bound);
+  const thinkingLabel = active ? runningJob ? runningJob.state === "queued" ? "Request queued…" : "Thinking…" : "A request is in progress…"
+    : strategy.pending ? currentTurn?.purpose === "research" ? "Starting research…" : "Starting response…" : "Checking research status…";
   const hasComposer = saved.scope === "complete_brand" || Boolean(state);
   const notices = <div className="conversation-compose-notices" role="region" aria-label="Conversation notices" tabIndex={0}>
     {workerDelayed && <div className="guided-delivery-notice" role="status">
@@ -333,7 +340,12 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
       {!state?.turns.length && legacyReplies}
       {!state && saved.scope === "complete_brand" && <div className="guided-interview-start"><p>Your brief is saved. Send a message below to begin competitor research when AI is available.</p></div>}
       {!state && saved.scope !== "complete_brand" && <p className="guided-assistant-copy">{saved.context.description}</p>}
-      {(active || checkingResearch) && <GuidedThinking label={active ? bound && strategyJobActive(bound.job) ? bound.job.state === "queued" ? "Request queued…" : currentTurn?.stage === "competitors" && currentTurn.purpose === "research" ? "Researching competitors…" : "Thinking…" : "A request is in progress…" : strategy.pending ? currentTurn?.purpose === "research" ? "Starting research…" : "Starting response…" : "Checking research status…"} onStop={bound && strategyJobActive(bound.job) ? () => void strategy.cancel(bound.job) : undefined} stopping={bound?.job.state === "cancel_requested"} stopDisabled={strategy.pending} />}
+      {(active || checkingResearch) && (researching
+        ? <article className="guided-assistant-message flow-enter" aria-label="Embel response"><EmbelIdentity label={guidedStageLabel("competitors")} />
+          <ProgressCard title={stopping ? "Cancelling research…" : "Researching your competitors"} description="Finding relevant brands and the sources behind them."
+            note="Your idea is saved. Suggestions appear here when they’re ready." onStop={stop} stopping={stopping} stopDisabled={strategy.pending} stopLabel="Cancel research" />
+        </article>
+        : <GuidedThinking label={thinkingLabel} onStop={stop} stopping={stopping} stopDisabled={strategy.pending} />)}
       {!canvasActive && completed}
       {!hasComposer && notices}
       <div ref={setNamingMessages} className="guided-naming-messages" />

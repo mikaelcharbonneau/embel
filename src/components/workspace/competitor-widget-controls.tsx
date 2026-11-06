@@ -1,5 +1,6 @@
 "use client";
 import { useId, useState } from "react";
+import { Icon } from "@/components/ui/icon";
 export type CompetitorDraft = { name: string; website: string };
 export function CompetitorWidgetControls({ draft, onDraft, onAdd, onMore, disabled, canGenerate, generating }: {
   draft: CompetitorDraft;
@@ -9,12 +10,15 @@ export function CompetitorWidgetControls({ draft, onDraft, onAdd, onMore, disabl
   const id = useId();
   const [adding, setAdding] = useState(false);
   return <div className="competitor-widget-controls">
-    <div className="competitor-widget-toolbar"><button type="button" className="button secondary small" aria-expanded={adding} aria-controls={`${id}-add`} disabled={disabled} onClick={() => setAdding(value => !value)}>Add competitor</button><button type="button" className="button secondary small" disabled={disabled || !canGenerate} onClick={onMore}>{generating ? "Finding more suggestions…" : "Generate more suggestions"}</button></div>
+    <div className="competitor-widget-toolbar"><button type="button" className="button secondary small" aria-expanded={adding} aria-controls={`${id}-add`} disabled={disabled} onClick={() => setAdding(value => !value)}><Icon name="plus" size={14} />Add a competitor</button><button type="button" className="button secondary small" disabled={disabled || !canGenerate} onClick={onMore}><Icon name="refresh" size={14} />{generating ? "Finding more…" : "Suggest more"}</button></div>
     <div id={`${id}-add`} hidden={!adding} className="competitor-add-form">
-      <label className="field-label">Competitor name<input value={draft.name} maxLength={160} disabled={disabled} onChange={event => onDraft({ ...draft, name: event.target.value })} placeholder="e.g. Logram.ai" /></label>
-      <label className="field-label">Website <span>(optional)</span><input type="url" value={draft.website} maxLength={2048} disabled={disabled} onChange={event => onDraft({ ...draft, website: event.target.value })} placeholder="https://example.com" /></label>
+      <label className="field-label">Competitor name<input value={draft.name} maxLength={160} disabled={disabled} onChange={event => onDraft({ ...draft, name: event.target.value })} placeholder="e.g. a shop you know" /></label>
+      <label className="field-label">Website <span>Optional</span><input type="url" value={draft.website} maxLength={2048} disabled={disabled} onChange={event => onDraft({ ...draft, website: event.target.value })} placeholder="https://" /></label>
       <p>Added directly to your project. This does not start AI research.</p>
-      <button type="button" className="button primary small" disabled={disabled || !draft.name.trim()} onClick={() => void onAdd().then(saved => { if (saved) setAdding(false); })}>Save competitor</button>
+      <div className="competitor-add-actions">
+        <button type="button" className="button secondary small" onClick={() => setAdding(false)}>Cancel</button>
+        <button type="button" className="button primary small" disabled={disabled || !draft.name.trim()} onClick={() => void onAdd().then(saved => { if (saved) setAdding(false); })}>Save competitor</button>
+      </div>
     </div>
   </div>;
 }
