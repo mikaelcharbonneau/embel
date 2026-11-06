@@ -232,7 +232,7 @@ async function expectReplyArrivalInViewport(page: Page, stage: GuidedStage, firs
   // Assert before any interaction: Playwright clicks/focus would otherwise hide
   // a scroll regression by bringing an offscreen question or card into view.
   await expectSingleWidget(page, stage);
-  await expect(page.locator(".topbar")).toBeInViewport({ ratio: 1 });
+  await expect(page.getByRole("banner")).toBeInViewport({ ratio: 1 });
   await expectProjectCanvas(page);
   const question = widget(page, stage).locator("h3");
   await expect(question).toHaveText(questions[stage]);

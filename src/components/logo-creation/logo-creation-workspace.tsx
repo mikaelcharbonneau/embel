@@ -600,7 +600,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
         if (!draft || !logoBriefDraftSchema.safeParse(draft.brief).success) return;
         if (projectId) void workspace.saveBrief(draft.brief); else void workspace.startProject(draft.brief);
       } : undefined} />
-    {(activeBatch || refinementHistoryState.items.length > 0 || focusedLogo) && <label className={styles.field}><span>{focusedLogo ? "Revision request for inspected image" : "Revision request for selected image"}</span><textarea value={refineInstruction} maxLength={2000} onChange={event => setRefineInstruction(event.currentTarget.value)} placeholder="Describe what to change in the selected image preview" /><span className={styles.note}>{refineInstruction.length} / 2,000 characters. Each revision keeps its source. Its expected cost appears beside Generate. At most {IMAGE_INPUT_LIMITS.images - 1} saved references can accompany the original image.</span></label>}
+    {(activeBatch || refinementHistoryState.items.length > 0 || focusedLogo) && <label className={styles.field}><span>{focusedLogo ? "Revision request for inspected image" : "Revision request for selected image"}</span><textarea value={refineInstruction} maxLength={2000} onChange={event => setRefineInstruction(event.currentTarget.value)} placeholder="Describe what to change in the selected image preview" /><span className={styles.note}>{refineInstruction.length} / 2,000 characters. Each revision keeps its source. At most {IMAGE_INPUT_LIMITS.images - 1} saved references can accompany the original image.</span></label>}
     {focusedLogo && <LogoGenerationAction estimate={refinementEstimate} label="Generate refinement" unavailable="Select a logo and describe your changes." />}
 
 

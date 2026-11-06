@@ -29,7 +29,7 @@
 .assets-card-title h2 { font-size: 14px; font-weight: 500; line-height: 1.45; overflow-wrap: anywhere; }
 .assets-card-title > span { color: var(--secondary); font-size: var(--font-ui); }
 .assets-brand { display: inline-block; max-width: 100%; font-size: var(--font-ui); color: var(--secondary); margin-top: 5px; overflow-wrap: anywhere; line-height: 1.55; }
-.assets-brand:hover { color: var(--accent-text); }
+.assets-brand:hover { color: var(--accent-ink); }
 .assets-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 13px; min-height: 20px; }
 .assets-badges span { padding: 3px 6px; background: var(--surface); border-radius: 3px; font-size: var(--font-ui); color: var(--secondary); }
 .assets-badges .is-used { background: #e6eee7; color: var(--positive); }
@@ -38,13 +38,13 @@
 .assets-card-footer > div { display: flex; gap: 4px; }
 .assets-retain { border: 0; background: transparent; color: var(--secondary); display: grid; place-items: center; min-height: 44px; min-width: 32px; border-radius: 4px; }
 .assets-retain:hover { background: var(--surface); }
-.assets-retain[aria-pressed="true"] { color: var(--accent-text); }
+.assets-retain[aria-pressed="true"] { color: var(--accent-ink); }
 .assets-pagination { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-top: 25px; color: var(--secondary); font-size: var(--font-ui); }
 .assets-notice { margin: 15px 0; padding: 13px 15px; border: 1px solid var(--border); border-radius: 6px; background: var(--paper); font-size: var(--font-ui); line-height: 1.6; }
 .assets-notice .button { margin-top: 10px; }
 .assets-loading { min-height: 1.65em; margin: 20px 0; }
 .assets-empty { padding: 62px 24px; text-align: center; background: var(--paper); border: 1px solid var(--border); border-radius: 8px; }
-.assets-empty > span { display: inline-grid; place-items: center; width: 55px; height: 55px; border-radius: 13px; background: var(--magenta-soft); color: var(--accent-text); margin-bottom: 20px; }
+.assets-empty > span { display: inline-grid; place-items: center; width: 55px; height: 55px; border-radius: 13px; background: var(--accent-soft); color: var(--accent-ink); margin-bottom: 20px; }
 .assets-empty h2 { font-size: 21px; font-weight: 500; letter-spacing: -.5px; }
 .assets-empty p { color: var(--secondary); font-size: var(--font-ui); max-width: 380px; margin: 12px auto 22px; line-height: 1.75; }
 .assets-generation-note { font-size: var(--font-ui); color: var(--secondary); line-height: 1.65; margin-top: 30px; }
@@ -67,8 +67,8 @@
 .assets-evidence > div { display: grid; grid-template-columns: 55px minmax(0, 1fr); gap: 12px; }
 .assets-evidence dt { color: var(--secondary); }
 .assets-evidence dd { margin: 0; line-height: 1.5; }
-.assets-ack { display: flex; gap: 9px; font-size: var(--font-ui); line-height: 1.65; background: var(--magenta-soft); border: 1px solid var(--border); border-radius: 5px; padding: 12px; margin: 21px 0; }
-.assets-ack input { accent-color: var(--accent-text); margin-top: 3px; flex-shrink: 0; }
+.assets-ack { display: flex; gap: 9px; font-size: var(--font-ui); line-height: 1.65; background: var(--accent-soft); border: 1px solid var(--border); border-radius: 5px; padding: 12px; margin: 21px 0; }
+.assets-ack input { accent-color: var(--accent-ink); margin-top: 3px; flex-shrink: 0; }
 .assets-detail-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 21px; }
 .assets-detail-actions .button { font-size: var(--font-ui); }
 .assets-footnote { margin-top: 14px; }
@@ -77,7 +77,7 @@
 .assets-history > div > span { font-size: var(--font-ui); color: var(--secondary); }
 .assets-history ol { list-style: none; display: grid; gap: 8px; margin: 0 0 14px; padding: 0; }
 .assets-history li button { background: var(--paper); display: block; width: 100%; text-align: left; padding: 12px; border: 1px solid var(--border); border-radius: 5px; }
-.assets-history li button[aria-pressed="true"] { border-color: var(--accent-text); background: var(--magenta-soft); }
+.assets-history li button[aria-pressed="true"] { border-color: var(--accent-ink); background: var(--accent-soft); }
 .assets-history strong { display: flex; justify-content: space-between; gap: 8px; font-size: var(--font-ui); font-weight: 500; }
 .assets-history strong span { color: var(--secondary); font-size: var(--font-ui); }
 .assets-history small { display: block; color: var(--secondary); font-size: var(--font-ui); line-height: 1.5; margin-top: 8px; }

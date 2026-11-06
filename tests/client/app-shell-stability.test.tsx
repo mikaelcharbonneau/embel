@@ -40,7 +40,9 @@ async function until(assertion: () => void) {
   throw error;
 }
 const accountLabel = () => host.querySelector<HTMLSpanElement>(".workspace-account-label")!;
-const navLinks = () => [...host.querySelectorAll<HTMLAnchorElement>("aside.sidebar .nav-link")];
+const mainNav = () => host.querySelector<HTMLElement>('nav[aria-label="Main navigation"]')!;
+const navLinks = () => [...mainNav().querySelectorAll<HTMLAnchorElement>(":scope > ul > li > a")];
+const toolsSummary = () => mainNav().querySelector<HTMLElement>("details > summary")!;
 
 beforeEach(() => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
@@ -65,44 +67,39 @@ afterEach(async () => {
 });
 
 describe("persistent workspace shell", () => {
-  it("keeps navigation links, icons, logo, toggle, expanded state and focus across route changes", async () => {
+  it("keeps the floating navigation, logo and focus across route changes", async () => {
     await render(); await until(() => expect(accountLabel().textContent).toBe("Private fixture name"));
-    const links = navLinks(), icons = links.map(link => link.querySelector("svg"));
-    const logo = host.querySelector("aside.sidebar .app-mark img");
-    const toggle = host.querySelector<HTMLButtonElement>(".workspace-sidebar-toggle")!;
-    const toggleIcon = toggle.querySelector("svg"), generation = account.session.generation;
-    expect(icons.every(Boolean)).toBe(true);
-    await act(async () => toggle.click());
+    const links = navLinks(), tools = toolsSummary();
+    const logo = mainNav().querySelector("img"), generation = account.session.generation;
+    expect(links.map(link => link.textContent)).toEqual(["Home", "Projects", "Library"]);
+    expect([...mainNav().querySelectorAll("details a")].map(link => link.getAttribute("href"))).toEqual(["/ideas", "/names", "/handles", "/domains", "/trademarks"]);
     links[1]!.focus();
     const routes = ["/brands", "/assets", "/ideas", "/names", "/handles", "/domains", "/trademarks", "/settings", "/brands/new", "/brands/logo/new", "/brands/account/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "/sign-in", "/sign-up", "/"];
     for (const pathname of routes) {
       route.pathname = pathname; await render();
-      const currentLinks = navLinks();
-      currentLinks.forEach((link, index) => {
-        expect(link).toBe(links[index]); expect(link.querySelector("svg")).toBe(icons[index]);
-        expect(link.querySelector("img")).toBeNull();
+      navLinks().forEach((link, index) => {
+        expect(link).toBe(links[index]);
         const href = link.getAttribute("href")!;
-        expect(link.getAttribute("aria-current")).toBe((href === "/" ? pathname === "/" : pathname.startsWith(href)) ? "page" : null);
+        expect(link.getAttribute("aria-current")).toBe((href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`)) ? "page" : null);
       });
-      expect(host.querySelector("aside.sidebar .app-mark img")).toBe(logo);
-      expect(host.querySelector(".workspace-sidebar-toggle")).toBe(toggle);
-      expect(toggle.querySelector("svg")).toBe(toggleIcon);
-      expect(toggle.getAttribute("aria-expanded")).toBe("true");
+      expect(toolsSummary()).toBe(tools);
+      expect(tools.getAttribute("aria-current")).toBe(["/ideas", "/names", "/handles", "/domains", "/trademarks"].includes(pathname) ? "page" : null);
+      expect(mainNav().querySelector("img")).toBe(logo);
       expect(document.activeElement).toBe(links[1]);
       expect(account.session.generation).toBe(generation);
     }
+    expect(host.querySelector('aside, .mobile-menu, [aria-label="Open navigation"]')).toBeNull();
     expect(fetcher.mock.calls.filter(([path]) => path === "/api/session")).toHaveLength(1);
   });
 
-  it("does not swap navigation artwork when project contents become empty or an auth dialog opens", async () => {
+  it("keeps the underlying page highlighted when an auth dialog opens over it", async () => {
     route.pathname = "/brands"; await render(<div className="projects-page">Loading projects</div>);
-    const links = navLinks(), icons = links.map(link => link.querySelector("svg"));
-    await render(<div className="projects-page projects-empty">No projects</div>);
+    const links = navLinks();
     route.pathname = "/sign-in"; route.auth = "(.)sign-in"; route.background = ["brands"];
     await render(<div className="projects-page projects-empty">No projects</div>);
-    navLinks().forEach((link, index) => { expect(link).toBe(links[index]); expect(link.querySelector("svg")).toBe(icons[index]); });
+    navLinks().forEach((link, index) => expect(link).toBe(links[index]));
     expect(links[1]!.getAttribute("aria-current")).toBe("page");
-    expect(host.querySelector("aside.sidebar img")?.getAttribute("src")).toBe("/embel-mark.svg");
+    expect(mainNav().querySelector("img")?.getAttribute("src")).toBe("/embel-mark.svg");
   });
 
   it("dismisses the account menu on an outside pointer without stealing the clicked control's focus or action", async () => {
@@ -166,10 +163,10 @@ describe("persistent workspace shell", () => {
     await render();
     const label = accountLabel();
     expect(label.getAttribute("aria-busy")).toBe("true");
-    expect(label.querySelector(".workspace-account-placeholder")).not.toBeNull();
+    expect(label.textContent).toBe("Checking account…");
     expect(host.textContent).not.toContain("Sign in");
     expect(host.textContent).not.toContain("Private fixture");
-    expect(host.querySelector('.topbar a[href="/sign-in"]')).toBeNull();
+    expect(host.querySelector('header a[href="/sign-in"]')).toBeNull();
     await act(async () => initial.resolve(Response.json({ user: { id: owner } })));
     await until(() => expect(label.textContent).toBe("Private fixture name"));
     expect(accountLabel()).toBe(label);
@@ -180,12 +177,12 @@ describe("persistent workspace shell", () => {
     expect(accountLabel()).toBe(label); expect(label.getAttribute("aria-busy")).toBe("true");
     expect(host.textContent).not.toContain("Private fixture");
     expect(host.textContent).not.toContain("Sign in");
-    expect(host.querySelector('.topbar a[href="/sign-in"]')).toBeNull();
+    expect(host.querySelector('header a[href="/sign-in"]')).toBeNull();
     await act(async () => recheck.resolve(new Response(null, { status: 401 })));
     await until(() => expect(label.textContent).toBe("Sign in"));
     expect(accountLabel()).toBe(label); expect(label.getAttribute("aria-busy")).toBe("false");
     expect(host.textContent).not.toContain("Private fixture");
-    expect(host.querySelector('.topbar a[href="/sign-in"]')).not.toBeNull();
+    expect(host.querySelector('header a[href="/sign-in"]')).not.toBeNull();
   });
 
   it("keeps the same neutral label while the first verified profile loads", async () => {
@@ -208,27 +205,12 @@ describe("persistent workspace shell", () => {
   });
 });
 
-it("protects mobile navigation padding and keeps explicit close and Escape available", async () => {
-  Object.defineProperties(HTMLDialogElement.prototype, {
-    showModal: { configurable: true, value: function (this: HTMLDialogElement) { this.open = true; } },
-    close: { configurable: true, value: function (this: HTMLDialogElement) { this.open = false; } },
-  });
-  await render(); await until(() => expect(account.session.status).toBe("ready"));
-  const trigger = host.querySelector<HTMLButtonElement>('[aria-label="Open navigation"]')!;
-  const dialog = host.querySelector<HTMLDialogElement>(".mobile-menu")!;
-  dialog.getBoundingClientRect = () => new DOMRect(0, 0, 300, 800);
-  const generation = account.session.generation;
-  await act(async () => trigger.click());
-  await act(async () => dialog.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 290, clientY: 700 })));
-  expect(dialog.open).toBe(true);
-  await act(async () => dialog.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 301, clientY: 700 })));
-  expect(dialog.open).toBe(false);
-  await act(async () => trigger.click());
-  await act(async () => dialog.dispatchEvent(new Event("cancel", { cancelable: true })));
-  expect(dialog.open).toBe(false);
-  await act(async () => trigger.click());
-  await act(async () => dialog.querySelector<HTMLButtonElement>('[aria-label="Close navigation"]')!.click());
-  expect(dialog.open).toBe(false); expect(account.session.generation).toBe(generation);
+it("reaches every destination from the pill without a separate mobile menu, and closes Tools on Escape", async () => {
+  await render(); await until(() => expect(accountLabel().textContent).toBe("Private fixture name"));
+  expect(host.querySelector(".workspace-account-avatar")?.textContent).toBe("PN");
+  const details = toolsSummary().parentElement as HTMLDetailsElement;
+  details.open = true; toolsSummary().focus();
+  await act(async () => details.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })));
+  expect(details.open).toBe(false); expect(document.activeElement).toBe(toolsSummary());
   expect(fetcher.mock.calls.filter(([path]) => path === "/api/session")).toHaveLength(1);
-  Reflect.deleteProperty(HTMLDialogElement.prototype, "showModal"); Reflect.deleteProperty(HTMLDialogElement.prototype, "close");
 });

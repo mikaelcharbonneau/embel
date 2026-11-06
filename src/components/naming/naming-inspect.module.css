@@ -55,7 +55,7 @@
 }
 .iconButton:hover, .iconButton:focus-visible { background: var(--surface); color: var(--text); }
 .iconButton:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
-.iconButton[aria-pressed=true] { background: var(--magenta-soft); }
+.iconButton[aria-pressed=true] { background: var(--accent-soft); }
 .iconButton:disabled { opacity: .5; cursor: default; }
 .content { padding: 4px 24px 24px; }
 .footer {

@@ -64,7 +64,7 @@ export function ConversationComposer({ value, onChange, onSend, label, placehold
         if (!disabled) formRef.current?.requestSubmit();
       }
     }} />
-    <div className="conversation-composer-footer">{inputControls}{hint !== null && <span className={initial ? "sr-only" : undefined} id={`${id}-hint`}>{hint ?? "Shift + Enter for a new line"}</span>}<button className={`button primary ${(project || home || sendLabel === "Send prompt") ? "composer-send-icon" : ""}`} type="submit" disabled={disabled} title={sendLabel}><span className={(project || home || sendLabel === "Send prompt") ? "sr-only" : undefined}>{sendLabel}</span>{project ? <ProjectArtwork name="send" /> : <Icon name={home ? "arrow" : "arrow-up"} size={home ? 20 : 18} />}</button></div>
+    <div className="conversation-composer-footer">{inputControls}{hint !== null && <span className={initial ? "sr-only" : undefined} id={`${id}-hint`}>{hint ?? "Shift + Enter for a new line"}</span>}<button className={`button primary ${(project || home || sendLabel === "Send prompt") ? "composer-send-icon" : ""}`} type="submit" disabled={disabled} title={sendLabel}><span className={(project || home || sendLabel === "Send prompt") ? "sr-only" : undefined}>{sendLabel}</span>{project ? <ProjectArtwork name="send" /> : <Icon name="arrow-up" size={home ? 16 : 18} />}</button></div>
     {error && <p className="form-error" id={`${id}-error`} role="alert">{error}</p>}
   </form>;
 }

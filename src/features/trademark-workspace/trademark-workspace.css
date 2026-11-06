@@ -41,9 +41,9 @@
 .tm-missing ul, .tm-limitations ul { padding-left: 20px; font-size: var(--font-ui); line-height: 1.7; color: var(--secondary); }
 .tm-limitations p { font-size: var(--font-ui); }
 .tm-review { display: flex; align-items: start; gap: 12px; font-size: var(--font-ui); line-height: 1.7; margin: 24px 0; }
-.tm-review input { margin-top: 4px; accent-color: var(--accent-text); }
+.tm-review input { margin-top: 4px; accent-color: var(--accent-ink); }
 .tm-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
-.tm-error { color: var(--text); padding: 12px 16px; background: var(--magenta-soft); border: 1px solid var(--accent-text); border-radius: 6px; margin: 16px 0; }
+.tm-error { color: var(--text); padding: 12px 16px; background: var(--accent-soft); border: 1px solid var(--accent-ink); border-radius: 6px; margin: 16px 0; }
 @media (max-width: 950px) { .tm-layout { grid-template-columns: minmax(0, 1fr); gap: 16px; } .tm-checklist ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; } }
 @media (max-width: 540px) { .tm-navigation { gap: 20px; } .tm-navigation button { font-size: var(--font-ui); } .tm-section, .tm-checklist, .tm-preview, .tm-research { padding: 16px; } .tm-checklist ul { display: block; } .tm-field input, .tm-field textarea, .tm-field select { font-size: 16px; } .tm-preview-heading { flex-direction: column; } .tm-actions .button { width: 100%; white-space: normal; } }
 

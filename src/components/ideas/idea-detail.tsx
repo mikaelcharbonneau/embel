@@ -30,6 +30,7 @@ export function IdeaDetail({ ideaId }: { ideaId: string }) {
   const { session, ideaDrafts } = useAccountSession();
   if (!z.uuid().safeParse(ideaId).success) return <div className="page ideas-page idea-detail-page"><h1>Idea not found</h1><Link href="/ideas" className="text-link">Back to ideas</Link></div>;
   return <div className="page ideas-page idea-detail-page">
+    <Link href="/ideas" className="text-link idea-back-link">Back to ideas</Link>
     {session.status === "ready" ? <OwnedIdeaDetail key={`${ideaId}:${session.userId}:${session.generation}`} ideaId={ideaId.toLowerCase()} account={session} /> : <><div className="page-heading ideas-heading"><h1>Account idea</h1></div><AccountStatus retainedEdits={ideaDrafts.hasUnsaved()} /></>}
   </div>;
 }

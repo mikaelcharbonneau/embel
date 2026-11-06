@@ -71,7 +71,7 @@ describe("durable guided start allowance", () => {
     const receipt = readGuidedStartConsent(account.userId, turn().id)!;
     if (kind === "missing") window.localStorage.removeItem(receiptKey());
     else window.localStorage.setItem(receiptKey(), kind === "corrupt" ? "{invalid" : JSON.stringify({ ...receipt, ...(kind === "wrong owner" ? { ownerId: otherOwner } : kind === "wrong project" ? { projectId: otherProject } : { inputRevision: 2 }) }));
-    await render(); expect(strategy.enqueue).not.toHaveBeenCalled(); expect(host.textContent).toContain("Review the current research limit"); expect(button("Start research")).toBeDefined();
+    await render(); expect(strategy.enqueue).not.toHaveBeenCalled(); expect(host.textContent).toContain("Start research to see who people might compare you with"); expect(button("Start research")).toBeDefined();
     expect(host.querySelector(".guided-thinking")).toBeNull();
   });
   it("admits a saved initial turn once using its exact accepted cap under a reduced current limit", async () => {
@@ -82,7 +82,7 @@ describe("durable guided start allowance", () => {
   });
   it("waits for explicit acceptance of a newly higher allowance before any admission", async () => {
     strategy.overview = { availability: available(200000), jobs: [] };
-    await render(); expect(strategy.enqueue).not.toHaveBeenCalled(); expect(host.textContent).toContain("$0.20");
+    await render(); expect(strategy.enqueue).not.toHaveBeenCalled(); expect(host.textContent).not.toContain("$");
     await act(async () => button("Start research").click());
     expect(strategy.enqueue).toHaveBeenCalledExactlyOnceWith("strategy.competitors", 1, { ...allowance, maximumCostMicrousd: 200000 });
   });

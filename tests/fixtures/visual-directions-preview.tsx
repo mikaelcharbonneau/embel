@@ -64,7 +64,7 @@ function Preview({ boards }: { boards: string[] }) {
       <VisualDirectionsView brandName={mode === "long" ? "Northline — a longer project name to verify narrow screens" : "Northline"}
         logoPreview={<img src={logoImage} alt="Synthetic chosen logo" />} backHref="#fixture" cards={cards}
         generation={{ status: started ? "queued" : mode === "empty" ? "idle" : mode === "partial" ? "partial" : "complete", completed: amount,
-          estimatedCostLabel: "Estimated $0.06 for three directions", usageLabel: amount ? "Recorded usage for this set: $0.04" : null,
+          usageLabel: amount ? "Recorded usage for this set: $0.04" : null,
           onGenerate: () => setStarted(true), onCheck: () => setMessage("Progress checked."), onStop: () => setStarted(false) }}
         selectionStatus={message} finalAction={selected !== null && <a className="identity-primary-button" href="#brand-assets">View brand assets</a>} />
     </main></div>;

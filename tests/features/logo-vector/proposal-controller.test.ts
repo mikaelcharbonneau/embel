@@ -89,7 +89,7 @@ describe("vector proposal estimate and deliberate generation", () => {
 
   it("rejects expired and changed saved inputs while preserving the requested change", async () => {
     const f = await fixture(); await f.controller.prepare(); f.advance(10_001); f.controller.expireQuote();
-    expect(f.controller.getSnapshot().notice).toContain("Estimate expired"); expect(f.controller.canConfirm()).toBe(false);
+    expect(f.controller.getSnapshot().notice).toContain("This request expired"); expect(f.controller.canConfirm()).toBe(false);
     await f.controller.confirm(); expect(f.client.admitLogoOperation).not.toHaveBeenCalled();
     expect(f.controller.getSnapshot().session?.instruction).toBe("Make the symbol blue.");
     await f.controller.prepare(); expect(f.controller.canConfirm()).toBe(true);
@@ -100,7 +100,7 @@ describe("vector proposal estimate and deliberate generation", () => {
 
   it("retains the draft after an estimate failure and recovers only on another prepare", async () => {
     const f = await fixture(); f.client.quoteLogoOperation.mockRejectedValueOnce(Error("Synthetic estimate outage"));
-    await f.controller.prepare(); expect(f.controller.getSnapshot().error).toContain("refresh the estimate");
+    await f.controller.prepare(); expect(f.controller.getSnapshot().error).toContain("then try again");
     expect(f.controller.getSnapshot().session?.instruction).toBe("Make the symbol blue.");
     expect(f.client.quoteLogoOperation).toHaveBeenCalledTimes(1); expect(f.client.admitLogoOperation).not.toHaveBeenCalled();
     await f.controller.prepare(); expect(f.controller.canConfirm()).toBe(true); expect(f.client.quoteLogoOperation).toHaveBeenCalledTimes(2);

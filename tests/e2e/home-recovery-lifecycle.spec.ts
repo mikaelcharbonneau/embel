@@ -55,8 +55,7 @@ async function capture(page: Page, info: TestInfo, name: string, requests?: unkn
 async function begin(page: Page, entry: "header" | "composer") {
   await page.goto("/");
   await page.getByRole("textbox", { name: "Your prompt", exact: true }).fill(prompt);
-  await page.getByRole("button", { name: "Project scope: Brand", exact: true }).click();
-  await page.getByRole("menuitemradio", { name: "Name", exact: true }).click();
+  await page.getByRole("group", { name: "What to create", exact: true }).getByText("Name only", { exact: true }).click();
   if (entry === "header") await page.getByLabel("Account menu", { exact: true }).click();
   const signIn = page.locator(entry === "header" ? ".topbar-account" : ".conversation-start-notice").getByRole("link", { name: "Sign in", exact: true });
   if (entry === "header") { await signIn.focus(); await page.keyboard.press("Enter"); } else await signIn.click();
@@ -67,7 +66,7 @@ for (const entry of ["header", "composer"] as const) test(`Home recovery: ${entr
   await expect(page.getByRole("textbox", { name: "Your prompt", exact: true })).toBeVisible();
   await capture(page, info, `auth-${entry}-return`, state);
   await expect(page.getByRole("textbox", { name: "Your prompt", exact: true })).toHaveValue(prompt);
-  await expect(page.getByRole("button", { name: "Project scope: Name", exact: true })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Name only", exact: true })).toBeChecked();
   await expect(page.getByRole("textbox", { name: "Your prompt", exact: true })).toBeEditable();
   expect(state.creates).toHaveLength(0); expect(state.enqueues).toHaveLength(0);
 });
@@ -75,7 +74,7 @@ for (const entry of ["header", "composer"] as const) test(`Home recovery: ${entr
 test("Home recovery: confirmed start retires the ID and a new prompt creates a distinct request", async ({ page }, info) => {
   const state = await setup(page); await begin(page, "composer");
   state.signedIn = true; await page.goto("/");
-  await expect(page.getByRole("button", { name: "Project scope: Name", exact: true })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Name only", exact: true })).toBeChecked();
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page).toHaveURL(/\/brands\/account\/bbbbbbbb-1111-4111-8111-000000000001\/naming$/);
   await page.goto("/");
@@ -92,7 +91,7 @@ test("Home recovery: confirmed start retires the ID and a new prompt creates a d
 
 test("Home recovery: uncertain save stays immutable during sign-in remount and verified recovery", async ({ page }, info) => {
   const state = await setup(page); await begin(page, "composer"); state.signedIn = true; state.uncertain = true; await page.goto("/");
-  await expect(page.getByRole("button", { name: "Project scope: Name", exact: true })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Name only", exact: true })).toBeChecked();
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page.getByText(/Your project could not be confirmed/).first()).toBeVisible();
   const original = await page.evaluate(() => localStorage.getItem("fluid.local-drafts.v1"));
@@ -110,7 +109,7 @@ test("Home recovery: uncertain save stays immutable during sign-in remount and v
   await expect(page.getByRole("textbox", { name: "Your prompt", exact: true })).toHaveValue(prompt);
   await capture(page, info, "uncertain-verified-remount", state);
   await expect(page.getByRole("textbox", { name: "Your prompt", exact: true })).not.toBeEditable();
-  await expect(page.getByRole("button", { name: "Project scope: Name", exact: true })).toBeDisabled();
+  await expect(page.getByRole("radio", { name: "Name only", exact: true })).toBeChecked(); await expect(page.getByRole("radio", { name: "Name only", exact: true })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Check and retry save", exact: true })).toBeEnabled();
   await expect(page.getByRole("button", { name: "Start a new prompt", exact: true })).toBeDisabled();
   expect(state.creates).toHaveLength(1); expect(state.enqueues).toHaveLength(0);

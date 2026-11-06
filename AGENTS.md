@@ -1,6 +1,6 @@
 # Embel working agreement
 
-User-confirmed preferences, updated November 2, 2026. Embel helps people turn product
+User-confirmed preferences, updated November 6, 2026. Embel helps people turn product
 ideas into usable branding. It has no customers yet. Prioritize a reliable,
 complete branding journey and a professional interface.
 
@@ -23,9 +23,11 @@ dependencies when changing them.
   verification. Report tests, results and observed usage; distinguish estimated
   costs from confirmed charges.
 - Choose, test and explain application AI models on already connected services.
-- Keep the current visual style while improving clarity and consistency (latest
-  preference, October 30). Improve the layout, labels and interaction flow as
-  needed; old references and pixel specifications do not freeze those details.
+- Follow the November 6 redesign: a floating pill navigation, rounder corners
+  and a neutral ink accent. Do not use magenta. Improve the layout, labels and
+  interaction flow as needed; old references and pixel specifications do not
+  freeze those details. The plan is in
+  `docs/brand-journey-redesign-plan-20261106.md`.
 - All existing projects and generated outputs inside Embel are disposable test
   data. Reset or
   remove them when useful for requested cleanup and report the scope. This
@@ -39,6 +41,11 @@ dependencies when changing them.
 
 ## Agreed app behavior
 
+- The brand journey has four steps: Strategy (Competitors, Audience,
+  Positioning), Voice (Personality, Name, Slogan, which is optional), Identity
+  (Inspiration, Logo, Creative direction) and Assets (Brand images, Brand
+  guidelines, Design system). Competitor research starts automatically after
+  the first message on Home, with no extra start click.
 - The Logo step is for raster concepts. After choosing a concept, the next step
   presents three distinct raster visual identity directions using that exact
   chosen logo. Vector editing is optional, not a prerequisite for directions.
@@ -49,8 +56,9 @@ dependencies when changing them.
   palette, font links, social profile images, post templates and banners.
 - No fixed monetary caps that stop generation. Show usage and prevent accidental
   duplicate requests; retain normal cancellation and timeouts.
-- Show expected cost beside Generate; one deliberate click starts the request.
-  No extra confirmation screen is required. Never invent an unavailable estimate.
+- Do not show cost estimates anywhere in the app (November 6). One deliberate
+  click starts the request; no extra confirmation screen is required. Server
+  admission, duplicate prevention and recorded usage stay in place.
 - Implement and verify these requirements in the app. Editing instructions alone
   does not change runtime limits, dialogs or model bindings.
 
