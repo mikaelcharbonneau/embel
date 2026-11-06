@@ -11,7 +11,9 @@ export async function buildApiTextWorker({ root = fileURLToPath(new URL("../", i
   const entryPoints = ["enqueue", "readiness", "consume", "cron/repair-api-text"].map(name => path.join(root, "services/api-text-worker/api", `${name}.ts`));
   const options = { absWorkingDir: root, entryPoints, outbase: path.join(root, "services/api-text-worker"), outdir: output,
     bundle: true, platform: "node", format: "esm", target: "node24", conditions: ["react-server"], loader: { ".crt": "text" },
-    external: ["pg-native"], sourcemap: false, metafile: true, legalComments: "none", write: false,
+    // SDKs catch these missing optional peers. Keep them external so a parent
+    // directory's installations (for example ~/node_modules) can't alter the artifact.
+    external: ["pg-native", "@opentelemetry/api", "ws"], sourcemap: false, metafile: true, legalComments: "none", write: false,
     banner: { js: 'import { createRequire as __fluidCreateRequire } from "node:module"; const require = __fluidCreateRequire(import.meta.url);' },
   };
   // Discover the exact dependency graph without copying source or environment files.

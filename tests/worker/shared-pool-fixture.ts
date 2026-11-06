@@ -1,3 +1,4 @@
+import { afterEach,beforeEach } from "vitest";
 import type { SharedPoolConfiguration } from "../../worker/shared-pool/configuration";
 import type { SharedPoolSecrets } from "../../worker/shared-pool/secrets";
 import type { SharedSlotLease } from "../../worker/shared-pool/contracts";
@@ -11,6 +12,14 @@ export function sharedConfiguration():SharedPoolConfiguration{
   coreProofs:structuredClone(SHARED_CORE_RPC_PROOFS),
   capacity:{maxConcurrentExecutions:3,maxPerTenantPerLane:1,leaseSeconds:45,renewalMs:10_000,idlePollMs:100,drainTimeoutMs:1000},
   queue:{region:"iad1",topic:"embel-shared-strategy-v1",consumerGroup:"embel-shared-strategy-workers",deploymentId:"synthetic-shared-development",visibilityTimeoutSeconds:300,handlerDeadlineMs:270_000,emptyPollMs:100,errorPollMs:100,concurrency:1},slots};
+}
+/** The pool runs only in its packaged linux/x64 container, even on a macOS
+ * host, and attests the live process against that identity. Present it on any
+ * test host; only the platform/arch labels change, never the Node versions. */
+export function useSharedPoolLinuxRuntime(){
+ const host={platform:Object.getOwnPropertyDescriptor(process,"platform")!,arch:Object.getOwnPropertyDescriptor(process,"arch")!};
+ beforeEach(()=>{Object.defineProperty(process,"platform",{...host.platform,value:"linux"});Object.defineProperty(process,"arch",{...host.arch,value:"x64"});});
+ afterEach(()=>{Object.defineProperty(process,"platform",host.platform);Object.defineProperty(process,"arch",host.arch);});
 }
 export function sharedSecrets(config=sharedConfiguration()):SharedPoolSecrets{
  return{version:1,slots:Object.fromEntries(config.slots.map(slot=>[slot.slotId,{databaseUrl:`postgresql://${slot.roleName}:synthetic-inert-slot-password@127.0.0.1:54322/postgres`,
