@@ -15,7 +15,6 @@ import { useLogoCandidate } from "@/components/logo-creation/use-logo-candidate"
 import { logoCandidateKey } from "@/components/logo-creation/candidate-review";
 import { LogoVerifiedPreview } from "@/components/logo-creation/verified-preview";
 import { LogoDownloadControls } from "@/components/logo-creation/logo-download-controls";
-import { displayLogoCost } from "@/components/logo-creation/presentation";
 import { describeVisualDirections } from "./direction-presentation";
 import { hasCurrentBrandAssets } from "./selected-assets";
 import stage from "@/styles/branding-stage.module.css";
@@ -150,8 +149,8 @@ function OwnedVisualDirections({ account, projectId }: { account: VerifiedAccoun
       : <p role="status">{candidate.error || logo.error ? "Your selected logo could not be loaded." : candidate.loading ? "Loading your chosen logo…" : "Choose a logo concept to begin."}</p>}
     logoDownload={candidate.item && logo.client ? <LogoDownloadControls client={logo.client} account={account} projectId={projectId} original={candidate.item.preview} disabled={logoPending} compact /> : undefined}
     cards={cards} generation={{ status: visibleStatus, completed: requestBatch?.systems.length ?? 0,
-      usageLabel: batch?.usage ? batch.usage.status === "recorded" ? `Recorded usage for this set: ${displayLogoCost(batch.usage.knownCostMicrousd)}`
-        : `Recorded usage so far: ${displayLogoCost(batch.usage.knownCostMicrousd)}${batch.usage.status === "unknown" ? ". Some usage is still being checked." : ""}` : null,
+      // Amounts stay on the Usage page; the journey shows no money (2026-11-06).
+      usageLabel: null,
       error: generation.error ?? identity.error ?? logo.error ?? shownHistory?.error,
       busy: Boolean(generation.busy || shownHistory?.busy), disabledReason: blockedReason,
       onGenerate: start, onCheck: () => void refresh(), onStop: unresolved && generation.stopAcknowledgedBatchId !== generation.batch?.batchId
