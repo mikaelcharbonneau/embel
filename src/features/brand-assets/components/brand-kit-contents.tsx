@@ -14,7 +14,7 @@ type BrandKitContentsProps = {
   disabled: boolean;
 };
 
-function downloadLabel(file: BrandAssetFile) {
+export function downloadLabel(file: BrandAssetFile) {
   if (file.editable) return "Editable SVG";
   switch (file.mimeType) {
     case "image/png": return "Download PNG";
@@ -31,7 +31,7 @@ function downloadLabel(file: BrandAssetFile) {
 
 type CopyFeedback = { key: string | null; text: string; copied: boolean };
 
-function KitPalette({ colors }: Pick<BrandAssetSnapshot, "colors">) {
+export function KitPalette({ colors }: Pick<BrandAssetSnapshot, "colors">) {
   const [feedback, setFeedback] = useState<CopyFeedback | null>(null);
   const latest = useRef(0);
   useEffect(() => () => { latest.current++; }, []);

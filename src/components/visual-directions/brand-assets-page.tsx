@@ -11,8 +11,10 @@ import { useLogoDraftMemory } from "@/components/identity/logo-draft-memory-cont
 import { useLogoWorkspace } from "@/components/identity/use-logo-workspace";
 import { BrandAssetsPanel } from "@/features/brand-assets/components/brand-assets-panel";
 import stage from "@/styles/branding-stage.module.css";
-import styles from "@/features/brand-assets/components/brand-assets.module.css";
 import { describeVisualDirections } from "./direction-presentation";
+import { accountProjectResponseSchema } from "@/domain/project-api";
+import type { ContextSnapshot } from "@/domain/projects";
+import { boundedAccountRequest } from "@/components/workspace/bounded-account-request";
 
 export function BrandAssetsPage({ projectId }: { projectId: string }) {
   const { session } = useAccountSession();
@@ -20,15 +22,8 @@ export function BrandAssetsPage({ projectId }: { projectId: string }) {
     <h1 className={stage.title}>Project not found</h1>
     <Link className={stage.actionLink} href="/brands">Back to projects</Link>
   </section>;
-  return <section className={stage.frame}>
-    <header className={styles.pageHeader}>
-      <div>
-        <p className={stage.eyebrow}>Build your brand · Step 3 of 3</p>
-        <h1 className={stage.title}>Brand assets</h1>
-        <p className={stage.intro}>Your chosen direction, ready to use.</p>
-      </div>
-      <Link className={stage.actionLink} href={`/brands/account/${projectId}/logo/directions`}>Back to visual directions</Link>
-    </header>
+  return <section className={`${stage.frame} assets-page`} aria-label="Assets">
+    <h1 className="sr-only">Assets</h1>
     <AccountStatus />{session.status === "ready" && <OwnedBrandAssets key={`${session.userId}:${session.generation}:${projectId}`} account={session} projectId={projectId} />}
   </section>;
 }
@@ -42,6 +37,15 @@ function OwnedBrandAssets({ account, projectId }: { account: VerifiedAccount; pr
   const batchId = system?.source.kind === "generated" ? system.source.batchId : null;
   const [check, setCheck] = useState<{ client: typeof client; batchId: string; attempt: number; batch: IdentityBatchState | null; error: string | null } | null>(null);
   const [attempt, setAttempt] = useState(0);
+  // The saved project supplies the guidelines' positioning, audience, competitors and slogan.
+  const [project, setProject] = useState<{ projectId: string; context: ContextSnapshot } | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    void boundedAccountRequest(`/api/projects/${projectId}`, accountProjectResponseSchema, { signal: controller.signal })
+      .then(({ project: saved }) => { if (!controller.signal.aborted && saved.owner_id === account.userId && saved.id === projectId) setProject({ projectId, context: saved.context }); })
+      .catch(() => { /* The kit still opens; the guidelines leave out what could not be read. */ });
+    return () => controller.abort();
+  }, [account.userId, projectId]);
   useEffect(() => {
     if (!client || !batchId || !client.current() || !isCurrent(account)) return;
     const controller = new AbortController();
@@ -87,5 +91,5 @@ function OwnedBrandAssets({ account, projectId }: { account: VerifiedAccount; pr
   return <BrandAssetsPanel key={`${system.id}:${sourceLogo.preview.reference.versionId}`} system={system} sourceLogo={sourceLogo}
     identityClient={client} logoClient={logo.client} account={account} projectId={projectId} revalidate={revalidate} directionTitle={directionTitle}
     onRefreshSelection={() => { void identity.refresh(); void logo.reload(false); setAttempt(value => value + 1); }}
-    vectorRevisionId={logo.workspace.approvedLogo?.vectorRevisionId ?? null} />;
+    vectorRevisionId={logo.workspace.approvedLogo?.vectorRevisionId ?? null} context={project?.projectId === projectId ? project.context : null} />;
 }
