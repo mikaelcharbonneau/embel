@@ -10,13 +10,12 @@ import { CompetitorWidgetControls } from "./competitor-widget-controls";
 import { EmbelIdentity, guidedStageLabel } from "./embel-identity";
 import { useConversationStep } from "@/components/journey/project-header";
 import { accountDraftChanged, type AccountWorkspace, type GuidedInterviewInput } from "./account-draft-memory";
-import { strategyAllowanceWithin, strategyAvailabilityMessage, strategyCanRetryDelivery, strategyJobActive } from "./account-strategy-client";
+import { strategyAvailabilityMessage, strategyCanRetryDelivery, strategyJobActive } from "./account-strategy-client";
 import type { VerifiedAccount } from "./account-session";
 import { ConversationComposer } from "./conversation-composer";
 import { FloatingComposer } from "./floating-composer";
 import { GuidedChoiceWidget } from "./guided-interview-widgets";
 import { GuidedThinking } from "./guided-thinking";
-import { bindGuidedStartConsent, isGuidedStartTurn, markGuidedStartAttempt, readGuidedStartConsent, rememberGuidedStartConsent } from "./guided-start-consent";
 import { guidedAllowance, guidedMessageContext, guidedTimeline, guidedTurnResult, nextGuidedProposal, recordGuidedChoice, retainedAnswerNames } from "./guided-interview-client";
 import type { ProjectEditorForm } from "./project-editor";
 import { useStrategyJobs } from "./use-strategy-jobs";
@@ -62,11 +61,7 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
   const currentTurn = turn && state?.stage === turn.stage && !state.answers.some(answer => answer.turnId === turn.id) ? turn : null;
   const operation = currentTurn ? guidedTurnOperation(currentTurn) : null;
   const allowance = operation ? guidedAllowance(availability, operation) : null;
-  const guardedStart = isGuidedStartTurn(currentTurn);
-  const retainedStart = guardedStart && currentTurn ? readGuidedStartConsent(account.userId, currentTurn.id) : null;
-  const startConsent = retainedStart?.projectId === saved.id && retainedStart.inputRevision === currentTurn?.inputRevision ? retainedStart : null;
   const turnStarting = Boolean(currentTurn && (strategy.pending || busy || working || workspace.pendingGuidedContext));
-  const startNeedsReview = guardedStart && !bound && strategy.overview && !turnStarting && !active && (!startConsent || startConsent.attempted || Boolean(allowance && !strategyAllowanceWithin(allowance, startConsent.allowance)));
   const choiceTurn = state?.stage !== "complete" ? [...(state?.turns ?? [])].reverse().find(item => item.stage === state?.stage && guidedTurnResult(jobs, item, account.userId, saved.id)?.reply?.kind === "choices") : null;
 
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
@@ -115,15 +110,10 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
     if (bound || !allowance || currentTurn.inputRevision !== saved.current_revision) return;
     const key = `request:${currentTurn.id}`;
     if (attempts.current.has(key)) return;
-    let accepted = allowance;
-    if (isGuidedStartTurn(currentTurn)) {
-      const consent = readGuidedStartConsent(account.userId, currentTurn.id);
-      if (!consent || consent.projectId !== saved.id || consent.inputRevision !== currentTurn.inputRevision || consent.attempted || !strategyAllowanceWithin(allowance, consent.allowance)) return;
-      if (!markGuidedStartAttempt(account.userId, currentTurn.id)) { setError("Your project is saved. Research could not start safely. Check status, then retry research."); return; }
-      accepted = consent.allowance;
-    }
+    // The request identity is derived from the project, revision and operation,
+    // so a remount or reload resends the same request rather than a new one.
     attempts.current.add(key);
-    await strategy.enqueue(guidedTurnOperation(currentTurn), saved.current_revision, accepted);
+    await strategy.enqueue(guidedTurnOperation(currentTurn), saved.current_revision, allowance);
   });
   // Report a genuine failed write to the external admission-recovery receipt.
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -236,20 +226,8 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
     setError(null);
     if (!bound) {
       if (allowance && strategy.overview && !strategy.readError) {
-        let accepted = allowance;
-        if (isGuidedStartTurn(currentTurn)) {
-          const receipt = readGuidedStartConsent(account.userId, currentTurn.id);
-          const consent = receipt?.projectId === saved.id && receipt.inputRevision === currentTurn.inputRevision ? receipt : null;
-          if (consent?.attempted) {
-            if (!strategyAllowanceWithin(allowance, consent.allowance)) { setError("The research limits changed. The original request is kept; check its status before starting another request."); return; }
-            accepted = consent.allowance;
-          } else if (!rememberGuidedStartConsent(account.userId, currentTurn.id, allowance, currentTurn.inputRevision) || !bindGuidedStartConsent(account.userId, currentTurn.id, saved.id)) {
-            setError("Your project is saved. The research request could not be retained safely. Check your browser storage and retry."); return;
-          }
-          if (!markGuidedStartAttempt(account.userId, currentTurn.id)) { setError("Your project is saved. The research request could not be retained safely. Check your browser storage and retry."); return; }
-        }
         attempts.current.add(`request:${currentTurn.id}`);
-        await strategy.enqueue(guidedTurnOperation(currentTurn), saved.current_revision, accepted);
+        await strategy.enqueue(guidedTurnOperation(currentTurn), saved.current_revision, allowance);
       } else strategy.refresh();
       return;
     }
@@ -339,10 +317,10 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
         <button type="button" className="text-link" disabled={busy || working || strategy.pending || dirty || workspace.conflict || Boolean(strategy.readError)} onClick={() => void strategy.retryDelivery(bound.job)}>Retry delivery</button>
       </div>
     </div>}
-    {(error || strategy.actionError || strategy.readError || failed || unverified || unavailable || stale || startNeedsReview) && <div className="guided-conversation-error" role="alert">
-      <p>{error || strategy.actionError || statusReadError || (startNeedsReview && !unavailable ? startConsent?.attempted ? "Your project is saved. The research request is not confirmed. Check status or retry the same request." : "Your project is saved. Start research to see who people might compare you with." : stale ? "The project changed after this response was requested. Your conversation is kept. Send a new message to continue from the current version." : bound?.job.state === "needs_reconciliation" ? "This research outcome needs verification before another request can start. Your prompt is saved." : requestBlocked ? strategyAvailabilityMessage(availability, "project") : failed ? bound?.job.state === "cancelled" ? "Research was cancelled. Your prompt is saved." : currentTurn?.stage === "competitors" && currentTurn.purpose !== "message" ? "Research could not produce verified suggestions. Your prompt is saved. You can retry research." : "This response did not finish. Your prompt is saved." : unverified ? "This response could not be matched to your question. Your conversation is kept." : strategyAvailabilityMessage(availability ?? null, "project"))}</p>
+    {(error || strategy.actionError || strategy.readError || failed || unverified || unavailable || stale) && <div className="guided-conversation-error" role="alert">
+      <p>{error || strategy.actionError || statusReadError || (stale ? "The project changed after this response was requested. Your conversation is kept. Send a new message to continue from the current version." : bound?.job.state === "needs_reconciliation" ? "This research outcome needs verification before another request can start. Your prompt is saved." : requestBlocked ? strategyAvailabilityMessage(availability, "project") : failed ? bound?.job.state === "cancelled" ? "Research was cancelled. Your prompt is saved." : currentTurn?.stage === "competitors" && currentTurn.purpose !== "message" ? "Research could not produce verified suggestions. Your prompt is saved. You can retry research." : "This response did not finish. Your prompt is saved." : unverified ? "This response could not be matched to your question. Your conversation is kept." : strategyAvailabilityMessage(availability ?? null, "project"))}</p>
       <button type="button" className="text-link" disabled={busy || working || strategy.pending} onClick={strategy.refresh}>Check status</button>
-      {currentTurn && !stale && !requestBlocked && (!bound || bound.job.state === "failed" || bound.job.state === "cancelled") && <button type="button" className="text-link" disabled={blocked} onClick={() => void retry()}>{guardedStart && !startConsent?.attempted && !bound ? "Start research" : currentTurn.stage === "competitors" && currentTurn.purpose !== "message" ? "Retry research" : "Retry request"}</button>}
+      {currentTurn && !stale && !requestBlocked && (!bound || bound.job.state === "failed" || bound.job.state === "cancelled") && <button type="button" className="text-link" disabled={blocked} onClick={() => void retry()}>{currentTurn.stage === "competitors" && currentTurn.purpose !== "message" ? "Retry research" : "Retry request"}</button>}
     </div>}
     {busy && <p role="status">{storage.saveLabel}</p>}
     {!busy && storage.actions}
