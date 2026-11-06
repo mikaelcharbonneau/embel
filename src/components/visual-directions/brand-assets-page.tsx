@@ -22,7 +22,7 @@ export function BrandAssetsPage({ projectId }: { projectId: string }) {
     <h1 className={stage.title}>Project not found</h1>
     <Link className={stage.actionLink} href="/brands">Back to projects</Link>
   </section>;
-  return <section className={`${stage.frame} assets-page`} aria-label="Assets">
+  return <section className={`${stage.frame} kit-page`} aria-label="Assets">
     <h1 className="sr-only">Assets</h1>
     <AccountStatus />{session.status === "ready" && <OwnedBrandAssets key={`${session.userId}:${session.generation}:${projectId}`} account={session} projectId={projectId} />}
   </section>;
