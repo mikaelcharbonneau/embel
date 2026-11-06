@@ -82,6 +82,11 @@ function AccountProjectNaming({ projectId, account, conversationHistory, inline 
   }, [continueVersion, eligibleView, startFeed, account, isCurrent]);
   useEffect(() => () => { continuation.current?.resolve(false); continuation.current = null; }, []);
   const strategyHref = projectStrategyHref(projectId);
+  // A complete brand names inside the conversation (Voice · Name) once Strategy and
+  // Personality are answered; the standalone Name page sends people back there.
+  const conversationOwnsNaming = !inline && overview?.project.scope === "complete_brand"
+    && Boolean(overview.project.context.intake.guidedInterview?.answers.some(answer => answer.stage === "personality"));
+  useEffect(() => { if (conversationOwnsNaming && isCurrent(account)) router.replace(strategyHref); }, [conversationOwnsNaming, account, isCurrent, router, strategyHref]);
   const activeRun = feed.state?.feed?.activeRun;
   const readyCount = activeRun?.fulfillment?.acceptedCount ?? 0;
   const existingLibrary = custom.items.length > 0 || feed.entries.some(row => row.runId === null) || overview?.candidates.items.some(entry => entry.candidate.origin.kind !== "generated");
