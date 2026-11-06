@@ -37,7 +37,7 @@ export function LogoSavedInputsStatus({ state, projectId, onChoice, onCancel, on
     {state.source?.draft === null && <Link className={styles.secondaryButton} href={projectStrategyHref(projectId)}>Open project to choose a name</Link>}
     <button className={styles.secondaryButton} type="button" onClick={onRefresh}>Refresh logo inputs</button>
   </div>;
-  return <p className={styles.note} role="status">{state.status === "prepared" ? "Using your saved brand and logo inputs."
-    : state.used === "current" ? "Using your saved logo brief."
+  if (state.status === "prepared") return null;
+  return <p className={styles.note} role="status">{state.used === "current" ? "Using your saved logo brief."
     : `Saved. Your brand${state.source.inspirationCount ? ` and ${state.source.inspirationCount} saved inspiration${state.source.inspirationCount === 1 ? "" : "s"}` : ""} will guide this exploration.`}</p>;
 }
