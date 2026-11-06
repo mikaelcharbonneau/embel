@@ -90,8 +90,8 @@ test("standalone logo brief opens the new direction flow through the old board U
   expect(f.input.version).toBe(2); expect(f.input.basis.name).toBe("Cedar");
   await page.goto(`/brands/account/${projectId}/brand-board`);
   await expect(page).toHaveURL(directionsUrl);
-  await expect(page.getByRole("heading", { name: "Visual direction", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Generate three directions", exact: true })).toBeEnabled();
+  await expect(page.getByRole("heading", { name: "Creative direction", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Create three directions", exact: true })).toBeEnabled();
   await expect(page.getByRole("img", { name: "Chosen logo concept", exact: true })).toBeVisible();
   expect(f.admissions).toHaveLength(0); expect(f.mutations).toHaveLength(0);
   await fits(page); expect(health.pageErrors).toEqual([]);
@@ -101,7 +101,7 @@ test("chosen concept leads to three directions, a saved choice and usable brand 
   test.setTimeout(90_000);
   const f = createVisualJourneyFixture(), health = await f.setup(page);
   await page.goto(conceptsUrl);
-  const next = page.getByRole("link", { name: "Continue to visual directions →", exact: true });
+  const next = page.locator(`a[href="${directionsUrl}"]`, { hasText: /^Continue$/ });
   await expect(next).toBeVisible(); await expect(next).toHaveAttribute("href", directionsUrl);
   expect(f.workspace.approvedLogo).toBeNull(); expect(f.workspace.stages.vector).toBeNull();
   const originalDownload = page.waitForEvent("download");
@@ -110,10 +110,9 @@ test("chosen concept leads to three directions, a saved choice and usable brand 
   expect(original.suggestedFilename()).toBe("cedar-logo.png"); expect(digest(await downloadedBytes(original))).toBe(digest(f.logoBytes));
   await next.click(); await expect(page).toHaveURL(directionsUrl);
   await expect(page.getByRole("img", { name: "Chosen logo concept", exact: true })).toBeVisible();
-  const generate = page.getByRole("button", { name: "Generate three directions", exact: true });
-  await expect(generate).toBeEnabled(); await expect(page.getByText(/Estimated .*for three directions/u)).toHaveCount(0);
-  expect(f.admissions).toHaveLength(0);
-  await generate.click(); await expect.poll(() => f.admissions.length).toBe(1);
+  // Continue on the chosen logo is the deliberate click: the three directions start on their own.
+  await expect(page.getByText(/Estimated .*for three directions/u)).toHaveCount(0);
+  await expect.poll(() => f.admissions.length).toBe(1);
   expect(f.admissions[0]).toMatchObject({ version: 3, spendControl: "uncapped", sourceLogo: f.sourceLogo.source, expectedLogoRevision: f.sourceLogo.selectionRevision });
   expect(f.admissions[0]).not.toHaveProperty("acceptedMaxCostMicrousd");
   await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -131,24 +130,24 @@ test("chosen concept leads to three directions, a saved choice and usable brand 
     const heading = system.components.typography.styles.find(style => style.key === system.applicationDesign.headingStyleKey)!;
     await expect(card.getByText(`${heading.family} · ${heading.weight}`, { exact: true })).toBeVisible();
   }
-  const assets = page.getByRole("link", { name: "View brand assets", exact: true });
+  const assets = page.getByRole("link", { name: "Continue", exact: true });
   await expect(assets).toHaveCount(0);
   await expect(page.getByRole("img", { name: "Saved Identity board for Cedar", exact: true })).toHaveCount(3);
   await fits(page);
-  await page.getByRole("heading", { name: "Visual direction", exact: true }).scrollIntoViewIfNeeded();
+  await page.getByRole("heading", { name: "Creative direction", exact: true }).scrollIntoViewIfNeeded();
   await page.screenshot({ path: info.outputPath("directions.png"), fullPage: true, scale: "css" });
   const chosenCard = cards.nth(1);
-  await chosenCard.getByRole("button", { name: "Choose direction", exact: true }).click();
+  await chosenCard.click();
   await expect.poll(() => f.selections.length).toBe(1);
-  await expect(page.getByRole("button", { name: "Chosen direction", exact: true })).toHaveCount(1);
-  await expect(chosenCard.getByRole("button", { name: "Chosen direction", exact: true })).toBeDisabled();
+  await expect(page.locator('[aria-label="Direction comparison"] article[aria-checked="true"]')).toHaveCount(1);
+  await expect(chosenCard).toHaveAttribute("aria-checked", "true");
   await expect(assets).toHaveAttribute("href", assetsUrl);
   expect(await assets.evaluate(link => Boolean(link.compareDocumentPosition(document.querySelector('[aria-label="Direction comparison"]')!) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
   const selectedId = f.selection!.systemVersionId;
   expect(selectedId).toBe(f.systems[1]!.id);
-  await page.reload(); await expect(page.getByRole("button", { name: "Chosen direction", exact: true })).toHaveCount(1);
+  await page.reload(); await expect(page.locator('[aria-label="Direction comparison"] article[aria-checked="true"]')).toHaveCount(1);
   expect(f.selection!.systemVersionId).toBe(selectedId); expect(f.admissions).toHaveLength(1);
-  await expect(chosenCard.getByRole("button", { name: "Chosen direction", exact: true })).toBeDisabled();
+  await expect(chosenCard).toHaveAttribute("aria-checked", "true");
   await assets.click();
   await expect(page).toHaveURL(assetsUrl);
   const kit = page.getByRole("button", { name: "Download brand kit", exact: true });
@@ -219,7 +218,7 @@ test("chosen concept leads to three directions, a saved choice and usable brand 
 test("lost generation acknowledgement checks the original request and keeps a partial board usable", async ({ page }) => {
   const f = createVisualJourneyFixture(); f.loseAdmission = true; const health = await f.setup(page);
   await page.goto(directionsUrl);
-  await page.getByRole("button", { name: "Generate three directions", exact: true }).click();
+  await page.getByRole("button", { name: "Create three directions", exact: true }).click();
   await expect(page.getByText("Check the existing request before starting another. Saved boards stay available.", { exact: true })).toBeVisible();
   expect(f.admissions).toHaveLength(1); const original = structuredClone(f.admissions[0]);
   await checkProgress(page); await expect(page.getByText("Your directions are queued.", { exact: true })).toBeVisible();
@@ -229,9 +228,9 @@ test("lost generation acknowledgement checks the original request and keeps a pa
   await expect(page.getByText("1 of 3 ready", { exact: true })).toBeVisible();
   await loadBoards(page, 1);
   await expect(page.getByRole("img", { name: "Saved Identity board for Cedar", exact: true })).toHaveCount(1);
-  await expect(page.getByRole("button", { name: "Choose direction", exact: true })).toBeEnabled();
-  await page.getByRole("button", { name: "Choose direction", exact: true }).click();
-  await expect(page.getByRole("link", { name: "View brand assets", exact: true })).toBeVisible();
+  await expect(page.getByRole("radio", { name: /^Direction 1:/ })).toHaveAttribute("aria-disabled", "false");
+  await page.getByRole("radio", { name: /^Direction 1:/ }).click();
+  await expect(page.getByRole("link", { name: "Continue", exact: true })).toBeVisible();
   expect(f.admissions).toEqual([original]); expect(f.selection!.systemVersionId).toBe(f.systems[0]!.id);
   await fits(page); expect(health.pageErrors).toEqual([]);
 });
@@ -240,21 +239,21 @@ test("saved boards explain unavailable selection and recover without another gen
   const f = createVisualJourneyFixture(), health = await f.setup(page);
   f.savingAvailable = false;
   await page.goto(directionsUrl);
-  await page.getByRole("button", { name: "Generate three directions", exact: true }).click();
+  await page.getByRole("button", { name: "Create three directions", exact: true }).click();
   await expect.poll(() => f.admissions.length).toBe(1);
   f.complete();
   await expect(page.getByText("3 of 3 ready", { exact: true })).toBeVisible({ timeout: 15_000 });
   await loadBoards(page, 3);
   await expect(page.getByText("Saving your direction is temporarily unavailable. Your boards are saved.", { exact: true })).toHaveCount(3);
   await expect(page.getByText("Checking your saved choice…", { exact: true })).toHaveCount(0);
-  for (const button of await page.getByRole("button", { name: "Choose direction", exact: true }).all()) await expect(button).toBeDisabled();
+  for (const card of await page.getByRole("radio", { name: /^Direction \d:/ }).all()) await expect(card).toHaveAttribute("aria-disabled", "true");
   expect(f.selections).toHaveLength(0); expect(f.admissions).toHaveLength(1);
   f.savingAvailable = true;
   await page.getByRole("button", { name: "Check saved choice", exact: true }).click();
-  const choose = page.getByRole("button", { name: "Choose direction", exact: true }).nth(1);
-  await expect(choose).toBeEnabled(); expect(f.selections).toHaveLength(0); expect(f.admissions).toHaveLength(1);
+  const choose = page.getByRole("radio", { name: /^Direction \d:/ }).nth(1);
+  await expect(choose).toHaveAttribute("aria-disabled", "false"); expect(f.selections).toHaveLength(0); expect(f.admissions).toHaveLength(1);
   await choose.click();
-  await expect(page.getByRole("link", { name: "View brand assets", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Continue", exact: true })).toBeVisible();
   expect(f.selections).toHaveLength(1); expect(f.admissions).toHaveLength(1);
   await fits(page); expect(health.pageErrors).toEqual([]);
 });
@@ -262,11 +261,11 @@ test("saved boards explain unavailable selection and recover without another gen
 test("a changed logo prevents old directions and prepared files from being presented as current", async ({ page }) => {
   test.setTimeout(90_000);
   const f = createVisualJourneyFixture(); await f.setup(page);
-  await page.goto(directionsUrl); await page.getByRole("button", { name: "Generate three directions", exact: true }).click();
+  await page.goto(directionsUrl); await page.getByRole("button", { name: "Create three directions", exact: true }).click();
   await expect.poll(() => f.admissions.length).toBe(1); f.complete();
   await expect(page.getByText("3 of 3 ready", { exact: true })).toBeVisible({ timeout: 15_000 });
-  await page.getByRole("button", { name: "Choose direction", exact: true }).first().click();
-  await page.getByRole("link", { name: "View brand assets", exact: true }).click();
+  await page.getByRole("radio", { name: /^Direction \d:/ }).first().click();
+  await page.getByRole("link", { name: "Continue", exact: true }).click();
   const kit = page.getByRole("button", { name: "Download brand kit", exact: true });
   await expect(kit).toBeEnabled();
   await expect(page.getByRole("button", { name: "Create brand assets", exact: true })).toHaveCount(0);
@@ -278,14 +277,14 @@ test("a changed logo prevents old directions and prepared files from being prese
   expect(downloads).toHaveLength(0);
   await page.goto(directionsUrl);
   await expect(page.getByText("Earlier inputs", { exact: true })).toHaveCount(3);
-  await expect(page.getByRole("link", { name: "View brand assets", exact: true })).toHaveCount(0);
-  for (const button of await page.getByRole("button", { name: "Choose direction", exact: true }).all()) await expect(button).toBeDisabled();
+  await expect(page.getByRole("link", { name: "Continue", exact: true })).toHaveCount(0);
+  for (const card of await page.getByRole("radio", { name: /^Direction \d:/ }).all()) await expect(card).toHaveAttribute("aria-disabled", "true");
   expect(f.admissions).toHaveLength(1); await fits(page);
 });
 
 test("account changes clear the former account's private boards", async ({ page }) => {
   const f = createVisualJourneyFixture(), health = await f.setup(page);
-  await page.goto(directionsUrl); await page.getByRole("button", { name: "Generate three directions", exact: true }).click();
+  await page.goto(directionsUrl); await page.getByRole("button", { name: "Create three directions", exact: true }).click();
   await expect.poll(() => f.admissions.length).toBe(1); f.complete();
   await expect(page.getByText("3 of 3 ready", { exact: true })).toBeVisible({ timeout: 15_000 });
   await loadBoards(page, 3);

@@ -164,7 +164,7 @@ async function setup(page: Page, scenario: "empty" | "partial" | "uncertain" | "
   });
   await page.goto(url);
   if (noBrief) {
-    await expect(page.getByRole("heading", { name: "Explore your logo", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Logo", exact: true })).toBeVisible();
     return state;
   }
   await page.getByRole("button", { name: "Project context", exact: true }).click();
@@ -174,8 +174,8 @@ async function setup(page: Page, scenario: "empty" | "partial" | "uncertain" | "
 }
 
 test("starts six concepts with one deliberate click and shows no cost", async ({ page }, info) => {
-  const f = await setup(page), action = page.getByRole("group", { name: "Generate six concepts", exact: true });
-  const generate = action.getByRole("button", { name: "Generate six concepts", exact: true });
+  const f = await setup(page), action = page.getByRole("group", { name: "Explore six concepts", exact: true });
+  const generate = action.getByRole("button", { name: "Explore six concepts", exact: true });
   await expect(generate).toBeEnabled(); await expect(action).not.toContainText(/cost|estimat|\$/i);
   await expect(action).toContainText("Not included in this batch: Mascot");
   await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
@@ -186,14 +186,14 @@ test("starts six concepts with one deliberate click and shows no cost", async ({
   await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
 });
 test("a keyboard action starts one request without opening a cost dialog", async ({ page }) => {
-  const f = await setup(page), trigger = page.getByRole("button", { name: "Generate six concepts", exact: true });
+  const f = await setup(page), trigger = page.getByRole("button", { name: "Explore six concepts", exact: true });
   await expect(trigger).toBeEnabled(); expect(f.posts).toHaveLength(0);
   await trigger.focus(); await page.keyboard.press("Enter");
   await expect.poll(() => f.posts.length).toBe(1);
   await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
 });
 test("failed saved-input loading can be refreshed in place without starting generation", async ({ page }) => {
-  const f = await setup(page, "inputs_failed"), generate = page.getByRole("button", { name: "Generate six concepts", exact: true });
+  const f = await setup(page, "inputs_failed"), generate = page.getByRole("button", { name: "Explore six concepts", exact: true });
   await expect(page.getByRole("button", { name: "Refresh logo inputs" })).toBeVisible();
   await expect(generate).toBeDisabled(); expect(f.posts).toHaveLength(0); expect(f.quotes).toHaveLength(0);
   f.failInputReads = false;
@@ -208,7 +208,7 @@ test("a paused saved-input review can be resumed without choosing a brand automa
   await page.getByRole("button", { name: "Refresh logo inputs" }).click();
   await expect(review).toBeVisible(); expect(f.quotes).toHaveLength(0);
   await review.getByRole("button", { name: "Use current logo brief" }).click();
-  await expect(page.getByRole("button", { name: "Generate six concepts", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Explore six concepts", exact: true })).toBeEnabled();
   expect(f.posts).toHaveLength(0); expect(f.saves).toHaveLength(0);
 });
 test("restored saving refreshes prepared inputs and enables a deliberate Generate click", async ({ page }) => {
@@ -216,7 +216,7 @@ test("restored saving refreshes prepared inputs and enables a deliberate Generat
   await expect(page.getByText(/Logo saving is unavailable/)).toBeVisible();
   expect(f.saves).toHaveLength(0); expect(f.posts).toHaveLength(0);
   f.restoreSaving(); await page.getByRole("button", { name: "Refresh logo inputs" }).click();
-  await expect(page.getByRole("button", { name: "Generate six concepts", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Explore six concepts", exact: true })).toBeEnabled();
   expect(f.saves).toHaveLength(1); expect(f.posts).toHaveLength(0);
 });
 test("partial results retain five cards and one-click retry excludes successful concepts", async ({ page }) => {
@@ -232,13 +232,13 @@ test("partial results retain five cards and one-click retry excludes successful 
 });
 test("lost admission response recovers by original key without a second generation post", async ({ page }) => {
   const f = await setup(page); f.lose = true;
-  await page.getByRole("button", { name: "Generate six concepts" }).click();
+  await page.getByRole("button", { name: "Explore six concepts" }).click();
   await expect(page.getByRole("button", { name: "Check original generation request" })).toBeVisible();
   await page.getByRole("button", { name: "Check original generation request" }).click();
   await expect.poll(() => f.readKeys.length).toBeGreaterThan(0); expect(f.readKeys).toContain(f.posts[0]!.requestKey); expect(f.posts).toHaveLength(1);
 });
 test("unavailable generation preserves saved brief and stays within mobile viewport", async ({ page }) => {
-  const f = await setup(page, "unavailable"); await expect(page.getByRole("button", { name: "Generate six concepts" })).toBeDisabled();
+  const f = await setup(page, "unavailable"); await expect(page.getByRole("button", { name: "Explore six concepts" })).toBeDisabled();
   await page.getByRole("button", { name: "Project context", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Brand name" })).toHaveValue("Élan & Co");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); expect(f.posts).toHaveLength(0);
@@ -247,7 +247,7 @@ test("unavailable generation preserves saved brief and stays within mobile viewp
 
 test("an unselected first exploration survives full reload with no concept-stage pointer", async ({ page }) => {
   const f = await setup(page);
-  await page.getByRole("button", { name: "Generate six concepts" }).click();
+  await page.getByRole("button", { name: "Explore six concepts" }).click();
 
   await expect.poll(() => f.posts.length).toBe(1); await page.reload();
   await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible();
@@ -258,7 +258,7 @@ test("an unselected first exploration survives full reload with no concept-stage
 
 test("an unselected More exploration is latest after reload and its earlier batch stays reachable", async ({ page }) => {
   const f = await setup(page, "partial"); await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Generate six more concepts", exact: true }).click();
+  await page.getByRole("button", { name: "More concepts", exact: true }).click();
   await expect.poll(() => f.posts.length).toBe(1); await page.reload();
   await page.getByRole("button", { name: "Project context", exact: true }).click();
   await page.getByRole("button", { name: "Saved inputs and recovery", exact: true }).click();
@@ -280,16 +280,16 @@ test("a reloaded uncertain retry checks its attempt identity and keeps five succ
 
 test("a rejected request offers fresh inputs and an estimate without silently generating again", async ({ page }) => {
   const f = await setup(page); f.admissionRejection = true;
-  await page.getByRole("button", { name: "Generate six concepts", exact: true }).click();
+  await page.getByRole("button", { name: "Explore six concepts", exact: true }).click();
   await page.getByRole("button", { name: "Refresh saved inputs", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Generate six concepts", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Explore six concepts", exact: true })).toBeEnabled();
   expect(f.posts).toHaveLength(1);
   await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
 });
 
 
 test("recovery refreshes a rejected request to the other tab's saved inputs", async ({ page }) => {
-  const f = await setup(page), generate = page.getByRole("button", { name: "Generate six concepts", exact: true });
+  const f = await setup(page), generate = page.getByRole("button", { name: "Explore six concepts", exact: true });
   await expect(generate).toBeEnabled(); f.advanceSavedBrief(); f.admissionRejection = true;
   await generate.click(); await expect(generate).toBeDisabled();
   await page.getByRole("button", { name: "Refresh saved inputs", exact: true }).click();
@@ -304,7 +304,7 @@ test("concepts landing matches the reference layout without inventing generated 
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
   const f = await setup(page);
-  await expect(page.getByRole("heading", { name: "Explore your logo", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Logo", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Back to inspiration" })).toHaveAttribute("href", `/brands/account/${source.input.projectId}/inspiration`);
   await expect(page.getByRole("link", { name: "Back to inspiration" })).toBeVisible();
   await expect(page.locator("header").getByRole("combobox", { name: "Concept batch" })).toHaveCount(0);
@@ -319,9 +319,7 @@ test("concepts landing matches the reference layout without inventing generated 
     expect(first!.y).toBe(second!.y); expect(second!.y).toBe(third!.y);
     expect(first!.x).toBeLessThan(second!.x); expect(second!.x).toBeLessThan(third!.x);
   } else expect(second!.y).toBeGreaterThan(first!.y);
-  await page.getByRole("button", { name: "Selected", exact: true }).click();
-  await expect(page.getByText("No concept selected in this batch.", { exact: false })).toBeVisible();
-  await page.getByRole("button", { name: "All concepts · 6", exact: true }).click();
+  // The redesigned gallery has no Selected/All filter; all six stay visible.
   await expect(cards).toHaveCount(6);
   expect(f.posts).toHaveLength(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -332,7 +330,7 @@ test("concepts landing matches the reference layout without inventing generated 
 test("new logo work prepares saved inputs and cost before one explicit six-concept request", async ({ page }) => {
   const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
   const f = await setup(page, "uninitialized");
-  const generate = page.getByRole("button", { name: "Generate six concepts", exact: true });
+  const generate = page.getByRole("button", { name: "Explore six concepts", exact: true });
   await expect(generate).toBeEnabled(); await expect(generate).toBeInViewport();
   expect(f.order).toEqual(["inputs", "save", "quote"]); expect(f.saves).toHaveLength(1);
   expect(f.saves[0]!.brief).toMatchObject({ name: "Élan & Co", activity: "Tea shop", audience: "Local readers", logoTypes: DEFAULT_LOGO_CONCEPT_TYPES });
@@ -373,8 +371,8 @@ test("clicking a logo selects it in place and persists without an inspection scr
   const first = page.getByRole("button", { name: "Select concept 1", exact: true });
   await first.click();
   await expect(first).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByText("Project logo choice saved.", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Explore your logo", exact: true })).toBeVisible();
+  await expect(page.getByText("Logo chosen. Continue, or describe a change below.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Logo", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Refine a direction", exact: true })).toHaveCount(0);
   expect(f.selections).toHaveLength(1);
   expect(f.posts).toHaveLength(0);
@@ -515,19 +513,19 @@ test("dialog hit testing: logo project context protects padding without generati
 
 test("a failed preparation can be retried without starting generation", async ({ page }) => {
   const f = await setup(page, "quote_failed");
-  const action = page.getByRole("group", { name: "Generate six concepts", exact: true });
+  const action = page.getByRole("group", { name: "Explore six concepts", exact: true });
   await expect(action).toContainText("This request could not be prepared");
-  await expect(action.getByRole("button", { name: "Generate six concepts", exact: true })).toBeDisabled();
+  await expect(action.getByRole("button", { name: "Explore six concepts", exact: true })).toBeDisabled();
   expect(f.posts).toHaveLength(0); f.failQuotes = false;
   await action.getByRole("button", { name: "Try again", exact: true }).click();
-  await expect(action.getByRole("button", { name: "Generate six concepts", exact: true })).toBeEnabled();
+  await expect(action.getByRole("button", { name: "Explore six concepts", exact: true })).toBeEnabled();
   expect(f.posts).toHaveLength(0); expect(f.quotes).toHaveLength(2);
 });
 
 test("an expired request is replaced quietly and never starts generation on its own", async ({ page }) => {
   const f = await setup(page, "quote_expired");
-  const action = page.getByRole("group", { name: "Generate six concepts", exact: true });
-  const generate = action.getByRole("button", { name: "Generate six concepts", exact: true });
+  const action = page.getByRole("group", { name: "Explore six concepts", exact: true });
+  const generate = action.getByRole("button", { name: "Explore six concepts", exact: true });
   await expect(generate).toBeEnabled();
   await expect.poll(() => f.quotes.length).toBeGreaterThan(1); expect(f.posts).toHaveLength(0);
   await expect(generate).toBeEnabled(); await expect(action).not.toContainText(/estimat|expired/i); expect(f.posts).toHaveLength(0);
@@ -536,20 +534,20 @@ test("an expired request is replaced quietly and never starts generation on its 
 
 test("a cancelled request keeps partial previews and allows a later deliberate generation", async ({ page }) => {
   const f = await setup(page);
-  await page.getByRole("button", { name: "Generate six concepts", exact: true }).click();
+  await page.getByRole("button", { name: "Explore six concepts", exact: true }).click();
   await expect.poll(() => f.posts.length).toBe(1);
   if (f.request.status === "not_found") throw Error("Synthetic admission missing");
   f.request = { ...f.request, status: "cancelled", billing: { status: "recorded", confirmedMicrousd: 0 }, outputs: [] };
   await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Generate six more concepts", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "More concepts", exact: true })).toBeEnabled();
   expect(f.posts).toHaveLength(1);
 });
 
 
 test("an uncapped generation shows no cost and starts on one click", async ({ page }) => {
   const f = await setup(page, "unknown_estimate");
-  const action = page.getByRole("group", { name: "Generate six concepts", exact: true });
+  const action = page.getByRole("group", { name: "Explore six concepts", exact: true });
   await expect(action).not.toContainText(/cost|estimat|\$/i);
-  expect(f.posts).toHaveLength(0); await action.getByRole("button", { name: "Generate six concepts", exact: true }).click();
+  expect(f.posts).toHaveLength(0); await action.getByRole("button", { name: "Explore six concepts", exact: true }).click();
   await expect.poll(() => f.posts.length).toBe(1); expect(f.posts[0]).not.toHaveProperty("acceptedMaxCostMicrousd");
 });

@@ -9,12 +9,12 @@ import { assetsUrl, createVisualJourneyFixture, directionsUrl } from "../fixture
 async function selectDirection(page: Page) {
   const fixture = createVisualJourneyFixture(), health = await fixture.setup(page);
   await page.goto(directionsUrl);
-  await page.getByRole("button", { name: "Generate three directions", exact: true }).click();
+  await page.getByRole("button", { name: "Create three directions", exact: true }).click();
   await expect.poll(() => fixture.admissions.length).toBe(1);
   fixture.complete(1);
   await page.getByRole("button", { name: "Check progress", exact: true }).click();
-  await page.getByRole("button", { name: "Choose direction", exact: true }).click();
-  await expect(page.getByRole("link", { name: "View brand assets", exact: true })).toBeVisible();
+  await page.getByRole("radio", { name: /^Direction 1:/ }).click();
+  await expect(page.getByRole("link", { name: "Continue", exact: true })).toBeVisible();
   return { fixture, health };
 }
 
@@ -30,7 +30,7 @@ for (const source of ["font", "logo"] as const) {
       if (reads === 1) return route.fulfill({ status: 503, json: {}, headers: { "cache-control": "no-store" } });
       return route.fallback();
     });
-    await page.getByRole("link", { name: "View brand assets", exact: true }).click();
+    await page.getByRole("link", { name: "Continue", exact: true }).click();
     await expect(page).toHaveURL(assetsUrl);
     const panel = page.getByRole("region", { name: "Brand assets", exact: true });
     await expect(panel.getByRole("alert")).toContainText(/could not/u);

@@ -103,8 +103,15 @@ function OwnedVisualDirections({ account, projectId }: { account: VerifiedAccoun
   const latestForLogo = Boolean(logoKey && latest?.sourceLogo && logoCandidateKey(latest.sourceLogo.source) === logoKey);
   const autoStart = useEffectEvent(() => {
     if (!logoKey || latestForLogo || shownHistory || unresolved || blockedReason || generation.busy || !generation.overview || !identity.checked) return;
-    const marker = `embel.auto-directions.v1:${projectId}:${logoKey}`;
-    try { if (window.sessionStorage.getItem(marker)) return; window.sessionStorage.setItem(marker, "1"); } catch { return; }
+    // Only right after Continue on the chosen logo (a deliberate click within the
+    // last ten minutes); opening this page any other way waits for a click.
+    const intentKey = `embel.directions-intent.v1:${projectId}`, marker = `embel.auto-directions.v1:${projectId}:${logoKey}`;
+    try {
+      const intent = Number(window.sessionStorage.getItem(intentKey));
+      window.sessionStorage.removeItem(intentKey);
+      if (!intent || Date.now() - intent > 600_000 || window.sessionStorage.getItem(marker)) return;
+      window.sessionStorage.setItem(marker, "1");
+    } catch { return; }
     start();
   });
   // The start itself clears a viewed earlier set; that is the intended reaction.

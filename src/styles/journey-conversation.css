@@ -277,3 +277,7 @@
 .inspiration-continue-row { position: sticky; bottom: 16px; z-index: 5; display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 16px; font-size: 13px; color: var(--secondary); }
 .inspiration-continue-row .inspiration-continue { position: static; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px 0 20px; border-radius: var(--radius-pill); background: var(--text); color: var(--paper); text-decoration: none; font-size: 14px; font-weight: 500; box-shadow: 0 12px 28px -14px rgb(25 25 25 / 45%); }
 .concept-project-workspace .workspace-main:has(.inspiration-message) { background-color: var(--canvas); background-image: radial-gradient(#dad9d4 1px, transparent 1px); background-size: 22px 22px; }
+.identity-chosen-logo { width: 56px; height: 56px; margin-top: 12px; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--paper); }
+.identity-chosen-logo :is(figure, div) { display: contents; }
+.identity-chosen-logo img { width: 100%; height: 100%; object-fit: contain; }
+.identity-chosen-logo p { margin: 0; padding: 4px; font-size: 10px; text-align: center; color: var(--secondary); }
