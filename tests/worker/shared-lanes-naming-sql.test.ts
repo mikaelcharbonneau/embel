@@ -18,7 +18,9 @@ describe('shared Naming real restricted SQL gateway, synthetic Auth and no provi
  const call=async(action:string,args:unknown[],execution:SharedExecution|null=null)=>f.asSlot(slot,async()=>(await f.db.query<{envelope:{execution:SharedExecution|null;result:unknown}}>('select public.shared_naming_worker_action($1,$2,$3,$4) envelope',[lease,execution,action,args])).rows[0]!.envelope);
  beforeAll(async()=>{
   f=await createSharedWorkerFixture({probe:false});await f.seedUser(OWNER_A);await f.seedUser(OWNER_B);
-  await f.db.exec(await readFile(new URL('../../supabase/candidates/shared_worker_naming.sql',import.meta.url),'utf8'));
+  // The released Naming chain the engine requires (its lease expiry needs delivery recovery).
+  for(const file of ['shared_worker_naming.sql','shared_naming_brainstorm.sql','shared_naming_brainstorm_delivery_recovery.sql','shared_naming_lease_expiry.sql'])
+   await f.db.exec(await readFile(new URL(`../../supabase/candidates/${file}`,import.meta.url),'utf8'));
   slot=await f.seedSlot({lane:'naming',policies:[{operation:'naming.generate',policyIdentity:await hash(),policy}]});
   await f.db.exec(`grant execute on function public.shared_naming_worker_action(jsonb,jsonb,text,jsonb) to ${slot.roleName}`);
   await f.db.query('insert into fluid_private.shared_naming_slot_configuration(slot_id,readiness_fingerprint) values($1,$2)',[slot.slotId,brainReadinessFingerprint]);
@@ -26,7 +28,8 @@ describe('shared Naming real restricted SQL gateway, synthetic Auth and no provi
  },60_000);
  afterAll(async()=>{await f?.close();});
  it('requires exact operator-approved policy and runtime fingerprint, never environment presence',async()=>{
-  const metadata=(await f.db.query<{hash:string;owner:string;prosecdef:boolean;provolatile:string;proleakproof:boolean}>("select encode(sha256(convert_to(prosrc,'UTF8')),'hex') hash,pg_get_userbyid(proowner) owner,prosecdef,provolatile,proleakproof from pg_proc where oid='public.shared_naming_worker_action(jsonb,jsonb,text,jsonb)'::regprocedure")).rows[0]!;
+  // The reviewed base gateway, retained exactly beneath the later packets' entry point.
+  const metadata=(await f.db.query<{hash:string;owner:string;prosecdef:boolean;provolatile:string;proleakproof:boolean}>("select encode(sha256(convert_to(prosrc,'UTF8')),'hex') hash,pg_get_userbyid(proowner) owner,prosecdef,provolatile,proleakproof from pg_proc where oid='fluid_private.naming_brainstorm_previous_worker_action(jsonb,jsonb,text,jsonb)'::regprocedure")).rows[0]!;
   expect(metadata).toEqual({hash:'2d509fd4d973126b2b454ac3507e7979f9837e03026e4826636e2762411e8bab',owner:'postgres',prosecdef:true,provolatile:'v',proleakproof:false});
   await expect(call('qualify',[{...policy,model:'wrong'},brainReadinessFingerprint])).rejects.toThrow(/runtime_mismatch/);
   await expect(call('qualify',[policy,{...brainReadinessFingerprint,nodeVersion:'false'}])).rejects.toThrow(/runtime_mismatch/);

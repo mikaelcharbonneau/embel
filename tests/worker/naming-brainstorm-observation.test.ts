@@ -17,6 +17,7 @@ async function fixture(options: { model?: string; retrieveError?: Error; oversiz
   await db.exec(await readFile(new URL("../../supabase/candidates/shared_worker_naming.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../../supabase/candidates/shared_naming_brainstorm.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../../supabase/candidates/shared_naming_brainstorm_delivery_recovery.sql", import.meta.url), "utf8"));
+  await db.exec(await readFile(new URL("../../supabase/candidates/shared_naming_lease_expiry.sql", import.meta.url), "utf8"));
   const policy = { ...brainPolicy, model: "gpt-6-luna" };
   const policyIdentity = (await db.query<{ h: string }>("select encode(sha256(convert_to($1::jsonb::text,'UTF8')),'hex') h", [JSON.stringify(policy)])).rows[0]!.h;
   const slot = await f.seedSlot({ lane: "naming", policies: [{ operation: "naming.generate", policyIdentity, policy }] });
