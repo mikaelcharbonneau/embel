@@ -53,7 +53,8 @@ export function guidedMessageContext(context: ContextSnapshot, text: string, rev
 
 export function nextGuidedProposal(context: ContextSnapshot, revision: number, userMessageId: string | null): ContextSnapshot {
   const state = context.intake.guidedInterview;
-  if (!state || state.stage === "complete") return context;
+  // The optional slogan is proposed for the chosen name, so it waits for one.
+  if (!state || state.stage === "complete" || state.stage === "slogan" && !context.selectedName) return context;
   return appendGuidedTurn(context, { id: crypto.randomUUID(), userMessageId, stage: state.stage, purpose: "propose", inputRevision: revision });
 }
 

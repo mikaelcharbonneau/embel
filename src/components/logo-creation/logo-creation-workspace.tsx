@@ -41,6 +41,9 @@ import { LogoIdentityContinuation, LogoInputStatus } from "./workflow-status";
 import { LogoDownloadControls } from "./logo-download-controls";
 import { prepareSavedLogoConcepts, logoDraftHasProtectedWork, type LogoSavedInputChoice } from "./saved-inputs-controller";
 import { LogoSavedInputsStatus, type LogoSavedInputState } from "./saved-inputs-status";
+import { LogoTypesQuestion } from "./logo-types-question";
+import { EmbelIdentity } from "@/components/workspace/embel-identity";
+import { journeyPartLabel } from "@/domain/journey";
 import styles from "./logo-creation.module.css";
 import stage from "@/styles/branding-stage.module.css";
 
@@ -90,7 +93,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
   const [viewedVersions, setViewedVersions] = useState<Record<string, { key: string; count: number }>>({});
   const selectedRefinementRequests = useRef(new Set<string>());
   const refreshedRefinementRequests = useRef(new Set<string>());
-  const [conceptFilter, setConceptFilter] = useState<"all" | "saved">("all");
+  const conceptFilter = "all" as const;
   const [refineInstruction, setRefineInstruction] = useState("");
   const [selectionState, setSelectionState] = useState<{ selected: LogoRasterSource | null; workspaceRevision: number | null; busy: boolean; error: string | null }>({ selected: null, workspaceRevision: null, busy: false, error: null });
   const selecting = useRef(false);
@@ -508,11 +511,19 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
       </div>}{statusTools}{inputTools}{advancedTools}</ContextDetails>
     </ConceptsComposer> : null;
   return <div className={`project-logo-creation ${conceptsScreen ? styles.conceptsScreen : "project-workbench"}`} aria-label="Logo creation workspace"><div className={conceptsScreen ? undefined : "project-workbench-canvas"}>
-    {conceptsScreen && projectId && <Link className={`${stage.actionLink} ${styles.backToInspiration}`} href={`/brands/account/${projectId}/inspiration`}>← Back to inspiration</Link>}
+    {conceptsScreen && <div className="guided-assistant-message logo-conversation-message" aria-label="Embel">
+      <EmbelIdentity label={journeyPartLabel("identity", "Logo")} />
+      <h1 className="sr-only">Logo</h1>
+      <p className="guided-assistant-copy">{activeBatch
+        ? `Here are six concepts for ${draft?.brief.name || "your brand"}. Pick the one you like most. To change it, tell me what to adjust below.`
+        : `Time for a logo. I’ll draw six concepts for ${draft?.brief.name || "your brand"}, guided by the designs you liked. First, which kinds of logo should I explore?`}</p>
+      {!activeBatch && <LogoTypesQuestion value={draft?.brief.logoTypes ?? []} disabled={!draft || !editing || !autoSave}
+        onChange={draft && editing && autoSave ? types => workspace.setBriefDraft({ ...draft.brief, logoTypes: types }) : undefined}
+        action={<LogoGenerationAction estimate={conceptEstimate} label="Explore six concepts" unavailable={savedInputsBusy ? "Preparing saved inputs…" : !capabilities.isAvailable("identity.logo_concept") ? "Generation is currently unavailable." : "Complete your saved logo inputs to continue."} />} />}
+    </div>}
     <header className={styles.workspaceHeader}>
-      {conceptsScreen && <p className={stage.eyebrow}>Build your brand · Step 1 of 3</p>}
-      <h1 className={conceptsScreen ? stage.title : undefined}>{projectId ? "Explore your logo" : "Give your brand a visual voice"}</h1>
-      <p className={conceptsScreen ? stage.intro : styles.muted}>{conceptsScreen ? (activeBatch ? `Six logo concepts for ${draft?.brief.name || "your brand"}` : "Six logo concepts, shaped by your brand and inspiration.") : "Review and refine your saved logo."}</p>
+      {!conceptsScreen && <h1>{projectId ? "Explore your logo" : "Give your brand a visual voice"}</h1>}
+      {!conceptsScreen && <p className={styles.muted}>Review and refine your saved logo.</p>}
       {!conceptsScreen && <>      <p className={styles.muted}>Start with a brief, choose the kinds of logo you want to explore, and keep your work in a saved project.</p>
       {savedProjectId && <div className={styles.actions}>
         <Link className={styles.secondaryButton} href={projectStrategyHref(savedProjectId)}>Open project</Link>
@@ -560,11 +571,9 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
     {conceptsScreen && projectId && <LogoSavedInputsStatus state={savedInputs} projectId={projectId} onChoice={choice => void prepareSavedInputs(choice)}
       onCancel={() => setSavedInputs({ status: "blocked", message: "Your logo inputs still need review before generating. Continue when you’re ready." })}
       onRefresh={() => void prepareSavedInputs(undefined, true)} />}
-    {conceptsScreen && <div className={styles.conceptFilters} aria-label="Concept filters"><button type="button" aria-pressed={conceptFilter === "all"} onClick={() => setConceptFilter("all")}>All concepts · 6</button><button type="button" aria-pressed={conceptFilter === "saved"} onClick={() => setConceptFilter("saved")}>Selected</button><button type="button" disabled title="Concept likes are not available yet">Liked</button></div>}
     {workspace.error && conceptsScreen && <p className={styles.warning} role="alert">{workspace.error}</p>}
     {activeBatch && saved?.stages.brief_references && saved.stages.brief_references.id !== activeBatch.briefRevisionId && <p className={styles.warning}>This batch uses an earlier saved brief. Its original inputs and successful previews are kept.</p>}
-    {conceptsScreen && <p className={styles.note} role="status">{selectionState.busy ? "Saving selection…" : selectionState.error ?? (initialConceptReadState ? initialConceptReadMessage : selectedLogo ? "Project logo choice saved." : "Choose a logo for this project.")}</p>}
-    {conceptsComposer}
+    {conceptsScreen && activeBatch && <p className={styles.note} role="status">{selectionState.busy ? "Saving selection…" : selectionState.error ?? (initialConceptReadState ? initialConceptReadMessage : selectedLogo ? "Logo chosen. Continue, or describe a change below." : "Pick the concept you like most.")}</p>}
     <LogoConceptGridView gallery={conceptsScreen} versions={cardVersions} selectedVersion={selectedLogo} selectionAt={workspace.stagePayloads?.concepts?.createdAt} viewedVersions={viewedVersions}
       onViewVersion={(slotId, key, count) => setViewedVersions(previous => ({ ...previous, [slotId]: { key, count } }))}
       onSelectVersion={batchReady && saved?.capabilities.save.status === "available" && !workspace.pending && !workspace.dirty && !draft?.conflict && editing ? source => void selectCandidate(source) : undefined} filter={conceptFilter} comparison={comparison} onCompare={compareCandidate} batch={activeBatch} savedBatchUnavailable={savedBatchUnavailable} savedBatchLoading={savedBatchLoading}
@@ -575,16 +584,19 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
       renderPreview={client ? receipt => <LogoVerifiedPreview client={client} receipt={receipt} /> : undefined}
       generationActions={<>
         {!nameReadiness.supported && <p role="status">{nameReadiness.message}</p>}
-        {!activeBatch && <LogoGenerationAction estimate={conceptEstimate} label="Generate six concepts" unavailable={savedInputsBusy ? "Preparing saved inputs…" : !capabilities.isAvailable("identity.logo_concept") ? "Generation is currently unavailable." : "Complete your saved logo inputs to continue."} />}
-        {activeBatch && <LogoGenerationAction estimate={moreEstimate} label="Generate six more concepts" unavailable={!batchReady ? "Refresh saved logo details to continue." : "Save your inputs to continue."} />}
+        {!activeBatch && !conceptsScreen && <LogoGenerationAction estimate={conceptEstimate} label="Explore six concepts" unavailable={savedInputsBusy ? "Preparing saved inputs…" : !capabilities.isAvailable("identity.logo_concept") ? "Generation is currently unavailable." : "Complete your saved logo inputs to continue."} />}
+        {activeBatch && <LogoGenerationAction estimate={moreEstimate} label="More concepts" unavailable={!batchReady ? "Refresh saved logo details to continue." : "Save your inputs to continue."} />}
         {failedSlotIds.length > 0 && <LogoGenerationAction estimate={retryEstimate} label={`Retry ${failedSlotIds.length} failed concept${failedSlotIds.length === 1 ? "" : "s"}`} unavailable={!batchReady ? "Refresh saved logo details to continue." : "Save your inputs to continue."} />}
       </>}
       onRequestRefine={batchReady && selectedLogo && canEstimate ? () => { if (refinementDisclosure.current?.getAttribute("aria-expanded") === "false") refinementDisclosure.current.click(); refinementDisclosure.current?.focus(); } : undefined}
       request={activeRequest} onCheckRequest={recoveryKeys.length > 0 && client && editing && !checkingRequest ? () => void checkRequest() : undefined} />
+    {/* The refine box stays in one place below the concepts, so a draft survives the first set arriving. */}
+    {conceptsComposer}
     {conceptsScreen && projectId && client && focusedReceipt && <LogoDownloadControls client={client} account={account} projectId={projectId} original={focusedReceipt} disabled={selectionState.busy} />}
-    {conceptsScreen && projectId && <div className={styles.continueToBoard}>{workspace.stagePayloads?.concepts?.payload.selected && !selectionState.busy
-      ? <Link className={`${styles.primaryButton} ${stage.actionLink}`} href={`/brands/account/${projectId}/logo/directions`}>Continue to visual directions →</Link>
-      : <button className={styles.primaryButton} type="button" disabled title={initialConceptReadState ? initialConceptReadMessage : "Select a logo and wait for it to save"}>Continue to visual directions →</button>}</div>}
+    {conceptsScreen && projectId && activeBatch && <div className={styles.continueToBoard}>{workspace.stagePayloads?.concepts?.payload.selected && !selectionState.busy
+      ? <Link className={`${styles.primaryButton} ${stage.actionLink}`} href={`/brands/account/${projectId}/logo/directions`}
+        onClick={() => { try { window.sessionStorage.setItem(`embel.directions-intent.v1:${projectId}`, String(Date.now())); } catch { /* Then directions wait for a click. */ } }}>Continue</Link>
+      : <button className={styles.primaryButton} type="button" disabled title={initialConceptReadState ? initialConceptReadMessage : "Select a logo and wait for it to save"}>Continue</button>}</div>}
     {conceptsScreen && refinementHistoryState.error && <p role="status" className={styles.warning}>{refinementHistoryState.error}</p>}
     {conceptsScreen && refinementHistoryState.nextCursor && <button type="button" className={styles.secondaryButton} disabled={refinementHistoryState.loading} onClick={() => void refinementHistory?.loadMore()}>Load earlier versions</button>}
     {!conceptsScreen && advancedTools}
@@ -600,7 +612,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
         if (!draft || !logoBriefDraftSchema.safeParse(draft.brief).success) return;
         if (projectId) void workspace.saveBrief(draft.brief); else void workspace.startProject(draft.brief);
       } : undefined} />
-    {(activeBatch || refinementHistoryState.items.length > 0 || focusedLogo) && <label className={styles.field}><span>{focusedLogo ? "Revision request for inspected image" : "Revision request for selected image"}</span><textarea value={refineInstruction} maxLength={2000} onChange={event => setRefineInstruction(event.currentTarget.value)} placeholder="Describe what to change in the selected image preview" /><span className={styles.note}>{refineInstruction.length} / 2,000 characters. Each revision keeps its source. Its expected cost appears beside Generate. At most {IMAGE_INPUT_LIMITS.images - 1} saved references can accompany the original image.</span></label>}
+    {(activeBatch || refinementHistoryState.items.length > 0 || focusedLogo) && <label className={styles.field}><span>{focusedLogo ? "Revision request for inspected image" : "Revision request for selected image"}</span><textarea value={refineInstruction} maxLength={2000} onChange={event => setRefineInstruction(event.currentTarget.value)} placeholder="Describe what to change in the selected image preview" /><span className={styles.note}>{refineInstruction.length} / 2,000 characters. Each revision keeps its source. At most {IMAGE_INPUT_LIMITS.images - 1} saved references can accompany the original image.</span></label>}
     {focusedLogo && <LogoGenerationAction estimate={refinementEstimate} label="Generate refinement" unavailable="Select a logo and describe your changes." />}
 
 

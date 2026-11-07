@@ -39,7 +39,7 @@ test("catalog search, filters, original images and read-only inspection", async 
   const fixture = await setup(page); await expect(page.locator(".inspiration-card")).toHaveCount(23);
   await expect.poll(() => card(page).locator(".inspiration-image").evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(720);
   await expect(page.locator(".inspiration-categories button")).toHaveText(["Identities", "Logos", "All"]);
-  const next = page.getByRole("link", { name: "Continue to logo generation", exact: true });
+  const next = page.getByRole("link", { name: "Continue", exact: true });
   await expect(next).toBeVisible();
   await expect(next).toHaveAttribute("href", `/brands/account/${projectId}/logo`);
   await expect(next).toBeInViewport();

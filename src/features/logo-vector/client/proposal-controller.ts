@@ -61,7 +61,7 @@ export function createVectorProposalController(input: { account: VerifiedAccount
     emit({ phase, error: null, notice: null });
     try { await work(controller.signal); }
     catch { if (current() && operation === controller) emit({ error: phase === "quoting"
-      ? "The cost estimate could not be loaded. Check the saved vector and availability, then refresh the estimate. Your changes are kept."
+      ? "This suggestion could not be prepared. Check the saved vector and availability, then try again. Your changes are kept."
       : "This action could not be confirmed. Your original request, saved versions and any pending edit are kept. Check the original before retrying." }); }
     finally { clearTimeout(timer); if (operation === controller) { operation = null; emit({ phase: state.quote ? "review" : "idle" }); } }
   }
@@ -125,7 +125,7 @@ export function createVectorProposalController(input: { account: VerifiedAccount
     },
     discardDraft() { if (current() && state.phase === "quoting") cancelEstimate(); if (current() && !operation && free()) { input.memory.setVectorProposal(input.projectId, null); emit({ quote: null, error: null, notice: null }); } },
     cancelQuote() { if (current() && free() && (!operation || state.phase === "quoting")) cancelEstimate(); },
-    expireQuote() { if (state.quote && Date.parse(state.quote.expiresAt) <= input.now() && free() && !operation && ["idle", "review"].includes(state.phase)) { cancelEstimate(); emit({ notice: "Estimate expired. Refresh the estimate before generating." }); } },
+    expireQuote() { if (state.quote && Date.parse(state.quote.expiresAt) <= input.now() && free() && !operation && ["idle", "review"].includes(state.phase)) { cancelEstimate(); emit({ notice: "This request expired. Try again before generating." }); } },
     async refresh() { await run("checking", async signal => {
       const results = await Promise.allSettled([input.client.getLogoCapabilities(signal), input.client.listPendingVectorProposalRequests({ limit: 10 }, signal), input.client.listLogoVectorProposals({ limit: 20 }, signal)]);
       if (!current() || signal.aborted) return;

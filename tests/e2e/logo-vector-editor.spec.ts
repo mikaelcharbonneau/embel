@@ -55,7 +55,7 @@ test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));
 
 test("identity directions and brand files retain usable unavailable states without creating work", async ({ page }, info) => {
   const f = await setup(page);
-  for (const [stage, title] of [["directions", "Visual direction"], ["deliverables", "Brand assets"]]) {
+  for (const [stage, title] of [["directions", "Creative direction"], ["deliverables", "Assets"]]) {
     await page.goto(`/brands/account/${projectId}/logo/${stage}`);
     await expect(page.getByRole("heading", { name: title, level: 1, exact: true })).toBeVisible();
     await expectProjectCanvas(page);

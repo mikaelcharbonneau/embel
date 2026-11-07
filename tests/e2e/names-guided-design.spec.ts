@@ -37,12 +37,11 @@ test("guided Names: four original layouts, live modes, native artwork and respon
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     const geometry = await page.locator(".names-words-panel").boundingBox();
     if (info.project.name === "desktop") {
-      expect(geometry?.x).toBe(256); expect(geometry?.width).toBe(1008); expect(geometry!.height).toBeLessThanOrEqual(320);
+      expect(geometry?.x).toBe(216); expect(geometry?.width).toBe(1008); expect(geometry!.height).toBeLessThanOrEqual(320);
       const controls = await page.locator('.names-guided-controls').boundingBox(), results = await page.locator('.names-guided-results').boundingBox();
       expect(results!.x).toBeGreaterThanOrEqual(controls!.x + controls!.width + 20);
       expect(Math.abs(results!.y - controls!.y)).toBeLessThanOrEqual(1);
-      expect((await page.locator(".topbar").boundingBox())?.height).toBe(76);
-      expect((await page.locator(".sidebar").boundingBox())?.width).toBe(80);
+      expect((await page.getByRole("banner").boundingBox())?.height).toBe(72);
     }
     // Artwork may still be decoding right after a mode switch; poll for its native size.
     await expect.poll(() => page.locator('img[src^="/names/"]').evaluateAll(images => images.every(image => {

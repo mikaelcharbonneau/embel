@@ -70,6 +70,11 @@ async function open(page: Page) {
 
 test.afterEach(async ({ page }, info) => captureUiEvidence(page, info));
 
+/** Embel working on a reply: the research card for competitors, the thinking line otherwise. */
+function working(page: Page) {
+  return page.locator(".guided-thinking[role=status]").or(page.getByRole("region", { name: /^(Researching your competitors|Cancelling research…)$/ }));
+}
+
 test("strategy fixture: rejected saves retain the prompt and never enqueue provider work", async ({ page }) => {
   const state = await fixtures(page); state.patchStatus = 409; await open(page);
   await page.getByRole("textbox", { name: "Message Embel" }).fill("Keep this unsaved correction.");
@@ -78,7 +83,7 @@ test("strategy fixture: rejected saves retain the prompt and never enqueue provi
   await expect(page.getByRole("textbox", { name: "Message Embel" })).toHaveValue("Keep this unsaved correction.");
   expect(state.patches).toHaveLength(1);
   expect(state.enqueues).toHaveLength(0);
-  await expect(page.locator(".guided-thinking[role=status]")).toHaveCount(0);
+  await expect(working(page)).toHaveCount(0);
 });
 
 test("strategy fixture: unconfirmed enqueue shows no invented progress and retries the same saved request", async ({ page }) => {
@@ -90,11 +95,11 @@ test("strategy fixture: unconfirmed enqueue shows no invented progress and retri
   expect(state.project.current_revision).toBe(2);
   const retry = page.getByRole("button", { name: "Retry research", exact: true });
   await expect(retry).toBeEnabled();
-  await expect(page.locator(".guided-thinking[role=status]")).toHaveCount(0);
+  await expect(working(page)).toHaveCount(0);
   expect(state.enqueues[0]).toMatchObject({ operation: "strategy.competitors", expectedRevision: 2, spendControl: "uncapped" });
   state.queueStatus = 202;
   await retry.click();
-  await expect(page.locator(".guided-thinking[role=status]")).toBeVisible();
+  await expect(working(page)).toBeVisible();
   expect(state.patches).toHaveLength(1);
   expect(state.enqueues).toHaveLength(2);
   expect(state.enqueues[0]).toEqual(state.enqueues[1]);

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { logoUuidSchema } from "@/domain/logo-vector";
 import { logoBoardGenerationIntentSchema, type IdentityAvailability, type IdentityBatchState } from "@/domain/identity-jobs";
 import { getIdentityFreshness, type IdentitySystemVersion } from "@/domain/project-identity";
@@ -15,7 +15,6 @@ import { useLogoCandidate } from "@/components/logo-creation/use-logo-candidate"
 import { logoCandidateKey } from "@/components/logo-creation/candidate-review";
 import { LogoVerifiedPreview } from "@/components/logo-creation/verified-preview";
 import { LogoDownloadControls } from "@/components/logo-creation/logo-download-controls";
-import { displayLogoCost } from "@/components/logo-creation/presentation";
 import { describeVisualDirections } from "./direction-presentation";
 import { hasCurrentBrandAssets } from "./selected-assets";
 import stage from "@/styles/branding-stage.module.css";
@@ -96,6 +95,28 @@ function OwnedVisualDirections({ account, projectId }: { account: VerifiedAccoun
     historyRequest.current?.abort(); historyRequest.current = null; setHistory(null);
     void generation.controller?.start(input);
   }
+  // Creative direction starts once on arrival with a newly chosen logo: the
+  // Continue click on the logo step is the deliberate request. One marker per
+  // project and logo keeps a reload or a return visit from starting another set.
+  const latest = generation.overview?.latest ?? null;
+  const logoKey = availability?.status === "available" && availability.version === 3 ? logoCandidateKey(availability.sourceLogo.source) : null;
+  const latestForLogo = Boolean(logoKey && latest?.sourceLogo && logoCandidateKey(latest.sourceLogo.source) === logoKey);
+  const autoStart = useEffectEvent(() => {
+    if (!logoKey || latestForLogo || shownHistory || unresolved || blockedReason || generation.busy || !generation.overview || !identity.checked) return;
+    // Only right after Continue on the chosen logo (a deliberate click within the
+    // last ten minutes); opening this page any other way waits for a click.
+    const intentKey = `embel.directions-intent.v1:${projectId}`, marker = `embel.auto-directions.v1:${projectId}:${logoKey}`;
+    try {
+      const intent = Number(window.sessionStorage.getItem(intentKey));
+      window.sessionStorage.removeItem(intentKey);
+      if (!intent || Date.now() - intent > 600_000 || window.sessionStorage.getItem(marker)) return;
+      window.sessionStorage.setItem(marker, "1");
+    } catch { return; }
+    start();
+  });
+  // The start itself clears a viewed earlier set; that is the intended reaction.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { autoStart(); }, [logoKey, latestForLogo, unresolved, blockedReason, generation.busy, generation.overview, identity.checked]);
   async function choose(system: IdentitySystemVersion) {
     if (!client?.current() || choosing || identity.blocked || logoPending || !currentBatch || !identity.overview
       || getIdentityFreshness(system.input.basis, identity.overview.currentBasis).status !== "current") return;
@@ -135,9 +156,8 @@ function OwnedVisualDirections({ account, projectId }: { account: VerifiedAccoun
       : <p role="status">{candidate.error || logo.error ? "Your selected logo could not be loaded." : candidate.loading ? "Loading your chosen logo…" : "Choose a logo concept to begin."}</p>}
     logoDownload={candidate.item && logo.client ? <LogoDownloadControls client={logo.client} account={account} projectId={projectId} original={candidate.item.preview} disabled={logoPending} compact /> : undefined}
     cards={cards} generation={{ status: visibleStatus, completed: requestBatch?.systems.length ?? 0,
-      estimatedCostLabel: availability?.status === "available" && availability.version === 3 && availability.estimatedCostMicrousd !== null ? `Estimated ${displayLogoCost(availability.estimatedCostMicrousd)} for three directions` : null,
-      usageLabel: batch?.usage ? batch.usage.status === "recorded" ? `Recorded usage for this set: ${displayLogoCost(batch.usage.knownCostMicrousd)}`
-        : `Recorded usage so far: ${displayLogoCost(batch.usage.knownCostMicrousd)}${batch.usage.status === "unknown" ? ". Some usage is still being checked." : ""}` : null,
+      // Amounts stay on the Usage page; the journey shows no money (2026-11-06).
+      usageLabel: null,
       error: generation.error ?? identity.error ?? logo.error ?? shownHistory?.error,
       busy: Boolean(generation.busy || shownHistory?.busy), disabledReason: blockedReason,
       onGenerate: start, onCheck: () => void refresh(), onStop: unresolved && generation.stopAcknowledgedBatchId !== generation.batch?.batchId
@@ -145,7 +165,7 @@ function OwnedVisualDirections({ account, projectId }: { account: VerifiedAccoun
     selectionCheck={identity.selectionCheckAvailable ? { busy: identity.loading || identity.detailLoading, onCheck: () => void identity.refresh() } : undefined}
     selectionStatus={showAssets ? (chosenTitle ? `Selected direction: ${chosenTitle}.` : "Your saved direction is selected in another set.") : null}
     selectionError={identity.selectionUncertain ? "Your choice could not be confirmed. Use Check saved choice before choosing again." : null}
-    finalAction={showAssets && <Link className="identity-primary-button" href={`/brands/account/${projectId}/logo/deliverables`}>View brand assets</Link>}
+    finalAction={showAssets && <Link className="identity-primary-button" href={`/brands/account/${projectId}/logo/deliverables`}>Continue</Link>}
     history={<>
       {shownHistory?.batch && shownHistory.batch.batchId !== requestBatch?.batchId && <p>You are viewing an earlier saved set. The progress above is for your latest request.</p>}
       {generation.retained && generation.lookup === "not_found" && <button type="button" className="identity-secondary-button" disabled={Boolean(generation.busy)} onClick={() => void generation.controller?.retryOriginal()}>Retry original request</button>}

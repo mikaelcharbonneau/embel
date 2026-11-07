@@ -10,6 +10,7 @@ import "@/styles/recorded-usage.css";
 const labels: Record<RecordedUsage["entries"][number]["operation"], string> = {
   "naming.generate": "Naming", "strategy.reformulate": "Strategy · Brief", "strategy.competitors": "Strategy · Competitors",
   "strategy.audience": "Strategy · Audience", "strategy.personality": "Strategy · Personality", "strategy.positioning": "Strategy · Positioning",
+  "strategy.slogan": "Voice · Slogan",
 };
 const refreshingUsageMessage = "Checking recorded usage… Previous recorded usage is still shown.";
 

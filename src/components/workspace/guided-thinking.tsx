@@ -20,7 +20,7 @@ export function OpeningGuidedConversation({ prompt, status = "Saving your projec
   useLayoutEffect(() => { transcript.current?.scrollTo({ top: transcript.current.scrollHeight, behavior: "instant" }); }, [prompt]);
   return <div className="guided-interview guided-interview-opening" data-composer="floating" aria-label="Brand conversation">
     <div ref={transcript} className="guided-interview-scroll" role="log" aria-label="Conversation" aria-live="polite">
-      <div className="guided-user-message guided-brief-message"><span className="sr-only">You</span><p>{prompt}</p></div>
+      <div className="guided-brief-turn"><div className="guided-user-turn"><span className="guided-user-label">You</span><div className="guided-user-message guided-brief-message"><p>{prompt}</p></div></div></div>
       <GuidedThinking label={status} action={href && <Link className="text-link" href={href}>Open saved project</Link>} />
     </div>
     <FloatingComposer label="Strategy composer"><ConversationComposer project value="" onChange={() => {}} onSend={() => {}} label="Message Embel" placeholder="Reply in your own words, or ask a question…" disabled readOnly hint={null} /></FloatingComposer>

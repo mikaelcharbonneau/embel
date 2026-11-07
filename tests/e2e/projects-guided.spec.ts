@@ -36,9 +36,7 @@ test("Projects reference: populated geometry, native artwork and saved project c
   const state = await fixture(page); state.projects = rows(); await page.clock.install({ time: new Date(at) }); await page.goto("/brands");
   await expect(page.getByRole("heading", { name: "Projects.", exact: true })).toBeVisible();
   await expect(page.locator(".project-card")).toHaveCount(6);
-  if (info.project.name === "mobile") await page.getByRole("button", { name: "Open navigation", exact: true }).click();
-  await expect(page.getByRole("link", { name: "Projects", exact: true })).toHaveAttribute("aria-current", "page");
-  if (info.project.name === "mobile") await page.getByRole("button", { name: "Close navigation", exact: true }).click();
+  await expect(page.getByRole("navigation", { name: "Main navigation", exact: true }).getByRole("link", { name: "Projects", exact: true })).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("link", { name: "New project", exact: true })).toHaveAttribute("href", "/brands/new");
   await expect(page.locator(".project-card").first()).toContainText("Forma");
   await expect(page.locator(".project-card").first()).toContainText("Complete brand");
@@ -47,7 +45,7 @@ test("Projects reference: populated geometry, native artwork and saved project c
   if (info.project.name === "desktop") {
     const grid = await page.locator(".projects-grid").boundingBox(), first = await page.locator(".project-card").first().boundingBox();
     // Cards use the shared Home/Projects card (8db2bf1, e04add0) inside the original grid.
-    expect(grid?.x).toBe(256); expect(grid?.y).toBe(280); expect(grid?.width).toBe(1008); expect(first?.width).toBe(324); expect(first?.height).toBe(272);
+    expect(grid?.x).toBe(216); expect(grid?.y).toBe(276); expect(grid?.width).toBe(1008); expect(first?.width).toBe(324); expect(first?.height).toBe(272);
   }
   await page.getByText("Filter", { exact: true }).click();
   const panel = await page.locator(".projects-control[open] .projects-control-panel").boundingBox(); expect(panel!.x).toBeGreaterThanOrEqual(0); expect(panel!.x + panel!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
@@ -65,9 +63,9 @@ test("Projects reference: empty state uses original artwork and opens existing c
   await expect(page.getByRole("heading", { name: "Your projects.", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Your first project starts with an idea" })).toBeVisible();
   await expect(page.locator(".projects-toolbar")).toHaveCount(0); await expect(page.locator(".project-card")).toHaveCount(0);
-  if (info.project.name === "desktop") await expect(page.locator('.app-mark img[src="/embel-mark.svg"]')).toBeVisible();
+  if (info.project.name === "desktop") await expect(page.getByRole("navigation", { name: "Main navigation", exact: true }).locator('img[src="/embel-mark.svg"]')).toBeVisible();
   await expect(page.locator('.projects-empty-panel img[src="/projects/empty-projects.svg"]')).toBeVisible();
-  if (info.project.name === "desktop") { const panel = await page.locator(".projects-empty-panel").boundingBox(); expect(panel).toMatchObject({ x: 256, y: 212, width: 1008, height: 360 }); }
+  if (info.project.name === "desktop") { const panel = await page.locator(".projects-empty-panel").boundingBox(); expect(panel).toMatchObject({ x: 216, y: 208, width: 1008, height: 360 }); }
   await page.screenshot({ path: info.outputPath("projects-empty.png"), fullPage: true, scale: "css" });
   await page.getByRole("link", { name: "Create a project", exact: true }).click();
   await expect(page).toHaveURL(/\/brands\/new$/); await expect(page.getByRole("link", { name: "Create a logo", exact: true })).toHaveAttribute("href", "/brands/logo/new");

@@ -64,7 +64,7 @@ export const personalitySchema = z.strictObject({
 });
 export type Personality = z.infer<typeof personalitySchema>;
 
-export const guidedStageSchema = z.enum(["competitors", "audience", "personality"]);
+export const guidedStageSchema = z.enum(["competitors", "audience", "positioning", "personality", "slogan"]);
 export type GuidedStage = z.infer<typeof guidedStageSchema>;
 const guidedIdentifier = z.string().min(1).max(128);
 export const guidedTurnSchema = z.strictObject({
@@ -91,9 +91,9 @@ export const guidedAnswerSchema = z.strictObject({
 /** User decisions and request references only. Assistant content belongs to owned job results. */
 export const guidedInterviewStateSchema = z.strictObject({
   version: z.literal(1),
-  stage: z.enum(["competitors", "audience", "personality", "complete"]),
+  stage: z.enum(["competitors", "audience", "positioning", "personality", "slogan", "complete"]),
   turns: z.array(guidedTurnSchema).max(48),
-  answers: z.array(guidedAnswerSchema).max(3),
+  answers: z.array(guidedAnswerSchema).max(5),
 }).superRefine((state, ctx) => {
   if (new Set(state.turns.map(turn => turn.id)).size !== state.turns.length) ctx.addIssue({ code: "custom", path: ["turns"], message: "Interview turns must have unique identifiers" });
   if (state.turns.some((turn, index) => index > 0 && turn.inputRevision <= state.turns[index - 1]!.inputRevision)) ctx.addIssue({ code: "custom", path: ["turns"], message: "Interview turns must follow increasing saved revisions" });
@@ -158,7 +158,8 @@ export const contextSnapshotSchema = z.strictObject({
   }
   if (context.intake.positioningReviewedAt) {
     if (!context.positioning) ctx.addIssue({ code: "custom", path: ["positioning"], message: "Write a positioning statement before confirming its review" });
-    if (!context.intake.personalityReviewedAt) ctx.addIssue({ code: "custom", path: ["intake", "positioningReviewedAt"], message: "Review the personality before confirming positioning" });
+    // The guided interview asks positioning before personality; the older form asked it last.
+    if (!context.intake.guidedInterview && !context.intake.personalityReviewedAt) ctx.addIssue({ code: "custom", path: ["intake", "positioningReviewedAt"], message: "Review the personality before confirming positioning" });
   }
 });
 export type ContextSnapshot = z.infer<typeof contextSnapshotSchema>;

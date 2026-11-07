@@ -30,9 +30,9 @@ export type LogoCreationController = {
 const empty: LogoCreationState = Object.freeze({ phase: "idle", quote: null, request: null, error: null });
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
 const recoveryMessage = "The outcome is not confirmed. Your original request is kept. Check it before trying again.";
-const rejectedMessage = "This request did not start. Refresh the saved inputs and estimate before trying again.";
-const readinessMessage = "This operation is currently unavailable. Your estimate is kept; check availability again before confirming.";
-const preparationReadinessMessage = "This operation is currently unavailable. Refresh operation availability, then review the cost again. Your saved versions are kept.";
+const rejectedMessage = "This request did not start. Refresh the saved inputs before trying again.";
+const readinessMessage = "This operation is currently unavailable. Nothing has started; check availability again before trying.";
+const preparationReadinessMessage = "This operation is currently unavailable. Refresh operation availability, then try again. Your saved versions are kept.";
 export function logoOperationForQuote(request: LogoQuoteRequest): LogoOperation {
   switch (request.operation) {
     case "vectorize": return "identity.logo_vectorize";
@@ -41,7 +41,7 @@ export function logoOperationForQuote(request: LogoQuoteRequest): LogoOperation 
     default: return "identity.logo_concept";
   }
 }
-const staleMessage = "Saved inputs or the estimate changed. Save your edits and review a new estimate.";
+const staleMessage = "Saved inputs changed. Save your edits, then try again.";
 
 /** Only confirmQuote and explicit unchanged-key replay may admit work. Checking,
  * preparing, mounting, editing and changing accounts never dispatch generation. */
@@ -141,7 +141,7 @@ export function createLogoCreationController(input: LogoCreationControllerInput)
         if (!token.current()) return;
         emit({ ...state, phase: result === "reloaded" ? "idle" : result === "draft_blocked" ? "resolve_draft" : "rejected", quote: null,
           error: result === "reloaded" ? null : result === "draft_blocked"
-            ? "Save or resolve your unsaved brief, vector or identity-direction edits before refreshing the estimate. Your edits are kept."
+            ? "Save or resolve your unsaved brief, vector or identity-direction edits before refreshing. Your edits are kept."
             : "Current saved inputs could not be refreshed. Your edits are kept. Try refreshing again." });
       } catch {
         if (token.current()) emit({ ...state, phase: "rejected", quote: null, error: "Current saved inputs could not be refreshed. Your edits are kept. Try refreshing again." });

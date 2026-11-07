@@ -10,25 +10,25 @@
 .identity-secondary-button { background: var(--paper); color: var(--text); }
 .identity-secondary-button:hover { background: var(--surface); }
 .project-identity button:disabled { cursor: default; opacity: .55; }
-.project-identity button:focus-visible, .project-identity summary:focus-visible, .project-identity input:focus-visible, .project-identity textarea:focus-visible, .project-identity select:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 3px; }
+.project-identity button:focus-visible, .project-identity summary:focus-visible, .project-identity input:focus-visible, .project-identity textarea:focus-visible, .project-identity select:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
 .identity-notice, .identity-recovery { border: 1px solid var(--border); padding: 14px 16px; background: var(--paper); border-radius: 7px; font-size: var(--font-ui); line-height: 1.7; margin-bottom: 15px; }
-.identity-error { border-color: var(--accent-text); }
+.identity-error { border-color: var(--accent-ink); }
 .identity-recovery { background: var(--surface); margin-top: 14px; }
 .identity-recovery > p + p { margin-top: 8px; }
 .identity-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 15px; }
 .identity-freshness { color: var(--secondary); font-size: var(--font-ui); line-height: 1.6; margin: 10px 0 16px; }
-.identity-freshness-stale { color: var(--accent-text); }
+.identity-freshness-stale { color: var(--accent-ink); }
 .identity-empty { padding: 30px 22px; background: var(--paper); border: 1px solid var(--border); border-radius: var(--panel-radius); font-size: 13px; line-height: 1.7; color: var(--secondary); }
 .identity-system-detail { background: var(--paper); border: 1px solid var(--border); border-radius: var(--panel-radius); padding: 24px; margin-bottom: 28px; }
-.identity-badge { background: var(--magenta-soft); color: var(--accent-text); font-size: var(--font-ui); border-radius: 4px; padding: 5px 8px; white-space: nowrap; }
+.identity-badge { background: var(--accent-soft); color: var(--accent-ink); font-size: var(--font-ui); border-radius: 4px; padding: 5px 8px; white-space: nowrap; }
 .identity-board { margin: 0; min-width: 0; }
 .identity-board-image { background: var(--surface); border-radius: 6px; overflow: hidden; aspect-ratio: 4 / 3; display: grid; place-items: center; }
 .identity-board-image img { width: 100%; height: 100%; max-height: 560px; object-fit: contain; }
 .identity-system-detail > .identity-board { max-width: 850px; }
 .identity-board-state { text-align: center; color: var(--secondary); font-size: var(--font-ui); line-height: 1.6; padding: 20px; display: grid; gap: 8px; }
-.identity-board-stale { padding: 12px 0; color: var(--accent-text); font-size: var(--font-ui); line-height: 1.6; }
-.identity-acknowledgment { display: flex; align-items: flex-start; gap: 9px; font-size: var(--font-ui); line-height: 1.7; background: var(--magenta-soft); padding: 15px; border-radius: 6px; margin-top: 16px; }
-.identity-acknowledgment input { margin-top: 4px; accent-color: var(--accent-text); flex-shrink: 0; }
+.identity-board-stale { padding: 12px 0; color: var(--accent-ink); font-size: var(--font-ui); line-height: 1.6; }
+.identity-acknowledgment { display: flex; align-items: flex-start; gap: 9px; font-size: var(--font-ui); line-height: 1.7; background: var(--accent-soft); padding: 15px; border-radius: 6px; margin-top: 16px; }
+.identity-acknowledgment input { margin-top: 4px; accent-color: var(--accent-ink); flex-shrink: 0; }
 .identity-history { margin-top: 28px; }
 .identity-history-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
 .identity-history-card { min-width: 0; background: var(--paper); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
@@ -91,7 +91,7 @@
 .identity-transition { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding-top: 22px; }
 .identity-transition > a { display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; }
 .identity-transition > span { color: var(--secondary); font-size: var(--font-ui); line-height: 1.7; }
-.identity-transition > a:focus-visible, #project-identity-title:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 3px; }
+.identity-transition > a:focus-visible, #project-identity-title:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
 
 .identity-control-unavailable { color: var(--secondary); margin-top: 12px; }
 .identity-control-unavailable + .identity-actions { margin-top: 8px; }

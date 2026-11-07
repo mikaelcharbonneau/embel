@@ -8,7 +8,7 @@ export async function expectProjectCanvas(page: Page) {
   const owned = await page.locator(".project-workspace").count();
   const shell = page.locator(owned ? ".project-workspace" : ".project-strategy-workspace"), content = owned ? page.locator(".project-workspace-content") : shell;
   await expect(shell).toBeVisible(); await expect(content).toBeVisible();
-  const bounds = (await shell.boundingBox())!, canvas = (await content.boundingBox())!, topbar = (await page.locator(".topbar").boundingBox())!;
+  const bounds = (await shell.boundingBox())!, canvas = (await content.boundingBox())!, topbar = (await page.getByRole("banner").boundingBox())!;
   expect(bounds.width).toBeGreaterThan(0); expect(canvas.height).toBeGreaterThan(0);
   expect(Math.abs(bounds.y - topbar.y - topbar.height)).toBeLessThanOrEqual(1);
   // Existing actionable notices may precede the canvas; deleted bars reserve no space.

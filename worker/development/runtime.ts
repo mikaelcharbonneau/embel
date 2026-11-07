@@ -88,7 +88,7 @@ async function runText(pool: DevelopmentWorkerPool, config: DevelopmentWorkerCon
     const [{ PostgresJobStore }, { createStrategyReadiness }, { createOpenAIStrategyHandlers }, { guidedStrategyPolicy }] = await Promise.all([
       import("../postgres-store"), import("../handlers/openai-readiness"), import("../handlers/openai-strategy"), import("../../src/server/ai/config"),
     ]);
-    const policies = new Map((["strategy.reformulate", "strategy.competitors", "strategy.audience", "strategy.personality"] as const)
+    const policies = new Map((["strategy.reformulate", "strategy.competitors", "strategy.audience", "strategy.positioning", "strategy.personality", "strategy.slogan"] as const)
       .map(operation => [operation, guidedStrategyPolicy(operation, "gpt-6-luna")] as const));
     const readiness = createStrategyReadiness(pool, policies, () => {});
     const store = new PostgresJobStore(pool, { localPrototype: true });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { contextSnapshotSchema, missingStrategy } from "../../src/domain/projects";
-import { appendGuidedTurn, confirmGuidedSelection, guidedReplySchema, guidedTurnOperation, initializeGuidedInterview, parseGuidedInterview, revisitGuidedStage, type GuidedReply } from "../../src/domain/guided-interview";
+import { appendGuidedTurn, confirmGuidedSelection, guidedReplySchema, guidedSlogan, guidedTurnOperation, initializeGuidedInterview, parseGuidedInterview, revisitGuidedStage, skipGuidedSlogan, type GuidedReply } from "../../src/domain/guided-interview";
 
 const now = "2026-10-14T20:00:00.000Z";
 const ids = ["10000000-0000-4000-8000-000000000001", "10000000-0000-4000-8000-000000000002"];
@@ -108,22 +108,43 @@ describe("pure guided interview decisions", () => {
     expect(guidedReplySchema.safeParse({ ...reply, options: [{ ...option, payload: { ...option.payload, selected: true } }] }).success).toBe(false);
   });
 
-  it("finishes at personality without requiring a reformulation or positioning step", () => {
+  it("asks positioning before personality, then waits for the name before the optional slogan", () => {
     let saved = confirmGuidedSelection(initial(), { turnId: turn.id, reply: choices(), optionIds: [ids[0]!], now });
     saved = appendGuidedTurn(saved, { id: "audience", stage: "audience", purpose: "propose", userMessageId: "prompt", inputRevision: 3 });
     saved = confirmGuidedSelection(saved, { turnId: "audience", now, optionIds: [ids[0]!], reply: guidedReplySchema.parse({ kind: "choices", turnId: "audience", stage: "audience", message: "Synthetic audience", question: "Who should we serve first?", selectionMode: "multiple",
       options: [{ id: ids[0], stage: "audience", label: "Office teams", description: "Shared office meals", recommended: true, recommendationReason: "Matches the offer", payload: { id: ids[0], label: "Office teams", needs: ["Dependable delivery"], reason: "Recurring demand", origin: "proposal", selected: false, sources: [] } }],
     }) });
+    expect(saved.intake.guidedInterview?.stage).toBe("positioning");
+    saved = appendGuidedTurn(saved, { id: "positioning", stage: "positioning", purpose: "propose", userMessageId: null, inputRevision: 4 });
+    expect(guidedTurnOperation(saved.intake.guidedInterview!.turns.at(-1)!)).toBe("strategy.positioning");
+    const direction = { angle: "Lunch that just arrives", statement: "For office teams, the bread subscription that shows up before anyone asks.", why: "Pairs a habit with reliability.", leads: ["Reliable", "Fresh"] };
+    saved = confirmGuidedSelection(saved, { turnId: "positioning", now, optionIds: [ids[1]!], reply: guidedReplySchema.parse({ kind: "choices", turnId: "positioning", stage: "positioning", message: "Synthetic positioning", question: "How will you stand apart?", selectionMode: "single",
+      options: [{ id: ids[1], stage: "positioning", label: direction.angle, description: direction.statement, recommended: true, recommendationReason: "Fits the audience", payload: direction }],
+    }) });
+    expect(saved.positioning).toBe(direction.statement);
+    expect(saved.intake.positioningReviewedAt).toBe(now);
+    expect(saved.intake.personalityReviewedAt).toBeNull();
     saved = appendGuidedTurn(saved, { id: "personality", stage: "personality", purpose: "propose", userMessageId: null, inputRevision: 5 });
     saved = confirmGuidedSelection(saved, { turnId: "personality", now, optionIds: [ids[0]!], reply: guidedReplySchema.parse({ kind: "choices", turnId: "personality", stage: "personality", message: "Synthetic direction", question: "How should this brand feel?", selectionMode: "single",
       options: [{ id: ids[0], stage: "personality", label: "Dependable warmth", description: "Friendly and reliable", recommended: true, recommendationReason: "Suited to everyday trust", payload: { profile, traits: ["Warm", "Reliable"], toneExample: "Good bread, right on time.", expression: "Plain language and warm colors" } }],
     }) });
-    expect(saved.intake.guidedInterview?.stage).toBe("complete");
-    expect(saved.intake.guidedInterview?.answers).toHaveLength(3);
+    expect(saved.intake.guidedInterview?.stage).toBe("slogan");
+    expect(saved.intake.step).toBe("personality");
+    expect(saved.intake.guidedInterview?.answers).toHaveLength(4);
     expect(saved.personality).toEqual(profile);
+    expect(saved.intake.positioningReviewedAt).toBe(now);
     expect(missingStrategy(saved)).toEqual([]);
-    expect(saved.positioning).toBe("");
     expect(saved.reformulationConfirmed).toBe(false);
+    const sloganTurn = appendGuidedTurn({ ...saved, selectedName: "Crumb" }, { id: "slogan", stage: "slogan", purpose: "propose", userMessageId: null, inputRevision: 6 });
+    expect(guidedTurnOperation(sloganTurn.intake.guidedInterview!.turns.at(-1)!)).toBe("strategy.slogan");
+    const sloganReply = guidedReplySchema.parse({ kind: "choices", turnId: "slogan", stage: "slogan", message: "Synthetic slogans", question: "Which slogan sounds like you?", selectionMode: "single",
+      options: [{ id: ids[0], stage: "slogan", label: "Bread, before the meeting.", description: "Reliability", recommended: true, recommendationReason: "Short and warm", payload: { slogan: "Bread, before the meeting." } }] });
+    expect(guidedSlogan(confirmGuidedSelection(sloganTurn, { turnId: "slogan", reply: sloganReply, optionIds: [ids[0]!], now }))).toBe("Bread, before the meeting.");
+    expect(guidedSlogan(confirmGuidedSelection(sloganTurn, { turnId: "slogan", reply: sloganReply, ownSlogan: "Warm bread, every desk.", now }))).toBe("Warm bread, every desk.");
+    const skipped = skipGuidedSlogan(sloganTurn, { turnId: "slogan", now });
+    expect(skipped.intake.guidedInterview?.stage).toBe("complete");
+    expect(guidedSlogan(skipped)).toBeNull();
+    saved = skipped;
     const clarification = appendGuidedTurn(contextSnapshotSchema.parse({ ...saved, intake: { ...saved.intake,
       conversation: [...saved.intake.conversation!, { id: "completed-clarification", kind: "user_message", text: "Why is this personality a good fit?", createdAt: now }],
       guidedInterview: { ...saved.intake.guidedInterview!, stage: "personality" },
@@ -139,8 +160,12 @@ describe("pure guided interview decisions", () => {
     const revisited = revisitGuidedStage(saved, "audience");
     expect(revisited.personality).toEqual(profile);
     expect(revisited.intake.personalityReviewedAt).toBeNull();
+    expect(revisited.intake.positioningReviewedAt).toBeNull();
     expect(revisited.intake.guidedInterview?.answers).toHaveLength(1);
     expect(missingStrategy(revisited)).toContain("audience");
+    const personalityAgain = revisitGuidedStage(saved, "personality");
+    expect(personalityAgain.intake.positioningReviewedAt).toBe(now);
+    expect(personalityAgain.intake.guidedInterview?.answers.map(answer => answer.stage)).toEqual(["competitors", "audience", "positioning"]);
   });
 
   it("rejects assistant text in saved metadata and duplicate decision references", () => {
@@ -167,7 +192,8 @@ describe("pure guided interview decisions", () => {
     expect(next.intake.personalityReviewedAt).toBeNull();
     expect(next.intake.conversation).toEqual(existing.intake.conversation);
     expect(guidedReplySchema.safeParse({ ...reply, targetStage: "personality" }).success).toBe(false);
-    expect(guidedReplySchema.safeParse({ ...reply, targetStage: "positioning" }).success).toBe(false);
+    expect(guidedReplySchema.safeParse({ ...reply, targetStage: "positioning" }).success).toBe(true);
+    expect(guidedReplySchema.safeParse({ ...reply, targetStage: "naming" }).success).toBe(false);
     expect(guidedReplySchema.safeParse({ ...reply, kind: "answer" }).success).toBe(false);
     expect(guidedReplySchema.safeParse({ ...reply, stage: "competitors", targetStage: "competitors" }).success).toBe(true);
   });

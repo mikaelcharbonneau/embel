@@ -16,7 +16,7 @@
 .editorHeader { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
 .editorHeader h2 { margin: .25rem 0 0; font-size: 1.5rem; letter-spacing: -.025em; }
 .eyebrow { margin: 0; color: var(--secondary, #696965); font-size: .75rem;  }
-.badge { padding: .4rem .65rem; border-radius: 999px; font-size: .75rem; background: var(--magenta-soft, #fff0fd); color: var(--accent-text, #990091); }
+.badge { padding: .4rem .65rem; border-radius: 999px; font-size: .75rem; background: var(--accent-soft, #f1f0ee); color: var(--accent-ink, #191919); }
 .notice { padding: 1rem; border: 1px solid var(--border, #e4e3df); border-left: 1px solid var(--border, #e4e3df); border-radius: .5rem; background: var(--canvas, #f7f7f5); }
 .notice p { margin: .35rem 0 0; line-height: 1.5; font-size: .875rem; }
 .comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
@@ -34,11 +34,11 @@
 .componentList button { display: grid; gap: .25rem; text-align: left; padding: .75rem; border: 1px solid var(--border, #e4e3df); border-radius: .5rem; background: var(--paper, #fff); color: inherit; min-height: 44px; font: inherit; }
 .componentList button span { text-transform: capitalize; }
 .componentList button small { color: var(--secondary, #696965); }
-.componentList button[aria-pressed="true"] { border-color: var(--accent-text, #990091); background: var(--magenta-soft, #fff0fd); }
+.componentList button[aria-pressed="true"] { border-color: var(--accent-ink, #191919); background: var(--accent-soft, #f1f0ee); }
 .actions { display: flex; flex-wrap: wrap; gap: .5rem; }
 .actions button, .history button { min-height: 44px; padding: .6rem .9rem; border: 1px solid var(--border, #e4e3df); border-radius: .5rem; background: var(--surface, #f1f0ee); color: var(--secondary, #696965); font: inherit; }
 .editor button:disabled { cursor: not-allowed; }
-.editor button:focus-visible, .editor input:focus-visible { outline: 3px solid var(--accent-text, #990091); outline-offset: 3px; }
+.editor button:focus-visible, .editor input:focus-visible { outline: 3px solid var(--accent-ink, #191919); outline-offset: 3px; }
 .history { padding-top: 1rem; border-top: 1px solid var(--border, #e4e3df); }
 .history p { font-size: .875rem; line-height: 1.5; }
 .history ol { list-style: none; padding: 0; margin: 0; }

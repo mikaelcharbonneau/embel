@@ -1,0 +1,118 @@
+/* Shared building blocks for the redesigned brand journey (Phase 0). */
+
+.navWrap { position: relative; z-index: 30; flex: 0 0 auto; display: flex; justify-content: center; padding: 16px 16px 0; }
+.capsule { display: flex; align-items: center; gap: 6px; min-height: 56px; box-sizing: border-box; padding: 0 6px 0 8px; background: rgb(255 255 255 / 92%); border: 1px solid var(--border); border-radius: var(--radius-pill); box-shadow: 0 12px 32px -16px rgb(25 25 25 / 28%); }
+.brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 8px 0 10px; border-radius: var(--radius-pill); color: var(--text); font-size: 15px; font-weight: 600; }
+.brandIcon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; }
+.sep { flex: 0 0 auto; width: 1px; height: 22px; margin: 0 4px; background: var(--border); }
+.mainNav { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.navList { display: flex; align-items: center; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.navLink { display: inline-flex; align-items: center; gap: 4px; min-height: 40px; padding: 0 16px; border: 0; border-radius: var(--radius-pill); background: transparent; color: #3a3a37; font-size: 13px; white-space: nowrap; cursor: pointer; }
+.navLink:hover { background: var(--surface); }
+.navLink[aria-current="page"] { background: var(--accent); color: var(--on-accent); font-weight: 500; }
+.tools { position: relative; }
+.tools > summary { list-style: none; }
+.tools > summary::-webkit-details-marker { display: none; }
+.menu { position: absolute; z-index: 40; top: calc(100% + 8px); left: 0; display: flex; flex-direction: column; gap: 2px; min-width: 220px; margin: 0; padding: 6px; list-style: none; background: var(--paper); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 16px 40px -16px rgb(25 25 25 / 30%); }
+.menu a { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 10px; border-radius: 10px; color: var(--text); font-size: 14px; }
+.menu a:hover { background: var(--surface); }
+.end { margin-left: auto; display: flex; align-items: center; }
+/* In the project bar the save status sits right before the account. */
+.projectCapsule .accountSep { display: none; }
+
+.projectName { display: inline-flex; align-items: center; min-height: 40px; padding: 0 10px 0 4px; font-size: 14px; font-weight: 500; white-space: nowrap; }
+.projectSummary { gap: 6px; padding: 0 12px; border-radius: var(--radius-pill); cursor: pointer; list-style: none; }
+.projectSummary::-webkit-details-marker { display: none; }
+.projectSummary:hover { background: var(--surface); }
+.projectTitle { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.stepNext { color: var(--text); }
+/* The next unfinished step is a link, but its mark stays an outline so it never reads as done. */
+a.step.stepNext .stepMark { border: 1.5px solid var(--text); background: transparent; color: var(--text); }
+.stepNext:hover { background: var(--surface); }
+.steps { display: flex; align-items: center; gap: 2px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
+.step { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px 0 8px; border-radius: var(--radius-pill); color: var(--secondary); white-space: nowrap; }
+.step[aria-current="step"] { padding-right: 14px; background: var(--accent); color: var(--on-accent); font-weight: 500; }
+a.step { color: var(--text); }
+a.step:hover { background: var(--surface); }
+.stepMark { display: grid; place-items: center; width: 20px; height: 20px; box-sizing: border-box; border: 1.5px solid #c9c8c2; border-radius: 50%; font-size: 10px; }
+.step[aria-current="step"] .stepMark { border: 5px solid var(--on-accent); }
+a.step .stepMark { border: 0; background: var(--accent); color: var(--on-accent); }
+.save { display: inline-flex; align-items: center; gap: 6px; padding: 0 6px; font-size: 12px; color: var(--secondary); white-space: nowrap; }
+.save[data-state="saved"] { color: var(--positive); }
+.save[data-state="error"] { color: #8f4242; }
+
+.message { display: flex; align-items: flex-start; gap: 12px; }
+.avatar { display: grid; place-items: center; flex: 0 0 32px; height: 32px; border-radius: 50%; background: var(--accent); }
+.avatar img { width: 15px; height: 15px; filter: invert(1); }
+.messageBody { display: flex; flex: 1 1 auto; flex-direction: column; gap: 14px; min-width: 0; }
+.meta { margin: 0; padding-top: 6px; font-size: 12px; color: var(--secondary); }
+.user { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.bubble { max-width: 560px; margin: 0; padding: 14px 18px; background: var(--paper); border: 1px solid var(--border); border-radius: 20px 20px 6px 20px; font-size: 15px; line-height: 1.5; overflow-wrap: anywhere; }
+
+.choice { position: relative; display: flex; flex-direction: column; gap: 12px; padding: 16px; background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius-card); }
+.choice[data-checked="true"] { border: 1.5px solid var(--accent); padding: 15.5px; box-shadow: 0 12px 28px -18px rgb(25 25 25 / 30%); }
+.choice:has(input:focus-visible) { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
+.choiceTarget { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; }
+.choiceContent { display: flex; flex: 1 1 auto; flex-direction: column; gap: 6px; min-width: 0; }
+.choiceTitle { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 22px; font-size: 15px; font-weight: 500; }
+.choiceInput { flex: 0 0 auto; width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--accent); }
+.choice[data-disabled="true"] { opacity: .55; }
+.choice[data-disabled="true"] .choiceTarget { cursor: not-allowed; }
+.badge { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: var(--radius-pill); background: var(--surface); color: #3a3a37; font-size: 11px; font-weight: 500; }
+
+.summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 14px 14px 16px; background: rgb(255 255 255 / 75%); border: 1px solid var(--border); border-radius: var(--radius-card); }
+.summaryCopy { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.summaryQuestion { margin: 0; font-size: 13px; font-weight: 500; color: #3a3a37; }
+.summaryAnswer { margin: 0; font-size: 14px; }
+.pillButton { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 0 14px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); color: var(--text); font-size: 13px; cursor: pointer; }
+.pillButton:hover:not(:disabled) { background: var(--surface); }
+.earlier { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px 0 6px; background: rgb(255 255 255 / 80%); border: 1px solid var(--border); border-radius: var(--radius-pill); color: var(--text); font-size: 13px; }
+.earlierCheck { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--on-accent); }
+.earlierLabel { font-weight: 500; }
+.earlierValue { color: var(--secondary); }
+
+.composer { position: sticky; bottom: 16px; display: flex; flex-direction: column; gap: 8px; width: 100%; box-sizing: border-box; padding: 14px 12px 10px 20px; background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius-panel); box-shadow: 0 16px 40px -16px rgb(25 25 25 / 20%); }
+.composer:focus-within { border-color: #aaa9a5; }
+.target { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; height: 32px; margin: 0; padding: 0 6px 0 12px; background: var(--canvas); border: 1px solid #eeedea; border-radius: var(--radius-pill); color: #3a3a37; font-size: 12px; }
+.targetClear { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--secondary); cursor: pointer; }
+.textarea { width: 100%; min-height: 48px; box-sizing: border-box; padding: 0; border: 0; outline: none; resize: none; background: transparent; font-size: 16px; line-height: 1.45; color: var(--text); }
+.textarea::placeholder { color: #8a8a85; opacity: 1; }
+.composerFooter { display: flex; align-items: center; gap: 6px; }
+.spacer { flex: 1 1 auto; }
+.send { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; background: var(--accent); color: var(--on-accent); cursor: pointer; }
+.send:disabled { opacity: .35; }
+
+.progress { display: flex; flex-direction: column; gap: 14px; padding: 18px; background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: 0 12px 32px -18px rgb(25 25 25 / 22%); }
+.progressTitle { margin: 0; font-size: 16px; font-weight: 500; }
+.progressText { margin: 0; font-size: 14px; color: var(--secondary); }
+.bar { height: 4px; overflow: hidden; border-radius: var(--radius-pill); background: var(--surface); }
+.bar > span { display: block; width: 38%; height: 100%; border-radius: inherit; background: var(--accent); animation: journey-bar 1.4s ease-in-out infinite; }
+.progressActions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; }
+.progressNote { margin: 0 auto 0 0; font-size: 13px; color: var(--secondary); }
+@keyframes journey-bar { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+@media (prefers-reduced-motion: reduce) { .bar > span { width: 100%; animation: none; opacity: .35; } }
+
+@media (max-width: 900px) {
+  .projectCapsule { flex-wrap: wrap; width: 100%; padding: 8px; border-radius: 20px; }
+  .stepsNav { order: 3; flex-basis: 100%; overflow-x: auto; }
+  .projectCapsule .sep { display: none; }
+}
+/* Phones keep one compact row so pages keep their height: the logo icon, the
+   links and the account avatar. The Tools menu spans the bar so it always stays
+   on screen; on very narrow screens the links may wrap. */
+@media (max-width: 600px) {
+  .navWrap { padding: 8px 8px 0; }
+  .navCapsule { position: relative; width: 100%; min-height: 52px; gap: 2px; padding: 4px; border-radius: 26px; }
+  .navCapsule .sep { display: none; }
+  .navCapsule .brand { padding: 0 6px; }
+  .navCapsule .brand > span { display: none; }
+  .mainNav { flex: 1 1 auto; gap: 2px; }
+  .mainNav .navList { flex: 1 1 auto; flex-wrap: wrap; row-gap: 2px; }
+  .navLink { padding: 0 9px; }
+  .tools { position: static; }
+  .menu { left: 4px; right: 4px; min-width: 0; top: calc(100% + 6px); }
+}
+@media (max-width: 760px) {
+  .stepLabel { display: none; }
+  .step[aria-current="step"] .stepLabel { display: inline; }
+}
