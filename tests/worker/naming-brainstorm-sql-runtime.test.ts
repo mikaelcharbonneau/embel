@@ -31,6 +31,9 @@ describe('Naming brainstorm SQL/SDK/server composition',()=>{
   await f.db.exec(repair
     .replace("current_setting('server_version_num')::integer<>170011", "current_setting('server_version_num')::integer<>180003")
     .replaceAll("count(*)FROM pg_constraint WHERE conrelid=t)", "count(*)FROM pg_constraint WHERE conrelid=t AND contype<>'n')"));
+  for(const file of ['shared_naming_brainstorm_delivery_recovery.sql','shared_naming_lease_expiry.sql']){
+   await f.db.exec(await readFile(new URL(`../../supabase/candidates/${file}`,import.meta.url),'utf8'));
+  }
  },60_000);
  afterAll(async()=>{vi.unstubAllGlobals();vi.unstubAllEnvs();await f?.close();});
  it('runs the actual worker through one durable 120-candidate SDK stream and verifies its 100 saved names through getNamingFeed',async()=>{

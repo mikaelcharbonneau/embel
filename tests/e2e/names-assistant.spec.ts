@@ -75,8 +75,7 @@ test("assistant entry: a new brief opens the current project Naming conversation
 test("Home Name: saves its brief and opens the same current Naming conversation without Strategy research", async ({ page }) => {
   const state = await fixture(page); await page.goto("/");
   await page.getByRole("textbox", { name: "Your prompt", exact: true }).fill("A synthetic naming brief submitted from Home.");
-  await page.getByRole("button", { name: "Project scope: Brand", exact: true }).click();
-  await page.getByRole("menuitemradio", { name: "Name", exact: true }).click();
+  await page.getByRole("group", { name: "What to create", exact: true }).getByText("Name only", { exact: true }).click();
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/brands/account/${id(50)}/naming$`));
   await expect(page.getByRole("complementary", { name: "Naming conversation", exact: true })).toBeVisible();

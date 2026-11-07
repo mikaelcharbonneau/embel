@@ -1,10 +1,11 @@
 /* Shared building blocks for the redesigned brand journey (Phase 0). */
 
-.navWrap { display: flex; justify-content: center; padding: 16px 16px 0; }
+.navWrap { position: relative; z-index: 30; flex: 0 0 auto; display: flex; justify-content: center; padding: 16px 16px 0; }
 .capsule { display: flex; align-items: center; gap: 6px; min-height: 56px; box-sizing: border-box; padding: 0 6px 0 8px; background: rgb(255 255 255 / 92%); border: 1px solid var(--border); border-radius: var(--radius-pill); box-shadow: 0 12px 32px -16px rgb(25 25 25 / 28%); }
 .brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 8px 0 10px; border-radius: var(--radius-pill); color: var(--text); font-size: 15px; font-weight: 600; }
 .brandIcon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; }
 .sep { flex: 0 0 auto; width: 1px; height: 22px; margin: 0 4px; background: var(--border); }
+.mainNav { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .navList { display: flex; align-items: center; gap: 2px; margin: 0; padding: 0; list-style: none; }
 .navLink { display: inline-flex; align-items: center; gap: 4px; min-height: 40px; padding: 0 16px; border: 0; border-radius: var(--radius-pill); background: transparent; color: #3a3a37; font-size: 13px; white-space: nowrap; cursor: pointer; }
 .navLink:hover { background: var(--surface); }
@@ -16,8 +17,18 @@
 .menu a { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 10px; border-radius: 10px; color: var(--text); font-size: 14px; }
 .menu a:hover { background: var(--surface); }
 .end { margin-left: auto; display: flex; align-items: center; }
+/* In the project bar the save status sits right before the account. */
+.projectCapsule .accountSep { display: none; }
 
 .projectName { display: inline-flex; align-items: center; min-height: 40px; padding: 0 10px 0 4px; font-size: 14px; font-weight: 500; white-space: nowrap; }
+.projectSummary { gap: 6px; padding: 0 12px; border-radius: var(--radius-pill); cursor: pointer; list-style: none; }
+.projectSummary::-webkit-details-marker { display: none; }
+.projectSummary:hover { background: var(--surface); }
+.projectTitle { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.stepNext { color: var(--text); }
+/* The next unfinished step is a link, but its mark stays an outline so it never reads as done. */
+a.step.stepNext .stepMark { border: 1.5px solid var(--text); background: transparent; color: var(--text); }
+.stepNext:hover { background: var(--surface); }
 .steps { display: flex; align-items: center; gap: 2px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
 .step { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px 0 8px; border-radius: var(--radius-pill); color: var(--secondary); white-space: nowrap; }
 .step[aria-current="step"] { padding-right: 14px; background: var(--accent); color: var(--on-accent); font-weight: 500; }
@@ -76,14 +87,30 @@ a.step .stepMark { border: 0; background: var(--accent); color: var(--on-accent)
 .progressText { margin: 0; font-size: 14px; color: var(--secondary); }
 .bar { height: 4px; overflow: hidden; border-radius: var(--radius-pill); background: var(--surface); }
 .bar > span { display: block; width: 38%; height: 100%; border-radius: inherit; background: var(--accent); animation: journey-bar 1.4s ease-in-out infinite; }
-.progressActions { display: flex; justify-content: flex-end; }
+.progressActions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; }
+.progressNote { margin: 0 auto 0 0; font-size: 13px; color: var(--secondary); }
 @keyframes journey-bar { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
 @media (prefers-reduced-motion: reduce) { .bar > span { width: 100%; animation: none; opacity: .35; } }
 
 @media (max-width: 900px) {
-  .capsule { flex-wrap: wrap; width: 100%; padding: 8px; border-radius: 20px; }
+  .projectCapsule { flex-wrap: wrap; width: 100%; padding: 8px; border-radius: 20px; }
   .stepsNav { order: 3; flex-basis: 100%; overflow-x: auto; }
-  .sep { display: none; }
+  .projectCapsule .sep { display: none; }
+}
+/* Phones keep one compact row so pages keep their height: the logo icon, the
+   links and the account avatar. The Tools menu spans the bar so it always stays
+   on screen; on very narrow screens the links may wrap. */
+@media (max-width: 600px) {
+  .navWrap { padding: 8px 8px 0; }
+  .navCapsule { position: relative; width: 100%; min-height: 52px; gap: 2px; padding: 4px; border-radius: 26px; }
+  .navCapsule .sep { display: none; }
+  .navCapsule .brand { padding: 0 6px; }
+  .navCapsule .brand > span { display: none; }
+  .mainNav { flex: 1 1 auto; gap: 2px; }
+  .mainNav .navList { flex: 1 1 auto; flex-wrap: wrap; row-gap: 2px; }
+  .navLink { padding: 0 9px; }
+  .tools { position: static; }
+  .menu { left: 4px; right: 4px; min-width: 0; top: calc(100% + 6px); }
 }
 @media (max-width: 760px) {
   .stepLabel { display: none; }

@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/link", () => ({ default: ({ children, ...props }: ComponentProps<"a">) => createElement("a", props, children) }));
 
-import { JOURNEY, journeyPartLabel, journeySteps } from "@/domain/journey";
+import { JOURNEY, journeyPartLabel, journeyStepOfPath, journeySteps, projectJourney } from "@/domain/journey";
 import { AnswerSummary, EarlierAnswerLink } from "@/components/journey/answer-summary";
 import { ChoiceCard } from "@/components/journey/choice-card";
 import { Composer } from "@/components/journey/composer";
@@ -41,6 +41,35 @@ describe("journey model", () => {
   it("labels a part with its position", () => {
     expect(journeyPartLabel("strategy", "Audience")).toBe("Audience · 2 of 3");
     expect(journeyPartLabel("voice", "Unknown")).toBe("Unknown");
+  });
+});
+
+describe("project journey from saved work", () => {
+  const id = "11111111-1111-4111-8111-111111111111", base = `/brands/account/${id}`;
+  const view = (scope: "complete_brand" | "naming_only" | "visual_identity_only", pathname: string, nextHref: string | null) =>
+    projectJourney({ projectId: id, scope, pathname, nextHref }).map(step => `${step.number}:${step.id}:${step.status}${step.href ? `->${step.href.replace(base, "")}` : ""}`);
+
+  it("maps each project page to its step", () => {
+    expect([base, `${base}/naming`, `${base}/inspiration`, `${base}/logo`, `${base}/logo/directions`, `${base}/logo/deliverables`, `${base}/identity`]
+      .map(path => journeyStepOfPath(id, path))).toEqual(["strategy", "voice", "identity", "identity", "identity", "assets", "identity"]);
+    expect(journeyStepOfPath(id, "/brands/account/22222222-2222-4222-8222-222222222222/naming")).toBe("strategy");
+  });
+  it("marks steps before the verified next action as done and links the next one", () => {
+    expect(view("complete_brand", `${base}/naming`, `${base}/logo/directions`)).toEqual([
+      "1:strategy:done->?view=strategy", "2:voice:current->/naming", "3:identity:upcoming->/logo/directions", "4:assets:upcoming"]);
+    expect(view("complete_brand", base, `${base}?view=strategy#strategy-audience`)).toEqual([
+      "1:strategy:current->?view=strategy#strategy-audience", "2:voice:upcoming", "3:identity:upcoming", "4:assets:upcoming"]);
+  });
+  it("highlights the step the conversation reports, such as Voice once naming continues inline", () => {
+    expect(projectJourney({ projectId: id, scope: "complete_brand", pathname: base, nextHref: `${base}/naming`, shown: "voice" })
+      .map(step => `${step.id}:${step.status}`)).toEqual(["strategy:done", "voice:current", "identity:upcoming", "assets:upcoming"]);
+  });
+  it("claims nothing as done while the next action is unknown", () => {
+    expect(view("complete_brand", `${base}/logo`, null)).toEqual(["1:strategy:upcoming", "2:voice:upcoming", "3:identity:current", "4:assets:upcoming"]);
+  });
+  it("shows only the steps a project type has, numbered from one", () => {
+    expect(view("naming_only", `${base}/naming`, `${base}/naming`)).toEqual(["1:voice:current->/naming"]);
+    expect(view("visual_identity_only", `${base}/logo/deliverables`, `${base}/logo/deliverables`)).toEqual(["1:identity:done->/logo", "2:assets:current->/logo/deliverables"]);
   });
 });
 
@@ -135,6 +164,12 @@ describe("navigation", () => {
     expect(host.textContent).toContain("Untitled brand");
     await render(createElement(ProjectCapsule, { projectName: "x", saveState: "saving", steps: journeySteps("strategy", new Set()) }));
     expect(host.querySelector("[role='status']")!.textContent).toBe("Saving…");
+    await render(createElement(ProjectCapsule, { projectName: "x", saveState: null, steps: journeySteps("voice", new Set(), { strategy: "/p/strategy#audience" }) }));
+    expect(host.querySelector("a[href='/p/strategy#audience']")!.textContent).toBe("1Strategy, next step");
+    expect(host.querySelector("[role='status']")).toBeNull();
+    await render(createElement(ProjectCapsule, { projectName: "", saveState: null, steps: [] }));
+    expect(host.querySelector("[role='status']")!.textContent).toBe("Loading project…");
+    expect(host.querySelector("nav[aria-label='Brand journey']")).toBeNull();
   });
 });
 

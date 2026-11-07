@@ -210,3 +210,6 @@
   .idea-detail-panel .ideas-field input, .idea-detail-panel .ideas-field textarea, .idea-detail-panel .ideas-field select { font-size: 16px; }
   .idea-detail-panel .idea-metadata-fields { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Phase 1: the floating navigation has no breadcrumb, so idea pages carry their own way back. */
+.idea-back-link { display: inline-flex; align-items: center; min-height: 44px; margin-bottom: 8px; font-size: 13px; }

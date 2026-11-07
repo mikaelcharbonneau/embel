@@ -51,11 +51,10 @@ describe("dedicated new-logo entry", () => {
     expect(window.sessionStorage.length).toBe(before); expect(mock.strategy.save).not.toHaveBeenCalled(); expect(mock.strategy.start).not.toHaveBeenCalled();
   });
 
-  it("leaves Home and its disabled Logo scope contract unchanged", async () => {
+  it("keeps the logo entry off Home, whose switch offers only the three project scopes", async () => {
     await render(true); expect(logoLink()).toBeNull();
-    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.click());
-    const logoOption = [...host.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')].find(button => button.textContent === "LogoIn Projects")!;
-    expect(logoOption.disabled).toBe(true); expect(mock.navigate).not.toHaveBeenCalled();
+    expect([...host.querySelectorAll<HTMLInputElement>(".home-scope input")].map(input => input.value)).toEqual(["complete_brand", "naming_only", "visual_identity_only"]);
+    expect(mock.navigate).not.toHaveBeenCalled();
   });
 
   it("does not discard typed work through the separate-logo link", async () => {

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+// Project-bar progress reads (logo/identity) are answered 404 and not counted.
 import { act, useLayoutEffect, type ComponentProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -152,6 +153,7 @@ it.each([false, true])("withholds the final saved-strategy notice until an exact
   const response = deferred<Response>();
   const writes = { patches: 0 };
   fetcher.mockImplementation(async (_path: string, init: RequestInit) => {
+    if (/\/(logo|identity)(\/|\?|$)/.test(_path)) return new Response(null, { status: 404 });
     expect(init.method).toBe("PATCH"); writes.patches++;
     expect(JSON.parse(String(init.body))).toEqual({ expectedRevision: 3, context: complete });
     return response.promise;
@@ -168,6 +170,7 @@ it.each([false, true])("withholds the final saved-strategy notice until an exact
   expect(host.textContent).not.toContain(notice);
   expect(host.textContent).toContain("Retry save");
   fetcher.mockImplementation(async (_path: string, init: RequestInit) => {
+    if (/\/(logo|identity)(\/|\?|$)/.test(_path)) return new Response(null, { status: 404 });
     if (init.method === "GET") return Response.json({ project });
     expect(init.method).toBe("PATCH"); writes.patches++;
     expect(JSON.parse(String(init.body))).toEqual({ expectedRevision: 3, context: complete });
@@ -195,6 +198,7 @@ it.each([0, 1])("acknowledges a committed guided save during re-verification whe
   const pending = guidedMessageContext(project.context, "Saved answer with a lost response", 2);
   let patches = 0;
   fetcher.mockImplementation(async (_path: string, init: RequestInit) => {
+    if (/\/(logo|identity)(\/|\?|$)/.test(_path)) return new Response(null, { status: 404 });
     expect(init.method).toBe("PATCH"); patches++;
     project = { ...project, current_revision: 2, context: JSON.parse(String(init.body)).context };
     throw new TypeError("Lost committed acknowledgement");
@@ -223,6 +227,7 @@ it("keeps a newer acknowledged project when an earlier editor GET settles after 
   await act(async () => capture.editor!.storage.onUpdate({ description: "An ordinary edit with a lost response" }));
   let patches = 0;
   fetcher.mockImplementation(async (_path: string, init: RequestInit) => {
+    if (/\/(logo|identity)(\/|\?|$)/.test(_path)) return new Response(null, { status: 404 });
     expect(init.method).toBe("PATCH"); patches++;
     const body = JSON.parse(String(init.body));
     project = { ...project, title: body.title, current_revision: 2, context: body.context };
@@ -284,6 +289,7 @@ it("retries an uncommitted guided intent with the same body only after checking 
   await mount();
   const requests: { method: string; body?: string }[] = [];
   fetcher.mockImplementation(async (_path: string, init: RequestInit) => {
+    if (/\/(logo|identity)(\/|\?|$)/.test(_path)) return new Response(null, { status: 404 });
     requests.push({ method: String(init.method), body: init.body ? String(init.body) : undefined });
     if (init.method === "GET") return Response.json({ project });
     if (requests.length === 1) throw new TypeError("Synthetic interrupted request before commit");
@@ -304,6 +310,7 @@ it("keeps a guided branch in conflict when a different saved answer owns the nex
   await mount();
   let patches = 0;
   fetcher.mockImplementation(async (_path: string, init: RequestInit) => {
+    if (/\/(logo|identity)(\/|\?|$)/.test(_path)) return new Response(null, { status: 404 });
     if (init.method === "GET") return Response.json({ project });
     patches++; project = { ...project, current_revision: 2, context: { ...project.context, description: "Another tab's saved brief" } };
     throw new TypeError("Uncertain guided save");
@@ -360,6 +367,7 @@ it.each([false, true])("clears only the acknowledged submitted prompt after guid
   await mount(); await typePrompt("The submitted question");
   let patches = 0;
   fetcher.mockImplementation(async (_path: string, init: RequestInit) => {
+    if (/\/(logo|identity)(\/|\?|$)/.test(_path)) return new Response(null, { status: 404 });
     if (init.method === "GET") return Response.json({ project });
     patches++; project = { ...project, current_revision: 2, context: JSON.parse(String(init.body)).context };
     throw new TypeError("Lost submitted prompt acknowledgement");
@@ -381,6 +389,7 @@ it.each([false, true])("retains the rejected guided prompt intent through a 429 
   const requests: { method: string; body: string | null }[] = [];
   let rejected = false;
   fetcher.mockImplementation(async (_path: string, init: RequestInit) => {
+    if (/\/(logo|identity)(\/|\?|$)/.test(_path)) return new Response(null, { status: 404 });
     requests.push({ method: String(init.method), body: init.body ? String(init.body) : null });
     if (init.method === "GET") return Response.json({ project });
     if (!rejected) { rejected = true; return new Response(null, { status: 429 }); }
@@ -406,6 +415,7 @@ it.each([false, true])("retains rejected choice metadata through a 429 and ackno
   const requests: { method: string; body: string | null }[] = [];
   let rejected = false;
   fetcher.mockImplementation(async (_path: string, init: RequestInit) => {
+    if (/\/(logo|identity)(\/|\?|$)/.test(_path)) return new Response(null, { status: 404 });
     requests.push({ method: String(init.method), body: init.body ? String(init.body) : null });
     if (init.method === "GET") return Response.json({ project });
     if (!rejected) { rejected = true; return new Response(null, { status: 429 }); }

@@ -333,10 +333,7 @@ test("assets design: native artwork and compact responsive card geometry", async
     expect(cards[1]!.x - cards[0]!.x).toBeCloseTo(cards[0]!.width + 18, 0);
     expect(cards[3]!.y - cards[0]!.y).toBe(234);
     await expect(page.getByRole("link", { name: "Embel home", exact: true }).locator('img[src="/embel-mark.svg"]')).toBeVisible();
-    for (const name of ["Home", "Projects", "Assets", "Ideas", "Names", "Handles", "Domains", "Trademarks", "Settings"]) {
-      const icon = page.locator(".sidebar").getByRole("link", { name, exact: true }).locator("svg");
-      await expect(icon).toHaveAttribute("width", "20"); await expect(icon).toHaveAttribute("height", "20");
-    }
+    await expect(page.getByRole("navigation", { name: "Main navigation", exact: true }).getByRole("link", { name: "Library", exact: true })).toHaveAttribute("aria-current", "page");
   } else for (const card of cards) { expect(card.x).toBeCloseTo(grid.x, 0); expect(card.width).toBeCloseTo(grid.width, 0); }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await expect(page.locator(".concept-assets .workspace-main")).toHaveCSS("background-size", "1360px 900px");

@@ -6,8 +6,8 @@ import Link from "next/link";
 import { createPortal } from "react-dom";
 import { GuidedThinking } from "@/components/workspace/guided-thinking";
 import { projectStrategyHref } from "@/domain/project-handoff";
-import { AppMark } from "@/components/ui/app-mark";
 import { ProjectArtwork } from "@/components/ui/project-artwork";
+import { Icon } from "@/components/ui/icon";
 import type { NamingComposerLayout } from "./use-naming-composer-layout";
 import { FloatingComposer } from "@/components/workspace/floating-composer";
 import { ConversationComposer } from "@/components/workspace/conversation-composer";
@@ -18,6 +18,8 @@ import type { NamingPreferenceRevision } from "@/domain/project-naming";
 import type { NamingChatCheckpoint } from "@/domain/naming-chat-checkpoint";
 import type { NamingAccount, NamingBrainMemory } from "./naming-brain-memory";
 import { confirmNamingChatQuestion, initialNamingChatProgress, namingChatCheckpoint, namingChatQuestions, resolveNamingChatProgress, type NamingChatStep as Step } from "./naming-chat-progress";
+import { EmbelIdentity } from "@/components/workspace/embel-identity";
+import { journeyPartLabel } from "@/domain/journey";
 import styles from "./naming-chat.module.css";
 import "@/styles/conversation.css";
 import "@/styles/guided-interview.css";
@@ -26,9 +28,13 @@ import "@/styles/guided-conversation.css";
 /** A saved Strategy conversation already owns the transcript and bottom composer. */
 export type InlineNamingConversation = {
   messages: HTMLDivElement | null;
+  /** Below the naming questions: Embel's message with the names themselves. */
+  results: HTMLDivElement | null;
   composer: HTMLDivElement | null;
   onQuestion: (id: string | null) => void;
   onCanvas: (visible: boolean) => void;
+  /** Continue on the name that was already chosen: close the names again. */
+  onNameConfirmed?: () => void;
 };
 
 export function inlineNamingMessage(host: InlineNamingConversation, content: ReactNode) {
@@ -56,6 +62,13 @@ function answer(step: Step, value: NamingPreferencesV2) {
     case "review": return "";
   }
 }
+/** One line for answered Naming choices, as in the design: approaches · directness · length. */
+function choicesSummary(value: NamingPreferencesV2) {
+  const approaches = NAMING_APPROACHES.filter(item => value.approaches.includes(item.id)).map(item => item.label).join(", ");
+  const min = value.minimumGraphemes, max = value.maximumGraphemes;
+  const length = min === null && max === null ? "Any length" : min === null ? `Up to ${max} characters` : max === null ? `At least ${min} characters` : `${min}–${max} characters`;
+  return [approaches, directness.find(item => item.id === value.directness)?.label, length].filter(Boolean).join(" · ");
+}
 export function NamingRecoveryNotice({ memory, account }: { memory: NamingBrainMemory; account: NamingAccount }) {
   const read = useCallback(() => memory.getRecovery(account), [memory, account]);
   const recovery = useSyncExternalStore(memory.subscribe, read, hidden);
@@ -63,7 +76,7 @@ export function NamingRecoveryNotice({ memory, account }: { memory: NamingBrainM
   return <div className="project-naming-notice" role="status"><strong>Unfinished Naming work is available</strong><p>Recover it into this verified account to check the saved version and confirm any unfinished request.</p><div className="project-naming-actions"><button type="button" className="button secondary small" onClick={() => memory.recover(account)}>Recover my Naming work</button><button type="button" className="text-link" onClick={() => memory.discardRecovery(account)}>Use saved account work</button></div></div>;
 }
 function Assistant({ children }: { children: ReactNode }) {
-  return <div className="guided-assistant-message"><div className="guided-assistant-identity"><AppMark /><span>Embel</span></div>{children}</div>;
+  return <div className="guided-assistant-message"><EmbelIdentity label={journeyPartLabel("voice", "Name")} />{children}</div>;
 }
 export function NamingApproachWidgets({ memory, account, projectId, context, saved, savedChat, blocked, runtimeReady, exploring = false, canSteer = false, onSteer, onContinue, onCheckSaved, onSaveProgress, generationStatus, generationUnavailable = false, compact = false, onToggleConversation, composerLayout, onComposerLayoutChange, conversationHistory, inline, manualName }: {
   memory: NamingBrainMemory; account: NamingAccount; projectId: string; context: ContextSnapshot; saved: NamingPreferenceRevision | null;
@@ -88,6 +101,7 @@ export function NamingApproachWidgets({ memory, account, projectId, context, sav
     return () => onInlineQuestion(null);
   }, [connected, onInlineQuestion, questionId]);
   const [appliedChoices, setAppliedChoices] = useState<string | null>(null);
+  const [choicesOpen, setChoicesOpen] = useState(false);
   useEffect(() => memory.connectPreferences(account, projectId, saved, context, savedChat), [memory, account, projectId, saved, context, savedChat]);
   useLayoutEffect(() => {
     const transition = transitionFocus.current;
@@ -162,9 +176,15 @@ export function NamingApproachWidgets({ memory, account, projectId, context, sav
     } finally { lock.current = false; if (memory.isCurrent(account)) setWorking(false); }
   }
   function revisit(next: Step) { transitionFocus.current = { step: next, from: document.activeElement }; memory.setChatProgress(account, projectId, { ...progress, activeStep: next }); }
+  // Once names arrive in the conversation, the answered choices fold into one line.
+  const folded = Boolean(inline) && exploring && step === "review" && !progressError && !state.error && !hasUpdatedChoices;
+  const summaryPill = <button type="button" className="guided-summary-pill" aria-expanded={!folded || choicesOpen} onClick={() => setChoicesOpen(open => !open)}>
+    <span className="guided-summary-pill-mark" aria-hidden="true"><Icon name="check" size={12} /></span><strong>Naming choices</strong><span>{choicesSummary(value)}</span>
+  </button>;
   const messages = <>
       {!inline && conversationHistory}
       <NamingRecoveryNotice memory={memory} account={account} />
+      {inline && folded && summaryPill}
       {!inline && <ContextDetails className={styles.context} title={<>Saved project context</>}><p>{context.description}</p><p>Saved brand personality: {context.personality ? Object.entries(context.personality).filter(([, weight]) => weight > 0).map(([dimension, weight]) => `${dimension}: ${weight}`).join(" · ") : "Not specified"}</p><p>Audience: {context.audienceSegments.filter(segment => segment.selected).map(segment => segment.label).join(", ") || context.knownAudience || "Not specified"}</p><p>Offering: {context.offering || "Not specified"}</p><p>Positioning: {context.positioning || "Not specified"}</p><Link className="text-link" href={projectStrategyHref(projectId)}>Open the Strategy conversation</Link></ContextDetails>}
       {saved?.preferences.version === 1 ? <ContextDetails className={styles.context} aria-label="Earlier Naming choices" title={<>Earlier Naming choices · v{saved.version}</>}><p>Creative language: {saved.preferences.creativeLocale}</p><p>Length: {saved.preferences.minimumGraphemes ?? "Flexible"}–{saved.preferences.maximumGraphemes ?? "Flexible"} characters</p><p>{saved.preferences.notes}</p><p>Earlier choices stay saved. New approaches and directness have not been chosen.</p></ContextDetails> : null}
       {!inline && <Assistant><p className="guided-assistant-copy">{exploring ? "Your choices guide this exploration. Open a name for its story, save your favorites, or refine your direction here." : "Let’s find a name that feels right. Your saved project context is here; we’ll shape the naming direction one choice at a time."}</p></Assistant>}
@@ -203,6 +223,7 @@ export function NamingApproachWidgets({ memory, account, projectId, context, sav
       {seeds.length ? <div className={styles.seedSummary}><p>{seeds.length} {seeds.length === 1 ? "name" : "names"} will guide upcoming exploration.</p><button type="button" className="text-link" disabled={working} onClick={() => memory.setSteeringDraft(account, projectId, draft => ({ ...draft, candidateIds: [] }))}>Clear selection</button></div> : null}
       <ConversationComposer project value={instruction} onChange={text => { if (text.length <= 2000) { setComposerError(undefined); memory.setSteeringDraft(account, projectId, draft => ({ ...draft, instruction: text })); } else setComposerError("Keep Naming guidance within 2,000 characters."); }} onSend={() => void send()} label="Naming message" placeholder={seeds.length ? "What do you like about these names?" : "Add a thought or naming guidance…"} sendLabel={seeds.length ? "Send naming direction" : "Save naming guidance"} hint={seeds.length ? "Steers the next exploration" : inline || compact ? null : "Saves guidance for upcoming names"} disabled={blocked || working || !instruction.trim() && !seeds.length || saveBlocked || Boolean(seeds.length && !canSteer)} error={composerError} />
     </>;
+  if (inline && folded && !choicesOpen) return <>{inlineNamingMessage(inline, <><NamingRecoveryNotice memory={memory} account={account} />{summaryPill}</>)}{inline.composer && createPortal(composer, inline.composer)}</>;
   if (inline) return <>{inlineNamingMessage(inline, messages)}{inline.composer && createPortal(composer, inline.composer)}</>;
   const chatHistory = <div ref={transcript} className={`guided-interview-scroll ${styles.transcript}`}
     data-naming-chat-scroll tabIndex={0} aria-label="Naming conversation messages">{messages}</div>;

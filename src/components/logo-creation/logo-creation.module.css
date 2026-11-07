@@ -77,10 +77,6 @@
 /* Three columns and quiet captions; refinement controls reserve their own space. */
 .conceptsScreen { position: relative; }
 .conceptsScreen .workspaceHeader { position: relative; min-height: 56px; margin-bottom: 20px; }
-.conceptFilters { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; }
-.conceptFilters button { min-height: var(--branding-action-height, 44px); padding: 6px 12px; border: 1px solid var(--border, #e4e3df); border-radius: 7px; background: #fff; font-size: 13px; }
-.conceptFilters [aria-pressed=true] { background: #f1f0ee; }
-.conceptFilters button:disabled { color: #949494; cursor: not-allowed; }
 .gallery { min-width: 0; }
 .generationActions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 0 0 20px; }
 .savedInputReview { margin: 0 0 20px; padding: 14px 16px; border: 1px solid var(--border, #e4e3df); border-radius: 10px; background: #fff; font-size: 13px; line-height: 20px; }
@@ -122,9 +118,7 @@
 @media (max-width: 600px) {
   .conceptsScreen .workspaceHeader { padding-right: 0; }
   .conceptsScreen .gallery .concepts { grid-template-columns: minmax(0, 1fr); }
-  .conceptFilters { flex-wrap: wrap; }
-  .conceptFilters button { min-height: 44px; }
-  .composerHeader { align-items: flex-start; flex-direction: column; gap: 12px; }
+      .composerHeader { align-items: flex-start; flex-direction: column; gap: 12px; }
   .composerHeaderActions { width: 100%; justify-content: space-between; gap: 12px; }
   .composerHeaderActions .secondaryButton, .composerSend { min-height: 44px; }
   .composerSend { width: 44px; height: 44px; flex-basis: 44px; }
@@ -136,8 +130,6 @@
 }
 .galleryCard { position: relative; }
 
-.backToInspiration { margin: 0 0 12px; color: var(--secondary, #696965); font-size: 13px; text-decoration: none; }
-.backToInspiration:hover { color: var(--text, #191919); text-decoration: underline; text-underline-offset: 3px; }
 
 .galleryCard[data-selected=true] { border-color: var(--foreground, #191919); box-shadow: 0 0 0 1px var(--foreground, #191919); }
 .galleryPreview[role=button]:focus-visible { outline: 2px solid var(--foreground, #191919); outline-offset: -4px; }

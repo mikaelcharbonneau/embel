@@ -1,7 +1,5 @@
 /* Approved Figma Assets 6:8398. Private previews remain dynamic account data. */
 .concept-assets .workspace-main { background-image: url('/assets-library/grid.svg'); background-size: 1360px 900px; background-repeat: repeat; }
-.concept-assets .workspace-sidebar-toggle { border: 1px solid var(--border); border-radius: 10px; background: var(--paper); }
-.concept-assets.navigation-expanded .workspace-sidebar-toggle img { transform: rotate(180deg); }
 .assets-guided { max-width: 1088px; margin: 0 auto; padding: 40px 40px 48px; }
 .assets-guided .assets-heading { margin: 0 0 24px; }
 .assets-guided .assets-heading h1 { font-size: 32px; line-height: 48px; font-weight: 500; letter-spacing: -1px; margin: 0; }

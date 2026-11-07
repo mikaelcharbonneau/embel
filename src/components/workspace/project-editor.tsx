@@ -252,7 +252,7 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
   }
 
   const intake = <div className="home-intake conversation-intake">
-    <div className="home-introduction"><h1>Your next brand starts here<span>.</span></h1><p>An idea, a product, a place. Let’s give it a name and a world of its own.</p></div>
+    <div className="home-introduction"><h1>Your next brand starts here<span>.</span></h1><p>Describe the idea. Embel asks a few questions, then builds the name, logo and look with you.</p></div>
     {resumedPrompt && !hiddenPrompt && <div className="prompt-recovery-notice"><p role="status">{strategy.locked ? "Your original prompt is kept. Check its save status below before continuing." : "Your prompt is ready to continue."}</p><button type="button" className="text-link" disabled={frozenInputs} onClick={() => { if (!canEditInputs()) return; clearPromptRecovery(account?.userId); textDraft.current = null; pendingAccountDraft.current = null; setTextDraftId(null); setPrompt(""); setPromptOwner(null); setScope(initialScope); setExampleUsed(false); setResumedPrompt(false); setError(""); }}>Start a new prompt</button></div>}
     {hiddenPrompt && <div><p role="status">An unsaved prompt belongs to another account session. Sign in to that account to continue it.</p><button type="button" className="text-link" onClick={startNewPrompt}>Start a new prompt</button></div>}
     {hiddenFiles && <p role="status">An attached brief is retained in this tab. Verify the same account before sending so its files stay with it.</p>}
@@ -266,7 +266,7 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
       if (logoEntryBlocked || !canEditInputs() || homeInputSession.hasUnsaved() || homeInputSession.isSelecting()) event.preventDefault();
     }}>Create a logo</Link>{" "}<span id="new-logo-entry-note">{logoEntryBlocked ? "Your current prompt, files or pending work stay here. Finish or clear them before starting a separate logo project." : "Start in the dedicated logo workflow."}</span></p>}
     {!account && recoveryFull && !inputIntent?.browserDraftId && !textDraftId && <p className="form-error" role="alert">This device has 50 unsaved projects. <Link href="/brands?recover=1">Recover a project</Link> before starting another.</p>}
-    {<div className="home-examples"><h2>Try an idea</h2><div className="home-example-pills">{homeExamples.map(item => <button key={item.title} type="button" disabled={frozenInputs} onClick={() => { if (!canEditInputs()) return; setPrompt(item.description); setExampleUsed(true); setError(""); }}>{item.title}</button>)}</div></div>}
+    {<div className="home-examples"><h2 className="sr-only">Try an idea</h2><div className="home-example-pills">{homeExamples.map(item => <button key={item.title} type="button" disabled={frozenInputs} onClick={() => { if (!canEditInputs()) return; setPrompt(item.description); setExampleUsed(true); setError(""); }}>{item.title}</button>)}</div></div>}
   </div>;
   return home ? intake : <div className="page home-page">{intake}</div>;
 }

@@ -37,7 +37,7 @@ describe("complete brand asset archive", () => {
     const archive = result.getArchive(), entries = unzipSync(archive);
     expect(result.getArchive()).toBe(archive);
     expect(zipSync).toHaveBeenCalledOnce();
-    expect(Object.keys(entries)).toHaveLength(16); expect(result.vectorIncluded).toBe(false); expect(entries["logo/logo-vector.svg"]).toBeUndefined();
+    expect(Object.keys(entries)).toHaveLength(18); expect(entries["design-system/design-tokens.css"]).toBeDefined(); expect(entries["design-system/design-tokens.json"]).toBeDefined(); expect(result.vectorIncluded).toBe(false); expect(entries["logo/logo-vector.svg"]).toBeUndefined();
     expect(entries["logo/logo-original.png"]).toEqual(logoBytes); expect(entries["direction/selected-direction.png"]).toEqual(boardBytes);
     for (const file of result.files.filter(file => file.category === "social" || file.category === "board")) {
       if (file.mimeType === "image/png") expect(await sharp(entries[file.name]!).metadata()).toMatchObject({ format: "png", width: file.width, height: file.height });

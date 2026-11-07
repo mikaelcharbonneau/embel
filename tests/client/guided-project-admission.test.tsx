@@ -6,7 +6,6 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { contextSnapshotSchema } from "@/domain/projects";
 import { accountProjectDraft } from "@/components/workspace/project-draft-adapter";
 import { useAccountStrategyStart } from "@/components/workspace/account-strategy-start";
-import { readGuidedStartConsent } from "@/components/workspace/guided-start-consent";
 const mocks = vi.hoisted(() => ({ push: vi.fn(), expire: vi.fn(), save: vi.fn(), current: vi.fn(() => true) }));
 const owner = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", projectId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const account = { status: "ready" as const, userId: owner, generation: 1 };
@@ -40,7 +39,7 @@ it("checks the saved project when the account-level check is blocked and retains
  expect(body.expectedRevision).toBe(1);
  const turn = body.context.intake.guidedInterview.turns[0];
  expect(turn.inputRevision).toBe(2);
- expect(readGuidedStartConsent(owner, turn.id)).toMatchObject({ projectId, inputRevision: 2, attempted: false });
+ expect(turn).toMatchObject({ stage: "competitors", purpose: "research" });
  expect(mocks.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${projectId}?view=strategy`);
  expect(accountDrafts.get(projectId)?.saved).toMatchObject({ current_revision: 2, context: { intake: { guidedInterview: { turns: [turn] } } } });
  expect(fetcher.mock.calls.filter(([,init]) => init?.method === "POST")).toHaveLength(0);
@@ -53,8 +52,8 @@ it("never uses another owner's project", async () => {
  mocks.save.mockResolvedValue({ project: { ...project(), owner_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc" }, receipt: { ownerId: owner, draftId: projectId, projectId } });
  await start(); expect(mocks.expire).toHaveBeenCalled(); expect(mocks.push).not.toHaveBeenCalled(); expect(fetcher.mock.calls.some(([,init]) => init?.method === "PATCH")).toBe(false);
 });
-it("does not bind automatic admission when the intent write acknowledgement is lost", async () => {
+it("does not open the project when the intent write acknowledgement is lost", async () => {
  const original = fetcher.getMockImplementation()!;
  fetcher.mockImplementation(async (path, init) => { if (init?.method === "PATCH") throw new Error("synthetic_ack_lost"); return original(path, init); });
- await start(); expect(readGuidedStartConsent(owner, `guided-start-v1:${projectId}`)?.projectId).toBeNull(); expect(mocks.push).not.toHaveBeenCalled();
+ await start(); expect(mocks.push).not.toHaveBeenCalled();
 });

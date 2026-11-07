@@ -18,7 +18,6 @@ import { guidedAllowance, initialGuidedContext } from "./guided-interview-client
 import { finishLocalDraftRecovery, saveLocalDraftToAccount } from "./save-local-draft-to-account";
 import { projectStartHref, prepareProjectStart } from "./project-start-draft";
 import type { ProjectScope } from "@/domain/projects";
-import { bindGuidedStartConsent, guidedStartContext, isGuidedStartTurn } from "./guided-start-consent";
 
 type Availability = z.infer<typeof strategyRuntimeResponseSchema>["availability"];
 function subscriptionLimitsLabel(limits: NonNullable<ReturnType<typeof promptStrategyPlan>>["reformulation"] & { billingMode: "chatgpt_subscription" }) {
@@ -166,7 +165,7 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
       // Save the initial intent atomically with the project. The destination
       // resumes this exact turn under fresh readiness and the accepted allowance;
       // no work or admission is owned by the outgoing page's lifetime.
-      if (accepted && !readReceipt(account.userId, draft.id)) input.context = guidedStartContext(input.context, account.userId, accepted);
+      if (accepted && !readReceipt(account.userId, draft.id)) input.context = initialGuidedContext(input.context, 1);
       const created = await saveLocalDraftToAccount({ account, draft, input, signal: controller.signal, isCurrent, expire, onReceipt: value => {
         if (current()) setRetained(value);
         try { rememberPromptForSignIn(draft.id, Boolean(value), draft); } catch { /* The exact account request remains in its recovery receipt. */ }
@@ -194,20 +193,16 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
           if (overview && !verifyStrategyJobs(overview.jobs, account.userId, project.id)) { expire(account); return false; }
           const projectAllowance = guidedAllowance(overview?.availability ?? null, "strategy.competitors");
           if (projectAllowance && overview && !overview.jobs.length) {
-            const next = guidedStartContext(project.context, account.userId, projectAllowance, 2, project.id);
+            const next = initialGuidedContext(project.context, 2);
             const { revision } = await boundedAccountRequest(`/api/projects/${project.id}`, accountRevisionResponseSchema, {
               method: "PATCH", signal: controller.signal, body: { expectedRevision: 1, context: next },
             });
             if (!current()) return false;
             if (revision.owner_id !== account.userId || revision.project_id !== project.id || revision.revision !== 2) { expire(account); return false; }
             acknowledged = { ...project, current_revision: revision.revision, context: revision.context };
-            const turn = revision.context.intake.guidedInterview?.turns.at(-1);
-            if (isGuidedStartTurn(turn)) bindGuidedStartConsent(account.userId, turn!.id, project.id);
           }
         }
       }
-      const savedTurn = (created.project?.context ?? created.receipt.request?.input.context)?.intake.guidedInterview?.turns.at(-1);
-      if (isGuidedStartTurn(savedTurn)) bindGuidedStartConsent(account.userId, savedTurn!.id, created.receipt.projectId);
       openProject(prepareProjectStart(created.receipt.projectId, created.project?.scope ?? draft.scope, created.newProject ? acknowledged : null, account, drafts));
       finishLocalDraftRecovery(draft.id, account.userId, created.receipt.projectId);
       return true;
@@ -316,8 +311,6 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
         try { rememberPromptForSignIn(draft.id, Boolean(receipt), draft); } catch { /* The exact save remains in the owner-bound receipt. */ }
       } });
       if (!result?.receipt.projectId || !current()) return false;
-      const savedTurn = (result.project?.context ?? result.receipt.request?.input.context)?.intake.guidedInterview?.turns.at(-1);
-      if (isGuidedStartTurn(savedTurn)) bindGuidedStartConsent(account.userId, savedTurn!.id, result.receipt.projectId);
       openProject(prepareProjectStart(result.receipt.projectId, result.project?.scope ?? draft.scope, result.newProject ? result.project : null, account, drafts)); finishLocalDraftRecovery(draft.id, account.userId, result.receipt.projectId); return true;
     } catch (cause) {
       if (!current()) return false;

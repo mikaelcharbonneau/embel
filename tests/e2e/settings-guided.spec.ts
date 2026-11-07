@@ -182,8 +182,7 @@ test("320px settings keep actions reachable and route styles scoped", async ({ p
   await expect(unavailable.locator("dt").filter({ hasText: /^Delete account$/ })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
   await unavailable.getByRole("button", { name: "Close", exact: true }).click(); await expect(unavailable).toBeHidden();
-  await page.getByRole("button", { name: "Open navigation", exact: true }).click();
-  await page.locator(".mobile-menu").getByRole("link", { name: "Embel home", exact: true }).click();
+  await page.getByRole("navigation", { name: "Main navigation", exact: true }).getByRole("link", { name: "Embel home", exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
   expect(await page.locator(".concept-settings").count()).toBe(0);
 });

@@ -1,76 +1,37 @@
-/* Shared Wonder concept 22 shell, enabled only for approved routes. */
-.concept-shell { --workspace-rail: 80px; height: 100svh; overflow: hidden; }
-.concept-shell.navigation-expanded { --workspace-rail: 228px; }
-.concept-shell .sidebar { width: var(--workspace-rail); height: 100svh; padding: 24px 0; align-items: center; }
-.concept-shell .app-mark { display: flex; width: 28px; height: 28px; flex: 0 0 28px; align-items: center; justify-content: center; }
-.concept-shell .sidebar-nav { width: 100%; margin-top: 54px; gap: 0; }
-.concept-shell .nav-group { width: 100%; gap: 8px; }
-.concept-shell .nav-link { position: relative; width: 100%; height: 44px; min-height: 44px; padding: 0; justify-content: center; border-radius: 0; font-size: 14px; }
-.concept-shell .nav-link > svg { flex-shrink: 0; }
-.concept-shell .sidebar .nav-link > span { display: none; }
-.concept-shell .nav-link.active { background: transparent; color: var(--text); }
-.concept-shell .nav-link.active::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--text); }
-.concept-shell .workspace-tools { margin-top: 41px; position: relative; }
-.concept-shell .workspace-tools::before { content: ""; position: absolute; width: 28px; height: 1px; background: var(--border); top: -21px; left: calc(50% - 14px); }
-.concept-shell .sidebar-bottom { width: 100%; display: flex; flex-direction: column; gap: 16px; border: 0; padding-top: 32px; margin: auto 0 0; }
-.concept-shell .sidebar-bottom .workspace-label { justify-content: center; padding: 0; margin: 0; min-height: 36px; }
-.concept-shell .workspace-avatar { width: 36px; height: 36px; flex-shrink: 0; }
-.concept-shell .sidebar .workspace-label > div { display: none; }
-.concept-shell.navigation-expanded .sidebar .nav-link { justify-content: flex-start; padding-inline: 26px; }
-.concept-shell.navigation-expanded .sidebar .nav-link > span,
-.concept-shell.navigation-expanded .sidebar .workspace-label > div { display: block; }
-.concept-shell.navigation-expanded .sidebar .workspace-label { padding-inline: 24px; }
-.concept-shell .workspace-main { position: relative; margin-left: var(--workspace-rail); height: 100svh; display: flex; flex-direction: column; overflow: hidden; background-color: var(--canvas); background-image: linear-gradient(to right, #e4e3df33 1px, transparent 1px), linear-gradient(to bottom, #e4e3df33 1px, transparent 1px); background-size: 16px 16px; }
-.concept-shell .topbar { flex: 0 0 76px; min-height: 76px; padding: 0 34px; background: transparent; border: 0; position: relative; z-index: 20; }
-.concept-shell .topbar-left { gap: 18px; font-size: 13px; }
-.concept-shell .topbar-left { min-width: 0; }
-.idea-breadcrumb { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.idea-breadcrumb a { flex-shrink: 0; }
-.idea-breadcrumb-title { max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.idea-breadcrumb-divider { color: var(--secondary); }
+/* App shell: one floating navigation pill above a scrolling page area. */
+.concept-shell { height: 100svh; overflow: hidden; }
+.concept-shell .workspace-main { position: relative; height: 100svh; display: flex; flex-direction: column; overflow: hidden; background-color: var(--canvas); background-image: radial-gradient(#dad9d4 1px, transparent 1px); background-size: 22px 22px; }
 .idea-bottom-fade { position: absolute; z-index: 10; left: 0; right: 0; bottom: 0; height: 96px; pointer-events: none; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); background: linear-gradient(transparent, var(--canvas)); mask-image: linear-gradient(transparent, #000); -webkit-mask-image: linear-gradient(transparent, #000); }
-.concept-shell .workspace-sidebar-toggle { width: 36px; height: 36px; border-radius: 7px; color: var(--secondary); }
-.concept-shell.navigation-expanded .workspace-sidebar-toggle svg { transform: rotate(180deg); }
-.concept-shell .workspace-breadcrumb-root, .concept-shell .workspace-breadcrumb-slash { color: var(--secondary); }
-.concept-shell .workspace-breadcrumb-slash { margin-inline: -6px; }
 .concept-shell #main-content { flex: 1; min-height: 0; overflow: auto; scrollbar-width: none; scroll-padding-block: 24px 104px; }
 .concept-shell #main-content::-webkit-scrollbar { display: none; }
 .workspace-account-menu { position: relative; }
-.workspace-account-menu > summary { list-style: none; display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; color: var(--secondary); font-size: 13px; }
+.workspace-account-menu > summary { list-style: none; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 6px; border-radius: var(--radius-pill); cursor: pointer; color: var(--secondary); font-size: 13px; }
+.workspace-account-menu > summary:hover { background: var(--surface); }
 .workspace-account-menu > summary::-webkit-details-marker { display: none; }
-.workspace-account-label { display: block; width: clamp(72px, 12vw, 128px); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-align: right; }
-.workspace-account-placeholder { display: inline-block; width: 88px; max-width: 100%; height: 12px; vertical-align: middle; border-radius: 3px; background: var(--border); }
-.workspace-account-avatar { display: grid; place-items: center; width: 32px; height: 32px; background: var(--paper); border: 1px solid var(--border); border-radius: 50%; }
+.workspace-account-label:not(.sr-only) { display: block; max-width: 128px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--text); }
+.workspace-account-avatar { display: grid; place-items: center; width: 32px; height: 32px; background: var(--accent-soft); border-radius: 50%; color: var(--text); font-size: 11px; font-weight: 500; letter-spacing: .02em; }
 .workspace-account-panel { position: absolute; z-index: 50; top: calc(100% + 8px); right: 0; min-width: 270px; max-width: calc(100vw - 32px); padding: 16px; background: var(--paper); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px #19191914; }
 .workspace-account-panel .topbar-account { flex-wrap: wrap; gap: 12px; }
-@media (max-width: 760px) {
-  .concept-shell { --workspace-rail: 0px; }
-  .concept-shell.navigation-expanded { --workspace-rail: 0px; }
-  .concept-shell .sidebar { display: none; }
-  .concept-shell .topbar { padding: 0 20px; flex-basis: 64px; min-height: 64px; }
-  .concept-shell .workspace-sidebar-toggle { display: none; }
-}
-@media (max-width: 540px) {
-  .concept-shell .topbar-left { gap: 10px; }
-  .concept-shell .workspace-breadcrumb-root, .concept-shell .workspace-breadcrumb-slash { display: none; }
-  .idea-breadcrumb-divider, .idea-breadcrumb-title { display: none; }
-  .idea-bottom-fade { height: 64px; }
+@media (max-width: 540px) { .idea-bottom-fade { height: 64px; } }
+/* Phones show the account as its avatar only; "Sign in" stays in the panel and
+   for assistive technology, so the bar keeps one stable height. */
+@media (max-width: 600px) {
+  .workspace-account-label:not(.sr-only) { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  .workspace-account-menu > summary { padding: 0 2px; }
 }
 
 /* Original static artwork on the approved Handles route only. */
 .concept-handles .workspace-main { background-image: url('/handles/grid.svg'); background-size: 1360px 900px; background-repeat: repeat-x; }
 .concept-handles .workspace-main:has(.handles-results) { background-image: url('/handles/results-grid.svg'); background-size: 1360px 1190px; }
-.concept-handles.navigation-expanded .workspace-sidebar-toggle img { transform: rotate(180deg); }
 .concept-names .workspace-main { background-image: url('/names/affix-grid.svg'); background-size: 1360px 1509px; background-repeat: repeat-x; }
 .concept-names .workspace-main:has(.names-guided-workshop[data-mode=tweaks]) { background-image: url('/names/tweaks-grid.svg'); background-size: 1360px 1651px; }
 .concept-names .workspace-main:has(.names-guided-workshop[data-mode=blend]) { background-image: url('/names/blend-grid.svg'); background-size: 1360px 1437px; }
 .concept-names .workspace-main:has(.names-guided-workshop[data-mode=swap]) { background-image: url('/names/swap-grid.svg'); background-size: 1360px 1323px; }
-.concept-names.navigation-expanded .workspace-sidebar-toggle img { transform: rotate(180deg); }
 
-/* One account entry point: the top-bar avatar. Native disclosure keeps keyboard
+/* One account entry point: the avatar at the end of the pill. Native disclosure keeps keyboard
    activation and tab order; nested sign-out/activity dialogs retain ownership. */
-.workspace-account-menu > summary:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; border-radius: 8px; }
-.workspace-account-panel { width: 288px; padding: 8px; border-radius: 14px; box-shadow: 0 12px 36px #19191914, 0 2px 6px #19191908; }
+.workspace-account-menu > summary:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
+.workspace-account-panel { width: 288px; padding: 8px; border-radius: var(--radius-card); box-shadow: 0 12px 36px #19191914, 0 2px 6px #19191908; }
 .workspace-account-identity { display: grid; gap: 5px; padding: 12px 12px 16px; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
 .workspace-account-identity strong { font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text); }
 .workspace-account-identity span { font-size: 12px; line-height: 18px; color: var(--secondary); }

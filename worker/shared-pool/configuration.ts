@@ -34,7 +34,7 @@ export const sharedPoolConfigurationSchema=z.strictObject({version:z.literal(1),
  for(const slot of config.slots){
   if(!slot.roleName.startsWith(`embel_shared_${slot.lane}_`))ctx.addIssue({code:"custom",message:"Slot role and lane must match"});
   if((slot.lane==="strategy")!==(slot.outboxProof!==undefined))ctx.addIssue({code:"custom",message:"Only Strategy slots require an approved outbox RPC"});
-  if(slot.lane!=="logo"&&(slot.textProvider!==undefined||Object.keys(slot.policies).length>4))ctx.addIssue({code:"custom",message:"Only the Logo/Identity lane supports a separate text provider and seven operation policies"});
+  if(slot.lane!=="logo"&&(slot.textProvider!==undefined||Object.keys(slot.policies).length>(slot.lane==="strategy"?6:4)))ctx.addIssue({code:"custom",message:"Only the Logo/Identity lane supports a separate text provider; Strategy has at most six operation policies"});
   if(slot.lane==="logo"&&Object.keys(slot.policies).some(operation=>!logoOperations.has(operation)))ctx.addIssue({code:"custom",message:"Logo/Identity policies require an explicit supported operation"});
   if(slot.lane==="logo"&&!slot.textProvider&&["identity.image","identity.logo_directions","identity.logo_vector_propose"].some(operation=>Object.hasOwn(slot.policies,operation)))
    ctx.addIssue({code:"custom",message:"Identity specifications, directions and vector proposals require an explicitly verified text provider"});

@@ -6,9 +6,10 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { createHash, randomBytes } from 'node:crypto';
 const image='ghcr.io/supabase/cli/postgres:17.11.0.006-r0@sha256:ee0f2d9747fb9d3c0a29703684ec718f070384ad05bf0d92823ed02cabde8e5a';
 const name=`embel-brainstorm-native17-${randomBytes(6).toString('hex')}`;
-const packetPaths=['shared_worker_pool.sql','shared_worker_naming.sql','shared_naming_brainstorm.sql','shared_naming_brainstorm_event_capacity.sql','shared_naming_brainstorm_delivery_recovery.sql'];
+const packetPaths=['shared_worker_pool.sql','shared_worker_naming.sql','shared_naming_brainstorm.sql','shared_naming_brainstorm_event_capacity.sql','shared_naming_brainstorm_delivery_recovery.sql','shared_naming_lease_expiry.sql'];
 const packets=Object.fromEntries(packetPaths.map(path=>[path,readFileSync(new URL('../supabase/candidates/'+path,import.meta.url),'utf8')]));
 const rollback=readFileSync(new URL('../supabase/operator/rollback_naming_brainstorm_delivery_recovery.sql',import.meta.url),'utf8');
+const expiryRollback=readFileSync(new URL('../supabase/operator/rollback_naming_lease_expiry.sql',import.meta.url),'utf8');
 const env={...process.env};for(const key of ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH'])delete env[key];
 const docker=(args,input)=>execFileSync('docker',['--host=unix:///var/run/docker.sock',...args],{env,input,encoding:'utf8',stdio:['pipe','pipe','pipe'],maxBuffer:20*1024*1024});
 let created=false,stage='cached-image';const passed=[];
@@ -202,6 +203,18 @@ try{
  const recoveredFeed=customer('get_naming_feed',[recoveryProject,{}]);
  assert(recoveredFeed.entries.length===1&&recoveredFeed.activeRun.state==='needs_reconciliation'&&recoveredFeed.activeRun.recoveredNameCount===1&&recoveredFeed.activeRun.accounting.status==='held_unsettled'&&recoveredFeed.activeRun.accounting.confirmedActualCostMicrousd===null,'delivered-result-visible-with-unknown-outcome-and-billing');
  assert(customer('select_project_name',[recoveryProject,recoveredFeed.entries[0].entry.candidate.id,1,false]).currentSelection.candidate.value==='SavedCedar','delivered-result-selectable-while-accounting-unresolved');
+ stage='native-lease-expiry';
+ // A live lease is left alone; the slot-level action only moves expired ones.
+ assert(rpc('shared_naming_worker_action',[lease,null,'expire',['native-brainstorm-worker','native-brainstorm-fixture']],role).result===0,'expiry-leaves-live-leases');
+ denied(()=>rpc('shared_naming_worker_action',[lease,execution,'expire',['native-brainstorm-worker','native-brainstorm-fixture']],role),'expiry-is-slot-level-only');
+ stage='native-lease-expiry-rollback';
+ const expireDefinition=sql("select pg_get_functiondef('fluid_private.expire_shared_naming_leases(jsonb,jsonb)'::regprocedure);");
+ sql("alter function fluid_private.expire_shared_naming_leases(jsonb,jsonb) set search_path=public;");
+ let expiryRollbackGuarded=false;try{sql(expiryRollback);}catch(error){expiryRollbackGuarded=/naming_lease_expiry_rollback_source_mismatch/.test(String(error.stderr));}
+ assert(expiryRollbackGuarded&&sql("select to_regprocedure('fluid_private.expire_shared_naming_leases(jsonb,jsonb)') is not null;")==='t','expiry-rollback-rejects-changed-function-before-mutation');
+ sql(expireDefinition);sql(expiryRollback);
+ assert(sql("select to_regprocedure('fluid_private.expire_shared_naming_leases(jsonb,jsonb)') is null;")==='t','expiry-rollback-removes-function');
+ denied(()=>rpc('shared_naming_worker_action',[lease,null,'expire',['native-brainstorm-worker','native-brainstorm-fixture']],role),'expiry-rollback-disables-expire');
  stage='native-delivery-rollback';
  const deliveryDefinition=sql("select pg_get_functiondef('fluid_private.recover_naming_brainstorm_delivery(jsonb,jsonb,jsonb)'::regprocedure);");
  sql("alter function fluid_private.recover_naming_brainstorm_delivery(jsonb,jsonb,jsonb) set search_path=public;");

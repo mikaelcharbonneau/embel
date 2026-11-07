@@ -94,3 +94,53 @@ Phases 3–6 can run as parallel workstreams once Phases 0–2 land, with disjoi
 
 ## Delivery
 Build on `main` behind a `journeyV2` flag so phases can merge and deploy safely; switch the flag on when Phases 0–6 pass, then run Phase 7. While there are no customers, the old flow can be removed instead of maintained in parallel.
+
+## Status — Phases 3 to 7 (2026-11-06)
+
+Implemented on `journey-v2/phase-3-strategy` (stacked on Phase 2, PR #192), desktop only.
+
+- **Strategy:** research starts from the Home Send with no second approval (the
+  request key stays project + revision + operation, so a reload never starts a
+  second request); competitor cards and answer chips show each competitor's own
+  site icon, fetched by the server from public HTTPS addresses only (checked on
+  every redirect, raster images up to 256 KB, 8 s), with a neutral initial when a
+  site has none; the research progress card with Cancel; the toolbar row with
+  Add a competitor, Suggest more, "N selected" and Continue; Positioning is the
+  third Strategy question (angle, statement, why it works, what to lead with;
+  choose one); once answered, Strategy collapses into one summary card.
+- **Voice:** Personality is Voice 1 of 3; naming questions restyled; name cards
+  show only the name, its .com status (shared domain check, only for names on
+  screen, waiting out the lookup limit) and the heart; click a card to choose;
+  All / Saved filter; the chosen name renames the project wherever it is shown;
+  the optional Slogan is proposed for the chosen name (choose, write your own,
+  More slogans, Skip for now) and flows into the guidelines and the kit.
+- **Identity:** Inspiration, Logo and Creative direction open with Embel's
+  message; Logo asks the logo-types question before Explore six concepts (one
+  click), cards show only the image, click to choose, refine in the box below;
+  Creative direction starts on its own once per chosen logo; boards are chosen
+  by clicking; no money is shown in the journey.
+- **Assets:** Brand images (five formats at true proportions, PNG/SVG),
+  Brand guidelines in the app (overview with slogan, logo, colours, type in the
+  real fonts, voice, imagery; Edit opens the step that sets each part; HTML
+  download kept) and a Design system (preview, colour tokens with roles, type
+  scale, spacing, corners, CSS/JSON export); the brand kit ZIP now includes the
+  design tokens and the slogan.
+
+Decisions taken while building:
+- The slogan uses a new guided `strategy.slogan` operation on the Strategy lane
+  (same policy shape as audience and personality) instead of a separate lane;
+  the chosen line is kept on the slogan answer of the guided interview, so the
+  project context format is unchanged.
+- Not built (open questions still unanswered): "In use" mockups and AI edits of
+  guideline sections. Guideline Edit opens the step that owns each part instead.
+
+Release requirements (production is unchanged until these are applied together):
+1. Migration `20261106150000_guided_journey_stages.sql`.
+2. Post-install packet `candidates/shared_guided_journey_stages.sql` (pinned in
+   the authority manifest and production composer).
+3. A worker release built from this source whose pool configuration gives the
+   Strategy slot six policies (adds `strategy.positioning` and `strategy.slogan`,
+   both `guidedStrategyPolicy`).
+4. Local development: the shared schema now differs, so a local stack must be
+   rebuilt (`npm run dev:down`, remove the local volumes, `npm run dev:up`), and
+   each local test account needs the local naming pilot re-enabled.
