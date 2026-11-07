@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useEffectEvent, useId, useRef, useState, type ComponentProps, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useEffectEvent, useId, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import { AccountBriefEditor } from "./account-brief-editor";
 import { ProjectNamingWorkspace } from "@/components/naming/project-naming-workspace";
 import { getNamingReadiness } from "@/domain/project-naming";
@@ -49,6 +49,7 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
   const [namingMessages, setNamingMessages] = useState<HTMLDivElement | null>(null);
   const [namingComposer, setNamingComposer] = useState<HTMLDivElement | null>(null);
   const [namingResults, setNamingResults] = useState<HTMLDivElement | null>(null);
+  const closeNaming = useCallback(() => { setNamingReopened(false); }, []);
   // Choosing a different name after Change name closes the names again.
   const [reopenedFor, setReopenedFor] = useState<string | null>(null);
   if (namingReopened && reopenedFor !== null && reopenedFor !== (workspace.saved.context.selectedName ?? "")) { setNamingReopened(false); setReopenedFor(null); }
@@ -461,6 +462,6 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
   </div>
     {namingOpen && <ProjectNamingWorkspace projectId={saved.id}
       conversationHistory={<>{history}{completed}</>}
-      inline={{ messages: namingMessages, results: namingResults, composer: namingComposer, onQuestion: setNamingQuestionId, onCanvas: setNamingCanvas }} />}
+      inline={{ messages: namingMessages, results: namingResults, composer: namingComposer, onQuestion: setNamingQuestionId, onCanvas: setNamingCanvas, onNameConfirmed: closeNaming }} />}
   </>;
 }

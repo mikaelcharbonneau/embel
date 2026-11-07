@@ -174,10 +174,20 @@
 .guided-names-message .project-naming-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
 .guided-names-message .naming-feed-tail { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 12px; font-size: 13px; color: var(--secondary); }
 .guided-names-message .naming-feed-tail p { margin: 0; }
-.guided-names-manual { margin-top: 10px; }
-.guided-names-manual > summary { display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); font-size: 13px; cursor: pointer; list-style: none; }
-.guided-names-manual > summary::-webkit-details-marker { display: none; }
-.guided-names-manual[open] > summary { margin-bottom: 10px; }
+.guided-names-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 14px; }
+.guided-names-footer-gap { flex: 1 1 auto; }
+.guided-pill-button { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px 0 12px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); color: var(--text); font: inherit; font-size: 13px; cursor: pointer; }
+.guided-pill-button:hover:not(:disabled) { border-color: var(--secondary); }
+.guided-pill-button:disabled { color: var(--secondary); cursor: default; opacity: .6; }
+.guided-names-chosen { font-size: 13px; color: var(--secondary); }
+.guided-names-continue { min-height: 44px; padding: 0 18px 0 20px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; gap: 8px; }
+.guided-names-manual { margin-top: 12px; }
+/* Answered Naming choices folded into one line (design: summary pills). */
+.guided-summary-pill { display: inline-flex; align-self: flex-start; width: fit-content; align-items: center; gap: 8px; max-width: calc(100% - 44px); min-height: 40px; margin: 0 0 4px 44px; padding: 0 14px 0 6px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: rgb(255 255 255 / 80%); color: var(--text); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.guided-summary-pill:hover { border-color: var(--secondary); }
+.guided-summary-pill strong { font-weight: 500; white-space: nowrap; }
+.guided-summary-pill > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--secondary); }
+.guided-summary-pill-mark { flex: 0 0 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; background: var(--text); color: var(--paper); }
 .guided-next-step { margin-top: 14px; display: flex; justify-content: flex-end; }
 .guided-next-step .button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px 0 20px; border-radius: var(--radius-pill); }
 

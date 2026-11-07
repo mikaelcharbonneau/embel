@@ -219,6 +219,18 @@ export function createNamingFeedController(options: { account: NamingAccount; pr
         const initial = intent("initial"); return initial ? ensure(initial) : false;
       } finally { starting = false; }
     },
+    /** More names: one deliberate click asks for the next set, exactly as reaching
+     * the end of the list does, with the same request identity and duplicate guard. */
+    async more() {
+      const value = state(), feed = value?.feed;
+      if (!current() || !eligible() || !visible() || !feed || memory.getRecovery(account) || feed.paused) return false;
+      if (value.pending || value.steering || value.stop || value.stopRequested || active(feed.activeRun?.state)) return false;
+      if (feed.activeRun && ["partial", "failed", "cancelled", "needs_reconciliation"].includes(feed.activeRun.state)) return false;
+      update(current => ({ ...current, stopped: false }));
+      lastInteraction = now(); consumedInteraction = ++interaction; resumeInteraction = null; prefetchInteraction = null;
+      if (feed.nextCursor) return load(feed.nextCursor);
+      const next = intent("scroll"); return next ? ensure(next) : false;
+    },
     async demand(consumedCursor?: NamingFeedCursor | null) {
       const value = state();
       if (!exploring() || !value?.feed || memory.getRecovery(account) || interaction <= consumedInteraction || value.feed.paused) return false;

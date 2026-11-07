@@ -68,6 +68,9 @@ function AccountProjectNaming({ projectId, account, conversationHistory, inline 
   const { layout: composerLayout, changeLayout: changeComposerLayout } = useNamingComposerLayout(account.userId, projectId);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [explorationStarted, setExplorationStarted] = useState(false);
+  // In the conversation a card click marks a name; Continue confirms it.
+  const [pendingChoice, setPendingChoice] = useState<string | null>(null);
+  const [manualOpen, setManualOpen] = useState(false);
   const manualNameDraft = useManualProjectNameDraft();
   const feed = useNamingFeed({ account, projectId, projectRevision: overview?.project.current_revision, enabled: Boolean(overview?.readiness.ready && !blocked && !readError), view: { ...(overview?.session?.viewState ?? initialNamingView), inspecting: Boolean(inspectedId), historyOpen, explorationHidden: false } });
   const { eligibleView, start: startFeed } = feed;
@@ -240,13 +243,19 @@ function AccountProjectNaming({ projectId, account, conversationHistory, inline 
       steeringSelected={feed.steeringDraft.candidateIds.includes(inspected.candidate.id)}
       steeringDisabled={blocked || Boolean(feed.state?.steering) || feed.steeringDraft.candidateIds.length >= 5 && !feed.steeringDraft.candidateIds.includes(inspected.candidate.id)}
       onSteering={feed.entries.some(row => row.entry.candidate.id === inspected.candidate.id) ? () => feed.updateSteeringDraft({ candidateIds: feed.steeringDraft.candidateIds.includes(inspected.candidate.id) ? feed.steeringDraft.candidateIds.filter(id => id !== inspected.candidate.id) : [...feed.steeringDraft.candidateIds, inspected.candidate.id] }) : undefined} />;
-  const namesList = feed.showingFeed ? <NamingFeedResults feed={feed} selectedId={currentSelection?.candidate.id} strategyKey={strategyKey} pending={pending} blocked={blocked || Boolean(readError)} onRetain={(entry, field) => void retain(entry, field)} onSelect={select} onInspect={setPreviewEntry} onWorkshop={entry => void openWorkshop(entry)} onModify={() => void openConversation()} onHistory={() => setHistoryOpen(true)} inConversation={Boolean(inline)} />
+  const chosenEntry = inline ? candidates.find(entry => entry.candidate.id === (pendingChoice ?? currentSelection?.candidate.id)) ?? null : null;
+  const namesList = feed.showingFeed ? <NamingFeedResults feed={feed} selectedId={inline ? chosenEntry?.candidate.id : currentSelection?.candidate.id} strategyKey={strategyKey} pending={pending} blocked={blocked || Boolean(readError)} onRetain={(entry, field) => void retain(entry, field)} onSelect={inline ? entry => setPendingChoice(entry.candidate.id) : select} onInspect={setPreviewEntry} onWorkshop={entry => void openWorkshop(entry)} onModify={() => void openConversation()} onHistory={() => setHistoryOpen(true)} inConversation={Boolean(inline)} />
     : overview.session || overview.preferences || overview.candidates.items.length ? <NamingResults compact historyOnly={overview.preferences?.preferences.version === 2 || feed.record?.preferences?.saved?.preferences.version === 2 || Boolean(feed.record?.preferences?.dirty || feed.record?.preferences?.pending)} overview={overview} view={view} pending={pending} blocked={blocked} readFailed={Boolean(readError)} listStatus={naming.listStatus} strategyKey={strategyKey} onView={patch => void naming.saveView(patch).then(saved => { if (saved && patch.visibleBatchId) void naming.loadBatchDetail(patch.visibleBatchId); })} onModify={() => void openConversation()} onEnqueue={() => void naming.enqueue()} onCancel={job => void naming.cancel(job)} onRetain={(entry, field) => void retain(entry, field)} onSelect={select} onInspect={setPreviewEntry} onWorkshop={entry => void openWorkshop(entry)} onLoadMore={() => void naming.loadMore()} onLoadMoreBatches={() => void naming.loadMoreBatches()} /> : null;
 
   if (inline) {
     // Voice · Name in the project conversation: the questions above, then
     // Embel's message with the names, as one continuous chat.
     const inlineManual = !blocked && <ManualProjectName disabled={pending || blocked} onAdd={importManualName} draft={manualNameDraft} />;
+    const confirmName = () => {
+      if (!chosenEntry || pending || blocked) return;
+      if (chosenEntry.candidate.id === currentSelection?.candidate.id) inline.onNameConfirmed?.();
+      else select(chosenEntry);
+    };
     return <>
       {readError || actionError ? inlineNamingMessage(inline, <div className="project-naming-notice" role="alert"><p>{actionError ?? readError}</p><button type="button" className="text-link" onClick={naming.refresh}>Check latest version</button></div>) : null}
       {overview.readiness.ready ? chat : inlineNamingMessage(inline, chat)}
@@ -258,7 +267,17 @@ function AccountProjectNaming({ projectId, account, conversationHistory, inline 
         {!inspected && earlierConfirmation}
         {historyOpen ? <button type="button" className="text-link naming-back-to-feed" onClick={() => { setHistoryOpen(false); void naming.saveView({ pane: "results", filter: "all", query: "", visibleBatchId: null }); }}>Back to exploration</button> : null}
         {namesList}
-        {inlineManual && <details className="guided-names-manual"><summary>Add your own name</summary>{inlineManual}</details>}
+        <div className="guided-names-footer">
+          <button type="button" className="guided-pill-button" disabled={!feed.canMore || blocked || Boolean(readError)} onClick={() => void feed.more()}>
+            <Icon name="refresh" size={13} />More names</button>
+          {inlineManual && <button type="button" className="guided-pill-button" aria-expanded={manualOpen} onClick={() => setManualOpen(open => !open)}>
+            <Icon name="plus" size={13} />Add your own name</button>}
+          <span className="guided-names-footer-gap" />
+          <span role="status" className="guided-names-chosen">{chosenEntry ? `Your name: ${chosenEntry.candidate.value} · Next: Slogan (optional)` : "Choose a name to continue"}</span>
+          <button type="button" className="button primary guided-names-continue" disabled={!chosenEntry || pending || blocked} onClick={confirmName}>
+            Continue<Icon name="arrow" size={14} /></button>
+        </div>
+        {inlineManual && manualOpen && <div className="guided-names-manual">{inlineManual}</div>}
       </article>, inline.results)}
       {inspection}
     </>;
