@@ -117,17 +117,19 @@ describe("Name.com domain browser adapter", () => {
     await expect(adapter.check(check.domain, signal())).resolves.toMatchObject({ availability: "unknown", detail: expect.stringContaining("aftermarket") });
     await expect(adapter.quote!(check.domain, check.id, signal())).rejects.toThrow("No current matching");
   });
-  it("accepts a public-registry result only as a price-free confirmation that the domain is taken", async () => {
+  it("accepts a public-registry result only as a price-free registration record or no record, never as available", async () => {
     const registry = { ...namecomCheck, provider: "Public registry RDAP", availability: "taken", detail: "The authoritative registry returned an exact registration record." };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ ownerId, result: { status: "domain", check: registry, quote: null } })));
     const adapter = createStandaloneLiveAdapters({ ...capabilities, domains: "namecom" }, binding()).domains;
     if (adapter.status !== "ready") throw new Error("fixture adapter");
     await expect(adapter.check(check.domain, signal())).resolves.toMatchObject({ provider: "Public registry RDAP", availability: "taken" });
     await expect(adapter.quote!(check.domain, registry.id, signal())).rejects.toThrow("No current matching");
-    for (const availability of ["available", "unknown"]) {
-      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ ownerId, result: { status: "domain", check: { ...registry, availability }, quote: null } })));
-      await expect(adapter.check(check.domain, signal())).rejects.toThrow("did not match");
-    }
+    // No record while the registrar waits: shown as not confirmed, still without a price.
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ ownerId, result: { status: "domain", check: { ...registry, availability: "unknown" }, quote: null } })));
+    await expect(adapter.check(check.domain, signal())).resolves.toMatchObject({ provider: "Public registry RDAP", availability: "unknown" });
+    await expect(adapter.quote!(check.domain, registry.id, signal())).rejects.toThrow("No current matching");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ ownerId, result: { status: "domain", check: { ...registry, availability: "available" }, quote: null } })));
+    await expect(adapter.check(check.domain, signal())).rejects.toThrow("did not match");
   });
   it("rejects sandbox, other-provider and other-owner results", async () => {
     for (const response of [

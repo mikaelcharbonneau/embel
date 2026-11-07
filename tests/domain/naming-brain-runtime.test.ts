@@ -208,3 +208,14 @@ describe("durable Stop and free saved-output continuation", () => {
     expect(brain.namingFeedEnsureResultSchema.safeParse(result).success).toBe(false);
   });
 });
+
+describe("ended runs and the next set", () => {
+  it("never holds the next set for an ended brainstorm run, but holds unconfirmed and older ended runs", async () => {
+    const { namingRunHoldsNextSet } = await import("../../src/domain/naming-brain");
+    for (const state of ["partial", "failed", "cancelled"]) expect(namingRunHoldsNextSet({ state, generationProfile: "brainstorm_v1" })).toBe(false);
+    expect(namingRunHoldsNextSet({ state: "needs_reconciliation", generationProfile: "brainstorm_v1" })).toBe(true);
+    for (const state of ["partial", "failed", "cancelled", "needs_reconciliation"]) expect(namingRunHoldsNextSet({ state })).toBe(true);
+    for (const state of ["succeeded", "queued", "running"]) expect(namingRunHoldsNextSet({ state })).toBe(false);
+    expect(namingRunHoldsNextSet(null)).toBe(false);
+  });
+});

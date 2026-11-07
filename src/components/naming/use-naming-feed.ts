@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import { getNamingPreferencesReadiness } from "@/domain/naming-brain-preferences";
+import { namingRunHoldsNextSet } from "@/domain/naming-brain";
 import type { NamingViewState } from "@/domain/project-naming";
 import { createNamingFeedController, NAMING_EXPLORATION_IDLE_MS } from "./naming-feed-controller";
 import { visibleNamingFeedCursor } from "./naming-feed-viewport";
@@ -124,6 +125,6 @@ export function useNamingFeed({ account, projectId, enabled, view, projectRevisi
   const updateSteeringDraft = useCallback((patch: Partial<typeof emptySteeringDraft>) => memory.setSteeringDraft(account, projectId, draft => ({ ...draft, ...patch })), [memory, account, projectId]);
   return { steeringDraft: record?.steeringDraft ?? emptySteeringDraft, updateSteeringDraft, canExplore: Boolean(canExplore), canResume: Boolean(canResume), record, state: record?.feed ?? null, entries: record?.feed.entries ?? [], memory, showingFeed, eligibleView, interacting: interacting && enabled && eligibleView && resultsVisible, attachSentinel: setSentinel,
     start, stop, more: controller.more, canMore: Boolean(canExplore && !record?.feed.pending && !record?.feed.steering && !record?.feed.stop && !record?.feed.feed?.paused
-      && !(run && ["queued", "running", "cancel_requested", "partial", "failed", "cancelled", "needs_reconciliation"].includes(run.state))),
+      && !(run && (["queued", "running", "cancel_requested"].includes(run.state) || namingRunHoldsNextSet(run)))),
     locateSavedSet: controller.locateSavedSet, stopCurrent: controller.stopCurrent, retry: controller.retry, resume: controller.resume, steer: controller.steer, refresh: controller.load };
 }

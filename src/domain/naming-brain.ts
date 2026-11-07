@@ -843,6 +843,14 @@ export const namingFeedEnsureResultSchema = z.discriminatedUnion("status", [
     && value.canResume === value.run.canResume && (!value.canResume || ["partial", "cancelled", "failed"].includes(value.run.state)), "Incomplete work remains owned and Resume must match the included run's server-qualified witness"),
 ]);
 export type NamingFeedEnsureResult = z.infer<typeof namingFeedEnsureResultSchema>;
+/** Ended runs that hold the next request until they are resumed. A brainstorm
+ * run never offers Resume: once it ends (even short of 100 names) it is final
+ * and settled, so the next set can start. Unconfirmed runs always hold. */
+export function namingRunHoldsNextSet(run: { state: string; generationProfile?: string } | null | undefined): boolean {
+  if (!run) return false;
+  if (run.state === "needs_reconciliation") return true;
+  return ["partial", "failed", "cancelled"].includes(run.state) && run.generationProfile !== "brainstorm_v1";
+}
 export const steerNamingFeedResponseSchema = z.strictObject({ feed: namingFeedSchema, supersededRunIds: z.array(z.uuid()).max(2).refine(unique), cancellationRequestedRunIds: z.array(z.uuid()).max(1) });
 export type SteerNamingFeedResponse = z.infer<typeof steerNamingFeedResponseSchema>;
 export const namingBrainRunResponseSchema = z.strictObject({ run: namingBrainRunSchema });

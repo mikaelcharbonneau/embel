@@ -114,8 +114,11 @@ async function observeResponse(options: { gateway: NamingBrainstormGateway; inpu
   if (response.model !== input.policy.model) throw new BrainstormResponseError("response_model_mismatch");
   if (typeof response.status !== "string" || !finalStates.has(response.status)) return false;
   const usage = namingBrainstormUsageSchema.safeParse(response.usage);
-  const slots = request.text.format.name === BALANCED_BRAINSTORM_FORMAT ? approachSlots(state, candidateTarget, Number(request.metadata.embel_call_index)) : undefined;
-  const candidates = filterNamingBrainstormCandidates(responseCandidates(response, candidateTarget), state.brief.preferences, state.exclusionIdentities, 100 - state.publishedCount, slots);
+  const callIndex = Number(request.metadata.embel_call_index);
+  const slots = request.text.format.name === BALANCED_BRAINSTORM_FORMAT ? approachSlots(state, candidateTarget, callIndex) : undefined;
+  // Earlier calls keep the balanced share; the final call also lets valid names
+  // beyond a share fill open places, so one weak approach can't leave the set short.
+  const candidates = filterNamingBrainstormCandidates(responseCandidates(response, candidateTarget), state.brief.preferences, state.exclusionIdentities, 100 - state.publishedCount, slots, callIndex >= NAMING_BRAINSTORM_MAX_CALLS);
   await gateway.invoke("brainstorm_event", { callId, kind: "completed", responseId, requestId: options.requestId, model: response.model, observedAt: new Date().toISOString(), response, usage: usage.success ? usage.data : null, candidates }, true);
   return true;
 }
