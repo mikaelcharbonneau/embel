@@ -25,7 +25,9 @@ const token = "synthetic_ephemeral_capability_" + "b".repeat(32);
 const configuration = { bridgeToken: token, connectionApproved: true };
 const policy: ChatGPTStrategyPolicy = { version: 1, billingMode: "chatgpt_subscription", handlerVersion: "strategy-chatgpt-v1", registrationId, model: "fixture-model", limits: DEFAULT_SUBSCRIPTION_LIMITS };
 const namingPolicy: ChatGPTNamingPolicy = { ...policy, handlerVersion: "naming-chatgpt-v1", limits: { ...DEFAULT_SUBSCRIPTION_LIMITS, maxObservedWebSearchCalls: 0 } };
-function policies() { return [...strategyOperationSchema.options.map(operation => ({ operation, policy })), { operation: "naming.generate" as const, policy: namingPolicy }]; }
+// The subscription runtime admits the five operations its SQL knows; the guided slogan is shared-worker only.
+const subscriptionOperations = strategyOperationSchema.options.filter(operation => operation !== "strategy.slogan");
+function policies() { return [...subscriptionOperations.map(operation => ({ operation, policy })), { operation: "naming.generate" as const, policy: namingPolicy }]; }
 function bindings() { return policies().map(entry => ({ ...entry, owner_id: ownerId, registration_id: registrationId, enabled: true })); }
 const registration = { registrationId, email: "fixture@example.invalid", planUsageEnabled: true };
 function request(action: string, input: unknown = {}, overrides: { owner?: string; headers?: Record<string, string>; method?: string; body?: string } = {}) {
@@ -43,7 +45,7 @@ function fixture(onReadinessFailure?: (event: unknown) => void, onSignInFailure?
     if (sql.includes("get_subscription_runtime_bindings")) return { rows: bindingRows as Record<string, unknown>[] };
     if (sql.includes("configure_subscription_runtime")) {
       const selected = JSON.parse(values[1] as string);
-      const entries = Array.isArray(selected) ? selected : strategyOperationSchema.options.map(operation => ({ operation, policy: selected }));
+      const entries = Array.isArray(selected) ? selected : subscriptionOperations.map(operation => ({ operation, policy: selected }));
       bindingRows = entries.map(entry => ({ owner_id: values[0], registration_id: entry.policy.registrationId, ...entry, enabled: true }));
       return { rows: [{ configured: true }] };
     }

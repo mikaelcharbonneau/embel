@@ -67,9 +67,10 @@ export function LogoConceptGridView({ batch = null, plan = null, selected = null
     </>}
     {generationActions && (batch || !savedBatchLoading && !savedBatchUnavailable) && <div className={styles.generationActions}>{generationActions}</div>}
     {!generationActions && gallery && !batch && !savedBatchLoading && !savedBatchUnavailable && <div className={styles.generationActions}><button className={styles.primaryButton} type="button" disabled={(!canGenerate && !allowInputPreparation) || !onRequestConcepts} onClick={onRequestConcepts}>Generate six concepts</button></div>}
-    <p className={gallery ? styles.galleryProgress : styles.progress} role="status" aria-live="polite">{savedBatchUnavailable ? "Saved concept details unavailable" : savedBatchLoading ? "Loading saved concepts…" : readyCount + " of 6 concepts ready"}</p>
+    {/* Before the first set, the conversation shows the question, not six empty frames. */}
+    {(!gallery || batch || savedBatchLoading || savedBatchUnavailable) && <p className={gallery ? styles.galleryProgress : styles.progress} role="status" aria-live="polite">{savedBatchUnavailable ? "Saved concept details unavailable" : savedBatchLoading ? "Loading saved concepts…" : readyCount + " of 6 concepts ready"}</p>}
     {uncertain && <p className={styles.warning}>Outcome uncertain. Check the existing request before trying again. Completed concepts stay available.</p>}
-    <ol className={styles.concepts}>
+    {(!gallery || batch || savedBatchLoading || savedBatchUnavailable) && <ol className={styles.concepts}>
       {CONCEPT_ORDINALS.map(ordinal => {
         const slot = batch?.slots.find(item => item.ordinal === ordinal);
         const planned = activePlan?.slots.find(item => item.ordinal === ordinal);
@@ -99,10 +100,9 @@ export function LogoConceptGridView({ batch = null, plan = null, selected = null
           <div className={gallery ? styles.galleryPreview : styles.preview} role={gallery && selectDisplayed ? "button" : undefined} tabIndex={gallery && selectDisplayed ? 0 : undefined} aria-label={gallery ? `Select concept ${ordinal + 1}` : undefined} aria-pressed={gallery && displayedSource ? isSelected : undefined} onClick={gallery ? selectDisplayed : undefined} onKeyDown={event => { if (gallery && selectDisplayed && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); selectDisplayed(); } }}>
             {preview && renderPreview ? renderPreview(preview) : attempt && (attempt.state === "queued" || attempt.state === "running") ? <GenerationAnimation variant={ordinal} queued={attempt.state === "queued"} /> : <p>{imageUnavailable ? "This image could not be saved." : accepted ? "Image preview unavailable" : attempt ? "No image preview yet" : savedBatchLoading ? "Loading saved preview…" : savedBatchUnavailable ? "Saved preview unavailable" : "Your concept will appear here"}</p>}
           </div>
-          {gallery && <div className={styles.galleryCaption}><div><h3 className={stage.subheading}>Concept {ordinal + 1}</h3><button type="button" className={styles.galleryLike} disabled title="Concept likes are not available yet" aria-label={`Like concept ${ordinal + 1}`}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-concepts/heart.svg" width={16} height={16} alt="" />Like
-          </button></div><p>{planned ? LOGO_TYPE_LABELS[planned.type] : savedBatchLoading ? "Loading saved exploration…" : savedBatchUnavailable ? "Saved exploration unavailable" : "Awaiting your first exploration"}{attempt ? ` · ${stateLabel[attempt.state]}` : ""}</p></div>}
+          {/* Logo cards show only the image (user request 2026-11-06); the state is
+              announced while a concept is not ready, and the number stays for screen readers. */}
+          {gallery && <div className={styles.galleryCaption}><h3 className="sr-only">Concept {ordinal + 1}</h3>{(!accepted || savedBatchLoading || savedBatchUnavailable) && <p>{savedBatchLoading ? "Loading saved exploration…" : savedBatchUnavailable ? "Saved exploration unavailable" : attempt ? stateLabel[attempt.state] : planned ? "Waiting to start" : "Awaiting your first exploration"}</p>}</div>}
           {imageUnavailable && <p className={styles.note}>AI usage for this attempt is still recorded. You can use a ready concept or retry the failed concept.</p>}
           <div hidden={gallery}>
           {accepted && <p className={styles.note}>Image preview · Vector conversion and approval follow separately.</p>}
@@ -117,15 +117,15 @@ export function LogoConceptGridView({ batch = null, plan = null, selected = null
           </div>
         </li>;
       })}
-    </ol>
+    </ol>}
     {filter === "saved" && !savedBatchLoading && !savedBatchUnavailable && !validSelection && !Object.values(versions).some(history => selectedVersion && history.some(version => version.key === logoCandidateKey(selectedVersion))) && <p className={styles.note}>No concept selected in this batch. Open a concept to review and select it.</p>}
     {!canGenerate && <p className={styles.note}>Generation is unavailable. You can keep reviewing the brief and any saved results.</p>}
     <div className={styles.actions}>
       {!generationActions && !gallery && !batch && <button className={styles.primaryButton} type="button" aria-label="Explore six concepts" disabled={!canGenerate || !onRequestConcepts} onClick={onRequestConcepts}>Explore six concepts</button>}
       {!generationActions && <button className={styles.secondaryButton} type="button" aria-label="More concepts" disabled={!batch || !canGenerate || !onRequestMore} onClick={onRequestMore}>More concepts</button>}
-      <button className={styles.secondaryButton} type="button" aria-label="Refine selected" disabled={!validSelection || refinement?.status !== "available" || !onRequestRefine} onClick={() => { if (validSelection && selected) onRequestRefine?.(selected); }}>Refine selected</button>
+      {(!gallery || batch) && <button className={styles.secondaryButton} type="button" aria-label="Refine selected" disabled={!validSelection || refinement?.status !== "available" || !onRequestRefine} onClick={() => { if (validSelection && selected) onRequestRefine?.(selected); }}>Refine selected</button>}
       {!generationActions && failedSlotIds.length > 0 && <button className={styles.secondaryButton} type="button" aria-label={`Retry ${failedSlotIds.length} failed concept${failedSlotIds.length === 1 ? "" : "s"}`} disabled={!canGenerate || !onRequestRetryFailed} onClick={() => onRequestRetryFailed?.(failedSlotIds)}>Retry {failedSlotIds.length} failed concept{failedSlotIds.length === 1 ? "" : "s"}</button>}
-      <button className={styles.secondaryButton} type="button" aria-label="Check request" disabled={!onCheckRequest} onClick={onCheckRequest}>Check request</button>
+      {(!gallery || onCheckRequest) && <button className={styles.secondaryButton} type="button" aria-label="Check request" disabled={!onCheckRequest} onClick={onCheckRequest}>Check request</button>}
     </div>
   </section>;
 }

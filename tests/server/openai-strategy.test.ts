@@ -28,7 +28,7 @@ function researchAtToolLimitFixture() {
 describe("OpenAI strategy adapter (mock transport only)", () => {
   it("keeps configuration disabled until permission, credential, model choice and access are explicit", () => {
     const env = { OPENAI_API_KEY: "synthetic-test-credential", FLUID_PAID_CALLS_APPROVED: "true", FLUID_OPENAI_VERIFIED_MODELS: "gpt-6.1-sol", FLUID_TEXT_MODEL_STRATEGY: "gpt-6.1-sol" };
-    expect(readOpenAIStrategyConfiguration(env)?.policies.size).toBe(5);
+    expect(readOpenAIStrategyConfiguration(env)?.policies.size).toBe(6);
     for (const key of Object.keys(env)) expect(readOpenAIStrategyConfiguration({ ...env, [key]: "" })).toBeNull();
     expect(readOpenAIStrategyConfiguration({ ...env, FLUID_TEXT_MODEL_STRATEGY: "gpt-6-astra" })).toBeNull();
   });

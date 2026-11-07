@@ -103,7 +103,7 @@ describe("existing-brand initialization through the actual logo workspace", () =
       expect(host.textContent).toContain("Some characters in this name cannot yet be rendered");
       expect(quotes).toEqual([]);
     }
-    expect(button("Generate six concepts")?.disabled).toBe(true);
+    expect(button("Explore six concepts")?.disabled).toBe(true);
   });
   it("offers explicit same-brand initialization with preserved legacy access and no automatic save or generation", async () => {
     const f = await mount();

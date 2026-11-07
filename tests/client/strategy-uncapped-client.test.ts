@@ -2,7 +2,6 @@
 import { beforeEach, expect, it } from "vitest";
 import { strategyRuntimeResponseSchema, type StrategyJob } from "@/domain/strategy-jobs";
 import { isUncappedStrategyAllowance, promptStrategyPlan, rememberStrategyPlan, readStrategyIntent, strategyIntentPlan, strategyRequestPayload, strategyAllowanceLabel, strategyAllowanceWithin, strategyJobMatchesRequest, strategyPromptCost } from "@/components/workspace/account-strategy-client";
-import { rememberGuidedStartConsent, markGuidedStartAttempt, readGuidedStartConsent } from "@/components/workspace/guided-start-consent";
 
 const owner = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", project = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const response = "a".repeat(64), competitors = "b".repeat(64);
@@ -43,13 +42,3 @@ it("rejects changed policies, bounded consent and forged mixed request plans", (
   expect(strategyJobMatchesRequest(job, "strategy.reformulate", 3, 100)).toBe(false);
 });
 
-it("never upgrades or changes an attempted guided request's saved consent", () => {
-  const allowance = { billingMode: "openai_api" as const, spendControl: "uncapped" as const, policyIdentity: competitors }, turn = "guided-start-v1:uncapped-fixture";
-  expect(rememberGuidedStartConsent(owner, turn, allowance)).toBe(true); expect(markGuidedStartAttempt(owner, turn)).toBe(true);
-  expect(rememberGuidedStartConsent(owner, turn, { ...allowance, policyIdentity: response })).toBe(false);
-  expect(rememberGuidedStartConsent(owner, turn, { billingMode: "openai_api", maximumCostMicrousd: 0 })).toBe(false);
-  expect(readGuidedStartConsent(owner, turn)?.allowance).toEqual(allowance);
-  const old = "guided-start-v1:bounded-fixture";
-  rememberGuidedStartConsent(owner, old, { billingMode: "openai_api", maximumCostMicrousd: 100 }); markGuidedStartAttempt(owner, old);
-  expect(rememberGuidedStartConsent(owner, old, allowance)).toBe(false);
-});

@@ -14,7 +14,7 @@ const rawAudience = { label: "Small office teams", needs: ["Dependable weekly de
 const rawPersonality = { profile, traits: ["Warm", "Dependable"], toneExample: "Good bread, right on time.", expression: "Friendly language with calm everyday confidence" };
 
 function guidedInput(stage: GuidedStage = "competitors", purpose: "research" | "message" | "propose" = "research", userText = "Office bread subscriptions", history: StrategyAssistantHistory = { entries: [], truncated: false }): Extract<StrategyJobInput, { version: 2 }> {
-  const operation: Exclude<StrategyOperation, "strategy.positioning"> = purpose === "message" ? "strategy.reformulate" : `strategy.${stage}`;
+  const operation: StrategyOperation = purpose === "message" ? "strategy.reformulate" : `strategy.${stage}`;
   const policy = guidedStrategyPolicy(operation);
   const context = initializeGuidedInterview(contextSnapshotSchema.parse({ description: "Synthetic provider fixture only", intake: { conversation: [{ id: "actual-user-message", kind: "user_message", text: userText, createdAt: now }] } }), {
     id: "current-turn", userMessageId: "actual-user-message", stage, purpose, inputRevision: 3,
@@ -63,7 +63,8 @@ describe("guided provider contract (synthetic transports, no live inference)", (
     expect(request).toMatchObject({ tool_choice: "required", parallel_tool_calls: false, tools: [{ type: "web_search" }] });
     expect(request.instructions).toContain("one focused question, answer or choice widget");
     expect(request.instructions).toContain("free-text custom answer");
-    expect(request.instructions).toContain("Never introduce a positioning stage");
+    expect(request.instructions).toContain("in the order competitors, target audience, positioning, brand personality");
+    expect(request.instructions).toContain("Never skip ahead, add a stage");
     expect(request.instructions).toContain("at most 2 web tool calls in total, including search, open_page and find_in_page");
     expect(request.instructions).toContain("sources returned by completed calls");
     expect(request.input).toEqual([{ role: "user", content: expect.stringContaining('"currentTurn":{"id":"current-turn"') }]);
@@ -245,7 +246,7 @@ describe("guided provider contract (synthetic transports, no live inference)", (
     expect((await execute(raw, guidedInput("personality", "propose"), responseFixture(raw))).outcome).toMatchObject({ status: "needs_reconciliation", code: "provider_invalid_output" });
     const input = guidedInput("personality", "message", "I want to change our target audience first");
     for (const change of [
-      { targetStage: "personality" }, { targetStage: null }, { targetStage: "positioning" },
+      { targetStage: "personality" }, { targetStage: null }, { targetStage: "naming" },
       { question: "Also choose a personality?" }, { options: choices("personality").options }, { selection: { optionIds: [], customOptions: [] } },
     ]) {
       const invalid = { ...raw, ...change };

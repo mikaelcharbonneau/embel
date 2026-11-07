@@ -462,7 +462,8 @@ export function createLocalChatGPTRuntime(options: {
       if (!database || !("model" in input) || !catalog.models.some(model => model.slug === input.model)) return unavailable();
       const policy = chatGPTStrategyPolicySchema.parse({ version: 1, billingMode: "chatgpt_subscription", handlerVersion: "strategy-chatgpt-v1", registrationId: input.registrationId, model: input.model, limits: DEFAULT_SUBSCRIPTION_LIMITS });
       const namingPolicy = chatGPTNamingPolicySchema.parse({ ...policy, handlerVersion: "naming-chatgpt-v1", limits: { ...policy.limits, maxObservedWebSearchCalls: 0 } });
-      const policies: OperationPolicy[] = [...strategyOperationSchema.options.map(operation => ({ operation, policy })), { operation: "naming.generate", policy: namingPolicy }];
+      // The subscription runtime predates the guided slogan; its SQL admits the earlier five operations.
+      const policies: OperationPolicy[] = [...strategyOperationSchema.options.filter(operation => operation !== "strategy.slogan").map(operation => ({ operation, policy })), { operation: "naming.generate", policy: namingPolicy }];
       const existingBindings = await bindings();
       if (initialGeneration !== (ownerGenerations.get(body.ownerId) ?? 0)) throw new Error("Connection changed");
       const registrations = new Set(existingBindings.filter(existing => existing.owner_id === body.ownerId && existing.enabled).map(existing => existing.registration_id));

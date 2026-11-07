@@ -87,7 +87,8 @@ a.step .stepMark { border: 0; background: var(--accent); color: var(--on-accent)
 .progressText { margin: 0; font-size: 14px; color: var(--secondary); }
 .bar { height: 4px; overflow: hidden; border-radius: var(--radius-pill); background: var(--surface); }
 .bar > span { display: block; width: 38%; height: 100%; border-radius: inherit; background: var(--accent); animation: journey-bar 1.4s ease-in-out infinite; }
-.progressActions { display: flex; justify-content: flex-end; }
+.progressActions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; }
+.progressNote { margin: 0 auto 0 0; font-size: 13px; color: var(--secondary); }
 @keyframes journey-bar { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
 @media (prefers-reduced-motion: reduce) { .bar > span { width: 100%; animation: none; opacity: .35; } }
 

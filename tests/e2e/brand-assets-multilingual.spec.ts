@@ -14,15 +14,15 @@ for (const [name, family, direction] of [["茶屋 Studio", "Noto Sans SC", "ltr"
     const fontRequests: string[] = [];
     page.on("request", request => { const path = new URL(request.url()).pathname; if (path.startsWith("/fonts/brand/")) fontRequests.push(path); });
     await page.goto(directionsUrl);
-    await page.getByRole("button", { name: "Generate three directions", exact: true }).click();
+    await page.getByRole("button", { name: "Create three directions", exact: true }).click();
     await expect.poll(() => f.admissions.length).toBe(1);
     f.complete(1); f.systems[0]!.applicationDesign.graphic = "none";
     await page.getByRole("button", { name: "Check progress", exact: true }).click();
     const sample = page.locator('[aria-label="Direction comparison"] article').first().locator("bdi").filter({ hasText: name });
     await expect(sample).toBeVisible();
     await expect(sample).toHaveAttribute("dir", direction);
-    await page.getByRole("button", { name: "Choose direction", exact: true }).click();
-    await page.getByRole("link", { name: "View brand assets", exact: true }).click();
+    await page.getByRole("radio", { name: /^Direction 1:/ }).click();
+    await page.getByRole("link", { name: "Continue", exact: true }).click();
     await expect(page).toHaveURL(assetsUrl);
     const kit = page.getByRole("button", { name: "Download brand kit", exact: true });
     await expect(kit).toBeEnabled();

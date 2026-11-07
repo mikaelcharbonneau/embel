@@ -48,10 +48,11 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
 
 describe("guided interview choice controls", () => {
-  it("explains recommendations without selecting or confirming them", async () => {
+  it("marks recommendations on compact competitor cards without selecting or confirming them", async () => {
     await render();
     expect(host.textContent).toContain("Recommended");
-    expect(host.textContent).toContain(competitor.recommendationReason);
+    // Competitor cards stay compact: the recommendation reason is not repeated in a box.
+    expect(host.textContent).not.toContain(competitor.recommendationReason);
     expect(host.querySelector<HTMLInputElement>("input")?.checked).toBe(false);
     expect(continueButton().disabled).toBe(true);
     expect(onSelectionChange).not.toHaveBeenCalled();

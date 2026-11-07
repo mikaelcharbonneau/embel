@@ -44,3 +44,13 @@ names without settling unknown provider costs. Use the coordinated worker drain,
 compatibility checks and rollback in [Naming recovery](naming-delivery-recovery.md)
 and [the rollout procedure](review-fixes-rollout-20261102.md). Historical migration
 files remain unchanged.
+
+## November 7 Naming lease expiry packet
+
+`supabase/candidates/shared_naming_lease_expiry.sql` follows the delivery
+recovery packet. It adds the shared Naming slot action `expire`, which moves a
+job whose worker stopped out of `running` instead of leaving it there
+indefinitely. A possibly dispatched call becomes `needs_reconciliation` with its
+hold kept; work with no dispatch evidence returns to the queue or ends with a
+zero-spend settlement. See [Naming lease expiry](naming-lease-expiry.md). Apply
+the packet before the worker build that calls `expire`.

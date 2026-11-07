@@ -5,6 +5,7 @@ import { serializeLogoSvg } from "@/features/logo-vector/model/svg";
 import { BrandAssetError, type BrandAssetSnapshot } from "../model/snapshot";
 import { BRAND_APPLICATIONS, createBrandApplication, createFinalBrandBoard, drawBrandArtwork, editableBrandSvg } from "../model/artwork";
 import { brandGuideHtml, brandPackReadme, brandPaletteFiles } from "../model/guides";
+import { designTokens, designTokensCss, designTokensJson } from "../model/design-tokens";
 import { brandCanvasPng, checkBrandAssetSignal, loadBrandFonts, readBrandImage } from "./browser-assets";
 
 export type BrandAssetFile = { name: string; label: string; category: "board" | "logo" | "direction" | "social" | "guide"; mimeType: string; bytes: Uint8Array<ArrayBuffer>; width?: number; height?: number; editable?: boolean };
@@ -30,7 +31,7 @@ function preparedAssets(files: readonly BrandAssetFile[], vectorIncluded: boolea
 }
 
 /** Local rendering from verified saved sources. This never admits a generation job. */
-export async function buildBrandAssetPack(input: { snapshot: BrandAssetSnapshot; logoClient: AccountLogoClient; identityClient: AccountIdentityClient; vectorRevisionId?: string | null }, signal: AbortSignal): Promise<PreparedBrandAssets> {
+export async function buildBrandAssetPack(input: { snapshot: BrandAssetSnapshot; logoClient: AccountLogoClient; identityClient: AccountIdentityClient; vectorRevisionId?: string | null; slogan?: string | null }, signal: AbortSignal): Promise<PreparedBrandAssets> {
   const { snapshot, logoClient, identityClient } = input;
   checkBrandAssetSignal(signal);
   const logo = await readBrandImage(snapshot.logo.reference, snapshot.logo.verification.mimeType, signal => logoClient.previewAsset(snapshot.logo, signal), signal);
@@ -64,8 +65,12 @@ export async function buildBrandAssetPack(input: { snapshot: BrandAssetSnapshot;
         const palette = brandPaletteFiles(snapshot);
         files.push({ name: "guides/colors.json", label: "Color palette", category: "guide", mimeType: "application/json", bytes: palette.json },
           { name: "guides/colors.css", label: "Color variables", category: "guide", mimeType: "text/css", bytes: palette.css },
-          { name: "guides/brand-guide.html", label: "Colors, font links and guide", category: "guide", mimeType: "text/html", bytes: brandGuideHtml(snapshot) },
-          { name: "README.txt", label: "File guide", category: "guide", mimeType: "text/plain", bytes: brandPackReadme(snapshot, vectorIncluded) });
+          { name: "guides/brand-guide.html", label: "Colors, font links and guide", category: "guide", mimeType: "text/html", bytes: brandGuideHtml(snapshot, input.slogan ?? null) },
+          { name: "README.txt", label: "File guide", category: "guide", mimeType: "text/plain", bytes: brandPackReadme(snapshot, vectorIncluded, input.slogan ?? null) });
+        // Assets · Design system: the same tokens the screen shows, ready for code and design tools.
+        const tokens = designTokens(snapshot), encode = (text: string) => new TextEncoder().encode(text);
+        files.push({ name: "design-system/design-tokens.css", label: "Design tokens", category: "guide", mimeType: "text/css", bytes: encode(designTokensCss(tokens)) },
+          { name: "design-system/design-tokens.json", label: "Design tokens", category: "guide", mimeType: "application/json", bytes: encode(designTokensJson(tokens)) });
         checkBrandAssetSignal(signal);
         return preparedAssets(files, vectorIncluded);
       } finally { fonts.release(); }

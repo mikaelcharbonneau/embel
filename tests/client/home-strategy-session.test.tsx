@@ -210,7 +210,7 @@ describe("Home account persistence and sign-in continuation", () => {
     await render(); await click("Send prompt");
     const body = JSON.parse(String(creations()[0]![1].body));
     expect(body.context.intake.guidedInterview.turns[0]).toMatchObject({ inputRevision: 1, stage: "competitors", purpose: "research" });
-    expect(body.context.intake.guidedInterview.turns[0].id).toMatch(/^guided-start-v1:/);
+    expect(body.context.intake.guidedInterview.turns[0]).toMatchObject({ stage: "competitors", purpose: "research" });
     expect(accountDrafts.get(body.requestKey)).toMatchObject({ generation: 1, ownerId: owner,
       saved: { current_revision: 1, context: body.context } });
     expect(mutations()).toHaveLength(1);

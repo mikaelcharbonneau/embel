@@ -16,15 +16,15 @@ describe("exact bounded guided interview policy", () => {
     expect(isHostedStrategyPolicy("strategy.competitors", strategyPolicy("strategy.competitors"))).toBe(false);
   });
   it("requires every policy field and the correct operation to match, preserving old text policies", () => {
-    for (const operation of ["strategy.reformulate", "strategy.audience", "strategy.personality"] as const) {
+    for (const operation of ["strategy.reformulate", "strategy.audience", "strategy.positioning", "strategy.personality", "strategy.slogan"] as const) {
       const policy = guidedStrategyPolicy(operation);
       expect(policy).toMatchObject({ maxInputTokens: 32768, maxOutputTokens: 4096, maxWebSearchCalls: 0, maximumCostMicrousd: 122880 });
       expect(isHostedStrategyPolicy(operation, policy)).toBe(true);
-      expect(isHostedStrategyPolicy(operation, strategyPolicy(operation))).toBe(true);
+      expect(isHostedStrategyPolicy(operation, strategyPolicy(operation))).toBe(operation !== "strategy.slogan");
       expect(matchesStrategyPolicy(operation, { ...policy, maximumCostMicrousd: 1 })).toBe(false);
       expect(isHostedStrategyPolicy("strategy.competitors", policy)).toBe(false);
     }
-    expect(isHostedStrategyPolicy("strategy.positioning", guidedStrategyPolicy("strategy.reformulate"))).toBe(false);
+    expect(isHostedStrategyPolicy("strategy.competitors", guidedStrategyPolicy("strategy.positioning"))).toBe(false);
     expect(isHostedStrategyPolicy("naming.generate" as never, strategyPolicy("strategy.reformulate"))).toBe(false);
   });
   it("uses the new policy only after explicit guided opt-in and configured model choices", () => {

@@ -43,7 +43,6 @@
 :is(.project-workspace, .guided-interview-opening) .guided-choice-answer-copy { gap: 10px; }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-answer ul { display: flex; flex-wrap: wrap; gap: 8px; }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-answer li { align-items: center; min-height: 32px; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); color: var(--text); }
-:is(.project-workspace, .guided-interview-opening) .guided-choice-answer li img { display: none; }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-answer > .button { min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); }
 
 /* The message box spans the conversation column with the rounder corners. */
@@ -52,7 +51,8 @@
 /* The project conversation sits on the dotted canvas, like the rest of the redesign.
    The standalone Name page, logo, directions and brand kit keep their white page
    until they are redesigned (Phases 4–6). */
-.concept-project-workspace .workspace-main:has(.project-stage-strategy) {
+.concept-project-workspace .workspace-main:has(.project-stage-strategy),
+.concept-project-workspace .workspace-main:has(.logo-conversation-message) {
   background-color: var(--canvas); background-image: radial-gradient(#dad9d4 1px, transparent 1px); background-size: 22px 22px;
 }
 
@@ -63,3 +63,255 @@
 /* Secondary actions inside the conversation are pills too. */
 :is(.project-workspace, .guided-interview-opening) .competitor-widget-toolbar .button,
 :is(.project-workspace, .guided-interview-opening) .guided-assistant-message .button.secondary { min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); }
+
+/* Phase 3 · competitors: each card shows the competitor's own site icon, or a
+   neutral initial when the site has none. Answer chips show a small version. */
+.competitor-logo { flex: 0 0 auto; display: block; box-sizing: border-box; width: 40px; height: 40px; border-radius: 10px; object-fit: contain; }
+.competitor-logo-monogram { display: grid; place-items: center; background: var(--canvas); color: var(--secondary); font-size: 15px; font-weight: 500; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-target > .competitor-logo { order: 0; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-target > .guided-choice-content { order: 1; flex: 1 1 auto; min-width: 0; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-answer li { gap: 6px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-answer li.has-logo { padding-left: 4px; gap: 8px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-answer li .competitor-logo { width: 24px; height: 24px; border-radius: 50%; font-size: 11px; }
+
+/* One row under the cards: add / suggest on the left, the count and Continue on the right.
+   The add form opens above that row. */
+:is(.project-workspace, .guided-interview-opening) .guided-choice-actions { justify-content: flex-end; gap: 8px; padding-top: 4px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-actions .competitor-widget-controls { display: contents; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-actions .competitor-widget-toolbar { margin-right: auto; display: flex; gap: 8px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-actions .competitor-add-form { order: -1; flex-basis: 100%; margin-bottom: 8px; padding: 16px; border-radius: var(--radius-card); background: var(--paper); grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+:is(.project-workspace, .guided-interview-opening) .competitor-add-form > p { grid-column: 1 / -1; }
+.competitor-add-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; }
+:is(.project-workspace, .guided-interview-opening) .competitor-add-actions .button { min-height: 40px; padding: 0 16px; border-radius: var(--radius-pill); }
+:is(.project-workspace, .guided-interview-opening) .competitor-widget-toolbar .button { display: inline-flex; align-items: center; gap: 6px; }
+.guided-choice-count { font-size: 13px; color: var(--secondary); margin-left: 4px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-actions > .button.primary { display: inline-flex; align-items: center; gap: 8px; margin-left: 4px; padding: 0 18px 0 20px; }
+
+/* Research in progress sits in Embel's message, like the other replies. */
+:is(.project-workspace, .guided-interview-opening) .guided-assistant-message > section[aria-label] { margin-top: 4px; }
+
+/* Phase 3 · Positioning: the angle is the card's heading, the statement its main line. */
+:is(.project-workspace, .guided-interview-opening) .guided-choice-widget-positioning .guided-choice-label { font-size: 13px; font-weight: 500; color: #3a3a37; }
+.guided-positioning-statement { display: block; font-size: 19px; line-height: 1.4; letter-spacing: -.015em; color: var(--text); }
+:is(.project-workspace, .guided-interview-opening) .guided-positioning-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 24px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f1f0ee; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-traits { display: flex; flex-wrap: wrap; gap: 6px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-traits > span { display: inline-flex; align-items: center; min-height: 26px; padding: 0 10px; border: 1px solid #eeedea; border-radius: var(--radius-pill); background: var(--canvas); font-size: 12px; color: #3a3a37; }
+
+/* Strategy, complete: one summary card replaces the three answered questions. */
+.strategy-summary { margin-left: 44px; display: flex; flex-direction: column; gap: 16px; padding: 16px 16px 18px 18px; border: 1px solid var(--border); border-radius: var(--radius-card); background: rgb(255 255 255 / 80%); }
+.strategy-summary-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.strategy-summary-head h2 { margin: 0; font-size: 15px; font-weight: 500; }
+.strategy-summary-mark { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--paper); }
+.strategy-summary-state { font-size: 12px; color: #3d6448; }
+.strategy-summary-head .button { margin-left: auto; min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); }
+.strategy-summary dl { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px 24px; }
+.strategy-summary dt { margin-bottom: 8px; font-size: 12px; color: var(--secondary); }
+.strategy-summary dd { margin: 0; font-size: 14px; line-height: 1.45; }
+.strategy-summary-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.strategy-summary-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 10px 0 3px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); font-size: 13px; }
+.strategy-summary-chip .competitor-logo { border-radius: 50%; font-size: 10px; }
+.strategy-summary-positioning { display: flex; flex-direction: column; gap: 2px; }
+.strategy-summary-positioning strong { font-weight: 500; }
+.strategy-summary-positioning span { font-size: 13px; color: #3a3a37; }
+
+/* Voice · Slogan (optional): a live preview, the lines as compact cards, your own line, skip. */
+.guided-slogan-widget { margin: 14px 0 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.guided-slogan-preview { display: flex; flex-direction: column; gap: 2px; padding: 18px 20px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--paper); }
+.guided-slogan-preview-label { font-size: 12px; color: var(--secondary); }
+.guided-slogan-preview-name { font-size: 24px; font-weight: 500; letter-spacing: -.02em; }
+.guided-slogan-preview-line { font-size: 15px; color: #3a3a37; }
+.guided-slogan-preview-line.is-empty { color: #8a8a85; }
+.guided-slogan-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.guided-slogan-option { display: flex; align-items: flex-start; gap: 10px; min-height: 56px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--paper); font-size: 14px; line-height: 1.4; cursor: pointer; }
+.guided-slogan-option input, .guided-slogan-own > input[type="radio"] { flex: 0 0 auto; width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--text); }
+.guided-slogan-option.is-selected, .guided-slogan-own.is-selected { border: 1px solid var(--text); box-shadow: inset 0 0 0 .5px var(--text), 0 10px 24px -16px rgb(25 25 25 / 35%); }
+.guided-slogan-own { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border: 1px dashed #c9c8c2; border-radius: 14px; background: var(--paper); }
+.guided-slogan-own > input[type="text"] { flex: 1 1 auto; min-width: 0; min-height: 36px; border: 0; outline: none; background: transparent; font: inherit; font-size: 14px; }
+.guided-slogan-widget .guided-choice-actions .button { min-height: 44px; padding: 0 18px; border-radius: var(--radius-pill); }
+.guided-slogan-widget .guided-slogan-more { margin-right: auto; display: inline-flex; align-items: center; gap: 6px; min-height: 40px !important; }
+.guided-slogan-widget .guided-choice-actions .button.primary { display: inline-flex; align-items: center; gap: 8px; }
+/* The answer and its Edit button share a row; Edit wraps below only when narrow. */
+:is(.project-workspace, .guided-interview-opening) .guided-choice-answer-copy { flex: 1 1 320px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-answer > .button { flex: 0 0 auto; }
+
+/* Phase 4 · Voice: the naming questions follow the conversation cards. Each
+   approach shows a square check; each directness choice a round one. */
+/* Scoped through the option group so it outranks the Name page's own module styles, which load later. */
+.guided-interview .naming-approach-options .naming-approach-option, .guided-interview .naming-directness button { position: relative; padding: 12px 14px 12px 42px; border-radius: 12px; min-height: 64px; background: var(--paper); }
+.guided-interview .naming-approach-option::before, .guided-interview .naming-directness button::before {
+  content: ""; position: absolute; left: 14px; top: 14px; width: 18px; height: 18px; box-sizing: border-box; border: 1.5px solid #c9c8c2; border-radius: 5px; background: var(--paper) center / 12px 12px no-repeat;
+}
+.guided-interview .naming-directness button::before { border-radius: 50%; }
+.guided-interview .naming-approach-option[aria-pressed=true]::before {
+  border-color: var(--text); background-color: var(--text);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E");
+}
+.guided-interview .naming-directness [aria-checked=true]::before { border: 5px solid var(--text); }
+.guided-interview .naming-approach-option[aria-pressed=true], .guided-interview .naming-directness [aria-checked=true] { border-color: var(--text); box-shadow: inset 0 0 0 .5px var(--text); }
+.guided-interview .naming-approach-widgets .button.primary, .guided-interview .guided-naming-messages .button.primary { min-height: 44px; padding: 0 20px; border-radius: var(--radius-pill); }
+/* Answered naming questions sit under Embel's avatar, like the Strategy answers. */
+.guided-naming-messages > .guided-choice-answer { margin-left: 44px; border-radius: var(--radius-card); background: rgb(255 255 255 / 75%); }
+/* .com status on name cards: a dot and a short label. */
+.naming-dot-com { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 18px; color: var(--secondary); }
+.naming-dot-com > span { width: 6px; height: 6px; border-radius: 50%; background: #c9c8c2; }
+.naming-dot-com[data-status="available"] { color: #2f4f38; }
+.naming-dot-com[data-status="available"] > span { background: #3d6448; }
+.naming-dot-com[data-status="taken"] { color: #8f4242; }
+.naming-dot-com[data-status="taken"] > span { background: #8f4242; }
+/* All / Saved filter above the names. */
+.naming-filter { display: inline-flex; gap: 4px; margin-top: 10px; padding: 3px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); }
+.naming-filter button { min-height: 32px; padding: 0 12px; border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--secondary); font: inherit; font-size: 13px; cursor: pointer; }
+.naming-filter button[aria-pressed=true] { background: var(--text); color: var(--paper); }
+/* Voice · Name in the conversation: Embel's message with the names (design: FlowName). */
+.guided-names-message .project-naming-results { margin: 14px 0 0; padding: 0; border: 0; background: none; }
+/* Heading row: the question with Saved names & history on the right; below it the hint with the All / Saved filter. */
+.guided-names-message .project-naming-section-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 0 16px; margin: 0 0 12px; }
+.guided-names-message .project-naming-section-heading > div:first-child { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; min-width: 0; }
+.guided-names-message .project-naming-section-heading h2 { flex: 1 1 100%; font-size: 17px; font-weight: 500; letter-spacing: -.01em; }
+.guided-names-message .project-naming-section-heading p { flex: 1 1 260px; margin: 0; font-size: 13px; color: var(--secondary); }
+.guided-names-message .project-naming-section-heading .naming-filter { margin-top: 0; }
+.guided-names-message .project-naming-section-heading > .project-naming-actions { padding-top: 2px; font-size: 13px; }
+.guided-names-message .project-naming-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.guided-names-message .naming-feed-tail { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 12px; font-size: 13px; color: var(--secondary); }
+.guided-names-message .naming-feed-tail p { margin: 0; }
+.guided-names-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 14px; }
+.guided-names-footer-gap { flex: 1 1 auto; }
+.guided-pill-button { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px 0 12px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); color: var(--text); font: inherit; font-size: 13px; cursor: pointer; }
+.guided-pill-button:hover:not(:disabled) { border-color: var(--secondary); }
+.guided-pill-button:disabled { color: var(--secondary); cursor: default; opacity: .6; }
+.guided-names-chosen { font-size: 13px; color: var(--secondary); }
+.guided-names-continue { min-height: 44px; padding: 0 18px 0 20px; border-radius: var(--radius-pill); display: inline-flex; align-items: center; gap: 8px; }
+.guided-names-manual { margin-top: 12px; }
+/* Answered Naming choices folded into one line (design: summary pills). */
+.guided-summary-pill { display: inline-flex; align-self: flex-start; width: fit-content; align-items: center; gap: 8px; max-width: calc(100% - 44px); min-height: 40px; margin: 0 0 4px 44px; padding: 0 14px 0 6px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: rgb(255 255 255 / 80%); color: var(--text); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.guided-summary-pill:hover { border-color: var(--secondary); }
+.guided-summary-pill strong { font-weight: 500; white-space: nowrap; }
+.guided-summary-pill > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--secondary); }
+.guided-summary-pill-mark { flex: 0 0 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; background: var(--text); color: var(--paper); }
+.guided-next-step { margin-top: 14px; display: flex; justify-content: flex-end; }
+.guided-next-step .button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px 0 20px; border-radius: var(--radius-pill); }
+
+/* Phase 5 · Identity · Logo: the concepts screen opens with Embel's message and
+   the logo-types question, in the conversation style. */
+.project-logo-creation .logo-conversation-message, .identity-conversation-message { display: grid; grid-template-columns: 32px minmax(0, 1fr); column-gap: 12px; align-items: start; margin-bottom: 20px; }
+.project-logo-creation .logo-conversation-message > *, .identity-conversation-message > * { grid-column: 2; }
+.project-logo-creation .logo-conversation-message > .guided-assistant-identity, .identity-conversation-message > .guided-assistant-identity { display: contents; }
+:is(.project-logo-creation, .identity-conversation-message) .guided-assistant-avatar { grid-column: 1; grid-row: 1 / span 12; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--accent); }
+:is(.project-logo-creation, .identity-conversation-message) .guided-assistant-avatar img { width: 15px; height: 15px; filter: invert(1); }
+:is(.project-logo-creation, .identity-conversation-message) .guided-assistant-label { padding-top: 6px; margin-bottom: 10px; font-size: 12px; line-height: 18px; color: var(--secondary); }
+:is(.project-logo-creation, .identity-conversation-message) .guided-assistant-copy { margin: 0; font-size: 15px; line-height: 1.55; }
+.logo-types-question { margin: 14px 0 0; padding: 18px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--paper); min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.logo-types-question h2 { margin: 0; font-size: 17px; font-weight: 500; letter-spacing: -.01em; }
+.logo-types-question > p { margin: 0; font-size: 13px; color: var(--secondary); }
+.logo-types-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.logo-types-options .naming-approach-option { position: relative; display: flex; flex-direction: column; gap: 2px; align-items: flex-start; text-align: left; min-height: 64px; padding: 12px 14px 12px 42px; border: 1px solid var(--border); border-radius: 12px; background: var(--paper); cursor: pointer; font: inherit; }
+.logo-types-options .naming-approach-option strong { font-size: 14px; font-weight: 500; }
+.logo-types-options .naming-approach-option span { font-size: 12px; color: var(--secondary); line-height: 1.45; }
+.logo-types-options .naming-approach-option::before { content: ""; position: absolute; left: 14px; top: 14px; width: 18px; height: 18px; box-sizing: border-box; border: 1.5px solid #c9c8c2; border-radius: 5px; background: var(--paper) center / 12px 12px no-repeat; }
+.logo-types-options .naming-approach-option[aria-pressed=true] { border-color: var(--text); box-shadow: inset 0 0 0 .5px var(--text); }
+.logo-types-options .naming-approach-option[aria-pressed=true]::before { border-color: var(--text); background-color: var(--text);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E"); }
+.logo-types-count { margin: 0; font-size: 13px; color: var(--secondary); }
+/* The count and Explore six concepts share one row, the button on the right. */
+.logo-types-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.logo-types-footer > :only-child { margin-left: auto; }
+.logo-types-note { margin: 0; font-size: 13px; color: var(--secondary); }
+/* The Identity pages share the conversation's centred column. */
+.workspace-main .project-logo-creation:has(.logo-conversation-message) { width: min(840px, 100%); margin: 0 auto; padding: 40px 24px 120px; box-sizing: border-box; }
+.project-logo-creation:has(.logo-conversation-message) [class*="generationActions"] { display: flex; justify-content: flex-end; }
+.project-logo-creation:has(.logo-conversation-message) [class*="primaryButton"] { border-radius: var(--radius-pill); min-height: 44px; padding: 0 20px; }
+
+/* Identity · Creative direction: click a board to choose it. */
+.identity-conversation-message { margin-bottom: 20px; }
+.direction-choice-card { cursor: pointer; }
+.direction-choice-card[aria-disabled=true] { cursor: default; }
+.direction-choice-card:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+.direction-footer { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 16px; }
+.direction-footer .identity-primary-button { display: inline-flex; align-items: center; min-height: 44px; padding: 0 20px; border-radius: var(--radius-pill); }
+.concept-project-workspace .workspace-main:has(.identity-conversation-message) { background-color: var(--canvas); background-image: radial-gradient(#dad9d4 1px, transparent 1px); background-size: 22px 22px; }
+
+/* Phase 6 · Assets: three of Embel's messages (Brand images, Brand guidelines,
+   Design system) in the conversation column. */
+.concept-project-workspace .workspace-main:has(.kit-journey) { background-color: var(--canvas); background-image: radial-gradient(#dad9d4 1px, transparent 1px); background-size: 22px 22px; }
+.kit-page { width: min(840px, 100%); margin: 0 auto; padding: 40px 24px 120px; box-sizing: border-box; }
+.kit-page section[aria-label="Brand assets"] { padding: 0; border: 0; background: transparent; box-shadow: none; }
+.kit-journey { display: flex; flex-direction: column; gap: 40px; }
+.kit-message { display: grid; grid-template-columns: 32px minmax(0, 1fr); column-gap: 12px; align-items: start; scroll-margin-top: 96px; }
+.kit-message > * { grid-column: 2; }
+.kit-message > .guided-assistant-identity { display: contents; }
+.kit-message .guided-assistant-avatar { grid-column: 1; grid-row: 1 / span 12; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--accent); }
+.kit-message .guided-assistant-avatar img { width: 15px; height: 15px; filter: invert(1); }
+.kit-message .guided-assistant-label { padding-top: 6px; margin-bottom: 10px; font-size: 12px; line-height: 18px; color: var(--secondary); }
+.kit-message .guided-assistant-copy { margin: 0 0 14px; font-size: 15px; line-height: 1.55; }
+.kit-card { display: flex; flex-direction: column; gap: 14px; padding: 18px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--paper); min-width: 0; }
+.kit-card h2 { margin: 0; font-size: 17px; font-weight: 500; letter-spacing: -.01em; }
+.kit-card h3 { margin: 0; font-size: 15px; font-weight: 500; }
+.kit-hint { margin: -8px 0 0; font-size: 13px; color: var(--secondary); }
+.kit-images { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.kit-image { margin: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.kit-image[data-wide=true] { grid-column: span 3; }
+.kit-image-frame { display: grid; place-items: center; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--canvas); color: var(--secondary); font-size: 13px; }
+.kit-image-frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.kit-image figcaption { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; }
+.kit-image figcaption > span:first-child { display: flex; flex-direction: column; }
+.kit-image figcaption small { color: var(--secondary); font-size: 12px; }
+.kit-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.kit-button { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); color: var(--text); font: inherit; font-size: 13px; text-decoration: none; cursor: pointer; }
+.kit-button:disabled { opacity: .5; cursor: default; }
+.kit-button.kit-primary, .kit-footer a.kit-button { min-height: 44px; padding: 0 20px; border-color: var(--text); background: var(--text); color: var(--paper); font-size: 14px; font-weight: 500; }
+.kit-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 14px; font-size: 13px; color: var(--secondary); }
+.kit-sections { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.kit-sections a { min-height: 32px; display: inline-flex; align-items: center; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); color: var(--text); font-size: 13px; text-decoration: none; }
+.kit-document > section { display: flex; flex-direction: column; gap: 10px; padding-bottom: 18px; border-bottom: 1px solid #f1f0ee; scroll-margin-top: 96px; }
+.kit-document > section:last-child { border-bottom: 0; padding-bottom: 0; }
+.kit-document p { margin: 0; font-size: 14px; line-height: 1.5; color: #3a3a37; }
+.kit-document dl { margin: 0; display: grid; gap: 10px; }
+.kit-document dt { font-size: 12px; color: var(--secondary); }
+.kit-document dd { margin: 0; font-size: 14px; }
+.kit-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; }
+.kit-section-head a { font-size: 13px; color: var(--secondary); }
+.kit-brand-name { font-size: 28px !important; line-height: 1.15 !important; color: var(--text) !important; }
+.kit-slogan { font-size: 16px !important; }
+.kit-logo-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.kit-logo-pair > div { display: grid; place-items: center; aspect-ratio: 16 / 9; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.kit-logo-pair img { max-width: 60%; max-height: 70%; object-fit: contain; }
+.kit-type-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.kit-type-pair > div { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid #f1f0ee; border-radius: 12px; }
+.kit-type-pair > div p { font-size: 20px !important; line-height: 1.3 !important; color: var(--text) !important; }
+.kit-preview { display: flex; flex-direction: column; gap: 10px; padding: 24px; border: 1px solid var(--border); border-radius: 14px; }
+.kit-preview p { color: inherit !important; }
+.kit-preview-title { font-size: 34px !important; line-height: 1.1 !important; }
+.kit-preview-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.kit-preview-actions span { display: inline-flex; align-items: center; min-height: 40px; padding: 0 16px; font-size: 14px; }
+.kit-preview-accent { font-size: 13px; }
+.kit-tokens { display: flex; flex-direction: column; }
+.kit-tokens [role=row] { display: grid; grid-template-columns: 28px minmax(0, 1fr) minmax(0, 2fr); align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid #f1f0ee; font-size: 13px; }
+.kit-tokens small { color: var(--secondary); }
+.kit-chip { width: 24px; height: 24px; border-radius: 6px; box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%); }
+.kit-scale { display: flex; flex-direction: column; gap: 12px; }
+.kit-scale > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.kit-scale small { font-size: 12px; color: var(--secondary); }
+.kit-scale span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kit-two { display: grid !important; grid-template-columns: 1fr 1fr; gap: 20px !important; }
+.kit-two > div { display: flex; flex-direction: column; gap: 10px; }
+.kit-spacing, .kit-corners { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; font-size: 12px; color: var(--secondary); }
+.kit-spacing span, .kit-corners span { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.kit-spacing i { display: block; background: var(--text); border-radius: 2px; }
+.kit-corners i { display: block; width: 40px; height: 28px; border: 1.5px solid var(--text); }
+.kit-code { margin: 0; max-height: 220px; overflow: auto; padding: 12px; border-radius: 10px; background: #f7f7f5; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre; }
+
+/* Phase 5 · Identity · Inspiration: Embel's message above the gallery; Continue
+   sits at the end of the step instead of floating. */
+.inspiration-message { max-width: 792px; margin: 8px auto 16px; }
+.inspiration-question { margin: 14px 0 0; font-size: 17px; font-weight: 500; letter-spacing: -.01em; }
+.inspiration-continue-row { position: sticky; bottom: 16px; z-index: 5; display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 16px; font-size: 13px; color: var(--secondary); }
+.inspiration-continue-row .inspiration-continue { position: static; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px 0 20px; border-radius: var(--radius-pill); background: var(--text); color: var(--paper); text-decoration: none; font-size: 14px; font-weight: 500; box-shadow: 0 12px 28px -14px rgb(25 25 25 / 45%); }
+.concept-project-workspace .workspace-main:has(.inspiration-message) { background-color: var(--canvas); background-image: radial-gradient(#dad9d4 1px, transparent 1px); background-size: 22px 22px; }
+.identity-chosen-logo { width: 56px; height: 56px; margin-top: 12px; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--paper); }
+.identity-chosen-logo :is(figure, div) { display: contents; }
+.identity-chosen-logo img { width: 100%; height: 100%; object-fit: contain; }
+.identity-chosen-logo p { margin: 0; padding: 4px; font-size: 10px; text-align: center; color: var(--secondary); }
+.identity-chosen-logo-row { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.identity-chosen-logo-row .identity-chosen-logo { margin-top: 0; }
+.kit-message > .kit-card + .kit-card { margin-top: 12px; }
+.kit-board .kit-image-frame img { object-fit: contain; background: var(--paper); }

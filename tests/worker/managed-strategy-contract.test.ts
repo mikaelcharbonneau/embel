@@ -21,12 +21,13 @@ function fixture(){
 }
 describe("future managed Strategy contract boundaries (inert unit fixtures)",()=>{
  it("preserves saved v1/v2 input and provider wire hashes from repository HEAD",()=>{
-  // Compared with createStrategyRequest from cce8b49 before recording these pins.
+  // Compared with createStrategyRequest from cce8b49 before recording these pins. The guided
+  // request pin was re-recorded on 2026-11-06 when the instructions added Positioning and Slogan.
   const old=inputFixture(),guided=strategyJobInputSchema.parse(guidedJobFixture().input);
   expect(hash(old)).toBe("8d99fe44378b7bced29e0ac547b670f2617a6e87a78c0aa6c436b99eadd1f5b1");
   expect(hash(guided)).toBe("efa35b0f320e7af399ec5f7bfc0c45ac9d2d00b46f719f813d79e33668f09f10");
   expect(hash(createStrategyRequest("strategy.reformulate",old))).toBe("78a6ebd8226005aab84cd1fc01be693e37760fd95a0eea5a8c9309cbc5d10cdf");
-  expect(hash(createStrategyRequest("strategy.competitors",guided))).toBe("5abd57dafbf508dc3cd80ba45f9bf63a5bf5a31567ce295a9de595da8306099f");
+  expect(hash(createStrategyRequest("strategy.competitors",guided))).toBe("ce87174220a587bea46c11b030e0b5103579a003644219349424d407eea4cad2");
  });
  it.each(["absent","owner","lease","inputHash","policyIdentity"])("denies a v3 claim with %s authority defect",async defect=>{
   const f=fixture(),proof={...f.authority};
