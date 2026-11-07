@@ -3,7 +3,7 @@ import { z } from "zod";
 import { sharedLaneSchema,type SharedLane } from "./contracts";
 import type { SharedSlotDatabase } from "./contracts";
 const hash=z.string().regex(/^[a-f0-9]{64}$/u);
-export const sharedAuthorityManifestSchema=z.strictObject({version:z.literal(1),packets:z.array(z.strictObject({path:z.string().regex(/^supabase\/candidates\/[a-z0-9_]+\.sql$/u),sha256:hash})).min(1).max(17),
+export const sharedAuthorityManifestSchema=z.strictObject({version:z.literal(1),packets:z.array(z.strictObject({path:z.string().regex(/^supabase\/candidates\/[a-z0-9_]+\.sql$/u),sha256:hash})).min(1).max(18),
  functions:z.array(z.strictObject({schema:z.enum(["public","fluid_private"]),name:z.string().regex(/^[_a-z][_a-z0-9]{0,62}$/u),argumentTypes:z.string().max(1024),sha256:hash,
   language:z.enum(["sql","plpgsql"]),volatility:z.enum(["i","s","v"]),securityDefiner:z.boolean(),leakproof:z.boolean(),owner:z.string().min(1).max(63),
   searchPath:z.array(z.string()).max(10).nullable(),broadExecute:z.boolean(),lanes:z.array(sharedLaneSchema).max(3)})).min(1).max(512)});

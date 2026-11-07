@@ -67,7 +67,17 @@ describe("reviewed authority packet roster",()=>{
   expect(gatewayNeedle).toBeDefined();expect(gatewayReplacement).toBeDefined();
   const current=fixed.replace(gatewayNeedle!,gatewayReplacement!);
   expect(current).not.toBe(fixed);
-  expect(authorityManifest.functions.find(f=>f.schema==="public"&&f.name==="shared_naming_worker_action")?.sha256).toBe(createHash("sha256").update(current).digest("hex"));
+  // Lease expiry inserts one slot-level branch at the delivery-recovery line.
+  const expiry=await readFile(new URL("../../supabase/candidates/shared_naming_lease_expiry.sql",import.meta.url),"utf8");
+  const expiryNeedle=/needle:=\$needle\$([\s\S]*?)\$needle\$;/u.exec(expiry)?.[1];
+  const expiryReplacement=/replacement:=\$replacement\$([\s\S]*?)\$replacement\$;/u.exec(expiry)?.[1];
+  expect(expiryNeedle).toBeDefined();expect(expiryReplacement).toBeDefined();
+  expect(current.split(expiryNeedle!)).toHaveLength(2);
+  const latest=current.replace(expiryNeedle!,expiryReplacement!);
+  expect(authorityManifest.functions.find(f=>f.schema==="public"&&f.name==="shared_naming_worker_action")?.sha256).toBe(createHash("sha256").update(latest).digest("hex"));
+  const expiryBody=/create function fluid_private\.expire_shared_naming_leases\([\s\S]*?as \$\$([\s\S]*?)\$\$;/u.exec(expiry)?.[1];
+  expect(expiryBody).toBeDefined();
+  expect(authorityManifest.functions.find(f=>f.name==="expire_shared_naming_leases")?.sha256).toBe(createHash("sha256").update(expiryBody!).digest("hex"));
   const deliveryBody=/create function fluid_private\.recover_naming_brainstorm_delivery\([\s\S]*?as \$\$([\s\S]*?)\$\$;/u.exec(recovery)?.[1];
   expect(deliveryBody).toBeDefined();
   expect(authorityManifest.functions.find(f=>f.name==="recover_naming_brainstorm_delivery")?.sha256).toBe(createHash("sha256").update(deliveryBody!).digest("hex"));
@@ -75,7 +85,7 @@ describe("reviewed authority packet roster",()=>{
   expect(helper).toBeDefined();
   expect(authorityManifest.functions.find(f=>f.name==="naming_brainstorm_event_replay_guard_v1")?.sha256).toBe(createHash("sha256").update(helper!).digest("hex"));
  });
- it("retains the finite seventeen-packet bound",()=>{
-  expect(sharedAuthorityManifestSchema.safeParse({...authorityManifest,packets:Array.from({length:18},()=>authorityManifest.packets[0])}).success).toBe(false);
+ it("retains the finite eighteen-packet bound",()=>{
+  expect(sharedAuthorityManifestSchema.safeParse({...authorityManifest,packets:Array.from({length:19},()=>authorityManifest.packets[0])}).success).toBe(false);
  });
 });

@@ -14,7 +14,7 @@ export const PRODUCTION_ORIGIN: "https://fricsfwqibyhemknqgyf.supabase.co";
 export const PACKET_NAMES: SharedProductionPacketName[];
 export const PACKET_SHA256: Readonly<Record<SharedProductionPacketName, string>>;
 export const POST_INSTALL_PACKETS: readonly Readonly<{
-  name: "shared_storage_download_metadata.sql" | "shared_logo_storage_member.sql" | "shared_naming_brainstorm.sql" | "shared_naming_brainstorm_event_capacity.sql" | "shared_logo_raster_uncapped.sql" | "shared_logo_raster_recovery.sql" | "shared_identity_selected_logo_boards.sql" | "shared_identity_http_writer_permissions.sql" | "shared_naming_brainstorm_delivery_recovery.sql" | "shared_guided_journey_stages.sql";
+  name: "shared_storage_download_metadata.sql" | "shared_logo_storage_member.sql" | "shared_naming_brainstorm.sql" | "shared_naming_brainstorm_event_capacity.sql" | "shared_logo_raster_uncapped.sql" | "shared_logo_raster_recovery.sql" | "shared_identity_selected_logo_boards.sql" | "shared_identity_http_writer_permissions.sql" | "shared_naming_brainstorm_delivery_recovery.sql" | "shared_naming_lease_expiry.sql" | "shared_guided_journey_stages.sql";
   sha256: string;
 }>[];
 export const INVENTORY_EXPRESSION: string;
