@@ -1,10 +1,9 @@
 /* Figma Trademarks Search 7:8422 and Fill 40:2705. Scoped across navigation. */
 .concept-trademarks .workspace-main { background-image: url('/trademarks/grid.svg'); background-size: 1360px 900px; background-repeat: repeat; }
 .concept-trademarks .workspace-main:has(.tm-workspace[data-view=dossier]) { background-image: url('/trademarks/fill-grid.svg'); background-size: 1360px 941px; }
-.concept-trademarks.navigation-expanded .workspace-sidebar-toggle img { transform: rotate(180deg); }
 .tm-workspace.page { max-width: 1088px; margin: 0 auto; padding: 40px 40px; }
 .tm-workspace .tm-heading h1 { margin: 0; font-size: 32px; line-height: 48px; letter-spacing: -1px; font-weight: 500; }
-.tm-heading h1 > span { color: var(--magenta); }
+.tm-heading h1 > span { color: var(--accent); }
 .tm-heading > p { color: var(--secondary); margin-top: 4px; font-size: 14px; line-height: 20px; }
 .tm-workspace .tm-navigation { margin: 24px 0; gap: 36px; height: 45px; }
 .tm-workspace .tm-navigation button { padding: 0 4px; height: 44px; font-size: 14px; }

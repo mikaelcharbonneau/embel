@@ -22,6 +22,11 @@ export function getProjectHandoff(project: Pick<AccountProject, "id" | "scope" |
     const key = step === "description" || step === "reformulation" ? "brief" : step;
     if (!missing.includes(key)) missing.push(key);
   }
+  // The guided interview asks positioning before personality.
+  if (context.intake.guidedInterview?.stage === "positioning" && !missing.includes("positioning")) {
+    const personality = missing.indexOf("personality");
+    missing.splice(personality < 0 ? missing.length : personality, 0, "positioning");
+  }
   const pendingReviews = missing.map(step => reviews[step]);
   const savedName = context.selectedName?.trim() || null;
   let next: Continuation;

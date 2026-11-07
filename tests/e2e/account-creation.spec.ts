@@ -129,8 +129,7 @@ test("signup: prompt and scope survive signup, email waiting and subsequent sign
   const prompt = "A neighborhood repair workshop with beginner-friendly classes.";
   await page.goto("/");
   await page.getByRole("textbox", { name: "Your prompt", exact: true }).fill(prompt);
-  await page.getByRole("button", { name: "Project scope: Brand", exact: true }).click();
-  await page.getByRole("menuitemradio", { name: "Name", exact: true }).click();
+  await page.getByRole("group", { name: "What to create", exact: true }).getByText("Name only", { exact: true }).click();
   await page.getByLabel("Account menu", { exact: true }).click();
   await page.locator(".workspace-account-menu").getByRole("link", { name: "Sign in", exact: true }).click();
   await page.getByRole("dialog").getByRole("link", { name: "Create account", exact: true }).click();
@@ -145,7 +144,7 @@ test("signup: prompt and scope survive signup, email waiting and subsequent sign
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Your prompt", exact: true })).toHaveValue(prompt);
-  await expect(page.getByRole("button", { name: "Project scope: Name", exact: true })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Name only", exact: true })).toBeChecked();
   expect(state.signupCount).toBe(1);
   expect(state.signInCount).toBe(1);
   expect(state.privateWrites).toBe(0);

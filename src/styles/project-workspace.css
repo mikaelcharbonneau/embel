@@ -1,7 +1,6 @@
 /* Fluid — Screens, project pages 3:16–3:29. Original 1440 × 900 shell. */
 .concept-project-workspace { --canvas: #f7f7f5; --paper: #fff; --border: #e4e3df; }
 .concept-project-workspace .workspace-main { background: var(--paper); background-image: none; }
-.concept-project-workspace .topbar { border-bottom: 1px solid var(--border); background: var(--paper); }
 .concept-project-workspace .workspace-account-avatar { background: #f1f0ee; border: 0; }
 .concept-project-workspace #main-content { padding: 0; overflow: hidden; }
 .project-workspace { height: 100%; min-height: 0; display: flex; flex-direction: column; }
@@ -196,7 +195,7 @@
 .project-export-package p, .project-export-empty p { font-size: 14px; line-height: 24px; color: var(--secondary); }
 .project-output-deliverables .project-export-options [class*=options] { border: 0; padding: 0; }
 .project-export-package > button { margin-top: 14px; }
-.project-workspace :is(button, a, summary, input, textarea, select):focus-visible { outline: 2px solid var(--accent-text); outline-offset: 3px; }
+.project-workspace :is(button, a, summary, input, textarea, select):focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
 @media (max-width: 1150px) {
   .project-naming-page.project-workbench .project-naming-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .project-strategy-workspace .conversation-scroll-area, .project-strategy-workspace .conversation-compose-area { padding-inline: 24px; }

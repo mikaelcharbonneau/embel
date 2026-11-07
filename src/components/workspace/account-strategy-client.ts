@@ -5,7 +5,7 @@ import { AccountRequestError } from "./account-api";
 
 export const strategyLabels: Record<StrategyOperation, string> = {
   "strategy.reformulate": "Response", "strategy.competitors": "Competitor research", "strategy.audience": "Audience proposal",
-  "strategy.personality": "Personality proposal", "strategy.positioning": "Positioning proposal",
+  "strategy.personality": "Personality proposal", "strategy.positioning": "Positioning proposal", "strategy.slogan": "Slogan proposal",
 };
 export function formatStrategyCap(microusd: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Math.ceil(microusd / 10_000) / 100);

@@ -219,8 +219,12 @@ export function AccountProjectEditor({ projectId, navigation }: { projectId: str
   </>}</div>;
   const projectContext = <><div className="idea-source-wrap"><IdeaSourceBanner key={`${projectId}:${account.userId}:${account.generation}`} account={account} projectId={projectId} /></div><AccountProjectContinuity key={`continuity:${projectId}:${account.userId}:${account.generation}`} account={account} project={active.saved} dirty={changed(active)} conflicted={active.conflict} expanding={Boolean(busy)} onExpand={expand} /></>;
   const handoff = getProjectHandoff(active.saved);
-  const inlineNaming = active.saved.scope === "complete_brand" && active.saved.context.intake.guidedInterview?.stage === "complete";
-  const continuation = handoff.next.stage !== "strategy" && (handoff.next.stage !== "naming" || !inlineNaming) ? handoff.next : null;
+  const inlineNaming = active.saved.scope === "complete_brand" && ["slogan", "complete"].includes(active.saved.context.intake.guidedInterview?.stage ?? "");
+  // While the optional slogan question is open, the conversation owns the next step.
+  // Once a name is chosen, the conversation owns the next step (the optional
+  // slogan, then its own Continue to Identity message).
+  const conversationOwnsNext = inlineNaming && Boolean(active.saved.context.selectedName);
+  const continuation = handoff.next.stage !== "strategy" && (handoff.next.stage !== "naming" || !inlineNaming) && !conversationOwnsNext ? handoff.next : null;
   const continuationBlocked = busy || changed(active) || active.conflict;
   const resultNavigation = (continuation || active.saved.scope !== "complete_brand") && <nav className="account-actions" aria-label="Continue project">
     {continuation && (continuationBlocked ? <button type="button" className="button primary small" disabled>{continuation.label}</button> : <Link className="button primary small" href={continuation.href}>{continuation.label}</Link>)}

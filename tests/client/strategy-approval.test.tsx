@@ -22,7 +22,7 @@ function Harness({ project = baseline }: { project?: typeof baseline }) {
   const [draft, setDraft] = useState(() => accountProjectDraft(project));
   useLayoutEffect(() => { current = draft; });
   return createElement(ProjectEditorForm, { draft, storage: { kind: "account", saveLabel: "Saved", savedContext: project.context,
-    onUpdate: (patch: DraftPatch) => { setDraft(previous => ({ ...previous, ...patch })); return true; }, onStrategyApproved: save, onStrategyRequested: generate } });
+    onUpdate: (patch: DraftPatch) => { setDraft(previous => ({ ...previous, ...patch })); return true; }, onStrategyApproved: save } });
 }
 async function render(project = baseline) { await act(async () => root!.render(createElement(Harness, { project }))); }
 async function click(label: string) { await act(async () => { const button = [...host.querySelectorAll("button")].find(item => item.textContent === label); expect(button).toBeDefined(); button!.click(); }); }

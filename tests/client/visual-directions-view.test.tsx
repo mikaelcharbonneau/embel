@@ -23,20 +23,22 @@ const card = (id: string, overrides: Partial<VisualDirectionCard> = {}): VisualD
 });
 const props = (overrides: Partial<VisualDirectionsViewProps> = {}): VisualDirectionsViewProps => ({
   brandName: "Northline", logoPreview: createElement("p", null, "Chosen Northline logo"), backHref: "/brands/account/example/logo",
-  cards: [null, null, null], generation: { status: "idle", completed: 0, estimatedCostLabel: "Estimated $0.06", onGenerate: vi.fn() }, ...overrides,
+  cards: [null, null, null], generation: { status: "idle", completed: 0, onGenerate: vi.fn() }, ...overrides,
 });
 async function render(value: VisualDirectionsViewProps) { await act(async () => root!.render(createElement(VisualDirectionsView, value))); }
 const button = (name: string) => [...host.querySelectorAll("button")].find(node => node.textContent?.trim() === name)!;
 async function click(node: HTMLElement) { await act(async () => node.click()); }
 
+const choice = (index = 0) => [...document.querySelectorAll<HTMLElement>("article[role=radio]")][index]!;
+
 describe("visual direction comparison", () => {
-  it("starts only on a deliberate click, with the expected cost beside Generate", async () => {
+  it("starts only on a deliberate click, without showing a cost estimate", async () => {
     const value = props(); await render(value);
     expect(value.generation.onGenerate).not.toHaveBeenCalled();
     expect(host.querySelectorAll("article")).toHaveLength(3);
-    expect(host.textContent).toContain("Estimated $0.06");
-    const generate = button("Generate three directions");
-    expect(document.getElementById(generate.getAttribute("aria-describedby")!)?.textContent).toBe("Estimated $0.06");
+    expect(host.textContent).not.toMatch(/\$|estimat/i);
+    const generate = button("Create three directions");
+    expect(generate.hasAttribute("aria-describedby")).toBe(false);
     await click(generate);
     expect(value.generation.onGenerate).toHaveBeenCalledTimes(1);
     expect(host.querySelector("dialog")?.open).toBe(false);
@@ -46,7 +48,7 @@ describe("visual direction comparison", () => {
     const onGenerate = vi.fn(), onCheck = vi.fn(), onStop = vi.fn();
     await render(props({ cards: [card("A"), card("B"), null], generation: { status: "uncertain", completed: 2, onGenerate, onCheck, onStop } }));
     expect(host.textContent).toContain("Verified board A"); expect(host.textContent).toContain("Verified board B");
-    expect(host.textContent).toContain("2 of 3 ready"); expect(host.textContent).toContain("Cost estimate unavailable");
+    expect(host.textContent).toContain("2 of 3 ready"); expect(host.textContent).not.toMatch(/estimat/i);
     expect(button("Checking request…").disabled).toBe(true);
     await click(button("Checking request…")); await click(button("Check progress")); await click(button("Stop generation"));
     expect(onGenerate).not.toHaveBeenCalled(); expect(onCheck).toHaveBeenCalledTimes(1); expect(onStop).toHaveBeenCalledTimes(1);
@@ -54,12 +56,12 @@ describe("visual direction comparison", () => {
 
   it("shows an incomplete set without fabricating its missing board or selecting a result automatically", async () => {
     const saved = card("A");
-    await render(props({ cards: [saved, null, null], generation: { status: "partial", completed: 1, onGenerate: vi.fn(), estimatedCostLabel: "Estimated $0.06" } }));
+    await render(props({ cards: [saved, null, null], generation: { status: "partial", completed: 1, onGenerate: vi.fn() } }));
     expect(host.textContent).toContain("1 of 3 ready"); expect(host.textContent).toContain("This set is incomplete");
     expect(host.querySelectorAll("[data-selected='true']")).toHaveLength(0);
     expect(host.textContent?.match(/No board saved for this direction/g)).toHaveLength(2);
     expect(saved.onChoose).not.toHaveBeenCalled();
-    await click(button("Choose direction"));
+    await click(choice(0));
     expect(saved.onChoose).toHaveBeenCalledTimes(1);
     expect(host.querySelectorAll("[data-selected='true']")).toHaveLength(0);
   });
@@ -69,12 +71,12 @@ describe("visual direction comparison", () => {
     await render(props({ cards: [stale, current, null], selectionStatus: "Direction saved.", finalAction: createElement("a", { href: "/kit" }, "View brand assets") }));
     const articles = host.querySelectorAll("article");
     expect(articles[0]!.dataset.selected).toBe("false"); expect(articles[0]!.textContent).toContain("Earlier inputs");
-    expect([...articles[0]!.querySelectorAll("button")].find(node => node.textContent === "Choose direction")?.disabled).toBe(true);
-    expect(articles[1]!.dataset.selected).toBe("true"); expect(button("Chosen direction").disabled).toBe(true);
+    expect(articles[0]!.getAttribute("aria-disabled")).toBe("true");
+    expect(articles[1]!.dataset.selected).toBe("true"); expect(articles[1]!.getAttribute("aria-checked")).toBe("true");
     expect(host.textContent).toContain("Direction saved."); expect(host.querySelector('a[href="/kit"]')?.textContent).toBe("View brand assets");
   });
 
-  it("stops offering progress checks on completion and puts a confirmed kit before the comparison", async () => {
+  it("stops offering progress checks on completion and closes the step with Continue after the comparison", async () => {
     const cards = [card("A"), card("B"), card("C")] as const;
     const generation = { status: "complete" as const, completed: 3, onCheck: vi.fn(), onGenerate: vi.fn() };
     await render(props({ cards, generation }));
@@ -85,8 +87,8 @@ describe("visual direction comparison", () => {
     // The current choice can belong to an earlier set than the three being compared.
     await render(props({ cards, generation, finalAction: createElement("a", { href: "/kit" }, "View brand assets") }));
     const link = host.querySelector('a[href="/kit"]')!;
-    expect(link.compareDocumentPosition(host.querySelector("article")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(button("Generate another set").disabled).toBe(false);
+    expect(link.compareDocumentPosition(host.querySelector("article")!) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+    expect(button("More directions").disabled).toBe(false);
     expect(generation.onGenerate).not.toHaveBeenCalled();
   });
 
@@ -113,9 +115,9 @@ describe("visual direction comparison", () => {
     const saved = card("A", { disabledReason: "Your logo choice is still saving." });
     const onCheck = vi.fn();
     await render(props({ cards: [saved, null, null], generation: { status: "idle", completed: 0, disabledReason: "Choose a saved logo first.", onGenerate: vi.fn(), onCheck } }));
-    expect(button("Generate three directions").disabled).toBe(true); expect(button("Choose direction").disabled).toBe(true);
+    expect(button("Create three directions").disabled).toBe(true); expect(choice(0).getAttribute("aria-disabled")).toBe("true");
     expect(host.textContent).toContain("Choose a saved logo first."); expect(host.textContent).toContain("Your logo choice is still saving.");
-    await click(button("Choose direction")); expect(saved.onChoose).not.toHaveBeenCalled();
+    await click(choice(0)); expect(saved.onChoose).not.toHaveBeenCalled();
     await click(button("Check availability")); expect(onCheck).toHaveBeenCalledTimes(1);
   });
 
@@ -125,7 +127,7 @@ describe("visual direction comparison", () => {
     });
     const value = props({ cards: [saved, null, null], generation: { status: "complete", completed: 1, onGenerate }, selectionCheck: { busy: false, onCheck } });
     await render(value);
-    expect(button("Choose direction").disabled).toBe(true);
+    expect(choice(0).getAttribute("aria-disabled")).toBe("true");
     expect(host.textContent).not.toContain("Checking your saved choice…");
     await click(button("Check saved choice"));
     expect(onCheck).toHaveBeenCalledTimes(1); expect(onGenerate).not.toHaveBeenCalled(); expect(saved.onChoose).not.toHaveBeenCalled();

@@ -3,33 +3,33 @@
 .panel h2, .costPanel h2 { margin: 0; font-size: var(--branding-section-size, 19px); line-height: 1.35; font-weight: 550; }
 .panel h3 { margin: 0; font-size: var(--branding-subheading-size, 15px); line-height: 1.4; font-weight: 550; }
 .heading, .cardHeading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.eyebrow { margin: 0 0 7px; color: var(--accent-text, #990091); font-size: var(--font-ui, 13px); letter-spacing: .08em; text-transform: uppercase; font-weight: 650; }
+.eyebrow { margin: 0 0 7px; color: var(--accent-ink, #191919); font-size: var(--font-ui, 13px); letter-spacing: .08em; text-transform: uppercase; font-weight: 650; }
 .muted, .note { color: var(--secondary, #696965); font-size: 13px; line-height: 1.6; }
 .note { margin: 12px 0; }
 .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin: 24px 0; }
 .field { display: flex; flex-direction: column; gap: 8px; min-width: 0; font-size: 14px; }
 .field input, .field textarea { box-sizing: border-box; width: 100%; min-width: 0; border: 1px solid var(--border, #e4e3df); background: var(--canvas, #f7f7f5); color: var(--text, #191919); border-radius: 6px; padding: 11px 12px; font: inherit; line-height: 1.5; }
 .field textarea { min-height: 88px; resize: vertical; }
-.field input[aria-invalid="true"] { border-color: var(--accent-text, #990091); }
+.field input[aria-invalid="true"] { border-color: var(--accent-ink, #191919); }
 .typeChoices { margin: 24px 0; padding: 0; border: 0; min-width: 0; display: flex; flex-wrap: wrap; gap: 9px; }
 .typeChoices legend { margin: 0 0 12px; font-size: 14px; }
 .typeChoices legend span { margin-left: 8px; }
 .choice { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; box-sizing: border-box; border: 1px solid var(--border, #e4e3df); border-radius: 6px; padding: 8px 11px; font-size: 13px; cursor: pointer; }
-.choice:has(input:checked) { border-color: var(--accent-text, #990091); background: var(--magenta-soft, #fff0fd); }
-.choice input, .permission input { accent-color: var(--accent-text, #990091); width: 16px; height: 16px; flex: 0 0 16px; margin: 0; }
+.choice:has(input:checked) { border-color: var(--accent-ink, #191919); background: var(--accent-soft, #f1f0ee); }
+.choice input, .permission input { accent-color: var(--accent-ink, #191919); width: 16px; height: 16px; flex: 0 0 16px; margin: 0; }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 20px; }
 .primaryButton, .secondaryButton { box-sizing: border-box; min-height: var(--branding-action-height, 44px); border: 1px solid var(--border, #e4e3df); border-radius: 7px; padding: 10px 16px; font: inherit; font-size: 13px; line-height: 1.4; cursor: pointer; }
 .primaryButton { color: var(--paper, #fff); background: var(--text, #191919); border-color: var(--text, #191919); }
 .secondaryButton { color: var(--text, #191919); background: var(--paper, #fff); }
 .primaryButton:disabled, .secondaryButton:disabled { cursor: not-allowed; background: var(--surface, #f1f0ee); color: var(--secondary, #696965); border-color: var(--border, #e4e3df); }
-.panel :is(button, input, textarea):focus-visible, .costPanel button:focus-visible { outline: 2px solid var(--accent-text, #990091); outline-offset: 3px; }
+.panel :is(button, input, textarea):focus-visible, .costPanel button:focus-visible { outline: 2px solid var(--accent-ink, #191919); outline-offset: 3px; }
 .referenceSources, .references { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 20px; }
 .sourcePanel, .referenceCard { box-sizing: border-box; min-width: 0; padding: 18px; border: 1px solid var(--border, #e4e3df); border-radius: 8px; margin: 0; }
 .referenceCard legend { padding: 0 6px; font-size: 14px; }
 .aspects { display: flex; flex-wrap: wrap; gap: 8px; }
 .permission { display: flex; gap: 8px; align-items: flex-start; font-size: var(--font-ui, 13px); line-height: 1.5; color: var(--secondary, #696965); margin-top: 12px; }
 .permission input { margin-top: 2px; }
-.warning { padding: 13px 15px; margin: 16px 0; background: var(--magenta-soft, #fff0fd); color: var(--accent-text, #990091); border-radius: 6px; font-size: 13px; line-height: 1.6; }
+.warning { padding: 13px 15px; margin: 16px 0; background: var(--accent-soft, #f1f0ee); color: var(--accent-ink, #191919); border-radius: 6px; font-size: 13px; line-height: 1.6; }
 .progress { font-size: 14px; margin: 20px 0 14px; font-weight: 550; }
 .concepts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; list-style: none; padding: 0; margin: 0; }
 .conceptCard { min-width: 0; border: 1px solid var(--border, #e4e3df); border-radius: 10px; padding: 8px; }
@@ -40,7 +40,7 @@
 .preview p { color: var(--secondary, #696965); font-size: var(--font-ui, 13px); text-align: center; padding: 16px; line-height: 1.6; }
 .preview img { width: 100%; height: 100%; object-fit: contain; }
 .conceptCard button { width: 100%; }
-.conceptCard button[aria-pressed="true"] { background: var(--magenta-soft, #fff0fd); border-color: var(--accent-text, #990091); }
+.conceptCard button[aria-pressed="true"] { background: var(--accent-soft, #f1f0ee); border-color: var(--accent-ink, #191919); }
 .costPanel { background: var(--canvas, #f7f7f5); }
 .costs { display: flex; flex-wrap: wrap; gap: 24px; margin: 20px 0; }
 .costs dt { font-size: var(--font-ui, 13px); color: var(--secondary, #696965); margin-bottom: 5px; }
@@ -77,10 +77,6 @@
 /* Three columns and quiet captions; refinement controls reserve their own space. */
 .conceptsScreen { position: relative; }
 .conceptsScreen .workspaceHeader { position: relative; min-height: 56px; margin-bottom: 20px; }
-.conceptFilters { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; }
-.conceptFilters button { min-height: var(--branding-action-height, 44px); padding: 6px 12px; border: 1px solid var(--border, #e4e3df); border-radius: 7px; background: #fff; font-size: 13px; }
-.conceptFilters [aria-pressed=true] { background: #f1f0ee; }
-.conceptFilters button:disabled { color: #949494; cursor: not-allowed; }
 .gallery { min-width: 0; }
 .generationActions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 0 0 20px; }
 .savedInputReview { margin: 0 0 20px; padding: 14px 16px; border: 1px solid var(--border, #e4e3df); border-radius: 10px; background: #fff; font-size: 13px; line-height: 20px; }
@@ -117,14 +113,12 @@
 .contextDialog > header { margin-bottom: 24px; }
 .contextDialog h2 { margin: 0; font-size: var(--branding-section-size, 20px); font-weight: 500; }
 .contextDetails > summary { margin: 20px 0; cursor: pointer; font-size: 13px; }
-.conceptsScreen :is(button, a, textarea, select, summary, [role=button]):focus-visible { outline: 2px solid var(--accent-text, #990091); outline-offset: 3px; }
+.conceptsScreen :is(button, a, textarea, select, summary, [role=button]):focus-visible { outline: 2px solid var(--accent-ink, #191919); outline-offset: 3px; }
 @media (max-width: 1000px) { .conceptsScreen .gallery .concepts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) {
   .conceptsScreen .workspaceHeader { padding-right: 0; }
   .conceptsScreen .gallery .concepts { grid-template-columns: minmax(0, 1fr); }
-  .conceptFilters { flex-wrap: wrap; }
-  .conceptFilters button { min-height: 44px; }
-  .composerHeader { align-items: flex-start; flex-direction: column; gap: 12px; }
+      .composerHeader { align-items: flex-start; flex-direction: column; gap: 12px; }
   .composerHeaderActions { width: 100%; justify-content: space-between; gap: 12px; }
   .composerHeaderActions .secondaryButton, .composerSend { min-height: 44px; }
   .composerSend { width: 44px; height: 44px; flex-basis: 44px; }
@@ -136,8 +130,6 @@
 }
 .galleryCard { position: relative; }
 
-.backToInspiration { margin: 0 0 12px; color: var(--secondary, #696965); font-size: 13px; text-decoration: none; }
-.backToInspiration:hover { color: var(--text, #191919); text-decoration: underline; text-underline-offset: 3px; }
 
 .galleryCard[data-selected=true] { border-color: var(--foreground, #191919); box-shadow: 0 0 0 1px var(--foreground, #191919); }
 .galleryPreview[role=button]:focus-visible { outline: 2px solid var(--foreground, #191919); outline-offset: -4px; }

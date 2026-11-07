@@ -8,8 +8,9 @@ import type { VerifiedAccount } from "@/components/workspace/account-session";
 import { BrandAssetError, brandAssetSlug, createBrandAssetSnapshot, type BrandAssetSnapshot, type BrandAssetSystem } from "../model/snapshot";
 import { boundedBrandAssetWork } from "../client/browser-assets";
 import { buildBrandAssetPack, type PreparedBrandAssets, type BrandAssetFile } from "../client/build-pack";
-import { BrandKitContents } from "./brand-kit-contents";
-import stage from "@/styles/branding-stage.module.css";
+import { AssetsJourney } from "./assets-journey";
+import { guidedSlogan } from "@/domain/guided-interview";
+import type { ContextSnapshot } from "@/domain/projects";
 import styles from "./brand-assets.module.css";
 
 export type BrandAssetsPanelProps = {
@@ -24,6 +25,8 @@ export type BrandAssetsPanelProps = {
   vectorRevisionId?: string | null;
   directionTitle?: string;
   onRefreshSelection?(): void;
+  /** The saved project (positioning, audience, competitors and the optional slogan). */
+  context?: ContextSnapshot | null;
 };
 function errorMessage(error: unknown): string {
   if (error instanceof BrandAssetError) {
@@ -49,7 +52,8 @@ export function BrandAssetsPanel(props: BrandAssetsPanelProps) {
 type Ready = { pack: PreparedBrandAssets; previews: Map<string, string>; logoClient: AccountLogoClient; identityClient: AccountIdentityClient };
 type DownloadSession = Pick<Ready, "logoClient" | "identityClient"> & { download(file?: BrandAssetFile): Promise<void> };
 
-function OwnedBrandAssets({ snapshot, logoClient, identityClient, account, projectId, revalidate, vectorRevisionId, directionTitle, onRefreshSelection }: BrandAssetsPanelProps & { snapshot: BrandAssetSnapshot }) {
+function OwnedBrandAssets({ snapshot, logoClient, identityClient, account, projectId, revalidate, vectorRevisionId, directionTitle, onRefreshSelection, context = null }: BrandAssetsPanelProps & { snapshot: BrandAssetSnapshot }) {
+  const slogan = context ? guidedSlogan(context) : null;
   const [ready, setReady] = useState<Ready | null>(null);
   const [downloading, setDownloading] = useState(false), [stale, setStale] = useState(false);
   const [message, setMessage] = useState<string | null>(null), [error, setError] = useState<string | null>(null);
@@ -86,7 +90,7 @@ function OwnedBrandAssets({ snapshot, logoClient, identityClient, account, proje
       setError(null);
       prepared = boundedBrandAssetWork(lifetime.signal, async signal => {
         await confirm(signal);
-        const pack = await buildBrandAssetPack({ snapshot, logoClient, identityClient, vectorRevisionId }, signal);
+        const pack = await buildBrandAssetPack({ snapshot, logoClient, identityClient, vectorRevisionId, slogan }, signal);
         await confirm(signal);
         return pack;
       }).then(pack => {
@@ -153,7 +157,7 @@ function OwnedBrandAssets({ snapshot, logoClient, identityClient, account, proje
       void prepare().catch(() => { /* The panel displays the error; the next click retries. */ });
     });
     return () => { lifetime.abort(); session.current = null; releaseUrls(); };
-  }, [snapshot, logoClient, identityClient, account, projectId, revalidate, vectorRevisionId]);
+  }, [snapshot, logoClient, identityClient, account, projectId, revalidate, vectorRevisionId, slogan]);
 
   if (!identityClient.current() || !isAccountLogoClientCurrent(logoClient, account, projectId)) return null;
   const shown = ready?.logoClient === logoClient && ready.identityClient === identityClient ? ready : null;
@@ -162,17 +166,11 @@ function OwnedBrandAssets({ snapshot, logoClient, identityClient, account, proje
     if (active?.logoClient === logoClient && active.identityClient === identityClient) void active.download(file);
   }
   return <section className={styles.panel} aria-label="Brand assets">
-    <header className={styles.header}><div><h2 className={stage.sectionHeading}>{snapshot.name} brand kit</h2>
-      {!stale && <p>{directionTitle ? `Selected direction: ${directionTitle}` : "From your selected visual direction."}</p>}</div>
-      {!stale && <div className={styles.archiveAction}>
-        <button type="button" className={styles.primary} disabled={downloading} onClick={() => downloadFile()}>Download brand kit</button>
-        <span>{shown ? `ZIP · ${shown.pack.files.length} files` : "ZIP archive"}</span>
-      </div>}
-    </header>
     {error && <p className={styles.error} role="alert">{error}</p>}
     {stale ? (onRefreshSelection && <button type="button" onClick={onRefreshSelection}>Refresh kit</button>) : <>
       <p className={styles.notice} role="status">{downloading ? "Preparing your download…" : message || (!error && !shown ? "Loading kit previews…" : "")}</p>
-      <BrandKitContents snapshot={snapshot} pack={shown?.pack ?? null} previews={shown?.previews} downloadFile={downloadFile} disabled={downloading} />
+      <AssetsJourney snapshot={snapshot} pack={shown?.pack ?? null} previews={shown?.previews} downloadFile={downloadFile} disabled={downloading}
+        projectId={projectId} context={context} directionTitle={directionTitle} />
     </>}
   </section>;
 }

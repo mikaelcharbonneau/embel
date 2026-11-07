@@ -83,7 +83,7 @@ test("manual names open in the keyboard-accessible preview without selecting a n
   await back.focus(); await page.keyboard.press("Enter"); await expect(inspect).toBeFocused();
   const custom = page.getByRole("region", { name: "Your custom names", exact: true });
   const card = custom.locator("article"), cardBox = (await card.boundingBox())!;
-  const feedHeading = (await page.getByRole("heading", { name: "All names · 100", exact: true }).boundingBox())!;
+  const feedHeading = (await page.getByRole("heading", { name: "Which name feels right?", exact: true }).boundingBox())!;
   expect(feedHeading.y - cardBox.y - cardBox.height).toBeGreaterThanOrEqual(20);
   if (page.viewportSize()!.width <= 760) expect(cardBox.width).toBeGreaterThanOrEqual((await custom.boundingBox())!.width - 1);
   expect(await inspect.evaluate(element => getComputedStyle(element).outlineStyle)).toBe("none");

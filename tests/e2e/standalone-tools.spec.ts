@@ -367,7 +367,7 @@ for (const tool of ["domains", "handles", "trademarks"] as const) {
     owner = null;
     const expired = page.waitForResponse(`${fixtureOrigin}/api/session`);
     await openAccountMenu(); await accountPanel.getByRole("button", { name: "Check account", exact: true }).click(); await (await expired).finished();
-    await expect(page.locator(".topbar").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
+    await expect(page.getByRole("banner").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
     await fresh(); owner = ownerA; await checkAccount(); await hasDraft(dirtyLabel);
     await openAccountMenu(); await accountPanel.getByRole("button", { name: "Sign out", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "Sign out with unsaved account edits?", exact: true });
@@ -387,7 +387,7 @@ for (const tool of ["domains", "handles", "trademarks"] as const) {
     await openAccountMenu(); await accountPanel.getByRole("button", { name: "Sign out", exact: true }).click();
     await dialog.getByRole("button", { name: "Discard edits and sign out", exact: true }).click();
     await (await signedOut).finished();
-    await expect(page.locator(".topbar").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
+    await expect(page.getByRole("banner").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
     await fresh(); owner = ownerB; await checkAccount(); await fresh();
     owner = ownerA; await checkAccount(); await hasDraft(savedLabel);
     if (tool === "handles") await expect(page.getByRole("heading", { name: dirtyLabel, exact: true })).toHaveCount(0);

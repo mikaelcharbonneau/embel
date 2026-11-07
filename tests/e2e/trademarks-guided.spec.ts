@@ -141,18 +141,14 @@ test("original artwork is unchanged and research coverage stays beside its conta
     expect(createHash("sha256").update(await response.body()).digest("hex")).toBe(createHash("sha256").update(expected).digest("hex"));
   }
   if (info.project.name === "desktop") {
-    // The unchanged shared shell uses AppMark and route-independent inline Icons.
-    // Page-specific legacy shell SVGs remain byte-checked above, not mounted here.
-    const mark = page.locator('.sidebar img[src="/embel-mark.svg"]');
+    // The floating navigation uses AppMark. Page-specific legacy shell SVGs
+    // remain byte-checked above, not mounted here.
+    const mark = page.getByRole("navigation", { name: "Main navigation", exact: true }).locator('img[src="/embel-mark.svg"]');
     // The original SVG is 1276px intrinsically; AppMark renders it at 28px.
     await expect(mark).toBeVisible(); await expect.poll(() => mark.evaluate(element => (element as HTMLImageElement).naturalWidth)).toBe(1276);
     expect((await mark.boundingBox())!.width).toBe(28); expect((await mark.boundingBox())!.height).toBe(28);
-    for (const label of ["Home", "Projects", "Assets", "Ideas", "Names", "Handles", "Domains", "Trademarks", "Settings"]) {
-      const icon = page.locator(".sidebar").getByRole("link", { name: label, exact: true }).locator("svg");
-      await expect(icon).toBeVisible(); expect((await icon.boundingBox())!.width).toBe(20); expect((await icon.boundingBox())!.height).toBe(20);
-    }
-    const expand = page.getByRole("button", { name: "Expand navigation", exact: true }).locator("svg");
-    expect((await expand.boundingBox())!.width).toBe(16); expect((await expand.boundingBox())!.height).toBe(16);
+    for (const label of ["Home", "Projects", "Library"]) await expect(page.getByRole("navigation", { name: "Main navigation", exact: true }).getByRole("link", { name: label, exact: true })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Main navigation", exact: true }).locator("summary")).toHaveAttribute("aria-current", "page");
     const search = page.locator('img[src="/trademarks/search.svg"]');
     await expect(search).toBeVisible(); await expect.poll(() => search.evaluate(element => (element as HTMLImageElement).naturalWidth)).toBe(24);
     expect((await search.boundingBox())!.width).toBe(24); expect((await search.boundingBox())!.height).toBe(24);

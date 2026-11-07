@@ -23,6 +23,8 @@ afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi
 async function until(check: () => void) { let error: unknown; for (let i = 0; i < 100; i++) { await act(async () => { await new Promise(resolve => setTimeout(resolve, 5)); }); try { check(); return; } catch (cause) { error = cause; } } throw error; }
 function gate() { let release!: () => void; const promise = new Promise<void>(resolve => { release = resolve; }); return { promise, release }; }
 const grid = () => host.querySelector<HTMLElement>('[aria-label="Logo concepts"]')!;
+// Before the first set, Explore six concepts sits in the logo types question.
+const typesQuestion = () => host.querySelector<HTMLElement>("fieldset.logo-types-question")!;
 const composer = () => host.querySelector<HTMLFormElement>('form[aria-label="Logo concept changes"]')!;
 const instruction = () => composer().querySelector<HTMLTextAreaElement>('textarea[aria-label="Describe logo changes"]')!;
 const images = () => [...(grid()?.querySelectorAll<HTMLImageElement>('img[src^="blob:"]') ?? [])];
@@ -64,7 +66,7 @@ function expectInitialPresentation(state: "loading" | "unavailable") {
   const message = state === "loading" ? "Loading saved logo details…" : "Saved logo details unavailable.";
   expect(host.textContent).not.toContain("Choose a logo for this project.");
   expect(host.textContent).not.toContain("Select a logo above to get started.");
-  expect(host.querySelector('[aria-label="Generation cost review"]')).toBeNull();
+  expect(host.querySelector('[aria-label="Generation review"]')).toBeNull();
   expect(composer().querySelector('[role="status"]')?.textContent).toBe(message);
   expect(instruction().placeholder).toBe(message);
   expect(composer().getAttribute("aria-busy")).toBe(String(state === "loading"));
@@ -109,20 +111,17 @@ describe("saved Logo gallery filtering and initial read presentation", () => {
       expect(document.activeElement).toBe(input); noWrites(f);
     } finally { held.release(); }
   });
-  it("keeps all six verified image nodes and URLs across Selected/All, then clears even hidden bytes on owner change", async () => {
+  it("keeps all six verified image nodes and URLs, then clears their bytes on owner change", async () => {
     const { f, fetcher, assetReads } = await sixPreviews(); await mount(f.workspace.projectId, fetcher);
     await until(() => { expect(images()).toHaveLength(6); expect(host.querySelector('img[alt="Selected logo"]')).not.toBeNull(); });
     const before = images(), urls = before.map(image => image.src), reads = [...assetReads];
     expect(new Set(urls).size).toBe(6);
-    await click("Selected");
-    expect(cards()).toHaveLength(6); expect(cards().filter(card => !card.hidden)).toHaveLength(1);
-    expect(cards().filter(card => card.hidden)).toHaveLength(5);
+    // The redesigned gallery has no Selected/All filter: all six stay visible and the chosen one is outlined.
+    expect(host.textContent).not.toContain("All concepts · 6");
+    expect(cards().every(card => !card.hidden)).toBe(true);
     images().forEach((image, ordinal) => expect(image).toBe(before[ordinal])); expect(assetReads).toEqual(reads);
     for (const url of urls) expect(URL.revokeObjectURL).not.toHaveBeenCalledWith(url);
-    await click("All concepts · 6");
-    expect(cards().every(card => !card.hidden)).toBe(true); expect(images()).toHaveLength(6);
-    images().forEach((image, ordinal) => expect(image).toBe(before[ordinal])); expect(assetReads).toEqual(reads);
-    await click("Selected"); f.owner = id(9999); await click("Recheck account");
+    f.owner = id(9999); await click("Recheck account");
     await until(() => expect(host.querySelectorAll('img[src^="blob:"]')).toHaveLength(0));
     for (const url of urls) expect(URL.revokeObjectURL).toHaveBeenCalledWith(url);
     noWrites(f);
@@ -149,7 +148,7 @@ describe("saved Logo gallery filtering and initial read presentation", () => {
       expect(composer()).toBe(form); expect(instruction()).toBe(input); expect(form.querySelector('[role="status"]')).toBe(status);
       expect(input.value).toBe("Keep this local refinement message"); expect(document.activeElement).toBe(composer().querySelector('[aria-haspopup="dialog"]'));
       cards().forEach((card, index) => expect(card).toBe(initialCards[index]));
-      expect(host.textContent).toContain("Project logo choice saved.");
+      expect(host.textContent).toContain("Logo chosen. Continue, or describe a change below.");
       expect(input.placeholder).toBe("Describe what you’d like to change…");
       expect(composer().getAttribute("aria-busy")).toBe("false"); noWrites(f);
     } finally { await act(async () => { history.release(); workspace.release(); detail.release(); }); }
@@ -190,14 +189,15 @@ describe("saved Logo gallery filtering and initial read presentation", () => {
       await mount(f.workspace.projectId, fetcher); await until(() => { expect(reads).toBeGreaterThan(0); expect(workspaceReads).toBeGreaterThan(0); }); expectLoading(); expectInitialPresentation("loading");
       const form = composer(), input = instruction();
       await act(async () => held.release()); expectLoading(); expectInitialPresentation("loading");
-      await act(async () => workspace.release()); await until(() => expect(grid().textContent).toContain("Awaiting your first exploration"));
-      expect(grid().textContent).toContain("0 of 6 concepts ready"); expect(grid().getAttribute("aria-busy")).not.toBe("true"); expect(cards()).toHaveLength(6);
+      await act(async () => workspace.release()); await until(() => expect(typesQuestion().textContent).toContain("Explore six concepts"));
+      expect(host.textContent).toContain("Which logo types should I explore?"); expect(grid().getAttribute("aria-busy")).not.toBe("true"); expect(cards()).toHaveLength(0);
       expect(composer()).toBe(form); expect(instruction()).toBe(input);
-      expect(host.textContent).toContain("Choose a logo for this project.");
+      // Before the first set, Embel's message asks the logo-types question instead of "Choose a logo".
+      expect(host.textContent).not.toContain("Choose a logo for this project.");
       expect(composer().querySelector('[role="status"]')!.textContent).toBe("Select a logo above to get started.");
       expect(input.placeholder).toBe("Select a logo, then describe your changes…");
       expect(composer().querySelector('button[aria-label="Generate refinement"]')!.getAttribute("aria-label")).toBe("Generate refinement");
-      expect(host.querySelector('[aria-label="Generation cost review"]')).toBeNull(); noWrites(f);
+      expect(host.querySelector('[aria-label="Generation review"]')).toBeNull(); noWrites(f);
     } finally { await act(async () => { held.release(); workspace.release(); }); }
   });
 
@@ -213,7 +213,7 @@ describe("saved Logo gallery filtering and initial read presentation", () => {
     };
     try {
       await mount(f.workspace.projectId, fetcher);
-      await until(() => expect(grid().textContent).toContain("Awaiting your first exploration"));
+      await until(() => expect(typesQuestion().textContent).toContain("Explore six concepts"));
       const form = composer(), input = instruction(), status = form.querySelector('[role="status"]');
       await typeInstruction("Keep this draft during an explicit refresh");
       refresh = true; await click("Project context"); await click("Refresh saved brand");
@@ -223,7 +223,7 @@ describe("saved Logo gallery filtering and initial read presentation", () => {
       expect(input.placeholder).toBe("Select a logo, then describe your changes…");
       expect(input.value).toBe("Keep this draft during an explicit refresh");
       expect(composer().getAttribute("aria-busy")).not.toBe("true");
-      expect(host.querySelector('[aria-label="Generation cost review"]')).toBeNull();
+      expect(host.querySelector('[aria-label="Generation review"]')).toBeNull();
       await act(async () => held.release());
       await until(() => expect(button("Refresh saved brand")).toBeDefined());
       expect(composer()).toBe(form); expect(instruction()).toBe(input); noWrites(f);

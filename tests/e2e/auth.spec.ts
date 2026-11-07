@@ -204,7 +204,7 @@ test("auth fixture: pending sign-in blocks refresh and sign-out across internal 
   await expect(page).toHaveURL(/\/$/);
   expect(await detachedPassword?.evaluate(element => (element as HTMLInputElement).value)).toBe("");
   await revealAccountMenu(page);
-  await expect(page.locator(".topbar").getByRole("button", { name: "Signing in…", exact: true })).toBeDisabled();
+  await expect(page.getByRole("banner").getByRole("button", { name: "Signing in…", exact: true })).toBeDisabled();
   await triggerAutomaticRefresh(page);
   expect(fixture.state.sessionRequests).toBe(sessionCount);
   expect(fixture.state.signOutRequests).toBe(0);
@@ -213,9 +213,9 @@ test("auth fixture: pending sign-in blocks refresh and sign-out across internal 
   await expect(page.getByRole("button", { name: "Sign out", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: privateTitle, exact: true, level: 3 })).toBeVisible();
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
-  await expect(page.locator(".topbar").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
+  await expect(page.getByRole("banner").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
   await triggerAutomaticRefresh(page);
-  await expect(page.locator(".topbar").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
+  await expect(page.getByRole("banner").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
   await expect(page.getByText(privateTitle, { exact: true })).toHaveCount(0);
   expect(fixture.state.signInRequests).toBe(1);
   expect(fixture.state.signOutRequests).toBe(1);
@@ -346,7 +346,7 @@ test("auth fixture: confirmed sign-out clears private buffers and preserves brow
   await openAccountSettings(page);
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Discard edits and sign out", exact: true }).click();
-  await expect(page.locator(".topbar").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
+  await expect(page.getByRole("banner").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
   await returnToProject(page);
   await expect(page.getByText("No verified account session.", { exact: false })).toBeVisible();
   await expect(page.getByRole("textbox")).toHaveCount(0);

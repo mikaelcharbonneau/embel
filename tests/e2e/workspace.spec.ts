@@ -73,11 +73,11 @@ test("keyboard navigation, mobile menu, and unavailable tools are usable", async
   await page.keyboard.press("Enter");
   await expect(page.locator("#main-content")).toBeFocused();
   if (isMobile) {
-    await page.getByRole("button", { name: "Open navigation" }).click();
-    await expect(page.getByRole("dialog", { name: "Navigation" })).toBeVisible();
+    const tools = page.getByRole("navigation", { name: "Main navigation", exact: true }).locator("summary");
+    await tools.click(); await expect(page.getByRole("navigation", { name: "Main navigation", exact: true }).getByRole("link", { name: "Ideas", exact: true })).toBeVisible();
     await page.keyboard.press("Escape");
-    await expect(page.getByRole("dialog", { name: "Navigation" })).not.toBeVisible();
-    await expect(page.getByRole("button", { name: "Open navigation" })).toBeFocused();
+    await expect(page.getByRole("navigation", { name: "Main navigation", exact: true }).getByRole("link", { name: "Ideas", exact: true })).toBeHidden();
+    await expect(tools).toBeFocused();
   }
   expect(await page.evaluate(() => Math.max(innerWidth, document.documentElement.scrollWidth))).toBeLessThanOrEqual(page.viewportSize()!.width);
   await page.goto("/ideas");

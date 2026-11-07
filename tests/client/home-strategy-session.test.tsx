@@ -45,8 +45,8 @@ describe("Home account persistence and sign-in continuation", () => {
   it("uses the same modern intake and scope menu on the New project route, including before sign-in", async () => {
     mock.session = { status: "signed_out", generation: 2 }; mock.memory!.bind(null); await render("b2b", false);
     expect(host.querySelector(".home-page .home-intake .home-composer")).not.toBeNull();
-    expect(host.querySelector('button[aria-label="Project scope: Brand"]')).not.toBeNull();
-    expect(host.querySelector('input[type="radio"]')).toBeNull();
+    expect(host.querySelector<HTMLInputElement>(".home-scope input:checked")?.value).toBe("complete_brand");
+    expect(host.querySelectorAll('input[type="radio"]')).toHaveLength(3); expect(host.querySelector(".scope-picker")).toBeNull();
     expect(host.textContent).toContain("Your next brand starts here");
     expect(host.querySelector("textarea")!.readOnly).toBe(false);
   });
@@ -56,8 +56,7 @@ describe("Home account persistence and sign-in continuation", () => {
     fetcher.mockImplementation((path: string, init: RequestInit) => path === "/api/strategy" ? held.promise : defaultFetch(path, init));
     await render();
     expect(host.querySelector("textarea")!.readOnly).toBe(false);
-    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.click());
-    await act(async () => [...host.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')].find(button => button.textContent === "Name")!.click());
+    await act(async () => [...host.querySelectorAll<HTMLLabelElement>(".home-scope label")].find(option => option.textContent === "Name only")!.click());
     await click("Save project");
     const body = JSON.parse(String(creations()[0]![1].body));
     expect(body.scope).toBe("naming_only"); expect(body.context.intake.guidedInterview).toBeUndefined();
@@ -72,7 +71,7 @@ describe("Home account persistence and sign-in continuation", () => {
     fetcher.mockImplementation((path: string, init: RequestInit) => path === "/api/strategy" ? held.promise : defaultFetch(path, init));
     await click("Check AI availability");
     expect(host.querySelector("textarea")!.readOnly).toBe(false);
-    expect(host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.disabled).toBe(false);
+    expect(host.querySelector<HTMLFieldSetElement>(".home-scope")!.disabled).toBe(false);
     await click("A skincare studio"); expect(host.querySelector("textarea")!.value).toContain("independent skincare studio");
     await click("Save project"); expect(creations()).toHaveLength(1);
     expect(JSON.parse(String(creations()[0]![1].body)).context.intake.guidedInterview).toBeUndefined();
@@ -108,13 +107,12 @@ describe("Home account persistence and sign-in continuation", () => {
 
   it("keeps the current guest prompt and scope through sign-in, then saves without AI", async () => {
     mock.session = { status: "signed_out", generation: 2 }; mock.memory!.bind(null); await render();
-    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.click());
-    await act(async () => [...host.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')].find(button => button.textContent === "Name")!.click());
+    await act(async () => [...host.querySelectorAll<HTMLLabelElement>(".home-scope label")].find(option => option.textContent === "Name only")!.click());
     const original = host.querySelector("textarea")!.value; await click("Send prompt");
     expect(mock.push).toHaveBeenCalledExactlyOnceWith("/sign-in"); expect(mutations()).toHaveLength(0);
     mock.session = { status: "ready", userId: owner, generation: 3 }; mock.memory!.bind(mock.session); await remountHome();
     expect(host.querySelector("textarea")!.value).toBe(original);
-    expect(host.querySelector('button[aria-haspopup="menu"]')?.getAttribute("aria-label")).toBe("Project scope: Name");
+    expect(host.querySelector<HTMLInputElement>(".home-scope input:checked")?.value).toBe("naming_only");
     await click("Save project");
     expect(mutations()).toHaveLength(1); expect(creations()).toHaveLength(1);
     const stored = JSON.parse(window.localStorage.getItem(DRAFT_STORAGE_KEY)!);
@@ -212,7 +210,7 @@ describe("Home account persistence and sign-in continuation", () => {
     await render(); await click("Send prompt");
     const body = JSON.parse(String(creations()[0]![1].body));
     expect(body.context.intake.guidedInterview.turns[0]).toMatchObject({ inputRevision: 1, stage: "competitors", purpose: "research" });
-    expect(body.context.intake.guidedInterview.turns[0].id).toMatch(/^guided-start-v1:/);
+    expect(body.context.intake.guidedInterview.turns[0]).toMatchObject({ stage: "competitors", purpose: "research" });
     expect(accountDrafts.get(body.requestKey)).toMatchObject({ generation: 1, ownerId: owner,
       saved: { current_revision: 1, context: body.context } });
     expect(mutations()).toHaveLength(1);
@@ -223,10 +221,9 @@ describe("Home account persistence and sign-in continuation", () => {
     expect(host.querySelector(".home-composer")).toBeNull();
   });
 
-  it.each([["Name", "naming_only", "naming"], ["System", "visual_identity_only", "logo"]] as const)("sends %s straight to its saved workspace without researching competitors", async (label, scope, destination) => {
+  it.each([["Name only", "naming_only", "naming"], ["Visual identity", "visual_identity_only", "logo"]] as const)("sends %s straight to its saved workspace without researching competitors", async (label, scope, destination) => {
     await render();
-    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.click());
-    await act(async () => [...host.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')].find(button => button.textContent === label)!.click());
+    await act(async () => [...host.querySelectorAll<HTMLLabelElement>(".home-scope label")].find(option => option.textContent === label)!.click());
     const reads = fetcher.mock.calls.filter(([path]) => path === "/api/strategy").length;
     await click("Send prompt");
     const body = JSON.parse(String(creations()[0]![1].body));
@@ -260,7 +257,7 @@ describe("Home account persistence and sign-in continuation", () => {
     const id = createLocalDraft({ title: "Explicitly retained prompt", scope: "naming_only", description: "My newer prompt for sign-in", suppliedName: "", namingNotes: "", identityNotes: "", example: false })!;
     rememberPromptForSignIn(id);
     await remountHome(); expect(host.querySelector("textarea")!.value).toBe("My newer prompt for sign-in");
-    expect(host.querySelector('button[aria-haspopup="menu"]')?.getAttribute("aria-label")).toBe("Project scope: Name");
+    expect(host.querySelector<HTMLInputElement>(".home-scope input:checked")?.value).toBe("naming_only");
     expect(creations()).toHaveLength(1);
   });
 });

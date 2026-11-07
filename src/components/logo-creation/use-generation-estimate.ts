@@ -27,11 +27,15 @@ export function useGenerationEstimate(controller: LogoCreationController | null,
       const timeout = setTimeout(() => abort.abort(), 30_000);
       try {
         const quote = await controller.estimate(JSON.parse(key) as LogoQuoteRequest, abort.signal);
-        if (!cancelled) setResult({ controller, key, cycle, quote, error: null, expired: false });
+        // A quote that arrives already expired (for example from clock skew) is
+        // not replaced automatically, so a bad clock cannot cause a request loop.
+        if (!cancelled) setResult(Date.parse(quote.expiresAt) <= Date.now()
+          ? { controller, key, cycle, quote: null, expired: false, error: "This request expired before it was ready. Try again." }
+          : { controller, key, cycle, quote, error: null, expired: false });
       } catch (error) {
         if (!cancelled) setResult({ controller, key, cycle, quote: null, expired: false, error: error instanceof AccountRequestError && error.status === 409
           ? "Saved inputs changed. Refresh the saved brand, then try again."
-          : error instanceof LogoReferenceLimitError ? error.message : "The cost estimate could not be loaded. Try again." });
+          : error instanceof LogoReferenceLimitError ? error.message : "This request could not be prepared. Try again." });
       } finally { clearTimeout(timeout); }
     }, 350);
     return () => { cancelled = true; clearTimeout(timer); abort.abort(); };
@@ -39,10 +43,15 @@ export function useGenerationEstimate(controller: LogoCreationController | null,
 
   const current = enabled && result?.controller === controller && result.key === key && result.cycle === cycle ? result : null;
   const quote = current?.quote ?? null;
+  // An expired quote is replaced quietly. Preparing a quote never starts work;
+  // only the deliberate click below admits a request.
+  const replace = () => { setResult(null); setRefresh(value => value + 1); };
   useEffect(() => {
     if (!quote || !controller || !key) return;
-    const timer = setTimeout(() => setResult(previous => previous?.controller === controller && previous.key === key && previous.quote === quote
-      ? { ...previous, expired: true } : previous), Math.min(2_147_483_647, Math.max(0, Date.parse(quote.expiresAt) - Date.now())));
+    const timer = setTimeout(() => {
+      setResult(previous => previous?.controller === controller && previous.key === key && previous.quote === quote ? null : previous);
+      setRefresh(value => value + 1);
+    }, Math.min(2_147_483_647, Math.max(0, Date.parse(quote.expiresAt) - Date.now())));
     return () => clearTimeout(timer);
   }, [controller, key, quote]);
   const expired = Boolean(current?.expired);
@@ -50,10 +59,10 @@ export function useGenerationEstimate(controller: LogoCreationController | null,
   return {
     quote, canStart, loading: enabled && !current, expired, error: current?.error ?? null,
     busy: state.phase === "admitting" || state.phase === "active", enabled,
-    refresh() { setResult(null); setRefresh(value => value + 1); },
+    refresh: replace,
     start() {
       if (!canStart || !quote) return;
-      if (Date.parse(quote.expiresAt) <= Date.now()) { setResult(previous => previous?.quote === quote ? { ...previous, expired: true } : previous); return; }
+      if (Date.parse(quote.expiresAt) <= Date.now()) { replace(); return; }
       void controller?.start(quote);
     },
   };
