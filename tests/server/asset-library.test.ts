@@ -19,6 +19,16 @@ describe("Assets DAL with actual local database boundaries",()=>{
   expect((await listAccountAssets(context(OWNER_B))).items).toEqual([]);await expect(getAssetDetail(context(OWNER_B),assetId)).rejects.toMatchObject({code:"not_found"});
   expect(JSON.stringify(page)).not.toContain("storage_path");expect(JSON.stringify(page)).not.toContain("signedUrl");
  });
+ it("titles rows with the project's chosen brand name from its current revision, falling back to the saved title",async()=>{
+  const reads:unknown[]=[];
+  const names={from:vi.fn((table:string)=>{reads.push(table);const query={select:()=>query,eq:()=>query,or:(filter:string)=>{reads.push(filter);return query;},limit:()=>query,
+   then:(resolve:(value:unknown)=>unknown)=>Promise.resolve({data:[{project_id:projectId,owner_id:OWNER_A,revision:1,selected_name:" Launchpad "}],error:null}).then(resolve)};return query;})};
+  const named={...auth,client:{...auth.client,...names}} as unknown as AuthenticatedContext;
+  expect((await listAccountAssets(named)).items[0]!.project.title).toBe("Launchpad");
+  expect((await getAssetDetail(named,assetId)).project.title).toBe("Launchpad");
+  expect(reads).toContain("project_revisions");expect(reads).toContain(`and(project_id.eq.${projectId},revision.eq.1)`);
+  expect((await listAccountAssets(auth)).items[0]!.project.title).not.toBe("Launchpad");
+ });
  it("uses exact expected revisions for retention and restoration, keeping unretained history",async()=>{
   await setAssetRetention(auth,assetId,{expectedRetentionRevision:0,liked:false,saved:false});expect((await listAccountAssets(auth)).items).toEqual([]);
   const response=await selectAssetVersion(auth,assetId,{versionId,expectedProjectRevision:1,expectedSelectionRevision:0,acceptStaleBasis:false});expect(response.asset.selectionRevision).toBe(1);expect(response.asset.usage).toEqual({active:false,legacy:false});

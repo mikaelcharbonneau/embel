@@ -6,12 +6,19 @@ import { createStandaloneLiveAdapters, loadStandaloneCapabilities } from "@/comp
 import { availabilityAt, DomainLookupError, readDomainCheck } from "@/features/domain-workspace/model";
 import { projectScreeningDomainSuggestion } from "./project-screening-domain";
 
-type Status = "checking" | "available" | "taken" | "unknown";
+/** "unknown": the registry answered without confirming either way.
+ * "unchecked": the check failed, timed out or gave up waiting. */
+type Status = "checking" | "available" | "taken" | "unknown" | "unchecked";
 type Adapters = ReturnType<typeof createStandaloneLiveAdapters>;
+
+// One lookup may take this long before it is abandoned, and a name waiting in
+// the queue (for example behind the account's lookup limit) gives up after
+// GIVE_UP_AFTER. Either way it shows as not checked; nothing is guessed.
+const LOOKUP_TIMEOUT = 15_000, GIVE_UP_AFTER = 45_000;
 
 // One shared checker per signed-in account: results are reused for the page's
 // lifetime and at most two lookups run at once, so a grid of names never floods
-// the registry. A failed or unconfirmed lookup is shown as unknown, never guessed.
+// the registry. A failed or unconfirmed lookup is never shown as available.
 const results = new Map<string, Status>();
 const listeners = new Map<string, Set<() => void>>();
 const queue: string[] = [];
@@ -21,6 +28,26 @@ let checker: { key: string; adapters: Promise<Adapters | null>; controller: Abor
 function publish(domain: string, status: Status) {
   results.set(domain, status);
   for (const listener of listeners.get(domain) ?? []) listener();
+}
+
+function withTimeout<T>(work: (signal: AbortSignal) => Promise<T>, parent: AbortSignal): Promise<T> {
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  parent.addEventListener("abort", abort, { once: true });
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => { timer = setTimeout(() => { controller.abort(); reject(new Error("Check timed out")); }, LOOKUP_TIMEOUT); });
+  return Promise.race([work(controller.signal), timeout]).finally(() => { clearTimeout(timer); parent.removeEventListener("abort", abort); });
+}
+
+function request(domain: string) {
+  if (results.has(domain)) return;
+  publish(domain, "checking"); queue.push(domain); pump();
+  setTimeout(() => {
+    if (results.get(domain) !== "checking") return;
+    const waiting = queue.indexOf(domain);
+    if (waiting >= 0) queue.splice(waiting, 1);
+    publish(domain, "unchecked");
+  }, GIVE_UP_AFTER);
 }
 
 function pump() {
@@ -33,9 +60,9 @@ function pump() {
     const current = checker;
     running += 1;
     void current.adapters.then(async adapters => {
-      if (!adapters || adapters.domains.status === "unavailable") return publish(domain, "unknown");
+      if (!adapters || adapters.domains.status === "unavailable") return publish(domain, "unchecked");
       try {
-        const check = await readDomainCheck(adapters.domains, domain, current.controller.signal);
+        const check = await withTimeout(signal => readDomainCheck(adapters.domains, domain, signal), current.controller.signal);
         const availability = check.domain === domain ? availabilityAt(check, Date.now()) : "unknown";
         publish(domain, availability === "available" ? "available" : availability === "taken" ? "taken" : "unknown");
       } catch (error) {
@@ -43,7 +70,7 @@ function pump() {
         if (error instanceof DomainLookupError && error.retryAfterSeconds !== null && !current.controller.signal.aborted) {
           pausedUntil = Math.max(pausedUntil, Date.now() + error.retryAfterSeconds * 1000);
           queue.unshift(domain);
-        } else publish(domain, "unknown");
+        } else publish(domain, "unchecked");
       }
     }).finally(() => { running -= 1; pump(); });
   }
@@ -88,13 +115,14 @@ export function DotComStatus({ name }: { name: string }) {
   useEffect(() => {
     const target = element.current;
     if (!ready || !domain || !target) return;
-    const request = () => { if (!results.has(domain)) { publish(domain, "checking"); queue.push(domain); pump(); } };
-    if (typeof IntersectionObserver === "undefined") { request(); return; }
-    const observer = new IntersectionObserver(entries => { if (entries.some(entry => entry.isIntersecting)) { request(); observer.disconnect(); } });
+    if (typeof IntersectionObserver === "undefined") { request(domain); return; }
+    const observer = new IntersectionObserver(entries => { if (entries.some(entry => entry.isIntersecting)) { request(domain); observer.disconnect(); } });
     observer.observe(target);
     return () => observer.disconnect();
   }, [ready, domain]);
   if (!domain) return null;
-  const label = !status || status === "checking" ? "Checking .com…" : status === "available" ? ".com available" : status === "taken" ? ".com taken" : ".com not confirmed";
-  return <span ref={element} className="naming-dot-com" data-status={status ?? "checking"}><span aria-hidden="true" />{label}</span>;
+  // Without a signed-in account nothing is checked.
+  const shown: Status = status ?? (ready ? "checking" : "unchecked");
+  const label = shown === "checking" ? "Checking .com…" : shown === "available" ? ".com available" : shown === "taken" ? ".com taken" : shown === "unknown" ? ".com not confirmed" : ".com not checked";
+  return <span ref={element} className="naming-dot-com" data-status={shown}><span aria-hidden="true" />{label}</span>;
 }

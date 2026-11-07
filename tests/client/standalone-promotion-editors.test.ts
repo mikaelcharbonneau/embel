@@ -81,7 +81,7 @@ async function edit(label: string, value: string) {
   const prototype = input instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
   await act(async () => { Object.getOwnPropertyDescriptor(prototype, "value")!.set!.call(input, value); input.dispatchEvent(new Event(input instanceof HTMLSelectElement ? "change" : "input", { bubbles: true })); });
 }
-async function choose(tool: StandaloneTool) { if (tool === "trademarks") await act(async () => button("Prepare").click()); if (tool === "handles") await act(async () => button("Library").click()); await act(async () => button(selectionButtonText[tool]).click()); }
+async function choose(tool: StandaloneTool) { if (tool === "trademarks") await act(async () => button("Details").click()); if (tool === "handles") await act(async () => button("Library").click()); await act(async () => button(selectionButtonText[tool]).click()); }
 async function titleAndContext(title = "Cedar complete brand") {
   await edit("New brand title", title);
   await edit("Saved context to carry forward", standaloneImportKey(imports[1]!));

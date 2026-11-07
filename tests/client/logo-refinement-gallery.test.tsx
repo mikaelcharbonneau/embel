@@ -16,15 +16,15 @@ const selectName = `Select image refinement ${record.id}`;
 const markup = (node: ReactNode) => renderToStaticMarkup(node);
 
 describe("refined raster history presentation", () => {
-  it("explicitly selects the exact verified refinement with its original source and charge", () => {
+  it("explicitly selects the exact verified refinement and names its source in plain words, without money or IDs", () => {
     const selections: LogoRasterSource[] = [];
     const node = LogoRefinementGallery({ history: history(), onSelect: item => selections.push(item) });
     expect(selections).toEqual([]); expect(button(node, selectName).props.disabled).toBe(false);
     (button(node, selectName).props.onClick as () => void)(); expect(selections).toEqual([source]);
     const html = markup(node);
-    expect(html).toContain("Saved image refinements"); expect(html).toContain("Confirmed charge: $0.10");
-    expect(html).toContain(record.source.kind === "concept" ? record.source.attemptId : "missing");
-    expect(html).toContain("Wordmark"); expect(html).toContain("Vector conversion and approval follow separately");
+    expect(html).toContain("Saved image refinements"); expect(html).not.toMatch(/\$|charge/i);
+    expect(html).toContain(record.source.kind === "concept" ? "Changed from a concept" : "missing");
+    expect(html).not.toContain("Refinement ID"); expect(html).toContain("Wordmark");
   });
   it("successful inspection and selection do not depend on generation availability", () => {
     const node = LogoRefinementGallery({ history: history(), selected: source, onSelect: () => undefined, refinementAvailable: false,
@@ -41,7 +41,7 @@ describe("refined raster history presentation", () => {
   it("uncertain saved images retain unknown billing without selection or a free-charge claim", () => {
     const uncertain = syntheticRasterRefinement({ state: "needs_reconciliation", reason: "billing_unknown", billing: { status: "unknown", confirmedMicrousd: null } });
     const node = LogoRefinementGallery({ history: history({ items: [{ record: uncertain, verified: true, error: null }] }), onSelect: () => undefined });
-    expect(markup(node)).toContain("Outcome uncertain"); expect(markup(node)).toContain("Charge not confirmed"); expect(markup(node)).not.toContain("$0");
+    expect(markup(node)).toContain("Outcome uncertain"); expect(markup(node)).not.toContain("$0");
     expect(button(node, selectName).props.disabled).toBe(true);
   });
   it("earlier brief history is retained with an explicit warning", () => {

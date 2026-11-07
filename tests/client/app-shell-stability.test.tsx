@@ -74,7 +74,7 @@ describe("persistent workspace shell", () => {
     expect(links.map(link => link.textContent)).toEqual(["Home", "Projects", "Library"]);
     expect([...mainNav().querySelectorAll("details a")].map(link => link.getAttribute("href"))).toEqual(["/ideas", "/names", "/handles", "/domains", "/trademarks"]);
     links[1]!.focus();
-    const routes = ["/brands", "/assets", "/ideas", "/names", "/handles", "/domains", "/trademarks", "/settings", "/brands/new", "/brands/logo/new", "/sign-in", "/sign-up", "/"];
+    const routes = ["/brands", "/assets", "/ideas", "/names", "/handles", "/domains", "/trademarks", "/settings", "/sign-in", "/sign-up", "/"];
     for (const pathname of routes) {
       route.pathname = pathname; await render();
       navLinks().forEach((link, index) => {
@@ -191,11 +191,32 @@ describe("persistent workspace shell", () => {
     expect(host.textContent).not.toContain("Private fixture");
     expect(host.textContent).not.toContain("Sign in");
     expect(host.querySelector('header a[href="/sign-in"]')).toBeNull();
-    await act(async () => recheck.resolve(new Response(null, { status: 401 })));
-    await until(() => expect(label.textContent).toBe("Sign in"));
-    expect(accountLabel()).toBe(label); expect(label.getAttribute("aria-busy")).toBe("false");
+    await act(async () => recheck.resolve(Response.json({ authenticated: false })));
+    // Signed out, the pill offers the two ways in instead of an account menu.
+    await until(() => expect(host.querySelector('header a[href="/sign-in"]')?.textContent).toBe("Sign in"));
+    expect(host.querySelector('header a[href="/sign-up"]')?.textContent).toBe("Create account");
+    expect(host.querySelector(".workspace-account-menu")).toBeNull();
     expect(host.textContent).not.toContain("Private fixture");
-    expect(host.querySelector('header a[href="/sign-in"]')).not.toBeNull();
+    // Every shell check asks for the ordinary signed-out answer.
+    const sessionCalls = fetcher.mock.calls.filter(([path]) => path === "/api/session");
+    expect(sessionCalls).toHaveLength(2);
+    for (const [, init] of sessionCalls) expect((init as RequestInit).headers).toMatchObject({ "X-Embel-Session-State": "1" });
+  });
+
+  it("shows the owner's initials, name and email, falling back to the email's first letter", async () => {
+    await render(); await until(() => expect(accountLabel().textContent).toBe("Private fixture name"));
+    expect(host.querySelector(".workspace-account-avatar")?.textContent).toBe("PN");
+    expect(host.querySelector(".workspace-account-identity strong")?.textContent).toBe("Private fixture name");
+    expect(host.querySelector(".workspace-account-identity span")?.textContent).toBe("fixture@example.invalid");
+    await act(async () => root.unmount()); root = createRoot(host);
+    profileRead = async () => Response.json({ profile: {
+      ownerId: owner, email: "fixture@example.invalid", revision: 1, updatedAt: "2026-10-20T00:00:00Z", values: { ...DEFAULT_PROFILE_VALUES, fullName: "" },
+    } });
+    await render(); await until(() => expect(accountLabel().textContent).toBe("fixture@example.invalid"));
+    expect(host.querySelector(".workspace-account-avatar")?.textContent).toBe("F");
+    expect(host.querySelector(".workspace-account-identity strong")?.textContent).toBe("fixture@example.invalid");
+    expect(host.querySelector(".workspace-account-identity span")).toBeNull();
+    expect(host.querySelector(".workspace-account-panel")?.textContent).not.toMatch(/Refresh connection|Check account/);
   });
 
   it("keeps the same neutral label while the first verified profile loads", async () => {
@@ -221,6 +242,13 @@ describe("persistent workspace shell", () => {
 it("reaches every destination from the pill without a separate mobile menu, and closes Tools on Escape", async () => {
   await render(); await until(() => expect(accountLabel().textContent).toBe("Private fixture name"));
   expect(host.querySelector(".workspace-account-avatar")?.textContent).toBe("PN");
+  // Each tool keeps its name as the link name and describes itself in one line.
+  const toolLinks = [...mainNav().querySelectorAll<HTMLAnchorElement>("details a")];
+  expect(toolLinks.map(link => [link.getAttribute("aria-label"), document.getElementById(link.getAttribute("aria-describedby")!)?.textContent])).toEqual([
+    ["Ideas", "Save ideas for later"], ["Names", "Build and compare name ideas"], ["Handles", "Draft social handles"],
+    ["Domains", "Search domain names"], ["Trademarks", "Prepare a trademark search"],
+  ]);
+  expect(toolLinks.every(link => link.querySelector(".tools-menu-icon svg"))).toBe(true);
   const details = toolsSummary().parentElement as HTMLDetailsElement;
   details.open = true; toolsSummary().focus();
   await act(async () => details.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })));

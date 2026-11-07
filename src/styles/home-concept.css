@@ -33,22 +33,6 @@
 .concept-home .home-recent-heading h2 { margin: 0; font-size: 16px; line-height: 24px; font-weight: 500; letter-spacing: 0; }
 .concept-home .home-recent-heading .text-link { font-size: 13px; gap: 6px; color: var(--secondary); }
 .home-brand-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
-.home-brand-card { min-width: 0; border: 1px solid var(--border); border-radius: var(--panel-radius); overflow: hidden; background: var(--paper); display: flex; flex-direction: column; scroll-margin-block: 16px 104px; }
-.home-brand-card:hover { border-color: #b4b3ad; }
-.home-brand-preview { height: 88px; flex-shrink: 0; display: flex; justify-content: center; align-items: center; padding: 0 14px; background: var(--surface); color: var(--text); }
-.home-brand-preview > span { font-size: 37px; font-weight: 600; letter-spacing: -2px; line-height: 44px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.home-brand-preview--0 > span, .home-brand-preview--inverse > span { text-transform: lowercase; }
-.home-brand-preview--inverse { background: var(--text); color: var(--paper); }
-.home-brand-preview--1 { background: var(--text); color: var(--paper); }
-.home-brand-preview--1 > span { font-size: 22px; font-weight: 500; letter-spacing: 3px; text-transform: uppercase; line-height: 30px; }
-.home-brand-preview--2 { background: var(--accent-soft); color: var(--accent-ink); }
-.home-brand-preview--2 > span { font-size: 36px; font-weight: 400; font-style: italic; line-height: 44px; }
-.home-brand-details { padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; }
-.home-brand-identity, .home-brand-continue { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-width: 0; }
-.home-brand-identity h3 { font-size: 14px; font-weight: 500; line-height: 20px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; }
-.home-brand-storage { display: inline-flex; align-items: center; gap: 5px; color: var(--secondary); font-size: 12px; white-space: nowrap; }
-.home-brand-continue { color: var(--secondary); font-size: 13px; line-height: 20px; }
-.home-brand-continue svg { flex-shrink: 0; }
 .home-brands-empty { min-height: 170px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--paper); text-align: center; color: var(--secondary); }
 .home-brands-empty h3 { font-size: 14px; font-weight: 500; color: var(--text); }
 .home-brands-empty p { font-size: 13px; }

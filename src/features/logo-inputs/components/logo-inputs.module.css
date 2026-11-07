@@ -1,5 +1,5 @@
 .panel { box-sizing: border-box; min-width: 0; border: 1px solid var(--border, #e4e3df); border-radius: 10px; padding: 24px; margin-bottom: 24px; background: var(--paper, #fff); color: var(--text, #191919); overflow-wrap: anywhere; }
-.panel h2 { font-size: 19px; margin: 0; }.panel h3 { font-size: 15px; margin: 24px 0 8px; }.panel h4 { font-size: 14px; margin: 0 0 8px; }
+.panel h2 { font-size: 20px; margin: 0; }.panel h3 { font-size: 15px; margin: 24px 0 8px; }.panel h4 { font-size: 14px; margin: 0 0 8px; }
 .heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }.caption, .panel details, .notice { color: var(--secondary, #696965); font-size: 13px; line-height: 1.6; }
 .form { display: grid; gap: 14px; margin: 16px 0; max-width: 720px; }.form > label { display: grid; gap: 8px; font-size: 13px; }.panel input[type="file"], .panel input[type="url"], .panel textarea { box-sizing: border-box; width: 100%; border: 1px solid var(--border, #e4e3df); border-radius: 6px; padding: 10px; color: inherit; background: var(--canvas, #f7f7f5); font: inherit; }.panel textarea { resize: vertical; }
 .panel fieldset { min-width: 0; border: 1px solid var(--border, #e4e3df); border-radius: 8px; padding: 12px; }.panel legend { font-size: 13px; padding: 0 5px; }

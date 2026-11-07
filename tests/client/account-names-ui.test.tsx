@@ -60,7 +60,7 @@ describe("account Names interface", () => {
   it("reports unsaved manual names honestly and protects sign-out until retry succeeds", async () => {
     await render(); fail = true;
     await click(button("Add name")); await input(host.querySelector<HTMLInputElement>("#names-manual-value")!, "Keep this name"); await click(button("Save name")); await advance(450);
-    expect(host.textContent).toContain("Not saved · edits kept in this tab"); expect(host.textContent).not.toContain("Saved to your account");
+    expect(host.textContent).toContain("Not saved yet · your edits stay on this page"); expect(host.textContent).not.toContain("Saved to your account");
     expect(host.textContent).toContain("Keep this name"); await click(button("Test sign out"));
     expect(host.querySelector("output")!.textContent).toBe("confirmation_required");
     const unloading = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(unloading); expect(unloading.defaultPrevented).toBe(true);

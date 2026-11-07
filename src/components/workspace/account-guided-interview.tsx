@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useEffectEvent, useId, useRef, useState, type ComponentProps, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import { AccountBriefEditor } from "./account-brief-editor";
 import { ProjectNamingWorkspace } from "@/components/naming/project-naming-workspace";
 import { getNamingReadiness } from "@/domain/project-naming";
@@ -8,8 +8,8 @@ import { appendGuidedTurn, confirmGuidedSelection, guidedTurnOperation, revisitG
 import { competitorSchema, contextSnapshotSchema, type ContextSnapshot } from "@/domain/projects";
 import { CompetitorWidgetControls } from "./competitor-widget-controls";
 import { EmbelIdentity, guidedStageLabel } from "./embel-identity";
-import { useConversationStep } from "@/components/journey/project-header";
-import { journeyPartLabel } from "@/domain/journey";
+import { JOURNEY_SECTION_EVENT, journeySectionId, journeySectionOfHash, useConversationSteps } from "@/components/journey/project-header";
+import { journeyPartLabel, type JourneyStepId } from "@/domain/journey";
 import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
 import { accountDraftChanged, type AccountWorkspace, type GuidedInterviewInput } from "./account-draft-memory";
@@ -22,7 +22,7 @@ import { GuidedSloganWidget, type SloganDecision } from "./guided-slogan-widget"
 import { StrategySummary } from "./strategy-summary";
 import { GuidedThinking } from "./guided-thinking";
 import { ProgressCard } from "@/components/journey/progress-card";
-import { guidedAllowance, guidedMessageContext, guidedTimeline, guidedTurnResult, nextGuidedProposal, recordGuidedChoice, retainedAnswerNames } from "./guided-interview-client";
+import { guidedAllowance, guidedMessageContext, guidedTimeline, guidedTurnResult, initialGuidedContext, nextGuidedProposal, recordGuidedChoice, retainedAnswerNames, withoutScoreScaleNote } from "./guided-interview-client";
 import type { ProjectEditorForm } from "./project-editor";
 import { useStrategyJobs } from "./use-strategy-jobs";
 import { useConversationFollow } from "./use-conversation-follow";
@@ -154,6 +154,17 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
       const result = await persist(guidedMessageContext(saved.context, text, saved.current_revision + 1), { prompt: text });
       if (result && mounted.current) setPrompt(current => current === text ? "" : current);
     } catch (cause) { if (mounted.current) setError(cause instanceof Error ? cause.message : "Your message could not be saved. Your prompt is kept."); }
+    finally { lock.current = false; if (mounted.current) setWorking(false); }
+  }
+
+  // A brief saved before research could start: one deliberate click submits it,
+  // exactly as Home would have. The saved turn keeps the request identity.
+  async function startResearch() {
+    if (lock.current || blocked || state || saved.scope !== "complete_brand") return;
+    if (!guidedAllowance(availability, "strategy.competitors")) { setError(strategyAvailabilityMessage(availability ?? null)); return; }
+    lock.current = true; setWorking(true); setError(null);
+    try { await persist(initialGuidedContext(saved.context, saved.current_revision + 1)); }
+    catch (cause) { if (mounted.current) setError(cause instanceof Error ? cause.message : "Research could not be started. Your brief is saved."); }
     finally { lock.current = false; if (mounted.current) setWorking(false); }
   }
 
@@ -312,7 +323,7 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
   // into one answer and the conversation continues below. Change name reopens them.
   const nameChosen = Boolean(context.selectedName) && Boolean(state?.turns.some(turn => turn.stage === "slogan"));
   const namingOpen = showNaming && (!nameChosen || namingReopened);
-  useConversationStep(showNaming || state?.stage === "personality" || state?.stage === "slogan" || state?.stage === "complete" ? "voice" : "strategy");
+  const reached: JourneyStepId = showNaming || state?.stage === "personality" || state?.stage === "slogan" || state?.stage === "complete" ? "voice" : "strategy";
   // Once Strategy is complete its saved replies are history. They can load
   // after the Naming checkpoint and must not take the reader to an old turn.
   const responseIds = namingOpen ? (namingQuestionId && !namingCanvas ? [namingQuestionId] : []) : [
@@ -323,7 +334,7 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
       return output && output.kind !== "accepted" && output.kind !== "redirect" ? [`guided-turn-${item.turn.id}`] : [];
     }),
   ];
-  const { transcript, onScroll, hasNewResponse, revealNewResponse } = useConversationFollow({
+  const { transcript, onScroll, hasNewResponse, revealNewResponse, jumpTo } = useConversationFollow({
     conversationKey: `${account.userId}:${account.generation}:${saved.id}`,
     contentKey: JSON.stringify([timeline.map(item => item.kind === "user" ? item.event.id : item.turn.id), state?.answers.map(answer => answer.turnId), Boolean(active || checkingResearch), state?.stage, showNaming]),
     responseIds,
@@ -357,7 +368,7 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
         const answer = state?.answers.find(answer => answer.turnId === item.turn.id);
         const current = choiceTurn?.id === item.turn.id && !answer;
         return <Fragment key={item.turn.id}>{item.turn.id === state?.turns[0]?.id && legacyReplies}<article id={`guided-turn-${item.turn.id}`} tabIndex={-1} className="guided-assistant-message flow-enter" aria-label="Embel response"><EmbelIdentity label={guidedStageLabel(item.turn.stage)} />
-          <p className="guided-assistant-copy">{output.message}</p>
+          <p className="guided-assistant-copy">{item.turn.stage === "personality" ? withoutScoreScaleNote(output.message) : output.message}</p>
           {output.kind === "choices" && output.stage === "slogan" ? <GuidedSloganWidget reply={output} brandName={context.selectedName ?? saved.title} disabled={blocked}
             answered={!current || Boolean(answer)} answer={answer ? answer.customText : undefined}
             onContinue={decision => void confirmSlogan(output, decision)} onSkip={() => void skipSlogan(output.turnId)}
@@ -381,16 +392,64 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
   const strategySummary = strategyAnswer ? <StrategySummary projectId={saved.id} context={context}
     angle={positioningChoice?.stage === "positioning" ? positioningChoice.payload.angle : null}
     expanded={strategyExpanded} onToggle={() => setStrategyExpanded(value => !value)} /> : null;
-  const conversationHistory = <>
+  const strategyHistory = <>
+    {!firstMessage && briefEditor}
     {(strategyAnswer && !strategyExpanded ? beforeVoice.filter(item => item === firstMessage) : beforeVoice.slice(0, 1)).map(renderItem)}
     {strategySummary}
     {(strategyAnswer && !strategyExpanded ? [] : beforeVoice.slice(1)).map(renderItem)}
-    {voiceItems.map(renderItem)}
   </>;
+  const voiceHistory = voiceItems.map(renderItem);
   const sloganHistory = sloganItems.map(renderItem);
   const canvasActive = namingOpen && namingCanvas;
-  const history = <>{!firstMessage && briefEditor}{conversationHistory}</>;
+  const history = <>{strategyHistory}{voiceHistory}</>;
   const completed = null;
+
+  // The conversation holds two journey steps: Strategy, then Voice from the
+  // first personality question on. The project bar highlights the one on screen.
+  const voiceShown = reached === "voice" || voiceItems.length > 0 || sloganItems.length > 0 || nameChosen;
+  const [viewed, setViewed] = useState<JourneyStepId | null>(null);
+  // Right after showing a step, its scroll position stands until the reader scrolls.
+  const jumped = useRef<number | null>(null);
+  useConversationSteps(reached, viewed, canvasActive ? [] : voiceShown ? ["strategy", "voice"] : ["strategy"]);
+  function sectionOnScreen(area: HTMLElement): JourneyStepId {
+    const voice = document.getElementById(journeySectionId("voice"));
+    if (!voice || !area.contains(voice)) return "strategy";
+    const atEnd = area.scrollHeight - area.clientHeight - area.scrollTop <= 8;
+    return atEnd || voice.getBoundingClientRect().top - area.getBoundingClientRect().top <= area.clientHeight / 2 ? "voice" : "strategy";
+  }
+  function scrolled() {
+    onScroll();
+    const area = transcript.current;
+    if (!area) return;
+    if (jumped.current !== null && Math.abs(area.scrollTop - jumped.current) < 2) return;
+    jumped.current = null;
+    setViewed(sectionOnScreen(area));
+  }
+  const showSection = useEffectEvent((step: JourneyStepId) => {
+    const area = transcript.current, section = document.getElementById(journeySectionId(step));
+    if (!area || !section || !area.contains(section)) return;
+    jumpTo(section);
+    jumped.current = area.scrollTop;
+    setViewed(step);
+    section.focus({ preventScroll: true });
+  });
+  useEffect(() => {
+    const area = transcript.current;
+    if (!area) return;
+    const listener = (event: Event) => { const step = (event as CustomEvent<unknown>).detail; if (step === "strategy" || step === "voice") showSection(step); };
+    area.addEventListener(JOURNEY_SECTION_EVENT, listener);
+    return () => area.removeEventListener(JOURNEY_SECTION_EVENT, listener);
+  }, [transcript]);
+  // A `#journey-strategy` or `#journey-voice` link opens at that step once the
+  // saved conversation has loaded; without one, the latest response is shown.
+  const linkedSection = useRef<JourneyStepId | null | undefined>(undefined);
+  useLayoutEffect(() => {
+    if (linkedSection.current === undefined) linkedSection.current = journeySectionOfHash(window.location.hash);
+    const step = linkedSection.current;
+    if (!step || !historyChecked) return;
+    linkedSection.current = null;
+    showSection(step);
+  }, [historyChecked, voiceShown]);
 
   const runningJob = bound && strategyJobActive(bound.job) ? bound.job : null;
   const stop = runningJob ? () => void strategy.cancel(runningJob) : undefined;
@@ -421,36 +480,49 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
     {storage.resultNavigation}
     </div>;
 
+  const canStartResearch = Boolean(strategy.overview && !strategy.readError && guidedAllowance(availability, "strategy.competitors"));
+  const indicator = (active || checkingResearch) && (researching
+    ? <article className="guided-assistant-message flow-enter" aria-label="Embel response"><EmbelIdentity label={guidedStageLabel("competitors")} />
+      <ProgressCard title={stopping ? "Cancelling research…" : "Researching your competitors"} description={runningJob?.state === "queued" || !runningJob ? "Starting your research. Relevant brands and their sources appear here." : "Finding relevant brands and the sources behind them."}
+        note="Your idea is saved. Suggestions appear here when they’re ready." onStop={stop} stopping={stopping} stopDisabled={strategy.pending} stopLabel="Cancel research" />
+    </article>
+    : <GuidedThinking label={thinkingLabel} onStop={stop} stopping={stopping} stopDisabled={strategy.pending} />);
+
   return <><div className="guided-interview" data-composer={hasComposer ? "floating" : undefined} hidden={canvasActive} aria-label="Brand conversation">
-    <div ref={transcript} id={transcriptId} onScroll={onScroll} tabIndex={0} className="guided-interview-scroll" role="log" aria-label="Conversation" aria-live="polite"
+    <div ref={transcript} id={transcriptId} onScroll={scrolled} tabIndex={0} className="guided-interview-scroll" role="log" aria-label="Conversation" aria-live="polite"
       data-naming-results-scroll={namingOpen ? "" : undefined}>
-      {!canvasActive && history}
-      {!state?.turns.length && legacyReplies}
-      {!state && saved.scope === "complete_brand" && <div className="guided-interview-start"><p>Your brief is saved. Send a message below to begin competitor research when AI is available.</p></div>}
-      {!state && saved.scope !== "complete_brand" && <p className="guided-assistant-copy">{saved.context.description}</p>}
-      {(active || checkingResearch) && (researching
-        ? <article className="guided-assistant-message flow-enter" aria-label="Embel response"><EmbelIdentity label={guidedStageLabel("competitors")} />
-          <ProgressCard title={stopping ? "Cancelling research…" : "Researching your competitors"} description={runningJob?.state === "queued" || !runningJob ? "Starting your research. Relevant brands and their sources appear here." : "Finding relevant brands and the sources behind them."}
-            note="Your idea is saved. Suggestions appear here when they’re ready." onStop={stop} stopping={stopping} stopDisabled={strategy.pending} stopLabel="Cancel research" />
-        </article>
-        : <GuidedThinking label={thinkingLabel} onStop={stop} stopping={stopping} stopDisabled={strategy.pending} />)}
-      {!canvasActive && completed}
+      <section id={journeySectionId("strategy")} className="guided-journey-section" data-journey-section="strategy" aria-label="Strategy" tabIndex={-1}>
+        {!canvasActive && strategyHistory}
+        {!state?.turns.length && legacyReplies}
+        {!state && saved.scope === "complete_brand" && <article className="guided-assistant-message flow-enter" aria-label="Start research">
+          <EmbelIdentity label={guidedStageLabel("competitors")} />
+          <p className="guided-assistant-copy">Your brief is saved. Next, I’ll find the brands you compete with, so you can choose the ones to compare against.</p>
+          <div className="guided-next-step"><button type="button" className="button primary" disabled={blocked || !canStartResearch} onClick={() => void startResearch()}>{working ? "Starting research…" : "Start research"}</button></div>
+        </article>}
+        {!state && saved.scope !== "complete_brand" && <p className="guided-assistant-copy">{saved.context.description}</p>}
+        {!voiceShown && indicator}
+      </section>
+      {voiceShown && <section id={journeySectionId("voice")} className="guided-journey-section" data-journey-section="voice" aria-label="Voice" tabIndex={-1}>
+        {!canvasActive && voiceHistory}
+        {indicator}
+        {!canvasActive && completed}
+        <div ref={setNamingMessages} className="guided-naming-messages" />
+        <div ref={setNamingResults} className="guided-naming-results" />
+        {!canvasActive && nameChosen && !namingReopened && <article className="guided-assistant-message flow-enter" aria-label="Your name">
+          <EmbelIdentity label={journeyPartLabel("voice", "Name")} />
+          <section className="guided-choice-answer" aria-label="Your answer: Which name feels right?">
+            <div className="guided-choice-answer-copy"><h3>Which name feels right?</h3><ul aria-label="Your answer"><li><span>{context.selectedName}</span></li></ul></div>
+            <button className="button secondary small" type="button" disabled={blocked} onClick={() => { setNamingReopened(true); setReopenedFor(context.selectedName ?? ""); }}>Change name</button>
+          </section>
+        </article>}
+        {!canvasActive && sloganHistory}
+        {!canvasActive && state?.stage === "complete" && nameChosen && saved.scope === "complete_brand" && <article className="guided-assistant-message flow-enter" aria-label="Next step">
+          <EmbelIdentity label={journeyPartLabel("identity", "Inspiration")} />
+          <p className="guided-assistant-copy">Your voice is set. Next is Identity: pick a few looks you like, then choose a logo for {context.selectedName}.</p>
+          <div className="guided-next-step"><Link className="button primary" href={`/brands/account/${saved.id}/inspiration`}>Continue to Identity<Icon name="arrow" size={14} /></Link></div>
+        </article>}
+      </section>}
       {!hasComposer && notices}
-      <div ref={setNamingMessages} className="guided-naming-messages" />
-      <div ref={setNamingResults} className="guided-naming-results" />
-      {!canvasActive && nameChosen && !namingReopened && <article className="guided-assistant-message flow-enter" aria-label="Your name">
-        <EmbelIdentity label={journeyPartLabel("voice", "Name")} />
-        <section className="guided-choice-answer" aria-label="Your answer: Which name feels right?">
-          <div className="guided-choice-answer-copy"><h3>Which name feels right?</h3><ul aria-label="Your answer"><li><span>{context.selectedName}</span></li></ul></div>
-          <button className="button secondary small" type="button" disabled={blocked} onClick={() => { setNamingReopened(true); setReopenedFor(context.selectedName ?? ""); }}>Change name</button>
-        </section>
-      </article>}
-      {!canvasActive && sloganHistory}
-      {!canvasActive && state?.stage === "complete" && nameChosen && saved.scope === "complete_brand" && <article className="guided-assistant-message flow-enter" aria-label="Next step">
-        <EmbelIdentity label={journeyPartLabel("identity", "Inspiration")} />
-        <p className="guided-assistant-copy">Your voice is set. Next is Identity: pick a few looks you like, then choose a logo for {context.selectedName}.</p>
-        <div className="guided-next-step"><Link className="button primary" href={`/brands/account/${saved.id}/inspiration`}>Continue to Identity<Icon name="arrow" size={14} /></Link></div>
-      </article>}
     </div>
     {hasComposer && <FloatingComposer label={namingOpen ? "Naming composer" : "Strategy composer"}>
       <div ref={setNamingComposer} className="guided-floating-input">

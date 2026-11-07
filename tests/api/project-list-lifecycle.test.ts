@@ -70,7 +70,7 @@ describe("active and deleted project listings", () => {
     const database = client([pending]); mock.auth.mockResolvedValue({ userId: owner, client: database });
     const cursorCreatedAt = "2026-10-16T00:00:00Z";
     expect((await reply(`?state=deleted&cursorCreatedAt=${cursorCreatedAt}&cursorId=${projectId}`)).status).toBe(200);
-    expect(database.query.or).toHaveBeenCalledExactlyOnceWith(`and(or(deleted_at.not.is.null,deletion_requested_at.not.is.null),or(created_at.lt.${cursorCreatedAt},and(created_at.eq.${cursorCreatedAt},id.lt.${projectId})))`);
+    expect(database.query.or).toHaveBeenNthCalledWith(1, `and(or(deleted_at.not.is.null,deletion_requested_at.not.is.null),or(created_at.lt.${cursorCreatedAt},and(created_at.eq.${cursorCreatedAt},id.lt.${projectId})))`);
   });
 
   it.each(["?state=all", "?state=deleted&state=active", "?state=", "?ownerId=another-account"])("rejects invalid listing options %s", async query => {

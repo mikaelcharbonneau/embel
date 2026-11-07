@@ -40,7 +40,7 @@ async function fixtures(page: Page) {
 
 test("hosted settings keep the local ChatGPT connection panel and endpoints absent", async ({ page }) => {
   test.skip(localRuntime, "The local-runtime run exercises the local panel separately.");
-  const state = await fixtures(page); await page.goto("/settings"); await page.getByRole("tab", { name: "AI preferences", exact: true }).click();
+  const state = await fixtures(page); await page.goto("/settings");
   await expect(page.getByRole("heading", { name: "Settings.", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "ChatGPT on this Mac", exact: true })).toHaveCount(0);
   expect(state.calls).toEqual([]);
@@ -51,7 +51,7 @@ test.describe("local ChatGPT settings", () => {
   test("keeps connection approval closed and images unavailable without performing OAuth", async ({ page }) => {
     const state = await fixtures(page);
     state.status.registrations = [{ registrationId, email: "local-fixture@example.invalid", planUsageEnabled: true }];
-    await page.goto("/settings"); await page.getByRole("tab", { name: "AI preferences", exact: true }).click();
+    await page.goto("/settings");
     await expect(page.getByRole("heading", { name: "ChatGPT on this Mac", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Continue with ChatGPT", exact: true })).toBeDisabled();
     await expect(page.getByText("Connection approval is required before ChatGPT sign-in can open.", { exact: true })).toBeVisible();
@@ -62,7 +62,7 @@ test.describe("local ChatGPT settings", () => {
   });
   test("requires a verified Embel account before reading local connection metadata", async ({ page }) => {
     const state = await fixtures(page); state.sessionStatus = 401;
-    await page.goto("/settings"); await page.getByRole("tab", { name: "AI preferences", exact: true }).click();
+    await page.goto("/settings");
     await expect(page.getByText("Sign in to Embel first", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Continue with ChatGPT", exact: true })).toHaveCount(0);
     expect(state.calls).toEqual([]);
@@ -70,7 +70,7 @@ test.describe("local ChatGPT settings", () => {
   test("loads the actual model catalog and changes selection only after explicit Save", async ({ page }, testInfo) => {
     const state = await fixtures(page);
     state.status.connectionAllowed = true; state.status.registrations = [{ registrationId, email: "local-fixture@example.invalid", planUsageEnabled: true }];
-    await page.goto("/settings"); await page.getByRole("tab", { name: "AI preferences", exact: true }).click();
+    await page.goto("/settings");
     await page.getByRole("combobox", { name: "ChatGPT connection", exact: true }).selectOption(registrationId);
     expect(state.calls.filter(call => call.method === "POST")).toEqual([]);
     await page.getByRole("button", { name: "Load available models", exact: true }).click();
@@ -86,7 +86,7 @@ test.describe("local ChatGPT settings", () => {
   });
   test("does not accept a model catalog for another connection", async ({ page }) => {
     const state = await fixtures(page); state.status.connectionAllowed = true; state.status.registrations = [{ registrationId, email: "local-fixture@example.invalid", planUsageEnabled: true }]; state.modelsRegistrationId = "different_registration";
-    await page.goto("/settings"); await page.getByRole("tab", { name: "AI preferences", exact: true }).click();
+    await page.goto("/settings");
     await page.getByRole("combobox", { name: "ChatGPT connection", exact: true }).selectOption(registrationId);
     await page.getByRole("button", { name: "Load available models", exact: true }).click();
     await expect(page.getByText("The local connection response could not be verified.", { exact: true })).toBeVisible();
@@ -96,7 +96,7 @@ test.describe("local ChatGPT settings", () => {
   test("opens the approved authorization destination only after Continue with ChatGPT is clicked", async ({ page }) => {
     const state = await fixtures(page); state.status.connectionAllowed = true;
     await page.route("https://auth.openai.com/**", route => route.fulfill({ status: 200, contentType: "text/html", body: "<p>Synthetic consent page. No grant was performed.</p>" }));
-    await page.goto("/settings"); await page.getByRole("tab", { name: "AI preferences", exact: true }).click();
+    await page.goto("/settings");
     await expect(page.getByRole("button", { name: "Continue with ChatGPT", exact: true })).toBeEnabled();
     expect(state.calls.filter(call => call.action === "sign-in")).toEqual([]);
     await page.getByRole("button", { name: "Continue with ChatGPT", exact: true }).click();
@@ -105,7 +105,7 @@ test.describe("local ChatGPT settings", () => {
   });
   test("disconnects ChatGPT without claiming remote revocation or signing out of Embel", async ({ page }) => {
     const state = await fixtures(page); state.status.connectionAllowed = true; state.status.registrations = [{ registrationId, email: "local-fixture@example.invalid", planUsageEnabled: true }]; state.status.selectedRegistrationId = registrationId; state.status.model = "fixture-catalog-model";
-    await page.goto("/settings"); await page.getByRole("tab", { name: "AI preferences", exact: true }).click();
+    await page.goto("/settings");
     await page.getByRole("button", { name: "Disconnect ChatGPT", exact: true }).click();
     await expect(page.getByText("Disconnected from Embel on this Mac. Remote revocation could not be confirmed.", { exact: true })).toBeVisible();
     await expect(page.getByText("My account", { exact: true })).toBeVisible();
@@ -116,12 +116,11 @@ test.describe("local ChatGPT settings", () => {
     let release!: () => void; let started!: () => void;
     const held = new Promise<void>(resolve => { release = resolve; }); const requested = new Promise<void>(resolve => { started = resolve; });
     await page.route("**/api/local/chatgpt/models", async route => { started(); await held; await reply(route, { registrationId, models: [{ slug: "private-model", displayName: "Private previous-account model" }] }); });
-    await page.goto("/settings"); await page.getByRole("tab", { name: "AI preferences", exact: true }).click();
+    await page.goto("/settings");
     await page.getByRole("combobox", { name: "ChatGPT connection", exact: true }).selectOption(registrationId);
     await page.getByRole("button", { name: "Load available models", exact: true }).click(); await requested;
     state.owner = otherOwner;
-    await page.getByLabel("Account menu", { exact: true }).click();
-    await page.locator(".workspace-account-panel").getByRole("button", { name: "Check account", exact: true }).click();
+    await page.locator(".sg-session").getByRole("button", { name: "Check account", exact: true }).click();
     await expect(page.getByText("Choose a ChatGPT connection for text requests.", { exact: true })).toBeVisible();
     release();
     await expect(page.getByRole("option", { name: "Private previous-account model", exact: true })).toHaveCount(0);

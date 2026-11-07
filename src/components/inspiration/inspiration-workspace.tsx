@@ -17,6 +17,10 @@ const noChoice: InspirationPreferences = { ensemble: false, elements: [] };
 // whose mark is tiny, obscured or absent at gallery size.
 const retiredFromDiscovery = new Set(["mastercard-stationery", "dropbox-color-guide", "mastercard-brochures", "dropbox-street-posters", "cardless-credit-card", "into-illuminated-billboard", "dropbox-color-posters"]);
 const designs = inspirationCatalog.filter(design => !retiredFromDiscovery.has(design.slug));
+// Studio work credits its designer; icon-only logo studies show just the brand.
+// The icon source and trademark notice stay in the design's detail view.
+function designerName(design: InspirationDesign) { return design.provenance ? null : design.creator; }
+const catalogPendingNote = "You can browse this design now. Liking it will be available soon.";
 function Heart({ liked }: { liked: boolean }) {
   return <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill={liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z" /></svg>;
 }
@@ -45,10 +49,10 @@ function DesignDetail({ design, choice, controller, onClose }: { design: Inspira
   return <dialog ref={dialog} className="inspiration-detail" aria-labelledby="inspiration-detail-title" onCancel={onClose} onClick={event => { if (isDialogBackdropClick(event)) onClose(); }}>
     <div className="inspiration-detail-layout"><div className="inspiration-detail-art"><Artwork design={design} eager retry /></div>
       <div className="inspiration-detail-body"><div className="inspiration-detail-top"><span>DESIGN REFERENCE</span><button autoFocus type="button" className="inspiration-icon-button" aria-label="Close design detail" onClick={onClose}><Icon name="close" size={18} /></button></div>
-        <h2 id="inspiration-detail-title">{design.brand}</h2><p>{design.creator} · {design.kind === "identity" ? "Identity" : "Logo"}</p><p>{design.description}</p>
+        <h2 id="inspiration-detail-title">{design.brand}</h2><p>{designerName(design) ? `${designerName(design)} · ` : ""}{design.kind === "identity" ? "Identity" : "Logo"}</p><p>{design.description}</p>
         <a className="inspiration-action" href={design.sourceUrl} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">View original project<Icon name="arrow" size={16} /></a>
-        {design.provenance && <p className="inspiration-reference-rights">Reference icon via <a href={design.provenance.source} target="_blank" rel="noopener noreferrer">Simple Icons</a> ({design.provenance.license}). {design.provenance.trademarkNotice}</p>}
-        {!available && <p role="status">This new reference is available to browse. Saving it will be enabled with the catalog update.</p>}
+        {design.provenance && <p className="inspiration-reference-rights">Shown for reference only. {design.provenance.trademarkNotice} Icon from <a href={design.provenance.source} target="_blank" rel="noopener noreferrer">Simple Icons</a>.</p>}
+        {!available && <p role="status">{catalogPendingNote}</p>}
         <hr /><h3>What do you like?</h3><p>Like the whole design or choose the details.</p>
         <button className="inspiration-overall" type="button" aria-pressed={choice.ensemble} disabled={disabled} onClick={() => void controller.save(design.id, { ...choice, ensemble: !choice.ensemble })}><Heart liked={choice.ensemble} />Overall look</button>
         <div className="inspiration-elements" aria-label="Design elements">{design.elements.map(element => <button key={element} type="button" aria-pressed={choice.elements.includes(element)} disabled={disabled} onClick={() => void controller.save(design.id, { ...choice, elements: choice.elements.includes(element) ? choice.elements.filter(value => value !== element) : [...choice.elements, element] })}>{inspirationLabels[element]}</button>)}</div>
@@ -114,12 +118,12 @@ export function InspirationView({ controller, projectId }: { controller: Inspira
     <section className="inspiration-browse" aria-label="Inspiration gallery"><div className="guided-assistant-message identity-conversation-message inspiration-message">
         <EmbelIdentity label={journeyPartLabel("identity", "Inspiration")} />
         <h1 className="sr-only">Inspiration</h1>
-        <p className="guided-assistant-copy">Let’s shape how your brand looks. Like the designs you’re drawn to: the whole look, or open one to choose just the colours, type or layout. Your likes guide the logo concepts.</p>
+        <p className="guided-assistant-copy">Let’s shape how your brand looks. Like the designs you’re drawn to: the whole look, or open one to choose just the colors, type or layout. Your likes guide the logo concepts.</p>
         <h2 className="inspiration-question">What do you like?</h2>
       </div>
-      <div className="inspiration-toolbar"><div className="inspiration-views" aria-label="Inspiration views"><button type="button" aria-pressed={!liked} onClick={() => setLiked(false)}>Browse</button><button type="button" aria-pressed={liked} onClick={() => setLiked(true)}>Liked <span>· {controller.overview ? count : "—"}</span></button></div>
+      <div className="inspiration-toolbar"><div className="inspiration-views" role="group" aria-label="Inspiration views"><button type="button" aria-pressed={!liked} onClick={() => setLiked(false)}>Browse</button><button type="button" aria-pressed={liked} onClick={() => setLiked(true)}>Liked <span>· {controller.overview ? count : "—"}</span></button></div>
         <label className="inspiration-search"><Icon name="search" size={16} /><input type="search" aria-label="Search identities and logos" placeholder="Search identities and logos…" value={query} maxLength={160} onChange={event => setQuery(event.target.value)} /></label>
-        <div className="inspiration-categories" aria-label="Reference categories">{([['identity', 'Identities'], ['logo', 'Logos'], ['all', 'All']] as const).map(([value, label]) => <button type="button" key={value} aria-pressed={kind === value} onClick={() => setKind(value)}>{label}</button>)}</div>
+        <div className="inspiration-categories" role="group" aria-label="Reference categories">{([['all', 'All'], ['identity', 'Identities'], ['logo', 'Logos']] as const).map(([value, label]) => <button type="button" key={value} aria-pressed={kind === value} onClick={() => setKind(value)}>{label}</button>)}</div>
       </div>
       {controller.error ? <div className="inspiration-notice" role="status"><span>{controller.error}</span><button type="button" onClick={() => void controller.refresh()} disabled={controller.loading}>Retry connection</button></div> : controller.loading ? <p className="inspiration-notice" role="status">Loading saved choices…</p> : controller.blocked ? <p className="inspiration-notice">Save or resolve your project edits before changing inspiration.</p> : controller.overview?.projectScope === "naming_only" ? <p className="inspiration-notice">Expand this project to a complete brand to save visual preferences. <Link href={`/brands/account/${projectId}`}>Open project</Link></p> : null}
       <div className="inspiration-feed">
@@ -130,17 +134,17 @@ export function InspirationView({ controller, projectId }: { controller: Inspira
             const catalogPending = Boolean(controller.overview && !available);
             return <article key={design.id} className="inspiration-card" aria-label={`${design.brand} — ${design.slug}`}>
               <div className="inspiration-card-art"><div role="button" tabIndex={0} className="inspiration-open" aria-label={`Inspect ${design.brand}: ${design.description}`} onClick={() => setSelected(design)} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelected(design); } }}><Artwork design={design} /></div>
-                <button type="button" className="inspiration-heart" aria-label={`${choice.ensemble ? "Unlike" : "Like"} ${design.brand} overall look: ${design.slug}`} aria-pressed={choice.ensemble} aria-describedby={catalogPending ? `${availabilityId}-${design.id}` : undefined} title={catalogPending ? "Browse this reference now. Saving becomes available after the catalog update." : undefined} disabled={!controller.canSave || pending || !available} onClick={() => void controller.save(design.id, { ...choice, ensemble: !choice.ensemble })}><Heart liked={choice.ensemble} /></button>
-              </div><button className="inspiration-caption" type="button" onClick={() => setSelected(design)}><strong>{design.brand}</strong><span>{design.creator}</span></button>
-              {catalogPending && <p id={`${availabilityId}-${design.id}`} className="inspiration-element-label inspiration-availability">Browse only · catalog update pending</p>}
+                <button type="button" className="inspiration-heart" aria-label={`${choice.ensemble ? "Unlike" : "Like"} ${design.brand} overall look: ${design.slug}`} aria-pressed={choice.ensemble} aria-describedby={catalogPending ? `${availabilityId}-${design.id}` : undefined} title={catalogPending ? catalogPendingNote : undefined} disabled={!controller.canSave || pending || !available} onClick={() => void controller.save(design.id, { ...choice, ensemble: !choice.ensemble })}><Heart liked={choice.ensemble} /></button>
+              </div><button className="inspiration-caption" type="button" onClick={() => setSelected(design)}><strong>{design.brand}</strong>{designerName(design) && <span>{designerName(design)}</span>}</button>
+              {catalogPending && <p id={`${availabilityId}-${design.id}`} className="inspiration-element-label inspiration-availability">Browse only for now</p>}
               {choice.elements.length > 0 && <p className="inspiration-element-label">{choice.elements.map(element => inspirationLabels[element]).join(", ")} liked</p>}
               {busy ? <p className="inspiration-saving" role="status">Saving…</p> : pending && <button className="inspiration-pending" type="button" onClick={() => setSelected(design)}>Review unsaved choices</button>}
             </article>;
           })}
         </InspirationGrid> : <div className="inspiration-empty"><Icon name="assets" size={30} /><h2>{liked && !query && kind === "all" ? "Start with a few likes" : "No designs match these filters"}</h2><p>{liked && !query && kind === "all" ? "Like an overall look or open a design to choose its details." : "Try a brand, studio, color, or design detail."}</p><button type="button" onClick={() => { setQuery(""); setKind("all"); setLiked(false); }}>Browse all designs</button></div>}
-        <footer className="inspiration-footer"><span>{visible.length} of {liked ? inspirationCatalog.length : designs.length} curated designs</span><Link href={`/brands/account/${projectId}/identity`}>Saved references &amp; systems</Link><Link href={`/brands/account/${projectId}/logo/directions`}>Visual directions</Link></footer>
+        <footer className="inspiration-footer"><span>{visible.length} of {liked ? inspirationCatalog.length : designs.length} curated designs</span><Link className="inspiration-footer-link" href={`/brands/account/${projectId}/identity`}>Add your own references</Link></footer>
       </div>
-      <div className="inspiration-continue-row"><span>{count === 1 ? "1 liked" : `${count} liked`} · Next: Logo</span><Link className="inspiration-continue" href={`/brands/account/${projectId}/logo`}>Continue<Icon name="arrow" size={16} /></Link></div>
+      <div className="inspiration-continue-row inspiration-continue-bar"><span>{count === 1 ? "1 liked" : `${count} liked`} · Next: Logo</span><Link className="inspiration-continue" href={`/brands/account/${projectId}/logo`}>Continue<Icon name="arrow" size={16} /></Link></div>
     </section>
     {selected && <DesignDetail key={selected.id} design={selected} choice={displayed.get(selected.id) ?? noChoice} controller={controller} onClose={() => setSelected(null)} />}
   </div>;

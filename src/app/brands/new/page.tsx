@@ -1,9 +1,7 @@
-import type { Metadata } from "next";
-import { NewProjectForm } from "@/components/workspace/project-editor";
+import { redirect } from "next/navigation";
+import { homeHref, scopeFromQuery } from "../../_home/scope-query";
 
-export const metadata: Metadata = { title: "New project" };
-export default async function NewProjectPage({ searchParams }: { searchParams: Promise<{ scope?: string; example?: string }> }) {
-  const query = await searchParams;
-  const scope = query.scope === "naming_only" || query.scope === "visual_identity_only" ? query.scope : "complete_brand";
-  return <NewProjectForm initialScope={scope} exampleId={query.example} />;
+// Home starts every new project. Older links keep their chosen scope.
+export default async function NewProjectPage({ searchParams }: { searchParams: Promise<{ scope?: string | string[] }> }) {
+  redirect(homeHref(scopeFromQuery((await searchParams).scope)));
 }

@@ -27,16 +27,16 @@ export function TrademarkLiveResearch({ draft, adapter, disabled }: { draft: Tra
     finally { if (!controller.signal.aborted && request.current === controller) setPending(false); }
   }
   return <section className="tm-research-details" aria-label="EUIPO live research">
-    <h3>EUIPO exact-name research</h3>
-    <p>Search European Union marks by exact name. Similar names, national registers and goods or services relevance require separate review. Your free-text goods and classification notes are not search filters.</p>
+    <h3>EU register: exact name</h3>
+    <p>Search the European Union trademark register for this exact name. Check similar names and national registers yourself.</p>
     <div className="tm-actions"><button type="button" className="button secondary small" disabled={disabled || pending || !adapter?.ready || !draft.markName.trim() || !jurisdictions.includes("EM")} onClick={() => void search()}>{pending ? "Searching EUIPO…" : "Search exact EU name"}</button>
       {pending && <button type="button" className="button secondary small" onClick={() => { request.current?.abort(); setPending(false); }}>Cancel registry search</button>}</div>
-    {!adapter?.ready ? <p>EUIPO access is not connected. Use the official registry links for manual research.</p> : !jurisdictions.includes("EM") && <p>Add European Union (EU) to your requested territories to use this source.</p>}
+    {!adapter?.ready ? <p>The EU register search isn’t available right now. Use the registry links above.</p> : !jurisdictions.includes("EM") && <p>Add European Union to your territories to search the EU register.</p>}
     {error && <p role="alert" className="tm-error">{error}</p>}
     {research && <div role="status"><p>{research.hits.length ? `${research.hits.length} exact-name records returned for review.` : "No exact-name records were returned in this lookup."} This is partial research, not legal clearance.</p>
-      <p>Scope: EUIPO European Union marks. Dataset update date and Nice edition are not supplied by this API. Other requested territories remain unsearched.</p>
-      <p>Checked {new Date(research.checkedAt).toLocaleString("en-CA", { timeZone: "America/Toronto", timeZoneName: "short" })}. Results stay in this view and are not saved in the account draft.</p>
-      {research.interrupted && <p>The lookup stopped before all requested pages completed. Earlier validated records are retained.</p>}
+      <p>This covers EU trademarks only. Your other territories haven’t been searched.</p>
+      <p>Checked {new Date(research.checkedAt).toLocaleString("en-CA", { timeZone: "America/Toronto", timeZoneName: "short" })}.</p>
+      {research.interrupted && <p>The search stopped early. The results found so far are shown.</p>}
       <ul>{research.hits.map(hit => <li key={hit.registryId}><a href={`https://euipo.europa.eu/eSearch/#details/trademarks/${hit.registryId}`} target="_blank" rel="noopener noreferrer">{hit.mark} · {hit.registryId}</a> — {hit.status.replaceAll("_", " ")} · classes {hit.niceClasses.join(", ") || "not supplied"}</li>)}</ul>
     </div>}
   </section>;

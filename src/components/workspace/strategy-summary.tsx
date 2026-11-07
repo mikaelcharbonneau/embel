@@ -24,12 +24,12 @@ export function StrategySummary({ projectId, context, angle, expanded, onToggle 
       <div>
         <dt>Competitors</dt>
         <dd className="strategy-summary-chips">{competitors.length ? competitors.map(item => <span key={item.id} className="strategy-summary-chip">
-          <CompetitorLogo projectId={projectId} name={item.name} url={item.url} size={22} />{item.name}
+          <CompetitorLogo projectId={projectId} name={item.name} url={item.url} size={22} /><span>{item.name}</span>
         </span>) : <span>None kept</span>}</dd>
       </div>
       <div>
         <dt>Audience</dt>
-        <dd>{audience.map(item => item.label).join(" · ") || "Not chosen"}</dd>
+        <dd>{audience.length ? <ul className="strategy-summary-list">{audience.map(item => <li key={item.id}>{item.label}</li>)}</ul> : "Not chosen"}</dd>
       </div>
       <div>
         <dt>Positioning</dt>

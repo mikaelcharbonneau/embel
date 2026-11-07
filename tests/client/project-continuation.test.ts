@@ -68,7 +68,7 @@ describe("project continuation from saved work", () => {
       journey.stages.set(stage.id, { ...stage, payload: { ...stage.payload,
         selected: { kind: "concept", batchId: journey.logoBatch.id, slotId: slot.id, attemptId: slot.attempts[0]!.id } } });
     }
-    expect(await read()).toEqual({ label: "Explore visual directions", href: directions });
+    expect(await read()).toEqual({ label: "Explore creative directions", href: directions });
   });
 
   it("keeps the existing logo but excludes directions made for earlier brand preferences", async () => {
@@ -82,7 +82,7 @@ describe("project continuation from saved work", () => {
       references: journey.input.referenceSnapshot, logoBrief: journey.sourceLogo.brief, preferences });
     identity.overview.mockResolvedValue({ ...before, currentBasis,
       currentSelection: { ...selected, freshness: getIdentityFreshness(selected.system.input.basis, currentBasis) } });
-    expect(await read()).toEqual({ label: "Explore visual directions", href: directions });
+    expect(await read()).toEqual({ label: "Explore creative directions", href: directions });
   });
 
   it.each([[3, "Compare 3 directions"], [2, "Compare 2 directions"], [1, "Review visual direction"]] as const)(
@@ -95,7 +95,7 @@ describe("project continuation from saved work", () => {
 
   it("distinguishes an unresolved request from a project that has never generated directions", async () => {
     const { journey, read } = setup();
-    expect(await read()).toEqual({ label: "Explore visual directions", href: directions });
+    expect(await read()).toEqual({ label: "Explore creative directions", href: directions });
     startBatch(journey);
     expect(await read()).toEqual({ label: "Check direction progress", href: directions });
   });

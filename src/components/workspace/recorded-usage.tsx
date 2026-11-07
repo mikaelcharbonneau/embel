@@ -7,25 +7,49 @@ import { useAccountSession, type VerifiedAccount } from "./account-session";
 import { BrowserLocalDate } from "./browser-local-date";
 import "@/styles/recorded-usage.css";
 
-const labels: Record<RecordedUsage["entries"][number]["operation"], string> = {
-  "naming.generate": "Naming", "strategy.reformulate": "Strategy · Brief", "strategy.competitors": "Strategy · Competitors",
-  "strategy.audience": "Strategy · Audience", "strategy.personality": "Strategy · Personality", "strategy.positioning": "Strategy · Positioning",
-  "strategy.slogan": "Voice · Slogan",
+type Entry = RecordedUsage["entries"][number];
+const labels: Record<Entry["operation"], string> = {
+  "strategy.reformulate": "Strategy · Brief", "strategy.competitors": "Strategy · Competitors",
+  "strategy.audience": "Strategy · Audience", "strategy.positioning": "Strategy · Positioning",
+  "strategy.personality": "Voice · Personality", "naming.generate": "Voice · Name", "strategy.slogan": "Voice · Slogan",
 };
-const refreshingUsageMessage = "Checking recorded usage… Previous recorded usage is still shown.";
+const notRecorded = "Not recorded for this request.";
+
+/** Input plus output when both were recorded; never an estimate. */
+function tokensUsed(tokens: Entry["tokens"]) {
+  if (!tokens) return null;
+  const sum = tokens.inputTokens + tokens.outputTokens;
+  return tokens.totalTokens ?? (Number.isSafeInteger(sum) ? sum : null);
+}
+function usageSummary(usage: RecordedUsage) {
+  const count = usage.entries.length;
+  if (!count) return "No requests yet. Your usage appears here after Embel completes a step for you.";
+  const used = usage.entries.map(entry => tokensUsed(entry.tokens)).filter((value): value is number => value !== null);
+  const total = used.reduce((sum, value) => sum + BigInt(value), 0n).toLocaleString("en-US");
+  const requests = count === usage.limit ? `Last ${count} requests` : `${count} ${count === 1 ? "request" : "requests"}`;
+  return `${requests} · ${!used.length ? "tokens not recorded" : used.length < count ? `at least ${total} tokens used` : `${total} tokens used`}`;
+}
 
 export function RecordedUsageSection({ active = true }: { active?: boolean }) {
   const { session } = useAccountSession();
-  return <section className="settings-section recorded-usage" aria-labelledby="recorded-usage-title">
-    <div><h2 id="recorded-usage-title">Recorded usage</h2><p>Tokens recorded with completed text requests.</p></div>
-    <div className="settings-panel">
-      <p className="recorded-usage-coverage">Shows up to {RECORDED_USAGE_LIMIT} most recent successfully completed Strategy and Naming requests. Other activity is excluded. This is a recent history, not an account-wide usage total.</p>
-      {session.status === "ready" ? <OwnedRecordedUsage key={`${session.userId}:${session.generation}`} account={session} active={active} /> : <>
-        <UsageStatus reserve={session.status === "checking"} message={session.status === "signed_out" ? "Sign in to view recorded usage." : session.status === "checking" ? "Checking your account…" : "Verify your account to view recorded usage."} />
-        {session.status === "checking" && <><PendingUsageFrame /><UsageFooter /></>}
-      </>}
-    </div>
+  return <section className="recorded-usage" aria-labelledby="recorded-usage-title">
+    {session.status === "ready" ? <OwnedRecordedUsage key={`${session.userId}:${session.generation}`} account={session} active={active} /> : <>
+      <UsageHeader />
+      {session.status === "checking" ? <><p className="sr-only" role="status">Checking your account…</p><PendingUsageFrame /><CoverageNote /></> :
+        <p className="recorded-usage-message" role="status">{session.status === "signed_out" ? "Sign in to see your usage." : "Your usage can’t be shown right now. Check your connection and try again."}</p>}
+    </>}
   </section>;
+}
+
+function UsageHeader({ summary, action }: { summary?: string; action?: ReactNode }) {
+  return <header className="recorded-usage-header">
+    <div><h2 id="recorded-usage-title">Recent requests</h2><p className="recorded-usage-summary">{summary ?? "Requests Embel completed for you, newest first."}</p></div>
+    {action}
+  </header>;
+}
+
+function CoverageNote() {
+  return <p className="recorded-usage-note">Logo and image requests are not included.</p>;
 }
 
 function PendingUsageFrame() {
@@ -36,20 +60,22 @@ function PendingUsageFrame() {
   </div>;
 }
 
-function UsageStatus({ message, error = false, reserve = true }: { message: string; error?: boolean; reserve?: boolean }) {
-  return <div className="recorded-usage-status">
-    {/* Size only from public refresh copy, never private content or measurements.
-        Longer errors can still grow; terminal account states have no sizing copy. */}
-    {reserve && <span className="recorded-usage-status-sizer" aria-hidden="true" inert>{refreshingUsageMessage}</span>}
-    <p className="recorded-usage-notice" role={error ? "alert" : "status"}>{message}</p>
-  </div>;
-}
-
-function UsageFooter({ action }: { action?: ReactNode }) {
-  return <div className="recorded-usage-footer">
-    <p className="recorded-usage-note">Unknown means a token count was not recorded or could not be verified.</p>
-    <div className="recorded-usage-action" aria-hidden={action ? undefined : true} inert={!action}>{action}</div>
-  </div>;
+function UsageTable({ entries }: { entries: RecordedUsage["entries"] }) {
+  const unrecorded = entries.some(entry => tokensUsed(entry.tokens) === null);
+  return <>
+    <table className="recorded-usage-table">
+      <thead><tr><th scope="col">Step</th><th scope="col">Date</th><th scope="col">Tokens used</th></tr></thead>
+      <tbody>{entries.map(entry => {
+        const used = tokensUsed(entry.tokens);
+        return <tr key={entry.id} className="recorded-usage-entry">
+          <th scope="row">{labels[entry.operation]}</th>
+          <td><BrowserLocalDate dateTime={entry.completedAt} /></td>
+          <td>{used === null ? <><span aria-hidden="true">—</span><span className="sr-only">{notRecorded}</span></> : used.toLocaleString("en-US")}</td>
+        </tr>;
+      })}</tbody>
+    </table>
+    {unrecorded && <p className="recorded-usage-note" aria-hidden="true">— {notRecorded}</p>}
+  </>;
 }
 
 function OwnedRecordedUsage({ account, active }: { account: VerifiedAccount; active: boolean }) {
@@ -102,21 +128,14 @@ function OwnedRecordedUsage({ account, active }: { account: VerifiedAccount; act
     reading.current = true; setRetry(value => value + 1);
   }
   return <>
-    <UsageStatus error={error} message={error
-      ? snapshot ? "Recorded usage could not be refreshed. Previous recorded usage is still shown. Check your connection and try again." : "Recorded usage could not be loaded. Check your connection and try again."
-      : pending ? snapshot ? refreshingUsageMessage : "Loading recorded usage…" : "Recorded usage loaded."} />
+    <UsageHeader summary={snapshot ? usageSummary(snapshot) : undefined} action={<button type="button" className="button secondary small recorded-usage-refresh" disabled={!active} aria-disabled={!active || pending} onClick={refresh}>Refresh</button>} />
+    {/* Progress is announced, not shown; failures stay visible. */}
+    <p className="sr-only" role="status">{pending ? snapshot ? "Refreshing usage…" : "Loading usage…" : error ? "" : "Usage loaded."}</p>
+    {error && <p className="recorded-usage-error" role="alert">{snapshot
+      ? "Usage couldn’t be refreshed. The list shows the last results. Check your connection and try again."
+      : "Usage couldn’t be loaded. Check your connection and try again."}</p>}
     {!snapshot && pending && <PendingUsageFrame />}
-    {snapshot && <>
-        {!snapshot.entries.length ? <p className="recorded-usage-notice">No completed Strategy or Naming requests in this account yet.</p> :
-          <div className="recorded-usage-list">{snapshot.entries.map(entry => {
-            const label = labels[entry.operation];
-            return <article key={entry.id} className="recorded-usage-entry" aria-label={label}>
-              <div className="recorded-usage-entry-heading"><h3>{label}</h3><BrowserLocalDate dateTime={entry.completedAt} /></div>
-              <dl>{([['Input tokens', entry.tokens?.inputTokens], ['Output tokens', entry.tokens?.outputTokens], ['Total tokens', entry.tokens?.totalTokens]] as const).map(([title, value]) =>
-                <div key={title}><dt>{title}</dt><dd>{value == null ? "Unknown" : value.toLocaleString("en-US")}</dd></div>)}</dl>
-            </article>;
-          })}</div>}
-      </>}
-    <UsageFooter action={<button type="button" className="button secondary small recorded-usage-refresh" disabled={!active} aria-disabled={!active || pending} onClick={refresh}>{snapshot ? "Refresh usage" : "Check usage again"}</button>} />
+    {snapshot && snapshot.entries.length > 0 && <UsageTable entries={snapshot.entries} />}
+    <CoverageNote />
   </>;
 }

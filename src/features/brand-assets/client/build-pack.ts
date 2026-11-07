@@ -3,7 +3,7 @@ import type { AccountLogoClient } from "@/components/identity/account-logo-clien
 import type { AccountIdentityClient } from "@/components/identity/account-identity-client";
 import { serializeLogoSvg } from "@/features/logo-vector/model/svg";
 import { BrandAssetError, type BrandAssetSnapshot } from "../model/snapshot";
-import { BRAND_APPLICATIONS, createBrandApplication, createFinalBrandBoard, drawBrandArtwork, editableBrandSvg } from "../model/artwork";
+import { BRAND_APPLICATIONS, brandCopy, createBrandApplication, createFinalBrandBoard, drawBrandArtwork, drawReversedLogo, drawTransparentLogo, editableBrandSvg } from "../model/artwork";
 import { brandGuideHtml, brandPackReadme, brandPaletteFiles } from "../model/guides";
 import { designTokens, designTokensCss, designTokensJson } from "../model/design-tokens";
 import { brandCanvasPng, checkBrandAssetSignal, loadBrandFonts, readBrandImage } from "./browser-assets";
@@ -31,7 +31,7 @@ function preparedAssets(files: readonly BrandAssetFile[], vectorIncluded: boolea
 }
 
 /** Local rendering from verified saved sources. This never admits a generation job. */
-export async function buildBrandAssetPack(input: { snapshot: BrandAssetSnapshot; logoClient: AccountLogoClient; identityClient: AccountIdentityClient; vectorRevisionId?: string | null; slogan?: string | null }, signal: AbortSignal): Promise<PreparedBrandAssets> {
+export async function buildBrandAssetPack(input: { snapshot: BrandAssetSnapshot; logoClient: AccountLogoClient; identityClient: AccountIdentityClient; vectorRevisionId?: string | null; slogan?: string | null; positioning?: string | null }, signal: AbortSignal): Promise<PreparedBrandAssets> {
   const { snapshot, logoClient, identityClient } = input;
   checkBrandAssetSignal(signal);
   const logo = await readBrandImage(snapshot.logo.reference, snapshot.logo.verification.mimeType, signal => logoClient.previewAsset(snapshot.logo, signal), signal);
@@ -39,7 +39,12 @@ export async function buildBrandAssetPack(input: { snapshot: BrandAssetSnapshot;
     if (logo.bytes.length !== snapshot.logo.verification.byteLength) throw new BrandAssetError("source");
     const direction = await readBrandImage(snapshot.board, snapshot.board.mimeType, signal => identityClient.preview(snapshot.board, signal), signal);
     try {
-      const images = { logo, direction }, board = createFinalBrandBoard(snapshot), applications = BRAND_APPLICATIONS.map(spec => ({ spec, art: createBrandApplication(snapshot, spec) }));
+      // The saved slogan and positioning fill the artwork's text; missing lines are left out.
+      const copy = brandCopy(snapshot, { slogan: input.slogan, positioning: input.positioning });
+      // Raster copies of the original for light and dark surfaces; the original file is kept unchanged.
+      const derive = (draw: typeof drawTransparentLogo) => { const canvas = document.createElement("canvas"); draw(canvas, logo); return { canvas, image: canvas, width: logo.width, height: logo.height, dataUrl: canvas.toDataURL("image/png") }; };
+      const transparent = derive(drawTransparentLogo), reversed = derive(drawReversedLogo);
+      const images = { logo: transparent, logoReversed: reversed, direction }, board = createFinalBrandBoard(snapshot, copy), applications = BRAND_APPLICATIONS.map(spec => ({ spec, art: createBrandApplication(snapshot, spec, copy) }));
       const fonts = await loadBrandFonts([board, ...applications.map(row => row.art)], signal);
       try {
         const files: BrandAssetFile[] = [];
@@ -53,6 +58,9 @@ export async function buildBrandAssetPack(input: { snapshot: BrandAssetSnapshot;
         files.push({ name: `logo/logo-original.${extension(snapshot.logo.verification.mimeType)}`, label: "Original logo", category: "logo", mimeType: snapshot.logo.verification.mimeType, bytes: logo.bytes, width: logo.width, height: logo.height });
         files.push({ name: `direction/selected-direction.${extension(snapshot.board.mimeType)}`, label: "Selected direction", category: "direction", mimeType: snapshot.board.mimeType, bytes: direction.bytes, width: direction.width, height: direction.height });
         for (const { spec, art } of applications) await render(`social/${spec.id}`, spec.label, "social", art, spec.editable);
+        // Encoding releases the derived canvases, so it follows all artwork.
+        files.push({ name: "logo/logo-transparent.png", label: "Logo, transparent background", category: "logo", mimeType: "image/png", bytes: await brandCanvasPng(transparent.canvas, signal), width: logo.width, height: logo.height },
+          { name: "logo/logo-reversed.png", label: "Reversed logo", category: "logo", mimeType: "image/png", bytes: await brandCanvasPng(reversed.canvas, signal), width: logo.width, height: logo.height });
         let vectorIncluded = false;
         if (input.vectorRevisionId) {
           try {

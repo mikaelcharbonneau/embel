@@ -7,6 +7,7 @@ import type { LogoExportManifest } from "@/domain/logo-deliverables";
 import { describeAssetEvidence } from "@/features/identity-deliverables/model/asset-evidence";
 import { Icon } from "@/components/ui/icon";
 import { isDialogBackdropClick } from "@/components/ui/dialog-backdrop";
+import { assetTitle } from "./asset-labels";
 import { AssetPreview } from "./asset-preview";
 import { assetErrorMessage, canReadAssetFile, type AccountAssetsClient } from "./account-assets-client";
 
@@ -87,13 +88,13 @@ export function AssetDetailDialog({ item, client, onClose, onSelected, exportMan
     finally { inFlight.current = false; if (active.current && client.current()) setBusy(false); }
   }
   return <dialog ref={dialog} className="assets-detail" aria-labelledby="asset-detail-heading" onCancel={onClose} onClose={onClose} onClick={event => { if (isDialogBackdropClick(event)) onClose(); }}>
-    <header><div><span className="assets-eyebrow">{item.project.title}</span><h2 id="asset-detail-heading" tabIndex={-1}>{item.asset.kind}</h2></div><button type="button" className="assets-close" aria-label="Close asset details" onClick={onClose}><Icon name="close" size={19} /></button></header>
+    <header><div><span className="assets-eyebrow">{item.project.title}</span><h2 id="asset-detail-heading" tabIndex={-1}>{assetTitle(item.asset.kind)}</h2></div><button type="button" className="assets-close" aria-label="Close asset details" onClick={onClose}><Icon name="close" size={19} /></button></header>
     {error && <div className="assets-notice" role="alert"><p>{error}</p><button className="button secondary small" type="button" disabled={busy} onClick={() => { setLoading(true); setAccepted(null); setReload(value => value + 1); }}>Check latest asset</button></div>}
     {loading && <p className="assets-muted" role="status">Loading version history…</p>}
     {detail && <>
       <div className="assets-detail-summary"><Link className="text-link" href={`/brands/account/${detail.project.id}`}>{detail.project.title}<Icon name="arrow" size={13} /></Link><span>{detail.selectedVersion ? `Selected: version ${detail.selectedVersion.versionNumber} · ${detail.selectedVersion.format.toUpperCase()}` : "No selected version"}</span></div>
       <div className="assets-detail-content"><section aria-label="Version preview">
-        <AssetPreview key={version?.versionId ?? "empty"} version={version} client={client} label={`${item.asset.kind}, version ${version?.versionNumber ?? ""}`} />
+        <AssetPreview key={version?.versionId ?? "empty"} version={version} client={client} label={`${assetTitle(item.asset.kind)}, version ${version?.versionNumber ?? ""}`} />
         {version ? <>
           <div className="assets-version-title"><h3>Version {version.versionNumber}</h3><span>{version.format.toUpperCase()}{isSelected ? " · Selected" : ""}</span></div>
           <p className="assets-muted">{version.freshness.status === "stale" ? `Earlier brand context · revision ${version.inputRevision} of ${detail.project.current_revision}` : "Material context has not been verified."}</p>

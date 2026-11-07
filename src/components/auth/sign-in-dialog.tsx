@@ -21,9 +21,12 @@ export function SignInDialog({ children, mode = "sign-in" }: { children: React.R
       element.close();
       // Route effects can collapse the account menu while the overlay closes.
       // Restore after those effects, and never focus its now-hidden sign-in link.
+      // A signed-out "Sign in" opener becomes the account menu once sign-in
+      // starts, so fall back to whichever account control the pill shows now.
       requestAnimationFrame(() => {
         if (document.querySelector("dialog[open]")) return;
-        const target = [previous instanceof HTMLElement ? previous : null, accountSummary].find(candidate => candidate?.isConnected
+        const currentAccountControl = document.querySelector<HTMLElement>(".workspace-account-menu > summary, .signed-out-actions--nav a[href=\"/sign-in\"]");
+        const target = [previous instanceof HTMLElement ? previous : null, accountSummary, currentAccountControl].find(candidate => candidate?.isConnected
           && candidate.getClientRects().length > 0 && !candidate.closest("details:not([open]) > :not(summary)")
           && (candidate.checkVisibility?.() ?? true)
           && !candidate.closest("[hidden], [inert]") && !candidate.matches(":disabled") && getComputedStyle(candidate).visibility !== "hidden");

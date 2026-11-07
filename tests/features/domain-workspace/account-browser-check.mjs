@@ -116,14 +116,14 @@ try {
     await page.getByText("Imported saved sources (1)", { exact: true }).waitFor();
     assert.equal(await readNames(page), "Owned Name"); assert.equal(await page.getByRole("heading", { name: "northstar.com", exact: true }).count(), 0);
     await page.getByText("Imported saved sources (1)", { exact: true }).click();
-    await page.getByText("Saved project version 7 · selected Naming candidate", { exact: true }).waitFor();
+    await page.getByText("Project version 7 · chosen in Naming", { exact: true }).waitFor();
     await page.getByRole("button", { name: "Search domains", exact: true }).click(); await save(page).click();
     await page.getByText("Saved to account · version 2", { exact: true }).waitFor();
     assert.deepEqual(fixture.puts[0].imports, [{ projectId, projectRevision: 7, selectionId: source.selectionId }]);
     assert.equal(fixture.puts[0].payload.input, "Owned Name");
     fixture.source.name = "Later Name"; fixture.source.projectRevision = 8;
     await page.reload(); await page.getByText("Imported saved sources (1)", { exact: true }).click();
-    assert.equal(await readNames(page), "Owned Name"); await page.getByText("Saved project version 7 · selected Naming candidate", { exact: true }).waitFor();
+    assert.equal(await readNames(page), "Owned Name"); await page.getByText("Project version 7 · chosen in Naming", { exact: true }).waitFor();
   });
   await run("preparation error clears when a saved-name import replaces invalid input", async (page, fixture) => {
     await page.goto(url); await edit(page, "bad..com");

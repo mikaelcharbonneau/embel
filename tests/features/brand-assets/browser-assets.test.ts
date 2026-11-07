@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { brandAssetFixture, logoBytes } from "./fixtures";
 import { BRAND_BOARD_FONTS, brandBoardFont } from "../../../src/domain/brand-board-fonts";
 import { boundedBrandAssetWork, BRAND_ASSET_TIMEOUT_MS, loadBrandFonts, readBrandImage } from "../../../src/features/brand-assets/client/browser-assets";
-import { createBrandApplication, BRAND_APPLICATIONS } from "../../../src/features/brand-assets/model/artwork";
+import { brandCopy, createBrandApplication, BRAND_APPLICATIONS } from "../../../src/features/brand-assets/model/artwork";
 
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 function setup() {
@@ -43,7 +43,8 @@ describe("browser asset verification and resource lifetimes", () => {
     vi.stubGlobal("FontFace", class { status = "unloaded"; constructor(readonly name: string, readonly bytes: ArrayBuffer, descriptor: unknown) { descriptors.push(descriptor); } async load() { this.status = "loaded"; return this; } });
     Object.defineProperty(document, "fonts", { configurable: true, value: { add, delete: remove } });
     vi.stubGlobal("fetch", vi.fn(async (path: string) => new Response(readFileSync(`public${path}`))));
-    const fonts = await loadBrandFonts([createBrandApplication(f.snapshot, BRAND_APPLICATIONS[1])], new AbortController().signal);
+    const copy = brandCopy(f.snapshot, { slogan: "Clear routes for every city." });
+    const fonts = await loadBrandFonts([createBrandApplication(f.snapshot, BRAND_APPLICATIONS[1], copy)], new AbortController().signal);
     expect([...fonts.names.keys()]).toEqual(["Fraunces", "Manrope"]); expect(descriptors).toEqual([{ style: "normal", weight: "100 900", display: "block" }, { style: "normal", weight: "200 800", display: "block" }]);
     expect(add).toHaveBeenCalledTimes(2); fonts.release(); expect(remove).toHaveBeenCalledTimes(2);
     expect(BRAND_BOARD_FONTS.map(font => font.family)).toContain("Lora");

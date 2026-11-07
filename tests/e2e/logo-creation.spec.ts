@@ -167,9 +167,9 @@ async function setup(page: Page, scenario: "empty" | "partial" | "uncertain" | "
     await expect(page.getByRole("heading", { name: "Logo", exact: true })).toBeVisible();
     return state;
   }
-  await page.getByRole("button", { name: "Project context", exact: true }).click();
+  await page.getByRole("button", { name: "Logo brief and history", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Brand name" })).toHaveValue("Élan & Co");
-  await page.getByRole("button", { name: "Close project context" }).click();
+  await page.getByRole("button", { name: "Close logo brief and history" }).click();
   return state;
 }
 
@@ -239,7 +239,7 @@ test("lost admission response recovers by original key without a second generati
 });
 test("unavailable generation preserves saved brief and stays within mobile viewport", async ({ page }) => {
   const f = await setup(page, "unavailable"); await expect(page.getByRole("button", { name: "Explore six concepts" })).toBeDisabled();
-  await page.getByRole("button", { name: "Project context", exact: true }).click();
+  await page.getByRole("button", { name: "Logo brief and history", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Brand name" })).toHaveValue("Élan & Co");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); expect(f.posts).toHaveLength(0);
 });
@@ -251,8 +251,8 @@ test("an unselected first exploration survives full reload with no concept-stage
 
   await expect.poll(() => f.posts.length).toBe(1); await page.reload();
   await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Project context", exact: true }).click();
-  await page.getByRole("button", { name: "Saved inputs and recovery", exact: true }).click();
+  await page.getByRole("button", { name: "Logo brief and history", exact: true }).click();
+  await page.getByRole("button", { name: "Saved versions and options", exact: true }).click();
   await expect(page.getByRole("combobox", { name: "Concept batch" })).toHaveValue(id(60)); expect(f.posts).toHaveLength(1);
 });
 
@@ -260,12 +260,12 @@ test("an unselected More exploration is latest after reload and its earlier batc
   const f = await setup(page, "partial"); await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "More concepts", exact: true }).click();
   await expect.poll(() => f.posts.length).toBe(1); await page.reload();
-  await page.getByRole("button", { name: "Project context", exact: true }).click();
-  await page.getByRole("button", { name: "Saved inputs and recovery", exact: true }).click();
+  await page.getByRole("button", { name: "Logo brief and history", exact: true }).click();
+  await page.getByRole("button", { name: "Saved versions and options", exact: true }).click();
   await expect(page.getByRole("combobox", { name: "Concept batch" })).toHaveValue(id(981));
   await page.getByRole("combobox", { name: "Concept batch" }).selectOption(id(60));
-  await page.getByRole("dialog", { name: "Saved inputs and recovery", exact: true }).getByRole("button", { name: "Close", exact: true }).click();
-  await page.getByRole("button", { name: "Close project context" }).click();
+  await page.getByRole("dialog", { name: "Saved versions and options", exact: true }).getByRole("button", { name: "Close", exact: true }).click();
+  await page.getByRole("button", { name: "Close logo brief and history" }).click();
   await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible(); expect(f.posts).toHaveLength(1);
 });
 
@@ -343,9 +343,9 @@ test("an uncertain initial brief save keeps its original intent and cannot quote
   await expect(page.getByText("Your logo inputs have not been confirmed as saved.", { exact: false })).toBeVisible();
   await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
   expect(f.posts).toHaveLength(0);
-  await page.getByRole("button", { name: "Project context", exact: true }).click();
+  await page.getByRole("button", { name: "Logo brief and history", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Brand name" })).toHaveValue("Élan & Co");
-  await page.getByRole("button", { name: "Saved inputs and recovery", exact: true }).click();
+  await page.getByRole("button", { name: "Saved versions and options", exact: true }).click();
   await expect(page.getByText("A previous save is awaiting confirmation.", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "Check original save", exact: true })).toBeVisible();
   expect(f.saves).toHaveLength(1);
@@ -384,12 +384,12 @@ test("clicking a logo selects it in place and persists without an inspection scr
 
 test("composer refines the saved selected concept in place with the entered changes", async ({ page }) => {
   const f = await setup(page, "partial");
-  const send = page.getByRole("button", { name: "Generate refinement", exact: true });
+  const send = page.getByRole("button", { name: "Refine", exact: true });
   await expect(send).toBeHidden();
   await page.getByRole("button", { name: "Select concept 2", exact: true }).click();
   await expect(page.getByText("Refinement target: Concept 2", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Refine logo", exact: true }).click();
-  await page.getByRole("textbox", { name: "Describe logo changes" }).fill("Make the monogram more rounded and increase the inner spacing.");
+  await page.getByRole("textbox", { name: "Describe a change to this logo" }).fill("Make the monogram more rounded and increase the inner spacing.");
   await expect(send).toBeEnabled();
   await send.click();
   await expect.poll(() => f.posts.length).toBe(1);
@@ -397,7 +397,7 @@ test("composer refines the saved selected concept in place with the entered chan
   expect(f.issuedQuotes.get(f.posts[0]!.quoteId)?.request).toMatchObject({ operation: "refine_preview", source: { kind: "concept", slotId: id(111) }, instruction: "Make the monogram more rounded and increase the inner spacing." });
   expect(f.posts).toHaveLength(1);
   await expect(page.getByRole("heading", { name: "Refine a direction", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("textbox", { name: "Describe logo changes" })).toHaveValue("Make the monogram more rounded and increase the inner spacing.");
+  await expect(page.getByRole("textbox", { name: "Describe a change to this logo" })).toHaveValue("Make the monogram more rounded and increase the inner spacing.");
   await expect(send).toBeDisabled();
 });
 
@@ -407,10 +407,10 @@ test("a delayed estimate never generates or takes focus after the refinement edi
   let release!: () => void; f.quoteGate = new Promise<void>(resolve => { release = resolve; });
   const form = page.getByRole("form", { name: "Logo concept changes" });
   await form.getByRole("button", { name: "Refine logo", exact: true }).click();
-  await form.getByRole("textbox", { name: "Describe logo changes" }).fill("Retained instruction during quote");
+  await form.getByRole("textbox", { name: "Describe a change to this logo" }).fill("Retained instruction during quote");
   await expect.poll(() => f.quotes.some(quote => quote.operation === "refine_preview")).toBe(true);
   await form.getByRole("button", { name: "Close refinement", exact: true }).click();
-  release(); await expect(form.getByRole("textbox", { name: "Describe logo changes" })).toBeHidden();
+  release(); await expect(form.getByRole("textbox", { name: "Describe a change to this logo" })).toBeHidden();
   await expect(form.getByRole("button", { name: "Refine logo", exact: true })).toBeFocused();
   await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
   expect(f.posts).toEqual([]); expect(f.selections).toEqual([]);
@@ -422,15 +422,15 @@ test("refinement disclosure reserves space, preserves edits and keeps context ke
   const f = await setup(page, "partial", { kind: "concept", batchId: batch.id, slotId: slot.id, attemptId: attempt.id });
   const form = page.getByRole("form", { name: "Logo concept changes" });
   const toggle = form.getByRole("button", { name: "Refine logo", exact: true });
-  const input = form.getByRole("textbox", { name: "Describe logo changes" });
+  const input = form.getByRole("textbox", { name: "Describe a change to this logo" });
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
   await expect(input).toBeHidden();
   expect(await form.evaluate(node => getComputedStyle(node).position)).toBe("relative");
-  await form.getByRole("button", { name: "Project context", exact: true }).focus();
+  await form.getByRole("button", { name: "Logo brief and history", exact: true }).focus();
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("dialog", { name: "Project context", exact: true })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Logo brief and history", exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(form.getByRole("button", { name: "Project context", exact: true })).toBeFocused();
+  await expect(form.getByRole("button", { name: "Logo brief and history", exact: true })).toBeFocused();
   await toggle.click();
   await input.fill("Retained local fixture instruction");
   const formBox = await form.boundingBox(), cardBox = await page.locator('[data-concept-ordinal="0"]').boundingBox();
@@ -459,9 +459,9 @@ test("a saved refinement can be selected and edited again without leaving concep
   await expect(page.getByText("Refinement target: Concept 1 · Version 2", { exact: true })).toBeVisible();
   await expect(page.locator(`a[href$="/logo/directions"]`, { hasText: /^Continue$/ })).toHaveAttribute("href", /\/logo\/directions$/);
   await page.getByRole("button", { name: "Refine logo", exact: true }).click();
-  await page.getByRole("textbox", { name: "Describe logo changes" }).fill("Make the lettering slightly wider.");
-  await page.getByRole("textbox", { name: "Describe logo changes" }).focus();
-  await expect(page.getByRole("button", { name: "Generate refinement", exact: true })).toBeEnabled();
+  await page.getByRole("textbox", { name: "Describe a change to this logo" }).fill("Make the lettering slightly wider.");
+  await page.getByRole("textbox", { name: "Describe a change to this logo" }).focus();
+  await expect(page.getByRole("button", { name: "Refine", exact: true })).toBeEnabled();
   expect(f.posts).toHaveLength(0); await page.keyboard.press("Control+Enter");
   await expect.poll(() => f.posts.length).toBe(1);
   expect(f.quotes.at(-1)).toMatchObject({ operation: "refine_preview", source: { kind: "refinement", rasterRevisionId: refinement.id }, instruction: "Make the lettering slightly wider." });
@@ -473,8 +473,8 @@ test("a running chat edit becomes a selectable saved refinement without reloadin
   const f = await setup(page, "partial");
   await page.getByRole("button", { name: "Select concept 1", exact: true }).click();
   await page.getByRole("button", { name: "Refine logo", exact: true }).click();
-  await page.getByRole("textbox", { name: "Describe logo changes" }).fill("Increase the letter spacing slightly.");
-  await page.getByRole("button", { name: "Generate refinement", exact: true }).click();
+  await page.getByRole("textbox", { name: "Describe a change to this logo" }).fill("Increase the letter spacing slightly.");
+  await page.getByRole("button", { name: "Refine", exact: true }).click();
   await expect.poll(() => f.posts.length).toBe(1);
   const result = page.getByRole("combobox", { name: "Versions for concept 1" });
   await expect(result).toHaveCount(0);
@@ -501,8 +501,8 @@ test("a running chat edit becomes a selectable saved refinement without reloadin
 test("dialog hit testing: logo project context protects padding without generation", async ({ page }) => {
   const batch = syntheticLogoBatch(), slot = batch.slots[0]!, attempt = slot.attempts[0]!;
   const f = await setup(page, "partial", { kind: "concept", batchId: batch.id, slotId: slot.id, attemptId: attempt.id });
-  const trigger = page.getByRole("form", { name: "Logo concept changes" }).getByRole("button", { name: "Project context", exact: true });
-  await checkDialogHitTesting(page, trigger, page.getByRole("dialog", { name: "Project context", exact: true }), "Close project context");
+  const trigger = page.getByRole("form", { name: "Logo concept changes" }).getByRole("button", { name: "Logo brief and history", exact: true });
+  await checkDialogHitTesting(page, trigger, page.getByRole("dialog", { name: "Logo brief and history", exact: true }), "Close logo brief and history");
   expect(f.posts).toEqual([]); expect(f.saves).toEqual([]); expect(f.selections).toEqual([]);
 });
 

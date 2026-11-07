@@ -78,8 +78,9 @@ test("Domains actual page: empty views and contained keyboard filters stay read-
   await actionHeight(page.getByRole("button", { name: "Search domains", exact: true }));
   const filters = page.getByRole("region", { name: "Domain search filters", exact: true });
   const trigger = page.getByRole("button", { name: "Edit filters", exact: true });
-  await expect(filters).toBeVisible();
-  await trigger.focus(); await trigger.press("Escape");
+  await expect(filters).toBeHidden(); await expect(trigger).toHaveAttribute("aria-expanded", "false");
+  await trigger.focus(); await trigger.press("Enter"); await expect(filters).toBeVisible();
+  await trigger.press("Escape");
   await expect(filters).toBeHidden(); await expect(trigger).toBeFocused();
   await trigger.press("Enter"); await expect(filters).toBeVisible();
   const body = filters.locator('[class*="filterBody"]');
@@ -121,7 +122,7 @@ test("Domains actual page: prepared names expose human registrar labels and unkn
   await detail.focus(); await detail.press("Enter");
   await expect(detail).toHaveAttribute("aria-expanded", "true"); await expect(detail).toBeFocused();
   const expandedRow = results.getByRole("listitem").filter({ has: page.getByRole("heading", { name: domain, exact: true }) });
-  await expect(expandedRow.getByText("No availability evidence. Provider ID: namecom_core.", { exact: true })).toBeVisible();
+  await expect(expandedRow.getByText("Not checked yet.", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: `Request quote for ${domain}`, exact: true })).toBeDisabled();
   await detail.press("Enter");
   await views.getByRole("button", { name: "Shortlist (1)", exact: true }).click();
@@ -134,11 +135,12 @@ test("Domains actual page: prepared names expose human registrar labels and unkn
 test("Handles actual page: empty library and keyboard views expose supported local work", async ({ page }) => {
   await install(page); await settled(page, "/handles");
   const tabs = page.getByRole("tablist", { name: "Handles workspace", exact: true });
-  await expect(page.getByText("Checks not connected · availability unknown", { exact: true })).toBeVisible();
+  await expect(page.getByText("Embel drafts handle options for each platform. It doesn’t check whether they’re taken yet.", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Check handles", exact: true })).toHaveCount(0);
+  await expect(tabs.getByRole("tab", { name: "History", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Build comparison", exact: true })).toBeDisabled();
   await actionHeight(page.getByRole("button", { name: "Build comparison", exact: true }));
-  for (const tab of ["Search", "Library", "Saved", "History"]) await actionHeight(tabs.getByRole("tab", { name: tab, exact: true }));
+  for (const tab of ["Search", "Library", "Saved"]) await actionHeight(tabs.getByRole("tab", { name: tab, exact: true }));
   const search = tabs.getByRole("tab", { name: "Search", exact: true });
   await search.focus(); await search.press("ArrowRight");
   await expect(tabs.getByRole("tab", { name: "Library", exact: true })).toBeFocused();
@@ -149,8 +151,9 @@ test("Handles actual page: empty library and keyboard views expose supported loc
   await tabs.getByRole("tab", { name: "Library", exact: true }).press("ArrowRight");
   await expect(page.getByRole("heading", { name: "No saved searches yet", exact: true })).toBeVisible();
   await tabs.getByRole("tab", { name: "Saved", exact: true }).press("ArrowRight");
-  await expect(page.getByRole("heading", { name: "No checks yet", exact: true })).toBeVisible();
-  await tabs.getByRole("tab", { name: "History", exact: true }).press("Home");
+  await expect(search).toBeFocused();
+  await tabs.getByRole("tab", { name: "Search", exact: true }).press("End");
+  await tabs.getByRole("tab", { name: "Saved", exact: true }).press("Home");
   await expect(search).toBeFocused(); await noOverflow(page); await capture(page, "handles-empty-search.png");
 });
 
@@ -160,9 +163,8 @@ test("Handles actual page: saved configuration previews locally without checks o
   const comparison = page.getByRole("button", { name: "Build comparison", exact: true });
   await expect(comparison).toBeEnabled(); await actionHeight(comparison);
   await expect(preview).toContainText("@syntheticbrand");
-  await expect(preview).toContainText("not checked yet");
-  await expect(preview).toContainText("This does not check or reserve a handle");
-  await expect(preview).toContainText("Checks not connected · availability unknown");
+  await expect(preview).toContainText("handle option");
+  await expect(preview).not.toContainText("not connected");
   await expect(page.getByRole("button", { name: "Check handles", exact: true })).toHaveCount(0);
   if (page.viewportSize()!.width <= 900) {
     const summary = page.getByLabel("Candidate preview summary", { exact: true });

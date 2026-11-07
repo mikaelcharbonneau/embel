@@ -42,7 +42,7 @@ it("settles the deadline even if wall-clock rollback invalidates retained eviden
   vi.setSystemTime(new Date("2026-10-05T12:00:00Z"));
   const entry = appendEvidence(createEntry("instagram", "morrow"), { platform: "instagram", handle: "morrow", outcome: "confirmed_available", authority: "platform_api", source: "Synthetic fixture", sourceUrl: null, method: "Fixture", checkedAt: new Date().toISOString(), observedAt: new Date().toISOString(), detail: "" });
   const pending = checkHandleEntry(entry, { availability: "ready", label: "Fixture", check: () => new Promise(() => {}) });
-  const assertion = expect(pending).rejects.toThrow("timed out");
+  const assertion = expect(pending).rejects.toThrow("took too long");
   vi.setSystemTime(new Date("2026-10-05T11:59:00Z"));
   await vi.advanceTimersByTimeAsync(handleCheckDeadlineMs); await assertion;
   expect(vi.getTimerCount()).toBe(0); expect(entry.evidence).toHaveLength(1);

@@ -3,7 +3,7 @@ import type { IdentityAssetReceipt } from "../../domain/logo-deliverables";
 import type { LogoRasterRefinement } from "../../domain/logo-jobs";
 import type { LogoRasterSource } from "../../domain/logo-workspace";
 import type { LogoRefinementHistoryState } from "./refinement-history";
-import { displayLogoCost, LOGO_TYPE_LABELS } from "./presentation";
+import { LOGO_TYPE_LABELS } from "./presentation";
 import styles from "./logo-creation.module.css";
 import stage from "@/styles/branding-stage.module.css";
 import { logoCandidateKey } from "./candidate-review";
@@ -11,9 +11,7 @@ import { logoCandidateKey } from "./candidate-review";
 const labels: Record<LogoRasterRefinement["state"], string> = { queued: "Waiting", running: "Creating", succeeded: "Ready", failed: "Failed", cancelled: "Cancelled", needs_reconciliation: "Outcome uncertain" };
 const selectable = (record: LogoRasterRefinement) => record.state === "succeeded" && record.billing.status === "recorded" && record.preview?.publicationState === "committed";
 function sourceLabel(source: LogoRasterRefinement["source"]) {
-  if (source.kind === "concept") return `Source concept · batch ${source.batchId} · slot ${source.slotId} · attempt ${source.attemptId}`;
-  if (source.kind === "refinement") return `Source image refinement · ${source.rasterRevisionId}`;
-  return `Source vector revision · ${source.vectorRevisionId}`;
+  return source.kind === "concept" ? "Changed from a concept" : source.kind === "refinement" ? "Changed from a refined logo" : "Changed from a vector logo";
 }
 /** Saved raster records remain distinct from concept slots and approved vectors. */
 export function LogoRefinementGallery({ history, selected = null, briefRevisionId, refinementAvailable = false, renderPreview, onSelect, onInspect, comparison = [], onCompare, onCompareSource, onRequestRefine, onRefresh, onLoadMore }: {
@@ -34,8 +32,8 @@ export function LogoRefinementGallery({ history, selected = null, briefRevisionI
   const selectedRecord = selected?.kind === "refinement" ? history.items.find(row => row.record.id === selected.rasterRevisionId && row.verified && selectable(row.record)) : null;
   return <section className={styles.panel} aria-label="Saved image refinements">
     <h2 className={stage.sectionHeading}>Saved image refinements</h2>
-    <p className={styles.note}>Each image keeps its original source and inputs. Selecting an image saves it for review; vector conversion and approval are separate steps.</p>
-    {history.loading && <p className={styles.note} role="status">Reading saved image refinements…</p>}
+    <p className={styles.note}>Each refined logo keeps the version it was made from. Select one to use it as your logo.</p>
+    {history.loading && <p className={styles.note} role="status">Loading saved image refinements…</p>}
     {history.error && <p className={styles.warning} role="status">{history.error}</p>}
     {history.loaded && !history.loading && !history.error && history.items.length === 0 && <p className={styles.note}>No saved image refinements yet.</p>}
     <ol className={styles.concepts}>
@@ -45,16 +43,13 @@ export function LogoRefinementGallery({ history, selected = null, briefRevisionI
         const isCompared = comparison.some(item => logoCandidateKey(item) === logoCandidateKey(source));
         const priorBrief = record.inputRevisions.find(input => input.stage === "brief_references");
         return <li className={styles.conceptCard} key={record.id} data-refinement-id={record.id}>
-          <div className={styles.cardHeading}><h3 className={stage.subheading}>Image refinement</h3><span className={styles.badge}>{verified ? labels[record.state] : "Details unverified"}</span></div>
+          <div className={styles.cardHeading}><h3 className={stage.subheading}>Image refinement</h3><span className={styles.badge}>{verified ? labels[record.state] : "Details unavailable"}</span></div>
           <p className={styles.typeLabel}>{LOGO_TYPE_LABELS[record.logoType]} · {new Date(record.createdAt).toLocaleString()}</p>
-          <div className={styles.preview}>{verified && record.preview && renderPreview ? renderPreview(record.preview) : <p>{verified ? "Image preview unavailable. Saved result retained." : "Image details await verification."}</p>}</div>
-          <p className={styles.note}>Image preview · Vector conversion and approval follow separately.</p>
-          <p className={styles.note}>Refinement ID · {record.id}</p>
+          <div className={styles.preview}>{verified && record.preview && renderPreview ? renderPreview(record.preview) : <p>{verified ? "Image preview unavailable. Your refined logo is kept." : "Preview unavailable right now."}</p>}</div>
           <p className={styles.note}>{sourceLabel(record.source)}</p>
           {priorBrief && briefRevisionId && priorBrief.id !== briefRevisionId && <p className={styles.warning}>Uses an earlier saved brief. Its original inputs and preview are kept.</p>}
-          <p className={styles.note}>{record.billing.status === "recorded" ? `Confirmed charge: ${displayLogoCost(record.billing.confirmedMicrousd)}` : "Charge not confirmed."}</p>
-          {record.state === "needs_reconciliation" && <p className={styles.warning}>Outcome uncertain. Refresh saved results or check the original request before trying again.</p>}
-          {record.state === "failed" && record.reason === "logo_image_unavailable" && <p className={styles.warning}>This refinement could not be saved. AI usage is still recorded. You can select the original logo and start a new refinement.</p>}
+          {record.state === "needs_reconciliation" && <p className={styles.warning}>Outcome uncertain. Refresh to check on this change before trying again.</p>}
+          {record.state === "failed" && record.reason === "logo_image_unavailable" && <p className={styles.warning}>This refinement could not be saved. AI usage is still recorded. You can choose the original logo and describe the change again.</p>}
           {error && <p className={styles.warning} role="status">{error}</p>}
           {onInspect && <button className={styles.secondaryButton} type="button" aria-label={`Inspect image refinement ${record.id}`} disabled={!verified || !selectable(record)} onClick={() => { if (verified && selectable(record)) onInspect(source); }}>Inspect refinement</button>}
           {onCompare && <button className={styles.secondaryButton} type="button" aria-label={`Compare image refinement ${record.id}`} aria-pressed={isCompared} disabled={!verified || !selectable(record) || !isCompared && comparison.length >= 2} onClick={() => { if (verified && selectable(record)) onCompare(source); }}>{isCompared ? "Remove from comparison" : "Add to comparison"}</button>}
@@ -70,6 +65,5 @@ export function LogoRefinementGallery({ history, selected = null, briefRevisionI
       <button className={styles.secondaryButton} type="button" aria-label="Refine selected image refinement" disabled={!selectedRecord || !refinementAvailable || !onRequestRefine}
         onClick={() => { if (selectedRecord && refinementAvailable) onRequestRefine?.({ kind: "refinement", rasterRevisionId: selectedRecord.record.id }); }}>Refine selected image refinement</button>
     </div>
-    <p className={styles.note}>Refreshing or selecting saved work does not start generation.</p>
   </section>;
 }

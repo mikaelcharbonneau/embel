@@ -4,9 +4,9 @@ async function open(page: Page, suffix = "") {
   const unexpected: string[] = [];
   page.on("request", (request) => { if (new URL(request.url()).hostname !== "127.0.0.1") unexpected.push(request.url()); });
   await page.goto(`/${suffix}`);
-  await expect(page.getByRole("heading", { name: "Research your name", exact: true })).toBeVisible();
-  await page.getByRole("tab", { name: "Prepare", exact: true }).click();
-  await page.getByText("Additional dossier details", { exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Search for your name", exact: true })).toBeVisible();
+  await page.getByRole("tab", { name: "Details", exact: true }).click();
+  await page.getByText("More details", { exact: true }).click();
   return unexpected;
 }
 async function fill(page: Page) {
@@ -24,7 +24,7 @@ async function fill(page: Page) {
 test("empty draft preview remains incomplete and export availability is honest", async ({ page }) => {
   const requests = await open(page, "?disconnected");
   await expect(page.getByText("0 of 6 sections filled")).toBeVisible();
-  await page.getByRole("button", { name: "Review draft preview", exact: true }).click();
+  await page.getByRole("button", { name: "Review draft", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Draft preview — not a filing dossier" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Export draft preview" })).toBeDisabled();
   await expect(page.getByText("No application has been filed or registered.", { exact: false })).toBeVisible();
@@ -36,12 +36,12 @@ test("fills intake, reviews, invalidates review on edit and exports actual user 
   await fill(page);
   await page.getByLabel("Your research notes", { exact: true }).fill("<script>user-entered claim</script>");
   await expect(page.getByText("6 of 6 sections filled")).toBeVisible();
-  await page.getByRole("button", { name: "Review draft preview" }).click();
+  await page.getByRole("button", { name: "Review draft" }).click();
   await page.getByRole("checkbox", { name: /^I reviewed/ }).check();
   await expect(page.getByText("Reviewed draft", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Edit dossier", exact: true }).click();
+  await page.getByRole("button", { name: "Edit details", exact: true }).click();
   await page.getByLabel("Goods and services", { exact: true }).fill("Changed fixture goods");
-  await page.getByRole("button", { name: "Review draft preview", exact: true }).click();
+  await page.getByRole("button", { name: "Review draft", exact: true }).click();
   await expect(page.getByRole("checkbox", { name: /^I reviewed/ })).not.toBeChecked();
   await page.getByRole("button", { name: "Export draft preview" }).click();
   const output = JSON.parse(await page.getByLabel("Fixture callback output").textContent() || "{}");
@@ -61,12 +61,10 @@ test("fills intake, reviews, invalidates review on edit and exports actual user 
 test("research separates user notes and never fabricates matches", async ({ page }) => {
   await open(page);
   await page.getByLabel("Your research notes", { exact: true }).fill("User's own unsourced note");
-  await page.getByRole("tab", { name: "Research", exact: true }).click();
-  await page.getByText("Research coverage and your notes", { exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Dossier evidence" })).toBeVisible();
-  await expect(page.getByText("User-entered, unsourced", { exact: true })).toBeVisible();
+  await page.getByRole("tab", { name: "Search", exact: true }).click();
+  await page.getByText("Your research notes", { exact: true }).click();
   await expect(page.getByText("User's own unsourced note", { exact: true })).toBeVisible();
-  await expect(page.getByText("Unavailable", { exact: true })).toHaveCount(3);
+  await expect(page.getByText("Unavailable", { exact: true })).toHaveCount(0);
 });
 
 test("rejects over-limit territory edits without losing usable draft", async ({ page }) => {
@@ -80,10 +78,10 @@ test("rejects over-limit territory edits without losing usable draft", async ({ 
 test("export callback failure preserves the draft", async ({ page }) => {
   await open(page, "?fail");
   await page.getByLabel("Mark name", { exact: true }).fill("Retained fixture");
-  await page.getByRole("button", { name: "Review draft preview", exact: true }).click();
+  await page.getByRole("button", { name: "Review draft", exact: true }).click();
   await page.getByRole("button", { name: "Export draft preview" }).click();
   await expect(page.getByRole("alert")).toContainText("draft remains available");
-  await page.getByRole("button", { name: "Edit dossier", exact: true }).click();
+  await page.getByRole("button", { name: "Edit details", exact: true }).click();
   await expect(page.getByLabel("Mark name", { exact: true })).toHaveValue("Retained fixture");
 });
 
@@ -101,12 +99,12 @@ test("brand callback preserves known context without filing status", async ({ pa
 
 test("keyboard controls remain usable and intake has no viewport overflow", async ({ page }, info) => {
   await open(page);
-  const research = page.getByRole("tab", { name: "Research", exact: true });
+  const research = page.getByRole("tab", { name: "Search", exact: true });
   await research.focus();
   await page.keyboard.press("Enter");
   await expect(research).toHaveAttribute("aria-selected", "true");
-  await page.getByRole("tab", { name: "Prepare", exact: true }).click();
-  await page.getByText("Additional dossier details", { exact: true }).click();
+  await page.getByRole("tab", { name: "Details", exact: true }).click();
+  await page.getByText("More details", { exact: true }).click();
   await page.getByLabel("Mark name", { exact: true }).fill("Keyboard fixture");
   await page.getByLabel("Mark type", { exact: true }).selectOption("logo");
   await expect(page.getByText("0 of 6 sections filled")).toBeVisible();

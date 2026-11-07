@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { contextSnapshotSchema } from "@/domain/projects";
 import { strategyJobSchema } from "@/domain/strategy-jobs";
 import { appendGuidedTurn, initializeGuidedInterview } from "@/domain/guided-interview";
-import { guidedAllowance, guidedMessageContext, guidedTimeline, guidedTurnResult, initialGuidedContext, nextGuidedProposal } from "@/components/workspace/guided-interview-client";
+import { guidedAllowance, guidedMessageContext, guidedTimeline, guidedTurnResult, initialGuidedContext, nextGuidedProposal, withoutScoreScaleNote } from "@/components/workspace/guided-interview-client";
 import { accountProjectDraft, draftContext } from "@/components/workspace/project-draft-adapter";
 import { accountProjectSchema } from "@/domain/project-api";
 import { accountDraftChanged, createAccountDraftMemory } from "@/components/workspace/account-draft-memory";
@@ -68,5 +68,15 @@ describe("guided conversation client boundaries", () => {
     const context = initializeGuidedInterview(contextSnapshotSchema.parse({}));
     const complete = contextSnapshotSchema.parse({ ...context, intake: { ...context.intake, guidedInterview: { ...context.intake.guidedInterview!, stage: "complete" } } });
     expect(nextGuidedProposal(complete, 2, null)).toEqual(complete);
+  });
+});
+
+describe("personality replies", () => {
+  it("leave out how the scores are scaled and keep everything else", () => {
+    expect(withoutScoreScaleNote("Here are three directions. Scores use independent 1–5 scales for each Aaker personality dimension; they are not percentage allocations. Pick the one that feels right."))
+      .toBe("Here are three directions. Pick the one that feels right.");
+    expect(withoutScoreScaleNote("Warmth leads, with competence close behind—not percentages. Choose one.")).toBe("Warmth leads, with competence close behind. Choose one.");
+    expect(withoutScoreScaleNote("Sincerity scores high because your customers value honesty.")).toBe("Sincerity scores high because your customers value honesty.");
+    expect(withoutScoreScaleNote("Scores are independent—not percentages.")).toBe("Scores are independent—not percentages.");
   });
 });

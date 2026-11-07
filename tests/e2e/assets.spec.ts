@@ -83,15 +83,14 @@ async function ready(page: Page) { await page.goto("/assets"); await expect(page
 test("assets fixture: default union deduplicates liked, saved, used and legacy use", async ({ page }) => {
   const fixture = await setup(page); await ready(page);
   await expect(page.getByRole("article")).toHaveCount(5);
-  await expect(page.getByText("Used in brand", { exact: true })).toHaveCount(1);
-  await expect(page.getByText("Legacy use", { exact: true })).toHaveCount(1);
+  await expect(page.getByText("Used in brand", { exact: true })).toHaveCount(2);
+  await expect(page.getByText("Legacy use", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Open Exploration from Morrow Works" })).toHaveCount(0);
   await page.getByRole("tab", { name: "All generations", exact: true }).click();
   await expect(page.getByRole("article")).toHaveCount(6);
   await expect(page.getByRole("button", { name: "Open Exploration from Morrow Works" })).toBeVisible();
-  const guidance = page.locator(".assets-generation-note");
-  await expect(guidance).toContainText("files and versions already saved in your account");
-  await expect(guidance.getByRole("link", { name: "open a project", exact: true })).toHaveAttribute("href", "/brands");
+  await expect(page.locator(".assets-generation-note")).toHaveCount(0);
+  await expect(page.getByText(/Kept assets includes|Versions stay in your library|Available operations/)).toHaveCount(0);
   expect(fixture.mutationBodies).toEqual([]);
 });
 test("assets fixture: unlike remains saved and does not change brand use or selection", async ({ page }) => {
@@ -159,17 +158,17 @@ test("assets fixture: held filter read clears old rows and cursor", async ({ pag
   await expect(page.locator(".assets-query-placeholders")).toHaveAttribute("aria-hidden", "true");
   await expect(page.locator(".assets-query-placeholders")).toHaveAttribute("inert", "");
   await expect(page.locator(".assets-query-placeholders").locator("img, a, button, input, select, summary")).toHaveCount(0);
-  await expect(page.getByText("Matching asset count pending.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Matching asset count pending.", { exact: true })).toHaveCount(1);
   await expect(filter).toBeFocused();
   expect((await body.boundingBox())!.height).toBeGreaterThanOrEqual(before!.height - 1);
   expect((await toolbar.boundingBox())!.y).toBe(toolbarBefore!.y);
   await expect.poll(() => fixture.held !== null).toBe(true); await fixture.held!(); await expect(page.getByRole("article")).toHaveCount(1);
   await expect(page.locator(".assets-query-placeholder")).toHaveCount(0);
-  await expect(page.getByText("1 assets loaded", { exact: true })).toBeVisible();
+  await expect(page.getByText("1 assets loaded", { exact: true })).toHaveCount(1);
   await expect(body).not.toHaveAttribute("style", /min-height/);
 });
 test("assets fixture: late pre-mutation GET cannot roll back retention", async ({ page }) => {
-  const fixture = await setup(page); await ready(page); fixture.holdRead = fixture.reads + 1; await page.getByRole("button", { name: "Check assets", exact: true }).click();
+  const fixture = await setup(page); await ready(page); fixture.holdRead = fixture.reads + 1; await page.getByRole("button", { name: "Refresh", exact: true }).click();
   await expect.poll(() => fixture.held !== null).toBe(true); await actions(page, "Primary mark", "Morrow Works"); await page.getByRole("button", { name: "Save Primary mark from Morrow Works", exact: true }).click();
   await expect(page.getByRole("button", { name: "Unsave Primary mark from Morrow Works", exact: true })).toHaveAttribute("aria-pressed", "true");
   await fixture.held!(); await expect(page.getByRole("button", { name: "Unsave Primary mark from Morrow Works", exact: true })).toHaveAttribute("aria-pressed", "true");
@@ -177,7 +176,7 @@ test("assets fixture: late pre-mutation GET cannot roll back retention", async (
 test("assets fixture: lost retention response requires checking current state before retry", async ({ page }) => {
   const fixture = await setup(page); await ready(page); fixture.lostRetention = true; await actions(page, "Primary mark", "Morrow Works"); await page.getByRole("button", { name: "Save Primary mark from Morrow Works", exact: true }).click();
   await expect(page.getByRole("region", { name: "Account asset library" }).getByRole("alert")).toContainText("could not be confirmed"); await expect(page.getByRole("button", { name: "Save Primary mark from Morrow Works", exact: true })).toBeDisabled();
-  await page.getByRole("button", { name: "Check assets again" }).click(); await actions(page, "Primary mark", "Morrow Works"); await expect(page.getByRole("button", { name: "Unsave Primary mark from Morrow Works", exact: true })).toBeEnabled(); expect(fixture.mutationBodies).toHaveLength(1);
+  await page.getByRole("button", { name: "Try again", exact: true }).click(); await actions(page, "Primary mark", "Morrow Works"); await expect(page.getByRole("button", { name: "Unsave Primary mark from Morrow Works", exact: true })).toBeEnabled(); expect(fixture.mutationBodies).toHaveLength(1);
 });
 test("assets fixture: selection conflict keeps history and requires a new acknowledgment", async ({ page }) => {
   const fixture = await setup(page); await ready(page); await openPrimary(page).click(); const dialog = page.getByRole("dialog");
@@ -197,10 +196,10 @@ test("assets fixture: metadata-only file never presents a working download", asy
 });
 test("assets fixture: failed asset read remains retryable without invented empty success", async ({ page }) => {
   const fixture = await setup(page); fixture.listStatus = 503; await page.goto("/assets"); await expect(page.getByRole("region", { name: "Account asset library" })).toBeVisible({ timeout: 10000 }); await expect(page.getByRole("region", { name: "Account asset library" }).getByRole("alert")).toContainText("unavailable"); await expect(page.getByText("No saved assets yet", { exact: true })).toHaveCount(0);
-  fixture.listStatus = 200; await page.getByRole("button", { name: "Check assets again" }).click(); await expect(openPrimary(page)).toBeVisible();
+  fixture.listStatus = 200; await page.getByRole("button", { name: "Try again", exact: true }).click(); await expect(openPrimary(page)).toBeVisible();
 });
 test("assets fixture: failed brand facets do not hide owned library rows", async ({ page }) => {
-  const fixture = await setup(page); fixture.projectsStatus = 503; await ready(page); await expect(page.getByText("The project list could not be loaded.", { exact: false })).toBeVisible(); await expect(page.getByRole("article")).toHaveCount(5);
+  const fixture = await setup(page); fixture.projectsStatus = 503; await ready(page); await expect(page.getByRole("article")).toHaveCount(5);
 });
 test("assets fixture: invalid nested ownership never renders private rows", async ({ page }) => {
   const fixture = await setup(page); fixture.corrupt = true; await page.goto("/assets"); await expect(page.getByRole("region", { name: "Account asset library" }).getByRole("alert")).toContainText("could not be verified"); await expect(page.getByRole("article")).toHaveCount(0);
@@ -278,7 +277,7 @@ test("assets fixture: two tabs restore concurrently and the losing choice can be
 });
 test("assets fixture: metadata auth expiry hides every asset", async ({ page }) => {
   const fixture = await setup(page); await ready(page); fixture.listStatus = 401;
-  await page.getByRole("button", { name: "Check assets", exact: true }).click(); await expect(page.getByRole("article")).toHaveCount(0); await expect(page.getByText("No verified account session.", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "Refresh", exact: true }).click(); await expect(page.getByRole("article")).toHaveCount(0); await expect(page.getByText("No verified account session.", { exact: false })).toBeVisible();
 });
 
 test("assets design: search remains bounded and pagination can reveal a match", async ({ page }) => {
@@ -376,14 +375,14 @@ for (const field of ["liked", "saved"] as const) test(`assets pagination: ${fiel
   await page.keyboard.press("Enter");
   await expect.poll(() => fixture.mutationBodies.length).toBe(1);
   await expect(card.getByRole("button", { name: `${field === "liked" ? "Unlike" : "Unsave"} Wordmark from Morrow Works`, exact: true })).toBeEnabled();
-  await expect(page.getByRole("button", { name: "Check assets", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Refresh", exact: true })).toBeEnabled();
   await expect(page.getByRole("article")).toHaveCount(4);
   expect(await node!.evaluate(node => node.isConnected)).toBe(true);
   expect((await card.boundingBox())!.y).toBeCloseTo(box!.y, 0);
   expect(await page.getByRole("article").evaluateAll(nodes => nodes.map(node => node.getAttribute("aria-label") ?? node.textContent))).toEqual(before);
   await page.screenshot({ path: info.outputPath(`assets-paginated-${field}.png`) });
-  await page.getByRole("button", { name: "Check assets", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Check assets", exact: true })).toBeEnabled();
+  await page.getByRole("button", { name: "Refresh", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Refresh", exact: true })).toBeEnabled();
   await expect(page.getByRole("article")).toHaveCount(4);
   await page.getByRole("button", { name: "Load more assets", exact: true }).click();
   await expect(page.getByRole("article")).toHaveCount(6);

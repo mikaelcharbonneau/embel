@@ -74,7 +74,7 @@ for (const route of ["/brands", "/"]) test(`saved project cards resume the next 
   expect(await image.evaluate(element => (element as HTMLImageElement).naturalWidth)).toBe(48);
   const fallback = page.locator(`[data-project-id="${rows[1]!.id}"]`);
   await fallback.scrollIntoViewIfNeeded();
-  await expect(fallback.getByText("No logo selected", { exact: true })).toBeVisible();
+  await expect(fallback.getByText("No logo yet", { exact: true })).toBeVisible();
   const title = fallback.getByRole("heading");
   await expect(title).toHaveAttribute("title", rows[1]!.title);
   const geometry = await title.evaluate(element => ({ height: element.getBoundingClientRect().height, lineHeight: getComputedStyle(element).lineHeight }));
@@ -82,10 +82,10 @@ for (const route of ["/brands", "/"]) test(`saved project cards resume the next 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   const open = card.getByRole("link");
   await expect(open).toHaveAttribute("href", `/brands/account/${rows[0]!.id}/logo/directions`);
-  await expect(open.getByText("Explore visual directions", { exact: true })).toBeVisible();
+  await expect(open.getByText("Explore creative directions", { exact: true })).toBeVisible();
   await expect(fallback.getByRole("link")).toHaveAttribute("href", `/brands/account/${rows[1]!.id}?view=strategy#strategy-brief`);
   await open.focus(); await page.keyboard.press("Tab");
-  const options = card.getByRole("button", { name: "Project options for Untitled brand", exact: true });
+  const options = card.getByRole("button", { name: `Project options for ${selectedName}`, exact: true });
   await expect(options).toBeFocused(); await options.click();
   await expect(card.getByRole("menu")).toBeVisible(); await page.keyboard.press("Escape");
   await expect(options).toBeFocused(); await expect(card.getByRole("menu")).toHaveCount(0);

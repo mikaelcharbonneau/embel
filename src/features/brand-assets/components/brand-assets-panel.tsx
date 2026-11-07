@@ -25,7 +25,7 @@ export type BrandAssetsPanelProps = {
   vectorRevisionId?: string | null;
   directionTitle?: string;
   onRefreshSelection?(): void;
-  /** The saved project (positioning, audience, competitors and the optional slogan). */
+  /** The saved project (positioning, audience, personality and the optional slogan). */
   context?: ContextSnapshot | null;
 };
 function errorMessage(error: unknown): string {
@@ -53,7 +53,7 @@ type Ready = { pack: PreparedBrandAssets; previews: Map<string, string>; logoCli
 type DownloadSession = Pick<Ready, "logoClient" | "identityClient"> & { download(file?: BrandAssetFile): Promise<void> };
 
 function OwnedBrandAssets({ snapshot, logoClient, identityClient, account, projectId, revalidate, vectorRevisionId, directionTitle, onRefreshSelection, context = null }: BrandAssetsPanelProps & { snapshot: BrandAssetSnapshot }) {
-  const slogan = context ? guidedSlogan(context) : null;
+  const slogan = context ? guidedSlogan(context) : null, positioning = context?.positioning || null;
   const [ready, setReady] = useState<Ready | null>(null);
   const [downloading, setDownloading] = useState(false), [stale, setStale] = useState(false);
   const [message, setMessage] = useState<string | null>(null), [error, setError] = useState<string | null>(null);
@@ -90,7 +90,7 @@ function OwnedBrandAssets({ snapshot, logoClient, identityClient, account, proje
       setError(null);
       prepared = boundedBrandAssetWork(lifetime.signal, async signal => {
         await confirm(signal);
-        const pack = await buildBrandAssetPack({ snapshot, logoClient, identityClient, vectorRevisionId, slogan }, signal);
+        const pack = await buildBrandAssetPack({ snapshot, logoClient, identityClient, vectorRevisionId, slogan, positioning }, signal);
         await confirm(signal);
         return pack;
       }).then(pack => {
@@ -103,7 +103,7 @@ function OwnedBrandAssets({ snapshot, logoClient, identityClient, account, proje
         }
         const value = { pack, previews, logoClient, identityClient };
         setReady(value);
-        setMessage("Your brand assets are ready.");
+        setMessage("Ready to download.");
         return value;
       }).catch(cause => {
         if (current()) {
@@ -157,7 +157,7 @@ function OwnedBrandAssets({ snapshot, logoClient, identityClient, account, proje
       void prepare().catch(() => { /* The panel displays the error; the next click retries. */ });
     });
     return () => { lifetime.abort(); session.current = null; releaseUrls(); };
-  }, [snapshot, logoClient, identityClient, account, projectId, revalidate, vectorRevisionId, slogan]);
+  }, [snapshot, logoClient, identityClient, account, projectId, revalidate, vectorRevisionId, slogan, positioning]);
 
   if (!identityClient.current() || !isAccountLogoClientCurrent(logoClient, account, projectId)) return null;
   const shown = ready?.logoClient === logoClient && ready.identityClient === identityClient ? ready : null;
@@ -165,12 +165,12 @@ function OwnedBrandAssets({ snapshot, logoClient, identityClient, account, proje
     const active = session.current;
     if (active?.logoClient === logoClient && active.identityClient === identityClient) void active.download(file);
   }
+  // Status appears beside the kit's Download button instead of a separate notice bar.
+  const status = downloading ? "Preparing your download…" : message || (!error && !shown ? "Preparing your files…" : "");
   return <section className={styles.panel} aria-label="Brand assets">
     {error && <p className={styles.error} role="alert">{error}</p>}
-    {stale ? (onRefreshSelection && <button type="button" onClick={onRefreshSelection}>Refresh kit</button>) : <>
-      <p className={styles.notice} role="status">{downloading ? "Preparing your download…" : message || (!error && !shown ? "Loading kit previews…" : "")}</p>
-      <AssetsJourney snapshot={snapshot} pack={shown?.pack ?? null} previews={shown?.previews} downloadFile={downloadFile} disabled={downloading}
-        projectId={projectId} context={context} directionTitle={directionTitle} />
-    </>}
+    {stale ? (onRefreshSelection && <button type="button" className="button secondary" onClick={onRefreshSelection}>Refresh kit</button>)
+      : <AssetsJourney snapshot={snapshot} pack={shown?.pack ?? null} previews={shown?.previews} downloadFile={downloadFile} disabled={downloading}
+        projectId={projectId} context={context} directionTitle={directionTitle} status={status} />}
   </section>;
 }

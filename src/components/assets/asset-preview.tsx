@@ -42,7 +42,6 @@ export function AssetPreview({ version, client, label, retryable = true }: { ver
       {/* Private blob URLs must stay in this owner-scoped consumer, without an image proxy. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={available.url} alt={label} onError={() => { available.release?.(); setResult({ client, key: key!, failed: true }); }} />
-      <span className="assets-file-check">File checked</span>
-    </> : <div className="assets-file-placeholder"><Icon name={version && canPreviewAsset(version) ? "assets" : "file"} size={32} /><strong>{version ? version.format.toUpperCase() : "No file"}</strong><span>{failed ? "Preview unavailable" : version?.fileState === "metadata_only" ? "Metadata only" : version?.fileState === "missing_or_invalid" ? "File unavailable" : version && canPreviewAsset(version) ? "Private preview" : version ? "Preview not supported" : "No versions yet"}</span>{failed && retryable && <button className="text-link" type="button" onClick={() => { setResult(null); setAttempt(value => value + 1); }}>Retry preview</button>}</div>}
+    </> : <div className="assets-file-placeholder"><Icon name={version && canPreviewAsset(version) ? "assets" : "file"} size={32} /><strong>{version ? version.format.toUpperCase() : "No file"}</strong><span>{failed ? "Preview unavailable" : version?.fileState === "metadata_only" ? "Metadata only" : version?.fileState === "missing_or_invalid" ? "File unavailable" : version && canPreviewAsset(version) ? "Loading preview" : version ? "Preview not supported" : "No versions yet"}</span>{failed && retryable && <button className="text-link" type="button" onClick={() => { setResult(null); setAttempt(value => value + 1); }}>Retry preview</button>}</div>}
   </div>;
 }

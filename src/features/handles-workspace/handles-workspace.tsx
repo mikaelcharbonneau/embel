@@ -11,6 +11,7 @@ import { declareAccountCreated, emptyHandlesSearch, emptyHandlesState, filterBun
 import { previewHandleSearch, type HandleSeparator } from "./search";
 import { HandlesResults } from "./results";
 import { downloadHandlesCsv, handleProfileUrl } from "./manual-tools";
+import "@/components/tools/tool-page.css";
 import "./handles-workspace.css";
 
 type CommonProps = {
@@ -35,7 +36,7 @@ export type HandlesWorkspaceProps = CommonProps & (
 
 export function HandleEvidenceDetails({ entry }: { entry: HandleEntry }) {
   const latest = entry.evidence.at(-1);
-  return <ContextDetails className="handles-evidence" title={<>Check evidence {entry.evidence.length ? `(${entry.evidence.length})` : ""}</>}>{!latest ? <p>No check has been performed. A missing profile is not proof of availability.</p> : entry.evidence.slice().reverse().map((evidence, index) => <dl key={`${evidence.observedAt}-${index}`}>
+  return <ContextDetails className="handles-evidence" title={<>Check details {entry.evidence.length ? `(${entry.evidence.length})` : ""}</>}>{!latest ? <p>Not checked yet.</p> : entry.evidence.slice().reverse().map((evidence, index) => <dl key={`${evidence.observedAt}-${index}`}>
       <dt>Platform</dt><dd>{platforms.find(platform => platform.id === evidence.platform)?.label}</dd>
       <dt>Exact handle</dt><dd>@{evidence.handle}</dd>
       <dt>Observation</dt><dd>{evidence.outcome.replaceAll("_", " ")}</dd>
@@ -57,8 +58,8 @@ function AccountDeclaration({ entry, onChange }: { entry: HandleEntry; onChange:
     catch { setError("Enter a valid account URL on this platform, or leave it blank."); }
   }
   return <div className="handles-account">
-    {entry.accountCreated ? <><span className="handles-created">Account created · user declared</span><small>Declared {entry.accountCreated.declaredAt}</small>{entry.accountCreated.url && <a href={entry.accountCreated.url} target="_blank" rel="noopener noreferrer">Open my account</a>}<button type="button" className="text-link" onClick={() => onChange({ ...entry, accountCreated: null })}>Remove declaration</button></> : <button type="button" className="text-link" onClick={() => setOpen(!open)}>I created this account</button>}
-    {open && !entry.accountCreated && <form onSubmit={submit} className="handles-declare-form"><p>Record an account you created externally. Embel has not verified ownership.</p><label className="handles-field">Account URL (optional)<input type="url" value={url} maxLength={2048} onChange={event => setUrl(event.target.value)} placeholder="https://…" /></label>{error && <p role="alert">{error}</p>}<div className="handles-actions"><button type="submit" className="button secondary small">Record my created account</button><button type="button" className="text-link" onClick={() => setOpen(false)}>Cancel</button></div></form>}
+    {entry.accountCreated ? <><span className="handles-created">You created this account</span><small>Added {entry.accountCreated.declaredAt}</small>{entry.accountCreated.url && <a href={entry.accountCreated.url} target="_blank" rel="noopener noreferrer">Open my account</a>}<button type="button" className="text-link" onClick={() => onChange({ ...entry, accountCreated: null })}>Remove</button></> : <button type="button" className="text-link" onClick={() => setOpen(!open)}>I created this account</button>}
+    {open && !entry.accountCreated && <form onSubmit={submit} className="handles-declare-form"><p>Note an account you made on this platform.</p><label className="handles-field">Account link (optional)<input type="url" value={url} maxLength={2048} onChange={event => setUrl(event.target.value)} placeholder="https://…" /></label>{error && <p role="alert">{error}</p>}<div className="handles-actions"><button type="submit" className="button secondary small">Save</button><button type="button" className="text-link" onClick={() => setOpen(false)}>Cancel</button></div></form>}
   </div>;
 }
 
@@ -126,7 +127,7 @@ export function HandlesWorkspace(props: HandlesWorkspaceProps = {}) {
     attempt(() => {
       rows = previewHandleSearch(sources, chosenPlatforms, searchOptions).rows;
       request.current?.abort(); setActiveCheck(null); setMatrix(rows); setChosen({}); updateSearch({ names: allNames.join(", "), nameDraft: "", title: sources[0]?.name ?? "" });
-      setNotice(`${rows.length} candidate rows prepared. Availability has not been checked.`);
+      setNotice(`${rows.length} handle ${rows.length === 1 ? "option" : "options"} ready to compare.`);
     });
     return rows;
   }
@@ -163,7 +164,7 @@ export function HandlesWorkspace(props: HandlesWorkspaceProps = {}) {
           if (timedOut) throw new HandleCheckTimeoutError(checked);
         }
       }
-      if (isCurrent()) { setActiveCheck(null); setNotice("Checks finished. Review the evidence for each result."); }
+      if (isCurrent()) { setActiveCheck(null); setNotice("Checks finished. Open a handle to see its results."); }
     } catch (cause) {
       if (isCurrent()) { setActiveCheck(null); setError(cause instanceof Error ? cause.message : "Checks could not be completed."); }
     }
@@ -176,7 +177,7 @@ export function HandlesWorkspace(props: HandlesWorkspaceProps = {}) {
   function saveRow(row: HandleMatrixRow) {
     attempt(() => {
       const bundle: HandleBundle = { id: crypto.randomUUID(), title: `@${row.entries[0]!.handle}`, list: list.trim(), source: row.source, savedAt: new Date().toISOString(), entries: row.entries.map(entry => ({ ...structuredClone(entry), ...(props.saveCheckEvidence === false ? { evidence: [] } : {}) })) };
-      change(saveBundle(state, bundle)); setNotice("Handle bundle added to the library. Nothing was reserved.");
+      change(saveBundle(state, bundle)); setNotice("Saved to your library.");
     });
   }
   function save(event: FormEvent) {
@@ -185,37 +186,40 @@ export function HandlesWorkspace(props: HandlesWorkspaceProps = {}) {
       if (!selected.length) throw new Error("Choose at least one handle in the matrix.");
       if (new Set(selected.map(item => item.row.source.id)).size > 1) throw new Error("Choose variants from one source name per bundle so its project context stays clear.");
       const bundle: HandleBundle = { id: crypto.randomUUID(), title: title.trim(), list: list.trim(), source: selected[0]!.row.source, savedAt: new Date().toISOString(), entries: selected.map(item => ({ ...structuredClone(item.entry), ...(props.saveCheckEvidence === false ? { evidence: [] } : {}) })) };
-      change(saveBundle(state, bundle)); setChosen({}); setTab("library"); setNotice("Bundle added to the library. No handle was reserved.");
+      change(saveBundle(state, bundle)); setChosen({}); setTab("library"); setNotice("Bundle saved to your library.");
     });
   }
+  // History lists checks, so it appears only when a check can run.
+  const tabs = adapter.availability === "ready" ? ["search", "library", "saved", "history"] as const : ["search", "library", "saved"] as const;
+  const view: typeof tab = (tabs as readonly string[]).includes(tab) ? tab : "search";
+  const tabLabels = { search: "Search", library: "Library", saved: "Saved", history: "History" } as const;
   function tabKey(event: KeyboardEvent<HTMLButtonElement>) {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
-    const tabs = ["search", "library", "saved", "history"] as const;
-    const index = tabs.indexOf(tab);
-    const next = tabs[event.key === "Home" ? 0 : event.key === "End" ? 3 : (index + (event.key === "ArrowRight" ? 1 : 3)) % 4]!;
+    const index = (tabs as readonly string[]).indexOf(view);
+    const next = tabs[event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : (index + (event.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length]!;
     setTab(next); document.getElementById(`${id}-${next}`)?.focus();
   }
   const visible = filterBundles(state, query, filter, group);
   const groups = [...new Map(state.bundles.map(bundle => [groupKey(bundle), groupLabel(bundle)])).entries()];
-  return <div className="page handles-workspace">
-    <header className="handles-heading"><h1>Find your handle. Make it yours<span>.</span></h1><p>{tab === "search" && matrix.length ? "Compare exact handles across platforms, then keep a bundle." : "Choose platforms and variations to build a comparison. Availability requires a connected check."}</p></header>
-    <div className="handles-tabs" role="tablist" aria-label="Handles workspace">{(["search", "library", "saved", "history"] as const).map(value => <button type="button" role="tab" id={`${id}-${value}`} aria-controls={`${id}-panel`} aria-selected={tab === value} tabIndex={tab === value ? 0 : -1} onKeyDown={tabKey} onClick={() => setTab(value)} key={value}>{value[0]!.toUpperCase() + value.slice(1)}</button>)}</div>
+  return <div className="page tool-page handles-workspace">
+    <header className="tool-heading handles-heading"><div className="tool-heading-text"><h1>Find your handle. Make it yours<span>.</span></h1><p>{adapter.availability === "ready" ? "Embel drafts handle options for each platform and can look up existing YouTube profiles. Confirm on each platform before you claim one." : "Embel drafts handle options for each platform. It doesn’t check whether they’re taken yet."}</p></div></header>
+    <div className="tool-tabs handles-tabs" role="tablist" aria-label="Handles workspace">{tabs.map(value => <button type="button" role="tab" id={`${id}-${value}`} data-label={tabLabels[value]} aria-controls={`${id}-panel`} aria-selected={view === value} tabIndex={view === value ? 0 : -1} onKeyDown={tabKey} onClick={() => setTab(value)} key={value}>{tabLabels[value]}</button>)}</div>
     {error && <p className="handles-error" role="alert">{error}</p>}
-    <fieldset disabled={props.disabled} className="handles-editor"><section role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-${tab}`}>
-      {tab === "library" ? <>
+    <fieldset disabled={props.disabled} className="handles-editor"><section role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-${view}`}>
+      {view === "library" ? <>
         {state.bundles.length > 0 && <>
         <button type="button" className="button secondary small" disabled={!visible.length} onClick={() => { if (props.canExport?.() !== false) downloadHandlesCsv(visible.map(bundle => ({ name: bundle.title, entries: bundle.entries }))); }}>Export library CSV</button>
-        <div className="handles-toolbar"><label className="handles-field">Search library<input value={query} onChange={event => setQuery(event.target.value)} placeholder="Handle, brand or list" /></label><label className="handles-field">State<select value={filter} onChange={event => setFilter(event.target.value as LibraryFilter)}><option value="all">All saved handles</option><option value="favorite">Favorites</option><option value="selected">Selected</option><option value="account_created">Account created · user declared</option></select></label><label className="handles-field">Brand or list<select value={group} onChange={event => setGroup(event.target.value)}><option value="all">All brands and lists</option>{groups.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><button type="button" className="button primary" onClick={() => setTab("search")}>Add handles<Icon name="plus" size={15} /></button></div>
+        <div className="handles-toolbar"><label className="handles-field">Search library<input value={query} onChange={event => setQuery(event.target.value)} placeholder="Handle, brand or list" /></label><label className="handles-field">State<select value={filter} onChange={event => setFilter(event.target.value as LibraryFilter)}><option value="all">All saved handles</option><option value="favorite">Favorites</option><option value="selected">Selected</option><option value="account_created">Accounts I created</option></select></label><label className="handles-field">Brand or list<select value={group} onChange={event => setGroup(event.target.value)}><option value="all">All brands and lists</option>{groups.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><button type="button" className="button primary" onClick={() => setTab("search")}>Add handles<Icon name="plus" size={15} /></button></div>
         </>}
-        {!visible.length && <div className="empty-panel"><h2>{state.bundles.length ? "No matching bundles" : "Keep your handles together"}</h2><p>{state.bundles.length ? "Try another search or state filter." : "Compare names across platforms, then keep a bundle for a brand or personal list."}</p><button type="button" className="button secondary" onClick={() => setTab("search")}>Compare handles</button></div>}
+        {!visible.length && <div className="tool-empty"><h2>{state.bundles.length ? "No matching bundles" : "Keep your handles together"}</h2><p>{state.bundles.length ? "Try another search or state filter." : "Compare handle options across platforms, then save the ones you like."}</p><button type="button" className="button primary" onClick={() => setTab("search")}>Compare handles</button></div>}
         {groups.filter(([key]) => visible.some(bundle => groupKey(bundle) === key)).map(([key, label]) => <section className="handles-group" key={key} aria-label={label}><h2>{label}</h2>{visible.filter(bundle => groupKey(bundle) === key).map(bundle => <article className="handles-bundle" key={bundle.id}><div className="handles-bundle-heading"><div><h3>{bundle.title}</h3><p>Source: {bundle.source.name} · {props.sourceLabel ? props.sourceLabel(bundle.source) : <>{bundle.source.origin === "manual" ? "Entered name" : bundle.source.origin === "project" ? "Project" : "Names library"}{bundle.source.projectTitle ? ` · ${bundle.source.projectTitle}` : ""}</>}</p></div>{props.onCreateBrand && <button type="button" className="button secondary small" onClick={() => props.onCreateBrand?.(structuredClone(bundle))}>Create brand from bundle</button>}</div>
           <div className="handles-library-grid">{bundle.entries.map(entry => <div className="handles-saved-entry" key={entry.platform}><strong>{platforms.find(platform => platform.id === entry.platform)?.label}</strong><span className="handles-exact">@{entry.handle}</span><span className={`handles-status handles-status-${handleStatus(entry)}`}>{statusLabels[handleStatus(entry)]}</span><p className="handles-last-check">Last check: {lastCheckedAt(entry) ?? "Not checked"}</p><div className="handles-actions"><button type="button" className="button secondary small" aria-pressed={entry.favorite} onClick={() => attempt(() => change(updateBundleEntry(state, bundle.id, entry.platform, value => ({ ...value, favorite: !value.favorite }))))}>{entry.favorite ? "Favorited" : "Favorite"}</button><button type="button" className="button secondary small" aria-pressed={entry.selected} onClick={() => attempt(() => change(updateBundleEntry(state, bundle.id, entry.platform, value => ({ ...value, selected: !value.selected }))))}>{entry.selected ? "Selected" : "Select"}</button></div><AccountDeclaration entry={entry} onChange={value => attempt(() => change(updateBundleEntry(state, bundle.id, entry.platform, () => value)))} /><HandleEvidenceDetails entry={entry} /><a className="text-link" href={handleProfileUrl(entry)} target="_blank" rel="noopener noreferrer">{entry.platform === "linkedin" ? "Open company profile" : "Open profile"}</a><a className="text-link" href={platforms.find(platform => platform.id === entry.platform)!.url} target="_blank" rel="noopener noreferrer">Open platform to create or change an account</a></div>)}</div>
         </article>)}</section>)}
-      </> : tab === "search" ? <>
+      </> : view === "search" ? <>
         <form className="handles-search-form" hidden={matrix.length > 0} onSubmit={event => { event.preventDefault(); commitNames(); }}>
           <div className="handles-business-field">
-            <label htmlFor={`${id}-names`}>Business handles <span>· add several, separated by comma</span></label>
+            <label htmlFor={`${id}-names`}>Business handles <span>· add several, separated by commas</span></label>
             <div className="handles-name-library"><BrowserNameDialog disabled={props.disabled || checking} onUse={name => {
               if (allNames.includes(name)) return;
               if (allNames.length + imports.length >= 30 || [...allNames, name].join(", ").length > 3000) { setError("Keep up to 30 names within 3,000 characters. Your current search is unchanged."); return; }
@@ -227,24 +231,21 @@ export function HandlesWorkspace(props: HandlesWorkspaceProps = {}) {
             </div><button type="button" className="button secondary handles-save-search" disabled={!sources.length || !!previewError || checking} onClick={saveSearch}><HandlesArtwork name="save-search" />Save search</button></div>
           </div>
           {!!props.importedNames?.length && <fieldset className="handles-imports"><legend>Import from Names or a project</legend><div className="handles-options">{props.importedNames.map(source => <label key={source.id}><input type="checkbox" checked={imports.includes(source.id)} onChange={event => { invalidateSearch(); updateSearch({ imports: event.target.checked ? [...imports, source.id] : imports.filter(value => value !== source.id) }); }} />{source.name}{source.projectTitle && <small>{source.projectTitle}</small>}</label>)}</div></fieldset>}
-          <div className="handles-preview-summary" aria-label="Candidate preview summary"><div><strong>{candidates.length} candidates</strong><span>{previewError ? "Review search options" : candidates.length ? candidates.slice(0, 2).map(handle => `@${handle}`).join(" · ") : "Add a name to preview"}</span></div><a href={`#${id}-preview`} onClick={() => document.getElementById(`${id}-preview`)?.focus()}>View preview<Icon name="arrow" size={14} /></a></div>
+          <div className="handles-preview-summary" aria-label="Candidate preview summary"><div><strong>{candidates.length} handle {candidates.length === 1 ? "option" : "options"}</strong><span>{previewError ? "Review search options" : candidates.length ? candidates.slice(0, 2).map(handle => `@${handle}`).join(" · ") : "Add a name to preview"}</span></div><a href={`#${id}-preview`} onClick={() => document.getElementById(`${id}-preview`)?.focus()}>View preview<Icon name="arrow" size={14} /></a></div>
           <div className="handles-workbench">
             <div className="handles-controls-column">
-              <fieldset className="handles-card handles-platform-card"><legend className="sr-only">Platforms</legend><h2 aria-hidden="true">Platforms</h2><div className="handles-platform-options">{[...platforms, { id: "threads", label: "Threads" }, { id: "facebook", label: "Facebook" }, { id: "whatsapp", label: "WhatsApp" }].map(platform => {
-                const supported = platforms.some(item => item.id === platform.id);
-                const checked = supported && chosenPlatforms.includes(platform.id as HandlePlatform);
-                return <label key={platform.id} title={supported ? undefined : "Not supported yet"}><span className="handles-checkbox"><input type="checkbox" disabled={!supported} checked={checked} onChange={event => { invalidateSearch(); updateSearch({ platforms: event.target.checked ? [...chosenPlatforms, platform.id as HandlePlatform] : chosenPlatforms.filter(value => value !== platform.id) }); }} />{checked && <HandlesArtwork name="check" />}</span>{platform.label}{!supported && <small>Unavailable</small>}</label>;
+              <fieldset className="handles-card handles-platform-card"><legend className="sr-only">Platforms</legend><h2 aria-hidden="true">Platforms</h2><div className="handles-platform-options">{platforms.map(platform => {
+                const checked = chosenPlatforms.includes(platform.id);
+                return <label key={platform.id}><span className="handles-checkbox"><input type="checkbox" checked={checked} onChange={event => { invalidateSearch(); updateSearch({ platforms: event.target.checked ? [...chosenPlatforms, platform.id] : chosenPlatforms.filter(value => value !== platform.id) }); }} />{checked && <HandlesArtwork name="check" />}</span>{platform.label}</label>;
               })}</div></fieldset>
               <section className="handles-card handles-affix-card"><h2>Prefixes &amp; suffixes</h2>{(["prefixes", "suffixes"] as const).map(kind => <label className="handles-field" key={kind}><span>{kind === "prefixes" ? "Prefixes" : "Suffixes"} · choose or add your own</span><div className="handles-affix-input"><input aria-label={kind === "prefixes" ? "Prefixes" : "Suffixes"} value={searchOptions[kind]} maxLength={200} placeholder={kind === "prefixes" ? "get, hello, try" : "hq, studio, co"} onChange={event => { invalidateSearch(); updateSearch({ options: { ...searchOptions, [kind]: event.target.value } }); }} /><button type="button" aria-label={`Add ${kind}`} onClick={event => { const input = event.currentTarget.previousElementSibling as HTMLInputElement; const next = searchOptions[kind].trim() ? `${searchOptions[kind].replace(/[\s,]+$/, "")}, ` : ""; invalidateSearch(); updateSearch({ options: { ...searchOptions, [kind]: next } }); input.focus(); queueMicrotask(() => input.setSelectionRange(next.length, next.length)); }}>+ Add</button></div></label>)}</section>
-              <section className="handles-card handles-separator-card"><h2>Separators</h2><div className="handles-separator-options">{(["", ".", "_"] as HandleSeparator[]).map(separator => <button key={separator} type="button" aria-pressed={searchOptions.separators.includes(separator)} onClick={() => { invalidateSearch(); updateSearch({ options: { ...searchOptions, separators: searchOptions.separators.includes(separator) ? searchOptions.separators.filter(value => value !== separator) : [...searchOptions.separators, separator] } }); }}>{separator === "" ? "None" : separator === "." ? "Dot ." : "Underscore _"}</button>)}</div><p>Apply between name and prefix / suffix</p><p className="handles-muted">Only generate separators supported by each platform. Numbers off.</p></section>
+              <section className="handles-card handles-separator-card"><h2>Separators</h2><div className="handles-separator-options">{(["", ".", "_"] as HandleSeparator[]).map(separator => <button key={separator} type="button" aria-pressed={searchOptions.separators.includes(separator)} onClick={() => { invalidateSearch(); updateSearch({ options: { ...searchOptions, separators: searchOptions.separators.includes(separator) ? searchOptions.separators.filter(value => value !== separator) : [...searchOptions.separators, separator] } }); }}>{separator === "" ? "None" : separator === "." ? "Dot ." : "Underscore _"}</button>)}</div><p>Goes between the name and a prefix or suffix. Each platform only gets the separators it allows.</p></section>
             </div>
-            <section className="handles-card handles-preview-card" id={`${id}-preview`} tabIndex={-1} aria-label="Handles preview"><header><h2>Handles preview</h2><p>{candidates.length} candidates · not checked yet</p></header>
-              {previewError ? <p className="handles-error" role="status">{previewError}</p> : candidates.length ? <div className="handles-candidate-grid">{candidates.map(handle => <span key={handle}>@{handle}</span>)}</div> : <div className="handles-preview-empty"><p>Add a business handle to preview your candidates.</p><p>Nothing has been checked or reserved.</p></div>}
-              <p className="handles-muted">Invalid combinations are excluded per platform, never silently changed.</p>
-              {!!preview.excluded && <p className="handles-muted">{preview.excluded} platform combinations excluded by local syntax screening.</p>}
+            <section className="handles-card handles-preview-card" id={`${id}-preview`} tabIndex={-1} aria-label="Handles preview"><header><h2>Handles preview</h2><p>{candidates.length} handle {candidates.length === 1 ? "option" : "options"}</p></header>
+              {previewError ? <p className="handles-error" role="status">{previewError}</p> : candidates.length ? <div className="handles-candidate-grid">{candidates.map(handle => <span key={handle}>@{handle}</span>)}</div> : <div className="handles-preview-empty"><p>Add a business handle to see options.</p></div>}
+              {!!preview.excluded && <p className="handles-muted">{preview.excluded} {preview.excluded === 1 ? "option was" : "options were"} left out because a platform doesn’t allow {preview.excluded === 1 ? "it" : "them"}.</p>}
               <button type="button" className="button primary handles-check-action" disabled={!candidates.length || checking || !!previewError} onClick={() => compare()}>Build comparison</button>
-              <p className="handles-muted">Compare candidate spellings locally. This does not check or reserve a handle.</p>
-              <div className="handles-preview-actions"><span>{adapter.availability === "unavailable" ? "Checks not connected · availability unknown" : adapter.label}</span>{adapter.availability === "ready" && <button type="button" className="button secondary small" disabled={!candidates.length || checking} onClick={() => { const rows = compare(); if (rows.length) void checkMatrix(rows); }}>{checking ? "Checking…" : "Check handles"}</button>}</div>
+              {adapter.availability === "ready" && <div className="handles-preview-actions"><span>{adapter.label}</span><button type="button" className="button secondary small" disabled={!candidates.length || checking} onClick={() => { const rows = compare(); if (rows.length) void checkMatrix(rows); }}>{checking ? "Checking…" : "Check handles"}</button></div>}
             </section>
           </div>
         </form>
@@ -256,10 +257,10 @@ export function HandlesWorkspace(props: HandlesWorkspaceProps = {}) {
           {!!selected.length && <form className="handles-save-tray" onSubmit={save}><div><strong>{selected.length} platforms in this bundle</strong><p>{selected.map(item => `${item.entry.platform}: @${item.entry.handle}`).join(" · ")}</p></div><label className="handles-field">Bundle name<input value={title} maxLength={160} required onChange={event => updateSearch({ title: event.target.value })} /></label><label className="handles-field">Personal list<input value={list} maxLength={160} required onChange={event => updateSearch({ list: event.target.value })} /></label><button type="submit" className="button primary" disabled={checking}>Save bundle</button></form>}
         </>}
 
-      </> : tab === "saved" ? <div className="handles-session-list"><p className="handles-muted">Saved searches keep your names, platforms and variations. Availability must be checked again.</p>{!savedSearches.length && <div className="empty-panel"><h2>No saved searches yet</h2><p>Save a search to revisit its names, platforms and variations.</p></div>}{savedSearches.map(search => <article className="handles-card" key={search.id}><h2>{search.names || "Imported names"}</h2><p>{search.platforms.map(platform => platforms.find(item => item.id === platform)!.label).join(" · ")}</p><div className="handles-actions"><button type="button" className="button secondary" onClick={() => { invalidateSearch(); updateSearch({ names: search.names, nameDraft: "", imports: search.imports.filter(sourceId => props.importedNames?.some(source => source.id === sourceId)), platforms: search.platforms, options: structuredClone(search.options) }); setTab("search"); if (search.imports.some(sourceId => !props.importedNames?.some(source => source.id === sourceId))) setNotice("Some imported sources are no longer present. Import and choose them again before comparing."); }}>Use search</button><button type="button" className="text-link" onClick={() => updateSearch({ savedSearches: savedSearches.filter(item => item.id !== search.id) })}>Remove search</button></div></article>)}</div> : <div className="handles-session-list"><p className="handles-muted">Check attempts in this tab only. Review exact results in the comparison’s evidence; an attempt does not imply success.</p>{!history.length && <div className="empty-panel"><h2>No checks yet</h2><p>Checks appear here when a connected adapter starts a request.</p></div>}{history.map(item => <article className="handles-card" key={item.id}><h2>{item.names.join(", ")}</h2><p>Started {item.at} · {item.count} platform candidates</p><p>Start recorded. Completion and availability are not inferred.</p></article>)}</div>}
+      </> : view === "saved" ? <div className="handles-session-list">{!savedSearches.length ? <div className="tool-empty"><h2>No saved searches yet</h2><p>Save a search to come back to its names, platforms and options.</p></div> : <p className="handles-muted">Saved searches keep your names, platforms and options.</p>}{savedSearches.map(search => <article className="handles-card" key={search.id}><h2>{search.names || "Imported names"}</h2><p>{search.platforms.map(platform => platforms.find(item => item.id === platform)!.label).join(" · ")}</p><div className="handles-actions"><button type="button" className="button secondary" onClick={() => { invalidateSearch(); updateSearch({ names: search.names, nameDraft: "", imports: search.imports.filter(sourceId => props.importedNames?.some(source => source.id === sourceId)), platforms: search.platforms, options: structuredClone(search.options) }); setTab("search"); if (search.imports.some(sourceId => !props.importedNames?.some(source => source.id === sourceId))) setNotice("Some imported names are no longer available. Import them again before comparing."); }}>Use search</button><button type="button" className="text-link" onClick={() => updateSearch({ savedSearches: savedSearches.filter(item => item.id !== search.id) })}>Remove search</button></div></article>)}</div> : <div className="handles-session-list">{!history.length ? <div className="tool-empty"><h2>No checks yet</h2><p>Checks you start on this page appear here.</p></div> : <p className="handles-muted">Checks you started on this page. Open a handle in the comparison to see its results.</p>}{history.map(item => <article className="handles-card" key={item.id}><h2>{item.names.join(", ")}</h2><p>Started {item.at} · {item.count} {item.count === 1 ? "handle" : "handles"}</p></article>)}</div>}
     </section></fieldset>
-    <footer className="handles-draft-footer">{notice && <p className="handles-notice" role="status">{notice}</p>}<p className="handles-note">{props.storageNote ?? "This tab only. Reopening this page starts a new workspace."}</p>{props.draftControls}</footer>
+    <footer className="handles-draft-footer">{notice && <p className="handles-notice" role="status">{notice}</p>}<p className="handles-note">{props.storageNote ?? "This tab only. Leaving the page clears it."}</p>{props.draftControls}</footer>
 
-    <p className="handles-boundary">Saving, favoriting or selecting a handle does not reserve it. Create accounts and change handles on the external platform. A user declaration does not verify ownership or availability.</p>
+    <p className="handles-boundary">Saving a handle here doesn’t reserve it. Create the account on each platform to claim it.</p>
   </div>;
 }

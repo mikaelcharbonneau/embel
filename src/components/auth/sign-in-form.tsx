@@ -9,6 +9,7 @@ import { useAccountSession } from "@/components/workspace/account-session";
 import { requestSignIn, SignInRequestError, signInErrorMessage } from "./sign-in-request";
 import { requestSignUp, signUpErrorMessage } from "./sign-up-request";
 import { hasPromptRecovery } from "@/components/workspace/prompt-recovery";
+import { HidePasswordIcon, ShowPasswordIcon } from "./auth-icons";
 import "@/styles/auth.css";
 
 export function SignInForm({ configured, overlay = false, mode = "sign-in", confirmation }: {
@@ -39,6 +40,8 @@ export function SignInForm({ configured, overlay = false, mode = "sign-in", conf
   const [resend, setResend] = useState(false);
   const [resent, setResent] = useState(false);
   const [hasPrompt, setHasPrompt] = useState(false);
+  // Shown only while the person asks; every submit and clear masks it again.
+  const [passwordsShown, setPasswordsShown] = useState(false);
   const signingUp = mode === "sign-up";
   const confirming = signingUp && awaitingConfirmation;
   const checking = session.status === "checking";
@@ -49,6 +52,7 @@ export function SignInForm({ configured, overlay = false, mode = "sign-in", conf
     credentialGeneration.current++;
     if (passwordInput.current) passwordInput.current.value = "";
     if (confirmPasswordInput.current) confirmPasswordInput.current.value = "";
+    setPasswordsShown(false);
   }, []);
 
   useEffect(() => () => clearPasswords(), [mode, clearPasswords]);
@@ -68,6 +72,7 @@ export function SignInForm({ configured, overlay = false, mode = "sign-in", conf
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (disabled || signedIn || requestPending.current) return;
+    setPasswordsShown(false);
     const email = emailInput.current?.value.trim() ?? "";
     const password = passwordInput.current?.value ?? "";
     const repeated = confirmPasswordInput.current?.value ?? "";
@@ -131,8 +136,13 @@ export function SignInForm({ configured, overlay = false, mode = "sign-in", conf
         {confirming ? <div className="auth-confirmation-note" role="status"><p>If this address is eligible, a confirmation email will arrive shortly. Open its link in this browser. Check your spam folder too.</p><p>Already have an account? Sign in with your existing password.</p></div> : <form method="post" action={signingUp ? "/api/auth/sign-up" : "/api/auth/sign-in"} onSubmit={submit} aria-label={signingUp ? "Create account" : "Sign in"} aria-busy={submitting}>
           <fieldset disabled={disabled}>
             <label className="auth-field" htmlFor={`${idPrefix}-email`}>Email<input ref={emailInput} id={`${idPrefix}-email`} name="email" type="email" placeholder="you@example.com" autoComplete="username" autoCapitalize="none" spellCheck={false} maxLength={320} required onChange={() => { if (!signingUp) clearPasswords(); setError(""); }} /></label>
-            <label className="auth-field" htmlFor={`${idPrefix}-password`}>Password<input ref={bindPasswordInput} id={`${idPrefix}-password`} name="password" type="password" placeholder={signingUp ? "Create a password" : "Enter your password"} autoComplete={signingUp ? "new-password" : "current-password"} minLength={signingUp ? 12 : undefined} maxLength={1024} required onChange={() => setError("")} aria-describedby={error ? `${idPrefix}-error` : signingUp ? `${idPrefix}-password-guidance` : undefined} /></label>
-            {signingUp && <><p className="auth-field-help" id={`${idPrefix}-password-guidance`}>Use at least 12 characters.</p><label className="auth-field auth-confirm-password" htmlFor={`${idPrefix}-confirm-password`}>Confirm password<input ref={bindConfirmPasswordInput} id={`${idPrefix}-confirm-password`} name="confirmPassword" type="password" placeholder="Enter your password again" autoComplete="new-password" minLength={12} maxLength={1024} required onChange={() => setError("")} /></label><p className="auth-field-help">You&apos;ll need to confirm your email before signing in.</p></>}
+            {/* The toggle sits over the input's right edge. A future "Forgot password?"
+                link belongs in this wrapper too, aligned with the label on the right. */}
+            <div className="auth-password-field">
+              <label className="auth-field" htmlFor={`${idPrefix}-password`}>Password<input ref={bindPasswordInput} id={`${idPrefix}-password`} name="password" type={passwordsShown ? "text" : "password"} placeholder={signingUp ? "Create a password" : "Enter your password"} autoComplete={signingUp ? "new-password" : "current-password"} autoCapitalize="none" autoCorrect="off" spellCheck={false} minLength={signingUp ? 12 : undefined} maxLength={1024} required onChange={() => setError("")} aria-describedby={error ? `${idPrefix}-error` : signingUp ? `${idPrefix}-password-guidance` : undefined} /></label>
+              <button type="button" className="auth-password-toggle" aria-label={signingUp ? "Show passwords" : "Show password"} aria-pressed={passwordsShown} aria-controls={signingUp ? `${idPrefix}-password ${idPrefix}-confirm-password` : `${idPrefix}-password`} title={passwordsShown ? "Hide password" : "Show password"} onClick={() => setPasswordsShown(shown => !shown)}>{passwordsShown ? <HidePasswordIcon /> : <ShowPasswordIcon />}</button>
+            </div>
+            {signingUp && <><p className="auth-field-help" id={`${idPrefix}-password-guidance`}>Use at least 12 characters.</p><label className="auth-field auth-confirm-password" htmlFor={`${idPrefix}-confirm-password`}>Confirm password<input ref={bindConfirmPasswordInput} id={`${idPrefix}-confirm-password`} name="confirmPassword" type={passwordsShown ? "text" : "password"} placeholder="Enter your password again" autoComplete="new-password" autoCapitalize="none" autoCorrect="off" spellCheck={false} minLength={12} maxLength={1024} required onChange={() => setError("")} /></label><p className="auth-field-help">You&apos;ll need to confirm your email before signing in.</p></>}
             <button type="submit" className="button primary auth-submit">{submitting ? signingUp ? "Creating account…" : "Signing in…" : signingUp ? "Create account" : "Sign in"}{submitting ? <span className="auth-progress" aria-hidden="true" /> : <AuthArtwork name="submit-arrow" />}</button>
           </fieldset>
           {checking && configured && !submitting && <p className="auth-status" role="status">Checking your account…</p>}
@@ -148,7 +158,7 @@ export function SignInForm({ configured, overlay = false, mode = "sign-in", conf
         {confirming && <button type="button" className="text-link auth-resend-toggle" disabled={disabled} onClick={() => { clearPasswords(); setError(""); setResend(false); setResent(false); dismissConfirmation(); }}>Use another email</button>}
       </>}
     </section>
-    <div className="auth-guided-browser"><div className="auth-draft-note"><AuthArtwork name="device" /><p>Your projects and names save to your account.</p></div><Link className="auth-browser-link text-link" href="/" onClick={clearPasswords}>Return to Home<AuthArtwork name="browser-arrow" /></Link></div>
+    <div className="auth-guided-browser"><Link className="auth-browser-link text-link" href="/" onClick={clearPasswords}>Return to Home<AuthArtwork name="browser-arrow" /></Link></div>
   </div>;
 }
 

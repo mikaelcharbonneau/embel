@@ -10,11 +10,11 @@ describe("Handles accessible initial rendering", () => {
     const html = renderToStaticMarkup(createElement(HandlesWorkspace));
     expect(html).toContain('role="tablist"'); expect(html).toContain('aria-selected="true"'); expect(html).toContain("Find your handle. Make it yours");
     expect(html).toContain("Add a business handle"); expect(html).toContain("Prefixes"); expect(html).toContain("Separators");
-    expect(html).toContain("Checks not connected"); expect(html).toContain("This tab only"); expect(html).not.toContain("Confirmed available");
+    expect(html).toContain("It doesn’t check whether they’re taken yet"); expect(html).not.toContain("Threads"); expect(html).toContain("This tab only"); expect(html).not.toContain("Confirmed available");
   });
   it("renders independent favorite/selected/declaration controls and external creation", () => {
     const html = renderToStaticMarkup(createElement<HandlesWorkspaceProps>(HandlesWorkspace, { initialState: fixtureHandlesState, initialView: "library" }));
-    expect(html).toContain("Favorited"); expect(html).toContain("Selected"); expect(html).toContain("Account created · user declared");
+    expect(html).toContain("Favorited"); expect(html).toContain("Selected"); expect(html).toContain("You created this account");
     expect(html).toContain("Last check: Not checked"); expect(html).toContain("Open platform to create or change an account"); expect(html).not.toContain("Confirmed available");
   });
   it("exposes source/method/dates for missing-profile observations without availability", () => {

@@ -9,12 +9,9 @@ beforeEach(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REA
 afterEach(() => { act(() => root.unmount()); host.remove(); });
 
 const projectId = "33333333-3333-4333-8333-333333333333";
-async function loaded(naturalWidth: number, size = 40) {
+async function shown(size = 40) {
   await act(async () => root.render(createElement(CompetitorLogo, { projectId, name: "Fixture Studio", url: "https://fixture.example.org/about", size })));
-  const image = host.querySelector("img")!;
-  Object.defineProperty(image, "naturalWidth", { configurable: true, value: naturalWidth });
-  await act(async () => { image.dispatchEvent(new Event("load")); });
-  return image;
+  return { tile: host.querySelector<HTMLElement>(".competitor-logo")!, image: host.querySelector("img")! };
 }
 
 describe("competitor logo", () => {
@@ -23,17 +20,24 @@ describe("competitor logo", () => {
     expect(host.querySelector("img")!.getAttribute("src")).toBe(`/api/projects/${projectId}/competitor-icon?host=fixture.example.org&v=2`);
   });
 
-  it("fills the space with a large icon", async () => {
-    expect((await loaded(180)).style.padding).toBe("");
+  it("shows every icon at the same size inside the same tile", async () => {
+    const { tile, image } = await shown();
+    expect([tile.style.width, tile.style.height]).toEqual(["40px", "40px"]);
+    expect([image.getAttribute("width"), image.getAttribute("height")]).toEqual(["24", "24"]);
   });
 
-  it("shows a tiny icon smaller instead of stretching it", async () => {
-    expect((await loaded(32)).style.padding).toBe("10px");
-    expect((await loaded(16)).style.padding).toBe("12px");
+  it("keeps small chips proportionate", async () => {
+    const { tile, image } = await shown(22);
+    expect(tile.style.width).toBe("22px");
+    expect(image.getAttribute("width")).toBe("15");
   });
 
-  it("leaves small chips at their size", async () => {
-    expect((await loaded(32, 24)).style.padding).toBe("");
+  it("falls back to the initial in the same tile when the icon fails", async () => {
+    const { image } = await shown();
+    await act(async () => { image.dispatchEvent(new Event("error")); });
+    const tile = host.querySelector<HTMLElement>(".competitor-logo-monogram")!;
+    expect(tile.textContent).toBe("F");
+    expect(tile.style.width).toBe("40px");
   });
 
   it("shows the initial when the site has no usable icon", async () => {

@@ -26,7 +26,7 @@ const operationLabels: Record<JobActivityEntry["operation"], string> = {
   "strategy.personality": "Personality", "strategy.positioning": "Positioning", "strategy.slogan": "Slogan", "naming.generate": "Naming",
   "ideas.explore": "Ideas", "identity.image": "Identity images", "identity.vector": "Vector output", "brand.export": "Brand export",
   "identity.logo_concept": "Logo concepts", "identity.logo_refine": "Logo refinement", "identity.logo_vectorize": "Logo vector",
-  "identity.logo_vector_propose": "AI-assisted vector controls", "identity.logo_directions": "Identity directions", "identity.logo_export": "Brand files",
+  "identity.logo_vector_propose": "Vector logo", "identity.logo_directions": "Creative directions", "identity.logo_export": "Brand files",
 };
 export const jobOperationLabel = (operation: JobActivityEntry["operation"]) => operationLabels[operation];
 export function jobActivityHref(job: Pick<JobActivityEntry, "projectId" | "operation">) {

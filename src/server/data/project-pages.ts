@@ -5,6 +5,7 @@ import { accountProjectPageSchema, compareProjectCursors, listProjectPageSchema,
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
 import { enrichProjectDeletionStates } from "./project-deletion";
+import { projectDisplayName, readSelectedProjectNames } from "./project-display-names";
 
 /** Bounded continuation over existing authenticated project SELECT/RLS rights. */
 export async function listProjectPage(auth: AuthenticatedContext, input: unknown) {
@@ -28,7 +29,11 @@ export async function listProjectPage(auth: AuthenticatedContext, input: unknown
       new Set(rows.data.map(row => row.id.toLowerCase())).size !== rows.data.length ||
       rows.data.some((row, index) => (cursor && compareProjectCursors(projectCursor(row), cursor) >= 0) ||
         (index > 0 && compareProjectCursors(projectCursor(rows.data[index - 1]!), projectCursor(row)) <= 0))) throw new ApiError("integration_unavailable");
-  const selected = rows.data.slice(0, limit);
+  const page = rows.data.slice(0, limit);
+  // Lists show the chosen brand name, as the project bar does; the cursor keeps
+  // using the stored row, so paging is unaffected by display names.
+  const names = await readSelectedProjectNames(auth, page);
+  const selected = page.map(row => ({ ...row, title: projectDisplayName(row.title, names.get(row.id.toLowerCase()), 160) }));
   // Enrichment verifies the same lifecycle epoch; a concurrent Restore cannot
   // attach new state to an old page or cross the collection's active/deleted filter.
   const items = state === "deleted" ? await enrichProjectDeletionStates(auth, selected) : selected.map(row => ({ ...row, deletion_state: "active" as const }));

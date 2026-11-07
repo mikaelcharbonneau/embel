@@ -171,6 +171,20 @@ describe("navigation", () => {
     expect(host.querySelector("[role='status']")!.textContent).toBe("Loading project…");
     expect(host.querySelector("nav[aria-label='Brand journey']")).toBeNull();
   });
+  it("asks the open conversation to show a step instead of reloading it", async () => {
+    const href = `${window.location.pathname}?view=strategy#journey-strategy`;
+    await render(createElement(ProjectCapsule, { projectName: "x", saveState: null, steps: journeySteps("voice", new Set(["strategy"]), { strategy: href }) }));
+    const link = host.querySelector<HTMLAnchorElement>("nav[aria-label='Brand journey'] a")!;
+    const click = () => { const event = new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }); link.dispatchEvent(event); return event; };
+    // Not on screen: the link opens the conversation at that step.
+    expect(click().defaultPrevented).toBe(false);
+    const section = document.createElement("section");
+    section.id = "journey-strategy"; document.body.append(section);
+    const shown = vi.fn();
+    section.addEventListener("embel:journey-section", event => shown((event as CustomEvent).detail));
+    expect(click().defaultPrevented).toBe(true);
+    expect(shown).toHaveBeenCalledExactlyOnceWith("strategy");
+  });
 });
 
 describe("decisions that must not regress", () => {

@@ -28,7 +28,7 @@ it("reserves one status slot and retains loaded grid/image nodes through backgro
   expect(status).not.toBeNull(); expect(status?.textContent).toBe("");
   const siblings = [...host.querySelector("#assets-results")!.children];
   fixture.library = { ...fixture.library, status: "loading" }; await render();
-  expect(host.querySelector(".assets-loading")).toBe(status); expect(status?.textContent).toBe("Checking assets…");
+  expect(host.querySelector(".assets-loading")).toBe(status); expect(status?.textContent).toBe("Refreshing…");
   expect([...host.querySelector("#assets-results")!.children]).toEqual(siblings);
   expect(host.querySelector(".assets-grid")).toBe(grid); expect(grid?.querySelector("img")).toBe(image);
   fixture.library = { ...fixture.library, status: "ready" }; await render();
@@ -68,4 +68,16 @@ it("retains Escape focus return and removes its dismissal listeners on unmount",
   await act(async () => root.render(null));
   for (const event of ["keydown", "pointerdown", "focusin"]) expect(remove.mock.calls.some(([name]) => name === event)).toBe(true);
   remove.mockRestore();
+});
+
+it("titles cards in plain words with the project's name and uses menu-style filters", async () => {
+  const [item] = (fixture.library.page!.items as unknown as Record<string, unknown>[]);
+  fixture.library = { ...fixture.library, page: { ...fixture.library.page!, items: [{ ...item, asset: { ...(item!.asset as object), kind: "logo_identity_system" }, project: { id: "project", title: "Launchpad" } }] } } as unknown as typeof fixture.library;
+  await render();
+  const card = host.querySelector("article")!;
+  expect(card.getAttribute("aria-label")).toBe("Brand board · Launchpad"); expect(card.querySelector("h2")?.textContent).toBe("Brand board");
+  expect(card.querySelector(".assets-brand")?.textContent).toBe("Launchpad");
+  expect(host.textContent).not.toMatch(/logo_identity_system|File checked/);
+  expect(host.querySelectorAll(".assets-filter svg.assets-filter-chevron")).toHaveLength(2); expect(host.querySelector('.assets-filter img[src$="filter.svg"]')).toBeNull();
+  expect([...host.querySelectorAll("button")].find(button => button.textContent === "Refresh")).toBeDefined();
 });

@@ -40,7 +40,8 @@ describe("utility task hierarchy", () => {
     expect(status.parentElement?.textContent).not.toContain("namecom_core");
     expect(host.textContent).toContain("Not quoted");
     await click("View synthetic.com details");
-    expect(host.textContent).toContain("Provider ID: namecom_core");
+    expect(host.querySelector(`[id$="-details-synthetic.com"]`)?.textContent).toContain("Not checked yet.");
+    expect(host.textContent).not.toContain("namecom_core");
     expect(check).not.toHaveBeenCalled(); expect(quote).not.toHaveBeenCalled();
   });
 
@@ -71,7 +72,7 @@ describe("utility task hierarchy", () => {
     await act(async () => button("View synthetic.com details").focus());
     expect(button("Edit filters").getAttribute("aria-expanded")).toBe("false");
     expect(document.activeElement).toBe(button("View synthetic.com details"));
-    expect(host.querySelector('[aria-label="Active domain filters"]')?.textContent).toContain("Unavailable hidden");
+    expect(host.querySelector('[aria-label="Active domain filters"]')?.textContent).toContain("Taken domains hidden");
     expect(host.textContent).not.toContain("Premium included");
   });
 
@@ -85,7 +86,7 @@ describe("utility task hierarchy", () => {
     expect(button("Check handles").classList.contains("secondary")).toBe(true);
     await click("Build comparison");
     expect(host.querySelector('[aria-label="Handle comparison matrix"]')).not.toBeNull();
-    expect(host.textContent).toContain("Availability has not been checked");
+    expect(host.textContent).toContain("ready to compare");
     expect(check).not.toHaveBeenCalled();
   });
 
@@ -99,7 +100,9 @@ describe("utility task hierarchy", () => {
     expect(target.getAttribute("aria-label")).toBe("Handles preview");
     await act(async () => link.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true })));
     expect(document.activeElement).toBe(target);
-    expect(host.textContent).toContain("Checks not connected · availability unknown");
+    expect(host.textContent).toContain("It doesn’t check whether they’re taken yet.");
+    expect(host.textContent).not.toContain("not connected");
+    expect([...host.querySelectorAll('[role="tab"]')].map(item => item.textContent)).toEqual(["Search", "Library", "Saved"]);
     expect([...host.querySelectorAll("button")].some(item => item.textContent === "Check handles")).toBe(false);
     expect(button("Build comparison").disabled).toBe(false);
   });
@@ -116,12 +119,10 @@ describe("utility task hierarchy", () => {
     const change = vi.fn();
     const draft = { ...createTrademarkDraft("Synthetic"), territories: ["Canada"] };
     await act(async () => root.render(<TrademarkWorkspace draft={draft} onChange={change} liveResearch={<section aria-label="Synthetic source">European Union exact-name source · disconnected</section>} />));
-    expect([...host.querySelectorAll('[role="tab"]')].map(item => item.textContent)).toEqual(["Research", "Prepare", "Current draft", "Latest revision"]);
-    const prepare = button("Prepare manual search");
-    const scope = document.getElementById(prepare.getAttribute("aria-describedby")!)!;
-    expect(scope.textContent).toContain("does not query a registry");
-    expect(scope.textContent).toContain("Canada");
-    expect(host.querySelector('[aria-label="Registry evidence"]')?.textContent).toContain("Results remain separate");
+    expect([...host.querySelectorAll('[role="tab"]')].map(item => item.textContent)).toEqual(["Search", "Details", "Summary", "Save history"]);
+    expect(button("Prepare search").type).toBe("submit");
+    expect(host.querySelector(".tool-heading p")?.textContent).toContain("can check exact names in the EU register");
+    expect(host.querySelector('[aria-label="Registry evidence"]')?.textContent).toContain("aren’t saved with your draft");
     expect(change).not.toHaveBeenCalled();
   });
 
@@ -132,21 +133,22 @@ describe("utility task hierarchy", () => {
       return <TrademarkWorkspace draft={draft} onChange={next => { change(next); setDraft(next); }} savedDraft={{ revision: 4, updatedAt: "2026-10-20T12:00:00Z", dirty: true }} />;
     }
     await act(async () => root.render(<Controlled />));
-    button("Research").focus();
-    await act(async () => button("Research").dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })));
-    expect(document.activeElement).toBe(button("Prepare"));
-    expect(host.textContent).toContain("Preparation draft");
+    expect(host.querySelector(".tool-heading p")?.textContent).toContain("it doesn’t search registries for you");
+    button("Search").focus();
+    await act(async () => button("Search").dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })));
+    expect(document.activeElement).toBe(button("Details"));
+    expect(host.textContent).toContain("Your draft");
     expect(host.textContent).toContain("Missing");
     expect(host.querySelector<HTMLInputElement>('[aria-label="Mark name"]')?.value).toBe("Synthetic retained");
-    await click("Current draft");
-    expect(host.textContent).toContain("One working draft is supported");
-    expect(host.textContent).toContain("Account revision 4 · unsaved changes");
-    await click("Latest revision");
-    expect(host.textContent).toContain("Only the latest account save receipt");
-    expect(host.textContent).toContain("The current edits are not included");
-    expect(host.textContent).toContain("Earlier revisions and registry search history are not available");
-    await act(async () => button("Latest revision").dispatchEvent(new KeyboardEvent("keydown", { key: "Home", bubbles: true })));
-    expect(document.activeElement).toBe(button("Research"));
+    await click("Summary");
+    expect(host.textContent).toContain("Your trademark notes live in one draft");
+    expect(host.textContent).toContain("Version 4 · unsaved changes");
+    await click("Save history");
+    expect(host.textContent).toContain("When this draft was last saved");
+    expect(host.textContent).toContain("Your latest edits aren’t saved yet");
+    expect(host.textContent).toContain("Only the last save is shown");
+    await act(async () => button("Save history").dispatchEvent(new KeyboardEvent("keydown", { key: "Home", bubbles: true })));
+    expect(document.activeElement).toBe(button("Search"));
     expect(host.querySelector<HTMLInputElement>('[aria-label="Mark name"]')?.value).toBe("Synthetic retained");
     expect(change).not.toHaveBeenCalled();
   });

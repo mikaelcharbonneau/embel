@@ -14,6 +14,7 @@ import { DomainFilters, DomainNameInput, defaultViewFilters, type DomainViewFilt
 import { boundedDomainRead, DomainReadCancelled, DomainReadTimeout } from "./bounded-read";
 import { DomainResultTools, type DomainReadOutcome } from "./result-tools";
 import styles from "./domain-workspace.module.css";
+import "@/components/tools/tool-page.css";
 
 export type DomainsWorkspaceProps = {
   adapter?: DomainSearchAdapter;
@@ -37,7 +38,7 @@ function registrarLabel(provider: string | undefined) {
   if (!provider) return "Not connected";
   return ({ namecom_core: "Name.com", namecom_core_sandbox: "Name.com sandbox", vercel_registrar: "Vercel", cloudflare_registrar: "Cloudflare", "Public registry RDAP": "Public registry lookup" } as Record<string, string>)[provider] ?? "Connected provider";
 }
-const defaultLibrary = { status: "unavailable", message: "Purchased-domain records are not connected." } as const;
+const defaultLibrary = { status: "unavailable", message: "Buying domains in Embel isn’t available yet. Domains you buy will appear here." } as const;
 function date(value: string) { return new Date(value).toLocaleString("en-CA", { timeZone: "America/Toronto", timeZoneName: "short" }); }
 function money(value: DomainQuote["total"]) {
   try {
@@ -48,14 +49,14 @@ function money(value: DomainQuote["total"]) {
 }
 
 /** The account/session wrapper must remount this component whenever ownership changes. */
-export function DomainsWorkspace({ adapter = unavailableDomainAdapter, library = defaultLibrary, orders = [], initialInput = "", initialView = "library", draft, onDraftChange, draftDisabled = false, draftNotice = "Candidates stay in this tab until you leave.", draftControls, onOpenNameLibrary, onCreateBrand }: DomainsWorkspaceProps) {
+export function DomainsWorkspace({ adapter = unavailableDomainAdapter, library = defaultLibrary, orders = [], initialInput = "", initialView = "library", draft, onDraftChange, draftDisabled = false, draftNotice = "Your search stays on this page until you leave.", draftControls, onOpenNameLibrary, onCreateBrand }: DomainsWorkspaceProps) {
   const uid = useId();
   const [tab, setTab] = useState<"library" | "search" | "shortlist">(initialView);
   const [localDraft, setLocalDraft] = useState(() => emptyDomainDraft(initialInput));
   const currentDraft = draft ?? localDraft;
   const { input, extensions, candidates } = currentDraft;
   const shortlisted = useMemo(() => domainDraftShortlistedDomains(currentDraft), [currentDraft]);
-  const [filtersExpanded, setFiltersExpanded] = useState(!candidates.length);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [viewFilters, setViewFilters] = useState<DomainViewFilters>({ ...defaultViewFilters });
   const [nameInputVersion, setNameInputVersion] = useState(0);
   const [expandedRows, setExpandedRows] = useState<string[]>([]);
@@ -168,20 +169,20 @@ export function DomainsWorkspace({ adapter = unavailableDomainAdapter, library =
     return sort.descending ? -comparison : comparison;
   });
   function selectSort(key: typeof sort.key) { setSort(current => ({ key, descending: key === current.key ? !current.descending : false })); }
-  return <div className={styles.workspace}>
-    <header className={styles.heading}><h1>A home for your brand<span>.</span></h1><p>Find the right domain for your next brand.</p></header>
-    <nav className={styles.tabs} aria-label="Domain views">{(["search", "shortlist", "library"] as const).map(value => <button type="button" key={value} aria-current={tab === value ? "page" : undefined} onClick={() => setTab(value)}>{value === "library" ? "Library" : value === "shortlist" ? `Shortlist${shortlisted.length ? ` (${shortlisted.length})` : ""}` : "Search"}</button>)}</nav>
+  const tabLabel = (value: typeof tab) => value === "library" ? "Library" : value === "shortlist" ? `Shortlist${shortlisted.length ? ` (${shortlisted.length})` : ""}` : "Search";
+  return <div className={`page tool-page ${styles.workspace}`}>
+    <header className="tool-heading"><div className="tool-heading-text"><h1>A home for your brand<span>.</span></h1><p>Find the right domain for your next brand.</p></div></header>
+    <nav className={`tool-tabs ${styles.tabs}`} aria-label="Domain views">{(["search", "shortlist", "library"] as const).map(value => <button type="button" key={value} data-label={tabLabel(value)} aria-current={tab === value ? "page" : undefined} onClick={() => setTab(value)}>{tabLabel(value)}</button>)}</nav>
     {tab === "library" ? <section aria-label="Purchased domains" className={styles.panel}>
       <div className={styles.sectionHeading}><h2>Purchased in Embel</h2><label className={styles.librarySearch}><span className="sr-only">Search purchased domains</span><input type="search" placeholder="Search domain or brand" value={filter} onChange={event => setFilter(event.target.value)} /></label></div>
-      <p className={styles.muted}>Only registrar-confirmed Embel purchases appear here. Search candidates and pending orders stay separate.</p>
+      <p className={styles.muted}>Domains you buy through Embel appear here once the registrar confirms them.</p>
       {library.status === "loading" ? <p role="status">Loading purchased domains…</p> : library.status === "error" ? <p role="alert">{library.message ?? "Purchased domains could not be loaded."}</p> : library.status === "unavailable" ? <div className={styles.empty}><Icon name="domains" size={28} /><h3>Domain library unavailable</h3><p>{library.message ?? defaultLibrary.message}</p><button type="button" className="button secondary small" onClick={() => setTab("search")}>Prepare a domain search</button></div> : <>
-        {(items.length !== parsedItems.length || (library.status === "ready" && library.items.length > 1000)) && <p role="alert">Some records are unverified or beyond this view’s limit and are not shown. Refresh through the account integration.</p>}
-        {matches.length ? <ul className={styles.library}>{matches.map(item => <li key={item.order.id}><div><h3>{item.order.domain}</h3><p>{item.project?.title ?? "No linked brand"}</p><p className={styles.muted}>{item.order.provider} · confirmed {date(item.order.confirmation!.confirmedAt)}</p><p className={styles.muted}>{item.order.confirmation!.expiresAt ? `Recorded expiry: ${date(item.order.confirmation!.expiresAt)}` : "Expiry not supplied"}</p><span className={styles.badge}>Registration confirmed at purchase</span></div><button type="button" className="button secondary small" disabled={!onCreateBrand} onClick={() => onCreateBrand?.({ type: "domain", domain: item.order.domain, check: null, order: item.order })}>Create brand from domain</button></li>)}</ul> : <div className={styles.empty}><Icon name="domains" size={28} /><h3>{filter ? "No matching purchased domains" : "No confirmed purchases yet"}</h3><p>{filter ? "Try another domain or brand name." : "Prepare names to check in Search. Registration appears here after the registrar confirms it."}</p><button type="button" className="button secondary small" onClick={() => setTab("search")}>Prepare a domain search</button></div>}
+        {(items.length !== parsedItems.length || (library.status === "ready" && library.items.length > 1000)) && <p role="alert">Some purchases couldn’t be confirmed or are beyond this list’s limit, so they aren’t shown. Refresh the page to try again.</p>}
+        {matches.length ? <ul className={styles.library}>{matches.map(item => <li key={item.order.id}><div><h3>{item.order.domain}</h3><p>{item.project?.title ?? "No linked brand"}</p><p className={styles.muted}>{item.order.provider} · confirmed {date(item.order.confirmation!.confirmedAt)}</p><p className={styles.muted}>{item.order.confirmation!.expiresAt ? `Recorded expiry: ${date(item.order.confirmation!.expiresAt)}` : "Expiry not supplied"}</p><span className={styles.badge}>Registration confirmed at purchase</span></div><button type="button" className="button secondary small" disabled={!onCreateBrand} onClick={() => onCreateBrand?.({ type: "domain", domain: item.order.domain, check: null, order: item.order })}>Create brand from domain</button></li>)}</ul> : <div className={styles.empty}><Icon name="domains" size={28} /><h3>{filter ? "No matching purchased domains" : "No confirmed purchases yet"}</h3><p>{filter ? "Try another domain or brand name." : "Search for a domain first. It appears here once the registrar confirms your purchase."}</p><button type="button" className="button secondary small" onClick={() => setTab("search")}>Prepare a domain search</button></div>}
       </>}
-      {!onCreateBrand && <p className={styles.muted}>Brand creation from a domain is not connected.</p>}
     </section> : <section aria-label={tab === "shortlist" ? "Domain shortlist" : "Domain search workspace"} className={styles.searchWorkspace}>
       {tab === "shortlist" ? <div className={styles.shortlistIntro}>
-        <h2>Your shortlist</h2><p>{draft ? "Your shortlist saves automatically to your account." : "Shortlisted domains stay in this tab."} Availability and prices need fresh checks when reopened.</p>
+        <h2>Your shortlist</h2><p>{draft ? "Your shortlist saves to your account automatically." : "Shortlisted domains stay on this page."} Availability and prices change, so check again when you come back.</p>
         {errors.length > 0 && <div role="alert" className={styles.filterError}>{errors.map((error, index) => <p key={index}>{error}</p>)}</div>}
         {!rows.length && <div className={styles.empty}><Icon name="domains" size={28} /><h3>No shortlisted domains yet</h3><p>Add domains from your search results to compare them here.</p><button type="button" className="button secondary small" onClick={() => setTab("search")}>Find domains</button></div>}
       </div> : <><form className={styles.searchCard} onSubmit={event => { event.preventDefault(); prepare(); }}>
@@ -196,7 +197,7 @@ export function DomainsWorkspace({ adapter = unavailableDomainAdapter, library =
       }} disabled={editingDisabled} expanded={filtersExpanded} onExpandedChange={setFiltersExpanded} filters={viewFilters} onFiltersChange={setViewFilters} /></>}
       {rows.length > 0 && <section className={styles.domainResults} aria-label="Domain results">
         <DomainResultTools key={`${tab}:${searchKey}:${nameInputVersion}`} rows={rows} visibleRows={visibleRows} adapter={adapter} check={(row, signal) => handleRead(row, "check", signal)}>{(selected, select) => <>
-        <header className={styles.resultsToolbar}><div><h2>Domain results</h2><span>{visibleRows.length} {visibleRows.length === 1 ? "result" : "results"}</span></div><div className={styles.sortChoices} aria-label="Sort domain results"><span>Sort by</span>{(["price", "domain", "registrar"] as const).map(key => <button key={key} type="button" aria-pressed={sort.key === key} aria-label={`Sort by ${key}${sort.key === key ? `, ${sort.descending ? "descending" : "ascending"}` : ""}`} onClick={() => selectSort(key)}>{key === "price" ? "Price" : key === "domain" ? "Domain" : "Registrar"}{sort.key === key && <Icon name="arrow-up" size={12} className={sort.descending ? styles.sortDescending : undefined} />}</button>)}</div></header>
+        <header className={styles.resultsToolbar}><div><h2>Domain results</h2><span>{visibleRows.length} {visibleRows.length === 1 ? "result" : "results"}</span></div><div className={styles.sortControl}><span aria-hidden="true">Sort by</span><div className={`tool-segmented ${styles.sortChoices}`} role="group" aria-label="Sort domain results">{(["price", "domain", "registrar"] as const).map(key => <button key={key} type="button" aria-pressed={sort.key === key} aria-label={`Sort by ${key}${sort.key === key ? `, ${sort.descending ? "descending" : "ascending"}` : ""}`} onClick={() => selectSort(key)}>{key === "price" ? "Price" : key === "domain" ? "Domain" : "Registrar"}<Icon name="arrow-up" size={12} className={sort.key !== key ? styles.sortInactive : sort.descending ? styles.sortDescending : undefined} /></button>)}</div></div></header>
         {visibleRows.length ? <ul className={styles.results}>{visibleRows.map(row => {
           const availability = availabilityAt(row.check, now), busy = row.status !== "idle" && row.requestAdapter === adapter;
           const block = row.quote ? quoteBlockReason(row.quote, row.check, now) : null;
@@ -209,23 +210,23 @@ export function DomainsWorkspace({ adapter = unavailableDomainAdapter, library =
             </div>
             <div className={styles.rowDetails} id={`${uid}-details-${row.domain}`} hidden={!expanded}>
               <label className={styles.selectDomain}><input type="checkbox" aria-label={`Select ${row.domain}`} checked={selected.includes(row.domain)} onChange={event => select(row.domain, event.target.checked)} />Select domain</label>
-              <p className={styles.muted}>{row.check ? `Provider ID: ${row.check.provider} · checked ${date(row.check.checkedAt)} · recheck after ${date(row.check.validUntil)} · evidence ${row.check.evidenceReference}${availability === "unknown" && row.check.availability !== "unknown" ? " · evidence expired or not current" : ""}` : `No availability evidence.${adapter.status === "ready" ? ` Provider ID: ${adapter.provider}.` : ""}`}</p>
+              <p className={styles.muted}>{row.check ? `Checked with ${registrarLabel(row.check.provider)} on ${date(row.check.checkedAt)}. ${availability === "unknown" && row.check.availability !== "unknown" ? "This result is out of date; check again." : `Check again after ${date(row.check.validUntil)}.`} Reference ${row.check.evidenceReference}.` : "Not checked yet."}</p>
               {row.check?.detail && <p className={styles.muted}>{row.check.detail}{row.check.sourceUrl && <> <a href={row.check.sourceUrl} target="_blank" rel="noopener noreferrer">Open source</a></>}</p>}
               {row.status !== "idle" && !busy && <p role="status">Previous request cancelled after a connection change.</p>}
               {row.error && <p role="alert">{row.error}</p>}
               <div className={styles.actions}><button type="button" className="button secondary small" disabled={busy || adapter.status !== "ready"} onClick={() => void handleRead(row, "check")}>{row.check || row.error ? "Check again" : "Check availability"}<span className="sr-only"> for {row.domain}</span></button><button type="button" className="button secondary small" disabled={busy || availability !== "available" || adapter.status !== "ready" || !adapter.quote || adapter.provider !== row.check?.provider} onClick={() => void handleRead(row, "quote")}>{busy && row.status === "quoting" ? "Requesting quote…" : "Request quote"}<span className="sr-only"> for {row.domain}</span></button><button type="button" className={styles.textButton} disabled={!onCreateBrand || busy || !candidates.includes(row.domain)} title={!candidates.includes(row.domain) ? "Use this domain in the current search and wait for it to save before creating a brand." : undefined} onClick={() => onCreateBrand?.({ type: "domain", domain: row.domain, check: row.check, order: null })}>Create brand<span className="sr-only"> from {row.domain}</span></button></div>
               {tab === "shortlist" && !candidates.includes(row.domain) && <p className={styles.muted}>To create a brand from this domain, <button type="button" className={styles.textButton} disabled={editingDisabled} onClick={() => { changeDraft({ ...currentDraft, input: row.domain, candidates: [row.domain] }); setFiltersExpanded(false); setTab("search"); }}>use it in the current search</button> and wait for it to save.</p>}
-              {row.quote && <div className={styles.quote} aria-label={`Quote for ${row.domain}`}><h4>Quote review</h4><dl><div><dt>Registration period</dt><dd>{row.quote.periodYears} {row.quote.periodYears === 1 ? "year" : "years"}</dd></div><div><dt>Total quoted</dt><dd>{money(row.quote.total)}</dd></div><div><dt>Renewal price</dt><dd>{row.quote.renewal ? `${money(row.quote.renewal)} / ${row.quote.periodYears === 1 ? "year" : `${row.quote.periodYears} years`}` : "Not supplied"}</dd></div><div><dt>Renewal terms</dt><dd>{row.quote.renewalTerms}</dd></div><div><dt>Recheck after</dt><dd>{date(row.quote.expiresAt)}</dd></div><div><dt>Provider / quote</dt><dd>{row.quote.provider} / {row.quote.id}</dd></div></dl>{block && <p role="status">{block}</p>}<button type="button" className="button secondary small" disabled>Purchase unavailable</button><p className={styles.muted}>Prices and availability may change; renewal is today’s quoted price for the displayed term. Taxes and final checkout totals are not established here. Checkout is not connected.</p></div>}
+              {row.quote && <div className={styles.quote} aria-label={`Quote for ${row.domain}`}><h4>Quote review</h4><dl><div><dt>Registration period</dt><dd>{row.quote.periodYears} {row.quote.periodYears === 1 ? "year" : "years"}</dd></div><div><dt>Total quoted</dt><dd>{money(row.quote.total)}</dd></div><div><dt>Renewal price</dt><dd>{row.quote.renewal ? `${money(row.quote.renewal)} / ${row.quote.periodYears === 1 ? "year" : `${row.quote.periodYears} years`}` : "Not supplied"}</dd></div><div><dt>Renewal terms</dt><dd>{row.quote.renewalTerms}</dd></div><div><dt>Recheck after</dt><dd>{date(row.quote.expiresAt)}</dd></div><div><dt>Quote reference</dt><dd>{registrarLabel(row.quote.provider)} · {row.quote.id}</dd></div></dl>{block && <p role="status">{block}</p>}<button type="button" className="button secondary small" disabled>Purchase unavailable</button><p className={styles.muted}>Prices can change. Renewal shows today’s price for this term, and taxes aren’t included. You can’t buy domains in Embel yet.</p></div>}
             </div>
           </li>;
-        })}</ul> : <div className={styles.empty}><h3>No domains match these filters</h3><p>Try a wider price range or include unavailable domains.</p><button type="button" className="button secondary small" onClick={() => setViewFilters({ ...defaultViewFilters, hideUnavailable: false })}>Clear result filters</button></div>}
+        })}</ul> : <div className={styles.empty}><h3>No domains match these filters</h3><p>Try a wider price range or show taken domains.</p><button type="button" className="button secondary small" onClick={() => setViewFilters({ ...defaultViewFilters, hideUnavailable: false })}>Clear result filters</button></div>}
         </>}</DomainResultTools>
       </section>}
-      <p className={styles.evidenceNote} data-results={rows.length > 0}>{adapter.status === "unavailable" ? adapter.reason : adapter.description ?? `Checks supplied by ${registrarLabel(adapter.provider)}.`}{rows.length > 0 && (tab === "shortlist" ? " All shortlisted domains remain visible." : " Unpriced results stay visible. Price filters use current one-year USD quotes.")}</p>
+      <p className={styles.evidenceNote}>{adapter.status === "unavailable" ? adapter.reason : adapter.description ?? `Availability comes from ${registrarLabel(adapter.provider)}.`}</p>
     </section>}
     {draftControls && <div className={styles.draftControls}>{draftControls}</div>}
     {validOrders.length > 0 && <section className={styles.panel} aria-label="Domain orders"><h2>Orders</h2><p className={styles.muted}>Payment confirmation alone does not confirm domain registration.</p><ul className={styles.results}>{validOrders.map(order => <li key={order.id}><h3>{order.domain}</h3><p>{orderLabel(order)}</p><p className={styles.muted}>Payment: {order.payment}{order.paymentReference ? ` · payment reference ${order.paymentReference}` : ""}</p><p className={styles.muted}>{order.provider} · order {order.id}{order.confirmation ? ` · registrar reference ${order.confirmation.registrationReference}` : " · no registration confirmation"}</p></li>)}</ul></section>}
     {validOrders.length !== orders.length && <p role="alert">Some order records could not be verified and are not shown.</p>}
-    <p className={styles.footer}>{draftNotice} Preparing a search or creating a brand does not reserve or register a domain.</p>
+    <p className={styles.footer}>{draftNotice} Searching doesn’t reserve a domain.</p>
   </div>;
 }

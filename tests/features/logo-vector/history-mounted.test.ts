@@ -68,7 +68,7 @@ describe("retained vector discovery and explicit review", () => {
     const { f } = await mount((_fixture, page) => ({ fetcher: async () => {
       reads++; return Response.json(reads === 1 ? { ...page, nextCursor: "e30=" } : { ...page, workspaceRevision: 3, nextCursor: null });
     } }));
-    await click("Earlier vector candidates"); await until(() => host.textContent!.includes("Reload workspace to refresh saved vectors"));
+    await click("Earlier vector candidates"); await until(() => host.textContent!.includes("Choose Refresh to see your saved vectors"));
     expect(button("Earlier vector candidates")).toBeUndefined(); expect(f.state.posts).toHaveLength(0);
   });
   it("can return to latest while an earlier page is pending and ignores the abandoned response", async () => {
@@ -97,7 +97,7 @@ describe("retained vector discovery and explicit review", () => {
       reads++; return Response.json(reads === 1 ? { ...page, items: [] } : page);
     } }));
     await until(() => host.textContent!.includes("No saved vector candidates."));
-    await click("Reload workspace"); await until(() => !!button(`Open saved vector ${candidate.revision.id}`));
+    await click("Refresh"); await until(() => !!button(`Open saved vector ${candidate.revision.id}`));
     expect(reads).toBe(2);
   });
   it("checks a stage-backed vector pointer before exposing restoration", async () => {

@@ -6,11 +6,11 @@ import { createAccountNamesMemory } from "@/components/naming/account-names-memo
 import { createProjectScreeningMemory } from "@/components/naming/project-screening-memory";
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { z } from "zod";
 import { accountSessionSchema } from "@/domain/project-api";
 import { accountRequest, AccountRequestError } from "./account-api";
-import { boundedAccountRequest } from "./bounded-account-request";
+import { SESSION_STATE_HEADER } from "@/components/auth/session-state";
+import { SignedOutActions } from "@/components/auth/signed-out-actions";
 import { createAccountDraftMemory } from "./account-draft-memory";
 import { createAccountProfileMemory } from "./account-profile-memory";
 import { createIdentityDraftMemory } from "@/components/identity/identity-draft-memory";
@@ -60,6 +60,35 @@ type AccountSession = {
 const initialSession: Session = { status: "checking", generation: 0 };
 const SessionContext = createContext<AccountSession | null>(null);
 const signedOutSchema = z.strictObject({ authenticated: z.literal(false) });
+const sessionStateSchema = z.union([accountSessionSchema, signedOutSchema]);
+type SessionState = z.infer<typeof sessionStateSchema>;
+
+/** The shell's own session check, bounded like other account reads. It opts in
+ * to the server's ordinary signed-out answer; a 401 still means signed out. */
+function readSessionState(signal: AbortSignal): Promise<SessionState> {
+  if (signal.aborted) return Promise.reject(signal.reason);
+  const controller = new AbortController();
+  return new Promise<SessionState>((resolve, reject) => {
+    let settled = false;
+    const finish = (action: () => void) => {
+      if (settled) return;
+      settled = true; clearTimeout(timer); signal.removeEventListener("abort", abort); action();
+    };
+    const abort = () => { finish(() => reject(signal.reason)); controller.abort(signal.reason); };
+    const timer = setTimeout(() => { finish(() => reject(new AccountRequestError(408))); controller.abort(); }, 30_000);
+    signal.addEventListener("abort", abort, { once: true });
+    void fetch("/api/session", {
+      method: "GET", credentials: "same-origin", mode: "same-origin", cache: "no-store", signal: controller.signal,
+      headers: { Accept: "application/json", [SESSION_STATE_HEADER]: "1" },
+    }).then(async response => {
+      if (!response.ok) throw new AccountRequestError(response.status);
+      const parsed = sessionStateSchema.safeParse(await response.json().catch(() => undefined));
+      if (!parsed.success) throw new AccountRequestError(502);
+      return parsed.data;
+    }).then(value => finish(() => resolve(value)), error => finish(() => reject(error)));
+  });
+}
+const failureStatus = (error: unknown): "signed_out" | "unavailable" | "error" => error instanceof AccountRequestError && error.status === 401 ? "signed_out" : error instanceof AccountRequestError && error.status === 503 ? "unavailable" : "error";
 
 export function AccountSessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session>(initialSession);
@@ -123,14 +152,14 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
     request.current = controller;
     const generation = current.current.generation + 1;
     publish({ status: "checking", generation });
-    void boundedAccountRequest("/api/session", accountSessionSchema, { signal: controller.signal }).then(({ user, enrollmentEnabled }) => {
-      if (!controller.signal.aborted && current.current.generation === generation) {
-        publish({ status: "ready", userId: user.id, generation });
-        setEnrollmentAllowed(enrollmentEnabled ? { userId: user.id, generation } : null);
-      }
+    void readSessionState(controller.signal).then(state => {
+      if (controller.signal.aborted || current.current.generation !== generation) return;
+      if ("authenticated" in state) { publish({ status: "signed_out", generation }); return; }
+      publish({ status: "ready", userId: state.user.id, generation });
+      setEnrollmentAllowed(state.enrollmentEnabled ? { userId: state.user.id, generation } : null);
     }).catch((error: unknown) => {
       if (controller.signal.aborted || current.current.generation !== generation) return;
-      publish({ status: error instanceof AccountRequestError && error.status === 401 ? "signed_out" : error instanceof AccountRequestError && error.status === 503 ? "unavailable" : "error", generation });
+      publish({ status: failureStatus(error), generation });
     }).finally(() => { if (request.current === controller) request.current = null; });
   }, [publish]);
   // A routine focus check must not tear down an already verified workspace.
@@ -143,8 +172,10 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
     request.current?.abort();
     const controller = new AbortController();
     request.current = controller;
-    void boundedAccountRequest("/api/session", accountSessionSchema, { signal: controller.signal }).then(({ user, enrollmentEnabled }) => {
+    void readSessionState(controller.signal).then(state => {
       if (controller.signal.aborted || request.current !== controller || current.current !== before) return;
+      if ("authenticated" in state) { publish({ status: "signed_out", generation: before.generation + 1 }); return; }
+      const { user, enrollmentEnabled } = state;
       if (user.id !== before.userId) publish({ status: "ready", userId: user.id, generation: before.generation + 1 });
       setEnrollmentAllowed(previous => {
         const generation = user.id === before.userId ? before.generation : before.generation + 1;
@@ -153,7 +184,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
       // Same owner: preserve the object, generation, drafts, focus and scroll.
     }).catch((error: unknown) => {
       if (controller.signal.aborted || request.current !== controller || current.current !== before) return;
-      publish({ status: error instanceof AccountRequestError && error.status === 401 ? "signed_out" : error instanceof AccountRequestError && error.status === 503 ? "unavailable" : "error", generation: before.generation + 1 });
+      publish({ status: failureStatus(error), generation: before.generation + 1 });
     }).finally(() => { if (request.current === controller) request.current = null; });
   }, [publish, refresh]);
   const expire = useCallback((account: VerifiedAccount) => {
@@ -254,7 +285,7 @@ export function AccountSessionProvider({ children }: { children: React.ReactNode
       if (signOutRequest.current !== controller) return { ok: false, reason: "failed" };
       // Keep both the privacy fence and the owner's edits until an explicit recovery action.
       publish({ status: "error", generation });
-      setSignOutError("Sign-out couldn't be confirmed. Account content is hidden and unsaved account edits remain in this tab. Retry sign-out, or use Check account to verify your session.");
+      setSignOutError("Sign-out couldn't be confirmed. Your account content stays hidden and unsaved edits remain in this tab. Retry sign-out, or use Check account in the account menu.");
       return { ok: false, reason: "failed" };
     } finally {
       window.clearTimeout(timeout);
@@ -307,7 +338,10 @@ export function useAccountSession() {
   return account;
 }
 
-export function AccountStatus({ retainedEdits = false }: { retainedEdits?: boolean }) {
+/** Shared account state for pages that need a signed-in account. Signed out,
+ * it invites the visitor in; `signedOut` names what signing in shows, for
+ * example "Sign in to see your projects." */
+export function AccountStatus({ retainedEdits = false, signedOut = "Sign in to see and save your work." }: { retainedEdits?: boolean; signedOut?: string }) {
   const { session, refresh, signingIn, signingUp, signingOut, signOutError } = useAccountSession();
   const retryGeneration = useRef<number | null>(null);
   if (session.status === "ready") return null;
@@ -319,6 +353,7 @@ export function AccountStatus({ retainedEdits = false }: { retainedEdits?: boole
     retryGeneration.current = session.generation;
     refresh();
   }
-  const message = signingIn ? `${signingUp ? "Creating your account" : "Signing in"}… Account content is hidden while the request completes.` : signingOut ? "Signing out… Account content is hidden while the request completes." : signOutError ? "Account content remains hidden until your session is verified." : session.status === "checking" ? "Checking your account…" : session.status === "unavailable" ? "Account saving is unavailable. Check your connection and try again. Unsaved edits are kept in this tab." : session.status === "signed_out" ? "No verified account session. Sign in to view your account projects." : "Your account session could not be verified. Check your connection and try again.";
-  return <div className="account-notice" role="status"><p>{message}</p>{session.status === "signed_out" && <Link className="text-link" href="/sign-in">Sign in</Link>}{canRetry && <button type="button" className="button secondary small" onClick={checkAccount}>Check account</button>}{retainedEdits && <p>Unsaved account edits are held in this tab. Check your account after restoring the same session to recover them.</p>}</div>;
+  const invite = session.status === "signed_out" && !signingIn && !signingOut && !signOutError;
+  const message = signingIn ? `${signingUp ? "Creating your account" : "Signing in"}… Account content is hidden while the request completes.` : signingOut ? "Signing out… Account content is hidden while the request completes." : signOutError ? "Account content remains hidden until your session is verified." : session.status === "checking" ? "Checking your account…" : session.status === "unavailable" ? "Account saving is unavailable. Check your connection and try again. Unsaved edits are kept in this tab." : invite ? signedOut : "Your account session could not be verified. Check your connection and try again.";
+  return <div className={invite ? "account-notice account-invite" : "account-notice"} role="status"><p>{message}</p>{invite && <SignedOutActions placement="page" />}{canRetry && <button type="button" className="button secondary small" onClick={checkAccount}>Check account</button>}{retainedEdits && <p>Unsaved account edits are held in this tab. Check your account after restoring the same session to recover them.</p>}</div>;
 }

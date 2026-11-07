@@ -118,7 +118,7 @@ describe("saved brand and inspiration preparation", () => {
   });
   it("retains an uncertain save and never reads a new quote basis or sends another save", async () => {
     const f = setup(); f.loseSave();
-    expect(await f.run()).toMatchObject({ status: "blocked", message: expect.stringContaining("not been confirmed as saved") });
+    expect(await f.run()).toMatchObject({ status: "blocked", message: expect.stringContaining("confirm your logo brief was saved") });
     const retained = f.memory.get(f.projectId);
     expect(retained?.pendingMutation).not.toBeNull(); expect(f.readBriefRevision).not.toHaveBeenCalled();
     expect(await f.run()).toMatchObject({ status: "blocked" });

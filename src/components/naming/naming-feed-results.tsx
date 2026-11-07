@@ -37,12 +37,23 @@ export function NamingFeedResults({ feed, selectedId, strategyKey, pending, bloc
       });
     } finally { if (visit === lifetime.current) setReadingRun(null); }
   }
+  const hint = feed.entries.length ? "Pick the one you like best. Details shows each name’s story and more checks." : "Names will follow the choices in your conversation.";
+  const filter = feed.entries.length > 0 && <div className="naming-filter" role="group" aria-label="Show">
+    <button type="button" aria-pressed={!onlySaved} onClick={() => setOnlySaved(false)}>{response?.nextCursor ? "Loaded" : "All"} {feed.entries.length}</button>
+    <button type="button" aria-pressed={onlySaved} onClick={() => setOnlySaved(true)}>Saved {savedCount}</button>
+  </div>;
+  const latest = showLatest && <button className="button secondary small" type="button" onClick={() => void viewLatest()} disabled={locating}>{locating ? "Loading saved names…" : "View latest set"}</button>;
   return <section className="project-naming-results naming-continuous-results" aria-label="Naming exploration">
-    <div className="project-naming-section-heading"><div><h2 id="project-naming-results-heading" tabIndex={-1}>Which name feels right?</h2><p>{feed.entries.length ? "Choose one. .com status comes from the public registry, checked today. Details has the story and more checks." : "Your exploration starts from the choices in your conversation."}</p>
-      {feed.entries.length > 0 && <div className="naming-filter" role="group" aria-label="Show">
-        <button type="button" aria-pressed={!onlySaved} onClick={() => setOnlySaved(false)}>{response?.nextCursor ? "Loaded" : "All"} {feed.entries.length}</button>
-        <button type="button" aria-pressed={onlySaved} onClick={() => setOnlySaved(true)}>Saved {savedCount}</button>
-      </div>}</div><div className="project-naming-actions">{showLatest && <button className="button secondary small" type="button" onClick={() => void viewLatest()} disabled={locating}>{locating ? "Loading saved names…" : "View latest set"}</button>}{inConversation ? <button className="text-link" type="button" onClick={onHistory}>Saved names &amp; history</button> : <><button className="button secondary small" type="button" onClick={onHistory}>Saved names &amp; history</button><button className="button secondary small" type="button" onClick={onModify}>Naming choices</button></>}</div></div>
+    {/* In the conversation the question, the All / Saved filter and the history
+        link share one row; the standalone page keeps its own buttons. */}
+    {inConversation ? <div className="project-naming-section-heading">
+      <h2 id="project-naming-results-heading" tabIndex={-1}>Which name feels right?</h2>
+      {filter}
+      {latest}
+      <button className="text-link" type="button" onClick={onHistory}>Saved names &amp; history</button>
+      <p>{hint}</p>
+    </div> : <div className="project-naming-section-heading"><div><h2 id="project-naming-results-heading" tabIndex={-1}>Which name feels right?</h2><p>{hint}</p>
+      {filter}</div><div className="project-naming-actions">{latest}<button className="button secondary small" type="button" onClick={onHistory}>Saved names &amp; history</button><button className="button secondary small" type="button" onClick={onModify}>Naming choices</button></div></div>}
     {lookupError && lookupError === currentRun?.runId && <p role="status">The latest saved names could not be located. Try again.</p>}
     {!inConversation && <BrainstormCoverage run={response?.preferencesVersion === currentRun?.preferencesVersion ? currentRun : null} saved={feed.record?.preferences?.saved} entries={feed.entries} />}
     <div className="project-naming-grid">{shown.map(row => <div className="naming-feed-card" key={row.entryId}><ProjectNameCard compact entry={row.entry} selected={selectedId === row.entry.candidate.id} earlierContext={row.entry.candidate.strategyKey !== strategyKey} pending={pending} blockSelection={blocked} onFavorite={() => onRetain(row.entry, "favorite")} onSave={() => onRetain(row.entry, "saved")} onSelect={() => onSelect(row.entry)} onInspect={() => onInspect(row.entry)} onWorkshop={() => onWorkshop(row.entry)} /></div>)}</div>
@@ -104,7 +115,7 @@ function NamingFeedCurrentStatus({ feed, blocked, onModify, onReviewSaved }: Nam
     <p>{active.state === "queued" ? "Preparing your next names…" : active.state === "cancel_requested" ? "Stopping at a safe point. Completed names stay saved." : "Exploring your next names…"}</p>
     <button className="text-link" type="button" onClick={() => void feed.stop()} disabled={active.state === "cancel_requested"}>Stop exploration</button>
   </>;
-  if (active?.generationProfile === "brainstorm_v1" && active.state === "succeeded") return <p>{active.fulfillment ? `${active.fulfillment.acceptedCount} unchecked brainstorm names are saved.` : "Your unchecked brainstorm is saved."} Research your shortlist before use.{active.fulfillment?.coverageSatisfied === false ? " This batch did not reach its approach coverage target." : ""}</p>;
+  if (active?.generationProfile === "brainstorm_v1" && active.state === "succeeded") return <p>{active.fulfillment ? `${active.fulfillment.acceptedCount} names are saved.` : "Your names are saved."} They haven’t been checked for trademarks yet, so look into your favorites before you use one.{active.fulfillment?.coverageSatisfied === false ? " This set covers fewer of your chosen approaches than planned." : ""}</p>;
   if (active && ["partial", "failed", "cancelled", "needs_reconciliation"].includes(active.state)) return <>
     {incompleteSummary}{reviewSaved}
     <p>{terminalMessage(active.state, active.recoveredNameCount)}</p>

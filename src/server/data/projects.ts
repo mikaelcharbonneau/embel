@@ -5,6 +5,7 @@ import { contextSnapshotSchema, createProjectInputSchema } from "@/domain/projec
 import { accountProjectSchema, accountProjectSummarySchema, accountRevisionSchema, expandProjectInputSchema, updateProjectInputSchema } from "@/domain/project-api";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
+import { projectDisplayName, readSelectedProjectNames } from "./project-display-names";
 
 const storedProjectSchema = accountProjectSummarySchema;
 const storedRevisionSchema = accountRevisionSchema;
@@ -27,7 +28,10 @@ export async function listProjects(auth: AuthenticatedContext) {
   const { data, error } = await auth.client.from("projects").select(projectColumns)
     .eq("owner_id", auth.userId).is("deleted_at", null).is("deletion_requested_at", null).order("created_at", { ascending: false }).limit(100);
   databaseError(error);
-  return z.array(storedProjectSchema).parse(data);
+  const projects = z.array(storedProjectSchema).parse(data);
+  // Lists show the chosen brand name, as the project bar does.
+  const names = await readSelectedProjectNames(auth, projects);
+  return projects.map(project => ({ ...project, title: projectDisplayName(project.title, names.get(project.id.toLowerCase()), 160) }));
 }
 
 export async function getProject(auth: AuthenticatedContext, projectId: string) {

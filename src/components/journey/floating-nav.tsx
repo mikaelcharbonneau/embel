@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { AppMark } from "@/components/ui/app-mark";
-import { Icon } from "@/components/ui/icon";
+import { Icon, type IconName } from "@/components/ui/icon";
 import styles from "./journey.module.css";
 
-export type NavItem = { href: string; label: string };
+/** Tools also carry an icon and a one-line description for the Tools menu. */
+export type NavItem = { href: string; label: string; icon?: IconName; description?: string };
 
 export function isActiveHref(href: string, pathname: string) {
   return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
@@ -27,6 +28,7 @@ export function NavFrame({ variant, account, children }: { variant: "main" | "pr
 /** Global navigation: brand, main pages and the Tools menu. */
 export function MainNavContent({ pathname, items, tools = [] }: { pathname: string; items: readonly NavItem[]; tools?: readonly NavItem[] }) {
   const menu = useRef<HTMLDetailsElement>(null);
+  const descriptionPrefix = useId();
   const [open, setOpen] = useState(false);
   const close = (focus = false) => {
     if (menu.current) menu.current.open = false;
@@ -47,8 +49,15 @@ export function MainNavContent({ pathname, items, tools = [] }: { pathname: stri
       {tools.length > 0 && <li>
         <details ref={menu} className={styles.tools} onToggle={event => setOpen(event.currentTarget.open)} onKeyDown={event => { if (event.key === "Escape" && menu.current?.open) { event.preventDefault(); close(true); } }}>
           <summary className={styles.navLink} aria-current={toolActive ? "page" : undefined}>Tools<Icon name="chevron" size={12} style={{ transform: "rotate(90deg)" }} /></summary>
-          <ul className={styles.menu}>
-            {tools.map(item => <li key={item.href}><Link href={item.href} aria-current={isActiveHref(item.href, pathname) ? "page" : undefined} onClick={() => close()}>{item.label}</Link></li>)}
+          <ul className={`${styles.menu} tools-menu`}>
+            {tools.map(item => {
+              // The tool's name stays its accessible name; the line below describes it.
+              const descriptionId = item.description ? `${descriptionPrefix}${item.href.replace(/\W/g, "")}` : undefined;
+              return <li key={item.href}><Link href={item.href} className="tools-menu-item" aria-label={descriptionId ? item.label : undefined} aria-describedby={descriptionId} aria-current={isActiveHref(item.href, pathname) ? "page" : undefined} onClick={() => close()}>
+                {item.icon && <span className="tools-menu-icon" aria-hidden="true"><Icon name={item.icon} size={18} /></span>}
+                <span className="tools-menu-text"><span className="tools-menu-label">{item.label}</span>{item.description && <span className="tools-menu-description" id={descriptionId}>{item.description}</span>}</span>
+              </Link></li>;
+            })}
           </ul>
         </details>
       </li>}

@@ -44,7 +44,8 @@ async function render() {
 }
 const menu = () => host.querySelector<HTMLDetailsElement>("details.workspace-account-menu")!;
 const summary = () => menu().querySelector<HTMLElement>("summary")!;
-const checkAccount = () => menu().querySelector<HTMLButtonElement>(".account-check")!;
+const checkAccount = () => menu().querySelector<HTMLButtonElement>(".account-check");
+const settingsLink = () => menu().querySelector<HTMLAnchorElement>('a[href="/settings"]');
 const activityButton = () => menu().querySelector<HTMLButtonElement>(".generation-activity-trigger");
 const label = () => menu().querySelector<HTMLSpanElement>(".workspace-account-label")!;
 const sessionCalls = () => fetcher.mock.calls.filter(([path]) => path === "/api/session");
@@ -87,7 +88,7 @@ describe("project account and activity controls", () => {
     `/brands/${project}`, `/brands/account/${project}`, `/brands/account/${project}/naming`,
     `/brands/account/${project}/logo`, `/brands/account/${project}/logo/directions`,
     `/brands/account/${project}/logo/deliverables`,
-  ])("keeps native account disclosure, recovery, settings and activity on %s", async pathname => {
+  ])("keeps native account disclosure, settings, activity and sign-out on %s", async pathname => {
     route.pathname = pathname; await render();
     expect(host.querySelector(".concept-project-workspace")).not.toBeNull();
     expect(menu().open).toBe(false);
@@ -98,9 +99,11 @@ describe("project account and activity controls", () => {
     expect(menu().textContent).toContain("Generation activity");
     expect(summary().getAttribute("aria-label")).toBe("Account menu");
     expect(summary().getAttribute("aria-busy")).toBe("false");
-    expect(checkAccount().disabled).toBe(false);
+    // A verified owner has no manual connection check; routine checks run on their own.
+    expect(checkAccount()).toBeNull();
+    expect(menu().textContent).not.toMatch(/Refresh connection|Check account/);
     expect(menu().textContent).toContain("Sign out");
-    expect(menu().querySelector('a[href="/settings"]')).not.toBeNull();
+    expect(settingsLink()).not.toBeNull();
     expect(activityButton()).not.toBeNull();
     expect(fetcher.mock.calls.filter(([path]) => path === "/api/jobs")).toHaveLength(0);
 
@@ -108,52 +111,67 @@ describe("project account and activity controls", () => {
     summary().focus(); expect(document.activeElement).toBe(summary());
     await act(async () => summary().click());
     expect(menu().open).toBe(true);
-    checkAccount().focus();
-    await act(async () => checkAccount().dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })));
+    settingsLink()!.focus();
+    await act(async () => settingsLink()!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })));
     expect(menu().open).toBe(false);
     expect(document.activeElement).toBe(summary());
   });
 
   it("retains the same menu and controls but dismisses it on project navigation", async () => {
     route.pathname = "/"; await render();
-    const original = menu(), trigger = summary(), check = checkAccount(), activity = activityButton();
-    await act(async () => trigger.click()); check.focus();
+    const original = menu(), trigger = summary(), settings = settingsLink()!, activity = activityButton();
+    await act(async () => trigger.click()); settings.focus();
     for (const pathname of [`/brands/account/${project}`, `/brands/account/${project}/naming`, `/brands/account/${project}/logo`, "/assets", "/"]) {
       route.pathname = pathname; await render();
-      expect(menu()).toBe(original); expect(summary()).toBe(trigger); expect(checkAccount()).toBe(check);
+      expect(menu()).toBe(original); expect(summary()).toBe(trigger); expect(settingsLink()).toBe(settings);
       expect(activityButton()).toBe(activity); expect(menu().open).toBe(false);
     }
     expect(sessionCalls()).toHaveLength(1);
   });
 
-  it.each([500, 503, 401])("offers honest project controls after a %s session response", async status => {
+  it.each([500, 503])("offers honest project controls after a %s session response", async status => {
     const initial = deferred<Response>(); sessionRead = () => initial.promise;
     await render();
     await act(async () => summary().click());
     expect(summary().getAttribute("aria-busy")).toBe("true");
     expect(label().textContent).toBe("Checking account…");
-    expect(checkAccount().disabled).toBe(true); expect(activityButton()).toBeNull();
+    expect(checkAccount()).toBeNull(); expect(activityButton()).toBeNull();
     expect(menu().querySelector('a[href="/sign-in"]')).toBeNull();
     expect(host.textContent).not.toContain("Private");
 
     await act(async () => initial.resolve(new Response(null, { status })));
-    expect(label().textContent).toBe(status === 401 ? "Sign in" : "Account");
+    expect(label().textContent).toBe("Account");
     expect(summary().getAttribute("aria-busy")).toBe("false");
-    expect(checkAccount().disabled).toBe(false);
+    expect(checkAccount()!.disabled).toBe(false);
+    expect(menu().querySelector('a[href="/sign-in"]')).not.toBeNull();
     expect(activityButton()).toBeNull(); expect(host.textContent).not.toContain("Private");
     const retry = deferred<Response>(); sessionRead = () => retry.promise;
     await act(async () => {
-      checkAccount().click();
+      checkAccount()!.click();
       window.dispatchEvent(new Event("focus"));
       document.dispatchEvent(new Event("visibilitychange"));
     });
     expect(sessionCalls()).toHaveLength(2);
-    expect(checkAccount().disabled).toBe(true);
+    expect(checkAccount()).toBeNull();
     expect(label().textContent).toBe("Checking account…");
     await act(async () => retry.resolve(Response.json({ user: { id: owner } })));
     await act(async () => { await vi.advanceTimersByTimeAsync(2); });
     expect(activityButton()).not.toBeNull();
     expect(label().textContent).toBe(`Private name for ${owner}`);
+  });
+
+  it.each([
+    ["a signed-out answer", () => Response.json({ authenticated: false })],
+    ["a 401", () => new Response(null, { status: 401 })],
+  ])("swaps the account menu for Sign in and Create account after %s", async (_, response) => {
+    const initial = deferred<Response>(); sessionRead = () => initial.promise;
+    await render();
+    expect(menu()).not.toBeNull(); expect(host.querySelector('header a[href="/sign-in"]')).toBeNull();
+    await act(async () => initial.resolve(response()));
+    expect(host.querySelector("details.workspace-account-menu")).toBeNull();
+    expect(host.querySelector('header a[href="/sign-in"]')?.textContent).toBe("Sign in");
+    expect(host.querySelector('header a[href="/sign-up"]')?.textContent).toBe("Create account");
+    expect(host.textContent).not.toContain("Private"); expect(sessionCalls()).toHaveLength(1);
   });
 
   it("lets an activity dialog own Escape without collapsing or stealing focus from it", async () => {
@@ -176,7 +194,7 @@ describe("project account and activity controls", () => {
     const oldActivity = deferred<Response>(); jobsRead = () => oldActivity.promise;
     await act(async () => activityButton()!.click());
     const recheck = deferred<Response>(); sessionRead = () => recheck.promise;
-    await act(async () => checkAccount().click());
+    await act(async () => account.refresh());
     expect(host.textContent).not.toContain("Private");
     expect(activityButton()).toBeNull();
     expect(menu().querySelector(".generation-activity-dialog")).toBeNull();

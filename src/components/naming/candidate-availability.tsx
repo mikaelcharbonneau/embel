@@ -116,9 +116,9 @@ function OwnedChecks({ name, account }: Props) {
   const exactHandle = handle.trim().replace(/^@/u, "").toLowerCase();
   const domainError = projectScreeningDomainError(domain), validHandle = matchesLocalHandleSyntax(platform, exactHandle);
   function criteriaNotice(): string {
-    if (tool === "Domains") return domainError ?? (adapters?.domains.status === "unavailable" ? "Domain checks are not connected." : "");
+    if (tool === "Domains") return domainError ?? (adapters?.domains.status === "unavailable" ? "Domain checks aren’t available right now." : "");
     if (tool === "Handles") {
-      if (platform !== "youtube") return "Live checks are only supported for YouTube.";
+      if (platform !== "youtube") return "Embel can only check YouTube handles for now.";
       if (!validHandle) return "Use a 3–30 character YouTube handle with letters or digits at both ends.";
       return adapters?.handles.availability === "unavailable" ? "YouTube checks are not connected." : "";
     }

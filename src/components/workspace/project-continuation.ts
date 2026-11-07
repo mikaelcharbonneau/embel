@@ -32,7 +32,7 @@ async function directionAction(project: AccountProject, source: LogoRasterSource
     if (count === 1) return { label: "Review visual direction", href };
     if (identityBatchUnresolved(batch)) return { label: "Check direction progress", href };
   }
-  return { label: "Explore visual directions", href };
+  return { label: "Explore creative directions", href };
 }
 
 export async function readProjectVisualState(project: AccountProject, client: AccountLogoClient | null, signal: AbortSignal) {

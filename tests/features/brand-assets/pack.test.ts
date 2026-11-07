@@ -32,17 +32,25 @@ async function setup() {
 describe("complete brand asset archive", () => {
   it("contains real PNGs at promised sizes, exact originals, editable templates and matching font/color guidance", async () => {
     const f = await setup();
-    const result = await buildBrandAssetPack(f, new AbortController().signal);
+    const slogan = "Clear routes for every city.", positioning = "For city cyclists, a calm route planner.";
+    const result = await buildBrandAssetPack({ ...f, slogan, positioning }, new AbortController().signal);
     expect(zipSync).not.toHaveBeenCalled();
     const archive = result.getArchive(), entries = unzipSync(archive);
     expect(result.getArchive()).toBe(archive);
     expect(zipSync).toHaveBeenCalledOnce();
-    expect(Object.keys(entries)).toHaveLength(18); expect(entries["design-system/design-tokens.css"]).toBeDefined(); expect(entries["design-system/design-tokens.json"]).toBeDefined(); expect(result.vectorIncluded).toBe(false); expect(entries["logo/logo-vector.svg"]).toBeUndefined();
+    expect(Object.keys(entries)).toHaveLength(20); expect(entries["design-system/design-tokens.css"]).toBeDefined(); expect(entries["design-system/design-tokens.json"]).toBeDefined(); expect(result.vectorIncluded).toBe(false); expect(entries["logo/logo-vector.svg"]).toBeUndefined();
     expect(entries["logo/logo-original.png"]).toEqual(logoBytes); expect(entries["direction/selected-direction.png"]).toEqual(boardBytes);
+    // The transparent and reversed logos are derived rasters with transparency, at the original size.
+    for (const name of ["logo/logo-transparent.png", "logo/logo-reversed.png"]) expect(await sharp(entries[name]!).metadata()).toMatchObject({ format: "png", width: 100, height: 50, hasAlpha: true });
     for (const file of result.files.filter(file => file.category === "social" || file.category === "board")) {
       if (file.mimeType === "image/png") expect(await sharp(entries[file.name]!).metadata()).toMatchObject({ format: "png", width: file.width, height: file.height });
-      else { const svg = new TextDecoder().decode(entries[file.name]); expect(svg).toContain(file.name.includes("post-") ? "Your headline" : "Your tagline"); expect(svg).toContain('font-family="Fraunces"'); }
+      else {
+        const svg = new TextDecoder().decode(entries[file.name]), text = [...svg.matchAll(/<text[^>]*>([^<]*)<\/text>/gu)].map(match => match[1]).join(" ");
+        expect(text).toContain(slogan); if (file.name.includes("post-")) expect(text).toContain(positioning);
+        expect(text).not.toMatch(/Your (headline|tagline)|Add your message/u); expect(svg).toContain('font-family="Fraunces"');
+      }
     }
+    expect(new TextDecoder().decode(entries["README.txt"])).not.toContain("placeholder");
     expect(new TextDecoder().decode(entries["guides/brand-guide.html"])).toContain("https://fonts.google.com/specimen/Fraunces");
     expect(JSON.parse(new TextDecoder().decode(entries["guides/colors.json"])).colors).toEqual(f.snapshot.colors);
     expect(Object.keys(entries).some(name => /\.ttf$|\.woff2?$/.test(name))).toBe(false);

@@ -77,7 +77,7 @@ describe("Unavailable and failed check adapters", () => {
   it("retains bounded evidence and sends no request when the history is full", async () => {
     const check = vi.fn();
     const entry = { ...createEntry("instagram", "morrow"), evidence: Array(100).fill(available) };
-    await expect(checkHandleEntry(entry, { availability: "ready", label: "Fixture", check })).rejects.toThrow("no new request was sent");
+    await expect(checkHandleEntry(entry, { availability: "ready", label: "Fixture", check })).rejects.toThrow("no new check was started");
     expect(check).not.toHaveBeenCalled(); expect(entry.evidence).toHaveLength(100);
   });
   it("never calls an unavailable adapter or fetches a platform", async () => {

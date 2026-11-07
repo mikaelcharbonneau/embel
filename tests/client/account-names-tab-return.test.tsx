@@ -110,7 +110,7 @@ it('has one active search, retains independent source panels and an explicitly l
   expect(document.activeElement).toBe(source); expect(activeSearches()).toEqual([projectSearch]);
   await input(projectSearch, 'Account'); await select(library().querySelector<HTMLSelectElement>('[aria-label="Filter project names"]')!, 'favorite');
   expect(library().querySelector(`a[href="/brands/account/${projectId}/naming"]`)?.getAttribute("aria-label")).toBe(`Open source project: ${project.title}`);
-  expect(library().textContent).toContain('does not show whether a source project is active');
+  expect(library().textContent).toContain('Each name links to the project it came from');
   await click('Workshop & manual');
   expect(activeSearches()).toEqual([manual]); expect(manual.value).toBe('Local');
   expect(host.querySelector<HTMLSelectElement>('[aria-label="Filter names"]')!.value).toBe('saved');

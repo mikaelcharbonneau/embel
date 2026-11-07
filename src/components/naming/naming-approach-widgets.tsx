@@ -78,9 +78,9 @@ export function NamingRecoveryNotice({ memory, account }: { memory: NamingBrainM
 function Assistant({ children }: { children: ReactNode }) {
   return <div className="guided-assistant-message"><EmbelIdentity label={journeyPartLabel("voice", "Name")} />{children}</div>;
 }
-export function NamingApproachWidgets({ memory, account, projectId, context, saved, savedChat, blocked, runtimeReady, exploring = false, canSteer = false, onSteer, onContinue, onCheckSaved, onSaveProgress, generationStatus, generationUnavailable = false, compact = false, onToggleConversation, composerLayout, onComposerLayoutChange, conversationHistory, inline, manualName }: {
+export function NamingApproachWidgets({ memory, account, projectId, context, saved, savedChat, blocked, runtimeReady, exploring = false, canSteer = false, onSteer, onContinue, onCheckSaved, onSaveProgress, generationStatus, generationUnavailable = false, compact = false, onToggleConversation, composerLayout, conversationHistory, inline, manualName }: {
   memory: NamingBrainMemory; account: NamingAccount; projectId: string; context: ContextSnapshot; saved: NamingPreferenceRevision | null;
-  inline?: InlineNamingConversation; manualName?: ReactNode; conversationHistory?: ReactNode; compact?: boolean; onToggleConversation?: (open: boolean) => void; composerLayout?: NamingComposerLayout; onComposerLayoutChange?: (patch: Partial<NamingComposerLayout>) => void; generationStatus?: ReactNode; generationUnavailable?: boolean; savedChat?: NamingChatCheckpoint; onSaveProgress: (checkpoint: NamingChatCheckpoint) => Promise<boolean>;
+  inline?: InlineNamingConversation; manualName?: ReactNode; conversationHistory?: ReactNode; compact?: boolean; onToggleConversation?: (open: boolean) => void; composerLayout?: NamingComposerLayout; generationStatus?: ReactNode; generationUnavailable?: boolean; savedChat?: NamingChatCheckpoint; onSaveProgress: (checkpoint: NamingChatCheckpoint) => Promise<boolean>;
   blocked: boolean; runtimeReady: boolean; exploring?: boolean; canSteer?: boolean; onSteer?: (ids: string[], instruction: string | null) => Promise<boolean>; onContinue: () => Promise<boolean>; onCheckSaved?: () => void;
 }) {
   const read = useCallback(() => memory.get(account, projectId), [memory, account, projectId]);
@@ -230,9 +230,7 @@ export function NamingApproachWidgets({ memory, account, projectId, context, sav
   return <section className={`naming-approach-widgets ${styles.conversation}`} aria-label="Naming choices">
     {!compact && chatHistory}
     <FloatingComposer label="Naming composer" history={compact ? chatHistory : undefined}
-      expanded={compact && (composerLayout?.expanded ?? true)} onExpandedChange={onToggleConversation}
-      defaultPosition={composerLayout?.position} onPositionChange={position => onComposerLayoutChange?.({ position })}
-      minimized={composerLayout?.minimized} onMinimizedChange={minimized => onComposerLayoutChange?.({ minimized })} expandLabel="Open chat" collapseLabel="Close chat">
+      expanded={compact && (composerLayout?.expanded ?? true)} onExpandedChange={onToggleConversation} expandLabel="Open chat" collapseLabel="Close chat">
       {composer}
     </FloatingComposer>
   </section>;

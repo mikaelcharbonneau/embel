@@ -58,7 +58,7 @@ a.step .stepMark { border: 0; background: var(--accent); color: var(--on-accent)
 .choiceInput { flex: 0 0 auto; width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--accent); }
 .choice[data-disabled="true"] { opacity: .55; }
 .choice[data-disabled="true"] .choiceTarget { cursor: not-allowed; }
-.badge { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: var(--radius-pill); background: var(--surface); color: #3a3a37; font-size: 11px; font-weight: 500; }
+.badge { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: var(--radius-pill); background: var(--surface); color: #3a3a37; font-size: 12px; font-weight: 500; }
 
 .summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 14px 14px 16px; background: rgb(255 255 255 / 75%); border: 1px solid var(--border); border-radius: var(--radius-card); }
 .summaryCopy { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
@@ -85,12 +85,14 @@ a.step .stepMark { border: 0; background: var(--accent); color: var(--on-accent)
 .progress { display: flex; flex-direction: column; gap: 14px; padding: 18px; background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: 0 12px 32px -18px rgb(25 25 25 / 22%); }
 .progressTitle { margin: 0; font-size: 16px; font-weight: 500; }
 .progressText { margin: 0; font-size: 14px; color: var(--secondary); }
-.bar { height: 4px; overflow: hidden; border-radius: var(--radius-pill); background: var(--surface); }
-.bar > span { display: block; width: 38%; height: 100%; border-radius: inherit; background: var(--accent); animation: journey-bar 1.4s ease-in-out infinite; }
+/* Indeterminate: a soft light sweeps calmly across the whole bar, so it never
+   reads as an amount of progress. */
+.bar { position: relative; height: 4px; overflow: hidden; border-radius: var(--radius-pill); background: var(--border); }
+.bar > span { position: absolute; inset: 0 auto 0 0; width: 50%; border-radius: inherit; background: linear-gradient(90deg, transparent, var(--accent) 50%, transparent); animation: journey-bar 2.4s ease-in-out infinite; }
 .progressActions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; }
 .progressNote { margin: 0 auto 0 0; font-size: 13px; color: var(--secondary); }
-@keyframes journey-bar { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
-@media (prefers-reduced-motion: reduce) { .bar > span { width: 100%; animation: none; opacity: .35; } }
+@keyframes journey-bar { from { transform: translateX(-100%); } to { transform: translateX(200%); } }
+@media (prefers-reduced-motion: reduce) { .bar > span { width: 100%; background: var(--border-strong); animation: none; } }
 
 @media (max-width: 900px) {
   .projectCapsule { flex-wrap: wrap; width: 100%; padding: 8px; border-radius: 20px; }

@@ -1,7 +1,8 @@
 import type { BrandAssetSnapshot } from "./snapshot";
+import { brandBoardContrastRatio as contrast } from "@/domain/brand-board-design";
 
 /** Assets · Design system: tokens derived only from the chosen direction's saved
- * colours and fonts, plus a fixed type scale, spacing and corner set. Nothing is
+ * colors and fonts, plus a fixed type scale, spacing and corner set. Nothing is
  * invented about the brand beyond those choices. */
 export const TYPE_SCALE = [
   { key: "display", label: "Display", size: 48, lineHeight: 1.05, role: "heading" },
@@ -17,12 +18,21 @@ const ROLE_USE: Record<keyof BrandAssetSnapshot["palette"], string> = {
   primary: "Buttons and key actions", accent: "Highlights and links", background: "Page background", text: "Body text",
 };
 
+/** A text color on `background` with at least 4.5:1 contrast, preferring the
+ * palette's own roles; otherwise the palette color with the most contrast. */
+export function readableBrandColor(snapshot: BrandAssetSnapshot, background: string, preferred: readonly string[] = []): string {
+  const choices = [...preferred, snapshot.palette.text, snapshot.palette.primary, snapshot.palette.background, ...snapshot.colors.map(color => color.hex)];
+  return choices.find(hex => contrast(hex, background) >= 4.5) ?? choices.reduce((best, hex) => contrast(hex, background) > contrast(best, background) ? hex : best);
+}
+
 export type DesignTokens = ReturnType<typeof designTokens>;
 export function designTokens(snapshot: BrandAssetSnapshot) {
   const roles = Object.entries(snapshot.palette) as [keyof BrandAssetSnapshot["palette"], string][];
+  // An accent too light for text on the page background is used as a fill only.
+  const accentUse = contrast(snapshot.palette.accent, snapshot.palette.background) >= 4.5 ? ROLE_USE.accent : "Highlights and fills, not text";
   const colors = snapshot.colors.map(color => {
     const role = roles.find(([, hex]) => hex.toLowerCase() === color.hex.toLowerCase())?.[0];
-    return { key: color.key, name: color.name, hex: color.hex, role: role ?? null, use: role ? ROLE_USE[role] : "Supporting colour" };
+    return { key: color.key, name: color.name, hex: color.hex, role: role ?? null, use: role === "accent" ? accentUse : role ? ROLE_USE[role] : "Supporting color" };
   });
   const fonts = { heading: { family: snapshot.heading.family, weight: snapshot.heading.weight }, body: { family: snapshot.body.family, weight: snapshot.body.weight } };
   return { brand: snapshot.name, colors, roles: snapshot.palette, fonts, typeScale: TYPE_SCALE, spacing: SPACING, corners: CORNERS };

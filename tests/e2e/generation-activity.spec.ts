@@ -97,7 +97,7 @@ test("activity fixture: loads only on explicit open and stops polling after clos
   await openActivity(page);
   await expect(dialog(page).getByText(titles.naming, { exact: true })).toBeVisible();
   expect(state.activityRequests).toBe(1);
-  await dialog(page).getByRole("button", { name: "Close activity", exact: true }).click();
+  await dialog(page).getByRole("button", { name: "Close", exact: true }).click();
   await expect(dialog(page)).not.toBeVisible();
   await page.clock.fastForward(30_000);
   expect(state.activityRequests).toBe(1);
@@ -119,13 +119,13 @@ test("activity fixture: owned active and recent rows have truthful labels and pr
   await expect(active.getByRole("link", { name: `${titles.review} Competitors`, exact: true })).toHaveAttribute("href", `/brands/account/${uuid(102)}?view=strategy`);
   await expect(recent.getByRole("link", { name: `${titles.completed} Naming`, exact: true })).toHaveAttribute("href", `/brands/account/${uuid(103)}/naming`);
   await expect(recent.getByRole("link", { name: `${titles.partial} Positioning`, exact: true })).toHaveAttribute("href", `/brands/account/${uuid(104)}?view=strategy`);
-  await expect(active.getByText("Needs review", { exact: true })).toBeVisible();
-  await expect(active.getByText("The outcome needs review. This request will not be retried automatically.", { exact: true })).toBeVisible();
+  await expect(active.getByText("Not confirmed", { exact: true })).toBeVisible();
+  await expect(active.getByText("We couldn’t confirm this result. Open the project to continue.", { exact: true })).toBeVisible();
   await expect(recent.getByText("Partial results", { exact: true })).toBeVisible();
-  await expect(recent.getByText("Request completed", { exact: true })).toBeVisible();
+  await expect(recent.getByText("Done", { exact: true })).toBeVisible();
   await expect(panel.getByRole("progressbar", { name: `Naming progress for ${titles.naming}`, exact: true })).toHaveAttribute("value", "37");
-  await expect(panel.getByText(/A completed request can contain fewer results than requested/)).toBeVisible();
-  await expect(panel.getByRole("button")).toHaveText(["Close activity"]);
+  await expect(panel.getByText(/Open a project to see everything it made/)).toBeVisible();
+  await expect(panel.getByRole("button")).toHaveCount(1); await expect(panel.getByRole("button", { name: "Close", exact: true })).toBeVisible();
 });
 
 for (const [title, operation, href] of [
@@ -141,12 +141,12 @@ for (const [title, operation, href] of [
 test("activity fixture: first-read failure is unavailable until a successful explicit retry", async ({ page }) => {
   const { state } = await fixtures(page); state.status = 503; state.payload = { error: { code: "integration_unavailable", message: "Synthetic private service detail" } };
   await openPage(page); await openActivity(page);
-  await expect(dialog(page).getByRole("alert")).toContainText("Activity could not be refreshed");
-  await expect(dialog(page).getByText("No generation requests in this account yet.", { exact: true })).toHaveCount(0);
+  await expect(dialog(page).getByRole("alert")).toContainText(/Activity couldn’t be (?:loaded|refreshed)/);
+  await expect(dialog(page).getByText("Nothing generated yet.", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Synthetic private service detail", { exact: true })).toHaveCount(0);
   state.status = 200; state.payload = emptyActivity();
-  await dialog(page).getByRole("button", { name: "Check activity again", exact: true }).click();
-  await expect(dialog(page).getByText("No generation requests in this account yet.", { exact: true })).toBeVisible();
+  await dialog(page).getByRole("button", { name: "Try again", exact: true }).click();
+  await expect(dialog(page).getByText("Nothing generated yet.", { exact: true })).toBeVisible();
   await expect(dialog(page).getByRole("alert")).toHaveCount(0);
   expect(state.activityRequests).toBe(2);
 });
@@ -156,11 +156,11 @@ test("activity fixture: a failed refresh labels retained rows as the last succes
   await expect(dialog(page).getByText(titles.naming, { exact: true })).toBeVisible();
   state.status = 503; state.payload = { error: { code: "integration_unavailable" } };
   await page.clock.fastForward(3001);
-  await expect(dialog(page).getByRole("alert")).toContainText("Any entries below are from the last successful check.");
+  await expect(dialog(page).getByRole("alert")).toContainText("You’re seeing the last update.");
   await expect(dialog(page).getByText(titles.naming, { exact: true })).toBeVisible();
   state.status = 200; state.payload = emptyActivity();
-  await dialog(page).getByRole("button", { name: "Check activity again", exact: true }).click();
-  await expect(dialog(page).getByText("No generation requests in this account yet.", { exact: true })).toBeVisible();
+  await dialog(page).getByRole("button", { name: "Try again", exact: true }).click();
+  await expect(dialog(page).getByText("Nothing generated yet.", { exact: true })).toBeVisible();
   await expect(dialog(page).getByText(titles.naming, { exact: true })).toHaveCount(0);
 });
 
@@ -179,7 +179,7 @@ for (const nextOwner of [otherOwnerId, null]) test(`activity privacy fixture: he
     if (nextOwner) {
       await expect(trigger(page)).toBeVisible(); await expect(dialog(page)).not.toBeVisible();
       await openActivity(page);
-      await expect(dialog(page).getByText("No generation requests in this account yet.", { exact: true })).toBeVisible();
+      await expect(dialog(page).getByText("Nothing generated yet.", { exact: true })).toBeVisible();
     } else {
       await expect(trigger(page)).toHaveCount(0);
       await expect(page.getByRole("banner").getByLabel("Account menu", { exact: true })).toContainText("Sign in");
@@ -200,7 +200,7 @@ test("activity privacy fixture: a foreign-owner response invalidates the current
 test("activity privacy fixture: malformed nested ownership cannot publish foreign rows", async ({ page }) => {
   const { state } = await fixtures(page); const payload = activity(); payload.active[0]!.ownerId = otherOwnerId; state.payload = payload;
   await openPage(page); await openActivity(page);
-  await expect(dialog(page).getByRole("alert")).toContainText("Activity could not be refreshed");
+  await expect(dialog(page).getByRole("alert")).toContainText(/Activity couldn’t be (?:loaded|refreshed)/);
   await expect(dialog(page).getByRole("link")).toHaveCount(0);
   await expect(page.getByText(titles.naming, { exact: true })).toHaveCount(0);
 });
@@ -221,12 +221,12 @@ test("activity fixture: closing a held request cannot overwrite a reopened panel
   const held = fixture.holdNext(); await openActivity(page);
   try {
     await expect.poll(() => held.ready).toBe(true);
-    await dialog(page).getByRole("button", { name: "Close activity", exact: true }).click();
+    await dialog(page).getByRole("button", { name: "Close", exact: true }).click();
     fixture.state.payload = emptyActivity();
     await openActivity(page);
-    await expect(dialog(page).getByText("No generation requests in this account yet.", { exact: true })).toBeVisible();
+    await expect(dialog(page).getByText("Nothing generated yet.", { exact: true })).toBeVisible();
     held.release(); await expect.poll(() => held.settled).toBe(true); await settleRendering(page);
-    await expect(dialog(page).getByText("No generation requests in this account yet.", { exact: true })).toBeVisible();
+    await expect(dialog(page).getByText("Nothing generated yet.", { exact: true })).toBeVisible();
     await expect(page.getByText(titles.naming, { exact: true })).toHaveCount(0);
   } finally { held.release(); }
 });
@@ -234,7 +234,7 @@ test("activity fixture: closing a held request cannot overwrite a reopened panel
 test("activity accessibility fixture: keyboard navigation stays in the modal and Escape restores the trigger", async ({ page }) => {
   await fixtures(page); await openPage(page);
   await trigger(page).focus(); await trigger(page).press("Enter");
-  const close = dialog(page).getByRole("button", { name: "Close activity", exact: true });
+  const close = dialog(page).getByRole("button", { name: "Close", exact: true });
   await expect(close).toBeFocused();
   const links = dialog(page).getByRole("link");
   await expect(links).toHaveCount(4);
@@ -278,16 +278,16 @@ for (const initial of [true, false]) test(`activity fixture: a stalled ${initial
   else await page.clock.fastForward(3000);
   await expect.poll(() => held.ready).toBe(true);
   await page.clock.fastForward(15_001);
-  await expect(dialog(page).getByRole("alert")).toContainText("Activity could not be refreshed");
+  await expect(dialog(page).getByRole("alert")).toContainText(/Activity couldn’t be (?:loaded|refreshed)/);
   if (!initial) await expect(dialog(page).getByText(titles.naming, { exact: true })).toBeVisible();
   await page.screenshot({ path: test.info().outputPath("activity-timeout-recovery.png"), fullPage: true, scale: "css" });
   state.payload = emptyActivity();
-  await dialog(page).getByRole("button", { name: "Check activity again", exact: true }).click();
-  await expect(dialog(page).getByText("No generation requests in this account yet.", { exact: true })).toBeVisible();
+  await dialog(page).getByRole("button", { name: "Try again", exact: true }).click();
+  await expect(dialog(page).getByText("Nothing generated yet.", { exact: true })).toBeVisible();
   held.release(); await expect.poll(() => held.settled).toBe(true);
   await expect(dialog(page).getByText(titles.naming, { exact: true })).toHaveCount(0);
   await expect(dialog(page).getByRole("alert")).toHaveCount(0);
-  await dialog(page).getByRole("button", { name: "Close activity", exact: true }).click();
+  await dialog(page).getByRole("button", { name: "Close", exact: true }).click();
   const reads = state.activityRequests; await page.clock.fastForward(30_000);
   expect(state.activityRequests).toBe(reads); expect(errors).toEqual([]);
 });
@@ -302,5 +302,5 @@ test("activity accessibility fixture: a queued native close cannot dismiss a reo
   await expect(dialog(page)).toBeVisible();
   await dialog(page).evaluate(element => element.dispatchEvent(new Event("close")));
   await expect(dialog(page)).toBeVisible();
-  await expect(dialog(page).getByRole("button", { name: "Close activity", exact: true })).toBeFocused();
+  await expect(dialog(page).getByRole("button", { name: "Close", exact: true })).toBeFocused();
 });

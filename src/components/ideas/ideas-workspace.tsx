@@ -8,21 +8,22 @@ import { Icon } from "@/components/ui/icon";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import { accountRequest, AccountRequestError } from "@/components/workspace/account-api";
 import { emptyIdeaContent, ideaErrorMessage, ideaStateLabels, mergeIdeaPage, sameIdeaId, type IdeaListing } from "./ideas-client";
+import "@/components/tools/tool-page.css";
 import "@/styles/ideas.css";
 
 const emptyCapture = () => null;
 
 export function IdeasWorkspace() {
   const { session, ideaDrafts } = useAccountSession();
-  return <div className="page ideas-page ideas-home">
+  return <div className="page tool-page ideas-page ideas-home">
     {session.status === "ready" ? <OwnedIdeasWorkspace key={`${session.userId}:${session.generation}`} account={session} /> : <><IdeasHeading /><AccountStatus retainedEdits={ideaDrafts.hasUnsaved()} /></>}
   </div>;
 }
 
 function IdeasHeading({ captureOpen = false, onToggleCapture }: { captureOpen?: boolean; onToggleCapture?: () => void }) {
-  return <header className="page-heading ideas-heading">
-    <div className="ideas-introduction"><h1>Room for your next idea<span>.</span></h1><p>Capture it now. Give it shape when you are ready.</p></div>
-    <button className="button primary ideas-add" type="button" disabled={!onToggleCapture} aria-expanded={captureOpen} aria-controls={onToggleCapture ? "idea-capture-panel" : undefined} onClick={onToggleCapture}>{captureOpen ? "Close capture" : "Add idea"}<Icon name={captureOpen ? "close" : "plus"} size={17} /></button>
+  return <header className="tool-heading ideas-heading">
+    <div className="tool-heading-text ideas-introduction"><h1>Room for your next idea<span>.</span></h1><p>Capture it now. Give it shape when you are ready.</p></div>
+    <button className="button primary ideas-add" type="button" disabled={!onToggleCapture} aria-expanded={captureOpen} aria-controls={onToggleCapture ? "idea-capture-panel" : undefined} onClick={onToggleCapture}>{captureOpen ? "Close capture" : "Add idea"}<Icon name={captureOpen ? "close" : "plus"} size={16} /></button>
   </header>;
 }
 
@@ -45,7 +46,7 @@ function OwnedIdeasWorkspace({ account }: { account: VerifiedAccount }) {
         <label className="ideas-field ideas-filter-state"><span className="sr-only">Filter by state</span><span className="ideas-state-display" aria-hidden="true">{query.state === "all" ? "All states" : ideaStateLabels[query.state]}<Icon name="chevron" size={17} /></span><select value={query.state} onChange={event => { const state = event.target.value as IdeaState | "all"; setQuery(previous => previous.search === search.trim() && previous.state === state ? previous : { search: search.trim(), state }); }}><option value="all">All states</option>{Object.entries(ideaStateLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       </form>
       <p id="ideas-search-hint" className="sr-only">Press Enter to search all your saved ideas. State filters also apply across the full library.</p>
-      <OwnedIdeaListing account={account} query={query} />
+      <OwnedIdeaListing account={account} query={query} onAddIdea={captureOpen ? undefined : () => { setCaptureOpen(true); requestAnimationFrame(() => document.querySelector<HTMLInputElement>("#idea-capture-panel input")?.focus()); }} />
     </section>
   </>;
 }
@@ -122,7 +123,7 @@ function IdeaCaptureForm({ account }: { account: VerifiedAccount }) {
   </section>;
 }
 
-function OwnedIdeaListing({ account, query }: { account: VerifiedAccount; query: { search: string; state: IdeaState | "all" } }) {
+function OwnedIdeaListing({ account, query, onAddIdea }: { account: VerifiedAccount; query: { search: string; state: IdeaState | "all" }; onAddIdea?: () => void }) {
   const { isCurrent, expire } = useAccountSession();
   const queryKey = JSON.stringify(query);
   const [snapshot, setSnapshot] = useState<{ queryKey: string; listing: IdeaListing } | null>(null);
@@ -172,7 +173,10 @@ function OwnedIdeaListing({ account, query }: { account: VerifiedAccount; query:
       <div className="idea-card-top"><Icon name="ideas" size={18} /><span>{ideaStateLabels[idea.state]}</span></div>
       <h3>{idea.title}</h3>{idea.description && <p>{idea.description}</p>}
       <div className="idea-card-footer"><span className="idea-theme">{idea.theme || "Idea"}</span><Icon name="arrow" size={16} /></div>
-    </Link>)}</div> : !changingQuery && <p className="quiet-empty">{query.search || query.state !== "all" ? "No saved ideas match these filters." : "No saved ideas yet. Choose Add idea to capture your first idea."}</p>)}
+    </Link>)}</div> : !changingQuery && (query.search || query.state !== "all" ? <p className="quiet-empty">No saved ideas match these filters.</p> : <section className="tool-empty ideas-empty" aria-labelledby="ideas-empty-heading">
+      <h2 id="ideas-empty-heading">Your first idea</h2><p>Write it down now and shape it into a brand later.</p>
+      {onAddIdea && <button className="button primary" type="button" onClick={onAddIdea}>Add idea<Icon name="plus" size={16} /></button>}
+    </section>))}
     {error && <div className="ideas-load-error"><p className="form-error" role="alert">{error}{changingQuery && " Previous results are still shown."}</p><button className="button secondary small" type="button" disabled={busy} onClick={() => void load()}>Try loading ideas again</button></div>}
     {listing?.nextCursor && !changingQuery && !error && <button className="button secondary small ideas-load-more" type="button" disabled={busy} onClick={() => void load()}>{busy ? "Loading more ideas…" : "Load more ideas"}</button>}
     {listing && !changingQuery && <p className="sr-only" role="status">{listing.items.length} {listing.items.length === 1 ? "idea" : "ideas"} loaded.{!listing.nextCursor && " End of this listing."}</p>}
