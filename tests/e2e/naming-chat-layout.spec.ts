@@ -43,9 +43,9 @@ test("sequential chat saves each answer and preserves the same composer with com
     expect(results!.y + results!.height).toBeGreaterThanOrEqual(chat!.y + chat!.height - 1);
     expect(chat!.y + chat!.height).toBeLessThanOrEqual(901);
     expect(chat!.width).toBeGreaterThan(0); expect(results!.width).toBeGreaterThan(0);
-    expect(new Set(geometry.map(item => item.y)).size).toBe(1); expect(geometry[0]!.height).toBe(90); expect(geometry[1]!.x - geometry[0]!.x - geometry[0]!.width).toBe(12);
+    expect(new Set(geometry.map(item => item.y)).size).toBe(1); expect(geometry[0]!.height).toBe(76); expect(geometry[1]!.x - geometry[0]!.x - geometry[0]!.width).toBe(12);
   } else { expect(geometry[0]!.y).toBe(geometry[1]!.y); expect(geometry[2]!.y).toBeGreaterThan(geometry[0]!.y); }
-  expect(await namingCard(page, 1).getByRole("button").count()).toBe(2);
+  expect(await namingCard(page, 1).getByRole("button").count()).toBe(3);
   await expect(namingCard(page, 1).locator('img[src="/naming/heart.svg"]')).toHaveJSProperty("naturalWidth", 16);
   await noOverflow(page); await page.screenshot({ path: info.outputPath("compact-results.png") });
   await showChat(page);

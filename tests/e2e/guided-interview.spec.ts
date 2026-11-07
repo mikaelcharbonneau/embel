@@ -4,7 +4,7 @@ import { accountProjectSchema, updateProjectInputSchema, type AccountProject } f
 import type { ContextSnapshot, GuidedStage, GuidedTurn } from "../../src/domain/projects";
 import { guidedReplySchema, type GuidedReply } from "../../src/domain/guided-interview";
 import { enqueueStrategyJobSchema, strategyJobSchema, type StrategyJob, type StrategyOperation } from "../../src/domain/strategy-jobs";
-import { getNamingReadiness, type NamingSession } from "../../src/domain/project-naming";
+import { getNamingReadiness, nameIdentityKey, namingStrategyBasis, namingStrategyKey, type NamingSession } from "../../src/domain/project-naming";
 import { projectNamingOverviewSchema } from "../../src/domain/naming-jobs";
 import { namingFeedSchema } from "../../src/domain/naming-brain";
 import { captureUiEvidence } from "./ui-evidence";
@@ -20,13 +20,17 @@ const initialPrompt = "Synthetic brief: a neighborhood kitchen serving seasonal 
 const questions = {
   competitors: "Which brands should we keep as useful comparisons?",
   audience: "Who should this neighborhood kitchen serve first?",
+  positioning: "How will you stand apart?",
   personality: "How should the brand sound and feel?",
+  slogan: "Which slogan sounds like you?",
 };
 const operations = [
   { operation: "strategy.reformulate", maximumCostMicrousd: 122880, interviewVersion: 1 },
   { operation: "strategy.competitors", maximumCostMicrousd: 3142880, interviewVersion: 1 },
   { operation: "strategy.audience", maximumCostMicrousd: 200000, interviewVersion: 1 },
+  { operation: "strategy.positioning", maximumCostMicrousd: 200000, interviewVersion: 1 },
   { operation: "strategy.personality", maximumCostMicrousd: 200000, interviewVersion: 1 },
+  { operation: "strategy.slogan", maximumCostMicrousd: 200000, interviewVersion: 1 },
 ] as const;
 const competitors = [
   { id: "eeeeeeee-1111-4111-8111-000000000001", name: "Table Next Door", relevance: "A local seasonal lunch alternative for the same neighborhood.", url: "https://table.example/", selected: false, origin: "research" as const, sources: [{ url: "https://sources.example/table-profile", title: "Synthetic source: Table Next Door", retrievedAt: when }] },
@@ -40,6 +44,12 @@ const personalities = [
   { id: "warm-guide", label: "The warm guide", profile: { sincerity: 90, excitement: 35, competence: 75, sophistication: 30, ruggedness: 10 }, traits: ["Welcoming", "Practical", "Thoughtful"], toneExample: "Good food, a familiar face, and a little time for yourself.", expression: "Clear menu language with warm, direct invitations." },
   { id: "curious-host", label: "The curious host", profile: { sincerity: 70, excitement: 80, competence: 65, sophistication: 45, ruggedness: 15 }, traits: ["Curious", "Lively", "Open"], toneExample: "Something seasonal is on the table. Come try a bite.", expression: "Playful seasonal discoveries with friendly explanations." },
 ];
+
+const positionings = [
+  { id: "pos-lunch", label: "Lunch made easy", payload: { angle: "Lunch made easy", statement: "For nearby office workers, the kitchen that makes a good seasonal lunch the easy choice.", why: "Pairs a daily need with a short walk.", leads: ["Seasonal", "Quick", "Nearby"] } },
+  { id: "pos-table", label: "The neighborhood table", payload: { angle: "The neighborhood table", statement: "A kitchen run by neighbors, serving what is in season to the people around it.", why: "Makes the local, human scale the reason to choose it.", leads: ["Local", "Warm"] } },
+];
+const slogans = ["Seasonal lunch, around the corner.", "Good food, a short walk away.", "Lunch that knows the season."];
 
 function fixtureProject(guided = true): AccountProject {
   return accountProjectSchema.parse({
@@ -60,11 +70,15 @@ function queuedJob(operation: StrategyOperation, revision: number, ordinal: numb
 }
 
 function choiceReply(turn: GuidedTurn): Extract<GuidedReply, { kind: "choices" }> {
-  const common = { turnId: turn.id, stage: turn.stage, kind: "choices", message: `Synthetic ${turn.stage} guidance from the saved brief.`, question: questions[turn.stage], selectionMode: turn.stage === "personality" ? "single" : "multiple" };
+  const common = { turnId: turn.id, stage: turn.stage, kind: "choices", message: `Synthetic ${turn.stage} guidance from the saved brief.`, question: questions[turn.stage], selectionMode: ["positioning", "personality", "slogan"].includes(turn.stage) ? "single" : "multiple" };
   const options = turn.stage === "competitors"
     ? competitors.map((payload, index) => ({ id: payload.id, label: payload.name, description: index ? "A useful adjacent example of everyday convenience." : "A close comparison for seasonal lunches and neighborhood familiarity.", stage: "competitors", payload, recommended: index === 0, recommendationReason: index === 0 ? "Its local lunch focus makes the comparison useful for your first decisions." : null }))
     : turn.stage === "audience"
       ? audiences.map((payload, index) => ({ id: payload.id, label: payload.label, description: index ? "Families living within an easy walk." : "People working within a short walk at lunchtime.", stage: "audience", payload, recommended: index === 0, recommendationReason: index === 0 ? "A repeated weekday need can support a focused opening offer." : null }))
+      : turn.stage === "positioning"
+        ? positionings.map(({ id, label, payload }, index) => ({ id, label, description: payload.statement, stage: "positioning", payload, recommended: index === 0, recommendationReason: index === 0 ? "It fits the weekday lunch need." : null }))
+      : turn.stage === "slogan"
+        ? slogans.map((slogan, index) => ({ id: `slogan-${index}`, label: slogan, description: "A short line", stage: "slogan", payload: { slogan }, recommended: index === 0, recommendationReason: index === 0 ? "Warm and short." : null }))
       : personalities.map(({ id, label, ...payload }, index) => ({ id, label, description: index ? "An energetic host who makes discovery feel easy." : "A welcoming neighbor who makes good food feel uncomplicated.", stage: "personality", payload, recommended: index === 0, recommendationReason: index === 0 ? "Warmth and practical confidence fit the everyday neighborhood promise." : null }));
   return guidedReplySchema.parse({ ...common, options }) as Extract<GuidedReply, { kind: "choices" }>;
 }
@@ -75,7 +89,8 @@ function completedJob(job: StrategyJob, guidance?: GuidedReply): StrategyJob {
     : job.operation === "strategy.competitors" ? { message, competitors }
       : job.operation === "strategy.audience" ? { message, segments: audiences }
         : job.operation === "strategy.personality" ? { message, personality: personalities[0]!.profile }
-          : { message, positioning: "A synthetic legacy positioning statement." };
+          : job.operation === "strategy.slogan" ? { message, slogans }
+          : { message, positioning: positionings[0]!.payload.statement };
   return strategyJobSchema.parse({ ...job, state: "succeeded", progress: 100, finished_at: when, results: [{ stepKey: "response", output: {
     version: 1, provider: "openai", model: "synthetic-guided-model", responseId: `synthetic-${job.id}`, requestId: null, generatedAt: when,
     usage: { inputTokens: 50, outputTokens: 40, cachedInputTokens: 0, cacheWriteInputTokens: 0, webSearchCalls: job.operation === "strategy.competitors" ? 1 : 0 },
@@ -215,6 +230,15 @@ async function openHomeAndSend(page: Page, prompt = initialPrompt) {
   await page.getByRole("button", { name: "Send prompt", exact: true }).click();
 }
 
+function researchCard(page: Page) {
+  return page.getByRole("region", { name: "Researching your competitors", exact: true });
+}
+
+/** Embel working on a reply: the research card for competitors, the thinking line otherwise. */
+function working(page: Page) {
+  return page.locator(".guided-thinking[role=status]").or(page.getByRole("region", { name: /^(Researching your competitors|Cancelling research…)$/ }));
+}
+
 function widget(page: Page, stage: GuidedStage) {
   return page.getByRole("group", { name: questions[stage], exact: true });
 }
@@ -299,7 +323,7 @@ test("the first prompt stays in place through the handoff from Home to Strategy"
     finishCreate();
     // Hold both project re-reads. The confirmed new project must render immediately.
     await expect(page).toHaveURL(`/brands/account/${projectId}?view=strategy`);
-    await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Cancel research", exact: true })).toBeVisible();
     await expect(bubble).toBeInViewport({ ratio: 1 });
     await expect(composer).toBeInViewport({ ratio: 1 });
     const after = await bubble.boundingBox(), afterComposer = await composer.boundingBox();
@@ -324,7 +348,7 @@ for (const length of ["short", "long"] as const) test(`guided interview: the cha
     await openHomeAndSend(page, submittedPrompt);
     await expect.poll(() => state.enqueues.length).toBe(1);
     await expect(userMessage(page, submittedPrompt)).toBeVisible();
-    await expect(page.locator(".guided-thinking[role=status]")).toBeInViewport({ ratio: 1 });
+    await expect(researchCard(page)).toBeInViewport({ ratio: 1 });
     await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
     await expect(page.locator(".guided-research-screen")).toHaveCount(0);
   } finally { release(); }
@@ -340,16 +364,16 @@ test("managed Strategy fixture: Home consent survives saved research and reload 
   await expect.poll(() => state.enqueues.length).toBe(1);
   expect(state.enqueues[0]).toEqual({ operation: "strategy.competitors", expectedRevision: 1,
     idempotencyKey: `strategy.managed.v3:${projectId}:1:strategy.competitors`, billingMode: "openai_api", spendControl: "uncapped", acceptedPolicyIdentity: "2".repeat(64) });
-  await expect(page.locator(".guided-thinking[role=status]")).toBeVisible();
+  await expect(working(page)).toBeVisible();
   await expect(page.locator("main")).not.toContainText(/up to \$|Reserved limit|USD per request/);
-  await page.reload(); await expect(page.locator(".guided-thinking[role=status]")).toBeVisible(); expect(state.enqueues).toHaveLength(1);
+  await page.reload(); await expect(working(page)).toBeVisible(); expect(state.enqueues).toHaveLength(1);
   completeLatest(state); await expect(widget(page, "competitors")).toBeVisible();
   await widget(page, "competitors").getByRole("checkbox").first().check();
   await widget(page, "competitors").getByRole("button", { name: "Continue", exact: true }).click();
   await expect.poll(() => state.enqueues.length).toBe(2);
   expect(state.enqueues[1]).toEqual({ operation: "strategy.audience", expectedRevision: 2,
     idempotencyKey: `strategy.managed.v3:${projectId}:2:strategy.audience`, billingMode: "openai_api", spendControl: "uncapped", acceptedPolicyIdentity: "3".repeat(64) });
-  await page.reload(); await expect(page.locator(".guided-thinking[role=status]")).toBeVisible(); expect(state.enqueues).toHaveLength(2);
+  await page.reload(); await expect(working(page)).toBeVisible(); expect(state.enqueues).toHaveLength(2);
   expect(state.externalRequests).toEqual([]); expect(state.unhandledWrites).toEqual([]); expect(errors).toEqual([]);
   await captureUiEvidence(page, info);
 });
@@ -362,23 +386,19 @@ test("guided interview: Home opens the conversation and keeps the prompt and thi
   expect(state.creates).toHaveLength(1);
   expect(state.project.context.description).toBe(initialPrompt);
   expect(state.project.context.intake.guidedInterview).toMatchObject({ version: 1, stage: "competitors", answers: [] });
-  const loading = page.locator(".guided-thinking[role=status]");
+  const loading = researchCard(page);
   await expect(loading).toBeVisible();
   await expect(userMessage(page, initialPrompt)).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   await expect(page.locator(".guided-research-screen")).toHaveCount(0);
-  await expect(loading.locator('img[src="/project-workspace/mark.svg"]')).toBeVisible();
-  await expect.poll(() => loading.locator('img[src="/project-workspace/mark.svg"]').evaluate(image => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0)).toBe(true);
-  await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeEnabled();
+  await expect(loading.getByText("Your idea is saved. Suggestions appear here when they’re ready.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Cancel research", exact: true })).toBeEnabled();
   await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(0);
-  await expect(loading.locator("img")).not.toHaveCSS("animation-name", "none");
   await page.screenshot({ path: info.outputPath("guided-research-pending.png"), fullPage: true, scale: "css" });
   state.jobs[0] = strategyJobSchema.parse({ ...state.jobs[0], state: "running", progress: 40 });
   await page.reload();
   await expect(loading).toBeVisible();
   expect(state.enqueues).toHaveLength(1);
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await expect(loading.locator("img")).toHaveCSS("animation-name", "none");
   completeLatest(state);
   await expectReplyArrivalInViewport(page, "competitors", "Table Next Door");
   await page.screenshot({ path: info.outputPath("guided-competitor-arrival-viewport.png"), scale: "css" });
@@ -386,7 +406,7 @@ test("guided interview: Home opens the conversation and keeps the prompt and thi
   await expect(widget(page, "competitors").getByRole("checkbox", { checked: true })).toHaveCount(0);
   await expect(widget(page, "competitors").getByRole("button", { name: "Continue", exact: true })).toBeDisabled();
   await expect(widget(page, "competitors").getByText("Recommended", { exact: true })).toHaveCount(1);
-  await expect(widget(page, "competitors").getByText("Why we recommend it", { exact: true })).toBeVisible();
+  await expect(widget(page, "competitors").getByText("Why we recommend it", { exact: true })).toHaveCount(0);
   const references = page.getByRole("group", { name: "References for Table Next Door", exact: true });
   await expect(references.getByRole("link", { name: /Visit website/ })).toHaveAttribute("href", "https://table.example/");
   await expect(references.getByRole("link", { name: /Synthetic source: Table Next Door/ })).toHaveAttribute("href", "https://sources.example/table-profile");
@@ -413,7 +433,7 @@ for (const [reason, message] of [
   await expect(notice).toContainText(message);
   await expect(notice).not.toContainText("Your brief is saved");
   await expect(page.getByRole("button", { name: "Start competitor research", exact: true })).toHaveCount(0);
-  await expect(page.locator(".guided-thinking[role=status]")).toHaveCount(0);
+  await expect(working(page)).toHaveCount(0);
   await expectComposerInViewport(page);
   await page.screenshot({ path: info.outputPath(`strategy-first-turn-${reason}.png`), scale: "css" });
   state.runtimeUnavailable = false;
@@ -444,7 +464,7 @@ test("guided interview: unavailable AI still saves a Brand and permits acknowled
   await expect(page).toHaveURL(`/brands/account/${projectId}?view=strategy`);
   await expect(page.getByRole("button", { name: "Start competitor research", exact: true })).toHaveCount(0);
   await expect(page.getByText("AI replies are unavailable right now. You can still edit and save your project.", { exact: false })).toBeVisible();
-  await expect(page.locator(".guided-thinking[role=status]")).toHaveCount(0);
+  await expect(working(page)).toHaveCount(0);
   await page.getByRole("button", { name: "Edit brief", exact: true }).click();
   const brief = page.getByRole("textbox", { name: "Brief description", exact: true });
   await expect(brief).toBeEditable(); await brief.fill("A saved Brand correction while AI is unavailable.");
@@ -462,12 +482,12 @@ test("competitor cards keep their selection, descriptions and sources across sug
   const group = widget(page, "competitors");
   const previous = group.getByRole("checkbox", { name: competitors[0]!.name, exact: true });
   await previous.check();
-  await group.getByRole("button", { name: "Add competitor" }).click();
+  await group.getByRole("button", { name: "Add a competitor" }).click();
   await group.getByRole("textbox", { name: "Competitor name" }).fill("Coursera");
   await group.getByRole("textbox", { name: /Website/ }).fill("https://coursera.org/");
   await group.getByRole("button", { name: "Save competitor" }).click();
   await expect(group.getByRole("checkbox", { name: "Coursera", exact: true })).toBeChecked();
-  await group.getByRole("button", { name: "Generate more suggestions" }).click();
+  await group.getByRole("button", { name: "Suggest more" }).click();
   await expectRequest(state, 1, "strategy.competitors");
   const reply = choiceReply(currentTurn(state));
   const fresh = structuredClone(reply.options[0]!);
@@ -479,7 +499,7 @@ test("competitor cards keep their selection, descriptions and sources across sug
   await expect(previous).toBeChecked();
   const previousCard = group.locator(".guided-choice-card").filter({ has: page.getByRole("checkbox", { name: competitors[0]!.name, exact: true }) });
   await expect(previousCard.getByText("A close comparison for seasonal lunches and neighborhood familiarity.")).toBeVisible();
-  await expect(previousCard.getByText("Why we recommend it")).toBeVisible();
+  await expect(previousCard.getByText("Recommended", { exact: true })).toBeVisible();
   await expect(previousCard.getByRole("link", { name: /Synthetic source/ })).toBeVisible();
   const manualCard = group.locator(".guided-choice-card").filter({ has: page.getByRole("checkbox", { name: "Coursera", exact: true }) });
   await expect(manualCard.getByRole("link", { name: /Visit website/ })).toHaveAttribute("href", "https://coursera.org/");
@@ -499,7 +519,7 @@ test("competitor cards keep their selection, descriptions and sources across sug
   await expect(confirmed.getByRole("listitem").filter({ hasText: competitors[0]!.name })).toBeVisible();
 });
 
-test("guided interview: explicit selections save, reload, and finish at personality", async ({ page }, info) => {
+test("guided interview: explicit selections save, reload, and finish Strategy with positioning before personality", async ({ page }, info) => {
   const state = await fixtures(page, { seeded: true });
   await openProject(page);
   await expectSingleWidget(page, "competitors");
@@ -523,9 +543,20 @@ test("guided interview: explicit selections save, reload, and finish at personal
   await widget(page, "audience").getByRole("checkbox", { name: "Nearby office workers", exact: true }).check();
   await widget(page, "audience").getByRole("checkbox", { name: "Neighborhood families", exact: true }).check();
   await widget(page, "audience").getByRole("button", { name: "Continue", exact: true }).click();
-  await expectRequest(state, 2, "strategy.personality");
+  await expectRequest(state, 2, "strategy.positioning");
   expect(state.project.context.audienceSegments.filter(item => item.selected)).toHaveLength(2);
   expect(state.project.context.intake.audienceReviewedAt).not.toBeNull();
+  completeLatest(state);
+  await expectReplyArrivalInViewport(page, "positioning", "Lunch made easy");
+  await expect(widget(page, "positioning").getByText("What you’ll lead with", { exact: true })).toHaveCount(2);
+  await widget(page, "positioning").getByRole("radio", { name: "Lunch made easy", exact: true }).check();
+  await widget(page, "positioning").getByRole("button", { name: "Continue", exact: true }).click();
+  await expectRequest(state, 3, "strategy.personality");
+  expect(state.project.context.positioning).toBe(positionings[0]!.payload.statement);
+  expect(state.project.context.intake.positioningReviewedAt).not.toBeNull();
+  // Strategy is complete: its three answers collapse into one summary card.
+  await expect(page.getByRole("heading", { name: "Strategy", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: `Edit your answer: ${questions.competitors}`, exact: true })).toHaveCount(0);
   completeLatest(state);
   await expectReplyArrivalInViewport(page, "personality", "The warm guide");
   await page.screenshot({ path: info.outputPath("guided-personality-arrival-viewport.png"), scale: "css" });
@@ -544,7 +575,7 @@ test("guided interview: explicit selections save, reload, and finish at personal
   });
   try {
     await widget(page, "personality").getByRole("button", { name: "Continue", exact: true }).click();
-    await expect.poll(() => state.project.context.intake.guidedInterview?.stage).toBe("complete");
+    await expect.poll(() => state.project.context.intake.guidedInterview?.stage).toBe("slogan");
     await expect(page.getByText("Opening naming choices…", { exact: true })).toBeVisible();
     expect(await transcript!.evaluate(node => node.isConnected)).toBe(true);
     expect(await firstMessage!.evaluate(node => node.isConnected)).toBe(true);
@@ -559,12 +590,19 @@ test("guided interview: explicit selections save, reload, and finish at personal
   expect(await transcript!.evaluate(log => Math.abs(log.getBoundingClientRect().bottom - log.parentElement!.getBoundingClientRect().bottom))).toBeLessThanOrEqual(1);
   const after = await page.getByRole("textbox", { name: "Naming message", exact: true }).boundingBox();
   expect(Math.abs(after!.y - before!.y)).toBeLessThanOrEqual(1);
+  // Each approach's check box sits in its own space, clear of the label.
+  const overlaps = await page.locator(".naming-approach-options .naming-approach-option").evaluateAll(options => options.map(option => {
+    const check = getComputedStyle(option, "::before"), label = option.querySelector("strong")!.getBoundingClientRect();
+    return option.getBoundingClientRect().left + parseFloat(check.left) + parseFloat(check.width) > label.left;
+  }));
+  expect(overlaps.length).toBeGreaterThan(0);
+  expect(overlaps.filter(Boolean)).toHaveLength(0);
   await page.screenshot({ path: info.outputPath("inline-naming-arrival.png"), scale: "css" });
 
-  await expect(page.getByText("Your brand strategy is saved. You can revisit any answer above.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Edit strategy", exact: true })).toBeVisible();
   expect(state.project.context.personality).toEqual(personalities[0]!.profile);
   expect(state.project.context.intake.personalityReviewedAt).not.toBeNull();
-  expect(state.project.context.intake.guidedInterview?.answers.map(answer => answer.stage)).toEqual(["competitors", "audience", "personality"]);
+  expect(state.project.context.intake.guidedInterview?.answers.map(answer => answer.stage)).toEqual(["competitors", "audience", "positioning", "personality"]);
   await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(0);
   let finishReopen!: () => void;
   const reopening = new Promise<void>(resolve => { finishReopen = resolve; });
@@ -601,34 +639,74 @@ test("guided interview: explicit selections save, reload, and finish at personal
   // the completed Strategy handoff before measuring the Naming control.
   await expectComposerInViewport(page, true);
   await expectNoLegacyClutter(page);
-  expect(state.enqueues.map(item => item.operation)).toEqual(["strategy.audience", "strategy.personality"]);
+  expect(state.enqueues.map(item => item.operation)).toEqual(["strategy.audience", "strategy.positioning", "strategy.personality"]);
   expect(state.unhandledWrites).toEqual([]);
   await expect(page.getByRole("heading", { name: "Which approaches would you like to explore?", exact: true })).toBeInViewport({ ratio: 1 });
   await expect(page.getByRole("button", { name: "Continue to Naming", exact: true })).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Naming message", exact: true })).toBeEditable();
-  expect(state.project.context.intake.guidedInterview?.answers).toHaveLength(3);
-  expect(state.enqueues).toHaveLength(2);
+  expect(state.project.context.intake.guidedInterview?.answers).toHaveLength(4);
+  expect(state.enqueues).toHaveLength(3);
   await page.screenshot({ path: info.outputPath("guided-interview-continues-to-naming.png"), fullPage: true, scale: "css" });
+  // Names arrive in the conversation itself (Voice · Name), never on a separate page.
+  const namesUrl = (url: URL) => url.pathname === `/api/projects/${projectId}/naming/feed`;
+  const feedWithNames = async (route: Route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    const context = state.project.context, revision = state.project.current_revision, ids = (n: number) => `dddddddd-1111-4111-8111-${String(n).padStart(12, "0")}`;
+    const entries = ["Shelf Life", "Good Measure", "Jar & Journey"].map((value, index) => {
+      const candidateId = ids(index + 1);
+      return { entryId: ids(index + 11), position: index + 1, runId: ids(21), steeringRevision: 0, primaryApproach: "real_words", additionalApproaches: [], publishedClaims: [],
+        entry: { candidate: { id: candidateId, ownerId: owner, projectId, value, identityKey: nameIdentityKey(value), rationale: "Synthetic name for a layout check.", contextRevision: revision, strategyBasis: namingStrategyBasis(context), strategyKey: namingStrategyKey(context), createdAt: when,
+          origin: { kind: "generated", version: 2, handlerVersion: "naming-brain-v1", ownerId: owner, projectId, candidateId, contextRevision: revision, value, batchId: ids(22), jobId: ids(23), runId: ids(21), sourceArtifactId: ids(index + 31), sourceStageKey: "creation", stepKey: "prepare", provider: "openai", billingMode: "openai_api", protocol: "openai_agents", model: "synthetic-never-call", sessionId: `synthetic-session-${index}`, turnId: `synthetic-turn-${index}`, responseId: null, agentId: null, requestId: null, providerItemId: `synthetic-item-${index}`, generatedAt: when } },
+          retention: { ownerId: owner, projectId, candidateId, revision: 0, favorite: false, saved: false, updatedAt: null } } };
+    });
+    return json(route, { feed: namingFeedSchema.parse({ version: 1, ownerId: owner, projectId, projectRevision: revision, preferencesVersion: 0, feedbackRevision: 0, steeringRevision: 0, demandSequence: 0, entries, nextCursor: null, consumedThrough: null, activeRun: null, preparedSetId: null, paused: false, state: "active", availability: { status: "unavailable", code: "synthetic_unavailable" } }) });
+  };
+  await page.route(namesUrl, feedWithNames);
+  await page.reload();
+  const namesMessage = page.getByRole("article", { name: "Names", exact: true });
+  await expect(namesMessage.getByRole("heading", { name: "Which name feels right?", exact: true })).toBeVisible();
+  await expect(namesMessage.locator(".naming-feed-card")).toHaveCount(3);
+  await expect(namesMessage.getByText("Here are your first names.", { exact: false })).toBeVisible();
+  await expect(page.locator("[data-naming-layout]")).toHaveCount(0);
+  await expect(page.getByRole("log", { name: "Conversation", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: `Edit your answer: ${questions.personality}`, exact: true })).toBeVisible();
+  // As in the design: a click marks a name, and Continue confirms it.
+  const continueName = namesMessage.getByRole("button", { name: "Continue", exact: true });
+  await expect(namesMessage.getByRole("status").filter({ hasText: "Choose a name to continue" })).toBeVisible();
+  await expect(continueName).toBeDisabled();
+  await expect(namesMessage.getByRole("button", { name: "More names", exact: true })).toBeDisabled();
+  await expect(namesMessage.getByRole("button", { name: "Add your own name", exact: true })).toBeVisible();
+  await namesMessage.locator(".naming-feed-card").filter({ hasText: "Good Measure" }).getByRole("button", { name: /Good Measure/ }).first().click();
+  await expect(namesMessage.getByRole("status").filter({ hasText: "Your name: Good Measure · Next: Slogan (optional)" })).toBeVisible();
+  await expect(continueName).toBeEnabled();
+  expect((await namesMessage.locator(".naming-feed-card").first().boundingBox())!.height).toBeLessThanOrEqual(66);
+  expect(state.unhandledWrites).toEqual([]);
+  await page.screenshot({ path: info.outputPath("guided-interview-names-in-conversation.png"), scale: "css" });
+  await page.unroute(namesUrl, feedWithNames);
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Which approaches would you like to explore?", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Edit strategy", exact: true }).click();
   await page.getByRole("button", { name: `Edit your answer: ${questions.competitors}`, exact: true }).click();
-  await expectRequest(state, 3, "strategy.competitors");
+  await expectRequest(state, 4, "strategy.competitors");
   await expect(page.locator(".project-naming-page")).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
   expect(state.project.context.intake.guidedInterview?.stage).toBe("competitors");
   expect(state.project.context.intake.guidedInterview?.answers).toEqual([]);
   expect(state.project.context.competitorReviewComplete).toBe(false);
   expect(state.project.context.intake.audienceReviewedAt).toBeNull();
+  expect(state.project.context.intake.positioningReviewedAt).toBeNull();
   expect(state.project.context.intake.personalityReviewedAt).toBeNull();
   expect(state.project.context.personality).toEqual(personalities[0]!.profile);
-  expect(state.jobs.filter(job => job.state === "succeeded")).toHaveLength(3);
+  expect(state.jobs.filter(job => job.state === "succeeded")).toHaveLength(4);
   completeLatest(state);
   await expectSingleWidget(page, "competitors");
   await widget(page, "competitors").getByRole("checkbox", { name: "Table Next Door", exact: true }).uncheck();
   await widget(page, "competitors").getByRole("checkbox", { name: "Everyday Pantry", exact: true }).check();
   await widget(page, "competitors").getByRole("button", { name: "Continue", exact: true }).click();
-  await expectRequest(state, 4, "strategy.audience");
+  await expectRequest(state, 5, "strategy.audience");
   expect(state.project.context.competitors.filter(item => item.selected).map(item => item.id)).toEqual([competitors[1]!.id]);
   expect(state.project.context.intake.audienceReviewedAt).toBeNull();
-  expect(state.enqueues.some(item => item.operation === "strategy.positioning")).toBe(false);
+  expect(state.enqueues.filter(item => item.operation === "strategy.positioning")).toHaveLength(1);
 });
 
 test("guided interview: a clear custom answer saves its interpreted decision and requests only the next stage", async ({ page }) => {
@@ -687,7 +765,7 @@ for (const errorCode of ["provider_error", "operator_abandoned_billing_unresolve
   state.jobs = [strategyJobSchema.parse({ ...queuedJob("strategy.competitors", 1, 1), state: "failed", error_code: errorCode, finished_at: when })];
   await openProject(page);
   await expect(userMessage(page, initialPrompt)).toBeVisible();
-  await expect(page.locator(".guided-thinking[role=status]")).toHaveCount(0);
+  await expect(working(page)).toHaveCount(0);
   await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(0);
   await expect(page.getByText("Research could not produce verified suggestions. Your prompt is saved. You can retry research.", { exact: true })).toBeVisible();
   expect(state.enqueues).toHaveLength(0);
@@ -699,7 +777,7 @@ for (const errorCode of ["provider_error", "operator_abandoned_billing_unresolve
   await expectRequest(state, 1, "strategy.competitors");
   expect(currentTurn(state).id).not.toBe("initial-research");
   expect(state.project.context.intake.guidedInterview?.turns).toHaveLength(2);
-  await expect(page.locator(".guided-thinking[role=status]")).toBeVisible();
+  await expect(working(page)).toBeVisible();
   completeLatest(state);
   await expectSingleWidget(page, "competitors");
   expect(state.project.context.description).toBe(initialPrompt);
@@ -709,10 +787,10 @@ test("guided interview: cancellation follows the job and never fabricates comple
   const state = await fixtures(page);
   state.jobs = [queuedJob("strategy.competitors", 1, 1)];
   await openProject(page);
-  await expect(page.locator(".guided-thinking[role=status]")).toBeVisible();
-  await page.getByRole("button", { name: "Stop", exact: true }).click();
+  await expect(working(page)).toBeVisible();
+  await page.getByRole("button", { name: "Cancel research", exact: true }).click();
   await expect.poll(() => state.cancels.length).toBe(1);
-  await expect(page.locator(".guided-thinking[role=status]")).toHaveCount(0);
+  await expect(working(page)).toHaveCount(0);
   await expect(userMessage(page, initialPrompt)).toBeVisible();
   await expect(page.getByText(/cancelled/i)).toBeVisible();
   await expect(page.locator("fieldset.guided-choice-widget")).toHaveCount(0);
@@ -726,7 +804,7 @@ test("guided interview: active research polling failure keeps status recovery in
   const state = await fixtures(page);
   state.jobs = [queuedJob("strategy.competitors", 1, 1)];
   await openProject(page);
-  const loading = page.locator(".guided-thinking[role=status]");
+  const loading = working(page);
   await expect(loading).toBeVisible();
   expect(state.overviewReads).toBeGreaterThan(0);
   state.overviewStatus = 503;
@@ -756,7 +834,7 @@ test("guided interview: an uncertain provider outcome offers status recovery wit
   state.jobs = [strategyJobSchema.parse({ ...queuedJob("strategy.competitors", 1, 1), state: "needs_reconciliation", error_code: "provider_outcome_uncertain" })];
   await openProject(page);
   await expect(userMessage(page, initialPrompt)).toBeVisible();
-  await expect(page.locator(".guided-thinking[role=status]")).toHaveCount(0);
+  await expect(working(page)).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Retry research|Retry request/, exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Check status", exact: true }).click();
   expect(state.enqueues).toHaveLength(0);
@@ -895,9 +973,9 @@ test("guided interview: a lost queue acknowledgement recovers the existing resea
   await expect.poll(() => state.enqueues.length).toBe(1);
   await expect(page).toHaveURL(`/brands/account/${projectId}?view=strategy`);
   state.queueStatus = 202;
-  await expect(page.locator(".guided-thinking[role=status]")).toBeVisible();
+  await expect(working(page)).toBeVisible();
   await page.reload();
-  await expect(page.locator(".guided-thinking[role=status]")).toBeVisible();
+  await expect(working(page)).toBeVisible();
   expect(state.creates).toHaveLength(1); expect(state.enqueues).toHaveLength(1); expect(state.jobs).toHaveLength(1);
   completeLatest(state); await expectSingleWidget(page, "competitors");
   expect(state.enqueues).toHaveLength(1);
@@ -914,7 +992,7 @@ test("guided interview: opening a legacy project keeps its original response and
   await page.reload();
   await expect(page.getByText("Synthetic saved legacy response.", { exact: true })).toBeVisible();
   expect(state.enqueues).toHaveLength(0); expect(state.patches).toHaveLength(0);
-  await expect(page.locator(".guided-thinking[role=status]")).toHaveCount(0);
+  await expect(working(page)).toHaveCount(0);
 });
 
 for (const mismatch of ["turn", "revision"] as const) test(`guided interview: a result with the wrong ${mismatch} cannot become the current decision`, async ({ page }) => {

@@ -15,7 +15,7 @@ export const GUIDED_RESEARCH_MAX_COST_MICROUSD = 15_892_880;
 export const LOCAL_STRATEGY_MODEL = "gpt-6-luna";
 export const LOCAL_STRATEGY_PRICING_VERSION = "2026-10-18";
 
-type GuidedStrategyOperation = Exclude<StrategyOperation, "strategy.positioning">;
+type GuidedStrategyOperation = StrategyOperation;
 
 /** Two built-in tool calls permit at most three model turns. Reserve each at
  * the full documented 1,050,000-token model context, including search, and use
@@ -24,7 +24,7 @@ type GuidedStrategyOperation = Exclude<StrategyOperation, "strategy.positioning"
  * Evidence: docs/guided-interview-runtime.md. Low/default search settings are
  * not treated as numeric cost controls. Legacy research remains unqualified. */
 export function guidedStrategyPolicy(operation: GuidedStrategyOperation, model: typeof OPENAI_STRATEGY_MODEL | typeof LOCAL_STRATEGY_MODEL = OPENAI_STRATEGY_MODEL): StrategyJobPolicy {
-  z.enum(["strategy.reformulate", "strategy.competitors", "strategy.audience", "strategy.personality"]).parse(operation);
+  strategyOperationSchema.parse(operation);
   z.enum([OPENAI_STRATEGY_MODEL, LOCAL_STRATEGY_MODEL]).parse(model);
   const research = operation === "strategy.competitors";
   const luna = model === LOCAL_STRATEGY_MODEL;
@@ -77,12 +77,12 @@ export function readOpenAIStrategyConfiguration(env: Record<string, string | und
     ["strategy.audience", "FLUID_TEXT_MODEL_AUDIENCE"],
     ["strategy.personality", "FLUID_TEXT_MODEL_PERSONALITY"],
     ["strategy.positioning", "FLUID_TEXT_MODEL_POSITIONING"],
+    ["strategy.slogan", "FLUID_TEXT_MODEL_SLOGAN"],
   ] as const) {
     const selected = env[variable] ?? env.FLUID_TEXT_MODEL_STRATEGY;
     if (selected === OPENAI_STRATEGY_MODEL && verified.includes(OPENAI_STRATEGY_MODEL)) policies.set(operation,
-      env.FLUID_GUIDED_INTERVIEW_ENABLED === "true" && operation !== "strategy.positioning"
-        ? guidedStrategyPolicy(operation) : strategyPolicy(operation));
-    else if (selected === LOCAL_STRATEGY_MODEL && verified.includes(LOCAL_STRATEGY_MODEL) && localGuided && operation !== "strategy.positioning")
+      env.FLUID_GUIDED_INTERVIEW_ENABLED === "true" ? guidedStrategyPolicy(operation) : strategyPolicy(operation));
+    else if (selected === LOCAL_STRATEGY_MODEL && verified.includes(LOCAL_STRATEGY_MODEL) && localGuided)
       policies.set(operation, guidedStrategyPolicy(operation, LOCAL_STRATEGY_MODEL));
   }
   return policies.size ? { apiKey: key.data, policies } : null;
@@ -90,7 +90,7 @@ export function readOpenAIStrategyConfiguration(env: Record<string, string | und
 
 export function matchesStrategyPolicy(operation: StrategyOperation, policy: StrategyJobPolicy): boolean {
   if (!strategyOperationSchema.safeParse(operation).success) return false;
-  const expected = policy.version === 2 && operation !== "strategy.positioning"
+  const expected = policy.version === 2
     ? guidedStrategyPolicy(operation, policy.model === LOCAL_STRATEGY_MODEL ? LOCAL_STRATEGY_MODEL : OPENAI_STRATEGY_MODEL) : strategyPolicy(operation);
   return Object.keys(expected).every(key => expected[key as keyof StrategyJobPolicy] === policy[key as keyof StrategyJobPolicy]);
 }
@@ -99,6 +99,5 @@ export function matchesStrategyPolicy(operation: StrategyOperation, policy: Stra
  * qualifies the exact owner, operation, policy, restricted role and deployment. */
 export function isHostedStrategyPolicy(operation: StrategyOperation, policy: StrategyJobPolicy): boolean {
   return policy.model === OPENAI_STRATEGY_MODEL && strategyOperationSchema.safeParse(operation).success && matchesStrategyPolicy(operation, policy) && (policy.version === 2
-    ? operation !== "strategy.positioning"
-    : operation !== "strategy.competitors" && policy.maxWebSearchCalls === 0 && policy.maximumCostMicrousd <= 122_880);
+    || operation !== "strategy.competitors" && operation !== "strategy.slogan" && policy.maxWebSearchCalls === 0 && policy.maximumCostMicrousd <= 122_880);
 }

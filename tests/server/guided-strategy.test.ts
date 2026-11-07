@@ -14,7 +14,7 @@ const rawAudience = { label: "Small office teams", needs: ["Dependable weekly de
 const rawPersonality = { profile, traits: ["Warm", "Dependable"], toneExample: "Good bread, right on time.", expression: "Friendly language with calm everyday confidence" };
 
 function guidedInput(stage: GuidedStage = "competitors", purpose: "research" | "message" | "propose" = "research", userText = "Office bread subscriptions", history: StrategyAssistantHistory = { entries: [], truncated: false }): Extract<StrategyJobInput, { version: 2 }> {
-  const operation: Exclude<StrategyOperation, "strategy.positioning"> = purpose === "message" ? "strategy.reformulate" : `strategy.${stage}`;
+  const operation: StrategyOperation = purpose === "message" ? "strategy.reformulate" : `strategy.${stage}`;
   const policy = guidedStrategyPolicy(operation);
   const context = initializeGuidedInterview(contextSnapshotSchema.parse({ description: "Synthetic provider fixture only", intake: { conversation: [{ id: "actual-user-message", kind: "user_message", text: userText, createdAt: now }] } }), {
     id: "current-turn", userMessageId: "actual-user-message", stage, purpose, inputRevision: 3,
@@ -63,7 +63,8 @@ describe("guided provider contract (synthetic transports, no live inference)", (
     expect(request).toMatchObject({ tool_choice: "required", parallel_tool_calls: false, tools: [{ type: "web_search" }] });
     expect(request.instructions).toContain("one focused question, answer or choice widget");
     expect(request.instructions).toContain("free-text custom answer");
-    expect(request.instructions).toContain("Never introduce a positioning stage");
+    expect(request.instructions).toContain("in the order competitors, target audience, positioning, brand personality");
+    expect(request.instructions).toContain("Never skip ahead, add a stage");
     expect(request.instructions).toContain("at most 2 web tool calls in total, including search, open_page and find_in_page");
     expect(request.instructions).toContain("sources returned by completed calls");
     expect(request.input).toEqual([{ role: "user", content: expect.stringContaining('"currentTurn":{"id":"current-turn"') }]);
@@ -78,7 +79,7 @@ describe("guided provider contract (synthetic transports, no live inference)", (
     expect(result.proposal).toMatchObject({ competitors: [{ selected: false }] });
   });
 
-  it("retains a bounded completed three-option response as a failed request when one option relies on an unfinished search", async () => {
+  it("drops the option that relies on an unfinished search and keeps the two backed by completed searches", async () => {
     const raw = choices();
     const candidates = ["unfinished.example", "example.com", "another.example"].map((host, index) => ({
       ...rawCompetitor, name: `Synthetic candidate ${index + 1}`, url: `https://${host}/`, sourceUrls: [`https://${host}/`],
@@ -97,16 +98,12 @@ describe("guided provider contract (synthetic transports, no live inference)", (
       annotations: candidates.map(candidate => ({ type: "url_citation", url: candidate.url })),
     }] };
     const { outcome, transport } = await execute(raw, guidedInput(), response);
-    expect(outcome).toMatchObject({ status: "failed", code: "provider_research_unusable", costMicrousd: 78496, providerRequestId: response.id, result: {
-      usage: { inputTokens: 25693, outputTokens: 711, webSearchCalls: 2 }, partialText: JSON.stringify(raw),
-      outputDiagnostics: { responseStatus: "completed", outputItemCount: 5, toolCalls: 3, completedToolCalls: 2, completedSearchCalls: 1,
-        searchAttemptAtLimitIndex: 3, searchCallAccounting: "all_observed_search_attempts", usageExceeded: false,
-        items: [expect.any(Object), expect.any(Object), expect.any(Object), { outputIndex: 3, type: "web_search_call", status: "searching", actionType: "search" }, expect.any(Object)],
-      },
-    } });
-    expect(strategyJobResultSchema.safeParse(outcome.result).success).toBe(false);
-    expect(outcome.result).not.toHaveProperty("proposal");
-    expect(outcome.result).not.toHaveProperty("guidance");
+    expect(outcome).toMatchObject({ status: "succeeded", costMicrousd: 78496, providerRequestId: response.id });
+    const result = strategyJobResultSchema.parse(outcome.result);
+    if (result.guidance?.kind !== "choices") throw new Error("Synthetic fixture did not produce choices");
+    // The unfinished attempt never supplies a source or website.
+    expect(result.guidance.options.map(option => option.label)).toEqual(["Synthetic option 2", "Synthetic option 3"]);
+    expect(JSON.stringify(result)).not.toContain("unfinished.example");
     expect(JSON.stringify(outcome)).not.toContain("Synthetic private reasoning");
     expect(transport.createResponse).toHaveBeenCalledTimes(1);
   });
@@ -249,7 +246,7 @@ describe("guided provider contract (synthetic transports, no live inference)", (
     expect((await execute(raw, guidedInput("personality", "propose"), responseFixture(raw))).outcome).toMatchObject({ status: "needs_reconciliation", code: "provider_invalid_output" });
     const input = guidedInput("personality", "message", "I want to change our target audience first");
     for (const change of [
-      { targetStage: "personality" }, { targetStage: null }, { targetStage: "positioning" },
+      { targetStage: "personality" }, { targetStage: null }, { targetStage: "naming" },
       { question: "Also choose a personality?" }, { options: choices("personality").options }, { selection: { optionIds: [], customOptions: [] } },
     ]) {
       const invalid = { ...raw, ...change };

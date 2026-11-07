@@ -25,7 +25,9 @@ type Session = { request: NamingStageRequest; wire: ManagedCreateRequest; id: st
 async function fixture(mode:'sourced'|'missing'|'irrelevant',options:{loseReceiptAcknowledgement?:boolean;loseFinishAcknowledgement?:boolean}={}){
  const f=await createSharedWorkerFixture({probe:false}),db=f.db;
  await f.seedUser(OWNER_A);await f.seedUser(OWNER_B);
- await db.exec(await readFile(new URL('../../supabase/candidates/shared_worker_naming.sql',import.meta.url),'utf8'));
+ // The released Naming chain the engine requires (its lease expiry needs delivery recovery).
+ for(const file of ['shared_worker_naming.sql','shared_naming_brainstorm.sql','shared_naming_brainstorm_delivery_recovery.sql','shared_naming_lease_expiry.sql'])
+  await db.exec(await readFile(new URL(`../../supabase/candidates/${file}`,import.meta.url),'utf8'));
  const policy=createNamingBrainPolicy('gpt-6-luna'),workerId='synthetic-shared-naming';
  const identity=(await db.query<{h:string}>("select encode(sha256(convert_to($1::jsonb::text,'UTF8')),'hex') h",[policy])).rows[0]!.h;
  const slot=await f.seedSlot({lane:'naming',policies:[{operation:'naming.generate',policyIdentity:identity,policy}]});

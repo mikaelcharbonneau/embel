@@ -2,7 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { competitorWebsiteSchema, contextSnapshotSchema, type ContextSnapshot } from "../../domain/projects";
-import { chatGPTStrategyResultSchema, reformulationProposalSchema, personalityProposalSchema, positioningProposalSchema,
+import { chatGPTStrategyResultSchema, reformulationProposalSchema, personalityProposalSchema, positioningProposalSchema, sloganProposalSchema,
   strategyOperationSchema, strategyAssistantHistorySchema, type ChatGPTStrategyResult, type StrategyOperation } from "../../domain/strategy-jobs";
 import { CHATGPT_STREAM_LIMITS, type ChatGPTFailure, type ChatGPTRecovery, type ChatGPTResponseRequest,
   type ChatGPTStreamLimits, type ChatGPTTransport } from "./chatgpt-transport";
@@ -15,13 +15,14 @@ const audienceOutput = z.strictObject({ message: z.string().trim().min(1).max(60
   label: z.string().trim().min(1).max(180), needs: z.array(z.string().trim().min(1).max(2000)).min(1).max(12), reason: z.string().trim().min(1).max(2000),
 })).min(1).max(12) });
 const outputSchemas = { "strategy.reformulate": reformulationProposalSchema, "strategy.competitors": competitorOutput,
-  "strategy.audience": audienceOutput, "strategy.personality": personalityProposalSchema, "strategy.positioning": positioningProposalSchema };
+  "strategy.audience": audienceOutput, "strategy.personality": personalityProposalSchema, "strategy.positioning": positioningProposalSchema, "strategy.slogan": sloganProposalSchema };
 const tasks: Record<StrategyOperation, string> = {
   "strategy.reformulate": "Give a concise conversational interpretation of the user's activity, offering and known audience. Fill only what the user supplied or clearly implied; leave unknown fields empty. Offer an interpretation before at most two useful adaptive questions. Never require a brief-review form or claim the interpretation is approved.",
   "strategy.competitors": "Use web search to find 3–6 relevant real competitors. Explain specific relevance and cite sourceUrls copied exactly from consulted web results. Every proposed competitor must have evidence supporting its activity. A website URL must itself appear in the consulted sources, or be null. Do not invent competitors, sources or market facts. Previously supplied competitors are context, so propose useful additional alternatives. If reliable evidence is insufficient, return an empty list and explain the limitation. The user chooses retained competitors. Keep the message brief and focus on competitor candidates and specific relevance; do not write a positioning essay.",
   "strategy.audience": "Propose distinct, actionable audience segments based on the offering and retained competitors. State each segment's needs and reason for fitting the brand. They are hypotheses, not verified demographic research. Do not invent statistics, source citations or user approval. Preserve the user's chosen targets as context and offer useful refinements first.",
   "strategy.personality": "Propose an Aaker personality profile from the offering, retained competitors and chosen audience. Independently score sincerity, excitement, competence, sophistication and ruggedness as integers from 0–100. These scores need not total 100. Explain the meaningful choices in the message. They remain proposals until user review.",
   "strategy.positioning": "Propose a differentiated positioning statement grounded in the offering, retained competitors, chosen audience and reviewed personality. Explain the choice conversationally. Do not invent capabilities, proof points, market leadership, evidence or approval. Preserve explicit user choices and identify material missing information.",
+  "strategy.slogan": "Propose six to eight short slogans for the chosen name in the reviewed personality's voice, grounded in the positioning. Do not invent claims or proof points.",
 };
 
 /** Explicit app-owned history; no previous_response_id or provider-side storage. */

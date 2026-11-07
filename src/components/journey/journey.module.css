@@ -17,8 +17,18 @@
 .menu a { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 10px; border-radius: 10px; color: var(--text); font-size: 14px; }
 .menu a:hover { background: var(--surface); }
 .end { margin-left: auto; display: flex; align-items: center; }
+/* In the project bar the save status sits right before the account. */
+.projectCapsule .accountSep { display: none; }
 
 .projectName { display: inline-flex; align-items: center; min-height: 40px; padding: 0 10px 0 4px; font-size: 14px; font-weight: 500; white-space: nowrap; }
+.projectSummary { gap: 6px; padding: 0 12px; border-radius: var(--radius-pill); cursor: pointer; list-style: none; }
+.projectSummary::-webkit-details-marker { display: none; }
+.projectSummary:hover { background: var(--surface); }
+.projectTitle { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.stepNext { color: var(--text); }
+/* The next unfinished step is a link, but its mark stays an outline so it never reads as done. */
+a.step.stepNext .stepMark { border: 1.5px solid var(--text); background: transparent; color: var(--text); }
+.stepNext:hover { background: var(--surface); }
 .steps { display: flex; align-items: center; gap: 2px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
 .step { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px 0 8px; border-radius: var(--radius-pill); color: var(--secondary); white-space: nowrap; }
 .step[aria-current="step"] { padding-right: 14px; background: var(--accent); color: var(--on-accent); font-weight: 500; }
@@ -77,7 +87,8 @@ a.step .stepMark { border: 0; background: var(--accent); color: var(--on-accent)
 .progressText { margin: 0; font-size: 14px; color: var(--secondary); }
 .bar { height: 4px; overflow: hidden; border-radius: var(--radius-pill); background: var(--surface); }
 .bar > span { display: block; width: 38%; height: 100%; border-radius: inherit; background: var(--accent); animation: journey-bar 1.4s ease-in-out infinite; }
-.progressActions { display: flex; justify-content: flex-end; }
+.progressActions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; }
+.progressNote { margin: 0 auto 0 0; font-size: 13px; color: var(--secondary); }
 @keyframes journey-bar { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
 @media (prefers-reduced-motion: reduce) { .bar > span { width: 100%; animation: none; opacity: .35; } }
 

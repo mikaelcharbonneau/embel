@@ -123,5 +123,7 @@ export function useNamingFeed({ account, projectId, enabled, view, projectRevisi
   const canResume = contextReady && !record?.feed.pending && run?.canResume && (canExplore || run.canResumeSaved === true);
   const updateSteeringDraft = useCallback((patch: Partial<typeof emptySteeringDraft>) => memory.setSteeringDraft(account, projectId, draft => ({ ...draft, ...patch })), [memory, account, projectId]);
   return { steeringDraft: record?.steeringDraft ?? emptySteeringDraft, updateSteeringDraft, canExplore: Boolean(canExplore), canResume: Boolean(canResume), record, state: record?.feed ?? null, entries: record?.feed.entries ?? [], memory, showingFeed, eligibleView, interacting: interacting && enabled && eligibleView && resultsVisible, attachSentinel: setSentinel,
-    start, stop, locateSavedSet: controller.locateSavedSet, stopCurrent: controller.stopCurrent, retry: controller.retry, resume: controller.resume, steer: controller.steer, refresh: controller.load };
+    start, stop, more: controller.more, canMore: Boolean(canExplore && !record?.feed.pending && !record?.feed.steering && !record?.feed.stop && !record?.feed.feed?.paused
+      && !(run && ["queued", "running", "cancel_requested", "partial", "failed", "cancelled", "needs_reconciliation"].includes(run.state))),
+    locateSavedSet: controller.locateSavedSet, stopCurrent: controller.stopCurrent, retry: controller.retry, resume: controller.resume, steer: controller.steer, refresh: controller.load };
 }

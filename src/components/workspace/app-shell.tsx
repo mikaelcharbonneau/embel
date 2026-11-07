@@ -4,7 +4,9 @@ import { usePathname, useSelectedLayoutSegment, useSelectedLayoutSegments } from
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/icon";
-import { FloatingNav, type NavItem } from "@/components/journey/floating-nav";
+import { MainNavContent, NavFrame, type NavItem } from "@/components/journey/floating-nav";
+import { ProjectBarContent, ProjectMenu } from "@/components/journey/project-capsule";
+import { ProjectHeaderContext, type ProjectHeader } from "@/components/journey/project-header";
 import { AccountSessionProvider, useAccountSession } from "./account-session";
 import { AccountProfileProvider, useAccountProfile } from "./account-profile-provider";
 import { AccountAccess, AccountAccessNotice } from "./account-access";
@@ -22,9 +24,12 @@ export function AppShell({ children, auth }: { children: React.ReactNode; auth: 
 }
 
 /** One floating pill for every page: brand, main pages, Tools and the account
- * menu. The page area below it stays the scroll container. */
+ * menu. Inside a signed-in project it becomes the project bar (name, journey
+ * steps, save status). The page area below it stays the scroll container. */
 function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const currentPathname = usePathname();
+  const { session } = useAccountSession();
+  const [projectHeader, setProjectHeader] = useState<ProjectHeader | null>(null);
   const authSegment = useSelectedLayoutSegment("auth");
   const backgroundSegments = useSelectedLayoutSegments();
   const intercepted = ["(.)sign-in", "sign-in", "(.)sign-up", "sign-up"].includes(authSegment ?? "");
@@ -36,6 +41,13 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const ideaId = /^\/ideas\/([^/]+)$/.exec(pathname)?.[1];
   const projectWorkspace = /^\/brands\/(?:account\/)?[0-9a-f-]{36}(?:\/|$)/i.test(pathname);
   const usesBottomFade = isHome || Boolean(ideaId);
+  const accountProjectId = /^\/brands\/account\/([0-9a-f-]{36})(?:\/|$)/i.exec(pathname)?.[1]?.toLowerCase();
+  // Until the project page reports its header, show the bar in its loading state
+  // rather than flashing the global navigation.
+  const header = accountProjectId && session.status === "ready"
+    ? projectHeader?.projectId === accountProjectId ? projectHeader : { projectId: accountProjectId, projectName: "", steps: [], saveState: null }
+    : null;
+  const account = <WorkspaceAccountMenu pathname={currentPathname} />;
   // Page classes scope each route's existing layout rules.
   const pageClass = projectWorkspace ? "concept-project-workspace" : (pathname === "/sign-in" || pathname === "/sign-up") ? "concept-sign-in"
     : isHome || pathname === "/brands/new" ? "concept-home" : ideaId ? "concept-idea-detail" : pathname === "/ideas" ? "concept-ideas"
@@ -58,9 +70,16 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
   return <div className={`app-shell concept-shell ${pageClass}`}>
     <a className="skip-link" href="#main-content">Skip to content</a>
     <div className="workspace-main">
-      <FloatingNav pathname={pathname} items={primary} tools={tools} account={<WorkspaceAccountMenu pathname={currentPathname} />} />
+      <NavFrame variant={header ? "project" : "main"} account={account}>
+        {header
+          ? <ProjectBarContent projectName={header.projectName} projectControl={header.projectName ? <ProjectMenu projectName={header.projectName} /> : undefined}
+            steps={header.steps} saveState={header.saveState} />
+          : <MainNavContent pathname={pathname} items={primary} tools={tools} />}
+      </NavFrame>
       <AccountAccessNotice />
-      <main id="main-content" ref={mainRef} tabIndex={-1}>{children}</main>
+      <ProjectHeaderContext.Provider value={setProjectHeader}>
+        <main id="main-content" ref={mainRef} tabIndex={-1}>{children}</main>
+      </ProjectHeaderContext.Provider>
       {isHome && moreBelow && <div className="home-bottom-fade" aria-hidden="true" />}
       {ideaId && moreBelow && <div className="idea-bottom-fade" aria-hidden="true" />}
     </div>

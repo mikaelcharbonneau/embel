@@ -16,6 +16,7 @@ import "@/styles/auth-guided.css";
 import "@/styles/project-workspace.css";
 import "@/styles/guided-interview.css";
 import "@/styles/guided-conversation.css";
+import "@/styles/journey-conversation.css";
 
 export const metadata: Metadata = {
   title: { default: "Embel — Brand workspace", template: "%s · Embel" },

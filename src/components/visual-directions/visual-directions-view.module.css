@@ -4,22 +4,7 @@
 .workspace button, .workspace a { font: inherit; }
 .workspace button:disabled { opacity: 1; }
 .workspace :is(button, a):focus-visible { outline: 2px solid var(--accent-ink, #191919); outline-offset: 4px; }
-.header { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px 32px; margin-bottom: 24px; }
 .label { color: var(--secondary, #696965); font-size: 12px; line-height: 1.5; }
-.steps { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0 0 3px; padding: 0; list-style: none; font-size: 11px; color: var(--secondary, #696965); }
-.steps li { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-.steps span { display: grid; place-items: center; width: 21px; height: 21px; border: 1px solid var(--border, #e4e3df); border-radius: 50%; font-size: 10px; }
-.steps [aria-current] { color: var(--text, #191919); font-weight: 600; }
-.steps [aria-current] span { background: var(--text, #191919); color: var(--paper, #fff); border-color: var(--text, #191919); }
-.logoStrip { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; min-width: 0; padding: 16px 20px; background: var(--paper, #fff); border: 1px solid var(--border, #e4e3df); border-radius: 10px; }
-.logoPreview { flex: 0 0 72px; width: 72px; height: 72px; display: grid; place-items: center; overflow: hidden; background: var(--paper, #fff); }
-.logoPreview :is(figure, div) { display: contents; }
-.logoPreview img { width: 100%; height: 100%; max-width: 72px; max-height: 72px; object-fit: contain; }
-.logoPreview p { font-size: 11px; text-align: center; color: var(--secondary, #696965); }
-.logoDescription { flex: 1 1 180px; min-width: 0; }
-.logoDescription h2 { margin-top: 2px; }
-.logoDescription > p:last-child { margin-top: 3px; font-size: 12px; line-height: 1.6; color: var(--secondary, #696965); }
-.logoStrip > .textButton { flex-shrink: 0; }
 .logoDownload { min-width: 0; }
 .generation { margin: 28px 0 20px; min-width: 0; }
 .generationHeading { display: flex; justify-content: space-between; align-items: center; gap: 20px; }

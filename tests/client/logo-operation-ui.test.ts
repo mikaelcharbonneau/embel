@@ -56,7 +56,7 @@ async function mount(refinement = false) {
 describe("actual selected-concept conversion UI", () => {
   it("uses vector-only live capability with an explicit estimate then one original admission", async () => {
     const f = await mount(); await until(() => expect(f.button("Convert to vector")?.disabled).toBe(false));
-    expect(f.button("Generate six more concepts")?.disabled).toBe(true); expect(f.admissions).toEqual([]);
+    expect(f.button("More concepts")?.disabled).toBe(true); expect(f.admissions).toEqual([]);
     await until(() => expect(f.button("Convert to vector")?.disabled).toBe(false));
     expect(f.quotes).toEqual([{ operation: "vectorize", expected: f.workspace.heads, source: f.selected, settings: { preset: "bw", simplify: 0, filterSpeckle: 0, maxColors: 2 } }]);
     expect(f.admissions).toEqual([]); await act(async () => { f.button("Convert to vector")!.click(); f.button("Convert to vector")!.click(); });

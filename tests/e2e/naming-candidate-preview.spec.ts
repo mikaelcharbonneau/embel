@@ -37,6 +37,9 @@ test("candidate modal checks one name without replacing, scrolling or selecting 
   const fixture = await namingFixture(page, { saved: true, count: 100 });
   const lookups = await lookupFixture(page);
   await openNaming(page); await expect(page.locator(".naming-feed-card")).toHaveCount(100);
+  // Name cards check the .com of names on screen on their own (redesign, 2026-11-06);
+  // count only the checks made from the preview.
+  const manual = () => lookups.filter(item => !(item.tool === "domains" && /^synthetic\d+\.com$/u.test(item.domain)));
   const composer = page.getByRole("textbox", { name: "Naming message", exact: true });
   await composer.fill("Keep my shortlist draft.");
   const panel = page.locator("[data-floating-composer]");
@@ -64,7 +67,7 @@ test("candidate modal checks one name without replacing, scrolling or selecting 
     expect(current!.x).toBeCloseTo(originalPanel!.x, 0); expect(current!.y).toBeCloseTo(originalPanel!.y, 0);
   };
   await open();
-  expect(lookups).toHaveLength(0);
+  expect(manual()).toHaveLength(0);
   await dialog.getByRole("tab", { name: "Domains", exact: true }).click();
   await dialog.getByRole("textbox", { name: "Domain", exact: true }).fill("preview-check.com");
   await dialog.getByRole("button", { name: "Check domain", exact: true }).click();
@@ -80,7 +83,7 @@ test("candidate modal checks one name without replacing, scrolling or selecting 
   await dialog.getByRole("textbox", { name: "Word mark", exact: true }).fill("Preview Check");
   await dialog.getByRole("button", { name: "Search trademarks", exact: true }).click();
   await expect(dialog.getByRole("tabpanel")).toContainText("Synthetic registry result");
-  expect(lookups).toEqual([
+  expect(manual()).toEqual([
     { tool: "domains", domain: "preview-check.com" },
     { tool: "handles", platform: "youtube", handle: "previewcheck" },
     { tool: "handles", platform: "youtube", handle: "anotherpreview" },
@@ -94,7 +97,7 @@ test("candidate modal checks one name without replacing, scrolling or selecting 
   await page.mouse.click(b.x / 2, b.y + b.height / 2); await closed();
   await open();
   await dialog.getByRole("button", { name: "Close name preview", exact: true }).click(); await closed();
-  expect(lookups).toHaveLength(4);
+  expect(manual()).toHaveLength(4);
   expect(fixture.state.currentSelection).toBeNull();
   expect(fixture.mutations("/selection")).toHaveLength(0); expect(fixture.mutations()).toHaveLength(0);
 });

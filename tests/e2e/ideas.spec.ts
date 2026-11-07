@@ -359,6 +359,7 @@ test("Ideas fixture: explicit brand creation preserves its original source after
   const source = structuredClone(state.sources.get(projectId));
   const projectContext = structuredClone(state.projects.get(projectId)!.context);
   expect(Object.keys(state.writes[0]!.body).sort()).toEqual(["expectedRevision", "requestKey"]);
+  await page.locator('header summary[aria-label^="Project:"]').click(); await page.getByRole("link", { name: "Home", exact: true }).click();
   await page.getByRole("navigation", { name: "Main navigation", exact: true }).locator("summary").click();
   await page.getByRole("navigation", { name: "Main navigation", exact: true }).getByRole("link", { name: "Ideas", exact: true }).click();
   const originalIdea = page.getByRole("link", { name: /Quiet kitchen fixture/ });

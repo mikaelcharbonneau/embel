@@ -7,14 +7,15 @@ import { responseFixture, transportFixture } from "./openai-fixtures";
 
 /** Synthetic reproduction of the retained diagnostic shape, not a replay of
  * the original provider envelope. All names, URLs and text are invented here. */
-function unusableResearch(kind: "website" | "source" = "website") {
+function unusableResearch(kind: "website" | "source" = "website", unverified: "all" | "one" | "none" = "all") {
   const observed = [1, 2, 3, 4].map(index => ({ url: `https://example.com/source/${index}`, title: `Synthetic source ${index}` }));
+  const bad = (index: number) => unverified === "all" || (unverified === "one" && index === 1);
   const options = observed.map((source, index) => ({
     label: `Synthetic competitor ${index + 1}`, description: "A comparable synthetic offering", recommended: index < 2,
     recommendationReason: index < 2 ? "A relevant comparison for the synthetic project" : null,
     payload: { name: `Synthetic competitor ${index + 1}`, relevance: "Synthetic overlap",
-      url: index === 1 && kind === "website" ? "https://unobserved.example/" : source.url,
-      sourceUrls: [index === 1 && kind === "source" ? "https://unobserved.example/source" : source.url],
+      url: bad(index) && kind === "website" ? `https://unobserved.example/${index}` : source.url,
+      sourceUrls: [bad(index) && kind === "source" ? `https://unobserved.example/source/${index}` : source.url],
     },
   }));
   const reply = { kind: "choices", targetStage: null, message: "Synthetic competitor research", question: "Which competitors matter?", selection: null, options };
@@ -37,7 +38,35 @@ async function execute(response = unusableResearch(), job = guidedJobFixture()) 
 }
 
 describe("completed research source rejection (synthetic provider responses)", () => {
-  it.each(["website", "source"] as const)("fails bounded completed research with an unobserved %s without accepting output or retrying", async kind => {
+  it.each(["website", "source"] as const)("keeps only the verified competitors when one cites an unobserved %s", async kind => {
+    const { outcome, transport } = await execute(unusableResearch(kind, "one"));
+    expect(outcome).toMatchObject({ status: "succeeded", costMicrousd: 70038 });
+    const result = strategyJobResultSchema.parse(outcome.result);
+    if (result.guidance?.kind !== "choices") throw new Error("Synthetic fixture did not produce choices");
+    expect(result.guidance.options.map(option => option.label)).toEqual(["Synthetic competitor 1", "Synthetic competitor 3", "Synthetic competitor 4"]);
+    expect(new Set(result.guidance.options.map(option => option.id)).size).toBe(3);
+    expect(result.proposal).toMatchObject({ competitors: [{ name: "Synthetic competitor 1" }, { name: "Synthetic competitor 3" }, { name: "Synthetic competitor 4" }] });
+    expect(JSON.stringify(result)).not.toContain("unobserved.example");
+    // The provider's message may count or name the dropped competitor.
+    expect(result.guidance.message).toBe("Here are the competitors research could verify. Choose any that fit, or name others in your own words.");
+    expect(transport.createResponse).toHaveBeenCalledTimes(1);
+  });
+
+  it("removes inline citation markup from visible text while keeping verified sources", async () => {
+    const response = unusableResearch("website", "none");
+    const content = response.output[3]!.content as Array<{ text: string }>;
+    const reply = JSON.parse(content[0]!.text);
+    reply.message = "Here are options ([example.com](https://example.com/source/1)).";
+    reply.options[0].description = "Pairs logos with brand kits. ([example.com](https://example.com/source/1?utm_source=openai)) Useful for [comparison](https://example.com/source/1).";
+    content[0]!.text = JSON.stringify(reply);
+    const result = strategyJobResultSchema.parse((await execute(response)).outcome.result);
+    if (result.guidance?.kind !== "choices") throw new Error("Synthetic fixture did not produce choices");
+    expect(result.guidance.message).toBe("Here are options.");
+    expect(result.guidance.options[0]!.description).toBe("Pairs logos with brand kits. Useful for comparison.");
+    expect(result.guidance.options[0]!.payload).toMatchObject({ sources: [{ url: "https://example.com/source/1" }] });
+  });
+
+  it.each(["website", "source"] as const)("fails bounded completed research when no competitor's %s was observed, without accepting output or retrying", async kind => {
     const { outcome, transport } = await execute(unusableResearch(kind));
     expect(outcome).toMatchObject({ status: "failed", code: "provider_research_unusable", costMicrousd: 70038,
       providerRequestId: "resp_synthetic_fixture", result: { observedSourcesTruncated: false,

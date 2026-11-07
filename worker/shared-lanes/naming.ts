@@ -81,6 +81,9 @@ export function createSharedNamingLaneEngine(options:SharedLaneBase & {policy:Na
     const readiness=parsed.success&&isDeepStrictEqual(parsed.data,row.preferences)?getNamingPreferencesReadiness(parsed.data):{ready:false,missing:["invalid_preferences"]};
     await gateway.invoke("attest_preferences",[row.projectId,row.preferencesVersion,row.preferencesHash,fingerprint,readiness]);
    }
+   // A job whose worker stopped keeps an expired lease. SQL moves it on first:
+   // unknown provider outcomes to reconciliation, never to another dispatch.
+   z.number().int().nonnegative().max(20).parse(await gateway.invoke("expire",[options.workerId,options.deploymentId]));
    // Claim once under the existing SQL authority, then select only the exact new
    // immutable profile. Historical jobs keep the established handler unchanged.
    const job=await store.claim(options.workerId,120);

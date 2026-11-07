@@ -194,7 +194,7 @@ describe("one-click brand kit and selection ownership", () => {
     const f = setup(), check = pending<boolean>();
     await f.render();
     f.revalidate.mockReturnValueOnce(check.promise);
-    await act(async () => f.button("Download guide")!.click());
+    await act(async () => f.button("Download guidelines")!.click());
     expect(f.downloads).toEqual([]);
     await act(async () => check.resolve(true));
     expect(f.downloads).toEqual(["brand-guide.html"]);
