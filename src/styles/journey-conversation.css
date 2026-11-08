@@ -323,3 +323,11 @@
 .identity-chosen-logo-row .identity-chosen-logo { margin-top: 0; }
 .kit-message > .kit-card + .kit-card { margin-top: 12px; }
 .kit-board .kit-image-frame img { object-fit: contain; background: var(--paper); }
+
+/* The Logo step inside the project conversation (Identity, after Inspiration):
+   no page padding, and everything after Embel's message lines up with the chat
+   text, like the names grid. Dialogs keep their own centering. */
+.workspace-main .logo-in-conversation .project-logo-creation:has(.logo-conversation-message) { width: 100%; margin: 0; padding: 0; }
+.logo-in-conversation { scroll-margin-top: 24px; }
+.logo-in-conversation:focus { outline: none; }
+.logo-in-conversation .project-logo-creation > div > :not(.logo-conversation-message):not(dialog) { margin-left: 44px; max-width: calc(100% - 44px); }

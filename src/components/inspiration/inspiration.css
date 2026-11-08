@@ -117,3 +117,4 @@
 .inspiration-in-conversation .inspiration-search { order: 3; flex: 1 1 100%; }
 .inspiration-in-conversation .inspiration-footer { margin-top: 16px; }
 .inspiration-continue-inline { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 16px; font-size: 13px; color: var(--secondary); }
+button.inspiration-continue { border: 0; font-family: inherit; cursor: pointer; }

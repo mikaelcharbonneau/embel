@@ -1,9 +1,11 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type ComponentProps, type ReactNode } from "react";
 import { AccountBriefEditor } from "./account-brief-editor";
 import { ProjectNamingWorkspace } from "@/components/naming/project-naming-workspace";
 import { InspirationWorkspace } from "@/components/inspiration/inspiration-workspace";
+import { LogoCreationWorkspace } from "@/components/logo-creation/logo-creation-workspace";
+import { useProjectProgress } from "./project-progress";
 import { getNamingReadiness } from "@/domain/project-naming";
 import { appendGuidedTurn, confirmGuidedSelection, guidedTurnOperation, revisitGuidedStage, skipGuidedSlogan, type GuidedReply, type GuidedStage } from "@/domain/guided-interview";
 import { competitorSchema, contextSnapshotSchema, type ContextSnapshot } from "@/domain/projects";
@@ -26,6 +28,13 @@ import type { ProjectEditorForm } from "./project-editor";
 import { useStrategyJobs } from "./use-strategy-jobs";
 import { useConversationFollow } from "./use-conversation-follow";
 import "@/styles/conversation.css";
+
+function subscribeToHash(onChange: () => void) {
+  window.addEventListener("hashchange", onChange);
+  return () => window.removeEventListener("hashchange", onChange);
+}
+const readLogoLink = () => window.location.hash === "#journey-logo";
+const noLogoLink = () => false;
 
 export function AccountGuidedInterview({ account, workspace, navigation, busy, saveContext, onInputChange, storage }: {
   account: VerifiedAccount; workspace: AccountWorkspace; navigation?: ReactNode; busy: boolean;
@@ -408,6 +417,19 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
   // slogan answered or skipped. The project bar highlights the one on screen.
   const voiceShown = reached === "voice" || voiceItems.length > 0 || sloganItems.length > 0 || nameChosen;
   const identityShown = state?.stage === "complete" && nameChosen && saved.scope === "complete_brand";
+  // The Logo step follows Inspiration in the same Identity section: after its
+  // Continue, when the project has already reached the logo (its next step is
+  // the logo, creative direction or assets), or when a link points at it.
+  const progress = useProjectProgress();
+  const logoReached = Boolean(progress?.projectId === saved.id && progress.nextHref?.split(/[?#]/, 1)[0]?.startsWith(`/brands/account/${saved.id}/logo`));
+  const [logoOpened, setLogoOpened] = useState(false);
+  // A redirect from the old Logo page commits its `#journey-logo` address with
+  // this page's first render; the store reads it again right after that render.
+  const logoLinked = useSyncExternalStore(subscribeToHash, readLogoLink, noLogoLink);
+  // Shown once the earlier replies have loaded: its images change the page
+  // height, and replies that arrive after that would be announced as new.
+  const logoShown = identityShown && historyChecked && (logoOpened || logoLinked || logoReached);
+  const logoAnchor = useRef<HTMLDivElement>(null), showLogoNext = useRef(false), logoLinkPending = useRef(true);
   const [viewed, setViewed] = useState<JourneyStepId | null>(null);
   // Right after showing a step, its scroll position stands until the reader scrolls.
   const jumped = useRef<number | null>(null);
@@ -434,6 +456,23 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
     jumped.current = null;
     setViewed(sectionOnScreen(area));
   }
+  const jumpToLogo = useEffectEvent((anchor: HTMLElement) => jumpTo(anchor));
+  useEffect(() => {
+    const anchor = logoAnchor.current, area = transcript.current;
+    if (!logoShown || !anchor || !area || !showLogoNext.current && !(logoLinked && logoLinkPending.current)) return;
+    showLogoNext.current = false; logoLinkPending.current = false;
+    // Inspiration's images keep loading after the first jump and push the Logo
+    // message down; keep it in view while the layout settles, unless the reader
+    // takes over (wheel, touch, keys or a click) in the meantime.
+    let reader = false;
+    const takeOver = () => { reader = true; };
+    const events = ["wheel", "touchstart", "keydown", "pointerdown"] as const;
+    events.forEach(name => area.addEventListener(name, takeOver, { passive: true }));
+    jumpToLogo(anchor);
+    const timers = [300, 800, 1600, 3000].map(delay => setTimeout(() => { if (!reader) jumpToLogo(anchor); }, delay));
+    const release = setTimeout(() => events.forEach(name => area.removeEventListener(name, takeOver)), 3200);
+    return () => { timers.forEach(clearTimeout); clearTimeout(release); events.forEach(name => area.removeEventListener(name, takeOver)); };
+  }, [logoShown, logoLinked, transcript]);
   const showSection = useEffectEvent((step: JourneyStepId) => {
     const area = transcript.current, section = document.getElementById(journeySectionId(step));
     if (!area || !section || !area.contains(section)) return;
@@ -527,8 +566,12 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
         {!canvasActive && sloganHistory}
       </section>}
       {!canvasActive && identityShown && <section id={journeySectionId("identity")} className="guided-journey-section flow-enter" data-journey-section="identity" aria-label="Identity" tabIndex={-1}>
-        <InspirationWorkspace projectId={saved.id} variant="conversation"
+        <InspirationWorkspace projectId={saved.id} variant="conversation" continueHidden={logoShown}
+          onContinue={() => { showLogoNext.current = true; setLogoOpened(true); }}
           lead={`Your voice is set. Now let’s shape how ${context.selectedName} looks. Like the designs you’re drawn to: the whole look, or open one to choose just its colors, type or layout. Your likes guide the logo concepts.`} />
+        {logoShown && <div ref={logoAnchor} id="journey-logo" className="logo-in-conversation flow-enter" tabIndex={-1}>
+          <LogoCreationWorkspace projectId={saved.id} />
+        </div>}
       </section>}
       {!hasComposer && notices}
     </div>

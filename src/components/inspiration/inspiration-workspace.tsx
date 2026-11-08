@@ -97,13 +97,15 @@ function InspirationGrid({ children }: { children: ReactNode }) {
 /** "page" is the standalone Inspiration page; "conversation" is the same step
  * shown as one Embel message inside the project conversation. */
 export type InspirationVariant = "page" | "conversation";
-type InspirationProps = { projectId: string; variant?: InspirationVariant; lead?: string };
-export function InspirationWorkspace({ projectId, variant = "page", lead }: InspirationProps) {
+/** In the conversation, Continue reveals the next message (onContinue) instead of
+ * opening a page; once that message is on screen the row is no longer needed. */
+type InspirationProps = { projectId: string; variant?: InspirationVariant; lead?: string; onContinue?: () => void; continueHidden?: boolean };
+export function InspirationWorkspace({ projectId, variant = "page", lead, onContinue, continueHidden }: InspirationProps) {
   const { session } = useAccountSession();
   if (session.status !== "ready") return variant === "page" ? <div className="page"><h1>Inspiration</h1><AccountStatus /></div> : null;
-  return <OwnedInspiration key={`${session.userId}:${session.generation}:${projectId}`} account={session} projectId={projectId} variant={variant} lead={lead} />;
+  return <OwnedInspiration key={`${session.userId}:${session.generation}:${projectId}`} account={session} projectId={projectId} variant={variant} lead={lead} onContinue={onContinue} continueHidden={continueHidden} />;
 }
-function OwnedInspiration({ account, projectId, variant, lead }: InspirationProps & { account: Extract<ReturnType<typeof useAccountSession>["session"], { status: "ready" }> }) {
+function OwnedInspiration({ account, projectId, variant, lead, onContinue, continueHidden }: InspirationProps & { account: Extract<ReturnType<typeof useAccountSession>["session"], { status: "ready" }> }) {
   const controller = useInspiration(account, projectId);
   const router = useRouter(), scope = controller.overview?.projectScope;
   // A complete brand shows Inspiration in its conversation, right after Voice;
@@ -111,11 +113,11 @@ function OwnedInspiration({ account, projectId, variant, lead }: InspirationProp
   const inConversation = variant === "page" && scope === "complete_brand";
   useEffect(() => { if (inConversation) router.replace(`/brands/account/${projectId}?view=strategy#journey-identity`); }, [inConversation, router, projectId]);
   if (inConversation) return null;
-  return <InspirationView controller={controller} projectId={projectId} variant={variant} lead={lead} />;
+  return <InspirationView controller={controller} projectId={projectId} variant={variant} lead={lead} onContinue={onContinue} continueHidden={continueHidden} />;
 }
 const defaultLead = "Let’s shape how your brand looks. Like the designs you’re drawn to: the whole look, or open one to choose just the colors, type or layout. Your likes guide the logo concepts.";
 /** The view accepts the real controller contract so isolated browser checks use the same UI. */
-export function InspirationView({ controller, projectId, variant = "page", lead = defaultLead }: { controller: InspirationController; projectId: string; variant?: InspirationVariant; lead?: string }) {
+export function InspirationView({ controller, projectId, variant = "page", lead = defaultLead, onContinue, continueHidden = false }: { controller: InspirationController; projectId: string; variant?: InspirationVariant; lead?: string; onContinue?: () => void; continueHidden?: boolean }) {
   const conversation = variant === "conversation";
   const availabilityId = useId();
   const [query, setQuery] = useState(""), [kind, setKind] = useState<"all" | "identity" | "logo">("all"), [liked, setLiked] = useState(false);
@@ -162,7 +164,9 @@ export function InspirationView({ controller, projectId, variant = "page", lead 
         </InspirationGrid> : <div className="inspiration-empty"><Icon name="assets" size={30} /><h2>{liked && !query && kind === "all" ? "Start with a few likes" : "No designs match these filters"}</h2><p>{liked && !query && kind === "all" ? "Like an overall look or open a design to choose its details." : "Try a brand, studio, color, or design detail."}</p><button type="button" onClick={() => { setQuery(""); setKind("all"); setLiked(false); }}>Browse all designs</button></div>}
         <footer className="inspiration-footer"><span>{visible.length} of {liked ? inspirationCatalog.length : designs.length} curated designs</span><Link className="inspiration-footer-link" href={`/brands/account/${projectId}/identity`}>Add your own references</Link></footer>
       </div>
-      <div className={conversation ? "inspiration-continue-inline" : "inspiration-continue-row inspiration-continue-bar"}><span>{count === 1 ? "1 liked" : `${count} liked`} · Next: Logo</span><Link className="inspiration-continue" href={`/brands/account/${projectId}/logo`}>Continue<Icon name="arrow" size={16} /></Link></div>
+      {!continueHidden && <div className={conversation ? "inspiration-continue-inline" : "inspiration-continue-row inspiration-continue-bar"}><span>{count === 1 ? "1 liked" : `${count} liked`} · Next: Logo</span>
+        {onContinue ? <button type="button" className="inspiration-continue" onClick={onContinue}>Continue<Icon name="arrow" size={16} /></button>
+          : <Link className="inspiration-continue" href={`/brands/account/${projectId}/logo`}>Continue<Icon name="arrow" size={16} /></Link>}</div>}
     </Frame>
     {selected && <DesignDetail key={selected.id} design={selected} choice={displayed.get(selected.id) ?? noChoice} controller={controller} onClose={() => setSelected(null)} />}
   </div>;

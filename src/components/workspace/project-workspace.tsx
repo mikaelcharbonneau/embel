@@ -11,6 +11,7 @@ import { boundedAccountRequest } from "./bounded-account-request";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "./account-session";
 import { accountDraftChanged, reconcileAccountWorkspace } from "./account-draft-memory";
 import { useProjectNextStep } from "./use-project-next-step";
+import { ProjectProgressContext, type ProjectProgress } from "./project-progress";
 import { ConversationStepContext, journeySectionId, useProjectHeader, type ConversationSteps } from "@/components/journey/project-header";
 import type { SaveState } from "@/components/journey/project-capsule";
 import { projectJourney, type JourneyStepView } from "@/domain/journey";
@@ -100,14 +101,15 @@ function OwnedProjectShell({ projectId, account, children }: { projectId: string
   const handoff = project && getProjectHandoff(project);
   const identityStatus = projectEvidenceStatus(identityEvidence, project?.current_revision);
   const logoStatus = projectEvidenceStatus(logoEvidence, project?.current_revision);
-  return <ConversationStepContext.Provider value={setConversation}><IdentityEvidenceContext.Provider value={reportIdentity}><LogoEvidenceContext.Provider value={reportLogo}><section className={`project-workspace project-stage-${stage}`}>
+  const progress: ProjectProgress | null = project ? { projectId, scope: project.scope, nextHref } : null;
+  return <ProjectProgressContext.Provider value={progress}><ConversationStepContext.Provider value={setConversation}><IdentityEvidenceContext.Provider value={reportIdentity}><LogoEvidenceContext.Provider value={reportLogo}><section className={`project-workspace project-stage-${stage}`}>
     {error && <div className="project-read-notice" role="alert">{error}<button type="button" className="text-link" onClick={() => setAttempt(value => value + 1)}>Check saved project</button></div>}
     {current?.conflict && <div className="project-read-notice" role="alert">A newer project version is saved. Your edits are kept in this tab. <Link className="text-link" href={projectStrategyHref(projectId)}>Resolve in Strategy</Link></div>}
     {project && project.scope === "visual_identity_only" && pathname === `/brands/account/${projectId}/logo` && <nav className="project-read-notice" aria-label="Project navigation"><Link className="text-link" href={projectStrategyHref(projectId)}>Project details</Link></nav>}
     {!inspiration && !brandBoard && handoff?.savedName && !handoff.strategyReady && project?.scope === "complete_brand" && <div className="project-read-notice" role="status">Strategy needs review. Your saved name, {handoff.savedName}, is kept for review against the updated context. <Link className="text-link" href={handoff.next.href}>Continue Strategy review</Link></div>}
     {([['Logo', logoStatus, `/brands/account/${projectId}/logo`], ['Identity', identityStatus, `/brands/account/${projectId}/logo/directions`]] as const).map(([label, status, href]) => status === "needs_review" || status === "recheck" ? <div className="project-read-notice" role="status" key={label}>{status === "needs_review" ? `${label} needs review. Earlier work is kept.` : `Check ${label} against the current project version. Earlier work is kept.`} <Link className="text-link" href={href}>Review {label}</Link></div> : null)}
     <div className="project-workspace-content">{children}</div>
-  </section></LogoEvidenceContext.Provider></IdentityEvidenceContext.Provider></ConversationStepContext.Provider>;
+  </section></LogoEvidenceContext.Provider></IdentityEvidenceContext.Provider></ConversationStepContext.Provider></ProjectProgressContext.Provider>;
 }
 
 /** Strategy links open the conversation at its Strategy section. While the
