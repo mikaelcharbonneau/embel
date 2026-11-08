@@ -26,3 +26,13 @@ it("rejects an unsaved or duplicated retained competitor", () => {
   expect(() => confirmGuidedSelection(context, { turnId: turn.id, reply, optionIds: [], retainedCompetitorIds: [researched], now })).toThrow("saved in this project");
   expect(() => confirmGuidedSelection(context, { turnId: turn.id, reply, optionIds: [], retainedCompetitorIds: [manual, manual], now })).toThrow();
 });
+it("replaces a competitor you added by name with its researched entry once that is chosen", () => {
+  const { reply } = fixture(), added = "33333333-3333-4333-8333-333333333333";
+  const context = initialGuidedContext(contextSnapshotSchema.parse({ description: "A branding studio", competitors: [
+    { id: manual, name: "Logram.ai", relevance: "Added by you", origin: "user", selected: true, sources: [] },
+    { id: added, name: "fixture studio", relevance: "Added by you", origin: "user", selected: true, sources: [] },
+  ] }), 1, now);
+  const turn = context.intake.guidedInterview!.turns[0]!;
+  const result = confirmGuidedSelection(context, { turnId: turn.id, reply: { ...reply, turnId: turn.id }, optionIds: [researched], retainedCompetitorIds: [manual], now });
+  expect(result.competitors.map(item => [item.name, item.origin, item.selected])).toEqual([["Logram.ai", "user", true], ["Fixture Studio", "research", true]]);
+});

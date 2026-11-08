@@ -175,7 +175,10 @@ export function confirmGuidedSelection(context: ContextSnapshot, input: {
   const next: ContextSnapshot = { ...parsed, intake: { ...parsed.intake, guidedInterview: nextState, step: guidedIntakeStep(nextState.stage) } };
   // A changed decision reopens what was built on it: later reviews are cleared.
   if (selection.stage === "competitors") {
-    next.competitors = mergeSelections(parsed.competitors, selection.competitors);
+    // A competitor you added by name, once chosen in its researched form, is that
+    // researched entry (website, offer, sources) rather than a second copy.
+    const researched = new Set(selection.competitors.filter(item => item.origin === "research").map(item => item.name.trim().toLowerCase()));
+    next.competitors = mergeSelections(parsed.competitors.filter(item => item.origin !== "user" || !researched.has(item.name.trim().toLowerCase())), selection.competitors);
     next.competitorReviewComplete = true;
     next.intake.audienceReviewedAt = null;
     next.intake.positioningReviewedAt = null;

@@ -275,29 +275,41 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
     lock.current = true; setWorking(true); setError(null);
     const draft = competitorDraft;
     const selected = selectedCompetitors(answer);
+    // Research it like the suggested competitors (website, offer, why it competes,
+    // sources) in the same save; without research it is saved as entered.
+    const research = !requestBlocked && Boolean(guidedAllowance(availability, "strategy.competitors"));
     try {
-      const next = contextSnapshotSchema.parse({ ...saved.context, competitors: [...saved.context.competitors, parsed.data] });
+      const next = research
+        ? researchCompetitorsContext(answer, `Add ${parsed.data.name}${parsed.data.url ? ` (${parsed.data.url})` : ""} to my competitors and research it like the others: its website, what it offers and why it competes with my brand. Keep my existing selections.`, parsed.data)
+        : contextSnapshotSchema.parse({ ...saved.context, competitors: [...saved.context.competitors, parsed.data] });
       const result = await persist(next, { competitorDraft: draft });
       if (!result || !mounted.current) return false;
-      changeInput(previous => ({ ...previous, competitorDraft: JSON.stringify(previous.competitorDraft) === JSON.stringify(draft) ? undefined : previous.competitorDraft, selection: { turnId: answer.turnId, ids: [...selected, parsed.data.id] } }));
+      changeInput(previous => ({ ...previous, competitorDraft: JSON.stringify(previous.competitorDraft) === JSON.stringify(draft) ? undefined : previous.competitorDraft,
+        selection: research ? null : { turnId: answer.turnId, ids: [...selected, parsed.data.id] } }));
       return true;
     } catch { if (mounted.current) setError("The competitor could not be confirmed as saved. Your entry is kept; check the saved project before retrying."); return false; }
     finally { lock.current = false; if (mounted.current) setWorking(false); }
+  }
+  /** A competitor research turn on top of this widget's competitors and current
+   * selections (plus one just added, selected), as one saved project change. */
+  function researchCompetitorsContext(answer: Extract<GuidedReply, { kind: "choices" }>, request: string, added?: ContextSnapshot["competitors"][number]) {
+    const ids = selectedCompetitors(answer), rows = new Map(saved.context.competitors.map(item => [item.name.trim().toLowerCase(), { ...item, selected: ids.includes(item.id) }]));
+    for (const option of answer.options) if (option.stage === "competitors") {
+      const key = option.payload.name.trim().toLowerCase();
+      if (!rows.has(key)) rows.set(key, { ...option.payload, selected: ids.includes(option.id) });
+      else if (ids.includes(option.id)) rows.set(key, { ...rows.get(key)!, selected: true });
+    }
+    if (added) rows.set(added.name.trim().toLowerCase(), added);
+    const retained = contextSnapshotSchema.parse({ ...saved.context, competitors: [...rows.values()] });
+    const next = guidedMessageContext(retained, request, saved.current_revision + 1);
+    next.intake.guidedInterview!.turns.at(-1)!.purpose = "research";
+    return next;
   }
   async function moreCompetitors(answer: Extract<GuidedReply, { kind: "choices" }>) {
     if (lock.current || blocked || requestBlocked || answer.stage !== "competitors" || !guidedAllowance(availability, "strategy.competitors")) return;
     lock.current = true; setWorking(true); setError(null);
     try {
-      const ids = selectedCompetitors(answer), rows = new Map(saved.context.competitors.map(item => [item.name.trim().toLowerCase(), { ...item, selected: ids.includes(item.id) }]));
-      for (const option of answer.options) if (option.stage === "competitors") {
-        const key = option.payload.name.trim().toLowerCase();
-        if (!rows.has(key)) rows.set(key, { ...option.payload, selected: ids.includes(option.id) });
-        else if (ids.includes(option.id)) rows.set(key, { ...rows.get(key)!, selected: true });
-      }
-      const retained = contextSnapshotSchema.parse({ ...saved.context, competitors: [...rows.values()] });
-      const next = guidedMessageContext(retained, "Suggest more relevant competitors, different from the competitors already saved in this project. Keep my existing selections.", saved.current_revision + 1);
-      next.intake.guidedInterview!.turns.at(-1)!.purpose = "research";
-      const result = await persist(next);
+      const result = await persist(researchCompetitorsContext(answer, "Suggest more relevant competitors, different from the competitors already saved in this project. Keep my existing selections."));
       if (result && mounted.current) setSelection(null);
     } catch { if (mounted.current) setError("Additional suggestions could not be requested. Your current competitors and selections are kept."); }
     finally { lock.current = false; if (mounted.current) setWorking(false); }

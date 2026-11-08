@@ -14,10 +14,10 @@ export function CompetitorWidgetControls({ draft, onDraft, onAdd, onMore, disabl
     <div id={`${id}-add`} hidden={!adding} className="competitor-add-form">
       <label className="field-label">Competitor name<input value={draft.name} maxLength={160} disabled={disabled} onChange={event => onDraft({ ...draft, name: event.target.value })} placeholder="e.g. a shop you know" /></label>
       <label className="field-label">Website <span>Optional</span><input type="url" value={draft.website} maxLength={2048} disabled={disabled} onChange={event => onDraft({ ...draft, website: event.target.value })} placeholder="https://" /></label>
-      <p>Added directly to your project. This does not start AI research.</p>
+      <p>{canGenerate ? "Embel looks it up like the other competitors: its website, what it offers and why it competes." : "Research isn’t available right now, so it’s added as you enter it."}</p>
       <div className="competitor-add-actions">
         <button type="button" className="button secondary small" onClick={() => setAdding(false)}>Cancel</button>
-        <button type="button" className="button primary small" disabled={disabled || !draft.name.trim()} onClick={() => void onAdd().then(saved => { if (saved) setAdding(false); })}>Save competitor</button>
+        <button type="button" className="button primary small" disabled={disabled || !draft.name.trim()} onClick={() => void onAdd().then(saved => { if (saved) setAdding(false); })}>Add competitor</button>
       </div>
     </div>
   </div>;
