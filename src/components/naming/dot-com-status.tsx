@@ -11,14 +11,15 @@ import { projectScreeningDomainSuggestion } from "./project-screening-domain";
 type Status = "checking" | "available" | "taken" | "unknown" | "unchecked";
 type Adapters = ReturnType<typeof createStandaloneLiveAdapters>;
 
-// One lookup may take this long before it is abandoned, and a name waiting in
-// the queue (for example behind the account's lookup limit) gives up after
-// GIVE_UP_AFTER. Either way it shows as not checked; nothing is guessed.
-const LOOKUP_TIMEOUT = 15_000, GIVE_UP_AFTER = 45_000;
+// One lookup may take this long before it is abandoned and shown as not
+// checked; nothing is guessed. A name waiting its turn behind the account's
+// lookup limit keeps waiting: the queue resumes when the limit allows.
+const LOOKUP_TIMEOUT = 15_000;
 
 // One shared checker per signed-in account: results are reused for the page's
-// lifetime and at most two lookups run at once, so a grid of names never floods
-// the registry. A failed or unconfirmed lookup is never shown as available.
+// lifetime and one lookup runs at a time, as the server admits one in-flight
+// lookup per account (a second is refused and would pause the whole queue for a
+// minute). A failed or unconfirmed lookup is never shown as available.
 const results = new Map<string, Status>();
 const listeners = new Map<string, Set<() => void>>();
 const queue: string[] = [];
@@ -42,12 +43,6 @@ function withTimeout<T>(work: (signal: AbortSignal) => Promise<T>, parent: Abort
 function request(domain: string) {
   if (results.has(domain)) return;
   publish(domain, "checking"); queue.push(domain); pump();
-  setTimeout(() => {
-    if (results.get(domain) !== "checking") return;
-    const waiting = queue.indexOf(domain);
-    if (waiting >= 0) queue.splice(waiting, 1);
-    publish(domain, "unchecked");
-  }, GIVE_UP_AFTER);
 }
 
 function pump() {
@@ -55,17 +50,21 @@ function pump() {
     resume ??= setTimeout(() => { resume = null; pump(); }, pausedUntil - Date.now());
     return;
   }
-  while (running < 2 && queue.length && checker) {
+  while (running < 1 && queue.length && checker) {
     const domain = queue.shift()!;
     const current = checker;
     running += 1;
     void current.adapters.then(async adapters => {
+      // A replaced checker (new sign-in or session) asks again for names on screen.
+      if (checker !== current) return;
       if (!adapters || adapters.domains.status === "unavailable") return publish(domain, "unchecked");
       try {
         const check = await withTimeout(signal => readDomainCheck(adapters.domains, domain, signal), current.controller.signal);
+        if (checker !== current) return;
         const availability = check.domain === domain ? availabilityAt(check, Date.now()) : "unknown";
         publish(domain, availability === "available" ? "available" : availability === "taken" ? "taken" : "unknown");
       } catch (error) {
+        if (checker !== current) return;
         // The account's lookup limit: wait as asked, then check this name again.
         if (error instanceof DomainLookupError && error.retryAfterSeconds !== null && !current.controller.signal.aborted) {
           pausedUntil = Math.max(pausedUntil, Date.now() + error.retryAfterSeconds * 1000);
@@ -96,12 +95,12 @@ function useChecker() {
     checker = { key, controller, adapters: loadStandaloneCapabilities(binding).then(caps => createStandaloneLiveAdapters(caps, binding)).catch(() => null) };
     pump();
   }, [key, session, isCurrent]);
-  return Boolean(key);
+  return key;
 }
 
 /** The .com status of a visible name, from the shared domain check. */
 export function DotComStatus({ name }: { name: string }) {
-  const ready = useChecker();
+  const checkerKey = useChecker(), ready = Boolean(checkerKey);
   const domain = projectScreeningDomainSuggestion(name);
   const element = useRef<HTMLSpanElement>(null);
   const subscribe = useCallback((listener: () => void) => {
@@ -112,14 +111,15 @@ export function DotComStatus({ name }: { name: string }) {
   }, [domain]);
   const status = useSyncExternalStore(subscribe, () => domain ? results.get(domain) ?? null : null, () => null);
   // Only names on screen are checked; scrolling further checks the next ones.
+  // A new checker (key) clears earlier results, so names on screen ask again.
   useEffect(() => {
     const target = element.current;
-    if (!ready || !domain || !target) return;
+    if (!checkerKey || !domain || !target) return;
     if (typeof IntersectionObserver === "undefined") { request(domain); return; }
     const observer = new IntersectionObserver(entries => { if (entries.some(entry => entry.isIntersecting)) { request(domain); observer.disconnect(); } });
     observer.observe(target);
     return () => observer.disconnect();
-  }, [ready, domain]);
+  }, [checkerKey, domain]);
   if (!domain) return null;
   // Without a signed-in account nothing is checked.
   const shown: Status = status ?? (ready ? "checking" : "unchecked");

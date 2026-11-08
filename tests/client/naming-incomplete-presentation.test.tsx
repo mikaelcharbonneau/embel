@@ -85,3 +85,23 @@ it("reports complete saved membership without promoting its partial provider job
     expect(host.querySelector("button")).toBeNull();
   } finally { await act(async()=>root.unmount());vi.unstubAllGlobals(); }
 });
+
+it.each([
+  ["partial", 95, "This set ended before 100 names. 95 names are saved. Choose More names for another set."],
+  ["cancelled", 40, "This set was stopped. 40 names are saved. Choose More names for another set."],
+  ["failed", 0, "This set couldn’t finish. Choose More names for another set."],
+] as const)("ends a %s brainstorm set plainly and lets More names start the next one", async (state, count, message) => {
+  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  const resume = vi.fn(), modify = vi.fn();
+  const run = { state, canResume: false, runId: "run", revision: 2, generationProfile: "brainstorm_v1",
+    fulfillment: { status: count ? "partial" : "none", acceptedCount: count, targetCount: 100, missingCount: 100 - count, coverageSatisfied: false } };
+  const feed = { canResume: false, resume, state: { status: "incomplete", outcome: { status: "incomplete", run, fulfillment: run.fulfillment, canResume: false, message: "Your saved names and unfinished work are retained." },
+    feed: { availability: { status: "available" }, activeRun: run } } } as unknown as ReturnType<typeof useNamingFeed>;
+  const host = document.createElement("div"), root = createRoot(host);
+  try {
+    await act(async () => root.render(createElement(NamingFeedTail, { feed, blocked: false, onModify: modify })));
+    expect(host.textContent).toBe(message);
+    expect(host.textContent).not.toMatch(/needs resolution|Resume|Review Naming choices/);
+    expect(resume).not.toHaveBeenCalled();
+  } finally { await act(async () => root.unmount()); vi.unstubAllGlobals(); }
+});

@@ -72,6 +72,10 @@
     {
       "path": "supabase/candidates/shared_guided_journey_stages.sql",
       "sha256": "8a109bad7c30b1299bd40a729e00c5f92288edbbf2dca7ab3d0de0ed8ed3e8d1"
+    },
+    {
+      "path": "supabase/candidates/shared_naming_brainstorm_continuation.sql",
+      "sha256": "e9fca15866c02294c7629e158da91774b6371559264c943ee0cb57c81d46ca49"
     }
   ],
   "functions": [
@@ -3707,7 +3711,7 @@
       "name": "shared_naming_brainstorm_ensure_core",
       "owner": "postgres",
       "schema": "fluid_private",
-      "sha256": "33ea6188451e1c3ae9d25c0bb1d5acaffd009a9cb5a3b8a07ab267b84de48d34",
+      "sha256": "0df4e00a0f7e9e38778166d9310daba687d52febac4a72ebe925654eed864cb1",
       "language": "plpgsql",
       "leakproof": false,
       "searchPath": [

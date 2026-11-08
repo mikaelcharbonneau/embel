@@ -2,7 +2,7 @@ import { AccountRequestError } from "@/components/workspace/account-api";
 import { boundedAccountRequest } from "@/components/workspace/bounded-account-request";
 import { nameIdentityKey } from "@/domain/project-naming";
 import { getNamingPreferencesReadiness } from "@/domain/naming-brain-preferences";
-import { ensureNamingRunIntentSchema, stopNamingFeedIntentSchema, stopNamingFeedResponseSchema, namingFeedEnsureResultSchema, namingFeedResponseSchema, steerNamingFeedIntentSchema, steerNamingFeedResponseSchema,
+import { ensureNamingRunIntentSchema, namingRunHoldsNextSet, stopNamingFeedIntentSchema, stopNamingFeedResponseSchema, namingFeedEnsureResultSchema, namingFeedResponseSchema, steerNamingFeedIntentSchema, steerNamingFeedResponseSchema,
   type EnsureNamingRunIntent, type NamingFeed, type NamingFeedCursor, type NamingFeedEntry, type StopNamingFeedIntent } from "@/domain/naming-brain";
 import type { NamingAccount, NamingBrainMemory, NamingFeedState } from "./naming-brain-memory";
 export const NAMING_EXPLORATION_IDLE_MS = 60_000;
@@ -212,7 +212,7 @@ export function createNamingFeedController(options: { account: NamingAccount; pr
         if (!feed || run?.state === "needs_reconciliation") return false;
         if (run?.canResume && (feed.paused || feed.preparedSetId)) return resume();
         const changedBasis = Boolean(run && (run.preferencesVersion !== feed.preferencesVersion || run.steeringRevision !== feed.steeringRevision || run.projectRevision !== feed.projectRevision));
-        if (run && ["partial", "failed", "cancelled"].includes(run.state) && !changedBasis) return false;
+        if (namingRunHoldsNextSet(run) && !changedBasis) return false;
         update(value => ({ ...value, stopped: false, stopRequested: false, status: value.status === "paused" ? "ready" : value.status }));
         lastInteraction = now(); consumedInteraction = ++interaction;
         if (!feed.paused && !changedBasis && (run || feed.entries.length > 0 && feed.demandSequence > 0)) return true;
@@ -225,7 +225,7 @@ export function createNamingFeedController(options: { account: NamingAccount; pr
       const value = state(), feed = value?.feed;
       if (!current() || !eligible() || !visible() || !feed || memory.getRecovery(account) || feed.paused) return false;
       if (value.pending || value.steering || value.stop || value.stopRequested || active(feed.activeRun?.state)) return false;
-      if (feed.activeRun && ["partial", "failed", "cancelled", "needs_reconciliation"].includes(feed.activeRun.state)) return false;
+      if (namingRunHoldsNextSet(feed.activeRun)) return false;
       update(current => ({ ...current, stopped: false }));
       lastInteraction = now(); consumedInteraction = ++interaction; resumeInteraction = null; prefetchInteraction = null;
       if (feed.nextCursor) return load(feed.nextCursor);

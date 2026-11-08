@@ -144,8 +144,11 @@ export const unavailableDomainAdapter: DomainSearchAdapter = { status: "unavaila
 export const REGISTRY_DOMAIN_PROVIDER = "Public registry RDAP";
 /** A registrar's check may be corroborated by the public registry, but only to confirm
  * an existing registration. Registry checks never carry prices or claim availability. */
+/** A registrar's own answer, or the authoritative registry standing in for it:
+ * a confirmed registration, or no record (shown as not confirmed, never as
+ * available) while the registrar asks Embel to wait. */
 export function acceptedDomainCheckProvider(check: Pick<DomainCheck, "provider" | "availability">, expected: string): boolean {
-  return check.provider === expected || expected !== REGISTRY_DOMAIN_PROVIDER && check.provider === REGISTRY_DOMAIN_PROVIDER && check.availability === "taken";
+  return check.provider === expected || expected !== REGISTRY_DOMAIN_PROVIDER && check.provider === REGISTRY_DOMAIN_PROVIDER && (check.availability === "taken" || check.availability === "unknown");
 }
 export async function readDomainCheck(adapter: DomainSearchAdapter, domain: string, signal: AbortSignal): Promise<DomainCheck> {
   const exact = domainNameSchema.parse(domain);

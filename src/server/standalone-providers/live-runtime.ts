@@ -35,6 +35,13 @@ async function lookupDomain(domain: string, config: StandaloneProviderConfig, fe
     : config.vercel ? lookupVercel(domain, fetcher, clock, signal) : null;
   if (!registrar) return config.rdap ? await lookupRdap(domain, fetcher, clock, signal) : { status: "failed", code: "unavailable", retryAfterSeconds: null };
   const primary = await registrar;
+  // While the registrar asks Embel to wait, the authoritative registry can still
+  // confirm a registration (or report no record, shown as not confirmed). Its
+  // answer carries the registry's own provider label and never a price.
+  if (primary.status === "failed" && primary.code === "rate_limited" && config.rdap && !signal.aborted) {
+    const registry = await lookupRdap(domain, fetcher, clock, signal);
+    return registry.status === "domain" ? registry : primary;
+  }
   if (primary.status !== "domain" || primary.check.availability !== "unknown" || !config.rdap || signal.aborted) return primary;
   const registry = await lookupRdap(domain, fetcher, clock, signal);
   if (registry.status !== "domain" || registry.check.availability !== "taken") return primary;

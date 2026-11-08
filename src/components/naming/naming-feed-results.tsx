@@ -76,6 +76,15 @@ function terminalMessage(state: string, recoveredNameCount = 0) {
         : "This exploration ended before a complete set was saved. Your saved names remain available.";
 }
 
+/** A brainstorm set that ended (short, failed or stopped) is final: its names stay
+ * saved and More names starts the next set, so no resolution is needed. */
+function brainstormEndedMessage(run: { state: string; generationProfile?: string; fulfillment?: { acceptedCount: number } | null } | null | undefined) {
+  if (!run || run.generationProfile !== "brainstorm_v1" || !["partial", "failed", "cancelled"].includes(run.state)) return null;
+  const count = run.fulfillment?.acceptedCount ?? 0, saved = count === 1 ? "1 name is saved." : count > 0 ? `${count} names are saved.` : "";
+  const lead = run.state === "cancelled" ? "This set was stopped." : run.state === "failed" ? "This set couldn’t finish." : "This set ended before 100 names.";
+  return `${lead} ${saved} Choose More names for another set.`.replace(/\s+/g, " ").trim();
+}
+
 export function NamingFeedTail(props: NamingFeedTailProps) {
   const current = props.feed.state?.feed;
   return <>
@@ -103,6 +112,8 @@ function NamingFeedCurrentStatus({ feed, blocked, onModify, onReviewSaved }: Nam
     <p>All {active.fulfillment.targetCount} unchecked brainstorm names are saved. The original generation request ended partially.</p>
     {onReviewSaved && <button type="button" className="button secondary small" onClick={onReviewSaved}>View saved names</button>}
   </>;
+  const ended = brainstormEndedMessage(active ?? (outcome?.status === "incomplete" ? outcome.run : null));
+  if (ended) return <><p>{ended}</p>{reviewSaved}</>;
   if (outcome?.status === "incomplete") return <>
     <p>{terminalMessage((active ?? outcome.run).state, (active ?? outcome.run).recoveredNameCount)}</p><p><strong>Incomplete exploration.</strong> {outcome.fulfillment.acceptedCount} of {outcome.fulfillment.targetCount} names saved. Earlier names stay available.</p>{reviewSaved}
     {(active ?? outcome.run).canResume ? <button type="button" className="button secondary small" disabled={blocked || !feed.canResume} onClick={() => void feed.resume()}>Resume unfinished exploration</button> : <p>This outcome needs resolution before another request can start.</p>}

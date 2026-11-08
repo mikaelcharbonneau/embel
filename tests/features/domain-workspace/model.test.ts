@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  applyDomainOrderEvent, availabilityAt, domainCheckSchema, domainNameSchema, domainOrderSchema, domainQuoteSchema,
+  acceptedDomainCheckProvider, applyDomainOrderEvent, availabilityAt, REGISTRY_DOMAIN_PROVIDER, domainCheckSchema, domainNameSchema, domainOrderSchema, domainQuoteSchema,
   domainSyntaxError, orderLabel, prepareDomainSearch, purchasedDomainSchema, quoteBlockReason,
   readDomainCheck, readDomainQuote, unavailableDomainAdapter,
 } from "../../../src/features/domain-workspace/model";
@@ -28,6 +28,13 @@ describe("domain search preparation", () => {
   });
 });
 describe("availability and quote evidence", () => {
+  it("lets the authoritative registry stand in for a waiting registrar, never as available", () => {
+    expect(acceptedDomainCheckProvider({ provider: "vercel_registrar", availability: "available" }, "vercel_registrar")).toBe(true);
+    expect(acceptedDomainCheckProvider({ provider: REGISTRY_DOMAIN_PROVIDER, availability: "taken" }, "vercel_registrar")).toBe(true);
+    expect(acceptedDomainCheckProvider({ provider: REGISTRY_DOMAIN_PROVIDER, availability: "unknown" }, "vercel_registrar")).toBe(true);
+    expect(acceptedDomainCheckProvider({ provider: REGISTRY_DOMAIN_PROVIDER, availability: "available" }, "vercel_registrar")).toBe(false);
+    expect(acceptedDomainCheckProvider({ provider: "cloudflare_registrar", availability: "taken" }, "vercel_registrar")).toBe(false);
+  });
   it("does not treat stale, future or unknown evidence as available", () => {
     expect(availabilityAt(check, now)).toBe("available");
     expect(availabilityAt(check, Date.parse(check.validUntil))).toBe("unknown");

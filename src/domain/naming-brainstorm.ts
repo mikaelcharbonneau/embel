@@ -75,7 +75,9 @@ function constructionFits(candidate: ConstructedCandidate): boolean {
     case "blends": {
       if (!/^[\p{L}\p{M}\p{N}]+$/u.test(value) || words.length !== 2 || words[0] === words[1] || sources.some(visiblyJoined)) return false;
       const [left, right] = words;
-      if (words.includes(name) || name === left! + right! || name === right! + left! || !words.every(word => containsPhrase(referenceWords(candidate.rationale), referenceWords(word)))) return false;
+      // The seam check below proves both words contribute; the rationale may
+      // paraphrase them ("flirtation", "sincerity"), so it is not required to quote them.
+      if (words.includes(name) || name === left! + right! || name === right! + left!) return false;
       const letters = Array.from(name);
       // A natural blend can use an interior fragment, two beginnings, or an
       // overlapping seam. Both ingredients must contribute recognizable text.
@@ -99,30 +101,43 @@ function constructionFits(candidate: ConstructedCandidate): boolean {
   }
 }
 /** Historical calls keep their original format. New calls also enforce their
- * construction and per-approach limits, without rewriting provider evidence. */
-export function filterNamingBrainstormCandidates(raw: readonly unknown[], preferences: NamingPreferencesV2, excludedIdentities: readonly string[], remaining = 100, slots?: readonly ApproachSlot[]): NamingBrainstormAcceptedCandidate[] {
+ * construction and per-approach limits, without rewriting provider evidence.
+ * Balanced calls admit each approach's share. On the final call (`finalFill`),
+ * valid names beyond an approach's share then fill the places still open, so a
+ * set is not left short only because one approach under-delivered. */
+export function filterNamingBrainstormCandidates(raw: readonly unknown[], preferences: NamingPreferencesV2, excludedIdentities: readonly string[], remaining = 100, slots?: readonly ApproachSlot[],
+  finalFill = false): NamingBrainstormAcceptedCandidate[] {
   const seen = new Set(excludedIdentities), accepted: NamingBrainstormAcceptedCandidate[] = [];
   const room = slots && new Map(slots.map(({approach,admit}) => [approach,admit]));
-  for (const item of raw.slice(0, 120)) {
-    if (accepted.length >= Math.max(0, Math.min(100, remaining))) break;
+  const limit = Math.max(0, Math.min(100, remaining)), overflow: unknown[] = [];
+  const admit = (item: unknown, balanced: boolean) => {
     let source = item;
     if (room) {
       const parsed = constructedCandidate.safeParse(item);
-      if (!parsed.success || !room.get(parsed.data.primaryApproach) || !constructionFits(parsed.data)) continue;
+      if (!parsed.success || !constructionFits(parsed.data)) return;
+      if (balanced && !room.get(parsed.data.primaryApproach)) { overflow.push(item); return; }
       const { value, rationale, primaryApproach } = parsed.data;
       source = { value, rationale, primaryApproach };
     }
-    const parsed = namingBrainstormCandidateSchema.safeParse(source); if (!parsed.success) continue;
+    const parsed = namingBrainstormCandidateSchema.safeParse(source); if (!parsed.success) return;
     const candidate = parsed.data, identityKey = namingBrainstormIdentity(candidate.value);
     const graphemeCount = Array.from(segmenter.segment(candidate.value)).length;
     if (!identityKey || seen.has(identityKey) || !preferences.approaches.includes(candidate.primaryApproach) || graphemeCount > 100
       || preferences.minimumGraphemes !== null && graphemeCount < preferences.minimumGraphemes
       || preferences.maximumGraphemes !== null && graphemeCount > preferences.maximumGraphemes
       || preferences.requiredText.some(text => !matchesNamingTextFragment(candidate.value, text))
-      || preferences.excludedText.some(text => matchesNamingTextFragment(candidate.value, text))) continue;
+      || preferences.excludedText.some(text => matchesNamingTextFragment(candidate.value, text))) return;
     seen.add(identityKey);
-    if (room) room.set(candidate.primaryApproach, room.get(candidate.primaryApproach)! - 1);
+    if (room && balanced) room.set(candidate.primaryApproach, room.get(candidate.primaryApproach)! - 1);
     accepted.push({ ...candidate, identityKey, graphemeCount, caution: NAMING_BRAINSTORM_CAUTION });
+  };
+  for (const item of raw.slice(0, 120)) {
+    if (accepted.length >= limit) break;
+    admit(item, true);
+  }
+  if (room && finalFill) for (const item of overflow) {
+    if (accepted.length >= limit) break;
+    admit(item, false);
   }
   return accepted;
 }

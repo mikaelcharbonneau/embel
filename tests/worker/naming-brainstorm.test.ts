@@ -146,6 +146,22 @@ describe("brainstorm deterministic admission",()=>{
     expect(filterNamingBrainstormCandidates(samples,{...preferences(),approaches:["blends"]},[],100,[{approach:"blends",admit:100,request:120}]).map(row=>row.value))
       .toEqual(["Infotain","EduVis"]);
   });
+  it("accepts a blend whose rationale paraphrases its source words",()=>{
+    const row=(value:string,left:string,right:string,rationale:string)=>({value,primaryApproach:"blends",construction:[left,right],rationale});
+    // Seen on a real short batch: each was rejected only because the rationale said
+    // "flirtation"/"sincerity" or "attraction" instead of quoting both words.
+    const samples=[row("Flincere","flirt","sincere","Brings flirtation together with sincerity."),row("Casallure","casual","allure","Pairs casual dating with the pull of mutual attraction."),
+      row("Decisivey","decisive","easy","Decisive and easy."),row("Plannow","plan","now","Plan now.")];
+    expect(filterNamingBrainstormCandidates(samples,{...preferences(),approaches:["blends"]},[],100,[{approach:"blends",admit:100,request:120}]).map(row=>row.value))
+      .toEqual(["Flincere","Casallure"]);
+  });
+  it("keeps the balanced share until the final call, which fills open places with valid extra names",()=>{
+    const prefs={...preferences(),approaches:["real_words","blends"] as NamingApproach[]};
+    const words=Array.from({length:6},(_,i)=>({value:`Harbor${"abcdef"[i]}`,primaryApproach:"real_words",construction:[`Harbor${"abcdef"[i]}`],rationale:"An everyday word."}));
+    const plan=[{approach:"real_words" as NamingApproach,admit:2,request:3},{approach:"blends" as NamingApproach,admit:2,request:3}];
+    expect(filterNamingBrainstormCandidates(words,prefs,[],4,plan)).toHaveLength(2);
+    expect(filterNamingBrainstormCandidates(words,prefs,[],4,plan,true).map(row=>row.value)).toEqual(["Harbora","Harborb","Harborc","Harbord"]);
+  });
   it("normalizes NFC, preserves existing identity semantics, and honors literal constraints",()=>{
     const prefs={...preferences(),approaches:["invented" as const],requiredText:["café"],excludedText:["bad"],minimumGraphemes:4,maximumGraphemes:10};
     const row=(value:string,primaryApproach="invented")=>({value,rationale:"  Intended sound.  ",primaryApproach});

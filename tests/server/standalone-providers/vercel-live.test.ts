@@ -108,13 +108,15 @@ describe("Vercel transport and cancellation boundaries", () => {
     expect(await lookupVercel("example.com", async () => json(body(), status), clock, signal())).toEqual({ status: "failed", code, retryAfterSeconds: null });
   });
 
-  it("honors bounded Retry-After on 429 without retries or fallback requests", async () => {
-    const fetcher = vi.fn(async () => json({ error: "rate limit" }, 429, { "retry-after": "120" }));
+  it("honors bounded Retry-After on 429 without retrying the registrar", async () => {
+    const fetcher = vi.fn(async (request: Request) => request.url.startsWith("https://api.vercel.com/") ? json({ error: "rate limit" }, 429, { "retry-after": "120" }) : new Response("", { status: 503 }));
     const result = await runStandaloneLookup(owner, { tool: "domains", domain: "example.com" }, signal(), {
       config: standaloneProviderConfig({}), fetch: fetcher, clock, admit: createLookupAdmission(clock),
     });
     expect(result).toEqual({ status: "failed", code: "rate_limited", retryAfterSeconds: 120 });
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    // One registrar request; only the authoritative registry may be asked while it waits.
+    expect(fetcher.mock.calls.filter(([request]) => request.url.startsWith("https://api.vercel.com/"))).toHaveLength(1);
+    expect(fetcher.mock.calls.every(([request]) => /^https:\/\/(api\.vercel\.com|rdap\.verisign\.com)\//.test(request.url))).toBe(true);
   });
 
   it("enforces provider cooldown for the same and different domains, then permits an explicit retry", async () => {
@@ -279,15 +281,16 @@ describe("domain configuration and routing compatibility", () => {
     expect(standaloneCapabilitiesSchema.safeParse(standaloneCapabilities(owner, standaloneProviderConfig({}))).success).toBe(true);
   });
 
-  it("retains configured Cloudflare precedence and never silently falls back after failure", async () => {
+  it("retains configured Cloudflare precedence and never falls back to another registrar after failure", async () => {
     const config = standaloneProviderConfig({ FLUID_CLOUDFLARE_CHECKS_ENABLED: "true", FLUID_CLOUDFLARE_ACCOUNT_ID: accountId, FLUID_CLOUDFLARE_API_TOKEN: "synthetic-token" });
     expect(standaloneCapabilities(owner, config).domains).toBe("cloudflare");
     const fetcher = vi.fn(async (request: Request) => {
-      expect(request.url).toBe(`https://api.cloudflare.com/client/v4/accounts/${accountId}/registrar/domain-check`);
-      return json({}, 429);
+      // Only the configured registrar, and while it waits the authoritative registry.
+      expect([`https://api.cloudflare.com/client/v4/accounts/${accountId}/registrar/domain-check`, "https://rdap.verisign.com/com/v1/domain/example.com"]).toContain(request.url);
+      return request.url.startsWith("https://rdap.") ? new Response("", { status: 503 }) : json({}, 429);
     });
     expect(await runStandaloneLookup(owner, { tool: "domains", domain: "example.com" }, signal(), { config, fetch: fetcher, clock, admit: createLookupAdmission(clock) })).toMatchObject({ status: "failed", code: "rate_limited" });
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher.mock.calls.filter(([request]) => request.url.startsWith("https://api.cloudflare.com/"))).toHaveLength(1);
   });
 
   it("routes opt-out to RDAP and preserves the all-disabled gate", async () => {

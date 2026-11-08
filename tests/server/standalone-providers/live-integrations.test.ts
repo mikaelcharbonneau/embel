@@ -133,6 +133,14 @@ describe("runtime configuration and bounded admission", () => {
     await expect(runStandaloneLookup("owner", { tool: "domains", domain: "example.com" }, controller.signal, { fetch: fetcher })).resolves.toMatchObject({ status: "failed", code: "cancelled" });
     expect(fetcher).not.toHaveBeenCalled();
   });
+  it("asks the authoritative registry while the registrar is rate limited, and keeps the wait otherwise", async () => {
+    const config = { rdap: true, vercel: true, cloudflare: null, namecom: null, youtube: null, euipo: null } as const;
+    const registrar = (request: Request) => request.url.startsWith("https://api.vercel.com/") ? new Response("{}", { status: 429, headers: { "retry-after": "30", "content-type": "application/json" } }) : null;
+    const taken = vi.fn(async (request: Request) => registrar(request) ?? new Response(JSON.stringify({ objectClassName: "domain", ldhName: "EXAMPLE.COM" }), { status: 200, headers: { "content-type": "application/rdap+json" } }));
+    await expect(runStandaloneLookup("owner-taken", { tool: "domains", domain: "example.com" }, signal(), { config, fetch: taken })).resolves.toMatchObject({ status: "domain", quote: null, check: { availability: "taken", provider: "Public registry RDAP" } });
+    const down = vi.fn(async (request: Request) => registrar(request) ?? new Response("", { status: 503 }));
+    await expect(runStandaloneLookup("owner-down", { tool: "domains", domain: "another.com" }, signal(), { config, fetch: down })).resolves.toMatchObject({ status: "failed", code: "rate_limited" });
+  });
   it("does not leak raw transport failures", async () => {
     const result = await liveProviderJson(new Request("https://api.euipo.europa.eu/fixture"), async () => { throw new Error("private-token"); }, clock, signal());
     expect(result).toMatchObject({ status: "failed", code: "transport" }); expect(JSON.stringify(result)).not.toContain("private-token");

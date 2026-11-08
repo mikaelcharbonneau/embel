@@ -168,6 +168,24 @@ describe('future-only Naming brainstorm SQL capability', () => {
   expect(()=>namingFeedSchema.parse(normalizeNamingBrain(feed,OWNER_B))).not.toThrow();
   expect(feed.activeRun).toMatchObject({state:'partial',canResume:false,fulfillment:{status:'partial',acceptedCount:3,missingCount:97}});
  });
+ it('starts the next set after a short brainstorm set once the continuation packet is installed',async()=>{
+  // The previous test left OWNER_B's project with an ended, short brainstorm run.
+  const head=(await f.db.query<{demand_sequence:number}>('select demand_sequence from fluid_private.naming_brain_heads where project_id=$1',[project])).rows[0]!;
+  const last=(await f.db.query<{id:string;position:string}>('select id,position from fluid_private.naming_brain_feed_entries where project_id=$1 order by position desc limit 1',[project])).rows[0]!;
+  const more=(key:string)=>({...initialIntent(key),reason:'scroll',expectedDemandSequence:Number(head.demand_sequence),consumedThrough:{entryId:last.id,position:Number(last.position)}});
+  // Before: Resume is never offered for brainstorm, yet the ended run held every new request.
+  expect(await brainRpc(f.db,'ensure_shared_naming_brainstorm_run',[project,more('brainstorm-more-before')],OWNER_B)).toMatchObject({status:'incomplete',canResume:false});
+  await f.db.exec(await readFile(new URL('../../supabase/candidates/shared_naming_brainstorm_continuation.sql',import.meta.url),'utf8'));
+  const next=await brainRpc<{status:string;run:{runId:string;state:string;generationProfile:string}}>(f.db,'ensure_shared_naming_brainstorm_run',[project,more('brainstorm-more-after')],OWNER_B);
+  expect(next).toMatchObject({status:'pending',run:{state:'queued',generationProfile:'brainstorm_v1'}});
+  expect(next.run.runId).not.toBe(runId);
+  // Unconfirmed work still holds: the new queued run is reused, never duplicated.
+  expect(await brainRpc(f.db,'ensure_shared_naming_brainstorm_run',[project,more('brainstorm-more-again')],OWNER_B)).toMatchObject({status:'pending',reused:true,run:{runId:next.run.runId}});
+  // Leave no queued work for the later claims in this suite.
+  const job=(await f.db.query<{job_id:string}>('select job_id from fluid_private.naming_brain_runs where id=$1',[next.run.runId])).rows[0]!.job_id;
+  await brainRpc(f.db,'request_job_cancel',[job],OWNER_B);
+  expect((await f.db.query<{state:string}>('select state from public.jobs where id=$1',[job])).rows[0]!.state).toBe('cancelled');
+ });
  it('reports actual uneven approach coverage after 100 names without authorizing coverage-only topups',async()=>{
   await startNext('brainstorm-uneven-coverage',OWNER_A,{...brainPreferences,approaches:['real_words','invented']});
   const begun=(await action('brainstorm_begin',{callIndex:1,candidateTarget:120,request:request()})).result;
