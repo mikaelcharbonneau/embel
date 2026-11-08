@@ -2,6 +2,8 @@ import "server-only";
 import { type StandaloneCapabilities, type StandaloneLookupInput, type StandaloneLookupResult } from "@/domain/standalone-live-checks";
 import { standaloneProviderConfig, type StandaloneProviderConfig } from "./live-config";
 import { lookupRdap } from "./rdap";
+import { lookupDnsDelegation, resolveNameServers, type NameServerLookup } from "./dns-delegation";
+import { DNS_DOMAIN_PROVIDER } from "@/features/domain-workspace/model";
 import { lookupCloudflare } from "./cloudflare-live";
 import { lookupNamecom } from "./namecom-live";
 import { lookupVercel } from "./vercel-live";
@@ -27,40 +29,47 @@ export function createLookupAdmission(clock: ProviderClock = Date.now) {
     return () => { bucket.active = false; };
   };
 }
+/** The registry's public record of a domain: its RDAP record, or, where the registry
+ * publishes no RDAP service, its DNS delegation (which can only confirm a registration). */
+async function lookupRegistry(domain: string, fetcher: ProviderFetch, clock: ProviderClock, signal: AbortSignal, nameServers: NameServerLookup): Promise<StandaloneLookupResult> {
+  const record = await lookupRdap(domain, fetcher, clock, signal);
+  if (record.status !== "failed" || record.code !== "unsupported_target" || signal.aborted) return record;
+  return lookupDnsDelegation(domain, clock, signal, nameServers);
+}
 /** A registrar only reports whether it can sell a new registration. When it cannot, the
- * authoritative registry can confirm an existing registration; otherwise the registrar's
+ * registry's public record can confirm an existing registration; otherwise the registrar's
  * own unknown result stands. No price is ever attached to a registry confirmation. */
-async function lookupDomain(domain: string, config: StandaloneProviderConfig, fetcher: ProviderFetch, clock: ProviderClock, signal: AbortSignal): Promise<StandaloneLookupResult> {
+async function lookupDomain(domain: string, config: StandaloneProviderConfig, fetcher: ProviderFetch, clock: ProviderClock, signal: AbortSignal, nameServers: NameServerLookup): Promise<StandaloneLookupResult> {
   const registrar = config.namecom ? lookupNamecom(domain, config.namecom, fetcher, clock, signal) : config.cloudflare ? lookupCloudflare(domain, config.cloudflare, fetcher, clock, signal)
     : config.vercel ? lookupVercel(domain, fetcher, clock, signal) : null;
-  if (!registrar) return config.rdap ? await lookupRdap(domain, fetcher, clock, signal) : { status: "failed", code: "unavailable", retryAfterSeconds: null };
+  if (!registrar) return config.rdap ? await lookupRegistry(domain, fetcher, clock, signal, nameServers) : { status: "failed", code: "unavailable", retryAfterSeconds: null };
   const primary = await registrar;
   // While the registrar asks Embel to wait, the authoritative registry can still
   // confirm a registration (or report no record, shown as not confirmed). Its
   // answer carries the registry's own provider label and never a price.
   if (primary.status === "failed" && primary.code === "rate_limited" && config.rdap && !signal.aborted) {
-    const registry = await lookupRdap(domain, fetcher, clock, signal);
+    const registry = await lookupRegistry(domain, fetcher, clock, signal, nameServers);
     return registry.status === "domain" ? registry : primary;
   }
   if (primary.status !== "domain" || primary.check.availability !== "unknown" || !config.rdap || signal.aborted) return primary;
-  const registry = await lookupRdap(domain, fetcher, clock, signal);
+  const registry = await lookupRegistry(domain, fetcher, clock, signal, nameServers);
   if (registry.status !== "domain" || registry.check.availability !== "taken") return primary;
   // Keep a registrar's resale offer (price and caveats) in front of the registry evidence.
   const resale = primary.check.detail?.startsWith("Not available as a new registration:") ? primary.check.detail : null;
-  const combined = resale && `${resale} The authoritative registry returned an exact registration record.`;
+  const combined = resale && `${resale} ${registry.check.provider === DNS_DOMAIN_PROVIDER ? "DNS shows it is registered." : "The authoritative registry returned an exact registration record."}`;
   const detail = combined && combined.length <= 500 ? combined : resale ?? registry.check.detail;
   return { ...registry, check: { ...registry.check, detail } };
 }
 const admit = createLookupAdmission();
 // Stable identity lets simultaneous exact public-domain reads share one bounded request.
 const providerFetch: ProviderFetch = request => fetch(request);
-export async function runStandaloneLookup(ownerId: string, target: StandaloneLookupInput, signal: AbortSignal, deps: { config?: StandaloneProviderConfig; fetch?: ProviderFetch; clock?: ProviderClock; admit?: ReturnType<typeof createLookupAdmission> } = {}): Promise<StandaloneLookupResult> {
+export async function runStandaloneLookup(ownerId: string, target: StandaloneLookupInput, signal: AbortSignal, deps: { config?: StandaloneProviderConfig; fetch?: ProviderFetch; clock?: ProviderClock; nameServers?: NameServerLookup; admit?: ReturnType<typeof createLookupAdmission> } = {}): Promise<StandaloneLookupResult> {
   if (signal.aborted) return { status: "failed", code: "cancelled", retryAfterSeconds: null };
   const config = deps.config ?? standaloneProviderConfig(), fetcher = deps.fetch ?? providerFetch, clock = deps.clock ?? Date.now;
   const release = (deps.admit ?? admit)(ownerId);
   if (!release) return { status: "failed", code: "rate_limited", retryAfterSeconds: 60 };
   try {
-    if (target.tool === "domains") return await lookupDomain(target.domain, config, fetcher, clock, signal);
+    if (target.tool === "domains") return await lookupDomain(target.domain, config, fetcher, clock, signal, deps.nameServers ?? resolveNameServers);
     if (target.tool === "handles") return target.platform !== "youtube" ? { status: "failed", code: "unsupported_target", retryAfterSeconds: null } : config.youtube ? await lookupYoutube(target, config.youtube.apiKey, fetcher, clock, signal) : { status: "failed", code: "unavailable", retryAfterSeconds: null };
     return config.euipo ? await lookupEuipo(target, config.euipo, fetcher, clock, signal) : { status: "failed", code: "unavailable", retryAfterSeconds: null };
   } catch { return { status: "failed", code: signal.aborted ? "cancelled" : "invalid_response", retryAfterSeconds: null }; }

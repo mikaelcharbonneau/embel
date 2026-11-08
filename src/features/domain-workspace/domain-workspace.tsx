@@ -36,7 +36,7 @@ type Row = { domain: string; check: DomainCheck | null; quote: DomainQuote | nul
 function blankRows(domains: string[]): Row[] { return domains.map(domain => ({ domain, check: null, quote: null, status: "idle", error: null })); }
 function registrarLabel(provider: string | undefined) {
   if (!provider) return "Not connected";
-  return ({ namecom_core: "Name.com", namecom_core_sandbox: "Name.com sandbox", vercel_registrar: "Vercel", cloudflare_registrar: "Cloudflare", "Public registry RDAP": "Public registry lookup" } as Record<string, string>)[provider] ?? "Connected provider";
+  return ({ namecom_core: "Name.com", namecom_core_sandbox: "Name.com sandbox", vercel_registrar: "Vercel", cloudflare_registrar: "Cloudflare", "Public registry RDAP": "Public registry lookup", "Public DNS": "Public DNS records" } as Record<string, string>)[provider] ?? "Connected provider";
 }
 const defaultLibrary = { status: "unavailable", message: "Buying domains in Embel isn’t available yet. Domains you buy will appear here." } as const;
 function date(value: string) { return new Date(value).toLocaleString("en-CA", { timeZone: "America/Toronto", timeZoneName: "short" }); }

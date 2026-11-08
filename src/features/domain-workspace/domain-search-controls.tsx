@@ -14,8 +14,13 @@ type Category = keyof typeof extensionGroups | "All extensions";
 export type DomainViewFilters = { hideUnavailable: boolean; minimum: string; maximum: string };
 export const defaultViewFilters: DomainViewFilters = { hideUnavailable: true, minimum: "0", maximum: "100" };
 
+/** Each name once, in the order first entered; the same name is never a second chip. */
+function uniqueEntries(entries: string[]) {
+  const seen = new Set<string>();
+  return entries.filter(entry => { const key = entry.toLowerCase(); if (seen.has(key)) return false; seen.add(key); return true; });
+}
 export function domainInputEntries(value: string) {
-  return value.split(/[,\n]/).map(entry => entry.trim()).filter(Boolean);
+  return uniqueEntries(value.split(/[,\n]/).map(entry => entry.trim()).filter(Boolean));
 }
 
 /** Pending text remains in the existing draft, including across session recovery. */
@@ -25,8 +30,9 @@ export function DomainNameInput({ value, onChange, disabled, id, describedBy }: 
   const field = useRef<HTMLInputElement>(null);
   const [buffer, setBuffer] = useState<{ value: string; entries: string[]; pending: string } | null>(null);
   const editing = buffer?.value === value ? buffer : { value, entries: domainInputEntries(value), pending: "" };
-  function update(entries: string[], pending: string) {
+  function update(added: string[], pending: string) {
     if (disabled) return;
+    const entries = uniqueEntries(added);
     const next = [...entries, ...(pending ? [pending] : [])].join("\n");
     if (next.length > 4000) return;
     setBuffer({ value: next, entries, pending });
