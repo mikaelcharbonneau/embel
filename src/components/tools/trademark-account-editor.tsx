@@ -14,6 +14,7 @@ import { useSavedStandalonePromotion } from "./use-saved-standalone-promotion";
 import { useStandaloneLiveChecks } from "./use-standalone-live-checks";
 import { TrademarkLiveResearch } from "./trademark-live-research";
 import { StandaloneSaveStatus } from "./standalone-save-status";
+import "./tool-page.css";
 
 export type TrademarkAccountEditorProps = { memory: StandaloneDraftMemory; importProjectId?: string; importProjectTitle?: string; projectPicker?: ReactNode };
 
@@ -26,7 +27,7 @@ function TrademarkAccountContent({ memory, importProjectId, importProjectTitle, 
   const [notice, setNotice] = useState("");
   const [editorEpoch, setEditorEpoch] = useState(0);
   const importingProject = confirmImport === importProjectId ? confirmImport : null;
-  if (!workspace.payload) return <section className="page"><h1>Trademarks</h1><StandaloneSaveStatus state={workspace} /></section>;
+  if (!workspace.payload) return <section className="page tool-page"><header className="tool-heading"><div className="tool-heading-text"><h1>Trademarks</h1></div></header><StandaloneSaveStatus state={workspace} /></section>;
   async function importName(projectId: string) {
     setNotice(""); setConfirmImport(null);
     if (await workspace.importProject(projectId, importTrademarkName)) setNotice("Saved name copied into this draft. Other intake details were kept and the previous review was cleared.");
@@ -43,11 +44,11 @@ function TrademarkAccountContent({ memory, importProjectId, importProjectTitle, 
       {importProjectId && <div className="tm-actions"><p>{importProjectTitle ? `Import from ${importProjectTitle}` : "Import the selected project's saved name"}</p><button type="button" className="button secondary" disabled={!workspace.canImport} onClick={requestImport}>Import saved name</button></div>}
       {importingProject && <div className="inline-confirm" role="alert"><p>Replace the mark name with the current name from this saved project? Other intake details stay in the draft; its review will be cleared.</p><button type="button" className="button secondary" disabled={workspace.busy} onClick={() => setConfirmImport(null)}>Keep current name</button><button type="button" className="button secondary" disabled={!workspace.canImport} onClick={() => void importName(importingProject)}>Replace mark name</button></div>}
       {notice && <p role="status">{notice}</p>}
-      {!!workspace.imports.length && <ContextDetails  title={<>Saved-name sources ({workspace.imports.length})</>}><ul>{workspace.imports.map(source => <li key={standaloneImportKey(source)}>{source.name} · {source.projectTitle} · revision {source.projectRevision}</li>)}</ul><p>Sources record copied names. They establish no ownership of a mark or legal clearance.</p></ContextDetails>}
+      {!!workspace.imports.length && <ContextDetails  title={<>Imported names ({workspace.imports.length})</>}><ul>{workspace.imports.map(source => <li key={standaloneImportKey(source)}>{source.name} · {source.projectTitle} · version {source.projectRevision}</li>)}</ul><p>Copied from your projects as they were when you imported them.</p></ContextDetails>}
     </section>
     {promotion.controls}
   </>;
-  return <TrademarkWorkspace key={editorEpoch} disabled={!workspace.canEdit} draftControls={draftControls} liveResearch={<TrademarkLiveResearch key={JSON.stringify([workspace.payload.markName, workspace.payload.territories, workspace.payload.goodsServices, workspace.payload.classificationNotes])} draft={workspace.payload} adapter={live?.trademarks} disabled={!workspace.canEdit} />} saveControl={saveControl} savedDraft={workspace.workspace ? { revision: workspace.workspace.revision, updatedAt: workspace.workspace.updatedAt, dirty: workspace.dirty } : undefined} draft={workspace.payload} onChange={workspace.setPayload} storageNotice="Review applies to your user-entered notes. Registry results and filing status are separate." onCreateBrand={promotion.select ? () => promotion.select?.({ tool: "trademarks" }) : undefined} onExportPreview={preview => {
+  return <TrademarkWorkspace key={editorEpoch} disabled={!workspace.canEdit} draftControls={draftControls} liveResearch={live?.trademarks.ready ? <TrademarkLiveResearch key={JSON.stringify([workspace.payload.markName, workspace.payload.territories, workspace.payload.goodsServices, workspace.payload.classificationNotes])} draft={workspace.payload} adapter={live.trademarks} disabled={!workspace.canEdit} /> : undefined} saveControl={saveControl} savedDraft={workspace.workspace ? { revision: workspace.workspace.revision, updatedAt: workspace.workspace.updatedAt, dirty: workspace.dirty } : undefined} draft={workspace.payload} onChange={workspace.setPayload} storageNotice="Your draft saves to your account automatically." onCreateBrand={promotion.select ? () => promotion.select?.({ tool: "trademarks" }) : undefined} onExportPreview={preview => {
         // A retained callback can run after synchronous session fencing, before remount.
         if (account.status !== "ready" || !isCurrent(account) || !memory.isCurrent(account)) return;
         const raw = serializeTrademarkDraftPreview(preview);

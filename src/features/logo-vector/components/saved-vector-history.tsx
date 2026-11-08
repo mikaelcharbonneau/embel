@@ -22,8 +22,8 @@ export function SavedVectorHistory({ client, workspaceRevision, current, disable
       setRead({ client, cursor, page, error: null });
     }).catch(cause => {
       if (active()) setRead({ client, cursor, page: null, error: cause instanceof AccountRequestError && cause.status === 409
-        ? "Your workspace changed. Reload workspace to refresh saved vectors."
-        : "Saved vectors could not be loaded. Reload workspace to try again." });
+        ? "Your logo changed. Choose Refresh to see your saved vectors."
+        : "Saved vectors could not be loaded. Choose Refresh to try again." });
     });
     return () => controller.abort();
   }, [client, current, cursor, workspaceRevision]);

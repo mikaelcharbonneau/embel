@@ -1,19 +1,26 @@
-.recorded-usage-coverage { margin: 20px 0; color: var(--secondary); font-size: var(--font-ui); line-height: 1.7; }
-.recorded-usage .recorded-usage-notice { margin: 0; padding: 0 0 20px; font-size: 13px; line-height: 20px; }
-.recorded-usage-notice .button { margin-top: 12px; }
-.recorded-usage-status { display: grid; margin-top: 8px; padding-bottom: 20px; color: var(--secondary); font-size: 13px; line-height: 20px; }
-.recorded-usage-status > .recorded-usage-notice,
-.recorded-usage-status-sizer { grid-area: 1 / 1; margin: 0; padding: 0; font: inherit; }
-.recorded-usage-status-sizer { visibility: hidden; pointer-events: none; }
-.recorded-usage-pending-frame { pointer-events: none; }
-.recorded-usage-entry,
-.recorded-usage-pending-slot { min-block-size: 116px; border-top: 1px solid var(--border); }
-.recorded-usage-entry { padding: 18px 0; }
-.recorded-usage-entry-heading { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px 16px; }
-.recorded-usage-entry h3 { font-size: 13px; line-height: 20px; font-weight: 500; overflow-wrap: anywhere; }
-.recorded-usage-entry time { font-size: var(--font-ui); line-height: 20px; color: var(--secondary); overflow-wrap: anywhere; }
-.recorded-usage-entry dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 14px 0 0; }
-.recorded-usage-entry dt { font-size: var(--font-ui); line-height: 20px; color: var(--secondary); }
-.recorded-usage-entry dd { margin: 5px 0 0; font-size: 13px; line-height: 20px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.recorded-usage .recorded-usage-note { color: var(--secondary); font-size: var(--font-ui); line-height: 20px; margin: 8px 0 16px; }
-.recorded-usage-action { display: flex; align-items: flex-start; min-block-size: 44px; margin-bottom: 20px; }
+.recorded-usage { background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 24px; min-width: 0; }
+.recorded-usage-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; }
+.recorded-usage-header > div { flex: 1 1 280px; min-width: 0; }
+.recorded-usage-header h2 { margin: 0; font-size: 16px; line-height: 20px; font-weight: 500; letter-spacing: 0; }
+.recorded-usage-summary { margin-top: 4px; color: var(--secondary); font-size: 13px; line-height: 20px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.recorded-usage-header .recorded-usage-refresh { flex-shrink: 0; }
+.recorded-usage .recorded-usage-message { margin-top: 16px; color: var(--secondary); font-size: 13px; line-height: 20px; }
+.recorded-usage .recorded-usage-error { margin-top: 16px; padding: 12px 14px; border: 1px solid var(--danger-border); border-radius: var(--radius-control); background: var(--danger-soft); color: var(--danger); font-size: 13px; line-height: 20px; }
+/* Rows and loading slots share one 45px row (with its border) so a full page does not jump. */
+.recorded-usage-table { width: 100%; margin-top: 16px; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 13px; line-height: 20px; }
+.recorded-usage-table th, .recorded-usage-table td { padding: 12px 12px 12px 0; text-align: left; vertical-align: middle; overflow-wrap: anywhere; }
+.recorded-usage-table th:last-child, .recorded-usage-table td:last-child { padding-right: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.recorded-usage-table thead th { padding-block: 0 8px; color: var(--secondary); font-size: 12px; font-weight: 500; border-bottom: 1px solid var(--border); }
+.recorded-usage-table thead th:first-child { width: 45%; }
+.recorded-usage-entry > * { block-size: 45px; border-bottom: 1px solid var(--border); }
+.recorded-usage-entry > th { font-weight: 500; }
+.recorded-usage-entry time, .recorded-usage-entry > td:last-child > [aria-hidden] { color: var(--secondary); }
+/* Table margin (16px) plus the 29px column header row. */
+.recorded-usage-pending-frame { margin-top: 45px; pointer-events: none; }
+.recorded-usage-pending-slot { min-block-size: 45px; border-bottom: 1px solid var(--border); }
+.recorded-usage .recorded-usage-note { margin-top: 12px; color: var(--secondary); font-size: 12px; line-height: 20px; }
+.recorded-usage .recorded-usage-note + .recorded-usage-note { margin-top: 4px; }
+@media (max-width: 760px) {
+  .recorded-usage { padding: 20px; }
+  .recorded-usage-table thead th:first-child { width: 40%; }
+}

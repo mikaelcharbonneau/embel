@@ -10,8 +10,8 @@ import { useAccountSession, type VerifiedAccount } from "./account-session";
 import { BrowserLocalDate } from "./browser-local-date";
 
 const statusLabels: Record<JobActivityEntry["state"], string> = {
-  queued: "Queued", running: "Running", partial: "Partial results", cancel_requested: "Cancellation requested",
-  cancelled: "Cancelled", succeeded: "Request completed", failed: "Failed", needs_reconciliation: "Needs review",
+  queued: "Waiting to start", running: "Working", partial: "Partial results", cancel_requested: "Stopping",
+  cancelled: "Stopped", succeeded: "Done", failed: "Failed", needs_reconciliation: "Not confirmed",
 };
 
 export function GenerationActivity({ labeled = false }: { labeled?: boolean }) {
@@ -66,25 +66,26 @@ function OwnedGenerationActivity({ account, labeled }: { account: VerifiedAccoun
     return () => { controller.abort(); clearTimeout(timer); };
   }, [account, expire, isCurrent, open, retry]);
   function list(rows: JobActivityEntry[]) {
+    // The whole row opens its project at the step the request belongs to.
     return <ul className="generation-activity-list">{rows.map(job => <li key={job.id}>
-      <Link href={jobActivityHref(job)} onClick={() => setOpen(false)}><strong>{job.projectTitle}</strong><span>{jobOperationLabel(job.operation)}</span></Link>
+      <Link className="generation-activity-row" href={jobActivityHref(job)} onClick={() => setOpen(false)}><strong>{job.projectTitle}</strong><span>{jobOperationLabel(job.operation)}</span></Link>
       <div><span>{statusLabels[job.state]}</span><BrowserLocalDate dateTime={job.createdAt} /></div>
       {job.state === "running" && <progress value={job.progress} max={100} aria-label={`${jobOperationLabel(job.operation)} progress for ${job.projectTitle}`} />}
-      {job.state === "needs_reconciliation" && <p>The outcome needs review. This request will not be retried automatically.</p>}
+      {job.state === "needs_reconciliation" && <p>We couldn’t confirm this result. <Link className="generation-activity-inline-link" href={jobActivityHref(job)} onClick={() => setOpen(false)}>Open the project to continue.</Link></p>}
     </li>)}</ul>;
   }
   return <>
-    <button className="icon-button subtle generation-activity-trigger" type="button" aria-label="Activity" title="Activity" aria-haspopup="dialog" onClick={showActivity}><Icon name="clock" size={18} />{labeled && <span>Generation activity</span>}</button>
+    <button className="icon-button subtle generation-activity-trigger" type="button" aria-label={labeled ? undefined : "Activity"} title={labeled ? undefined : "Activity"} aria-haspopup="dialog" onClick={showActivity}><Icon name="clock" size={18} />{labeled && <span>Generation activity</span>}</button>
     <dialog className="generation-activity-dialog" ref={dialog} aria-labelledby="generation-activity-title" onCancel={() => setOpen(false)} onClose={event => { if (!event.currentTarget.open) setOpen(false); }} onClick={event => { if (isDialogBackdropClick(event)) setOpen(false); }}>
-      <header><h2 id="generation-activity-title">Generation activity</h2><button className="button secondary small" type="button" onClick={() => setOpen(false)}>Close activity</button></header>
-      <p>Open a project to review its results. Closing this panel does not cancel work.</p>
-      {error && <div role="alert"><p>Activity could not be refreshed. Any entries below are from the last successful check.</p><button className="button secondary small" type="button" onClick={() => setRetry(value => value + 1)}>Check activity again</button></div>}
+      <header><h2 id="generation-activity-title">Generation activity</h2><button className="icon-button subtle generation-activity-close" type="button" aria-label="Close" title="Close" onClick={() => setOpen(false)}><Icon name="close" size={18} /></button></header>
+      <p>Select a request to open its project. Closing this panel doesn’t stop work in progress.</p>
+      {error && <div role="alert" className="generation-activity-error"><p>{snapshot ? "Activity couldn’t be refreshed. You’re seeing the last update." : "Activity couldn’t be loaded."}</p><button className="button secondary small" type="button" onClick={() => setRetry(value => value + 1)}>Try again</button></div>}
       {!snapshot && !error && <p role="status">Loading your activity…</p>}
       {snapshot && <>
-        {snapshot.active.length > 0 && <section aria-label="Active generations"><h3>Active requests</h3>{list(snapshot.active)}</section>}
-        {snapshot.recent.length > 0 && <section aria-label="Recent generations"><h3>Recent requests</h3>{list(snapshot.recent)}</section>}
-        {!snapshot.active.length && !snapshot.recent.length && <p>No generation requests in this account yet.</p>}
-        <p className="generation-activity-note">Up to 20 active and 20 recent requests. A completed request can contain fewer results than requested; open its project for the accepted count.</p>
+        {snapshot.active.length > 0 && <section aria-label="Active generations"><h3>In progress</h3>{list(snapshot.active)}</section>}
+        {snapshot.recent.length > 0 && <section aria-label="Recent generations"><h3>Recent</h3>{list(snapshot.recent)}</section>}
+        {!snapshot.active.length && !snapshot.recent.length && <p>Nothing generated yet.</p>}
+        <p className="generation-activity-note">Shows your most recent requests. Open a project to see everything it made.</p>
       </>}
     </dialog>
   </>;

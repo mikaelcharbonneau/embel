@@ -1,6 +1,6 @@
 /* Naming moves from a conversation to a results canvas with one floating composer. */
 .workspace.workspace { position: relative; isolation: isolate; display: grid; grid-template-columns: minmax(0, 1fr); height: 100%; min-height: 0; overflow: hidden; background: var(--paper); }
-.chatFirst.workspace { grid-template-columns: minmax(0, 1fr); }
+.chatFirst.workspace { grid-template-columns: minmax(0, 1fr); --fc-max-width: var(--conversation-max); }
 .chatPanel { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--paper); border-right: 0; }
 .chatFirst .chatPanel { border-right: 0; }
 .openingTitle { flex-shrink: 0; width: 100%; max-width: 808px; padding: 28px 24px 0; margin: 0 auto; font-size: 24px; line-height: 32px; font-weight: 500; letter-spacing: -.5px; }
@@ -8,7 +8,7 @@
 .conversation :global(.conversation-composer-footer > button[type=submit]) { margin-inline-start: auto; }
 .conversation.conversation { display: flex; flex: 1; flex-direction: column; min-height: 0; min-width: 0; gap: 0; overflow: hidden; }
 .transcript.transcript { padding: 24px 16px; gap: 22px; overscroll-behavior: contain; scrollbar-width: thin; }
-.chatFirst .transcript { padding-inline: max(24px, calc((100% - 760px) / 2)); }
+.chatFirst .transcript { padding-inline: max(24px, calc((100% - var(--conversation-max)) / 2)); }
 .transcript > * { flex-shrink: 0; }
 .context { color: var(--secondary); font-size: 12px; line-height: 20px; }
 .context p { padding-top: 10px; overflow-wrap: anywhere; }
@@ -45,7 +45,8 @@
 .canvas :global(.project-naming-section-heading p) { margin-top: 5px; font-size: 12px; }
 .workspace .canvas :global(.project-naming-grid) { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .workspace .canvas :global(.project-naming-card).compactCard, .inlineNames :global(.project-naming-card).compactCard { position: relative; min-width: 0; height: 76px; min-height: 76px; flex: none; display: block; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--paper); overflow: hidden; }
-.workspace .canvas :global(.project-naming-card).compactCard:has(.openName:hover), .inlineNames :global(.project-naming-card).compactCard:has(.openName:hover) { border-color: var(--secondary); }
+/* Hover is a light hint; only the chosen name gets the dark border. */
+.workspace .canvas :global(.project-naming-card).compactCard:not(:global(.is-selected)):has(.openName:hover), .inlineNames :global(.project-naming-card).compactCard:not(:global(.is-selected)):has(.openName:hover) { border-color: var(--border-strong); }
 .workspace .canvas :global(.project-naming-card).compactCard:focus-within, .inlineNames :global(.project-naming-card).compactCard:focus-within { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 .workspace .canvas :global(.project-naming-card).compactCard:global(.is-selected), .inlineNames :global(.project-naming-card).compactCard:global(.is-selected) { border-color: var(--text); }
 .workspace .canvas .compactCard h3, .inlineNames .compactCard h3 { padding-right: 24px; margin: 0 0 4px; font-size: 20px; line-height: 26px; font-weight: 400; letter-spacing: -.2px; }
@@ -84,12 +85,12 @@
 /* The results pane keeps its full viewport. Only the floating panel intercepts input. */
 .workspace.exploring { grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
 .exploring .canvas, .exploring .chatPanel { grid-area: 1 / 1; }
-.exploring .chatPanel { z-index: 1; pointer-events: none; background: transparent; border: 0; }
+.exploring .chatPanel { z-index: 1; pointer-events: none; background: transparent; border: 0; --fc-backing: var(--canvas); }
 .exploring .conversation { background: transparent; }
 .exploring .transcript { max-height: 38dvh; overflow-y: auto; padding: 8px 4px 12px; }
 .exploring .canvas { z-index: 0; padding-bottom: calc(var(--floating-composer-clearance, 96px) + 16px); scroll-padding-bottom: var(--floating-composer-clearance, 96px); }
 .chatFirst .transcript { padding-bottom: calc(var(--floating-composer-clearance, 96px) + 20px); scroll-padding-bottom: var(--floating-composer-clearance, 96px); }
-.manualEntry { flex: 0 1 auto; min-height: 0; max-height: 32%; overflow-y: auto; padding: 12px max(24px, calc((100% - 760px) / 2)) 0; }
+.manualEntry { flex: 0 1 auto; min-height: 0; max-height: 32%; overflow-y: auto; padding: 12px max(24px, calc((100% - var(--conversation-max)) / 2)) 0; }
 @media (max-width: 760px) { .manualEntry { padding-inline: 16px; } }
 
 .chatFirst:has(> :global(.project-naming-notice)) { grid-template-rows: auto minmax(0, 1fr); }
@@ -163,7 +164,7 @@
 .inlineNames .openName { min-height: 62px; justify-content: center; gap: 1px !important; padding: 0 48px 0 38px !important; }
 .inlineNames .nameRadio { left: 12px; top: 50%; width: 16px; height: 16px; margin-top: -8px; }
 .inlineNames .nameValue { font-size: 15px; line-height: 20px; font-weight: 500; letter-spacing: 0; }
-.inlineNames .openName :global(.naming-dot-com) { font-size: 11px; line-height: 16px; gap: 5px; }
+.inlineNames .openName :global(.naming-dot-com) { font-size: 12px; line-height: 16px; gap: 5px; }
 .inlineNames .heart { top: 50%; right: 6px; width: 40px; height: 40px; min-width: 40px; min-height: 40px; margin-top: -20px; padding: 12px; border-radius: 50%; }
 .inlineNames .nameDetails { right: 46px; bottom: auto; top: 50%; transform: translateY(-50%); padding: 3px 8px; background: var(--paper); opacity: 0; }
 .inlineNames :global(.project-naming-card).compactCard:hover .nameDetails, .inlineNames .nameDetails:focus-visible { opacity: 1; }

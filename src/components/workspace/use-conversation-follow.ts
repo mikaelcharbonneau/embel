@@ -64,6 +64,16 @@ export function useConversationFollow({ conversationKey, contentKey, responseIds
     }
   }
 
+  /** Shows an earlier part of the conversation, such as a journey step. Following
+   * resumes only once the reader returns to the end. */
+  function jumpTo(target: HTMLElement) {
+    const area = transcript.current;
+    if (!area || !area.contains(target)) return;
+    scrollToResponse(area, target, "auto");
+    following.current = nearBottom(area);
+    if (following.current) { unread.current = []; setHasNewResponse(false); }
+  }
+
   function revealNewResponse() {
     const area = transcript.current;
     if (!area) return;
@@ -76,5 +86,5 @@ export function useConversationFollow({ conversationKey, contentKey, responseIds
     setHasNewResponse(false);
   }
 
-  return { transcript, onScroll, hasNewResponse, revealNewResponse };
+  return { transcript, onScroll, hasNewResponse, revealNewResponse, jumpTo };
 }

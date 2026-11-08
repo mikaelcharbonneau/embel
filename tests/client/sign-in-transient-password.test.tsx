@@ -37,6 +37,35 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
+describe("password visibility", () => {
+ const toggle = () => host.querySelector<HTMLButtonElement>(".auth-password-toggle")!;
+ it("shows the password only on request and masks it again before the request is sent", async () => {
+  await render(); await fill("email", email); await fill("password", password);
+  expect(toggle().type).toBe("button"); expect(toggle().getAttribute("aria-label")).toBe("Show password");
+  expect(toggle().getAttribute("aria-pressed")).toBe("false"); expect(toggle().getAttribute("aria-controls")).toBe(field("password").id);
+  await act(async () => toggle().click());
+  expect(field("password").type).toBe("text"); expect(field("password").value).toBe(password); expect(toggle().getAttribute("aria-pressed")).toBe("true");
+  expect(field("password").getAttribute("spellcheck")).toBe("false"); expect(fetcher).not.toHaveBeenCalled();
+  await submit();
+  expect(field("password").type).toBe("password"); expect(toggle().getAttribute("aria-pressed")).toBe("false"); expect(fetcher).toHaveBeenCalledOnce();
+ });
+
+ it("reveals both new-password fields together and hides them when the fields clear", async () => {
+  await render("sign-up"); await act(async () => toggle().click());
+  expect(toggle().getAttribute("aria-label")).toBe("Show passwords");
+  expect(field("password").type).toBe("text"); expect(field("confirmPassword").type).toBe("text");
+  await fill("email", email); await fill("password", password); await fill("confirmPassword", "different password value"); await submit();
+  expect(field("password").type).toBe("password"); expect(field("confirmPassword").type).toBe("password");
+  expect(field("password").value).toBe(""); expect(fetcher).not.toHaveBeenCalled();
+ });
+
+ it("keeps the password label exact and leaves no account-saving footnote", async () => {
+  await render();
+  expect(field("password").labels?.[0]?.textContent).toBe("Password");
+  expect(host.textContent).not.toContain("save to your account");
+ });
+});
+
 describe("transient sign-in keeps only the same mounted masked input", () => {
  it("retains a 503 password without storage or resubmission, then clears it after an explicit successful retry", async () => {
   const storage = vi.spyOn(Storage.prototype, "setItem");

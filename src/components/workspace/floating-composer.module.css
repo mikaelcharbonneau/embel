@@ -8,6 +8,26 @@
   padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
 }
 
+/* A backing behind the message box: content scrolling underneath fades out
+   above it and is hidden below it. Its sides fade too, so it blends into the
+   page background (--fc-backing) instead of showing an edge. */
+.host::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: min(100%, calc(var(--fc-max-width, 40rem) + 160px));
+  height: var(--fc-backing-height, 0px);
+  margin-inline: auto;
+  background: var(--fc-backing, var(--paper));
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to top, #000 calc(100% - 32px), transparent), linear-gradient(to right, transparent, #000 80px, #000 calc(100% - 80px), transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to top, #000 calc(100% - 32px), transparent), linear-gradient(to right, transparent, #000 80px, #000 calc(100% - 80px), transparent);
+  mask-composite: intersect;
+}
+
 .panel {
   position: absolute;
   left: 50%;
@@ -21,10 +41,10 @@
   min-width: 0;
   overflow: hidden;
   pointer-events: auto;
-  color: var(--text, #191919);
-  background: var(--paper, #fff);
-  border: 1px solid var(--border, #d7d5d1);
-  border-radius: var(--fc-radius, 18px);
+  color: var(--text);
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--fc-radius, var(--radius-panel));
   box-shadow: 0 2px 5px #1919190a, 0 6px 24px #19191914;
 }
 
@@ -35,56 +55,34 @@
   transform: none;
 }
 
-.panel[data-minimized="true"] {
-  width: fit-content;
-  max-width: var(--fc-width, calc(100% - 24px));
-  border-radius: 999px;
-}
-
 .panel [hidden] { display: none !important; }
+.panel:focus-within { border-color: var(--border-strong); }
 
+/* Only a panel with earlier messages has a toolbar: the button that opens them. */
 .toolbar {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
-  gap: 2px;
   min-width: 0;
   padding: 2px 7px;
 }
-
-.toolbar .handle, .toolbar .tool {
+.tool {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  min-height: 28px;
-  min-width: 28px;
+  min-height: 32px;
+  min-width: 32px;
   padding: 0 5px;
-  color: var(--secondary, #696965);
+  color: var(--secondary);
   border: 0;
-  border-radius: 7px;
+  border-radius: var(--radius-pill);
   background: transparent;
   font: inherit;
   cursor: pointer;
 }
-
-.toolbar .handle {
-  flex: 1;
-  align-self: stretch;
-  touch-action: none;
-  user-select: none;
-  cursor: grab;
-}
-.toolbar .handle:active { cursor: grabbing; }
-.handle span {
-  width: 8px;
-  height: 13px;
-  background: radial-gradient(circle at 1.5px 1.5px, #97958f 1.2px, transparent 1.4px) 0 0 / 5px 5px;
-}
-.toolbar .tool:hover, .toolbar .handle:hover { background: var(--surface, #f3f2ef); }
-.toolbar button:focus-visible { outline: 2px solid var(--accent-ink, #191919); outline-offset: -2px; }
-.panel[data-minimized="true"] .tool { gap: 6px; padding: 0 7px; font-size: 12px; }
-
+.tool:hover { background: var(--surface); }
+.tool:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
 
 .history {
   flex: 1 1 auto;
@@ -92,7 +90,7 @@
   max-height: min(24rem, calc(var(--fc-height, 75dvh) * .52));
   overflow: auto;
   overscroll-behavior: contain;
-  border-bottom: 1px solid var(--border, #e4e3df);
+  border-bottom: 1px solid var(--border);
 }
 
 .body {
@@ -111,7 +109,6 @@
   border-radius: 0;
   box-shadow: none;
 }
-.panel:focus-within { border-color: #aaa7a3; }
 .body :global(.conversation-composer) textarea {
   min-height: 32px;
   max-height: min(10rem, 28dvh);
@@ -126,26 +123,23 @@
   min-height: 44px;
   border-radius: 50%;
 }
-@media (pointer: coarse) {
-  .toolbar .handle, .toolbar .tool { min-height: 36px; min-width: 36px; }
-}
 
-/* Compact mode keeps writing, movement and sending in one row. Notices can
-   still grow above the field without introducing a full-width footer. */
-.panel[data-expanded="false"][data-minimized="false"] {
+/* Compact: writing and sending share one row. Notices can still grow above
+   the field without introducing a full-width footer. */
+.panel[data-expanded="false"] {
   flex-direction: row;
   align-items: flex-end;
 }
-.panel[data-expanded="false"] .toolbar { align-items: center; min-height: 54px; padding: 0 0 0 5px; }
-.panel[data-expanded="false"] .handle { flex: none; }
-.panel[data-expanded="false"][data-minimized="false"] .body { flex: 1; max-height: var(--fc-height, calc(100% - 24px)); }
+.panel[data-expanded="false"] .toolbar { min-height: 54px; padding: 0 0 0 5px; }
+.panel[data-expanded="false"] .body { flex: 1; max-height: var(--fc-height, calc(100% - 24px)); }
 .panel[data-expanded="false"] .body :global(.conversation-composer) {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   column-gap: 5px;
-  padding: 5px 6px 5px 3px;
+  padding: 5px 6px 5px 16px;
 }
+.panel[data-expanded="false"] .toolbar + .body :global(.conversation-composer) { padding-left: 3px; }
 .panel[data-expanded="false"] .body :global(.conversation-composer) textarea {
   grid-column: 1; width: 100%; min-width: 0;
   min-height: 44px; max-height: min(7.5rem, 25dvh);
@@ -165,7 +159,6 @@
   min-height: min(6.5rem, 22dvh);
   max-height: min(12rem, 30dvh);
 }
-.panel[data-minimized="true"] .toolbar { min-height: 32px; padding: 3px 6px; }
 
 /* ConversationComposer autosizes via scrollHeight, which includes the default
    two browser rows. The compact empty field always has one 44px writing row. */

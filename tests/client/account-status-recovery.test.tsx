@@ -64,10 +64,15 @@ describe("inline account verification recovery", () => {
     expect(host.querySelector(".account-notice")).toBeNull();
   });
 
-  it("keeps signed-out guidance distinct from retryable service errors", async () => {
-    await resolveRead(0, new Response(null, { status: 401 }));
-    expect(host.textContent).toContain("No verified account session");
-    expect(host.querySelector('a[href="/sign-in"]')?.textContent).toBe("Sign in");
+  it.each([
+    ["a signed-out answer", () => Response.json({ authenticated: false })],
+    ["a 401", () => new Response(null, { status: 401 })],
+  ])("invites a visitor in after %s, distinct from retryable service errors", async (_, response) => {
+    await resolveRead(0, response());
+    expect(host.querySelector(".account-invite > p")?.textContent).toBe("Sign in to see and save your work.");
+    expect(host.querySelector('a.button[href="/sign-in"]')?.textContent).toBe("Sign in");
+    expect(host.querySelector('a.button[href="/sign-up"]')?.textContent).toBe("Create account");
+    expect(host.textContent).not.toMatch(/verified account session/i);
     expect(retry()).toBeUndefined(); expect(reads).toHaveLength(1);
   });
 

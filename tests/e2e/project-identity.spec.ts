@@ -522,7 +522,7 @@ test("identity fixture: cancelling actual tab close keeps private raw edit buffe
 test("identity fixture: saved References has an honest keyboard transition to the actual Systems heading", async ({ page }) => {
   const fixture = await setup(page); await ready(page); const transition = page.getByRole("link", { name: "View saved systems", exact: true });
   // New boards come from the chosen-logo visual directions flow, not from saved systems.
-  await expect(page.getByRole("region", { name: "Visual directions", exact: true }).getByRole("link", { name: "Open visual directions", exact: true })).toHaveAttribute("href", `/brands/account/${fixtureProject}/logo/directions`);
+  await expect(page.getByRole("region", { name: "Creative direction", exact: true }).getByRole("link", { name: "Open Creative direction", exact: true })).toHaveAttribute("href", `/brands/account/${fixtureProject}/logo/directions`);
   await transition.focus(); await page.keyboard.press("Enter"); await expect(page.getByRole("heading", { name: "Identity systems", exact: true })).toBeFocused();
   await expect(page.getByRole("button", { name: /^Generate/ })).toHaveCount(0); expect(fixture.writes).toHaveLength(0);
 });

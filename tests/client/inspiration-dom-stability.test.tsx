@@ -77,8 +77,8 @@ describe("Inspiration stable masonry parentage", () => {
     const card = cards().find(item => item.getAttribute("aria-label") === `${pending.brand} — ${pending.slug}`)!;
     const heart = card.querySelector<HTMLButtonElement>(".inspiration-heart")!;
     expect(heart.disabled).toBe(true);
-    expect(heart.title).toBe("Browse this reference now. Saving becomes available after the catalog update.");
-    expect(card.querySelector(".inspiration-availability")?.textContent).toBe("Browse only · catalog update pending");
+    expect(heart.title).toBe("You can browse this design now. Liking it will be available soon.");
+    expect(card.querySelector(".inspiration-availability")?.textContent).toBe("Browse only for now");
     expect(heart.getAttribute("aria-describedby")).toBe(card.querySelector(".inspiration-availability")?.id);
     expect(card.querySelector<HTMLButtonElement>(".inspiration-caption")!.disabled).toBe(false);
     controller.overview!.availableReferenceIds = inspirationCatalog.map(design => design.id);

@@ -1,43 +1,55 @@
 /* App shell: one floating navigation pill above a scrolling page area. */
 .concept-shell { height: 100svh; overflow: hidden; }
-.concept-shell .workspace-main { position: relative; height: 100svh; display: flex; flex-direction: column; overflow: hidden; background-color: var(--canvas); background-image: radial-gradient(#dad9d4 1px, transparent 1px); background-size: 22px 22px; }
+.concept-shell .workspace-main { position: relative; height: 100svh; display: flex; flex-direction: column; overflow: hidden; background-color: var(--canvas); background-image: var(--dot-grid); background-size: 22px 22px; }
 .idea-bottom-fade { position: absolute; z-index: 10; left: 0; right: 0; bottom: 0; height: 96px; pointer-events: none; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); background: linear-gradient(transparent, var(--canvas)); mask-image: linear-gradient(transparent, #000); -webkit-mask-image: linear-gradient(transparent, #000); }
 .concept-shell #main-content { flex: 1; min-height: 0; overflow: auto; scrollbar-width: none; scroll-padding-block: 24px 104px; }
 .concept-shell #main-content::-webkit-scrollbar { display: none; }
+@media (max-width: 540px) { .idea-bottom-fade { height: 64px; } }
+
+/* Tools menu: each tool with its icon and a one-line description. */
+.concept-shell .tools-menu { gap: 2px; padding: 6px; border-radius: var(--radius-card); }
+@media (min-width: 601px) { .concept-shell .tools-menu { min-width: 296px; } }
+.concept-shell .tools-menu .tools-menu-item { align-items: center; gap: 12px; min-height: 56px; padding: 8px 10px; border-radius: var(--radius-control); color: var(--text); }
+.concept-shell .tools-menu .tools-menu-item:hover, .concept-shell .tools-menu .tools-menu-item[aria-current="page"] { background: var(--surface); }
+.concept-shell .tools-menu .tools-menu-item:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
+.tools-menu-icon { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--paper); color: var(--text); }
+.tools-menu-text { display: grid; gap: 2px; min-width: 0; }
+.tools-menu-label { font-size: 14px; line-height: 20px; font-weight: 500; }
+.tools-menu-description { font-size: 12px; line-height: 16px; color: var(--secondary); }
+
+/* Signed out, the end of the pill offers the two ways in. */
+.signed-out-actions--nav { display: flex; align-items: center; gap: 4px; }
+.signed-out-actions--nav .button { min-height: 40px; padding: 0 16px; }
+.signed-out-actions--nav .signed-out-sign-in { background: transparent; color: var(--text); }
+.signed-out-actions--nav .signed-out-sign-in:hover { background: var(--surface); }
+.signed-out-actions--nav .button:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+
+/* Signed in, the end of the pill is the account avatar. Native disclosure keeps keyboard
+   activation and tab order; nested sign-out/activity dialogs retain ownership. */
 .workspace-account-menu { position: relative; }
-.workspace-account-menu > summary { list-style: none; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 6px; border-radius: var(--radius-pill); cursor: pointer; color: var(--secondary); font-size: 13px; }
+.workspace-account-menu > summary { list-style: none; display: flex; align-items: center; min-height: 44px; padding: 0 6px; border-radius: var(--radius-pill); cursor: pointer; }
 .workspace-account-menu > summary:hover { background: var(--surface); }
 .workspace-account-menu > summary::-webkit-details-marker { display: none; }
-.workspace-account-label:not(.sr-only) { display: block; max-width: 128px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--text); }
-.workspace-account-avatar { display: grid; place-items: center; width: 32px; height: 32px; background: var(--accent-soft); border-radius: 50%; color: var(--text); font-size: 11px; font-weight: 500; letter-spacing: .02em; }
-.workspace-account-panel { position: absolute; z-index: 50; top: calc(100% + 8px); right: 0; min-width: 270px; max-width: calc(100vw - 32px); padding: 16px; background: var(--paper); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px #19191914; }
-.workspace-account-panel .topbar-account { flex-wrap: wrap; gap: 12px; }
-@media (max-width: 540px) { .idea-bottom-fade { height: 64px; } }
-/* Phones show the account as its avatar only; "Sign in" stays in the panel and
-   for assistive technology, so the bar keeps one stable height. */
-@media (max-width: 600px) {
-  .workspace-account-label:not(.sr-only) { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
-  .workspace-account-menu > summary { padding: 0 2px; }
-}
-
-/* Original static artwork on the approved Handles route only. */
-.concept-handles .workspace-main { background-image: url('/handles/grid.svg'); background-size: 1360px 900px; background-repeat: repeat-x; }
-.concept-handles .workspace-main:has(.handles-results) { background-image: url('/handles/results-grid.svg'); background-size: 1360px 1190px; }
-.concept-names .workspace-main { background-image: url('/names/affix-grid.svg'); background-size: 1360px 1509px; background-repeat: repeat-x; }
-.concept-names .workspace-main:has(.names-guided-workshop[data-mode=tweaks]) { background-image: url('/names/tweaks-grid.svg'); background-size: 1360px 1651px; }
-.concept-names .workspace-main:has(.names-guided-workshop[data-mode=blend]) { background-image: url('/names/blend-grid.svg'); background-size: 1360px 1437px; }
-.concept-names .workspace-main:has(.names-guided-workshop[data-mode=swap]) { background-image: url('/names/swap-grid.svg'); background-size: 1360px 1323px; }
-
-/* One account entry point: the avatar at the end of the pill. Native disclosure keeps keyboard
-   activation and tab order; nested sign-out/activity dialogs retain ownership. */
 .workspace-account-menu > summary:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
-.workspace-account-panel { width: 288px; padding: 8px; border-radius: var(--radius-card); box-shadow: 0 12px 36px #19191914, 0 2px 6px #19191908; }
-.workspace-account-identity { display: grid; gap: 5px; padding: 12px 12px 16px; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.workspace-account-avatar { display: grid; place-items: center; width: 32px; height: 32px; background: var(--accent-soft); border-radius: 50%; color: var(--text); font-size: 12px; font-weight: 500; letter-spacing: .02em; }
+.workspace-account-panel { position: absolute; z-index: 50; top: calc(100% + 8px); right: 0; width: 288px; max-width: calc(100vw - 32px); padding: 6px; background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: 0 16px 40px -16px rgb(25 25 25 / 30%); }
+.workspace-account-identity { display: grid; gap: 2px; padding: 10px 10px 12px; margin-bottom: 4px; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
 .workspace-account-identity strong { font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text); }
-.workspace-account-identity span { font-size: 12px; line-height: 18px; color: var(--secondary); }
-.workspace-account-links { padding-block: 6px; border-bottom: 1px solid var(--border); }
-.workspace-account-links > a, .workspace-account-links > button, .workspace-account-panel .auth-account-menu-actions > button, .workspace-account-panel .auth-account-menu-actions > a, .workspace-account-panel .auth-account-menu-actions > span { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; height: auto; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent; color: var(--text); font-size: 13px; line-height: 20px; text-align: left; text-decoration: none; justify-content: flex-start; }
-.workspace-account-panel .auth-account-menu-actions { display: flex; flex-direction: column; align-items: stretch; gap: 2px; padding-top: 6px; }
-.workspace-account-panel .auth-account-menu-actions .account-check { color: var(--secondary); }
-.workspace-account-links > a:hover, .workspace-account-links > button:hover, .workspace-account-panel .auth-account-menu-actions > :is(a,button):hover { background: var(--surface); }
-.workspace-account-panel :is(a,button):focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
+.workspace-account-identity span { font-size: 13px; line-height: 18px; color: var(--secondary); }
+.workspace-account-links { display: flex; flex-direction: column; gap: 2px; }
+/* Every menu item shares one shape, text color and icon color. */
+.workspace-account-panel .workspace-account-links > :is(a, button), .workspace-account-panel .auth-account-menu-actions > :is(a, button, span) { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; height: auto; padding: 8px 10px; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--text); font-size: 13px; line-height: 20px; text-align: left; text-decoration: none; justify-content: flex-start; }
+.workspace-account-panel :is(.workspace-account-links, .auth-account-menu-actions) svg { flex: none; color: var(--secondary); }
+.workspace-account-panel .auth-account-menu-actions { display: flex; flex-direction: column; align-items: stretch; gap: 2px; }
+.workspace-account-panel .auth-account-menu-actions:empty { display: none; }
+.workspace-account-panel .workspace-account-links + .auth-account-menu-actions { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--border); }
+.workspace-account-panel .auth-account-menu-actions > span { color: var(--secondary); }
+.workspace-account-panel :is(.workspace-account-links, .auth-account-menu-actions) > :is(a, button):hover:not(:disabled) { background: var(--surface); color: var(--text); }
+.workspace-account-panel :is(.workspace-account-links, .auth-account-menu-actions) > button:disabled { color: var(--secondary); cursor: default; }
+.workspace-account-panel :is(a, button):focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
+@media (max-width: 600px) {
+  .workspace-account-menu > summary { padding: 0 2px; }
+  /* Phones keep one compact row: Sign in stays, and the sign-in page offers Create account. */
+  .signed-out-actions--nav .button { padding: 0 12px; }
+  .signed-out-actions--nav .button.primary { display: none; }
+}

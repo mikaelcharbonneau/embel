@@ -1,5 +1,5 @@
 /* Feature-local presentation; uses the approved Embel tokens with readable fallbacks. */
-.panel, .costPanel { box-sizing: border-box; min-width: 0; background: var(--paper, #fff); color: var(--text, #191919); border: 1px solid var(--border, #e4e3df); border-radius: var(--panel-radius, 10px); padding: 24px; margin-bottom: 24px; overflow-wrap: anywhere; }
+.panel, .costPanel { box-sizing: border-box; min-width: 0; background: var(--paper); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 24px; margin-bottom: 24px; overflow-wrap: anywhere; }
 .panel h2, .costPanel h2 { margin: 0; font-size: var(--branding-section-size, 19px); line-height: 1.35; font-weight: 550; }
 .panel h3 { margin: 0; font-size: var(--branding-subheading-size, 15px); line-height: 1.4; font-weight: 550; }
 .heading, .cardHeading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
@@ -8,7 +8,7 @@
 .note { margin: 12px 0; }
 .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin: 24px 0; }
 .field { display: flex; flex-direction: column; gap: 8px; min-width: 0; font-size: 14px; }
-.field input, .field textarea { box-sizing: border-box; width: 100%; min-width: 0; border: 1px solid var(--border, #e4e3df); background: var(--canvas, #f7f7f5); color: var(--text, #191919); border-radius: 6px; padding: 11px 12px; font: inherit; line-height: 1.5; }
+.field input, .field textarea { box-sizing: border-box; width: 100%; min-width: 0; border: 1px solid var(--border); background: var(--canvas); color: var(--text); border-radius: var(--radius-control); padding: 11px 12px; font: inherit; line-height: 1.5; }
 .field textarea { min-height: 88px; resize: vertical; }
 .field input[aria-invalid="true"] { border-color: var(--accent-ink, #191919); }
 .typeChoices { margin: 24px 0; padding: 0; border: 0; min-width: 0; display: flex; flex-wrap: wrap; gap: 9px; }
@@ -18,9 +18,12 @@
 .choice:has(input:checked) { border-color: var(--accent-ink, #191919); background: var(--accent-soft, #f1f0ee); }
 .choice input, .permission input { accent-color: var(--accent-ink, #191919); width: 16px; height: 16px; flex: 0 0 16px; margin: 0; }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 20px; }
-.primaryButton, .secondaryButton { box-sizing: border-box; min-height: var(--branding-action-height, 44px); border: 1px solid var(--border, #e4e3df); border-radius: 7px; padding: 10px 16px; font: inherit; font-size: 13px; line-height: 1.4; cursor: pointer; }
+.actions:empty { display: none; }
+.primaryButton, .secondaryButton { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; min-height: var(--branding-action-height, 44px); border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 10px 18px; font: inherit; font-size: 13px; line-height: 1.4; text-decoration: none; cursor: pointer; }
 .primaryButton { color: var(--paper, #fff); background: var(--text, #191919); border-color: var(--text, #191919); }
-.secondaryButton { color: var(--text, #191919); background: var(--paper, #fff); }
+.secondaryButton { color: var(--text); background: var(--paper); }
+.primaryButton:hover:not(:disabled) { background: var(--text-strong-hover); }
+.secondaryButton:hover:not(:disabled) { background: var(--canvas); border-color: var(--border-strong); }
 .primaryButton:disabled, .secondaryButton:disabled { cursor: not-allowed; background: var(--surface, #f1f0ee); color: var(--secondary, #696965); border-color: var(--border, #e4e3df); }
 .panel :is(button, input, textarea):focus-visible, .costPanel button:focus-visible { outline: 2px solid var(--accent-ink, #191919); outline-offset: 3px; }
 .referenceSources, .references { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 20px; }
@@ -29,16 +32,19 @@
 .aspects { display: flex; flex-wrap: wrap; gap: 8px; }
 .permission { display: flex; gap: 8px; align-items: flex-start; font-size: var(--font-ui, 13px); line-height: 1.5; color: var(--secondary, #696965); margin-top: 12px; }
 .permission input { margin-top: 2px; }
-.warning { padding: 13px 15px; margin: 16px 0; background: var(--accent-soft, #f1f0ee); color: var(--accent-ink, #191919); border-radius: 6px; font-size: 13px; line-height: 1.6; }
+.warning { padding: 13px 15px; margin: 16px 0; background: var(--accent-soft); color: var(--accent-ink); border-radius: var(--radius-control); font-size: 13px; line-height: 1.6; }
 .progress { font-size: 14px; margin: 20px 0 14px; font-weight: 550; }
 .concepts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; list-style: none; padding: 0; margin: 0; }
-.conceptCard { min-width: 0; border: 1px solid var(--border, #e4e3df); border-radius: 10px; padding: 8px; }
+.conceptCard { min-width: 0; border: 1px solid var(--border); border-radius: var(--radius-card); padding: 8px; }
 .cardHeading { flex-wrap: wrap; gap: 8px; }
-.badge { display: inline-block; background: var(--surface, #f1f0ee); color: var(--secondary, #696965); border-radius: 4px; font-size: var(--font-ui, 13px); line-height: 1.5; padding: 4px 7px; }
+.badge { display: inline-block; background: var(--surface); color: var(--secondary); border-radius: var(--radius-pill); font-size: var(--font-ui, 13px); line-height: 1.5; padding: 4px 7px; }
 .typeLabel { font-size: var(--font-ui, 13px); color: var(--secondary, #696965); line-height: 1.5; }
 .preview { display: grid; place-items: center; aspect-ratio: 1; background: var(--canvas, #f7f7f5); border: 1px solid var(--border, #e4e3df); border-radius: 6px; margin: 14px 0; overflow: hidden; }
 .preview p { color: var(--secondary, #696965); font-size: var(--font-ui, 13px); text-align: center; padding: 16px; line-height: 1.6; }
 .preview img { width: 100%; height: 100%; object-fit: contain; }
+/* Logo rasters carry a near-white background. Lift it to white and multiply it
+   into the light card so no lighter or darker square shows around the mark. */
+.preview img, .galleryPreview img, .composerThumbnail img, .comparison img { mix-blend-mode: multiply; filter: brightness(1.04); }
 .conceptCard button { width: 100%; }
 .conceptCard button[aria-pressed="true"] { background: var(--accent-soft, #f1f0ee); border-color: var(--accent-ink, #191919); }
 .costPanel { background: var(--canvas, #f7f7f5); }
@@ -55,9 +61,6 @@
   .preview { aspect-ratio: 4 / 3; }
 }
 
-.costDialog { width: min(580px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto; box-sizing: border-box; border: 0; border-radius: 10px; padding: 0; color: var(--text, #191919); background: var(--paper, #fff); }
-.costDialog::backdrop { background: rgb(0 0 0 / 38%); }
-.costDialog .costPanel { margin: 0; border: 0; }
 
 .workspaceHeader { margin: 0 0 28px; min-width: 0; }
 .workspaceHeader h1 { font-size: 24px; font-weight: 500; margin-bottom: 12px; }
@@ -68,92 +71,92 @@
 .conceptCard .preview { margin: 12px 0; border: 0; border-radius: 6px; }
 .conceptCard > button { margin-top: 8px; }
 .comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
-.comparisonEmpty { display: grid; place-items: center; min-height: 200px; border: 1px dashed var(--border, #e4e3df); border-radius: 10px; padding: 20px; color: var(--secondary, #696965); font-size: 13px; text-align: center; }
+.comparisonEmpty { display: grid; place-items: center; min-height: 200px; border: 1px dashed var(--border); border-radius: var(--radius-card); padding: 20px; color: var(--secondary, #696965); font-size: 13px; text-align: center; }
 @media (max-width: 600px) { .comparison { grid-template-columns: minmax(0, 1fr); } }
 .choice { border-radius: 999px; font-size: var(--font-ui, 13px); min-height: 44px; }
 .choice:has(input:checked) { border-color: var(--text); color: var(--text); background: var(--surface); }
 .warning { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
 
-/* Three columns and quiet captions; refinement controls reserve their own space. */
+/* Logo step (concepts screen): one toolbar row, the gallery, one refine area,
+   then the details link and Continue. */
 .conceptsScreen { position: relative; }
-.conceptsScreen .workspaceHeader { position: relative; min-height: 56px; margin-bottom: 20px; }
+.conceptsScreen [hidden], .conceptsComposer[hidden], .conceptsComposer [hidden] { display: none !important; }
 .gallery { min-width: 0; }
 .generationActions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 0 0 20px; }
-.savedInputReview { margin: 0 0 20px; padding: 14px 16px; border: 1px solid var(--border, #e4e3df); border-radius: 10px; background: #fff; font-size: 13px; line-height: 20px; }
+.generationActions:empty { display: none; }
+.galleryToolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; min-height: 44px; margin: 0 0 16px; }
+.galleryToolbar .generationActions { margin: 0 0 0 auto; }
+.galleryToolbar .generationActionRow { flex-direction: row-reverse; }
+.galleryProgress { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0; color: var(--secondary); font-size: 13px; line-height: 20px; }
+.galleryProgress > span:first-child:not(:only-child) { color: var(--text); }
+.galleryProgress > span + span::before { content: "·"; margin-right: 8px; color: var(--placeholder); }
+.savedInputReview { margin: 0 0 20px; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--paper); font-size: 13px; line-height: 20px; }
 .savedInputReview p { margin: 0 0 10px; }
 .savedInputReview p:last-child { margin-bottom: 0; }
 .savedInputReview button { white-space: normal; overflow-wrap: anywhere; }
-.galleryProgress { margin: -8px 0 12px; color: var(--secondary, #696965); font-size: 12px; }
-.conceptsScreen .gallery .concepts { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px 16px; }
-.galleryCard { min-width: 0; align-self: start; background: #fff; border: 1px solid var(--border, #e4e3df); border-radius: 10px; overflow: hidden; }
-.galleryPreview { display: grid; place-items: center; height: 200px; background: #fff; overflow: hidden; padding: 16px; }
+.conceptsScreen .gallery .concepts { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.galleryCard { position: relative; min-width: 0; align-self: start; background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius-card); overflow: hidden; transition: border-color 120ms; }
+/* Hover only darkens the outline a little; the chosen card also gets a ring and a badge. */
+.galleryCard:has(.galleryPreview[role=button]):hover:not([data-selected=true]) { border-color: var(--border-strong); }
+.galleryCard[data-selected=true] { border-color: var(--text); box-shadow: 0 0 0 1px var(--text); }
+.chosenBadge { position: absolute; top: 12px; left: 12px; z-index: 1; display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px 3px 8px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); color: var(--positive); font-size: 12px; line-height: 18px; pointer-events: none; }
+.galleryPreview { display: grid; place-items: center; height: 200px; background: var(--paper); overflow: hidden; padding: 16px; }
 .galleryPreview[role=button] { cursor: pointer; }
+.galleryPreview[role=button]:focus-visible { outline: 2px solid var(--text); outline-offset: -4px; }
 .galleryPreview img { width: 100%; height: 100%; object-fit: contain; min-height: 0; }
-.galleryPreview p { font-size: 12px; line-height: 20px; color: var(--secondary, #696965); text-align: center; }
+.galleryPreview p { font-size: 12px; line-height: 20px; color: var(--secondary); text-align: center; }
 .galleryCaption { padding: 10px 16px; }
+/* Ready cards show only the image; the caption keeps its screen-reader heading. */
+.galleryCaption:not(:has(p)) { padding: 0; }
 .galleryCaption > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .galleryCaption h3 { margin: 0; font-size: var(--branding-subheading-size, 14px); line-height: 1.4; font-weight: 500; }
-.galleryCaption p { margin: 6px 0 0; font-size: 12px; line-height: 18px; color: var(--secondary, #696965); }
-.galleryLike { display: inline-flex; gap: 6px; align-items: center; justify-content: center; min-height: var(--branding-action-height, 40px); min-width: 84px; padding: 8px; border: 1px solid #e4e3df; border-radius: 6px; background: #fff; color: #949494; font-size: 12px; cursor: not-allowed; }
-.galleryLike img { opacity: .55; }
-.conceptsComposer { position: relative; width: 100%; margin: 16px 0 24px; padding: 14px 16px; border: 1px solid var(--border, #e4e3df); border-radius: 10px; background: #fff; }
-.composerHeader { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.composerHeaderActions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; flex-shrink: 0; }
-.composerHeaderActions .secondaryButton { min-height: var(--branding-action-height, 36px); padding: 7px 12px; }
-.conceptsScreen [hidden], .conceptsComposer [hidden] { display: none !important; }
-.conceptsComposer > div[id] { padding-top: 16px; }
-.conceptsComposer textarea { display: block; width: 100%; min-height: 28px; max-height: 100px; resize: vertical; padding: 0; border: 0; border-radius: 0; background: transparent; color: #191919; font: inherit; font-size: 14px; line-height: 22px; box-shadow: none; }
-.composerTools { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
-.composerTools > .secondaryButton { min-height: var(--branding-action-height, 36px); padding: 7px 12px; text-decoration: none; }
-.contextButton { min-height: var(--branding-action-height, 36px); display: flex; gap: 10px; align-items: center; padding: 0; border: 0; background: none; color: var(--secondary, #696965); font-size: 12px; }
-.composerSend { margin-left: auto; display: grid; place-items: center; width: var(--branding-action-height, 30px); height: var(--branding-action-height, 30px); flex: 0 0 var(--branding-action-height, 30px); padding: 0; border: 0; border-radius: 50%; background: #191919; }
-.composerSend:disabled { opacity: .4; cursor: not-allowed; }
-.contextDialog { position: fixed; inset: 0; width: min(720px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); overflow: auto; margin: auto; padding: 24px; border: 1px solid var(--border, #e4e3df); border-radius: 12px; background: #fff; color: #191919; }
-.contextDialog::backdrop { background: #19191966; }
+.galleryCaption p { margin: 0; font-size: 12px; line-height: 18px; color: var(--secondary); }
+.versionPicker { position: absolute; top: 12px; right: 12px; z-index: 1; font-size: 12px; color: var(--secondary); }
+.versionPicker select { width: auto; max-width: 180px; min-height: 32px; padding: 5px 9px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); color: var(--text); font: inherit; }
+
+/* Refine area: the chosen logo, a text box and one Refine button. */
+.conceptsComposer { position: relative; display: flex; flex-direction: column; gap: 12px; width: 100%; box-sizing: border-box; margin: 20px 0 0; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--paper); }
+.composerHeader { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 16px; }
+.composerSelection { display: flex; align-items: center; gap: 12px; min-width: 0; color: var(--text); font-size: 14px; line-height: 20px; overflow-wrap: anywhere; }
+.composerThumbnail { position: relative; display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--paper); color: var(--placeholder); overflow: hidden; }
+.composerThumbnail > :is(img, svg) { grid-area: 1 / 1; }
+.composerThumbnail img { width: 100%; height: 100%; object-fit: contain; padding: 4px; box-sizing: border-box; }
+.composerThumbnail:has(img) > svg { visibility: hidden; }
+.composerThumbnail p { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.composerHeaderActions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.composerHeaderActions .secondaryButton, .composerHeaderActions button { min-height: 36px; padding: 6px 14px; font-size: 13px; }
+.conceptsComposer textarea { display: block; box-sizing: border-box; width: 100%; min-height: 64px; max-height: 160px; resize: vertical; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--canvas); color: var(--text); font: inherit; font-size: 14px; line-height: 22px; }
+.conceptsComposer textarea::placeholder { color: var(--placeholder); }
+.composerTools { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.composerTools > .generationAction { margin-left: auto; }
+.composerTools .generationActionRow { flex-direction: row-reverse; }
+.composerStatus { margin: 0; font-size: 13px; line-height: 20px; color: var(--secondary); }
+.composerStatus:empty { display: none; }
+.composerFooter { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 24px; }
+.composerFooter > :not(:first-child) { margin-left: auto; }
+/* A quiet link to the brief, references and earlier versions. */
+.contextButton { display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border: 1px solid transparent; border-radius: var(--radius-pill); background: none; color: var(--secondary); font: inherit; font-size: 13px; cursor: pointer; }
+.contextButton:hover { color: var(--text); background: var(--surface); }
+.contextDialog { position: fixed; inset: 0; width: min(720px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); overflow: auto; margin: auto; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius-panel); background: var(--paper); color: var(--text); }
+.contextDialog::backdrop { background: rgb(25 25 25 / 40%); }
 .contextDialog > header { margin-bottom: 24px; }
+.contextDialog > header .secondaryButton { width: 44px; padding: 0; }
 .contextDialog h2 { margin: 0; font-size: var(--branding-section-size, 20px); font-weight: 500; }
 .contextDetails > summary { margin: 20px 0; cursor: pointer; font-size: 13px; }
-.conceptsScreen :is(button, a, textarea, select, summary, [role=button]):focus-visible { outline: 2px solid var(--accent-ink, #191919); outline-offset: 3px; }
+.conceptsScreen :is(button, a, textarea, select, summary, [role=button]):focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
 @media (max-width: 1000px) { .conceptsScreen .gallery .concepts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) {
-  .conceptsScreen .workspaceHeader { padding-right: 0; }
   .conceptsScreen .gallery .concepts { grid-template-columns: minmax(0, 1fr); }
-      .composerHeader { align-items: flex-start; flex-direction: column; gap: 12px; }
-  .composerHeaderActions { width: 100%; justify-content: space-between; gap: 12px; }
-  .composerHeaderActions .secondaryButton, .composerSend { min-height: 44px; }
-  .composerSend { width: 44px; height: 44px; flex-basis: 44px; }
-  .contextButton { min-height: 44px; }
   .contextDialog { padding: 18px; }
 }
 @media (max-width: 540px) {
   .conceptsScreen :is(input, textarea, select) { font-size: 16px; }
 }
-.galleryCard { position: relative; }
 
-
-.galleryCard[data-selected=true] { border-color: var(--foreground, #191919); box-shadow: 0 0 0 1px var(--foreground, #191919); }
-.galleryPreview[role=button]:focus-visible { outline: 2px solid var(--foreground, #191919); outline-offset: -4px; }
-
-.composerSelection { display: flex; align-items: center; gap: 10px; min-width: 0; color: var(--secondary, #696965); font-size: 12px; overflow-wrap: anywhere; }
-.composerSelection img { width: 36px; height: 36px; object-fit: contain; border: 1px solid var(--border, #e4e3df); border-radius: 6px; background: white; }
-.composerThumbnail { position: relative; display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 36px; border: 1px solid var(--border, #e4e3df); border-radius: 6px; overflow: hidden; }
-.composerThumbnail > :is(img, svg) { grid-area: 1 / 1; }
-.composerThumbnail img { border: 0; }
-.composerThumbnail:has(img) > svg { visibility: hidden; }
-.composerThumbnail p { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.composerStatus { font-size: 12px; color: var(--secondary, #696965); margin: 4px 0 8px; }
-.refinementPreview { position: relative; overflow: hidden; display: grid; place-items: center; width: 100%; height: 200px; background: white; border: 0; padding: 16px; cursor: pointer; }
-.refinementPreview:disabled { cursor: default; }
-.refinementPreview img { position: absolute; inset: 16px; width: calc(100% - 32px); height: calc(100% - 32px); object-fit: contain; }
-.refinementPreview:focus-visible { outline: 2px solid #191919; outline-offset: -4px; }
-
-.versionPicker { position: absolute; top: 12px; right: 12px; z-index: 1; font-size: 12px; color: var(--secondary, #696965); }
-.versionPicker select { width: auto; max-width: 180px; padding: 5px 9px; border: 1px solid var(--border, #e4e3df); border-radius: 6px; background: white; color: #191919; font: inherit; }
-
-.continueToBoard { display: flex; justify-content: flex-end; margin-top: 24px; }
 .generationAction { min-width: 0; text-align: left; }
 .generationActionRow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
-.generationEstimate { color: var(--muted, #666); font-size: 13px; line-height: 1.5; }
-.estimateNote { margin: 7px 0 0; color: var(--muted, #666); font-size: 12px; line-height: 1.5; }
+.generationEstimate { color: var(--secondary); font-size: 13px; line-height: 1.5; }
+.generationEstimate:empty { display: none; }
+.estimateNote { margin: 7px 0 0; color: var(--secondary); font-size: 12px; line-height: 1.5; }
 .estimateRecovery { margin-top: 8px; font-size: 13px; }
 .estimateRecovery p { margin: 0 0 8px; }

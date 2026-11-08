@@ -10,6 +10,7 @@ import { AccountDomainsWorkspace } from "@/components/tools/domain-account-works
 import { HandlesAccountEditor } from "@/components/tools/handles-account-editor";
 import { TrademarkAccountEditor } from "@/components/tools/trademark-account-editor";
 import { StandaloneProjectPicker, type StandaloneProjectSelection } from "@/components/tools/standalone-project-picker";
+import "@/components/tools/tool-page.css";
 
 export const toolNames = ["ideas", "names", "handles", "domains", "trademarks", "assets", "settings"] as const;
 export type ToolName = typeof toolNames[number];
@@ -23,7 +24,7 @@ function StandaloneToolWorkspace({ tool }: { tool: StandaloneToolName }) {
   // shared provider memory and are recovered only by the matching verified owner.
   const project = session.status === "ready" && selected?.ownerId === session.userId && selected.generation === session.generation ? selected.project : null;
   const props = { memory: standaloneDrafts, importProjectId: project?.id, importProjectTitle: project?.title };
-  if (session.status !== "ready") return <section className="page"><h1>{tool === "domains" ? "Domains" : tool === "handles" ? "Handles" : "Trademarks"}</h1><AccountStatus retainedEdits={standaloneDrafts.hasUnsaved()} /></section>;
+  if (session.status !== "ready") return <section className="page tool-page"><header className="tool-heading"><div className="tool-heading-text"><h1>{tool === "domains" ? "Domains" : tool === "handles" ? "Handles" : "Trademarks"}</h1></div></header><AccountStatus retainedEdits={standaloneDrafts.hasUnsaved()} /></section>;
   const projectPicker = <StandaloneProjectPicker selectedProjectId={project?.id} onSelect={next => {
     if (session.status === "ready" && isCurrent(session)) setSelected(next ? { ownerId: session.userId, generation: session.generation, project: next } : null);
   }} />;

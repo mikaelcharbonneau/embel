@@ -62,8 +62,8 @@ try {
   await page.getByLabel("Choose @savedfixture on instagram for bundle", { exact: true }).check();
   await button("Save bundle").click();
   await button("I created this account").click();
-  await page.getByLabel("Account URL (optional)").fill("https://instagram.com/savedfixture");
-  await button("Record my created account").click();
+  await page.getByLabel("Account link (optional)").fill("https://instagram.com/savedfixture");
+  await button("Save").click();
   await button("Favorite").click();
   await button("Save account draft").click();
   await waitText("Account draft saved · revision 1");
@@ -71,7 +71,7 @@ try {
   assert.equal(records.get(`${ownerA}:handles`).payload.bundles[0].entries[0].accountCreated.url, "https://instagram.com/savedfixture");
   await page.reload();
   await page.getByRole("tab", { name: "Library", exact: true }).click();
-  await waitText("Account created · user declared");
+  await waitText("You created this account");
   await waitText("Account draft saved · revision 1");
   await button("Favorited").waitFor();
   assert.equal(await page.getByText("Confirmed available", { exact: true }).count(), 0);
@@ -102,7 +102,7 @@ try {
   assert.equal(await page.getByLabel("Business handles", { exact: true }).inputValue(), "");
   owner = ownerA; await button("Verify owner A").click();
   await page.getByRole("tab", { name: "Library", exact: true }).click();
-  await waitText("Account created · user declared");
+  await waitText("You created this account");
   checks.push("Owner change hides prior private draft and resets transient Handles comparison state");
 
   await button("Trademarks fixture").click();

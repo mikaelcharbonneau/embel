@@ -36,6 +36,15 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); document.body.replaceChildren(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe("project card contextual actions", () => {
+  it("names the project the way its card does, in the menu, dialog and change notice", async () => {
+    if (mock.session?.status !== "ready") throw new Error("Fixture session");
+    const session = mock.session;
+    await act(async () => root.render(<article><ProjectCardActions project={fixture} account={session} name="Launchpad" onChanged={changed} onReload={reload} /></article>));
+    await click("Project options for Launchpad"); expect(host.querySelector('[role="menu"]')?.getAttribute("aria-label")).toBe("Actions for Launchpad");
+    await click("Delete"); expect(host.querySelector("dialog h2")?.textContent).toBe("Delete “Launchpad”?");
+    await click(confirmLabel);
+    expect(changed).toHaveBeenCalledExactlyOnceWith({ ...deleted, title: "Launchpad" }, "delete");
+  });
   it("opens by keyboard, focuses Delete, closes with Escape, Tab and outside click without nested controls", async () => {
     await render(); const trigger = button(`Project options for ${fixture.title}`);
     await act(async () => trigger.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true })));

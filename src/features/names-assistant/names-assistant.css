@@ -1,10 +1,10 @@
-.names-assistant-bridge { display: grid; gap: 16px; padding: 24px; border: 1px solid var(--border); border-radius: 10px; background: var(--paper); }
+.names-assistant-bridge { display: grid; gap: 16px; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--paper); }
 .names-assistant-bridge p { margin: 0; line-height: 1.6; }
 .names-assistant-projects { display: grid; gap: 16px; }
 .names-assistant-fields { display: grid; grid-template-columns: minmax(160px, 1fr) minmax(200px, 2fr); gap: 16px; }
 .names-assistant-fields input, .names-assistant-fields select { width: 100%; min-width: 0; }
 .names-assistant-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
-.names-assistant-context { padding: 16px; border-radius: 8px; background: var(--surface); }
+.names-assistant-context { padding: 16px; border-radius: var(--radius-control); background: var(--surface); }
 .names-assistant-start, .names-assistant-library { display: grid; gap: 12px; padding-top: 16px; border-top: 1px solid var(--border); }
 .names-assistant-start h3 { margin: 0; font-size: 16px; font-weight: 500; }
 .names-assistant-start .button, .names-assistant-library .text-link { justify-self: start; }

@@ -75,7 +75,7 @@ beforeEach(() => {
   fixture.library = {
     client: client(), query: { tab: "my_selection", limit: 40 }, page: null,
     projects: [{ id: "project-a", owner_id: "owner-a", title: "Old private project", scope: "complete_brand", current_revision: 1, created_at: "2026-10-20T00:00:00Z" }], status: "ready",
-    busy: false, needsCheck: false, error: null, facetUnavailable: false, facetLimited: false,
+    busy: false, needsCheck: false, error: null,
     changeQuery: vi.fn((next: Omit<AssetLibraryQuery, "cursor" | "limit">) => {
       const current = fixture.library.query;
       if (fixture.library.busy || (current.tab === next.tab && current.projectId === next.projectId && current.format === next.format)) return;
@@ -94,6 +94,8 @@ afterEach(async () => { await act(async () => root.unmount()); document.body.rep
 
 it("holds only anonymous geometry across a real SVG filter, keeping controls, count and focus truthful", async () => {
   await render();
+  // The loaded count is announced to screen readers, not shown.
+  expect(find(".assets-pagination > span").className).toBe("sr-only");
   const toolbar = find(".assets-toolbar"), body = find(".assets-results-body"), footer = find(".assets-pagination"), filter = find<HTMLSelectElement>('select[aria-label="File type"]');
   filter.focus();
   await select("File type", "svg");
@@ -133,14 +135,14 @@ it("keeps local search immediate and client-only, then captures only its visible
   expect(fixture.library.changeQuery).toHaveBeenCalledOnce();
 });
 
-it("does not manufacture a pending transition for a same-query no-op or replace cards on Check assets", async () => {
+it("does not manufacture a pending transition for a same-query no-op or replace cards on Refresh", async () => {
   await render(); const grid = find(".assets-grid"), image = grid.querySelector("img");
   await click(find("#assets-tab-my_selection")); await select("File type", "");
   expect(fixture.library.page?.items).toHaveLength(13); expect(find(".assets-grid")).toBe(grid);
   expect(host.querySelector(".assets-query-placeholder")).toBeNull();
-  await click(button("Check assets"));
+  await click(button("Refresh"));
   expect(find(".assets-grid")).toBe(grid); expect(grid.querySelector("img")).toBe(image);
-  expect(host.textContent).toContain("Checking assets…"); expect(host.textContent).toContain("13 assets loaded");
+  expect(host.textContent).toContain("Refreshing…"); expect(host.textContent).toContain("13 assets loaded");
   expect(find<HTMLElement>(".assets-results-body").style.minHeight).toBe("");
 });
 
@@ -148,7 +150,7 @@ it("holds anonymous geometry through a same-client query failure and explicit cu
   await render(); await select("File type", "svg");
   await update({ status: "error", error: "The assets could not be checked." });
   expectReservation(); expect(host.textContent).toContain("Matching asset count unavailable.");
-  await click(button("Check assets again")); expectReservation();
+  await click(button("Try again")); expectReservation();
   expect(fixture.library.query.format).toBe("svg"); expect(fixture.library.refresh).toHaveBeenCalledOnce();
   expect(fixture.library.retain).not.toHaveBeenCalled(); expect(fixture.library.loadMore).not.toHaveBeenCalled();
   expect(host.textContent).toContain("Matching asset count pending.");
@@ -210,8 +212,9 @@ it("keeps explicit detail intent outside the inert results while changing filter
 
 it("uses the approved responsive grid, static card shells and no new scrolling container", () => {
   const css = readFileSync("src/styles/assets-guided.css", "utf8");
-  expect(css).toMatch(/\.assets-query-placeholder\s*\{[^}]*height:\s*216px/);
+  expect(css).toMatch(/\.assets-query-placeholder\s*\{[^}]*aspect-ratio:/);
   expect(css).toMatch(/\.assets-query-placeholders\s*\{[^}]*pointer-events:\s*none/);
   expect(css).not.toMatch(/\.assets-(?:results-body|query-placeholders|query-placeholder)\s*\{[^}]*(?:animation|overflow(?:-y)?):/);
-  expect(css).toContain("repeat(3,minmax(0,1fr))"); expect(css).toContain("repeat(2,minmax(0,1fr))"); expect(css).toContain("grid-template-columns: minmax(0,1fr)");
+  expect(readFileSync("src/styles/assets.css", "utf8")).toContain("repeat(3, minmax(0, 1fr))");
+  expect(css).toContain("repeat(2, minmax(0, 1fr))"); expect(css).toContain("grid-template-columns: minmax(0, 1fr)");
 });

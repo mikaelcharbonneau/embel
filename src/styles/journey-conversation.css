@@ -5,7 +5,7 @@
 /* Canvas and column: the dotted app background shows through, 792px of content. */
 .project-stage-strategy .project-workspace-content,
 .project-workspace .guided-interview, .guided-interview-opening { background: transparent; }
-:is(.project-workspace, .guided-interview-opening) .guided-interview-scroll { padding: 48px max(24px, calc((100% - 792px) / 2)) 32px; gap: 24px; }
+:is(.project-workspace, .guided-interview-opening) .guided-interview-scroll { padding: 48px max(24px, calc((100% - var(--conversation-max)) / 2)) 32px; gap: 24px; }
 
 /* Your messages: a labelled bubble on the right. */
 :is(.project-workspace, .guided-interview-opening) .guided-user-turn { align-self: flex-end; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; max-width: min(560px, 88%); min-width: 0; }
@@ -24,7 +24,7 @@
 
 /* The current question: no outer box, one card per choice. */
 :is(.project-workspace, .guided-interview-opening) .guided-assistant-message .guided-choice-widget { margin-top: 14px; padding: 0; border: 0; background: transparent; gap: 12px; }
-:is(.project-workspace, .guided-interview-opening) .guided-choice-intro h3 { font-size: 17px; letter-spacing: -.01em; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-intro h3 { font-size: 16px; letter-spacing: -.01em; }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-intro p { font-size: 13px; }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-options { gap: 12px; }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-card { border-radius: var(--radius-card); background: var(--paper); }
@@ -32,10 +32,10 @@
 :is(.project-workspace, .guided-interview-opening) .guided-choice-target { padding: 16px; }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-target input { order: 2; width: 18px; height: 18px; flex-basis: 18px; margin: 2px 0 0 auto; }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-label { font-size: 15px; }
-:is(.project-workspace, .guided-interview-opening) .guided-choice-recommended { min-height: 22px; padding: 0 9px; border-radius: var(--radius-pill); background: var(--accent-soft); color: #3a3a37; font-size: 11px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-recommended { min-height: 22px; padding: 0 9px; border-radius: var(--radius-pill); background: var(--accent-soft); color: #3a3a37; font-size: 12px; }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-description { color: #3a3a37; font-size: 14px; line-height: 1.45; }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-reason { padding: 10px 12px; border-radius: 10px; }
-:is(.project-workspace, .guided-interview-opening) .guided-choice-references { padding: 10px 16px; border-top-color: #f1f0ee; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-references { padding: 10px 16px; border-top-color: var(--surface); }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-actions > .button { min-height: 44px; padding: 0 20px; border-radius: var(--radius-pill); font-size: 14px; }
 
 /* An answered question collapses into a compact card with its answer as chips. */
@@ -45,8 +45,12 @@
 :is(.project-workspace, .guided-interview-opening) .guided-choice-answer li { align-items: center; min-height: 32px; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); color: var(--text); }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-answer > .button { min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); }
 
-/* The message box spans the conversation column with the rounder corners. */
-.project-workspace .guided-interview, .guided-interview-opening { --fc-max-width: 792px; --fc-radius: var(--radius-panel); }
+/* The message box spans the conversation column with the rounder corners.
+   Behind it, the dotted canvas continues so content fades out cleanly. */
+.project-workspace .guided-interview, .guided-interview-opening {
+  --fc-max-width: var(--conversation-max); --fc-radius: var(--radius-panel);
+  --fc-backing: var(--dot-grid) 0 0 / 22px 22px fixed, var(--canvas);
+}
 
 /* The project conversation sits on the dotted canvas, like the rest of the redesign.
    The standalone Name page, logo, directions and brand kit keep their white page
@@ -65,14 +69,16 @@
 :is(.project-workspace, .guided-interview-opening) .guided-assistant-message .button.secondary { min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill); }
 
 /* Phase 3 · competitors: each card shows the competitor's own site icon, or a
-   neutral initial when the site has none. Answer chips show a small version. */
-.competitor-logo { flex: 0 0 auto; display: block; box-sizing: border-box; width: 40px; height: 40px; border-radius: 10px; object-fit: contain; }
-.competitor-logo-monogram { display: grid; place-items: center; background: var(--canvas); color: var(--secondary); font-size: 15px; font-weight: 500; }
+   neutral initial when the site has none, in the same tile at the same size.
+   Answer chips show a small round version. */
+.competitor-logo { flex: 0 0 auto; display: grid; place-items: center; box-sizing: border-box; width: 40px; height: 40px; overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: var(--paper); color: var(--secondary); font-size: 16px; font-weight: 500; line-height: 1; }
+.competitor-logo > img { display: block; margin: 0; object-fit: contain; }
+.competitor-logo-monogram { background: var(--canvas); }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-target > .competitor-logo { order: 0; }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-target > .guided-choice-content { order: 1; flex: 1 1 auto; min-width: 0; }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-answer li { gap: 6px; }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-answer li.has-logo { padding-left: 4px; gap: 8px; }
-:is(.project-workspace, .guided-interview-opening) .guided-choice-answer li .competitor-logo { width: 24px; height: 24px; border-radius: 50%; font-size: 11px; }
+:is(.project-workspace, .guided-interview-opening) .guided-choice-answer li .competitor-logo { border-radius: 50%; font-size: 12px; }
 
 /* One row under the cards: add / suggest on the left, the count and Continue on the right.
    The add form opens above that row. */
@@ -92,8 +98,8 @@
 
 /* Phase 3 · Positioning: the angle is the card's heading, the statement its main line. */
 :is(.project-workspace, .guided-interview-opening) .guided-choice-widget-positioning .guided-choice-label { font-size: 13px; font-weight: 500; color: #3a3a37; }
-.guided-positioning-statement { display: block; font-size: 19px; line-height: 1.4; letter-spacing: -.015em; color: var(--text); }
-:is(.project-workspace, .guided-interview-opening) .guided-positioning-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 24px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f1f0ee; }
+.guided-positioning-statement { display: block; font-size: 20px; line-height: 1.4; letter-spacing: -.015em; color: var(--text); }
+:is(.project-workspace, .guided-interview-opening) .guided-positioning-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 24px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--surface); }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-traits { display: flex; flex-wrap: wrap; gap: 6px; }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-traits > span { display: inline-flex; align-items: center; min-height: 26px; padding: 0 10px; border: 1px solid #eeedea; border-radius: var(--radius-pill); background: var(--canvas); font-size: 12px; color: #3a3a37; }
 
@@ -107,9 +113,15 @@
 .strategy-summary dl { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px 24px; }
 .strategy-summary dt { margin-bottom: 8px; font-size: 12px; color: var(--secondary); }
 .strategy-summary dd { margin: 0; font-size: 14px; line-height: 1.45; }
-.strategy-summary-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.strategy-summary-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 10px 0 3px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); font-size: 13px; }
-.strategy-summary-chip .competitor-logo { border-radius: 50%; font-size: 10px; }
+/* Competitors: even pill chips, each with a small logo inset from its edge. */
+.strategy-summary-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.strategy-summary-chip { display: inline-flex; align-items: center; gap: 8px; box-sizing: border-box; height: 32px; max-width: 100%; padding: 0 12px 0 5px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); font-size: 13px; line-height: 1; white-space: nowrap; }
+.strategy-summary-chip > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.strategy-summary-chip .competitor-logo { border-radius: 50%; font-size: 12px; }
+/* Audience: a short list, one segment per line. */
+.strategy-summary-list { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.strategy-summary-list li { position: relative; padding-left: 14px; }
+.strategy-summary-list li::before { content: ""; position: absolute; left: 2px; top: .62em; width: 5px; height: 5px; border-radius: 50%; background: var(--border-strong); }
 .strategy-summary-positioning { display: flex; flex-direction: column; gap: 2px; }
 .strategy-summary-positioning strong { font-weight: 500; }
 .strategy-summary-positioning span { font-size: 13px; color: #3a3a37; }
@@ -158,19 +170,21 @@
 .naming-dot-com[data-status="available"] > span { background: #3d6448; }
 .naming-dot-com[data-status="taken"] { color: #8f4242; }
 .naming-dot-com[data-status="taken"] > span { background: #8f4242; }
+/* A check that gave up: muted text, with no status dot. */
+.naming-dot-com[data-status="unchecked"] > span { display: none; }
 /* All / Saved filter above the names. */
 .naming-filter { display: inline-flex; gap: 4px; margin-top: 10px; padding: 3px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); }
 .naming-filter button { min-height: 32px; padding: 0 12px; border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--secondary); font: inherit; font-size: 13px; cursor: pointer; }
 .naming-filter button[aria-pressed=true] { background: var(--text); color: var(--paper); }
 /* Voice · Name in the conversation: Embel's message with the names (design: FlowName). */
 .guided-names-message .project-naming-results { margin: 14px 0 0; padding: 0; border: 0; background: none; }
-/* Heading row: the question with Saved names & history on the right; below it the hint with the All / Saved filter. */
-.guided-names-message .project-naming-section-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 0 16px; margin: 0 0 12px; }
-.guided-names-message .project-naming-section-heading > div:first-child { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; min-width: 0; }
-.guided-names-message .project-naming-section-heading h2 { flex: 1 1 100%; font-size: 17px; font-weight: 500; letter-spacing: -.01em; }
-.guided-names-message .project-naming-section-heading p { flex: 1 1 260px; margin: 0; font-size: 13px; color: var(--secondary); }
+/* Heading row: the question, then the All / Saved filter and Saved names & history
+   on the right, all on one line; the hint sits below. */
+.guided-names-message .project-naming-section-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 12px; }
+.guided-names-message .project-naming-section-heading h2 { flex: 1 1 auto; min-width: 0; margin: 0; font-size: 16px; font-weight: 500; letter-spacing: -.01em; }
 .guided-names-message .project-naming-section-heading .naming-filter { margin-top: 0; }
-.guided-names-message .project-naming-section-heading > .project-naming-actions { padding-top: 2px; font-size: 13px; }
+.guided-names-message .project-naming-section-heading .text-link { min-height: 32px; font-size: 13px; }
+.guided-names-message .project-naming-section-heading > p { flex: 1 1 100%; margin: 0; font-size: 13px; color: var(--secondary); }
 .guided-names-message .project-naming-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
 .guided-names-message .naming-feed-tail { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 12px; font-size: 13px; color: var(--secondary); }
 .guided-names-message .naming-feed-tail p { margin: 0; }
@@ -233,7 +247,7 @@
 /* Phase 6 · Assets: three of Embel's messages (Brand images, Brand guidelines,
    Design system) in the conversation column. */
 .concept-project-workspace .workspace-main:has(.kit-journey) { background-color: var(--canvas); background-image: radial-gradient(#dad9d4 1px, transparent 1px); background-size: 22px 22px; }
-.kit-page { width: min(840px, 100%); margin: 0 auto; padding: 40px 24px 120px; box-sizing: border-box; }
+.kit-page { width: min(var(--page-max), 100%); margin: 0 auto; padding: 40px 24px 120px; box-sizing: border-box; }
 .kit-page section[aria-label="Brand assets"] { padding: 0; border: 0; background: transparent; box-shadow: none; }
 .kit-journey { display: flex; flex-direction: column; gap: 40px; }
 .kit-message { display: grid; grid-template-columns: 32px minmax(0, 1fr); column-gap: 12px; align-items: start; scroll-margin-top: 96px; }
@@ -242,27 +256,24 @@
 .kit-message .guided-assistant-avatar { grid-column: 1; grid-row: 1 / span 12; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--accent); }
 .kit-message .guided-assistant-avatar img { width: 15px; height: 15px; filter: invert(1); }
 .kit-message .guided-assistant-label { padding-top: 6px; margin-bottom: 10px; font-size: 12px; line-height: 18px; color: var(--secondary); }
-.kit-message .guided-assistant-copy { margin: 0 0 14px; font-size: 15px; line-height: 1.55; }
+.kit-message .guided-assistant-copy { margin: 0 0 14px; font-size: 16px; line-height: 1.55; }
 .kit-card { display: flex; flex-direction: column; gap: 14px; padding: 18px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--paper); min-width: 0; }
-.kit-card h2 { margin: 0; font-size: 17px; font-weight: 500; letter-spacing: -.01em; }
-.kit-card h3 { margin: 0; font-size: 15px; font-weight: 500; }
+.kit-card h2 { margin: 0; font-size: 16px; font-weight: 500; letter-spacing: -.01em; }
+.kit-card h3 { margin: 0; font-size: 14px; font-weight: 500; }
 .kit-hint { margin: -8px 0 0; font-size: 13px; color: var(--secondary); }
 .kit-images { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
 .kit-image { margin: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .kit-image[data-wide=true] { grid-column: span 3; }
-.kit-image-frame { display: grid; place-items: center; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--canvas); color: var(--secondary); font-size: 13px; }
+.kit-image-frame { display: grid; place-items: center; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--canvas); color: var(--secondary); font-size: 13px; }
 .kit-image-frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .kit-image figcaption { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; }
 .kit-image figcaption > span:first-child { display: flex; flex-direction: column; }
 .kit-image figcaption small { color: var(--secondary); font-size: 12px; }
 .kit-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.kit-button { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); color: var(--text); font: inherit; font-size: 13px; text-decoration: none; cursor: pointer; }
-.kit-button:disabled { opacity: .5; cursor: default; }
-.kit-button.kit-primary, .kit-footer a.kit-button { min-height: 44px; padding: 0 20px; border-color: var(--text); background: var(--text); color: var(--paper); font-size: 14px; font-weight: 500; }
 .kit-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 14px; font-size: 13px; color: var(--secondary); }
 .kit-sections { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .kit-sections a { min-height: 32px; display: inline-flex; align-items: center; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); color: var(--text); font-size: 13px; text-decoration: none; }
-.kit-document > section { display: flex; flex-direction: column; gap: 10px; padding-bottom: 18px; border-bottom: 1px solid #f1f0ee; scroll-margin-top: 96px; }
+.kit-document > section { display: flex; flex-direction: column; gap: 10px; padding-bottom: 18px; border-bottom: 1px solid var(--surface); scroll-margin-top: 96px; }
 .kit-document > section:last-child { border-bottom: 0; padding-bottom: 0; }
 .kit-document p { margin: 0; font-size: 14px; line-height: 1.5; color: #3a3a37; }
 .kit-document dl { margin: 0; display: grid; gap: 10px; }
@@ -272,20 +283,17 @@
 .kit-section-head a { font-size: 13px; color: var(--secondary); }
 .kit-brand-name { font-size: 28px !important; line-height: 1.15 !important; color: var(--text) !important; }
 .kit-slogan { font-size: 16px !important; }
-.kit-logo-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.kit-logo-pair > div { display: grid; place-items: center; aspect-ratio: 16 / 9; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-.kit-logo-pair img { max-width: 60%; max-height: 70%; object-fit: contain; }
 .kit-type-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.kit-type-pair > div { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid #f1f0ee; border-radius: 12px; }
+.kit-type-pair > div { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid var(--surface); border-radius: var(--radius-control); }
 .kit-type-pair > div p { font-size: 20px !important; line-height: 1.3 !important; color: var(--text) !important; }
-.kit-preview { display: flex; flex-direction: column; gap: 10px; padding: 24px; border: 1px solid var(--border); border-radius: 14px; }
+.kit-preview { display: flex; flex-direction: column; gap: 10px; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius-card); }
 .kit-preview p { color: inherit !important; }
 .kit-preview-title { font-size: 34px !important; line-height: 1.1 !important; }
 .kit-preview-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .kit-preview-actions span { display: inline-flex; align-items: center; min-height: 40px; padding: 0 16px; font-size: 14px; }
 .kit-preview-accent { font-size: 13px; }
 .kit-tokens { display: flex; flex-direction: column; }
-.kit-tokens [role=row] { display: grid; grid-template-columns: 28px minmax(0, 1fr) minmax(0, 2fr); align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid #f1f0ee; font-size: 13px; }
+.kit-tokens [role=row] { display: grid; grid-template-columns: 28px minmax(0, 1fr) minmax(0, 2fr); align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--surface); font-size: 13px; }
 .kit-tokens small { color: var(--secondary); }
 .kit-chip { width: 24px; height: 24px; border-radius: 6px; box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%); }
 .kit-scale { display: flex; flex-direction: column; gap: 12px; }
@@ -298,7 +306,7 @@
 .kit-spacing span, .kit-corners span { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .kit-spacing i { display: block; background: var(--text); border-radius: 2px; }
 .kit-corners i { display: block; width: 40px; height: 28px; border: 1.5px solid var(--text); }
-.kit-code { margin: 0; max-height: 220px; overflow: auto; padding: 12px; border-radius: 10px; background: #f7f7f5; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre; }
+.kit-code { margin: 0; max-height: 220px; overflow: auto; padding: 12px; border-radius: var(--radius-control); background: var(--canvas); font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre; }
 
 /* Phase 5 · Identity · Inspiration: Embel's message above the gallery; Continue
    sits at the end of the step instead of floating. */
@@ -310,7 +318,7 @@
 .identity-chosen-logo { width: 56px; height: 56px; margin-top: 12px; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--paper); }
 .identity-chosen-logo :is(figure, div) { display: contents; }
 .identity-chosen-logo img { width: 100%; height: 100%; object-fit: contain; }
-.identity-chosen-logo p { margin: 0; padding: 4px; font-size: 10px; text-align: center; color: var(--secondary); }
+.identity-chosen-logo p { margin: 0; padding: 4px; font-size: 12px; text-align: center; color: var(--secondary); }
 .identity-chosen-logo-row { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
 .identity-chosen-logo-row .identity-chosen-logo { margin-top: 0; }
 .kit-message > .kit-card + .kit-card { margin-top: 12px; }

@@ -53,7 +53,7 @@ async function mount(kind: Kind) {
     else root.render(<SignInDialog><h2 id="auth-overlay-title">Sign in</h2></SignInDialog>);
   });
   if (kind === "activity" || kind === "sign-out" || kind === "name-library" || kind === "logo-context" || kind === "domain-library") await act(async () => {
-    const trigger = Array.from(host.querySelectorAll("button")).find(button => kind === "activity" ? button.getAttribute("aria-label") === "Activity" : button.textContent === ({ "sign-out": "Sign out", "name-library": "From name library", "logo-context": "Project context", "domain-library": "Open domain name library" } as Record<string, string>)[kind]);
+    const trigger = Array.from(host.querySelectorAll("button")).find(button => kind === "activity" ? button.getAttribute("aria-label") === "Activity" : button.textContent === ({ "sign-out": "Sign out", "name-library": "From name library", "logo-context": "Logo brief and history", "domain-library": "Open domain name library" } as Record<string, string>)[kind]);
     trigger!.click();
   });
   const dialog = host.querySelector("dialog")!;
@@ -96,7 +96,7 @@ it.each(["activity", "sign-out"] as const)("syncs %s native close state and can 
 });
 it.each(kinds)("preserves %s explicit close or keep-editing action", async kind => {
   const { wasDismissed } = await mount(kind);
-  const label = { asset: "Close asset details", activity: "Close activity", "sign-out": "Keep editing", "sign-in": "Close sign-in", "name-library": "Close", "logo-context": "Close project context", "domain-library": "Close name library" }[kind];
+  const label = { asset: "Close asset details", activity: "Close", "sign-out": "Keep editing", "sign-in": "Close sign-in", "name-library": "Close", "logo-context": "Close logo brief and history", "domain-library": "Close name library" }[kind];
   const button = Array.from(host.querySelectorAll("button")).find(element => element.getAttribute("aria-label") === label || element.textContent === label)!;
   await act(async () => button.click()); expect(wasDismissed()).toBe(true);
   expect(mocks.signOut.mock.calls).toEqual(kind === "sign-out" ? [[false]] : []);

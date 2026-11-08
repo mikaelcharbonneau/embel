@@ -39,7 +39,7 @@ describe("live Domains prices and manual shortlist", () => {
     expect(host.textContent).toContain("USD / 2 years");
     expect(host.textContent).toContain("Renewal $160.00 / 2 years");
     expect(host.textContent).not.toContain("$160.00 / year");
-    expect(host.textContent).toContain("Taxes and final checkout totals are not established here");
+    expect(host.textContent).toContain("taxes aren’t included");
     if (adapter.status !== "ready") throw new Error("fixture");
     expect(adapter.check).toHaveBeenCalledTimes(1); expect(adapter.quote).toHaveBeenCalledTimes(1);
     expect(change).not.toHaveBeenCalled();
@@ -55,7 +55,7 @@ describe("live Domains prices and manual shortlist", () => {
     await act(async () => button("Shortlist (1)").click());
     expect(host.querySelector('[aria-label="Domain shortlist"]')).not.toBeNull();
     expect(host.textContent).toContain("Renewal $160.00 / 2 years");
-    expect(host.textContent).toContain("Your shortlist saves automatically to your account.");
+    expect(host.textContent).toContain("Your shortlist saves to your account automatically.");
     await act(async () => button("Library").click());
     expect(host.querySelector('[aria-label="Purchased domains"]')).not.toBeNull();
     expect(host.querySelector("h3")?.textContent).not.toBe("fixture.ai");
@@ -78,7 +78,7 @@ describe("live Domains prices and manual shortlist", () => {
     await render(prepared(), adapter);
     await check();
     expect(host.textContent).not.toContain("Confirmed available");
-    expect(host.textContent).not.toContain("Taken");
+    expect(host.querySelector('[aria-label="fixture.ai availability"]')?.textContent).toBe("Unknown");
     expect(host.textContent).toContain("unavailable or unconfirmed");
     expect(host.textContent).toContain("Not quoted");
     if (adapter.status !== "ready") throw new Error("fixture");

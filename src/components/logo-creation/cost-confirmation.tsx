@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 import type { LogoCreationController } from "./creation-controller";
 import type { LogoBillingObservation, LogoConceptBatch, LogoCostQuote } from "../../domain/logo-jobs";
 import type { LogoRasterSource } from "../../domain/logo-workspace";
-import { displayLogoCost, LOGO_TYPE_LABELS } from "./presentation";
+import { LOGO_TYPE_LABELS } from "./presentation";
 import { LogoVectorSettingsSummary } from "./vector-conversion-controls";
 import styles from "./logo-creation.module.css";
 import stage from "@/styles/branding-stage.module.css";
@@ -34,7 +34,7 @@ function quoteContext(quote: LogoCostQuote, batch: LogoConceptBatch | null) {
 }
 
 /** Presentation shared by unavailable and controller-bound cost review. */
-export function LogoCostConfirmationView({ quote = null, billing = null, batch = null, onConfirm, onCancel, busy = false }: {
+export function LogoCostConfirmationView({ quote = null, batch = null, onConfirm, onCancel, busy = false }: {
   quote?: LogoCostQuote | null;
   billing?: LogoBillingObservation | null;
   batch?: LogoConceptBatch | null;
@@ -48,8 +48,6 @@ export function LogoCostConfirmationView({ quote = null, billing = null, batch =
       {quote.request.operation === "refine_preview" && <p className={styles.note} style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}><strong>Requested changes</strong><br />{quote.request.instruction}</p>}
       {quote.request.operation === "vectorize" && <LogoVectorSettingsSummary settings={quote.request.settings} />}
     </> : <p className={styles.note}>This request can’t be prepared right now. Nothing has started.</p>}
-    {billing?.status === "recorded" && <p className={styles.note}>Confirmed charge for this request: {displayLogoCost(billing.confirmedMicrousd)}</p>}
-    {billing?.status === "unknown" && <p className={styles.note}>Charge not confirmed for this request.</p>}
     {quote?.conceptPlan && quote.conceptPlan.uncoveredTypes.length > 0 && <p className={styles.warning}>Not included in this batch: {quote.conceptPlan.uncoveredTypes.map(type => LOGO_TYPE_LABELS[type]).join(", ")}. These are six total concepts.</p>}
     <div className={styles.actions}>
       <button className={styles.primaryButton} type="button" aria-label={onConfirm && context ? context.action : "Confirm generation"} disabled={!quote || !onConfirm || busy} onClick={onConfirm}>{busy ? "Confirming request…" : onConfirm && context ? context.action : "Confirm generation"}</button>

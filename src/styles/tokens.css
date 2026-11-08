@@ -3,21 +3,46 @@
   --paper: #FFFFFF;
   --surface: #F1F0EE;
   --text: #191919;
+  --text-strong-hover: #333333;
   --secondary: #696965;
+  --placeholder: #82817B;
   --border: #E4E3DF;
+  --border-strong: #C9C8C2;
   /* Neutral emphasis: Embel no longer uses a magenta accent (2026-11-06). */
   --accent: #191919;
   --accent-soft: #F1F0EE;
   --accent-ink: #191919;
   --on-accent: #FFFFFF;
   --selection: #E4E3DF;
+  /* Status colours: use these instead of new hex values. */
   --positive: #3D6448;
+  --positive-soft: #EEF3EF;
+  --danger: #A42A2A;
+  --danger-soft: #FAEEEE;
+  --danger-border: #E5C4C4;
+  --warning: #6B4617;
+  --warning-soft: #FFF8E9;
+  --warning-border: #E3CE9C;
+  /* Type scale. Controls use --font-ui; reading text uses --font-body. */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+  --text-2xl: 28px;
+  --text-display: clamp(32px, 4vw, 44px);
   --font-ui: 13px;
   --font-body: 14px;
-  --panel-radius: 10px;
-  /* Rounder shape scale for the redesigned brand journey. */
+  /* Shape scale for the redesigned app: pill controls, rounder surfaces. */
   --radius-control: 12px;
   --radius-card: 16px;
   --radius-panel: 20px;
   --radius-pill: 999px;
+  /* Older panels share the card corner. */
+  --panel-radius: var(--radius-card);
+  /* Page widths: lists and tools, the project conversation, wide journey pages. */
+  --page-max: 1056px;
+  --conversation-max: 792px;
+  --page-gutter: 32px;
+  --dot-grid: radial-gradient(#DAD9D4 1px, transparent 1px);
 }

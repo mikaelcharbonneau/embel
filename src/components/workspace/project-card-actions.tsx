@@ -6,9 +6,11 @@ import { useAccountSession, type VerifiedAccount } from "./account-session";
 import { useProjectDeletion, type LifecycleProject, type ProjectDeletionAction } from "./project-deletion-client";
 import "@/styles/project-card-actions.css";
 
-export function ProjectCardActions({ project, account, onChanged, onReload }: {
+export function ProjectCardActions({ project, account, name = project.title, onChanged, onReload }: {
   project: LifecycleProject;
   account: VerifiedAccount;
+  /** The name the card shows, which may be the chosen brand name. */
+  name?: string;
   onChanged: (project: LifecycleProject, action: ProjectDeletionAction) => void;
   onReload: () => Promise<boolean>;
 }) {
@@ -27,7 +29,8 @@ export function ProjectCardActions({ project, account, onChanged, onReload }: {
   const refreshLock = useRef(false);
   const id = useId();
   const action: ProjectDeletionAction = project.deletion_state === "active" ? "delete" : "restore";
-  const { change, check, pending, reconciling, failure, clearFailure } = useProjectDeletion(account, onChanged);
+  // Notices about this change name the project the way its card did.
+  const { change, check, pending, reconciling, failure, clearFailure } = useProjectDeletion(account, (saved, done) => onChanged(saved.title === name ? saved : { ...saved, title: name }, done));
   const busy = pending || refreshing;
 
   useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
@@ -74,10 +77,10 @@ export function ProjectCardActions({ project, account, onChanged, onReload }: {
     if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setMenuOpen(false);
   }}>
     {action === "delete" ? <>
-      <button ref={trigger} type="button" className="project-card-menu-trigger" aria-label={`Project options for ${project.title}`} aria-haspopup="menu" aria-expanded={menuOpen} aria-controls={menuOpen ? `${id}-menu` : undefined} onClick={() => setMenuOpen(value => !value)} onKeyDown={event => {
+      <button ref={trigger} type="button" className="project-card-menu-trigger" aria-label={`Project options for ${name}`} aria-haspopup="menu" aria-expanded={menuOpen} aria-controls={menuOpen ? `${id}-menu` : undefined} onClick={() => setMenuOpen(value => !value)} onKeyDown={event => {
         if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); setMenuOpen(true); }
       }}><svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><circle cx="4" cy="10" r="1.5" /><circle cx="10" cy="10" r="1.5" /><circle cx="16" cy="10" r="1.5" /></svg></button>
-      {menuOpen && <div className="project-card-menu" role="menu" id={`${id}-menu`} aria-label={`Actions for ${project.title}`} onKeyDown={event => {
+      {menuOpen && <div className="project-card-menu" role="menu" id={`${id}-menu`} aria-label={`Actions for ${name}`} onKeyDown={event => {
         if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setMenuOpen(false); trigger.current?.focus(); }
         else if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) { event.preventDefault(); menuItem.current?.focus(); }
         else if (event.key === "Tab") { setMenuOpen(false); trigger.current?.focus(); }
@@ -95,7 +98,7 @@ export function ProjectCardActions({ project, account, onChanged, onReload }: {
       else if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogHeading.current)) { event.preventDefault(); last?.focus(); }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     }}>
-      <h2 id={`${id}-title`} ref={dialogHeading} tabIndex={-1}>{action === "delete" ? "Delete" : "Restore"} “{project.title}”{action === "delete" ? "?" : ""}</h2>
+      <h2 id={`${id}-title`} ref={dialogHeading} tabIndex={-1}>{action === "delete" ? "Delete" : "Restore"} “{name}”{action === "delete" ? "?" : ""}</h2>
       <p id={`${id}-description`}>{action === "delete" ? "This moves the project to Deleted projects and requests cancellation of active work. Work already started may still finish or incur usage. Its assets and history are kept. Restoring won’t restart cancelled AI work." : "This returns the project to Projects. Restoring won’t restart cancelled AI work."}</p>
       {pending && <p className="project-lifecycle-pending" role="status">{reconciling ? "Checking project status…" : action === "delete" ? "Moving to Deleted projects…" : "Restoring project…"}</p>}
       {failure && <div className="project-lifecycle-error" role="alert"><p>{failure.message}</p>{refreshFailed && <p>Projects could not be refreshed. Check your connection and try again.</p>}</div>}

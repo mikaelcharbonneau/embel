@@ -6,6 +6,7 @@ import type { GuidedOption, GuidedReply } from "@/domain/guided-interview";
 import { competitorWebsiteSchema } from "@/domain/projects";
 import { Icon } from "@/components/ui/icon";
 import { CompetitorLogo } from "./competitor-logo";
+import { withoutScoreScaleNote } from "./guided-interview-client";
 
 type ChoiceReply = Extract<GuidedReply, { kind: "choices" }>;
 
@@ -45,12 +46,20 @@ export function ResearchLoadingScreen({ message = "Finding relevant brands and t
   </section>;
 }
 
+const words = (text: string) => new Set(text.toLowerCase().normalize("NFKC").split(/[^\p{L}\p{N}]+/u).filter(word => word.length > 3));
+/** Whether a second text mostly repeats the first, so showing it adds nothing. */
+function repeats(first: string, second: string) {
+  const a = first.trim().toLowerCase(), b = second.trim().toLowerCase();
+  if (!b || a.includes(b) || b.includes(a)) return true;
+  const shown = words(a), extra = [...words(b)];
+  return extra.length > 0 && extra.filter(word => shown.has(word)).length / extra.length >= 0.5;
+}
+
 function OptionDetails({ option }: { option: GuidedOption }) {
   if (option.stage === "competitors") {
-    const relevance = option.payload.relevance.trim();
-    return relevance && relevance !== option.description.trim()
-      ? <span className="guided-choice-detail"><span className="guided-choice-detail-label">Why it matters</span><span>{option.payload.relevance}</span></span>
-      : null;
+    // The description usually says why a competitor matters already.
+    return repeats(option.description, option.payload.relevance) ? null
+      : <span className="guided-choice-detail"><span className="guided-choice-detail-label">Why it matters</span><span>{option.payload.relevance}</span></span>;
   }
   if (option.stage === "audience") {
     return <span className="guided-choice-details">
@@ -92,6 +101,8 @@ export function GuidedChoiceWidget({ reply, selectedIds, onSelectionChange, onCo
   const selectedOptions = reply.selectionMode === "single" ? selected.slice(0, 1) : selected;
   const selection = selectedOptions.map((option) => option.id);
   const instruction = reply.selectionMode === "single" ? "Choose one option, then continue." : "Choose one or more options, then continue.";
+  // A badge on every card says nothing; it marks recommendations only among others.
+  const markRecommended = options.some(option => !option.recommended);
 
   function select(optionId: string, checked: boolean) {
     if (disabled || answered) return;
@@ -128,9 +139,9 @@ export function GuidedChoiceWidget({ reply, selectedIds, onSelectionChange, onCo
           {logo(option, 40)}
           <input id={optionId} type={reply.selectionMode === "single" ? "radio" : "checkbox"} name={`${id}-choices`} checked={checked} disabled={disabled} aria-labelledby={`${optionId}-label`} aria-describedby={`${optionId}-detail`} onChange={(event) => select(option.id, event.target.checked)} />
           <span className="guided-choice-content">
-            <span className="guided-choice-heading"><span className="guided-choice-label" id={`${optionId}-label`}>{option.label}</span>{option.recommended && <span className="guided-choice-recommended">Recommended</span>}</span>
+            <span className="guided-choice-heading"><span className="guided-choice-label" id={`${optionId}-label`}>{option.label}</span>{option.recommended && markRecommended && <span className="guided-choice-recommended">Recommended</span>}</span>
             <span className="guided-choice-description" id={`${optionId}-detail`}>
-              <span className={option.stage === "positioning" ? "guided-positioning-statement" : undefined}>{option.stage === "positioning" ? option.payload.statement : option.description}</span>
+              <span className={option.stage === "positioning" ? "guided-positioning-statement" : undefined}>{option.stage === "positioning" ? option.payload.statement : option.stage === "personality" ? withoutScoreScaleNote(option.description) : option.description}</span>
               <OptionDetails option={option} />
               {option.recommended && option.recommendationReason && option.stage !== "competitors" && option.stage !== "positioning" && <span className="guided-choice-reason"><span className="guided-choice-detail-label">Why we recommend it</span><span>{option.recommendationReason}</span></span>}
             </span>

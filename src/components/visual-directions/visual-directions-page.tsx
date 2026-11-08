@@ -14,7 +14,6 @@ import { useLogoWorkspace } from "@/components/identity/use-logo-workspace";
 import { useLogoCandidate } from "@/components/logo-creation/use-logo-candidate";
 import { logoCandidateKey } from "@/components/logo-creation/candidate-review";
 import { LogoVerifiedPreview } from "@/components/logo-creation/verified-preview";
-import { LogoDownloadControls } from "@/components/logo-creation/logo-download-controls";
 import { describeVisualDirections } from "./direction-presentation";
 import { hasCurrentBrandAssets } from "./selected-assets";
 import stage from "@/styles/branding-stage.module.css";
@@ -27,8 +26,8 @@ export function VisualDirectionsPage({ projectId }: { projectId: string }) {
 }
 
 function availabilityReason(availability: IdentityAvailability | undefined) {
-  if (!availability) return "Checking your saved logo and generation availability…";
-  if (availability.status === "available") return availability.version === 3 ? null : "Visual direction generation is being updated. Check again shortly.";
+  if (!availability) return "Getting your directions ready…";
+  if (availability.status === "available") return availability.version === 3 ? null : "Creative direction is being updated. Check again shortly.";
   switch (availability.reason) {
     case "logo_selection_required": return "Choose a logo concept first.";
     case "logo_needs_review": return "Your logo uses earlier inputs. Review your concept choice before generating directions.";
@@ -154,7 +153,6 @@ function OwnedVisualDirections({ account, projectId }: { account: VerifiedAccoun
     backHref={`/brands/account/${projectId}/logo`}
     logoPreview={candidate.item && logo.client ? <LogoVerifiedPreview client={logo.client} receipt={candidate.item.preview} alt="Chosen logo concept" />
       : <p role="status">{candidate.error || logo.error ? "Your selected logo could not be loaded." : candidate.loading ? "Loading your chosen logo…" : "Choose a logo concept to begin."}</p>}
-    logoDownload={candidate.item && logo.client ? <LogoDownloadControls client={logo.client} account={account} projectId={projectId} original={candidate.item.preview} disabled={logoPending} compact /> : undefined}
     cards={cards} generation={{ status: visibleStatus, completed: requestBatch?.systems.length ?? 0,
       // Amounts stay on the Usage page; the journey shows no money (2026-11-06).
       usageLabel: null,
@@ -163,7 +161,7 @@ function OwnedVisualDirections({ account, projectId }: { account: VerifiedAccoun
       onGenerate: start, onCheck: () => void refresh(), onStop: unresolved && generation.stopAcknowledgedBatchId !== generation.batch?.batchId
         ? () => { if (generation.retained) void generation.controller?.closeOriginal(); else void generation.controller?.stop(); } : undefined }}
     selectionCheck={identity.selectionCheckAvailable ? { busy: identity.loading || identity.detailLoading, onCheck: () => void identity.refresh() } : undefined}
-    selectionStatus={showAssets ? (chosenTitle ? `Selected direction: ${chosenTitle}.` : "Your saved direction is selected in another set.") : null}
+    selectionStatus={showAssets ? (chosenTitle ? `${chosenTitle} chosen` : "Your chosen direction is in an earlier set") : null}
     selectionError={identity.selectionUncertain ? "Your choice could not be confirmed. Use Check saved choice before choosing again." : null}
     finalAction={showAssets && <Link className="identity-primary-button" href={`/brands/account/${projectId}/logo/deliverables`}>Continue</Link>}
     history={<>

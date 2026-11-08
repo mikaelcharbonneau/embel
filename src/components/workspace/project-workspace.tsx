@@ -11,9 +11,9 @@ import { boundedAccountRequest } from "./bounded-account-request";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "./account-session";
 import { accountDraftChanged, reconcileAccountWorkspace } from "./account-draft-memory";
 import { useProjectNextStep } from "./use-project-next-step";
-import { ConversationStepContext, useProjectHeader } from "@/components/journey/project-header";
+import { ConversationStepContext, journeySectionId, useProjectHeader, type ConversationSteps } from "@/components/journey/project-header";
 import type { SaveState } from "@/components/journey/project-capsule";
-import { projectJourney, type JourneyStepId } from "@/domain/journey";
+import { projectJourney, type JourneyStepView } from "@/domain/journey";
 import { ProjectArtwork } from "@/components/ui/project-artwork";
 
 type Stage = "strategy" | "naming" | "identity" | "files";
@@ -62,7 +62,7 @@ function OwnedProjectShell({ projectId, account, children }: { projectId: string
   const [attempt, setAttempt] = useState(0);
   const [identityEvidence, setIdentityEvidence] = useState<ProjectStageEvidence | null>(null);
   const [logoEvidence, setLogoEvidence] = useState<ProjectStageEvidence | null>(null);
-  const [conversationStep, setConversationStep] = useState<JourneyStepId | null>(null);
+  const [conversation, setConversation] = useState<ConversationSteps | null>(null);
   const reportIdentity = useCallback((value: ProjectStageEvidence) => {
     if (!isCurrent(account) || value.ownerId !== account.userId || value.projectId !== projectId) return;
     setIdentityEvidence(previous => sameEvidence(previous, value) ? previous : value);
@@ -94,13 +94,13 @@ function OwnedProjectShell({ projectId, account, children }: { projectId: string
   const saveState: SaveState | null = error || current?.conflict ? "error"
     : current ? accountDraftChanged(current) ? current.pendingDraftSave ? "saving" : "unsaved" : "saved" : null;
   useProjectHeader(project ? { projectId, projectName: project.context.selectedName?.trim() || project.title,
-    steps: projectJourney({ projectId, scope: project.scope, pathname, nextHref, shown: conversationStep }), saveState } : null);
+    steps: conversationJourney(projectJourney({ projectId, scope: project.scope, pathname, nextHref, shown: conversation?.reached ?? null }), conversation, projectId), saveState } : null);
   if (!live) return null;
   const { inspiration, brandBoard, stage } = projectRoute(projectId, pathname);
   const handoff = project && getProjectHandoff(project);
   const identityStatus = projectEvidenceStatus(identityEvidence, project?.current_revision);
   const logoStatus = projectEvidenceStatus(logoEvidence, project?.current_revision);
-  return <ConversationStepContext.Provider value={setConversationStep}><IdentityEvidenceContext.Provider value={reportIdentity}><LogoEvidenceContext.Provider value={reportLogo}><section className={`project-workspace project-stage-${stage}`}>
+  return <ConversationStepContext.Provider value={setConversation}><IdentityEvidenceContext.Provider value={reportIdentity}><LogoEvidenceContext.Provider value={reportLogo}><section className={`project-workspace project-stage-${stage}`}>
     {error && <div className="project-read-notice" role="alert">{error}<button type="button" className="text-link" onClick={() => setAttempt(value => value + 1)}>Check saved project</button></div>}
     {current?.conflict && <div className="project-read-notice" role="alert">A newer project version is saved. Your edits are kept in this tab. <Link className="text-link" href={projectStrategyHref(projectId)}>Resolve in Strategy</Link></div>}
     {project && project.scope === "visual_identity_only" && pathname === `/brands/account/${projectId}/logo` && <nav className="project-read-notice" aria-label="Project navigation"><Link className="text-link" href={projectStrategyHref(projectId)}>Project details</Link></nav>}
@@ -108,6 +108,18 @@ function OwnedProjectShell({ projectId, account, children }: { projectId: string
     {([['Logo', logoStatus, `/brands/account/${projectId}/logo`], ['Identity', identityStatus, `/brands/account/${projectId}/logo/directions`]] as const).map(([label, status, href]) => status === "needs_review" || status === "recheck" ? <div className="project-read-notice" role="status" key={label}>{status === "needs_review" ? `${label} needs review. Earlier work is kept.` : `Check ${label} against the current project version. Earlier work is kept.`} <Link className="text-link" href={href}>Review {label}</Link></div> : null)}
     <div className="project-workspace-content">{children}</div>
   </section></LogoEvidenceContext.Provider></IdentityEvidenceContext.Provider></ConversationStepContext.Provider>;
+}
+
+/** Strategy links open the conversation at its Strategy section. While the
+ * conversation is open, the step on screen is highlighted and the other steps
+ * it holds link to their sections; done and upcoming steps keep their state. */
+function conversationJourney(steps: JourneyStepView[], conversation: ConversationSteps | null, projectId: string): JourneyStepView[] {
+  const conversationHref = projectStrategyHref(projectId);
+  return steps.map(step => {
+    if (conversation?.sections.includes(step.id)) return { ...step, href: `${conversationHref}#${journeySectionId(step.id)}`,
+      status: step.id === conversation.viewed ? "current" : step.status === "current" ? (step.complete ? "done" : "upcoming") : step.status };
+    return step.href === conversationHref ? { ...step, href: `${conversationHref}#${journeySectionId(step.id)}` } : step;
+  });
 }
 
 function sameEvidence(previous: ProjectStageEvidence | null, value: ProjectStageEvidence) {

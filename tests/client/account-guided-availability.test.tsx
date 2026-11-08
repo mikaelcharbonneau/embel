@@ -159,10 +159,28 @@ describe("guided Strategy availability presentation", () => {
     expect(notice()).toContain("You can still edit and save your project.");
     expect(notice()).not.toMatch(/Your brief is saved|No AI request was sent|exhausted|billing|database|storage/i);
     expect(button("Start competitor research")).toBeUndefined();
-    expect(host.querySelector(".guided-assistant-message")).toBeNull();
+    // Only Embel's fixed invitation to start, with its button unavailable.
+    expect([...host.querySelectorAll(".guided-assistant-message")].map(item => item.getAttribute("aria-label"))).toEqual(["Start research"]);
+    expect(button("Start research")?.disabled).toBe(true);
     expect(host.querySelector('[role="status"][aria-label="Project save status"]')?.textContent).toBe("Saved");
     await act(async () => button("Check status")!.click());
     expect(strategy.refresh).toHaveBeenCalledOnce(); expect(strategy.enqueue).not.toHaveBeenCalled(); expect(saveContext).not.toHaveBeenCalled();
+  });
+
+  it("starts research from the saved brief with one deliberate click", async () => {
+    strategy.overview = strategyOverviewResponseSchema.parse({ availability: available, jobs: [] });
+    let release!: (value: AccountWorkspace | null) => void;
+    saveContext.mockImplementation(() => new Promise(resolve => { release = resolve; }));
+    await render();
+    const start = button("Start research")!;
+    expect(start.disabled).toBe(false);
+    await act(async () => { start.click(); start.click(); });
+    expect(saveContext).toHaveBeenCalledOnce();
+    const turn = saveContext.mock.calls[0]![0].intake.guidedInterview.turns.at(-1);
+    expect(turn).toMatchObject({ stage: "competitors", purpose: "research", inputRevision: 2 });
+    // The request itself starts from the saved turn once the save is confirmed.
+    expect(strategy.enqueue).not.toHaveBeenCalled();
+    await act(async () => release(null));
   });
 
   it.each(["Saving…", "Changes not saved"])("keeps %s distinct from first-turn availability", async saveLabel => {

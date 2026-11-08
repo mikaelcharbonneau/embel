@@ -6,9 +6,9 @@
 .fields legend { padding: 0 .35rem; font-size: .85rem; font-weight: 600; }
 .fields label { display: grid; gap: .35rem; font-size: .875rem; }
 .fields input, .fields select { min-width: 0; width: 100%; min-height: 2.75rem; padding: .5rem; border: 1px solid var(--border, #e4e3df); border-radius: .5rem; background: var(--paper, #fff); color: inherit; }
-.controls button { min-height: 2.75rem; border: 1px solid var(--border, #e4e3df); border-radius: .5rem; padding: .5rem .75rem; background: var(--paper, #fff); color: inherit; font: inherit; }
-.controls button[aria-pressed="true"] { border-color: #a81168; background: #fce7f3; color: #83104f; }
-.controls :is(button, input, select):focus-visible { outline: 3px solid #b01778; outline-offset: 3px; }
+.controls button { min-height: 2.75rem; border: 1px solid var(--border, #e4e3df); border-radius: var(--radius-pill); padding: .5rem .75rem; background: var(--paper, #fff); color: inherit; font: inherit; }
+.controls button[aria-pressed="true"] { border-color: var(--text); background: var(--surface); color: var(--text); }
+.controls :is(button, input, select):focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
 .controls :disabled { opacity: .55; cursor: not-allowed; }
 @media (max-width: 480px) { .fields { grid-template-columns: 1fr; } }
 
@@ -48,10 +48,10 @@
 @media (max-width: 700px) { .comparison, .editLayout { grid-template-columns: 1fr; } .canvas, .missingPreview { min-height: 170px; } .componentList { flex-direction: row; flex-wrap: wrap; } .componentList h3 { flex-basis: 100%; } .componentList button { flex: 1; min-width: 130px; } }
 
 /* Original refinement surfaces, keeping the newer component and recovery tools. */
-.editor { padding: 24px; gap: 24px; }
+.editor { padding: 24px; gap: 24px; border-radius: var(--radius-panel); }
 .editorHeader { margin-bottom: 24px; }
 .editorHeader h1, .editorHeader h2 { font-size: 24px; font-weight: 500; letter-spacing: -.7px; }
-.eyebrow { font-size: 11px; margin-bottom: 6px; }
+.eyebrow { font-size: 12px; margin-bottom: 6px; }
 .badge { border-radius: 4px; background: var(--surface); color: var(--secondary); font-weight: 400; }
 .editLayout { grid-template-columns: minmax(200px, 1fr) minmax(0, 2fr); gap: 24px; }
 .componentList button { border-color: transparent; background: transparent; border-radius: 6px; font-size: 13px; padding: 12px; }
@@ -59,8 +59,18 @@
 .fields { border: 0; background: var(--canvas); border-radius: 8px; padding: 20px; }
 .fields label { font-size: 12px; }
 .controls button[aria-pressed="true"] { border-color: var(--text); background: var(--surface); color: var(--text); }
-.actions button, .history button { background: var(--paper); color: var(--text); border-radius: 7px; font-size: 13px; }
+.actions button, .history button { background: var(--paper); color: var(--text); border-radius: var(--radius-pill); font-size: 13px; padding-inline: 16px; }
+.actions button:hover:not(:disabled), .history button:hover:not(:disabled) { background: var(--canvas); border-color: var(--border-strong); }
 .actions button:disabled, .history button:disabled { color: var(--secondary); background: var(--surface); }
 .history li { border-top: 1px solid var(--border); padding: 18px 0; }
-.canvas, .missingPreview { border-radius: 6px; }
+.canvas, .missingPreview { border-radius: var(--radius-control); }
+/* Logo rasters carry a near-white background; blend it into the light preview. */
+.originalImage { mix-blend-mode: multiply; filter: brightness(1.04); }
 @media(max-width:700px) { .editor { padding: 16px; } .editLayout { grid-template-columns: 1fr; } }
+
+/* The vector page sits on the same dotted shell canvas as the other Identity
+   pages, so no white band shows behind the floating navigation. */
+:global(.concept-project-workspace) :global(.workspace-main):has(.vectorPage) { background-color: var(--canvas); background-image: var(--dot-grid); background-size: 22px 22px; }
+.vectorPage { min-width: 0; }
+.quietLink { display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); color: var(--text); font-size: 13px; text-decoration: none; }
+.quietLink:hover { background: var(--canvas); border-color: var(--border-strong); }

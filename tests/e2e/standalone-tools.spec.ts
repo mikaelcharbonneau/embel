@@ -145,11 +145,11 @@ test("account Domains imports a selected saved name through the new library acti
 test("integrated Handles autosaves independent bundle states with checks unavailable", async ({ page }, info) => {
   const verify = await manualWorkspace(page);
   await page.goto("/handles");
-  await expect(page.getByText("Library choices save automatically. Provider observations stay in the current comparison.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Your library saves to your account automatically.", { exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "Search", exact: true }).click();
   await page.getByLabel("Business handles", { exact: true }).fill("North Star");
   await page.getByRole("button", { name: "Build comparison", exact: true }).click();
-  await expect(page.getByRole("region", { name: "Handles results" }).getByText("Checks not connected · availability unknown", { exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Handles results" }).getByLabel("Availability filters", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Refresh results", exact: true })).toHaveCount(0);
   await page.getByLabel("Choose @northstar on instagram for bundle", { exact: true }).check();
   await page.getByLabel("Choose @northstar on youtube for bundle", { exact: true }).check();
@@ -160,9 +160,9 @@ test("integrated Handles autosaves independent bundle states with checks unavail
   await expect(bundle.getByRole("button", { name: "Favorited", exact: true })).toHaveCount(1);
   await expect(bundle.getByRole("button", { name: "Select", exact: true })).toHaveCount(2);
   await bundle.getByRole("button", { name: "I created this account", exact: true }).first().click();
-  await bundle.getByLabel("Account URL (optional)", { exact: true }).fill("https://www.instagram.com/northstar/");
-  await bundle.getByRole("button", { name: "Record my created account", exact: true }).click();
-  await expect(bundle.getByText("Account created · user declared", { exact: true })).toBeVisible();
+  await bundle.getByLabel("Account link (optional)", { exact: true }).fill("https://www.instagram.com/northstar/");
+  await bundle.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(bundle.getByText("You created this account", { exact: true })).toBeVisible();
   await expect(bundle.getByText("To check", { exact: true })).toHaveCount(2);
   await verify();
   await page.evaluate(() => { (document.activeElement as HTMLElement | null)?.blur(); window.scrollTo(0, 0); });
@@ -171,19 +171,19 @@ test("integrated Handles autosaves independent bundle states with checks unavail
   await page.reload();
   await page.getByRole("tab", { name: "Library", exact: true }).click();
   await expect(page.locator("article.handles-bundle")).toHaveCount(1);
-  await expect(bundle.getByText("Account created · user declared", { exact: true })).toBeVisible();
+  await expect(bundle.getByText("You created this account", { exact: true })).toBeVisible();
 });
 
 test("integrated Trademarks downloads an actual manual draft and invalidates review without registry or filing claims", async ({ page }, info) => {
   const verify = await manualWorkspace(page);
   await page.goto("/trademarks");
-  await page.getByRole("tab", { name: "Prepare", exact: true }).click();
+  await page.getByRole("tab", { name: "Details", exact: true }).click();
   await page.getByLabel("Mark name", { exact: true }).fill("North Star fixture");
   await page.getByLabel("Requested territories", { exact: true }).fill("France");
   await page.getByLabel("Goods and services", { exact: true }).fill("User-proposed services, unvalidated.");
   await page.getByLabel("Owner name", { exact: true }).fill("Synthetic fixture owner");
   await page.getByLabel("Owner address", { exact: true }).fill("Synthetic fixture address");
-  const details = await openSheet(page, "Additional dossier details");
+  const details = await openSheet(page, "More details");
   await details.getByLabel("Mark type", { exact: true }).selectOption("word");
   await details.getByLabel("Classification notes", { exact: true }).fill("Questions for later review.");
   await details.getByLabel("Owner contact", { exact: true }).fill("fixture@example.invalid");
@@ -191,13 +191,13 @@ test("integrated Trademarks downloads an actual manual draft and invalidates rev
   await details.getByLabel("Your research notes", { exact: true }).fill("Literal private fixture notes <script>ignored</script>");
   await closeSheet(details);
   await expect(page.getByText("6 of 6 sections filled", { exact: true })).toBeVisible();
-  await page.getByRole("tab", { name: "Research", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Manual research", exact: true })).toBeVisible();
-  const research = await openSheet(page, "Research coverage and your notes");
+  await page.getByRole("tab", { name: "Search", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Search brief", exact: true })).toBeVisible();
+  const research = await openSheet(page, "Your research notes");
   await expect(research.getByText("Literal private fixture notes <script>ignored</script>", { exact: true })).toBeVisible();
   await closeSheet(research);
-  await page.getByRole("tab", { name: "Prepare", exact: true }).click();
-  await page.getByRole("button", { name: "Review draft preview", exact: true }).click();
+  await page.getByRole("tab", { name: "Details", exact: true }).click();
+  await page.getByRole("button", { name: "Review draft", exact: true }).click();
   const downloading = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export draft preview", exact: true }).click();
   const download = await downloading;
@@ -209,12 +209,12 @@ test("integrated Trademarks downloads an actual manual draft and invalidates rev
   expect(saved.draft.owner.name).toBe("Synthetic fixture owner");
   expect(saved.draft.userNotes).toBe("Literal private fixture notes <script>ignored</script>");
   expect(saved.limitations).toContain("No application has been submitted or registered. Official filing requirements remain unvalidated.");
-  const review = page.getByRole("checkbox", { name: /^I reviewed these user-entered notes/ });
+  const review = page.getByRole("checkbox", { name: /^I’ve reviewed these notes/ });
   await review.check();
   await expect(page.getByText("Reviewed draft", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Edit dossier", exact: true }).click();
+  await page.getByRole("button", { name: "Edit details", exact: true }).click();
   await page.getByLabel("Goods and services", { exact: true }).fill("Changed manual services.");
-  await page.getByRole("button", { name: "Review draft preview", exact: true }).click();
+  await page.getByRole("button", { name: "Review draft", exact: true }).click();
   await expect(review).not.toBeChecked();
   expect(await page.evaluate(() => Object.values(localStorage).join(" "))).not.toContain("Synthetic fixture owner");
   await verify();

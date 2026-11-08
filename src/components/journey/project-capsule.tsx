@@ -1,15 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { AppMark } from "@/components/ui/app-mark";
 import { Icon } from "@/components/ui/icon";
 import type { JourneyStepView } from "@/domain/journey";
 import { NavFrame } from "./floating-nav";
+import { JOURNEY_SECTION_EVENT, journeySectionOfHash } from "./project-header";
 import styles from "./journey.module.css";
 
 export type SaveState = "saved" | "saving" | "unsaved" | "error";
 const saveLabels: Record<SaveState, string> = { saved: "Saved", saving: "Saving…", unsaved: "Unsaved changes", error: "Not saved" };
+
+/** A step whose section is on screen in the project conversation scrolls there
+ * instead of reloading the page; otherwise the link opens it normally. */
+function showSection(event: MouseEvent<HTMLAnchorElement>) {
+  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const url = new URL(event.currentTarget.href, window.location.href);
+  const step = journeySectionOfHash(url.hash);
+  const section = step && url.pathname === window.location.pathname ? document.getElementById(url.hash.slice(1)) : null;
+  if (!section) return;
+  event.preventDefault();
+  section.dispatchEvent(new CustomEvent(JOURNEY_SECTION_EVENT, { bubbles: true, detail: step }));
+}
 
 /** Inside a project the floating pill shows the brand, the journey steps and
  * save status. "Saved" must only be passed after the server confirms the save;
@@ -26,9 +39,9 @@ export function ProjectBarContent({ projectName, projectControl, steps, saveStat
         <ol className={styles.steps}>
           {steps.map(step => <li key={step.id}>
             {step.status === "current" ? <span className={styles.step} aria-current="step"><span className={styles.stepMark} aria-hidden="true" /><span className={styles.stepLabel}>{step.label}</span></span>
-              : step.status === "done" && step.href ? <Link className={styles.step} href={step.href}><span className={styles.stepMark} aria-hidden="true"><Icon name="check" size={11} /></span><span className={styles.stepLabel}>{step.label}</span><span className="sr-only">, complete</span></Link>
-              : step.href ? <Link className={`${styles.step} ${styles.stepNext}`} href={step.href}><span className={styles.stepMark} aria-hidden="true">{step.number}</span><span className={styles.stepLabel}>{step.label}</span><span className="sr-only">, next step</span></Link>
-              : <span className={styles.step}><span className={styles.stepMark} aria-hidden="true">{step.number}</span><span className={styles.stepLabel}>{step.label}</span>{step.status === "done" && <span className="sr-only">, complete</span>}</span>}
+              : step.status === "done" && step.href ? <Link className={styles.step} href={step.href} onClick={showSection}><span className={styles.stepMark} aria-hidden="true"><Icon name="check" size={11} /></span><span className={styles.stepLabel}>{step.label}</span><span className="sr-only">, complete</span></Link>
+              : step.href ? <Link className={`${styles.step} ${styles.stepNext}`} href={step.href} onClick={showSection}><span className={styles.stepMark} aria-hidden="true">{step.number}</span><span className={styles.stepLabel}>{step.label}</span><span className="sr-only">, next step</span></Link>
+              : <span className={styles.step}><span className={styles.stepMark} aria-hidden="true">{step.status === "done" ? <Icon name="check" size={11} /> : step.number}</span><span className={styles.stepLabel}>{step.label}</span>{step.status === "done" && <span className="sr-only">, complete</span>}</span>}
           </li>)}
         </ol>
       </nav>
@@ -67,7 +80,7 @@ export function ProjectMenu({ projectName }: { projectName: string }) {
     </summary>
     <ul className={styles.menu}>
       <li><Link href="/brands" onClick={() => close()}>All projects</Link></li>
-      <li><Link href="/brands/new" onClick={() => close()}>New project</Link></li>
+      <li><Link href="/" onClick={() => close()}>New project</Link></li>
       <li><Link href="/" onClick={() => close()}>Home</Link></li>
     </ul>
   </details>;

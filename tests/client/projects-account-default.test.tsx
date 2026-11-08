@@ -29,6 +29,21 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); document.body.replaceChildren(); vi.unstubAllGlobals(); });
 
 describe("account projects and explicit legacy recovery", () => {
+  it("shows placeholder cards while loading and keeps Deleted projects a quiet link", async () => {
+    let finish!: () => void;
+    const original = fetcher.getMockImplementation() as (path: string, init: RequestInit) => Promise<Response>;
+    fetcher.mockImplementation((path: string, init: RequestInit) => path.startsWith("/api/projects/page") ? new Promise<Response>(resolve => { finish = () => resolve(original(path, init)); }) : original(path, init));
+    await render();
+    const grid = host.querySelector(".projects-grid")!;
+    expect(grid.getAttribute("aria-busy")).toBe("true"); expect(grid.querySelectorAll(".project-card-skeleton")).toHaveLength(8);
+    expect(grid.querySelector('[role="status"]')?.textContent).toBe("Loading your projects…"); expect(host.querySelector(".project-card")).toBeNull();
+    const deleted = host.querySelector('a[href="/brands?state=deleted"]')!;
+    expect(deleted.className).toContain("text-link"); expect(deleted.className).not.toMatch(/button|projects-secondary/);
+    const newProject = [...host.querySelectorAll("a")].find(link => link.textContent?.startsWith("New project"));
+    expect(newProject?.getAttribute("href")).toBe("/"); expect(newProject?.className).toBe("button primary");
+    await act(async () => { finish(); });
+    expect(grid.hasAttribute("aria-busy")).toBe(false); expect(host.querySelector(".project-card-skeleton")).toBeNull(); expect(host.textContent).toContain("Saved project");
+  });
   it("shows only saved projects in the normal library and hides all device content while signed out", async () => {
     await render();
     expect(host.textContent).toContain("Saved project"); expect(host.textContent).not.toContain("Old unsaved project"); expect(host.textContent).not.toContain("Other account private project");

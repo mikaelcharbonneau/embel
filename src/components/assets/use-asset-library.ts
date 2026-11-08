@@ -13,8 +13,6 @@ export function useAssetLibrary(account: VerifiedAccount) {
   const requestedQuery = useRef(query);
   const [page, setPage] = useState<AssetLibraryPage | null>(null);
   const [projects, setProjects] = useState<AssetProjectSummary[]>([]);
-  const [facetLimited, setFacetLimited] = useState(false);
-  const [facetUnavailable, setFacetUnavailable] = useState(false);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -26,7 +24,9 @@ export function useAssetLibrary(account: VerifiedAccount) {
   useEffect(() => { client.activate(); return () => client.dispose(); }, [client]);
   useEffect(() => {
     const controller = new AbortController();
-    void client.projects(controller.signal).then(reply => { if (reply && !controller.signal.aborted && client.current()) { setProjects(previous => [...new Map([...previous, ...reply.projects].map(project => [project.id, project])).values()]); setFacetUnavailable(false); setFacetLimited(reply.projects.length === 100); } }).catch(() => { if (!controller.signal.aborted && client.current()) setFacetUnavailable(true); });
+    // Projects named by loaded assets already carry their chosen brand name; keep it.
+    // A failed project list leaves the filter with the projects of loaded assets.
+    void client.projects(controller.signal).then(reply => { if (reply && !controller.signal.aborted && client.current()) setProjects(previous => [...new Map([...reply.projects, ...previous].map(project => [project.id, project])).values()]); }).catch(() => undefined);
     return () => controller.abort();
   }, [client, reload]);
   useEffect(() => {
@@ -104,5 +104,5 @@ export function useAssetLibrary(account: VerifiedAccount) {
     } catch (cause) { if (!controller.signal.aborted && client.current() && observedEpoch === epoch.current && observedSequence === sequence.current) setError(assetErrorMessage(cause)); }
     finally { if (operation.current === pending) { operation.current = null; if (client.current()) setBusy(false); } }
   }
-  return { client, query, page, projects, facetUnavailable, facetLimited, status, error, busy, needsCheck, changeQuery, refresh, retain, loadMore };
+  return { client, query, page, projects, status, error, busy, needsCheck, changeQuery, refresh, retain, loadMore };
 }

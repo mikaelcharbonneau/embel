@@ -54,6 +54,15 @@ describe("home account cards", () => {
     expect(localStorage.getItem("fluid.local-drafts.v1")).toBe("legacy recovery data");
     localStorage.removeItem("fluid.local-drafts.v1");
   });
+  it("shows neutral placeholder cards, not invented project content, while projects load", async () => {
+    vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(() => {})));
+    await act(async () => root.render(createElement(HomeRecentBrands)));
+    const grid = host.querySelector(".home-brand-grid")!;
+    expect(grid.getAttribute("aria-busy")).toBe("true"); expect(grid.querySelectorAll(".project-card-skeleton")).toHaveLength(4);
+    expect(grid.querySelector(".sr-only")?.textContent).toBe("Loading your projects…");
+    expect([...grid.querySelectorAll(".project-card-skeleton")].map(card => card.textContent)).toEqual(["", "", "", ""]);
+    expect(host.textContent).not.toMatch(/Untitled brand|Open project|Saved project/);
+  });
   it("shows account projects without a separate storage mode", async () => {
     const owner = (mock.session as VerifiedAccount).userId;
     vi.stubGlobal("fetch", vi.fn(async () => Response.json(page(owner, "Saved brand"))));

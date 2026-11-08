@@ -48,6 +48,7 @@ const quote = () => page.getByRole("button", { name: "Request quote for northsta
 try {
   await run("Guided Browser categories, removable names and filter states preserve the search", async () => {
     await page.goto(url); await page.getByRole("button", { name: "Search", exact: true }).click();
+    await page.getByRole("button", { name: "Edit filters", exact: true }).click();
     await page.getByRole("button", { name: "Creative", exact: true }).click();
     await page.getByRole("searchbox", { name: "Find an extension" }).fill("design");
     assert.equal(await page.getByRole("checkbox", { name: ".studio", exact: true }).count(), 0);

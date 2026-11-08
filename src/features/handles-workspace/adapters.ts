@@ -7,23 +7,23 @@ export interface HandleCheckAdapter {
 }
 export function unavailableEvidence(entry: Pick<HandleEntry, "platform" | "handle">, now: string, failed = false): HandleEvidence {
   return { platform: entry.platform, handle: entry.handle, outcome: failed ? "failed" : "unavailable", authority: "none", source: null, sourceUrl: null,
-    method: failed ? "Adapter request failed" : "No platform adapter connected", checkedAt: null, observedAt: now,
-    detail: failed ? "The request failed. Availability is unknown." : "No request was sent to this platform. Availability is unknown." };
+    method: failed ? "Check failed" : "Not checked on this platform", checkedAt: null, observedAt: now,
+    detail: failed ? "The check didn’t finish, so availability is unknown." : "Embel can’t check this platform yet, so availability is unknown." };
 }
 export const unavailableHandleAdapter: HandleCheckAdapter = {
-  availability: "unavailable", label: "Platform checks are not connected",
+  availability: "unavailable", label: "Handle checks aren’t available",
   async check(entry) { return unavailableEvidence(entry, new Date().toISOString()); },
 };
 export const handleCheckDeadlineMs = 15_000;
 export class HandleCheckTimeoutError extends Error {
   constructor(readonly entry: HandleEntry) {
-    super("Platform check timed out. Completed evidence is retained; you can retry.");
+    super("The check took too long. Results so far are kept, and you can try again.");
     this.name = "HandleCheckTimeoutError";
   }
 }
 export async function checkHandleEntry(entry: HandleEntry, adapter: HandleCheckAdapter = unavailableHandleAdapter, signal?: AbortSignal): Promise<HandleEntry> {
   if (signal?.aborted) return entry;
-  if (entry.evidence.length >= 100) throw new Error("This handle has reached its 100-observation limit. Its existing evidence is retained; no new request was sent.");
+  if (entry.evidence.length >= 100) throw new Error("This handle has been checked 100 times, the most Embel keeps. Earlier results are kept and no new check was started.");
   // Never invoke an adapter claiming to be unavailable.
   if (adapter.availability === "unavailable") return appendEvidence(entry, unavailableEvidence(entry, new Date().toISOString()));
   const child = new AbortController();

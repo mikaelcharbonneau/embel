@@ -4,17 +4,19 @@ import type { LogoConceptBatch, LogoConceptPlan, LogoRequestState } from "../../
 import type { IdentityAssetReceipt } from "../../domain/logo-deliverables";
 import type { LogoCapability, LogoConceptSource, LogoRasterSource } from "../../domain/logo-workspace";
 import { logoCandidateKey } from "./candidate-review";
-import { acceptedConceptAttempt, CONCEPT_ORDINALS, displayLogoCost, LOGO_TYPE_LABELS } from "./presentation";
+import { acceptedConceptAttempt, CONCEPT_ORDINALS, LOGO_TYPE_LABELS } from "./presentation";
 import styles from "./logo-creation.module.css";
 import stage from "@/styles/branding-stage.module.css";
 import type { LogoCardVersion } from "./concept-versions";
 
 /** No polling, persistence or generation lives in this view. */
 export function LogoConceptGridView({ batch = null, plan = null, selected = null, request = null, generation, refinement = generation, savedBatchUnavailable = false, savedBatchLoading = false,
-  gallery = false, versions = {}, selectedVersion = selected, selectionAt, viewedVersions = {}, onViewVersion, onSelectVersion, filter = "all", allowInputPreparation = false, renderPreview, onSelect, onInspect, comparison = [], onCompare, onRequestConcepts, onRequestMore, onRequestRefine, onRequestRetryFailed, onCheckRequest, generationActions,
+  gallery = false, versions = {}, selectedVersion = selected, selectionAt, viewedVersions = {}, onViewVersion, onSelectVersion, filter = "all", allowInputPreparation = false, renderPreview, onSelect, onInspect, comparison = [], onCompare, onRequestConcepts, onRequestMore, onRequestRefine, onRequestRetryFailed, onCheckRequest, generationActions, status,
 }: {
   gallery?: boolean;
   generationActions?: ReactNode;
+  /** Gallery only: a short selection status shown with the ready count. */
+  status?: ReactNode;
   versions?: Record<string, LogoCardVersion[]>;
   selectedVersion?: LogoRasterSource | null;
   selectionAt?: string;
@@ -59,16 +61,25 @@ export function LogoConceptGridView({ batch = null, plan = null, selected = null
     const attempt = slot.attempts.at(-1);
     return attempt?.state === "needs_reconciliation" || (attempt?.state === "failed" && attempt.billing.status === "unknown");
   });
+  const progressMessage = savedBatchUnavailable ? "Saved concept details unavailable" : savedBatchLoading ? "Loading saved concepts…" : readyCount + " of 6 concepts ready";
   const stateLabel = { queued: "Waiting", running: "Creating", succeeded: "Ready", failed: "Failed", cancelled: "Cancelled", needs_reconciliation: "Outcome uncertain" };
   return <section className={gallery ? styles.gallery : styles.panel} aria-label="Logo concepts" aria-busy={savedBatchLoading}>
     {!gallery && <><div className={styles.heading}><div><p className={styles.eyebrow}>03 / Explore</p><h2 className={stage.sectionHeading}>Six starting points</h2></div><span className={styles.badge}>Black and white</span></div>
     <p className={styles.muted}>Six total concepts, with the logo type shown on each card.</p>
     {activePlan && <p className={styles.note}>Included: {activePlan.coveredTypes.map(type => LOGO_TYPE_LABELS[type]).join(", ")}.{activePlan.uncoveredTypes.length > 0 && <> Not included in this batch: {activePlan.uncoveredTypes.map(type => LOGO_TYPE_LABELS[type]).join(", ")}. A later batch can cover these types.</>}</p>}
     </>}
-    {generationActions && (batch || !savedBatchLoading && !savedBatchUnavailable) && <div className={styles.generationActions}>{generationActions}</div>}
-    {!generationActions && gallery && !batch && !savedBatchLoading && !savedBatchUnavailable && <div className={styles.generationActions}><button className={styles.primaryButton} type="button" disabled={(!canGenerate && !allowInputPreparation) || !onRequestConcepts} onClick={onRequestConcepts}>Generate six concepts</button></div>}
     {/* Before the first set, the conversation shows the question, not six empty frames. */}
-    {(!gallery || batch || savedBatchLoading || savedBatchUnavailable) && <p className={gallery ? styles.galleryProgress : styles.progress} role="status" aria-live="polite">{savedBatchUnavailable ? "Saved concept details unavailable" : savedBatchLoading ? "Loading saved concepts…" : readyCount + " of 6 concepts ready"}</p>}
+    {gallery && !batch && !savedBatchLoading && !savedBatchUnavailable ? <>
+      {generationActions && <div className={styles.generationActions}>{generationActions}</div>}
+      {!generationActions && <div className={styles.generationActions}><button className={styles.primaryButton} type="button" disabled={(!canGenerate && !allowInputPreparation) || !onRequestConcepts} onClick={onRequestConcepts}>Generate six concepts</button></div>}
+    </> : gallery ? <div className={styles.galleryToolbar}>
+      {/* One row: the selection status and ready count on the left, More concepts on the right. */}
+      <p className={styles.galleryProgress} role="status" aria-live="polite">{status && <span>{status}</span>}<span>{progressMessage}</span></p>
+      {generationActions && batch && <div className={styles.generationActions}>{generationActions}</div>}
+    </div> : <>
+      {generationActions && (batch || !savedBatchLoading && !savedBatchUnavailable) && <div className={styles.generationActions}>{generationActions}</div>}
+      <p className={styles.progress} role="status" aria-live="polite">{progressMessage}</p>
+    </>}
     {uncertain && <p className={styles.warning}>Outcome uncertain. Check the existing request before trying again. Completed concepts stay available.</p>}
     {(!gallery || batch || savedBatchLoading || savedBatchUnavailable) && <ol className={styles.concepts}>
       {CONCEPT_ORDINALS.map(ordinal => {
@@ -97,6 +108,7 @@ export function LogoConceptGridView({ batch = null, plan = null, selected = null
             const chosen = history.find(item => item.key === event.target.value);
             if (chosen && slot) { onViewVersion?.(slot.id, chosen.key, history.length); onSelectVersion?.(chosen.source); }
           }}>{history.map(item => <option key={item.key} value={item.key}>{item.label}{item === latest ? " · Latest" : ""}</option>)}</select></label>}
+          {gallery && isSelected && <span className={styles.chosenBadge}><CheckIcon /> Chosen</span>}
           <div className={gallery ? styles.galleryPreview : styles.preview} role={gallery && selectDisplayed ? "button" : undefined} tabIndex={gallery && selectDisplayed ? 0 : undefined} aria-label={gallery ? `Select concept ${ordinal + 1}` : undefined} aria-pressed={gallery && displayedSource ? isSelected : undefined} onClick={gallery ? selectDisplayed : undefined} onKeyDown={event => { if (gallery && selectDisplayed && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); selectDisplayed(); } }}>
             {preview && renderPreview ? renderPreview(preview) : attempt && (attempt.state === "queued" || attempt.state === "running") ? <GenerationAnimation variant={ordinal} queued={attempt.state === "queued"} /> : <p>{imageUnavailable ? "This image could not be saved." : accepted ? "Image preview unavailable" : attempt ? "No image preview yet" : savedBatchLoading ? "Loading saved preview…" : savedBatchUnavailable ? "Saved preview unavailable" : "Your concept will appear here"}</p>}
           </div>
@@ -105,12 +117,7 @@ export function LogoConceptGridView({ batch = null, plan = null, selected = null
           {gallery && <div className={styles.galleryCaption}><h3 className="sr-only">Concept {ordinal + 1}</h3>{(!accepted || savedBatchLoading || savedBatchUnavailable) && <p>{savedBatchLoading ? "Loading saved exploration…" : savedBatchUnavailable ? "Saved exploration unavailable" : attempt ? stateLabel[attempt.state] : planned ? "Waiting to start" : "Awaiting your first exploration"}</p>}</div>}
           {imageUnavailable && <p className={styles.note}>AI usage for this attempt is still recorded. You can use a ready concept or retry the failed concept.</p>}
           <div hidden={gallery}>
-          {accepted && <p className={styles.note}>Image preview · Vector conversion and approval follow separately.</p>}
-          {slot && <div aria-label={`Charges for concept ${ordinal + 1}`}>
-            {slot.attempts.map(record => <p className={styles.note} key={record.id}>
-              {`Attempt ${record.attemptNumber} · ${record.billing.status === "recorded" ? `Confirmed charge: ${displayLogoCost(record.billing.confirmedMicrousd)}` : "Charge not confirmed."}`}
-            </p>)}
-          </div>}
+          {accepted && <p className={styles.note}>Image preview</p>}
           {!gallery && onInspect && <button className={styles.secondaryButton} type="button" aria-label={`Inspect concept ${ordinal + 1}`} disabled={!source} onClick={() => { if (source) onInspect(source); }}>Inspect concept</button>}
           {onCompare && <button className={styles.secondaryButton} type="button" aria-label={`Compare concept ${ordinal + 1}`} aria-pressed={isCompared} disabled={!source || !isCompared && comparison.length >= 2} onClick={() => { if (source) onCompare(source); }}>{isCompared ? "Remove from comparison" : "Add to comparison"}</button>}
           <button className={styles.secondaryButton} type="button" aria-label={`Select concept ${ordinal + 1}`} aria-pressed={isSelected} disabled={!source || !onSelect} onClick={() => { if (source) onSelect?.(source); }}>{isSelected ? "Selected for review" : "Use this version"}</button>
@@ -123,9 +130,11 @@ export function LogoConceptGridView({ batch = null, plan = null, selected = null
     <div className={styles.actions}>
       {!generationActions && !gallery && !batch && <button className={styles.primaryButton} type="button" aria-label="Explore six concepts" disabled={!canGenerate || !onRequestConcepts} onClick={onRequestConcepts}>Explore six concepts</button>}
       {!generationActions && <button className={styles.secondaryButton} type="button" aria-label="More concepts" disabled={!batch || !canGenerate || !onRequestMore} onClick={onRequestMore}>More concepts</button>}
-      {(!gallery || batch) && <button className={styles.secondaryButton} type="button" aria-label="Refine selected" disabled={!validSelection || refinement?.status !== "available" || !onRequestRefine} onClick={() => { if (validSelection && selected) onRequestRefine?.(selected); }}>Refine selected</button>}
+      {!gallery && <button className={styles.secondaryButton} type="button" aria-label="Refine selected" disabled={!validSelection || refinement?.status !== "available" || !onRequestRefine} onClick={() => { if (validSelection && selected) onRequestRefine?.(selected); }}>Refine selected</button>}
       {!generationActions && failedSlotIds.length > 0 && <button className={styles.secondaryButton} type="button" aria-label={`Retry ${failedSlotIds.length} failed concept${failedSlotIds.length === 1 ? "" : "s"}`} disabled={!canGenerate || !onRequestRetryFailed} onClick={() => onRequestRetryFailed?.(failedSlotIds)}>Retry {failedSlotIds.length} failed concept{failedSlotIds.length === 1 ? "" : "s"}</button>}
       {(!gallery || onCheckRequest) && <button className={styles.secondaryButton} type="button" aria-label="Check request" disabled={!onCheckRequest} onClick={onCheckRequest}>Check request</button>}
     </div>
   </section>;
 }
+
+function CheckIcon() { return <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="m3.5 8 3 3 6-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>; }

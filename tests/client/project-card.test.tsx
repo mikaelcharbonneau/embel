@@ -65,6 +65,38 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); document.body.replaceChildren(); vi.unstubAllGlobals(); });
 
 describe("shared Home and Projects card", () => {
+  it("shows neutral blocks without words or a placeholder name until the saved project is read", async () => {
+    mock.project.mockImplementation((_path: string, _schema: unknown, options: { signal: AbortSignal }) => new Promise((_resolve, reject) => {
+      options.signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+    }));
+    await render();
+    const card = host.querySelector("article")!;
+    expect(card.getAttribute("aria-busy")).toBe("true"); expect(card.textContent).toBe("");
+    expect(host.querySelector("a, h2, button, img")).toBeNull();
+    expect(host.textContent).not.toMatch(/Untitled brand|Open project|Saved project/);
+  });
+
+  it("shows the first words of the idea and a quiet label when no logo is chosen", async () => {
+    mock.project.mockResolvedValue({ project: { ...project(), context: { selectedName: null, description: "  A tea subscription\nfor   night-shift nurses  " } } });
+    mock.read.mockResolvedValue({ name: null, receipt: null }); await render();
+    const preview = host.querySelector('[data-project-preview="placeholder"]')!;
+    expect(preview.querySelector("p")?.textContent).toBe("A tea subscription for night-shift nurses");
+    expect(preview.textContent).toContain("No logo yet"); expect(host.querySelector("article")?.hasAttribute("aria-busy")).toBe(false);
+  });
+
+  it("gives its actions the name it shows", async () => {
+    const actions = vi.fn((name: string) => <button type="button">{`Project options for ${name}`}</button>);
+    await act(async () => root.render(<ProjectCard project={project()} account={account} date="Today" actions={actions} />)); await settle();
+    expect(host.querySelector("button")?.textContent).toBe("Project options for Persimmon");
+  });
+
+  it("shows the saved listing at once when visibility cannot be observed", async () => {
+    vi.stubGlobal("IntersectionObserver", undefined);
+    await render();
+    expect(host.querySelector("h2")?.textContent).toBe("Untitled brand"); expect(host.querySelector("article")?.hasAttribute("aria-busy")).toBe(false);
+    expect(mock.project).not.toHaveBeenCalled();
+  });
+
   it("uses the selected brand name for its title and link without a redundant name row", async () => {
     await render(); await settle();
     expect(host.querySelector("h2")?.textContent).toBe("Persimmon");
@@ -92,13 +124,13 @@ describe("shared Home and Projects card", () => {
     expect(host.querySelector("h2")?.getAttribute("title")).toBe(title);
     expect(host.querySelector("h2")?.textContent).toBe(title);
     expect(host.querySelector("a")?.getAttribute("aria-label")).toBe(`View brand kit · ${title}`);
-    expect(host.querySelector("h2")?.parentElement?.querySelector("span")?.textContent).toBe("Complete brand");
+    expect(host.querySelector("h2")?.parentElement?.querySelector("span")?.textContent).toBe("Created Oct 20, 2026");
   });
 
   it("uses honest empty and unavailable states without inventing a logo", async () => {
     mock.project.mockResolvedValue({ project: { ...project(), context: { selectedName: null } } });
     mock.read.mockResolvedValue({ name: null, receipt: null }); await render();
-    expect(host.querySelector("img")).toBeNull(); expect(host.textContent).toContain("No logo selected");
+    expect(host.querySelector("img")).toBeNull(); expect(host.textContent).toContain("No logo yet");
     expect(source.previewAsset).not.toHaveBeenCalled();
     mock.project.mockResolvedValue({ project: { ...project(), current_revision: 2, context: { selectedName: null } } });
     mock.read.mockRejectedValue(new Error("Preview not readable")); await render({ ...project(), current_revision: 2 });

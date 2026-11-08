@@ -3,10 +3,11 @@ import { z } from "zod";
 import {
   assetDetailQuerySchema,assetDetailSchema,assetLibraryPageSchema,assetLibraryQuerySchema,
   assetRetentionResponseSchema,assetSelectionResponseSchema,selectAssetVersionSchema,setAssetRetentionSchema,
-  type AssetDetail,type AssetLibraryItem,type AssetVersionDetail,
+  type AssetDetail,type AssetLibraryItem,type AssetProjectSummary,type AssetVersionDetail,
 } from "@/domain/asset-library";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
+import { projectDisplayName, readSelectedProjectNames } from "./project-display-names";
 
 function input<T>(schema:z.ZodType<T>,value:unknown):T {
   const result=schema.safeParse(value);if(!result.success)throw new ApiError("invalid_input");return result.data;
@@ -54,13 +55,18 @@ function checkDetail(auth:AuthenticatedContext,id:string,response:AssetDetail):v
 function checkItem(auth:AuthenticatedContext,item:AssetLibraryItem):void {
   scope(auth,item.asset);metadataVersions([...item.matchingVersions.items,...(item.selectedVersion?[item.selectedVersion]:[]),...(item.displayedVersion?[item.displayedVersion]:[])]);
 }
+/** Library titles use the chosen brand name, as the project bar and cards do. */
+async function withProjectNames<T extends {project:AssetProjectSummary}>(auth:AuthenticatedContext,rows:readonly T[]):Promise<T[]> {
+  const names=await readSelectedProjectNames(auth,rows.map(row=>row.project));
+  return rows.map(row=>({...row,project:{...row.project,title:projectDisplayName(row.project.title,names.get(row.project.id.toLowerCase()),200)}}));
+}
 export async function listAccountAssets(auth:AuthenticatedContext,value:unknown={}) {
   const query=queryInput(assetLibraryQuerySchema,value);
   const response=await rpc(auth,"list_account_assets",{p_query:query},assetLibraryPageSchema);
   if(response.ownerId!==auth.userId)throw new ApiError("not_found");
   invariant(JSON.stringify(response.query)===JSON.stringify(query));
   for(const item of response.items)checkItem(auth,item);
-  return response;
+  return {...response,items:await withProjectNames(auth,response.items)};
 }
 export async function getAssetDetail(auth:AuthenticatedContext,id:string,value:unknown={}) {
   id=assetId(id);const query=queryInput(assetDetailQuerySchema,value);
@@ -68,7 +74,7 @@ export async function getAssetDetail(auth:AuthenticatedContext,id:string,value:u
   const response=await rpc(auth,"get_asset_detail",{p_asset_id:id,p_query:query},assetDetailSchema);
   checkDetail(auth,id,response);invariant(response.versions.format===(query.format??null) && response.versions.items.length<=query.limit);
   if(query.cursor)invariant(query.cursor.projectId===response.asset.projectId);
-  return response;
+  return (await withProjectNames(auth,[response]))[0]!;
 }
 export async function setAssetRetention(auth:AuthenticatedContext,id:string,value:unknown) {
   id=assetId(id);const parsed=input(setAssetRetentionSchema,value);
@@ -82,7 +88,7 @@ export async function selectAssetVersion(auth:AuthenticatedContext,id:string,val
   checkDetail(auth,id,response);
   const selection=response.asset.currentSelection;
   invariant(response.project.current_revision===parsed.expectedProjectRevision && response.asset.selectionRevision===parsed.expectedSelectionRevision+1 && selection?.versionId===parsed.versionId && selection.receipt.status==="recorded" && selection.receipt.acceptedStaleBasis===parsed.acceptStaleBasis);
-  return response;
+  return (await withProjectNames(auth,[response]))[0]!;
 }
 /** Cursor JSON retains its complete filter/asset binding. Unknown or repeated
  * query fields fail before RPC; owner IDs and private paths are never accepted. */

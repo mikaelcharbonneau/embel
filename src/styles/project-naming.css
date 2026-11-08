@@ -21,7 +21,7 @@
 .project-naming-context dt { font-size: var(--font-ui); margin-bottom: 4px; }
 .project-naming-context dd { margin: 0; color: var(--text); overflow-wrap: anywhere; white-space: pre-wrap; }
 .project-naming-preferences { padding: 24px; border: 1px solid var(--border); border-radius: var(--panel-radius); background: var(--paper); }
-.project-naming-preferences h2 { font-size: 19px; letter-spacing: -.4px; margin-bottom: 8px; }
+.project-naming-preferences h2 { font-size: 20px; letter-spacing: -.4px; margin-bottom: 8px; }
 .project-naming-preferences > p { margin-bottom: 22px; }
 .project-naming-preferences label, .project-naming-control-fields > label, .project-naming-lengths > label { display: block; color: var(--text); font-size: var(--font-ui); font-weight: 500; }
 .project-naming-preferences input, .project-naming-preferences textarea, .project-naming-preferences select,
@@ -35,7 +35,7 @@
 .project-naming-preferences .project-naming-actions { justify-content: flex-end; margin-top: 22px; }
 .project-naming-preferences .form-error { margin-top: 14px; }
 .project-naming-section-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 18px; }
-.project-naming-section-heading h2 { font-size: 19px; letter-spacing: -.4px; }
+.project-naming-section-heading h2 { font-size: 20px; letter-spacing: -.4px; }
 .project-naming-section-heading p { font-size: var(--font-ui); color: var(--secondary); margin-top: 6px; }
 .project-naming-toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
 .project-naming-toolbar label { min-width: 0; }
@@ -103,7 +103,7 @@
 .project-naming-workshop { display: grid; grid-template-columns: minmax(250px, 320px) minmax(0, 1fr); gap: 24px; align-items: start; }
 .project-naming-workshop-controls { min-width: 0; padding: 21px; background: var(--paper); border: 1px solid var(--border); border-radius: 8px; }
 .project-naming-seed span { display: block; color: var(--secondary); font-size: var(--font-ui); }
-.project-naming-seed strong { display: block; font-size: 23px; line-height: 1.4; overflow-wrap: anywhere; margin-top: 6px; }
+.project-naming-seed strong { display: block; font-size: 24px; line-height: 1.4; overflow-wrap: anywhere; margin-top: 6px; }
 .project-naming-transform-kinds, .project-naming-control-fields { border: 0; padding: 0; margin: 22px 0; min-width: 0; }
 .project-naming-transform-kinds legend { color: var(--secondary); font-size: var(--font-ui); margin-bottom: 12px; }
 .project-naming-transform-kinds > label { display: flex; flex-wrap: wrap; gap: 6px; padding: 11px; border: 1px solid var(--border); border-radius: 5px; margin-top: 6px; }
@@ -156,7 +156,7 @@
   .project-naming-section-heading { align-items: flex-start; }
   .project-naming-section-heading > .project-naming-actions { justify-content: flex-end; }
   .project-naming-selected { grid-template-columns: minmax(0, 1fr); padding: 20px 16px; gap: 16px; align-items: start; }
-  .project-naming-selected h2 { font-size: 25px; }
+  .project-naming-selected h2 { font-size: 24px; }
   .project-naming-selected > button { justify-self: start; padding: 8px 11px; font-size: var(--font-ui); }
   .project-naming-chat-toggle { right: 18px; bottom: 16px; width: 42px; height: 42px; padding: 11px; }
   .project-naming-chat-toggle > span { display: none; }

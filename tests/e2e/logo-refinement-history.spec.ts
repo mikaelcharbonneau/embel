@@ -25,7 +25,7 @@ test.afterEach(async ({ page }, info) => {
 async function savedWorkspaceReady(page: Page, startedAt: number) {
   // History loads independently. A visible history card is not proof that the
   // saved workspace, stage payloads and reference snapshot have been hydrated.
-  // The brief lives in the closed Project context sheet; its saved value proves hydration.
+  // The brief lives in the closed Logo brief and history sheet; its saved value proves hydration.
   await expect(page.getByRole("textbox", { name: "Brand name", includeHidden: true })).toHaveValue("Élan & Co");
   audits.get(page)!.readyMs.push(Date.now() - startedAt);
 }
@@ -56,13 +56,13 @@ async function fixture(page: Page, preexisting = false) {
 const card = (page: Page) => page.locator(`[data-refinement-id="${rasterId}"]`);
 const select = (page: Page) => page.getByRole("button", { name: `Select image refinement ${rasterId}`, exact: true });
 // Saved refinements, selection recovery and vector conversion live in the
-// "Saved inputs and recovery" sheet inside the Project context dialog.
+// "Saved versions and options" sheet inside the Logo brief and history dialog.
 async function openSavedWork(page: Page) {
-  const saved = page.getByRole("dialog", { name: "Saved inputs and recovery", exact: true });
+  const saved = page.getByRole("dialog", { name: "Saved versions and options", exact: true });
   if (await saved.isVisible()) return saved;
-  const context = page.getByRole("dialog", { name: "Project context", exact: true });
-  if (!await context.isVisible()) await page.getByRole("button", { name: "Project context", exact: true }).click();
-  await context.getByRole("button", { name: "Saved inputs and recovery", exact: true }).click();
+  const context = page.getByRole("dialog", { name: "Logo brief and history", exact: true });
+  if (!await context.isVisible()) await page.getByRole("button", { name: "Logo brief and history", exact: true }).click();
+  await context.getByRole("button", { name: "Saved versions and options", exact: true }).click();
   await expect(saved).toBeVisible(); return saved;
 }
 // The optional vector conversion shows its estimate automatically; no other quote may be requested.
@@ -74,11 +74,10 @@ async function closeSheets(page: Page) {
 
 test("refine_reload_select_vectorize_uses_retained_raster", async ({ page }) => {
   const f = await fixture(page); const composer = page.getByRole("form", { name: "Logo concept changes" });
-  await composer.getByRole("button", { name: "Refine logo", exact: true }).click();
-  await composer.getByRole("textbox", { name: "Describe logo changes" }).fill("Simplify the silhouette");
+  await composer.getByRole("textbox", { name: "Describe a change to this logo" }).fill("Simplify the silhouette");
   // No cost is shown; one deliberate click starts the request once it is ready.
-  await expect(composer.getByRole("button", { name: "Generate refinement", exact: true })).toBeEnabled();
-  expect(f.admissions).toHaveLength(0); await composer.getByRole("button", { name: "Generate refinement", exact: true }).click();
+  await expect(composer.getByRole("button", { name: "Refine", exact: true })).toBeEnabled();
+  expect(f.admissions).toHaveLength(0); await composer.getByRole("button", { name: "Refine", exact: true }).click();
   await expect.poll(() => f.admissions.length).toBe(1);
   // A refinement that completes in this session becomes the selected logo; reload must retain that raster.
   await expect(composer.getByText("Your refined logo is ready on its card.", { exact: true })).toBeVisible();
@@ -105,15 +104,15 @@ test("completed refinements remain inspectable and selectable with image generat
 
 test("unconfirmed selection checks then retries the exact body and key without image generation", async ({ page }) => {
   const f = await fixture(page, true); f.loseSelection = true; const saved = await openSavedWork(page); await expect(select(page)).toBeEnabled(); await select(page).click();
-  await expect(saved.getByRole("button", { name: "Check original selection", exact: true })).toBeVisible(); const original = structuredClone(f.selections[0]);
-  await saved.getByRole("button", { name: "Check original selection", exact: true }).click(); expect(f.selections).toHaveLength(1);
-  await saved.getByRole("button", { name: "Retry original selection", exact: true }).click(); await expect(select(page)).toHaveAttribute("aria-pressed", "true");
+  await expect(saved.getByRole("button", { name: "Check my choice", exact: true })).toBeVisible(); const original = structuredClone(f.selections[0]);
+  await saved.getByRole("button", { name: "Check my choice", exact: true }).click(); expect(f.selections).toHaveLength(1);
+  await saved.getByRole("button", { name: "Save my choice again", exact: true }).click(); await expect(select(page)).toHaveAttribute("aria-pressed", "true");
   expect(f.selections).toEqual([original, original]); expect(f.admissions).toHaveLength(0); expect(generationQuotes(f)).toHaveLength(0);
 });
 
 test("draft changes keep refinement history visible while preventing selection", async ({ page }) => {
   const f = await fixture(page, true); await openSavedWork(page); await expect(select(page)).toBeEnabled(); await closeSheets(page);
-  await page.getByRole("button", { name: "Project context", exact: true }).click(); await page.getByRole("textbox", { name: "What the business does" }).fill("Keep my unsaved change");
+  await page.getByRole("button", { name: "Logo brief and history", exact: true }).click(); await page.getByRole("textbox", { name: "What the business does" }).fill("Keep my unsaved change");
   const saved = await openSavedWork(page); await expect(select(page)).toBeDisabled(); await expect(card(page)).toBeVisible(); await saved.getByRole("button", { name: "Refresh saved image refinements" }).click();
   await expect(page.getByRole("textbox", { name: "What the business does", includeHidden: true })).toHaveValue("Keep my unsaved change"); expect(f.selections).toHaveLength(0); expect(f.admissions).toHaveLength(0);
 });

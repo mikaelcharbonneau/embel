@@ -42,7 +42,11 @@ describe("saved brief editing during unavailable Strategy", () => {
   it("keeps a real saved Brand editable and acknowledges its autosave without implying an AI answer", async () => {
     await render();
     expect([...host.querySelectorAll<HTMLButtonElement>("button")].find(button => button.textContent === "Start competitor research")).toBeUndefined();
-    expect(host.textContent).toContain("Edit brief"); expect(host.querySelector(".guided-assistant-message")).toBeNull();
+    expect(host.textContent).toContain("Edit brief");
+    // The only Embel message is the invitation to start research; it can't start while Strategy is unavailable.
+    const messages = host.querySelectorAll(".guided-assistant-message");
+    expect(messages).toHaveLength(1); expect(messages[0]!.getAttribute("aria-label")).toBe("Start research");
+    expect(messages[0]!.querySelector<HTMLButtonElement>("button.button.primary")!.disabled).toBe(true);
     const details = host.querySelector<HTMLDetailsElement>(".guided-brief-editor")!;
     expect(details.querySelector('button[aria-haspopup="dialog"]')).not.toBeNull();
     expect(details.querySelector("summary")).toBeNull();

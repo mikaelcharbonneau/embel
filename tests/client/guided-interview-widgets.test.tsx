@@ -49,8 +49,10 @@ afterEach(async () => { await act(async () => root.unmount()); host.remove(); })
 
 describe("guided interview choice controls", () => {
   it("marks recommendations on compact competitor cards without selecting or confirming them", async () => {
-    await render();
-    expect(host.textContent).toContain("Recommended");
+    const other: GuidedOption = { ...competitor, id: "44444444-4444-4444-8444-444444444444", label: "Other Studio", recommended: false, recommendationReason: null,
+      payload: { ...competitor.payload, id: "44444444-4444-4444-8444-444444444444", name: "Other Studio" } };
+    await render(choices(competitor, [other]));
+    expect([...host.querySelectorAll(".guided-choice-recommended")].map(badge => badge.closest(".guided-choice-card")?.textContent)).toEqual([expect.stringContaining("Fixture Studio")]);
     // Competitor cards stay compact: the recommendation reason is not repeated in a box.
     expect(host.textContent).not.toContain(competitor.recommendationReason);
     expect(host.querySelector<HTMLInputElement>("input")?.checked).toBe(false);
@@ -58,6 +60,15 @@ describe("guided interview choice controls", () => {
     expect(onSelectionChange).not.toHaveBeenCalled();
     expect(onContinue).not.toHaveBeenCalled();
     expect(host.querySelector("textarea")).toBeNull();
+  });
+
+  it("leaves out the badge when every card is recommended, and a reason that repeats the description", async () => {
+    const repeated: GuidedOption = { ...competitor, payload: { ...competitor.payload, relevance: "Synthetic competitor description for this local test." } };
+    await render(choices(repeated));
+    expect(host.querySelector(".guided-choice-recommended")).toBeNull();
+    expect(host.textContent).not.toContain("Why it matters");
+    await render(choices(competitor));
+    expect(host.textContent).toContain("Why it matters");
   });
 
   it("keeps multi-select choices editable until Continue explicitly confirms them", async () => {

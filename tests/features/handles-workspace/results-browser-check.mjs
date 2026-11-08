@@ -44,11 +44,11 @@ try {
   await expect(page.locator(".handles-search-form")).toBeHidden();
   await expect(page.getByRole("button", { name: "Available everywhere 0", exact: true })).toBeVisible();
   await expect(page.getByText("To check", { exact: true })).toHaveCount(60);
-  await expect(page.getByText("Not connected", { exact: true })).toHaveCount(36);
+  await expect(page.getByText("Not connected", { exact: true })).toHaveCount(0);
   checks.push("12 real candidates, five selected platform counts, eight visual columns, honest unknown/disconnected states");
   await page.getByRole("button", { name: "Available everywhere 0", exact: true }).click();
   await expect(page.locator(".handles-result-row")).toHaveCount(0);
-  await expect(page.getByText("No handles have confirmed availability", { exact: false })).toBeVisible();
+  await expect(page.getByText("No handle is available on every selected platform yet.", { exact: false })).toBeVisible();
   await page.getByRole("button", { name: "All handles 12", exact: true }).click();
   await page.getByRole("button", { name: "Refresh results", exact: true }).click();
   await expect(page.getByRole("button", { name: "Available everywhere 1", exact: true })).toBeVisible();
@@ -56,7 +56,7 @@ try {
   await expect(page.getByText("Taken", { exact: true })).toHaveCount(11);
   await expect(page.getByText("To check", { exact: true })).toHaveCount(44);
   await page.getByRole("button", { name: "Details for @morrow from morrow", exact: true }).click();
-  await page.locator(".handles-result-details").getByText("Check evidence (1)", { exact: true }).first().click();
+  await page.locator(".handles-result-details").getByText("Check details (1)", { exact: true }).first().click();
   await expect(page.locator(".handles-result-details dd").filter({ hasText: "Synthetic results fixture" }).first()).toBeVisible();
   await expect(page.locator(".handles-result-details").getByText("Synthetic browser check", { exact: true }).first()).toBeVisible();
   await page.getByRole("button", { name: "Details for @morrow from morrow", exact: true }).click();

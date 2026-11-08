@@ -39,13 +39,14 @@ test("Projects reference: populated geometry, native artwork and saved project c
   await expect(page.getByRole("navigation", { name: "Main navigation", exact: true }).getByRole("link", { name: "Projects", exact: true })).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("link", { name: "New project", exact: true })).toHaveAttribute("href", "/brands/new");
   await expect(page.locator(".project-card").first()).toContainText("Forma");
-  await expect(page.locator(".project-card").first()).toContainText("Complete brand");
-  await expect(page.locator(".project-card").first()).toContainText("Created 2 hours ago");
+  // Projects and Home share one compact card: name, short date and next step.
+  await expect(page.locator(".project-card").first()).toContainText(/Today|Yesterday/);
+  await expect(page.locator(".project-card").first()).not.toContainText("Complete brand");
   await expect(card(page, 1).getByRole("link")).toHaveAttribute("href", `/brands/account/${id(1)}`);
   if (info.project.name === "desktop") {
     const grid = await page.locator(".projects-grid").boundingBox(), first = await page.locator(".project-card").first().boundingBox();
-    // Cards use the shared Home/Projects card (8db2bf1, e04add0) inside the original grid.
-    expect(grid?.x).toBe(216); expect(grid?.y).toBe(276); expect(grid?.width).toBe(1008); expect(first?.width).toBe(324); expect(first?.height).toBe(272);
+    // One compact card shared with Home, four per row inside the shared page width.
+    expect(grid?.x).toBe(192); expect(grid?.width).toBe(1056); expect(first?.width).toBe(252); expect(first?.height).toBe(200);
   }
   await page.getByText("Filter", { exact: true }).click();
   const panel = await page.locator(".projects-control[open] .projects-control-panel").boundingBox(); expect(panel!.x).toBeGreaterThanOrEqual(0); expect(panel!.x + panel!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
@@ -65,7 +66,7 @@ test("Projects reference: empty state uses original artwork and opens existing c
   await expect(page.locator(".projects-toolbar")).toHaveCount(0); await expect(page.locator(".project-card")).toHaveCount(0);
   if (info.project.name === "desktop") await expect(page.getByRole("navigation", { name: "Main navigation", exact: true }).locator('img[src="/embel-mark.svg"]')).toBeVisible();
   await expect(page.locator('.projects-empty-panel img[src="/projects/empty-projects.svg"]')).toBeVisible();
-  if (info.project.name === "desktop") { const panel = await page.locator(".projects-empty-panel").boundingBox(); expect(panel).toMatchObject({ x: 216, y: 208, width: 1008, height: 360 }); }
+  if (info.project.name === "desktop") { const panel = await page.locator(".projects-empty-panel").boundingBox(); expect(panel).toMatchObject({ x: 192, width: 1056, height: 360 }); }
   await page.screenshot({ path: info.outputPath("projects-empty.png"), fullPage: true, scale: "css" });
   await page.getByRole("link", { name: "Create a project", exact: true }).click();
   await expect(page).toHaveURL(/\/brands\/new$/); await expect(page.getByRole("link", { name: "Create a logo", exact: true })).toHaveAttribute("href", "/brands/logo/new");
@@ -74,7 +75,7 @@ test("Projects reference: empty state uses original artwork and opens existing c
 test("Projects: account cards keep their destination, honest summary metadata and filters", async ({ page }) => {
   const state = await fixture(page); state.projects = [row(1, "Forma")];
   await page.goto("/brands"); await expect(page.locator(".project-card")).toHaveCount(1);
-  const accountCard = card(page, 1); await expect(accountCard).toContainText("Created"); await expect(accountCard).not.toContainText("Updated");
+  const accountCard = card(page, 1); await expect(accountCard).toContainText(/Oct 1[01]/); await expect(accountCard).not.toContainText("Updated");
   await expect(accountCard.getByRole("link")).toHaveAttribute("href", `/brands/account/${id(1)}`);
   await page.getByText("Filter", { exact: true }).click(); await page.getByLabel("Filter projects by scope").selectOption("naming_only"); await expect(page.locator(".project-card")).toHaveCount(0);
   await page.getByLabel("Filter projects by scope").press("Escape"); await expect(page.locator(".projects-control[open]")).toHaveCount(0);

@@ -16,8 +16,11 @@ function recordedTokens(value: unknown) {
   const subscription = subscriptionUsageSchema.safeParse(value);
   if (subscription.success) return recordedTokensSchema.parse(subscription.data);
   const api = strategyUsageSchema.safeParse(value);
-  // API-mode receipts do not record a total. Do not invent one for this view.
-  return api.success ? { inputTokens: api.data.inputTokens, outputTokens: api.data.outputTokens, totalTokens: null } : null;
+  if (!api.success) return null;
+  // API-mode receipts record input and output separately; together they are the
+  // request total (cached input is already part of input).
+  const totalTokens = api.data.inputTokens + api.data.outputTokens;
+  return { inputTokens: api.data.inputTokens, outputTokens: api.data.outputTokens, totalTokens: Number.isSafeInteger(totalTokens) ? totalTokens : null };
 }
 
 /** Existing user-scoped RLS reads; JSON projection avoids fetching result content. */

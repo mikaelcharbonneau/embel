@@ -6,11 +6,16 @@ import { ToolWorkspace, type ToolName } from "@/components/workspace/tool-worksp
 
 const allowedTools = ["ideas", "names", "handles", "domains", "trademarks", "assets", "settings"] as const;
 
+const titles: Record<ToolName, string> = {
+  // The assets page appears as Library in the navigation.
+  ideas: "Ideas", names: "Names", handles: "Handles", domains: "Domains", trademarks: "Trademarks", assets: "Library", settings: "Settings",
+};
+
 export function generateStaticParams() { return allowedTools.map((tool) => ({ tool })); }
 export async function generateMetadata({ params }: { params: Promise<{ tool: string }> }): Promise<Metadata> {
   const { tool } = await params;
-  // The assets page appears as Library in the navigation.
-  return { title: tool === "assets" ? "Library" : tool.charAt(0).toUpperCase() + tool.slice(1) };
+  // Never derive a title from an arbitrary path; unknown tools render the 404 page.
+  return { title: Object.hasOwn(titles, tool) ? titles[tool as ToolName] : "Page not found" };
 }
 export default async function ToolPage({ params }: { params: Promise<{ tool: string }> }) {
   const { tool } = await params;

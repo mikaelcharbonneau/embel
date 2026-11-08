@@ -74,7 +74,7 @@ function OwnedProjectPicker({ account, selectedProjectId, onSelect }: Props & { 
         <option value="">Choose a saved project</option>
         {listing?.items.map(project => <option key={project.id} value={project.id}>{project.title}</option>)}
       </select>
-      <p className="field-hint">Choose a saved project, then use the tool’s import action. Selecting a project does not import it.</p>
+      <p className="field-hint">Choose a project, then choose Import saved name.</p>
       {listing && <p className="field-hint">{listing.items.length} saved {listing.items.length === 1 ? "project" : "projects"} loaded.{listing.nextCursor ? " Load more to find older projects." : " End of this listing."}</p>}
       {!listing && !error && <p role="status">Loading saved projects…</p>}
       {listing && listing.items.length === 0 && <p>No saved projects yet. Save a brand to your account to import from it.</p>}

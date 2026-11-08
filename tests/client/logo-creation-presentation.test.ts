@@ -69,14 +69,13 @@ describe("logo presentation (test-only domain bindings)", () => {
     expect(newRequests).toEqual([]);
     expect(control(LogoConceptGridView({ batch: null, request }), "Check request").props.disabled).toBe(true);
   });
-  it("shows the recorded charge on a failed attempt without contradicting it in cost review", () => {
+  it("shows a failed attempt without any money on the card", () => {
     const batch = syntheticLogoBatch();
     const node = LogoConceptGridView({ batch });
     const failedCard = elements(node).find(element => element.props["data-concept-ordinal"] === 5)!;
     const html = renderToStaticMarkup(failedCard);
     expect(html).toContain("Failed");
-    expect(html).toContain("Attempt 1");
-    expect(html).toContain("Confirmed charge: $0.10");
+    expect(html).not.toMatch(/\$\d|confirmed charge|charge not confirmed/i);
     const composition = renderToStaticMarkup(createElement(LogoCreationFixturePreview, { scenario: "partial" }));
     expect(composition).not.toContain("No confirmed charge is available");
   });
@@ -104,7 +103,7 @@ describe("logo presentation (test-only domain bindings)", () => {
     click(action);
     expect(retry).toHaveBeenCalledWith([batch.slots[5]!.id]);
   });
-  it("retains a previous recorded attempt charge while a later attempt has unknown billing", () => {
+  it("shows no money for earlier or later attempts, whatever their billing state", () => {
     const original = syntheticLogoBatch();
     const slot = original.slots[5]!;
     const previous = slot.attempts[0]!;
@@ -114,13 +113,8 @@ describe("logo presentation (test-only domain bindings)", () => {
     const node = LogoConceptGridView({ batch });
     const card = elements(node).find(element => element.props["data-concept-ordinal"] === 5)!;
     const html = renderToStaticMarkup(card);
-    expect(html).toContain("Attempt 1");
-    expect(html).toContain("Confirmed charge: $0.10");
-    expect(html).toContain("Attempt 2");
-    expect(html).toContain("Charge not confirmed");
-    expect(html).not.toContain("$0.20");
-    expect(html).not.toContain("Total");
-    expect(fixtureMarkup(LogoCostConfirmationView({ billing: { status: "unknown", confirmedMicrousd: null } }))).toContain("Charge not confirmed for this request");
+    expect(html).not.toMatch(/\$\d|confirmed charge|charge not confirmed|Total/i);
+    expect(fixtureMarkup(LogoCostConfirmationView({ billing: { status: "unknown", confirmedMicrousd: null } }))).not.toMatch(/\$\d|confirmed charge|charge not confirmed/i);
   });
   it("clears a concept-one refinement estimate when the actual fixture selection changes to concept two", () => {
     // Real React state and the fixture's actual callbacks; render-phase updates avoid a browser/runtime.
@@ -266,14 +260,13 @@ describe("logo presentation (test-only domain bindings)", () => {
     expect(fixtureMarkup(node)).toContain("Image preview unavailable");
     expect(elements(node).filter(element => element.type === "img")).toHaveLength(0);
   });
-  it("shows recorded charges but never a cost estimate, and never admits without the controller", () => {
+  it("never shows money or a cost estimate, and never admits without the controller", () => {
     const node = LogoCostConfirmationView({ quote: syntheticLogoQuote(), billing: { status: "recorded", confirmedMicrousd: 900000 } });
     const html = fixtureMarkup(node);
     expect(html).not.toMatch(/estimat/i);
     expect(html).not.toContain("$0.60");
     expect(html).not.toContain("$1.20");
-    expect(html).toContain("Confirmed charge");
-    expect(html).toContain("$0.90");
+    expect(html).not.toMatch(/\$\d|confirmed charge|charge not confirmed/i);
     expect(control(node, "Confirm generation").props.disabled).toBe(true);
     expect(renderToStaticMarkup(LogoCostConfirmationView({}))).not.toContain("$0");
   });

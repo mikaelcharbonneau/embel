@@ -3,6 +3,7 @@ import { z } from "zod";
 import { activeJobStates, jobActivityEntrySchema, jobActivitySchema, type JobActivityEntry } from "@/domain/job-activity";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
+import { projectDisplayName, readSelectedProjectNames } from "./project-display-names";
 
 const columns = "id,owner_id,project_id,operation,state,progress,created_at,finished_at";
 const storedJobSchema = z.object({
@@ -10,7 +11,7 @@ const storedJobSchema = z.object({
   state: jobActivityEntrySchema.shape.state, progress: jobActivityEntrySchema.shape.progress,
   created_at: jobActivityEntrySchema.shape.createdAt, finished_at: jobActivityEntrySchema.shape.finishedAt,
 });
-const projectSchema = z.object({ id: z.uuid(), owner_id: z.uuid(), title: z.string().min(1).max(160) });
+const projectSchema = z.object({ id: z.uuid(), owner_id: z.uuid(), title: z.string().min(1).max(160), current_revision: z.number().int().positive() });
 function verified<T>(schema: z.ZodType<T>, value: unknown): T {
   const parsed = schema.safeParse(value);
   if (!parsed.success) throw new ApiError("integration_unavailable");
@@ -30,12 +31,14 @@ export async function listJobActivity(auth: AuthenticatedContext) {
   if ([...active, ...recent].some(row => row.owner_id !== auth.userId)) throw new ApiError("integration_unavailable");
   const projectIds = [...new Set([...active, ...recent].map(row => row.project_id))];
   if (!projectIds.length) return jobActivitySchema.parse({ ownerId: auth.userId, active: [], recent: [] });
-  const projectReply = await auth.client.from("projects").select("id,owner_id,title").eq("owner_id", auth.userId).in("id", projectIds).limit(40);
+  const projectReply = await auth.client.from("projects").select("id,owner_id,title,current_revision").eq("owner_id", auth.userId).in("id", projectIds).limit(40);
   if (projectReply.error) throw new ApiError("integration_unavailable");
   const projects = verified(z.array(projectSchema).max(40), projectReply.data);
   if (projects.some(row => row.owner_id !== auth.userId || !projectIds.includes(row.id)) || new Set(projects.map(row => row.id)).size !== projects.length)
     throw new ApiError("integration_unavailable");
-  const titles = new Map(projects.map(row => [row.id, row.title]));
+  // Show the chosen brand name, as the project bar and cards do.
+  const names = await readSelectedProjectNames(auth, projects);
+  const titles = new Map(projects.map(row => [row.id, projectDisplayName(row.title, names.get(row.id.toLowerCase()), 160)]));
   function entry(row: z.infer<typeof storedJobSchema>): JobActivityEntry {
     const title = titles.get(row.project_id);
     if (!title) throw new ApiError("integration_unavailable");

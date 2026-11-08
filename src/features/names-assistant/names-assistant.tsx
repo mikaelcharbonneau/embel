@@ -15,9 +15,9 @@ export function NamesAssistant({ onOpenAccountLibrary }: NamesAssistantProps) {
   const { session } = useAccountSession();
   return <section className="names-assistant-bridge" aria-labelledby="names-assistant-heading">
     <div className="names-section-heading"><h2 id="names-assistant-heading">AI naming assistant</h2><span>Saved project context</span></div>
-    <p>Choose an account project to review naming preferences and explore its names. Opening the workspace never starts generation.</p>
+    <p>Choose one of your projects to review its naming preferences and explore its names. Opening it doesn’t start creating names.</p>
     {session.status === "ready" ? <AccountProjectChooser key={`${session.userId}:${session.generation}`} account={session} /> : <AccountStatus />}
-    <div className="names-assistant-start"><h3>Start with a new brief</h3><p>Create a naming project in your account. Then open Naming to review preferences before generating.</p><Link className="button secondary small" href="/brands/new?scope=naming_only" prefetch={false}>Create naming brief<Icon name="plus" size={14} /></Link></div>
+    <div className="names-assistant-start"><h3>Start with a new brief</h3><p>Create a naming project in your account. Then open Naming to review preferences before generating.</p><Link className="button secondary small" href="/?scope=naming_only" prefetch={false}>Create naming brief<Icon name="plus" size={14} /></Link></div>
     <div className="names-assistant-library"><p>Favorite, saved and selected project names appear alongside your workshop names in Library.</p>{onOpenAccountLibrary ? <button className="text-link" type="button" onClick={onOpenAccountLibrary}>Open names library<Icon name="arrow" size={14} /></button> : null}</div>
   </section>;
 }

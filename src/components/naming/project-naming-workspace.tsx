@@ -6,6 +6,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 import { createPortal } from "react-dom";
 import { EmbelIdentity } from "@/components/workspace/embel-identity";
 import { journeyPartLabel } from "@/domain/journey";
+import { journeySectionId } from "@/components/journey/project-header";
 import { z } from "zod";
 import { GuidedThinking } from "@/components/workspace/guided-thinking";
 import { Icon } from "@/components/ui/icon";
@@ -101,7 +102,8 @@ function AccountProjectNaming({ projectId, account, conversationHistory, inline 
   // Personality are answered; the standalone Name page sends people back there.
   const conversationOwnsNaming = !inline && overview?.project.scope === "complete_brand"
     && Boolean(overview.project.context.intake.guidedInterview?.answers.some(answer => answer.stage === "personality"));
-  useEffect(() => { if (conversationOwnsNaming && isCurrent(account)) router.replace(strategyHref); }, [conversationOwnsNaming, account, isCurrent, router, strategyHref]);
+  // It opens at the Voice step, where the names are.
+  useEffect(() => { if (conversationOwnsNaming && isCurrent(account)) router.replace(`${strategyHref}#${journeySectionId("voice")}`); }, [conversationOwnsNaming, account, isCurrent, router, strategyHref]);
   const activeRun = feed.state?.feed?.activeRun;
   const readyCount = activeRun?.fulfillment?.acceptedCount ?? 0;
   const existingLibrary = custom.items.length > 0 || feed.entries.some(row => row.runId === null) || overview?.candidates.items.some(entry => entry.candidate.origin.kind !== "generated");
@@ -156,7 +158,7 @@ function AccountProjectNaming({ projectId, account, conversationHistory, inline 
     else if (restore === false) requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-naming-results-scroll]")?.scrollTo?.({ top: 0 }));
   }
   function openConversation() {
-    changeComposerLayout(pageCanvas ? { minimized: false, expanded: true } : { minimized: false });
+    if (pageCanvas) changeComposerLayout({ expanded: true });
     if (pageCanvas) {
       void naming.saveView({ conversationOpen: true, scrollCandidateId: candidateAnchor() });
     }
@@ -219,7 +221,7 @@ function AccountProjectNaming({ projectId, account, conversationHistory, inline 
 
   // In the conversation, the names message below carries progress and Add your own name.
   const inlineNamesShown = Boolean(inline) && overview.readiness.ready && (exploring || Boolean(currentSelection)) && view.pane === "results";
-  const chat = overview.readiness.ready ? <NamingApproachWidgets inline={pageCanvas ? undefined : inline} manualName={inlineNamesShown ? undefined : manualName} conversationHistory={conversationHistory} compact={pageCanvas} onToggleConversation={open => { if (open) void openConversation(); else void closeConversation(); }} composerLayout={composerLayout} onComposerLayoutChange={changeComposerLayout} memory={feed.memory} account={account} projectId={projectId} context={project.context} saved={overview.preferences} savedChat={view.namingChat} onSaveProgress={naming.saveChatProgress} blocked={blocked || Boolean(readError)} generationUnavailable={generationUnavailable} runtimeReady={!generationUnavailable && feed.state?.feed?.availability.status === "available" && feed.state?.status !== "blocked" && feed.state?.feed?.activeRun?.state !== "needs_reconciliation"} exploring={exploring} canSteer={feed.canExplore} onSteer={feed.steer} onCheckSaved={naming.refresh} onContinue={continueExploration} generationStatus={inlineNamesShown ? undefined : <div className="naming-generation-status" role="status"><NamingFeedTail feed={feed} blocked={blocked} onModify={() => void openConversation()} onReviewSaved={!pageCanvas ? () => setHistoryOpen(true) : undefined} />{!pageCanvas && generationPending && !generationUnavailable && <p>{Math.min(100, activeRun?.fulfillment?.acceptedCount ?? feed.entries.filter(row => row.runId === activeRun?.runId).length)} of 100 names saved. Your conversation stays here while exploration is active.</p>}</div>} /> : <p className={styles.chatUnavailable}>Review Strategy to continue the Naming conversation. Your saved names remain available.</p>;
+  const chat = overview.readiness.ready ? <NamingApproachWidgets inline={pageCanvas ? undefined : inline} manualName={inlineNamesShown ? undefined : manualName} conversationHistory={conversationHistory} compact={pageCanvas} onToggleConversation={open => { if (open) void openConversation(); else void closeConversation(); }} composerLayout={composerLayout} memory={feed.memory} account={account} projectId={projectId} context={project.context} saved={overview.preferences} savedChat={view.namingChat} onSaveProgress={naming.saveChatProgress} blocked={blocked || Boolean(readError)} generationUnavailable={generationUnavailable} runtimeReady={!generationUnavailable && feed.state?.feed?.availability.status === "available" && feed.state?.status !== "blocked" && feed.state?.feed?.activeRun?.state !== "needs_reconciliation"} exploring={exploring} canSteer={feed.canExplore} onSteer={feed.steer} onCheckSaved={naming.refresh} onContinue={continueExploration} generationStatus={inlineNamesShown ? undefined : <div className="naming-generation-status" role="status"><NamingFeedTail feed={feed} blocked={blocked} onModify={() => void openConversation()} onReviewSaved={!pageCanvas ? () => setHistoryOpen(true) : undefined} />{!pageCanvas && generationPending && !generationUnavailable && <p>{Math.min(100, activeRun?.fulfillment?.acceptedCount ?? feed.entries.filter(row => row.runId === activeRun?.runId).length)} of 100 names saved. Your conversation stays here while exploration is active.</p>}</div>} /> : <p className={styles.chatUnavailable}>Review Strategy to continue the Naming conversation. Your saved names remain available.</p>;
 
   const earlierConfirmation = earlierChoice && <section className="project-naming-stale-choice" aria-label="Earlier strategy confirmation">
     <h2 id="project-naming-earlier-heading" tabIndex={-1}>Use {earlierChoice.candidate.value} from an earlier strategy?</h2>
@@ -283,7 +285,7 @@ function AccountProjectNaming({ projectId, account, conversationHistory, inline 
     </>;
   }
 
-  return <div className={`page project-naming-page project-workbench ${styles.workspace} ${pageCanvas ? styles.exploring : styles.chatFirst}`} data-naming-layout={pageCanvas ? "results" : "chat"} data-chat-open={composerLayout.expanded && !composerLayout.minimized}>
+  return <div className={`page project-naming-page project-workbench ${styles.workspace} ${pageCanvas ? styles.exploring : styles.chatFirst}`} data-naming-layout={pageCanvas ? "results" : "chat"} data-chat-open={composerLayout.expanded}>
 
     {!pageCanvas && (readError || actionError) && <div className="project-naming-notice" role="alert"><p>{actionError ?? readError}</p><button type="button" className="button secondary small" disabled={pending} onClick={naming.refresh}>Check latest version</button></div>}
     <aside className={styles.chatPanel} hidden={pageCanvas && !overview.readiness.ready} aria-label="Naming conversation">

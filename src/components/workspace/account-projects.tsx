@@ -150,8 +150,9 @@ export function useAccountProjectListing(account: VerifiedAccount | null, state:
     const existing = previous?.items.find(row => row.id === project.id);
     if (!previous || !existing || project.lifecycle_version < existing.lifecycle_version || project.current_revision < existing.current_revision) return;
     if ((project.deletion_state !== "active") !== (state === "deleted")) { remove(project.id); return; }
-    // Status refreshes preserve loaded pages and their original cursor anchors.
-    const next = { ...previous, items: previous.items.map(row => row.id === project.id ? { ...project, created_at: row.created_at } : row) };
+    // Status refreshes preserve loaded pages, their original cursor anchors and
+    // the listed name (a lifecycle read carries only the saved title).
+    const next = { ...previous, items: previous.items.map(row => row.id === project.id ? { ...project, created_at: row.created_at, title: row.title } : row) };
     currentListing.current = next; setListing(next);
   }, [account, isCurrent, remove, state]);
   useEffect(() => {

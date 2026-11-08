@@ -85,11 +85,11 @@ export function DomainFilters({ extensions, onExtensionsChange, disabled, expand
   return <div className={styles.filterSurface} onBlur={event => { if (expanded && event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node)) onExpandedChange(false); }} onKeyDown={event => { if (event.key === "Escape" && expanded) { event.preventDefault(); close(); } }}>
     <section className={styles.collapsedFilters} aria-label="Active domain filters">
       <button ref={trigger} type="button" className={styles.editFilters} aria-expanded={expanded} aria-controls={`${uid}-filters`} onClick={() => onExpandedChange(!expanded)}><Icon name="settings" size={15} />Edit filters<Icon name="chevron" size={12} className={expanded ? styles.chevronUp : styles.chevronDown} /></button>
-      <span className={styles.filterPill}>{extensions.length} extensions</span><span className={styles.filterPill}>{filters.hideUnavailable ? "Unavailable hidden" : "Unavailable included"}</span><span className={styles.filterPill}>${range} USD / year</span>
+      <span className={styles.filterPill}>{extensions.length} extensions</span><span className={styles.filterPill}>{filters.hideUnavailable ? "Taken domains hidden" : "Taken domains shown"}</span><span className={styles.filterPill}>${range} USD / year</span>
       <button type="button" className={styles.resetSearch} disabled={disabled} onClick={reset}>Reset</button>
     </section>
     <section className={styles.filtersPanel} aria-label="Domain search filters" id={`${uid}-filters`} hidden={!expanded}>
-    <header className={styles.filterHeading}><div><h2><Icon name="settings" size={16} />Refine your search</h2><p className={styles.filterScope}>Changing extensions resets prepared results. Price and availability filters only affect this view; unpriced and unknown results stay visible.</p></div><button type="button" onClick={close}>Done<Icon name="chevron" size={12} className={styles.chevronUp} /></button></header>
+    <header className={styles.filterHeading}><div><h2><Icon name="settings" size={16} />Refine your search</h2><p className={styles.filterScope}>Changing extensions starts a new search.</p></div><button type="button" onClick={close}>Done<Icon name="chevron" size={12} className={styles.chevronUp} /></button></header>
     <div className={styles.filterBody}>
     <div className={styles.filterColumns}>
       <nav className={styles.categories} aria-label="Extension categories"><p>Categories</p>{([...Object.keys(extensionGroups), "All extensions"] as Category[]).map(item => <button type="button" key={item} aria-pressed={category === item} onClick={() => { setCategory(item); setQuery(""); }}>{item}</button>)}</nav>
@@ -106,8 +106,7 @@ export function DomainFilters({ extensions, onExtensionsChange, disabled, expand
           {invalidRange && <p role="alert" className={styles.filterError}>Maximum must be at least the minimum.</p>}
         </fieldset>
         <fieldset className={styles.inclusion} disabled={disabled}><legend className="sr-only">Include in results</legend><h3>Include in results</h3>
-          <p className={styles.muted}>Premium classification is not supplied. Results are not filtered by it.</p>
-          <label>Hide unavailable<input className={styles.switch} type="checkbox" checked={filters.hideUnavailable} onChange={event => onFiltersChange({ ...filters, hideUnavailable: event.target.checked })} /></label>
+          <label>Hide taken domains<input className={styles.switch} type="checkbox" checked={filters.hideUnavailable} onChange={event => onFiltersChange({ ...filters, hideUnavailable: event.target.checked })} /></label>
         </fieldset><button type="button" className={styles.resetFilters} disabled={disabled} onClick={reset}>Reset filters</button>
       </div>
     </div>

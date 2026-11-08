@@ -38,8 +38,8 @@ async function install(page: Page, count = 20, longValues = false) {
 }
 async function ready(page: Page) {
   await page.goto("/settings");
-  await page.getByRole("tab", { name: "Usage & billing", exact: true }).click();
-  await expect(page.locator(".recorded-usage-notice").first()).toHaveText("Recorded usage loaded.");
+  await page.getByRole("tab", { name: "Usage", exact: true }).click();
+  await expect(page.locator('.recorded-usage [role="status"]')).toHaveText("Usage loaded.");
   await page.evaluate(() => document.fonts.ready);
 }
 async function geometry(page: Page) {
@@ -51,7 +51,7 @@ async function geometry(page: Page) {
 
 for (const count of [0, 1, 20]) test(`Usage ${count} rows: refresh and tab/focus return retain layout and focus`, async ({ page }) => {
   const fixture = await install(page, count); await ready(page);
-  const refresh = page.getByRole("button", { name: "Refresh usage", exact: true });
+  const refresh = page.getByRole("button", { name: "Refresh", exact: true });
   await refresh.focus(); const initial = await geometry(page);
   fixture.state.holdUsage = true; await refresh.press("Enter");
   await expect(refresh).toHaveAttribute("aria-disabled", "true");
@@ -65,9 +65,9 @@ for (const count of [0, 1, 20]) test(`Usage ${count} rows: refresh and tab/focus
   await expect.poll(() => fixture.state.sessionReads).toBeGreaterThanOrEqual(2);
   expect(await geometry(page)).toEqual(initial); await expect(refresh).toBeFocused();
   fixture.releaseSession();
-  await page.getByRole("tab", { name: "Workspace", exact: true }).click();
-  await page.getByRole("tab", { name: "Usage & billing", exact: true }).click();
-  await expect(page.locator(".recorded-usage-notice").first()).toHaveText("Recorded usage loaded.");
+  await page.getByRole("tab", { name: "Account", exact: true }).click();
+  await page.getByRole("tab", { name: "Usage", exact: true }).click();
+  await expect(page.locator('.recorded-usage [role="status"]')).toHaveText("Usage loaded.");
   expect((await geometry(page)).height).toBe(initial.height);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
   expect(fixture.state.forbidden).toEqual([]); expect(fixture.state.errors).toEqual([]);
@@ -76,8 +76,10 @@ for (const count of [0, 1, 20]) test(`Usage ${count} rows: refresh and tab/focus
 test("Usage full page: explicit account verification uses matching public geometry and hides private data", async ({ page }) => {
   const fixture = await install(page); await ready(page);
   const initial = await geometry(page); fixture.state.holdSession = true;
-  // Trigger the real explicit-check control without introducing a navigation scroll.
-  await page.locator("button.account-check").first().evaluate((button: HTMLButtonElement) => button.click());
+  // Trigger the real explicit check beside Sign out on Account, then return to Usage while it runs.
+  await page.getByRole("tab", { name: "Account", exact: true }).click();
+  await page.locator(".sg-session button.account-check").evaluate((button: HTMLButtonElement) => button.click());
+  await page.getByRole("tab", { name: "Usage", exact: true }).click();
   await expect(page.locator(".recorded-usage-pending-slot")).toHaveCount(20);
   await expect(page.locator(".recorded-usage-entry")).toHaveCount(0);
   await expect(page.locator(".recorded-usage-refresh")).toHaveCount(0);
@@ -90,12 +92,12 @@ test("Usage full page: explicit account verification uses matching public geomet
 
 test("Usage long values: wrap without clipping and preserve stable ordinary refresh", async ({ page }) => {
   const fixture = await install(page, 1, true); await ready(page);
-  await expect(page.locator(".recorded-usage-entry dd").first()).toHaveText("9,007,199,254,740,990");
-  const refresh = page.getByRole("button", { name: "Refresh usage", exact: true }); await refresh.focus();
+  await expect(page.locator(".recorded-usage-entry > td:last-child").first()).toHaveText("9,007,199,254,740,991");
+  const refresh = page.getByRole("button", { name: "Refresh", exact: true }); await refresh.focus();
   const initial = await geometry(page); fixture.state.holdUsage = true; await refresh.press("Enter");
   await expect(refresh).toHaveAttribute("aria-disabled", "true"); expect(await geometry(page)).toEqual(initial);
   fixture.releaseUsage(); await expect(refresh).toHaveAttribute("aria-disabled", "false");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
-  expect(await page.locator(".recorded-usage-entry dd").evaluateAll(cells => cells.every(cell => cell.scrollWidth <= cell.clientWidth))).toBe(true);
+  expect(await page.locator(".recorded-usage-entry > *").evaluateAll(cells => cells.every(cell => cell.scrollWidth <= cell.clientWidth))).toBe(true);
   expect(fixture.state.forbidden).toEqual([]); expect(fixture.state.errors).toEqual([]);
 });

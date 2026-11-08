@@ -4,7 +4,6 @@ import Link from "next/link";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AssetsWorkspace } from "@/components/assets/assets-workspace";
-import { SettingsWorkspace } from "@/components/workspace/settings-workspace";
 import type { useAssetLibrary } from "@/components/assets/use-asset-library";
 
 const fixture = vi.hoisted(() => ({
@@ -22,7 +21,6 @@ vi.mock("@/components/assets/asset-preview", () => ({ AssetPreview: () => null }
 vi.mock("@/components/workspace/account-profile-editor", () => ({ AccountProfileEditor: () => null }));
 vi.mock("@/components/workspace/account-access", () => ({ AccountAccess: () => null }));
 vi.mock("@/components/workspace/local-chatgpt-settings", () => ({ LocalChatGPTSettings: () => null }));
-vi.mock("@/components/workspace/strategy-runtime-settings", () => ({ StrategyRuntimeSettings: () => null }));
 vi.mock("@/components/workspace/recorded-usage", () => ({ RecordedUsageSection: () => null }));
 
 let root: Root, host: HTMLDivElement, fetcher: ReturnType<typeof vi.fn>;
@@ -39,15 +37,12 @@ afterEach(async () => { await act(async () => root.unmount()); document.body.rep
 // Capability-neutral guidance must not probe a provider or infer readiness from
 // an unrelated library load or app-connection state.
 describe("Assets generation guidance", () => {
-  it.each(["ready", "loading", "error"] as const)("describes saved files without a global generation claim when library is %s", async status => {
+  it.each(["ready", "loading", "error"] as const)("shows a clean gallery without system notes or a generation claim when library is %s", async status => {
     fixture.library = { ...fixture.library, status, error: status === "error" ? "Assets could not be loaded." : null };
     await act(async () => root.render(<AssetsWorkspace />));
-    const note = host.querySelector(".assets-generation-note")!;
-    expect(note.textContent).toContain("files and versions already saved in your account");
-    expect(note.textContent).toContain("logo concepts and saved-preview refinements");
-    expect(note.textContent).toContain("Available operations are shown in its logo workspace");
-    expect(note.querySelector("a")?.getAttribute("href")).toBe("/brands");
-    expect(note.textContent).not.toMatch(/not connected|ready to generate|vector|export/i);
+    expect(host.querySelector(".assets-generation-note")).toBeNull();
+    expect(host.textContent).not.toMatch(/Kept assets includes|Versions stay in your library|Available operations|already saved in your account|File checked/);
+    expect(host.textContent).not.toMatch(/not connected|ready to generate|vector|export/i);
     expect(fetcher).not.toHaveBeenCalled();
     expect(fixture.library.refresh).not.toHaveBeenCalled();
   });
@@ -57,32 +52,6 @@ describe("Assets generation guidance", () => {
     expect(host.querySelector('a[href="/sign-in"]')).not.toBeNull();
     expect(host.querySelector(".assets-generation-note")).toBeNull();
     expect(fixture.useLibrary).not.toHaveBeenCalled();
-    expect(fetcher).not.toHaveBeenCalled();
-  });
-});
-
-describe("Settings capability-neutral guidance", () => {
-  it.each(["ready", "unavailable", "signed_out"])("separates app connections from tool checks for a %s account", async status => {
-    fixture.session.status = status;
-    await act(async () => root.render(<SettingsWorkspace />));
-    await act(async () => host.querySelector<HTMLButtonElement>("#settings-tab-integrations")!.click());
-    const checks = host.querySelector('[aria-label="Availability checks"]')!;
-    expect(checks.textContent).toContain("Availability checks are separate from connected apps");
-    expect(checks.textContent).toContain("currently supported");
-    expect(checks.textContent).toContain("trademark results are not legal clearance");
-    expect(checks.textContent).not.toContain("not connected");
-    expect([...checks.querySelectorAll("a")].map(link => link.getAttribute("href"))).toEqual(["/domains", "/handles", "/trademarks"]);
-    expect(host.querySelector('[aria-label="Connected apps"]')?.textContent).toContain("app connections and automatic exports are not available");
-    expect(fetcher).not.toHaveBeenCalled();
-  });
-  it("directs image readiness to project logo workspaces without promising vector or export access", async () => {
-    await act(async () => root.render(<SettingsWorkspace />));
-    await act(async () => host.querySelector<HTMLButtonElement>("#settings-tab-ai")!.click());
-    const images = host.querySelector('[aria-label="Images"]')!;
-    expect(images.textContent).toContain("Logo concepts and saved-preview refinements have separate readiness checks");
-    expect(images.textContent).toContain("Text readiness does not confirm image access");
-    expect(images.querySelector("a")?.getAttribute("href")).toBe("/brands");
-    expect(images.textContent).not.toMatch(/vector|export|not connected/i);
     expect(fetcher).not.toHaveBeenCalled();
   });
 });

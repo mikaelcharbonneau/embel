@@ -2,7 +2,7 @@
 .guided-interview { position: relative; display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--paper); }
 .page.home-page:has(.guided-interview-opening) { width: 100%; height: 100%; max-width: none; padding: 0; }
 .home-page:has(.guided-interview-opening) .home-recent { display: none; }
-.guided-interview-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-gutter: stable; padding: 56px max(24px, calc((100% - 760px) / 2)) 32px; display: flex; flex-direction: column; gap: 28px; scroll-behavior: auto; }
+.guided-interview-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-gutter: stable; padding: 56px max(24px, calc((100% - var(--conversation-max)) / 2)) 32px; display: flex; flex-direction: column; gap: 28px; scroll-behavior: auto; }
 .guided-interview-scroll:focus-visible { outline-offset: -3px; }
 .guided-user-message { align-self: flex-end; max-width: min(600px, 88%); padding: 14px 18px; border-radius: 12px; background: var(--surface, #f1f0ee); }
 .guided-user-message p { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; line-height: 24px; }
@@ -13,10 +13,15 @@
 .guided-assistant-message .guided-choice-widget, .guided-assistant-message .guided-choice-answer { margin-top: 16px; }
 .guided-assistant-question { margin-top: 12px; font-weight: 500; }
 .guided-floating-input { display: contents; }
+/* The last message scrolls fully above the message box and its fade. */
 .guided-interview[data-composer=floating] > .guided-interview-scroll {
-  padding-bottom: var(--floating-composer-clearance, 128px);
-  scroll-padding-bottom: var(--floating-composer-clearance, 128px);
+  padding-bottom: calc(var(--floating-composer-clearance, 96px) + 32px);
+  scroll-padding-bottom: calc(var(--floating-composer-clearance, 96px) + 32px);
 }
+/* Strategy and Voice: each journey step is one section of the conversation,
+   spaced like the messages inside it. */
+.guided-journey-section { display: flex; flex-direction: column; flex-shrink: 0; gap: inherit; min-width: 0; scroll-margin-top: 24px; }
+.guided-journey-section:focus { outline: none; }
 .guided-new-response { display: flex; justify-content: center; }
 .guided-new-response > .button { pointer-events: auto; min-height: 44px; background: var(--paper); box-shadow: 0 2px 8px #1919190d; }
 .guided-conversation-error { margin-bottom: 12px; padding: 12px 14px; border-radius: 8px; background: #fff5f3; color: var(--danger, #a52b2b); font-size: 13px; line-height: 20px; }
@@ -28,8 +33,6 @@
 .guided-thinking > img { animation: guided-thinking-pulse 1.5s ease-in-out infinite; }
 .guided-thinking .text-link { margin-left: auto; font-size: 13px; }
 .guided-complete { padding: 16px 0; color: var(--secondary); font-size: 13px; line-height: 20px; }
-.guided-interview-start { font-size: 15px; line-height: 24px; }
-.guided-interview-start .button { margin-top: 16px; }
 .guided-interview-loading { height: 100%; min-height: 0; display: flex; flex-direction: column; background: var(--paper); }
 .guided-interview-loading .guided-research-screen { flex: 1; min-height: 0; }
 .guided-loading-recovery { flex-shrink: 0; max-height: 35%; overflow-y: auto; text-align: center; padding: 0 24px 24px; color: var(--secondary); font-size: 13px; }
@@ -46,7 +49,8 @@
   .guided-assistant-copy, .guided-user-message p { font-size: 14px; line-height: 22px; }
 }
 
-.guided-brief-editor { display: flex; justify-content: flex-end; margin-bottom: 1rem; }
+/* The conversation's gap spaces it; no extra margin. */
+.guided-brief-editor { display: flex; justify-content: flex-end; margin: 0; }
 .guided-brief-editor .field-label { display: grid; gap: .5rem; margin-block: 1rem; }
 .guided-brief-editor input, .guided-brief-editor textarea { width: 100%; min-width: 0; }
 .guided-brief-editor textarea { min-height: 8rem; resize: vertical; }
@@ -60,5 +64,5 @@
 @media (pointer: coarse) { .brief-edit-trigger { width: 44px; height: 44px; } }
 
 .guided-interview[hidden] { display: none; }
-.guided-naming-messages { display: contents; }
+.guided-naming-messages, .guided-naming-results { display: contents; }
 @media (max-width: 700px) { .guided-brief-turn { max-width: 94%; } }

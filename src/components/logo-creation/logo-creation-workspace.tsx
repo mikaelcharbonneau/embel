@@ -79,7 +79,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
   const { controller: refinementHistory, state: refinementHistoryState } = useLogoRefinementHistory(client, account, projectId);
   const strategyRead = useRef<AbortController | null>(null);
   const savedInputsRead = useRef<AbortController | null>(null);
-  const refinementDisclosure = useRef<HTMLButtonElement | null>(null);
+  const refinementInput = useRef<HTMLTextAreaElement | null>(null);
   const preparedInputsKey = useRef<string | null>(null);
   const requestRead = useRef<AbortController | null>(null);
   const deliveredCreation = useRef<string | null>(null);
@@ -201,12 +201,12 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
   const cardVersions = conceptVersions(activeBatch, refinementHistoryState);
   const selectedCard = Object.entries(cardVersions).find(([, versions]) => selectedLogo && versions.some(version => version.key === logoCandidateKey(selectedLogo)));
   const selectedOrdinal = activeBatch?.slots.find(slot => slot.id === selectedCard?.[0])?.ordinal;
-  const selectedLabel = selectedLogo ? selectedOrdinal !== undefined ? `Concept ${selectedOrdinal + 1}${selectedLogo.kind === "refinement" ? ` · ${selectedCard?.[1].find(version => version.key === logoCandidateKey(selectedLogo))?.label ?? "Refined"}` : ""}` : "your selected logo" : undefined;
+  const selectedLabel = selectedLogo ? selectedOrdinal !== undefined ? `Concept ${selectedOrdinal + 1}${selectedLogo.kind === "refinement" ? ` · ${selectedCard?.[1].find(version => version.key === logoCandidateKey(selectedLogo))?.label ?? "Refined"}` : ""}` : "Your chosen logo" : undefined;
   const refinementBusy = Boolean(refinementRequestKey && ["admitted", "running", "needs_reconciliation"].includes(refinementRequestStatus ?? ""));
   const completedRefinement = refinementHistoryState.items.find(({ record, verified }) => verified && record.requestKey === refinementRequestKey && record.state === "succeeded" && record.billing.status === "recorded" && record.preview?.publicationState === "committed")?.record;
-  const composerStatus = selectionState.busy ? "Saving your selection…" : refinementBusy ? refinementRequestStatus === "needs_reconciliation" ? "Checking the original refinement request…" : "Refining your selected logo…"
-    : completedRefinement ? "Your refined logo is ready on its card." : initialConceptReadState ? initialConceptReadMessage : !selectedLogo ? "Select a logo above to get started." : focusedReview.loading ? "Reading your selected logo…" : focusedReview.error ? "Your selected logo could not be verified. Try selecting it again."
-    : !capabilities.isAvailable("identity.logo_refine") ? "Logo refinement is currently unavailable. Your message is kept." : "Describe your changes. Generate when you’re ready.";
+  const composerStatus = selectionState.busy ? "Saving your choice…" : refinementBusy ? refinementRequestStatus === "needs_reconciliation" ? "Checking on your last change…" : "Refining your logo…"
+    : completedRefinement ? "Your refined logo is ready on its card." : initialConceptReadState ? initialConceptReadMessage : !selectedLogo ? "Select a logo above to get started." : focusedReview.loading ? "Loading your chosen logo…" : focusedReview.error ? "Your chosen logo could not be loaded. Try choosing it again."
+    : !capabilities.isAvailable("identity.logo_refine") ? "Changing logos is unavailable right now. Your message is kept." : "";
 
   const canDiscard = Boolean(projectId && editing && (workspace.dirty || draft?.conflict) && !workspace.pending && !checkingRequest);
   const snapshot = workspace.referenceSnapshot;
@@ -214,12 +214,12 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
   const conceptReferenceLimitExceeded = referenceCount > IMAGE_INPUT_LIMITS.images;
   const canSaveReferences = Boolean(editing && snapshot && saveAvailable && !workspace.pending && !draft?.conflict);
   const autoSave = Boolean(projectId && !needsInitialization);
-  const saveMessage = savedInputs.status === "saving" || workspace.saving ? "Saving…" : strategy.busy ? "Reading your saved Strategy…" : workspace.pending ? "A request is awaiting confirmation. Your edits are kept in this tab."
+  const saveMessage = savedInputs.status === "saving" || workspace.saving ? "Saving…" : strategy.busy ? "Reading your saved Strategy…" : workspace.pending ? "Finishing an earlier request. Your edits are kept in this tab."
     : !saveAvailable ? "Saving is unavailable. " + (saved?.capabilities.save.status === "unavailable" ? saved.capabilities.save.reason : "Your edits are kept in this tab.")
     : workspace.status === "loading" ? "Loading your workspace…" : draft?.conflict ? "The saved brief has changed. Your edits are kept in this tab."
     : !validBrief ? "Enter a brand name and choose at least one logo type. Brief details must fit the save limits."
     : workspace.error ? "Changes could not be saved. Your edits are kept in this tab."
-    : workspace.dirty ? workspace.autoSaveReady ? "Changes waiting to save…" : "Unsaved changes are kept in this tab." : needsInitialization ? "Create a logo workspace in this saved brand when your brief is ready." : saved ? "Saved." : "Save the brief to create your project.";
+    : workspace.dirty ? workspace.autoSaveReady ? "Changes waiting to save…" : "Unsaved changes are kept in this tab." : needsInitialization ? "Save your logo brief when it’s ready." : saved ? "Saved." : "Save the brief to create your project.";
 
   const nameReadiness = brandTextReadiness(draft?.brief.name ?? "");
   const canPrepareInputs = Boolean(saved && editing && !workspace.pending && !workspace.dirty && !draft?.conflict && !quoteReviewBlocked);
@@ -257,8 +257,8 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
         if (!current()) return;
         if (result !== "reloaded") {
           setSavedInputs({ status: "blocked", message: result === "draft_blocked"
-            ? "Save or resolve the changes in Project context before generating. Your changes are kept."
-            : "Your saved logo workspace could not be read. Try again." });
+            ? "Save or undo your logo brief changes first. Your changes are kept."
+            : "Your saved logo details could not be loaded. Try again." });
           return;
         }
       }
@@ -368,11 +368,11 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
       if (current() && error instanceof LogoSelectionConflictResolvedError) {
         const result = await reloadWorkspace(false);
         if (current()) setSelectionState(previous => ({ ...previous, error: result === "reloaded"
-          ? "Your saved workspace changed before this selection was applied. Choose your saved logo version again."
-          : "Your original selection was not applied. Your saved logos and edits are kept. Refresh the saved brand after resolving any local edits, then choose your logo version again." }));
+          ? "Your logo changed before this choice was saved. Choose your logo again."
+          : "Your choice was not saved. Your logos and edits are kept. Refresh your saved brand, then choose your logo again." }));
       } else if (current()) setSelectionState(previous => ({ ...previous, error: error instanceof AccountRequestError && error.status === 409
-        ? "Your saved workspace changed. Check the original selection before choosing a saved logo again."
-        : accountErrorMessage(error) + " Your original selection request is kept." }));
+        ? "Your logo changed elsewhere. Check your choice before choosing again."
+        : accountErrorMessage(error) + " Your choice is kept so you can try again." }));
     }
     finally { selecting.current = false; if (requestRead.current === controller) requestRead.current = null; if (current()) setSelectionState(previous => ({ ...previous, busy: false })); }
   }, [client, projectId, account, isCurrent, memory, reloadWorkspace]);
@@ -432,7 +432,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
     {saved && <LogoInputStatus workspace={saved} />}
   </>;
   const inputTools = <>
-    {!activeBatch && <div className="project-logo-start"><h2 className={stage.sectionHeading}>{draft?.brief.name || "Your logo starts here"}</h2><p>Save a brief in Project context, then review the available generation options. Only verified image results will appear here.</p></div>}
+    {!activeBatch && <div className="project-logo-start"><h2 className={stage.sectionHeading}>{draft?.brief.name || "Your logo starts here"}</h2><p>Save your logo brief to start. Your logo concepts will appear here.</p></div>}
     {strategy.message && <p className={styles.warning} role="status">{strategy.message}</p>}
     {saved && client ? <AccountLogoInputs account={account} workspace={saved} client={client} mode="references" canWrite={editing && !workspace.pending} selections={draft?.references} savedReferences={snapshot?.references} onSelectionsChange={editing && snapshot && !workspace.pending ? workspace.setReferenceDraft : undefined} /> : <LogoReferencePickerView references={snapshot?.references} selections={draft?.references}
       onChange={editing && snapshot && !workspace.pending ? workspace.setReferenceDraft : undefined}
@@ -446,7 +446,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
       <h2 className={stage.sectionHeading}>Saved explorations</h2>
       {batchHistoryState.loading && <p className={styles.note} role="status">Reading saved explorations…</p>}
       {batchHistoryState.error && <p className={styles.warning} role="status">{batchHistoryState.error}</p>}
-      {batchHistoryState.loaded && !batchHistoryState.loading && !batchHistoryState.error && batchIds.length === 0 && <p className={styles.note}>No saved exploration has been requested yet.</p>}
+      {batchHistoryState.loaded && !batchHistoryState.loading && !batchHistoryState.error && batchIds.length === 0 && <p className={styles.note}>No logo concepts yet.</p>}
       {batchIds.length > 0 && <label className={styles.field}><span>Concept batch</span><select value={batchId} onChange={event => setSelectedBatchId(event.currentTarget.value)}>{batchIds.map((id, index) => <option key={id} value={id}>Exploration {index + 1}{batchHistoryState.items.find(batch => batch.id === id)?.createdAt ? ` · ${new Date(batchHistoryState.items.find(batch => batch.id === id)!.createdAt).toLocaleString()}` : ""}</option>)}</select></label>}
       <div className={styles.actions}>
         <button className={styles.secondaryButton} type="button" disabled={!batchHistory || batchHistoryState.loading} onClick={() => void batchHistory?.refresh()}>Refresh saved explorations</button>
@@ -462,7 +462,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
       onSelect={saved?.capabilities.save.status === "available" && !workspace.pending && !workspace.dirty && !draft?.conflict && editing ? source => void selectCandidate(source) : undefined}
       onRefresh={refinementHistory ? () => void refinementHistory.refresh() : undefined}
       onLoadMore={refinementHistory ? () => void refinementHistory.loadMore() : undefined}
-      onRequestRefine={canEstimate ? source => { void selectCandidate(source); if (refinementDisclosure.current?.getAttribute("aria-expanded") === "false") refinementDisclosure.current.click(); } : undefined} />}
+      onRequestRefine={canEstimate ? source => { void selectCandidate(source); refinementInput.current?.focus(); } : undefined} />}
     {saved && <LogoVectorConversionControls
       context={{ ownerId: saved.ownerId, projectId: saved.projectId, generation: account.generation, expected: saved.heads, source: selectedLogo }}
       getCurrentContext={() => {
@@ -483,12 +483,19 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
     {saved && !needsInitialization && <LogoIdentityContinuation workspace={saved} blocked={workspace.pending || workspace.dirty || !!draft?.conflict} hasSelection={Boolean(selectedLogo)} />}
   </>;
 
-  const conceptsComposer = conceptsScreen && projectId ? <ConceptsComposer disclosureRef={refinementDisclosure} projectId={projectId} selectionReadState={initialConceptReadState} selectedLabel={selectedLabel} selectedPreview={focusedReceipt && client ? <LogoVerifiedPreview client={client} receipt={focusedReceipt} alt="Selected logo" /> : undefined} status={composerStatus} onShowResult={completedRefinement ? () => { const slotId = Object.entries(cardVersions).find(([, versions]) => versions.some(version => version.source.kind === "refinement" && version.source.rasterRevisionId === completedRefinement.id))?.[0]; if (slotId) document.querySelector<HTMLElement>(`[data-concept-slot="${slotId}"]`)?.scrollIntoView({ block: "center" }); } : undefined} instruction={refineInstruction} onInstructionChange={setRefineInstruction} onGenerate={refinementEstimate.canStart ? refinementEstimate.start : undefined} generationAction={<LogoGenerationAction estimate={refinementEstimate} label="Generate refinement" unavailable="Select a logo and describe your changes." />}>
+  // Continue sits at the end of the step, on the right of the quiet details link.
+  const continueAction = conceptsScreen && projectId && activeBatch ? workspace.stagePayloads?.concepts?.payload.selected && !selectionState.busy
+    ? <Link className={`${styles.primaryButton} ${stage.actionLink}`} href={`/brands/account/${projectId}/logo/directions`}
+      onClick={() => { try { window.sessionStorage.setItem(`embel.directions-intent.v1:${projectId}`, String(Date.now())); } catch { /* Then directions wait for a click. */ } }}>Continue</Link>
+    : <button className={styles.primaryButton} type="button" disabled title={initialConceptReadState ? initialConceptReadMessage : "Select a logo and wait for it to save"}>Continue</button> : null;
+  const conceptsComposer = conceptsScreen && projectId ? <ConceptsComposer inputRef={refinementInput} projectId={projectId} selectionReadState={initialConceptReadState} selectedLabel={selectedLabel} selectedPreview={focusedReceipt && client ? <LogoVerifiedPreview client={client} receipt={focusedReceipt} alt="Selected logo" /> : undefined}
+    selectedActions={client && focusedReceipt ? <LogoDownloadControls client={client} account={account} projectId={projectId} original={focusedReceipt} disabled={selectionState.busy} compact /> : undefined}
+    idle={!activeBatch && !batchId && !initialConceptReadState} footer={continueAction} status={composerStatus} onShowResult={completedRefinement ? () => { const slotId = Object.entries(cardVersions).find(([, versions]) => versions.some(version => version.source.kind === "refinement" && version.source.rasterRevisionId === completedRefinement.id))?.[0]; if (slotId) document.querySelector<HTMLElement>(`[data-concept-slot="${slotId}"]`)?.scrollIntoView({ block: "center" }); } : undefined} instruction={refineInstruction} onInstructionChange={setRefineInstruction} onGenerate={refinementEstimate.canStart ? refinementEstimate.start : undefined} generationAction={<LogoGenerationAction estimate={refinementEstimate} label="Refine" unavailable={refineInstruction.trim() ? "Not ready yet." : ""} />}>
       <LogoBriefFields draft={draft?.brief} autoSave={autoSave} onChange={editing ? workspace.setBriefDraft : undefined} onReuseStrategy={editing && projectId && saved && !workspace.pending ? () => void reuseStrategy() : undefined} nameConflict={strategy.nameConflict} sourceProjectRevision={strategy.revision} saveMessage={saveMessage} saveLabel={needsInitialization ? "Create logo workspace" : "Save brief"} onSave={canSave ? () => { if (draft) void workspace.saveBrief(draft.brief); } : undefined} />
-      <ContextDetails className={styles.contextDetails} title={<>Saved inputs and recovery</>}><p className={styles.muted}>Start with a brief, choose the kinds of logo you want to explore, and keep your work in a saved project.</p>{savedProjectId && <div className={styles.actions}>
+      <ContextDetails className={styles.contextDetails} title={<>Saved versions and options</>}><p className={styles.muted}>Start with a brief, choose the kinds of logo you want to explore, and keep your work in a saved project.</p>{savedProjectId && <div className={styles.actions}>
         <Link className={styles.secondaryButton} href={projectStrategyHref(savedProjectId)}>Open project</Link>
-        <Link className={styles.secondaryButton} href={"/brands/account/" + savedProjectId + "/identity"}>Open moodboard and saved systems</Link>
-      </div>}{savedProjectId && <Link className={styles.secondaryButton} href={"/brands/account/" + savedProjectId + "/logo/vector"}>Advanced vector editor</Link>}{needsInitialization && <p className={styles.note}>Use Reuse Strategy to copy this project’s selected name, audience and personality into an editable logo brief. Choose your logo types, then create the logo workspace.</p>}{savedProjectId && !workspace.pending && !workspace.dirty && !draft?.conflict && <button className={styles.secondaryButton} type="button" onClick={() => { setStrategy({ busy: false, message: null, nameConflict: false }); void workspace.reload(false); }}>Refresh saved brand</button>}{!savedProjectId && <p className={styles.note}>Save your brief to open the logo editor.</p>}{created && !onProjectCreated && <p><Link href={"/brands/account/" + created.projectId + "/logo"}>Continue with your saved logo brief</Link></p>}{selectionState.error && <p className={styles.warning} role="alert">{selectionState.error}</p>}{pendingSelection && <div className={styles.actions}><p className={styles.note}>The original logo selection is awaiting confirmation. Your saved previews are retained.</p><button className={styles.secondaryButton} type="button" disabled={selectionState.busy} onClick={() => void selectCandidate()}>Check original selection</button><button className={styles.secondaryButton} type="button" disabled={selectionState.busy || draft?.conflict} onClick={() => void selectCandidate(undefined, true)}>Retry original selection</button></div>}{workspace.error && <p className={styles.warning} role="alert">{workspace.error}</p>}{workspace.status === "error" && !workspace.pending && <button className={styles.secondaryButton} type="button" onClick={() => void workspace.reload(false)}>Try loading again</button>}{creation && !created && <div className={styles.actions}>
+        <Link className={styles.secondaryButton} href={"/brands/account/" + savedProjectId + "/identity"}>Your references</Link>
+      </div>}{needsInitialization && <p className={styles.note}>Choose Reuse Strategy to fill in your brand name, audience and personality from your Strategy step. Then pick your logo types and save.</p>}{savedProjectId && !workspace.pending && !workspace.dirty && !draft?.conflict && <button className={styles.secondaryButton} type="button" onClick={() => { setStrategy({ busy: false, message: null, nameConflict: false }); void workspace.reload(false); }}>Refresh saved brand</button>}{!savedProjectId && <p className={styles.note}>Save your brief to keep your logo work in a project.</p>}{created && !onProjectCreated && <p><Link href={"/brands/account/" + created.projectId + "/logo"}>Continue with your saved logo brief</Link></p>}{selectionState.error && <p className={styles.warning} role="alert">{selectionState.error}</p>}{pendingSelection && <div className={styles.actions}><p className={styles.note}>We couldn’t confirm that your logo choice was saved. Your logos are safe.</p><button className={styles.secondaryButton} type="button" disabled={selectionState.busy} onClick={() => void selectCandidate()}>Check my choice</button><button className={styles.secondaryButton} type="button" disabled={selectionState.busy || draft?.conflict} onClick={() => void selectCandidate(undefined, true)}>Save my choice again</button></div>}{workspace.error && <p className={styles.warning} role="alert">{workspace.error}</p>}{workspace.status === "error" && !workspace.pending && <button className={styles.secondaryButton} type="button" onClick={() => void workspace.reload(false)}>Try loading again</button>}{creation && !created && <div className={styles.actions}>
         <p className={styles.note}>The save has not been confirmed. Check it or retry the same save; your original brief is kept.</p>
         <button className={styles.secondaryButton} type="button" disabled={!editing} onClick={() => void workspace.checkProjectCreation()}>Check project save</button>
         <button className={styles.secondaryButton} type="button" disabled={!editing} onClick={() => void workspace.retryProjectCreation()}>Retry original project save</button>
@@ -521,21 +528,20 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
         onChange={draft && editing && autoSave ? types => workspace.setBriefDraft({ ...draft.brief, logoTypes: types }) : undefined}
         action={<LogoGenerationAction estimate={conceptEstimate} label="Explore six concepts" unavailable={savedInputsBusy ? "Preparing saved inputs…" : !capabilities.isAvailable("identity.logo_concept") ? "Generation is currently unavailable." : "Complete your saved logo inputs to continue."} />} />}
     </div>}
-    <header className={styles.workspaceHeader}>
+    {!conceptsScreen && <header className={styles.workspaceHeader}>
       {!conceptsScreen && <h1>{projectId ? "Explore your logo" : "Give your brand a visual voice"}</h1>}
       {!conceptsScreen && <p className={styles.muted}>Review and refine your saved logo.</p>}
       {!conceptsScreen && <>      <p className={styles.muted}>Start with a brief, choose the kinds of logo you want to explore, and keep your work in a saved project.</p>
       {savedProjectId && <div className={styles.actions}>
         <Link className={styles.secondaryButton} href={projectStrategyHref(savedProjectId)}>Open project</Link>
-        <Link className={styles.secondaryButton} href={"/brands/account/" + savedProjectId + "/identity"}>Open moodboard and saved systems</Link>
+        <Link className={styles.secondaryButton} href={"/brands/account/" + savedProjectId + "/identity"}>Your references</Link>
       </div>}
-      {savedProjectId && <Link className={styles.secondaryButton} href={"/brands/account/" + savedProjectId + "/logo/vector"}>Advanced vector editor</Link>}
-      {needsInitialization && <p className={styles.note}>Use Reuse Strategy to copy this project’s selected name, audience and personality into an editable logo brief. Choose your logo types, then create the logo workspace.</p>}
+      {needsInitialization && <p className={styles.note}>Choose Reuse Strategy to fill in your brand name, audience and personality from your Strategy step. Then pick your logo types and save.</p>}
       {savedProjectId && !workspace.pending && !workspace.dirty && !draft?.conflict && <button className={styles.secondaryButton} type="button" onClick={() => { setStrategy({ busy: false, message: null, nameConflict: false }); void workspace.reload(false); }}>Refresh saved brand</button>}
-      {!savedProjectId && <p className={styles.note}>Save your brief to open the logo editor.</p>}
+      {!savedProjectId && <p className={styles.note}>Save your brief to keep your logo work in a project.</p>}
       {created && !onProjectCreated && <p><Link href={"/brands/account/" + created.projectId + "/logo"}>Continue with your saved logo brief</Link></p>}
       {selectionState.error && <p className={styles.warning} role="alert">{selectionState.error}</p>}
-      {pendingSelection && <div className={styles.actions}><p className={styles.note}>The original logo selection is awaiting confirmation. Your saved previews are retained.</p><button className={styles.secondaryButton} type="button" disabled={selectionState.busy} onClick={() => void selectCandidate()}>Check original selection</button><button className={styles.secondaryButton} type="button" disabled={selectionState.busy || draft?.conflict} onClick={() => void selectCandidate(undefined, true)}>Retry original selection</button></div>}
+      {pendingSelection && <div className={styles.actions}><p className={styles.note}>We couldn’t confirm that your logo choice was saved. Your logos are safe.</p><button className={styles.secondaryButton} type="button" disabled={selectionState.busy} onClick={() => void selectCandidate()}>Check my choice</button><button className={styles.secondaryButton} type="button" disabled={selectionState.busy || draft?.conflict} onClick={() => void selectCandidate(undefined, true)}>Save my choice again</button></div>}
       {workspace.error && <p className={styles.warning} role="alert">{workspace.error}</p>}
       {workspace.status === "error" && !workspace.pending && <button className={styles.secondaryButton} type="button" onClick={() => void workspace.reload(false)}>Try loading again</button>}
       {creation && !created && <div className={styles.actions}>
@@ -562,7 +568,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
         </div>}
       </div>}
 </>}
-    </header>
+    </header>}
     {!conceptsScreen && statusTools}
     {client && projectId && <LogoCandidateComparison client={client} account={account} projectId={projectId} sources={comparison} selected={selectedLogo}
       briefRevisionId={workspace.stagePayloads?.brief_references?.id} onRemove={source => setComparison(previous => previous.filter(item => logoCandidateKey(item) !== logoCandidateKey(source)))}
@@ -573,8 +579,8 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
       onRefresh={() => void prepareSavedInputs(undefined, true)} />}
     {workspace.error && conceptsScreen && <p className={styles.warning} role="alert">{workspace.error}</p>}
     {activeBatch && saved?.stages.brief_references && saved.stages.brief_references.id !== activeBatch.briefRevisionId && <p className={styles.warning}>This batch uses an earlier saved brief. Its original inputs and successful previews are kept.</p>}
-    {conceptsScreen && activeBatch && <p className={styles.note} role="status">{selectionState.busy ? "Saving selection…" : selectionState.error ?? (initialConceptReadState ? initialConceptReadMessage : selectedLogo ? "Logo chosen. Continue, or describe a change below." : "Pick the concept you like most.")}</p>}
-    <LogoConceptGridView gallery={conceptsScreen} versions={cardVersions} selectedVersion={selectedLogo} selectionAt={workspace.stagePayloads?.concepts?.createdAt} viewedVersions={viewedVersions}
+    {conceptsScreen && activeBatch && selectionState.error && <p className={styles.warning} role="status">{selectionState.error}</p>}
+    <LogoConceptGridView gallery={conceptsScreen} status={conceptsScreen && activeBatch ? selectionState.busy ? "Saving your choice…" : initialConceptReadState ? initialConceptReadMessage : selectedLogo ? "Logo chosen" : "Pick the concept you like most" : undefined} versions={cardVersions} selectedVersion={selectedLogo} selectionAt={workspace.stagePayloads?.concepts?.createdAt} viewedVersions={viewedVersions}
       onViewVersion={(slotId, key, count) => setViewedVersions(previous => ({ ...previous, [slotId]: { key, count } }))}
       onSelectVersion={batchReady && saved?.capabilities.save.status === "available" && !workspace.pending && !workspace.dirty && !draft?.conflict && editing ? source => void selectCandidate(source) : undefined} filter={conceptFilter} comparison={comparison} onCompare={compareCandidate} batch={activeBatch} savedBatchUnavailable={savedBatchUnavailable} savedBatchLoading={savedBatchLoading}
       selected={selectedLogo?.kind === "concept" ? selectedLogo : null}
@@ -585,23 +591,18 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
       generationActions={<>
         {!nameReadiness.supported && <p role="status">{nameReadiness.message}</p>}
         {!activeBatch && !conceptsScreen && <LogoGenerationAction estimate={conceptEstimate} label="Explore six concepts" unavailable={savedInputsBusy ? "Preparing saved inputs…" : !capabilities.isAvailable("identity.logo_concept") ? "Generation is currently unavailable." : "Complete your saved logo inputs to continue."} />}
-        {activeBatch && <LogoGenerationAction estimate={moreEstimate} label="More concepts" unavailable={!batchReady ? "Refresh saved logo details to continue." : "Save your inputs to continue."} />}
-        {failedSlotIds.length > 0 && <LogoGenerationAction estimate={retryEstimate} label={`Retry ${failedSlotIds.length} failed concept${failedSlotIds.length === 1 ? "" : "s"}`} unavailable={!batchReady ? "Refresh saved logo details to continue." : "Save your inputs to continue."} />}
+        {activeBatch && <LogoGenerationAction variant="secondary" estimate={moreEstimate} label="More concepts" unavailable={conceptsScreen ? "" : !batchReady ? "Refresh saved logo details to continue." : "Save your inputs to continue."} />}
+        {failedSlotIds.length > 0 && <LogoGenerationAction variant="secondary" estimate={retryEstimate} label={`Retry ${failedSlotIds.length} failed concept${failedSlotIds.length === 1 ? "" : "s"}`} unavailable={conceptsScreen ? "" : !batchReady ? "Refresh saved logo details to continue." : "Save your inputs to continue."} />}
       </>}
-      onRequestRefine={batchReady && selectedLogo && canEstimate ? () => { if (refinementDisclosure.current?.getAttribute("aria-expanded") === "false") refinementDisclosure.current.click(); refinementDisclosure.current?.focus(); } : undefined}
+      onRequestRefine={batchReady && selectedLogo && canEstimate ? () => { refinementInput.current?.focus(); } : undefined}
       request={activeRequest} onCheckRequest={recoveryKeys.length > 0 && client && editing && !checkingRequest ? () => void checkRequest() : undefined} />
     {/* The refine box stays in one place below the concepts, so a draft survives the first set arriving. */}
     {conceptsComposer}
-    {conceptsScreen && projectId && client && focusedReceipt && <LogoDownloadControls client={client} account={account} projectId={projectId} original={focusedReceipt} disabled={selectionState.busy} />}
-    {conceptsScreen && projectId && activeBatch && <div className={styles.continueToBoard}>{workspace.stagePayloads?.concepts?.payload.selected && !selectionState.busy
-      ? <Link className={`${styles.primaryButton} ${stage.actionLink}`} href={`/brands/account/${projectId}/logo/directions`}
-        onClick={() => { try { window.sessionStorage.setItem(`embel.directions-intent.v1:${projectId}`, String(Date.now())); } catch { /* Then directions wait for a click. */ } }}>Continue</Link>
-      : <button className={styles.primaryButton} type="button" disabled title={initialConceptReadState ? initialConceptReadMessage : "Select a logo and wait for it to save"}>Continue</button>}</div>}
     {conceptsScreen && refinementHistoryState.error && <p role="status" className={styles.warning}>{refinementHistoryState.error}</p>}
     {conceptsScreen && refinementHistoryState.nextCursor && <button type="button" className={styles.secondaryButton} disabled={refinementHistoryState.loading} onClick={() => void refinementHistory?.loadMore()}>Load earlier versions</button>}
     {!conceptsScreen && advancedTools}
     {checkingRequest && <p className={styles.note} role="status">Checking the existing request…</p>}
-    {recoveryKeys.filter(key => requestReadouts[key]?.error).map(key => <p key={key} className={styles.note} role="status">Request {key.slice(0, 8)}: {requestReadouts[key]!.error}</p>)}
+    {recoveryKeys.filter(key => requestReadouts[key]?.error).map(key => <p key={key} className={styles.note} role="status">{requestReadouts[key]!.error}</p>)}
     {generation && <LogoCostConfirmation controller={generation} batch={activeBatch} />}
   </div>{!conceptsScreen && <ProjectDock title="Logo setup" context={<p>{draft?.brief.name || "No saved brand name"}</p>}>
     <LogoBriefFields draft={draft?.brief} autoSave={autoSave} onChange={editing ? value => {

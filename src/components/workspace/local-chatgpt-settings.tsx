@@ -23,7 +23,7 @@ function connectionError(error: unknown) {
 export function LocalChatGPTSettings({ enabled = false }: { enabled?: boolean }) {
   const { session } = useAccountSession();
   if (!enabled) return null;
-  return <section className="settings-section local-chatgpt-settings" aria-labelledby="local-chatgpt-heading"><div><h2 id="local-chatgpt-heading">ChatGPT on this Mac</h2><p>Text and strategy can use your ChatGPT plan. Your Embel account owns your saved projects.</p></div><div className="settings-panel">
+  return <section className="settings-section local-chatgpt-settings" aria-labelledby="local-chatgpt-heading"><div><div className="local-chatgpt-title"><h2 id="local-chatgpt-heading">ChatGPT on this Mac</h2><span className="sg-badge">Development</span></div><p>Shown only while Embel runs on this Mac. Text and strategy can use your ChatGPT plan.</p></div><div className="settings-panel">
     {session.status === "ready" ? <LocalConnection key={`${session.userId}:${session.generation}`} account={session} /> : <div className="setting-row"><div><strong>Sign in to Embel first</strong><p>Verify your Embel account to manage its local ChatGPT connection.</p></div><Link className="button secondary small" href="/sign-in">Sign in to Embel</Link></div>}
   </div></section>;
 }

@@ -35,9 +35,9 @@ export function LogoEditorWorkspace({ projectId }: { projectId: string }) {
   const { session } = useAccountSession();
   const memory = useLogoDraftMemory();
   const parsed = logoUuidSchema.safeParse(projectId);
-  if (!parsed.success) return <section className="page project-logo-editor"><h1>Logo workspace not found</h1><Link href="/brands">Back to brands</Link></section>;
-  return <section className="page project-logo-editor">
-    <header className={styles.editorHeader}><div><p className={styles.eyebrow}>Logo · Vector</p><h1>Review your vector logo</h1></div><Link href={`/brands/account/${parsed.data}`}>Back to project</Link></header>
+  if (!parsed.success) return <section className={`page project-logo-editor ${styles.vectorPage}`}><h1>Logo workspace not found</h1><Link href="/brands">Back to brands</Link></section>;
+  return <section className={`page project-logo-editor ${styles.vectorPage}`}>
+    <header className={styles.editorHeader}><div><p className={styles.eyebrow}>Identity · Vector logo</p><h1>Review your vector logo</h1></div><Link className={styles.quietLink} href={`/brands/account/${parsed.data}/logo`}>Back to logo</Link></header>
     <AccountStatus retainedEdits={memory.hasUnsaved()} />
     {session.status === "ready" && <OwnedLogoEditor key={`${session.userId}:${session.generation}:${parsed.data}`} projectId={parsed.data} account={session} memory={memory} />}
   </section>;
@@ -166,10 +166,9 @@ function OwnedLogoEditor({ projectId, account, memory }: { projectId: string; ac
   }, [activeClient, reloadProposalWorkspace]);
   const common = () => ({ requestKey: crypto.randomUUID(), expected: draft!.base! });
   return <section className={styles.editor} aria-label="Account logo editor">
-    {state.status === "loading" && <p role="status">Loading your saved logo workspace…</p>}
+    {state.status === "loading" && <p role="status">Loading your logo…</p>}
     {(error || state.error) && <div className={styles.notice} role="alert"><p>{error ?? state.error}</p></div>}
-    {workspace && <><div className={styles.headingRow}><h2>Saved logo workspace</h2><span className={styles.badge}>Workspace version {workspace.heads.workspaceRevision}</span></div>
-      {workspace.staleStages.length > 0 && <div className={styles.notice} role="status"><strong>Earlier inputs need review</strong><ul>{workspace.staleStages.map(item => <li key={item.stage}>{item.stage.replaceAll("_", " ")}: {item.reasons.join(" ")}</li>)}</ul></div>}</>}
+    {workspace && workspace.staleStages.length > 0 && <div className={styles.notice} role="status"><strong>Some earlier choices changed</strong><p>This logo was made with earlier choices. Compare it with your current brief before accepting it.</p></div>}
     {client && currentClient && workspace && <VectorProposalPanel account={account} projectId={projectId} client={client} memory={memory} isCurrent={activeClient} onApplied={onProposalApplied}
       context={detail && visible?.preview ? { workspace, detail, targetId: selectedComponent?.id ?? detail.document.components[0]!.id,
         ready: baseCanMutate && comparisonReady && !inspecting && !draft?.vectorDraft && (!earlier || acceptedEarlier) } : null} />}
@@ -184,10 +183,10 @@ function OwnedLogoEditor({ projectId, account, memory }: { projectId: string; ac
     </div></div>}
     {currentClient && source && !visible && <p role="status">Loading the saved vector candidate…</p>}
     {visible?.error && <p role="status">{visible.error}</p>}
-    {!detail && visible && !visible.error && <div className={styles.notice} role="status"><strong>No vector ready for approval</strong><p>A saved image preview is not an approved vector. Open Project context, then Saved inputs and recovery in Logo concepts to check conversion availability. Review the converted vector here before accepting it.</p><Link href={`/brands/account/${projectId}/logo`}>Open Logo concepts</Link></div>}
+    {!detail && visible && !visible.error && <div className={styles.notice} role="status"><strong>No vector ready for approval</strong><p>Your logo is an image for now. To turn it into a vector, go to the Logo step, open Logo brief and history, then Saved versions and options, and choose Convert to vector. You can review the vector here before accepting it.</p><Link href={`/brands/account/${projectId}/logo`}>Open Logo</Link></div>}
     {detail && document && <>
-      <div className={styles.headingRow}><h2>{historical ? "Historical vector" : historyVector ? "Saved vector for review" : approved ? "Approved logo" : "Review required"}</h2><span className={styles.badge}>{historical ? `Saved ${historical.stage} version ${historical.revision}` : "Saved vector candidate"}</span></div>
-      <p className={styles.caption}>{detail.revision.source.kind === "concept" ? "Original concept" : "Original refined preview"} · {detail.revision.locks.length} saved component {detail.revision.locks.length === 1 ? "lock" : "locks"}</p>
+      <div className={styles.headingRow}><h2>{historical ? "Historical vector" : historyVector ? "Saved vector for review" : approved ? "Approved logo" : "Review required"}</h2><span className={styles.badge}>{historical ? `Saved version ${historical.revision}` : "Saved vector"}</span></div>
+      <p className={styles.caption}>{detail.revision.source.kind === "concept" ? "Made from your logo concept" : "Made from your refined logo"}{detail.revision.locks.length > 0 ? ` · ${detail.revision.locks.length} locked ${detail.revision.locks.length === 1 ? "part" : "parts"}` : ""}</p>
       <ConversionReviewPresentation document={document} originalUrl={visible?.preview?.url} scopeKey={source ?? undefined} onReadinessChange={setComparison} />
       {client && <LogoDownloadControls client={client} account={account} projectId={projectId}
         vectorRevisionId={detail.revision.id} original={detail.sourcePreview}
@@ -208,7 +207,7 @@ function OwnedLogoEditor({ projectId, account, memory }: { projectId: string; ac
       </div>
       {workspace && <LogoIdentityContinuation workspace={workspace} blocked={!canMutate || Boolean(draft?.vectorDraft) || state.pending} hasSelection={Boolean(state.stagePayloads?.concepts?.payload.selected)} />}
     </>}
-    <div className={styles.actions}>{(inspecting || appliedVectorId !== null) && <button type="button" disabled={busy || Boolean(pending)} onClick={backToCurrent}>Back to current vector</button>}<button type="button" disabled={!currentClient || busy || state.pending || state.dirty} onClick={() => { setReadAttempt(value => value + 1); setHistoryAttempt(value => value + 1); void state.reload(false); }}>Reload workspace</button><Link href={`/brands/account/${projectId}/logo`}>Back to concept choices</Link></div>
+    <div className={styles.actions}>{(inspecting || appliedVectorId !== null) && <button type="button" disabled={busy || Boolean(pending)} onClick={backToCurrent}>Back to current vector</button>}<button type="button" disabled={!currentClient || busy || state.pending || state.dirty} onClick={() => { setReadAttempt(value => value + 1); setHistoryAttempt(value => value + 1); void state.reload(false); }}>Refresh</button><Link className={styles.quietLink} href={`/brands/account/${projectId}/logo`}>Back to logo</Link></div>
     {client && currentClient && workspace && <><SavedVectorHistory key={`all-vectors:${workspace.heads.workspaceRevision}:${historyAttempt}`} client={client} workspaceRevision={workspace.heads.workspaceRevision} current={activeClient} disabled={busy || state.pending || state.dirty} onReview={reviewVector} />{(["vector", "refinements"] as const).map(stage => <SavedHistory key={`${stage}:${workspace.heads.workspaceRevision}`} client={client} stage={stage} current={activeClient} disabled={busy || state.pending || state.dirty} onReview={review} />)}</>}
   </section>;
 }

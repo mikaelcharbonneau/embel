@@ -11,6 +11,7 @@ import { accountRequest, AccountRequestError } from "@/components/workspace/acco
 import { ideaDraftChanged, type IdeaWorkspace } from "./ideas-draft-memory";
 import { ideaErrorMessage, ideaStateLabels, sameIdeaId } from "./ideas-client";
 import { Icon } from "@/components/ui/icon";
+import "@/components/tools/tool-page.css";
 import "@/styles/ideas.css";
 import { AttachIdeaControl } from "@/features/idea-project-attachment/attach-control";
 
@@ -28,10 +29,10 @@ const details: { field: keyof IdeaContent["details"]; label: string; hint?: stri
 
 export function IdeaDetail({ ideaId }: { ideaId: string }) {
   const { session, ideaDrafts } = useAccountSession();
-  if (!z.uuid().safeParse(ideaId).success) return <div className="page ideas-page idea-detail-page"><h1>Idea not found</h1><Link href="/ideas" className="text-link">Back to ideas</Link></div>;
-  return <div className="page ideas-page idea-detail-page">
+  if (!z.uuid().safeParse(ideaId).success) return <div className="page tool-page ideas-page idea-detail-page"><Link href="/ideas" className="text-link idea-back-link">Back to ideas</Link><header className="tool-heading"><div className="tool-heading-text"><h1>Idea not found</h1><p>This link doesn’t match an idea in your account.</p></div></header></div>;
+  return <div className="page tool-page ideas-page idea-detail-page">
     <Link href="/ideas" className="text-link idea-back-link">Back to ideas</Link>
-    {session.status === "ready" ? <OwnedIdeaDetail key={`${ideaId}:${session.userId}:${session.generation}`} ideaId={ideaId.toLowerCase()} account={session} /> : <><div className="page-heading ideas-heading"><h1>Account idea</h1></div><AccountStatus retainedEdits={ideaDrafts.hasUnsaved()} /></>}
+    {session.status === "ready" ? <OwnedIdeaDetail key={`${ideaId}:${session.userId}:${session.generation}`} ideaId={ideaId.toLowerCase()} account={session} /> : <><header className="tool-heading ideas-heading"><div className="tool-heading-text"><h1>Idea</h1></div></header><AccountStatus retainedEdits={ideaDrafts.hasUnsaved()} /></>}
   </div>;
 }
 
@@ -192,7 +193,7 @@ function OwnedIdeaDetail({ account, ideaId }: { account: VerifiedAccount; ideaId
   }
 
   const current = verifiedRead && workspace?.generation === account.generation && sameIdeaId(workspace.ownerId, account.userId) && sameIdeaId(workspace.saved.id, ideaId) ? workspace : null;
-  if (!current) return <><div className="page-heading ideas-heading"><h1>Account idea</h1></div>{loadError ? <div><p className="form-error" role="alert">{loadError}</p><p className="field-hint">Any unsaved idea edits remain in this tab for the same account.</p><button className="button secondary small idea-read-retry" type="button" onClick={retryRead}>Try loading idea again</button></div> : <p className="quiet-empty" role="status">Loading your idea…</p>}</>;
+  if (!current) return <><header className="tool-heading ideas-heading"><div className="tool-heading-text"><h1>Idea</h1></div></header>{loadError ? <div><p className="form-error" role="alert">{loadError}</p><p className="field-hint">Any unsaved idea edits remain in this tab for the same account.</p><button className="button secondary small idea-read-retry" type="button" onClick={retryRead}>Try loading idea again</button></div> : <p className="quiet-empty" role="status">Loading your idea…</p>}</>;
   const dirty = ideaDraftChanged(current);
   const converted = current.saved.content.state === "used" && current.saved.links.some(link => link.ideaRevision === current.saved.revision - 1);
   const saveDisabled = Boolean(busy) || Boolean(current.brandIntent) || (!dirty && !current.saveIntent) || (current.conflict && !current.saveIntent);
@@ -200,8 +201,8 @@ function OwnedIdeaDetail({ account, ideaId }: { account: VerifiedAccount; ideaId
   const saving = busy === "save" || (dirty && !saveProblem && !current.brandIntent);
   const brandDisabled = Boolean(busy || current.saveIntent) || (dirty && !current.brandIntent) || (current.conflict && !current.brandIntent) || (converted && !current.brandIntent);
   return <>
-    <header className="page-heading idea-detail-heading">
-      <div><h1 ref={heading} tabIndex={-1}>{current.content.title || "Untitled idea"}<span>.</span></h1><p>{current.content.state === "developing" ? "An idea in development." : current.content.state === "used" ? "An idea taking shape as a brand." : "An idea worth exploring."}</p></div>
+    <header className="tool-heading idea-detail-heading">
+      <div className="tool-heading-text"><h1 ref={heading} tabIndex={-1}>{current.content.title || "Untitled idea"}<span>.</span></h1><p>{current.content.state === "developing" ? "An idea in development." : current.content.state === "used" ? "An idea taking shape as a brand." : "An idea worth exploring."}</p></div>
       <div className="idea-detail-save" role="status" aria-label="Save status"><span>{saving ? "Saving…" : saveProblem ? "Not saved" : dirty ? "Unsaved changes" : "Saved"}</span>{saveProblem && (dirty || current.saveIntent) && <button className="button secondary small" type="button" disabled={saveDisabled} onClick={() => void save()}>Retry</button>}</div>
     </header>
     <div className="idea-detail-columns">
@@ -218,7 +219,7 @@ function OwnedIdeaDetail({ account, ideaId }: { account: VerifiedAccount; ideaId
             <ContextDetails className="idea-extra-details" title={<>More details</>}><p className="field-hint">Optional notes you write and refine.</p><div className="ideas-fields">{details.slice(3).map(({ field, label, hint }) => <IdeaNoteField key={field} label={label} hint={hint} value={current.content.details[field]} onChange={value => edit({ ...current.content, details: { ...current.content.details, [field]: value } })} />)}</div></ContextDetails>
           </fieldset></ContextDetails>
         </form>
-        {(saving || saveProblem || dirty) && <p className="idea-detail-save-state" role="status">{saving ? "Saving to account…" : saveProblem ? "Your edits are retained until account saving is confirmed." : "Your edits are waiting to save."}</p>}
+        {(saving || saveProblem || dirty) && <p className="idea-detail-save-state" role="status">{saving ? "Saving to account…" : saveProblem ? "Your edits stay here until they are saved." : "Your edits are waiting to save."}</p>}
         {current.conflict && <div className="account-conflict idea-recovery" role="alert"><strong>A newer version is saved in your account.</strong><p>Your edits are still here. Retry the original save or explicitly load the latest version.</p></div>}
         {error && <p className="form-error" role="alert">{error}</p>}
         {(error || current.conflict || current.saveIntent || current.brandIntent) && <div className="idea-recovery"><button className="button secondary small" type="button" disabled={Boolean(busy)} onClick={() => setConfirmLatest(true)}>Load latest version</button>{confirmLatest && <div className="inline-confirm"><p>Replace the edits in this tab with the latest saved version? This also discards the pending retry.</p><button className="button secondary small" type="button" disabled={Boolean(busy)} onClick={() => setConfirmLatest(false)}>Keep editing</button><button className="button primary small" type="button" disabled={Boolean(busy)} onClick={() => void loadLatest()}>Replace with latest version</button></div>}</div>}

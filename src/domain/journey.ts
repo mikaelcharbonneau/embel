@@ -10,7 +10,8 @@ export const JOURNEY = [
 
 export type JourneyStepId = typeof JOURNEY[number]["id"];
 export type JourneyStepStatus = "done" | "current" | "upcoming";
-export type JourneyStepView = { id: JourneyStepId; label: string; number: number; status: JourneyStepStatus; href?: string };
+/** `complete` keeps a finished step's state while it is the page being shown. */
+export type JourneyStepView = { id: JourneyStepId; label: string; number: number; status: JourneyStepStatus; href?: string; complete?: boolean };
 
 const ALL_STEPS: readonly JourneyStepId[] = JOURNEY.map(step => step.id);
 // A naming-only project has just the Name step; a visual identity starts at Identity.
@@ -31,6 +32,7 @@ export function journeySteps(current: JourneyStepId, done: ReadonlySet<JourneySt
     number: index + 1,
     status: step.id === current ? "current" : done.has(step.id) ? "done" : "upcoming",
     href: hrefs[step.id],
+    ...(done.has(step.id) ? { complete: true } : {}),
   }));
 }
 

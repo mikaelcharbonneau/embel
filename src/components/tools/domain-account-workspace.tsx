@@ -17,6 +17,7 @@ import { useStandaloneWorkspace } from "./use-standalone-workspace";
 import { useSavedStandalonePromotion } from "./use-saved-standalone-promotion";
 import { StandaloneSaveStatus } from "./standalone-save-status";
 import styles from "./domain-account-workspace.module.css";
+import "./tool-page.css";
 
 export type AccountDomainsWorkspaceProps = {
   /** Provider-held memory, bound and fenced by AccountSessionProvider. */
@@ -34,7 +35,7 @@ const pendingDomainAdapter: DomainSearchAdapter = {
 
 export function AccountDomainsWorkspace(props: AccountDomainsWorkspaceProps) {
   const { session } = useAccountSession();
-  if (session.status !== "ready") return <div className="page"><h1>Domains</h1><AccountStatus retainedEdits={props.memory.hasUnsaved()} /></div>;
+  if (session.status !== "ready") return <div className="page tool-page"><header className="tool-heading"><div className="tool-heading-text"><h1>Domains</h1></div></header><AccountStatus retainedEdits={props.memory.hasUnsaved()} /></div>;
   return <OwnedDomainsWorkspace key={`${session.userId}:${session.generation}`} {...props} />;
 }
 
@@ -55,11 +56,10 @@ function OwnedDomainsWorkspace({ memory, importProjectId, projectPicker, onCreat
   }
   const controls = <section className={styles.panel} aria-label="Domain workspace">
     <StandaloneSaveStatus state={state} />
-    {state.imports.length > 0 && <ContextDetails className={styles.sources} title={<>Imported saved sources ({state.imports.length})</>}><ul>{state.imports.map(source => <li key={standaloneImportKey(source)}><strong>{source.name}</strong> · {source.projectTitle}<br /><span>Saved project version {source.projectRevision} · {source.origin === "naming_selection" ? "selected Naming candidate" : "supplied project name"}</span></li>)}</ul><p>Source references remain with this draft when you edit its text. Imports do not establish domain availability.</p></ContextDetails>}
-    <p className={styles.note}>Your search, candidates and shortlist save automatically. Live checks and prices stay in this view; purchases are unavailable.</p>
+    {state.imports.length > 0 && <ContextDetails className={styles.sources} title={<>Imported saved sources ({state.imports.length})</>}><ul>{state.imports.map(source => <li key={standaloneImportKey(source)}><strong>{source.name}</strong> · {source.projectTitle}<br /><span>Project version {source.projectRevision} · {source.origin === "naming_selection" ? "chosen in Naming" : "project name"}</span></li>)}</ul><p>Imported names stay linked to their projects when you edit the search.</p></ContextDetails>}
   </section>;
-  if (!state.payload) return <div className="page"><h1>Domains</h1>{state.status === "loading" && <p role="status">Loading your domain draft…</p>}{controls}</div>;
-  return <DomainsWorkspace adapter={live?.domains ?? pendingDomainAdapter} draft={state.payload} initialView="search" draftDisabled={!state.canEdit} onDraftChange={state.setPayload} draftNotice="Saved candidates require fresh checks when reopened."
+  if (!state.payload) return <div className="page tool-page"><header className="tool-heading"><div className="tool-heading-text"><h1>Domains</h1></div></header>{state.status === "loading" && <p role="status">Loading your domain search…</p>}{controls}</div>;
+  return <DomainsWorkspace adapter={live?.domains ?? pendingDomainAdapter} draft={state.payload} initialView="search" draftDisabled={!state.canEdit} onDraftChange={state.setPayload} draftNotice="Check domains again when you come back, since availability and prices change."
     onOpenNameLibrary={() => setNameLibraryOpen(true)}
     draftControls={<>{controls}{promotion.controls}<dialog className={styles.nameLibrary} ref={nameLibrary} aria-label="Name library" onCancel={() => setNameLibraryOpen(false)} onClick={event => { if (isDialogBackdropClick(event)) setNameLibraryOpen(false); }}>
       <header><h2>From name library</h2><button type="button" className="icon-button" aria-label="Close name library" onClick={() => setNameLibraryOpen(false)}><Icon name="close" size={18} /></button></header>

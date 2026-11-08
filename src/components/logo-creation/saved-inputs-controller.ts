@@ -31,8 +31,8 @@ type Input = {
 const same = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
 export const logoDraftHasProtectedWork = (draft: LogoDraftRecord) => draft.dirty || draft.conflict || !!draft.vectorDraft || !!draft.directionDraft
   || !!draft.pendingCreation || !!draft.pendingMutation || !!draft.pendingIntent || !!draft.pendingExport;
-const blockedEdits = "Save or resolve the changes in Project context before generating. Your changes are kept.";
-const changed = "Your saved brand or logo inputs changed. Refresh the saved brand in Project context, then try again.";
+const blockedEdits = "Save or undo your changes in Logo brief and history first. Your changes are kept.";
+const changed = "Your brand or logo brief changed. Refresh your saved brand in Logo brief and history, then try again.";
 
 /** Prepares unambiguous saved inputs before quoting. Conflicting inputs still
  * require an explicit choice; this function cannot admit a provider job. */
@@ -41,7 +41,7 @@ export async function prepareSavedLogoConcepts(input: Input, choice?: LogoSavedI
   const captured = input.getDraft();
   if (!current()) return { status: "obsolete" };
   if (!captured?.workspace || captured.workspace.ownerId !== input.ownerId || captured.workspace.projectId !== input.projectId)
-    return { status: "blocked", message: "Your saved logo workspace could not be read. Try loading it again." };
+    return { status: "blocked", message: "Your saved logo details could not be loaded. Try again." };
   if (logoDraftHasProtectedWork(captured)) return { status: "blocked", message: blockedEdits };
   const unchanged = () => current() && input.getDraft() === captured;
   let source: LogoSavedInputs | undefined;
@@ -79,9 +79,9 @@ export async function prepareSavedLogoConcepts(input: Input, choice?: LogoSavedI
     if (!acknowledged?.workspace || acknowledged.workspace.ownerId !== input.ownerId || acknowledged.workspace.projectId !== input.projectId
       || acknowledged.workspace.heads.projectRevision !== source.projectRevision || logoDraftHasProtectedWork(acknowledged)
       || !same(acknowledged.brief, brief) || needsSave && acknowledged.workspace.heads.stageRevisions.brief_references !== captured.workspace.heads.stageRevisions.brief_references + 1)
-      return { status: "blocked", source, message: "Your logo inputs have not been confirmed as saved. Open Project context to check the original save before generating." };
+      return { status: "blocked", source, message: "We couldn’t confirm your logo brief was saved. Open Logo brief and history to check it before continuing." };
     const ref = acknowledged.workspace.stages.brief_references;
-    if (!ref) return { status: "blocked", source, message: "Your logo inputs could not be saved. Check Project context and try again." };
+    if (!ref) return { status: "blocked", source, message: "Your logo brief could not be saved. Check Logo brief and history and try again." };
     const revision = await input.readBriefRevision(ref.id, input.signal);
     if (!current()) return { status: "obsolete" };
     if (input.getDraft() !== acknowledged) return { status: "blocked", message: blockedEdits, source };

@@ -65,10 +65,10 @@ async function authenticated(page: Page, initial: StandaloneWorkspace<TrademarkD
     return route.fulfill({ json: body });
   });
   await page.goto("/trademarks");
-  await expect(page.getByRole("tab", { name: "Research", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "Search", exact: true })).toHaveAttribute("aria-selected", "true");
   return fixture;
 }
-async function fillTab(page: Page) { await page.getByRole("tab", { name: "Prepare", exact: true }).click(); }
+async function fillTab(page: Page) { await page.getByRole("tab", { name: "Details", exact: true }).click(); }
 async function saved(page: Page, fixture: AccountFixture, name: string) {
   await expect.poll(() => fixture.saved?.payload.markName).toBe(name);
   await expect(page.getByLabel("Save status", { exact: true }).getByRole("status")).toHaveText("Saved");
@@ -76,18 +76,18 @@ async function saved(page: Page, fixture: AccountFixture, name: string) {
 
 test("search prepares manual research without inventing a match or sending a registry request", async ({ page }) => {
   const fixture = await authenticated(page);
-  await expect(page.getByText("Criteria not prepared yet", { exact: true })).toBeVisible();
+  await expect(page.getByText("Not prepared yet", { exact: true })).toBeVisible();
   await page.getByLabel("Mark name", { exact: true }).fill("Synthetic Morrow");
   await page.getByLabel("Requested territories", { exact: true }).fill("Canada");
   await page.getByLabel("Goods and services", { exact: true }).fill("Synthetic coffee services");
-  await page.getByRole("button", { name: "Prepare manual search", exact: true }).click();
-  await expect(page.getByText("Ready for manual research", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Prepare search", exact: true }).click();
+  await expect(page.getByText("Ready to search", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Search the official registries", exact: true })).toBeVisible();
   await page.getByRole("checkbox", { name: "Include similar names", exact: true }).uncheck();
-  await expect(page.getByText("Criteria not prepared yet", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Prepare manual search", exact: true }).click();
+  await expect(page.getByText("Not prepared yet", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Prepare search", exact: true }).click();
   await page.getByLabel("Mark name", { exact: true }).fill("Changed query");
-  await expect(page.getByText("Criteria not prepared yet", { exact: true })).toBeVisible();
+  await expect(page.getByText("Not prepared yet", { exact: true })).toBeVisible();
   await saved(page, fixture, "Changed query");
   expect(fixture.saved?.payload.territories).toEqual(["Canada"]);
   expect(fixture.requests.filter(request => request.path === "/api/standalone-checks").every(request => request.method === "GET")).toBe(true);
@@ -99,17 +99,17 @@ test("keyboard tabs retain the draft and clearly bound Library and History", asy
   await page.getByLabel("Mark name", { exact: true }).fill("Synthetic retained name");
   await page.getByLabel("Requested territories", { exact: true }).fill("Canada\nFrance");
   await saved(page, fixture, "Synthetic retained name");
-  const search = page.getByRole("tab", { name: "Research", exact: true });
+  const search = page.getByRole("tab", { name: "Search", exact: true });
   await search.focus(); await page.keyboard.press("ArrowRight");
-  await expect(page.getByRole("tab", { name: "Prepare", exact: true })).toBeFocused();
+  await expect(page.getByRole("tab", { name: "Details", exact: true })).toBeFocused();
   await expect(page.getByLabel("Requested territories", { exact: true })).toHaveValue("Canada\nFrance");
   await page.keyboard.press("ArrowRight");
-  await expect(page.getByRole("tab", { name: "Current draft", exact: true })).toBeFocused();
+  await expect(page.getByRole("tab", { name: "Summary", exact: true })).toBeFocused();
   await expect(page.getByRole("heading", { name: "Synthetic retained name", exact: true })).toBeVisible();
-  await expect(page.getByText(`Account revision ${fixture.saved!.revision} · saved`, { exact: true })).toBeVisible();
+  await expect(page.getByText(`Version ${fixture.saved!.revision} · saved`, { exact: true })).toBeVisible();
   await page.keyboard.press("End");
-  await expect(page.getByRole("tab", { name: "Latest revision", exact: true })).toBeFocused();
-  await expect(page.getByText("The current draft matches this saved revision.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Save history", exact: true })).toBeFocused();
+  await expect(page.getByText("Everything is saved.", { exact: true })).toBeVisible();
   await page.keyboard.press("Home");
   await expect(search).toBeFocused();
   await expect(page.getByLabel("Mark name", { exact: true })).toHaveValue("Synthetic retained name");
@@ -158,7 +158,7 @@ test("original artwork is unchanged and research coverage stays beside its conta
     const form = (await page.locator(".tm-search-form").boundingBox())!;
     const workspace = (await page.locator(".tm-workspace").boundingBox())!;
     expect(form.x).toBe(workspace.x + 40); expect(form.width).toBe(workspace.width - 80);
-    const action = (await page.getByRole("button", { name: "Prepare manual search", exact: true }).boundingBox())!;
+    const action = (await page.getByRole("button", { name: "Prepare search", exact: true }).boundingBox())!;
     const coverage = (await page.locator(".tm-coverage").boundingBox())!;
     expect(action.x).toBeGreaterThanOrEqual(form.x); expect(action.x + action.width).toBeLessThanOrEqual(form.x + form.width);
     expect(coverage.y).toBeGreaterThanOrEqual(action.y + action.height);
@@ -180,14 +180,14 @@ test("original artwork is unchanged and research coverage stays beside its conta
 test("320px Search and Fill keep forms, disclosures and recovery controls reachable", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 740 });
   await authenticated(page);
-  await page.getByRole("button", { name: "Prepare manual search", exact: true }).click();
+  await page.getByRole("button", { name: "Prepare search", exact: true }).click();
   await fillTab(page);
-  await page.getByRole("button", { name: "Additional dossier details", exact: true }).click();
-  const details = page.getByRole("dialog", { name: "Additional dossier details", exact: true });
+  await page.getByRole("button", { name: "More details", exact: true }).click();
+  const details = page.getByRole("dialog", { name: "More details", exact: true });
   await details.getByLabel("Owner contact", { exact: true }).fill("Synthetic contact");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
   await details.getByRole("button", { name: "Close", exact: true }).click(); await expect(details).toBeHidden();
-  await page.getByRole("button", { name: "Review draft preview", exact: true }).click();
+  await page.getByRole("button", { name: "Review draft", exact: true }).click();
   await expect(page.getByRole("button", { name: "Export draft preview", exact: true })).toBeEnabled();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
 });
@@ -208,9 +208,9 @@ test("account autosave receipts, unsaved revision history and explicit conflict 
   fixture.failNextSave = true;
   await page.getByLabel("Mark name", { exact: true }).fill("Unsaved fixture");
   await expect(page.getByText("This workspace changed elsewhere. Your changes are retained. Choose which version to keep.", { exact: true })).toBeVisible();
-  await page.getByRole("tab", { name: "Latest revision", exact: true }).click();
-  await expect(page.getByText(/Account revision 2 ·/)).toBeVisible();
-  await expect(page.getByText("The current edits are not included in this saved revision.", { exact: true })).toBeVisible();
+  await page.getByRole("tab", { name: "Save history", exact: true }).click();
+  await expect(page.getByText(/Version 2 · saved/)).toBeVisible();
+  await expect(page.getByText("Your latest edits aren’t saved yet.", { exact: true })).toBeVisible();
   expect(fixture.puts).toHaveLength(1); expect(fixture.acknowledged).toHaveLength(0);
   await page.getByRole("button", { name: "Use saved version", exact: true }).click();
   await page.getByRole("button", { name: "Keep editing", exact: true }).click();
@@ -225,9 +225,9 @@ test("account autosave receipts, unsaved revision history and explicit conflict 
   await page.getByRole("button", { name: "Use saved version", exact: true }).click();
   await page.getByRole("button", { name: "Replace my changes", exact: true }).click();
   await expect(page.getByLabel("Mark name", { exact: true })).toHaveValue("Unsaved fixture");
-  await page.getByRole("tab", { name: "Latest revision", exact: true }).click();
-  await expect(page.getByText(/Account revision 3 ·/)).toBeVisible();
-  await expect(page.getByText("The current draft matches this saved revision.", { exact: true })).toBeVisible();
+  await page.getByRole("tab", { name: "Save history", exact: true }).click();
+  await expect(page.getByText(/Version 3 · saved/)).toBeVisible();
+  await expect(page.getByText("Everything is saved.", { exact: true })).toBeVisible();
   expect(fixture.saved!.payload.markName).toBe("Unsaved fixture"); expect(fixture.acknowledged).toHaveLength(1);
   await page.reload();
   await expect(page.getByLabel("Mark name", { exact: true })).toHaveValue("Unsaved fixture");

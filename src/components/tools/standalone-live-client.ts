@@ -62,9 +62,9 @@ export function createStandaloneLiveAdapters(capabilities: StandaloneCapabilitie
   const provider = capabilities.domains === "namecom" ? "namecom_core" : capabilities.domains === "cloudflare" ? "cloudflare_registrar" : capabilities.domains === "vercel" ? "vercel_registrar" : REGISTRY_DOMAIN_PROVIDER;
   const hasPrices = capabilities.domains === "namecom" || capabilities.domains === "cloudflare" || capabilities.domains === "vercel";
   return {
-    domains: capabilities.domains === "unavailable" ? { status: "unavailable", reason: "Domain checks are not connected." } : {
+    domains: capabilities.domains === "unavailable" ? { status: "unavailable", reason: "Domain checks aren’t available right now. You can still list domains to look up yourself." } : {
       status: "ready", provider, quotesWithCheck: hasPrices,
-      description: capabilities.domains === "namecom" ? "Name.com checks exact domains and current registration and renewal totals in USD for the displayed term. Aftermarket, expiring and backorder offers stay Unknown and have no registration quote. Only domain names are sent to Name.com. Checks do not reserve a domain." : capabilities.domains === "rdap" ? "Public registry checks support .com, .net, .org, .app, .dev, .ca, .ai and .uk. A missing record stays Unknown. Registrar prices require a connection." : capabilities.domains === "vercel" ? "Vercel checks exact domains and supplies current registration and renewal prices in USD for the displayed term. Unavailable or unconfirmed results stay Unknown. Only domain names are sent to Vercel. Checks do not reserve a domain." : "Cloudflare checks registration eligibility and supplies current annual prices. Checks do not reserve a domain.",
+      description: capabilities.domains === "namecom" ? "Availability and prices come from Name.com, in USD. Aftermarket and expiring domains show as Unknown. Only domain names are sent to Name.com." : capabilities.domains === "rdap" ? "Availability comes from public registry records for .com, .net, .org, .app, .dev, .ca, .ai and .uk. Prices aren’t available." : capabilities.domains === "vercel" ? "Availability and prices come from Vercel, in USD. Only domain names are sent to Vercel." : "Availability and yearly prices come from Cloudflare.",
       async check(domain, signal) {
         prices.delete(domain);
         const result = await lookup({ tool: "domains", domain }, signal);
@@ -80,7 +80,7 @@ export function createStandaloneLiveAdapters(capabilities: StandaloneCapabilitie
         return result.quote;
       } } : {}),
     },
-    handles: { availability: capabilities.youtube ? "ready" : "unavailable", label: "YouTube profile lookup only · availability remains unknown",
+    handles: { availability: capabilities.youtube ? "ready" : "unavailable", label: "Looks up existing YouTube profiles only",
       async check(entry, signal = new AbortController().signal) {
         if (!binding.isCurrent() || binding.signal.aborted || signal.aborted) throw abortError();
         if (!capabilities.youtube || entry.platform !== "youtube") return unavailableEvidence(entry, new Date().toISOString());

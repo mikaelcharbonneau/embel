@@ -96,3 +96,16 @@ export function guidedTimeline(context: ContextSnapshot): GuidedTimelineItem[] {
   for (const event of messages.slice(cursor + 1)) items.push({ kind: "user", event });
   return items;
 }
+
+// Personality replies sometimes explain how the scores are scaled ("Scores use
+// independent 1–5 scales…; they are not percentage allocations."). That is how
+// Embel works, not something the reader acts on, so it is left out.
+const sentence = /[^.!?\n]+[.!?]*[ \t]*/gu;
+const scoreWords = /\b(?:scores?|scored|scales?|scoring|ratings?|rated)\b/iu;
+const aboutScale = /\bpercent(?:ages?)?\b|\b[01]\s*[–-]\s*(?:5|10|100)\b|\bindependent(?:ly)?\b|\bneed not total\b|\bdon[’']t (?:add up|total)\b/iu;
+const scaleClause = /\s*(?:[—–]|--?|,|;)\s*(?:(?:they|these|scores) (?:are|aren[’']t) |and )?not (?:as )?(?:a )?percentages?(?: allocations?| splits?| shares?)?(?=\s*[.!?)]|\s*$)/giu;
+export function withoutScoreScaleNote(text: string): string {
+  const cleaned = text.replace(sentence, part => scoreWords.test(part) && aboutScale.test(part) ? "" : part)
+    .replace(scaleClause, "").replace(/[ \t]+\n/gu, "\n").replace(/\n{3,}/gu, "\n\n").trim();
+  return cleaned || text;
+}

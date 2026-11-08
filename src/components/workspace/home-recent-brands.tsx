@@ -8,18 +8,9 @@ import { useAccountProjectListing } from "./account-projects";
 import { ProjectCardActions } from "./project-card-actions";
 import type { LifecycleProject } from "./project-deletion-client";
 import { ProjectDeletionStatus } from "./project-deletion-status";
-import { ProjectCard } from "./project-card";
+import { ProjectCard, ProjectCardSkeletons, shortDate } from "./project-card";
 
-/** "Today", "Yesterday" or "Oct 31" (with the year when it differs). */
-export function shortDate(iso: string, now = new Date()) {
-  const date = new Date(iso);
-  if (!Number.isFinite(date.getTime())) return "Date unavailable";
-  const day = (value: Date) => new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
-  const days = Math.round((day(now) - day(date)) / 86_400_000);
-  if (days === 0) return "Today";
-  if (days === 1) return "Yesterday";
-  return date.toLocaleDateString("en", { month: "short", day: "numeric", ...(date.getFullYear() === now.getFullYear() ? {} : { year: "numeric" }) });
-}
+export { shortDate };
 
 export function HomeRecentBrands() {
   const { session } = useAccountSession();
@@ -38,7 +29,8 @@ function HomeAccountRecentBrands({ account }: { account: VerifiedAccount }) {
   }
 
   function updateRemoved(project: LifecycleProject) {
-    setRemoved(previous => previous && previous.id === project.id && project.lifecycle_version >= previous.lifecycle_version && project.current_revision >= previous.current_revision ? project.deletion_state === "active" ? null : project : previous);
+    // Status reads return the saved title; keep the name the card showed.
+    setRemoved(previous => previous && previous.id === project.id && project.lifecycle_version >= previous.lifecycle_version && project.current_revision >= previous.current_revision ? project.deletion_state === "active" ? null : { ...project, title: previous.title } : previous);
   }
 
   async function refreshProjects() {
@@ -47,13 +39,15 @@ function HomeAccountRecentBrands({ account }: { account: VerifiedAccount }) {
     return refreshed;
   }
 
+  const loading = (!listing && !error) || (!brands.length && pending);
   return <section className="home-recent" aria-labelledby="recent-heading">
     <div className="home-recent-heading"><h2 id="recent-heading" ref={heading} tabIndex={-1}>Pick up where you left off</h2><Link href="/brands" className="text-link">All projects<Icon name="arrow" size={16} /></Link></div>
     {removed && <div className="project-change-notice" role="status"><span>“{removed.title}” moved to Deleted projects.</span><Link className="text-link" href="/brands?state=deleted">View deleted projects</Link><ProjectDeletionStatus account={account} project={removed} onUpdated={updateRemoved} compact /></div>}
-    {!listing && !error ? <p className="quiet-empty" role="status">Loading your projects…</p> : !listing && error ? null : brands.length ? <div className="home-brand-grid">
-      {brands.map(brand => <ProjectCard key={brand.id} project={brand} account={account} headingLevel={3} compact date={shortDate(brand.created_at)}
-        actions={<ProjectCardActions key={`${brand.id}:${brand.current_revision}:${brand.lifecycle_version}`} project={brand} account={account} onChanged={changed} onReload={refreshProjects} />} />)}
-    </div> : pending ? <p className="quiet-empty" role="status">Loading your projects…</p> : listing?.nextCursor ? <p className="quiet-empty">More projects are available. <Link className="text-link" href="/brands">View all projects</Link></p> : <div className="home-brands-empty"><Icon name="brands" size={24} /><h3>Your first brand starts here</h3><p>Describe your idea above. Your saved work will appear here.</p></div>}
+    {loading ? <div className="home-brand-grid" aria-busy="true"><span className="sr-only" role="status">Loading your projects…</span><ProjectCardSkeletons count={4} /></div>
+      : !listing ? null : brands.length ? <div className="home-brand-grid">
+        {brands.map(brand => <ProjectCard key={brand.id} project={brand} account={account} headingLevel={3} date={shortDate(brand.created_at)}
+          actions={name => <ProjectCardActions key={`${brand.id}:${brand.current_revision}:${brand.lifecycle_version}`} project={brand} account={account} name={name} onChanged={changed} onReload={refreshProjects} />} />)}
+      </div> : listing.nextCursor ? <p className="quiet-empty">More projects are available. <Link className="text-link" href="/brands">View all projects</Link></p> : <div className="home-brands-empty"><Icon name="brands" size={24} /><h3>Your first brand starts here</h3><p>Describe your idea above. Your saved work will appear here.</p></div>}
     {error && <p className="form-error" role="alert">Your projects could not be loaded. <button type="button" className="text-link" disabled={pending} onClick={() => void reload()}>Try again</button></p>}
   </section>;
 }

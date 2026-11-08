@@ -99,8 +99,8 @@ test("name imports require explicit replacement and keep trademark fields and so
   await expect(dialog).not.toBeVisible();
   await expect(page.getByLabel("Mark name", { exact: true })).toHaveValue("cedar");
   await expect(page.getByLabel("Goods and services", { exact: true })).toHaveValue("Existing services");
-  await page.getByRole("button", { name: "Prepare manual search" }).click();
-  await expect(page.getByText("Ready for manual research", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Prepare search" }).click();
+  await expect(page.getByText("Ready to search", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Open WIPO Global Brand Database" })).toHaveAttribute("href", "https://branddb.wipo.int/en/");
   await page.screenshot({ path: info.outputPath("manual-trademark-research.png"), fullPage: true });
   expect(audit.names.payload().candidates.some(item => item.source.value === "cedar")).toBe(true);
@@ -114,7 +114,7 @@ test("Handles prepares manual profile links and exports an unchecked comparison"
   await page.getByRole("button", { name: "Details for @cedar from cedar", exact: true }).click();
   await expect(page.locator('a[href="https://www.instagram.com/cedar/"]')).toBeVisible();
   await expect(page.getByRole("button", { name: "Refresh results", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("region", { name: "Handles results", exact: true }).getByText("Checks not connected · availability unknown", { exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Handles results", exact: true }).getByLabel("Availability filters", { exact: true })).toHaveCount(0);
   const pending = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export handles CSV", exact: true }).click();
   const download = await pending, path = info.outputPath("handles.csv"); await download.saveAs(path);

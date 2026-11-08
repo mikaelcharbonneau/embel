@@ -12,21 +12,21 @@ function iconHost(url: string | undefined): string | null {
 const ICON_VERSION = "2";
 
 /** The competitor's own site icon, fetched through Embel's server. A neutral
- * initial stands in when the site has no usable icon; nothing is invented. */
+ * initial stands in when the site has no usable icon; nothing is invented.
+ * Icons and initials share one tile, so every logo has the same size and
+ * centre whatever the site provides. */
 export function CompetitorLogo({ projectId, name, url, size = 40 }: { projectId: string; name: string; url?: string; size?: number }) {
   const host = iconHost(url);
   const [failed, setFailed] = useState<string | null>(null);
-  const [natural, setNatural] = useState<{ host: string; width: number } | null>(null);
   const initial = (name.trim().match(/[\p{L}\p{N}]/u)?.[0] ?? "?").toUpperCase();
   if (!host || failed === host) return <span className="competitor-logo competitor-logo-monogram" style={{ width: size, height: size }} aria-hidden="true">{initial}</span>;
-  // A site that only offers a tiny icon shows it smaller instead of stretched and blurred.
-  const width = natural?.host === host ? natural.width : 0;
-  const shown = width && size >= 32 && width < size * 1.6 ? Math.max(16, Math.min(size, Math.round(width * 0.625))) : size;
-  const measure = (image: HTMLImageElement | null) => {
-    if (image?.complete && image.naturalWidth && natural?.host !== host) setNatural({ host, width: image.naturalWidth });
-  };
-  // eslint-disable-next-line @next/next/no-img-element -- a private, same-origin, owner-checked route
-  return <img ref={measure} className="competitor-logo" src={`/api/projects/${projectId}/competitor-icon?host=${encodeURIComponent(host)}&v=${ICON_VERSION}`} alt=""
-    width={size} height={size} loading="lazy" decoding="async" style={shown < size ? { padding: (size - shown) / 2 } : undefined}
-    onLoad={event => setNatural({ host, width: event.currentTarget.naturalWidth })} onError={() => setFailed(host)} />;
+  // The icon fills a fixed share of the tile, leaving the same margin for all.
+  const inner = Math.round(size * (size >= 32 ? 0.6 : 0.7));
+  return <span className="competitor-logo" style={{ width: size, height: size }} aria-hidden="true">
+    {/* eslint-disable-next-line @next/next/no-img-element -- a private, same-origin, owner-checked route */}
+    <img src={`/api/projects/${projectId}/competitor-icon?host=${encodeURIComponent(host)}&v=${ICON_VERSION}`} alt=""
+      width={inner} height={inner} loading="lazy" decoding="async" onError={() => setFailed(host)}
+      // An icon that failed before hydration never fires onError; show the initial instead.
+      ref={node => { if (node?.complete && node.naturalWidth === 0) setFailed(host); }} />
+  </span>;
 }

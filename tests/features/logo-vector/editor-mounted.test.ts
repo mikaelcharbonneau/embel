@@ -38,7 +38,7 @@ describe("mounted account vector editor", () => {
     expect(f.state.posts).toHaveLength(0); await click("Accept this vector"); await until(() => host.textContent!.includes("Approved logo"));
     expect(f.state.posts).toHaveLength(1); expect(f.state.posts[0]!.path).toBe(`/api/projects/${source.input.projectId}/logo/vector/accept`);
   });
-  it("explains missing vector approval and links to conversion availability without starting work", async () => {
+  it("explains missing vector approval in plain words and links back to Logo without starting work", async () => {
     const f = createVectorHttpFixture(), projectId = source.input.projectId;
     f.details.clear();
     for (const [id, stage] of f.stages) if (stage.stage === "vector") f.stages.delete(id);
@@ -51,10 +51,10 @@ describe("mounted account vector editor", () => {
       : f.fetcher(input, options)) satisfies typeof fetch);
     await act(async () => root.render(createElement(AccountSessionProvider, null, createElement(LogoEditorWorkspace, { projectId }))));
     await until(() => host.textContent!.includes("No vector ready for approval"));
-    expect(host.textContent).toContain("A saved image preview is not an approved vector");
-    expect(host.textContent).toContain("Open Project context, then Saved inputs and recovery");
-    expect(host.textContent).toContain("check conversion availability");
-    expect(host.querySelector(`[role="status"] a[href="/brands/account/${projectId}/logo"]`)?.textContent).toBe("Open Logo concepts");
+    expect(host.textContent).toContain("Your logo is an image for now");
+    expect(host.textContent).toContain("open Logo brief and history, then Saved versions and options, and choose Convert to vector");
+    expect(host.textContent).not.toMatch(/Project context|conversion availability|Workspace version/);
+    expect(host.querySelector(`[role="status"] a[href="/brands/account/${projectId}/logo"]`)?.textContent).toBe("Open Logo");
     expect(host.querySelector('a[href*="#logo-conversion-settings"]')).toBeNull();
     expect(host.querySelector('nav')).toBeNull(); // Shared project layout owns the single stage hierarchy.
     expect(button("Accept this vector")).toBeUndefined(); expect(host.querySelector("svg")).toBeNull();

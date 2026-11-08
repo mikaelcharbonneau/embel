@@ -116,7 +116,7 @@ test("guided Names: saved words, exact retained history, independent favorite an
   await page.getByRole("tab", { name: "Library", exact: true }).click();
   await expect(page.getByRole("article", { name: `Name: ${value}`, exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "History", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Retained transformations" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "History", exact: true })).toBeVisible();
   expect((await snapshot(page)).runs).toHaveLength(3);
   await page.screenshot({ path: info.outputPath("names-history.png"), fullPage: true });
 });

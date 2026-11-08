@@ -126,11 +126,19 @@ async function returnToProject(page: Page) {
 
 async function verifyProjectAccount(page: Page) {
   // Account settings is intentionally hidden until the session is verified.
-  // Verify through the current page's account menu without losing its draft.
-  await revealAccountMenu(page);
+  // Signed out, the pill shows Sign in and Create account and returning to the
+  // tab checks again; after a failed check, the account menu offers Check
+  // account. Either way the current page keeps its draft.
   const menu = page.locator(".workspace-account-menu");
-  await expect(menu.getByRole("link", { name: "Account settings", exact: true })).toHaveCount(0);
-  await menu.getByRole("button", { name: "Check account", exact: true }).click();
+  if (await page.getByRole("banner").getByRole("link", { name: "Sign in", exact: true }).count()) {
+    await triggerAutomaticRefresh(page);
+    await expect(menu).toHaveCount(1);
+  } else {
+    await revealAccountMenu(page);
+    await expect(menu.getByRole("link", { name: "Account settings", exact: true })).toHaveCount(0);
+    await menu.getByRole("button", { name: "Check account", exact: true }).click();
+  }
+  await revealAccountMenu(page);
   await expect(menu.getByRole("button", { name: "Sign out", exact: true })).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`/brands/account/${projectId}\\?view=strategy`));
   await openBriefEditor(page);
@@ -195,7 +203,8 @@ test("auth fixture: pending sign-in blocks refresh and sign-out across internal 
   await triggerAutomaticRefresh(page);
   expect(fixture.state.sessionRequests).toBe(sessionCount);
   await revealAccountMenu(page);
-  await expect(page.getByRole("button", { name: /^(Check|Checking) account(?:…)?$/ })).toBeDisabled();
+  await expect(page.getByRole("banner").getByRole("button", { name: "Signing in…", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: /^(Check|Checking) account(?:…)?$/ })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Sign out", exact: true })).toHaveCount(0);
   const pendingPassword = form.getByLabel("Password", { exact: true });
   await expect(pendingPassword).toHaveValue(" local-fixture-only password ");
@@ -348,7 +357,7 @@ test("auth fixture: confirmed sign-out clears private buffers and preserves brow
   await page.getByRole("dialog").getByRole("button", { name: "Discard edits and sign out", exact: true }).click();
   await expect(page.getByRole("banner").getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
   await returnToProject(page);
-  await expect(page.getByText("No verified account session.", { exact: false })).toBeVisible();
+  await expect(page.getByText("Sign in to see and save your work.", { exact: true })).toBeVisible();
   await expect(page.getByRole("textbox")).toHaveCount(0);
   expect(await page.evaluate(key => localStorage.getItem(key), storageKey)).toBe(browserWorkspace);
   fixture.state.sessionStatus = 200;
