@@ -72,7 +72,10 @@
    neutral initial when the site has none, in the same tile at the same size.
    Answer chips show a small round version. */
 .competitor-logo { flex: 0 0 auto; display: grid; place-items: center; box-sizing: border-box; width: 40px; height: 40px; overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: var(--paper); color: var(--secondary); font-size: 16px; font-weight: 500; line-height: 1; }
-.competitor-logo > img { display: block; margin: 0; object-fit: contain; }
+/* The icon fills the tile edge to edge (a wide mark is never cropped); the tile's
+   rounded corners clip it. The single grid cell is exactly the tile's inside. */
+.competitor-logo:has(> img) { grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
+.competitor-logo > img { display: block; width: 100%; height: 100%; margin: 0; object-fit: contain; }
 .competitor-logo-monogram { background: var(--canvas); }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-target > .competitor-logo { order: 0; }
 :is(.project-workspace, .guided-interview-opening) .guided-choice-target > .guided-choice-content { order: 1; flex: 1 1 auto; min-width: 0; }

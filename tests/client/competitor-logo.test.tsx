@@ -17,19 +17,19 @@ async function shown(size = 40) {
 describe("competitor logo", () => {
   it("asks Embel's server for the site icon, never the competitor site", async () => {
     await act(async () => root.render(createElement(CompetitorLogo, { projectId, name: "Fixture Studio", url: "https://fixture.example.org/about" })));
-    expect(host.querySelector("img")!.getAttribute("src")).toBe(`/api/projects/${projectId}/competitor-icon?host=fixture.example.org&v=2`);
+    expect(host.querySelector("img")!.getAttribute("src")).toBe(`/api/projects/${projectId}/competitor-icon?host=fixture.example.org&v=3`);
   });
 
-  it("shows every icon at the same size inside the same tile", async () => {
+  it("fills the same tile with every icon, with no margin inside it", async () => {
     const { tile, image } = await shown();
     expect([tile.style.width, tile.style.height]).toEqual(["40px", "40px"]);
-    expect([image.getAttribute("width"), image.getAttribute("height")]).toEqual(["24", "24"]);
+    expect([image.getAttribute("width"), image.getAttribute("height")]).toEqual(["40", "40"]);
   });
 
-  it("keeps small chips proportionate", async () => {
+  it("fills small chips the same way", async () => {
     const { tile, image } = await shown(22);
     expect(tile.style.width).toBe("22px");
-    expect(image.getAttribute("width")).toBe("15");
+    expect([image.getAttribute("width"), image.getAttribute("height")]).toEqual(["22", "22"]);
   });
 
   it("falls back to the initial in the same tile when the icon fails", async () => {
