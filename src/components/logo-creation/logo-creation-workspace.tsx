@@ -50,24 +50,30 @@ const noSubscription = () => () => undefined;
 const EMPTY_CREATION: LogoCreationState = { phase: "idle", quote: null, request: null, error: null };
 const emptyCreation = () => EMPTY_CREATION;
 
-export function LogoCreationWorkspace({ projectId, onProjectCreated, mode = "setup" }: {
+export function LogoCreationWorkspace({ projectId, onProjectCreated, mode = "setup", onContinue, continueHidden = false }: {
   projectId?: string;
   mode?: "setup" | "refine";
   onProjectCreated?: (projectId: string) => void;
+  /** In the project conversation, Continue opens Creative direction below instead of its page. */
+  onContinue?: () => void;
+  /** Hidden once Creative direction is already shown below. */
+  continueHidden?: boolean;
 }): React.JSX.Element {
   const { session } = useAccountSession();
   const memory = useLogoDraftMemory();
   if (session.status !== "ready") return <section className={styles.panel} aria-label="Create a logo"><h1 className={projectId ? stage.title : undefined}>Create a logo</h1><AccountStatus retainedEdits={memory.hasUnsaved()} /></section>;
   if (projectId !== undefined && !logoUuidSchema.safeParse(projectId).success) return <section className={styles.panel} role="alert"><h1 className={stage.title}>Project unavailable</h1><p>Open a saved project to continue.</p><Link className={stage.actionLink} href="/brands">View projects</Link></section>;
-  return <OwnedLogoCreation key={session.userId + ":" + session.generation + ":" + (projectId ?? "new")} account={session} projectId={projectId} mode={mode} onProjectCreated={onProjectCreated} />;
+  return <OwnedLogoCreation key={session.userId + ":" + session.generation + ":" + (projectId ?? "new")} account={session} projectId={projectId} mode={mode} onProjectCreated={onProjectCreated} onContinue={onContinue} continueHidden={continueHidden} />;
 }
 
 /** All editable brief/reference values and retained requests live in the shared memory. */
-function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
+function OwnedLogoCreation({ account, projectId, onProjectCreated, onContinue, continueHidden }: {
   account: VerifiedAccount;
   projectId?: string;
   mode?: "setup" | "refine";
   onProjectCreated?: (projectId: string) => void;
+  onContinue?: () => void;
+  continueHidden?: boolean;
 }): React.JSX.Element {
   const { isCurrent } = useAccountSession();
   const memory = useLogoDraftMemory();
@@ -512,9 +518,11 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
   </>;
 
   // Continue sits at the end of the step, below the refine box.
-  const continueAction = conceptsScreen && projectId && activeBatch ? workspace.stagePayloads?.concepts?.payload.selected && !selectionState.busy
-    ? <Link className={`${styles.primaryButton} ${stage.actionLink}`} href={`/brands/account/${projectId}/logo/directions`}
-      onClick={() => { try { window.sessionStorage.setItem(`embel.directions-intent.v1:${projectId}`, String(Date.now())); } catch { /* Then directions wait for a click. */ } }}>Continue</Link>
+  // Continue is the deliberate request for creative directions: the next step starts one set.
+  const markDirectionsIntent = () => { try { window.sessionStorage.setItem(`embel.directions-intent.v1:${projectId}`, String(Date.now())); } catch { /* Then directions wait for a click. */ } };
+  const continueAction = conceptsScreen && projectId && activeBatch && !continueHidden ? workspace.stagePayloads?.concepts?.payload.selected && !selectionState.busy
+    ? onContinue ? <button className={styles.primaryButton} type="button" onClick={() => { markDirectionsIntent(); onContinue(); }}>Continue</button>
+      : <Link className={`${styles.primaryButton} ${stage.actionLink}`} href={`/brands/account/${projectId}/logo/directions`} onClick={markDirectionsIntent}>Continue</Link>
     : <button className={styles.primaryButton} type="button" disabled title={initialConceptReadState ? initialConceptReadMessage : "Select a logo and wait for it to save"}>Continue</button> : null;
   const conceptsComposer = conceptsScreen && projectId ? <ConceptsComposer inputRef={refinementInput} projectId={projectId} selectionReadState={initialConceptReadState} selectedLabel={selectedLabel} selectedPreview={focusedReceipt && client ? <LogoVerifiedPreview client={client} receipt={focusedReceipt} alt="Selected logo" /> : undefined}
     selectedActions={client && focusedReceipt ? <LogoDownloadControls client={client} account={account} projectId={projectId} original={focusedReceipt} disabled={selectionState.busy} compact /> : undefined}

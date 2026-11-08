@@ -12,6 +12,7 @@ vi.mock("@/domain/project-handoff", () => ({ getProjectHandoff: () => ({ next: {
 vi.mock("@/domain/project-naming", () => ({ getNamingReadiness: () => ({ ready: true }) }));
 vi.mock("@/components/inspiration/inspiration-workspace", () => ({ InspirationWorkspace: () => null }));
 vi.mock("@/components/logo-creation/logo-creation-workspace", () => ({ LogoCreationWorkspace: () => null }));
+vi.mock("@/components/visual-directions/visual-directions-page", () => ({ VisualDirectionsPage: () => null }));
 vi.mock("@/components/naming/project-naming-workspace", () => ({ ProjectNamingWorkspace: ({ conversationHistory }: { conversationHistory: ReactNode }) => {
   useEffect(() => { tracker.mounts++; return () => { tracker.unmounts++; }; }, []);
   return <section data-naming>{conversationHistory}<input aria-label="Naming draft" defaultValue="Keep this text" /></section>;

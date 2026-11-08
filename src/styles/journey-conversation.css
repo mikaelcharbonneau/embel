@@ -331,3 +331,9 @@
 .logo-in-conversation { scroll-margin-top: 24px; }
 .logo-in-conversation:focus { outline: none; }
 .logo-in-conversation .project-logo-creation > div > :not(.logo-conversation-message):not(dialog) { margin-left: 44px; max-width: calc(100% - 44px); }
+/* Creative direction in the conversation: the chat column's edges instead of its
+   own page frame, with the toolbar and boards aligned to Embel's message text. */
+.directions-in-conversation { --branding-gutter: 0px; --branding-max-width: none; --branding-title-size: 32px; --branding-section-size: 20px; --branding-subheading-size: 16px; --branding-action-height: 44px; scroll-margin-top: 24px; }
+.directions-in-conversation:focus { outline: none; }
+.workspace-main .directions-in-conversation > section { width: 100%; max-width: none; margin: 0; padding: 0; }
+.directions-in-conversation > section > :not(.guided-assistant-message):not(dialog) { margin-left: 44px; max-width: calc(100% - 44px); }

@@ -48,6 +48,8 @@ export type VisualDirectionsViewProps = {
   selectionError?: string | null;
   finalAction?: ReactNode;
   history?: ReactNode;
+  /** In the project conversation, the step sits in the chat column instead of its own page frame. */
+  variant?: "page" | "conversation";
 };
 
 const progressMessages: Record<VisualDirectionGeneration["status"], string | null> = {
@@ -64,7 +66,7 @@ const progressMessages: Record<VisualDirectionGeneration["status"], string | nul
 
 /** Presentation only. Callers supply verified previews, saved choices and request state. */
 export function VisualDirectionsView({ brandName, logoPreview, backHref, cards, generation, selectionCheck,
-  selectionStatus, selectionError, finalAction, history }: VisualDirectionsViewProps) {
+  selectionStatus, selectionError, finalAction, history, variant = "page" }: VisualDirectionsViewProps) {
   const titleId = useId(), generationId = useId(), reasonId = useId(), dialogTitleId = useId();
   const dialog = useRef<HTMLDialogElement>(null), heading = useRef<HTMLHeadingElement>(null), triggers = useRef(new Map<string, HTMLButtonElement>());
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -96,7 +98,7 @@ export function VisualDirectionsView({ brandName, logoPreview, backHref, cards, 
     if (!card.selected && !card.stale && !card.pending && !card.disabledReason) card.onChoose?.();
   }
 
-  return <section className={`${stage.frame} ${styles.workspace}`} aria-labelledby={titleId}>
+  return <section className={variant === "conversation" ? styles.workspace : `${stage.frame} ${styles.workspace}`} aria-labelledby={titleId}>
     <div className="guided-assistant-message identity-conversation-message">
       <EmbelIdentity label={journeyPartLabel("identity", "Creative direction")} />
       <h1 className="sr-only" ref={heading} id={titleId} tabIndex={-1}>Creative direction</h1>
