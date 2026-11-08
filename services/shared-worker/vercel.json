@@ -9,7 +9,7 @@
       "root": "shared-worker",
       "entrypoint": "Containerfile",
       "instances": { "iad1": 0 },
-      "resources": { "requests": { "memory": "1Gi" } },
+      "resources": { "requests": { "memory": "2Gi" } },
       "terminationGracePeriodSeconds": 600
     }
   }

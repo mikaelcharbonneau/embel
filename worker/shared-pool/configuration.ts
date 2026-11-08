@@ -15,6 +15,9 @@ const vercelTarget=z.strictObject({kind:z.literal("vercel"),purpose:z.enum(["sta
  databaseHost:z.string().min(1).max(253),databasePort:z.literal(5432),caSha256:hash});
 const functionProof=z.strictObject({sha256:hash,language:z.enum(["sql","plpgsql"]),volatility:z.enum(["s","v"])});
 const textProviderBinding=z.strictObject({providerBindingRef:reference,model:z.string().min(1).max(150),modelVerificationReceipt:reference});
+/** Production slot ceilings. Six Logo slots let one six-concept batch run at
+ * once; Strategy and Naming keep their single fixed slot. */
+export const PRODUCTION_SLOTS_PER_LANE={strategy:1,naming:1,logo:6} as const satisfies Record<z.infer<typeof sharedLaneSchema>,number>;
 const logoOperations=new Set(["identity.logo_concept","identity.logo_refine","identity.logo_vectorize","identity.logo_directions","identity.logo_export","identity.logo_vector_propose","identity.image"]);
 export const sharedPoolSlotSchema=z.strictObject({slotId:z.uuid(),lane:sharedLaneSchema,roleName:z.string().max(63).regex(/^embel_shared_(strategy|naming|logo)_[a-z0-9_]{1,30}$/u),
  roleOid:z.number().int().min(1).max(4_294_967_295),workerId:z.string().regex(/^[A-Za-z0-9._:-]{1,100}$/u),providerBindingRef:reference,
@@ -53,8 +56,8 @@ export const sharedPoolConfigurationSchema=z.strictObject({version:z.literal(1),
   if(production){
    if(config.target.projectRef!=="fricsfwqibyhemknqgyf"||config.target.applicationOrigin!=="https://www.embel.xyz"
     ||!["prj_waP1hoGVtBiqJCTqTWKHfRy8iLMk","prj_vTOc6Kf8th7tXK2cOVwWTTaR20yx"].includes(config.target.projectId)
-    ||config.slots.length!==3||sharedLaneSchema.options.some(lane=>config.slots.filter(slot=>slot.lane===lane).length!==1))
-    ctx.addIssue({code:"custom",message:"Production requires the exact existing target and three approved fixed slots"});
+    ||sharedLaneSchema.options.some(lane=>{const count=config.slots.filter(slot=>slot.lane===lane).length;return count<1||count>PRODUCTION_SLOTS_PER_LANE[lane];}))
+    ctx.addIssue({code:"custom",message:"Production requires the exact existing target, one Strategy slot, one Naming slot and one to six Logo slots"});
   }else if(config.target.projectRef==="fricsfwqibyhemknqgyf"||["https://www.embel.xyz","https://embel.xyz"].includes(config.target.applicationOrigin))
    ctx.addIssue({code:"custom",message:"Staging cannot select production"});
  }

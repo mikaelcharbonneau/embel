@@ -1,7 +1,9 @@
 # Shared worker release preparation
 
-This source prepares one outbound-only Vercel Daemon process with three fixed
-restricted slots: Strategy, Naming and Logo. Production configuration selects
+This source prepares one outbound-only Vercel Daemon process with fixed
+restricted slots: one Strategy, one Naming and one to six Logo slots. Six Logo
+slots let one six-concept batch run at once; each Logo slot has its own database
+role and its own Storage service user. Production configuration selects
 the existing https://www.embel.xyz application and
 https://fricsfwqibyhemknqgyf.supabase.co project. The existing API-text and Naming
 worker project IDs are the only eligible production hosts; the operator must

@@ -55,4 +55,25 @@ describe("explicit existing production target and trusted deployment bootstrap (
   ];
   for (const mutate of mutations) { const config = production(); mutate(config); expect(() => readSharedPoolConfiguration(environment(config))).toThrow("configuration"); }
  });
+ // Extra Logo slots copy the first one under their own identity.
+ function withLogoSlots(total: number, lane: "logo" | "naming" = "logo") {
+  const config = production(), first = config.slots.find(slot => slot.lane === lane)!;
+  for (let index = 2; index <= total; index++) config.slots.push({ ...structuredClone(first), slotId: `${index}9999999-9999-4999-8999-999999999999`,
+   roleOid: 9000 + index, roleName: `embel_shared_${lane}_fixture_s${index}`, workerId: `synthetic-${lane}-slot-${index}` });
+  config.capacity.maxConcurrentExecutions = config.slots.length;
+  return config;
+ }
+ it("accepts up to six Logo slots so one concept batch can run at once", () => {
+  for (const total of [2, 6]) {
+   const config = withLogoSlots(total), parsed = readSharedPoolConfiguration(environment(config))!;
+   expect(parsed.slots.filter(slot => slot.lane === "logo")).toHaveLength(total);
+   expect(parsed.capacity.maxConcurrentExecutions).toBe(total + 2);
+  }
+ });
+ it("refuses a seventh Logo slot, a second Naming slot, or capacity that does not match the slots", () => {
+  expect(() => readSharedPoolConfiguration(environment(withLogoSlots(7)))).toThrow("configuration");
+  expect(() => readSharedPoolConfiguration(environment(withLogoSlots(2, "naming")))).toThrow("configuration");
+  const config = withLogoSlots(6); config.capacity.maxConcurrentExecutions = 3;
+  expect(() => readSharedPoolConfiguration(environment(config))).toThrow("configuration");
+ });
 });
