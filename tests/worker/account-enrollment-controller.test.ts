@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir,mkdtemp,rm,writeFile } from "node:fs/promises";
+import { mkdir,mkdtemp,realpath,rm,writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach,describe,expect,it,vi } from "vitest";
@@ -15,7 +15,8 @@ import type { EnrollmentContext } from "../../src/server/account-enrollment/cont
  * OS/IPC controller lifecycle only, never native SQL/model/production readiness. */
 async function fixture(){
  reporter.report.mockReset();reporter.close.mockReset().mockResolvedValue(undefined);reporter.strategyRoute.mockReset();
- const directory=await mkdtemp(join(tmpdir(),"embel-controller-fixture-")),artifact=join(directory,"artifact"),publication=join(directory,"publications");
+ // The controller refuses symlinked paths; macOS tmpdir() is one (/var -> /private/var).
+ const directory=await realpath(await mkdtemp(join(tmpdir(),"embel-controller-fixture-"))),artifact=join(directory,"artifact"),publication=join(directory,"publications");
  await mkdir(artifact,{mode:0o700});await mkdir(publication,{mode:0o700});
  const child=`import {readFile} from 'node:fs/promises';
 const manifest=JSON.parse(await readFile(new URL('./build-manifest.json',import.meta.url),'utf8'));
