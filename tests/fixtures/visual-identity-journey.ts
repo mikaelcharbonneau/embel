@@ -154,7 +154,7 @@ export function createVisualJourneyFixture(options: { standalone?: boolean; name
       if (path === `${logoBase}/batches`) return json(route, { ...scope, items: [{ id: logoBatch.id, requestKey: logoBatch.requestKey, createdAt: logoBatch.createdAt }], nextCursor: null });
       if (path.startsWith(`${logoBase}/requests/`)) return json(route, { status: "not_found" });
       if (path === `${logoBase}/raster-refinements`) return json(route, { ...scope, items: [], nextCursor: null });
-      if (path === `${logoBase}/saved-inputs`) return json(route, { ...scope, projectRevision: input.projectRevision, inspirationSelectionRevision: 0, inspirationCount: 0, nameConflict: false,
+      if (path === `${logoBase}/saved-inputs`) return json(route, { ...scope, projectRevision: input.projectRevision, inspirationSelectionRevision: 0, inspirationCount: 0, references: [], nameConflict: false,
         draft: { name: brief.payload.name, activity: brief.payload.activity, audience: brief.payload.audience, personality: brief.payload.personality, logoTypes: brief.payload.logoTypes } });
       if (path === `${logoBase}/capabilities`) return json(route, { ...scope, observedAt: new Date().toISOString(), operations: Object.fromEntries(
         ["identity.logo_concept", "identity.logo_refine", "identity.logo_vectorize", "identity.logo_directions", "identity.logo_export", "identity.logo_vector_propose"].map(operation => [operation, { status: "unavailable" }])) });

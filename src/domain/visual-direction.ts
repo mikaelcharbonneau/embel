@@ -12,14 +12,15 @@ export const sameVisualGuidance = (a: VisualDirectionGuidance, b: VisualDirectio
   (Object.keys(a) as (keyof VisualDirectionGuidance)[]).every(key => a[key] === b[key]);
 /** Catalog text is attributed guidance, never an owned asset or proof of rights. */
 export const visualDirectionReferenceSchema = z.strictObject({
-  referenceId: z.uuid(), brand: z.string().min(1).max(200), creator: z.string().min(1).max(200),
-  description: z.string().min(1).max(2000), sourceUrl: z.url().max(2048), contentHash: z.string().regex(/^[a-f0-9]{64}$/u),
+  // Brands in the gallery have no designer credit or source link yet: null.
+  referenceId: z.uuid(), brand: z.string().min(1).max(200), creator: z.string().min(1).max(200).nullable(),
+  description: z.string().min(1).max(2000), sourceUrl: z.url().max(2048).nullable(), contentHash: z.string().regex(/^[a-f0-9]{64}$/u),
   ensemble: z.boolean(), elements: z.array(referenceElementSchema).max(6),
 }).superRefine((value, ctx) => {
   const design = inspirationCatalog.find(item => item.id === value.referenceId);
   if (!design || !hasInspirationChoice(value) || new Set(value.elements).size !== value.elements.length ||
     value.elements.some(element => !design.elements.includes(element)) ||
-    (["brand", "creator", "description", "sourceUrl", "contentHash"] as const).some(key => design[key] !== value[key]))
+    (["brand", "creator", "description", "sourceUrl", "contentHash"] as const).some(key => (design[key] ?? null) !== value[key]))
     ctx.addIssue({ code: "custom", message: "Reference must retain its exact attributed catalog descriptor and selected aspects" });
 });
 export const reviewedVisualDirectionSchema = z.strictObject({
@@ -41,8 +42,8 @@ export type ReviewVisualDirection = z.infer<typeof reviewVisualDirectionSchema>;
 export function visualDirectionReferences(inspiration: InspirationOverview) {
   return inspiration.choices.filter(hasInspirationChoice).map(choice => {
     const design = inspirationCatalog.find(item => item.id === choice.referenceId)!;
-    return visualDirectionReferenceSchema.parse({ referenceId: choice.referenceId, brand: design.brand, creator: design.creator,
-      description: design.description, sourceUrl: design.sourceUrl, contentHash: design.contentHash, ensemble: choice.ensemble, elements: choice.elements });
+    return visualDirectionReferenceSchema.parse({ referenceId: choice.referenceId, brand: design.brand, creator: design.creator ?? null,
+      description: design.description, sourceUrl: design.sourceUrl ?? null, contentHash: design.contentHash, ensemble: choice.ensemble, elements: choice.elements });
   }).sort((a, b) => a.referenceId.localeCompare(b.referenceId));
 }
 export function visualDirectionIsCurrent(value: ReviewedVisualDirection, inspiration: InspirationOverview) {

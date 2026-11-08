@@ -593,7 +593,7 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
       {!canvasActive && identityShown && <section id={journeySectionId("identity")} className="guided-journey-section flow-enter" data-journey-section="identity" aria-label="Identity" tabIndex={-1}>
         <InspirationWorkspace projectId={saved.id} variant="conversation" continueHidden={logoShown}
           onContinue={() => { requestLogo(); setLogoOpened(true); }}
-          lead={`Your voice is set. Now let’s shape how ${context.selectedName} looks. Like the designs you’re drawn to: the whole look, or open one to choose just its colors, type or layout. Your likes guide the logo concepts.`} />
+          lead={`Your voice is set. Now let’s shape how ${context.selectedName} looks. Like the brands you’re drawn to: a whole brand, or just its logo, colors, typefaces, socials or visuals. Your likes guide the logo concepts.`} />
         {logoShown && <div ref={logoAnchor} id="journey-logo" className="logo-in-conversation flow-enter" tabIndex={-1}>
           <LogoCreationWorkspace projectId={saved.id} continueHidden={directionsShown}
             onContinue={() => { requestDirections(); setDirectionsOpened(true); }} />

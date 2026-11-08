@@ -1,14 +1,14 @@
 import { checkDialogHitTesting } from "./dialog-hit-testing";
 import { expect, test, type Page } from "@playwright/test";
-import { inspirationCatalog, INSPIRATION_CATALOG_VERSION, type InspirationOverview } from "../../src/domain/inspiration";
+import { inspirationBrands, INSPIRATION_CATALOG_VERSION, type InspirationOverview } from "../../src/domain/inspiration";
 import { contextSnapshotSchema } from "../../src/domain/projects";
 import { DEFAULT_PROFILE_VALUES } from "../../src/domain/account-profile";
-// Fixture API state only; actual page/components, original catalog images, and client requests.
+// Fixture API state only; actual page/components, brand images, and client requests.
 // Database persistence and authorization are exercised separately in project-inspiration.test.ts.
 const ownerId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", projectId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
-const base = `/api/projects/${projectId}/inspiration`, url = `/brands/account/${projectId}/inspiration`, design = inspirationCatalog[0]!;
+const base = `/api/projects/${projectId}/inspiration`, url = `/brands/account/${projectId}/inspiration`, brand = inspirationBrands[0]!;
 async function setup(page: Page) {
-  const fixture = { writes: 0, lost: false, fail: false, overview: { ownerId, projectId, projectTitle: "Inspiration prototype", projectScope: "complete_brand", projectRevision: 1, catalogVersion: INSPIRATION_CATALOG_VERSION, selectionRevision: 0, choices: [] } as InspirationOverview };
+  const fixture = { writes: 0, lost: false, fail: false, overview: { ownerId, projectId, projectTitle: "Inspiration prototype", projectScope: "complete_brand", projectRevision: 1, catalogVersion: INSPIRATION_CATALOG_VERSION, selectionRevision: 0, choices: [], availableReferenceIds: inspirationBrands.map(item => item.id) } as InspirationOverview };
   await page.route("**/api/**", async route => {
     const request = route.request(), path = new URL(request.url()).pathname;
     const json = (body: unknown, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
@@ -28,59 +28,68 @@ async function setup(page: Page) {
     return json({}, 503);
   });
   await page.goto(url); await expect(page.getByRole("button", { name: /^Liked · 0$/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: `Like Dropbox overall look: ${design.slug}`, exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: `Like the whole ${brand.brand} brand`, exact: true })).toBeEnabled();
   return fixture;
 }
-const card = (page: Page) => page.getByRole("article", { name: `Dropbox — ${design.slug}`, exact: true });
-const inspect = (page: Page) => card(page).getByRole("button", { name: /^Inspect / });
-test("catalog search, filters, original images and read-only inspection", async ({ page }, info) => {
-  // The gallery lists the curated catalog minus designs retired from discovery
-  // (b38ff07 grew the catalog to 30 and retired 7 whose marks are too small at gallery size).
-  const fixture = await setup(page); await expect(page.locator(".inspiration-card")).toHaveCount(23);
-  await expect.poll(() => card(page).locator(".inspiration-image").evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(720);
-  await expect(page.locator(".inspiration-categories button")).toHaveText(["Identities", "Logos", "All"]);
+const card = (page: Page) => page.getByRole("article", { name: brand.brand, exact: true });
+const open = (page: Page, part = "logo") => card(page).getByRole("button", { name: `Open ${brand.brand}: ${part}`, exact: true });
+const overlay = (page: Page) => page.locator("dialog.inspiration-brand-overlay");
+test("brand containers, categories, search and the brand overlay", async ({ page }, info) => {
+  const fixture = await setup(page);
+  await expect(page.locator(".inspiration-categories button")).toHaveText(["Brands", "Logos", "Colors", "Typefaces", "Socials", "Visuals"]);
+  await expect(page.locator(".inspiration-brand")).toHaveCount(Math.min(8, inspirationBrands.length));
+  await expect(card(page).locator(".inspiration-brand-tile")).toHaveCount(5);
+  await expect.poll(() => card(page).locator(".inspiration-brand-tile img").first().evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
   const next = page.getByRole("link", { name: "Continue", exact: true });
-  await expect(next).toBeVisible();
   await expect(next).toHaveAttribute("href", `/brands/account/${projectId}/logo`);
-  await expect(next).toBeInViewport();
-  await page.screenshot({ path: info.outputPath("gallery.png") });
-  await page.getByRole("searchbox").fill("collins blue"); await expect(page.locator(".inspiration-card")).toHaveCount(1);
-  await page.getByRole("button", { name: "Identities", exact: true }).click(); await expect(page.getByRole("heading", { name: "No designs match these filters" })).toBeVisible();
-  await page.getByRole("button", { name: "Browse all designs" }).click(); await inspect(page).click();
-  const dialog = page.getByRole("dialog"); await expect(dialog).toBeVisible(); await expect(dialog.getByRole("link", { name: "View original project" })).toHaveAttribute("href", design.sourceUrl);
-  await page.screenshot({ path: info.outputPath("detail.png") });
+  await page.screenshot({ path: info.outputPath("brands.png") });
+  await page.getByRole("button", { name: "Colors", exact: true }).click();
+  await expect(page.locator(".inspiration-brand")).toHaveCount(0);
+  await expect(page.locator(".inspiration-card")).toHaveCount(Math.min(18, inspirationBrands.length));
+  await page.screenshot({ path: info.outputPath("colors.png") });
+  await page.getByRole("searchbox").fill("nothing matches this"); await expect(page.getByRole("heading", { name: "No colors match this search" })).toBeVisible();
+  await page.getByRole("button", { name: "Browse all colors" }).click(); await page.getByRole("button", { name: "Brands", exact: true }).click();
+  await open(page, "typefaces").click();
+  const dialog = overlay(page); await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: brand.brand, exact: true })).toBeVisible();
+  await expect(dialog.locator("figcaption")).toHaveText("Typefaces · 3 of 5");
+  await page.keyboard.press("ArrowRight"); await expect(dialog.locator("figcaption")).toHaveText("Socials · 4 of 5");
+  await page.screenshot({ path: info.outputPath("overlay.png") });
   await page.keyboard.press("Escape"); await expect(dialog).toHaveCount(0); expect(fixture.writes).toBe(0);
-  await expect(inspect(page)).toBeFocused();
+  await expect(open(page, "typefaces")).toBeFocused();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
-test("whole and component likes are independent, reloadable and visible in Liked", async ({ page }, info) => {
-  const fixture = await setup(page); await inspect(page).click(); const dialog = page.getByRole("dialog"), colors = dialog.getByRole("button", { name: "Colors", exact: true }), overall = dialog.getByRole("button", { name: "Overall look" });
-  await colors.click(); await expect(colors).toBeEnabled(); await expect(colors).toHaveAttribute("aria-pressed", "true"); await expect(overall).toHaveAttribute("aria-pressed", "false");
-  await overall.click(); await expect(overall).toBeEnabled(); await overall.click(); await expect(overall).toBeEnabled(); await expect(colors).toHaveAttribute("aria-pressed", "true");
+test("whole-brand and part likes are independent, reloadable and visible in Liked", async ({ page }, info) => {
+  const fixture = await setup(page);
+  const whole = card(page).getByRole("button", { name: `Like the whole ${brand.brand} brand`, exact: true });
+  await whole.click(); await expect(card(page).getByRole("button", { name: `Unlike the whole ${brand.brand} brand`, exact: true })).toBeEnabled();
+  await open(page).click(); const dialog = overlay(page), colors = dialog.getByRole("button", { name: `Like ${brand.brand} colors`, exact: true });
+  await colors.click(); await expect(dialog.getByRole("button", { name: `Unlike ${brand.brand} colors`, exact: true })).toBeEnabled();
+  await dialog.getByRole("button", { name: `Unlike the whole ${brand.brand} brand`, exact: true }).click();
+  await expect(dialog.getByRole("button", { name: `Like the whole ${brand.brand} brand`, exact: true })).toBeEnabled();
   await page.keyboard.press("Escape"); await page.reload(); await expect(page.getByRole("button", { name: "Liked · 1", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Liked · 1", exact: true }).click(); await expect(page.locator(".inspiration-card")).toHaveCount(1);
-  await expect(card(page).getByText("Colors liked", { exact: true })).toBeVisible(); await page.screenshot({ path: info.outputPath("liked.png") });
-  await expect(page.getByRole("button", { name: "Your style", exact: true })).toHaveCount(0);
-  await expect(page.locator(".inspiration-style")).toHaveCount(0);
+  await page.getByRole("button", { name: "Liked · 1", exact: true }).click(); await expect(page.locator(".inspiration-brand")).toHaveCount(1);
+  await expect(card(page).getByRole("button", { name: `Unlike ${brand.brand} colors`, exact: true })).toBeVisible();
+  await page.screenshot({ path: info.outputPath("liked.png") });
   expect(fixture.writes).toBe(3); expect(fixture.overview.choices[0]).toMatchObject({ ensemble: false, elements: ["colors"] });
-  expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain(design.id);
+  expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain(brand.id);
 });
 test("a lost successful response is recovered by reading, without repeating the write", async ({ page }) => {
-  const fixture = await setup(page); fixture.lost = true; await card(page).getByRole("button", { name: /^Like Dropbox overall/ }).click();
-  await card(page).getByRole("button", { name: "Review unsaved choices" }).click(); const dialog = page.getByRole("dialog");
+  const fixture = await setup(page); fixture.lost = true; await card(page).getByRole("button", { name: `Like the whole ${brand.brand} brand`, exact: true }).click();
+  await card(page).getByRole("button", { name: "Review unsaved choices" }).click(); const dialog = overlay(page);
   await expect(dialog.getByRole("button", { name: "Save my changes" })).toBeDisabled(); await dialog.getByRole("button", { name: "Check saved choices" }).click();
-  await expect(dialog.getByRole("button", { name: "Overall look" })).toBeEnabled(); await expect(dialog.getByRole("button", { name: "Overall look" })).toHaveAttribute("aria-pressed", "true"); expect(fixture.writes).toBe(1);
+  await expect(dialog.getByRole("button", { name: `Unlike the whole ${brand.brand} brand` })).toBeEnabled(); expect(fixture.writes).toBe(1);
 });
 test("a failed write retains intent and requires check then explicit retry", async ({ page }) => {
-  const fixture = await setup(page); fixture.fail = true; await card(page).getByRole("button", { name: /^Like Dropbox overall/ }).click();
-  await card(page).getByRole("button", { name: "Review unsaved choices" }).click(); const dialog = page.getByRole("dialog");
+  const fixture = await setup(page); fixture.fail = true; await card(page).getByRole("button", { name: `Like the whole ${brand.brand} brand`, exact: true }).click();
+  await card(page).getByRole("button", { name: "Review unsaved choices" }).click(); const dialog = overlay(page);
   await expect(dialog.getByRole("button", { name: "Save my changes" })).toBeDisabled(); await dialog.getByRole("button", { name: "Check saved choices" }).click();
   await expect(dialog.getByRole("button", { name: "Save my changes" })).toBeEnabled(); fixture.fail = false; await dialog.getByRole("button", { name: "Save my changes" }).click();
-  await expect(dialog.getByRole("button", { name: "Overall look" })).toBeEnabled(); expect(fixture.writes).toBe(2); expect(fixture.overview.choices[0]?.ensemble).toBe(true);
+  await expect(dialog.getByRole("button", { name: `Unlike the whole ${brand.brand} brand` })).toBeEnabled(); expect(fixture.writes).toBe(2); expect(fixture.overview.choices[0]?.ensemble).toBe(true);
 });
 
-test("dialog hit testing: inspiration detail protects padding without saving choices", async ({ page }) => {
+test("dialog hit testing: the brand overlay protects padding without saving choices", async ({ page }) => {
   const fixture = await setup(page);
-  await checkDialogHitTesting(page, inspect(page), page.getByRole("dialog").filter({ has: page.locator("#inspiration-detail-title") }), "Close design detail");
+  await checkDialogHitTesting(page, open(page), overlay(page), "Close brand");
   expect(fixture.writes).toBe(0);
 });

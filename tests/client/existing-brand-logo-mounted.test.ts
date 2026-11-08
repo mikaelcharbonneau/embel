@@ -8,6 +8,8 @@ import { LogoCreationWorkspace } from "../../src/components/logo-creation/logo-c
 import { contextSnapshotSchema } from "../../src/domain/projects";
 import { logoMutationReceiptSchema, type LogoMutationReceipt, type LogoStageRevision } from "../../src/domain/logo-workspace";
 import { syntheticLogoBrief, syntheticLogoWorkspace, logoFixtureId as id } from "../fixtures/logo-creation";
+import { publishInspirationLikes } from "../../src/components/workspace/inspiration-likes-signal";
+import { logoInspirationHeading } from "../../src/domain/logo-saved-inputs";
 
 /** Mounted React, real owner-scoped client/hook/memory; synthetic same-origin
  * HTTP only. No browser, provider, storage, or live database is exercised. */
@@ -24,7 +26,7 @@ function fixture() {
     if (state.owner !== original.ownerId) return new Response(null, { status: 404 });
     // The Logo step reads the saved brand and inspiration and prepares its brief by itself.
     if (path.endsWith("/saved-inputs")) return Response.json({ ownerId: original.ownerId, projectId: original.projectId, projectRevision: state.projectRevision,
-      inspirationSelectionRevision: 0, inspirationCount: 0, nameConflict: false, draft: syntheticLogoBrief({ name: state.name }) });
+      inspirationSelectionRevision: 0, inspirationCount: 0, references: [], nameConflict: false, draft: syntheticLogoBrief({ name: state.name }) });
     if (path.endsWith("/capabilities")) {
       const observed = Date.now();
       return Response.json({ ownerId: original.ownerId, projectId: original.projectId, observedAt: new Date(observed).toISOString(), operations: {
@@ -91,7 +93,7 @@ describe("existing-brand initialization through the actual logo workspace", () =
       if (path.endsWith("/saved-inputs")) {
         reads.push(path);
         return Response.json({ ownerId: f.original.ownerId, projectId: f.original.projectId, projectRevision: 1, inspirationSelectionRevision: 0,
-          inspirationCount: 0, nameConflict: false, draft: savedName === null ? null : syntheticLogoBrief({ name: savedName }) });
+          inspirationCount: 0, references: [], nameConflict: false, draft: savedName === null ? null : syntheticLogoBrief({ name: savedName }) });
       }
       if (path.endsWith("/capabilities")) {
         const observed = Date.now();
@@ -117,6 +119,27 @@ describe("existing-brand initialization through the actual logo workspace", () =
       expect(quotes).toEqual([]);
     }
     expect(button("Explore six concepts")?.disabled).toBe(true);
+  });
+  it("updates its brief when Inspiration likes change on the same page before any concepts exist", async () => {
+    const f = fixture(), transport = f.fetcher; let liked = false;
+    const personality = `Calm\n${logoInspirationHeading("2026-10-13.1", 1)}\nVelto brand (colors): Colors: Vibrant lime and light violet.`;
+    f.fetcher = async (url, options) => {
+      if (String(url).endsWith("/saved-inputs") && liked) return Response.json({ ownerId: f.original.ownerId, projectId: f.original.projectId, projectRevision: 1,
+        inspirationSelectionRevision: 1, inspirationCount: 1, references: [], nameConflict: false, draft: syntheticLogoBrief({ name: f.state.name, personality }) });
+      return transport(url, options);
+    };
+    await mount(f); await until(() => f.state.posts.length === 1 && message().includes("Élan & Co"));
+    const workspaceReads = () => f.state.reads.filter(path => path.endsWith("/logo")).length, before = workspaceReads();
+    // Inspiration publishes its saved revision on load (recorded), then after a like.
+    await act(async () => publishInspirationLikes(f.original.ownerId, f.original.projectId, "0:0"));
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 30)); });
+    expect(f.state.posts).toHaveLength(1);
+    liked = true;
+    await act(async () => publishInspirationLikes(f.original.ownerId, f.original.projectId, "1:0"));
+    await until(() => f.state.posts.length === 2);
+    expect(f.state.posts[1]!.path).toMatch(/\/brief$/);
+    expect((f.state.posts[1]!.body as { brief: { personality: string } }).brief.personality).toBe(personality);
+    expect(workspaceReads()).toBeGreaterThan(before);
   });
   it("Check original save resolves a committed lost acknowledgement of the automatic brief without replay", async () => {
     const f = fixture(); f.state.loseAfterCommit = true; await mount(f);

@@ -1,0 +1,4071 @@
+[
+  {
+    "id": "82a30592-62c1-5258-b616-119d4757270c",
+    "slug": "archi-tex",
+    "brand": "Archi-Tex",
+    "kind": "identity",
+    "description": "Bold industrial identity in safety orange, white and near-black, pairing an extended geometric typeface with construction-site photography for a construction company.",
+    "image": "/inspiration/brands/archi-tex/01-logo.webp",
+    "width": 1600,
+    "height": 900,
+    "contentHash": "cded98446fc0d4e561acd0e0326e372ec1f9675ee93445fb39e7ef194e08a533",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "construction",
+      "industrial",
+      "orange",
+      "extended-sans"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/archi-tex/01-logo.webp",
+        "thumbnail": "/inspiration/brands/archi-tex/01-logo-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "cded98446fc0d4e561acd0e0326e372ec1f9675ee93445fb39e7ef194e08a533",
+        "description": "White symbol of three nested rising arcs beside the extended, squared geometric sans wordmark ARCHI-TEX, shown over a muted steel-frame construction photo."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/archi-tex/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/archi-tex/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "f5fedf0e5d9255eae133c38fc653fcfc84c632817fb1b7bf9765731599eef6c1",
+        "description": "Caution Orange #ef4723, Solid White #ffffff and Coal Black #231f20."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/archi-tex/03-typography.webp",
+        "thumbnail": "/inspiration/brands/archi-tex/03-typography-small.webp",
+        "width": 1600,
+        "height": 802,
+        "contentHash": "9b7f138fb43b0a2a3f4f292bfdf8c4e9e6b2bf258599dc4ca57dd35af503057f",
+        "fill": "#fefefe",
+        "description": "Manifold Extd CF, a wide, squared-off geometric sans shown in Thin, Regular, Medium and Bold with italics."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/archi-tex/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/archi-tex/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "c6b9b0df6904b38cf467fc795280243c2055992229b0a8090db3310b26088ac1",
+        "description": "Black card with the white logo, and an orange-framed dark social profile with an orange arc avatar and a building-site header photo."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/archi-tex/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/archi-tex/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1065,
+        "contentHash": "73879b591dfc47dc2ab6ddc6e9003753d731ebd19e967bafdf32db698380d636",
+        "description": "Roadside billboard: orange panel with stacked ARCHI TEX, a black arc symbol and a service list, beside a photo of two hard-hat workers on steel stairs."
+      }
+    ]
+  },
+  {
+    "id": "80f2a36a-4c86-5be5-9470-730d98df4b3c",
+    "slug": "asteor",
+    "brand": "Asteor",
+    "kind": "identity",
+    "description": "Bold, playful identity for an art studio: a chunky rounded wordmark on near-black, with ultramarine blue, chartreuse, crimson and pink accents and vivid illustrated posters.",
+    "image": "/inspiration/brands/asteor/01-logo.webp",
+    "width": 1600,
+    "height": 763,
+    "contentHash": "29411cd73b8889f9da755a0dc1181688d4736f411598b4f84918f5fd5d5a948d",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "playful",
+      "rounded",
+      "art-studio",
+      "colorful"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/asteor/01-logo.webp",
+        "thumbnail": "/inspiration/brands/asteor/01-logo-small.webp",
+        "width": 1600,
+        "height": 763,
+        "contentHash": "29411cd73b8889f9da755a0dc1181688d4736f411598b4f84918f5fd5d5a948d",
+        "fill": "#f3f3f3",
+        "description": "Heavy rounded lowercase wordmark asteor in white on black, the a drawn as a dot plus a curved stroke; an as monogram serves as the brand mark."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/asteor/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/asteor/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 960,
+        "contentHash": "e39e7330b2dfc0a1dea868e912b4cad98bcc9a374ab7c503bdf4d9d0578ce201",
+        "fill": "#f3f3f3",
+        "description": "Obsidian Ink #1E1E1E (primary), Ultramarine Pigment #004AAD, Zinc Chartreuse #E7F67F, Cadmium Crimson #C91414 and Acrylic Blossom pink #FFA1F9."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/asteor/03-typography.webp",
+        "thumbnail": "/inspiration/brands/asteor/03-typography-small.webp",
+        "width": 1600,
+        "height": 1023,
+        "contentHash": "709c9bb8b51b90e4de3ea5f764e6380852f1897c30e9a925958f69142a8598a7",
+        "fill": "#f2f2f2",
+        "description": "Cinqcent, a heavy, rounded display sans with quirky letterforms, shown in Light, Regular, Medium and Bold."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/asteor/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/asteor/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 783,
+        "contentHash": "38d02aef98ad5dbdd89ad5b571e2eb17b05ae7bd62d396b4c1399a390f760849",
+        "fill": "#1c1c1c",
+        "description": "Two profile cards labeled Art Studio: a chartreuse as monogram on a black avatar and on a blue avatar, under blurred blue abstract banners."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/asteor/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/asteor/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1261,
+        "contentHash": "c602fb23b0ddd7050a5b74d85f02b709ff4e1f134fe91fbd1a465b42c56983cb",
+        "description": "Two framed posters on a dark slatted wall, each a vivid surreal portrait illustration in purple, pink, orange and teal with the asteor logo below."
+      }
+    ]
+  },
+  {
+    "id": "7e5e2ef8-cd9e-5880-8330-ae7610d26d3d",
+    "slug": "astrix-builders",
+    "brand": "Astrix Builders",
+    "kind": "identity",
+    "description": "Clean, modern construction identity in light sky blue, bright orange and deep navy, with a half-asterisk symbol, a neutral sans and site photography.",
+    "image": "/inspiration/brands/astrix-builders/01-logo.webp",
+    "width": 1600,
+    "height": 967,
+    "contentHash": "3a15e1bccbfe24c16a11805990fba23cfee94e511b815e41c7694fb59b62a7b2",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "construction",
+      "modern",
+      "orange",
+      "navy"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/astrix-builders/01-logo.webp",
+        "thumbnail": "/inspiration/brands/astrix-builders/01-logo-small.webp",
+        "width": 1600,
+        "height": 967,
+        "contentHash": "3a15e1bccbfe24c16a11805990fba23cfee94e511b815e41c7694fb59b62a7b2",
+        "description": "Half-asterisk symbol of one vertical and two diagonal strokes on a base bar, beside the two-line sans wordmark Astrix Builders; white over a site photo."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/astrix-builders/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/astrix-builders/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 1454,
+        "contentHash": "a90c0c8767307049f6c0cb73ae2dbededa76426c76758ba9cd9994348a7ce106",
+        "description": "Light sky blue AACFDF, bright orange F24E24 and deep navy 0B2639, with white, shown beside a crane photo and short taglines."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/astrix-builders/03-typography.webp",
+        "thumbnail": "/inspiration/brands/astrix-builders/03-typography-small.webp",
+        "width": 1600,
+        "height": 902,
+        "contentHash": "fe15728e6b9e711d414e93acc2306cad22939aad680cf65ef25bd84ffdb0420a",
+        "fill": "#ffffff",
+        "description": "Geist, a clean, neutral sans, shown in Regular, Medium and Semi Bold."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/astrix-builders/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/astrix-builders/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 1097,
+        "contentHash": "9cc81a2aa0154a8b1ed087130844282ac08cd956e0f25ea54d255e3cea069458",
+        "description": "Orange circular avatar with the white symbol on a profile card, a phone showing an orange-themed photo grid profile, and a card reading One build at a time."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/astrix-builders/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/astrix-builders/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1022,
+        "contentHash": "8debb192cfbeaade83331391df1fde7bb9f284e67de9566823099e299bd8ed3a",
+        "description": "Wall billboard with three panels: a navy panel with a timber-structure photo, a hard-hat worker on a forklift, and an orange panel with a tagline and logo."
+      }
+    ]
+  },
+  {
+    "id": "d2743ebe-443d-5d05-ad50-c99ec24f63be",
+    "slug": "auraic",
+    "brand": "Auraic",
+    "kind": "identity",
+    "description": "Soft, elegant identity in dusty rose, soft gold and blush pink, with a light wide wordmark, silky white textures and a luxury beauty feel.",
+    "image": "/inspiration/brands/auraic/01-logo.webp",
+    "width": 1600,
+    "height": 1121,
+    "contentHash": "010ab08e8aace15eace570699dc53d5d8e5caf7cec864b19ea46bbe96ae86c9c",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "elegant",
+      "dusty-rose",
+      "luxury",
+      "beauty"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/auraic/01-logo.webp",
+        "thumbnail": "/inspiration/brands/auraic/01-logo-small.webp",
+        "width": 1600,
+        "height": 1121,
+        "contentHash": "010ab08e8aace15eace570699dc53d5d8e5caf7cec864b19ea46bbe96ae86c9c",
+        "description": "Dusty rose uppercase wordmark AURAIC in a light, wide geometric sans with crossbarless A's; a small four-point sparkle sits on the first A."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/auraic/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/auraic/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 1133,
+        "contentHash": "f974755eaad292fa22deeeefbf43130ab3155c630010a6dcdad49a30891f875d",
+        "description": "Velour Crimson #AE5969 (primary), Soft Gold #D5B39B and Ethereal Rose #F2BFC8, each with a row of tints and shades."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/auraic/03-typography.webp",
+        "thumbnail": "/inspiration/brands/auraic/03-typography-small.webp",
+        "width": 1600,
+        "height": 1292,
+        "contentHash": "adb0349a353f349d9149c4536905428c7d672ae52fd551590486da986cf3461c",
+        "fill": "#fffefe",
+        "description": "Godber, a light, wide display face with sans-like forms and stylized curves, shown from Extra Light to Bold."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/auraic/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/auraic/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 846,
+        "contentHash": "e9bf002e0dd773022e349b49bac5aa7c6606a6b4005d2512fdce794a5fc76701",
+        "description": "Facebook-style page on a black rocky backdrop: a red-pink banner with LUXURY and skincare bottles, and a round avatar with a stylized A."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/auraic/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/auraic/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "1a2ae209162c5fda0057b4a278377fffab3e2ef6dd8e34ec161f2c8a03c01070",
+        "description": "Bus-shelter ad on a city street: a beige-to-pink gradient poster with the AURAIC logo, large outlined LUXURY text and a script tagline."
+      }
+    ]
+  },
+  {
+    "id": "a0602cd7-8d2e-575c-9d5c-6b7fadcee36e",
+    "slug": "aurox",
+    "brand": "Aurox",
+    "kind": "identity",
+    "description": "Energetic e-commerce identity with bright orange as the lead color, backed by electric blue and deep navy, a geometric sans and 3D shopping imagery.",
+    "image": "/inspiration/brands/aurox/01-logo.webp",
+    "width": 1600,
+    "height": 770,
+    "contentHash": "35f0b0a996c8247d53863abb1427986d77f1673586a661345c5804f4a8829869",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "ecommerce",
+      "orange",
+      "geometric",
+      "energetic"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/aurox/01-logo.webp",
+        "thumbnail": "/inspiration/brands/aurox/01-logo-small.webp",
+        "width": 1600,
+        "height": 770,
+        "contentHash": "35f0b0a996c8247d53863abb1427986d77f1673586a661345c5804f4a8829869",
+        "fill": "#f6f5f4",
+        "description": "White geometric sans wordmark Aurox with a TM, the A drawn as an open chevron with no crossbar, on navy; the A alone is the brand mark."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/aurox/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/aurox/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 1058,
+        "contentHash": "b4b49e983d22c778fbb82c8fd558fde69c398febe4ff44c08af63b8541c3e0e5",
+        "fill": "#f5f5f4",
+        "description": "Cart Alert Orange #FF6D00 (primary), Hyperlink Blue #145DFF, Midnight Void navy #11142F, Direct-Red #E6222B and Eco-Growth Green #96C828."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/aurox/03-typography.webp",
+        "thumbnail": "/inspiration/brands/aurox/03-typography-small.webp",
+        "width": 1600,
+        "height": 1054,
+        "contentHash": "b04f8fc95204c56a9438b1b0617228a74261596c5bfbfa2ee915be85c058123f",
+        "fill": "#f5f4f3",
+        "description": "Satoshi, a geometric sans, shown in Light, Regular, Medium, Bold and Black."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/aurox/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/aurox/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 753,
+        "contentHash": "3b7c07f247ac1c0cdcceaaab0fec8e7327a62b82640351b3f8f53d85a843befb",
+        "fill": "#fe6002",
+        "description": "Two profile cards labeled Ecommerce and Shopping on an orange background: orange and blue avatars with the white A mark, under orange and blue 3D banners."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/aurox/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/aurox/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1124,
+        "contentHash": "777ff1995640d8ea8771e4dfc8c5be3eaa24b8bd8c92f6abafcfec43fa046d54",
+        "description": "Large orange screen in a dark hall reading Shop Smarter. Live Better Everyday., with a 3D man in a chair amid products; a traveler with a suitcase walks past."
+      }
+    ]
+  },
+  {
+    "id": "e283c52b-3000-593e-b866-f9ac2509715d",
+    "slug": "autonex",
+    "brand": "AutoNex",
+    "kind": "identity",
+    "description": "Sleek, dark automotive identity in bright red, cool gray and near-black, with an italic wordmark and moody garage photography for a vehicle service business.",
+    "image": "/inspiration/brands/autonex/01-logo.webp",
+    "width": 1600,
+    "height": 900,
+    "contentHash": "25b7871f9808e5c080718501d5323da8c26be06fb801197ab1a885ca89b37a0e",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "automotive",
+      "dark",
+      "red",
+      "italic"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/autonex/01-logo.webp",
+        "thumbnail": "/inspiration/brands/autonex/01-logo-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "25b7871f9808e5c080718501d5323da8c26be06fb801197ab1a885ca89b37a0e",
+        "fill": "#121212",
+        "description": "Italic sans wordmark AutoNex plus a slanted AN monogram built from angular parallelogram strokes, shown white on a red tile and black on a gray tile."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/autonex/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/autonex/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 471,
+        "contentHash": "8403e96e8a5462cc166184d89c925accc81083cef66d12273225ad5a2f313218",
+        "fill": "#121212",
+        "description": "Bright red #EF3737, cool gray #B0BEC5, near-black #121212 and off-white #ECEFF1."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/autonex/03-typography.webp",
+        "thumbnail": "/inspiration/brands/autonex/03-typography-small.webp",
+        "width": 1600,
+        "height": 487,
+        "contentHash": "e64903efb6b131b0010a50b8dec1203e72c961c780f92d03195cd2e64e2083d6",
+        "fill": "#121212",
+        "description": "Satoshi, a geometric sans, in Regular and Bold."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/autonex/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/autonex/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "7ccedb5285124b9bbc885d16e42b627d14915e2043ff37dca7206cc11af242b8",
+        "fill": "#f4f6f5",
+        "description": "Dark profile card with a header photo of a mechanic beside a red-lit car, a red-ringed avatar with the AN mark and a bio about vehicle service and repair."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/autonex/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/autonex/05-brand-poster-small.webp",
+        "width": 835,
+        "height": 1080,
+        "contentHash": "86cede407cb8765fbcba6027b42a8890447b0d3b7f27915c2ace57aafb0d3626",
+        "description": "Framed poster on a dark wall over a wet street at night: a mechanic leaning into an engine bay, with PROFESSIONAL CARE FOR EVERY VEHICLE in red and white."
+      }
+    ]
+  },
+  {
+    "id": "aebbf58d-04b1-5a7f-9cda-57b39bcd3c45",
+    "slug": "avelo",
+    "brand": "Avelo",
+    "kind": "identity",
+    "description": "Modern travel identity in electric blue and deep navy with terracotta and orange accents, a rounded techno wordmark and bright destination photography.",
+    "image": "/inspiration/brands/avelo/01-logo.webp",
+    "width": 1600,
+    "height": 486,
+    "contentHash": "148ef5a4d5acd36610cd38fd563828c73c2ac6624dcca5622526fad8cb3f4292",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "travel",
+      "blue",
+      "techno",
+      "geometric"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/avelo/01-logo.webp",
+        "thumbnail": "/inspiration/brands/avelo/01-logo-small.webp",
+        "width": 1600,
+        "height": 486,
+        "contentHash": "148ef5a4d5acd36610cd38fd563828c73c2ac6624dcca5622526fad8cb3f4292",
+        "description": "White lowercase wordmark avelo in a rounded, squared geometric style with a registered mark, on deep navy; an av monogram serves as the brand mark."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/avelo/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/avelo/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 1006,
+        "contentHash": "577e64d0a1eaa93f3d1cff6048a441a40526851744d0a9e365b79e20f9feb9b0",
+        "fill": "#f6f5f3",
+        "description": "Expedition Blue #3042DD (primary), Midnight Transit navy #030436, Terracotta Trail #B71F06, Solar Horizon orange and Skyway Tint light blue #83B9FF."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/avelo/03-typography.webp",
+        "thumbnail": "/inspiration/brands/avelo/03-typography-small.webp",
+        "width": 1600,
+        "height": 1025,
+        "contentHash": "071678348f508224de9b8db78d651986e2cc32411f9636471f1112529d67a5b8",
+        "fill": "#f6f5f4",
+        "description": "Ragdit, a wide, rounded-square geometric sans with a techno feel, shown in Light, Regular, Medium and Bold."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/avelo/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/avelo/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 894,
+        "contentHash": "86c0cc9c20e2bff90e817c72c226fb52e6e22d4e42475cc701c1ac14269a7b7b",
+        "description": "Two profile cards labeled Travel and Tour on navy: banners of an airliner in clouds and a glowing jet engine, with blue and navy av avatars."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/avelo/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/avelo/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1067,
+        "contentHash": "d5b547f619fc6dbfcecbdbff510adc09f5c9236c97347c789829149751b09b61",
+        "description": "Wall billboard in a dark hall: a turquoise lagoon with limestone cliffs and a longtail boat, headline Discover the World Seamlessly and the avelo logo."
+      }
+    ]
+  },
+  {
+    "id": "1b49776a-367e-5f20-a348-7dfe45c17880",
+    "slug": "avoova",
+    "brand": "Avoova",
+    "kind": "identity",
+    "description": "Dynamic electric-mobility identity in deep navy and vivid red with yellow and cobalt accents, a looping knot symbol, wide geometric caps and car imagery.",
+    "image": "/inspiration/brands/avoova/01-logo.webp",
+    "width": 960,
+    "height": 995,
+    "contentHash": "d83b70ba9565348d2b82c508f913fd47911014b3dc2a1056ca3fc5d6ce1af295",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "electric-vehicles",
+      "red",
+      "navy",
+      "dynamic"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/avoova/01-logo.webp",
+        "thumbnail": "/inspiration/brands/avoova/01-logo-small.webp",
+        "width": 960,
+        "height": 995,
+        "contentHash": "d83b70ba9565348d2b82c508f913fd47911014b3dc2a1056ca3fc5d6ce1af295",
+        "description": "White interlocking loop knot in an oval above the thin, wide caps wordmark AVOOVA, where the knot replaces the OO; shown on a navy-to-red gradient."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/avoova/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/avoova/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 876,
+        "contentHash": "b8fa1ff514a564b6c0a54caba5e5291a2efc5615e01f44b81bcfbe21bb0b4f78",
+        "description": "Obsidian Navy #0B1F3A (primary), Velocity Red #E40013, Circuit Volt yellow #FFF307, Hyper Cobalt #0057FF and Aero Frost pale blue #C5E2F9."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/avoova/03-typography.webp",
+        "thumbnail": "/inspiration/brands/avoova/03-typography-small.webp",
+        "width": 1600,
+        "height": 788,
+        "contentHash": "ceea34c9e104a96bda113141a1a319e41cd423c9b49f1c837b8e99f66681bb7e",
+        "description": "A wide geometric display typeface labeled OQYGEN, with crossbarless A shapes, shown in Light, Regular, Medium and Bold."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/avoova/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/avoova/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 840,
+        "contentHash": "69a776d9d178cb5a4d4b142337c890ce03bc4c71cffc473e4d1c72dc9e8ec361",
+        "description": "Two profile cards labeled Mobility, EV Car and E-Bike on a red-orange gradient: car photos as banners, with red and navy avatars bearing the knot."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/avoova/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/avoova/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 908,
+        "contentHash": "ae0d0fae938dbf9e46fcfac480a172a2ae99fb6bb0282d63e1ffc8c8b7f6c943",
+        "description": "Billboard on a brick street building: ELECTRIC BY NATURE. in navy caps beside a silver sedan, a red swoosh and the AVOOVA logo."
+      }
+    ]
+  },
+  {
+    "id": "eda0e31d-22ba-54c9-9f56-e18f8301897f",
+    "slug": "axian",
+    "brand": "Axian",
+    "kind": "identity",
+    "description": "High-energy logistics identity with vivid orange on midnight navy, plus yellow and blue accents, a sharp arrow symbol and freight and shipping imagery.",
+    "image": "/inspiration/brands/axian/01-logo.webp",
+    "width": 1600,
+    "height": 892,
+    "contentHash": "1a09ab3b5a968bbab5fd3017a8109c5ed3ef790700242a11e2edb618d08bca34",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "logistics",
+      "orange",
+      "navy",
+      "bold"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/axian/01-logo.webp",
+        "thumbnail": "/inspiration/brands/axian/01-logo-small.webp",
+        "width": 1600,
+        "height": 892,
+        "contentHash": "1a09ab3b5a968bbab5fd3017a8109c5ed3ef790700242a11e2edb618d08bca34",
+        "fill": "#020923",
+        "description": "White angular swoosh arrow beside or above the bold rounded lowercase wordmark axian, on orange tiles; vertical, horizontal, symbol-only and word-only versions."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/axian/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/axian/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 888,
+        "contentHash": "d39cd6e622136a245e8f681c79199c9aad1240f44a9d71585b3f9f156578a4ef",
+        "description": "Midnight Fleet navy #000923 (primary), Express Orange #FF3100, Terminal Volt yellow #F2FD2C, Transit Blue #063DED and Cargo Silver #F0F0F0."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/axian/03-typography.webp",
+        "thumbnail": "/inspiration/brands/axian/03-typography-small.webp",
+        "width": 1600,
+        "height": 2182,
+        "contentHash": "3dcb26fccc5cdf84941f5908022afe4e11ece44ce5edd5f4fa9ab0b0ce9b01b1",
+        "description": "Arbeit Pro, a clean sans, as primary type and Readex Pro for web and app, both shown from Light to Bold with a heading hierarchy."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/axian/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/axian/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 842,
+        "contentHash": "93e76b51ddcac8fd4e2db6fd1ee2c891a80973976280449edd39af3f2d2d42fd",
+        "description": "Two profile cards labeled Transport and Logistics on a dark red gradient: banners of shipping containers, with navy and orange avatars bearing the arrow."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/axian/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/axian/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 969,
+        "contentHash": "75065c85442acbd67e271ca8ac6881c2c3b7bb1d6ad1126eafe54324ad06b974",
+        "description": "Roadside billboard at sunset above a highway: Every Shipment, Perfectly Planned. with a container port image, an orange arrow and the axian logo."
+      }
+    ]
+  },
+  {
+    "id": "c4be20b7-2c0a-5ef0-ae8e-d6c55d5009cd",
+    "slug": "baicev",
+    "brand": "Baicev",
+    "kind": "identity",
+    "description": "Cool, tech-forward electric-mobility identity in bright sky blue, deep teal and near-black navy, with a geometric sans wordmark and glossy car imagery.",
+    "image": "/inspiration/brands/baicev/01-logo.webp",
+    "width": 1600,
+    "height": 900,
+    "contentHash": "2f13f35524764447f4ced63d295ceb984f695d9788c7c6c416dc0f43997c0dcc",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "electric-vehicles",
+      "blue",
+      "tech",
+      "minimal"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/baicev/01-logo.webp",
+        "thumbnail": "/inspiration/brands/baicev/01-logo-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "2f13f35524764447f4ced63d295ceb984f695d9788c7c6c416dc0f43997c0dcc",
+        "fill": "#021222",
+        "description": "Bold geometric sans wordmark Baicev plus a symbol of stacked, offset bars forming an angular E-like shape; white on sky blue, blue on navy."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/baicev/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/baicev/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 471,
+        "contentHash": "99747d2943d90bb89dcdbae61e874585452dec2dde8ae94f94198806c67afc26",
+        "fill": "#021222",
+        "description": "Bright sky blue #1EB4EB, deep teal blue #063454, near-black navy #021122 and pale cyan #D2F9FC."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/baicev/03-typography.webp",
+        "thumbnail": "/inspiration/brands/baicev/03-typography-small.webp",
+        "width": 1600,
+        "height": 487,
+        "contentHash": "1214adf31aa9192624217a8f1ccd051cdf806133aadce92c1710c3bbffa936f5",
+        "fill": "#021222",
+        "description": "Delight, a geometric sans, in Regular and Bold."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/baicev/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/baicev/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "f0956f81a6318f420e1ab241f74c33072d54af4e48729a74e4fb768c2df6db25",
+        "fill": "#d2fafc",
+        "description": "Dark profile card on a pale cyan background: a glossy dark car as the banner, a round avatar with the blue symbol and a bio about clean electric mobility."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/baicev/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/baicev/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1067,
+        "contentHash": "2f0a8dab47da63791e383d4075efc5c1fac5641e326a80ba86455e2391e9ab04",
+        "description": "Screen on a concrete wall in a bright parking structure reading A next-generation identity for sustainable transportation, with a teal car blurring past."
+      }
+    ]
+  },
+  {
+    "id": "6f985c9e-a163-5266-bde2-81e1578797a0",
+    "slug": "buildit",
+    "brand": "BuildIt",
+    "kind": "identity",
+    "description": "Confident construction identity in deep navy and royal blues with lime green and pale mint accents, a stacked angular symbol and a grotesque sans.",
+    "image": "/inspiration/brands/buildit/01-logo.webp",
+    "width": 1400,
+    "height": 689,
+    "contentHash": "f0d06d9746f7f41ff9585ecffe7afe970468c4f1ed2a0a9400d11a9cbbd028ac",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "construction",
+      "blue",
+      "lime",
+      "grotesque"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/buildit/01-logo.webp",
+        "thumbnail": "/inspiration/brands/buildit/01-logo-small.webp",
+        "width": 1400,
+        "height": 689,
+        "contentHash": "f0d06d9746f7f41ff9585ecffe7afe970468c4f1ed2a0a9400d11a9cbbd028ac",
+        "description": "Symbol of two stacked angular chevron shapes beside the bold sans wordmark BuildIt with TM, shown white on bright blue and blue on pale mint."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/buildit/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/buildit/02-color-palette-small.webp",
+        "width": 829,
+        "height": 800,
+        "contentHash": "19a5fba88f48ed233f2aa4a2c056ffcdea321184f109940688a40b9edf7f4de6",
+        "description": "Deep Navy Blue #01092d, Dark Azure #032c7b, Bright Royal Blue #0464de, Lime Green and Frost pale mint."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/buildit/03-typography.webp",
+        "thumbnail": "/inspiration/brands/buildit/03-typography-small.webp",
+        "width": 571,
+        "height": 800,
+        "contentHash": "6ac0d273543040b5ed0961f3ff3c77a34fd4899bd3f38b8f7f532601a9a64cfe",
+        "fill": "#e6fdea",
+        "description": "Space Grotesk, a grotesque sans with geometric quirks, shown with a large Aa in blue on pale mint."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/buildit/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/buildit/04-social-profile-small.webp",
+        "width": 1400,
+        "height": 800,
+        "contentHash": "431cca8c5a5cf9fab2e38315cb923fd47080ae127f19ffee80a0b92fa2dffe32",
+        "fill": "#01092d",
+        "description": "On navy: a profile card with an angular navy banner and the symbol as avatar, plus a post reading Let's BuildIt for you with a worker using a drill."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/buildit/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/buildit/05-brand-poster-small.webp",
+        "width": 1400,
+        "height": 800,
+        "contentHash": "c258104da59dd540d30eb0d5b1a051f1e59ddccaa7f8116b0cfd674d38a363ee",
+        "description": "Lit billboard in a concrete underground passage beside stairs: Let's BuildIt for you with a worker holding a drill, blue panels and the logo."
+      }
+    ]
+  },
+  {
+    "id": "8b9a320c-0147-5ba0-a1e8-514887cb0458",
+    "slug": "cadora",
+    "brand": "Cadora",
+    "kind": "identity",
+    "description": "Fresh, friendly fintech identity in deep navy, mint green and bright blues, with a tilted ring symbol, a clean geometric sans and lifestyle photography.",
+    "image": "/inspiration/brands/cadora/01-logo.webp",
+    "width": 1600,
+    "height": 914,
+    "contentHash": "23cca5ae9c4eab469fd0aa6a23daf2f7cb9d26020440e5ff184fb2a6862afe93",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "fintech",
+      "mint",
+      "navy",
+      "friendly"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/cadora/01-logo.webp",
+        "thumbnail": "/inspiration/brands/cadora/01-logo-small.webp",
+        "width": 1600,
+        "height": 914,
+        "contentHash": "23cca5ae9c4eab469fd0aa6a23daf2f7cb9d26020440e5ff184fb2a6862afe93",
+        "description": "Mint green tilted oval ring symbol beside the white geometric sans wordmark Cadora on navy; variants on mint, electric blue and cyan tiles."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/cadora/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/cadora/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 3758,
+        "contentHash": "8d6d9957fdd29d174a7c7d6bcf49ffb19575ef3b3ae311ca8e402ab366d41ecb",
+        "description": "Deep Navy Blue, Mint Green, Electric Blue, Bright Cyan and Ice Blue, shown as stacked swatches."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/cadora/03-typography.webp",
+        "thumbnail": "/inspiration/brands/cadora/03-typography-small.webp",
+        "width": 1600,
+        "height": 759,
+        "contentHash": "91c310d03586b623da230c1f4a178abde4a5a9c5c1c2da3ada0683792daa1331",
+        "fill": "#fafdfe",
+        "description": "General Sans, a geometric sans: Bold for headers and Regular for body text."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/cadora/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/cadora/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 914,
+        "contentHash": "833fbe6202caf7bc252aed03d739a07b24bf86427ff90db6e4776bd1030188fa",
+        "description": "A dark profile with a navy ring avatar and a bio about instant global money movement, and a card reading Money Moves Like Light, labeled Financial Technology."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/cadora/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/cadora/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 914,
+        "contentHash": "9f43166a163848842d428661f2c08ee02aab9447149d487aebfbf0e7e8d1d07d",
+        "description": "Subway platform screen-door ads: a couple smiling at a phone with Built for your world., and Move Beyond Boarders. over a dotted world map."
+      }
+    ]
+  },
+  {
+    "id": "33b4ed0c-5094-52cf-9906-25e622644507",
+    "slug": "curvex",
+    "brand": "Curvex",
+    "kind": "identity",
+    "description": "Dark, premium automotive service identity in golden yellow and deep brown with near-black and off-white, a double-chevron symbol and garage photography.",
+    "image": "/inspiration/brands/curvex/01-logo.webp",
+    "width": 1600,
+    "height": 900,
+    "contentHash": "9d0959504dabcbe29f6319f87aa1be725b405562088161b494ee86467832c71e",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "automotive",
+      "gold",
+      "dark",
+      "premium"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/curvex/01-logo.webp",
+        "thumbnail": "/inspiration/brands/curvex/01-logo-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "9d0959504dabcbe29f6319f87aa1be725b405562088161b494ee86467832c71e",
+        "fill": "#1c1503",
+        "description": "Gold double chevron pointing left with a curved inner edge, plus the bold geometric sans wordmark Curvex; shown on dark brown, gold and off-white tiles."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/curvex/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/curvex/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 471,
+        "contentHash": "da643968ccd17233ba25584299780cec2cfcc59e9d8c22b563db3c866e3fdbe9",
+        "fill": "#1b1403",
+        "description": "Golden yellow, deep brown, near-black #0C0E16 and off-white #E8E8E8; the gold and brown swatches carry hex labels (#3F51B5, #223760) that don't match them."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/curvex/03-typography.webp",
+        "thumbnail": "/inspiration/brands/curvex/03-typography-small.webp",
+        "width": 1600,
+        "height": 487,
+        "contentHash": "0c566fa10d8cd58db6fb494c9155defa36418e14bdbe8bcacde4dba03cb4891a",
+        "fill": "#1c1503",
+        "description": "Sora, a geometric sans, shown with full alphabet, numerals and symbols."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/curvex/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/curvex/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "c6a08dc819f8bfad4b8afee25a537145ad11df0aba607cde0921d5e243ce9cff",
+        "fill": "#eeeadf",
+        "description": "Dark profile card on cream: a header photo of oil being poured into an engine, a gold-ringed chevron avatar and a bio about vehicle service and repair."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/curvex/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/curvex/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1120,
+        "contentHash": "79dc4a6b8f7daf721042d234adf949df5caa8e9d72a3bcbd5f4d3a551b94b42a",
+        "description": "Two backlit posters in a dark garage: Precision Service for Modern Vehicles with a large gold chevron, and The future of vehicle care starts here."
+      }
+    ]
+  },
+  {
+    "id": "1561ba53-2713-5a62-bfd1-c134e7b634c5",
+    "slug": "drivecare",
+    "brand": "DriveCare",
+    "kind": "identity",
+    "description": "Fresh automotive service identity in bright lime green and deep forest green with near-black and off-white, a hexagon DC badge and workshop photography.",
+    "image": "/inspiration/brands/drivecare/01-logo.webp",
+    "width": 1600,
+    "height": 900,
+    "contentHash": "2c04a71991a19a91ed5a245c739066be2a6b4352c5d3b6fbde9a8a8bc520d388",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "automotive",
+      "lime",
+      "green",
+      "clean"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/drivecare/01-logo.webp",
+        "thumbnail": "/inspiration/brands/drivecare/01-logo-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "2c04a71991a19a91ed5a245c739066be2a6b4352c5d3b6fbde9a8a8bc520d388",
+        "fill": "#0a1e12",
+        "description": "DC monogram in a notched hexagon outline, plus the bold geometric sans wordmark DriveCare with Care in lime; shown on dark green, lime and white tiles."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/drivecare/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/drivecare/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 471,
+        "contentHash": "32f6850456120cab48baadbed2fbb4bfa8cbd3416af76acf88839cb12d2d4161",
+        "fill": "#7be223",
+        "description": "Lime green #7BE223, forest green #07612D, near-black green #0A1E12 and off-white #F2F7ED."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/drivecare/03-typography.webp",
+        "thumbnail": "/inspiration/brands/drivecare/03-typography-small.webp",
+        "width": 1600,
+        "height": 487,
+        "contentHash": "679a0e2a370675f781c543e7b824a0c7563d5cc580f0a6074295ed51ca9cd568",
+        "fill": "#7be223",
+        "description": "Surgena SemiBold, a geometric sans with a single-story a, shown with full alphabet and numerals."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/drivecare/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/drivecare/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "d0ea7644fe4168cd4ecc3283749eb0775960eb0f12c4a83467aee196bdbd57fd",
+        "fill": "#f2f8ee",
+        "description": "Dark green profile card on a pale background: a header photo of a white car on a workshop lift, a DC hexagon avatar and a vehicle service and repair bio."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/drivecare/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/drivecare/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1200,
+        "contentHash": "222ab7788a9cdeb072207574a7d648e6d4ac25f18766a600546801c19c9e39f0",
+        "description": "Billboard in a dim concrete room: a lime green panel reading Vehicle Service & Repair Business with a vertical DriveCare logo on a white strip."
+      }
+    ]
+  },
+  {
+    "id": "79d9a377-611a-5965-9b16-407c1a8ae86f",
+    "slug": "dustbit",
+    "brand": "Dustbit",
+    "kind": "identity",
+    "description": "Bold, high-contrast gaming identity with acid lime green on dark slate and grays, a segmented cube symbol, heavy headlines and neon-lit night scenes.",
+    "image": "/inspiration/brands/dustbit/01-logo.webp",
+    "width": 1600,
+    "height": 447,
+    "contentHash": "9746b42fa34701f1bc6b09d3254697dc480047b953d49bb2ca1d35e23542d1af",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "gaming",
+      "lime",
+      "dark",
+      "bold"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/dustbit/01-logo.webp",
+        "thumbnail": "/inspiration/brands/dustbit/01-logo-small.webp",
+        "width": 1600,
+        "height": 447,
+        "contentHash": "9746b42fa34701f1bc6b09d3254697dc480047b953d49bb2ca1d35e23542d1af",
+        "description": "Segmented isometric cube symbol with a small dot beside the heavy sans wordmark Dustbit; in lime, black and white, also over dice and green-blur photos."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/dustbit/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/dustbit/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 826,
+        "contentHash": "6b3d5d04bc5d700177dde93f7d872022e8b9e5caf8a75ec3a3ba5bc803d5074f",
+        "description": "Accent Lime #82FE16, Brand Dark #1F2C34, Black #0E171E, Dust Light #FAFCFF and Dark, Medium and Light Grey, shown in hexagons."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/dustbit/03-typography.webp",
+        "thumbnail": "/inspiration/brands/dustbit/03-typography-small.webp",
+        "width": 1600,
+        "height": 771,
+        "contentHash": "a0db2636a589105b022d922bcb161eb273b7974877e6fb260bce575f90762ebb",
+        "fill": "#18242c",
+        "description": "Hector Font, a heavy wide sans, for headlines and Montserrat, a geometric sans, for body text."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/dustbit/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/dustbit/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 869,
+        "contentHash": "24844447a86b114c0f57197c581925af3e90682b98755d110ce582c85bff4b73",
+        "description": "X profile shown on desktop and phone: a lime banner with a dark diamond pattern and the logo, a lime cube avatar and a bio about sport and winning."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/dustbit/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/dustbit/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 891,
+        "contentHash": "8a1947be91a0e1072837890169b411eb92b78cf0ac100742795d67829edcfaa8",
+        "description": "Large billboard over a dark, crowded city plaza with green glow: Start Playing And Get 50% Rake Back beside two people in lime-accented outfits."
+      }
+    ]
+  },
+  {
+    "id": "931d009b-0e1a-5b17-8ae5-cd7bc938fd9d",
+    "slug": "eduflow",
+    "brand": "EduFlow",
+    "kind": "identity",
+    "description": "Bright, playful ed-tech identity in deep royal blue with a pixel-style wordmark and accents of red, amber, mint and lime, using student photography.",
+    "image": "/inspiration/brands/eduflow/01-logo.webp",
+    "width": 1600,
+    "height": 629,
+    "contentHash": "f4ca75f5c4e6aede4cbdd888376349c168385652866fb9adaec7530572853be9",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "edtech",
+      "pixel",
+      "royal-blue",
+      "playful"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/eduflow/01-logo.webp",
+        "thumbnail": "/inspiration/brands/eduflow/01-logo-small.webp",
+        "width": 1600,
+        "height": 629,
+        "contentHash": "f4ca75f5c4e6aede4cbdd888376349c168385652866fb9adaec7530572853be9",
+        "description": "White symbol of a bold E built like stacked open-book pages, with the pixel-style wordmark EduFlow, on deep royal blue; vertical and horizontal versions."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/eduflow/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/eduflow/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 1525,
+        "contentHash": "3754f508569e99bc5a66c4e3a78f67cc01bda0b108f41ad7a7603655a8a24765",
+        "description": "Academy Blue #1200A3 (primary), Scholar Blue #1F75FE, Crimson Mentorship #B60000, Curiosity Amber #E67325, Growth Mint #4CD4A1 and Innovation Lime #DFEF2E."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/eduflow/03-typography.webp",
+        "thumbnail": "/inspiration/brands/eduflow/03-typography-small.webp",
+        "width": 1600,
+        "height": 972,
+        "contentHash": "68d561c33f6d62443554cfed39f8e5aeb25254f6931f8b0ace8bf26d192224d7",
+        "description": "Lower Pixel, a blocky pixel display typeface, shown in Light, Regular, Medium and Bold."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/eduflow/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/eduflow/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 844,
+        "contentHash": "bf9b9b084d426fdc70f60e2845a1ac67aaf3f776238c48351a6ff98a6eb33ed3",
+        "description": "Two profile cards labeled Ed-Tech on a green background: blue and orange avatars with the white E symbol, under blue abstract banners."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/eduflow/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/eduflow/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1231,
+        "contentHash": "16affc7afd33cf3dfb0c24a37bfa6206683268b2efd7e94a98ab54cf3c506900",
+        "description": "Wall billboard with a passerby: Closing the Skill Gap, Education Built For Innovation! on blue, with a smiling student holding notebooks and orange swooshes."
+      }
+    ]
+  },
+  {
+    "id": "cb312465-0db9-58bd-a4df-e75c59c475c9",
+    "slug": "fleetex",
+    "brand": "Fleetex",
+    "kind": "identity",
+    "description": "Clean enterprise software identity for fleet management in periwinkle blue-violet, cool gray and near-black, with a geometric display sans and truck photography.",
+    "image": "/inspiration/brands/fleetex/01-logo.webp",
+    "width": 1600,
+    "height": 900,
+    "contentHash": "8cc1257918ae2137941196fc4f7ebe22fedcb992b1d96ea5b2124e9d315e2dbf",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "saas",
+      "fleet-management",
+      "violet",
+      "geometric"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/fleetex/01-logo.webp",
+        "thumbnail": "/inspiration/brands/fleetex/01-logo-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "8cc1257918ae2137941196fc4f7ebe22fedcb992b1d96ea5b2124e9d315e2dbf",
+        "description": "Blue-violet F symbol with two bars and a curved, shield-like stem, beside the white geometric sans wordmark Fleetex; variants on navy, violet, white and gray."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/fleetex/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/fleetex/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "c412d33cc09785c3b2546d1fe0771d2ce44b6f07c5f8095b38f59131ea359284",
+        "description": "Enterprise Blue #5B5CEB, Cool Gray #98A2B3, Carbon Black #121212 and Soft White #F8FAFC, beside a photo of branded trucks at a warehouse."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/fleetex/03-typography.webp",
+        "thumbnail": "/inspiration/brands/fleetex/03-typography-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "d4ea0dd1468758d99cf41860eaa8397e2e08ff2f53cd792cb6f704958d88ab26",
+        "fill": "#111828",
+        "description": "Clash Display Variable, a geometric display sans, shown in Light, Regular, Medium, Semibold and Bold."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/fleetex/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/fleetex/04-social-profile-small.webp",
+        "width": 960,
+        "height": 1080,
+        "contentHash": "8abb0852ba42aadbef304b9764562ec1aa5a16f20c54538607ec00fd28c805d7",
+        "fill": "#5b5ce8",
+        "description": "Profile card on blue-violet: a photo of branded trucks and a van, a violet F avatar and a bio about software for connected fleets."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/fleetex/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/fleetex/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 933,
+        "contentHash": "3f8f9b096394fc16664491b8a36cd54d2f66b80c9ab9c765fa09498e79c226a3",
+        "description": "Wall display in a dark corridor: Manage Every Vehicle. Optimize Every Mile. beside a desktop dashboard with a map and a phone app, plus three feature labels."
+      }
+    ]
+  },
+  {
+    "id": "8220d7ea-00e4-592e-a5a9-910fd1a78c67",
+    "slug": "fluxev",
+    "brand": "FluxEV",
+    "kind": "identity",
+    "description": "Dark, high-contrast electric-vehicle identity in bright green, deep teal green and near-black, with a lightning-bolt F symbol and a neutral sans.",
+    "image": "/inspiration/brands/fluxev/01-logo.webp",
+    "width": 1600,
+    "height": 900,
+    "contentHash": "826de4f38bca8f30ce8b43da0ec691bf7f7ed7e367d5db1fc3e6a6b7ff4d036b",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "electric-vehicles",
+      "green",
+      "dark",
+      "bold"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/fluxev/01-logo.webp",
+        "thumbnail": "/inspiration/brands/fluxev/01-logo-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "826de4f38bca8f30ce8b43da0ec691bf7f7ed7e367d5db1fc3e6a6b7ff4d036b",
+        "fill": "#0b0f0e",
+        "description": "Angular F that ends in a lightning-bolt point, beside the bold sans wordmark FluxEV; white on a bright green tile and green on a dark teal tile."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/fluxev/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/fluxev/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 471,
+        "contentHash": "0f792a89c520aeb8d1905b3c39c71082c21c81c2bf1bc3150e93391ecd5c74d7",
+        "fill": "#0b0f0e",
+        "description": "Bright green #00E676, dark teal green #004D40, near-black #0B0F0E and off-white #F4F7F6."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/fluxev/03-typography.webp",
+        "thumbnail": "/inspiration/brands/fluxev/03-typography-small.webp",
+        "width": 1600,
+        "height": 487,
+        "contentHash": "645a9f5c8e7f0d370adff5b6ae35b46049cfd396b1a81ce4b5a1f00539d613cb",
+        "fill": "#0b0f0e",
+        "description": "Inter, a neutral grotesque sans, in Regular and Bold."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/fluxev/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/fluxev/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "f38df421c4b04d22edfaa48a25546a9f231c4c836a59b1e291ae07a1c36df773",
+        "fill": "#f5f7f6",
+        "description": "Dark profile card on a light background: a green-tinted SUV with diagonal stripes as the banner, a green bolt avatar and a bio about clean electric mobility."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/fluxev/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/fluxev/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1120,
+        "contentHash": "33f2fe880e435a397b92e019b94b37a22478992d8873abe546cbe1fa9c344fc0",
+        "description": "Two backlit posters in a dark garage: green with the white bolt and Driving the future of clean electric mobility, and a dark SUV with Move Green. Move Smart."
+      }
+    ]
+  },
+  {
+    "id": "f992b4ca-0285-59f5-a4cf-829560296c65",
+    "slug": "flyra",
+    "brand": "Flyra",
+    "kind": "identity",
+    "description": "Sleek, dark fintech identity for money transfers in emerald green, teal and near-black, with an angular F symbol, clean sans type and glassy 3D accents.",
+    "image": "/inspiration/brands/flyra/01-logo.webp",
+    "width": 1600,
+    "height": 914,
+    "contentHash": "93d33153796d929c12637a1e4207c91d4bca536940cc589c292f1cf5eb442bbc",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "fintech",
+      "emerald",
+      "dark",
+      "minimal"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/flyra/01-logo.webp",
+        "thumbnail": "/inspiration/brands/flyra/01-logo-small.webp",
+        "width": 1600,
+        "height": 914,
+        "contentHash": "93d33153796d929c12637a1e4207c91d4bca536940cc589c292f1cf5eb442bbc",
+        "description": "Emerald green symbol of two offset, slanted bars forming an abstract F, beside the white geometric sans wordmark Flyra on black."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/flyra/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/flyra/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 1326,
+        "contentHash": "83ee9f40aa24231b6bf5fbd396e5c3e81966c528282ca72a39be2b1fa825026c",
+        "description": "Emerald green #04C98E, off-white #F2F3FA and near-black #121212, with dark teal (Cyan) and pale aqua (Celeste) cards; shown as chips on the typography slide."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/flyra/03-typography.webp",
+        "thumbnail": "/inspiration/brands/flyra/03-typography-small.webp",
+        "width": 1600,
+        "height": 1041,
+        "contentHash": "22004b3922ad1d7ef020a1bb3c979a053bc411ddf59c94b0d3c5e805cefd4d66",
+        "description": "DM Sans and Roobert, both clean geometric sans faces, in Semibold and Regular."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/flyra/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/flyra/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 1200,
+        "contentHash": "69630bf99711271208f8fd448555e4862c4ea4501dd4a6e6b6247225624d5285",
+        "description": "Dark X profile reading Reimagine remittance with Flyra and a green avatar, beside a glassy tile with a chrome-and-green 3D version of the symbol."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/flyra/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/flyra/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1092,
+        "contentHash": "c125a9a7a499312afe89b882d9f2a6d39b15fdce06f41e0d340b4f703c0ed3a3",
+        "fill": "#0f0f0f",
+        "description": "Dark wall screen with a quote, Sending money shouldn't cost more than your morning coffee., signed with the Flyra logo, as a person walks past in silhouette."
+      }
+    ]
+  },
+  {
+    "id": "98ef66d8-8b4b-5040-9b9a-85024ae88c16",
+    "slug": "forma",
+    "brand": "Forma",
+    "kind": "identity",
+    "description": "Refined fashion identity in midnight navy and burgundy with olive, camel and cream, pairing a high-contrast serif with moody, motion-blurred model photography.",
+    "image": "/inspiration/brands/forma/01-logo.webp",
+    "width": 1600,
+    "height": 1346,
+    "contentHash": "7c17b12ad39737ecc81fdba89dbb25cb86edd7c5d8486a79cf6bec28eeceea66",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "fashion",
+      "serif",
+      "burgundy",
+      "editorial"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/forma/01-logo.webp",
+        "thumbnail": "/inspiration/brands/forma/01-logo-small.webp",
+        "width": 1600,
+        "height": 1346,
+        "contentHash": "7c17b12ad39737ecc81fdba89dbb25cb86edd7c5d8486a79cf6bec28eeceea66",
+        "description": "Serif F monogram in an offset square frame above the high-contrast serif wordmark FORMA and the tagline WHERE STYLE TAKES SHAPE, in white over a model photo."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/forma/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/forma/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 2390,
+        "contentHash": "221b71d033a44aa749ed641f6f3f76e391c52a076013fbd26011ef4d60b2c3b1",
+        "description": "Midnight Tuxedo #121D30 (primary), Burgundy Atelier #6E2731, Olive Sartorial #49533A, Camel Suede #A8763E, Raw Alabaster #F5F2EA and Slate Editorial #6B7280."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/forma/03-typography.webp",
+        "thumbnail": "/inspiration/brands/forma/03-typography-small.webp",
+        "width": 1600,
+        "height": 2201,
+        "contentHash": "f69491b9b812842406261d39d18cdcbf3a10e4cdea2e29b17ccd29532ed0ebd4",
+        "description": "Casko Luxury, a high-contrast display serif, as primary type, and Clash Grotesk, a sans from Light to Bold, for web and app."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/forma/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/forma/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 927,
+        "contentHash": "603551eec3005a430d1e391035ebd484925158c4024e4cd1de5b721a0001f261",
+        "fill": "#101c2f",
+        "description": "Two profile cards labeled Fashion & Apparel on navy: motion-blurred model photos as banners, with olive and burgundy avatars bearing the F monogram."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/forma/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/forma/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 922,
+        "contentHash": "b2d529f05238bedf2b0c3e1922bce4e2c5dd04c08c67e8d169c66465a23ddd9f",
+        "description": "Large magenta-pink poster on a sunlit wall: a model in sunglasses with motion blur and WHERE STYLE TAKES SHAPE, as a woman walks past in front."
+      }
+    ]
+  },
+  {
+    "id": "9b3c05bd-3fda-52a2-83a9-401c1c6147f0",
+    "slug": "glowe",
+    "brand": "Glowé",
+    "kind": "identity",
+    "description": "Soft, elegant beauty identity in deep plum with blush, off-white and black, using a thin, widely spaced wordmark and close-up skincare portraits.",
+    "image": "/inspiration/brands/glowe/01-logo.webp",
+    "width": 1600,
+    "height": 900,
+    "contentHash": "06f8ce18413cc06186c5502b755243588b4a2f0456cc6753793d00b62ff5f411",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "beauty",
+      "elegant",
+      "plum",
+      "minimal"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/glowe/01-logo.webp",
+        "thumbnail": "/inspiration/brands/glowe/01-logo-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "06f8ce18413cc06186c5502b755243588b4a2f0456cc6753793d00b62ff5f411",
+        "description": "Plum outlined drop shape with a spiral inside, above widely spaced thin caps GLOWÉ and the tagline BEAUTY IN EVERY DETAIL, beside a dewy-skinned face."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/glowe/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/glowe/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "50d084f29c2cd745c5f2d08db56bd4727102b1ac7d4990568a3b1cd43e392d27",
+        "fill": "#eeeced",
+        "description": "Tyrian Purple #720040, Seasell blush #f1dfd8, anti flash white #EFEDEE and Eerie Black #191919, each paired with a mood photo."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/glowe/03-typography.webp",
+        "thumbnail": "/inspiration/brands/glowe/03-typography-small.webp",
+        "width": 1600,
+        "height": 800,
+        "contentHash": "5a2ace4bf9592db4ff8a35cf017d730325cb7bad1ae42d4c985976ea31e5a9e8",
+        "fill": "#ffede3",
+        "description": "Alta Regular, a thin, elegant display typeface with high-contrast strokes, shown in caps and numerals."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/glowe/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/glowe/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 1040,
+        "contentHash": "00c203b7ccd15fd16871e55ac2a869a80cc89862cc32f9785d8df97b91648db8",
+        "fill": "#fbf6f3",
+        "description": "Facebook page mockup on cream: the drop logo and tagline, three arched photos of faces and magenta petals, and a plum circular avatar."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/glowe/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/glowe/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "986cc205568c810f82b3efdffce504b1d93ef01efb94756760fc5e6735f5ec91",
+        "description": "Three framed posters on a softly shadowed wall: a woman in a towel touching her face, a plum poster reading BEAUTY, SKIN & LIFE, and a face with white flowers."
+      }
+    ]
+  },
+  {
+    "id": "b9a80196-3317-5272-a2de-213676763b9e",
+    "slug": "grupo-terra",
+    "brand": "Grupo Terra",
+    "kind": "identity",
+    "description": "Warm, earthy architecture identity in rust brown, olive and sand tones, with a flared wordmark, Portuguese copy, wood-grain textures and interior photography.",
+    "image": "/inspiration/brands/grupo-terra/01-logo.webp",
+    "width": 1600,
+    "height": 900,
+    "contentHash": "50976d8f96d1d722759b45b21c5e84d39668dd9d171008bf86271eff4159104c",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "architecture",
+      "earthy",
+      "rust",
+      "warm"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/grupo-terra/01-logo.webp",
+        "thumbnail": "/inspiration/brands/grupo-terra/01-logo-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "50976d8f96d1d722759b45b21c5e84d39668dd9d171008bf86271eff4159104c",
+        "fill": "#ede8e3",
+        "description": "Rust-brown wordmark Terra in a flared, high-waisted display face with curved T arms, with small GRUPO caps above it, on warm off-white."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/grupo-terra/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/grupo-terra/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "6bc07bb2f52a68a8d05a467c4608cbb71e6f56f56de8c34bfabb3e2e7e44e781",
+        "description": "Rust brown Jatobá, olive Jacarandá, sage Bambu, deep teal Granito Azul, blue-gray Azulejo, sand Areia, terracotta Taipa, limestone Calcário and black."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/grupo-terra/03-typography.webp",
+        "thumbnail": "/inspiration/brands/grupo-terra/03-typography-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "c2cb2545a53b5a776fc3d3ff947aa525002f5a3b8890d5b3c9080894d649e441",
+        "fill": "#ffffff",
+        "description": "Fieldwork Family, a geometric sans for titles and text, shown on a moodboard of Portuguese taglines, wood-grain textures and interior photos."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/grupo-terra/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/grupo-terra/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "84e6d5c6b30af05c3d72fa8c82be19aea7cd709653edf44eeb69b463e21dbf87",
+        "description": "A wooden-pergola terrace photo with the Terra logo and tagline, and a profile card on black with a rust wood-grain banner, T avatar and GrupoTerra Arquitetura."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/grupo-terra/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/grupo-terra/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "6e44da11333ef937948a7c11789b69c26289b10c0e86d67fc41f4ed78aadede1",
+        "description": "Billboard set into a sand-colored concrete wall: a rust panel reading Projetamos espaços que pertencem ao lugar., a warm living-room photo and the logo."
+      }
+    ]
+  },
+  {
+    "id": "5d949980-172c-57dd-aae2-065062fc43bc",
+    "slug": "handi",
+    "brand": "Handi",
+    "kind": "identity",
+    "description": "Fresh, modern services identity in vivid and deep greens with mint, coral and lavender accents, a grotesk-plus-serif type pairing and friendly photography.",
+    "image": "/inspiration/brands/handi/01-logo.webp",
+    "width": 1501,
+    "height": 559,
+    "contentHash": "c20c0280c2babf8a4f5bf76b0e4c7347592b67516cfe16c06caa0c81a991ebc6",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "services",
+      "green",
+      "friendly",
+      "grotesk"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/handi/01-logo.webp",
+        "thumbnail": "/inspiration/brands/handi/01-logo-small.webp",
+        "width": 1501,
+        "height": 559,
+        "contentHash": "c20c0280c2babf8a4f5bf76b0e4c7347592b67516cfe16c06caa0c81a991ebc6",
+        "description": "White symbol of curved, finger-like strokes suggesting a hand, beside the sans wordmark Handi, on black with a soft green glow."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/handi/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/handi/02-color-palette-small.webp",
+        "width": 1477,
+        "height": 655,
+        "contentHash": "2244b27c41401a56d172aad6fb3139d1bec373099b9eada7ef5c775e7c388a9a",
+        "fill": "#f5fbf7",
+        "description": "Handi Green, Handi Deep Green, Sage Green, Off White, Handi Mint (pale lime), Warm Coral Red and Soft Lavender."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/handi/03-typography.webp",
+        "thumbnail": "/inspiration/brands/handi/03-typography-small.webp",
+        "width": 1501,
+        "height": 801,
+        "contentHash": "31fdfc93c50e8fa1c45aec2f0529ae6689cab36da68660c029f9fc24dfba35b6",
+        "fill": "#f4fbf6",
+        "description": "Famijen Grotesk, a grotesk with ink traps and sharp bases, as primary type, and Noto Serif Display italic as the accent face."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/handi/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/handi/04-social-profile-small.webp",
+        "width": 1501,
+        "height": 801,
+        "contentHash": "d1945a908fc39bd3ed826ff4878a8e2e6cb59598dcb4b7a00c97341d05492d11",
+        "description": "A profile card with a dark green aurora banner and green hand avatar, a browser tab reading tryhandi.com, and a white app icon on a green panel."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/handi/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/handi/05-brand-poster-small.webp",
+        "width": 1548,
+        "height": 821,
+        "contentHash": "3675432ec144fcceea56f39027f85963f0bbacd2cee40a23ec67183c74c310f7",
+        "description": "Wall billboard in a concrete space: gloved hands at work, the line Everyday services. thoughtfully handled. and a smiling man on mint, as a woman walks past."
+      }
+    ]
+  },
+  {
+    "id": "2b7e4b84-dfe9-5620-99c8-c8881ef1b525",
+    "slug": "helixa",
+    "brand": "Helixa",
+    "kind": "identity",
+    "description": "Bright health-tech identity in deep forest green with neon lime and vibrant orange, a looped cross symbol, Inter type and DNA and medical imagery.",
+    "image": "/inspiration/brands/helixa/01-logo.webp",
+    "width": 1600,
+    "height": 1228,
+    "contentHash": "8e21e2ae2302e9ee20af1e70a42ed9dd2bb37b45002675081fe6f5b2e0a9db02",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "healthtech",
+      "green",
+      "lime",
+      "clean"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/helixa/01-logo.webp",
+        "thumbnail": "/inspiration/brands/helixa/01-logo-small.webp",
+        "width": 1600,
+        "height": 1228,
+        "contentHash": "8e21e2ae2302e9ee20af1e70a42ed9dd2bb37b45002675081fe6f5b2e0a9db02",
+        "description": "Medical cross drawn as a continuous rounded outline with loops, beside the sans wordmark Helixa with TM; white on deep green and dark on neon lime."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/helixa/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/helixa/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 1824,
+        "contentHash": "c4b0813b205b2d4c9c098324feb66decd842735b388162b0e6f594a30491cb66",
+        "description": "Deep Forest Green #0B5B42 (primary), Neon Lime #A4E60F and Vibrant Orange #F58220, each with tint and shade rows."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/helixa/03-typography.webp",
+        "thumbnail": "/inspiration/brands/helixa/03-typography-small.webp",
+        "width": 1600,
+        "height": 1445,
+        "contentHash": "4de54a980dfbb4e84f8163d7b3a5568eea9a68f45dc14039ad9461062bea69ea",
+        "fill": "#f1fad8",
+        "description": "Inter, a neutral geometric sans, shown from Thin to Black."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/helixa/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/helixa/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 783,
+        "contentHash": "1d3929d4c09124d780e7d3944ac308ec2e7f22166c29f067c22210e2d3a08c8a",
+        "fill": "#013626",
+        "description": "Two profile cards labeled Health Care and Health Tech on dark green: 3D DNA helix banners in teal, with lime and orange cross avatars."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/helixa/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/helixa/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 877,
+        "contentHash": "cca6dbab0b8867c1859d9f8f1e8360f1533cf0bb1224ee0c348c8ec80405ce49",
+        "description": "Wall billboard with a passerby: Empowering Health Through Innovation with orange highlights, beside a teal image of a figure overlaid with medical imagery."
+      }
+    ]
+  },
+  {
+    "id": "3b6f577f-2332-5c5e-b5e1-3f4882cc18a8",
+    "slug": "homis",
+    "brand": "Homis",
+    "kind": "identity",
+    "description": "Bold real-estate identity in charcoal navy and vivid red-orange with indigo, terracotta and stone accents, a heavy lowercase wordmark and architectural photos.",
+    "image": "/inspiration/brands/homis/01-logo.webp",
+    "width": 1600,
+    "height": 955,
+    "contentHash": "2390ca97f75fff16ba9c83ca579bb81790e01ccbfaf4171962f1a89ac124dd1e",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "real-estate",
+      "orange",
+      "navy",
+      "bold"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/homis/01-logo.webp",
+        "thumbnail": "/inspiration/brands/homis/01-logo-small.webp",
+        "width": 1600,
+        "height": 955,
+        "contentHash": "2390ca97f75fff16ba9c83ca579bb81790e01ccbfaf4171962f1a89ac124dd1e",
+        "description": "Heavy rounded lowercase wordmark homis with a copyright mark, the h topped by a pitched roof shape; shown in white over a blue glass-tower photo."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/homis/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/homis/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 888,
+        "contentHash": "c80ff933b0e99b44e8d8f27efd2247d18225c752a09b92318eca8e8787035e5a",
+        "description": "Estate Charcoal #061A28 (primary), Sunset Clay #FF3600, Skyline Indigo #1C2FEB, Warm Terracotta #EEB27D and Travertine Stone #EBDCC8."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/homis/03-typography.webp",
+        "thumbnail": "/inspiration/brands/homis/03-typography-small.webp",
+        "width": 1600,
+        "height": 2182,
+        "contentHash": "74bafd96cebdc85e6b816b6bc5a9a70d638fd068595a94e21bd019dfe4fc506b",
+        "description": "Albert Sans as primary type and Urbanist for web and app, both geometric sans faces shown from Light to Bold."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/homis/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/homis/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 1124,
+        "contentHash": "576ca3e362972297831aa4fc836332b5e550a178d138b456d143f63a423fe94c",
+        "fill": "#0a1f3a",
+        "description": "On navy: a profile card labeled Real Estate with a modern blue house photo and an orange h avatar, an orange listing notification and a phone with the app icon."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/homis/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/homis/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1198,
+        "contentHash": "8089352cc18b9d465bc140d2a3424e35d5f40ab09e9e91e1faff8996beda9889",
+        "description": "Construction-site hoarding under cranes: a navy panel reading MODERN SPACES. EFFORTLESS LIVING., a building photo and an orange INTELLIGENT HOMES panel."
+      }
+    ]
+  },
+  {
+    "id": "c334c1b7-97c7-583a-b005-8114457d0421",
+    "slug": "humo",
+    "brand": "Humo",
+    "kind": "identity",
+    "description": "Warm, earthy furniture identity in espresso brown, aged brass and sage green with oat and light gray, a chunky rounded wordmark and calm product photography.",
+    "image": "/inspiration/brands/humo/01-logo.webp",
+    "width": 1600,
+    "height": 944,
+    "contentHash": "c8ad975bf4a946f62f147b57a07b94ec2eba49e68ed4c673c3c21c7452f3b0ac",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "furniture",
+      "earthy",
+      "brown",
+      "warm"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/humo/01-logo.webp",
+        "thumbnail": "/inspiration/brands/humo/01-logo-small.webp",
+        "width": 1600,
+        "height": 944,
+        "contentHash": "c8ad975bf4a946f62f147b57a07b94ec2eba49e68ed4c673c3c21c7452f3b0ac",
+        "fill": "#481c0b",
+        "description": "Heavy rounded lowercase wordmark humo with TM, its letters joined and the o drawn as a wide pill; shown in taupe on dark brown over construction circles."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/humo/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/humo/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 1528,
+        "contentHash": "4adb6e851dbbab6aabcd6617d8821b0da72f2330a70678d5eba2112e9faf7109",
+        "description": "Espresso Walnut #642C15 (primary), Aged Brass #8C6339, Sage Velvet #677B5C, Carrara Light #D5D5D5 and Bouclé Oat #DBCCB6."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/humo/03-typography.webp",
+        "thumbnail": "/inspiration/brands/humo/03-typography-small.webp",
+        "width": 1600,
+        "height": 2076,
+        "contentHash": "93697b7b0137317af20bfdb056b939c76e1a4a8b4498a6ac6c94b6fd570d303a",
+        "description": "Funnel Display, a sans display face, as primary type, and DM Sans for web and app, both shown from Light to Bold."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/humo/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/humo/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 1142,
+        "contentHash": "7fd228883a1d4e49f89a3142476b60d0f6f8cacac63fc167f9a1aa7b48ec76a3",
+        "fill": "#a9c09d",
+        "description": "On sage green: a profile labeled Premium Furniture with a lounge chair on a grassy hill and a brown h avatar, a brown offer notification and a phone app icon."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/humo/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/humo/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1038,
+        "contentHash": "6294ff7e98b6ea34f10d527959bc6d6c57abc6e7bf76487e9fb2697e202ff92a",
+        "description": "Billboard on a sunlit building facade: Functional Design, Refined Comfort in brown serif beside a mustard velvet armchair and two bar stools."
+      }
+    ]
+  },
+  {
+    "id": "c3e146c4-0d14-5a42-b2ed-23d04da03b03",
+    "slug": "karmapay",
+    "brand": "Karmapay",
+    "kind": "identity",
+    "description": "Dark, futuristic crypto-banking identity in deep black with electric purple and violet gradients, a bold geometric sans and a glossy 3D cat mascot.",
+    "image": "/inspiration/brands/karmapay/01-logo.webp",
+    "width": 1600,
+    "height": 905,
+    "contentHash": "ff04b242187c1f5943c4cb122fb6241e88d0e0855f0dbe7dbbf26b437f7dd628",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "crypto",
+      "purple",
+      "dark",
+      "futuristic"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/karmapay/01-logo.webp",
+        "thumbnail": "/inspiration/brands/karmapay/01-logo-small.webp",
+        "width": 1600,
+        "height": 905,
+        "contentHash": "ff04b242187c1f5943c4cb122fb6241e88d0e0855f0dbe7dbbf26b437f7dd628",
+        "description": "Bold geometric sans wordmark Karmapay in a white-to-gray gradient, with a glossy purple 3D cat head with hollow eyes in front, on black."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/karmapay/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/karmapay/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 450,
+        "contentHash": "10802d07df0357d3ac5ab24a7142cb11584f6e17776769aaed0210db1847592c",
+        "fill": "#000001",
+        "description": "Purple-to-heliotrope gradient #6D41FF to #C157FD, Han Purple #490FE5, near-black #0D061D, Magnolia #F3F0FF and white #FEFEFE."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/karmapay/03-typography.webp",
+        "thumbnail": "/inspiration/brands/karmapay/03-typography-small.webp",
+        "width": 1600,
+        "height": 450,
+        "contentHash": "6d05b7338976aa686f2381b247af2e32e2649e9db2188196787cdddd2a15e6f1",
+        "fill": "#000000",
+        "description": "Goli, a geometric sans, in Regular, Semibold and Bold."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/karmapay/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/karmapay/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "c69e4cbf31315be062e25cfe8bb2da7ff96650f2b4fc89084944a0c6edcdfe8a",
+        "description": "Dark profile reading Self-custody on-chain banking. with purple and black payment cards and a cat avatar, beside a grid of round purple and dark app icons."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/karmapay/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/karmapay/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "6e566b5caefdf30ef5788a7c769dd054d4b54efd7115e5a9e4fd5cd5dd9bd3cf",
+        "fill": "#000000",
+        "description": "Three posters in a purple-lit dark space: BANKING WITHOUT BORDERS, THE FUTURE OF FINANCE IS HERE with a silhouetted head, and stacked payment cards."
+      }
+    ]
+  },
+  {
+    "id": "4e615fe4-6a78-5653-ba17-8c22f9fa82e0",
+    "slug": "kelvion",
+    "brand": "Kelvion",
+    "kind": "identity",
+    "description": "Bright, playful consumer-brand identity in deep cobalt with teal green, amber orange, sky blue and red, a quirky rounded wordmark and 3D illustration.",
+    "image": "/inspiration/brands/kelvion/01-logo.webp",
+    "width": 1600,
+    "height": 896,
+    "contentHash": "e9f6eecd14b0f52f49ef2111926d690a3114a0346c3bb2cec607ea0396282f14",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "consumer",
+      "playful",
+      "cobalt",
+      "colorful"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/kelvion/01-logo.webp",
+        "thumbnail": "/inspiration/brands/kelvion/01-logo-small.webp",
+        "width": 1600,
+        "height": 896,
+        "contentHash": "e9f6eecd14b0f52f49ef2111926d690a3114a0346c3bb2cec607ea0396282f14",
+        "description": "White lowercase wordmark kelvion with TM in a quirky rounded sans, k and e joined, ringed by green and orange pill tags with value words, on cobalt."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/kelvion/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/kelvion/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 788,
+        "contentHash": "f81e8be59dc5201fbbe9406af062bd65439a67acd8721098fc2f53b1ea0279b4",
+        "description": "Deep Cobalt #00008B, Teal Forest #00805F, Amber Glow #FF8C00, Azure Sky #4DA6E1 and Crimson Pulse #E6192E."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/kelvion/03-typography.webp",
+        "thumbnail": "/inspiration/brands/kelvion/03-typography-small.webp",
+        "width": 1600,
+        "height": 1044,
+        "contentHash": "ca1108c3b88f52f89c5e8a46af2f89db631c6d10c0b8f006c1ffe71e8df65072",
+        "fill": "#e7e7f4",
+        "description": "Gebuk, a rounded, quirky display sans with unusual letter shapes, shown in Light, Regular, Medium and Bold."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/kelvion/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/kelvion/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 738,
+        "contentHash": "c6794977ffabb03366a645835253510e4dcec71f6dc8760d9d6f84f207138ae5",
+        "fill": "#01006b",
+        "description": "Two profile cards labeled DTC and Consumer on cobalt: abstract 3D ribbon banners in white, orange and blue, with blue and orange ke-monogram avatars."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/kelvion/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/kelvion/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 957,
+        "contentHash": "875acda8df36e07708ac5454882430b14f51b53514dce984f201b2df41145c43",
+        "description": "Curved billboard on a historic city building: ETHICS AND QUALITY IN EVERY SINGLE BOX. beside a 3D woman lounging in an orange chair with a phone."
+      }
+    ]
+  },
+  {
+    "id": "7ee86d1d-0fa4-5c6c-9183-4ffa68b954c0",
+    "slug": "kordex",
+    "brand": "Kordex",
+    "kind": "identity",
+    "description": "Fresh real-estate identity in deep teal, leaf green and orange, with a bold K symbol, a light sans and modern-home and skyscraper photography.",
+    "image": "/inspiration/brands/kordex/01-logo.webp",
+    "width": 1600,
+    "height": 1378,
+    "contentHash": "4235646eb9b2cc99d04e96e950d7b7753315ff1c38a50de65064b5a3f84479a9",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "real-estate",
+      "teal",
+      "green",
+      "modern"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/kordex/01-logo.webp",
+        "thumbnail": "/inspiration/brands/kordex/01-logo-small.webp",
+        "width": 1600,
+        "height": 1378,
+        "contentHash": "4235646eb9b2cc99d04e96e950d7b7753315ff1c38a50de65064b5a3f84479a9",
+        "description": "Bold geometric K symbol with a notched leg beside the sans wordmark Kordex with TM; white on green, orange on teal, and over building-site photos."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/kordex/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/kordex/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 1815,
+        "contentHash": "df18567da0b787e9576e125f273adb090c99a4ff65040a1a257282b2e57d9ccd",
+        "description": "Deep teal (primary), leaf green (secondary) and orange (accent), each with a row of tints and shades."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/kordex/03-typography.webp",
+        "thumbnail": "/inspiration/brands/kordex/03-typography-small.webp",
+        "width": 1600,
+        "height": 1267,
+        "contentHash": "1e072ffd35b412923129810012596d5cd178b1bffd4c02695cfde5a5c1d96119",
+        "description": "Almarena, shown with clean, light sans-like letterforms from Extra Light to Bold on green and pale green cards."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/kordex/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/kordex/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 692,
+        "contentHash": "49b79a2cb17289ed8ce6358028d1122989efb2f57b967fea3288cf06280551f6",
+        "fill": "#0e5b69",
+        "description": "Two profile cards labeled Listings, Property and News on teal: modern white-house banners, with green and orange K avatars."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/kordex/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/kordex/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 897,
+        "contentHash": "809aaaddf3731aa678684dc5786e7048c00bd9a61a1652280484ecdf74ea986c",
+        "description": "Wall billboard with a passerby: Distinctive Homes for Discerning Clients. with orange highlights, beside glass skyscrapers seen from below."
+      }
+    ]
+  },
+  {
+    "id": "6d5344a5-fd33-5f3b-bc7e-4b6f469eebca",
+    "slug": "korevia",
+    "brand": "Korevia",
+    "kind": "identity",
+    "description": "Soft, minimal skincare identity in dusty rose with snow white and black, an elegant display serif wordmark, Inter type and close-up beauty photography.",
+    "image": "/inspiration/brands/korevia/01-logo.webp",
+    "width": 1600,
+    "height": 900,
+    "contentHash": "711afdc3f6eab537ac305c0295bb49a4d81cd6c00aec579c0b723688a29548cf",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "skincare",
+      "dusty-rose",
+      "minimal",
+      "serif"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/korevia/01-logo.webp",
+        "thumbnail": "/inspiration/brands/korevia/01-logo-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "711afdc3f6eab537ac305c0295bb49a4d81cd6c00aec579c0b723688a29548cf",
+        "fill": "#d3a095",
+        "description": "White wordmark Korevia in a high-contrast display serif with wedge-like serifs, set on dusty rose over faint construction grid lines."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/korevia/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/korevia/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "629dfea50095cdbf688e5493e18592f35934ef77f412dbca1b3788498098a10f",
+        "description": "Rosy Brown #D3A095, Snow #FAF4F3 and Black #000000, with tint steps and a translucent red-pink flower image."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/korevia/03-typography.webp",
+        "thumbnail": "/inspiration/brands/korevia/03-typography-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "ca7fc1c4cdda58d120e6e0038240b90bf06ed57bb7a55eed156720a27d4e5475",
+        "fill": "#d8aba1",
+        "description": "Inter, a neutral sans, shown with full alphabet and weights from Thin to Black."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/korevia/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/korevia/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 1080,
+        "contentHash": "4cc1fd9fa41a913ef10c3b51dc247bea4ce23f73d52a3017d0a41899096f2796",
+        "fill": "#f8c4b9",
+        "description": "Profile card on pink: a rose banner with large faded letters, a white round avatar with the rose serif wordmark and a bio about cosmetics companies."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/korevia/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/korevia/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "5dc4bf8b9cd2d68cdd106188794a47f2e1f7c9614aec2cd654774f093df7d30d",
+        "description": "Billboard among trees: Protect and Enhance Your Skin Beauty in black sans beside a close-up of a woman with white cream on her cheek."
+      }
+    ]
+  },
+  {
+    "id": "7033245c-9a76-5bee-8d11-d0c82e05a92f",
+    "slug": "lyvio",
+    "brand": "Lyvio",
+    "kind": "identity",
+    "description": "Warm, editorial property identity in cream and deep burgundy with black, pairing a condensed serif with a neutral sans and sunlit desert architecture photos.",
+    "image": "/inspiration/brands/lyvio/01-logo.webp",
+    "width": 1600,
+    "height": 1008,
+    "contentHash": "465822850d75a92b2c1b503fd490d78aa58de3011ab9aef98dc6c05ee49bd9db",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "real-estate",
+      "burgundy",
+      "editorial",
+      "serif"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/lyvio/01-logo.webp",
+        "thumbnail": "/inspiration/brands/lyvio/01-logo-small.webp",
+        "width": 1600,
+        "height": 1008,
+        "contentHash": "465822850d75a92b2c1b503fd490d78aa58de3011ab9aef98dc6c05ee49bd9db",
+        "description": "Burgundy symbol of an abstract house built from blocky angled shapes, beside the serif wordmark Lyvio, over cream with dunes, adobe buildings and palms."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/lyvio/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/lyvio/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 542,
+        "contentHash": "cb9ccf10ea8bf5d45e7c05b5197cd86049f60ceff98fe0d7a7253c5463873b74",
+        "fill": "#fdfdfd",
+        "description": "Cream F4F1EC, Burgundy 680A08, White FFFFFF and Black 0F1110."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/lyvio/03-typography.webp",
+        "thumbnail": "/inspiration/brands/lyvio/03-typography-small.webp",
+        "width": 1600,
+        "height": 915,
+        "contentHash": "1e6a982d3c795787ca2ce69708f81d332838b4d367a1f04387fb07ebb776c5d5",
+        "fill": "#fcfcfc",
+        "description": "Instrument Serif, a condensed display serif in Regular and Italic, as primary type, with Inter Tight, a compact sans, as secondary."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/lyvio/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/lyvio/04-social-profile-small.webp",
+        "width": 614,
+        "height": 525,
+        "contentHash": "103978281566f6b98b45151294e9ced65c8f8d7940c2145c86762d4dbd773725",
+        "description": "Profile card with a historic arched brick building as the banner, a burgundy house avatar and the bio The Home You Deserve, Found By The AI That Gets You."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/lyvio/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/lyvio/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "4a3936260a8d4e54042609c72ba6c7675adc26990bd6778e4eeb630ea25a3b81",
+        "description": "Two framed posters beside an arched window, a man walking past: Property intelligence, built around your life. with courtyard architecture photos."
+      }
+    ]
+  },
+  {
+    "id": "fc208a3a-9cc0-52f4-806f-c5aaf245676e",
+    "slug": "maroc",
+    "brand": "Maroç",
+    "kind": "identity",
+    "description": "Classic, heritage-style golf club identity in deep green, ivory and red with burgundy, sage and clay, using condensed serifs and a bird emblem.",
+    "image": "/inspiration/brands/maroc/01-logo.webp",
+    "width": 1600,
+    "height": 1150,
+    "contentHash": "afdafa5e2fdb633d3f28501b3237c0b251a848ab1ed139cf1b4963c6f3754203",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "golf",
+      "heritage",
+      "green",
+      "serif"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/maroc/01-logo.webp",
+        "thumbnail": "/inspiration/brands/maroc/01-logo-small.webp",
+        "width": 1600,
+        "height": 1150,
+        "contentHash": "afdafa5e2fdb633d3f28501b3237c0b251a848ab1ed139cf1b4963c6f3754203",
+        "description": "Oval emblem of a bird perched on a golf club with ESTD 2026, above condensed serif caps MAROÇ in dark green and a small red GOLF CLUB line."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/maroc/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/maroc/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 954,
+        "contentHash": "1f3ace39e3f27bc914e339ff63a06594f08e6f5d0efac6646ca270752d35d502",
+        "description": "Atlas Green #03512A, Casablanca Ivory #FBFCEE, Heritage Red #C1272D, Burgundy Wine #92002D, Oasis Sage #50895C, Sahara Clay #E29344, Charcoal #161616."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/maroc/03-typography.webp",
+        "thumbnail": "/inspiration/brands/maroc/03-typography-small.webp",
+        "width": 1600,
+        "height": 633,
+        "contentHash": "057ba1e61ac07d329a5466ddefcdf59cae2abc2b370d3632d00134384a156bcc",
+        "fill": "#fbfcee",
+        "description": "MinionVariable Concept (serif) as primary, Instrument Serif (condensed serif) as accent and Satoshi (geometric sans) as secondary."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/maroc/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/maroc/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "f332555317807ffa64faeb7b9bba2744f71a2cdc36f4d2266e64d5988d794202",
+        "description": "On a red and green split background: a profile card with an aerial golf-course photo and green bird avatar, and a dark green post titled The Atlas."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/maroc/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/maroc/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 935,
+        "contentHash": "aaf7239ddc194f66e9ffcd3005ce642d7fc9f3f93906c5e81d8e185edcb994b1",
+        "description": "Hedge-framed billboard in three panels: golf carts with Excellence isn't performed. It's practiced., the green emblem panel, and a golf ball on the green."
+      }
+    ]
+  },
+  {
+    "id": "61c7bfe2-dbfc-52d3-9150-8a256a0b94b6",
+    "slug": "maxgr",
+    "brand": "MaxGR",
+    "kind": "identity",
+    "description": "Bold automotive service identity in performance orange, steel gray and graphite black, with a heavy condensed wordmark and car and workshop photography.",
+    "image": "/inspiration/brands/maxgr/01-logo.webp",
+    "width": 1600,
+    "height": 900,
+    "contentHash": "20df67b0de276da32f44b534425f3ba5ae4c06b453dc7c3c0ed893d99fb0e15b",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "automotive",
+      "orange",
+      "bold",
+      "dark"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/maxgr/01-logo.webp",
+        "thumbnail": "/inspiration/brands/maxgr/01-logo-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "20df67b0de276da32f44b534425f3ba5ae4c06b453dc7c3c0ed893d99fb0e15b",
+        "fill": "#121212",
+        "description": "Heavy caps wordmark MAX in orange, its X cut into a broken slash shape, followed by GR in white; MAX alone on gray and orange tiles."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/maxgr/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/maxgr/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "b5629ba37aa7df26a7a0bf750c1947e9f68a972112a61efbe8ec7828e7b2cd81",
+        "description": "Performance Orange #FF6B00, Steel Gray #6B7280, Graphite Black #121212 and Frost White #F8FAFC, beside a photo of an orange car with its hood open."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/maxgr/03-typography.webp",
+        "thumbnail": "/inspiration/brands/maxgr/03-typography-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "17a60a8bf12e7975a05a5ad2338f051296bcda78800754f5afe22be66f84650c",
+        "fill": "#121212",
+        "description": "Acumin Variable Concept, a neutral grotesque sans, shown in Thin, Regular and Bold with orange sample letters."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/maxgr/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/maxgr/04-social-profile-small.webp",
+        "width": 960,
+        "height": 1080,
+        "contentHash": "215e576751eea847694626f46b188f9adfb290c2efd862171918944acf27c480",
+        "fill": "#ff6b01",
+        "description": "Profile card on orange: a dusk photo of a MAXGR auto service garage, an orange MAX avatar and a bio about professional care for modern vehicles."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/maxgr/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/maxgr/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1067,
+        "contentHash": "9af0c3a174f32e89cf88204eb0b2c40cfda6b2b928545503bbd75f1a58a8cfda",
+        "description": "Billboard on a pale wall: a dark panel reading Vehicle Servicing & Repair Solutions with three service labels and a mechanic working on a car."
+      }
+    ]
+  },
+  {
+    "id": "581edf49-351d-5bd9-916b-7662dc8a3495",
+    "slug": "mident",
+    "brand": "Mident",
+    "kind": "identity",
+    "description": "Clean, modern dental clinic identity in clinical teal, cyan and apricot orange with mint and near-black, a tooth-shaped m and glossy 3D dental imagery.",
+    "image": "/inspiration/brands/mident/01-logo.webp",
+    "width": 1600,
+    "height": 1341,
+    "contentHash": "7ba65b63fcf52a8dd8cee06793d3fa975dd8c8ac4ab6d818506039946d053d47",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "dental",
+      "teal",
+      "orange",
+      "clean"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/mident/01-logo.webp",
+        "thumbnail": "/inspiration/brands/mident/01-logo-small.webp",
+        "width": 1600,
+        "height": 1341,
+        "contentHash": "7ba65b63fcf52a8dd8cee06793d3fa975dd8c8ac4ab6d818506039946d053d47",
+        "description": "White lowercase wordmark mident with a registered mark, the m drawn as a tooth outline, over an orange-to-dark gradient with a glossy 3D dental implant."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/mident/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/mident/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 1016,
+        "contentHash": "ffe25ff2d5e5111c6f02143c7a46b911799a47aaea42dbbe4964a1c574fdac3b",
+        "description": "Clinical Teal #02728C, Fresh Cyan #27C7D7, Radiant Apricot #FF6903, Mint Rinse #C3F9FC and Enamel Black #001A1E."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/mident/03-typography.webp",
+        "thumbnail": "/inspiration/brands/mident/03-typography-small.webp",
+        "width": 1600,
+        "height": 2350,
+        "contentHash": "d3ccfe8d0b9e8b3d0eee5c7e7c7d1eeb59ca22147f0a85378afe04158d25c2ba",
+        "description": "Bai Jamjuree, a squarish sans, as primary type, and Work Sans for web and app, both shown from Light to Bold."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/mident/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/mident/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 1112,
+        "contentHash": "e29aefa1282f595354f7dc457190a07cd011e376606a7e44dbe2306a7731f24f",
+        "fill": "#001a1e",
+        "description": "On dark teal: a profile labeled Dental Clinic with a dentist and smiling patient, a tooth avatar, a checkup reminder and a phone app icon."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/mident/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/mident/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1028,
+        "contentHash": "0c5c67b7528e783fb8e4e5a1437f4f1f6c275c71d4f8dac08e73e745e94dc786",
+        "description": "Billboard on a concrete wall under wood slats: teal panels reading Healthy Teeth. Happy Smiles. and Keep Smiling. Stay Healthy. around a smiling woman."
+      }
+    ]
+  },
+  {
+    "id": "9ec4ff51-f08a-5aa3-9e27-53f8fd4061fc",
+    "slug": "naija-diaspora-hub",
+    "brand": "Naija Diaspora Hub",
+    "kind": "identity",
+    "description": "Vibrant community identity in rich greens and amber yellow, with a circular map emblem, Poppins type and photos of people connecting.",
+    "image": "/inspiration/brands/naija-diaspora-hub/01-logo.webp",
+    "width": 1600,
+    "height": 945,
+    "contentHash": "b0bfd88b8d1ed0569bc1f23a2751283fe66038e3bf861b5004cb57eab0dae6ad",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "community",
+      "green",
+      "yellow",
+      "vibrant"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/naija-diaspora-hub/01-logo.webp",
+        "thumbnail": "/inspiration/brands/naija-diaspora-hub/01-logo-small.webp",
+        "width": 1600,
+        "height": 945,
+        "contentHash": "b0bfd88b8d1ed0569bc1f23a2751283fe66038e3bf861b5004cb57eab0dae6ad",
+        "fill": "#001f0e",
+        "description": "Circle of green segments with a wavy yellow top around a dark shape resembling the outline of Nigeria, beside a stacked white wordmark Naija Diaspora Hub."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/naija-diaspora-hub/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/naija-diaspora-hub/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 945,
+        "contentHash": "a54f2ce6bf9d28c70d7a067f665db676dc93fb2793534b0a7baffa2bee19c705",
+        "fill": "#19191a",
+        "description": "Cadmium Green, Fun Green, Amber yellow and Eerie Black, each with tint steps, plus a green-to-yellow gradient."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/naija-diaspora-hub/03-typography.webp",
+        "thumbnail": "/inspiration/brands/naija-diaspora-hub/03-typography-small.webp",
+        "width": 1600,
+        "height": 944,
+        "contentHash": "68d76ddb714b2804bcb220ccad037ff7bbebb73a151f4201639d1eb3408701a4",
+        "fill": "#026b33",
+        "description": "Poppins, a geometric sans, shown with a row of a's from thin to heavy weights and a full sample alphabet."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/naija-diaspora-hub/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/naija-diaspora-hub/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 945,
+        "contentHash": "1d4b8975f47cc32c46b26e28d59b8c4fe6709067611b8858aaf6b8a88d688c90",
+        "description": "A green notebook and patterned cards with yellow and green shapes, and a profile card with a photo of people at a table with a green-white flag."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/naija-diaspora-hub/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/naija-diaspora-hub/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 945,
+        "contentHash": "15a5e7a63c4709589e2ba363a0746c18de864e38ceb72a0ca17b2da578bd9f14",
+        "description": "Three posters on a concrete wall: Where Naija meets the world. on green, One hub. One Naija. One voice. on yellow, and Global roots. Naija heart."
+      }
+    ]
+  },
+  {
+    "id": "c271632e-f8a8-5118-ad95-d01f1b9bef7d",
+    "slug": "nexara",
+    "brand": "Nexara",
+    "kind": "identity",
+    "description": "Dark, futuristic Web3 identity in near-black with neon cyan and deep blues, an angular N symbol, wide geometric caps and sci-fi environments.",
+    "image": "/inspiration/brands/nexara/01-logo.webp",
+    "width": 1400,
+    "height": 787,
+    "contentHash": "5569bd74f7b0cb990db8660b31ab2846592dd699e4a96dcc4af3257abeb2366c",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "web3",
+      "dark",
+      "cyan",
+      "futuristic"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/nexara/01-logo.webp",
+        "thumbnail": "/inspiration/brands/nexara/01-logo-small.webp",
+        "width": 1400,
+        "height": 787,
+        "contentHash": "5569bd74f7b0cb990db8660b31ab2846592dd699e4a96dcc4af3257abeb2366c",
+        "description": "White angular N symbol built from slanted bars beside the wide geometric caps wordmark NEXARA, on near-black with a blue glow."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/nexara/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/nexara/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "a8b0ccc841ed8d6f17aca0adf67a80e38c5fa8b0ca8340a2d5d94dfcccea6e00",
+        "description": "Void Black (near-black navy), Neon Cyan and White, with a column of deep blue to pale cyan steps."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/nexara/03-typography.webp",
+        "thumbnail": "/inspiration/brands/nexara/03-typography-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "d013f5b7575b04e107b6100b6f3f01c3d4a34e219c22a836a1a940a6b9dbf6a2",
+        "fill": "#070708",
+        "description": "Montserrat, a geometric sans, shown in cyan on black with a type scale and sample letters."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/nexara/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/nexara/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "fa461c0f4f1de734da0d210d6c846240e396c27e923e5b9d1528621d4a8de108",
+        "description": "Profile card on dark blue: a cyan-and-white logo banner reading Decentralized Evolution Protocol, a navy N avatar and a bio about a Web3 ecosystem."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/nexara/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/nexara/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "dc2a569c802840a74b38007e56ad573beb46f6eefc8067feac5598f529f2020c",
+        "description": "Vertical lit display at the end of a futuristic escalator tunnel lined with white light strips, showing a blue poster with a white swoosh and the logo."
+      }
+    ]
+  },
+  {
+    "id": "bc0947c8-1add-5100-b8bd-4060211b7b93",
+    "slug": "nutrico",
+    "brand": "Nutrico",
+    "kind": "identity",
+    "description": "Vivid supplement brand identity in electric cobalt and laser lime with forest green, violet and neon green, a looping u symbol and lab-style imagery.",
+    "image": "/inspiration/brands/nutrico/01-logo.webp",
+    "width": 1600,
+    "height": 720,
+    "contentHash": "ca65d4dd539b2d8a8dc875bd116e4aacd4e4d61ff1a93a2aebdc0d40af7ba060",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "supplements",
+      "cobalt",
+      "lime",
+      "vivid"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/nutrico/01-logo.webp",
+        "thumbnail": "/inspiration/brands/nutrico/01-logo-small.webp",
+        "width": 1600,
+        "height": 720,
+        "contentHash": "ca65d4dd539b2d8a8dc875bd116e4aacd4e4d61ff1a93a2aebdc0d40af7ba060",
+        "fill": "#ffffff",
+        "description": "Lime wordmark Nutrico with TM in a rounded sans on cobalt, the u drawn as a looping ribbon stroke with a tail; the loop alone is the brand mark."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/nutrico/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/nutrico/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 1002,
+        "contentHash": "1e43717e1d3ce131431113e1e1355f2acbdc6ea17b7ab6af29ba5a0e6a21b177",
+        "description": "Forest Onyx deep green, Electric Cobalt, Hyper Violet, Neon Kinetic green and Laser Lime."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/nutrico/03-typography.webp",
+        "thumbnail": "/inspiration/brands/nutrico/03-typography-small.webp",
+        "width": 1600,
+        "height": 1071,
+        "contentHash": "5ffb814255a1eb19a568dc10e65b43b9adad6dc2cc8d1f18e488e4aa5d0d670d",
+        "fill": "#ffffff",
+        "description": "Malking, a geometric sans with a crossbarless A, shown in Light, Regular, Medium and Bold."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/nutrico/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/nutrico/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 708,
+        "contentHash": "e460adbc69bdc67003cf2e7ed35d12e70edad9bb96058877f2d907f58aca5d96",
+        "fill": "#ffffff",
+        "description": "Two profile cards labeled Health and Supplements: banners of water bubbles and colorful capsules, with dark green and violet loop avatars."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/nutrico/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/nutrico/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 870,
+        "contentHash": "cb34085e4241f0177880739f209314d7a9b7cc558a4fa39fe9145bcc3090ec3c",
+        "description": "Billboard on a sunny yellow wall: Radical Purity. Biological Resilience. on peach, with a woman in red sportswear holding a supplement jar."
+      }
+    ]
+  },
+  {
+    "id": "67c0a93d-0f71-59ca-82dd-0b946f268e8d",
+    "slug": "origo",
+    "brand": "Origo",
+    "kind": "identity",
+    "description": "Characterful coffee identity in cobalt blue and deep green with cherry red and creamy neutrals, a classical column badge and quirky flared display type.",
+    "image": "/inspiration/brands/origo/01-logo.webp",
+    "width": 1600,
+    "height": 692,
+    "contentHash": "b2f2322ddd1c34801c6ae7fc0e547ca5441812a8de9698a99f17b8de992ae419",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "coffee",
+      "cobalt",
+      "retro",
+      "display-serif"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/origo/01-logo.webp",
+        "thumbnail": "/inspiration/brands/origo/01-logo-small.webp",
+        "width": 1600,
+        "height": 692,
+        "contentHash": "b2f2322ddd1c34801c6ae7fc0e547ca5441812a8de9698a99f17b8de992ae419",
+        "description": "Oval badge with ORIGO and Every Journey Begins Here around an Ionic column holding a coffee bean, plus a flared display wordmark ORIGO; white on cobalt."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/origo/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/origo/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 1434,
+        "contentHash": "c26a8f6b233d7426d3a79bbcd85117a86311e671b1527cc1905685dfd7d8018d",
+        "description": "Cobalt Brew (primary), Espresso Forest deep green, Cascara Cherry red, Honey Process tan, Oat Microfoam cream and Burlap Sack beige."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/origo/03-typography.webp",
+        "thumbnail": "/inspiration/brands/origo/03-typography-small.webp",
+        "width": 1600,
+        "height": 1937,
+        "contentHash": "3b3541898d11745e258d1e87ac9624fffbd1b62b748361969ec3d3ade36e1166",
+        "description": "Sregko, a heavy display face with flared, quirky serifs, as primary, and Weiss Initialen, classical caps from Light to Bold, as secondary."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/origo/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/origo/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 928,
+        "contentHash": "1295d2a3d5329ad81412bc7c0e7dd8b622c027fefa3345197126327445d542e6",
+        "fill": "#0213c8",
+        "description": "Two profile cards labeled Coffee on cobalt: swirling iced-coffee-and-cream banners, with cobalt and deep green badge avatars."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/origo/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/origo/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1084,
+        "contentHash": "340db8e9b17d098c8e40e850d7f8ec0b5c1cf480a7be48fbb3757a0b7c632037",
+        "description": "Projection screen in a dark room with a man watching: Every Journey Begins Somewhere. in brown display type beside an iced coffee and a line-drawn figure."
+      }
+    ]
+  },
+  {
+    "id": "b6026019-4d3f-56d6-b09c-8756b474c6d7",
+    "slug": "pavea",
+    "brand": "Pavéa",
+    "kind": "identity",
+    "description": "Warm, natural skincare identity in rich terracotta and olive green with golden sand, rose and sage, a soft curl symbol and glowing beauty portraits.",
+    "image": "/inspiration/brands/pavea/01-logo.webp",
+    "width": 1600,
+    "height": 1357,
+    "contentHash": "532df252a0eccab0f2c85ca7c47ab88298b56c4696a2bf887d33273411f1d32f",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "skincare",
+      "terracotta",
+      "olive",
+      "natural"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/pavea/01-logo.webp",
+        "thumbnail": "/inspiration/brands/pavea/01-logo-small.webp",
+        "width": 1600,
+        "height": 1357,
+        "contentHash": "532df252a0eccab0f2c85ca7c47ab88298b56c4696a2bf887d33273411f1d32f",
+        "description": "Cream curl symbol, a thick swirling hook, with a registered mark above thin, wide caps PAVÉA, over a close-up of a face receiving a serum dropper."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/pavea/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/pavea/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 2559,
+        "contentHash": "a20bf2ee01e997f9b9825e2743b61389b82cffbf2c6ebf8193bf4f7aa5e7f5b3",
+        "description": "Rich Terracotta (primary), Olive Leaf, Golden Sand, Rose Quartz and Sage Dew, with gradients, clay, moss, honey, cream and cucumber textures, and tints."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/pavea/03-typography.webp",
+        "thumbnail": "/inspiration/brands/pavea/03-typography-small.webp",
+        "width": 1600,
+        "height": 2150,
+        "contentHash": "70c1f2e75c8737bcf7f8948063778de0c5c25aa4b433d619e4f6b56ddb7a4355",
+        "description": "Almarena, shown as a clean light sans from Light to Bold, as primary type, and Syne for web and app with a heading hierarchy."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/pavea/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/pavea/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 752,
+        "contentHash": "4607a392471d71e710ff29b75ca46a7c32f06f6b32b004afaf14bc8c034f0a94",
+        "description": "Two profile cards labeled Beauty & Skincare on terracotta: banners of women using serum droppers, with terracotta and olive curl avatars."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/pavea/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/pavea/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1174,
+        "contentHash": "2be690b4986386d579efddff7c3690c1627b392eab5a7a11ec74ea78eb58f16b",
+        "description": "Two backlit posters on a dark slatted wall: Where Beauty Finds Harmony and Where Nature Meets Science, each with a woman holding a serum bottle."
+      }
+    ]
+  },
+  {
+    "id": "825260d6-578c-5985-8eda-9fd7ca4e0dea",
+    "slug": "paymok",
+    "brand": "Paymok",
+    "kind": "identity",
+    "description": "Modern digital-payments identity in electric violet and midnight navy with lime, deep teal and lavender accents, a stacked-stripe symbol and 3D coin imagery.",
+    "image": "/inspiration/brands/paymok/01-logo.webp",
+    "width": 1600,
+    "height": 953,
+    "contentHash": "379474be78368e5ad7b57850c999ec0d4d4af911ba4c7359dce42c98a88aa70e",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "fintech",
+      "violet",
+      "modern",
+      "payments"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/paymok/01-logo.webp",
+        "thumbnail": "/inspiration/brands/paymok/01-logo-small.webp",
+        "width": 1600,
+        "height": 953,
+        "contentHash": "379474be78368e5ad7b57850c999ec0d4d4af911ba4c7359dce42c98a88aa70e",
+        "fill": "#010129",
+        "description": "White symbol of three stacked bars with slanted ends forming an S-like shape, with the rounded lowercase wordmark paymok and its looped p; on electric violet."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/paymok/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/paymok/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 886,
+        "contentHash": "a7c39b30f035555d490c83cf4707da64e396b9e48f6cf88d6a47d204b7b1ac36",
+        "description": "Vault Midnight #01012B (primary), Electric Ledger violet #583DF9, Cipher Deep lime #E6FF2A, Kinetic Volt deep teal #0C4651 and Flow Lavender #C5A6FF."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/paymok/03-typography.webp",
+        "thumbnail": "/inspiration/brands/paymok/03-typography-small.webp",
+        "width": 1600,
+        "height": 2183,
+        "contentHash": "b9135d5841ce651dd38a2ebd731e1fd3052e5fdb7b3f6d31f381d01b0af5713a",
+        "description": "Aspekta, a geometric sans in weights 200 to 800, as primary type, and Manrope for web and app with a heading hierarchy."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/paymok/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/paymok/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 1979,
+        "contentHash": "29b08afaa625597f7d05ce7899ae6b8edfc9419cc14c01c7f2daaf318ec77d74",
+        "description": "On violet: a profile with a blue 3D petal banner, a notification, a phone app icon and three posts such as Finance Without Boundaries on dark gradients."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/paymok/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/paymok/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1085,
+        "contentHash": "74fe7cda5679c2e190d38e8b2a6bd3467423e1abbc818dde8cf2c2e8b1877330",
+        "description": "Billboard in a dark modern space above tall grass: The Future of Digital Payments. on violet beside 3D dollar and bitcoin coins and payment cards."
+      }
+    ]
+  },
+  {
+    "id": "cab0ef81-6038-5f27-9486-6997d66fc9b4",
+    "slug": "raygle",
+    "brand": "Raygle",
+    "kind": "identity",
+    "description": "Strong, serious security identity in deep crimson and charcoal with gray steps, a wide geometric caps typeface and an eagle-inspired R symbol.",
+    "image": "/inspiration/brands/raygle/01-logo.webp",
+    "width": 1400,
+    "height": 788,
+    "contentHash": "bee8919759820f38c3a6566ffb8eb289d31008421893ee1632f5aecd4e378722",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "security",
+      "crimson",
+      "wide-sans",
+      "corporate"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/raygle/01-logo.webp",
+        "thumbnail": "/inspiration/brands/raygle/01-logo-small.webp",
+        "width": 1400,
+        "height": 788,
+        "contentHash": "bee8919759820f38c3a6566ffb8eb289d31008421893ee1632f5aecd4e378722",
+        "description": "White R symbol whose bowl is cut into an eagle-head shape, beside the wide geometric caps wordmark RAYGLE, on crimson with diagonal line rays."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/raygle/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/raygle/02-color-palette-small.webp",
+        "width": 1400,
+        "height": 788,
+        "contentHash": "8bdd708721823d4eed2b47d9f09db064be6df5d01dd9d518de9a9350afbff45b",
+        "description": "Crimson #9b002c with four lighter pink tints, and charcoal #1e1d1d with four gray steps."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/raygle/03-typography.webp",
+        "thumbnail": "/inspiration/brands/raygle/03-typography-small.webp",
+        "width": 1400,
+        "height": 788,
+        "contentHash": "58d2ef2b55119457c75375cf00a841b98b54c45103c5225683ab5550f2b16b36",
+        "description": "Termina, a wide geometric caps sans, shown in white on crimson with outlined RAY and GLE letters as decoration."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/raygle/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/raygle/04-social-profile-small.webp",
+        "width": 630,
+        "height": 710,
+        "contentHash": "8fe3b00e9f365ab8add1490c327f53a92c969bfd0dcf49fc41fdf486244e948f",
+        "fill": "#9b002a",
+        "description": "Profile card on crimson with a crimson R avatar and a bio describing security inspired by the eagle's vision."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/raygle/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/raygle/05-brand-poster-small.webp",
+        "width": 1400,
+        "height": 788,
+        "contentHash": "196b9cda24463118820203d99a528ae4fead6f6b7436e3cfab1169e8f2a699b7",
+        "description": "Billboard on a gray tiled wall: Intelligent Security for a World That Never Stops Changing. on crimson, beside a man in sunglasses using a walkie-talkie."
+      }
+    ]
+  },
+  {
+    "id": "1134c7bf-0110-521a-9969-f0acfa9abfe5",
+    "slug": "razzaq",
+    "brand": "Razzaq Group",
+    "kind": "identity",
+    "description": "Calm, airy travel identity in steel blue and light beige with muted accents, a petal-grid symbol, rounded wordmark and landmark collage imagery.",
+    "image": "/inspiration/brands/razzaq/01-logo.webp",
+    "width": 1600,
+    "height": 900,
+    "contentHash": "323db13984748f80d70f1208c6e63c34fd4f3bc1bace6f63c3257840b5556e0e",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "travel",
+      "steel-blue",
+      "calm",
+      "rounded"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/razzaq/01-logo.webp",
+        "thumbnail": "/inspiration/brands/razzaq/01-logo-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "323db13984748f80d70f1208c6e63c34fd4f3bc1bace6f63c3257840b5556e0e",
+        "fill": "#eae6dd",
+        "description": "Steel blue symbol of three quarter-circle petals in a grid, the bold rounded wordmark razzaq with GROUP above, and the tagline SERVICE FOR LIFE, on beige."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/razzaq/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/razzaq/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "2ce3295f10ba2888d8ab070b2ac34870a8f1c7469864f435e9ffb276444cad42",
+        "fill": "#5e7891",
+        "description": "Steel Blue 385E84 and Light Beige EAE6DC, with slate blue, light gray, charcoal, pale lime, maroon and pale blue accents."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/razzaq/03-typography.webp",
+        "thumbnail": "/inspiration/brands/razzaq/03-typography-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "816706ab5ab16b00854ba110e2f16c42feccfc8c3b5508055433a7ba99faea04",
+        "description": "Montserrat, a geometric sans, for titles and Aloe Vera Display, a light rounded sans, for body text, shown with a large g and Aa$123."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/razzaq/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/razzaq/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "25cbf4733755c9e86e9fd47a02dd8be1b149826709ef4460d3a55aff4bf744ab",
+        "description": "Two profile mockups on steel blue labeled Travels and Tour: a collage banner of world landmarks, an orange suitcase, a hat and a paper plane."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/razzaq/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/razzaq/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "6dda128726fbe9e362266b84197548b46de9edb9b694980e69f74377a6e213c5",
+        "description": "Two posters at a lit entrance: DISCOVER THE WORLD YOUR WAY with a suitcase and landmarks, and UNFORGETTABLE ADVENTURES, EVERY TIME. with an airplane-wing view."
+      }
+    ]
+  },
+  {
+    "id": "1f736065-455a-5a37-9a18-fbb3a47da54e",
+    "slug": "servexo",
+    "brand": "Servexo",
+    "kind": "identity",
+    "description": "Clean, dark automotive service identity in indigo and navy with near-black and light gray, an italic S symbol, a wide display sans and mechanic photography.",
+    "image": "/inspiration/brands/servexo/01-logo.webp",
+    "width": 1600,
+    "height": 900,
+    "contentHash": "7590024d6a666af9fc180473df48f6551f418ac805e4aa024f575b3afa83ac02",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "automotive",
+      "indigo",
+      "dark",
+      "clean"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/servexo/01-logo.webp",
+        "thumbnail": "/inspiration/brands/servexo/01-logo-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "7590024d6a666af9fc180473df48f6551f418ac805e4aa024f575b3afa83ac02",
+        "fill": "#0b0e15",
+        "description": "Italic geometric S in a slanted rounded square, beside the wide geometric sans wordmark Servexo; shown on indigo, navy, near-black and light gray tiles."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/servexo/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/servexo/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 471,
+        "contentHash": "db56ca54c3d2fe365897e6518604bc83c04c4af209f108be2b9d47d5034d0a72",
+        "fill": "#0b0e15",
+        "description": "Indigo #3F51B5, navy #223760, near-black #0C0E16 and light gray #E8E8E8."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/servexo/03-typography.webp",
+        "thumbnail": "/inspiration/brands/servexo/03-typography-small.webp",
+        "width": 1600,
+        "height": 487,
+        "contentHash": "4ebe49f97408112746d246f32b845ba8d85813ba893e1724f0a8c5466133942e",
+        "fill": "#0b0e15",
+        "description": "Clash Display, a wide geometric display sans, shown with full alphabet, numerals and symbols."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/servexo/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/servexo/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "31d3baf2d04bb5d3071fdbfc7f09f8e362d3915b721132a14d3833c14f908fa6",
+        "fill": "#e7e7e7",
+        "description": "Dark navy profile card on light gray: a mechanic in blue overalls working under a car hood, an S avatar and a vehicle service and repair bio."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/servexo/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/servexo/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1200,
+        "contentHash": "4df7a67bc33689d98a250bf03ba91b6d942fe50032ac4220dcda807127322a8e",
+        "description": "Two freestanding backlit posters in a gray concrete room: Precision Service for Modern Vehicles and The Future of Vehicle Care Starts Here, with mechanics."
+      }
+    ]
+  },
+  {
+    "id": "816a41c7-a82a-5198-8c37-7b55e1651b72",
+    "slug": "sparecharge",
+    "brand": "SpareCharge",
+    "kind": "identity",
+    "description": "Fresh, upbeat EV-charging identity in bright lime green and very dark green, with a plug-like stepped symbol, Plus Jakarta Sans and everyday lifestyle photos.",
+    "image": "/inspiration/brands/sparecharge/01-logo.webp",
+    "width": 1600,
+    "height": 912,
+    "contentHash": "fe85214e1d14d38ceee6af2eaf766de6ecf4498f9f08281c3e5db3624ce5d097",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "ev-charging",
+      "lime",
+      "green",
+      "friendly"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/sparecharge/01-logo.webp",
+        "thumbnail": "/inspiration/brands/sparecharge/01-logo-small.webp",
+        "width": 1600,
+        "height": 912,
+        "contentHash": "fe85214e1d14d38ceee6af2eaf766de6ecf4498f9f08281c3e5db3624ce5d097",
+        "fill": "#00281f",
+        "description": "Lime symbol of two bent, stepped bars suggesting a plug, beside the white rounded sans wordmark stacked as Spare / charge with a registered mark, on dark green."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/sparecharge/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/sparecharge/02-color-palette-small.webp",
+        "width": 1267,
+        "height": 405,
+        "contentHash": "59c8fce42ce0706bce92742c21ee36154b0cc6e8694aa264f2ff67f42b84a38b",
+        "description": "Lime Green #00E564 and Dark Green #00281F."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/sparecharge/03-typography.webp",
+        "thumbnail": "/inspiration/brands/sparecharge/03-typography-small.webp",
+        "width": 1267,
+        "height": 372,
+        "contentHash": "b532b07d51fac220f2a04b88753bd57fc49b680c913423a1ae08d99d083894b3",
+        "fill": "#feffff",
+        "description": "Plus Jakarta Sans, a geometric sans: ExtraBold for display, Bold for metrics, SemiBold for labels and Regular for body."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/sparecharge/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/sparecharge/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 912,
+        "contentHash": "95ddb7b3670e28c9d952493c0f4f64d29f189dc930f7dbfe3d7deb43bd0eef3d",
+        "description": "A phone with an Instagram profile for peer-to-peer EV charging and a lime and dark green post grid, plus a card with a woman and child at a home charger."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/sparecharge/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/sparecharge/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 880,
+        "contentHash": "da3fed854601168f833ac82daf39c1f298774e7e42846aefe15349c027bc7474",
+        "description": "Overhead highway gantry billboard above traffic: Earn from the charger you already own. with app store badges and a hand holding a phone on green."
+      }
+    ]
+  },
+  {
+    "id": "ef2fb97e-0934-56fc-a19f-45289cb3b053",
+    "slug": "speak-up-stand-with",
+    "brand": "Speak Up, Stand With",
+    "kind": "identity",
+    "description": "Bold, accessible campaign identity in sky blue, navy, white and rose pink, with overlapping speech-bubble icons and heavy Roboto headlines.",
+    "image": "/inspiration/brands/speak-up-stand-with/01-logo.webp",
+    "width": 1600,
+    "height": 1131,
+    "contentHash": "5055eee8aa18604a204ed3629792bb503ef6d439758f973024f9ad1f18537a4a",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "campaign",
+      "speech-bubble",
+      "sky-blue",
+      "pink"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/speak-up-stand-with/01-logo.webp",
+        "thumbnail": "/inspiration/brands/speak-up-stand-with/01-logo-small.webp",
+        "width": 1600,
+        "height": 1131,
+        "contentHash": "5055eee8aa18604a204ed3629792bb503ef6d439758f973024f9ad1f18537a4a",
+        "description": "Two overlapping speech bubbles beside bold sans Speak Up over a smaller Stand With line, on sky blue, navy or rose; icon, vertical and horizontal versions."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/speak-up-stand-with/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/speak-up-stand-with/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 1131,
+        "contentHash": "28572fd06dfa7421d604cfb5a79a427b702f08340181a98f3dc99a2ca4367eec",
+        "description": "Sky #29BBEF, Navy #182a46, White #FFFFFF and Rose #F44A90."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/speak-up-stand-with/03-typography.webp",
+        "thumbnail": "/inspiration/brands/speak-up-stand-with/03-typography-small.webp",
+        "width": 1600,
+        "height": 1131,
+        "contentHash": "5a8f582666b68bd1770c461f9ff965d7b66c69dd7ea7d93b2ccfd53de0074a6c",
+        "description": "Roboto: Black for headlines, Bold for subheadings and Regular for body text, with usage guidelines."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/speak-up-stand-with/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/speak-up-stand-with/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 1131,
+        "contentHash": "aa6fefc1053492e36d91589a66c67fd6a52d95c4f3d7599f93c0d60e428537ea",
+        "fill": "#fdfdfd",
+        "description": "A social media branding wireframe: a navy banner with the logo and pink outlined speech bubbles, a rose round avatar and gray placeholder content blocks."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/speak-up-stand-with/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/speak-up-stand-with/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1131,
+        "contentHash": "32edc6da809bc18b2762e6d7b997e41af3255edc7b20625e020f862c2d4200f2",
+        "description": "Billboard in a white-tiled corridor: Speak Up Stand With in pink on navy, Together we create safer, more respectful spaces., and a man in a suit gesturing."
+      }
+    ]
+  },
+  {
+    "id": "a73e4cfe-7fae-50c2-acb1-a21d26af11f3",
+    "slug": "statking",
+    "brand": "StatKing",
+    "kind": "identity",
+    "description": "Energetic sports-betting identity in sun yellow, bright orange and near-black, with a crown-and-S shield symbol, heavy display type and warm gradients.",
+    "image": "/inspiration/brands/statking/01-logo.webp",
+    "width": 1600,
+    "height": 932,
+    "contentHash": "864156d7c382c96d7f0d5c2f153eb90b7d3b73156cca3cd153591e53f8bb6e7a",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "sports-betting",
+      "orange",
+      "yellow",
+      "energetic"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/statking/01-logo.webp",
+        "thumbnail": "/inspiration/brands/statking/01-logo-small.webp",
+        "width": 1600,
+        "height": 932,
+        "contentHash": "864156d7c382c96d7f0d5c2f153eb90b7d3b73156cca3cd153591e53f8bb6e7a",
+        "description": "Yellow-to-orange crown-topped shield with an S cut through it, beside the bold sans wordmark StatKing; on black, white, orange, yellow and a sports photo."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/statking/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/statking/02-color-palette-small.webp",
+        "width": 1320,
+        "height": 1090,
+        "contentHash": "6bed06bc1b57bed0966e209b4ebeced5b92f7104d3766171c8ca3130b2e477f9",
+        "description": "Sun yellow #FFD238, White #FFFFFF, Cosmos black #111316 and Bright orange #FE602D, plus Sunset, Energy, Shine, Sunrise and Ripple gradients."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/statking/03-typography.webp",
+        "thumbnail": "/inspiration/brands/statking/03-typography-small.webp",
+        "width": 1600,
+        "height": 755,
+        "contentHash": "b39a1ac743e6619714752eaeb70a0b59314edc46ebf9ae2783a40a9eb6768d57",
+        "description": "Inter in Regular, Medium and Bold for text, and Onry Extra Bold, a heavy slanted display sans, shown in the headline Ready. Steady. Go!"
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/statking/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/statking/04-social-profile-small.webp",
+        "width": 1320,
+        "height": 1680,
+        "contentHash": "72e68f405657ab1dc89e63249b4860b5ecc808a2c5c7efd01947286861d63810",
+        "description": "A phone showing a dark, orange-accented video channel page with the StatKing avatar and thumbnails such as Top Betting Picks By StatKing."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/statking/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/statking/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 621,
+        "contentHash": "fe50729eed65c69b480c96e4e7586ad1f071fd29698cb6d314ce5ee092b02ddb",
+        "description": "Wide billboard against a night city skyline: NBA Trends, Odds & Picks on StatKing.com with the shield symbol on a dark orange gradient."
+      }
+    ]
+  },
+  {
+    "id": "fd13ebf7-1cfc-5c10-b7b6-995757dd127e",
+    "slug": "suya-spot-express",
+    "brand": "Suya Spot Express",
+    "kind": "identity",
+    "description": "Hot, appetizing street-food identity in chili red, amber yellow and black, with a circular skewer badge, rounded bold lettering and grilled-meat photography.",
+    "image": "/inspiration/brands/suya-spot-express/01-logo.webp",
+    "width": 1600,
+    "height": 1200,
+    "contentHash": "5149915b9831942d5d94484ce6f406b60f9e2c6b5bae8ecc214ad652d79fb255",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "food",
+      "red",
+      "yellow",
+      "street-food"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/suya-spot-express/01-logo.webp",
+        "thumbnail": "/inspiration/brands/suya-spot-express/01-logo-small.webp",
+        "width": 1600,
+        "height": 1200,
+        "contentHash": "5149915b9831942d5d94484ce6f406b60f9e2c6b5bae8ecc214ad652d79fb255",
+        "fill": "#b22a25",
+        "description": "Rounded bold yellow-orange lettering Suya Spot express set in a circle around a black meat-skewer icon, plus a horizontal version, over a red-tinted food photo."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/suya-spot-express/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/suya-spot-express/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 816,
+        "contentHash": "1baa98bb9a52039e1e95610712f67afd7d41e45b7122b3fff777948141add559",
+        "description": "Chili red #c62828, amber yellow #f4b400 and black 000000."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/suya-spot-express/03-typography.webp",
+        "thumbnail": "/inspiration/brands/suya-spot-express/03-typography-small.webp",
+        "width": 643,
+        "height": 461,
+        "contentHash": "efeaa7271430ba25e537d966ca97e753ac1b8d1f56ef82af7cd27179e08d1004",
+        "fill": "#c62828",
+        "description": "Malinton, a light, clean sans, shown in a thin weight on red."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/suya-spot-express/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/suya-spot-express/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 1920,
+        "contentHash": "25eb676c69c1cc2c8f81aa237e73cac8827d0cffcf5694d6988a32db66f42427",
+        "description": "Profile card on an orange-yellow gradient: a smiling man in a yellow shirt biting a meat skewer, the orange circular badge as avatar and a street-food bio."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/suya-spot-express/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/suya-spot-express/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1200,
+        "contentHash": "46a20e90ee96d011fb0b4db50664e5312864c26a03b62ab33b275768c05f49d1",
+        "description": "Billboard in a gray tiled underground space: One Bite & You'll Smile and We've Got It Hot on yellow-orange, beside a smiling man eating a skewer."
+      }
+    ]
+  },
+  {
+    "id": "cf084e2e-b187-55e7-8a52-9a779d8588d9",
+    "slug": "synexa",
+    "brand": "Synexa",
+    "kind": "identity",
+    "description": "Bold, techy AI identity in core black and ember orange-red with electric blue, volt green and pale peach, a striped globe symbol and monospace type.",
+    "image": "/inspiration/brands/synexa/01-logo.webp",
+    "width": 808,
+    "height": 632,
+    "contentHash": "039cacbb764a40cb4da6eb28d19bb880fa391c25993e3f9bd21ae94c60b16df4",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "ai",
+      "techy",
+      "orange",
+      "monospace"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/synexa/01-logo.webp",
+        "thumbnail": "/inspiration/brands/synexa/01-logo-small.webp",
+        "width": 808,
+        "height": 632,
+        "contentHash": "039cacbb764a40cb4da6eb28d19bb880fa391c25993e3f9bd21ae94c60b16df4",
+        "description": "White globe sliced into horizontal bars above the blocky, squared monospace-style wordmark Synexa with a registered mark, on a flowing red-orange gradient."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/synexa/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/synexa/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 1017,
+        "contentHash": "50ea8439b9d2a66a5022c1e8d6cd5219c6889104ea1f8cd4752d5c8ce10e1043",
+        "description": "Core Black (primary), Ember Orange, Neural Blue, Signal Volt green and Cloud Silk pale peach, shown as nested blocks."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/synexa/03-typography.webp",
+        "thumbnail": "/inspiration/brands/synexa/03-typography-small.webp",
+        "width": 1600,
+        "height": 2349,
+        "contentHash": "cbaf6fb43a6b45a1769aeecc5a0680a8cf9a65d4be4615582190ac995f8cbae1",
+        "description": "A squared monospace display face labeled Secret Demo as primary type, and Space Mono for web and app with a heading hierarchy."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/synexa/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/synexa/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 1102,
+        "contentHash": "621785fc0d123451ef3caf73ec00634242932b6baf6ec5ef32558d299feace04",
+        "description": "Profile card labeled AI SaaS & Technology on an orange-to-black gradient: a glowing blue-and-red particle hand as the banner and an orange globe avatar."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/synexa/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/synexa/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1202,
+        "contentHash": "8c3dfa482ec5677288bf4e166b8e119df740232ec93b99f60468ecbd4320932f",
+        "description": "Billboard in a dark modern space above tall grass: STRUCTURE MEETS WITH INTELLIGENCE in monospace caps on dark red, beside a red-lit robotic head in profile."
+      }
+    ]
+  },
+  {
+    "id": "5f527109-123c-5389-a1d7-5fc803cc339e",
+    "slug": "travil",
+    "brand": "Travil",
+    "kind": "identity",
+    "description": "Bold, modern travel identity in vivid green on smoky black with dark green and gray-green, a paper-plane arrow mark and cheerful traveler photography.",
+    "image": "/inspiration/brands/travil/01-logo.webp",
+    "width": 980,
+    "height": 444,
+    "contentHash": "18ef292c43cda29f6a9d6e0433c259798c75ab52aa7fd84d13a3174812517079",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "travel",
+      "green",
+      "dark",
+      "bold"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/travil/01-logo.webp",
+        "thumbnail": "/inspiration/brands/travil/01-logo-small.webp",
+        "width": 980,
+        "height": 444,
+        "contentHash": "18ef292c43cda29f6a9d6e0433c259798c75ab52aa7fd84d13a3174812517079",
+        "fill": "#080a09",
+        "description": "White bold sans wordmark Travil followed by a green paper-plane arrow pointing up and right, with a copyright mark, on black."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/travil/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/travil/02-color-palette-small.webp",
+        "width": 1251,
+        "height": 775,
+        "contentHash": "83a7ccbafc53f29d6a38ab4b3f539c4db81d2866028a37323c0c1965ea4e95ac",
+        "fill": "#070a09",
+        "description": "Smoky Black, Green, Dark Green, Near Black, Grey Green and White, shown as scattered cards on black."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/travil/03-typography.webp",
+        "thumbnail": "/inspiration/brands/travil/03-typography-small.webp",
+        "width": 962,
+        "height": 461,
+        "contentHash": "5beb6263460ac2f15af21e89dc87f032232ff4798cebf68df3cdaceec20074d0",
+        "description": "Famijen Grotesk, a modern sans with large ink-trap notches, in Regular, Medium and Bold, shown in green and white on black."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/travil/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/travil/04-social-profile-small.webp",
+        "width": 934,
+        "height": 953,
+        "contentHash": "649b6a36ee450777dec633915d39ea38ee5cdd22e4eccec939abb583a3f17bfa",
+        "fill": "#1d1d1d",
+        "description": "Profile card with a green banner holding a large dark arrow shape, a dark avatar with the green arrow and a bio about a modern travel brand."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/travil/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/travil/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1200,
+        "contentHash": "f44b54ed659253299d3d098e8c90ec3e353587ae2d17d39062a0e0c8d45cffd7",
+        "description": "Construction hoarding under a crane: Travel More, Worry Less with green highlights, and a smiling woman in a sun hat hugging a yellow suitcase."
+      }
+    ]
+  },
+  {
+    "id": "42c2fd72-83db-5f3e-ba91-fcc9c2082baa",
+    "slug": "velto",
+    "brand": "Velto",
+    "kind": "identity",
+    "description": "Fresh, confident business-banking identity in vibrant lime and light violet on dark teal, with a leaf-like V symbol, bold caps and Space Grotesk.",
+    "image": "/inspiration/brands/velto/01-logo.webp",
+    "width": 1600,
+    "height": 1067,
+    "contentHash": "b6382077d62407a94705a3f54b32a9fcf39042bfdc24198f0bb78fc94f6d14a0",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "fintech",
+      "lime",
+      "violet",
+      "geometric"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/velto/01-logo.webp",
+        "thumbnail": "/inspiration/brands/velto/01-logo-small.webp",
+        "width": 1600,
+        "height": 1067,
+        "contentHash": "b6382077d62407a94705a3f54b32a9fcf39042bfdc24198f0bb78fc94f6d14a0",
+        "fill": "#073034",
+        "description": "Lime symbol of two rounded lobes forming a leaf-like V with a violet dot, beside the bold geometric caps wordmark VELTO in off-white, on dark teal."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/velto/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/velto/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 1067,
+        "contentHash": "301cc6d45c5bb3e672cd9f46683b82422b748c8806f42edb936ed8d46d31b95e",
+        "description": "Vibrant Lime A1EB15 (primary), Light Slate Blue 8C7BFC (secondary), Tiber dark teal 073034 and Avocado 527D01, plus yellow, mint, sky blue and cream tints."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/velto/03-typography.webp",
+        "thumbnail": "/inspiration/brands/velto/03-typography-small.webp",
+        "width": 1600,
+        "height": 1067,
+        "contentHash": "9e19146b729cf46eed3f5d27a5569f90123b2e3e022feb5056f0e94506c81d56",
+        "fill": "#000000",
+        "description": "Space Grotesk, a grotesque sans with geometric quirks, shown in Light, Regular, Medium and Bold."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/velto/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/velto/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 1067,
+        "contentHash": "e309abc329915390b5ad66e2e6de9700c8cfe3fb082dd981e3d0dbd18fd14030",
+        "fill": "#073034",
+        "description": "On dark teal: a profile labeled Fintech with a violet wavy-line banner and lime avatar, a Money in! notification and a phone with the app icon."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/velto/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/velto/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1067,
+        "contentHash": "b7de7295639979a73be7669620cc5000657e2691ed104984966de7d5e228e08c",
+        "description": "Three backlit posters in a subway station: lime Banking Built for Modern Business., a woman in violet holding a lime card, and a violet slogan poster."
+      }
+    ]
+  },
+  {
+    "id": "a823c535-b6bf-5fed-81b0-796e75366bc6",
+    "slug": "veratix",
+    "brand": "Veratix",
+    "kind": "identity",
+    "description": "Vivid AI software identity in electric blue, deep teal, orange, neon lime and violet, with a pinwheel spark symbol, Satoshi type and glossy 3D visuals.",
+    "image": "/inspiration/brands/veratix/01-logo.webp",
+    "width": 1600,
+    "height": 966,
+    "contentHash": "559484749a44ac84a3e9de08feac8a7f3d8a543786cfa6b30391874e7db95419",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "ai",
+      "saas",
+      "electric-blue",
+      "vivid"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/veratix/01-logo.webp",
+        "thumbnail": "/inspiration/brands/veratix/01-logo-small.webp",
+        "width": 1600,
+        "height": 966,
+        "contentHash": "559484749a44ac84a3e9de08feac8a7f3d8a543786cfa6b30391874e7db95419",
+        "description": "Spark symbol of six angled bars arranged in a pinwheel, beside the sans wordmark Veratix with TM; shown on violet, lime and blue- and red-tinted portraits."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/veratix/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/veratix/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 968,
+        "contentHash": "736493f4f9d64cabb232420321e542cbc4330724c8202bc8d0a18f410d6c8290",
+        "description": "Electric Blue #0C35CF, Deep Teal #076D71, Kinetic Orange #FF7212, Neon Lime #DCFF02 and Digital Violet #6D29EE."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/veratix/03-typography.webp",
+        "thumbnail": "/inspiration/brands/veratix/03-typography-small.webp",
+        "width": 1600,
+        "height": 1017,
+        "contentHash": "a0ff5077ca0477f568d6e233bd75f5a5189040dc79084c6828703dd6dd788f2b",
+        "fill": "#fefefe",
+        "description": "Satoshi, a geometric sans, shown in Light, Regular, Medium, Bold and Black."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/veratix/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/veratix/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 725,
+        "contentHash": "9b39b9b76f142cbb696dbec0a7b1469c3f8ba341c8cabd2267ce0dbc88914ab1",
+        "fill": "#ffffff",
+        "description": "Two profile cards labeled AI and SaaS: glossy chrome 3D abstract banners, with blue and orange avatars bearing the white spark."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/veratix/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/veratix/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1893,
+        "contentHash": "d77ec69c53d8d1b1ae5e4f3dcfff8590b2e2ec0f0bbaf2830eb77896abae04dd",
+        "description": "Collage of three displays: a wall sign, a freestanding kiosk with a blue 3D spark, and a large screen reading Smart Tech. Better Business. with 3D SaaS letters."
+      }
+    ]
+  },
+  {
+    "id": "64a0473d-916f-553c-90d6-34f4bf94303e",
+    "slug": "verso",
+    "brand": "Verso",
+    "kind": "identity",
+    "description": "Futuristic nanotech identity in deep violet-blue with white and black, wide geometric caps, a rounded-square O mark, light-streak backgrounds and a friendly robot.",
+    "image": "/inspiration/brands/verso/01-logo.webp",
+    "width": 1600,
+    "height": 900,
+    "contentHash": "7365299ea8a9deeb739e6630cee5f14168509811aa814ad26bea9e7e731926af",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "nanotech",
+      "violet",
+      "futuristic",
+      "wide-sans"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/verso/01-logo.webp",
+        "thumbnail": "/inspiration/brands/verso/01-logo-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "7365299ea8a9deeb739e6630cee5f14168509811aa814ad26bea9e7e731926af",
+        "description": "White wide geometric caps wordmark VERSO with TM over the line NANOTECH COMPANY, on violet light streaks; a rounded-square O ring serves as the mark."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/verso/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/verso/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "8e0f2ed2087b2a4bb64c7651dc476512316d6eac6230ef52bed3a1aee236061c",
+        "description": "Slate Blue violet #4311CE, Cloud White #FFFFFF and Midnight Black #000000."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/verso/03-typography.webp",
+        "thumbnail": "/inspiration/brands/verso/03-typography-small.webp",
+        "width": 960,
+        "height": 1080,
+        "contentHash": "c6d1bd77237886ddcc6d100c6e2a5fd651a90debd26f9625b8681fa9ea0ac8bc",
+        "fill": "#000000",
+        "description": "Pigarnos Neue, a wide geometric caps face, for headlines and DM Sans, a geometric sans, for body text."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/verso/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/verso/04-social-profile-small.webp",
+        "width": 874,
+        "height": 982,
+        "contentHash": "843e94bf4afae75a2eaf568c80aa8c1e4a24ec74393256d7380b81cb2bd83531",
+        "fill": "#4311ce",
+        "description": "Profile card on violet: a round avatar with the violet rounded-square O and a bio about a technology company investing in nanotechnology."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/verso/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/verso/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 900,
+        "contentHash": "1dffe99d96681becc6518cea4d115ce6a21f3074f99ae4720654df7bb1a49d89",
+        "description": "Violet billboard under slatted ceiling lights: Unlock the Power of Nanotech with a waving 3D white robot, a QR code, app badges and a large O ring logo."
+      }
+    ]
+  },
+  {
+    "id": "05a3faee-ba0b-5d23-bf17-ad8e27265849",
+    "slug": "vetter",
+    "brand": "Vetter",
+    "kind": "identity",
+    "description": "Warm, playful pet-food identity in deep purple with maroon, lime, blue and yellow accents, a dog-face ligature, swashy rounded type and pet photography.",
+    "image": "/inspiration/brands/vetter/01-logo.webp",
+    "width": 1600,
+    "height": 727,
+    "contentHash": "0d4a377724703a4f5e60f7ce9afcb601796249b97300c04d85781446362f6851",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "pet-food",
+      "purple",
+      "playful",
+      "rounded"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/vetter/01-logo.webp",
+        "thumbnail": "/inspiration/brands/vetter/01-logo-small.webp",
+        "width": 1600,
+        "height": 727,
+        "contentHash": "0d4a377724703a4f5e60f7ce9afcb601796249b97300c04d85781446362f6851",
+        "fill": "#f6f5f4",
+        "description": "White lowercase wordmark vetter whose tt loops into a dog face with ears and a heart-shaped nose, on deep purple; the dog face alone is the brand mark."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/vetter/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/vetter/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 982,
+        "contentHash": "56f86f0c7588a5a78f78098edaab39ec21c849d4a165a50b5b92a8c7c8bd53a7",
+        "fill": "#f6f5f4",
+        "description": "Alpha Purple #4D2178 (primary), Wilderness Bark maroon #5C0C15, Trailblazer Blue #3835AA, Kibble Lime #9BDD28 and Fetch Yellow #FEF23A."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/vetter/03-typography.webp",
+        "thumbnail": "/inspiration/brands/vetter/03-typography-small.webp",
+        "width": 1600,
+        "height": 1014,
+        "contentHash": "60a0386412c8945e52dde9ec58f6e1738fe1267fcf260843cf4ce214943c9b8f",
+        "fill": "#f6f5f4",
+        "description": "Delius Swash, a rounded, informal handwritten-style face with swash capitals, shown in Light, Regular, Medium and Bold."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/vetter/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/vetter/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 897,
+        "contentHash": "1573dc1f923eda3f0175ba8b6e78f4ba110fe339d52b2aa507624ec8026b8697",
+        "fill": "#2f0556",
+        "description": "Two profile cards labeled Pet Food on purple: an orange tabby cat and a dachshund as banners, with purple and maroon avatars bearing the dog-face mark."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/vetter/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/vetter/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1062,
+        "contentHash": "eaa37bd6914ef5a1a4149ea270c021b3348b785335ccad8633e6eca1b6cc3d0a",
+        "description": "Wall billboard with a passerby: orange Trusted Nutrition For Everyday Pet Wellness beside a curly-haired dog holding a bone biscuit amid falling treats."
+      }
+    ]
+  },
+  {
+    "id": "e889f824-cfaa-5055-bb1a-72951c5469f6",
+    "slug": "wellis",
+    "brand": "Wellis",
+    "kind": "identity",
+    "description": "Calm, active wellness identity in deep forest teal and olive green with oatmeal, clay and soft yellow, a looping W and athletic lifestyle photography.",
+    "image": "/inspiration/brands/wellis/01-logo.webp",
+    "width": 1600,
+    "height": 482,
+    "contentHash": "ffc506fe9616829800f9acdd0f86200af20f7ba1cf981d3b666d43dbb867225e",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "wellness",
+      "teal",
+      "olive",
+      "rounded"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/wellis/01-logo.webp",
+        "thumbnail": "/inspiration/brands/wellis/01-logo-small.webp",
+        "width": 1600,
+        "height": 482,
+        "contentHash": "ffc506fe9616829800f9acdd0f86200af20f7ba1cf981d3b666d43dbb867225e",
+        "fill": "#fefefe",
+        "description": "White W drawn as one continuous looping stroke, and the rounded wordmark Wellis with looped l's and a registered mark, on deep forest teal."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/wellis/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/wellis/02-color-palette-small.webp",
+        "width": 1600,
+        "height": 887,
+        "contentHash": "9abcce1bbfd6ce9bbde298d2f68b6feed8d5aaa4355e444f2bf9378233c79177",
+        "description": "Forest Canopy #003D41 (primary), Botanical Leaf #647F3A, Pure Oatmeal #E7DCC8, Healing Clay #AE5F3D and Solar Vitality pale yellow #EEFF85."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/wellis/03-typography.webp",
+        "thumbnail": "/inspiration/brands/wellis/03-typography-small.webp",
+        "width": 1600,
+        "height": 908,
+        "contentHash": "1110151a938c3da4e59c2b389ea13d2b0da0e6a8d83bc18825d645235f6998ab",
+        "fill": "#fefefe",
+        "description": "Neulis, a geometric sans with looped l and curled s details, shown from Extra Light to Black."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/wellis/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/wellis/04-social-profile-small.webp",
+        "width": 1600,
+        "height": 1015,
+        "contentHash": "ad8d82400115c32b7814dc1041778ebb5d3d1876e9610418aeff222604a9427d",
+        "description": "Two profile cards labeled Health & Wellness on dark green: women stretching against blue sky as banners, with dark green and yellow W avatars."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/wellis/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/wellis/05-brand-poster-small.webp",
+        "width": 1600,
+        "height": 1227,
+        "contentHash": "b5e02807de1113d47570ea5fb0182d613850b8cc8f6585f21a49ec75460d954a",
+        "description": "Two backlit posters on a dark teal slatted wall: athletes in olive and yellow sportswear beside a large 3D yellow W loop and wellness slogans."
+      }
+    ]
+  },
+  {
+    "id": "9e4b08f0-2a9e-5841-9df6-7ec3f2ba6726",
+    "slug": "zapp",
+    "brand": "Zapp",
+    "kind": "identity",
+    "description": "Friendly, modern app identity in lime green and deep navy with gray, cream, orange and pastel accents, a slanted Z bolt symbol and a robot mascot.",
+    "image": "/inspiration/brands/zapp/01-logo.webp",
+    "width": 1497,
+    "height": 694,
+    "contentHash": "57ce9c42b087df9e6a8a8b06c06ebb59940ec375e652d8d77d906ff946c89287",
+    "elements": [
+      "logo",
+      "typography",
+      "colors",
+      "images",
+      "composition"
+    ],
+    "tags": [
+      "app",
+      "lime",
+      "navy",
+      "friendly"
+    ],
+    "availableSince": "2026-11-08.1",
+    "parts": [
+      {
+        "part": "logo",
+        "image": "/inspiration/brands/zapp/01-logo.webp",
+        "thumbnail": "/inspiration/brands/zapp/01-logo-small.webp",
+        "width": 1497,
+        "height": 694,
+        "contentHash": "57ce9c42b087df9e6a8a8b06c06ebb59940ec375e652d8d77d906ff946c89287",
+        "description": "Lime Z bolt of two slanted parallel strokes beside the rounded lowercase wordmark zapp, shown on gray, navy, lime and cream, plus a stacked za/pp app icon."
+      },
+      {
+        "part": "colors",
+        "image": "/inspiration/brands/zapp/02-color-palette.webp",
+        "thumbnail": "/inspiration/brands/zapp/02-color-palette-small.webp",
+        "width": 1524,
+        "height": 785,
+        "contentHash": "a98a0c71dfc0f10a8bd92b4e5d083765b5c966d4ccac1ef1c499722227cded6e",
+        "description": "Lime Green a6c936, Deep Navy 1f2a44, Cool Gray 808080, Cream FFF9E5, Warm Orange FD521B, Muted Blue 344870, Pastel Pink and Olive Green 808931."
+      },
+      {
+        "part": "typefaces",
+        "image": "/inspiration/brands/zapp/03-typography.webp",
+        "thumbnail": "/inspiration/brands/zapp/03-typography-small.webp",
+        "width": 708,
+        "height": 667,
+        "contentHash": "4f68f812037393827e3d3c2908a1ca9dafc9e5b4e01726e7fe794b4dc678f4e5",
+        "fill": "#fbfaf1",
+        "description": "Bw Gradual, a sans serif for text and display, shown in Extra Bold, Bold and Medium over a grid."
+      },
+      {
+        "part": "socials",
+        "image": "/inspiration/brands/zapp/04-social-profile.webp",
+        "thumbnail": "/inspiration/brands/zapp/04-social-profile-small.webp",
+        "width": 938,
+        "height": 1038,
+        "contentHash": "37e17a691d3fbfae24166ee3cf25afbc9f20117d023a4e6b0f259d9585ea5fda",
+        "fill": "#fffdf5",
+        "description": "Profile card with lime and gray diagonal shapes and a cartoon robot with a visor and lightning bolts, above a dark panel with a navy zapp avatar."
+      },
+      {
+        "part": "visuals",
+        "image": "/inspiration/brands/zapp/05-brand-poster.webp",
+        "thumbnail": "/inspiration/brands/zapp/05-brand-poster-small.webp",
+        "width": 1500,
+        "height": 892,
+        "contentHash": "a64fe66506505a7f986bab7aefa444a3ee76b39d997436ad7323f53a2263d221",
+        "description": "Billboard on a dark tiled wall: lime Download the Z-app with map pins and a smiling man holding a phone, plus the zapp logo."
+      }
+    ]
+  }
+]

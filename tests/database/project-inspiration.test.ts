@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { asRole, OWNER_A, OWNER_B, resetFixture, seedProject, type TestDatabase } from "./local-supabase";
-import { inspirationCatalog, inspirationOverviewSchema, INSPIRATION_CATALOG_VERSION } from "@/domain/inspiration";
+import { inspirationBrands, inspirationCatalog, inspirationOverviewSchema, INSPIRATION_CATALOG_VERSION } from "@/domain/inspiration";
 import { createVisualDirectionTestDatabase, VISUAL_DATABASE_SETUP_TIMEOUT_MS } from "./visual-direction-fixture";
 let db: TestDatabase, project: string;
 const design = inspirationCatalog[0]!;
@@ -24,6 +24,13 @@ describe("project inspiration database boundary", () => {
     await save(input({ expectedRevision: 2, ensemble: false }));
     expect(await read()).toMatchObject({ selectionRevision: 3, choices: [{ ensemble: false, elements: [], revision: 3 }] });
     expect((await db.query("select id from public.jobs union all select id from public.assets")).rows).toEqual([]);
+  });
+  it("saves a whole brand and its parts as one choice, and refuses a part brands don't have", async () => {
+    const brand = inspirationBrands[0]!;
+    await save(input({ ensemble: true, elements: ["images", "colors", "composition"] }), project, OWNER_A, brand.id);
+    expect((await read()).choices).toEqual([expect.objectContaining({ referenceId: brand.id, ensemble: true, elements: ["colors", "images", "composition"], revision: 1 })]);
+    await expect(save(input({ expectedRevision: 1, elements: ["graphics"] }), project, OWNER_A, brand.id)).rejects.toMatchObject({ code: "22023" });
+    expect((await read()).choices[0]).toMatchObject({ elements: ["colors", "images", "composition"], revision: 1 });
   });
   it("isolates different owners and different projects, including direct RLS reads", async () => {
     const other = (await seedProject(db)).id;

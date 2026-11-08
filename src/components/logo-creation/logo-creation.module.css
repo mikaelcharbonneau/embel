@@ -149,3 +149,8 @@
 .estimateNote { margin: 7px 0 0; color: var(--secondary); font-size: 12px; line-height: 1.5; }
 .estimateRecovery { margin-top: 8px; font-size: 13px; }
 .estimateRecovery p { margin: 0 0 8px; }
+
+/* Likes changed after these concepts: an offer to use them for the next concepts. */
+.likesUpdate { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin: 16px 0; padding: 12px 12px 12px 16px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--paper); font-size: 13px; line-height: 1.5; }
+.likesUpdate p { flex: 1 1 320px; margin: 0; color: var(--text); }
+.likesUpdate button { flex: none; }

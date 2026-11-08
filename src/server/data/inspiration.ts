@@ -33,7 +33,7 @@ async function withAvailableReferences(auth: AuthenticatedContext, overview: Ins
   const fallback = { ...overview, availableReferenceIds: inspirationCatalog.filter(item => !item.availableSince).map(item => item.id) };
   try {
     const available = await auth.client.rpc("get_inspiration_reference_ids");
-    const ids = z.array(z.uuid()).max(100).safeParse(available.error ? null : available.data);
+    const ids = z.array(z.uuid()).max(1000).safeParse(available.error ? null : available.data);
     return ids.success ? { ...overview, availableReferenceIds: ids.data.filter(id => inspirationCatalog.some(item => item.id === id)) } : fallback;
   } catch {
     // Optional discovery must never turn an acknowledged selection write into

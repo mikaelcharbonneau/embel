@@ -1,5 +1,5 @@
 import { logoBriefOutdated, logoSavedInputsSchema, type LogoSavedInputs } from "@/domain/logo-saved-inputs";
-import type { LogoBriefDraft, LogoStageRevision } from "@/domain/logo-workspace";
+import type { LogoBriefDraft, LogoReferenceSelection, LogoStageRevision } from "@/domain/logo-workspace";
 import type { LogoQuoteRequest } from "@/domain/logo-jobs";
 import type { LogoDraftRecord } from "../identity/logo-draft-memory";
 import { AccountRequestError, accountErrorMessage } from "../workspace/account-api";
@@ -7,7 +7,9 @@ import { AccountRequestError, accountErrorMessage } from "../workspace/account-a
 export type LogoSavedInputPreparation =
   | { status: "obsolete" }
   | { status: "blocked"; message: string; source?: LogoSavedInputs }
-  | { status: "prepared"; request: LogoQuoteRequest; source: LogoSavedInputs; used: "brand" | "current" };
+  | { status: "prepared"; request: LogoQuoteRequest; source: LogoSavedInputs; used: "brand" | "current" }
+  /** checkOnly: whether preparing would change the saved brief or liked images. */
+  | { status: "checked"; source: LogoSavedInputs; outdated: boolean };
 
 type Input = {
   ownerId: string;
@@ -17,11 +19,15 @@ type Input = {
   getDraft(): LogoDraftRecord | null;
   readSavedInputs(signal: AbortSignal): Promise<LogoSavedInputs | null>;
   saveBrief(brief: LogoBriefDraft): Promise<void>;
+  saveReferences(selections: LogoReferenceSelection[]): Promise<void>;
   readBriefRevision(id: string, signal: AbortSignal): Promise<LogoStageRevision | null>;
   onProgress(phase: "reading" | "saving"): void;
+  /** Compare only: report whether the saved likes are newer, and save nothing. */
+  checkOnly?: boolean;
 };
 
 const same = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
+const byReference = (rows: readonly LogoReferenceSelection[]) => [...rows].sort((a, b) => a.referenceId.localeCompare(b.referenceId));
 export const logoDraftHasProtectedWork = (draft: LogoDraftRecord) => draft.dirty || draft.conflict || !!draft.vectorDraft || !!draft.directionDraft
   || !!draft.pendingCreation || !!draft.pendingMutation || !!draft.pendingIntent || !!draft.pendingExport;
 const blockedEdits = "Your logo changes haven’t finished saving. They’re kept. Refresh logo inputs once they’re saved.";
@@ -32,8 +38,9 @@ const savedRevisionOf = (revision: LogoStageRevision | null, ref: { id: string; 
   && revision.ownerId === input.ownerId && revision.projectId === input.projectId ? revision : null;
 
 /** Prepares the saved inputs for new concepts: the latest brand and inspiration,
- * or a brief edited by hand since they last changed. Logo types chosen in the
- * brief are kept. This function cannot admit a provider job. */
+ * or a brief edited by hand since they last changed, and the liked uploaded
+ * images as references. Logo types chosen in the brief are kept. This function
+ * cannot admit a provider job. */
 export async function prepareSavedLogoConcepts(input: Input): Promise<LogoSavedInputPreparation> {
   const current = () => !input.signal.aborted && input.isCurrent();
   const captured = input.getDraft();
@@ -64,6 +71,10 @@ export async function prepareSavedLogoConcepts(input: Input): Promise<LogoSavedI
     const brief = used === "brand" && draft ? { ...draft, logoTypes: currentBrief?.logoTypes ?? draft.logoTypes } : currentBrief;
     if (!brief) return { status: "blocked", message: noName, source };
     const needsSave = !currentBrief || !same(currentBrief, brief);
+    if (input.checkOnly) {
+      const latest = input.getDraft();
+      return { status: "checked", source, outdated: needsSave || !latest || !same(byReference(latest.references), byReference(source.references)) };
+    }
     if (needsSave) {
       if (captured.workspace.capabilities.save.status !== "available") return {
         status: "blocked", source,
@@ -74,10 +85,26 @@ export async function prepareSavedLogoConcepts(input: Input): Promise<LogoSavedI
       await input.saveBrief(brief);
       if (!current()) return { status: "obsolete" };
     }
-    const acknowledged = input.getDraft();
+    // Liked uploads guide the logo as whole-image references, replacing the
+    // previous selection; the brief save above keeps whichever was saved.
+    const references = byReference(source.references);
+    const afterBrief = input.getDraft();
+    const needsReferences = !afterBrief || !same(byReference(afterBrief.references), references);
+    if (needsReferences) {
+      if (!afterBrief?.workspace || afterBrief.workspace.capabilities.save.status !== "available") return {
+        status: "blocked", source,
+        message: "Your liked images are ready. Logo saving is unavailable. Check availability again to continue.",
+      };
+      if (logoDraftHasProtectedWork(afterBrief)) return { status: "blocked", message: blockedEdits, source };
+      input.onProgress("saving");
+      await input.saveReferences(references);
+      if (!current()) return { status: "obsolete" };
+    }
+    const acknowledged = input.getDraft(), saves = Number(needsSave) + Number(needsReferences);
     if (!acknowledged?.workspace || acknowledged.workspace.ownerId !== input.ownerId || acknowledged.workspace.projectId !== input.projectId
       || acknowledged.workspace.heads.projectRevision !== source.projectRevision || logoDraftHasProtectedWork(acknowledged)
-      || !same(acknowledged.brief, brief) || needsSave && acknowledged.workspace.heads.stageRevisions.brief_references !== captured.workspace.heads.stageRevisions.brief_references + 1)
+      || !same(acknowledged.brief, brief) || !same(byReference(acknowledged.references), references)
+      || saves > 0 && acknowledged.workspace.heads.stageRevisions.brief_references !== captured.workspace.heads.stageRevisions.brief_references + saves)
       return { status: "blocked", source, message: "We couldn’t confirm your logo brief was saved. Check the save below before continuing." };
     const ref = acknowledged.workspace.stages.brief_references;
     if (!ref) return { status: "blocked", source, message: "Your logo brief could not be saved. Refresh logo inputs to try again." };

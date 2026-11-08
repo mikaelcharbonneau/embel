@@ -79,7 +79,7 @@ async function setup(page: Page, scenario: "empty" | "partial" | "uncertain" | "
       state.inputReads++; state.order.push("inputs");
       if (state.failInputReads) return json(route, {}, 503);
       return json(route, { ownerId: foundation.ownerId, projectId: foundation.projectId, projectRevision: 1, inspirationSelectionRevision: 2,
-        inspirationCount: 2, nameConflict: scenario === "name_changed", draft: scenario === "missing_name" ? null : noBrief ? preparedBrief : { name: currentBrief.payload.name, activity: currentBrief.payload.activity, audience: currentBrief.payload.audience, personality: currentBrief.payload.personality, logoTypes: currentBrief.payload.logoTypes } });
+        inspirationCount: 2, references: [], nameConflict: scenario === "name_changed", draft: scenario === "missing_name" ? null : noBrief ? preparedBrief : { name: currentBrief.payload.name, activity: currentBrief.payload.activity, audience: currentBrief.payload.audience, personality: currentBrief.payload.personality, logoTypes: currentBrief.payload.logoTypes } });
     }
     if ((path === `${base}/initialize` || path === `${base}/brief`) && request.method() !== "GET") {
       const body = request.postDataJSON() as { requestKey: string; brief: LogoBriefDraft };

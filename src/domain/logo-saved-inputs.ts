@@ -1,8 +1,12 @@
 import { z } from "zod";
-import { logoBriefDraftSchema, type LogoType } from "./logo-workspace";
+import { logoBriefDraftSchema, logoReferenceSelectionSchema, type LogoType } from "./logo-workspace";
 import { logoCounterSchema, logoRevisionSchema, logoUuidSchema } from "./logo-vector";
 
 export const LOGO_SAVED_INPUTS_MAX_BYTES = 65_536;
+/** Liked uploads used as images: a logo refinement sends its base preview plus
+ * these, within the four-image model input; Creative direction sends the logo
+ * plus these. Inspiration allows liking at most this many of your own images. */
+export const LOGO_LIKED_UPLOAD_LIMIT = 3;
 export const DEFAULT_LOGO_CONCEPT_TYPES: LogoType[] = [
   "wordmark", "lettermark_monogram", "pictorial", "abstract", "combination", "emblem",
 ];
@@ -16,7 +20,10 @@ export const logoSavedInputsSchema = z.strictObject({
   inspirationSelectionRevision: logoCounterSchema,
   draft: logoBriefDraftSchema.nullable(),
   nameConflict: z.boolean(),
-  inspirationCount: z.number().int().min(0).max(15),
+  inspirationCount: z.number().int().min(0).max(1000),
+  /** The owner's liked uploaded images, as logo references (whole image). */
+  references: z.array(logoReferenceSelectionSchema).max(LOGO_LIKED_UPLOAD_LIMIT)
+    .refine(rows => new Set(rows.map(row => row.referenceId)).size === rows.length, "Duplicate reference"),
 }).refine(value => value.draft !== null || !value.nameConflict, "A name conflict requires a saved name");
 export type LogoSavedInputs = z.infer<typeof logoSavedInputsSchema>;
 

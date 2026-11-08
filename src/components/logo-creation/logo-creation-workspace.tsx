@@ -18,6 +18,7 @@ import { acceptedConceptAttempt } from "./presentation";
 import type { LogoCreationState } from "./creation-controller";
 import { LogoVerifiedPreview } from "./verified-preview";
 import { selectLogoCandidate, recoverLogoSelection, LogoSelectionConflictResolvedError } from "./selection-controller";
+import { useInspirationLikes } from "@/components/workspace/inspiration-likes-signal";
 import { AccountRequestError, accountErrorMessage } from "../workspace/account-api";
 import { useLogoBatchHistory } from "./use-logo-batch-history";
 import { useLogoRefinementHistory } from "./use-logo-refinement-history";
@@ -242,6 +243,21 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated, onContinue, c
   const refinementEstimate = useGenerationEstimate(generation, canEstimate && saved && selectedLogo && focusedReceipt && !refinementBusy && refineInstruction.trim() && capabilities.isAvailable("identity.logo_refine")
     ? { operation: "refine_preview", expected: saved.heads, source: selectedLogo, instruction: refineInstruction.trim() } : null);
   const prepareLatestInputs = useEffectEvent(() => { void prepareSavedInputs(); });
+  // Likes changed in Inspiration on this page: before the first concepts, update
+  // the brief and liked images (re-reading the workspace, whose reference
+  // revision may have moved). Once concepts exist the brief is left as it is,
+  // because changing it would send the chosen logo back for review.
+  const likes = useInspirationLikes(account.userId, projectId ?? null);
+  const seenLikes = useRef(likes);
+  const refreshForLikes = useEffectEvent(() => { void prepareSavedInputs(true); });
+  useEffect(() => {
+    if (likes === null || likes === seenLikes.current) return;
+    if (seenLikes.current === null) { seenLikes.current = likes; return; }
+    if (!conceptsScreen || batchId || savedBatchLoading || generationState.phase !== "idle" || savedInputsBusy || !["idle", "prepared", "blocked"].includes(savedInputs.status)) return;
+    seenLikes.current = likes;
+    const timer = setTimeout(refreshForLikes, 0);
+    return () => clearTimeout(timer);
+  }, [likes, conceptsScreen, batchId, savedBatchLoading, generationState.phase, savedInputsBusy, savedInputs.status]);
   const preparationKey = saved ? JSON.stringify(saved.heads) : null;
   useEffect(() => {
     if (!conceptsScreen || !generation || !preparationKey || !canPrepareInputs || batchId || savedBatchLoading || savedBatchUnavailable
@@ -249,6 +265,27 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated, onContinue, c
     const timer = setTimeout(() => { preparedInputsKey.current = preparationKey; prepareLatestInputs(); }, 0);
     return () => clearTimeout(timer);
   }, [conceptsScreen, generation, preparationKey, canPrepareInputs, batchId, savedBatchLoading, savedBatchUnavailable, generationState.phase, savedInputs.status]);
+
+  // Once concepts exist, the brief stays as it is; compare it with the saved
+  // likes (read-only) and offer to use newer likes for the next concepts.
+  const [likesCheck, setLikesCheck] = useState<{ key: string; outdated: boolean } | null>(null);
+  const likesCheckKey = conceptsScreen && batchId && saved ? `${likes ?? ""}|${JSON.stringify(saved.heads)}` : null;
+  const checkLikes = useEffectEvent(async (key: string) => {
+    if (!projectId || !client || !isCurrent(account) || savedInputsRead.current) return;
+    const controller = new AbortController();
+    const current = () => !controller.signal.aborted && isCurrent(account) && isAccountLogoClientCurrent(client, account, projectId);
+    const result = await prepareSavedLogoConcepts({ ownerId: account.userId, projectId, signal: controller.signal, checkOnly: true,
+      isCurrent: current, getDraft: () => memory.get(projectId), readSavedInputs: signal => client.readLogoSavedInputs(signal),
+      saveBrief: async () => {}, saveReferences: async () => {}, readBriefRevision: (id, signal) => client.getLogoStageRevision("brief_references", id, signal),
+      onProgress: () => {} });
+    if (current()) setLikesCheck({ key, outdated: result.status === "checked" && result.outdated });
+  });
+  useEffect(() => {
+    if (!likesCheckKey || likesCheck?.key === likesCheckKey || generationState.phase !== "idle" || savedInputsBusy) return;
+    const timer = setTimeout(() => { void checkLikes(likesCheckKey); }, 0);
+    return () => clearTimeout(timer);
+  }, [likesCheckKey, likesCheck?.key, generationState.phase, savedInputsBusy]);
+  const newerLikes = Boolean(likesCheckKey && likesCheck?.key === likesCheckKey && likesCheck.outdated);
 
   async function prepareSavedInputs(refreshWorkspace = false) {
     if (!projectId || !client || !generation || !isCurrent(account) || savedInputsRead.current || strategyRead.current || selecting.current
@@ -269,7 +306,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated, onContinue, c
       }
       const result = await prepareSavedLogoConcepts({ ownerId: account.userId, projectId, signal: controller.signal,
         isCurrent: current, getDraft: () => memory.get(projectId), readSavedInputs: signal => client.readLogoSavedInputs(signal),
-        saveBrief: brief => workspace.saveBrief(brief), readBriefRevision: (id, signal) => client.getLogoStageRevision("brief_references", id, signal),
+        saveBrief: brief => workspace.saveBrief(brief), saveReferences: selections => workspace.saveReferences(selections), readBriefRevision: (id, signal) => client.getLogoStageRevision("brief_references", id, signal),
         onProgress: status => { if (current()) setSavedInputs({ status }); },
       });
       if (current() && result.status !== "obsolete") {
@@ -564,6 +601,10 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated, onContinue, c
     {conceptsScreen && recoveryTools}
     {workspace.error && conceptsScreen && <p className={styles.warning} role="alert">{workspace.error}</p>}
     {activeBatch && saved?.stages.brief_references && saved.stages.brief_references.id !== activeBatch.briefRevisionId && <p className={styles.warning}>This batch uses an earlier saved brief. Its original inputs and successful previews are kept.</p>}
+    {conceptsScreen && activeBatch && newerLikes && <div className={styles.likesUpdate} role="status">
+      <p>You changed your likes after these concepts were made. Use them for your next concepts?{selectedLogo ? " Your chosen logo will then need to be chosen again from the new concepts before Creative direction." : ""}</p>
+      <button type="button" className={styles.secondaryButton} disabled={!editing || savedInputsBusy || generationState.phase !== "idle"} onClick={() => void prepareSavedInputs(true)}>Use my new likes</button>
+    </div>}
     {conceptsScreen && activeBatch && selectionState.error && <p className={styles.warning} role="status">{selectionState.error}</p>}
     <LogoConceptGridView gallery={conceptsScreen} status={conceptsScreen && activeBatch ? selectionState.busy ? "Saving your choice…" : initialConceptReadState ? initialConceptReadMessage : selectedLogo ? "Logo chosen" : "Pick the concept you like most" : undefined} versions={cardVersions} selectedVersion={selectedLogo} selectionAt={workspace.stagePayloads?.concepts?.createdAt} viewedVersions={viewedVersions}
       onViewVersion={(slotId, key, count) => setViewedVersions(previous => ({ ...previous, [slotId]: { key, count } }))}
