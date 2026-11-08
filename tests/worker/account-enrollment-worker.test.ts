@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { chmod,mkdtemp,readFile,rm,symlink } from "node:fs/promises";
+import { chmod,mkdtemp,readFile,realpath,rm,symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach,describe,expect,it,vi } from "vitest";
@@ -74,7 +74,8 @@ describe("configured per-owner worker enrollment protocol (fixture authority onl
 });
 describe("durable prepared descriptors",()=>{
  it("stores public fields only, idempotently, and fences older generation/revision",async()=>{
-  const directory=await mkdtemp(join(tmpdir(),"embel-worker-publication-"));await chmod(directory,0o700);
+  // The publisher refuses symlinked paths; macOS tmpdir() is one (/var -> /private/var).
+  const directory=await realpath(await mkdtemp(join(tmpdir(),"embel-worker-publication-")));await chmod(directory,0o700);
   try{
    const f=fixture(),publisher=createPreparedWorkerDescriptorPublisher(directory);
    const publication=await publisher.publish(f.context(),{...f.descriptor,secret:"must-not-persist"} as OwnerWorkerProcessDescriptor);

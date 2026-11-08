@@ -21,12 +21,30 @@ describe("reviewed packet transaction envelope", () => {
 
 // This is a disposable native PostgreSQL17 fixture, not a production connection
 // or live Auth/Storage proof. Cached image only, no ports/network/passwords.
-describe("atomic shared production composition on native PostgreSQL", () => {
- const image = "ghcr.io/supabase/cli/postgres:17.11.0.006-r0@sha256:ee0f2d9747fb9d3c0a29703684ec718f070384ad05bf0d92823ed02cabde8e5a";
- const name = "embel-shared-composer-" + randomBytes(6).toString("hex"), env = { ...process.env };
- for (const key of ["DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_TLS", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH"]) delete env[key];
+const image = "ghcr.io/supabase/cli/postgres:17.11.0.006-r0@sha256:ee0f2d9747fb9d3c0a29703684ec718f070384ad05bf0d92823ed02cabde8e5a";
+const env = { ...process.env };
+for (const key of ["DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_TLS", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH"]) delete env[key];
+/** The engine this machine's Docker CLI selects (Docker Desktop, Colima, OrbStack
+ * or Linux), accepted only as a local socket like the development tooling. */
+function localDockerHost() {
+ try {
+  let endpoint: unknown = process.env.DOCKER_CONTEXT ? undefined : process.env.DOCKER_HOST;
+  if (!endpoint) {
+   const cli = (args: string[]) => execFileSync("docker", args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+   endpoint = JSON.parse(cli(["context", "inspect", process.env.DOCKER_CONTEXT || cli(["context", "show"]), "--format", "{{json .Endpoints.docker.Host}}"]));
+  }
+  return typeof endpoint === "string" && /^(unix:\/\/\/[^\r\n\0]+|npipe:\/\/\/\/\.\/pipe\/[A-Za-z0-9_.-]+)$/u.test(endpoint) ? endpoint : null;
+ } catch { return null; }
+}
+const dockerHost = localDockerHost() ?? "unix:///var/run/docker.sock";
+const docker = (args: string[], source?: string) => execFileSync("docker", ["--host=" + dockerHost, ...args], { env, input: source, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], maxBuffer: 20_000_000 }).trim();
+const imageCached = (() => { try { docker(["image", "inspect", image, "--format", "{{.Id}}"]); return true; } catch { return false; } })();
+// CI always provides the engine and pulls the image, so it never skips. Elsewhere
+// a stopped engine or unpulled image skips with this reason instead of failing.
+const nativeSkipped = !imageCached && process.env.CI !== "true";
+describe.skipIf(nativeSkipped)("atomic shared production composition on native PostgreSQL" + (nativeSkipped ? " (skipped: start Docker and pull the pinned image)" : ""), () => {
+ const name = "embel-shared-composer-" + randomBytes(6).toString("hex");
  let created = false, catalog: Record<string, unknown>, input: Record<string, unknown>;
- const docker = (args: string[], source?: string) => execFileSync("docker", ["--host=unix:///var/run/docker.sock", ...args], { env, input: source, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], maxBuffer: 20_000_000 }).trim();
  const sql = (source: string, role = "postgres") => docker(["exec", "-i", name, "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-h", "/tmp", "-U", role, "-d", "postgres"], source);
  const readInventory = () => JSON.parse(sql(READ_ONLY_INVENTORY_SQL)) as Record<string, unknown>;
  const target = { projectRef: "fricsfwqibyhemknqgyf", origin: PRODUCTION_ORIGIN, issuer: PRODUCTION_ORIGIN + "/auth/v1" };
@@ -99,7 +117,7 @@ describe("atomic shared production composition on native PostgreSQL", () => {
  });
  it("exposes neither an empty-issuer fence nor misclassified legacy actors to a second connection", async () => {
   const bundle = composeSharedProductionMigration(input), gate = "shared_migration_ready_to_commit";
-  const child = spawn("docker", ["--host=unix:///var/run/docker.sock", "exec", "-i", name, "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-h", "/tmp", "-U", "postgres", "-d", "postgres"], { env, stdio: ["pipe", "pipe", "pipe"] });
+  const child = spawn("docker", ["--host=" + dockerHost, "exec", "-i", name, "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-h", "/tmp", "-U", "postgres", "-d", "postgres"], { env, stdio: ["pipe", "pipe", "pipe"] });
   let output = ""; child.stdout.on("data", chunk => { output += String(chunk); }); child.stderr.resume();
   const done = new Promise<number | null>((resolve, reject) => { child.once("error", reject); child.once("close", resolve); });
   child.stdin.end(bundle.sql.replace(/COMMIT;\n$/, `SELECT '${gate}'; SELECT pg_sleep(2); COMMIT;\n`));
