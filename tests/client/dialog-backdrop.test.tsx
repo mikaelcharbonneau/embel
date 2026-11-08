@@ -9,7 +9,6 @@ import { SignInDialog } from "@/components/auth/sign-in-dialog";
 import { AccountDomainsWorkspace } from "@/components/tools/domain-account-workspace";
 import { createStandaloneDraftMemory } from "@/components/tools/standalone-draft-memory";
 import { BrowserNameDialog } from "@/components/naming/browser-name-picker";
-import { ConceptsComposer } from "@/components/logo-creation/concepts-composer";
 import type { AssetLibraryItem } from "@/domain/asset-library";
 import type { AccountAssetsClient } from "@/components/assets/account-assets-client";
 
@@ -39,7 +38,7 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-const kinds = ["asset", "activity", "sign-out", "sign-in", "name-library", "logo-context", "domain-library"] as const;
+const kinds = ["asset", "activity", "sign-out", "sign-in", "name-library", "domain-library"] as const;
 type Kind = typeof kinds[number];
 async function mount(kind: Kind) {
   const dismissed = vi.fn();
@@ -49,11 +48,10 @@ async function mount(kind: Kind) {
     else if (kind === "sign-out") root.render(<AccountAccess />);
     else if (kind === "domain-library") root.render(<AccountDomainsWorkspace memory={createStandaloneDraftMemory()} />);
     else if (kind === "name-library") root.render(<BrowserNameDialog onUse={dismissed} />);
-    else if (kind === "logo-context") root.render(<ConceptsComposer projectId="fixture" instruction="Kept draft" onInstructionChange={vi.fn()}><input defaultValue="Kept brief" /></ConceptsComposer>);
     else root.render(<SignInDialog><h2 id="auth-overlay-title">Sign in</h2></SignInDialog>);
   });
-  if (kind === "activity" || kind === "sign-out" || kind === "name-library" || kind === "logo-context" || kind === "domain-library") await act(async () => {
-    const trigger = Array.from(host.querySelectorAll("button")).find(button => kind === "activity" ? button.getAttribute("aria-label") === "Activity" : button.textContent === ({ "sign-out": "Sign out", "name-library": "From name library", "logo-context": "Logo brief and history", "domain-library": "Open domain name library" } as Record<string, string>)[kind]);
+  if (kind === "activity" || kind === "sign-out" || kind === "name-library" || kind === "domain-library") await act(async () => {
+    const trigger = Array.from(host.querySelectorAll("button")).find(button => kind === "activity" ? button.getAttribute("aria-label") === "Activity" : button.textContent === ({ "sign-out": "Sign out", "name-library": "From name library", "domain-library": "Open domain name library" } as Record<string, string>)[kind]);
     trigger!.click();
   });
   const dialog = host.querySelector("dialog")!;
@@ -96,7 +94,7 @@ it.each(["activity", "sign-out"] as const)("syncs %s native close state and can 
 });
 it.each(kinds)("preserves %s explicit close or keep-editing action", async kind => {
   const { wasDismissed } = await mount(kind);
-  const label = { asset: "Close asset details", activity: "Close", "sign-out": "Keep editing", "sign-in": "Close sign-in", "name-library": "Close", "logo-context": "Close logo brief and history", "domain-library": "Close name library" }[kind];
+  const label = { asset: "Close asset details", activity: "Close", "sign-out": "Keep editing", "sign-in": "Close sign-in", "name-library": "Close", "domain-library": "Close name library" }[kind];
   const button = Array.from(host.querySelectorAll("button")).find(element => element.getAttribute("aria-label") === label || element.textContent === label)!;
   await act(async () => button.click()); expect(wasDismissed()).toBe(true);
   expect(mocks.signOut.mock.calls).toEqual(kind === "sign-out" ? [[false]] : []);

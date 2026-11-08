@@ -1,7 +1,7 @@
 import "server-only";
 import { inspirationCatalog, inspirationLabels, hasInspirationChoice, type InspirationOverview } from "@/domain/inspiration";
 import { logoBriefDraftSchema } from "@/domain/logo-workspace";
-import { DEFAULT_LOGO_CONCEPT_TYPES, logoSavedInputsSchema } from "@/domain/logo-saved-inputs";
+import { DEFAULT_LOGO_CONCEPT_TYPES, logoInspirationHeading, logoSavedInputsSchema } from "@/domain/logo-saved-inputs";
 import type { ContextSnapshot } from "@/domain/projects";
 import type { AuthenticatedContext } from "@/server/auth/context";
 import { ApiError } from "@/server/http/errors";
@@ -28,7 +28,7 @@ export function deriveSavedLogoInputs(project: SavedBrand, inspiration: Inspirat
   });
   const traits = context.personality ? Object.entries(context.personality).map(([trait, value]) => `${trait}: ${value}`).join("; ") : "";
   const personality = [traits, context.intake.identityNotes,
-    ...(guidance.length ? [`Saved inspiration · catalog ${inspiration.catalogVersion} · selection ${inspiration.selectionRevision}:`, ...guidance,
+    ...(guidance.length ? [logoInspirationHeading(inspiration.catalogVersion, inspiration.selectionRevision), ...guidance,
       "Use the selected visual qualities as direction for an original logo, without copying these brands or their marks. Color preferences guide later identity work; the initial logo concepts remain black and white."] : []),
   ].filter(value => value.trim()).join("\n");
   const draft = name ? logoBriefDraftSchema.safeParse({ name,

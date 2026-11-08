@@ -1,9 +1,9 @@
 /** Synthetic account reads and acknowledged saves; no provider calls. */
 import { describe, expect, it, vi } from "vitest";
-import { prepareSavedLogoConcepts, type LogoSavedInputChoice } from "../../src/components/logo-creation/saved-inputs-controller";
+import { prepareSavedLogoConcepts } from "../../src/components/logo-creation/saved-inputs-controller";
 import { createLogoDraftMemory } from "../../src/components/identity/logo-draft-memory";
 import { createAccountLogoClient } from "../../src/components/identity/account-logo-client";
-import { DEFAULT_LOGO_CONCEPT_TYPES, logoSavedInputsSchema, type LogoSavedInputs } from "../../src/domain/logo-saved-inputs";
+import { DEFAULT_LOGO_CONCEPT_TYPES, logoInspirationHeading, logoSavedInputsSchema, type LogoSavedInputs } from "../../src/domain/logo-saved-inputs";
 import type { LogoBriefDraft, LogoBriefRevision } from "../../src/domain/logo-workspace";
 import { syntheticLogoBrief, syntheticLogoWorkspace, syntheticResolvedLogoConcept, logoFixtureId as id } from "../fixtures/logo-creation";
 
@@ -39,10 +39,20 @@ function setup(existing = false) {
     memory.set(projectId, { ...memory.get(projectId)!, workspace: nextWorkspace, base: nextWorkspace.heads, brief, dirty: false, pendingMutation: null });
   });
   const controller = new AbortController();
-  const run = (choice?: LogoSavedInputChoice) => prepareSavedLogoConcepts({ ownerId, projectId, signal: controller.signal, isCurrent: () => current,
-    getDraft: () => memory.get(projectId), readSavedInputs, saveBrief, readBriefRevision, onProgress: phase => progress.push(phase) }, choice);
+  const run = () => prepareSavedLogoConcepts({ ownerId, projectId, signal: controller.signal, isCurrent: () => current,
+    getDraft: () => memory.get(projectId), readSavedInputs, saveBrief, readBriefRevision, onProgress: phase => progress.push(phase) });
   return { run, memory, projectId, ownerId, saves, progress, readSavedInputs, readBriefRevision, get source() { return source; }, get revision() { return revision; },
     updateSource(change: Partial<LogoSavedInputs>) { source = { ...source, ...change }; },
+    /** Changes the saved brief as if it had been saved with these details. */
+    editSavedBrief(change: Partial<LogoBriefDraft>) {
+      revision = { ...revision, payload: { ...revision.payload, ...change } };
+      const value = memory.get(projectId)!; memory.set(projectId, { ...value, brief: { ...value.brief, ...change } });
+    },
+    /** The brand is saved again after the logo brief. */
+    advanceProject() {
+      const value = memory.get(projectId)!, heads = { ...value.workspace!.heads, projectRevision: 2 };
+      memory.set(projectId, { ...value, workspace: { ...value.workspace!, heads }, base: heads }); source = { ...source, projectRevision: 2 };
+    },
     saveUnavailable() { const value = memory.get(projectId)!; memory.set(projectId, { ...value, workspace: { ...value.workspace!, capabilities: { ...value.workspace!.capabilities, save: { status: "unavailable", reason: "Fixture unavailable" } } } }); },
     loseSave() { uncertainSave = true; },
     holdRead() { let release!: () => void; readGate = new Promise<void>(resolve => { release = resolve; }); return release; },
@@ -79,37 +89,30 @@ describe("saved brand and inspiration preparation", () => {
     expect(await f.run()).toMatchObject({ status: "blocked", message: expect.stringContaining("Choose and save a brand name") });
     expect(f.saves).toHaveLength(0);
   });
-  it("requires an explicit name choice and revalidates the source before saving", async () => {
-    const f = setup(); f.updateSource({ nameConflict: true }); const result = await f.run();
-    expect(result.status).toBe("review"); expect(f.saves).toHaveLength(0);
-    if (result.status !== "review") throw new Error("Expected name review");
-    expect(await f.run({ review: result.review, use: "brand" })).toMatchObject({ status: "prepared", used: "brand" });
-    expect(f.readSavedInputs).toHaveBeenCalledTimes(2); expect(f.saves).toHaveLength(1);
+  it("uses the name chosen in the project without asking when it differs from the name first supplied", async () => {
+    const f = setup(); f.updateSource({ nameConflict: true });
+    expect(await f.run()).toMatchObject({ status: "prepared", used: "brand" });
+    expect(f.saves).toEqual([f.source.draft]);
   });
-  it("requires a fresh review when saved inspiration changes while a choice is shown", async () => {
-    const f = setup(); f.updateSource({ nameConflict: true }); const result = await f.run();
-    if (result.status !== "review") throw new Error("Expected name review");
-    f.updateSource({ inspirationSelectionRevision: 3 });
-    expect(await f.run({ review: result.review, use: "brand" })).toMatchObject({ status: "review", review: { source: { inspirationSelectionRevision: 3 } } });
-    expect(f.saves).toHaveLength(0);
+  it("updates a brief made before the latest inspiration without asking, keeping its chosen logo types", async () => {
+    const f = setup(true);
+    expect(await f.run()).toMatchObject({ status: "prepared", used: "brand" });
+    expect(f.saves).toEqual([{ ...f.source.draft, logoTypes: ["wordmark"] }]);
+    expect(f.memory.get(f.projectId)?.workspace?.heads.stageRevisions.brief_references).toBe(2);
   });
-  it("keeps a custom saved brief until the user chooses which context to use", async () => {
-    const f = setup(true), before = f.memory.get(f.projectId); const result = await f.run();
-    expect(result.status).toBe("review"); expect(f.memory.get(f.projectId)).toBe(before);
-    if (result.status !== "review") throw new Error("Expected context review");
-    expect(await f.run({ review: result.review, use: "current" })).toMatchObject({ status: "prepared", used: "current" });
+  it("updates a brief saved before the latest brand change without asking", async () => {
+    const f = setup(true); f.editSavedBrief({ personality: `Warm\n${logoInspirationHeading("2026-10-13.1", 2)}` }); f.advanceProject();
+    expect(await f.run()).toMatchObject({ status: "prepared", used: "brand" });
+    expect(f.saves).toHaveLength(1); expect(f.saves[0]?.name).toBe(f.source.draft?.name);
+  });
+  it("keeps a brief edited by hand after the latest brand and inspiration", async () => {
+    const f = setup(true); f.editSavedBrief({ personality: `Warm\n${logoInspirationHeading("2026-10-13.1", 2)}` });
+    expect(await f.run()).toMatchObject({ status: "prepared", used: "current" });
     expect(f.saves).toHaveLength(0); expect(f.memory.get(f.projectId)?.brief.name).toBe("My custom exact name");
   });
-  it("replaces a clean saved brief only after the explicit update choice", async () => {
-    const f = setup(true), result = await f.run();
-    if (result.status !== "review") throw new Error("Expected context review");
-    expect(await f.run({ review: result.review, use: "brand" })).toMatchObject({ status: "prepared", used: "brand" });
-    expect(f.saves).toHaveLength(1); expect(f.memory.get(f.projectId)?.workspace?.heads.stageRevisions.brief_references).toBe(2);
-  });
-  it("lets the user explicitly keep a valid existing logo brief when the project has no saved name", async () => {
-    const f = setup(true); f.updateSource({ draft: null }); const result = await f.run();
-    if (result.status !== "review") throw new Error("Expected existing brief review");
-    expect(await f.run({ review: result.review, use: "current" })).toMatchObject({ status: "prepared", used: "current" });
+  it("keeps an existing logo brief when the project has no saved name", async () => {
+    const f = setup(true); f.updateSource({ draft: null });
+    expect(await f.run()).toMatchObject({ status: "prepared", used: "current" });
     expect(f.saves).toHaveLength(0);
   });
   it("does not create another brief revision when the saved inputs are already identical", async () => {

@@ -19,3 +19,18 @@ export const logoSavedInputsSchema = z.strictObject({
   inspirationCount: z.number().int().min(0).max(15),
 }).refine(value => value.draft !== null || !value.nameConflict, "A name conflict requires a saved name");
 export type LogoSavedInputs = z.infer<typeof logoSavedInputsSchema>;
+
+/** The brief line that records which inspiration selection the brief was built from. */
+export function logoInspirationHeading(catalogVersion: string, selectionRevision: number) {
+  return `Saved inspiration · catalog ${catalogVersion} · selection ${selectionRevision}:`;
+}
+const inspirationHeading = /^Saved inspiration · catalog \S+ · selection (\d+):$/mu;
+
+/** Whether a saved brief predates the latest brand or inspiration. A brief saved
+ * after both that still differs from them was edited by hand. */
+export function logoBriefOutdated(saved: { personality: string; sourceProjectRevision: number },
+  latest: Pick<LogoSavedInputs, "projectRevision" | "inspirationSelectionRevision" | "inspirationCount">) {
+  if (saved.sourceProjectRevision !== latest.projectRevision) return true;
+  const selection = inspirationHeading.exec(saved.personality)?.[1];
+  return (selection === undefined ? null : Number(selection)) !== (latest.inspirationCount ? latest.inspirationSelectionRevision : null);
+}

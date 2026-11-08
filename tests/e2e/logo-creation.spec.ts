@@ -1,4 +1,3 @@
-import { checkDialogHitTesting } from "./dialog-hit-testing";
 import { expectProjectCanvas } from "./project-canvas-contract";
 import { contextSnapshotSchema } from "../../src/domain/projects";
 import { DEFAULT_PROFILE_VALUES } from "../../src/domain/account-profile";
@@ -15,7 +14,7 @@ import type { LogoRasterSource } from "../../src/domain/logo-workspace";
 import { DEFAULT_LOGO_CONCEPT_TYPES } from "../../src/domain/logo-saved-inputs";
 
 const source = syntheticResolvedLogoConcept(), url = `/brands/account/${source.input.projectId}/logo`, base = `/api/projects/${source.input.projectId}/logo`;
-async function setup(page: Page, scenario: "empty" | "partial" | "uncertain" | "unavailable" | "retry_uncertain" | "uninitialized" | "save_uncertain" | "missing_name" | "quote_failed" | "quote_expired" | "unknown_estimate" | "inputs_failed" | "input_review" | "save_unavailable" = "empty", savedSelection: LogoRasterSource | null = null) {
+async function setup(page: Page, scenario: "empty" | "partial" | "uncertain" | "unavailable" | "retry_uncertain" | "uninitialized" | "save_uncertain" | "missing_name" | "quote_failed" | "quote_expired" | "unknown_estimate" | "inputs_failed" | "name_changed" | "save_unavailable" = "empty", savedSelection: LogoRasterSource | null = null) {
   const noBrief = ["uninitialized", "save_uncertain", "missing_name", "save_unavailable"].includes(scenario);
   const batch = syntheticLogoBatch(scenario === "uninitialized" ? Array.from({ length: 6 }, () => "succeeded" as const)
     : scenario === "uncertain" ? ["succeeded", "succeeded", "succeeded", "succeeded", "succeeded", "needs_reconciliation"] : undefined);
@@ -80,7 +79,7 @@ async function setup(page: Page, scenario: "empty" | "partial" | "uncertain" | "
       state.inputReads++; state.order.push("inputs");
       if (state.failInputReads) return json(route, {}, 503);
       return json(route, { ownerId: foundation.ownerId, projectId: foundation.projectId, projectRevision: 1, inspirationSelectionRevision: 2,
-        inspirationCount: 2, nameConflict: scenario === "input_review", draft: scenario === "missing_name" ? null : noBrief ? preparedBrief : { name: currentBrief.payload.name, activity: currentBrief.payload.activity, audience: currentBrief.payload.audience, personality: currentBrief.payload.personality, logoTypes: currentBrief.payload.logoTypes } });
+        inspirationCount: 2, nameConflict: scenario === "name_changed", draft: scenario === "missing_name" ? null : noBrief ? preparedBrief : { name: currentBrief.payload.name, activity: currentBrief.payload.activity, audience: currentBrief.payload.audience, personality: currentBrief.payload.personality, logoTypes: currentBrief.payload.logoTypes } });
     }
     if ((path === `${base}/initialize` || path === `${base}/brief`) && request.method() !== "GET") {
       const body = request.postDataJSON() as { requestKey: string; brief: LogoBriefDraft };
@@ -167,9 +166,8 @@ async function setup(page: Page, scenario: "empty" | "partial" | "uncertain" | "
     await expect(page.getByRole("heading", { name: "Logo", exact: true })).toBeVisible();
     return state;
   }
-  await page.getByRole("button", { name: "Logo brief and history", exact: true }).click();
-  await expect(page.getByRole("textbox", { name: "Brand name" })).toHaveValue("Élan & Co");
-  await page.getByRole("button", { name: "Close logo brief and history" }).click();
+  // The Logo message names the saved brief's brand once it has loaded.
+  await expect(page.locator(".logo-conversation-message")).toContainText("Élan & Co");
   return state;
 }
 
@@ -201,14 +199,10 @@ test("failed saved-input loading can be refreshed in place without starting gene
   await expect(generate).toBeEnabled(); expect(f.inputReads).toBeGreaterThan(1); expect(f.posts).toHaveLength(0);
   await generate.click(); await expect.poll(() => f.posts.length).toBe(1);
 });
-test("a paused saved-input review can be resumed without choosing a brand automatically", async ({ page }) => {
-  const f = await setup(page, "input_review"), review = page.getByRole("region", { name: "Confirm logo inputs" });
-  await expect(review).toBeVisible(); await review.getByRole("button", { name: "Keep reviewing" }).click();
-  await expect(review).toHaveCount(0); expect(f.saves).toHaveLength(0); expect(f.posts).toHaveLength(0);
-  await page.getByRole("button", { name: "Refresh logo inputs" }).click();
-  await expect(review).toBeVisible(); expect(f.quotes).toHaveLength(0);
-  await review.getByRole("button", { name: "Use current logo brief" }).click();
+test("a name chosen after the one first supplied is used without a confirmation step", async ({ page }) => {
+  const f = await setup(page, "name_changed");
   await expect(page.getByRole("button", { name: "Explore six concepts", exact: true })).toBeEnabled();
+  await expect(page.getByRole("region", { name: "Confirm logo inputs" })).toHaveCount(0);
   expect(f.posts).toHaveLength(0); expect(f.saves).toHaveLength(0);
 });
 test("restored saving refreshes prepared inputs and enables a deliberate Generate click", async ({ page }) => {
@@ -239,8 +233,7 @@ test("lost admission response recovers by original key without a second generati
 });
 test("unavailable generation preserves saved brief and stays within mobile viewport", async ({ page }) => {
   const f = await setup(page, "unavailable"); await expect(page.getByRole("button", { name: "Explore six concepts" })).toBeDisabled();
-  await page.getByRole("button", { name: "Logo brief and history", exact: true }).click();
-  await expect(page.getByRole("textbox", { name: "Brand name" })).toHaveValue("Élan & Co");
+  await expect(page.locator(".logo-conversation-message")).toContainText("Élan & Co");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); expect(f.posts).toHaveLength(0);
 });
 
@@ -250,22 +243,6 @@ test("an unselected first exploration survives full reload with no concept-stage
   await page.getByRole("button", { name: "Explore six concepts" }).click();
 
   await expect.poll(() => f.posts.length).toBe(1); await page.reload();
-  await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Logo brief and history", exact: true }).click();
-  await page.getByRole("button", { name: "Saved versions and options", exact: true }).click();
-  await expect(page.getByRole("combobox", { name: "Concept batch" })).toHaveValue(id(60)); expect(f.posts).toHaveLength(1);
-});
-
-test("an unselected More exploration is latest after reload and its earlier batch stays reachable", async ({ page }) => {
-  const f = await setup(page, "partial"); await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "More concepts", exact: true }).click();
-  await expect.poll(() => f.posts.length).toBe(1); await page.reload();
-  await page.getByRole("button", { name: "Logo brief and history", exact: true }).click();
-  await page.getByRole("button", { name: "Saved versions and options", exact: true }).click();
-  await expect(page.getByRole("combobox", { name: "Concept batch" })).toHaveValue(id(981));
-  await page.getByRole("combobox", { name: "Concept batch" }).selectOption(id(60));
-  await page.getByRole("dialog", { name: "Saved versions and options", exact: true }).getByRole("button", { name: "Close", exact: true }).click();
-  await page.getByRole("button", { name: "Close logo brief and history" }).click();
   await expect(page.getByText("5 of 6 concepts ready", { exact: true })).toBeVisible(); expect(f.posts).toHaveLength(1);
 });
 
@@ -343,9 +320,7 @@ test("an uncertain initial brief save keeps its original intent and cannot quote
   await expect(page.getByText("Your logo inputs have not been confirmed as saved.", { exact: false })).toBeVisible();
   await expect(page.getByRole("dialog", { name: "Review generation cost" })).toHaveCount(0);
   expect(f.posts).toHaveLength(0);
-  await page.getByRole("button", { name: "Logo brief and history", exact: true }).click();
-  await expect(page.getByRole("textbox", { name: "Brand name" })).toHaveValue("Élan & Co");
-  await page.getByRole("button", { name: "Saved versions and options", exact: true }).click();
+  // Save recovery is shown in the Logo step itself.
   await expect(page.getByText("A previous save is awaiting confirmation.", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "Check original save", exact: true })).toBeVisible();
   expect(f.saves).toHaveLength(1);
@@ -416,7 +391,7 @@ test("a delayed estimate never generates or takes focus after the refinement edi
   expect(f.posts).toEqual([]); expect(f.selections).toEqual([]);
 });
 
-test("refinement disclosure reserves space, preserves edits and keeps context keyboard accessible", async ({ page }, info) => {
+test("refinement disclosure reserves space and preserves edits", async ({ page }, info) => {
   await page.setViewportSize(info.project.name === "mobile" ? { width: 390, height: 844 } : { width: 1440, height: 900 });
   const batch = syntheticLogoBatch(), slot = batch.slots[0]!, attempt = slot.attempts[0]!;
   const f = await setup(page, "partial", { kind: "concept", batchId: batch.id, slotId: slot.id, attemptId: attempt.id });
@@ -426,11 +401,6 @@ test("refinement disclosure reserves space, preserves edits and keeps context ke
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
   await expect(input).toBeHidden();
   expect(await form.evaluate(node => getComputedStyle(node).position)).toBe("relative");
-  await form.getByRole("button", { name: "Logo brief and history", exact: true }).focus();
-  await page.keyboard.press("Enter");
-  await expect(page.getByRole("dialog", { name: "Logo brief and history", exact: true })).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(form.getByRole("button", { name: "Logo brief and history", exact: true })).toBeFocused();
   await toggle.click();
   await input.fill("Retained local fixture instruction");
   const formBox = await form.boundingBox(), cardBox = await page.locator('[data-concept-ordinal="0"]').boundingBox();
@@ -496,15 +466,6 @@ test("a running chat edit becomes a selectable saved refinement without reloadin
   await expect(page.getByText("Refinement target: Concept 1 · Version 2", { exact: true })).toBeVisible();
 });
 
-
-
-test("dialog hit testing: logo project context protects padding without generation", async ({ page }) => {
-  const batch = syntheticLogoBatch(), slot = batch.slots[0]!, attempt = slot.attempts[0]!;
-  const f = await setup(page, "partial", { kind: "concept", batchId: batch.id, slotId: slot.id, attemptId: attempt.id });
-  const trigger = page.getByRole("form", { name: "Logo concept changes" }).getByRole("button", { name: "Logo brief and history", exact: true });
-  await checkDialogHitTesting(page, trigger, page.getByRole("dialog", { name: "Logo brief and history", exact: true }), "Close logo brief and history");
-  expect(f.posts).toEqual([]); expect(f.saves).toEqual([]); expect(f.selections).toEqual([]);
-});
 
 
 test("a failed preparation can be retried without starting generation", async ({ page }) => {

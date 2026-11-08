@@ -75,12 +75,11 @@ function expectInitialPresentation(state: "loading" | "unavailable") {
   const continuation = [...host.querySelectorAll("button")].find(node => node.textContent === "Continue");
   if (continuation) { expect(continuation.disabled).toBe(true); expect(continuation.title).toBe(message); }
 }
-// Initial-read cases seed retained local text while collapsed. The separate
-// background-refresh case below exercises the visible editor and its focus.
+// Initial-read cases seed retained local text while focus stays elsewhere.
 async function typeInstruction(value: string, focusEditor = false) {
   await act(async () => {
     const input = instruction();
-    if (focusEditor) input.focus(); else host.querySelector<HTMLButtonElement>('[aria-haspopup="dialog"]')!.focus();
+    if (focusEditor) input.focus(); else button("Recheck account").focus();
     Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(input, value);
     input.dispatchEvent(new Event("input", { bubbles: true }));
   });
@@ -88,29 +87,6 @@ async function typeInstruction(value: string, focusEditor = false) {
 function noWrites(f: Awaited<ReturnType<typeof syntheticRefinementWorkspaceHttp>>) { expect(f.selections).toEqual([]); expect(f.admissions).toEqual([]); }
 
 describe("saved Logo gallery filtering and initial read presentation", () => {
-  it("keeps the visible refinement editor and keyboard focus through a delayed same-owner refresh", async () => {
-    const { f, fetcher: real, base } = await sixPreviews(), held = gate();
-    let refreshing = false, reads = 0;
-    const fetcher: typeof fetch = async (input, init) => {
-      if (String(input).split("?")[0] === base && refreshing) { reads++; await held.promise; }
-      return real(input, init);
-    };
-    try {
-      await mount(f.workspace.projectId, fetcher);
-      await until(() => expect(images()).toHaveLength(6));
-      await typeInstruction("Keep my visible editor", true);
-      const form = composer(), input = instruction();
-      expect(input.closest("[hidden]")).toBeNull();
-      refreshing = true; await click("Logo brief and history"); await click("Refresh saved brand");
-      await until(() => expect(reads).toBeGreaterThan(0));
-      await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Close logo brief and history"]')!.click()); input.focus();
-      await act(async () => held.release());
-      await until(() => expect(button("Refresh saved brand")?.disabled).toBe(false));
-      expect(composer()).toBe(form); expect(instruction()).toBe(input);
-      expect(input.closest("[hidden]")).toBeNull(); expect(input.value).toBe("Keep my visible editor");
-      expect(document.activeElement).toBe(input); noWrites(f);
-    } finally { held.release(); }
-  });
   it("keeps all six verified image nodes and URLs, then clears their bytes on owner change", async () => {
     const { f, fetcher, assetReads } = await sixPreviews(); await mount(f.workspace.projectId, fetcher);
     await until(() => { expect(images()).toHaveLength(6); expect(host.querySelector('img[alt="Selected logo"]')).not.toBeNull(); });
@@ -146,7 +122,7 @@ describe("saved Logo gallery filtering and initial read presentation", () => {
       await act(async () => detail.release()); await until(() => expect(images()).toHaveLength(6));
       expect(grid().textContent).toContain("6 of 6 concepts ready"); expect(grid().getAttribute("aria-busy")).not.toBe("true");
       expect(composer()).toBe(form); expect(instruction()).toBe(input); expect(form.querySelector('[role="status"]')).toBe(status);
-      expect(input.value).toBe("Keep this local refinement message"); expect(document.activeElement).toBe(host.querySelector('[aria-haspopup="dialog"]'));
+      expect(input.value).toBe("Keep this local refinement message"); expect(document.activeElement).toBe(button("Recheck account"));
       cards().forEach((card, index) => expect(card).toBe(initialCards[index]));
       expect(grid().textContent).toContain("Logo chosen");
       expect(input.placeholder).toBe("Describe a change to this logo…");
@@ -170,7 +146,7 @@ describe("saved Logo gallery filtering and initial read presentation", () => {
       await typeInstruction("Keep my message after a failed read");
       await act(async () => held.release()); await until(() => expect(grid().textContent).toContain("Saved concept details unavailable"));
       expectInitialPresentation("unavailable"); expect(composer()).toBe(form); expect(instruction()).toBe(input);
-      expect(input.value).toBe("Keep my message after a failed read"); expect(document.activeElement).toBe(host.querySelector('[aria-haspopup="dialog"]'));
+      expect(input.value).toBe("Keep my message after a failed read"); expect(document.activeElement).toBe(button("Recheck account"));
       expect(grid().textContent).not.toContain("Awaiting your first exploration"); expect(grid().textContent).not.toContain("0 of 6 concepts ready");
       expect(cards()).toHaveLength(6); expect(images()).toHaveLength(0); expect(grid().getAttribute("aria-busy")).not.toBe("true"); noWrites(f);
     } finally { await act(async () => held.release()); }
@@ -199,34 +175,5 @@ describe("saved Logo gallery filtering and initial read presentation", () => {
       expect(composer().querySelector('button[aria-label="Refine"]')!.getAttribute("aria-label")).toBe("Refine");
       expect(host.querySelector('[aria-label="Generation review"]')).toBeNull(); noWrites(f);
     } finally { await act(async () => { held.release(); workspace.release(); }); }
-  });
-
-  it("does not reset a confirmed empty composer during a held same-owner workspace refresh", async () => {
-    const { f, fetcher: real, base } = await sixPreviews(), held = gate();
-    let refresh = false, refreshReads = 0;
-    const emptyWorkspace = { ...f.workspace, heads: { ...f.workspace.heads, workspaceRevision: 1, stageRevisions: { ...f.workspace.heads.stageRevisions, concepts: 0 } }, stages: { ...f.workspace.stages, concepts: null } };
-    const fetcher: typeof fetch = async (input, init) => {
-      const path = String(input).split("?")[0]!;
-      if (path === base) { if (refresh) { refreshReads++; await held.promise; } return Response.json(emptyWorkspace); }
-      if (path === `${base}/batches`) return Response.json({ ownerId: f.workspace.ownerId, projectId: f.workspace.projectId, items: [], nextCursor: null });
-      return real(input, init);
-    };
-    try {
-      await mount(f.workspace.projectId, fetcher);
-      await until(() => expect(typesQuestion().textContent).toContain("Explore six concepts"));
-      const form = composer(), input = instruction(), status = form.querySelector('[role="status"]');
-      await typeInstruction("Keep this draft during an explicit refresh");
-      refresh = true; await click("Logo brief and history"); await click("Refresh saved brand");
-      await until(() => expect(refreshReads).toBeGreaterThan(0));
-      expect(composer()).toBe(form); expect(instruction()).toBe(input); expect(form.querySelector('[role="status"]')).toBe(status);
-      expect(status!.textContent).toBe("Select a logo above to get started.");
-      expect(input.placeholder).toBe("Choose a concept, then describe a change…");
-      expect(input.value).toBe("Keep this draft during an explicit refresh");
-      expect(composer().getAttribute("aria-busy")).not.toBe("true");
-      expect(host.querySelector('[aria-label="Generation review"]')).toBeNull();
-      await act(async () => held.release());
-      await until(() => expect(button("Refresh saved brand")).toBeDefined());
-      expect(composer()).toBe(form); expect(instruction()).toBe(input); noWrites(f);
-    } finally { await act(async () => held.release()); }
   });
 });

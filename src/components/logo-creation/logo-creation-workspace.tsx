@@ -1,5 +1,4 @@
 "use client";
-import { ContextDetails } from "@/components/ui/context-details";
 
 import Link from "next/link";
 import { projectStrategyHref } from "@/domain/project-handoff";
@@ -39,7 +38,7 @@ import { logoCandidateKey } from "./candidate-review";
 import { useLogoCandidate } from "./use-logo-candidate";
 import { LogoIdentityContinuation, LogoInputStatus } from "./workflow-status";
 import { LogoDownloadControls } from "./logo-download-controls";
-import { prepareSavedLogoConcepts, logoDraftHasProtectedWork, type LogoSavedInputChoice } from "./saved-inputs-controller";
+import { prepareSavedLogoConcepts, logoDraftHasProtectedWork } from "./saved-inputs-controller";
 import { LogoSavedInputsStatus, type LogoSavedInputState } from "./saved-inputs-status";
 import { LogoTypesQuestion } from "./logo-types-question";
 import { EmbelIdentity } from "@/components/workspace/embel-identity";
@@ -245,7 +244,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
     return () => clearTimeout(timer);
   }, [conceptsScreen, generation, preparationKey, canPrepareInputs, batchId, savedBatchLoading, savedBatchUnavailable, generationState.phase, savedInputs.status]);
 
-  async function prepareSavedInputs(choice?: LogoSavedInputChoice, refreshWorkspace = false) {
+  async function prepareSavedInputs(refreshWorkspace = false) {
     if (!projectId || !client || !generation || !isCurrent(account) || savedInputsRead.current || strategyRead.current || selecting.current
       || generation.getSnapshot().phase !== "idle") return;
     const controller = new AbortController(); savedInputsRead.current = controller;
@@ -266,7 +265,7 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
         isCurrent: current, getDraft: () => memory.get(projectId), readSavedInputs: signal => client.readLogoSavedInputs(signal),
         saveBrief: brief => workspace.saveBrief(brief), readBriefRevision: (id, signal) => client.getLogoStageRevision("brief_references", id, signal),
         onProgress: status => { if (current()) setSavedInputs({ status }); },
-      }, choice);
+      });
       if (current() && result.status !== "obsolete") {
         if (result.status === "prepared") preparedInputsKey.current = JSON.stringify(result.request.expected);
         setSavedInputs(result);
@@ -483,40 +482,43 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
     {saved && !needsInitialization && <LogoIdentityContinuation workspace={saved} blocked={workspace.pending || workspace.dirty || !!draft?.conflict} hasSelection={Boolean(selectedLogo)} />}
   </>;
 
-  // Continue sits at the end of the step, on the right of the quiet details link.
+  // Saves that need checking, retrying or discarding stay in reach wherever the step is shown.
+  const recoveryTools = <>
+    {pendingSelection && <div className={styles.actions}><p className={styles.note}>We couldn’t confirm that your logo choice was saved. Your logos are safe.</p><button className={styles.secondaryButton} type="button" disabled={selectionState.busy} onClick={() => void selectCandidate()}>Check my choice</button><button className={styles.secondaryButton} type="button" disabled={selectionState.busy || draft?.conflict} onClick={() => void selectCandidate(undefined, true)}>Save my choice again</button></div>}
+    {workspace.status === "error" && !workspace.pending && <button className={styles.secondaryButton} type="button" onClick={() => void workspace.reload(false)}>Try loading again</button>}
+    {creation && !created && <div className={styles.actions}>
+      <p className={styles.note}>The save has not been confirmed. Check it or retry the same save; your original brief is kept.</p>
+      <button className={styles.secondaryButton} type="button" disabled={!editing} onClick={() => void workspace.checkProjectCreation()}>Check project save</button>
+      <button className={styles.secondaryButton} type="button" disabled={!editing} onClick={() => void workspace.retryProjectCreation()}>Retry original project save</button>
+    </div>}
+    {(pendingSave?.method === "saveLogoBrief" || pendingSave?.method === "saveLogoReferences") && <div className={styles.actions}>
+      <p className={styles.note}>A previous save is awaiting confirmation. This action checks it first and retries the original save only if no result is recorded.</p>
+      <button className={styles.secondaryButton} type="button" disabled={!editing || checkingRequest} onClick={() => void checkOriginalSave()}>Check original save</button>
+      {draft?.conflict && <p className={styles.note}>Check reads the original save without sending a new one. Conflicting edits and unresolved requests cannot be discarded here.</p>}
+      <button className={styles.secondaryButton} type="button" disabled={!editing || draft?.conflict || checkingRequest} onClick={() => {
+        if (pendingSave.method === "saveLogoBrief") void workspace.saveBrief(pendingSave.body.brief);
+        else void workspace.saveReferences(pendingSave.body.selections);
+      }}>Check and retry original save</button>
+      {saveReadout && saveReadout.key === pendingSave.body.requestKey && <p className={styles.note} role="status">{saveReadout.message}</p>}
+    </div>}
+    {canDiscard && <div className={styles.actions}>
+      <button className={styles.secondaryButton} type="button" onClick={() => setConfirmReload(true)}>Discard local edits and reload</button>
+      {confirmReload && <div role="group" aria-label="Confirm discarding local edits">
+        <p className={styles.warning}>Replace the brief and reference changes in this tab with the latest saved version?</p>
+        <button className={styles.secondaryButton} type="button" onClick={() => setConfirmReload(false)}>Keep editing</button>
+        <button className={styles.secondaryButton} type="button" onClick={discardAndReload}>Discard edits and load saved version</button>
+      </div>}
+    </div>}
+  </>;
+
+  // Continue sits at the end of the step, below the refine box.
   const continueAction = conceptsScreen && projectId && activeBatch ? workspace.stagePayloads?.concepts?.payload.selected && !selectionState.busy
     ? <Link className={`${styles.primaryButton} ${stage.actionLink}`} href={`/brands/account/${projectId}/logo/directions`}
       onClick={() => { try { window.sessionStorage.setItem(`embel.directions-intent.v1:${projectId}`, String(Date.now())); } catch { /* Then directions wait for a click. */ } }}>Continue</Link>
     : <button className={styles.primaryButton} type="button" disabled title={initialConceptReadState ? initialConceptReadMessage : "Select a logo and wait for it to save"}>Continue</button> : null;
   const conceptsComposer = conceptsScreen && projectId ? <ConceptsComposer inputRef={refinementInput} projectId={projectId} selectionReadState={initialConceptReadState} selectedLabel={selectedLabel} selectedPreview={focusedReceipt && client ? <LogoVerifiedPreview client={client} receipt={focusedReceipt} alt="Selected logo" /> : undefined}
     selectedActions={client && focusedReceipt ? <LogoDownloadControls client={client} account={account} projectId={projectId} original={focusedReceipt} disabled={selectionState.busy} compact /> : undefined}
-    idle={!activeBatch && !batchId && !initialConceptReadState} footer={continueAction} status={composerStatus} onShowResult={completedRefinement ? () => { const slotId = Object.entries(cardVersions).find(([, versions]) => versions.some(version => version.source.kind === "refinement" && version.source.rasterRevisionId === completedRefinement.id))?.[0]; if (slotId) document.querySelector<HTMLElement>(`[data-concept-slot="${slotId}"]`)?.scrollIntoView({ block: "center" }); } : undefined} instruction={refineInstruction} onInstructionChange={setRefineInstruction} onGenerate={refinementEstimate.canStart ? refinementEstimate.start : undefined} generationAction={<LogoGenerationAction estimate={refinementEstimate} label="Refine" unavailable={refineInstruction.trim() ? "Not ready yet." : ""} />}>
-      <LogoBriefFields draft={draft?.brief} autoSave={autoSave} onChange={editing ? workspace.setBriefDraft : undefined} onReuseStrategy={editing && projectId && saved && !workspace.pending ? () => void reuseStrategy() : undefined} nameConflict={strategy.nameConflict} sourceProjectRevision={strategy.revision} saveMessage={saveMessage} saveLabel={needsInitialization ? "Create logo workspace" : "Save brief"} onSave={canSave ? () => { if (draft) void workspace.saveBrief(draft.brief); } : undefined} />
-      <ContextDetails className={styles.contextDetails} title={<>Saved versions and options</>}><p className={styles.muted}>Start with a brief, choose the kinds of logo you want to explore, and keep your work in a saved project.</p>{savedProjectId && <div className={styles.actions}>
-        <Link className={styles.secondaryButton} href={projectStrategyHref(savedProjectId)}>Open project</Link>
-        <Link className={styles.secondaryButton} href={"/brands/account/" + savedProjectId + "/identity"}>Your references</Link>
-      </div>}{needsInitialization && <p className={styles.note}>Choose Reuse Strategy to fill in your brand name, audience and personality from your Strategy step. Then pick your logo types and save.</p>}{savedProjectId && !workspace.pending && !workspace.dirty && !draft?.conflict && <button className={styles.secondaryButton} type="button" onClick={() => { setStrategy({ busy: false, message: null, nameConflict: false }); void workspace.reload(false); }}>Refresh saved brand</button>}{!savedProjectId && <p className={styles.note}>Save your brief to keep your logo work in a project.</p>}{created && !onProjectCreated && <p><Link href={"/brands/account/" + created.projectId + "/logo"}>Continue with your saved logo brief</Link></p>}{selectionState.error && <p className={styles.warning} role="alert">{selectionState.error}</p>}{pendingSelection && <div className={styles.actions}><p className={styles.note}>We couldn’t confirm that your logo choice was saved. Your logos are safe.</p><button className={styles.secondaryButton} type="button" disabled={selectionState.busy} onClick={() => void selectCandidate()}>Check my choice</button><button className={styles.secondaryButton} type="button" disabled={selectionState.busy || draft?.conflict} onClick={() => void selectCandidate(undefined, true)}>Save my choice again</button></div>}{workspace.error && <p className={styles.warning} role="alert">{workspace.error}</p>}{workspace.status === "error" && !workspace.pending && <button className={styles.secondaryButton} type="button" onClick={() => void workspace.reload(false)}>Try loading again</button>}{creation && !created && <div className={styles.actions}>
-        <p className={styles.note}>The save has not been confirmed. Check it or retry the same save; your original brief is kept.</p>
-        <button className={styles.secondaryButton} type="button" disabled={!editing} onClick={() => void workspace.checkProjectCreation()}>Check project save</button>
-        <button className={styles.secondaryButton} type="button" disabled={!editing} onClick={() => void workspace.retryProjectCreation()}>Retry original project save</button>
-      </div>}{(pendingSave?.method === "saveLogoBrief" || pendingSave?.method === "saveLogoReferences") && <div className={styles.actions}>
-        <p className={styles.note}>A previous save is awaiting confirmation. This action checks it first and retries the original save only if no result is recorded.</p>
-        <button className={styles.secondaryButton} type="button" disabled={!editing || checkingRequest} onClick={() => void checkOriginalSave()}>Check original save</button>
-        {draft?.conflict && <p className={styles.note}>Check reads the original save without sending a new one. Conflicting edits and unresolved requests cannot be discarded here.</p>}
-        <button className={styles.secondaryButton} type="button" disabled={!editing || draft?.conflict || checkingRequest} onClick={() => {
-          if (pendingSave.method === "saveLogoBrief") void workspace.saveBrief(pendingSave.body.brief);
-          else void workspace.saveReferences(pendingSave.body.selections);
-        }}>Check and retry original save</button>
-        {saveReadout && saveReadout.key === pendingSave.body.requestKey && <p className={styles.note} role="status">{saveReadout.message}</p>}
-      </div>}{canDiscard && <div className={styles.actions}>
-        <button className={styles.secondaryButton} type="button" onClick={() => setConfirmReload(true)}>Discard local edits and reload</button>
-        {confirmReload && <div role="group" aria-label="Confirm discarding local edits">
-          <p className={styles.warning}>Replace the brief and reference changes in this tab with the latest saved version?</p>
-          <button className={styles.secondaryButton} type="button" onClick={() => setConfirmReload(false)}>Keep editing</button>
-          <button className={styles.secondaryButton} type="button" onClick={discardAndReload}>Discard edits and load saved version</button>
-        </div>}
-      </div>}{statusTools}{inputTools}{advancedTools}</ContextDetails>
-    </ConceptsComposer> : null;
+    idle={!activeBatch && !batchId && !initialConceptReadState} footer={continueAction} status={composerStatus} onShowResult={completedRefinement ? () => { const slotId = Object.entries(cardVersions).find(([, versions]) => versions.some(version => version.source.kind === "refinement" && version.source.rasterRevisionId === completedRefinement.id))?.[0]; if (slotId) document.querySelector<HTMLElement>(`[data-concept-slot="${slotId}"]`)?.scrollIntoView({ block: "center" }); } : undefined} instruction={refineInstruction} onInstructionChange={setRefineInstruction} onGenerate={refinementEstimate.canStart ? refinementEstimate.start : undefined} generationAction={<LogoGenerationAction estimate={refinementEstimate} label="Refine" unavailable={refineInstruction.trim() ? "Not ready yet." : ""} />} /> : null;
   return <div className={`project-logo-creation ${conceptsScreen ? styles.conceptsScreen : "project-workbench"}`} aria-label="Logo creation workspace"><div className={conceptsScreen ? undefined : "project-workbench-canvas"}>
     {conceptsScreen && <div className="guided-assistant-message logo-conversation-message" aria-label="Embel">
       <EmbelIdentity label={journeyPartLabel("identity", "Logo")} />
@@ -541,32 +543,8 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
       {!savedProjectId && <p className={styles.note}>Save your brief to keep your logo work in a project.</p>}
       {created && !onProjectCreated && <p><Link href={"/brands/account/" + created.projectId + "/logo"}>Continue with your saved logo brief</Link></p>}
       {selectionState.error && <p className={styles.warning} role="alert">{selectionState.error}</p>}
-      {pendingSelection && <div className={styles.actions}><p className={styles.note}>We couldn’t confirm that your logo choice was saved. Your logos are safe.</p><button className={styles.secondaryButton} type="button" disabled={selectionState.busy} onClick={() => void selectCandidate()}>Check my choice</button><button className={styles.secondaryButton} type="button" disabled={selectionState.busy || draft?.conflict} onClick={() => void selectCandidate(undefined, true)}>Save my choice again</button></div>}
       {workspace.error && <p className={styles.warning} role="alert">{workspace.error}</p>}
-      {workspace.status === "error" && !workspace.pending && <button className={styles.secondaryButton} type="button" onClick={() => void workspace.reload(false)}>Try loading again</button>}
-      {creation && !created && <div className={styles.actions}>
-        <p className={styles.note}>The save has not been confirmed. Check it or retry the same save; your original brief is kept.</p>
-        <button className={styles.secondaryButton} type="button" disabled={!editing} onClick={() => void workspace.checkProjectCreation()}>Check project save</button>
-        <button className={styles.secondaryButton} type="button" disabled={!editing} onClick={() => void workspace.retryProjectCreation()}>Retry original project save</button>
-      </div>}
-      {(pendingSave?.method === "saveLogoBrief" || pendingSave?.method === "saveLogoReferences") && <div className={styles.actions}>
-        <p className={styles.note}>A previous save is awaiting confirmation. This action checks it first and retries the original save only if no result is recorded.</p>
-        <button className={styles.secondaryButton} type="button" disabled={!editing || checkingRequest} onClick={() => void checkOriginalSave()}>Check original save</button>
-        {draft?.conflict && <p className={styles.note}>Check reads the original save without sending a new one. Conflicting edits and unresolved requests cannot be discarded here.</p>}
-        <button className={styles.secondaryButton} type="button" disabled={!editing || draft?.conflict || checkingRequest} onClick={() => {
-          if (pendingSave.method === "saveLogoBrief") void workspace.saveBrief(pendingSave.body.brief);
-          else void workspace.saveReferences(pendingSave.body.selections);
-        }}>Check and retry original save</button>
-        {saveReadout && saveReadout.key === pendingSave.body.requestKey && <p className={styles.note} role="status">{saveReadout.message}</p>}
-      </div>}
-      {canDiscard && <div className={styles.actions}>
-        <button className={styles.secondaryButton} type="button" onClick={() => setConfirmReload(true)}>Discard local edits and reload</button>
-        {confirmReload && <div role="group" aria-label="Confirm discarding local edits">
-          <p className={styles.warning}>Replace the brief and reference changes in this tab with the latest saved version?</p>
-          <button className={styles.secondaryButton} type="button" onClick={() => setConfirmReload(false)}>Keep editing</button>
-          <button className={styles.secondaryButton} type="button" onClick={discardAndReload}>Discard edits and load saved version</button>
-        </div>}
-      </div>}
+      {recoveryTools}
 </>}
     </header>}
     {!conceptsScreen && statusTools}
@@ -574,9 +552,8 @@ function OwnedLogoCreation({ account, projectId, onProjectCreated }: {
       briefRevisionId={workspace.stagePayloads?.brief_references?.id} onRemove={source => setComparison(previous => previous.filter(item => logoCandidateKey(item) !== logoCandidateKey(source)))}
       onSelect={saved?.capabilities.save.status === "available" && !workspace.pending && !workspace.dirty && !draft?.conflict && editing ? source => void selectCandidate(source) : undefined} />}
     {!conceptsScreen && inputTools}
-    {conceptsScreen && projectId && <LogoSavedInputsStatus state={savedInputs} projectId={projectId} onChoice={choice => void prepareSavedInputs(choice)}
-      onCancel={() => setSavedInputs({ status: "blocked", message: "Your logo inputs still need review before generating. Continue when you’re ready." })}
-      onRefresh={() => void prepareSavedInputs(undefined, true)} />}
+    {conceptsScreen && projectId && <LogoSavedInputsStatus state={savedInputs} projectId={projectId} onRefresh={() => void prepareSavedInputs(true)} />}
+    {conceptsScreen && recoveryTools}
     {workspace.error && conceptsScreen && <p className={styles.warning} role="alert">{workspace.error}</p>}
     {activeBatch && saved?.stages.brief_references && saved.stages.brief_references.id !== activeBatch.briefRevisionId && <p className={styles.warning}>This batch uses an earlier saved brief. Its original inputs and successful previews are kept.</p>}
     {conceptsScreen && activeBatch && selectionState.error && <p className={styles.warning} role="status">{selectionState.error}</p>}

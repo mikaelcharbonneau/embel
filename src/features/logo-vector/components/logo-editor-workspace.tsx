@@ -183,7 +183,7 @@ function OwnedLogoEditor({ projectId, account, memory }: { projectId: string; ac
     </div></div>}
     {currentClient && source && !visible && <p role="status">Loading the saved vector candidate…</p>}
     {visible?.error && <p role="status">{visible.error}</p>}
-    {!detail && visible && !visible.error && <div className={styles.notice} role="status"><strong>No vector ready for approval</strong><p>Your logo is an image for now. To turn it into a vector, go to the Logo step, open Logo brief and history, then Saved versions and options, and choose Convert to vector. You can review the vector here before accepting it.</p><Link href={`/brands/account/${projectId}/logo`}>Open Logo</Link></div>}
+    {!detail && visible && !visible.error && <div className={styles.notice} role="status"><strong>No vector ready for approval</strong><p>Your logo is an image for now, so there is no vector to review.</p><Link href={`/brands/account/${projectId}/logo`}>Open Logo</Link></div>}
     {detail && document && <>
       <div className={styles.headingRow}><h2>{historical ? "Historical vector" : historyVector ? "Saved vector for review" : approved ? "Approved logo" : "Review required"}</h2><span className={styles.badge}>{historical ? `Saved version ${historical.revision}` : "Saved vector"}</span></div>
       <p className={styles.caption}>{detail.revision.source.kind === "concept" ? "Made from your logo concept" : "Made from your refined logo"}{detail.revision.locks.length > 0 ? ` · ${detail.revision.locks.length} locked ${detail.revision.locks.length === 1 ? "part" : "parts"}` : ""}</p>

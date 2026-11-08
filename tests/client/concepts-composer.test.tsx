@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act } from "react";
+import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { ConceptsComposer } from "@/components/logo-creation/concepts-composer";
@@ -7,15 +7,11 @@ import { ConceptsComposer } from "@/components/logo-creation/concepts-composer";
 let host: HTMLDivElement, root: Root;
 beforeEach(() => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
-  Object.defineProperties(HTMLDialogElement.prototype, {
-    showModal: { configurable: true, value: function (this: HTMLDialogElement) { this.open = true; } },
-    close: { configurable: true, value: function (this: HTMLDialogElement) { this.open = false; } },
-  });
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
-afterEach(async () => { await act(async () => root.unmount()); document.body.replaceChildren(); Reflect.deleteProperty(HTMLDialogElement.prototype, "showModal"); Reflect.deleteProperty(HTMLDialogElement.prototype, "close"); vi.unstubAllGlobals(); });
-async function render(label?: string, instruction = "Kept local instruction", onGenerate = vi.fn()) {
-  await act(async () => root.render(<ConceptsComposer projectId="fixture" selectedLabel={label} instruction={instruction} onInstructionChange={() => {}} onGenerate={onGenerate}><input aria-label="Saved brief" defaultValue="Kept brief" /></ConceptsComposer>));
+afterEach(async () => { await act(async () => root.unmount()); document.body.replaceChildren(); vi.unstubAllGlobals(); });
+async function render(label?: string, instruction = "Kept local instruction", onGenerate = vi.fn(), footer?: ReactNode) {
+  await act(async () => root.render(<ConceptsComposer projectId="fixture" selectedLabel={label} instruction={instruction} onInstructionChange={() => {}} onGenerate={onGenerate} footer={footer} />));
   return onGenerate;
 }
 it("keeps one visible refine box for the chosen logo and retains mounted edits across rerenders", async () => {
@@ -36,15 +32,12 @@ it("keeps one visible refine box for the chosen logo and retains mounted edits a
   const refine = [...form.querySelectorAll("button")].find(button => button.textContent === "Refine")!;
   await act(async () => refine.click()); expect(review).toHaveBeenCalledTimes(1);
 });
-it("keeps the logo brief and history available with no selected logo and restores its trigger after cancel", async () => {
+it("has no separate brief panel, and shows the step's Continue alone below the refine box", async () => {
   await render();
   expect(host.querySelector("form")!.textContent).toContain("Choose a concept above to change it");
-  const context = [...host.querySelectorAll("button")].find(button => button.textContent === "Logo brief and history")!;
-  expect(context.closest("form")).toBeNull();
-  context.focus(); await act(async () => context.click());
-  const dialog = host.querySelector("dialog")!, brief = dialog.querySelector("input")!;
-  expect(dialog.open).toBe(true);
-  await act(async () => dialog.dispatchEvent(new Event("cancel", { bubbles: false })));
-  expect(dialog.open).toBe(false); expect(document.activeElement).toBe(context);
-  await act(async () => context.click()); expect(dialog.querySelector("input")).toBe(brief);
+  expect(host.querySelector("dialog")).toBeNull(); expect(host.querySelector('[aria-haspopup="dialog"]')).toBeNull();
+  expect([...host.querySelectorAll("button")].filter(button => !button.closest("form"))).toHaveLength(0);
+  await render(undefined, "Kept local instruction", vi.fn(), <button type="button">Continue</button>);
+  const next = [...host.querySelectorAll("button")].find(button => button.textContent === "Continue")!;
+  expect(next.closest("form")).toBeNull(); expect(next.parentElement?.children).toHaveLength(1);
 });

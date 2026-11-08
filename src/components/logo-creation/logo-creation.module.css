@@ -132,22 +132,11 @@
 .composerTools .generationActionRow { flex-direction: row-reverse; }
 .composerStatus { margin: 0; font-size: 13px; line-height: 20px; color: var(--secondary); }
 .composerStatus:empty { display: none; }
-.composerFooter { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 24px; }
-.composerFooter > :not(:first-child) { margin-left: auto; }
-/* A quiet link to the brief, references and earlier versions. */
-.contextButton { display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border: 1px solid transparent; border-radius: var(--radius-pill); background: none; color: var(--secondary); font: inherit; font-size: 13px; cursor: pointer; }
-.contextButton:hover { color: var(--text); background: var(--surface); }
-.contextDialog { position: fixed; inset: 0; width: min(720px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); overflow: auto; margin: auto; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius-panel); background: var(--paper); color: var(--text); }
-.contextDialog::backdrop { background: rgb(25 25 25 / 40%); }
-.contextDialog > header { margin-bottom: 24px; }
-.contextDialog > header .secondaryButton { width: 44px; padding: 0; }
-.contextDialog h2 { margin: 0; font-size: var(--branding-section-size, 20px); font-weight: 500; }
-.contextDetails > summary { margin: 20px 0; cursor: pointer; font-size: 13px; }
+.composerFooter { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 24px; }
 .conceptsScreen :is(button, a, textarea, select, summary, [role=button]):focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
 @media (max-width: 1000px) { .conceptsScreen .gallery .concepts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) {
   .conceptsScreen .gallery .concepts { grid-template-columns: minmax(0, 1fr); }
-  .contextDialog { padding: 18px; }
 }
 @media (max-width: 540px) {
   .conceptsScreen :is(input, textarea, select) { font-size: 16px; }
