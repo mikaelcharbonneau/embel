@@ -63,9 +63,12 @@ insert into fluid_private.inspiration_catalog(id,catalog_version,descriptor,rele
 -- The earlier single-image designs are no longer shown. Saved likes on them are
 -- test data before launch: remove them and advance each affected project's
 -- selection revision so logo inputs and reviewed directions see the change.
+-- Deleted projects (or ones being deleted) keep their records: their content is
+-- frozen by the project lifecycle guard and is never shown.
 with removed as (
- delete from public.project_inspiration_choices c using fluid_private.inspiration_catalog a
+ delete from public.project_inspiration_choices c using fluid_private.inspiration_catalog a, public.projects p
  where a.id=c.reference_id and not (a.descriptor ? 'parts')
+  and p.id=c.project_id and p.owner_id=c.owner_id and p.deleted_at is null and p.deletion_requested_at is null
  returning c.project_id,c.owner_id
 )
 update public.project_inspiration_heads h set revision=h.revision+1
