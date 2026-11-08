@@ -65,7 +65,7 @@ async function fill(selector: string, value: string) {
   await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(node, value); node.dispatchEvent(new Event("input", { bubbles: true })); });
 }
 async function ready() { strategy.overview!.jobs = [reply()]; await render(); }
-it("adds a manual competitor without calling the AI and retains selections after acknowledgment", async () => {
+it("adds a competitor as entered when research is unavailable, retaining selections after acknowledgment", async () => {
   await ready();
   const selected = host.querySelector<HTMLInputElement>(".guided-choice-card input")!;
   await act(async () => selected.click());
@@ -74,7 +74,7 @@ it("adds a manual competitor without calling the AI and retains selections after
     const saved = { ...workspace.saved, context, current_revision: workspace.saved.current_revision + 1 };
     workspace = { ...workspace, saved, draft: accountProjectDraft(saved) }; return workspace;
   });
-  await click("Save competitor"); await render();
+  await click("Add competitor"); await render();
   expect(saveContext).toHaveBeenCalledOnce(); expect(strategy.enqueue).not.toHaveBeenCalled();
   expect(workspace.saved.context.competitors[0]).toMatchObject({ name: "Manual Studio", origin: "user", selected: true, sources: [] });
   expect([...host.querySelectorAll<HTMLInputElement>(".guided-choice-card input:checked")]).toHaveLength(2);
@@ -82,9 +82,9 @@ it("adds a manual competitor without calling the AI and retains selections after
 });
 it("keeps manual entry visible after an unconfirmed save and rejects duplicate suggestions", async () => {
   await ready(); await click("Add a competitor"); await fill(".competitor-add-form input", "Existing Studio");
-  await click("Save competitor"); expect(saveContext).not.toHaveBeenCalled(); expect(host.textContent).toContain("already listed");
+  await click("Add competitor"); expect(saveContext).not.toHaveBeenCalled(); expect(host.textContent).toContain("already listed");
   await fill(".competitor-add-form input", "Manual Studio"); saveContext.mockRejectedValue(new Error("lost acknowledgment"));
-  await click("Save competitor");
+  await click("Add competitor");
   expect(host.querySelector<HTMLInputElement>(".competitor-add-form input")!.value).toBe("Manual Studio");
   expect(host.querySelector<HTMLElement>(".competitor-add-form")!.hidden).toBe(false);
   expect(strategy.enqueue).not.toHaveBeenCalled();
@@ -104,4 +104,21 @@ it("requests additional suggestions only after explicit action while retaining e
   expect(context.competitors).toHaveLength(1); expect(context.competitors[0]).toMatchObject({ name: "Existing Studio", selected: true, origin: "research" });
   expect(context.intake.guidedInterview.turns.at(-1)).toMatchObject({ stage: "competitors", purpose: "research", inputRevision: 2 });
   expect(context.intake.conversation.at(-1).text).toContain("different from the competitors already saved");
+});
+it("researches an added competitor like the suggestions, in the same save, keeping existing choices", async () => {
+  await ready(); strategy.overview!.availability = { status: "available", operations: [{ operation: "strategy.competitors", maximumCostMicrousd: 100000, interviewVersion: 1 }] }; await render();
+  await act(async () => host.querySelector<HTMLInputElement>(".guided-choice-card input")!.click());
+  expect(host.querySelector(".competitor-add-form")!.textContent).toContain("Embel looks it up like the other competitors");
+  await click("Add a competitor"); await fill(".competitor-add-form input", "Turo");
+  await fill('.competitor-add-form input[type="url"]', "https://turo.com");
+  saveContext.mockResolvedValue(workspace);
+  await click("Add competitor");
+  expect(saveContext).toHaveBeenCalledOnce();
+  const context = saveContext.mock.calls[0]![0];
+  expect(context.competitors).toEqual([
+    expect.objectContaining({ name: "Existing Studio", selected: true, origin: "research" }),
+    expect.objectContaining({ name: "Turo", url: "https://turo.com", selected: true, origin: "user" }),
+  ]);
+  expect(context.intake.guidedInterview.turns.at(-1)).toMatchObject({ stage: "competitors", purpose: "research", inputRevision: 2 });
+  expect(context.intake.conversation.at(-1).text).toBe("Add Turo (https://turo.com) to my competitors and research it like the others: its website, what it offers and why it competes with my brand. Keep my existing selections.");
 });

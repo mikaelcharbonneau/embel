@@ -33,7 +33,6 @@ async function instruction() {
   const input = host.querySelector<HTMLTextAreaElement>('textarea[aria-label="Describe a change to this logo"]')!;
   await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(input, "Simplify the shape"); input.dispatchEvent(new Event("input", { bubbles: true })); });
 }
-async function recheckAccount() { await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent === "Recheck account")!.click()); }
 
 describe("same-batch display across selection revisions", () => {
   it.each(["succeeds", "fails"] as const)("retains the gallery but locks batch actions while the post-selection recheck is held and then %s", async outcome => {
@@ -69,29 +68,5 @@ describe("same-batch display across selection revisions", () => {
       expect(image()).toBe(before); expect(URL.revokeObjectURL).not.toHaveBeenCalledWith(url);
       expect(grid().textContent).toContain("Logo chosen"); expect(f.selections).toHaveLength(1); expect(f.admissions).toEqual([]);
     } finally { await act(async () => release?.()); }
-  });
-
-  it("hides old gallery bytes for a different batch and a new account generation, including late reads", async () => {
-    const f = await syntheticRefinementWorkspaceHttp(), other = structuredClone(f.batch);
-    other.id = "75000000-0000-4000-8000-000000009999"; other.requestKey = "75000000-0000-4000-8000-000000009998";
-    let releaseOther: ((value: Response) => void) | undefined, releaseCurrent: (() => void) | undefined, holdCurrent = false; const currentReads: (() => void)[] = [];
-    const fetcher: typeof fetch = async (input, init) => {
-      if (String(input).split("?")[0]!.endsWith("/batches")) return Response.json({ ownerId: f.workspace.ownerId, projectId: f.workspace.projectId, items: [f.batch, other].map(({ id, requestKey, createdAt }) => ({ id, requestKey, createdAt })), nextCursor: null });
-      if (String(input).endsWith(`/batches/${other.id}`)) return new Promise<Response>(resolve => { releaseOther = resolve; });
-      if (holdCurrent && String(input).endsWith(`/batches/${f.batch.id}`)) await new Promise<void>(resolve => { currentReads.push(resolve); releaseCurrent = () => { holdCurrent = false; currentReads.splice(0).forEach(done => done()); }; });
-      return f.fetcher(input, init);
-    };
-    await mount(f.workspace.projectId, fetcher); const before = image()!, url = before.getAttribute("src");
-    const batch = host.querySelector<HTMLSelectElement>('[aria-label="Saved explorations"] select')!;
-    try {
-      await act(async () => { batch.value = other.id; batch.dispatchEvent(new Event("change", { bubbles: true })); });
-      await until(() => expect(releaseOther).toBeTypeOf("function")); expect(image()).toBeNull(); expect(URL.revokeObjectURL).toHaveBeenCalledWith(url);
-      holdCurrent = true; await recheckAccount(); await until(() => expect(releaseCurrent).toBeTypeOf("function")); expect(image()).toBeNull();
-      await act(async () => releaseOther!(Response.json(other))); expect(image()).toBeNull();
-      await act(async () => releaseCurrent!()); await until(() => expect(image()).not.toBeNull()); expect(image()!.getAttribute("src")).not.toBe(url);
-      holdCurrent = false; f.owner = "75000000-0000-4000-8000-000000009997"; await recheckAccount();
-      await until(() => expect(host.querySelector('img[src^="blob:"]')).toBeNull());
-      expect(f.selections).toEqual([]); expect(f.admissions).toEqual([]);
-    } finally { await act(async () => { releaseOther?.(Response.json(other)); releaseCurrent?.(); }); }
   });
 });

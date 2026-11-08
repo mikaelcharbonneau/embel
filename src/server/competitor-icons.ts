@@ -4,6 +4,7 @@ import { request as httpsRequest } from "node:https";
 import { isIP } from "node:net";
 import { checkServerIdentity } from "node:tls";
 import { parse, type DefaultTreeAdapterMap } from "parse5";
+import sharp from "sharp";
 import { isPublicReferenceAddress } from "./ai/naming-brain/source-reader";
 
 /** A competitor's own site icon, fetched by the server so the browser never
@@ -176,8 +177,32 @@ export function createCompetitorIconFetcher(dependencies: CompetitorIconDependen
       if (icon && (!best || icon.pixels > best.pixels)) best = icon;
       if (best && best.pixels >= COMPETITOR_ICON_LIMITS.sharpPixels) break;
     }
-    return best && { bytes: best.bytes, contentType: best.contentType };
+    return best && await trimIconMargin({ bytes: best.bytes, contentType: best.contentType });
   };
+}
+
+/** Corner pixels at least this light, or at most this opaque, are a margin the
+ * site drew around its mark rather than the icon's own background colour. */
+const MARGIN_LIGHT = 240, MARGIN_ALPHA = 16;
+/** Removes a white or transparent margin drawn around an icon's mark, so the mark
+ * fills its tile. A coloured background (a full-bleed icon) is kept as it is, and
+ * nothing beyond the site's own pixels is added. An .ico is left unchanged. */
+export async function trimIconMargin(icon: CompetitorIcon): Promise<CompetitorIcon> {
+  if (icon.contentType === "image/x-icon") return icon;
+  const options = { animated: false, limitInputPixels: 2048 * 2048 } as const;
+  try {
+    const { data, info } = await sharp(icon.bytes, options).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const { width, height, channels } = info;
+    if (width < 8 || height < 8) return icon;
+    const corners = [[0, 0], [width - 1, 0], [0, height - 1], [width - 1, height - 1]].map(([x, y]) => data.subarray((y! * width + x!) * channels, (y! * width + x!) * channels + 4));
+    const transparent = corners.every(pixel => pixel[3]! <= MARGIN_ALPHA);
+    const light = corners.every(pixel => pixel[3]! > 200 && pixel[0]! >= MARGIN_LIGHT && pixel[1]! >= MARGIN_LIGHT && pixel[2]! >= MARGIN_LIGHT);
+    if (!transparent && !light) return icon;
+    // The margin's colour is taken from the top-left corner, which matches the others.
+    const trimmed = await sharp(icon.bytes, options).trim({ threshold: 24 }).png().toBuffer({ resolveWithObject: true });
+    if (trimmed.info.width < 4 || trimmed.info.height < 4 || trimmed.info.width >= width && trimmed.info.height >= height) return icon;
+    return { bytes: trimmed.data, contentType: "image/png" };
+  } catch { return icon; }
 }
 
 type HtmlNode = DefaultTreeAdapterMap["node"];

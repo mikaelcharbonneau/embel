@@ -52,7 +52,7 @@ describe("mounted account vector editor", () => {
     await act(async () => root.render(createElement(AccountSessionProvider, null, createElement(LogoEditorWorkspace, { projectId }))));
     await until(() => host.textContent!.includes("No vector ready for approval"));
     expect(host.textContent).toContain("Your logo is an image for now");
-    expect(host.textContent).toContain("open Logo brief and history, then Saved versions and options, and choose Convert to vector");
+    expect(host.textContent).toContain("Your logo is an image for now, so there is no vector to review.");
     expect(host.textContent).not.toMatch(/Project context|conversion availability|Workspace version/);
     expect(host.querySelector(`[role="status"] a[href="/brands/account/${projectId}/logo"]`)?.textContent).toBe("Open Logo");
     expect(host.querySelector('a[href*="#logo-conversion-settings"]')).toBeNull();

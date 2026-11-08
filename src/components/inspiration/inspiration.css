@@ -36,13 +36,16 @@
 @container (min-width: 1200px) { .inspiration-columns { --inspiration-column-count: 5; } }
 .inspiration-card { min-width: 0; }
 .inspiration-card-art { position: relative; }
-.inspiration-open { cursor: pointer; border-radius: var(--radius-card); overflow: hidden; }
+.inspiration-open { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; border-radius: var(--radius-card); overflow: hidden; }
+.inspiration-open img { display: block; width: 100%; height: auto; border-radius: var(--radius-card); }
 .inspiration-image { display: block; width: 100%; height: auto; object-fit: contain; border-radius: var(--radius-card); }
 /* A white backing circle keeps the heart visible on light and dark tiles. */
 .inspiration-heart { position: absolute; right: 10px; top: 10px; width: 36px; height: 36px; display: grid; place-items: center; padding: 0; border: 1px solid rgb(25 25 25 / 8%); border-radius: 50%; background: rgb(255 255 255 / 94%); color: var(--text); box-shadow: 0 1px 4px rgb(25 25 25 / 22%); transition: transform 120ms, background 120ms; }
 .inspiration-heart svg { width: 18px; height: 18px; fill: none; transition: fill 150ms; }
 .inspiration-heart:hover:not(:disabled) { background: var(--paper); transform: scale(1.05); }
 .inspiration-heart[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: var(--paper); }
+/* A liked heart stays dark while hovered, so it never turns white on white. */
+.inspiration-heart[aria-pressed="true"]:hover:not(:disabled) { background: var(--text-strong-hover); color: var(--paper); }
 .inspiration-heart[aria-pressed="true"] svg { fill: currentColor; }
 .inspiration-heart svg, .inspiration-overall svg { flex-shrink: 0; }
 .inspiration-caption { display: flex; flex-wrap: wrap; align-items: baseline; text-align: left; gap: 0 6px; padding: 8px 2px 0; border: 0; background: none; width: 100%; color: var(--text); }
@@ -107,3 +110,86 @@
   .inspiration-detail :is(button, a), .inspiration-icon-button, .inspiration-action, .inspiration-views button { min-height: 44px; }
   .inspiration-footer { justify-content: flex-start; gap: 14px; }
 }
+
+/* Inspiration as one Embel message inside the project conversation: the gallery
+   lines up with the chat column and Continue sits at the end of the message. */
+.inspiration-workspace.inspiration-in-conversation { display: block; min-height: 0; background: transparent; }
+.inspiration-in-conversation .inspiration-browse { max-width: none; margin: 0; padding: 0; }
+.inspiration-in-conversation .inspiration-question { margin: 4px 0 12px; }
+.inspiration-in-conversation .inspiration-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 0 0 16px; }
+.inspiration-in-conversation .inspiration-search { order: 3; flex: 1 1 100%; }
+.inspiration-in-conversation .inspiration-footer { margin-top: 16px; }
+.inspiration-continue-inline { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 16px; font-size: 13px; color: var(--secondary); }
+button.inspiration-continue { border: 0; font-family: inherit; cursor: pointer; }
+
+/* Brands: a bento of brand containers. Brands share rows of equal height and
+   each is as wide as its content needs (positioned by BrandBento). Inside, each
+   image keeps its own shape in rows of equal height, so nothing is cropped.
+   Hearts like the whole brand (next to its name) or one image. */
+.inspiration-brands { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.inspiration-brands[data-positioned="true"] { display: block; }
+.inspiration-brand { box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-panel); background: var(--paper); cursor: pointer; transition: border-color 120ms, box-shadow 120ms; }
+.inspiration-brand:hover { border-color: var(--border-strong); box-shadow: 0 10px 30px -18px rgb(25 25 25 / 35%); }
+.inspiration-brand-header { box-sizing: border-box; display: flex; flex: none; align-items: center; gap: 8px; height: 36px; margin-bottom: 8px; padding-left: 6px; }
+.inspiration-brand-title { display: inline-flex; flex: 1; align-items: baseline; gap: 8px; min-width: 0; padding: 0; border: 0; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.inspiration-brand-title strong { overflow: hidden; font-size: 14px; line-height: 22px; font-weight: 500; white-space: nowrap; text-overflow: ellipsis; }
+.inspiration-brand-title span { flex: none; color: var(--secondary); font-size: 13px; line-height: 22px; opacity: 0; transition: opacity 120ms; }
+.inspiration-brand:hover .inspiration-brand-title span, .inspiration-brand-title:focus-visible span { opacity: 1; }
+.inspiration-brand-header > :is(.inspiration-saving, .inspiration-pending, .inspiration-availability) { flex: none; margin: 0; font-size: 12px; white-space: nowrap; }
+.inspiration-workspace .inspiration-heart.inspiration-brand-like { position: static; flex: none; box-shadow: none; }
+.inspiration-brand-bento { display: flex; flex-direction: column; gap: 6px; }
+.inspiration-brand-row { display: flex; gap: 6px; }
+.inspiration-brand-tile { position: relative; min-width: 0; overflow: hidden; border-radius: var(--radius-control); background: var(--surface); }
+.inspiration-brand-open { position: absolute; inset: 0; display: block; padding: 0; border: 0; background: none; cursor: pointer; }
+.inspiration-brand-open img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 200ms; }
+.inspiration-brand-tile:hover .inspiration-brand-open img { transform: scale(1.03); }
+.inspiration-brand-open .inspiration-image-error { position: absolute; inset: 0; font-size: 12px; }
+.inspiration-tile-label { position: absolute; left: 6px; bottom: 6px; padding: 2px 8px; border-radius: var(--radius-pill); background: rgb(255 255 255 / 92%); color: var(--text); font-size: 12px; line-height: 18px; opacity: 0; transition: opacity 120ms; pointer-events: none; }
+.inspiration-brand-tile:hover .inspiration-tile-label { opacity: 1; }
+/* A part's heart shows on hover or focus, and stays once the part is liked. */
+.inspiration-workspace .inspiration-heart.inspiration-part-like { right: 6px; top: 6px; width: 28px; height: 28px; opacity: 0; transition: opacity 120ms, transform 120ms, background 120ms; }
+.inspiration-workspace .inspiration-heart.inspiration-part-like svg { width: 14px; height: 14px; }
+.inspiration-brand-tile:hover .inspiration-part-like, .inspiration-brand-tile:focus-within .inspiration-part-like, .inspiration-workspace .inspiration-part-like[aria-pressed="true"] { opacity: 1; }
+.inspiration-more { display: flex; align-items: center; justify-content: center; min-height: 40px; margin: 20px auto 0; padding: 0 18px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); color: var(--text); font-size: 13px; cursor: pointer; }
+.inspiration-more:hover { border-color: var(--border-strong); }
+
+/* The brand overlay: the selected image large on the left; the brand, its
+   likes and all five images on the right. */
+.inspiration-detail.inspiration-brand-overlay { width: min(1320px, calc(100vw - 48px)); }
+.inspiration-brand-overlay .inspiration-detail-layout { grid-template-columns: minmax(0, 8fr) minmax(320px, 3fr); }
+.inspiration-overlay-art { position: relative; margin: 0; }
+.inspiration-overlay-art figcaption { position: absolute; left: 16px; bottom: 16px; padding: 4px 10px; border-radius: var(--radius-pill); background: rgb(255 255 255 / 92%); color: var(--text); font-size: 12px; line-height: 18px; }
+.inspiration-overlay-step { position: absolute; top: 50%; display: grid; place-items: center; width: 40px; height: 40px; margin-top: -20px; padding: 0; border: 1px solid rgb(25 25 25 / 8%); border-radius: 50%; background: rgb(255 255 255 / 94%); color: var(--text); box-shadow: 0 1px 4px rgb(25 25 25 / 22%); cursor: pointer; }
+.inspiration-overlay-step[data-direction="previous"] { left: 16px; }
+.inspiration-overlay-step[data-direction="previous"] svg { transform: rotate(180deg); }
+.inspiration-overlay-step[data-direction="next"] { right: 16px; }
+.inspiration-overlay-parts { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.inspiration-overlay-parts li { display: flex; align-items: center; gap: 8px; }
+.inspiration-overlay-part { display: flex; flex: 1; align-items: center; gap: 12px; min-width: 0; padding: 4px; border: 1px solid transparent; border-radius: var(--radius-control); background: none; color: var(--text); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.inspiration-overlay-part:hover { background: var(--canvas); }
+.inspiration-overlay-part[aria-current="true"] { border-color: var(--border-strong); background: var(--canvas); }
+.inspiration-overlay-part img { flex: none; width: 72px; height: 48px; object-fit: cover; border-radius: 8px; background: var(--surface); }
+.inspiration-detail .inspiration-heart.inspiration-overlay-like { position: static; flex: none; box-shadow: none; }
+.inspiration-detail .inspiration-heart { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 1px solid rgb(25 25 25 / 8%); border-radius: 50%; background: rgb(255 255 255 / 94%); color: var(--text); }
+.inspiration-detail .inspiration-heart svg { width: 18px; height: 18px; }
+.inspiration-detail .inspiration-heart[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: var(--paper); }
+/* A liked heart stays dark while hovered, so it never turns white on white. */
+.inspiration-heart[aria-pressed="true"]:hover:not(:disabled) { background: var(--text-strong-hover); color: var(--paper); }
+
+/* Your own images: "Add your own references" opens the file picker, and the
+   saved images sit in a container just above that button, one heart each. */
+button.inspiration-footer-link { font: inherit; font-size: 13px; cursor: pointer; }
+.inspiration-yours-slot { margin-top: 16px; }
+.inspiration-brand.inspiration-yours { cursor: default; }
+.inspiration-brand.inspiration-yours:hover { border-color: var(--border); box-shadow: none; }
+.inspiration-yours .inspiration-brand-header { min-height: 36px; }
+.inspiration-yours-count { color: var(--secondary); font-size: 13px; line-height: 22px; }
+.inspiration-yours-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.inspiration-yours-tile { position: relative; overflow: hidden; aspect-ratio: 3 / 2; border-radius: var(--radius-control); background: var(--surface); }
+.inspiration-yours-tile .identity-reference-preview { position: absolute; inset: 0; margin: 0; border: 0; border-radius: 0; aspect-ratio: auto; }
+.inspiration-yours-tile .identity-reference-preview img { width: 100%; height: 100%; object-fit: cover; }
+.inspiration-yours-tile .identity-reference-placeholder { height: 100%; font-size: 12px; }
+.inspiration-yours-tile:hover .inspiration-part-like, .inspiration-yours-tile:focus-within .inspiration-part-like { opacity: 1; }
+.inspiration-yours-status { margin: 12px 0 0; color: var(--secondary); font-size: 13px; line-height: 18px; text-align: right; }
+.inspiration-yours-status.inspiration-recovery { text-align: left; }
+.inspiration-yours-limit { margin: 8px 6px 2px; color: var(--secondary); font-size: 12px; line-height: 16px; }

@@ -168,9 +168,18 @@ export function useLogoWorkspace({ projectId: routeProjectId, memory, client: in
       if (previous && (previous.dirty || previous.vectorDraft || previous.directionDraft || previous.conflict || unresolved(previous) || projectId && memory.getVectorProposal(projectId) && (memory.getVectorProposal(projectId)!.dirty || memory.getVectorProposal(projectId)!.pendingGeneration || memory.getVectorProposal(projectId)!.pendingApplication)) && !discard) { result = "draft_blocked"; return; }
       if (projectId === null) { if (current()) { memory.set(null, empty()); setCreated(null); result = "reloaded"; } return; }
       const baseline = await loadLogoWorkspaceBaseline({ client: source, account: verified, projectId, memory, signal, isCurrent: current });
-      if (!baseline || !current() || memory.get(projectId) !== previous) return;
+      if (!baseline || !current()) return;
+      const scope = { ownerId: verified.userId, generation: verified.generation, projectId, memory, injected };
+      const latest = memory.get(projectId);
+      if (latest !== previous) {
+        // Another reader of this project (the Logo and Creative direction steps
+        // share one memory) loaded or saved meanwhile, and its record stands. Its
+        // saved stages are still read here when they describe that same workspace.
+        if (latest?.workspace && same(latest.workspace.heads, baseline.workspace.heads)) { setPayloads({ scope, baseline }); result = "reloaded"; }
+        return;
+      }
       memory.set(projectId, { ...empty(), workspace: baseline.workspace, base: baseline.workspace.heads, brief: baseline.brief, references: baseline.references });
-      setPayloads({ scope: { ownerId: verified.userId, generation: verified.generation, projectId, memory, injected }, baseline });
+      setPayloads({ scope, baseline });
       result = "reloaded";
     });
     return result;
@@ -374,6 +383,23 @@ export function useLogoWorkspace({ projectId: routeProjectId, memory, client: in
   const workspace = visible ? completed?.workspace ?? record?.workspace ?? loaded?.baseline.workspace ?? null : null;
   const stagePayloads = !visible ? null : loaded && workspace?.heads.workspaceRevision === loaded.baseline.workspace.heads.workspaceRevision ? loaded.baseline.stagePayloads : {};
   const referenceSnapshot = loaded && workspace?.heads.workspaceRevision === loaded.baseline.workspace.heads.workspaceRevision ? loaded.baseline.referenceSnapshot : null;
+  // The Logo and Creative direction steps read one shared record. When another
+  // reader loads or saves a newer workspace version, read that version's saved
+  // stages here too (once per version), without changing the shared record.
+  const followHeads = visible && record?.workspace && (!loaded || loaded.baseline.workspace.heads.workspaceRevision !== record.workspace.heads.workspaceRevision)
+    ? JSON.stringify(record.workspace.heads) : null;
+  const followBusy = Boolean(activity?.busy), followed = useRef<string | null>(null);
+  useEffect(() => {
+    if (!followHeads || followBusy || followed.current === followHeads) return;
+    const shared = memory.get(projectId)?.workspace;
+    if (!shared || JSON.stringify(shared.heads) !== followHeads) return;
+    void perform(async (source, signal, current, verified) => {
+      followed.current = followHeads;
+      const sameVersion = () => current() && same(memory.get(projectId)?.workspace?.heads, shared.heads);
+      const baseline = await readBaseline(source, shared, signal, sameVersion);
+      if (baseline && sameVersion()) setPayloads({ scope: { ownerId: verified.userId, generation: verified.generation, projectId, memory, injected }, baseline });
+    });
+  }, [followHeads, followBusy, injected, memory, perform, projectId]);
   const autoSaveReady = Boolean(projectId && visible && client && !busy && !error && record?.dirty && !record.conflict && !unresolved(record)
     && !record.vectorDraft && !record.directionDraft && !proposal?.dirty && !proposal?.pendingGeneration && !proposal?.pendingApplication
     && record.workspace?.stages.brief_references && record.workspace.capabilities.save.status === "available"

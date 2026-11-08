@@ -73,7 +73,7 @@ describe("Vercel domain browser adapter", () => {
     const adapter = createStandaloneLiveAdapters({ ...capabilities, domains: "vercel" }, binding()).domains;
     if (adapter.status !== "ready") throw new Error("fixture adapter");
     expect(adapter.provider).toBe("vercel_registrar"); expect(adapter.quotesWithCheck).toBe(true);
-    expect(adapter.description).toContain("Only domain names are sent to Vercel");
+    expect(adapter.description).toContain("Only domain names are sent to Vercel and to those records.");
     await expect(adapter.check(check.domain, signal())).resolves.toEqual(vercelCheck);
     await expect(adapter.quote!(check.domain, check.id, signal())).resolves.toEqual(vercelQuote);
     expect(fetcher).toHaveBeenCalledTimes(1);
@@ -103,7 +103,7 @@ describe("Name.com domain browser adapter", () => {
     const adapter = createStandaloneLiveAdapters({ ...capabilities, domains: "namecom" }, binding()).domains;
     if (adapter.status !== "ready") throw new Error("fixture adapter");
     expect(adapter.provider).toBe("namecom_core"); expect(adapter.quotesWithCheck).toBe(true);
-    expect(adapter.description).toContain("Only domain names are sent to Name.com");
+    expect(adapter.description).toContain("Only domain names are sent to Name.com and to those records.");
     expect(adapter.description).toContain("Aftermarket");
     await expect(adapter.check(check.domain, signal())).resolves.toEqual(namecomCheck);
     await expect(adapter.quote!(check.domain, check.id, signal())).resolves.toEqual(namecomQuote);

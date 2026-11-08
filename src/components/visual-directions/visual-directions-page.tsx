@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useProjectProgress } from "@/components/workspace/project-progress";
 import { logoUuidSchema } from "@/domain/logo-vector";
 import { logoBoardGenerationIntentSchema, type IdentityAvailability, type IdentityBatchState } from "@/domain/identity-jobs";
 import { getIdentityFreshness, type IdentitySystemVersion } from "@/domain/project-identity";
@@ -19,10 +21,17 @@ import { hasCurrentBrandAssets } from "./selected-assets";
 import stage from "@/styles/branding-stage.module.css";
 import { VisualDirectionsView, type VisualDirectionCard, type VisualDirectionGeneration } from "./visual-directions-view";
 
-export function VisualDirectionsPage({ projectId }: { projectId: string }) {
+export function VisualDirectionsPage({ projectId, variant = "page" }: { projectId: string; variant?: "page" | "conversation" }) {
   const { session } = useAccountSession();
-  if (!logoUuidSchema.safeParse(projectId).success) return <section className={stage.frame}><h1 className={stage.title}>Project not found</h1><Link className={stage.actionLink} href="/brands">Back to projects</Link></section>;
-  return <><AccountStatus />{session.status === "ready" && <OwnedVisualDirections key={`${session.userId}:${session.generation}:${projectId}`} account={session} projectId={projectId} />}</>;
+  const router = useRouter(), progress = useProjectProgress();
+  // A complete brand shows Creative direction in its project conversation, after
+  // the Logo step; this page stays for projects without that conversation.
+  const moved = variant === "page" && progress?.projectId === projectId && progress.scope === "complete_brand";
+  useEffect(() => { if (moved) router.replace(`/brands/account/${projectId}?view=strategy#journey-directions`); }, [moved, projectId, router]);
+  if (!logoUuidSchema.safeParse(projectId).success) return variant === "conversation" ? null : <section className={stage.frame}><h1 className={stage.title}>Project not found</h1><Link className={stage.actionLink} href="/brands">Back to projects</Link></section>;
+  if (moved) return null;
+  const owned = session.status === "ready" && <OwnedVisualDirections key={`${session.userId}:${session.generation}:${projectId}`} account={session} projectId={projectId} variant={variant} />;
+  return variant === "conversation" ? owned || null : <><AccountStatus />{owned}</>;
 }
 
 function availabilityReason(availability: IdentityAvailability | undefined) {
@@ -45,7 +54,7 @@ function progressStatus(batch: IdentityBatchState | null): VisualDirectionGenera
     : batch.status === "cancel_requested" ? "stopping" : batch.status;
 }
 
-function OwnedVisualDirections({ account, projectId }: { account: VerifiedAccount; projectId: string }) {
+function OwnedVisualDirections({ account, projectId, variant }: { account: VerifiedAccount; projectId: string; variant: "page" | "conversation" }) {
   const { isCurrent } = useAccountSession(), memory = useLogoDraftMemory();
   const logo = useLogoWorkspace({ projectId, memory });
   const identity = useProjectIdentity(projectId, undefined, { logoDirections: true });
@@ -149,8 +158,9 @@ function OwnedVisualDirections({ account, projectId }: { account: VerifiedAccoun
   const showAssets = !choosing && !identity.pending && !logoPending && !identity.strategyDirty && !identity.preferencesDirty &&
     !identity.referencesPending && hasCurrentBrandAssets(selection, source);
   const chosenTitle = descriptions.find(description => description.id === selectedSystem?.id)?.title;
-  return <VisualDirectionsView brandName={brandName}
-    backHref={`/brands/account/${projectId}/logo`}
+  return <VisualDirectionsView brandName={brandName} variant={variant}
+    // In the conversation the Logo step is right above.
+    backHref={variant === "page" ? `/brands/account/${projectId}/logo` : undefined}
     logoPreview={candidate.item && logo.client ? <LogoVerifiedPreview client={logo.client} receipt={candidate.item.preview} alt="Chosen logo concept" />
       : <p role="status">{candidate.error || logo.error ? "Your selected logo could not be loaded." : candidate.loading ? "Loading your chosen logo…" : "Choose a logo concept to begin."}</p>}
     cards={cards} generation={{ status: visibleStatus, completed: requestBatch?.systems.length ?? 0,

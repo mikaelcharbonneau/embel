@@ -5,12 +5,18 @@ import { domainCheckSchema } from "@/features/domain-workspace/model";
 import { parseProviderTarget, type ProviderFetch, type ProviderClock } from "./contracts";
 import { liveProviderJson } from "./live-json";
 
-// Exact IANA RDAP bootstrap entries reviewed 2026-10-13. Never follow provider links/redirects.
+// Exact IANA RDAP bootstrap entries (publication 2026-10-28), reviewed 2026-11-07 for every
+// extension the Domains tool offers. .io, .co, .me and .us publish none; see dns-delegation.ts.
+// Never follow provider links/redirects.
 const services: Record<string, string> = {
   com: "https://rdap.verisign.com/com/v1/", net: "https://rdap.verisign.com/net/v1/",
   org: "https://rdap.publicinterestregistry.org/rdap/", app: "https://pubapi.registry.google/rdap/",
   dev: "https://pubapi.registry.google/rdap/", ca: "https://rdap.ca.fury.ca/rdap/",
   ai: "https://rdap.identitydigital.services/rdap/", uk: "https://rdap.nominet.uk/uk/",
+  info: "https://rdap.identitydigital.services/rdap/", studio: "https://rdap.identitydigital.services/rdap/",
+  online: "https://rdap.radix.host/rdap/", space: "https://rdap.radix.host/rdap/",
+  biz: "https://rdap.nic.biz/", design: "https://rdap.nic.design/",
+  art: "https://rdap.centralnic.com/art/", fr: "https://rdap.nic.fr/",
 };
 export const RDAP_PROVIDER = "Public registry RDAP";
 export async function lookupRdap(domain: string, fetcher: ProviderFetch, clock: ProviderClock, signal: AbortSignal): Promise<StandaloneLookupResult> {

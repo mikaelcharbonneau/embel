@@ -64,7 +64,7 @@ export function createStandaloneLiveAdapters(capabilities: StandaloneCapabilitie
   return {
     domains: capabilities.domains === "unavailable" ? { status: "unavailable", reason: "Domain checks aren’t available right now. You can still list domains to look up yourself." } : {
       status: "ready", provider, quotesWithCheck: hasPrices,
-      description: capabilities.domains === "namecom" ? "Availability and prices come from Name.com, in USD. Aftermarket and expiring domains show as Unknown. Only domain names are sent to Name.com." : capabilities.domains === "rdap" ? "Availability comes from public registry records for .com, .net, .org, .app, .dev, .ca, .ai and .uk. Prices aren’t available." : capabilities.domains === "vercel" ? "Availability and prices come from Vercel, in USD. Only domain names are sent to Vercel." : "Availability and yearly prices come from Cloudflare.",
+      description: capabilities.domains === "namecom" ? "Availability and prices come from Name.com, in USD. Aftermarket and expiring domains show as Unknown. Public registry and DNS records confirm taken domains. Only domain names are sent to Name.com and to those records." : capabilities.domains === "rdap" ? "Public registry and DNS records confirm taken domains. Availability and prices need a connected registrar." : capabilities.domains === "vercel" ? "Availability and prices come from Vercel, in USD. Public registry and DNS records confirm taken domains. Only domain names are sent to Vercel and to those records." : "Availability and yearly prices come from Cloudflare.",
       async check(domain, signal) {
         prices.delete(domain);
         const result = await lookup({ tool: "domains", domain }, signal);

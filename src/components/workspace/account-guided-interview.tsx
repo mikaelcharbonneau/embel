@@ -1,8 +1,12 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type ComponentProps, type ReactNode, type RefObject } from "react";
 import { AccountBriefEditor } from "./account-brief-editor";
 import { ProjectNamingWorkspace } from "@/components/naming/project-naming-workspace";
+import { InspirationWorkspace } from "@/components/inspiration/inspiration-workspace";
+import { LogoCreationWorkspace } from "@/components/logo-creation/logo-creation-workspace";
+import { VisualDirectionsPage } from "@/components/visual-directions/visual-directions-page";
+import { useProjectProgress } from "./project-progress";
 import { getNamingReadiness } from "@/domain/project-naming";
 import { appendGuidedTurn, confirmGuidedSelection, guidedTurnOperation, revisitGuidedStage, skipGuidedSlogan, type GuidedReply, type GuidedStage } from "@/domain/guided-interview";
 import { competitorSchema, contextSnapshotSchema, type ContextSnapshot } from "@/domain/projects";
@@ -10,8 +14,6 @@ import { CompetitorWidgetControls } from "./competitor-widget-controls";
 import { EmbelIdentity, guidedStageLabel } from "./embel-identity";
 import { JOURNEY_SECTION_EVENT, journeySectionId, journeySectionOfHash, useConversationSteps } from "@/components/journey/project-header";
 import { journeyPartLabel, type JourneyStepId } from "@/domain/journey";
-import Link from "next/link";
-import { Icon } from "@/components/ui/icon";
 import { accountDraftChanged, type AccountWorkspace, type GuidedInterviewInput } from "./account-draft-memory";
 import { strategyAvailabilityMessage, strategyCanRetryDelivery, strategyJobActive } from "./account-strategy-client";
 import type { VerifiedAccount } from "./account-session";
@@ -27,6 +29,36 @@ import type { ProjectEditorForm } from "./project-editor";
 import { useStrategyJobs } from "./use-strategy-jobs";
 import { useConversationFollow } from "./use-conversation-follow";
 import "@/styles/conversation.css";
+
+function subscribeToHash(onChange: () => void) {
+  window.addEventListener("hashchange", onChange);
+  return () => window.removeEventListener("hashchange", onChange);
+}
+const readHash = () => window.location.hash;
+const noHash = () => "";
+
+/** Brings a step that opens below into view, once: after its Continue (request()) or
+ * when a link points at it. Images above keep loading after the first jump and push
+ * the step down; it stays in view while the layout settles, unless the reader takes
+ * over (wheel, touch, keys or a click) in the meantime. */
+function useStepReveal(anchor: RefObject<HTMLDivElement | null>, shown: boolean, linked: boolean, transcript: RefObject<HTMLDivElement | null>, jumpTo: (target: HTMLElement) => void) {
+  const requested = useRef(false), linkPending = useRef(true);
+  const jump = useEffectEvent((target: HTMLElement) => jumpTo(target));
+  useEffect(() => {
+    const target = anchor.current, area = transcript.current;
+    if (!shown || !target || !area || !requested.current && !(linked && linkPending.current)) return;
+    requested.current = false; linkPending.current = false;
+    let reader = false;
+    const takeOver = () => { reader = true; };
+    const events = ["wheel", "touchstart", "keydown", "pointerdown"] as const;
+    events.forEach(name => area.addEventListener(name, takeOver, { passive: true }));
+    jump(target);
+    const timers = [300, 800, 1600, 3000].map(delay => setTimeout(() => { if (!reader) jump(target); }, delay));
+    const release = setTimeout(() => events.forEach(name => area.removeEventListener(name, takeOver)), 3200);
+    return () => { timers.forEach(clearTimeout); clearTimeout(release); events.forEach(name => area.removeEventListener(name, takeOver)); };
+  }, [anchor, shown, linked, transcript]);
+  return () => { requested.current = true; };
+}
 
 export function AccountGuidedInterview({ account, workspace, navigation, busy, saveContext, onInputChange, storage }: {
   account: VerifiedAccount; workspace: AccountWorkspace; navigation?: ReactNode; busy: boolean;
@@ -243,29 +275,41 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
     lock.current = true; setWorking(true); setError(null);
     const draft = competitorDraft;
     const selected = selectedCompetitors(answer);
+    // Research it like the suggested competitors (website, offer, why it competes,
+    // sources) in the same save; without research it is saved as entered.
+    const research = !requestBlocked && Boolean(guidedAllowance(availability, "strategy.competitors"));
     try {
-      const next = contextSnapshotSchema.parse({ ...saved.context, competitors: [...saved.context.competitors, parsed.data] });
+      const next = research
+        ? researchCompetitorsContext(answer, `Add ${parsed.data.name}${parsed.data.url ? ` (${parsed.data.url})` : ""} to my competitors and research it like the others: its website, what it offers and why it competes with my brand. Keep my existing selections.`, parsed.data)
+        : contextSnapshotSchema.parse({ ...saved.context, competitors: [...saved.context.competitors, parsed.data] });
       const result = await persist(next, { competitorDraft: draft });
       if (!result || !mounted.current) return false;
-      changeInput(previous => ({ ...previous, competitorDraft: JSON.stringify(previous.competitorDraft) === JSON.stringify(draft) ? undefined : previous.competitorDraft, selection: { turnId: answer.turnId, ids: [...selected, parsed.data.id] } }));
+      changeInput(previous => ({ ...previous, competitorDraft: JSON.stringify(previous.competitorDraft) === JSON.stringify(draft) ? undefined : previous.competitorDraft,
+        selection: research ? null : { turnId: answer.turnId, ids: [...selected, parsed.data.id] } }));
       return true;
     } catch { if (mounted.current) setError("The competitor could not be confirmed as saved. Your entry is kept; check the saved project before retrying."); return false; }
     finally { lock.current = false; if (mounted.current) setWorking(false); }
+  }
+  /** A competitor research turn on top of this widget's competitors and current
+   * selections (plus one just added, selected), as one saved project change. */
+  function researchCompetitorsContext(answer: Extract<GuidedReply, { kind: "choices" }>, request: string, added?: ContextSnapshot["competitors"][number]) {
+    const ids = selectedCompetitors(answer), rows = new Map(saved.context.competitors.map(item => [item.name.trim().toLowerCase(), { ...item, selected: ids.includes(item.id) }]));
+    for (const option of answer.options) if (option.stage === "competitors") {
+      const key = option.payload.name.trim().toLowerCase();
+      if (!rows.has(key)) rows.set(key, { ...option.payload, selected: ids.includes(option.id) });
+      else if (ids.includes(option.id)) rows.set(key, { ...rows.get(key)!, selected: true });
+    }
+    if (added) rows.set(added.name.trim().toLowerCase(), added);
+    const retained = contextSnapshotSchema.parse({ ...saved.context, competitors: [...rows.values()] });
+    const next = guidedMessageContext(retained, request, saved.current_revision + 1);
+    next.intake.guidedInterview!.turns.at(-1)!.purpose = "research";
+    return next;
   }
   async function moreCompetitors(answer: Extract<GuidedReply, { kind: "choices" }>) {
     if (lock.current || blocked || requestBlocked || answer.stage !== "competitors" || !guidedAllowance(availability, "strategy.competitors")) return;
     lock.current = true; setWorking(true); setError(null);
     try {
-      const ids = selectedCompetitors(answer), rows = new Map(saved.context.competitors.map(item => [item.name.trim().toLowerCase(), { ...item, selected: ids.includes(item.id) }]));
-      for (const option of answer.options) if (option.stage === "competitors") {
-        const key = option.payload.name.trim().toLowerCase();
-        if (!rows.has(key)) rows.set(key, { ...option.payload, selected: ids.includes(option.id) });
-        else if (ids.includes(option.id)) rows.set(key, { ...rows.get(key)!, selected: true });
-      }
-      const retained = contextSnapshotSchema.parse({ ...saved.context, competitors: [...rows.values()] });
-      const next = guidedMessageContext(retained, "Suggest more relevant competitors, different from the competitors already saved in this project. Keep my existing selections.", saved.current_revision + 1);
-      next.intake.guidedInterview!.turns.at(-1)!.purpose = "research";
-      const result = await persist(next);
+      const result = await persist(researchCompetitorsContext(answer, "Suggest more relevant competitors, different from the competitors already saved in this project. Keep my existing selections."));
       if (result && mounted.current) setSelection(null);
     } catch { if (mounted.current) setError("Additional suggestions could not be requested. Your current competitors and selections are kept."); }
     finally { lock.current = false; if (mounted.current) setWorking(false); }
@@ -404,18 +448,44 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
   const history = <>{strategyHistory}{voiceHistory}</>;
   const completed = null;
 
-  // The conversation holds two journey steps: Strategy, then Voice from the
-  // first personality question on. The project bar highlights the one on screen.
+  // The conversation holds Strategy, then Voice from the first personality
+  // question on, then Identity (Inspiration) as soon as Voice is finished: the
+  // slogan answered or skipped. The project bar highlights the one on screen.
   const voiceShown = reached === "voice" || voiceItems.length > 0 || sloganItems.length > 0 || nameChosen;
+  const identityShown = state?.stage === "complete" && nameChosen && saved.scope === "complete_brand";
+  // Logo and Creative direction follow Inspiration in the same Identity section,
+  // each after the previous step's Continue, when the project has already reached
+  // it (its next step is that step or a later one), or when a link points at it.
+  const progress = useProjectProgress(), projectBase = `/brands/account/${saved.id}`;
+  const nextPath = progress?.projectId === saved.id ? progress.nextHref?.split(/[?#]/, 1)[0] : undefined;
+  const logoReached = Boolean(nextPath?.startsWith(`${projectBase}/logo`));
+  const directionsReached = Boolean(nextPath?.startsWith(`${projectBase}/logo/directions`) || nextPath?.startsWith(`${projectBase}/logo/deliverables`));
+  const [logoOpened, setLogoOpened] = useState(false), [directionsOpened, setDirectionsOpened] = useState(false);
+  // A redirect from an old step page commits its `#journey-…` address with this
+  // page's first render; the store reads it again right after that render.
+  const hash = useSyncExternalStore(subscribeToHash, readHash, noHash);
+  const logoLinked = hash === "#journey-logo", directionsLinked = hash === "#journey-directions";
+  // Shown once the earlier replies have loaded: their images change the page
+  // height, and replies that arrive after that would be announced as new.
+  const logoShown = identityShown && historyChecked && (logoOpened || logoLinked || directionsLinked || logoReached);
+  const directionsShown = logoShown && (directionsOpened || directionsLinked || directionsReached);
   const [viewed, setViewed] = useState<JourneyStepId | null>(null);
   // Right after showing a step, its scroll position stands until the reader scrolls.
   const jumped = useRef<number | null>(null);
-  useConversationSteps(reached, viewed, canvasActive ? [] : voiceShown ? ["strategy", "voice"] : ["strategy"]);
+  const sections: JourneyStepId[] = canvasActive ? [] : identityShown ? ["strategy", "voice", "identity"] : voiceShown ? ["strategy", "voice"] : ["strategy"];
+  useConversationSteps(reached, viewed, sections);
+  // The latest section whose top has reached the middle of the view (or the
+  // last one at the very end) is the step on screen.
   function sectionOnScreen(area: HTMLElement): JourneyStepId {
-    const voice = document.getElementById(journeySectionId("voice"));
-    if (!voice || !area.contains(voice)) return "strategy";
     const atEnd = area.scrollHeight - area.clientHeight - area.scrollTop <= 8;
-    return atEnd || voice.getBoundingClientRect().top - area.getBoundingClientRect().top <= area.clientHeight / 2 ? "voice" : "strategy";
+    const top = area.getBoundingClientRect().top;
+    let current: JourneyStepId = "strategy";
+    for (const step of ["voice", "identity"] as const) {
+      const section = document.getElementById(journeySectionId(step));
+      if (!section || !area.contains(section)) break;
+      if (atEnd || section.getBoundingClientRect().top - top <= area.clientHeight / 2) current = step; else break;
+    }
+    return current;
   }
   function scrolled() {
     onScroll();
@@ -425,6 +495,9 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
     jumped.current = null;
     setViewed(sectionOnScreen(area));
   }
+  const logoAnchor = useRef<HTMLDivElement>(null), directionsAnchor = useRef<HTMLDivElement>(null);
+  const requestLogo = useStepReveal(logoAnchor, logoShown, logoLinked, transcript, jumpTo);
+  const requestDirections = useStepReveal(directionsAnchor, directionsShown, directionsLinked, transcript, jumpTo);
   const showSection = useEffectEvent((step: JourneyStepId) => {
     const area = transcript.current, section = document.getElementById(journeySectionId(step));
     if (!area || !section || !area.contains(section)) return;
@@ -436,7 +509,7 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
   useEffect(() => {
     const area = transcript.current;
     if (!area) return;
-    const listener = (event: Event) => { const step = (event as CustomEvent<unknown>).detail; if (step === "strategy" || step === "voice") showSection(step); };
+    const listener = (event: Event) => { const step = (event as CustomEvent<unknown>).detail; if (step === "strategy" || step === "voice" || step === "identity") showSection(step); };
     area.addEventListener(JOURNEY_SECTION_EVENT, listener);
     return () => area.removeEventListener(JOURNEY_SECTION_EVENT, listener);
   }, [transcript]);
@@ -516,11 +589,18 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
           </section>
         </article>}
         {!canvasActive && sloganHistory}
-        {!canvasActive && state?.stage === "complete" && nameChosen && saved.scope === "complete_brand" && <article className="guided-assistant-message flow-enter" aria-label="Next step">
-          <EmbelIdentity label={journeyPartLabel("identity", "Inspiration")} />
-          <p className="guided-assistant-copy">Your voice is set. Next is Identity: pick a few looks you like, then choose a logo for {context.selectedName}.</p>
-          <div className="guided-next-step"><Link className="button primary" href={`/brands/account/${saved.id}/inspiration`}>Continue to Identity<Icon name="arrow" size={14} /></Link></div>
-        </article>}
+      </section>}
+      {!canvasActive && identityShown && <section id={journeySectionId("identity")} className="guided-journey-section flow-enter" data-journey-section="identity" aria-label="Identity" tabIndex={-1}>
+        <InspirationWorkspace projectId={saved.id} variant="conversation" continueHidden={logoShown}
+          onContinue={() => { requestLogo(); setLogoOpened(true); }}
+          lead={`Your voice is set. Now let’s shape how ${context.selectedName} looks. Like the brands you’re drawn to: a whole brand, or just its logo, colors, typefaces, socials or visuals. Your likes guide the logo concepts.`} />
+        {logoShown && <div ref={logoAnchor} id="journey-logo" className="logo-in-conversation flow-enter" tabIndex={-1}>
+          <LogoCreationWorkspace projectId={saved.id} continueHidden={directionsShown}
+            onContinue={() => { requestDirections(); setDirectionsOpened(true); }} />
+        </div>}
+        {directionsShown && <div ref={directionsAnchor} id="journey-directions" className="directions-in-conversation flow-enter" tabIndex={-1}>
+          <VisualDirectionsPage projectId={saved.id} variant="conversation" />
+        </div>}
       </section>}
       {!hasComposer && notices}
     </div>
