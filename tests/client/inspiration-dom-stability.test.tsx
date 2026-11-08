@@ -59,6 +59,19 @@ afterEach(async () => {
   await act(async () => root.unmount()); host.remove(); observers.clear(); vi.restoreAllMocks(); vi.unstubAllGlobals();
 });
 
+describe("Inspiration inside the project conversation", () => {
+  it("renders as one Embel message with the gallery and an in-message Continue to the logo", async () => {
+    await act(async () => root.render(<InspirationView controller={controller} projectId={projectId} variant="conversation" lead="Your voice is set. Now let’s shape how Cedar looks." />));
+    const message = host.querySelector("article.guided-assistant-message.inspiration-browse")!;
+    expect(message).not.toBeNull();
+    expect(message.textContent).toContain("Your voice is set. Now let’s shape how Cedar looks.");
+    expect(message.querySelector(".inspiration-card")).not.toBeNull();
+    expect(host.querySelector("h1")).toBeNull();
+    expect(host.querySelector(".inspiration-continue-bar")).toBeNull();
+    expect(message.querySelector(".inspiration-continue-inline a")?.getAttribute("href")).toBe(`/brands/account/${projectId}/logo`);
+  });
+});
+
 describe("Inspiration stable masonry parentage", () => {
   it("counts retained liked references against the full catalog, not only discovery designs", async () => {
     controller.overview!.choices = inspirationCatalog.map(design => ({

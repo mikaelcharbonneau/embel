@@ -107,3 +107,13 @@
   .inspiration-detail :is(button, a), .inspiration-icon-button, .inspiration-action, .inspiration-views button { min-height: 44px; }
   .inspiration-footer { justify-content: flex-start; gap: 14px; }
 }
+
+/* Inspiration as one Embel message inside the project conversation: the gallery
+   lines up with the chat column and Continue sits at the end of the message. */
+.inspiration-workspace.inspiration-in-conversation { display: block; min-height: 0; background: transparent; }
+.inspiration-in-conversation .inspiration-browse { max-width: none; margin: 0; padding: 0; }
+.inspiration-in-conversation .inspiration-question { margin: 4px 0 12px; }
+.inspiration-in-conversation .inspiration-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 0 0 16px; }
+.inspiration-in-conversation .inspiration-search { order: 3; flex: 1 1 100%; }
+.inspiration-in-conversation .inspiration-footer { margin-top: 16px; }
+.inspiration-continue-inline { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 16px; font-size: 13px; color: var(--secondary); }

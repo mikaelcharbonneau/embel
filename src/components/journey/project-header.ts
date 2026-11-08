@@ -27,7 +27,7 @@ export type ConversationSteps = { reached: JourneyStepId; viewed: JourneyStepId;
 export function journeySectionId(step: JourneyStepId) { return `journey-${step}`; }
 /** The step a `#journey-…` link points at, if any. */
 export function journeySectionOfHash(hash: string): JourneyStepId | null {
-  const match = /^#journey-(strategy|voice)$/u.exec(hash);
+  const match = /^#journey-(strategy|voice|identity)$/u.exec(hash);
   return match ? match[1] as JourneyStepId : null;
 }
 /** Asks the conversation to show a step's section. The conversation owns its

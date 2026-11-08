@@ -3,6 +3,7 @@
 import { Fragment, useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import { AccountBriefEditor } from "./account-brief-editor";
 import { ProjectNamingWorkspace } from "@/components/naming/project-naming-workspace";
+import { InspirationWorkspace } from "@/components/inspiration/inspiration-workspace";
 import { getNamingReadiness } from "@/domain/project-naming";
 import { appendGuidedTurn, confirmGuidedSelection, guidedTurnOperation, revisitGuidedStage, skipGuidedSlogan, type GuidedReply, type GuidedStage } from "@/domain/guided-interview";
 import { competitorSchema, contextSnapshotSchema, type ContextSnapshot } from "@/domain/projects";
@@ -10,8 +11,6 @@ import { CompetitorWidgetControls } from "./competitor-widget-controls";
 import { EmbelIdentity, guidedStageLabel } from "./embel-identity";
 import { JOURNEY_SECTION_EVENT, journeySectionId, journeySectionOfHash, useConversationSteps } from "@/components/journey/project-header";
 import { journeyPartLabel, type JourneyStepId } from "@/domain/journey";
-import Link from "next/link";
-import { Icon } from "@/components/ui/icon";
 import { accountDraftChanged, type AccountWorkspace, type GuidedInterviewInput } from "./account-draft-memory";
 import { strategyAvailabilityMessage, strategyCanRetryDelivery, strategyJobActive } from "./account-strategy-client";
 import type { VerifiedAccount } from "./account-session";
@@ -404,18 +403,28 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
   const history = <>{strategyHistory}{voiceHistory}</>;
   const completed = null;
 
-  // The conversation holds two journey steps: Strategy, then Voice from the
-  // first personality question on. The project bar highlights the one on screen.
+  // The conversation holds Strategy, then Voice from the first personality
+  // question on, then Identity (Inspiration) as soon as Voice is finished: the
+  // slogan answered or skipped. The project bar highlights the one on screen.
   const voiceShown = reached === "voice" || voiceItems.length > 0 || sloganItems.length > 0 || nameChosen;
+  const identityShown = state?.stage === "complete" && nameChosen && saved.scope === "complete_brand";
   const [viewed, setViewed] = useState<JourneyStepId | null>(null);
   // Right after showing a step, its scroll position stands until the reader scrolls.
   const jumped = useRef<number | null>(null);
-  useConversationSteps(reached, viewed, canvasActive ? [] : voiceShown ? ["strategy", "voice"] : ["strategy"]);
+  const sections: JourneyStepId[] = canvasActive ? [] : identityShown ? ["strategy", "voice", "identity"] : voiceShown ? ["strategy", "voice"] : ["strategy"];
+  useConversationSteps(reached, viewed, sections);
+  // The latest section whose top has reached the middle of the view (or the
+  // last one at the very end) is the step on screen.
   function sectionOnScreen(area: HTMLElement): JourneyStepId {
-    const voice = document.getElementById(journeySectionId("voice"));
-    if (!voice || !area.contains(voice)) return "strategy";
     const atEnd = area.scrollHeight - area.clientHeight - area.scrollTop <= 8;
-    return atEnd || voice.getBoundingClientRect().top - area.getBoundingClientRect().top <= area.clientHeight / 2 ? "voice" : "strategy";
+    const top = area.getBoundingClientRect().top;
+    let current: JourneyStepId = "strategy";
+    for (const step of ["voice", "identity"] as const) {
+      const section = document.getElementById(journeySectionId(step));
+      if (!section || !area.contains(section)) break;
+      if (atEnd || section.getBoundingClientRect().top - top <= area.clientHeight / 2) current = step; else break;
+    }
+    return current;
   }
   function scrolled() {
     onScroll();
@@ -436,7 +445,7 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
   useEffect(() => {
     const area = transcript.current;
     if (!area) return;
-    const listener = (event: Event) => { const step = (event as CustomEvent<unknown>).detail; if (step === "strategy" || step === "voice") showSection(step); };
+    const listener = (event: Event) => { const step = (event as CustomEvent<unknown>).detail; if (step === "strategy" || step === "voice" || step === "identity") showSection(step); };
     area.addEventListener(JOURNEY_SECTION_EVENT, listener);
     return () => area.removeEventListener(JOURNEY_SECTION_EVENT, listener);
   }, [transcript]);
@@ -516,11 +525,10 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
           </section>
         </article>}
         {!canvasActive && sloganHistory}
-        {!canvasActive && state?.stage === "complete" && nameChosen && saved.scope === "complete_brand" && <article className="guided-assistant-message flow-enter" aria-label="Next step">
-          <EmbelIdentity label={journeyPartLabel("identity", "Inspiration")} />
-          <p className="guided-assistant-copy">Your voice is set. Next is Identity: pick a few looks you like, then choose a logo for {context.selectedName}.</p>
-          <div className="guided-next-step"><Link className="button primary" href={`/brands/account/${saved.id}/inspiration`}>Continue to Identity<Icon name="arrow" size={14} /></Link></div>
-        </article>}
+      </section>}
+      {!canvasActive && identityShown && <section id={journeySectionId("identity")} className="guided-journey-section flow-enter" data-journey-section="identity" aria-label="Identity" tabIndex={-1}>
+        <InspirationWorkspace projectId={saved.id} variant="conversation"
+          lead={`Your voice is set. Now let’s shape how ${context.selectedName} looks. Like the designs you’re drawn to: the whole look, or open one to choose just its colors, type or layout. Your likes guide the logo concepts.`} />
       </section>}
       {!hasComposer && notices}
     </div>

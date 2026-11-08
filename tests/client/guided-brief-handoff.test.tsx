@@ -10,6 +10,7 @@ import { initialGuidedContext } from "@/components/workspace/guided-interview-cl
 const tracker = vi.hoisted(() => ({ mounts: 0, unmounts: 0 }));
 vi.mock("@/domain/project-handoff", () => ({ getProjectHandoff: () => ({ next: { stage: "naming" } }) }));
 vi.mock("@/domain/project-naming", () => ({ getNamingReadiness: () => ({ ready: true }) }));
+vi.mock("@/components/inspiration/inspiration-workspace", () => ({ InspirationWorkspace: () => null }));
 vi.mock("@/components/naming/project-naming-workspace", () => ({ ProjectNamingWorkspace: ({ conversationHistory }: { conversationHistory: ReactNode }) => {
   useEffect(() => { tracker.mounts++; return () => { tracker.unmounts++; }; }, []);
   return <section data-naming>{conversationHistory}<input aria-label="Naming draft" defaultValue="Keep this text" /></section>;
