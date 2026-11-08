@@ -39,14 +39,15 @@
 .inspiration-open { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; border-radius: var(--radius-card); overflow: hidden; }
 .inspiration-open img { display: block; width: 100%; height: auto; border-radius: var(--radius-card); }
 .inspiration-image { display: block; width: 100%; height: auto; object-fit: contain; border-radius: var(--radius-card); }
-/* A white backing circle keeps the heart visible on light and dark tiles. */
-.inspiration-heart { position: absolute; right: 10px; top: 10px; width: 36px; height: 36px; display: grid; place-items: center; padding: 0; border: 1px solid rgb(25 25 25 / 8%); border-radius: 50%; background: rgb(255 255 255 / 94%); color: var(--text); box-shadow: 0 1px 4px rgb(25 25 25 / 22%); transition: transform 120ms, background 120ms; }
-.inspiration-heart svg { width: 18px; height: 18px; fill: none; transition: fill 150ms; }
-.inspiration-heart:hover:not(:disabled) { background: var(--paper); transform: scale(1.05); }
-.inspiration-heart[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: var(--paper); }
-/* A liked heart stays dark while hovered, so it never turns white on white. */
-.inspiration-heart[aria-pressed="true"]:hover:not(:disabled) { background: var(--text-strong-hover); color: var(--paper); }
-.inspiration-heart[aria-pressed="true"] svg { fill: currentColor; }
+/* Hearts are just the heart, with no circle. Over artwork: a white outline with a
+   soft shadow and a light dark tint inside, readable on light and dark images;
+   a liked heart turns solid white with a thin ink outline, so it reads as filled
+   on dark artwork and stays outlined on light artwork. */
+.inspiration-heart { position: absolute; right: 8px; top: 8px; width: 36px; height: 36px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--radius-pill); background: none; color: #fff; box-shadow: none; transition: transform 120ms, opacity 120ms; }
+.inspiration-heart svg { width: 22px; height: 22px; fill: rgb(25 25 25 / 28%); stroke-width: 2; filter: drop-shadow(0 1px 2px rgb(0 0 0 / 45%)); transition: fill 150ms; }
+.inspiration-heart:hover:not(:disabled) { transform: scale(1.12); }
+.inspiration-heart[aria-pressed="true"] { color: var(--text); }
+.inspiration-heart[aria-pressed="true"] svg { fill: #fff; stroke-width: 1.5; }
 .inspiration-heart svg, .inspiration-overall svg { flex-shrink: 0; }
 .inspiration-caption { display: flex; flex-wrap: wrap; align-items: baseline; text-align: left; gap: 0 6px; padding: 8px 2px 0; border: 0; background: none; width: 100%; color: var(--text); }
 .inspiration-caption strong { font-size: 14px; line-height: 22px; font-weight: 500; }
@@ -136,7 +137,7 @@ button.inspiration-continue { border: 0; font-family: inherit; cursor: pointer; 
 .inspiration-brand-title span { flex: none; color: var(--secondary); font-size: 13px; line-height: 22px; opacity: 0; transition: opacity 120ms; }
 .inspiration-brand:hover .inspiration-brand-title span, .inspiration-brand-title:focus-visible span { opacity: 1; }
 .inspiration-brand-header > :is(.inspiration-saving, .inspiration-pending, .inspiration-availability) { flex: none; margin: 0; font-size: 12px; white-space: nowrap; }
-.inspiration-workspace .inspiration-heart.inspiration-brand-like { position: static; flex: none; box-shadow: none; }
+.inspiration-workspace .inspiration-heart.inspiration-brand-like { position: static; flex: none; }
 .inspiration-brand-bento { display: flex; flex-direction: column; gap: 6px; }
 .inspiration-brand-row { display: flex; gap: 6px; }
 .inspiration-brand-tile { position: relative; min-width: 0; overflow: hidden; border-radius: var(--radius-control); background: var(--surface); }
@@ -147,8 +148,8 @@ button.inspiration-continue { border: 0; font-family: inherit; cursor: pointer; 
 .inspiration-tile-label { position: absolute; left: 6px; bottom: 6px; padding: 2px 8px; border-radius: var(--radius-pill); background: rgb(255 255 255 / 92%); color: var(--text); font-size: 12px; line-height: 18px; opacity: 0; transition: opacity 120ms; pointer-events: none; }
 .inspiration-brand-tile:hover .inspiration-tile-label { opacity: 1; }
 /* A part's heart shows on hover or focus, and stays once the part is liked. */
-.inspiration-workspace .inspiration-heart.inspiration-part-like { right: 6px; top: 6px; width: 28px; height: 28px; opacity: 0; transition: opacity 120ms, transform 120ms, background 120ms; }
-.inspiration-workspace .inspiration-heart.inspiration-part-like svg { width: 14px; height: 14px; }
+.inspiration-workspace .inspiration-heart.inspiration-part-like { right: 4px; top: 4px; width: 30px; height: 30px; opacity: 0; transition: opacity 120ms, transform 120ms; }
+.inspiration-workspace .inspiration-heart.inspiration-part-like svg { width: 18px; height: 18px; }
 .inspiration-brand-tile:hover .inspiration-part-like, .inspiration-brand-tile:focus-within .inspiration-part-like, .inspiration-workspace .inspiration-part-like[aria-pressed="true"] { opacity: 1; }
 .inspiration-more { display: flex; align-items: center; justify-content: center; min-height: 40px; margin: 20px auto 0; padding: 0 18px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); color: var(--text); font-size: 13px; cursor: pointer; }
 .inspiration-more:hover { border-color: var(--border-strong); }
@@ -169,12 +170,12 @@ button.inspiration-continue { border: 0; font-family: inherit; cursor: pointer; 
 .inspiration-overlay-part:hover { background: var(--canvas); }
 .inspiration-overlay-part[aria-current="true"] { border-color: var(--border-strong); background: var(--canvas); }
 .inspiration-overlay-part img { flex: none; width: 72px; height: 48px; object-fit: cover; border-radius: 8px; background: var(--surface); }
-.inspiration-detail .inspiration-heart.inspiration-overlay-like { position: static; flex: none; box-shadow: none; }
-.inspiration-detail .inspiration-heart { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 1px solid rgb(25 25 25 / 8%); border-radius: 50%; background: rgb(255 255 255 / 94%); color: var(--text); }
-.inspiration-detail .inspiration-heart svg { width: 18px; height: 18px; }
-.inspiration-detail .inspiration-heart[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: var(--paper); }
-/* A liked heart stays dark while hovered, so it never turns white on white. */
-.inspiration-heart[aria-pressed="true"]:hover:not(:disabled) { background: var(--text-strong-hover); color: var(--paper); }
+.inspiration-detail .inspiration-heart.inspiration-overlay-like { position: static; flex: none; }
+/* Away from artwork (next to a brand's name, in the overlay's list): a plain ink
+   heart, outlined until liked. */
+.inspiration-workspace .inspiration-heart.inspiration-brand-like, .inspiration-detail .inspiration-heart { color: var(--text); }
+.inspiration-workspace .inspiration-heart.inspiration-brand-like svg, .inspiration-detail .inspiration-heart svg { width: 20px; height: 20px; fill: none; stroke-width: 1.6; filter: none; }
+.inspiration-workspace .inspiration-heart.inspiration-brand-like[aria-pressed="true"] svg, .inspiration-detail .inspiration-heart[aria-pressed="true"] svg { fill: var(--text); }
 
 /* Your own images: "Add your own references" opens the file picker, and the
    saved images sit in a container just above that button, one heart each. */
