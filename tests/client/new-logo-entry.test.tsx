@@ -6,7 +6,6 @@ import { NewProjectForm } from "@/components/workspace/project-editor";
 import { clearLocalDrafts } from "@/components/workspace/local-drafts";
 import { createHomeInputSession, type HomeInputSession } from "@/features/home-inputs/home-input-session";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
-import type { ProjectScope } from "@/domain/projects";
 import HomePage from "@/app/page";
 import NewProjectPage from "@/app/brands/new/page";
 import NewLogoPage from "@/app/brands/logo/new/page";
@@ -28,10 +27,8 @@ vi.mock("next/link", () => ({ default: ({ prefetch, ...props }: AnchorHTMLAttrib
 vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ session: mock.account, homeInputSession: mock.memory, isCurrent: mock.current, expire: mock.expire }) }));
 vi.mock("@/components/workspace/account-strategy-start", () => ({ useAccountStrategyStart: () => mock.strategy }));
 let root: Root, host: HTMLDivElement, fetcher: ReturnType<typeof vi.fn>;
-const render = (home = false, initialScope: ProjectScope = "complete_brand") => act(async () => root.render(createElement(NewProjectForm, { initialScope, home })));
+const render = (home = false) => act(async () => root.render(createElement(NewProjectForm, { home })));
 const logoLink = () => host.querySelector<HTMLAnchorElement>('a[href="/brands/logo/new"]');
-const checkedScope = () => host.querySelector<HTMLInputElement>(".home-scope input:checked")?.value;
-const searchParams = (scope?: string | string[]) => Promise.resolve(scope === undefined ? {} : { scope });
 beforeEach(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }); HTMLElement.prototype.scrollTo = vi.fn();
   window.localStorage.clear(); window.sessionStorage.clear(); clearLocalDrafts();
@@ -47,28 +44,27 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); });
 
-// Home starts every project. The older New project and logo routes lead there
-// with the matching scope preselected; nothing is created on the way.
+// Home starts every project, and every project is a complete brand. The older
+// New project and logo routes lead to Home; nothing is created on the way.
 describe("new project entry", () => {
-  it.each([[undefined, "/"], ["complete_brand", "/"], ["naming_only", "/?scope=naming_only"], ["visual_identity_only", "/?scope=visual_identity_only"], ["unknown", "/"], [["naming_only", "visual_identity_only"], "/"]] as const)("sends /brands/new?scope=%s to %s", async (scope, href) => {
-    await expect(NewProjectPage({ searchParams: searchParams(scope as string | string[] | undefined) })).rejects.toThrow(`redirect:${href}`);
-    expect(mock.redirect).toHaveBeenCalledExactlyOnceWith(href); expect(fetcher).not.toHaveBeenCalled();
+  it("sends /brands/new to Home", () => {
+    expect(() => NewProjectPage()).toThrow("redirect:/");
+    expect(mock.redirect).toHaveBeenCalledExactlyOnceWith("/"); expect(fetcher).not.toHaveBeenCalled();
   });
 
-  it("sends the old logo workflow to Home with Visual identity chosen", () => {
-    expect(() => NewLogoPage()).toThrow("redirect:/?scope=visual_identity_only");
+  it("sends the old logo workflow to Home", () => {
+    expect(() => NewLogoPage()).toThrow("redirect:/");
     expect(fetcher).not.toHaveBeenCalled();
   });
 
-  it.each([[undefined, "complete_brand"], ["naming_only", "naming_only"], ["visual_identity_only", "visual_identity_only"], ["unknown", "complete_brand"]] as const)("preselects Home's scope from ?scope=%s", async (scope, expected) => {
-    const page = await HomePage({ searchParams: searchParams(scope) });
-    expect(page.props.initialScope).toBe(expected);
-    await render(true, expected); expect(checkedScope()).toBe(expected);
+  it("renders Home without a project type choice", () => {
+    expect(HomePage().props).toEqual({});
   });
 
-  it.each([false, true])("offers no separate logo route from the form (home: %s)", async home => {
+  it.each([false, true])("offers no project type choice or separate logo route (home: %s)", async home => {
     await render(home); expect(logoLink()).toBeNull(); expect(host.textContent).not.toContain("Create a logo");
-    expect([...host.querySelectorAll<HTMLInputElement>(".home-scope input")].map(input => input.value)).toEqual(["complete_brand", "naming_only", "visual_identity_only"]);
+    expect(host.querySelector(".home-scope")).toBeNull();
+    expect(host.textContent).not.toContain("Name only"); expect(host.textContent).not.toContain("Visual identity");
     expect(mock.navigate).not.toHaveBeenCalled(); expect(mock.strategy.save).not.toHaveBeenCalled(); expect(mock.strategy.start).not.toHaveBeenCalled();
   });
 });

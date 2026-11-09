@@ -1,5 +1,6 @@
 /** Synthetic local fixtures only. No provider, asset or licensing evidence. */
 import { contextSnapshotSchema } from "../../src/domain/projects";
+import { reviewedStrategy } from "../fixtures/reviewed-strategy";
 import { createIdentityReferenceSnapshot } from "../../src/domain/identity-references";
 import {
   createIdentityInputSnapshot, getIdentityCurrentBasis, getIdentityFreshness, getIdentityReadiness, identitySystemVersionSchema,
@@ -12,7 +13,8 @@ export const fixtureOwner = fixtureId(1), fixtureProject = fixtureId(2), fixture
 export function fixtureInput(options: { projectRevision?: number; references?: number; maximal?: boolean; name?: string } = {}): IdentityInputSnapshot {
   const { projectRevision = 1, references: count = 1, maximal = false } = options;
   const scope = { ownerId: fixtureOwner, projectId: fixtureProject };
-  const context = contextSnapshotSchema.parse({ description: maximal ? "😀".repeat(12000) : "Local test fixture: independent design studio", intake: { suppliedName: options.name ?? "Cedar" } });
+  // A complete brand with its Strategy reviewed, as every project now is.
+  const context = reviewedStrategy({ description: maximal ? "😀".repeat(12000) : "Local test fixture: independent design studio", intake: { suppliedName: options.name ?? "Cedar" } });
   const referenceSnapshot = createIdentityReferenceSnapshot({ ...scope, referenceRevision: count ? 1 : 0, selectedReferenceCount: count, capturedAt: fixtureAt,
     selected: Array.from({ length: count }, (_, index) => ({
       reference: { id: fixtureId(1000 + index), ...scope, createdAt: fixtureAt,
@@ -23,7 +25,7 @@ export function fixtureInput(options: { projectRevision?: number; references?: n
       }, reaction: { ...scope, referenceId: fixtureId(1000 + index), revision: 1, ensemble: true, elements: ["colors"], updatedAt: fixtureAt },
     })),
   });
-  return createIdentityInputSnapshot({ ...scope, scope: "visual_identity_only", projectRevision, context, referenceSnapshot,
+  return createIdentityInputSnapshot({ ...scope, scope: "complete_brand", projectRevision, context, referenceSnapshot,
     preferencesRevision: 0, preferences: initialIdentityPreferences(context), capturedAt: fixtureAt });
 }
 export function fixtureSystem(input = fixtureInput(), index = 0): IdentitySystemVersion {
@@ -47,9 +49,9 @@ export function fixtureOverview(options: { input?: IdentityInputSnapshot; system
     previousSelection: null, identityRevision: 0, request: { systemVersionId: system.id, expectedProjectRevision: input.projectRevision,
       expectedReferenceRevision: input.referenceSnapshot.referenceRevision, expectedPreferencesRevision: input.preferencesRevision, expectedIdentityRevision: 0, acceptEarlierBasis: true }, selectionId: fixtureId(700), now: fixtureAt }) : null;
   return projectIdentityOverviewSchema.parse({ ...scope, saveAvailability: { status: "available" },
-    project: { id: input.projectId, owner_id: input.ownerId, title: "Local fixture Cedar", scope: input.scope, current_revision: input.projectRevision, created_at: fixtureAt, context: input.context },
+    project: { id: input.projectId, owner_id: input.ownerId, title: "Local fixture Cedar", scope: "complete_brand", current_revision: input.projectRevision, created_at: fixtureAt, context: input.context },
     session: selection ? { ...scope, identityRevision: 1, currentSelectionId: selection.id, currentPreferencesRevision: 0, createdAt: fixtureAt, updatedAt: fixtureAt } : null,
-    preferences: null, referenceSnapshot: input.referenceSnapshot, readiness: getIdentityReadiness(input.context, input.scope, input.referenceSnapshot), currentBasis,
+    preferences: null, referenceSnapshot: input.referenceSnapshot, readiness: getIdentityReadiness(input.context, "complete_brand", input.referenceSnapshot), currentBasis,
     currentSelection: selection && system ? { selection, system, freshness: getIdentityFreshness(system.input.basis, currentBasis) } : null,
     systems: { ...scope, query: { limit: 20 }, items: [...systems].sort((left, right) => right.id.localeCompare(left.id)).map(item => summarizeIdentitySystem(item, currentBasis)), nextCursor: null },
   });

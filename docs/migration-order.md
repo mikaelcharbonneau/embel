@@ -54,3 +54,27 @@ indefinitely. A possibly dispatched call becomes `needs_reconciliation` with its
 hold kept; work with no dispatch evidence returns to the queue or ends with a
 zero-spend settlement. See [Naming lease expiry](naming-lease-expiry.md). Apply
 the packet before the worker build that calls `expire`.
+
+## November 8 Naming generation packet
+
+`supabase/candidates/shared_naming_generation.sql` follows
+`shared_naming_brainstorm_continuation.sql`. It adds the Naming generation run
+functions (`start_naming_run`, `get_naming_generation`, `stop_naming_run`,
+`get_naming_usage`), the `naming_rounds` table, and replaces the Naming lane
+gateway `shared_naming_worker_action` in place. It also leaves runs out of the
+old batch list and drops the previous engine's feed-counter triggers. Apply it
+with the worker build that uses the new Naming lane. See
+[the generation contract](naming-generation-contract.md).
+
+## November 9 Naming cleanup packet
+
+`supabase/candidates/shared_naming_cleanup.sql` follows
+`shared_naming_generation.sql`. It removes the retired Naming engines: about 157
+database functions and 35 private tables. It first rewrites fifteen shared
+functions that still referred to them, each guarded by its reviewed predecessor
+body, then ends old Naming jobs that were still open (releasing their internal
+usage holds, keeping the job rows) and removes the names those engines generated,
+with their likes, selections and screening records. Names people added
+themselves and names from the new generation path stay. A final check fails the
+packet if any remaining function still names a removed object.
+

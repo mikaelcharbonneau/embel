@@ -156,13 +156,10 @@ describe("shared Home and Projects card", () => {
     expect(host.querySelector("a")?.getAttribute("href")).toBe(`/brands/account/${saved.id}/logo/deliverables`);
   });
 
-  it("does not fetch deleted or naming-only artwork and keeps lifecycle controls separate", async () => {
+  it("does not fetch deleted artwork and keeps lifecycle controls separate", async () => {
     await render({ ...project(), deletion_state: "deleted", deleted_at: "2026-10-20T01:00:00Z" }, { deletionStatus: <p>Deleted project retained</p> });
     expect(mock.createClient).not.toHaveBeenCalled(); expect(host.querySelector("a")).toBeNull();
     expect(host.textContent).toContain("Deleted project retained"); expect(host.querySelector("button")).not.toBeNull();
-    await render({ ...project(), scope: "naming_only" });
-    expect(mock.createClient).not.toHaveBeenCalled(); expect(host.textContent).toContain("Naming project");
-    expect(host.querySelector("h2")?.textContent).toBe("Persimmon");
   });
 
   it("masks private content immediately on re-verification and never resurrects its released URL", async () => {

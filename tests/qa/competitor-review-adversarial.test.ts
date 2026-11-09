@@ -11,7 +11,7 @@ const now = "2026-10-03T03:00:00Z";
 const source = { url: "https://example.com/qa-source", title: "Synthetic source fixture", retrievedAt: now };
 const project = accountProjectSchema.parse({
   id: "aaaaaaaa-1111-4111-8111-111111111111", owner_id: "bbbbbbbb-1111-4111-8111-111111111111",
-  scope: "naming_only", title: "Independent competitor fixture", current_revision: 7, created_at: now,
+  scope: "complete_brand", title: "Independent competitor fixture", current_revision: 7, created_at: now,
   context: {
     description: "An independent local fixture for a neighborhood kitchen serving weekday lunches.",
     activity: "Neighborhood kitchen", offering: "Seasonal weekday lunches", knownAudience: "Nearby workers", reformulationConfirmed: true,

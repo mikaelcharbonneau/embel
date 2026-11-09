@@ -4,7 +4,7 @@ import type { LocalDraft } from "@/components/workspace/local-drafts";
 function largeDraft(index: number): LocalDraft {
   return {
     id: `aaaaaaaa-1111-4111-8111-${String(index).padStart(12, "0")}`,
-    title: `Local capacity fixture ${index}`, scope: "naming_only", description: "A schema-valid local browser draft capacity fixture.",
+    title: `Local capacity fixture ${index}`, scope: "complete_brand", description: "A schema-valid local browser draft capacity fixture.",
     activity: "Kitchen", offering: "Lunch", knownAudience: "Workers", suppliedName: "", namingNotes: "Keep these unsaved notes", identityNotes: "",
     stage: "audience", audienceReviewedAt: null, example: false, createdAt: "2026-10-02T10:00:00Z", updatedAt: "2026-10-02T10:00:00Z",
     segments: Array.from({ length: 30 }, (_, segment) => ({

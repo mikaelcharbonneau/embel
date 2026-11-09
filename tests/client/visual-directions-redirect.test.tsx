@@ -23,20 +23,20 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); });
 
 it("sends a complete brand to Creative direction in its project conversation", async () => {
-  fixture.progress = { projectId, scope: "complete_brand", nextHref: `/brands/account/${projectId}/logo/directions` };
+  fixture.progress = { projectId, nextHref: `/brands/account/${projectId}/logo/directions` };
   await act(async () => root.render(<VisualDirectionsPage projectId={projectId} />));
   expect(fixture.replace).toHaveBeenCalledExactlyOnceWith(`/brands/account/${projectId}?view=strategy#journey-directions`);
   expect(host.innerHTML).toBe("");
 });
 
-it("keeps the page for a project without the conversation", async () => {
-  fixture.progress = { projectId, scope: "visual_identity_only", nextHref: null };
+it("keeps the page when the project conversation is not around it", async () => {
+  fixture.progress = null;
   await act(async () => root.render(<VisualDirectionsPage projectId={projectId} />));
   expect(fixture.replace).not.toHaveBeenCalled(); expect(host.querySelector("[data-account-status]")).not.toBeNull();
 });
 
 it("never redirects when it is shown inside the conversation", async () => {
-  fixture.progress = { projectId, scope: "complete_brand", nextHref: `/brands/account/${projectId}/logo/directions` };
+  fixture.progress = { projectId, nextHref: `/brands/account/${projectId}/logo/directions` };
   await act(async () => root.render(<VisualDirectionsPage projectId={projectId} variant="conversation" />));
   expect(fixture.replace).not.toHaveBeenCalled(); expect(host.querySelector("[data-account-status]")).toBeNull();
 });

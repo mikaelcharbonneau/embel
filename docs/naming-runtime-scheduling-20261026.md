@@ -1,5 +1,7 @@
 # Naming runtime scheduling and authority — phase two, source only
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 This isolated change starts from remote main
 `56efd115c67baab57c478c60cb186e2bd7e321f6` plus the exact 22 frozen
 phase-one receipt/index files. The full 2,329-file baseline identity is

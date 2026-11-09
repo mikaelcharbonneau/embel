@@ -1,5 +1,7 @@
 # Hosted Naming activation — 2026-10-18
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 ## Historical implementation scope
 
 The hosted Naming workstream added production routing for the existing owner's

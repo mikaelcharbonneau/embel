@@ -1,12 +1,11 @@
 import type { PoolConfig } from "pg";
 import { readDevelopmentConfiguration } from "../../src/server/development/config";
 
-export type DevelopmentWorkerLane = "strategy" | "naming" | "logo";
+export type DevelopmentWorkerLane = "strategy" | "logo";
 export type DevelopmentWorkerMode = "preflight" | "run";
 export type DevelopmentWorkerEnvironment = Record<string, string | undefined>;
 export const DEVELOPMENT_WORKER_ROLES = Object.freeze({
   strategy: "embel_development_text_worker",
-  naming: "embel_development_text_worker",
   logo: "embel_development_logo_worker",
 });
 export type DevelopmentWorkerConfiguration = Readonly<{
@@ -52,7 +51,7 @@ export function readDevelopmentWorkerConfiguration(
 
 export function readDevelopmentWorkerArguments(args: readonly string[]): { lane: DevelopmentWorkerLane; mode: DevelopmentWorkerMode } {
   if (args.length !== 2 && args.length !== 3 || args[0] !== "--lane"
-    || !["strategy", "naming", "logo"].includes(args[1] ?? "")
+    || !["strategy", "logo"].includes(args[1] ?? "")
     || args.length === 3 && args[2] !== "--run") throw new Error("development_worker_arguments_invalid");
   return { lane: args[1] as DevelopmentWorkerLane, mode: args[2] === "--run" ? "run" : "preflight" };
 }

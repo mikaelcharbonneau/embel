@@ -87,14 +87,6 @@ it.each([0, 1])("keeps an unacknowledged guided answer after same-owner verifica
   expect(host.textContent).toContain("Retry save");
 });
 
-it("continues a naming-only project to its own Naming workspace without requiring competitor research", async () => {
-  project = { ...project, scope: "naming_only" };
-  expect(getNamingReadiness(project.context, project.scope).ready).toBe(true);
-  await mount();
-  expect(host.querySelector(`a[href="/brands/account/${projectId}/naming"]`)).not.toBeNull();
-  expect(host.textContent).not.toContain("Start competitor research");
-});
-
 it("keeps unsent conversation text through same-owner verification and protects unsaved exit", async () => {
   await mount();
   await typePrompt("Please keep my unsent message");
@@ -353,13 +345,6 @@ it("keeps an unconfirmed choice across same-owner verification without treating 
   expect(host.querySelector<HTMLInputElement>('input[type="checkbox"]')!.disabled).toBe(false);
   expect(project.context.intake.guidedInterview!.answers).toHaveLength(0);
   expect(fetcher.mock.calls.filter(([, init]) => init.method !== "GET")).toHaveLength(0);
-});
-
-it("continues a visual-identity project to references without offering naming or competitor research", async () => {
-  project = { ...project, scope: "visual_identity_only" }; await mount();
-  expect(host.querySelector(`a[href="/brands/account/${projectId}/inspiration"]`)).not.toBeNull();
-  expect(host.querySelector(`a[href="/brands/account/${projectId}/naming"]`)).toBeNull();
-  expect(host.textContent).not.toContain("Start competitor research");
 });
 
 it.each([false, true])("clears only the acknowledged submitted prompt after guided recovery (new typing: %s)", async newerTyping => {

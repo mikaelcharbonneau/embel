@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { contextSnapshotSchema, type ContextSnapshot, type ProjectScope } from "../../src/domain/projects";
+import { contextSnapshotSchema, type ContextSnapshot } from "../../src/domain/projects";
+// The database still accepts the retired scopes and can expand them; the app no longer creates them.
+type StoredScope = "complete_brand" | "naming_only" | "visual_identity_only";
 import { asRole, createTestDatabase, HASH, OWNER_A, OWNER_B, resetFixture, type TestDatabase } from "./local-supabase";
 
 // Synthetic fixture only: no generated strategy or external provider observations.
@@ -17,7 +19,7 @@ const context = contextSnapshotSchema.parse({
   positioning: "User supplied positioning", selectedName: "User supplied name", creativeLocale: "fr-CA",
   intake: { suppliedName: "Existing fixture name", namingNotes: "Preserve spelling", identityNotes: "Prefer simple shapes", step: "audience", audienceReviewedAt: "2026-10-02T00:00:00Z", example: true },
 });
-type StoredProject = { id: string; owner_id: string; scope: ProjectScope; title: string; current_revision: number; created_at: string };
+type StoredProject = { id: string; owner_id: string; scope: StoredScope; title: string; current_revision: number; created_at: string };
 type ExpandedProject = StoredProject & { context: ContextSnapshot };
 type StoredRevision = { project_id: string; owner_id: string; revision: number; context: ContextSnapshot; input_hash: string };
 
@@ -27,7 +29,7 @@ describe("local PostgreSQL project drafting and expansion (not live Supabase)", 
   afterAll(async () => { await db?.close(); });
   beforeEach(async () => { await resetFixture(db); });
 
-  async function create(scope: ProjectScope = "naming_only") {
+  async function create(scope: StoredScope = "naming_only") {
     return asRole(db, "authenticated", OWNER_A, async () => (await db.query<StoredProject>(
       // Expansion intentionally retains its legacy seven-column RPC shape.
       "select id,owner_id,scope,title,current_revision,created_at from public.create_project($1,'Original title',$2::jsonb,$3)", [scope, context, HASH],

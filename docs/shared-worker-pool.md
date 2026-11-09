@@ -9,7 +9,7 @@ This source is a separately versioned authority migration. Existing jobs, their
 immutable inputs, provider receipts, accounting and historical capped contracts
 retain their original handlers. New shared Strategy, Naming and Logo admissions
 must satisfy their reviewed uncapped lane contracts. Identity generation uses
-the same Logo slot; it adds no fourth lane or customer-specific process.
+Logo slot 1; it adds no fourth lane or customer-specific process.
 Installing a packet does not
 enable an application flag, register a slot, configure credentials or prove live
 generation.
@@ -114,10 +114,20 @@ owner and lane; unrelated tools may execute in parallel. The pool configuration
 RPC proves the complete enabled slot set, its global concurrency bound and
 `maxPerTenantPerLane`. Mixed enabled tenant limits fail qualification. These are
 execution/connection limits, not monetary limits.
+Production runs one Strategy slot, one Naming slot and six Logo slots, with a
+per-person limit of six per lane, so the six jobs of one concept batch run at
+once. Logo slot 1 handles every Logo and Identity operation; slots 2–6 handle
+concepts and refinements only, so native vector and export work stays one at a
+time. Each Logo slot has its own database role and Storage service user.
 An engine journal or drain failure immediately fences its exact current lease,
 expires admission and parks its active metadata as observation. This is an
 admission withdrawal, not evidence that a remote provider request stopped. An old
 process cannot fence a newer generation's slot.
+Since November 8, 2026 an unconfirmed drain retires only that slot's engine. The
+slot retries after its own backoff; its next claim increases the generation, so
+a late write from the abandoned engine is refused. The other lanes keep running,
+and the process still reports the unconfirmed drain (exit code 2) when it stops.
+Before this change one lane's unconfirmed drain stopped every lane.
 
 ## Restart, cancellation and evidence
 
@@ -177,7 +187,7 @@ The shared slot is a trusted application service across eligible accounts. A
 compromised lane credential could process or expose the eligible work it can
 claim within that lane. It cannot choose an arbitrary owner, bypass Storage
 policies, read raw customer tables, create roles or use a stale generation to
-publish. Three total execution slots and one active job per account per lane
+publish. Eight total execution slots and six active jobs per account per lane
 bound concurrency; they are not a guarantee against deliberate abuse by a
 compromised service. A stolen provider key can also be used outside these SQL
 gates until revoked. Containment therefore includes separate restricted web

@@ -1,5 +1,3 @@
-import type { ProjectScope } from "./projects";
-
 /** The user-confirmed brand journey (2026-11-06): four steps, each with its parts. */
 export const JOURNEY = [
   { id: "strategy", label: "Strategy", parts: ["Competitors", "Audience", "Positioning"] },
@@ -14,13 +12,6 @@ export type JourneyStepStatus = "done" | "current" | "upcoming";
 export type JourneyStepView = { id: JourneyStepId; label: string; number: number; status: JourneyStepStatus; href?: string; complete?: boolean };
 
 const ALL_STEPS: readonly JourneyStepId[] = JOURNEY.map(step => step.id);
-// A naming-only project has just the Name step; a visual identity starts at Identity.
-const SCOPE_STEPS: Record<ProjectScope, readonly JourneyStepId[]> = {
-  complete_brand: ALL_STEPS,
-  naming_only: ["voice"],
-  visual_identity_only: ["identity", "assets"],
-};
-export function journeyStepIds(scope: ProjectScope): readonly JourneyStepId[] { return SCOPE_STEPS[scope]; }
 
 /** Presentation only: callers decide which steps are verified as done. Steps
  * are numbered by their position among the included ones. */
@@ -67,8 +58,8 @@ export function journeyStepOfAction(projectId: string, href: string): JourneySte
 /** The project bar's steps: the page being viewed is current, steps before the
  * verified next action are done, and the next action itself is a link. */
 /** `shown` overrides the page: the conversation reports which step it is on. */
-export function projectJourney(input: { projectId: string; scope: ProjectScope; pathname: string; nextHref: string | null; shown?: JourneyStepId | null }): JourneyStepView[] {
-  const include = journeyStepIds(input.scope);
+export function projectJourney(input: { projectId: string; pathname: string; nextHref: string | null; shown?: JourneyStepId | null }): JourneyStepView[] {
+  const include = ALL_STEPS;
   const viewed = input.shown ?? journeyStepOfPath(input.projectId, input.pathname);
   const current = include.includes(viewed) ? viewed : include[0]!;
   const progress = input.nextHref ? journeyStepOfAction(input.projectId, input.nextHref) : null;

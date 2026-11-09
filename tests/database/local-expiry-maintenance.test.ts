@@ -4,7 +4,6 @@ vi.mock("server-only", () => ({}));
 import { guidedStrategyPolicy } from "../../src/server/ai/config";
 import { createTestDatabase, OWNER_A, type TestDatabase } from "./local-supabase";
 import { brainRpc, brainWorker, claimBrain, initialIntent, installBrainFixture, seedBrainFixture } from "./naming-brain-fixture";
-import { saveProgressivePart, seedProgressiveFixture } from "./naming-brain-progressive-fixture";
 
 const migrationName = "20261017172000_local_expiry_maintenance.sql";
 const signatures = ["public.expire_naming_brain_leases(text,text)", "fluid_private.expire_local_strategy_leases()", "fluid_private.naming_brain_preparation_pending(fluid_private.naming_brain_runs)"];
@@ -93,36 +92,4 @@ describe("bounded local expiry maintenance (disposable SQL)", () => {
    expect((await brainWorker(db, () => db.query("select public.expire_naming_brain_leases('fixture-worker','fixture-deployment') count"))).rows).toEqual([{ count: 1 }]);
   } finally { await db.exec(after[0]!.definition); await db.exec(after[1]!.definition); }
  });
-
- it("returns false at genuine94 and unfinished100 before evaluating any costly preparation predicate", async () => {
-  const fixture = await seedProgressiveFixture(db);
-  for (let index = 0; index < 16; index++) {
-   const part = await saveProgressivePart(fixture, index, index === 15 ? 4 : 6, fixture.input.snapshot.preferences.approaches[index % 3]!);
-   await brainWorker(db, () => fixture.store.publishMicrobatch(fixture.job, part.publication!, new AbortController().signal));
-  }
-  const helpers = ["fluid_private.local_naming_progressive_current(fluid_private.naming_brain_runs)", "fluid_private.local_naming_progressive_researched(fluid_private.naming_brain_runs)",
-   "fluid_private.local_naming_progressive_counts(fluid_private.naming_brain_runs)", "fluid_private.naming_brain_call_terminal(fluid_private.naming_brain_calls)"];
-  const originals = (await db.query<{ definition: string }>("select pg_get_functiondef(oid) definition from unnest($1::regprocedure[]::oid[]) oid", [helpers])).rows.map(row => row.definition);
-  const check = () => db.query("select fluid_private.naming_brain_preparation_pending(r) pending from fluid_private.naming_brain_runs r where id=$1", [fixture.input.runId]);
-  const preserved94 = await snapshot();
-  // Fault injection proves the CASE gate excludes every expensive helper. It
-  // does not claim to reproduce native planner/JIT performance in PGlite.
-  const forbidHelpers = async () => {
-   for (const definition of originals) {
-    const opening = definition.indexOf("AS $function$"), closing = definition.lastIndexOf("$function$");
-    expect(opening).toBeGreaterThan(0); expect(closing).toBeGreaterThan(opening);
-    await db.exec(definition.slice(0, opening).replace("LANGUAGE sql", "LANGUAGE plpgsql") + "AS $function$ begin raise exception 'synthetic_expensive_preparation_predicate'; end $function$" + definition.slice(closing + "$function$".length));
-   }
-  };
-  const restore = async () => { for (const definition of originals) await db.exec(definition); };
-  await forbidHelpers();
-  try { expect((await check()).rows).toEqual([{ pending: false }]); expect(await snapshot()).toEqual(preserved94); }
-  finally { await restore(); }
-  const final = await saveProgressivePart(fixture, 16, 6, "invented");
-  await brainWorker(db, () => fixture.store.publishMicrobatch(fixture.job, final.publication!, new AbortController().signal));
-  expect((await db.query("select count(*)::int count from fluid_private.naming_brain_feed_entries where run_id=$1", [fixture.input.runId])).rows).toEqual([{ count: 100 }]);
-  const preserved100 = await snapshot(); await forbidHelpers();
-  try { expect((await check()).rows).toEqual([{ pending: false }]); expect(await snapshot()).toEqual(preserved100); }
-  finally { await restore(); }
- }, 60_000);
 });

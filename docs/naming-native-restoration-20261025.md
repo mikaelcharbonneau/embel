@@ -1,5 +1,7 @@
 # Native Naming restoration — 2026-10-25
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 ## Current requirement and implementation
 
 The user's October 25 correction explicitly rejects monetary limits. The prior

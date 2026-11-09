@@ -8,12 +8,15 @@ still need validation when changed; source descriptions do not prove deployment.
 
 ## Current shared Naming path
 
-The current shared initial-creation path uses Responses for fast-first creative
-proposals, labelled as unchecked, with a target of 100 names. It does not run the
-older research/Director/curation pipeline before showing that first batch.
-See [fast-first Naming](naming-fast-first.md) for its precise implementation and
-evidence limits. Older native request formats and recovery paths remain in the
-source; their presence is not a requirement to use them for new requests.
+Since November 2026 Naming generation is one ordinary background job: up to
+three OpenAI background-mode rounds that together save at most 100 cleaned
+names. The worker saves each round's receipt number before polling, cleans and
+checks names in code, and saves only clean names and usage in one database step.
+A failure ends that run with a stated reason; it never stops the worker or
+other lanes. See [the rebuild plan](naming-rebuild-plan-20261108.md) and
+[the generation contract](naming-generation-contract.md). The previous
+brainstorm/brain machinery is still installed until the removal step; its
+documents describe history, not the current path.
 
 ## Current shared account and worker architecture
 
@@ -252,7 +255,7 @@ Code layout: src/app + src/components (frontend), src/domain (shared Zod contrac
 
 ## Key contracts
 
-Project scopes: complete_brand | naming_only | visual_identity_only. A ContextSnapshot contains description, activity, offering, known audience, selected segments, retained competitors, supplied name, and provenance. Promotion copies known context and source references; never invents approvals, audience, or positioning. Revision numbers invalidate downstream selections without deleting history.
+Every project is a complete brand (`complete_brand`). The "Name only" and "Visual identity" scopes were retired on November 9, 2026; migration `20261109090000_complete_brand_only.sql` converted existing projects, and the database still accepts the old values only for compatibility. Saved Identity history keeps the scope it was made with. A ContextSnapshot contains description, activity, offering, known audience, selected segments, retained competitors, supplied name, and provenance. Promotion copies known context and source references; never invents approvals, audience, or positioning. Revision numbers invalidate downstream selections without deleting history.
 
 Assets use immutable version IDs, input revision/hash, MIME type, storage path, content hash, generation provenance, likes/saves/usage. Default inclusion is liked OR saved OR used. A new selection records restore history; original versions remain addressable. Vector readiness requires actual path geometry and license provenance, not an SVG extension.
 

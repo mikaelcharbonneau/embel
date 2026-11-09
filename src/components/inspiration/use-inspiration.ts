@@ -33,7 +33,7 @@ export function useInspiration(account: VerifiedAccount, projectId: string) {
     return () => { mounted = false; client.dispose(); };
   }, [client, load]);
   const refresh = async () => { setLoading(true); await load(); };
-  const canSave = Boolean(overview && overview.projectScope !== "naming_only" && !blocked && !error && !loading);
+  const canSave = Boolean(overview && !blocked && !error && !loading);
   async function save(id: string, { ensemble, elements }: InspirationPreferences, retry = false) {
     // Saved reactions also contain owner/project metadata. Only editable fields
     // may enter intent memory or the strict mutation payload.

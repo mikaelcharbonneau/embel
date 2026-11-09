@@ -12,7 +12,7 @@ import { accountProjectSchema, type AccountProject } from "@/domain/project-api"
 // The Logo step inside the project conversation. Inspiration and the logo
 // workspace are stand-ins: their own tests cover them. No network or AI calls.
 const fixture = vi.hoisted(() => ({
-  progress: null as null | { projectId: string; scope: AccountProject["scope"]; nextHref: string | null },
+  progress: null as null | { projectId: string; nextHref: string | null },
   replace: vi.fn(),
   strategy: {
     overview: { availability: { status: "unavailable", reason: "worker_unavailable", operations: [] }, jobs: [] },
@@ -52,7 +52,7 @@ async function render() {
     storage: { kind: "account", saveLabel: "Saved", onUpdate: () => false } })));
 }
 function progressAt(step: "inspiration" | "logo" | "logo/directions") {
-  fixture.progress = { projectId, scope: "complete_brand", nextHref: `/brands/account/${projectId}/${step}` };
+  fixture.progress = { projectId, nextHref: `/brands/account/${projectId}/${step}` };
 }
 
 beforeEach(() => {
@@ -161,8 +161,8 @@ describe("Old Logo page", () => {
     expect(host.querySelector("[data-logo-workspace]")).toBeNull();
   });
 
-  it("keeps the page for a project without the conversation", async () => {
-    fixture.progress = { projectId, scope: "visual_identity_only", nextHref: null };
+  it("keeps the page when the project conversation is not around it", async () => {
+    fixture.progress = null;
     await act(async () => root.render(<LogoCreationPage projectId={projectId} />));
     expect(fixture.replace).not.toHaveBeenCalled();
     expect(host.querySelector("[data-logo-workspace]")?.getAttribute("data-logo-workspace")).toBe(projectId);

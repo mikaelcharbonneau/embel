@@ -9,7 +9,6 @@ const doubles = vi.hoisted(() => ({ auth: vi.fn() }));
 vi.mock("../../src/server/auth/context", () => ({ getAuthenticatedContext: doubles.auth }));
 import { POST as create } from "../../src/app/api/projects/route";
 import { PATCH } from "../../src/app/api/projects/[projectId]/route";
-import { POST as expand } from "../../src/app/api/projects/[projectId]/expand/route";
 
 const initialContext = contextSnapshotSchema.parse({
   description: "Local integration fixture, not model output.",
@@ -53,7 +52,7 @@ describe("local route-to-PostgreSQL draft integration (no live services)", () =>
   afterEach(() => { vi.unstubAllEnvs(); vi.clearAllMocks(); });
 
   it("does not persist a stale account's draft after cookies switch to another account", async () => {
-    const input = { title: "Captured account A draft", scope: "naming_only", context: initialContext };
+    const input = { title: "Captured account A draft", scope: "complete_brand", context: initialContext };
     actor = OWNER_B;
     expect((await create(request(input))).status).toBe(401);
     expect((await create(request(input, "POST", null))).status).toBe(401);
@@ -95,8 +94,8 @@ describe("local route-to-PostgreSQL draft integration (no live services)", () =>
     expect((await db.query("select * from public.jobs")).rows).toEqual([]);
   });
 
-  it.each(["naming_only", "visual_identity_only"] as const)("creates, edits and expands %s through actual SQL with context preserved", async scope => {
-    const createdResponse = await create(request({ title: "Initial fixture", scope, context: initialContext }));
+  it("creates and edits a brand through actual SQL with context preserved", async () => {
+    const createdResponse = await create(request({ title: "Initial fixture", scope: "complete_brand", context: initialContext }));
     expect(createdResponse.status).toBe(201);
     const { project } = accountProjectResponseSchema.parse(await createdResponse.json());
     expect(project.owner_id).toBe(OWNER_A);
@@ -112,22 +111,15 @@ describe("local route-to-PostgreSQL draft integration (no live services)", () =>
     expect(revision.context).toEqual(editedContext);
 
     actor = OWNER_B;
-    expect((await expand(request({ expectedRevision: 2 }), route(project.id))).status).toBe(404);
+    expect((await PATCH(request({ expectedRevision: 2, context: editedContext }, "PATCH"), route(project.id))).status).toBe(404);
     actor = OWNER_A;
-    expect((await expand(request({ expectedRevision: 1 }), route(project.id))).status).toBe(409);
-    const expandedResponse = await expand(request({ expectedRevision: 2 }), route(project.id));
-    expect(expandedResponse.status).toBe(200);
-    const { project: expandedProject } = accountProjectResponseSchema.parse(await expandedResponse.json());
-    expect(expandedProject).toEqual({ id: project.id, owner_id: project.owner_id, created_at: project.created_at,
-      scope: "complete_brand", title: "Edited fixture", current_revision: 3, context: editedContext });
-    expect((await db.query("select deleted_at,deletion_requested_at,lifecycle_version from public.projects where id=$1", [project.id])).rows)
-      .toEqual([{ deleted_at: null, deletion_requested_at: null, lifecycle_version: 0 }]);
-    const repeated = await expand(request({ expectedRevision: 3 }), route(project.id));
-    expect(await repeated.json()).toEqual({ project: expandedProject });
+    expect((await PATCH(request({ expectedRevision: 1, context: editedContext }, "PATCH"), route(project.id))).status).toBe(409);
+    expect((await db.query("select scope,title,current_revision,deleted_at,deletion_requested_at,lifecycle_version from public.projects where id=$1", [project.id])).rows)
+      .toEqual([{ scope: "complete_brand", title: "Edited fixture", current_revision: 2, deleted_at: null, deletion_requested_at: null, lifecycle_version: 0 }]);
     const stored = await db.query<{ revision: number; context: unknown; input_hash: string }>("select revision,context,input_hash from public.project_revisions where project_id=$1 order by revision", [project.id]);
-    expect(stored.rows).toHaveLength(3);
+    expect(stored.rows).toHaveLength(2);
     expect(stored.rows[0]?.context).toEqual(initialContext);
-    expect(stored.rows[2]).toEqual({ revision: 3, context: editedContext, input_hash: revision.input_hash });
+    expect(stored.rows[1]).toEqual({ revision: 2, context: editedContext, input_hash: revision.input_hash });
     expect((await db.query("select * from public.jobs")).rows).toEqual([]);
   });
 });

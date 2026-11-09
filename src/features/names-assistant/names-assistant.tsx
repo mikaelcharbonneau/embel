@@ -17,7 +17,6 @@ export function NamesAssistant({ onOpenAccountLibrary }: NamesAssistantProps) {
     <div className="names-section-heading"><h2 id="names-assistant-heading">AI naming assistant</h2><span>Saved project context</span></div>
     <p>Choose one of your projects to review its naming preferences and explore its names. Opening it doesn’t start creating names.</p>
     {session.status === "ready" ? <AccountProjectChooser key={`${session.userId}:${session.generation}`} account={session} /> : <AccountStatus />}
-    <div className="names-assistant-start"><h3>Start with a new brief</h3><p>Create a naming project in your account. Then open Naming to review preferences before generating.</p><Link className="button secondary small" href="/?scope=naming_only" prefetch={false}>Create naming brief<Icon name="plus" size={14} /></Link></div>
     <div className="names-assistant-library"><p>Favorite, saved and selected project names appear alongside your workshop names in Library.</p>{onOpenAccountLibrary ? <button className="text-link" type="button" onClick={onOpenAccountLibrary}>Open names library<Icon name="arrow" size={14} /></button> : null}</div>
   </section>;
 }
@@ -71,9 +70,9 @@ function AccountProjectChooser({ account }: { account: VerifiedAccount }) {
     {!listing && !error ? <p role="status">Loading your account projects…</p> : null}
     {listing ? <>
       <div className="names-assistant-fields"><label className="names-field">Search loaded projects<input type="search" value={query} maxLength={160} placeholder="Project title" onChange={event => { setQuery(event.target.value); setProjectId(""); }} /></label>
-        <label className="names-field">Account project<select value={selected?.id ?? ""} onChange={event => setProjectId(event.target.value)}><option value="">Choose a project</option>{projects.map(project => <option key={project.id} value={project.id}>{project.title} · {project.scope === "naming_only" ? "Naming only" : "Complete brand"} · v{project.current_revision}</option>)}</select></label></div>
+        <label className="names-field">Account project<select value={selected?.id ?? ""} onChange={event => setProjectId(event.target.value)}><option value="">Choose a project</option>{projects.map(project => <option key={project.id} value={project.id}>{project.title} · v{project.current_revision}</option>)}</select></label></div>
       <p className="names-muted">{projects.length} matching projects · {listing.items.length} account projects loaded. Search covers loaded projects with Naming.{listing.nextCursor ? " Load more to include older projects." : " End of this listing."}</p>
-      {!projects.length ? <p>{query ? "No matching naming projects in the loaded list." : "No projects with Naming in the loaded list. Create a naming brief below or open your projects."}</p> : null}
+      {!projects.length ? <p>{query ? "No matching naming projects in the loaded list." : "No projects with Naming in the loaded list. Open your projects to start one."}</p> : null}
       {selected ? <p className="names-assistant-context">{selected.scope === "complete_brand" ? "Naming will check that this brand’s saved Strategy is reviewed." : "Naming will use this project’s saved description and show any missing Strategy."} Saved preferences, results, history and cancellation controls open in the project workspace.</p> : null}
       <div className="names-assistant-actions">{href ? <Link className="button primary small" href={href} prefetch={false} onNavigate={event => { if (!isCurrent(account)) event.preventDefault(); }}>Open project Naming<Icon name="arrow" size={14} /></Link> : <button className="button primary small" type="button" disabled>Choose a project to continue</button>}
         {listing.nextCursor && !error ? <button className="button secondary small" type="button" disabled={pending} onClick={() => void load()}>{pending ? "Loading more projects…" : "Load more projects"}</button> : null}

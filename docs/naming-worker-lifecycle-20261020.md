@@ -1,5 +1,7 @@
 # Naming worker lifecycle hardening — 2026-10-20
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 ## Scope and rollout boundary
 
 Issues #49 and #50 are local source corrections. The supplied audit snapshot has

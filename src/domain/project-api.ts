@@ -36,7 +36,6 @@ export const updateProjectInputSchema = z.strictObject({
   context: contextSnapshotSchema,
   title: z.string().trim().min(1).max(160).optional(),
 });
-export const expandProjectInputSchema = z.strictObject({ expectedRevision: z.number().int().positive() });
 
 export type AccountProjectSummary = z.infer<typeof accountProjectSummarySchema>;
 export type AccountProject = z.infer<typeof accountProjectSchema>;

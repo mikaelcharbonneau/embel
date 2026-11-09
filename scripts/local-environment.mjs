@@ -19,7 +19,6 @@ const NEXT_ENV_FILES = [".env", ".env.local", ".env.production", ".env.productio
 const MAX_ENV_BYTES = 65_536;
 const PROTOTYPE_WORKER_KEYS = ["OPENAI_API_KEY", "FLUID_NAMING_BRAIN_DATABASE_URL"];
 const PROTOTYPE_MODEL = "gpt-6-luna";
-const PROTOTYPE_DEPLOYMENT = "embel-naming-local-b2ff6ce8bbc2-20261017";
 const hostedRuntimeMarker = key => key !== "VERCEL_PROJECT_ID" && /^VERCEL(?:_|$)/u.test(key);
 
 function ownerOnly(info, mode) {
@@ -166,9 +165,7 @@ export async function prepareLocalChildEnvironments(root, inherited, { bridgeTok
     }
     const web = { ...common };
     const worker = { ...common, ...credentials, FLUID_WORKER_DATABASE_URL: credentials.FLUID_NAMING_BRAIN_DATABASE_URL,
-      FLUID_NAMING_BRAIN_MODEL: PROTOTYPE_MODEL, FLUID_OPENAI_VERIFIED_MODELS: PROTOTYPE_MODEL,
-      FLUID_NAMING_BRAIN_DEPLOYMENT_ID: PROTOTYPE_DEPLOYMENT, FLUID_NAMING_BRAIN_ENABLED: "true", FLUID_PAID_CALLS_APPROVED: "true",
-      FLUID_GUIDED_INTERVIEW_ENABLED: "true" };
+      FLUID_OPENAI_VERIFIED_MODELS: PROTOTYPE_MODEL, FLUID_PAID_CALLS_APPROVED: "true", FLUID_GUIDED_INTERVIEW_ENABLED: "true" };
     for (const operation of ["REFORMULATE", "COMPETITORS", "AUDIENCE", "PERSONALITY"]) worker[`FLUID_TEXT_MODEL_${operation}`] = PROTOTYPE_MODEL;
     return { web, worker };
   }

@@ -27,7 +27,7 @@ export type YourReferences = { action: ReactNode; status: ReactNode; liked: numb
 export function useYourReferences(account: VerifiedAccount, projectId: string): YourReferences {
   const [memory] = useState(() => { const value = createReferenceIntentMemory(); value.bind(account.userId); return value; });
   const reference = useIdentityReferences(account, projectId, memory);
-  const unavailable = !reference.project || reference.project.scope === "naming_only" || reference.blocked;
+  const unavailable = !reference.project || reference.blocked;
   const upload = useReferenceUpload({ account, projectId, blocked: unavailable, onSaved: reference.refresh });
   const picker = useRef<HTMLInputElement>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);

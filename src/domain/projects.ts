@@ -2,8 +2,12 @@ import { z } from "zod";
 import { namingSourceSchema } from "./naming";
 import { conversationSchema } from "./conversation";
 
-export const projectScopeSchema = z.enum(["complete_brand", "naming_only", "visual_identity_only"]);
+/** Every project is a complete brand. "Name only" and "Visual identity" projects
+ * were retired on November 9, 2026, and live ones were converted to complete brands. */
+export const projectScopeSchema = z.literal("complete_brand");
 export type ProjectScope = z.infer<typeof projectScopeSchema>;
+/** Saved Identity history keeps the scope it was made with, including retired ones. */
+export const recordedProjectScopeSchema = z.enum(["complete_brand", "naming_only", "visual_identity_only"]);
 export const projectStageSchema = z.enum(["discovery", "strategy", "naming", "identity", "guidelines"]);
 export const standaloneKindSchema = z.enum(["idea", "name", "handle", "domain", "trademark"]);
 
@@ -223,13 +227,3 @@ export function createBrandFromStandalone(input: { actorId: string; projectId: s
   });
 }
 
-export function expandProjectScope(project: Project, input: { actorId: string; expectedRevision: number; now: string }): Project {
-  if (project.ownerId !== input.actorId) throw new Error("Project not found");
-  if (project.revision !== input.expectedRevision) throw new Error("Revision conflict");
-  if (project.scope === "complete_brand") return projectSchema.parse(project);
-  return projectSchema.parse({
-    ...project, scope: "complete_brand", revision: project.revision + 1,
-    stage: missingStrategy(project.context).length ? (project.context.reformulationConfirmed ? "strategy" : "discovery") : project.stage,
-    context: structuredClone(project.context), updatedAt: input.now,
-  });
-}

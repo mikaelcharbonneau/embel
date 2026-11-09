@@ -6,7 +6,7 @@ import { accountProjectDraft, createAccountInput, draftContext } from "@/compone
 // Synthetic local fixtures only; no account/provider calls.
 const source = { url: "https://example.com/local-fixture", title: "Local research fixture", retrievedAt: "2026-10-02T10:00:00Z" };
 const project = accountProjectSchema.parse({
-  id: "aaaaaaaa-1111-4111-8111-111111111111", owner_id: "bbbbbbbb-1111-4111-8111-111111111111", scope: "visual_identity_only",
+  id: "aaaaaaaa-1111-4111-8111-111111111111", owner_id: "bbbbbbbb-1111-4111-8111-111111111111", scope: "complete_brand",
   title: "Long private fixture ".repeat(7), current_revision: 4, created_at: "2026-10-02T10:00:00Z",
   context: contextSnapshotSchema.parse({
     description: "A written fixture for a visual identity project.", activity: "A public cultural program", offering: "Workshops and a shared studio", knownAudience: "Local neighbors", reformulationConfirmed: true,
@@ -45,7 +45,7 @@ describe("account draft adapter", () => {
     const input = createAccountInput(draft);
     expect(input.context).toEqual({ ...project.context, intake: { ...project.context.intake, namingNotes: "An unsaved recovery note" } });
     expect(input.title).toBe(project.title);
-    expect(input.scope).toBe("visual_identity_only");
+    expect(input.scope).toBe("complete_brand");
   });
 
   it("does not invent confirmed strategy when an unrelated field changes", () => {

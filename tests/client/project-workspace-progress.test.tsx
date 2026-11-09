@@ -70,8 +70,8 @@ describe("project workspace retains account and saved-state safety without proje
     expect(host.querySelector<HTMLInputElement>("input")?.value).toBe("Kept");
     expect(drafts.get(projectId)?.saved).toBe(project);
   });
-  it.each(["checking", "dirty", "conflict", "naming_only"] as const)("keeps %s workspace state and focused editors without recreating removed bars", async state => {
-    const saved = { ...project, scope: state === "naming_only" ? "naming_only" as const : project.scope };
+  it.each(["checking", "dirty", "conflict"] as const)("keeps %s workspace state and focused editors without recreating removed bars", async state => {
+    const saved = project;
     if (state !== "checking") drafts.set({ ownerId: owner, generation: 1, saved, draft: { ...accountProjectDraft(saved), ...(state === "dirty" ? { namingNotes: "Retain this edit" } : {}) }, conflict: state === "conflict" });
     vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(() => {})));
     pathname = `/brands/account/${projectId}/identity`;

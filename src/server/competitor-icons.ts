@@ -5,7 +5,7 @@ import { isIP } from "node:net";
 import { checkServerIdentity } from "node:tls";
 import { parse, type DefaultTreeAdapterMap } from "parse5";
 import sharp from "sharp";
-import { isPublicReferenceAddress } from "./ai/naming-brain/source-reader";
+import { isPublicAddress } from "./public-address";
 
 /** A competitor's own site icon, fetched by the server so the browser never
  * contacts competitor sites. Every hop is HTTPS to a public address that is
@@ -129,7 +129,7 @@ export function createCompetitorIconFetcher(dependencies: CompetitorIconDependen
     let url: URL | null = start;
     for (let hop = 0; url && hop <= COMPETITOR_ICON_LIMITS.redirects; hop += 1) {
       const addresses = await resolveHost(url.hostname);
-      if (!addresses.length || addresses.length > 16 || addresses.some(item => isIP(item.address) !== item.family || !isPublicReferenceAddress(item.address))) return null;
+      if (!addresses.length || addresses.length > 16 || addresses.some(item => isIP(item.address) !== item.family || !isPublicAddress(item.address))) return null;
       if (signal.aborted) return null;
       const response = await send({ url, address: addresses[0]!.address, family: addresses[0]!.family as 4 | 6, accept, maxBytes, signal });
       if (response.status >= 300 && response.status < 400) { url = response.location ? allowedUrl(response.location, url) : null; continue; }

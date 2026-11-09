@@ -24,7 +24,7 @@ const draft = accountProjectDraft({ id: projectId, owner_id: owner, scope: "comp
 const file = new NodeFile(["brief"], "private-input.txt", { type: "text/plain" }) as unknown as File;
 const ref = { id: fileId, ownerId: owner, projectId: null, projectRevision: null, blobVersionId: fileId, contentHash: "a".repeat(64), mimeType: "text/plain" as const, byteLength: 5, name: file.name, sourceReceiptId: fileId, state: "staged" as const };
 let root: Root | null = null, host: HTMLDivElement;
-async function render() { await act(async () => root!.render(createElement(NewProjectForm, { initialScope: "complete_brand", home: true, exampleId: "b2b" }))); }
+async function render() { await act(async () => root!.render(createElement(NewProjectForm, { home: true, exampleId: "b2b" }))); }
 async function click(label: string) { await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent?.includes(label))!.click()); }
 beforeEach(() => {
   accountDrafts = createAccountDraftMemory();
@@ -165,7 +165,7 @@ describe("mounted Home attached brief integration", () => {
   expect(mock.memory!.get(account)?.files.map(item => item.file.name)).toEqual(["retained.txt"]); expect(mock.memory!.isSelecting()).toBe(false);
   expect(mock.create).not.toHaveBeenCalled(); expect(mock.strategy).not.toHaveBeenCalled();
  });
- it("freezes prompt, scope and examples while the original attached save is pending", async () => {
+ it("freezes prompt and examples while the original attached save is pending", async () => {
   mock.get.mockImplementation(() => ({ ...draft, description: String(mock.create.mock.calls.at(-1)![0].description) }));
   selectFiles(); let finish!: (response: Response) => void, saved: unknown;
   vi.stubGlobal("fetch", vi.fn(async (path: string, options: RequestInit) => {
@@ -176,9 +176,8 @@ describe("mounted Home attached brief integration", () => {
   await render(); const originalPrompt = host.querySelector("textarea")!.value; await click("Save brief with files");
   const textarea = host.querySelector("textarea")!;
   expect(textarea.readOnly || textarea.disabled).toBe(true);
-  expect(host.querySelector<HTMLFieldSetElement>(".home-scope")!.disabled).toBe(true);
   expect([...host.querySelectorAll<HTMLButtonElement>(".home-example-pills button")].every(button => button.disabled)).toBe(true);
-  await act(async () => { host.querySelectorAll<HTMLLabelElement>(".home-scope label")[1]!.click(); host.querySelector<HTMLButtonElement>(".home-example-pills button:last-child")!.click(); });
+  await act(async () => { host.querySelector<HTMLButtonElement>(".home-example-pills button:last-child")!.click(); });
   expect(textarea.value).toBe(originalPrompt);
   await act(async () => finish(Response.json(saved)));
   expect(mock.push).toHaveBeenCalledExactlyOnceWith(`/brands/account/${projectId}?view=strategy`); expect(mock.strategy).not.toHaveBeenCalled();
@@ -195,14 +194,13 @@ describe("mounted Home attached brief integration", () => {
   await act(async () => { mock.session = other; mock.memory!.bind(other); }); await render(); expect(host.textContent).not.toContain(rejected.name);
  });
 
- it("remounted recovery displays the exact frozen prompt, scope and example provenance", async () => {
-  selectFiles(); mock.get.mockReturnValue({ ...draft, scope: "naming_only", example: true });
+ it("remounted recovery displays the exact frozen prompt and example provenance", async () => {
+  selectFiles(); mock.get.mockReturnValue({ ...draft, example: true });
   vi.stubGlobal("fetch", vi.fn(async (path: string) => { if (path.endsWith("/capability")) return capability(); throw new TypeError("Unconfirmed save fixture"); }));
-  await render(); await click("Save brief with files"); expect(mock.memory!.get(account)?.saveIntent?.project.scope).toBe("naming_only");
+  await render(); await click("Save brief with files"); expect(mock.memory!.get(account)?.saveIntent?.project.scope).toBe("complete_brand");
   await act(async () => root!.unmount()); root = createRoot(host);
-  await act(async () => root!.render(createElement(NewProjectForm, { initialScope: "complete_brand", home: true })));
+  await act(async () => root!.render(createElement(NewProjectForm, { home: true })));
   expect(host.querySelector("textarea")!.value).toBe("Original typed brief");
-  expect(host.querySelector<HTMLInputElement>(".home-scope input:checked")?.value).toBe("naming_only");
   expect(host.textContent).toContain("Example prompt");
   expect(host.querySelector("textarea")!.readOnly).toBe(true); expect(mock.create).toHaveBeenCalledTimes(1);
  });

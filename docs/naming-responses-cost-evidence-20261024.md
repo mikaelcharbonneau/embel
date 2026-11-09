@@ -1,5 +1,7 @@
 # Responses cost qualification — 2026-10-24
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 Historical investigation only: the user's October 25 correction rejects monetary
 limits. [Native Naming restoration](naming-native-restoration-20261025.md) uses
 the existing uncapped Agents flow. The qualification and research-mode decision

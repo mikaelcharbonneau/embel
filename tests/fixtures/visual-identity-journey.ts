@@ -101,7 +101,7 @@ export function createVisualJourneyFixture(options: { standalone?: boolean; name
     return projectIdentityOverviewSchema.parse({ ...scope, project, logoBrief: brief,
       saveAvailability: state.savingAvailable ? { status: "available" } : { status: "unavailable", reason: "trusted_transaction_unavailable" },
       session: state.selection ? { ...scope, identityRevision: state.selection.identityRevision, currentSelectionId: state.selection.id, currentPreferencesRevision: 0, createdAt: fixtureAt, updatedAt: fixtureAt } : null,
-      preferences: null, referenceSnapshot: input.referenceSnapshot, currentBasis, readiness: getIdentityReadiness(project.context, project.scope, input.referenceSnapshot),
+      preferences: null, referenceSnapshot: input.referenceSnapshot, currentBasis, readiness: getIdentityReadiness(project.context, "complete_brand", input.referenceSnapshot),
       currentSelection: chosen && state.selection ? { selection: state.selection, system: chosen, freshness: getIdentityFreshness(chosen.input.basis, currentBasis), sourceLogo, sourceLogoCurrent: state.sourceCurrent } : null,
       systems: { ...scope, query: { limit }, items, nextCursor: sorted.length > limit && last ? { projectId, id: last.id, createdAt: last.createdAt } : null },
     });

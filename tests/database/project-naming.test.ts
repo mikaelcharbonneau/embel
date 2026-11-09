@@ -3,9 +3,10 @@ import { contextSnapshotSchema } from "../../src/domain/projects";
 import { namingStrategyBasisSchema, namingStrategyKeyFromBasis, projectNameCandidateSchema } from "../../src/domain/project-naming";
 import { chatGPTNamingJobInputSchema, enqueueNamingBatchResponseSchema, getNamingFulfillment, namingBatchDetailResponseSchema, projectNamingOverviewSchema } from "../../src/domain/naming-jobs";
 import { asRole, asSubscriptionWorker, createTestDatabase, HASH, OWNER_A, OWNER_B, resetFixture, type TestDatabase } from "./local-supabase";
+import { reviewedStrategy } from "../fixtures/reviewed-strategy";
 
 // PGlite only. All identities, model names, sources and provider responses are fixtures.
-const context = contextSnapshotSchema.parse({ description: "Explicit local naming fixture" });
+const context = reviewedStrategy({ description: "Explicit local naming fixture" });
 const preferences = { version: 1, creativeLocale: "en", notes: "", minimumGraphemes: null, maximumGraphemes: null };
 const policy = { version: 1, billingMode: "chatgpt_subscription", handlerVersion: "naming-chatgpt-v1", registrationId: "fixture-naming-registration", model: "fixture-model", limits: { maxInputBytes: 131072, maxOutputBytes: 262144, deadlineMs: 240000, maxObservedWebSearchCalls: 0, maxRequestsPerHour: 20, maxQueuedJobs: 3 } };
 const counts = { invalid_candidate: 0, empty_identity: 0, below_minimum: 0, above_maximum: 0, duplicate_response: 0, duplicate_history: 0, over_target: 0 };
@@ -27,7 +28,7 @@ describe("project Naming database boundaries (local fixture only)", () => {
   async function rpc(name: string, args: unknown[] = [], owner = OWNER_A) {
     return auth(async () => (await db.query<{ result: unknown }>(`select public.${name}(${args.map((_, index) => `$${index + 1}`).join(",")}) as result`, args)).rows[0]!.result, owner);
   }
-  async function create(owner = OWNER_A, scope = "naming_only") {
+  async function create(owner = OWNER_A, scope = "complete_brand") {
     return auth(async () => (await db.query<{ id: string }>("select * from public.create_project($1,'Naming fixture',$2::jsonb,$3)", [scope, JSON.stringify(context), HASH])).rows[0]!.id, owner);
   }
   beforeEach(async () => { await resetFixture(db); project = await create(); });

@@ -1,5 +1,7 @@
 # Cloud Naming worker — 2026-10-19
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 ## Historical goal and host
 
 The cloud Naming workstream targeted Vercel so generation could continue with
