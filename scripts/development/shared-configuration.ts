@@ -22,11 +22,18 @@ const digest = (value: string) => createHash("sha256").update(value).digest("hex
 const unavailable = () => Error("Development worker configuration is unavailable; private details withheld.");
 const dedicatedKey = z.string().min(16).max(8192).regex(/^[^\s]+$/u);
 const lane = z.enum(["strategy", "naming", "logo"]);
+const storageSchema = z.strictObject({ authUserId: z.uuid(), email: z.email(), password: z.string(), publishableKey: z.string() });
+// One Strategy and one Naming slot; Logo slots 1-6, each with its own Storage user (slot 1 uses the top-level one).
 const provisioningSchema = z.object({
   version: z.literal(1), target: sharedPoolConfigurationSchema.shape.target.options[0].omit({ kind: true }),
-  slots: z.array(z.strictObject({ slotId: z.uuid(), lane, slotIndex: z.literal(1), roleName: z.string(), roleOid: z.number().int().positive(), databaseUrl: z.string() })).length(3),
-  storage: z.strictObject({ authUserId: z.uuid(), email: z.email(), password: z.string(), publishableKey: z.string() }),
+  slots: z.array(z.strictObject({ slotId: z.uuid(), lane, slotIndex: z.number().int().min(1).max(6), roleName: z.string(), roleOid: z.number().int().positive(), databaseUrl: z.string(),
+    storage: storageSchema.optional() })).min(3).max(8)
+    .refine(slots => slots.every(slot => (slot.lane === "logo" || slot.slotIndex === 1) && (slot.storage !== undefined) === (slot.lane === "logo" && slot.slotIndex > 1))),
+  storage: storageSchema,
 });
+/** Logo slots after the first only run concepts and refinements, as in production,
+ * so native vector/export work and Identity stay one at a time on slot 1. */
+export const PARALLEL_LOGO_OPERATIONS = Object.freeze(["identity.logo_concept", "identity.logo_refine"] as const);
 const artifactSchema = sharedPoolConfigurationSchema.shape.artifact.extend({ sourceClean: z.boolean() });
 const modelSchema = z.object({ id: z.string(), object: z.literal("model") });
 export const DEVELOPMENT_MODELS = Object.freeze({ strategy: OPENAI_STRATEGY_MODEL, naming: "gpt-6-luna", logo: IMAGE_MODEL, logoText: OPENAI_STRATEGY_MODEL });
@@ -113,17 +120,19 @@ export async function composeSharedDevelopmentConfiguration(options: { root: str
     const providers = { strategy: provider("strategy"), naming: provider("naming"), logo: provider("logo"), logoText: provider("logoText") };
     const config = sharedPoolConfigurationSchema.parse({ version: 1, target: { kind: "development", ...provisioning.target },
       artifact: { sourceRevision: actual.sourceRevision, artifactSha256: actual.artifactSha256, runtime: actual.runtime }, coreProofs: SHARED_CORE_RPC_PROOFS,
-      capacity: { maxConcurrentExecutions: 3, maxPerTenantPerLane: 1, leaseSeconds: 60, renewalMs: 15000, idlePollMs: 1000, drainTimeoutMs: 120000 },
+      capacity: { maxConcurrentExecutions: provisioning.slots.length, maxPerTenantPerLane: provisioning.slots.filter(slot => slot.lane === "logo").length,
+        leaseSeconds: 60, renewalMs: 15000, idlePollMs: 1000, drainTimeoutMs: 120000 },
       queue: { region: "iad1", topic: "embel-strategy", consumerGroup: "embel-development", deploymentId: provisioning.target.deploymentId,
         visibilityTimeoutSeconds: 60, handlerDeadlineMs: 900000, emptyPollMs: 1000, errorPollMs: 5000, concurrency: 1 },
       slots: provisioning.slots.map(slot => ({ slotId: slot.slotId, lane: slot.lane, roleName: slot.roleName, roleOid: slot.roleOid,
         workerId: `development-${slot.lane}-${slot.slotId}`, providerBindingRef: providers[slot.lane].bindingRef,
-        model: providers[slot.lane].model, modelVerificationReceipt: providers[slot.lane].modelVerificationReceipt, policies: policies[slot.lane],
+        model: providers[slot.lane].model, modelVerificationReceipt: providers[slot.lane].modelVerificationReceipt,
+        policies: slot.lane === "logo" && slot.slotIndex > 1 ? Object.fromEntries(PARALLEL_LOGO_OPERATIONS.map(operation => [operation, policies.logo[operation]])) : policies[slot.lane],
         gatewayProof: SHARED_LANE_RPC_PROOFS[slot.lane], ...(slot.lane === "strategy" ? { outboxProof: SHARED_STRATEGY_OUTBOX_PROOF } : {}),
         ...(slot.lane === "logo" ? { textProvider: { providerBindingRef: providers.logoText.bindingRef, model: providers.logoText.model, modelVerificationReceipt: providers.logoText.modelVerificationReceipt } } : {}) })),
     });
     const suppliedSecrets = { version: 1, providers, slots: Object.fromEntries(provisioning.slots.map(slot => [slot.slotId,
-      { databaseUrl: slot.databaseUrl, ...(slot.lane === "logo" ? { storage: provisioning.storage } : {}) }])) };
+      { databaseUrl: slot.databaseUrl, ...(slot.lane === "logo" ? { storage: slot.storage ?? provisioning.storage } : {}) }])) };
     const secrets = readSharedPoolSecrets(config, { EMBEL_SHARED_WORKER_POOL_ENABLED: "true", EMBEL_SHARED_WORKER_POOL_SECRETS: JSON.stringify(suppliedSecrets) });
     await mkdir(directory, { recursive: true, mode: 0o700 });
     const info = await lstat(directory); if (!info.isDirectory() || info.isSymbolicLink()) throw unavailable();
