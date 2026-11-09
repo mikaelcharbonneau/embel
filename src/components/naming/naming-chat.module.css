@@ -158,13 +158,13 @@
 .nameNote { font-size: 12px; line-height: 16px; color: var(--secondary); }
 
 /* Voice · Name in the conversation (design: FlowName): 64px cards with the
-   choice mark, name and .com status on the left and the heart on the right.
+   choice mark and name on the left and the heart on the right. Domain checks
+   live in Details, so the cards carry no domain status.
    Details stays available on hover and keyboard focus. */
 .inlineNames :global(.project-naming-card).compactCard { height: auto; min-height: 64px; padding: 0; border-radius: 14px; }
 .inlineNames .openName { min-height: 62px; justify-content: center; gap: 1px !important; padding: 0 48px 0 38px !important; }
 .inlineNames .nameRadio { left: 12px; top: 50%; width: 16px; height: 16px; margin-top: -8px; }
 .inlineNames .nameValue { font-size: 15px; line-height: 20px; font-weight: 500; letter-spacing: 0; }
-.inlineNames .openName :global(.naming-dot-com) { font-size: 12px; line-height: 16px; gap: 5px; }
 .inlineNames .heart { top: 50%; right: 6px; width: 40px; height: 40px; min-width: 40px; min-height: 40px; margin-top: -20px; padding: 12px; border-radius: 50%; }
 .inlineNames .nameDetails { right: 46px; bottom: auto; top: 50%; transform: translateY(-50%); padding: 3px 8px; background: var(--paper); opacity: 0; }
 .inlineNames :global(.project-naming-card).compactCard:hover .nameDetails, .inlineNames .nameDetails:focus-visible { opacity: 1; }

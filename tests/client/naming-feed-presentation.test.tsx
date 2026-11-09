@@ -29,9 +29,11 @@ it("keeps compact cards to the name while full cards label brainstorm results ho
  try{
   for(const compact of [true,false]){
    await act(async()=>root.render(createElement(ProjectNameCard,{entry,compact,selected:false,earlierContext:false,pending:false,blockSelection:false,onFavorite:favorite,onSave:vi.fn(),onSelect:vi.fn(),onWorkshop:vi.fn(),onInspect:vi.fn()})));
-   // Compact cards show only the name, its .com status and the heart (user request,
-   // 2026-11-06); the full card and the Details dialog keep the unchecked label.
+   // Compact cards show only the name and the heart (user requests, 2026-11-06 and
+   // 2026-11-08: no domain status on cards); the full card and the Details dialog
+   // keep the unchecked label.
    if(compact)expect(host.textContent).not.toContain("Unchecked brainstorm");else expect(host.textContent).toContain("Unchecked brainstorm");
+   expect(host.textContent).not.toMatch(/\.com|domain/i);
    expect(host.textContent).not.toMatch(/Verified origin|Researched etymology|Curator approved/);
    await act(async()=>host.querySelector<HTMLButtonElement>('[aria-label="Favorite Juniper"]')!.click());
   }

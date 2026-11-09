@@ -8,7 +8,6 @@ import { namingBatchTarget, type NamingViewState, type ProjectNameEntry } from "
 import type { NamingBatchEntry, NamingJob, ProjectNamingOverview } from "@/domain/naming-jobs";
 import { namingJobActive } from "./use-project-naming";
 import styles from "./naming-chat.module.css";
-import { DotComStatus } from "./dot-com-status";
 
 export function namingFulfillmentLabel(entry: NamingBatchEntry) {
   if (!entry.result) return `0 / ${entry.batch.targetCount} names · awaiting completed results`;
@@ -22,14 +21,14 @@ export function ProjectNameCard({ entry, selected, earlierContext, pending, bloc
 }) {
   const { candidate, retention } = entry;
   const origin = candidate.origin;
-  // Compact cards: click to choose the name. Only the name, its .com status and
-  // the heart are shown; Details opens its story and the other checks.
+  // Compact cards: click to choose the name. Only the name and the heart are
+  // shown; Details opens its story and the domain, handle and trademark checks,
+  // which run only when the user asks there.
   if (compact && onInspect) return <article id={`project-name-${candidate.id}`} className={`project-naming-card ${styles.compactCard}${selected ? " is-selected" : ""}`} tabIndex={-1}>
     <h3 className="sr-only">{candidate.value}</h3>
     <button type="button" className={styles.openName} aria-pressed={selected} disabled={pending || blockSelection} onClick={onSelect}>
       <span className={styles.nameRadio} aria-hidden="true" />
       <span className={styles.nameValue}>{candidate.value}</span>
-      <DotComStatus name={candidate.value} />
       {earlierContext && <span className={styles.nameNote}>Earlier strategy</span>}
       <span className="sr-only">{[selected ? "Chosen name" : "Choose this name", retention.saved ? "Saved" : ""].filter(Boolean).join(" · ")}</span>
     </button>

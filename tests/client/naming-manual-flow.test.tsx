@@ -2,7 +2,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { installNamePreviewDialog, namePreview, openNamePreviewActions } from "../fixtures/name-preview-dialog";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectNamingWorkspace } from "@/components/naming/project-naming-workspace";
 import { createNamingBrainMemory } from "@/components/naming/naming-brain-memory";
 import { createAccountDraftMemory } from "@/components/workspace/account-draft-memory";
@@ -273,4 +273,61 @@ it("keeps focus inside the open preview across polling and restores the exact ca
   await click("Close name preview");
   expect(document.activeElement).toBe(original);
   expect(requests.filter(row => row.method !== "GET")).toHaveLength(before);
+});
+
+describe("domain checks on the Naming results", () => {
+  const checks = () => fetcher.mock.calls.filter(([path]) => path === "/api/standalone-checks");
+  const domainLookups = () => checks().filter(([, options]) => options.method === "POST").map(([, options]) => JSON.parse(String(options.body)));
+  beforeEach(() => {
+    // Connected lookups, so a check that started on its own would reach the server.
+    const base = fetcher.getMockImplementation() as (path: string, options: RequestInit) => Promise<Response>;
+    fetcher.mockImplementation(async (path: string, options: RequestInit) => {
+      if (path !== "/api/standalone-checks") return base(path, options);
+      if (!options.method || options.method === "GET") return Response.json({ ownerId: account.userId, domains: "rdap", youtube: true, euipo: true });
+      const { domain } = JSON.parse(String(options.body));
+      return Response.json({ ownerId: account.userId, result: { status: "domain", quote: null, check: { id: "domain-fixture", provider: "Public registry RDAP", domain, availability: "taken",
+        checkedAt: "2026-11-08T15:00:00Z", validUntil: new Date(Date.now() + 3_600_000).toISOString(), evidenceReference: "rdap:fixture", sourceUrl: `https://rdap.example.test/domain/${domain}` } } });
+    });
+    savedFeed = namingFeedSchema.parse({ version: 1, ownerId: account.userId, projectId, projectRevision: 1, preferencesVersion: 1, feedbackRevision: 0, steeringRevision: 0, demandSequence: 0,
+      entries: generated.slice(0, 100).map((entry, index) => ({ entryId: id(2000 + index), position: index + 1, runId: id(7), steeringRevision: 0, entry, primaryApproach: "real_words", additionalApproaches: [], publishedClaims: [] })),
+      nextCursor: null, consumedThrough: null, activeRun: null, preparedSetId: null, paused: false, state: "active", availability: { status: "unavailable", code: "naming_runtime_unavailable" } });
+  });
+
+  it("shows the names without domain status and checks no domain on its own", async () => {
+    await render();
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+    expect(button("Inspect name Synthetic 1")).toBeDefined(); expect(button("Inspect name Synthetic 100")).toBeDefined();
+    expect(host.querySelectorAll(".project-naming-card")).not.toHaveLength(0);
+    expect(checks()).toHaveLength(0);
+    expect(host.textContent).not.toMatch(/\.com|domain/i);
+  });
+
+  it("checks a name's domain once, only when Check domain is clicked in its details, and shows that result on reopening", async () => {
+    await render();
+    await click("Inspect name Synthetic 7");
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_000); });
+    const preview = namePreview(host)!;
+    expect(preview.querySelector<HTMLInputElement>("input")?.value).toBe("synthetic7.com");
+    // Opening the details only reads which lookups are connected.
+    expect(checks().map(([, options]) => options.method ?? "GET")).toEqual(["GET"]);
+    expect(domainLookups()).toHaveLength(0);
+    await click("Check domain");
+    expect(domainLookups()).toEqual([{ tool: "domains", domain: "synthetic7.com" }]);
+    expect(preview.querySelector("[data-tone]")?.textContent).toBe("Taken");
+    expect(preview.textContent).toContain("Checked with the public registry");
+    expect(preview.querySelector("time")?.getAttribute("dateTime")).toBe("2026-11-08T15:00:00Z");
+    await click("Close name preview");
+    expect(host.textContent).not.toMatch(/\.com|domain/i);
+    // Reopening shows the earlier result with when it was checked, without a new lookup.
+    await click("Inspect name Synthetic 7");
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_000); });
+    expect(namePreview(host)!.querySelector("[data-tone]")?.textContent).toBe("Taken");
+    expect(namePreview(host)!.querySelector("time")?.getAttribute("dateTime")).toBe("2026-11-08T15:00:00Z");
+    await click("Close name preview");
+    // Another name has no result until its own check.
+    await click("Inspect name Synthetic 8");
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_000); });
+    expect(namePreview(host)!.querySelector("[data-tone]")).toBeNull();
+    expect(domainLookups()).toHaveLength(1);
+  });
 });

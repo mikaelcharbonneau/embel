@@ -37,9 +37,10 @@ test("candidate modal checks one name without replacing, scrolling or selecting 
   const fixture = await namingFixture(page, { saved: true, count: 100 });
   const lookups = await lookupFixture(page);
   await openNaming(page); await expect(page.locator(".naming-feed-card")).toHaveCount(100);
-  // Name cards check the .com of names on screen on their own (redesign, 2026-11-06);
-  // count only the checks made from the preview.
-  const manual = () => lookups.filter(item => !(item.tool === "domains" && /^synthetic\d+\.com$/u.test(item.domain)));
+  // Name cards never check domains on their own (2026-11-08): every lookup below
+  // comes from a click in the preview.
+  const manual = () => lookups;
+  await expect(page.locator(".naming-feed-card").filter({ hasText: /\.com/u })).toHaveCount(0);
   const composer = page.getByRole("textbox", { name: "Naming message", exact: true });
   await composer.fill("Keep my shortlist draft.");
   const panel = page.locator("[data-floating-composer]");
