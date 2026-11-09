@@ -17,13 +17,8 @@ const uncertainDelivery=(error:unknown)=>{
 /** One facade per execution. A reusable database connection never supplies
  * ambient tenant authority, and an unrecognized query never reaches SQL. */
 export function createSharedLaneGateway(options:{database:JobDatabase;slot:()=>SharedSlotLease|null;lane:"strategy"|"naming"|"logo";deploymentId:string;
- message?:unknown;expectedJobId?:string;signal?:AbortSignal;observationExecution?:SharedExecution;observationGenerationProfile?:"brainstorm_v1"}) {
+ message?:unknown;expectedJobId?:string;signal?:AbortSignal;observationExecution?:SharedExecution}) {
  let execution:SharedExecution|null=options.observationExecution?Object.freeze(executionSchema.parse(options.observationExecution)):null;
- // Only explicitly selected brainstorm Naming observation may follow a current slot to an issued execution
- // from its original deployment. The frozen handle still binds every field.
- const historicalBrainstorm=options.lane==="naming"&&execution!==null&&options.observationGenerationProfile==="brainstorm_v1"&&execution.deploymentId!==options.deploymentId;
- if(historicalBrainstorm&&!/^dpl_[A-Za-z0-9_-]{8,196}$/u.test(execution!.deploymentId))throw unavailable();
- const expectedDeploymentId=options.lane==="naming"&&execution&&options.observationGenerationProfile==="brainstorm_v1"?execution.deploymentId:options.deploymentId;
  let capturedSlot:SharedSlotLease|null=execution?options.slot():null;
  if(execution&&(!capturedSlot||capturedSlot.lane!==options.lane||capturedSlot.slotId!==execution.slotId))throw unavailable();
  if(capturedSlot)capturedSlot=Object.freeze({...capturedSlot});
@@ -31,8 +26,6 @@ export function createSharedLaneGateway(options:{database:JobDatabase;slot:()=>S
  async function invoke(action:string,args:unknown,observation=false):Promise<unknown>{
   const run=tail.then(async()=>{
    if(options.observationExecution&&!observation)throw unavailable();
-   if(historicalBrainstorm&&(!["recover","brainstorm_state","brainstorm_event","brainstorm_recover_delivery"].includes(action)
-    ||action==="brainstorm_event"&&(!args||typeof args!=="object"||Array.isArray(args)||(args as Record<string,unknown>).kind!=="completed")))throw unavailable();
    if(!observation)options.signal?.throwIfAborted();
    const slot=execution?capturedSlot:options.slot();
    if(!slot||slot.lane!==options.lane)throw unavailable();
@@ -57,7 +50,7 @@ export function createSharedLaneGateway(options:{database:JobDatabase;slot:()=>S
    const response=envelopeSchema.parse(result.rows[0]?.envelope);
    if(response.execution){const e=response.execution;
     if(e.lane!==options.lane||e.slotId!==slot.slotId||!options.observationExecution&&(e.instanceId!==slot.instanceId||e.generation!==slot.generation)
-      ||e.deploymentId!==expectedDeploymentId||options.expectedJobId!==undefined&&e.jobId!==options.expectedJobId
+      ||e.deploymentId!==options.deploymentId||options.expectedJobId!==undefined&&e.jobId!==options.expectedJobId
       ||execution!==null&&!isDeepStrictEqual(e,execution))throw unavailable();
     if(!execution){
      if(action!=="claim")throw unavailable();

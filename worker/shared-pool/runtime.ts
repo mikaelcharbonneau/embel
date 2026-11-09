@@ -3,7 +3,7 @@ import { createDevelopmentStrategyQueue } from "./development-queue";
 import { createSharedStrategyLaneEngine } from "../shared-lanes/strategy";
 import { createSharedNamingLaneEngine } from "../shared-lanes/naming";
 import { createSharedLogoLaneEngine } from "../shared-lanes/logo";
-import { namingBrainPolicySchema } from "../../src/domain/naming-brain";
+import { namingGenerationPolicySchema } from "../../src/domain/naming-generation";
 import { createSharedSlotStorageSession } from "../shared-storage/session";
 import { createSharedLogoStorageAuthorization } from "../shared-storage/authorization";
 import { qualifiedLogoRasterCapability } from "../logo-generative-storage-authorization";
@@ -22,7 +22,7 @@ import type { SharedPendingExecution,SharedLaneEngine } from "./contracts";
 export const createSharedPoolLaneEngine:SharedEngineFactory=async options=>{
  const base={database:options.database,slot:options.lease,deploymentId:options.configuration.target.deploymentId,workerId:options.slot.workerId,provider:options.provider};
  if(options.slot.lane==="strategy")return createSharedStrategyLaneEngine({...base,policies:options.slot.policies});
- if(options.slot.lane==="naming")return createSharedNamingLaneEngine({...base,policy:namingBrainPolicySchema.parse(options.slot.policies["naming.generate"])});
+ if(options.slot.lane==="naming")return createSharedNamingLaneEngine({...base,policy:namingGenerationPolicySchema.parse(options.slot.policies["naming.generate"])});
  const storage=options.secret.storage;if(!storage)throw Error("shared_logo_storage_unavailable");
  const session=await createSharedSlotStorageSession({targetOrigin:options.configuration.target.supabaseOrigin,...storage,slot:options.lease});
  const authorizations=new Set<{close():void}>();

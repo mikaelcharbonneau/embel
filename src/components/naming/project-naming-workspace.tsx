@@ -1,52 +1,41 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { EmbelIdentity } from "@/components/workspace/embel-identity";
 import { journeyPartLabel } from "@/domain/journey";
-import { journeySectionId } from "@/components/journey/project-header";
 import { z } from "zod";
 import { GuidedThinking } from "@/components/workspace/guided-thinking";
 import { Icon } from "@/components/ui/icon";
 import styles from "./naming-chat.module.css";
 import { AccountStatus, useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
-import { namingStrategyKey, type ProjectNameEntry, type TransformProjectNamesResponse } from "@/domain/project-naming";
-import { getProjectHandoff, projectStrategyHref } from "@/domain/project-handoff";
-import type { NameTransformInput } from "@/domain/naming";
+import { namingStrategyKey, type ProjectNameEntry } from "@/domain/project-naming";
 import { inlineNamingMessage, NamingApproachWidgets, type InlineNamingConversation } from "./naming-approach-widgets";
-import { useNamingComposerLayout } from "./use-naming-composer-layout";
 import { useNamingFeed } from "./use-naming-feed";
-import { NamingFeedResults, NamingFeedTail } from "./naming-feed-results";
-import { NamingResults, ProjectNameCard } from "./naming-results";
+import { NamingFeedResults, NamingFeedStatus } from "./naming-feed-results";
 import { NamingInspect } from "./naming-inspect";
-import { NamingScreening } from "./naming-screening";
-import { ProjectScreeningEvidence } from "./project-screening-evidence";
-import { initialNamingView, namingScrollTarget, useProjectNaming } from "./use-project-naming";
+import { initialNamingView, namingViewNeedsReset, useProjectNaming } from "./use-project-naming";
 import { useCustomProjectNames } from "./use-custom-project-names";
-import { initialWorkshopControls, WorkshopControls } from "./workshop-controls";
 import { nameValueSchema, type NamingSource } from "@/domain/naming";
 
-export function ProjectNamingWorkspace({ projectId, conversationHistory, inline }: { projectId: string; conversationHistory?: ReactNode; inline?: InlineNamingConversation }) {
+/** Voice · Name inside the project conversation: the choices questions, then the names. */
+export function ProjectNamingWorkspace({ projectId, inline }: { projectId: string; inline: InlineNamingConversation }) {
   const { session } = useAccountSession();
-  if (!z.uuid().safeParse(projectId).success) return <div className="page"><h1>Naming workspace not found</h1><Link href="/brands" className="text-link">Back to brands</Link></div>;
-  if (session.status !== "ready") return <div className="page project-naming-page"><h1>Naming</h1><AccountStatus /><Link href="/brands" className="text-link">Back to brands</Link></div>;
-  return <AccountProjectNaming key={`${session.userId}:${session.generation}:${projectId}`} projectId={projectId} account={session} conversationHistory={conversationHistory} inline={inline} />;
+  if (!z.uuid().safeParse(projectId).success) return inlineNamingMessage(inline, <p className="project-naming-notice" role="alert">This project’s names are not available.</p>);
+  if (session.status !== "ready") return inlineNamingMessage(inline, <AccountStatus />);
+  return <AccountProjectNaming key={`${session.userId}:${session.generation}:${projectId}`} projectId={projectId} account={session} inline={inline} />;
 }
 
-const missingLabels = { description: "description", reformulation: "activity and offering", competitors: "competitors", audience: "audience", personality: "personality", positioning: "positioning" };
+const createdOrder = (left: ProjectNameEntry, right: ProjectNameEntry) =>
+  Date.parse(left.candidate.createdAt) - Date.parse(right.candidate.createdAt) || left.candidate.id.localeCompare(right.candidate.id);
 
-function AccountProjectNaming({ projectId, account, conversationHistory, inline }: { projectId: string; account: VerifiedAccount; conversationHistory?: ReactNode; inline?: InlineNamingConversation }) {
-  const router = useRouter();
+function AccountProjectNaming({ projectId, account, inline }: { projectId: string; account: VerifiedAccount; inline: InlineNamingConversation }) {
   const { isCurrent } = useAccountSession();
   const naming = useProjectNaming({ account, projectId });
   const custom = useCustomProjectNames(account, projectId);
   const { overview, blocked, pending, readError, actionError } = naming;
   const [earlierChoice, setEarlierChoice] = useState<ProjectNameEntry | null>(null);
   const [acceptedEarlierFor, setAcceptedEarlierFor] = useState<string | null>(null);
-  const [workshop, setWorkshop] = useState(initialWorkshopControls);
-  const [transformResult, setTransformResult] = useState<TransformProjectNamesResponse | null>(null);
   const [previewEntry, setPreviewEntry] = useState<ProjectNameEntry | null>(null);
   const inspectedId = previewEntry?.candidate.id;
   const returnFromInspection = useRef<string | null>(null);
@@ -66,118 +55,49 @@ function AccountProjectNaming({ projectId, account, conversationHistory, inline 
     setAcceptedEarlierFor(null);
     setPreviewEntry(null);
   }
-  const { layout: composerLayout, changeLayout: changeComposerLayout } = useNamingComposerLayout(account.userId, projectId);
-  const [historyOpen, setHistoryOpen] = useState(false);
   const [explorationStarted, setExplorationStarted] = useState(false);
   // In the conversation a card click marks a name; Continue confirms it.
   const [pendingChoice, setPendingChoice] = useState<string | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
   const manualNameDraft = useManualProjectNameDraft();
-  const feed = useNamingFeed({ account, projectId, projectRevision: overview?.project.current_revision, enabled: Boolean(overview?.readiness.ready && !blocked && !readError), view: { ...(overview?.session?.viewState ?? initialNamingView), inspecting: Boolean(inspectedId), historyOpen, explorationHidden: false } });
-  const { eligibleView, start: startFeed } = feed;
-  const generationUnavailable = feed.state?.feed?.availability.status === "unavailable";
-  const continuation = useRef<{ started: boolean; resolve: (started: boolean) => void } | null>(null);
-  const [continueVersion, setContinueVersion] = useState(0);
+  const feed = useNamingFeed({ account, projectId, projectRevision: overview?.project.current_revision, enabled: Boolean(overview?.readiness.ready && !blocked && !readError) });
+  // The conversation has one names list: an earlier saved pane, filter or batch view returns to it once.
+  const resetView = useRef(false);
+  const viewNeedsReset = Boolean(overview?.session && namingViewNeedsReset(overview.session.viewState));
   useEffect(() => {
-    const request = continuation.current;
-    if (!request || request.started) return;
-    request.started = true;
-    // Only the explicit final answer or recovery action queues this request. The saved view and
-    // the feed's layout-effect eligibility must both be committed first.
-    if (!eligibleView || !isCurrent(account)) { continuation.current = null; request.resolve(false); return; }
-    void startFeed().then(request.resolve).finally(() => { if (continuation.current === request) continuation.current = null; });
-  }, [continueVersion, eligibleView, startFeed, account, isCurrent]);
-  useEffect(() => () => { continuation.current?.resolve(false); continuation.current = null; }, []);
-  // Inside the conversation there is no separate selected-name page: an earlier
-  // saved pane (from the standalone page) returns to the names list once.
-  const resetPane = useRef(false);
-  const inlinePaneReset = Boolean(inline && overview?.session && overview.session.viewState.pane !== "results");
-  useEffect(() => {
-    if (!inlinePaneReset || resetPane.current || !isCurrent(account)) return;
-    resetPane.current = true;
-    void naming.saveView({ pane: "results" });
-  }, [inlinePaneReset, account, isCurrent, naming]);
-  const strategyHref = projectStrategyHref(projectId);
-  // A complete brand names inside the conversation (Voice · Name) once Strategy and
-  // Personality are answered; the standalone Name page sends people back there.
-  const conversationOwnsNaming = !inline
-    && Boolean(overview?.project.context.intake.guidedInterview?.answers.some(answer => answer.stage === "personality"));
-  // It opens at the Voice step, where the names are.
-  useEffect(() => { if (conversationOwnsNaming && isCurrent(account)) router.replace(`${strategyHref}#${journeySectionId("voice")}`); }, [conversationOwnsNaming, account, isCurrent, router, strategyHref]);
-  const activeRun = feed.state?.feed?.activeRun;
-  const readyCount = activeRun?.fulfillment?.acceptedCount ?? 0;
-  const existingLibrary = custom.items.length > 0 || feed.entries.some(row => row.runId === null) || overview?.candidates.items.some(entry => entry.candidate.origin.kind !== "generated");
-  const showCanvas = Boolean(overview && (historyOpen || existingLibrary || feed.entries.length >= 100 || overview.candidates.items.length >= 100 || (feed.state?.feed?.progressive?.publishedCount ?? 0) >= 100 || readyCount >= 100 || overview.currentSelection || overview.preferences?.preferences.version === 1));
-  // Inside the project conversation, names stay in the chat (Voice · Name);
-  // only the standalone Name page switches to the full results page.
-  const pageCanvas = showCanvas && !inline;
-  const onCanvas = inline?.onCanvas;
-  useLayoutEffect(() => {
-    onCanvas?.(false);
-  }, [onCanvas]);
-  if (!overview && inline) return inlineNamingMessage(inline, readError
+    if (!viewNeedsReset || resetView.current || !isCurrent(account)) return;
+    resetView.current = true;
+    void naming.saveView({ pane: "results", filter: "all", query: "", visibleBatchId: null, workshopCandidateId: null });
+  }, [viewNeedsReset, account, isCurrent, naming]);
+  const onCanvas = inline.onCanvas;
+  useLayoutEffect(() => { onCanvas(false); }, [onCanvas]);
+  if (!overview) return inlineNamingMessage(inline, readError
     ? <div className="project-naming-notice" role="alert"><p>{readError}</p><button type="button" className="text-link" onClick={naming.refresh}>Check naming choices</button></div>
     : <GuidedThinking label="Opening naming choices…" />);
-  if (!overview) return <div className={`page project-naming-page ${styles.loading}`}><header className="project-naming-header"><h1>Naming</h1><Link className="text-link" href={strategyHref}>Back to project</Link></header>{readError ? <div className="project-naming-notice" role="alert"><p>{readError}</p><button className="button secondary small" type="button" onClick={naming.refresh}>Check latest version</button></div> : <p className="project-naming-muted" role="status">Loading your account naming workspace…</p>}</div>;
   const { project } = overview;
   const view = overview.session?.viewState ?? initialNamingView;
-  const exploring = explorationStarted || Boolean(feed.entries.length || overview.candidates.items.length || activeRun || feed.state?.pending);
-  const generationPending = Boolean(feed.state?.pending || activeRun && ["queued", "running", "cancel_requested"].includes(activeRun.state));
-  const lookup = new Map(overview.candidates.items.map(entry => [entry.candidate.id, entry]));
-  for (const entry of custom.items) { const old = lookup.get(entry.candidate.id); if (!old || old.retention.revision <= entry.retention.revision) lookup.set(entry.candidate.id, entry); }
-  for (const row of feed.entries) { const old = lookup.get(row.entry.candidate.id); if (!old || old.retention.revision <= row.entry.retention.revision) lookup.set(row.entry.candidate.id, row.entry); }
-  const candidates = [...lookup.values()];
-  const strategyKey = namingStrategyKey(project.context);
-  const workshopEntry = candidates.find(entry => entry.candidate.id === view.workshopCandidateId);
   const currentSelection = overview.currentSelection;
+  // Generated names come from the feed; your own, copied and older workshop names from the saved overview.
+  const lookup = new Map<string, ProjectNameEntry>();
+  const keep = (entry: ProjectNameEntry) => { const old = lookup.get(entry.candidate.id); if (!old || old.retention.revision <= entry.retention.revision) lookup.set(entry.candidate.id, entry); };
+  overview.candidates.items.filter(entry => !["brainstorm", "generated"].includes(entry.candidate.origin.kind)).forEach(keep);
+  if (currentSelection) keep({ candidate: currentSelection.candidate, retention: overview.candidates.items.find(entry => entry.candidate.id === currentSelection.candidate.id)?.retention ?? { ownerId: account.userId, projectId, candidateId: currentSelection.candidate.id, revision: 0, favorite: false, saved: false, updatedAt: null } });
+  custom.items.forEach(keep);
+  feed.entries.forEach(row => keep(row.entry));
+  const names = [...lookup.values()].sort(createdOrder);
+  const strategyKey = namingStrategyKey(project.context);
+  const run = feed.state?.feed?.run ?? null;
+  // Generation has started once; your own names alone do not count, so the last answer still starts it.
+  const generating = explorationStarted || feed.entries.length > 0 || Boolean(run || feed.state?.pending);
+  const generationUnavailable = feed.state?.feed?.availability.status === "unavailable";
   const inspected = previewEntry && (lookup.get(previewEntry.candidate.id) ?? previewEntry);
-  const screening = view.pane === "screening" && currentSelection;
-  const workshopOptions = candidates.map((entry, index) => {
-    const { candidate } = entry, origin = candidate.origin;
-    const batch = origin.kind === "generated" ? overview.batches.items.find(item => item.batch.id === origin.batchId) : null;
-    const source = origin.kind === "generated" ? `Batch ${batch?.batch.sequence ?? "saved"}` : origin.kind === "transform" ? `Workshop · ${origin.history.at(-1)?.input.kind ?? "variation"}` : "User-supplied name";
-    return { id: candidate.id, value: candidate.value, label: `${candidate.value} · ${source} · ${index + 1}` };
-  });
+  const generated = new Set(feed.entries.map(row => row.entry.candidate.id));
 
-  function restoreResults() {
-    requestAnimationFrame(() => {
-      const id = namingScrollTarget(view.scrollCandidateId, candidates.map(entry => entry.candidate.id));
-      const target = document.getElementById(id);
-      target?.focus({ preventScroll: true }); target?.scrollIntoView({ block: "start" });
-    });
-  }
-  function candidateAnchor() {
-    const top = Math.max(0, document.querySelector<HTMLElement>("[data-naming-results-scroll]")?.getBoundingClientRect().top ?? 0);
-    const visible = Array.from(document.querySelectorAll<HTMLElement>(".project-naming-card[id]")).find(element => element.getBoundingClientRect().bottom > top);
-    return visible?.id.replace("project-name-", "") ?? view.scrollCandidateId;
-  }
-  async function closeConversation(restore?: boolean) {
-    changeComposerLayout({ expanded: false });
-    if (overview!.session) await naming.saveView({ conversationOpen: false });
-    if (restore) restoreResults();
-    else if (restore === false) requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-naming-results-scroll]")?.scrollTo?.({ top: 0 }));
-  }
-  function openConversation() {
-    if (pageCanvas) changeComposerLayout({ expanded: true });
-    if (pageCanvas) {
-      void naming.saveView({ conversationOpen: true, scrollCandidateId: candidateAnchor() });
-    }
-    requestAnimationFrame(() => {
-      const heading = document.getElementById("project-naming-preferences-heading");
-      const transcript = heading?.closest<HTMLElement>("[data-naming-chat-scroll], .guided-interview-scroll");
-      if (!heading || !transcript || transcript.clientHeight === 0) return;
-      heading.focus({ preventScroll: true });
-      transcript.scrollTo?.({ top: transcript.scrollTop + heading.getBoundingClientRect().top - transcript.getBoundingClientRect().top - 16 });
-    });
-  }
   async function continueExploration() {
-    if (!isCurrent(account) || continuation.current) return false;
-    if ((view.pane !== "results" || view.filter !== "all" || view.query || view.visibleBatchId)
-      && !await naming.saveView({ pane: "results", filter: "all", query: "", visibleBatchId: null })) return false;
     if (!isCurrent(account)) return false;
-    setHistoryOpen(false); setPreviewEntry(null); naming.refresh();
-    const started = await new Promise<boolean>(resolve => { continuation.current = { started: false, resolve }; setContinueVersion(version => version + 1); });
-    if (started && isCurrent(account)) { setExplorationStarted(true); if (pageCanvas) await closeConversation(exploring); }
+    setPreviewEntry(null);
+    const started = await feed.start();
+    if (started && isCurrent(account)) setExplorationStarted(true);
     return started;
   }
   async function choose(entry: ProjectNameEntry, acknowledged: boolean) {
@@ -185,29 +105,13 @@ function AccountProjectNaming({ projectId, account, conversationHistory, inline 
     if (!await naming.saveView({ scrollCandidateId: entry.candidate.id })) return;
     if (!await naming.select(entry, acknowledged)) return;
     setEarlierChoice(null); setAcceptedEarlierFor(null); setPreviewEntry(null);
-    if (inline) return;
-    if (await naming.saveView({ pane: "screening", conversationOpen: false })) requestAnimationFrame(() => { const heading = document.getElementById("project-naming-screening-heading"); heading?.focus(); heading?.scrollIntoView({ block: "center" }); });
   }
   function select(entry: ProjectNameEntry) {
     if (entry.candidate.strategyKey !== strategyKey) { setEarlierChoice(entry); setAcceptedEarlierFor(null); requestAnimationFrame(() => document.getElementById("project-naming-earlier-heading")?.focus()); }
     else void choose(entry, false);
   }
-  async function openWorkshop(entry: ProjectNameEntry) {
-    setWorkshop(initialWorkshopControls()); setTransformResult(null);
-    if (await naming.saveView({ pane: "workshop", workshopCandidateId: entry.candidate.id, scrollCandidateId: entry.candidate.id })) requestAnimationFrame(() => document.getElementById("project-naming-workshop-heading")?.focus());
-  }
-  async function runTransform(input: NameTransformInput, secondaryCandidateId?: string) {
-    if (!workshopEntry) return;
-    const secondary = input.kind === "blend" ? candidates.find(entry => entry.candidate.id === secondaryCandidateId) : null;
-    if (input.kind === "blend" && (!secondary || secondary.candidate.value !== input.right)) return;
-    const result = await naming.transform({ parentCandidateId: workshopEntry.candidate.id, ...(secondary ? { secondaryCandidateId: secondary.candidate.id } : {}), input });
-    if (result && isCurrent(account)) setTransformResult(result);
-  }
   function retain(entry: ProjectNameEntry, field: "favorite" | "saved") {
     return naming.retain(entry, field, custom.acknowledge);
-  }
-  async function changeName() {
-    if (await naming.saveView({ pane: "results" })) restoreResults();
   }
   async function importManualName(source: NamingSource) {
     const saved = await naming.importLocal({ source, capturedContext: project.context }, custom.acknowledge);
@@ -215,12 +119,10 @@ function AccountProjectNaming({ projectId, account, conversationHistory, inline 
     return saved;
   }
 
-
-  const manualName = !screening && (!pageCanvas || view.pane === "results") ? <ManualProjectName disabled={pending || blocked} onAdd={importManualName} draft={manualNameDraft} /> : null;
-
-  // In the conversation, the names message below carries progress and Add your own name.
-  const inlineNamesShown = Boolean(inline) && overview.readiness.ready && (exploring || Boolean(currentSelection)) && view.pane === "results";
-  const chat = overview.readiness.ready ? <NamingApproachWidgets inline={pageCanvas ? undefined : inline} manualName={inlineNamesShown ? undefined : manualName} conversationHistory={conversationHistory} compact={pageCanvas} onToggleConversation={open => { if (open) void openConversation(); else void closeConversation(); }} composerLayout={composerLayout} memory={feed.memory} account={account} projectId={projectId} context={project.context} saved={overview.preferences} savedChat={view.namingChat} onSaveProgress={naming.saveChatProgress} blocked={blocked || Boolean(readError)} generationUnavailable={generationUnavailable} runtimeReady={!generationUnavailable && feed.state?.feed?.availability.status === "available" && feed.state?.status !== "blocked" && feed.state?.feed?.activeRun?.state !== "needs_reconciliation"} exploring={exploring} canSteer={feed.canExplore} onSteer={feed.steer} onCheckSaved={naming.refresh} onContinue={continueExploration} generationStatus={inlineNamesShown ? undefined : <div className="naming-generation-status" role="status"><NamingFeedTail feed={feed} blocked={blocked} onModify={() => void openConversation()} onReviewSaved={!pageCanvas ? () => setHistoryOpen(true) : undefined} />{!pageCanvas && generationPending && !generationUnavailable && <p>{Math.min(100, activeRun?.fulfillment?.acceptedCount ?? feed.entries.filter(row => row.runId === activeRun?.runId).length)} of 100 names saved. Your conversation stays here while exploration is active.</p>}</div>} /> : <p className={styles.chatUnavailable}>Review Strategy to continue the Naming conversation. Your saved names remain available.</p>;
+  // Once names exist, the names message carries generation status and Add your own name.
+  const namesShown = overview.readiness.ready && (generating || names.length > 0 || Boolean(currentSelection));
+  const manual = !blocked && <ManualProjectName disabled={pending || blocked} onAdd={importManualName} draft={manualNameDraft} />;
+  const chat = overview.readiness.ready ? <NamingApproachWidgets inline={inline} manualName={namesShown ? undefined : manual || undefined} memory={feed.memory} account={account} projectId={projectId} context={project.context} saved={overview.preferences} savedChat={view.namingChat} onSaveProgress={naming.saveChatProgress} blocked={blocked || Boolean(readError)} generationUnavailable={generationUnavailable} runtimeReady={feed.state?.feed?.availability.status === "available"} exploring={generating} canSteer={feed.canExplore && feed.entries.length > 0} onSteer={feed.steer} onCheckSaved={naming.refresh} onContinue={continueExploration} generationStatus={namesShown ? undefined : <div className="naming-generation-status" role="status"><NamingFeedStatus feed={feed} blocked={blocked} /></div>} /> : <p className={styles.chatUnavailable}>Review Strategy to continue the Naming conversation. Your saved names remain available.</p>;
 
   const earlierConfirmation = earlierChoice && <section className="project-naming-stale-choice" aria-label="Earlier strategy confirmation">
     <h2 id="project-naming-earlier-heading" tabIndex={-1}>Use {earlierChoice.candidate.value} from an earlier strategy?</h2>
@@ -235,85 +137,46 @@ function AccountProjectNaming({ projectId, account, conversationHistory, inline 
     </div>
   </section>;
 
+  const seeds = feed.steeringDraft.candidateIds;
   const inspection = inspected && <NamingInspect key={inspected.candidate.id} account={account} entry={inspected}
       selected={currentSelection?.candidate.id === inspected.candidate.id} pending={pending} blocked={blocked || Boolean(readError)}
       onClose={closeInspection} onUse={() => select(inspected)} earlierConfirmation={earlierConfirmation}
       error={actionError ?? readError} onRefresh={naming.refresh}
-      onWorkshop={() => { setEarlierChoice(null); setPreviewEntry(null); void openWorkshop(inspected); }}
       onSave={() => void retain(inspected, "saved")} onFavorite={() => void retain(inspected, "favorite")}
-      steeringSelected={feed.steeringDraft.candidateIds.includes(inspected.candidate.id)}
-      steeringDisabled={blocked || Boolean(feed.state?.steering) || feed.steeringDraft.candidateIds.length >= 5 && !feed.steeringDraft.candidateIds.includes(inspected.candidate.id)}
-      onSteering={feed.entries.some(row => row.entry.candidate.id === inspected.candidate.id) ? () => feed.updateSteeringDraft({ candidateIds: feed.steeringDraft.candidateIds.includes(inspected.candidate.id) ? feed.steeringDraft.candidateIds.filter(id => id !== inspected.candidate.id) : [...feed.steeringDraft.candidateIds, inspected.candidate.id] }) : undefined} />;
-  const chosenEntry = inline ? candidates.find(entry => entry.candidate.id === (pendingChoice ?? currentSelection?.candidate.id)) ?? null : null;
-  const namesList = feed.showingFeed ? <NamingFeedResults feed={feed} selectedId={inline ? chosenEntry?.candidate.id : currentSelection?.candidate.id} strategyKey={strategyKey} pending={pending} blocked={blocked || Boolean(readError)} onRetain={(entry, field) => void retain(entry, field)} onSelect={inline ? entry => setPendingChoice(entry.candidate.id) : select} onInspect={setPreviewEntry} onWorkshop={entry => void openWorkshop(entry)} onModify={() => void openConversation()} onHistory={() => setHistoryOpen(true)} inConversation={Boolean(inline)} />
-    : overview.session || overview.preferences || overview.candidates.items.length ? <NamingResults compact historyOnly={overview.preferences?.preferences.version === 2 || feed.record?.preferences?.saved?.preferences.version === 2 || Boolean(feed.record?.preferences?.dirty || feed.record?.preferences?.pending)} overview={overview} view={view} pending={pending} blocked={blocked} readFailed={Boolean(readError)} listStatus={naming.listStatus} strategyKey={strategyKey} onView={patch => void naming.saveView(patch).then(saved => { if (saved && patch.visibleBatchId) void naming.loadBatchDetail(patch.visibleBatchId); })} onModify={() => void openConversation()} onEnqueue={() => void naming.enqueue()} onCancel={job => void naming.cancel(job)} onRetain={(entry, field) => void retain(entry, field)} onSelect={select} onInspect={setPreviewEntry} onWorkshop={entry => void openWorkshop(entry)} onLoadMore={() => void naming.loadMore()} onLoadMoreBatches={() => void naming.loadMoreBatches()} /> : null;
-
-  if (inline) {
-    // Voice · Name in the project conversation: the questions above, then
-    // Embel's message with the names, as one continuous chat.
-    const inlineManual = !blocked && <ManualProjectName disabled={pending || blocked} onAdd={importManualName} draft={manualNameDraft} />;
-    const confirmName = () => {
-      if (!chosenEntry || pending || blocked) return;
-      if (chosenEntry.candidate.id === currentSelection?.candidate.id) inline.onNameConfirmed?.();
-      else select(chosenEntry);
-    };
-    return <>
-      {readError || actionError ? inlineNamingMessage(inline, <div className="project-naming-notice" role="alert"><p>{actionError ?? readError}</p><button type="button" className="text-link" onClick={naming.refresh}>Check latest version</button></div>) : null}
-      {overview.readiness.ready ? chat : inlineNamingMessage(inline, chat)}
-      {inlineNamesShown && inline.results && createPortal(<article className={`guided-assistant-message guided-names-message flow-enter ${styles.inlineNames}`} aria-label="Names">
-        <EmbelIdentity label={journeyPartLabel("voice", "Name")} />
-        <p className="guided-assistant-copy">{feed.entries.length || candidates.length
-          ? "Here are your first names. Save the ones you like and pick one. Tell me what you like about them and I’ll steer the next ones."
-          : "Names appear here as they’re ready."}</p>
-        {!inspected && earlierConfirmation}
-        {historyOpen ? <button type="button" className="text-link naming-back-to-feed" onClick={() => { setHistoryOpen(false); void naming.saveView({ pane: "results", filter: "all", query: "", visibleBatchId: null }); }}>Back to exploration</button> : null}
-        {namesList}
-        <div className="guided-names-footer">
-          <button type="button" className="guided-pill-button" disabled={!feed.canMore || blocked || Boolean(readError)} onClick={() => void feed.more()}>
-            <Icon name="refresh" size={13} />More names</button>
-          {inlineManual && <button type="button" className="guided-pill-button" aria-expanded={manualOpen} onClick={() => setManualOpen(open => !open)}>
-            <Icon name="plus" size={13} />Add your own name</button>}
-          <span className="guided-names-footer-gap" />
-          <span role="status" className="guided-names-chosen">{chosenEntry ? `Your name: ${chosenEntry.candidate.value} · Next: Slogan (optional)` : "Choose a name to continue"}</span>
-          <button type="button" className="button primary guided-names-continue" disabled={!chosenEntry || pending || blocked} onClick={confirmName}>
-            Continue<Icon name="arrow" size={14} /></button>
-        </div>
-        {inlineManual && manualOpen && <div className="guided-names-manual">{inlineManual}</div>}
-      </article>, inline.results)}
-      {inspection}
-    </>;
-  }
-
-  return <div className={`page project-naming-page project-workbench ${styles.workspace} ${pageCanvas ? styles.exploring : styles.chatFirst}`} data-naming-layout={pageCanvas ? "results" : "chat"} data-chat-open={composerLayout.expanded}>
-
-    {!pageCanvas && (readError || actionError) && <div className="project-naming-notice" role="alert"><p>{actionError ?? readError}</p><button type="button" className="button secondary small" disabled={pending} onClick={naming.refresh}>Check latest version</button></div>}
-    <aside className={styles.chatPanel} hidden={pageCanvas && !overview.readiness.ready} aria-label="Naming conversation">
-      <h1 className={styles.openingTitle} hidden={pageCanvas}>Find a name that feels right</h1>
-      {!pageCanvas && <div className={styles.manualEntry}>{manualName}</div>}
-      {chat}
-    </aside>
-    <div className={`project-workbench-canvas ${styles.canvas}`} hidden={!pageCanvas} data-naming-results-scroll tabIndex={0} aria-label="Naming results workspace">
-    <header className="project-naming-header"><div><span className="project-naming-eyebrow">{project.title}</span><h1>{screening ? "Your selected name" : "Find a name that feels right"}</h1></div><div className="project-naming-header-actions"><Link className="text-link" href={strategyHref}>Back to Strategy<Icon name="arrow" size={14} /></Link>{currentSelection && !screening ? <button className="button secondary small" type="button" disabled={pending} onClick={() => void naming.saveView({ pane: "screening", scrollCandidateId: candidateAnchor() })}>View selected name</button> : null}</div></header>
-    {blocked ? <div className="project-naming-notice" role="alert"><strong>{naming.workspace?.conflict ? "Resolve the saved-version conflict first" : "Save your Strategy changes first"}</strong><p>Your edits are preserved in this tab. Generation and name selection use the saved project.</p><Link className="text-link" href={strategyHref}>Return to Strategy<Icon name="arrow" size={13} /></Link></div> : null}
-    {!overview.readiness.ready ? <div className="project-naming-notice"><strong>Strategy needs review</strong><p>Review {overview.readiness.missing.map(step => missingLabels[step]).join(", ")} before generating names for this brand. Earlier names stay available.</p><Link className="text-link" href={getProjectHandoff(project).next.href}>Continue the Strategy conversation<Icon name="arrow" size={13} /></Link></div> : null}
-    {readError || actionError ? <div className="project-naming-notice" role="alert"><p>{actionError ?? readError}</p><button className="button secondary small" type="button" disabled={pending} onClick={naming.refresh}>Check latest version</button></div> : null}
-    {pageCanvas && manualName}
-    {!screening && feed.showingFeed && candidates.some(entry => entry.candidate.origin.kind === "local_import" && !feed.entries.some(row => row.entry.candidate.id === entry.candidate.id)) && <section className={styles.customNames} aria-label="Your custom names"><h2>Your custom names</h2><div className="project-naming-grid">{candidates.filter(entry => entry.candidate.origin.kind === "local_import" && !feed.entries.some(row => row.entry.candidate.id === entry.candidate.id)).map(entry => <ProjectNameCard key={entry.candidate.id} compact entry={entry} selected={currentSelection?.candidate.id === entry.candidate.id} earlierContext={entry.candidate.strategyKey !== strategyKey} pending={pending} blockSelection={blocked} onFavorite={() => void retain(entry, "favorite")} onSave={() => void retain(entry, "saved")} onSelect={() => select(entry)} onInspect={() => setPreviewEntry(entry)} onWorkshop={() => void openWorkshop(entry)} />)}</div></section>}
-    {!screening && feed.showingFeed && (custom.error || custom.nextCursor) && <div className="project-naming-actions">{custom.error ? <><p role="alert">Your custom names could not be refreshed. Any names already saved are retained.</p><button className="button secondary small" type="button" onClick={() => void custom.refresh()}>Check custom names</button></> : <button className="button secondary small" type="button" disabled={custom.pending} onClick={() => void custom.loadMore()}>Load more custom names</button>}</div>}
-    {!inspected && earlierConfirmation}
-    {historyOpen && !screening && view.pane === "results" ? <button type="button" className="text-link naming-back-to-feed" onClick={() => { setHistoryOpen(false); void naming.saveView({ pane: "results", filter: "all", query: "", visibleBatchId: null }); }}>Back to exploration</button> : null}
-    {screening ? <><NamingScreening name={currentSelection.candidate.value} earlierContext={currentSelection.candidate.strategyKey !== strategyKey} pending={pending} onChangeName={() => void changeName()} /><ProjectScreeningEvidence key={`${currentSelection.selection.id}:${project.current_revision}`} projectId={projectId} selectionId={currentSelection.selection.id} projectRevision={project.current_revision} name={currentSelection.candidate.value} disabled={pending || blocked || Boolean(readError)} /></> : view.pane === "workshop" ? <section aria-label="Project naming workshop"><div className="project-naming-section-heading"><h2 id="project-naming-workshop-heading" tabIndex={-1}>Workshop</h2><button className="text-link" type="button" disabled={pending} onClick={() => void changeName()}>Back to names<Icon name="arrow" size={13} /></button></div>{workshopEntry ? <div className="project-naming-workshop"><WorkshopControls key={workshopEntry.candidate.id} seed={workshopEntry.candidate.value} value={workshop} onChange={setWorkshop} onRun={(input, secondaryCandidateId) => void runTransform(input, secondaryCandidateId)} disabled={pending || blocked} secondaryOptions={workshopOptions} /><div>{transformResult ? <p className="project-naming-notice" role="status">{transformResult.entries.length} workshop results saved. {transformResult.transform.notes.join(" ")}</p> : <p className="project-naming-muted">Explore a variation of this project name. Every run keeps its parent and transformation history.</p>}<div className="project-naming-grid">{(transformResult?.entries ?? overview.candidates.items.filter(entry => entry.candidate.origin.kind === "transform" && entry.candidate.origin.parentCandidateId === workshopEntry.candidate.id)).map(entry => {
-        const currentEntry = candidates.find(candidate => candidate.candidate.id === entry.candidate.id) ?? entry;
-        return <ProjectNameCard key={entry.candidate.id} entry={currentEntry} selected={currentSelection?.candidate.id === entry.candidate.id} earlierContext={entry.candidate.strategyKey !== strategyKey} pending={pending} blockSelection={blocked} onFavorite={() => void retain(currentEntry, "favorite")} onSave={() => void retain(currentEntry, "saved")} onSelect={() => select(currentEntry)} onWorkshop={() => void openWorkshop(currentEntry)} onInspect={() => setPreviewEntry(currentEntry)} compact />;
-      })}</div></div></div> : <div className="project-naming-empty"><h3>Choose a name to transform</h3><p>The saved seed is outside the loaded list. Return to names and choose a project candidate.</p><button className="button secondary small" type="button" disabled={pending} onClick={() => void naming.saveView({ pane: "results", filter: "all", query: "", visibleBatchId: null })}>View project names</button></div>}</section> : namesList}
-
-    {screening ? <div className="project-naming-next">
-      {pending || blocked || readError ? <button className="button secondary small" type="button" disabled>Continue to Inspiration</button> : <Link className="button secondary small" href={`/brands/account/${projectId}/inspiration`}>Continue to Inspiration<Icon name="arrow" size={14} /></Link>}
-      <p className="project-naming-muted">Explore visual references, then continue to Logo. Your saved name and brand context stay with this project.</p>
-    </div> : null}
-  </div>
+      steeringSelected={seeds.includes(inspected.candidate.id)}
+      steeringDisabled={blocked || Boolean(feed.state?.pending) || seeds.length >= 5 && !seeds.includes(inspected.candidate.id)}
+      onSteering={generated.has(inspected.candidate.id) ? () => feed.updateSteeringDraft({ candidateIds: seeds.includes(inspected.candidate.id) ? seeds.filter(id => id !== inspected.candidate.id) : [...seeds, inspected.candidate.id] }) : undefined} />;
+  const chosenEntry = names.find(entry => entry.candidate.id === (pendingChoice ?? currentSelection?.candidate.id)) ?? null;
+  const confirmName = () => {
+    if (!chosenEntry || pending || blocked) return;
+    if (chosenEntry.candidate.id === currentSelection?.candidate.id) inline.onNameConfirmed?.();
+    else select(chosenEntry);
+  };
+  return <>
+    {readError || actionError ? inlineNamingMessage(inline, <div className="project-naming-notice" role="alert"><p>{actionError ?? readError}</p><button type="button" className="text-link" onClick={naming.refresh}>Check latest version</button></div>) : null}
+    {overview.readiness.ready ? chat : inlineNamingMessage(inline, chat)}
+    {namesShown && inline.results && createPortal(<article className={`guided-assistant-message guided-names-message flow-enter ${styles.inlineNames}`} aria-label="Names">
+      <EmbelIdentity label={journeyPartLabel("voice", "Name")} />
+      <p className="guided-assistant-copy">{names.length
+        ? "Here are your first names. Save the ones you like and pick one. Tell me what you like about them and I’ll steer the next ones."
+        : "Names appear here as they’re ready."}</p>
+      {!inspected && earlierConfirmation}
+      <NamingFeedResults entries={names} feed={feed} selectedId={chosenEntry?.candidate.id} strategyKey={strategyKey} pending={pending} blocked={blocked || Boolean(readError)} onRetain={(entry, field) => void retain(entry, field)} onSelect={entry => setPendingChoice(entry.candidate.id)} onInspect={setPreviewEntry} />
+      {custom.error && <div className="project-naming-notice" role="alert"><p>Your own names could not be refreshed. Names already saved are kept.</p><button type="button" className="text-link" onClick={() => void custom.refresh()}>Check your names</button></div>}
+      <div className="guided-names-footer">
+        <button type="button" className="guided-pill-button" disabled={!feed.canMore || blocked || Boolean(readError)} onClick={() => void feed.more()}>
+          <Icon name="refresh" size={13} />More names</button>
+        {manual && <button type="button" className="guided-pill-button" aria-expanded={manualOpen} onClick={() => setManualOpen(open => !open)}>
+          <Icon name="plus" size={13} />Add your own name</button>}
+        <span className="guided-names-footer-gap" />
+        <span role="status" className="guided-names-chosen">{chosenEntry ? `Your name: ${chosenEntry.candidate.value} · Next: Slogan (optional)` : "Choose a name to continue"}</span>
+        <button type="button" className="button primary guided-names-continue" disabled={!chosenEntry || pending || blocked} onClick={confirmName}>
+          Continue<Icon name="arrow" size={14} /></button>
+      </div>
+      {manual && manualOpen && <div className="guided-names-manual">{manual}</div>}
+    </article>, inline.results)}
     {inspection}
-  </div>;
+  </>;
 }
 
 function useManualProjectNameDraft() {

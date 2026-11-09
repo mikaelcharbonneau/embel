@@ -54,3 +54,15 @@ indefinitely. A possibly dispatched call becomes `needs_reconciliation` with its
 hold kept; work with no dispatch evidence returns to the queue or ends with a
 zero-spend settlement. See [Naming lease expiry](naming-lease-expiry.md). Apply
 the packet before the worker build that calls `expire`.
+
+## November 8 Naming generation packet
+
+`supabase/candidates/shared_naming_generation.sql` follows
+`shared_naming_brainstorm_continuation.sql`. It adds the Naming generation run
+functions (`start_naming_run`, `get_naming_generation`, `stop_naming_run`,
+`get_naming_usage`), the `naming_rounds` table, and replaces the Naming lane
+gateway `shared_naming_worker_action` in place. It also leaves runs out of the
+old batch list and drops the previous engine's feed-counter triggers. Apply it
+with the worker build that uses the new Naming lane. See
+[the generation contract](naming-generation-contract.md).
+

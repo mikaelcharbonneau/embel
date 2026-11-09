@@ -3,8 +3,7 @@ import { z } from "zod";
 import { accountProjectSchema } from "@/domain/project-api";
 import { accountProjectDraft } from "@/components/workspace/project-draft-adapter";
 import { accountRequest, AccountRequestError } from "@/components/workspace/account-api";
-import { createNamingRequestScope, namingBatchIntentKey, namingDraftBlocked, namingErrorMessage, namingOwned, namingScrollTarget } from "@/components/naming/use-project-naming";
-import { initialWorkshopControls, workshopControlsInput } from "@/components/naming/workshop-controls";
+import { createNamingRequestScope, initialNamingView, namingDraftBlocked, namingErrorMessage, namingOwned, namingViewNeedsReset } from "@/components/naming/use-project-naming";
 import { reviewedStrategy } from "../fixtures/reviewed-strategy";
 
 const ownerId = "aaaaaaaa-1111-4111-8111-111111111111";
@@ -115,26 +114,10 @@ describe("naming admission and view", () => {
     expect(namingDraftBlocked(workspace, account, ownerId)).toBe(true);
     expect(namingDraftBlocked(null, account, projectId)).toBe(true);
   });
-  it("retries one batch intent across remounts and separates later batches/preferences/policies", () => {
-    const key = namingBatchIntentKey(projectId, 2, 1, 0, "a".repeat(64));
-    expect(key).toBe(namingBatchIntentKey(projectId, 2, 1, 0, "a".repeat(64)));
-    expect(key).toMatch(/^[A-Za-z0-9._:-]{16,128}$/);
-    expect(key).not.toBe(namingBatchIntentKey(projectId, 2, 1, 1, "a".repeat(64)));
-    expect(key).not.toBe(namingBatchIntentKey(projectId, 2, 2, 0, "a".repeat(64)));
-    expect(key).not.toBe(namingBatchIntentKey(projectId, 2, 1, 0, "b".repeat(64)));
-  });
-  it("restores the loaded candidate anchor with a safe results-heading fallback", () => {
-    expect(namingScrollTarget(projectId, [projectId])).toBe(`project-name-${projectId}`);
-    expect(namingScrollTarget(projectId, [])).toBe("project-naming-results-heading");
-    expect(namingScrollTarget(null, [projectId])).toBe("project-naming-results-heading");
-  });
-});
-
-describe("deterministic naming controls", () => {
-  it("produces validated deterministic input without choosing persistence", () => {
-    const defaults = initialWorkshopControls();
-    expect(workshopControlsInput("Lumen", { ...defaults, suffixes: "ly, io" })).toEqual({ kind: "affixes", seed: "Lumen", prefixes: [], suffixes: ["ly", "io"], separator: "" });
-    expect(workshopControlsInput("Lumen", { ...defaults, kind: "swap", find: "Lu", replacement: "Nu" })).toEqual({ kind: "swap", seed: "Lumen", find: "Lu", replacement: "Nu", match: "all" });
-    expect(() => workshopControlsInput("Lumen", { ...defaults, prefixes: Array.from({ length: 13 }, (_, index) => `a${index}`).join(",") })).toThrow();
+  it("returns an older saved pane, filter, search or batch view to the single conversation list", () => {
+    expect(namingViewNeedsReset(initialNamingView)).toBe(false);
+    expect(namingViewNeedsReset({ ...initialNamingView, conversationOpen: false, scrollCandidateId: projectId })).toBe(false);
+    for (const patch of [{ pane: "workshop" as const }, { pane: "screening" as const }, { filter: "saved" as const }, { query: "lu" }, { visibleBatchId: projectId }, { workshopCandidateId: projectId }])
+      expect(namingViewNeedsReset({ ...initialNamingView, ...patch })).toBe(true);
   });
 });

@@ -3,7 +3,6 @@ vi.mock("server-only", () => ({}));
 vi.mock("../../src/server/api-text/publication", () => ({ publishApiTextDispatch: vi.fn() }));
 import { isLocalPollingRuntime, isLocalPrototypeRuntime } from "../../src/server/api-text/config";
 import { getStrategyAvailability, retryStrategyJobDelivery } from "../../src/server/data/strategy-jobs";
-import { ensureNextNamingRun } from "../../src/server/data/naming-brain";
 import { isLocalLogoRuntime } from "../../src/server/logo-creation/local-runtime";
 import type { AuthenticatedContext } from "../../src/server/auth/context";
 
@@ -39,24 +38,5 @@ describe("isolated development polling route", () => {
     expect(rpc).toHaveBeenCalledWith("get_strategy_availability", { p_project_id: project });
     expect(isLocalPollingRuntime({ ...local, NODE_ENV: "production" })).toBe(false);
     expect(isLocalPollingRuntime({ ...local, VERCEL: "1" })).toBe(false);
-  });
-
-  it("sends Naming admission to the SQL-owned local route without claiming success", async () => {
-    const rpc = vi.fn().mockResolvedValue({ data: null, error: { code: "P0002" } });
-    const query = {
-      select: () => query, eq: () => query,
-      maybeSingle: async () => ({ error: null, data: { owner_id: project, project_id: project, version: 1,
-        preferences: { version: 2, creativeLocale: "en", notes: "", minimumGraphemes: null, maximumGraphemes: null,
-          approaches: ["real_words"], directness: "open_ended", sourceLanguages: [], heritageNotes: "", culturalNotes: "", requiredText: [], excludedText: [] } } }),
-    };
-    const auth = { userId: project, client: { rpc, from: () => query } } as unknown as AuthenticatedContext;
-    const intent = { version: 1, expectedProjectRevision: 1, expectedPreferencesVersion: 1, expectedSteeringRevision: 0,
-      expectedDemandSequence: 0, consumedThrough: null, idempotencyKey: "development-routing-intent", reason: "initial" };
-    await expect(ensureNextNamingRun(auth, project, intent)).rejects.toMatchObject({ code: "not_found" });
-    expect(rpc).toHaveBeenCalledWith("ensure_local_naming_brain_run", { p_project_id: project, p_intent: intent });
-    vi.stubEnv("EMBEL_DEVELOPMENT_ENABLED", "false");
-    rpc.mockClear();
-    await expect(ensureNextNamingRun(auth, project, intent)).rejects.toMatchObject({ code: "not_found" });
-    expect(rpc).toHaveBeenCalledWith("ensure_naming_brain_run", { p_project_id: project, p_intent: intent });
   });
 });

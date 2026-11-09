@@ -74,7 +74,12 @@ describe("reviewed authority packet roster",()=>{
   expect(expiryNeedle).toBeDefined();expect(expiryReplacement).toBeDefined();
   expect(current.split(expiryNeedle!)).toHaveLength(2);
   const latest=current.replace(expiryNeedle!,expiryReplacement!);
-  expect(authorityManifest.functions.find(f=>f.schema==="public"&&f.name==="shared_naming_worker_action")?.sha256).toBe(createHash("sha256").update(latest).digest("hex"));
+  expect(latest).not.toBe(current);
+  // Since November 2026 the Naming generation packet replaces the gateway in place.
+  const generation=await readFile(new URL("../../supabase/candidates/shared_naming_generation.sql",import.meta.url),"utf8");
+  const generationBody=/create or replace function public\.shared_naming_worker_action\([\s\S]*?as \$\$([\s\S]*?)\$\$;/u.exec(generation)?.[1];
+  expect(generationBody).toBeDefined();
+  expect(authorityManifest.functions.find(f=>f.schema==="public"&&f.name==="shared_naming_worker_action")?.sha256).toBe(createHash("sha256").update(generationBody!).digest("hex"));
   const expiryBody=/create function fluid_private\.expire_shared_naming_leases\([\s\S]*?as \$\$([\s\S]*?)\$\$;/u.exec(expiry)?.[1];
   expect(expiryBody).toBeDefined();
   expect(authorityManifest.functions.find(f=>f.name==="expire_shared_naming_leases")?.sha256).toBe(createHash("sha256").update(expiryBody!).digest("hex"));
@@ -85,7 +90,7 @@ describe("reviewed authority packet roster",()=>{
   expect(helper).toBeDefined();
   expect(authorityManifest.functions.find(f=>f.name==="naming_brainstorm_event_replay_guard_v1")?.sha256).toBe(createHash("sha256").update(helper!).digest("hex"));
  });
- it("retains the finite nineteen-packet bound",()=>{
-  expect(sharedAuthorityManifestSchema.safeParse({...authorityManifest,packets:Array.from({length:20},()=>authorityManifest.packets[0])}).success).toBe(false);
+ it("retains the finite twenty-packet bound",()=>{
+  expect(sharedAuthorityManifestSchema.safeParse({...authorityManifest,packets:Array.from({length:21},()=>authorityManifest.packets[0])}).success).toBe(false);
  });
 });

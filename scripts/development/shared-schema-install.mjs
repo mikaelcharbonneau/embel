@@ -185,7 +185,7 @@ export async function installDevelopmentPolicies(configuration,root,namingFinger
   for(const [operation,policy] of Object.entries(slot.policies)){
    const body=q(JSON.stringify(policy))+'::jsonb';
    const identity=slot.lane==='logo'?q(policy.policyIdentity):`encode(sha256(convert_to((${body})::text,'UTF8')),'hex')`;
-   const valid=slot.lane==='strategy'?`fluid_private.api_text_guided_policy(${q(operation)},${body})`:slot.lane==='naming'?`fluid_private.naming_brain_valid_policy(${body})`
+   const valid=slot.lane==='strategy'?`fluid_private.api_text_guided_policy(${q(operation)},${body})`:slot.lane==='naming'?`fluid_private.naming_generation_policy_valid(${body})`
     :operation==='identity.image'?`fluid_private.shared_identity_policy_valid(${body})`:`fluid_private.shared_logo_policy_valid(${q(operation)},${body})`;
    statements.push(`do $$ begin if not coalesce(${valid},false) then raise exception 'portable_policy_unqualified'; end if; end $$;`);
    statements.push(`insert into fluid_private.shared_worker_policies(slot_id,operation,policy_identity,policy) values(${q(slot.slotId)}::uuid,${q(operation)},${identity},${body}) on conflict(slot_id,operation) do update set policy_identity=excluded.policy_identity,policy=excluded.policy;`);

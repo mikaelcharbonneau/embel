@@ -19,7 +19,6 @@ type Props = {
   onClose: () => void;
   onRefresh: () => void;
   onUse: () => void;
-  onWorkshop: () => void;
   onSave: () => void;
   onFavorite: () => void;
   onSteering?: () => void;
@@ -28,7 +27,7 @@ type Props = {
 };
 
 export function NamingInspect({ account, entry, selected, pending, blocked, error, earlierConfirmation, onClose,
-  onRefresh, onUse, onWorkshop, onSave, onFavorite, onSteering, steeringSelected, steeringDisabled }: Props) {
+  onRefresh, onUse, onSave, onFavorite, onSteering, steeringSelected, steeringDisabled }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const { candidate, retention } = entry;
@@ -70,7 +69,6 @@ export function NamingInspect({ account, entry, selected, pending, blocked, erro
         <summary>More actions<Icon name="chevron" size={14} /></summary>
         <div className={styles.actions}>
           <button type="button" className="button secondary small" disabled={pending} aria-pressed={retention.saved} onClick={onSave}>{retention.saved ? "Unsave" : "Save"} {name}</button>
-          <button type="button" className="button secondary small" disabled={pending || blocked} onClick={onWorkshop}>Explore variations</button>
           {onSteering && <label className="naming-steering-choice"><input type="checkbox" checked={steeringSelected} disabled={steeringDisabled} onChange={onSteering} />More like this<span className="sr-only">: {name}</span></label>}
         </div>
       </details>

@@ -116,9 +116,8 @@ export function NamingApproachWidgets({ memory, account, projectId, context, sav
     if (!embedded && area && target) area.scrollTo?.({ top: Math.max(0, area.scrollTop + target.getBoundingClientRect().top - area.getBoundingClientRect().top - 20), behavior: "instant" });
   }, [step, connected, exploring, embedded]);
   if (!state || !record || !resolvedProgress) return inline ? inlineNamingMessage(inline, <GuidedThinking label="Opening naming choices…" />) : <p role="status">Loading Naming choices…</p>;
-  const appliedVersion = record.feed.feed?.activeRun?.preferencesVersion ?? record.feed.feed?.preferencesVersion;
   if (appliedChoices === null) setAppliedChoices(JSON.stringify(state.saved?.preferences ?? state.draft));
-  const hasUpdatedChoices = JSON.stringify(state.draft) !== (appliedChoices ?? JSON.stringify(state.saved?.preferences ?? state.draft)) || Boolean(appliedVersion !== undefined && state.saved && state.saved.version !== appliedVersion);
+  const hasUpdatedChoices = JSON.stringify(state.draft) !== (appliedChoices ?? JSON.stringify(state.saved?.preferences ?? state.draft));
   const progress = resolvedProgress;
   const value = state.draft, sequence = namingChatQuestions(), instruction = record.steeringDraft.instruction, seeds = record.steeringDraft.candidateIds;
   const parsed = namingPreferencesV2Schema.safeParse({ ...value, sourceLanguages: value.sourceLanguages.filter(item => item.trim()), requiredText: value.requiredText.filter(item => item.trim()), excludedText: value.excludedText.filter(item => item.trim()) });
@@ -162,8 +161,9 @@ export function NamingApproachWidgets({ memory, account, projectId, context, sav
     lock.current = true; setWorking(true); setComposerError(undefined);
     const sent = instruction;
     try {
-      if (seeds.length) {
-        if (!canSteer || !onSteer) { setComposerError("Return to exploration and save your choices before sending a direction for these names."); return; }
+      // Once names exist, "More like this" names and typed guidance steer the next names.
+      if (seeds.length || exploring) {
+        if (!canSteer || !onSteer) { setComposerError("Wait for the current names to finish, then send a direction for these names."); return; }
         await onSteer(seeds, instruction.trim() || null); return;
       }
       // Guidance is an actual saved preference, never an invented chat reply.
@@ -208,7 +208,7 @@ export function NamingApproachWidgets({ memory, account, projectId, context, sav
           </div>}
           {step === "review" && !generationUnavailable ? <p className="guided-assistant-copy">{exploring ? "Edit any answer to change the direction for upcoming names. Earlier names keep their original context." : "Your naming choices are saved and ready to use."}</p> : null}
           {readiness.missing.includes("conflicting_text") || readiness.missing.includes("impossible_length") ? <p role="alert">Review required text, excluded text and length limits so they can work together.</p> : null}
-          <div className={styles.stepActions}><p className={`naming-save-status ${styles.save}`} role="status">{state.status === "saved" ? state.saved?.preferences.version === 2 ? <><ProjectArtwork name="check" />Saved</> : "Your choices save automatically" : state.status === "saving" ? "Saving…" : "Changes need attention"}</p>{step !== "review" ? <button type="button" className="button primary" disabled={blocked || working || invalid || saveBlocked} onClick={() => void confirm()}>{working ? "Saving…" : "Continue"}</button> : !generationUnavailable && (!exploring || hasUpdatedChoices) ? <button type="button" className="button primary" disabled={blocked || working || !runtimeReady || !readiness.ready || saveBlocked} onClick={() => void proceed()}>{working ? "Checking generation…" : exploring ? "Apply updated choices" : record.feed.pending || record.feed.outcome || record.feed.error ? "Retry generation" : "Generate names"}</button> : null}</div>
+          <div className={styles.stepActions}><p className={`naming-save-status ${styles.save}`} role="status">{state.status === "saved" ? state.saved?.preferences.version === 2 ? <><ProjectArtwork name="check" />Saved</> : "Your choices save automatically" : state.status === "saving" ? "Saving…" : "Changes need attention"}</p>{step !== "review" ? <button type="button" className="button primary" disabled={blocked || working || invalid || saveBlocked} onClick={() => void confirm()}>{working ? "Saving…" : "Continue"}</button> : !generationUnavailable && (!exploring || hasUpdatedChoices) ? <button type="button" className="button primary" disabled={blocked || working || !runtimeReady || !readiness.ready || saveBlocked} onClick={() => void proceed()}>{working ? "Checking generation…" : exploring ? "Apply updated choices" : record.feed.pending || record.feed.error ? "Retry generation" : "Generate names"}</button> : null}</div>
           {step === "review" && generationUnavailable && generationStatus}
         </div></Assistant>
       </div>
@@ -220,8 +220,8 @@ export function NamingApproachWidgets({ memory, account, projectId, context, sav
       {inline && manualName && <details className={styles.inlineManual}><summary>Add your own name</summary>{manualName}</details>}
     </>;
   const composer = <>
-      {seeds.length ? <div className={styles.seedSummary}><p>{seeds.length} {seeds.length === 1 ? "name" : "names"} will guide upcoming exploration.</p><button type="button" className="text-link" disabled={working} onClick={() => memory.setSteeringDraft(account, projectId, draft => ({ ...draft, candidateIds: [] }))}>Clear selection</button></div> : null}
-      <ConversationComposer project value={instruction} onChange={text => { if (text.length <= 2000) { setComposerError(undefined); memory.setSteeringDraft(account, projectId, draft => ({ ...draft, instruction: text })); } else setComposerError("Keep Naming guidance within 2,000 characters."); }} onSend={() => void send()} label="Naming message" placeholder={seeds.length ? "What do you like about these names?" : "Add a thought or naming guidance…"} sendLabel={seeds.length ? "Send naming direction" : "Save naming guidance"} hint={seeds.length ? "Steers the next exploration" : inline || compact ? null : "Saves guidance for upcoming names"} disabled={blocked || working || !instruction.trim() && !seeds.length || saveBlocked || Boolean(seeds.length && !canSteer)} error={composerError} />
+      {seeds.length ? <div className={styles.seedSummary}><p>{seeds.length} {seeds.length === 1 ? "name" : "names"} will guide the next names.</p><button type="button" className="text-link" disabled={working} onClick={() => memory.setSteeringDraft(account, projectId, draft => ({ ...draft, candidateIds: [] }))}>Clear selection</button></div> : null}
+      <ConversationComposer project value={instruction} onChange={text => { if (text.length <= 2000) { setComposerError(undefined); memory.setSteeringDraft(account, projectId, draft => ({ ...draft, instruction: text })); } else setComposerError("Keep Naming guidance within 2,000 characters."); }} onSend={() => void send()} label="Naming message" placeholder={seeds.length ? "What do you like about these names?" : "Add a thought or naming guidance…"} sendLabel={seeds.length || exploring ? "Send naming direction" : "Save naming guidance"} hint={seeds.length || exploring ? "Steers the next names" : inline || compact ? null : "Saves guidance for upcoming names"} disabled={blocked || working || !instruction.trim() && !seeds.length || saveBlocked || Boolean((seeds.length || exploring) && !canSteer)} error={composerError} />
     </>;
   if (inline && folded && !choicesOpen) return <>{inlineNamingMessage(inline, <><NamingRecoveryNotice memory={memory} account={account} />{summaryPill}</>)}{inline.composer && createPortal(composer, inline.composer)}</>;
   if (inline) return <>{inlineNamingMessage(inline, messages)}{inline.composer && createPortal(composer, inline.composer)}</>;
