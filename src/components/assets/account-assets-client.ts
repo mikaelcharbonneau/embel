@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isSignedDownloadUrl } from "@/domain/signed-download-url";
 import { assetLogoExportResponseSchema } from "@/features/identity-deliverables/model/asset-export-response";
 import {
   ASSET_MAX_FILE_BYTES, assetDetailQuerySchema, assetDetailSchema, assetLibraryPageSchema,
@@ -12,7 +13,7 @@ import { AccountRequestError } from "@/components/workspace/account-api";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 
 const downloadSchema = z.strictObject({
-  url: z.url().max(8192).refine(value => { const url = new URL(value); return url.protocol === "https:" && !url.username && !url.password; }),
+  url: z.url().max(8192).refine(isSignedDownloadUrl),
   versionId: z.uuid(), contentHash: z.string().regex(/^[a-f0-9]{64}$/), mimeType: z.string().min(1).max(150), expiresInSeconds: z.literal(60),
 });
 const rasterMimes = new Set(["image/png", "image/jpeg", "image/webp"]);

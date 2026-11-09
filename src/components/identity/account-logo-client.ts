@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isSignedDownloadUrl } from "@/domain/signed-download-url";
 import { logoVectorProposalPageSchema, logoVectorProposalRecordSchema } from "@/domain/logo-vector-proposal-jobs";
 import { logoVectorProposalRequestStateSchema, logoVectorProposalRequestCloseSchema, logoVectorProposalRequestPageSchema } from "@/features/logo-vector/model/proposal-session";
 import * as W from "@/domain/logo-workspace";
@@ -28,7 +29,7 @@ type Preview = { url: string; release(): void };
 type FontImport = { requestKey: string; expected: W.LogoExpectedHeads; catalogFontId: string };
 type FontUpload = { requestKey: string; expected: W.LogoExpectedHeads; licenseSourceUrl: string | null; licenseText: string; rightsDeclaration: string; file: File };
 const assetDownloadSchema = z.strictObject({
-  url: z.url().max(8192).refine(value => { const url = new URL(value); return url.protocol === "https:" && !url.username && !url.password; }),
+  url: z.url().max(8192).refine(isSignedDownloadUrl),
   versionId: V.logoUuidSchema, contentHash: V.logoHashSchema, mimeType: z.string().min(1).max(150), expiresInSeconds: z.literal(60),
 });
 type AssetDownload = z.infer<typeof assetDownloadSchema>;
