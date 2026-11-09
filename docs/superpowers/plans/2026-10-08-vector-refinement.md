@@ -1,3 +1,5 @@
+> **Archived November 9, 2026.** Historical record; it may not match the current code. Current architecture and plan: [architecture-review.md](../../architecture-review.md).
+
 # Bounded Vector AI Refinement Implementation Plan
 
 > Historical implementation plan. The [current project rules](../../../AGENTS.md) supersede this plan's mandatory subskills, fixed monetary caps, task-specific approval holds and source-only stopping condition. No particular subskill is required by this record. Its technical contracts and test cases describe the original increment; verify them against current source before reuse. Current rules also govern redesign, model selection and disposal of test data.

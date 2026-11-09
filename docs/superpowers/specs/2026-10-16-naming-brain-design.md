@@ -1,3 +1,5 @@
+> **Archived November 9, 2026.** Historical record; it may not match the current code. Current architecture and plan: [architecture-review.md](../../architecture-review.md).
+
 # Embel Naming brain — agent assignments and complete run
 
 Date: 2026-10-16. This historical design records the confirmed product behavior, five role assignments and complete-run outline, with a managed-runtime implementation proposal. Later implementation and live results are recorded separately. This document grants no execution, spending or activation authority.

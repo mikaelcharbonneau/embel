@@ -1,3 +1,5 @@
+> **Archived November 9, 2026.** Historical record; it may not match the current code. Current architecture and plan: [architecture-review.md](../../architecture-review.md).
+
 # Naming Brain Implementation Plan
 
 > Historical managed-Agents implementation plan. The [current project rules](../../../AGENTS.md) supersede its mandatory subskills, fixed monetary caps, task-specific approval holds and preservation requirements for disposable test data. No particular subskill or original staffing split is required by this record. [Fast-first Naming](../../naming-fast-first.md) describes the newer initial generation flow; use current rules for model selection, design and publication. The original contracts, amounts and test cases below remain dated implementation evidence.

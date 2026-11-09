@@ -1,3 +1,5 @@
+> **Archived November 9, 2026.** Historical record; it may not match the current code. Current architecture and plan: [architecture-review.md](architecture-review.md).
+
 # Local logo concepts: setup and verification
 
 Setup checkpoint on 2026-10-18: the restricted database and Storage identities were created, all four matching concept capabilities were enabled, and the dedicated worker reported readiness. Live Auth and `logo_storage_session()` checks passed without image inference during setup validation. Later live generation is recorded below; this history does not grant new provisioning, credential retention, key use or activation permission.

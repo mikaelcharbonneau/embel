@@ -1,3 +1,5 @@
+> **Archived November 9, 2026.** Historical record; it may not match the current code. Current architecture and plan: [architecture-review.md](architecture-review.md).
+
 # Visual identity release — October 30, 2026
 
 ## Latest published follow-up

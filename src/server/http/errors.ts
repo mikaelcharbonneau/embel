@@ -5,7 +5,8 @@ export type ApiErrorCode =
   | "forbidden_origin" | "body_too_large" | "integration_unavailable" | "internal_error"
   | "invalid_credentials" | "signup_failed" | "auth_rate_limited" | "naming_history_capacity"
   | "naming_active" | "project_revision_changed" | "preferences_changed" | "preferences_incomplete"
-  | "invalid_naming_request" | "naming_unavailable";
+  | "invalid_naming_request" | "naming_unavailable"
+  | "weak_password" | "same_password" | "recovery_required";
 
 const failures = {
   unauthenticated: [401, "Sign in to continue."],
@@ -26,6 +27,9 @@ const failures = {
   invalid_credentials: [401, "The email and password could not be verified."],
   signup_failed: [422, "Account creation could not be completed with these details."],
   auth_rate_limited: [429, "Too many account attempts. Wait before trying again."],
+  weak_password: [422, "Choose a stronger password. Avoid common passwords and ones exposed in data breaches."],
+  same_password: [422, "Choose a password you haven't used for this account."],
+  recovery_required: [403, "Open the newest password reset link from your email to set a new password."],
 } as const;
 
 export class ApiError extends Error {
@@ -45,8 +49,33 @@ export function privateJson(value: unknown, status = 200): Response {
   });
 }
 
-/** Never serialize provider/database errors, credentials, request bodies, or stack traces. */
+/** Never serialize provider/database errors, credentials, request bodies, or stack traces.
+ * Unexpected errors and server-side failures (5xx) are logged without their messages. */
 export function errorResponse(error: unknown): Response {
   const safe = error instanceof ApiError ? error : new ApiError("internal_error");
+  if (!(error instanceof ApiError)) logServerError("api_unexpected_error", error);
+  else if (error.status >= 500) logServerError("api_server_error", error);
   return privateJson({ error: { code: safe.code, message: safe.message } }, safe.status);
+}
+
+/** Short machine codes only, e.g. Postgres "23505", Node "ECONNRESET", PostgREST "PGRST116". */
+const SAFE_CODE = /^[A-Za-z0-9_.-]{1,40}$/;
+const MAX_FRAMES = 6;
+
+/**
+ * Writes one JSON line for a server failure so it appears in Vercel's runtime logs.
+ * Messages, request paths, headers and bodies are never written: they can carry emails,
+ * tokens, one-time codes or provider diagnostics. Only the error type, a short code and
+ * the code locations ("at ..." stack frames) are kept. Logging can never throw.
+ */
+export function logServerError(event: string, error: unknown, details: Record<string, string | undefined> = {}): void {
+  try {
+    const name = error instanceof Error ? error.name : typeof error;
+    const rawCode = typeof error === "object" && error !== null && "code" in error ? (error as { code?: unknown }).code : undefined;
+    const code = typeof rawCode === "string" && SAFE_CODE.test(rawCode) ? rawCode : undefined;
+    const frames = error instanceof Error && typeof error.stack === "string"
+      ? error.stack.split("\n").map(line => line.trim()).filter(line => line.startsWith("at ")).slice(0, MAX_FRAMES)
+      : [];
+    console.error(JSON.stringify({ event, name, code, ...details, frames }));
+  } catch { /* A broken logger must never change the response. */ }
 }

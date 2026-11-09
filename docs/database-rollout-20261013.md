@@ -1,3 +1,5 @@
+> **Archived November 9, 2026.** Historical record; it may not match the current code. Current architecture and plan: [architecture-review.md](architecture-review.md).
+
 # Database rollout — 2026-10-13
 
 The user authorized the database changes needed to proceed toward the production rollout. The lead applied eight reviewed migrations to the existing Supabase project `fricsfwqibyhemknqgyf` between 19:07 and 19:08 UTC. All eight succeeded; hosted history now contains 42 entries, preserving its previous 34 entries.

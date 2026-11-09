@@ -1,3 +1,5 @@
+> **Archived November 9, 2026.** Historical record; it may not match the current code. Current architecture and plan: [architecture-review.md](architecture-review.md).
+
 # Visual direction preflight repair — October 30, 2026
 
 The first live Northline direction sets failed before any paid AI dispatch.

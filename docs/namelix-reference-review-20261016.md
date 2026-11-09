@@ -1,3 +1,5 @@
+> **Archived November 9, 2026.** Historical record; it may not match the current code. Current architecture and plan: [architecture-review.md](architecture-review.md).
+
 # Namelix reference assessment for Embel Naming
 
 Date: 2026-10-16. Scope: read-only assessment of the user-supplied archive, with selected inert reference copies retained under ignored `.references/namelix-review-20261016/`.

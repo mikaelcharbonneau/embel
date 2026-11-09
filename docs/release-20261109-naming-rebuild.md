@@ -1,3 +1,5 @@
+> **Archived November 9, 2026.** Historical record; it may not match the current code. Current architecture and plan: [architecture-review.md](architecture-review.md).
+
 # Naming rebuild and two Logo slots — November 9, 2026
 
 Naming generation kept failing. On November 9 a NUL character in one AI reply

@@ -1,3 +1,5 @@
+> **Archived November 9, 2026.** Historical record; it may not match the current code. Current architecture and plan: [architecture-review.md](architecture-review.md).
+
 # Inactive durable Naming Responses components — 2026-10-24
 
 > Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).

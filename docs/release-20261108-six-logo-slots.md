@@ -1,3 +1,5 @@
+> **Archived November 9, 2026.** Historical record; it may not match the current code. Current architecture and plan: [architecture-review.md](architecture-review.md).
+
 # Six parallel Logo slots — November 8, 2026
 
 A six-concept logo batch is six jobs, but production had one Logo slot, so the

@@ -1,3 +1,5 @@
+> **Archived November 9, 2026.** Historical record; it may not match the current code. Current architecture and plan: [architecture-review.md](architecture-review.md).
+
 # Assets request lifetimes
 
 Issue #39 bounds each private Assets HTTP request to 30 seconds, using the same
