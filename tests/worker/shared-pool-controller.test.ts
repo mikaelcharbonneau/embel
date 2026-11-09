@@ -196,11 +196,33 @@ describe("shared slot outage backoff",()=>{
  it("fences and fails an unconfirmed Strategy observation write instead of treating it as a missing read",async()=>{
   vi.useFakeTimers();
   const f=harness({pending:true,fatalStrategyObservation:true});
+  let settled=false;void f.running.then(()=>{settled=true;},()=>{settled=true;});
   await vi.advanceTimersByTimeAsync(0);
-  await expect(f.running).rejects.toThrow("runtime");
   expect(f.events).toContain("fence:strategy");
   expect(f.events).not.toContain("release:strategy");
+  expect(f.diagnostics.some(e=>e.code==="drain_unconfirmed"&&e.lane==="strategy")).toBe(true);
   expect(f.diagnostics.some(e=>e.code==="strategy_observation_delayed")).toBe(false);
+  // Only the Strategy slot is retired; the process keeps serving other lanes.
+  expect(settled).toBe(false);
+  expect(f.controller.status().slots.filter(s=>s.lane!=="strategy").every(s=>s.state==="qualified")).toBe(true);
+  f.stop.abort();await expect(f.running).rejects.toThrow("runtime");
+  await expect(f.controller.close()).rejects.toThrow("runtime");
+ });
+ it("keeps Strategy and Logo working while a Naming drain failure retries only the Naming slot",async()=>{
+  vi.useFakeTimers();
+  const f=harness({fatalNaming:true});
+  await vi.advanceTimersByTimeAsync(0);
+  expect(f.events).toContain("fence:naming");
+  expect(f.diagnostics.some(e=>e.code==="drain_unconfirmed"&&e.lane==="naming")).toBe(true);
+  const slots=f.controller.status().slots;
+  expect(slots.filter(s=>s.lane!=="naming").every(s=>s.state==="qualified")).toBe(true);
+  await expect(f.controller.deliverStrategy({immutable:"inert descriptor"})).resolves.toMatchObject({disposition:"ack",state:"succeeded"});
+  // After its own backoff the Naming slot claims again with a new lease.
+  const before=f.claims.naming!;
+  await vi.advanceTimersByTimeAsync(2_000);
+  expect(f.claims.naming!).toBeGreaterThan(before);
+  expect(f.claims.strategy).toBe(1);expect(f.claims.logo).toBe(1);
+  f.stop.abort();await expect(f.running).rejects.toThrow("runtime");
   await expect(f.controller.close()).rejects.toThrow("runtime");
  });
  it("bounds failed qualification traffic while healthy lanes keep polling and renewing",async()=>{

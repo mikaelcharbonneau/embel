@@ -118,6 +118,11 @@ An engine journal or drain failure immediately fences its exact current lease,
 expires admission and parks its active metadata as observation. This is an
 admission withdrawal, not evidence that a remote provider request stopped. An old
 process cannot fence a newer generation's slot.
+Since November 8, 2026 an unconfirmed drain retires only that slot's engine. The
+slot retries after its own backoff; its next claim increases the generation, so
+a late write from the abandoned engine is refused. The other lanes keep running,
+and the process still reports the unconfirmed drain (exit code 2) when it stops.
+Before this change one lane's unconfirmed drain stopped every lane.
 
 ## Restart, cancellation and evidence
 
