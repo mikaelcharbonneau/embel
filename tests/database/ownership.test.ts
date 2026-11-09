@@ -41,7 +41,12 @@ const reviewedAccountNamesTables = [
   // 20261015201757: owner-filtered snapshot SELECT; checked RPCs own all writes.
   ["names_workspaces", true],
 ] as const;
-const reviewedReadOnlyTables = [...reviewedLogoAndHomeTables, ...reviewedWorkflowTables, ...reviewedAccountNamesTables];
+// 20261110090000: generation engine (docs/generation-engine.md). Owners read their own
+// credits and runs; only start_generation/cancel_generation and the engine login write them.
+const reviewedEngineTables = [
+  ["credit_accounts", true], ["credit_entries", true], ["generation_runs", true], ["generation_outputs", true],
+] as const;
+const reviewedReadOnlyTables = [...reviewedLogoAndHomeTables, ...reviewedWorkflowTables, ...reviewedAccountNamesTables, ...reviewedEngineTables];
 
 describe("local PostgreSQL ownership boundaries (not live Supabase)", () => {
   let db: TestDatabase;

@@ -1,0 +1,96 @@
+# Generation engine (Phase 4 design)
+
+_November 9, 2026. This implements Phase 4 and step 2.1 of [architecture-review.md](architecture-review.md)._
+
+## Goal
+
+AI generation runs as Vercel Workflow runs inside the web app. That replaces:
+
+- the shared worker daemon and its fixed slots (research 1, naming 1, logo 6/2);
+- the API-text worker project;
+- the Vercel Queue outbox;
+- the per-slot database logins.
+
+Each journey step moves over on its own, behind a switch, and the old path is deleted once the new one is proven.
+
+## Decisions
+
+| Topic | Decision | Why |
+|---|---|---|
+| Orchestrator | `workflow` 5.2.3 + `@workflow/next` (Vercel Workflow, generally available April 2026) | Durable steps, retries and cancellation, inside the existing app; no extra deploy target |
+| Run records | New tables `generation_runs` and `generation_outputs`. The old `jobs`/`job_steps` stay read-only until they're dropped in Phase 5.2 | The old tables carry lease fences, plan manifests and immutable-history triggers built for the slot worker |
+| Who may start a run | `public.start_generation(...)`, a SECURITY DEFINER function using `auth.uid()`. Calling it directly through the Data API is the same as clicking in the app: credits and limits apply either way | Limits live where every path meets (review M3) |
+| Who writes results | Only the `embel_engine` database login, which can only execute `fluid_private.engine_*` functions. Its password is set in production outside migrations and stored as a Vercel secret (`EMBEL_ENGINE_DATABASE_URL`) | Least privilege; no secret key in the web bundle |
+| Text providers | OpenAI Responses in background mode. A step creates the response and stores its id; the workflow sleeps and polls; a step retrieves the result | An uncertain outcome is looked up by response id, never blindly re-sent (AGENTS.md); no function holds a long connection |
+| Image providers | Decided in step 4.4. Prefer the Responses `image_generation` tool in background mode for the same lookup-by-id recovery | Same reason |
+| Retries | Steps retry transient failures (429, 5xx, network) with backoff, at most 3 attempts. Bad output gets one corrective re-prompt, then fails. Validation and permission errors fail immediately (`FatalError`) | Bounded, automatic, no operator adjudication |
+| Cancellation | `cancel_generation(run_id)` marks the run. The workflow checks between steps and cancels open OpenAI background responses | Users can stop work, and no paid call starts after a cancel |
+| Concurrency | No global slots. One active run per project and kind, a per-owner daily run limit, and a global daily cost cap, all enforced in `start_generation`. OpenAI rate limits are handled as retries | Throughput grows with demand (review M1) |
+| Credits | Ledger `credit_entries` (grant, charge, refund) plus a `plans` table (monthly allowance) and a `generation_kinds` table (credits per kind, enabled flag). `start_generation` charges; a failed or cancelled run is refunded | Monthly plans with credits (owner decision, November 9) |
+| Stop switch | `fluid_private.engine_settings.paused`, checked by `start_generation` and before every paid step | Stops paid work within seconds, no redeploy |
+| Status to the browser | Each step's existing screen polls its own status route every 3 s (Supabase Realtime later) | Smallest change per screen |
+| Costs | Each provider call records `cost_microusd` on its output row. Not shown to users | Admin visibility (S8); [no cost estimates in the UI] |
+
+## Data model (migration `generation_engine`)
+
+```
+plans(id text pk, name, monthly_credits int, active bool)              -- free / pro / studio
+credit_accounts(owner_id pk -> auth.users, plan_id, period_start, period_end)
+credit_entries(id, owner_id, delta int, kind grant|charge|refund, run_id null, note, created_at)
+generation_kinds(kind text pk, credits int, enabled bool, max_per_day int)
+generation_runs(id, owner_id, project_id, kind, status queued|running|succeeded|failed|cancelled,
+                idempotency_key, input jsonb, workflow_run_id, error_code, cancel_requested_at,
+                created_at, started_at, finished_at; unique(owner_id, idempotency_key))
+generation_outputs(id, run_id, output_key, output jsonb, provider_response_id, cost_microusd, created_at;
+                   unique(run_id, output_key))
+fluid_private.engine_settings(id bool pk default true, paused bool, global_daily_cost_cap_microusd bigint)
+```
+
+**Who can do what:**
+
+- Row-level security limits every user-facing table to its owner, and users can only read. All writes go through functions.
+- `credit_balance(owner)` is the sum of that owner's `credit_entries` deltas.
+- `start_generation(project_id, kind, idempotency_key, input)` does this, in order:
+  1. takes the owner from `auth.uid()` and checks they own the project;
+  2. checks the kind is enabled and the engine isn't paused;
+  3. checks there's no active run for the same project and kind;
+  4. checks the owner's daily limit and the global cost cap;
+  5. grants the monthly allowance lazily when a new period starts;
+  6. checks the balance is at least the kind's credits;
+  7. inserts the run and the charge.
+  
+  It's idempotent per (owner, idempotency_key).
+- `cancel_generation(run_id)`: owner only.
+- **Engine-only functions** (`fluid_private.engine_*`, granted to `embel_engine` and nothing else):
+  - `engine_claim(run_id, workflow_run_id)`
+  - `engine_check(run_id)`, which returns status, cancel request and pause
+  - `engine_save_output(run_id, key, output, response_id, cost)`
+  - `engine_finish(run_id, status, error_code)`, which refunds the credits on failure or cancellation
+
+## Code layout
+
+```
+src/workflows/<step>.ts                 "use workflow" orchestration only
+src/server/engine/database.ts           pg pool for embel_engine (attachDatabasePool, transaction pooler)
+src/server/engine/runs.ts               engine_* function calls (step functions)
+src/server/engine/openai.ts             background create / retrieve / cancel, cost from usage
+src/server/engine/start.ts              route helper: start_generation (user client) + start(workflow)
+src/app/api/projects/[projectId]/generations/...   start, status, cancel
+```
+
+The workflow file only orchestrates. Every database or provider call is a `"use step"` function.
+
+## Order of work
+
+1. **Foundation:** dependencies, `withWorkflow`, migration, engine module, routes, plus a no-cost "echo" workflow proving the loop locally and in production.
+2. **Strategy:** competitors (with web search), audience, positioning, personality, slogan. Reuse the prompts and schemas in `src/server/ai/strategy-response.ts`. Point the strategy screens at the new routes. Results apply to the project the way `apply_strategy_job_result_v2` does today. Then turn off the strategy slot and delete the API-text worker project, queue topic and cron.
+3. **Naming.**
+4. **Logo concepts** (6 in parallel), refinements and style notes. Needs file storage writes; the engine gets a Storage service key for that step.
+5. **Creative directions and exports.**
+6. **Retirement:** turn off the shared worker daemon; delete `services/`, `worker/`, slot logins, ChatGPT-plan mode and laptop runtimes; drop the old tables (Phase 5.2); make a clean baseline migration (Phase 1.2).
+
+## Release and rollback
+
+- Each step ships behind a per-kind switch: `generation_kinds.enabled` plus the screen's route choice. The old path stays until the new one has at least 95% successful runs on 30 local or staging runs and 48 quiet hours in production.
+- Rollback means disabling the kind and pointing the screen back.
+- Database migrations only add things until step 6.

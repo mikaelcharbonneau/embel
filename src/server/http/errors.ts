@@ -6,7 +6,8 @@ export type ApiErrorCode =
   | "invalid_credentials" | "signup_failed" | "auth_rate_limited" | "naming_history_capacity"
   | "naming_active" | "project_revision_changed" | "preferences_changed" | "preferences_incomplete"
   | "invalid_naming_request" | "naming_unavailable"
-  | "weak_password" | "same_password" | "recovery_required";
+  | "weak_password" | "same_password" | "recovery_required"
+  | "generation_unavailable" | "generation_active" | "daily_limit" | "insufficient_credits";
 
 const failures = {
   unauthenticated: [401, "Sign in to continue."],
@@ -30,6 +31,10 @@ const failures = {
   weak_password: [422, "Choose a stronger password. Avoid common passwords and ones exposed in data breaches."],
   same_password: [422, "Choose a password you haven't used for this account."],
   recovery_required: [403, "Open the newest password reset link from your email to set a new password."],
+  generation_unavailable: [503, "Generation is unavailable right now. Please try again shortly."],
+  generation_active: [409, "This step is already generating."],
+  daily_limit: [429, "You've reached today's limit for this step. Try again tomorrow."],
+  insufficient_credits: [402, "You're out of credits for this month."],
 } as const;
 
 export class ApiError extends Error {
