@@ -84,6 +84,17 @@ function Observation({ result }: { result: Result }) {
 
 type Props = { name: string; account: VerifiedAccount };
 
+// Domain checks the user ran from a name's details are kept while the page is
+// open, so reopening that name shows its last result and when it was checked.
+// Only the signed-in account's own checks are kept. Nothing here starts a
+// lookup: a domain is checked only when the user clicks Check domain.
+let rememberedOwner: string | null = null;
+const rememberedDomains = new Map<string, DomainCheck>();
+function rememberedDomainChecks(account: VerifiedAccount) {
+  if (rememberedOwner !== account.userId) { rememberedDomains.clear(); rememberedOwner = account.userId; }
+  return rememberedDomains;
+}
+
 export function CandidateAvailability({ name, account }: Props) {
   const { isCurrent } = useAccountSession();
   return isCurrent(account) ? <OwnedChecks key={JSON.stringify([account.userId, account.generation, name])} name={name} account={account} /> : null;
@@ -92,13 +103,17 @@ export function CandidateAvailability({ name, account }: Props) {
 function OwnedChecks({ name, account }: Props) {
   const { isCurrent } = useAccountSession();
   const [tool, setTool] = useState<Tool>("Domains"), id = useId();
-  const [domain, setDomain] = useState(projectScreeningDomainSuggestion(name) ?? "");
+  const [suggestedDomain] = useState(() => projectScreeningDomainSuggestion(name));
+  const [domain, setDomain] = useState(suggestedDomain ?? "");
   const [handle, setHandle] = useState(name.trim().replace(/\s+/gu, "").toLowerCase());
   const [platform, setPlatform] = useState<HandlePlatform>("youtube");
   const [mark, setMark] = useState(name), [region, setRegion] = useState("EM");
   const [adapters, setAdapters] = useState<ReturnType<typeof createStandaloneLiveAdapters> | null>(null);
   const [connectionError, setConnectionError] = useState(false), [attempt, retry] = useState(0);
-  const [results, setResults] = useState<Partial<Record<Tool, Result>>>({});
+  const [results, setResults] = useState<Partial<Record<Tool, Result>>>(() => {
+    const earlier = suggestedDomain ? rememberedDomainChecks(account).get(suggestedDomain) : undefined;
+    return earlier ? { Domains: { tool: "Domains", check: earlier } } : {};
+  });
   const [error, setError] = useState(""), [busy, setBusy] = useState(false);
   const request = useRef<AbortController | null>(null);
   const { userId, generation } = account;
@@ -145,7 +160,10 @@ function OwnedChecks({ name, account }: Props) {
       if (tool === "Domains") observation = { tool, check: await readDomainCheck(adapters.domains, normalizeDomain(domain), pending.signal) };
       else if (tool === "Handles") observation = { tool, evidence: evidenceSchema.parse(await adapters.handles.check({ platform, handle: exactHandle }, pending.signal)) };
       else observation = { tool, research: await adapters.trademarks.search({ tool: "trademarks", mark: mark.trim(), jurisdictions: [region], niceClasses: [], mode: "exact_word" }, pending.signal) };
-      if (current()) setResults(old => ({ ...old, [tool]: observation }));
+      if (current()) {
+        if (observation.tool === "Domains") rememberedDomainChecks(account).set(observation.check.domain, observation.check);
+        setResults(old => ({ ...old, [tool]: observation }));
+      }
     } catch (cause) {
       if (current()) setError(cause instanceof Error ? cause.message : "The lookup could not be completed.");
     } finally { if (current()) { request.current = null; setBusy(false); } }

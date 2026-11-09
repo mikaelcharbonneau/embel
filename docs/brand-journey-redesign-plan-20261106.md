@@ -18,6 +18,7 @@ This is a plan only. Nothing here is implemented yet.
 | Competitor research starts as soon as the idea is sent from Home | Sending the Home prompt is the one deliberate click; remove the "Review the research request, then start research" gate |
 | One conversation per project; answers collapse into editable summaries | Extend the existing inline-conversation pattern (Naming already mounts inline in Strategy) |
 | Compact choice cards: click the card to choose; no "Use this…" buttons, no style tags or descriptions on name/logo cards | Shared ChoiceCard component |
+| November 8: no automatic domain checks in Naming | Name cards show no domain status; a domain is checked only when the user clicks Check domain in a name's details, which keeps that result (with its check time) while the page is open. Supersedes the ".com status" notes below |
 | Questions before generation (naming choices; logo types) | Reuse the app's existing questions, restyled |
 
 ## Screen-to-code map

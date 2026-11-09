@@ -166,15 +166,6 @@
 .guided-interview .naming-approach-widgets .button.primary, .guided-interview .guided-naming-messages .button.primary { min-height: 44px; padding: 0 20px; border-radius: var(--radius-pill); }
 /* Answered naming questions sit under Embel's avatar, like the Strategy answers. */
 .guided-naming-messages > .guided-choice-answer { margin-left: 44px; border-radius: var(--radius-card); background: rgb(255 255 255 / 75%); }
-/* .com status on name cards: a dot and a short label. */
-.naming-dot-com { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 18px; color: var(--secondary); }
-.naming-dot-com > span { width: 6px; height: 6px; border-radius: 50%; background: #c9c8c2; }
-.naming-dot-com[data-status="available"] { color: #2f4f38; }
-.naming-dot-com[data-status="available"] > span { background: #3d6448; }
-.naming-dot-com[data-status="taken"] { color: #8f4242; }
-.naming-dot-com[data-status="taken"] > span { background: #8f4242; }
-/* A check that gave up: muted text, with no status dot. */
-.naming-dot-com[data-status="unchecked"] > span { display: none; }
 /* All / Saved filter above the names. */
 .naming-filter { display: inline-flex; gap: 4px; margin-top: 10px; padding: 3px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--paper); }
 .naming-filter button { min-height: 32px; padding: 0 12px; border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--secondary); font: inherit; font-size: 13px; cursor: pointer; }
