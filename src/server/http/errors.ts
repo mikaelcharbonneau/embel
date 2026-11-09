@@ -5,7 +5,8 @@ export type ApiErrorCode =
   | "forbidden_origin" | "body_too_large" | "integration_unavailable" | "internal_error"
   | "invalid_credentials" | "signup_failed" | "auth_rate_limited" | "naming_history_capacity"
   | "naming_active" | "project_revision_changed" | "preferences_changed" | "preferences_incomplete"
-  | "invalid_naming_request" | "naming_unavailable";
+  | "invalid_naming_request" | "naming_unavailable"
+  | "weak_password" | "same_password" | "recovery_required";
 
 const failures = {
   unauthenticated: [401, "Sign in to continue."],
@@ -26,6 +27,9 @@ const failures = {
   invalid_credentials: [401, "The email and password could not be verified."],
   signup_failed: [422, "Account creation could not be completed with these details."],
   auth_rate_limited: [429, "Too many account attempts. Wait before trying again."],
+  weak_password: [422, "Choose a stronger password. Avoid common passwords and ones exposed in data breaches."],
+  same_password: [422, "Choose a password you haven't used for this account."],
+  recovery_required: [403, "Open the newest password reset link from your email to set a new password."],
 } as const;
 
 export class ApiError extends Error {

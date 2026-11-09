@@ -2,11 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getApplicationOrigin } from "@/server/config";
 import { confirmationStatus } from "@/server/auth/confirmation";
 
+// Must list the same paths as the matcher below.
+const AUTH_PAGES = ["/sign-in", "/sign-up", "/forgot-password", "/reset-password"];
+
 /** Production credentials belong to the configured site, not its deployment aliases. */
 export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   if (process.env.VERCEL !== "1" || process.env.VERCEL_ENV !== "production" ||
-      !["GET", "HEAD"].includes(request.method) || !["/sign-in", "/sign-up"].includes(path)) {
+      !["GET", "HEAD"].includes(request.method) || !AUTH_PAGES.includes(path)) {
     return NextResponse.next();
   }
 
@@ -26,4 +29,4 @@ export function proxy(request: NextRequest) {
   return response;
 }
 
-export const config = { matcher: ["/sign-in", "/sign-up"] };
+export const config = { matcher: ["/sign-in", "/sign-up", "/forgot-password", "/reset-password"] };
