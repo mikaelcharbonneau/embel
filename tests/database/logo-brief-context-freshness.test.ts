@@ -3,6 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {afterAll,beforeAll,beforeEach,describe,expect,it} from 'vitest';
 import {asRole,createTestDatabase,OWNER_A,OWNER_B,resetFixture,type TestDatabase} from './local-supabase';
 import {logoWorkspaceV2Schema} from '../../src/domain/logo-workspace';
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 
 const filename='20261030150000_logo_brief_context_freshness.sql';
 describe('logo brief freshness compares exact owned saved context',()=>{
@@ -18,7 +19,7 @@ describe('logo brief freshness compares exact owned saved context',()=>{
  },60000);
  afterAll(async()=>{await db?.close();});
  beforeEach(async()=>{await resetFixture(db);});
- async function start(owner=OWNER_A){return logoWorkspaceV2Schema.parse(await asRole(db,'authenticated',owner,async()=>(await db.query<{value:unknown}>('select public.start_logo_project($1) value',[{requestKey:randomUUID(),brief:{name:'Same context',activity:'Studio',audience:'Founders',personality:'Calm',logoTypes:['wordmark']}}])).rows[0]!.value));}
+ async function start(owner=OWNER_A){return logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db, owner), {requestKey:randomUUID(),brief:{name:'Same context',activity:'Studio',audience:'Founders',personality:'Calm',logoTypes:['wordmark']}}));}
  async function read(project:string,owner=OWNER_A){return logoWorkspaceV2Schema.parse(await asRole(db,'authenticated',owner,async()=>(await db.query<{value:unknown}>('select public.get_logo_workspace($1) value',[project])).rows[0]!.value));}
  it('changes only the guarded body, retaining the function identity and all security metadata',()=>{
   expect(before.body_hash).toBe('0b6e77b1f06716421cfd3706b32f7df5bb303d81c21b397703526831a7ab4fd0');
@@ -37,7 +38,9 @@ describe('logo brief freshness compares exact owned saved context',()=>{
   const workspace=await start(),project=workspace.projectId;
   // A second owned project's matching revision cannot stand in for a missing source.
   await start(OWNER_B);
-  if(missing!=='both')await asRole(db,'authenticated',OWNER_A,()=>db.query('select public.expand_project_scope($1,1)',[project]));
+  // A second saved version with the same content (for example a retitle) moves the revision counter only.
+  if(missing!=='both'){const saved=(await db.query<{context:unknown;input_hash:string}>('select context,input_hash from public.project_revisions where project_id=$1 and revision=1',[project])).rows[0]!;
+   await asRole(db,'authenticated',OWNER_A,()=>db.query('select public.append_project_revision($1,1,$2::jsonb,$3)',[project,JSON.stringify(saved.context),saved.input_hash]));}
   await db.exec('begin');
   try{
    // Deliberate LOCAL corruption fixture only; rollback restores the immutable rows and trigger.

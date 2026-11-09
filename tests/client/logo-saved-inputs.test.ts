@@ -16,7 +16,7 @@ function setup(existing = false) {
   memory.bind({ ownerId, generation: 1 });
   const oldBrief = syntheticLogoBrief({ name: "My custom exact name" });
   memory.set(projectId, { workspace, base: workspace.heads, brief: existing ? oldBrief : { name: "", activity: "", audience: "", personality: "", logoTypes: [] },
-    references: [], dirty: false, conflict: false, pendingMutation: null, pendingIntent: null, pendingCreation: null, pendingExport: null });
+    references: [], dirty: false, conflict: false, pendingMutation: null, pendingIntent: null, pendingExport: null });
   let source: LogoSavedInputs = logoSavedInputsSchema.parse({ ownerId, projectId, projectRevision: 1, inspirationSelectionRevision: 2,
     draft: syntheticLogoBrief({ logoTypes: DEFAULT_LOGO_CONCEPT_TYPES, personality: "Calm\nSaved inspiration: fixture creator — selected typography and shape." }), nameConflict: false, inspirationCount: 2, references: [] });
   let revision: LogoBriefRevision = { ...fixture.brief, payload: { ...fixture.brief.payload, ...oldBrief } };

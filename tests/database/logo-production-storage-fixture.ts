@@ -17,6 +17,7 @@ import { logoExportFileRequestKey } from '../../src/features/identity-deliverabl
 import { syntheticConversionInput } from '../features/logo-vector/raster-fixtures';
 import { deliverableFixture, resolvedFixture, id, at } from '../features/identity-deliverables/fixtures';
 import { computeLogoVariantRenderHash } from '../../src/features/identity-deliverables/server/render-policy';
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 
 export const workerRole = 'fluid_logo_worker_production_fixture', workerId = 'synthetic-production-storage';
 export const authUser = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', sessionId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
@@ -79,9 +80,9 @@ export async function productionStorageFixture(db: TestDatabase) {
     return (await connection.query<{ value: IdentityAssetReservation }>('select fluid_private.prepare_logo_asset($1,$2,$3,$4) value', [job.projectId, JSON.stringify({ kind: 'stage', publication }), job.id, job.leaseToken])).rows[0]!.value;
   };
   async function prepareVector() {
-    const initial = logoWorkspaceV2Schema.parse(await rpc("start_logo_project", [{ requestKey: randomUUID(), brief: {
+    const initial = logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), { requestKey: randomUUID(), brief: {
       name: "Synthetic vector adapter", activity: "Local test", audience: "Testers", personality: "Calm", logoTypes: ["mascot"],
-    } }]));
+    } }));
     const reference = (await db.query<{ reference_snapshot_id: string }>("select reference_snapshot_id from public.logo_stage_revisions where id=$1", [initial.stages.brief_references!.id])).rows[0]!;
     const quote = logoCostQuoteSchema.parse(await rpc("quote_logo_operation", [initial.projectId, { operation: "concepts", expected: initial.heads,
       briefRevisionId: initial.stages.brief_references!.id, referenceSnapshotId: reference.reference_snapshot_id }]));
@@ -119,7 +120,7 @@ export async function productionStorageFixture(db: TestDatabase) {
   }
   const brief = { name: "Synthetic export storage", activity: "Studio", audience: "Teams", personality: "Precise", logoTypes: ["wordmark"] };
  async function setupExport() {
-  const start=logoWorkspaceV2Schema.parse(await rpc("start_logo_project",[{requestKey:randomUUID(),brief}]));
+  const start=logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), {requestKey:randomUUID(),brief}));
   const fixture=JSON.parse(JSON.stringify(deliverableFixture("wordmark")).replaceAll(id(1),OWNER_A).replaceAll(id(2),start.projectId)) as ApprovedLogoIdentitySnapshot;
   const sourceInputs=[{stage:"brief_references",id:start.stages.brief_references!.id,revision:1}];
   await db.query("insert into public.logo_vector_revisions(id,owner_id,project_id,record) values($1,$2,$3,$4)",[fixture.logo.id,OWNER_A,start.projectId,{...fixture.logo,inputRevisions:sourceInputs}]);

@@ -8,7 +8,8 @@ import "../../src/styles/project-workspace.css";
 import "./logo-creation-workspace-preview.css";
 function Preview() {
   const session = useAccountSession();
-  const projectId = location.pathname.match(/\/account\/([^/]+)\/logo/)?.[1];
+  // Every Logo page belongs to a saved project; any other path shows "Project unavailable".
+  const projectId = location.pathname.match(/\/account\/([^/]+)\/logo/)?.[1] ?? "";
   return <main style={{ maxWidth: 1140, margin: "auto", padding: 20 }}>
     <p>Local synthetic test only. No live provider, storage or charges.</p>
     <button type="button" onClick={session.refresh}>Recheck test account</button>

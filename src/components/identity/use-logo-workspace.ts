@@ -13,13 +13,13 @@ import type { LogoDraftMemory, LogoDraftRecord } from "./logo-draft-memory";
 import { isExistingBrandLogoReceipt } from "@/features/logo-creation/model/existing-brand";
 
 type Payloads = Partial<{ [S in LogoStage]: LogoStageRevision<S> }>;
-type Scope = { ownerId: string; generation: number; projectId: string | null; memory: LogoDraftMemory; injected?: AccountLogoClient };
+type Scope = { ownerId: string; generation: number; projectId: string; memory: LogoDraftMemory; injected?: AccountLogoClient };
 const sameScope = (a: Scope, b: Scope) => a.ownerId === b.ownerId && a.generation === b.generation && a.projectId === b.projectId && a.memory === b.memory && a.injected === b.injected;
 type Activity = { scope: Scope; busy: boolean; error: string | null; failed: boolean; editableSave?: boolean };
 const same = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
-const unresolved = (record: LogoDraftRecord) => !!(record.pendingIntent || record.pendingCreation || record.pendingExport || record.pendingMutation);
+const unresolved = (record: LogoDraftRecord) => !!(record.pendingIntent || record.pendingExport || record.pendingMutation);
 const empty = (): LogoDraftRecord => ({ workspace: null, base: null, brief: { name: "", activity: "", audience: "", personality: "", logoTypes: [] }, references: [], dirty: false,
-  pendingIntent: null, pendingCreation: null, pendingExport: null, pendingMutation: null, conflict: false });
+  pendingIntent: null, pendingExport: null, pendingMutation: null, conflict: false });
 const briefOf = (revision: LogoStageRevision<"brief_references"> | undefined): LogoBriefDraft => {
   if (!revision) throw new AccountRequestError(503);
   const { name, activity, audience, personality, logoTypes } = revision.payload;
@@ -76,25 +76,22 @@ export async function loadLogoWorkspaceBaseline({ client, account, projectId, me
 }
 
 /** Root binds memory synchronously with account state. No feature-local draft store. */
-export function useLogoWorkspace({ projectId: routeProjectId, memory, client: injected }: { projectId?: string; memory: LogoDraftMemory; client?: AccountLogoClient }) {
-  const projectId = routeProjectId ?? null;
+export function useLogoWorkspace({ projectId, memory, client: injected }: { projectId: string; memory: LogoDraftMemory; client?: AccountLogoClient }) {
   const { session, isCurrent, expire } = useAccountSession();
   const account = session.status === "ready" ? session : null;
   const [transport, setTransport] = useState<{ scope: Scope; client: AccountLogoClient } | null>(null);
   const [activity, setActivity] = useState<Activity | null>(null);
   const [payloads, setPayloads] = useState<{ scope: Scope; baseline: LogoWorkspaceBaseline } | null>(null);
-  const [created, setCreated] = useState<{ scope: Scope; workspace: LogoWorkspaceV2; pendingCreation: LogoDraftRecord["pendingCreation"] } | null>(null);
   const operation = useRef<{ controller: AbortController; scope: Scope; editableSave: boolean } | null>(null);
   const scope = account ? { ownerId: account.userId, generation: account.generation, projectId, memory, injected } : null;
   const committedScope = useRef<Scope | null>(null);
   const client = account && scope && transport && sameScope(transport.scope, scope) && isCurrent(account) && isAccountLogoClientCurrent(transport.client, account, projectId) ? transport.client : null;
   const snapshot = useCallback(() => account && isCurrent(account) ? memory.get(projectId) : null, [account, isCurrent, memory, projectId]);
   const record = useSyncExternalStore(memory.subscribe, snapshot, () => null);
-  const proposal = useSyncExternalStore(memory.subscribe, () => projectId ? memory.getVectorProposal(projectId) : null, () => null);
+  const proposal = useSyncExternalStore(memory.subscribe, () => memory.getVectorProposal(projectId), () => null);
   const visible = !!(account && isCurrent(account));
   const busy = !!(visible && scope && activity && sameScope(activity.scope, scope) && activity.busy);
   const saving = busy && activity?.editableSave === true;
-  const completed = visible && scope && created && sameScope(created.scope, scope) ? created : null;
 
   useLayoutEffect(() => {
     const captured: Scope | null = account ? { ownerId: account.userId, generation: account.generation, projectId, memory, injected } : null;
@@ -165,8 +162,7 @@ export function useLogoWorkspace({ projectId: routeProjectId, memory, client: in
     let result: LogoWorkspaceReloadResult = "unavailable";
     await perform(async (source, signal, current, verified) => {
       const previous = memory.get(projectId);
-      if (previous && (previous.dirty || previous.vectorDraft || previous.directionDraft || previous.conflict || unresolved(previous) || projectId && memory.getVectorProposal(projectId) && (memory.getVectorProposal(projectId)!.dirty || memory.getVectorProposal(projectId)!.pendingGeneration || memory.getVectorProposal(projectId)!.pendingApplication)) && !discard) { result = "draft_blocked"; return; }
-      if (projectId === null) { if (current()) { memory.set(null, empty()); setCreated(null); result = "reloaded"; } return; }
+      if (previous && (previous.dirty || previous.vectorDraft || previous.directionDraft || previous.conflict || unresolved(previous) || memory.getVectorProposal(projectId) && (memory.getVectorProposal(projectId)!.dirty || memory.getVectorProposal(projectId)!.pendingGeneration || memory.getVectorProposal(projectId)!.pendingApplication)) && !discard) { result = "draft_blocked"; return; }
       const baseline = await loadLogoWorkspaceBaseline({ client: source, account: verified, projectId, memory, signal, isCurrent: current });
       if (!baseline || !current()) return;
       const scope = { ownerId: verified.userId, generation: verified.generation, projectId, memory, injected };
@@ -189,7 +185,7 @@ export function useLogoWorkspace({ projectId: routeProjectId, memory, client: in
     if (!account || !client || !isCurrent(account)) return;
     const timer = setTimeout(() => {
       const value = memory.get(projectId);
-      if (!value || !value.dirty && !value.vectorDraft && !value.directionDraft && !value.conflict && !unresolved(value) && !(projectId && memory.getVectorProposal(projectId) && (memory.getVectorProposal(projectId)!.dirty || memory.getVectorProposal(projectId)!.pendingGeneration || memory.getVectorProposal(projectId)!.pendingApplication))) { void reload(false); return; }
+      if (!value || !value.dirty && !value.vectorDraft && !value.directionDraft && !value.conflict && !unresolved(value) && !(memory.getVectorProposal(projectId) && (memory.getVectorProposal(projectId)!.dirty || memory.getVectorProposal(projectId)!.pendingGeneration || memory.getVectorProposal(projectId)!.pendingApplication))) { void reload(false); return; }
       if (value.workspace) void perform(async (source, signal, current, verified) => {
         const unchanged = () => current() && memory.get(projectId) === value;
         const baseline = await readBaseline(source, value.workspace!, signal, unchanged);
@@ -199,11 +195,12 @@ export function useLogoWorkspace({ projectId: routeProjectId, memory, client: in
     return () => { clearTimeout(timer); };
   }, [account, client, injected, isCurrent, memory, perform, projectId, reload]);
 
-  const editable = () => !!(scope && committedScope.current && sameScope(committedScope.current, scope) && account && client && isCurrent(account) && isAccountLogoClientCurrent(client, account, projectId) && (!operation.current || operation.current.editableSave) && !completed && (projectId === null || memory.get(projectId)));
+  const editable = () => !!(scope && committedScope.current && sameScope(committedScope.current, scope) && account && client && isCurrent(account) && isAccountLogoClientCurrent(client, account, projectId) && (!operation.current || operation.current.editableSave) && memory.get(projectId));
   function edit(change: (value: LogoDraftRecord) => LogoDraftRecord) {
     if (!editable() || !scope) return;
     try {
-      const previous = memory.get(projectId) ?? empty();
+      const previous = memory.get(projectId);
+      if (!previous) return;
       memory.set(projectId, change(previous));
       // A corrected local validation failure may save automatically. Uncertain
       // requests and conflicts keep their original recovery state instead.
@@ -275,7 +272,7 @@ export function useLogoWorkspace({ projectId: routeProjectId, memory, client: in
         }
       }
       if (value.workspace.capabilities.save.status !== "available") throw new AccountRequestError(503);
-      if (value.pendingIntent || value.pendingCreation || value.pendingExport || value.conflict) throw new AccountRequestError(409);
+      if (value.pendingIntent || value.pendingExport || value.conflict) throw new AccountRequestError(409);
       if (!value.pendingMutation) {
         // Store original bodies/keys before sending. Acknowledgement alone does
         // not clear pending until its exact reference snapshot is readable.
@@ -322,65 +319,10 @@ export function useLogoWorkspace({ projectId: routeProjectId, memory, client: in
     return state;
   }
 
-  function confirmCreation(value: LogoDraftRecord, workspace: LogoWorkspaceV2, verified: VerifiedAccount) {
-    if (!value.pendingCreation) throw new AccountRequestError(422);
-    const pendingCreation = { input: value.pendingCreation.input, state: { status: "succeeded" as const, requestKey: value.pendingCreation.input.requestKey, projectId: workspace.projectId, workspace } };
-    memory.set(null, { ...value, pendingCreation });
-    setCreated({ scope: { ownerId: verified.userId, generation: verified.generation, projectId: null, memory, injected }, workspace, pendingCreation });
-  }
-  async function startProject(brief: LogoBriefDraft): Promise<void> {
-    await perform(async (source, signal, current, verified) => {
-      if (projectId !== null) throw new AccountRequestError(422);
-      const parsed = logoBriefDraftSchema.safeParse(brief); if (!parsed.success) throw new AccountRequestError(422);
-      const previous = memory.get(null) ?? empty(); if (previous.pendingCreation) throw new AccountRequestError(409);
-      const value: LogoDraftRecord = { ...previous, brief, dirty: true, pendingCreation: { input: { requestKey: crypto.randomUUID(), brief: parsed.data }, state: null } };
-      memory.set(null, value);
-      const result = await source.startLogoProject(value.pendingCreation!.input, signal);
-      if (result && current()) confirmCreation(memory.get(null) ?? value, result, verified);
-    });
-  }
-  async function checkCreation(retry: boolean): Promise<void> {
-    await perform(async (source, signal, current, verified) => {
-      if (projectId !== null) throw new AccountRequestError(422);
-      const previous = memory.get(null); if (!previous?.pendingCreation) return;
-      const state = await source.readLogoProjectCreation(previous.pendingCreation.input.requestKey, signal); if (!state || !current()) return;
-      if (state.status === "succeeded") { confirmCreation(previous, state.workspace, verified); return; }
-      const value = { ...previous, pendingCreation: { input: previous.pendingCreation.input, state } }; memory.set(null, value);
-      if (!retry) return;
-      // Only this explicit retry action can replay the exact original body/key.
-      const result = await source.startLogoProject(value.pendingCreation.input, signal);
-      if (result && current()) confirmCreation(memory.get(null) ?? value, result, verified);
-    });
-  }
-  const checkProjectCreation = (): Promise<void> => checkCreation(false);
-  const retryProjectCreation = (): Promise<void> => checkCreation(true);
-  async function recoverProjectCreation(requestKey: string): Promise<void> {
-    await perform(async (source, signal, current, verified) => {
-      if (projectId !== null) throw new AccountRequestError(422);
-      const previous = memory.get(null);
-      if (previous && (previous.dirty || previous.vectorDraft || previous.directionDraft || previous.conflict || unresolved(previous))) throw new AccountRequestError(409);
-      const state = await source.readLogoProjectCreation(requestKey, signal); if (!state || !current() || state.status === "not_found") return;
-      // Selection comes from the owned durable creation list. No guessed newest
-      // request and no automatic replay occurs when the original local key is lost.
-      let cursor: string | undefined;
-      for (let page = 0; page < 20; page++) {
-        const summaries = await source.listLogoProjectCreations({ cursor, limit: 50 }, signal); if (!summaries || !current()) return;
-        const summary = summaries.items.find(item => item.requestKey === requestKey && item.projectId === state.projectId);
-        if (summary) {
-          const value = { ...empty(), brief: summary.brief, pendingCreation: { input: { requestKey, brief: summary.brief }, state: null } };
-          confirmCreation(value, state.workspace, verified); return;
-        }
-        if (!summaries.nextCursor) break;
-        cursor = summaries.nextCursor;
-      }
-      throw new AccountRequestError(503);
-    });
-  }
-
   const error = visible && scope && activity && sameScope(activity.scope, scope) ? activity.error : null;
   const loaded = visible && scope && payloads && sameScope(payloads.scope, scope) ? payloads : null;
-  const status = !visible ? "unverified" as const : record || completed || loaded ? "ready" as const : error ? "error" as const : "loading" as const;
-  const workspace = visible ? completed?.workspace ?? record?.workspace ?? loaded?.baseline.workspace ?? null : null;
+  const status = !visible ? "unverified" as const : record || loaded ? "ready" as const : error ? "error" as const : "loading" as const;
+  const workspace = visible ? record?.workspace ?? loaded?.baseline.workspace ?? null : null;
   const stagePayloads = !visible ? null : loaded && workspace?.heads.workspaceRevision === loaded.baseline.workspace.heads.workspaceRevision ? loaded.baseline.stagePayloads : {};
   const referenceSnapshot = loaded && workspace?.heads.workspaceRevision === loaded.baseline.workspace.heads.workspaceRevision ? loaded.baseline.referenceSnapshot : null;
   // The Logo and Creative direction steps read one shared record. When another
@@ -400,7 +342,7 @@ export function useLogoWorkspace({ projectId: routeProjectId, memory, client: in
       if (baseline && sameVersion()) setPayloads({ scope: { ownerId: verified.userId, generation: verified.generation, projectId, memory, injected }, baseline });
     });
   }, [followHeads, followBusy, injected, memory, perform, projectId]);
-  const autoSaveReady = Boolean(projectId && visible && client && !busy && !error && record?.dirty && !record.conflict && !unresolved(record)
+  const autoSaveReady = Boolean(visible && client && !busy && !error && record?.dirty && !record.conflict && !unresolved(record)
     && !record.vectorDraft && !record.directionDraft && !proposal?.dirty && !proposal?.pendingGeneration && !proposal?.pendingApplication
     && record.workspace?.stages.brief_references && record.workspace.capabilities.save.status === "available"
     && loaded && same(record.base, loaded.baseline.workspace.heads) && logoBriefDraftSchema.safeParse(record.brief).success);
@@ -420,7 +362,7 @@ export function useLogoWorkspace({ projectId: routeProjectId, memory, client: in
   }, [autoSaveReady, record, loaded]);
 
   return { status, workspace, stagePayloads, referenceSnapshot, draft: visible ? record : null, dirty: !!(visible && (record?.dirty || record?.vectorDraft || record?.directionDraft || proposal?.dirty)), pending: !!(visible && (busy || record && unresolved(record) || proposal?.pendingGeneration || proposal?.pendingApplication)), saving, autoSaveReady, error,
-    canEdit: !!(visible && client && (!busy || saving) && !completed && (projectId === null || record)), client,
-    pendingIntent: visible ? record?.pendingIntent ?? null : null, pendingCreation: visible ? completed?.pendingCreation ?? record?.pendingCreation ?? null : null,
-    retainIntent, clearIntent, setBriefDraft, setReferenceDraft, reload, saveBrief, saveReferences, checkPendingSave, startProject, checkProjectCreation, retryProjectCreation, recoverProjectCreation };
+    canEdit: !!(visible && client && (!busy || saving) && record), client,
+    pendingIntent: visible ? record?.pendingIntent ?? null : null,
+    retainIntent, clearIntent, setBriefDraft, setReferenceDraft, reload, saveBrief, saveReferences, checkPendingSave };
 }

@@ -49,25 +49,6 @@ describe("account logo transport", () => {
     const unavailable = createAccountLogoClient(account, projectId, () => true, vi.fn(), async () => new Response(null, { status: 503 }));
     await expect(unavailable.getLogoWorkspace()).rejects.toMatchObject({ status: 503 });
   });
-  it("creation works in the null-project slot; recovery reads never automatically post", async () => {
-    const calls: { path: string; method?: string; body?: BodyInit | null; headers?: HeadersInit }[] = [];
-    const client = createAccountLogoClient(account, null, () => true, vi.fn(), async (path, init) => {
-      calls.push({ path: String(path), method: init?.method, body: init?.body, headers: init?.headers });
-      return json(String(path).endsWith(`/requests/${requestKey}`) ? { status: "not_found" } : workspace());
-    });
-    expect(await client.readLogoProjectCreation(requestKey)).toEqual({ status: "not_found" }); expect(calls).toHaveLength(1);
-    expect(await client.startLogoProject({ requestKey, brief })).toEqual(workspace());
-    expect(JSON.parse(String(calls[1]?.body))).toEqual({ requestKey, brief });
-    expect(new Headers(calls[1]?.headers).get("X-Embel-Account")).toBe(account.userId);
-    await expect(client.getLogoWorkspace()).rejects.toMatchObject({ status: 422 }); expect(calls).toHaveLength(2);
-  });
-  it("checks recovered creation request identity and owned bounded summary pages", async () => {
-    const client = createAccountLogoClient(account, null, () => true, vi.fn(), async () => json({ status: "succeeded", requestKey: id(4), projectId, workspace: workspace() }));
-    await expect(client.readLogoProjectCreation(requestKey)).rejects.toMatchObject({ status: 502 });
-    const page = { ownerId: account.userId, items: [{ requestKey, projectId, brief, createdAt: "2026-10-06T12:00:00Z" }], nextCursor: null };
-    const listed = createAccountLogoClient(account, null, () => true, vi.fn(), async () => json(page)); expect(await listed.listLogoProjectCreations()).toEqual(page);
-    await expect(listed.listLogoProjectCreations({ limit: 51 })).rejects.toMatchObject({ status: 422 });
-  });
   it("checks request receipt keys and nested owner before returning recovery evidence", async () => {
     const state = { status: "admitted", requestKey, receipt: { ownerId: id(9), projectId, requestKey, operation: "identity.logo_export", batchId: null, jobIds: [id(8)], inputHash: "a".repeat(64) }, outputs: [], billing: { status: "unknown", confirmedMicrousd: null }, reason: null };
     const client = createAccountLogoClient(account, projectId, () => true, vi.fn(), async () => json(state));

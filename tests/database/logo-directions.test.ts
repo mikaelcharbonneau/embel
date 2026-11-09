@@ -15,6 +15,7 @@ import { separatedLogoDocument } from "../features/logo-vector/fixtures";
 import { logoCostQuoteSchema, logoDispatchReceiptSchema } from "@/domain/logo-jobs";
 import type { LogoResolvedDirectionInput } from "@/domain/logo-jobs";
 import { createVisualDirectionTestDatabase, visualFixtureRole, VISUAL_DATABASE_SETUP_TIMEOUT_MS } from "./visual-direction-fixture";
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 const brief={name:"Fluid Test",activity:"Studio",audience:"Teams",personality:"Precise",logoTypes:["wordmark"]};
 describe("local post-logo direction persistence",()=>{
  let db:TestDatabase;
@@ -26,7 +27,7 @@ describe("local post-logo direction persistence",()=>{
  async function writer<T>(run:()=>Promise<T>){await db.exec(`set session authorization ${writerRole}`);try{return await run();}finally{await db.exec("set session authorization postgres");}}
  async function trusted(project:string,command:unknown,evidence:unknown){return writer(async()=>(await db.query<{value:LogoMutationReceipt}>("select fluid_private.apply_logo_trusted_command($1,$2,$3) value",[project,command,evidence])).rows[0]!.value);}
  async function setup(review=false){
-  const start=logoWorkspaceV2Schema.parse(await rpc("start_logo_project",[{requestKey:randomUUID(),brief}])),vectorId=randomUUID();
+  const start=logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), {requestKey:randomUUID(),brief})),vectorId=randomUUID();
   await db.query("insert into public.logo_vector_revisions(id,owner_id,project_id,record) values($1,$2,$3,$4)",[vectorId,OWNER_A,start.projectId,{id:vectorId,ownerId:OWNER_A,projectId:start.projectId,reviewStatus:"review_required",inputRevisions:[start.stages.brief_references],locks:[]}]);
   const approved=await trusted(start.projectId,{method:"acceptLogoVector",body:{requestKey:randomUUID(),expected:start.heads,vectorRevisionId:vectorId,acceptEarlierBasis:false}},{vectorRevisionId:vectorId,currentVectorRevisionId:null,expected:start.heads});
   const w=approved.workspace,original=fontFixture(),font={...original,asset:{...original.asset,ownerId:OWNER_A,projectId:w.projectId}};

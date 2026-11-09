@@ -12,7 +12,7 @@ const workspace = () => logoWorkspaceV2Schema.parse({ version: 2, ownerId, proje
   stages: { brief_references: null, concepts: null, vector: null, refinements: null, directions: null, deliverables: null }, approvedLogo: null, staleStages: [],
   capabilities: Object.fromEntries(["save", "upload", "generate", "convert", "export"].map(key => [key, { status: "unavailable", reason: "Synthetic fixture" }])) });
 const draft = (saved = false): LogoDraftRecord => ({ workspace: saved ? workspace() : null, base: saved ? heads : null, brief: structuredClone(brief), references: [], dirty: true,
-  pendingIntent: null, pendingCreation: null, pendingExport: null, pendingMutation: null, conflict: false });
+  pendingIntent: null, pendingExport: null, pendingMutation: null, conflict: false });
 const memory = () => { const store = createLogoDraftMemory(); store.bind({ ownerId, generation: 1 }); return store; };
 function savedDraft(project: string, dirty = false): LogoDraftRecord {
   return { ...draft(true), workspace: { ...workspace(), projectId: project }, dirty };
@@ -20,23 +20,28 @@ function savedDraft(project: string, dirty = false): LogoDraftRecord {
 
 describe("provider-owned logo drafts", () => {
   it("retains incomplete and overlong editable values synchronously with an unsaved guard", () => {
-    const store = memory(), value = draft(); value.brief = { ...brief, name: "", activity: "seed".repeat(3000), logoTypes: [] };
-    let observed = false; store.subscribe(() => { observed = store.hasUnsaved(); }); store.set(null, value);
-    expect(store.get(null)?.brief).toEqual(value.brief); expect(observed).toBe(true);
+    const store = memory(), value = draft(true); value.brief = { ...brief, name: "", activity: "seed".repeat(3000), logoTypes: [] };
+    let observed = false; store.subscribe(() => { observed = store.hasUnsaved(); }); store.set(projectId, value);
+    expect(store.get(projectId)?.brief).toEqual(value.brief); expect(observed).toBe(true);
     value.brief.activity = "changed outside the store";
-    expect(store.get(null)?.brief.activity).toHaveLength(12000); expect(Object.isFrozen(store.get(null)?.brief)).toBe(true);
+    expect(store.get(projectId)?.brief.activity).toHaveLength(12000); expect(Object.isFrozen(store.get(projectId)?.brief)).toBe(true);
   });
-  it("hides private values while unverified and recovers the same owner's exact creation key and body", () => {
-    const store = memory(), value = draft(); value.pendingCreation = { input: { requestKey, brief }, state: null }; store.set(null, value);
-    const original = store.get(null); store.bind(null);
-    expect(store.get(null)).toBeNull(); expect(store.hasUnsaved()).toBe(true); expect(() => store.set(null, value)).toThrow();
-    store.bind({ ownerId, generation: 9 }); expect(store.get(null)).toEqual(original);
-    expect(store.get(null)?.pendingCreation?.input.requestKey).toBe(requestKey);
+  it("keeps drafts only for saved projects", () => {
+    const store = memory();
+    expect(() => store.set(projectId, draft())).toThrow();
+    expect(store.get(projectId)).toBeNull(); expect(store.hasUnsaved()).toBe(false);
+  });
+  it("hides private values while unverified and recovers the same owner's exact draft", () => {
+    const store = memory(), value = draft(true); store.set(projectId, value);
+    const original = store.get(projectId); store.bind(null);
+    expect(store.get(projectId)).toBeNull(); expect(store.hasUnsaved()).toBe(true); expect(() => store.set(projectId, value)).toThrow();
+    store.bind({ ownerId, generation: 9 }); expect(store.get(projectId)).toEqual(original);
   });
   it("clears the former owner's buffers on a different verified owner and on confirmed logout", () => {
-    const store = memory(); store.set(null, draft()); store.bind(null); store.bind({ ownerId: id(4), generation: 2 });
-    expect(store.get(null)).toBeNull(); expect(store.hasUnsaved()).toBe(false);
-    store.set(null, draft()); store.clear(); store.bind({ ownerId: id(4), generation: 3 }); expect(store.get(null)).toBeNull();
+    const store = memory(); store.set(projectId, draft(true)); store.bind(null); store.bind({ ownerId: id(4), generation: 2 });
+    expect(store.get(projectId)).toBeNull(); expect(store.hasUnsaved()).toBe(false);
+    const other = { ...draft(true), workspace: { ...workspace(), ownerId: id(4) } };
+    store.set(projectId, other); store.clear(); store.bind({ ownerId: id(4), generation: 3 }); expect(store.get(projectId)).toBeNull();
   });
   it("rejects foreign workspace ownership, mismatched base and method/body combinations", () => {
     const store = memory(), value = draft(true);
@@ -59,24 +64,11 @@ describe("provider-owned logo drafts", () => {
     expect(() => store.set(projectId, { ...current, pendingIntent: { ...current.pendingIntent!, quoteId: id(10) } })).toThrow();
   });
   it("requires strict durable bodies even when the editable draft is incomplete", () => {
-    const store = memory(), value = draft(); value.brief.name = "";
-    store.set(null, value);
-    expect(() => store.set(null, { ...value, pendingCreation: { input: { requestKey, brief: value.brief }, state: null } })).toThrow();
-    expect(() => store.set(projectId, { ...draft(true), pendingCreation: { input: { requestKey, brief }, state: null } })).toThrow();
-  });
-  it("atomically transfers a confirmed owned creation without overwriting unresolved destination work", () => {
-    const store = memory(), value = draft(); value.pendingCreation = { input: { requestKey, brief }, state: null }; store.set(null, value);
-    store.set(projectId, draft(true));
-    const resolved = { ...value, pendingCreation: { input: value.pendingCreation.input, state: { status: "succeeded" as const, requestKey, projectId, workspace: workspace() } } };
-    expect(() => store.set(null, resolved)).toThrow(); expect(store.get(null)?.pendingCreation?.state).toBeNull(); expect(store.get(projectId)?.dirty).toBe(true);
-    store.set(projectId, { ...draft(true), dirty: false }); store.set(null, resolved);
-    expect(store.get(null)).toBeNull(); expect(store.get(projectId)?.workspace?.projectId).toBe(projectId); expect(store.hasUnsaved()).toBe(false);
-  });
-  it("checks the creation receipt key and foreign ownership before moving the draft", () => {
-    const store = memory(), value = draft(); value.pendingCreation = { input: { requestKey, brief }, state: null }; store.set(null, value);
-    expect(() => store.set(null, { ...value, pendingCreation: { input: value.pendingCreation!.input, state: { status: "succeeded", requestKey: id(9), projectId, workspace: workspace() } } })).toThrow();
-    expect(() => store.set(null, { ...value, pendingCreation: { input: value.pendingCreation!.input, state: { status: "succeeded", requestKey, projectId, workspace: { ...workspace(), ownerId: id(4) } } } })).toThrow();
-    expect(store.get(null)?.pendingCreation?.input.requestKey).toBe(requestKey);
+    const store = memory(), value = draft(true); value.brief.name = "";
+    store.set(projectId, value);
+    const incomplete = { requestKey, command: { method: "saveLogoBrief" as const, body: { requestKey, expected: heads, brief: value.brief } } };
+    expect(() => store.set(projectId, { ...value, pendingMutation: incomplete })).toThrow();
+    expect(store.get(projectId)?.pendingMutation).toBeNull();
   });
   it("preserves a direction draft across same-owner checks and counts it as unsaved", () => {
     const store = memory();
@@ -93,7 +85,7 @@ describe("provider-owned logo drafts", () => {
     const store = memory();
     const directionDraft = { approvedLogoId: id(20), paletteVersionId: id(21), typographyVersionId: id(22), graphicsVersionId: id(23), reviewedConsistencyHash: "bad" };
     expect(() => store.set(projectId, { ...draft(true), directionDraft } as LogoDraftRecord)).toThrow();
-    expect(() => store.set(null, { ...draft(), directionDraft: { ...directionDraft, reviewedConsistencyHash: null } } as LogoDraftRecord)).toThrow();
+    expect(() => store.set(projectId, { ...draft(), directionDraft: { ...directionDraft, reviewedConsistencyHash: null } } as LogoDraftRecord)).toThrow();
   });
 
   it("retains unsent vector controls separately from an admitted mutation", () => {
@@ -106,7 +98,7 @@ describe("provider-owned logo drafts", () => {
     store.bind({ ownerId, generation: 2 });
     expect((store.get(projectId) as LogoDraftRecord & { vectorDraft: unknown }).vectorDraft).toEqual(vectorDraft);
     store.clear(); expect(store.hasUnsaved()).toBe(false);
-    expect(() => { store.bind({ ownerId, generation: 3 }); store.set(null, { ...draft(), vectorDraft } as LogoDraftRecord); }).toThrow();
+    expect(() => { store.bind({ ownerId, generation: 3 }); store.set(projectId, { ...draft(), vectorDraft } as LogoDraftRecord); }).toThrow();
   });
 
   it("opens more than twenty projects by evicting only saved baselines", () => {
@@ -148,15 +140,5 @@ describe("provider-owned logo drafts", () => {
     expect(store.get(id(121))).toBeNull(); expect(notifications).toBe(0);
   });
 
-  it("makes room for a new brief and transfers its confirmed creation atomically", () => {
-    const store = memory();
-    for (let n = 1; n <= 20; n++) store.set(id(100 + n), savedDraft(id(100 + n)));
-    const value = draft(); value.pendingCreation = { input: { requestKey, brief }, state: null }; store.set(null, value);
-    expect(store.get(id(101))).toBeNull();
-    store.set(null, { ...value, pendingCreation: { input: value.pendingCreation.input,
-      state: { status: "succeeded", requestKey, projectId, workspace: workspace() } } });
-    expect(store.get(null)).toBeNull(); expect(store.get(projectId)?.workspace?.projectId).toBe(projectId);
-    expect(store.hasUnsaved()).toBe(false);
-  });
 
 });

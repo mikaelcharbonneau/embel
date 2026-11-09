@@ -21,7 +21,7 @@ function setup() {
   const memory = createLogoDraftMemory(), account = { status: "ready" as const, userId: h1.ownerId, generation: 1 };
   const { name, activity, audience, personality, logoTypes } = source.brief.payload;
   memory.bind({ ownerId: account.userId, generation: account.generation });
-  memory.set(h1.projectId, { workspace: h1, base: h1.heads, brief: { name, activity, audience, personality, logoTypes }, references: [], dirty: false, conflict: false, pendingCreation: null, pendingIntent: null, pendingMutation: null, pendingExport: null });
+  memory.set(h1.projectId, { workspace: h1, base: h1.heads, brief: { name, activity, audience, personality, logoTypes }, references: [], dirty: false, conflict: false, pendingIntent: null, pendingMutation: null, pendingExport: null });
   const quotes: LogoQuoteRequest[] = [], posts: LogoGenerationIntent[] = [], paths: string[] = [], reloadFlags: boolean[] = [];
   const client = createAccountLogoClient(account, h1.projectId, () => current, () => { current = false; }, async (path, options) => {
     const url = String(path); paths.push(url);

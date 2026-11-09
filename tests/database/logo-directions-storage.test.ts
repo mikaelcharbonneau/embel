@@ -9,6 +9,7 @@ import { legacyLogoCostQuoteSchema as logoCostQuoteSchema, logoDispatchReceiptSc
 import { logoWorkspaceV2Schema } from '../../src/domain/logo-workspace';
 import type { IdentityAssetReservation } from '../../src/server/data/identity-asset-store';
 import { parseClaimedJob } from '../../worker/postgres-store';
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 
 describe('directions GET-only Storage authority', () => {
   let db: TestDatabase;
@@ -204,7 +205,7 @@ describe('directions GET-only Storage authority', () => {
     expect(await f.read(vector.original)).toHaveLength(1);
   });
   it('preserves independent legacy-concept and generative grants through the combined read fence', async () => {
-    const w = logoWorkspaceV2Schema.parse(await f.rpc('start_logo_project', [{ requestKey: randomUUID(), brief: { name: 'Cross-lane fixture', activity: 'Test', audience: 'Test', personality: 'Calm', logoTypes: ['wordmark'] } }]));
+    const w = logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), { requestKey: randomUUID(), brief: { name: 'Cross-lane fixture', activity: 'Test', audience: 'Test', personality: 'Calm', logoTypes: ['wordmark'] } }));
     const snapshot = (await db.query<{ id: string }>('select reference_snapshot_id id from public.logo_stage_revisions where id=$1', [w.stages.brief_references!.id])).rows[0]!.id;
     const quote = logoCostQuoteSchema.parse(await f.rpc('quote_logo_operation', [w.projectId, { operation: 'concepts', expected: w.heads, briefRevisionId: w.stages.brief_references!.id, referenceSnapshotId: snapshot }]));
     const admission = logoDispatchReceiptSchema.parse(await f.rpc('admit_logo_operation', [w.projectId, { requestKey: randomUUID(), quoteId: quote.id, expected: w.heads, acceptedMaxCostMicrousd: quote.maxCostMicrousd }]));

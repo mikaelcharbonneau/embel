@@ -7,35 +7,31 @@ import { OWNER_A, OWNER_B } from "../database/local-supabase";
 import type { AuthenticatedContext } from "../../src/server/auth/context";
 const brief = { name: "Logo", activity: "Studio", audience: "Founders", personality: "Calm", logoTypes: ["wordmark"] };
 const auth = (rpc: (...args: unknown[]) => unknown) => ({ userId: OWNER_A, client: { rpc } }) as unknown as AuthenticatedContext;
+const expected = { projectRevision: 1, referenceRevision: 0, preferencesRevision: 0, workspaceRevision: 1, stageRevisions: { brief_references: 1, concepts: 0, vector: 0, refinements: 0, directions: 0, deliverables: 0 } };
 describe("Logo workspace shared DAL boundary", () => {
   it("validates strict browser input before any RPC", async () => {
     const rpc = vi.fn(); const service = createLogoWorkspaceService();
-    await expect(service.startLogoProject(auth(rpc), { requestKey: randomUUID(), brief, ownerId: OWNER_B })).rejects.toMatchObject({ code: "invalid_input" });
+    await expect(service.saveLogoBrief(auth(rpc), randomUUID(), { requestKey: randomUUID(), expected, brief, ownerId: OWNER_B })).rejects.toMatchObject({ code: "invalid_input" });
     expect(rpc).not.toHaveBeenCalled();
   });
   it("rejects unvalidated account identity before any RPC", async () => {
     const rpc = vi.fn(); const service = createLogoWorkspaceService();
-    await expect(service.startLogoProject({ ...auth(rpc), userId: "bad" }, { requestKey: randomUUID(), brief })).rejects.toMatchObject({ code: "unauthenticated" });
+    await expect(service.saveLogoBrief({ ...auth(rpc), userId: "bad" }, randomUUID(), { requestKey: randomUUID(), expected, brief })).rejects.toMatchObject({ code: "unauthenticated" });
     expect(rpc).not.toHaveBeenCalled();
   });
   it("keeps missing privileged producer/connection capabilities unavailable", async () => {
     const service = createLogoTransactionService(null);
     await expect(service.run(auth(vi.fn()), randomUUID(), { method: "acceptLogoVector", body: {} })).rejects.toMatchObject({ code: "invalid_input" });
   });
-  it("ordinary owner-scoped request lookup does not require a project or create work", async () => {
-    const rpc = vi.fn(async () => ({ data: { status: "not_found" }, error: null }));
-    const requestKey = randomUUID(); expect(await createLogoWorkspaceService().readLogoProjectCreation(auth(rpc), requestKey)).toEqual({ status: "not_found" });
-    expect(rpc).toHaveBeenCalledExactlyOnceWith("read_logo_project_creation", { p_request_key: requestKey });
-  });
-  it("a lost creation response retains the exact null-project intent without retry", async () => {
+  it("a lost save response retains the exact project intent without retry", async () => {
     const rpc = vi.fn(async () => { throw new Error("response lost"); });
-    const input = { requestKey: randomUUID(), brief };
-    await expect(createLogoWorkspaceService().startLogoProject(auth(rpc), input)).rejects.toMatchObject({ name: "LogoUncertainCommitError", recovery: { projectId: null, input } });
+    const projectId = randomUUID(), body = { requestKey: randomUUID(), expected, brief };
+    await expect(createLogoWorkspaceService().saveLogoBrief(auth(rpc), projectId, body)).rejects.toMatchObject({ name: "LogoUncertainCommitError", recovery: { projectId, input: { method: "saveLogoBrief", body } } });
     expect(rpc).toHaveBeenCalledTimes(1);
   });
-  it("a cancelled unsent creation does not make a request", async () => {
+  it("a cancelled unsent save does not make a request", async () => {
     const rpc = vi.fn(), controller = new AbortController(); controller.abort();
-    await expect(createLogoWorkspaceService().startLogoProject(auth(rpc), { requestKey: randomUUID(), brief }, controller.signal)).rejects.toMatchObject({ code: "integration_unavailable" });
+    await expect(createLogoWorkspaceService().restoreLogoStage(auth(rpc), randomUUID(), { requestKey: randomUUID(), expected, stage: "brief_references", revisionId: randomUUID(), acceptEarlierBasis: false }, controller.signal)).rejects.toMatchObject({ code: "integration_unavailable" });
     expect(rpc).not.toHaveBeenCalled();
   });
   it("routes vector restore only through the trusted byte-verifying mutation capability",async()=>{

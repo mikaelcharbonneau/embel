@@ -27,7 +27,7 @@ async function fixture() {
       vector: { stage: "vector", id: proposalId(91), revision: 1 }, refinements: null, directions: null, deliverables: null }, approvedLogo: null, staleStages: [],
     capabilities: Object.fromEntries(["save", "upload", "generate", "convert", "export"].map(key => [key, { status: "available" }])) });
   memory.set(projectId, { workspace, base: workspace.heads, brief: { name: "Synthetic", activity: "Fixture", audience: "", personality: "", logoTypes: ["combination"] },
-    references: [], dirty: false, conflict: false, pendingCreation: null, pendingIntent: null, pendingMutation: null, pendingExport: null });
+    references: [], dirty: false, conflict: false, pendingIntent: null, pendingMutation: null, pendingExport: null });
   const context: NonNullable<ProposalEditorContext> = { workspace, ready: true, targetId: source.document.components[0]!.id,
     detail: { revision: source.revision, document: source.document, sourcePreview: { id: proposalId(92), reference: source.revision.sourcePreview,
       verification: { status: "verified", contentHash: source.revision.sourcePreview.contentHash, mimeType: "image/png", byteLength: 1, checkedAt: new Date(now).toISOString() },

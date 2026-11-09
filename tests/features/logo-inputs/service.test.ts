@@ -3,7 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import sharp from "sharp";
 vi.mock("server-only", () => ({}));
 import { asRole, createTestDatabase, OWNER_A, OWNER_B, resetFixture, type TestDatabase } from "../../database/local-supabase";
-import { logoWorkspaceV2Schema, type LogoWorkspaceV2 } from "@/domain/logo-workspace";
+import type { LogoWorkspaceV2 } from "@/domain/logo-workspace";
 import { fontPurposeAllowed } from "@/features/identity-directions/model/font-rights";
 import { createFontResolver, readFreeCatalogFont } from "@/features/identity-directions/server/fonts";
 import { createIdentityAssetStore, createPostgresIdentityAssetBackend } from "@/server/data/identity-asset-store";
@@ -11,6 +11,7 @@ import { isLogoFontLicenseUrl } from "@/features/logo-inputs/model/contracts";
 import { createLogoInputService, validateLogoInputBytes } from "@/server/data/logo-inputs";
 import type { IdentityConnectionFactory } from "@/server/data/identity-transaction";
 import type { AuthenticatedContext } from "@/server/auth/context";
+import { ownerQuery, startLogoFixture } from "../../database/logo-project-fixture";
 
 const sha = (bytes: Uint8Array | string) => createHash("sha256").update(bytes).digest("hex");
 const role = "fixture_logo_inputs_a";
@@ -31,7 +32,7 @@ describe("owned reference and font registrations with actual bytes", () => {
   afterAll(async () => { await db?.close(); });
   beforeEach(async () => {
     await resetFixture(db); objects = new Map(); writes = 0; failRelease = false; afterPut = null;
-    workspace = logoWorkspaceV2Schema.parse(await rpc("start_logo_project", { p_input: { requestKey: randomUUID(), brief } }));
+    workspace = await startLogoFixture(ownerQuery(db), { requestKey: randomUUID(), brief });
   });
   async function rpc(name: string, args: Record<string, unknown>, owner = OWNER_A): Promise<unknown> {
     return asRole(db, "authenticated", owner, async () => (await db.query<{ value: unknown }>(`select public.${name}(${Object.keys(args).map((_, index) => `$${index + 1}`).join(",")}) value`, Object.values(args))).rows[0]!.value);

@@ -2,13 +2,13 @@ import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createTestDatabase, OWNER_A, OWNER_B } from "./local-supabase";
 import { installGenerativeStorageFixture, conceptCapability } from "./logo-generative-storage-fixture";
-import { logoWorkspaceV2Schema } from "../../src/domain/logo-workspace";
 import { logoCostQuoteSchema, logoDispatchReceiptSchema } from "../../src/domain/logo-jobs";
 import { sharedExecutionSchema, sharedSlotLeaseSchema, type SharedExecution } from "../../worker/shared-pool/contracts";
 import { parseClaimedJob } from "../../worker/postgres-store";
 import { digestBytes, syntheticPng } from "../features/logo-vector/raster-fixtures";
 import type { IdentityAssetReservation } from "../../src/server/data/identity-asset-store";
 import type { IdentityAssetPublication } from "../../src/domain/logo-deliverables";
+import { startLogoFixture } from "./logo-project-fixture";
 
 export { OWNER_A, OWNER_B };
 export const SHARED_STORAGE_ACTOR = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
@@ -67,8 +67,8 @@ export async function createSharedStorageFixture() {
    return scoped(roleName, async () => (await db.query<{ value: { execution: unknown; result: unknown } }>("select public.shared_logo_worker_action($1,$2,$3,$4) value", [captured, execution, name, JSON.stringify(args)])).rows[0]!.value);
   }
   async function project(ownerId = OWNER_A) {
-   return owner(ownerId, async () => logoWorkspaceV2Schema.parse((await db.query<{ value: unknown }>("select public.start_logo_project($1) value", [{ requestKey: randomUUID(), brief: {
-    name: "Synthetic shared Storage", activity: "Isolated SQL tests", audience: "Testers", personality: "Calm", logoTypes: ["wordmark"] } }])).rows[0]!.value));
+   return startLogoFixture((sql, params) => owner(ownerId, async () => (await db.query<{ value: unknown }>(sql, params)).rows[0]!.value), { requestKey: randomUUID(), brief: {
+    name: "Synthetic shared Storage", activity: "Isolated SQL tests", audience: "Testers", personality: "Calm", logoTypes: ["wordmark"] } });
   }
   async function prepare(ownerId = OWNER_A, cancelOtherJobs = true) {
    const workspace = await project(ownerId), snapshot = (await db.query<{ id: string }>("select reference_snapshot_id id from public.logo_stage_revisions where id=$1", [workspace.stages.brief_references!.id])).rows[0]!.id;

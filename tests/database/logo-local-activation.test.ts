@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { asRole, createTestDatabase, OWNER_A, OWNER_B, resetFixture, type TestDatabase } from "./local-supabase";
 import { logoWorkspaceV2Schema } from "../../src/domain/logo-workspace";
 import { legacyLogoCostQuoteSchema as logoCostQuoteSchema, logoDispatchReceiptSchema } from "../../src/domain/logo-jobs";
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 
 const sql = (path: string) => readFile(new URL(`../../supabase/${path}`, import.meta.url), "utf8");
 describe("minimal local logo activation rehearsal (no network or credentials)", () => {
@@ -25,9 +26,9 @@ describe("minimal local logo activation rehearsal (no network or credentials)", 
   const rpc = (name: string, args: unknown[], owner = OWNER_A) => asRole(db, "authenticated", owner,
     async () => (await db.query<{ value: unknown }>(`select public.${name}(${args.map((_, i) => `$${i + 1}`).join(",")}) value`, args)).rows[0]!.value);
   it("binds only one passwordless worker, keeps activation disabled, and preserves six owned durable jobs", async () => {
-    const workspace = logoWorkspaceV2Schema.parse(await rpc("start_logo_project", [{ requestKey: randomUUID(), brief: {
+    const workspace = logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), { requestKey: randomUUID(), brief: {
       name: "Synthetic logo setup", activity: "Local rehearsal", audience: "Testers", personality: "Precise", logoTypes: ["wordmark"],
-    } }]));
+    } }));
     await db.query("select set_config('embel.logo_owner_id',$1,false),set_config('embel.logo_project_id',$2,false)", [OWNER_B, workspace.projectId]);
     await expect(db.exec(await sql("activation/logo_concepts_10_principals.sql"))).rejects.toThrow("verified_logo_owner_project_required");
     await db.exec("rollback");

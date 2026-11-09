@@ -5,6 +5,7 @@ import { asRole, createTestDatabase, OWNER_A, OWNER_B, resetFixture, type TestDa
 import { logoWorkspaceV2Schema, type LogoWorkspaceV2 } from "../../src/domain/logo-workspace";
 import { logoVectorHistoryPageSchema } from "../../src/features/logo-vector/model/history";
 import { createVectorHttpFixture } from "../features/logo-vector/http-fixture";
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 
 /** Disposable fixture records. Real publication retention is also covered in
  * logo-vector-publications.test.ts. This is not hosted concurrency evidence. */
@@ -17,7 +18,7 @@ describe("owned immutable vector discovery RPC", () => {
     return asRole(db, "authenticated", owner, async () => (await db.query<{ value: unknown }>(`select public.${name}(${args.map((_, index) => `$${index + 1}`).join(",")}) value`, args)).rows[0]!.value);
   }
   async function project(owner = OWNER_A) {
-    return logoWorkspaceV2Schema.parse(await rpc("start_logo_project", [{ requestKey: randomUUID(), brief: { name: "Synthetic history", activity: "Tests", audience: "Testers", personality: "Calm", logoTypes: ["combination"] } }], owner));
+    return logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db, owner), { requestKey: randomUUID(), brief: { name: "Synthetic history", activity: "Tests", audience: "Testers", personality: "Calm", logoTypes: ["combination"] } }));
   }
   async function vector(workspace: LogoWorkspaceV2, ordinal: number, earlierInputs = false) {
     const record = structuredClone(createVectorHttpFixture().initial.revision);

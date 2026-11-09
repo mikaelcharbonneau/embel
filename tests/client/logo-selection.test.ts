@@ -9,7 +9,7 @@ function setup() {
   const workspace = { ...original, capabilities: { ...original.capabilities, save: { status: "available" as const } } };
   const account = { status: "ready" as const, userId: workspace.ownerId, generation: 1 }, projectId = workspace.projectId;
   const source = { kind: "concept" as const, batchId: batch.id, slotId: batch.slots[0]!.id, attemptId: batch.slots[0]!.attempts[0]!.id };
-  memory.bind({ ownerId: account.userId, generation: 1 }); memory.set(projectId, { workspace, base: workspace.heads, brief: { name: "Élan & Co", activity: "", audience: "", personality: "", logoTypes: ["wordmark"] }, references: [], dirty: false, conflict: false, pendingIntent: null, pendingCreation: null, pendingExport: null, pendingMutation: null });
+  memory.bind({ ownerId: account.userId, generation: 1 }); memory.set(projectId, { workspace, base: workspace.heads, brief: { name: "Élan & Co", activity: "", audience: "", personality: "", logoTypes: ["wordmark"] }, references: [], dirty: false, conflict: false, pendingIntent: null, pendingExport: null, pendingMutation: null });
   const nextWorkspace = { ...workspace, heads: { ...workspace.heads, workspaceRevision: 1, stageRevisions: { ...workspace.heads.stageRevisions, concepts: 1 } }, stages: { ...workspace.stages, concepts: { stage: "concepts" as const, id: id(904), revision: 1 } } };
   const receipt = { ownerId: workspace.ownerId, projectId, requestKey: id(903), workspace: nextWorkspace,
     revision: { version: 2, id: id(904), ownerId: workspace.ownerId, projectId, stage: "concepts", revision: 1, parentRevisionId: null, inputRevisions: [], inputHash: "a".repeat(64), createdAt: "2026-10-06T12:00:00Z", payload: { batchIds: [batch.id], selected: source } } };

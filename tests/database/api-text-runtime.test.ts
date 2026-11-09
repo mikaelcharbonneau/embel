@@ -2,10 +2,10 @@ import { API_TEXT_MULTI_ACCOUNT_MIGRATION } from "./fixture-migrations";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
-import { logoWorkspaceV2Schema } from "../../src/domain/logo-workspace";
 import { logoCostQuoteSchema, logoDispatchReceiptSchema } from "../../src/domain/logo-jobs";
 import { DEFAULT_SUBSCRIPTION_LIMITS } from "../../src/domain/strategy-jobs";
 import { asApiTextWorker, asRole, asSubscriptionWorker, createTestDatabase, installApiTextRuntimeCandidate, installApiTextWorkerFixture, OWNER_A, OWNER_B, resetFixture, seedProject, type TestDatabase } from "./local-supabase";
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 
 const policy = { version: 1, pricingVersion: "2026-10-03", handlerVersion: "strategy-openai-v1", model: "gpt-6.1-sol", maxInputTokens: 32768, maxOutputTokens: 4096, maxWebSearchCalls: 0, inputMicrousdPerMillionTokens: 2_000_000, cachedInputMicrousdPerMillionTokens: 100_000, cacheWriteMicrousdPerMillionTokens: 2_500_000, outputMicrousdPerMillionTokens: 10_000_000, webSearchMicrousdPerCall: 10_000, maximumCostMicrousd: 122_880 };
 const operations = ["strategy.reformulate", "strategy.competitors", "strategy.audience", "strategy.personality", "strategy.positioning"];
@@ -263,7 +263,7 @@ describe("restricted API Strategy candidate (disposable PostgreSQL only)", () =>
     const logoWorker=async<T,>(run:()=>Promise<T>)=>{ await db.exec("set session authorization fixture_shared_logo");try{return await run();}finally{await db.exec("set session authorization postgres");} };
     await logoWorker(()=>rpc("public.report_logo_worker_ready('shared-image',$1::jsonb,90)",[JSON.stringify([descriptor])]));
     const user=<T,>(sql:string,args:unknown[]=[])=>asRole(db,"authenticated",OWNER_A,()=>rpc<T>(sql,args));
-    const workspace=logoWorkspaceV2Schema.parse(await user("public.start_logo_project($1::jsonb)",[JSON.stringify({requestKey:randomUUID(),brief:{name:"Shared budget fixture",activity:"Synthetic",audience:"Fixture",personality:"Calm",logoTypes:["wordmark"]}})]));
+    const workspace=await startLogoFixture(ownerQuery(db),{requestKey:randomUUID(),brief:{name:"Shared budget fixture",activity:"Synthetic",audience:"Fixture",personality:"Calm",logoTypes:["wordmark"]}});
     const reference=(await db.query<{reference_snapshot_id:string}>("select reference_snapshot_id from public.logo_stage_revisions where id=$1",[workspace.stages.brief_references!.id])).rows[0]!.reference_snapshot_id;
     const request={operation:"concepts",expected:workspace.heads,briefRevisionId:workspace.stages.brief_references!.id,referenceSnapshotId:reference};
     const quote=logoCostQuoteSchema.parse(await user("public.quote_logo_operation($1,$2::jsonb)",[workspace.projectId,JSON.stringify(request)]));

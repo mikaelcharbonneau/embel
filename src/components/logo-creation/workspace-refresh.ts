@@ -1,7 +1,7 @@
 import type { LogoDraftMemory, LogoDraftRecord } from "../identity/logo-draft-memory";
 import type { LogoWorkspaceReloadResult } from "../identity/use-logo-workspace";
 const protectedWork = (draft: LogoDraftRecord) => draft.dirty || !!draft.vectorDraft || !!draft.directionDraft || draft.conflict
-  || !!draft.pendingMutation || !!draft.pendingExport || !!draft.pendingIntent || !!draft.pendingCreation;
+  || !!draft.pendingMutation || !!draft.pendingExport || !!draft.pendingIntent;
 
 /** Refresh the actual shared workspace without clearing a draft, replacing an
  * unresolved request, or creating another feature-local copy of account state. */

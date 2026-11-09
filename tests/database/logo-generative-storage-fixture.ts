@@ -10,6 +10,7 @@ import type { IdentityAssetPublication, IdentityAssetReceipt } from '../../src/d
 import type { IdentityAssetReservation } from '../../src/server/data/identity-asset-store';
 import { parseClaimedJob } from '../../worker/postgres-store';
 import { digestBytes, syntheticPng } from '../features/logo-vector/raster-fixtures';
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 
 export { workerRole, workerId, authUser, sessionId };
 export const conceptCapability = SYNTHETIC_CONCEPT_READINESS;
@@ -70,7 +71,7 @@ export async function generativeStorageFixture(db: TestDatabase) {
     return job;
   }
   async function prepareConcept(referenceCount = 1) {
-    let w = logoWorkspaceV2Schema.parse(await f.rpc('start_logo_project', [{ requestKey: randomUUID(), brief: { name: 'Synthetic generative fixture', activity: 'Local tests', audience: 'Testers', personality: 'Calm', logoTypes: ['wordmark'] } }]));
+    let w = logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), { requestKey: randomUUID(), brief: { name: 'Synthetic generative fixture', activity: 'Local tests', audience: 'Testers', personality: 'Calm', logoTypes: ['wordmark'] } }));
     const uploaded = [];
     for (let ordinal = 1; ordinal <= referenceCount; ordinal++) uploaded.push(await uploadReference(w, ordinal));
     if (uploaded.length) {

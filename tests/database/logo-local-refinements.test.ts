@@ -6,6 +6,7 @@ import { legacyLogoCostQuoteSchema as logoCostQuoteSchema, logoDispatchReceiptSc
 import { logoWorkspaceV2Schema, type LogoWorkspaceV2 } from "../../src/domain/logo-workspace";
 import type { IdentityAssetReservation } from "../../src/server/data/identity-asset-store";
 import { digestBytes, syntheticPng } from "../features/logo-vector/raster-fixtures";
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 
 const workerRole = "fluid_logo_worker", workerId = "synthetic-local-refinement";
 const storageUser = "cccccccc-cccc-4ccc-8ccc-cccccccccccc", sessionId = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
@@ -108,9 +109,9 @@ describe("local saved-preview refinements", () => {
       alter table storage.objects add column metadata jsonb not null default '{}',add column created_at timestamptz not null default clock_timestamp(),add column version text;`);
     for (const path of ["candidates/logo_worker_storage.sql", "candidates/logo_generative_storage.sql", "activation/logo_concepts_20_storage.sql", "candidates/logo_local_concepts.sql", "activation/logo_concepts_40_download_metadata.sql", "activation/logo_concepts_50_publication_adjudication.sql"])
       await db.exec(await sql(path));
-    workspace = logoWorkspaceV2Schema.parse(await rpc("start_logo_project", [{ requestKey: randomUUID(), brief: {
+    workspace = logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), { requestKey: randomUUID(), brief: {
       name: "Synthetic local refinement", activity: "Local tests", audience: "Testers", personality: "Precise", logoTypes: ["wordmark"],
-    } }]));
+    } }));
     await db.query("select set_config('embel.logo_owner_id',$1,false),set_config('embel.logo_project_id',$2,false)", [OWNER_A, workspace.projectId]);
     await db.exec(await sql("activation/logo_concepts_10_principals.sql"));
     await db.query("insert into auth.users(id) values($1)", [storageUser]);
@@ -184,7 +185,7 @@ describe("local saved-preview refinements", () => {
     await deniedRpc("local_logo_operation", [workspace.projectId, "quote", input], OWNER_B, "logo_project_not_found");
     await deniedRpc("local_logo_operation", [workspace.projectId, "quote", { ...input, ownerId: OWNER_B }]);
     await deniedRpc("local_logo_operation", [workspace.projectId, "quote", { ...input, source: { ...source, attemptId: randomUUID() } }]);
-    const other = logoWorkspaceV2Schema.parse(await rpc("start_logo_project", [{ requestKey: randomUUID(), brief: { name: "Other synthetic project", activity: "Tests", audience: "Testers", personality: "Calm", logoTypes: ["wordmark"] } }]));
+    const other = logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), { requestKey: randomUUID(), brief: { name: "Other synthetic project", activity: "Tests", audience: "Testers", personality: "Calm", logoTypes: ["wordmark"] } }));
     await deniedRpc("local_logo_operation", [other.projectId, "quote", { ...input, expected: other.heads }]);
     await asRole(db, "authenticated", OWNER_A, () => rejected(() => db.query("insert into fluid_private.logo_local_context values(pg_backend_pid(),txid_current(),$1,$2)", [OWNER_A, workspace.projectId])));
     const { request } = await refinement();

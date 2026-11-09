@@ -17,12 +17,13 @@ describe("logo provider and hook SSR privacy", () => {
     expect(renderToStaticMarkup(<LogoDraftMemoryProvider memory={memory}><Read /></LogoDraftMemoryProvider>)).toBe("<span>same store</span>");
   });
   it("hides provider-private draft data until the account session is verified", () => {
-    const memory = createLogoDraftMemory(); memory.bind({ ownerId: "60000000-0000-4000-8000-000000000001", generation: 1 });
-    memory.set(null, { workspace: null, base: null, brief: { name: "Private draft", activity: "", audience: "", personality: "", logoTypes: [] }, references: [], dirty: true, pendingIntent: null, pendingCreation: null, pendingExport: null, pendingMutation: null, conflict: false });
+    const memory = createLogoDraftMemory(); memory.bind({ ownerId: fixtureAccount.userId, generation: 1 });
+    const saved = baselineFixture().workspace;
+    memory.set(fixtureProject, { workspace: saved, base: saved.heads, brief: { name: "Private draft", activity: "", audience: "", personality: "", logoTypes: [] }, references: [], dirty: true, pendingIntent: null, pendingExport: null, pendingMutation: null, conflict: false });
     function Read() {
-      const result = useLogoWorkspace({ memory });
+      const result = useLogoWorkspace({ projectId: fixtureProject, memory });
       expect(result.status).toBe("unverified"); expect(result.draft).toBeNull(); expect(result.workspace).toBeNull(); expect(result.canEdit).toBe(false); expect(result.client).toBeNull();
-      expect(result.pendingIntent).toBeNull(); expect(result.pendingCreation).toBeNull(); expect(result.stagePayloads).toBeNull();
+      expect(result.pendingIntent).toBeNull(); expect(result.stagePayloads).toBeNull();
       return createElement("span", null, result.status);
     }
     expect(renderToStaticMarkup(<AccountSessionProvider><Read /></AccountSessionProvider>)).toBe("<span>unverified</span>");
@@ -86,7 +87,7 @@ it("rejects stale hydration after another consumer replaces memory with dirty wo
   const { client } = baselineTransport(fixture, () => { reached(); return response; });
   const load = loadLogoWorkspaceBaseline({ client, account: fixtureAccount, projectId: fixtureProject, memory, signal: new AbortController().signal });
   await started;
-  memory.set(fixtureProject, { workspace: fixture.workspace, base: fixture.workspace.heads, brief: { ...fixture.brief, name: "Keep this dirty work" }, references: [], dirty: true, pendingIntent: null, pendingCreation: null, pendingExport: null, pendingMutation: null, conflict: false });
+  memory.set(fixtureProject, { workspace: fixture.workspace, base: fixture.workspace.heads, brief: { ...fixture.brief, name: "Keep this dirty work" }, references: [], dirty: true, pendingIntent: null, pendingExport: null, pendingMutation: null, conflict: false });
   resolve(Response.json(fixture.snapshot));
   expect(await load).toBeNull(); expect(memory.get(fixtureProject)?.brief.name).toBe("Keep this dirty work");
 });

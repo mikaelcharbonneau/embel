@@ -112,8 +112,6 @@ describe('selected-logo boards: actual SQL admission, storage and immutable publ
  });
  it('uses the real standalone saved brief, publishes three distinct boards, selects one, and rejects a changed logo while allowing exact restoration',async()=>{
   const workspace=await f.start(OWNER_A),p={owner:OWNER_A,projectId:workspace.projectId};
-  // A logo-only project is now a complete brand, converted as the November 9 migration does.
-  await f.rpc(OWNER_A,'expand_project_scope',[p.projectId,1]);
   const original=await logo(p),started=await admit(p);
   expect(started.input.input).toMatchObject({version:2,context:{description:'',selectedName:null},logoBrief:{payload:{name:'Shared test',activity:'Studio',audience:'Founders'}},basis:{version:2,name:'Shared test'}});
   expect(started.input.input.context.intake.suppliedName).toBe('');
@@ -153,12 +151,12 @@ describe('selected-logo boards: actual SQL admission, storage and immutable publ
   }
   await expect(f.asAuth(OWNER_B,()=>f.db.query('select * from fluid_private.identity_system_applications'))).rejects.toThrow();
  });
- it('retains the selected logo across expansion and retitling with equal context, while real content changes still block new boards',async()=>{
+ it('retains the selected logo across same-content saves and retitling, while real content changes still block new boards',async()=>{
   const workspace=await f.start(OWNER_A),p={owner:OWNER_A,projectId:workspace.projectId};await logo(p);
   const original=(await ready(p)).availability;
   const saved=(await f.db.query<{context:Record<string,unknown>;input_hash:string}>('select context,input_hash from public.project_revisions where owner_id=$1 and project_id=$2 and revision=1',[p.owner,p.projectId])).rows[0]!;
   const stages=(await f.db.query('select id,record from public.logo_stage_revisions where owner_id=$1 and project_id=$2 order by stage,revision',[p.owner,p.projectId])).rows;
-  await f.rpc(p.owner,'expand_project_scope',[p.projectId,1]);
+  await f.rpc(p.owner,'append_project_revision',[p.projectId,1,saved.context,saved.input_hash,null]);
   const expanded=await ready(p);
   expect(expanded.availability).toMatchObject({status:'available',expectedProjectRevision:2,sourceLogo:original.sourceLogo});
   const batch=identityBatchStateSchema.parse(await f.rpc(p.owner,'ensure_shared_identity_batch',[p.projectId,expanded.intent]));

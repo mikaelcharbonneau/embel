@@ -4,6 +4,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { asRole, createTestDatabase, OWNER_A, OWNER_B, resetFixture, type TestDatabase } from "./local-supabase";
 import { logoWorkspaceV2Schema, type LogoWorkspaceV2 } from "../../src/domain/logo-workspace";
 import { legacyLogoCostQuoteSchema as logoCostQuoteSchema, logoDispatchReceiptSchema } from "../../src/domain/logo-jobs";
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 
 const sql = (path: string) => readFile(new URL(`../../supabase/${path}`, import.meta.url), "utf8");
 const workerId = "embel-logo-local-20261018", storageUser = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
@@ -50,9 +51,9 @@ describe("cloud Logo cutover operational packets", () => {
     for (const path of ["candidates/logo_worker_storage.sql", "candidates/logo_generative_storage.sql", "activation/logo_concepts_20_storage.sql",
       "candidates/logo_local_concepts.sql", "activation/logo_concepts_40_download_metadata.sql", "activation/logo_concepts_50_publication_adjudication.sql"])
       await db.exec(await sql(path));
-    workspace = logoWorkspaceV2Schema.parse(await rpc("start_logo_project", [{ requestKey: randomUUID(), brief: {
+    workspace = logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), { requestKey: randomUUID(), brief: {
       name: "Synthetic cloud Logo cutover", activity: "Disposable local tests", audience: "Testers", personality: "Precise", logoTypes: ["wordmark"],
-    } }]));
+    } }));
     await db.query("select set_config('embel.logo_owner_id',$1,false),set_config('embel.logo_project_id',$2,false)", [OWNER_A, workspace.projectId]);
     await db.exec(await sql("activation/logo_concepts_10_principals.sql"));
     await db.query("insert into auth.users(id) values($1)", [storageUser]);

@@ -8,7 +8,7 @@ function fixture() {
   const workspace = syntheticLogoWorkspace(), projectId = workspace.projectId, account = { status: "ready" as const, userId: workspace.ownerId, generation: 1 };
   const command: Extract<LogoManualCommand, { method: "saveLogoEdit" }> = { method: "saveLogoEdit", body: { requestKey: id(810), expected: workspace.heads, baseVectorRevisionId: id(811), edit: { kind: "text", componentId: "lettering", text: "Keep my draft" } } };
   const memory = createLogoDraftMemory(); memory.bind({ ownerId: account.userId, generation: account.generation });
-  memory.set(projectId, { workspace, base: workspace.heads, brief: { name: "Newer unsaved brief", activity: "", audience: "", personality: "", logoTypes: ["wordmark"] }, references: [], dirty: true, conflict: false, pendingMutation: { requestKey: command.body.requestKey, command }, pendingIntent: null, pendingCreation: null, pendingExport: null,
+  memory.set(projectId, { workspace, base: workspace.heads, brief: { name: "Newer unsaved brief", activity: "", audience: "", personality: "", logoTypes: ["wordmark"] }, references: [], dirty: true, conflict: false, pendingMutation: { requestKey: command.body.requestKey, command }, pendingIntent: null, pendingExport: null,
     vectorDraft: { baseVectorRevisionId: command.body.baseVectorRevisionId, edit: command.body.edit } });
   const proof = { status: "cancelled", ownerId: workspace.ownerId, projectId, requestKey: command.body.requestKey, command };
   let current = true, state: unknown = proof, status = 200, lost = false, afterSend: (() => void) | null = null, success: LogoMutationReceipt | null = null, remote: LogoWorkspaceV2 = workspace;

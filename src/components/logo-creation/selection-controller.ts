@@ -31,7 +31,7 @@ export async function selectLogoCandidate(input: LogoSelectionInput, raw: LogoRa
   if (!current(input)) return null;
   const source = logoRasterSourceSchema.parse(raw), draft = input.memory.get(input.projectId);
   if (!draft?.workspace || !draft.base || draft.workspace.capabilities.save.status !== "available") throw new AccountRequestError(503);
-  if (draft.dirty || draft.vectorDraft || draft.directionDraft || draft.conflict || draft.pendingIntent || draft.pendingExport || draft.pendingCreation) throw new AccountRequestError(409);
+  if (draft.dirty || draft.vectorDraft || draft.directionDraft || draft.conflict || draft.pendingIntent || draft.pendingExport) throw new AccountRequestError(409);
   if (draft.pendingMutation) {
     const pending = draft.pendingMutation.command;
     if (!["selectLogoConcept", "selectLogoRaster"].includes(pending.method) || !same(selected(pending as Selection), source)) throw new AccountRequestError(409);

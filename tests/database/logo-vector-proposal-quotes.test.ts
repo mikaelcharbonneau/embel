@@ -34,6 +34,7 @@ import { logoWorkspaceV2Schema } from '@/domain/logo-workspace';
 import { logoCostQuoteSchema } from '@/domain/logo-jobs';
 import { proposalFixture } from '../features/logo-vector/proposal-fixtures';
 import { buildLogoVectorProposalContext } from '@/features/logo-vector/server/proposal-context';
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 const ROLE = 'fixture_proposal_quote';
 async function worker<T>(run: () => Promise<T>) { await db.exec(`set session authorization ${ROLE}`); try { return await run(); } finally { await db.exec('set session authorization postgres'); } }
 async function quoteFixture() {
@@ -41,7 +42,7 @@ async function quoteFixture() {
  await db.exec(`do $$begin if not exists(select 1 from pg_roles where rolname='${ROLE}') then create role ${ROLE} login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;end if;end$$;
   grant usage on schema public,fluid_private to ${ROLE};grant execute on function fluid_private.quote_logo_vector_proposal(uuid,jsonb),public.report_logo_worker_ready(text,jsonb,integer) to ${ROLE};`);
  for (const table of ['logo_asset_web_principals','logo_worker_principals']) await db.query(`insert into fluid_private.${table}(role_name,role_oid,owner_id) select rolname,oid,$1 from pg_roles where rolname=$2 on conflict(role_name) do update set role_oid=excluded.role_oid,owner_id=excluded.owner_id`,[OWNER_A,ROLE]);
- const start = logoWorkspaceV2Schema.parse(await asRole(db,'authenticated',OWNER_A,async ()=>(await db.query<{v:unknown}>('select public.start_logo_project($1) v',[{requestKey:randomUUID(),brief:{name:'Aster',activity:'Synthetic quote metadata',audience:'',personality:'',logoTypes:['combination']}}])).rows[0]!.v));
+ const start = logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), {requestKey:randomUUID(),brief:{name:'Aster',activity:'Synthetic quote metadata',audience:'',personality:'',logoTypes:['combination']}}));
  const f=proposalFixture(), brief=(await db.query<{record:typeof f.brief}>('select record from public.logo_stage_revisions where id=$1',[start.stages.brief_references!.id])).rows[0]!.record;
  f.brief=brief;f.revision.ownerId=OWNER_A;f.revision.projectId=start.projectId;f.revision.inputRevisions=[{stage:'brief_references',id:brief.id,revision:brief.revision}];
  for(const ref of [f.revision.sourcePreview,f.revision.documentAsset,f.revision.svgAsset]) {ref.ownerId=OWNER_A;ref.projectId=start.projectId;}
