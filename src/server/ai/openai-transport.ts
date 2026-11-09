@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import type { InputTokenCountParams } from "openai/resources/responses/input-tokens";
 
-const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
+export const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const MAX_RESPONSE_BYTES = 1_048_576;
 // /input_tokens accepts the prompt-bearing subset of a Responses create request.
 // Keep the SDK contract exhaustive so a dependency update prompts a review here.
@@ -27,11 +27,17 @@ export class OpenAITransportError extends Error {
   }
 }
 
-function safeRequestId(value: string | null): string | null {
+export function safeRequestId(value: string | null): string | null {
   return value && /^[a-zA-Z0-9_-]{1,200}$/.test(value) ? value : null;
 }
 
-async function readBoundedJson(response: Response): Promise<unknown> {
+/** The prompt-bearing subset of a create request that /input_tokens accepts. */
+export function inputTokenCountRequest(request: ResponsesRequest): ResponsesRequest {
+  return Object.fromEntries(Object.entries(request).filter(([field]) => Object.hasOwn(INPUT_TOKEN_COUNT_FIELDS, field)));
+}
+
+/** Bounded, strict UTF-8 JSON body read; never buffers more than 1 MiB. */
+export async function readBoundedJson(response: Response): Promise<unknown> {
   if (!response.body) throw new Error("Empty response");
   const reader = response.body.getReader();
   const decoder = new TextDecoder("utf-8", { fatal: true });
@@ -82,8 +88,7 @@ export function createOpenAIResponsesTransport(options: { apiKey: string; fetch?
   };
   return {
     async countInputTokens(request, signal) {
-      const countRequest = Object.fromEntries(Object.entries(request).filter(([field]) => Object.hasOwn(INPUT_TOKEN_COUNT_FIELDS, field)));
-      const { body } = await post(`${OPENAI_RESPONSES_URL}/input_tokens`, countRequest, signal);
+      const { body } = await post(`${OPENAI_RESPONSES_URL}/input_tokens`, inputTokenCountRequest(request), signal);
       return z.object({ input_tokens: z.number().int().nonnegative().max(10_000_000) }).parse(body).input_tokens;
     },
     createResponse: (request, requestKey, signal) => post(OPENAI_RESPONSES_URL, request, signal, requestKey),
