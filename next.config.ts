@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withWorkflow } from "workflow/next";
 
 // Files loaded by isolated logo children and native filesystem-backed engines.
 // Geist is deliberately not external: app/layout.tsx uses its next/font entry.
@@ -97,4 +98,7 @@ const nextConfig: NextConfig = {
     ] }];
   }
 };
-export default nextConfig;
+/** The app's own settings, before Workflow adds its build transforms (read by tests). */
+export const appConfig = nextConfig;
+// Transforms "use workflow" and "use step" (docs/generation-engine.md).
+export default withWorkflow(nextConfig);

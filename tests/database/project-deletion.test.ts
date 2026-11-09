@@ -149,7 +149,9 @@ describe("reversible project lifecycle on complete migrated PGlite schema (synth
       where c.table_schema='public' and c.column_name='project_id' and exists(select 1 from information_schema.columns o
       where o.table_schema=c.table_schema and o.table_name=c.table_name and o.column_name='owner_id')
       and not exists(select 1 from pg_trigger t where t.tgrelid=('public.'||c.table_name)::regclass and t.tgname in ('project_content_lifecycle','project_job_admission')) order by c.table_name`)).rows.map(row => row.table_name);
-    expect(unguarded).toEqual(["job_steps", "subscription_job_partials", "usage_reservations"]);
+    // generation_runs settles credits: the engine must finish and refund a run even while its
+    // project is being deleted. start_generation itself refuses deleted projects.
+    expect(unguarded).toEqual(["generation_runs", "job_steps", "subscription_job_partials", "usage_reservations"]);
     expect((await db.query<{ n: number }>("select count(*)::int n from pg_trigger where tgname='project_content_lifecycle'")).rows[0]!.n).toBeGreaterThan(50);
     expect(migrationName).toMatch(/project_soft_deletion/);
   });
