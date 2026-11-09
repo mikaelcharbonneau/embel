@@ -14,7 +14,7 @@ new source change is deployed.
 Users can start a complete brand, Naming only, or visual identity only, and expand
 a saved project without discarding its context.
 
-1. **Home, Ideas and Projects:** capture a prompt or idea, sign in, and save an
+1. **Home and Projects:** capture a prompt, sign in, and save an
    account project. Browser copies support recovery; they are not the ordinary
    source of account data.
 2. **Strategy:** develop the brief through Competitors, Target audience and Brand
@@ -44,8 +44,8 @@ estimate appears beside Generate when a verified estimate is available. One
 click starts generation; there is no extra cost-confirmation screen or fixed
 monetary generation ceiling. Usage and uncertain billing remain visible.
 
-Domains, Handles and Trademarks retain their manual workspaces and screening
-tools. A provider interface or configured route is not proof of live
+A name's details can check a domain, a YouTube handle or an EUIPO trademark on
+request. A provider interface or configured route is not proof of live
 availability, reservation, ownership, legal clearance or filing. External
 reference discovery remains unavailable unless a real source is configured.
 
@@ -177,8 +177,8 @@ compatibility; see [the branding record](docs/embel-branding.md). The repository
 is private and grants no open-source license. Preserve all third-party font and
 fixture licenses and [external reference provenance](docs/references.md).
 
-[Architecture](docs/architecture.md), [workspace contracts](docs/standalone-workspace-contract.md)
-and [provider contracts](docs/standalone-provider-contracts.md) explain technical
+[Architecture](docs/architecture.md) and
+[provider contracts](docs/standalone-provider-contracts.md) explain technical
 boundaries. Earlier source-transfer verification is preserved in
 [the October 15 regression record](docs/regression-verification-20261015.md) and
 [the October 16 reconnection record](docs/repository-reconnection-20261016.md).

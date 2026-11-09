@@ -420,11 +420,6 @@ input:focus-visible, textarea:focus-visible { outline-offset: 2px; }
 .home-intake .conversation-start-notice .field-hint { margin: 0; font-size: var(--font-ui); }
 .home-intake .example-section { margin-top: 18px; }
 
-/* Recovery and availability belong to the same content column as their controls. */
-.standalone-account-status.page { padding-bottom: 0; }
-.standalone-account-status .account-notice { padding-block: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; }
-.standalone-account-status .account-notice > p:first-child { flex: 1; min-width: 160px; }
-.standalone-account-status .account-notice > p + p { flex-basis: 100%; }
 .home-draft-actions > div { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
 .home-draft-actions .field-hint { margin: 0; }
 .prompt-recovery-notice { margin: 16px 0; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--panel-radius); background: var(--paper); font-size: var(--font-ui); color: var(--secondary); }

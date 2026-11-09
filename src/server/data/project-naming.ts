@@ -1,8 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import {
-  accountNamesPageSchema, createBrandFromProjectNameResponseSchema, createBrandFromProjectNameSchema,
-  importProjectNameResponseSchema, importProjectNameSchema, listAccountNamesSchema, listNamingBatchesSchema,
+  importProjectNameResponseSchema, importProjectNameSchema, listNamingBatchesSchema,
   listProjectNamesSchema, nameIdentityKey, nameTransformSchema, namingStrategyBasis, namingStrategyBasisSchema,
   namingStrategyKeyFromBasis, projectNamePageSchema, projectNameResponseSchema, selectProjectNameResponseSchema, selectProjectNameSchema,
   updateNameRetentionResponseSchema,
@@ -218,26 +217,8 @@ export async function importLocalName(auth: AuthenticatedContext, projectId: str
   invariant(candidate.contextRevision === parsed.expectedProjectRevision && candidate.origin.kind === "local_import" && equal(candidate.origin.source, parsed.source) && equal(candidate.origin.capturedContext, parsed.capturedContext));
   await new CandidateVerifier(auth).candidate(projectId, candidate.id, candidate);return response;
 }
-export async function createBrandFromProjectName(auth: AuthenticatedContext, projectId: string, value: unknown) {
-  id(projectId);const parsed = input(createBrandFromProjectNameSchema, value);if (parsed.sourceProjectId !== projectId) throw new ApiError("not_found");
-  const verifier = new CandidateVerifier(auth);await verifier.candidate(projectId, parsed.sourceCandidateId);
-  const response = await rpc(auth, "create_brand_from_project_name", { p_project_id: projectId, p_candidate_id: parsed.sourceCandidateId, p_expected_source_revision: parsed.expectedSourceProjectRevision,
-    p_title: parsed.title, p_accept_earlier_context: parsed.acceptEarlierContext, p_idempotency_key: parsed.idempotencyKey }, createBrandFromProjectNameResponseSchema);
-  const candidate = response.currentSelection.candidate;
-  if (response.project.owner_id !== auth.userId || response.project.id === projectId) throw new ApiError("not_found");
-  invariant(response.currentSelection.selection.acceptedEarlierContext === parsed.acceptEarlierContext && response.project.title === parsed.title && candidate.origin.kind === "account_copy" && candidate.origin.sourceProjectId === projectId && candidate.origin.sourceCandidateId === parsed.sourceCandidateId && candidate.origin.sourceContextRevision === parsed.expectedSourceProjectRevision);
-  invariant(parsed.acceptEarlierContext || equal(candidate.strategyBasis, namingStrategyBasis(response.project.context)));
-  await verifier.candidate(response.project.id, candidate.id, candidate);return response;
-}
-export async function getAccountNames(auth: AuthenticatedContext, value: unknown = {}) {
-  const response = await rpc(auth, "get_account_names", { p_query: input(listAccountNamesSchema, value) }, accountNamesPageSchema);
-  if (response.ownerId !== auth.userId) throw new ApiError("not_found");const verifier = new CandidateVerifier(auth);
-  for (const row of response.items) await verifier.candidate(row.candidate.projectId, row.candidate.id, row.candidate);
-  return response;
-}
-
 /** Route query parser: paired stable cursor and bounded typed filters only. */
-export function readNamingQuery(request: Request, kind: "candidates" | "batches" | "library" = "candidates") {
+export function readNamingQuery(request: Request, kind: "candidates" | "batches" = "candidates") {
   const params = new URL(request.url).searchParams;
   if (![...params].length) return undefined;
   const allowed = kind === "batches" ? ["cursorCreatedAt", "cursorId", "limit"] : ["cursorCreatedAt", "cursorId", "limit", "filter", "query", ...(kind === "candidates" ? ["batchId"] : [])];
@@ -246,10 +227,5 @@ export function readNamingQuery(request: Request, kind: "candidates" | "batches"
   const value = { ...(params.has("cursorId") ? { cursor: { createdAt: params.get("cursorCreatedAt"), id: params.get("cursorId") } } : {}),
     ...(params.has("limit") ? { limit: Number(params.get("limit")) } : {}), ...(params.has("filter") ? { filter: params.get("filter") } : {}),
     ...(params.has("query") ? { query: params.get("query") } : {}), ...(params.has("batchId") ? { batchId: params.get("batchId") } : {}) };
-  return kind === "batches" ? input(listNamingBatchesSchema, value) : kind === "library" ? input(listAccountNamesSchema, value) : input(listProjectNamesSchema, value);
-}
-
-/** Read-only reuse for owned imports; replay every immutable parent before exposing text. */
-export async function getVerifiedProjectName(auth: AuthenticatedContext, projectId: string, candidateId: string) {
-  return new CandidateVerifier(auth).candidate(id(projectId), id(candidateId));
+  return kind === "batches" ? input(listNamingBatchesSchema, value) : input(listProjectNamesSchema, value);
 }

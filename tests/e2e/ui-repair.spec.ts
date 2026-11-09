@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("all public workspaces fit the viewport and retain visible page headings", async ({ page }, info) => {
-  for (const [name, path] of Object.entries({ home: "/", brands: "/brands", ideas: "/ideas", names: "/names", handles: "/handles", domains: "/domains", trademarks: "/trademarks", assets: "/assets", settings: "/settings", signIn: "/sign-in", logo: "/brands/logo/new" })) {
+  for (const [name, path] of Object.entries({ home: "/", brands: "/brands", assets: "/assets", settings: "/settings", signIn: "/sign-in", logo: "/brands/logo/new" })) {
     await page.goto(path);
     await expect(page.locator("main h1").first()).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
@@ -34,14 +34,11 @@ test("Home recovery controls are usable touch targets and remain grouped", async
   expect(await page.locator(".home-draft-actions .field-hint").first().evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(13);
 });
 
-test("standalone tool account state aligns with the form and logo has one main landmark", async ({ page }) => {
-  await page.goto("/trademarks");
-  const heading = await page.locator("main h1").first().boundingBox();
-  const notice = await page.locator("main .account-notice").first().boundingBox();
-  expect(Math.abs(heading!.x - notice!.x)).toBeLessThanOrEqual(1);
+test("logo has one main landmark", async ({ page }) => {
   await page.goto("/brands/logo/new");
   await expect(page.getByRole("main")).toHaveCount(1);
 });
+
 
 test("sign-in recovery restores the prompt and scope from one retained browser copy", async ({ page }, info) => {
   await page.goto("/");

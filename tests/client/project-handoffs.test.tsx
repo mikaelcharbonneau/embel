@@ -14,7 +14,7 @@ const project = accountProjectSchema.parse({ id: "d0000000-0000-4000-8000-000000
 let root: Root | null, host: HTMLDivElement;
 beforeEach(() => { vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true); host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.replaceChildren(); vi.unstubAllGlobals(); });
-async function render(saved = project, dirty = false) { await act(async () => root!.render(createElement(ProjectContinuityPanel, { project: saved, source: null, dirty, conflicted: false, busy: false }))); }
+async function render(saved = project, dirty = false) { await act(async () => root!.render(createElement(ProjectContinuityPanel, { project: saved, dirty, conflicted: false, busy: false }))); }
 
 it("shows accepted saved context and continues the selected name to Inspiration", async () => {
   await render();

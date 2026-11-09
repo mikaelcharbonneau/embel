@@ -1,5 +1,4 @@
 import { ContextDetails } from "@/components/ui/context-details";
-import Link from "next/link";
 import type { NamingSource, NameTransformInput } from "@/domain/naming";
 
 const methodLabels = { affixes: "Affixes", tweaks: "Tweaks", blend: "Blend", swap: "Swap" } as const;
@@ -16,7 +15,7 @@ function parameters(input: NameTransformInput) {
 
 export function NameOrigin({ source }: { source: NamingSource }) {
   return <section className="name-origin-panel" aria-label="Original name and history">
-    <div className="name-origin-heading"><div><span className="secondary-text">Started from Names</span><h2>{source.value}</h2></div><Link className="text-link" href="/names">Open Names</Link></div>
+    <div className="name-origin-heading"><div><span className="secondary-text">Started from Names</span><h2>{source.value}</h2></div></div>
     <p>The name and its original context were copied into this brand. Domain, handle and trademark checks have not been run.</p>
     <ContextDetails  title={<>{source.history.length ? `View ${source.history.length} transformation ${source.history.length === 1 ? "step" : "steps"}` : "View name source"}</>}>{source.origin === "manual" ? <p>This name was entered manually.</p> : <ol>{source.history.map((step) => <li key={step.id}><strong>{methodLabels[step.input.kind]} → {step.output}</strong><p>{parameters(step.input)}</p></li>)}</ol>}<p className="secondary-text">This records the original name. Later edits keep this history.</p></ContextDetails>
   </section>;

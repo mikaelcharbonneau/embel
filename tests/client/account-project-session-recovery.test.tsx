@@ -18,7 +18,6 @@ const projectId = "bbbbbbbb-1111-4111-8111-111111111111";
 const capture = vi.hoisted(() => ({ editor: null as ComponentProps<typeof AccountGuidedInterview> | null, overview: null as StrategyOverview | null }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }), usePathname: () => `/brands/account/bbbbbbbb-1111-4111-8111-111111111111` }));
 vi.mock("@/components/workspace/account-project-continuity", () => ({ AccountProjectContinuity: () => null }));
-vi.mock("@/components/ideas/idea-source-banner", () => ({ IdeaSourceBanner: () => null }));
 vi.mock("@/components/workspace/account-guided-interview", async importOriginal => {
   const actual = await importOriginal<typeof import("@/components/workspace/account-guided-interview")>();
   return { AccountGuidedInterview: (props: ComponentProps<typeof AccountGuidedInterview>) => { capture.editor = props; return <actual.AccountGuidedInterview {...props} />; } };

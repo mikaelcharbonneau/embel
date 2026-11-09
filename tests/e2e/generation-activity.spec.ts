@@ -77,7 +77,7 @@ async function openAccountMenu(page: Page) {
   await expect(menu.locator("summary")).toBeVisible();
   if (!await menu.evaluate(element => (element as HTMLDetailsElement).open)) await menu.getByLabel("Account menu", { exact: true }).click();
 }
-async function openPage(page: Page) { await page.goto("/ideas"); await openAccountMenu(page); await expect(trigger(page)).toBeVisible(); }
+async function openPage(page: Page) { await page.goto("/assets"); await openAccountMenu(page); await expect(trigger(page)).toBeVisible(); }
 async function openActivity(page: Page) { await trigger(page).click(); await expect(dialog(page)).toBeVisible(); }
 async function settleRendering(page: Page) { await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))); }
 
@@ -105,7 +105,7 @@ test("activity fixture: loads only on explicit open and stops polling after clos
 
 test("activity fixture: signed-out sessions expose no activity trigger or requests", async ({ page }) => {
   const { state } = await fixtures(page); state.sessionOwner = null;
-  await page.clock.install(); await page.goto("/ideas");
+  await page.clock.install(); await page.goto("/assets");
   await expect(page.getByRole("banner").getByLabel("Account menu", { exact: true })).toContainText("Sign in");
   await page.clock.fastForward(30_000);
   await expect(trigger(page)).toHaveCount(0);

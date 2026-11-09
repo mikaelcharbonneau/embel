@@ -1,21 +1,8 @@
 /* App shell: one floating navigation pill above a scrolling page area. */
 .concept-shell { height: 100svh; overflow: hidden; }
 .concept-shell .workspace-main { position: relative; height: 100svh; display: flex; flex-direction: column; overflow: hidden; background-color: var(--canvas); background-image: var(--dot-grid); background-size: 22px 22px; }
-.idea-bottom-fade { position: absolute; z-index: 10; left: 0; right: 0; bottom: 0; height: 96px; pointer-events: none; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); background: linear-gradient(transparent, var(--canvas)); mask-image: linear-gradient(transparent, #000); -webkit-mask-image: linear-gradient(transparent, #000); }
 .concept-shell #main-content { flex: 1; min-height: 0; overflow: auto; scrollbar-width: none; scroll-padding-block: 24px 104px; }
 .concept-shell #main-content::-webkit-scrollbar { display: none; }
-@media (max-width: 540px) { .idea-bottom-fade { height: 64px; } }
-
-/* Tools menu: each tool with its icon and a one-line description. */
-.concept-shell .tools-menu { gap: 2px; padding: 6px; border-radius: var(--radius-card); }
-@media (min-width: 601px) { .concept-shell .tools-menu { min-width: 296px; } }
-.concept-shell .tools-menu .tools-menu-item { align-items: center; gap: 12px; min-height: 56px; padding: 8px 10px; border-radius: var(--radius-control); color: var(--text); }
-.concept-shell .tools-menu .tools-menu-item:hover, .concept-shell .tools-menu .tools-menu-item[aria-current="page"] { background: var(--surface); }
-.concept-shell .tools-menu .tools-menu-item:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: -2px; }
-.tools-menu-icon { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--paper); color: var(--text); }
-.tools-menu-text { display: grid; gap: 2px; min-width: 0; }
-.tools-menu-label { font-size: 14px; line-height: 20px; font-weight: 500; }
-.tools-menu-description { font-size: 12px; line-height: 16px; color: var(--secondary); }
 
 /* Signed out, the end of the pill offers the two ways in. */
 .signed-out-actions--nav { display: flex; align-items: center; gap: 4px; }
