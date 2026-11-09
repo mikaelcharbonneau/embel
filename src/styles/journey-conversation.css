@@ -224,6 +224,10 @@
 .logo-types-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .logo-types-footer > :only-child { margin-left: auto; }
 .logo-types-note { margin: 0; font-size: 13px; color: var(--secondary); }
+/* Once concepts exist, the chosen types sit in one quiet row with Change on the right. */
+.logo-types-summary { margin: 14px 0 0; padding: 10px 10px 10px 18px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--paper); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.logo-types-summary p { margin: 0; font-size: 14px; display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; min-width: 0; }
+.logo-types-summary p span { font-size: 13px; color: var(--secondary); }
 /* The Identity pages share the conversation's centred column. */
 .workspace-main .project-logo-creation:has(.logo-conversation-message) { width: min(840px, 100%); margin: 0 auto; padding: 40px 24px 120px; box-sizing: border-box; }
 .project-logo-creation:has(.logo-conversation-message) [class*="generationActions"] { display: flex; justify-content: flex-end; }

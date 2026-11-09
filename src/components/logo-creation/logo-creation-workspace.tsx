@@ -33,7 +33,7 @@ import { useLogoCandidate } from "./use-logo-candidate";
 import { LogoDownloadControls } from "./logo-download-controls";
 import { prepareSavedLogoConcepts, logoDraftHasProtectedWork } from "./saved-inputs-controller";
 import { LogoSavedInputsStatus, type LogoSavedInputState } from "./saved-inputs-status";
-import { LogoTypesQuestion } from "./logo-types-question";
+import { LogoTypesQuestion, LogoTypesSummary } from "./logo-types-question";
 import { EmbelIdentity } from "@/components/workspace/embel-identity";
 import { journeyPartLabel } from "@/domain/journey";
 import styles from "./logo-creation.module.css";
@@ -184,6 +184,14 @@ function OwnedLogoCreation({ account, projectId, onContinue, continueHidden }: {
     : completedRefinement ? "Your refined logo is ready on its card." : initialConceptReadState ? initialConceptReadMessage : !selectedLogo ? "Select a logo above to get started." : focusedReview.loading ? "Loading your chosen logo…" : focusedReview.error ? "Your chosen logo could not be loaded. Try choosing it again."
     : !capabilities.isAvailable("identity.logo_refine") ? "Changing logos is unavailable right now. Your message is kept." : "";
 
+  // Logo types stay editable once concepts exist; a change saves the brief and
+  // applies to the next set (More concepts). Not while a set is still drawing.
+  const [changingTypes, setChangingTypes] = useState(false);
+  const batchDrawing = Boolean(activeBatch?.slots.some(slot => ["queued", "running"].includes(slot.attempts.at(-1)?.state ?? "")));
+  const canChangeTypes = Boolean(draft && editing && !needsInitialization && generationState.phase === "idle" && !batchDrawing);
+  // A saved brief change makes the chosen logo's concepts outdated on the server:
+  // Creative direction then needs a concept from a set made with the current brief.
+  const chosenLogoOutdated = Boolean(selectedLogo && saved?.staleStages.some(({ stage }) => stage === "concepts"));
   const canDiscard = Boolean(editing && (workspace.dirty || draft?.conflict) && !workspace.pending && !checkingRequest);
   const snapshot = workspace.referenceSnapshot;
   const referenceCount = draft?.references.length ?? snapshot?.references.length ?? 0;
@@ -430,10 +438,10 @@ function OwnedLogoCreation({ account, projectId, onContinue, continueHidden }: {
   // Continue sits at the end of the step, below the refine box.
   // Continue is the deliberate request for creative directions: the next step starts one set.
   const markDirectionsIntent = () => { try { window.sessionStorage.setItem(`embel.directions-intent.v1:${projectId}`, String(Date.now())); } catch { /* Then directions wait for a click. */ } };
-  const continueAction = activeBatch && !continueHidden ? workspace.stagePayloads?.concepts?.payload.selected && !selectionState.busy
+  const continueAction = activeBatch && !continueHidden ? workspace.stagePayloads?.concepts?.payload.selected && !selectionState.busy && !chosenLogoOutdated
     ? onContinue ? <button className={styles.primaryButton} type="button" onClick={() => { markDirectionsIntent(); onContinue(); }}>Continue</button>
       : <Link className={`${styles.primaryButton} ${stage.actionLink}`} href={`/brands/account/${projectId}/logo/directions`} onClick={markDirectionsIntent}>Continue</Link>
-    : <button className={styles.primaryButton} type="button" disabled title={initialConceptReadState ? initialConceptReadMessage : "Select a logo and wait for it to save"}>Continue</button> : null;
+    : <button className={styles.primaryButton} type="button" disabled title={initialConceptReadState ? initialConceptReadMessage : chosenLogoOutdated ? "Choose a concept made with your current logo types" : "Select a logo and wait for it to save"}>Continue</button> : null;
   const conceptsComposer = <ConceptsComposer inputRef={refinementInput} projectId={projectId} selectionReadState={initialConceptReadState} selectedLabel={selectedLabel} selectedPreview={focusedReceipt && client ? <LogoVerifiedPreview client={client} receipt={focusedReceipt} alt="Selected logo" /> : undefined}
     selectedActions={client && focusedReceipt ? <LogoDownloadControls client={client} account={account} projectId={projectId} original={focusedReceipt} disabled={selectionState.busy} compact /> : undefined}
     idle={!activeBatch && !batchId && !initialConceptReadState} footer={continueAction} status={composerStatus} onShowResult={completedRefinement ? () => { const slotId = Object.entries(cardVersions).find(([, versions]) => versions.some(version => version.source.kind === "refinement" && version.source.rasterRevisionId === completedRefinement.id))?.[0]; if (slotId) document.querySelector<HTMLElement>(`[data-concept-slot="${slotId}"]`)?.scrollIntoView({ block: "center" }); } : undefined} instruction={refineInstruction} onInstructionChange={setRefineInstruction} onGenerate={refinementEstimate.canStart ? refinementEstimate.start : undefined} generationAction={<LogoGenerationAction estimate={refinementEstimate} label="Refine" unavailable={refineInstruction.trim() ? "Not ready yet." : ""} />} />;
@@ -447,6 +455,12 @@ function OwnedLogoCreation({ account, projectId, onContinue, continueHidden }: {
       {!activeBatch && <LogoTypesQuestion value={draft?.brief.logoTypes ?? []} disabled={!draft || !editing || !autoSave}
         onChange={draft && editing && autoSave ? types => workspace.setBriefDraft({ ...draft.brief, logoTypes: types }) : undefined}
         action={<LogoGenerationAction estimate={conceptEstimate} label="Explore six concepts" unavailable={savedInputsBusy ? "Preparing saved inputs…" : !capabilities.isAvailable("identity.logo_concept") ? "Generation is currently unavailable." : "Complete your saved logo inputs to continue."} />} />}
+      {activeBatch && (changingTypes
+        ? <LogoTypesQuestion value={draft?.brief.logoTypes ?? []} disabled={!canChangeTypes}
+          onChange={draft && canChangeTypes ? types => workspace.setBriefDraft({ ...draft.brief, logoTypes: types }) : undefined}
+          note="Your next concepts use these types. After a change, choose your logo from those new concepts to continue to Creative direction."
+          action={<button className={styles.secondaryButton} type="button" disabled={!draft?.brief.logoTypes.length} onClick={() => setChangingTypes(false)}>Done</button>} />
+        : <LogoTypesSummary value={draft?.brief.logoTypes ?? []} disabled={!canChangeTypes} onChange={() => setChangingTypes(true)} />)}
     </div>
     {client && <LogoCandidateComparison client={client} account={account} projectId={projectId} sources={comparison} selected={selectedLogo}
       briefRevisionId={workspace.stagePayloads?.brief_references?.id} onRemove={source => setComparison(previous => previous.filter(item => logoCandidateKey(item) !== logoCandidateKey(source)))}
@@ -454,7 +468,8 @@ function OwnedLogoCreation({ account, projectId, onContinue, continueHidden }: {
     <LogoSavedInputsStatus state={savedInputs} projectId={projectId} onRefresh={() => void prepareSavedInputs(true)} />
     {recoveryTools}
     {workspace.error && <p className={styles.warning} role="alert">{workspace.error}</p>}
-    {activeBatch && saved?.stages.brief_references && saved.stages.brief_references.id !== activeBatch.briefRevisionId && <p className={styles.warning}>This batch uses an earlier saved brief. Its original inputs and successful previews are kept.</p>}
+    {activeBatch && !chosenLogoOutdated && saved?.stages.brief_references && saved.stages.brief_references.id !== activeBatch.briefRevisionId && <p className={styles.note}>These concepts were made with your earlier logo choices. Use More concepts for a set with your current ones.</p>}
+    {activeBatch && chosenLogoOutdated && <p className={styles.warning} role="status">Your chosen logo was made with your earlier logo choices. To continue, choose a concept from a set made with your current ones.</p>}
     {activeBatch && newerLikes && <div className={styles.likesUpdate} role="status">
       <p>You changed your likes after these concepts were made. Use them for your next concepts?{selectedLogo ? " Your chosen logo will then need to be chosen again from the new concepts before Creative direction." : ""}</p>
       <button type="button" className={styles.secondaryButton} disabled={!editing || savedInputsBusy || generationState.phase !== "idle"} onClick={() => void prepareSavedInputs(true)}>Use my new likes</button>
