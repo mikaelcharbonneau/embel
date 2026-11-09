@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-const doubles = vi.hoisted(() => ({ auth: vi.fn(), rpc: vi.fn(), start: vi.fn() }));
+const doubles = vi.hoisted(() => ({ auth: vi.fn(), rpc: vi.fn(), start: vi.fn(), from: vi.fn(), buildInput: vi.fn() }));
 vi.mock("../../src/server/auth/context", () => ({ getAuthenticatedContext: doubles.auth }));
 vi.mock("workflow/api", () => ({ start: doubles.start }));
 vi.mock("../../src/workflows/probe", () => ({ probeGeneration: function probeGeneration() {} }));
-import { POST as startRoute } from "../../src/app/api/projects/[projectId]/generations/route";
+vi.mock("../../src/workflows/strategy", () => ({ strategyGeneration: function strategyGeneration() {} }));
+vi.mock("../../src/server/engine/strategy", async importOriginal => ({ ...await importOriginal<object>(), buildStrategyRunInput: doubles.buildInput }));
+import { GET as listRoute, POST as startRoute } from "../../src/app/api/projects/[projectId]/generations/route";
 import { POST as cancelRoute } from "../../src/app/api/projects/[projectId]/generations/[runId]/cancel/route";
 import { GET as creditsRoute } from "../../src/app/api/credits/route";
 
@@ -24,10 +26,19 @@ function post(path: string, value: unknown = body, headers: Record<string, strin
 const params = () => ({ params: Promise.resolve({ projectId: project }) });
 const runParams = () => ({ params: Promise.resolve({ projectId: project, runId }) });
 
+/** A query builder that records its filters and answers with `rows`. */
+function query(rows: unknown, calls: unknown[][] = []) {
+  const builder: Record<string, unknown> = {};
+  for (const method of ["select", "eq", "in", "like", "order", "limit"]) builder[method] = (...args: unknown[]) => { calls.push([method, ...args]); return builder; };
+  builder.maybeSingle = async () => ({ data: rows, error: null });
+  builder.then = (resolve: (value: unknown) => void) => resolve({ data: rows, error: null });
+  return builder;
+}
+
 beforeEach(() => {
   vi.resetAllMocks();
   vi.stubEnv("APP_ORIGIN", origin);
-  doubles.auth.mockResolvedValue({ userId: owner, client: { rpc: doubles.rpc } });
+  doubles.auth.mockResolvedValue({ userId: owner, client: { rpc: doubles.rpc, from: doubles.from } });
   doubles.rpc.mockResolvedValue({ data: row(), error: null });
   doubles.start.mockResolvedValue({ runId: "wrun_fixture" });
 });
@@ -51,7 +62,7 @@ describe("starting a generation", () => {
   });
   it("rejects forged origins, unknown kinds and extra fields before admission", async () => {
     expect((await startRoute(post(`/api/projects/${project}/generations`, body, { origin: "https://evil.invalid" }), params())).status).toBe(403);
-    expect((await startRoute(post(`/api/projects/${project}/generations`, { ...body, kind: "strategy.competitors" }), params())).status).toBe(503);
+    expect((await startRoute(post(`/api/projects/${project}/generations`, { ...body, kind: "naming.generate" }), params())).status).toBe(503);
     expect((await startRoute(post(`/api/projects/${project}/generations`, { ...body, ownerId: owner }), params())).status).toBe(422);
     expect(doubles.rpc).not.toHaveBeenCalled();
   });
@@ -76,6 +87,41 @@ describe("starting a generation", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     expect((await startRoute(post(`/api/projects/${project}/generations`), params())).status).toBe(503);
     expect(doubles.start).not.toHaveBeenCalled();
+  });
+});
+
+describe("Strategy runs", () => {
+  const strategyBody = { kind: "strategy.competitors", idempotencyKey: `strategy.engine.v1:${project}:2:strategy.competitors`, input: { expectedRevision: 2 } };
+  const frozen = { revision: 2, request: { version: 3 } };
+  it("freezes the input on the server and ignores anything else the browser sends", async () => {
+    doubles.from.mockReturnValue(query(null));
+    doubles.buildInput.mockResolvedValue(frozen);
+    doubles.rpc.mockResolvedValueOnce({ data: row({ kind: "strategy.competitors", credits: 1, input: frozen }), error: null });
+    const response = await startRoute(post(`/api/projects/${project}/generations`, strategyBody), params());
+    expect(response.status).toBe(202);
+    expect((await response.json()).run).toMatchObject({ kind: "strategy.competitors", inputRevision: 2, credits: 1 });
+    expect(doubles.buildInput).toHaveBeenCalledWith(expect.objectContaining({ userId: owner }), project, "strategy.competitors", { expectedRevision: 2 });
+    expect(doubles.rpc).toHaveBeenCalledWith("start_generation", { p_project_id: project, p_kind: "strategy.competitors", p_idempotency_key: strategyBody.idempotencyKey, p_input: frozen });
+    expect(doubles.start.mock.calls[0]![0].name).toBe("strategyGeneration");
+  });
+  it("never rebuilds the input of a replayed request", async () => {
+    doubles.from.mockReturnValue(query(row({ kind: "strategy.competitors", status: "running", workflow_run_id: "wrun_fixture", input_revision: 2 })));
+    doubles.rpc.mockResolvedValueOnce({ data: row({ kind: "strategy.competitors", status: "running", workflow_run_id: "wrun_fixture", input: frozen }), error: null });
+    expect((await startRoute(post(`/api/projects/${project}/generations`, strategyBody), params())).status).toBe(202);
+    expect(doubles.buildInput).not.toHaveBeenCalled();
+    expect(doubles.rpc.mock.calls[0]![1]).toMatchObject({ p_input: {} });
+    expect(doubles.start).not.toHaveBeenCalled();
+  });
+  it("lists one journey step's runs with their revision, never their input", async () => {
+    const calls: unknown[][] = [];
+    doubles.from.mockReturnValueOnce(query([row({ kind: "strategy.audience", status: "succeeded", input_revision: 3 })], calls))
+      .mockReturnValueOnce(query([{ run_id: runId, output_key: "result", output: { ok: true }, created_at: "2026-11-09T20:01:00Z" }]));
+    const response = await listRoute(new Request(`${origin}/api/projects/${project}/generations?step=strategy`), params());
+    const { runs } = await response.json();
+    expect(runs).toEqual([expect.objectContaining({ kind: "strategy.audience", inputRevision: 3, outputs: [{ key: "result", output: { ok: true } }] })]);
+    expect(runs[0]).not.toHaveProperty("input");
+    expect(calls).toContainEqual(["like", "kind", "strategy.%"]);
+    expect((await listRoute(new Request(`${origin}/api/projects/${project}/generations?step=Strategy%25`), params())).status).toBe(422);
   });
 });
 

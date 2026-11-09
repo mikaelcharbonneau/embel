@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { subscriptionLimitsSchema, subscriptionPolicyIdentitySchema, type EnqueueStrategyJob, type StrategyJob, type StrategyJobApplication, type StrategyOperation, type StrategyOverview, type SubscriptionLimits } from "@/domain/strategy-jobs";
+import type { GenerationRun } from "@/domain/generations";
+import { strategyJobResultSchema, strategyJobSchema, strategyOperationSchema, subscriptionLimitsSchema, subscriptionPolicyIdentitySchema, type EnqueueStrategyJob, type StrategyJob, type StrategyJobApplication, type StrategyOperation, type StrategyOverview, type SubscriptionLimits } from "@/domain/strategy-jobs";
 import { accountDraftChanged, type AccountWorkspace } from "./account-draft-memory";
 import { AccountRequestError } from "./account-api";
 
@@ -116,8 +117,43 @@ export function strategyResultApplication(job: StrategyJob, stepKey: string) {
   const application = job.results.find(result => result.stepKey === stepKey)?.application;
   return application && strategyApplicationMatchesResult(job, stepKey, application) ? application : null;
 }
+/** Engine requests: one per project revision and operation, like the old path. */
+export function engineStrategyIdempotencyKey(projectId: string, revision: number, operation: StrategyOperation) {
+  return `strategy.engine.v1:${projectId}:${revision}:${operation}`;
+}
+/**
+ * An engine run in the shape the Strategy screens already read. The run's verified result
+ * is its "result" output; other outputs only record attempts. The engine charges credits at
+ * admission, so there is no cost reservation (zeros), and a cancel request has no separate
+ * time (the run's own time marks it).
+ */
+export function engineStrategyJob(run: GenerationRun, ownerId: string, projectId: string): StrategyJob | null {
+  const operation = strategyOperationSchema.safeParse(run.kind);
+  if (!operation.success || run.inputRevision === null) return null;
+  const results = run.status === "succeeded" ? run.outputs.flatMap(item => {
+    const output = strategyJobResultSchema.safeParse(item.output);
+    return item.key === "result" && output.success && output.data.operation === operation.data ? [{ stepKey: item.key, output: output.data }] : [];
+  }) : [];
+  const active = run.status === "queued" || run.status === "running";
+  const job = strategyJobSchema.safeParse({
+    id: run.id, owner_id: ownerId, project_id: projectId, operation: operation.data, input_revision: run.inputRevision,
+    state: active && run.cancelRequested ? "cancel_requested" : run.status, progress: run.status === "succeeded" ? 100 : 0,
+    error_code: run.errorCode && /^[a-z][a-z0-9_]{0,79}$/.test(run.errorCode) ? run.errorCode : null,
+    cancel_requested_at: run.cancelRequested ? run.finishedAt ?? run.createdAt : null, created_at: run.createdAt, finished_at: run.finishedAt,
+    billingMode: "openai_api", reserved_cost_microusd: 0, actual_cost_microusd: 0, results,
+  });
+  return job.success ? job.data : null;
+}
+/** Remaining credits matter only once they run out. Never a price. */
+export function strategyCreditsMessage(periodEnd: string | null) {
+  const renews = periodEnd ? new Date(periodEnd) : null;
+  const date = renews && !Number.isNaN(renews.getTime()) ? renews.toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" }) : null;
+  return `You've used this month's credits${date ? `. They renew on ${date}` : ""}. Your conversation is saved.`;
+}
+
 export function strategyErrorMessage(error: unknown) {
   if (error instanceof AccountRequestError) {
+    if (error.status === 402) return strategyCreditsMessage(null);
     if (error.status === 409) return "The saved version or request changed. Your edits are still here. Load the latest version before requesting a new proposal.";
     if (error.status === 503) return "OpenAI is unavailable right now. Your draft is kept here; no new job was confirmed. You can continue editing.";
     if (error.status === 422) return "This request could not be accepted. Review the current request limits and your project details.";

@@ -13,6 +13,7 @@ import { publishApiTextDispatch } from "../api-text/publication";
 import { getApiTextPublicationOrigin, isLocalPollingRuntime } from "../api-text/config";
 import { getApiTextWorkerReadiness } from "../api-text/readiness";
 import { isSharedWorkerRuntime } from "../shared-account/routing";
+import { assertOwnedProject, engineStrategyAvailability, strategyEngineEnabled } from "../engine/strategy";
 
 // JSON-path SELECT still requires access to the whole input column. This
 // owner-scoped facade exposes only public summaries and three contract fields.
@@ -82,8 +83,14 @@ function ownSummary(auth: AuthenticatedContext, projectId: string, value: unknow
   return job;
 }
 
-export async function getStrategyAvailability(auth: AuthenticatedContext, projectId?: string) {
+export async function getStrategyAvailability(auth: AuthenticatedContext, projectId?: string, engine?: boolean) {
   if (projectId !== undefined) resourceId(projectId);
+  // With every Strategy kind enabled, the generation engine runs Strategy. Its own
+  // admission checks credits and limits; the old worker's readiness no longer applies.
+  if (engine ?? await strategyEngineEnabled(auth)) {
+    if (projectId !== undefined) await assertOwnedProject(auth, projectId);
+    return engineStrategyAvailability();
+  }
   const local = isLocalPollingRuntime();
   const { data, error } = await auth.client.rpc(isSharedWorkerRuntime() ? "get_shared_strategy_availability" : local ? "get_local_strategy_availability" : "get_strategy_availability", { p_project_id: projectId ?? null });
   databaseError(error);
@@ -151,10 +158,14 @@ async function withResults(auth: AuthenticatedContext, projectId: string, summar
 
 export async function getStrategyOverview(auth: AuthenticatedContext, projectId: string) {
   resourceId(projectId);
+  const engine = await strategyEngineEnabled(auth);
   // This RPC checks project ownership even when no jobs exist.
-  const availability = await getStrategyAvailability(auth, projectId);
+  const availability = await getStrategyAvailability(auth, projectId, engine);
   const rows = await readJobSummaries(auth, projectId, null);
-  return parseStored(strategyOverviewResponseSchema, { availability, jobs: await withResults(auth, projectId, await withDelivery(auth, projectId, rows)) });
+  // In engine mode the jobs listed here are the project's earlier, old-path requests;
+  // the screen reads engine runs from /generations and shows both.
+  return parseStored(strategyOverviewResponseSchema, { ...(engine ? { engine: true } : {}), availability,
+    jobs: await withResults(auth, projectId, await withDelivery(auth, projectId, rows)) });
 }
 
 export async function getStrategyJob(auth: AuthenticatedContext, projectId: string, jobId: string, includeDelivery = true) {

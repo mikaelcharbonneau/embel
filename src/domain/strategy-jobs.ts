@@ -257,6 +257,8 @@ export const strategyAvailabilitySchema = z.strictObject({
   message: "Availability must describe configured, ready and affordable operations",
 });
 export const strategyOverviewResponseSchema = z.strictObject({
+  /** Present when the generation engine runs Strategy: new requests go to /generations. */
+  engine: z.literal(true).optional(),
   availability: strategyAvailabilitySchema,
   jobs: z.array(strategyJobSchema).max(64),
 });

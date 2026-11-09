@@ -54,7 +54,10 @@ describe("strategy API authorization, bounded inputs and actual durable outputs"
     vi.stubEnv("VERCEL_PROJECT_ID", "prj_WKrFUPy3wptZ3qI9l1hTuqPmzkDt");
     vi.stubEnv("FLUID_API_TEXT_WORKER_ORIGIN", "https://fluid-api-text-worker-qualified.vercel.app");
     rows = { jobs: [job], job_steps: [], strategy_job_applications: [] };
-    doubles.auth.mockResolvedValue({ userId: ownerId, client: { rpc: (name: string, args: { p_job_id?: string | null }) => name === "get_strategy_job_summaries" ? doubles.summaries(args) : doubles.rpc(name, args), from: doubles.from } });
+    doubles.auth.mockResolvedValue({ userId: ownerId, client: { rpc: (name: string, args: { p_job_id?: string | null }) => name === "get_strategy_job_summaries" ? doubles.summaries(args)
+      // The generation engine's Strategy kinds are disabled here, so the old path runs.
+      : name === "get_generation_catalog" ? Promise.resolve({ data: { plans: [], kinds: [{ kind: "strategy.competitors", credits: 1, enabled: false }] }, error: null })
+      : doubles.rpc(name, args), from: doubles.from } });
     doubles.rpc.mockImplementation(async (name: string) => ({ data: name === "get_strategy_availability" ? available : { ...job, dispatch }, error: null }));
     doubles.summaries.mockImplementation(async (args: { p_job_id: string | null }) => ({ data: args.p_job_id === null ? rows.jobs : rows.jobs.slice(0, 1), error: null }));
     doubles.publish.mockResolvedValue({ state: "published", messageId: "synthetic_queue_message" });
