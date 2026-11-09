@@ -202,9 +202,17 @@ export function createSharedPoolController(config:SharedPoolConfiguration,secret
       const release=await state.pool.query("SELECT public.release_shared_worker_slot($1::jsonb) released",[JSON.stringify(state.lease)]);
       if(release.rows.length!==1||release.rows[0]?.released!==true)throw unavailable();
      }
-    }catch{diagnose(spec,"drain_unconfirmed");failed=true;lifetime.abort();}
+    }catch{
+     // An unconfirmed drain retires only this slot's engine. The SQL fence
+     // expires its lease and parks its active executions for observation, and
+     // the next claim bumps the generation, so a late write from the abandoned
+     // engine is refused. Other lanes keep their own authority and keep
+     // working; the process still reports the unconfirmed drain when it stops.
+     diagnose(spec,"drain_unconfirmed");failed=true;retryCode??="drain_unconfirmed";
+     await state.withdraw();
+    }
     resetAfterStableOwnership();
-    state.lease=null;state.engine=null;state.busy=false;state.state=failed?"unavailable":"standby";
+    state.lease=null;state.engine=null;state.busy=false;state.state="standby";
    }
    if(!lifetime.signal.aborted){const retry=backoff.next();diagnose(spec,retryCode??"execution_failed",retry);await sharedPoolPause(retry.retryAfterMs,lifetime.signal);}
   }
