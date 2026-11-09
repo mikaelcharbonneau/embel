@@ -13,6 +13,7 @@ import { projectNamingOverviewSchema, type ProjectNamingOverview } from "@/domai
 import type { NamingFeed, NamingBrainRunSummary } from "@/domain/naming-brain";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 import { initialNamingView } from "@/components/naming/use-project-naming";
+import { reviewedStrategy } from "../fixtures/reviewed-strategy";
 
 const mock = vi.hoisted(() => {
   const listeners = new Set<() => void>();
@@ -30,7 +31,7 @@ vi.mock("@/components/naming/use-project-naming", async importOriginal => {
 });
 
 const ownerId = "a0000000-0000-4000-8000-000000000001", projectId = "b0000000-0000-4000-8000-000000000001", candidateId = "c0000000-0000-4000-8000-000000000001", when = "2026-10-16T12:00:00Z";
-const project = accountProjectSchema.parse({ id: projectId, owner_id: ownerId, title: "Synthetic workspace", scope: "naming_only", current_revision: 1, created_at: when, context: { description: "A synthetic Naming workspace" } });
+const project = accountProjectSchema.parse({ id: projectId, owner_id: ownerId, title: "Synthetic workspace", scope: "complete_brand", current_revision: 1, created_at: when, context: reviewedStrategy({ description: "A synthetic Naming workspace" }) });
 const preferences = { ...initialNamingPreferencesV2(project.context), approaches: ["real_words" as const], directness: "all" as const };
 const entry: ProjectNameEntry = { candidate: { id: candidateId, ownerId, projectId, value: "Juniper", identityKey: nameIdentityKey("Juniper"), rationale: "Synthetic workspace candidate.", contextRevision: 1, strategyBasis: namingStrategyBasis(project.context), strategyKey: namingStrategyKey(project.context), createdAt: when,
   origin: { kind: "local_import", ownerId, projectId, candidateId, contextRevision: 1, source: { id: candidateId, value: "Juniper", createdAt: when, origin: "manual", history: [] }, capturedContext: project.context } }, retention: { ownerId, projectId, candidateId, revision: 0, favorite: false, saved: false, updatedAt: null } };

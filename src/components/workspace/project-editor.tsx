@@ -17,7 +17,6 @@ import { projectStartDraft, projectStartHref, prepareProjectStart } from "./proj
 import { useAccountSession } from "./account-session";
 import { beforePromptSignInEvent, clearPromptRecovery, readPromptRecoveryState, rememberPromptForSignIn } from "./prompt-recovery";
 import { createAccountLifecycleClient } from "./account-lifecycle-client";
-import { HomeScopePicker } from "./home-scope-picker";
 import { HomeInputControls } from "@/features/home-inputs/home-input-controls";
 import { createOnDeviceVoiceAdapter } from "@/features/home-inputs/on-device-voice-adapter";
 import { unavailableHomeVoiceAdapter, type OnDeviceSpeechEnvironment } from "@/features/home-inputs/voice-contract";
@@ -35,7 +34,7 @@ import {
   isAudienceReviewComplete, isCompetitorReviewComplete, isPersonalityReviewComplete, isPositioningReviewComplete,
   personalityReviewKey, positioningReviewKey,
 } from "./project-draft-adapter";
-import { briefExamples, createLocalDraft, draftTitle, getLocalDraft, scopeLabel, updateLocalDraft, useLocalDrafts, type LocalDraft } from "./local-drafts";
+import { briefExamples, createLocalDraft, draftTitle, getLocalDraft, updateLocalDraft, useLocalDrafts, type LocalDraft } from "./local-drafts";
 import "@/styles/conversation.css";
 
 const homeExamples = [
@@ -44,11 +43,12 @@ const homeExamples = [
   { title: "An independent magazine", description: "An independent magazine about the people shaping everyday culture, with original photography and long-form stories. It should feel curious, thoughtful, and distinctive." },
 ];
 
-export function NewProjectForm({ initialScope, exampleId, home = false }: { initialScope: ProjectScope; exampleId?: string; home?: boolean }) {
+export function NewProjectForm({ exampleId, home = false }: { exampleId?: string; home?: boolean }) {
   const { session, enrollment, isCurrent, expire, homeInputSession, drafts: accountDrafts } = useAccountSession();
   const account = session.status === "ready" ? session : null;
   const example = briefExamples.find((item) => item.id === exampleId);
-  const [scope, setScope] = useState(initialScope);
+  // Every project is a complete brand.
+  const scope: ProjectScope = "complete_brand";
   const [prompt, setPrompt] = useState<string>(example?.description ?? "");
   const [exampleUsed, setExampleUsed] = useState(Boolean(example));
   const [error, setError] = useState("");
@@ -79,7 +79,7 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
     setTextDraftId(retained.id);
     setRecoveryLocked(recovery.locked);
     setPromptOwner(retained.ownerId ?? null);
-    setPrompt(retained.description); setScope(retained.scope); setExampleUsed(retained.example); setResumedPrompt(true);
+    setPrompt(retained.description); setExampleUsed(retained.example); setResumedPrompt(true);
   }, [loaded, exampleId, account?.userId, session.status]);
   function readTextDraft(id: string) {
     return getLocalDraft(id) ?? (pendingAccountDraft.current?.id === id ? pendingAccountDraft.current : null);
@@ -118,7 +118,7 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
     } catch { setError("Your prompt could not be kept. Copy it before leaving to sign in."); }
     return false;
   }
-  const strategy = useAccountStrategyStart({ beforeSignIn, recoveryDraftId: textDraftId, recoveryLocked, guided: true, scope });
+  const strategy = useAccountStrategyStart({ beforeSignIn, recoveryDraftId: textDraftId, recoveryLocked, guided: true });
   const preserveBeforeHeaderSignIn = useEffectEvent((event: Event) => {
     if (strategy.checkingRecovery || !beforeSignIn(strategy.locked)) event.preventDefault();
   });
@@ -152,7 +152,6 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
   const frozenBrief = !!frozenProject;
   const hiddenPrompt = Boolean(promptOwner && promptOwner !== account?.userId);
   const displayedPrompt = frozenProject?.context.description ?? (hiddenPrompt ? "" : prompt);
-  const displayedScope = frozenProject?.scope ?? (hiddenPrompt ? initialScope : scope);
   const displayedExample = frozenProject?.context.intake.example ?? (!hiddenPrompt && exampleUsed);
   const frozenInputs = !recoveryLoaded || hiddenPrompt || submitting || strategy.pending || strategy.locked || navigating || Boolean(openingHref) || frozenBrief || hiddenFiles;
   const recoveryFull = drafts.filter(draft => !draft.accountProjectId).length >= 50;
@@ -172,7 +171,7 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
       const kept = createLocalDraft({ title: "", scope, description: prompt.trim(), suppliedName: "", namingNotes: "", identityNotes: "", example: exampleUsed, ownerId: promptOwner });
       if (!kept) { setError("The earlier prompt is still retained. Recover an unsaved project to make room before starting another."); return; }
     }
-    clearPromptRecovery(account?.userId); strategy.detachPrompt(); textDraft.current = null; pendingAccountDraft.current = null; setTextDraftId(null); setPrompt(""); setPromptOwner(null); setScope(initialScope); setExampleUsed(false); setResumedPrompt(false); setRecoveryLocked(false); setError("");
+    clearPromptRecovery(account?.userId); strategy.detachPrompt(); textDraft.current = null; pendingAccountDraft.current = null; setTextDraftId(null); setPrompt(""); setPromptOwner(null); setExampleUsed(false); setResumedPrompt(false); setRecoveryLocked(false); setError("");
   }
 
 
@@ -214,7 +213,7 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
         if (controller.signal.aborted || !isCurrent(account)) return;
         const prior = readReceipt(account.userId, id);
         if (prior?.projectId) {
-          openSavedProject(projectStartHref(prior.projectId!, displayedScope));
+          openSavedProject(projectStartHref(prior.projectId!));
           finishLocalDraftRecovery(id, account.userId, prior.projectId);
           clearPromptRecovery(account.userId); return;
         }
@@ -227,7 +226,7 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
         if (receipt && !controller.signal.aborted && isCurrent(account)) {
           rememberReceipt({ ownerId: account.userId, draftId: id, projectId: receipt.project.id, attachedRequestKey: receipt.requestKey });
           const newProject = !prior && !original.saveIntent && !original.receipt;
-          openSavedProject(prepareProjectStart(receipt.project.id, receipt.project.scope, newProject ? receipt.project : null, account, accountDrafts));
+          openSavedProject(prepareProjectStart(receipt.project.id, newProject ? receipt.project : null, account, accountDrafts));
           finishLocalDraftRecovery(id, account.userId, receipt.project.id);
           clearPromptRecovery(account.userId);
         }
@@ -252,12 +251,12 @@ export function NewProjectForm({ initialScope, exampleId, home = false }: { init
 
   const intake = <div className="home-intake conversation-intake">
     <div className="home-introduction"><h1>Your next brand starts here<span>.</span></h1><p>Describe the idea. Embel asks a few questions, then builds the name, logo and look with you.</p></div>
-    {resumedPrompt && !hiddenPrompt && <div className="prompt-recovery-notice"><p role="status">{strategy.locked ? "Your original prompt is kept. Check its save status below before continuing." : "Your prompt is ready to continue."}</p><button type="button" className="text-link" disabled={frozenInputs} onClick={() => { if (!canEditInputs()) return; clearPromptRecovery(account?.userId); textDraft.current = null; pendingAccountDraft.current = null; setTextDraftId(null); setPrompt(""); setPromptOwner(null); setScope(initialScope); setExampleUsed(false); setResumedPrompt(false); setError(""); }}>Start a new prompt</button></div>}
+    {resumedPrompt && !hiddenPrompt && <div className="prompt-recovery-notice"><p role="status">{strategy.locked ? "Your original prompt is kept. Check its save status below before continuing." : "Your prompt is ready to continue."}</p><button type="button" className="text-link" disabled={frozenInputs} onClick={() => { if (!canEditInputs()) return; clearPromptRecovery(account?.userId); textDraft.current = null; pendingAccountDraft.current = null; setTextDraftId(null); setPrompt(""); setPromptOwner(null); setExampleUsed(false); setResumedPrompt(false); setError(""); }}>Start a new prompt</button></div>}
     {hiddenPrompt && <div><p role="status">An unsaved prompt belongs to another account session. Sign in to that account to continue it.</p><button type="button" className="text-link" onClick={startNewPrompt}>Start a new prompt</button></div>}
     {hiddenFiles && <p role="status">An attached brief is retained in this tab. Verify the same account before sending so its files stay with it.</p>}
-    {frozenBrief && <p role="status">Your prompt, scope and example selection are locked to the original attached brief while its save is confirmed or recovered.</p>}
+    {frozenBrief && <p role="status">Your prompt and example selection are locked to the original attached brief while its save is confirmed or recovered.</p>}
     <ConversationComposer home value={displayedPrompt} onChange={editPrompt} readOnly={frozenInputs} onSend={sendPrompt} label="Your prompt" placeholder="An idea you can’t stop thinking about…" error={error} disabled={disabled} initial sendLabel={inputIntent?.receipt ? "Open saved brand" : frozenBrief ? "Check and retry attached brief" : hasFiles ? "Save brief with files" : strategy.recoveryProjectId ? "Open saved account project" : "Send prompt"} hint={displayedExample ? <><span className="example-dot" />{frozenBrief ? "Example prompt · saved basis" : "Example prompt · editable"}</> : "An idea, a product, a place. Start in your own words."}
-      inputControls={<HomeInputControls compact scopeControl={<HomeScopePicker value={displayedScope} disabled={frozenInputs} onChange={value => { if (canEditInputs()) setScope(value); }} />} account={account} sessionFence={sessionFence} memory={homeInputSession} value={displayedPrompt} onChange={editPrompt} language="en-US" voiceAdapter={voice} policy={currentCapability?.policy ?? null} availability={currentCapability?.policy ? { status: "available" } : { status: "unavailable", reason: currentCapability?.reason ?? (account ? "Checking verified file storage…" : "Sign in to save verified input files.") }} disabled={!recoveryLoaded || submitting || navigating || strategy.pending || strategy.locked} />} />
+      inputControls={<HomeInputControls compact account={account} sessionFence={sessionFence} memory={homeInputSession} value={displayedPrompt} onChange={editPrompt} language="en-US" voiceAdapter={voice} policy={currentCapability?.policy ?? null} availability={currentCapability?.policy ? { status: "available" } : { status: "unavailable", reason: currentCapability?.reason ?? (account ? "Checking verified file storage…" : "Sign in to save verified input files.") }} disabled={!recoveryLoaded || submitting || navigating || strategy.pending || strategy.locked} />} />
     {(!home || !!displayedPrompt.trim() || strategy.locked || hiddenFiles) && <div className="conversation-start-notice">{hasFiles ? "Files are saved as input material with your brief. This action does not start AI processing." : strategy.notice}</div>}
     {account && (!home || !!displayedPrompt.trim() || textDraftId || resumedPrompt || strategy.locked) && !hasFiles && !hiddenFiles && !hiddenPrompt && <div className="account-recovery-actions home-draft-actions"><div><button type="button" className="button secondary" disabled={disabled} onClick={() => void sendPrompt("draft")}>{strategy.locked ? "Check and retry save" : "Save project"}</button><span className="field-hint">Saves to your account · does not start AI</span></div></div>}
     {!account && recoveryFull && !inputIntent?.browserDraftId && !textDraftId && <p className="form-error" role="alert">This device has 50 unsaved projects. <Link href="/brands?recover=1">Recover a project</Link> before starting another.</p>}
@@ -273,7 +272,7 @@ type EditorStorage = {
   onUpdate: (patch: DraftPatch) => boolean;
   onDelete?: () => void;
   actions?: React.ReactNode;
-  scopeControl?: React.ReactNode;
+  projectLinks?: React.ReactNode;
   namingSource?: NamingSource;
   savedContext?: ContextSnapshot;
   strategy?: React.ReactNode;
@@ -369,7 +368,7 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
       if (widget === "positioning") {
         // Approve strategy is a whole-strategy action. Check the same saved
         // input requirements used by Naming before claiming a full approval.
-        const missing = getNamingReadiness(draftContext({ ...draft, ...patch }, storage.savedContext), "complete_brand").missing.find(step => step !== "scope");
+        const missing = getNamingReadiness(draftContext({ ...draft, ...patch }, storage.savedContext), "complete_brand").missing[0];
         if (missing) {
           const review = missing === "description" || missing === "reformulation" ? "brief" : missing;
           if (review === "brief") {
@@ -438,7 +437,7 @@ export function ProjectEditorForm({ draft, storage }: { draft: LocalDraft; stora
         </>}
       </div>
       <span className="save-label"><Icon name={account ? "brands" : "device"} size={13} />{storage.saveLabel}</span>
-    </header><div className="conversation-project-meta"><span className="small-badge">{scopeLabel(draft.scope)}</span>{draft.example && <span className="small-badge">Example prompt</span>}{account ? storage.scopeControl : draft.scope !== "complete_brand" && <button className="text-link" type="button" onClick={() => update({ scope: "complete_brand" })}>Expand to complete brand</button>}</div>{storage.namingSource && <NameOrigin source={storage.namingSource} />}{details.length > 0 && <ContextDetails className="conversation-saved-details" title={<>Saved project details</>}><dl>{details.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></ContextDetails>}</ContextDetails>
+    </header><div className="conversation-project-meta">{draft.example && <span className="small-badge">Example prompt</span>}{account ? storage.projectLinks : null}</div>{storage.namingSource && <NameOrigin source={storage.namingSource} />}{details.length > 0 && <ContextDetails className="conversation-saved-details" title={<>Saved project details</>}><dl>{details.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></ContextDetails>}</ContextDetails>
     <footer className="conversation-footer"><Link href="/brands" className="text-link">Back to all projects</Link>{storage.onDelete && (!confirmDelete ? <button className="text-link danger-text" type="button" onClick={() => setConfirmDelete(true)}>Delete this draft</button> : <div className="inline-confirm"><span>Delete this browser draft?</span><button className="button secondary small" type="button" onClick={() => setConfirmDelete(false)}>Keep draft</button><button className="button danger small" type="button" onClick={storage.onDelete}>Delete draft</button></div>)}</footer>
     </div>
     <div className="conversation-compose-area">

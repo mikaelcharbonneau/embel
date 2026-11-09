@@ -26,7 +26,7 @@ export function VisualDirectionsPage({ projectId, variant = "page" }: { projectI
   const router = useRouter(), progress = useProjectProgress();
   // A complete brand shows Creative direction in its project conversation, after
   // the Logo step; this page stays for projects without that conversation.
-  const moved = variant === "page" && progress?.projectId === projectId && progress.scope === "complete_brand";
+  const moved = variant === "page" && progress?.projectId === projectId;
   useEffect(() => { if (moved) router.replace(`/brands/account/${projectId}?view=strategy#journey-directions`); }, [moved, projectId, router]);
   if (!logoUuidSchema.safeParse(projectId).success) return variant === "conversation" ? null : <section className={stage.frame}><h1 className={stage.title}>Project not found</h1><Link className={stage.actionLink} href="/brands">Back to projects</Link></section>;
   if (moved) return null;

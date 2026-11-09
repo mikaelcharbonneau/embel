@@ -10,6 +10,7 @@ import { createAccountDraftMemory } from "@/components/workspace/account-draft-m
 import { accountProjectDraft } from "@/components/workspace/project-draft-adapter";
 import { initialNamingView, useProjectNaming } from "@/components/naming/use-project-naming";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
+import { reviewedStrategy } from "../fixtures/reviewed-strategy";
 
 const mock = vi.hoisted(() => ({ memory: null as ReturnType<typeof createAccountDraftMemory> | null, current: vi.fn(), expire: vi.fn() }));
 vi.mock("@/components/workspace/account-session", () => ({ useAccountSession: () => ({ drafts: mock.memory, isCurrent: mock.current, expire: mock.expire }) }));
@@ -53,7 +54,7 @@ beforeEach(() => {
   account = { status: "ready", userId: crypto.randomUUID(), generation: 1 };
   mock.current.mockReset().mockImplementation((value: VerifiedAccount) => value.userId === account.userId && value.generation === account.generation);
   mock.expire.mockReset(); mock.memory = createAccountDraftMemory();
-  const project = accountProjectSchema.parse({ id: projectId, owner_id: account.userId, title: "Naming recovery fixture", scope: "naming_only", current_revision: 1, created_at: when, context: { description: "A neighborhood lunch kitchen" } });
+  const project = accountProjectSchema.parse({ id: projectId, owner_id: account.userId, title: "Naming recovery fixture", scope: "complete_brand", current_revision: 1, created_at: when, context: reviewedStrategy({ description: "A neighborhood lunch kitchen" }) });
   mock.memory.set({ ownerId: account.userId, generation: 1, saved: project, draft: accountProjectDraft(project), conflict: false });
   const owned = { ownerId: account.userId, projectId };
   state = projectNamingOverviewSchema.parse({ project, readiness: getNamingReadiness(project.context, project.scope),

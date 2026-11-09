@@ -1,6 +1,7 @@
 import { isDeepStrictEqual } from "node:util";
 import { getNamingPreferencesReadiness, namingPreferencesV2Schema } from "../../src/domain/naming-brain-preferences";
 import { asRole, OWNER_A, resetFixture, type TestDatabase } from "./local-supabase";
+import { reviewedStrategy } from "../fixtures/reviewed-strategy";
 export const brainReadinessFingerprint={version:1,normalizer:"naming-preferences-v1:nfc-lower-nfc",implementationHash:"7108319323898692a388fcf17cb542509583288b0d4b05d7384f8c5b707aeb01",nodeVersion:process.versions.node,icuVersion:process.versions.icu,unicodeVersion:process.versions.unicode};
 export async function attestBrainPreferences(db:TestDatabase){
  const work=await brainWorker(db,async()=>(await db.query<{work:{projectId:string;preferencesVersion:number;preferencesHash:string;preferences:unknown;expectedFingerprint:unknown}[]}>("select public.get_naming_brain_preference_work(20) work")).rows[0]!.work);
@@ -30,7 +31,7 @@ export async function installBrainFixture(db: TestDatabase) {
 export async function seedBrainFixture(db: TestDatabase) {
  await resetFixture(db);
  await db.query("update public.usage_accounts set limit_microusd=25000000");
- const project = (await brainRpc<{ id: string }>(db, "create_project", ["naming_only", "Synthetic coffee", { description: "Synthetic coffee naming brief" }, "a".repeat(64)])).id;
+ const project = (await brainRpc<{ id: string }>(db, "create_project", ["complete_brand", "Synthetic coffee", reviewedStrategy({ description: "Synthetic coffee naming brief" }), "a".repeat(64)])).id;
  await brainRpc(db, "save_naming_preferences", [project, 0, brainPreferences]);
  await db.query("insert into fluid_private.naming_brain_pilots(owner_id,role_name,role_oid,deployment_id,policy,enabled) select $1,rolname,oid,'fixture-deployment',$2::jsonb,true from pg_roles where rolname='fixture_naming_brain_a'", [OWNER_A, JSON.stringify(brainPolicy)]);
  await brainWorker(db, () => db.query("select public.report_naming_brain_worker_ready($1::jsonb,'fixture-deployment','fixture-worker',120)", [JSON.stringify(brainPolicy)]));

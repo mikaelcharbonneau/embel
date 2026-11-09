@@ -7,7 +7,7 @@ import { accountProjectPageSchema } from "@/domain/project-pages";
 /** A route bridge, never a generation request or a browser-library import. */
 export function namesAssistantProjectHref(project: AccountProjectSummary, account: VerifiedAccount) {
   const parsed = accountProjectSummarySchema.safeParse(project);
-  if (!parsed.success || parsed.data.owner_id !== account.userId || parsed.data.scope === "visual_identity_only") return null;
+  if (!parsed.success || parsed.data.owner_id !== account.userId) return null;
   return `/brands/account/${parsed.data.id}/naming`;
 }
 

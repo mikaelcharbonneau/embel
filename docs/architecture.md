@@ -252,7 +252,7 @@ Code layout: src/app + src/components (frontend), src/domain (shared Zod contrac
 
 ## Key contracts
 
-Project scopes: complete_brand | naming_only | visual_identity_only. A ContextSnapshot contains description, activity, offering, known audience, selected segments, retained competitors, supplied name, and provenance. Promotion copies known context and source references; never invents approvals, audience, or positioning. Revision numbers invalidate downstream selections without deleting history.
+Every project is a complete brand (`complete_brand`). The "Name only" and "Visual identity" scopes were retired on November 9, 2026; migration `20261109090000_complete_brand_only.sql` converted existing projects, and the database still accepts the old values only for compatibility. Saved Identity history keeps the scope it was made with. A ContextSnapshot contains description, activity, offering, known audience, selected segments, retained competitors, supplied name, and provenance. Promotion copies known context and source references; never invents approvals, audience, or positioning. Revision numbers invalidate downstream selections without deleting history.
 
 Assets use immutable version IDs, input revision/hash, MIME type, storage path, content hash, generation provenance, likes/saves/usage. Default inclusion is liked OR saved OR used. A new selection records restore history; original versions remain addressable. Vector readiness requires actual path geometry and license provenance, not an SVG extension.
 

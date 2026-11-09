@@ -36,7 +36,6 @@ async function directionAction(project: AccountProject, source: LogoRasterSource
 }
 
 export async function readProjectVisualState(project: AccountProject, client: AccountLogoClient | null, signal: AbortSignal) {
-  if (project.scope === "naming_only") return null;
   if (!client) throw new AccountRequestError(502);
   const logo = await readProjectLogoProgress(client, project.owner_id, project.id, signal);
   if (!logo || logo.workspace.heads.projectRevision !== project.current_revision) throw new AccountRequestError(409);
@@ -45,9 +44,6 @@ export async function readProjectVisualState(project: AccountProject, client: Ac
 
 export async function nextProjectAction(project: AccountProject, clients: Clients, logo: ProjectLogoProgress | null, signal: AbortSignal): Promise<ProjectAction> {
   const base = `/brands/account/${project.id}`;
-  if (project.scope === "naming_only") {
-    return { label: project.context.selectedName ? "Review saved name" : "Continue naming", href: `${base}/naming` };
-  }
   if (!logo || !clients.logo) throw new AccountRequestError(502);
   if (logo.selected) {
     if (!clients.identity) throw new AccountRequestError(502);

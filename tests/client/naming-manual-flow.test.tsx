@@ -12,6 +12,7 @@ import { getNamingReadiness, nameIdentityKey, namingStrategyBasis, namingStrateg
 import { initialNamingPreferencesV2 } from "@/domain/naming-brain-preferences";
 import { initialNamingView } from "@/components/naming/use-project-naming";
 import { namingFeedSchema, type NamingFeed } from "@/domain/naming-brain";
+import { reviewedStrategy } from "../fixtures/reviewed-strategy";
 
 const mock = vi.hoisted(() => ({ memory: null as ReturnType<typeof createNamingBrainMemory> | null, drafts: null as ReturnType<typeof createAccountDraftMemory> | null, current: vi.fn(), expire: vi.fn() }));
 const id = (n: number) => `e0000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -44,7 +45,7 @@ beforeEach(() => {
   mock.memory = createNamingBrainMemory({ storage: () => null }); mock.memory.bind(account); mock.drafts = createAccountDraftMemory();
   mock.current.mockReset().mockImplementation(value => value.userId === account.userId && value.generation === account.generation); mock.expire.mockReset();
   requests.length = 0; manual = []; failImport = false; failOverview = false; staleCustomRead = null; savedFeed = null; importAcknowledgement = null;
-  const project = accountProjectSchema.parse({ id: projectId, owner_id: account.userId, title: "Synthetic 130 saved names", scope: "naming_only", current_revision: 1, created_at: when, context: { description: "A synthetic kitchen brief" } });
+  const project = accountProjectSchema.parse({ id: projectId, owner_id: account.userId, title: "Synthetic 130 saved names", scope: "complete_brand", current_revision: 1, created_at: when, context: reviewedStrategy({ description: "A synthetic kitchen brief" }) });
   const owned = { ownerId: account.userId, projectId };
   state = projectNamingOverviewSchema.parse({ project, readiness: getNamingReadiness(project.context, project.scope), session: { ...owned, revision: 1, currentPreferencesVersion: 1, latestBatchSequence: 2, currentSelectionId: null, viewRevision: 1, viewState: initialNamingView, createdAt: when, updatedAt: when }, preferences: { ...owned, version: 1, preferences: { ...initialNamingPreferencesV2(project.context), approaches: ["real_words"], directness: "all" }, createdAt: when }, currentSelection: null, candidates: { ...owned, items: [], nextCursor: null }, batches: { ...owned, items: [], nextCursor: null }, jobs: [], availability: { status: "unavailable", operation: "naming.generate", reason: "worker_unavailable" }, screening: { domains: { status: "not_checked", reason: "integration_unavailable" }, handles: { status: "not_checked", reason: "integration_unavailable" }, trademarks: { status: "not_checked", reason: "integration_unavailable" } } });
   generated = Array.from({ length: 130 }, (_, index) => {

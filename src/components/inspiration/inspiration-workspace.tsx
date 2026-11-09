@@ -94,7 +94,7 @@ export function InspirationWorkspace({ projectId, variant = "page", lead, onCont
 }
 function OwnedInspiration({ account, projectId, variant, lead, onContinue, continueHidden }: InspirationProps & { account: Extract<ReturnType<typeof useAccountSession>["session"], { status: "ready" }> }) {
   const controller = useInspiration(account, projectId), references = useYourReferences(account, projectId);
-  const router = useRouter(), scope = controller.overview?.projectScope;
+  const router = useRouter();
   // Let the Logo step below refresh its brief when saved likes change.
   const selectionRevision = controller.overview?.selectionRevision, referenceRevision = references.revision;
   useEffect(() => {
@@ -102,7 +102,8 @@ function OwnedInspiration({ account, projectId, variant, lead, onContinue, conti
   }, [account.userId, projectId, selectionRevision, referenceRevision]);
   // A complete brand shows Inspiration in its conversation, right after Voice;
   // the standalone page only remains for projects without that conversation.
-  const inConversation = variant === "page" && scope === "complete_brand";
+  // The page variant sits in the project conversation once the project is read.
+  const inConversation = variant === "page" && Boolean(controller.overview);
   useEffect(() => { if (inConversation) router.replace(`/brands/account/${projectId}?view=strategy#journey-identity`); }, [inConversation, router, projectId]);
   if (inConversation) return null;
   return <InspirationView controller={controller} projectId={projectId} variant={variant} lead={lead} onContinue={onContinue} continueHidden={continueHidden} references={references} />;
@@ -165,7 +166,7 @@ export function InspirationView({ controller, projectId, variant = "page", lead 
         <label className="inspiration-search"><Icon name="search" size={16} /><input type="search" aria-label="Search brands" placeholder="Search brands, colors or styles…" value={query} maxLength={160} onChange={event => reset({ query: event.target.value })} /></label>
         <div className="inspiration-categories" role="group" aria-label="Categories">{inspirationCategories.map(item => <button type="button" key={item.value} aria-pressed={category === item.value} onClick={() => reset({ category: item.value })}>{item.label}</button>)}</div>
       </div>
-      {controller.error ? <div className="inspiration-notice" role="status"><span>{controller.error}</span><button type="button" onClick={() => void controller.refresh()} disabled={controller.loading}>Retry connection</button></div> : controller.loading ? <p className="inspiration-notice" role="status">Loading saved choices…</p> : controller.blocked ? <p className="inspiration-notice">Save or resolve your project edits before changing inspiration.</p> : controller.overview?.projectScope === "naming_only" ? <p className="inspiration-notice">Expand this project to a complete brand to save visual preferences. <Link href={`/brands/account/${projectId}`}>Open project</Link></p> : null}
+      {controller.error ? <div className="inspiration-notice" role="status"><span>{controller.error}</span><button type="button" onClick={() => void controller.refresh()} disabled={controller.loading}>Retry connection</button></div> : controller.loading ? <p className="inspiration-notice" role="status">Loading saved choices…</p> : controller.blocked ? <p className="inspiration-notice">Save or resolve your project edits before changing inspiration.</p> : null}
       <div className="inspiration-feed">
         {liked && !controller.overview ? <div className="inspiration-empty"><h2>Saved choices are not available yet</h2><p>Reconnect to load this project’s liked brands.</p></div>
           : !total && !yours ? <div className="inspiration-empty"><Icon name="assets" size={30} /><h2>{liked && !query ? "Start with a few likes" : `No ${noun} match this search`}</h2><p>{liked && !query ? "Like a whole brand with the heart next to its name, or just one of its images." : "Try a brand name, a color or a style."}</p><button type="button" onClick={() => reset({ query: "", liked: false })}>Browse all {noun}</button></div>

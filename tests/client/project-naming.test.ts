@@ -5,6 +5,7 @@ import { accountProjectDraft } from "@/components/workspace/project-draft-adapte
 import { accountRequest, AccountRequestError } from "@/components/workspace/account-api";
 import { createNamingRequestScope, namingBatchIntentKey, namingDraftBlocked, namingErrorMessage, namingOwned, namingScrollTarget } from "@/components/naming/use-project-naming";
 import { initialWorkshopControls, workshopControlsInput } from "@/components/naming/workshop-controls";
+import { reviewedStrategy } from "../fixtures/reviewed-strategy";
 
 const ownerId = "aaaaaaaa-1111-4111-8111-111111111111";
 const projectId = "bbbbbbbb-1111-4111-8111-111111111111";
@@ -103,7 +104,7 @@ describe("bounded public account error codes", () => {
 });
 
 describe("naming admission and view", () => {
-  const project = accountProjectSchema.parse({ id: projectId, owner_id: ownerId, title: "Synthetic naming-only brief", scope: "naming_only", current_revision: 2, created_at: "2026-10-04T10:00:00Z", context: { description: "Synthetic saved description", creativeLocale: "fr" } });
+  const project = accountProjectSchema.parse({ id: projectId, owner_id: ownerId, title: "Synthetic naming-only brief", scope: "complete_brand", current_revision: 2, created_at: "2026-10-04T10:00:00Z", context: reviewedStrategy({ description: "Synthetic saved description", creativeLocale: "fr" }) });
   const workspace = { ownerId, generation: 1, saved: project, draft: accountProjectDraft(project), conflict: false };
   it("blocks unsaved Strategy edits, conflicts and stale account memory", () => {
     expect(namingDraftBlocked(workspace, account, projectId)).toBe(false);

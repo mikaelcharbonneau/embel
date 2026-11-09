@@ -9,10 +9,8 @@ export function ProjectsShellArtwork({ name }: { name: ProjectsShellArtworkName 
     <img className="projects-shell-empty" src={`/projects/empty-shell-${name}.svg`} width={sizes[name]} height={sizes[name]} alt="" aria-hidden="true" />
   </>;
 }
-const actionSizes = { plus: 17, continue: 16, filter: 20, sort: 16, create: 17, device: 16, "empty-projects": 28 } as const;
+const actionSizes = { plus: 17, continue: 16, sort: 16, create: 17, device: 16, "empty-projects": 28 } as const;
 export function ProjectsArtwork({ name }: { name: keyof typeof actionSizes }) {
   // eslint-disable-next-line @next/next/no-img-element
-  const artwork = <img src={`/projects/${name}.svg`} width={actionSizes[name]} height={actionSizes[name]} alt="" aria-hidden="true" />;
-  // Figma's Filter instance has a 16px layout slot and an unscaled, unclipped 20px child.
-  return name === "filter" ? <span className="project-filter-artwork" aria-hidden="true">{artwork}</span> : artwork;
+  return <img src={`/projects/${name}.svg`} width={actionSizes[name]} height={actionSizes[name]} alt="" aria-hidden="true" />;
 }

@@ -10,11 +10,11 @@ import { getNamingReadiness } from "../../src/domain/project-naming";
 // Entirely intercepted synthetic account/project data; no provider or live database requests.
 const owner = "aaaaaaaa-1111-4111-8111-111111111111", other = "dddddddd-1111-4111-8111-111111111111";
 const id = (n: number) => `bbbbbbbb-1111-4111-8111-${String(n).padStart(12, "0")}`;
-const project = (n: number, ownerId = owner, scope: AccountProject["scope"] = "naming_only") => accountProjectSchema.parse({ id: id(n), owner_id: ownerId, scope, title: `Synthetic project ${n}`, current_revision: 1, created_at: "2026-10-05T12:00:00.000002Z", context: { description: `Synthetic naming brief ${n}.` } });
+const project = (n: number, ownerId = owner) => accountProjectSchema.parse({ id: id(n), owner_id: ownerId, scope: "complete_brand", title: `Synthetic project ${n}`, current_revision: 1, created_at: "2026-10-05T12:00:00.000002Z", context: { description: `Synthetic naming brief ${n}.` } });
 
 async function fixture(page: Page) {
   const workspaces = new Map<string, AccountNamesWorkspace>();
-  const state = { owner: owner as string | null, projects: [project(3), project(2, owner, "complete_brand"), project(1, owner, "visual_identity_only")], status: 200, next: false, requests: [] as { path: string; method: string }[], delay: null as null | { started: boolean; promise: Promise<void>; release: () => void } };
+  const state = { owner: owner as string | null, projects: [project(3), project(2)], status: 200, next: false, requests: [] as { path: string; method: string }[], delay: null as null | { started: boolean; promise: Promise<void>; release: () => void } };
   await page.route("**/api/**", async route => {
     const url = new URL(route.request().url()), path = url.pathname;
     state.requests.push({ path, method: route.request().method() });

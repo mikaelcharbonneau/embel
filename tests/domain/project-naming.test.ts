@@ -65,10 +65,9 @@ describe("project naming preferences and readiness", () => {
     expect(getNamingReadiness({ ...complete, intake: { ...complete.intake, audienceReviewedAt: null } }, "complete_brand")).toEqual({ ready: false, missing: ["audience"] });
     expect(getNamingReadiness({ ...complete, intake: { ...complete.intake, personalityReviewedAt: null, positioningReviewedAt: null } }, "complete_brand").missing).toEqual(["personality", "positioning"]);
   });
-  it("allows a saved naming-only description while reporting incomplete strategy and blocks identity-only scope", () => {
-    expect(getNamingReadiness(context(), "naming_only")).toEqual({ ready: true, missing: ["reformulation", "competitors", "audience", "personality", "positioning"] });
-    expect(getNamingReadiness(contextSnapshotSchema.parse({}), "naming_only")).toEqual({ ready: false, missing: ["description", "reformulation", "competitors", "audience", "personality", "positioning"] });
-    expect(getNamingReadiness(completeContext(), "visual_identity_only")).toEqual({ ready: false, missing: ["scope"] });
+  it("reports every missing Strategy step, starting with the description", () => {
+    expect(getNamingReadiness(context(), "complete_brand")).toEqual({ ready: false, missing: ["reformulation", "competitors", "audience", "personality", "positioning"] });
+    expect(getNamingReadiness(contextSnapshotSchema.parse({}), "complete_brand")).toEqual({ ready: false, missing: ["description", "reformulation", "competitors", "audience", "personality", "positioning"] });
   });
 });
 
@@ -247,7 +246,7 @@ describe("strict public naming mutations and reads", () => {
     const selection = { id: id(60), ownerId, projectId, candidateId, projectRevision: 5, previousSelectionId: null, acceptedEarlierContext: false, createdAt: at };
     const session = { ownerId, projectId, revision: 1, currentPreferencesVersion: 0, latestBatchSequence: 0, currentSelectionId: selection.id, viewRevision: 1, viewState: view, createdAt: at, updatedAt: at };
     const selectedContext = { ...context(), selectedName: "Cedar", intake: { ...context().intake, suppliedName: "Cedar" } };
-    const project = { id: projectId, owner_id: ownerId, title: "Local fixture", scope: "naming_only", current_revision: 5, created_at: at, context: selectedContext };
+    const project = { id: projectId, owner_id: ownerId, title: "Local fixture", scope: "complete_brand", current_revision: 5, created_at: at, context: selectedContext };
     const response = { project, session, currentSelection: { selection, candidate: candidate() } };
     expect(selectProjectNameResponseSchema.safeParse(response).success).toBe(true);
     expect(selectProjectNameResponseSchema.safeParse({ ...response, project: { ...project, current_revision: 6 } }).success).toBe(false);
@@ -262,7 +261,7 @@ describe("strict public naming mutations and reads", () => {
   });
   it("bounds the account library and binds every candidate to its owned project summary", () => {
     const retention = { ownerId, projectId, candidateId, revision: 0, favorite: false, saved: false, updatedAt: null };
-    const project = { id: projectId, owner_id: ownerId, title: "Local fixture", scope: "naming_only", current_revision: 4, created_at: at };
+    const project = { id: projectId, owner_id: ownerId, title: "Local fixture", scope: "complete_brand", current_revision: 4, created_at: at };
     const item = { candidate: candidate(), retention, project, currentSelection: false, earlierContext: true };
     const page = { ownerId, items: [item], nextCursor: null };
     expect(accountNamesPageSchema.safeParse(page).success).toBe(true);

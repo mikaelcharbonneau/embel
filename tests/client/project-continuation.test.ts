@@ -110,15 +110,6 @@ describe("project continuation from saved work", () => {
     expect(identity.overview).not.toHaveBeenCalled();
   });
 
-  it.each([[null, "Continue naming"], ["Cedar", "Review saved name"]] as const)("handles a naming-only project with saved name %s without visual calls", async (selectedName, label) => {
-    const { project, logo, identity, read } = setup();
-    const saved = accountProjectSchema.parse({ ...project, scope: "naming_only", context: { selectedName } });
-    expect(await read(saved)).toEqual({ label, href: `${base}/naming` });
-    expect(logo.getLogoWorkspace).not.toHaveBeenCalled();
-    expect(identity.overview).not.toHaveBeenCalled();
-    expect(identity.generation).not.toHaveBeenCalled();
-  });
-
   it("resumes an early full brand at its first unfinished Strategy decision", async () => {
     const { project, logo, identity, read } = setup();
     const empty = syntheticLogoWorkspace();

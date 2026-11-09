@@ -33,10 +33,9 @@ describe("saved project handoffs", () => {
     const context = ready(); context.selectedName = "Luma"; context.reformulationConfirmed = false;
     expect(handoff(context)).toMatchObject({ savedName: "Luma", strategyReady: false, next: { stage: "strategy", href: `/brands/account/${projectId}?view=strategy#strategy-brief` } });
   });
-  it("respects naming-only and visual-only entry points without inventing Strategy approval", () => {
+  it("starts in Strategy until the brief is reviewed, even when a name was supplied", () => {
     const context = contextSnapshotSchema.parse({ description: "Repairable lighting", intake: { suppliedName: "Provided name" } });
-    expect(handoff(context, "naming_only")).toMatchObject({ strategyReady: false, next: { stage: "naming" } });
-    expect(handoff(context, "visual_identity_only")).toMatchObject({ strategyReady: false, savedName: null, next: { stage: "inspiration" } });
+    expect(handoff(context)).toMatchObject({ strategyReady: false, next: { stage: "strategy" } });
   });
   it("distinguishes verified stale evidence from evidence requiring a new revision check", () => {
     expect(projectEvidenceStatus(null, 4)).toBe("unchecked");

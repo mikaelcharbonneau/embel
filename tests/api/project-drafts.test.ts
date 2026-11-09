@@ -6,7 +6,6 @@ vi.mock("server-only", () => ({}));
 const doubles = vi.hoisted(() => ({ auth: vi.fn(), rpc: vi.fn(), single: vi.fn() }));
 vi.mock("../../src/server/auth/context", () => ({ getAuthenticatedContext: doubles.auth }));
 import { PATCH } from "../../src/app/api/projects/[projectId]/route";
-import { POST as expand } from "../../src/app/api/projects/[projectId]/expand/route";
 import { ApiError } from "../../src/server/http/errors";
 
 const ownerId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -55,39 +54,25 @@ describe("project drafting HTTP contracts and security", () => {
     expect(doubles.rpc).not.toHaveBeenCalled();
   });
 
-  it("returns the expansion snapshot atomically without accepting client context or owner", async () => {
-    const response = await expand(request({ expectedRevision: 1 }), route());
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ project: expanded });
-    expect(response.headers.get("cache-control")).toBe("private, no-store");
-    expect(response.headers.get("vary")).toBe("Cookie");
-    expect(doubles.rpc).toHaveBeenCalledExactlyOnceWith("expand_project_scope", { p_project_id: projectId, p_expected_revision: 1 });
-  });
-
-  it.each([{}, { expectedRevision: 0 }, { expectedRevision: 1.5 }, { expectedRevision: 1, context }, { expectedRevision: 1, ownerId }, { expectedRevision: 1, scope: "visual_identity_only" }])("rejects invalid expansion input %j", async body => {
-    expect((await expand(request(body), route())).status).toBe(422);
-    expect(doubles.rpc).not.toHaveBeenCalled();
-  });
-
   it("rejects cross-site writes before authentication and refuses oversized or non-JSON bodies", async () => {
-    expect((await expand(request({ expectedRevision: 1 }, "POST", { origin: "https://untrusted.example" }), route())).status).toBe(403);
+    expect((await PATCH(request({ expectedRevision: 1, context }, "PATCH", { origin: "https://untrusted.example" }), route())).status).toBe(403);
     expect(doubles.auth).not.toHaveBeenCalled();
-    expect((await expand(request({ expectedRevision: 1 }, "POST", { "sec-fetch-site": "cross-site" }), route())).status).toBe(403);
-    expect((await expand(request({ expectedRevision: 1 }, "POST", { "content-type": "text/plain" }), route())).status).toBe(422);
-    expect((await expand(request("x".repeat(32_769)), route())).status).toBe(413);
+    expect((await PATCH(request({ expectedRevision: 1, context }, "PATCH", { "sec-fetch-site": "cross-site" }), route())).status).toBe(403);
+    expect((await PATCH(request({ expectedRevision: 1, context }, "PATCH", { "content-type": "text/plain" }), route())).status).toBe(422);
+    expect((await PATCH(request("x".repeat(32_769), "PATCH"), route())).status).toBe(413);
     expect(doubles.rpc).not.toHaveBeenCalled();
   });
 
   it("requires a verified session and conceals malformed resource identifiers", async () => {
     doubles.auth.mockRejectedValueOnce(new ApiError("unauthenticated"));
-    expect((await expand(request({ expectedRevision: 1 }), route())).status).toBe(401);
-    expect((await expand(request({ expectedRevision: 1 }), route("not-a-uuid"))).status).toBe(404);
+    expect((await PATCH(request({ expectedRevision: 1, context }, "PATCH"), route())).status).toBe(401);
+    expect((await PATCH(request({ expectedRevision: 1, context }, "PATCH"), route("not-a-uuid"))).status).toBe(404);
     expect(doubles.rpc).not.toHaveBeenCalled();
   });
 
-  it.each([["P0002", 404], ["40001", 409], ["PT409", 409], ["22023", 422], ["08006", 503]] as const)("maps SQL error %s to safe status %i for draft and expansion", async (code, status) => {
+  it.each([["P0002", 404], ["40001", 409], ["PT409", 409], ["22023", 422], ["08006", 503]] as const)("maps SQL error %s to safe status %i for draft saves", async (code, status) => {
     doubles.single.mockResolvedValue({ data: null, error: { code, message: "private-database-diagnostic" } });
-    for (const response of [await expand(request({ expectedRevision: 1 }), route()), await PATCH(request({ expectedRevision: 1, context }, "PATCH"), route())]) {
+    for (const response of [await PATCH(request({ expectedRevision: 1, context }, "PATCH"), route())]) {
       expect(response.status).toBe(status);
       expect(await response.text()).not.toContain("private-database-diagnostic");
     }

@@ -20,7 +20,7 @@ const nameSource = namingSourceSchema.parse({
 });
 const project = accountProjectSchema.parse({
   id: "aaaaaaaa-1111-4111-8111-111111111111", owner_id: "bbbbbbbb-1111-4111-8111-111111111111",
-  title: "Strategy QA fixture", scope: "naming_only", current_revision: 4, created_at: now,
+  title: "Strategy QA fixture", scope: "complete_brand", current_revision: 4, created_at: now,
   context: {
     description: "A fixture lighting studio making repairable lamps for small homes.", activity: "Lighting studio", offering: "Repairable lamps", knownAudience: "Small-home residents", reformulationConfirmed: true,
     competitors: [

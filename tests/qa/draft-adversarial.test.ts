@@ -9,7 +9,7 @@ describe("draft review invalidation", () => {
   it("requires a new brief confirmation after the known audience changes", () => {
     const project = accountProjectSchema.parse({
       id: "aaaaaaaa-1111-4111-8111-111111111111", owner_id: OWNER_A, title: "QA fixture",
-      scope: "naming_only", current_revision: 1, created_at: "2026-10-02T00:00:00Z",
+      scope: "complete_brand", current_revision: 1, created_at: "2026-10-02T00:00:00Z",
       context: {
         description: "Synthetic audience correction fixture.", activity: "A learning program", offering: "Public workshops",
         knownAudience: "Local families", reformulationConfirmed: true,

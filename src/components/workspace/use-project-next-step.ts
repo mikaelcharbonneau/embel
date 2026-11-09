@@ -20,10 +20,9 @@ export function useProjectNextStep(account: VerifiedAccount, project: AccountPro
     if (!project || !key) return;
     const captured: VerifiedAccount = { status: "ready", userId, generation };
     const controller = new AbortController();
-    const visual = project.scope !== "naming_only";
     const clients = {
-      logo: visual ? createAccountLogoClient(captured, project.id, isCurrent, expire) : null,
-      identity: visual ? createAccountIdentityClient(captured, project.id, isCurrent, expire) : null,
+      logo: createAccountLogoClient(captured, project.id, isCurrent, expire),
+      identity: createAccountIdentityClient(captured, project.id, isCurrent, expire),
     };
     const deadline = setTimeout(() => controller.abort(), 15_000);
     readProjectContinuation(project, clients, controller.signal)

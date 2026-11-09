@@ -75,13 +75,3 @@ it("keeps an incomplete complete-brand project in its guided interview until sav
   expect(requests.every(request => request.init.method === "GET")).toBe(true);
 });
 
-it("expands a focused project only on the explicit action and keeps all saved context", async () => {
-  project = { ...project, scope: "naming_only" }; const context = structuredClone(project.context);
-  await render();
-  expect(requests.every(request => request.init.method === "GET")).toBe(true);
-  await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent === "Expand to complete brand")!.click());
-  const writes = requests.filter(request => request.init.method !== "GET");
-  expect(writes.map(request => request.path)).toEqual([`/api/projects/${id(2)}/expand`]);
-  expect(account.drafts.get(id(2))!.saved).toMatchObject({ scope: "complete_brand", current_revision: 2, context });
-  expect(account.drafts.hasUnsaved()).toBe(false);
-});

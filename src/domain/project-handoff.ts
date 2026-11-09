@@ -18,7 +18,6 @@ export function getProjectHandoff(project: Pick<AccountProject, "id" | "scope" |
   const strategy = getNamingReadiness(context, "complete_brand");
   const missing: Array<keyof typeof reviews> = [];
   for (const step of strategy.missing) {
-    if (step === "scope") continue;
     const key = step === "description" || step === "reformulation" ? "brief" : step;
     if (!missing.includes(key)) missing.push(key);
   }
@@ -30,10 +29,10 @@ export function getProjectHandoff(project: Pick<AccountProject, "id" | "scope" |
   const pendingReviews = missing.map(step => reviews[step]);
   const savedName = context.selectedName?.trim() || null;
   let next: Continuation;
-  if (!context.description.trim() || project.scope === "complete_brand" && pendingReviews.length > 0) {
+  if (!context.description.trim() || pendingReviews.length > 0) {
     const first = pendingReviews[0] ?? reviews.brief;
     next = { stage: "strategy", label: first.label, href: `${projectStrategyHref(project.id)}#strategy-${first.anchor}` };
-  } else if (project.scope === "naming_only" || project.scope === "complete_brand" && !savedName) {
+  } else if (!savedName) {
     next = { stage: "naming", label: savedName ? "Review saved name" : "Continue to Naming", href: `${base}/naming` };
   } else {
     next = { stage: "inspiration", label: "Continue to Inspiration", href: `${base}/inspiration` };

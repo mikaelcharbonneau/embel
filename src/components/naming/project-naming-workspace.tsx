@@ -35,7 +35,7 @@ export function ProjectNamingWorkspace({ projectId, conversationHistory, inline 
   return <AccountProjectNaming key={`${session.userId}:${session.generation}:${projectId}`} projectId={projectId} account={session} conversationHistory={conversationHistory} inline={inline} />;
 }
 
-const missingLabels = { scope: "project scope", description: "description", reformulation: "activity and offering", competitors: "competitors", audience: "audience", personality: "personality", positioning: "positioning" };
+const missingLabels = { description: "description", reformulation: "activity and offering", competitors: "competitors", audience: "audience", personality: "personality", positioning: "positioning" };
 
 function AccountProjectNaming({ projectId, account, conversationHistory, inline }: { projectId: string; account: VerifiedAccount; conversationHistory?: ReactNode; inline?: InlineNamingConversation }) {
   const router = useRouter();
@@ -100,8 +100,8 @@ function AccountProjectNaming({ projectId, account, conversationHistory, inline 
   const strategyHref = projectStrategyHref(projectId);
   // A complete brand names inside the conversation (Voice · Name) once Strategy and
   // Personality are answered; the standalone Name page sends people back there.
-  const conversationOwnsNaming = !inline && overview?.project.scope === "complete_brand"
-    && Boolean(overview.project.context.intake.guidedInterview?.answers.some(answer => answer.stage === "personality"));
+  const conversationOwnsNaming = !inline
+    && Boolean(overview?.project.context.intake.guidedInterview?.answers.some(answer => answer.stage === "personality"));
   // It opens at the Voice step, where the names are.
   useEffect(() => { if (conversationOwnsNaming && isCurrent(account)) router.replace(`${strategyHref}#${journeySectionId("voice")}`); }, [conversationOwnsNaming, account, isCurrent, router, strategyHref]);
   const activeRun = feed.state?.feed?.activeRun;
@@ -215,7 +215,6 @@ function AccountProjectNaming({ projectId, account, conversationHistory, inline 
     return saved;
   }
 
-  if (project.scope === "visual_identity_only") return <div className="page project-naming-page"><header className="project-naming-header"><div><span className="project-naming-eyebrow">{project.title}</span><h1>Naming</h1></div></header><div className="project-naming-empty"><h2>This project focuses on visual identity</h2><p>Return to the project to expand its scope when you want to add Naming.</p><Link className="button secondary" href={strategyHref}>Back to project<Icon name="arrow" size={14} /></Link></div></div>;
 
   const manualName = !screening && (!pageCanvas || view.pane === "results") ? <ManualProjectName disabled={pending || blocked} onAdd={importManualName} draft={manualNameDraft} /> : null;
 
@@ -294,9 +293,9 @@ function AccountProjectNaming({ projectId, account, conversationHistory, inline 
       {chat}
     </aside>
     <div className={`project-workbench-canvas ${styles.canvas}`} hidden={!pageCanvas} data-naming-results-scroll tabIndex={0} aria-label="Naming results workspace">
-    <header className="project-naming-header"><div><span className="project-naming-eyebrow">{project.title} · {project.scope === "naming_only" ? "Naming-only project" : "Complete brand"}</span><h1>{screening ? "Your selected name" : "Find a name that feels right"}</h1></div><div className="project-naming-header-actions"><Link className="text-link" href={strategyHref}>Back to Strategy<Icon name="arrow" size={14} /></Link>{currentSelection && !screening ? <button className="button secondary small" type="button" disabled={pending} onClick={() => void naming.saveView({ pane: "screening", scrollCandidateId: candidateAnchor() })}>View selected name</button> : null}</div></header>
+    <header className="project-naming-header"><div><span className="project-naming-eyebrow">{project.title}</span><h1>{screening ? "Your selected name" : "Find a name that feels right"}</h1></div><div className="project-naming-header-actions"><Link className="text-link" href={strategyHref}>Back to Strategy<Icon name="arrow" size={14} /></Link>{currentSelection && !screening ? <button className="button secondary small" type="button" disabled={pending} onClick={() => void naming.saveView({ pane: "screening", scrollCandidateId: candidateAnchor() })}>View selected name</button> : null}</div></header>
     {blocked ? <div className="project-naming-notice" role="alert"><strong>{naming.workspace?.conflict ? "Resolve the saved-version conflict first" : "Save your Strategy changes first"}</strong><p>Your edits are preserved in this tab. Generation and name selection use the saved project.</p><Link className="text-link" href={strategyHref}>Return to Strategy<Icon name="arrow" size={13} /></Link></div> : null}
-    {!overview.readiness.ready ? <div className="project-naming-notice"><strong>Strategy needs review</strong><p>Review {overview.readiness.missing.map(step => missingLabels[step]).join(", ")} before generating names for this brand. Earlier names stay available.</p><Link className="text-link" href={getProjectHandoff(project).next.href}>Continue the Strategy conversation<Icon name="arrow" size={13} /></Link></div> : project.scope === "naming_only" && overview.readiness.missing.length ? <p className="project-naming-muted">Naming uses your saved description and preferences. Strategy not yet reviewed: {overview.readiness.missing.map(step => missingLabels[step]).join(", ")}.</p> : null}
+    {!overview.readiness.ready ? <div className="project-naming-notice"><strong>Strategy needs review</strong><p>Review {overview.readiness.missing.map(step => missingLabels[step]).join(", ")} before generating names for this brand. Earlier names stay available.</p><Link className="text-link" href={getProjectHandoff(project).next.href}>Continue the Strategy conversation<Icon name="arrow" size={13} /></Link></div> : null}
     {readError || actionError ? <div className="project-naming-notice" role="alert"><p>{actionError ?? readError}</p><button className="button secondary small" type="button" disabled={pending} onClick={naming.refresh}>Check latest version</button></div> : null}
     {pageCanvas && manualName}
     {!screening && feed.showingFeed && candidates.some(entry => entry.candidate.origin.kind === "local_import" && !feed.entries.some(row => row.entry.candidate.id === entry.candidate.id)) && <section className={styles.customNames} aria-label="Your custom names"><h2>Your custom names</h2><div className="project-naming-grid">{candidates.filter(entry => entry.candidate.origin.kind === "local_import" && !feed.entries.some(row => row.entry.candidate.id === entry.candidate.id)).map(entry => <ProjectNameCard key={entry.candidate.id} compact entry={entry} selected={currentSelection?.candidate.id === entry.candidate.id} earlierContext={entry.candidate.strategyKey !== strategyKey} pending={pending} blockSelection={blocked} onFavorite={() => void retain(entry, "favorite")} onSave={() => void retain(entry, "saved")} onSelect={() => select(entry)} onInspect={() => setPreviewEntry(entry)} onWorkshop={() => void openWorkshop(entry)} />)}</div></section>}
@@ -308,11 +307,10 @@ function AccountProjectNaming({ projectId, account, conversationHistory, inline 
         return <ProjectNameCard key={entry.candidate.id} entry={currentEntry} selected={currentSelection?.candidate.id === entry.candidate.id} earlierContext={entry.candidate.strategyKey !== strategyKey} pending={pending} blockSelection={blocked} onFavorite={() => void retain(currentEntry, "favorite")} onSave={() => void retain(currentEntry, "saved")} onSelect={() => select(currentEntry)} onWorkshop={() => void openWorkshop(currentEntry)} onInspect={() => setPreviewEntry(currentEntry)} compact />;
       })}</div></div></div> : <div className="project-naming-empty"><h3>Choose a name to transform</h3><p>The saved seed is outside the loaded list. Return to names and choose a project candidate.</p><button className="button secondary small" type="button" disabled={pending} onClick={() => void naming.saveView({ pane: "results", filter: "all", query: "", visibleBatchId: null })}>View project names</button></div>}</section> : namesList}
 
-    {screening && project.scope === "complete_brand" ? <div className="project-naming-next">
+    {screening ? <div className="project-naming-next">
       {pending || blocked || readError ? <button className="button secondary small" type="button" disabled>Continue to Inspiration</button> : <Link className="button secondary small" href={`/brands/account/${projectId}/inspiration`}>Continue to Inspiration<Icon name="arrow" size={14} /></Link>}
       <p className="project-naming-muted">Explore visual references, then continue to Logo. Your saved name and brand context stay with this project.</p>
     </div> : null}
-    {project.scope === "naming_only" ? <div className="project-naming-next"><button className="button secondary small" type="button" disabled={pending || blocked} onClick={() => void naming.expand().then(expanded => { if (expanded && isCurrent(account)) router.push(strategyHref); })}>Expand to complete brand<Icon name="arrow" size={14} /></button><p className="project-naming-muted">Keep this brief, name history and current selection, then continue your Strategy conversation.</p></div> : null}
   </div>
     {inspection}
   </div>;

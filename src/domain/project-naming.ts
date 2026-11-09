@@ -105,21 +105,20 @@ export function namingStrategyKey(context: ContextSnapshot): string { return nam
 const strategyKeySchema = z.string().startsWith("naming-strategy-v1:");
 
 export const namingReadinessSchema = z.strictObject({
-  ready: z.boolean(), missing: z.array(z.enum(["scope", "description", "reformulation", "competitors", "audience", "personality", "positioning"])).max(7),
+  ready: z.boolean(), missing: z.array(z.enum(["description", "reformulation", "competitors", "audience", "personality", "positioning"])).max(7),
 }).refine(value => new Set(value.missing).size === value.missing.length, { message: "Missing steps must be unique" });
 export type NamingReadiness = z.infer<typeof namingReadinessSchema>;
 
 /** Saved account context only; local draft review bindings remain in the editor. */
 export function getNamingReadiness(context: ContextSnapshot, scope: ProjectScope): NamingReadiness {
   projectScopeSchema.parse(scope);
-  if (scope === "visual_identity_only") return { ready: false, missing: ["scope"] };
   const missing: NamingReadiness["missing"] = [];
   if (!context.description.trim()) missing.push("description");
   const strategy = missingStrategy(context);
   for (const step of ["reformulation", "competitors", "audience", "personality", "positioning"] as const) {
     if (strategy.includes(step) || (step === "audience" && !context.intake.audienceReviewedAt)) missing.push(step);
   }
-  return { ready: scope === "naming_only" ? !missing.includes("description") : missing.length === 0, missing };
+  return { ready: missing.length === 0, missing };
 }
 
 /** Proposed duplicate identity, not linguistic equivalence or legal screening. */

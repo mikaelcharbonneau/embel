@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contextSnapshotSchema, createBrandFromStandalone, expandProjectScope, missingStrategy, projectSchema } from "../../src/domain/projects";
+import { contextSnapshotSchema, createBrandFromStandalone, missingStrategy, projectSchema } from "../../src/domain/projects";
 
 const ownerId = "10000000-0000-4000-8000-000000000001";
 const projectId = "10000000-0000-4000-8000-000000000002";
@@ -27,17 +27,6 @@ describe("context-preserving brand starts", () => {
 
   it("does not assume Assets are included in conversion", () => {
     expect(() => createBrandFromStandalone({ actorId: ownerId, projectId, source: { id: sourceId, ownerId, kind: "asset", label: "Mark", context, evidence: [] } as never, now: at })).toThrow();
-  });
-
-  it("expands a partial project without losing context and detects stale writes", () => {
-    const project = projectSchema.parse({ id: projectId, ownerId, title: "Dayloaf", scope: "naming_only", stage: "naming", revision: 3, context, createdAt: at, updatedAt: at });
-    const expanded = expandProjectScope(project, { actorId: ownerId, expectedRevision: 3, now: at });
-    expect(expanded.context).toEqual(project.context);
-    expect(expanded.scope).toBe("complete_brand");
-    expect(expanded.revision).toBe(4);
-    expect(expanded.stage).toBe("discovery");
-    expect(project.revision).toBe(3);
-    expect(() => expandProjectScope(project, { actorId: ownerId, expectedRevision: 2, now: at })).toThrow("Revision conflict");
   });
 
   it("asks only for missing strategy and never equates proposed segments with selected ones", () => {

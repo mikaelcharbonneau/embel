@@ -51,8 +51,8 @@ function fixture(targetCount: 250 | 100 | 50 = 250, acceptedCount: number = targ
     const items = entries.slice(start, start + count);
     const last = items.at(-1)?.candidate;
     return {
-      project: { id: projectId, owner_id: ownerId, title: "Synthetic pagination brief", scope: "naming_only", current_revision: 1, created_at: at, context },
-      readiness: getNamingReadiness(context, "naming_only"),
+      project: { id: projectId, owner_id: ownerId, title: "Synthetic pagination brief", scope: "complete_brand", current_revision: 1, created_at: at, context },
+      readiness: getNamingReadiness(context, "complete_brand"),
       session: { ownerId, projectId, revision: 1, currentPreferencesVersion: 1, latestBatchSequence: sequence, currentSelectionId: null, viewRevision: 1,
         viewState: { pane: "results", conversationOpen: false, filter: "all", query: "", visibleBatchId: null, scrollCandidateId: null, workshopCandidateId: null }, createdAt: at, updatedAt: at },
       preferences: { ownerId, projectId, version: 1, preferences, createdAt: at }, currentSelection: null,

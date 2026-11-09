@@ -9,7 +9,7 @@ import {
   type IdentityReferenceSnapshot,
 } from "./identity-references";
 import { namingStrategyBasis, namingStrategyBasisSchema } from "./project-naming";
-import { contextSnapshotSchema, missingStrategy, projectScopeSchema, type ContextSnapshot, type ProjectScope } from "./projects";
+import { contextSnapshotSchema, missingStrategy, projectScopeSchema, recordedProjectScopeSchema, type ContextSnapshot, type ProjectScope } from "./projects";
 
 export const IDENTITY_MUTATION_MAX_BYTES = 32_768;
 export const IDENTITY_HISTORY_DEFAULT_PAGE_SIZE = 20;
@@ -85,7 +85,7 @@ export function resolveIdentityName(context: ContextSnapshot): IdentityNameResol
 const strategySteps = ["reformulation", "competitors", "audience", "personality", "positioning"] as const;
 const strategyStep = z.enum(strategySteps);
 export const identityReadinessSchema = z.strictObject({
-  ready: z.boolean(), blocking: z.array(z.enum(["scope", "description", ...strategySteps, "missing_name", "inconsistent_name", "references"])).max(10),
+  ready: z.boolean(), blocking: z.array(z.enum(["description", ...strategySteps, "missing_name", "inconsistent_name", "references"])).max(10),
   missingStrategy: z.array(strategyStep).max(strategySteps.length), name: identityNameResolutionSchema,
 }).superRefine((value, ctx) => {
   if (value.ready !== (value.blocking.length === 0) || new Set(value.blocking).size !== value.blocking.length || new Set(value.missingStrategy).size !== value.missingStrategy.length)
@@ -102,9 +102,8 @@ export function getIdentityReadiness(context: ContextSnapshot, scope: ProjectSco
   const missing = missingStrategy(value);
   const missingReviewed = strategySteps.filter(step => missing.includes(step) || (step === "audience" && !value.intake.audienceReviewedAt));
   const blocking: IdentityReadiness["blocking"] = [];
-  if (scope === "naming_only") blocking.push("scope");
   if (!value.description) blocking.push("description");
-  if (scope === "complete_brand") blocking.push(...missingReviewed);
+  blocking.push(...missingReviewed);
   const resolved = resolveIdentityName(value);
   if (resolved.status !== "resolved") blocking.push(resolved.status === "missing" ? "missing_name" : "inconsistent_name");
   if (!referenceSummary.selectedReferenceCount) blocking.push("references");
@@ -150,7 +149,7 @@ export function getIdentityCurrentBasis(input: BasisInput): IdentityCurrentBasis
   return resolved.status === "resolved" ? { status: "available", basis: identityBasis(input) }
     : { status: "unavailable", reason: resolved.status === "missing" ? "missing_name" : "inconsistent_name" };
 }
-const inputSnapshotFields = { ...ownership, scope: projectScopeSchema, projectRevision: revision, context: contextSnapshotSchema,
+const inputSnapshotFields = { ...ownership, scope: recordedProjectScopeSchema, projectRevision: revision, context: contextSnapshotSchema,
   referenceSnapshot: identityReferenceSnapshotSchema, preferencesRevision: counter, preferences: identityPreferencesSchema, capturedAt: timestamp, basis: identityBasisSchema };
 export const identityInputSnapshotSchema = z.discriminatedUnion("version", [
   z.strictObject({ version: z.literal(1), ...inputSnapshotFields }),
@@ -365,7 +364,7 @@ export const selectIdentitySystemResponseSchema = z.strictObject({ session: iden
 });
 export type SelectIdentitySystemResponse = z.infer<typeof selectIdentitySystemResponseSchema>;
 export const identitySystemSummarySchema = z.strictObject({
-  id: z.uuid(), ...ownership, createdAt: timestamp, inputScope: projectScopeSchema, inputProjectRevision: revision, inputReferenceRevision: counter, inputPreferencesRevision: counter, name, source: identitySystemSourceSchema,
+  id: z.uuid(), ...ownership, createdAt: timestamp, inputScope: recordedProjectScopeSchema, inputProjectRevision: revision, inputReferenceRevision: counter, inputPreferencesRevision: counter, name, source: identitySystemSourceSchema,
   board: identityBoardPreviewSchema, productionFileCount: z.number().int().min(0).max(IDENTITY_MAX_PRODUCTION_FILES), freshness: identityFreshnessSchema,
 }).superRefine((value, ctx) => {
   if (!sameScope(value, value.board.asset)) issue(ctx, "A system summary must retain its owned board");

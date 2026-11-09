@@ -9,6 +9,7 @@ import { initialNamingView } from "@/components/naming/use-project-naming";
 import { createEmptyNamesWorkspace, namesWorkspaceSchema } from "@/domain/names-workspace";
 import { accountProjectSchema } from "@/domain/project-api";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
+import { reviewedStrategy } from "../fixtures/reviewed-strategy";
 
 const mock = vi.hoisted(() => ({ session: null as VerifiedAccount | { status: "checking" | "signed_out"; generation: number } | null,
   memory: null as ReturnType<typeof createAccountNamesMemory> | null, current: vi.fn(), expire: vi.fn(), navigate: vi.fn() }));
@@ -19,12 +20,12 @@ vi.mock("@/features/names-assistant", () => ({ NamesAssistant: () => null }));
 
 const owner = "aaaaaaaa-1111-4111-8111-111111111111", projectId = "bbbbbbbb-1111-4111-8111-111111111111", when = "2026-10-20T12:00:00Z";
 const id = (n: number) => `cccccccc-1111-4111-8111-${String(n).padStart(12, "0")}`;
-const project = accountProjectSchema.parse({ id: projectId, owner_id: owner, title: "Private project", scope: "naming_only", current_revision: 1, created_at: when, context: { description: "Synthetic Naming tab-return fixture" } });
+const project = accountProjectSchema.parse({ id: projectId, owner_id: owner, title: "Private project", scope: "complete_brand", current_revision: 1, created_at: when, context: reviewedStrategy({ description: "Synthetic Naming tab-return fixture" }) });
 function row(n: number): AccountNameEntry {
   const value = `Account ${n}`, createdAt = new Date(Date.parse(when) + n * 1000).toISOString();
   return { candidate: { id: id(n), ownerId: owner, projectId, value, identityKey: nameIdentityKey(value), rationale: `Private rationale ${n}`, contextRevision: 1, strategyBasis: namingStrategyBasis(project.context), strategyKey: namingStrategyKey(project.context), createdAt,
     origin: { kind: "local_import", ownerId: owner, projectId, candidateId: id(n), contextRevision: 1, source: { id: id(n), value, origin: "manual", history: [], createdAt }, capturedContext: project.context } },
-    retention: { ownerId: owner, projectId, candidateId: id(n), revision: 1, favorite: true, saved: true, updatedAt: when }, project: { id: projectId, owner_id: owner, title: project.title, scope: "naming_only", current_revision: 1, created_at: when }, currentSelection: false, earlierContext: false };
+    retention: { ownerId: owner, projectId, candidateId: id(n), revision: 1, favorite: true, saved: true, updatedAt: when }, project: { id: projectId, owner_id: owner, title: project.title, scope: "complete_brand", current_revision: 1, created_at: when }, currentSelection: false, earlierContext: false };
 }
 function page(items = [row(1), row(2)], more = false): AccountNamesPage { const last = items.at(-1)?.candidate; return accountNamesPageSchema.parse({ ownerId: owner, items, nextCursor: more && last ? { id: last.id, createdAt: last.createdAt } : null }); }
 function promotion(entry: AccountNameEntry) {

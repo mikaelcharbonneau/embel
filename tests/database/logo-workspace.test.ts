@@ -174,6 +174,8 @@ describe("V2 workspace actual authenticated PostgreSQL persistence", () => {
 
   it("a maximum-length brief still creates a project accepted by the existing account reader", async () => {
     const name = "N".repeat(200), workspace = logoWorkspaceV2Schema.parse(await start({ requestKey: randomUUID(), brief: { ...brief, name } }));
+    // A logo-only project is now a complete brand, converted as the November 9 migration does.
+    await rpc("expand_project_scope", [workspace.projectId, 1]);
     const row = (await db.query<{value:unknown}>("select to_jsonb(p)||jsonb_build_object('context',r.context) value from public.projects p join public.project_revisions r on r.project_id=p.id and r.revision=p.current_revision where p.id=$1", [workspace.projectId])).rows[0]!.value;
     expect(accountProjectSchema.safeParse(row).success).toBe(true);
     expect(await rpc("read_logo_workspace_record", [workspace.projectId, "stage", workspace.stages.brief_references!.id])).toMatchObject({ payload: { name } });

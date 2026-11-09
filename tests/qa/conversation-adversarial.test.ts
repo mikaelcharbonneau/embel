@@ -7,7 +7,7 @@ import { accountProjectDraft, competitorReviewKey, conversationContextKey, conve
 const now = "2026-10-03T12:00:00Z";
 const source = { title: "Synthetic evidence", url: "https://example.com/evidence", retrievedAt: now };
 const project = accountProjectSchema.parse({
-  id: "aaaaaaaa-1111-4111-8111-111111111111", owner_id: "bbbbbbbb-1111-4111-8111-111111111111", title: "Preserved conversation fixture", scope: "naming_only", current_revision: 7, created_at: now,
+  id: "aaaaaaaa-1111-4111-8111-111111111111", owner_id: "bbbbbbbb-1111-4111-8111-111111111111", title: "Preserved conversation fixture", scope: "complete_brand", current_revision: 7, created_at: now,
   context: { description: "A community workshop with a known local audience.", activity: "Community workshop", offering: "Shared tools", knownAudience: "Local makers", reformulationConfirmed: true, competitorReviewComplete: true,
     competitors: [{ id: "cccccccc-1111-4111-8111-111111111111", name: "Existing fixture", relevance: "Similar offering", selected: true, origin: "research", sources: [source] }],
     audienceSegments: [{ id: "dddddddd-1111-4111-8111-111111111111", label: "Local makers", needs: ["Shared tools", "Space"], reason: "They live nearby", selected: true, origin: "proposal", sources: [source] }],

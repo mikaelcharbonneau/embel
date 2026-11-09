@@ -2,7 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { contextSnapshotSchema, createProjectInputSchema } from "@/domain/projects";
-import { accountProjectSchema, accountProjectSummarySchema, accountRevisionSchema, expandProjectInputSchema, updateProjectInputSchema } from "@/domain/project-api";
+import { accountProjectSchema, accountProjectSummarySchema, accountRevisionSchema, updateProjectInputSchema } from "@/domain/project-api";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
 import { projectDisplayName, readSelectedProjectNames } from "./project-display-names";
@@ -79,15 +79,4 @@ export async function appendProjectRevision(auth: AuthenticatedContext, input: u
   return storedRevisionSchema.parse(data);
 }
 
-export async function expandProject(auth: AuthenticatedContext, projectId: string, input: unknown) {
-  if (!z.uuid().safeParse(projectId).success) throw new ApiError("not_found");
-  const parsed = expandProjectInputSchema.safeParse(input);
-  if (!parsed.success) throw new ApiError("invalid_input");
-  // The RPC copies only the current persisted revision, under the project lock.
-  const { data, error } = await auth.client.rpc("expand_project_scope", {
-    p_project_id: projectId, p_expected_revision: parsed.data.expectedRevision,
-  }).single();
-  databaseError(error);
-  return accountProjectSchema.parse(data);
-}
 

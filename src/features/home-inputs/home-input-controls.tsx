@@ -8,9 +8,9 @@ import { AttachmentPicker } from "./attachment-picker";
 import type { HomeVoiceAdapter } from "./voice-contract";
 import { validateAttachmentSelection, type HomeAttachmentAvailability } from "./attachment-draft";
 import { emptyHomeInputIntent, type HomeInputSession } from "./home-input-session";
-export type HomeInputControlsProps = { account: VerifiedAccount | null; sessionFence: string; memory: HomeInputSession; value: string; onChange(value: string): void; language: string; voiceAdapter: HomeVoiceAdapter; policy: AttachmentPolicy | null; availability: HomeAttachmentAvailability; disabled: boolean; compact?: boolean; scopeControl?: ReactNode };
+export type HomeInputControlsProps = { account: VerifiedAccount | null; sessionFence: string; memory: HomeInputSession; value: string; onChange(value: string): void; language: string; voiceAdapter: HomeVoiceAdapter; policy: AttachmentPolicy | null; availability: HomeAttachmentAvailability; disabled: boolean; compact?: boolean };
 const empty = () => null;
-export function HomeInputControls({ account, sessionFence, memory, value, onChange, language, voiceAdapter, policy, availability, disabled, compact = false, scopeControl }: HomeInputControlsProps) {
+export function HomeInputControls({ account, sessionFence, memory, value, onChange, language, voiceAdapter, policy, availability, disabled, compact = false }: HomeInputControlsProps) {
  const [pickerRevision, setPickerRevision] = useState(0);
  const [voiceActivatedFor, setVoiceActivatedFor] = useState<string | null>(null);
  const read = useCallback(() => account ? memory.get(account) : null, [memory, account]);
@@ -39,7 +39,6 @@ export function HomeInputControls({ account, sessionFence, memory, value, onChan
  }
  return <div className={`home-input-controls ${compact ? "home-input-controls--compact" : ""}`}>
   <HomeInputPopover className="home-files-popover" label="Add files or images" trigger={<><Icon name="plus" size={compact ? 22 : 20} /><span className={compact ? "sr-only" : undefined}>Add files or images</span></>}><AttachmentPicker key={`${sessionFence}:${pickerRevision}`} files={files} policy={policy} availability={account ? availability : { status: "unavailable", reason: "Sign in to save verified input files. Your typed prompt stays available." }} busy={busy} onAdd={add} onRemove={localId => { if (!account || busy) return; const current = memory.get(account); if (current) memory.set(account, { ...current, files: current.files.filter(file => file.localId !== localId) }); }} /></HomeInputPopover>
-  {scopeControl}
   <HomeInputPopover key={sessionFence} onOpen={() => setVoiceActivatedFor(sessionFence)} className="home-voice-popover" label="Voice input" trigger={<Icon name="mic" size={compact ? 22 : 20} />}>{voiceActivatedFor === sessionFence && <HomeVoiceControl key={sessionFence} value={value} onChange={onChange} language={language} sessionFence={sessionFence} adapter={voiceAdapter} disabled={disabled || !!intent?.saveIntent} />}</HomeInputPopover>
   {intent?.saveOutcome === "confirmed" && <p role="status">These files were saved with your brand. <button className="text-link" type="button" disabled={disabled} onClick={() => { if (account) memory.set(account, emptyHomeInputIntent()); }}>Start a new attached brief</button></p>}
   {selection && <div role="status"><p>{selection.status === "interrupted" ? "File selection was interrupted. Ready files are kept. Cancel the pending selection, then choose any remaining files again." : `Reading ${selection.fileCount} selected ${selection.fileCount === 1 ? "file" : "files"}…`}</p><button className="text-link" type="button" disabled={disabled} onClick={() => { if (account && memory.cancelSelection(account, selection.id)) setPickerRevision(value => value + 1); }}>Cancel pending file selection</button></div>}

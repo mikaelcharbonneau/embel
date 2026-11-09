@@ -6,9 +6,10 @@ import { getNamingFulfillment } from "../../src/domain/naming-jobs";
 import { createBrandFromProjectName, enqueueNamingBatch, getAccountNames, getCustomProjectNames, getNamingBatch, getProjectNaming, importLocalName, saveNamingPreferences, saveNamingView, selectProjectName, setNameRetention, transformProjectNames } from "../../src/server/data/project-naming";
 import type { AuthenticatedContext } from "../../src/server/auth/context";
 import { asRole, asSubscriptionWorker, createTestDatabase, HASH, OWNER_A, OWNER_B, resetFixture, type TestDatabase } from "../database/local-supabase";
+import { reviewedStrategy } from "../fixtures/reviewed-strategy";
 
 const at="2026-10-04T12:00:00Z";
-const context=contextSnapshotSchema.parse({description:"Explicit local server Naming fixture"});
+const context=reviewedStrategy({description:"Explicit local server Naming fixture"});
 const preferences={version:1,creativeLocale:"en",notes:"",minimumGraphemes:null,maximumGraphemes:null};
 const source={id:"cccccccc-cccc-4ccc-8ccc-cccccccccccc",value:"Cedar",createdAt:at,origin:"manual",history:[]};
 const policy={version:1,billingMode:"chatgpt_subscription",handlerVersion:"naming-chatgpt-v1",registrationId:"server-fixture-registration",model:"fixture-model",limits:{maxInputBytes:131072,maxOutputBytes:262144,deadlineMs:240000,maxObservedWebSearchCalls:0,maxRequestsPerHour:20,maxQueuedJobs:3}};
@@ -30,7 +31,7 @@ describe("Naming DAL with real local ownership and provenance rows",()=>{
     return {data:result.rows[0]??null,error:null};}};return query;},
   }} as unknown as AuthenticatedContext;
  }
- beforeEach(async()=>{await resetFixture(db);project=await run(async()=>(await db.query<{id:string}>("select * from public.create_project('naming_only','Fixture',$1::jsonb,$2)",[JSON.stringify(context),HASH])).rows[0]!.id);auth=client();});
+ beforeEach(async()=>{await resetFixture(db);project=await run(async()=>(await db.query<{id:string}>("select * from public.create_project('complete_brand','Fixture',$1::jsonb,$2)",[JSON.stringify(context),HASH])).rows[0]!.id);auth=client();});
  async function imported(value="Cedar",key="fixture-server-import-001"){
   return importLocalName(auth,project,{expectedProjectRevision:1,source:{...source,value},capturedContext:context,idempotencyKey:key});
  }

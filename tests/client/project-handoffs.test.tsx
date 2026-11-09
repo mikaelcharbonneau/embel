@@ -13,16 +13,14 @@ const project = accountProjectSchema.parse({ id: "d0000000-0000-4000-8000-000000
     personality: { sincerity: 60, excitement: 30, competence: 70, sophistication: 40, ruggedness: 20 }, positioning: "Repairable lamps for small homes", selectedName: "Luma",
     intake: { audienceReviewedAt: now, personalityReviewedAt: now, positioningReviewedAt: now } } });
 let root: Root | null, host: HTMLDivElement;
-const expand = vi.fn<() => Promise<void>>();
-beforeEach(() => { vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true); host = document.createElement("div"); document.body.append(host); root = createRoot(host); expand.mockReset(); });
+beforeEach(() => { vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true); host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.replaceChildren(); vi.unstubAllGlobals(); });
-async function render(saved = project, dirty = false) { await act(async () => root!.render(createElement(ProjectContinuityPanel, { project: saved, source: null, dirty, conflicted: false, expanding: false, onExpand: expand }))); }
+async function render(saved = project, dirty = false) { await act(async () => root!.render(createElement(ProjectContinuityPanel, { project: saved, source: null, dirty, conflicted: false, busy: false }))); }
 
 it("shows accepted saved context and continues the selected name to Inspiration", async () => {
   await render();
   expect(host.textContent).toContain("Reviewed brief"); expect(host.textContent).toContain("Strategy reviewed"); expect(host.textContent).toContain("Luma");
   expect(host.querySelector(`a[href="/brands/account/${project.id}/inspiration"]`)?.textContent).toBe("Continue to Inspiration");
-  expect(expand).not.toHaveBeenCalled();
 });
 it("guides an unreviewed selected audience without labeling its text as approved", async () => {
   await render({ ...project, context: { ...project.context, intake: { ...project.context.intake, audienceReviewedAt: null } } });

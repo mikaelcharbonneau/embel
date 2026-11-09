@@ -17,7 +17,7 @@ const source = { url: "https://example.com/fixture", title: "Local research fixt
 
 function fixtureProject(id = projectA, owner = ownerA): AccountProject {
   return accountProjectSchema.parse({
-    id, owner_id: owner, title: owner === ownerA ? "Private account A fixture" : "Private account B fixture", scope: "naming_only", current_revision: 1, created_at: when, deleted_at: null, deletion_requested_at: null, deletion_state: "active", lifecycle_version: 0,
+    id, owner_id: owner, title: owner === ownerA ? "Private account A fixture" : "Private account B fixture", scope: "complete_brand", current_revision: 1, created_at: when, deleted_at: null, deletion_requested_at: null, deletion_state: "active", lifecycle_version: 0,
     context: contextSnapshotSchema.parse({
       description: "A fixture neighborhood kitchen for workers and local families.", activity: "Neighborhood kitchen", offering: "Fresh seasonal lunches", knownAudience: "Nearby workers", reformulationConfirmed: true,
       audienceSegments: [{ id: "33333333-3333-4333-8333-333333333333", label: "Nearby workers", needs: ["Reliable lunch\nwith a short wait", "Clear menu"], reason: "They work nearby", selected: true, origin: "proposal", sources: [source] }],
@@ -34,7 +34,7 @@ async function reply(route: Route, body: unknown, status = 200) {
 
 async function accountFixtures(page: Page, initial: AccountProject[] = []) {
   const state = {
-    owner: ownerA, sessionStatus: 200, patchStatus: 200, expandStatus: 200,
+    owner: ownerA, sessionStatus: 200, patchStatus: 200,
     projects: new Map(initial.map((project) => [project.id, structuredClone(project)])),
     writes: [] as { path: string; body: Record<string, unknown> }[],
     created: [] as AccountProject[],
@@ -72,12 +72,6 @@ async function accountFixtures(page: Page, initial: AccountProject[] = []) {
     const body = request.postDataJSON() as Record<string, unknown>;
     state.writes.push({ path, body });
     if (body.expectedRevision !== project.current_revision) return reply(route, { error: "Synthetic revision conflict" }, 409);
-    if (path.endsWith("/expand")) {
-      if (state.expandStatus !== 200) return reply(route, { error: "Synthetic expansion failure" }, state.expandStatus);
-      const expanded = { ...project, scope: "complete_brand" as const, current_revision: project.current_revision + 1 };
-      state.projects.set(project.id, expanded);
-      return reply(route, { project: expanded });
-    }
     if (state.patchStatus !== 200) return reply(route, { error: "Synthetic save failure" }, state.patchStatus);
     const updated = { ...project, title: typeof body.title === "string" ? body.title : project.title, context: contextSnapshotSchema.parse(body.context), current_revision: project.current_revision + 1 };
     state.projects.set(project.id, updated);
@@ -172,24 +166,19 @@ test("account fixture: Naming entry preserves the saved-context boundary", async
   expect(state.writes.every(write => write.path === `/api/projects/${projectA}`)).toBe(true);
 });
 
-test("account fixture: full brand needs reviewed strategy and identity-only omits Naming", async ({ page }) => {
-  const project = fixtureProject(); project.scope = "complete_brand"; project.context.intake.audienceReviewedAt = null;
+test("account fixture: a brand needs a reviewed strategy before Naming", async ({ page }) => {
+  const project = fixtureProject(); project.context.intake.audienceReviewedAt = null;
   const state = await accountFixtures(page, [project]); await openAccount(page);
   await expect(page.getByRole("link", { name: /Naming|saved name/ })).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toBeVisible();
-  state.projects.set(projectA, { ...project, scope: "visual_identity_only" });
-  await Promise.all([waitForAccountProject(page), page.reload()]);
-  await expect(page.getByRole("button", { name: "Edit brief", exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Naming|saved name/ })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /Naming|saved name/ })).toHaveCount(0);
   expect(state.writes).toEqual([]);
 });
 
 test("account fixture: explicit browser copy preserves legacy notes, audience and context across reload", async ({ page }, info) => {
   const state = await accountFixtures(page), legacyProject = fixtureProject();
-  legacyProject.scope = "visual_identity_only"; legacyProject.title = "Culture browser fixture";
+  legacyProject.title = "Culture browser fixture";
   legacyProject.context.intake = { ...legacyProject.context.intake, suppliedName: "Common Room fixture", identityNotes: "Keep the legible poster grid", step: "audience" };
-  const legacy = { ...accountProjectDraft(legacyProject), preservedContext: legacyProject.context };
+  const legacy = { ...accountProjectDraft(legacyProject), scope: "visual_identity_only", preservedContext: legacyProject.context };
   await page.addInitScript(({ key, legacy }) => { if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify({ version: 1, drafts: [legacy] })); }, { key: storageKey, legacy });
   await page.goto(`/brands/${legacy.id}`);
   await page.getByRole("button", { name: "Recover unsaved projects", exact: true }).click();
@@ -198,10 +187,10 @@ test("account fixture: explicit browser copy preserves legacy notes, audience an
   const localBefore = JSON.parse((await browserData(page))!).drafts[0];
   await page.getByRole("checkbox", { name: "This is my project, and I want to save it to the account I’m currently signed in to.", exact: true }).check();
   await page.getByRole("button", { name: "Save project", exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectA}/logo$`));
+  await expect(page).toHaveURL(new RegExp(`/brands/account/${projectA}(\\?view=strategy)?$`));
   await openAccount(page); await expectSavedVersion(page, 1);
   const recoveredDraft = JSON.parse((await browserData(page))!).drafts[0];
-  expect(recoveredDraft).toMatchObject({ ...localBefore, ownerId: ownerA, accountProjectId: projectA, updatedAt: expect.any(String) });
+  expect(recoveredDraft).toMatchObject({ ...localBefore, scope: "complete_brand", ownerId: ownerA, accountProjectId: projectA, updatedAt: expect.any(String) });
   expect(state.created[0]?.context).toEqual(legacyProject.context);
   await page.reload(); await expectLabel(page, legacyProject.title);
   await rename(page, "Renamed account fixture"); await save(page, 2);
@@ -217,23 +206,6 @@ test("account fixture: explicit browser copy preserves legacy notes, audience an
   await openProjects(page); await expect(page.getByRole("button", { name: "Project options for Renamed account fixture", exact: true })).toBeVisible();
   await expect(page.locator(".project-card")).toHaveCount(1); await expect(page.getByText("Culture browser fixture", { exact: true })).toHaveCount(0);
   await expect(page.locator('.project-card[data-storage="browser"]')).toHaveCount(0);
-});
-
-test("account fixture: hidden strategy and audience provenance survive edits and saved scope expansion", async ({ page }) => {
-  const original = fixtureProject(), state = await accountFixtures(page, [original]); await openAccount(page); state.patchStatus = 503;
-  await editDescription(page, "New naming brief description"); await expectUnsaved(page);
-  await expect(page.getByRole("button", { name: "Expand to complete brand", exact: true })).toBeDisabled();
-  state.patchStatus = 200; await save(page, 2);
-  const saved = state.projects.get(projectA)!.context;
-  for (const field of ["activity", "offering", "knownAudience", "audienceSegments", "competitors", "personality", "positioning", "selectedName"] as const) expect(saved[field]).toEqual(original.context[field]);
-  expect(saved.intake.namingNotes).toBe(original.context.intake.namingNotes); expect(saved.intake.audienceReviewedAt).toBeNull(); expect(saved.description).toBe("New naming brief description");
-  state.expandStatus = 503; await page.getByRole("button", { name: "Expand to complete brand", exact: true }).click();
-  await expect(page.getByRole("alert").filter({ hasText: "Account saving is unavailable" })).toBeVisible();
-  expect(state.projects.get(projectA)?.scope).toBe("naming_only"); await expectSavedVersion(page, 2);
-  state.expandStatus = 200; await page.getByRole("button", { name: "Expand to complete brand", exact: true }).click(); await expectSavedVersion(page, 3);
-  expect(state.projects.get(projectA)?.scope).toBe("complete_brand"); expect(state.projects.get(projectA)?.context.audienceSegments).toEqual(original.context.audienceSegments);
-  await page.reload(); await expect(page.getByRole("button", { name: "Expand to complete brand", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("link", { name: /Naming|saved name/ })).toHaveCount(0); expect(await browserData(page)).toBeNull(); await expectProjectCanvas(page);
 });
 
 test("account fixture: a brief over the request byte cap stays recoverable without an oversized write", async ({ page }) => {

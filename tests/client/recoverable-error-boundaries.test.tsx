@@ -12,12 +12,13 @@ import { AppShell } from "@/components/workspace/app-shell";
 import { useAccountSession } from "@/components/workspace/account-session";
 import { accountProjectSchema } from "@/domain/project-api";
 import { accountProjectDraft } from "@/components/workspace/project-draft-adapter";
+import { reviewedStrategy } from "../fixtures/reviewed-strategy";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/brands", useSelectedLayoutSegment: () => null, useSelectedLayoutSegments: () => ["brands"] }));
 vi.mock("@/components/naming/use-names-store", () => ({ useNamesStore: () => ({ data: { ui: { tab: "assistant" } } }) }));
 vi.mock("@/components/workspace/generation-activity", () => ({ GenerationActivity: () => null }));
 const owner = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-const project = accountProjectSchema.parse({ id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", owner_id: owner, scope: "naming_only", title: "Fixture", current_revision: 1, created_at: "2026-10-20T00:00:00Z", context: {} });
+const project = accountProjectSchema.parse({ id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", owner_id: owner, scope: "complete_brand", title: "Fixture", current_revision: 1, created_at: "2026-10-20T00:00:00Z", context: reviewedStrategy({}) });
 let host: HTMLDivElement, root: Root;
 beforeEach(() => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);

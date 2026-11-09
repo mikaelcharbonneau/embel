@@ -354,17 +354,6 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
       return reply;
     }));
   }
-  async function expand() {
-    const before = readyForContextMutation(); if (!before || before.project.scope !== "naming_only") return false;
-    return Boolean(await mutate(async () => {
-      const reply = await scope.request(`/api/projects/${projectId}/expand`, accountProjectResponseSchema, value => ownedProject(value.project), { method: "POST", body: { expectedRevision: before.project.current_revision } });
-      if (!reply) return null;
-      if (reply.project.scope !== "complete_brand" || reply.project.current_revision !== before.project.current_revision + 1) throw new AccountRequestError(502);
-      syncProject(reply.project);
-      const latest = current.current; if (latest) publish({ ...latest, project: reply.project });
-      return reply;
-    }));
-  }
   async function loadMore() {
     const before = current.current; if (!before?.candidates.nextCursor || listStatus !== "ready" || loadedListing.current !== listingKey(before.session?.viewState ?? initialNamingView)) return;
     const view = before.session?.viewState ?? initialNamingView;
@@ -400,5 +389,5 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
       return reply;
     } catch (error) { if (scope.current() && current.current?.session?.viewState.visibleBatchId === batchId) setActionError(namingErrorMessage(error)); return null; }
   }
-  return { loadBatchDetail, overview, workspace, blocked, readError, actionError, pending, listStatus, refresh, savePreferences, saveView, saveChatProgress, enqueue, cancel, retain, select, transform, importLocal, expand, loadMore, loadMoreBatches };
+  return { loadBatchDetail, overview, workspace, blocked, readError, actionError, pending, listStatus, refresh, savePreferences, saveView, saveChatProgress, enqueue, cancel, retain, select, transform, importLocal, loadMore, loadMoreBatches };
 }

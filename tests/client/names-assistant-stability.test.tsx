@@ -11,7 +11,7 @@ import { NamesAssistant } from "@/features/names-assistant/names-assistant";
 
 const owner = "aaaaaaaa-1111-4111-8111-111111111111", other = "dddddddd-1111-4111-8111-111111111111";
 const id = (n: number) => `bbbbbbbb-1111-4111-8111-${String(n).padStart(12, "0")}`;
-const row = (n: number, ownerId = owner) => ({ id: id(n), owner_id: ownerId, scope: "naming_only" as const, title: `Synthetic project ${n}`, current_revision: 1, deleted_at: null, deletion_requested_at: null, deletion_state: "active" as const, lifecycle_version: 0, created_at: "2026-10-05T12:00:00.000002Z" });
+const row = (n: number, ownerId = owner) => ({ id: id(n), owner_id: ownerId, scope: "complete_brand" as const, title: `Synthetic project ${n}`, current_revision: 1, deleted_at: null, deletion_requested_at: null, deletion_state: "active" as const, lifecycle_version: 0, created_at: "2026-10-05T12:00:00.000002Z" });
 const page = (ids: number[], next: number | null = null, ownerId = owner) => accountProjectPageSchema.parse({ ownerId, items: ids.map(n => row(n, ownerId)), nextCursor: next ? { id: id(next), createdAt: row(next).created_at } : null });
 const deferred = () => { let resolve!: (value: Response) => void; const promise = new Promise<Response>(done => { resolve = done; }); return { promise, resolve }; };
 let root: Root, host: HTMLDivElement, fetcher: ReturnType<typeof vi.fn>;
@@ -62,10 +62,9 @@ it("retains a failed refresh and retries page one rather than consuming its reta
   expect(search()).toBe(field); expect(select.value).toBe(id(3)); expect(host.querySelector('[role="alert"]')).toBeNull();
 });
 
-it.each(["missing", "identity only"] as const)("clears a refreshed selection that is %s without replacing the chooser", async condition => {
+it("clears a refreshed selection that is missing without replacing the chooser", async () => {
   await render(); await choose(id(3)); const field = search(), select = selection();
-  const next = condition === "missing" ? page([2, 1]) : page([3, 1]);
-  if (condition === "identity only") next.items[0]!.scope = "visual_identity_only";
+  const next = page([2, 1]);
   fetcher.mockResolvedValueOnce(Response.json(next)); await click("Refresh project list");
   expect(search()).toBe(field); expect(selection()).toBe(select); expect(select.value).toBe(""); expect(projectLink()).toBeNull();
 });
