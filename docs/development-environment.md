@@ -162,6 +162,13 @@ worker's pinned Linux runtime instead of depending on host-native binaries.
 Apple Silicon requires Docker's amd64 emulation. Worker proxy settings and
 `NODE_EXTRA_CA_CERTS` are passed through explicitly when configured.
 
+Like production, the local worker has one Strategy slot, one Naming slot and six
+Logo slots, with a per-person limit of six jobs per lane, so the six concepts of
+one batch generate at once. Each Logo slot has its own database role and local
+Storage service user; slots 2–6 run concepts and refinements only. `dev:up`
+adds the missing Logo slots to an existing three-slot local setup and keeps the
+original three; rerun `dev:branding` afterward to restart the worker with them.
+
 The development Strategy queue persists messages and acknowledgements on a
 checkout-specific Docker volume. It replaces the hosted Vercel Queue transport
 while retaining the same Strategy engine and database outbox. Database jobs,
