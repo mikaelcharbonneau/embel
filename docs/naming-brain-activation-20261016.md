@@ -1,5 +1,7 @@
 # Naming brain activation packet — 2026-10-16, updated 2026-10-17
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 **Current D080 status: real Luna Naming and Strategy acceptance passed.**
 The local account signs in after the approved backend restart. Actual Home →
 Brand → competitors → audience → personality → Naming passed on Luna. Direct

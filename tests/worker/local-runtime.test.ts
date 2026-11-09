@@ -474,20 +474,12 @@ describe("owned local subscription selection and worker readiness", () => {
       expect((await f.runtime.status(ownerId)).workerReady).toBe(replacement);
     } finally { finish?.(); await pending; f.runtime.close(); }
   });
-  it("dispatches Naming through its handler and atomic completion store while retaining Strategy", async () => {
+  it("fails a retired project Naming subscription job without a provider call while retaining Strategy", async () => {
     const f = fixture(); f.setBindings(bindings()); await f.runtime.refreshReadiness(); f.setClaim(namingJob());
-    const text = JSON.stringify({ candidates: [{ value: "Synthetic Form", rationale: "A synthetic naming association.", caution: null }] });
-    vi.mocked(f.transport.streamResponse).mockImplementation(async (_request, options) => {
-      await options.beforeDispatch?.(); await options.onTextDelta?.(text);
-      return { status: "completed", accountId: registrationId, responseId: "resp_naming", requestId: "req_naming", partialText: text,
-        response: { id: "resp_naming", status: "completed", model: policy.model, usage: null, output: [{ type: "message", role: "assistant", status: "completed", content: [{ type: "output_text", text }] }] } };
-    });
     await f.runtime.tick(new AbortController().signal);
-    expect(f.transport.streamResponse).toHaveBeenCalledOnce();
-    const namingCompletion = f.query.mock.calls.find(([sql]) => sql.includes("complete_naming_job_step"));
-    expect(namingCompletion?.[1]?.[3]).toBe("succeeded");
-    expect(JSON.parse(namingCompletion![1]![5] as string)).toMatchObject({ operation: "naming.generate", accepted: [{ value: "Synthetic Form" }], fulfillment: { status: "partial", acceptedCount: 1, targetCount: 100 } });
-    expect(f.query.mock.calls.some(([sql]) => sql.includes("complete_job_step"))).toBe(false);
+    expect(f.transport.streamResponse).not.toHaveBeenCalled();
+    expect(f.query.mock.calls.some(([sql]) => sql.includes("complete_naming_job_step"))).toBe(false);
+    expect(f.query.mock.calls.some(([sql, values]) => sql.includes("finish_job") && values?.[2] === "failed")).toBe(true);
     vi.mocked(runChatGPTStrategy).mockResolvedValue({ status: "succeeded", result }); f.setClaim(job());
     await f.runtime.tick(new AbortController().signal);
     expect(runChatGPTStrategy).toHaveBeenCalledOnce();
@@ -511,16 +503,15 @@ describe("subscription job fencing and cumulative partial persistence", () => {
     await expect(store.claim("synthetic-worker", 120)).rejects.toThrow("binding mismatch");
     expect(query).toHaveBeenCalledWith("select * from public.claim_subscription_job($1, $2, $3, $4)", ["synthetic-worker", ownerId, registrationId, 120]);
   });
-  it("accepts a Naming claim only when the frozen batch binds the enclosing row", async () => {
+  it("returns a retired project Naming claim unparsed so the runner fails it without a handler", async () => {
     const current = namingJob();
     const query = vi.fn(async () => ({ rows: [jobRow(current)] }));
     const store = new SubscriptionJobStore({ query } as unknown as Pick<Pool, "query">, ownerId, registrationId);
     expect(await store.claim("synthetic-worker", 120)).toEqual(current);
   });
-  it.each(["strategy.reformulate", "naming.generate"])("rejects %s claims whose frozen model differs from the selected operation policy", async operation => {
-    const current = operation === "naming.generate" ? namingJob() : job();
-    const originalPolicy = operation === "naming.generate" ? namingPolicy : policy;
-    current.input = { ...(current.input as object), policy: { ...originalPolicy, model: "unselected-model" } };
+  it("rejects Strategy claims whose frozen model differs from the selected operation policy", async () => {
+    const current = job();
+    current.input = { ...(current.input as object), policy: { ...policy, model: "unselected-model" } };
     const query = vi.fn(async () => ({ rows: [jobRow(current)] }));
     const store = new SubscriptionJobStore({ query } as unknown as Pick<Pool, "query">, ownerId, registrationId, policies());
     await expect(store.claim("synthetic-worker", 120)).rejects.toThrow(/binding mismatch/i);
@@ -531,25 +522,15 @@ describe("subscription job fencing and cumulative partial persistence", () => {
     const store = new SubscriptionJobStore({ query } as unknown as Pick<Pool, "query">, ownerId, registrationId);
     await expect(store.claim("synthetic-worker", 120)).rejects.toThrow();
   });
-  it("rejects a Naming claim if that operation was never enabled for this session", async () => {
-    const query = vi.fn(async () => ({ rows: [jobRow(namingJob())] }));
-    const store = new SubscriptionJobStore({ query } as unknown as Pick<Pool, "query">, ownerId, registrationId, policies().filter(entry => entry.operation !== "naming.generate"));
-    await expect(store.claim("synthetic-worker", 120)).rejects.toThrow(/binding mismatch/i);
-  });
   it("does not select the first of multiple claimed rows", async () => {
     const query = vi.fn(async () => ({ rows: [jobRow(job()), jobRow(namingJob())] }));
     const store = new SubscriptionJobStore({ query } as unknown as Pick<Pool, "query">, ownerId, registrationId);
     await expect(store.claim("synthetic-worker", 120)).rejects.toThrow();
   });
-  it.each(["owner", "project", "job", "revision", "operation", "handler", "registration", "reservation", "spend"])("rejects a Naming claim with mismatched %s", async mismatch => {
+  it.each(["owner", "operation", "reservation", "spend"])("rejects a Naming claim with mismatched %s", async mismatch => {
     const current = namingJob();
     if (mismatch === "owner") current.ownerId = otherOwner;
-    if (mismatch === "project") current.projectId = otherOwner;
-    if (mismatch === "job") current.id = otherOwner;
-    if (mismatch === "revision") current.inputRevision++;
     if (mismatch === "operation") current.operation = "strategy.reformulate";
-    if (mismatch === "handler") current.input = { ...(current.input as object), policy };
-    if (mismatch === "registration") current.input = { ...(current.input as object), policy: { ...namingPolicy, registrationId: "b".repeat(64) } };
     if (mismatch === "reservation") current.reservedCostMicrousd = 1;
     if (mismatch === "spend") current.actualCostMicrousd = 1;
     const query = vi.fn(async () => ({ rows: [jobRow(current)] }));

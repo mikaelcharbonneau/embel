@@ -1,25 +1,19 @@
-import { loadManagedNamingSources, verifyManagedNamingSource, verifyBrainstormNamingSource } from "./naming-brain-provenance";
 import "server-only";
 import { z } from "zod";
 import {
   accountNamesPageSchema, createBrandFromProjectNameResponseSchema, createBrandFromProjectNameSchema,
   importProjectNameResponseSchema, importProjectNameSchema, listAccountNamesSchema, listNamingBatchesSchema,
-  listProjectNamesSchema, NAMING_MAX_PAGE_SIZE, nameIdentityKey, nameTransformSchema, namingExclusionSnapshotSchema, namingStrategyBasis, namingStrategyBasisSchema,
+  listProjectNamesSchema, nameIdentityKey, nameTransformSchema, namingStrategyBasis, namingStrategyBasisSchema,
   namingStrategyKeyFromBasis, projectNamePageSchema, projectNameResponseSchema, selectProjectNameResponseSchema, selectProjectNameSchema,
-  transformProjectNamesResponseSchema, transformProjectNamesSchema, updateNameRetentionResponseSchema,
+  updateNameRetentionResponseSchema,
   updateNameRetentionSchema, updateNamingPreferencesResponseSchema, updateNamingPreferencesSchema,
   updateNamingViewStateResponseSchema, updateNamingViewStateSchema, validateProjectNameTransformParents,
   type ProjectNameCandidate,
 } from "@/domain/project-naming";
-import {
-  enqueueNamingBatchResponseSchema, enqueueNamingBatchSchema, namingBatchDetailResponseSchema, namingAnyBatchDetailResponseSchema,
-  namingBatchPageSchema, projectNamingOverviewSchema,
-} from "@/domain/naming-jobs";
-import { transformNames } from "@/domain/naming";
+import { projectNamingOverviewSchema } from "@/domain/naming-jobs";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
 
-type BatchDetail = z.infer<typeof namingAnyBatchDetailResponseSchema>;
 function input<T>(schema: z.ZodType<T>, value: unknown): T {
   const parsed = schema.safeParse(value);
   if (!parsed.success) throw new ApiError("invalid_input");
@@ -39,11 +33,12 @@ function databaseError(error: { code?: unknown; message?: unknown } | null): voi
   if (["22023", "23514", "23502", "22P02"].includes(String(error.code))) throw new ApiError("invalid_input");
   throw new ApiError("integration_unavailable");
 }
-/** JSONB has no object key order. A strategy key is derived display data, never authorization. */
-function normalize(value: unknown, ownerId: string): unknown {
-  if (Array.isArray(value)) return value.map(item => normalize(item, ownerId));
+/** JSONB has no object key order. A strategy key is derived display data, never
+ * authorization. Every nested owner field must name the signed-in account. */
+export function normalizeNamingRows(value: unknown, ownerId: string): unknown {
+  if (Array.isArray(value)) return value.map(item => normalizeNamingRows(item, ownerId));
   if (!value || typeof value !== "object") return value;
-  const row = Object.fromEntries(Object.entries(value).map(([key, child]) => [key, normalize(child, ownerId)]));
+  const row = Object.fromEntries(Object.entries(value).map(([key, child]) => [key, normalizeNamingRows(child, ownerId)]));
   if (("ownerId" in row && row.ownerId !== ownerId) || ("owner_id" in row && row.owner_id !== ownerId)) throw new ApiError("not_found");
   if (row.strategyBasis) row.strategyKey = namingStrategyKeyFromBasis(stored(namingStrategyBasisSchema, row.strategyBasis));
   return row;
@@ -51,56 +46,31 @@ function normalize(value: unknown, ownerId: string): unknown {
 async function rpc<T>(auth: AuthenticatedContext, name: string, args: Record<string, unknown>, schema: z.ZodType<T>): Promise<T> {
   const { data, error } = await auth.client.rpc(name, args);
   databaseError(error);
-  return stored(schema, normalize(data, auth.userId));
+  return stored(schema, normalizeNamingRows(data, auth.userId));
 }
 function scope(auth: AuthenticatedContext, projectId: string, row: { ownerId: string; projectId: string }): void {
   if (row.ownerId !== auth.userId || row.projectId !== projectId) throw new ApiError("not_found");
 }
 function equal(left: unknown, right: unknown): boolean { return JSON.stringify(left) === JSON.stringify(right); }
 function invariant(condition: boolean): asserts condition { if (!condition) throw new ApiError("integration_unavailable"); }
-function cursorAdvances(next: { createdAt: string; id: string }, previous: { createdAt: string; id: string }): boolean {
-  const instant = (value: string) => {
-    // PostgreSQL timestamps retain microseconds; Date.parse alone loses them.
-    // Compare normalized UTC whole seconds, then exact decimal fractions.
-    const seconds = Date.parse(value.replace(/\.\d+(?=Z$|[+-]\d{2}:\d{2}$)/u, ""));
-    const fraction = (value.match(/\.(\d+)(?:Z|[+-]\d{2}:\d{2})$/u)?.[1] ?? "").replace(/0+$/u, "");
-    invariant(Number.isFinite(seconds));
-    return { seconds, fraction };
-  };
-  const left = instant(next.createdAt), right = instant(previous.createdAt);
-  return left.seconds > right.seconds || (left.seconds === right.seconds &&
-    (left.fraction > right.fraction || (left.fraction === right.fraction && next.id > previous.id)));
-}
 function ancestry(candidate: ProjectNameCandidate) {
   const origin = candidate.origin;
   return origin.kind === "generated" || origin.kind === "brainstorm" || origin.kind === "local_import" ? { root: origin, history: [] } : { root: origin.root, history: origin.history };
 }
 
 /**
- * User RPCs preserve workshop text as an unverified claim. Before rendering or
- * using it, replay V1 (via contracts) and bind every root, transform, parent and
- * Blend input to owned immutable rows. Cache this bounded graph per request.
+ * Generated names (brainstorm and the retired generated origins) are written only
+ * by owner-checked definer SQL, so they need only the account and project scope.
+ * Workshop and copied names keep user-editable lineage: before rendering or using
+ * it, replay V1 and bind every root, transform, parent and Blend input to owned
+ * immutable rows. Cache this bounded graph per request.
  */
 class CandidateVerifier {
   private readonly candidates = new Map<string, ProjectNameCandidate>();
   private readonly checked = new Set<string>();
   private readonly visiting = new Set<string>();
-  private readonly batches = new Map<string, BatchDetail>();
   private readonly transforms = new Map<string, z.infer<typeof nameTransformSchema>>();
-  constructor(private readonly auth: AuthenticatedContext, private readonly managedSources = new Map<string, unknown>()) {}
-  seedBatch(value: BatchDetail): void {
-    scope(this.auth, value.batch.projectId, value.batch);
-    this.batches.set(`${value.batch.projectId}:${value.batch.id}`, value);
-  }
-  async batch(projectId: string, batchId: string): Promise<BatchDetail> {
-    const key = `${projectId}:${batchId}`;
-    if (!this.batches.has(key)) {
-      const response = await rpc(this.auth, "get_naming_batch", { p_project_id: id(projectId), p_batch_id: id(batchId) }, namingAnyBatchDetailResponseSchema);
-      scope(this.auth, projectId, response.batch); invariant(response.batch.id === batchId);
-      this.batches.set(key, response);
-    }
-    return this.batches.get(key)!;
-  }
+  constructor(private readonly auth: AuthenticatedContext) {}
   async candidate(projectId: string, candidateId: string, supplied?: ProjectNameCandidate): Promise<ProjectNameCandidate> {
     const key = `${id(projectId)}:${id(candidateId)}`;
     if (supplied) {
@@ -119,21 +89,10 @@ class CandidateVerifier {
     if (this.checked.has(key)) return candidate;
     invariant(!this.visiting.has(key)); this.visiting.add(key);
     try {
+      // Brainstorm and generated rows need no replay: scope was checked when the
+      // row was read, and the schema binds their origin to this candidate.
       const origin = candidate.origin;
-      if (origin.kind === "brainstorm") {
-        await verifyBrainstormNamingSource(this.auth, candidate, this.managedSources.get(candidate.id));
-      } else if (origin.kind === "generated" && origin.billingMode === "openai_api") {
-        await verifyManagedNamingSource(this.auth, candidate, this.managedSources.get(candidate.id));
-      } else if (origin.kind === "generated") {
-        const detail = await this.batch(projectId, origin.batchId);
-        invariant(detail.job.billingMode === "chatgpt_subscription");
-        const output = detail.job.results.find(row => row.stepKey === origin.stepKey)?.output;
-        invariant(detail.batch.jobId === origin.jobId && detail.batch.contextRevision === candidate.contextRevision && equal(detail.batch.strategyBasis, candidate.strategyBasis));
-        invariant(detail.result !== null && detail.result.candidateIds.includes(candidate.id) && detail.result.stepKey === origin.stepKey && output !== undefined);
-        const accepted = output.accepted.find(row => row.identityKey === candidate.identityKey);
-        invariant(accepted !== undefined && accepted.value === candidate.value && accepted.rationale === candidate.rationale && accepted.caution === candidate.caution);
-        invariant(output.provider === origin.provider && output.billingMode === origin.billingMode && output.model === origin.model && output.responseId === origin.responseId && output.requestId === origin.requestId && output.generatedAt === origin.generatedAt);
-      } else if (origin.kind === "local_import") {
+      if (origin.kind === "local_import") {
         invariant(equal(namingStrategyBasis(origin.capturedContext), candidate.strategyBasis));
       } else if (origin.kind === "account_copy") {
         const source = await this.candidate(origin.sourceProjectId, origin.sourceCandidateId);
@@ -145,7 +104,7 @@ class CandidateVerifier {
         const row = stored(z.object({ project_id: z.uuid(), owner_id: z.uuid(), revision: z.number().int().positive() }), revision.data);
         if (row.owner_id !== this.auth.userId || row.project_id !== origin.sourceProjectId) throw new ApiError("not_found");
         invariant(row.revision === origin.sourceContextRevision);
-      } else {
+      } else if (origin.kind === "transform") {
         const parent = await this.candidate(projectId, origin.parentCandidateId);
         const secondary = origin.secondaryCandidateId ? await this.candidate(projectId, origin.secondaryCandidateId) : undefined;
         const last = origin.history.at(-1)!;
@@ -178,12 +137,7 @@ export async function getProjectNaming(auth: AuthenticatedContext, projectId: st
   id(projectId);
   const response = await rpc(auth, "get_project_naming", { p_project_id: projectId, p_query: query === undefined ? {} : input(listProjectNamesSchema, query) }, projectNamingOverviewSchema);
   if (response.project.id !== projectId || response.project.owner_id !== auth.userId) throw new ApiError("not_found");
-  const proofs = await loadManagedNamingSources(auth, projectId, response.candidates.items.map(entry => entry.candidate));
-  const verifier = new CandidateVerifier(auth, proofs);
-  for (const entry of response.batches.items) {
-    const job = response.jobs.find(row => row.batchId === entry.batch.id);
-    if (job) verifier.seedBatch(stored(namingBatchDetailResponseSchema, { ...entry, job }));
-  }
+  const verifier = new CandidateVerifier(auth);
   for (const { candidate } of response.candidates.items) await verifier.candidate(projectId, candidate.id, candidate);
   if (response.currentSelection) await verifier.candidate(projectId, response.currentSelection.candidate.id, response.currentSelection.candidate);
   return response;
@@ -217,7 +171,7 @@ export async function getCustomProjectNames(auth: AuthenticatedContext, projectI
   const items: z.infer<typeof projectNameResponseSchema>["entry"][] = [];
   for (const row of visible) {
     const retention = retentions.find(item => item.candidate_id === row.id);
-    const entry = stored(projectNameResponseSchema, normalize({ entry: {
+    const entry = stored(projectNameResponseSchema, normalizeNamingRows({ entry: {
       candidate: { id: row.id, ownerId: row.owner_id, projectId: row.project_id, value: row.value, identityKey: row.identity_key, contextRevision: row.context_revision, strategyBasis: row.strategy_basis, origin: row.origin, rationale: row.rationale, ...(row.caution === null ? {} : { caution: row.caution }), createdAt: row.created_at },
       retention: { ownerId: auth.userId, projectId, candidateId: row.id, revision: retention?.revision ?? 0, favorite: retention?.liked ?? false, saved: retention?.saved ?? false, updatedAt: retention?.updated_at ?? null },
     } }, auth.userId)).entry;
@@ -227,64 +181,6 @@ export async function getCustomProjectNames(auth: AuthenticatedContext, projectI
   }
   const last = items.at(-1)?.candidate;
   return stored(projectNamePageSchema, { ownerId: auth.userId, projectId, items, nextCursor: rows.length > query.limit && last ? { id: last.id, createdAt: last.createdAt } : null });
-}
-export async function getNamingBatches(auth: AuthenticatedContext, projectId: string, query: unknown = {}) {
-  const response = await rpc(auth, "get_naming_batches", { p_project_id: id(projectId), p_query: input(listNamingBatchesSchema, query) }, namingBatchPageSchema);
-  scope(auth, projectId, response); return response;
-}
-export async function getNamingBatch(auth: AuthenticatedContext, projectId: string, batchId: string) {
-  const verifier = new CandidateVerifier(auth); const response = await verifier.batch(projectId, batchId);
-  if (response.result?.candidateIds.length) {
-    const published = new Set(response.result.candidateIds), seen = new Set<string>();
-    invariant(published.size === response.result.candidateIds.length && published.size <= response.batch.targetCount);
-    const maximumPages = Math.ceil(response.batch.targetCount / NAMING_MAX_PAGE_SIZE);
-    let cursor: z.infer<typeof listProjectNamesSchema>["cursor"];
-    // The immutable batch target bounds both reads and graph verification. Each
-    // page must fill the requested slice; malformed continuations fail closed.
-    for (let page = 0; page < maximumPages && seen.size < published.size; page += 1) {
-      const limit = Math.min(NAMING_MAX_PAGE_SIZE, published.size - seen.size);
-      const overview = await rpc(auth, "get_project_naming", { p_project_id: projectId, p_query: { batchId, limit, filter: "all", query: "", ...(cursor ? { cursor } : {}) } }, projectNamingOverviewSchema);
-      if (overview.project.id !== projectId || overview.project.owner_id !== auth.userId) throw new ApiError("not_found");
-      invariant(overview.candidates.items.length === limit);
-      let previous = cursor;
-      for (const { candidate } of overview.candidates.items) {
-        invariant(published.has(candidate.id) && !seen.has(candidate.id));
-        invariant(candidate.origin.kind === "generated" && candidate.origin.batchId === batchId);
-        if (previous) invariant(cursorAdvances(candidate, previous));
-        await verifier.candidate(projectId, candidate.id, candidate);
-        seen.add(candidate.id);
-        previous = { createdAt: candidate.createdAt, id: candidate.id };
-      }
-      const next = overview.candidates.nextCursor;
-      if (seen.size === published.size) { invariant(next === null); break; }
-      invariant(next !== null); cursor = next;
-    }
-    invariant(seen.size === published.size);
-  }
-  return response;
-}
-export async function enqueueNamingBatch(auth: AuthenticatedContext, projectId: string, value: unknown) {
-  id(projectId);const parsed = input(enqueueNamingBatchSchema, value);
-  // Direct authenticated imports remain unverified claims. Reject a poisoned
-  // history key before admission; the worker independently checks the frozen
-  // database snapshot again, covering races and direct-RPC admission bypasses.
-  const history = await auth.client.from("name_candidates").select("id,owner_id,project_id,value,identity_key")
-    .eq("owner_id", auth.userId).eq("project_id", projectId).order("created_at", { ascending: true }).order("id", { ascending: true }).limit(10_001);
-  databaseError(history.error);
-  const rows = stored(z.array(z.object({ id: z.uuid(), owner_id: z.uuid(), project_id: z.uuid(), value: z.string(), identity_key: z.string() })).max(10_001), history.data);
-  if (rows.some(row => row.owner_id !== auth.userId || row.project_id !== projectId)) throw new ApiError("not_found");
-  if (rows.length > 10_000) throw new ApiError("naming_history_capacity");
-  stored(namingExclusionSnapshotSchema, rows.map(row => ({ candidateId: row.id, value: row.value, identityKey: row.identity_key })));
-  const response = await rpc(auth, "enqueue_subscription_naming_job", { p_project_id: projectId, p_expected_project_revision: parsed.expectedProjectRevision,
-    p_expected_preferences_version: parsed.expectedPreferencesVersion, p_expected_batch_sequence: parsed.expectedBatchSequence, p_idempotency_key: parsed.idempotencyKey, p_accepted_policy_identity: parsed.acceptedPolicyIdentity }, enqueueNamingBatchResponseSchema);
-  scope(auth, projectId, response.batch);
-  invariant(response.batch.contextRevision === parsed.expectedProjectRevision && response.batch.preferencesVersion === parsed.expectedPreferencesVersion && response.batch.sequence === parsed.expectedBatchSequence + 1 && response.batch.acceptedPolicyIdentity === parsed.acceptedPolicyIdentity);
-  return response;
-}
-export async function cancelNamingBatch(auth: AuthenticatedContext, projectId: string, batchId: string) {
-  const response = await getNamingBatch(auth, projectId, batchId);
-  const { error } = await auth.client.rpc("request_job_cancel", { p_job_id: response.job.id });databaseError(error);
-  return getNamingBatch(auth, projectId, batchId);
 }
 export async function saveNamingPreferences(auth: AuthenticatedContext, projectId: string, value: unknown) {
   id(projectId);const parsed = input(updateNamingPreferencesSchema, value);
@@ -301,7 +197,6 @@ export async function setNameRetention(auth: AuthenticatedContext, projectId: st
 export async function saveNamingView(auth: AuthenticatedContext, projectId: string, value: unknown) {
   id(projectId);const parsed = input(updateNamingViewStateSchema, value);const verifier = new CandidateVerifier(auth);
   for (const candidateId of [parsed.viewState.scrollCandidateId, parsed.viewState.workshopCandidateId]) if (candidateId) await verifier.candidate(projectId, candidateId);
-  if (parsed.viewState.visibleBatchId) await verifier.batch(projectId, parsed.viewState.visibleBatchId);
   const response = await rpc(auth, "save_naming_view", { p_project_id: projectId, p_expected_revision: parsed.expectedViewRevision, p_view: parsed.viewState }, updateNamingViewStateResponseSchema);
   // A legacy view body omits question metadata; SQL preserves the owned saved
   // checkpoint rather than allowing older clients to erase explicit answers.
@@ -314,16 +209,6 @@ export async function selectProjectName(auth: AuthenticatedContext, projectId: s
   const response = await rpc(auth, "select_project_name", { p_project_id: projectId, p_candidate_id: parsed.candidateId, p_expected_revision: parsed.expectedRevision, p_accept_earlier_context: parsed.acceptEarlierContext }, selectProjectNameResponseSchema);
   scope(auth, projectId, response.session);invariant(response.project.current_revision === parsed.expectedRevision + 1 && response.currentSelection.candidate.id === parsed.candidateId && response.currentSelection.selection.acceptedEarlierContext === parsed.acceptEarlierContext);
   await verifier.candidate(projectId, parsed.candidateId, response.currentSelection.candidate);return response;
-}
-export async function transformProjectNames(auth: AuthenticatedContext, projectId: string, value: unknown) {
-  id(projectId);const parsed = input(transformProjectNamesSchema, value);const verifier = new CandidateVerifier(auth);
-  const parent = await verifier.candidate(projectId, parsed.parentCandidateId);const secondary = parsed.secondaryCandidateId ? await verifier.candidate(projectId, parsed.secondaryCandidateId) : undefined;
-  try { validateProjectNameTransformParents(parsed, parent, secondary); } catch { throw new ApiError("invalid_input"); }
-  const replay = transformNames(parsed.input);
-  const response = await rpc(auth, "persist_name_transform", { p_project_id: projectId, p_parent_candidate_id: parsed.parentCandidateId, p_secondary_candidate_id: parsed.secondaryCandidateId ?? null,
-    p_input: parsed.input, p_result: { ...replay, candidates: replay.candidates.map(row => ({ ...row, identityKey: nameIdentityKey(row.value) })) }, p_idempotency_key: parsed.idempotencyKey }, transformProjectNamesResponseSchema);
-  scope(auth, projectId, response.transform);invariant(response.transform.parentCandidateId === parent.id && response.transform.secondaryCandidateId === (secondary?.id ?? null) && equal(response.transform.input, parsed.input));
-  for (const { candidate } of response.entries) await verifier.candidate(projectId, candidate.id, candidate);return response;
 }
 export async function importLocalName(auth: AuthenticatedContext, projectId: string, value: unknown) {
   id(projectId);const parsed = input(importProjectNameSchema, value);
@@ -367,11 +252,4 @@ export function readNamingQuery(request: Request, kind: "candidates" | "batches"
 /** Read-only reuse for owned imports; replay every immutable parent before exposing text. */
 export async function getVerifiedProjectName(auth: AuthenticatedContext, projectId: string, candidateId: string) {
   return new CandidateVerifier(auth).candidate(id(projectId), id(candidateId));
-}
-
-/** One bounded source-proof read per page; parent/source graphs share one verifier. */
-export async function verifyProjectNameCandidates(auth: AuthenticatedContext, projectId: string, candidates: readonly ProjectNameCandidate[]) {
- const proofs = await loadManagedNamingSources(auth, projectId, candidates);
- const verifier = new CandidateVerifier(auth, proofs);
- for (const candidate of candidates) await verifier.candidate(projectId, candidate.id, candidate);
 }

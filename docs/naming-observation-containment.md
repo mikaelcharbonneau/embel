@@ -1,5 +1,7 @@
 # Brainstorm observation failure containment
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 A known stored Responses ID permits GET-only observation. In6181, a bounded
 provider read failure or locally rejected response escaped the observer, and the
 shared Naming engine classified it as an unconfirmed drain. A parked unknown

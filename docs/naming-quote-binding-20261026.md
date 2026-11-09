@@ -1,5 +1,7 @@
 # Naming quote binding — 2026-10-26
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 ## Confirmed failure and scope
 
 One authorized real 100-name test on release `a54cf24102687ce6d00f659001e8bee6f9963368` ended at 90 unique persisted names after 12m28s. The provider accepted Luna/xhigh and the uncapped native Agents flow. Research performed native searches and reference reads. A completed Verifier response for People & Places contained four findings with inaccurate source quote offsets; strict validation correctly rejected them. All issued calls drained. The 90 names, original response, failed job and unknown actual cost remain retained.

@@ -105,40 +105,31 @@ describe('Logo provider receipt delivery under the original execution',()=>{
  });
 });
 
-describe('Naming observation keeps original deployment authority across a successor slot',()=>{
+describe('Naming observation uses the same-deployment rules as every lane',()=>{
  function observationFixture(){
-  const f=fixture(),original={...f.e,lane:'naming' as const,operation:'naming.generate',deploymentId:'dpl_original'},slot={...f.slot,lane:'naming' as const,generation:3,instanceId:randomUUID(),leaseToken:randomUUID()};
-  const response:{execution:SharedExecution;result:unknown}={execution:original,result:true};
+  const f=fixture(),original={...f.e,lane:'naming' as const,operation:'naming.generate',deploymentId:'dpl_current'},slot={...f.slot,lane:'naming' as const,generation:3,instanceId:randomUUID(),leaseToken:randomUUID()};
+  const response:{execution:SharedExecution;result:unknown}={execution:original,result:{action:'closed'}};
   const query=vi.fn(async()=>({rows:[{envelope:response}]}));
-  const gateway=createSharedLaneGateway({database:{query},slot:()=>slot,lane:'naming',deploymentId:'dpl_successor',observationExecution:original,observationGenerationProfile:'brainstorm_v1'});
+  const gateway=createSharedLaneGateway({database:{query},slot:()=>slot,lane:'naming',deploymentId:'dpl_current',observationExecution:original});
   return{original,slot,response,query,gateway};
  }
- it('accepts only the exact frozen original handle while sending the current slot',async()=>{
-  const f=observationFixture();expect(await f.gateway.invoke('recover',[],true)).toBe(true);
-  expect(f.gateway.execution()).toEqual(f.original);expect(f.original.deploymentId).toBe('dpl_original');
+ it('accepts only the exact frozen handle while sending the current slot and JSON arguments',async()=>{
+  const f=observationFixture();expect(await f.gateway.invoke('recover',{},true)).toEqual({action:'closed'});
+  expect(f.gateway.execution()).toEqual(f.original);
   const values=(f.query.mock.calls as unknown as Array<[string,unknown[]]>)[0]![1];
-  expect(JSON.parse(String(values[0]))).toEqual(f.slot);expect(JSON.parse(String(values[1]))).toEqual(f.original);
-  await expect(f.gateway.invoke('claim',[])).rejects.toThrow();await expect(f.gateway.invoke('brainstorm_begin',{})).rejects.toThrow();expect(f.query).toHaveBeenCalledTimes(1);
+  expect(JSON.parse(String(values[0]))).toEqual(f.slot);expect(JSON.parse(String(values[1]))).toEqual(f.original);expect(values[2]).toBe('recover');expect(JSON.parse(String(values[3]))).toEqual({});
+  await expect(f.gateway.invoke('claim',{})).rejects.toThrow();await expect(f.gateway.invoke('round_begin',{})).rejects.toThrow();expect(f.query).toHaveBeenCalledTimes(1);
  });
- it.each(['deploymentId','ownerId','projectId','jobId','executionId','executionToken','leaseToken','policyIdentity','generation'] as const)('rejects a returned change to original %s',async field=>{
-  const f=observationFixture();f.response.execution={...f.original,[field]:field==='generation'?99:field==='policyIdentity'?'b'.repeat(64):field==='deploymentId'?'dpl_successor':randomUUID()};
-  await expect(f.gateway.invoke('brainstorm_state',{},true)).rejects.toThrow();expect(f.gateway.execution()).toEqual(f.original);
+ it.each(['deploymentId','ownerId','projectId','jobId','executionId','executionToken','leaseToken','policyIdentity','generation'] as const)('rejects a returned change to %s',async field=>{
+  const f=observationFixture();f.response.execution={...f.original,[field]:field==='generation'?99:field==='policyIdentity'?'b'.repeat(64):field==='deploymentId'?'dpl_other':randomUUID()};
+  await expect(f.gateway.invoke('recover',{},true)).rejects.toThrow();expect(f.gateway.execution()).toEqual(f.original);
  });
- it.each(['brainstorm_publish','brainstorm_finish','claim','action','authorize','complete'])('rejects %s even when it is falsely labeled an observation',async action=>{
-  const f=observationFixture();await expect(f.gateway.invoke(action,{},true)).rejects.toThrow();expect(f.query).not.toHaveBeenCalled();
- });
- it.each(['created','unknown','rejected'])('rejects unobserved event kind %s',async kind=>{
-  const f=observationFixture();await expect(f.gateway.invoke('brainstorm_event',{kind},true)).rejects.toThrow();expect(f.query).not.toHaveBeenCalled();
- });
- it('rejects a malformed hosted original deployment before querying SQL',()=>{
-  const f=observationFixture();expect(()=>createSharedLaneGateway({database:{query:f.query},slot:()=>f.slot,lane:'naming',deploymentId:'dpl_successor',observationExecution:{...f.original,deploymentId:'malformed'},observationGenerationProfile:'brainstorm_v1'})).toThrow();expect(f.query).not.toHaveBeenCalled();
- });
- it('refuses a generic legacy Naming observer from a different deployment',async()=>{
+ it('refuses an observer of another deployment\'s execution',async()=>{
   const f=observationFixture(),gateway=createSharedLaneGateway({database:{query:f.query},slot:()=>f.slot,lane:'naming',deploymentId:'dpl_successor',observationExecution:f.original});
-  await expect(gateway.invoke('recover',[],true)).rejects.toThrow();
+  await expect(gateway.invoke('recover',{},true)).rejects.toThrow();
  });
  it('still rejects a foreign deployment during an active Naming claim',async()=>{
   const f=observationFixture(),gateway=createSharedLaneGateway({database:{query:f.query},slot:()=>f.slot,lane:'naming',deploymentId:'dpl_successor'});
-  await expect(gateway.invoke('claim',[])).rejects.toThrow();expect(gateway.execution()).toBeNull();
+  await expect(gateway.invoke('claim',{})).rejects.toThrow();expect(gateway.execution()).toBeNull();
  });
 });

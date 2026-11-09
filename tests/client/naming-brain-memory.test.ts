@@ -90,14 +90,23 @@ describe("Naming preference acknowledgement", () => {
     expect(after.get(account, projectId)?.preferences?.draft).toMatchObject({ creativeLocale: "F", requiredText: ["unfinished", ""] });
     expect(after.get(account, projectId)?.preferences?.status).toBe("error");
   });
-  it("turns a recovered unacknowledged feed request into an actionable exact retry", () => {
+  it("recovers unsaved choices from an older copy without recovering its generation request", () => {
     const values = new Map<string, string>(); const storage = () => ({ getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => { values.set(key, value); }, removeItem: (key: string) => { values.delete(key); } });
-    const before = createNamingBrainMemory({ storage }); before.bind(account);
-    const pending = { version: 1 as const, reason: "initial" as const, expectedProjectRevision: 1, expectedPreferencesVersion: 1, expectedSteeringRevision: 0, expectedDemandSequence: 0, consumedThrough: null, idempotencyKey: "pending-feed-request" };
-    before.setFeed(account, projectId, value => ({ ...value, pending, acknowledged: false, status: "error" }));
+    const draft = { ...initial, notes: "Older tab guidance" };
+    values.set(`embel.naming-recovery.v1:${owner}`, JSON.stringify({ version: 1, ownerId: owner, creation: null, projects: [{ projectId, steeringDraft: { candidateIds: [], instruction: "" },
+      preferences: { saved: saved(1), draft, pending: null },
+      pending: { version: 1, reason: "initial", idempotencyKey: "older-feed-request" }, acknowledged: false, stop: null, steering: null }] }));
     const after = createNamingBrainMemory({ storage }); after.bind(account); after.recover(account);
-    expect(after.get(account, projectId)?.feed).toMatchObject({ pending, status: "error" });
-    expect(after.get(account, projectId)?.feed.error).toContain("same request");
+    expect(after.get(account, projectId)?.preferences).toMatchObject({ draft, dirty: true, status: "error" });
+    expect(after.get(account, projectId)?.feed).toMatchObject({ pending: null, stopping: false, error: null });
+  });
+  it("marks an unconfirmed start as unsaved until its answer arrives", () => {
+    const memory = createNamingBrainMemory({ storage: () => null }); memory.bind(account);
+    const pending = { version: 2 as const, kind: "initial" as const, expectedProjectRevision: 1, expectedPreferencesVersion: 1, seedIds: [], instruction: null, idempotencyKey: "pending-start-request" };
+    memory.setFeed(account, projectId, value => ({ ...value, pending }));
+    expect(memory.hasUnsaved()).toBe(true);
+    memory.bind({ ...account, generation: 2 });
+    expect(memory.get({ ...account, generation: 2 }, projectId)?.feed).toMatchObject({ pending, retry: "start", error: "This request could not be confirmed. Try again." });
   });
   it("I5 recovers an unsubmitted steering draft without marking acknowledged preferences unsaved", () => {
     const values = new Map<string, string>(); const storage = () => ({ getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => { values.set(key, value); }, removeItem: (key: string) => { values.delete(key); } });

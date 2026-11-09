@@ -8,12 +8,15 @@ still need validation when changed; source descriptions do not prove deployment.
 
 ## Current shared Naming path
 
-The current shared initial-creation path uses Responses for fast-first creative
-proposals, labelled as unchecked, with a target of 100 names. It does not run the
-older research/Director/curation pipeline before showing that first batch.
-See [fast-first Naming](naming-fast-first.md) for its precise implementation and
-evidence limits. Older native request formats and recovery paths remain in the
-source; their presence is not a requirement to use them for new requests.
+Since November 2026 Naming generation is one ordinary background job: up to
+three OpenAI background-mode rounds that together save at most 100 cleaned
+names. The worker saves each round's receipt number before polling, cleans and
+checks names in code, and saves only clean names and usage in one database step.
+A failure ends that run with a stated reason; it never stops the worker or
+other lanes. See [the rebuild plan](naming-rebuild-plan-20261108.md) and
+[the generation contract](naming-generation-contract.md). The previous
+brainstorm/brain machinery is still installed until the removal step; its
+documents describe history, not the current path.
 
 ## Current shared account and worker architecture
 

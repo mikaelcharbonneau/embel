@@ -4,11 +4,7 @@ vi.mock("server-only", () => ({}));
 import { createTestDatabase, OWNER_A, OWNER_B, type TestDatabase } from "./local-supabase";
 import { installGenerativeStorageFixture } from "./logo-generative-storage-fixture";
 import { brainPolicy } from "./naming-brain-fixture";
-import { brainPreferences, brainRpc, initialIntent } from "./naming-brain-fixture";
-import { NamingBrainJobStore, normalizeNamingStoredJson } from "../../worker/naming-brain-store";
-import { namingBrainJobInputSchema, namingProviderReceiptSchema } from "../../src/domain/naming-brain";
-import { createNamingRoleRequest } from "../../src/server/ai/naming-brain/prompts";
-import { createProgressiveNamingRolePolicy } from "../../src/server/ai/naming-brain/policy";
+import { brainRpc } from "./naming-brain-fixture";
 import { guidedStrategyPolicy } from "../../src/server/ai/config";
 import { logoWorkspaceV2Schema } from "../../src/domain/logo-workspace";
 import { legacyLogoCostQuoteSchema as logoCostQuoteSchema, logoDispatchReceiptSchema } from "../../src/domain/logo-jobs";
@@ -407,43 +403,5 @@ describe("unapplied account worker enrollment over actual restricted SQL", () =>
     await rpc("disable_account_worker_enrollment", [revoke.id, revoke.leaseToken, "logo"]);
     expect(logoDispatchReceiptSchema.parse(await brainRpc(db, "account_logo_operation", [workspace.projectId, "admit", input]))).toEqual(saved);
     expect((await db.query("select enabled from fluid_private.logo_storage_principals where auth_user_id=$1", [actor])).rows).toEqual([{ enabled: false }]);
-  });
-
-  it("retains an already-issued paid Naming receipt after ban while closing new dispatch and publication", async () => {
-    const claim = await account(), profile = await approve(), binding = await provision(claim, profile);
-    await ready(claim, binding);
-    const project = (await brainRpc<{ id: string }>(db, "create_project", ["naming_only", "Synthetic managed drain", { description: "Offline receipt retention" }, "a".repeat(64)])).id;
-    await brainRpc(db, "save_naming_preferences", [project, 0, brainPreferences]);
-    const database = { query: (sql: string, values: unknown[] = []) => session(binding.roleName, () => db.query<Record<string, unknown>>(sql, values)) };
-    const store = new NamingBrainJobStore(database, binding.deploymentId, () => ({ deploymentId: binding.deploymentId, workerId: binding.workerId, generation: 1 }));
-    expect(await store.attestPendingPreferences()).toBe(1);
-    expect((await db.query("select count(*)::int n from public.usage_accounts where owner_id=$1", [OWNER_A])).rows).toEqual([{ n: 0 }]);
-    await brainRpc(db, "ensure_hosted_naming_brain_run", [project, initialIntent("synthetic-managed-drain")]);
-    expect((await db.query("select limit_microusd,spent_microusd,provider_actual_microusd from public.usage_accounts where owner_id=$1", [OWNER_A])).rows).toEqual([{ limit_microusd: 0, spent_microusd: 0, provider_actual_microusd: 0 }]);
-    const job = await store.claim(binding.workerId, 120); expect(job).not.toBeNull();
-    const input = namingBrainJobInputSchema.parse(normalizeNamingStoredJson(job!.input));
-    await store.registerPlan(job!, [{ key: "creation", maximumCostMicrousd: 1_500_000 }, { key: "prepare", maximumCostMicrousd: 0 }]);
-    await store.beginStep(job!, "creation", 1_500_000);
-    const request = createNamingRoleRequest({ runId: input.runId, stageKey: "creation", providerCallKey: "context.research.researcher",
-      input: { role: "researcher", snapshot: input.snapshot }, dependencyArtifactIds: [], policy: createProgressiveNamingRolePolicy(input.policy, "researcher", undefined, undefined, true, 5) });
-    await store.saveProgressiveCallPlan(job!, "context.research", [request]);
-    await store.authorizeDispatch(job!, request);
-    await db.exec("alter table auth.users add column banned_until timestamptz");
-    await db.query("update auth.users set banned_until=clock_timestamp()+interval '1 hour' where id=$1", [OWNER_A]);
-    const revoke = await rpc<Claim>("claim_account_service_enrollment", [120]);
-    await rpc("disable_account_worker_enrollment", [revoke.id, revoke.leaseToken, "naming"]);
-    expect(await rpc("account_worker_observation_principal", [], binding.roleName)).toEqual(binding);
-    await expect(rpc("account_enrollment_managed_principal", [], binding.roleName)).rejects.toMatchObject({ code: "42501" });
-    const receipt = namingProviderReceiptSchema.parse({ version: 1, provider: "openai", billingMode: "openai_api", protocol: "openai_agents", budgetControl: "local_unlimited_v1", localPipelineVersion: 2,
-      runId: input.runId, stageKey: "creation", role: "researcher", snapshotHash: input.snapshot.snapshotHash, providerCallKey: request.providerCallKey,
-      assignmentKey: null, requestKey: request.requestKey, requestHash: request.requestHash, sessionLimitCents: request.policy.sessionLimitCents, dispatchState: "dispatched",
-      requestId: "synthetic-late-request", sessionId: "synthetic-late-session", turnId: "synthetic-late-turn", agentId: "synthetic-late-agent", responseId: null,
-      callIds: [], observedModel: profile.model, toolCalls: [], artifactItemIds: [], usageObservations: [], estimatedCostMicrousd: null, providerCostCounters: [],
-      accountingStatus: "provisional", confirmedActualCostMicrousd: null, recordedAt: new Date().toISOString() });
-    expect(await store.recordReceipt(job!, receipt)).toMatchObject({ requestId: "synthetic-late-request" });
-    await expect(store.authorizeDispatch(job!, request)).rejects.toMatchObject({ message: "account_worker_not_ready" });
-    await expect(rpc("naming_brain_worker_action", [job!.id, job!.leaseToken, "publish_microbatch", {}], binding.roleName)).rejects.toMatchObject({ message: "account_worker_not_ready" });
-    expect((await db.query("select rolcanlogin from pg_roles where oid=$1", [binding.roleOid])).rows).toEqual([{ rolcanlogin: true }]);
-    await expect(rpc("verify_account_worker_revocation", [revoke.id, revoke.leaseToken, "naming"])).rejects.toMatchObject({ message: "account_worker_revocation_unconfirmed" });
   });
 });

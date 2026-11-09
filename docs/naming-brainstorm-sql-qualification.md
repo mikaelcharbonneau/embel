@@ -1,5 +1,7 @@
 # Future Naming brainstorm SQL candidate
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 `supabase/candidates/shared_naming_brainstorm.sql` is additive and **unapplied**. It requires the unchanged shared Naming candidate and preserves its original gateway as a private exact clone. The new authenticated admission facade adds `generationProfile: 'brainstorm_v1'` before the immutable jobs insert. Historical intents still replay their original algorithm. Installation checks exact body hashes, owner, language, volatility, security-definer status, non-leakproof status and empty search path for all eight changed or cloned predecessors, using pins derived from disposable compiled baseline source. The candidate sets a two-second lock timeout and 30-second per-statement timeout; this is not an overall transaction deadline. Installation does not create credentials, activate slots, change allowances or call a provider.
 
 New actions on the existing restricted gateway are `brainstorm_state`, `brainstorm_begin`, `brainstorm_event`, `brainstorm_publish` and `brainstorm_finish`. They accept object arguments and retain the `{execution,result}` envelope. Existing actions retain array arguments. An execution carrying the new profile cannot invoke historical dispatch, artifact or completion actions; historical heartbeat and retrieve-only recovery remain available.

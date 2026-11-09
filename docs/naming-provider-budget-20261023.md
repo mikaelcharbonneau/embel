@@ -1,5 +1,7 @@
 # Future hosted Naming provider budget
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 ## Status and scope
 
 Prepared for new hosted progressive Naming runs. Not live until the compatible

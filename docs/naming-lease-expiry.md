@@ -1,5 +1,7 @@
 # Naming lease expiry on the shared worker pool
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 ## Problem
 
 Every shared worker job holds a lease that it renews while it works. When a
