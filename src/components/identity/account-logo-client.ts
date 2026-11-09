@@ -1,6 +1,4 @@
 import { z } from "zod";
-import { logoVectorProposalPageSchema, logoVectorProposalRecordSchema } from "@/domain/logo-vector-proposal-jobs";
-import { logoVectorProposalRequestStateSchema, logoVectorProposalRequestCloseSchema, logoVectorProposalRequestPageSchema } from "@/features/logo-vector/model/proposal-session";
 import * as W from "@/domain/logo-workspace";
 import * as J from "@/domain/logo-jobs";
 import { logoCapabilitiesSchema } from "@/domain/logo-capabilities";
@@ -14,8 +12,6 @@ import type { ContextSnapshot } from "@/domain/projects";
 import { AccountRequestError } from "@/components/workspace/account-api";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 import { verifyLogoVectorDetailHashes } from "@/features/logo-vector/client/verify-detail";
-import { logoVectorEditCommandSchema, logoVectorEditRequestStateSchema, sameLogoVectorEditCommand, type LogoVectorEditCommand } from "@/features/logo-vector/model/cancellation";
-import * as VectorHistory from "@/features/logo-vector/model/history";
 import { initializeExistingBrandLogoInputSchema, isExistingBrandLogoReceipt, serializeLogoInitialization, logoInitializationRejectionSchema, type LogoInitializationRejection, type InitializeExistingBrandLogoInput } from "@/features/logo-creation/model/existing-brand";
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
@@ -25,8 +21,6 @@ const pageBytes = 1_638_400;
 const clientBindings = new WeakMap<object, { ownerId: string; projectId: string; generation: number; current(): boolean }>();
 type PageQuery = { cursor?: string; limit?: number };
 type Preview = { url: string; release(): void };
-type FontImport = { requestKey: string; expected: W.LogoExpectedHeads; catalogFontId: string };
-type FontUpload = { requestKey: string; expected: W.LogoExpectedHeads; licenseSourceUrl: string | null; licenseText: string; rightsDeclaration: string; file: File };
 const assetDownloadSchema = z.strictObject({
   url: z.url().max(8192).refine(value => { const url = new URL(value); return url.protocol === "https:" && !url.username && !url.password; }),
   versionId: V.logoUuidSchema, contentHash: V.logoHashSchema, mimeType: z.string().min(1).max(150), expiresInSeconds: z.literal(60),
@@ -310,33 +304,10 @@ export function createAccountLogoClient(
     saveLogoReferences: mutation(W.saveLogoReferencesInputSchema, "/references", value => value.revision.stage === "brief_references", "PUT"),
     selectLogoConcept: mutation(W.selectLogoConceptInputSchema, "/concepts/selection", (value, body) => value.revision.stage === "concepts" && same(value.revision.payload.selected, { kind: "concept", batchId: body.batchId, slotId: body.slotId, attemptId: body.attemptId })),
     selectLogoRaster: mutation(W.selectLogoRasterInputSchema, "/rasters/selection", (value, body) => value.revision.stage === "concepts" && same(value.revision.payload.selected, body.source)),
-    saveLogoEdit: mutation(W.saveLogoEditInputSchema, "/edits"),
-    acceptLogoVector: mutation(W.acceptLogoVectorInputSchema, "/vector/accept", (value, body) => value.workspace.approvedLogo?.vectorRevisionId === body.vectorRevisionId),
     restoreLogoStage: mutation(W.restoreLogoStageInputSchema, "/restore", (value, body) => value.revision.stage === body.stage),
     selectIdentityDirectionComponents: mutation(W.selectIdentityDirectionComponentsInputSchema, "/directions/selection", value => value.revision.stage === "directions"),
     approveIdentityDirection: mutation(W.approveIdentityDirectionInputSchema, "/directions/approval", (value, body) => value.revision.stage === "directions" && value.revision.payload.selectionId === body.directionSelectionId && value.revision.payload.approvalId !== null),
     reviewLogoVariants: mutation(W.reviewLogoVariantsInputSchema, "/variants/review", (value, body) => value.revision.stage === "deliverables" && value.revision.payload.variantSetId === body.variantSetId),
-    async listPendingVectorProposalRequests(input: { cursor?: string; limit?: number } = {}, signal?: AbortSignal) {
-      const body = parse(z.strictObject({ cursor: V.logoUuidSchema.optional(), limit: z.number().int().min(1).max(10).default(10) }), input);
-      const params = new URLSearchParams({ limit: String(body.limit) }); if (body.cursor) params.set("cursor", body.cursor);
-      return request(`${project()}/vector-proposals/requests/current?${params}`, logoVectorProposalRequestPageSchema, owned, { signal, maximum: 2_097_152 });
-    },
-    async listLogoVectorProposals(input: PageQuery = {}, signal?: AbortSignal) {
-      return request(`${project()}/vector-proposals?${query(input)}`, logoVectorProposalPageSchema, owned, { signal, maximum: 65_536 });
-    },
-    async readLogoVectorProposal(proposalId: string, signal?: AbortSignal) {
-      const id = parse(V.logoUuidSchema, proposalId);
-      return request(`${project()}/vector-proposals/${id}`, logoVectorProposalRecordSchema, value => owned(value) && value.id === id, { signal, maximum: 163_840 });
-    },
-    async readVectorProposalRequest(input: J.LogoGenerationIntent, signal?: AbortSignal) {
-      const body = parse(J.logoGenerationIntentSchema, input, W.LOGO_MUTATION_MAX_BYTES);
-      return request(`${project()}/vector-proposals/requests/${body.requestKey}/lookup`, logoVectorProposalRequestStateSchema, value => owned(value) && same(value.input, body), { method: "POST", body, signal, maximum: 524_288 });
-    },
-    async closeVectorProposalRequest(input: J.LogoGenerationIntent, signal?: AbortSignal) {
-      const body = parse(J.logoGenerationIntentSchema, input, W.LOGO_MUTATION_MAX_BYTES);
-      return request(`${project()}/vector-proposals/requests/${body.requestKey}/cancel`, logoVectorProposalRequestCloseSchema,
-        value => value.status === "not_admitted" ? owned(value) && same(value.input, body) : owned(value.request) && same(value.request.input, body), { method: "POST", body, signal, maximum: 524_288 });
-    },
     async quoteLogoOperation(input: J.LogoQuoteRequest, signal?: AbortSignal) {
       if (!current() || signal?.aborted) return null;
       const body = parse(J.logoQuoteRequestSchema, input, W.LOGO_MUTATION_MAX_BYTES);
@@ -346,20 +317,6 @@ export function createAccountLogoClient(
       if (!current() || signal?.aborted) return null;
       const body = parse(J.logoGenerationIntentSchema, input, W.LOGO_MUTATION_MAX_BYTES);
       return request(`${project()}/requests`, J.logoDispatchReceiptSchema, value => owned(value) && value.requestKey === body.requestKey && value.operation !== "identity.logo_export", { method: "POST", body, signal, admission: body });
-    },
-    async cancelLogoVectorEdit(input: LogoVectorEditCommand, signal?: AbortSignal) {
-      if (!current() || signal?.aborted) return null;
-      const command = parse(logoVectorEditCommandSchema, input, W.LOGO_MUTATION_MAX_BYTES);
-      return request(`${project()}/edits/requests/${command.body.requestKey}/cancel`, logoVectorEditRequestStateSchema,
-        value => value.status !== "not_found" && owned(value) && value.requestKey === command.body.requestKey && sameLogoVectorEditCommand(value.command, command),
-        { method: "POST", body: command, signal, maximum: 131_072 });
-    },
-    async readLogoVectorEditRequest(requestKey: string, signal?: AbortSignal) {
-      if (!current() || signal?.aborted) return null;
-      const key = parse(V.logoUuidSchema, requestKey);
-      return request(`${project()}/edits/requests/${key}`, logoVectorEditRequestStateSchema,
-        value => value.status === "not_found" || owned(value) && value.requestKey === key,
-        { signal, maximum: 131_072 });
     },
     async readLogoRequest(requestKey: string, signal?: AbortSignal) {
       if (!current() || signal?.aborted) return null;
@@ -420,10 +377,6 @@ export function createAccountLogoClient(
       if (!current() || signal?.aborted) return null;
       return request(`${project()}/directions?${query(input)}`, Directions.identityDirectionsOverviewSchema, owned, { signal, maximum: 8_388_608 });
     },
-    async listLogoFonts(signal?: AbortSignal) {
-      if (!current() || signal?.aborted) return null;
-      return request(`${project()}/fonts`, z.array(Directions.fontRecordSchema).max(100), value => value.every(font => owned(font.asset)), { signal, maximum: 3_276_800 });
-    },
     async prepareLogoVariants(input: z.infer<typeof W.prepareLogoVariantsInputSchema>, signal?: AbortSignal) {
       if (!current() || signal?.aborted) return null;
       const body = parse(W.prepareLogoVariantsInputSchema, input, W.LOGO_MUTATION_MAX_BYTES);
@@ -452,17 +405,6 @@ export function createAccountLogoClient(
           && manifest.directionApprovalId === entry.input.directionApprovalId && manifest.variantSetId === entry.input.variantSetId;
       }), { signal, maximum: 26_214_400 });
     },
-    async listLogoVectorHistory(input: VectorHistory.LogoVectorHistoryQuery = {}, signal?: AbortSignal) {
-      if (!current() || signal?.aborted) return null;
-      const body = parse(VectorHistory.logoVectorHistoryQuerySchema, input), params = query(body);
-      return request(`${project()}/vector/history?${params}`, VectorHistory.logoVectorHistoryPageSchema,
-        value => owned(value) && value.items.length <= body.limit, { signal, maximum: VectorHistory.LOGO_VECTOR_HISTORY_MAX_BYTES });
-    },
-    async readLogoCurrentVectorRevisionId(signal?: AbortSignal): Promise<string | null> {
-      if (!current() || signal?.aborted) return null;
-      const selection = await request(`${project()}/vector/current`, W.logoCurrentVectorSelectionSchema, owned, { signal });
-      return selection?.vectorRevisionId ?? null;
-    },
     readLogoVectorDetail: readVectorDetail,
     async resolveLogoVariantSet(variantSetId: string, signal?: AbortSignal): Promise<D.ResolvedLogoVariantSet | null> {
       if (!current() || signal?.aborted) return null;
@@ -481,15 +423,6 @@ export function createAccountLogoClient(
     async getCuratedLogoReferencePreview(referenceId: string, signal?: AbortSignal): Promise<Preview | null> {
       if (!current() || signal?.aborted) return null;
       parse(V.logoUuidSchema, referenceId); return unavailable(signal);
-    },
-    async listCatalogLogoFonts(signal?: AbortSignal): Promise<{ id: string; family: string; rights: Directions.FontRightsEvidence }[] | null> { return unavailable(signal); },
-    async importCatalogLogoFont(input: FontImport, signal?: AbortSignal): Promise<Directions.FontRecord | null> {
-      if (!current() || signal?.aborted) return null;
-      void input; return unavailable(signal);
-    },
-    async uploadLogoFont(input: FontUpload, signal?: AbortSignal): Promise<Directions.FontRecord | null> {
-      if (!current() || signal?.aborted) return null;
-      void input; return unavailable(signal);
     },
   };
   clientBindings.set(client, { ...binding, current });

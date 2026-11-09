@@ -9,8 +9,6 @@ const routes = {
   "concepts/selection": () => import("../../src/app/api/projects/[projectId]/logo/concepts/selection/route"),
   "rasters/selection": () => import("../../src/app/api/projects/[projectId]/logo/rasters/selection/route"),
   "restore": () => import("../../src/app/api/projects/[projectId]/logo/restore/route"),
-  "edits": () => import("../../src/app/api/projects/[projectId]/logo/edits/route"),
-  "vector/accept": () => import("../../src/app/api/projects/[projectId]/logo/vector/accept/route"),
   "directions/selection": () => import("../../src/app/api/projects/[projectId]/logo/directions/selection/route"),
   "directions/approval": () => import("../../src/app/api/projects/[projectId]/logo/directions/approval/route"),
   "variants/prepare": () => import("../../src/app/api/projects/[projectId]/logo/variants/prepare/route"),
@@ -41,9 +39,7 @@ describe("explicit logo stage mutation routes",()=>{
 
 const expected = {projectRevision:1,referenceRevision:0,preferencesRevision:0,workspaceRevision:1,stageRevisions:{brief_references:1,concepts:0,vector:0,refinements:0,directions:0,deliverables:0}};
 const trustedBodies = {
- "edits": {baseVectorRevisionId:id(4),edit:{kind:"color",componentId:"symbol",fill:"#123456",stroke:null}},
  "restore": {stage:"vector",revisionId:id(4),acceptEarlierBasis:true},
- "vector/accept": {vectorRevisionId:id(4),acceptEarlierBasis:false},
  "directions/selection": {approvedLogoId:id(4),paletteVersionId:id(5),typographyVersionId:id(6),graphicsVersionId:id(7)},
  "directions/approval": {directionSelectionId:id(4),consistencyHash:"a".repeat(64)},
  "variants/prepare": {approvedLogoId:id(4),directionApprovalId:id(5)},

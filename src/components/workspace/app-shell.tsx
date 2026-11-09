@@ -15,19 +15,12 @@ import { SignedOutActions } from "@/components/auth/signed-out-actions";
 
 // Library is the existing /assets page under the redesign's name.
 const primary: NavItem[] = [{ href: "/", label: "Home" }, { href: "/brands", label: "Projects" }, { href: "/assets", label: "Library" }];
-const tools: NavItem[] = [
-  { href: "/ideas", label: "Ideas", icon: "ideas", description: "Save ideas for later" },
-  { href: "/names", label: "Names", icon: "names", description: "Build and compare name ideas" },
-  { href: "/handles", label: "Handles", icon: "handles", description: "Draft social handles" },
-  { href: "/domains", label: "Domains", icon: "domains", description: "Search domain names" },
-  { href: "/trademarks", label: "Trademarks", icon: "trademarks", description: "Prepare a trademark search" },
-];
 
 export function AppShell({ children, auth }: { children: React.ReactNode; auth: React.ReactNode }) {
   return <AccountSessionProvider><AccountProfileProvider><WorkspaceShell>{children}</WorkspaceShell>{auth}</AccountProfileProvider></AccountSessionProvider>;
 }
 
-/** One floating pill for every page: brand, main pages, Tools and the account
+/** One floating pill for every page: brand, main pages and the account
  * menu. Inside a signed-in project it becomes the project bar (name, journey
  * steps, save status). The page area below it stays the scroll container. */
 function WorkspaceShell({ children }: { children: React.ReactNode }) {
@@ -42,9 +35,8 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const [moreBelow, setMoreBelow] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   const isHome = pathname === "/";
-  const ideaId = /^\/ideas\/([^/]+)$/.exec(pathname)?.[1];
   const projectWorkspace = /^\/brands\/(?:account\/)?[0-9a-f-]{36}(?:\/|$)/i.test(pathname);
-  const usesBottomFade = isHome || Boolean(ideaId);
+  const usesBottomFade = isHome;
   const accountProjectId = /^\/brands\/account\/([0-9a-f-]{36})(?:\/|$)/i.exec(pathname)?.[1]?.toLowerCase();
   // Until the project page reports its header, show the bar in its loading state
   // rather than flashing the global navigation.
@@ -54,9 +46,7 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const account = <WorkspaceAccount pathname={currentPathname} />;
   // Page classes scope each route's existing layout rules.
   const pageClass = projectWorkspace ? "concept-project-workspace" : (pathname === "/sign-in" || pathname === "/sign-up") ? "concept-sign-in"
-    : isHome ? "concept-home" : ideaId ? "concept-idea-detail" : pathname === "/ideas" ? "concept-ideas"
-    : pathname === "/domains" ? "concept-domains" : pathname === "/handles" ? "concept-handles" : pathname === "/names" ? "concept-names"
-    : pathname === "/settings" ? "concept-settings" : pathname === "/trademarks" ? "concept-trademarks" : pathname === "/assets" ? "concept-assets"
+    : isHome ? "concept-home" : pathname === "/settings" ? "concept-settings" : pathname === "/assets" ? "concept-assets"
     : pathname === "/brands" ? "concept-projects" : "";
 
   useEffect(() => {
@@ -78,14 +68,13 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
         {header
           ? <ProjectBarContent projectName={header.projectName} projectControl={header.projectName ? <ProjectMenu projectName={header.projectName} /> : undefined}
             steps={header.steps} saveState={header.saveState} />
-          : <MainNavContent pathname={pathname} items={primary} tools={tools} />}
+          : <MainNavContent pathname={pathname} items={primary} />}
       </NavFrame>
       <AccountAccessNotice />
       <ProjectHeaderContext.Provider value={setProjectHeader}>
         <main id="main-content" ref={mainRef} tabIndex={-1}>{children}</main>
       </ProjectHeaderContext.Provider>
       {isHome && moreBelow && <div className="home-bottom-fade" aria-hidden="true" />}
-      {ideaId && moreBelow && <div className="idea-bottom-fade" aria-hidden="true" />}
     </div>
   </div>;
 }

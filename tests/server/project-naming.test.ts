@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 vi.mock("server-only", () => ({}));
 import { nameIdentityKey, namingStrategyBasis, namingStrategyKey } from "../../src/domain/project-naming";
 import { transformNames, type NameTransformInput } from "../../src/domain/naming";
-import { createBrandFromProjectName, getAccountNames, getCustomProjectNames, getProjectNaming, importLocalName, saveNamingView, selectProjectName, setNameRetention } from "../../src/server/data/project-naming";
+import { getCustomProjectNames, getProjectNaming, importLocalName, saveNamingView, selectProjectName, setNameRetention } from "../../src/server/data/project-naming";
 import type { AuthenticatedContext } from "../../src/server/auth/context";
 import { asRole, createTestDatabase, HASH, OWNER_A, OWNER_B, resetFixture, type TestDatabase } from "../database/local-supabase";
 import { reviewedStrategy } from "../fixtures/reviewed-strategy";
@@ -67,13 +67,12 @@ describe("Naming DAL with real local ownership and provenance rows",()=>{
   const next=await transform(transformed.entries[0]!.candidate.id,{kind:"tweaks",seed:"CeElm",operations:["uppercase"]},"fixture-server-tweak-0001");
   expect(next.entries[0]!.candidate.value).toBe("CEELM");expect((await getProjectNaming(auth,project)).candidates.items).toHaveLength(4);
  });
- it("does not render, select, retain or promote forged direct-RPC transform output",async()=>{
+ it("does not render, select or retain forged direct-RPC transform output",async()=>{
   const first=await imported();const result=await auth.client.rpc("persist_name_transform",{p_project_id:project,p_parent_candidate_id:first.entry.candidate.id,p_secondary_candidate_id:null,p_input:{kind:"tweaks",seed:"Cedar",operations:["uppercase"]},p_result:{candidates:[{value:"Forged",identityKey:"forged",explanation:"Applied Unicode uppercase mapping."}],truncated:false,notes:[]},p_idempotency_key:"fixture-direct-forged-001"});
   expect(result.error).toBeNull();const candidateId=(result.data as {entries:Array<{candidate:{id:string}}>}).entries[0]!.candidate.id;
   await expect(getProjectNaming(auth,project)).rejects.toMatchObject({code:"integration_unavailable"});
   await expect(selectProjectName(auth,project,{candidateId,expectedRevision:1,acceptEarlierContext:true})).rejects.toMatchObject({code:"integration_unavailable"});
   await expect(setNameRetention(auth,project,{candidateId,expectedRevision:0,favorite:true,saved:false})).rejects.toMatchObject({code:"integration_unavailable"});
-  await expect(createBrandFromProjectName(auth,project,{sourceProjectId:project,sourceCandidateId:candidateId,expectedSourceProjectRevision:1,title:"Cannot promote",idempotencyKey:"fixture-direct-promote01"})).rejects.toMatchObject({code:"integration_unavailable"});
   expect((await db.query("select current_revision from public.projects")).rows).toEqual([{current_revision:1}]);
  });
  it("rejects a replayable output when the stored transform omits other deterministic outputs",async()=>{
@@ -81,15 +80,11 @@ describe("Naming DAL with real local ownership and provenance rows",()=>{
   const candidateId=(result.data as {entries:Array<{candidate:{id:string}}>}).entries[0]!.candidate.id;
   await expect(selectProjectName(auth,project,{candidateId,expectedRevision:1,acceptEarlierContext:false})).rejects.toMatchObject({code:"integration_unavailable"});
  });
- it("copies verified transitive ancestry and retains selected-only names in both library filters",async()=>{
+ it("retains a selected-only transformed name in the retained filter",async()=>{
   const first=await imported();const transformed=await transform(first.entry.candidate.id,{kind:"tweaks",seed:"Cedar",operations:["uppercase"]},"fixture-server-transform");
   const candidateId=transformed.entries[0]!.candidate.id;
   await selectProjectName(auth,project,{candidateId,expectedRevision:1,acceptEarlierContext:false});
   expect((await getProjectNaming(auth,project,{filter:"retained"})).candidates.items.map(row=>row.candidate.id)).toEqual([candidateId]);
-  expect((await getAccountNames(auth,{filter:"retained"})).items.map(row=>row.candidate.id)).toEqual([candidateId]);
-  const promoted=await createBrandFromProjectName(auth,project,{sourceProjectId:project,sourceCandidateId:candidateId,expectedSourceProjectRevision:2,title:"Copied brand",idempotencyKey:"fixture-server-promotion"});
-  expect(promoted.currentSelection.candidate.origin).toMatchObject({kind:"account_copy",authorship:"user_supplied"});
-  expect((await getProjectNaming(auth,promoted.project.id)).currentSelection!.candidate.value).toBe("CEDAR");
  });
  it("persists saved view and stable pagination without changing project revision",async()=>{
   const first=await imported();await imported("Elm","fixture-server-import-002");
@@ -105,14 +100,6 @@ describe("Naming DAL with real local ownership and provenance rows",()=>{
   vi.spyOn(auth.client,"rpc").mockResolvedValue({data:{entry:{candidate:record,retention:{ownerId:OWNER_B,projectId:project,candidateId:record.id,revision:0,favorite:false,saved:false,updatedAt:null}}},error:null} as never);
   await expect(selectProjectName(auth,project,{candidateId:record.id,expectedRevision:1,acceptEarlierContext:false})).rejects.toMatchObject({code:"not_found"});
  });
- it("requires promotion acknowledgement for earlier strategy while preserving the current context",async()=>{
-  const first=await imported();const candidateId=first.entry.candidate.id;await setNameRetention(auth,project,{candidateId,expectedRevision:0,favorite:true,saved:false});
-  const changed={...context,description:"New source project direction"};await auth.client.rpc("append_project_revision",{p_project_id:project,p_expected_revision:1,p_context:changed,p_input_hash:HASH});
-  expect((await getAccountNames(auth)).items[0]!.earlierContext).toBe(true);
-  const request={sourceProjectId:project,sourceCandidateId:candidateId,expectedSourceProjectRevision:2,title:"Acknowledged source",idempotencyKey:"fixture-server-stalecopy1"};
-  await expect(createBrandFromProjectName(auth,project,request)).rejects.toMatchObject({code:"conflict"});
-  const promoted=await createBrandFromProjectName(auth,project,{...request,acceptEarlierContext:true});
-  expect(promoted.project.context.description).toBe(changed.description);expect(promoted.currentSelection.candidate.strategyBasis.description).toBe(context.description);expect(promoted.currentSelection.selection.acceptedEarlierContext).toBe(true);
- });
+
 
 });

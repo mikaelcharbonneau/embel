@@ -4,11 +4,7 @@ import { toDomainCheck, toHandleEvidence } from "@/server/standalone-providers/p
 import { createRegistrarCheckContract } from "@/server/standalone-providers/registrar-check";
 import { createSocialProfileContract } from "@/server/standalone-providers/social-profile";
 import { createTrademarkSearchContract } from "@/server/standalone-providers/trademark-search";
-import { domainDraftSchema, emptyDomainDraft } from "@/features/domain-workspace/draft";
-import { handlesDraftSchema } from "@/features/handles-workspace/account-codec";
-import { evidenceSchema, createEntry } from "@/features/handles-workspace/domain";
-import { trademarkAccountDraftSchema } from "@/features/trademark-workspace/account-codec";
-import { buildTrademarkDraftPreview, createTrademarkDraft, serializeTrademarkDraftPreview, type TrademarkDraftPreview } from "@/features/trademark-workspace/domain";
+import { evidenceSchema } from "@/features/handles-workspace/domain";
 import type { DomainTarget, HandleTarget, RegistrarObservation, SocialProfileObservation } from "@/server/standalone-providers/contracts";
 import { providerResultSchema, type ProviderResult } from "@/domain/standalone-provider-evidence";
 import { registrarObservationSchema } from "@/server/standalone-providers/contracts";
@@ -50,19 +46,8 @@ describe("server-only compatibility projections", () => {
     const forged = { ...found, value: { profile: "not_found", profileId: null, availability: "available", reservation: "unverified", ownership: "unverified" } } as unknown as ProviderResult<SocialProfileObservation>;
     expect(toHandleEvidence(forged, handleTarget, NOW).outcome).toBe("unknown");
   });
-  it("manual_codecs_reject_all_provider_envelopes", async () => {
-    const observation = await registrar();
-    expect(domainDraftSchema.safeParse({ ...emptyDomainDraft(), observation }).success).toBe(false);
-    const evidence = toHandleEvidence(await social(), handleTarget, NOW);
-    const draft = { version: 1, bundles: [{ id: "fixture", title: "Fixture", list: "Fixture", savedAt: new Date(NOW).toISOString(), source: { id: "fixture", name: "Fixture", origin: "manual", projectId: null, projectTitle: null }, entries: [{ ...createEntry("youtube", "fixture"), evidence: [evidence] }] }] };
-    expect(handlesDraftSchema.safeParse(draft).success).toBe(false);
-    expect(trademarkAccountDraftSchema.safeParse({ ...createTrademarkDraft("Fixture"), research: { legalClearance: "clear", hits: [] } }).success).toBe(false);
-  });
-  it("trademark_preview_cannot_upgrade_research", () => {
-    const preview = buildTrademarkDraftPreview(createTrademarkDraft("Fixture"));
-    const forged = { ...preview, research: { status: "clear", matches: [] }, legalClearance: "clear" } as unknown as TrademarkDraftPreview;
-    expect(JSON.parse(serializeTrademarkDraftPreview(forged)).research.status).toBe("unavailable");
-  });
+
+
   it("constructors_have_no_ambient_runtime_effect", () => {
     const fetch = vi.fn(async () => json({}));
     createRegistrarCheckContract({ accountId, fetch, clock }); createSocialProfileContract({ fetch, clock }); createTrademarkSearchContract(null, clock);

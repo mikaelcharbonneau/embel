@@ -12,7 +12,6 @@ const mock = vi.hoisted(() => ({ session: null as VerifiedAccount | null, memory
 vi.mock("@/components/workspace/account-session", () => ({ AccountStatus: () => null, useAccountSession: () => ({ session: mock.session, drafts: mock.memory, isCurrent: mock.current, expire: mock.expire, refresh: mock.refresh }) }));
 vi.mock("@/components/workspace/account-guided-interview", () => ({ AccountGuidedInterview: (props: ComponentProps<typeof AccountGuidedInterview>) => { mock.editor = props; return createElement("div", null, props.storage.actions); } }));
 vi.mock("@/components/workspace/account-project-continuity", () => ({ AccountProjectContinuity: () => null }));
-vi.mock("@/components/ideas/idea-source-banner", () => ({ IdeaSourceBanner: () => null }));
 const projectId = "bbbbbbbb-1111-4111-8111-111111111111", when = "2026-10-08T00:00:00Z";
 const deferred = <T,>() => { let resolve!: (value: T) => void; const promise = new Promise<T>(yes => { resolve = yes; }); return { promise, resolve }; };
 let root: Root | null, host: HTMLDivElement, project: AccountProject, fetcher: ReturnType<typeof vi.fn>;

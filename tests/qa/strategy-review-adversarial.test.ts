@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { accountProjectSchema } from "@/domain/project-api";
 import { contextSnapshotSchema, missingStrategy, personalitySchema } from "@/domain/projects";
 import { namingSourceSchema } from "@/domain/naming";
-import { brandDraftFromName } from "@/components/workspace/name-promotion";
 import {
   accountProjectDraft, createAccountInput, draftContext, draftPersonality, draftPositioning,
   isCompetitorReviewComplete, isPersonalityReviewComplete, isPositioningReviewComplete,
@@ -243,14 +242,4 @@ describe("independent review bindings and preserved strategy", () => {
     expect(new TextEncoder().encode(JSON.stringify(input)).length).toBeLessThan(32_768);
   });
 
-  it("promoting a standalone name retains strategy, original name provenance and review status", () => {
-    const draft = brandDraftFromName(nameSource, project.context, "77777777-7777-4777-8777-777777777777", now);
-    const input = createAccountInput(draft);
-    expect(input.scope).toBe("complete_brand");
-    expect(input.context.personality).toEqual(profile);
-    expect(input.context.positioning).toBe(project.context.positioning);
-    expect(input.context.namingSource).toEqual(nameSource);
-    expect(isPersonalityReviewComplete(draft)).toBe(true);
-    expect(isPositioningReviewComplete(draft)).toBe(true);
-  });
 });

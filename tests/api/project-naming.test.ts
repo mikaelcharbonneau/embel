@@ -9,8 +9,6 @@ import { PATCH as retention } from "../../src/app/api/projects/[projectId]/namin
 import { POST as selection } from "../../src/app/api/projects/[projectId]/naming/selection/route";
 import { POST as importRoute } from "../../src/app/api/projects/[projectId]/naming/imports/route";
 import { GET as customNames } from "../../src/app/api/projects/[projectId]/naming/custom/route";
-import { POST as promote } from "../../src/app/api/projects/[projectId]/naming/promote/route";
-import { GET as library } from "../../src/app/api/names/route";
 import { contextSnapshotSchema } from "../../src/domain/projects";
 import { getNamingReadiness } from "../../src/domain/project-naming";
 import { ApiError } from "../../src/server/http/errors";
@@ -31,13 +29,12 @@ const mutations=[
  ["retention",retention,{candidateId:candidate,expectedRevision:0,favorite:true,saved:false}],
  ["selection",selection,{candidateId:candidate,expectedRevision:1,acceptEarlierContext:false}],
  ["import",importRoute,{expectedProjectRevision:1,source,capturedContext:context,idempotencyKey:"fixture-api-import00001"}],
- ["promotion",promote,{sourceProjectId:project,sourceCandidateId:candidate,expectedSourceProjectRevision:1,title:"Local brand",idempotencyKey:"fixture-api-promote0001"}],
 ] as const;
 
 describe("Naming API authentication, owner validation and actual byte bounds",()=>{
  beforeEach(()=>{vi.resetAllMocks();vi.stubEnv("APP_ORIGIN","https://fluid.example");mocks.auth.mockResolvedValue({userId:owner,client:{rpc:mocks.rpc,from:mocks.from}});
   mocks.from.mockImplementation(()=>{const q={select:()=>q,eq:()=>q,order:()=>q,limit:()=>Promise.resolve({data:[],error:null})};return q;});
-  mocks.rpc.mockImplementation(async(name:string)=>({error:null,data:name==="get_project_naming"?baseOverview:name==="get_account_names"?{ownerId:owner,items:[],nextCursor:null}:null}));});
+  mocks.rpc.mockImplementation(async(name:string)=>({error:null,data:name==="get_project_naming"?baseOverview:null}));});
  afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks();});
  it("reads custom names privately through existing owner-filtered tables and rejects invalid cursors",async()=>{
   const eq=vi.fn();mocks.from.mockImplementation((table:string)=>{const q={select:()=>q,eq:(...args:unknown[])=>{eq(...args);return q;},order:()=>q,maybeSingle:async()=>({data:{id:project,owner_id:owner},error:null}),limit:async()=>({data:[],error:null})};expect(["projects","name_candidates"]).toContain(table);return q;});
@@ -53,9 +50,8 @@ describe("Naming API authentication, owner validation and actual byte bounds",()
   mocks.from.mockImplementation(()=>{const q={select:()=>q,eq:()=>q,maybeSingle:async()=>({data:null,error:null})};return q;});
   const response=await customNames(request(undefined,"GET"),params());expect(response.status).toBe(404);expect(mocks.from).toHaveBeenCalledTimes(1);
  });
- it("reads owner-bound overview, batch pages and account library with bounded queries",async()=>{
+ it("reads owner-bound overview and batch pages with bounded queries",async()=>{
   expect((await overview(request(undefined,"GET"),params())).status).toBe(200);expect(mocks.rpc).toHaveBeenCalledWith("get_project_naming",{p_project_id:project,p_query:{}});
-  expect((await library(request(undefined,"GET",{},"?filter=retained&limit=50"))).status).toBe(200);
   expect((await overview(request(undefined,"GET",{},"?limit=101"),params())).status).toBe(422);
   expect((await overview(request(undefined,"GET",{},"?ownerId=forged"),params())).status).toBe(422);
   expect((await overview(request(undefined,"GET",{},"?cursorId="+candidate),params())).status).toBe(422);

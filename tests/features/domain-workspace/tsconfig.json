@@ -1,5 +1,5 @@
 {
   "extends": "../../../tsconfig.json",
   "compilerOptions": { "incremental": false },
-  "include": ["../../../src/features/domain-workspace/**/*.ts", "../../../src/features/domain-workspace/**/*.tsx", "./*.test.ts", "./preview.tsx", "../../../next-env.d.ts"]
+  "include": ["../../../src/features/domain-workspace/**/*.ts", "../../../src/features/domain-workspace/**/*.tsx", "./*.test.ts", "../../../next-env.d.ts"]
 }

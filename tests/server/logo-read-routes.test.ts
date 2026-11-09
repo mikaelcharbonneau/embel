@@ -7,7 +7,6 @@ vi.mock('@/server/runtime/logo-request-services',()=>({resolveLogoRequestService
 import {GET as batches} from '../../src/app/api/projects/[projectId]/logo/batches/route';
 import {GET as refinements} from '../../src/app/api/projects/[projectId]/logo/raster-refinements/route';
 import {GET as refinement} from '../../src/app/api/projects/[projectId]/logo/raster-refinements/[rasterRevisionId]/route';
-import {GET as currentVector} from '../../src/app/api/projects/[projectId]/logo/vector/current/route';
 import {GET as vectorDetail} from '../../src/app/api/projects/[projectId]/logo/vector/revisions/[vectorRevisionId]/route';
 const id=(n:number)=>`d0000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const context={params:Promise.resolve({projectId:id(2),rasterRevisionId:id(3)})};
@@ -25,12 +24,7 @@ describe('owned logo history routes',()=>{
   f.refinement.mockResolvedValue({fixture:'owned-refinement'});expect((await refinement(new Request('https://fluid.invalid/api'),context)).status).toBe(200);
   expect(f.refinement.mock.calls[0]!.slice(1)).toEqual([id(2),id(3)]);
  });
- it('returns the authoritative current vector with verified owner scope',async()=>{
-  f.current.mockResolvedValue(id(9));
-  const response=await currentVector(new Request('https://fluid.invalid/api'),context);
-  expect(await response.json()).toEqual({ownerId:id(1),projectId:id(2),vectorRevisionId:id(9)});
-  expect(f.current.mock.calls[0]!.slice(1)).toEqual([id(2)]);
- });
+
  it('passes the exact vector revision and abort signal to the validated detail service',async()=>{
   const request=new Request('https://fluid.invalid/api');f.detail.mockResolvedValue({fixture:'validated-detail'});
   const response=await vectorDetail(request,{params:Promise.resolve({projectId:id(2),vectorRevisionId:id(9)})});

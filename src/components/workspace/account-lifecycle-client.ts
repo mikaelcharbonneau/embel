@@ -2,11 +2,7 @@ import { z } from "zod";
 import type { VerifiedAccount } from "./account-session";
 import { AccountRequestError } from "./account-api";
 import { attachmentPolicySchema, attachedProjectDraftInputSchema, attachedProjectDraftReceiptSchema, ownedAttachmentRefSchema, requestLookupSchema, stageHomeAttachmentInputSchema, type AttachedProjectDraftInput, type StageHomeAttachmentInput, type OwnedAttachmentRef } from "@/domain/attachments";
-import { attachIdeaToProjectInputSchema, ideaProjectAttachmentOutcomeSchema, ideaProjectAttachmentPageSchema, type AttachIdeaToProjectInput } from "@/domain/idea-project-attachment";
-import { standalonePromotionInputSchema, standalonePromotionReceiptSchema, standalonePromotionSourceSchema, type StandalonePromotionInput } from "@/domain/standalone-promotion";
 import { accountProjectResponseSchema } from "@/domain/project-api";
-import { standalonePromotionSnapshotResponseSchema } from "@/features/brand-lifecycle/source-snapshot";
-import { attachmentReceiptMatches, promotionReceiptMatches } from "@/features/brand-lifecycle/intent-memory";
 async function boundedResponse<T>(response: Response, schema: z.ZodType<T>, signal: AbortSignal, maxBytes: number): Promise<T> {
  if (!response.ok) throw new AccountRequestError(response.status);
  if (response.headers.get("content-type")?.split(";")[0]?.trim() !== "application/json" || Number(response.headers.get("content-length")) > maxBytes) throw new AccountRequestError(502);
@@ -56,24 +52,7 @@ export function createAccountLifecycleClient(account: VerifiedAccount, isCurrent
    const schema = z.strictObject({ ownerId: z.uuid(), policy: attachmentPolicySchema.nullable(), reason: z.string().min(1).max(1000).nullable() }).refine(value => value.policy === null ? value.reason !== null : value.reason === null);
    return run("/api/home/attachments/capability", schema, owned, signal);
   },
-  attachIdeaToProject(raw: AttachIdeaToProjectInput, signal?: AbortSignal) { const input = attachIdeaToProjectInputSchema.parse(raw); return run(`/api/ideas/${input.ideaId}/projects`, ideaProjectAttachmentOutcomeSchema, receipt => owned(receipt) && attachmentReceiptMatches(input, receipt), signal, input); },
-  readIdeaProjectAttachmentRequest: (key: string, signal?: AbortSignal) => read("/api/ideas/project-attachments/requests", key, ideaProjectAttachmentOutcomeSchema, signal),
-  getProjectIdeaAttachments(projectId: string, query: { cursor?: string; limit?: number } = {}, signal?: AbortSignal) {
-   projectId = uuid(projectId); const params = new URLSearchParams({ limit: String(z.number().int().min(1).max(50).parse(query.limit ?? 20)) });
-   if (query.cursor) params.set("cursor", z.string().min(1).max(2048).parse(query.cursor));
-   return run(`/api/projects/${projectId}/idea-attachments?${params}`, ideaProjectAttachmentPageSchema, page => owned(page) && page.projectId === projectId && page.items.length <= Number(params.get("limit")) && (!page.nextCursor || page.nextCursor !== query.cursor), signal, undefined, 3_276_800);
-  },
   getProject(projectId: string, signal?: AbortSignal) { projectId = uuid(projectId); return run(`/api/projects/${projectId}`, accountProjectResponseSchema, v => v.project.id.toLowerCase() === projectId && v.project.owner_id.toLowerCase() === account.userId.toLowerCase(), signal, undefined, 262_144); },
-  promoteStandaloneWorkspace(raw: StandalonePromotionInput, signal?: AbortSignal) { const input = standalonePromotionInputSchema.parse(raw); return run("/api/workspaces/promotions", standalonePromotionReceiptSchema, receipt => owned(receipt) && promotionReceiptMatches(input, receipt), signal, input); },
-  readStandalonePromotionRequest: (key: string, signal?: AbortSignal) => read("/api/workspaces/promotions/requests", key, standalonePromotionReceiptSchema, signal),
-  getStandalonePromotionSnapshot(projectId: string, signal?: AbortSignal) {
-   projectId = uuid(projectId);
-   return run(`/api/projects/${projectId}/standalone-source/snapshot`, standalonePromotionSnapshotResponseSchema, value => owned(value) && value.projectId === projectId, signal, undefined, 262_144);
-  },
-  getStandalonePromotionSource(projectId: string, signal?: AbortSignal) {
-   projectId = uuid(projectId); const schema = z.strictObject({ ownerId: z.uuid(), projectId: z.uuid(), source: standalonePromotionSourceSchema.nullable() });
-   return run(`/api/projects/${projectId}/standalone-source`, schema, v => owned(v) && v.projectId === projectId && (!v.source || owned(v.source)), signal).then(v => v?.source ?? null);
-  },
   async stageHomeAttachment(raw: StageHomeAttachmentInput, bytes: Uint8Array, signal?: AbortSignal): Promise<OwnedAttachmentRef | null> {
    const input = stageHomeAttachmentInputSchema.parse(raw);
    if (!isCurrent(account) || signal?.aborted) return null;

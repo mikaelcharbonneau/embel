@@ -1,8 +1,7 @@
 import type { CSSProperties } from "react";
 
 export type IconName =
-  | "home" | "brands" | "assets" | "ideas" | "names" | "handles"
-  | "domains" | "trademarks" | "settings" | "team" | "plus" | "arrow"
+  | "home" | "brands" | "assets" | "settings" | "team" | "plus" | "arrow"
   | "chevron" | "check" | "close" | "menu" | "file" | "device" | "clock"
   | "pencil" | "trash" | "layers" | "offline" | "user" | "refresh" | "mic" | "arrow-up" | "search" | "palette";
 
@@ -16,11 +15,6 @@ const paths: Record<IconName, React.ReactNode> = {
   home: <><path d="m3 10 9-7 9 7" /><path d="M5 9v11h5v-6h4v6h5V9" /></>,
   brands: <><path d="m3 7 9-5 9 5-9 5Zm0 7 9 5 9-5M3 14l3-2m15 2-3-2" /></>,
   assets: <><rect x="3" y="4" width="18" height="16" rx="2" /><path d="m3 16 5-5 4 4 3-3 6 6" /><circle cx="16" cy="9" r="1" /></>,
-  ideas: <><path d="M8.5 16c0-2-3.5-3.3-3.5-7a7 7 0 0 1 14 0c0 3.7-3.5 5-3.5 7Z" /><path d="M9 19h6m-5 3h4m-2-6v-5m-3-2 3 2 3-2" /></>,
-  names: <path d="M4 6V3h16v3M12 3v18m-4 0h8" />,
-  handles: <><circle cx="12" cy="12" r="4" /><path d="M16 8v6c0 4 6 2 6-3a10 10 0 1 0-5 9" /></>,
-  domains: <><circle cx="12" cy="12" r="9" /><ellipse cx="12" cy="12" rx="4" ry="9" /><path d="M3 12h18" /></>,
-  trademarks: <><path d="m12 3 8 3v6c0 4-3.8 7-8 9-4.2-2-8-5-8-9V6Z" /><path d="M8.5 9h7M12 9v7" /></>,
   settings: <><path d="M4 7h16M4 17h16" /><circle cx="9" cy="7" r="3" fill="currentColor" stroke="none" /><circle cx="15" cy="17" r="3" fill="currentColor" stroke="none" /></>,
   team: <><circle cx="9" cy="8" r="3" /><path d="M3 20v-2a6 6 0 0 1 12 0v2m2-15a3 3 0 0 1 0 6m1 3a5 5 0 0 1 3 4v2" /></>,
   plus: <path d="M12 5v14M5 12h14" />,

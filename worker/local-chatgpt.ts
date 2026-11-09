@@ -13,7 +13,6 @@ import { reportSignInFailure, type SignInFailure } from "../src/server/local-cha
 import { FileVerifiedChatGPTModelStore } from "../src/server/local-chatgpt/verified-models";
 import { parseClaimedJob, PostgresJobStore } from "./postgres-store";
 import { runOneJob, type HandlerRegistry, type JobHandler } from "./runner";
-import { expireStandaloneNamesLeases, reportStandaloneNamesReady, runOneStandaloneNamesJob } from "./standalone-names";
 
 export const LOCAL_WEB_ORIGIN = "http://127.0.0.1:3106";
 export const LOCAL_WORKER_ORIGIN = "http://127.0.0.1:3107";
@@ -89,8 +88,8 @@ export class SubscriptionJobStore extends PostgresJobStore {
     if (result.rows.length !== 1) throw new Error("Subscription claim binding mismatch");
     const job = parseClaimedJob(result.rows[0]);
     if (job.ownerId !== this.ownerId || job.reservedCostMicrousd !== 0 || job.actualCostMicrousd !== 0) throw new Error("Subscription claim binding mismatch");
-    // Retired project Naming subscription jobs have no handler here, so the
-    // runner fails them without a provider call. Standalone names use their own queue.
+    // Retired Naming subscription jobs have no handler here, so the runner
+    // fails them without a provider call.
     if (job.operation === "naming.generate") return job;
     strategyOperationSchema.parse(job.operation);
     const input = chatGPTStrategyJobInputSchema.parse(job.input);
@@ -331,10 +330,7 @@ export function createLocalChatGPTRuntime(options: {
             const catalog = await transport(selection.ownerId, selection.registrationId).listModels(AbortSignal.timeout(20_000));
             if (catalog.accountId !== selection.registrationId || !catalog.models.some(model => model.slug === selection.model)) throw new Error("Selected model unavailable");
           });
-          for (const entry of selection.policies) {
-            await assertReady(selection.ownerId, entry.operation, entry.policy);
-            if (entry.operation === "naming.generate") await reportStandaloneNamesReady(database, entry.policy);
-          }
+          for (const entry of selection.policies) await assertReady(selection.ownerId, entry.operation, entry.policy);
           const currentGroups = selections(await bindings());
           reconcileReady(currentGroups);
           const current = currentGroups.get(key);
@@ -351,7 +347,6 @@ export function createLocalChatGPTRuntime(options: {
     cycling = true;
     try {
       await new PostgresJobStore(database).expireLeases();
-      await expireStandaloneNamesLeases(database);
       for (const [key, selection] of ready) {
         if (signal.aborted || closed || blocked.has(key)) break;
         const controller = fences.get(key);
@@ -379,16 +374,12 @@ export function createLocalChatGPTRuntime(options: {
         };
         const handlers = new Map<string, JobHandler>();
         for (const entry of selection.policies) {
-          // The naming.generate policy now serves standalone names only.
+          // No Naming subscription handler remains.
           if (entry.operation === "naming.generate") continue;
           for (const [operation, handler] of createSubscriptionHandlers({ ...shared, policy: entry.policy, operations: [entry.operation] })) handlers.set(operation, handler);
         }
         const store = new SubscriptionJobStore(database, selection.ownerId, selection.registrationId, selection.policies);
         await runOneJob({ store, handlers, workerId, signal: AbortSignal.any([signal, controller.signal]) });
-        const standalonePolicy = selection.policies.find((entry): entry is Extract<OperationPolicy, { operation: "naming.generate" }> => entry.operation === "naming.generate");
-        if (standalonePolicy) await runOneStandaloneNamesJob({ database, ownerId: selection.ownerId, policy: standalonePolicy.policy,
-          transport: shared.transport, signal: AbortSignal.any([signal, controller.signal]),
-          assertReady: () => shared.assertReady("naming.generate", standalonePolicy.policy), onQuotaUnavailable: shared.onQuotaUnavailable });
       }
     } finally { cycling = false; }
   }
