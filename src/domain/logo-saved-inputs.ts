@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { logoBriefDraftSchema, logoReferenceSelectionSchema, type LogoType } from "./logo-workspace";
 import { logoCounterSchema, logoRevisionSchema, logoUuidSchema } from "./logo-vector";
+import { LIKED_LOGO_DIRECTION } from "./logo-style-notes";
 
 export const LOGO_SAVED_INPUTS_MAX_BYTES = 65_536;
 /** Liked uploads used as images: a logo refinement sends its base preview plus
@@ -34,10 +35,12 @@ export function logoInspirationHeading(catalogVersion: string, selectionRevision
 const inspirationHeading = /^Saved inspiration · catalog \S+ · selection (\d+):$/mu;
 
 /** Whether a saved brief predates the latest brand or inspiration. A brief saved
- * after both that still differs from them was edited by hand. */
+ * after both that still differs from them was edited by hand, unless it was
+ * written before liked logos became style notes. */
 export function logoBriefOutdated(saved: { personality: string; sourceProjectRevision: number },
-  latest: Pick<LogoSavedInputs, "projectRevision" | "inspirationSelectionRevision" | "inspirationCount">) {
+  latest: Pick<LogoSavedInputs, "projectRevision" | "inspirationSelectionRevision" | "inspirationCount"> & { draft?: { personality: string } | null }) {
   if (saved.sourceProjectRevision !== latest.projectRevision) return true;
   const selection = inspirationHeading.exec(saved.personality)?.[1];
-  return (selection === undefined ? null : Number(selection)) !== (latest.inspirationCount ? latest.inspirationSelectionRevision : null);
+  if ((selection === undefined ? null : Number(selection)) !== (latest.inspirationCount ? latest.inspirationSelectionRevision : null)) return true;
+  return selection !== undefined && Boolean(latest.draft?.personality.includes(LIKED_LOGO_DIRECTION)) && !saved.personality.includes(LIKED_LOGO_DIRECTION);
 }

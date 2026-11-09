@@ -1,0 +1,343 @@
+{
+  "version": 1,
+  "noteVersion": "logo-style-note-v1",
+  "model": "gpt-6.1-sol",
+  "notes": {
+    "82a30592-62c1-5258-b616-119d4757270c": {
+      "symbol": "Three nested curved ribbon modules of increasing height, shared horizontal baseline, tapered upper tips and broad flat terminals, variable thick silhouettes, open negative-space channels, ascending repetition, asymmetrical balance, smooth contours, minimal detail",
+      "lettering": "Geometric sans serif, medium weight, wide uppercase proportions, squared curves, mostly sharp terminals, moderately open spacing",
+      "slug": "archi-tex",
+      "logoContentHash": "cded98446fc0d4e561acd0e0326e372ec1f9675ee93445fb39e7ef194e08a533"
+    },
+    "80f2a36a-4c86-5be5-9470-730d98df4b3c": {
+      "symbol": "Broad continuous curved band paired with a detached circular module, consistent heavy thickness, sweeping diagonal transition, flat horizontal terminals, softly rounded junctions, generous open negative space, asymmetric balance, compact construction, minimal geometric detail",
+      "lettering": "Extra-bold rounded geometric sans serif, lowercase, broad proportions, tight spacing, compact counters, selectively squared terminals",
+      "slug": "asteor",
+      "logoContentHash": "8ff60897e0e5b933b9a9764c4a72fcf6a7324f44ce50c22b7c4b02e63b014936"
+    },
+    "7e5e2ef8-cd9e-5880-8330-ae7610d26d3d": {
+      "symbol": "Radial arrangement of rectangular bars, vertical and horizontal axes with repeated diagonal modules, heavy uniform thickness, flat terminals, sharp outer corners with one rounded junction, compact silhouette, triangular negative spaces, balanced lateral spread, minimal detail",
+      "lettering": "Bold neo-grotesque sans serif, standard width, mixed case, tight spacing, two stacked lines",
+      "slug": "astrix-builders",
+      "logoContentHash": "3a15e1bccbfe24c16a11805990fba23cfee94e511b815e41c7694fb59b62a7b2"
+    },
+    "d2743ebe-443d-5d05-ad50-c99ec24f63be": {
+      "symbol": "Asymmetric construction combining a straight diagonal band and sweeping tapered arc, detached four-point accent, medium-weight solid forms, sharp terminals, open negative space, contrasting angular and curved rhythms, minimal detail",
+      "lettering": "Geometric sans serif, medium weight, broad uppercase proportions, generous spacing, clean terminals, subtly customized letterforms",
+      "slug": "auraic",
+      "logoContentHash": "a48a04365f386746dafed1a37b1bebb7dd7acdd8c0b2bb3bc15000a6469441c8"
+    },
+    "a0602cd7-8d2e-575c-9d5c-6b7fadcee36e": {
+      "symbol": "Two-part geometric construction, compact angular module paired with elongated diagonal bar, substantial uniform weight, softly rounded corners and capsule terminals, open diagonal separation, asymmetrical upward rhythm, balanced baseline alignment, minimal detail",
+      "lettering": "Geometric sans serif, medium weight, broad proportions, lowercase forms, clean circular counters, moderately tight spacing",
+      "slug": "aurox",
+      "logoContentHash": "1b76511b42c3ea8ccbfba8fa76db4158e89b2d4987b823728de46a68b2307d19"
+    },
+    "e283c52b-3000-593e-b866-f9ac2509715d": {
+      "symbol": null,
+      "lettering": "Slanted sans serif, medium weight, standard width, mixed case, moderately tight spacing, clean terminals",
+      "slug": "autonex",
+      "logoContentHash": "1d6e36f60e1166d83eea3da74cadf4e94deb43b18d8644663a9b3c8527eae251"
+    },
+    "aebbf58d-04b1-5a7f-9cda-57b39bcd3c45": {
+      "symbol": null,
+      "lettering": "Custom geometric sans serif, bold monoline weight, wide lowercase forms, tight spacing, angular cuts and rounded bowls.",
+      "slug": "avelo",
+      "logoContentHash": "7685ec320fcb44a7aea6182ff268cecab8a9eabacf1b49ff76d280114a574216"
+    },
+    "1b49776a-367e-5f20-a348-7dfe45c17880": {
+      "symbol": "Wide elliptical enclosure, paired interlocking curved modules, consistent heavy ribbon strokes, rounded inner terminals and angled cuts, tapered outer joins, generous enclosed negative spaces, rotational rhythm and centered balance, compact construction with minimal detail",
+      "lettering": "Custom geometric sans serif, medium weight, wide uppercase forms, rounded vertices, open counters, close even spacing",
+      "slug": "avoova",
+      "logoContentHash": "d83b70ba9565348d2b82c508f913fd47911014b3dc2a1056ca3fc5d6ce1af295"
+    },
+    "eda0e31d-22ba-54c9-9f56-e18f8301897f": {
+      "symbol": "Single compact angular silhouette, broad horizontal top aligned with a long diagonal edge, tapered triangular extensions, concave curved cutout, sharp pointed terminals, solid uniform mass, asymmetrical directional balance, generous surrounding negative space, minimal internal detail",
+      "lettering": "Bold geometric sans serif, wide lowercase forms, tight spacing, rounded bowls, squared terminals, distinctive curved joins",
+      "slug": "axian",
+      "logoContentHash": "2b562ec32fc893138ec19d46e5032ab9d733e7dfc2bdcc332055a9a72b3d7afe"
+    },
+    "c4be20b7-2c0a-5ef0-ae8e-d6c55d5009cd": {
+      "symbol": null,
+      "lettering": "Bold neo-grotesque sans serif, moderately wide proportions, initial capital with lowercase, tight spacing",
+      "slug": "baicev",
+      "logoContentHash": "95e0680dcdddf8d5ceffb0391f231bb365ee70ed83573e22b9431095e9fa270a"
+    },
+    "6f985c9e-a163-5266-bde2-81e1578797a0": {
+      "symbol": "Two stacked angular polygon modules, consistent diagonal construction, broad solid forms without outlines, sharp corners and clipped terminals, compact density, open zigzag negative space separating interlocking elements, repeated slanted edges, balanced asymmetry, minimal geometric detail",
+      "lettering": "Geometric sans serif, medium weight, moderately narrow proportions, mixed case, tight spacing, clean angular cuts",
+      "slug": "buildit",
+      "logoContentHash": "c6c9d9a8fdf6bb51224912b0f5836fcfe3ceb7701d955ced232bc9219f652d99"
+    },
+    "8b9a320c-0147-5ba0-a1e8-514887cb0458": {
+      "symbol": "Tilted elliptical loop built from overlapping organic lobes, broad variable-width band, smoothly rounded contours and seamless terminals, large off-center oval negative space, compact silhouette, asymmetrical rotational rhythm, minimal detail",
+      "lettering": "Regular-weight sans serif, normal width, initial capital with lowercase letters, open counters, moderately tight spacing",
+      "slug": "cadora",
+      "logoContentHash": "4865f72d969dbfa4342f669a0f69b5c172d5035dc7b96d4aed1628dd8cbe9263"
+    },
+    "33b4ed0c-5094-52cf-9906-25e622644507": {
+      "symbol": null,
+      "lettering": "Bold neo-grotesque sans serif, standard width, initial capital with lowercase, tight spacing, clean terminals",
+      "slug": "curvex",
+      "logoContentHash": "55fc7e670e82912aa37c14399063ce484c7ab8022b706be901ed44a27541c18e"
+    },
+    "1561ba53-2713-5a62-bfd1-c134e7b634c5": {
+      "symbol": null,
+      "lettering": "Geometric sans serif, bold weight, standard width, mixed case, tight spacing, rounded bowls and squared terminals",
+      "slug": "drivecare",
+      "logoContentHash": "b047175108a378e4f880890aaf828597e076505da743521c7d0b95bfc331a091"
+    },
+    "79d9a377-611a-5965-9b16-407c1a8ae86f": {
+      "symbol": "Isometric angular construction, thick filled bands with consistent visual weight, rounded outer bends and crisp diagonal terminals, compact unified mass offset by three detached diamond modules, generous geometric cutouts, staggered repetition, asymmetrical balance, minimal internal detail",
+      "lettering": "Bold geometric sans serif, broad proportions, mixed case, tight spacing, clean terminals, circular counters",
+      "slug": "dustbit",
+      "logoContentHash": "b6ed7d0c821cc113b70f75feb4a974484aac091031fe044a7e5a473c6e9bcdec"
+    },
+    "931d009b-0e1a-5b17-8ae5-cd7bc938fd9d": {
+      "symbol": "Compact upright construction combining straight vertical panels with repeated sweeping horizontal bands, bold solid forms paired with a thin outer arc, sharp squared terminals, narrow separating channels and generous open cutouts, asymmetrical geometry balanced within a unified silhouette, minimal detail",
+      "lettering": "Pixel-grid geometric sans serif, medium monoline weight, moderately wide proportions, mixed case, open spacing, stepped square contours",
+      "slug": "eduflow",
+      "logoContentHash": "26a954bf4d781a28fd2d1150e3e6019df66cb4e4c4604b7cc56e0626d14b47bc"
+    },
+    "cb312465-0db9-58bd-a4df-e75c59c475c9": {
+      "symbol": "Compact geometric construction, broad solid bands, long horizontal cap paired with a detached inset bar, sweeping tapered outer curve, squared inner junctions, subtly angled terminals, generous open negative space, asymmetric balance, restrained detail",
+      "lettering": "Geometric sans serif, regular weight, broad proportions, initial capital with lowercase, tight spacing",
+      "slug": "fleetex",
+      "logoContentHash": "2ae481771322c717c9d6026ba9d13ecbc4290b45f22a8abf202da4078c4b87eb"
+    },
+    "8220d7ea-00e4-592e-a5a9-910fd1a78c67": {
+      "symbol": null,
+      "lettering": "Modern sans-serif, medium-bold weight, standard width, mixed case, tight spacing, clean terminals and generous counters",
+      "slug": "fluxev",
+      "logoContentHash": "7f0b30442e315c59a89393059a5e1a0670f5e3da7ae7b17c7c022a57e0fbaf6a"
+    },
+    "f992b4ca-0285-59f5-a4cf-829560296c65": {
+      "symbol": "Two repeated angular ribbon modules on a diagonal grid, uniform heavy band width, subtly rounded outer corners, flat terminals, open diagonal negative space, compact density, staggered ascending rhythm, balanced asymmetry, minimal detail",
+      "lettering": "Geometric sans serif, medium weight, standard width, mixed case, moderate spacing, angular cuts and clean terminals",
+      "slug": "flyra",
+      "logoContentHash": "93d33153796d929c12637a1e4207c91d4bca536940cc589c292f1cf5eb442bbc"
+    },
+    "98ef66d8-8b4b-5040-9b9a-85024ae88c16": {
+      "symbol": "Square enclosure with diagonally clipped opposing corners, inset high-contrast monogram construction, parallel vertical strokes, horizontal serif terminals, curved teardrop ending, crisp angular edges, generous negative space, compact density, asymmetric interior balanced within a regular geometric silhouette",
+      "lettering": "High-contrast uppercase display serif, medium weight, broad proportions, tight spacing, thin widely tracked sans-serif supporting lettering",
+      "slug": "forma",
+      "logoContentHash": "613566e57dfb900b4b8f708536b98da85996f3593d2b071ecfe8f4f9d63ed03f"
+    },
+    "9b3c05bd-3fda-52a2-83a9-401c1c6147f0": {
+      "symbol": "Tall tapered outline with rounded base and softened apex, nested open spiral built from flowing circular arcs, consistent medium monoline weight, rounded terminals, generous negative space, centered balance with subtly asymmetric internal rhythm, minimal detail",
+      "lettering": "Light, subtly modulated sans serif, standard-width uppercase forms, generous tracking, smaller widely spaced supporting lettering",
+      "slug": "glowe",
+      "logoContentHash": "06f8ce18413cc06186c5502b755243588b4a2f0456cc6753793d00b62ff5f411"
+    },
+    "b9a80196-3317-5272-a2de-213676763b9e": {
+      "symbol": null,
+      "lettering": "Custom geometric sans-serif, medium weight, contrasting strokes, wide lowercase forms, measured spacing, small tracked uppercase secondary lettering",
+      "slug": "grupo-terra",
+      "logoContentHash": "50976d8f96d1d722759b45b21c5e84d39668dd9d171008bf86271eff4159104c"
+    },
+    "5d949980-172c-57dd-aae2-065062fc43bc": {
+      "symbol": "Compact asymmetric silhouette built from merging curved bands, repeated upward sweeping segments, bold near-uniform weight, flat-cut terminals and rounded junctions, small enclosed negative-space opening, dense lower mass balanced by open upper separations, minimal internal detail",
+      "lettering": "Contemporary sans serif, regular weight, slightly narrow proportions, title case, close spacing, rounded bowls",
+      "slug": "handi",
+      "logoContentHash": "c20c0280c2babf8a4f5bf76b0e4c7347592b67516cfe16c06caa0c81a991ebc6"
+    },
+    "2b7e4b84-dfe9-5620-99c8-c8881ef1b525": {
+      "symbol": "Four-way orthogonal construction, repeated elongated loop modules, uniform medium-heavy strokes, semicircular outer turns, squared open terminals, interlocking central breaks, generous interior negative space, compact balanced proportions, rotational rhythm, minimal geometric detail",
+      "lettering": "Clean sans serif, regular weight, normal width, initial capital with lowercase, moderately tight spacing",
+      "slug": "helixa",
+      "logoContentHash": "9e8131093683fb260f89d433ff0107a049e4f9b7f08f9349679bd6249d13e4f9"
+    },
+    "3b6f577f-2332-5c5e-b5e1-3f4882cc18a8": {
+      "symbol": null,
+      "lettering": "Bold geometric sans serif, lowercase, moderately wide proportions, tight spacing, circular counters, angular custom joins",
+      "slug": "homis",
+      "logoContentHash": "2390ca97f75fff16ba9c83ca579bb81790e01ccbfaf4171962f1a89ac124dd1e"
+    },
+    "c334c1b7-97c7-583a-b005-8114457d0421": {
+      "symbol": null,
+      "lettering": "Custom geometric sans serif, heavy uniform weight, wide lowercase forms, circular construction, flat terminals, generous spacing",
+      "slug": "humo",
+      "logoContentHash": "c8ad975bf4a946f62f147b57a07b94ec2eba49e68ed4c673c3c21c7452f3b0ac"
+    },
+    "c3e146c4-0d14-5a42-b2ed-23d04da03b03": {
+      "symbol": "Broad continuous silhouette built from flowing curves and paired tapered peaks, substantial solid mass without outline strokes, softened corners, repeated oval cutouts, generous interior negative space, near bilateral symmetry, balanced spacing, minimal internal detail",
+      "lettering": "Geometric sans serif, bold weight, normal width, initial uppercase with lowercase forms, tight even spacing",
+      "slug": "karmapay",
+      "logoContentHash": "ff04b242187c1f5943c4cb122fb6241e88d0e0855f0dbe7dbbf26b437f7dd628"
+    },
+    "4e615fe4-6a78-5653-ba17-8c22f9fa82e0": {
+      "symbol": null,
+      "lettering": "Custom geometric sans serif, medium weight, lowercase, normal width, tight spacing, flowing interconnected curves, flat terminals.",
+      "slug": "kelvion",
+      "logoContentHash": "e9f6eecd14b0f52f49ef2111926d690a3114a0346c3bb2cec607ea0396282f14"
+    },
+    "7ee86d1d-0fa4-5c6c-9183-4ffa68b954c0": {
+      "symbol": "Compact geometric construction, thick uniform bands combining vertical rectangles and diagonal cuts, selectively rounded outer corners, crisp internal angles, open triangular negative spaces, offset modular alignment, balanced square proportions, strong solid mass, minimal detail",
+      "lettering": "Lightweight geometric sans serif, normal width, mixed case, close spacing, rounded bowls, subtly customized angular joins",
+      "slug": "kordex",
+      "logoContentHash": "c0482853bb84d19d2959efe1c350b1bb506a0ba7677ce7ba56d1e0fdd58e0b26"
+    },
+    "6d5344a5-fd33-5f3b-bc7e-4b6f469eebca": {
+      "symbol": null,
+      "lettering": "High-contrast display serif, bold thick–thin strokes, standard width, initial capital with lowercase, tight spacing, sculptural curved terminals",
+      "slug": "korevia",
+      "logoContentHash": "711afdc3f6eab537ac305c0295bb49a4d81cd6c00aec579c0b723688a29548cf"
+    },
+    "7033245c-9a76-5bee-8d11-d0c82e05a92f": {
+      "symbol": "Interlocking angular polygon modules, vertical stems and repeated diagonal edges, solid heavy construction, sharp corners and flat terminals, open central negative space, staggered heights on a shared baseline, asymmetrical balance, minimal detail",
+      "lettering": "Refined transitional serif, medium weight, moderate width, uppercase initial with lowercase letters, balanced spacing, contrasting strokes",
+      "slug": "lyvio",
+      "logoContentHash": "465822850d75a92b2c1b503fd490d78aa58de3011ab9aef98dc6c05ee49bd9db"
+    },
+    "fc208a3a-9cc0-52f4-806f-c5aaf245676e": {
+      "symbol": "Thin upright oval enclosure, compact solid interior geometry, curved masses contrasted with angular wedges, tapered pointed terminals, crisp negative-space cutouts, sparse fine details, diagonal structural accent, asymmetric interior balanced within generous surrounding space",
+      "lettering": "High-contrast narrow uppercase serif, fine tapered serifs, tight spacing, paired with small widely tracked uppercase sans serif",
+      "slug": "maroc",
+      "logoContentHash": "1168e5f4fbc70d6f6f14d5e006ba0fd0ab26123baa018a8c28a0d1429fc6a398"
+    },
+    "61c7bfe2-dbfc-52d3-9150-8a256a0b94b6": {
+      "symbol": null,
+      "lettering": "Bold uppercase sans serif, moderately condensed proportions, tight spacing, angular custom letterforms, diagonal cuts contrasting with rounded bowls.",
+      "slug": "maxgr",
+      "logoContentHash": "628c2d3c779ea8706d4be2f2e00697a785c9be0c422e443cba57e6c518e17761"
+    },
+    "581edf49-351d-5bd9-916b-7662dc8a3495": {
+      "symbol": "Paired interlocking curved bands, near-uniform heavy stroke, rounded outer lobes and tapered lower curves, angled cut terminals, generous internal negative space, compact upright proportions, asymmetrical internal rhythm within a balanced silhouette, minimal detail",
+      "lettering": "Geometric sans serif, bold weight, standard width, lowercase forms, circular counters, close even spacing",
+      "slug": "mident",
+      "logoContentHash": "7ba65b63fcf52a8dd8cee06793d3fa975dd8c8ac4ab6d818506039946d053d47"
+    },
+    "9ec4ff51-f08a-5aa3-9e27-53f8fd4061fc": {
+      "symbol": "Circular perimeter assembled from three interlocking organic segments, broad variable-width solid bands, smooth outer arcs and undulating inner contours, softly rounded transitions, narrow separating gaps, generous central negative space, asymmetric internal rhythm within a balanced silhouette, minimal detail",
+      "lettering": "Geometric sans serif, medium weight, normal width, title case, tight spacing, stacked flush-left alignment",
+      "slug": "naija-diaspora-hub",
+      "logoContentHash": "b0bfd88b8d1ed0569bc1f23a2751283fe66038e3bf861b5004cb57eab0dae6ad"
+    },
+    "c271632e-f8a8-5118-ad95-d01f1b9bef7d": {
+      "symbol": "Angular modular construction, interlocking vertical and diagonal bands, consistent heavy thickness, parallel slanted edges, sharp corners and flat terminals, narrow diagonal negative-space channels, compact balanced footprint, repeated geometric angles, minimal internal detail",
+      "lettering": "Futuristic geometric sans serif, medium weight, wide uppercase forms, rounded square curves, angular cuts, moderately tight spacing",
+      "slug": "nexara",
+      "logoContentHash": "5569bd74f7b0cb990db8660b31ab2846592dd699e4a96dcc4af3257abeb2366c"
+    },
+    "bc0947c8-1add-5100-b8bd-4060211b7b93": {
+      "symbol": null,
+      "lettering": "Bold geometric sans serif, normal width, mixed case, tight spacing, customized looping strokes and angular terminals",
+      "slug": "nutrico",
+      "logoContentHash": "15560f3f28761c84b940230cd798c40829861d473de31d54d76ba9c8de0a810d"
+    },
+    "67c0a93d-0f71-59ca-82dd-0b946f268e8d": {
+      "symbol": "Vertically elongated oval enclosure, mirrored ornamental modules, curved central geometry, fine outlines paired with heavier solid accents, rounded terminals and curled corners, compact symmetrical composition, narrow negative-space channels, repeated horizontal details, moderately intricate linework",
+      "lettering": "High-contrast bold serif capitals, broad proportions, tight spacing, sculptural curves, paired with narrow lightweight sans-serif capitals",
+      "slug": "origo",
+      "logoContentHash": "7cc9fd4d48ee3acc39916b91c90532411405da0ba2c203ecacbf2ea707998f23"
+    },
+    "b6026019-4d3f-56d6-b09c-8756b474c6d7": {
+      "symbol": "Interlocking curved ribbon forms, loosely circular spiral construction, repeated sweeping arcs, variable thick strokes, rounded bulbous terminals, smooth cornerless contours, open winding negative space, compact asymmetrical balance, flowing rotational rhythm, minimal internal detail",
+      "lettering": "Lightweight geometric sans serif, uppercase, moderately wide proportions, generous tracking, clean straight terminals, subtly customized curves",
+      "slug": "pavea",
+      "logoContentHash": "532df252a0eccab0f2c85ca7c47ab88298b56c4696a2bf887d33273411f1d32f"
+    },
+    "825260d6-578c-5985-8eda-9fd7ca4e0dea": {
+      "symbol": "Three stacked ribbon-like geometric modules, consistent broad band weight, horizontal runs joined by diagonal offsets, crisp angular cuts with subtly softened bends, open parallel negative-space channels, compact near-square footprint, repeating stepped rhythm, balanced visual density, minimal detail",
+      "lettering": "Lightweight geometric sans serif, wide rounded lowercase forms, monoline strokes, close spacing, subtly customized joins",
+      "slug": "paymok",
+      "logoContentHash": "a65a96c4226c0bf76a7d8599d566fce5dac58aae0a6ea073f99a7cb5e635d473"
+    },
+    "cab0ef81-6038-5f27-9486-6997d66fc9b4": {
+      "symbol": "Compact geometric construction, two interlocking curved modules stacked vertically, bold solid masses without outlines, rounded arcs contrasted with sharp diagonal terminals, narrow curved negative space, offset rotational rhythm, balanced near-square proportions, minimal internal detail",
+      "lettering": "Geometric sans serif, medium weight, wide proportions, uppercase forms, moderately open tracking, clean uniform strokes",
+      "slug": "raygle",
+      "logoContentHash": "bee8919759820f38c3a6566ffb8eb289d31008421893ee1632f5aecd4e378722"
+    },
+    "1134c7bf-0110-521a-9969-f0acfa9abfe5": {
+      "symbol": "Quarter-circle modules arranged on a compact two-by-two grid, repeated rotated geometry, solid fills without outlines, straight inner edges and broad curved outer corners, narrow cross-shaped negative space, balanced rotational rhythm, minimal internal detail",
+      "lettering": "Geometric sans serif, bold lowercase primary lettering, normal width, tight spacing, light uppercase supporting text with wider tracking",
+      "slug": "razzaq",
+      "logoContentHash": "323db13984748f80d70f1208c6e63c34fd4f3bc1bace6f63c3257840b5556e0e"
+    },
+    "1f736065-455a-5a37-9a18-fbb3a47da54e": {
+      "symbol": null,
+      "lettering": "Clean sans serif, medium weight, moderately wide proportions, initial capital with lowercase, tight even spacing",
+      "slug": "servexo",
+      "logoContentHash": "3942fcf62148b5b25233ad69a128c7a4a3145f72c04786bb8fd09530613e053c"
+    },
+    "816a41c7-a82a-5198-8c37-7b55e1651b72": {
+      "symbol": "Two rotationally repeated bent modules, orthogonal construction with broad curved elbows, heavy vertical masses tapering into thin horizontal extensions, softly rounded terminals, narrow central negative-space channel, compact balanced silhouette, minimal detail",
+      "lettering": "Geometric sans serif, semibold weight, normal width, mixed case, tight spacing, stacked offset alignment",
+      "slug": "sparecharge",
+      "logoContentHash": "fe85214e1d14d38ceee6af2eaf766de6ecf4498f9f08281c3e5db3624ce5d097"
+    },
+    "ef2fb97e-0934-56fc-a19f-45289cb3b053": {
+      "symbol": "Two repeated upright rectangular modules, diagonally offset and overlapping, solid heavyweight construction, softly rounded corners with sharp angular extensions, narrow negative-space separation defining the overlap, compact density, balanced staggered rhythm, minimal internal detail",
+      "lettering": "Bold sans serif, slightly condensed proportions, mixed case, tight spacing, stacked lines with contrasting sizes",
+      "slug": "speak-up-stand-with",
+      "logoContentHash": "b7a51e097d7d3bb13449ea626217d669d9540523549a1547ce05c65ae81f94f0"
+    },
+    "a73e4cfe-7fae-50c2-acb1-a21d26af11f3": {
+      "symbol": "Compact angular silhouette built from interlocking polygonal bands, broad uniform visual weight, sharp corners and flat terminals, diagonal negative-space channels, vertically stacked geometry, near-symmetrical outer contour with asymmetric internal cuts, minimal detail and strong solid-to-void contrast",
+      "lettering": "Bold sans serif, moderately condensed proportions, mixed case, tight spacing, clean terminals and open counters",
+      "slug": "statking",
+      "logoContentHash": "f4e061555eacc5d29ad82b53271e4a92b83189b7beb4b770669a603889a3743b"
+    },
+    "fd13ebf7-1cfc-5c10-b7b6-995757dd127e": {
+      "symbol": "Narrow vertical composition, irregular stacked modules along a central axis, bold solid shapes with fine internal cutouts, angular folds alternating with rounded contours, tapered terminals, dense detailing, slim negative spaces, asymmetrical elements balanced within a compact silhouette",
+      "lettering": "Bold sans serif, broad proportions, mixed case, tight spacing, rounded bowls, compact two-line arrangement",
+      "slug": "suya-spot-express",
+      "logoContentHash": "a2bf0e7892cbd4a0cf64a64bb956aa9134862c9c7f8b898f01f3e6cfbdbe3f9d"
+    },
+    "cf084e2e-b187-55e7-8a52-9a779d8588d9": {
+      "symbol": "Vertically elongated oval core intersected by repeated horizontal bands, symmetrical modular construction, consistent medium thickness, crisp flat edges and tapered outer terminals, narrow negative-space channels, compact density, evenly spaced rhythm, minimal geometric detail",
+      "lettering": "Angular monospaced-style display lettering, medium weight, moderately narrow proportions, mixed case, open spacing, chamfered corners and squared curves",
+      "slug": "synexa",
+      "logoContentHash": "039cacbb764a40cb4da6eb28d19bb880fa391c25993e3f9bd21ae94c60b16df4"
+    },
+    "5f527109-123c-5389-a1d7-5fc803cc339e": {
+      "symbol": "Compact angular geometry on a rising diagonal axis, solid heavy silhouette, tapered extensions with subtly softened tips, deep concave negative-space notch, detached circular accent, asymmetrical directional balance, sparse modular construction, minimal internal detail",
+      "lettering": "Bold geometric sans serif, moderately compact proportions, mixed case, tight spacing, clean terminals",
+      "slug": "travil",
+      "logoContentHash": "18ef292c43cda29f6a9d6e0433c259798c75ab52aa7fd84d13a3174812517079"
+    },
+    "f9c7fa1e-6224-5f35-a179-6945f10e62f1": {
+      "symbol": "Horizontal bars and compact square modules on a staggered grid, uniform thick line weight, softly rounded corners and blunt terminals, varied module lengths, narrow negative-space channels, irregular rhythmic repetition, compact asymmetrical balance, minimal detail",
+      "lettering": "Modern sans serif, regular weight, normal width, mixed case, tight spacing, clean rounded curves",
+      "slug": "twelvelabs",
+      "logoContentHash": "543f01fbbef99e59990db0cdbf2e1a9a8e8e2d7200dc36549f887505c0206e69"
+    },
+    "42c2fd72-83db-5f3e-ba91-fcc9c2082baa": {
+      "symbol": "Two-part geometric construction, diagonal solid ribbon paired with a detached circular module, broad uniform mass, rounded bends and pointed terminals, narrow curved negative-space separation, asymmetric rising balance, compact silhouette, minimal detail",
+      "lettering": "Geometric sans serif, extra-bold weight, moderately wide uppercase forms, tight spacing, flat terminals",
+      "slug": "velto",
+      "logoContentHash": "b6382077d62407a94705a3f54b32a9fcf39042bfdc24198f0bb78fc94f6d14a0"
+    },
+    "a823c535-b6bf-5fed-81b0-796e75366bc6": {
+      "symbol": "Three repeated bent ribbon modules arranged in rotational symmetry, bold uniform bands, softly curved internal bends, flat angular terminals, compact radial construction, open central negative space with narrow separating channels, balanced pinwheel rhythm, minimal geometric detail",
+      "lettering": "Clean sans serif, regular weight, standard width, title case, tight spacing, rounded bowls and crisp terminals",
+      "slug": "veratix",
+      "logoContentHash": "d05b31f13194f582cded49fe0c30d1fb709d0765b7282c195fb0b74338e2644d"
+    },
+    "64a0473d-916f-553c-90d6-34f4bf94303e": {
+      "symbol": null,
+      "lettering": "Futuristic rounded geometric sans serif, medium weight, wide uppercase forms, rounded terminals, balanced spacing, lighter supporting lettering",
+      "slug": "verso",
+      "logoContentHash": "7365299ea8a9deeb739e6630cee5f14168509811aa814ad26bea9e7e731926af"
+    },
+    "05a3faee-ba0b-5d23-bf17-ad8e27265849": {
+      "symbol": "Mirrored elongated loop modules, interlaced diagonal strokes, short horizontal crossbars, consistent medium line weight, rounded curves with sharply cut outer terminals, open interior counters, compact central accent, bilateral symmetry, minimal detail",
+      "lettering": "Custom monoline handwritten lettering, medium weight, moderately wide lowercase forms, rounded terminals, loose spacing",
+      "slug": "vetter",
+      "logoContentHash": "1a9dd3781cfcc54f914f552d4c23ab313b33016883710c67dbce8ce1e3f66524"
+    },
+    "e889f824-cfaa-5055-bb1a-72951c5469f6": {
+      "symbol": null,
+      "lettering": "Custom rounded script, bold near-monoline strokes, moderately wide proportions, mixed case, tight spacing, looping ascenders, flat terminals",
+      "slug": "wellis",
+      "logoContentHash": "f5a14660c7d5f5b41d751ea2999a8680aadbd7bdaba80cf7e90b036a619f90e7"
+    },
+    "9e4b08f0-2a9e-5841-9df6-7ec3f2ba6726": {
+      "symbol": "stacked angular polygon modules on a diagonal grid, broad solid bands with tapered ends, sharp corners and clipped terminals, open slanted negative-space channels, compact asymmetrical balance, repeated ascending rhythm, detached triangular accent, minimal geometric detail",
+      "lettering": "geometric sans serif, medium weight, broad lowercase forms, tight spacing, rounded bowls, clean terminals",
+      "slug": "zapp",
+      "logoContentHash": "6037be8a494b4bffe908b919f9e30185222e0be72dc36686feb27ba018244f44"
+    }
+  }
+}

@@ -2,6 +2,9 @@ import "server-only";
 import { inspirationCatalog, inspirationLabels, inspirationPartElements, inspirationPartLabels, hasInspirationChoice, isInspirationBrand, type InspirationDesign, type InspirationOverview, type InspirationPreferences } from "@/domain/inspiration";
 import { logoBriefDraftSchema } from "@/domain/logo-workspace";
 import { DEFAULT_LOGO_CONCEPT_TYPES, LOGO_LIKED_UPLOAD_LIMIT, logoInspirationHeading, logoSavedInputsSchema } from "@/domain/logo-saved-inputs";
+import { inspirationLogoStyles } from "@/domain/inspiration-logo-styles";
+import { LIKED_LETTERING, LIKED_LOGO_DIRECTION, LIKED_LOGO_STYLE } from "@/domain/logo-style-notes";
+import { logoStringSchema } from "@/domain/logo-vector";
 import type { LogoReferenceSelection } from "@/domain/logo-workspace";
 import type { ContextSnapshot } from "@/domain/projects";
 import type { AuthenticatedContext } from "@/server/auth/context";
@@ -14,6 +17,36 @@ type SavedBrand = { id: string; owner_id: string; current_revision: number; scop
 /** Textual references to the owner's acknowledged choices, never artwork or a licensing claim. */
 // Leaves room in the 4,000-character personality text for the traits, notes and instructions.
 const INSPIRATION_GUIDANCE_BUDGET = 2800;
+/** Liked logos (whole brand or its logo) and typefaces that guide concepts, in like order. */
+const LOGO_STYLE_LIKE_LIMIT = 4;
+const OLD_CLOSING = "Use the selected visual qualities as direction for an original logo, without copying these brands or their marks. Color preferences guide later identity work; the initial logo concepts remain black and white.";
+const NOTES_CLOSING = "Color preferences and the liked brands above guide later identity work.";
+type LikedDesign = { choice: InspirationPreferences; design: InspirationDesign };
+
+/** Style notes for logo concepts: each liked brand logo's precomputed note,
+ * kept only while it still describes the catalog's logo image, and each liked
+ * typeface's description as lettering. A liked earlier single-image design
+ * keeps its original line, marked as a liked logo style. */
+function styleNoteLines(designs: readonly LikedDesign[]) {
+  const lines: string[] = []; let used = 0;
+  for (const { choice, design } of designs) {
+    if (used >= LOGO_STYLE_LIKE_LIMIT) break;
+    const likesLogo = choice.ensemble || choice.elements.includes("logo");
+    if (!isInspirationBrand(design)) {
+      if (likesLogo) { lines.push(LIKED_LOGO_STYLE + inspirationGuidance(design, choice, false)); used += 1; }
+      continue;
+    }
+    const logo = design.parts.find(part => part.part === "logo"), note = inspirationLogoStyles.notes[design.id];
+    const typefaces = choice.elements.includes("typography") ? design.parts.find(part => part.part === "typefaces") : undefined;
+    const current = likesLogo && logo && note?.logoContentHash === logo.contentHash ? note : undefined;
+    if (!current && !typefaces) continue;
+    if (current?.symbol) lines.push(LIKED_LOGO_STYLE + current.symbol);
+    if (current?.lettering) lines.push(LIKED_LETTERING + current.lettering);
+    if (typefaces) lines.push(LIKED_LETTERING + typefaces.description);
+    used += 1;
+  }
+  return lines;
+}
 function inspirationGuidance(design: InspirationDesign, choice: InspirationPreferences, detailed: boolean) {
   if (!isInspirationBrand(design)) {
     const aspects = [...(choice.ensemble ? ["overall look"] : []), ...choice.elements.map(element => inspirationLabels[element])];
@@ -39,16 +72,24 @@ export function deriveSavedLogoInputs(project: SavedBrand, inspiration: Inspirat
     if (!design) throw new ApiError("integration_unavailable");
     return { choice, design };
   });
-  // The model never sees the images, so brand likes carry their descriptions.
-  // If that would overflow the brief, every liked brand keeps a short line instead.
-  const describe = (detailed: boolean) => designs.map(({ choice, design }) => inspirationGuidance(design, choice, detailed));
-  const detailed = describe(true);
-  const guidance = detailed.join("\n").length <= INSPIRATION_GUIDANCE_BUDGET ? detailed : describe(false);
   const traits = context.personality ? Object.entries(context.personality).map(([trait, value]) => `${trait}: ${value}`).join("; ") : "";
-  const personality = [traits, context.intake.identityNotes,
-    ...(guidance.length ? [logoInspirationHeading(inspiration.catalogVersion, inspiration.selectionRevision), ...guidance,
-      "Use the selected visual qualities as direction for an original logo, without copying these brands or their marks. Color preferences guide later identity work; the initial logo concepts remain black and white."] : []),
+  const heading = logoInspirationHeading(inspiration.catalogVersion, inspiration.selectionRevision);
+  // No model sees the liked images. Liked brand logos reach logo concepts as
+  // their style notes; the image prompt keeps only those lines (see
+  // logoPromptPersonality). Brand descriptions stay for Creative direction,
+  // which reads this brief: detailed when they fit, otherwise a short line each.
+  const notes = designs.some(({ design }) => isInspirationBrand(design)) ? styleNoteLines(designs) : [];
+  const described = notes.length ? designs.filter(({ choice, design }) => isInspirationBrand(design) || !(choice.ensemble || choice.elements.includes("logo"))) : designs;
+  const describe = (detailed: boolean) => described.map(({ choice, design }) => inspirationGuidance(design, choice, detailed));
+  const compose = (guidance: string[]) => [traits, context.intake.identityNotes,
+    ...(notes.length ? [heading, ...notes, ...guidance, LIKED_LOGO_DIRECTION, NOTES_CLOSING]
+      : guidance.length ? [heading, ...guidance, OLD_CLOSING] : []),
   ].filter(value => value.trim()).join("\n");
+  const detailed = describe(true);
+  const fits = (value: string) => logoStringSchema.safeParse(value).success;
+  const personality = notes.length
+    ? [compose(detailed), compose(describe(false))].find(fits) ?? compose(describe(false))
+    : compose(detailed.join("\n").length <= INSPIRATION_GUIDANCE_BUDGET ? detailed : describe(false));
   const draft = name ? logoBriefDraftSchema.safeParse({ name,
     activity: [context.activity, context.offering].filter(value => value.trim()).join("\n") || context.description,
     audience: context.knownAudience || context.audienceSegments.filter(segment => segment.selected).map(segment => segment.label).join(", "),

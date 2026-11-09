@@ -21,6 +21,7 @@
   "src/domain/logo-directions.ts",
   "src/domain/logo-image-limits.ts",
   "src/domain/logo-jobs.ts",
+  "src/domain/logo-style-notes.ts",
   "src/domain/logo-vector-proposal-evidence.ts",
   "src/domain/logo-vector-proposal-jobs.ts",
   "src/domain/logo-vector-proposals.ts",
