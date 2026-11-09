@@ -12,7 +12,7 @@ import { defaults, repositoryRoot } from '../../scripts/development/config.mjs';
 const settings={version:1,projectId:'embel-dev-123456789abc',...defaults,apiPort:55421};
 test('portable composer retains reviewed source and pins only the selected local services',async()=>{
  const bundle=await composeDevelopmentSchema(settings);
- assert.equal(bundle.manifest.length,28);
+ assert.equal(bundle.manifest.length,29);
  assert.ok(bundle.sql.startsWith('begin;'));
  assert.ok(bundle.sql.endsWith('commit;\n'));
  assert.ok(bundle.sql.includes("values('development','http://127.0.0.1:55421')"));
