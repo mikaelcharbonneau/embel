@@ -1,5 +1,7 @@
 # Brainstorm event capacity and saved-response recovery
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 The 2026-10-29 first fast-first live request retained one response ID but could not persist its completed event. PostgreSQL reported SQLSTATE 54000: `index row requires 15648 bytes, maximum size is 8191`. The existing `UNIQUE(call_id,payload)` B-tree indexed the entire response JSON. A separate GET-only diagnostic established that the original response completed with 113 structured candidates and the exact requested model/metadata. This is evidence of a saved response, not evidence of published names or a known dollar cost.
 
 The frozen `shared_naming_brainstorm.sql` packet and its applied ledger remain unchanged. The forward `shared_naming_brainstorm_event_capacity.sql` packet replaces only the oversized unique index with a nonunique `(call_id,jsonb_hash_extended(payload,0))` bucket index and an insert trigger. The trigger serializes writers on the exact parent call and compares full JSONB equality. Hash collisions retain distinct values, and numerically equal JSONB representations still deduplicate. Inserts require READ COMMITTED so the equality check after the parent lock sees concurrent commits. Other isolation levels fail closed; no global setting changes. Existing immutable events are not rewritten.

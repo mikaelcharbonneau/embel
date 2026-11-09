@@ -1,5 +1,7 @@
 # Naming factual generation contract — 2026-10-27
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 This source-only correction addresses two concrete contract gaps behind the
 reported 85/100-name acceptance failure. The report included factual Director
 directions without source keys and 110/200 proposals without required primary

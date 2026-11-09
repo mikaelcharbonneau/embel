@@ -1,5 +1,7 @@
 # Naming provider budget compatibility — 2026-10-24
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 > Historical investigation. The fixed cap, model restriction and task-specific approval holds below are superseded by the [current project rules](../AGENTS.md). The [October 25 correction](naming-native-restoration-20261025.md) removed the US$5 release gate; [fast-first Naming](naming-fast-first.md) describes the newer initial generation flow. The provider findings remain dated technical evidence, not requirements to restore the old spending limits.
 
 ## Historical finding and task boundary

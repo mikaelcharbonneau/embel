@@ -86,7 +86,7 @@ describe.skipIf(nativeSkipped)("atomic shared production composition on native P
   expect(bundle.postInstallPackets).toEqual(POST_INSTALL_PACKETS);
   expect(bundle.sql.indexOf("-- POST-INSTALL shared_storage_download_metadata.sql")).toBeGreaterThan(bundle.sql.indexOf("-- SOURCE shared_identity_generation.sql"));
   expect(bundle.sql.indexOf("-- POST-INSTALL shared_logo_storage_member.sql")).toBeGreaterThan(bundle.sql.indexOf("-- POST-INSTALL shared_storage_download_metadata.sql"));
-  expect(bundle.postInstallPackets.map(packet => packet.name)).toEqual(["shared_storage_download_metadata.sql", "shared_logo_storage_member.sql", "shared_naming_brainstorm.sql", "shared_naming_brainstorm_event_capacity.sql", "shared_logo_raster_uncapped.sql", "shared_logo_raster_recovery.sql", "shared_identity_selected_logo_boards.sql", "shared_identity_http_writer_permissions.sql", "shared_naming_brainstorm_delivery_recovery.sql", "shared_naming_lease_expiry.sql", "shared_guided_journey_stages.sql", "shared_naming_brainstorm_continuation.sql", "shared_naming_generation.sql"]);
+  expect(bundle.postInstallPackets.map(packet => packet.name)).toEqual(["shared_storage_download_metadata.sql", "shared_logo_storage_member.sql", "shared_naming_brainstorm.sql", "shared_naming_brainstorm_event_capacity.sql", "shared_logo_raster_uncapped.sql", "shared_logo_raster_recovery.sql", "shared_identity_selected_logo_boards.sql", "shared_identity_http_writer_permissions.sql", "shared_naming_brainstorm_delivery_recovery.sql", "shared_naming_lease_expiry.sql", "shared_guided_journey_stages.sql", "shared_naming_brainstorm_continuation.sql", "shared_naming_generation.sql", "shared_naming_cleanup.sql"]);
   expect(bundle.sql.indexOf("-- POST-INSTALL shared_naming_brainstorm_event_capacity.sql")).toBeGreaterThan(bundle.sql.indexOf("-- POST-INSTALL shared_naming_brainstorm.sql"));
   expect(bundle.sql.indexOf("-- POST-INSTALL shared_logo_raster_uncapped.sql")).toBeGreaterThan(bundle.sql.indexOf("-- POST-INSTALL shared_naming_brainstorm_event_capacity.sql"));
   expect(bundle.sql.indexOf("-- POST-INSTALL shared_logo_raster_recovery.sql")).toBeGreaterThan(bundle.sql.indexOf("-- POST-INSTALL shared_logo_raster_uncapped.sql"));
@@ -121,7 +121,8 @@ describe.skipIf(nativeSkipped)("atomic shared production composition on native P
   let output = ""; child.stdout.on("data", chunk => { output += String(chunk); }); child.stderr.resume();
   const done = new Promise<number | null>((resolve, reject) => { child.once("error", reject); child.once("close", resolve); });
   child.stdin.end(bundle.sql.replace(/COMMIT;\n$/, `SELECT '${gate}'; SELECT pg_sleep(2); COMMIT;\n`));
-  for (let i = 0; i < 200 && !output.includes(gate); i++) await new Promise(resolve => setTimeout(resolve, 20));
+  // The whole composed bundle, including the Naming cleanup, runs before the gate.
+  for (let i = 0; i < 1500 && !output.includes(gate); i++) await new Promise(resolve => setTimeout(resolve, 20));
   expect(output.includes(gate)).toBe(true);
   expect(sql("select to_regclass('fluid_private.shared_http_target') is null and not exists(select 1 from pg_policy where polname='embel_shared_customer_storage_live');")).toBe("t");
   expect(await done).toBe(0);
@@ -131,5 +132,5 @@ describe.skipIf(nativeSkipped)("atomic shared production composition on native P
   for (const policy of readPolicies) { expect(policy.expression).toContain("object.get_authenticated_info"); expect(policy.expression).toContain("shared_storage_object_allowed"); }
   expect(sql(`select exists(select 1 from fluid_private.shared_http_target where singleton and mode='hosted' and origin='${PRODUCTION_ORIGIN}') and exists(select 1 from fluid_private.shared_storage_target where singleton and origin='${PRODUCTION_ORIGIN}') and exists(select 1 from fluid_private.shared_service_actors where auth_user_id='cccccccc-cccc-4ccc-8ccc-cccccccccccc' and purpose='legacy_logo_storage') and exists(select 1 from pg_policy where polname='embel_shared_customer_storage_live');`)).toBe("t");
   expect(() => composeSharedProductionMigration({ target, catalog: readInventory() })).toThrow("existing_shared_install_unknown");
- }, 30_000);
+ }, 90_000);
 });

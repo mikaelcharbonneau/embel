@@ -7,7 +7,7 @@ import {
   nameTransformSchema, namingSessionSchema, namingStrategyBasis, namingStrategyKey, namingViewStateSchema, projectNameCandidateSchema,
   projectNamePageSchema, selectProjectNameSchema, transformProjectNamesSchema, updateNameRetentionSchema,
   selectProjectNameResponseSchema, transformProjectNamesResponseSchema, updateNamingPreferencesResponseSchema,
-  updateNamingPreferencesSchema, updateNamingViewStateSchema, validateGeneratedNames, validateProjectNameTransformParents,
+  updateNamingPreferencesSchema, updateNamingViewStateSchema, validateProjectNameTransformParents,
 } from "../../src/domain/project-naming";
 
 const id = (n: number) => `10000000-0000-4000-8000-${n.toString().padStart(12, "0")}`;
@@ -32,7 +32,6 @@ const candidate = () => ({
   origin: { kind: "generated", ownerId, projectId, candidateId, contextRevision: 4, value: "Cedar", batchId, jobId, stepKey: "names",
     provider: "openai", billingMode: "chatgpt_subscription", model: "fixture-model", responseId: "fixture-response", requestId: null, generatedAt: at },
 });
-const proposal = (value: string) => ({ value, rationale: "Explicit local naming fixture." });
 
 describe("stored name exclusion snapshots", () => {
   it("bounds and freezes every stored candidate without dropping duplicate identities", () => {
@@ -93,37 +92,12 @@ describe("material naming strategy basis", () => {
   });
 });
 
-describe("generated uniqueness and bounded validation", () => {
+describe("name identity keys", () => {
   it("deduplicates case, spaces and punctuation while preserving accented spellings and V1 workshop variants", () => {
     expect(["Cedar", "CEDAR", "Ce-dar", "Ce dar"].map(nameIdentityKey)).toEqual(["cedar", "cedar", "cedar", "cedar"]);
     expect(nameIdentityKey("Cédar")).not.toBe(nameIdentityKey("Cedar"));
     expect(nameIdentityKey("Cafe\u0301")).toBe(nameIdentityKey("CAFÉ"));
-    const result = validateGeneratedNames(["Cedar", "CEDAR", "Ce-dar", "Cédar"].map(proposal), preferences(), new Set());
-    expect(result.accepted.map(item => item.value)).toEqual(["Cedar", "Cédar"]);
-    expect(result.rejections.duplicate_response).toBe(2);
     expect(transformNames({ kind: "tweaks", seed: "Cedar", operations: ["uppercase", "lowercase"] }).candidates.map(item => item.value)).toEqual(["CEDAR", "cedar"]);
-  });
-  it("applies optional grapheme bounds independently from the UTF-16 limit", () => {
-    const result = validateGeneratedNames(["👩🏽‍🚀é", "é", "Oak", "🚀".repeat(81)].map(proposal), { ...preferences(), minimumGraphemes: 2, maximumGraphemes: 2 }, []);
-    expect(result.accepted.map(item => item.value)).toEqual(["👩🏽‍🚀é"]);
-    expect(result.rejections).toMatchObject({ below_minimum: 1, above_maximum: 1, invalid_candidate: 1 });
-  });
-  it("rejects history duplicates, punctuation-only identities and individually malformed candidates", () => {
-    const result = validateGeneratedNames([proposal("Cedar"), proposal("---"), { ...proposal("Elm"), provider: "forged" }, proposal("Ash"), { value: "Pine" }], preferences(), ["cedar"]);
-    expect(result.accepted.map(item => item.value)).toEqual(["Ash"]);
-    expect(result.rejections).toMatchObject({ duplicate_history: 1, empty_identity: 1, invalid_candidate: 2 });
-    expect(() => validateGeneratedNames({ candidates: [] }, preferences(), [])).toThrow();
-    expect(() => validateGeneratedNames([proposal("Cedar")], preferences(), ["Cedar"])).toThrow();
-  });
-  it("counts every omitted overflow without validating more than the batch target", () => {
-    const raw = Array.from({ length: 253 }, (_, i) => proposal(`Local ${i}`));
-    expect(validateGeneratedNames(raw, preferences(), []).accepted).toHaveLength(250);
-    expect(validateGeneratedNames(raw, preferences(), []).rejections.over_target).toBe(3);
-    expect(validateGeneratedNames(raw, preferences(), [], 100).accepted).toHaveLength(100);
-    const next = validateGeneratedNames(raw, preferences(), [], 50);
-    expect(next.accepted).toHaveLength(50);
-    expect(next.rejections.over_target).toBe(203);
-    expect(raw[0]).not.toHaveProperty("identityKey");
   });
 });
 
@@ -275,24 +249,7 @@ describe("strict public naming mutations and reads", () => {
 });
 
 
-describe("visible explanations on new generation, with immutable read compatibility", () => {
-  it.each([100, 250, 50] as const)("rejects invisible-only, ASCII and bidi controls during %s-name generation", target => {
-    const invalid = ["\u200B\u2060", "\u200C\u200D", "\u00AD\uFE0F", "Visible\u0000text", "\tVisible", "Visible\n", "\u202EVisible", "\u2067Visible\u2069"];
-    const result = validateGeneratedNames(invalid.map((rationale, index) => ({ value: `Invisible ${index}`, rationale })), preferences(), [], target);
-    expect(result.accepted).toHaveLength(0);
-    expect(result.rejections.invalid_candidate).toBe(invalid.length);
-  });
-  it("accepts visible Unicode explanations containing legitimate script joiners", () => {
-    const raw = [
-      { value: "Persian", rationale: "می\u200Cسازد" },
-      { value: "Indic", rationale: "क्\u200Dष" },
-      { value: "French", rationale: "Évoque un jardin partagé." },
-      { value: "Symbol", rationale: "✓" },
-    ];
-    const result = validateGeneratedNames(raw, preferences(), [], 250);
-    expect(result.accepted.map(row => row.rationale)).toEqual(raw.map(row => row.rationale));
-    expect(result.rejections.invalid_candidate).toBe(0);
-  });
+describe("stored explanation compatibility", () => {
   it("reads previously stored rationales without applying the new-generation gate", () => {
     expect(projectNameCandidateSchema.parse({ ...candidate(), rationale: "\u200D" }).rationale).toBe("\u200D");
     expect(projectNameCandidateSchema.parse({ ...candidate(), rationale: "Legacy\u202Etext" }).rationale).toBe("Legacy\u202Etext");

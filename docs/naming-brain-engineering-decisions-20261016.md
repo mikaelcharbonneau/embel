@@ -1,5 +1,7 @@
 # Naming brain: local engineering decisions, 2026-10-16
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 These are historical engineering choices from the original Naming implementation,
 distinct from the product decisions in [D069](decisions.md). Later runtime changes
 and verification are recorded separately. This document is not current execution,

@@ -5,7 +5,6 @@ import { z } from "zod";
 import { approvedWorkerProfileSchema } from "./configuration";
 import type { OwnerWorkerProcessDescriptor } from "./adapter";
 import type { OwnerWorkerArtifactAttestation,OwnerWorkerReadyNotice } from "./process-contracts";
-import { runOwnerNamingRuntime,type OwnerNamingRuntimeSecrets } from "./naming-runtime";
 import { startOwnerStrategyRuntime,type OwnerStrategyRuntimeSecrets } from "./strategy-runtime";
 import { runOwnerLogoRuntime,type OwnerLogoRuntimeSecrets } from "./logo-runtime";
 
@@ -30,8 +29,9 @@ async function main(){
   deploymentId:process.env.VERCEL_DEPLOYMENT_ID??"",runtime:{node:process.versions.node,icu:process.versions.icu!,unicode:process.versions.unicode!,platform:process.platform as "linux",arch:process.arch as "x64"}};
  const secrets={...(initial.secrets as Record<string,unknown>),attestation};
  const onReady=(notice:OwnerWorkerReadyNotice)=>{send({type:"ready",notice});};
- if(profile.capability==="naming")await runOwnerNamingRuntime({descriptor,secrets:secrets as OwnerNamingRuntimeSecrets,signal:lifetime.signal,onReady});
- else if(profile.capability==="logo")await runOwnerLogoRuntime({descriptor,secrets:secrets as OwnerLogoRuntimeSecrets,signal:lifetime.signal,onReady});
+ // Naming runs only on the shared worker; the per-account process never hosts it.
+ if(profile.capability==="naming")throw Error("worker_capability_retired");
+ if(profile.capability==="logo")await runOwnerLogoRuntime({descriptor,secrets:secrets as OwnerLogoRuntimeSecrets,signal:lifetime.signal,onReady});
  else{
   const runtime=await startOwnerStrategyRuntime({descriptor,secrets:secrets as OwnerStrategyRuntimeSecrets,signal:lifetime.signal,onReady});
   let active=false;const delivery=(message:unknown)=>{

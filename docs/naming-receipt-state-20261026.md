@@ -1,5 +1,7 @@
 # Naming receipt state repair — source only, 2026-10-26
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 ## Scope and release boundary
 
 Phase one changes receipt persistence and its acknowledgment/recovery readers,

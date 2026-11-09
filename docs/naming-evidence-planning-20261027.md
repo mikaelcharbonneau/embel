@@ -1,5 +1,7 @@
 # Evidence-aware Naming planning — 2026-10-27
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 New uncapped progressive requests use contract 5. This follows the factual
 Creator correction in [contract 4](naming-factual-contract-20261027.md), retaining
 its required source-bound primary claims and independent verification. Saved

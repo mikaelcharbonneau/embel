@@ -1,5 +1,7 @@
 # One-shot observation after a stopped test exhausted recovery
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 After the saved-plan cancellation fix was installed, the user approved one
 additional observation of the four provider sessions already issued by the
 interrupted synthetic test. No new generation or financial adjustment was

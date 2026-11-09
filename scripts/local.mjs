@@ -57,7 +57,7 @@ if (!stopping) {
   });
   else { start(workerArgs, environments.worker); start(webArgs, environments.web); }
   console.info("Embel local: http://127.0.0.1:3106 — keep this command running for the app and background work.");
-  console.info(prototype ? "The local prototype uses the approved account database and supervised Strategy and Naming worker."
+  console.info(prototype ? "The local prototype uses the approved account database and a supervised Strategy worker."
     : flags.has("--enable-connection") ? "ChatGPT connection is enabled for an explicitly approved browser sign-in."
       : "ChatGPT connection is locked pending its specific consent step; no credentials will be created.");
 }
