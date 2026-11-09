@@ -233,11 +233,13 @@ alter table public.naming_batch_results enable trigger user;
 alter table public.naming_batches enable trigger user;
 
 -- 5. Nothing that remains may name a removed object, and only runs remain.
-do $verify$ declare leftover text;
+do $verify$ declare leftover text; pattern text;
 begin
- select string_agg(distinct n.nspname||'.'||p.proname||' -> '||r.name,', ') into leftover
-  from pg_proc p join pg_namespace n on n.oid=p.pronamespace join naming_cleanup_removed r on p.prosrc ~ ('\m'||r.name||'\M')
-  where n.nspname in('public','fluid_private');
+ -- One alternation of the removed identifiers keeps this to one regex per function.
+ select '\m('||string_agg(name,'|')||')\M' into strict pattern from naming_cleanup_removed;
+ select string_agg(distinct n.nspname||'.'||p.proname||' -> '||substring(p.prosrc from pattern),', ') into leftover
+  from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+  where n.nspname in('public','fluid_private') and p.prosrc ~ pattern;
  if leftover is not null then raise exception 'naming_cleanup_reference %',leftover using errcode='55000'; end if;
  if exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace join naming_cleanup_removed r on r.name=c.relname::text
    where n.nspname='fluid_private') then raise exception 'naming_cleanup_table_left' using errcode='55000'; end if;

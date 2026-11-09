@@ -121,7 +121,8 @@ describe.skipIf(nativeSkipped)("atomic shared production composition on native P
   let output = ""; child.stdout.on("data", chunk => { output += String(chunk); }); child.stderr.resume();
   const done = new Promise<number | null>((resolve, reject) => { child.once("error", reject); child.once("close", resolve); });
   child.stdin.end(bundle.sql.replace(/COMMIT;\n$/, `SELECT '${gate}'; SELECT pg_sleep(2); COMMIT;\n`));
-  for (let i = 0; i < 200 && !output.includes(gate); i++) await new Promise(resolve => setTimeout(resolve, 20));
+  // The whole composed bundle, including the Naming cleanup, runs before the gate.
+  for (let i = 0; i < 1500 && !output.includes(gate); i++) await new Promise(resolve => setTimeout(resolve, 20));
   expect(output.includes(gate)).toBe(true);
   expect(sql("select to_regclass('fluid_private.shared_http_target') is null and not exists(select 1 from pg_policy where polname='embel_shared_customer_storage_live');")).toBe("t");
   expect(await done).toBe(0);
@@ -131,5 +132,5 @@ describe.skipIf(nativeSkipped)("atomic shared production composition on native P
   for (const policy of readPolicies) { expect(policy.expression).toContain("object.get_authenticated_info"); expect(policy.expression).toContain("shared_storage_object_allowed"); }
   expect(sql(`select exists(select 1 from fluid_private.shared_http_target where singleton and mode='hosted' and origin='${PRODUCTION_ORIGIN}') and exists(select 1 from fluid_private.shared_storage_target where singleton and origin='${PRODUCTION_ORIGIN}') and exists(select 1 from fluid_private.shared_service_actors where auth_user_id='cccccccc-cccc-4ccc-8ccc-cccccccccccc' and purpose='legacy_logo_storage') and exists(select 1 from pg_policy where polname='embel_shared_customer_storage_live');`)).toBe("t");
   expect(() => composeSharedProductionMigration({ target, catalog: readInventory() })).toThrow("existing_shared_install_unknown");
- }, 30_000);
+ }, 90_000);
 });

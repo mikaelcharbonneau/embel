@@ -83,7 +83,7 @@
     },
     {
       "path": "supabase/candidates/shared_naming_cleanup.sql",
-      "sha256": "687661d3b0150e7d2786ca86f58a695e910edc90d14b7c97e8f1a4119685995d"
+      "sha256": "d1a96eef5c3ccb58205985a46ccf8b0c18d39b1dcf7ab28fc2de0e37e28f149c"
     }
   ],
   "functions": [
