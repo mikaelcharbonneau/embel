@@ -89,6 +89,20 @@ describe("starting a generation", () => {
     expect(row).toMatchObject({ status: "failed", error_code: "start_failed" });
     expect((await balance(OWNER_A)).balance).toBe(20);
   });
+  it("ends a running run past its kind's time limit, refunds it and lets the step start again", async () => {
+    const project = await seedProject(db);
+    await db.exec("update fluid_private.generation_kinds set max_running_minutes = 30 where kind = 'test.paid'");
+    const live = await start(OWNER_A, project.id, "test.paid");
+    await engine.claim(live.id);
+    await db.query("update public.generation_runs set started_at = now() - interval '29 minutes' where id = $1", [live.id]);
+    expect((await failure(() => start(OWNER_A, project.id, "test.paid", key(2)))).message).toContain("generation_active");
+    await db.query("update public.generation_runs set started_at = now() - interval '31 minutes' where id = $1", [live.id]);
+    expect(await start(OWNER_A, project.id, "test.paid", key(3))).toMatchObject({ status: "queued" });
+    const row = (await db.query<Run>("select * from public.generation_runs where id = $1", [live.id])).rows[0]!;
+    expect(row).toMatchObject({ status: "failed", error_code: "run_timed_out" });
+    expect((await balance(OWNER_A)).balance).toBe(20);
+    expect((await failure(() => engine.save(live.id, "late"))).message).toContain("run_not_running");
+  });
 });
 
 describe("running a generation", () => {
@@ -113,6 +127,18 @@ describe("running a generation", () => {
     expect(cancelled.status).toBe("cancelled");
     expect((await balance(OWNER_A)).balance).toBe(30);
     expect((await failure(() => asRole(db, "authenticated", OWNER_B, () => db.query("select public.cancel_generation($1)", [run.id])))).message).toContain("not_found");
+  });
+  it("flags a live running run on cancel but ends an overdue one at once", async () => {
+    const project = await seedProject(db);
+    const run = await start(OWNER_A, project.id, "test.paid");
+    await engine.claim(run.id);
+    const cancel = () => asRole(db, "authenticated", OWNER_A, async () =>
+      (await db.query<Run & { cancel_requested_at: string | null }>("select * from public.cancel_generation($1)", [run.id])).rows[0]!);
+    expect(await cancel()).toMatchObject({ status: "running" });
+    expect((await balance(OWNER_A)).balance).toBe(20);
+    await db.query("update public.generation_runs set started_at = now() - interval '2 hours' where id = $1", [run.id]);
+    expect(await cancel()).toMatchObject({ status: "failed", error_code: "run_timed_out" });
+    expect((await balance(OWNER_A)).balance).toBe(30);
   });
   it("cancels a queued run at claim time when the engine is paused", async () => {
     const project = await seedProject(db);
