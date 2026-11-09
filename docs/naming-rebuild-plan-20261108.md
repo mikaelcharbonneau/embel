@@ -1,6 +1,6 @@
 # Naming generation rebuild — plan for review
 
-November 8, 2026. Status: approved; steps 1–3 and 5 implemented (step 4, removal, is next). Replaces the
+November 8, 2026. Status: approved; steps 1–5 implemented (step 6, production, waits on the database decision). Replaces the
 current Naming generation backend. Approved in chat: "Yes, rebuild it."
 
 ## In one paragraph

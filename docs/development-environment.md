@@ -63,16 +63,13 @@ The doctor checks actual core services, HTTP access, installed migration
 versions and shared worker status. It does not change setup files.
 Stopping retains database, Storage and shared queue volumes. Re-running
 `dev:up` starts the same checkout's stack and applies any new baseline migrations. The shared
-installer composes 25 pinned sources: five reviewed Logo predecessors, ten
-shared production packets, nine corrections and one development target adapter.
+installer composes the pinned sources: five reviewed Logo predecessors, the shared
+production packets, their post-install corrections and one development target adapter.
 The first installation is atomic; repeated installation verifies the source
 manifest, target and installed SQL authority. It does not reset the database or
-blanket-apply the production candidates directory. A separately pinned, additive development upgrade
-installs an operator-only repair and an authenticated proof reader for names recovered
-from a retained brainstorm response. Setup verifies the original catalog before this
-upgrade and records its source, resulting catalog and permissions in a separate
-receipt on the installation marker. Repeating setup checks those fingerprints. The
-installer itself does not repair projects or call an AI provider. Changed installed shared
+blanket-apply the production candidates directory. The installer itself does not
+repair projects or call an AI provider. (The earlier additive brainstorm repair
+upgrade was removed with the retired Naming engine in November 2026.) Changed installed shared
 authority is rejected instead of silently replacing it; use a separate checkout
 for an incompatible schema history.
 
@@ -203,8 +200,9 @@ They do not synchronize local database passwords, select a production database
 or commit credentials. A fresh clone does not receive Vercel access tokens or
 API keys. See [source of truth and service connections](source-of-truth.md).
 
-`npm run dev:worker -- --lane strategy`, `--lane naming` and `--lane logo` remain
-available for historical per-lane development contracts. Their manual bindings
+`npm run dev:worker -- --lane strategy` and `--lane logo` remain
+available for historical per-lane development contracts (Naming runs only on the
+shared worker). Their manual bindings
 and `config/development/worker.env.example` belong to that older launcher;
 `dev:branding` is the shared application flow.
 

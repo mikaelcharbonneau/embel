@@ -3,7 +3,7 @@ import type { Pool } from "pg";
 import { z } from "zod";
 import { localChatGPTStatusSchema, localModelSelectionSchema, localRegistrationSelectionSchema, localSignInSchema, type LocalChatGPTStatus } from "../src/domain/local-chatgpt";
 import { chatGPTStrategyJobInputSchema, chatGPTStrategyPolicySchema, DEFAULT_SUBSCRIPTION_LIMITS, strategyOperationSchema, type ChatGPTStrategyJobInput, type ChatGPTStrategyPolicy, type StrategyOperation } from "../src/domain/strategy-jobs";
-import { chatGPTNamingJobInputSchema, chatGPTNamingPolicySchema, namingOperationSchema, type ChatGPTNamingPolicy } from "../src/domain/naming-jobs";
+import { chatGPTNamingPolicySchema, namingOperationSchema, type ChatGPTNamingPolicy } from "../src/domain/naming-jobs";
 import type { ClaimedJob } from "../src/domain/jobs";
 import { CHATGPT_STREAM_LIMITS, createChatGPTTransport, type ChatGPTTransport } from "../src/server/ai/chatgpt-transport";
 import { runChatGPTStrategy } from "../src/server/ai/chatgpt-strategy";
@@ -13,8 +13,6 @@ import { reportSignInFailure, type SignInFailure } from "../src/server/local-cha
 import { FileVerifiedChatGPTModelStore } from "../src/server/local-chatgpt/verified-models";
 import { parseClaimedJob, PostgresJobStore } from "./postgres-store";
 import { runOneJob, type HandlerRegistry, type JobHandler } from "./runner";
-import { createNamingSubscriptionHandlers } from "./handlers/chatgpt-naming";
-import { createNamingJobStore } from "./naming-store";
 import { expireStandaloneNamesLeases, reportStandaloneNamesReady, runOneStandaloneNamesJob } from "./standalone-names";
 
 export const LOCAL_WEB_ORIGIN = "http://127.0.0.1:3106";
@@ -91,18 +89,13 @@ export class SubscriptionJobStore extends PostgresJobStore {
     if (result.rows.length !== 1) throw new Error("Subscription claim binding mismatch");
     const job = parseClaimedJob(result.rows[0]);
     if (job.ownerId !== this.ownerId || job.reservedCostMicrousd !== 0 || job.actualCostMicrousd !== 0) throw new Error("Subscription claim binding mismatch");
-    let policy: SubscriptionPolicy;
-    if (job.operation === "naming.generate") {
-      const input = chatGPTNamingJobInputSchema.parse(job.input);
-      const batch = input.batch;
-      if (batch.ownerId !== job.ownerId || batch.projectId !== job.projectId || batch.jobId !== job.id || batch.contextRevision !== job.inputRevision) throw new Error("Subscription claim binding mismatch");
-      policy = input.policy;
-    } else {
-      strategyOperationSchema.parse(job.operation);
-      const input = chatGPTStrategyJobInputSchema.parse(job.input);
-      assertHistoryBinding(input, job);
-      policy = input.policy;
-    }
+    // Retired project Naming subscription jobs have no handler here, so the
+    // runner fails them without a provider call. Standalone names use their own queue.
+    if (job.operation === "naming.generate") return job;
+    strategyOperationSchema.parse(job.operation);
+    const input = chatGPTStrategyJobInputSchema.parse(job.input);
+    assertHistoryBinding(input, job);
+    const policy: SubscriptionPolicy = input.policy;
     if (policy.registrationId !== this.registrationId || !supportsPolicy(policy)) throw new Error("Subscription claim binding mismatch");
     if (this.policies) {
       const selected = this.policies.find(entry => entry.operation === job.operation);
@@ -386,12 +379,11 @@ export function createLocalChatGPTRuntime(options: {
         };
         const handlers = new Map<string, JobHandler>();
         for (const entry of selection.policies) {
-          const operationHandlers = entry.operation === "naming.generate"
-            ? createNamingSubscriptionHandlers({ ...shared, policy: entry.policy })
-            : createSubscriptionHandlers({ ...shared, policy: entry.policy, operations: [entry.operation] });
-          for (const [operation, handler] of operationHandlers) handlers.set(operation, handler);
+          // The naming.generate policy now serves standalone names only.
+          if (entry.operation === "naming.generate") continue;
+          for (const [operation, handler] of createSubscriptionHandlers({ ...shared, policy: entry.policy, operations: [entry.operation] })) handlers.set(operation, handler);
         }
-        const store = createNamingJobStore(new SubscriptionJobStore(database, selection.ownerId, selection.registrationId, selection.policies), database);
+        const store = new SubscriptionJobStore(database, selection.ownerId, selection.registrationId, selection.policies);
         await runOneJob({ store, handlers, workerId, signal: AbortSignal.any([signal, controller.signal]) });
         const standalonePolicy = selection.policies.find((entry): entry is Extract<OperationPolicy, { operation: "naming.generate" }> => entry.operation === "naming.generate");
         if (standalonePolicy) await runOneStandaloneNamesJob({ database, ownerId: selection.ownerId, policy: standalonePolicy.policy,

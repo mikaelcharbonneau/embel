@@ -26,10 +26,6 @@ export type DevelopmentWorkerPool = {
 const requiredFunctions = Object.freeze({
   strategy: ["public.report_strategy_worker_ready(text,jsonb,integer)", "public.claim_job(text,integer)",
     "public.expire_job_leases()", "public.local_strategy_job_action(uuid,text,jsonb)", "public.read_local_strategy_steps(uuid,uuid,uuid,text)"],
-  naming: ["public.report_naming_brain_worker_status(jsonb,text,text,bigint,integer)",
-    "public.naming_brain_worker_maintenance_v2(text,text,bigint,text,jsonb)", "public.naming_brain_worker_action(uuid,uuid,text,jsonb)",
-    "public.authorize_naming_brain_dispatch(uuid,uuid,jsonb)", "public.record_naming_brain_provider_receipt(uuid,uuid,jsonb)",
-    "public.complete_naming_brain_stage(uuid,uuid,text,text,jsonb)"],
   logo: ["public.report_logo_worker_ready(text,jsonb,integer)", "public.claim_logo_job(text,integer)", "public.expire_logo_job_leases()"],
 });
 const unavailable = () => new Error("development_worker_unavailable");
@@ -84,50 +80,23 @@ function createPool(options: PoolConfig): DevelopmentWorkerPool {
 async function runText(pool: DevelopmentWorkerPool, config: DevelopmentWorkerConfiguration, execution: DevelopmentWorkerExecution, signal: AbortSignal) {
   const { runOneJob } = await import("../runner");
   const workerId = `embel-dev-${config.lane}-${randomUUID()}`;
-  if (config.lane === "strategy") {
-    const [{ PostgresJobStore }, { createStrategyReadiness }, { createOpenAIStrategyHandlers }, { guidedStrategyPolicy }] = await Promise.all([
-      import("../postgres-store"), import("../handlers/openai-readiness"), import("../handlers/openai-strategy"), import("../../src/server/ai/config"),
-    ]);
-    const policies = new Map((["strategy.reformulate", "strategy.competitors", "strategy.audience", "strategy.positioning", "strategy.personality", "strategy.slogan"] as const)
-      .map(operation => [operation, guidedStrategyPolicy(operation, "gpt-6-luna")] as const));
-    const readiness = createStrategyReadiness(pool, policies, () => {});
-    const store = new PostgresJobStore(pool, { localPrototype: true });
-    const handlers = createOpenAIStrategyHandlers({ apiKey: execution.apiKey, policies }, undefined, readiness.assertPolicyReady);
-    while (!signal.aborted) {
-      // SQL proves the restricted role's exact local policy before every claim
-      // and again before provider dispatch; no generic service-role grants.
-      await readiness.reportReadiness();
-      await store.expireLeases();
-      const state = await runOneJob({ store, handlers, workerId, localPrototype: true, signal });
-      if (state === "idle") await delay(5_000, undefined, { signal }).catch(() => { if (!signal.aborted) throw unavailable(); });
-    }
-    return;
-  }
-  const [{ NamingBrainJobStore }, { createNamingBrainHandlers }, { createNamingBrainPolicy }, { startNamingWorkerAuthority }, { runNamingPolling }] = await Promise.all([
-    import("../naming-brain-store"), import("../handlers/naming-brain"), import("../../src/server/ai/naming-brain/policy"), import("../../services/naming-worker/authority"), import("../../services/naming-worker/scheduling"),
+  if (config.lane !== "strategy") throw unavailable();
+  const [{ PostgresJobStore }, { createStrategyReadiness }, { createOpenAIStrategyHandlers }, { guidedStrategyPolicy }] = await Promise.all([
+    import("../postgres-store"), import("../handlers/openai-readiness"), import("../handlers/openai-strategy"), import("../../src/server/ai/config"),
   ]);
-  const policy = createNamingBrainPolicy(execution.model);
-  let authority: Awaited<ReturnType<typeof startNamingWorkerAuthority>> | undefined;
-  class DevelopmentNamingStore extends NamingBrainJobStore {
-    override async claim(worker: string, leaseSeconds: number) {
-      const job = await super.claim(worker, leaseSeconds);
-      // A development process must not dispatch an ordinary/hosted saved job
-      // under a newly selected local profile. Preserve its durable lease for
-      // normal recovery and fail before handler or provider execution.
-      if (job && this.executionAuthority(job) !== "local_owner_v1") throw unavailable();
-      return job;
-    }
+  const policies = new Map((["strategy.reformulate", "strategy.competitors", "strategy.audience", "strategy.positioning", "strategy.personality", "strategy.slogan"] as const)
+    .map(operation => [operation, guidedStrategyPolicy(operation, "gpt-6-luna")] as const));
+  const readiness = createStrategyReadiness(pool, policies, () => {});
+  const store = new PostgresJobStore(pool, { localPrototype: true });
+  const handlers = createOpenAIStrategyHandlers({ apiKey: execution.apiKey, policies }, undefined, readiness.assertPolicyReady);
+  while (!signal.aborted) {
+    // SQL proves the restricted role's exact local policy before every claim
+    // and again before provider dispatch; no generic service-role grants.
+    await readiness.reportReadiness();
+    await store.expireLeases();
+    const state = await runOneJob({ store, handlers, workerId, localPrototype: true, signal });
+    if (state === "idle") await delay(5_000, undefined, { signal }).catch(() => { if (!signal.aborted) throw unavailable(); });
   }
-  const store = new DevelopmentNamingStore(pool, config.deploymentId, () => {
-    const lease = authority?.current(); return lease ? { workerId, generation: lease.generation } : null;
-  });
-  try {
-    authority = await startNamingWorkerAuthority({ signal, report: generation => store.reportWorkerStatus(policy, workerId, generation) });
-    const handlers = createNamingBrainHandlers({ store, apiKey: execution.apiKey, assertReady: authority.assertReady });
-    await runNamingPolling({ signal, generation: () => authority?.current()?.generation ?? null,
-      attestPreferences: () => store.attestPendingPreferences(), expireLeases: () => store.expireLeases(workerId),
-      runJob: () => runOneJob({ store, handlers, workerId, localPrototype: true, signal, abortGraceMs: 15_000 }) });
-  } finally { await authority?.stop(); }
 }
 
 export type DevelopmentWorkerDependencies = {

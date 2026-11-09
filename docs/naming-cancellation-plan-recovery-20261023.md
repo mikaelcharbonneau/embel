@@ -1,5 +1,7 @@
 # Naming cancellation plan acknowledgement
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 ## Observed defect
 
 The October 23 synthetic live acceptance attempt was stopped by the test operator

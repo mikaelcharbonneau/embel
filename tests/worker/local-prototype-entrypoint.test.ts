@@ -1,7 +1,6 @@
 import type { PoolConfig } from "pg";
 import type { EventEmitter } from "node:events";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { readWorkerSelection } from "../../worker/selection";
 vi.mock("server-only", () => ({}));
 const fixture = vi.hoisted(() => ({ pools: [] as PoolConfig[], clients: [] as EventEmitter[], query: vi.fn(), end: vi.fn() }));
 vi.mock("pg", async () => {
@@ -14,95 +13,89 @@ const priorArguments = process.argv;
 beforeEach(() => { process.argv = [process.execPath, "worker/index.ts"]; });
 afterEach(() => { process.argv = priorArguments; process.exitCode = priorExitCode; vi.restoreAllMocks(); vi.unstubAllEnvs(); vi.resetModules(); fixture.pools.length = 0; fixture.clients.length = 0; fixture.query.mockReset(); fixture.end.mockReset(); });
 const databaseUrl = "postgresql://fluid_naming_brain_worker.fricsfwqibyhemknqgyf:synthetic-password@aws-0-us-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full";
-function namingEnvironment() {
-  for (const [key, value] of Object.entries({ OPENAI_API_KEY: "synthetic-prototype-api-key", FLUID_NAMING_BRAIN_DATABASE_URL: databaseUrl, FLUID_NAMING_BRAIN_DEPLOYMENT_ID: "embel-naming-local-b2ff6ce8bbc2-20261017", FLUID_NAMING_BRAIN_MODEL: "gpt-6.1-sol", FLUID_OPENAI_VERIFIED_MODELS: "gpt-6.1-sol", FLUID_NAMING_BRAIN_ENABLED: "true", FLUID_PAID_CALLS_APPROVED: "true" })) vi.stubEnv(key, value);
-}
-function prototypeEnvironment() {
-  namingEnvironment();
-  for (const [key, value] of Object.entries({ FLUID_LOCAL_PROTOTYPE: "true", FLUID_RUNTIME: "local", NODE_ENV: "production", APP_ORIGIN: "http://127.0.0.1:3106", FLUID_WORKER_DATABASE_URL: databaseUrl, FLUID_GUIDED_INTERVIEW_ENABLED: "true",
+function strategyEnvironment() {
+  for (const [key, value] of Object.entries({ OPENAI_API_KEY: "synthetic-prototype-api-key", FLUID_WORKER_DATABASE_URL: databaseUrl, FLUID_OPENAI_VERIFIED_MODELS: "gpt-6.1-sol", FLUID_PAID_CALLS_APPROVED: "true",
     FLUID_TEXT_MODEL_REFORMULATE: "gpt-6.1-sol", FLUID_TEXT_MODEL_COMPETITORS: "gpt-6.1-sol", FLUID_TEXT_MODEL_AUDIENCE: "gpt-6.1-sol", FLUID_TEXT_MODEL_PERSONALITY: "gpt-6.1-sol" })) vi.stubEnv(key, value);
 }
-async function failBeforeDispatch(error = new Error("synthetic_database_unavailable"), readinessOnly = false) {
-  if (readinessOnly) fixture.query.mockImplementation(async (sql: string) => { throw sql.includes("report_strategy_worker_ready") ? error : new Error("synthetic-private-unclassified-failure"); });
-  else fixture.query.mockRejectedValue(error);
+function prototypeEnvironment() {
+  strategyEnvironment();
+  for (const [key, value] of Object.entries({ FLUID_LOCAL_PROTOTYPE: "true", FLUID_RUNTIME: "local", NODE_ENV: "production", APP_ORIGIN: "http://127.0.0.1:3106", FLUID_GUIDED_INTERVIEW_ENABLED: "true" })) vi.stubEnv(key, value);
+}
+const idleWorker = async (sql: string) => {
+  if (sql.includes("report_strategy_worker_ready")) return { rows: [{ ready: true }] };
+  if (sql.includes("public.expire_job_leases")) return { rows: [{ count: 0 }] };
+  if (sql.includes("public.claim_job")) return { rows: [] };
+  throw new Error("unexpected_synthetic_query");
+};
+async function startWorker(answer: (sql: string) => Promise<unknown>) {
+  fixture.query.mockImplementation(answer);
   fixture.end.mockResolvedValue(undefined);
   const diagnostic = vi.spyOn(console, "error").mockImplementation(() => {});
   await import("../../worker/index");
+  return diagnostic;
+}
+async function failBeforeDispatch(error = new Error("synthetic_database_unavailable")) {
+  const diagnostic = await startWorker(async () => { throw error; });
   await vi.waitFor(() => expect(process.exitCode).toBe(1));
   return diagnostic;
 }
-describe("one local worker with a bounded restricted-role connection budget", () => {
-  it("starts only the protected Naming loop when explicitly selected, even with Strategy configured", async () => {
-    prototypeEnvironment(); process.argv.push("--naming-only");
-    await failBeforeDispatch();
-    expect(fixture.pools.map(pool => pool.max)).toEqual([2]);
-    expect(fixture.pools[0]!.ssl).toMatchObject({ rejectUnauthorized: true, minVersion: "TLSv1.2" });
-    expect(fixture.query).toHaveBeenCalledOnce();
-    expect(fixture.query.mock.calls[0]![0]).toContain("get_naming_brain_preference_work");
-    expect(fixture.end).toHaveBeenCalledOnce();
-  });
-  it.each([["--all"], ["--naming-only", "--naming-only"], ["--naming-only", "extra"]])("rejects invalid process arguments %j before opening either pool", async (...args) => {
+/** An idle pool error is the worker's own stop path for the Strategy loop. */
+async function stopWorker() {
+  await vi.waitFor(() => expect(fixture.clients).toHaveLength(1));
+  fixture.clients[0]!.emit("error", new Error("synthetic-stop"));
+  await vi.waitFor(() => expect(fixture.end).toHaveBeenCalledOnce());
+}
+const events = (diagnostic: { mock: { calls: unknown[][] } }) => diagnostic.mock.calls.flatMap(([value]) => { try { return [JSON.parse(String(value))]; } catch { return []; } });
+describe("one local Strategy worker with a bounded restricted-role connection budget", () => {
+  it.each([["--all"], ["--naming-only"], ["extra", "arguments"]])("rejects process arguments %j before opening a pool", async (...args) => {
     prototypeEnvironment(); process.argv.push(...args);
     await failBeforeDispatch();
     expect(fixture.pools).toEqual([]); expect(fixture.query).not.toHaveBeenCalled();
   });
-  it("retains all operations as the default process selection", () => {
-    expect(readWorkerSelection([])).toBe("all");
-    expect(readWorkerSelection(["--naming-only"])).toBe("naming_only");
-  });
-  it("leaves one server connection of reconnect headroom under the existing four-connection role cap", async () => {
+  it("uses one verified-TLS connection and leaves reconnect headroom under the four-connection role cap", async () => {
     prototypeEnvironment();
-    await failBeforeDispatch();
-    expect(fixture.pools.map(pool => pool.max)).toEqual([1, 2]);
-    expect(fixture.pools.reduce((total, pool) => total + pool.max!, 0)).toBe(3);
-    expect(4 - fixture.pools.reduce((total, pool) => total + pool.max!, 0)).toBe(1);
-    for (const pool of fixture.pools) { expect(pool).not.toHaveProperty("connectionString"); expect(pool.connectionTimeoutMillis).toBe(30_000); expect(pool.ssl).toMatchObject({ rejectUnauthorized: true, servername: "aws-0-us-east-1.pooler.supabase.com" }); }
-    expect(fixture.end).toHaveBeenCalledTimes(2);
-    expect(fixture.query.mock.calls.every(([sql]) => sql.includes("report_strategy_worker_ready") || sql.includes("get_naming_brain_preference_work"))).toBe(true);
+    await startWorker(idleWorker);
+    await vi.waitFor(() => expect(fixture.query.mock.calls.some(([sql]) => String(sql).includes("public.claim_job"))).toBe(true));
+    await stopWorker();
+    expect(fixture.pools.map(pool => pool.max)).toEqual([1]);
+    expect(fixture.pools[0]).not.toHaveProperty("connectionString");
+    expect(fixture.pools[0]!.connectionTimeoutMillis).toBe(30_000);
+    expect(fixture.pools[0]!.ssl).toMatchObject({ rejectUnauthorized: true, servername: "aws-0-us-east-1.pooler.supabase.com", minVersion: "TLSv1.2" });
+    expect(fixture.query.mock.calls.every(([sql]) => ["report_strategy_worker_ready", "public.expire_job_leases", "public.claim_job"].some(name => String(sql).includes(name)))).toBe(true);
   });
   it("treats a false prototype flag as normal worker mode and preserves its pool config", async () => {
-    namingEnvironment(); vi.stubEnv("FLUID_LOCAL_PROTOTYPE", "false");
+    strategyEnvironment(); vi.stubEnv("FLUID_LOCAL_PROTOTYPE", "false");
     const diagnostic = await failBeforeDispatch(Object.assign(new Error("synthetic-private-capacity-message"), { code: "53300" }));
     expect(fixture.pools).toHaveLength(1);
-    expect(fixture.pools[0]).toMatchObject({ connectionString: databaseUrl, max: 4, connectionTimeoutMillis: 10_000 });
+    expect(fixture.pools[0]).toMatchObject({ connectionString: databaseUrl, max: 3, connectionTimeoutMillis: 10_000 });
     expect(fixture.end).toHaveBeenCalledOnce();
     expect(fixture.query).toHaveBeenCalledOnce();
     expect(JSON.stringify(diagnostic.mock.calls)).not.toContain("local_database_failure");
   });
   it("refuses an explicitly requested prototype outside the exact local boundary", async () => {
-    namingEnvironment(); vi.stubEnv("FLUID_LOCAL_PROTOTYPE", "true"); vi.stubEnv("APP_ORIGIN", "https://unapproved.example.invalid");
+    strategyEnvironment(); vi.stubEnv("FLUID_LOCAL_PROTOTYPE", "true"); vi.stubEnv("APP_ORIGIN", "https://unapproved.example.invalid");
     await failBeforeDispatch();
     expect(fixture.pools).toHaveLength(0); expect(fixture.query).not.toHaveBeenCalled();
   });
-  it.each([0, 1])("contains an idle error from pool %s, stops both loops and omits the attached private Client", async index => {
+  it("contains an idle pool error, stops the loop and omits the attached private Client", async () => {
     prototypeEnvironment();
-    fixture.query.mockImplementation(async (sql: string) => {
-      if (sql.includes("report_strategy_worker_ready")) return { rows: [{ ready: true }] };
-      if (sql.includes("public.expire_job_leases")) return { rows: [{ count: 0 }] };
-      if (sql.includes("public.claim_job")) return { rows: [] };
-      if (sql.includes("get_naming_brain_preference_work")) return { rows: [{ result: [] }] };
-      if (sql.includes("report_naming_brain_worker_ready")) return { rows: [{ result: true }] };
-      if (sql.includes("expire_naming_brain_leases")) return { rows: [{ result: 0 }] };
-      if (sql.includes("claim_naming_brain_job")) return { rows: [{ result: null }] };
-      throw new Error("unexpected_synthetic_query");
-    });
-    fixture.end.mockResolvedValue(undefined);
-    const diagnostic = vi.spyOn(console, "error").mockImplementation(() => {});
-    await import("../../worker/index");
-    await vi.waitFor(() => expect(fixture.clients).toHaveLength(2));
-    const failure = Object.assign(new Error("synthetic-private-error-message"), { code: index === 0 ? "53300" : "57014", client: { password: "synthetic-private-password" } });
-    expect(fixture.clients[index]!.emit("error", failure)).toBe(true);
-    await vi.waitFor(() => expect(fixture.end).toHaveBeenCalledTimes(2));
+    const diagnostic = await startWorker(idleWorker);
+    await vi.waitFor(() => expect(fixture.clients).toHaveLength(1));
+    const failure = Object.assign(new Error("synthetic-private-error-message"), { code: "53300", client: { password: "synthetic-private-password" } });
+    expect(fixture.clients[0]!.emit("error", failure)).toBe(true);
+    await vi.waitFor(() => expect(fixture.end).toHaveBeenCalledOnce());
     expect(process.exitCode).toBe(1);
     expect(diagnostic.mock.calls[0]).toEqual(["Worker stopped after a database connection failure."]);
-    expect(JSON.parse(String(diagnostic.mock.calls[1]![0]))).toEqual({ event: "local_database_failure", at: expect.any(String), role: index === 0 ? "strategy" : "naming", operation: "idle_connection", sqlState: index === 0 ? "53300" : "57014", failureClass: "postgres" });
+    expect(JSON.parse(String(diagnostic.mock.calls[1]![0]))).toEqual({ event: "local_database_failure", at: expect.any(String), role: "strategy", operation: "idle_connection", sqlState: "53300", failureClass: "postgres" });
     expect(JSON.stringify(diagnostic.mock.calls)).not.toContain("synthetic-private");
     expect(fixture.clients.every(pool => pool.listenerCount("error") === 0)).toBe(true);
   });
   it("omits unrecognized error codes, messages, details and attached clients", async () => {
     prototypeEnvironment();
-    const diagnostic = await failBeforeDispatch(Object.assign(new Error("synthetic-private-database-message"), { code: "synthetic-private-code", detail: "synthetic-private-detail", client: { password: "synthetic-private-password" } }));
-    expect(diagnostic.mock.calls.map(([value]) => { try { return JSON.parse(String(value)); } catch { return null; } })).toContainEqual(expect.objectContaining({ event: "local_database_failure", role: "naming", operation: "preferences", sqlState: null, failureClass: "unknown" }));
+    const failure = Object.assign(new Error("synthetic-private-database-message"), { code: "synthetic-private-code", detail: "synthetic-private-detail", client: { password: "synthetic-private-password" } });
+    const diagnostic = await startWorker(async sql => { if (sql.includes("report_strategy_worker_ready")) return { rows: [{ ready: true }] }; throw failure; });
+    await vi.waitFor(() => expect(process.exitCode).toBe(1));
+    expect(events(diagnostic)).toContainEqual(expect.objectContaining({ event: "local_database_failure", role: "strategy", operation: "expire_leases", sqlState: null, failureClass: "unknown" }));
     expect(JSON.stringify(diagnostic.mock.calls)).not.toContain("synthetic-private");
   });
   it.each([
@@ -115,11 +108,12 @@ describe("one local worker with a bounded restricted-role connection budget", ()
     ["Query read timeout synthetic-private-suffix", "synthetic-private-code", "unknown"],
   ])("reports only a fixed client failure class (%s/%s), with no new retry", async (message, code, classification) => {
     prototypeEnvironment();
-    const diagnostic = await failBeforeDispatch(Object.assign(new Error(message), { code, detail: "synthetic-private-detail", client: { password: "synthetic-private-password" } }), true);
-    const events = diagnostic.mock.calls.flatMap(([value]) => { try { return [JSON.parse(String(value))]; } catch { return []; } });
-    expect(events).toContainEqual(expect.objectContaining({ event: "local_database_failure", role: "strategy", operation: "readiness", sqlState: null, failureClass: classification }));
-    for (const event of events) expect(new Date(event.at).toISOString()).toBe(event.at);
-    expect(fixture.query.mock.calls.filter(([sql]) => sql.includes("get_naming_brain_preference_work"))).toHaveLength(1);
+    const failure = Object.assign(new Error(message), { code, detail: "synthetic-private-detail", client: { password: "synthetic-private-password" } });
+    const diagnostic = await startWorker(async () => { throw failure; });
+    await vi.waitFor(() => expect(events(diagnostic)).toContainEqual(expect.objectContaining({ event: "local_database_failure", role: "strategy", operation: "readiness", sqlState: null, failureClass: classification })));
+    await stopWorker();
+    for (const event of events(diagnostic)) expect(new Date(event.at).toISOString()).toBe(event.at);
+    expect(fixture.query).toHaveBeenCalledOnce();
     expect(JSON.stringify(diagnostic.mock.calls)).not.toContain("retryAfterMs");
     expect(JSON.stringify(diagnostic.mock.calls)).not.toContain("synthetic-private");
   });

@@ -4,7 +4,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { cliVersion, DevelopmentError, localDockerEnvironment, migrationSources, privateDirectory, readOptional, repositoryRoot, settingsFor, writeState } from './config.mjs';
-import { composeSupplementalUpgrade, SUPPLEMENTAL_PACKET } from './shared-schema-upgrade.mjs';
 import { composeDevelopmentSchema, sqlLiteral as q } from './shared-schema.mjs';
 
 function command(binary, args, env, input) {
@@ -49,9 +48,8 @@ export async function installDevelopmentSchema(root=repositoryRoot) {
  if(marker.project_id!==db.settings.projectId||marker.origin!=='http://127.0.0.1:'+db.settings.apiPort||marker.manifest_sha256!==bundle.manifestHash)throw new DevelopmentError('Shared development schema differs from its recorded source or target. Use a separate checkout to install a changed schema.');
  if(await db.sql(`select (select count(*)=1 and bool_and(mode='development' and origin=${q(marker.origin)}) from fluid_private.shared_http_target) and (select count(*)=1 and bool_and(origin=${q(marker.origin)}) from fluid_private.shared_storage_target);`)!=='t')throw new DevelopmentError('Shared development service targets changed.');
  await verifyDevelopmentAuthority(db,root);
- await db.sql(await composeSupplementalUpgrade(db.settings,bundle.manifestHash,root));
  const directory=path.join(db.state,'shared'); await privateDirectory(directory);
- await writeState(path.join(directory,'schema-manifest.json'),JSON.stringify({version:1,cliVersion,manifestHash:bundle.manifestHash,packets:bundle.manifest,upgrades:[SUPPLEMENTAL_PACKET]},null,2)+'\n');
+ await writeState(path.join(directory,'schema-manifest.json'),JSON.stringify({version:1,cliVersion,manifestHash:bundle.manifestHash,packets:bundle.manifest,upgrades:[]},null,2)+'\n');
  return {...db,directory};
 }
 

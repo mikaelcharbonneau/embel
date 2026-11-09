@@ -1,5 +1,7 @@
 # Fast-first Naming
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 The approved change simplifies the initial 100 names. Future shared-runtime requests use the explicit immutable `generationProfile: "brainstorm_v1"`. Historical requests keep their original input, provider protocol, evidence and recovery path; replaying an existing intent must return that same request.
 
 The worker asks the existing policy-selected model (currently `gpt-6-luna`) for 120 short creative proposals in one Responses call. Local checks normalize NFC, apply the existing name-identity rule, remove duplicates against the complete owned-project history, enforce selected approaches and saved literal/length constraints, and save up to 100 names. If short, at most two further calls request `min(60, missing + 20)` proposals. There is no research, serial curation, factual verification, web search or monetary spending limit in this initial path. The three-call ceiling limits work for one initial set; it is not a dollar estimate or charge cap. Each call has a 180-second deadline and the run has a 600-second deadline.

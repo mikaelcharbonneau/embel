@@ -28,7 +28,9 @@ describe("explicit local prototype credential boundary", () => {
     const { web, worker } = await prepare(inherited);
     expect(web).toMatchObject({ NODE_ENV: "production", FLUID_RUNTIME: "local", FLUID_LOCAL_PROTOTYPE: "true", APP_ORIGIN: "http://127.0.0.1:3106", FLUID_PAID_CALLS_APPROVED: "false", NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "synthetic-public-key" });
     expect(worker).toMatchObject({ OPENAI_API_KEY: "synthetic-prototype-api-key", FLUID_NAMING_BRAIN_DATABASE_URL: databaseUrl, FLUID_WORKER_DATABASE_URL: databaseUrl,
-      FLUID_NAMING_BRAIN_DEPLOYMENT_ID: "embel-naming-local-b2ff6ce8bbc2-20261017", FLUID_NAMING_BRAIN_MODEL: "gpt-6-luna", FLUID_OPENAI_VERIFIED_MODELS: "gpt-6-luna", FLUID_NAMING_BRAIN_ENABLED: "true", FLUID_PAID_CALLS_APPROVED: "true", FLUID_GUIDED_INTERVIEW_ENABLED: "true" });
+      FLUID_OPENAI_VERIFIED_MODELS: "gpt-6-luna", FLUID_PAID_CALLS_APPROVED: "true", FLUID_GUIDED_INTERVIEW_ENABLED: "true" });
+    // Naming runs only on the shared worker; the prototype no longer configures a Naming lane.
+    for (const key of ["FLUID_NAMING_BRAIN_DEPLOYMENT_ID", "FLUID_NAMING_BRAIN_MODEL", "FLUID_NAMING_BRAIN_ENABLED"]) expect(worker).not.toHaveProperty(key);
     for (const operation of ["REFORMULATE", "COMPETITORS", "AUDIENCE", "PERSONALITY"]) expect(worker[`FLUID_TEXT_MODEL_${operation}`]).toBe("gpt-6-luna");
     for (const env of [web, worker]) for (const key of ["NODE_OPTIONS", "PGPASSWORD", "FLUID_LOCAL_BRIDGE_TOKEN", "FLUID_TEXT_MODEL_POSITIONING", "FLUID_TEXT_MODEL_STRATEGY", "UNRELATED_SECRET"]) expect(env).not.toHaveProperty(key);
     for (const key of ["OPENAI_API_KEY", "FLUID_NAMING_BRAIN_DATABASE_URL", "FLUID_WORKER_DATABASE_URL", "FLUID_NAMING_BRAIN_ENABLED"]) expect(web).not.toHaveProperty(key);

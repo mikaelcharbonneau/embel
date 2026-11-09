@@ -1,5 +1,7 @@
 # Naming maintenance and paid authority repair
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 This local phase-two change starts from remote main `56efd115c67baab57c478c60cb186e2bd7e321f6` plus the independently frozen phase-one receipt and index repairs. The full 2,329-file shared baseline identity is `521690e742b3bf6a2b9429f3ee733f87e0ea2fcacc1affb1e14fa8da9627f233`. No production connection, migration application, provider call, deployment, worker resume, or repository publication is part of this work.
 
 ## Problem and resulting behavior

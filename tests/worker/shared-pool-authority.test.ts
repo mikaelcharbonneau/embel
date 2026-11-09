@@ -82,15 +82,16 @@ describe("reviewed authority packet roster",()=>{
   expect(authorityManifest.functions.find(f=>f.schema==="public"&&f.name==="shared_naming_worker_action")?.sha256).toBe(createHash("sha256").update(generationBody!).digest("hex"));
   const expiryBody=/create function fluid_private\.expire_shared_naming_leases\([\s\S]*?as \$\$([\s\S]*?)\$\$;/u.exec(expiry)?.[1];
   expect(expiryBody).toBeDefined();
-  expect(authorityManifest.functions.find(f=>f.name==="expire_shared_naming_leases")?.sha256).toBe(createHash("sha256").update(expiryBody!).digest("hex"));
+  // The November 2026 cleanup packet removes the retired brainstorm helpers.
+  expect(authorityManifest.functions.some(f=>f.name==="expire_shared_naming_leases")).toBe(false);
   const deliveryBody=/create function fluid_private\.recover_naming_brainstorm_delivery\([\s\S]*?as \$\$([\s\S]*?)\$\$;/u.exec(recovery)?.[1];
   expect(deliveryBody).toBeDefined();
-  expect(authorityManifest.functions.find(f=>f.name==="recover_naming_brainstorm_delivery")?.sha256).toBe(createHash("sha256").update(deliveryBody!).digest("hex"));
+  expect(authorityManifest.functions.some(f=>f.name==="recover_naming_brainstorm_delivery")).toBe(false);
   const helper=/AS \$guard_body\$([\s\S]*?)\$guard_body\$/u.exec(repair)?.[1];
   expect(helper).toBeDefined();
-  expect(authorityManifest.functions.find(f=>f.name==="naming_brainstorm_event_replay_guard_v1")?.sha256).toBe(createHash("sha256").update(helper!).digest("hex"));
+  expect(authorityManifest.functions.some(f=>f.name==="naming_brainstorm_event_replay_guard_v1")).toBe(false);
  });
- it("retains the finite twenty-packet bound",()=>{
-  expect(sharedAuthorityManifestSchema.safeParse({...authorityManifest,packets:Array.from({length:21},()=>authorityManifest.packets[0])}).success).toBe(false);
+ it("retains the finite twenty-one-packet bound",()=>{
+  expect(sharedAuthorityManifestSchema.safeParse({...authorityManifest,packets:Array.from({length:22},()=>authorityManifest.packets[0])}).success).toBe(false);
  });
 });
