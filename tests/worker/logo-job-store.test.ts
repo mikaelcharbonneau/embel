@@ -11,8 +11,8 @@ import { randomUUID } from 'node:crypto';
 import { beforeAll,afterAll } from 'vitest';
 import { runOneJob } from '../../worker/runner';
 import { createTestDatabase,resetFixture,asRole,OWNER_A,type TestDatabase } from '../database/local-supabase';
-import { logoWorkspaceV2Schema } from '../../src/domain/logo-workspace';
 import { legacyLogoCostQuoteSchema as logoCostQuoteSchema,logoConceptJobInputSchema } from '../../src/domain/logo-jobs';
+import { startLogoFixture } from "../database/logo-project-fixture";
 describe('existing runner with real restricted logo SQL',()=>{
  let db:TestDatabase;
  beforeAll(async()=>{db=await createTestDatabase();await resetFixture(db);await db.exec(`create role fixture_logo_runner login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;grant usage on schema public to fixture_logo_runner;grant execute on function public.claim_logo_job(text,integer),public.heartbeat_logo_job(uuid,uuid,integer),public.register_logo_job_plan(uuid,uuid,jsonb),public.begin_logo_job_step(uuid,uuid,text,text,bigint),public.complete_logo_job_step(uuid,uuid,text,text,bigint,jsonb,text),public.finish_logo_job(uuid,uuid,text),public.read_leased_logo_record(uuid,uuid,text,jsonb) to fixture_logo_runner;`);await db.query("insert into fluid_private.logo_worker_principals select rolname,oid,$1 from pg_roles where rolname='fixture_logo_runner'",[OWNER_A]);await db.query("insert into fluid_private.logo_runtime_policies(owner_id,operation,policy_identity,handler_version,provider,model,max_cost_microusd,enabled) values($1,'identity.logo_concept',$2,'logo-image-v1','openai','gpt-image-2.5-sunburst-2026-09-08',100,true)",[OWNER_A,'a'.repeat(64)]);},60_000);
@@ -20,7 +20,7 @@ describe('existing runner with real restricted logo SQL',()=>{
  it('keeps six one-step children independent without modifying the stop-on-failure runner',async()=>{
   await reportLogoFixtureReady(db,'fixture_logo_runner',['fixture'],[SYNTHETIC_CONCEPT_READINESS]);
   await asRole(db,'authenticated',OWNER_A,async()=>{
-   const workspace=logoWorkspaceV2Schema.parse((await db.query<{v:unknown}>('select public.start_logo_project($1) v',[{requestKey:randomUUID(),brief:{name:'Runner local',activity:'Test',audience:'Test',personality:'Precise',logoTypes:['wordmark']}}])).rows[0]!.v);
+   const workspace=await startLogoFixture(async(sql,params)=>(await db.query<{value:unknown}>(sql,params)).rows[0]!.value,{requestKey:randomUUID(),brief:{name:'Runner local',activity:'Test',audience:'Test',personality:'Precise',logoTypes:['wordmark']}});
    const brief=(await db.query<{v:{payload:{referenceSnapshotId:string}}}>("select public.read_logo_workspace_record($1,'stage',$2) v",[workspace.projectId,workspace.stages.brief_references!.id])).rows[0]!.v;
    const quote=logoCostQuoteSchema.parse((await db.query<{v:unknown}>('select public.quote_logo_operation($1,$2) v',[workspace.projectId,{operation:'concepts',expected:workspace.heads,briefRevisionId:workspace.stages.brief_references!.id,referenceSnapshotId:brief.payload.referenceSnapshotId}])).rows[0]!.v);
    await db.query('select public.admit_logo_operation($1,$2)',[workspace.projectId,{requestKey:randomUUID(),quoteId:quote.id,acceptedMaxCostMicrousd:quote.maxCostMicrousd,expected:workspace.heads}]);

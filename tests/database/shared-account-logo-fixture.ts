@@ -5,8 +5,8 @@ import type { AuthenticatedContext } from "../../src/server/auth/context";
 import type { SharedAccountHttpDependencies } from "../../src/server/shared-account/runtime";
 import { createSharedAccountFixture, sharedHttpOrigin } from "./shared-account-fixture";
 import { createSharedLogoHttpRuntime } from "../../src/server/shared-account/logo-runtime";
-import { logoWorkspaceV2Schema } from "../../src/domain/logo-workspace";
 import { logoHttpFixture } from "../fixtures/logo-http-runtime";
+import { startLogoFixture } from "./logo-project-fixture";
 export const sharedLogoRole = "embel_shared_http_logo_test";
 export async function createSharedLogoFixture() {
   const f = await createSharedAccountFixture(), { db } = f;
@@ -22,7 +22,7 @@ export async function createSharedLogoFixture() {
     const cap = await issue(owner, action, project, intent);
     return f.asSession(sharedLogoRole, async () => (await db.query<{ value: unknown }>("select public.execute_shared_logo_request($1,$2,$3::jsonb,$4::jsonb) value", [cap.token, action, JSON.stringify([project, intent]), evidence === null ? null : JSON.stringify(evidence)])).rows[0]!.value);
   }
-  const allowedRpc = new Set(["issue_shared_logo_request", "get_logo_workspace", "start_logo_project", "read_logo_asset", "list_logo_references", "read_logo_input_request", "list_logo_input_requests", "get_logo_stage_revision", "read_logo_workspace_request", "read_logo_current_vector", "read_logo_workspace_record"]);
+  const allowedRpc = new Set(["issue_shared_logo_request", "get_logo_workspace", "read_logo_asset", "list_logo_references", "read_logo_input_request", "list_logo_input_requests", "get_logo_stage_revision", "read_logo_workspace_request", "read_logo_current_vector", "read_logo_workspace_record"]);
   function auth(owner: string): AuthenticatedContext {
     const user = { id: owner, is_anonymous: false, email_confirmed_at: "2026-10-01T00:00:00Z" };
     return { userId: owner, client: { auth: { getSession: async () => ({ data: { session: { user, access_token: `inert.${owner}.token` } }, error: null }), getUser: async () => ({ data: { user }, error: null }) }, rpc(name: string, args: Record<string, unknown>) {
@@ -39,8 +39,12 @@ export async function createSharedLogoFixture() {
     } } } as unknown as AuthenticatedContext;
   }
   async function start(owner: string) {
-    const result = await auth(owner).client.rpc("start_logo_project", { p_input: { requestKey: randomUUID(), brief: { name: "Shared test", activity: "Studio", audience: "Founders", personality: "Calm", logoTypes: ["wordmark"] } } });
-    if (result.error) throw result.error; return logoWorkspaceV2Schema.parse(result.data);
+    const query = async (sql: string, params: unknown[]) => {
+      const previous = (await db.query<{ role: string }>("select session_user::text role")).rows[0]!.role;
+      try { return (await f.asAuth(owner, () => db.query<{ value: unknown }>(sql, params))).rows[0]!.value; }
+      finally { await db.exec(`set session authorization ${previous}`); }
+    };
+    return startLogoFixture(query, { requestKey: randomUUID(), brief: { name: "Shared test", activity: "Studio", audience: "Founders", personality: "Calm", logoTypes: ["wordmark"] } });
   }
   const objects = new Map<string, { bytes: Uint8Array; mime: string }>(), calls: string[] = [];
   async function seedVector(owner: string, project: string) {

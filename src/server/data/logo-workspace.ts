@@ -2,12 +2,10 @@ import "server-only";
 import { applyLogoVectorProposalCommandSchema } from "@/features/logo-vector/model/proposal-materialization";
 import { z } from "zod";
 import {
-  logoProjectCreationInputSchema, logoProjectCreationStateSchema, logoProjectCreationPageSchema,
   logoWorkspaceV2Schema, logoCurrentVectorSelectionSchema, logoMutationReceiptSchema, logoManualCommandSchema,
   logoReferenceSnapshotSchema, logoStageRevisionSchema, logoHistoryPageSchema, logoHistoryCursorSchema,
   logoPageQuerySchema, logoStageSchema,
   type LogoWorkspaceV2, type LogoMutationReceipt, type LogoManualCommand, type LogoStage,
-  type LogoProjectCreationInput, type LogoProjectCreationState, type LogoProjectCreationPage,
   type LogoReferenceSnapshot, type LogoStageRevision, type LogoHistoryPage, type LogoHistoryCursor,
 } from "@/domain/logo-workspace";
 import { logoRequestStateSchema, logoConceptBatchSchema, logoConceptBatchPageSchema, logoRasterRefinementSchema, logoRasterRefinementPageSchema, type LogoRequestState, type LogoConceptBatch, type LogoConceptBatchPage, type LogoRasterRefinement, type LogoRasterRefinementPage } from "@/domain/logo-jobs";
@@ -42,7 +40,7 @@ export type LogoWorkspaceDependencies = {
 };
 export function createLogoWorkspaceService(dependencies:LogoWorkspaceDependencies={}) {
   async function rpc(auth: AuthenticatedContext, name: string, args: Record<string, unknown>, signal?: AbortSignal,
-    mutation?: { projectId: string | null; input: LogoProjectCreationInput | LogoManualCommand }): Promise<unknown> {
+    mutation?: { projectId: string; input: LogoManualCommand }): Promise<unknown> {
     logoOwner(auth); active(signal);
     let response: { data: unknown; error: unknown };
     try {
@@ -64,28 +62,6 @@ export function createLogoWorkspaceService(dependencies:LogoWorkspaceDependencie
     projectId = logoId(projectId);
     const value = parseLogoStored(logoWorkspaceV2Schema, await rpc(auth, "get_logo_workspace", { p_project_id: projectId }, signal));
     scope(auth, projectId, value); return value;
-  }
-  async function startLogoProject(auth: AuthenticatedContext, input: unknown, signal?: AbortSignal): Promise<LogoWorkspaceV2> {
-    logoOwner(auth);
-    const body = parseLogoInput(logoProjectCreationInputSchema, input);
-    const value = await rpc(auth, "start_logo_project", { p_input: body }, signal, { projectId: null, input: body });
-    try {
-      const workspace = parseLogoStored(logoWorkspaceV2Schema, value);
-      if (workspace.ownerId !== logoOwner(auth)) throw new ApiError("not_found");
-      return workspace;
-    } catch { throw new LogoUncertainCommitError(null, body); }
-  }
-  async function readLogoProjectCreation(auth: AuthenticatedContext, requestKey: string): Promise<LogoProjectCreationState> {
-    requestKey = logoId(requestKey);
-    const state = parseLogoStored(logoProjectCreationStateSchema, await rpc(auth, "read_logo_project_creation", { p_request_key: requestKey }));
-    if (state.status === "succeeded" && (state.requestKey !== requestKey || state.workspace.ownerId !== logoOwner(auth))) throw new ApiError("not_found");
-    return state;
-  }
-  async function listLogoProjectCreations(auth: AuthenticatedContext, query: { cursor?: string; limit?: number } = {}): Promise<LogoProjectCreationPage> {
-    const parsed = parseLogoInput(logoPageQuerySchema, query);
-    const page = parseLogoStored(logoProjectCreationPageSchema, await rpc(auth, "list_logo_project_creations", { p_query: parsed }));
-    if (page.ownerId !== logoOwner(auth) || page.items.length > parsed.limit) throw new ApiError("not_found");
-    return page;
   }
   async function record(auth: AuthenticatedContext, projectId: string, kind: string, id: string, signal?: AbortSignal): Promise<unknown> {
     return rpc(auth, "read_logo_workspace_record", { p_project_id: logoId(projectId), p_kind: kind, p_id: logoId(id) }, signal);
@@ -153,7 +129,7 @@ export function createLogoWorkspaceService(dependencies:LogoWorkspaceDependencie
     await getLogoWorkspace(auth, projectId, signal); throw new ApiError("integration_unavailable");
   }
   return {
-    startLogoProject, readLogoProjectCreation, listLogoProjectCreations, getLogoWorkspace, readLogoReferenceSnapshot,
+    getLogoWorkspace, readLogoReferenceSnapshot,
     getLogoStageRevision, listLogoStageHistory, readLogoManualRequest,
     saveLogoBrief: (auth: AuthenticatedContext, projectId: string, input: unknown) => manual(auth, projectId, "saveLogoBrief", input),
     saveLogoReferences: (auth: AuthenticatedContext, projectId: string, input: unknown) => manual(auth, projectId, "saveLogoReferences", input),
@@ -240,7 +216,7 @@ export function createLogoWorkspaceService(dependencies:LogoWorkspaceDependencie
   };
 }
 export const {
-  startLogoProject, readLogoProjectCreation, listLogoProjectCreations, getLogoWorkspace, readLogoReferenceSnapshot,
+  getLogoWorkspace, readLogoReferenceSnapshot,
   getLogoStageRevision, listLogoStageHistory, readLogoManualRequest, saveLogoBrief, saveLogoReferences,
   restoreLogoStage, selectLogoConcept, selectLogoRaster, saveLogoEdit, applyLogoVectorProposal, acceptLogoVector,
   selectIdentityDirectionComponents, approveIdentityDirection, prepareLogoVariants, reviewLogoVariants,

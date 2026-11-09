@@ -12,13 +12,13 @@ import { createLogoCreationController, type LogoCreationController } from "./cre
 export type LogoWorkspaceController = ReturnType<typeof useLogoWorkspace>;
 
 /** One shared owner-scoped memory. No browser persistence or feature draft copy. */
-export function useLogoCreation(projectId?: string): { workspace: LogoWorkspaceController; creation: LogoCreationController | null; capabilities: LogoCapabilitiesReadiness } {
+export function useLogoCreation(projectId: string): { workspace: LogoWorkspaceController; creation: LogoCreationController | null; capabilities: LogoCapabilitiesReadiness } {
   const memory = useLogoDraftMemory();
   const workspace = useLogoWorkspace({ projectId, memory });
   const { session, isCurrent } = useAccountSession();
   const account = session.status === "ready" ? session : null;
   const client = workspace.client;
-  const capabilities = useLogoCapabilities(client, projectId ?? null);
+  const capabilities = useLogoCapabilities(client, projectId);
   const readiness = useRef(capabilities);
   useLayoutEffect(() => { readiness.current = capabilities; }, [capabilities]);
   const ownerId = workspace.workspace?.ownerId;
@@ -27,7 +27,7 @@ export function useLogoCreation(projectId?: string): { workspace: LogoWorkspaceC
   const [entry, setEntry] = useState<{ client: NonNullable<typeof client>; ownerId: string; projectId: string; generation: number; controller: LogoCreationController } | null>(null);
   useLayoutEffect(() => { latest.current = workspace; return () => { latest.current = null; }; }, [workspace]);
   useEffect(() => {
-    if (!account || !client || !projectId || ownerId !== account.userId || savedProjectId !== projectId || !isAccountLogoClientCurrent(client, account, projectId)) return;
+    if (!account || !client || ownerId !== account.userId || savedProjectId !== projectId || !isAccountLogoClientCurrent(client, account, projectId)) return;
     let disposed = false;
     const current = () => !disposed && isCurrent(account) && isAccountLogoClientCurrent(client, account, projectId);
     const controller = createLogoCreationController({ client, projectId,
@@ -53,12 +53,12 @@ export function useLogoCreation(projectId?: string): { workspace: LogoWorkspaceC
   useEffect(() => { creation?.refreshInputs(); }, [creation, workspace.dirty, workspace.pending, workspace.workspace, workspace.draft?.conflict, capabilities.status, capabilities.available]);
   const pendingKey = workspace.pendingIntent?.requestKey;
   useEffect(() => {
-    if (!creation || !projectId || !pendingKey) return;
+    if (!creation || !pendingKey) return;
     let closed = false, timer: ReturnType<typeof setTimeout> | undefined;
     async function poll() {
       await creation!.checkRequest();
       if (closed) return;
-      if (memory.get(projectId!)?.pendingIntent?.requestKey === pendingKey) timer = setTimeout(() => { void poll(); }, 3000);
+      if (memory.get(projectId)?.pendingIntent?.requestKey === pendingKey) timer = setTimeout(() => { void poll(); }, 3000);
       else await latest.current?.reload(false);
     }
     timer = setTimeout(() => { void poll(); }, 3000);

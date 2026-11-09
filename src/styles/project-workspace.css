@@ -160,11 +160,7 @@
 .project-direction-workspace .project-dock [class*=componentFields] { grid-template-columns: 1fr; }
 .project-direction-workspace .project-dock [class*=selection] { border: 0; padding: 0; }
 .project-direction-workspace .project-dock :is(button, select) { font-size: 13px; }
-.project-logo-page.page { padding: 0; margin: 0; max-width: none; }
 .project-logo-creation .project-workbench-canvas > header { margin-bottom: 20px; }
-.project-logo-start { padding: 48px 24px; min-height: 300px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #f1f0ee; border-radius: 10px; text-align: center; margin-bottom: 20px; }
-.project-logo-start h2 { font-size: 28px; font-weight: 500; }
-.project-logo-start p { max-width: 520px; margin-top: 12px; font-size: 13px; line-height: 20px; color: var(--secondary); }
 .project-logo-creation .project-dock :is(section, fieldset) { padding: 0; margin: 0 0 20px; border: 0; background: #fff; }
 .project-logo-creation .project-dock [class*=fields] { grid-template-columns: 1fr; gap: 14px; margin: 20px 0; }
 .project-logo-creation .project-dock :is(input, textarea) { background: #fff; border-radius: 7px; font-size: 13px; }

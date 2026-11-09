@@ -6,6 +6,7 @@ import {legacyLogoCostQuoteSchema as logoCostQuoteSchema,logoDispatchReceiptSche
 import {proposalFixture} from '../features/logo-vector/proposal-fixtures';
 import {buildLogoVectorProposalContext} from '@/features/logo-vector/server/proposal-context';
 import {proposalPolicy} from '../server/logo-vector-proposal-fixtures';
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 export const WEB='fixture_proposal_admission_web',WORKER='fixture_proposal_admission_worker';
 export async function proposalLogin<T>(db:TestDatabase,role:string,run:()=>Promise<T>){if(![WEB,WORKER].includes(role))throw Error('Unexpected fixture role');await db.exec(`set session authorization ${role}`);try{return await run();}finally{await db.exec('set session authorization postgres');}}
 /** preserve/owner are disposable multi-project verification options only. */
@@ -18,7 +19,7 @@ export async function proposalAdmissionFixture(db:TestDatabase,source?:ReturnTyp
  await db.query('insert into fluid_private.logo_asset_web_principals(role_name,role_oid,owner_id) select rolname,oid,$1 from pg_roles where rolname=$2 on conflict(role_name) do update set role_oid=excluded.role_oid,owner_id=excluded.owner_id',[owner,WEB]);
  await db.query('insert into fluid_private.logo_worker_principals(role_name,role_oid,owner_id) select rolname,oid,$1 from pg_roles where rolname=$2 on conflict(role_name) do update set role_oid=excluded.role_oid,owner_id=excluded.owner_id',[owner,WORKER]);
  const rpc=(name:string,args:unknown[],rpcOwner=owner)=>asRole(db,'authenticated',rpcOwner,async()=>(await db.query<{v:unknown}>(`select public.${name}(${args.map((_,i)=>'$'+(i+1)).join(',')}) v`,args)).rows[0]!.v);
- const workspace=logoWorkspaceV2Schema.parse(await rpc('start_logo_project',[{requestKey:randomUUID(),brief:{name:'Aster',activity:'Synthetic admission metadata',audience:'',personality:'',logoTypes:['combination']}}]));
+ const workspace=logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db, owner), {requestKey:randomUUID(),brief:{name:'Aster',activity:'Synthetic admission metadata',audience:'',personality:'',logoTypes:['combination']}}));
  const f=source??proposalFixture(),brief=(await db.query<{record:typeof f.brief}>('select record from public.logo_stage_revisions where id=$1',[workspace.stages.brief_references!.id])).rows[0]!.record;
  f.brief=brief;f.revision.ownerId=owner;f.revision.projectId=workspace.projectId;f.revision.inputRevisions=[{stage:'brief_references',id:brief.id,revision:brief.revision}];
  for(const ref of [f.revision.sourcePreview,f.revision.documentAsset,f.revision.svgAsset]){ref.ownerId=owner;ref.projectId=workspace.projectId;}

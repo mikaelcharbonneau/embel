@@ -10,6 +10,7 @@ import { logoWorkspaceV2Schema, type LogoWorkspaceV2 } from "@/domain/logo-works
 import { logoDeliverablesOverviewSchema, logoExportManifestSchema, type IdentityAssetReceipt, type ApprovedLogoIdentitySnapshot, type LogoVariantSet } from "@/domain/logo-deliverables";
 import { deliverableFixture, resolvedFixture, id, at } from "../features/identity-deliverables/fixtures";
 import { computeLogoVariantRenderHash } from "@/features/identity-deliverables/server/render-policy";
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 const brief = { name: "Synthetic export brand", activity: "Studio", audience: "Teams", personality: "Precise", logoTypes: ["wordmark"] };
 const hash = (v: string) => createHash("sha256").update(v).digest("hex");
 /** SQL fixture metadata is synthetic. Byte production and private-storage reads are separately tested. */
@@ -25,7 +26,7 @@ describe("local immutable logo export persistence", () => {
  async function rpc(name:string,args:unknown[],owner=OWNER_A) { return asRole(db,"authenticated",owner,async () => (await db.query<{value:unknown}>(`select public.${name}(${args.map((_,i)=>`$${i+1}`).join(",")}) value`,args)).rows[0]!.value); }
  async function writer<T>(run:()=>Promise<T>):Promise<T> { await db.exec("set session authorization fixture_export_writer"); try { return await run(); } finally { await db.exec("set session authorization postgres"); } }
  async function setup() {
-  const start=logoWorkspaceV2Schema.parse(await rpc("start_logo_project",[{requestKey:randomUUID(),brief}]));
+  const start=logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), {requestKey:randomUUID(),brief}));
   const fixture=JSON.parse(JSON.stringify(deliverableFixture("wordmark")).replaceAll(id(1),OWNER_A).replaceAll(id(2),start.projectId)) as ApprovedLogoIdentitySnapshot;
   const sourceInputs=[{stage:"brief_references",id:start.stages.brief_references!.id,revision:1}];
   await db.query("insert into public.logo_vector_revisions(id,owner_id,project_id,record) values($1,$2,$3,$4)",[fixture.logo.id,OWNER_A,start.projectId,{...fixture.logo,inputRevisions:sourceInputs}]);

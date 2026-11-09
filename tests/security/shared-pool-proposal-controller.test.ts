@@ -17,7 +17,7 @@ function fixture() {
    vector: { stage: "vector", id: proposalId(92), revision: 1 }, refinements: null, directions: null, deliverables: null }, approvedLogo: null, staleStages: [],
   capabilities: Object.fromEntries(["save", "upload", "generate", "convert", "export"].map(k => [k, { status: "available" }])) });
  memory.set(p.projectId, { workspace, base: workspace.heads, brief: { name: "Synthetic", activity: "Fixture", audience: "", personality: "", logoTypes: ["wordmark"] },
-  references: [], dirty: false, conflict: false, pendingCreation: null, pendingIntent: null, pendingMutation: null, pendingExport: null });
+  references: [], dirty: false, conflict: false, pendingIntent: null, pendingMutation: null, pendingExport: null });
  const policy = proposalPolicy(), quote = legacyLogoCostQuoteSchema.parse({ id: p.quoteId, ownerId: p.ownerId, projectId: p.projectId,
   request: { operation: "propose_vector_edit", expected: p.expected, baseVectorRevisionId: p.baseVectorRevisionId, instruction: "Rotate symbol", targetComponentIds: p.context.targetComponentIds },
   inputHash: "a".repeat(64), expected: p.expected, policyIdentity: "b".repeat(64), handlerVersion: "logo-vector-propose-v1", provider: "openai", model: "gpt-6.1-sol", engine: null,

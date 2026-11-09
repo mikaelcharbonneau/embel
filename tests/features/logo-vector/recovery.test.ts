@@ -8,7 +8,7 @@ import type { LogoMutationReceipt, LogoWorkspaceV2 } from "../../../src/domain/l
 function fixture() {
   const original = syntheticLogoWorkspace(), workspace: LogoWorkspaceV2 = { ...original, capabilities: { ...original.capabilities, save: { status: "available" } } };
   const memory = createLogoDraftMemory(), account = { status: "ready" as const, userId: workspace.ownerId, generation: 1 }, projectId = workspace.projectId;
-  memory.bind({ ownerId: account.userId, generation: account.generation }); memory.set(projectId, { workspace, base: workspace.heads, brief: { name: "Synthetic", activity: "", audience: "", personality: "", logoTypes: ["wordmark"] }, references: [], dirty: false, conflict: false, pendingMutation: null, pendingIntent: null, pendingCreation: null, pendingExport: null,
+  memory.bind({ ownerId: account.userId, generation: account.generation }); memory.set(projectId, { workspace, base: workspace.heads, brief: { name: "Synthetic", activity: "", audience: "", personality: "", logoTypes: ["wordmark"] }, references: [], dirty: false, conflict: false, pendingMutation: null, pendingIntent: null, pendingExport: null,
     vectorDraft: { baseVectorRevisionId: id(80), edit: { kind: "rotation", componentId: "symbol", degrees: 15 } } });
   let current = true, lose = false, commit = true, conflict = false, receipt: LogoMutationReceipt | null = null, remote = workspace;
   const requests: { path: string; body: unknown }[] = [];

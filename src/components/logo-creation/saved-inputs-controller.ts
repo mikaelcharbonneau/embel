@@ -29,7 +29,7 @@ type Input = {
 const same = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
 const byReference = (rows: readonly LogoReferenceSelection[]) => [...rows].sort((a, b) => a.referenceId.localeCompare(b.referenceId));
 export const logoDraftHasProtectedWork = (draft: LogoDraftRecord) => draft.dirty || draft.conflict || !!draft.vectorDraft || !!draft.directionDraft
-  || !!draft.pendingCreation || !!draft.pendingMutation || !!draft.pendingIntent || !!draft.pendingExport;
+  || !!draft.pendingMutation || !!draft.pendingIntent || !!draft.pendingExport;
 const blockedEdits = "Your logo changes haven’t finished saving. They’re kept. Refresh logo inputs once they’re saved.";
 const changed = "Your brand or logo brief changed. Refresh logo inputs to continue.";
 const noName = "Choose and save a brand name in your project before generating logo concepts.";

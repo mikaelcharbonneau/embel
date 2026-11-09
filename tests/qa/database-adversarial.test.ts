@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { asRole, asSubscriptionWorker, createTestDatabase, enqueue, HASH, OWNER_A, OWNER_B, resetFixture, seedProject, type TestDatabase } from "../database/local-supabase";
 import type { LogoWorkspaceV2 } from "../../src/domain/logo-workspace";
+import { ownerQuery, startLogoFixture } from "../database/logo-project-fixture";
 
 // Reviewed exact client surface, grouped by source migration and its intended
 // application boundary. No producer/lease/private helper is granted by this list.
@@ -209,9 +210,7 @@ describe("independent database boundary attacks", () => {
     const tables = ["logo_workspaces", "logo_stage_heads", "logo_stage_revisions", "logo_reference_sources", "logo_reference_snapshots", "logo_workspace_requests"];
     const brief = { name: "Explicit local logo fixture", activity: "", audience: "", personality: "", logoTypes: ["wordmark"] };
     async function logoTenant(owner: string) {
-      const requestKey = randomUUID();
-      const workspace = await asRole(db, "authenticated", owner, async () =>
-        (await db.query<{ value: LogoWorkspaceV2 }>("select public.start_logo_project($1) as value", [{ requestKey, brief }])).rows[0]!.value);
+      const workspace = await startLogoFixture(ownerQuery(db, owner), { brief });
       const asset = randomUUID(), version = randomUUID(), reference = randomUUID();
       // Administrator-created local metadata only. No actual upload, source
       // admission, licensed rights, or provider output is claimed by this fixture.
@@ -219,7 +218,7 @@ describe("independent database boundary attacks", () => {
       await db.query("insert into public.asset_versions(id,owner_id,project_id,asset_id,version,input_revision,input_hash,content_hash,mime_type,provenance) values($1,$2,$3,$4,1,1,$5,$5,'image/png','{}')", [version, owner, workspace.projectId, asset, HASH]);
       await db.query("insert into public.logo_reference_sources(reference_id,project_id,owner_id,asset_id,version_id,content_hash,source_kind,rights_evidence_id) values($1,$2,$3,$4,$5,$6,'upload',$7)", [reference, workspace.projectId, owner, asset, version, HASH, randomUUID()]);
       const snapshot = (await db.query<{ id: string }>("select id from public.logo_reference_snapshots where project_id=$1 and owner_id=$2", [workspace.projectId, owner])).rows[0]!.id;
-      return { workspace, requestKey, snapshot };
+      return { workspace, snapshot };
     }
     const a = await logoTenant(OWNER_A), b = await logoTenant(OWNER_B);
     for (const [owner, own, other] of [[OWNER_A, a, b], [OWNER_B, b, a]] as const) {
@@ -236,8 +235,6 @@ describe("independent database boundary attacks", () => {
         await expect(db.query("select public.read_logo_workspace_record($1,'stage',$2)", [own.workspace.projectId, other.workspace.stages.brief_references!.id])).rejects.toMatchObject({ code: "P0002" });
         await expect(db.query("select public.read_logo_workspace_record($1,'reference_snapshot',$2)", [own.workspace.projectId, other.snapshot])).rejects.toMatchObject({ code: "P0002" });
         await expect(db.query("select public.list_logo_workspace_records($1,'brief_references','{}')", [other.workspace.projectId])).rejects.toMatchObject({ code: "P0002" });
-        expect((await db.query("select public.read_logo_project_creation($1) as value", [other.requestKey])).rows).toEqual([{ value: { status: "not_found" } }]);
-        expect((await db.query<{ value: { items: { projectId: string }[] } }>("select public.list_logo_project_creations('{}') as value")).rows[0]!.value.items.map(item => item.projectId)).toEqual([own.workspace.projectId]);
         await expect(db.query("select public.apply_logo_workspace_command($1,$2)", [other.workspace.projectId, {
           method: "saveLogoBrief", body: { requestKey: randomUUID(), expected: other.workspace.heads, brief },
         }])).rejects.toMatchObject({ code: "P0002" });
@@ -294,9 +291,6 @@ describe("independent database boundary attacks", () => {
         "select public.get_standalone_workspace(null)",
         "select public.get_standalone_import(null)",
         "select public.save_standalone_workspace(null,null,null,null,null)",
-        "select public.start_logo_project(null)",
-        "select public.read_logo_project_creation(null)",
-        "select public.list_logo_project_creations(null)",
         "select public.get_logo_workspace(null)",
         "select public.read_logo_workspace_record(null,null,null)",
         "select public.list_logo_workspace_records(null,null,null)",
@@ -402,9 +396,7 @@ describe("independent database boundary attacks", () => {
       "public.save_standalone_workspace(text, integer, uuid, jsonb, jsonb)",
       // 20261006130000_logo_workspace_v2: owner-checked manual history and CAS;
       // no generation, upload, provider execution or broader worker access.
-      "public.start_logo_project(jsonb)",
-      "public.read_logo_project_creation(uuid)",
-      "public.list_logo_project_creations(jsonb)",
+      // 20261109100000 retired its logo-only project start and readers.
       "public.get_logo_workspace(uuid)",
       "public.read_logo_workspace_record(uuid, text, uuid)",
       "public.list_logo_workspace_records(uuid, text, jsonb)",

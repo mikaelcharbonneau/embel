@@ -1,4 +1,4 @@
-import {verifySharedLogoRaster} from './verify-shared-logo-raster-native.mjs';
+import {startNativeLogoProject,verifySharedLogoRaster} from './verify-shared-logo-raster-native.mjs';
 import {verifySharedIdentitySelection} from './verify-shared-identity-selection-native.mjs';
 /** Isolated PG17 NOSUPER source-packet verification. No ports, network, host
  * mounts, live database, passwords, Auth service or provider calls. The cached
@@ -223,7 +223,7 @@ try{
   insert into fluid_private.shared_logo_http_principals(lane,role_name,role_oid,enabled) select 'logo',rolname,oid,true from pg_roles where rolname=${quote(logoRole)};`);
  for(const [index,session] of sessions.entries()){
   const input={requestKey:`40000000-0000-4000-8000-00000000000${index+1}`,brief:{name:'Native shared fixture',activity:'Studio',audience:'Founders',personality:'Calm',logoTypes:['wordmark']}};
-  const workspace=asVerifiedSession(session,`public.start_logo_project(${quote(JSON.stringify(input))})`);
+  const workspace=startNativeLogoProject({quote,asVerifiedSession},session,input);
   const upload={kind:'upload',intent:{requestKey:`50000000-0000-4000-8000-00000000000${index+1}`,usage:'logo_reference',mimeType:'image/png',contentHash:'b'.repeat(64),rightsDeclaration:'Synthetic native fixture rights'},byteLength:100};
   const logoArgs=[workspace.projectId,upload];const cap=asVerifiedSession(session,`public.issue_shared_logo_request('asset_prepare',${quote(JSON.stringify(logoArgs))})`);
   const prepared=rpc('execute_shared_logo_request',[cap.token,'asset_prepare',logoArgs,null],logoRole);

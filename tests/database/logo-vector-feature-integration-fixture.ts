@@ -16,7 +16,6 @@ import { createLogoServices } from '@/server/runtime/logo-services';
 import type { IdentityConnectionFactory } from '@/server/data/identity-transaction';
 import type { AuthenticatedContext } from '@/server/auth/context';
 import type { LogoWorkerConnection } from '@/server/data/logo-jobs';
-import { logoWorkspaceV2Schema } from '@/domain/logo-workspace';
 import { logoDispatchReceiptSchema, legacyLogoCostQuoteSchema } from '@/domain/logo-jobs';
 import { logoVectorProposalRecordSchema } from '@/domain/logo-vector-proposal-jobs';
 import { logoVectorProposalApplicationSchema, type ApplyLogoVectorProposalCommand } from '@/features/logo-vector/model/proposal-materialization';
@@ -24,6 +23,7 @@ import { startLogoProductionWorker } from '../../worker/logo-production-startup'
 import { startLogoProductionHost } from '../../worker/logo-production-host';
 import type { IdentityPoolPort, IdentityPoolClientPort } from '@/server/runtime/identity-pool';
 import { freezeLogoWorkerManifest } from '../../worker/logo-readiness';
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 
 export const candidateNames = ['logo-vector-proposals.sql', 'logo-vector-proposal-quotes.sql', 'logo-vector-proposal-admission.sql', 'logo-vector-proposal-observations.sql', 'logo-vector-proposal-completion.sql', 'logo-vector-proposal-materialization.sql', 'logo-vector-proposal-capabilities.sql'];
 export const integratedCandidates = await Promise.all(candidateNames.map(name => readFile(new URL('../../supabase/candidates/' + name, import.meta.url), 'utf8')));
@@ -68,7 +68,7 @@ export async function vectorFeatureFixture(db: TestDatabase, options: { loseObse
     async putIfAbsent(key, bytes, mimeType) { writes++; const old = blobs.get(key); if (old && (old.mimeType !== mimeType || !Buffer.from(old.bytes).equals(Buffer.from(bytes)))) throw Error('Immutable local object conflict'); if (!old) blobs.set(key, { bytes: Uint8Array.from(bytes), mimeType }); },
     async read(key) { reads++; const value = blobs.get(key); if (!value) throw Error('Missing immutable local bytes'); return { ...value, bytes: Uint8Array.from(value.bytes) }; },
   } });
-  const source = await textEditFixture(true), initial = logoWorkspaceV2Schema.parse(await rpc('start_logo_project', [{ requestKey: randomUUID(), brief: { name: source.input.source.text, activity: 'Synthetic local end-to-end qualification', audience: '', personality: '', logoTypes: ['combination'] } }]));
+  const source = await textEditFixture(true), initial = await startLogoFixture((sql, params) => serial(() => ownerQuery(db)(sql, params)), { requestKey: randomUUID(), brief: { name: source.input.source.text, activity: 'Synthetic local end-to-end qualification', audience: '', personality: '', logoTypes: ['combination'] } });
   const projectId = initial.projectId;
   const font = await services.inputs.importCatalogLogoFont(auth, projectId, { requestKey: randomUUID(), expected: initial.heads, catalogFontId: 'geist-sans-variable' });
   source.input.font.record = font; source.input.source.font = { ...font.asset }; source.input.source.rightsEvidenceId = font.rights.id;

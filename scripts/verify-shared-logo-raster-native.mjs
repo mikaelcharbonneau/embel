@@ -1,5 +1,16 @@
 import {randomUUID} from 'node:crypto';
 
+/** A complete brand with its first Logo brief saved, made the way the app
+ * makes it: create the project, open its Logo workspace, then save the brief.
+ * Logo-only projects can no longer be started (November 9, 2026). */
+export function startNativeLogoProject({quote,asVerifiedSession},session,{requestKey=randomUUID(),brief}){
+ const project=asVerifiedSession(session,`to_jsonb(public.create_project('complete_brand',${quote(brief.name)},${quote(JSON.stringify({description:'Synthetic native Logo fixture'}))}::jsonb,${quote('a'.repeat(64))}))`);
+ const opened=asVerifiedSession(session,`public.get_logo_workspace(${quote(project.id)})`);
+ const receipt=asVerifiedSession(session,`public.initialize_existing_brand_logo(${quote(project.id)},${quote(JSON.stringify({requestKey,expected:opened.heads,brief}))}::jsonb)`);
+ if(!receipt?.workspace||receipt.workspace.projectId!==project.id)throw new Error('native-logo-fixture-brief-not-saved');
+ return receipt.workspace;
+}
+
 /** Called only by verify-shared-worker-native against its network-disabled,
  * disposable PG17 container. Auth, Storage metadata and provider evidence are
  * synthetic; admission, restricted LOGINs, RLS, receipts and settlement are real SQL. */
@@ -20,7 +31,7 @@ export function verifySharedLogoRaster({sql,rpc,quote,assert,checkDenied,asVerif
  const action=(execution,name,args)=>rpc('shared_logo_worker_action',[lease,execution,name,args],role);
  assert(action(null,'runtime_ready',[policies]).result===true,'native-raster-advertises-the-exact-uncapped-policy');
  const owner=sessions[1],other=sessions[0];
- const workspace=asVerifiedSession(owner,`public.start_logo_project(${quote(JSON.stringify({requestKey:randomUUID(),brief:{name:'Native uncapped Logo',activity:'Synthetic SQL proof',audience:'Testers',personality:'Calm',logoTypes:['wordmark']}}))})`);
+ const workspace=startNativeLogoProject({quote,asVerifiedSession},owner,{brief:{name:'Native uncapped Logo',activity:'Synthetic SQL proof',audience:'Testers',personality:'Calm',logoTypes:['wordmark']}});
  const snapshot=sql(`select reference_snapshot_id from public.logo_stage_revisions where id=${quote(workspace.stages.brief_references.id)};`);
  const quoteRequest={operation:'concepts',expected:workspace.heads,briefRevisionId:workspace.stages.brief_references.id,referenceSnapshotId:snapshot};
  const operation=(kind,input,who=owner)=>asVerifiedSession(who,`public.shared_logo_operation(${quote(workspace.projectId)},${quote(kind)},${quote(JSON.stringify(input))})`);

@@ -5,6 +5,7 @@ import { asRole, createTestDatabase, OWNER_A, OWNER_B, resetFixture, type TestDa
 import { legacyLogoCostQuoteSchema as logoCostQuoteSchema, logoDispatchReceiptSchema } from "../../src/domain/logo-jobs";
 import { logoWorkspaceV2Schema } from "../../src/domain/logo-workspace";
 import { logoVectorEditCommandSchema, logoVectorEditRequestStateSchema } from "../../src/features/logo-vector/model/cancellation";
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 
 // Actual PostgreSQL semantics in disposable PGlite. No hosted database changes.
 describe("durable exact manual vector edit cancellation", () => {
@@ -22,7 +23,7 @@ describe("durable exact manual vector edit cancellation", () => {
   const rpc = (name: string, args: unknown[], owner: string | null = OWNER_A) => asRole(db, owner ? "authenticated" : "anon", owner, async () =>
     (await db.query<{ value: unknown }>(`select public.${name}(${args.map((_, i) => `$${i + 1}`).join(",")}) value`, args)).rows[0]!.value);
   async function fixture() {
-    const workspace = logoWorkspaceV2Schema.parse(await rpc("start_logo_project", [{ requestKey: randomUUID(), brief: { name: "Cancellation fixture", activity: "Studio", audience: "Test", personality: "Calm", logoTypes: ["combination"] } }]));
+    const workspace = logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), { requestKey: randomUUID(), brief: { name: "Cancellation fixture", activity: "Studio", audience: "Test", personality: "Calm", logoTypes: ["combination"] } }));
     const command = { method: "saveLogoEdit", body: { requestKey: randomUUID(), expected: workspace.heads, baseVectorRevisionId: randomUUID(), edit: { kind: "text", componentId: "lettering", text: "Unsupported glyph 🐦" } } };
     return { workspace, command, projectId: workspace.projectId, key: command.body.requestKey };
   }
@@ -82,7 +83,7 @@ describe("durable exact manual vector edit cancellation", () => {
     const f = await fixture(); await rpc("cancel_logo_vector_edit", [f.projectId, f.command]);
     const brief = { name: "Separate namespace", activity: "Studio", audience: "Test", personality: "Calm", logoTypes: ["combination"] };
     expect(await rpc("apply_logo_workspace_command", [f.projectId, { method: "saveLogoBrief", body: { requestKey: randomUUID(), expected: f.workspace.heads, brief } }])).toHaveProperty("revision.stage", "brief_references");
-    const created = logoWorkspaceV2Schema.parse(await rpc("start_logo_project", [{ requestKey: f.key, brief }]));
+    const created = logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), { requestKey: f.key, brief }));
     expect(created.projectId).not.toBe(f.projectId);
     expect(await rpc("read_logo_vector_edit_request", [f.projectId, f.key])).toMatchObject({ status: "cancelled", command: f.command });
   });

@@ -15,6 +15,7 @@ import { createLogoWorkerRuntime } from "../../worker/logo-runtime";
 import { parseClaimedJob } from "../../worker/postgres-store";
 import { QUALIFIED_VTRACER } from "../../worker/logo-vector/engine";
 import { syntheticConversionInput } from "../features/logo-vector/raster-fixtures";
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 
 /** Local disposable PostgreSQL with a synthetic original raster and in-memory
  * private blobs. Real SQL, runtime, runner, converter and grouped publication.
@@ -59,9 +60,9 @@ describe("vector adapter through the actual local durable runtime", () => {
     (await db.query<{ value: unknown }>(`select public.${name}(${args.map((_, i) => `$${i + 1}`).join(",")}) value`, args)).rows[0]!.value);
   const workspace = async (projectId: string) => logoWorkspaceV2Schema.parse(await rpc("get_logo_workspace", [projectId]));
   it("claims a vector job, traces the frozen raster and commits a review-required revision without accepting it", async () => {
-    const initial = logoWorkspaceV2Schema.parse(await rpc("start_logo_project", [{ requestKey: randomUUID(), brief: {
+    const initial = logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), { requestKey: randomUUID(), brief: {
       name: "Synthetic vector adapter", activity: "Local test", audience: "Testers", personality: "Calm", logoTypes: ["mascot"],
-    } }]));
+    } }));
     const reference = (await db.query<{ reference_snapshot_id: string }>("select reference_snapshot_id from public.logo_stage_revisions where id=$1", [initial.stages.brief_references!.id])).rows[0]!;
     const quote = logoCostQuoteSchema.parse(await rpc("quote_logo_operation", [initial.projectId, { operation: "concepts", expected: initial.heads,
       briefRevisionId: initial.stages.brief_references!.id, referenceSnapshotId: reference.reference_snapshot_id }]));

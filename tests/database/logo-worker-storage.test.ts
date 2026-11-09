@@ -6,6 +6,7 @@ import { SYNTHETIC_CONCEPT_READINESS } from './logo-readiness-fixture';
 import { logoWorkspaceV2Schema } from '../../src/domain/logo-workspace';
 import { legacyLogoCostQuoteSchema as logoCostQuoteSchema } from '../../src/domain/logo-jobs';
 import type { IdentityAssetReservation } from '../../src/server/data/identity-asset-store';
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 
 const candidate = new URL('../../supabase/candidates/logo_worker_storage.sql', import.meta.url);
 const workerRole = 'fluid_logo_worker_storage_fixture', authUser = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
@@ -53,7 +54,7 @@ describe('dedicated worker session/reservation Storage authority', () => {
   async function worker<T>(run: () => Promise<T>) { await db.exec(`set session authorization ${workerRole}`); try { return await run(); } finally { await db.exec('set session authorization postgres'); } }
   const rpc = (name: string, args: unknown[]) => asRole(db, 'authenticated', OWNER_A, async () => (await db.query<{ v: unknown }>(`select public.${name}(${args.map((_, i) => `$${i+1}`).join(',')}) v`, args)).rows[0]!.v);
   async function prepare(): Promise<{ job: Lease; reservation: IdentityAssetReservation }> {
-    const w = logoWorkspaceV2Schema.parse(await rpc('start_logo_project', [{ requestKey: uuid(), brief: { name: 'Storage fixture', activity: 'Test', audience: 'Test', personality: 'Precise', logoTypes: ['wordmark'] } }]));
+    const w = logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), { requestKey: uuid(), brief: { name: 'Storage fixture', activity: 'Test', audience: 'Test', personality: 'Precise', logoTypes: ['wordmark'] } }));
     const snap = (await db.query<{ id: string }>('select reference_snapshot_id id from public.logo_stage_revisions where id=$1', [w.stages.brief_references!.id])).rows[0]!.id;
     const quote = logoCostQuoteSchema.parse(await rpc('quote_logo_operation', [w.projectId, { operation: 'concepts', expected: w.heads, briefRevisionId: w.stages.brief_references!.id, referenceSnapshotId: snap }]));
     await rpc('admit_logo_operation', [w.projectId, { requestKey: uuid(), quoteId: quote.id, acceptedMaxCostMicrousd: quote.maxCostMicrousd, expected: w.heads }]);

@@ -10,6 +10,7 @@ import { logoWorkspaceV2Schema } from "../../src/domain/logo-workspace";
 import { legacyLogoCostQuoteSchema as logoCostQuoteSchema, logoDispatchReceiptSchema } from "../../src/domain/logo-jobs";
 import { randomUUID } from "node:crypto";
 import { workerProfileFingerprint, type ApprovedWorkerProfile } from "../../worker/account-enrollment/configuration";
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 
 const operator = "fixture_account_worker_operator", reporter = "fixture_account_worker_reporter";
 // Public inert SCRAM syntax only. No real credential, provider, process or host.
@@ -381,9 +382,9 @@ describe("unapplied account worker enrollment over actual restricted SQL", () =>
     const proof = { ...await running(binding), storageSessionId };
     await rpc("publish_account_worker_enrollment", [claim.id, claim.leaseToken, "logo", proof.receipt]);
     await rpc("verify_account_worker_enrollment", [claim.id, claim.leaseToken, "logo", proof]);
-    const workspace = logoWorkspaceV2Schema.parse(await brainRpc(db, "start_logo_project", [{ requestKey: randomUUID(), brief: {
+    const workspace = logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), { requestKey: randomUUID(), brief: {
       name: "Synthetic managed logo", activity: "Offline testing", audience: "Testers", personality: "Calm", logoTypes: ["wordmark"],
-    } }]));
+    } }));
     const brief = workspace.stages.brief_references!;
     const snapshot = (await db.query<{ id: string }>("select reference_snapshot_id id from public.logo_stage_revisions where id=$1", [brief.id])).rows[0]!.id;
     const quote = logoCostQuoteSchema.parse(await brainRpc(db, "account_logo_operation", [workspace.projectId, "quote", { operation: "concepts", expected: workspace.heads, briefRevisionId: brief.id, referenceSnapshotId: snapshot }]));

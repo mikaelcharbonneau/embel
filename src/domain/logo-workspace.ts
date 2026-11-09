@@ -80,15 +80,7 @@ export const logoManualCommandSchema=bounded(z.discriminatedUnion("method",[
  z.strictObject({method:z.literal("reviewLogoVariants"),body:reviewLogoVariantsInputSchema}),
 ]));
 export type LogoManualCommand=z.infer<typeof logoManualCommandSchema>;
-export const logoProjectCreationInputSchema=bounded(z.strictObject({requestKey:uuid,brief:logoBriefDraftSchema}));
-export type LogoProjectCreationInput=z.infer<typeof logoProjectCreationInputSchema>;
-export const logoProjectCreationStateSchema=z.discriminatedUnion("status",[z.strictObject({status:z.literal("not_found")}),z.strictObject({status:z.literal("succeeded"),requestKey:uuid,projectId:uuid,workspace:logoWorkspaceV2Schema}).refine(v=>v.projectId===v.workspace.projectId,"Creation must bind its project")]);
-export type LogoProjectCreationState=z.infer<typeof logoProjectCreationStateSchema>;
-export const logoProjectCreationSummarySchema=bounded(z.strictObject({requestKey:uuid,projectId:uuid,brief:logoBriefDraftSchema,createdAt:timestamp}));
-export type LogoProjectCreationSummary=z.infer<typeof logoProjectCreationSummarySchema>;
 export const logoPageQuerySchema=z.strictObject({cursor:z.string().min(1).max(2048).optional(),limit:z.number().int().min(1).max(50).default(20)});
-export const logoProjectCreationPageSchema=bounded(z.strictObject({ownerId:uuid,items:z.array(logoProjectCreationSummarySchema).max(50),nextCursor:z.string().min(1).max(2048).nullable()}).refine(v=>unique(v.items.map(i=>i.requestKey))&&unique(v.items.map(i=>i.projectId)),"Creation summaries must be unique"),1_638_400);
-export type LogoProjectCreationPage=z.infer<typeof logoProjectCreationPageSchema>;
 export const logoHistoryCursorSchema=z.strictObject({stage:logoStageSchema,createdAt:timestamp,id:uuid});
 export type LogoHistoryCursor=z.infer<typeof logoHistoryCursorSchema>;
 export const logoHistoryPageSchema=bounded(z.strictObject({...scope,items:z.array(logoStageRevisionSchema).max(50),nextCursor:logoHistoryCursorSchema.nullable()}).refine(v=>v.items.every(i=>sameLogoScope(v,i))&&unique(v.items.map(i=>i.id)),"History must be uniquely owned"),1_638_400);

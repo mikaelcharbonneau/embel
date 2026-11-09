@@ -75,10 +75,10 @@ function fixture(initialized = true) {
 }
 
 async function tick(ms: number) { await act(async () => { await vi.advanceTimersByTimeAsync(ms); }); }
-async function mount(f: ReturnType<typeof fixture>, projectId: string | null = f.workspace.projectId) {
-  const client = createAccountLogoClient(session.account, projectId ?? null, session.isCurrent, session.expire, f.fetcher); clients.push(client);
+async function mount(f: ReturnType<typeof fixture>, projectId: string = f.workspace.projectId) {
+  const client = createAccountLogoClient(session.account, projectId, session.isCurrent, session.expire, f.fetcher); clients.push(client);
   function Probe() {
-    const value = useLogoWorkspace({ projectId: projectId ?? undefined, memory, client });
+    const value = useLogoWorkspace({ projectId, memory, client });
     useLayoutEffect(() => { state = value; });
     return <p>{value.saving ? "Saving" : value.pending ? "Unconfirmed" : value.dirty ? "Unsaved" : "Saved"}</p>;
   }
@@ -169,14 +169,6 @@ describe("Logo brief and reference autosave", () => {
     const f = fixture(false); await mount(f); await editBrief({ name: "Cedar", logoTypes: ["wordmark"] }); await tick(5000);
     expect(f.writes).toHaveLength(0); expect(f.fetcher.mock.calls.every(([, init]) => !init?.method || init.method === "GET")).toBe(true);
     expect(state.dirty).toBe(true);
-  });
-
-  it("keeps a new project draft without creating a project on typing or navigation", async () => {
-    const f = fixture(); await mount(f, null); await editBrief({ name: "Cedar", logoTypes: ["wordmark"] }); await tick(5000);
-    expect(f.fetcher).not.toHaveBeenCalled(); expect(state.dirty).toBe(true); expect(memory.get(null)?.brief.name).toBe("Cedar");
-    await act(async () => root.unmount()); root = createRoot(host);
-    await mount(f, null); await tick(5000);
-    expect(state.draft?.brief.name).toBe("Cedar"); expect(f.fetcher).not.toHaveBeenCalled();
   });
 
   it("bounds a stalled acknowledgement, keeps its exact request, and recovers a committed result without another write", async () => {

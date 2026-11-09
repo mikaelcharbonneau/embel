@@ -42,6 +42,7 @@ import type { IdentityPoolPort, IdentityPoolClientPort } from "../../src/server/
 import type { LogoWorkerCapability } from "../../worker/logo-readiness";
 import { QUALIFIED_VTRACER } from "../../worker/logo-vector/engine";
 import { syntheticConversionInput, syntheticPng } from "../features/logo-vector/raster-fixtures";
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 
 /** Local disposable PostgreSQL with a synthetic original raster and in-memory
  * private blobs. Real SQL, both brokers, provider factory, image handlers,
@@ -261,9 +262,9 @@ describe("five-operation host with actual direction production, owner approval a
   }
   it("runs all five real operation handlers and owner approvals, with only synthetic provider HTTP", async () => {
     await runUntil(await start(), "idle");
-    let initial = logoWorkspaceV2Schema.parse(await rpc("start_logo_project", [{ requestKey: randomUUID(), brief: {
+    let initial = logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), { requestKey: randomUUID(), brief: {
       name: "Synthetic vector adapter", activity: "Local test", audience: "Testers", personality: "Calm", logoTypes: ["mascot"],
-    } }]));
+    } }));
     const referenceBytes = syntheticPng(32, 32, (x, y) => x < y ? [0, 0, 0, 255] : [255, 255, 255, 255]);
     const uploaded = await createLogoInputService({ assets, connections: owned }).uploadLogoReference(auth(), initial.projectId,
       { requestKey: randomUUID(), expected: initial.heads, aspects: ["shape"], rightsDeclaration: "I own this synthetic image and permit display and processing for my logo." }, referenceBytes, "image/png");
@@ -445,9 +446,9 @@ describe("five-operation host with actual direction production, owner approval a
   }, 300_000);
   it("fences new work on stop while retaining a dispatched image response, publication and cost", async () => {
     await runUntil(await start(), "idle");
-    const w = logoWorkspaceV2Schema.parse(await rpc("start_logo_project", [{ requestKey: randomUUID(), brief: {
+    const w = logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), { requestKey: randomUUID(), brief: {
       name: "Synthetic stop and drain", activity: "Local test", audience: "Testers", personality: "Calm", logoTypes: ["abstract"],
-    } }]));
+    } }));
     const snapshot = (await db.query<{ id: string }>("select reference_snapshot_id id from public.logo_stage_revisions where id=$1", [w.stages.brief_references!.id])).rows[0]!.id;
     const quote = logoCostQuoteSchema.parse(await rpc("quote_logo_operation", [w.projectId, { operation: "concepts", expected: w.heads,
       briefRevisionId: w.stages.brief_references!.id, referenceSnapshotId: snapshot }]));

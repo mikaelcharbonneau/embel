@@ -6,6 +6,7 @@ import { normalizeDirectionResponse } from '@/features/identity-directions/serve
 import { inspectTypographySamples } from '@/features/identity-directions/server/font-inspection';
 import { fontFixture, fontBytes } from '../features/identity-directions/fixtures';
 import { separatedLogoDocument } from '../features/logo-vector/fixtures';
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 
 export const SQL_SUBSCRIPTION_ROLE = 'fixture_logo_subscription';
 export const sqlSubscriptionPolicy = () => ({version:1,billingMode:'chatgpt_subscription',handlerVersion:'logo-directions-v1',adapterVersion:'logo-directions-chatgpt-v1',registrationId:'sql-fixture-registration',model:'fixture-text-model',apiCharge:'verified_zero',limits:{maxInputBytes:131072,maxOutputBytes:262144,maxStreamBytes:2097152,deadlineMs:240000,maxObservedWebSearchCalls:0,maxRequestsPerHour:20,maxQueuedJobs:3}});
@@ -30,7 +31,7 @@ export async function configureSqlSubscriptionFixture(db:TestDatabase,policy=sql
 }
 export async function approvedSqlDirectionFixture(db:TestDatabase){
  const brief={name:'Fluid SQL',activity:'Synthetic SQL test',audience:'Fixture',personality:'Calm',logoTypes:['wordmark']};
- const start=logoWorkspaceV2Schema.parse(await logoSqlRpc(db,'start_logo_project',[{requestKey:randomUUID(),brief}])),vectorId=randomUUID();
+ const start=logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), {requestKey:randomUUID(),brief})),vectorId=randomUUID();
  await db.query('insert into public.logo_vector_revisions(id,owner_id,project_id,record) values($1,$2,$3,$4)',[vectorId,OWNER_A,start.projectId,{id:vectorId,ownerId:OWNER_A,projectId:start.projectId,reviewStatus:'review_required',inputRevisions:[start.stages.brief_references],locks:[]}]);
  const approved=(await sqlWorker(db,()=>db.query<{v:LogoMutationReceipt}>('select fluid_private.apply_logo_trusted_command($1,$2,$3) v',[start.projectId,{method:'acceptLogoVector',body:{requestKey:randomUUID(),expected:start.heads,vectorRevisionId:vectorId,acceptEarlierBasis:false}},{vectorRevisionId:vectorId,currentVectorRevisionId:null,expected:start.heads}]))).rows[0]!.v;
  const w=approved.workspace,original=fontFixture(),font={...original,asset:{...original.asset,ownerId:OWNER_A,projectId:w.projectId}};

@@ -6,6 +6,8 @@ import { logoBriefDraftSchema, logoWorkspaceV2Schema, type LogoMutationReceipt, 
 vi.mock("server-only", () => ({}));
 import { createLogoWorkspaceService } from "../../src/server/data/logo-workspace";
 import { accountProjectSchema } from "../../src/domain/project-api";
+import { reviewedStrategy } from "../fixtures/reviewed-strategy";
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 import type { AuthenticatedContext } from "../../src/server/auth/context";
 const brief = { name: "  Étoile 👩‍🚀  ", activity: "Design", audience: "Founders", personality: "Precise", logoTypes: ["wordmark"] };
 const stages = ["brief_references", "concepts", "vector", "refinements", "directions", "deliverables"];
@@ -17,30 +19,16 @@ describe("V2 workspace actual authenticated PostgreSQL persistence", () => {
   async function rpc(name: string, args: unknown[], owner = OWNER_A) {
     return asRole(db, "authenticated", owner, async () => (await db.query<{ value: unknown }>(`select public.${name}(${args.map((_, i) => `$${i + 1}`).join(",")}) value`, args)).rows[0]!.value);
   }
-  const start = (input = { requestKey: randomUUID(), brief }, owner = OWNER_A) => rpc("start_logo_project", [input], owner);
+  const start = (input = { requestKey: randomUUID(), brief }, owner = OWNER_A) => startLogoFixture(ownerQuery(db, owner), input);
   const read = (project: string, owner = OWNER_A) => rpc("get_logo_workspace", [project], owner);
   const mutate = (project: string, method: string, body: unknown, owner = OWNER_A) => rpc("apply_logo_workspace_command", [project, { method, body }], owner);
   async function counts() { return (await db.query<{projects:number;revisions:number;receipts:number;jobs:number}>("select (select count(*)::int from public.projects) projects,(select count(*)::int from public.logo_stage_revisions) revisions,(select count(*)::int from public.logo_workspace_requests) receipts,(select count(*)::int from public.jobs) jobs")).rows[0]; }
-  async function created() { return logoWorkspaceV2Schema.parse(await start()); }
-  it("creation_recovery_has_no_project_id_and_one_project_under_exact_replay", async () => {
-    const input = { requestKey: randomUUID(), brief };
-    const first = await start(input);
-    expect(await start(input)).toEqual(first);
-    expect(await rpc("read_logo_project_creation", [input.requestKey])).toMatchObject({ status: "succeeded", requestKey: input.requestKey, workspace: first });
-    expect(await rpc("read_logo_project_creation", [input.requestKey], OWNER_B)).toEqual({ status: "not_found" });
-    expect(await counts()).toMatchObject({ projects: 1, revisions: 1, receipts: 1, jobs: 0 });
-  });
-  it("owner-scoped creation listing only reveals committed owned receipts", async () => {
-    const own = await created(); await start({ requestKey: randomUUID(), brief: { ...brief, name: "Other" } }, OWNER_B);
-    const page = await rpc("list_logo_project_creations", [{}]);
-    expect(page).toMatchObject({ ownerId: OWNER_A, items: [{ projectId: own.projectId, brief }], nextCursor: null });
-    expect(await rpc("read_logo_project_creation", [randomUUID()])).toEqual({ status: "not_found" });
-  });
-  it("rejects changed creation bodies under the same request key atomically", async () => {
-    const input = { requestKey: randomUUID(), brief }; await start(input); const before = await counts();
-    await expect(start({ ...input, brief: { ...brief, name: "Changed" } })).rejects.toMatchObject({ code: "PT409" });
-    expect(await counts()).toEqual(before);
-  });
+  async function created() { return start(); }
+  /** A saved complete brand whose Logo step has not been opened yet. */
+  async function unopened() {
+    const projectId = await asRole(db, "authenticated", OWNER_A, async () => (await db.query<{ id: string }>("select (public.create_project('complete_brand','Unopened logo',$1::jsonb,$2)).id", [JSON.stringify(reviewedStrategy()), "a".repeat(64)])).rows[0]!.id);
+    return { projectId, heads: logoWorkspaceV2Schema.parse(await read(projectId)).heads };
+  }
   it("preserves exact brief spelling and starts six distinct zero-or-one stage heads", async () => {
     const workspace = await created();
     expect(workspace.heads.workspaceRevision).toBe(1); expect(Object.keys(workspace.stages).sort()).toEqual([...stages].sort());
@@ -87,19 +75,29 @@ describe("V2 workspace actual authenticated PostgreSQL persistence", () => {
     { ...brief, ownerId: OWNER_B }, { ...brief, name: "\uFEFF\u00A0\u2028" }, { ...brief, name: "😀".repeat(201) },
     { ...brief, activity: "😀".repeat(4001) }, { ...brief, logoTypes: ["wordmark", "wordmark"] }, { ...brief, logoTypes: ["WORDMARK"] },
     { ...brief, name: "" }, { ...brief, logoTypes: [] },
-  ])("direct RPC rejects the same invalid brief as the strict shared schema", async invalid => {
+  ])("direct RPC rejects the same invalid first brief as the strict shared schema", async invalid => {
     expect(logoBriefDraftSchema.safeParse(invalid).success).toBe(false);
-    await expect(start({ requestKey: randomUUID(), brief: invalid as typeof brief })).rejects.toMatchObject({ code: "22023" });
-    expect((await db.query("select count(*)::int count from public.projects")).rows[0]).toEqual({ count: 0 });
+    const project = await unopened(), before = await counts();
+    await expect(rpc("initialize_existing_brand_logo", [project.projectId, { requestKey: randomUUID(), expected: project.heads, brief: invalid }])).rejects.toMatchObject({ code: "22023" });
+    expect(await counts()).toEqual(before);
   });
   it.each(["\u0085", "İ", "😀".repeat(100), "\u200B"])("accepts shared-schema valid spelling without SQL trim/case folding: %s", async name => {
     const input = { ...brief, name }; expect(logoBriefDraftSchema.safeParse(input).success).toBe(true);
     const workspace = logoWorkspaceV2Schema.parse(await start({ requestKey: randomUUID(), brief: input }));
     expect(await rpc("read_logo_workspace_record", [workspace.projectId, "stage", workspace.stages.brief_references!.id])).toMatchObject({ payload: { name } });
   });
+  it("no one can start a logo-only project or read its old start records any more", async () => {
+    for (const role of ["authenticated", "anon", "service_role"] as const) {
+      await expect(asRole(db, role, OWNER_A, () => db.query("select public.start_logo_project($1)", [{ requestKey: randomUUID(), brief }])), role).rejects.toMatchObject({ code: "42501", message: expect.stringContaining("permission denied") });
+      await expect(asRole(db, role, OWNER_A, () => db.query("select public.read_logo_project_creation($1)", [randomUUID()])), role).rejects.toMatchObject({ code: "42501", message: expect.stringContaining("permission denied") });
+      await expect(asRole(db, role, OWNER_A, () => db.query("select public.list_logo_project_creations('{}')")), role).rejects.toMatchObject({ code: "42501", message: expect.stringContaining("permission denied") });
+    }
+    expect(await counts()).toMatchObject({ projects: 0, revisions: 0, receipts: 0 });
+  });
   it("anonymous/service-role cannot execute public mutations or private helpers", async () => {
+    const project = await unopened();
     for (const role of ["anon", "service_role"] as const) {
-      await expect(asRole(db, role, OWNER_A, () => db.query("select public.start_logo_project($1)", [{ requestKey: randomUUID(), brief }]))).rejects.toMatchObject({ code: "42501" });
+      await expect(asRole(db, role, OWNER_A, () => db.query("select public.initialize_existing_brand_logo($1,$2)", [project.projectId, { requestKey: randomUUID(), expected: project.heads, brief }]))).rejects.toMatchObject({ code: "42501" });
       await expect(asRole(db, role, OWNER_A, () => db.query("select fluid_private.logo_workspace_json($1,$2)", [OWNER_A, randomUUID()]))).rejects.toMatchObject({ code: "42501" });
     }
   });
@@ -158,11 +156,6 @@ describe("V2 workspace actual authenticated PostgreSQL persistence", () => {
     expect(await rpc("read_logo_workspace_record", [workspace.projectId, "manual_request", requestKey])).toMatchObject({ status: "succeeded", requestKey, receipt: first, outputs: [], billing: { status: "recorded", confirmedMicrousd: 0 } });
     expect(await rpc("read_logo_workspace_record", [workspace.projectId, "manual_request", randomUUID()])).toEqual({ status: "not_found" });
   });
-  it("queued same-key creation calls serialize to one actual project on the local backend", async () => {
-    const input = { requestKey: randomUUID(), brief };
-    const outputs = await asRole(db, "authenticated", OWNER_A, () => Promise.all([db.query("select public.start_logo_project($1) value", [input]), db.query("select public.start_logo_project($1) value", [input])]));
-    expect(outputs[0]!.rows).toEqual(outputs[1]!.rows); expect(await counts()).toMatchObject({ projects: 1, revisions: 1, receipts: 1 });
-  });
   it("history pages retain every immutable revision without duplicate or skipped entries", async () => {
     const workspace = await created();
     const first = await mutate(workspace.projectId, "saveLogoBrief", { requestKey: randomUUID(), expected: workspace.heads, brief }) as LogoMutationReceipt;
@@ -173,9 +166,7 @@ describe("V2 workspace actual authenticated PostgreSQL persistence", () => {
   });
 
   it("a maximum-length brief still creates a project accepted by the existing account reader", async () => {
-    const name = "N".repeat(200), workspace = logoWorkspaceV2Schema.parse(await start({ requestKey: randomUUID(), brief: { ...brief, name } }));
-    // A logo-only project is now a complete brand, converted as the November 9 migration does.
-    await rpc("expand_project_scope", [workspace.projectId, 1]);
+    const name = "N".repeat(200), workspace = await start({ requestKey: randomUUID(), brief: { ...brief, name } });
     const row = (await db.query<{value:unknown}>("select to_jsonb(p)||jsonb_build_object('context',r.context) value from public.projects p join public.project_revisions r on r.project_id=p.id and r.revision=p.current_revision where p.id=$1", [workspace.projectId])).rows[0]!.value;
     expect(accountProjectSchema.safeParse(row).success).toBe(true);
     expect(await rpc("read_logo_workspace_record", [workspace.projectId, "stage", workspace.stages.brief_references!.id])).toMatchObject({ payload: { name } });

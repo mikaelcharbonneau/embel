@@ -4,12 +4,13 @@ import { asRole,createTestDatabase,OWNER_A,OWNER_B,resetFixture,type TestDatabas
 import { captureLogoComponentLocks,assertLogoComponentLocks } from "../../src/features/logo-vector/model/locks";
 import { separatedLogoDocument } from "../features/logo-vector/fixtures";
 import { logoWorkspaceV2Schema,type LogoMutationReceipt } from "../../src/domain/logo-workspace";
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 vi.mock("server-only",()=>({}));
 const brief={name:"Original Brand",activity:"Studio",audience:"Founders",personality:"Calm",logoTypes:["wordmark"]};
 describe("local immutable stage selection and restoration",()=>{
  let db:TestDatabase;beforeAll(async()=>{db=await createTestDatabase();},40_000);afterAll(async()=>{await db?.close();});beforeEach(async()=>{await resetFixture(db);});
  async function rpc(name:string,args:unknown[],owner=OWNER_A){return asRole(db,"authenticated",owner,async()=>(await db.query<{value:unknown}>(`select public.${name}(${args.map((_,i)=>`$${i+1}`).join(",")}) value`,args)).rows[0]!.value);}
- async function start(){return logoWorkspaceV2Schema.parse(await rpc("start_logo_project",[{requestKey:randomUUID(),brief}]));}
+ async function start(){return logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), {requestKey:randomUUID(),brief}));}
  async function append(project:string,stage:string,payload:unknown,inputs:unknown=[]){return (await db.query<{value:{id:string;revision:number}}>("select fluid_private.logo_append_stage($1,$2,$3,$4,$5) value",[OWNER_A,project,stage,payload,inputs])).rows[0]!.value;}
  async function read(project:string){return logoWorkspaceV2Schema.parse(await rpc("get_logo_workspace",[project]));}
  async function command(project:string,method:string,body:unknown,owner=OWNER_A){return await rpc("apply_logo_workspace_command",[project,{method,body}],owner) as LogoMutationReceipt;}
@@ -80,7 +81,7 @@ describe("local immutable stage selection and restoration",()=>{
 describe("trusted approval isolation",()=>{
  let db:TestDatabase;beforeAll(async()=>{db=await createTestDatabase();await db.exec("create role fixture_logo_mutation login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;grant usage on schema public,fluid_private to fixture_logo_mutation;grant execute on function fluid_private.apply_logo_trusted_command(uuid,jsonb,jsonb),fluid_private.read_logo_trusted_request(uuid,jsonb) to fixture_logo_mutation");await db.query("insert into fluid_private.logo_asset_web_principals(role_name,role_oid,owner_id) select rolname,oid,$1 from pg_roles where rolname='fixture_logo_mutation'",[OWNER_A]);},40_000);afterAll(async()=>{await db?.close();});
  it("only a real owner-bound writer may accept a vector and create an immutable approval",async()=>{
-  await resetFixture(db);const w=logoWorkspaceV2Schema.parse(await asRole(db,"authenticated",OWNER_A,async()=>(await db.query<{value:unknown}>("select public.start_logo_project($1) value",[{requestKey:randomUUID(),brief}])).rows[0]!.value));
+  await resetFixture(db);const w=logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), {requestKey:randomUUID(),brief}));
   const id=randomUUID();await db.query("insert into public.logo_vector_revisions(id,owner_id,project_id,record) values($1,$2,$3,$4)",[id,OWNER_A,w.projectId,{id,ownerId:OWNER_A,projectId:w.projectId,reviewStatus:"review_required",inputRevisions:[],locks:[]}]);
   const input={method:"acceptLogoVector",body:{requestKey:randomUUID(),expected:w.heads,vectorRevisionId:id,acceptEarlierBasis:false}};
   await expect(asRole(db,"authenticated",OWNER_A,()=>db.query("select public.apply_logo_workspace_command($1,$2)",[w.projectId,input]))).rejects.toMatchObject({code:"42501"});
@@ -93,7 +94,7 @@ describe("trusted approval isolation",()=>{
   expect((await db.query("select count(*)::int count from public.logo_approvals")).rows[0]).toEqual({count:1});
  });
  it("trusted restore binds the exact checked target/current IDs and heads before appending",async()=>{
-  await resetFixture(db);const w=logoWorkspaceV2Schema.parse(await asRole(db,"authenticated",OWNER_A,async()=>(await db.query<{value:unknown}>("select public.start_logo_project($1) value",[{requestKey:randomUUID(),brief}])).rows[0]!.value));
+  await resetFixture(db);const w=logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), {requestKey:randomUUID(),brief}));
   const targetId=randomUUID(),currentId=randomUUID();
   for(const id of [targetId,currentId])await db.query("insert into public.logo_vector_revisions(id,owner_id,project_id,record) values($1,$2,$3,$4)",[id,OWNER_A,w.projectId,{id,ownerId:OWNER_A,projectId:w.projectId,reviewStatus:"review_required",inputRevisions:[],locks:[]}]);
   const target=(await db.query<{value:{id:string}}>("select fluid_private.logo_append_stage($1,$2,'vector',$3,'[]') value",[OWNER_A,w.projectId,{vectorRevisionId:targetId,approvalId:null}])).rows[0]!.value;
@@ -110,7 +111,7 @@ describe("trusted approval isolation",()=>{
  });
 
  it("explicit locked restore becomes the lock basis for the next acceptance",async()=>{
-  await resetFixture(db);const w=logoWorkspaceV2Schema.parse(await asRole(db,"authenticated",OWNER_A,async()=>(await db.query<{value:unknown}>("select public.start_logo_project($1) value",[{requestKey:randomUUID(),brief}])).rows[0]!.value));
+  await resetFixture(db);const w=logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), {requestKey:randomUUID(),brief}));
   const lockedId=randomUUID(),unlockedId=randomUUID(),changedId=randomUUID(),locks=captureLogoComponentLocks(separatedLogoDocument(),["synthetic-symbol"]);
   for(const id of [lockedId,unlockedId,changedId])await db.query("insert into public.logo_vector_revisions(id,owner_id,project_id,record) values($1,$2,$3,$4)",[id,OWNER_A,w.projectId,{id,ownerId:OWNER_A,projectId:w.projectId,reviewStatus:"review_required",inputRevisions:[],locks:id===lockedId?locks:[]}]);
   const historical=(await db.query<{value:{id:string}}>("select fluid_private.logo_append_stage($1,$2,'vector',$3,'[]') value",[OWNER_A,w.projectId,{vectorRevisionId:lockedId,approvalId:null}])).rows[0]!.value;
@@ -128,7 +129,7 @@ describe("trusted approval isolation",()=>{
  });
 
  it("an explicit acceptance supersedes an older refinement for the next edit source",async()=>{
-  await resetFixture(db);const w=logoWorkspaceV2Schema.parse(await asRole(db,"authenticated",OWNER_A,async()=>(await db.query<{value:unknown}>("select public.start_logo_project($1) value",[{requestKey:randomUUID(),brief}])).rows[0]!.value));
+  await resetFixture(db);const w=logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), {requestKey:randomUUID(),brief}));
   const older=randomUUID(),selected=randomUUID();for(const id of [older,selected])await db.query("insert into public.logo_vector_revisions(id,owner_id,project_id,record) values($1,$2,$3,$4)",[id,OWNER_A,w.projectId,{id,ownerId:OWNER_A,projectId:w.projectId,reviewStatus:"review_required",inputRevisions:[],locks:[]}]);
   await db.query("select fluid_private.logo_append_stage($1,$2,'refinements',$3,'[]')",[OWNER_A,w.projectId,{rasterRevisionIds:[],vectorRevisionId:older,approvalId:null,sourceRequestKey:null}]);
   const current=logoWorkspaceV2Schema.parse(await asRole(db,"authenticated",OWNER_A,async()=>(await db.query<{value:unknown}>("select public.get_logo_workspace($1) value",[w.projectId])).rows[0]!.value));
@@ -138,7 +139,7 @@ describe("trusted approval isolation",()=>{
  });
 
  it("vector A then locked refinement B then raster-only refinement retains B for the next locked acceptance",async()=>{
-  await resetFixture(db);const w=logoWorkspaceV2Schema.parse(await asRole(db,"authenticated",OWNER_A,async()=>(await db.query<{value:unknown}>("select public.start_logo_project($1) value",[{requestKey:randomUUID(),brief}])).rows[0]!.value));
+  await resetFixture(db);const w=logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), {requestKey:randomUUID(),brief}));
   const a=randomUUID(),b=randomUUID(),rawUnselected=randomUUID(),locks=captureLogoComponentLocks(separatedLogoDocument(),["synthetic-symbol"]);
   for(const id of [a,b,rawUnselected])await db.query("insert into public.logo_vector_revisions(id,owner_id,project_id,record) values($1,$2,$3,$4)",[id,OWNER_A,w.projectId,{id,ownerId:OWNER_A,projectId:w.projectId,reviewStatus:"review_required",inputRevisions:[],locks:id===b?locks:[]}]);
   await db.query("select fluid_private.logo_append_stage($1,$2,'vector',$3,'[]')",[OWNER_A,w.projectId,{vectorRevisionId:a,approvalId:null}]);

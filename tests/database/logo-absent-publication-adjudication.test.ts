@@ -4,6 +4,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { asRole, createTestDatabase, OWNER_A, OWNER_B, resetFixture, type TestDatabase } from "./local-supabase";
 import { legacyLogoCostQuoteSchema as logoCostQuoteSchema, logoDispatchReceiptSchema, type LogoConceptJobInput } from "../../src/domain/logo-jobs";
 import { logoWorkspaceV2Schema } from "../../src/domain/logo-workspace";
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 
 const table = "fluid_private.logo_absent_publication_adjudications";
 const workerRole = "fluid_logo_worker";
@@ -93,9 +94,9 @@ describe.each(["original", "bounded"] as const)("exact absent cloud logo publica
     `);
     for (const path of ["candidates/logo_worker_storage.sql", "candidates/logo_generative_storage.sql", "activation/logo_concepts_20_storage.sql", "candidates/logo_local_concepts.sql"])
       await db.exec(await sql(path));
-    const workspace = logoWorkspaceV2Schema.parse(await rpc("start_logo_project", [{ requestKey: randomUUID(), brief: {
+    const workspace = logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), { requestKey: randomUUID(), brief: {
       name: "Synthetic publication recovery", activity: "Local tests", audience: "Testers", personality: "Precise", logoTypes: ["wordmark"],
-    } }]));
+    } }));
     projectId = workspace.projectId;
     await db.query("select set_config('embel.logo_owner_id',$1,false),set_config('embel.logo_project_id',$2,false)", [OWNER_A, projectId]);
     await db.exec(await sql("activation/logo_concepts_10_principals.sql"));

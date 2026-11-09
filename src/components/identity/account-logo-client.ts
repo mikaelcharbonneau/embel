@@ -22,7 +22,7 @@ const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 const mime = (value: string | null) => (value ?? "").split(";", 1)[0]!.trim().toLowerCase();
 const rasters = new Set(["image/png", "image/jpeg", "image/webp"]);
 const pageBytes = 1_638_400;
-const clientBindings = new WeakMap<object, { ownerId: string; projectId: string | null; generation: number; current(): boolean }>();
+const clientBindings = new WeakMap<object, { ownerId: string; projectId: string; generation: number; current(): boolean }>();
 type PageQuery = { cursor?: string; limit?: number };
 type Preview = { url: string; release(): void };
 type FontImport = { requestKey: string; expected: W.LogoExpectedHeads; catalogFontId: string };
@@ -76,7 +76,7 @@ export class AccountLogoAdmissionRejectedError extends AccountRequestError {
     super(status); this.name = "AccountLogoAdmissionRejectedError";
   }
 }
-async function admissionRejection(response: Response, signal: AbortSignal, binding: { ownerId: string; projectId: string | null }, intent: J.LogoGenerationIntent): Promise<AccountLogoAdmissionRejectedError | null> {
+async function admissionRejection(response: Response, signal: AbortSignal, binding: { ownerId: string; projectId: string }, intent: J.LogoGenerationIntent): Promise<AccountLogoAdmissionRejectedError | null> {
   if (![409, 404].includes(response.status) || mime(response.headers.get("content-type")) !== "application/json") return null;
   try {
     const bytes = await readBytes(response, 4096, signal);
@@ -94,7 +94,7 @@ export class AccountLogoInitializationRejectedError extends AccountRequestError 
 const initializationRejectionEnvelopeSchema = z.strictObject({
   error: z.strictObject({ code: z.literal("conflict"), message: z.string().max(1000) }), rejection: logoInitializationRejectionSchema,
 });
-async function initializationRejection(response: Response, signal: AbortSignal, binding: { ownerId: string; projectId: string | null }, input: InitializeExistingBrandLogoInput): Promise<AccountLogoInitializationRejectedError | null> {
+async function initializationRejection(response: Response, signal: AbortSignal, binding: { ownerId: string; projectId: string }, input: InitializeExistingBrandLogoInput): Promise<AccountLogoInitializationRejectedError | null> {
   if (response.status !== 409 || mime(response.headers.get("content-type")) !== "application/json") return null;
   try {
     const bytes = await readBytes(response, 4096, signal);
@@ -112,29 +112,29 @@ const exportRejectionEnvelopeSchema = z.strictObject({ error: z.strictObject({ c
 export class AccountLogoExportAdmissionRejectedError extends AccountRequestError {
   constructor(readonly rejection: D.LogoExportRejection) { super(409); this.name = "AccountLogoExportAdmissionRejectedError"; }
 }
-async function exportAdmissionRejection(response: Response, signal: AbortSignal, binding: { ownerId: string; projectId: string | null }, input: D.LogoExportIntent): Promise<AccountLogoExportAdmissionRejectedError | null> {
+async function exportAdmissionRejection(response: Response, signal: AbortSignal, binding: { ownerId: string; projectId: string }, input: D.LogoExportIntent): Promise<AccountLogoExportAdmissionRejectedError | null> {
   if (response.status !== 409 || mime(response.headers.get("content-type")) !== "application/json") return null;
   try {
     const bytes = await readBytes(response, 65_536, signal);
     const result = exportRejectionEnvelopeSchema.safeParse(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)));
-    if (!result.success || binding.projectId === null || !D.matchesLogoExportRejection(result.data.rejection, binding.ownerId, binding.projectId, input)) return null;
+    if (!result.success || !D.matchesLogoExportRejection(result.data.rejection, binding.ownerId, binding.projectId, input)) return null;
     return new AccountLogoExportAdmissionRejectedError(result.data.rejection);
   } catch { return null; }
 }
 
 /** Fixed same-origin routes; availability comes only from actual API responses. */
 export function createAccountLogoClient(
-  account: VerifiedAccount, projectId: string | null, isCurrent: (account: VerifiedAccount) => boolean,
+  account: VerifiedAccount, projectId: string, isCurrent: (account: VerifiedAccount) => boolean,
   expire: (account: VerifiedAccount) => void, fetcher: typeof fetch = fetch,
 ) {
   const captured = Object.freeze({ ...account });
-  const binding = Object.freeze({ ownerId: parse(V.logoUuidSchema, captured.userId), generation: parse(V.logoCounterSchema, captured.generation), projectId: projectId === null ? null : parse(V.logoUuidSchema, projectId) });
+  const binding = Object.freeze({ ownerId: parse(V.logoUuidSchema, captured.userId), generation: parse(V.logoCounterSchema, captured.generation), projectId: parse(V.logoUuidSchema, projectId) });
   let closed = false, workspaceRevision: number | null = null, activePreviews = 0;
   const controllers = new Set<AbortController>(), urls = new Set<string>(), waiters = new Set<() => void>();
   const current = () => !closed && isCurrent(captured);
   const owner = (value: { ownerId: string }) => value.ownerId === binding.ownerId;
   const owned = (value: { ownerId: string; projectId: string }) => owner(value) && value.projectId === binding.projectId;
-  const project = () => { if (binding.projectId === null) throw new AccountRequestError(422); return `/api/projects/${binding.projectId}/logo`; };
+  const project = () => `/api/projects/${binding.projectId}/logo`;
   function controller(external?: AbortSignal) {
     const value = new AbortController(), abort = () => value.abort();
     if (external?.aborted) value.abort(); else external?.addEventListener("abort", abort, { once: true });
@@ -245,20 +245,6 @@ export function createAccountLogoClient(
   }
   const client = {
     dispose,
-    async startLogoProject(input: W.LogoProjectCreationInput, signal?: AbortSignal): Promise<W.LogoWorkspaceV2 | null> {
-      if (!current() || signal?.aborted) return null;
-      const body = parse(W.logoProjectCreationInputSchema, input, W.LOGO_MUTATION_MAX_BYTES);
-      return request("/api/logo/projects", W.logoWorkspaceV2Schema, owner, { method: "POST", body, signal });
-    },
-    async readLogoProjectCreation(requestKey: string, signal?: AbortSignal) {
-      if (!current() || signal?.aborted) return null;
-      const key = parse(V.logoUuidSchema, requestKey);
-      return request(`/api/logo/projects/requests/${key}`, W.logoProjectCreationStateSchema, value => value.status === "not_found" || value.requestKey === key && owner(value.workspace), { signal, maximum: 65_536 });
-    },
-    async listLogoProjectCreations(input: PageQuery = {}, signal?: AbortSignal) {
-      if (!current() || signal?.aborted) return null;
-      return request(`/api/logo/projects/requests?${query(input)}`, W.logoProjectCreationPageSchema, owner, { signal, maximum: pageBytes });
-    },
     async getLogoCapabilities(signal?: AbortSignal) {
       if (!current() || signal?.aborted) return null;
       return request(`${project()}/capabilities`, logoCapabilitiesSchema, owned, { signal });
@@ -274,7 +260,7 @@ export function createAccountLogoClient(
     },
     async readStrategyContext(signal?: AbortSignal): Promise<{ ownerId: string; projectId: string; revision: number; context: ContextSnapshot } | null> {
       if (!current() || signal?.aborted) return null;
-      project(); const capturedRevision = workspaceRevision;
+      const capturedRevision = workspaceRevision;
       const value = await request(`/api/projects/${binding.projectId}`, accountProjectResponseSchema, result => result.project.owner_id === binding.ownerId && result.project.id === binding.projectId, { signal, maximum: 1_048_576 });
       if (!value || !current() || signal?.aborted || workspaceRevision !== capturedRevision) return null;
       if (capturedRevision !== null && value.project.current_revision !== capturedRevision) throw new AccountRequestError(409);
@@ -480,11 +466,11 @@ export function createAccountLogoClient(
     readLogoVectorDetail: readVectorDetail,
     async resolveLogoVariantSet(variantSetId: string, signal?: AbortSignal): Promise<D.ResolvedLogoVariantSet | null> {
       if (!current() || signal?.aborted) return null;
-      project(); parse(V.logoUuidSchema, variantSetId); return unavailable(signal);
+      parse(V.logoUuidSchema, variantSetId); return unavailable(signal);
     },
     async getApprovedLogoIdentitySnapshot(signal?: AbortSignal): Promise<D.ApprovedLogoIdentitySnapshot | null> {
       if (!current() || signal?.aborted) return null;
-      project(); return unavailable(signal);
+      return unavailable(signal);
     },
     // Shared catalog/font admission contracts and their actual licensed-byte
     // readers are future dependencies; there is no browser source/license fallback.
@@ -499,11 +485,11 @@ export function createAccountLogoClient(
     async listCatalogLogoFonts(signal?: AbortSignal): Promise<{ id: string; family: string; rights: Directions.FontRightsEvidence }[] | null> { return unavailable(signal); },
     async importCatalogLogoFont(input: FontImport, signal?: AbortSignal): Promise<Directions.FontRecord | null> {
       if (!current() || signal?.aborted) return null;
-      project(); void input; return unavailable(signal);
+      void input; return unavailable(signal);
     },
     async uploadLogoFont(input: FontUpload, signal?: AbortSignal): Promise<Directions.FontRecord | null> {
       if (!current() || signal?.aborted) return null;
-      project(); void input; return unavailable(signal);
+      void input; return unavailable(signal);
     },
   };
   clientBindings.set(client, { ...binding, current });
@@ -512,7 +498,7 @@ export function createAccountLogoClient(
 export type AccountLogoClient = ReturnType<typeof createAccountLogoClient>;
 
 /** Factory provenance, not caller-supplied metadata, validates an injected client. */
-export function isAccountLogoClientCurrent(client: AccountLogoClient, account: VerifiedAccount, projectId: string | null): boolean {
+export function isAccountLogoClientCurrent(client: AccountLogoClient, account: VerifiedAccount, projectId: string): boolean {
   const binding = clientBindings.get(client);
   return !!binding && binding.ownerId === account.userId && binding.generation === account.generation && binding.projectId === projectId && binding.current();
 }

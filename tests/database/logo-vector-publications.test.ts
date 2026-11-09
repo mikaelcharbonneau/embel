@@ -23,6 +23,7 @@ import { QUALIFIED_VTRACER } from "../../worker/logo-vector/engine";
 import { parseClaimedJob } from "../../worker/postgres-store";
 import { separatedLogoDocument } from "../features/logo-vector/fixtures";
 import { syntheticConversionInput } from "../features/logo-vector/raster-fixtures";
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 
 /** Disposable PostgreSQL + private in-memory blobs. All provider observations
  * and drawings are explicitly synthetic; this makes no hosted/provider claim. */
@@ -89,7 +90,7 @@ describe("atomic vector publication through existing durable jobs", () => {
   async function claim(): Promise<ClaimedJob> { return parseClaimedJob((await connection.query("select * from public.claim_logo_job('vector-test',300)")).rows[0]); }
   async function begin(job: ClaimedJob, key: string, cost = 0) { await connection.query("select public.begin_logo_job_step($1,$2,$3,$4,$5)", [job.id, job.leaseToken, key, `${job.id}:${key}`, cost]); }
   async function setup() {
-    const w = logoWorkspaceV2Schema.parse(await rpc("start_logo_project", [{ requestKey: randomUUID(), brief: { name: "Synthetic Vector", activity: "Studio", audience: "Testers", personality: "Calm", logoTypes: ["combination"] } }]));
+    const w = logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), { requestKey: randomUUID(), brief: { name: "Synthetic Vector", activity: "Studio", audience: "Testers", personality: "Calm", logoTypes: ["combination"] } }));
     const reference = (await db.query<{ reference_snapshot_id: string }>("select reference_snapshot_id from public.logo_stage_revisions where id=$1", [w.stages.brief_references!.id])).rows[0]!;
     const q = logoCostQuoteSchema.parse(await rpc("quote_logo_operation", [w.projectId, { operation: "concepts", expected: w.heads, briefRevisionId: w.stages.brief_references!.id, referenceSnapshotId: reference.reference_snapshot_id }]));
     const admission = logoDispatchReceiptSchema.parse(await rpc("admit_logo_operation", [w.projectId, { requestKey: randomUUID(), quoteId: q.id, acceptedMaxCostMicrousd: q.maxCostMicrousd, expected: w.heads }]));

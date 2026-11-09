@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { logoMutationReceiptSchema, type LogoMutationReceipt, type LogoProjectCreationInput } from "@/domain/logo-workspace";
+import { logoMutationReceiptSchema, type LogoMutationReceipt } from "@/domain/logo-workspace";
 import { logoVariantSetSchema, type LogoVariantSet } from "@/domain/logo-deliverables";
 import { logoTrustedCommandSchema, type LogoTrustedCommand } from "@/features/logo-vector/model/proposal-materialization";
 import type { IdentityConnectionFactory, IdentityTransactionConnection } from "./identity-transaction";
@@ -10,8 +10,8 @@ import { ApiError } from "../http/errors";
 /** A lost response is not evidence that a manual transaction failed. The caller
  * retains this exact key/body, reads its receipt, then may explicitly replay it. */
 export class LogoUncertainCommitError extends ApiError {
-  readonly recovery: { projectId: string | null; input: LogoProjectCreationInput | LogoTrustedCommand };
-  constructor(projectId: string | null, input: LogoProjectCreationInput | LogoTrustedCommand) {
+  readonly recovery: { projectId: string; input: LogoTrustedCommand };
+  constructor(projectId: string, input: LogoTrustedCommand) {
     super("integration_unavailable");
     this.name = "LogoUncertainCommitError";
     this.recovery = { projectId, input: structuredClone(input) };

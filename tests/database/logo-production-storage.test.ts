@@ -17,6 +17,7 @@ import { policyIdentity } from './logo-production-storage-fixture';
 import { buildLogoExport } from '../../src/features/identity-deliverables/server/package';
 import { publishPreparedLogoExport } from '../../src/features/identity-deliverables/server/publish';
 import { createExportPublicationDependencies } from '../../src/features/identity-deliverables/server/persistence';
+import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 
 describe('local production Storage SQL frozen-source and output-reservation authorization', () => {
   let db: TestDatabase, f: Awaited<ReturnType<typeof productionStorageFixture>>;
@@ -89,7 +90,7 @@ describe('local production Storage SQL frozen-source and output-reservation auth
     } finally { await db.exec('drop policy fixture_production_overbroad on storage.objects'); }
   });
   it('preserves the original live concept reservation route with no production capability enabled', async () => {
-    const w = logoWorkspaceV2Schema.parse(await f.rpc('start_logo_project', [{ requestKey: randomUUID(), brief: { name: 'Concept compatibility', activity: 'Test', audience: 'Test', personality: 'Precise', logoTypes: ['wordmark'] } }]));
+    const w = logoWorkspaceV2Schema.parse(await startLogoFixture(ownerQuery(db), { requestKey: randomUUID(), brief: { name: 'Concept compatibility', activity: 'Test', audience: 'Test', personality: 'Precise', logoTypes: ['wordmark'] } }));
     const referenceSnapshotId = (await db.query<{id:string}>('select reference_snapshot_id id from public.logo_stage_revisions where id=$1', [w.stages.brief_references!.id])).rows[0]!.id;
     const quote = logoCostQuoteSchema.parse(await f.rpc('quote_logo_operation', [w.projectId, { operation: 'concepts', expected: w.heads, briefRevisionId: w.stages.brief_references!.id, referenceSnapshotId }]));
     await f.rpc('admit_logo_operation', [w.projectId, { requestKey: randomUUID(), quoteId: quote.id, acceptedMaxCostMicrousd: quote.maxCostMicrousd, expected: w.heads }]);
