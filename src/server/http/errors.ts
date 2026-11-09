@@ -49,8 +49,33 @@ export function privateJson(value: unknown, status = 200): Response {
   });
 }
 
-/** Never serialize provider/database errors, credentials, request bodies, or stack traces. */
+/** Never serialize provider/database errors, credentials, request bodies, or stack traces.
+ * Unexpected errors and server-side failures (5xx) are logged without their messages. */
 export function errorResponse(error: unknown): Response {
   const safe = error instanceof ApiError ? error : new ApiError("internal_error");
+  if (!(error instanceof ApiError)) logServerError("api_unexpected_error", error);
+  else if (error.status >= 500) logServerError("api_server_error", error);
   return privateJson({ error: { code: safe.code, message: safe.message } }, safe.status);
+}
+
+/** Short machine codes only, e.g. Postgres "23505", Node "ECONNRESET", PostgREST "PGRST116". */
+const SAFE_CODE = /^[A-Za-z0-9_.-]{1,40}$/;
+const MAX_FRAMES = 6;
+
+/**
+ * Writes one JSON line for a server failure so it appears in Vercel's runtime logs.
+ * Messages, request paths, headers and bodies are never written: they can carry emails,
+ * tokens, one-time codes or provider diagnostics. Only the error type, a short code and
+ * the code locations ("at ..." stack frames) are kept. Logging can never throw.
+ */
+export function logServerError(event: string, error: unknown, details: Record<string, string | undefined> = {}): void {
+  try {
+    const name = error instanceof Error ? error.name : typeof error;
+    const rawCode = typeof error === "object" && error !== null && "code" in error ? (error as { code?: unknown }).code : undefined;
+    const code = typeof rawCode === "string" && SAFE_CODE.test(rawCode) ? rawCode : undefined;
+    const frames = error instanceof Error && typeof error.stack === "string"
+      ? error.stack.split("\n").map(line => line.trim()).filter(line => line.startsWith("at ")).slice(0, MAX_FRAMES)
+      : [];
+    console.error(JSON.stringify({ event, name, code, ...details, frames }));
+  } catch { /* A broken logger must never change the response. */ }
 }
