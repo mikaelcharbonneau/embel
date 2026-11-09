@@ -1,5 +1,7 @@
 # Naming run lookup indexes — isolated phase one
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 This change adds four nonunique indexes to the retained Naming evidence tables.
 It changes no function, policy, grant, worker behavior, provider request, receipt
 semantics, cancellation, accounting, spending control or historical data. Release

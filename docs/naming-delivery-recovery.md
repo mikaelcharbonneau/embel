@@ -1,5 +1,7 @@
 # Naming saved-result recovery
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 The Naming shared lane now examines one pending execution per cursor step. An
 unresolved request therefore cannot keep later pending requests outside the
 worker's recovery budget. Other shared lanes retain their existing page size.

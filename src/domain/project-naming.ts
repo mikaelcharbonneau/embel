@@ -128,14 +128,6 @@ export function nameIdentityKey(value: string): string {
 export const nameIdentityKeySchema = z.string().max(320).refine(value => value === value.toLowerCase().replace(/[\p{P}\s]/gu, "").normalize("NFC") && !/[\p{Cc}\p{Zl}\p{Zp}\p{Bidi_Control}\p{Surrogate}]/u.test(value), { message: "Use a canonical name identity" });
 export const generatedNameProposalSchema = z.strictObject({ value: nameValueSchema, rationale: z.string().trim().min(1).max(2000), caution: z.string().trim().min(1).max(2000).optional() });
 export type GeneratedNameProposal = z.infer<typeof generatedNameProposalSchema>;
-// Only new generation acceptance uses this gate. Keep immutable read contracts
-// and deterministic V1 explanations compatible. Script joiners remain valid in
-// visible text; invisible-only strings and control instructions are not explanations.
-const generatedNameAdmissionSchema = generatedNameProposalSchema.extend({
-  rationale: z.string().refine(value => !/[\p{Cc}\p{Bidi_Control}]/u.test(value) &&
-    /[^\p{White_Space}\p{Default_Ignorable_Code_Point}\p{Mark}\u2800]/u.test(value),
-  { message: "Generated names require a visible explanation without controls" }).pipe(generatedNameProposalSchema.shape.rationale),
-});
 export const acceptedGeneratedNameSchema = generatedNameProposalSchema.extend({ identityKey: nameIdentityKeySchema.refine(value => value.length > 0, "Generated names require a nonempty identity") }).superRefine((value, ctx) => {
   const name = nameValueSchema.safeParse(value.value);
   if (name.success && nameIdentityKey(name.data) !== value.identityKey) ctx.addIssue({ code: "custom", path: ["identityKey"], message: "Identity must match the name" });
@@ -148,31 +140,6 @@ export const namingRejectionCountsSchema = z.strictObject({
 export type NamingRejectionCounts = z.infer<typeof namingRejectionCountsSchema>;
 export function emptyNamingRejectionCounts(): NamingRejectionCounts {
   return { invalid_candidate: 0, empty_identity: 0, below_minimum: 0, above_maximum: 0, duplicate_response: 0, duplicate_history: 0, over_target: 0 };
-}
-
-const graphemeSegmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
-/** Inspect only the first target entries; overflow is counted, never backfilled. */
-export function validateGeneratedNames(raw: unknown, preferences: NamingPreferences, existingKeys: ReadonlySet<string> | readonly string[], targetCount: NamingTargetCount = NAMING_INITIAL_TARGET): { accepted: AcceptedGeneratedName[]; rejections: NamingRejectionCounts } {
-  if (!Array.isArray(raw)) throw new Error("Naming candidates must be an array");
-  namingTargetCountSchema.parse(targetCount);
-  const settings = namingPreferencesV1Schema.parse(preferences);
-  const existing = new Set(Array.from(existingKeys, key => nameIdentityKeySchema.parse(key))), seen = new Set<string>();
-  const accepted: AcceptedGeneratedName[] = [], rejections = emptyNamingRejectionCounts();
-  rejections.over_target = Math.max(0, raw.length - targetCount);
-  for (let index = 0; index < Math.min(raw.length, targetCount); index += 1) {
-    const item = generatedNameAdmissionSchema.safeParse(raw[index]);
-    if (!item.success) { rejections.invalid_candidate += 1; continue; }
-    const identityKey = nameIdentityKey(item.data.value);
-    if (!identityKey) { rejections.empty_identity += 1; continue; }
-    const length = Array.from(graphemeSegmenter.segment(item.data.value)).length;
-    if (settings.minimumGraphemes !== null && length < settings.minimumGraphemes) { rejections.below_minimum += 1; continue; }
-    if (settings.maximumGraphemes !== null && length > settings.maximumGraphemes) { rejections.above_maximum += 1; continue; }
-    if (seen.has(identityKey)) { rejections.duplicate_response += 1; continue; }
-    seen.add(identityKey);
-    if (existing.has(identityKey)) { rejections.duplicate_history += 1; continue; }
-    accepted.push(acceptedGeneratedNameSchema.parse({ ...item.data, identityKey }));
-  }
-  return { accepted, rejections };
 }
 
 export const namingFavoritesSnapshotSchema = z.array(z.strictObject({ candidateId: z.uuid(), value: nameValueSchema })).max(NAMING_MAX_SNAPSHOT_ENTRIES).refine(rows => new Set(rows.map(row => row.candidateId)).size === rows.length, { message: "Favorite candidate IDs must be unique" }).transform(freezeSnapshot);

@@ -445,7 +445,6 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
   const voiceHistory = voiceItems.map(renderItem);
   const sloganHistory = sloganItems.map(renderItem);
   const canvasActive = namingOpen && namingCanvas;
-  const history = <>{strategyHistory}{voiceHistory}</>;
   const completed = null;
 
   // The conversation holds Strategy, then Voice from the first personality
@@ -613,7 +612,6 @@ export function AccountGuidedInterview({ account, workspace, navigation, busy, s
     </FloatingComposer>}
   </div>
     {namingOpen && <ProjectNamingWorkspace projectId={saved.id}
-      conversationHistory={<>{history}{completed}</>}
       inline={{ messages: namingMessages, results: namingResults, composer: namingComposer, onQuestion: setNamingQuestionId, onCanvas: setNamingCanvas, onNameConfirmed: closeNaming }} />}
   </>;
 }

@@ -7,18 +7,15 @@ import { boundedAccountRequest } from "@/components/workspace/bounded-account-re
 import { useAccountSession, type VerifiedAccount } from "@/components/workspace/account-session";
 import type { AccountWorkspace } from "@/components/workspace/account-draft-memory";
 import { accountDraftChanged } from "@/components/workspace/account-draft-memory";
-import { accountProjectResponseSchema, type AccountProject } from "@/domain/project-api";
+import type { AccountProject } from "@/domain/project-api";
 import { accountProjectDraft } from "@/components/workspace/project-draft-adapter";
 import type { NamingChatCheckpoint } from "@/domain/naming-chat-checkpoint";
 import {
-  importProjectNameResponseSchema, namingStrategyKey, selectProjectNameResponseSchema, transformProjectNamesResponseSchema,
+  importProjectNameResponseSchema, namingStrategyKey, selectProjectNameResponseSchema,
   updateNameRetentionResponseSchema, updateNamingPreferencesResponseSchema, updateNamingViewStateResponseSchema,
-  type ImportProjectName, type NamingPreferences, type NamingSession, type NamingViewState, type ProjectNameEntry, type TransformProjectNames,
+  type ImportProjectName, type NamingPreferences, type NamingSession, type NamingViewState, type ProjectNameEntry,
 } from "@/domain/project-naming";
-import {
-  enqueueNamingBatchResponseSchema, namingBatchDetailResponseSchema, namingAnyBatchDetailResponseSchema, namingBatchPageSchema, projectNamingOverviewSchema,
-  type NamingJob, type ProjectNamingOverview,
-} from "@/domain/naming-jobs";
+import { projectNamingOverviewSchema, type ProjectNamingOverview } from "@/domain/naming-jobs";
 
 /** All private naming reads and writes share this post-response identity fence. */
 export function createNamingRequestScope(account: VerifiedAccount, isCurrent: (account: VerifiedAccount) => boolean, expire: (account: VerifiedAccount) => void) {
@@ -50,17 +47,8 @@ export function namingOwned(value: { ownerId: string; projectId: string }, owner
   return value.ownerId === ownerId && value.projectId === projectId;
 }
 
-export function readNamingBatchDetail(scope: ReturnType<typeof createNamingRequestScope>, ownerId: string, projectId: string, batchId: string) {
-  return scope.request(`/api/projects/${projectId}/naming/batches/${encodeURIComponent(batchId)}`, namingAnyBatchDetailResponseSchema,
-    value => namingOwned(value.batch, ownerId, projectId) && value.batch.id === batchId && value.job.owner_id === ownerId && value.job.project_id === projectId);
-}
-
 export function namingDraftBlocked(workspace: AccountWorkspace | null, account: VerifiedAccount, projectId: string): boolean {
   return !workspace || workspace.ownerId !== account.userId || workspace.generation !== account.generation || workspace.saved.id !== projectId || workspace.conflict || accountDraftChanged(workspace);
-}
-
-export function namingBatchIntentKey(projectId: string, projectRevision: number, preferencesVersion: number, latestSequence: number, policyIdentity: string) {
-  return `naming:${projectId}:${projectRevision}:${preferencesVersion}:${latestSequence}:${policyIdentity.slice(0, 16)}`;
 }
 
 export function namingErrorMessage(error: unknown, retentionField?: "favorite" | "saved") {
@@ -85,32 +73,14 @@ export function namingErrorMessage(error: unknown, retentionField?: "favorite" |
 
 export const initialNamingView: NamingViewState = { pane: "results", conversationOpen: true, filter: "all", query: "", visibleBatchId: null, scrollCandidateId: null, workshopCandidateId: null };
 
-export function namingScrollTarget(anchor: string | null, availableIds: readonly string[]) {
-  return anchor && availableIds.includes(anchor) ? `project-name-${anchor}` : "project-naming-results-heading";
+/** The conversation shows every name in one list: an older saved filter, search or batch view no longer applies. */
+export function namingViewNeedsReset(view: NamingViewState) {
+  return view.pane !== "results" || view.filter !== "all" || view.query !== "" || view.visibleBatchId !== null || view.workshopCandidateId !== null;
 }
 
-export function namingJobActive(job: Pick<NamingJob, "state">) {
-  return ["queued", "running", "partial", "cancel_requested"].includes(job.state);
-}
-
-function listingKey(view: NamingViewState) { return JSON.stringify([view.filter, view.query, view.visibleBatchId]); }
-function listingQuery(view: NamingViewState, cursor?: { id: string; createdAt: string } | null) {
-  const query = new URLSearchParams({ limit: "100", filter: view.filter, query: view.query });
-  if (view.visibleBatchId) query.set("batchId", view.visibleBatchId);
-  if (cursor) { query.set("cursorId", cursor.id); query.set("cursorCreatedAt", cursor.createdAt); }
-  return query.toString();
-}
 function mergeNames(first: ProjectNameEntry[], second: ProjectNameEntry[]) {
   const seen = new Set(first.map(entry => entry.candidate.id));
   return [...first, ...second.filter(entry => !seen.has(entry.candidate.id))];
-}
-function assertPageContinuation(cursor: { id: string; createdAt: string }, rows: readonly { id: string; createdAt: string }[]) {
-  let previous = cursor;
-  for (const row of rows) {
-    const difference = Date.parse(row.createdAt) - Date.parse(previous.createdAt);
-    if (difference < 0 || difference === 0 && row.id <= previous.id) throw new AccountRequestError(502);
-    previous = row;
-  }
 }
 const emptyWorkspace = () => null;
 // Session-provider scoped, generation-fenced read cache; never browser storage.
@@ -132,13 +102,10 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
   const [readError, setReadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [listStatus, setListStatus] = useState<"loading" | "failed" | "ready">("loading");
   const [refreshVersion, setRefreshVersion] = useState(0);
   const inFlight = useRef(false);
   const epoch = useRef(0);
   const readSequence = useRef(0);
-  const loadedListing = useRef<string | null>(null);
-  const transformIntents = useRef(new Map<string, string>());
   const importIntent = useRef<ImportProjectName | null>(null);
   const base = `/api/projects/${projectId}/naming`;
   const getWorkspace = useCallback(() => drafts.get(projectId), [drafts, projectId]);
@@ -176,45 +143,20 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
       const stillCurrent = () => active && scope.current() && sequence === readSequence.current && startedEpoch === epoch.current && !inFlight.current;
       try {
         const before = current.current;
-        // The server resolves its saved view and the first page together, including changes from another tab.
+        // The project, saved choices, view and selection, including changes from another tab.
+        // Generated names and their progress come from the naming feed.
         const reply = await scope.request(`${base}?limit=100`, projectNamingOverviewSchema, value => ownedProject(value.project));
         if (!reply || !stillCurrent()) return;
         if (before && reply.project.current_revision < before.project.current_revision) return;
-        const key = listingKey(reply.session?.viewState ?? initialNamingView);
-        const previous = current.current;
-        let candidates = reply.candidates, batches = reply.batches;
-        // Refresh the pages the user already opened. Reusing a cached terminal
-        // cursor hides later publications, and cached retention is not current.
-        // The previous visible depth bounds reads; this never starts generation.
-        const visibleCount = previous && loadedListing.current === key ? previous.candidates.items.length : 0;
-        const view = reply.session?.viewState ?? initialNamingView;
-        for (let page = 1; candidates.nextCursor && candidates.items.length < visibleCount && page < Math.ceil(visibleCount / 100); page += 1) {
-          const cursor = candidates.nextCursor;
-          const next = await scope.request(`${base}?${listingQuery(view, cursor)}`, projectNamingOverviewSchema, value => ownedProject(value.project));
-          if (!next || !stillCurrent()) return;
-          if (next.project.current_revision !== reply.project.current_revision || listingKey(next.session?.viewState ?? initialNamingView) !== key) throw new AccountRequestError(409);
-          assertPageContinuation(cursor, next.candidates.items.map(entry => entry.candidate));
-          candidates = { ...next.candidates, items: [...candidates.items, ...next.candidates.items] };
-        }
-        const visibleBatches = previous?.batches.items.length ?? 0;
-        for (let page = 1; batches.nextCursor && batches.items.length < visibleBatches && page < Math.ceil(visibleBatches / 100); page += 1) {
-          const cursor = batches.nextCursor;
-          const query = new URLSearchParams({ limit: "100", cursorId: cursor.id, cursorCreatedAt: cursor.createdAt });
-          const next = await scope.request(`${base}/batches?${query}`, namingBatchPageSchema, value => namingOwned(value, account.userId, projectId));
-          if (!next || !stillCurrent()) return;
-          assertPageContinuation(cursor, next.items.map(entry => entry.batch));
-          batches = { ...next, items: [...batches.items, ...next.items] };
-        }
-        loadedListing.current = key;
-        syncProject(reply.project); publish({ ...reply, candidates, batches }); setReadError(null); setListStatus("ready");
-      } catch (error) { if (stillCurrent()) { setReadError(namingErrorMessage(error)); setListStatus("failed"); } }
+        syncProject(reply.project); publish(reply); setReadError(null);
+      } catch (error) { if (stillCurrent()) setReadError(namingErrorMessage(error)); }
       finally {
-        if (active && scope.current()) timer = setTimeout(() => void poll(), current.current?.jobs.some(namingJobActive) ? 1200 : 15000);
+        if (active && scope.current()) timer = setTimeout(() => void poll(), 15000);
       }
     }
     void poll();
     return () => { active = false; clearTimeout(timer); };
-  }, [account.userId, base, ownedProject, projectId, publish, refreshVersion, scope, syncProject]);
+  }, [base, ownedProject, publish, refreshVersion, scope, syncProject]);
 
   async function mutate<T>(operation: () => Promise<T | null>, shouldRefresh = true, retentionField?: "favorite" | "saved"): Promise<T | null> {
     if (!scope.current() || inFlight.current) return null;
@@ -258,11 +200,7 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
         ? { ...viewState, namingChat: reply.session.viewState.namingChat } : viewState;
       if (reply.session.viewRevision !== before.session!.viewRevision + 1 || JSON.stringify(reply.session.viewState) !== JSON.stringify(expectedView)) throw new AccountRequestError(502);
       const latest = current.current;
-      if (latest) {
-        const changedListing = listingKey(before.session!.viewState) !== listingKey(reply.session.viewState);
-        if (changedListing) setListStatus("loading");
-        publish({ ...latest, session: reply.session, ...(changedListing ? { candidates: { ...latest.candidates, items: [], nextCursor: null } } : {}) });
-      }
+      if (latest) publish({ ...latest, session: reply.session });
       return reply;
     });
     return Boolean(response);
@@ -274,30 +212,6 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
     const viewSession = current.current?.session;
     const session = preferenceSession && (!viewSession || preferenceSession.viewRevision >= viewSession.viewRevision) ? preferenceSession : viewSession;
     return saveView({ namingChat: checkpoint }, session ?? undefined);
-  }
-  async function enqueue() {
-    const before = readyForContextMutation();
-    if (!before?.session || !before.preferences || before.preferences.preferences.version !== 1 || namingBrainDrafts?.get(account, projectId)?.preferences?.dirty || !before.readiness.ready || before.availability.status !== "available" || before.jobs.some(namingJobActive) || readError) return false;
-    const availability = before.availability;
-    const body = { expectedProjectRevision: before.project.current_revision, expectedPreferencesVersion: before.preferences.version, expectedBatchSequence: before.session.latestBatchSequence, idempotencyKey: namingBatchIntentKey(projectId, before.project.current_revision, before.preferences.version, before.session.latestBatchSequence, availability.policyIdentity), billingMode: "chatgpt_subscription" as const, acceptedPolicyIdentity: availability.policyIdentity };
-    return Boolean(await mutate(async () => {
-      const reply = await scope.request(`${base}/batches`, enqueueNamingBatchResponseSchema, value => owned(value.batch), { method: "POST", body });
-      if (!reply) return null;
-      if (reply.batch.contextRevision !== body.expectedProjectRevision || reply.batch.preferencesVersion !== body.expectedPreferencesVersion || reply.batch.sequence !== body.expectedBatchSequence + 1 || reply.batch.acceptedPolicyIdentity !== body.acceptedPolicyIdentity) throw new AccountRequestError(502);
-      const latest = current.current;
-      if (latest) publish({ ...latest, session: reply.session, jobs: [reply.job, ...latest.jobs.filter(job => job.id !== reply.job.id)].slice(0, 20), batches: { ...latest.batches, items: [{ batch: reply.batch, result: null }, ...latest.batches.items.filter(item => item.batch.id !== reply.batch.id)] } });
-      return reply;
-    }));
-  }
-  async function cancel(job: NamingJob) {
-    if (!scope.current() || !namingJobActive(job)) return false;
-    return Boolean(await mutate(async () => {
-      const reply = await scope.request(`${base}/batches/${job.batchId}`, namingBatchDetailResponseSchema, value => value.job.owner_id === account.userId && value.job.project_id === projectId, { method: "DELETE" });
-      if (!reply) return null;
-      if (reply.job.id !== job.id || reply.job.batchId !== job.batchId) throw new AccountRequestError(502);
-      const latest = current.current; if (latest) publish({ ...latest, jobs: latest.jobs.map(item => item.id === job.id ? reply.job : item) });
-      return reply;
-    }));
   }
   async function retain(entry: ProjectNameEntry, field: "favorite" | "saved", onAcknowledged?: (entry: ProjectNameEntry) => void) {
     if (!scope.current()) return false;
@@ -325,20 +239,6 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
       return reply;
     }));
   }
-  async function transform(input: Omit<TransformProjectNames, "idempotencyKey">) {
-    const before = readyForContextMutation(); if (!before) return null;
-    return mutate(async () => {
-      const intent = JSON.stringify([input.parentCandidateId, input.secondaryCandidateId ?? null, input.input]);
-      let idempotencyKey = transformIntents.current.get(intent);
-      if (!idempotencyKey) { idempotencyKey = crypto.randomUUID(); transformIntents.current.set(intent, idempotencyKey); }
-      const reply = await scope.request(`${base}/transforms`, transformProjectNamesResponseSchema, value => owned(value.transform), { method: "POST", body: { ...input, idempotencyKey } });
-      if (!reply) return null;
-      if (reply.transform.parentCandidateId !== input.parentCandidateId || JSON.stringify(reply.transform.input) !== JSON.stringify(input.input)) throw new AccountRequestError(502);
-      transformIntents.current.delete(intent);
-      const latest = current.current; if (latest) publish({ ...latest, candidates: { ...latest.candidates, items: mergeNames(reply.entries, latest.candidates.items) } });
-      return reply;
-    });
-  }
   async function importLocal(input: Pick<ImportProjectName, "source" | "capturedContext">, onAcknowledged?: (entry: ProjectNameEntry) => void) {
     const before = readyForContextMutation(); if (!before) return false;
     if (importIntent.current && importIntent.current.source.id !== input.source.id) return false;
@@ -354,40 +254,5 @@ export function useProjectNaming({ account, projectId }: { account: VerifiedAcco
       return reply;
     }));
   }
-  async function loadMore() {
-    const before = current.current; if (!before?.candidates.nextCursor || listStatus !== "ready" || loadedListing.current !== listingKey(before.session?.viewState ?? initialNamingView)) return;
-    const view = before.session?.viewState ?? initialNamingView;
-    await mutate(async () => {
-      const reply = await scope.request(`${base}?${listingQuery(view, before.candidates.nextCursor)}`, projectNamingOverviewSchema, value => ownedProject(value.project));
-      if (!reply) return null;
-      const latest = current.current;
-      if (latest && listingKey(latest.session?.viewState ?? initialNamingView) === listingKey(view)) publish({ ...latest, candidates: { ...reply.candidates, items: mergeNames(latest.candidates.items, reply.candidates.items) } });
-      return reply;
-    }, false);
-  }
-  async function loadMoreBatches() {
-    const before = current.current; if (!before?.batches.nextCursor) return;
-    const query = new URLSearchParams({ limit: "100", cursorId: before.batches.nextCursor.id, cursorCreatedAt: before.batches.nextCursor.createdAt });
-    await mutate(async () => {
-      const reply = await scope.request(`${base}/batches?${query}`, namingBatchPageSchema, owned);
-      if (!reply) return null;
-      const latest = current.current;
-      if (latest) { const seen = new Set(latest.batches.items.map(item => item.batch.id)); publish({ ...latest, batches: { ...reply, items: [...latest.batches.items, ...reply.items.filter(item => !seen.has(item.batch.id))] } }); }
-      return reply;
-    }, false);
-  }
-  async function loadBatchDetail(batchId: string) {
-    if (!scope.current()) return null;
-    const startedEpoch = epoch.current;
-    try {
-      const reply = await readNamingBatchDetail(scope, account.userId, projectId, batchId);
-      if (!reply || !scope.current() || startedEpoch !== epoch.current) return null;
-      const latest = current.current, previous = latest?.batches.items.find(item => item.batch.id === batchId);
-      if (!latest || !previous || latest.session?.viewState.visibleBatchId !== batchId) return reply;
-      if (JSON.stringify(previous.batch) !== JSON.stringify(reply.batch) || previous.result && reply.result && JSON.stringify(previous.result) !== JSON.stringify(reply.result)) throw new AccountRequestError(502);
-      if (reply.result) publish({ ...latest, batches: { ...latest.batches, items: latest.batches.items.map(item => item.batch.id === batchId ? { batch: reply.batch, result: reply.result } : item) } });
-      return reply;
-    } catch (error) { if (scope.current() && current.current?.session?.viewState.visibleBatchId === batchId) setActionError(namingErrorMessage(error)); return null; }
-  }
-  return { loadBatchDetail, overview, workspace, blocked, readError, actionError, pending, listStatus, refresh, savePreferences, saveView, saveChatProgress, enqueue, cancel, retain, select, transform, importLocal, loadMore, loadMoreBatches };
+  return { overview, workspace, blocked, readError, actionError, pending, refresh, savePreferences, saveView, saveChatProgress, retain, select, importLocal };
 }

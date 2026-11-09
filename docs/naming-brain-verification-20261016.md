@@ -1,5 +1,7 @@
 # Naming brain verification — 2026-10-16, updated 2026-10-17
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 ## Final measured code checkpoint
 
 The complete local matrix passed on frozen code `d654d62fcbaaddad0002eff088bbf0983d97d6c9`,

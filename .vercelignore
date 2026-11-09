@@ -23,9 +23,6 @@
 !services
 !services/logo-worker
 !services/logo-worker/pg-js.d.ts
-!services/naming-worker
-!services/naming-worker/authority.ts
-!services/naming-worker/scheduling.ts
 !services/shared-worker
 !services/shared-worker/runtime-files.json
 !services/shared-worker/runtime-packages.json

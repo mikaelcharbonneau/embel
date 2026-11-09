@@ -8,8 +8,8 @@ import { parseEnv } from "node:util";
 const root = fileURLToPath(new URL("..", import.meta.url));
 const args = process.argv.slice(2);
 if ((args.length !== 2 && args.length !== 3) || args[0] !== "--lane"
-  || !["strategy", "naming", "logo"].includes(args[1]) || (args.length === 3 && args[2] !== "--run")) {
-  console.error("Use npm run dev:worker -- --lane strategy|naming|logo [--run].");
+  || !["strategy", "logo"].includes(args[1]) || (args.length === 3 && args[2] !== "--run")) {
+  console.error("Use npm run dev:worker -- --lane strategy|logo [--run].");
   process.exit(2);
 }
 function optionalEnvironment(relative) {

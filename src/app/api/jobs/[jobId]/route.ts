@@ -1,4 +1,4 @@
-import { getNamingBrainJobAccounting } from "@/server/data/naming-brain";
+import { getNamingUsage } from "@/server/data/naming-generation";
 import { z } from "zod";
 import { getAuthenticatedContext } from "@/server/auth/context";
 import { ApiError, errorResponse, privateJson } from "@/server/http/errors";
@@ -23,13 +23,11 @@ export async function GET(_request: Request, context: RouteContext) {
       .eq("id", id).eq("owner_id", userId).single();
     throwDatabaseError(error);
     if (!data) throw new ApiError("not_found");
-    if (data.operation === "naming.generate" && data.billing_mode === "openai_api") {
-      const accounting = await getNamingBrainJobAccounting(auth, id);
-      if (!accounting) throw new ApiError("integration_unavailable");
-      const safe = { ...data };
-      delete safe.actual_cost_microusd;
-      delete safe.reserved_cost_microusd;
-      return privateJson({ job: { ...safe, version: 2, accounting } });
+    if (data.operation === "naming.generate") {
+      // Naming shows recorded token usage, never cost estimates.
+      const [usage] = await getNamingUsage(auth, [id]);
+      const { id: jobId, project_id, operation, input_revision, state, progress, error_code, created_at, finished_at } = data;
+      return privateJson({ job: { id: jobId, project_id, operation, input_revision, state, progress, error_code, created_at, finished_at, usage: usage ? { inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, totalTokens: usage.totalTokens } : null } });
     }
     const safe = { ...data }; delete safe.billing_mode;
     return privateJson({ job: safe });
@@ -46,11 +44,10 @@ export async function DELETE(request: Request, context: RouteContext) {
     throwDatabaseError(error);
     // The row can still be cancel_requested while the worker resolves an in-flight result.
     if (!data) throw new ApiError("not_found");
-    if (data.operation === "naming.generate" && data.version === 2 && data.billing_mode === "openai_api") {
-      const accounting = await getNamingBrainJobAccounting(auth, id);
-      if (!accounting) throw new ApiError("integration_unavailable");
+    if (data.operation === "naming.generate") {
+      const [usage] = await getNamingUsage(auth, [id]);
       const { id: jobId, project_id, operation, input_revision, state, progress, error_code, created_at, finished_at } = data;
-      return privateJson({ job: { id: jobId, project_id, operation, input_revision, state, progress, error_code, created_at, finished_at, version: 2, accounting } });
+      return privateJson({ job: { id: jobId, project_id, operation, input_revision, state, progress, error_code, created_at, finished_at, usage: usage ? { inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, totalTokens: usage.totalTokens } : null } });
     }
     const { id: jobId, project_id, operation, input_revision, state, progress, reserved_cost_microusd, actual_cost_microusd, error_code, created_at, finished_at } = data;
     return privateJson({ job: { id: jobId, project_id, operation, input_revision, state, progress, reserved_cost_microusd, actual_cost_microusd, error_code, created_at, finished_at } });

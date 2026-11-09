@@ -1,5 +1,7 @@
 # Naming generation corrections — 2026-10-23
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 This is a generation-only follow-up to the independently reviewed manual-name,
 saved-read and delivery fixes in PR102. The authorized scope is source changes
 and synthetic tests. It includes no release, hosted SQL, provider invocation,

@@ -4,7 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createNamingBrainMemory } from "@/components/naming/naming-brain-memory";
 import { NamingApproachWidgets } from "@/components/naming/naming-approach-widgets";
-import { namingFeedSchema, type NamingBrainRunSummary, type NamingFeed } from "@/domain/naming-brain";
+import { namingGenerationFeedSchema, type NamingGenerationFeed, type NamingRunState } from "@/domain/naming-generation";
 import type { NamingChatCheckpoint } from "@/domain/naming-chat-checkpoint";
 import { initialNamingPreferencesV2 } from "@/domain/naming-brain-preferences";
 import type { NamingPreferenceRevision } from "@/domain/project-naming";
@@ -16,14 +16,10 @@ const account = { userId: id(1), generation: 1 }, projectId = id(2), when = "202
 const context = contextSnapshotSchema.parse({ description: "Synthetic reload continuity project" });
 const preferences: NamingPreferenceRevision = { ownerId: account.userId, projectId, version: 4, createdAt: when,
   preferences: { ...initialNamingPreferencesV2(context), approaches: ["real_words", "other_languages"], directness: "all", creativeLocale: "fr", maximumGraphemes: 12, excludedText: ["Synthetic excluded fragment"] } };
-function feed(state: NamingBrainRunSummary["state"] | null = "running"): NamingFeed {
-  return namingFeedSchema.parse({ version: 1, ownerId: account.userId, projectId, projectRevision: 5, preferencesVersion: 4,
-    feedbackRevision: 0, steeringRevision: 0, demandSequence: 1, entries: [], nextCursor: null, consumedThrough: null,
-    preparedSetId: null, paused: false, state: "active", availability: { status: "available", handlerVersion: "naming-brain-v1", protocol: "openai_agents", acceptedPolicyIdentity: "a".repeat(64) },
-    activeRun: state ? { version: 1, ownerId: account.userId, projectId, runId: id(3), jobId: id(4), batchId: id(5), revision: 1,
-      resumedFromRunId: null, canResume: state === "failed", state, projectRevision: 5, preferencesVersion: 4,
-      feedbackRevision: 0, steeringRevision: 0, demandSequence: 1, snapshotHash: "b".repeat(64), acceptedPolicyIdentity: "a".repeat(64),
-      progress: 20, preparedSetId: null, fulfillment: null, accounting: { status: "held_unsettled", heldAllowanceMicrousd: 5_000_000, confirmedActualCostMicrousd: null }, createdAt: when, updatedAt: when } : null });
+function feed(state: NamingRunState | null = "running"): NamingGenerationFeed {
+  return namingGenerationFeedSchema.parse({ version: 2, projectId, availability: { status: "available" }, entries: [], nextCursor: null,
+    run: state ? { runId: id(3), jobId: id(4), kind: "initial", state, target: 100, savedCount: 20, errorCode: state === "failed" ? "response_failed" : null,
+      usage: null, createdAt: when, finishedAt: state === "running" ? null : when } : null });
 }
 function fixture() {
   const request = vi.fn(), write = vi.fn();
@@ -68,13 +64,9 @@ it.each(["en", "fr"])("keeps autosaved but unconfirmed %s follow-ups incomplete 
   expect(f.request).not.toHaveBeenCalled();
 });
 
-it.each(["older preferences", "older project", "other owner", "other project"] as const)("does not infer completion from a run with %s", async mismatch => {
-  const f = fixture(), value = feed();
-  if (mismatch === "older preferences") value.activeRun!.preferencesVersion = 3;
-  if (mismatch === "older project") value.activeRun!.projectRevision = 4;
-  if (mismatch === "other owner") { value.ownerId = id(8); value.activeRun!.ownerId = id(8); }
-  if (mismatch === "other project") { value.projectId = id(9); value.activeRun!.projectId = id(9); }
-  f.load(namingFeedSchema.parse(value)); await render(f.memory);
+it("does not infer completion from another project's run", async () => {
+  const f = fixture();
+  f.load(namingGenerationFeedSchema.parse({ ...feed(), projectId: id(9) })); await render(f.memory);
   expect(heading()).toBe("Any length limits or text to include or avoid?");
   expect(host.querySelectorAll(".guided-choice-answer")).toHaveLength(2); expect(f.request).not.toHaveBeenCalled();
 });

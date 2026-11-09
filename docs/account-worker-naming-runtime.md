@@ -1,5 +1,7 @@
 # Per-owner hosted Naming process
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 > Historical per-customer candidate. The current shared design is documented in
 > [shared-worker-pool.md](shared-worker-pool.md). Keep this packet as review and
 > compatibility evidence; use the shared configuration for new deployment planning.

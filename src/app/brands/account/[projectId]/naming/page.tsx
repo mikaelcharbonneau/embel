@@ -1,8 +1,8 @@
-import type { Metadata } from "next";
-import { ProjectNamingWorkspace } from "@/components/naming/project-naming-workspace";
+import { redirect } from "next/navigation";
+import { projectStrategyHref } from "@/domain/project-handoff";
 
-export const metadata: Metadata = { title: "Naming" };
+/** Naming lives in the project conversation (Voice · Name); older links land there. */
 export default async function ProjectNamingPage({ params }: { params: Promise<{ projectId: string }> }) {
-  const { projectId } = await params;
-  return <ProjectNamingWorkspace projectId={projectId} />;
+  const projectId = (await params).projectId.toLowerCase();
+  redirect(`${projectStrategyHref(projectId)}#journey-voice`);
 }

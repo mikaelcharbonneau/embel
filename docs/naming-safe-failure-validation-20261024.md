@@ -1,5 +1,7 @@
 # Naming safety and UI fixes — 2026-10-24
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 This is a reviewable, undeployed fix. AI generation remains unavailable because
 no enforceable provider-supported US$5 managed-Agents cap was established. See
 [native cap evidence and architecture options](naming-provider-budget-compatibility-20261024.md).

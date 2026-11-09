@@ -2,10 +2,6 @@ import { z } from "zod";
 import { nameValueSchema } from "./naming";
 import { matchesNamingTextFragment, namingApproachSchema, type NamingApproach, type NamingPreferencesV2 } from "./naming-brain-preferences";
 
-export const NAMING_BRAINSTORM_PROFILE = "brainstorm_v1" as const;
-export const NAMING_BRAINSTORM_TARGET = 100;
-export const NAMING_BRAINSTORM_MAX_CALLS = 3;
-export const BALANCED_BRAINSTORM_FORMAT = "naming_brainstorm_balanced_v2" as const;
 export const NAMING_BRAINSTORM_CAUTION = "Unchecked brainstorm. Research and screening are needed before use.";
 const safeText = z.string().trim().min(1).max(600).refine(value => !/[\p{Cc}\p{Bidi_Control}]/u.test(value) && /[^\p{White_Space}\p{Default_Ignorable_Code_Point}\p{Mark}\u2800]/u.test(value));
 export const namingBrainstormCandidateSchema = z.strictObject({ value: nameValueSchema, rationale: safeText, primaryApproach: namingApproachSchema });
@@ -141,13 +137,3 @@ export function filterNamingBrainstormCandidates(raw: readonly unknown[], prefer
   }
   return accepted;
 }
-export const namingBrainstormResponseIdSchema = z.string().regex(/^resp_[A-Za-z0-9_-]{1,194}$/u);
-export const namingBrainstormRequestIdSchema = z.string().regex(/^[A-Za-z0-9_-]{1,200}$/u);
-export const namingBrainstormWireSchema = z.strictObject({
-  model: z.string().min(1).max(150), store: z.literal(true), stream: z.literal(true), reasoning: z.strictObject({ effort: z.literal("low") }),
-  max_output_tokens: z.literal(16000), input: z.string().min(1).max(125_000),
-  text: z.strictObject({ verbosity: z.literal("low"), format: z.strictObject({ type: z.literal("json_schema"), name: z.enum(["naming_brainstorm_v1", BALANCED_BRAINSTORM_FORMAT]), strict: z.literal(true), schema: z.json() }) }),
-  metadata: z.strictObject({ embel_generation_profile: z.literal(NAMING_BRAINSTORM_PROFILE), embel_job_id: z.uuid(), embel_run_id: z.uuid(), embel_call_index: z.enum(["1", "2", "3"]) }),
-}).refine(value => new TextEncoder().encode(JSON.stringify(value)).byteLength <= 131_072);
-export type NamingBrainstormWire = z.infer<typeof namingBrainstormWireSchema>;
-export const namingBrainstormUsageSchema = z.object({ input_tokens: z.number().int().nonnegative(), output_tokens: z.number().int().nonnegative(), total_tokens: z.number().int().nonnegative() }).catchall(z.json());
