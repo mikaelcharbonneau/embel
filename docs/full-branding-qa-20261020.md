@@ -1,3 +1,5 @@
+> **Archived November 9, 2026.** Historical record; it may not match the current code. Current architecture and plan: [architecture-review.md](architecture-review.md).
+
 **Result: partial pass.** The new full-flow QA project persisted strategy, a selected name, inspiration, six logo concepts, one refinement, the selected logo, a board preview, and seven PNG assets. One PNG download completed. The approved identity and complete export package remain blocked by the product’s approval path.
 
 Project: [QA — Full branding flow — Saint-Roch — 2026-10-20](https://www.embel.xyz/brands/account/77936053-5911-441b-a7b0-0a9bc8a4c045)  

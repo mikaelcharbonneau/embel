@@ -1,3 +1,5 @@
+> **Archived November 9, 2026.** Historical record; it may not match the current code. Current architecture and plan: [architecture-review.md](../../architecture-review.md).
+
 # Guided Brand Interview Implementation Plan
 
 > **Historical work breakdown:** The ownership below records the implementation split; the lead handled integration and commits. This plan does not assign a new task or authorize additional agents.

@@ -1,3 +1,5 @@
+> **Archived November 9, 2026.** Historical record; it may not match the current code. Current architecture and plan: [architecture-review.md](architecture-review.md).
+
 # Brand-board PNG preview — source implementation, 2026-10-20
 
 ## Scope and honest output

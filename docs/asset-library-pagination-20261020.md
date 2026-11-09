@@ -1,3 +1,5 @@
+> **Archived November 9, 2026.** Historical record; it may not match the current code. Current architecture and plan: [architecture-review.md](architecture-review.md).
+
 # Asset library loaded-window reconciliation
 
 Issue: [#34](https://github.com/mikaelcharbonneau/embel/issues/34).

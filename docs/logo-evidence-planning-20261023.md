@@ -1,3 +1,5 @@
+> **Archived November 9, 2026.** Historical record; it may not match the current code. Current architecture and plan: [architecture-review.md](architecture-review.md).
+
 # Logo evidence-check planning candidate
 
 Production timeout diagnostics included a Strategy availability call stack entering

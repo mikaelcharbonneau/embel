@@ -1,3 +1,5 @@
+> **Archived November 9, 2026.** Historical record; it may not match the current code. Current architecture and plan: [architecture-review.md](architecture-review.md).
+
 # UI and design audit — November 7, 2026
 
 Scope: the local app at `http://127.0.0.1:3105` (code identical to `main` 1a69d3c),

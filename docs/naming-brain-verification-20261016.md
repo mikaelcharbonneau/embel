@@ -1,3 +1,5 @@
+> **Archived November 9, 2026.** Historical record; it may not match the current code. Current architecture and plan: [architecture-review.md](architecture-review.md).
+
 # Naming brain verification — 2026-10-16, updated 2026-10-17
 
 > Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
