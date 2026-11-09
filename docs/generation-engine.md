@@ -89,6 +89,14 @@ The workflow file only orchestrates. Every database or provider call is a `"use 
 5. **Creative directions and exports.**
 6. **Retirement:** turn off the shared worker daemon; delete `services/`, `worker/`, slot logins, ChatGPT-plan mode and laptop runtimes; drop the old tables (Phase 5.2); make a clean baseline migration (Phase 1.2).
 
+## Strategy on the engine (step 2)
+
+- **Kinds:** `strategy.reformulate`, `strategy.competitors`, `strategy.audience`, `strategy.positioning`, `strategy.personality` and `strategy.slogan`, one credit each, added disabled by migration `20261110120000_strategy_engine_kinds`.
+- **Switch:** the Strategy screens use the engine only when all six kinds are enabled (`src/server/engine/strategy.ts`). Then `/api/projects/[id]/strategy` reports `engine: true` and the engine's operations, and the screens start, poll (3 s) and cancel runs through `/generations`. Turning any kind off returns the whole step to the old path.
+- **Input:** the route freezes each run's input with the person's own login: the context of the requested revision (whose latest guided turn must ask for that operation), the hosted guided policy, and up to five earlier replies from old jobs and engine runs. The browser only sends `expectedRevision`. A replayed key never rebuilds its input.
+- **Workflow (`src/workflows/strategy.ts`):** claim, prepare the exact request once, then per attempt: check cancel and pause, create a background response, sleep and poll by id (at most 10 minutes), validate with the existing schemas. An unusable reply gets one corrective re-prompt. A cancel or pause cancels the open response at OpenAI. Each finished response is saved with its response id and `cost_microusd`: the result as `result`, an unusable or stopped attempt as `attempt.N`.
+- **Applying results:** the guided interview already saves the person's choices into the project itself; nothing applies results on the server, as before (`apply_strategy_job_result_v2` serves only the older, unmounted non-guided screen).
+
 ## Release and rollback
 
 - Each step ships behind a per-kind switch: `generation_kinds.enabled` plus the screen's route choice. The old path stays until the new one has at least 95% successful runs on 30 local or staging runs and 48 quiet hours in production.
