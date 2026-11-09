@@ -1,5 +1,4 @@
 import "server-only";
-import { applyLogoVectorProposalCommandSchema } from "@/features/logo-vector/model/proposal-materialization";
 import { z } from "zod";
 import {
   logoWorkspaceV2Schema, logoCurrentVectorSelectionSchema, logoMutationReceiptSchema, logoManualCommandSchema,
@@ -136,18 +135,7 @@ export function createLogoWorkspaceService(dependencies:LogoWorkspaceDependencie
     restoreLogoStage: (auth: AuthenticatedContext, projectId: string, input: unknown, signal?: AbortSignal) => manual(auth, projectId, "restoreLogoStage", input, signal),
     selectLogoConcept: (auth: AuthenticatedContext, projectId: string, input: unknown) => manual(auth, projectId, "selectLogoConcept", input),
     selectLogoRaster: (auth: AuthenticatedContext, projectId: string, input: unknown) => manual(auth, projectId, "selectLogoRaster", input),
-    saveLogoEdit: (auth: AuthenticatedContext, projectId: string, input: unknown, signal?: AbortSignal) => manual(auth, projectId, "saveLogoEdit", input, signal),
-    applyLogoVectorProposal: async (auth: AuthenticatedContext, projectId: string, input: unknown, signal?: AbortSignal): Promise<LogoMutationReceipt> => {
-      const command = parseLogoInput(applyLogoVectorProposalCommandSchema, { method: "applyLogoVectorProposal", body: input });
-      projectId = logoId(projectId); logoOwner(auth); active(signal);
-      if (!dependencies.transactions) return unavailable(auth, projectId, signal);
-      const raw = await dependencies.transactions.run(auth, projectId, command, signal);
-      try {
-        const receipt = parseLogoStored(logoMutationReceiptSchema, raw); scope(auth, projectId, receipt);
-        if (receipt.requestKey !== command.body.requestKey || receipt.revision.stage !== "refinements" || receipt.revision.payload.vectorRevisionId === null || receipt.revision.payload.approvalId !== null || receipt.revision.payload.sourceRequestKey !== command.body.requestKey || receipt.revision.revision !== command.body.expected.stageRevisions.refinements + 1 || receipt.workspace.heads.workspaceRevision !== command.body.expected.workspaceRevision + 1) throw new ApiError("integration_unavailable");
-        return receipt;
-      } catch { throw new LogoUncertainCommitError(projectId, command); }
-    },
+    // Server-only: the vector stage and the direction/export pipeline still need an approved vector.
     acceptLogoVector: (auth: AuthenticatedContext, projectId: string, input: unknown, signal?: AbortSignal) => manual(auth, projectId, "acceptLogoVector", input, signal),
     selectIdentityDirectionComponents: (auth: AuthenticatedContext, projectId: string, input: unknown, signal?: AbortSignal) => manual(auth, projectId, "selectIdentityDirectionComponents", input, signal),
     approveIdentityDirection: (auth: AuthenticatedContext, projectId: string, input: unknown, signal?: AbortSignal) => manual(auth, projectId, "approveIdentityDirection", input, signal),
@@ -218,7 +206,7 @@ export function createLogoWorkspaceService(dependencies:LogoWorkspaceDependencie
 export const {
   getLogoWorkspace, readLogoReferenceSnapshot,
   getLogoStageRevision, listLogoStageHistory, readLogoManualRequest, saveLogoBrief, saveLogoReferences,
-  restoreLogoStage, selectLogoConcept, selectLogoRaster, saveLogoEdit, applyLogoVectorProposal, acceptLogoVector,
+  restoreLogoStage, selectLogoConcept, selectLogoRaster, acceptLogoVector,
   selectIdentityDirectionComponents, approveIdentityDirection, prepareLogoVariants, reviewLogoVariants,
   readLogoFontRecord, readLogoVectorDetail, readLogoCurrentVectorRevisionId, readLogoConceptBatch, listLogoConceptBatches, readLogoRasterRefinement, listLogoRasterRefinements, getIdentityDirections,
 } = createLogoWorkspaceService();

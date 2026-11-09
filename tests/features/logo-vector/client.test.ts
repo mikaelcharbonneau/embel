@@ -2,16 +2,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createAccountLogoClient } from "../../../src/components/identity/account-logo-client";
 import { createVectorHttpFixture, source } from "./http-fixture";
 const account = { status: "ready" as const, userId: source.input.ownerId, generation: 1 };
-describe("owned current-vector and actual geometry client readers", () => {
+describe("owned saved-vector geometry client reader", () => {
   afterEach(() => vi.restoreAllMocks());
-  it("resolves authoritative current selection and bounded inspected vector detail", async () => {
+  it("resolves bounded inspected vector detail", async () => {
     const f = createVectorHttpFixture(), client = createAccountLogoClient(account, source.input.projectId, () => true, () => {}, f.fetcher);
-    expect(await client.readLogoCurrentVectorRevisionId()).toBe(f.initial.revision.id);
     expect(await client.readLogoVectorDetail(f.initial.revision.id)).toEqual(f.initial);
   });
-  it("rejects a foreign current selection and a different returned immutable revision", async () => {
-    const f = createVectorHttpFixture(), wrong = createAccountLogoClient(account, source.input.projectId, () => true, () => {}, async () => Response.json({ ownerId: source.input.projectId, projectId: source.input.projectId, vectorRevisionId: f.initial.revision.id }));
-    await expect(wrong.readLogoCurrentVectorRevisionId()).rejects.toMatchObject({ status: 502 });
+  it("rejects a different returned immutable revision", async () => {
+    const f = createVectorHttpFixture();
     const client = createAccountLogoClient(account, source.input.projectId, () => true, () => {}, async () => Response.json(f.initial));
     await expect(client.readLogoVectorDetail(source.input.quoteId)).rejects.toMatchObject({ status: 502 });
   });

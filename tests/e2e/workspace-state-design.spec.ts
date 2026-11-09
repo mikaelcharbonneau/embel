@@ -277,7 +277,7 @@ test("retained project read failure keeps its actionable notice without adding p
   expect(state.writes).toEqual([]); await captureState(page, info, "retained-project-read-error");
 });
 
-for (const suffix of ["", "/naming", "/inspiration", "/logo", "/brand-board", "/logo/vector", "/logo/editor", "/logo/directions", "/identity", "/logo/deliverables"]) {
+for (const suffix of ["", "/naming", "/inspiration", "/logo", "/brand-board", "/logo/directions", "/identity", "/logo/deliverables"]) {
   test(`removed project bars reserve no space on ${suffix || "Strategy"} during account verification`, async ({ page }, info) => {
     const state = await fixture(page, true);
     try {

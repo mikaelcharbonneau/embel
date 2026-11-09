@@ -25,8 +25,7 @@ a saved project without discarding its context.
    uniqueness or legal clearance. See [fast-first Naming](docs/naming-fast-first.md).
 4. **Logo concepts:** generate six total black-and-white raster concepts across
    the chosen logo types. Keep partial successes and retry only failed work.
-   Choose one exact concept to continue. Optional vector conversion and editing
-   preserve the original raster and require explicit acceptance of a vector.
+   Choose one exact concept to continue.
 5. **Visual directions:** generate three distinct raster brand boards using the
    exact chosen logo. Each direction combines colors, typography, graphics and
    example uses. Vector approval is not a prerequisite, and the retired

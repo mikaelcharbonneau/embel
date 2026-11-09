@@ -7,17 +7,12 @@ import type { IdentityAssetStore } from "../../../server/data/identity-asset-sto
 import { logoOwner, logoId, type LogoMutationProducers } from "../../../server/data/logo-transaction";
 import { ApiError } from "../../../server/http/errors";
 import { LogoVectorError } from "../model/errors";
-import { applyLogoManualEdit } from "../model/edits";
-import { captureLogoComponentLocks, assertLogoComponentLocks } from "../model/locks";
+import { assertLogoComponentLocks } from "../model/locks";
 import { assertLogoConversionNotAborted } from "./converter";
 import { canonicalLogoDocumentBytes, verifyLogoVectorRevision } from "./revisions";
-import { stageLogoVectorEditCandidate } from "./prepare-edit";
-import { applyLogoTextEdit, type LogoTextEditDependencies } from "./text-edits";
 
 export type LogoVectorMutationDependencies = {
   assetStore: IdentityAssetStore;
-  /** Present only when exact owned brief/source/font readers are composed. */
-  textEdits?: LogoTextEditDependencies;
   readVectorDetail(auth: AuthenticatedContext, projectId: string, vectorRevisionId: string, signal?: AbortSignal): Promise<LogoVectorDetail>;
   getWorkspace(auth: AuthenticatedContext, projectId: string, signal?: AbortSignal): Promise<LogoWorkspaceV2>;
   readCurrentVectorRevisionId(auth: AuthenticatedContext, projectId: string, signal?: AbortSignal): Promise<string | null>;
@@ -28,7 +23,7 @@ const snapshot = (file: VerifiedAssetBytes): VerifiedAssetBytes => ({ ...file, r
 
 /** Authoritative producer for the existing P1 CAS transaction. All file I/O and
  * geometry work happen before BEGIN; no browser proof, AI dispatch or approval
- * can enter the edit evidence. Text shaping requires separately composed readers. */
+ * can enter the evidence. Restoring vector or refinement stages depends on it. */
 export function createLogoVectorMutationProducers(deps: LogoVectorMutationDependencies): LogoMutationProducers {
   async function stage(auth: AuthenticatedContext, projectId: string, kind: LogoStage, id: string, signal: AbortSignal) {
     const record = logoStageRevisionSchema.parse(await deps.readStageRevision(auth, projectId, kind, id, signal));
@@ -88,28 +83,6 @@ export function createLogoVectorMutationProducers(deps: LogoVectorMutationDepend
       selectionLocks(base, target);
       assertLogoConversionNotAborted(signal);
       return { targetStageRevisionId: targetStage.id, currentVectorRevisionId: base?.revision.id ?? null, targetVectorRevisionId: targetId, expected: command.body.expected };
-    },
-    async saveLogoEdit(auth, projectId, rawCommand, optionalSignal) {
-      const signal = optionalSignal ?? new AbortController().signal, command = logoManualCommandSchema.parse(rawCommand);
-      assertLogoConversionNotAborted(signal);
-      if (command.method !== "saveLogoEdit") return mismatch();
-      const { revision, document } = await load(auth, projectId, command.body.baseVectorRevisionId, signal);
-      const source = snapshot(await deps.assetStore.readOwnedAsset(auth, revision.sourcePreview, signal));
-      assertLogoConversionNotAborted(signal);
-      const textEdit = ["text", "font", "spacing", "replace_outlined_lettering"].includes(command.body.edit.kind);
-      if (textEdit && !deps.textEdits) throw new LogoVectorError("font_rights_required", "Verified owned fonts and text shaping are unavailable.");
-      if (textEdit) {
-        const workspace = logoWorkspaceV2Schema.parse(await deps.getWorkspace(auth, projectId, signal));
-        assertLogoConversionNotAborted(signal);
-        if (workspace.ownerId !== logoOwner(auth) || workspace.projectId !== projectId) return mismatch();
-        if (!isDeepStrictEqual(workspace.heads, command.body.expected)) throw new ApiError("conflict");
-        const currentId = await deps.readCurrentVectorRevisionId(auth, projectId, signal);
-        assertLogoConversionNotAborted(signal);
-        if (currentId !== revision.id) throw new ApiError("conflict");
-      }
-      const candidate = textEdit ? await applyLogoTextEdit({ auth, projectId, revision, document, edit: command.body.edit }, deps.textEdits!, signal) : applyLogoManualEdit(document, command.body.edit);
-      const locks = command.body.edit.kind === "locks" ? captureLogoComponentLocks(candidate, command.body.edit.componentIds) : revision.locks;
-      return stageLogoVectorEditCandidate({ auth, projectId, requestKey: command.body.requestKey, revision, document, candidate, source, locks }, deps.assetStore, signal);
     },
   };
 }

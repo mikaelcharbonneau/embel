@@ -5,19 +5,14 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 vi.mock("server-only", () => ({}));
 import { asRole, createTestDatabase, OWNER_A, OWNER_B, resetFixture, type TestDatabase } from "./local-supabase";
 import { legacyLogoCostQuoteSchema as logoCostQuoteSchema, logoDispatchReceiptSchema } from "../../src/domain/logo-jobs";
-import { logoWorkspaceV2Schema, type LogoMutationReceipt } from "../../src/domain/logo-workspace";
-import { logoVectorHistoryPageSchema } from "../../src/features/logo-vector/model/history";
+import { logoWorkspaceV2Schema } from "../../src/domain/logo-workspace";
 import { logoVectorRevisionSchema } from "../../src/domain/logo-vector";
 import type { ClaimedJob } from "../../src/domain/jobs";
 import type { LogoWorkerConnection } from "../../src/server/data/logo-jobs";
-import type { AuthenticatedContext } from "../../src/server/auth/context";
 import type { IdentityConnectionFactory } from "../../src/server/data/identity-transaction";
-import { createLogoTransactionService } from "../../src/server/data/logo-transaction";
-import { createLogoWorkspaceService } from "../../src/server/data/logo-workspace";
-import { createLogoVectorMutationProducers } from "../../src/features/logo-vector/server/mutations";
 import { createIdentityAssetStore, createPostgresIdentityAssetBackend } from "../../src/server/data/identity-asset-store";
 import { publishLogoVectorResult } from "../../src/features/logo-vector/server/publication";
-import { canonicalLogoDocumentBytes, validateLogoVectorCandidate, verifyLogoVectorRevision } from "../../src/features/logo-vector/server/revisions";
+import { canonicalLogoDocumentBytes, validateLogoVectorCandidate } from "../../src/features/logo-vector/server/revisions";
 import type { LogoVectorConversionResult } from "../../src/features/logo-vector/server/converter";
 import { QUALIFIED_VTRACER } from "../../worker/logo-vector/engine";
 import { parseClaimedJob } from "../../worker/postgres-store";
@@ -70,23 +65,9 @@ describe("atomic vector publication through existing durable jobs", () => {
   }
   const rpc = (name: string, args: unknown[], owner = OWNER_A) => asRole(db, "authenticated", owner, async () => (await db.query<{ value: unknown }>(`select public.${name}(${args.map((_, i) => `$${i + 1}`).join(",")}) value`, args)).rows[0]!.value);
   async function read(projectId: string) { return logoWorkspaceV2Schema.parse(await rpc("get_logo_workspace", [projectId])); }
-  async function history(projectId: string) { return logoVectorHistoryPageSchema.parse(await rpc("list_logo_vector_history", [projectId, {}])); }
-  function auth(owner = OWNER_A): AuthenticatedContext {
-    return { userId: owner, client: { rpc(name: string, args: Record<string, unknown>) {
-      const params = name === "read_logo_asset" ? [args.p_reference] : name === "read_logo_workspace_record" ? [args.p_project_id, args.p_kind, args.p_id] : [args.p_project_id];
-      const result = rpc(name, params, owner).then(data => ({ data, error: null })).catch(error => ({ data: null, error }));
-      return Object.assign(result, { abortSignal: () => result });
-    } } } as unknown as AuthenticatedContext;
-  }
-  function mutations(source: ReturnType<typeof store>) {
-    const reads = createLogoWorkspaceService({ assetStore: source, verifyVectorRevision: verifyLogoVectorRevision });
-    return createLogoTransactionService(owned, createLogoVectorMutationProducers({ assetStore: source, readVectorDetail: reads.readLogoVectorDetail, getWorkspace: reads.getLogoWorkspace, readCurrentVectorRevisionId: reads.readLogoCurrentVectorRevisionId, readStageRevision: reads.getLogoStageRevision }));
-  }
-  async function published() {
-    const f = await setup(), publication = await publishLogoVectorResult(connection, f.source, f.job, f.result); await complete(f.job, publication.id);
-    const revision = logoVectorRevisionSchema.parse((await db.query<{ record: unknown }>("select record from public.logo_vector_revisions")).rows[0]!.record);
-    return { ...f, revision, service: mutations(f.source) };
-  }
+  // The history reader belonged to the removed vector editor; read the stored rows directly.
+  async function history(projectId: string) { return await rpc("list_logo_vector_history", [projectId, {}]) as { items: Array<Record<string, unknown>> }; }
+
   async function claim(): Promise<ClaimedJob> { return parseClaimedJob((await connection.query("select * from public.claim_logo_job('vector-test',300)")).rows[0]); }
   async function begin(job: ClaimedJob, key: string, cost = 0) { await connection.query("select public.begin_logo_job_step($1,$2,$3,$4,$5)", [job.id, job.leaseToken, key, `${job.id}:${key}`, cost]); }
   async function setup() {
@@ -163,99 +144,6 @@ describe("atomic vector publication through existing durable jobs", () => {
     await expect(complete(f.job, publication.id)).rejects.toMatchObject({ code: "40001" });
     expect((await db.query("select count(*)::int count from public.asset_versions")).rows[0]).toEqual({ count: 1 });
     expect((await db.query("select count(*)::int count from public.logo_vector_revisions")).rows[0]).toEqual({ count: 0 });
-  });
-  it("a cancellation after actual edit staging fences commit and preserves staged bytes and every head", async () => {
-    const f = await published(), before = await read(f.w.projectId);
-    const command = { method: "saveLogoEdit" as const, body: { requestKey: randomUUID(), expected: before.heads, baseVectorRevisionId: f.revision.id, edit: { kind: "rotation" as const, componentId: "synthetic-symbol", degrees: 5 } } };
-    const reads = createLogoWorkspaceService({ assetStore: f.source, verifyVectorRevision: verifyLogoVectorRevision });
-    const producers = createLogoVectorMutationProducers({ assetStore: f.source, readVectorDetail: reads.readLogoVectorDetail, getWorkspace: reads.getLogoWorkspace, readCurrentVectorRevisionId: reads.readLogoCurrentVectorRevisionId, readStageRevision: reads.getLogoStageRevision });
-    let staged: unknown[] = [], byteSnapshot: [string, Buffer][] = [], producerCalls = 0;
-    const service = createLogoTransactionService(owned, { ...producers, async saveLogoEdit(...args) {
-      producerCalls++;
-      const evidence = await producers.saveLogoEdit!(...args);
-      staged = (await db.query("select * from public.logo_asset_publications where job_id is null order by id")).rows;
-      byteSnapshot = [...blobs].map(([path, value]) => [path, Buffer.from(value.bytes)]);
-      expect(staged).toHaveLength(2);
-      expect(await rpc("cancel_logo_vector_edit", [f.w.projectId, command])).toEqual({ status: "cancelled", ownerId: OWNER_A, projectId: f.w.projectId, requestKey: command.body.requestKey, command });
-      return evidence;
-    } });
-    await expect(service.run(auth(), f.w.projectId, command)).rejects.toMatchObject({ code: "conflict" });
-    expect((await db.query("select * from public.logo_asset_publications where job_id is null order by id")).rows).toEqual(staged);
-    expect([...blobs].map(([path, value]) => [path, Buffer.from(value.bytes)])).toEqual(byteSnapshot);
-    expect((await db.query("select count(*)::int n from public.asset_versions")).rows).toEqual([{ n: 3 }]);
-    expect((await db.query("select count(*)::int n from public.logo_vector_revisions")).rows).toEqual([{ n: 1 }]);
-    expect((await db.query("select count(*)::int n from public.logo_workspace_requests where request_key=$1", [command.body.requestKey])).rows).toEqual([{ n: 0 }]);
-    expect(await read(f.w.projectId)).toEqual(before);
-    // A subsequent exact retry stops at the trusted preflight, before any I/O.
-    await expect(service.run(auth(), f.w.projectId, command)).rejects.toMatchObject({ code: "conflict" });
-    expect(producerCalls).toBe(1);
-  });
-  it("a committed edit wins cancellation without altering its success receipt or latest heads", async () => {
-    const f = await published(), command = { method: "saveLogoEdit" as const, body: { requestKey: randomUUID(), expected: (await read(f.w.projectId)).heads, baseVectorRevisionId: f.revision.id, edit: { kind: "rotation" as const, componentId: "synthetic-symbol", degrees: 5 } } };
-    const receipt = await f.service.run(auth(), f.w.projectId, command);
-    const before = await read(f.w.projectId);
-    expect(await rpc("cancel_logo_vector_edit", [f.w.projectId, command])).toEqual({ status: "succeeded", ownerId: OWNER_A, projectId: f.w.projectId, requestKey: command.body.requestKey, command, receipt });
-    expect(await read(f.w.projectId)).toEqual(before);
-    expect((await db.query("select count(*)::int n from public.logo_vector_edit_cancellations")).rows).toEqual([{ n: 0 }]);
-    expect(await f.service.run(auth(), f.w.projectId, command)).toEqual(receipt);
-  });
-  it("manual edit, explicit acceptance and restoration append immutable history", async () => {
-    const f = await published(), current = await read(f.w.projectId);
-    const edit = { method: "saveLogoEdit", body: { requestKey: randomUUID(), expected: current.heads, baseVectorRevisionId: f.revision.id, edit: { kind: "color", componentId: "synthetic-symbol", fill: "#11CC88", stroke: null } } };
-    const saved = await f.service.run(auth(), f.w.projectId, edit) as LogoMutationReceipt;
-    expect(saved.revision.stage).toBe("refinements"); expect(saved.workspace.approvedLogo).toBeNull(); expect(saved.workspace.stages.vector).toEqual(current.stages.vector);
-    const candidateId = (saved.revision.payload as { vectorRevisionId: string }).vectorRevisionId;
-    const accepted = await f.service.run(auth(), f.w.projectId, { method: "acceptLogoVector", body: { requestKey: randomUUID(), expected: saved.workspace.heads, vectorRevisionId: candidateId, acceptEarlierBasis: false } }) as LogoMutationReceipt;
-    expect(accepted.workspace.approvedLogo?.vectorRevisionId).toBe(candidateId);
-    expect(await f.service.run(auth(), f.w.projectId, edit)).toEqual(saved);
-    const restored = await f.service.run(auth(), f.w.projectId, { method: "restoreLogoStage", body: { requestKey: randomUUID(), expected: accepted.workspace.heads, stage: "vector", revisionId: current.stages.vector!.id, acceptEarlierBasis: false } }) as LogoMutationReceipt;
-    expect(restored.revision.id).not.toBe(current.stages.vector!.id); expect(restored.revision.parentRevisionId).toBe(accepted.revision.id);
-    expect((await db.query<{ record: unknown }>("select record from public.logo_vector_revisions where id=$1", [f.revision.id])).rows[0]!.record).toEqual(f.revision);
-    expect((await db.query("select count(*)::int count from public.logo_vector_revisions")).rows[0]).toEqual({ count: 2 });
-    expect((await db.query("select count(*)::int count from public.logo_approvals")).rows[0]).toEqual({ count: 1 });
-    const afterRestore = await f.service.run(auth(), f.w.projectId, { method: "saveLogoEdit", body: { requestKey: randomUUID(), expected: restored.workspace.heads, baseVectorRevisionId: f.revision.id, edit: { kind: "rotation", componentId: "synthetic-symbol", degrees: 5 } } }) as LogoMutationReceipt;
-    expect(afterRestore.revision.stage).toBe("refinements");
-  });
-  it("locked edits fail without storing a candidate; unlocking is a separate saved operation", async () => {
-    const f = await published(); const expected = (await read(f.w.projectId)).heads;
-    const locked = await f.service.run(auth(), f.w.projectId, { method: "saveLogoEdit", body: { requestKey: randomUUID(), expected, baseVectorRevisionId: f.revision.id, edit: { kind: "locks", componentIds: ["synthetic-symbol"] } } }) as LogoMutationReceipt;
-    const id = (locked.revision.payload as { vectorRevisionId: string }).vectorRevisionId;
-    const before = blobs.size;
-    await expect(f.service.run(auth(), f.w.projectId, { method: "saveLogoEdit", body: { requestKey: randomUUID(), expected: locked.workspace.heads, baseVectorRevisionId: id, edit: { kind: "size", componentId: "synthetic-symbol", scale: 1.1 } } })).rejects.toMatchObject({ code: "locked_component_changed" });
-    expect(blobs.size).toBe(before);
-    const unlocked = await f.service.run(auth(), f.w.projectId, { method: "saveLogoEdit", body: { requestKey: randomUUID(), expected: locked.workspace.heads, baseVectorRevisionId: id, edit: { kind: "locks", componentIds: [] } } }) as LogoMutationReceipt;
-    expect(unlocked.revision.id).not.toBe(locked.revision.id); expect((await db.query("select count(*)::int count from public.logo_vector_revisions")).rows[0]).toEqual({ count: 3 });
-  });
-  it("a raster-only stage keeps the activated locked refinement as the next edit basis", async () => {
-    const f = await published();
-    const locked = await f.service.run(auth(), f.w.projectId, { method: "saveLogoEdit", body: { requestKey: randomUUID(), expected: (await read(f.w.projectId)).heads, baseVectorRevisionId: f.revision.id, edit: { kind: "locks", componentIds: ["synthetic-symbol"] } } }) as LogoMutationReceipt;
-    const lockedId = (locked.revision.payload as { vectorRevisionId: string }).vectorRevisionId;
-    await db.query("select fluid_private.logo_append_stage($1,$2,'refinements',$3,$4)", [OWNER_A, f.w.projectId, { rasterRevisionIds: [], vectorRevisionId: null, approvalId: null, sourceRequestKey: randomUUID() }, f.revision.inputRevisions]);
-    expect(await createLogoWorkspaceService().readLogoCurrentVectorRevisionId(auth(), f.w.projectId)).toBe(lockedId);
-    const next = await f.service.run(auth(), f.w.projectId, { method: "saveLogoEdit", body: { requestKey: randomUUID(), expected: (await read(f.w.projectId)).heads, baseVectorRevisionId: lockedId, edit: { kind: "color", componentId: "synthetic-lettering", fill: "#333333", stroke: null } } }) as LogoMutationReceipt;
-    const newId = (next.revision.payload as { vectorRevisionId: string }).vectorRevisionId;
-    const record = logoVectorRevisionSchema.parse((await db.query<{ record: unknown }>("select record from public.logo_vector_revisions where id=$1", [newId])).rows[0]!.record);
-    expect(record.parentRevisionId).toBe(lockedId); expect(record.locks.map(lock => lock.componentId)).toEqual(["synthetic-symbol"]);
-  });
-  it("a new conversion cannot replace the active lock basis with a lockless candidate", async () => {
-    const f = await published();
-    const locked = await f.service.run(auth(), f.w.projectId, { method: "saveLogoEdit", body: { requestKey: randomUUID(), expected: (await read(f.w.projectId)).heads, baseVectorRevisionId: f.revision.id, edit: { kind: "locks", componentIds: ["synthetic-symbol"] } } }) as LogoMutationReceipt;
-    const lockedId = (locked.revision.payload as { vectorRevisionId: string }).vectorRevisionId;
-    await connection.query("select public.finish_logo_job($1,$2,'succeeded')", [f.job.id, f.job.leaseToken]);
-    const q = logoCostQuoteSchema.parse(await rpc("quote_logo_operation", [f.w.projectId, { operation: "vectorize", expected: locked.workspace.heads, source: (f.job.input as { source: unknown }).source, settings: f.result.engine.settings }]));
-    await rpc("admit_logo_operation", [f.w.projectId, { requestKey: randomUUID(), quoteId: q.id, acceptedMaxCostMicrousd: 0, expected: locked.workspace.heads }]);
-    const job = await claim(); await begin(job, "convert-vector");
-    const candidate = await publishLogoVectorResult(connection, f.source, job, f.result); await complete(job, candidate.id);
-    expect(await createLogoWorkspaceService().readLogoCurrentVectorRevisionId(auth(), f.w.projectId)).toBe(lockedId);
-    expect((await read(f.w.projectId)).heads).toEqual(locked.workspace.heads);
-    expect((await db.query("select count(*)::int count from public.logo_vector_revisions")).rows[0]).toEqual({ count: 3 });
-    const retained = (await db.query<{ record: unknown }>("select record from public.logo_vector_revisions where record#>>'{svgAsset,versionId}'=$1", [candidate.reference.versionId])).rows[0]!;
-    const retainedVector = logoVectorRevisionSchema.parse(retained.record), page = await history(f.w.projectId);
-    expect(page.items.find(item => item.vectorRevisionId === retainedVector.id)).toMatchObject({ selection: "retained", acceptance: "unaccepted", lockCount: 0, stageRevision: null });
-    expect(page.items.find(item => item.vectorRevisionId === lockedId)).toMatchObject({ selection: "current", lockCount: 1 });
-    await expect(f.service.run(auth(), f.w.projectId, { method: "acceptLogoVector", body: { requestKey: randomUUID(), expected: locked.workspace.heads, vectorRevisionId: retainedVector.id, acceptEarlierBasis: false } })).rejects.toMatchObject({ code: "locked_component_changed" });
-    expect((await read(f.w.projectId)).heads).toEqual(locked.workspace.heads);
-    expect((await db.query<{ record: unknown }>("select record from public.logo_vector_revisions where id=$1", [retainedVector.id])).rows[0]!.record).toEqual(retainedVector);
   });
   it("scrubs hostile default table/function grants including TRUNCATE and grant options", async () => {
     const sql = await readFile(new URL("../../supabase/migrations/20261007011500_logo_vector_publications.sql", import.meta.url), "utf8");

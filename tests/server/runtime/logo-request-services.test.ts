@@ -11,7 +11,7 @@ describe("per-request logo runtime gate", () => {
     const f = logoHttpFixture(), { resolveLogoRequestServices } = await runtime();
     const service = await resolveLogoRequestServices(f.auth, f.projectId);
     expect(service.configured).toBe(false);
-    await expect(service.workspace.saveLogoEdit(f.auth, f.projectId, f.edit)).rejects.toMatchObject({ code: "integration_unavailable" });
+    await expect(service.workspace.acceptLogoVector(f.auth, f.projectId, f.accept)).rejects.toMatchObject({ code: "integration_unavailable" });
     expect(f.connect).not.toHaveBeenCalled(); expect(f.transport).not.toHaveBeenCalled();
   });
   it("retains the same once-only installation across independently loaded server modules", async () => {
