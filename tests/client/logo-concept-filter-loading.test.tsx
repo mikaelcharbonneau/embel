@@ -180,7 +180,9 @@ describe("saved Logo gallery filtering and initial read presentation", () => {
 });
 
 describe("logo types once concepts exist", () => {
-  it("lets the types change for the next concepts, then holds Continue until a current concept is chosen", async () => {
+  /** Mounts six concepts with concept 1 chosen. The brief save answers with the
+   * staleness the server reports: none for a change to the logo types alone. */
+  async function chosenConcepts(serverStale: LogoWorkspaceV2["staleStages"]) {
     const { f, fetcher: real, base } = await sixPreviews(), saves: { requestKey: string; brief: { logoTypes: string[] } }[] = [];
     let changed: { workspace: LogoWorkspaceV2; revision: unknown } | null = null;
     const fetcher: typeof fetch = async (input, init) => {
@@ -192,8 +194,7 @@ describe("logo types once concepts exist", () => {
         const before = f.workspace, workspace: LogoWorkspaceV2 = { ...before,
           heads: { ...before.heads, workspaceRevision: before.heads.workspaceRevision + 1, stageRevisions: { ...before.heads.stageRevisions, brief_references: 2 } },
           stages: { ...before.stages, brief_references: { stage: "brief_references", id: revision.id, revision: 2 } },
-          // The server marks the chosen logo's concepts as made with an earlier brief.
-          staleStages: [{ stage: "concepts", reasons: ["input_revision_changed"] }] };
+          staleStages: serverStale };
         changed = { workspace, revision };
         return Response.json(logoMutationReceiptSchema.parse({ ownerId: before.ownerId, projectId: before.projectId, requestKey: body.requestKey, workspace, revision }));
       }
@@ -203,28 +204,49 @@ describe("logo types once concepts exist", () => {
     };
     await mount(f.workspace.projectId, fetcher);
     await until(() => { expect(images()).toHaveLength(6); expect(grid().textContent).toContain("Logo chosen"); });
-    const summary = () => host.querySelector<HTMLElement>('[role="group"][aria-label="Logo types"]');
-    expect(typesQuestion()).toBeNull();
-    expect(summary()!.textContent).toContain("Wordmark, Lettermark or monogram, Pictorial mark");
-    // Without an onContinue handler, a ready Continue is a link to Creative direction.
-    const continueLink = () => [...host.querySelectorAll("a")].find(node => node.textContent === "Continue");
-    await until(() => expect(continueLink()).toBeDefined());
+    return { f, saves };
+  }
+  const summary = () => host.querySelector<HTMLElement>('[role="group"][aria-label="Logo types"]');
+  // Without an onContinue handler, a ready Continue is a link to Creative direction.
+  const continueLink = () => [...host.querySelectorAll("a")].find(node => node.textContent === "Continue");
+  async function dropMascot() {
     await until(() => expect(button("Change logo types").disabled).toBe(false));
     await click("Change logo types");
-    expect(typesQuestion().textContent).toContain("After a change, choose your logo from those new concepts");
     const mascot = [...typesQuestion().querySelectorAll("button")].find(node => node.textContent?.startsWith("Mascot"))!;
     expect(mascot.getAttribute("aria-pressed")).toBe("true");
     await act(async () => mascot.click());
     expect(mascot.getAttribute("aria-pressed")).toBe("false");
     await act(async () => { await new Promise(resolve => setTimeout(resolve, 700)); });
+  }
+
+  it("lets the types change for the next concepts while the chosen logo stays usable", async () => {
+    const { f, saves } = await chosenConcepts([]);
+    expect(typesQuestion()).toBeNull();
+    expect(summary()!.textContent).toContain("Wordmark, Lettermark or monogram, Pictorial mark");
+    await until(() => expect(continueLink()).toBeDefined());
+    await dropMascot();
+    expect(typesQuestion().textContent).toContain("The concepts you already have stay available to choose.");
     await until(() => expect(saves).toHaveLength(1));
     expect(saves[0]!.brief.logoTypes).toEqual(["wordmark", "lettermark_monogram", "pictorial", "abstract", "combination", "emblem"]);
-    await until(() => expect(host.textContent).toContain("Your chosen logo was made with your earlier logo choices."));
-    expect(continueLink()).toBeUndefined(); expect(button("Continue").disabled).toBe(true);
-    expect(button("Continue").title).toBe("Choose a concept made with your current logo types");
+    await until(() => expect(host.textContent).toContain("These concepts were made with your earlier logo choices. More concepts uses your current ones."));
+    expect(host.textContent).not.toContain("To continue, choose a concept");
+    expect(continueLink()).toBeDefined();
     await click("Done");
     expect(typesQuestion()).toBeNull();
     expect(summary()!.textContent).not.toContain("Mascot");
+    expect(f.admissions).toEqual([]);
+  });
+
+  it("holds Continue when the server reports the chosen logo's concepts outdated", async () => {
+    // For example after brand details or liked images changed.
+    const { f, saves } = await chosenConcepts([{ stage: "concepts", reasons: ["input_revision_changed"] }]);
+    await until(() => expect(continueLink()).toBeDefined());
+    await dropMascot();
+    await until(() => expect(saves).toHaveLength(1));
+    await until(() => expect(host.textContent).toContain("Your brand details or liked images changed after this logo was made."));
+    expect(host.textContent).not.toContain("These concepts were made with your earlier logo choices.");
+    expect(continueLink()).toBeUndefined(); expect(button("Continue").disabled).toBe(true);
+    expect(button("Continue").title).toBe("Choose a concept made with your current brand details and liked images");
     expect(f.admissions).toEqual([]);
   });
 });

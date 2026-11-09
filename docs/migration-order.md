@@ -78,3 +78,22 @@ with their likes, selections and screening records. Names people added
 themselves and names from the new generation path stay. A final check fails the
 packet if any remaining function still names a removed object.
 
+
+## November 9 logo types packet
+
+`supabase/candidates/shared_logo_types_keep_concepts.sql` follows
+`shared_naming_cleanup.sql`. Changing only the logo types in a saved Logo brief
+no longer makes earlier concepts, vectors or directions outdated: the types only
+choose what the next concepts explore. It adds one owner-only comparison,
+`fluid_private.logo_brief_same_except_types`, and makes two guarded one-line
+edits, each checked against its reviewed predecessor body:
+
+- `logo_workspace_base_json` ignores a recorded brief that differs from the
+  current one only in its logo types;
+- `shared_identity_selected_logo` gives Creative direction the brief the chosen
+  image was made from (the current brief when that image's inputs include it),
+  so its recorded source still matches the image exactly.
+
+Any other brief change still makes that work outdated. It changes no rows. Apply
+it with the worker build whose authority manifest lists it; that build accepts up
+to 22 packets.

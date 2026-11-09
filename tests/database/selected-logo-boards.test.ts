@@ -25,6 +25,7 @@ describe('selected-logo boards: actual SQL admission, storage and immutable publ
   await f.db.exec('create role fixture_board_default_acl nologin;alter default privileges grant all on tables to fixture_board_default_acl;alter default privileges grant all on functions to fixture_board_default_acl');
   await f.db.exec(await readFile(new URL('../../supabase/candidates/shared_identity_selected_logo_boards.sql', import.meta.url), 'utf8'));
   await f.db.exec(await readFile(new URL('../../supabase/candidates/shared_identity_http_writer_permissions.sql', import.meta.url), 'utf8'));
+  await f.db.exec(await readFile(new URL('../../supabase/candidates/shared_logo_types_keep_concepts.sql', import.meta.url), 'utf8'));
   await f.db.exec('alter default privileges revoke all on tables from fixture_board_default_acl;alter default privileges revoke all on functions from fixture_board_default_acl');
  }, 60_000);
  afterAll(async () => { await f?.db.close(); });
@@ -170,6 +171,25 @@ describe('selected-logo boards: actual SQL admission, storage and immutable publ
   await f.rpc(p.owner,'append_project_revision',[p.projectId,3,changed,hash(JSON.stringify(changed)),null]);
   expect(await f.rpc(p.owner,'get_shared_identity_availability',[p.projectId])).toMatchObject({status:'unavailable',reason:'logo_needs_review'});
   expect((await f.db.query('select id,record from public.logo_stage_revisions where owner_id=$1 and project_id=$2 order by stage,revision',[p.owner,p.projectId])).rows).toEqual(stages);
+ });
+ it('keeps the selected logo current when only the logo types change, and still blocks any other brief change',async()=>{
+  const workspace=await f.start(OWNER_B),p={owner:OWNER_B,projectId:workspace.projectId};await logo(p);
+  const original=(await ready(p)).availability;
+  const head=(await f.db.query<{record:{payload:Record<string,unknown>};reference_snapshot_id:string}>("select r.record,r.reference_snapshot_id from public.logo_stage_heads h join public.logo_stage_revisions r on r.id=h.revision_id where h.owner_id=$1 and h.project_id=$2 and h.stage='brief_references'",[p.owner,p.projectId])).rows[0]!;
+  const {referenceSnapshotId:_snapshot,sourceProjectRevision:_basis,...fields}=head.record.payload;void _snapshot;void _basis;
+  const save=(changes:Record<string,unknown>)=>f.db.query("select fluid_private.logo_append_brief($1,$2,$3,$4,'[]')",[p.owner,p.projectId,JSON.stringify({...fields,...changes}),head.reference_snapshot_id]);
+  const stale=async()=>logoWorkspaceV2Schema.parse(await f.rpc(p.owner,'get_logo_workspace',[p.projectId])).staleStages;
+  await save({logoTypes:['wordmark','emblem','mascot']});
+  expect(await stale()).toEqual([]);
+  // The source keeps the brief its image was made from, so it is unchanged.
+  expect((await ready(p)).availability).toMatchObject({status:'available',sourceLogo:original.sourceLogo});
+  await save({logoTypes:['wordmark','emblem','mascot'],name:'Renamed fixture'});
+  expect(await stale()).toContainEqual({stage:'concepts',reasons:['input_revision_changed']});
+  expect(await f.rpc(p.owner,'get_shared_identity_availability',[p.projectId])).toMatchObject({status:'unavailable',reason:'logo_needs_review'});
+  // Restoring every field but the types makes the earlier logo current again.
+  await save({logoTypes:['pictorial']});
+  expect(await stale()).toEqual([]);
+  expect((await ready(p)).availability).toMatchObject({status:'available',sourceLogo:original.sourceLogo});
  });
  it('retains exact historical v2 batches and v1 inputs after the forward packet',async()=>{
   const batch=identityBatchStateSchema.parse(await f.rpc(historical.owner,'ensure_shared_identity_batch',[historical.projectId,historical.intent]));

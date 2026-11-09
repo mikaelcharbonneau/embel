@@ -84,6 +84,10 @@
     {
       "path": "supabase/candidates/shared_naming_cleanup.sql",
       "sha256": "d1a96eef5c3ccb58205985a46ccf8b0c18d39b1dcf7ab28fc2de0e37e28f149c"
+    },
+    {
+      "path": "supabase/candidates/shared_logo_types_keep_concepts.sql",
+      "sha256": "57b38a9366d862892f5c03a9412bbc783d89ce5d5dc29077ef9eaa7bc5b60ffd"
     }
   ],
   "functions": [
@@ -696,6 +700,26 @@
       "lanes": []
     },
     {
+      "name": "logo_brief_same_except_types",
+      "owner": "postgres",
+      "schema": "fluid_private",
+      "sha256": "216703f25471809e5c0589b6cf36fc5b947de5588d1dd24d8cab64e3f717143a",
+      "language": "sql",
+      "leakproof": false,
+      "searchPath": [
+        "search_path=\"\""
+      ],
+      "volatility": "s",
+      "broadExecute": false,
+      "argumentTypes": "uuid, uuid, uuid, uuid",
+      "securityDefiner": false,
+      "lanes": [
+        "strategy",
+        "naming",
+        "logo"
+      ]
+    },
+    {
       "name": "logo_job_ready",
       "owner": "postgres",
       "schema": "fluid_private",
@@ -849,6 +873,26 @@
       "broadExecute": false,
       "argumentTypes": "",
       "securityDefiner": true,
+      "lanes": [
+        "strategy",
+        "naming",
+        "logo"
+      ]
+    },
+    {
+      "name": "logo_workspace_base_json",
+      "owner": "postgres",
+      "schema": "fluid_private",
+      "sha256": "edb06f479a2946748e1c2a83db19944ad3adfbb3562e533088bbb42c3c335257",
+      "language": "plpgsql",
+      "leakproof": false,
+      "searchPath": [
+        "search_path=\"\""
+      ],
+      "volatility": "s",
+      "broadExecute": false,
+      "argumentTypes": "uuid, uuid",
+      "securityDefiner": false,
       "lanes": [
         "strategy",
         "naming",
@@ -1779,7 +1823,7 @@
       "name": "shared_identity_selected_logo",
       "owner": "postgres",
       "schema": "fluid_private",
-      "sha256": "157404646b0ee642ced2f143127a50a84654058a6080d069398b42255ffd6bb7",
+      "sha256": "7621265dcf661d58de3519871a8c65b27592dd3df5246b58dff79b1509c94eb3",
       "language": "plpgsql",
       "leakproof": false,
       "searchPath": [
