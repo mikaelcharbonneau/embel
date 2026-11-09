@@ -9,7 +9,6 @@ const mock = vi.hoisted(() => ({ session: null as (VerifiedAccount | { status: "
 vi.mock("../../src/components/workspace/account-session", () => ({ useAccountSession: () => ({ session: mock.session, isCurrent: mock.current, expire: mock.expire, namingBrainDrafts: mock.memory }), AccountStatus: () => createElement("p", {}, "Account verification required") }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mock.navigate }) }));
 import { StandaloneNamesAssistant } from "../../src/components/naming/standalone-names-assistant";
-import { NamingProjectEntryForm } from "../../src/components/naming/naming-project-entry-form";
 import { STANDALONE_NAMES_MAX_RESPONSE_BYTES, standaloneNamesRequest } from "../../src/components/naming/standalone-names-client";
 import { standaloneNamesOverviewSchema, type StandaloneNamesOverview } from "../../src/domain/standalone-names";
 import { brief, jobFixture, owner, other, proposal } from "../fixtures/standalone-names";
@@ -17,14 +16,10 @@ import { brief, jobFixture, owner, other, proposal } from "../fixtures/standalon
 let root: Root, host: HTMLDivElement, fetcher: ReturnType<typeof vi.fn>, overview: StandaloneNamesOverview;
 const availability = { status: "available" as const, billingMode: "chatgpt_subscription" as const, policyIdentity: "a".repeat(64), model: "fixture-model", maxNames: 20 as const, maxRequestsPerHour: 20, deadlineMs: 240000 };
 const button = (text: string) => [...host.querySelectorAll<HTMLButtonElement>("button")].find(item => item.textContent === text)!;
-async function render() { mock.memory!.bind(mock.session?.status === "ready" ? mock.session : null); await act(async () => root.render(createElement(Fragment, null, createElement(NamingProjectEntryForm), createElement(StandaloneNamesAssistant)))); await act(async () => { await vi.advanceTimersByTimeAsync(0); }); }
+async function render() { mock.memory!.bind(mock.session?.status === "ready" ? mock.session : null); await act(async () => root.render(createElement(Fragment, null, createElement(StandaloneNamesAssistant)))); await act(async () => { await vi.advanceTimersByTimeAsync(0); }); }
 async function click(element: HTMLElement) { await act(async () => element.click()); }
 async function field(element: HTMLInputElement | HTMLTextAreaElement, value: string) {
   await act(async () => { const prototype = element instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype; Object.getOwnPropertyDescriptor(prototype, "value")!.set!.call(element, value); element.dispatchEvent(new Event("input", { bubbles: true })); });
-}
-async function fillBrief() {
-  const fields = host.querySelectorAll<HTMLTextAreaElement>("textarea");
-  await field(fields[0]!, brief.description); await field(fields[1]!, brief.direction);
 }
 beforeEach(() => {
   vi.useFakeTimers(); vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
@@ -37,46 +32,6 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe("standalone Names UI and acknowledgement recovery", () => {
-  it("starts one owned Naming project only after explicit brief submission", async () => {
-    fetcher.mockImplementation(async (path, init) => { if (path === "/api/projects") { const body = JSON.parse(init.body); return Response.json({ project: { id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", owner_id: owner, title: body.title, scope: body.scope, context: body.context, current_revision: 1, created_at: "2026-10-16T12:00:00Z" } }); } return Response.json(overview); });
-    await render(); expect(fetcher.mock.calls.every(([, init]) => init.method === "GET")).toBe(true);
-    await fillBrief(); await click(button("Continue to Naming"));
-    const call = fetcher.mock.calls.find(([, init]) => init.method === "POST")!;
-    expect(new Headers(call[1].headers).get("X-Embel-Account")).toBe(owner);
-    expect(call[0]).toBe("/api/projects"); expect(JSON.parse(call[1].body)).toMatchObject({ scope: "naming_only", context: { description: brief.description, intake: { namingNotes: brief.direction } } });
-    expect(JSON.parse(call[1].body)).not.toHaveProperty("ownerId"); expect(mock.navigate).toHaveBeenCalledWith("/brands/account/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/naming");
-  });
-  it("I3 returns to Names and starts a second brief only after a new explicit submission", async () => {
-    const bodies: { requestKey: string; context: { description: string } }[] = [];
-    fetcher.mockImplementation(async (path, init) => {
-      if (path !== "/api/projects") return Response.json(overview);
-      const body = JSON.parse(init.body); bodies.push(body);
-      return Response.json({ project: { id: `bbbbbbbb-bbbb-4bbb-8bbb-${String(bodies.length).padStart(12, "0")}`, owner_id: owner, title: body.title, scope: body.scope, context: body.context, current_revision: 1, created_at: "2026-10-16T12:00:00Z" } });
-    });
-    await render(); await fillBrief(); await click(button("Continue to Naming"));
-    await act(async () => root.render(null)); await render();
-    const another = button("Start another brief"); expect(another).toBeDefined(); await click(another);
-    expect(host.querySelector<HTMLTextAreaElement>("textarea")!.disabled).toBe(false); expect(host.querySelector<HTMLTextAreaElement>("textarea")!.value).toBe(""); expect(bodies).toHaveLength(1);
-    await field(host.querySelector<HTMLTextAreaElement>("textarea")!, "A second explicitly submitted Naming brief"); await click(button("Continue to Naming"));
-    expect(bodies).toHaveLength(2); expect(bodies[1]!.requestKey).not.toBe(bodies[0]!.requestKey);
-    expect(bodies[1]!.context.description).toBe("A second explicitly submitted Naming brief");
-  });
-  it("keeps brief entry independent of legacy generation availability and performs no inference on visit", async () => {
-    overview.availability = { status: "unavailable", reason: "local_runtime_required" };
-    await render(); await fillBrief(); expect(button("Continue to Naming").disabled).toBe(false);
-    expect(host.textContent).toContain("suggestions will begin after your final response");
-    expect(fetcher.mock.calls.every(([, init]) => init.method === "GET")).toBe(true);
-  });
-  it("retains and retries exactly the same project after a lost acknowledgement", async () => {
-    fetcher.mockImplementation((_path, init) => init.method === "POST" ? new Promise(() => {}) : Promise.resolve(Response.json(overview)));
-    await render(); await fillBrief(); await click(button("Continue to Naming"));
-    await act(async () => { await vi.advanceTimersByTimeAsync(30000); });
-    expect(button("Retry this project save").disabled).toBe(false);
-    const first = fetcher.mock.calls.find(([, init]) => init.method === "POST")![1].body;
-    fetcher.mockImplementation(async (_path, init) => { if (init.method === "POST") { const body = JSON.parse(init.body); return Response.json({ project: { id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", owner_id: owner, title: body.title, scope: body.scope, context: body.context, current_revision: 1, created_at: "2026-10-16T12:00:00Z" } }); } return Response.json(overview); });
-    await click(button("Retry this project save"));
-    expect(fetcher.mock.calls.filter(([, init]) => init.method === "POST").map(([, init]) => init.body)).toEqual([first, first]);
-  });
   it("keeps earlier names and shortlist choices readable without exposing legacy generation or refinement", async () => {
     const job = { ...jobFixture("succeeded"), likedIndexes: [0], savedIndexes: [0] }; overview.jobs = [job];
     const original = structuredClone(job), clipboard = vi.fn(async () => {}); Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: clipboard } });
@@ -123,31 +78,6 @@ describe("standalone Names UI and acknowledgement recovery", () => {
     await render(); mock.session = { status: "ready", userId: other, generation: 2 }; overview = { ...overview, ownerId: other, jobs: [] };
     await render(); await act(async () => finish(Response.json({ ownerId: owner, availability, jobs: [jobFixture("succeeded")], hasMore: false })));
     expect(host.textContent).not.toContain(proposal.value); expect(mock.expire).not.toHaveBeenCalled();
-  });
-  it("fences a captured account A brief when the shared cookie switches to B before admission", async () => {
-    let cookieOwner = owner;
-    const admitted: unknown[] = [];
-    fetcher.mockImplementation(async (_path, init) => {
-      if (init.method === "POST") {
-        if (new Headers(init.headers).get("X-Embel-Account") !== cookieOwner) return Response.json({}, { status: 401 });
-        admitted.push(JSON.parse(init.body));
-        return Response.json({ job: jobFixture() });
-      }
-      return Response.json({ ...overview, ownerId: cookieOwner });
-    });
-    await render(); await fillBrief();
-    cookieOwner = other;
-    await click(button("Continue to Naming"));
-    const submitted = fetcher.mock.calls.find(([, init]) => init.method === "POST")![1];
-    expect(new Headers(submitted.headers).get("X-Embel-Account")).toBe(owner);
-    expect(JSON.parse(submitted.body).context.description).toBe(brief.description);
-    expect(admitted).toEqual([]);
-    expect(mock.expire).toHaveBeenCalledExactlyOnceWith({ status: "ready", userId: owner, generation: 1 });
-    mock.session = { status: "ready", userId: other, generation: 2 };
-    await render();
-    expect(host.querySelector<HTMLTextAreaElement>("textarea")!.value).toBe("");
-    expect(host.textContent).not.toContain("Retry this same request");
-    expect(new Headers(fetcher.mock.calls.at(-1)![1].headers).get("X-Embel-Account")).toBe(other);
   });
   it("rejects oversized streamed responses without trusting Content-Length", async () => {
     fetcher.mockResolvedValue(new Response('"' + "x".repeat(STANDALONE_NAMES_MAX_RESPONSE_BYTES) + '"', { headers: { "content-type": "application/json" } }));

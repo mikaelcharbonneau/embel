@@ -46,7 +46,7 @@ export function useIdentityReferences(account: VerifiedAccount, projectId: strin
   const currentIntents = useRef(intents), mutations = useRef(new Set<string>()), latestRevision = useRef(0);
   const sequence = useRef(0), epoch = useRef(0), controller = useRef<AbortController | null>(null), morePending = useRef(false), refreshNeeded = useRef(false);
   const pageQueries = useRef<IdentityReferenceQuery[]>([query]), entryQueries = useRef(new Map<string, IdentityReferenceQuery>());
-  const eligible = project !== null && project.scope !== "naming_only" && !blocked;
+  const eligible = project !== null && !blocked;
   useEffect(() => { client.activate(); return () => client.dispose(); }, [client]);
   useEffect(() => {
     const pending = new AbortController();

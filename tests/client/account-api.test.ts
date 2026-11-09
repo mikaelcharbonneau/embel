@@ -7,7 +7,7 @@ afterEach(() => vi.unstubAllGlobals());
 describe("private account request boundary", () => {
   it("rejects a schema-valid multibyte brief before any network request", async () => {
     const fetch = vi.fn(); vi.stubGlobal("fetch", fetch);
-    const input = createProjectInputSchema.parse({ title: "Local size fixture", scope: "naming_only", context: { description: "食".repeat(12000) } });
+    const input = createProjectInputSchema.parse({ title: "Local size fixture", scope: "complete_brand", context: { description: "食".repeat(12000) } });
     expect(new TextEncoder().encode(JSON.stringify(input)).byteLength).toBeGreaterThan(PROJECT_MUTATION_MAX_BYTES);
     await expect(accountRequest("/api/projects", accountSessionSchema, { method: "POST", body: input, signal: new AbortController().signal })).rejects.toMatchObject({ status: 413 });
     expect(fetch).not.toHaveBeenCalled();

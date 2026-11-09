@@ -7,20 +7,14 @@ import { createOpenAIStrategyHandlers } from "./handlers/openai-strategy";
 import { createStrategyReadiness } from "./handlers/openai-readiness";
 import { isLocalPrototypeRuntime } from "../src/server/api-text/config";
 import { localPrototypeDatabaseConfiguration } from "../scripts/local-environment.mjs";
-
-import { readNamingBrainConfiguration, startNamingReadiness, type NamingBrainConfiguration } from "./naming-brain-configuration";
-import { NamingBrainJobStore } from "./naming-brain-store";
-import { createNamingBrainHandlers } from "./handlers/naming-brain";
-import { readWorkerSelection } from "./selection";
 import { createLocalExpiryCoordinator, runLocalExpiryTransaction } from "./local-expiry-maintenance";
 
 const configuration = readOpenAIStrategyConfiguration();
-const namingConfiguration = readNamingBrainConfiguration();
 const localPrototype = isLocalPrototypeRuntime();
 const localExpiry = createLocalExpiryCoordinator();
 
-type DatabaseRole = "strategy" | "naming";
-type DatabaseOperation = "idle_connection" | "readiness" | "preferences" | "expire_leases" | "claim";
+type DatabaseRole = "strategy";
+type DatabaseOperation = "idle_connection" | "readiness" | "expire_leases" | "claim";
 const reportedSqlStates = new Set(["53300", "57014", "40001", "40P01", "57P01", "57P02", "57P03", "08000", "08001", "08003", "08004", "08006", "08P01"]);
 const reportedNetworkCodes = new Set(["ENOTFOUND", "EAI_AGAIN", "ECONNREFUSED", "ECONNRESET", "ETIMEDOUT", "EHOSTUNREACH", "ENETUNREACH", "EPIPE", "ECONNABORTED"]);
 const reportedClientMessages = new Map([
@@ -117,7 +111,7 @@ async function runStrategy(controller: AbortController) {
     }).catch(() => {
       localReady = false;
       localReadyAt = undefined;
-      console.error("Local Strategy readiness unavailable; retrying without stopping Naming.");
+      console.error("Local Strategy readiness unavailable; retrying.");
       return false;
     }).finally(() => { localReporting = undefined; });
     return localReporting;
@@ -168,56 +162,19 @@ async function runStrategy(controller: AbortController) {
   }
 }
 
-async function runNaming(config: NamingBrainConfiguration, controller: AbortController) {
-  const pool = new Pool({ ...(localPrototype ? localPrototypeDatabaseConfiguration(config.databaseUrl)
-    : { connectionString: config.databaseUrl }), max: localPrototype ? 2 : 4, connectionTimeoutMillis: localPrototype ? 30_000 : 10_000, statement_timeout: 15_000, query_timeout: 15_000 });
-  const unwatch = watchDatabase(pool, controller, "naming");
-  const store = new NamingBrainJobStore(pool, config.deploymentId), workerId = `naming-${crypto.randomUUID()}`;
-  let readiness: Awaited<ReturnType<typeof startNamingReadiness>> | undefined;
-  let operation: DatabaseOperation = "preferences";
-  try {
-    if (await maintenance("naming", operation, () => store.attestPendingPreferences(), controller.signal) === undefined) return;
-    operation = "readiness";
-    readiness = await startNamingReadiness(async () => {
-      try { return config.paidDispatchEnabled ? await store.reportReady(config.policy, workerId) : false; }
-      catch (error) { reportLocalDatabaseFailure("naming", "readiness", error); throw error; }
-    });
-    const handlers = createNamingBrainHandlers({ store, apiKey: config.apiKey, assertReady: readiness.assertReady });
-    while (!controller.signal.aborted) {
-      // This scoped claim permits observation after policy disable, using frozen
-      // admitted model/session bindings. Readiness still gates every paid dispatch.
-      operation = "preferences";
-      if (await maintenance("naming", operation, () => store.attestPendingPreferences(), controller.signal) === undefined) break;
-      operation = "expire_leases";
-      if (await maintenance("naming", operation, () => localPrototype
-        ? localExpiry.run("naming", controller.signal, () => runLocalExpiryTransaction(pool, controller.signal,
-          database => new NamingBrainJobStore(database, config.deploymentId).expireLeases(workerId)))
-        : store.expireLeases(workerId), controller.signal) === undefined) break;
-      operation = "claim";
-      const state = await maintenance("naming", operation, () => runOneJob({ store, handlers, workerId, localPrototype, signal: controller.signal, abortGraceMs: 15_000 }), controller.signal);
-      if (state === undefined) break;
-      if (state !== "idle") console.info(JSON.stringify({ event: "naming_job_cycle", state }));
-      if (state === "idle") await delay(localPrototype ? 5_000 : 1_000, undefined, { signal: controller.signal }).catch(() => {});
-    }
-  } catch (error) {
-    reportLocalDatabaseFailure("naming", operation, error);
-    throw error;
-  } finally { await readiness?.stop(); try { await pool.end(); } finally { unwatch(); } }
-}
 async function main() {
-  const namingOnly = readWorkerSelection(process.argv.slice(2)) === "naming_only";
+  if (process.argv.length !== 2) throw new Error("Invalid worker arguments");
   if (process.env.FLUID_LOCAL_PROTOTYPE === "true" && !localPrototype)
     throw new Error("Invalid local prototype runtime");
-  if (localPrototype && (!namingConfiguration || !namingOnly && (!configuration?.policies.size ||
-      process.env.FLUID_WORKER_DATABASE_URL !== namingConfiguration.databaseUrl ||
-      configuration.policies.size !== 4 || [...configuration.policies].some(([operation, policy]) => operation === "strategy.positioning" || policy.version !== 2))))
+  if (localPrototype && (!configuration?.policies.size || configuration.policies.size !== 4
+      || [...configuration.policies].some(([operation, policy]) => operation === "strategy.positioning" || policy.version !== 2)))
     throw new Error("Incomplete local prototype configuration");
-  if (!(namingOnly ? namingConfiguration : configuration?.policies.size || namingConfiguration)) {
+  if (!configuration?.policies.size) {
     console.error("Worker unavailable: no validated operation handlers are configured. No jobs were claimed."); process.exitCode = 2; return;
   }
   const controller = new AbortController(), stop = () => controller.abort();
   process.once("SIGTERM", stop); process.once("SIGINT", stop);
-  try { await Promise.all([...(!namingOnly && configuration?.policies.size ? [runStrategy(controller)] : []), ...(namingConfiguration ? [runNaming(namingConfiguration, controller)] : [])]); }
+  try { await runStrategy(controller); }
   finally { stop(); process.removeListener("SIGTERM", stop); process.removeListener("SIGINT", stop); }
 }
 main().catch(() => {

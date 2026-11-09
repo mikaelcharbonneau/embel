@@ -18,7 +18,7 @@ vi.mock("@/components/workspace/account-session", () => ({
 }));
 const id = (n: number) => `40000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const account: VerifiedAccount = { status: "ready", userId: id(1), generation: 1 }, projectId = id(2);
-const project = accountProjectSchema.parse({ id: projectId, owner_id: account.userId, title: "Reference fixture", scope: "visual_identity_only", current_revision: 1, created_at: "2026-10-04T12:00:00Z", context: { description: "Local synthetic reference fixture" } });
+const project = accountProjectSchema.parse({ id: projectId, owner_id: account.userId, title: "Reference fixture", scope: "complete_brand", current_revision: 1, created_at: "2026-10-04T12:00:00Z", context: { description: "Local synthetic reference fixture" } });
 function overview(query: IdentityReferenceQuery) {
   return identityReferencesOverviewSchema.parse({
     ownerId: account.userId, projectId, referenceRevision: 0, selectedReferenceCount: 0, query,

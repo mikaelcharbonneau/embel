@@ -67,12 +67,6 @@
 }
 
 /* Scope switch inside the Home box: one segmented pill of native radios. */
-.home-scope { order: 1; display: flex; flex: 0 1 auto; gap: 2px; min-width: 0; margin: 0; padding: 3px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--canvas); overflow-x: auto; scrollbar-width: none; }
-.home-scope-option { display: inline-flex; align-items: center; height: 34px; padding: 0 14px; border-radius: var(--radius-pill); color: #3a3a37; font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; }
-.home-scope-option:hover { background: var(--surface); }
-.home-scope-option[data-checked="true"] { background: var(--accent); color: var(--on-accent); }
-.home-scope-option:has(input:focus-visible) { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
-.home-scope:disabled .home-scope-option { cursor: not-allowed; opacity: .55; }
 .concept-home .home-files-popover > summary { border-radius: 50%; color: var(--text); }
 /* Phones: attach, dictate and send share the first row; the scope switch
    takes the full second row. */
@@ -82,16 +76,12 @@
   .concept-home .home-input-controls--compact .home-files-popover { order: 0; }
   .concept-home .home-input-controls--compact .home-voice-popover { order: 1; margin-left: auto; }
   .concept-home .home-composer.conversation-composer .conversation-composer-footer > .composer-send-icon { order: 2; margin-left: 0; }
-  .home-scope { order: 3; flex-basis: 100%; }
   .concept-home .home-composer .conversation-composer-footer .home-input-popover[open] { order: 4; }
-  .home-scope-option { flex: 1 0 auto; justify-content: center; padding: 0 10px; }
   .concept-home .home-input-controls--compact > [role="status"] { order: 5; flex-basis: 100%; }
 }
 @media (max-width: 540px) { .home-brand-grid { grid-template-columns: minmax(0, 1fr); } }
 /* Very narrow phones: three equal options whose labels may wrap, never clipped. */
 @media (max-width: 360px) {
-  .home-scope { overflow: visible; }
-  .home-scope-option { flex: 1 1 0; min-width: 0; height: auto; min-height: 34px; padding: 4px 6px; font-size: 12px; line-height: 1.2; white-space: normal; text-align: center; }
 }
 /* Secondary Home actions follow the rounder pill buttons. */
 .concept-home .home-draft-actions .button { border-radius: var(--radius-pill); padding-inline: 16px; }

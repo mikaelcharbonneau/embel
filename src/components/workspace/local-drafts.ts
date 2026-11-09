@@ -5,12 +5,6 @@ import { z } from "zod";
 import { contextSnapshotSchema, personalitySchema, type ProjectScope } from "@/domain/projects";
 import { conversationSchema, initialConversation } from "@/domain/conversation";
 
-export const scopeDetails: { value: ProjectScope; label: string; description: string; icon: "brands" | "names" | "layers" }[] = [
-  { value: "complete_brand", label: "Complete brand", description: "Build the strategy, name, and visual identity together.", icon: "brands" },
-  { value: "naming_only", label: "Naming", description: "Find a name for something you already have in mind.", icon: "names" },
-  { value: "visual_identity_only", label: "Visual identity", description: "Give an existing name a considered visual world.", icon: "layers" },
-];
-
 export const briefExamples = [
   { id: "b2b", category: "B2B product", title: "A calmer way to manage maintenance", description: "A subscription tool for small property teams that brings maintenance requests, contractor updates, and building history into one place. It replaces scattered email threads and helps a property manager keep tenants informed. The first customers will be independent teams managing 20–100 buildings. The brand should feel dependable, clear, and easy to work with." },
   { id: "food", category: "Local food", title: "A neighborhood kitchen with a short menu", description: "A neighborhood lunch counter that cooks a small seasonal menu using ingredients from nearby growers. We will serve warm grain bowls, soup, and one changing baked dish, with food to eat in or take away. We want to become a regular stop for people who work nearby and families in the neighborhood. The feeling should be welcoming and unpretentious, with food doing most of the talking." },
@@ -26,7 +20,8 @@ const localCompetitorSchema = z.object({
 });
 
 const draftSchema = z.object({
-  id: z.string().uuid(), title: z.string().max(160), scope: z.enum(["complete_brand", "naming_only", "visual_identity_only"]),
+  id: z.string().uuid(), title: z.string().max(160), // Drafts saved before Name only and Visual identity were retired open as complete brands.
+  scope: z.enum(["complete_brand", "naming_only", "visual_identity_only"]).transform((): ProjectScope => "complete_brand"),
   description: z.string().max(12000), activity: z.string().max(2000), offering: z.string().max(2000), knownAudience: z.string().max(2000),
   suppliedName: z.string().max(180), namingNotes: z.string().max(2000), identityNotes: z.string().max(2000),
   segments: z.array(segmentSchema).max(30), stage: z.enum(["description", "review", "competitors", "audience", "personality", "positioning"]),
@@ -171,5 +166,4 @@ export function copyToLocalDraft(draft: LocalDraft) {
   return { id: copy.id, persisted };
 }
 export function clearLocalDrafts() { return commit([], true); }
-export function scopeLabel(scope: ProjectScope) { return scopeDetails.find((item) => item.value === scope)?.label ?? "Brand"; }
 export function draftTitle(draft: LocalDraft) { return draft.title.trim() || "Untitled brand"; }

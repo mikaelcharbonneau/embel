@@ -7,7 +7,7 @@ const owner = "aaaaaaaa-1111-4111-8111-111111111111";
 const other = "dddddddd-1111-4111-8111-111111111111";
 const id = (n: number) => `bbbbbbbb-1111-4111-8111-${String(n).padStart(12, "0")}`;
 const account = { status: "ready" as const, userId: owner, generation: 1 };
-const row = (n: number) => ({ id: id(n), owner_id: owner, scope: "naming_only" as const, title: `Synthetic project ${n}`, current_revision: 1, deleted_at: null, deletion_requested_at: null, deletion_state: "active" as const, lifecycle_version: 0, created_at: "2026-10-05T12:00:00.000002Z" });
+const row = (n: number) => ({ id: id(n), owner_id: owner, scope: "complete_brand" as const, title: `Synthetic project ${n}`, current_revision: 1, deleted_at: null, deletion_requested_at: null, deletion_state: "active" as const, lifecycle_version: 0, created_at: "2026-10-05T12:00:00.000002Z" });
 const page = (ids: number[], next: number | null = null) => accountProjectPageSchema.parse({ ownerId: owner, items: ids.map(row), nextCursor: next ? { id: id(next), createdAt: row(next).created_at } : null });
 const options = () => ({ account, isCurrent: vi.fn(() => true), expire: vi.fn(), previous: null, signal: new AbortController().signal });
 afterEach(() => vi.unstubAllGlobals());
@@ -96,20 +96,19 @@ describe("Names Assistant saved-project bridge", () => {
     expect(fetch).not.toHaveBeenCalled();
     expect(namesAssistantProjects(page([1]), { ...account, userId: other }, "")).toEqual([]);
   });
-  it("links each eligible project to its existing Naming route and excludes identity-only projects", () => {
+  it("links each owned project to its existing Naming route", () => {
     expect(namesAssistantProjectHref(row(1), account)).toBe(`/brands/account/${id(1)}/naming`);
     expect(namesAssistantProjectHref(row(2), account)).toBe(`/brands/account/${id(2)}/naming`);
     expect(namesAssistantProjectHref({ ...row(1), scope: "complete_brand" }, account)).toContain("/naming");
-    expect(namesAssistantProjectHref({ ...row(1), scope: "visual_identity_only" }, account)).toBeNull();
     expect(namesAssistantProjectHref({ ...row(1), owner_id: other }, account)).toBeNull();
     expect(namesAssistantProjectHref({ ...row(1), id: "../../settings" }, account)).toBeNull();
   });
   it("filters copied presentation rows without changing pagination order or selection facts", () => {
     const listing = page([3, 2, 1]); const before = JSON.stringify(listing);
-    listing.items[0]!.scope = "visual_identity_only";
-    const withScope = JSON.stringify(listing);
+    listing.items[0]!.owner_id = other;
+    const withOther = JSON.stringify(listing);
     expect(namesAssistantProjects(listing, account, "  PROJECT 2  ").map(project => project.id)).toEqual([id(2)]);
     expect(namesAssistantProjects(listing, account, "").map(project => project.id)).toEqual([id(2), id(1)]);
-    expect(JSON.stringify(listing)).toBe(withScope); expect(before).not.toBe(withScope);
+    expect(JSON.stringify(listing)).toBe(withOther); expect(before).not.toBe(withOther);
   });
 });

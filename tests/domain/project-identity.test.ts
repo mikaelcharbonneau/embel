@@ -49,12 +49,10 @@ describe("Identity saved names, readiness and material inputs",()=>{
     const canon=contextSnapshotSchema.parse({...context(),selectedName:" Café ",intake:{...context().intake,suppliedName:"Cafe\u0301"}});
     expect(resolveIdentityName(canon)).toMatchObject({status:"resolved",value:"Café"});
   });
-  it("separates partial-scope input readiness from unavailable generation",()=>{
+  it("requires the reviewed strategy, a name and a reference before Identity is ready",()=>{
     const minimal=contextSnapshotSchema.parse({description:"Existing studio",intake:{suppliedName:"Cedar"}});
-    const visual=getIdentityReadiness(minimal,"visual_identity_only",{selectedReferenceCount:1});
-    expect(visual.ready).toBe(true);expect(visual.missingStrategy).toContain("audience");
-    expect(getIdentityReadiness(minimal,"naming_only",{selectedReferenceCount:1}).blocking).toContain("scope");
-    expect(getIdentityReadiness(minimal,"complete_brand",{selectedReferenceCount:1}).ready).toBe(false);
+    const partial=getIdentityReadiness(minimal,"complete_brand",{selectedReferenceCount:1});
+    expect(partial.ready).toBe(false);expect(partial.missingStrategy).toContain("audience");
     expect(getIdentityReadiness(context(),"complete_brand",{selectedReferenceCount:0}).blocking).toContain("references");
     const unreviewed=contextSnapshotSchema.parse({...context(),intake:{...context().intake,audienceReviewedAt:null}});
     expect(getIdentityReadiness(unreviewed,"complete_brand",{selectedReferenceCount:1}).blocking).toContain("audience");

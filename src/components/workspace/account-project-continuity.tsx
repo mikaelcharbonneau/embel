@@ -9,9 +9,9 @@ import { useAccountSession, type VerifiedAccount } from "./account-session";
 import { createAccountLifecycleClient } from "./account-lifecycle-client";
 
 /** Mount with an owner/project/generation key after the project has been verified. */
-export function AccountProjectContinuity({ account, project, dirty, conflicted, expanding, onExpand }: {
+export function AccountProjectContinuity({ account, project, dirty, conflicted, busy }: {
   account: VerifiedAccount; project: AccountProject; dirty: boolean; conflicted: boolean;
-  expanding: boolean; onExpand(): Promise<void>;
+  busy: boolean;
 }) {
   const { isCurrent, expire } = useAccountSession();
   const client = useMemo(() => createAccountLifecycleClient(account, isCurrent, expire), [account, isCurrent, expire]);
@@ -27,7 +27,7 @@ export function AccountProjectContinuity({ account, project, dirty, conflicted, 
   }, [client, account, project.id, isCurrent]);
   if (!isCurrent(account) || project.owner_id.toLowerCase() !== account.userId.toLowerCase()) return null;
   return <>
-    <ProjectContinuityPanel project={project} source={result?.source ?? null} dirty={dirty} conflicted={conflicted} expanding={expanding} onExpand={onExpand} />
+    <ProjectContinuityPanel project={project} source={result?.source ?? null} dirty={dirty} conflicted={conflicted} busy={busy} />
     {result?.source && <FrozenStandaloneSource account={account} projectId={project.id} source={result.source} />}
     {result?.unavailable && <p className="field-hint">The saved tool origin could not be loaded. Your brand context is still available.</p>}
     <ProjectIdeaAttachments account={account} projectId={project.id} />

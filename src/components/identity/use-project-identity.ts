@@ -93,18 +93,17 @@ export function useProjectIdentity(projectId: string, referenceState?: IdentityR
   const strategyDirty = Boolean(verified && strategyDraft?.ownerId === verified.userId && (strategyDraft.conflict || accountDraftChanged(strategyDraft)));
   const preferencesDirty = Boolean(preferenceDraft && identityDraftChanged(preferenceDraft));
   const savesUnavailable = overview?.saveAvailability.status !== "available";
-  const blocked = savesUnavailable || !shown.checked || shown.selectionUncertain || !overview || overview.currentBasis.status !== "available" || overview.project.scope === "naming_only" || shown.loading || shown.detailLoading || shown.pending || referencesPending || strategyDirty || preferencesDirty;
+  const blocked = savesUnavailable || !shown.checked || shown.selectionUncertain || !overview || overview.currentBasis.status !== "available" || shown.loading || shown.detailLoading || shown.pending || referencesPending || strategyDirty || preferencesDirty;
   const selectionBlockedReason = shown.pending ? "Saving your changes…"
     : shown.loading || shown.detailLoading ? "Checking your saved choice…"
     : shown.selectionUncertain ? "Your last choice could not be confirmed. Check your saved choice before choosing again."
     : !shown.checked || !overview ? "Your saved choice could not be checked. Please try again."
     : savesUnavailable ? "Saving your direction is temporarily unavailable. Your boards are saved."
-    : overview.project.scope === "naming_only" ? "This project is for names only."
     : overview.currentBasis.status !== "available" ? "Review your saved brief and logo before choosing a direction."
     : strategyDirty ? "Save or resolve your project edits before choosing a direction."
     : preferencesDirty ? "Save or discard your identity edits before choosing a direction."
     : referencesPending ? "Finish saving or checking your reference choices before choosing a direction." : null;
-  const selectionCheckAvailable = !shown.pending && !strategyDirty && !preferencesDirty && overview?.project.scope !== "naming_only"
+  const selectionCheckAvailable = !shown.pending && !strategyDirty && !preferencesDirty
     && (shown.loading || shown.detailLoading || !shown.checked || shown.selectionUncertain || savesUnavailable || referencesPending);
   const system = shown.detail ?? overview?.currentSelection?.system ?? null;
   const preferenceRebaseReady = shown.checked && (!preferenceDraft?.pending || shown.preferenceRecoveryChecked === JSON.stringify(preferenceDraft.pending.request));

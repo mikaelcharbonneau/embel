@@ -91,7 +91,6 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: npm run build:shared-worker
-      - run: npm run build:naming-worker
       - run: npm run build:logo-worker
       - run: npm run build:api-text-worker
 

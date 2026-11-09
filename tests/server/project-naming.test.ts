@@ -1,17 +1,15 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-import { contextSnapshotSchema } from "../../src/domain/projects";
 import { nameIdentityKey, namingStrategyBasis, namingStrategyKey } from "../../src/domain/project-naming";
-import { getNamingFulfillment } from "../../src/domain/naming-jobs";
-import { createBrandFromProjectName, enqueueNamingBatch, getAccountNames, getCustomProjectNames, getNamingBatch, getProjectNaming, importLocalName, saveNamingPreferences, saveNamingView, selectProjectName, setNameRetention, transformProjectNames } from "../../src/server/data/project-naming";
+import { transformNames, type NameTransformInput } from "../../src/domain/naming";
+import { createBrandFromProjectName, getAccountNames, getCustomProjectNames, getProjectNaming, importLocalName, saveNamingView, selectProjectName, setNameRetention } from "../../src/server/data/project-naming";
 import type { AuthenticatedContext } from "../../src/server/auth/context";
-import { asRole, asSubscriptionWorker, createTestDatabase, HASH, OWNER_A, OWNER_B, resetFixture, type TestDatabase } from "../database/local-supabase";
+import { asRole, createTestDatabase, HASH, OWNER_A, OWNER_B, resetFixture, type TestDatabase } from "../database/local-supabase";
+import { reviewedStrategy } from "../fixtures/reviewed-strategy";
 
 const at="2026-10-04T12:00:00Z";
-const context=contextSnapshotSchema.parse({description:"Explicit local server Naming fixture"});
-const preferences={version:1,creativeLocale:"en",notes:"",minimumGraphemes:null,maximumGraphemes:null};
+const context=reviewedStrategy({description:"Explicit local server Naming fixture"});
 const source={id:"cccccccc-cccc-4ccc-8ccc-cccccccccccc",value:"Cedar",createdAt:at,origin:"manual",history:[]};
-const policy={version:1,billingMode:"chatgpt_subscription",handlerVersion:"naming-chatgpt-v1",registrationId:"server-fixture-registration",model:"fixture-model",limits:{maxInputBytes:131072,maxOutputBytes:262144,deadlineMs:240000,maxObservedWebSearchCalls:0,maxRequestsPerHour:20,maxQueuedJobs:3}};
 
 describe("Naming DAL with real local ownership and provenance rows",()=>{
  let db:TestDatabase;let project:string;let auth:AuthenticatedContext;
@@ -30,23 +28,16 @@ describe("Naming DAL with real local ownership and provenance rows",()=>{
     return {data:result.rows[0]??null,error:null};}};return query;},
   }} as unknown as AuthenticatedContext;
  }
- beforeEach(async()=>{await resetFixture(db);project=await run(async()=>(await db.query<{id:string}>("select * from public.create_project('naming_only','Fixture',$1::jsonb,$2)",[JSON.stringify(context),HASH])).rows[0]!.id);auth=client();});
+ beforeEach(async()=>{await resetFixture(db);project=await run(async()=>(await db.query<{id:string}>("select * from public.create_project('complete_brand','Fixture',$1::jsonb,$2)",[JSON.stringify(context),HASH])).rows[0]!.id);auth=client();});
  async function imported(value="Cedar",key="fixture-server-import-001"){
   return importLocalName(auth,project,{expectedProjectRevision:1,source:{...source,value},capturedContext:context,idempotencyKey:key});
  }
- async function generate(){
-  await saveNamingPreferences(auth,project,{expectedPreferencesVersion:0,preferences});
-  await asSubscriptionWorker(db,OWNER_A,()=>db.query("select public.configure_subscription_runtime($1,'naming.generate',$2::jsonb,true)",[OWNER_A,JSON.stringify(policy)]));
-  await asSubscriptionWorker(db,OWNER_A,()=>db.query("select public.report_subscription_worker_ready($1,$2,'naming.generate',$3::jsonb,90)",[OWNER_A,policy.registrationId,JSON.stringify(policy)]));
-  const identity=(await db.query<{value:string}>("select encode(sha256(convert_to($1::jsonb::text,'UTF8')),'hex') value",[JSON.stringify(policy)])).rows[0]!.value;
-  const result=await enqueueNamingBatch(auth,project,{expectedProjectRevision:1,expectedPreferencesVersion:1,expectedBatchSequence:0,idempotencyKey:"fixture-server-enqueue-001",billingMode:"chatgpt_subscription",acceptedPolicyIdentity:identity});
-  const job=await asSubscriptionWorker(db,OWNER_A,async()=>(await db.query<{id:string;lease_token:string}>("select * from public.claim_subscription_job('server-fixture',$1,$2,90)",[OWNER_A,policy.registrationId])).rows[0]!);
-  const output={version:1,operation:"naming.generate",provider:"openai",billingMode:"chatgpt_subscription",model:policy.model,responseId:"fixture-response",requestId:null,generatedAt:at,usage:null,batchId:result.batch.id,sequence:1,targetCount:result.batch.targetCount,
-   accepted:[{value:"Cedar",identityKey:"cedar",rationale:"Explicit local provider fixture."}],fulfillment:getNamingFulfillment(result.batch.targetCount,1,{invalid_candidate:0,empty_identity:0,below_minimum:0,above_maximum:0,duplicate_response:0,duplicate_history:0,over_target:0})};
-  await asSubscriptionWorker(db,OWNER_A,()=>db.query("select public.register_job_plan($1,$2,$3::jsonb)",[job.id,job.lease_token,JSON.stringify([{key:"names",maximumCostMicrousd:0}])]));
-  await asSubscriptionWorker(db,OWNER_A,()=>db.query("select public.begin_job_step($1,$2,'names','server-fixture-request',0)",[job.id,job.lease_token]));
-  await asSubscriptionWorker(db,OWNER_A,()=>db.query("select public.complete_naming_job_step($1,$2,'names','succeeded',0,$3::jsonb,'fixture-response')",[job.id,job.lease_token,JSON.stringify(output)]));
-  return result.batch.id;
+ /** Workshop transforms are no longer created by the app; existing rows keep replay verification. */
+ async function transform(parentCandidateId:string,input:NameTransformInput,key:string,secondaryCandidateId:string|null=null){
+  const replay=transformNames(input);
+  const result=await auth.client.rpc("persist_name_transform",{p_project_id:project,p_parent_candidate_id:parentCandidateId,p_secondary_candidate_id:secondaryCandidateId,p_input:input,
+   p_result:{...replay,candidates:replay.candidates.map(row=>({...row,identityKey:nameIdentityKey(row.value)}))},p_idempotency_key:key});
+  expect(result.error).toBeNull();return result.data as {entries:Array<{candidate:{id:string;value:string}}>};
  }
  it("reads imported candidates only after exact source replay and owner/project checks",async()=>{
   const value=await imported();const read=await getProjectNaming(auth,project);expect(read.candidates.items[0]!.candidate).toEqual(value.entry.candidate);
@@ -64,31 +55,17 @@ describe("Naming DAL with real local ownership and provenance rows",()=>{
   expect((await getProjectNaming(auth,project)).currentSelection?.candidate.value).toBe("Cedar");
   await expect(getCustomProjectNames(client(OWNER_B),project)).rejects.toMatchObject({code:"not_found"});
  });
- it("rejects wrong but canonical direct-import history keys before enqueue",async()=>{
-  const attack=await auth.client.rpc("import_local_name",{p_project_id:project,p_expected_revision:1,p_source:source,p_context:context,p_identity_key:"elm",p_idempotency_key:"fixture-poisoned-history01"});expect(attack.error).toBeNull();
-  const call=vi.spyOn(auth.client,"rpc");
-  await expect(enqueueNamingBatch(auth,project,{expectedProjectRevision:1,expectedPreferencesVersion:1,expectedBatchSequence:0,idempotencyKey:"fixture-blocked-enqueue001",billingMode:"chatgpt_subscription",acceptedPolicyIdentity:"a".repeat(64)})).rejects.toMatchObject({code:"integration_unavailable"});
-  expect(call).not.toHaveBeenCalledWith("enqueue_subscription_naming_job",expect.anything());expect((await db.query("select id from public.jobs")).rows).toEqual([]);
- });
  it("replays a valid local Workshop source before sending it to storage",async()=>{
   const history=[{id:"dddddddd-dddd-4ddd-8ddd-dddddddddddd",input:{kind:"tweaks",seed:"Cedar",operations:["uppercase"]},output:"CEDAR",createdAt:at}];
   const result=await importLocalName(auth,project,{expectedProjectRevision:1,source:{...source,origin:"workshop",value:"CEDAR",history},capturedContext:context,idempotencyKey:"fixture-workshop-import01"});
   expect(result.entry.candidate.value).toBe("CEDAR");
   await expect(importLocalName(auth,project,{expectedProjectRevision:1,source:{...source,origin:"workshop",value:"FORGED",history:[{...history[0],output:"FORGED"}]},capturedContext:context,idempotencyKey:"fixture-workshop-forged01"})).rejects.toMatchObject({code:"invalid_input"});
  });
- it("binds generated origin to exact batch, step, accepted value and provider metadata",async()=>{
-  const batchId=await generate();const batch=await getNamingBatch(auth,project,batchId);expect(batch.result!.fulfillment.status).toBe("partial");
-  const read=await getProjectNaming(auth,project);expect(read.candidates.items[0]!.candidate.origin).toMatchObject({kind:"generated",batchId});
-  const candidate=read.candidates.items[0]!.candidate;
-  const original=auth.client.rpc.bind(auth.client);vi.spyOn(auth.client,"rpc").mockImplementation(((name:string,args:Record<string,unknown>)=>name==="get_project_naming"?Promise.resolve({data:{...read,candidates:{...read.candidates,items:[{...read.candidates.items[0],candidate:{...candidate,origin:{...candidate.origin,responseId:"forged-response"}}}]}},error:null}):original(name,args)) as typeof auth.client.rpc);
-  await expect(getProjectNaming(auth,project)).rejects.toMatchObject({code:"integration_unavailable"});
- });
  it("binds each parent, blend-right value and immutable transform record across multiple steps",async()=>{
   const first=await imported();const second=await imported("Elm","fixture-server-import-002");
-  const transformed=await transformProjectNames(auth,project,{parentCandidateId:first.entry.candidate.id,secondaryCandidateId:second.entry.candidate.id,input:{kind:"blend",left:"Cedar",right:"Elm",leftTake:2,rightDrop:0},idempotencyKey:"fixture-server-blend-0001"});
-  const next=await transformProjectNames(auth,project,{parentCandidateId:transformed.entries[0]!.candidate.id,input:{kind:"tweaks",seed:"CeElm",operations:["uppercase"]},idempotencyKey:"fixture-server-tweak-0001"});
+  const transformed=await transform(first.entry.candidate.id,{kind:"blend",left:"Cedar",right:"Elm",leftTake:2,rightDrop:0},"fixture-server-blend-0001",second.entry.candidate.id);
+  const next=await transform(transformed.entries[0]!.candidate.id,{kind:"tweaks",seed:"CeElm",operations:["uppercase"]},"fixture-server-tweak-0001");
   expect(next.entries[0]!.candidate.value).toBe("CEELM");expect((await getProjectNaming(auth,project)).candidates.items).toHaveLength(4);
-  await expect(transformProjectNames(auth,project,{parentCandidateId:first.entry.candidate.id,secondaryCandidateId:second.entry.candidate.id,input:{kind:"blend",left:"Cedar",right:"Forged",leftTake:2,rightDrop:0},idempotencyKey:"fixture-server-forged-001"})).rejects.toMatchObject({code:"invalid_input"});
  });
  it("does not render, select, retain or promote forged direct-RPC transform output",async()=>{
   const first=await imported();const result=await auth.client.rpc("persist_name_transform",{p_project_id:project,p_parent_candidate_id:first.entry.candidate.id,p_secondary_candidate_id:null,p_input:{kind:"tweaks",seed:"Cedar",operations:["uppercase"]},p_result:{candidates:[{value:"Forged",identityKey:"forged",explanation:"Applied Unicode uppercase mapping."}],truncated:false,notes:[]},p_idempotency_key:"fixture-direct-forged-001"});
@@ -105,7 +82,7 @@ describe("Naming DAL with real local ownership and provenance rows",()=>{
   await expect(selectProjectName(auth,project,{candidateId,expectedRevision:1,acceptEarlierContext:false})).rejects.toMatchObject({code:"integration_unavailable"});
  });
  it("copies verified transitive ancestry and retains selected-only names in both library filters",async()=>{
-  const first=await imported();const transformed=await transformProjectNames(auth,project,{parentCandidateId:first.entry.candidate.id,input:{kind:"tweaks",seed:"Cedar",operations:["uppercase"]},idempotencyKey:"fixture-server-transform"});
+  const first=await imported();const transformed=await transform(first.entry.candidate.id,{kind:"tweaks",seed:"Cedar",operations:["uppercase"]},"fixture-server-transform");
   const candidateId=transformed.entries[0]!.candidate.id;
   await selectProjectName(auth,project,{candidateId,expectedRevision:1,acceptEarlierContext:false});
   expect((await getProjectNaming(auth,project,{filter:"retained"})).candidates.items.map(row=>row.candidate.id)).toEqual([candidateId]);

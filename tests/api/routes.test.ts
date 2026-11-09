@@ -9,7 +9,7 @@ import { ApiError } from "../../src/server/http/errors";
 
 const ownerId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const projectId = "11111111-1111-4111-8111-111111111111";
-const input = { title: "Local test fixture", scope: "naming_only", context: { description: "A local fixture, not model output." } };
+const input = { title: "Local test fixture", scope: "complete_brand", context: { description: "A local fixture, not model output." } };
 const request = (body: unknown = input, origin = "https://fluid.example") => new Request("https://fluid.example/api/projects", { method: "POST", headers: { origin, "content-type": "application/json", "X-Embel-Account": ownerId }, body: JSON.stringify(body) });
 
 describe("web mutation security boundaries", () => {
@@ -17,7 +17,7 @@ describe("web mutation security boundaries", () => {
     vi.stubEnv("APP_ORIGIN", "https://fluid.example");
     doubles.auth.mockResolvedValue({ userId: ownerId, client: { rpc: doubles.rpc } });
     doubles.rpc.mockReturnValue({ single: doubles.single });
-    doubles.single.mockResolvedValue({ data: { id: projectId, owner_id: ownerId, scope: "naming_only", title: input.title, current_revision: 1, created_at: "2026-10-02T00:00:00Z" }, error: null });
+    doubles.single.mockResolvedValue({ data: { id: projectId, owner_id: ownerId, scope: "complete_brand", title: input.title, current_revision: 1, created_at: "2026-10-02T00:00:00Z" }, error: null });
   });
   afterEach(() => { vi.unstubAllEnvs(); vi.clearAllMocks(); });
 
@@ -40,7 +40,7 @@ describe("web mutation security boundaries", () => {
     const response = await createProject(request());
     expect(response.status).toBe(201);
     expect(response.headers.get("cache-control")).toBe("private, no-store");
-    expect(doubles.rpc).toHaveBeenCalledWith("create_project", expect.objectContaining({ p_scope: "naming_only", p_title: input.title }));
+    expect(doubles.rpc).toHaveBeenCalledWith("create_project", expect.objectContaining({ p_scope: "complete_brand", p_title: input.title }));
     expect(doubles.rpc.mock.calls[0]?.[1]).not.toHaveProperty("p_owner_id");
     expect(doubles.single).toHaveBeenCalledOnce();
   });

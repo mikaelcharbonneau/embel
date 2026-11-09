@@ -4,6 +4,7 @@ import { RECORDED_USAGE_LIMIT, recordedTokensSchema, recordedUsageOperationSchem
 import { strategyUsageSchema, subscriptionUsageSchema } from "@/domain/strategy-jobs";
 import type { AuthenticatedContext } from "../auth/context";
 import { ApiError } from "../http/errors";
+import { getNamingUsage } from "./naming-generation";
 
 const jobSchema = z.object({ id: z.uuid(), owner_id: z.uuid(), project_id: z.uuid(), operation: recordedUsageOperationSchema, billing_mode: z.enum(["openai_api", "chatgpt_subscription"]), state: z.literal("succeeded"), finished_at: z.iso.datetime({ offset: true }) });
 const stepSchema = z.object({ job_id: z.uuid(), owner_id: z.uuid(), project_id: z.uuid(), state: z.literal("succeeded"), receipt_operation: recordedUsageOperationSchema.nullable(), usage: z.unknown().optional() });
@@ -33,9 +34,13 @@ export async function listRecordedUsage(auth: AuthenticatedContext) {
   const jobs = verified(z.array(jobSchema).max(RECORDED_USAGE_LIMIT), reply.data);
   if (jobs.some(job => job.owner_id !== auth.userId) || new Set(jobs.map(job => job.id)).size !== jobs.length) throw new ApiError("integration_unavailable");
   const tokens = new Map<string, ReturnType<typeof recordedTokens>>();
-  // Managed stages can contain overlapping session/turn observations. They do
-  // not supply a single verified request token total. Keep their entries unknown.
-  const legacyJobs = jobs.filter(job => !(job.operation === "naming.generate" && job.billing_mode === "openai_api"));
+  // A naming run records each saved round's provider usage; SQL sums them per job.
+  const namingJobs = jobs.filter(job => job.operation === "naming.generate" && job.billing_mode === "openai_api");
+  for (const usage of await getNamingUsage(auth, namingJobs.map(job => job.id))) {
+    const totalTokens = usage.inputTokens + usage.outputTokens;
+    tokens.set(usage.jobId, { inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, totalTokens: usage.totalTokens === totalTokens ? totalTokens : null });
+  }
+  const legacyJobs = jobs.filter(job => !namingJobs.includes(job));
   if (legacyJobs.length) {
     const stepReply = await auth.client.from("job_steps")
       .select("job_id,owner_id,project_id,state,receipt_operation:output->>operation,usage:output->usage")

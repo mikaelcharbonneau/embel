@@ -1,7 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { composeSharedDevelopmentConfiguration } from "./shared-configuration";
-import { namingPreferencesRuntimeFingerprint } from "../../worker/naming-brain-configuration";
+import { namingPreferencesRuntimeFingerprint } from "../../worker/naming-preferences-fingerprint";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 try {

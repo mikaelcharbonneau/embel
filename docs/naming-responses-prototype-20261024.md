@@ -1,5 +1,7 @@
 # Inactive durable Naming Responses components — 2026-10-24
 
+> Historical: retired by the November 2026 Naming generation rebuild (docs/naming-generation-contract.md).
+
 The user's October 25 correction rejects monetary limits. The
 [native restoration](naming-native-restoration-20261025.md) uses the existing
 uncapped Agents flow; this Responses prototype and its cost decision are not

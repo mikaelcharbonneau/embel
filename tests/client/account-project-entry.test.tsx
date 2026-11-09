@@ -57,11 +57,6 @@ describe("generic account project entry", () => {
     expect(drafts.get(projectId)!.saved.scope).toBe("complete_brand");
     expect(host.querySelector("input")).toBeNull();
   });
-  it.each([["visual_identity_only", "logo"], ["naming_only", "naming"]] as const)("routes %s without requiring or creating Logo state", async (scope, path) => {
-    const fetcher = fixture({ ...project(), scope }, logo(false)); await render();
-    expect(replace).toHaveBeenCalledExactlyOnceWith(`/brands/account/${projectId}/${path}`);
-    expect(fetcher.mock.calls.map(([url]) => url)).toEqual(scope === "naming_only" ? [base] : [base, `${base}/logo`]);
-  });
   it("resumes the missing Strategy review when the project has no Logo progress", async () => {
     fixture(project(), logo(false)); await render();
     expect(replace).toHaveBeenCalledExactlyOnceWith(`/brands/account/${projectId}?view=strategy#strategy-brief`);

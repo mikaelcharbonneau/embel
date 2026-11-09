@@ -8,7 +8,6 @@ import { readSharedPoolConfiguration } from "../../worker/shared-pool/configurat
 import { readSharedPoolSecrets } from "../../worker/shared-pool/secrets";
 import { qualifySharedLogoCapability } from "../../worker/shared-lanes/logo-capability";
 import { guidedStrategyPolicy } from "../../src/server/ai/config";
-import { createNamingBrainPolicy } from "../../src/server/ai/naming-brain/policy";
 
 const key = "inert-dedicated-application-key";
 const directories: string[] = [];
@@ -19,7 +18,7 @@ describe("portable shared worker configuration uses genuine policy and credentia
   it("uses the actual guided/naming builders and qualifies all seven Logo/Identity capabilities", () => {
     const policies = developmentWorkerPolicies();
     expect(policies.strategy["strategy.competitors"]).toEqual(guidedStrategyPolicy("strategy.competitors"));
-    expect(policies.naming["naming.generate"]).toEqual(createNamingBrainPolicy("gpt-6-luna"));
+    expect(policies.naming["naming.generate"]).toEqual({ version: 2, operation: "naming.generate", model: "gpt-6-luna", reasoningEffort: "low" });
     expect(Object.keys(policies.logo)).toHaveLength(7);
     for (const policy of Object.values(policies.logo)) expect(qualifySharedLogoCapability(policy)).not.toBeNull();
     expect(policies.logo["identity.image"]).toMatchObject({ spendControl: "uncapped", textPolicy: { model: "gpt-6.1-sol" } });

@@ -17,7 +17,6 @@ import { rememberPromptForSignIn } from "./prompt-recovery";
 import { guidedAllowance, initialGuidedContext } from "./guided-interview-client";
 import { finishLocalDraftRecovery, saveLocalDraftToAccount } from "./save-local-draft-to-account";
 import { projectStartHref, prepareProjectStart } from "./project-start-draft";
-import type { ProjectScope } from "@/domain/projects";
 
 type Availability = z.infer<typeof strategyRuntimeResponseSchema>["availability"];
 function subscriptionLimitsLabel(limits: NonNullable<ReturnType<typeof promptStrategyPlan>>["reformulation"] & { billingMode: "chatgpt_subscription" }) {
@@ -26,11 +25,13 @@ function subscriptionLimitsLabel(limits: NonNullable<ReturnType<typeof promptStr
 }
 
 /** Saves an owned project before any separately authorized AI request. */
-export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, recoveryLocked = false, guided = false, scope = "complete_brand" }: { guided?: boolean; scope?: ProjectScope; beforeSignIn?: (locked: boolean) => boolean; recoveryDraftId?: string | null; recoveryLocked?: boolean } = {}) {
+export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, recoveryLocked = false, guided = false }: { guided?: boolean; beforeSignIn?: (locked: boolean) => boolean; recoveryDraftId?: string | null; recoveryLocked?: boolean } = {}) {
   const { session, isCurrent, expire, refresh, drafts } = useAccountSession();
   const router = useRouter();
   const [, startNavigation] = useTransition();
   const destination = useRef<{ identity: string; href: string } | null>(null);
+  // The same destination for rendering; the ref guards requests synchronously.
+  const [openingDestination, setOpeningDestination] = useState<{ identity: string; href: string } | null>(null);
   const [checkingAvailability, setCheckingAvailability] = useState<string | null>(null);
   const identity = session.status === "ready" ? `${session.userId}:${session.generation}` : `unverified:${session.generation}`;
   const [runtime, setRuntime] = useState<{ identity: string; availability: Availability | null } | null>(null);
@@ -52,7 +53,7 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
     destination.current = null;
   }, [identity]);
   useEffect(() => {
-    if (session.status !== "ready" || guided && scope !== "complete_brand") return;
+    if (session.status !== "ready") return;
     const controller = new AbortController(); readinessRequest.current = controller;
     void boundedAccountRequest("/api/strategy", strategyRuntimeResponseSchema, { signal: controller.signal }).then(({ availability }) => {
       if (!controller.signal.aborted && readinessRequest.current === controller && isCurrent(session)) setRuntime({ identity, availability });
@@ -65,7 +66,7 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
       controller.abort();
       readinessRequest.current?.abort(); readinessRequest.current = null;
     };
-  }, [session, identity, isCurrent, expire, guided, scope]);
+  }, [session, identity, isCurrent, expire]);
   useEffect(() => {
     if (!recoveryDraftId) return;
     let receipt: StartReceipt | null = null, error: string | null = null, fenced = false;
@@ -136,15 +137,14 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
   }
 
   function openProject(href: string) {
-    destination.current = { identity, href };
+    destination.current = { identity, href }; setOpeningDestination({ identity, href });
     setOpening(identity);
     setAction({ identity, pending: true, message: "Project saved. Opening your project…" });
     try { startNavigation(() => router.push(href)); }
-    catch (cause) { destination.current = null; throw cause; }
+    catch (cause) { destination.current = null; setOpeningDestination(null); throw cause; }
   }
 
   async function startGuided(draft: LocalDraft): Promise<boolean> {
-    if (draft.scope !== "complete_brand") return save(draft);
     if (request.current || destination.current || session.status !== "ready" || !isCurrent(session) || (draft.id === recoveryDraftId && recoveryBlocked)) return false;
     const account = session, controller = new AbortController();
     request.current = controller; stopReadinessCheck(); setOpening(identity);
@@ -203,7 +203,7 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
           }
         }
       }
-      openProject(prepareProjectStart(created.receipt.projectId, created.project?.scope ?? draft.scope, created.newProject ? acknowledged : null, account, drafts));
+      openProject(prepareProjectStart(created.receipt.projectId, created.newProject ? acknowledged : null, account, drafts));
       finishLocalDraftRecovery(draft.id, account.userId, created.receipt.projectId);
       return true;
     } catch (cause) {
@@ -311,7 +311,7 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
         try { rememberPromptForSignIn(draft.id, Boolean(receipt), draft); } catch { /* The exact save remains in the owner-bound receipt. */ }
       } });
       if (!result?.receipt.projectId || !current()) return false;
-      openProject(prepareProjectStart(result.receipt.projectId, result.project?.scope ?? draft.scope, result.newProject ? result.project : null, account, drafts)); finishLocalDraftRecovery(draft.id, account.userId, result.receipt.projectId); return true;
+      openProject(prepareProjectStart(result.receipt.projectId, result.newProject ? result.project : null, account, drafts)); finishLocalDraftRecovery(draft.id, account.userId, result.receipt.projectId); return true;
     } catch (cause) {
       if (!current()) return false;
       if (cause instanceof AccountRequestError && cause.status === 401) expire(account);
@@ -347,7 +347,7 @@ export function useAccountStrategyStart({ beforeSignIn, recoveryDraftId = null, 
       <button type="button" className="text-link" disabled={pending || checkingAvailability === identity || session.status === "checking"} onClick={() => void recheck()}>{session.status === "ready" ? "Recheck AI availability" : "Recheck account"}</button>
     </div>
   </div>;
-  const guidedNotice = <div>{message && <p className="field-hint" role="status">{message}</p>}{recoveryMessage && <p className="field-hint">{recoveryMessage}</p>}{checked?.error && <p role="alert">{checked.error}</p>}{session.status === "signed_out" && <p className="field-hint"><Link href="/sign-in" className="text-link" onClick={event => { if (beforeSignIn && !beforeSignIn(locked)) event.preventDefault(); }}>Sign in</Link> to save your project. Your prompt is kept.</p>}{session.status === "ready" && scope === "complete_brand" && currentRuntime && !guidedAllowance(currentRuntime.availability, "strategy.competitors") && <p className="field-hint">{needsProjectAdmission ? "Sending checks AI availability for your new project. Earlier requests keep their own status." : "AI is unavailable right now. Continue to save your brief and edit your project."}</p>}{recovery?.projectId ? <Link className="text-link" href={projectStartHref(recovery.projectId, scope)}>Open saved project</Link> : recovery && <Link className="text-link" href="/brands">Check account brands</Link>}{scope === "complete_brand" && !pending && (message || !guidedAllowance(currentRuntime?.availability, "strategy.competitors")) && <button type="button" className="text-link" disabled={checkingAvailability === identity} onClick={() => void recheck()}>{checkingAvailability === identity ? "Checking AI availability…" : "Check AI availability"}</button>}</div>;
+  const guidedNotice = <div>{message && <p className="field-hint" role="status">{message}</p>}{recoveryMessage && <p className="field-hint">{recoveryMessage}</p>}{checked?.error && <p role="alert">{checked.error}</p>}{session.status === "signed_out" && <p className="field-hint"><Link href="/sign-in" className="text-link" onClick={event => { if (beforeSignIn && !beforeSignIn(locked)) event.preventDefault(); }}>Sign in</Link> to save your project. Your prompt is kept.</p>}{session.status === "ready" && currentRuntime && !guidedAllowance(currentRuntime.availability, "strategy.competitors") && <p className="field-hint">{needsProjectAdmission ? "Sending checks AI availability for your new project. Earlier requests keep their own status." : "AI is unavailable right now. Continue to save your brief and edit your project."}</p>}{recovery?.projectId ? <Link className="text-link" href={projectStartHref(recovery.projectId)}>Open saved project</Link> : recovery && <Link className="text-link" href="/brands">Check account brands</Link>}{!pending && (message || !guidedAllowance(currentRuntime?.availability, "strategy.competitors")) && <button type="button" className="text-link" disabled={checkingAvailability === identity} onClick={() => void recheck()}>{checkingAvailability === identity ? "Checking AI availability…" : "Check AI availability"}</button>}</div>;
   function detachPrompt() { if (request.current || destination.current) return; setRetained(null); setCheckedRecovery(null); setAction(null); setOpening(null); }
-  return { notice: guided ? guidedNotice : notice, pending, starting: guided && opening === identity && pending, startMessage: message, openingHref: destination.current?.identity === identity ? destination.current.href : null, start, save, detachPrompt, locked, checkingRecovery, recoveryBlocked, recoveryProjectId: recovery?.projectId ?? null };
+  return { notice: guided ? guidedNotice : notice, pending, starting: guided && opening === identity && pending, startMessage: message, openingHref: openingDestination?.identity === identity ? openingDestination.href : null, start, save, detachPrompt, locked, checkingRecovery, recoveryBlocked, recoveryProjectId: recovery?.projectId ?? null };
 }

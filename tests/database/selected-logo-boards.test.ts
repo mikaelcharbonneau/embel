@@ -112,6 +112,8 @@ describe('selected-logo boards: actual SQL admission, storage and immutable publ
  });
  it('uses the real standalone saved brief, publishes three distinct boards, selects one, and rejects a changed logo while allowing exact restoration',async()=>{
   const workspace=await f.start(OWNER_A),p={owner:OWNER_A,projectId:workspace.projectId};
+  // A logo-only project is now a complete brand, converted as the November 9 migration does.
+  await f.rpc(OWNER_A,'expand_project_scope',[p.projectId,1]);
   const original=await logo(p),started=await admit(p);
   expect(started.input.input).toMatchObject({version:2,context:{description:'',selectedName:null},logoBrief:{payload:{name:'Shared test',activity:'Studio',audience:'Founders'}},basis:{version:2,name:'Shared test'}});
   expect(started.input.input.context.intake.suppliedName).toBe('');

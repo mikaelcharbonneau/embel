@@ -153,8 +153,8 @@ describe("naming availability, screening and overview envelopes", () => {
   });
   it("supports an unsaved initial session and fences every nested read by project and owner", () => {
     const overview = {
-      project: { id: projectId, owner_id: ownerId, title: "Local fixture", scope: "naming_only", current_revision: 4, created_at: at, context },
-      readiness: { ready: true, missing: ["reformulation", "competitors", "audience", "personality", "positioning"] },
+      project: { id: projectId, owner_id: ownerId, title: "Local fixture", scope: "complete_brand", current_revision: 4, created_at: at, context },
+      readiness: { ready: false, missing: ["reformulation", "competitors", "audience", "personality", "positioning"] },
       session: null, preferences: null, currentSelection: null,
       batches: { ownerId, projectId, items: [], nextCursor: null }, candidates: { ownerId, projectId, items: [], nextCursor: null },
       availability: { status: "unavailable", operation: "naming.generate", reason: "naming_policy_unavailable" }, jobs: [], screening,

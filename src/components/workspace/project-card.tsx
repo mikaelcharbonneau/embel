@@ -54,7 +54,7 @@ export function ProjectCard({ project, account, headingLevel = 2, date, actions,
     const draft = drafts.get(project.id);
     return draft?.ownerId === account.userId && draft.generation === account.generation && needsStrategyRecovery(draft);
   }, () => false);
-  const { target, current, reading, preview, rejectImage } = useProjectCardPreview(account, project.id, project.current_revision, owned && !deleted, project.scope !== "naming_only");
+  const { target, current, reading, preview, rejectImage } = useProjectCardPreview(account, project.id, project.current_revision, owned && !deleted, true);
   if (!current || !owned) return null;
   const className = `${styles.card} ${headingLevel === 3 ? "home-brand-card" : "project-card"}${deleted ? " project-card--deleted" : ""}`;
   // Show neutral blocks, not a placeholder name, until the saved project is read.
@@ -65,7 +65,7 @@ export function ProjectCard({ project, account, headingLevel = 2, date, actions,
   const stepPending = reading && !recovering && !preview?.action && !preview?.settled;
   const action = recovering ? { label: "Resume Strategy edits", href: projectStrategyHref(project.id) }
     : preview?.action ?? { label: "Open project", href: `/brands/account/${project.id}` };
-  const label = deleted ? null : project.scope === "naming_only" ? "Naming project" : preview?.status === "unavailable" ? "Preview unavailable" : preview?.status === "ready" ? "No logo yet" : null;
+  const label = deleted ? null : preview?.status === "unavailable" ? "Preview unavailable" : preview?.status === "ready" ? "No logo yet" : null;
   const Heading = headingLevel === 3 ? "h3" : "h2";
   const menu = typeof actions === "function" ? actions(title) : actions;
   const thumbnail = artworkPending ? <div className={`${styles.preview} ${styles.block}`} aria-hidden="true" />

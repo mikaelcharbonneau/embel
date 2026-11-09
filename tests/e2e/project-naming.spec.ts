@@ -21,7 +21,7 @@ const url = `/brands/account/${projectId}/naming`;
 const legacyViews = new WeakMap<Page, () => boolean>();
 const uuid = (group: string, n: number) => `${group}-1111-4111-8111-${String(n).padStart(12, "0")}`;
 
-function fixtureProject(scope: ProjectScope = "naming_only"): AccountProject {
+function fixtureProject(scope: ProjectScope = "complete_brand"): AccountProject {
   return accountProjectSchema.parse({ id: projectId, owner_id: ownerId, title: "Synthetic naming project", scope, current_revision: 3, created_at: when, context: {
     description: "Synthetic brief: a warm neighborhood kitchen.", creativeLocale: "fr", intake: { namingNotes: "Warm and concise", conversation: [{ id: "fixture-user", kind: "user_message", text: "Synthetic brief: a warm neighborhood kitchen.", createdAt: when }], ...(scope === "complete_brand" ? { audienceReviewedAt: when, personalityReviewedAt: when, positioningReviewedAt: when } : {}) },
     ...(scope === "complete_brand" ? { activity: "Neighborhood kitchen", offering: "Seasonal lunches", knownAudience: "Neighbors", reformulationConfirmed: true, competitorReviewComplete: true, audienceSegments: [{ id: uuid("eeeeeeee", 999), label: "Local neighbors", needs: ["A warm lunch"], reason: "Nearby", selected: true, origin: "user" }], personality: { sincerity: 70, excitement: 30, competence: 60, sophistication: 30, ruggedness: 10 }, positioning: "A welcoming everyday kitchen for neighbors." } : {}),
@@ -31,7 +31,7 @@ function session(): NamingSession {
   return { ownerId, projectId, revision: 1, currentPreferencesVersion: 0, latestBatchSequence: 0, currentSelectionId: null, viewRevision: 1, viewState: { pane: "results", conversationOpen: true, filter: "all", query: "", visibleBatchId: null, scrollCandidateId: null, workshopCandidateId: null }, createdAt: when, updatedAt: when };
 }
 
-async function fixtures(page: Page, scope: ProjectScope = "naming_only") {
+async function fixtures(page: Page, scope: ProjectScope = "complete_brand") {
   const state = {
     ownerId: ownerId as string | null, project: fixtureProject(scope), session: null as NamingSession | null, preferences: null as NamingPreferenceRevision | null,
     candidates: [] as ProjectNameEntry[], batches: [] as NamingBatchEntry[], jobs: [] as NamingJob[], currentSelection: null as CurrentNameSelection | null,
@@ -200,13 +200,12 @@ async function fixtures(page: Page, scope: ProjectScope = "naming_only") {
       const copied = { ...source, id: candidateId, projectId: newId, contextRevision: 1, origin: { kind: "account_copy", authorship: root.kind === "generated" && history.length === 0 ? "generated" : "user_supplied", sourceProjectId: projectId, sourceCandidateId: source.id, sourceContextRevision: state.project.current_revision, root, history } };
       return routeResponse(route, { project: state.newProject, session: { ...session(), projectId: newId, currentSelectionId: selectionId }, currentSelection: { candidate: copied, selection: { id: selectionId, ownerId, projectId: newId, candidateId, projectRevision: 1, previousSelectionId: null, acceptedEarlierContext: Boolean(body?.acceptEarlierContext), createdAt: when } } });
     }
-    if (path === `/api/projects/${projectId}/expand`) { state.project = { ...state.project, scope: "complete_brand", current_revision: state.project.current_revision + 1 }; return routeResponse(route, { project: state.project }); }
     return routeResponse(route, {}, 404);
   });
-  legacyViews.set(page, () => Boolean(state.preferences && state.readStatus === 200 && !state.malformedOwner && state.project.scope !== "visual_identity_only" && state.session?.viewState.pane === "results" && state.session.viewState.filter === "all" && !state.session.viewState.query && !state.session.viewState.visibleBatchId && !(state.delay && !state.delay.settled && state.delay.path === base && state.delay.method === "GET")));
+  legacyViews.set(page, () => Boolean(state.preferences && state.readStatus === 200 && !state.malformedOwner && state.session?.viewState.pane === "results" && state.session.viewState.filter === "all" && !state.session.viewState.query && !state.session.viewState.visibleBatchId && !(state.delay && !state.delay.settled && state.delay.path === base && state.delay.method === "GET")));
   return { state, preferences, enqueue, complete, hold };
 }
-async function prepared(page: Page, count = 3, scope: ProjectScope = "naming_only") { const fixture = await fixtures(page, scope); fixture.preferences(); fixture.enqueue(); fixture.complete(count); return fixture; }
+async function prepared(page: Page, count = 3, scope: ProjectScope = "complete_brand") { const fixture = await fixtures(page, scope); fixture.preferences(); fixture.enqueue(); fixture.complete(count); return fixture; }
 async function showLegacyHistory(page: Page) {
   if (new URL(page.url()).pathname === url && legacyViews.get(page)?.()) await page.getByRole("button", { name: "Saved names & history" }).click();
 }
@@ -328,7 +327,7 @@ test("legacy Naming: saved V1 choices generate250, favorite reload, screening an
   await expect(page.getByLabel("Filter project names")).toHaveValue("favorite");
   await expect(card(page, "Fixture 001")).toBeFocused();
   expect(fixture.state.candidates[0]!.retention.favorite).toBe(true);
-  expect(fixture.state.project.scope).toBe("naming_only");
+  expect(fixture.state.project.scope).toBe("complete_brand");
   expect(fixture.state.project.context.description).toContain("Synthetic brief");
   expect(await page.evaluate(() => localStorage.getItem("fluid.names.v1") ?? "")).not.toContain("Fixture 001");
   await page.locator("#project-naming-results-heading").focus();
@@ -507,12 +506,10 @@ test("naming fixture: cancellation retains prior batches and absent runtime neve
   await expect(page.getByText(/Naming is not enabled for this ChatGPT connection/)).toBeVisible();
 });
 
-test("naming fixture: incomplete Strategy and identity-only direct routes never enable naming", async ({ page }) => {
+test("naming fixture: an incomplete Strategy never enables naming", async ({ page }) => {
   const fixture = await fixtures(page, "complete_brand"); fixture.state.project.context = contextSnapshotSchema.parse({ description: "Missing strategy fixture" }); await open(page);
   await expect(page.getByText("Review Strategy to continue the Naming conversation. Your saved names remain available.", { exact: true })).toBeVisible();
   await expect(page.getByRole("region", { name: "Naming choices", exact: true })).toHaveCount(0);
-  fixture.state.project.scope = "visual_identity_only"; await reload(page);
-  await expect(page.getByRole("heading", { name: "This project focuses on visual identity" })).toBeVisible();
   expect(fixture.state.requests.some(request => request.method === "POST")).toBe(false);
 });
 
@@ -590,7 +587,7 @@ test("naming fixture: expired login hides account names", async ({ page }) => {
   await expect(page.getByText("Fixture 001", { exact: true })).toHaveCount(0);
 });
 
-for (const action of ["overview", "preferences", "view", "retention", "selection", "generation", "cancellation", "transform", "library", "import", "promotion", "candidate pagination", "batch pagination", "library pagination", "expansion"] as const) {
+for (const action of ["overview", "preferences", "view", "retention", "selection", "generation", "cancellation", "transform", "library", "import", "promotion", "candidate pagination", "batch pagination", "library pagination"] as const) {
   test(`naming privacy fixture: changed account fences pending ${action}`, async ({ page }) => {
     const fixture = await prepared(page, action === "candidate pagination" || action === "library pagination" ? 100 : 3);
     if (action === "candidate pagination" || action === "library pagination") { fixture.enqueue(); fixture.complete(50); }
@@ -616,7 +613,6 @@ for (const action of ["overview", "preferences", "view", "retention", "selection
     if (action === "candidate pagination") { fixture.hold(base, "GET"); await page.getByRole("button", { name: "Load more saved names" }).click(); }
     if (action === "batch pagination") { await page.getByRole("button", { name: "Batch history · 100 loaded", exact: true }).click(); fixture.hold(`${base}/batches`, "GET"); await page.getByRole("button", { name: "Load more batches" }).click(); }
     if (action === "library pagination") { await page.goto("/names"); await page.getByRole("tab", { name: "Library", exact: true }).click(); await page.getByRole("button", { name: "Project names", exact: true }).click(); await expect(card(page, firstName)).toBeVisible(); fixture.hold("/api/names", "GET"); await page.getByRole("button", { name: "Load more account names" }).click(); }
-    if (action === "expansion") { fixture.hold(`/api/projects/${projectId}/expand`, "POST"); await page.getByRole("button", { name: "Expand to complete brand" }).click(); }
     // The held response remains addressable after capture so it can return late.
     const held = fixture.state.delay;
     if (held) await expect.poll(() => held.ready).toBe(true);
@@ -949,8 +945,6 @@ test("Naming canvas: selected name, composer and results survive shell expansion
 
 for (const scenario of [
   { label: "complete brand", scope: "complete_brand", incomplete: false },
-  { label: "naming only", scope: "naming_only", incomplete: false },
-  { label: "visual identity only", scope: "visual_identity_only", incomplete: false },
   { label: "incomplete Strategy", scope: "complete_brand", incomplete: true },
 ] as const) test(`Naming canvas: checking and ${scenario.label} retain readiness and no removed bars`, async ({ page }, info) => {
   await page.setViewportSize(info.project.name === "mobile" ? { width: 390, height: 844 } : { width: 1440, height: 900 });
@@ -970,10 +964,7 @@ for (const scenario of [
     const checking = await namingCanvasFrame(page);
     await expect(page.getByText("Loading your account naming workspace…", { exact: true })).toBeVisible();
     releaseOwnedReads();
-    if (scenario.scope === "visual_identity_only") {
-      await expect(page.getByRole("heading", { name: "This project focuses on visual identity", exact: true })).toBeVisible();
-      const back = page.getByRole("link", { name: "Back to project", exact: true }); await back.focus(); await expect(back).toBeFocused();
-    } else if (scenario.incomplete) {
+    if (scenario.incomplete) {
       // Narrow layouts start on Names; the readiness explanation belongs to Chat.
       await showChat(page);
       await expect(page.getByText("Review Strategy to continue the Naming conversation. Your saved names remain available.", { exact: true })).toBeVisible();

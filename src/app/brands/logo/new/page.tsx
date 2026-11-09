@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
-import { homeHref } from "../../../_home/scope-query";
 
-// A logo-only project now starts from Home's Visual identity choice.
+// Older "new logo" links open Home, which starts every new project.
 export default function NewLogoPage() {
-  redirect(homeHref("visual_identity_only"));
+  redirect("/");
 }

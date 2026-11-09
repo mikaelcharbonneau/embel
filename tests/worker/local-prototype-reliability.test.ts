@@ -22,40 +22,34 @@ afterEach(async () => {
 });
 
 describe("strict local Strategy readiness isolation", () => {
-  it("keeps Naming alive through a failed refresh, then restores acknowledged Strategy readiness on the next interval", async () => {
+  it("keeps the worker running through a failed refresh, then restores acknowledged Strategy readiness on the next interval", async () => {
     vi.useFakeTimers();
     const databaseUrl = "postgresql://fluid_naming_brain_worker.fricsfwqibyhemknqgyf:synthetic-password@aws-0-us-east-1.pooler.supabase.com:5432/postgres?sslmode=verify-full";
-    for (const [key, value] of Object.entries({ OPENAI_API_KEY: "synthetic-prototype-key", FLUID_NAMING_BRAIN_DATABASE_URL: databaseUrl,
-      FLUID_NAMING_BRAIN_DEPLOYMENT_ID: "embel-naming-local-b2ff6ce8bbc2-20261017", FLUID_NAMING_BRAIN_MODEL: "gpt-6.1-sol", FLUID_OPENAI_VERIFIED_MODELS: "gpt-6.1-sol", FLUID_NAMING_BRAIN_ENABLED: "true", FLUID_PAID_CALLS_APPROVED: "true",
+    for (const [key, value] of Object.entries({ OPENAI_API_KEY: "synthetic-prototype-key", FLUID_OPENAI_VERIFIED_MODELS: "gpt-6.1-sol", FLUID_PAID_CALLS_APPROVED: "true",
       FLUID_LOCAL_PROTOTYPE: "true", FLUID_RUNTIME: "local", NODE_ENV: "production", APP_ORIGIN: "http://127.0.0.1:3106", FLUID_WORKER_DATABASE_URL: databaseUrl, FLUID_GUIDED_INTERVIEW_ENABLED: "true",
       FLUID_TEXT_MODEL_REFORMULATE: "gpt-6.1-sol", FLUID_TEXT_MODEL_COMPETITORS: "gpt-6.1-sol", FLUID_TEXT_MODEL_AUDIENCE: "gpt-6.1-sol", FLUID_TEXT_MODEL_PERSONALITY: "gpt-6.1-sol" })) vi.stubEnv(key, value);
-    let reports = 0, strategyClaims = 0, namingClaims = 0;
+    let reports = 0, strategyClaims = 0;
     fixture.query.mockImplementation(async (sql: string) => {
       if (sql.includes("report_strategy_worker_ready")) { if (++reports === 1) throw new Error("synthetic-private-database-timeout"); return { rows: [{ ready: true }] }; }
       if (sql.includes("public.expire_job_leases")) return { rows: [{ count: 0 }] };
       if (sql.includes("public.claim_job")) { strategyClaims++; return { rows: [] }; }
-      if (sql.includes("get_naming_brain_preference_work")) return { rows: [{ result: [] }] };
-      if (sql.includes("report_naming_brain_worker_ready")) return { rows: [{ result: true }] };
-      if (sql.includes("expire_naming_brain_leases")) return { rows: [{ result: 0 }] };
-      if (sql.includes("claim_naming_brain_job")) { namingClaims++; return { rows: [{ result: null }] }; }
       throw new Error("unexpected_synthetic_query");
     });
     fixture.end.mockResolvedValue(undefined);
     const diagnostic = vi.spyOn(console, "error").mockImplementation(() => {});
     await import("../../worker/index"); await vi.advanceTimersByTimeAsync(0);
-    expect(reports).toBe(1); expect(strategyClaims).toBe(0); expect(namingClaims).toBeGreaterThan(0);
+    expect(reports).toBe(1); expect(strategyClaims).toBe(0);
     expect(fixture.end).not.toHaveBeenCalled(); expect(process.exitCode).toBe(priorExitCode);
     expect(JSON.parse(String(diagnostic.mock.calls[0]![0]))).toEqual({ event: "local_database_failure", at: expect.any(String), role: "strategy", operation: "readiness", sqlState: null, failureClass: "unknown" });
-    expect(diagnostic.mock.calls[1]).toEqual(["Local Strategy readiness unavailable; retrying without stopping Naming."]);
-    const initialNaming = namingClaims;
+    expect(diagnostic.mock.calls[1]).toEqual(["Local Strategy readiness unavailable; retrying."]);
     await vi.advanceTimersByTimeAsync(19_999);
-    expect(reports).toBe(1); expect(strategyClaims).toBe(0); expect(namingClaims).toBeGreaterThan(initialNaming);
+    expect(reports).toBe(1); expect(strategyClaims).toBe(0);
     await vi.advanceTimersByTimeAsync(1);
     expect(reports).toBeGreaterThanOrEqual(5); expect(strategyClaims).toBeGreaterThan(0);
     expect(fixture.end).not.toHaveBeenCalled(); expect(process.exitCode).toBe(priorExitCode);
     expect(JSON.stringify(diagnostic.mock.calls)).not.toContain("synthetic-private");
     fixture.clients[0]!.emit("error", new Error("synthetic cleanup"));
     await vi.advanceTimersByTimeAsync(0);
-    expect(fixture.end).toHaveBeenCalledTimes(2);
+    expect(fixture.end).toHaveBeenCalledOnce();
   });
 });

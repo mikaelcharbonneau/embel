@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { contextSnapshotSchema } from "../../src/domain/projects";
-import { expandProjectInputSchema, updateProjectInputSchema } from "../../src/domain/project-api";
+import { updateProjectInputSchema } from "../../src/domain/project-api";
 
 describe("account draft contracts", () => {
   it("retains all existing intake notes, example provenance, and audience review position", () => {
@@ -28,9 +28,7 @@ describe("account draft contracts", () => {
     expect(contextSnapshotSchema.safeParse({ audienceSegments: [{ ...segment, needs: ["b".repeat(2001)] }] }).success).toBe(false);
   });
 
-  it("requires a known revision and does not accept client ownership or arbitrary scope changes", () => {
-    expect(expandProjectInputSchema.safeParse({ expectedRevision: 0 }).success).toBe(false);
-    expect(expandProjectInputSchema.safeParse({ expectedRevision: 1, ownerId: "untrusted" }).success).toBe(false);
+  it("requires a known revision and does not accept client ownership or scope changes", () => {
     expect(updateProjectInputSchema.safeParse({ expectedRevision: 1, context: {}, scope: "complete_brand" }).success).toBe(false);
     expect(updateProjectInputSchema.parse({ expectedRevision: 2, context: {}, title: " Renamed fixture " }).title).toBe("Renamed fixture");
   });

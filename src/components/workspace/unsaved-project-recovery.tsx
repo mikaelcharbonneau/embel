@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AccountStatus, useAccountSession } from "./account-session";
 import { AccountCopyControl } from "./account-projects";
-import { draftTitle, scopeLabel, useLocalDrafts } from "./local-drafts";
+import { draftTitle, useLocalDrafts } from "./local-drafts";
 
 /** Legacy device content is revealed only by an explicit recovery action. */
 export function UnsavedProjectRecovery({ draftId }: { draftId?: string }) {
@@ -36,7 +36,7 @@ function OwnedRecovery({ ownerId, draftId }: { ownerId: string; draftId?: string
     {!opened ? <button className="text-link" type="button" onClick={() => setOpened(true)}>Recover unsaved projects</button> : <>
       <h2>Recover unsaved projects</h2>
       <p>Older projects may still be on this device. Select only work that belongs to you, then confirm it should be saved to your current account.</p>
-      <fieldset><legend>Select a project to recover</legend>{pending.map(draft => <label key={draft.id} className="scope-option"><input type="radio" name="recover-project" value={draft.id} checked={selected === draft.id} onChange={() => { setSelected(draft.id); setConfirmed(false); }} /><span><strong>{draftTitle(draft)}</strong><span>{scopeLabel(draft.scope)}</span></span></label>)}</fieldset>
+      <fieldset><legend>Select a project to recover</legend>{pending.map(draft => <label key={draft.id} className="scope-option"><input type="radio" name="recover-project" value={draft.id} checked={selected === draft.id} onChange={() => { setSelected(draft.id); setConfirmed(false); }} /><span><strong>{draftTitle(draft)}</strong></span></label>)}</fieldset>
       {chosen && <><p>{chosen.description}</p><label className="scope-option"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /><span>This is my project, and I want to save it to the account I’m currently signed in to.</span></label>{confirmed && <AccountCopyControl key={chosen.id} draft={chosen} />}</>}
       <button className="text-link" type="button" onClick={() => { setOpened(false); setSelected(null); setConfirmed(false); }}>Close recovery</button>
     </>}

@@ -10,6 +10,7 @@ import {identityBatchStateSchema,identityGenerationJobInputSchema,type IdentityG
 import {logoWorkspaceV2Schema} from '../../src/domain/logo-workspace';
 import {identityReferenceEntrySchema} from '../../src/domain/identity-references';
 import type {IdentityAssetReservation} from '../../src/server/data/identity-asset-store';
+import { reviewedStrategy } from "../fixtures/reviewed-strategy";
 export {OWNER_A,OWNER_B,capability};
 export const hash=(value:Uint8Array|string)=>createHash('sha256').update(value).digest('hex');
 /** Real SQL/RLS, synthetic Auth sessions/provider observations and local PNG
@@ -52,7 +53,7 @@ export async function createSharedIdentityFixture(){
    return {key,metadata,entry,reservation,bytes,request,receipt};
   }
   async function project(owner=OWNER_A,select=true){
-   const created=await rpc<{id:string}>(owner,'create_project',['visual_identity_only','Synthetic Identity',{description:'Clearly synthetic Identity SQL brief',selectedName:'Fixture',intake:{suppliedName:'Fixture'}},'a'.repeat(64)]),p=created.id,source=await upload(p,owner);
+   const created=await rpc<{id:string}>(owner,'create_project',['complete_brand','Synthetic Identity',reviewedStrategy({description:'Clearly synthetic Identity SQL brief',selectedName:'Fixture',intake:{suppliedName:'Fixture'}}),'a'.repeat(64)]),p=created.id,source=await upload(p,owner);
    if(select)await rpc(owner,'set_identity_reference_reaction',[p,source.entry.reference.id,{expectedRevision:0,ensemble:true,elements:[]}]);
    return {projectId:p,source,owner};
   }

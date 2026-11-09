@@ -2,7 +2,6 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { HomeScopePicker } from "@/components/workspace/home-scope-picker";
 import { HomeRecentBrands, shortDate } from "@/components/workspace/home-recent-brands";
 import type { VerifiedAccount } from "@/components/workspace/account-session";
 
@@ -18,27 +17,6 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => root.unmount()); document.body.replaceChildren(); vi.unstubAllGlobals(); });
 
-describe("Home scope switch", () => {
-  it("offers exactly the three supported scopes as one radio group and reports a change", async () => {
-    const change = vi.fn();
-    await act(async () => root.render(createElement(HomeScopePicker, { value: "complete_brand", onChange: change })));
-    expect(host.querySelector("fieldset > legend")?.textContent).toBe("What to create");
-    const radios = [...host.querySelectorAll<HTMLInputElement>('input[type="radio"]')];
-    expect(radios.map(radio => radio.parentElement!.textContent)).toEqual(["Complete brand", "Name only", "Visual identity"]);
-    expect(radios.map(radio => radio.value)).toEqual(["complete_brand", "naming_only", "visual_identity_only"]);
-    expect(new Set(radios.map(radio => radio.name)).size).toBe(1);
-    expect(radios[0]!.checked).toBe(true); expect(radios[0]!.parentElement!.dataset.checked).toBe("true");
-    await act(async () => radios[1]!.parentElement!.click());
-    expect(change).toHaveBeenCalledExactlyOnceWith("naming_only");
-  });
-  it("does not allow a frozen brief to change scope", async () => {
-    const change = vi.fn();
-    await act(async () => root.render(createElement(HomeScopePicker, { value: "complete_brand", onChange: change, disabled: true })));
-    expect(host.querySelector("fieldset")!.disabled).toBe(true);
-    await act(async () => host.querySelectorAll<HTMLLabelElement>("label")[2]!.click());
-    expect(change).not.toHaveBeenCalled();
-  });
-});
 
 function page(ownerId: string, title: string) {
   return { ownerId, items: [{ id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", owner_id: ownerId, title, scope: "complete_brand", current_revision: 1, lifecycle_version: 0, deleted_at: null, deletion_requested_at: null, deletion_state: "active", created_at: "2026-10-08T12:00:00Z" }], nextCursor: null };

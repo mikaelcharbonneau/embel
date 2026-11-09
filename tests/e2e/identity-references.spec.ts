@@ -81,8 +81,8 @@ async function rename(page: Page) { await page.getByRole("button", { name: "Edit
 async function waitWrite(page: Page, fixture: Fixture, count: number) { await expect.poll(() => fixture.writes.length).toBe(count); await expect(page.getByText("Saving…", { exact: true })).toHaveCount(0); await expect(page.getByRole("button", { name: "Check references", exact: true })).toBeEnabled(); }
 async function trackUrls(page: Page) { await page.addInitScript(() => { const create = URL.createObjectURL.bind(URL), revoke = URL.revokeObjectURL.bind(URL); Object.assign(window, { referenceUrls: [] as string[], revokedReferenceUrls: [] as string[] }); URL.createObjectURL = blob => { const url = create(blob); (window as unknown as { referenceUrls: string[] }).referenceUrls.push(url); return url; }; URL.revokeObjectURL = url => { (window as unknown as { revokedReferenceUrls: string[] }).revokedReferenceUrls.push(url); revoke(url); }; }); }
 
-for (const scope of ["complete_brand", "visual_identity_only"] as const) test(`references fixture: ${scope} opens the grid before strategy or a name`, async ({ page }) => {
-  const fixture = await setup(page); fixture.project = project(scope); await ready(page);
+test("references fixture: a brand opens the grid before strategy or a name", async ({ page }) => {
+  const fixture = await setup(page); fixture.project = project(); await ready(page);
   await expect(page.getByRole("heading", { name: "Build a visual starting point", exact: true })).toBeVisible(); await expect(page.getByRole("region", { name: "Brand references" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Message Embel", exact: true })).toHaveCount(0); await expect(page.getByRole("article")).toHaveCount(6); expect(fixture.writes).toHaveLength(0);
 });
@@ -93,11 +93,6 @@ test("references fixture: an unavailable source preserves real persisted referen
   expect(fixture.writes.map(write => write.body)).toEqual([{ expectedRevision: 0, ensemble: false, elements: ["logo"] }, { expectedRevision: 1, ensemble: false, elements: ["logo", "colors"] }, { expectedRevision: 2, ensemble: true, elements: ["logo", "colors"] }, { expectedRevision: 3, ensemble: false, elements: ["logo", "colors"] }]);
   await page.getByRole("heading", { name: "Build a visual starting point", exact: true }).focus(); await expect(card(page).getByLabel(/^Saved choices for/)).toContainText("Logo"); await expect(card(page).getByLabel(/^Saved choices for/)).toContainText("Colors"); await expect(page.getByText("1 reference selected in this project", { exact: true })).toBeVisible();
   expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain("Warm forms");
-});
-test("references fixture: naming-only links explicit scope expansion without reading references", async ({ page }) => {
-  const fixture = await setup(page); fixture.project = project("naming_only"); await page.goto(url);
-  await expect(page.getByRole("heading", { name: "Expand this project to start Identity" })).toBeVisible(); await expect(page.getByRole("link", { name: "Open project", exact: true })).toHaveAttribute("href", `/brands/account/${projectId}?view=strategy`);
-  await expect(page.getByRole("region", { name: "Brand references" })).toHaveCount(0); expect(fixture.reads).toHaveLength(0); expect(fixture.writes).toHaveLength(0);
 });
 test("references fixture: empty source is honest and failed reads are not empty success", async ({ page }) => {
   const fixture = await setup(page); fixture.rows = []; fixture.readStatus = 503; await page.goto(url);

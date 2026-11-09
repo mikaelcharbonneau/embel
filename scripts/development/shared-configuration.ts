@@ -4,7 +4,7 @@ import { lstat, mkdir, readFile, rename, rm, writeFile, chmod } from "node:fs/pr
 import path from "node:path";
 import { z } from "zod";
 import { guidedStrategyPolicy, OPENAI_STRATEGY_MODEL } from "../../src/server/ai/config";
-import { createNamingBrainPolicy } from "../../src/server/ai/naming-brain/policy";
+import { namingGenerationPolicySchema } from "../../src/domain/naming-generation";
 import { IMAGE_MODEL } from "../../src/domain/providers";
 import { identityGenerationCapabilitySchema, identityTextPolicySchema } from "../../src/domain/identity-jobs";
 import { logoDirectionsApiPolicySchema, uncappedLogoRasterCapabilitySchema } from "../../src/domain/logo-jobs";
@@ -67,7 +67,7 @@ export function developmentWorkerPolicies(): Record<z.infer<typeof lane>, Record
   return {
     strategy: Object.fromEntries((["strategy.reformulate", "strategy.competitors", "strategy.audience", "strategy.positioning", "strategy.personality", "strategy.slogan"] as const)
       .map(operation => [operation, guidedStrategyPolicy(operation)])),
-    naming: { "naming.generate": createNamingBrainPolicy(DEVELOPMENT_MODELS.naming) },
+    naming: { "naming.generate": namingGenerationPolicySchema.parse({ version: 2, operation: "naming.generate", model: DEVELOPMENT_MODELS.naming, reasoningEffort: "low" }) },
     logo: Object.fromEntries(capabilities.map(value => [value.operation, value])),
   };
 }

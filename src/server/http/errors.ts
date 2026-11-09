@@ -3,12 +3,20 @@ import "server-only";
 export type ApiErrorCode =
   | "unauthenticated" | "not_found" | "conflict" | "invalid_input"
   | "forbidden_origin" | "body_too_large" | "integration_unavailable" | "internal_error"
-  | "invalid_credentials" | "signup_failed" | "auth_rate_limited" | "naming_history_capacity";
+  | "invalid_credentials" | "signup_failed" | "auth_rate_limited" | "naming_history_capacity"
+  | "naming_active" | "project_revision_changed" | "preferences_changed" | "preferences_incomplete"
+  | "invalid_naming_request" | "naming_unavailable";
 
 const failures = {
   unauthenticated: [401, "Sign in to continue."],
   not_found: [404, "This resource is unavailable."],
   naming_history_capacity: [409, "This project's naming history has reached the generation limit. Your saved names are preserved."],
+  naming_active: [409, "Names are already being generated for this project."],
+  project_revision_changed: [409, "The project changed. Check the latest version before generating names."],
+  preferences_changed: [409, "Your naming choices changed. Check them before generating names."],
+  preferences_incomplete: [422, "Finish your naming choices before generating names."],
+  invalid_naming_request: [422, "Check the naming request."],
+  naming_unavailable: [503, "AI name generation is unavailable right now."],
   conflict: [409, "This request conflicts with the current state."],
   invalid_input: [422, "Check the submitted information."],
   forbidden_origin: [403, "This request origin is not allowed."],

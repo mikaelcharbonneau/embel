@@ -11,7 +11,7 @@ const ownerId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const projectId = "11111111-1111-4111-8111-111111111111";
 const requestKey = "22222222-2222-4222-8222-222222222222";
 const context = contextSnapshotSchema.parse({ description: "Local creation request fixture", intake: { example: true } });
-const input = { title: "Fixture project", scope: "naming_only", context, requestKey };
+const input = { title: "Fixture project", scope: "complete_brand", context, requestKey };
 const hash = createHash("sha256").update(JSON.stringify(context)).digest("hex");
 const project = { id: projectId, owner_id: ownerId, current_revision: 1, scope: input.scope, title: input.title, context, created_at: "2026-10-15T00:00:00Z" };
 const request = (body: unknown, expectedAccount: string | null = ownerId) => new Request("https://fluid.example/api/projects", {

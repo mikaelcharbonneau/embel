@@ -4,7 +4,7 @@ import { createAccountDraftMemory } from "@/components/workspace/account-draft-m
 import { accountProjectDraft } from "@/components/workspace/project-draft-adapter";
 
 function entry(index: number, dirty = false) {
-  const saved = accountProjectSchema.parse({ id: `aaaaaaaa-1111-4111-8111-${String(index).padStart(12, "0")}`, owner_id: "bbbbbbbb-1111-4111-8111-111111111111", scope: "naming_only", title: `Local memory fixture ${index}`, current_revision: 1, created_at: "2026-10-02T10:00:00Z", context: {} });
+  const saved = accountProjectSchema.parse({ id: `aaaaaaaa-1111-4111-8111-${String(index).padStart(12, "0")}`, owner_id: "bbbbbbbb-1111-4111-8111-111111111111", scope: "complete_brand", title: `Local memory fixture ${index}`, current_revision: 1, created_at: "2026-10-02T10:00:00Z", context: {} });
   const draft = accountProjectDraft(saved);
   if (dirty) draft.namingNotes = "An unsaved note";
   return { generation: 1, ownerId: saved.owner_id, saved, draft, conflict: false };
