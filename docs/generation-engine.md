@@ -37,7 +37,7 @@ Each journey step moves over on its own, behind a switch, and the old path is de
 plans(id text pk, name, monthly_credits int, active bool)              -- free / pro / studio
 credit_accounts(owner_id pk -> auth.users, plan_id, period_start, period_end)
 credit_entries(id, owner_id, delta int, kind grant|charge|refund, run_id null, note, created_at)
-generation_kinds(kind text pk, credits int, enabled bool, max_per_day int)
+generation_kinds(kind text pk, credits int, enabled bool, max_per_day int, max_running_minutes int)
 generation_runs(id, owner_id, project_id, kind, status queued|running|succeeded|failed|cancelled,
                 idempotency_key, input jsonb, workflow_run_id, error_code, cancel_requested_at,
                 created_at, started_at, finished_at; unique(owner_id, idempotency_key))
@@ -53,6 +53,9 @@ fluid_private.engine_settings(id bool pk default true, paused bool, global_daily
 - `start_generation(project_id, kind, idempotency_key, input)` does this, in order:
   1. takes the owner from `auth.uid()` and checks they own the project;
   2. checks the kind is enabled and the engine isn't paused;
+     It then ends the owner's overdue runs with a refund: queued with no workflow after 10 minutes
+     (`start_failed`), or running past the kind's `max_running_minutes`, 30 by default (`run_timed_out`).
+     `cancel_generation` does the same, so cancelling a run whose workflow stopped reporting ends it at once;
   3. checks there's no active run for the same project and kind;
   4. checks the owner's daily limit and the global cost cap;
   5. grants the monthly allowance lazily when a new period starts;
