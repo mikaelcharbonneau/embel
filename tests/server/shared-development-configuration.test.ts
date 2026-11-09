@@ -15,11 +15,12 @@ const modelTransport = () => vi.fn<typeof fetch>(async url => new Response(JSON.
 afterEach(async () => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); await Promise.all(directories.splice(0).map(root => rm(root, { recursive: true, force: true }))); });
 
 describe("portable shared worker configuration uses genuine policy and credential contracts", () => {
-  it("uses the actual guided/naming builders and qualifies all seven Logo/Identity capabilities", () => {
+  it("uses the actual guided/naming builders and qualifies all eight Logo/Identity capabilities", () => {
     const policies = developmentWorkerPolicies();
     expect(policies.strategy["strategy.competitors"]).toEqual(guidedStrategyPolicy("strategy.competitors"));
     expect(policies.naming["naming.generate"]).toEqual({ version: 2, operation: "naming.generate", model: "gpt-6-luna", reasoningEffort: "low" });
-    expect(Object.keys(policies.logo)).toHaveLength(7);
+    expect(Object.keys(policies.logo)).toHaveLength(8);
+    expect(policies.logo["identity.logo_style_note"]).toMatchObject({ spendControl: "uncapped", handlerVersion: "logo-style-note-v1", apiPolicy: { model: "gpt-6.1-sol", adapterVersion: "logo-style-note-openai-v1" } });
     for (const policy of Object.values(policies.logo)) expect(qualifySharedLogoCapability(policy)).not.toBeNull();
     expect(policies.logo["identity.image"]).toMatchObject({ spendControl: "uncapped", textPolicy: { model: "gpt-6.1-sol" } });
     expect(policies.logo["identity.logo_concept"]).toMatchObject({ spendControl: "uncapped", estimatedCostMicrousd: null });
@@ -88,8 +89,10 @@ describe("portable shared worker configuration uses genuine policy and credentia
     expect(config.capacity).toMatchObject({ maxConcurrentExecutions: 8, maxPerTenantPerLane: 6 });
     const logo = config.slots.filter(slot => slot.lane === "logo");
     expect(logo).toHaveLength(6);
+    // Slot 1 keeps its seven-operation maximum; the concept slots also write liked-upload style notes.
     expect(Object.keys(logo[0]!.policies)).toHaveLength(7);
-    for (const slot of logo.slice(1)) expect(Object.keys(slot.policies).sort()).toEqual(["identity.logo_concept", "identity.logo_refine"]);
+    expect(logo[0]!.policies).not.toHaveProperty("identity.logo_style_note");
+    for (const slot of logo.slice(1)) expect(Object.keys(slot.policies).sort()).toEqual(["identity.logo_concept", "identity.logo_refine", "identity.logo_style_note"]);
     const env = { NODE_ENV: "development", EMBEL_DEVELOPMENT_ENABLED: "true", EMBEL_SHARED_WORKER_POOL_ENABLED: "true",
       EMBEL_SHARED_WORKER_POOL_CONFIGURATION: await readFile(path.join(directory, "configuration.json"), "utf8"), EMBEL_SHARED_WORKER_POOL_SECRETS: await readFile(path.join(directory, "secrets.json"), "utf8") };
     const secrets = readSharedPoolSecrets(readSharedPoolConfiguration(env)!, env);

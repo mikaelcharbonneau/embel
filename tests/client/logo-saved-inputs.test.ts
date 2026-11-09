@@ -18,7 +18,7 @@ function setup(existing = false) {
   memory.set(projectId, { workspace, base: workspace.heads, brief: existing ? oldBrief : { name: "", activity: "", audience: "", personality: "", logoTypes: [] },
     references: [], dirty: false, conflict: false, pendingMutation: null, pendingIntent: null, pendingExport: null });
   let source: LogoSavedInputs = logoSavedInputsSchema.parse({ ownerId, projectId, projectRevision: 1, inspirationSelectionRevision: 2,
-    draft: syntheticLogoBrief({ logoTypes: DEFAULT_LOGO_CONCEPT_TYPES, personality: "Calm\nSaved inspiration: fixture creator — selected typography and shape." }), nameConflict: false, inspirationCount: 2, references: [] });
+    draft: syntheticLogoBrief({ logoTypes: DEFAULT_LOGO_CONCEPT_TYPES, personality: "Calm\nSaved inspiration: fixture creator — selected typography and shape." }), nameConflict: false, inspirationCount: 2, references: [], uploadNotes: [] });
   let revision: LogoBriefRevision = { ...fixture.brief, payload: { ...fixture.brief.payload, ...oldBrief } };
   let current = true, uncertainSave = false, readGate: Promise<void> | null = null, savedGate: Promise<void> | null = null;
   const saves: LogoBriefDraft[] = [], progress: string[] = [];
@@ -50,10 +50,11 @@ function setup(existing = false) {
     memory.set(projectId, { ...previous, workspace: nextWorkspace, base: nextWorkspace.heads, references: selections, dirty: false, pendingMutation: null });
   });
   const controller = new AbortController();
-  const run = () => prepareSavedLogoConcepts({ ownerId, projectId, signal: controller.signal, isCurrent: () => current,
-    getDraft: () => memory.get(projectId), readSavedInputs, saveBrief, saveReferences, readBriefRevision, onProgress: phase => progress.push(phase) });
-  const check = () => prepareSavedLogoConcepts({ ownerId, projectId, signal: controller.signal, isCurrent: () => current, checkOnly: true,
-    getDraft: () => memory.get(projectId), readSavedInputs, saveBrief, saveReferences, readBriefRevision, onProgress: phase => progress.push(phase) });
+  type NoteOptions = Pick<Parameters<typeof prepareSavedLogoConcepts>[0], "requestStyleNote" | "wait">;
+  const run = (notes: NoteOptions = {}) => prepareSavedLogoConcepts({ ownerId, projectId, signal: controller.signal, isCurrent: () => current,
+    getDraft: () => memory.get(projectId), readSavedInputs, saveBrief, saveReferences, readBriefRevision, onProgress: phase => progress.push(phase), ...notes });
+  const check = (notes: NoteOptions = {}) => prepareSavedLogoConcepts({ ownerId, projectId, signal: controller.signal, isCurrent: () => current, checkOnly: true,
+    getDraft: () => memory.get(projectId), readSavedInputs, saveBrief, saveReferences, readBriefRevision, onProgress: phase => progress.push(phase), ...notes });
   return { run, check, memory, projectId, ownerId, saves, referenceSaves, progress, readSavedInputs, readBriefRevision, get source() { return source; }, get revision() { return revision; },
     updateSource(change: Partial<LogoSavedInputs>) { source = { ...source, ...change }; },
     /** Changes the saved brief as if it had been saved with these details. */
@@ -189,5 +190,35 @@ describe("saved logo inputs transport", () => {
     expect(seen).toEqual([`/api/projects/${f.projectId}/logo/saved-inputs`]);
     response = { ...response, ownerId: id(998) };
     await expect(client.readLogoSavedInputs()).rejects.toMatchObject({ status: 502 });
+  });
+});
+
+describe("liked upload style notes", () => {
+  const upload = { referenceId: id(700), aspects: ["overall_feel" as const] };
+  it("requests a missing note once as part of the click, waits for it, then saves the brief with it", async () => {
+    const f = setup(); f.updateSource({ references: [upload], uploadNotes: [{ referenceId: upload.referenceId, status: "missing" }] });
+    const withNote = { ...f.source.draft!, personality: `${f.source.draft!.personality}\nLiked logo style: solid square modules` };
+    const requested: string[] = []; let waits = 0;
+    const result = await f.run({
+      requestStyleNote: async referenceId => { requested.push(referenceId); f.updateSource({ uploadNotes: [{ referenceId, status: "pending" }] }); },
+      wait: async () => { waits += 1; if (waits === 2) f.updateSource({ uploadNotes: [{ referenceId: upload.referenceId, status: "ready" }], draft: withNote }); },
+    });
+    expect(requested).toEqual([upload.referenceId]);
+    expect(waits).toBe(2);
+    expect(result.status).toBe("prepared");
+    expect(f.saves.at(-1)?.personality).toContain("Liked logo style: solid square modules");
+  });
+  it("does not wait for a note whose request was not admitted, and goes ahead without it", async () => {
+    const f = setup(); f.updateSource({ references: [upload], uploadNotes: [{ referenceId: upload.referenceId, status: "missing" }] });
+    let waits = 0;
+    const result = await f.run({ requestStyleNote: async () => { throw new Error("conflict"); }, wait: async () => { waits += 1; } });
+    expect(waits).toBe(0);
+    expect(result.status).toBe("prepared");
+  });
+  it("never requests a note while only checking for newer likes", async () => {
+    const f = setup(); f.updateSource({ references: [upload], uploadNotes: [{ referenceId: upload.referenceId, status: "missing" }] });
+    const requestStyleNote = vi.fn(async () => {});
+    expect((await f.check({ requestStyleNote, wait: async () => {} })).status).toBe("checked");
+    expect(requestStyleNote).not.toHaveBeenCalled();
   });
 });

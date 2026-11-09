@@ -97,3 +97,22 @@ edits, each checked against its reviewed predecessor body:
 Any other brief change still makes that work outdated. It changes no rows. Apply
 it with the worker build whose authority manifest lists it; that build accepts up
 to 22 packets.
+
+## November 9 liked-upload style notes packet
+
+`supabase/candidates/shared_logo_style_notes.sql` follows
+`shared_logo_types_keep_concepts.sql`. It adds the operation
+`identity.logo_style_note`: one admitted text request that writes a style note
+for one liked upload, stored in the new owner-readable, immutable
+`public.logo_style_notes`, plus the owner-only reader
+`public.read_logo_style_note_jobs`. It adds eight private functions and makes
+guarded edits to thirteen shared Logo functions (operation lists, quote,
+admission, job binding, usage recording, worker actions and Storage reads),
+each checked against its reviewed predecessor body, and allows the step key
+`write-style-note`. `shared_logo_project_clear` is unchanged, so an unclear
+note never blocks a project's other Logo work.
+
+Release order: deploy the web app from the same branch first (it reads the
+seventh capability as optional), then apply the packet, then deploy the worker
+build whose authority manifest lists it (23 packets) and install the note
+policy on the concept slots only; Logo slot 1 stays at seven operations.

@@ -4,7 +4,7 @@ import { z } from "zod";
 export const IMAGE_MODEL = "gpt-image-2.5-sunburst-2026-09-08" as const;
 export const textOperationSchema = z.enum(["strategy.reformulate", "strategy.competitors", "strategy.audience", "strategy.personality", "strategy.positioning", "strategy.slogan", "naming.generate", "ideas.explore"]);
 export type TextOperation = z.infer<typeof textOperationSchema>;
-export const operationSchema = z.enum([...textOperationSchema.options, "identity.image", "identity.vector", "brand.export", "identity.logo_concept", "identity.logo_refine", "identity.logo_vectorize", "identity.logo_directions", "identity.logo_export", "identity.logo_vector_propose"]);
+export const operationSchema = z.enum([...textOperationSchema.options, "identity.image", "identity.vector", "brand.export", "identity.logo_concept", "identity.logo_refine", "identity.logo_vectorize", "identity.logo_directions", "identity.logo_export", "identity.logo_vector_propose", "identity.logo_style_note"]);
 export type Operation = z.infer<typeof operationSchema>;
 
 export const providerFailureSchema = z.discriminatedUnion("kind", [

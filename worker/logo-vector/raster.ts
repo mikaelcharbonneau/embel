@@ -65,6 +65,27 @@ export async function inspectDecodedIdentityRaster(input: { bytes: Uint8Array; m
   return (await decodeIdentityRaster(input)).inspection;
 }
 
+/** Bytes of the image a style-note request may carry, so the whole request
+ * stays within the 128 KiB text-policy input bound. */
+export const LOGO_REFERENCE_NOTE_IMAGE_BYTES = 90_000;
+/** A liked upload as the style-note model sees it: decoded in this bounded
+ * child, placed on white so a transparent logo is not read as solid black, and
+ * at most 1024 pixels on its longer edge. A PNG is kept when it fits; a larger
+ * image (a photo) steps down through JPEG sizes. The stored upload is unchanged. */
+export async function flattenDecodedLogoReference(input: { bytes: Uint8Array; mimeType: string }): Promise<{ imageBase64: string; mimeType: "image/png" | "image/jpeg" }> {
+  const { raw } = await decodeIdentityRaster(input);
+  const sharp = (await import("sharp")).default;
+  const onWhite = (edge: number) => sharp(raw.data, { raw: { width: raw.info.width, height: raw.info.height, channels: 4 } })
+    .flatten({ background: "#ffffff" }).resize({ width: edge, height: edge, fit: "inside", withoutEnlargement: true });
+  const png = await onWhite(1024).png({ compressionLevel: 9, adaptiveFiltering: false, palette: false }).toBuffer();
+  if (png.length && png.length <= LOGO_REFERENCE_NOTE_IMAGE_BYTES) return { imageBase64: png.toString("base64"), mimeType: "image/png" };
+  for (const [edge, quality] of [[1024, 80], [768, 75], [512, 70]] as const) {
+    const jpeg = await onWhite(edge).jpeg({ quality, mozjpeg: false }).toBuffer();
+    if (jpeg.length && jpeg.length <= LOGO_REFERENCE_NOTE_IMAGE_BYTES) return { imageBase64: jpeg.toString("base64"), mimeType: "image/jpeg" };
+  }
+  throw new LogoVectorError("limit_exceeded", "The reference is too detailed to send within the note request bound.");
+}
+
 /** Concept previews and their raster refinements have a grayscale contract.
  * Normalize in the same bounded child as inspection, before artifact identity
  * is assigned. Existing monochrome bytes and all alpha values are preserved. */

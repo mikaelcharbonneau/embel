@@ -19,6 +19,8 @@ export const logoCapabilitiesSchema = z.strictObject({
     'identity.logo_export': status,
     // Historical five-operation responses remain readable; only exact current readiness may enable this lane.
     'identity.logo_vector_propose': status.optional(),
+    // Liked-upload style notes; earlier responses without it remain readable.
+    'identity.logo_style_note': status.optional(),
   }),
 }).superRefine((value, context) => {
   const observed = Date.parse(value.observedAt);

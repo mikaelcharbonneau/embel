@@ -1,6 +1,9 @@
 import { isDeepStrictEqual } from "node:util";
 import type { ClaimedJob } from "../../src/domain/jobs";
-import { logoDirectionsApiJobInputSchema,logoProviderObservationSchema,logoProviderResponseReceiptSchema } from "../../src/domain/logo-jobs";
+import { logoDirectionsApiJobInputSchema,logoProviderObservationSchema,logoProviderResponseReceiptSchema,logoStyleNoteJobInputSchema } from "../../src/domain/logo-jobs";
+import { createLogoStyleNoteHandler } from "../handlers/logo-style-notes";
+import { createSharedStyleNoteProvider } from "./logo-style-notes-api";
+import { runLogoReferenceOnWhiteProcess } from "../logo-vector/process";
 import { loadDirectionInputs,stageLogoDirections,readLeasedLogoRecord,type LogoWorkerConnection } from "../../src/server/data/logo-jobs";
 import { createLogoVectorProposalWorkerPorts } from "../../src/server/data/logo-vector-proposal-worker";
 import type { IdentityAssetStore } from "../../src/server/data/identity-asset-store";
@@ -55,6 +58,19 @@ export function createSharedAdvancedLogoHandler(options:{job:ClaimedJob;capabili
      const result=await connection.query<{value:unknown}>("select public.record_logo_provider_response($1,$2,$3) value",[claim.id,claim.leaseToken,JSON.stringify(parsed)]);
      return logoProviderResponseReceiptSchema.parse(result.rows[0]?.value);},
     publish:(current,result,receipt,signal)=>stageLogoDirections(connection,assets,snapshot(current),result,receipt,signal)});
+  }
+  case "identity.logo_style_note":{
+   if(!assets||!("apiPolicy" in capability)||capability.operation!=="identity.logo_style_note"||!options.textProvider||options.textProvider.model!==capability.apiPolicy.model)break;
+   const provider=createSharedStyleNoteProvider({ownerId:job.ownerId,policy:capability.apiPolicy,apiKey:options.textProvider.apiKey,transport:options.textTransport,acceptingWork:options.acceptingWork});
+   const snapshot=(current:ClaimedJob)=>{const input=logoStyleNoteJobInputSchema.parse(current.input);
+    if(current.id!==job.id||current.leaseToken!==job.leaseToken||current.ownerId!==job.ownerId||current.projectId!==job.projectId
+     ||input.policyIdentity!==capability.policyIdentity||!isDeepStrictEqual(input.apiPolicy,capability.apiPolicy))throw Error("shared_style_note_binding");return current;};
+   return createLogoStyleNoteHandler({provider,assets,
+    loadInput:async current=>(await connection.query<{value:unknown}>("select public.read_leased_logo_record($1,$2,$3,$4) value",[snapshot(current).id,current.leaseToken,"style_note_input",null])).rows[0]?.value,
+    onWhite:async(bytes,mimeType,signal)=>runLogoReferenceOnWhiteProcess({bytes,mimeType},signal),
+    async assertReady(current){await assertAvailable(snapshot(current));if(await readLeasedLogoRecord(connection,current,"runtime_readiness")!==true)throw Error("shared_style_note_readiness");},
+    recordResponse:async(current,observation)=>(await connection.query<{value:unknown}>("select public.record_logo_provider_response($1,$2,$3) value",[snapshot(current).id,current.leaseToken,JSON.stringify(observation)])).rows[0]?.value,
+    stage:async(current,note,receiptId)=>(await connection.query<{value:unknown}>("select fluid_private.stage_logo_style_note($1,$2,$3,$4) value",[snapshot(current).id,current.leaseToken,JSON.stringify(note),receiptId])).rows[0]?.value});
   }
   case "identity.image":{
    if(!assets||!options.identityFactory||!options.textProvider||!("textPolicy" in capability))break;

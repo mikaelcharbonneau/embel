@@ -278,6 +278,17 @@ function OwnedLogoCreation({ account, projectId, onContinue, continueHidden }: {
         isCurrent: current, getDraft: () => memory.get(projectId), readSavedInputs: signal => client.readLogoSavedInputs(signal),
         saveBrief: brief => workspace.saveBrief(brief), saveReferences: selections => workspace.saveReferences(selections), readBriefRevision: (id, signal) => client.getLogoStageRevision("brief_references", id, signal),
         onProgress: status => { if (current()) setSavedInputs({ status }); },
+        // One note request per liked upload without a note, as part of this click.
+        requestStyleNote: async (referenceId, expected, signal) => {
+          const quote = await client.quoteLogoOperation({ operation: "style_note", expected, referenceId }, signal);
+          if (!quote) throw new Error("Style note quote unavailable");
+          if (!await client.admitLogoOperation({ requestKey: crypto.randomUUID(), quoteId: quote.id, expected }, signal)) throw new Error("Style note not admitted");
+        },
+        wait: (milliseconds, signal) => new Promise<void>((resolve, reject) => {
+          const timer = setTimeout(() => { signal.removeEventListener("abort", abort); resolve(); }, milliseconds);
+          const abort = () => { clearTimeout(timer); reject(new Error("Cancelled")); };
+          signal.addEventListener("abort", abort, { once: true });
+        }),
       });
       if (current() && result.status !== "obsolete") {
         if (result.status === "prepared") preparedInputsKey.current = JSON.stringify(result.request.expected);

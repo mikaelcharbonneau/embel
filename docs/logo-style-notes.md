@@ -46,9 +46,31 @@ and makes one paid text request per new or changed brand, using the
 development provider key. The first full run on November 9 made 56 requests
 (71,020 input and 4,118 output tokens).
 
-## Not yet covered
+## Liked uploads
 
-Liked uploads ("Your images") are still attached to concept requests as images
-for the edit endpoint. Giving them notes needs its own admitted, recorded AI
-step; it is not part of this change. Uploads with a transparent background are
-also read poorly by models today; the note step should place them on white.
+A liked upload ("Your images") gets its own note, written once per upload
+version by the admitted operation `identity.logo_style_note`
+(`supabase/candidates/shared_logo_style_notes.sql`):
+
+- Clicking Generate (or More concepts) requests a note for each liked upload
+  that has none, then waits up to a minute for them. A note still being
+  written, or one that is unavailable, stays out of that brief; it joins the
+  next set once written.
+- The worker decodes the upload in the isolated raster child, places it on
+  white (a transparent logo is otherwise read as solid black) and sends it at
+  most 1024 px, as PNG or, if larger, JPEG within the 128 KiB request bound.
+- One structured `gpt-6.1-sol` request under Creative direction's exact text
+  prices and limits; usage is recorded from the response before the note is
+  stored, and the price is checked against the policy in the database.
+- Notes are stored in `public.logo_style_notes` (owner-readable, never
+  changed). An unclear outcome is left for review and never repeated; a
+  request is not admitted while another for the same upload version is
+  unfinished or awaiting review. After two definite failures, that upload
+  version is not requested again automatically.
+- Concepts no longer attach uploads as images; refinements still attach their
+  base logo and references. Ready upload notes come first in the brief, then
+  library likes, at most four in all.
+- A saved brief whose liked-style lines differ from the latest (for example,
+  an upload note written after the brief was saved) counts as outdated.
+
+The first local note: 1,447 input and 61 output tokens, recorded at $0.004.

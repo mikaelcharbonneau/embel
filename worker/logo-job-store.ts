@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { LogoWorkerConnection } from '../src/server/data/logo-jobs';
 import { parseClaimedJob } from './postgres-store';
 import { PlanConflictError,type JobStore } from './runner';
-import { logoOperationSchema,logoExportPartialStepOutputSchema } from '../src/domain/logo-jobs';
+import { logoOperationSchema,logoExportPartialStepOutputSchema,logoStyleNoteJobInputSchema } from '../src/domain/logo-jobs';
 import { logoVectorProposalStepOutputSchema, logoVectorProposalUnpublishedOutputSchema } from '../src/domain/logo-vector-proposal-evidence';
 import { identityGenerationJobInputSchema } from '../src/domain/identity-jobs';
 import { logoVectorProposalJobInputSchema } from '../src/domain/logo-vector-proposal-jobs';
@@ -17,6 +17,9 @@ export function createLogoJobStore(connection:LogoWorkerConnection):JobStore & {
   else if(job.operation==='identity.logo_vector_propose') {
    const input=logoVectorProposalJobInputSchema.parse(job.input);
    if(input.ownerId!==job.ownerId||input.projectId!==job.projectId)throw new Error('Proposal claim scope mismatch');
+  } else if(job.operation==='identity.logo_style_note') {
+   const input=logoStyleNoteJobInputSchema.parse(job.input);
+   if(input.ownerId!==job.ownerId||input.projectId!==job.projectId)throw new Error('Style note claim scope mismatch');
   } else logoOperationSchema.parse(job.operation);
  }
  function proposalOutcome(job:ClaimedJob,stepKey:string,outcome:StepOutcome):StepOutcome {

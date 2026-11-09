@@ -45,7 +45,8 @@ const guardrails = "Create exactly one original logo concept in black and white.
 function briefData(input: LogoResolvedConceptInput | LogoResolvedRefinementInput, drawsText: boolean) {
   const { name, activity, audience } = input.brief.payload, personality = logoPromptPersonality(input.brief.payload.personality, drawsText);
   return { name, activity, audience, personality, briefRevisionId: input.brief.id,
-    references: input.referenceSnapshot.references.map((ref, index) => ({ image: index + (input.input.operation === "identity.logo_refine" ? 2 : 1), selectedAspects: ref.aspects })) };
+    // Concepts carry liked uploads as style notes in the brief, not as images to edit.
+    references: input.input.operation === "identity.logo_refine" ? input.referenceSnapshot.references.map((ref, index) => ({ image: index + 2, selectedAspects: ref.aspects })) : [] };
 }
 export function buildLogoConceptPrompt(raw: LogoResolvedConceptInput): string {
   const input = logoResolvedConceptInputSchema.parse(raw), slot = input.input.plan.slots.find(row => row.ordinal === input.input.ordinal)!;
@@ -81,7 +82,8 @@ export function createLogoImageProvider({ configuration, transport }: { configur
       if (input.input.operation === "identity.logo_refine" && input.input.source.kind === "vector" && getVectorRefinementCapability(input.input.source.locks).status !== "available") throw new Error("Unsupported locks");
       const expected = "basePreview" in input ? [input.basePreview, ...input.referenceSnapshot.references.map(ref => ref.asset)] : input.referenceSnapshot.references.map(ref => ref.asset);
       if (images.length !== expected.length || images.some((image, index) => !sameReference(image.reference, expected[index]!))) throw new Error("Exact reference bytes required");
-      request = await validateLogoImageInputs({ model: IMAGE_MODEL, prompt: "basePreview" in input ? buildLogoRefinementPrompt(input) : buildLogoConceptPrompt(input), size: "1024x1024", quality: "medium", images }, signal);
+      // A concept is drawn fresh (generations); only a refinement edits its base preview with its references.
+      request = await validateLogoImageInputs({ model: IMAGE_MODEL, prompt: "basePreview" in input ? buildLogoRefinementPrompt(input) : buildLogoConceptPrompt(input), size: "1024x1024", quality: "medium", images: "basePreview" in input ? images : [] }, signal);
       if (signal.aborted) throw new Error("Aborted");
     } catch { return { status: "not_dispatched", code: "invalid_or_unavailable_inputs", providerRequestId: null, responseHash: null, billing: { status: "recorded", confirmedMicrousd: 0 } }; }
     try {

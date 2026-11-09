@@ -1,5 +1,5 @@
 import { logoBriefOutdated, logoSavedInputsSchema, type LogoSavedInputs } from "@/domain/logo-saved-inputs";
-import type { LogoBriefDraft, LogoReferenceSelection, LogoStageRevision } from "@/domain/logo-workspace";
+import type { LogoBriefDraft, LogoExpectedHeads, LogoReferenceSelection, LogoStageRevision } from "@/domain/logo-workspace";
 import type { LogoQuoteRequest } from "@/domain/logo-jobs";
 import type { LogoDraftRecord } from "../identity/logo-draft-memory";
 import { AccountRequestError, accountErrorMessage } from "../workspace/account-api";
@@ -24,7 +24,14 @@ type Input = {
   onProgress(phase: "reading" | "saving"): void;
   /** Compare only: report whether the saved likes are newer, and save nothing. */
   checkOnly?: boolean;
+  /** Requests one liked upload's style note, as part of this deliberate generation. */
+  requestStyleNote?(referenceId: string, expected: LogoExpectedHeads, signal: AbortSignal): Promise<void>;
+  /** Waits between reads while requested notes are written. */
+  wait?(milliseconds: number, signal: AbortSignal): Promise<void>;
 };
+/** Notes usually take seconds; past this the concepts go ahead without the
+ * unfinished ones, which join the next set once written. */
+const STYLE_NOTE_WAIT_ROUNDS = 30, STYLE_NOTE_WAIT_MS = 2_000;
 
 const same = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
 const byReference = (rows: readonly LogoReferenceSelection[]) => [...rows].sort((a, b) => a.referenceId.localeCompare(b.referenceId));
@@ -59,6 +66,27 @@ export async function prepareSavedLogoConcepts(input: Input): Promise<LogoSavedI
     if (!parsed.success || parsed.data.ownerId !== input.ownerId || parsed.data.projectId !== input.projectId) throw new AccountRequestError(502);
     source = parsed.data;
     if (source.projectRevision !== captured.workspace.heads.projectRevision) return { status: "blocked", message: changed, source };
+    // Liked uploads guide concepts through style notes: request the missing ones
+    // once, then wait briefly for them. A note that is unavailable or still
+    // being written stays out of this brief rather than holding the click.
+    if (!input.checkOnly && input.requestStyleNote && input.wait && source.uploadNotes.some(note => note.status === "missing" || note.status === "pending")) {
+      const awaited = new Set(source.uploadNotes.filter(row => row.status === "pending").map(row => row.referenceId));
+      for (const note of source.uploadNotes.filter(row => row.status === "missing")) {
+        try { await input.requestStyleNote(note.referenceId, captured.workspace.heads, input.signal); awaited.add(note.referenceId); }
+        catch { if (!current()) return { status: "obsolete" }; }
+      }
+      for (let round = 0; awaited.size && round < STYLE_NOTE_WAIT_ROUNDS; round += 1) {
+        await input.wait(STYLE_NOTE_WAIT_MS, input.signal);
+        if (!current()) return { status: "obsolete" };
+        if (!unchanged()) return { status: "blocked", message: blockedEdits };
+        const again = logoSavedInputsSchema.safeParse(await input.readSavedInputs(input.signal));
+        if (!current()) return { status: "obsolete" };
+        if (!again.success || again.data.ownerId !== input.ownerId || again.data.projectId !== input.projectId) throw new AccountRequestError(502);
+        source = again.data;
+        if (source.projectRevision !== captured.workspace.heads.projectRevision) return { status: "blocked", message: changed, source };
+        if (!source.uploadNotes.some(note => awaited.has(note.referenceId) && (note.status === "pending" || note.status === "missing"))) break;
+      }
+    }
     const briefRef = captured.workspace.stages.brief_references, currentBrief = briefRef ? captured.brief : null, draft = source.draft;
     let used: "brand" | "current" = draft ? "brand" : "current";
     if (draft && currentBrief && briefRef && !same(currentBrief, draft)) {

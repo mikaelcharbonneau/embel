@@ -26,7 +26,7 @@ function fixture() {
     if (state.owner !== original.ownerId) return new Response(null, { status: 404 });
     // The Logo step reads the saved brand and inspiration and prepares its brief by itself.
     if (path.endsWith("/saved-inputs")) return Response.json({ ownerId: original.ownerId, projectId: original.projectId, projectRevision: state.projectRevision,
-      inspirationSelectionRevision: 0, inspirationCount: 0, references: [], nameConflict: false, draft: syntheticLogoBrief({ name: state.name }) });
+      inspirationSelectionRevision: 0, inspirationCount: 0, references: [], uploadNotes: [], nameConflict: false, draft: syntheticLogoBrief({ name: state.name }) });
     if (path.endsWith("/capabilities")) {
       const observed = Date.now();
       return Response.json({ ownerId: original.ownerId, projectId: original.projectId, observedAt: new Date(observed).toISOString(), operations: {
@@ -93,7 +93,7 @@ describe("existing-brand initialization through the actual logo workspace", () =
       if (path.endsWith("/saved-inputs")) {
         reads.push(path);
         return Response.json({ ownerId: f.original.ownerId, projectId: f.original.projectId, projectRevision: 1, inspirationSelectionRevision: 0,
-          inspirationCount: 0, references: [], nameConflict: false, draft: savedName === null ? null : syntheticLogoBrief({ name: savedName }) });
+          inspirationCount: 0, references: [], uploadNotes: [], nameConflict: false, draft: savedName === null ? null : syntheticLogoBrief({ name: savedName }) });
       }
       if (path.endsWith("/capabilities")) {
         const observed = Date.now();
@@ -125,7 +125,7 @@ describe("existing-brand initialization through the actual logo workspace", () =
     const personality = `Calm\n${logoInspirationHeading("2026-10-13.1", 1)}\nVelto brand (colors): Colors: Vibrant lime and light violet.`;
     f.fetcher = async (url, options) => {
       if (String(url).endsWith("/saved-inputs") && liked) return Response.json({ ownerId: f.original.ownerId, projectId: f.original.projectId, projectRevision: 1,
-        inspirationSelectionRevision: 1, inspirationCount: 1, references: [], nameConflict: false, draft: syntheticLogoBrief({ name: f.state.name, personality }) });
+        inspirationSelectionRevision: 1, inspirationCount: 1, references: [], uploadNotes: [], nameConflict: false, draft: syntheticLogoBrief({ name: f.state.name, personality }) });
       return transport(url, options);
     };
     await mount(f); await until(() => f.state.posts.length === 1 && message().includes("Élan & Co"));

@@ -43,6 +43,16 @@ describe("logo image producer capability and frozen prompt", () => {
     expect(await producer.produce(syntheticResolvedLogoConcept(), [], "trace", new AbortController().signal)).toMatchObject({ status: code === "invalid_response" ? "rejected" : "needs_reconciliation", code, providerRequestId: "req_observed", responseHash: "a".repeat(64), billing: { status: "recorded", confirmedMicrousd: 1000 } });
     expect(createImage).toHaveBeenCalledTimes(1);
   });
+  it("draws a concept fresh: a liked upload guides it through its note, never as an attached image", async () => {
+    const createImage = vi.fn().mockResolvedValue(result), producer = createLogoImageProvider({ configuration: config, transport: { createImage } })!;
+    const base = syntheticResolvedLogoConcept(), asset = { ownerId: base.brief.ownerId, projectId: base.brief.projectId, assetId: "a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1", versionId: "b1b1b1b1-b1b1-4b1b-8b1b-b1b1b1b1b1b1", contentHash: "d".repeat(64) };
+    const input = { ...base, input: { ...base.input, references: [asset] }, referenceSnapshot: { ...base.referenceSnapshot,
+      references: [{ referenceId: "c1c1c1c1-c1c1-4c1c-8c1c-c1c1c1c1c1c1", asset, sourceKind: "upload" as const, aspects: ["overall_feel" as const], rightsEvidenceId: "e1e1e1e1-e1e1-4e1e-8e1e-e1e1e1e1e1e1" }] } };
+    const image = { reference: asset, mimeType: "image/png", bytes: new Uint8Array([137, 80, 78, 71]), verification: { status: "verified" as const, checkedAt: "2026-11-09T00:00:00.000Z", contentHash: asset.contentHash, mimeType: "image/png", byteLength: 4 } };
+    expect((await producer.produce(input, [image], "trace", new AbortController().signal)).status).toBe("completed");
+    expect(createImage.mock.calls[0]![0].images).toEqual([]);
+    expect(createImage.mock.calls[0]![0].prompt).toContain('"references":[]');
+  });
   it("pre-abort, policy mismatch, missing reference bytes and locked vector source do not dispatch", async () => {
     const createImage = vi.fn().mockResolvedValue(result), producer = createLogoImageProvider({ configuration: config, transport: { createImage } })!;
     const input = syntheticResolvedLogoConcept();

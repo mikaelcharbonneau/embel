@@ -34,6 +34,7 @@ async function setup(newer: boolean) {
     if (path === `${base}/saved-inputs`) return Response.json({ ownerId: f.workspace.ownerId, projectId, projectRevision: f.workspace.heads.projectRevision,
       inspirationSelectionRevision: newer ? 3 : 0, inspirationCount: newer ? 1 : 0, nameConflict: false,
       references: snapshot.references.map(({ referenceId, aspects }) => ({ referenceId, aspects })),
+      uploadNotes: [],
       draft: { name: payload.name, activity: payload.activity, audience: payload.audience, personality, logoTypes: payload.logoTypes } });
     if (path === `${base}/brief` && init?.method === "PUT") { saves.push(JSON.parse(String(init.body)).brief); return Response.json({}, { status: 503 }); }
     return f.fetcher(input, init);

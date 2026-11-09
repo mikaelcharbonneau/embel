@@ -13,7 +13,8 @@ import { LIKED_LETTERING, LIKED_LOGO_DIRECTION, LIKED_LOGO_STYLE, logoPromptPers
 import { contextSnapshotSchema } from "@/domain/projects";
 import type { ReferenceElement } from "@/domain/identity-references";
 import type { LogoType } from "@/domain/logo-workspace";
-import { deriveSavedLogoInputs } from "@/server/data/logo-saved-inputs";
+import { deriveSavedLogoInputs, likedUploadNotes } from "@/server/data/logo-saved-inputs";
+import type { AuthenticatedContext } from "@/server/auth/context";
 import { buildLogoConceptPrompt } from "@/server/logo-creation/openai-logo-provider";
 import { planSixConcepts } from "@/server/logo-creation/concept-plan";
 import { syntheticResolvedLogoConcept } from "../fixtures/logo-creation";
@@ -123,5 +124,58 @@ describe("saved briefs from before style notes", () => {
   it("keeps a hand-edited brief that already has style notes", () => {
     const edited = latest.draft!.personality.replace("sincerity: 5", "sincerity: 4");
     expect(logoBriefOutdated({ personality: edited, sourceProjectRevision: 7 }, latest)).toBe(false);
+  });
+});
+
+describe("liked upload notes in the logo brief", () => {
+  const upload = (n: number, status: "ready" | "pending" | "missing" | "unavailable", symbol = `upload ${n} modules`) =>
+    ({ referenceId: `eeeeeeee-eeee-4eee-8eee-00000000000${n}`, status, ...(status === "ready" ? { note: { symbol, lettering: null } } : {}) });
+  it("puts ready upload notes first and leaves unfinished ones out", () => {
+    const result = deriveSavedLogoInputs(project, likes({ brand: withSymbol, ensemble: true }), [],
+      [upload(1, "ready"), upload(2, "pending"), upload(3, "unavailable")]);
+    const lines = result.draft!.personality.split("\n").filter(line => line.startsWith(LIKED_LOGO_STYLE));
+    expect(lines).toEqual([LIKED_LOGO_STYLE + "upload 1 modules", LIKED_LOGO_STYLE + note.symbol]);
+    expect(result.uploadNotes.map(row => row.status)).toEqual(["ready", "pending", "unavailable"]);
+    expect(result.draft!.personality).toContain(LIKED_LOGO_DIRECTION);
+  });
+  it("writes the notes block for liked uploads even without library likes", () => {
+    const personality = deriveSavedLogoInputs(project, likes(), [], [upload(1, "ready")]).draft!.personality;
+    expect(personality).toContain(LIKED_LOGO_STYLE + "upload 1 modules");
+    expect(personality).toContain(LIKED_LOGO_DIRECTION);
+  });
+  it("treats a saved brief that lacks a later upload note as outdated", () => {
+    const before = deriveSavedLogoInputs(project, likes({ brand: withSymbol, ensemble: true }), [], [upload(1, "pending")]);
+    const after = deriveSavedLogoInputs(project, likes({ brand: withSymbol, ensemble: true }), [], [upload(1, "ready")]);
+    expect(logoBriefOutdated({ personality: before.draft!.personality, sourceProjectRevision: 7 }, after)).toBe(true);
+    expect(logoBriefOutdated({ personality: after.draft!.personality, sourceProjectRevision: 7 }, after)).toBe(false);
+  });
+});
+
+describe("liked upload note status", () => {
+  const referenceId = "eeeeeeee-eeee-4eee-8eee-000000000001", hash = "1".repeat(64);
+  function client(notes: object[], jobs: object[]) {
+    const tables: Record<string, object[]> = { logo_reference_sources: [{ reference_id: referenceId, content_hash: hash, owner_id: ownerId, project_id: projectId }], logo_style_notes: notes };
+    const from = (name: string) => { let found = [...(tables[name] ?? [])] as Record<string, unknown>[];
+      const query = { select: () => query, match: (filter: Record<string, unknown>) => { found = found.filter(row => Object.entries(filter).every(([key, value]) => row[key] === undefined || row[key] === value)); return query; },
+        in: (key: string, values: unknown[]) => { found = found.filter(row => values.includes(row[key])); return query; },
+        then: (resolve: (value: { data: unknown[]; error: null }) => unknown) => Promise.resolve({ data: found, error: null }).then(resolve) };
+      return query; };
+    return { userId: ownerId, client: { from, rpc: async () => ({ data: jobs, error: null }) } } as unknown as AuthenticatedContext;
+  }
+  const status = async (notes: object[], jobs: object[]) => (await likedUploadNotes(client(notes, jobs), projectId, [{ referenceId, aspects: ["overall_feel"] }]))[0];
+  const job = (state: string, contentHash = hash) => ({ referenceId, contentHash, state });
+  it("is ready only with a note for the upload's current bytes", async () => {
+    expect(await status([{ reference_id: referenceId, content_hash: hash, note_version: "logo-style-note-v1", symbol: "solid modules", lettering: null }], []))
+      .toEqual({ referenceId, status: "ready", note: { symbol: "solid modules", lettering: null } });
+    expect((await status([{ reference_id: referenceId, content_hash: "2".repeat(64), note_version: "logo-style-note-v1", symbol: "old", lettering: null }], []))!.status).toBe("missing");
+  });
+  it("is pending while a request runs and unavailable after an unclear outcome", async () => {
+    expect((await status([], [job("running")]))!.status).toBe("pending");
+    expect((await status([], [job("needs_reconciliation")]))!.status).toBe("unavailable");
+  });
+  it("allows a new request after one definite failure, not after two", async () => {
+    expect((await status([], [job("failed")]))!.status).toBe("missing");
+    expect((await status([], [job("failed"), job("failed")]))!.status).toBe("unavailable");
+    expect((await status([], [job("failed", "9".repeat(64)), job("failed", "9".repeat(64))]))!.status).toBe("missing");
   });
 });

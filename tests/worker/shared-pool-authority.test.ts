@@ -91,7 +91,7 @@ describe("reviewed authority packet roster",()=>{
   expect(helper).toBeDefined();
   expect(authorityManifest.functions.some(f=>f.name==="naming_brainstorm_event_replay_guard_v1")).toBe(false);
  });
- it("retains the finite twenty-two-packet bound",()=>{
-  expect(sharedAuthorityManifestSchema.safeParse({...authorityManifest,packets:Array.from({length:23},()=>authorityManifest.packets[0])}).success).toBe(false);
+ it("retains the finite twenty-three-packet bound",()=>{
+  expect(sharedAuthorityManifestSchema.safeParse({...authorityManifest,packets:Array.from({length:24},()=>authorityManifest.packets[0])}).success).toBe(false);
  });
 });
