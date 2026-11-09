@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { IMAGE_MODEL } from "../../domain/providers";
+import { CAPPED_LOGO_IMAGE_MODEL, IMAGE_MODEL, type LogoImageModel } from "../../domain/providers";
 import { IMAGE_INPUT_LIMITS } from "../../domain/logo-image-limits";
 import { verifiedAssetBytesSchema, type VerifiedAssetBytes } from "../../domain/logo-deliverables";
 import { inspectIdentityRaster } from "../../features/logo-vector/server/converter";
@@ -9,7 +9,10 @@ import { logoImageUsageSchema, type LogoImageUsage } from "./openai-image-usage"
 
 export { IMAGE_INPUT_LIMITS } from "../../domain/logo-image-limits";
 export type { LogoImageUsage } from "./openai-image-usage";
-export type OpenAIImageRequest = { model: typeof IMAGE_MODEL; prompt: string; size: "1024x1024"; quality: "medium"; images: readonly VerifiedAssetBytes[] };
+/** "max" is the highest quality level; a transparent background requires PNG output. */
+export type OpenAIImageQuality = "medium" | "max";
+export type OpenAIImageBackground = "opaque" | "transparent";
+export type OpenAIImageRequest = { model: LogoImageModel; prompt: string; size: "1024x1024"; quality: OpenAIImageQuality; background: OpenAIImageBackground; images: readonly VerifiedAssetBytes[] };
 export type OpenAIImageResponse = { bytes: Uint8Array; mimeType: "image/png"; providerRequestId: string | null; responseHash: string; usage: LogoImageUsage | null };
 export interface OpenAIImageTransport { createImage(input: OpenAIImageRequest, clientRequestId: string, signal: AbortSignal): Promise<OpenAIImageResponse> }
 export class OpenAIImageTransportError extends Error {
@@ -49,7 +52,8 @@ async function readResponse(response: Response, signal: AbortSignal): Promise<Ui
  * happen before dispatch. No URL input, implicit upload, or image truncation. */
 export async function validateLogoImageInputs(input: OpenAIImageRequest, signal: AbortSignal): Promise<OpenAIImageRequest> {
   aborted(signal);
-  if (input.model !== IMAGE_MODEL || input.size !== "1024x1024" || input.quality !== "medium" || typeof input.prompt !== "string"
+  if (input.model !== IMAGE_MODEL && input.model !== CAPPED_LOGO_IMAGE_MODEL || input.size !== "1024x1024" || input.quality !== "medium" && input.quality !== "max"
+    || input.background !== "opaque" && input.background !== "transparent" || typeof input.prompt !== "string"
     || !input.prompt.trim() || input.prompt.length > IMAGE_INPUT_LIMITS.promptCharacters || !Array.isArray(input.images) || input.images.length > IMAGE_INPUT_LIMITS.images) throw new Error("Invalid image request");
   const images = input.images.map(image => ({ ...image, reference: { ...image.reference }, verification: { ...image.verification }, bytes: Uint8Array.from(image.bytes) }));
   if (images.reduce((size, image) => size + image.bytes.byteLength, 0) > IMAGE_INPUT_LIMITS.inputBytes) throw new Error("Input limit");
@@ -57,10 +61,11 @@ export async function validateLogoImageInputs(input: OpenAIImageRequest, signal:
     if (!verifiedAssetBytesSchema.safeParse(image).success || sha256(image.bytes) !== image.reference.contentHash) throw new Error("Invalid image reference");
     await inspectIdentityRaster(image.bytes, image.mimeType, signal); aborted(signal);
   }
-  return { model: IMAGE_MODEL, prompt: input.prompt, size: "1024x1024", quality: "medium", images };
+  return { model: input.model, prompt: input.prompt, size: "1024x1024", quality: input.quality, background: input.background, images };
 }
 
-/** Official Images API contract checked 2026-10-07:
+/** Official Images API contract checked 2026-10-07 (quality "max" and a
+ * transparent background rechecked for gpt-image-2.6-sunburst on 2026-11-09):
  * https://developers.openai.com/api/reference/resources/images/methods/generate
  * https://developers.openai.com/api/reference/resources/images/methods/edit
  * Uses native fetch for exactly one attempt. Multipart image[] preserves local
@@ -73,7 +78,7 @@ export function createOpenAIImageTransport(options: { apiKey: string; fetch?: ty
       if (!options.apiKey.trim() || /[\r\n]/.test(options.apiKey) || !/^[a-zA-Z0-9._:-]{1,200}$/.test(clientRequestId)) throw new Error("Invalid configuration");
       input = await validateLogoImageInputs(raw, signal); aborted(signal);
     } catch { throw new OpenAIImageTransportError("request_rejected"); }
-    const fields = { model: IMAGE_MODEL, prompt: input.prompt, n: 1, output_format: "png", size: input.size, quality: input.quality, background: "opaque", moderation: "auto" };
+    const fields = { model: input.model, prompt: input.prompt, n: 1, output_format: "png", size: input.size, quality: input.quality, background: input.background, moderation: "auto" };
     const headers: Record<string, string> = { Authorization: `Bearer ${options.apiKey}`, Accept: "application/json", "X-Client-Request-Id": clientRequestId };
     let body: string | FormData;
     if (input.images.length) {

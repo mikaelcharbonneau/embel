@@ -116,3 +116,38 @@ Release order: deploy the web app from the same branch first (it reads the
 seventh capability as optional), then apply the packet, then deploy the worker
 build whose authority manifest lists it (23 packets) and install the note
 policy on the concept slots only; Logo slot 1 stays at seven operations.
+
+## November 9 image model packet
+
+`supabase/candidates/shared_image_model_2_6.sql` follows
+`shared_logo_style_notes.sql`. Shared Logo concepts and refinements and
+Creative direction boards move from `gpt-image-2.5-sunburst-2026-09-08` to
+`gpt-image-2.6-sunburst`, which OpenAI publishes as an alias only, at the same
+per-token rates. It makes guarded edits to six functions, each checked against
+its reviewed predecessor body:
+
+- New admissions require 2.6: the shared raster policy, the Creative direction
+  policy and the model Creative direction availability reports.
+- Usage evidence stays truthful across the change. A stored raster response is
+  valid under either model, and a newly recorded raster response or board
+  receipt must name the model of the policy its own job was admitted under
+  (`fluid_private.shared_job_admissions`). Work admitted under 2.5 before the
+  release can still record what it was charged; a response labeled with
+  another model is refused.
+
+The earlier capped Logo policy (`maxCostMicrousd`) keeps the 2.5 snapshot, and
+its worker code pins it as `CAPPED_LOGO_IMAGE_MODEL`.
+
+Logo images are now requested at quality `max` on a transparent background;
+Creative direction boards stay at `medium` on an opaque background. That is
+worker request behavior, not database policy. Black-and-white vector tracing
+now reads each pixel as it shows on white, so a transparent logo traces to the
+same crisp shapes as before instead of one faint layer per alpha level; opaque
+images trace exactly as before.
+
+Release order: apply the packet, then deploy the worker build whose authority
+manifest lists it (24 packets) and the web app from the same branch. Slot
+policies naming 2.5 stop qualifying when the packet is applied, so Logo and
+Creative direction report unavailable until the new worker registers its
+policies and the web app expects the new model. Release with no Logo or
+Creative direction work running.

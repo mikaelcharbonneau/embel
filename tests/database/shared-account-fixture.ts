@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { createTestDatabase, resetFixture, OWNER_A, OWNER_B, type TestDatabase } from "./local-supabase";
+import { applySharedImageModel } from "./shared-image-model-fixture";
 
 export const sharedHttpOrigin = "https://fricsfwqibyhemknqgyf.supabase.co";
 export const sharedHttpRoles = { home: "embel_shared_http_home_test", identity: "embel_shared_http_identity_test" } as const;
@@ -25,6 +26,7 @@ export async function createSharedAccountFixture(options: { selectedLogoBoards?:
   // only the earlier HTTP packet. Historical generation fixtures opt in later.
   if (options.selectedLogoBoards) for (const name of ["shared_logo_http.sql", "shared_logo_advanced.sql", "shared_identity_generation.sql", "shared_identity_selected_logo_boards.sql", "shared_identity_http_writer_permissions.sql"])
    await db.exec(await readFile(new URL("../../supabase/candidates/" + name, import.meta.url), "utf8"));
+  if (options.selectedLogoBoards) await applySharedImageModel(db);
   await db.exec(`create role ${sharedHttpRoles.home} login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
    create role ${sharedHttpRoles.identity} login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
    grant usage on schema public to ${sharedHttpRoles.home},${sharedHttpRoles.identity};

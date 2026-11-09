@@ -6,10 +6,10 @@ import { createLogoWorkerRuntime, type LogoWorkerRuntimeInput } from "../../work
 import type { LogoWorkerConnection } from "../../src/server/data/logo-jobs";
 import type { LogoOperationCompositionInput } from "../../worker/logo-operation-composition";
 import type { LogoImageProductionResult } from "../../src/server/logo-creation/openai-logo-provider";
-import { IMAGE_MODEL } from "../../src/domain/providers";
+import { CAPPED_LOGO_IMAGE_MODEL } from "../../src/domain/providers";
 import { logoFixtureId as id, syntheticLogoJob, syntheticResolvedLogoConcept } from "../fixtures/logo-creation";
 const empty = (): LogoOperationCompositionInput => ({ concepts: null, refinements: null, vector: null, directions: null, exports: null, unavailableReasons: {} });
-const descriptor = () => ({ operation: "identity.logo_concept" as const, policyIdentity: "c".repeat(64), handlerVersion: "logo-image-v1", provider: "openai", model: IMAGE_MODEL, engine: null, maxCostMicrousd: 2000 });
+const descriptor = () => ({ operation: "identity.logo_concept" as const, policyIdentity: "c".repeat(64), handlerVersion: "logo-image-v1", provider: "openai", model: CAPPED_LOGO_IMAGE_MODEL, engine: null, maxCostMicrousd: 2000 });
 const notDispatched: LogoImageProductionResult = { status: "not_dispatched", code: "unavailable", providerRequestId: null, responseHash: null, billing: { status: "recorded", confirmedMicrousd: 0 } };
 function fixture() {
   const job = syntheticLogoJob(), input = syntheticResolvedLogoConcept(), events: string[] = [];
@@ -30,7 +30,7 @@ function fixture() {
   const never = async (): Promise<never> => { throw new Error("Unused fixture capability"); };
   const produce = vi.fn(async (): Promise<LogoImageProductionResult> => { events.push("produce"); return notDispatched; });
   const guard = vi.fn(async () => { events.push("existing-guard"); });
-  const composition: LogoOperationCompositionInput = { ...empty(), concepts: { producer: { produce }, assets: { readLeasedAsset: never, publishLeasedAsset: never, readOwnedAsset: never, stageOwnedAsset: never, publishOwnedUpload: never }, resolveInputs: async () => input, recordProviderResponse: never, assertPolicyReady: guard } };
+  const composition: LogoOperationCompositionInput = { ...empty(), concepts: { model: CAPPED_LOGO_IMAGE_MODEL, producer: { produce }, assets: { readLeasedAsset: never, publishLeasedAsset: never, readOwnedAsset: never, stageOwnedAsset: never, publishOwnedUpload: never }, resolveInputs: async () => input, recordProviderResponse: never, assertPolicyReady: guard } };
   const options: LogoWorkerRuntimeInput = { connection: { query } as unknown as LogoWorkerConnection, workerId: "synthetic-logo-worker", composition, manifest: [descriptor()] };
   return { job, events, query, produce, guard, options, setReport: (value: boolean) => { report = value; }, setDispatch: (value: boolean) => { dispatch = value; }, setCompleted: () => { completed = true; }, setExpiryFailure: (value: boolean) => { expiryFailure = value; } };
 }

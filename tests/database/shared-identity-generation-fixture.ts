@@ -1,5 +1,6 @@
 import {randomUUID,createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
+import {applySharedImageModel} from './shared-image-model-fixture';
 import {createSharedLogoFixture} from './shared-account-logo-fixture';
 import {OWNER_A,OWNER_B} from './local-supabase';
 import {capability,specification,textPolicy} from '../worker/identity-generation-fixture';
@@ -20,6 +21,7 @@ export async function createSharedIdentityFixture(){
  try{
   await db.exec(await readFile(new URL('../../supabase/candidates/shared_logo_advanced.sql',import.meta.url),'utf8'));
   await db.exec(await readFile(new URL('../../supabase/candidates/shared_identity_generation.sql',import.meta.url),'utf8'));
+  await applySharedImageModel(db);
   const role='embel_shared_logo_identity_fixture',slotId=randomUUID(),actor=randomUUID(),actorSession=randomUUID();let deployment='dpl_identity_synthetic';
   await db.exec(`create role ${role} login noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls connection limit 4;
    grant usage on schema public to ${role};grant execute on function public.shared_logo_worker_action(jsonb,jsonb,text,jsonb),public.claim_shared_worker_slot(uuid,uuid,text,integer),public.renew_shared_worker_slot(jsonb,integer),public.fence_shared_worker_slot(jsonb) to ${role};`);

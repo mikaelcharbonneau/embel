@@ -10,6 +10,7 @@ import { parseClaimedJob } from '../../worker/postgres-store';
 import { specification } from '../worker/identity-generation-fixture';
 import { createIdentityTransactionService, type IdentityConnectionFactory } from '../../src/server/data/identity-transaction';
 import { sharedHttpRoles } from './shared-account-fixture';
+import { applySharedImageModel } from './shared-image-model-fixture';
 import { getProjectIdentity } from '../../src/server/data/identity';
 import { identityDalAuth } from './identity-system-database';
 import { logoWorkspaceV2Schema } from '../../src/domain/logo-workspace';
@@ -27,6 +28,7 @@ describe('selected-logo boards: actual SQL admission, storage and immutable publ
   await f.db.exec(await readFile(new URL('../../supabase/candidates/shared_identity_http_writer_permissions.sql', import.meta.url), 'utf8'));
   await f.db.exec(await readFile(new URL('../../supabase/candidates/shared_logo_types_keep_concepts.sql', import.meta.url), 'utf8'));
   await f.db.exec('alter default privileges revoke all on tables from fixture_board_default_acl;alter default privileges revoke all on functions from fixture_board_default_acl');
+  await applySharedImageModel(f.db);
  }, 60_000);
  afterAll(async () => { await f?.db.close(); });
  async function logo(p: {owner:string;projectId:string}, n = 1) {

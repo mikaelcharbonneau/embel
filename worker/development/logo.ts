@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { readDevelopmentConfiguration } from "../../src/server/development/config";
-import { IMAGE_MODEL } from "../../src/domain/providers";
+import { CAPPED_LOGO_IMAGE_MODEL } from "../../src/domain/providers";
 import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/logo-creation/openai-image-pricing";
 import { createDevelopmentLogoGenerativeStorageAuthorization, qualifiedLogoGenerativeStorageCapability } from "../logo-generative-storage-authorization";
 import { createDevelopmentLogoProductionStorageAuthorization, qualifiedLogoProductionStorageCapability } from "../logo-production-storage-authorization";
@@ -15,7 +15,7 @@ export type DevelopmentLogoConfiguration = Readonly<{
   workerId: string; supabaseUrl: string;
   storage: Readonly<{ authUserId: string; publishableKey: string; accessToken: string }>;
   operations: Readonly<Partial<Record<Lane, LogoWorkerCapability>>>;
-  image: Readonly<{ apiKey: string; model: typeof IMAGE_MODEL; rateVersion: string; paidCallsApproved: true }> | null;
+  image: Readonly<{ apiKey: string; model: typeof CAPPED_LOGO_IMAGE_MODEL; rateVersion: string; paidCallsApproved: true }> | null;
 }>;
 const unavailable = () => new Error("development_logo_unavailable");
 export class DevelopmentLogoDrainUnconfirmedError extends Error {
@@ -54,10 +54,10 @@ export function readDevelopmentLogoConfiguration(env: DevelopmentWorkerEnvironme
     if (operations.concepts || operations.refinements) {
       const apiKey = env.EMBEL_DEVELOPMENT_PROVIDER_API_KEY ?? "";
       if (env.FLUID_PAID_CALLS_APPROVED !== "true" || !/^\S{16,500}$/u.test(apiKey)
-        || env.EMBEL_DEVELOPMENT_MODEL !== IMAGE_MODEL
-        || !(env.EMBEL_DEVELOPMENT_VERIFIED_MODELS ?? "").split(",").map(value => value.trim()).includes(IMAGE_MODEL)
+        || env.EMBEL_DEVELOPMENT_MODEL !== CAPPED_LOGO_IMAGE_MODEL
+        || !(env.EMBEL_DEVELOPMENT_VERIFIED_MODELS ?? "").split(",").map(value => value.trim()).includes(CAPPED_LOGO_IMAGE_MODEL)
         || env.EMBEL_DEVELOPMENT_IMAGE_RATE_VERSION !== SUNBURST_STANDARD_IMAGE_PRICING.binding.rateVersion) return null;
-      image = Object.freeze({ apiKey, model: IMAGE_MODEL, rateVersion: SUNBURST_STANDARD_IMAGE_PRICING.binding.rateVersion, paidCallsApproved: true });
+      image = Object.freeze({ apiKey, model: CAPPED_LOGO_IMAGE_MODEL, rateVersion: SUNBURST_STANDARD_IMAGE_PRICING.binding.rateVersion, paidCallsApproved: true });
     }
     return Object.freeze({ workerId, supabaseUrl: development.supabaseUrl,
       storage: Object.freeze(storage), operations: Object.freeze(operations), image });

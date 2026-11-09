@@ -8,7 +8,7 @@ import type { VerifiedAssetBytes } from "../../src/domain/logo-deliverables";
 let png: Uint8Array<ArrayBuffer>;
 beforeAll(async () => { png = new Uint8Array(await sharp({ create: { width: 1024, height: 1024, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 1 } } }).png().toBuffer()); });
 const usage = { input_tokens: 50, output_tokens: 25, input_tokens_details: { text_tokens: 10, image_tokens: 40 } };
-const request = (images: VerifiedAssetBytes[] = []): OpenAIImageRequest => ({ model: IMAGE_MODEL, prompt: "Synthetic original black and white logo", size: "1024x1024", quality: "medium", images });
+const request = (images: VerifiedAssetBytes[] = []): OpenAIImageRequest => ({ model: IMAGE_MODEL, prompt: "Synthetic original black and white logo", size: "1024x1024", quality: "medium", background: "opaque", images });
 const response = (data: unknown = { data: [{ b64_json: Buffer.from(png).toString("base64") }], usage }) => new Response(JSON.stringify(data), { headers: { "content-type": "application/json", "x-request-id": "req_observed" } });
 function image(): VerifiedAssetBytes {
   const hash = createHash("sha256").update(png).digest("hex"), id = "00000000-0000-4000-8000-000000000001";
@@ -35,6 +35,15 @@ describe("bounded Images API transport with mocked network only", () => {
     expect(url).toBe("https://api.openai.com/v1/images/edits"); expect(form.get("model")).toBe(IMAGE_MODEL);
     expect(form.get("n")).toBe("1"); expect(form.get("output_format")).toBe("png"); expect(form.has("response_format")).toBe(false); expect(form.has("input_fidelity")).toBe(false);
     const file = form.getAll("image[]")[0] as File; expect(new Uint8Array(await file.arrayBuffer())).toEqual(png); expect(file.type).toBe("image/png");
+  });
+  it("sends the requested quality and background unchanged, as JSON and as multipart", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockImplementation(async () => response());
+    const transport = createOpenAIImageTransport({ apiKey: "synthetic", fetch: fetcher }), logo = { quality: "max", background: "transparent" } as const;
+    await transport.createImage({ ...request(), ...logo }, "fresh", new AbortController().signal);
+    await transport.createImage({ ...request([image()]), ...logo }, "edit", new AbortController().signal);
+    expect(JSON.parse(String(fetcher.mock.calls[0]![1]?.body))).toMatchObject({ quality: "max", background: "transparent", output_format: "png" });
+    const form = fetcher.mock.calls[1]![1]?.body as FormData;
+    expect([form.get("quality"), form.get("background"), form.get("output_format")]).toEqual(["max", "transparent", "png"]);
   });
   it.each([400, 401, 403, 404, 413, 422, 429])("retains definite HTTP %s rejection without claiming free billing", async status => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ error: { message: "PRIVATE_PROVIDER_MESSAGE" } }), { status, headers: { "content-type": "application/json", "x-request-id": "req_rejected" } }));
@@ -108,8 +117,8 @@ describe("bounded Images API transport with mocked network only", () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ error: { message: "PRIVATE_PROVIDER_MESSAGE" }, usage: { ...usage, total_tokens: 999 } }), { status: 429, headers: { "content-type": "application/json", "x-request-id": "req_rejected" } }));
     await expect(createOpenAIImageTransport({ apiKey: "synthetic", fetch: fetcher }).createImage(request(), "trace", new AbortController().signal)).rejects.toMatchObject({ code: "request_rejected", usage: null, providerRequestId: "req_rejected", message: "request_rejected" });
   });
-  it("rejects invalid model, reference count, renamed HTML, corrupted hashes and pre-abort before dispatch", async () => {
-    const invalids = [ { ...request(), model: "other-model" }, request([image(), image(), image(), image(), image()]), request([{ ...image(), bytes: new TextEncoder().encode("<svg/>") }]), request([{ ...image(), reference: { ...image().reference, contentHash: "a".repeat(64) } }]) ];
+  it("rejects invalid model, quality, background, reference count, renamed HTML, corrupted hashes and pre-abort before dispatch", async () => {
+    const invalids = [ { ...request(), model: "other-model" }, { ...request(), quality: "high" }, { ...request(), quality: undefined }, { ...request(), background: "auto" }, request([image(), image(), image(), image(), image()]), request([{ ...image(), bytes: new TextEncoder().encode("<svg/>") }]), request([{ ...image(), reference: { ...image().reference, contentHash: "a".repeat(64) } }]) ];
     const fetcher = vi.fn<typeof fetch>();
     for (const invalid of invalids) await expect(createOpenAIImageTransport({ apiKey: "synthetic", fetch: fetcher }).createImage(invalid as OpenAIImageRequest, "trace", new AbortController().signal)).rejects.toMatchObject({ code: "request_rejected" });
     await expect(createOpenAIImageTransport({ apiKey: "synthetic", fetch: fetcher }).createImage(request(), "trace", AbortSignal.abort())).rejects.toMatchObject({ code: "request_rejected" });

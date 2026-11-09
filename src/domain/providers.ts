@@ -1,7 +1,12 @@
 import { z } from "zod";
 
-// Official documentation verified 2026-10-02; not proof of account access or inference.
-export const IMAGE_MODEL = "gpt-image-2.5-sunburst-2026-09-08" as const;
+// Official documentation verified 2026-11-09; not proof of account access or inference.
+/** Shared Logo concepts and refinements and Creative direction boards. Released
+ * 2026-10-28 as an alias only; OpenAI publishes no dated snapshot for it. */
+export const IMAGE_MODEL = "gpt-image-2.6-sunburst" as const;
+/** The earlier capped Logo policies (maxCostMicrousd), which still pin this snapshot. */
+export const CAPPED_LOGO_IMAGE_MODEL = "gpt-image-2.5-sunburst-2026-09-08" as const;
+export type LogoImageModel = typeof IMAGE_MODEL | typeof CAPPED_LOGO_IMAGE_MODEL;
 export const textOperationSchema = z.enum(["strategy.reformulate", "strategy.competitors", "strategy.audience", "strategy.personality", "strategy.positioning", "strategy.slogan", "naming.generate", "ideas.explore"]);
 export type TextOperation = z.infer<typeof textOperationSchema>;
 export const operationSchema = z.enum([...textOperationSchema.options, "identity.image", "identity.vector", "brand.export", "identity.logo_concept", "identity.logo_refine", "identity.logo_vectorize", "identity.logo_directions", "identity.logo_export", "identity.logo_vector_propose", "identity.logo_style_note"]);

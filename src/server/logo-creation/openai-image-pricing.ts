@@ -1,25 +1,29 @@
 import "server-only";
 import { z } from "zod";
+import { CAPPED_LOGO_IMAGE_MODEL, IMAGE_MODEL } from "../../domain/providers";
 import type { LogoBillingObservation } from "../../domain/logo-jobs";
 import type { LogoImageConfiguration } from "./openai-logo-provider";
 import { logoImageUsageSchema } from "./openai-image-usage";
 
-/** Official Standard rates checked 2026-10-07. This version is deliberately
- * independent of the mutable application's current-model selection.
+/** Official Standard rates checked 2026-10-07 for gpt-image-2.5-sunburst and
+ * 2026-11-09 for gpt-image-2.6-sunburst, which lists the same per-token rates.
+ * The rate version names this rate table, so both models share it; the binding
+ * model is the shared policy's, and the capped policy binds its own model.
  * https://developers.openai.com/api/docs/pricing
+ * https://developers.openai.com/api/docs/models/gpt-image-2.6-sunburst
  * https://developers.openai.com/api/docs/models/gpt-image-2.5-sunburst
  * https://developers.openai.com/api/docs/guides/image-generation#cost-and-latency
  * Direct synchronous Images generations AND edits use the full input rates;
  * Responses cached-input discounts and Batch prices do not apply. */
 export const SUNBURST_STANDARD_IMAGE_PRICING = Object.freeze({
-  binding: Object.freeze({ model: "gpt-image-2.5-sunburst-2026-09-08", api: "direct-images", serviceTier: "standard", rateVersion: "2026-10-07.v1" } as const),
+  binding: Object.freeze({ model: IMAGE_MODEL, api: "direct-images", serviceTier: "standard", rateVersion: "2026-10-07.v1" } as const),
   currency: "USD" as const,
-  verifiedAt: "2026-10-07" as const,
+  verifiedAt: "2026-11-09" as const,
   endpoints: Object.freeze(["/v1/images/generations", "/v1/images/edits"] as const),
   microusdPerToken: Object.freeze({ textInput: 5, imageInput: 8, imageOutput: 30 } as const),
 });
 const basis = SUNBURST_STANDARD_IMAGE_PRICING.binding;
-const bindingSchema = z.strictObject({ model: z.literal(basis.model), api: z.literal(basis.api),
+const bindingSchema = z.strictObject({ model: z.enum([basis.model, CAPPED_LOGO_IMAGE_MODEL]), api: z.literal(basis.api),
   serviceTier: z.literal(basis.serviceTier), rateVersion: z.literal(basis.rateVersion) });
 export type LogoImagePricingBinding = { model: string; api: string; serviceTier: string; rateVersion: string };
 const unknown: LogoBillingObservation = Object.freeze({ status: "unknown", confirmedMicrousd: null });

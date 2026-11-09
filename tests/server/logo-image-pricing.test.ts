@@ -3,7 +3,7 @@ vi.mock("server-only", () => ({}));
 import { createSunburstStandardImageUsagePricer, SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/logo-creation/openai-image-pricing";
 import type { LogoImageUsage } from "../../src/server/logo-creation/openai-image-transport";
 
-const binding = { model: "gpt-image-2.5-sunburst-2026-09-08", api: "direct-images", serviceTier: "standard", rateVersion: "2026-10-07.v1" };
+const binding = { model: "gpt-image-2.6-sunburst", api: "direct-images", serviceTier: "standard", rateVersion: "2026-10-07.v1" };
 const usage = { input_tokens: 50, output_tokens: 50, input_tokens_details: { text_tokens: 10, image_tokens: 40 } };
 const unknown = { status: "unknown", confirmedMicrousd: null };
 function price(raw: unknown) {
@@ -14,7 +14,7 @@ function price(raw: unknown) {
 
 describe("versioned Standard direct Images pricing, synthetic counts only", () => {
   it("pins the exact model, rates, version and both direct endpoints without mutable global rates", () => {
-    expect(SUNBURST_STANDARD_IMAGE_PRICING).toEqual({ binding, currency: "USD", verifiedAt: "2026-10-07",
+    expect(SUNBURST_STANDARD_IMAGE_PRICING).toEqual({ binding, currency: "USD", verifiedAt: "2026-11-09",
       endpoints: ["/v1/images/generations", "/v1/images/edits"],
       microusdPerToken: { textInput: 5, imageInput: 8, imageOutput: 30 } });
     expect(Object.isFrozen(SUNBURST_STANDARD_IMAGE_PRICING)).toBe(true);
@@ -83,7 +83,13 @@ describe("versioned Standard direct Images pricing, synthetic counts only", () =
     ("rejects unsafe or out-of-bound aggregate totals (%s)", total_tokens => {
       expect(price({ ...usage, total_tokens })).toEqual(unknown);
     });
+  it("prices the capped policy's pinned 2.5 snapshot at the same rates", () => {
+    const capped = createSunburstStandardImageUsagePricer({ ...binding, model: "gpt-image-2.5-sunburst-2026-09-08" });
+    expect(capped?.(usage)).toEqual({ status: "recorded", confirmedMicrousd: 1870 });
+  });
   it.each([
+    { ...binding, model: "gpt-image-2.6-sunburst-2026-10-28" },
+    { ...binding, model: "gpt-image-2.6-flare" },
     { ...binding, model: "gpt-image-2.5-sunburst" },
     { ...binding, model: "gpt-image-2" },
     { ...binding, model: "gpt-image-2.5-sunburst-2026-10-08" },

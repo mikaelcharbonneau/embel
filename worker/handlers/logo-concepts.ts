@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { moneySchema, type ClaimedJob, type StepOutcome } from "../../src/domain/jobs";
-import { IMAGE_MODEL } from "../../src/domain/providers";
+import type { LogoImageModel } from "../../src/domain/providers";
 import { LOGO_CONCEPT_OPERATION, logoConceptJobInputSchema, logoResolvedConceptInputSchema, logoProviderObservationSchema, logoProviderResponseReceiptSchema, logoConceptStepOutputSchema,
   type LogoProviderObservation, type LogoProviderResponseReceipt, type LogoResolvedConceptInput, type LogoResolvedRefinementInput,
 } from "../../src/domain/logo-jobs";
@@ -15,12 +15,16 @@ import { LOGO_IMAGE_HANDLER_VERSION, type LogoImageProducer, type LogoImageProdu
 import type { JobHandler } from "../runner";
 
 export type LogoConceptHandlerDependencies = {
-  producer: LogoImageProducer; assets: IdentityAssetStore; assertPolicyReady(job: ClaimedJob): Promise<void>;
+  /** The model the producer requests, which the provider evidence records. */
+  model: LogoImageModel; producer: LogoImageProducer; assets: IdentityAssetStore; assertPolicyReady(job: ClaimedJob): Promise<void>;
   resolveInputs(job: ClaimedJob): Promise<LogoResolvedConceptInput>;
   recordProviderResponse(job: ClaimedJob, observation: LogoProviderObservation): Promise<LogoProviderResponseReceipt>;
 };
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const sha256 = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
+/** A highest-quality image takes about two to three minutes. A step that times
+ * out after dispatch leaves an unknown outcome for review, so allow ample room. */
+export const LOGO_IMAGE_STEP_TIMEOUT_MS = 600_000;
 export const logoDiagnosticRequestId = (job: ClaimedJob, stepKey: string) => createHash("sha256").update(`${job.id}:${stepKey}`).digest("hex");
 const inactive = (signal: AbortSignal) => { if (signal.aborted) throw new Error("Cancelled"); };
 const unknownOutcome = (code: string, result?: LogoImageProductionResult): StepOutcome => ({ status: "needs_reconciliation", code,
@@ -30,7 +34,7 @@ const unknownOutcome = (code: string, result?: LogoImageProductionResult): StepO
  * resolution and before-dispatch checks belong to the operation-specific step.
  * This stages bytes only; shared leased completion alone commits an output. */
 export async function executeLogoRasterAttempt(options: {
-  deps: Pick<LogoConceptHandlerDependencies, "producer" | "assets" | "recordProviderResponse">;
+  deps: Pick<LogoConceptHandlerDependencies, "model" | "producer" | "assets" | "recordProviderResponse">;
   job: ClaimedJob; input: LogoResolvedConceptInput | LogoResolvedRefinementInput; images: readonly VerifiedAssetBytes[]; stepKey: string; publicationRequestKey: string;
   signal: AbortSignal; output(publicationId: string, providerResponseReceiptId: string): Extract<StepOutcome, { status: "succeeded" }>["result"];
 }): Promise<StepOutcome> {
@@ -57,7 +61,7 @@ export async function executeLogoRasterAttempt(options: {
   }
   let receipt: LogoProviderResponseReceipt;
   try {
-    const observation = logoProviderObservationSchema.parse({ provider: "openai", model: IMAGE_MODEL, providerRequestId: result.providerRequestId, responseHash: result.responseHash,
+    const observation = logoProviderObservationSchema.parse({ provider: "openai", model: deps.model, providerRequestId: result.providerRequestId, responseHash: result.responseHash,
       observedAt: new Date().toISOString(), billing: result.billing, artifactHash, ...(normalizedPixelHash ? { normalizedPixelHash } : {}) });
     receipt = logoProviderResponseReceiptSchema.parse(await deps.recordProviderResponse(job, observation));
     if ("version" in receipt || receipt.ownerId !== job.ownerId || receipt.projectId !== job.projectId || receipt.jobId !== job.id || receipt.leaseToken !== job.leaseToken
@@ -110,7 +114,7 @@ export function createLogoConceptHandler(deps: LogoConceptHandlerDependencies): 
     if (job.operation !== LOGO_CONCEPT_OPERATION || input.ownerId !== job.ownerId || input.projectId !== job.projectId || input.handlerVersion !== LOGO_IMAGE_HANDLER_VERSION) throw new Error("Invalid concept job binding");
     moneySchema.parse(job.reservedCostMicrousd);
     const key = `logo-preview-v1:${input.slotId}:${input.attemptId}`;
-    return [{ key, maximumCostMicrousd: job.reservedCostMicrousd, timeoutMs: 300_000,
+    return [{ key, maximumCostMicrousd: job.reservedCostMicrousd, timeoutMs: LOGO_IMAGE_STEP_TIMEOUT_MS,
       async execute({ job: claimed, signal }) {
         let resolved: LogoResolvedConceptInput, images: readonly VerifiedAssetBytes[];
         try {

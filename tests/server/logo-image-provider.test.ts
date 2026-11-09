@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { buildLogoConceptPrompt, buildLogoRefinementPrompt, createLogoImageProvider, type LogoImageConfiguration } from "../../src/server/logo-creation/openai-logo-provider";
 import { OpenAIImageTransportError, type OpenAIImageResponse } from "../../src/server/logo-creation/openai-image-transport";
-import { IMAGE_MODEL } from "../../src/domain/providers";
+import { CAPPED_LOGO_IMAGE_MODEL, IMAGE_MODEL } from "../../src/domain/providers";
 import { syntheticResolvedLogoConcept, syntheticResolvedLogoRefinement } from "../fixtures/logo-creation";
 const config: LogoImageConfiguration = { apiKey: "synthetic-only", model: IMAGE_MODEL, policyIdentity: "c".repeat(64), handlerVersion: "logo-image-v1", priceUsage: usage => usage ? { status: "recorded", confirmedMicrousd: 1000 } : { status: "unknown", confirmedMicrousd: null } };
 const result: OpenAIImageResponse = { bytes: new Uint8Array([137, 80, 78, 71]), mimeType: "image/png", providerRequestId: "req_fixture", responseHash: "a".repeat(64), usage: { input_tokens: 2, output_tokens: 1, input_tokens_details: { text_tokens: 2, image_tokens: 0 } } };
@@ -32,6 +32,16 @@ describe("logo image producer capability and frozen prompt", () => {
     expect(output).toMatchObject({ status: "completed", bytes: result.bytes, billing: { status: "recorded", confirmedMicrousd: 1000 } });
     expect(createImage).toHaveBeenCalledTimes(1); expect(createImage.mock.calls[0]![1]).toBe("original-diagnostic-id");
     expect(createImage.mock.calls[0]![0].model).toBe(IMAGE_MODEL);
+  });
+  it("asks for the highest quality on a transparent background; the capped 2.5 policy keeps medium on white", async () => {
+    for (const [model, quality, background, wording, other] of [[IMAGE_MODEL, "max", "transparent", "fully transparent background", "plain white background"],
+      [CAPPED_LOGO_IMAGE_MODEL, "medium", "opaque", "plain white background", "fully transparent background"]] as const) {
+      const createImage = vi.fn().mockResolvedValue(result), producer = createLogoImageProvider({ configuration: { ...config, model }, transport: { createImage } })!;
+      expect((await producer.produce(syntheticResolvedLogoConcept(), [], "trace", new AbortController().signal)).status).toBe("completed");
+      const request = createImage.mock.calls[0]![0];
+      expect(request).toMatchObject({ model, quality, background }); expect(request.prompt).toContain(wording); expect(request.prompt).not.toContain(other);
+    }
+    expect(buildLogoRefinementPrompt(syntheticResolvedLogoRefinement())).toContain("fully transparent background");
   });
   it("valid preview without usage cannot become a free charge, even with an unsafe mapper", async () => {
     const producer = createLogoImageProvider({ configuration: { ...config, priceUsage: () => ({ status: "recorded", confirmedMicrousd: 0 }) }, transport: { createImage: async () => ({ ...result, usage: null }) } })!;

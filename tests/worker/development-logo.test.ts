@@ -7,7 +7,7 @@ import { createDevelopmentLogoProductionStorageAuthorization, createLogoProducti
 import { createDevelopmentLogoConnection, createLogoProductionConnection } from "../../worker/logo-production-connection";
 import { readDevelopmentLogoConfiguration, runDevelopmentLogo, DevelopmentLogoDrainUnconfirmedError } from "../../worker/development/logo";
 import { readDevelopmentWorkerConfiguration } from "../../worker/development/config";
-import { IMAGE_MODEL } from "../../src/domain/providers";
+import { CAPPED_LOGO_IMAGE_MODEL } from "../../src/domain/providers";
 import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/logo-creation/openai-image-pricing";
 import { LOGO_EXPORT_HANDLER_VERSION, LOGO_EXPORT_POLICY_IDENTITY } from "../../worker/handlers/logo-exports";
 import { QUALIFIED_VTRACER } from "../../worker/logo-vector/engine";
@@ -25,7 +25,7 @@ const authUser = randomUUID(), sessionId = randomUUID(), role = "embel_developme
 const token = (issuer = origin, user = authUser) => `${Buffer.from('{"alg":"ES256"}').toString("base64url")}.${Buffer.from(JSON.stringify({ sub: user, session_id: sessionId,
   role: "authenticated", aud: "authenticated", iss: `${issuer}/auth/v1`, exp: 2_000_000_000, is_anonymous: false })).toString("base64url")}.synthetic_signature`;
 const concept: LogoWorkerCapability = { operation: "identity.logo_concept", policyIdentity: resolved.input.policyIdentity,
-  handlerVersion: "logo-image-v1", provider: "openai", model: IMAGE_MODEL, engine: null, maxCostMicrousd: 100_000 };
+  handlerVersion: "logo-image-v1", provider: "openai", model: CAPPED_LOGO_IMAGE_MODEL, engine: null, maxCostMicrousd: 100_000 };
 const vector: LogoWorkerCapability = { operation: "identity.logo_vectorize", policyIdentity: "a".repeat(64), handlerVersion: "1", provider: null, model: null,
   engine: { id: "vtracer", version: QUALIFIED_VTRACER.version, artifactHash: QUALIFIED_VTRACER.wasm }, maxCostMicrousd: 0 };
 const exports: LogoWorkerCapability = { operation: "identity.logo_export", policyIdentity: LOGO_EXPORT_POLICY_IDENTITY,
@@ -106,10 +106,10 @@ it("accepts only an explicitly selected supported operation union and never subs
   expect(readDevelopmentLogoConfiguration({ ...environment(), EMBEL_DEVELOPMENT_LOGO_OPERATIONS: "{}" })).toBeNull();
   expect(readDevelopmentLogoConfiguration({ ...environment(), EMBEL_DEVELOPMENT_LOGO_OPERATIONS: JSON.stringify({ directions: {} }) })).toBeNull();
   const paid = { ...environment(), EMBEL_DEVELOPMENT_LOGO_OPERATIONS: JSON.stringify({ concepts: concept }), FLUID_PAID_CALLS_APPROVED: "true",
-    EMBEL_DEVELOPMENT_MODEL: IMAGE_MODEL, EMBEL_DEVELOPMENT_VERIFIED_MODELS: IMAGE_MODEL,
+    EMBEL_DEVELOPMENT_MODEL: CAPPED_LOGO_IMAGE_MODEL, EMBEL_DEVELOPMENT_VERIFIED_MODELS: CAPPED_LOGO_IMAGE_MODEL,
     EMBEL_DEVELOPMENT_IMAGE_RATE_VERSION: SUNBURST_STANDARD_IMAGE_PRICING.binding.rateVersion, OPENAI_API_KEY: "platform-agent-key-not-for-application" };
   expect(readDevelopmentLogoConfiguration(paid)).toBeNull();
-  expect(readDevelopmentLogoConfiguration({ ...paid, EMBEL_DEVELOPMENT_PROVIDER_API_KEY: "explicit-development-image-test-key" })?.image?.model).toBe(IMAGE_MODEL);
+  expect(readDevelopmentLogoConfiguration({ ...paid, EMBEL_DEVELOPMENT_PROVIDER_API_KEY: "explicit-development-image-test-key" })?.image?.model).toBe(CAPPED_LOGO_IMAGE_MODEL);
 });
 
 it("composes only the selected local operation brokers, runs and drains the real-host port without provider I/O", async () => {

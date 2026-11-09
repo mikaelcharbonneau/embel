@@ -8,7 +8,7 @@ vi.mock("server-only", () => ({}));
 import { parseLogoConceptConfiguration, readProtectedLogoConceptConfiguration, startLogoConceptWorker,
   type LogoConceptStorageAuthorization, type LogoConceptStartupDependencies } from "../../worker/logo-concept-startup";
 import type { OpenAIImageTransport } from "../../src/server/logo-creation/openai-image-transport";
-import { IMAGE_MODEL } from "../../src/domain/providers";
+import { CAPPED_LOGO_IMAGE_MODEL } from "../../src/domain/providers";
 import { logoFixtureId as id } from "../fixtures/logo-creation";
 
 const secret = "synthetic-secret-never-display";
@@ -19,7 +19,7 @@ const input = () => ({
   FLUID_LOGO_STORAGE_AUTH_USER_ID: id(3), FLUID_LOGO_SUPABASE_URL: "https://fricsfwqibyhemknqgyf.supabase.co",
   FLUID_LOGO_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_synthetic",
   FLUID_LOGO_CONCEPT_POLICY_IDENTITY: "c".repeat(64), FLUID_LOGO_CONCEPT_MAX_COST_MICROUSD: "2000",
-  FLUID_LOGO_IMAGE_MODEL: IMAGE_MODEL, FLUID_LOGO_IMAGE_PRICE_VERSION: "2026-10-07.v1", FLUID_LOGO_PAID_CALLS_APPROVED: "true",
+  FLUID_LOGO_IMAGE_MODEL: CAPPED_LOGO_IMAGE_MODEL, FLUID_LOGO_IMAGE_PRICE_VERSION: "2026-10-07.v1", FLUID_LOGO_PAID_CALLS_APPROVED: "true",
 });
 const roots: string[] = [];
 afterEach(async () => { await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true }))); });
@@ -92,7 +92,7 @@ describe("dedicated concept worker startup", () => {
     const started = await startLogoConceptWorker({ configuration: parseLogoConceptConfiguration(input()), storage: f.storage }, f.dependencies);
     expect(started.status).toBe("ready"); if (started.status !== "ready") throw new Error("Expected constructed runtime");
     expect(started.runtime.manifest.map(cap => cap.operation)).toEqual(["identity.logo_concept"]);
-    expect(started.runtime.manifest[0]).toMatchObject({ model: IMAGE_MODEL, handlerVersion: "logo-image-v1", maxCostMicrousd: 2000 });
+    expect(started.runtime.manifest[0]).toMatchObject({ model: CAPPED_LOGO_IMAGE_MODEL, handlerVersion: "logo-image-v1", maxCostMicrousd: 2000 });
     expect(Object.entries(started.runtime.capabilities).filter(([, value]) => value.status === "available").map(([key]) => key)).toEqual(["identity.logo_concept"]);
     expect(f.events).toEqual(["storage-ready", "principal"]); expect(f.storage.authorize).not.toHaveBeenCalled();
     const config = vi.mocked(f.dependencies.createPool).mock.calls[0]![0];
@@ -198,7 +198,7 @@ describe("actual concept adapter composition with synthetic transports", () => {
     const started = await startLogoConceptWorker({ configuration: parseLogoConceptConfiguration(input()), storage }, { ...f.dependencies, imageTransport: { createImage } });
     if (started.status !== "ready") throw new Error("Expected runtime");
     expect(await started.runtime.tick()).toBe("succeeded");
-    expect(createImage).toHaveBeenCalledOnce(); expect(createImage.mock.calls[0]![0]).toMatchObject({ model: IMAGE_MODEL, size: "1024x1024", quality: "medium", images: [] });
+    expect(createImage).toHaveBeenCalledOnce(); expect(createImage.mock.calls[0]![0]).toMatchObject({ model: CAPPED_LOGO_IMAGE_MODEL, size: "1024x1024", quality: "medium", images: [] });
     expect(observedBilling).toEqual({ status: "recorded", confirmedMicrousd: 100 });
     expect(storage.authorize).toHaveBeenCalledWith(expect.objectContaining({ ownerId: job.ownerId, projectId: job.projectId, jobId: job.id, leaseToken: job.leaseToken,
       reservation: expect.objectContaining({ id: reservation.id, storagePath: reservation.storagePath }) }), expect.any(AbortSignal));

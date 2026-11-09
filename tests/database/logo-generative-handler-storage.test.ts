@@ -10,6 +10,7 @@ import {
 import type { ClaimedJob, StepOutcome } from "../../src/domain/jobs";
 import { logoConceptStepOutputSchema, logoRefinementStepOutputSchema } from "../../src/domain/logo-jobs";
 import { identityAssetPublicationSchema } from "../../src/domain/logo-deliverables";
+import { CAPPED_LOGO_IMAGE_MODEL } from "../../src/domain/providers";
 import { loadLogoConceptInputs, loadLogoRefinementInputs, loadLogoStepAsset, recordLogoProviderResponse } from "../../src/server/data/logo-jobs";
 import type { LogoImageProducer } from "../../src/server/logo-creation/openai-logo-provider";
 import { IMAGE_INPUT_LIMITS } from "../../src/server/logo-creation/openai-image-transport";
@@ -117,7 +118,7 @@ describe("actual generative handlers through leased metadata and Storage RLS", (
       mimeType: "image/png", providerRequestId: "synthetic-no-provider-call", responseHash: "e".repeat(64),
       billing: { status: "recorded", confirmedMicrousd: 1 },
     }));
-    const common = { producer: { produce }, assets: assets!, assertPolicyReady: authorization!.assertAvailable,
+    const common = { model: CAPPED_LOGO_IMAGE_MODEL, producer: { produce }, assets: assets!, assertPolicyReady: authorization!.assertAvailable,
       recordProviderResponse: (bound: ClaimedJob, observation: Parameters<typeof recordLogoProviderResponse>[2]) => recordLogoProviderResponse(f.connection, bound, observation) };
     const composition = createLogoOperationComposition({
       concepts: job.operation === "identity.logo_concept" ? { ...common, resolveInputs: bound => loadLogoConceptInputs(f.connection, bound) } : null,

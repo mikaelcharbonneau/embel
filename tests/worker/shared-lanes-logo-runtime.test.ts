@@ -3,6 +3,8 @@ import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
 vi.mock('server-only',()=>({}));
 import {randomUUID,createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
+import {IMAGE_MODEL} from '../../src/domain/providers';
+import {applySharedImageModel} from '../database/shared-image-model-fixture';
 import type {UncappedLogoRasterCapability} from '../../src/domain/logo-jobs';
 import sharp from 'sharp';
 import {createSharedStorageFixture,SHARED_STORAGE_ACTOR,SHARED_STORAGE_SESSION,SHARED_STORAGE_ORIGIN,OWNER_A,type SharedStorageFixture} from '../database/shared-storage-fixture';
@@ -34,7 +36,7 @@ function engine(options:{reservation?:IdentityAssetReservation;bytes?:Uint8Array
    if(values?.[2]==='receipt'){receiptCalls.push(structuredClone(values));if(options.loseReceiptAck&&receiptCalls.length===1)throw Error('Query read timeout');}
    return result;
   }finally{if(f.db.isInTransaction())await f.db.exec('rollback');await f.db.exec('set session authorization postgres');}}},slot:f.slot,deploymentId:'dpl_shared_storage_fixture',
-  workerId:'synthetic-shared-logo',provider:{apiKey:'synthetic-never-live-key',model:conceptCapability.model!,modelVerificationReceipt:'synthetic-image-proof'},
+  workerId:'synthetic-shared-logo',provider:{apiKey:'synthetic-never-live-key',model:(options.capability??conceptCapability).model!,modelVerificationReceipt:'synthetic-image-proof'},
   capabilities:[options.capability??conceptCapability,{...(options.capability??conceptCapability),operation:'identity.logo_refine'}],storage:async(execution,capability)=>createSharedLogoStorageAuthorization({
    targetOrigin:SHARED_STORAGE_ORIGIN,publishableKey:'sb_publishable_synthetic_fixture',slot:f.slot,execution,capability:(()=>{const value=qualifiedLogoRasterCapability(capability);if(!value)throw Error("Non-generative fixture capability");return value;})(),
    session:{authUserId:SHARED_STORAGE_ACTOR,sessionId:SHARED_STORAGE_SESSION,tokenProvider:async()=>token}},
@@ -78,9 +80,10 @@ describe('actual shared Logo engine and SQL with synthetic Auth/Storage/provider
  // The uncapped case executes two real native image pipelines plus SQL receipt
  // recovery. Give that work room on shared CI CPUs without changing its checks.
  it.each([false,true])('keeps a generated concept usable when its committed receipt acknowledgement is lost; uncapped=%s',async uncapped=>{
-  const capability:UncappedLogoRasterCapability={operation:'identity.logo_concept',policyIdentity:'a5'.repeat(32),handlerVersion:'logo-image-v1',provider:'openai',model:conceptCapability.model as UncappedLogoRasterCapability['model'],engine:null,spendControl:'uncapped',estimatedCostMicrousd:1};
+  const capability:UncappedLogoRasterCapability={operation:'identity.logo_concept',policyIdentity:'a5'.repeat(32),handlerVersion:'logo-image-v1',provider:'openai',model:IMAGE_MODEL,engine:null,spendControl:'uncapped',estimatedCostMicrousd:1};
   if(uncapped){
    for(const file of ['shared_logo_advanced.sql','shared_logo_raster_uncapped.sql'])await f.db.exec(await readFile(new URL('../../supabase/candidates/'+file,import.meta.url),'utf8'));
+   await applySharedImageModel(f.db);
    for(const operation of ['identity.logo_concept','identity.logo_refine'])await f.db.query('update fluid_private.shared_worker_policies set policy_identity=$2,policy=$3 where slot_id=$1 and operation=$4',[f.slotId,capability.policyIdentity,{...capability,operation},operation]);
    await f.action(null,'runtime_ready',[[capability,{...capability,operation:'identity.logo_refine'}]]);
   }

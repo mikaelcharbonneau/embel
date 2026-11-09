@@ -4,7 +4,7 @@ import { isDeepStrictEqual } from "node:util";
 import { decodeJwt } from "jose";
 import { z } from "zod";
 import { moneySchema, type ClaimedJob } from "../src/domain/jobs";
-import { IMAGE_MODEL } from "../src/domain/providers";
+import { CAPPED_LOGO_IMAGE_MODEL } from "../src/domain/providers";
 import { LOGO_MUTATION_MAX_BYTES, logoAssetReferenceSchema, logoUuidSchema } from "../src/domain/logo-vector";
 import { logoConceptJobInputSchema, logoRefinementJobInputSchema, uncappedLogoRasterCapabilitySchema, type UncappedLogoRasterCapability } from "../src/domain/logo-jobs";
 import { identityAssetPublicationSchema, type IdentityAssetPublication } from "../src/domain/logo-deliverables";
@@ -60,7 +60,7 @@ export function qualifiedLogoGenerativeStorageCapability(input: unknown): LogoWo
   try {
     const cap = freezeLogoWorkerManifest([input])[0]!;
     if (!["identity.logo_concept", "identity.logo_refine"].includes(cap.operation) || cap.handlerVersion !== LOGO_IMAGE_HANDLER_VERSION
-      || cap.provider !== "openai" || cap.model !== IMAGE_MODEL || cap.engine !== null || cap.maxCostMicrousd <= 0 || cap.billingMode !== undefined || cap.policy !== undefined) return null;
+      || cap.provider !== "openai" || cap.model !== CAPPED_LOGO_IMAGE_MODEL || cap.engine !== null || cap.maxCostMicrousd <= 0 || cap.billingMode !== undefined || cap.policy !== undefined) return null;
     return cap;
   } catch { return null; }
 }

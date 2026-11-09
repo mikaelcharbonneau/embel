@@ -92,6 +92,10 @@
     {
       "path": "supabase/candidates/shared_logo_style_notes.sql",
       "sha256": "b256be7ffc288c8afe04b6a1db72a74c710e5c0f32934b5e8a460d2a8cf63d09"
+    },
+    {
+      "path": "supabase/candidates/shared_image_model_2_6.sql",
+      "sha256": "5fac624f0863301c90a429d48d24f2688c8b20ea1b860c4585260fceb4eb35c9"
     }
   ],
   "functions": [
@@ -1687,7 +1691,7 @@
       "name": "shared_identity_policy_valid",
       "owner": "postgres",
       "schema": "fluid_private",
-      "sha256": "e2351a1d36fe75bdb592fa28f36de3b9cd0e498a6ce1491e7dbba15cda17d9c7",
+      "sha256": "af52375a1519291d34e005f2cf0461f29ba4399b2ffbff581bf674c7e864b0ed",
       "language": "sql",
       "leakproof": false,
       "searchPath": [
@@ -1767,7 +1771,7 @@
       "name": "shared_identity_receipt_complete",
       "owner": "postgres",
       "schema": "fluid_private",
-      "sha256": "8f41b1dc3e67af22b40cab680a85ecde6ad7e5f5d168b515c12edf663937cd37",
+      "sha256": "69591378f21c74255a6ea439f5144de27db4eab848dea2b9e4ba33da529b25e3",
       "language": "plpgsql",
       "leakproof": false,
       "searchPath": [
@@ -2887,7 +2891,7 @@
       "name": "shared_logo_raster_observation_valid",
       "owner": "postgres",
       "schema": "fluid_private",
-      "sha256": "b0cb8a192a0efce31f637c7fa2c11553f06217a6a60d97a76991a250b2daabd3",
+      "sha256": "c06667120f6a980524e2c46114742b677454cc076d839851dd5cd5973682bba8",
       "language": "plpgsql",
       "leakproof": false,
       "searchPath": [
@@ -2907,7 +2911,7 @@
       "name": "shared_logo_raster_policy_valid",
       "owner": "postgres",
       "schema": "fluid_private",
-      "sha256": "6e07e1c0a55437933d3dad1b519cf9d96f6cbf22f2ee5a84d85aea9fa88b6078",
+      "sha256": "85a7b8e20632341a5b24e6968a42c2a99b45ad0e8f0e8c3ce7a7ad12fb3a2ed9",
       "language": "plpgsql",
       "leakproof": false,
       "searchPath": [
@@ -3007,7 +3011,7 @@
       "name": "shared_logo_record_response",
       "owner": "postgres",
       "schema": "fluid_private",
-      "sha256": "a0622f75d8df889907a2f321e42fa902bdc786da4223c65db0e54d185d299b18",
+      "sha256": "7a393465ec3c99c93ad16e1cad0e954f22e3dde4115f8a71a98e64f25370275c",
       "language": "plpgsql",
       "leakproof": false,
       "searchPath": [
@@ -4851,7 +4855,7 @@
       "name": "get_shared_identity_availability",
       "owner": "postgres",
       "schema": "public",
-      "sha256": "f14686c3fcf29159065f15c44e817bb7e73e7dc14502baf59e59448cb8ad8dc3",
+      "sha256": "911ade04d58e68bdfcdf8b6917f39c009e4d19b78cfd18d2fb656ac861eccfdd",
       "language": "plpgsql",
       "leakproof": false,
       "searchPath": [
