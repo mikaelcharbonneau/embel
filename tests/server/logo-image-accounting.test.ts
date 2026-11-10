@@ -2,9 +2,9 @@ import { createHash } from "node:crypto";
 import sharp from "sharp";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-import { createOpenAIImageTransport } from "../../src/server/logo-creation/openai-image-transport";
-import { createLogoImageProvider, type LogoImageConfiguration } from "../../src/server/logo-creation/openai-logo-provider";
-import { createSunburstStandardImageUsagePricer, SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/logo-creation/openai-image-pricing";
+import { createOpenAIImageTransport } from "../../src/server/ai/openai-image-transport";
+import { createLogoImageProvider, type LogoImageConfiguration } from "../../src/server/ai/logo-image-prompts";
+import { createSunburstStandardImageUsagePricer, SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/ai/openai-image-pricing";
 import type { VerifiedAssetBytes } from "../../src/domain/logo-deliverables";
 import { syntheticResolvedLogoConcept, syntheticResolvedLogoRefinement } from "../fixtures/logo-creation";
 

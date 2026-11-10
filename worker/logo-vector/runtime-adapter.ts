@@ -10,7 +10,7 @@ import { assertLogoConversionNotAborted, verifyLogoRasterSource } from "../../sr
 import { publishLogoVectorResult } from "../../src/features/logo-vector/server/publication";
 import { freezeLogoWorkerManifest, type LogoWorkerCapability } from "../logo-readiness";
 import { LOGO_VECTOR_HANDLER_VERSION, type LogoVectorHandlerDependencies } from "./handler";
-import { QUALIFIED_VTRACER } from "./engine";
+import { QUALIFIED_VTRACER } from "../../src/server/image-process/engine";
 
 export type LogoVectorRuntimeAdapterInput = {
   ownerId: string;

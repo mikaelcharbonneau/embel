@@ -7,7 +7,7 @@ import type { ClaimedJob } from '../../src/domain/jobs';
 import type { IdentityAssetReservation } from '../../src/server/data/identity-asset-store';
 import type { IdentityAssetPublication } from '../../src/domain/logo-deliverables';
 import { LOGO_EXPORT_POLICY_IDENTITY } from '../../worker/handlers/logo-exports';
-import { QUALIFIED_VTRACER } from '../../worker/logo-vector/engine';
+import { QUALIFIED_VTRACER } from '../../src/server/image-process/engine';
 import { syntheticConversionInput } from '../features/logo-vector/raster-fixtures';
 const uuid = randomUUID, hash = (b: Uint8Array) => createHash('sha256').update(b).digest('hex');
 const ORIGIN = 'https://fricsfwqibyhemknqgyf.supabase.co', owner = uuid(), authUser = uuid(), sessionId = uuid(), project = uuid();

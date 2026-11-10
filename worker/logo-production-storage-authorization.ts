@@ -16,7 +16,7 @@ import { canonicalLogoDocumentBytes } from "../src/features/logo-vector/model/ca
 import { validateLogoVectorSvg } from "../src/features/logo-vector/model/svg";
 import { validateLogoExportAssetBytes } from "../src/features/identity-deliverables/server/validate-assets";
 import { LOGO_EXPORT_POLICY_IDENTITY, LOGO_EXPORT_HANDLER_VERSION } from "./handlers/logo-exports";
-import { QUALIFIED_VTRACER } from "./logo-vector/engine";
+import { QUALIFIED_VTRACER } from "../src/server/image-process/engine";
 import { freezeLogoWorkerManifest, type LogoWorkerCapability } from "./logo-readiness";
 import { readDevelopmentConfiguration } from "../src/server/development/config";
 

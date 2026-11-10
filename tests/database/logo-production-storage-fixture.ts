@@ -11,7 +11,7 @@ import type { ClaimedJob } from '../../src/domain/jobs';
 import type { LogoWorkerConnection } from '../../src/server/data/logo-jobs';
 import { parseClaimedJob } from '../../worker/postgres-store';
 import { LOGO_EXPORT_POLICY_IDENTITY } from '../../worker/handlers/logo-exports';
-import { QUALIFIED_VTRACER } from '../../worker/logo-vector/engine';
+import { QUALIFIED_VTRACER } from '../../src/server/image-process/engine';
 import { vectorMemberRequestKey } from '../../src/features/logo-vector/server/publication';
 import { logoExportFileRequestKey } from '../../src/features/identity-deliverables/server/publish';
 import { syntheticConversionInput } from '../features/logo-vector/raster-fixtures';

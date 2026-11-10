@@ -9,7 +9,7 @@ import { assertSupportedExportRuntime, LOGO_ENGINE_VERSIONS, LOGO_RENDER_POLICY,
 import { canonicalIdentityInput } from "../src/features/identity-directions/model/font-check-binding";
 import { freezeLogoWorkerManifest, type LogoWorkerCapability } from "./logo-readiness";
 import type { LogoProductionRuntimeScope } from "./logo-production-startup";
-import { QUALIFIED_VTRACER } from "./logo-vector/engine";
+import { QUALIFIED_VTRACER } from "../src/server/image-process/engine";
 import { qualifyExportSentinel, qualifyVectorSentinel } from "./logo-production-sentinels";
 import pins from "./logo-production-runtime-pins.json";
 

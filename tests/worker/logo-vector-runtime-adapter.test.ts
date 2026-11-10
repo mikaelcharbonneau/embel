@@ -9,7 +9,7 @@ import { validateLogoVectorSvg } from "../../src/features/logo-vector/model/svg"
 import { validateLogoVectorDocument } from "../../src/features/logo-vector/model/geometry";
 import { createLogoVectorHandler } from "../../worker/logo-vector/handler";
 import { createLogoVectorRuntimeAdapter } from "../../worker/logo-vector/runtime-adapter";
-import { QUALIFIED_VTRACER } from "../../worker/logo-vector/engine";
+import { QUALIFIED_VTRACER } from "../../src/server/image-process/engine";
 import { syntheticConversionInput } from "../features/logo-vector/raster-fixtures";
 
 const id = (n: number) => `66666666-6666-4666-8666-${String(n).padStart(12, "0")}`;

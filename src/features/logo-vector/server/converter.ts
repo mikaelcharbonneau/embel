@@ -7,7 +7,7 @@ import type { LogoType } from "../../../domain/logo-workspace";
 import { LogoVectorError } from "../model/errors";
 import { validateLogoVectorDocument } from "../model/geometry";
 import { serializeLogoSvg } from "../model/svg";
-import { runIdentityRasterProcess, runLogoConceptGrayscaleProcess, runLogoVectorProcess } from "../../../../worker/logo-vector/process";
+import { runIdentityRasterProcess, runLogoConceptGrayscaleProcess, runLogoVectorProcess } from "../../../server/image-process/process";
 import { IMAGE_INPUT_LIMITS } from "../../../domain/logo-image-limits";
 
 export const LOGO_RASTER_LIMITS = Object.freeze({ bytes: 33_554_432, pixels: 16_777_216, edge: 8192, timeoutMs: 60_000, teardownMs: 5_000 });

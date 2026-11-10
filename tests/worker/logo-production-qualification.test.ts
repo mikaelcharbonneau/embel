@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 vi.mock("node:fs/promises", async importOriginal => { const actual = await importOriginal<typeof import("node:fs/promises")>(); return { ...actual, open: vi.fn(actual.open) }; });
 import { createLogoProductionRuntimeQualification } from "../../worker/logo-production-qualification";
-import { QUALIFIED_VTRACER } from "../../worker/logo-vector/engine";
+import { QUALIFIED_VTRACER } from "../../src/server/image-process/engine";
 const ownerId = "10000000-0000-4000-8000-000000000001", workerId = "qualification-test";
 const capability = () => ({ operation: "identity.logo_vectorize" as const, policyIdentity: "b".repeat(64), handlerVersion: "1", provider: null, model: null, engine: { id: "vtracer", version: QUALIFIED_VTRACER.version, artifactHash: QUALIFIED_VTRACER.wasm }, maxCostMicrousd: 0 });
 const closing: (() => Promise<void>)[] = [];
@@ -26,7 +26,7 @@ describe("independent non-generative production qualification", () => {
 
 import * as sentinel from "../../worker/logo-production-sentinels";
 import * as files from "node:fs/promises";
-import * as vectorProcess from "../../worker/logo-vector/process";
+import * as vectorProcess from "../../src/server/image-process/process";
 import * as renderProcess from "../../src/features/identity-deliverables/server/process";
 import { LOGO_EXPORT_HANDLER_VERSION, LOGO_EXPORT_POLICY_IDENTITY } from "../../worker/handlers/logo-exports";
 import { LOGO_QUALIFICATION_DEADLINE_MS, LOGO_QUALIFICATION_PROOF_TTL_MS, LOGO_QUALIFICATION_DRAIN_MS } from "../../worker/logo-production-qualification";

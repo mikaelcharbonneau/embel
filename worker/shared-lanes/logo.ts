@@ -16,9 +16,9 @@ import { qualifiedLogoRasterCapability,type LogoRasterStorageAuthorization } fro
 import { createLogoConceptHandler } from "../handlers/logo-concepts";
 import { createLogoRefinementHandler } from "../handlers/logo-refinements";
 import { runOneJob,type HandlerRegistry } from "../runner";
-import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/logo-creation/openai-image-pricing";
+import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/ai/openai-image-pricing";
 import type { SharedLaneBase,SharedLaneEngine,SharedLaneResult } from "./contracts";
-import type { OpenAIImageTransport } from "../../src/server/logo-creation/openai-image-transport";
+import type { OpenAIImageTransport } from "../../src/server/ai/openai-image-transport";
 import { createSharedLaneGateway } from "./gateway";
 import {qualifySharedLogoCapability,type SharedLogoCapability} from "./logo-capability";
 import {createSharedAdvancedLogoAssetStore,type SharedAdvancedLogoStorageAuthorization} from "./logo-storage";

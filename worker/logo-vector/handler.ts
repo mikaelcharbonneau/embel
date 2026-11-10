@@ -5,7 +5,7 @@ import type { ClaimedJob, StepOutcome } from "../../src/domain/jobs";
 import { LogoVectorError } from "../../src/features/logo-vector/model/errors";
 import { assertLogoConversionNotAborted, convertLogoRaster, type LogoVectorWorkInput, type LogoVectorConversionResult } from "../../src/features/logo-vector/server/converter";
 import type { JobHandler } from "../runner";
-import { QUALIFIED_VTRACER } from "./engine";
+import { QUALIFIED_VTRACER } from "../../src/server/image-process/engine";
 
 export const LOGO_VECTOR_HANDLER_VERSION = "1";
 export type LogoVectorHandlerDependencies = {

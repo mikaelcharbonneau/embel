@@ -3,12 +3,12 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import nodeModule from "node:module";
 import { dirname, join } from "node:path";
-import { logoTraceSettingsSchema, logoTypeSchema, type LogoTraceSettings, type LogoType, type LogoVectorDocument, type LogoVectorPath } from "../../src/domain/logo-vector";
-import { LogoVectorError } from "../../src/features/logo-vector/model/errors";
-import { canonicalizeLogoPath, encodeLogoPath, validateLogoVectorDocument } from "../../src/features/logo-vector/model/geometry";
-import { validateLogoVectorSvg } from "../../src/features/logo-vector/model/svg";
-import { VECTOR_LIMITS } from "../../src/features/logo-vector/model/limits";
-import type { LogoRasterObservation } from "../../src/features/logo-vector/server/converter";
+import { logoTraceSettingsSchema, logoTypeSchema, type LogoTraceSettings, type LogoType, type LogoVectorDocument, type LogoVectorPath } from "../../domain/logo-vector";
+import { LogoVectorError } from "../../features/logo-vector/model/errors";
+import { canonicalizeLogoPath, encodeLogoPath, validateLogoVectorDocument } from "../../features/logo-vector/model/geometry";
+import { validateLogoVectorSvg } from "../../features/logo-vector/model/svg";
+import { VECTOR_LIMITS } from "../../features/logo-vector/model/limits";
+import type { LogoRasterObservation } from "../../features/logo-vector/server/converter";
 
 export const QUALIFIED_VTRACER = Object.freeze({
   version: "1.0.0-alpha.4", wasm: "63716b70497b7468ef97545b50f5f34b8bbb7acde2d7b00deb4eb40781446d45",

@@ -10,8 +10,8 @@ import { IMAGE_MODEL } from "../../src/domain/providers";
 import { logoVectorProposalUsageCost, logoVectorProposalUsageSchema } from "../../src/domain/logo-vector-proposal-jobs";
 import type { VerifiedAssetBytes } from "../../src/domain/logo-deliverables";
 import { createOpenAIResponsesTransport, OpenAITransportError, type OpenAIResponsesTransport, type ResponsesRequest } from "../../src/server/ai/openai-transport";
-import { createOpenAIImageTransport, OpenAIImageTransportError, validateLogoImageInputs, type OpenAIImageRequest, type OpenAIImageTransport } from "../../src/server/logo-creation/openai-image-transport";
-import { createSunburstStandardImageUsagePricer, SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/logo-creation/openai-image-pricing";
+import { createOpenAIImageTransport, OpenAIImageTransportError, validateLogoImageInputs, type OpenAIImageRequest, type OpenAIImageTransport } from "../../src/server/ai/openai-image-transport";
+import { createSunburstStandardImageUsagePricer, SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/ai/openai-image-pricing";
 import { inspectIdentityRaster } from "../../src/server/data/identity-asset-store";
 
 export const identityDigest=(value:string|Uint8Array)=>createHash("sha256").update(value).digest("hex");

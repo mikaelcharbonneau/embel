@@ -11,8 +11,8 @@ import { identityAssetPublicationSchema, type IdentityAssetPublication } from ".
 import type { IdentityAssetReservation } from "../src/server/data/identity-asset-store";
 import { createSupabasePrivateAssetStorage } from "../src/server/runtime/private-asset-storage";
 import { inspectIdentityRaster } from "../src/features/logo-vector/server/converter";
-import { IMAGE_INPUT_LIMITS } from "../src/server/logo-creation/openai-image-transport";
-import { LOGO_IMAGE_HANDLER_VERSION } from "../src/server/logo-creation/openai-logo-provider";
+import { IMAGE_INPUT_LIMITS } from "../src/server/ai/openai-image-transport";
+import { LOGO_IMAGE_HANDLER_VERSION } from "../src/server/ai/logo-image-prompts";
 import { freezeLogoWorkerManifest, type LogoWorkerCapability } from "./logo-readiness";
 import { readDevelopmentConfiguration } from "../src/server/development/config";
 

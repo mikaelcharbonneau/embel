@@ -6,7 +6,7 @@ import type { IdentityAssetReservation } from '../../src/server/data/identity-as
 import type { IdentityAssetPublication } from '../../src/domain/logo-deliverables';
 import { syntheticConversionInput } from '../features/logo-vector/raster-fixtures';
 import { syntheticLogoJob, syntheticResolvedLogoConcept } from '../fixtures/logo-creation';
-import { IMAGE_INPUT_LIMITS } from '../../src/server/logo-creation/openai-image-transport';
+import { IMAGE_INPUT_LIMITS } from '../../src/server/ai/openai-image-transport';
 import * as broker from '../../worker/logo-generative-storage-authorization';
 const uuid = randomUUID, hash = (b: Uint8Array) => createHash('sha256').update(b).digest('hex');
 const ORIGIN = 'https://fricsfwqibyhemknqgyf.supabase.co', authUser = uuid(), sessionId = uuid();

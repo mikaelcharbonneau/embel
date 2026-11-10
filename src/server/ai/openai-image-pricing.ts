@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { CAPPED_LOGO_IMAGE_MODEL, IMAGE_MODEL } from "../../domain/providers";
 import type { LogoBillingObservation } from "../../domain/logo-jobs";
-import type { LogoImageConfiguration } from "./openai-logo-provider";
+import type { LogoImageConfiguration } from "./logo-image-prompts";
 import { logoImageUsageSchema } from "./openai-image-usage";
 
 /** Official Standard rates checked 2026-10-07 for gpt-image-2.5-sunburst and

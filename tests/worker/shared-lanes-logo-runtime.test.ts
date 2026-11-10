@@ -13,7 +13,7 @@ import {createSharedLogoLaneEngine} from '../../worker/shared-lanes/logo';
 import {createSharedLogoStorageAuthorization} from '../../worker/shared-storage/authorization';
 import {sharedPendingExecutionSchema} from '../../worker/shared-pool/contracts';
 import {logoCostQuoteSchema,logoDispatchReceiptSchema} from '../../src/domain/logo-jobs';
-import {OpenAIImageTransportError,type OpenAIImageResponse} from '../../src/server/logo-creation/openai-image-transport';
+import {OpenAIImageTransportError,type OpenAIImageResponse} from '../../src/server/ai/openai-image-transport';
 import type {IdentityAssetReservation} from '../../src/server/data/identity-asset-store';
 
 let f:SharedStorageFixture;

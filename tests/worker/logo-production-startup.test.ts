@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import type { IdentityAssetStore } from "../../src/server/data/identity-asset-store";
 import type { LogoWorkerConnection } from "../../src/server/data/logo-jobs";
-import { QUALIFIED_VTRACER } from "../../worker/logo-vector/engine";
+import { QUALIFIED_VTRACER } from "../../src/server/image-process/engine";
 import { LOGO_EXPORT_HANDLER_VERSION, LOGO_EXPORT_POLICY_IDENTITY } from "../../worker/handlers/logo-exports";
 import { startLogoProductionWorker, type LogoProductionStartupOptions } from "../../worker/logo-production-startup";
 import { logoFixtureId as id } from "../fixtures/logo-creation";
@@ -152,7 +152,7 @@ describe("explicit injected non-generative logo startup", () => {
 });
 
 import { CAPPED_LOGO_IMAGE_MODEL } from "../../src/domain/providers";
-import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/logo-creation/openai-image-pricing";
+import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/ai/openai-image-pricing";
 import type { LogoProductionImageOperationInput } from "../../worker/logo-production-startup";
 function imageOperation(f: ReturnType<typeof fixture>, operation: "identity.logo_concept" | "identity.logo_refine"): LogoProductionImageOperationInput {
   return { capability: { operation, policyIdentity: "c".repeat(64), handlerVersion: "logo-image-v1", provider: "openai", model: CAPPED_LOGO_IMAGE_MODEL, engine: null, maxCostMicrousd: 2000 },

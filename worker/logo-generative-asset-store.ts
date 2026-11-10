@@ -6,7 +6,7 @@ import { logoConceptJobInputSchema, logoRefinementJobInputSchema } from "../src/
 import { identityAssetPublicationSchema } from "../src/domain/logo-deliverables";
 import { createIdentityAssetStore, createPostgresIdentityAssetBackend, type IdentityAssetReservation, type IdentityAssetStore } from "../src/server/data/identity-asset-store";
 import type { LogoWorkerConnection } from "../src/server/data/logo-jobs";
-import { IMAGE_INPUT_LIMITS } from "../src/server/logo-creation/openai-image-transport";
+import { IMAGE_INPUT_LIMITS } from "../src/server/ai/openai-image-transport";
 import { qualifiedLogoRasterCapability, type LogoRasterStorageAuthorization, type LogoGenerativeStorageRead, type LogoGenerativeStorageWrite } from "./logo-generative-storage-authorization";
 const unavailable = () => new Error("Logo generative assets are unavailable.");
 /** Per-call composition only: metadata and exact-object capabilities never live

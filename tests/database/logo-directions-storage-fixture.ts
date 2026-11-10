@@ -22,7 +22,7 @@ import { createLogoVectorMutationProducers } from '../../src/features/logo-vecto
 import { publishLogoVectorResult } from '../../src/features/logo-vector/server/publication';
 import { validateLogoVectorCandidate, verifyLogoVectorRevision } from '../../src/features/logo-vector/server/revisions';
 import type { LogoVectorConversionResult } from '../../src/features/logo-vector/server/converter';
-import { QUALIFIED_VTRACER } from '../../worker/logo-vector/engine';
+import { QUALIFIED_VTRACER } from '../../src/server/image-process/engine';
 import { parseClaimedJob } from '../../worker/postgres-store';
 import { separatedLogoDocument } from '../features/logo-vector/fixtures';
 

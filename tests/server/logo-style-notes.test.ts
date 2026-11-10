@@ -15,7 +15,7 @@ import type { ReferenceElement } from "@/domain/identity-references";
 import type { LogoType } from "@/domain/logo-workspace";
 import { deriveSavedLogoInputs, likedUploadNotes } from "@/server/data/logo-saved-inputs";
 import type { AuthenticatedContext } from "@/server/auth/context";
-import { buildLogoConceptPrompt } from "@/server/logo-creation/openai-logo-provider";
+import { buildLogoConceptPrompt } from "@/server/ai/logo-image-prompts";
 import { planSixConcepts } from "@/server/logo-creation/concept-plan";
 import { syntheticResolvedLogoConcept } from "../fixtures/logo-creation";
 

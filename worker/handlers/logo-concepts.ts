@@ -10,8 +10,8 @@ import { ApiError } from "../../src/server/http/errors";
 import type { IdentityAssetStore } from "../../src/server/data/identity-asset-store";
 import { inspectIdentityRaster, normalizeLogoConceptRaster } from "../../src/features/logo-vector/server/converter";
 import { resolveLogoReferenceInputs } from "../../src/server/logo-creation/reference-inputs";
-import { IMAGE_INPUT_LIMITS } from "../../src/server/logo-creation/openai-image-transport";
-import { LOGO_IMAGE_HANDLER_VERSION, type LogoImageProducer, type LogoImageProductionResult } from "../../src/server/logo-creation/openai-logo-provider";
+import { IMAGE_INPUT_LIMITS } from "../../src/server/ai/openai-image-transport";
+import { LOGO_IMAGE_HANDLER_VERSION, type LogoImageProducer, type LogoImageProductionResult } from "../../src/server/ai/logo-image-prompts";
 import type { JobHandler } from "../runner";
 
 export type LogoConceptHandlerDependencies = {

@@ -25,7 +25,7 @@ function fixture(selectedLogo=false,name="Logo fixture"){
  const publishLeasedAsset=vi.fn<IdentityAssetStore["publishLeasedAsset"]>(async(_job,publication,bytes)=>({id:id(publishCounter++),reference:{assetId:id(300),versionId:id(publishCounter++),ownerId,projectId,contentHash:hash(bytes)},verification:{status:"verified" as const,checkedAt:timestamp,mimeType:"image/png",byteLength:bytes.byteLength,contentHash:hash(bytes)},purpose:"brand_asset",sourceReceiptId:publication.source.sourceId,rightsEvidenceId:null,publicationState:"staged"}));
  const readLeasedAsset=vi.fn<IdentityAssetStore["readLeasedAsset"]>(async(_job,ref)=>({reference:ref,mimeType:"image/png",bytes:Uint8Array.from(reference),verification:{status:"verified" as const,checkedAt:timestamp,mimeType:"image/png",byteLength:reference.byteLength,contentHash:hash(reference)}}));
  const assets:IdentityAssetStore={publishLeasedAsset,readLeasedAsset,stageOwnedAsset:vi.fn(),publishOwnedUpload:vi.fn(),readOwnedAsset:vi.fn()};
- const createResponse=vi.fn(async()=>response(selectedLogo?boardSpecification(++textCounter):specification(++textCounter))),countInputTokens=vi.fn(async()=>100),createImage=vi.fn(async(request:import("../../src/server/logo-creation/openai-image-transport").OpenAIImageRequest)=>{void request;return {bytes:boards[imageCounter++]!,mimeType:"image/png" as const,providerRequestId:"req_board",responseHash:"b".repeat(64),usage:imageUsage};});
+ const createResponse=vi.fn(async()=>response(selectedLogo?boardSpecification(++textCounter):specification(++textCounter))),countInputTokens=vi.fn(async()=>100),createImage=vi.fn(async(request:import("../../src/server/ai/openai-image-transport").OpenAIImageRequest)=>{void request;return {bytes:boards[imageCounter++]!,mimeType:"image/png" as const,providerRequestId:"req_board",responseHash:"b".repeat(64),usage:imageUsage};});
  const options={ownerId,capability,textProvider:{apiKey:"synthetic-test-only",model:textPolicy.model},image:imageConfiguration,connection,assets,assertAvailable,textTransport:{countInputTokens,createResponse},imageTransport:{createImage}};
  return{job,options,systems,observations,knownCalls,querySpy,onAuthorize,onStage,publishLeasedAsset,readLeasedAsset,assertAvailable,createResponse,createImage};
 }
@@ -74,7 +74,7 @@ describe("Full Identity system pipeline — real raster inspection, mocked provi
   const input=selectedLogoJobInput(reference);if(input.version!==3||result.status!=='succeeded')throw Error('Expected selected-logo output');
   expect(f.readLeasedAsset.mock.calls[0]![1]).toEqual(input.sourceLogo.preview.reference);
   expect(f.readLeasedAsset).toHaveBeenCalledTimes(1);
-  const request=f.createImage.mock.calls[0]![0] as import('../../src/server/logo-creation/openai-image-transport').OpenAIImageRequest;
+  const request=f.createImage.mock.calls[0]![0] as import('../../src/server/ai/openai-image-transport').OpenAIImageRequest;
   expect(request.images).toHaveLength(1);expect(request.images[0]!.reference).toEqual(input.sourceLogo.preview.reference);
   expect(request.prompt).toContain('Keep its exact symbol');
   const output=identityStepOutputSchema.parse(result.result).identity;

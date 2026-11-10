@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { parseLogoConceptConfiguration, readProtectedLogoConceptConfiguration, startLogoConceptWorker,
   type LogoConceptStorageAuthorization, type LogoConceptStartupDependencies } from "../../worker/logo-concept-startup";
-import type { OpenAIImageTransport } from "../../src/server/logo-creation/openai-image-transport";
+import type { OpenAIImageTransport } from "../../src/server/ai/openai-image-transport";
 import { CAPPED_LOGO_IMAGE_MODEL } from "../../src/domain/providers";
 import { logoFixtureId as id } from "../fixtures/logo-creation";
 

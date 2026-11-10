@@ -10,7 +10,7 @@ vi.mock("../../worker/logo-production-qualification", () => ({ createLogoProduct
 }) }));
 import { startLogoProductionHost, type LogoProductionHostOptions } from "../../worker/logo-production-host";
 import type { LogoProductionStorageAuthorization } from "../../worker/logo-production-storage-authorization";
-import { QUALIFIED_VTRACER } from "../../worker/logo-vector/engine";
+import { QUALIFIED_VTRACER } from "../../src/server/image-process/engine";
 import { LOGO_EXPORT_HANDLER_VERSION, LOGO_EXPORT_POLICY_IDENTITY } from "../../worker/handlers/logo-exports";
 import { syntheticConversionInput } from "../features/logo-vector/raster-fixtures";
 import type { LogoWorkerCapability } from "../../worker/logo-readiness";
@@ -167,7 +167,7 @@ describe("explicit dedicated production host", () => {
 import type { LogoGenerativeStorageAuthorization } from "../../worker/logo-generative-storage-authorization";
 import type { LogoProductionImageHostOperation } from "../../worker/logo-production-host";
 import { CAPPED_LOGO_IMAGE_MODEL } from "../../src/domain/providers";
-import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/logo-creation/openai-image-pricing";
+import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/ai/openai-image-pricing";
 function imageHostOperation(operation: "identity.logo_concept" | "identity.logo_refine"): LogoProductionImageHostOperation {
   const capability: LogoWorkerCapability = { operation, policyIdentity: "c".repeat(64), handlerVersion: "logo-image-v1",
     provider: "openai", model: CAPPED_LOGO_IMAGE_MODEL, engine: null, maxCostMicrousd: 2000 };

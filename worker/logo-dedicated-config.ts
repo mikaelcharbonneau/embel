@@ -10,7 +10,7 @@ import type { PoolConfig } from "pg";
 import { decodeJwt } from "jose";
 import { z } from "zod";
 import { CAPPED_LOGO_IMAGE_MODEL } from "../src/domain/providers";
-import { SUNBURST_STANDARD_IMAGE_PRICING } from "../src/server/logo-creation/openai-image-pricing";
+import { SUNBURST_STANDARD_IMAGE_PRICING } from "../src/server/ai/openai-image-pricing";
 import { qualifiedLogoGenerativeStorageCapability } from "./logo-generative-storage-authorization";
 import { qualifiedLogoProductionStorageCapability } from "./logo-production-storage-authorization";
 import type { LogoWorkerCapability } from "./logo-readiness";

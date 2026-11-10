@@ -7,7 +7,7 @@ import { logoInputRevisionsSchema, logoVectorRevisionSchema, type LogoVectorDocu
 import type { IdentityAssetStore } from "../../../server/data/identity-asset-store";
 import { loadLogoVectorInput, readLeasedLogoRecord, type LogoWorkerConnection } from "../../../server/data/logo-jobs";
 import { logoDatabaseError, logoId, parseLogoStored } from "../../../server/data/logo-transaction";
-import { QUALIFIED_VTRACER } from "../../../../worker/logo-vector/engine";
+import { QUALIFIED_VTRACER } from "../../../server/image-process/engine";
 import { LogoVectorError } from "../model/errors";
 import { validateLogoVectorDocument } from "../model/geometry";
 import { assertLogoConversionNotAborted, type LogoVectorConversionResult } from "./converter";

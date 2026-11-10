@@ -8,9 +8,9 @@ import { createDevelopmentLogoConnection, createLogoProductionConnection } from 
 import { readDevelopmentLogoConfiguration, runDevelopmentLogo, DevelopmentLogoDrainUnconfirmedError } from "../../worker/development/logo";
 import { readDevelopmentWorkerConfiguration } from "../../worker/development/config";
 import { CAPPED_LOGO_IMAGE_MODEL } from "../../src/domain/providers";
-import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/logo-creation/openai-image-pricing";
+import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/ai/openai-image-pricing";
 import { LOGO_EXPORT_HANDLER_VERSION, LOGO_EXPORT_POLICY_IDENTITY } from "../../worker/handlers/logo-exports";
-import { QUALIFIED_VTRACER } from "../../worker/logo-vector/engine";
+import { QUALIFIED_VTRACER } from "../../src/server/image-process/engine";
 import { syntheticLogoJob, syntheticResolvedLogoConcept } from "../fixtures/logo-creation";
 import { syntheticConversionInput } from "../features/logo-vector/raster-fixtures";
 import type { ClaimedJob } from "../../src/domain/jobs";

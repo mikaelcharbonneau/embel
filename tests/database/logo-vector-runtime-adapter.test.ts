@@ -13,7 +13,7 @@ import { validateLogoVectorDocument } from "../../src/features/logo-vector/model
 import { createLogoVectorRuntimeAdapter } from "../../worker/logo-vector/runtime-adapter";
 import { createLogoWorkerRuntime } from "../../worker/logo-runtime";
 import { parseClaimedJob } from "../../worker/postgres-store";
-import { QUALIFIED_VTRACER } from "../../worker/logo-vector/engine";
+import { QUALIFIED_VTRACER } from "../../src/server/image-process/engine";
 import { syntheticConversionInput } from "../features/logo-vector/raster-fixtures";
 import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 

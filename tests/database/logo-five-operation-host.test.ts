@@ -36,11 +36,11 @@ import { prepareDirectionEvidence } from "../../src/features/identity-directions
 import { createLogoGenerativeStorageAuthorization } from "../../worker/logo-generative-storage-authorization";
 import { createLogoInputService, validateLogoInputBytes } from "../../src/server/data/logo-inputs";
 import { identityAssetReceiptSchema } from "../../src/domain/logo-deliverables";
-import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/logo-creation/openai-image-pricing";
-import type { OpenAIImageTransport } from "../../src/server/logo-creation/openai-image-transport";
+import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/ai/openai-image-pricing";
+import type { OpenAIImageTransport } from "../../src/server/ai/openai-image-transport";
 import type { IdentityPoolPort, IdentityPoolClientPort } from "../../src/server/runtime/identity-pool";
 import type { LogoWorkerCapability } from "../../worker/logo-readiness";
-import { QUALIFIED_VTRACER } from "../../worker/logo-vector/engine";
+import { QUALIFIED_VTRACER } from "../../src/server/image-process/engine";
 import { syntheticConversionInput, syntheticPng } from "../features/logo-vector/raster-fixtures";
 import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 

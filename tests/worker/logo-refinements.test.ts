@@ -5,7 +5,7 @@ vi.mock("server-only", () => ({}));
 import { IMAGE_MODEL } from "../../src/domain/providers";
 import { createLogoRefinementHandler } from "../../worker/handlers/logo-refinements";
 import type { IdentityAssetStore } from "../../src/server/data/identity-asset-store";
-import type { LogoImageProducer } from "../../src/server/logo-creation/openai-logo-provider";
+import type { LogoImageProducer } from "../../src/server/ai/logo-image-prompts";
 import type { LogoResolvedRefinementInput } from "../../src/domain/logo-jobs";
 import { logoFixtureId as id, syntheticLogoJob, syntheticResolvedLogoRefinement } from "../fixtures/logo-creation";
 let png: Uint8Array<ArrayBuffer>;

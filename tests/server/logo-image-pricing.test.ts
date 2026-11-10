@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-import { createSunburstStandardImageUsagePricer, SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/logo-creation/openai-image-pricing";
-import type { LogoImageUsage } from "../../src/server/logo-creation/openai-image-transport";
+import { createSunburstStandardImageUsagePricer, SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/ai/openai-image-pricing";
+import type { LogoImageUsage } from "../../src/server/ai/openai-image-transport";
 
 const binding = { model: "gpt-image-2.6-sunburst", api: "direct-images", serviceTier: "standard", rateVersion: "2026-10-07.v1" };
 const usage = { input_tokens: 50, output_tokens: 50, input_tokens_details: { text_tokens: 10, image_tokens: 40 } };

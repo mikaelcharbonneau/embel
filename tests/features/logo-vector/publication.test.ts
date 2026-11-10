@@ -6,7 +6,7 @@ import type { IdentityAssetReceipt, IdentityAssetPublication } from "../../../sr
 import type { IdentityAssetStore } from "../../../src/server/data/identity-asset-store";
 import type { LogoWorkerConnection } from "../../../src/server/data/logo-jobs";
 import { publishLogoVectorResult, loadLeasedLogoVectorRevision } from "../../../src/features/logo-vector/server/publication";
-import { QUALIFIED_VTRACER } from "../../../worker/logo-vector/engine";
+import { QUALIFIED_VTRACER } from "../../../src/server/image-process/engine";
 import type { LogoVectorConversionResult } from "../../../src/features/logo-vector/server/converter";
 import { canonicalLogoDocumentBytes, validateLogoVectorCandidate } from "../../../src/features/logo-vector/server/revisions";
 import { serializeLogoSvg } from "../../../src/features/logo-vector/model/svg";

@@ -4,7 +4,7 @@ vi.mock("server-only",()=>({}));
 import type {ClaimedJob} from "../../src/domain/jobs";
 import type {SharedExecution} from "../../worker/shared-pool/contracts";
 import {sharedConfiguration,sharedLease} from "./shared-pool-fixture";
-import {QUALIFIED_VTRACER} from "../../worker/logo-vector/engine";
+import {QUALIFIED_VTRACER} from "../../src/server/image-process/engine";
 import {createSharedAdvancedLogoStorageAuthorization} from "../../worker/shared-lanes/logo-storage";
 import {separatedLogoDocument} from "../features/logo-vector/fixtures";
 import {canonicalLogoDocumentBytes} from "../../src/features/logo-vector/model/canonical";

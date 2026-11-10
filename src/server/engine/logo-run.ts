@@ -4,7 +4,7 @@ import { z } from "zod";
 import { IMAGE_MODEL } from "@/domain/providers";
 import type { VerifiedAssetBytes } from "@/domain/logo-deliverables";
 import { logoTypeSchema } from "@/domain/logo-vector";
-import { logoConceptPromptText, logoRefinementPromptText } from "../logo-creation/openai-logo-provider";
+import { logoConceptPromptText, logoRefinementPromptText } from "../ai/logo-image-prompts";
 import { logServerError } from "../http/errors";
 import { EngineProviderError } from "./openai";
 import { ENGINE_LOGO_IMAGE, EngineImageRejectedError, type EngineImages } from "./openai-images";

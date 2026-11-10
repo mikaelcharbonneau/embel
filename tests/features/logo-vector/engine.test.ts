@@ -3,7 +3,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
 vi.mock("server-only", () => ({}));
-import { createLogoVectorProcessRunner } from "../../../worker/logo-vector/process";
+import { createLogoVectorProcessRunner } from "../../../src/server/image-process/process";
 import { syntheticConversionInput } from "./raster-fixtures";
 
 describe("killable conversion process", () => {

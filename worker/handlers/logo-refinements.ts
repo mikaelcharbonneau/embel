@@ -1,7 +1,7 @@
 import { moneySchema, type ClaimedJob } from "../../src/domain/jobs";
 import { logoRefinementJobInputSchema, logoResolvedRefinementInputSchema, logoRefinementStepOutputSchema, type LogoResolvedRefinementInput } from "../../src/domain/logo-jobs";
 import type { VerifiedAssetBytes } from "../../src/domain/logo-deliverables";
-import { LOGO_IMAGE_HANDLER_VERSION } from "../../src/server/logo-creation/openai-logo-provider";
+import { LOGO_IMAGE_HANDLER_VERSION } from "../../src/server/ai/logo-image-prompts";
 import { resolveLogoReferenceInputs } from "../../src/server/logo-creation/reference-inputs";
 import { inspectIdentityRaster, verifyLogoRasterSource } from "../../src/features/logo-vector/server/converter";
 import { executeLogoRasterAttempt, LOGO_IMAGE_STEP_TIMEOUT_MS, type LogoConceptHandlerDependencies } from "./logo-concepts";

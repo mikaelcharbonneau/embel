@@ -34,7 +34,7 @@ import { installProductionStorageFixture, authUser, sessionId } from "./logo-pro
 import type { IdentityPoolPort, IdentityPoolClientPort } from "../../src/server/runtime/identity-pool";
 import type { LogoWorkerCapability } from "../../worker/logo-readiness";
 import { parseClaimedJob } from "../../worker/postgres-store";
-import { QUALIFIED_VTRACER } from "../../worker/logo-vector/engine";
+import { QUALIFIED_VTRACER } from "../../src/server/image-process/engine";
 import { syntheticConversionInput } from "../features/logo-vector/raster-fixtures";
 import { ownerQuery, startLogoFixture } from "./logo-project-fixture";
 

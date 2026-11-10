@@ -8,7 +8,7 @@ import { logoVectorProposalUsageSchema, logoVectorProposalUsageCost } from "../.
 import { logoStyleNoteSchema } from "../../src/domain/logo-style-notes";
 import { createOpenAIResponsesTransport, OpenAITransportError, type OpenAIResponsesTransport } from "../../src/server/ai/openai-transport";
 
-import { createStyleNoteRequest, type StyleNoteImage } from "../../src/server/logo-creation/style-note-request";
+import { createStyleNoteRequest, type StyleNoteImage } from "../../src/server/ai/style-note-request";
 export { createStyleNoteRequest, type StyleNoteImage };
 export type StyleNoteDispatch = { job: ClaimedJob; beforeDispatch(job: ClaimedJob): Promise<void> };
 export type StyleNoteProvider = { describe(image: StyleNoteImage, signal: AbortSignal, dispatch: StyleNoteDispatch): Promise<{ outcome: StepOutcome; observation: LogoStyleNoteObservation }> };

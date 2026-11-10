@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import type { PoolConfig } from "pg";
 import { z } from "zod";
 import { CAPPED_LOGO_IMAGE_MODEL } from "../src/domain/providers";
-import { SUNBURST_STANDARD_IMAGE_PRICING } from "../src/server/logo-creation/openai-image-pricing";
+import { SUNBURST_STANDARD_IMAGE_PRICING } from "../src/server/ai/openai-image-pricing";
 
 export const CLOUD_LOGO_RUNTIME = Object.freeze({ node: "22.22.2", icu: "78.2", unicode: "17.0", platform: "linux", arch: "x64" });
 export const CLOUD_LOGO_DAEMON_NAME = "logo-worker";

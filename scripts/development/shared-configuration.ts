@@ -10,7 +10,7 @@ import { identityGenerationCapabilitySchema, identityTextPolicySchema } from "..
 import { logoDirectionsApiPolicySchema, logoStyleNoteApiPolicySchema, uncappedLogoRasterCapabilitySchema } from "../../src/domain/logo-jobs";
 import { uncappedLogoVectorProposalTextPolicySchema } from "../../src/domain/logo-vector-proposal-jobs";
 import { canonicalIdentityInput } from "../../src/features/identity-directions/model/font-check-binding";
-import { QUALIFIED_VTRACER } from "../../worker/logo-vector/engine";
+import { QUALIFIED_VTRACER } from "../../src/server/image-process/engine";
 import { LOGO_EXPORT_HANDLER_VERSION, LOGO_EXPORT_POLICY_IDENTITY } from "../../worker/handlers/logo-exports";
 import { qualifySharedLogoCapability, sharedDirectionsCapabilitySchema, sharedStyleNoteCapabilitySchema } from "../../worker/shared-lanes/logo-capability";
 import { uncappedLogoVectorProposalCapabilitySchema } from "../../worker/logo-vector-proposal-capability";

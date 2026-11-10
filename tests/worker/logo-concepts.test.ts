@@ -7,7 +7,7 @@ import { createLogoConceptHandler } from "../../worker/handlers/logo-concepts";
 import { runOneJob, type JobStore } from "../../worker/runner";
 import type { IdentityAssetStore } from "../../src/server/data/identity-asset-store";
 import type { LogoProviderObservation, LogoProviderResponseReceipt } from "../../src/domain/logo-jobs";
-import type { LogoImageProductionResult, LogoImageProducer } from "../../src/server/logo-creation/openai-logo-provider";
+import type { LogoImageProductionResult, LogoImageProducer } from "../../src/server/ai/logo-image-prompts";
 import type { StepOutcome } from "../../src/domain/jobs";
 import { inspectIdentityRaster } from "../../src/features/logo-vector/server/converter";
 import { IMAGE_INPUT_LIMITS } from "../../src/domain/logo-image-limits";

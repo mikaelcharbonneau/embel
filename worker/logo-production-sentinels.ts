@@ -1,8 +1,8 @@
 import "server-only";
 import { zipSync } from "fflate";
 import { z } from "zod";
-import { runLogoVectorProcess } from "./logo-vector/process";
-import { QUALIFIED_VTRACER } from "./logo-vector/engine";
+import { runLogoVectorProcess } from "../src/server/image-process/process";
+import { QUALIFIED_VTRACER } from "../src/server/image-process/engine";
 import { flattenLogoPaths, validateLogoVectorDocument } from "../src/features/logo-vector/model/geometry";
 import { serializeLogoSvg, validateLogoVectorSvg } from "../src/features/logo-vector/model/svg";
 import { runLogoProcess } from "../src/features/identity-deliverables/server/process";

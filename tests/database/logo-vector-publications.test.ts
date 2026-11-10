@@ -14,7 +14,7 @@ import { createIdentityAssetStore, createPostgresIdentityAssetBackend } from "..
 import { publishLogoVectorResult } from "../../src/features/logo-vector/server/publication";
 import { canonicalLogoDocumentBytes, validateLogoVectorCandidate } from "../../src/features/logo-vector/server/revisions";
 import type { LogoVectorConversionResult } from "../../src/features/logo-vector/server/converter";
-import { QUALIFIED_VTRACER } from "../../worker/logo-vector/engine";
+import { QUALIFIED_VTRACER } from "../../src/server/image-process/engine";
 import { parseClaimedJob } from "../../worker/postgres-store";
 import { separatedLogoDocument } from "../features/logo-vector/fixtures";
 import { syntheticConversionInput } from "../features/logo-vector/raster-fixtures";

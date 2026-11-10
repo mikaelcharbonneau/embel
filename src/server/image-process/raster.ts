@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { LogoVectorError } from "../../src/features/logo-vector/model/errors";
-import { IMAGE_INPUT_LIMITS } from "../../src/domain/logo-image-limits";
+import { LogoVectorError } from "../../features/logo-vector/model/errors";
+import { IMAGE_INPUT_LIMITS } from "../../domain/logo-image-limits";
 export type IdentityRasterInspection = { width: number; height: number; format: "png" | "jpeg" | "webp"; isMonochrome: boolean; pixelHash: string; originalOrientation: number; outputColorSpace: "srgb" };
 const failed = (message: string): never => { throw new LogoVectorError("conversion_failed", message); };
 function assertSingleFrame(bytes: Uint8Array, format: string): void {

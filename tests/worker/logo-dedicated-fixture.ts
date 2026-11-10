@@ -1,8 +1,8 @@
 import { CAPPED_LOGO_IMAGE_MODEL } from "../../src/domain/providers";
-import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/logo-creation/openai-image-pricing";
-import { LOGO_IMAGE_HANDLER_VERSION } from "../../src/server/logo-creation/openai-logo-provider";
+import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/ai/openai-image-pricing";
+import { LOGO_IMAGE_HANDLER_VERSION } from "../../src/server/ai/logo-image-prompts";
 import { LOGO_EXPORT_HANDLER_VERSION, LOGO_EXPORT_POLICY_IDENTITY } from "../../worker/handlers/logo-exports";
-import { QUALIFIED_VTRACER } from "../../worker/logo-vector/engine";
+import { QUALIFIED_VTRACER } from "../../src/server/image-process/engine";
 export const syntheticSecret = "synthetic-private-value-never-display";
 export const identity = { ownerId: "d0000000-0000-4000-8000-000000000001", roleName: "fluid_logo_worker_launcher_fixture", roleOid: 1234 };
 export const authUserId = "d0000000-0000-4000-8000-000000000002";

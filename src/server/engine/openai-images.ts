@@ -2,10 +2,10 @@ import "server-only";
 import { z } from "zod";
 import { IMAGE_MODEL } from "@/domain/providers";
 import type { VerifiedAssetBytes } from "@/domain/logo-deliverables";
-import { createSunburstStandardImageUsagePricer, SUNBURST_STANDARD_IMAGE_PRICING } from "../logo-creation/openai-image-pricing";
+import { createSunburstStandardImageUsagePricer, SUNBURST_STANDARD_IMAGE_PRICING } from "../ai/openai-image-pricing";
 import { decodeLogoImageReply, logoImageReplyUsage, logoImageRequestBody, readLogoImageReply, safeProviderRequestId, validateLogoImageInputs,
-  type LogoImageUsage } from "../logo-creation/openai-image-transport";
-import { LOGO_IMAGE_REQUESTS } from "../logo-creation/openai-logo-provider";
+  type LogoImageUsage } from "../ai/openai-image-transport";
+import { LOGO_IMAGE_REQUESTS } from "../ai/logo-image-prompts";
 import { EngineProviderError } from "./openai";
 
 // Logo images on the generation engine: the Images API request #212 configures

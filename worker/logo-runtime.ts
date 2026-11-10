@@ -1,12 +1,12 @@
 import { z } from "zod";
 import type { ClaimedJob } from "../src/domain/jobs";
 import { CAPPED_LOGO_IMAGE_MODEL } from "../src/domain/providers";
-import { LOGO_IMAGE_HANDLER_VERSION } from "../src/server/logo-creation/openai-logo-provider";
+import { LOGO_IMAGE_HANDLER_VERSION } from "../src/server/ai/logo-image-prompts";
 import { LOGO_DIRECTIONS_HANDLER_VERSION } from "../src/features/identity-directions/server/propose-directions";
 import type { LogoWorkerConnection } from "../src/server/data/logo-jobs";
 import { LOGO_EXPORT_HANDLER_VERSION, LOGO_EXPORT_POLICY_IDENTITY } from "./handlers/logo-exports";
 import { LOGO_VECTOR_HANDLER_VERSION } from "./logo-vector/handler";
-import { QUALIFIED_VTRACER } from "./logo-vector/engine";
+import { QUALIFIED_VTRACER } from "../src/server/image-process/engine";
 import { createLogoOperationComposition, type LogoOperation, type LogoOperationCompositionInput } from "./logo-operation-composition";
 import { createLogoJobStore } from "./logo-job-store";
 import { createLogoReadiness, freezeLogoWorkerManifest, type LogoWorkerCapability } from "./logo-readiness";

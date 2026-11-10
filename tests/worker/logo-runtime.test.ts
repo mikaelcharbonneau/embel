@@ -5,7 +5,7 @@ vi.mock("server-only", () => ({}));
 import { createLogoWorkerRuntime, type LogoWorkerRuntimeInput } from "../../worker/logo-runtime";
 import type { LogoWorkerConnection } from "../../src/server/data/logo-jobs";
 import type { LogoOperationCompositionInput } from "../../worker/logo-operation-composition";
-import type { LogoImageProductionResult } from "../../src/server/logo-creation/openai-logo-provider";
+import type { LogoImageProductionResult } from "../../src/server/ai/logo-image-prompts";
 import { CAPPED_LOGO_IMAGE_MODEL } from "../../src/domain/providers";
 import { logoFixtureId as id, syntheticLogoJob, syntheticResolvedLogoConcept } from "../fixtures/logo-creation";
 const empty = (): LogoOperationCompositionInput => ({ concepts: null, refinements: null, vector: null, directions: null, exports: null, unavailableReasons: {} });

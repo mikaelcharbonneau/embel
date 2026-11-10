@@ -10,9 +10,9 @@ import { createIdentityAssetStore, createPostgresIdentityAssetBackend, type Iden
   type IdentityAssetStore } from "../src/server/data/identity-asset-store";
 import type { LogoWorkerConnection } from "../src/server/data/logo-jobs";
 import { createPooledIdentityConnectionFactory, type IdentityPoolPort } from "../src/server/runtime/identity-pool";
-import { LOGO_IMAGE_HANDLER_VERSION } from "../src/server/logo-creation/openai-logo-provider";
-import { SUNBURST_STANDARD_IMAGE_PRICING } from "../src/server/logo-creation/openai-image-pricing";
-import type { OpenAIImageTransport } from "../src/server/logo-creation/openai-image-transport";
+import { LOGO_IMAGE_HANDLER_VERSION } from "../src/server/ai/logo-image-prompts";
+import { SUNBURST_STANDARD_IMAGE_PRICING } from "../src/server/ai/openai-image-pricing";
+import type { OpenAIImageTransport } from "../src/server/ai/openai-image-transport";
 import { createLogoWorkerRuntime } from "./logo-runtime";
 import { createLogoImageRuntimeAdapter } from "./logo-image-runtime-adapter";
 import { createLogoStorageAuthorization, type LogoStorageDependencies } from "./logo-storage-authorization";

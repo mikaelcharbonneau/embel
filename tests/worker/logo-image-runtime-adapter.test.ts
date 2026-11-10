@@ -3,8 +3,8 @@ vi.mock("server-only", () => ({}));
 import type { IdentityAssetStore } from "../../src/server/data/identity-asset-store";
 import type { LogoWorkerConnection } from "../../src/server/data/logo-jobs";
 import { CAPPED_LOGO_IMAGE_MODEL } from "../../src/domain/providers";
-import { OpenAIImageTransportError } from "../../src/server/logo-creation/openai-image-transport";
-import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/logo-creation/openai-image-pricing";
+import { OpenAIImageTransportError } from "../../src/server/ai/openai-image-transport";
+import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/ai/openai-image-pricing";
 import { createLogoImageRuntimeAdapter, type LogoImageRuntimeAdapterInput } from "../../worker/logo-image-runtime-adapter";
 import { syntheticLogoJob, syntheticResolvedLogoConcept, syntheticResolvedLogoRefinement, syntheticLogoReferences, logoFixtureId as id } from "../fixtures/logo-creation";
 

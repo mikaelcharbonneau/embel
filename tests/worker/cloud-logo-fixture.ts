@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { CLOUD_LOGO_BINDING, CLOUD_LOGO_POLICY_IDENTITY, CLOUD_LOGO_PROJECT_ID, CLOUD_LOGO_RUNTIME, CLOUD_LOGO_STORAGE_USER_ID,
   CLOUD_LOGO_WORKER_ID, readCloudLogoConfiguration, type CloudLogoMode } from "../../worker/cloud-logo-configuration";
 import { CAPPED_LOGO_IMAGE_MODEL } from "../../src/domain/providers";
-import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/logo-creation/openai-image-pricing";
+import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/ai/openai-image-pricing";
 export const cloudLogoSecret = "synthetic-private-logo-cloud-value";
 export const cloudLogoRevision = "a".repeat(40);
 export function cloudLogoInput() {

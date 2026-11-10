@@ -2,7 +2,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import sharp from "sharp";
 import { logoTypeSchema } from "../../../src/domain/logo-vector";
-import { traceLogoRaster, QUALIFIED_VTRACER } from "../../../worker/logo-vector/engine";
+import { traceLogoRaster, QUALIFIED_VTRACER } from "../../../src/server/image-process/engine";
 import { serializeLogoSvg } from "../../../src/features/logo-vector/model/svg";
 import { canonicalLogoDocumentBytes } from "../../../src/features/logo-vector/server/revisions";
 import { digestBytes, syntheticConversionInput } from "./raster-fixtures";

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { createLogoVectorHandler } from "../../../worker/logo-vector/handler";
-import { QUALIFIED_VTRACER } from "../../../worker/logo-vector/engine";
+import { QUALIFIED_VTRACER } from "../../../src/server/image-process/engine";
 import { runOneJob, type JobStore } from "../../../worker/runner";
 import type { ClaimedJob } from "../../../src/domain/jobs";
 import type { IdentityAssetReceipt } from "../../../src/domain/logo-deliverables";

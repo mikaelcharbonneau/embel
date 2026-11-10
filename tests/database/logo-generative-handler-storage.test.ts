@@ -12,8 +12,8 @@ import { logoConceptStepOutputSchema, logoRefinementStepOutputSchema } from "../
 import { identityAssetPublicationSchema } from "../../src/domain/logo-deliverables";
 import { CAPPED_LOGO_IMAGE_MODEL } from "../../src/domain/providers";
 import { loadLogoConceptInputs, loadLogoRefinementInputs, loadLogoStepAsset, recordLogoProviderResponse } from "../../src/server/data/logo-jobs";
-import type { LogoImageProducer } from "../../src/server/logo-creation/openai-logo-provider";
-import { IMAGE_INPUT_LIMITS } from "../../src/server/logo-creation/openai-image-transport";
+import type { LogoImageProducer } from "../../src/server/ai/logo-image-prompts";
+import { IMAGE_INPUT_LIMITS } from "../../src/server/ai/openai-image-transport";
 import { createLogoGenerativeStorageAuthorization, type LogoGenerativeStorageAuthorization } from "../../worker/logo-generative-storage-authorization";
 import { createLogoGenerativeAssetStore } from "../../worker/logo-generative-asset-store";
 import { createLogoOperationComposition } from "../../worker/logo-operation-composition";

@@ -8,7 +8,7 @@ import { identityAssetReceiptSchema, verifiedAssetBytesSchema, type VerifiedAsse
 import type { ClaimedJob, StepOutcome } from "../../src/domain/jobs";
 import type { IdentityAssetStore } from "../../src/server/data/identity-asset-store";
 import type { LogoWorkerConnection } from "../../src/server/data/logo-jobs";
-import type { OpenAIImageTransport } from "../../src/server/logo-creation/openai-image-transport";
+import type { OpenAIImageTransport } from "../../src/server/ai/openai-image-transport";
 import type { OpenAIResponsesTransport } from "../../src/server/ai/openai-transport";
 import { IMAGE_INPUT_LIMITS } from "../../src/domain/logo-image-limits";
 import { logoVectorProposalUsageCost, logoVectorProposalUsageSchema } from "../../src/domain/logo-vector-proposal-jobs";

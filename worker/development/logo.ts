@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { readDevelopmentConfiguration } from "../../src/server/development/config";
 import { CAPPED_LOGO_IMAGE_MODEL } from "../../src/domain/providers";
-import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/logo-creation/openai-image-pricing";
+import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/ai/openai-image-pricing";
 import { createDevelopmentLogoGenerativeStorageAuthorization, qualifiedLogoGenerativeStorageCapability } from "../logo-generative-storage-authorization";
 import { createDevelopmentLogoProductionStorageAuthorization, qualifiedLogoProductionStorageCapability } from "../logo-production-storage-authorization";
 import { startLogoProductionHost, type LogoProductionHostOptions, type LogoProductionHost } from "../logo-production-host";

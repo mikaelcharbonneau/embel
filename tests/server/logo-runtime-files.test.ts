@@ -2,14 +2,13 @@ import { build } from "esbuild";
 import { describe, expect, it } from "vitest";
 import { appConfig } from "../../next.config";
 
-// The web app starts three isolated helper processes from source files at run
-// time (image checks, text shaping, brand-board rendering). Vercel only ships the
+// The web app starts two isolated helper processes from source files at run
+// time (image checks and brand-board rendering). Vercel only ships the
 // files listed for them in next.config.ts, so a helper that imports an unlisted
 // file crashes on Vercel while working locally. That broke every image check from
 // October 18 to November 10, 2026 (src/domain/logo-image-limits.ts was missing).
 const HELPERS = [
-  "worker/logo-vector/process.ts",
-  "worker/logo-vector/text-process.ts",
+  "src/server/image-process/process.ts",
   "src/features/identity-deliverables/server/render-process.mjs",
 ];
 // Every route group that may start a helper, including the engine's workflow steps.
@@ -19,7 +18,7 @@ async function localInputs(entry: string): Promise<string[]> {
   const result = await build({
     entryPoints: [entry], bundle: true, write: false, platform: "node", format: "esm", packages: "external", metafile: true,
     logLevel: "silent", tsconfig: "tsconfig.json",
-    define: { __EMBEL_LOGO_RASTER_ENTRYPOINT__: "undefined", __EMBEL_LOGO_TEXT_ENTRYPOINT__: "undefined", __EMBEL_LOGO_RENDER_ENTRYPOINT__: "undefined" },
+    define: { __EMBEL_LOGO_RENDER_ENTRYPOINT__: "undefined" },
   });
   return Object.keys(result.metafile.inputs).filter(path => !path.startsWith("node_modules/")).sort();
 }

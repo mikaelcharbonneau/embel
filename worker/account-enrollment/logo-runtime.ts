@@ -9,7 +9,7 @@ import { qualifiedLogoGenerativeStorageCapability,createLogoGenerativeStorageAut
 import { createLogoGenerativeAssetStore } from "../logo-generative-asset-store";
 import { startLogoProductionWorker } from "../logo-production-startup";
 import type { LogoWorkerConnection } from "../../src/server/data/logo-jobs";
-import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/logo-creation/openai-image-pricing";
+import { SUNBURST_STANDARD_IMAGE_PRICING } from "../../src/server/ai/openai-image-pricing";
 import { parseLogoDedicatedConfiguration } from "../logo-dedicated-config";
 import { createLocalLogoStorageSession,verifyLocalLogoStorageSession } from "../logo-local-storage-session";
 import { inspectIdentityRaster } from "../../src/features/logo-vector/server/converter";

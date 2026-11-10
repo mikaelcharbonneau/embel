@@ -6,7 +6,7 @@ import { logoReferenceSnapshotSchema, type LogoReferenceSnapshot } from "../../d
 import { verifiedAssetBytesSchema, type VerifiedAssetBytes } from "../../domain/logo-deliverables";
 import type { IdentityAssetStore } from "../data/identity-asset-store";
 import { inspectIdentityRaster } from "../../features/logo-vector/server/converter";
-import { IMAGE_INPUT_LIMITS } from "./openai-image-transport";
+import { IMAGE_INPUT_LIMITS } from "../ai/openai-image-transport";
 
 const active = (signal: AbortSignal) => { if (signal.aborted) throw new Error("Reference read cancelled"); };
 /** Snapshot IDs are source provenance, not proof of rights. readLeasedAsset's
