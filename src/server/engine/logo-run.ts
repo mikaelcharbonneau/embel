@@ -5,6 +5,7 @@ import { IMAGE_MODEL } from "@/domain/providers";
 import type { VerifiedAssetBytes } from "@/domain/logo-deliverables";
 import { logoTypeSchema } from "@/domain/logo-vector";
 import { logoConceptPromptText, logoRefinementPromptText } from "../logo-creation/openai-logo-provider";
+import { logServerError } from "../http/errors";
 import { EngineProviderError } from "./openai";
 import { ENGINE_LOGO_IMAGE, EngineImageRejectedError, type EngineImages } from "./openai-images";
 import { EngineStorageError, type EngineStorage, type OwnedAsset } from "./storage";
@@ -166,7 +167,11 @@ export async function drawLogoImage(deps: LogoRunDeps, run: ClaimedLogoRun, targ
   if (reply.kind === "unusable") return save(deps, run, target.key, { ...failure(reply.code), provider }, reply.providerRequestId, reply.costMicrousd);
   let bytes: Uint8Array, inspection: Awaited<ReturnType<LogoRasterChecks["inspect"]>>;
   try { bytes = await deps.raster.normalize(reply.bytes); inspection = await deps.raster.inspect(bytes, "image/png"); }
-  catch { return save(deps, run, target.key, { ...failure("invalid_output"), provider }, reply.providerRequestId, reply.costMicrousd); }
+  catch (error) {
+    // A paid image that fails its check is recorded; say why in the logs (type, code, code locations only).
+    logServerError("logo_image_check_failed", error, { kind: run.kind, image: target.key });
+    return save(deps, run, target.key, { ...failure("invalid_output"), provider }, reply.providerRequestId, reply.costMicrousd);
+  }
   if (inspection.width !== 1024 || inspection.height !== 1024) return save(deps, run, target.key, { ...failure("invalid_dimensions"), provider }, reply.providerRequestId, reply.costMicrousd);
   if (!inspection.isMonochrome) return save(deps, run, target.key, { ...failure("chromatic_output"), provider }, reply.providerRequestId, reply.costMicrousd);
   // A run stopped while this image was drawn keeps its usage but stores no file.
