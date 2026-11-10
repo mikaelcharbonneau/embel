@@ -10,6 +10,7 @@ const logoRuntimeFiles = [
   "src/domain/assets.ts",
   "src/domain/conversation.ts",
   "src/domain/logo-directions.ts",
+  "src/domain/logo-image-limits.ts",
   "src/domain/logo-vector.ts",
   "src/domain/naming.ts",
   "src/domain/projects.ts",
